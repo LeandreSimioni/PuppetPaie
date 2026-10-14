@@ -1,0 +1,23 @@
+# ESSAI DE L'ENVIRONNEMENT PROTEGE `publication` (14/10/2026), sans aucune cle : un travail qui attend l'approbation
+# de Leandre, puis dit s'il voit un secret (il ne doit y en avoir aucun pour l'instant). Sert a eprouver l'approbation
+# depuis le telephone et le refus d'une branche autre que `main`. A retirer quand le vrai flux de publication existera.
+
+name: Essai de publication
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  attendre:
+    runs-on: ubuntu-latest
+    environment: publication
+    steps:
+      - name: Approuve
+        env:
+          CLE: ${{ secrets.PUPPETPAIE_CLE_SIGNATURE }}
+        run: |
+          echo "Approuve par : ${{ github.triggering_actor }} ; branche : ${{ github.ref_name }}"
+          if [ -n "$CLE" ]; then echo "un secret de signature est pose"; else echo "aucun secret de signature (attendu)"; fi
