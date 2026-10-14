@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PuppetPaie</title>
+<link rel="stylesheet" href="/interface.css?v={{EMPREINTE}}">
+{{STYLE_COMPAGNIE}}
+</head>
+<body data-jeton="{{JETON}}" data-copie="{{COPIE}}">
+<!-- LE VOILE DU DEMARRAGE (22/09/2026) : une roue, et la page n'apparait
+     qu'une fois peinte. Retire par `finirChargement` dans js/demarrage.js. -->
+<div id="chargement" aria-live="polite"><div class="roue"></div><div>PuppetPaie s'ouvre&hellip;</div></div>
+
+<header class="bandeau">
+  <!-- A GAUCHE, AVANT LE LOGO, AVEC UNE MAISON (Leandre, 08/10/2026) : le
+       chemin vers l'accueil se cherche la ou commence la page. -->
+  <button type="button" class="retour-accueil" id="fenetre-accueil" title="Fermer cette compagnie et revenir au choix des compagnies"><svg viewBox="0 0 24 24" class="maison" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5.5 9.5V20h5v-6h3v6h5V9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg> Les compagnies</button>
+  <div class="marque">
+    <svg viewBox="0 0 64 40" class="logo" aria-hidden="true">
+      <rect x="0" y="0" width="64" height="3" class="filet"/>
+      <text x="0" y="34" class="pp">PP</text>
+    </svg>
+    <div>
+      <strong>PuppetPaie</strong>
+      <span class="sous">paies d'intermittents</span>
+      <!-- La version, sous le nom : elle etait dans la fenetre de lancement
+           (tkinter), qui a disparu avec la fenetre unique du 16/09/2026.
+           « Je vois pas la version » -- la voici, remplie par le serveur. -->
+      <span class="sous version">version {{VERSION}}{{EDITION}}</span>
+      <span class="copie-dev">{{COPIE_TEXTE}}</span>
+    </div>
+  </div>
+  <nav class="onglets">
+    <button data-vue="paie" class="actif">Paie</button>
+    <button data-vue="configuration">Configuration</button>
+    <button data-vue="historique">Historique</button>
+    <!-- LES EXPORTS (22/09/2026) : « il faut vraiment un endroit où on peut
+         faire des exports, pour les trucs comptables ». Un onglet à part, et
+         non un bouton dans Historique : ce qu'on y fait ne regarde pas un
+         mois mais une période, et rien n'y part nulle part — un export lit. -->
+    <button data-vue="exports">Exports</button>
+  </nav>
+  <div class="etat" id="etat-global"></div>
+  <!-- SIGNALER UN PROBLEME : sur tous les ecrans, discret. La boite est dans
+       js/filet.js (boiteSignalement). -->
+  <button type="button" class="signaler" id="signaler" title="Écrire à l'éditeur : un problème, une envie, une idée">Un problème, une idée ?</button>
+  <!-- REVENIR A L'ACCUEIL DES COMPAGNIES (ticket #113, 02/10/2026) : « il
+       manque un bouton pour revenir à l'accueil des cies ». C'est le lanceur
+       qui tient l'accueil : le bouton ne se montre que dans la fenetre
+       PuppetPaie dont le lanceur sait y revenir (`fenetreNative`). -->
+  <!-- LES BOUTONS DE LA FENETRE (16/09/2026). Dans la fenetre PuppetPaie
+       (pywebview, sans bordure systeme : « juste une fenetre totale, sans la
+       barre noire ») le bandeau EST la barre de titre : on le tire pour
+       deplacer, double-clic pour agrandir, et ces trois boutons parlent au
+       lanceur (`pywebview.api`). Dans un navigateur, `body` n'a pas la classe
+       `fenetre` et rien de tout ca ne s'affiche. -->
+  <div class="fenetre-boutons" aria-hidden="true">
+    <button id="fenetre-reduire" title="Réduire">&#x2014;</button>
+    <button id="fenetre-agrandir" title="Agrandir / restaurer">&#x25A1;</button>
+    <button id="fenetre-fermer" class="fermer" title="Fermer PuppetPaie">&#x2715;</button>
+  </div>
+</header>
+<div class="fenetre-poignee" id="fenetre-poignee" title="Redimensionner"></div>
+
+<!-- Ce que le logiciel fait tout seul pendant qu'on travaille : la sauvegarde
+     du dossier prive dans le Drive, et le releve des retours. On l'affiche
+     parce qu'un travail de fond invisible est un travail dont on ne sait pas
+     s'il a lieu -- et parce que c'est ici qu'on apprend qu'un retour est
+     arrive. -->
+<div class="veille" id="veille" hidden>
+  <span class="veille-texte" id="veille-texte"></span>
+  <button class="lien" id="veille-maintenant">relever maintenant</button>
+</div>
+
+<main>
+
+<!-- ------------------------------------------------------------- PAIE -->
+<section id="vue-paie" class="vue">
+
+  <div class="colonnes">
+    <div class="col-saisie">
+      <!-- IL N'Y A PLUS DE « PAR DÉFAUT POUR LE MOIS », et c'est le
+           12/09/2026 qui l'a vidé, champ par champ :
+
+             « Pas besoin de taux de cachet : on met de base le dernier taux
+               donné. Simple et efficace. »
+             « Pas besoin de date de paiement, c'est juste écrit dans le
+               contrat — la fin du mois, pas besoin de l'afficher. »
+             « Et pas de lieu là-haut : c'est lié au contrat, le lieu. »
+
+           Les trois avaient la même excuse — « ça se répète d'une paie à
+           l'autre » — et le même défaut : un champ affiché est un champ à
+           remplir, à relire et à ne pas se tromper, pour une valeur qui ne
+           change jamais. Le taux se reprend du dernier saisi, la date de
+           paiement est le dernier jour du mois, et le lieu appartient au
+           cachet (chaque engagement a le sien, sous ses lignes de paie).
+
+           Ce qui n'a jamais été ici, et pourquoi : le spectacle. Une paie est
+           un spectacle est un numéro d'objet — un contrat ne peut en porter
+           qu'un — et un mois en porte plusieurs. En faire un défaut du mois,
+           c'était laisser un déroulant choisir à notre place ce qui part en
+           DSN. -->
+      <div class="grille-mois">
+        <!-- LE MOIS (25/09/2026) : une seule case. Les flèches y sont, et un
+             clic n'importe où ailleurs ouvre les douze mois de l'année. La
+             valeur vit dans le champ caché #mois, que toute la page lit. -->
+        <div class="choix-mois" id="choix-mois">
+          <span class="choix-mois-lib">Mois</span>
+          <div class="choix-mois-case">
+            <button type="button" class="choix-mois-pas" id="mois-avant"
+                    title="Mois précédent" aria-label="Mois précédent">&lsaquo;</button>
+            <button type="button" class="choix-mois-nom" id="mois-nom"
+                    aria-haspopup="true" aria-expanded="false">—</button>
+            <button type="button" class="choix-mois-pas" id="mois-apres"
+                    title="Mois suivant" aria-label="Mois suivant">&rsaquo;</button>
+          </div>
+          <div class="choix-mois-grille" id="mois-grille" hidden></div>
+          <input type="hidden" id="mois">
+        </div>
+        <span class="note" id="rappels-mois"></span>
+      </div>
+
+      <!-- « Il faut aussi un bouton tout sélectionner en haut, pour pouvoir
+           tout envoyer d'un coup » (12/09/2026). En haut, et pas dans la
+           barre d'actions groupées : celle-ci n'apparaît qu'une fois quelque
+           chose de coché, donc elle ne pouvait pas porter le geste qui coche
+           la première. Elle garde « tout décocher », qui n'a de sens qu'une
+           fois là. -->
+      <h2>Les engagements
+        <span class="discret">— chacun porte son état</span></h2>
+      <div id="engagements"></div>
+      <!-- Un mois passe sans fichier de paie (16/09/2026, « je voulais que
+           l'historique soit au meme endroit que les paies ») : ce que la
+           compagnie a declare ce mois-la avant PuppetPaie, lu dans
+           l'historique importe. Lecture seule. -->
+      <div id="declare-avant" hidden></div>
+      <button class="secondaire" id="ajouter-engagement">+ un engagement</button>
+      <!-- Un contrat signé un mois précédent et qui court encore (15/09/2026,
+           contrats sur plusieurs mois) : le bloc arrive prérempli et ses
+           bornes verrouillées, il ne reste qu'à poser les jours du mois.
+           Le bouton ne se montre que s'il y a quelque chose à reprendre. -->
+      <!-- UN MOIS FERMÉ QUI SE ROUVRE (18/09/2026). Passé le 15 du mois
+           suivant, le mois est en lecture seule : sa DSN était due. Mais une
+           DSN oubliée doit pouvoir partir — en retard, et en le sachant.
+           C'était `--forcer` en ligne de commande et rien du tout ici. Le
+           bouton ne rouvre pas d'un clic : il ouvre l'avertissement, et
+           c'est la réponse qui rouvre, pour ce mois-là seulement. -->
+      <button class="secondaire alerte" id="rouvrir-mois" hidden>Rouvrir ce mois (DSN en retard)</button>
+
+      <!-- Plus de barre d'actions groupées ni de case par carte (15/09/2026) :
+           les boîtes DPAE et signature de la colonne de droite listent chaque
+           contrat avec sa case, cochée d'avance sur ce qui reste à faire. -->
+
+      <!-- UN SEUL BOUTON, et c'est une correction du 12/09/2026 : « je
+           comprends pas les boutons en bas produire le mois et enregistrer la
+           saisie, tout est déjà dans les cases ». Il avait raison — ce qui est
+           tapé dans une case EST la saisie, et lui demander de le redire d'un
+           clic, c'était lui faire garder en tête un état que la machine
+           connaît mieux que lui. La saisie s'enregistre donc toute seule, une
+           seconde après la dernière frappe, et la ligne d'état dit quand.
+           Produire, en revanche, reste un bouton : ça consomme des numéros de
+           bulletin et ça écrit des fichiers qui partiront. -->
+      <!-- « Il y a toujours le bouton produire le mois, que je ne sais pas à
+           quoi il correspond — si c'est envoyer la DSN, il faut l'écrire
+           comme tel ! » (12/09/2026). Il ne l'est pas, et c'était bien le
+           problème : « produire » ne dit ni ce qui est fabriqué, ni que rien
+           ne part. Ce bouton CALCULE et ÉCRIT des fichiers sur le disque ; ce
+           qui part, part depuis la colonne de droite, un acte à la fois, avec
+           son récapitulatif et son mot de passe. -->
+      <!-- Plus de bouton « Écrire les documents du mois » depuis le
+           13/09/2026 (l'éditeur : « ce bouton est en trop, le bouton c'est
+           envoyer, directement, il nous dit s'il peut »). Le mois s'écrit
+           depuis la boîte DSN quand rien n'est encore écrit (boiteProduire),
+           et les autres boîtes disent ce qui manque. -->
+      <p class="note" id="note-saisie"></p>
+    </div>
+
+    <aside class="col-apercu">
+      <h2>Le mois <span class="discret">calculé, rien n'est écrit</span></h2>
+      <div id="apercu"></div>
+
+      <!-- Ce qui est parti de ce mois-ci, et ce qui peut encore partir.
+           Chaque acte porte la phrase du journal : un écran qui ne dirait
+           que « déposer » laisserait croire qu'il reste à faire ce qui est
+           déjà fait. Rien ne part d'un clic — chaque bouton ouvre un
+           récapitulatif qui demande le mot de passe du logiciel. -->
+      <h2>Les étapes</h2>
+      <div id="actions-mois"></div>
+
+      <!-- LES ARRÊTS DE TRAVAIL (18/09/2026). Un intermittent tombe malade
+           pendant ses dates : le contrat est signé, il est suspendu. Deux
+           déclarations le disent, et l'écran montre les deux — le
+           signalement d'arrêt, dû dans les cinq jours, et le report dans la
+           DSN du mois, qui se fait tout seul. Ici, dans la colonne du mois,
+           parce qu'un arrêt suspend un contrat de ce mois-là. -->
+      <h2 id="titre-arrets">Arrêts de travail</h2>
+      <div id="arrets"></div>
+
+      <!-- LA FIN D'UN CONTRAT QUI SE SIGNALE (19/09/2026). Le signalement
+           de fin de contrat (nature 07) est dû dans les CINQ JOURS OUVRÉS :
+           c'est le délai le plus court du logiciel, et le seul qui court
+           depuis un événement au lieu d'une fin de mois qu'on voit venir.
+           Un CDD d'usage du spectacle arrivé à son terme n'y figure pas — sa
+           fin part dans la DSN mensuelle, par le circuit dérogatoire ; rompu
+           avant son terme, il y figure (fiche 2062). Vide la plupart du
+           temps, et c'est la règle : un bloc qui dirait « rien à faire »
+           tous les mois finirait par ne plus se lire. -->
+      <div id="fins-de-contrat"></div>
+
+      <!-- Ce que les retours attestent et que le journal ignore encore.
+           Vide quand il n'y a rien a reprendre, et c'est la regle : un bloc
+           permanent qui dit « rien a faire » finit par ne plus se lire. -->
+      <div id="reprise"></div>
+
+      <!-- Les embauches du MOIS AFFICHÉ dont aucun envoi n'a laissé de trace.
+           Du mois affiché seulement, depuis le 12/09/2026 : « je vois octobre
+           dans septembre… chaque mois doit être autonome ». Une colonne qui
+           parle d'un mois et une liste qui en énumère d'autres, ça se lit
+           comme un retard sur le mois qu'on regarde — et on va déposer la
+           mauvaise DPAE. Le journal ne connaît que ce que CE logiciel a
+           déposé : d'où « pas de trace d'envoi », et jamais « pas déclarée ». -->
+      <!-- « Embauches sans trace d'envoi » n'est plus affiché depuis le
+           13/09/2026 : la pastille DPAE de chaque paie et la boîte DPAE
+           ci-dessus disent déjà la même chose (l'éditeur : « c'est visible
+           dans les paies et au-dessus »). dessinerEmbauches() reste, et ne
+           fait rien sans cible. -->
+    </aside>
+  </div>
+
+  <div id="resultat"></div>
+</section>
+
+<!-- ---------------------------------------------------- CONFIGURATION -->
+<section id="vue-configuration" class="vue cachee">
+  <!-- LES SOUS-ONGLETS, DANS L'ORDRE OU L'ON VIENT (24/09/2026). On ouvre la
+       Configuration pour une personne, parfois pour un spectacle, rarement
+       pour la compagnie : c'est l'ordre du premier groupe, et la page
+       s'ouvre sur les salariés. Le second groupe ne sert qu'a l'installation
+       -- une fois, ou quand quelque chose a change (un mot de passe refuse,
+       un nouveau signataire). -->
+  <nav class="sous-onglets">
+    <!-- DU PLUS GROS AU PLUS PETIT (Leandre, 08/10/2026) : l'entreprise, ses
+         salariés, ses spectacles, les métiers. On ouvre toujours sur les
+         salariés : c'est la fiche qu'on touche le plus. -->
+    <button data-fiche="entreprise">Entreprise</button>
+    <button data-fiche="salarie" class="actif">Salariés</button>
+    <button data-fiche="spectacle">Spectacles</button>
+    <!-- LES MÉTIERS (30/09/2026) : la liste que la compagnie coche, et que
+         la fiche d'un salarié et un engagement proposent. -->
+    <button data-fiche="metiers">Métiers</button>
+    <!-- LES ORGANISMES ET LES CONTRATS DE LA DSN (09/10/2026) : la référence
+         des contrats de prévoyance et de santé, l'organisme quand la branche
+         n'en désigne pas. Le moteur compose config/organismes.json. -->
+    <button data-fiche="organismes">Organismes et contrats</button>
+    <!-- LE MODÈLE DU BULLETIN (lot R11, 11/10/2026) : simplifié ou complet,
+         chacun montré sur une paie fictive ; la compagnie choisit pour tous. -->
+    <button data-fiche="bulletin">Modèle de bulletin</button>
+    <span class="sous-onglets-installation">
+      <!-- Signature et logo (22/09/2026) : la premiere route de fichier du
+           logiciel. Le cachet, lui, est DESSINE depuis la fiche Entreprise. -->
+      <button data-fiche="identite">Signature &amp; tampon</button>
+      <!-- Les mots de passe (16/09/2026) : celui du logiciel, et ceux des
+           organismes dans le coffre. La page ne voit jamais une valeur posee.
+           Le compte Google y est aussi (18/09/2026), pour la sauvegarde. -->
+      <button data-fiche="coffre">Mots de passe</button>
+      <!-- Reprendre ce qui est deja declare (15/09/2026) : les fiches et
+           cinq ans de contrats attestes, depuis les DSN de n'importe quel
+           logiciel (23/09/2026). C'est par la qu'une compagnie qui arrive
+           commence -- et ce qui donne aux droits leur historique. Un seul
+           dossier, tout dedans, aucun logiciel nomme (lot G2, 10/10/2026). -->
+      <!-- « Historique » nommait aussi l'onglet des mois : deux choses sous
+           un seul mot (audit du 30/09/2026). -->
+      <button data-fiche="importer">Reprendre l'historique</button>
+    </span>
+  </nav>
+  <div id="config-liste"></div>
+  <div id="config-formulaire"></div>
+</section>
+
+<!-- ------------------------------------------------------- HISTORIQUE -->
+<section id="vue-historique" class="vue cachee">
+  <!-- L'HISTORIQUE, REPENSÉ LE 23/09/2026. On y vient pour retrouver un
+       mois : où en est sa DSN, qu'a-t-il produit, l'ouvrir, et — rare — le
+       corriger. Les mois d'abord, une ligne chacun, « Corriger… » sur le
+       mois lui-même quand il se corrige (déposé, échéance passée : la
+       correction voyage dans la DSN du mois courant, datée du mois
+       d'origine, cahier technique 2026.1 §2.2.2.5). Puis l'année : clôture
+       et export compta. Puis les corrections écrites, s'il y en a. -->
+  <h2>Les mois</h2>
+  <div id="historique"></div>
+
+  <h2>L'année</h2>
+  <div id="exercices"></div>
+
+  <h2 id="titre-corrections">Les corrections</h2>
+  <div id="regularisation"></div>
+</section>
+
+<!-- ---------------------------------------------------------- EXPORTS -->
+<section id="vue-exports" class="vue cachee">
+  <!-- Quatre questions, et pas une de plus : QUOI (l'état), QUAND (un mois,
+       une année, toutes les années), COMMENT (le regroupement et le format),
+       et un APERÇU avant d'écrire quoi que ce soit. La liste des états, des
+       formats et des périodes vient du moteur (`exports-periodes`) : la page
+       ne devine rien, et un état ajouté demain s'affiche ici sans qu'on
+       touche à ce fichier. -->
+  <!-- DEUX INTENTIONS, DEUX CARTES (23/09/2026) : un TABLEAU des paies (pour
+       le comptable, la banque, une subvention), ou les DOCUMENTS d'un
+       salarié. Chacune dit à quoi elle sert en une ligne. -->
+  <!-- REPLIEES A L'ARRIVEE (Leandre, 08/10/2026) : « c'est bizarre que tout
+       soit ouvert direct ». On ouvre la carte dont on a besoin. -->
+  <details class="carte-export" id="carte-etat">
+    <summary><h2>Un état <span class="discret">— un tableau des paies : pour le comptable, la banque, une subvention</span></h2></summary>
+    <div id="exports-formulaire"></div>
+    <div id="exports-resultat"></div>
+  </details>
+  <!-- LE DOSSIER D'UN SALARIE (23/09/2026) : tous ses documents, on coche ce
+       qu'on sort. Les salaries, les categories et les periodes viennent du
+       moteur (`dossier-formes`). -->
+  <details class="carte-export" id="carte-dossier">
+    <summary><h2>Les documents d'un salarié <span class="discret">— bulletins, contrats, certificats, en PDF</span></h2></summary>
+    <div id="dossier-formulaire"></div>
+    <div id="dossier-resultat"></div>
+  </details>
+</section>
+
+</main>
+
+<!-- Boîte de dialogue de production : le montant URSSAF s'y demande. -->
+<div class="voile cachee" id="voile">
+  <button type="button" class="signaler sur-voile" id="signaler-voile" title="Écrire à l'éditeur, sans fermer cette fenêtre">Un problème, une idée ?</button>
+  <div class="boite" id="boite"></div>
+</div>
+
+<!-- Le mot de passe du logiciel : un seul popup, au-dessus de la boîte
+     courante, pour chaque acte qui engage (js/boites.js, demanderMotDePasse).
+     Un formulaire, pour qu'Entrée confirme. -->
+<div class="voile cachee" id="voile-mdp">
+  <form class="boite boite-mdp" id="forme-mdp" autocomplete="off">
+    <h3>Mot de passe du logiciel</h3>
+    <p class="discret" id="mdp-pourquoi"></p>
+    <label class="champ-boite">
+      <input type="password" id="mdp-valeur" autocomplete="off">
+    </label>
+    <p class="note">Il ne sert qu'à prouver que quelqu'un est là. Les mots de
+      passe des organismes et de la boîte restent dans le coffre.</p>
+    <div class="actions">
+      <button type="button" class="secondaire" id="mdp-annuler">Annuler</button>
+      <button type="submit" class="primaire" id="mdp-ok">Confirmer</button>
+    </div>
+  </form>
+</div>
+
+<div id="message" class="message cachee"></div>
+
+<script src="/js/tuyau.js?v={{EMPREINTE}}"></script>
+<script src="/js/dates.js?v={{EMPREINTE}}"></script>
+<script src="/js/saisie-lignes.js?v={{EMPREINTE}}"></script>
+<script src="/js/saisie-mois.js?v={{EMPREINTE}}"></script>
+<script src="/js/boites.js?v={{EMPREINTE}}"></script>
+<script src="/js/demonstration.js?v={{EMPREINTE}}"></script>
+<script src="/js/actes.js?v={{EMPREINTE}}"></script>
+<script src="/js/arrets-fins.js?v={{EMPREINTE}}"></script>
+<script src="/js/etats-paies.js?v={{EMPREINTE}}"></script>
+<script src="/js/configuration.js?v={{EMPREINTE}}"></script>
+<script src="/js/fiche.js?v={{EMPREINTE}}"></script>
+<script src="/js/historique.js?v={{EMPREINTE}}"></script>
+<script src="/js/rappels.js?v={{EMPREINTE}}"></script>
+<script src="/js/exports.js?v={{EMPREINTE}}"></script>
+<script src="/js/corrections.js?v={{EMPREINTE}}"></script>
+<script src="/js/veille.js?v={{EMPREINTE}}"></script>
+<script src="/js/coffre-compte.js?v={{EMPREINTE}}"></script>
+<script src="/js/filet.js?v={{EMPREINTE}}"></script>
+<script src="/js/identite.js?v={{EMPREINTE}}"></script>
+<script src="/js/modeles-bulletin.js?v={{EMPREINTE}}"></script>
+<script src="/js/demarrage.js?v={{EMPREINTE}}"></script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+From: compagnie@gmail.com
+To: marie@exemple.fr
+Subject: Octobre 2026
+Date: Tue, 06 Oct 2026 21:26:31 +0200
+Message-ID: <FIXE.1.2@gmail.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="<BORNE>"
+
+--<BORNE>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Bonjour,
+
+Tout va bien.
+
+--<BORNE>
+Content-Type: application/pdf
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment;
+ filename*0*=utf-8''%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9;
+ filename*1*=%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9;
+ filename*2*=%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9;
+ filename*3*=%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9;
+ filename*4*=%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9;
+ filename*5*=%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9;
+ filename*6*=%C3%A91.pdf
+MIME-Version: 1.0
+
+AwoRGB8mLTQ7QklQV15lbHN6gYg=
+
+--<BORNE>
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment;
+ filename*0*=utf-8''%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC;
+ filename*1*=%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC;
+ filename*2*=%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC;
+ filename*3*=%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC;
+ filename*4*=%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC;
+ filename*5*=%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC%C3%BC;
+ filename*6*=%C3%BC2.xlsx
+MIME-Version: 1.0
+
+AwoRGB8mLTQ7QklQV15lbHN6gYg=
+
+--<BORNE>--

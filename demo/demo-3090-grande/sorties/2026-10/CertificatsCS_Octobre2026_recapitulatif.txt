@@ -1,0 +1,10 @@
+Certificats d'emploi Conges Spectacles
+Compte (adherent Audiens) : 0000000000F
+----------------------------------------------------------------------------
+  N CE 74     BIANCOLELLI Dominique  06/10/2026 -> 09/10/2026   4 jour(s)/cachet(s)  brut   760  base   760
+  N CE 75     CLAIRON Lucile         06/10/2026 -> 09/10/2026   4 jour(s)/cachet(s)  brut   760  base   760
+  N CE 76     JACQUET Isabelle       06/10/2026 -> 09/10/2026   4 jour(s)/cachet(s)  brut   760  base   760
+  N CE 77     CHAMINADE Dorine       06/10/2026 -> 09/10/2026   4 jour(s)/cachet(s)  brut   608  base   608
+----------------------------------------------------------------------------
+A remettre au salarie a la fin de son contrat. Rien a envoyer a
+Audiens : la cotisation part deja par la DSN (S21.G00.78 type 27).

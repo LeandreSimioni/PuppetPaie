@@ -1,0 +1,754 @@
+{
+ "format": 3,
+ "page": {
+  "largeur": 595.28,
+  "hauteur": 841.89,
+  "marges": {
+   "haut": 42,
+   "droite": 42,
+   "bas": 42,
+   "gauche": 42
+  }
+ },
+ "police": {
+  "taille": 7.4,
+  "interligne": 1.2,
+  "couleur": "#2C3E50"
+ },
+ "documents": [
+  {
+   "blocs": [
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "La Boussole (démonstration)",
+       "gras": true
+      }
+     ],
+     "taille": 13,
+     "couleur": "#2C3E50"
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "14 rue fictive de l'Aiguillerie — 34000 Montpellier\nSiret 12345694900015  ·  APE 9001Z  ·  Licence PLATESV-R-2023-104434"
+      }
+     ],
+     "taille": 6.6,
+     "couleur": "#555555"
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Bulletin de paie n° 13/2025",
+       "gras": true
+      }
+     ],
+     "taille": 11,
+     "couleur": "#B22222",
+     "espace_avant": 8,
+     "espace_apres": 1
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Numéro d'objet : 256Z00940011  —  Spectacle : Les Indes galantes"
+      }
+     ],
+     "taille": 7,
+     "couleur": "#555555",
+     "espace_apres": 5
+    },
+    {
+     "type": "tableau",
+     "taille": 7,
+     "interligne": 1.27,
+     "colonnes": [
+      {
+       "largeur": 0.5
+      },
+      {
+       "largeur": 0.5
+      }
+     ],
+     "marge_cellule": {
+      "haut": 1.4,
+      "droite": 3,
+      "bas": 1.4,
+      "gauche": 3
+     },
+     "filets_cellules": {
+      "couleur": "#dddddd",
+      "epaisseur": 0.5
+     },
+     "lignes": [
+      {
+       "cellules": [
+        {
+         "morceaux": [
+          {
+           "texte": "BEAUCHAMP CLITANDRE",
+           "gras": true
+          },
+          {
+           "texte": "\n3 RUE DES DEUX PONTS\n34000 MONTPELLIER\n\n"
+          },
+          {
+           "texte": "N° Sécurité sociale :",
+           "couleur": "#777777"
+          },
+          {
+           "texte": " 193073499902002\n"
+          },
+          {
+           "texte": "Date de naissance :",
+           "couleur": "#777777"
+          },
+          {
+           "texte": " 07/07/1993\n"
+          },
+          {
+           "texte": "Emploi :",
+           "couleur": "#777777"
+          },
+          {
+           "texte": " DANSEUR   "
+          },
+          {
+           "texte": "Statut :",
+           "couleur": "#777777"
+          },
+          {
+           "texte": " artiste\n"
+          },
+          {
+           "texte": "N° Congés Spectacles :",
+           "couleur": "#777777"
+          },
+          {
+           "texte": " -\n"
+          },
+          {
+           "texte": "Abattement :",
+           "couleur": "#777777"
+          },
+          {
+           "texte": " 0 %"
+          }
+         ]
+        },
+        {
+         "morceaux": [
+          {
+           "texte": "EMPLOYEUR",
+           "gras": true
+          },
+          {
+           "texte": "\n\n"
+          },
+          {
+           "texte": "N° Siret :",
+           "couleur": "#777777"
+          },
+          {
+           "texte": " 12345694900015\n"
+          },
+          {
+           "texte": "NAF (APE) :",
+           "couleur": "#777777"
+          },
+          {
+           "texte": " 9001Z\n"
+          },
+          {
+           "texte": "Urssaf :",
+           "couleur": "#777777"
+          },
+          {
+           "texte": " 1100000000\n"
+          },
+          {
+           "texte": "Conv. collective :",
+           "couleur": "#777777"
+          },
+          {
+           "texte": " IDCC 1285 - Entreprises artistiques et culturelles\n"
+          },
+          {
+           "texte": "Licence spec. :",
+           "couleur": "#777777"
+          },
+          {
+           "texte": " PLATESV-R-2023-104434"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Période :",
+       "gras": true
+      },
+      {
+       "texte": " du 11/02/2025 au 13/02/2025  —  "
+      },
+      {
+       "texte": "Dates travaillées :",
+       "gras": true
+      },
+      {
+       "texte": " 11/02/2025, 12/02/2025, 13/02/2025"
+      }
+     ],
+     "taille": 7,
+     "couleur": "#555555",
+     "espace_avant": 5,
+     "espace_apres": 5
+    },
+    {
+     "type": "tableau",
+     "taille": 7,
+     "interligne": 1.27,
+     "colonnes": [
+      {
+       "largeur": 0.55,
+       "alignement": "gauche"
+      },
+      {
+       "largeur": 0.11,
+       "alignement": "droite"
+      },
+      {
+       "largeur": 0.07,
+       "alignement": "droite"
+      },
+      {
+       "largeur": 0.1,
+       "alignement": "droite"
+      },
+      {
+       "largeur": 0.07,
+       "alignement": "droite"
+      },
+      {
+       "largeur": 0.1,
+       "alignement": "droite"
+      }
+     ],
+     "marge_cellule": {
+      "haut": 1.4,
+      "droite": 3,
+      "bas": 1.4,
+      "gauche": 3
+     },
+     "filet_lignes": {
+      "couleur": "#e4e4e4",
+      "epaisseur": 0.3
+     },
+     "entete": [
+      {
+       "cellules": [
+        {
+         "texte": "LIBELLE",
+         "gras": true
+        },
+        {
+         "texte": "Base"
+        },
+        {
+         "texte": "Part Employeur",
+         "etendue": 2
+        },
+        {
+         "texte": "Part Salarié",
+         "etendue": 2
+        }
+       ],
+       "couleur": "#FFFFFF",
+       "gras": true,
+       "taille": 6.6,
+       "fond": "#B22222"
+      },
+      {
+       "cellules": [
+        "",
+        "",
+        "Taux",
+        "Montant",
+        "Taux",
+        "Montant"
+       ],
+       "couleur": "#FFFFFF",
+       "gras": true,
+       "taille": 6.6,
+       "fond": "#B22222"
+      }
+     ],
+     "lignes": [
+      {
+       "cellules": [
+        "3 Cachets à 165,00 — SALAIRE BRUT",
+        "495,00"
+       ],
+       "gras": true,
+       "fond": "#fbf7f7"
+      },
+      {
+       "cellules": [
+        {
+         "texte": "SANTÉ",
+         "etendue": 6
+        }
+       ],
+       "gras": true,
+       "couleur": "#B22222",
+       "taille": 6.8,
+       "fond": "#f4f0f0"
+      },
+      {
+       "cellules": [
+        "Sécurité sociale — Maladie Maternité Invalidité Décès",
+        "495,00",
+        "9,100",
+        "45,05",
+        "",
+        ""
+       ]
+      },
+      {
+       "cellules": [
+        "Complémentaire Incapacité Invalidité Décès (Audiens)",
+        "495,00",
+        "1,040",
+        "5,15",
+        "0,120",
+        "0,59"
+       ]
+      },
+      {
+       "cellules": [
+        {
+         "texte": "ACCIDENTS DU TRAVAIL — MALADIES PROFESSIONNELLES",
+         "etendue": 6
+        }
+       ],
+       "gras": true,
+       "couleur": "#B22222",
+       "taille": 6.8,
+       "fond": "#f4f0f0"
+      },
+      {
+       "cellules": [
+        "Accidents du travail",
+        "495,00",
+        "0,910",
+        "4,50",
+        "",
+        ""
+       ]
+      },
+      {
+       "cellules": [
+        {
+         "texte": "RETRAITE",
+         "etendue": 6
+        }
+       ],
+       "gras": true,
+       "couleur": "#B22222",
+       "taille": 6.8,
+       "fond": "#f4f0f0"
+      },
+      {
+       "cellules": [
+        "Sécurité sociale plafonnée",
+        "495,00",
+        "5,990",
+        "29,65",
+        "4,830",
+        "23,91"
+       ]
+      },
+      {
+       "cellules": [
+        "Sécurité sociale déplafonnée",
+        "495,00",
+        "1,410",
+        "6,98",
+        "0,280",
+        "1,39"
+       ]
+      },
+      {
+       "cellules": [
+        "Complémentaire Tranche 1",
+        "495,00",
+        "5,740",
+        "28,42",
+        "5,300",
+        "26,24"
+       ]
+      },
+      {
+       "cellules": [
+        {
+         "texte": "FAMILLE",
+         "etendue": 6
+        }
+       ],
+       "gras": true,
+       "couleur": "#B22222",
+       "taille": 6.8,
+       "fond": "#f4f0f0"
+      },
+      {
+       "cellules": [
+        "Allocations familiales",
+        "495,00",
+        "3,680",
+        "18,22",
+        "",
+        ""
+       ]
+      },
+      {
+       "cellules": [
+        {
+         "texte": "ASSURANCE CHÔMAGE",
+         "etendue": 6
+        }
+       ],
+       "gras": true,
+       "couleur": "#B22222",
+       "taille": 6.8,
+       "fond": "#f4f0f0"
+      },
+      {
+       "cellules": [
+        "Chômage",
+        "495,00",
+        "9,800",
+        "48,51",
+        "2,400",
+        "11,88"
+       ]
+      },
+      {
+       "cellules": [
+        {
+         "texte": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+         "etendue": 6
+        }
+       ],
+       "gras": true,
+       "couleur": "#B22222",
+       "taille": 6.8,
+       "fond": "#f4f0f0"
+      },
+      {
+       "cellules": [
+        "Autres contributions dues par l'employeur",
+        "495,00",
+        "2,416",
+        "11,96",
+        "",
+        ""
+       ]
+      },
+      {
+       "cellules": [
+        "Autres contributions dues par l'employeur",
+        "551,93",
+        "0,070",
+        "0,39",
+        "",
+        ""
+       ]
+      },
+      {
+       "cellules": [
+        "Autres contributions dues par l'employeur",
+        "544,50",
+        "0,680",
+        "3,70",
+        "",
+        ""
+       ]
+      },
+      {
+       "cellules": [
+        {
+         "texte": "CONGÉS SPECTACLES",
+         "etendue": 6
+        }
+       ],
+       "gras": true,
+       "couleur": "#B22222",
+       "taille": 6.8,
+       "fond": "#f4f0f0"
+      },
+      {
+       "cellules": [
+        "Caisse des Congés Spectacles",
+        "495,00",
+        "15,500",
+        "76,73",
+        "",
+        ""
+       ]
+      },
+      {
+       "cellules": [
+        {
+         "texte": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+         "etendue": 6
+        }
+       ],
+       "gras": true,
+       "couleur": "#B22222",
+       "taille": 6.8,
+       "fond": "#f4f0f0"
+      },
+      {
+       "cellules": [
+        "Cotisations conventionnelles IDCC 1285 (FNAS)",
+        "",
+        "",
+        "7,18",
+        "",
+        ""
+       ]
+      },
+      {
+       "cellules": [
+        "FCAP (fonds commun d'aide au paritarisme)",
+        "495,00",
+        "0,250",
+        "1,24",
+        "",
+        ""
+       ]
+      },
+      {
+       "cellules": [
+        {
+         "texte": "CSG / CRDS",
+         "etendue": 6
+        }
+       ],
+       "gras": true,
+       "couleur": "#B22222",
+       "taille": 6.8,
+       "fond": "#f4f0f0"
+      },
+      {
+       "cellules": [
+        "CSG déductible de l'impôt sur le revenu",
+        "491,49",
+        "",
+        "",
+        "6,800",
+        "33,42"
+       ]
+      },
+      {
+       "cellules": [
+        "CSG/CRDS non déductible de l'impôt sur le revenu",
+        "491,49",
+        "",
+        "",
+        "2,900",
+        "14,25"
+       ]
+      },
+      {
+       "cellules": [
+        {
+         "texte": "Total des cotisations et contributions",
+         "etendue": 3
+        },
+        "287,68",
+        "",
+        "111,68"
+       ],
+       "gras": true,
+       "filet_haut": {
+        "couleur": "#B22222",
+        "epaisseur": 0.6
+       }
+      },
+      {
+       "cellules": [
+        {
+         "texte": "NET SOCIAL / NET A PAYER AVANT IMPÔT",
+         "etendue": 5
+        },
+        "383,32"
+       ],
+       "gras": true,
+       "fond": "#B22222",
+       "couleur": "#FFFFFF",
+       "taille": 9.5
+      },
+      {
+       "cellules": [
+        {
+         "texte": "Net imposable",
+         "etendue": 5
+        },
+        "397,57"
+       ]
+      },
+      {
+       "cellules": [
+        {
+         "texte": "Impôt sur le revenu prélevé à la source (taux 3,500 %)",
+         "etendue": 5
+        },
+        "13,91"
+       ]
+      },
+      {
+       "cellules": [
+        {
+         "texte": "NET PAYÉ",
+         "etendue": 5
+        },
+        "369,41"
+       ],
+       "gras": true,
+       "fond": "#B22222",
+       "couleur": "#FFFFFF",
+       "taille": 9.5
+      }
+     ]
+    },
+    {
+     "type": "tableau",
+     "taille": 7,
+     "interligne": 1.27,
+     "colonnes": [
+      {
+       "largeur": 0.4,
+       "alignement": "gauche"
+      },
+      {
+       "largeur": 0.3,
+       "alignement": "droite"
+      },
+      {
+       "largeur": 0.3,
+       "alignement": "droite"
+      }
+     ],
+     "marge_cellule": {
+      "haut": 1.4,
+      "droite": 3,
+      "bas": 1.4,
+      "gauche": 3
+     },
+     "filet_lignes": {
+      "couleur": "#eeeeee",
+      "epaisseur": 0.3
+     },
+     "entete": [
+      {
+       "cellules": [
+        {
+         "texte": "CUMULS",
+         "gras": true,
+         "couleur": "#2C3E50"
+        },
+        {
+         "morceaux": [
+          {
+           "texte": "Periode",
+           "gras": true
+          },
+          {
+           "texte": "\n"
+          },
+          {
+           "texte": "02/2025"
+          }
+         ]
+        },
+        {
+         "morceaux": [
+          {
+           "texte": "Cumul",
+           "gras": true
+          },
+          {
+           "texte": "\n"
+          },
+          {
+           "texte": "annee 2025"
+          }
+         ]
+        }
+       ],
+       "couleur": "#B22222",
+       "taille": 6.8,
+       "fond": "#f4f0f0",
+       "filet_haut": {
+        "couleur": "#B22222",
+        "epaisseur": 0.8
+       }
+      }
+     ],
+     "lignes": [
+      {
+       "cellules": [
+        "Cachets",
+        "3",
+        "3"
+       ]
+      },
+      {
+       "cellules": [
+        "Heures déclarées",
+        "0 h",
+        "0 h"
+       ]
+      },
+      {
+       "cellules": [
+        "Total heures (cachets × 12 + heures)",
+        "36 h",
+        "36 h"
+       ]
+      },
+      {
+       "cellules": [
+        "Salaire brut",
+        "495,00 €",
+        "495,00 €"
+       ]
+      }
+     ]
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Coût total employeur : 782,68 €  |  Plafond Urssaf de la période : 1 044,00 €  |  SMIC retenu pour la réduction générale : 249,48 € (21 h à 11,88)  |  Règlement le 13/02/2025 par virement.\nContrat n° BE1.25.01 — CDD d'usage du spectacle (intermittent), convention collective IDCC 1285. Conservez ce bulletin sans limitation de durée."
+      }
+     ],
+     "taille": 6.2,
+     "couleur": "#777777",
+     "espace_avant": 5
+    }
+   ]
+  }
+ ]
+}

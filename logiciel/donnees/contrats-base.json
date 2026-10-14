@@ -1,0 +1,469 @@
+{
+  "_quoi": "Les codes de STRUCTURE que la DSN écrit pour un contrat, rangés par nature de contrat. Livré avec le LOGICIEL, jamais avec les données : ce sont des codes de la norme NEODeS et des choix que la réglementation impose, pas des choix d'une compagnie.",
+  "_pourquoi_ici": "§11.2 du document « PuppetPaie tel qu'il est », décidé le 17/09/2026 : la nature du contrat, les unités de mesure, le motif de recours, le motif de rupture et le régime de retraite étaient écrits dans `moteur/dsn.py`. Ce ne sont pas des taux, mais ce sont des choix qu'une compagnie d'un autre secteur — ou la même compagnie pour un permanent — doit pouvoir changer sans toucher au programme qui écrit la DSN. Et c'est la première marche des CDD ordinaires et des CDI : tant que le CDDU était cuit dans le code, un permanent n'avait aucun endroit où exister.",
+  "_forme": "Une nature porte quatre sections. `codes` : une rubrique, une valeur fixe, et ce que cette valeur dit. `champs` : une rubrique dont la valeur se lit sur l'engagement ou la fiche (elle n'est pas la même d'un contrat à l'autre). `absents` : une rubrique que cette nature n'écrit pas, et pourquoi. `interdits` : une rubrique qu'un contrôle du cahier technique REFUSE pour cette nature — `dsn.py` s'arrête plutôt que de produire un fichier qu'on sait rejeté, et `tests/test_contrats.py` vérifie qu'aucune n'est écrite.",
+  "_source": {
+    "titre": "Cahier technique de la norme NEODeS 2026.1 (norme du 6 janvier 2025, en production toute l'année 2026)",
+    "copie": "prive/reference/norme-dsn/dsn-cahier-technique-2026.1.pdf",
+    "relu_le": "2026-09-18",
+    "conformite_2027": "Chaque valeur ci-dessous a été relue dans la 2027.1.1 (copie à côté) : les nomenclatures des blocs 40, 62, 71 et 86 y sont identiques.",
+    "_et_aussi": "Pour le CDDU du spectacle, la preuve n'est pas seulement le texte : cinquante DSN de CoolPaie (2021-2026) portent ces valeurs et ont toutes été acceptées. Pour les natures permanentes, il n'y a aucun réel en face — voir `_preuve` de chacune."
+  },
+
+  "natures": {
+
+    "cddu_spectacle": {
+      "libelle": "CDD d'usage du spectacle (intermittent)",
+      "_quoi": "L'engagement d'un artiste ou d'un technicien du spectacle, conclu pour la durée d'un spectacle ou d'une production. Payé au cachet (annexe X) ou à l'heure (annexe VIII), affilié aux Congés Spectacles, rattaché à un numéro d'objet.",
+      "_preuve": "Les 146 contrats de l'historique CoolPaie et les 50 DSN de `export/DSN` (2021-2026) portent exactement ces valeurs ; le rejeu (`python -m moteur calibrer`) les reproduit ligne pour ligne, et la DSN d'août 2026 a été comparée caractère par caractère à celle que CoolPaie a déposée.",
+      "paie": "activite",
+      "duree_indeterminee": false,
+      "bareme": null,
+      "_bareme": "Le CORPS du barème décrit l'intermittent du spectacle : Congés Spectacles à 15,5 %, chômage majoré de 0,50 point, formation professionnelle des intermittents à 2 %, FNAL et taxe d'apprentissage sur le brut majoré de 11,5 % et de 10 % (la majoration pour congés). Cette nature n'a donc aucune section à appliquer par-dessus.",
+      "unite_quotite": {
+        "valeur": "12",
+        "plafond": 31,
+        "quoi": "12 - journée. La quotité d'un CDDU se compte en jours : ce sont les dates signées (S21.G00.40.012 et .013 = `Engagement.jours_contrat`). CCH-12 du bloc 40 la plafonne à 31.00 en unité journée — au-delà, le moteur refuse plutôt que de déclarer un nombre faux."
+      },
+      "codes": {
+        "S21.G00.40.007": {
+          "valeur": "02",
+          "quoi": "02 - Contrat de travail à durée déterminée de droit privé. Le CDD d'usage n'a pas de code à lui : c'est un CDD de droit privé, que le motif de recours (40.021) qualifie."
+        },
+        "S21.G00.40.008": {
+          "valeur": "99",
+          "quoi": "99 - Non concerné. Aucun dispositif de politique publique ou conventionnel (apprentissage, professionnalisation, CUI…)."
+        },
+        "S21.G00.40.014": {
+          "valeur": "99",
+          "quoi": "99 - Salarié non concerné. Un CDDU n'est ni à temps plein ni à temps partiel au sens de la durée du travail : il est conclu pour des dates."
+        },
+        "S21.G00.40.016": {
+          "valeur": "99",
+          "quoi": "99 - non applicable. Aucun complément de base au régime obligatoire (ni Alsace-Moselle, ni CAMIEG)."
+        },
+        "S21.G00.40.018": {
+          "valeur": "200",
+          "quoi": "200 - Régime général. Code régime de base risque maladie."
+        },
+        "S21.G00.40.020": {
+          "valeur": "200",
+          "quoi": "200 - Régime général. Code régime de base risque vieillesse."
+        },
+        "S21.G00.40.021": {
+          "valeur": "05",
+          "quoi": "05 - Contrat d'usage. C'est CE code qui fait d'un CDD un CDDU, et ce que l'article L.1242-2 3° du code du travail autorise pour le spectacle (usage constant de ne pas recourir au CDI)."
+        },
+        "S21.G00.40.024": {
+          "valeur": "99",
+          "quoi": "99 - Non concerné. Travailleur à l'étranger au sens du code de la Sécurité sociale : ni détaché, ni expatrié, ni frontalier."
+        },
+        "S21.G00.40.026": {
+          "valeur": "99",
+          "quoi": "99 - Non concerné. Statut d'emploi du salarié (les autres valeurs sont celles de la fonction publique et du personnel médical)."
+        },
+        "S21.G00.40.037": {
+          "valeur": "03",
+          "quoi": "03 - situation non connue. Code employeurs multiples : un intermittent travaille pour d'autres employeurs, l'entreprise ne sait pas lesquels ni quand. Dire « employeur unique » serait une affirmation qu'on ne peut pas tenir."
+        },
+        "S21.G00.40.039": {
+          "valeur": "200",
+          "quoi": "200 - Régime général. Code régime de base risque accident du travail."
+        },
+        "S21.G00.40.051": {
+          "valeur": "02",
+          "quoi": "02 - Entrepreneur de spectacles vivants professionnel (plus de 6 spectacles vivants annuels). Décrit l'employeur, pas le salarié : à relire si une compagnie descend sous 7 représentations annuelles."
+        },
+        "S21.G00.71.002": {
+          "valeur": "RUAA",
+          "quoi": "RUAA - Régime unifié AGIRC-ARRCO. Code régime de retraite complémentaire."
+        },
+        "S21.G00.86.001": {
+          "valeur": "07",
+          "quoi": "07 - Ancienneté dans l'entreprise."
+        },
+        "S21.G00.86.002": {
+          "valeur": "01",
+          "quoi": "01 - Jours. Unité de mesure de l'ancienneté."
+        }
+      },
+      "champs": {
+        "S21.G00.40.017": {
+          "source": "entreprise.idcc",
+          "quoi": "Code convention collective applicable."
+        },
+        "S21.G00.40.019": {
+          "source": "entreprise.siret",
+          "quoi": "Identifiant du lieu de travail."
+        },
+        "S21.G00.40.036": {
+          "source": "calcul : les emplois du salarié dans la période de paie (dsn::emplois_multiples)",
+          "quoi": "Code emplois multiples : 02 si le salarié tient plusieurs emplois chez la compagnie dans le même mois (cahier technique DSN 2026.1, p. 199 : « plusieurs emplois chez un même employeur au cours d'une même période de paie »), 01 sinon. Un emploi, c'est ce que le bloc 40 en dit : PCS-ESE, code emploi, libellé. Une comédienne aussi metteuse en scène le même mois est en 02 sur chacun de ses contrats ; trois contrats du même emploi restent en 01. CoolPaie écrivait exactement cela."
+        },
+        "S21.G00.40.022": {
+          "source": "entreprise.congesspectacles_affiliation",
+          "quoi": "Code caisse professionnelle de congés payés : « 97 », le numéro d'affiliation et la clé. La rubrique ne s'écrit que « dans le cas où les indemnités ne sont pas versées par l'employeur » — c'est exactement l'intermittent, dont les congés sont payés par la caisse des Congés Spectacles.",
+          "si": "caisse_conges::affilie : un CDDU de douze mois ou plus (du début au terme signés) n'est pas déclaré à la caisse (code du travail D. 7121-41 ; CCN 3090, art. 10.1.1 ; fiche Audiens « CDD de moins de 12 mois ») et ne l'écrit pas. Lot V2f, prive/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md."
+        },
+        "S21.G00.40.040": {
+          "source": "bareme.taux_atmp.code_risque",
+          "quoi": "Code risque accident du travail, notifié à l'établissement."
+        },
+        "S21.G00.40.043": {
+          "source": "bareme.taux_atmp.valeur",
+          "quoi": "Taux de cotisation accident du travail, notifié à l'établissement."
+        },
+        "S21.G00.40.049": {
+          "source": "entreprise.licence_spectacle",
+          "quoi": "Numéro de licence d'entrepreneur de spectacles, au titre du mois déclaré."
+        },
+        "S21.G00.40.050": {
+          "source": "spectacle.numero_objet",
+          "quoi": "Numéro d'objet spectacle, 12 caractères attribués par le CNCS. N'est autorisé (CCH-11) que pour les natures de contrat 02 et 10 : c'est la marque même du contrat de spectacle."
+        }
+      },
+      "absents": {
+        "S21.G00.40.025": "Motif d'exclusion DSN : 05 (ouvrier ou technicien) ou 06 (artiste du spectacle) pour un « Contrat de travail faisant l'objet d'une attestation employeur mensuelle (AEM) » (cahier technique DSN 2026.1, bloc 40, prive/reference/norme-dsn/texte/bloc-S21.G00.40.txt ; identique en 2027.1.1) ; fiche net-entreprises 3344, l. 160-172 : « Ces valeurs ne seront plus à renseigner par les employeurs dès lors que France Travail leur en donnera l'autorisation » (prive/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche3344-intermittents-contrat-remunerations-20251113.txt). Le moteur ne produit plus d'AEM, et l'autorisation est venue pour la compagnie du poste : « Ne plus renseigner de motif d'exclusion DSN dans la rubrique S21.G00.40.025. Celle-ci doit rester vide. » (courriel France Travail du 28/05/2026, prive/reference/sources/francetravail-100-dsn/francetravail-courriel-fin-phase-pilote-100-dsn-20260528.txt). La rubrique ne s'écrit donc pas. NON PORTÉ (lot C1, 14/10/2026) : une compagnie encore sous AEM, avant sa propre autorisation, devrait écrire 05 ou 06 et ne signaler aucune fin (fiche 2062, exclusion de population) ; le moteur n'a ni la date de cette autorisation dans la fiche entreprise, ni l'AEM pour elle. C'est une décision à prendre (prive/journal/finitions/PASSATION-C1.md, point 2)."
+      },
+      "interdits": {},
+      "dpae": {
+        "_quoi": "Ce que la DPAE écrit de ce contrat. C'est une AUTRE déclaration que la DSN, et sa nomenclature n'a rien à voir : le Format 120 ne connaît que TROIS types de contrat — 1 CDD, 2 CDI, 3 CTT — là où la DSN en a une vingtaine. Un permanent passe par la même DPAE que n'importe qui : elle est due pour toute embauche (L1221-10), et l'écrire en CDD quand c'est un CDI, c'est déclarer un terme qui n'existe pas.",
+        "_source": "prive/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.pdf, catégorie V « CONTRAT » — C_TYPE_CONTRAT en position 865, D_FIN_CDD en 866 à 873 (positions du dessin, comptées à partir de 1).",
+        "type_contrat": {
+          "valeur": "1",
+          "quoi": "CDD. Un contrat d\u2019usage EST un CDD : la DPAE ne distingue pas l\u2019usage du droit commun — c\u2019est la DSN qui le fait, avec 40.007 = 02 (CDD de droit priv\u00e9) et le motif de recours 40.021 = 05 (contrat d\u2019usage), ci-dessus. (29 est la convention de stage, cahier technique 2026.1, p. 186.)",
+          "controle": "Code retour 44 : « type de contrat invalide — différent de 1, 2 ou 3, ou non renseigné »."
+        },
+        "date_fin": {
+          "obligatoire": true,
+          "quoi": "D_FIN_CDD, le terme du contrat signé — et non la fin du mois de paie.",
+          "controle": "Code retour 46 : « date de fin de CDD obligatoire pour un contrat CDD, ou invalide (antérieure à la date d\u2019embauche) »."
+        }
+      },
+      "fin_de_contrat": {
+        "_quoi": "Le bloc S21.G00.62, écrit le mois où le contrat se termine et lui seul (fiche net-entreprises n° 3344).",
+        "motif_par_defaut": {
+          "valeur": "031",
+          "quoi": "031 - fin de contrat à durée déterminée ou fin d'accueil occasionnel. La fin normale d'un CDDU arrivé à son terme."
+        },
+        "motifs": [
+          {"code": "031", "libelle": "Fin de contrat à durée déterminée"},
+          {"code": "034", "libelle": "Fin de période d'essai à l'initiative de l'employeur"},
+          {"code": "035", "libelle": "Fin de période d'essai à l'initiative du salarié"},
+          {"code": "036", "libelle": "Rupture anticipée d'un CDD à l'initiative de l'employeur"},
+          {"code": "037", "libelle": "Rupture anticipée d'un CDD à l'initiative du salarié"},
+          {"code": "084", "libelle": "Rupture d'un commun accord du CDD"},
+          {"code": "095", "libelle": "Rupture anticipée pour faute grave"},
+          {"code": "096", "libelle": "Rupture anticipée pour faute lourde"},
+          {"code": "083", "libelle": "Rupture pour force majeure ou fait du prince"},
+          {"code": "033", "libelle": "Rupture anticipée d'un CDD en cas d'inaptitude physique constatée par le médecin du travail"}
+        ],
+        "_motifs": "Ceux que la CCH-11 de S21.G00.62.002 autorise pour la nature 02 (cahier technique DSN 2026.1, p. 270-273, prive/reference/norme-dsn/texte/bloc-S21.G00.62.txt) : un CDDU est un contrat de nature 02 (S21.G00.40.007 ci-dessus), ses motifs sont ceux du CDD ordinaire. Jusqu'au lot C1 (14/10/2026), la liste manquait et un motif réservé au CDI (043, 059…) partait sans contrôle (`Nature::motif_rupture_refuse`).",
+        "codes": {},
+        "signalement_fctu": true,
+        "_signalement_fctu": "Toute fin de contrat donne lieu à l'attestation employeur (code du travail R. 1234-9, que cite la fiche net-entreprises 2062), obtenue en DSN par le signalement de fin de contrat (nature 07, fiche 119) ; un CDDU n'en est dispensé que par le circuit dérogatoire ci-dessous, pour le motif 031. Jusqu'au lot C1 (14/10/2026), ce drapeau était faux pour tout CDDU : une rupture anticipée (036, 037, 084…) ne se signalait pas, et la mensuelle lui écrivait un 62.017 = 01 que la CCH-12 refuse. Lu par `Nature::signalement_fctu`, la seule règle.",
+        "circuit_derogatoire": {
+          "rubrique": "S21.G00.62.017",
+          "motifs": ["031"],
+          "applique": "01",
+          "non_applique": "02",
+          "_quoi": "La modalité de déclaration de la fin du contrat d'usage (S21.G00.62.017), obligatoire dès qu'un CDDU (nature 02, recours 05) a un bloc 62 d'un motif autre que 099 (CCH-11). « 01 - Application du circuit dérogatoire » : la fin part dans la DSN MENSUELLE, sans signalement ; la CCH-12 ne l'autorise QUE pour le motif 031 (ou 099). Tout autre motif écrit « 02 - Non application du circuit dérogatoire », et sa fin se signale (nature 07) : fiche 2062, « Tous les autres motifs de rupture doivent être déclarés par l'émission d'un signalement FCTU. » Le 01 d'un 031 a été tranché sur pièces le 18/09/2026 (§11 point 4 du document) : « 02 » annoncerait un signalement qui ne vient pas, et France Travail édite l'AER CS à partir de la mensuelle qui porte la fin.",
+          "_source": "Cahier technique DSN 2026.1, p. 277-278, CCH-11 et CCH-12 de S21.G00.62.017 (prive/reference/norme-dsn/texte/bloc-S21.G00.62.txt), et § 2.5.3 (chapitre-2-principes-de-constitution.txt : le circuit « dont le motif de fin est une fin de CDD » ; « Dans les autres cas, le déclarant doit procéder selon la procédure de droit commun (signalement) ») ; fiches net-entreprises 2062 (critères a-d) et 1902 (prive/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2062-derogations-fin-de-contrat-fctu-20250905.txt, net-entreprises-fiche1902-circuit-derogatoire-cddu-d-20250512.txt). INFÉRENCE (lot C1) : l'exclusion « AEM » de la fiche 2062 et du § 5.2 (chapitre-5-modeles.txt, p. 107) suit le motif d'exclusion S21.G00.40.025 ; depuis le 100 % DSN, il « doit rester vide » (courriel France Travail du 28/05/2026, prive/reference/sources/francetravail-100-dsn/francetravail-courriel-fin-phase-pilote-100-dsn-20260528.txt), et la règle générale des CDDU s'applique à l'intermittent.",
+          "_reste_ouvert": "Ce que le texte dit et que le moteur ne porte pas : la demande expresse du salarié (fiche 1902 : il refuse le circuit, et même un 031 se signale sous cinq jours ouvrés, 62.017 = 02) ; le CDDU qui n'est pas infra-DSN (§ 2.5.3 : droit commun), pour lequel le 18/09/2026 a retenu 01 (prive/reference/sources/francetravail-100-dsn/LISEZMOI.md, « Ce qu'on en conclut »)."
+        }
+      },
+      "remunerations": {
+        "_quoi": "Les blocs S21.G00.51 d'une paie. Les quatre types 001, 002, 003 et 010 sont OBLIGATOIRES en DSN mensuelle (cahier technique §2.1.3.3).",
+        "types": ["001", "002", "003", "010"],
+        "toutes_au_brut": true,
+        "_toutes_au_brut": "Sur un CDDU, les quatre valent le même montant : le brut du mois. Il n'y a ni salaire de base distinct (la rémunération EST l'activité du mois), ni absence à reconstituer — donc le salaire rétabli vaut le brut. C'est ce que CoolPaie déclarait, accepté cinquante fois."
+      },
+      "activites": {
+        "_quoi": "Les blocs S21.G00.53 sous la rémunération de type 002. Cahier technique : « pour les congés spectacles, il est nécessaire pour calculer les droits de renseigner à la fois une unité de mesure jours et cachets ».",
+        "unites": [
+          {"code": "12", "quoi": "12 - journée : les jours distincts travaillés", "mesure": "jours"},
+          {"code": "37", "quoi": "37 - cachets isolés : le nombre de cachets (la distinction cachet isolé / groupé est supprimée depuis le décret du 13/07/2016, tous valent 12 h)", "mesure": "cachets", "si_non_nul": true},
+          {"code": "35", "quoi": "35 - heures intermittents du spectacle : les heures hors cachets", "mesure": "heures", "si_non_nul": true}
+        ]
+      }
+    },
+
+    "cdi": {
+      "libelle": "CDI de droit privé (permanent)",
+      "_quoi": "Un salarié permanent de la compagnie : administration, direction, production. Payé au mois, congés payés pris chez l'employeur, aucun numéro d'objet, aucune caisse de congés payés.",
+      "_preuve": "AUCUN réel en face. L'option CDI de CoolPaie est payante : il n'existe pas de bulletin de référence à recaler au centime (§34.7 du journal, 17/09/2026). Ces valeurs sont lues dans le cahier technique 2026.1 et relues dans la 2027.1.1 ; elles seront confrontées à un DÉPÔT DE TEST avant le premier contrat réel, et c'est le seul contrôle qu'on ait.",
+      "paie": "mensuelle",
+      "duree_indeterminee": true,
+      "bareme": "permanent",
+      "_bareme": "Le barème de la compagnie doit porter une section `par_nature.permanent` : un permanent ne cotise ni aux Congés Spectacles, ni au chômage majoré des intermittents, ni à leur formation professionnelle à 2 % ; sa retraite complémentaire est celle du droit commun, et ses assiettes de FNAL et de taxe d'apprentissage sont le brut nu, sans la majoration pour congés. Il a en revanche une mutuelle santé obligatoire (ANI du 11/01/2013, art. L911-7), qu'un intermittent n'a pas. Sans cette section vérifiée, le moteur refuse de le payer.",
+      "unite_quotite": {
+        "valeur": "10",
+        "plafond": 250,
+        "quoi": "10 - heure. La quotité d'un contrat mensuel se compte en heures : 40.012 est la durée de référence de l'entreprise pour la catégorie (151.67 h pour 35 h hebdomadaires), 40.013 la durée contractuelle du salarié. La CCH-13 du bloc 40 les plafonne toutes deux à 250.00 en unité heure (cahier technique 2026.1, p. 189 ; 2027.1.1, même texte ; prive/reference/norme-dsn/texte/bloc-S21.G00.40.txt). Le 3250.00 des CCH-11 et CCH-13 du bloc 53 est le plafond de la mesure d'activité (S21.G00.53.002), pas celui de la quotité."
+      },
+      "quotite_reference_defaut": {
+        "valeur": 151.67,
+        "quoi": "35 h × 52 / 12 = 151,666… → 151,67. Durée légale du travail, art. L.3121-27 du code du travail. Une entreprise dont la durée collective est plus courte (32 h : 138,67) l'écrit dans sa fiche entreprise (`quotite_reference`) : ce n'est alors plus une valeur du logiciel. Une durée collective plus longue (39 h) ne s'y écrit pas : ses heures au-delà de 35 h sont des heures supplémentaires (L.3121-28), et la norme DSN 2027 dit que la quotité de référence « ne doit pas inclure les heures supplémentaires structurelles » (cahier 2027.1.1, p. 190) — une compagnie à 39 h déclare 151,67, et le moteur refuse au-dessus en norme P27V01 (`norme-dsn-base.json`, `regles`)."
+      },
+      "codes": {
+        "S21.G00.40.005": {
+          "valeur": "999SPT",
+          "quoi": "999SPT - emplois permanents du spectacle. CCH-18 du bloc 40 (cahier technique 2026.1, p. 185, prive/reference/norme-dsn/texte/bloc-S21.G00.40.txt l. 325-329) : pour une PCS-ESE du spectacle (353b, 353c, 354b, 354c, 354e, 354f, 465b, 637c), le complément est « une valeur présente dans la table de nomenclature des emplois du spectacle ou \"999SPT\" pour les emplois permanents du spectacle ». La table (nomenclature-emplois-ft.json) est celle des intermittents, que France Travail Spectacle lit pour les annexes 8 et 10 : un permanent n'y a pas sa place. La nature décide, pas le métier (tranché le 10/10/2026) : un CDDU garde le code de son métier (fiche, `code_emploi_ft`)."
+        },
+        "S21.G00.40.007": {
+          "valeur": "01",
+          "quoi": "01 - Contrat de travail à durée indéterminée de droit privé."
+        },
+        "S21.G00.40.008": {
+          "valeur": "99",
+          "quoi": "99 - Non concerné. Un CDI ordinaire ne relève d'aucun dispositif de politique publique."
+        },
+        "S21.G00.40.016": {
+          "valeur": "99",
+          "quoi": "99 - non applicable."
+        },
+        "S21.G00.40.018": {
+          "valeur": "200",
+          "quoi": "200 - Régime général (risque maladie)."
+        },
+        "S21.G00.40.020": {
+          "valeur": "200",
+          "quoi": "200 - Régime général (risque vieillesse)."
+        },
+        "S21.G00.40.024": {
+          "valeur": "99",
+          "quoi": "99 - Non concerné (travailleur à l'étranger)."
+        },
+        "S21.G00.40.026": {
+          "valeur": "99",
+          "quoi": "99 - Non concerné (statut d'emploi)."
+        },
+        "S21.G00.40.037": {
+          "valeur": "03",
+          "quoi": "03 - situation non connue. Un permanent PEUT avoir un autre employeur (un mi-temps ailleurs) : l'entreprise ne le sait pas, et « employeur unique » serait une affirmation qu'elle ne peut pas tenir. À poser autrement le jour où la fiche du salarié le dira."
+        },
+        "S21.G00.40.039": {
+          "valeur": "200",
+          "quoi": "200 - Régime général (risque accident du travail)."
+        },
+        "S21.G00.40.051": {
+          "valeur": "02",
+          "quoi": "02 - Entrepreneur de spectacles vivants professionnel. Décrit l'EMPLOYEUR (« le régime applicable à la prestation de travail pour France Travail s'apprécie en fonction du nombre de spectacles vivants réalisés annuellement par l'employeur ») : il ne change pas parce que le salarié est permanent. Aucun contrôle ne la conditionne à la nature du contrat. À CONFIRMER au premier dépôt de test."
+        },
+        "S21.G00.71.002": {
+          "valeur": "RUAA",
+          "quoi": "RUAA - Régime unifié AGIRC-ARRCO."
+        },
+        "S21.G00.86.001": {
+          "valeur": "07",
+          "quoi": "07 - Ancienneté dans l'entreprise."
+        },
+        "S21.G00.86.002": {
+          "valeur": "01",
+          "quoi": "01 - Jours."
+        }
+      },
+      "champs": {
+        "S21.G00.40.014": {
+          "source": "engagement.modalite_temps_travail",
+          "defaut_calcule": "10 si la quotité du contrat vaut celle de référence, 20 sinon",
+          "quoi": "Modalité d'exercice du temps de travail : 10 - Temps plein, 20 - Temps partiel, 41 - Temps partiel de droit, 42 - Temps partiel de droit pour enfant."
+        },
+        "S21.G00.40.017": {"source": "entreprise.idcc", "quoi": "Code convention collective applicable."},
+        "S21.G00.40.019": {"source": "entreprise.siret", "quoi": "Identifiant du lieu de travail."},
+        "S21.G00.40.036": {"source": "calcul : les emplois du salarié dans la période de paie (dsn::emplois_multiples)", "quoi": "Code emplois multiples : 02 si le salarié tient plusieurs emplois chez la compagnie dans le même mois (p. 199), 01 sinon."},
+        "S21.G00.40.040": {"source": "bareme.taux_atmp.code_risque", "quoi": "Code risque accident du travail."},
+        "S21.G00.40.043": {"source": "bareme.taux_atmp.valeur", "quoi": "Taux de cotisation accident du travail."},
+        "S21.G00.40.049": {"source": "entreprise.licence_spectacle", "quoi": "Numéro de licence d'entrepreneur de spectacles."}
+      },
+      "absents": {
+        "S21.G00.40.010": "Date de fin prévisionnelle : un CDI n'en a pas. La rubrique n'est obligatoire (CCH-12) que pour les natures 02, 03, 10, 29, 70 et 92.",
+        "S21.G00.40.021": "Motif de recours : il qualifie un CDD ou un contrat de mission. SIG-11 ne l'exige que pour les natures 02, 03 et 92.",
+        "S21.G00.40.022": "Code caisse professionnelle de congés payés : la rubrique ne vaut que « dans le cas où les indemnités ne sont pas versées par l'employeur ». Un permanent prend ses congés chez son employeur, qui les paie : il n'est pas affilié aux Congés Spectacles, et la cotisation de 15,5 % n'est pas due."
+      },
+      "interdits": {
+        "S21.G00.40.050": "CCH-11 : « Numéro objet spectacle n'est autorisée que si la Nature du contrat est 02 ou 10 ». Un CDI (01) qui porterait un numéro d'objet serait rejeté. C'est la raison pour laquelle un engagement permanent ne se rattache à aucun spectacle."
+      },
+      "dpae": {
+        "_quoi": "Ce que la DPAE écrit de ce contrat. C'est une AUTRE déclaration que la DSN, et sa nomenclature n'a rien à voir : le Format 120 ne connaît que TROIS types de contrat — 1 CDD, 2 CDI, 3 CTT — là où la DSN en a une vingtaine. Un permanent passe par la même DPAE que n'importe qui : elle est due pour toute embauche (L1221-10), et l'écrire en CDD quand c'est un CDI, c'est déclarer un terme qui n'existe pas.",
+        "_source": "prive/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.pdf, catégorie V « CONTRAT » — C_TYPE_CONTRAT en position 865, D_FIN_CDD en 866 à 873 (positions du dessin, comptées à partir de 1).",
+        "type_contrat": {
+          "valeur": "2",
+          "quoi": "CDI. C\u2019est la seule valeur de ce fichier qui ne vaut pas 1, et c\u2019est tout ce qui sépare la DPAE d\u2019un permanent de celle d\u2019un intermittent.",
+          "controle": "Code retour 44 : « type de contrat invalide — différent de 1, 2 ou 3, ou non renseigné »."
+        },
+        "date_fin": {
+          "obligatoire": false,
+          "quoi": "Il n\u2019y en a pas : un CDI n\u2019a pas de terme, la zone reste à blanc. Le moteur refuse d\u2019en écrire une, même si l\u2019engagement en portait une par mégarde.",
+          "controle": "Aucun : le contrôle 46 ne vise que les contrats de type CDD."
+        }
+      },
+      "fin_de_contrat": {
+        "_quoi": "Le bloc S21.G00.62. Un CDI ne finit pas tout seul : le motif de rupture est une SAISIE, jamais un défaut.",
+        "motif_par_defaut": null,
+        "_motif_par_defaut": "Il n'y en a pas, et c'est voulu. Démission (059), licenciement (020, 087, 088, 091, 092…), rupture conventionnelle (043), départ à la retraite (039), fin de période d'essai (034 employeur, 035 salarié) : le motif change les droits du salarié à l'assurance chômage. Le moteur refuse de produire une fin de CDI sans motif dit.",
+        "motifs": [
+          {"code": "034", "libelle": "Fin de période d'essai à l'initiative de l'employeur"},
+          {"code": "035", "libelle": "Fin de période d'essai à l'initiative du salarié"},
+          {"code": "059", "libelle": "Démission"},
+          {"code": "043", "libelle": "Rupture conventionnelle"},
+          {"code": "020", "libelle": "Licenciement pour autre motif"},
+          {"code": "014", "libelle": "Licenciement pour motif économique"},
+          {"code": "087", "libelle": "Licenciement pour faute grave"},
+          {"code": "088", "libelle": "Licenciement pour faute lourde"},
+          {"code": "091", "libelle": "Licenciement pour inaptitude physique d'origine non professionnelle"},
+          {"code": "092", "libelle": "Licenciement pour inaptitude physique d'origine professionnelle"},
+          {"code": "039", "libelle": "Départ à la retraite à l'initiative du salarié"},
+          {"code": "038", "libelle": "Mise à la retraite par l'employeur"},
+          {"code": "058", "libelle": "Prise d'acte de la rupture du contrat de travail"},
+          {"code": "083", "libelle": "Rupture pour force majeure ou fait du prince"},
+          {"code": "065", "libelle": "Décès de l'employeur ou internement"}
+        ],
+        "codes": {},
+        "signalement_fctu": true,
+        "_signalement_fctu": "La fin d'un CDI se déclare par un signalement de fin de contrat de travail unique (nature 07), dans les cinq jours ouvrés suivant la fin du contrat. Il porte le solde de tout compte."
+      },
+      "remunerations": {
+        "_quoi": "Les quatre types obligatoires, et ils ne valent PAS tous la même chose sur une paie mensuelle.",
+        "types": ["001", "002", "003", "010"],
+        "toutes_au_brut": false,
+        "_001": "Rémunération brute non plafonnée : le brut du mois, absences déduites.",
+        "_002": "Salaire brut servant aux calculs des droits de l'Assurance chômage : « uniquement les éléments de salaire », sans les primes et indemnités de rupture du bloc 52.",
+        "_003": "Salaire rétabli - reconstitué : ce que le salarié aurait perçu sans absence non rémunérée. « Le salaire rétabli doit toujours être déclaré pour la période de paie courante dans la DSN mensuelle. »",
+        "_010": "Salaire de base : « la rémunération brute habituelle du salarié, à l'exclusion des compléments de salaire qu'ils soient légaux, conventionnels ou attribués à l'initiative de l'employeur […] Il correspond généralement à la première ligne du bulletin de salaire. »"
+      },
+      "activites": {
+        "_quoi": "Les blocs S21.G00.53 sous la rémunération de type 002 : les heures de travail rémunéré, et les absences.",
+        "unites": [
+          {"code": "10", "quoi": "10 - heure : les heures de travail rémunéré du mois", "mesure": "heures", "type": "01"}
+        ],
+        "absences": {"code": "10", "type": "02", "quoi": "02 - Durée d'absence partiellement ou pas du tout rémunérée, en heures."}
+      }
+    },
+
+    "cdd": {
+      "libelle": "CDD de droit privé (hors contrat d'usage)",
+      "_quoi": "Un CDD ordinaire : remplacement, accroissement temporaire d'activité, emploi saisonnier. Payé au mois comme un CDI, avec une date de fin, un motif de recours, et une indemnité de fin de contrat (précarité) sauf exclusion légale.",
+      "_preuve": "AUCUN réel en face — voir `cdi._preuve`. Même origine, mêmes garde-fous.",
+      "paie": "mensuelle",
+      "duree_indeterminee": false,
+      "bareme": "permanent",
+      "_bareme": "La même section que le CDI : la nature du contrat ne change pas les cotisations, seule la fin du contrat diffère (précarité, motifs de rupture).",
+      "unite_quotite": {
+        "valeur": "10",
+        "plafond": 250,
+        "quoi": "10 - heure, comme un CDI : un CDD ordinaire est un contrat à durée du travail, pas à dates jouées. Plafond : 250.00, CCH-13 du bloc 40 (voir `cdi`)."
+      },
+      "quotite_reference_defaut": {
+        "valeur": 151.67,
+        "quoi": "35 h × 52 / 12. Art. L.3121-27 du code du travail. Comme pour le CDI : une durée collective plus courte s'écrit dans la fiche entreprise, jamais une durée qui inclut des heures supplémentaires (norme DSN 2027, p. 190)."
+      },
+      "codes": {
+        "S21.G00.40.005": {"valeur": "999SPT", "quoi": "999SPT - emplois permanents du spectacle (CCH-18 du bloc 40, p. 185), comme le CDI : un CDD ordinaire n'est pas un contrat d'intermittent."},
+        "S21.G00.40.007": {"valeur": "02", "quoi": "02 - Contrat de travail à durée déterminée de droit privé."},
+        "S21.G00.40.008": {"valeur": "99", "quoi": "99 - Non concerné."},
+        "S21.G00.40.016": {"valeur": "99", "quoi": "99 - non applicable."},
+        "S21.G00.40.018": {"valeur": "200", "quoi": "200 - Régime général (risque maladie)."},
+        "S21.G00.40.020": {"valeur": "200", "quoi": "200 - Régime général (risque vieillesse)."},
+        "S21.G00.40.024": {"valeur": "99", "quoi": "99 - Non concerné (travailleur à l'étranger)."},
+        "S21.G00.40.026": {"valeur": "99", "quoi": "99 - Non concerné (statut d'emploi)."},
+        "S21.G00.40.037": {"valeur": "03", "quoi": "03 - situation non connue."},
+        "S21.G00.40.039": {"valeur": "200", "quoi": "200 - Régime général (risque accident du travail)."},
+        "S21.G00.40.051": {"valeur": "02", "quoi": "02 - Entrepreneur de spectacles vivants professionnel. Décrit l'employeur."},
+        "S21.G00.71.002": {"valeur": "RUAA", "quoi": "RUAA - Régime unifié AGIRC-ARRCO."},
+        "S21.G00.86.001": {"valeur": "07", "quoi": "07 - Ancienneté dans l'entreprise."},
+        "S21.G00.86.002": {"valeur": "01", "quoi": "01 - Jours."}
+      },
+      "champs": {
+        "S21.G00.40.014": {
+          "source": "engagement.modalite_temps_travail",
+          "defaut_calcule": "10 si la quotité du contrat vaut celle de référence, 20 sinon",
+          "quoi": "Modalité d'exercice du temps de travail."
+        },
+        "S21.G00.40.017": {"source": "entreprise.idcc", "quoi": "Code convention collective applicable."},
+        "S21.G00.40.019": {"source": "entreprise.siret", "quoi": "Identifiant du lieu de travail."},
+        "S21.G00.40.036": {"source": "calcul : les emplois du salarié dans la période de paie (dsn::emplois_multiples)", "quoi": "Code emplois multiples : 02 si le salarié tient plusieurs emplois chez la compagnie dans le même mois (p. 199), 01 sinon."},
+        "S21.G00.40.021": {
+          "source": "engagement.motif_recours",
+          "quoi": "Motif de recours. OBLIGATOIRE (SIG-11) pour une nature 02 sans dispositif de politique publique. Il se saisit : c'est lui qui rend le CDD licite au regard de l'article L.1242-2.",
+          "obligatoire": true,
+          "valeurs": [
+            {"code": "01", "libelle": "Remplacement d'un salarié"},
+            {"code": "02", "libelle": "Accroissement temporaire de l'activité de l'entreprise"},
+            {"code": "03", "libelle": "Emplois à caractère saisonnier"},
+            {"code": "06", "libelle": "Contrat à durée déterminée à objet défini"},
+            {"code": "09", "libelle": "Recrutement de personnes sans emploi rencontrant des difficultés sociales et professionnelles particulières"},
+            {"code": "10", "libelle": "Complément de formation professionnelle au salarié"},
+            {"code": "12", "libelle": "Remplacement d'un salarié passé provisoirement à temps partiel"},
+            {"code": "13", "libelle": "Attente de la suppression définitive du poste du salarié ayant quitté définitivement l'entreprise"}
+          ],
+          "_sans_05": "Le motif « 05 - Contrat d'usage » n'est pas dans cette liste : un contrat d'usage se saisit comme un `cddu_spectacle`, avec tout ce qui va avec (numéro d'objet, Congés Spectacles, circuit dérogatoire). Le proposer ici ferait deux façons de déclarer la même chose, dont une fausse."
+        },
+        "S21.G00.40.040": {"source": "bareme.taux_atmp.code_risque", "quoi": "Code risque accident du travail."},
+        "S21.G00.40.043": {"source": "bareme.taux_atmp.valeur", "quoi": "Taux de cotisation accident du travail."},
+        "S21.G00.40.049": {"source": "entreprise.licence_spectacle", "quoi": "Numéro de licence d'entrepreneur de spectacles."},
+        "S21.G00.40.022": {
+          "source": "entreprise.congesspectacles_affiliation",
+          "si": "caisse_conges::affilie",
+          "quoi": "Code caisse professionnelle de congés payés, « dans le cas où les indemnités ne sont pas versées par l'employeur » (p. 195) : un CDD ordinaire de MOINS DE DOUZE MOIS d'un artiste (son métier est un emploi de l'annexe 10 de la nomenclature des emplois du spectacle) est déclaré à la caisse des Congés Spectacles « quelle que soit […] la nature du contrat de travail (CDD de droit commun, CDD d'usage, etc) » (fiche Audiens ; code du travail D. 7121-40, D. 7121-41). Les autres prennent leurs congés — ou une indemnité compensatrice — chez leur employeur, et la rubrique ne s'écrit pas. Le technicien en CDD ordinaire reste parmi eux tant que n'est pas décidé quel technicien la caisse attend (l'annexe 8 range aussi l'attaché de production parmi les techniciens). Lot V2f, prive/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md."
+        }
+      },
+      "absents": {},
+      "interdits": {
+        "S21.G00.40.050": "CCH-11 autorise le numéro d'objet pour la nature 02 : un CDD ordinaire POURRAIT en porter un. Il est interdit ici pour une autre raison — un contrat rattaché à un spectacle est un contrat d'usage, et se saisit comme tel. Écrire un numéro d'objet sur un CDD ordinaire ferait croire à un CDDU sans le circuit dérogatoire ni les Congés Spectacles."
+      },
+      "dpae": {
+        "_quoi": "Ce que la DPAE écrit de ce contrat. C'est une AUTRE déclaration que la DSN, et sa nomenclature n'a rien à voir : le Format 120 ne connaît que TROIS types de contrat — 1 CDD, 2 CDI, 3 CTT — là où la DSN en a une vingtaine. Un permanent passe par la même DPAE que n'importe qui : elle est due pour toute embauche (L1221-10), et l'écrire en CDD quand c'est un CDI, c'est déclarer un terme qui n'existe pas.",
+        "_source": "prive/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.pdf, catégorie V « CONTRAT » — C_TYPE_CONTRAT en position 865, D_FIN_CDD en 866 à 873 (positions du dessin, comptées à partir de 1).",
+        "type_contrat": {
+          "valeur": "1",
+          "quoi": "CDD. Même valeur que le contrat d\u2019usage : pour l\u2019Urssaf, les deux sont des contrats à durée déterminée.",
+          "controle": "Code retour 44 : « type de contrat invalide — différent de 1, 2 ou 3, ou non renseigné »."
+        },
+        "date_fin": {
+          "obligatoire": true,
+          "quoi": "D_FIN_CDD, le terme du contrat signé.",
+          "controle": "Code retour 46 : « date de fin de CDD obligatoire pour un contrat CDD, ou invalide (antérieure à la date d\u2019embauche) »."
+        }
+      },
+      "fin_de_contrat": {
+        "_quoi": "Le bloc S21.G00.62, le mois où le contrat se termine.",
+        "motif_par_defaut": {
+          "valeur": "031",
+          "quoi": "031 - fin de contrat à durée déterminée ou fin d'accueil occasionnel. La fin normale d'un CDD arrivé à son terme."
+        },
+        "motifs": [
+          {"code": "031", "libelle": "Fin de contrat à durée déterminée"},
+          {"code": "034", "libelle": "Fin de période d'essai à l'initiative de l'employeur"},
+          {"code": "035", "libelle": "Fin de période d'essai à l'initiative du salarié"},
+          {"code": "036", "libelle": "Rupture anticipée d'un CDD à l'initiative de l'employeur"},
+          {"code": "037", "libelle": "Rupture anticipée d'un CDD à l'initiative du salarié"},
+          {"code": "084", "libelle": "Rupture d'un commun accord du CDD"},
+          {"code": "095", "libelle": "Rupture anticipée pour faute grave"},
+          {"code": "096", "libelle": "Rupture anticipée pour faute lourde"},
+          {"code": "083", "libelle": "Rupture pour force majeure ou fait du prince"},
+          {"code": "033", "libelle": "Rupture anticipée d'un CDD en cas d'inaptitude physique constatée par le médecin du travail"}
+        ],
+        "_motifs": "Ceux que la CCH-11 de S21.G00.62.002 autorise pour la nature 02 (cahier technique DSN 2026.1, p. 270-273). 091 et 092 (licenciement pour inaptitude) n'y sont pas : ils ne valent que pour les natures 01, 07, 08, 09, 50, 53, 54, 82, 91 (p. 272-273) ; l'inaptitude d'un salarié en CDD se déclare en 033, autorisé pour la nature 02 (p. 271). Le moteur refuse un motif hors de cette liste (`Nature::motif_rupture_refuse`).",
+        "codes": {},
+        "signalement_fctu": true,
+        "_signalement_fctu": "La fin d'un CDD ordinaire se déclare par un signalement de fin de contrat (nature 07). Le circuit dérogatoire 62.017 = 01 est réservé au contrat d'USAGE (§2.5.3 du cahier technique) : il n'a rien à faire ici, et la rubrique elle-même ne s'écrit que pour un contrat d'usage."
+      },
+      "remunerations": {
+        "_quoi": "Identique au CDI : les quatre types obligatoires, chacun sa valeur.",
+        "types": ["001", "002", "003", "010"],
+        "toutes_au_brut": false
+      },
+      "activites": {
+        "_quoi": "Les heures de travail rémunéré, et les absences.",
+        "unites": [
+          {"code": "10", "quoi": "10 - heure : les heures de travail rémunéré du mois", "mesure": "heures", "type": "01"}
+        ],
+        "absences": {"code": "10", "type": "02", "quoi": "02 - Durée d'absence partiellement ou pas du tout rémunérée, en heures."}
+      }
+    }
+  },
+
+  "_defaut": "cddu_spectacle",
+  "__defaut": "Un engagement qui ne dit pas sa nature est un CDDU du spectacle : c'est ce qu'ont été les 146 contrats de l'historique, et c'est ce qui fait que cinq ans de saisies se rejouent sans être touchées. Une nature se dit, elle ne se devine pas — mais le silence de tout un historique est une réponse, pas un oubli."
+}

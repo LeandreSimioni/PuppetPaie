@@ -1,0 +1,29 @@
+{
+ "sujet": "Octobre 2026",
+ "corps": "Bonjour,\n\nTout va bien.\n",
+ "html": "",
+ "pieces": [
+  {
+   "nom": "a.csv",
+   "taille": 20
+  },
+  {
+   "nom": "b.txt",
+   "taille": 20
+  },
+  {
+   "nom": "c.png",
+   "taille": 20
+  },
+  {
+   "nom": "d.zip",
+   "taille": 20
+  },
+  {
+   "nom": "e.json",
+   "taille": 20
+  }
+ ],
+ "dest": "marie@exemple.fr",
+ "exp": "compagnie@gmail.com"
+}

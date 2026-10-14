@@ -1,0 +1,12 @@
+{
+ "actives": [
+  "heure",
+  "prime_maison"
+ ],
+ "usages": {
+  "heure": 5,
+  "prime_maison": 9,
+  "cachet": 2,
+  "mois": 1
+ }
+}

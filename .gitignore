@@ -1,0 +1,145 @@
+# ---------------------------------------------------------------------------
+# DEUX DEPOTS, UN SEUL .gitignore (14/10/2026).
+#
+# Le depot de TRAVAIL (`puppetpaieprivate`) est prive : il porte le code ET
+# `prive/`, les donnees de la compagnie du poste, pour qu'on puisse travailler
+# depuis ailleurs qu'ici ; il recoit les tickets d'incident. Le depot PUBLIC
+# (`PuppetPaie`) porte le meme code, sans `prive/` ni rien de reel, avec une
+# histoire neuve : `atelier/outils/exporter_depot_public.sh` l'ecrit depuis
+# ce depot-ci et ajoute en bas de sa copie de ce fichier le bloc de ce qui
+# n'y entre jamais. L'historique de ce depot-ci porte des NIR, des salaires et
+# des adresses, et une histoire ne se nettoie pas apres coup : il ne devient
+# jamais public.
+#
+# Deux consequences, a ne pas reapprendre :
+#   - NE PAS poser `git config core.hooksPath atelier/.githooks` ICI. Ce
+#     hook refuse tout commit qui emporte une donnee personnelle : il est
+#     fait pour le depot public, et il refuserait chaque commit de celui-ci.
+#   - `prive/` ne se met pas dans ce fichier : il est suivi ici, a chaque
+#     commit (regle de fond 9) ; c'est l'export qui l'ecarte du public.
+# ---------------------------------------------------------------------------
+
+__pycache__/
+*.pyc
+
+# LES TROIS FICHIERS QU'ON NE LIT PAS -- et qu'on ne pousse pas non plus.
+#
+# Ils sont scelles par la CLE DE CE POSTE, qui vit hors du depot et hors des
+# donnees (~/.config/puppetpaie/, ou %APPDATA%\PuppetPaie\) : ailleurs ils ne
+# s'ouvrent pas. Les pousser ne rendrait donc aucun service, et l'un d'eux
+# est la cle qui SIGNE LES MISES A JOUR de toutes les compagnies.
+#
+# Pour les inclure quand meme, en connaissance de cause :
+#     git add -f prive/config/coffre.bin prive/config/google-jeton.bin prive/config/maj-cle-privee.bin
+prive/config/coffre.bin
+prive/config/google-jeton.bin
+prive/config/maj-cle-privee.bin
+# ET LEURS COPIES MISES DE COTE (21/09/2026). Le coffre a change de format le
+# 20 ; les trois fichiers d'avant ont ete DEPLACES dans `avant/` plutot que
+# supprimes -- ils etaient toujours lisibles par DPAPI, et la cle de signature
+# ne se retape pas. Ils n'etaient couverts par aucune regle : un `git add -A`
+# les aurait pris. Ils sont scelles, mais un fichier scelle qui part dans une
+# histoire y reste.
+prive/config/avant/*.bin
+prive/config/avant/*.bin.*
+
+
+# Le jeton de session de l'interface : un fichier de travail, refait a chaque
+# demarrage, propre a ce poste.
+prive/config/.jeton-interface
+
+# Le verrou des compteurs : un fichier de travail, jamais une donnee.
+.compteurs.verrou
+
+# La version d'avant, gardee par la mise a jour (moteur/maj.py).
+.avant/
+
+# LA COPIE DE DEVELOPPEMENT (logiciel/moteur/compagnies.py). Elle SE
+# VERSIONNE, pour que les essais suivent d'un poste a l'autre (Leandre,
+# 22/09/2026 : « je veux continuer de travailler sans mon ordi »). Memes
+# exclusions que prive/ : les fichiers scelles et ceux du poste.
+atelier/prive-dev/config/coffre.bin
+atelier/prive-dev/config/google-jeton.bin
+atelier/prive-dev/config/maj-cle-privee.bin
+atelier/prive-dev/config/avant/*.bin
+atelier/prive-dev/config/avant/*.bin.*
+atelier/prive-dev/config/.jeton-interface
+
+# UN DOSSIER PORTABLE (14/10/2026, paie/src/coffre.rs, MARQUEUR_PORTABLE) : le marqueur dit que la cle du poste vit
+# a cote de logiciel/, et non sur la machine. Ni le marqueur ni la cle ne voyagent par Git : un clone n'est pas une
+# cle USB, et la cle ouvre le coffre.
+/PORTABLE.json
+/cle-poste.bin
+/ouverture-gardee.bin
+
+# Le mode developpeur de CE poste (moteur/compagnies.py).
+.mode-developpeur.json
+# Ce que montre l'accueil de CE poste, demo ou complete (le geste secret).
+.edition.json
+
+# LES PAQUETS DU LOGICIEL (outils/exporter.py) : ils se refont d'une
+# commande, depuis le code qui est deja ici.
+exports-logiciel/
+
+# LES COMPAGNIES DE DEMONSTRATION (25/09/2026) : ouvertes une fois, elles
+# posent elles aussi un coffre et un jeton d'interface. Memes exclusions que
+# prive/ et prive-dev/ -- un fichier scelle qui part dans une histoire y reste.
+demo/*/config/coffre.bin
+demo/*/config/google-jeton.bin
+demo/*/config/maj-cle-privee.bin
+demo/*/config/.jeton-interface
+# ET LEUR JOURNAL DE LA FENETRE (14/10/2026, lot N1) : `journal/interface.log`
+# est ecrit par la fenetre a chaque lancement, avec le chemin du dossier sur
+# le poste. Le moteur le range parmi ce qui appartient au poste et non a la
+# demonstration (PROPRES_AU_POSTE, paie/src/interface/compagnies.rs) : une
+# remise a zero le garde, la photo d'origine ne le porte pas. Une demo n'en a
+# pas besoin pour tourner.
+demo/*/journal/interface.log
+
+# LA FABRIQUE DE PDF (Rust) : le dossier de compilation se refait d'une
+# commande. `Cargo.lock`, lui, SE VERSIONNE (les dependances sont figees).
+atelier/sources/fabrique-pdf/target/
+atelier/sources/paie/target/
+atelier/sources/paie/target-atelier/
+atelier/sources/fenetre/target/
+
+# LES PHOTOS D'ORIGINE DES FICTIVES (02/10/2026) : prises a la premiere
+# ouverture, sur chaque poste, pour « Remettre a zero » (moteur/compagnies.py).
+# Elles se refont toutes seules ; 20 Mo qui n'ont rien a faire dans l'histoire.
+demo/.origine/
+
+# La paie calculee a cote de la saisie (paies/AAAA-MM.calcul.json) : un
+# resultat que le moteur refait seul, a ne pas suivre ni emporter dans un diff.
+*.calcul.json
+# L'etat garde d'un mois (paies/AAAA-MM.etat.json, `etat_garde.rs`) : le resume de la saisie, du calcul et du journal,
+# refait sur chaque poste des que ses sources bougent. Il porte des chemins du poste : il ne voyage pas.
+*.etat.json
+
+# LE TEXTE DES PDF DEJA LUS (08/10/2026) : un cache, refait au besoin
+# (`avenant::texte_du_pdf`). Il ne dit rien que le PDF ne dise.
+.textes/
+
+# Les worktrees des seances Claude : du travail local, jamais une donnee.
+.claude/worktrees/
+
+# Le schema que Tauri ecrit en compilant sous Windows : genere, jamais commite (5b3a6d2e).
+atelier/sources/fenetre/gen/schemas/windows-schema.json
+
+# LE BAC A SABLE DE LA MISE A JOUR (atelier/bac-a-sable/LISEZ-MOI.md) : le programme y est copie, ce qu'il fabrique ne se garde pas.
+atelier/bac-a-sable/logiciel/
+atelier/bac-a-sable/prive/maj/
+atelier/bac-a-sable/prive/journal/
+
+# ---------------------------------------------------------------------------
+# LE DEPOT PUBLIC (bloc ajoute par atelier/outils/exporter_depot_public.sh) :
+# les donnees d'une compagnie vivent a cote du code et n'y entrent jamais
+# (a la racine seulement : le bac a sable de l'atelier garde son `prive/`,
+# qui est une demonstration copiee).
+# ---------------------------------------------------------------------------
+/prive/
+/compagnies/
+atelier/prive-dev/
+import/
+atelier/bac-a-sable/prive/config/coffre.bin
+atelier/bac-a-sable/prive/config/.jeton-interface
+logiciel/donnees/google-application.json

@@ -1,0 +1,69 @@
+{
+  "_quoi": "La nomenclature du signalement d'amorçage des données variables (SADV) : la nature de l'événement déclencheur, rubrique S20.G00.05.011. Livré avec le LOGICIEL, jamais avec les données : ce sont des codes de la norme, pas des choix d'une compagnie.",
+  "_a_quoi_il_sert": "Demander à la DGFiP le taux de prélèvement à la source d'un salarié SANS attendre une DSN mensuelle. Il a remplacé TOPAze, fermé. La réponse vient sous cinq jours ouvrés, par un compte-rendu métier de nature 94 — celui que `moteur retours` ramasse déjà — et le bilan d'identification (BIS) revient immédiatement.",
+  "_source": {
+    "titre": "Base de connaissances DSN, fiches 2984 (informations générales) et 2117 (cinématique de déclaration) ; cahier technique NEODeS 2026.1, tableau des usages de la nature 08",
+    "relu_le": "2026-09-20",
+    "ce_qu_elles_etablissent": [
+      "sept natures d'événement déclencheur, dont deux seulement ouvrent à un salarié la demande d'un taux de PAS : « 01 - embauche effective » et « 07 - changement de tiers déclarant ou de logiciel déclaratif » ;",
+      "« un signalement d'amorçage des données variables, quelle que soit la nature d'événement déclencheur, est émis pour un unique individu » ;",
+      "la DGFiP est destinataire des natures 01, 02, 06 et 07 ; les organismes complémentaires, des natures 01 à 05."
+    ]
+  },
+  "_ce_qu_il_n_y_a_pas": "Aucun motif « mon taux a expiré ». Un intermittent déjà sous contrat dont le taux périme sans nouvelle embauche n'a aucun levier : c'est le barème de l'article 204 H, et rien d'autre. Le motif 07 ne se joue qu'une fois, au changement de logiciel.",
+  "motifs": {
+    "_rubrique": "S20.G00.05.011",
+    "_regle": "`saisissable: false` ne veut pas dire interdit par la norme : c'est ce que ce logiciel ne propose pas aujourd'hui. Les cinq autres motifs servent l'affiliation aux organismes complémentaires — un chantier que ce moteur n'a pas ouvert.",
+    "codes": [
+      {
+        "code": "01",
+        "libelle": "embauche effective",
+        "saisissable": true,
+        "dgfip": true,
+        "organismes_complementaires": true
+      },
+      {
+        "code": "02",
+        "libelle": "embauche suite à transfert",
+        "saisissable": false,
+        "dgfip": true,
+        "organismes_complementaires": true
+      },
+      {
+        "code": "03",
+        "libelle": "fin de dispense d'affiliation",
+        "saisissable": false,
+        "dgfip": false,
+        "organismes_complementaires": true
+      },
+      {
+        "code": "04",
+        "libelle": "modification des paramètres du contrat collectif (prévoyance, santé, retraite supplémentaire)",
+        "saisissable": false,
+        "dgfip": false,
+        "organismes_complementaires": true
+      },
+      {
+        "code": "05",
+        "libelle": "transmission de population pour affiliation à un nouveau contrat",
+        "saisissable": false,
+        "dgfip": false,
+        "organismes_complementaires": true
+      },
+      {
+        "code": "06",
+        "libelle": "demande de taux de PAS pour un individu non salarié",
+        "saisissable": false,
+        "dgfip": true,
+        "organismes_complementaires": false
+      },
+      {
+        "code": "07",
+        "libelle": "changement de tiers déclarant ou de logiciel déclaratif",
+        "saisissable": true,
+        "dgfip": true,
+        "organismes_complementaires": false
+      }
+    ]
+  }
+}

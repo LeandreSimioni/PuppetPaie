@@ -1,0 +1,2257 @@
+{
+  "annee": 2026,
+  "_source": "Retro-ingenierie du bulletin CoolPaie de juin 2026 (base 260,00 EUR) et de la DSN de juillet 2026 (base 520,00 EUR). Chaque taux ci-dessous reproduit le centime exact.",
+  "_maj": "2026-09-03",
+  "smic_horaire": [
+    {
+      "depuis": "2026-01-01",
+      "valeur": 12.02
+    },
+    {
+      "depuis": "2026-06-01",
+      "valeur": 12.31
+    }
+  ],
+  "heures_par_cachet": 7,
+  "taxe_sur_les_salaires": {"taux_normal": 4.25, "majoration_1": 4.25, "majoration_2": 9.35, "seuil_1": 9229, "seuil_2": 18423, "franchise": 1200, "decote_jusqu_a": 2040, "abattement_1679A": 24256, "_source": "Notices officielles de la DGFiP, 2501-SD 2026 (formulaire 2501-sd_5272), copiees dans prive/reference/sources/code-general-des-impots/formulaires/ : taux normal 4,25 % sur la totalite ; 4,25 % de plus sur la fraction de la remuneration annuelle individuelle au-dela de 9229 EUR, et 9,35 % de plus au-dela de 18423 EUR (8,50 et 13,60 au total) ; franchise si la taxe annuelle n'excede pas 1 200 EUR, decote des trois quarts de la difference jusqu'a 2 040 EUR ; abattement de l'article 1679 A (associations loi 1901, syndicats...) 24256 EUR, applique APRES franchise et decote, ni restituable ni reportable. Base : l'assiette de la CSG (L136-1-1 CSS) sans la reduction de 1,75 % (CGI art. 231). Les seuils sont revalorises chaque annee comme la premiere tranche du bareme de l'impot sur le revenu. Journal §120."},
+  "solde_taxe_apprentissage": {"taux": 0.09, "_source": "Solde de la taxe d'apprentissage, 0,09 % de la masse salariale de l'annee precedente (code du travail L6241-2 : 0,68 % dont 0,09 % de solde ; table des CTP de l'Urssaf : CTP 995). Verse une fois par an, dans la DSN d'avril : CTP 995 au bordereau, assiette = la masse de l'annee precedente, et bloc S21.G00.82 code 076 << Solde de la taxe d'apprentissage verse en numeraire >> du 1er janvier au 31 decembre. Les trois DSN d'avril de CoolPaie (2024, 2025, 2026) le portent ainsi, et leur assiette est EXACTEMENT la somme des assiettes du CTP 992 des douze DSN de l'annee (13 653, 11 154, 17 156). Journal §118."},
+  "pas_taux_par_defaut": {
+    "_quoi": "LA GRILLE DE TAUX PAR DEFAUT DU PRELEVEMENT A LA SOURCE (article 204 H du CGI). Elle ne s'applique QUE faute de taux transmis par la DGFiP : pas de compte-rendu metier de nature 94, ou taux perime (il vaut jusqu'a la fin du deuxieme mois suivant sa mise a disposition). Le taux qui en sort est un taux de type 13, 23 ou 33 selon le domicile, et il ne porte JAMAIS d'identifiant : S21.G00.50.008 est alors interdite.",
+    "_source": "BOI-BAREME-000037, releve sur bofip.impots.gouv.fr le 20/09/2026. Les tranches ont ete extraites du document lui-meme, pas recopiees a la main, et confrontees a la suite de taux fixee par la loi (0 ; 0,5 ; 1,3 ; 2,1 ; 2,9 ; 3,5 ; 4,1 ; 5,3 ; 7,5 ; 9,9 ; 11,9 ; 13,8 ; 15,8 ; 17,9 ; 20 ; 24 ; 28 ; 33 ; 38 ; 43) : une lecture fautive ne passerait pas ce controle.",
+    "_quand": "LES GRILLES CHANGENT AU 1er MAI, PAS AU 1er JANVIER. Elles suivent la loi de finances, promulguee en fevrier pour 2026 (loi n° 2026-103 du 19/02/2026, art. 4). De janvier a avril 2026, c'est donc la grille du 1er mai 2025 qui s'applique -- elle est ici pour cette raison.",
+    "_base": "La base est le montant soumis au PAS (S21.G00.50.013) : la remuneration nette fiscale du versement (50.002) diminuee de l'abattement contrats courts, qui n'a pas de rubrique propre : il se lit dans l'ecart entre 50.002 et 50.013 (S21.G00.50.012 est reservee aux assistants maternels et familiaux, norme DSN 2026.1 p. 245). BOI-IR-PAS-20-20-30-10 § 280 : quand plusieurs versements ont lieu dans le meme mois avec des bulletins distincts, << l'abattement et la grille de taux mensuelle s'appliquent a chaque versement >>. Un bulletin par contrat, donc un abattement par contrat -- et la grille MENSUELLE s'applique telle quelle, sans proratisation a la journee ni a la semaine (§ 270, << sans aucune correction >>).",
+    "abattement_contrats_courts": [
+      {
+        "depuis": "2026-01-01",
+        "valeur": 748,
+        "_source": "BOI-BAREME-000037-20260407 : SMIC mensuel net imposable au 01/01/2026 = 1 495,04 EUR, abattement = 1 495,04 / 2."
+      },
+      {
+        "depuis": "2026-06-01",
+        "valeur": 766,
+        "_source": "BOI-BAREME-000037 (version courante) : SMIC mensuel net imposable au 01/06/2026 = 1 531,12 EUR, abattement = 1 531,12 / 2. IL SUIT LE SMIC, donc la revalorisation de juin -- la meme date que `smic_horaire` ci-dessus."
+      }
+    ],
+    "_abattement": "Pour qui : un contrat a duree determinee dont le terme initial n'excede pas deux mois, ou a terme imprecis -- le cachet d'un intermittent en est toujours un. Combien de temps : les DEUX PREMIERS MOIS de l'embauche, pas au-dela (BOI-IR-PAS-20-20-30-10 § 230). L'abattement ne se deduit PAS de la remuneration nette fiscale (50.002) : seul 50.013 en tient compte, et il se lit dans l'ecart entre les deux, sans rubrique propre (S21.G00.50.012 est reservee aux assistants maternels et familiaux, norme DSN 2026.1 p. 245).",
+    "grilles": [
+      {
+        "depuis": "2025-05-01",
+        "zone": "metropole",
+        "type": "13",
+        "_zone": "Metropole et hors de France",
+        "tranches": [
+          [0, 1620, 0.0],
+          [1620, 1683, 0.5],
+          [1683, 1791, 1.3],
+          [1791, 1911, 2.1],
+          [1911, 2042, 2.9],
+          [2042, 2151, 3.5],
+          [2151, 2294, 4.1],
+          [2294, 2714, 5.3],
+          [2714, 3107, 7.5],
+          [3107, 3539, 9.9],
+          [3539, 3983, 11.9],
+          [3983, 4648, 13.8],
+          [4648, 5574, 15.8],
+          [5574, 6974, 17.9],
+          [6974, 8711, 20.0],
+          [8711, 12091, 24.0],
+          [12091, 16376, 28.0],
+          [16376, 25706, 33.0],
+          [25706, 55062, 38.0],
+          [55062, null, 43.0]
+        ]
+      },
+      {
+        "depuis": "2025-05-01",
+        "zone": "guadeloupe_reunion_martinique",
+        "type": "23",
+        "_zone": "Guadeloupe, La Reunion et Martinique",
+        "tranches": [
+          [0, 1858, 0.0],
+          [1858, 1971, 0.5],
+          [1971, 2171, 1.3],
+          [2171, 2371, 2.1],
+          [2371, 2618, 2.9],
+          [2618, 2761, 3.5],
+          [2761, 2855, 4.1],
+          [2855, 3142, 5.3],
+          [3142, 3885, 7.5],
+          [3885, 4971, 9.9],
+          [4971, 5646, 11.9],
+          [5646, 6540, 13.8],
+          [6540, 7836, 15.8],
+          [7836, 8711, 17.9],
+          [8711, 9900, 20.0],
+          [9900, 13615, 24.0],
+          [13615, 18090, 28.0],
+          [18090, 27610, 33.0],
+          [27610, 60350, 38.0],
+          [60350, null, 43.0]
+        ]
+      },
+      {
+        "depuis": "2025-05-01",
+        "zone": "guyane_mayotte",
+        "type": "33",
+        "_zone": "Guyane et Mayotte",
+        "tranches": [
+          [0, 1990, 0.0],
+          [1990, 2151, 0.5],
+          [2151, 2398, 1.3],
+          [2398, 2704, 2.1],
+          [2704, 2808, 2.9],
+          [2808, 2904, 3.5],
+          [2904, 2999, 4.1],
+          [2999, 3332, 5.3],
+          [3332, 4598, 7.5],
+          [4598, 5951, 9.9],
+          [5951, 6712, 11.9],
+          [6712, 7788, 13.8],
+          [7788, 8567, 15.8],
+          [8567, 9492, 17.9],
+          [9492, 11016, 20.0],
+          [11016, 14820, 24.0],
+          [14820, 18850, 28.0],
+          [18850, 30210, 33.0],
+          [30210, 63767, 38.0],
+          [63767, null, 43.0]
+        ]
+      },
+      {
+        "depuis": "2026-05-01",
+        "zone": "metropole",
+        "type": "13",
+        "_zone": "Metropole et hors de France",
+        "tranches": [
+          [0, 1635, 0.0],
+          [1635, 1698, 0.5],
+          [1698, 1807, 1.3],
+          [1807, 1928, 2.1],
+          [1928, 2060, 2.9],
+          [2060, 2170, 3.5],
+          [2170, 2315, 4.1],
+          [2315, 2738, 5.3],
+          [2738, 3135, 7.5],
+          [3135, 3571, 9.9],
+          [3571, 4019, 11.9],
+          [4019, 4690, 13.8],
+          [4690, 5624, 15.8],
+          [5624, 7037, 17.9],
+          [7037, 8789, 20.0],
+          [8789, 12200, 24.0],
+          [12200, 16523, 28.0],
+          [16523, 25937, 33.0],
+          [25937, 55558, 38.0],
+          [55558, null, 43.0]
+        ]
+      },
+      {
+        "depuis": "2026-05-01",
+        "zone": "guadeloupe_reunion_martinique",
+        "type": "23",
+        "_zone": "Guadeloupe, La Reunion et Martinique",
+        "tranches": [
+          [0, 1875, 0.0],
+          [1875, 1989, 0.5],
+          [1989, 2191, 1.3],
+          [2191, 2392, 2.1],
+          [2392, 2642, 2.9],
+          [2642, 2786, 3.5],
+          [2786, 2881, 4.1],
+          [2881, 3170, 5.3],
+          [3170, 3920, 7.5],
+          [3920, 5016, 9.9],
+          [5016, 5697, 11.9],
+          [5697, 6599, 13.8],
+          [6599, 7907, 15.8],
+          [7907, 8789, 17.9],
+          [8789, 9989, 20.0],
+          [9989, 13738, 24.0],
+          [13738, 18253, 28.0],
+          [18253, 27858, 33.0],
+          [27858, 60893, 38.0],
+          [60893, null, 43.0]
+        ]
+      },
+      {
+        "depuis": "2026-05-01",
+        "zone": "guyane_mayotte",
+        "type": "33",
+        "_zone": "Guyane et Mayotte",
+        "tranches": [
+          [0, 2008, 0.0],
+          [2008, 2170, 0.5],
+          [2170, 2420, 1.3],
+          [2420, 2728, 2.1],
+          [2728, 2833, 2.9],
+          [2833, 2930, 3.5],
+          [2930, 3026, 4.1],
+          [3026, 3362, 5.3],
+          [3362, 4639, 7.5],
+          [4639, 6005, 9.9],
+          [6005, 6772, 11.9],
+          [6772, 7858, 13.8],
+          [7858, 8644, 15.8],
+          [8644, 9577, 17.9],
+          [9577, 11115, 20.0],
+          [11115, 14953, 24.0],
+          [14953, 19020, 28.0],
+          [19020, 30482, 33.0],
+          [30482, 64341, 38.0],
+          [64341, null, 43.0]
+        ]
+      }
+    ]
+  },
+  "plafond_securite_sociale": {
+    "mensuel": 4005,
+    "horaire": 30,
+    "_source": "BOSS, table des parametres 2026 (opposable), codes PSS_M_METROP et PSS_H_METROP -- reference/boss-table-parametres-2026.csv. A relever chaque janvier, ici et non dans le code (16/09/2026 : sorti de plafond.py).",
+    "_quoi": "Le << Plafond Urssaf >> du bas de bulletin : max(mensuel x jours calendaires du contrat / jours du mois, horaire x 12 h x cachets). Voir moteur/plafond.py."
+  },
+  "_note_plafond_urssaf": "Le « Plafond Urssaf » du bas de bulletin n'est PAS cette valeur. Il vaut max(PSS mensuel x jours calendaires / jours du mois, PSS horaire x 12 x cachets) - voir moteur/plafond.py, verifie sur 6 bulletins CoolPaie de 2021, 2023 et 2026. La rubrique ci-dessous est le SMIC retenu pour la reduction generale (S21.G00.79.001 = 01), pas un plafond.",
+  "_note_plafond": "Le 'plafond' declare en DSN (S21.G00.79.001='01') vaut SMIC horaire x 7 x nb de cachets. Verifie sur 70 contrats de 2021 a 2026.",
+  "abattement_csg": 0.9825,
+  "majoration_conges_115": 1.115,
+  "majoration_conges_110": 1.1,
+  "rubriques_bulletin": [
+    {
+      "id": "maladie",
+      "famille": "SANTÉ",
+      "libelle": "Sécurité sociale — Maladie Maternité Invalidité Décès",
+      "base": "brut",
+      "taux_pat": 9.1,
+      "taux_sal": null
+    },
+    {
+      "id": "prevoyance",
+      "famille": "SANTÉ",
+      "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens)",
+      "base": "brut",
+      "taux_pat": 1.11,
+      "taux_sal": 0.12,
+      "_source": "Intermittents non cadres : Deces AP 0,46 (0,34 patronal, 0,12 salarial) + Fonds collectif du spectacle pour la sante 0,77 patronal (accord interbranche, avenant 8 du 21/05/2025, au 01/01/2026) = 1,23 %. LE FONDS SANTE NE SE REINTEGRE PAS dans le net imposable (S21.G00.50.002), a la difference de la part patronale `mutuelle` des permanents (`calcul::reintegrations`). BOI-RSA-BASE-30-10-20 § 200 ne rend imposable que la part patronale financant des garanties de frais de sante, et § 230 ne vise que des garanties << auxquelles le salarie est affilie a titre obligatoire >>. Or le Fonds, << finance par les cotisations obligatoires des employeurs >>, sert une participation a la cotisation d'un intermittent eligible (24 cachets ou jours sur 12 mois) qui CHOISIT de souscrire la Garantie Sante Intermittents (Audiens, << L'essentiel : le regime prevoyance/sante des artistes et techniciens intermittents >>, 25/04/2022) : le salarie n'est affilie a aucune garantie frais de sante par cette cotisation, elle ne finance pas son contrat et ne s'individualise pas. Lecture de la doctrine sur un cas qu'elle ne nomme pas (inference, forte ; meme pratique chez les editeurs de paie du secteur), decidee le 10/10/2026 (corrections DSN, vague 1b). Textes : prive/reference/sources/bofip/BOI-RSA-BASE-30-10-20-20260810-extrait-prevoyance.md et prive/reference/sources/accord-interbranche-prevoyance-intermittents/LISEZ-MOI.md (derniere section). Pas davantage dans le montant net social (S21.G00.58.004) : CSS R. 844-1, II, 1° en exclut le financement par l'employeur des garanties collectives de L. 911-1 (texte depose : prive/reference/sources/montant-net-social/legi-r844-1-versions/R844-1-versions-20231231-20260627.md, la version en vigueur ; lecture dans prive/reference/sources/montant-net-social/LISEZ-MOI.md)."
+    },
+    {
+      "id": "atmp",
+      "famille": "ACCIDENTS DU TRAVAIL — MALADIES PROFESSIONNELLES",
+      "libelle": "Accidents du travail",
+      "base": "brut",
+      "taux_pat": null,
+      "taux_sal": null,
+      "_taux_carsat": 1.5,
+      "_abattement_artistes": 0.3,
+      "_source": "Taux AT notifie par la CARSAT pour la compagnie : 1,50 % depuis le 01/01/2026. Les artistes du spectacle cotisent a 70 % des taux du regime general (arrete du 24 janvier 1975) : 1,50 x 0,70 = 1,05. L'abattement porte sur le TAUX, pas sur l'assiette, et ne vaut PAS pour les techniciens. A ressaisir chaque annee depuis le courrier CARSAT : changer _taux_carsat ET taux_pat.",
+      "_facteur_atmp": 0.7,
+      "_rempli_par": "calcul.bareme_atmp -- le taux AT/MP est propre a l'etablissement (config/baremes/<annee>.json, cle `taux_atmp`) et il ne s'ecrit qu'une fois. La rubrique porte son FACTEUR : 0,70 pour un artiste, dont les taux Urssaf sont abattus de 30 % (arrete du 24/01/1975), 1 pour tout le monde d'autre. Avant le 19/09/2026, le taux etait recopie ici et la, et un test comptait les endroits ou on pouvait l'oublier."
+    },
+    {
+      "id": "vieil_plaf",
+      "famille": "RETRAITE",
+      "libelle": "Sécurité sociale plafonnée",
+      "base": "brut_plafonne",
+      "_base": "Le brut dans la limite du plafond du contrat, celui que le bas du bulletin imprime (`calcul::plafond_de_l_engagement`) : CSS L. 241-3, D. 242-4, R. 242-2 ; arrete du 24/01/1975, art. 3. Textes : prive/reference/sources/plafond-intermittents/LISEZ-MOI.md (vague 1i, point 22). Avant le 10/10/2026 : le brut entier.",
+      "taux_pat": 5.99,
+      "taux_sal": 4.83
+    },
+    {
+      "id": "vieil_deplaf",
+      "famille": "RETRAITE",
+      "libelle": "Sécurité sociale déplafonnée",
+      "base": "brut",
+      "taux_pat": 1.48,
+      "taux_sal": 0.28
+    },
+    {
+      "id": "retraite_t1",
+      "famille": "RETRAITE",
+      "libelle": "Complémentaire Tranche 1",
+      "base": "brut",
+      "taux_pat": 5.74,
+      "taux_sal": 5.3
+    },
+    {
+      "id": "famille",
+      "famille": "FAMILLE",
+      "libelle": "Allocations familiales",
+      "base": "brut",
+      "taux_pat": 3.68,
+      "taux_sal": null
+    },
+    {
+      "id": "chomage",
+      "famille": "ASSURANCE CHÔMAGE",
+      "libelle": "Chômage",
+      "base": "brut_chomage",
+      "_base": "Le brut dans la limite de quatre fois le plafond du contrat : annexes VIII et X du 15/11/2024, art. 49 (prive/reference/sources/plafond-intermittents/). Avant le 10/10/2026 : le brut entier.",
+      "taux_pat": 9.75,
+      "taux_sal": 2.4
+    },
+    {
+      "id": "autres_1",
+      "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+      "libelle": "Autres contributions dues par l'employeur",
+      "base": "brut",
+      "taux_pat": 2.836,
+      "taux_sal": null
+    },
+    {
+      "id": "autres_2",
+      "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+      "libelle": "Autres contributions dues par l'employeur",
+      "base": "brut_x115_plafonne",
+      "_base": "FNAL (moins de cinquante salaries) : le brut majore de 11,5 %, dans la limite du plafond du contrat majore de meme (CSS L. 243-1-3 et D. 243-0-2 ; la majoration de la seule assiette plafonnee : lettre circulaire Acoss 2013-019, annexe 1, R2 ; prive/reference/sources/majoration-caisses-conges/LISEZ-MOI.md). Avant le 10/10/2026 : le brut majore entier.",
+      "taux_pat": 0.07,
+      "taux_sal": null
+    },
+    {
+      "id": "autres_3",
+      "taxe_apprentissage": true,
+      "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+      "libelle": "Autres contributions dues par l'employeur",
+      "base": "brut_x110",
+      "taux_pat": 0.68,
+      "taux_sal": null,
+      "composants": [
+        0.59,
+        0.09
+      ],
+      "_note": "Le bulletin CoolPaie affiche 0,680 % mais calcule deux contributions arrondies separement (0,590 + 0,090). Ex. base 286,00 -> 1,69 + 0,26 = 1,95."
+    },
+    {
+      "id": "conges_spec",
+      "famille": "CONGÉS SPECTACLES",
+      "libelle": "Caisse des Congés Spectacles",
+      "base": "brut_cs",
+      "taux_pat": 15.5,
+      "taux_sal": null
+    },
+    {
+      "id": "ccn",
+      "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+      "libelle": "Cotisations conventionnelles IDCC 3090",
+      "base": "brut",
+      "taux_pat": 0.5,
+      "taux_sal": null,
+      "masquer_base_et_taux": true
+    },
+    {
+      "id": "csg_ded",
+      "famille": "CSG / CRDS",
+      "libelle": "CSG déductible de l'impôt sur le revenu",
+      "base": "csg",
+      "taux_pat": null,
+      "taux_sal": 6.8
+    },
+    {
+      "id": "csg_crds_nd",
+      "famille": "CSG / CRDS",
+      "libelle": "CSG/CRDS non déductible de l'impôt sur le revenu",
+      "base": "csg",
+      "taux_pat": null,
+      "taux_sal": 2.9
+    }
+  ],
+  "_note_csg": "Assiette CSG = arrondi(brut x 0,9825 + brut x taux patronal prevoyance), UN SEUL arrondi, par rubrique de salaire (calcul.py, 13/09/2026). Ex. 260,00 -> 255,45 + 2,886 = 258,336 -> 258,34 ; cadre 250,00 (prevoyance sur la T1 220) -> 245,625 + 3,718 = 249,343 -> 249,34, la ou deux arrondis donneraient 249,35 (bulletin CoolPaie 31/2026).",
+  "cotisations_dsn": [
+    {
+      "bloc78": "02",
+      "code81": "049",
+      "org": "78861779300013",
+      "base": "brut_x115_plafonne",
+      "taux": 0.07,
+      "base78": "brut_plafonne"
+    },
+    {
+      "bloc78": "03",
+      "code81": "074",
+      "org": "78861779300013",
+      "base": "brut",
+      "taux": 2.42,
+      "base78": "brut",
+      "plafond": true
+    },
+    {
+      "bloc78": "03",
+      "code81": "075",
+      "org": "78861779300013",
+      "base": "brut",
+      "taux": 4.9,
+      "base78": "brut"
+    },
+    {
+      "bloc78": "03",
+      "code81": "102",
+      "org": "78861779300013",
+      "base": "brut",
+      "taux": 1.26,
+      "base78": "brut"
+    },
+    {
+      "bloc78": "03",
+      "code81": "130",
+      "org": "78861779300013",
+      "base": "brut_x110",
+      "taux": 0.59,
+      "base78": "brut"
+    },
+    {
+      "bloc78": "03",
+      "code81": "128",
+      "org": "78861779300013",
+      "base": "brut",
+      "taux": 2.0,
+      "base78": "brut"
+    },
+    {
+      "bloc78": "03",
+      "code81": "907",
+      "org": "78861779300013",
+      "base": "brut",
+      "taux": 4.2,
+      "base78": "brut"
+    },
+    {
+      "bloc78": "04",
+      "code81": "072",
+      "org": "78861779300013",
+      "base": "csg",
+      "taux": 9.2,
+      "base78": "csg"
+    },
+    {
+      "bloc78": "04",
+      "code81": "079",
+      "org": "78861779300013",
+      "base": "csg",
+      "taux": 0.5,
+      "base78": "csg"
+    },
+    {
+      "bloc78": "07",
+      "code81": "040",
+      "org": "13000548100010",
+      "base": "brut_chomage",
+      "taux": 11.4,
+      "base78": "brut_chomage"
+    },
+    {
+      "bloc78": "07",
+      "code81": "048",
+      "org": "13000548100010",
+      "base": "brut_chomage",
+      "taux": 0.25,
+      "base78": "brut_chomage"
+    },
+    {
+      "bloc78": "07",
+      "code81": "041",
+      "org": "13000548100010",
+      "base": "brut_chomage",
+      "taux": 0.5,
+      "base78": "brut_chomage"
+    },
+    {
+      "bloc78": "23",
+      "code81": "131",
+      "org": null,
+      "base": "brut",
+      "taux": 11.04,
+      "base78": "brut",
+      "_libelle": "131 - Cotisation regime unifie Agirc-Arrco, le libelle de la norme (cahier technique 2026.1, p. 305 ; prive/reference/norme-dsn/texte/bloc-S21.G00.81.txt, l. 287). La marque `_libelle_a_confirmer`, heritee du 105, est retiree (reste #176)."
+    },
+    {
+      "bloc78": "27",
+      "code81": "066",
+      "org": null,
+      "base": "brut_cs",
+      "taux": 15.5,
+      "base78": "brut_cs"
+    },
+    {
+      "bloc78": "31",
+      "code81": "059",
+      "org": null,
+      "base": "brut",
+      "taux": 0.42,
+      "base78": "zero",
+      "affectation": "202",
+      "organisme": "TSINTERMITTENTS"
+    },
+    {
+      "bloc78": "31",
+      "code81": "059",
+      "org": null,
+      "base": "brut",
+      "taux": 1.23,
+      "base78": "zero",
+      "affectation": "203",
+      "organisme": "INTERBRANCHE",
+      "composants": [
+        0.42,
+        0.81
+      ],
+      "_note": "Deux contributions arrondies separement (0,420 + 0,810). Ex. brut 520 -> 2,18 + 4,21 = 6,39 ; brut 480 -> 2,02 + 3,89 = 5,91."
+    },
+    {
+      "bloc78": "43",
+      "code81": null,
+      "org": null,
+      "base": "brut",
+      "taux": null,
+      "base78": "brut"
+    }
+  ],
+  "taux_chomage_aem": 12.15,
+  "_note_aem": "Taux total (part patronale 9,75 + part salariale 2,40) porte dans l'AEM V5 et servant au calcul du montant de contribution declare.",
+  "_note_affectation_059": "Les codes d'affectation S21.G00.78.005 s'incrementent de 3 par versement : 202/203 pour le 1er contrat du mois, 205/206 pour le 2e, etc. Meme regle que S21.G00.70.012.",
+  "cotisation_prevoyance_retraite_supp": {
+    "taux_sur_brut": 1.23,
+    "_rubrique": "S21.G00.54, type 93 - Cotisation prevoyance et retraite supplementaire",
+    "_source": "Prevoyance intermittent Audiens : 1,11 patronale + 0,12 salariale = 1,23 %. Table des taux CoolPaie (reference/taux-coolpaie-2026.csv). Reproduit les 8 contrats 2026 connus (bruts 60 a 520)."
+  },
+  "statuts": [
+    "artiste"
+  ],
+  "_statuts": "Le CORPS de ce bareme decrit les artistes (annexe 10) : l'abattement de 30 % de l'arrete du 24/01/1975 est cuit dans ses taux, il n'y est pas applique comme un facteur. Les autres statuts vivent dans `par_statut` et apportent leurs propres taux. Voir `calcul.bareme_du_statut`.",
+  "par_statut": {
+    "technicien": {
+      "_verifie": true,
+      "_etat": "VERIFIE le 13/09/2026, a la demande de l'editeur (<< finis le technicien >>). Taux pleins 2026 (13,00 et 5,25 : les taux reduits n'existent plus), ccn source (CASC-SVP 0,50), Agirc-Arrco techniciens (5,23 + 4,79), RGDU calculee contrat par contrat (D. 241-7) et declaree comme dans la DSN CoolPaie de mai 2025 (018 Urssaf, 018 France Travail, 106, CTP 671). Le bulletin de mai 2025 est ENTIEREMENT explique : ses -15,91 EUR d'exonerations = reduction generale 11,54 (8,12 + 1,49 + 1,93 dans la DSN) + taux reduits 4,37 (maladie 6 points = 3,36, AF 1,8 point = 1,01) que CoolPaie affichait en exoneration. Ce qui n'est pas cale au centime sur un reel : la repartition 2026 de la RGDU entre Urssaf, chomage et retraite (prorata des points de T). A lire sur le compte-rendu Urssaf de la premiere DSN avec un technicien.",
+      "_annexe": "Annexe 8 (techniciens, ouvriers et cadres du spectacle)",
+      "_source": "Quatre sources, aucune inventee. (1) Audiens, << Parametres 2026 >>, page 3 : les taux de retraite complementaire, donnes population par population -- artistes ET techniciens intermittents non-cadres. (2) BOSS, table des parametres 2026 (opposable) : taux Urssaf de droit commun. (3) Fiches de parametrage Audiens du 04/09/2026 : prevoyance et conges spectacles, populations cote a cote. (4) Le bulletin CoolPaie du 15/05/2025 de MA2.25.7 (CHARGE DE PRODUCTION, 4 h a 14,00 EUR, PCS-ESE 637C, code emploi CHA080) -- le seul contrat technicien de tout l'historique, qui recoupe au centime.",
+      "_recoupement": "Chaque source se verifie des DEUX cotes. Audiens donne les artistes (4,45 + 1,29 = 5,74 patronale ; 4,44 + 0,86 = 5,30 salariale) : ce sont exactement les taux artistes de ce bareme, obtenus jadis par retro-ingenierie d'un bulletin. Et le BOSS donne 13,00 et 5,25, dont 70 % font 9,10 et 3,68, egalement les taux artistes. La section technicien n'est donc pas une reconstruction plausible : c'est la meme table, lue une fois avec abattement et une fois sans.",
+      "_mecanismes_absents": [],
+      "_a_faire_aussi": [
+        "FAIT le 12/09/2026 (journal §19.13) : S21.G00.40.002 et .003 sont des champs de fiche.",
+        "FAIT le 13/09/2026 : le << 204 >> de mai 2025 est l'affectation du second contrat du salarie dans le mois, pas un code annexe 8 ; la regle par versement le produit deja.",
+        "SANS OBJET depuis le 01/06/2026 : plus d'AEM (100 % DSN)."
+      ],
+      "rubriques_bulletin": [
+        {
+          "id": "maladie",
+          "famille": "SANTÉ",
+          "libelle": "Sécurité sociale – Maladie Maternité Invalidité Décès",
+          "base": "brut",
+          "taux_pat": 13.0,
+          "taux_sal": null,
+          "_taux_plein": 13.0,
+          "_seuil": "2,5 SMIC annuels",
+          "_source": "Taux PLEIN 13,00 (BOSS 2026, COT_AM_SS_METROP). Le bulletin technicien du 15/05/2025 portait 7,000, le taux reduit sous 2,5 SMIC : ce taux reduit N'EXISTE PLUS depuis le 01/01/2026 -- la LFSS 2026 (art. 40) et le decret 2025-1446 du 31/12/2025 l'ont supprime, avec celui des allocations familiales, au profit de la reduction generale degressive unique (RGDU). Audiens, webconference << Nouveautes reglementaires 2026 >> p. 3-4 : << 2025 : 3 dispositifs ; 2026 : 1 seul dispositif >>. L'artiste, lui, paie 13,00 x 0,70 = 9,10 : l'abattement de l'arrete du 24/01/1975 porte sur le taux plein, et les artistes ne relevent pas de la RGDU (compta-online, charges sociales intermittents 2026 : << n'est pas applicable aux artistes du spectacle des lors qu'ils beneficient de taux specifiques. En revanche, la RGDU est applicable aux techniciens >>)."
+        },
+        {
+          "id": "prevoyance",
+          "famille": "SANTÉ",
+          "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens)",
+          "base": "brut",
+          "taux_pat": 1.11,
+          "taux_sal": 0.12,
+          "_source": "Audiens, fiche de parametrage du 04/09/2026 (sante-prevoyance) : la population NON CADRE INTERMITTENT porte Deces AP 0,46 + Fonds Sante 0,77 = 1,23 %, soit exactement la population ARTISTE INTERMITTENT. La fiche donne les deux cote a cote : ce n'est pas une approximation. Fonds sante : ne se reintegre ni dans le net imposable ni dans le montant net social -- voir la note `_source` de la ligne `prevoyance` de `rubriques_bulletin`."
+        },
+        {
+          "id": "atmp",
+          "famille": "ACCIDENTS DU TRAVAIL – MALADIES PROFESSIONNELLES",
+          "libelle": "Accidents du travail",
+          "base": "brut",
+          "taux_pat": null,
+          "taux_sal": null,
+          "_source": "Taux AT notifie par la CARSAT a la compagnie : 1,50 % depuis le 01/01/2026 (champ _taux_carsat de la rubrique artiste). Le technicien cotise au taux plein, sans abattement. A ressaisir chaque annee depuis le courrier CARSAT, en meme temps que le taux artiste.",
+          "_facteur_atmp": 1.0,
+          "_rempli_par": "calcul.bareme_atmp -- le taux AT/MP est propre a l'etablissement (config/baremes/<annee>.json, cle `taux_atmp`) et il ne s'ecrit qu'une fois. La rubrique porte son FACTEUR : 0,70 pour un artiste, dont les taux Urssaf sont abattus de 30 % (arrete du 24/01/1975), 1 pour tout le monde d'autre. Avant le 19/09/2026, le taux etait recopie ici et la, et un test comptait les endroits ou on pouvait l'oublier."
+        },
+        {
+          "id": "vieil_plaf",
+          "famille": "RETRAITE",
+          "libelle": "Sécurité sociale plafonnée",
+          "base": "brut_plafonne",
+          "taux_pat": 8.55,
+          "taux_sal": 6.9,
+          "_source": "Taux de droit commun. BOSS 2026 : COT_AV_SS_METROP = 10,66 = 8,55 (plafonnee) + 2,11 (deplafonnee), part patronale. Recoupement dans l'autre sens : 8,55 x 0,70 = 5,985 -> 5,99 et 6,90 x 0,70 = 4,83, les taux artistes de ce bareme. Et le bulletin technicien du 15/05/2025 porte 8,550 / 6,900."
+        },
+        {
+          "id": "vieil_deplaf",
+          "famille": "RETRAITE",
+          "libelle": "Sécurité sociale déplafonnée",
+          "base": "brut",
+          "taux_pat": 2.11,
+          "taux_sal": 0.4,
+          "_source": "Taux de droit commun 2026 (BOSS : 10,66 - 8,55 = 2,11) ; 2,11 x 0,70 = 1,477 -> 1,48, le taux artiste. Le bulletin de mai 2025 portait 2,020 : la part patronale a change au 01/01/2026."
+        },
+        {
+          "id": "retraite_t1",
+          "famille": "RETRAITE",
+          "libelle": "Complémentaire Tranche 1",
+          "base": "brut",
+          "taux_pat": 5.23,
+          "taux_sal": 4.79,
+          "_source": "Audiens, << Parametres 2026 >>, page 3, tableau << Salaries techniciens intermittents du spectacle non-cadres >>. audiens.org/files/live/sites/siteAudiens/files/03_documents/entreprise/Fiches-techniques/Parametres-et-taux-2026.pdf -- Retraite complementaire T1 annuelle 3,94 patronale / 3,93 salariale, plus Contribution d'equilibre general T1 1,29 / 0,86. Soit 5,23 et 4,79, exactement le bulletin technicien du 15/05/2025. La meme page donne les artistes (4,45 + 1,29 = 5,74 et 4,44 + 0,86 = 5,30), qui sont exactement les taux artistes de ce bareme : la source se verifie des deux cotes. La CET n'est due qu'au-dela de la tranche 1 (48 060 EUR annuels pour un intermittent non-cadre) : hors de portee ici."
+        },
+        {
+          "id": "famille",
+          "famille": "FAMILLE",
+          "libelle": "Allocations familiales",
+          "base": "brut",
+          "taux_pat": 5.25,
+          "taux_sal": null,
+          "_taux_plein": 5.25,
+          "_seuil": "3,5 SMIC annuels",
+          "_source": "Taux PLEIN 5,25 (BOSS 2026, COT_AF_SS_METROP). Le bulletin du 15/05/2025 portait 3,450, le taux reduit sous 3,5 SMIC, supprime au 01/01/2026 comme celui de la maladie (voir maladie). L'artiste paie 5,25 x 0,70 = 3,675 -> 3,68."
+        },
+        {
+          "id": "chomage",
+          "famille": "ASSURANCE CHÔMAGE",
+          "libelle": "Chômage",
+          "base": "brut_chomage",
+          "taux_pat": 9.75,
+          "taux_sal": 2.4,
+          "_source": "Unedic : les annexes 8 (techniciens) et 10 (artistes) ont le MEME taux -- 9,00 patronale + AGS 0,25 + majoration intermittents 0,50 = 9,75 ; 2,40 salariale. La table des taux CoolPaie 2026 le confirme : ses lignes << Chomage int. >> sont les seules a ne pas porter la mention << artiste >>. Le bulletin de mai 2025 porte 9,800, valeur d'avant le changement du 01/05/2025."
+        },
+        {
+          "id": "autres_1",
+          "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+          "libelle": "Autres contributions dues par l'employeur",
+          "base": "brut",
+          "taux_pat": 2.836,
+          "taux_sal": null,
+          "_source": "Agregat, recompose a l'identique depuis la table des taux CoolPaie 2026 (reference/taux-coolpaie-2026.csv) : contribution solidarite autonomie 0,300 + contribution organisations syndicales 0,016 + formation professionnelle intermittents 2,000 + contribution conventionnelle Afdas 0,100 + Thalie Sante Art/Int T1 0,420 = 2,836. AUCUN de ces cinq composants ne porte la mention << artiste >> : identique pour un technicien. Le bulletin de mai 2025 porte 2,736, soit 0,10 de moins, parce que Thalie Sante valait 0,32 avant le 01/01/2026."
+        },
+        {
+          "id": "autres_2",
+          "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+          "libelle": "Autres contributions dues par l'employeur",
+          "base": "brut_x115_plafonne",
+          "taux_pat": 0.1,
+          "taux_sal": null,
+          "_source": "FNAL, entreprise de moins de 50 salaries : 0,10 (BOSS 2026, COT_FNAL_49_METROP). L'artiste porte 0,07 = 0,10 x 0,70. Le bulletin technicien du 15/05/2025 porte 0,100 : les trois sources concordent."
+        },
+        {
+          "id": "autres_3",
+          "taxe_apprentissage": true,
+          "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+          "libelle": "Autres contributions dues par l'employeur",
+          "base": "brut_x110",
+          "taux_pat": 0.68,
+          "taux_sal": null,
+          "composants": [
+            0.59,
+            0.09
+          ],
+          "_source": "Taxe d'apprentissage : part principale 0,59 + solde 0,09 (table des taux CoolPaie 2026), ni l'une ni l'autre marquee << artiste >>. Identique a l'artiste, decomposition comprise -- le bulletin technicien du 15/05/2025 porte 0,680."
+        },
+        {
+          "id": "conges_spec",
+          "famille": "CONGÉS SPECTACLES",
+          "libelle": "Caisse des Congés Spectacles",
+          "base": "brut_cs",
+          "taux_pat": 15.5,
+          "taux_sal": null,
+          "_source": "Audiens, fiche de parametrage du 04/09/2026 (conges-spectacles) : population << ENSEMBLE PERSONNEL INTERMITTENT >>, un seul taux de 15,5000 % pour les artistes comme pour les techniciens. Confirme par le bulletin du 15/05/2025 (15,500)."
+        },
+        {
+          "id": "ccn",
+          "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+          "libelle": "Cotisations conventionnelles IDCC 3090",
+          "base": "brut",
+          "taux_pat": 0.5,
+          "taux_sal": null,
+          "masquer_base_et_taux": true,
+          "_source": "CASC-SVP, 0,50 % patronale, plafonnee a la tranche 1 Agirc-Arrco. Ce n'est plus une inference : (1) la fiche de parametrage Audiens du 04/09/2026 donne le groupe << ETAM CASC-SVP >> a 0,4000 en 2025 et 0,5000 depuis le 01/01/2026 (reference/veille-taux.md), groupe qui couvre TOUS les intermittents non cadres, artistes et techniciens ; (2) le bulletin technicien du 15/05/2025 porte 0,22 EUR sur 56,00 de brut = 0,393 %, soit 56 x 0,40 % = 0,224 -> 0,22 au centime pres, le taux 2025 ; (3) Audiens, webconference 2026 p. 18 : << CASC 0,50 % plafonne a T1 Agirc-Arrco, entreprises du secteur prive du spectacle vivant >> -- notre convention (IDCC 3090). Le FCAP-SVP n'est PAS une cotisation du bulletin : c'est une contribution annuelle de l'entreprise, 0,1 % de la tranche A, plancher 80 EUR, plafond 300 EUR, collectee hors DSN en debut d'annee (CCN 3090, art. 5.1 a 5.3, relus dans KALI le 23/09/2026) -- catalogue de branche (`financement_paritarisme`) et etat `exporter fcap-svp`."
+        },
+        {
+          "id": "csg_ded",
+          "famille": "CSG / CRDS",
+          "libelle": "CSG déductible de l'impôt sur le revenu",
+          "base": "csg",
+          "taux_pat": null,
+          "taux_sal": 6.8,
+          "_source": "Taux legal, identique pour tous : 6,80 % sur l'assiette abattue a 98,25 %. Confirme par le bulletin du 15/05/2025."
+        },
+        {
+          "id": "csg_crds_nd",
+          "famille": "CSG / CRDS",
+          "libelle": "CSG/CRDS non déductible de l'impôt sur le revenu",
+          "base": "csg",
+          "taux_pat": null,
+          "taux_sal": 2.9,
+          "_source": "Taux legal, identique pour tous : 2,90 %. Confirme par le bulletin du 15/05/2025."
+        }
+      ],
+      "reduction_generale": {
+        "_quoi": "Reduction generale degressive unique (RGDU), art. L. 241-13 et D. 241-7 CSS, version en vigueur au 15/06/2026. Remplace depuis le 01/01/2026 la reduction Fillon ET les taux reduits maladie/AF (LFSS 2026 art. 40 ; decrets 2025-887 du 04/09/2025 et 2025-1446 du 31/12/2025).",
+        "statuts": [
+          "technicien"
+        ],
+        "_statuts": "Les artistes du spectacle n'y ont pas droit : ils cotisent aux taux abattus de 30 % (arrete du 24/01/1975). Les techniciens, si.",
+        "tmin": 0.02,
+        "tdelta": 0.3781,
+        "_tdelta": "0,3781 pour les employeurs au FNAL 0,10 % (moins de 50 salaries), 0,3821 au FNAL 0,50 %. Reajuste par le decret 2025-1446 pour la vieillesse deplafonnee a 2,11. A relever chaque janvier.",
+        "puissance": 1.75,
+        "plafond_smic": 3,
+        "smic_horaire_reference": 12.02,
+        "_smic": "SMIC au 1er janvier 2026, 12,02 EUR de l'heure (21 876,36 EUR pour un an), GELE pour toute l'annee par le decret 2026-509 du 12/06/2026 : la revalorisation du 1er juin (12,31) ne compte pas. Pour un contrat qui ne couvre pas le mois, D. 241-7 corrige le SMIC << selon le rapport entre les revenus d'activite dus et ceux qui auraient ete dus >> : pour un intermittent paye a l'heure, SMIC de reference = 12,02 x heures remunerees. CoolPaie 4.0.0.8.312 prend le SMIC du jour : son bulletin 32/2026 (1 journee de 7 h a 100 EUR, 13/09/2026) porte -27,18, soit 12,31 x 7 = 86,17 de SMIC de reference ; avec 12,02 x 7 = 84,14 le decret donne 25,50. La formule est la meme (avec 12,31 le moteur redonne 27,17) : seul le SMIC differe, et c'est le decret qui fait foi.",
+        "_formule": "coefficient = Tmin + Tdelta x [ 1/2 x (3 x SMIC de reference / remuneration brute - 1) ]^P, arrondi a quatre decimales au dix-millieme le plus proche ; nul des que la remuneration atteint 3 SMIC ; le crochet est borne a 1 (coefficient maximal Tmin + Tdelta = 0,3981 au SMIC). Montant = coefficient x remuneration brute. D. 241-7 : << pour les salaries en CDD aupres d'un meme employeur, le coefficient est determine pour chaque contrat >> -- c'est ce que fait le moteur, contrat par contrat, sans regularisation annuelle.",
+        "imputation": {
+          "chomage": 4.0,
+          "agirc_arrco": 6.01
+        },
+        "_imputation": "La reduction s'impute sur les cotisations Urssaf (maladie, vieillesse, AF, AT dans la limite de 0,49 %, FNAL, CSA = 29,80 points), sur l'assurance chomage (4,00 points) et sur la retraite complementaire Agirc-Arrco (6,01 points) : 29,80 + 4,00 + 6,01 = 39,81 = Tmin + Tdelta. Les parts chomage et Agirc-Arrco valent montant x 4,00 / 39,81 et montant x 6,01 / 39,81, le reste va a l'Urssaf. C'est la repartition qu'appliquent les logiciels de paie (Sage, EBP) ; elle n'a pas encore ete confrontee a un compte-rendu Urssaf ou Agirc-Arrco reel.",
+        "dsn": {
+          "code81_urssaf": "018",
+          "code81_chomage": "018",
+          "code81_retraite": "106",
+          "ctp": "671",
+          "ctp_regularisation": "801",
+          "qualifiant": "921"
+        },
+        "_dsn": "D'apres la DSN CoolPaie de mai 2025 (MA2.25.7), qui porte la reduction generale du technicien, et le cahier technique 2026.1 : sous le bloc 78 type 03, TROIS blocs 81 en montant NEGATIF avec l'assiette (81.003) -- code 018 organisme URSSAF (part securite sociale), code 018 organisme France Travail (part assurance chomage : chez les intermittents du spectacle, l'Urssaf ne recouvre pas l'AC), code 106 sans organisme (part retraite complementaire). Le composant 79 type 01 du meme bloc 78 porte le SMIC retenu (controle CCH-17 : obligatoire avec 018 ou 106) -- 47,52 = 11,88 x 4 h en mai 2025, ici 12,02 x heures. Bordereau : CTP 671 qualifiant 921, montant de cotisation (23.005) en euros, positif -- 8,00 pour 8,12 en mai 2025 ; l'Urssaf confirme le 671 pour << les personnes pour lesquelles l'Urssaf ne recouvre pas l'assurance chomage (intermittents du spectacle) >>, regularisation sur 801. La part chomage se retranche du versement France Travail, la part retraite de celui d'Audiens.",
+        "_verifie": true,
+        "_verifie_note": "Structure DSN relue sur le fichier reel de mai 2025 ; formule et parametres 2026 relus sur Legifrance (D. 241-7) ; repartition Urssaf / chomage / retraite au prorata des points de T (regle BOSS, non confrontee a un compte-rendu 2026). A regarder sur le compte-rendu Urssaf (nature 61/120) de la premiere DSN qui portera un technicien.",
+        "majoration_caisse_conges": "100/90",
+        "_majoration_caisse_conges": "Art. L. 241-13, IV, 3° et D. 241-10 du code de la securite sociale : pour les salaries des professions ou les conges payes sont mutualises par une caisse -- l'intermittent du spectacle et Conges Spectacles --, le coefficient de la reduction est multiplie par 100/90, et son maximum avec lui (BOSS, allegements generaux, § 330, qui nomme les conventions du spectacle ; LegiSocial, << Majoration du coefficient de la reduction FILLON pour adhesion caisse des conges payes >>). Applique par le moteur depuis le 23/09/2026 aux seuls contrats dont le brut passe par Conges Spectacles (`calcul.reduction_generale`, argument `caisse_conges`) ; un permanent, dont l'employeur paie les conges, n'y a pas droit. CoolPaie ne l'appliquait pas (bulletin 32/2026 : 27,18 sans majoration)."
+      },
+      "cotisations_dsn": [
+        {
+          "bloc78": "02",
+          "code81": "049",
+          "org": "78861779300013",
+          "base": "brut_x115_plafonne",
+          "taux": 0.1,
+          "base78": "brut_plafonne"
+        },
+        {
+          "bloc78": "03",
+          "code81": "074",
+          "org": "78861779300013",
+          "base": "brut",
+          "taux": 3.45,
+          "base78": "brut",
+          "plafond": true
+        },
+        {
+          "bloc78": "03",
+          "code81": "075",
+          "org": "78861779300013",
+          "base": "brut",
+          "taux": 7.0,
+          "base78": "brut"
+        },
+        {
+          "bloc78": "03",
+          "code81": "102",
+          "org": "78861779300013",
+          "base": "brut",
+          "taux": 1.8,
+          "base78": "brut"
+        },
+        {
+          "bloc78": "03",
+          "code81": "130",
+          "org": "78861779300013",
+          "base": "brut_x110",
+          "taux": 0.59,
+          "base78": "brut"
+        },
+        {
+          "bloc78": "03",
+          "code81": "128",
+          "org": "78861779300013",
+          "base": "brut",
+          "taux": 2.0,
+          "base78": "brut"
+        },
+        {
+          "bloc78": "03",
+          "code81": "907",
+          "org": "78861779300013",
+          "base": "brut",
+          "taux": 6.0,
+          "base78": "brut"
+        },
+        {
+          "bloc78": "04",
+          "code81": "072",
+          "org": "78861779300013",
+          "base": "csg",
+          "taux": 9.2,
+          "base78": "csg"
+        },
+        {
+          "bloc78": "04",
+          "code81": "079",
+          "org": "78861779300013",
+          "base": "csg",
+          "taux": 0.5,
+          "base78": "csg"
+        },
+        {
+          "bloc78": "07",
+          "code81": "040",
+          "org": "13000548100010",
+          "base": "brut_chomage",
+          "taux": 11.4,
+          "base78": "brut_chomage"
+        },
+        {
+          "bloc78": "07",
+          "code81": "048",
+          "org": "13000548100010",
+          "base": "brut_chomage",
+          "taux": 0.25,
+          "base78": "brut_chomage"
+        },
+        {
+          "bloc78": "07",
+          "code81": "041",
+          "org": "13000548100010",
+          "base": "brut_chomage",
+          "taux": 0.5,
+          "base78": "brut_chomage"
+        },
+        {
+          "bloc78": "23",
+          "code81": "131",
+          "org": null,
+          "base": "brut",
+          "taux": 10.02,
+          "base78": "brut"
+        },
+        {
+          "bloc78": "27",
+          "code81": "066",
+          "org": null,
+          "base": "brut_cs",
+          "taux": 15.5,
+          "base78": "brut_cs"
+        },
+        {
+          "bloc78": "31",
+          "code81": "059",
+          "org": null,
+          "base": "brut",
+          "taux": 0.42,
+          "base78": "zero",
+          "affectation": "202",
+          "organisme": "TSINTERMITTENTS"
+        },
+        {
+          "bloc78": "31",
+          "code81": "059",
+          "org": null,
+          "base": "brut",
+          "taux": 1.23,
+          "base78": "zero",
+          "affectation": "203",
+          "organisme": "INTERBRANCHE",
+          "composants": [
+            0.42,
+            0.81
+          ]
+        },
+        {
+          "bloc78": "43",
+          "code81": null,
+          "org": null,
+          "base": "brut",
+          "taux": null,
+          "base78": "brut"
+        }
+      ],
+      "_cotisations_dsn": "Meme structure de blocs que l'artiste (la DSN CoolPaie de mai 2025, seul mois avec un technicien, a exactement les memes blocs 02/03/04/07/23/27/31/43 pour MA2.25.7 que pour les artistes du meme mois), avec les taux pleins : 049 FNAL 0,10 sur brut x 1,115 (mai 2025 : 0,100 sur 62,44) ; 074 + 102 = 3,45 + 1,80 = 5,25 AF et 075 + 907 = 7,00 + 6,00 = 13,00 maladie -- la DSN 2026 des artistes garde cette decomposition taux reduit / complement (074 2,42 + 102 1,26 ; 075 4,90 + 907 4,20), on la garde donc pour le technicien ; 130 et 128 identiques ; 040/048/041 chomage identiques (annexes 8 et 10 partagent le taux) ; 131 Agirc-Arrco 10,02 = 5,23 + 4,79 (105 jusqu au 10/10/2026, point 19) (Audiens 2026, techniciens non-cadres) ; 066 Conges Spectacles 15,5 ; 059 Thalie 0,42 (202) et prevoyance 1,23 (203), meme population ETAM que les artistes (fiche de parametrage Audiens). Le << 204 >> de mai 2025 n'etait pas un code annexe 8 : c'est l'affectation du DEUXIEME contrat du meme salarie dans le mois (202 pour FAVART et pour le premier contrat de MARAIS, 204 pour le second) -- la regle par versement que le moteur applique deja."
+    }
+  },
+  "deduction_forfaitaire": {
+    "_quoi": "Deduction forfaitaire specifique pour frais professionnels (DFS, << abattement >>) : arrete du 4 septembre 2025 relatif aux frais professionnels deductibles, art. 9 (base LEGI, prive/reference/sources/dfs/arrete-2025-frais-professionnels/), qui a abroge et remplace l'arrete du 20/12/2002 le 07/09/2025. Une OPTION DE L'EMPLOYEUR (fiche entreprise, `deduction_forfaitaire_option`) : un accord collectif qui l'a explicitement prevue, l'accord du CE, du CSE ou des delegues du personnel, ou, a defaut, l'accord de chaque salarie (contrat ou avenant, a defaut un consentement annuel recueilli par tout moyen, le silence valant accord). La fiche salarie dit la PROFESSION (`deduction_forfaitaire`) : elle donne la categorie, le taux de l'annee et les frais que l'annexe 2 de l'arrete laisse hors de l'assiette. Decision : `calcul::deduction_forfaitaire` ; calcul : `calcul::abattement_dfs`, `calcul::reduction_generale_sous_dfs` ; DSN : `dsn::cle_abattue`. Textes et ce qui manque : prive/reference/sources/dfs/LISEZ-MOI.md (lot R9, 11/10/2026).",
+    "professions": {
+      "musicien": {
+        "libelle": "Artiste musicien",
+        "categorie": "20",
+        "frais_hors_assiette": [
+          "defraiement_forfait",
+          "defraiement_reel"
+        ]
+      },
+      "choriste": {
+        "libelle": "Choriste",
+        "categorie": "20",
+        "frais_hors_assiette": [
+          "defraiement_forfait",
+          "defraiement_reel"
+        ]
+      },
+      "chef_orchestre": {
+        "libelle": "Chef d'orchestre",
+        "categorie": "20",
+        "frais_hors_assiette": [
+          "defraiement_forfait",
+          "defraiement_reel"
+        ]
+      },
+      "regisseur_theatre": {
+        "libelle": "Regisseur de theatre",
+        "categorie": "20",
+        "frais_hors_assiette": [
+          "defraiement_forfait"
+        ]
+      },
+      "artiste_dramatique": {
+        "libelle": "Artiste dramatique",
+        "categorie": "25",
+        "frais_hors_assiette": [
+          "defraiement_forfait"
+        ]
+      },
+      "artiste_lyrique": {
+        "libelle": "Artiste lyrique",
+        "categorie": "25",
+        "frais_hors_assiette": [
+          "defraiement_forfait"
+        ]
+      },
+      "artiste_choregraphique": {
+        "libelle": "Artiste choregraphique",
+        "categorie": "25",
+        "frais_hors_assiette": [
+          "defraiement_forfait"
+        ]
+      },
+      "artiste_cinematographique": {
+        "libelle": "Artiste cinematographique",
+        "categorie": "25",
+        "frais_hors_assiette": [],
+        "taux": 21,
+        "_taux": "Hors spectacle vivant : l'art. 9, II, ne le nomme pas ; l'art. 9, III, reduit a compter du 1er janvier 2026 le taux de 2025 (25 %) de 15 % de sa valeur chaque annee, << arrondis a l'unite la plus proche. Une fraction de 0,5 est comptee pour 1 >> : 21 en 2026 (21,25), 18 en 2027 (17,5), 14 (13,75), 10, 6 (6,25), 3 (2,5), nul en 2032. INFERENCE, ecrite comme telle : un artiste cinematographique ne releve pas du spectacle vivant ; en 2025, avant le III, 25 %."
+      }
+    },
+    "_professions": "Les professions et leur categorie : article 5 de l'annexe IV du CGI dans sa redaction en vigueur au 31/12/2000 (version LEGIARTI000006300240 du 31/03/2000 au 31/03/2002, prive/reference/sources/dfs/cgi-annexe4-art5/) : << Artistes dramatiques, lyriques, cinematographiques ou choregraphiques : 25 %. Artistes musiciens. Choristes. Chefs d'orchestre. Regisseurs de theatre : 20 %. >> ; l'arrete du 4 septembre 2025, art. 9, I, y renvoie, et son annexe 1 les reprend (elle y ajoute le << personnel de creation de l'industrie cinematographique >>, 20 %, qui n'est pas du spectacle vivant et n'est pas propose ici). `frais_hors_assiette` : les remboursements de frais que l'annexe 2 de l'arrete laisse hors de l'assiette : I, 2° << les indemnites journalieres de \"defraiement\" versees aux artistes dramatiques, lyriques, choregraphiques ainsi qu'aux regisseurs de theatre, qui participent a des tournees theatrales >> (le defraiement au forfait du catalogue ; un remboursement au reel n'est pas une indemnite journaliere) ; I, 5° << les allocations et remboursements de frais percus par les chefs d'orchestre, musiciens et choristes a l'occasion de leurs deplacements professionnels en France et a l'etranger >> (les deux). INFERENCE, ecrite comme telle : un defraiement du catalogue paye a ces professions est celui d'une tournee ou d'un deplacement. Rien pour les artistes cinematographiques. Tout autre remboursement de frais se reintegrerait dans l'assiette avant l'abattement (art. 9, I, al. 4) : la tolerance du BOSS (§ 2320, `frais_cumulables`) l'en dispense pour le spectacle vivant et le spectacle enregistre.",
+    "frais_cumulables": true,
+    "_frais_cumulables": "BOSS, Frais professionnels, chapitre 9, § 2320 (version en vigueur au 01/01/2026, imprimee le 13/10/2026 : prive/reference/sources/boss/boss-frais-professionnels-20261013.txt, l. 2917-2921) : << Par tolerance, a compter de ces memes dates et pour ces huit secteurs, pour accompagner l'extinction du dispositif et la mise en place de modalites de remboursement des frais professionnels de droit commun, l'ensemble des remboursements de frais professionnels definis par l'arrete du 4 septembre 2025 peut faire l'objet d'un cumul avec la deduction forfaitaire specifique. Le cas echeant, l'integration dans l'assiette des cotisations sociales des remboursements de frais professionnels et des prises en charge directes par l'employeur n'est pas obligatoire avant l'application de la deduction forfaitaire specifique. >> Les huit secteurs (§ 2300) comptent << le spectacle vivant et le spectacle enregistre >> ; les << memes dates >> (§ 2310) : le 1er janvier 2023 pour eux. Vrai : tout remboursement de frais professionnels (une rubrique de nature `frais`, du catalogue ou de la compagnie) reste hors de l'assiette abattue, et pas seulement ceux de l'annexe 2 (`frais_hors_assiette`) ; faux : l'art. 9, I, al. 4 de l'arrete seul, et un remboursement que l'annexe ne nomme pas refuse (`calcul::dfs_applicable`). Le BOSS est opposable (Leandre, 10/10/2026) ; le moteur applique la tolerance sans option, la reintegration que l'employeur pourrait encore choisir n'est pas portee. La tolerance ne couvre que les remboursements de frais au sens de l'arrete : rescrit BOSS-RES-000010 (§ 2325, l. 2923-2934), << l'indemnite de transport prevue par une CCN [...] ne constitue pas un remboursement de frais professionnels au sens de l'arrete du 4 septembre 2025. En consequence, elle n'est pas cumulable avec la DFS [...] Il faut donc l'integrer dans l'assiette des cotisations et contributions sociales des le 1er euro prealablement a l'application de l'abattement. >> INFERENCE, ecrite comme telle : l'artiste cinematographique releve du spectacle enregistre, l'un des huit secteurs.",
+    "taux": {
+      "20": 16,
+      "25": 18
+    },
+    "_taux": "Taux 2026 par categorie, arrete du 4 septembre 2025, art. 9, II : << pour les professions relevant du spectacle vivant qui beneficient d'un taux de deduction forfaitaire specifique au 31 decembre 2023 de 25 %, a compter du 1er janvier 2024, le taux [...] est reduit de 2 points au 1er janvier de chaque annee puis, a compter du 1er janvier 2026, de 3 points [...] et devient nul a compter du 1er janvier 2032 >> (23, 21, 18 en 2026, 15, 12, 9, 6, 3, 0) ; 20 % : << reduit de 1 point [...] puis, a compter du 1er janvier 2026, de 2 points [...] et, a compter du 1er janvier 2029, de 3 points [...] jusqu'a devenir nul a compter du 1er janvier 2032 >> (19, 18, 16 en 2026, 14, 12, 9, 6, 3, 0). Recoupe par Audiens, webconference << Nouveautes reglementaires 2026 >> p. 22 (reference/fiches-parametrage/Audiens-Webconf-Nouveautes-2026.pdf). Une profession qui porte son propre `taux` le prend (art. 9, III).",
+    "plafond_annuel": 7600,
+    "_plafond": "<< Cette deduction est, dans la limite de 7 600 euros par annee civile, calculee en fonction des taux [...] >> (arrete du 4 septembre 2025, art. 9, I, al. 1). Suivi par salarie et par annee civile : `calcul::dfs_deja_deduite` (les mois anterieurs de l'annee recalcules depuis leurs saisies, puis les contrats precedents du mois) ; au-dela, `calcul::abattement_dfs` ramene la deduction et le dit sur la paie.",
+    "rubriques_abattues": [
+      "maladie",
+      "atmp",
+      "vieil_plaf",
+      "vieil_deplaf",
+      "famille",
+      "autres_1",
+      "autres_2",
+      "autres_3",
+      "retraite_t1",
+      "versement_mobilite"
+    ],
+    "_rubriques": "Les lignes abattues : les cotisations de securite sociale (CSS R. 242-1, al. 3, qui renvoie aux arretes de frais professionnels ; arrete du 4 septembre 2025, art. 1er : << de l'assiette des cotisations de securite sociale >>) et ce qui s'assoit sur leur assiette (FNAL, CSA, versement mobilite, dialogue social ; la formation, C. trav. L. 6331-1 et L. 6331-55 ; la taxe d'apprentissage, L. 6241-1-1 ; l'assiette majoree du FNAL, du versement mobilite et de l'apprentissage d'un intermittent part du brut abattu, lettre circulaire Acoss 2013-019, annexe 1, R6), et la retraite complementaire Agirc-Arrco (cahier d'aide a la codification Agirc-Arrco CT2026, l. 3490-3498 : << La solution ainsi retenue pour le regime general de la Securite sociale s'applique en principe au regime AGIRC-ARRCO >>). PAS le chomage ni l'AGS d'un intermittent (annexes VIII et X du 15/11/2024, art. 49 : << avant application de l'abattement >>), ni la CSG/CRDS (leur propre abattement, CSS L. 136-1-1 ; BOSS assiette generale § 240), ni les Conges Spectacles (norme DSN, bloc 78 : << avant toute deduction forfaitaire specifique >>), ni la prevoyance des intermittents ni les contributions conventionnelles (CASC, FNAS : << avant abattement >> pour la 1285) : leurs textes ne renvoient pas a l'assiette de la securite sociale. Le plafond de la vieillesse et de la base 02 limite le brut abattu (`brut_plafonne_dfs`). La reduction generale d'un technicien se calcule sur le brut abattu dans la limite de 130 % de celle du brut entier (arrete du 4 decembre 2019, art. 1er ; `calcul::reduction_generale_sous_dfs`). Un contrat au mois, un cadre : refuses (`calcul::dfs_applicable`).",
+    "_verifie": true,
+    "_verifie_note": "Verifiee contre les textes deposes le 11/10/2026 (lot R9), pas contre un bulletin reel : aucun bulletin de l'historique ne porte la DFS. Ce que les textes ne disent pas reste refuse avec une phrase qui dit quoi (`calcul::dfs_applicable`, `dsn::cle_abattue`). Avant le lot R9, `_verifie` etait faux et toute paie sous DFS refusait."
+  },
+  "par_categorie": {
+    "_quoi": "Le statut categoriel (S21.G00.40.003 = 01, champ statut_categoriel_rc de la fiche) se combine au statut artiste / technicien : un cadre garde les taux Urssaf de son statut (abattus pour l'artiste, pleins pour le technicien, RGDU comprise) et change sa prevoyance, sa retraite complementaire et ses contributions cadres. Applique par calcul.bareme_cadre.",
+    "cadre": {
+      "_verifie": true,
+      "_source": "Reference reelle : la DSN CoolPaie de juin 2025 (export/DSN/Juin_CCoU_300625_MENSUELLE.dsn), contrat FA1.25.7 << METTEUSE EN SCENE >>, 2 cachets, 320 EUR, S21.G00.40.002 = 04 et .003 = 01 -- payee en ARTISTE (074 a 2,42, 075 a 4,90, 79.004 = SMIC x 7 x 2 : le metteur en scene est un artiste du spectacle, art. L. 7121-2 du code du travail), avec la prevoyance CADRE (059 = 5,56 = 320 x 1,74, groupe << CADRE ET ASSIMILES PREVOYANCE >> de la fiche de parametrage Audiens, 1,7400 en 2025 -> 1,8100 en 2026) et la retraite CADRE (105 = 32,27 = 16,74 + 15,33 + 0,12 + 0,08 : retraite T1 5,23 / 4,79 et Apec 0,036 / 0,024, chaque part arrondie separement). Taux 2026 : Audiens << Parametres 2026 >> page 3, << artistes & techniciens intermittents du spectacle cadres >> : T1 JOURNALIERE 3,94 + CEG 1,29 = 5,23 patronal, 3,93 + 0,86 = 4,79 salarial ; T2 journaliere 12,95 + 1,62 = 14,57 / 8,64 + 1,08 = 9,72 ; CET 0,21 / 0,14 sur T1 + T2 si le salaire depasse T1 ; Apec 0,036 / 0,024 sur T1 x 4. Plafonds journaliers 2026 (page 2) : T1 = 220 EUR, T2 = 1 540 EUR par jour travaille. Prevoyance cadres (webconference Audiens 2026 p. 11) : 0,12 salarial ; 0,88 prevoyance + 0,81 fonds collectif = 1,69 patronal ; assiette TA journaliere. RELU LE 13/09/2026 SUR DEUX BULLETINS COOLPAIE 2026 faits pour reference (reference/exemples/bulletins-reference/Bulletin-de-paie-clarifie-dede.pdf, n° 31/2026 artiste cadre 1 cachet 250 EUR, n° 32/2026 chargee de production 1 journee de 7 h 100 EUR ; paies d'essai, supprimees de CoolPaie ensuite) : sur le cadre a 250 EUR, T1 = 220, T2 = 30 ; la CET (0,21 / 0,14), due parce que 250 > 220, est FONDUE dans les lignes T1 et T2 (5,440 / 4,930 et 14,780 / 9,860), chaque ligne arrondie en deux parts, retraite d'un cote, CEG + CET de l'autre (30 x 12,95 = 3,89 + 30 x 1,83 = 0,55 = 4,44) ; l'Apec est sur chaque tranche (220 et 30) ; la CASC (ccn) est sur la T1 : 220 x 0,50 = 1,10 ; la prevoyance sur la T1. Le reste est le bareme artiste, a l'identique.",
+      "plafond_journalier": 220,
+      "t2_multiple": 8,
+      "apec_multiple": 4,
+      "_multiples": "Audiens, Parametres 2026 p. 2 : la T2 journaliere court de 1 a 8 plafonds journaliers (T1 = 220, T2 = 7 x 220 au-dela, donc jusqu'a 8 x T1) ; l'Apec est assise sur 4 plafonds (T1 x 4). Ces deux multiples etaient ecrits dans calcul.py jusqu'au 16/09/2026.",
+      "_plafond": "Audiens, Parametres 2026 p. 2 : << intermittents du spectacle cadres : les plafonds applicables sont les plafonds journaliers >>, 220 EUR x jours travailles pour la T1, 7 x 220 au-dela pour la T2. Pour les non-cadres, ce sont les plafonds annuels -- d'ou la retraite des artistes et techniciens sur le brut entier.",
+      "rubriques": {
+        "prevoyance": {
+          "taux_pat": 1.69,
+          "taux_sal": 0.12,
+          "base": "t1_journaliere",
+          "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens, cadres)"
+        },
+        "retraite_t1": {
+          "base": "t1_journaliere",
+          "libelle": "Retraite complémentaire Tranche 1 (cadres)",
+          "taux_pat": 5.23,
+          "taux_sal": 4.79,
+          "composants_pat": [
+            3.94,
+            1.29
+          ],
+          "composants_sal": [
+            3.93,
+            0.86
+          ],
+          "cet_si_depasse": {
+            "pat": 0.21,
+            "sal": 0.14
+          }
+        },
+        "ccn": {
+          "base": "t1_journaliere"
+        }
+      },
+      "rubriques_ajoutees": [
+        {
+          "id": "retraite_t2",
+          "apres": "retraite_t1",
+          "famille": "RETRAITE",
+          "libelle": "Retraite complémentaire Tranche 2 (cadres)",
+          "base": "t2_journaliere",
+          "taux_pat": 14.57,
+          "taux_sal": 9.72,
+          "composants_pat": [
+            12.95,
+            1.62
+          ],
+          "composants_sal": [
+            8.64,
+            1.08
+          ],
+          "cet_si_depasse": {
+            "pat": 0.21,
+            "sal": 0.14
+          },
+          "_source": "Audiens 2026 p. 3 : T2 journaliere 12,95 + CEG 1,62 / 8,64 + 1,08 ; CET 0,21 / 0,14 fondue quand le brut depasse la T1 (bulletin 31/2026 : 14,780 / 9,860 sur 30,00)."
+        },
+        {
+          "id": "apec_t1",
+          "apres": "chomage",
+          "famille": "ASSURANCE CHÔMAGE",
+          "libelle": "APEC Tranche A",
+          "base": "t1_journaliere",
+          "taux_pat": 0.036,
+          "taux_sal": 0.024,
+          "_source": "Audiens 2026 p. 3 ; bulletin 31/2026 : 0,08 / 0,05 sur 220. CoolPaie la range sous ASSURANCE CHOMAGE."
+        },
+        {
+          "id": "apec_t2",
+          "apres": "apec_t1",
+          "famille": "ASSURANCE CHÔMAGE",
+          "libelle": "APEC Tranche B",
+          "base": "t2_journaliere",
+          "taux_pat": 0.036,
+          "taux_sal": 0.024,
+          "_source": "Bulletin 31/2026 : 0,01 / 0,01 sur 30,00."
+        }
+      ],
+      "cotisation_prevoyance_retraite_supp": {
+        "taux_sur_brut": 1.81,
+        "base": "t1_journaliere",
+        "_note": "S21.G00.54 type 93, en euros : la prevoyance cadre sur son assiette, la T1 journaliere. 320 x 1,74 = 5,57 -> 6 en juin 2025."
+      },
+      "cotisations_ajoutees": [
+        {
+          "apres": "131",
+          "bloc78": "23",
+          "code81": "132",
+          "org": null,
+          "base": "brut",
+          "base78": "brut",
+          "lignes": [
+            "apec_t1",
+            "apec_t2"
+          ],
+          "_source": "Cahier technique DSN 2026.1 (prive/reference/norme-dsn/texte/bloc-S21.G00.81.txt, p. 302 lignes 79-81 et p. 305) : la modalite Agirc-Arrco de S21.G00.81.001 reserve << 105 >> << pour regularisation des periodes anterieures a 2025 >> et liste << 131 - Cotisation regime unifie Agirc-Arrco >> et << 132 - Cotisation Apec >> ; CCH-12 de 81.004 (p. 309) : 131 et 132 portent chacune leur montant. L'Apec d'un cadre se declare donc a part, en montant = la somme de ses lignes du bulletin (`apec_t1`, `apec_t2`, chaque part deja arrondie), sous le meme bloc 78 que le 131. Taux, parts et assiette : ceux des lignes du bulletin, Audiens << Parametres 2026 >> p. 3 (tableaux) et p. 4 (« Association pour l'emploi des cadres ») (prive/reference/sources/audiens-parametres-2026/Audiens-Parametres-2026.pdf, lecture dans son LISEZ-MOI.md) : 0,06 %, 0,036 employeur / 0,024 salarie, sur le brut dans la limite de 4 plafonds. Pas de 81.003 : Agirc-Arrco ne renseigne le montant d'assiette que << pour une reduction, exoneration >> (p. 307)."
+        }
+      ],
+      "cotisations_dsn": {
+        "131": {
+          "lignes": [
+            "retraite_t1",
+            "retraite_t2"
+          ],
+          "_note": "Montant Agirc-Arrco (131, regime unifie, SANS l'Apec depuis la norme 2026.1 : l'Apec part en 132, `cotisations_ajoutees`) = la somme des lignes du bulletin, chaque part arrondie separement. Juin 2025 avait ete declare en 105 << y compris Apec >> : 32,27 = 32,07 de retraite + 0,20 d'Apec."
+        },
+        "059:203": {
+          "taux": 1.81,
+          "composants": [
+            1.0,
+            0.81
+          ],
+          "_note": "Prevoyance INTERBRANCHE cadres : 0,12 + 0,88 = 1,00 prevoyance, 0,81 fonds collectif. Thalie (202) inchangee. Sur la T1 journaliere, comme la ligne du bulletin (220 pour un cachet de 250) ; sans reel en face au-dela de la T1 -- juin 2025 (320 < 440) ne tranche pas.",
+          "base": "t1_journaliere"
+        }
+      },
+      "_verifie_note": "Cale au centime sur le bulletin CoolPaie 31/2026 (artiste cadre, 250 EUR) : toutes les lignes, le total employeur 146,87 et le net 192,91. Une seule difference d'affichage : l'assiette CSG 249,34 chez CoolPaie contre 249,35 ici (250 x 0,9825 = 245,625, que CoolPaie arrondit au pair) -- les montants de CSG sont identiques. Structure DSN relue sur juin 2025."
+    },
+    "cadre_permanent": {
+      "_verifie": true,
+      "_etat": "COMPLETE depuis le 23/09/2026. Depuis la norme 2026.1, l'Apec se declare a part : << 132 - Cotisation Apec >> (`cotisations_ajoutees`, la ligne `apec_t1` du bulletin), a cote du << 131 - Cotisation regime unifie Agirc-Arrco >> de `par_nature.permanent`, qui somme `retraite_t1` et la CET (cahier technique 2026.1 p. 302 et 305 ; le 105 << y compris Apec >> n'y vaut plus que pour regulariser une periode anterieure a 2025). La prevoyance cadre (1,50 % TA en 3090) vient de la convention.",
+      "_quoi": "CE QUI CHANGE POUR UN CADRE EN CONTRAT PERMANENT, par rapport a la section `par_nature.permanent`. Presque rien, et c'est le point : la retraite complementaire Agirc-Arrco est UNIFIEE depuis 2019 -- un cadre et un non cadre permanents paient les memes 6,01 / 4,01 en T1 et 14,57 / 9,72 en T2, deja dans la section de nature. Il ne reste donc que deux lignes propres au cadre, l'Apec et la CET, et une prevoyance portee a 1,50 % de la tranche A -- celle-la ne s'ecrit pas ici : la convention la fixe, `bareme_prevoyance` la pose.",
+      "_pourquoi_une_section_a_part": "`par_categorie.cadre` decrit un cadre INTERMITTENT : ses tranches sont JOURNALIERES (plafond_journalier, t1_journaliere) et sa prevoyance est celle de l'accord interbranches (1,69 / 0,12). Appliquee a une administratrice en CDI, elle lui donnait des plafonds a la journee et la prevoyance d'un intermittent, en silence. Depuis le 19/09/2026, `calcul.bareme_cadre` lit cette section-ci quand le contrat est mensuel.",
+      "_source": "Audiens, Parametres 2026, page 3, tableau << Salaries permanents >> : Apec 0,036 patronale / 0,024 salariale sur T1 x 4 (si cadre), CET 0,21 / 0,14 sur T1 + T2, due des que le salaire depasse la T1. Les taux de retraite du meme tableau (3,15 / 4,72 en T1, 8,64 / 12,95 en T2, CEG 0,86 / 1,29 et 1,08 / 1,62) sont deja ceux de `par_nature.permanent` : le regime est unifie, et ils y sont relevés du BOSS.",
+      "cotisations_ajoutees": [
+        {
+          "apres": "131",
+          "bloc78": "23",
+          "code81": "132",
+          "org": null,
+          "base": "t1_mensuelle",
+          "base78": "t1_mensuelle",
+          "lignes": [
+            "apec_t1"
+          ],
+          "_source": "Cahier technique DSN 2026.1 (prive/reference/norme-dsn/texte/bloc-S21.G00.81.txt, p. 302 lignes 79-81, p. 305, CCH-12 de 81.004 p. 309) : l'Apec d'un cadre se declare en << 132 - Cotisation Apec >>, a cote du 131 de la tranche 1, en montant = la ligne `apec_t1` du bulletin (chaque part deja arrondie). Sous le bloc 78 du 131 de la tranche 1, comme elle l'etait dans le 105 : la base 78 des cotisations Agirc-Arrco reste hors de ce lot. Taux, parts et assiette : ceux de la ligne `apec_t1` ci-dessous, Audiens << Parametres 2026 >> p. 3 (tableaux) et p. 4 (« Association pour l'emploi des cadres ») (prive/reference/sources/audiens-parametres-2026/Audiens-Parametres-2026.pdf, lecture dans son LISEZ-MOI.md)."
+        }
+      ],
+      "rubriques_ajoutees": [
+        {
+          "id": "apec_t1",
+          "apres": "chomage",
+          "famille": "ASSURANCE CHÔMAGE",
+          "libelle": "APEC (cadres)",
+          "base": "apec_mensuelle",
+          "taux_pat": 0.036,
+          "taux_sal": 0.024,
+          "_source": "Parametres Audiens 2026 p. 3 et p. 4 : 0,06 % au total, reparti 0,036 employeur / 0,024 salarie, sur le salaire brut dans la limite de QUATRE plafonds de la Securite sociale -- `apec_mensuelle` pour un permanent, la ou un intermittent cadre a quatre plafonds JOURNALIERS."
+        },
+        {
+          "id": "cet",
+          "apres": "retraite_t2",
+          "famille": "RETRAITE",
+          "libelle": "Contribution d'équilibre technique (CET)",
+          "base": "cet_mensuelle",
+          "taux_pat": 0.21,
+          "taux_sal": 0.14,
+          "_source": "Parametres Audiens 2026 p. 3 : CET 0,21 patronale / 0,14 salariale, due des que le salaire depasse la tranche 1, sur T1 + T2. `cet_mensuelle` vaut le brut quand il depasse le plafond du mois, zero sinon -- meme convention que la `cet` d'un cadre intermittent.",
+          "_limite": "L'assiette n'est pas bornee a huit plafonds ici, comme elle ne l'est pas non plus pour un intermittent cadre : au-dela de 32 040 EUR de brut mensuel la CET serait surestimee. A corriger le jour ou une paie s'en approche -- aucune n'en approche."
+        }
+      ]
+    }
+  },
+  "par_nature": {
+    "permanent": {
+      "_verifie": true,
+      "_etat": "COMPLETE depuis le 23/09/2026. Tous les taux sont releves a la source (BOSS, table des CTP, Agirc-Arrco, code du travail, fiche Audiens 139, CCN 3090 art. 4.22 et 12.6, CCNEAC titre XII) et plus aucune ligne n'attend un taux : la prevoyance et la mutuelle viennent de la convention et de la fiche du salarie, la CASC-SVP de l'article 4.22, les blocs 54 et 059 des lignes du bulletin. CE QUI RESTE PROPRE A CHAQUE COMPAGNIE, et qui la fait refuser tant qu'il manque : ses references d'adhesion (config/organismes.json, `affiliations_par_nature.permanent`), le niveau de garantie sante de chaque salarie (`sante_svp`) et, pour un non cadre de moins d'un an, son anciennete dans la branche (`prevoyance_branche_depuis`). Le premier depot de test d'une DSN de permanent fait sous cette forme dira si la plate-forme la lit comme nous.",
+      "_quoi": "Ce qui change quand le contrat est un CDI ou un CDD ordinaire, par rapport au corps du bareme, qui decrit un INTERMITTENT. Cinq choses, et aucune n'est un detail : (1) pas de Conges Spectacles -- l'employeur paie les conges lui-meme, donc pas de 15,5 % et pas de majoration d'assiette de 11,5 % ni de 10 % ; (2) le chomage de droit commun (4,00 + AGS 0,25) au lieu du 9,75 des intermittents, et recouvre par l'URSSAF au lieu de France Travail ; (3) la retraite complementaire Agirc-Arrco de droit commun, sur des tranches MENSUELLES, au lieu des taux Audiens sur des tranches journalieres ; (4) la formation professionnelle a 0,55 % (moins de onze salaries) au lieu des 2 % des intermittents ; (5) une mutuelle sante obligatoire, qu'un intermittent n'a pas.",
+      "_source": "BOSS, table des parametres 2026 (reference/boss-table-parametres-2026.csv) : COT_CH_UN_METROP 4,00 ; COT_AV_RC_METROP 6,01 ; COT_FNAL_49_METROP 0,10 ; COT_SA_SS_METROP 0,30. Table des CTP de l'Urssaf, relevee le 18/09/2026 (source `urssaf-codes-types-personnel`) : 937 AGS 0,25 depuis le 01/07/2024, 959 CFP moins de onze salaries 0,55, 992 + 995 taxe d'apprentissage 0,59 + 0,09. Agirc-Arrco, taux de droit commun : retraite T1 7,87 % et CEG T1 2,15 %, repartis 60 / 40 -- 4,72 + 1,29 = 6,01 patronale (que le BOSS confirme), 3,15 + 0,86 = 4,01 salariale ; T2 21,59 % et CEG T2 2,70 % -- 12,95 + 1,62 = 14,57 et 8,64 + 1,08 = 9,72, exactement les taux T2 que la section cadre porte deja, parce que le regime est unifie. Contribution au dialogue social 0,016 % (CTP 027, art. L2135-10). Taxe d'apprentissage 0,68 % (0,59 + 0,09, art. L6241-2).",
+      "rubriques": {
+        "chomage": {
+          "base": "brut_chomage",
+          "_base": "Le brut dans la limite de QUATRE PLAFONDS de la periode de paie (10/10/2026, lot V2e) : C. trav. L. 5422-9 (<< dans la limite d'un plafond >>), reglement general annexe a la convention du 15/11/2024, art. 49, al. 2 (<< quatre fois le plafond mentionne a l'article L. 241-3 >>), L. 3253-18 pour l'AGS ; le plafond est `pss_periode`, reduit au prorata des jours d'emploi quand le contrat ne couvre pas le mois (CSS R. 242-2, al. 3). `calcul::calculer` pose `brut_chomage` pour un permanent comme pour un intermittent (lui sur quatre fois SON plafond), et la meme base sert au bulletin, a la base 07 et aux 040/048 de la DSN, et aux CTP 772 et 937 du bordereau (`chomage_permanent`, la somme des `brut_chomage` des permanents). Textes : prive/reference/sources/chomage-permanents/LISEZ-MOI.md. Avant ce lot, le brut entier (prive/journal/norme/corrections/PASSATION-V1i.md).",
+          "taux_pat": 4.25,
+          "taux_sal": null,
+          "composants": [
+            4.0,
+            0.25
+          ],
+          "_source": "Assurance chomage de droit commun 4,00 % (BOSS, COT_CH_UN_METROP, depuis le 01/05/2025) plus AGS 0,25 % (table CTP Urssaf, CTP 937, depuis le 01/07/2024). Rien de salarial depuis 2018. Un intermittent paie 9,75 / 2,40 : 9,00 + AGS 0,25 + une majoration de 0,50 point propre aux intermittents, et 2,40 a sa charge. Les deux contributions sont arrondies separement, comme partout ailleurs dans ce bareme."
+        },
+        "retraite_t1": {
+          "base": "t1_mensuelle",
+          "libelle": "Retraite complémentaire Tranche 1",
+          "taux_pat": 6.01,
+          "taux_sal": 4.01,
+          "composants_pat": [
+            4.72,
+            1.29
+          ],
+          "composants_sal": [
+            3.15,
+            0.86
+          ],
+          "_source": "Agirc-Arrco, taux de droit commun : retraite T1 7,87 % et contribution d'equilibre general T1 2,15 %, repartis 60 % employeur / 40 % salarie -- 4,72 + 1,29 = 6,01 et 3,15 + 0,86 = 4,01. Le BOSS confirme la part patronale (COT_AV_RC_METROP = 6,01). L'assiette est la TRANCHE 1 MENSUELLE : le plafond de Securite sociale de la periode, proratise quand le contrat ne couvre pas tout le mois. Un intermittent, lui, a des tranches journalieres et des taux Audiens."
+        },
+        "vieil_plaf": {
+          "base": "t1_mensuelle",
+          "_source": "La vieillesse plafonnee d'un permanent s'assied sur la tranche 1 mensuelle, pas sur le brut entier. Chez un intermittent, le corps du bareme met `brut_plafonne` depuis le 10/10/2026 : le brut dans la limite du plafond de son contrat, celui que le bas du bulletin imprime (prorata des jours, ou douze fois le plafond horaire par journee de travail d'un artiste engage moins de cinq jours continus ; `calcul::plafond_de_l_engagement`). Avant, il mettait `brut` -- << faux en principe et juste en fait >>, disait cette note, et c'etait faux en fait aussi (point 22 de la relecture de la norme : 4 077,00 retenus pour un plafond de 3 100,65). Ici elle se pose des 4 005 EUR par mois. Les TAUX ne changent pas : ils viennent du statut (8,55 / 6,90 au taux plein, 5,99 / 4,83 abattus pour un artiste)."
+        },
+        "autres_1": {
+          "base": "brut",
+          "taux_pat": 0.316,
+          "composants": [
+            0.3,
+            0.016
+          ],
+          "_source": "Contribution solidarite autonomie 0,30 (BOSS, COT_SA_SS_METROP) + contribution au dialogue social 0,016 (CTP 027, art. L2135-10), chacune arrondie separement, sur le brut : CSS L. 243-1-3, 2°, les laisse a la caisse de conges. La contribution a la formation professionnelle est sur sa propre ligne, `autres_4`, parce que son assiette se majore. L'intermittent porte 2,836 au meme endroit, dont 2,00 de formation des intermittents, 0,10 de contribution conventionnelle Afdas et 0,42 de Thalie Sante : les trois derniers sont propres aux intermittents. CE QUI MANQUE ICI : la contribution conventionnelle Afdas des permanents, si elle existe, et la medecine du travail, qui se paie au salarie et non en pourcentage. A verifier sur le premier appel de cotisations."
+        },
+        "autres_2": {
+          "base": "t1_mensuelle_x115",
+          "taux_pat": 0.1,
+          "_source": "FNAL des entreprises de moins de cinquante salaries : 0,10 % sur le salaire PLAFONNE (BOSS, COT_FNAL_49_METROP ; table CTP Urssaf, 332 FNAL PLAFONNE). L'artiste porte 0,07 (0,10 abattu de 30 %) sur le brut majore de 11,5 % -- la majoration pour conges spectacles, qui n'a pas lieu d'etre ici.",
+          "_base": "`t1_mensuelle_x115` (lot V2f) : la tranche 1 majoree de `majoration_conges_115` -- 1,0 ici, donc la tranche 1 ; 1,115 pour un CDD de moins de douze mois d'un artiste, que l'employeur declare a la caisse des Conges Spectacles (`par_caisse_conges.affilie`). Seule la part plafonnee se majore (lettre circulaire Acoss 2013-019, annexe 1, R2)."
+        },
+        "autres_3": {
+          "base": "brut_x110",
+          "taux_pat": 0.68,
+          "composants": [
+            0.59,
+            0.09
+          ],
+          "_source": "Taxe d'apprentissage, art. L6241-2 : part principale 0,59 + solde 0,09. Meme taux que pour un intermittent ; ce qui change, c'est l'assiette -- le brut nu, et non le brut majore de 10 % (majoration pour conges spectacles).",
+          "_base": "`brut_x110` (lot V2f) : le brut majore de `majoration_conges_110` -- 1,0 ici, donc le brut nu ; 1,115 pour un CDD de moins de douze mois d'un artiste declare a la caisse des Conges Spectacles (`par_caisse_conges.affilie`)."
+        },
+        "prevoyance": {
+          "base": "t1_mensuelle",
+          "libelle": "Prévoyance conventionnelle (incapacité, invalidité, décès)",
+          "taux_pat": null,
+          "taux_sal": null,
+          "_rempli_par": "bareme_prevoyance -- son taux n'est PAS une donnee de ce bareme. La prevoyance des permanents est fixee par la CONVENTION COLLECTIVE, la meme pour toutes les entreprises de la branche : elle vit donc dans moteur/prevoyance-conventionnelle-base.json, livre avec le logiciel, et moteur/prevoyance.py la lit. Pour l'IDCC 3090 : 1,20 % de la tranche A, 100 % patronale (article 12.6 des clauses communes), porte a 1,50 % pour un CADRE (ANI du 17/11/2017). Son absence de taux ici n'est pas un trou, c'est un renvoi -- comme la rubrique `mutuelle`, remplie par `bareme_sante`.",
+          "_ce_que_l_entreprise_choisit": "Dans config/entreprise.json, cle `prevoyance_permanents`, et seulement si elle sort du minimum : `extension_t2` (l'extension facultative a la tranche 2 conventionnelle, 2,32 % pour tous ou 2,62 % pour les cadres) et `regime: \"contrat\"` avec ses taux, quand son contrat est plus favorable que la branche. Sans rien, le minimum conventionnel s'applique : c'est le bon defaut, il est obligatoire."
+        },
+        "ccn": {
+          "taux_pat": 0.5,
+          "taux_sal": null,
+          "base": "t1_mensuelle",
+          "_source": "CCN 3090, article 4.22 (avenant du 18/10/2024, KALIARTI000050800194, reference/sources/kali-3090-titres-iv-v-sante-20260923.md) : la contribution aux activites sociales et culturelles est due << par entreprise >> sur la masse salariale dans la limite de la TRANCHE A, pour tous ses salaries, permanents comme intermittents, quel que soit le contrat -- 0,40 % pour les salaires 2024 et 2025, 0,50 % a partir du 01/01/2026 (fiche Audiens 139, groupes ETAM et CADRE CASC SVP ; Movinmotion, << Le CASC-SVP, c'est quoi ? >> ; cheque-intermittents.com). 100 % patronale : c'est une contribution d'employeur, la convention ne prevoit aucune part salariale. Pour un permanent la tranche A est MENSUELLE (`t1_mensuelle`). Leve le 23/09/2026 : ce qui restait a confirmer (les groupes couvrent-ils les permanents ?) est tranche par le texte, qui ne distingue pas les contrats."
+        }
+      },
+      "rubriques_retirees": [
+        "conges_spec"
+      ],
+      "_rubriques_retirees": "La caisse des Conges Spectacles (15,5 %) ne concerne que les intermittents : un permanent prend ses conges chez son employeur, qui les paie. C'est la meme raison qui fait disparaitre la rubrique 40.022 de la DSN et la cotisation 066. Sauf un CDD de droit commun de moins de douze mois d'un artiste, que l'employeur declare a la caisse : `par_caisse_conges.affilie` les lui rend (lot V2f).",
+      "rubriques_ajoutees": [
+        {
+          "id": "retraite_t2",
+          "apres": "retraite_t1",
+          "famille": "RETRAITE",
+          "libelle": "Retraite complémentaire Tranche 2",
+          "base": "t2_mensuelle",
+          "taux_pat": 14.57,
+          "taux_sal": 9.72,
+          "composants_pat": [
+            12.95,
+            1.62
+          ],
+          "composants_sal": [
+            8.64,
+            1.08
+          ],
+          "_source": "Agirc-Arrco de droit commun : retraite T2 21,59 % et CEG T2 2,70 %, repartis 60 / 40 -- 12,95 + 1,62 et 8,64 + 1,08. Ce sont exactement les taux que porte deja la section cadre de ce bareme, parce que le regime est unifie : au-dela du plafond, tout le monde paie pareil. Assiette : d'un a huit plafonds de Securite sociale du mois."
+        },
+        {
+          "id": "mutuelle",
+          "apres": "prevoyance",
+          "famille": "SANTÉ",
+          "libelle": "Complémentaire santé (mutuelle)",
+          "base": "pss_periode",
+          "taux_pat": null,
+          "taux_sal": null,
+          "_releve_svp_sante": {
+            "_source": "Fiche de parametrage Audiens version 139 du 13/12/2025, groupes 00003 a 00008, et Audiens-taux-2026-sante-prevoyance-20260904.xls (population \"ENSEMBLE PERSONNEL PERMANENT\", contrat \"FM SPECT VIVANT PRIV\"). Releve le 19/09/2026.",
+            "_assiette": "PMSS -- le plafond mensuel de la Securite sociale, pas le brut. C'est un forfait exprime en pourcentage du plafond : `pss_periode` dans ce moteur, deja proratise quand le contrat ne couvre pas tout le mois.",
+            "_repartition": "50 / 50, decide par l'editeur le 19/09/2026 : la fiche ne donne qu'un taux global, et l'employeur doit au moins la moitie (L911-7). A relire sur le premier appel de cotisations.",
+            "niveaux": {
+              "1": {
+                "assure": 1.44,
+                "conjoint": 1.44,
+                "enfant": 0.82
+              },
+              "2": {
+                "assure": 1.84,
+                "conjoint": 1.84,
+                "enfant": 1.05
+              },
+              "3": {
+                "assure": 2.04,
+                "conjoint": 2.04,
+                "enfant": 1.16
+              }
+            },
+            "_part_employeur": 50,
+            "composant_79": {
+              "type": "18",
+              "_source": "Fiche de parametrage Audiens version 139 du 13/12/2025 (prive/reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), groupes 00003 a 00008, parametres Changement=\"01\", depuis le 01/01/2026 : chaque option de FM SPECT VIVANT PRIV attend ses elements de calcul en <BaseMontantSpecifique ValeurCodeNature=\"18\"> (ISOLE PSS ; ASSURE PSS, CONJOINT PSS, ENFANT PSS pour la famille), <Assiette>PMSS</Assiette>. Cahier technique DSN 2026.1, bloc S21.G00.79 (prive/reference/norme-dsn/texte/bloc-S21.G00.79.txt, p. 298-300) : << Pour la Prevoyance, ce bloc est a alimenter par les elements constituant les parametres qui entrent dans le calcul de la cotisation >> ; << 18 - Base forfaitaire Prevoyance >>. Le montant (79.004) est la base de la ligne `mutuelle` du bulletin, le plafond du mois (`pss_periode`) : c'est sur lui que le taux s'applique. Le type 11 (tranche A) et le brut qu'ecrivait la DSN n'entrent pas dans ce calcul. Une seule base 18 meme pour une famille : la fiche en donne trois, de meme nature et de meme assiette, que la DSN ne sait pas distinguer -- l'option (70.004) et les ayants droit (70.008, 70.011) disent le reste (lot V3e, PASSATION-V3e.md)."
+            }
+          },
+          "_rempli_par": "bareme_sante -- ses taux ne sont pas dans le bareme parce qu'ils dependent du contrat du salarie : le NIVEAU de garantie (1, 2 ou 3) et la COMPOSITION couverte (assure seul, conjoint, enfants). La fiche du salarie les dit : \"sante_svp\": {\"niveau\": \"2\", \"conjoint\": true, \"enfants\": 2}. Sans elle, le moteur REFUSE -- prendre le niveau 1 par defaut cotiserait moins que le contrat, et un salarie mal couvert ne l'apprend qu'au premier remboursement.",
+          "_base_pourquoi": "LE PMSS, PAS LE BRUT. La fiche de parametrage Audiens donne un taux dont l'assiette est le plafond mensuel de la Securite sociale (<Assiette>PMSS</Assiette>) : c'est un forfait, exprime en pourcentage du plafond, et il ne suit donc pas le salaire. `pss_periode` est ce plafond, deja proratise quand le contrat ne couvre pas tout le mois."
+        },
+        {
+          "id": "autres_4",
+          "apres": "autres_3",
+          "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+          "libelle": "Autres contributions dues par l'employeur",
+          "base": "brut_x115",
+          "taux_pat": 0.55,
+          "taux_sal": null,
+          "composants": [
+            0.55
+          ],
+          "_source": "Contribution a la formation professionnelle 0,55 (CTP 959, C. trav. L. 6331-1, entreprise de moins de onze salaries), et la CPF-CDD d'un CDD de droit commun (`cpf_cdd`, 1 %, L. 6331-6) que `bareme::bareme_cpf_cdd` ajoute ici. Chacune arrondie separement.",
+          "_base": "`brut_x115` : le brut majore de `majoration_conges_115` -- 1,0 ici, donc le brut ; 1,115 pour un CDD de moins de douze mois d'un artiste declare a la caisse des Conges Spectacles (`par_caisse_conges.affilie`). CSS L. 243-1-3, 1° : l'employeur affilie s'acquitte de ses contributions de L. 6131-2 (dont L. 6331-1) et de L. 6331-6 par une majoration ; D. 243-0-2, 1° : 11,5 %. L'Urssaf : << les salaires a declarer sont ceux que vous avez effectivement payes, majores d'un coefficient forfaitaire de 1,1150 >>, pour la CFP comme pour la CPF-CDD (prive/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt l. 657-671 (CFP), 819-826 (81.003 de la 128) et 970-990 (CPF-CDD) ; urssaf-contributions-formation-professionnelle-cfp-cpf-cdd-20240327.txt l. 71-77 et 129-135 ; net-entreprises-base-connaissances/net-entreprises-fiche2503-contribution-formation-professionnelle-20250429.txt l. 36 et 104). La CSA et le dialogue social restent sur le brut (`autres_1`)."
+        }
+      ],
+      "majoration_conges_115": 1.0,
+      "majoration_conges_110": 1.0,
+      "_majorations": "Les deux majorations d'assiette (11,5 % et 10 %) sont la part de conges payes que la caisse des Conges Spectacles versera a l'intermittent : l'assiette du FNAL et de la taxe d'apprentissage doit la porter, puisque c'est du salaire differe. Un permanent recoit ses conges de son employeur, et ils sont deja dans son brut : majorer l'assiette serait un double compte. D'ou 1,0 -- et non la suppression de la cle, que le calcul lirait encore dans le corps du bareme. Un CDD de droit commun de moins de douze mois d'un artiste est declare a la caisse, lui : `par_caisse_conges.affilie` remet les majorations (lot V2f).",
+      "cotisation_prevoyance_retraite_supp": {
+        "lignes_patronales": [
+          "prevoyance",
+          "prevoyance_t2"
+        ],
+        "_source": "S21.G00.54 : << 93 - Cotisation prevoyance et retraite supplementaire >> et << 92 - Cotisation patronale frais de sante >>, montants << inclus dans la base CSG >> (cahier technique 2026.1, p. 69 et p. 257). Ce sont les PARTS PATRONALES que le bulletin a deja calculees -- la prevoyance conventionnelle (`bareme_prevoyance`) et la mutuelle (`bareme_sante`) --, sommees et arrondies a l'euro comme le 93 des intermittents. Leve le 23/09/2026 : il n'y avait pas de taux a relever, les deux taux sont ceux du bulletin."
+      },
+      "cpf_cdd": {
+        "_quoi": "LA CONTRIBUTION CPF-CDD (lot R2, 11/10/2026) : un contrat de cette nature qui l'ouvre -- un CDD de droit commun, ni saisonnier, ni contrat aide (`assujettissement::contrat_ouvre_cpf_cdd`, la regle du bloc 44, 013) -- paie 1 % de son brut, majore de 11,5 % s'il est declare a la caisse des Conges Spectacles (`brut_x115`, CSS L. 243-1-3, 1°, qui nomme L. 6331-6). `bareme::bareme_cpf_cdd` ajoute `taux` aux composants de la rubrique `rubrique` (les autres contributions dues par l'employeur, sur la ligne de la formation professionnelle, dont l'assiette se majore de meme ; INFERENCE sur la famille du bulletin) et `cotisation_dsn` au nominatif. Le CDI et le CDDU ne la paient pas.",
+        "_source": "Code du travail, art. L. 6331-6 (prive/reference/sources/code-du-travail/articles-20261010.md, l. 545-549) : « une contribution dediee au financement du compte personnel de formation egale a 1 % du revenu d'activite retenu pour le calcul des cotisations sociales des titulaires d'un contrat a duree determinee », sauf les CDD de formation ou d'alternance (D. 6331-72) et les saisonniers ; L. 6331-55 en exclut les intermittents du spectacle. Norme DSN 2026.1 : « 129 - Contribution dediee au financement du Compte Personnel de Formation pour les titulaires de CDD (CPF-CDD) » (prive/reference/norme-dsn/texte/bloc-S21.G00.81.txt, l. 285). Tableau DIDA de l'Urssaf : CTP 987 -> 129, base 03 (prive/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 1001). Table des CTP : 987, 1,0 deplafonne depuis 2022.",
+        "rubrique": "autres_4",
+        "taux": 1.0,
+        "cotisation_dsn": {
+          "bloc78": "03",
+          "code81": "129",
+          "org": "78861779300013",
+          "base": "brut_x115",
+          "taux": 1.0,
+          "base78": "brut",
+          "_quoi": "Contribution CPF-CDD, 1 % du brut, majore de 11,5 % pour un contrat declare a la caisse des Conges Spectacles (CTP 987 au bordereau, `cpf_cdd` : la somme de ces 81.003). Le 81.003 porte l'assiette majoree, le 78.004 le brut, comme le FNAL : prive/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt l. 657-671 (CFP), 819-826 (81.003 de la 128) et 970-990 (CPF-CDD) ; urssaf-contributions-formation-professionnelle-cfp-cpf-cdd-20240327.txt l. 71-77 et 129-135 ; net-entreprises-base-connaissances/net-entreprises-fiche2503-contribution-formation-professionnelle-20250429.txt l. 36 et 104."
+        }
+      },
+      "reduction_generale": {
+        "dsn": {
+          "cle_total_chomage": "018:urssaf",
+          "ctp": "668",
+          "ctp_regularisation": "669",
+          "_quoi": "La reduction generale d'un permanent se declare comme celle d'un technicien -- trois blocs 81 negatifs sous le bloc 78 type 03 -- avec UNE difference : la part chomage revient a l'Urssaf, qui recouvre son assurance chomage, et non a France Travail. D'ou la meme cle de totalisation que la part securite sociale, et le CTP 668 << REDUCTION GENERALE ETENDUE U2 >> au lieu du 671 << sans chomage >>. Ces deux valeurs completent la section du statut : la formule, les parametres et le SMIC gele restent les siens."
+        }
+      },
+      "cotisations_dsn": [
+        {
+          "bloc78": "02",
+          "code81": "049",
+          "org": "78861779300013",
+          "base": "t1_mensuelle_x115",
+          "taux": 0.1,
+          "base78": "t1_mensuelle",
+          "_quoi": "Cotisation Allocation de logement (FNAL), 0,10 % sur le salaire PLAFONNE pour une entreprise de moins de cinquante salaries. L'intermittent la porte sur le brut majore de 11,5 %. Le 81.003 est la tranche 1 majoree (`t1_mensuelle_x115`, lot V2f) : la tranche 1 elle-meme, sauf pour un CDD declare a la caisse des Conges Spectacles ; le 78.004 reste la tranche 1."
+        },
+        {
+          "bloc78": "02",
+          "code81": "076",
+          "org": "78861779300013",
+          "base": "t1_mensuelle",
+          "taux": 15.45,
+          "base78": "t1_mensuelle",
+          "_quoi": "Cotisation Assurance Vieillesse plafonnee : 8,55 patronale + 6,90 salariale (BOSS, COT_AV_SS_METROP), sur la tranche 1. A CONFIRMER AU DEPOT DE TEST : la liste des intermittents ne porte aucun code 076, la vieillesse y etant fondue dans les CTP agreges. Pour un permanent, la ventiler parait juste ; le bilan le dira."
+        },
+        {
+          "bloc78": "03",
+          "code81": "074",
+          "org": "78861779300013",
+          "base": "brut",
+          "taux": 3.45,
+          "base78": "brut",
+          "_quoi": "Cotisation Allocation familiale - taux normal. Le CTP 100 porte 3,45 %, et le complement 102 fait les 5,25 % du taux plein : c'est la decomposition que l'Urssaf attend, la meme que pour un artiste (2,42 + 1,26 abattus)."
+        },
+        {
+          "bloc78": "03",
+          "code81": "075",
+          "org": "78861779300013",
+          "base": "brut",
+          "taux": 7.0,
+          "base78": "brut",
+          "_quoi": "Cotisation Assurance Maladie, part du CTP 100."
+        },
+        {
+          "bloc78": "03",
+          "code81": "102",
+          "org": "78861779300013",
+          "base": "brut",
+          "taux": 1.8,
+          "base78": "brut",
+          "_quoi": "Complement de cotisation Allocation Familiale (CTP 430) : 3,45 + 1,80 = 5,25, le taux plein du BOSS."
+        },
+        {
+          "bloc78": "03",
+          "code81": "907",
+          "org": "78861779300013",
+          "base": "brut",
+          "taux": 6.0,
+          "base78": "brut",
+          "_quoi": "Complement de cotisation Assurance Maladie (CTP 635) : 7,00 + 6,00 = 13,00, le taux plein du BOSS."
+        },
+        {
+          "bloc78": "03",
+          "code81": "130",
+          "org": "78861779300013",
+          "base": "brut_x110",
+          "taux": 0.59,
+          "base78": "brut",
+          "_quoi": "Part principale de la taxe d'apprentissage (CTP 992), sur le brut NU -- l'intermittent la porte sur le brut majore de 10 %. Le 81.003 est `brut_x110` (lot V2f) : le brut, sauf pour un CDD declare a la caisse des Conges Spectacles (majore de 11,5 %)."
+        },
+        {
+          "bloc78": "03",
+          "code81": "128",
+          "org": "78861779300013",
+          "base": "brut_x115",
+          "taux": 0.55,
+          "base78": "brut",
+          "_quoi": "Contribution a la formation professionnelle (CTP 959, entreprise de moins de onze salaries). L'intermittent est a 2,00 % (CTP 983), sur le brut. Le 81.003 est `brut_x115` : le brut, sauf pour un contrat declare a la caisse des Conges Spectacles, majore de 11,5 % (CSS L. 243-1-3, 1°, par L. 6131-2 ; D. 243-0-2, 1°) ; le 78.004 reste le brut. Le CTP 959 est la somme de ces 81.003 (`cfp_permanent`). Textes : prive/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt l. 657-671 (CFP), 819-826 (81.003 de la 128) et 970-990 (CPF-CDD) ; urssaf-contributions-formation-professionnelle-cfp-cpf-cdd-20240327.txt l. 71-77 et 129-135 ; net-entreprises-base-connaissances/net-entreprises-fiche2503-contribution-formation-professionnelle-20250429.txt l. 36 et 104."
+        },
+        {
+          "bloc78": "07",
+          "code81": "040",
+          "org": "78861779300013",
+          "base": "brut_chomage",
+          "taux": 4.0,
+          "base78": "brut_chomage",
+          "cle_total": "040:urssaf",
+          "_quoi": "Cotisation AC (assurance chomage), 4,00 %. L'ORGANISME CHANGE : pour un permanent, l'Urssaf recouvre l'assurance chomage ; pour un intermittent, c'est France Travail. Meme code de cotisation, deux ordres de telepaiement -- d'ou `cle_total`, que organismes.json lit pour savoir a qui la somme revient."
+        },
+        {
+          "bloc78": "07",
+          "code81": "048",
+          "org": "78861779300013",
+          "base": "brut_chomage",
+          "taux": 0.25,
+          "base78": "brut_chomage",
+          "cle_total": "048:urssaf",
+          "_quoi": "Cotisation AGS (garantie des salaires), 0,25 % depuis le 01/07/2024. Recouvree par l'Urssaf, comme le chomage."
+        },
+        {
+          "bloc78": "04",
+          "code81": "072",
+          "org": "78861779300013",
+          "base": "csg",
+          "taux": 9.2,
+          "base78": "csg",
+          "_quoi": "CSG deductible et non deductible : 6,80 + 2,40."
+        },
+        {
+          "bloc78": "04",
+          "code81": "079",
+          "org": "78861779300013",
+          "base": "csg",
+          "taux": 0.5,
+          "base78": "csg",
+          "_quoi": "CRDS."
+        },
+        {
+          "bloc78": "23",
+          "code81": "131",
+          "org": null,
+          "base": "t1_mensuelle",
+          "base78": "t1_mensuelle",
+          "_quoi": "Cotisation regime unifie Agirc-Arrco (131) sur la tranche 1 : 6,01 patronale + 4,01 salariale, et la CET d'un cadre. La tranche 2 est declaree separement, sur sa propre base ; l'Apec d'un cadre en 132 (`par_categorie.cadre_permanent.cotisations_ajoutees`).",
+          "lignes": [
+            "retraite_t1",
+            "cet"
+          ],
+          "_source": "Agirc-Arrco en montant = la somme des lignes du bulletin, chaque part arrondie separement, comme le 131 d'un cadre intermittent. Cahier technique 2026.1 (prive/reference/norme-dsn/texte/bloc-S21.G00.81.txt, p. 302 lignes 79-81, p. 305) : la modalite Agirc-Arrco reserve << 105 - Montant de cotisation Regime Unifie Agirc-Arrco, y compris Apec >> a la regularisation des periodes anterieures a 2025 et attend << 131 - Cotisation regime unifie Agirc-Arrco >> et << 132 - Cotisation Apec >>. La CET n'a pas de code a elle : elle va dans le 131 de la tranche 1 ; pour un non cadre elle n'existe pas et compte zero. Change le 23/09/2026 : le montant etait un taux sur la tranche, un centime pouvait le separer du bulletin. Change le 10/10/2026 (point 19) : 105 -> 131, l'Apec sortie en 132."
+        },
+        {
+          "bloc78": "23",
+          "code81": "131",
+          "org": null,
+          "base": "t2_mensuelle",
+          "base78": "t2_mensuelle",
+          "_quoi": "Agirc-Arrco tranche 2 : 14,57 + 9,72. Nulle tant que le salaire ne depasse pas le plafond de Securite sociale du mois. A CONFIRMER AU DEPOT DE TEST : deux blocs 78 de code 23 sous le meme versement, un par tranche.",
+          "lignes": [
+            "retraite_t2"
+          ],
+          "_source": "Agirc-Arrco en montant = la somme des lignes du bulletin, chaque part arrondie separement, comme le 131 d'un cadre intermittent. Cahier technique 2026.1 (prive/reference/norme-dsn/texte/bloc-S21.G00.81.txt, p. 302 lignes 79-81, p. 305) : la modalite Agirc-Arrco reserve << 105 - Montant de cotisation Regime Unifie Agirc-Arrco, y compris Apec >> a la regularisation des periodes anterieures a 2025 et attend << 131 - Cotisation regime unifie Agirc-Arrco >> et << 132 - Cotisation Apec >>. La CET n'a pas de code a elle : elle va dans le 131 de la tranche 1 ; pour un non cadre elle n'existe pas et compte zero. Change le 23/09/2026 : le montant etait un taux sur la tranche, un centime pouvait le separer du bulletin. Change le 10/10/2026 (point 19) : 105 -> 131, l'Apec sortie en 132."
+        },
+        {
+          "bloc78": "31",
+          "code81": "059",
+          "org": null,
+          "base": "brut",
+          "base78": "zero",
+          "affectation": "202",
+          "organisme": "PREVOYANCE",
+          "lignes": [
+            "prevoyance",
+            "prevoyance_t2"
+          ],
+          "_source": "Le montant de la base 31 est celui du BULLETIN, parts patronale et salariale : la ligne `prevoyance`. L'IDENTIFIANT D'AFFILIATION, lui, n'est pas une donnee du socle : c'est la reference de l'adhesion de la compagnie (config/organismes.json, `affiliations_par_nature.permanent.references`, dans l'ordre : prevoyance, puis sante ; la CASC-SVP de la 3090 et le FNAS/FCAP de la 1285 suivent d'eux-memes). Une compagnie qui n'a pas encore adhere laisse `references` a null, et le moteur refuse pour ELLE (`dsn._affiliations`) -- plus pour toutes. Leve le 23/09/2026."
+        },
+        {
+          "bloc78": "31",
+          "code81": "059",
+          "org": null,
+          "base": "brut",
+          "base78": "zero",
+          "affectation": "203",
+          "organisme": "SANTE",
+          "lignes": [
+            "mutuelle"
+          ],
+          "_source": "Le montant de la base 31 est celui du BULLETIN, parts patronale et salariale : la ligne `mutuelle`. L'IDENTIFIANT D'AFFILIATION, lui, n'est pas une donnee du socle : c'est la reference de l'adhesion de la compagnie (config/organismes.json, `affiliations_par_nature.permanent.references`, dans l'ordre : prevoyance, puis sante ; la CASC-SVP de la 3090 et le FNAS/FCAP de la 1285 suivent d'eux-memes). Une compagnie qui n'a pas encore adhere laisse `references` a null, et le moteur refuse pour ELLE (`dsn._affiliations`) -- plus pour toutes. Leve le 23/09/2026."
+        },
+        {
+          "bloc78": "43",
+          "code81": null,
+          "org": null,
+          "base": "brut",
+          "taux": null,
+          "base78": "brut"
+        }
+      ],
+      "_cotisations_dsn": "AUCUNE DE CES LIGNES N'A ETE DEPOSEE, pas meme en test. Les codes de cotisation viennent du cahier technique 2026.1 (nomenclature des codes S21.G00.81.001) et les taux de la table des CTP de l'Urssaf et du BOSS ; la STRUCTURE, elle, est calquee sur celle d'un intermittent, qui est prouvee par cinquante DSN acceptees. Deux points a confirmer au premier depot de test : le code 076 (vieillesse plafonnee), que la liste des intermittents ne porte pas, et les deux blocs 78 de code 23 (Agirc-Arrco T1 et T2).",
+      "cotisation_sante_patronale": {
+        "lignes_patronales": [
+          "mutuelle"
+        ],
+        "_source": "S21.G00.54 : << 93 - Cotisation prevoyance et retraite supplementaire >> et << 92 - Cotisation patronale frais de sante >>, montants << inclus dans la base CSG >> (cahier technique 2026.1, p. 69 et p. 257). Ce sont les PARTS PATRONALES que le bulletin a deja calculees -- la prevoyance conventionnelle (`bareme_prevoyance`) et la mutuelle (`bareme_sante`) --, sommees et arrondies a l'euro comme le 93 des intermittents. Leve le 23/09/2026 : il n'y avait pas de taux a relever, les deux taux sont ceux du bulletin."
+      }
+    }
+  },
+  "_par_nature": "Un deuxieme axe, independant du statut. Le CORPS de ce bareme decrit un intermittent (Conges Spectacles, chomage majore, assiettes majorees pour conges) ; `par_statut` dit s'il est artiste ou technicien -- c'est-a-dire si ses taux Urssaf sont abattus de 30 % ; `par_nature` dit si son contrat est un CDDU ou un contrat permanent. Les deux s'empilent : un comedien en CDI garde ses taux abattus ET perd les Conges Spectacles. Applique par calcul.bareme_de_la_nature.",
+    "par_caisse_conges": {
+      "_quoi": "LA CAISSE DES CONGES SPECTACLES, un etage de la pile pose juste apres la nature du contrat (`bareme::bareme_caisse_conges`). Le corps de ce bareme decrit un CDDU declare a la caisse, `par_nature.permanent` un salarie que l'employeur paie de ses conges. Deux contrats ne sont pas ce que leur nature decrit, et `caisse_conges::affilie` les reconnait a leurs dates : un CDDU de DOUZE MOIS OU PLUS n'est pas declare a la caisse (`non_affilie`) ; un CDD DE DROIT COMMUN DE MOINS DE DOUZE MOIS d'un artiste l'est (`affilie`). Un CDI ne l'est jamais.",
+      "_source": "Code du travail D. 7121-40 et D. 7121-41 (releve LEGI du 10/10/2026, prive/reference/sources/code-du-travail/articles-20261010.md) : l'employeur du spectacle declare a la caisse << le personnel artistique et technique qu'ils n'ont pas employe de facon continue pendant les douze mois precedant la demande de conge >>. Fiche pratique Audiens << Les Conges Spectacles >> (fevrier 2023, prive/reference/sources/majoration-caisses-conges/audiens-fiche-pratique-conges-spectacles-202302.txt, l. 15-31) : << quelle que soit [...] la nature du contrat de travail (CDD de droit commun, CDD d'usage, etc) >> ; la cotisation << sur chaque bulletin de paie d'artiste ou de technicien embauche sous contrat a duree determinee de moins de 12 mois >>. CCN 3090, art. 10.1.1 (prive/reference/sources/kali-3090-titres-vii-x-xi-annexes-20260924.md) : le CDD d'usage << occupe[] de maniere continue, dans le cadre d'un meme contrat de travail, pendant les 12 mois >> releve du droit commun. Lecture complete : prive/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md.",
+      "affilie": {
+        "_verifie": true,
+        "_quoi": "Un CDD de droit commun de moins de douze mois d'un ARTISTE (son metier est un emploi de l'annexe 10 de la nomenclature des emplois du spectacle). Le technicien en CDD de droit commun n'y est pas : quel technicien la caisse attend est une decision (`caisse_conges::artiste_du_spectacle`, PASSATION-V2f.md). Par-dessus `par_nature.permanent` : la ligne de la caisse et la cotisation 066 (bloc 78 de type 27) reprises du corps tel que le statut l'a laisse, et les majorations d'assiette des employeurs affilies a une caisse de conges (CSS L. 243-1-3), que les assiettes du permanent portent deja (`t1_mensuelle_x115`, `brut_x110`, `brut_x115` du versement mobilite et de la formation, `autres_4`) avec une majoration de 1,0.",
+        "du_corps": {
+          "rubriques_bulletin": [
+            "conges_spec"
+          ],
+          "cotisations_dsn": [
+            "066"
+          ]
+        },
+        "majoration_conges_115": 1.115,
+        "majoration_conges_110": 1.115,
+        "_majoration_conges_110": "11,5 % et non 10 % : CSS D. 243-0-2 (prive/reference/sources/code-de-la-securite-sociale/articles-20261010.md), 1° : << Le taux des majorations prevues a l'article L. 243-1-3 est fixe a 11,5 % >> ; 2° : 10 % pour la taxe d'apprentissage << des salaries intermittents du spectacle mentionnes a l'article L. 6331-55 >> -- ceux des secteurs << pour lesquels il est d'usage constant de ne pas recourir au contrat a duree indeterminee >>, les mots memes du CDD d'usage (L. 1242-2, 3°). Un CDD de droit commun (L. 1242-2, 1° ou 2°) n'en est pas : sa taxe d'apprentissage se majore de 11,5 %. LECTURE : D. 243-0-2 ne nomme pas le CDD de droit commun ; la cle garde son nom (`_110`), c'est celle de la taxe d'apprentissage.",
+        "_majorations_formation": "La contribution a la formation professionnelle de droit commun (L. 6331-1, par L. 6131-2) et la contribution CPF-CDD (L. 6331-6) se majorent aussi (L. 243-1-3, 1°) : leur ligne du bulletin (`par_nature.permanent.rubriques_ajoutees[autres_4]`) et leurs 81.003 (128, 129) sont sur `brut_x115`, que la majoration de 1,115 porte ici. Textes : prive/reference/sources/majoration-caisses-conges/LISEZ-MOI.md, << La CPF-CDD d'un CDD declare a la caisse >>."
+      },
+      "non_affilie": {
+        "_verifie": true,
+        "_quoi": "Un CDDU de douze mois ou plus (du debut au terme signes) : l'employeur ne le declare pas a la caisse (D. 7121-41 ; CCN 3090, art. 10.1.1 ; fiche Audiens), des son premier bulletin. Ni la ligne de la caisse, ni la cotisation 066, ni les majorations d'assiette (CSS L. 243-1-3 : elles ne portent que sur les remunerations des salaries declares a la caisse, lettre circulaire Acoss 2013-019, annexe 1, R5). Le reste du CDDU ne change pas (chomage des annexes, formation des intermittents).",
+        "rubriques_retirees": [
+          "conges_spec"
+        ],
+        "cotisations_dsn_retirees": [
+          "066"
+        ],
+        "majoration_conges_115": 1.0,
+        "majoration_conges_110": 1.0
+      }
+    },
+  "_quoi": "LE SOCLE DE DROIT COMMUN DE L'ANNEE, livre avec le logiciel et le meme pour toutes les compagnies : taux Urssaf, Agirc-Arrco, chomage, CSG, plafond de la Securite sociale, SMIC, et les taux de la branche du spectacle (Conges Spectacles, prevoyance interbranche, formation, CASC). Ce qui est propre a une entreprise n'est PAS ici : son taux AT/MP notifie, et ce que son effectif change. Elle l'ecrit dans config/baremes/<annee>.json, que `moteur/baremes.fusionner` empile par-dessus celui-ci.",
+  "_ce_qui_depend_de_l_entreprise": {
+    "taux_atmp": "LE taux AT/MP de l'etablissement, notifie chaque janvier par l'Assurance Maladie (compte AT/MP sur net-entreprises). Aucun logiciel ne peut aller le chercher : il est propre a l'etablissement, et il n'y a pas de valeur par defaut raisonnable. Les rubriques `atmp` de ce socle portent leur FACTEUR et le moteur les remplit.",
+    "effectif": "Trois valeurs de ce socle sont ecrites pour une entreprise de MOINS DE ONZE salaries : le FNAL a 0,10 % (0,50 % a partir de 50 salaries), la contribution a la formation professionnelle des permanents a 0,55 % (1,00 % a partir de 11), et le `tdelta` de la reduction generale, 0,3781 au FNAL 0,10 (0,3821 au FNAL 0,50). Une entreprise plus grande les surcharge dans son fichier. CETTE PHRASE NE SUFFIT PLUS : depuis le 21/09/2026 la meme chose est ecrite pour etre LUE, chemin par chemin, dans la section `seuils_effectif`, et le moteur refuse de payer quand l'effectif declare atteint un seuil que la surcouche n'a pas suivi. Ce qui est ici est le commentaire ; ce qui est la-bas est le controle.",
+    "_comment": "La surcouche se fond cle par cle. Une rubrique se reprend par son `id`, une cotisation DSN par son `code81` (et son `affectation` s'il y en a une) : on n'ecrit que ce qui change. Exemple, pour une entreprise de soixante salaries : {\"annee\": 2026, \"taux_atmp\": {\"valeur\": 2.10, \"code_risque\": \"923AD\"}, \"rubriques_bulletin\": [{\"id\": \"autres_2\", \"taux_pat\": 0.35}]}"
+  },
+  "seuils_effectif": {
+    "_quoi": "CE QUE L'EFFECTIF DE L'ENTREPRISE CHANGE DANS CE SOCLE, ecrit pour etre LU par le moteur et non seulement par un humain. `_ce_qui_depend_de_l_entreprise.effectif` le disait en prose depuis le 19/09/2026, et rien ne le verifiait : une compagnie de quinze salaries etait payee avec les taux d'une compagnie de trois, sans un mot. La compagnie fictive `privee-onze` le montrait depuis le 20/09/2026 ; le 21/09/2026, `moteur/entreprise.py` lit cette section, la confronte a l'effectif que l'Urssaf calcule et renvoie en CRM de nature 118 (`moteur/effectif.py`, config/effectifs.json, depuis le 23/09/2026 ; un seuil n'est franchi qu'apres cinq annees consecutives), et REFUSE de payer plutot que de produire un bulletin faux et muet.",
+    "_ecrit_pour": "Ce socle est ecrit pour une entreprise de MOINS DE ONZE salaries -- le plus petit palier, et le seul que nos declarations reelles eprouvent. Une entreprise plus grande surcharge, dans son propre fichier (`config/baremes/<annee>.json`), les chemins listes ci-dessous.",
+    "_lecture": "`chemins` donne, pour chaque valeur, l'endroit exact du bareme et LA VALEUR QUE LE SOCLE Y PORTE. Le controle est celui-la : si l'effectif declare atteint `seuil` et que la valeur fondue est encore celle du socle, personne ne l'a surchargee -- refus. Une valeur surchargee est tenue pour DECIDEE : le moteur verifie qu'une decision a ete prise, pas laquelle, comme pour le taux AT/MP qu'il ne peut pas connaitre.",
+    "_ce_qui_n_est_pas_ici": "Le jour ou la DSN est due suit le meme seuil que le FNAL (le 15, le 5 a partir de cinquante salaries -- art. R. 243-6 CSS), et il ne vit pas dans le bareme : `entreprise.echeance_dsn` le deduit de l'effectif (le 15 quand il est inconnu).",
+    "valeurs": [
+      {
+        "cle": "formation",
+        "seuil": 11,
+        "quoi": "La contribution a la formation professionnelle des PERMANENTS passe de 0,55 % a 1,00 % du brut a partir de onze salaries. L'intermittent est a 2,00 % (CTP 983) quel que soit l'effectif : cette valeur-ci ne concerne que les CDI et les CDD ordinaires.",
+        "au_dela": "1,00 %, et `par_nature.permanent.rubriques_ajoutees[autres_4].taux_pat` avec -- c'est la SOMME affichee des composants (0,55, donc 1,00 ; la CPF-CDD d'un CDD s'y ajoute d'elle-meme). UNE SURCOUCHE ECRITE AVANT LE 13/10/2026 portait la formation dans `par_nature.permanent.rubriques.autres_1` (son troisieme composant, 1,00, et un `taux_pat` de 1,316) : l'y laisser la ferait payer deux fois ; `autres_1` ne garde que la CSA et le dialogue social (0,30 + 0,016 = 0,316), ce que le socle porte deja -- effacer `autres_1` de la surcouche.",
+        "source": "Code du travail, art. L. 6331-1 : 0,55 % sous onze salaries, 1,00 % a partir de onze. Le CTP Urssaf de la ligne (959 sous onze salaries) vit dans `config/organismes.json` de la compagnie et non ici : il se verifie sur l'appel de cotisations.",
+        "sous_le_seuil": "Sous le seuil, la valeur du socle est due, et aucune autre : << L'employeur de moins de onze salaries [...] 0,55 % >> (C. trav. L. 6331-1), et << l'effectif salarie et le franchissement d'un seuil d'effectif salarie sont determines selon les modalites prevues a l'article L. 130-1 du code de la securite sociale >> (L. 6331-1 A) : le seuil n'est franchi qu'apres cinq annees civiles consecutives, et << le franchissement a la baisse d'un seuil d'effectif sur une annee civile a pour effet de faire a nouveau courir >> ce delai (CSS L. 130-1, II). Releve LEGI du 13/10/2026 (prive/reference/sources/code-du-travail/articles-20261013.md, code-de-la-securite-sociale/articles-20261013.md) ; guide Urssaf des contributions de formation du 12/03/2026, l. 568-586 (prive/reference/sources/majoration-caisses-conges/). Une surcouche qui porte 1,00 alors que l'effectif est (repasse) sous le seuil ferait payer 1 % au lieu de 0,55 % : le moteur refuse (`contexte::controler_effectif`).",
+        "chemins": {
+          "par_nature.permanent.cotisations_dsn[128].taux": 0.55,
+          "par_nature.permanent.rubriques_ajoutees[autres_4].composants[0]": 0.55
+        }
+      },
+      {
+        "cle": "fnal",
+        "seuil": 50,
+        "quoi": "Le FNAL passe de 0,10 % sur le salaire PLAFONNE a 0,50 % sur le brut TOTAL a partir de cinquante salaries. Ce n'est donc pas qu'un taux : l'ASSIETTE change avec lui, et surcharger le seul taux produirait 0,50 % d'un plafond -- faux, et invisible. L'artiste porte le taux abattu de 30 % (0,07 sous cinquante).",
+        "au_dela": "0,50 %, ET la `base` de chaque rubrique et de chaque ligne DSN concernee (t1_mensuelle_x115 -> brut_x115 pour un permanent, dont l'assiette ne se majore que s'il est declare a la caisse des Conges Spectacles ; brut_x115_plafonne -> brut_x115 pour un intermittent, dont l'assiette reste majoree de 11,5 %, CSS L. 243-1-3 ; et le 78.004 du bloc 02 de l'intermittent, brut_plafonne, reste la base plafonnee). Le `tdelta` de la reduction generale suit (voir ci-dessous), et l'echeance de la DSN aussi.",
+        "source": "BOSS, table des parametres 2026 : COT_FNAL_49_METROP 0,10 pour les entreprises de moins de cinquante salaries. Table des CTP de l'Urssaf : 332 FNAL PLAFONNE -- le CTP change avec l'assiette, et il vit dans `config/organismes.json` de la compagnie.",
+        "chemins": {
+          "rubriques_bulletin[autres_2].taux_pat": 0.07,
+          "cotisations_dsn[049].taux": 0.07,
+          "par_statut.technicien.rubriques_bulletin[autres_2].taux_pat": 0.10,
+          "par_statut.technicien.cotisations_dsn[049].taux": 0.10,
+          "par_nature.permanent.rubriques.autres_2.taux_pat": 0.10,
+          "par_nature.permanent.cotisations_dsn[049].taux": 0.10
+        }
+      },
+      {
+        "cle": "tdelta",
+        "seuil": 50,
+        "quoi": "Le parametre T de la reduction generale degressive depend du FNAL que l'employeur paie : 0,3781 au FNAL 0,10 %, 0,3821 au FNAL 0,50 %. Les quatre dix-milliemes d'ecart sont exactement le quart de point de FNAL en plus, que la reduction impute aussi.",
+        "au_dela": "0,3821.",
+        "source": "Art. D. 241-7 CSS, valeurs reajustees par le decret 2025-1446 du 31/12/2025. La valeur du socle est celle des employeurs au FNAL 0,10 %.",
+        "chemins": {
+          "par_statut.technicien.reduction_generale.tdelta": 0.3781
+        }
+      }
+    ],
+    "non_portees": [
+      {
+        "cle": "versement_mobilite",
+        "cle_bareme": "versement_mobilite", "porte_si_taux": true, "_porte": "Depuis le 24/09/2026 (journal §117), le moteur le PORTE : la compagnie ecrit dans sa surcouche {\"taux\": 1.75, \"code_insee\": \"37261\", \"autorite\": \"...\", \"source\": \"...\"} -- le taux de la deliberation de l'autorite, la commune de l'etablissement -- et le bulletin porte la ligne, la DSN le bloc 81 (081, commune en 81.005) et le bordereau les CTP 900 et 921 (artistes, taux minore de 30 %). Ou elle ecrit \"aucun\".",
+        "seuil": 11,
+        "quoi": "LE VERSEMENT MOBILITE (ex-versement transport) est du par les employeurs de onze salaries et plus etablis dans le ressort d'une autorite organisatrice de la mobilite qui l'a institue. Son taux est fixe localement : il n'a pas de valeur de droit commun, et ce socle n'en porte aucune. Le moteur ne sait ni le calculer, ni le declarer -- ni rubrique, ni ligne DSN, ni CTP.",
+        "source": "Code general des collectivites territoriales, art. L. 2333-64 (hors Ile-de-France) et L. 2531-2 (Ile-de-France). TEXTE LU LE 21/09/2026, et non plus seulement cite : `outils/relever_les_codes.py moissonner` a fait defiler l'archive globale de la base LEGI puis les 435 livraisons quotidiennes depuis le 13/07/2025, et a rapporte ces deux articles-la avec douze autres du CGCT (LEGITEXT000006070633) -- le relevé est dans les sources, `code-general-des-collectivites-territoriales/`, XML a l'appui. Ce qu'ils disent, verifie et non suppose : L2333-64 assujettit hors Ile-de-France les employeurs d'AU MOINS ONZE salaries etablis dans le ressort d'une autorite qui a institue le versement, et renvoie a L130-1 du code de la securite sociale pour le decompte de l'effectif ; L2531-2 dit la meme chose pour l'Ile-de-France, avec le meme seuil et le meme renvoi. Le seuil de onze que ce controle applique est donc celui du texte. Le taux applicable, lui, ne se lit dans aucun code -- il se demande a l'autorite organisatrice ou se lit sur le bordereau Urssaf.",
+        "reponses": {
+          "aucun": "L'entreprise atteste qu'aucun versement mobilite ne la concerne -- son etablissement n'est dans le ressort d'aucune autorite qui l'ait institue. Il n'y a rien a calculer, et le moteur produit."
+        },
+        "_pourquoi_une_attestation_et_pas_un_taux": "Parce qu'un taux ecrit ici ne cotiserait pas : rien ne le lit. Le debloquer par un nombre donnerait a l'entreprise le sentiment d'avoir declare ce qu'elle doit, et sortirait une DSN a laquelle la contribution manque -- exactement le defaut que ce controle existe pour empecher."
+      }
+    ]
+  },
+  "regime_local_alsace_moselle": {
+    "taux_sal": 1.3,
+    "code81": "115",
+    "ctp": "381",
+    "_source": "CSS art. L242-13 (le taux est fixe par le conseil d'administration du regime local) ; regime-local.fr/cotisation, lu le 30/09/2026 : << une cotisation unique de 1,3 % appliquee aux revenus deplafonnes >>, << depuis le 1er avril 2022 >>, << uniquement salariale, il n'y a pas de cotisation patronale >> ; maintenue au 01/01/2026 par le CA du 19/12/2025 (relais GMI du 14/01/2026). DSN : cotisation individuelle 115, assiette 03 brute deplafonnee, contrat S21.G00.40.016 = 01 (cahier technique 2026.1) ; CTP 381 au bordereau.",
+    "_artistes": "INFERENCE (journal §161) : le taux plein pour un artiste. L'abattement de 30 % des artistes (arrete du 24/01/1975) porte sur les taux du regime general ; celui du regime local est fixe par son conseil d'administration (L242-13, II), et aucune source lue ne le reduit. L'assiette est celle des cotisations de securite sociale (L242-1), la meme que la maladie 075.",
+    "_qui": "Le salarie dont l'etablissement est dans le Bas-Rhin, le Haut-Rhin ou la Moselle (code postal 67, 68, 57 de son etablissement, `calcul._alsace_moselle`). Non porte : l'itinerant d'un etablissement hors zone dont le contrat prevoit un travail en Alsace-Moselle, le frontalier."
+  },
+  "versement_mobilite": null,
+  "_versement_mobilite": "Voir `seuils_effectif.non_portees`. `null` veut dire NON TRANCHE : sous onze salaries il n'y a rien a trancher, au-dela l'entreprise ecrit \"aucun\" dans sa surcouche si aucune autorite ne le lui reclame -- et si une autorite le lui reclame, le moteur refuse, parce qu'il ne sait pas encore le porter.",
+  "par_organisation_patronale": {
+    "_quoi": "L'ADHESION A UNE ORGANISATION PATRONALE est un fait d'entreprise, comme sa convention collective, et elle change des taux : un accord signe par une organisation d'employeurs s'applique d'abord a ses adherents, avant toute extension. La fiche entreprise le dit (`organisation_patronale`) et, jusqu'au 21/09/2026, personne ne le lisait -- la compagnie fictive `privee-syndeac` sortait sa DSN aux taux de droit commun, sans un mot.",
+    "_regle": "La meme que pour `par_convention` : une organisation SANS couche ici fait REFUSER, et une couche `applicable: false` aussi. Une compagnie qui n'adhere a rien laisse le champ vide, et rien ne change pour elle. Chaque couche dit, population par population d'INTERMITTENTS non cadres (`artiste`, `technicien`), le taux GLOBAL de la retraite complementaire en tranche 1 que l'adhesion impose ; sa repartition employeur / salarie se lit dans `retraite_t1_repartition` selon la convention de l'entreprise, et la CEG s'y ajoute telle quelle. `calcul.bareme_retraite_t1` l'empile (apres le statut et la nature, avant la categorie) ; un CADRE intermittent d'une population visee est refuse : le tableau ne distingue pas les cadres parmi les intermittents, alors que le taux d'un cadre intermittent n'est pas celui d'un non cadre. Une organisation SANS couche fait refuser (`moteur/entreprise.py`), comme une couche `applicable: false`. Une compagnie qui n'adhere a rien laisse le champ vide.",
+    "SYNDEAC": {
+      "libelle": "Syndicat national des entreprises artistiques et culturelles",
+      "applicable": true,
+      "retraite_t1": {
+        "artiste": 10.16
+      },
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % en T1 pour les ARTISTES intermittents des adherents, accord du 24/12/1991. Rien pour les permanents (cadres ou non) ni pour les techniciens intermittents : leur taux reste celui de leur population."
+    },
+    "SNDTP": {
+      "libelle": "Syndicat national des theatres prives (adherents avant le 01/01/2024)",
+      "applicable": true,
+      "retraite_t1": {
+        "artiste": 10.16
+      },
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991, pour les seuls adherents d'avant le 01/01/2024 (le SNDTP est devenu depuis une composante d'une autre organisation).",
+      "adhesion_avant": "2024-01-01"
+    },
+    "LA SCENE INDEPENDANTE": {
+      "libelle": "La Scene independante (ex-SNES, Syndicat national des entrepreneurs de spectacle)",
+      "applicable": true,
+      "retraite_t1": {
+        "artiste": 10.16
+      },
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991.",
+      "alias": [
+        "SNES"
+      ]
+    },
+    "USPA": {
+      "libelle": "Union syndicale de la production audiovisuelle",
+      "applicable": true,
+      "retraite_t1": {
+        "artiste": 10.16
+      },
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991."
+    },
+    "SNEP": {
+      "libelle": "Syndicat national de l'edition phonographique",
+      "applicable": true,
+      "retraite_t1": {
+        "artiste": 10.16
+      },
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991."
+    },
+    "UPC": {
+      "libelle": "Union des producteurs de cinema",
+      "applicable": true,
+      "retraite_t1": {
+        "technicien": 10.16
+      },
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens intermittents, accord du 30/12/1991."
+    },
+    "AFPF": {
+      "libelle": "Association francaise des producteurs de films",
+      "applicable": true,
+      "retraite_t1": {
+        "technicien": 10.16
+      },
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens intermittents, accord du 30/12/1991."
+    },
+    "ANIMFRANCE": {
+      "libelle": "AnimFrance (ex-SPFA, Syndicat des producteurs de films d'animation)",
+      "applicable": true,
+      "retraite_t1": {
+        "artiste": 10.16,
+        "technicien": 10.16
+      },
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens (accord du 30/12/1991) et les artistes (accord du 24/12/1991) intermittents.",
+      "alias": [
+        "SPFA"
+      ]
+    },
+    "FICAM": {
+      "libelle": "Federation des industries du cinema, de l'audiovisuel et du multimedia",
+      "applicable": true,
+      "retraite_t1": {
+        "artiste": 10.16,
+        "technicien": 10.16
+      },
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens (accord du 30/12/1991) et les artistes (accord du 24/12/1991) intermittents."
+    },
+    "FNDF": {
+      "libelle": "Federation nationale des editeurs de films",
+      "applicable": false,
+      "_a_confirmer": "Tableau n 2 de la meme fiche : 8,89 % en T1 pour les PERMANENTS, cadres et non cadres (accord du 18/11/1976). Non porte : ses adherents relevent de la distribution cinematographique (IDCC 716 / 892), qu'aucune couche de convention de ce socle ne sert encore."
+    },
+    "SNDLL": {
+      "libelle": "Syndicat national des discotheques et lieux de loisirs",
+      "applicable": false,
+      "_a_confirmer": "Tableau n 2 de la meme fiche : 8,89 % en T1 pour les PERMANENTS, cadres et non cadres (avenant du 27/12/1988 a l'accord du 15/10/1985). Non porte : la convention de ses adherents n'a pas de couche dans ce socle."
+    },
+    "SCENE ENSEMBLE": {
+      "libelle": "Scene Ensemble, organisation professionnelle des arts de la representation",
+      "applicable": true,
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+    },
+    "SMA": {
+      "libelle": "Syndicat des musiques actuelles",
+      "applicable": true,
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+    },
+    "FNAR": {
+      "libelle": "Federation nationale des arts de la rue",
+      "applicable": true,
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+    },
+    "FSICPA": {
+      "libelle": "Federation des structures independantes de creation et de production artistique",
+      "applicable": true,
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+    },
+    "LES FORCES MUSICALES": {
+      "libelle": "Les Forces musicales, operas et orchestres reunis",
+      "applicable": true,
+      "alias": [
+        "FORCES MUSICALES"
+      ],
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+    }
+  },
+  "retraite_t1_repartition": {
+    "_quoi": "LA REPARTITION EMPLOYEUR / SALARIE DE LA RETRAITE COMPLEMENTAIRE EN TRANCHE 1, par convention collective et par population (Audiens, tableau n 3). Le droit commun est 60 / 40 (art. 38 de l'ANI du 17/11/2017) ; des branches du spectacle ont des repartitions plus favorables aux salaries, anterieures a l'unification de 2019 et maintenues. La CEG n'est pas concernee : 1,29 / 0,86 partout.",
+    "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 3, << a compter du 1er janvier 1999 >> ; << si premier salarie avant 1999 : repartition 50/50 pour l'ensemble du personnel >>.",
+    "_arrondi": "Part salariale = taux x part, arrondie au centieme (la demie vers le bas) ; part patronale = le reste. C'est ce que donnent les taux publies : 7,87 en 60/40 -> 4,72 / 3,15 ; en 50/50 -> 3,94 / 3,93 (cadres intermittents, Parametres 2026 p. 3) ; 10,16 en 50/50 -> 5,08 / 5,08.",
+    "_avant_1999": "Une compagnie dont la fiche dit `premiere_embauche` avant le 01/01/1999 applique 50/50 a tout son personnel (`calcul.bareme_retraite_t1`). Sans date, la repartition de la branche (celle d'une entreprise nee apres 1999) : c'est le cas de la fiche vide, et celui de toutes les compagnies servies a ce jour.",
+    "taux_droit_commun": 7.87,
+    "ceg": {
+      "pat": 1.29,
+      "sal": 0.86
+    },
+    "avant_1999": "50/50",
+    "par_idcc": {
+      "3090": {
+        "permanent": "60/40",
+        "technicien": "50/50",
+        "artiste": "50/50"
+      },
+      "1285": {
+        "permanent": "2/3-1/3",
+        "technicien": "50/50",
+        "artiste": "50/50"
+      },
+      "2642": {
+        "permanent": "50/50",
+        "technicien": "50/50",
+        "artiste": "50/50"
+      },
+      "3097": {
+        "permanent": "50/50",
+        "technicien": "50/50",
+        "artiste": "50/50"
+      },
+      "2412": {
+        "permanent": "50/50",
+        "technicien": "50/50",
+        "artiste": "50/50"
+      },
+      "2121": {
+        "permanent": "50/50",
+        "technicien": "50/50",
+        "artiste": "50/50"
+      },
+      "1790": {
+        "permanent": "50/50",
+        "technicien": "50/50",
+        "artiste": "50/50"
+      },
+      "1922": {
+        "permanent": "60/40",
+        "technicien": "60/40",
+        "artiste": "50/50"
+      },
+      "3252": {
+        "permanent": "60/40",
+        "technicien": "60/40",
+        "artiste": "50/50"
+      },
+      "3241": {
+        "permanent": "60/40",
+        "technicien": "60/40",
+        "artiste": "50/50"
+      }
+    }
+  },
+  "par_convention": {
+    "_quoi": "LA BIFURCATION PAR CONVENTION COLLECTIVE. Le corps de ce socle porte le droit commun et ce qui vaut pour tout le spectacle : Conges Spectacles 15,50 %, chomage des annexes 8 et 10, prevoyance interbranche des intermittents non cadres, formation intermittents 2,00 %, Thalie Sante. Ce qui depend de LA CONVENTION de l'entreprise est ici, une couche par IDCC, et c'est la fiche entreprise (`idcc`) qui choisit -- pas le code. `moteur/baremes.bareme` l'empile entre le socle et le fichier de la compagnie.",
+    "_regle": "Une convention SANS couche ici fait REFUSER le moteur. C'est le point : payer un salarie d'une autre branche avec les cotisations de la 3090 -- une CASC-SVP qu'il ne doit pas, un FNAS qu'il doit et qui manque -- ne se verrait sur aucun bulletin. Une couche `applicable: false` refuse aussi : ses nombres sont releves, pas confirmes.",
+    "_ce_qui_reste_dans_le_socle": "Tout ce qui ne depend pas de la convention : les taux Urssaf, l'Agirc-Arrco, la CSG, le plafond, le SMIC -- et les regimes du SPECTACLE qui sont interbranches : Conges Spectacles (15,50 %, la meme caisse pour la 3090 et la 1285), chomage 9,75 / 2,40 des annexes 8 et 10, prevoyance des intermittents NON CADRES (0,12 / 1,11 en TA, identique dans les deux conventions -- verifie sur les taux Audiens 2026), formation professionnelle des intermittents 2,00 %, medecine du travail Thalie Sante 0,42 %.",
+    "3090": {
+      "libelle": "Entreprises du secteur prive du spectacle vivant",
+      "applicable": true,
+      "_source": "C'est la convention de la compagnie qui a servi a ecrire ce socle : ces valeurs sont celles que cinq ans de declarations acceptees ont prouvees (`moteur calibrer`). Elles sont ecrites ici, et non plus seulement dans le corps, pour qu'on VOIE ce qui changerait sous une autre convention.",
+      "bareme": {
+        "rubriques_bulletin": [
+          {
+            "id": "ccn",
+            "libelle": "Cotisations conventionnelles IDCC 3090",
+            "base": "brut",
+            "taux_pat": 0.5,
+            "taux_sal": null,
+            "masquer_base_et_taux": true,
+            "_source": "CASC-SVP, comite d'action sociale et culturelle du spectacle vivant prive : 0,50 % de la tranche A depuis le 01/01/2026 (0,40 avant). Fiche de parametrage Audiens, groupes 00009 et 00010, contrat CASCSVP ; web-conference Audiens 2026 p. 18. Une entreprise de la CCNEAC ne la paie pas : elle paie le FNAS.",
+            "_la_ou_elle_est_sur_le_brut": "Le corps du bareme l'assied sur le brut et non sur la tranche A parce que les cachets n'approchent jamais le plafond journalier ; c'est ainsi que les DSN acceptees la portent. A revoir le jour ou un cachet depassera 220 EUR par jour."
+          }
+        ],
+        "par_categorie": {
+          "cadre": {
+            "rubriques": {
+              "prevoyance": {
+                "taux_pat": 1.69,
+                "taux_sal": 0.12,
+                "base": "t1_journaliere",
+                "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens, cadres)",
+                "_source": "Accord interbranches, taux CADRES : 0,12 salariale et 1,69 patronale (prevoyance 0,88 + fonds collectif du spectacle pour la sante 0,81) sur la tranche A journaliere. Parametres Audiens 2026, p. 4. La CCNEAC y DEROGE pour ses intermittents cadres -- voir la couche 1285. Fonds sante : ne se reintegre ni dans le net imposable ni dans le montant net social -- voir la note `_source` de la ligne `prevoyance` de `rubriques_bulletin`."
+              }
+            }
+          }
+        },
+        "_contribution_conventionnelle": "0,100 point des 2,836 de la rubrique `autres_1` est la contribution conventionnelle Afdas de cette convention. Elle n'est pas isolee dans une rubrique a elle parce que le bulletin de reference l'agrege, et que la DSN la declare agregee : la separer changerait ce qui est declare. Sous une autre convention, c'est elle qui change dans l'agregat."
+      }
+    },
+    "1285": {
+      "libelle": "Entreprises artistiques et culturelles (CCNEAC) -- le secteur subventionne",
+      "applicable": true,
+      "_confirme": "CONFIRMEE le 23/09/2026 sur la base KALI de la DILA (reference/sources/kali-1285-titres-ii-iii-x-xi-xii-20260923.md), point par point de ce qui la retenait : (1) la contribution conventionnelle Afdas des intermittents est la MEME que celle de la 3090 -- les trois bulletins d'exemple CCNEAC de la web-conference Audiens 2026 (p. 5) portent la formation professionnelle a 2,1, comme celui de la 3090 (p. 12) : l'agregat `autres_1` ne change pas ; ce que la CCNEAC ajoute a cote est le FCAP (0,25 %, II.2.1) ; (2) la tranche B des cadres est << entre ce plafond et l'equivalent de 4 plafonds >> (en-tete de l'article XII.2) -- pour un intermittent, le plafond journalier, d'ou `t2_prevoyance_journaliere` ; et elle ne vise que les cadres qui effectuent des prestations TECHNIQUES (XII.2.2.1), les artistes cadres restant a l'interbranche (XII.2.2.4) ; (3) le CSEC est un fait de l'entreprise, lu sur sa fiche (`representation_personnel`) ; (4) la prevoyance des permanents est confirmee dans prevoyance-conventionnelle-base.json, avec leurs frais de sante (0,81 % du PMSS en 2026) ; (5) les lignes DSN du FNAS et du FCAP vont sous les adhesions Audiens de la compagnie, comme la CASC-SVP de la 3090 (`contributions_dsn`).",
+      "bareme": {
+        "contributions_conventionnelles": [
+          {
+            "id": "ccn",
+            "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+            "libelle": "Cotisations conventionnelles IDCC 1285 (FNAS)",
+            "base": "brut",
+            "taux_sal": null,
+            "masquer_base_et_taux": true,
+            "par_representation": {
+              "aucune": 1.45,
+              "csec": {
+                "intermittent": 1.325,
+                "permanent": 0.825
+              },
+              "cse_adherent_fnas": {
+                "intermittent": 1.325,
+                "permanent": 0.825
+              },
+              "cse": 0
+            },
+            "_source": "FNAS, fonds national d'activites sociales des entreprises artistiques et culturelles, article III.3.1 de la CCN (version du 01/07/2025, base KALI) : 1,45 % de la totalite des salaires bruts dans une entreprise de moins de onze salaries (III.3.1.b) ou sans representation du personnel (III.3.1.c, carence) ; avec un CSE conventionnel (11 a 49 salaries, III.3.1.a) : 0,825 % des bruts des salaries autres que les intermittents et 1,325 % de ceux des intermittents ; dans une entreprise d'au moins cinquante salaries (III.2.1), le FNAS seulement si le CSE y adhere, aux memes taux -- sinon rien, le CSE recevant 1,25 % pour ses activites sociales, hors paie. Aucun plancher ni plafond, 100 % patronal, declare en DSN depuis juillet 2025 (web-conference Audiens 2026 p. 18 ; bulletin d'exemple CCNEAC p. 5 : FNAS 1,45 sur 400,00). La representation se lit sur la fiche entreprise (`representation_personnel`), confrontee a l'effectif par `calcul.representation_du_personnel`. Ce que le CSE conventionnel recoit EN PLUS (0,625 % des permanents, 0,125 % des intermittents) lui est verse directement : ce n'est pas une cotisation du bulletin."
+          },
+          {
+            "id": "fcap",
+            "apres": "ccn",
+            "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+            "libelle": "FCAP (fonds commun d'aide au paritarisme)",
+            "base": "brut",
+            "taux_pat": 0.25,
+            "taux_sal": null,
+            "_source": "FCAP des entreprises artistiques et culturelles, article II.2.1 de la CCN (version du 01/04/2024, base KALI) : << une contribution des entreprises egale a 0,25 % du montant des salaires bruts >>, due par tout employeur qui applique la convention, collectee mensuellement. Web-conference Audiens 2026 p. 18 (sans plancher ni plafond, cotisation en DSN) et p. 5 (bulletins d'exemple : FCAP 0,25 sur 400,00) ; table des taux CoolPaie 2026, << Audiens;FCAP;0.250 >>. A NE PAS confondre avec la contribution conventionnelle Afdas des intermittents (0,10, dans `autres_1`), ni avec le FCAP-SVP de la 3090 (0,10 plafonne a la T1, hors DSN, plancher 80 / plafond 300 EUR)."
+          }
+        ],
+        "_contributions_conventionnelles": "Posees par `calcul.bareme_convention` APRES le statut et la nature du contrat, sur les rubriques qui restent : la section `technicien` du socle et la section `permanent` recopient la CASC-SVP de la 3090 dans leur `ccn`, et c'est elle que le FNAS remplace, pour tout le monde.",
+        "par_nature": {
+          "permanent": {
+            "rubriques": {
+              "ccn": {
+                "_a_confirmer": null,
+                "taux_pat": 1.45,
+                "_taux": "Pour le trou seulement : le taux est pose par `bareme_convention` selon la representation du personnel -- 1,45, ou 0,825 avec un CSE conventionnel. Ce qui retenait cette rubrique dans le socle (les groupes CASC-SVP de la 3090 couvrent-ils les permanents ?) ne se pose pas sous la CCNEAC : le FNAS vise << la totalite des salaires bruts ... quel que soit le type de contrat >> (III.3.1)."
+              }
+            }
+          }
+        },
+        "par_categorie": {
+          "cadre": {
+            "par_statut": {
+              "technicien": {
+                "rubriques": {
+                  "prevoyance": {
+                    "taux_pat": 2.14,
+                    "taux_sal": 0.12,
+                    "base": "t1_journaliere",
+                    "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens, cadres techniciens CCNEAC)",
+                    "_source": "Interbranche cadres (0,12 / 1,69 : prevoyance 0,88 + fonds collectif 0,81) PLUS 0,45 % de la tranche 1 a la charge de l'employeur, article XII.2.2.2 de la CCN (base KALI) -- 1,69 + 0,45 = 2,14 patronal, le chiffre du tableau Audiens 2026 p. 11 << Entreprises Artistiques et Culturelles >>. Pour les seuls cadres qui effectuent des prestations techniques (XII.2.2.1) ; un artiste cadre garde l'interbranche (XII.2.2.4). Fonds sante : ne se reintegre ni dans le net imposable ni dans le montant net social -- voir la note `_source` de la ligne `prevoyance` de `rubriques_bulletin`."
+                  }
+                },
+                "rubriques_ajoutees": [
+                  {
+                    "id": "prevoyance_tb",
+                    "apres": "prevoyance",
+                    "famille": "SANTÉ",
+                    "libelle": "Prévoyance Tranche B (cadres techniciens CCNEAC)",
+                    "base": "t2_prevoyance_journaliere",
+                    "taux_pat": 0.95,
+                    "taux_sal": null,
+                    "_source": "Article XII.2.2.2 : 0,95 % de la remuneration superieure a la tranche 1 et limitee a la tranche 2, entierement a la charge de l'employeur ; la tranche 2 va du plafond a QUATRE plafonds (en-tete de XII.2). Le plafond d'un intermittent est journalier (220 EUR par jour travaille en 2026) : la tranche B va donc de 220 a 880 EUR par jour. Audiens 2026 p. 11 : TB 0,95 patronal pour les cadres EAC, rien pour l'interbranche."
+                  }
+                ],
+                "cotisations_dsn": {
+                  "059:203": {
+                    "lignes": [
+                      "prevoyance",
+                      "prevoyance_tb"
+                    ],
+                    "_note": "Sous l'adhesion INTERBRANCHE, comme la prevoyance des autres cadres : le tableau Audiens 2026 p. 11 range ce complement dans << Interbranche 2026 -- Entreprises Artistiques et Culturelles >>. Montant = les lignes du bulletin (tranche A et tranche B), chaque part deja arrondie : une ligne 059 n'a qu'une base, et la tranche B n'est pas celle de la tranche A. A lire sur la fiche de parametrage d'une compagnie de la CCNEAC, qui dira si le complement a son propre contrat."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "contributions_dsn": [
+          {
+            "contribution": "FNAS",
+            "lignes": [
+              "ccn"
+            ],
+            "en_dsn_depuis": "2025-07",
+            "_source": "Web-conference Audiens 2026 p. 18 : << FNAS ... Cotisation en DSN depuis juillet 2025 >>."
+          },
+          {
+            "contribution": "FCAP",
+            "lignes": [
+              "fcap"
+            ],
+            "en_dsn_depuis": "2024-04",
+            "_source": "Web-conference Audiens 2026 p. 18 : FCAP des entreprises artistiques et culturelles, << Cotisation en DSN depuis avril 2024 >>."
+          }
+        ],
+        "_contributions_dsn": "Comme la CASC-SVP de la 3090 (`dsn.casc_svp`) : une base 31 et une cotisation 059 sous l'adhesion Audiens de la compagnie qui porte cette contribution, apres les deux affiliations de la nature du contrat. L'adhesion se lit sur la fiche de parametrage Audiens et s'ecrit dans config/organismes.json (`adhesions_prevoyance`, avec `\"contribution\": \"FNAS\"`) : elle ne se devine pas, et le moteur refuse sans elle."
+      }
+    },
+    "2642": {
+      "libelle": "Production audiovisuelle",
+      "hors_bulletin": {
+        "_quoi": "Ce que la 2642 fait payer une fois l'an a l'Afdas, sur la masse salariale de l'annee, avant le 28 fevrier de l'annee suivante (Globaldec'), et qui n'est sur aucun bulletin. Lu par `operations_etats.afdas_2642`. Montants hors taxes : l'Afdas y ajoute la TVA.",
+        "cpnef_dialogue_social": {"taux": 0.004, "plancher": 15, "plafond": 2000, "_source": "Plaquette Afdas << Contributions 2026 Audiovisuel >> : << 0.004% avec un minimum du de 15 EUR HT et un maximum du de 2 000 EUR HT ; 0.006% dus sans minimum ni maximum par les Radios privees >>. La web-conference Audiens 2026 (p. 19) dit l'inverse (0,006 % plancher 15 / plafond 2 000 pour l'audiovisuel, 0,004 % pour les radios privees) : l'Afdas, qui collecte, est suivie, et l'etat le dit."},
+        "contribution_conventionnelle_permanents": {"par_effectif": [{"jusqu_a": 10, "taux": 0.45}, {"jusqu_a": 49, "taux": 0.3}, {"jusqu_a": 299, "taux": 0.2}, {"jusqu_a": null, "taux": 0}], "_source": "Plaquette Afdas << Contributions 2026 Audiovisuel >> et page << Taux de contribution formation continue >> : 0,45 % sous onze salaries, 0,30 % de 11 a 49, 0,20 % de 50 a 299, rien a 300 et plus -- sur la masse salariale des salaries autres que les intermittents (les intermittents ont la leur, 0,10 %, dans `autres_1` comme sous la 3090)."}
+      },
+      "applicable": true,
+      "_confirme": "CONFIRMEE le 25/09/2026 (journal §133) : les taux sont ceux du texte (accord du 22/02/2010, version du 01/07/2024, base KALI), recoupes sur Audiens 2026 p. 19 et CoolPaie ; les minima, les clauses et la sante des permanents sont ecrits (§132). La ligne DSN de l'APPAV reste propre a chaque compagnie : son adhesion Audiens (`organismes.json`, contribution APPAV) se lit sur SA fiche de parametrage, et le moteur refuse sans elle -- comme le FNAS de la CCNEAC. Le depot de test d'une compagnie fictive dira si la plate-forme la lit comme nous.",
+      "_releve": "RELEVEE le 25/09/2026 (journal §130) sur la base KALI de la DILA (entrepot local, `outils/relever_les_conventions.py article ... 2642`), recoupee sur la web-conference Audiens << Nouveautes 2026 >> p. 19 et la table des taux CoolPaie 2026 (<< Audiens;APPAV;(P) patronales;0.06;01/07/2024 >>). Ce que la 2642 change au socle, et rien d'autre : (1) la contribution conventionnelle -- l'APPAV au lieu de la CASC-SVP ; (2) RIEN pour la prevoyance des intermittents : les non cadres sont a l'interbranche (article IX.1, << exclusivement >> depuis l'avenant n° 5 du 31/05/2013) et la convention ne dit rien de ses intermittents cadres, qui restent a l'interbranche cadres (0,12 / 1,69) -- seule la CCNEAC y deroge (tableau Audiens 2026 p. 11) ; (3) RIEN dans l'agregat `autres_1` des intermittents : la formation des intermittents est 2,00 % Urssaf + 0,10 % conventionnel Afdas pour TOUT employeur d'intermittents (page Afdas << Employeurs de personnels intermittents du spectacle >>, et la plaquette << Contributions 2026 Audiovisuel >>, `afdas-contributions-2026-audiovisuel`).",
+      "_a_confirmer": "Ce qui retient la couche : (1) la ligne DSN de l'APPAV -- son contrat et son code de cotisation sous l'adhesion Audiens d'une compagnie de la 2642, a lire sur SA fiche de parametrage (la notre est de la 3090) ; (2) un depot de TEST d'une DSN d'une compagnie fictive de la 2642. Ecrits depuis (journal §132) : les minima, les clauses de rupture, la sante des permanents (le taux du contrat de l'entreprise, fiche Entreprise).",
+      "bareme": {
+        "contributions_conventionnelles": [
+          {
+            "id": "ccn",
+            "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+            "libelle": "Cotisations conventionnelles IDCC 2642 (APPAV)",
+            "base": {
+              "intermittent": "brut",
+              "permanent": "t1_mensuelle"
+            },
+            "taux_pat": 0.06,
+            "taux_sal": null,
+            "masquer_base_et_taux": true,
+            "_source": "APPAV, association pour le paritarisme dans la branche de la production audiovisuelle : accord du 22/02/2010 (annexe III de la CCN), dans sa version du 01/07/2024 (avenant n° 16 du 19/10/2023, collecte mensuelle) -- trois contributions sur la meme assiette, << la tranche 1 des remunerations (dite T1) de l'assiette des cotisations de retraite complementaire >> Agirc-Arrco : hygiene et securite (CCHSCT PAV) 0,02 % (art. 3), delegues de branche 0,01 % (art. 5), aide au paritarisme 0,03 % (art. 7), soit 0,06 %, collectees par Audiens (art. 9). Audiens 2026 p. 19 : << 0,06 % plafonne a T1 Agirc-Arrco, Prod audiovisuelle, APPAV, plancher / plafond : aucun >>. Patronale : CoolPaie la porte en (P) ; le texte ne met rien a la charge du salarie.",
+            "_assiette": "La T1 Agirc-Arrco d'un intermittent se compte sur le plafond ANNUEL (Audiens 2026 p. 7) : pour un cachet, c'est son brut -- comme la retraite complementaire T1 du socle. Celle d'un permanent est la tranche 1 mensuelle."
+          }
+        ],
+        "_contributions_conventionnelles": "L'APPAV remplace la rubrique `ccn` du socle (la CASC-SVP de la 3090) pour tout le monde, intermittents et permanents. CE QUI N'EST PAS SUR LE BULLETIN, et le reste : la contribution au dialogue social de la CPNEF audiovisuel (0,004 % de la T2 Agirc-Arrco, minimum 15, maximum 2 000 EUR HT) et la contribution conventionnelle Afdas des permanents (0,45 % sous onze salaries, 0,30 % de 11 a 49, 0,20 % de 50 a 299) se declarent une fois l'an a l'Afdas avant le 28 fevrier, sur la masse salariale de l'annee -- comme le FCAP-SVP de la 3090, un etat et une echeance, pas une ligne de bulletin. Plaquette Afdas << Contributions 2026 Audiovisuel >> ; Audiens 2026 p. 19.",
+        "contributions_dsn": [
+          {
+            "contribution": "APPAV",
+            "lignes": [
+              "ccn"
+            ],
+            "en_dsn_depuis": "2024-07",
+            "_source": "Audiens 2026 p. 19 et CoolPaie (APPAV au 01/07/2024) ; l'avenant n° 16 rend la collecte mensuelle a compter du 01/07/2024. A CONFIRMER sur la fiche de parametrage d'une compagnie de la 2642."
+          }
+        ]
+      }
+    },
+    "3097": {
+      "libelle": "Production cinematographique et de films publicitaires",
+      "hors_bulletin": {
+        "_quoi": "Ce que la 3097 fait payer une fois l'an a l'Afdas, les MEMES contributions que la 2642 aux memes taux : l'Afdas range << l'audiovisuel et la production cinematographique >> dans un seul tableau (page << Taux de contribution formation continue >>, relue le 25/09/2026 : 0,45 / 0,30 / 0,20 % ; paritarisme / dialogue social 0,004 %, 15 a 2 000 EUR HT) et sa page 2026 nomme la production cinematographique parmi les branches de la CPNEF de l'audiovisuel. Lu par `operations_etats.afdas_2642`. Montants hors taxes.",
+        "cpnef_dialogue_social": {
+          "taux": 0.004,
+          "plancher": 15,
+          "plafond": 2000,
+          "_source": "Plaquette Afdas << Contributions 2026 Audiovisuel >> : << 0.004% avec un minimum du de 15 EUR HT et un maximum du de 2 000 EUR HT ; 0.006% dus sans minimum ni maximum par les Radios privees >>. La web-conference Audiens 2026 (p. 19) dit l'inverse (0,006 % plancher 15 / plafond 2 000 pour l'audiovisuel, 0,004 % pour les radios privees) : l'Afdas, qui collecte, est suivie, et l'etat le dit."
+        },
+        "contribution_conventionnelle_permanents": {
+          "par_effectif": [
+            {
+              "jusqu_a": 10,
+              "taux": 0.45
+            },
+            {
+              "jusqu_a": 49,
+              "taux": 0.3
+            },
+            {
+              "jusqu_a": 299,
+              "taux": 0.2
+            },
+            {
+              "jusqu_a": null,
+              "taux": 0
+            }
+          ],
+          "_source": "Plaquette Afdas << Contributions 2026 Audiovisuel >> et page << Taux de contribution formation continue >> : 0,45 % sous onze salaries, 0,30 % de 11 a 49, 0,20 % de 50 a 299, rien a 300 et plus -- sur la masse salariale des salaries autres que les intermittents (les intermittents ont la leur, 0,10 %, dans `autres_1` comme sous la 3090)."
+        }
+      },
+      "applicable": true,
+      "_releve": "RELEVEE le 25/09/2026 (journal §135) sur la base KALI de la DILA (entrepot local, IDCC 3097) et la web-conference Audiens << Nouveautes 2026 >> p. 20. Ce que la 3097 change au socle : (1) la contribution conventionnelle -- DEUX contributions, le CCHSCT et le paritarisme, au lieu de la CASC-SVP ; (2) peut-etre la prevoyance de ses techniciens intermittents non cadres (article 45 du titre II, voir `_a_confirmer`) ; (3) RIEN pour les intermittents cadres ni pour les artistes (titre III : l'interbranche, que rien ne modifie), ni dans l'agregat `autres_1` (formation 2,00 % + 0,10 % Afdas pour tout employeur d'intermittents).",
+      "_confirme": "Le 25/09/2026 (journal §136) : les taux du CCHSCT et du paritarisme par le texte (protocole de 2007 et avenant n° 2 de 2015 ; accord de 2015) et la web-conference Audiens 2026 p. 20 ; la prevoyance des intermittents est celle de l'interbranche, sauf ce que l'article 45 change, et c'est la compagnie qui le dit. Minima, clauses, emplois et etat Afdas ecrits.",
+      "_ce_qui_reste_a_la_compagnie": "Ce qui reste propre a chaque compagnie : ses adhesions Audiens (AGEPRO) pour le CCHSCT et le paritarisme, dans organismes.json (`adhesions_prevoyance`, `contribution` CCHSCT et PARITARISME) -- deux contributions distinctes pour Audiens (web-conference 2026 p. 20), la reference de chacune sur sa fiche de parametrage. L'article 45 est absorbe par l'interbranche (`bareme.article_45`).",
+      "bareme": {
+        "contributions_conventionnelles": [
+          {
+            "id": "ccn",
+            "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+            "libelle": "CCHSCT de la production cinématographique (IDCC 3097)",
+            "base": {
+              "intermittent": "brut",
+              "permanent": "t1_t2_mensuelle"
+            },
+            "taux_pat": 0.04,
+            "taux_sal": null,
+            "masquer_base_et_taux": true,
+            "_source": "Protocole d'accord du 17/12/2007 relatif au CCHSCT de la production cinematographique, article 3 (annexe I de l'avenant du 11/09/2024) : << 0,04 % du montant brut des salaires verses >> ; porte a 0,07 puis 0,06 % par l'avenant n° 1 du 09/12/2008, ramene a 0,04 % par l'avenant n° 2 du 03/11/2015 (au premier jour du trimestre suivant son extension, 02/06/2016). Web-conference Audiens 2026 p. 20 : << CCHSCT, 0,04 % sur salaires bruts plafonne a T2 Agirc-Arrco, plancher / plafond : aucun >>. A la charge des entreprises : le texte ne met rien a la charge du salarie.",
+            "_assiette": "Le brut, plafonne a la T2 Agirc-Arrco (huit plafonds). Pour un intermittent, dont le plafond Agirc-Arrco non cadre est annuel (Parametres Audiens 2026 p. 1), c'est son brut ; pour un permanent, huit plafonds mensuels."
+          },
+          {
+            "id": "paritarisme",
+            "apres": "ccn",
+            "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+            "libelle": "Aide au paritarisme de la production cinématographique (IDCC 3097)",
+            "base": {
+              "intermittent": "brut",
+              "permanent": "t1_t2_mensuelle"
+            },
+            "taux_pat": 0.045,
+            "taux_sal": null,
+            "masquer_base_et_taux": true,
+            "_source": "Accord du 03/11/2015 relatif a l'aide au paritarisme, article 2.1 (en vigueur etendue depuis le 01/07/2017) : << une contribution a la charge des entreprises ... fixee a 0,045 % de la masse salariale brute des personnels intermittents, techniciens et artistes, et des personnels permanents >> ; collecte MENSUELLE par AGEPRO, filiale d'Audiens, depuis l'avenant du 11/09/2024 (article 3, en vigueur au 01/10/2025). Web-conference Audiens 2026 p. 20 : << Paritarisme, 0,045 % sur salaires bruts plafonne a T2 Agirc-Arrco >>. Le reajustement que l'article 2.1 prevoit si la collecte passe sous 180 000 EUR se ferait par avenant : aucun dans la base KALI au 25/09/2026."
+          }
+        ],
+        "article_45": {
+          "_quoi": "L'ARTICLE 45 DU TITRE II (texte de base du 19/01/2012) : << a dater du 1er janvier 2014, le taux de la cotisation propre a la branche production de films cinematographiques et de films publicitaires pour les non-cadres, actuellement fixe a 0,42 % dans l'accord interbranches, sera reevalue de 1,08 point et porte a 1,5 % du salaire tranche A >>, tout patronal. ABSORBE PAR L'ACCORD INTERBRANCHES (journal §137) : son avenant n° 5 du 18/12/2012 (au 01/01/2013) adopte << pour les salaries intermittents non cadres techniques et artistiques, les memes taux de cotisation a l'egard de toutes les entreprises dans le champ dudit accord >>, et son avenant n° 7 du 06/09/2021 (au 01/01/2022, etendu le 21/02/2022, article II.2.2) fixe la prevoyance des non cadres a 0,46 % de la T1 (0,34 patronal, 0,12 salarial) pour l'ensemble des entreprises du champ ; l'avenant n° 8 (21/05/2025) porte le fonds collectif des non cadres a 0,77 % au 01/01/2026. La FESAC, qui represente les producteurs de cinema, les a tous signes ; la web-conference Audiens 2026 (p. 11) ne connait d'exception que la CCNEAC. Copies : `prive/reference/sources/accord-interbranche-prevoyance-intermittents/`. Le moteur applique donc l'interbranche SANS RIEN DEMANDER ; les taux ci-dessous ne servent qu'a une compagnie dont la fiche de parametrage Audiens appellerait encore l'article 45, et qui le dit sur sa fiche Entreprise (`prevoyance_techniciens_3097: article_45`).",
+          "qui": "les techniciens intermittents NON CADRES (titre II) ; ni les cadres (l'interbranche cadres, deja tout patronale pour la prevoyance), ni les artistes (titre III), ni les permanents",
+          "prevoyance": {
+            "taux_pat": 2.27,
+            "taux_sal": 0.0,
+            "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens, techniciens non cadres du cinéma, art. 45)",
+            "_taux": "1,50 % de la tranche A a la place de la part prevoyance de l'interbranche (0,34 patronale + 0,12 salariale en 2026), tout patronal ; le fonds collectif du spectacle pour la sante (0,77 patronal) ne change pas -- l'article ne vise que la << cotisation propre a la branche >>, le fonds n'en est pas une. 1,50 + 0,77 = 2,27.",
+            "_source": "Fonds sante : ne se reintegre ni dans le net imposable ni dans le montant net social -- voir la note `_source` de la ligne `prevoyance` de `rubriques_bulletin`."
+          },
+          "cotisation_dsn": {
+            "affectation": "203",
+            "taux": 2.27,
+            "composants": [
+              1.5,
+              0.77
+            ],
+            "_note": "La ligne 059 de l'adhesion INTERBRANCHE, comme dans le socle : deux contributions arrondies separement, la prevoyance puis le fonds."
+          }
+        },
+        "_contributions_conventionnelles": "Le CCHSCT remplace la rubrique `ccn` du socle (la CASC-SVP de la 3090) ; le paritarisme s'y ajoute. Pour tout le monde, intermittents et permanents, techniciens et artistes : les deux textes visent tous les salaires verses. Hors bulletin : les contributions Afdas des permanents de la branche -- pas relevees a ce jour.",
+        "contributions_dsn": [
+          {
+            "contribution": "CCHSCT",
+            "lignes": [
+              "ccn"
+            ],
+            "en_dsn_depuis": "2026-01",
+            "_source": "Web-conference Audiens 2026 p. 20 : << Cotisation en DSN des janvier 2026 >> (CCHSCT et paritarisme de la 3097). Avant, declaration trimestrielle au portail AGEPRO. A CONFIRMER sur la fiche de parametrage d'une compagnie de la 3097 : un contrat par contribution, ou un seul."
+          },
+          {
+            "contribution": "PARITARISME",
+            "lignes": [
+              "paritarisme"
+            ],
+            "en_dsn_depuis": "2026-01",
+            "_source": "Idem."
+          }
+        ]
+      }
+    },
+    "3252": {
+      "libelle": "Entreprises au service de la creation et de l'evenement",
+      "hors_bulletin": {
+        "_quoi": "Ce que la 3252 fait payer une fois l'an, hors DSN et hors bulletin : la contribution au financement du paritarisme, collectee par l'association de gestion du paritarisme (AGP) sur la masse salariale de l'annee civile passee. `operations_etats.paritarisme_branche` la calcule sur le livre de paie (journal §151).",
+        "financement_paritarisme": {
+          "taux": 0.1,
+          "assiette": "masse salariale de l'annee civile passee",
+          "collecteur": "AGP (association de gestion du paritarisme, creee le 18/02/2009), ou la structure a qui elle delegue -- jamais un organisme de prevoyance (reserve de l'arrete d'extension du 13/03/2025)",
+          "_source": "CCN du 27/06/2024, articles 3.6.1 (<< 0,1 % de la masse salariale. La collecte est effectuee chaque annee au titre et sur la base de la masse salariale constatee sur l'annee civile passee >>), 3.6.2 (l'AGP) et 11.1 II 2° (en vigueur au premier jour de l'annee qui suit l'arrete d'extension, paru au JORF du 18/03/2025 : le 01/01/2026 ; avant, les dispositifs de la 2717). Base KALI, KALIARTI000050299355 a 357.",
+          "_ecart": "La web-conference Audiens << Nouveautes 2026 >> (p. 21) donne encore << AGPETSCE, 0,09 % plafonne a T2 Agirc-Arrco >> : c'est le dispositif de la 2717, que l'article 11.1 eteint au 01/01/2026. TRANCHE le 27/09/2026 (journal §151) : le texte etendu en vigueur l'emporte sur une plaquette ; 0,1 % de la masse salariale, sans plafond T2."
+        }
+      },
+      "applicable": true,
+      "_releve": "RELEVEE le 27/09/2026 (journal §149) sur la base KALI de la DILA (entrepot local, IDCC 3252, texte KALITEXT000050299244, CCN du 27/06/2024 etendue le 13/03/2025) et la web-conference Audiens << Nouveautes 2026 >> p. 21. Ce que la 3252 change au socle : (1) la rubrique `ccn` (la CASC-SVP de la 3090) DISPARAIT -- la contribution de la branche au paritarisme est annuelle et hors bulletin (`hors_bulletin`) ; (2) RIEN pour la prevoyance des intermittents : l'article 8.4.1 exclut expressement de la protection sociale de branche << les salaries relevant des annexes VIII ou X >>, qui restent a l'accord interbranches, cadres compris ; (3) RIEN dans l'agregat `autres_1` (formation 2,00 % + 0,10 % Afdas pour tout employeur d'intermittents ; l'article 10.1.1 designe l'Afdas sans fixer de contribution conventionnelle). Le fonds de solidarite (8.4.4, 2 % des cotisations sante et prevoyance) est compris dans la prime de l'assureur : pas une ligne de bulletin.",
+      "_confirme": "Le 27/09/2026 (journal §149) : le texte ne laisse ni taux a demander ni organisme designe. La prevoyance et la sante des PERMANENTS sont dans `prevoyance-conventionnelle-base.json` (8.4.2 et 8.4.3) ; les clauses de rupture dans `clauses-conventionnelles-base.json` (4.1.3, 8.2). Le depot de test d'une compagnie fictive (`evenement-tout`) dira si la plate-forme lit la DSN comme nous.",
+      "bareme": {
+        "contributions_conventionnelles": [
+          {
+            "id": "ccn",
+            "taux_pat": 0,
+            "taux_sal": 0,
+            "_source": "Un taux nul RETIRE la rubrique (`calcul.bareme_convention`) : la CASC-SVP est une contribution de la 3090, et la 3252 n'a pas de contribution conventionnelle mensuelle (article 3.6.1 : annuelle, sur la masse de l'annee passee)."
+          }
+        ],
+        "_contributions_conventionnelles": "Aucune ligne de bulletin propre a la convention, pour personne : ni intermittents ni permanents. Le paritarisme (0,1 % de la masse salariale) est annuel et hors DSN (`hors_bulletin`)."
+      }
+    },
+    "3241": {
+      "libelle": "Telediffusion",
+      "hors_bulletin": {
+        "_quoi": "Ce que la 3241 fait payer une fois l'an, hors bulletin : la contribution au paritarisme (article 11), sur la masse salariale de l'annee precedant la collecte, 50 EUR au moins. `operations_etats.paritarisme_branche` la calcule (journal §151).",
+        "financement_paritarisme": {
+          "taux": 0.03,
+          "plancher": 50,
+          "assiette": "masse salariale brute totale declaree en retraite complementaire, annexes comprises, de l'annee precedant la collecte",
+          "_source": "CCN du 02/07/2021, article 11.1 (version du 24/11/2022, avenant n° 5 du 04/11/2022) : << une contribution annuelle [...] de 0,03 % de leur masse salariale brute totale declaree en retraite complementaire pour l'ensemble des salaries couverts par la presente convention collective, annexes comprises (precedant l'annee de la collecte) [...] inferieure a 50 EUR s'acquitteront [...] de cette somme minimum >> ; 11.2 : recouvree annuellement par un organisme collecteur. Web-conference Audiens << Nouveautes 2026 >> p. 19 : << AG-FCAP-Telediffusion (dont la cotisation CPNEF), 0,03 % plafonne a T2 Agirc-Arrco, plancher 50 EUR, declaration et paiement sur le site de l'Afdas >>. Base KALI, KALIARTI000047057609."
+        }
+      },
+      "applicable": true,
+      "_releve": "RELEVEE le 27/09/2026 (journal §150) sur la base KALI de la DILA (entrepot local, IDCC 3241 : CCN du 02/07/2021 KALITEXT000044226308, annexe 6 KALITEXT000046956325) et la web-conference Audiens << Nouveautes 2026 >> p. 19. Ce que la 3241 change au socle : (1) la rubrique `ccn` (la CASC-SVP de la 3090) DISPARAIT -- sa seule contribution de branche est annuelle et hors bulletin (`hors_bulletin`) ; (2) RIEN pour la prevoyance des intermittents : l'annexe 6 (article 1er) exclut << les salaries employes sous contrat a duree determinee d'usage regis par l'accord interbranche du 20 decembre 2006 >> ; (3) RIEN dans l'agregat `autres_1`.",
+      "_confirme": "Le 27/09/2026 (journal §150) : la contribution se lit dans le texte et Audiens la confirme, a l'assiette pres (le texte dit la masse salariale, Audiens << plafonne a T2 >>) -- sans effet sur le bulletin. La prevoyance des permanents est celle du contrat de chaque entreprise (annexe 6 : des garanties et une repartition, pas de taux) ; la sante, aussi (article 54.2). Clauses dans `clauses-conventionnelles-base.json`.",
+      "bareme": {
+        "contributions_conventionnelles": [
+          {
+            "id": "ccn",
+            "taux_pat": 0,
+            "taux_sal": 0,
+            "_source": "Un taux nul RETIRE la rubrique (`calcul.bareme_convention`) : la 3241 n'a pas de contribution mensuelle (article 11.1 : annuelle)."
+          }
+        ],
+        "_contributions_conventionnelles": "Aucune ligne de bulletin propre a la convention. Le paritarisme (0,03 %, 50 EUR au moins) est annuel (`hors_bulletin`)."
+      }
+    },
+    "1922": {
+      "libelle": "Radiodiffusion",
+      "hors_bulletin": {
+        "_quoi": "Le financement du paritarisme (APAR) : annuel, sur les salaires de l'annee civile, exigible au plus tard le 31 mars suivant, hors DSN. `operations_etats.paritarisme_branche` le calcule.",
+        "financement_paritarisme": {
+          "taux": 0.05,
+          "assiette": "l'assiette de securite sociale des salaires de l'annee civile",
+          "collecteur": "l'APAR, sur l'appel de l'Afdas qui collecte (echeance pratique au 28/02 ; le texte dit au plus tard le 31 mars)",
+          "_source": "CCN du 11/04/1996, article 2.7 (avenant du 19/03/2019, en vigueur etendu au 01/01/2021) : << La contribution est fixee a hauteur de 0,05 % de l'assiette de securite sociale des salaires [...] acquittee annuellement, sur les salaires de l'annee civile, et est exigible au plus tard le 31 mars de l'annee suivante. >> Base KALI, KALIARTI000042597582. Web-conference Audiens 2026 p. 21 : << Radiodiffusion, APAR, 0,05 % sur salaires bruts plafonne a T2 Agirc-Arrco >>."
+        }
+      },
+      "applicable": true,
+      "_releve": "RELEVEE le 27/09/2026 (journal §152) sur la base KALI (IDCC 1922 : CCN du 11/04/1996, accord du 17/12/2015 sante et prevoyance et ses avenants). Ce que la 1922 change au socle : (1) la rubrique `ccn` disparait -- le paritarisme est annuel (`hors_bulletin`) ; (2) RIEN pour les intermittents : l'accord de 2015 (article 3) exclut << les salaries intermittents [...] couverts dans le cadre de l'accord interbranches du 20 decembre 2006 >> ; (3) RIEN dans `autres_1`.",
+      "_confirme": "Le 27/09/2026 (journal §152) : texte et Audiens concordent sur le taux. Prevoyance et sante des permanents dans `prevoyance-conventionnelle-base.json` (y compris le taux sante du 01/10/2026). La CCN, << accord d'etape >>, ne dit rien de la rupture : la loi seule (`clauses-conventionnelles-base.json`).",
+      "bareme": {
+        "contributions_conventionnelles": [
+          {
+            "id": "ccn",
+            "taux_pat": 0,
+            "taux_sal": 0,
+            "_source": "Pas de contribution mensuelle (article 2.7 : annuelle). Un taux nul retire la rubrique."
+          }
+        ],
+        "_contributions_conventionnelles": "Aucune ligne de bulletin propre a la convention."
+      }
+    },
+    "2412": {
+      "libelle": "Production de films d'animation",
+      "hors_bulletin": {
+        "_quoi": "L'aide au paritarisme (AGEPPFA) : annuelle, sur les masses salariales de l'annee civile passee, collectee en debut d'annee, hors DSN et hors bulletin. `operations_etats.paritarisme_branche` la calcule (journal §159).",
+        "financement_paritarisme": {
+          "taux": 0.04,
+          "assiette": "les masses salariales de l'annee civile passee",
+          "collecteur": "l'AGEPRO (Audiens), pour l'AGEPPFA, sur son appel en debut d'annee",
+          "_source": "CCN du 06/07/2004, article 12 (avenant n° 6 du 13/12/2012, KALIARTI000027730444, VIGUEUR_ETEN) : << une contribution d'aide au paritarisme a la charge des entreprises de la branche. Celle-ci est d'un montant de 0,04 % des masses salariales des entreprises. [...] la collecte sera realisee chaque annee, en debut d'annee civile, au titre et sur la base des masses salariales constatees sur l'annee civile passee. [...] Cette association deleguera la collecte a un organisme social du spectacle. >> Web-conference Audiens << Nouveautes 2026 >> p. 20 (audiens-2026-webconf-nouveautes-taux-conventionnels-20260929) : AGEPPFA 0,04 %, sous l'encadre << Declarations et paiement >> du portail AGEPRO.",
+          "_correction": "CORRIGE le 29/09/2026 (journal §159). Du 27 au 29/09/2026, la couche mettait l'AGEPPFA en DSN chaque mois : l'extraction texte de la diapo 20 d'Audiens met l'encadre << Cotisation en DSN des janvier 2026 >> a la suite des quatre colonnes, alors que sur la page il ne couvre que les deux colonnes de la 3097 (verifie sur le rendu image). Le texte, lui, a toujours dit annuel. Aucune DSN reelle n'a porte l'AGEPPFA : seul le depot de test `animation-tout` (ordre 26)."
+        }
+      },
+      "applicable": true,
+      "_releve": "RELEVEE le 27/09/2026 (journal §153) sur la base KALI (IDCC 2412 : CCN du 06/07/2004, article 12 ; annexe prevoyance du 30/06/2005, avenant du 30/05/2012) et la web-conference Audiens << Nouveautes 2026 >> p. 20. Ce que la 2412 change au socle : (1) la contribution conventionnelle -- l'aide au paritarisme (AGEPPFA) au lieu de la CASC-SVP, annuelle hors DSN (article 12 ; corrige le 29/09/2026, journal §159) ; (2) RIEN pour les intermittents : << les intermittents du spectacle, cadres et non cadres, beneficient exclusivement des garanties collectives de prevoyance instituees a leur profit au niveau national interprofessionnel >> (annexe, 1.1) ; (3) RIEN dans `autres_1`.",
+      "_confirme": "Le 27/09/2026 (journal §153), corrige le 29/09/2026 (journal §159) : le taux et la periodicite par le texte (article 12, avenant n° 6 du 13/12/2012) ; Audiens 2026 p. 20 concorde (AGEPPFA 0,04 %, portail AGEPRO).",
+      "bareme": {
+        "contributions_conventionnelles": [
+          {
+            "id": "ccn",
+            "taux_pat": 0,
+            "taux_sal": 0,
+            "_source": "Pas de contribution mensuelle (article 12 : annuelle, en debut d'annee, sur la masse de l'annee passee). Un taux nul retire la rubrique."
+          }
+        ],
+        "_contributions_conventionnelles": "Aucune ligne de bulletin propre a la convention."
+      }
+    },
+    "2121": {
+      "libelle": "Edition -- l'edition phonographique seule (annexe IX, ex-2770)",
+      "hors_bulletin": {
+        "_quoi": "Le financement du paritarisme de l'edition phonographique (APEP) : annuel, sur la masse de l'annee precedente, appele par l'AGEPRO, hors DSN. `operations_etats.paritarisme_branche` le calcule.",
+        "financement_paritarisme": {
+          "taux": 0.07,
+          "assiette": "les salaires declares en retraite complementaire, tout le personnel, de l'annee civile",
+          "collecteur": "l'AGEPRO (Audiens), pour l'APEP, sur son appel",
+          "_source": "Protocole d'accord du 18/10/2012 sur le financement du paritarisme dans l'edition phonographique, dans sa version de l'avenant n° 2 du 02/04/2025 (annexe consolidee, KALIARTI000052483105, VIGUEUR_ETEN ; etendu par arrete du 06/02/2026), article 3 : << La contribution versee par les employeurs est egale a 0,07 % des salaires servant de base aux declarations effectuees par etablissement (Siret) en retraite complementaire. Elle concerne l'ensemble du personnel. Elle est acquittee annuellement sur la masse salariale de l'annee precedente. L'appel de cette contribution est confie a l'AGEPRO >>. Maintenu pour le disque par l'accord de remplacement du 12/04/2024, art. 2.2 (KALIARTI000049869766), jusqu'au 12/04/2028.",
+          "_ecart": "TRANCHE le 29/09/2026 (journal §159) : la diapo 20 de la web-conference Audiens << Nouveautes 2026 >> ne met PAS l'APEP en DSN -- sur la page, l'encadre << Cotisation en DSN des janvier 2026 >> ne couvre que les deux colonnes de la 3097 ; l'APEP (0,07 %, << plafonne a T2 Agirc-Arrco >>) est sous << Declarations et paiement >>, le portail AGEPRO (verifie sur le rendu image ; l'extraction texte du PDF enchainait les deux encadres). Texte et collecteur concordent : annuelle, hors DSN. Le plafond T2 d'Audiens n'est pas dans le texte, qui vise les salaires declares en retraite complementaire ; le plancher de 5 EUR de la web-conference 2024 non plus (aucun en 2026). Source audiens-2026-webconf-nouveautes-taux-conventionnels-20260929."
+        }
+      },
+      "applicable": true,
+      "_releve": "RELEVEE le 29/09/2026 (journal §156) sur la base KALI (IDCC 2121 : accord de remplacement du 12/04/2024 pour l'edition phonographique, KALITEXT000049869758 ; protocole APEP et son avenant n° 2 ; accord prevoyance du 13/12/2024) et le BOCC 2025/4. Ce que la 2121 change au socle, pour le disque : (1) la rubrique `ccn` disparait -- le paritarisme (APEP) est annuel (`hors_bulletin`) ; (2) RIEN pour les intermittents : l'accord prevoyance du 13/12/2024 (art. 2 et 3.1) exclut << les salaries relevant de l'accord interbranche du 20 decembre 2006 >> ; (3) RIEN dans `autres_1`. Le livre et la musique ne sont pas portes (`secteurs`).",
+      "_confirme": "Le 29/09/2026 (journal §156) : le taux de l'APEP par le texte, recoupe par Audiens 2026 p. 20 (0,07 %) ; seule la periodicite differe, le texte est suivi. Prevoyance des permanents dans `prevoyance-conventionnelle-base.json` ; clauses de l'accord du 12/04/2024 dans `clauses-conventionnelles-base.json`.",
+      "bareme": {
+        "contributions_conventionnelles": [
+          {
+            "id": "ccn",
+            "taux_pat": 0,
+            "taux_sal": 0,
+            "_source": "Pas de contribution mensuelle (protocole APEP, art. 3 : annuelle). Un taux nul retire la rubrique."
+          }
+        ],
+        "_contributions_conventionnelles": "Aucune ligne de bulletin propre a la convention.",
+        "secteurs": {
+          "champ": "secteur_2121",
+          "libelle": "Secteur de l'édition",
+          "portes": [
+            "phonographique"
+          ],
+          "refus": "la convention de l'édition réunit trois secteurs qui gardent leurs règles jusqu'en 2028 (accord du 12/04/2024, art. 6) ; seule l'édition phonographique (annexe IX) est portée. L'édition de livres et l'édition musicale ne le sont pas : le logiciel ne paie pas avec les règles du disque une entreprise qui n'en relève pas.",
+          "_source": "Accord de remplacement du 12/04/2024, art. 2.1 (champ : les entreprises qui appliquaient la CCN de l'edition phonographique, NAF 59.20Z) et art. 6 (les articles 2 et 3 valent quatre ans a compter du 20/04/2024)."
+        }
+      }
+    },
+    "1790": {
+      "libelle": "Espaces de loisirs, d'attractions et culturels",
+      "hors_bulletin": {
+        "_quoi": "Le financement du paritarisme et du syndicalisme : annuel, sur la masse salariale brute de l'annee civile, exigible au plus tard le 1er mars suivant, hors DSN. `operations_etats.paritarisme_branche` le calcule.",
+        "contribution_conventionnelle_permanents": {
+          "par_effectif": [
+            {"jusqu_a": 9, "taux": 0.35},
+            {"jusqu_a": null, "taux": 0.3}
+          ],
+          "_source": "Avenant n° 52 (KALITEXT000005660387 et suivants), article 1.5 : << Les entreprises occupant moins de 10 salaries doivent consacrer au financement de la formation professionnelle une contribution conventionnelle de 0,35 % du montant des salaries verses aux salaries sous CDI et aux salaries sous CDD >> ; << au moins 10 salaries [...] 0,30 % >> (0,10 % plan + 0,20 % professionnalisation de 10 a 299 ; 0,20 + 0,10 a 300 et plus). Mutualisee a l'Afdas, << au plus tard le 1er mars de l'annee suivant l'annee de versement des salaires >> ; hors intermittents (<< hors IDS >>), qui ont la leur, 0,10 % et un forfait. Avenant n° 63 du 21/11/2019 : le seuil de 11 n'etait que transitoire (masses 2019 et 2020). Source kali-1790-formation-contribution-conventionnelle-afdas-avenants52-63-20260929 (journal §159).",
+          "_ecart": "La plaquette Afdas << Loisirs 2026 >> place le seuil a 11 (0,35 % sous 11, 0,30 % a 11 et plus) : l'ecart ne touche qu'un effectif d'exactement 10. Le texte etendu en vigueur est suivi (regle du journal §151), et l'etat le dit."
+        },
+        "financement_paritarisme": {
+          "taux": 0.05,
+          "plancher": 40,
+          "assiette": "la masse salariale brute totale de l'annee civile",
+          "collecteur": "l'organisme collecteur de la branche, sur son appel, avant le 1er mars",
+          "avertissement": "L'appel de l'organisme (APELAC, portail AGEPRO) porte 0,07 %, le taux d'avenants expires ; le texte en vigueur (avenant n° 14) dit 0,05 %, 40 EUR au moins : c'est lui que l'etat calcule. Payer ce que l'appel demande, et le signaler a la branche si l'ecart persiste.",
+          "_source": "Avenant n° 14 du 27/04/2001 (etendu par arrete du 13/12/2001), article 3 (KALIARTI000005804110, VIGUEUR_ETEN) : << 0,05 % de la masse salariale brute totale des entreprises [...] obligatoire et d'un montant minimum de 40 EUR [...] au taux plein de 0,05 % [...] a compter du 1er janvier 2006 >> (0,02 % paritarisme, 0,03 % syndicalisme) ; article 5 (KALIARTI000005804113) : << acquittee annuellement sur la masse salariale brute totale de l'annee civile [...] exigible au plus tard le 1er mars de l'annee suivante >>.",
+          "_plancher": "40 EUR est la valeur de 2001 ; le texte l'indexe << sur l'indice du cout de la vie connu au 31 decembre de chaque annee >>. Le montant indexe n'est pas publie dans KALI : 40 EUR est un minimum certain, l'appel de l'organisme fait foi.",
+          "_ecart": "Le texte en vigueur est l'avenant n° 14 (0,05 %, 40 EUR au moins, 1er mars). Les 0,07 % (0,03 paritarisme + 0,04 syndicalisme) viennent des avenants dialogue social n° 57 (2018), 58 (2019) et 65 (2020), a duree determinee et expires (le dernier au 31/12/2023) ; aucun avenant posterieur dans KALI ni dans les BOCC 2023 a 2026 (relu le 29/09/2026, journal §159). Mais c'est 0,07 % que l'organisme appelle : web-conference Audiens 2024 (APELAC 0,07 %, plancher 40 EUR) et 2026 (0,07 %, << plafonne a T2 Agirc-Arrco >>, portail AGEPRO) ; la branche lance l'appel en mars (echeance au 15/04 en 2026). Regle du journal §151 : l'etat calcule le texte, et dit l'appel."
+        }
+      },
+      "applicable": true,
+      "_releve": "RELEVEE le 29/09/2026 (journal §156) sur la base KALI (IDCC 1790 : CCN du 05/01/1994, annexe spectacle du 10/05/1996, avenants n° 14, 44, 45, 68, 74). Ce que la 1790 change au socle : (1) la rubrique `ccn` disparait -- le paritarisme est annuel (`hors_bulletin`) ; (2) RIEN pour les intermittents dans le bareme : le regime de prevoyance de la filiere spectacle (avenant n° 23, III) fixe des garanties sans taux, et l'interbranche du socle s'applique ; (3) RIEN dans `autres_1`.",
+      "_confirme": "Le 29/09/2026 (journal §156) : taux et periodicite par le texte etendu en vigueur ; l'ecart avec Audiens est dit. Prevoyance (0,65 % T1 et T2, 60/40) et sante (1,36 % du PMSS au 01/01/2026) des permanents dans `prevoyance-conventionnelle-base.json` ; clauses du titre IX dans `clauses-conventionnelles-base.json`.",
+      "bareme": {
+        "contributions_conventionnelles": [
+          {
+            "id": "ccn",
+            "taux_pat": 0,
+            "taux_sal": 0,
+            "_source": "Pas de contribution mensuelle (avenant n° 14, art. 5 : annuelle). Un taux nul retire la rubrique."
+          }
+        ],
+        "_contributions_conventionnelles": "Aucune ligne de bulletin propre a la convention."
+      }
+    }
+  }
+}

@@ -1,0 +1,5933 @@
+{
+ "_quoi": "Le tableau des usages du cahier technique NEODeS : pour chaque rubrique et chaque nature de declaration, si elle est obligatoire (O), conditionnelle (C), interdite (I) ou sans objet (N). Ecrire une rubrique que la nature n'admet pas est une anomalie BLOQUANTE (CST-04) et le fichier ne declare rien.",
+ "_source": "Tableau des usages de la norme DSN 2027.1.2, classeur dsn-tableau-des-usages-2027.1.2-20251224.xlsx (feuille « 1 - Tableau des usages »). Releve automatiquement par outils/extraire_usages.py le 11/10/2026.",
+ "_sha256_du_classeur": "607f62384b26bad22fc6f6ee70ed39b14b20815a68336dda436a1b37762cd79c",
+ "_comment_le_verifier": "Le releve est confronte a ce que le moteur produit : `tests/test_usages.py` verifie que toute rubrique ecrite par `dsn.generer`, `signalement.generer` et `dpae` est admise par sa nature. Une DSN mensuelle reellement acceptee (aout 2026, 161 rubriques) et un signalement d'arret (49) y passent.",
+ "natures": {
+  "01": "DSN mensuelle",
+  "04": "Signalement arrêt de travail",
+  "05": "Signalement reprise suite à arrêt de travail",
+  "07": "Signalement fin de contrat de travail unique",
+  "08": "Signalement amorçage",
+  "09": "DSN de substitution",
+  "10": "Signalement Déclaration préalable à l'embauche"
+ },
+ "_valeurs": {
+  "O": "obligatoire",
+  "C": "conditionnelle",
+  "I": "interdite",
+  "N": "sans objet / non prevue"
+ },
+ "usages": {
+  "S10.G00.00.001": {
+   "libelle": "Nom du logiciel utilisé",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S10.G00.00.002": {
+   "libelle": "Nom de l'éditeur",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S10.G00.00.003": {
+   "libelle": "Numéro de version du logiciel utilisé",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S10.G00.00.004": {
+   "libelle": "Code de conformité en pré-contrôle",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S10.G00.00.005": {
+   "libelle": "Code envoi du fichier d'essai ou réel",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S10.G00.00.006": {
+   "libelle": "Numéro de version de la norme utilisée",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S10.G00.00.007": {
+   "libelle": "Point de dépôt",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S10.G00.00.008": {
+   "libelle": "Type de l'envoi",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S10.G00.01.001": {
+   "libelle": "Siren de l'émetteur de l'envoi",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S10.G00.01.002": {
+   "libelle": "Nic de l'émetteur de l'envoi",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S10.G00.01.003": {
+   "libelle": "Nom ou raison sociale de l'émetteur",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S10.G00.01.004": {
+   "libelle": "Numéro, extension, nature et libellé de la voie",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S10.G00.01.005": {
+   "libelle": "Code postal",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S10.G00.01.006": {
+   "libelle": "Localité",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S10.G00.01.007": {
+   "libelle": "Code pays",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S10.G00.01.008": {
+   "libelle": "Code de distribution à l'étranger",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S10.G00.01.009": {
+   "libelle": "Complément de la localisation de la construction",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S10.G00.01.010": {
+   "libelle": "Service de distribution, complément de localisation de la voie",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S10.G00.02.001": {
+   "libelle": "Code civilité",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S10.G00.02.002": {
+   "libelle": "Nom et prénom de la personne à contacter",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S10.G00.02.004": {
+   "libelle": "Adresse mél du contact émetteur",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S10.G00.02.005": {
+   "libelle": "Adresse téléphonique",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S10.G00.02.006": {
+   "libelle": "Adresse fax",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S20.G00.05.001": {
+   "libelle": "Nature de la déclaration",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S20.G00.05.002": {
+   "libelle": "Type de la déclaration",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S20.G00.05.003": {
+   "libelle": "Numéro de fraction de déclaration",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S20.G00.05.004": {
+   "libelle": "Numéro d'ordre de la déclaration",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S20.G00.05.005": {
+   "libelle": "Date du mois principal déclaré",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "O",
+   "10": "I"
+  },
+  "S20.G00.05.006": {
+   "libelle": "Identifiant de la déclaration annulée ou remplacée",
+   "01": "I",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "I",
+   "10": "C"
+  },
+  "S20.G00.05.007": {
+   "libelle": "Date de constitution du fichier",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S20.G00.05.008": {
+   "libelle": "Champ de la déclaration",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "O",
+   "10": "I"
+  },
+  "S20.G00.05.009": {
+   "libelle": "Identifiant métier",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S20.G00.05.010": {
+   "libelle": "Devise de la déclaration",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "I",
+   "09": "O",
+   "10": "I"
+  },
+  "S20.G00.05.011": {
+   "libelle": "Nature de l’événement déclencheur du signalement",
+   "01": "I",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "O",
+   "09": "I",
+   "10": "I"
+  },
+  "S20.G00.05.012": {
+   "libelle": "Dernier SIRET connu pour ancien numéro de contrat",
+   "01": "I",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "I",
+   "10": "C"
+  },
+  "S20.G00.05.013": {
+   "libelle": "Type de nature de DSN de substitution",
+   "01": "I",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "O",
+   "10": "I"
+  },
+  "S20.G00.05.014": {
+   "libelle": "Pratique du fractionnement",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S20.G00.07.001": {
+   "libelle": "Nom et prénom du contact",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "O"
+  },
+  "S20.G00.07.002": {
+   "libelle": "Adresse téléphonique",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "O"
+  },
+  "S20.G00.07.003": {
+   "libelle": "Adresse mél du contact",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "O"
+  },
+  "S20.G00.07.004": {
+   "libelle": "Type",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "O"
+  },
+  "S20.G00.08.001": {
+   "libelle": "Code caisse",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.06.001": {
+   "libelle": "SIREN",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S21.G00.06.002": {
+   "libelle": "NIC du siège",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.06.004": {
+   "libelle": "Numéro, extension, nature et libellé de la voie",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.06.005": {
+   "libelle": "Code postal",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "O"
+  },
+  "S21.G00.06.006": {
+   "libelle": "Localité",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "O"
+  },
+  "S21.G00.06.007": {
+   "libelle": "Complément de la localisation de la construction",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.06.008": {
+   "libelle": "Service de distribution, complément de localisation de la voie",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.06.010": {
+   "libelle": "Code pays",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.06.011": {
+   "libelle": "Code de distribution à l'étranger",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.06.012": {
+   "libelle": "Implantation de l'entreprise",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.06.015": {
+   "libelle": "Code convention collective applicable",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.11.001": {
+   "libelle": "NIC",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S21.G00.11.003": {
+   "libelle": "Numéro, extension, nature et libellé de la voie",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "O"
+  },
+  "S21.G00.11.004": {
+   "libelle": "Code postal",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "O"
+  },
+  "S21.G00.11.005": {
+   "libelle": "Localité",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "O"
+  },
+  "S21.G00.11.006": {
+   "libelle": "Complément de la localisation de la construction",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.11.007": {
+   "libelle": "Service de distribution, complément de localisation de la voie",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.11.009": {
+   "libelle": "Type de rémunération soumise à contributions d'Assurance chômage pour expatriés",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.11.015": {
+   "libelle": "Code pays",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.11.016": {
+   "libelle": "Code de distribution à l'étranger",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.11.017": {
+   "libelle": "Nature juridique de l'employeur",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.11.019": {
+   "libelle": "Date d’effet de l’adhésion au dispositif TESE/CEA",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.11.020": {
+   "libelle": "Date d’effet de la sortie du dispositif TESE/CEA",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.11.022": {
+   "libelle": "Code convention collective principale",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "O",
+   "10": "I"
+  },
+  "S21.G00.11.023": {
+   "libelle": "Opérateur de compétences (OPCO)",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.11.024": {
+   "libelle": "Demande de sortie de la DSN",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "I",
+   "10": "I"
+  },
+  "S21.G00.11.025": {
+   "libelle": "Identifiant du Service de Prévention et de Santé au Travail (SPST)",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "I",
+   "10": "I"
+  },
+  "S21.G00.12.001": {
+   "libelle": "Type d’usage",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.12.002": {
+   "libelle": "BIC",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.12.003": {
+   "libelle": "IBAN",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.13.001": {
+   "libelle": "Accord agréé OETH",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.13.002": {
+   "libelle": "Type BOETH externe",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.13.003": {
+   "libelle": "Nombre BOETH externe",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.13.004": {
+   "libelle": "Millésime de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.15.001": {
+   "libelle": "Référence du contrat de Prévoyance",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.15.002": {
+   "libelle": "Code organisme de Prévoyance",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.15.003": {
+   "libelle": "Code délégataire de gestion",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.15.004": {
+   "libelle": "Personnel couvert",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.15.005": {
+   "libelle": "Identifiant technique Adhésion",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.16.001": {
+   "libelle": "Date de la modification",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.16.002": {
+   "libelle": "Ancien Code organisme de Prévoyance",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.16.003": {
+   "libelle": "Ancien Code délégataire de gestion",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.20.001": {
+   "libelle": "Identifiant Organisme de Protection Sociale",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.20.002": {
+   "libelle": "Entité d'affectation des opérations",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.20.003": {
+   "libelle": "BIC",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.20.004": {
+   "libelle": "IBAN",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.20.005": {
+   "libelle": "Montant du versement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.20.006": {
+   "libelle": "Date de début de période de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.20.007": {
+   "libelle": "Date de fin de période de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.20.008": {
+   "libelle": "Code délégataire de gestion",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.20.010": {
+   "libelle": "Mode de paiement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.20.011": {
+   "libelle": "Date de paiement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.20.012": {
+   "libelle": "SIRET Payeur",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.20.013": {
+   "libelle": "Identifiant du CRM à l'origine de la régularisation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.20.014": {
+   "libelle": "Identifiant du versement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.22.001": {
+   "libelle": "Identifiant Organisme de Protection Sociale",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.22.002": {
+   "libelle": "Entité d'affectation des opérations",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.22.003": {
+   "libelle": "Date de début de période de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.22.004": {
+   "libelle": "Date de fin de période de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.22.005": {
+   "libelle": "Montant total de cotisations",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.22.006": {
+   "libelle": "Identifiant du CRM à l'origine de la régularisation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.23.001": {
+   "libelle": "Code de cotisation",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.23.002": {
+   "libelle": "Qualifiant d'assiette",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.23.003": {
+   "libelle": "Taux de cotisation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.23.004": {
+   "libelle": "Montant d'assiette",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.23.005": {
+   "libelle": "Montant de cotisation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.23.006": {
+   "libelle": "Code INSEE commune",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.23.007": {
+   "libelle": "Identifiant du CRM à l'origine de la régularisation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.30.001": {
+   "libelle": "Numéro d'inscription au répertoire",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.002": {
+   "libelle": "Nom de famille",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S21.G00.30.003": {
+   "libelle": "Nom d'usage",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.004": {
+   "libelle": "Prénoms",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S21.G00.30.005": {
+   "libelle": "Sexe",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "O"
+  },
+  "S21.G00.30.006": {
+   "libelle": "Date de naissance",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S21.G00.30.007": {
+   "libelle": "Lieu de naissance",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "O"
+  },
+  "S21.G00.30.008": {
+   "libelle": "Numéro, extension, nature et libellé de la voie",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.009": {
+   "libelle": "Code postal",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.010": {
+   "libelle": "Localité",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.011": {
+   "libelle": "Code pays",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.012": {
+   "libelle": "Code de distribution à l'étranger",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.013": {
+   "libelle": "Codification UE",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.30.014": {
+   "libelle": "Code département de naissance",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.30.015": {
+   "libelle": "Code pays de naissance",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.30.016": {
+   "libelle": "Complément de la localisation de la construction",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.017": {
+   "libelle": "Service de distribution, complément de localisation de la voie",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.018": {
+   "libelle": "Adresse mél",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.019": {
+   "libelle": "Matricule de l'individu dans l'entreprise",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.020": {
+   "libelle": "Numéro technique temporaire",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.022": {
+   "libelle": "Statut à l'étranger au sens fiscal",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.023": {
+   "libelle": "Cumul emploi retraite",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.024": {
+   "libelle": "Niveau de formation le plus élevé obtenu par l'individu",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.025": {
+   "libelle": "Niveau de diplôme préparé par l'individu",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "I",
+   "10": "C"
+  },
+  "S21.G00.30.029": {
+   "libelle": "Libellé du pays de naissance",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.30.030": {
+   "libelle": "Identifiant du Service de Prévention et de Santé au Travail (SPST)",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "I",
+   "10": "O"
+  },
+  "S21.G00.31.001": {
+   "libelle": "Date de la modification",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.31.008": {
+   "libelle": "Ancien NIR",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.31.009": {
+   "libelle": "Ancien nom de famille",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.31.010": {
+   "libelle": "Anciens prénoms",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.31.011": {
+   "libelle": "Ancienne date de naissance",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.34.001": {
+   "libelle": "Facteur d'exposition",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.34.002": {
+   "libelle": "Numéro du contrat",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.34.003": {
+   "libelle": "Année de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.40.001": {
+   "libelle": "Date de début du contrat",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S21.G00.40.002": {
+   "libelle": "Statut du salarié (conventionnel)",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.003": {
+   "libelle": "Code statut catégoriel Retraite Complémentaire obligatoire",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.004": {
+   "libelle": "Code profession et catégorie socioprofessionnelle (PCS-ESE)",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.005": {
+   "libelle": "Code complément PCS-ESE",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.006": {
+   "libelle": "Libellé de l'emploi",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.007": {
+   "libelle": "Nature du contrat",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S21.G00.40.008": {
+   "libelle": "Dispositif de politique publique et conventionnel",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.009": {
+   "libelle": "Numéro du contrat",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.010": {
+   "libelle": "Date de fin prévisionnelle du contrat",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.011": {
+   "libelle": "Unité de mesure de la quotité de travail",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.012": {
+   "libelle": "Quotité de travail de référence de l'entreprise pour la catégorie de salarié",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.013": {
+   "libelle": "Quotité de travail du contrat",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.014": {
+   "libelle": "Modalité d'exercice du temps de travail",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.016": {
+   "libelle": "Complément de base au régime obligatoire",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.017": {
+   "libelle": "Code convention collective applicable",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.018": {
+   "libelle": "Code régime de base risque maladie",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.019": {
+   "libelle": "Identifiant du lieu de travail",
+   "01": "O",
+   "04": "C",
+   "05": "C",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.020": {
+   "libelle": "Code régime de base risque vieillesse",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.021": {
+   "libelle": "Motif de recours",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.022": {
+   "libelle": "Code caisse professionnelle de congés payés",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.023": {
+   "libelle": "Taux de déduction forfaitaire spécifique pour frais professionnels",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.024": {
+   "libelle": "Travailleur à l'étranger au sens du code de la Sécurité Sociale",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.025": {
+   "libelle": "Motif d'exclusion DSN",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.026": {
+   "libelle": "Statut d'emploi du salarié",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.027": {
+   "libelle": "Code affectation Assurance chômage",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "I",
+   "10": "I"
+  },
+  "S21.G00.40.028": {
+   "libelle": "Numéro interne employeur public",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.029": {
+   "libelle": "Type de gestion de l'Assurance chômage",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.030": {
+   "libelle": "Date d'adhésion",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.031": {
+   "libelle": "Date de dénonciation",
+   "01": "I",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "I",
+   "10": "I"
+  },
+  "S21.G00.40.032": {
+   "libelle": "Date d'effet de la convention de gestion",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.033": {
+   "libelle": "Numéro de convention de gestion",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "I",
+   "10": "I"
+  },
+  "S21.G00.40.035": {
+   "libelle": "Code délégataire du risque maladie",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.036": {
+   "libelle": "Code emplois multiples",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.037": {
+   "libelle": "Code employeurs multiples",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "C"
+  },
+  "S21.G00.40.039": {
+   "libelle": "Code régime de base risque accident du travail",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "O",
+   "10": "I"
+  },
+  "S21.G00.40.040": {
+   "libelle": "Code risque accident du travail",
+   "01": "O",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "O",
+   "10": "I"
+  },
+  "S21.G00.40.041": {
+   "libelle": "Positionnement dans la convention collective",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.042": {
+   "libelle": "Code statut catégoriel APECITA",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.043": {
+   "libelle": "Taux de cotisation accident du travail",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.044": {
+   "libelle": "Salarié à temps partiel cotisant à temps plein",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.045": {
+   "libelle": "Rémunération au pourboire",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.046": {
+   "libelle": "Identifiant de l'établissement utilisateur",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.048": {
+   "libelle": "Numéro de label « Prestataire de services du spectacle vivant »",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.049": {
+   "libelle": "Numéro de licence entrepreneur spectacle",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.050": {
+   "libelle": "Numéro objet spectacle",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.051": {
+   "libelle": "Statut organisateur spectacle",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.052": {
+   "libelle": "[FP] Code complément PCS-ESE pour la fonction publique d'Etat (NNE)",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.053": {
+   "libelle": "Nature du poste",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.054": {
+   "libelle": "[FP] Quotité de travail de référence de l'entreprise pour la catégorie de salarié dans l’hypothèse d’un poste à temps complet",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.055": {
+   "libelle": "Taux de travail à temps partiel",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.056": {
+   "libelle": "Code catégorie de service",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.057": {
+   "libelle": "[FP] Indice brut",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.058": {
+   "libelle": "[FP] Indice majoré",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.059": {
+   "libelle": "[FP] Nouvelle bonification indiciaire (NBI)",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.060": {
+   "libelle": "[FP] Indice brut d'origine",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.061": {
+   "libelle": "[FP] Indice brut de cotisation dans un emploi supérieur (article 15)",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.062": {
+   "libelle": "[FP] Ancien employeur public",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.063": {
+   "libelle": "[FP] Indice brut d’origine ancien salarié employeur public",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.064": {
+   "libelle": "[FP] Indice brut d’origine sapeur-pompier professionnel (SPP)",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.065": {
+   "libelle": "[FP] Maintien du traitement d'origine d'un contractuel titulaire",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.066": {
+   "libelle": "[FP] Type de détachement",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.067": {
+   "libelle": "Genre de navigation",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.068": {
+   "libelle": "Taux de service actif",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.069": {
+   "libelle": "Niveau de rémunération",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.070": {
+   "libelle": "Echelon",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.071": {
+   "libelle": "Coefficient hiérarchique",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.072": {
+   "libelle": "Statut BOETH",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.073": {
+   "libelle": "Complément de dispositif de politique publique",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.074": {
+   "libelle": "Cas de mise à disposition externe d'un individu de l'établissement",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.075": {
+   "libelle": "Catégorie de classement finale",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.076": {
+   "libelle": "Identifiant du contrat d'engagement maritime",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.077": {
+   "libelle": "Collège (CNIEG)",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.078": {
+   "libelle": "Forme d'aménagement du temps de travail dans le cadre de l'activité partielle",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.079": {
+   "libelle": "Grade",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.080": {
+   "libelle": "[FP] Indice complément de traitement indiciaire (CTI)",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.081": {
+   "libelle": "FINESS géographique",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "C",
+   "10": "I"
+  },
+  "S21.G00.40.082": {
+   "libelle": "Nombre de jours de période d’essai",
+   "01": "I",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "I",
+   "10": "C"
+  },
+  "S21.G00.40.083": {
+   "libelle": "Heure prévisible d'embauche",
+   "01": "I",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "I",
+   "09": "I",
+   "10": "O"
+  },
+  "S21.G00.40.084": {
+   "libelle": "Application de la proratisation du Plafond de Sécurité Sociale à hauteur de la quotité de travail",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.085": {
+   "libelle": "Choix du salarié en forfait jour réduit indiquant que la proratisation du plafond de Sécurité sociale ne s’applique pas au calcul de ses cotisations pour la vieillesse régime de base et la retraite complémentaire",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "I",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.40.086": {
+   "libelle": "Adhésion à une caisse de congés payés à titre obligatoire",
+   "01": "C",
+   "04": "I",
+   "05": "I",
+   "07": "C",
+   "08": "C",
+   "09": "C",
+   "10": "C"
+  },
+  "S21.G00.41.001": {
+   "libelle": "Date de la modification",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.41.002": {
+   "libelle": "Ancien statut du salarié (conventionnel)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.003": {
+   "libelle": "Ancien code statut catégoriel Retraite Complémentaire obligatoire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.004": {
+   "libelle": "Ancienne nature du contrat",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.005": {
+   "libelle": "Ancien dispositif de politique publique et conventionnel",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.006": {
+   "libelle": "Ancienne unité de mesure de la quotité de travail",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.007": {
+   "libelle": "Ancienne quotité de travail du contrat",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.008": {
+   "libelle": "Ancienne modalité d'exercice du temps de travail",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.010": {
+   "libelle": "Ancien complément de base au régime obligatoire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.011": {
+   "libelle": "Ancien code convention collective applicable",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.012": {
+   "libelle": "SIRET ancien établissement d'affectation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.013": {
+   "libelle": "Ancien identifiant du lieu de travail",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.014": {
+   "libelle": "Ancien numéro du contrat",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.016": {
+   "libelle": "Ancien motif de recours",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.017": {
+   "libelle": "Ancien taux de déduction forfaitaire spécifique pour frais professionnels",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.018": {
+   "libelle": "Ancien travailleur à l'étranger au sens du code de la Sécurité Sociale",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.019": {
+   "libelle": "Ancien code profession et catégorie socioprofessionnelle (PCS-ESE)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.020": {
+   "libelle": "Ancien code complément PCS-ESE",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.021": {
+   "libelle": "Ancienne date de début du contrat",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.022": {
+   "libelle": "Ancienne quotité de travail de référence de l'entreprise pour la catégorie de salarié",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.023": {
+   "libelle": "Ancien code caisse professionnelle de congés payés",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.024": {
+   "libelle": "Ancien code risque accident du travail",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.025": {
+   "libelle": "Ancien code statut catégoriel APECITA",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.027": {
+   "libelle": "Ancien salarié à temps partiel cotisant à temps plein",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.028": {
+   "libelle": "Profondeur de recalcul de la paie",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.029": {
+   "libelle": "[FP] Ancien code complément PCS-ESE pour la fonction publique d'Etat (NNE)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.030": {
+   "libelle": "Ancienne nature du poste",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.031": {
+   "libelle": "[FP] Ancienne quotité de travail de référence de l'entreprise pour la catégorie de salarié dans l’hypothèse d’un poste à temps complet",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.032": {
+   "libelle": "Ancien taux de travail à temps partiel",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.033": {
+   "libelle": "Ancien code catégorie de service",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.034": {
+   "libelle": "[FP] Ancien indice brut",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.035": {
+   "libelle": "[FP] Ancien indice majoré",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.036": {
+   "libelle": "[FP] Ancienne nouvelle bonification indiciaire (NBI)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.037": {
+   "libelle": "[FP] Ancien indice brut d'origine",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.038": {
+   "libelle": "[FP] Ancien indice brut de cotisation dans un emploi supérieur (article 15)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.039": {
+   "libelle": "[FP] Ancien ancien employeur public",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.040": {
+   "libelle": "[FP] Ancien indice brut d’origine ancien salarié employeur public",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.041": {
+   "libelle": "[FP] Ancien indice brut d’origine sapeur-pompier professionnel (SPP)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.042": {
+   "libelle": "[FP] Ancien maintien du traitement d'origine d'un contractuel titulaire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.043": {
+   "libelle": "Ancien taux de service actif",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.044": {
+   "libelle": "Ancien niveau de rémunération",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.045": {
+   "libelle": "Ancien échelon",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.046": {
+   "libelle": "Ancien coefficient hiérarchique",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.047": {
+   "libelle": "Ancien genre de navigation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.048": {
+   "libelle": "Ancien statut BOETH",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.049": {
+   "libelle": "Ancien complément de dispositif de politique publique",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.050": {
+   "libelle": "Ancien cas de mise à disposition externe d'un individu de l'établissement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.051": {
+   "libelle": "Ancienne catégorie de classement finale",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.052": {
+   "libelle": "Ancien code régime de base risque maladie",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.053": {
+   "libelle": "Ancien code régime de base risque vieillesse",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.054": {
+   "libelle": "Ancien identifiant du contrat d'engagement maritime",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.055": {
+   "libelle": "Ancien collège (CNIEG)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.056": {
+   "libelle": "Ancienne forme d'aménagement du temps de travail dans le cadre de l'activité partielle",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.057": {
+   "libelle": "[FP] Ancien type de détachement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.058": {
+   "libelle": "Ancien positionnement dans la convention collective",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.059": {
+   "libelle": "Ancien code régime de base risque accident du travail",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.060": {
+   "libelle": "Ancien statut d'emploi du salarié",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.061": {
+   "libelle": "Ancien code emplois multiples",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.062": {
+   "libelle": "Ancien code employeurs multiples",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.063": {
+   "libelle": "Ancien grade",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.064": {
+   "libelle": "[FP] Ancien indice complément de traitement indiciaire (CTI)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.065": {
+   "libelle": "Ancien FINESS géographique",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.066": {
+   "libelle": "Ancienne application de la proratisation du Plafond de Sécurité Sociale à hauteur de la quotité de travail",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.067": {
+   "libelle": "Ancien choix du salarié en forfait jour réduit indiquant que la proratisation du plafond de Sécurité sociale ne s’applique pas au calcul de ses cotisations pour la vieillesse régime de base et la retraite complémentaire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.41.068": {
+   "libelle": "Ancienne adhésion à une caisse de congés payés à titre obligatoire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.44.001": {
+   "libelle": "Code taxe",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.44.002": {
+   "libelle": "Montant",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.44.003": {
+   "libelle": "Millésime de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.44.004": {
+   "libelle": "Motif de non assujettissement à la taxe d'apprentissage",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.45.001": {
+   "libelle": "SIRET déclarant le contrat précédemment",
+   "01": "N",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.45.002": {
+   "libelle": "Numéro du contrat déclaré précédemment",
+   "01": "N",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.50.001": {
+   "libelle": "Date de versement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.50.002": {
+   "libelle": "Rémunération nette fiscale",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.50.003": {
+   "libelle": "Numéro de versement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.50.004": {
+   "libelle": "Montant net versé",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.50.006": {
+   "libelle": "Taux de prélèvement à la source",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.50.007": {
+   "libelle": "Type du taux de prélèvement à la source",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.50.008": {
+   "libelle": "Identifiant du taux de prélèvement à la source",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.50.009": {
+   "libelle": "Montant de prélèvement à la source",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.50.011": {
+   "libelle": "Montant de la part non imposable du revenu",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.50.012": {
+   "libelle": "Montant de l’abattement sur la base fiscale (non déduit de la rémunération nette fiscale)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.50.013": {
+   "libelle": "Montant soumis au PAS",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.50.020": {
+   "libelle": "Mois de la DSN mensuelle de rattachement des éléments déclarés dans le FCTU",
+   "01": "I",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "I",
+   "10": "N"
+  },
+  "S21.G00.51.001": {
+   "libelle": "Date de début de période de paie",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.51.002": {
+   "libelle": "Date de fin de période de paie",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.51.010": {
+   "libelle": "Numéro du contrat",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.51.011": {
+   "libelle": "Type",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.51.012": {
+   "libelle": "Nombre d'heures",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.51.013": {
+   "libelle": "Montant",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.51.014": {
+   "libelle": "[FP] Taux de rémunération de la situation administrative",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.51.015": {
+   "libelle": "Taux de conduite centrale nucléaire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.51.016": {
+   "libelle": "Taux de majoration",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.51.019": {
+   "libelle": "Taux de rémunération cotisée",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.51.020": {
+   "libelle": "Taux de majoration ex-apprenti/ex-élève",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.52.001": {
+   "libelle": "Type",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.52.002": {
+   "libelle": "Montant",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.52.003": {
+   "libelle": "Date de début de la période de rattachement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.52.004": {
+   "libelle": "Date de fin de la période de rattachement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.52.006": {
+   "libelle": "Numéro du contrat",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.52.007": {
+   "libelle": "Date de versement d'origine",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.53.001": {
+   "libelle": "Type",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.53.002": {
+   "libelle": "Mesure",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.53.003": {
+   "libelle": "Unité de mesure",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.54.001": {
+   "libelle": "Type",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.54.002": {
+   "libelle": "Montant",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.54.003": {
+   "libelle": "Date de début de période de rattachement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.54.004": {
+   "libelle": "Date de fin de période de rattachement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.54.005": {
+   "libelle": "Numéro de contrat",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.55.001": {
+   "libelle": "Montant versé",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.55.002": {
+   "libelle": "Type de population",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.55.003": {
+   "libelle": "Code d'affectation",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.55.004": {
+   "libelle": "Période d'affectation",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.55.005": {
+   "libelle": "Identifiant du CRM à l'origine de la régularisation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.56.001": {
+   "libelle": "Mois de l'erreur",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.56.002": {
+   "libelle": "Type d'erreur",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.56.003": {
+   "libelle": "Régularisation de la rémunération nette fiscale",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.56.004": {
+   "libelle": "Rémunération nette fiscale déclarée le mois de l’erreur",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.56.005": {
+   "libelle": "Régularisation du taux de prélèvement à la source",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.56.006": {
+   "libelle": "Taux déclaré le mois de l'erreur",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.56.007": {
+   "libelle": "Montant de la régularisation du prélèvement à la source",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.56.008": {
+   "libelle": "Régularisation du montant de la part non imposable du revenu",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.56.009": {
+   "libelle": "Régularisation du montant de l’abattement sur la base fiscale (non déduit de la rémunération nette fiscale)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.56.010": {
+   "libelle": "Régularisation du montant soumis au PAS",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.56.015": {
+   "libelle": "Montant soumis au prélèvement à la source déclaré le mois de l'erreur",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.58.001": {
+   "libelle": "Date de début de période de rattachement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.58.002": {
+   "libelle": "Date de fin de période de rattachement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.58.003": {
+   "libelle": "Type",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.58.004": {
+   "libelle": "Montant",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.59.001": {
+   "libelle": "Type",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.59.002": {
+   "libelle": "Montant",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.59.003": {
+   "libelle": "Nombre d'heures",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.59.004": {
+   "libelle": "Date de début de période de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.59.005": {
+   "libelle": "Date de fin de période de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.59.006": {
+   "libelle": "Numéro de contrat",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.60.001": {
+   "libelle": "Motif de l'arrêt",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.60.002": {
+   "libelle": "Date du dernier jour travaillé",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.60.003": {
+   "libelle": "Date de fin prévisionnelle",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.60.004": {
+   "libelle": "Subrogation",
+   "01": "C",
+   "04": "O",
+   "05": "I",
+   "07": "I",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.60.005": {
+   "libelle": "Date de début de subrogation",
+   "01": "C",
+   "04": "C",
+   "05": "I",
+   "07": "I",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.60.006": {
+   "libelle": "Date de fin de subrogation",
+   "01": "C",
+   "04": "C",
+   "05": "I",
+   "07": "I",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.60.007": {
+   "libelle": "IBAN",
+   "01": "C",
+   "04": "C",
+   "05": "I",
+   "07": "I",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.60.008": {
+   "libelle": "BIC",
+   "01": "C",
+   "04": "C",
+   "05": "I",
+   "07": "I",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.60.010": {
+   "libelle": "Date de la reprise",
+   "01": "C",
+   "04": "C",
+   "05": "O",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.60.011": {
+   "libelle": "Motif de la reprise",
+   "01": "C",
+   "04": "C",
+   "05": "O",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.60.012": {
+   "libelle": "Date de l'accident ou de la première constatation",
+   "01": "I",
+   "04": "C",
+   "05": "C",
+   "07": "I",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.60.600": {
+   "libelle": "SIRET Centralisateur",
+   "01": "C",
+   "04": "C",
+   "05": "C",
+   "07": "I",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.62.001": {
+   "libelle": "Date de fin du contrat",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.62.002": {
+   "libelle": "Motif de la rupture du contrat",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.62.003": {
+   "libelle": "Date de notification de la rupture de contrat",
+   "01": "I",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "I",
+   "10": "N"
+  },
+  "S21.G00.62.004": {
+   "libelle": "Date de signature de la convention de rupture",
+   "01": "I",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "I",
+   "10": "N"
+  },
+  "S21.G00.62.005": {
+   "libelle": "Date d'engagement de la procédure de licenciement",
+   "01": "I",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "I",
+   "10": "N"
+  },
+  "S21.G00.62.006": {
+   "libelle": "Dernier jour travaillé et payé au salaire habituel",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.62.008": {
+   "libelle": "Transaction en cours",
+   "01": "I",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "I",
+   "10": "N"
+  },
+  "S21.G00.62.011": {
+   "libelle": "Nombre de mois de préavis utilisés dans le cadre du calcul CSP",
+   "01": "I",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "I",
+   "10": "N"
+  },
+  "S21.G00.62.013": {
+   "libelle": "Montant de l'indemnité de préavis qui aurait été versée",
+   "01": "I",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "I",
+   "10": "N"
+  },
+  "S21.G00.62.014": {
+   "libelle": "Statut particulier du salarié",
+   "01": "I",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "I",
+   "10": "N"
+  },
+  "S21.G00.62.016": {
+   "libelle": "Maintien de l'affiliation du salarié au contrat collectif",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.62.017": {
+   "libelle": "Modalité de déclaration de la fin du contrat d'usage",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.62.018": {
+   "libelle": "Nombre de mois de préavis utilisés dans le cadre du calcul PAP",
+   "01": "I",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "I",
+   "10": "N"
+  },
+  "S21.G00.62.019": {
+   "libelle": "Solde de congés acquis et non pris (ENIM)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.62.020": {
+   "libelle": "Mois de la DSN mensuelle portant les derniers éléments déclarés dans le FCTU",
+   "01": "I",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "I",
+   "10": "N"
+  },
+  "S21.G00.62.021": {
+   "libelle": "Refus de la proposition d'un CDI suite à CDD ou contrat de mission",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "I",
+   "10": "N"
+  },
+  "S21.G00.63.001": {
+   "libelle": "Type réalisation et paiement du préavis",
+   "01": "N",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.63.002": {
+   "libelle": "Date de début de préavis",
+   "01": "N",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.63.003": {
+   "libelle": "Date de fin de préavis",
+   "01": "N",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.65.001": {
+   "libelle": "Motif de suspension",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.65.002": {
+   "libelle": "Date de début de la suspension",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "I",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.65.003": {
+   "libelle": "Date de fin de la suspension",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.65.004": {
+   "libelle": "[FP] Position de détachement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.65.005": {
+   "libelle": "Nombre de jours ouvrés de suspension",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.66.001": {
+   "libelle": "Date de début",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.66.002": {
+   "libelle": "Date de fin",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.66.003": {
+   "libelle": "Montant",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.70.004": {
+   "libelle": "Code option retenue par le salarié",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.70.005": {
+   "libelle": "Code population de rattachement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.70.007": {
+   "libelle": "Nombre d'enfants à charge",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.70.008": {
+   "libelle": "Nombre d'adultes ayants-droit (conjoint, concubin, ...)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.70.009": {
+   "libelle": "Nombre d'ayants-droit",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.70.010": {
+   "libelle": "Nombre d'ayants-droit autres (ascendants, collatéraux...)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.70.011": {
+   "libelle": "Nombre d'enfants ayants-droit",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.70.012": {
+   "libelle": "Identifiant technique Affiliation",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "I",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.70.013": {
+   "libelle": "Identifiant technique Adhésion",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.70.014": {
+   "libelle": "Date de début de l'affiliation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.70.015": {
+   "libelle": "Date de fin de l'affiliation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.70.016": {
+   "libelle": "Affiliation prévoyance applicable à plusieurs contrats",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "I",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.71.002": {
+   "libelle": "Code régime Retraite Complémentaire",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.72.001": {
+   "libelle": "Code régime Retraite Complémentaire déclaré à tort",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.73.001": {
+   "libelle": "Régime local Alsace-Moselle",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.73.002": {
+   "libelle": "Code option",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.73.003": {
+   "libelle": "Type",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.73.004": {
+   "libelle": "Date de début de rattachement à l'ouvrant-droit",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.73.005": {
+   "libelle": "Date de naissance",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.73.006": {
+   "libelle": "Nom de famille",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.73.007": {
+   "libelle": "Numéro d'inscription au répertoire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.73.008": {
+   "libelle": "NIR ouvrant-droit régime de base maladie",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.73.009": {
+   "libelle": "Prénoms",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.73.010": {
+   "libelle": "Code organisme d'affiliation à l'assurance maladie",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.73.011": {
+   "libelle": "Date de fin de rattachement à l'ouvrant-droit",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.75.001": {
+   "libelle": "Motif de l'aménagement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.75.002": {
+   "libelle": "Date de début de l'aménagement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.75.003": {
+   "libelle": "Date de fin de l'aménagement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.75.004": {
+   "libelle": "Ancien motif de l'aménagement",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.78.001": {
+   "libelle": "Code de base assujettie",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.78.002": {
+   "libelle": "Date de début de période de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.78.003": {
+   "libelle": "Date de fin de période de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.78.004": {
+   "libelle": "Montant",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.78.005": {
+   "libelle": "Identifiant technique Affiliation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.78.006": {
+   "libelle": "Numéro du contrat",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.78.007": {
+   "libelle": "Identifiant du CRM à l'origine de la régularisation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.79.001": {
+   "libelle": "Type de composant de base assujettie",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.79.004": {
+   "libelle": "Montant de composant de base assujettie",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.79.005": {
+   "libelle": "Identifiant du CRM à l'origine de la régularisation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.81.001": {
+   "libelle": "Code de cotisation",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.81.002": {
+   "libelle": "Identifiant Organisme de Protection Sociale",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.81.003": {
+   "libelle": "Montant d'assiette",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.81.004": {
+   "libelle": "Montant de cotisation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.81.005": {
+   "libelle": "Code INSEE commune",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.81.006": {
+   "libelle": "Identifiant du CRM à l'origine de la régularisation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.81.007": {
+   "libelle": "Taux de cotisation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.81.008": {
+   "libelle": "Taux de cotisation patronale",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "I",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.82.001": {
+   "libelle": "Valeur",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.82.002": {
+   "libelle": "Code de cotisation",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.82.003": {
+   "libelle": "Date de début de période de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.82.004": {
+   "libelle": "Date de fin de période de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.82.005": {
+   "libelle": "Référence réglementaire ou contractuelle",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.82.006": {
+   "libelle": "Identifiant du CRM à l'origine de la régularisation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.83.001": {
+   "libelle": "Date de début de période déclarée à tort",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.83.002": {
+   "libelle": "Date de fin de période déclarée à tort",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.84.001": {
+   "libelle": "Code de base assujettie déclarée à tort",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.84.002": {
+   "libelle": "Date de début de période de rattachement de la base déclarée à tort",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.84.003": {
+   "libelle": "Date de fin de période de rattachement de la base déclarée à tort",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.84.004": {
+   "libelle": "Montant déclaré à tort",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.84.005": {
+   "libelle": "Numéro du contrat rattaché à la base assujettie déclarée à tort",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.85.001": {
+   "libelle": "Identifiant du lieu de travail ou de l'établissement utilisateur",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.85.002": {
+   "libelle": "Code APET",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.85.003": {
+   "libelle": "Numéro, extension, nature, libellé de voie",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.85.004": {
+   "libelle": "Code postal",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.85.005": {
+   "libelle": "Localité",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.85.006": {
+   "libelle": "Code Pays",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.85.007": {
+   "libelle": "Code de distribution à l'étranger",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.85.008": {
+   "libelle": "Complément de la localisation de la construction",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.85.009": {
+   "libelle": "Service de distribution, complément de localisation de la voie",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.85.010": {
+   "libelle": "Nature juridique",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.85.011": {
+   "libelle": "Code INSEE commune",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "C",
+   "08": "C",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.86.001": {
+   "libelle": "Type",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.86.002": {
+   "libelle": "Unité de mesure",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.86.003": {
+   "libelle": "Valeur",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.86.005": {
+   "libelle": "Numéro du contrat",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "O",
+   "08": "O",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.95.001": {
+   "libelle": "Code de base assujettie déclarée à tort",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.95.002": {
+   "libelle": "Date de début de période de rattachement de la base déclarée à tort",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.95.003": {
+   "libelle": "Date de fin de période de rattachement de la base déclarée à tort",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.95.004": {
+   "libelle": "Montant déclaré à tort",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S21.G00.95.005": {
+   "libelle": "Numéro du contrat rattaché à la base assujettie déclarée à tort",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S21.G00.98.001": {
+   "libelle": "Identifiant de la SATD",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.98.002": {
+   "libelle": "Etat de prise en compte de la SATD",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.98.003": {
+   "libelle": "Montant",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S21.G00.98.004": {
+   "libelle": "Mois de l’erreur",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.001": {
+   "libelle": "Profession ou qualité",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.002": {
+   "libelle": "Nom du bénéficiaire des honoraires",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.003": {
+   "libelle": "Prénom du bénéficiaire des honoraires",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.004": {
+   "libelle": "Siren du bénéficiaire des honoraires",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.005": {
+   "libelle": "Nic du bénéficiaire des honoraires",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.006": {
+   "libelle": "Raison sociale du bénéficiaire des honoraires",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.007": {
+   "libelle": "Complément de localisation de la construction",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.008": {
+   "libelle": "Numéro, extension, nature et libellé de la voie",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.009": {
+   "libelle": "Code INSEE de la commune",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.010": {
+   "libelle": "Service de distribution, complément de localisation de la voie",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.011": {
+   "libelle": "Code postal",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.012": {
+   "libelle": "Localité",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.013": {
+   "libelle": "Code pays",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.014": {
+   "libelle": "Code de distribution à l'étranger",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.015": {
+   "libelle": "Code taux réduit ou dispense de retenue à la source",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.016": {
+   "libelle": "Montant TVA droits d'auteurs",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.017": {
+   "libelle": "Millésime de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.32.018": {
+   "libelle": "Date de naissance",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.33.001": {
+   "libelle": "Code type avantage en nature",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.33.002": {
+   "libelle": "Montant avantage en nature",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.35.001": {
+   "libelle": "Code modalité de prise en charge des indemnités",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.35.002": {
+   "libelle": "Montant de l'indemnité",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.43.001": {
+   "libelle": "Code type de la rémunération",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.43.002": {
+   "libelle": "Montant de la rémunération",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.67.001": {
+   "libelle": "NIR",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.67.002": {
+   "libelle": "Numéro technique temporaire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.67.003": {
+   "libelle": "Montant de droit supplémentaire acquis",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.67.004": {
+   "libelle": "Pourcentage de droit supplémentaire acquis",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.67.005": {
+   "libelle": "Millésime de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.87.001": {
+   "libelle": "Code contexte",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.87.002": {
+   "libelle": "Nombre d'actions",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.87.003": {
+   "libelle": "Valeur unitaire de l'action",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.87.004": {
+   "libelle": "Fraction du gain d'acquisition de source française",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.87.005": {
+   "libelle": "Date d'attribution",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.87.006": {
+   "libelle": "Date d'acquisition définitive",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.87.007": {
+   "libelle": "Numéro d'inscription au répertoire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.87.008": {
+   "libelle": "Numéro technique temporaire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.88.001": {
+   "libelle": "Code contexte",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.88.002": {
+   "libelle": "Nombre d'options",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.88.003": {
+   "libelle": "Valeur unitaire de l'action",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.88.004": {
+   "libelle": "Prix de souscription de l'action",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.88.005": {
+   "libelle": "Fraction du gain de levée d'option de source française",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.88.006": {
+   "libelle": "Date d'attribution",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.88.007": {
+   "libelle": "Date de levée de l'option",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.88.008": {
+   "libelle": "Numéro d'inscription au répertoire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.88.009": {
+   "libelle": "Numéro technique temporaire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.89.001": {
+   "libelle": "Nombre de titres",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.89.002": {
+   "libelle": "Prix d'acquisition des titres",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.89.003": {
+   "libelle": "Valeur unitaire des titres au jour de l'exercice des bons",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.89.004": {
+   "libelle": "Fraction du gain de source française",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.89.005": {
+   "libelle": "Date d'acquisition des titres",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.89.006": {
+   "libelle": "Durée d'exercice de l'activité du bénéficiaire dans l'entreprise",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.89.007": {
+   "libelle": "Numéro d'inscription au répertoire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.89.008": {
+   "libelle": "Numéro technique temporaire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.91.001": {
+   "libelle": "Numéro d'inscription au répertoire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.91.002": {
+   "libelle": "Nom de famille",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "O",
+   "09": "O",
+   "10": "N"
+  },
+  "S89.G00.91.003": {
+   "libelle": "Nom d'usage",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.91.004": {
+   "libelle": "Prénoms",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "O",
+   "09": "O",
+   "10": "N"
+  },
+  "S89.G00.91.005": {
+   "libelle": "Sexe",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.91.006": {
+   "libelle": "Date de naissance",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "O",
+   "09": "O",
+   "10": "N"
+  },
+  "S89.G00.91.007": {
+   "libelle": "Lieu de naissance",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "O",
+   "09": "O",
+   "10": "N"
+  },
+  "S89.G00.91.008": {
+   "libelle": "Numéro, extension, nature et libellé de la voie",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.91.009": {
+   "libelle": "Code postal",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.91.010": {
+   "libelle": "Localité",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.91.011": {
+   "libelle": "Code pays",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.91.012": {
+   "libelle": "Code de distribution à l'étranger",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.91.013": {
+   "libelle": "Complément de la localisation de la construction",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.91.014": {
+   "libelle": "Service de distribution, complément de localisation de la voie",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.91.015": {
+   "libelle": "Adresse mél",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.91.016": {
+   "libelle": "Matricule de l'individu dans l'entreprise",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.91.017": {
+   "libelle": "Statut du salarié (conventionnel)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.91.018": {
+   "libelle": "Code statut catégoriel Retraite Complémentaire obligatoire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.91.019": {
+   "libelle": "Code département de naissance",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "O",
+   "09": "O",
+   "10": "N"
+  },
+  "S89.G00.91.020": {
+   "libelle": "Code pays de naissance",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "O",
+   "09": "O",
+   "10": "N"
+  },
+  "S89.G00.91.021": {
+   "libelle": "Numéro technique temporaire",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "C",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.92.001": {
+   "libelle": "Type",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S89.G00.92.002": {
+   "libelle": "Code de base spécifique",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S89.G00.92.003": {
+   "libelle": "Montant",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S89.G00.92.004": {
+   "libelle": "Date de début de période de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S89.G00.92.005": {
+   "libelle": "Date de fin de période de rattachement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S89.G00.92.006": {
+   "libelle": "Montant net fiscal du revenu versé",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.92.007": {
+   "libelle": "Taux de prélèvement à la source",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.92.008": {
+   "libelle": "Type du taux de prélèvement à la source",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.92.009": {
+   "libelle": "Identifiant du taux de prélèvement à la source",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.92.010": {
+   "libelle": "Montant de prélèvement à la source",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.92.011": {
+   "libelle": "Date de versement",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S89.G00.92.012": {
+   "libelle": "Montant de la part non imposable du revenu",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.92.013": {
+   "libelle": "Montant soumis au PAS",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.92.014": {
+   "libelle": "Montant de l’abattement sur la base fiscale (non déduit du montant net fiscal du revenu versé)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.92.015": {
+   "libelle": "Identifiant du CRM à l'origine de la régularisation",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.92.016": {
+   "libelle": "Montant net versé",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.92.017": {
+   "libelle": "Montant net social",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.92.018": {
+   "libelle": "Montant de la retenue à la source sur les revenus versés aux non-résidents fiscaux",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "C",
+   "10": "N"
+  },
+  "S89.G00.93.001": {
+   "libelle": "Mois de l'erreur",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.93.002": {
+   "libelle": "Type d'erreur",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.93.003": {
+   "libelle": "Régularisation du montant net fiscal du revenu versé",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.93.004": {
+   "libelle": "Montant net fiscal du revenu versé le mois de l’erreur",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.93.005": {
+   "libelle": "Régularisation du taux de prélèvement à la source",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.93.006": {
+   "libelle": "Taux déclaré le mois de l'erreur",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.93.007": {
+   "libelle": "Montant de la régularisation du prélèvement à la source",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.93.008": {
+   "libelle": "Régularisation du montant de la part non imposable du revenu",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.93.009": {
+   "libelle": "Régularisation du montant soumis au PAS",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.93.010": {
+   "libelle": "Régularisation du montant de l’abattement sur la base fiscale (non déduit du montant net fiscal du revenu versé)",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.93.013": {
+   "libelle": "Montant soumis au prélèvement à la source déclaré le mois de l'erreur",
+   "01": "C",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "N",
+   "10": "N"
+  },
+  "S89.G00.94.001": {
+   "libelle": "Code de cotisation",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S89.G00.94.002": {
+   "libelle": "Montant de cotisation",
+   "01": "O",
+   "04": "N",
+   "05": "N",
+   "07": "N",
+   "08": "N",
+   "09": "O",
+   "10": "N"
+  },
+  "S90.G00.90.001": {
+   "libelle": "Nombre total de rubriques",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  },
+  "S90.G00.90.002": {
+   "libelle": "Nombre de DSN",
+   "01": "O",
+   "04": "O",
+   "05": "O",
+   "07": "O",
+   "08": "O",
+   "09": "O",
+   "10": "O"
+  }
+ }
+}

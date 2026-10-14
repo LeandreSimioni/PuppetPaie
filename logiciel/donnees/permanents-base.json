@@ -1,0 +1,393 @@
+{
+  "_quoi": "Ce que la loi impose à un contrat de travail permanent — un CDI, un CDD ordinaire — et que l'intermittent n'a pas : des congés payés qui s'acquièrent et se paient chez l'employeur, une indemnité de fin de CDD, un préavis, une indemnité de licenciement. Livré avec le LOGICIEL : ce sont des articles du code du travail, pas des choix d'une compagnie.",
+  "_pourquoi_ici": "La règle du 17/09/2026 : aucune valeur réglementaire n'est écrite dans le code. 2,5 jours par mois, 10 %, un quart de mois par année — ce sont des nombres de la loi, et ils changent quand la loi change. Ils se lisent ici, avec l'article qui les porte.",
+  "_ce_que_ce_fichier_n_est_pas": "Ce n'est pas un barème : aucun taux de cotisation ici. Le barème vit dans les données de la compagnie (`config/baremes/AAAA.json`), parce qu'il porte des taux qui lui sont notifiés — AT/MP, prévoyance, mutuelle. Ce fichier ne porte que ce qui est le même pour tout le monde.",
+  "_source": {
+    "titre": "Code du travail, articles relevés sur Légifrance le 18/09/2026",
+    "copie": "prive/reference/sources/code-du-travail/permanents-articles-20260918.md",
+    "manifeste": "legifrance-code-du-travail-permanents (moteur/sources.json)",
+    "_veille": "Légifrance refuse les robots et la veille KALI ne couvre que les conventions collectives : ces articles se relisent à la main. Chacun porte son identifiant de version dans la copie."
+  },
+  "_la_convention_peut_faire_mieux": "Tout ce qui suit est un PLANCHER. La convention collective peut accorder un préavis plus long, une indemnité plus forte — et c'est alors elle qui s'applique. Depuis le 24/09/2026 (journal §114), ses clauses vivent dans `clauses-conventionnelles-base.json` (la 3090 : préavis 7.7, licenciement 7.8 et annexes, rupture conventionnelle 7.6, retraite 7.9, maintien 11.2 et 11.4), lues par `moteur/clauses.py` ; `operations_permanents` calcule la loi ET la convention et retient la plus favorable. Une convention qui n'y est pas n'a pas de clauses relevées : le moteur calcule la loi seule, et le dit.",
+
+  "conges_payes": {
+    "_quoi": "Les congés payés d'un permanent : ils s'acquièrent mois par mois, se prennent, et ce qui reste à la fin du contrat se paie.",
+    "acquisition": {
+      "jours_par_mois": 2.5,
+      "unite": "jours_ouvrables",
+      "maximum_annuel": 30,
+      "_source": "L3141-3 : « Le salarié a droit à un congé de deux jours et demi ouvrables par mois de travail effectif chez le même employeur. La durée totale du congé exigible ne peut excéder trente jours ouvrables. »",
+      "arrondi": "superieur",
+      "_arrondi": "Le décompte se fait en jours ouvrables et s'arrondit au demi-jour supérieur à la fin de la période de référence (usage constant, art. L3141-7 pour l'arrondi du congé pris). Le moteur garde le compte EXACT au dixième et n'arrondit qu'à l'affichage et au solde : arrondir chaque mois ferait dériver le total."
+    },
+    "periode_de_reference": {
+      "debut_mois": 6,
+      "debut_jour": 1,
+      "_source": "R3141-4 : « À défaut d'accord prévu à l'article L. 3141-10, le point de départ de la période prise en compte pour le calcul du droit au congé est fixé au 1er juin de chaque année. »",
+      "_caisse_de_conges": "Le même article fixe le 1er avril « dans les professions où l'employeur est tenu de s'affilier à une caisse de congé ». C'est la période des CONGÉS SPECTACLES, donc celle des intermittents — pas celle d'un permanent, qui n'y est pas affilié et dont l'employeur paie lui-même les congés. Les deux dates cohabitent dans une compagnie de spectacle, et c'est normal.",
+      "_accord": "L3141-10 permet à un accord d'entreprise, ou à défaut de branche, de fixer un autre point de départ (souvent le 1er janvier). Une compagnie qui en a un l'écrit dans sa fiche entreprise (`conges_payes.debut_periode`)."
+    },
+    "indemnisation": {
+      "regle": "plus_favorable",
+      "dixieme": 0.10,
+      "_source": "L3141-24 : I. « Le congé annuel ouvre droit à une indemnité égale au dixième de la rémunération brute totale perçue par le salarié au cours de la période de référence. » II. « Toutefois, l'indemnité prévue au I ne peut être inférieure au montant de la rémunération qui aurait été perçue pendant la période de congé si le salarié avait continué à travailler. »",
+      "_les_deux_calculs": "Le dixième et le maintien de salaire se calculent tous les deux, et c'est le plus favorable au salarié qui est dû. Le maintien fait le plancher, pas le calcul de référence.",
+      "maladie_non_professionnelle": {
+        "taux_assimilation": 0.80,
+        "_source": "L3141-24 I 4°, issu de la loi n° 2024-364 du 22 avril 2024 : les périodes du 7° de L3141-5 (arrêt maladie non professionnelle) comptent dans la rémunération de référence « dans la limite d'une prise en compte à 80 % de la rémunération associée à ces périodes ».",
+        "_etat": "RELEVÉ, PAS CODÉ. L3141-4 et L3141-5 (les périodes assimilées à du travail effectif) SONT relevés — L3141-5 porte depuis le 24/12/2025 un 8° de plus, le mandat électif local, qui renvoie lui-même à L3142-83 à L3142-88, non relevés. L'acquisition se compte toujours sur le temps de présence, et le moteur le dit."
+      }
+    },
+    "indemnite_compensatrice": {
+      "dsn_bloc52": "020",
+      "_dsn": "S21.G00.52.001 = « 020 - Indemnité compensatrice de congés payés ».",
+      "_source": "L3141-28 : « Lorsque le contrat de travail est rompu avant que le salarié ait pu bénéficier de la totalité du congé auquel il avait droit, il reçoit, pour la fraction de congé dont il n'a pas bénéficié, une indemnité compensatrice de congé déterminée d'après les articles L. 3141-24 à L. 3141-27. L'indemnité est due que cette rupture résulte du fait du salarié ou du fait de l'employeur. »",
+      "_toujours_due": "Toujours — démission comprise, faute grave comprise. Il n'y a pas de cas où elle ne l'est pas."
+    }
+  },
+
+  "indemnite_precarite": {
+    "_quoi": "L'indemnité de fin de contrat d'un CDD : 10 % de tout ce qui a été versé, sauf dans quatre cas — dont le contrat d'usage, qui est celui de l'intermittent.",
+    "taux": 0.10,
+    "taux_reduit_par_accord": 0.06,
+    "_source": "L1243-8 : « Cette indemnité est égale à 10 % de la rémunération totale brute versée au salarié. Elle s'ajoute à la rémunération totale brute due au salarié. Elle est versée à l'issue du contrat en même temps que le dernier salaire et figure sur le bulletin de salaire correspondant. » L1243-9 : un accord de branche étendu ou d'entreprise peut la limiter à 6 % en contrepartie d'un accès privilégié à la formation.",
+    "_taux_reduit": "Le taux de 6 % ne s'applique QUE si un accord le prévoit. Le moteur ne l'applique jamais de lui-même : il est ici pour qu'une compagnie qui a un tel accord l'écrive dans sa fiche entreprise (`indemnite_precarite_taux`), pas pour être choisi par défaut.",
+    "dsn_bloc52": "011",
+    "_dsn": "S21.G00.52.001 = « 011 - Indemnité légale de fin de CDD ».",
+    "natures_exclues": ["cddu_spectacle"],
+    "_natures_exclues": "L1243-10 1° : l'indemnité n'est pas due « lorsque le contrat est conclu au titre du 3° de l'article L. 1242-2 » — le contrat d'usage, celui dont le motif de recours est 05. C'est la raison pour laquelle aucun des 146 contrats de l'historique n'en porte, et un CDDU n'en portera jamais. « Sauf dispositions conventionnelles plus favorables » : à vérifier dans la 3090 si une compagnie en pose la question.",
+    "motifs_rupture_exclus": {
+      "037": "L1243-10 4° : rupture anticipée à l'initiative du salarié.",
+      "095": "L1243-10 4° : rupture anticipée pour faute grave.",
+      "096": "L1243-10 4° : faute lourde — a fortiori (la faute lourde est une faute grave aggravée).",
+      "083": "L1243-10 4° : force majeure.",
+      "034": "Fin de période d'essai à l'initiative de l'employeur : la rupture en période d'essai n'est pas une « issue du contrat » au sens de L1243-8 (Cass. soc., 5 novembre 1987). À CONFIRMER : c'est une lecture de jurisprudence, pas un article.",
+      "035": "Fin de période d'essai à l'initiative du salarié : même raison, et le 4° de L1243-10 s'applique de toute façon."
+    },
+    "_autres_exclusions_non_codees": "L1243-10 porte deux cas de plus que le moteur ne sait pas voir, parce qu'ils ne se lisent ni dans la nature du contrat ni dans le motif de rupture : le jeune employé pendant ses vacances scolaires (2°) et le salarié qui REFUSE un CDI au même emploi et à rémunération au moins équivalente (3°). Ils se disent à la main sur l'engagement (`precarite_due: false`), avec la raison."
+  },
+
+  "preavis": {
+    "_quoi": "Le préavis dû en cas de licenciement, par tranche d'ancienneté. Il ne s'applique pas à une faute grave.",
+    "_source": "L1234-1. « Toutefois, les dispositions des 2° et 3° ne sont applicables que si la loi, la convention ou l'accord collectif de travail, le contrat de travail ou les usages ne prévoient pas un préavis ou une condition d'ancienneté plus favorable pour le salarié. »",
+    "tranches": [
+      {
+        "anciennete_mois_min": 0,
+        "anciennete_mois_max": 6,
+        "mois": null,
+        "_quoi": "Moins de six mois : « un préavis dont la durée est déterminée par la loi, la convention ou l'accord collectif de travail ou, à défaut, par les usages pratiqués dans la localité et la profession ». La loi ne donne aucune durée : le moteur ne la devine pas, il demande."
+      },
+      {"anciennete_mois_min": 6, "anciennete_mois_max": 24, "mois": 1, "_quoi": "De six mois à moins de deux ans : un mois."},
+      {"anciennete_mois_min": 24, "anciennete_mois_max": null, "mois": 2, "_quoi": "Au moins deux ans : deux mois."}
+    ],
+    "motifs_sans_preavis": {
+      "087": "Licenciement pour faute grave — L1234-1 : « Lorsque le licenciement n'est pas motivé par une faute grave ».",
+      "088": "Licenciement pour faute lourde.",
+      "034": "Fin de période d'essai à l'initiative de l'employeur : pas de préavis, un délai de prévenance (L1221-25 : vingt-quatre heures, quarante-huit heures, deux semaines ou un mois selon la durée de présence), pas L1234-1. S'il n'est pas respecté, L1221-25, dernier alinéa, ouvre au salarié « une indemnité compensatrice [...] égale au montant des salaires et avantages que le salarié aurait perçus s'il avait accompli son travail jusqu'à l'expiration du délai de prévenance » : le moteur la calcule (`preavis.delai_de_prevenance`, lot P2).",
+      "035": "Fin de période d'essai à l'initiative du salarié : pas de préavis, un délai de prévenance que le salarié respecte (L1221-26 : quarante-huit heures, vingt-quatre sous huit jours de présence) ; aucun article ne lui donne d'indemnité.",
+      "031": "Fin de CDD arrivé à son terme : le contrat « cesse de plein droit à l'échéance du terme » (L1243-5, prive/reference/sources/code-du-travail/articles-20261013.md), il n'y a pas de préavis ; L1234-1 est celui du licenciement (« Lorsque le licenciement n'est pas motivé par une faute grave »). Seul le CDD à objet défini (L1242-2, 6°) prend fin après « un délai de prévenance au moins égal à deux mois » : le moteur n'a pas cette nature.",
+      "043": "Rupture conventionnelle : il n'y a pas de préavis, il y a une date convenue. L1237-13 : la convention « fixe la date de rupture du contrat de travail, qui ne peut intervenir avant le lendemain du jour de l'homologation ». Un salarié dispensé de venir jusque-là n'a donc aucune indemnité compensatrice de préavis — et le FCTU le dit à sa façon, avec le type de préavis « 90 - pas de clause de préavis applicable » (CCH-12)."
+    },
+    "rupture_anticipee_cdd": {
+      "_quoi": "La rupture d'un contrat à durée déterminée avant son terme (motifs de la nature 02, `contrats-base.json`). Lue pour un contrat à durée déterminée seulement : le même code (083, force majeure) peut finir un CDI, dont le préavis relève d'autres articles. Hors de cette liste, un CDD suit `motifs_sans_preavis` ci-dessus (031, 034, 035).",
+      "_source": "Code du travail, relevé LEGI du 13/10/2026 (prive/reference/sources/code-du-travail/articles-20261013.md, « La fin d'un CDD : a son terme, ou avant ») : L1243-1 (« Sauf accord des parties, le contrat de travail à durée déterminée ne peut être rompu avant l'échéance du terme qu'en cas de faute grave, de force majeure ou d'inaptitude constatée par le médecin du travail »), L1243-2 (le seul préavis : le salarié qui justifie d'un CDI), L1243-3 et L1243-4 (une rupture hors de ces cas ouvre des dommages et intérêts, pas un préavis), L1226-4-2, L1226-4-3 et L1226-20 (l'inaptitude). Aucun de ces articles ne donne de préavis hors de L1243-2 ; L1234-1 est celui du licenciement (« Lorsque le licenciement n'est pas motivé par une faute grave »).",
+      "motifs_sans_preavis": {
+        "036": "Rupture anticipée à l'initiative de l'employeur : L1243-1 ne la permet qu'en cas de faute grave (095, 096), de force majeure (083), d'inaptitude (033) ou d'un commun accord (084) ; hors de ces cas, L1243-4 ouvre au salarié des dommages et intérêts « d'un montant au moins égal aux rémunérations qu'il aurait perçues jusqu'au terme du contrat », pas un préavis.",
+        "084": "Rupture d'un commun accord : L1243-1 (« Sauf accord des parties ») ; la fin est à la date que les parties conviennent, aucun article ne donne de préavis.",
+        "095": "Rupture anticipée pour faute grave : L1243-1 ; aucun article ne donne de préavis.",
+        "096": "Rupture anticipée pour faute lourde : une faute grave aggravée, L1243-1 comme pour 095 ; aucun article ne donne de préavis.",
+        "083": "Rupture pour force majeure : L1243-1 ; si la force majeure est un sinistre, L1243-4, al. 2, donne au salarié « une indemnité compensatrice dont le montant est égal aux rémunérations qu'il aurait perçues jusqu'au terme du contrat » : une indemnité, pas un préavis (le moteur ne la calcule pas).",
+        "033": "Rupture pour inaptitude constatée par le médecin du travail : L1243-1 ; L1226-4-3 (et L1226-20, al. 4, pour une inaptitude d'origine professionnelle) donne une indemnité de rupture, pas un préavis."
+      },
+      "motifs_a_dire": {
+        "037": "Rupture anticipée à l'initiative du salarié : L1243-2, s'il justifie de la conclusion d'un CDI, « un préavis dont la durée est calculée à raison d'un jour par semaine » de la durée totale du contrat, renouvellements compris (de la durée effectuée s'il n'a pas de terme précis), « Le préavis ne peut excéder deux semaines », sauf accord des parties ; sans CDI, L1243-1 ne permet pas cette rupture, et L1243-3 ouvre à l'employeur des dommages et intérêts. Le moteur ne sait ni si un CDI est justifié ni le terme d'origine du contrat : le préavis se dit à la main."
+      }
+    },
+    "delai_de_prevenance": {
+      "_quoi": "La fin d'une période d'essai à l'initiative de l'employeur (034) : pas de préavis, un délai de prévenance ; s'il n'est pas respecté, une indemnité compensatrice, que le solde de tout compte paie. Lu par `permanents::delai_de_prevenance` et `solde::solde_de_tout_compte` (lot P2).",
+      "_source": "L1221-25 (relevé LEGI du 13/10/2026, prive/reference/sources/code-du-travail/articles-20261013.md) : « Lorsqu'il est mis fin, par l'employeur, au contrat en cours ou au terme de la période d'essai définie aux articles L. 1221-19 à L. 1221-24 ou à l'article L. 1242-10 pour les contrats stipulant une période d'essai d'au moins une semaine, le salarié est prévenu dans un délai qui ne peut être inférieur à : 1° Vingt-quatre heures en deçà de huit jours de présence ; 2° Quarante-huit heures entre huit jours et un mois de présence ; 3° Deux semaines après un mois de présence ; 4° Un mois après trois mois de présence. La période d'essai, renouvellement inclus, ne peut être prolongée du fait de la durée du délai de prévenance. Lorsque le délai de prévenance n'a pas été respecté, son inexécution ouvre droit pour le salarié, sauf s'il a commis une faute grave, à une indemnité compensatrice. Cette indemnité est égale au montant des salaires et avantages que le salarié aurait perçus s'il avait accompli son travail jusqu'à l'expiration du délai de prévenance, indemnité compensatrice de congés payés comprise. »",
+      "motif_rupture": "034",
+      "rubrique": "indemnite_delai_prevenance",
+      "tranches": [
+        {"presence_moins_de_jours": 8, "delai_jours": 1, "texte": "vingt-quatre heures (L1221-25, 1° : moins de huit jours de présence)"},
+        {"presence_jusqu_a_mois": 1, "delai_jours": 2, "texte": "quarante-huit heures (L1221-25, 2° : de huit jours à un mois de présence)"},
+        {"presence_jusqu_a_mois": 3, "delai_jours": 14, "texte": "deux semaines (L1221-25, 3° : plus d'un mois de présence)"},
+        {"delai_mois": 1, "texte": "un mois (L1221-25, 4° : plus de trois mois de présence)"}
+      ],
+      "_tranches": "Lues dans l'ordre : la première dont la présence tombe dedans (`presence_moins_de_jours` : strictement moins de jours ; `presence_jusqu_a_mois` : au plus ce nombre de mois), la dernière sinon. Le délai : `delai_jours` jours, ou `delai_mois` mois.",
+      "_lecture": "LECTURES, écrites comme telles : aucun texte déposé ne dit comment se comptent la présence ni le délai. La présence va du premier jour du contrat au jour de la notification de la rupture, l'un et l'autre compris (huit jours de présence : notifiée le huitième jour) ; « un mois » et « trois mois » de présence se mesurent comme l'ancienneté du moteur (`permanents::anciennete_mois`), « après » voulant dire au-delà. Le délai court du lendemain de la notification, en jours entiers : vingt-quatre heures, un jour ; quarante-huit heures, deux ; deux semaines, quatorze ; un mois, jusqu'au même quantième du mois suivant (ou à son dernier jour s'il n'en a pas). Il est respecté si le contrat finit le jour où il expire, ou après. La part non effectuée, du lendemain de la fin du contrat au jour où le délai expire, se paie au salaire mensuel du contrat, chaque jour au prorata des jours calendaires de son mois (la règle du moteur pour un mois incomplet, `conges::lignes_du_mois`). Les « avantages » et l'indemnité compensatrice de congés payés de ces jours ne sont pas ajoutés : l'avertissement le dit.",
+      "cdd_essai_minimum_jours": 7,
+      "_cdd": "Pour un contrat à durée déterminée, L1221-25 ne vaut que s'il stipule « une période d'essai d'au moins une semaine » (L1242-10) : le moteur demande la durée stipulée, en jours (`periode_essai_jours` sur l'engagement), et ne la devine pas ; une semaine, sept jours.",
+      "_faute_grave": "« sauf s'il a commis une faute grave » : le motif 034 ne le dit pas, la saisie le dit (`faute_grave` sur l'engagement), et il n'y a pas d'indemnité.",
+      "_dsn": "S21.G00.52.001 = « 017 - Dommages et intérêts dus à la non remise du contrat ou dus à un CDD ou à une rupture de période d'essai (délai de prévenance) » (cahier technique 2026.1, p. 253, prive/reference/norme-dsn/texte/bloc-S21.G00.52.txt ; aucun contrôle CCH ne le lie à un motif) ; la grille d'aide « Indemnités » de net-entreprises (prive/reference/norme-dsn/netentreprises-grille-aide-remplissage-indemnites.pdf) le donne pour « une rupture de période d'essai (on parle délai de prévenance) ». Le type de préavis du signalement est « 60 - Délai de prévenance » ou « 90 » (CCH-11 du bloc 63).",
+      "_salarie_035": "L1221-26 : le salarié qui met fin à l'essai (035) respecte un délai de prévenance (quarante-huit heures, vingt-quatre sous huit jours de présence) ; aucun article ne lui donne d'indemnité : le solde n'écrit rien."
+    },
+    "_mise_et_depart_a_la_retraite": "Ces deux ruptures-là ont bien un préavis, et c'est CELUI-CI : L1237-6 (mise à la retraite) et L1237-10 (départ à la retraite) renvoient tous deux à L1234-1. Les tranches ci-dessus s'appliquent donc telles quelles ; il n'y a rien à ajouter, et c'est pour le dire que cette ligne existe.",
+    "indemnite_compensatrice": {
+      "rubrique": "indemnite_preavis",
+      "rubrique_par_motif": {
+        "_quoi": "La rubrique de la ligne que le solde écrit, quand le motif en a une à lui ; hors d'ici, `rubrique` ci-dessus. Le code du bloc S21.G00.52 est celui de la rubrique (`rubriques-base.json`) : il dépend du motif comme l'indemnité. Lu par `permanents::rubrique_de_l_indemnite_de_preavis` (lot P2).",
+        "092": "indemnite_preavis_inaptitude"
+      },
+      "_dsn": "S21.G00.52.001 (cahier technique 2026.1, p. 252-253, prive/reference/norme-dsn/texte/bloc-S21.G00.52.txt) : « 023 - Indemnité compensatrice de préavis payé non effectué » (`indemnite_preavis`) ; pour le 092, « 032 - Indemnité compensatrice de préavis pour inaptitude suite AT ou Maladie Professionnelle » (`indemnite_preavis_inaptitude`), que CCH-29 ne permet qu'avec les motifs 033, 091, 092 et 099 (`indemnites_de_rupture.codes`).",
+      "_source": "L1234-5 : « Lorsque le salarié n'exécute pas le préavis, il a droit, sauf s'il a commis une faute grave, à une indemnité compensatrice. L'inexécution du préavis, notamment en cas de dispense par l'employeur, n'entraîne aucune diminution des salaires et avantages que le salarié aurait perçus s'il avait accompli son travail jusqu'à l'expiration du préavis, indemnité de congés payés comprise. »",
+      "_conges_payes_compris": "Le préavis non effectué ouvre des congés payés : l'indemnité compensatrice de préavis entre dans l'assiette du dixième, et le préavis compte dans l'acquisition.",
+      "_par_motif": "L1234-5 est au Titre III (CDI), chapitre IV « Conséquences du licenciement » : c'est le droit du salarié LICENCIÉ (020, 014) dont le préavis n'est pas exécuté. Ce que les autres fins de contrat en font est dit motif par motif ci-dessous, par leurs propres articles (relevé LEGI du 13/10/2026, prive/reference/sources/code-du-travail/articles-20261013.md, « Le preavis non effectue : ce que chaque fin de contrat en fait »). Un motif sans préavis (`motifs_sans_preavis`, `rupture_anticipee_cdd.motifs_sans_preavis`) n'a rien à indemniser et n'est pas repris ici. Lu par `permanents::indemnite_de_preavis` et `solde::solde_de_tout_compte` ; l'écran ne propose la case « préavis non effectué, payé en indemnité » que là où elle paie quelque chose (`routes_accueil::faits_de_rupture`).",
+      "motifs_sans_indemnite": {
+        "037": "Rupture anticipée d'un CDD à l'initiative du salarié : L1243-2 lui donne un préavis à respecter, L1243-3 des dommages et intérêts à l'employeur s'il rompt hors des cas permis ; aucun article du Titre IV (L1243-1 à L1243-4) ne donne au salarié une indemnité compensatrice de préavis, et L1234-5 est au chapitre du licenciement d'un CDI.",
+        "059": "Démission : L1237-1 fixe l'existence et la durée du préavis du démissionnaire (« par la loi, ou par convention ou accord collectif de travail », à défaut par les usages), rien de plus ; L1237-2 ouvre à l'employeur des dommages et intérêts si la rupture est abusive. Aucun article n'ouvre au démissionnaire une indemnité compensatrice de préavis : L1234-5 est au chapitre du licenciement.",
+        "039": "Départ à la retraite à l'initiative du salarié : L1237-10 dit le préavis que le salarié « respecte », d'une durée « déterminée conformément à l'article L. 1234-1 » ; il renvoie à L1234-1 pour la durée, pas à L1234-5. Aucun article n'ouvre au salarié qui part une indemnité compensatrice de préavis (lecture : la même que pour la démission, L1237-1).",
+        "091": "Licenciement pour inaptitude d'origine non professionnelle : L1226-4, al. 3 : « En cas de licenciement, le préavis n'est pas exécuté et le contrat de travail est rompu à la date de notification du licenciement. Le préavis est néanmoins pris en compte pour le calcul de l'indemnité mentionnée à l'article L. 1234-9. Par dérogation à l'article L. 1234-5, l'inexécution du préavis ne donne pas lieu au versement d'une indemnité compensatrice. »"
+      },
+      "motifs_par_un_autre_article": {
+        "092": "Licenciement pour inaptitude d'origine professionnelle : L1226-14, al. 1 : la rupture dans les cas du deuxième alinéa de L1226-12 « ouvre droit, pour le salarié, à une indemnité compensatrice d'un montant égal à celui de l'indemnité compensatrice de préavis prévue à l'article L. 1234-5 » (sauf refus abusif du reclassement, al. 2). Le montant est celui que le moteur calcule ; la ligne est `indemnite_preavis_inaptitude`, déclarée sous son code, « 032 - Indemnité compensatrice de préavis pour inaptitude suite AT ou Maladie Professionnelle » (bloc S21.G00.52, `rubrique_par_motif`).",
+        "083": "Rupture d'un CDI pour force majeure : L1234-12 : « La cessation de l'entreprise pour cas de force majeure libère l'employeur de l'obligation de respecter le préavis » ; L1234-13 : si la rupture « résulte d'un sinistre relevant d'un cas de force majeure », le salarié a droit à une indemnité compensatrice « d'un montant égal à celui qui aurait résulté de l'application des articles L. 1234-5 [...] et L. 1234-9 » (DSN : « 018 - Indemnité due en raison d'un sinistre »). Le moteur ne sait pas lequel des deux : il paie comme avant, et c'est à trancher."
+      },
+      "motifs_a_trancher": {
+        "_quoi": "Aucun texte déposé ne dit si le salarié dont le préavis n'est pas exécuté reçoit l'indemnité de L1234-5, ni qu'il ne la reçoit pas. Le moteur paie comme avant le lot P1, et le dit.",
+        "038": "Mise à la retraite par l'employeur : L1237-6 donne le préavis de L1234-1 (« L'employeur qui décide une mise à la retraite respecte un préavis dont la durée est déterminée conformément à l'article L. 1234-1 ») ; il ne renvoie pas à L1234-5.",
+        "058": "Prise d'acte de la rupture : aucun article du code n'en traite.",
+        "065": "Décès de l'employeur ou internement : aucun article relevé n'en traite (L1234-7 : la cessation de l'entreprise ne libère pas l'employeur du préavis, sans dire l'indemnité)."
+      }
+    },
+    "_cadres_3090": "La convention 3090 prévoit très probablement trois mois pour les cadres — c'est l'usage de la branche. Non relevé : le moteur applique la loi et avertit qu'une clause conventionnelle peut être plus favorable."
+  },
+
+  "indemnite_licenciement": {
+    "_quoi": "L'indemnité légale de licenciement. Le minimum : la convention peut faire mieux.",
+    "anciennete_minimale_mois": 8,
+    "_anciennete": "L1234-9 : « Le salarié titulaire d'un contrat de travail à durée indéterminée, licencié alors qu'il compte 8 mois d'ancienneté ininterrompus au service du même employeur, a droit, sauf en cas de faute grave, à une indemnité de licenciement. »",
+    "taux": [
+      {"jusqu_a_annees": 10, "fraction_de_mois": 0.25, "_quoi": "R1234-2 1° : « Un quart de mois de salaire par année d'ancienneté pour les années jusqu'à dix ans »."},
+      {"jusqu_a_annees": null, "fraction_de_mois": 0.3333333333, "_quoi": "R1234-2 2° : « Un tiers de mois de salaire par année d'ancienneté pour les années à partir de dix ans »."}
+    ],
+    "_annee_incomplete": "R1234-1 : « En cas d'année incomplète, l'indemnité est calculée proportionnellement au nombre de mois complets. » Les mois entamés ne comptent pas ; les mois complets, oui, au prorata de douze.",
+    "salaire_de_reference": {
+      "regle": "plus_favorable",
+      "formules": [
+        {"cle": "moyenne_12_mois", "_quoi": "R1234-4 1° : la moyenne mensuelle des douze derniers mois précédant le licenciement — ou, si le salarié a moins de douze mois de service, la moyenne mensuelle de tous les mois précédents."},
+        {"cle": "tiers_3_mois", "_quoi": "R1234-4 2° : le tiers des trois derniers mois. « Dans ce cas, toute prime ou gratification de caractère annuel ou exceptionnel, versée au salarié pendant cette période, n'est prise en compte que dans la limite d'un montant calculé à due proportion. »"}
+      ],
+      "_source": "R1234-4 : « selon la formule la plus avantageuse pour le salarié »."
+    },
+    "motifs_sans_indemnite": {
+      "087": "Faute grave — L1234-9 : « sauf en cas de faute grave ».",
+      "088": "Faute lourde.",
+      "059": "Démission : ce n'est pas un licenciement.",
+      "039": "Départ à la retraite à l'initiative du salarié : indemnité de départ à la retraite (L1237-9), pas de licenciement. Non codée.",
+      "034": "Fin de période d'essai à l'initiative de l'employeur : ce n'est pas un licenciement.",
+      "035": "Fin de période d'essai à l'initiative du salarié."
+    },
+    "dsn_bloc52": "007",
+    "_dsn": "S21.G00.52.001 = « 007 - Indemnité légale de licenciement ». Une indemnité conventionnelle supérieure se déclare pour son SUPPLÉMENT en « 021 - Indemnité conventionnelle (supplémentaire aux indemnités légales) ».",
+    "_les_trois_autres_ruptures": "La rupture conventionnelle, la mise à la retraite et le départ à la retraite ont chacun leur section ci-dessous depuis le 19/09/2026 : leurs articles ont été relevés (L1237-5 à L1237-16, D1237-1, D1237-2). Deux d'entre elles se calculent AVEC la formule de l'indemnité de licenciement, parce que c'est leur article qui le dit — L1237-7 et L1237-13 renvoient à L1234-9 — et non par ressemblance. La troisième, le départ volontaire à la retraite, a son propre barème, et il ne ressemble à rien d'autre.",
+    "_declaration": "Chacune a SON code de bloc 52, et le cahier technique interdit de les intervertir : voir `indemnites_de_rupture` ci-dessous."
+  },
+
+  "indemnites_de_rupture": {
+    "_quoi": "Quel code d'indemnité le bloc S21.G00.52 accepte, selon le motif de la rupture déclaré en S21.G00.62.002. Ce n'est pas un détail de forme : une indemnité portée sous le code d'une autre fait rejeter la déclaration.",
+    "_source": "Cahier technique NEODeS CT2026.1, bloc S21.G00.52, rubrique .001, contrôles CCH-21, CCH-22, CCH-23 et CCH-24, p. 251, et CCH-29, p. 252. Copie dans `prive/reference/norme-dsn/dsn-cahier-technique-2026.1.pdf` ; le texte du bloc, `prive/reference/norme-dsn/texte/bloc-S21.G00.52.txt`.",
+    "_ce_que_ca_corrigeait": "Jusqu'au 19/09/2026 le moteur ne connaissait qu'un seul code d'indemnité de rupture, 007 — l'indemnité légale de licenciement — et l'écrivait dès qu'un CDI se terminait avec un motif. Une rupture conventionnelle (motif 043) serait donc partie avec une indemnité de licenciement, ce que CCH-24 refuse explicitement : ce contrôle énumère les motifs permis avec 007, et 043 n'en fait pas partie. La déclaration aurait été rejetée, et c'est la bonne nouvelle : elle aurait pu être acceptée et fausse.",
+    "codes": {
+      "001": {"libelle": "Indemnité spécifique de rupture conventionnelle", "controle": "CCH-21", "motifs": ["043", "110", "099"]},
+      "003": {"libelle": "Indemnité légale de mise à la retraite par l'employeur", "controle": "CCH-22", "motifs": ["038", "099"]},
+      "004": {"libelle": "Indemnité conventionnelle de mise à la retraite par l'employeur", "controle": "CCH-22", "motifs": ["038", "099"]},
+      "005": {"libelle": "Indemnité légale de départ à la retraite du salarié", "controle": "CCH-23", "motifs": ["039", "059", "099"]},
+      "006": {"libelle": "Indemnité conventionnelle de départ à la retraite du salarié", "controle": "CCH-23", "motifs": ["039", "059", "099"]},
+      "007": {"libelle": "Indemnité légale de licenciement", "controle": "CCH-24", "motifs": ["011", "012", "014", "015", "020", "025", "026", "082", "086", "087", "089", "091", "092", "093", "098", "099", "111", "112", "113", "114", "115", "117"]},
+      "032": {"libelle": "Indemnité compensatrice de préavis pour inaptitude suite AT ou Maladie Professionnelle", "controle": "CCH-29", "motifs": ["033", "091", "092", "099"]}
+    },
+    "_099": "Le motif 099 est « Annulation » : il est permis partout parce qu'une déclaration qui en annule une autre reprend ses codes. Le moteur ne produit pas d'annulation par ce chemin.",
+    "_007_sans_faute_lourde": "CCH-24 énumère la faute grave (087) et pas la faute lourde (088). Ce n'est pas une omission à corriger : aucune indemnité de licenciement n'est due pour l'une ni pour l'autre (L1234-9), donc le cas ne se présente pas. Le moteur exclut les deux de son côté.",
+    "_ce_que_cette_table_ne_dit_pas": "Elle ne liste QUE les codes que ces contrôles contraignent. Les autres codes du bloc 52 — l'indemnité compensatrice de congés payés (020), l'indemnité légale de fin de CDD (011), l'indemnité compensatrice de préavis (023), l'indemnité du délai de prévenance d'une fin d'essai (017, `preavis.delai_de_prevenance`) — se déclarent avec n'importe quel motif de rupture, et il n'y a rien à vérifier. Un code absent d'ici n'est donc pas un code interdit : c'est un code libre.",
+    "_les_codes_qu_on_n_ecrit_pas": "Les codes 002, 008 à 010, 012 à 016, 018, 019 et au-delà existent et ne sont pas ici : ils ne concernent ni un CDI, ni un CDD, ni un contrat d'usage de cette compagnie (mandataire social, journaliste, personnel navigant, apprenti, contrat de mission)."
+  },
+
+  "regime_des_indemnites_de_rupture": {
+    "_quoi": "Ce qu'une indemnité de rupture SUPPORTE : l'impôt sur le revenu, les cotisations. Le code du travail dit ce qu'elle vaut et n'en dit pas un mot — ces deux-là sont ailleurs, et le moteur ne les a lus que le 19/09/2026.",
+    "_source": {
+      "cotisations": "Code de la sécurité sociale, L242-1 II 7°, relevé le 19/09/2026 dans la base LEGI de la DILA. Copie dans `prive/reference/sources/code-de-la-securite-sociale/`.",
+      "impot": "Code général des impôts, article 80 duodecies, relevé le même jour et par le même chemin. Copie dans `prive/reference/sources/code-general-des-impots/`."
+    },
+    "_la_regle_en_une_phrase": "L242-1 II 7° exclut de l'assiette des cotisations, dans la limite de deux plafonds annuels, « les indemnités versées à l'occasion de la rupture du contrat de travail […] QUI NE SONT PAS IMPOSABLES EN APPLICATION DE L'ARTICLE 80 DUODECIES ». Le régime social se lit donc dans le régime fiscal : c'est l'article des impôts qui commande, et il ne parle pas de toutes les ruptures.",
+    "_ce_que_80_duodecies_dit_d_abord": "« Toute indemnité versée à l'occasion de la rupture du contrat de travail constitue une rémunération imposable, sous réserve des dispositions suivantes. » Le principe est l'imposition ; les exonérations sont une liste FERMÉE, et une indemnité qui n'y est pas est imposable — donc soumise à cotisations.",
+    "par_indemnite": {
+      "licenciement": {"imposable": false, "soumis": false, "_source": "80 duodecies 3° b : la fraction qui n'excède pas « le montant de l'indemnité de licenciement prévue par la convention collective de branche, par l'accord professionnel ou interprofessionnel ou, à défaut, PAR LA LOI ». Le moteur n'écrit que le montant légal : il est donc, par construction, dans la fraction non imposable."},
+      "mise_a_la_retraite": {"imposable": false, "soumis": false, "_source": "80 duodecies 4° b : même rédaction, pour « le montant de l'indemnité de mise à la retraite prévue par […] la loi »."},
+      "rupture_conventionnelle": {"imposable": false, "soumis": false, "_condition": "80 duodecies 6° : la fraction des indemnités de L1237-13 n'échappe à l'impôt que « LORSQU'ILS NE SONT PAS EN DROIT DE BÉNÉFICIER D'UNE PENSION DE RETRAITE d'un régime légalement obligatoire ». C'est un fait du salarié, pas du contrat, et le moteur ne peut pas le deviner : il le demande (`en_droit_a_la_retraite` sur l'engagement) et refuse de produire l'indemnité tant qu'il ne l'a pas."},
+      "rupture_conventionnelle_en_droit_a_la_retraite": {"imposable": true, "soumis": false, "_source": "Le salarié en droit de bénéficier d'une pension est hors du 6° de 80 duodecies : son indemnité est IMPOSABLE. Elle reste pourtant exclue des cotisations, et c'est le second alinéa de L242-1 II 7° qui le dit expressément : le premier alinéa « est également applicable aux indemnités mentionnées au 6° de l'article 80 duodecies […] versées aux salariés […] en droit de bénéficier d'une pension de retraite d'un régime légalement obligatoire, Y COMPRIS LORSQU'ELLES SONT IMPOSABLES et dans la limite des montants prévus aux a et b du 6° ». Imposable et non soumise : c'est le seul cas du catalogue où les deux ne vont pas ensemble."},
+      "depart_a_la_retraite": {"imposable": true, "soumis": true, "_source": "80 duodecies n'exonère le départ VOLONTAIRE à la retraite que dans le cadre d'un plan de sauvegarde de l'emploi (2°). Hors PSE — et une compagnie de deux salariés n'en fera jamais — l'indemnité de L1237-9 n'est dans aucune des exonérations : elle est imposable par le principe du 1, et donc soumise à cotisations, puisque L242-1 II 7° n'exclut que ce qui n'est pas imposable. C'est la seule des quatre qui se traite comme un salaire."}
+    },
+    "plafonds": {
+      "cotisations_exoneration_pass": 2,
+      "_cotisations": "L242-1 II 7° : l'exclusion joue « dans la limite de deux fois le montant annuel du plafond défini à l'article L. 241-3 ». Table des paramètres du BOSS, code IND_LICEN_PSE_SEUIL_COT : 96 120 € en 2026, soit deux fois 48 060.",
+      "cotisations_assujettissement_total_pass": 10,
+      "_assujettissement_total": "Même article : « sont intégralement assujetties à cotisations […] celles versées à l'occasion de la rupture du contrat de travail d'un montant supérieur à DIX FOIS le montant de ce même plafond ». BOSS, code IND_LICEN_PSE_PLAF_COT : 480 600 € en 2026. Au-delà, l'indemnité entre entière dans l'assiette — pas seulement l'excédent.",
+      "_ce_que_le_moteur_fait_des_deux": "Il refuse. Une indemnité au-delà de deux plafonds annuels se partage entre une part exonérée et une part soumise, et une ligne de bulletin ne se partage pas : le moteur arrête plutôt que de déclarer de travers. Dans une compagnie de deux salariés au SMIC conventionnel, ce refus ne se rencontrera jamais — et c'est justement pour cela qu'il doit être écrit, faute de quoi personne ne le verrait venir.",
+      "_csg_crds": "La CSG et la CRDS ont leur propre limite, plus basse : elles sont dues dès le premier euro qui dépasse le montant LÉGAL ou CONVENTIONNEL. C'est la raison pour laquelle le moteur n'écrit que le montant légal et refuse tout supplément : au-delà, il faudrait partager une ligne entre trois régimes."
+    },
+    "contribution_patronale": {
+      "taux": 40,
+      "motifs": ["038", "043"],
+      "_source": "CSS L137-12 (`LEGIARTI000053282399`, en vigueur depuis le 31/12/2025) : « Est instituée, à la charge de l'employeur et au profit de la Caisse nationale d'assurance vieillesse, une contribution assise sur les indemnités versées à l'occasion de : 1° La mise à la retraite d'un salarié à l'initiative de l'employeur […] 2° La rupture conventionnelle […] pour leur part exclue de l'assiette des cotisations de sécurité sociale en application du 7° du II de l'article L. 242-1. Le taux de cette contribution est fixé à 40 %. »",
+      "_le_taux_a_change_et_on_a_failli_ecrire_l_ancien": "Il était de **30 %** depuis le 01/09/2023, et c'est le chiffre que porte l'archive globale LEGI du 13/07/2025 — celle qui sert de socle au relevé. La loi de financement de la sécurité sociale pour 2026 l'a porté à **40 %** au 31/12/2025, et c'est une LIVRAISON QUOTIDIENNE qui l'a rattrapé, le 02/01/2026. Un relevé qui se serait arrêté à l'archive globale aurait annoncé un quart de trop. C'est exactement ce que le passage des 433 livraisons sert à empêcher, et c'est la première fois qu'il attrape quelque chose.",
+      "_le_moteur_ne_la_calcule_pas": "Elle est DUE par l'employeur et n'est dans aucune section du barème : l'inventer ferait un bordereau faux. Le moteur en donne le montant dans un avertissement, au moment où il écrit l'une de ces deux indemnités, et ne l'écrit nulle part."
+    }
+  },
+
+  "rupture_conventionnelle": {
+    "_quoi": "La rupture d'un commun accord d'un CDI. Ni licenciement, ni démission, et elle n'existe que pour un contrat à durée indéterminée : ses articles sont au titre III du livre II, « Rupture du contrat de travail à durée indéterminée ».",
+    "_source": "L1237-11 à L1237-16, relevés le 19/09/2026 dans la base LEGI de la DILA par `outils/relever_les_codes.py`. Copie dans `prive/reference/sources/code-du-travail/`.",
+    "motif_rupture": "043",
+    "dsn_bloc52": "001",
+    "rubrique": "indemnite_rupture_conventionnelle",
+    "indemnite": {
+      "plancher": "indemnite_licenciement",
+      "_source": "L1237-13 : « La convention de rupture définit les conditions de celle-ci, notamment le montant de l'indemnité spécifique de rupture conventionnelle qui ne peut pas être inférieur à celui de l'indemnité prévue à l'article L. 1234-9. »",
+      "_ce_que_le_moteur_calcule": "Le PLANCHER, avec la formule de l'indemnité de licenciement et son salaire de référence (R1234-2, R1234-4). Le montant réel est celui de la convention signée : il se saisit (`indemnite_rupture_conventionnelle`), et le moteur refuse ce qui est inférieur au plancher.",
+      "_une_saisie_deux_rubriques": "Le montant se saisit toujours sous `indemnite_rupture_conventionnelle`, quel que soit le cas. C'est `en_droit_a_la_retraite` — un fait du salarié, pas du contrat — qui décide de la rubrique ÉCRITE : celle-là si le salarié n'est pas en droit de bénéficier d'une pension, sa jumelle `indemnite_rupture_conventionnelle_imposable` s'il l'est. Voir `regime_des_indemnites_de_rupture`. Le moteur refuse de produire tant que le fait n'est pas dit.",
+      "_sous_huit_mois": "L1234-9 réserve l'indemnité de licenciement au salarié qui compte huit mois d'ancienneté. En dessous, l'article ne donne aucun plancher, et le moteur ne l'invente pas : il demande le montant de la convention. L'administration en calcule un au prorata (circulaire DGT 2009-04, NON RELEVÉE) — ce n'est pas la loi, et ce n'est pas écrit ici."
+    },
+    "preavis": {
+      "du": false,
+      "_source": "L1237-13, deuxième alinéa : la convention « fixe la date de rupture du contrat de travail, qui ne peut intervenir avant le lendemain du jour de l'homologation ». Il n'y a pas de préavis : il y a une date convenue.",
+      "_ne_pas_confondre": "Un salarié dispensé de venir jusqu'à la date convenue n'a pas droit à une indemnité compensatrice de préavis : le préavis n'existe pas dans cette rupture. Le moteur refuse de l'écrire."
+    },
+    "calendrier": {
+      "retractation_jours_calendaires": 15,
+      "_retractation": "L1237-13, troisième alinéa : « A compter de la date de sa signature par les deux parties, chacune d'entre elles dispose d'un délai de quinze jours calendaires pour exercer son droit de rétractation. »",
+      "instruction_jours_ouvrables": 15,
+      "_instruction": "L1237-14 : l'autorité administrative « dispose d'un délai d'instruction de quinze jours ouvrables, à compter de la réception de la demande […] A défaut de notification dans ce délai, l'homologation est réputée acquise ».",
+      "_la_date_de_fin": "L1237-13 : la rupture ne peut pas intervenir avant le LENDEMAIN de l'homologation. Le moteur vérifie cette date quand `homologation` est saisie sur l'engagement, et le dit quand elle ne l'est pas — il ne la devine pas.",
+      "_salarie_protege": "L1237-15 : pour un salarié protégé, c'est une AUTORISATION de l'inspecteur du travail, pas une homologation, et la rupture ne peut intervenir que le lendemain de l'autorisation. Même vérification, mot différent."
+    },
+    "_hors_champ": "L1237-16 : la présente section ne s'applique pas aux ruptures issues d'un accord de gestion des emplois et des parcours professionnels, d'un plan de sauvegarde de l'emploi ou d'une rupture conventionnelle collective (motif 110). Aucun de ces trois n'existe dans une compagnie de deux salariés ; le moteur ne les code pas."
+  },
+
+  "mise_a_la_retraite": {
+    "_quoi": "L'employeur rompt le contrat d'un salarié en âge de partir. C'est à son initiative, et c'est ce qui la distingue du départ à la retraite.",
+    "_source": "L1237-5 à L1237-8, relevés le 19/09/2026 dans la base LEGI de la DILA. Copie dans `prive/reference/sources/code-du-travail/`.",
+    "motif_rupture": "038",
+    "dsn_bloc52": "003",
+    "rubrique": "indemnite_mise_a_la_retraite",
+    "_dsn_conventionnelle": "Le code 004 déclare l'indemnité CONVENTIONNELLE de mise à la retraite, pour ce qu'elle donne AU-DELA de la loi (grille « Indemnités » de net-entreprises : « vient s'ajouter éventuellement à l'indemnité légale »). Rubrique `indemnite_mise_a_la_retraite_conventionnelle`, écrite depuis le 24/09/2026 quand la convention fait mieux — ce que la 3090 ne fait jamais (art. 7.9 : 1/5 de mois par an, moins que la loi).",
+    "indemnite": {
+      "plancher": "indemnite_licenciement",
+      "_source": "L1237-7 : « La mise à la retraite d'un salarié lui ouvre droit à une indemnité de mise à la retraite AU MOINS ÉGALE à l'indemnité de licenciement prévue à l'article L. 1234-9. »",
+      "_pas_de_faute": "Les motifs qui privent d'indemnité de licenciement — la faute grave, la faute lourde — n'ont pas de sens ici : une mise à la retraite n'est pas une sanction. Le moteur calcule le montant de L1234-9 pour lui-même, sans regarder les motifs d'exclusion.",
+      "_une_seule_fois": "L1237-7, second alinéa : « Chaque salarié ne peut bénéficier que d'une seule indemnité de départ ou de mise à la retraite. L'indemnité est attribuée lors de la première liquidation complète de la retraite. » Le moteur ne peut pas le vérifier : il ne sait rien des employeurs précédents."
+    },
+    "preavis": {
+      "du": true,
+      "_source": "L1237-6 : « L'employeur qui décide une mise à la retraite respecte un préavis dont la durée est déterminée conformément à l'article L. 1234-1. » C'est le même préavis que le licenciement, aux mêmes tranches d'ancienneté."
+    },
+    "age": {
+      "_verifie": false,
+      "_source": "L1237-5 (`LEGIARTI000052437183`, en vigueur depuis le 26/10/2025) : la mise à la retraite s'entend de la possibilité donnée à l'employeur de rompre le contrat d'un salarié « ayant atteint, Y COMPRIS AVANT SON EMBAUCHE, l'âge mentionné au 1° de l'article L. 351-8 du code de la sécurité sociale ». Les trois mots en majuscules datent de cette version-là : ils règlent le cas du salarié embauché après l'âge, que l'ancienne rédaction laissait discuter.",
+      "_pourquoi_pas_verifie": "L'âge n'est écrit nulle part en toutes lettres : L1237-5 renvoie au 1° de L351-8 du code de la sécurité sociale, qui renvoie lui-même à « l'âge prévu au premier alinéa de l'article L. 161-17-2 AUGMENTÉ DE TROIS ANNÉES ». Les trois articles sont désormais relevés : **L161-17-2 l'a été le 21/09/2026** (`LEGIARTI000053280889`, en vigueur depuis le 31/12/2025), et il porte le nombre — soixante-quatre ans pour les assurés nés à compter du 1er janvier 1969, avec un palier par génération de 1961 à 1968, ce qui donne SOIXANTE-SEPT ans de mise à la retraite après les trois années de L351-8. Ce n'est donc plus la lecture qui manque, c'est le CODE : le moteur avertit toujours au lieu de vérifier, et cela reste à écrire.",
+      "_deux_ages_et_pas_un": "La lecture des trois articles donne deux seuils, et ils ne font pas la même chose. À l'âge de L351-8 1°, l'employeur peut INTERROGER le salarié chaque année sur son intention de partir : une réponse négative lui interdit la mise à la retraite pendant l'année qui suit. « La même procédure est applicable chaque année jusqu'au soixante-neuvième anniversaire du salarié » — au-delà, l'accord du salarié n'est plus requis. Vérifier l'âge ne suffira donc pas : il faudra aussi savoir ce qui a été demandé, et répondu.",
+      "_et_si_elle_manque": "L1237-8 : « Si les conditions de mise à la retraite ne sont pas réunies, la rupture du contrat de travail par l'employeur constitue un licenciement. » Ce n'est donc pas une formalité : le motif déclaré serait faux, et l'indemnité avec lui.",
+      "_procedure": "L1237-5, septième alinéa : avant cet âge, l'employeur doit interroger le salarié par écrit sur son intention de quitter l'entreprise « pour bénéficier OU CONTINUER DE BÉNÉFICIER d'une pension de vieillesse », et chaque année jusqu'à son soixante-neuvième anniversaire. Une réponse négative interdit la mise à la retraite pendant l'année qui suit. Le moteur ne suit pas cette procédure : il la rappelle.",
+      "delai_question_mois_avant_anniversaire": 3,
+      "delai_reponse_mois": 1,
+      "_delais": "D1237-2-1 : « Le délai mentionné au septième alinéa de l'article L. 1237-5 est fixé à TROIS MOIS avant l'anniversaire du salarié. Le délai mentionné au huitième alinéa du même article est fixé à UN MOIS à compter de la date à laquelle l'employeur a interrogé le salarié. » Les deux nombres sont ici pour le jour où l'échéancier des obligations saura les rappeler ; aucun code ne les lit encore."
+    }
+  },
+
+  "depart_a_la_retraite": {
+    "_quoi": "Le salarié quitte volontairement l'entreprise pour prendre sa retraite. C'est lui qui décide, et son indemnité n'a rien à voir avec celle du licenciement.",
+    "_source": "L1237-9, L1237-10, D1237-1 et D1237-2, relevés le 19/09/2026 dans la base LEGI de la DILA. Copie dans `prive/reference/sources/code-du-travail/`.",
+    "motif_rupture": "039",
+    "dsn_bloc52": "005",
+    "rubrique": "indemnite_depart_retraite",
+    "_dsn_conventionnelle": "Le code 006 déclare l'indemnité CONVENTIONNELLE de départ à la retraite, pour ce qu'elle donne AU-DELA de la loi. Rubrique `indemnite_depart_retraite_conventionnelle`, écrite depuis le 24/09/2026 : pour la 3090 (art. 7.9), un mois à dix ans, deux à vingt, trois à trente.",
+    "_dsn_motif_059": "CCH-23 permet les codes 005 et 006 avec le motif « 059 - démission » autant qu'avec « 039 - départ à la retraite ». Le moteur écrit 039, parce que c'est ce que la rupture est ; il accepte 059 si l'engagement le dit, sans le proposer.",
+    "indemnite": {
+      "taux": [
+        {"anciennete_annees": 10, "mois_de_salaire": 0.5, "_quoi": "D1237-1 1° : « Un demi-mois de salaire après dix ans d'ancienneté »."},
+        {"anciennete_annees": 15, "mois_de_salaire": 1, "_quoi": "D1237-1 2° : « Un mois de salaire après quinze ans d'ancienneté »."},
+        {"anciennete_annees": 20, "mois_de_salaire": 1.5, "_quoi": "D1237-1 3° : « Un mois et demi de salaire après vingt ans d'ancienneté »."},
+        {"anciennete_annees": 30, "mois_de_salaire": 2, "_quoi": "D1237-1 4° : « Deux mois de salaire après trente ans d'ancienneté »."}
+      ],
+      "_un_palier_n_est_pas_un_cumul": "LE PIÈGE DE CETTE INDEMNITÉ, et il se paie cher dans les deux sens. R1234-2 ACCUMULE — un quart de mois PAR ANNÉE d'ancienneté ; D1237-1 fixe un FORFAIT par palier — un demi-mois « après dix ans ». Douze ans d'ancienneté donnent donc un demi-mois de salaire, pas trois mois. Et en dessous de dix ans, la loi ne donne RIEN : pas un prorata, rien.",
+      "_rien_sous_dix_ans": "Le moteur dit alors que l'indemnité légale n'est pas due, et rappelle que la convention collective, elle, peut en prévoir une dès la première année. C'est le cas le plus fréquent en pratique, et c'est pour cela que la phrase est écrite.",
+      "salaire_de_reference": {
+        "regle": "plus_favorable",
+        "formules": [
+          {"cle": "moyenne_12_mois", "_quoi": "D1237-2 : « le douzième de la rémunération des douze derniers mois précédant le départ à la retraite »."},
+          {"cle": "tiers_3_mois", "_quoi": "D1237-2 : « soit le tiers des trois derniers mois. Dans ce cas, toute prime ou autre élément de salaire annuel ou exceptionnel qui aurait été versé au salarié pendant cette période est pris en compte à due proportion. »"}
+        ],
+        "_source": "D1237-2 : « selon la formule la plus avantageuse pour l'intéressé ».",
+        "_comme_le_licenciement_mais_pas_par_hasard": "Ce sont les deux mêmes formules que R1234-4, et le moteur partage le calcul. Elles sont partagées parce que DEUX ARTICLES les écrivent, chacun pour son indemnité — pas parce que l'une ressemble à l'autre. Une seule différence de rédaction : R1234-4 prévoit le cas du salarié qui a moins de douze mois de service, D1237-2 non — et pour cause, cette indemnité commence à dix ans."
+      },
+      "_une_seule_fois": "L1237-9 (`LEGIARTI000052437168`, en vigueur depuis le 26/10/2025) : « Chaque salarié ne peut bénéficier que d'une seule indemnité de départ ou de mise à la retraite. Sous réserve du dernier alinéa, l'indemnité est attribuée LORSQUE LE SALARIÉ FAIT VALOIR SES DROITS À UNE PENSION DE VIEILLESSE de droit propre au titre du régime de base auquel il est affilié au titre de l'emploi qu'il occupe dans l'entreprise. » Comme pour la mise à la retraite, le moteur ne peut pas le vérifier : il ne sait rien des employeurs précédents.",
+      "_le_maintien_de_remuneration_en_fin_de_carriere": "Le dernier alinéa, AJOUTÉ LE 26/10/2025, ouvre autre chose : un accord d'entreprise ou de branche peut prévoir d'affecter l'indemnité de départ « au maintien total ou partiel de la rémunération du salarié en fin de carrière » quand il passe à temps partiel à sa demande, le reliquat lui étant versé s'il reste quelque chose. Non codé : il faut un accord, et la compagnie n'en a pas. Écrit ici pour que personne ne le redécouvre en croyant à un oubli."
+    },
+    "preavis": {
+      "du": true,
+      "_source": "L1237-10 : « Le salarié demandant son départ à la retraite respecte un préavis dont la durée est déterminée conformément à l'article L. 1234-1. » C'est le salarié qui le doit. L1237-10 renvoie à L1234-1 pour la durée, pas à L1234-5 : aucun article n'ouvre au salarié qui part une indemnité compensatrice de préavis (`preavis.indemnite_compensatrice.motifs_sans_indemnite`, lot P1)."
+    }
+  },
+
+  "maintien_de_salaire": {
+    "_quoi": "L'indemnite complementaire que l'employeur verse pendant un arret de travail, en plus des indemnites journalieres de la Securite sociale.",
+    "_source": "Code du travail L1226-1 et D1226-1 a D1226-8, releves le 19/09/2026 dans la base LEGI de la DILA par `outils/relever_les_codes.py`. Le §38.9 les disait non releves : ils le sont.",
+    "_qui_y_a_droit": "L1226-1 : tout salarie ayant UNE ANNEE d'anciennete dans l'entreprise, appreciee au PREMIER JOUR de l'absence (D1226-8). Ces dispositions << ne s'appliquent pas aux salaries travaillant a domicile, aux salaries saisonniers, aux salaries INTERMITTENTS et aux salaries temporaires >> : c'est une regle de permanent, et le moteur la refuse a un CDDU.",
+    "_et_depuis_le_29_06_2026": "L1226-1 (`LEGIARTI000054331868`, en vigueur depuis le 27/06/2026) porte un alinea de plus, releve le 19/09/2026 au passage des 433 livraisons : ces dispositions << ne s'appliquent pas EN CAS DE FRAUDE AVEREE DU SALARIE afin d'obtenir le versement des indemnites journalieres >> mentionnees a L321-1 ou au 2° de L431-1 du code de la securite sociale, << dont l'employeur a ete informe en application du VI de l'article L. 114-9 >>. Le moteur ne le verifie pas et ne le peut pas : c'est la caisse qui informe l'employeur, et cela ne se lit dans aucune saisie. Ecrit ici pour que le cas ne se redecouvre pas comme un bogue.",
+    "anciennete_mois_minimum": 12,
+    "carence_jours": 7,
+    "_carence": "D1226-3 : << le delai d'indemnisation court au-dela de sept jours d'absence >>. Sauf si l'absence resulte d'un ACCIDENT DU TRAVAIL ou d'une MALADIE PROFESSIONNELLE -- a l'exclusion des accidents de TRAJET --, auquel cas elle court des le premier jour.",
+    "tranches": [
+      {
+        "jours": 30,
+        "taux": 90.0,
+        "_quoi": "D1226-1 1° : pendant les trente premiers jours, 90 % de la remuneration brute que le salarie aurait percue s'il avait continue a travailler."
+      },
+      {
+        "jours": 30,
+        "taux": 66.66,
+        "_quoi": "D1226-1 2° : pendant les trente jours suivants, DEUX TIERS de cette meme remuneration. Le taux est ecrit 66,66 parce qu'un bulletin l'imprime ainsi ; le calcul se fait sur deux tiers exacts."
+      }
+    ],
+    "majoration": {
+      "par_annees": 5,
+      "jours": 10,
+      "plafond_jours": 90,
+      "_quoi": "D1226-2 : les durees d'indemnisation sont augmentees de DIX JOURS par periode entiere de CINQ ANS d'anciennete en plus de la duree d'une annee requise a L1226-1, sans que chacune d'elles puisse depasser QUATRE-VINGT-DIX jours."
+    },
+    "_douze_mois_glissants": "D1226-4 : il est tenu compte des indemnites deja percues durant les DOUZE MOIS ANTERIEURS, de telle sorte que la duree totale d'indemnisation ne depasse pas celle des articles D1226-1 et D1226-2.",
+    "_ce_qui_se_deduit": "D1226-5 : sont deduites de l'indemnite complementaire les allocations que le salarie percoit de la Securite sociale et des regimes complementaires de prevoyance -- mais, pour ces derniers, seulement la part des prestations resultant des versements de l'EMPLOYEUR. D1226-6 : des indemnites de Securite sociale reduites (hospitalisation, sanction de la caisse) sont reputees servies INTEGRALEMENT pour ce calcul.",
+    "_ce_que_le_moteur_ne_fait_pas": "Il calcule le complement BRUT -- le taux applique a la remuneration de reference -- et la duree a laquelle le salarie a droit. Il ne deduit pas les indemnites journalieres : leur montant vient de la Securite sociale et ne se devine pas. Elles se SAISISSENT, et tant qu'elles manquent le moteur dit ce qu'il a calcule et ce qu'il attend.",
+    "_remuneration_de_reference": "D1226-7 : celle correspondant a l'horaire pratique pendant l'absence dans l'etablissement ; une augmentation d'horaire due a l'absence elle-meme ne compte pas."
+  },
+
+  "suspensions": {
+    "_quoi": "Le bloc « Autre suspension de l'exécution du contrat - S21.G00.65 » : un contrat qui continue d'exister alors que le salarié ne travaille pas, et qui n'est pas un arrêt de travail (celui-là a son bloc 60 et son signalement — voir arrets-base.json).",
+    "_rubrique": "S21.G00.65.001",
+    "_supra_mensuel": "Cahier technique, bloc 65 : « En cas de suspension supra-mensuelle, la suspension doit être déclarée dans toutes les DSN mensuelles dont le mois principal déclaré présente une période commune avec la suspension concernée. » Même règle que le bloc 60.",
+    "motifs": [
+      {"code": "501", "libelle": "Congé divers non rémunéré", "remunere": false, "acquiert_conges": false},
+      {"code": "632", "libelle": "Congé parental d'éducation", "remunere": false, "acquiert_conges": false},
+      {"code": "639", "libelle": "Congé sabbatique", "remunere": false, "acquiert_conges": false},
+      {"code": "635", "libelle": "Congé pour création ou reprise d'entreprise", "remunere": false, "acquiert_conges": false},
+      {"code": "636", "libelle": "Congé pour enfant malade", "remunere": false, "acquiert_conges": false},
+      {"code": "637", "libelle": "Congé pour événement familial", "remunere": true, "acquiert_conges": true, "_remunere": "C. trav. L. 3142-2 : les congés de L. 3142-1 « n'entraînent pas de réduction de la rémunération » (prive/reference/sources/code-du-travail/articles-20261010.md). En norme DSN 2027, le bloc 65 ne déclare plus qu'une absence « sans maintien de sa rémunération normale par son employeur » (cahier 2027.1.1, p. 285) : un motif rémunéré n'y a plus sa place, et le moteur refuse de l'écrire dans un fichier P27V01 (`dsn::bloc_contrat`). Il ne va pas non plus au bloc 75 (liste p. 297) : payé, le congé est dans la rémunération du mois."},
+      {"code": "627", "libelle": "Congé de solidarité familiale", "remunere": false, "acquiert_conges": false},
+      {"code": "607", "libelle": "Congé de présence parentale", "remunere": false, "acquiert_conges": false},
+      {"code": "618", "libelle": "Congé de formation économique, sociale, environnementale et syndicale (CFESES)", "remunere": false, "acquiert_conges": false},
+      {"code": "301", "libelle": "Congé de formation professionnelle", "remunere": false, "acquiert_conges": false},
+      {"code": "610", "libelle": "Projet de transition professionnelle (PTP)", "remunere": false, "acquiert_conges": false},
+      {"code": "200", "libelle": "COP (congés payés)", "remunere": true, "acquiert_conges": true, "_ne_pas_declarer": true}
+    ],
+    "_conges_payes_ne_sont_pas_une_suspension": "Le motif « 200 - COP (congés payés) » existe dans la nomenclature, mais un congé payé pris par un salarié du privé n'est pas une suspension à déclarer : il est payé, le contrat n'est pas suspendu, et la rémunération du mois le porte. Le code est ici pour être RECONNU si on le lit dans une déclaration d'ailleurs, pas pour être écrit. `_ne_pas_declarer` le dit, et le moteur refuse de l'écrire.",
+    "_acquiert_conges": "Ce champ dit si la période compte comme du travail effectif pour l'acquisition des congés payés. Il est renseigné d'après le principe général (une suspension non rémunérée n'acquiert pas), et non d'après les articles L3141-4 et L3141-5, qui donnent la liste exacte des périodes assimilées : ils sont RELEVÉS, mais PAS APPLIQUÉS. Le moteur avertit dès qu'une suspension traverse un mois : le décompte est à vérifier."
+  },
+
+  "documents_de_fin_de_contrat": {
+    "_quoi": "Ce que l'employeur doit remettre au salarié quand le contrat se termine. La liste était ici pour que l'oubli se voie ; les deux documents sont écrits depuis le 19/09/2026, et elle dit maintenant ce qui les produit.",
+    "attestation_france_travail": "Depuis le 01/06/2026, elle n'est plus éditée par l'employeur : c'est le signalement de fin de contrat (nature 07) qui la déclenche, et France Travail édite l'attestation. Même mécanisme que l'AER des intermittents.",
+    "certificat_de_travail": "Art. L1234-19 et D1234-6. Écrit : `moteur/documents_fin.py`, modèle `gabarits/certificat-travail.modele`. D1234-6 plafonne son contenu — dates d'entrée et de sortie, emplois occupés et leurs périodes, et RIEN d'autre.",
+    "recu_pour_solde_de_tout_compte": "Art. L1234-20, D1234-7 et D1234-8. Écrit : `moteur/documents_fin.py`, modèle `gabarits/recu-solde-de-tout-compte.modele`. Il fait l'INVENTAIRE des sommes, ligne à ligne, et non un total : il n'est libératoire, six mois après signature, que pour celles qui y figurent.",
+    "_etat": "Les deux se produisent d'un geste — `python -m moteur fin-contrat documents <mois> <salarié>`, ou le bouton de la fin de contrat dans la fenêtre —, du mois qui porte la date de fin, le même que le solde de tout compte. Ce sont des PAPIERS : rien ne part nulle part. Cette ligne a dit « ni l'un ni l'autre n'est écrit » jusqu'au 21/09/2026, deux jours après qu'ils l'étaient ; le §9 de PUPPETPAIE-TEL-QU-IL-EST.md, lui, les annonçait faits. C'est ce fichier-ci qui avait tort."
+  }
+}

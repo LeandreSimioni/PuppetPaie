@@ -1,0 +1,27 @@
+{
+ "quand": "03/10/2026 15:53",
+ "secondes": 1.2,
+ "sauvegarde": "",
+ "retours": "Aucun retour sur la periode.",
+ "hors_ligne": false,
+ "nouveaux": 0,
+ "signatures": "",
+ "fiches": "",
+ "signatures_recues": [],
+ "sources": "",
+ "maj": "",
+ "maj_note": "",
+ "maj_attend": [],
+ "maj_exigee": "",
+ "maj_etat": {},
+ "sources_etat": {},
+ "incidents": [],
+ "manquants": [],
+ "a_poser": [],
+ "taux_pas": [
+  "AUDINOT : taux DGFiP perime -- ce n'est plus le taux du salarie (il l'etait jusqu'au 30/09/2026)"
+ ],
+ "horloge": [
+  "Le 01/10/2026 : Octobre 2026 réécrit, la saisie ayant changé — contrats, bulletins, DSN"
+ ]
+}

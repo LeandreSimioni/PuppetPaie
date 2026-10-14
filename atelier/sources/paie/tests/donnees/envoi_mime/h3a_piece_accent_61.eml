@@ -1,0 +1,27 @@
+From: compagnie@gmail.com
+To: marie@exemple.fr
+Subject: Octobre 2026
+Date: Tue, 06 Oct 2026 21:26:31 +0200
+Message-ID: <FIXE.1.2@gmail.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="<BORNE>"
+
+--<BORNE>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Bonjour,
+
+Tout va bien.
+
+--<BORNE>
+Content-Type: application/pdf
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment;
+ filename*0*=utf-8''Attestation_employeur_%C3%A9t%C3%A9_%C3%89l%C3%A9onore_At;
+ filename*1*=testation_employeur_%C3%A9t%C3%A9_.pdf
+MIME-Version: 1.0
+
+AwoRGB8mLTQ7QklQV15lbHN6gYg=
+
+--<BORNE>--

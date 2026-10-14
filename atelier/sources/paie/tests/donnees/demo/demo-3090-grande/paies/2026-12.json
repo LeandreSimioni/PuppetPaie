@@ -1,0 +1,87 @@
+{
+  "_origine": "Compagnie de demonstration demo-3090-grande, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2026-12",
+  "taux_cachet": 180.0,
+  "date_paiement": "2026-12-31",
+  "engagements": [
+    {
+      "salarie": "Montansier",
+      "nature": "cdi",
+      "debut": "2023-09-04",
+      "numero": "MO.23.01",
+      "salaire_mensuel": 3120.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Nicolet",
+      "nature": "cdi",
+      "debut": "2024-03-01",
+      "numero": "NI.24.01",
+      "salaire_mensuel": 2310.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Clairon",
+      "spectacle": "256Z00910033",
+      "debut": "2026-12-08",
+      "fin": "2026-12-11",
+      "date_paiement": "2026-12-11",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 165.0,
+          "lieu": "Ecoles de Touraine",
+          "dates": [
+            "2026-12-08",
+            "2026-12-09",
+            "2026-12-10",
+            "2026-12-11"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Jacquet",
+      "spectacle": "256Z00910033",
+      "debut": "2026-12-08",
+      "fin": "2026-12-11",
+      "date_paiement": "2026-12-11",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 176.45,
+          "lieu": "Ecoles de Touraine",
+          "dates": [
+            "2026-12-08",
+            "2026-12-09",
+            "2026-12-10",
+            "2026-12-11"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Servandoni",
+      "spectacle": "256Z00910033",
+      "debut": "2026-12-08",
+      "fin": "2026-12-11",
+      "date_paiement": "2026-12-11",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 28,
+          "taux": 18.0,
+          "lieu": "Ecoles de Touraine",
+          "dates": [
+            "2026-12-08",
+            "2026-12-09",
+            "2026-12-10",
+            "2026-12-11"
+          ]
+        }
+      ]
+    }
+  ]
+}

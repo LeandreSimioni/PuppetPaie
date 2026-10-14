@@ -1,0 +1,5007 @@
+{
+ "_quoi": "La nomenclature des emplois du spectacle de France Travail (ex-Pole emploi) : le code que la DSN porte en S21.G00.40.005 (complement PCS-ESE) pour un intermittent, avec l'annexe de rattachement -- 8 (ouvriers et techniciens) ou 10 (artistes). 1 236 codes. Fichier GENERE depuis la source, ne pas corriger a la main : voir sources.json, entree francetravail-nomenclature-emplois-2016.",
+ "_source": "francetravail-nomenclature-emplois-2016",
+ "_version": "2016-12-12",
+ "_evolution_2016": "C = code cree au 12/12/2016, M = intitule modifie a cette date.",
+ "emplois": {
+  "ACC010": {
+   "libelle": "ACCESSOIRISTE",
+   "annexe": 8
+  },
+  "ACC011": {
+   "libelle": "CHEF ACCESSOIRISTE",
+   "annexe": 8
+  },
+  "ACC012": {
+   "libelle": "ASSISTANT ACCESSOIRISTE",
+   "annexe": 8
+  },
+  "ACC013": {
+   "libelle": "ACCESSOIRISTE ADJOINT",
+   "annexe": 8
+  },
+  "ACC015": {
+   "libelle": "ACCESSOIRISTE SPECIALISE",
+   "annexe": 8
+  },
+  "ACC030": {
+   "libelle": "ACCESSOIRISTE VOLUME",
+   "annexe": 8
+  },
+  "ACC040": {
+   "libelle": "ACCOMPAGNATEUR REPETITEUR",
+   "annexe": 10
+  },
+  "ACC050": {
+   "libelle": "ACCORDEONISTE",
+   "annexe": 10
+  },
+  "ACC060": {
+   "libelle": "ACCROCHEUR",
+   "annexe": 8
+  },
+  "ACC061": {
+   "libelle": "CHEF ACCROCHEUR",
+   "annexe": 8
+  },
+  "ACC062": {
+   "libelle": "ASSISTANT ACCROCHEUR",
+   "annexe": 8
+  },
+  "ACC063": {
+   "libelle": "ACCROCHEUR ADJOINT",
+   "annexe": 8
+  },
+  "ACC070": {
+   "libelle": "ACCOMPAGNATEUR PIANO",
+   "annexe": 10
+  },
+  "ACC086": {
+   "libelle": "ACCESSOIRISTE DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "ACC096": {
+   "libelle": "ACCESSOIRISTE DE PLATEAU CINEMA",
+   "annexe": 8
+  },
+  "ACR010": {
+   "libelle": "ACROBATE",
+   "annexe": 10
+  },
+  "ACT010": {
+   "libelle": "ACTEUR",
+   "annexe": 10
+  },
+  "ACT020": {
+   "libelle": "ACTEUR DE COMPLEMENT",
+   "annexe": 10
+  },
+  "ACT030": {
+   "libelle": "ACTEUR DE SYNCHRONISATION",
+   "annexe": 10
+  },
+  "ADA010": {
+   "libelle": "ADAPTATEUR",
+   "annexe": 8
+  },
+  "ADJ010": {
+   "libelle": "ADJOINT AU PRODUCTEUR",
+   "annexe": 8
+  },
+  "ADJ020": {
+   "libelle": "ADJOINT AU PRODUCTEUR ARTISTIQUE",
+   "annexe": 8
+  },
+  "ADM016": {
+   "libelle": "ADMINISTRATEUR ADJOINT COMPTABLE CINEMA",
+   "annexe": 8
+  },
+  "ADM020": {
+   "libelle": "ADMINISTRATEUR DE PRODUCTION",
+   "annexe": 8
+  },
+  "ADM021": {
+   "libelle": "CHEF ADMINISTRATEUR DE PRODUCTION",
+   "annexe": 8
+  },
+  "ADM022": {
+   "libelle": "ASSISTANT ADMINISTRATEUR DE PRODUCTION",
+   "annexe": 8
+  },
+  "ADM023": {
+   "libelle": "ADMINISTRATEUR DE PRODUCTION ADJOINT",
+   "annexe": 8
+  },
+  "ADM025": {
+   "libelle": "ADMINISTRATEUR DE PRODUCTION SPECIALISE",
+   "annexe": 8
+  },
+  "ADM026": {
+   "libelle": "ADMINISTRATEUR DE PRODUCTION CINEMA",
+   "annexe": 8
+  },
+  "ADM030": {
+   "libelle": "ADMINISTRATEUR DE TOURNEE",
+   "annexe": 8
+  },
+  "ADM031": {
+   "libelle": "CHEF ADMINISTRATEUR DE TOURNEE",
+   "annexe": 8
+  },
+  "ADM032": {
+   "libelle": "ASSISTANT ADMINISTRATEUR DE TOURNEE",
+   "annexe": 8
+  },
+  "ADM033": {
+   "libelle": "ADMINISTRATEUR DE TOURNEE ADJOINT",
+   "annexe": 8
+  },
+  "ADM040": {
+   "libelle": "ADMINISTRATEUR SYSTEME ET RESEAU",
+   "annexe": 8
+  },
+  "AGE040": {
+   "libelle": "AGENT DE DUPLICATION AV",
+   "annexe": 8
+  },
+  "AID010": {
+   "libelle": "AIDE DE PLATEAU",
+   "annexe": 8
+  },
+  "AID020": {
+   "libelle": "AIDE COSTUMIERE",
+   "annexe": 8
+  },
+  "AID030": {
+   "libelle": "AIDE DE SCENE",
+   "annexe": 8
+  },
+  "AID040": {
+   "libelle": "AIDE DECORS",
+   "annexe": 8
+  },
+  "AID050": {
+   "libelle": "AIDE LUMIERE",
+   "annexe": 8
+  },
+  "AID060": {
+   "libelle": "AIDE SON",
+   "annexe": 8
+  },
+  "AID070": {
+   "libelle": "AIDE VIDEO",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "ALT010": {
+   "libelle": "ALTO",
+   "annexe": 10
+  },
+  "ANI010": {
+   "libelle": "ANIMATEUR",
+   "annexe": 8
+  },
+  "ANI030": {
+   "libelle": "ANIMATEUR D'EMISSION",
+   "annexe": 8
+  },
+  "ANI040": {
+   "libelle": "ANIMATEUR FEUILLE D'EXPOSITION",
+   "annexe": 8
+  },
+  "ANI060": {
+   "libelle": "ANIMATEUR VOLUME",
+   "annexe": 8
+  },
+  "ANI070": {
+   "libelle": "ANIMATRONICIEN",
+   "annexe": 8
+  },
+  "ANI076": {
+   "libelle": "ANIMATRONICIEN CINEMA",
+   "annexe": 8
+  },
+  "ANI080": {
+   "libelle": "ANIMATEUR TECHNICIEN REALISATEUR",
+   "annexe": 8
+  },
+  "ANI090": {
+   "libelle": "ANIMATEUR VOCALE",
+   "annexe": 10
+  },
+  "ANI100": {
+   "libelle": "ANIMATEUR CHANT",
+   "annexe": 10
+  },
+  "ANI110": {
+   "libelle": "ANIMATEUR DE RUE",
+   "annexe": 10
+  },
+  "ANI120": {
+   "libelle": "ANIMATEUR (VIDEOGRAMMES D'ANIMATION)",
+   "annexe": 8
+  },
+  "ANN010": {
+   "libelle": "ANNONCEUR",
+   "annexe": 8
+  },
+  "ANT010": {
+   "libelle": "ANTIPODISTE",
+   "annexe": 10
+  },
+  "ARA010": {
+   "libelle": "ARRANGEUR-ORCHESTRATEUR",
+   "annexe": 10
+  },
+  "ARA020": {
+   "libelle": "ARRANGEUR MUSICAL",
+   "annexe": 10
+  },
+  "ARC010": {
+   "libelle": "ARCHITECTE DECORATEUR",
+   "annexe": 8
+  },
+  "ARC011": {
+   "libelle": "CHEF ARCHITECTE DECORATEUR",
+   "annexe": 8
+  },
+  "ARC012": {
+   "libelle": "ASSISTANT ARCHITECTE DECORATEUR",
+   "annexe": 8
+  },
+  "ARC013": {
+   "libelle": "ARCHITECTE DECORATEUR ADJOINT",
+   "annexe": 8
+  },
+  "ARM010": {
+   "libelle": "ARMURIER",
+   "annexe": 8
+  },
+  "ARM011": {
+   "libelle": "CHEF ARMURIER",
+   "annexe": 8
+  },
+  "ARM012": {
+   "libelle": "ASSISTANT ARMURIER",
+   "annexe": 8
+  },
+  "ARM013": {
+   "libelle": "ARMURIER ADJOINT",
+   "annexe": 8
+  },
+  "ART010": {
+   "libelle": "ARTIFICIER",
+   "annexe": 8
+  },
+  "ART011": {
+   "libelle": "CHEF ARTIFICIER",
+   "annexe": 8
+  },
+  "ART012": {
+   "libelle": "ASSISTANT ARTIFICIER",
+   "annexe": 8
+  },
+  "ART013": {
+   "libelle": "ARTIFICIER ADJOINT",
+   "annexe": 8
+  },
+  "ART030": {
+   "libelle": "ARTISTE CHANTEUR",
+   "annexe": 10
+  },
+  "ART040": {
+   "libelle": "ARTISTE CHOREGRAPHIQUE / DE CHOREGRAPHIE",
+   "annexe": 10
+  },
+  "ART050": {
+   "libelle": "ARTISTE DE CABARET",
+   "annexe": 10
+  },
+  "ART060": {
+   "libelle": "ARTISTE DE CIRQUE",
+   "annexe": 10
+  },
+  "ART070": {
+   "libelle": "ARTISTE DE COMPLEMENT",
+   "annexe": 10
+  },
+  "ART080": {
+   "libelle": "ARTISTE DE REVUE",
+   "annexe": 10
+  },
+  "ART090": {
+   "libelle": "ARTISTE DE RUE",
+   "annexe": 10
+  },
+  "ART100": {
+   "libelle": "ARTISTE DU SPECTACLE",
+   "annexe": 10
+  },
+  "ART110": {
+   "libelle": "ARTISTE DE VARIETES",
+   "annexe": 10
+  },
+  "ART120": {
+   "libelle": "ARTISTE DRAMATIQUE",
+   "annexe": 10
+  },
+  "ART130": {
+   "libelle": "ARTISTE DRAMATIQUE DE VARIETES",
+   "annexe": 10
+  },
+  "ART140": {
+   "libelle": "ARTISTE DU CHANT",
+   "annexe": 10
+  },
+  "ART150": {
+   "libelle": "ARTISTE DU MUSIC-HALL",
+   "annexe": 10
+  },
+  "ART160": {
+   "libelle": "ARTISTE LYRIQUE",
+   "annexe": 10
+  },
+  "ART170": {
+   "libelle": "ARTISTE MUSICIEN",
+   "annexe": 10
+  },
+  "ART190": {
+   "libelle": "ARTISTE VISUEL",
+   "annexe": 10
+  },
+  "ART200": {
+   "libelle": "ARTISTE INTERPRETE",
+   "annexe": 10
+  },
+  "ART210": {
+   "libelle": "ARTISTE ACTION",
+   "annexe": 10
+  },
+  "ART220": {
+   "libelle": "ARTISTE BRUITEUR",
+   "annexe": 10
+  },
+  "ART230": {
+   "libelle": "ARTISTE CINEMATOGRAPHIQUE",
+   "annexe": 10
+  },
+  "ART240": {
+   "libelle": "ARTISTE CONCEPTEUR",
+   "annexe": 10
+  },
+  "ART250": {
+   "libelle": "ARTISTE DE BALLET",
+   "annexe": 10
+  },
+  "ART260": {
+   "libelle": "ARTISTE ETIQUETTE",
+   "annexe": 10
+  },
+  "ART270": {
+   "libelle": "ARTISTE FAUCONNIER",
+   "annexe": 10
+  },
+  "ART280": {
+   "libelle": "ARTISTE HUMORISTE",
+   "annexe": 10
+  },
+  "ART290": {
+   "libelle": "ARTISTE INSTRUMENTISTE",
+   "annexe": 10
+  },
+  "ART300": {
+   "libelle": "ARTISTE SLAM",
+   "annexe": 10
+  },
+  "ART310": {
+   "libelle": "ARTISTE VOCAL",
+   "annexe": 10
+  },
+  "ART320": {
+   "libelle": "ARTISTE REPETITION",
+   "annexe": 10
+  },
+  "ART330": {
+   "libelle": "ARTISTE INVITE",
+   "annexe": 10
+  },
+  "ASS030": {
+   "libelle": "ASSISTANT ACCESSOIRISTE VOLUME",
+   "annexe": 8
+  },
+  "ASS040": {
+   "libelle": "ASSISTANT ANIMATEUR",
+   "annexe": 8
+  },
+  "ASS050": {
+   "libelle": "ASSISTANT ANIMATEUR VOLUME",
+   "annexe": 8
+  },
+  "ASS070": {
+   "libelle": "ASSISTANT CADREUR",
+   "annexe": 8
+  },
+  "ASS080": {
+   "libelle": "ASSISTANT CAMERAMAN",
+   "annexe": 8
+  },
+  "ASS090": {
+   "libelle": "ASSISTANT COIFFEUR",
+   "annexe": 8
+  },
+  "ASS110": {
+   "libelle": "ASSISTANT DE PLATEAU",
+   "annexe": 8
+  },
+  "ASS130": {
+   "libelle": "ASSISTANT DE POST-PRODUCTION",
+   "annexe": 8
+  },
+  "ASS140": {
+   "libelle": "ASSISTANT DE PRODUCTION",
+   "annexe": 8
+  },
+  "ASS145": {
+   "libelle": "ASSISTANT DE PRODUCTION SPECIALISE",
+   "annexe": 8
+  },
+  "ASS150": {
+   "libelle": "ASSISTANT DE PRODUCTION ADJOINT",
+   "annexe": 8
+  },
+  "ASS170": {
+   "libelle": "ASSISTANT DECORATEUR",
+   "annexe": 8
+  },
+  "ASS180": {
+   "libelle": "ASSISTANT DECORATEUR VOLUME",
+   "annexe": 8
+  },
+  "ASS200": {
+   "libelle": "ASSISTANT DESSINATEUR D'ANIMATION",
+   "annexe": 8
+  },
+  "ASS240": {
+   "libelle": "ASSISTANT SON",
+   "annexe": 8
+  },
+  "ASS250": {
+   "libelle": "ASSISTANT INFOGRAPHISTE DE MODELISATION",
+   "annexe": 8
+  },
+  "ASS270": {
+   "libelle": "ASSISTANT INFOGRAPHISTE LAY-OUT",
+   "annexe": 8
+  },
+  "ASS280": {
+   "libelle": "ASSIST INFOGRAPHISTE RENDU ET ECLAIRAGE",
+   "annexe": 8
+  },
+  "ASS290": {
+   "libelle": "ASSISTANT DESSINATEUR LAY-OUT",
+   "annexe": 8
+  },
+  "ASS310": {
+   "libelle": "ASSISTANT MONTEUR",
+   "annexe": 8
+  },
+  "ASS315": {
+   "libelle": "ASSISTANT MONTEUR SPECIALISE",
+   "annexe": 8
+  },
+  "ASS320": {
+   "libelle": "ASSISTANT MONTEUR ADJOINT",
+   "annexe": 8
+  },
+  "ASS340": {
+   "libelle": "ASSISTANT MOULAGE",
+   "annexe": 8
+  },
+  "ASS360": {
+   "libelle": "ASSISTANT OPERATEUR COMPOSITING",
+   "annexe": 8
+  },
+  "ASS390": {
+   "libelle": "ASSISTANT OPERATEUR VOLUME",
+   "annexe": 8
+  },
+  "ASS400": {
+   "libelle": "ASSISTANT OPV",
+   "annexe": 8
+  },
+  "ASS410": {
+   "libelle": "ASSISTANT OPV ADJOINT",
+   "annexe": 8
+  },
+  "ASS420": {
+   "libelle": "ASSISTANT PLASTICIEN VOLUME",
+   "annexe": 8
+  },
+  "ASS430": {
+   "libelle": "ASSISTANT REALISATEUR",
+   "annexe": 8
+  },
+  "ASS440": {
+   "libelle": "ASSISTANT REALISATEUR ADJOINT",
+   "annexe": 8
+  },
+  "ASS450": {
+   "libelle": "ASSISTANT REGISSEUR",
+   "annexe": 8
+  },
+  "ASS460": {
+   "libelle": "ASSISTANT REGISSEUR ADJOINT",
+   "annexe": 8
+  },
+  "ASS470": {
+   "libelle": "ASSISTANT SON ADJOINT",
+   "annexe": 8
+  },
+  "ASS490": {
+   "libelle": "ASSISTANT STORYBOARDER",
+   "annexe": 8
+  },
+  "ASS520": {
+   "libelle": "ASSISTANT SCRIPTE ADJOINT",
+   "annexe": 8
+  },
+  "ASS526": {
+   "libelle": "ASSISTANT SCRIPTE CINEMA",
+   "annexe": 8
+  },
+  "ASS530": {
+   "libelle": "ASSISTANT ARTISTIQUE",
+   "annexe": 8
+  },
+  "ASS550": {
+   "libelle": "ASSISTANT CONSTRUCTEUR DE DECORS",
+   "annexe": 8
+  },
+  "ASS560": {
+   "libelle": "ASSISTANT CONSTRUCTEUR DE MACHINERIE",
+   "annexe": 8
+  },
+  "ASS570": {
+   "libelle": "ASSISTANT COORDINATEUR LINGUISTIQUE",
+   "annexe": 8
+  },
+  "ASS590": {
+   "libelle": "ASSISTANT D'EMISSION",
+   "annexe": 8
+  },
+  "ASS600": {
+   "libelle": "ASSISTANT D'EXPLOITATION AV",
+   "annexe": 8
+  },
+  "ASS610": {
+   "libelle": "ASSISTANT D'EXPLOITATION EN PRODUCTION",
+   "annexe": 8
+  },
+  "ASS620": {
+   "libelle": "ASSISTANT DE PLATEAU AV",
+   "annexe": 8
+  },
+  "ASS630": {
+   "libelle": "ASSISTANT DE PRODUCTION AV",
+   "annexe": 8
+  },
+  "ASS640": {
+   "libelle": "ASSISTANT DIRECTEUR ARTISTIQUE",
+   "annexe": 8
+  },
+  "ASS660": {
+   "libelle": "ASSISTANT ETALONNEUR NUMERIQUE",
+   "annexe": 8
+  },
+  "ASS670": {
+   "libelle": "ASSISTANT INFOGRAPHISTE 2D",
+   "annexe": 8
+  },
+  "ASS680": {
+   "libelle": "ASSIST INFOGRAPH EFFETS VISUELS NUMERIQ",
+   "annexe": 8
+  },
+  "ASS690": {
+   "libelle": "ASSISTANT LUMIERE",
+   "annexe": 8
+  },
+  "ASS710": {
+   "libelle": "ASSISTANT MONTEUR AV",
+   "annexe": 8
+  },
+  "ASS720": {
+   "libelle": "ASSISTANT OPERATEUR TRANSFERT DE DONNEES",
+   "annexe": 8
+  },
+  "ASS730": {
+   "libelle": "ASSISTANT SONORISATEUR",
+   "annexe": 8
+  },
+  "ASS750": {
+   "libelle": "ASSISTANT TECHNICIEN DE SCENE",
+   "annexe": 8
+  },
+  "ASS760": {
+   "libelle": "ASSISTANT TECHNICIEN REALISATEUR",
+   "annexe": 8
+  },
+  "ASS780": {
+   "libelle": "ASSIST DIRECTEUR DISTRIBUTION ARTISTIQUE",
+   "annexe": 8
+  },
+  "ASS790": {
+   "libelle": "ASSISTANT DU STYLISTE",
+   "annexe": 8
+  },
+  "ASS800": {
+   "libelle": "ASSISTANT ENSEMBLIER",
+   "annexe": 8
+  },
+  "ASS810": {
+   "libelle": "ASSISTANT DU CHEF D'ORCHESTRE",
+   "annexe": 10
+  },
+  "ASS820": {
+   "libelle": "CHEF DE CHŒUR ASSISTANT",
+   "annexe": 10
+  },
+  "ASS830": {
+   "libelle": "ASSISTANT DECORATEUR ADJOINT",
+   "annexe": 8
+  },
+  "ASS840": {
+   "libelle": "ASSIST DIRECTEUR PRODUCTION ARTISTIQUE",
+   "annexe": 8
+  },
+  "ASS856": {
+   "libelle": "ASSISTANT AU CHARGE FIGURATION CINEMA",
+   "annexe": 8
+  },
+  "ASS860": {
+   "libelle": "ASSISTANT BRUITEUR",
+   "annexe": 8
+  },
+  "ASS876": {
+   "libelle": "ASSISTANT COMPTABLE DE PRODUCTION CINEMA",
+   "annexe": 8
+  },
+  "ASS886": {
+   "libelle": "ASSISTANT EFFETS PHYSIQUES CINEMA",
+   "annexe": 8
+  },
+  "ASS896": {
+   "libelle": "ASSISTANT MIXEUR CINEMA",
+   "annexe": 8
+  },
+  "ASS906": {
+   "libelle": "ASSISTANT OPERATEUR DU SON CINEMA",
+   "annexe": 8
+  },
+  "ASS910": {
+   "libelle": "ASSISTANT CHAPELIER MODISTE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "ASS920": {
+   "libelle": "ASSISTANT DIRECTEUR DECORATEUR",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "ASS930": {
+   "libelle": "ASSISTANT MEDIA SERVEUR",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "ASS940": {
+   "libelle": "ASSISTANT METALLIER",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "ASS950": {
+   "libelle": "ASSIST PUPITREUR MOTORISATION ASSERVIE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "ASS960": {
+   "libelle": "ASSISTANT SCULPTEUR",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "ASS970": {
+   "libelle": "ASSISTANT TAPISSIER",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "ATT010": {
+   "libelle": "ATTACHE DE PRODUCTION",
+   "annexe": 8
+  },
+  "ATT011": {
+   "libelle": "CHEF ATTACHE DE PRODUCTION",
+   "annexe": 8
+  },
+  "ATT012": {
+   "libelle": "ASSISTANT ATTACHE DE PRODUCTION",
+   "annexe": 8
+  },
+  "ATT013": {
+   "libelle": "ATTACHE DE PRODUCTION ADJOINT",
+   "annexe": 8
+  },
+  "AUD010": {
+   "libelle": "AUDIO DESCRIPTEUR",
+   "annexe": 8
+  },
+  "AUT010": {
+   "libelle": "AUTEUR COMPOSITEUR INTERPRETE",
+   "annexe": 10
+  },
+  "AUT020": {
+   "libelle": "AUTOMATE",
+   "annexe": 10
+  },
+  "AUX016": {
+   "libelle": "AUXILIAIRE A LA REALISATION CINEMA",
+   "annexe": 8
+  },
+  "AUX026": {
+   "libelle": "AUXILIAIRE A LA REGIE CINEMA",
+   "annexe": 8
+  },
+  "AYU010": {
+   "libelle": "AYUDA",
+   "annexe": 10
+  },
+  "BAC010": {
+   "libelle": "BACKLINER",
+   "annexe": 8
+  },
+  "BAC011": {
+   "libelle": "CHEF BACKLINER",
+   "annexe": 8
+  },
+  "BAN010": {
+   "libelle": "BANDERILLERO",
+   "annexe": 10
+  },
+  "BAR010": {
+   "libelle": "BARYTON",
+   "annexe": 10
+  },
+  "BAS010": {
+   "libelle": "BASSISTE",
+   "annexe": 10
+  },
+  "BAS020": {
+   "libelle": "BASSONISTE",
+   "annexe": 10
+  },
+  "BAT010": {
+   "libelle": "BATTEUR",
+   "annexe": 10
+  },
+  "BLO010": {
+   "libelle": "BLOCKEUR",
+   "annexe": 8
+  },
+  "BOI010": {
+   "libelle": "BOIS",
+   "annexe": 10
+  },
+  "BOL010": {
+   "libelle": "BOLAS",
+   "annexe": 10
+  },
+  "BOL020": {
+   "libelle": "BOLEADORAS",
+   "annexe": 10
+  },
+  "BOT010": {
+   "libelle": "BOTTIER",
+   "annexe": 8
+  },
+  "BOT011": {
+   "libelle": "CHEF BOTTIER",
+   "annexe": 8
+  },
+  "BOT012": {
+   "libelle": "ASSISTANT BOTTIER",
+   "annexe": 8
+  },
+  "BOT013": {
+   "libelle": "BOTTIER ADJOINT",
+   "annexe": 8
+  },
+  "BOX010": {
+   "libelle": "BOXEUR",
+   "annexe": 10
+  },
+  "BRU010": {
+   "libelle": "BRUITEUR",
+   "annexe": 8
+  },
+  "BRU020": {
+   "libelle": "BRUITEUR DE COMPLEMENT",
+   "annexe": 8
+  },
+  "CAD010": {
+   "libelle": "CADREUR",
+   "annexe": 8
+  },
+  "CAD011": {
+   "libelle": "CHEF CADREUR",
+   "annexe": 8
+  },
+  "CAD013": {
+   "libelle": "CADREUR ADJOINT",
+   "annexe": 8
+  },
+  "CAD014": {
+   "libelle": "CADREUR SPECIALISE CINEMA",
+   "annexe": 8
+  },
+  "CAD015": {
+   "libelle": "CADREUR SPECIALISE",
+   "annexe": 8
+  },
+  "CAD016": {
+   "libelle": "CADREUR CINEMA",
+   "annexe": 8
+  },
+  "CAD020": {
+   "libelle": "CADREUR D'ANIMATION",
+   "annexe": 8
+  },
+  "CAD040": {
+   "libelle": "CADREUR AV",
+   "annexe": 8
+  },
+  "CAD050": {
+   "libelle": "CADREUR SV",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "CAL010": {
+   "libelle": "CALLIGRAPHE",
+   "annexe": 8
+  },
+  "CAM010": {
+   "libelle": "CAMERAMAN",
+   "annexe": 8
+  },
+  "CAM011": {
+   "libelle": "CHEF CAMERAMAN",
+   "annexe": 8
+  },
+  "CAN010": {
+   "libelle": "CANTATRICE",
+   "annexe": 10
+  },
+  "CAR010": {
+   "libelle": "CARICATURISTE",
+   "annexe": 10
+  },
+  "CAR020": {
+   "libelle": "CARISTE DE SPECTACLES",
+   "annexe": 8
+  },
+  "CAR021": {
+   "libelle": "CHEF CARISTE DE SPECTACLES",
+   "annexe": 8
+  },
+  "CAR022": {
+   "libelle": "ASSISTANT CARISTE DE SPECTACLES",
+   "annexe": 8
+  },
+  "CAR023": {
+   "libelle": "CARISTE DE SPECTACLES ADJOINT",
+   "annexe": 8
+  },
+  "CAS010": {
+   "libelle": "CASCADEUR",
+   "annexe": 10
+  },
+  "CAT010": {
+   "libelle": "CATCHEUR",
+   "annexe": 10
+  },
+  "CAV010": {
+   "libelle": "CAVALIER",
+   "annexe": 10
+  },
+  "CHA010": {
+   "libelle": "CHANSONNIER",
+   "annexe": 10
+  },
+  "CHA020": {
+   "libelle": "CHANTEUR",
+   "annexe": 10
+  },
+  "CHA030": {
+   "libelle": "CHANTEUR DE VARIETES",
+   "annexe": 10
+  },
+  "CHA040": {
+   "libelle": "CHANTEUR MUSICIEN",
+   "annexe": 10
+  },
+  "CHA050": {
+   "libelle": "CHANTEUR SOLISTE",
+   "annexe": 10
+  },
+  "CHA060": {
+   "libelle": "CHAPELIER",
+   "annexe": 8
+  },
+  "CHA061": {
+   "libelle": "CHEF CHAPELIER",
+   "annexe": 8
+  },
+  "CHA062": {
+   "libelle": "ASSISTANT CHAPELIER",
+   "annexe": 8
+  },
+  "CHA063": {
+   "libelle": "CHAPELIER ADJOINT",
+   "annexe": 8
+  },
+  "CHA070": {
+   "libelle": "CHARGE DE POST- PRODUCTION",
+   "annexe": 8
+  },
+  "CHA080": {
+   "libelle": "CHARGE DE PRODUCTION",
+   "annexe": 8
+  },
+  "CHA081": {
+   "libelle": "CHEF CHARGE DE PRODUCTION",
+   "annexe": 8
+  },
+  "CHA082": {
+   "libelle": "ASSISTANT CHARGE DE PRODUCTION",
+   "annexe": 8
+  },
+  "CHA083": {
+   "libelle": "CHARGE DE PRODUCTION ADJOINT",
+   "annexe": 8
+  },
+  "CHA100": {
+   "libelle": "CHAUFFEUR DE PRODUCTION",
+   "annexe": 8
+  },
+  "CHA110": {
+   "libelle": "CHARGE D'ENCADREMENT DE PRODUCTION",
+   "annexe": 8
+  },
+  "CHA120": {
+   "libelle": "CHARGE DE PRODUCTION AV",
+   "annexe": 8
+  },
+  "CHA140": {
+   "libelle": "CHAUFFEUR",
+   "annexe": 8
+  },
+  "CHA150": {
+   "libelle": "CHAUFFEUR DE SALLE",
+   "annexe": 8
+  },
+  "CHA160": {
+   "libelle": "CHANTEUR LYRIQUE",
+   "annexe": 10
+  },
+  "CHA170": {
+   "libelle": "CHARGE D'ENQUETE",
+   "annexe": 8
+  },
+  "CHA180": {
+   "libelle": "CHARGE DE RECHERCHE",
+   "annexe": 8
+  },
+  "CHA190": {
+   "libelle": "CHARGE DE SELECTION",
+   "annexe": 8
+  },
+  "CHA206": {
+   "libelle": "CHARGE DE LA FIGURATION CINEMA",
+   "annexe": 8
+  },
+  "CHA210": {
+   "libelle": "CHAPELIER MODISTE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "CHE010": {
+   "libelle": "CHEF ACCESSOIRISTE VOLUME",
+   "annexe": 8
+  },
+  "CHE020": {
+   "libelle": "CHEF ANIMATEUR",
+   "annexe": 8
+  },
+  "CHE030": {
+   "libelle": "CHEF ANIMATEUR VOLUME",
+   "annexe": 8
+  },
+  "CHE040": {
+   "libelle": "CHEF ASSISTANT",
+   "annexe": 8
+  },
+  "CHE050": {
+   "libelle": "CHEF COIFFEUR PERRUQUIER",
+   "annexe": 8
+  },
+  "CHE060": {
+   "libelle": "CHEF COMPOSITING",
+   "annexe": 8
+  },
+  "CHE070": {
+   "libelle": "CHEF CONSTRUCTEUR",
+   "annexe": 8
+  },
+  "CHE076": {
+   "libelle": "CHEF CONSTRUCTEUR CINEMA",
+   "annexe": 8
+  },
+  "CHE080": {
+   "libelle": "CHEF COSTUMIER",
+   "annexe": 8
+  },
+  "CHE085": {
+   "libelle": "CHEF COSTUMIER SPECIALISE",
+   "annexe": 8
+  },
+  "CHE086": {
+   "libelle": "CHEF COSTUMIER CINEMA",
+   "annexe": 8
+  },
+  "CHE100": {
+   "libelle": "CHEF DE PLATEAU",
+   "annexe": 8
+  },
+  "CHE120": {
+   "libelle": "CHEF DE PRODUCTION",
+   "annexe": 8
+  },
+  "CHE150": {
+   "libelle": "CHEF DECORATEUR",
+   "annexe": 8
+  },
+  "CHE155": {
+   "libelle": "CHEF DECORATEUR SPECIALISE",
+   "annexe": 8
+  },
+  "CHE156": {
+   "libelle": "CHEF DECORATEUR CINEMA",
+   "annexe": 8
+  },
+  "CHE160": {
+   "libelle": "CHEF DECORATEUR VOLUME",
+   "annexe": 8
+  },
+  "CHE170": {
+   "libelle": "CHEF DES CHOEURS",
+   "annexe": 10
+  },
+  "CHE180": {
+   "libelle": "CHEF DESSINATEUR D'ANIMATION",
+   "annexe": 8
+  },
+  "CHE190": {
+   "libelle": "CHEF D'ORCHESTRE",
+   "annexe": 10
+  },
+  "CHE200": {
+   "libelle": "CHEF ECLAIRAGISTE",
+   "annexe": 8
+  },
+  "CHE210": {
+   "libelle": "CHEF ELECTRICIEN",
+   "annexe": 8
+  },
+  "CHE230": {
+   "libelle": "CHEF FEUILLE D'EXPOSITION",
+   "annexe": 8
+  },
+  "CHE260": {
+   "libelle": "CHEF LAY-OUT",
+   "annexe": 8
+  },
+  "CHE270": {
+   "libelle": "CHEF MACHINISTE",
+   "annexe": 8
+  },
+  "CHE280": {
+   "libelle": "CHEF MAQUILLEUR",
+   "annexe": 8
+  },
+  "CHE285": {
+   "libelle": "CHEF MAQUILLEUR SPECIALISE",
+   "annexe": 8
+  },
+  "CHE286": {
+   "libelle": "CHEF MAQUILLEUR CINEMA",
+   "annexe": 8
+  },
+  "CHE290": {
+   "libelle": "CHEF MAQUILLEUR POSTICHEUR",
+   "annexe": 8
+  },
+  "CHE300": {
+   "libelle": "CHEF MENUISIER",
+   "annexe": 8
+  },
+  "CHE310": {
+   "libelle": "CHEF MODELES COULEUR",
+   "annexe": 8
+  },
+  "CHE320": {
+   "libelle": "CHEF MONTEUR",
+   "annexe": 8
+  },
+  "CHE325": {
+   "libelle": "CHEF MONTEUR SPECIALISE",
+   "annexe": 8
+  },
+  "CHE326": {
+   "libelle": "CHEF MONTEUR CINEMA",
+   "annexe": 8
+  },
+  "CHE340": {
+   "libelle": "CHEF MOULAGE",
+   "annexe": 8
+  },
+  "CHE350": {
+   "libelle": "CHEF OPERATEUR",
+   "annexe": 8
+  },
+  "CHE352": {
+   "libelle": "ASSISTANT CHEF OPERATEUR",
+   "annexe": 8
+  },
+  "CHE353": {
+   "libelle": "CHEF OPERATEUR ADJOINT",
+   "annexe": 8
+  },
+  "CHE370": {
+   "libelle": "CHEF OPS / CHEF OPERATEUR PRISE DE SON",
+   "annexe": 8,
+   "evolution_2016": "M"
+  },
+  "CHE375": {
+   "libelle": "CHEF OPS SPECIALISE",
+   "annexe": 8
+  },
+  "CHE376": {
+   "libelle": "CHEF OPERATEUR DE SON CINEMA",
+   "annexe": 8
+  },
+  "CHE400": {
+   "libelle": "CHEF OPERATEUR VOLUME",
+   "annexe": 8
+  },
+  "CHE410": {
+   "libelle": "CHEF OPV / CHEF OPERATEUR PRISE DE VUES",
+   "annexe": 8
+  },
+  "CHE420": {
+   "libelle": "CHEF PEINTRE",
+   "annexe": 8
+  },
+  "CHE430": {
+   "libelle": "CHEF PLASTICIEN VOLUME",
+   "annexe": 8
+  },
+  "CHE450": {
+   "libelle": "CHEF SCULPTEUR DECORATEUR",
+   "annexe": 8
+  },
+  "CHE456": {
+   "libelle": "CHEF SCULPTEUR DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "CHE460": {
+   "libelle": "CHEF STAFFEUR",
+   "annexe": 8
+  },
+  "CHE470": {
+   "libelle": "CHEF STORY-BOARDER",
+   "annexe": 8
+  },
+  "CHE490": {
+   "libelle": "CHEF VERIFICATEUR D'ANIMATION",
+   "annexe": 8
+  },
+  "CHE510": {
+   "libelle": "CHEF D'ORCHESTRE SYMPHONIQUE",
+   "annexe": 10
+  },
+  "CHE520": {
+   "libelle": "CHEF CADREUR D'ANIMATION",
+   "annexe": 8
+  },
+  "CHE530": {
+   "libelle": "CHEF CONSTRUCTEUR (DE) DECORS",
+   "annexe": 8
+  },
+  "CHE550": {
+   "libelle": "CHEF D'ANTENNE",
+   "annexe": 8
+  },
+  "CHE560": {
+   "libelle": "CHEF D'ATELIER DECORS",
+   "annexe": 8
+  },
+  "CHE570": {
+   "libelle": "CHEF D'ATELIER LUMIERE",
+   "annexe": 8
+  },
+  "CHE580": {
+   "libelle": "CHEF D'EQUIPE",
+   "annexe": 8
+  },
+  "CHE590": {
+   "libelle": "CHEF D'EQUIPEMENT AV",
+   "annexe": 8
+  },
+  "CHE600": {
+   "libelle": "CHEF DE FILE",
+   "annexe": 8
+  },
+  "CHE610": {
+   "libelle": "CHEF DE PLATEAU AV",
+   "annexe": 8
+  },
+  "CHE620": {
+   "libelle": "CHEF DE PROJET MULTIMEDIA",
+   "annexe": 8
+  },
+  "CHE630": {
+   "libelle": "CHEF DE TIR",
+   "annexe": 8
+  },
+  "CHE640": {
+   "libelle": "CHEF ELECTRICIEN PRISE DE VUE",
+   "annexe": 8
+  },
+  "CHE646": {
+   "libelle": "CHEF ELECTRICIEN PRISE DE VUES CINEMA",
+   "annexe": 8
+  },
+  "CHE650": {
+   "libelle": "CHEF ETALONNEUR NUMERIQUE",
+   "annexe": 8
+  },
+  "CHE660": {
+   "libelle": "CHEF GRAPHISTE AV",
+   "annexe": 8
+  },
+  "CHE670": {
+   "libelle": "CHEF INFOGRAPHISTE 2D",
+   "annexe": 8
+  },
+  "CHE680": {
+   "libelle": "CHEF MACHINISTE AV",
+   "annexe": 8
+  },
+  "CHE700": {
+   "libelle": "CHEF MONTEUR FLUX",
+   "annexe": 8
+  },
+  "CHE710": {
+   "libelle": "CHEF MONTEUR TRUQUISTE",
+   "annexe": 8
+  },
+  "CHE720": {
+   "libelle": "CHEF OPERATEUR-ETALONNEUR",
+   "annexe": 8
+  },
+  "CHE730": {
+   "libelle": "CHEF OPERATEUR DE PRISES DE VUE AV",
+   "annexe": 8
+  },
+  "CHE740": {
+   "libelle": "CHEF POURSUITEUR AV",
+   "annexe": 8
+  },
+  "CHE770": {
+   "libelle": "CHEF TRACE-COLORISATION",
+   "annexe": 8
+  },
+  "CHE790": {
+   "libelle": "CHEF DE CHANT",
+   "annexe": 10
+  },
+  "CHE806": {
+   "libelle": "CHEF COIFFEUR CINEMA",
+   "annexe": 8
+  },
+  "CHE816": {
+   "libelle": "CHEF D'ATELIER COSTUMES CINEMA",
+   "annexe": 8
+  },
+  "CHE826": {
+   "libelle": "CHEF ELECTRICIEN DE CONSTRUCTION CINEMA",
+   "annexe": 8
+  },
+  "CHE836": {
+   "libelle": "CHEF MACHINISTE DE CONSTRUCTION CINEMA",
+   "annexe": 8
+  },
+  "CHE846": {
+   "libelle": "CHEF MACHINISTE PRISE DE VUES CINEMA",
+   "annexe": 8
+  },
+  "CHE856": {
+   "libelle": "CHEF MENUISIER DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "CHE866": {
+   "libelle": "CHEF MONTEUR SON CINEMA",
+   "annexe": 8
+  },
+  "CHE876": {
+   "libelle": "CHEF PEINTRE DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "CHE886": {
+   "libelle": "CHEF SERRURIER DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "CHE896": {
+   "libelle": "CHEF STAFFEUR DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "CHE906": {
+   "libelle": "CHEF TAPISSIER DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "CHE910": {
+   "libelle": "CHEF CHAPELIER MODISTE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "CHE920": {
+   "libelle": "CHEF INSTRUMENT DE MUSIQUE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "CHE930": {
+   "libelle": "CHEF REGISSEUR MOTORISATION ASSERVIE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "CHE940": {
+   "libelle": "CHEF SCULPTEUR",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "CHE950": {
+   "libelle": "CHEF SERRURIER METALLIER",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "CHE960": {
+   "libelle": "CHEF TAPISSIER",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "CHO010": {
+   "libelle": "CHOREGRAPHE",
+   "annexe": 10
+  },
+  "CHO020": {
+   "libelle": "CHORISTE",
+   "annexe": 10
+  },
+  "CHR010": {
+   "libelle": "CHRONIQUEUR",
+   "annexe": 8
+  },
+  "CIN010": {
+   "libelle": "CINTRIER",
+   "annexe": 8
+  },
+  "CIN011": {
+   "libelle": "CHEF CINTRIER",
+   "annexe": 8
+  },
+  "CIN012": {
+   "libelle": "ASSISTANT CINTRIER",
+   "annexe": 8
+  },
+  "CIN013": {
+   "libelle": "CINTRIER ADJOINT",
+   "annexe": 8
+  },
+  "CLA010": {
+   "libelle": "CLARINETTISTE",
+   "annexe": 10
+  },
+  "CLA020": {
+   "libelle": "CLAVECINISTE",
+   "annexe": 10
+  },
+  "CLA030": {
+   "libelle": "CLAVIER",
+   "annexe": 10
+  },
+  "CLA050": {
+   "libelle": "CLARINETTE BASSE",
+   "annexe": 10
+  },
+  "CLO010": {
+   "libelle": "CLOWN",
+   "annexe": 10
+  },
+  "CLO020": {
+   "libelle": "CLOSE UP",
+   "annexe": 10
+  },
+  "COI010": {
+   "libelle": "COIFFEUR",
+   "annexe": 8
+  },
+  "COI011": {
+   "libelle": "CHEF COIFFEUR",
+   "annexe": 8
+  },
+  "COI013": {
+   "libelle": "COIFFEUR ADJOINT",
+   "annexe": 8
+  },
+  "COI015": {
+   "libelle": "COIFFEUR SPECIALISE",
+   "annexe": 8
+  },
+  "COI016": {
+   "libelle": "COIFFEUR CINEMA",
+   "annexe": 8
+  },
+  "COI020": {
+   "libelle": "COIFFEUR PERRUQUIER",
+   "annexe": 8
+  },
+  "COI025": {
+   "libelle": "COIFFEUR PERRUQUIER SPECIALISE",
+   "annexe": 8
+  },
+  "COL010": {
+   "libelle": "COLLABORATEUR ARTISTIQUE",
+   "annexe": 8
+  },
+  "COL020": {
+   "libelle": "COLLABORATEUR ARTISTIQUE CHOREGRAPHE",
+   "annexe": 8
+  },
+  "COL021": {
+   "libelle": "CHEF COLLABORATEUR ARTISTIQ CHOREGRAPHE",
+   "annexe": 8
+  },
+  "COL022": {
+   "libelle": "ASSIST COLLABORATEUR ARTISTIQ CHOREGRAPH",
+   "annexe": 8
+  },
+  "COL023": {
+   "libelle": "ADJOINT COLLABORATEUR ARTIST CHOREGRAPHE",
+   "annexe": 8
+  },
+  "COL030": {
+   "libelle": "COLLABORATEUR ARTISTIQ DIRECTEUR MUSICAL",
+   "annexe": 8
+  },
+  "COL031": {
+   "libelle": "CHEF COLLABO ARTISTIQ DIRECTEUR MUSICAL",
+   "annexe": 8
+  },
+  "COL032": {
+   "libelle": "ASSIST COLLABO ARTIST DIRECTEUR MUSICAL",
+   "annexe": 8
+  },
+  "COL033": {
+   "libelle": "ADJOINT COLLABO ARTIST DIRECTEUR MUSICAL",
+   "annexe": 8
+  },
+  "COL040": {
+   "libelle": "COLLABORATEUR ARTISTIQ METTEUR EN SCENE",
+   "annexe": 8
+  },
+  "COL041": {
+   "libelle": "CHEF COLLABO ARTISTIQ METTEUR EN SCENE",
+   "annexe": 8
+  },
+  "COL042": {
+   "libelle": "ASSIST COLLABO ARTISTIQ METTEUR EN SCENE",
+   "annexe": 8
+  },
+  "COL043": {
+   "libelle": "ADJOINT COLLABO ARTIST METTEUR EN SCENE",
+   "annexe": 8
+  },
+  "COL050": {
+   "libelle": "COLLABORATEUR LITTERAIRE",
+   "annexe": 8
+  },
+  "COL060": {
+   "libelle": "COLLABORATEUR SPECIALISE D'EMISSION",
+   "annexe": 8
+  },
+  "COL090": {
+   "libelle": "COLORISTE MODELE",
+   "annexe": 8
+  },
+  "COL100": {
+   "libelle": "COLLABORATEUR DE SELECTION",
+   "annexe": 8
+  },
+  "COM010": {
+   "libelle": "COMEDIEN",
+   "annexe": 10
+  },
+  "COM020": {
+   "libelle": "COMPTABLE DE PRODUCTION",
+   "annexe": 8
+  },
+  "COM025": {
+   "libelle": "COMPTABLE DE PRODUCTION SPECIALISE",
+   "annexe": 8
+  },
+  "CON010": {
+   "libelle": "CONCEPTEUR DES ECLAIRAGES",
+   "annexe": 8
+  },
+  "CON011": {
+   "libelle": "CHEF CONCEPTEUR DES ECLAIRAGES",
+   "annexe": 8
+  },
+  "CON012": {
+   "libelle": "ASSISTANT CONCEPTEUR DES ECLAIRAGES",
+   "annexe": 8
+  },
+  "CON013": {
+   "libelle": "CONCEPTEUR DES ECLAIRAGES ADJOINT",
+   "annexe": 8
+  },
+  "CON020": {
+   "libelle": "CONCEPTEUR (DU) SON",
+   "annexe": 8
+  },
+  "CON021": {
+   "libelle": "CHEF CONCEPTEUR DU SON",
+   "annexe": 8
+  },
+  "CON022": {
+   "libelle": "ASSISTANT CONCEPTEUR DU SON",
+   "annexe": 8
+  },
+  "CON023": {
+   "libelle": "CONCEPTEUR DU SON ADJOINT",
+   "annexe": 8
+  },
+  "CON040": {
+   "libelle": "CONDUCTEUR DE GROUPE",
+   "annexe": 8
+  },
+  "CON046": {
+   "libelle": "CONDUCTEUR DE GROUPE CINEMA",
+   "annexe": 8
+  },
+  "CON050": {
+   "libelle": "CONFORMATEUR",
+   "annexe": 8
+  },
+  "CON070": {
+   "libelle": "CONSEILLER DE PROGRAMME",
+   "annexe": 8
+  },
+  "CON090": {
+   "libelle": "CONSEILLER TECHNIQUE",
+   "annexe": 8
+  },
+  "CON091": {
+   "libelle": "CHEF CONSEILLER TECHNIQUE",
+   "annexe": 8
+  },
+  "CON092": {
+   "libelle": "ASSISTANT CONSEILLER TECHNIQUE",
+   "annexe": 8
+  },
+  "CON093": {
+   "libelle": "CONSEILLER TECHNIQUE ADJOINT",
+   "annexe": 8
+  },
+  "CON100": {
+   "libelle": "CONSEILLER TECHNIQUE (A LA) REALISATION",
+   "annexe": 8
+  },
+  "CON106": {
+   "libelle": "CONSEILLER TECHNIQUE REALISATION CINEMA",
+   "annexe": 8
+  },
+  "CON110": {
+   "libelle": "CONSTRUCTEUR",
+   "annexe": 8
+  },
+  "CON120": {
+   "libelle": "CONSTRUCTEUR DE DECORS ET STRUCTURES",
+   "annexe": 8
+  },
+  "CON121": {
+   "libelle": "CHEF CONSTRUCTEUR DECORS ET STRUCTURES",
+   "annexe": 8
+  },
+  "CON122": {
+   "libelle": "ASSIST CONSTRUCTEUR DECORS ET STRUCTURES",
+   "annexe": 8
+  },
+  "CON123": {
+   "libelle": "CONSTRUCTEUR DECORS & STRUCTURES ADJOINT",
+   "annexe": 8
+  },
+  "CON130": {
+   "libelle": "CONTEUR",
+   "annexe": 10
+  },
+  "CON140": {
+   "libelle": "CONTORSIONNISTE",
+   "annexe": 10
+  },
+  "CON150": {
+   "libelle": "CONTREBASSE",
+   "annexe": 10
+  },
+  "CON170": {
+   "libelle": "CONSTRUCTEUR DE DECORS / EN DECORS",
+   "annexe": 8
+  },
+  "CON180": {
+   "libelle": "CONCEPTEUR TECHNIQUE DECOR",
+   "annexe": 8
+  },
+  "CON190": {
+   "libelle": "CONCEPTEUR TECHNIQUE MACHINERIE",
+   "annexe": 8
+  },
+  "CON200": {
+   "libelle": "CONDUCTEUR DE MOYENS MOBILES",
+   "annexe": 8
+  },
+  "CON210": {
+   "libelle": "CONSTRUCTEUR DE MACHINERIE",
+   "annexe": 8
+  },
+  "CON220": {
+   "libelle": "CONSEILLER ARTISTIQUE DE PRODUCTION",
+   "annexe": 8
+  },
+  "CON230": {
+   "libelle": "CONTRALTO",
+   "annexe": 10
+  },
+  "CON240": {
+   "libelle": "CONSEILLER ARTISTIQUE D'EMISSION",
+   "annexe": 8
+  },
+  "CON250": {
+   "libelle": "CONCEPTEUR ARTIFICIER",
+   "annexe": 8
+  },
+  "CON251": {
+   "libelle": "CHEF CONCEPTEUR ARTIFICIER",
+   "annexe": 8
+  },
+  "CON252": {
+   "libelle": "ASSISTANT CONCEPTEUR ARTIFICIER",
+   "annexe": 8
+  },
+  "CON253": {
+   "libelle": "CONCEPTEUR ARTIFICIER ADJOINT",
+   "annexe": 8
+  },
+  "CON260": {
+   "libelle": "CONCEPTEUR LUMIERE",
+   "annexe": 8
+  },
+  "CON261": {
+   "libelle": "CHEF CONCEPTEUR LUMIERE",
+   "annexe": 8
+  },
+  "CON262": {
+   "libelle": "ASSISTANT CONCEPTEUR LUMIERE",
+   "annexe": 8
+  },
+  "CON263": {
+   "libelle": "CONCEPTEUR LUMIERE ADJONT",
+   "annexe": 8
+  },
+  "CON270": {
+   "libelle": "CONSEILLER TECHNIQUE AUX EFFETS SPECIAUX",
+   "annexe": 8
+  },
+  "CON271": {
+   "libelle": "CHEF CONSEILLER TECHNIQ EFFETS SPECIAUX",
+   "annexe": 8
+  },
+  "CON272": {
+   "libelle": "ASSIST CONSEILLER TECH EFFETS SPECIAUX",
+   "annexe": 8
+  },
+  "CON273": {
+   "libelle": "CONSEILLER TECHNIQUE EFFETS SPECIAUX ADJ",
+   "annexe": 8
+  },
+  "CON280": {
+   "libelle": "CONCEPTEUR MOTORISATION ASSERVIE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "COO010": {
+   "libelle": "COORDINATEUR D'ECRITURE",
+   "annexe": 8
+  },
+  "COO020": {
+   "libelle": "COORDINATEUR D'ANTENNE",
+   "annexe": 8
+  },
+  "COO030": {
+   "libelle": "COORDINATEUR DE PRODUCTION",
+   "annexe": 8
+  },
+  "COO040": {
+   "libelle": "COORDINATEUR LINGUISTIQUE",
+   "annexe": 8
+  },
+  "COO050": {
+   "libelle": "COORDINATEUR D'EMISSION",
+   "annexe": 8
+  },
+  "COO066": {
+   "libelle": "COORDINATEUR DE POST-PRODUCTION CINEMA",
+   "annexe": 8
+  },
+  "COR010": {
+   "libelle": "CORDES",
+   "annexe": 10
+  },
+  "COR020": {
+   "libelle": "CORNET",
+   "annexe": 10
+  },
+  "COR030": {
+   "libelle": "CORNISTE",
+   "annexe": 10
+  },
+  "COR040": {
+   "libelle": "CORNETISTE",
+   "annexe": 10
+  },
+  "COR050": {
+   "libelle": "COR DE BASSET",
+   "annexe": 10
+  },
+  "COS010": {
+   "libelle": "COSTUMIER",
+   "annexe": 8
+  },
+  "COS012": {
+   "libelle": "ASSISTANT COSTUMIER",
+   "annexe": 8
+  },
+  "COS013": {
+   "libelle": "COSTUMIER ADJOINT",
+   "annexe": 8
+  },
+  "COS015": {
+   "libelle": "COSTUMIER SPECIALISE",
+   "annexe": 8
+  },
+  "COS016": {
+   "libelle": "COSTUMIER CINEMA",
+   "annexe": 8
+  },
+  "COU010": {
+   "libelle": "COUTURIER",
+   "annexe": 8
+  },
+  "COU011": {
+   "libelle": "CHEF COUTURIER",
+   "annexe": 8
+  },
+  "COU012": {
+   "libelle": "ASSISTANT COUTURIER",
+   "annexe": 8
+  },
+  "COU013": {
+   "libelle": "COUTURIER ADJOINT",
+   "annexe": 8
+  },
+  "COU026": {
+   "libelle": "COUTURIER COSTUMES CINEMA",
+   "annexe": 8
+  },
+  "CRE010": {
+   "libelle": "CREATEUR DE COSTUME",
+   "annexe": 8
+  },
+  "CRE015": {
+   "libelle": "CREATEUR DE COSTUME SPECIALISE",
+   "annexe": 8
+  },
+  "CRE016": {
+   "libelle": "CREATEUR DE COSTUME CINEMA",
+   "annexe": 8
+  },
+  "CRE020": {
+   "libelle": "CREATEUR D'EFFETS SONORES",
+   "annexe": 8
+  },
+  "CUI010": {
+   "libelle": "CUIVRES",
+   "annexe": 10
+  },
+  "DAC010": {
+   "libelle": "DACTYLOGRAPHE DE BANDE",
+   "annexe": 8
+  },
+  "DAN010": {
+   "libelle": "DANSEUR",
+   "annexe": 10
+  },
+  "DAN020": {
+   "libelle": "DANSEUR BALLET",
+   "annexe": 10
+  },
+  "DAN030": {
+   "libelle": "DANSEUR DE MUSIC HALL",
+   "annexe": 10
+  },
+  "DAN040": {
+   "libelle": "DANSEUR DE VARIETE",
+   "annexe": 10
+  },
+  "DAN050": {
+   "libelle": "DANSEUR SOLISTE",
+   "annexe": 10
+  },
+  "DEC010": {
+   "libelle": "DECORATEUR",
+   "annexe": 8
+  },
+  "DEC013": {
+   "libelle": "DECORATEUR ADJOINT",
+   "annexe": 8
+  },
+  "DEC015": {
+   "libelle": "DECORATEUR SPECIALISE",
+   "annexe": 8
+  },
+  "DEC030": {
+   "libelle": "DECORATEUR ENSEMBLIER",
+   "annexe": 8
+  },
+  "DEC050": {
+   "libelle": "DECORATEUR PEINTRE",
+   "annexe": 8
+  },
+  "DEC055": {
+   "libelle": "DECORATEUR PEINTRE SPECIALISE",
+   "annexe": 8
+  },
+  "DEC060": {
+   "libelle": "DECORATEUR TAPISSIER",
+   "annexe": 8
+  },
+  "DEC065": {
+   "libelle": "DECORATEUR TAPISSIER SPECIALISE",
+   "annexe": 8
+  },
+  "DEC070": {
+   "libelle": "DECORATEUR VOLUME",
+   "annexe": 8
+  },
+  "DES010": {
+   "libelle": "DESSINATEUR ARTISTIQUE",
+   "annexe": 8
+  },
+  "DES020": {
+   "libelle": "DESSINATEUR D'ANIMATION",
+   "annexe": 8
+  },
+  "DES030": {
+   "libelle": "DESSINATEUR EN DECOR",
+   "annexe": 8
+  },
+  "DES035": {
+   "libelle": "DESSINATEUR EN DECOR SPECIALISE",
+   "annexe": 8
+  },
+  "DES040": {
+   "libelle": "DESSINATEUR LAY-OUT",
+   "annexe": 8
+  },
+  "DES050": {
+   "libelle": "DESSINATEUR EN GENERIQUE",
+   "annexe": 8
+  },
+  "DES060": {
+   "libelle": "DESIGNER LUMIERE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "DES070": {
+   "libelle": "DESIGNER SON",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "DET010": {
+   "libelle": "DETECTEUR",
+   "annexe": 8
+  },
+  "DET020": {
+   "libelle": "DETECTEUR D'ANIMATION",
+   "annexe": 8
+  },
+  "DEU010": {
+   "libelle": "2EME ASSISTANT DECORATEUR",
+   "annexe": 8
+  },
+  "DEU015": {
+   "libelle": "2EME ASSISTANT DECORATEUR SPECIALISE",
+   "annexe": 8
+  },
+  "DEU016": {
+   "libelle": "2EME ASSISTANT DECORATEUR CINEMA",
+   "annexe": 8
+  },
+  "DEU020": {
+   "libelle": "2EME ASSISTANT OPV",
+   "annexe": 8
+  },
+  "DEU025": {
+   "libelle": "2EME ASSISTANT OPV SPECIALISE",
+   "annexe": 8
+  },
+  "DEU026": {
+   "libelle": "2EME ASSISTANT OPERATEUR CINEMA",
+   "annexe": 8
+  },
+  "DEU030": {
+   "libelle": "2EME ASSISTANT REALISATEUR",
+   "annexe": 8
+  },
+  "DEU035": {
+   "libelle": "2EME ASSISTANT REALISATEUR SPECIALISE",
+   "annexe": 8
+  },
+  "DEU036": {
+   "libelle": "2ND ASSISTANT REALISATEUR CINEMA",
+   "annexe": 8
+  },
+  "DEU050": {
+   "libelle": "2EME ASSISTANT DE REALISATION AV",
+   "annexe": 8
+  },
+  "DEU060": {
+   "libelle": "2ND ASSISTANT DECORS",
+   "annexe": 8
+  },
+  "DEU070": {
+   "libelle": "2EME ASSISTANT SON",
+   "annexe": 8
+  },
+  "DEU080": {
+   "libelle": "2EME ASSISTANT CADREUR",
+   "annexe": 8
+  },
+  "DEU090": {
+   "libelle": "2EME ASSISTANT CAMERAMAN",
+   "annexe": 8
+  },
+  "DEU106": {
+   "libelle": "2EME ASSISTANT MONTEUR CINEMA",
+   "annexe": 8
+  },
+  "DIR010": {
+   "libelle": "DIRECTEUR ANIMATION",
+   "annexe": 8
+  },
+  "DIR020": {
+   "libelle": "DIRECTEUR ARTISTIQUE",
+   "annexe": 8
+  },
+  "DIR030": {
+   "libelle": "DIRECTEUR COMPOSITING",
+   "annexe": 8
+  },
+  "DIR040": {
+   "libelle": "DIRECTEUR CASTING",
+   "annexe": 8
+  },
+  "DIR050": {
+   "libelle": "DIRECTEUR DE COLLECTION",
+   "annexe": 8
+  },
+  "DIR060": {
+   "libelle": "DIRECTEUR DES DIALOGUES",
+   "annexe": 8
+  },
+  "DIR070": {
+   "libelle": "DIRECTEUR DE LA DISTRIBUTION",
+   "annexe": 8
+  },
+  "DIR075": {
+   "libelle": "DIRECTEUR DE LA DISTRIBUTION SPECIALISE",
+   "annexe": 8
+  },
+  "DIR080": {
+   "libelle": "DIRECTEUR DE LA DISTRIBUTION ARTISTIQUE",
+   "annexe": 8
+  },
+  "DIR090": {
+   "libelle": "DIRECTEUR (DE LA) PHOTO",
+   "annexe": 8
+  },
+  "DIR095": {
+   "libelle": "DIRECTEUR PHOTO SPECIALISE",
+   "annexe": 8
+  },
+  "DIR096": {
+   "libelle": "DIRECTEUR DE LA PHOTOGRAPHIE CINEMA",
+   "annexe": 8
+  },
+  "DIR100": {
+   "libelle": "DIRECTEUR DE MODELISATION",
+   "annexe": 8
+  },
+  "DIR110": {
+   "libelle": "DIRECTEUR DE POST-PRODUCTION",
+   "annexe": 8
+  },
+  "DIR120": {
+   "libelle": "DIRECTEUR DE PRODUCTION",
+   "annexe": 8
+  },
+  "DIR122": {
+   "libelle": "ASSISTANT DIRECTEUR DE PRODUCTION",
+   "annexe": 8
+  },
+  "DIR123": {
+   "libelle": "DIRECTEUR DE PRODUCTION ADJOINT",
+   "annexe": 8
+  },
+  "DIR125": {
+   "libelle": "DIRECTEUR DE PRODUCTION SPECIALISE",
+   "annexe": 8
+  },
+  "DIR126": {
+   "libelle": "DIRECTEUR DE PRODUCTION CINEMA",
+   "annexe": 8
+  },
+  "DIR130": {
+   "libelle": "DIRECTEUR DECOR",
+   "annexe": 8
+  },
+  "DIR140": {
+   "libelle": "DIRECTEUR D'ECRITURE",
+   "annexe": 8
+  },
+  "DIR160": {
+   "libelle": "DIRECTEUR DES EFFETS VISUELS NUMERIQUES",
+   "annexe": 8
+  },
+  "DIR190": {
+   "libelle": "DIRECTEUR LAY-OUT",
+   "annexe": 8
+  },
+  "DIR200": {
+   "libelle": "DIRECTEUR RENDU ET ECLAIRAGE",
+   "annexe": 8
+  },
+  "DIR210": {
+   "libelle": "DIRECTEUR TECHNIQUE",
+   "annexe": 8
+  },
+  "DIR212": {
+   "libelle": "ASSISTANT DIRECTEUR TECHNIQUE",
+   "annexe": 8
+  },
+  "DIR213": {
+   "libelle": "DIRECTEUR TECHNIQUE ADJOINT",
+   "annexe": 8
+  },
+  "DIR220": {
+   "libelle": "DIRECTEUR DE PRODUCTION AV",
+   "annexe": 8
+  },
+  "DIR230": {
+   "libelle": "DIRECTEUR DE PROGRAMMATION",
+   "annexe": 8
+  },
+  "DIR240": {
+   "libelle": "DIRECTEUR LOGISTIQUE",
+   "annexe": 8
+  },
+  "DIR250": {
+   "libelle": "DIRECTEUR TECHNIQUE DE POST-PRODUCTION",
+   "annexe": 8
+  },
+  "DIR260": {
+   "libelle": "DIRECTEUR TECHNIQUE DE PRODUCTION",
+   "annexe": 8
+  },
+  "DIR270": {
+   "libelle": "DIRECTEUR ARTISTIQUE DE PRODUCTION",
+   "annexe": 8
+  },
+  "DIR280": {
+   "libelle": "DIRECTEUR DE JEUX",
+   "annexe": 8
+  },
+  "DIR290": {
+   "libelle": "DIRECTEUR DE SELECTION",
+   "annexe": 8
+  },
+  "DIR300": {
+   "libelle": "DIRECTEUR COIFFEUR",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "DIR310": {
+   "libelle": "DIRECTEUR COSTUMIER",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "DIR320": {
+   "libelle": "DIRECTEUR DE PRODUCTION SV",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "DIR330": {
+   "libelle": "DIRECTEUR DE STRUCTURE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "DIR340": {
+   "libelle": "DIRECTEUR DECORATEUR",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "DIR350": {
+   "libelle": "DIRECTEUR MAQUILLEUR",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "DIS020": {
+   "libelle": "DISC JOCKEY (ARTISTE DJ)",
+   "annexe": 10
+  },
+  "DOC010": {
+   "libelle": "DOCUMENTALISTE",
+   "annexe": 8
+  },
+  "DOM010": {
+   "libelle": "DOMPTEUR",
+   "annexe": 10
+  },
+  "DOU010": {
+   "libelle": "DOUBLURE",
+   "annexe": 10
+  },
+  "DOU020": {
+   "libelle": "DOUBLURE LUMIERE",
+   "annexe": 8
+  },
+  "DRA010": {
+   "libelle": "DRAMATURGE",
+   "annexe": 8
+  },
+  "DRA011": {
+   "libelle": "CHEF DRAMATURGE",
+   "annexe": 8
+  },
+  "DRA012": {
+   "libelle": "ASSISTANT DRAMATURGE",
+   "annexe": 8
+  },
+  "DRA013": {
+   "libelle": "DRAMATURGE ADJOINT",
+   "annexe": 8
+  },
+  "DRE010": {
+   "libelle": "DRESSEUR",
+   "annexe": 8
+  },
+  "ECH020": {
+   "libelle": "ECHASSIER",
+   "annexe": 10
+  },
+  "ECH030": {
+   "libelle": "ECHAFAUDEUR",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "ECL010": {
+   "libelle": "ECLAIRAGISTE",
+   "annexe": 8
+  },
+  "ECL012": {
+   "libelle": "ASSISTANT ECLAIRAGISTE",
+   "annexe": 8
+  },
+  "ECL013": {
+   "libelle": "ECLAIRAGISTE ADJOINT",
+   "annexe": 8
+  },
+  "ELE010": {
+   "libelle": "ELECTRICIEN",
+   "annexe": 8
+  },
+  "ELE012": {
+   "libelle": "ASSISTANT ELECTRICIEN",
+   "annexe": 8
+  },
+  "ELE013": {
+   "libelle": "ELECTRICIEN ADJOINT",
+   "annexe": 8
+  },
+  "ELE030": {
+   "libelle": "ELECTRICIEN PUPITREUR",
+   "annexe": 8
+  },
+  "ELE040": {
+   "libelle": "ELECTRICIEN DECO",
+   "annexe": 8
+  },
+  "ELE050": {
+   "libelle": "ELECTRICIEN PRISE DE VUE",
+   "annexe": 8
+  },
+  "ELE056": {
+   "libelle": "ELECTRICIEN PRISE DE VUES CINEMA",
+   "annexe": 8
+  },
+  "ELE066": {
+   "libelle": "ELECTRICIEN DE CONSTRUCTION CINEMA",
+   "annexe": 8
+  },
+  "ENC010": {
+   "libelle": "ENCODEUR MULTIMEDIA",
+   "annexe": 8
+  },
+  "ENC020": {
+   "libelle": "ENCODEUR LUMIERE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "ENQ010": {
+   "libelle": "ENQUETEUR",
+   "annexe": 8
+  },
+  "ENS010": {
+   "libelle": "ENSEMBLIER",
+   "annexe": 8
+  },
+  "ENS016": {
+   "libelle": "ENSEMBLIER CINEMA",
+   "annexe": 8
+  },
+  "ENS020": {
+   "libelle": "ENSEMBLIER DE SPECTACLE",
+   "annexe": 8
+  },
+  "ENS021": {
+   "libelle": "CHEF ENSEMBLIER DE SPECTACLE",
+   "annexe": 8
+  },
+  "ENS022": {
+   "libelle": "ASSISTANT ENSEMBLIER DE SPECTACLE",
+   "annexe": 8
+  },
+  "ENS023": {
+   "libelle": "ENSEMBLIER DE SPECTACLE ADJOINT",
+   "annexe": 8
+  },
+  "ENS030": {
+   "libelle": "ENSEMBLIER-DECORATEUR",
+   "annexe": 8
+  },
+  "ENS035": {
+   "libelle": "ENSEMBLIER-DECORATEUR SPECIALISE",
+   "annexe": 8
+  },
+  "ENS036": {
+   "libelle": "ENSEMBLIER DECORATEUR CINEMA",
+   "annexe": 8
+  },
+  "EQU010": {
+   "libelle": "EQUILIBRISTE",
+   "annexe": 10
+  },
+  "ETA010": {
+   "libelle": "ETALONNEUR",
+   "annexe": 8
+  },
+  "ETA040": {
+   "libelle": "ETALONNEUR NUMERIQUE",
+   "annexe": 8
+  },
+  "FAK010": {
+   "libelle": "FAKIR",
+   "annexe": 10
+  },
+  "FAN010": {
+   "libelle": "FANTAISISTE",
+   "annexe": 10
+  },
+  "FIG010": {
+   "libelle": "FIGURANT",
+   "annexe": 10
+  },
+  "FIG020": {
+   "libelle": "FIGURANT BALLET",
+   "annexe": 10
+  },
+  "FIG030": {
+   "libelle": "FIGURANT MOCAP",
+   "annexe": 8
+  },
+  "FIL010": {
+   "libelle": "FILDEFERISTE",
+   "annexe": 10
+  },
+  "FLU010": {
+   "libelle": "FLUTISTE",
+   "annexe": 10
+  },
+  "FUN010": {
+   "libelle": "FUNAMBULE",
+   "annexe": 10
+  },
+  "GES010": {
+   "libelle": "GESTIONNAIRE DE CALCULS",
+   "annexe": 8
+  },
+  "GOU010": {
+   "libelle": "GOUACHEUR",
+   "annexe": 8
+  },
+  "GRA010": {
+   "libelle": "GRAPHISTE",
+   "annexe": 8
+  },
+  "GRO010": {
+   "libelle": "GROUPMAN",
+   "annexe": 8
+  },
+  "GRO011": {
+   "libelle": "CHEF GROUPMAN",
+   "annexe": 8
+  },
+  "GRO012": {
+   "libelle": "ASSISTANT GROUPMAN",
+   "annexe": 8
+  },
+  "GRO013": {
+   "libelle": "GROUPMAN ADJOINT",
+   "annexe": 8
+  },
+  "GRO020": {
+   "libelle": "GROUPISTE FLUX AV",
+   "annexe": 8
+  },
+  "GUI010": {
+   "libelle": "GUITARISTE",
+   "annexe": 10
+  },
+  "HAB010": {
+   "libelle": "HABILLEUR",
+   "annexe": 8
+  },
+  "HAB011": {
+   "libelle": "CHEF HABILLEUR",
+   "annexe": 8
+  },
+  "HAB012": {
+   "libelle": "ASSISTANT HABILLEUR",
+   "annexe": 8
+  },
+  "HAB013": {
+   "libelle": "HABILLEUR ADJOINT",
+   "annexe": 8
+  },
+  "HAB015": {
+   "libelle": "HABILLEUR SPECIALISE",
+   "annexe": 8
+  },
+  "HAB016": {
+   "libelle": "HABILLEUR CINEMA",
+   "annexe": 8
+  },
+  "HAR010": {
+   "libelle": "HARPISTE",
+   "annexe": 10
+  },
+  "HAU010": {
+   "libelle": "HAUTBOISTE",
+   "annexe": 10
+  },
+  "HUM010": {
+   "libelle": "HUMORISTE",
+   "annexe": 10
+  },
+  "ICO010": {
+   "libelle": "ICONOGRAPHE",
+   "annexe": 8
+  },
+  "ILL010": {
+   "libelle": "ILLUSIONNISTE",
+   "annexe": 10
+  },
+  "ILL020": {
+   "libelle": "ILLUSTRATEUR",
+   "annexe": 8
+  },
+  "ILL030": {
+   "libelle": "ILLUSTRATEUR SONORE",
+   "annexe": 8
+  },
+  "ILL046": {
+   "libelle": "ILLUSTRATEUR DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "IMI010": {
+   "libelle": "IMITATEUR",
+   "annexe": 10
+  },
+  "INF010": {
+   "libelle": "INFOGRAPHISTE DE MODELISATION",
+   "annexe": 8
+  },
+  "INF030": {
+   "libelle": "INFOGRAPHISTE LAY-OUT",
+   "annexe": 8
+  },
+  "INF040": {
+   "libelle": "INFOGRAPHISTE RENDU ET ECLAIRAGE",
+   "annexe": 8
+  },
+  "INF050": {
+   "libelle": "INFOGRAPHISTE",
+   "annexe": 8
+  },
+  "INF060": {
+   "libelle": "INFOGRAPHISTE 2D",
+   "annexe": 8
+  },
+  "INF070": {
+   "libelle": "INFOGRAPHISTE AUDIOVISUEL",
+   "annexe": 8
+  },
+  "INF080": {
+   "libelle": "INFOGRAPHISTE AV",
+   "annexe": 8
+  },
+  "INF090": {
+   "libelle": "INFOGRAPHISTE EFFETS VISUELS NUMERIQUES",
+   "annexe": 8
+  },
+  "INF100": {
+   "libelle": "INFOGRAPHISTE SCRIPTEUR",
+   "annexe": 8
+  },
+  "INF116": {
+   "libelle": "INFOGRAPHISTE DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "ING010": {
+   "libelle": "INGENIEUR DE LA VISION",
+   "annexe": 8
+  },
+  "ING020": {
+   "libelle": "INGENIEUR DE LA VISION ADJOINT",
+   "annexe": 8
+  },
+  "ING030": {
+   "libelle": "INGENIEUR DU SON",
+   "annexe": 8
+  },
+  "ING031": {
+   "libelle": "CHEF INGENIEUR DU SON",
+   "annexe": 8
+  },
+  "ING032": {
+   "libelle": "ASSISTANT INGENIEUR DU SON",
+   "annexe": 8
+  },
+  "ING033": {
+   "libelle": "INGENIEUR DU SON ADJOINT",
+   "annexe": 8
+  },
+  "ING035": {
+   "libelle": "INGENIEUR DU SON SPECIALISE",
+   "annexe": 8
+  },
+  "ING080": {
+   "libelle": "INGENIEUR DE MAINTENANCE",
+   "annexe": 8
+  },
+  "INS010": {
+   "libelle": "INSTRUMENTISTE",
+   "annexe": 10
+  },
+  "INT010": {
+   "libelle": "INTERVALLISTE",
+   "annexe": 8
+  },
+  "INT020": {
+   "libelle": "INTERVENANT SPECIALISE",
+   "annexe": 8
+  },
+  "INT040": {
+   "libelle": "INTERVENANT D'EMISSION",
+   "annexe": 8
+  },
+  "INT050": {
+   "libelle": "INTERPRETE",
+   "annexe": 8
+  },
+  "INV010": {
+   "libelle": "INVITE INTERVENANT",
+   "annexe": 10
+  },
+  "JON010": {
+   "libelle": "JONGLEUR",
+   "annexe": 10
+  },
+  "JOU010": {
+   "libelle": "JOUEUR TABLAS",
+   "annexe": 10
+  },
+  "KEY010": {
+   "libelle": "KEYBOARD",
+   "annexe": 10
+  },
+  "LEC010": {
+   "libelle": "LECTEUR DE TEXTE",
+   "annexe": 8
+  },
+  "LID010": {
+   "libelle": "LIDIANDO",
+   "annexe": 10
+  },
+  "LIN010": {
+   "libelle": "LINGERE",
+   "annexe": 8
+  },
+  "LIN011": {
+   "libelle": "CHEF LINGERE",
+   "annexe": 8
+  },
+  "LIN012": {
+   "libelle": "ASSISTANTE LINGERE",
+   "annexe": 8
+  },
+  "LIN013": {
+   "libelle": "LINGERE ADJOINTE",
+   "annexe": 8
+  },
+  "LOG010": {
+   "libelle": "LOGISTICIEN",
+   "annexe": 8
+  },
+  "LOG013": {
+   "libelle": "LOGISTICIEN ADJOINT",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "LUT010": {
+   "libelle": "LUTTEUR",
+   "annexe": 10
+  },
+  "MAC010": {
+   "libelle": "MACHINISTE",
+   "annexe": 8
+  },
+  "MAC012": {
+   "libelle": "ASSISTANT MACHINISTE",
+   "annexe": 8
+  },
+  "MAC013": {
+   "libelle": "MACHINISTE ADJOINT",
+   "annexe": 8
+  },
+  "MAC030": {
+   "libelle": "MAÇON",
+   "annexe": 8
+  },
+  "MAC040": {
+   "libelle": "MACHINISTE AV",
+   "annexe": 8
+  },
+  "MAC060": {
+   "libelle": "MACHINISTE DECORATEUR",
+   "annexe": 8
+  },
+  "MAC070": {
+   "libelle": "MACHINISTE DECORS",
+   "annexe": 8
+  },
+  "MAC086": {
+   "libelle": "MACHINISTE DE CONSTRUCTION CINEMA",
+   "annexe": 8
+  },
+  "MAC096": {
+   "libelle": "MACHINISTE DE PRISE DE VUES CINEMA",
+   "annexe": 8
+  },
+  "MAC106": {
+   "libelle": "MAÇON DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "MAG010": {
+   "libelle": "MAGICIEN",
+   "annexe": 10
+  },
+  "MAI010": {
+   "libelle": "MAITRE DE BALLET",
+   "annexe": 10
+  },
+  "MAN010": {
+   "libelle": "MANNEQUIN DE FILM PUBLICITAIRE",
+   "annexe": 10
+  },
+  "MAN020": {
+   "libelle": "MANDOLINE",
+   "annexe": 10
+  },
+  "MAQ020": {
+   "libelle": "MAQUETTISTE STAFFEUR",
+   "annexe": 8
+  },
+  "MAQ030": {
+   "libelle": "MAQUILLAGE ET COIFFURE SPECIAUX",
+   "annexe": 8
+  },
+  "MAQ040": {
+   "libelle": "MAQUILLEUR",
+   "annexe": 8
+  },
+  "MAQ042": {
+   "libelle": "ASSISTANT MAQUILLEUR",
+   "annexe": 8
+  },
+  "MAQ043": {
+   "libelle": "MAQUILLEUR ADJOINT",
+   "annexe": 8
+  },
+  "MAQ045": {
+   "libelle": "MAQUILLEUR SPECIALISE",
+   "annexe": 8
+  },
+  "MAQ046": {
+   "libelle": "MAQUILLEUR CINEMA",
+   "annexe": 8
+  },
+  "MAQ050": {
+   "libelle": "MAQUILLEUR POSTICHEUR",
+   "annexe": 8
+  },
+  "MAQ076": {
+   "libelle": "MAQUETTISTE DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "MAR010": {
+   "libelle": "MARIONNETTISTE",
+   "annexe": 10
+  },
+  "MAT010": {
+   "libelle": "MATT PAINTER",
+   "annexe": 8
+  },
+  "MAT020": {
+   "libelle": "MATADOR",
+   "annexe": 10
+  },
+  "MEC010": {
+   "libelle": "MECANICIEN",
+   "annexe": 8
+  },
+  "MEC020": {
+   "libelle": "MECANICIEN VOLUME",
+   "annexe": 8
+  },
+  "MEC030": {
+   "libelle": "MECANICIEN GROUPMAN",
+   "annexe": 8
+  },
+  "MEN010": {
+   "libelle": "MENUISIER",
+   "annexe": 8
+  },
+  "MEN020": {
+   "libelle": "MENUISIER DE DECORS",
+   "annexe": 8
+  },
+  "MEN021": {
+   "libelle": "CHEF MENUISIER DE DECORS",
+   "annexe": 8
+  },
+  "MEN022": {
+   "libelle": "ASSISTANT MENUISIER DE DECORS",
+   "annexe": 8
+  },
+  "MEN023": {
+   "libelle": "MENUISIER DE DECORS ADJOINT",
+   "annexe": 8
+  },
+  "MEN026": {
+   "libelle": "MENUISIER DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "MEN030": {
+   "libelle": "MENUISIER TRACEUR",
+   "annexe": 8
+  },
+  "MEN046": {
+   "libelle": "MENUISIER TRACEUR DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "MEN050": {
+   "libelle": "MENUISIER DE SPECTACLES",
+   "annexe": 8
+  },
+  "MEN051": {
+   "libelle": "CHEF MENUISIER DE SPECTACLES",
+   "annexe": 8
+  },
+  "MEN052": {
+   "libelle": "ASSISTANT MENUISIER DE SPECTACLES",
+   "annexe": 8
+  },
+  "MEN053": {
+   "libelle": "MENUISIER DE SPECTACLES ADJOINT",
+   "annexe": 8
+  },
+  "MET010": {
+   "libelle": "METALLIER",
+   "annexe": 8
+  },
+  "MET030": {
+   "libelle": "METTEUR EN PISTE (CIRQUES)",
+   "annexe": 8
+  },
+  "MET031": {
+   "libelle": "CHEF METTEUR EN PISTE (CIRQUES)",
+   "annexe": 8
+  },
+  "MET032": {
+   "libelle": "ASSISTANT METTEUR EN PISTE (CIRQUES)",
+   "annexe": 8
+  },
+  "MET033": {
+   "libelle": "METTEUR EN PISTE ADJOINT (CIRQUES)",
+   "annexe": 8
+  },
+  "MET040": {
+   "libelle": "METTEUR EN SCENE",
+   "annexe": 10
+  },
+  "MET042": {
+   "libelle": "ASSISTANT METTEUR EN SCENE",
+   "annexe": 10
+  },
+  "MEZ010": {
+   "libelle": "MEZZO",
+   "annexe": 10
+  },
+  "MIM010": {
+   "libelle": "MIME",
+   "annexe": 10
+  },
+  "MIX010": {
+   "libelle": "MIXEUR",
+   "annexe": 8
+  },
+  "MIX016": {
+   "libelle": "MIXEUR CINEMA",
+   "annexe": 8
+  },
+  "MIX020": {
+   "libelle": "MIXEUR (DIRECTS)",
+   "annexe": 8
+  },
+  "MOD020": {
+   "libelle": "MODISTE DE SPECTACLES",
+   "annexe": 8
+  },
+  "MOD021": {
+   "libelle": "CHEF MODISTE DE SPECTACLES",
+   "annexe": 8
+  },
+  "MOD022": {
+   "libelle": "ASSISTANT MODISTE DE SPECTACLES",
+   "annexe": 8
+  },
+  "MOD023": {
+   "libelle": "MODISTE DE SPECTACLES ADJOINT",
+   "annexe": 8
+  },
+  "MON010": {
+   "libelle": "MONTEUR",
+   "annexe": 8
+  },
+  "MON020": {
+   "libelle": "MONTEUR ADJOINT",
+   "annexe": 8
+  },
+  "MON030": {
+   "libelle": "MONTEUR DE STRUCTURES",
+   "annexe": 8
+  },
+  "MON040": {
+   "libelle": "MONTEUR SON",
+   "annexe": 8
+  },
+  "MON041": {
+   "libelle": "CHEF MONTEUR SON",
+   "annexe": 8
+  },
+  "MON042": {
+   "libelle": "ASSISTANT MONTEUR SON",
+   "annexe": 8
+  },
+  "MON043": {
+   "libelle": "MONTEUR SON ADJOINT",
+   "annexe": 8
+  },
+  "MON050": {
+   "libelle": "MONTEUR TRUQUISTE",
+   "annexe": 8
+  },
+  "MON080": {
+   "libelle": "MONTEUR FLUX",
+   "annexe": 8
+  },
+  "MON090": {
+   "libelle": "MONTEUR SOUS-TITRES",
+   "annexe": 8
+  },
+  "MON100": {
+   "libelle": "MONTEUR SYNCHRO",
+   "annexe": 8
+  },
+  "MON110": {
+   "libelle": "MONTEUR TRUQUISTE AV",
+   "annexe": 8
+  },
+  "MOU010": {
+   "libelle": "MOULEUR VOLUME",
+   "annexe": 8
+  },
+  "MOZ010": {
+   "libelle": "MOZO DE ESPADA",
+   "annexe": 10
+  },
+  "MUS010": {
+   "libelle": "MUSICIEN",
+   "annexe": 10
+  },
+  "MUS020": {
+   "libelle": "MUSICIEN CHANSON VARIETE JAZZ",
+   "annexe": 10
+  },
+  "MUS030": {
+   "libelle": "MUSICIEN CHANTEUR",
+   "annexe": 10
+  },
+  "MUS050": {
+   "libelle": "MUSICIEN COPISTE RADIO",
+   "annexe": 8
+  },
+  "MUS060": {
+   "libelle": "MUSICIEN DU RANG",
+   "annexe": 10
+  },
+  "MUS070": {
+   "libelle": "MUSICIEN SOLISTE CONCERTISTE",
+   "annexe": 10
+  },
+  "MUS080": {
+   "libelle": "MUSICIEN SOLISTE D'ORCHESTRE",
+   "annexe": 10
+  },
+  "NOT010": {
+   "libelle": "NOTATEUR",
+   "annexe": 10
+  },
+  "NOV010": {
+   "libelle": "NOVILLERO",
+   "annexe": 10
+  },
+  "OPE020": {
+   "libelle": "OPERATEUR CAPTURE DE MOUVEMENT",
+   "annexe": 8
+  },
+  "OPE030": {
+   "libelle": "OPERATEUR COMPOSITING",
+   "annexe": 8
+  },
+  "OPE050": {
+   "libelle": "OPERATEUR DE VOIES",
+   "annexe": 8
+  },
+  "OPE060": {
+   "libelle": "OPERATEUR EFFETS TEMPS REEL",
+   "annexe": 8
+  },
+  "OPE080": {
+   "libelle": "OPERATEUR DIGITALISATION",
+   "annexe": 8
+  },
+  "OPE090": {
+   "libelle": "OPERATEUR (DU) SON",
+   "annexe": 8,
+   "evolution_2016": "M"
+  },
+  "OPE091": {
+   "libelle": "CHEF OPERATEUR (DU) SON",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "OPE092": {
+   "libelle": "ASSISTANT OPERATEUR SON",
+   "annexe": 8
+  },
+  "OPE093": {
+   "libelle": "OPERATEUR SON ADJOINT",
+   "annexe": 8
+  },
+  "OPE110": {
+   "libelle": "OPERATEUR IMAGES",
+   "annexe": 8
+  },
+  "OPE111": {
+   "libelle": "CHEF OPERATEUR IMAGES",
+   "annexe": 8
+  },
+  "OPE112": {
+   "libelle": "ASSISTANT OPERATEUR IMAGES",
+   "annexe": 8
+  },
+  "OPE113": {
+   "libelle": "OPERATEUR IMAGES ADJOINT",
+   "annexe": 8
+  },
+  "OPE130": {
+   "libelle": "OPERATEUR LUMIERE",
+   "annexe": 8
+  },
+  "OPE131": {
+   "libelle": "CHEF OPERATEUR LUMIERE",
+   "annexe": 8
+  },
+  "OPE132": {
+   "libelle": "ASSISTANT OPERATEUR LUMIERE",
+   "annexe": 8
+  },
+  "OPE133": {
+   "libelle": "OPERATEUR LUMIERE ADJOINT",
+   "annexe": 8
+  },
+  "OPE140": {
+   "libelle": "OPERATEUR MAGNETOSCOPE",
+   "annexe": 8
+  },
+  "OPE150": {
+   "libelle": "OPERATEUR MAGNETO(SOPE) RALENTI",
+   "annexe": 8
+  },
+  "OPE160": {
+   "libelle": "OPERATEUR PLAYBACK",
+   "annexe": 8
+  },
+  "OPE190": {
+   "libelle": "OPERATEUR PROJECTIONNISTE",
+   "annexe": 8
+  },
+  "OPE200": {
+   "libelle": "OPERATEUR PROMPTEUR",
+   "annexe": 8
+  },
+  "OPE210": {
+   "libelle": "OPERATEUR REGIE VIDEO",
+   "annexe": 8
+  },
+  "OPE230": {
+   "libelle": "OPERATEUR SCAN",
+   "annexe": 8
+  },
+  "OPE240": {
+   "libelle": "OPS / OPERATEUR PRISE DE SON",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "OPE250": {
+   "libelle": "OPERATEUR SPECIAL (STEADICAMER)",
+   "annexe": 8
+  },
+  "OPE255": {
+   "libelle": "OPERATEUR SPECIAL (STEADICAM) SPECIALISE",
+   "annexe": 8
+  },
+  "OPE260": {
+   "libelle": "OPERATEUR SYNTHETISEUR",
+   "annexe": 8
+  },
+  "OPE300": {
+   "libelle": "OPERATEUR TELECINEMA",
+   "annexe": 8
+  },
+  "OPE320": {
+   "libelle": "OPERATEUR VIDEO",
+   "annexe": 8
+  },
+  "OPE321": {
+   "libelle": "CHEF OPERATEUR VIDEO",
+   "annexe": 8
+  },
+  "OPE322": {
+   "libelle": "ASSISTANT OPERATEUR VIDEO",
+   "annexe": 8
+  },
+  "OPE323": {
+   "libelle": "OPERATEUR VIDEO ADJOINT",
+   "annexe": 8
+  },
+  "OPE330": {
+   "libelle": "OPERATEUR VOLUME",
+   "annexe": 8
+  },
+  "OPE350": {
+   "libelle": "OPERATEUR DE DUPLICATION AV",
+   "annexe": 8
+  },
+  "OPE360": {
+   "libelle": "OPERATEUR DE PAD",
+   "annexe": 8
+  },
+  "OPE370": {
+   "libelle": "OPERATEUR BANDES ANTENNE",
+   "annexe": 8
+  },
+  "OPE380": {
+   "libelle": "OPERATEUR DE REPERAGE",
+   "annexe": 8
+  },
+  "OPE390": {
+   "libelle": "OPERATEUR SIMULATION",
+   "annexe": 8
+  },
+  "OPE400": {
+   "libelle": "OPERATEUR DE SAISIE",
+   "annexe": 8
+  },
+  "OPE410": {
+   "libelle": "OPERATEUR EN RESTAURATION NUMERIQUE",
+   "annexe": 8
+  },
+  "OPE420": {
+   "libelle": "OPERATEUR GRAVEUR",
+   "annexe": 8
+  },
+  "OPE440": {
+   "libelle": "OPERATEUR RALENTI",
+   "annexe": 8
+  },
+  "OPE450": {
+   "libelle": "OPERATEUR REPIQUAGE",
+   "annexe": 8
+  },
+  "OPE460": {
+   "libelle": "OPERATEUR REPORT OPTIQUE",
+   "annexe": 8
+  },
+  "OPE470": {
+   "libelle": "OPERATEUR RETOUCHE TEMPS REEL",
+   "annexe": 8
+  },
+  "OPE480": {
+   "libelle": "OPERATEUR SCANNER IMAGEUR",
+   "annexe": 8
+  },
+  "OPE490": {
+   "libelle": "OPERATEUR SERVEUR VIDEO",
+   "annexe": 8
+  },
+  "OPE510": {
+   "libelle": "OPERATEUR SUPERIEUR DU SON",
+   "annexe": 8
+  },
+  "OPE520": {
+   "libelle": "OPERATEUR TRANSFERT DE DONNEES",
+   "annexe": 8
+  },
+  "OPE530": {
+   "libelle": "OPERATEUR D'ENREGISTREMENT SV",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "OPV010": {
+   "libelle": "OPV / OPERATEUR DE PRISE DE VUE",
+   "annexe": 8
+  },
+  "OPV015": {
+   "libelle": "OPV SPECIALISE",
+   "annexe": 8
+  },
+  "ORC010": {
+   "libelle": "ORCHESTRATEUR",
+   "annexe": 10
+  },
+  "ORG010": {
+   "libelle": "ORGANISTE",
+   "annexe": 10
+  },
+  "PAT010": {
+   "libelle": "PATINEUR",
+   "annexe": 10
+  },
+  "PEI010": {
+   "libelle": "PEINTRE",
+   "annexe": 8
+  },
+  "PEI020": {
+   "libelle": "PEINTRE (DE) DECORS",
+   "annexe": 8
+  },
+  "PEI021": {
+   "libelle": "CHEF PEINTRE DE DECORS",
+   "annexe": 8
+  },
+  "PEI022": {
+   "libelle": "ASSISTANT PEINTRE DE DECORS",
+   "annexe": 8
+  },
+  "PEI023": {
+   "libelle": "PEINTRE DE DECORS ADJOINT",
+   "annexe": 8
+  },
+  "PEI026": {
+   "libelle": "PEINTRE DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "PEI030": {
+   "libelle": "PEINTRE DECORATEUR",
+   "annexe": 8
+  },
+  "PEI031": {
+   "libelle": "CHEF PEINTRE DECORATEUR",
+   "annexe": 8
+  },
+  "PEI032": {
+   "libelle": "ASSISTANT PEINTRE DECORATEUR",
+   "annexe": 8
+  },
+  "PEI033": {
+   "libelle": "PEINTRE DECORATEUR ADJOINT",
+   "annexe": 8
+  },
+  "PEI040": {
+   "libelle": "PEINTRE EN LETTRES / EN FAUX BOIS",
+   "annexe": 8
+  },
+  "PEI050": {
+   "libelle": "PEINTRE PATINEUR",
+   "annexe": 8
+  },
+  "PEI066": {
+   "libelle": "PEINTRE D'ART DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "PEI076": {
+   "libelle": "PEINTRE EN LETTRES DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "PEI086": {
+   "libelle": "PEINTRE FAUX BOIS ET PATINE DECOR CINEMA",
+   "annexe": 8
+  },
+  "PER010": {
+   "libelle": "PERCHISTE",
+   "annexe": 8
+  },
+  "PER015": {
+   "libelle": "PERCHISTE SPECIALISE",
+   "annexe": 8
+  },
+  "PER020": {
+   "libelle": "PERCUSSIONNISTE",
+   "annexe": 10
+  },
+  "PER030": {
+   "libelle": "PERRUQUIER",
+   "annexe": 8
+  },
+  "PER031": {
+   "libelle": "CHEF PERRUQUIER",
+   "annexe": 8
+  },
+  "PER032": {
+   "libelle": "ASSISTANT PERRUQUIER",
+   "annexe": 8
+  },
+  "PER033": {
+   "libelle": "PERRUQUIER ADJOINT",
+   "annexe": 8
+  },
+  "PER040": {
+   "libelle": "PERCHMAN",
+   "annexe": 8
+  },
+  "PHO010": {
+   "libelle": "PHOTOGRAPHE",
+   "annexe": 8
+  },
+  "PHO020": {
+   "libelle": "PHOTOGRAPHE DE PLATEAU",
+   "annexe": 8
+  },
+  "PHO025": {
+   "libelle": "PHOTOGRAPHE DE PLATEAU SPECIALISE",
+   "annexe": 8
+  },
+  "PHO026": {
+   "libelle": "PHOTOGRAPHE DE PLATEAU CINEMA",
+   "annexe": 8
+  },
+  "PIA010": {
+   "libelle": "PIANISTE",
+   "annexe": 10
+  },
+  "PIC010": {
+   "libelle": "PICCOLO",
+   "annexe": 10
+  },
+  "PIC020": {
+   "libelle": "PICADOR",
+   "annexe": 10
+  },
+  "PLA020": {
+   "libelle": "PLASTICIEN VOLUME",
+   "annexe": 8
+  },
+  "PLU010": {
+   "libelle": "PLUMASSIER DE SPECTACLES",
+   "annexe": 8
+  },
+  "PLU011": {
+   "libelle": "CHEF PLUMASSIER DE SPECTACLES",
+   "annexe": 8
+  },
+  "PLU012": {
+   "libelle": "ASSISTANT PLUMASSIER DE SPECTACLES",
+   "annexe": 8
+  },
+  "PLU013": {
+   "libelle": "PLUMASSIER DE SPECTACLES ADJOINT",
+   "annexe": 8
+  },
+  "POE010": {
+   "libelle": "POETE INTERPRETE",
+   "annexe": 10
+  },
+  "POI010": {
+   "libelle": "POINTEUR",
+   "annexe": 8
+  },
+  "POI015": {
+   "libelle": "POINTEUR SPECIALISE",
+   "annexe": 8
+  },
+  "POI030": {
+   "libelle": "POINTEUR AV",
+   "annexe": 8
+  },
+  "POS010": {
+   "libelle": "POSTICHEUR",
+   "annexe": 8
+  },
+  "POS011": {
+   "libelle": "CHEF POSTICHEUR",
+   "annexe": 8
+  },
+  "POS012": {
+   "libelle": "ASSISTANT POSTICHEUR",
+   "annexe": 8
+  },
+  "POS013": {
+   "libelle": "POSTICHEUR ADJOINT",
+   "annexe": 8
+  },
+  "POU010": {
+   "libelle": "POURSUITEUR",
+   "annexe": 8
+  },
+  "POU011": {
+   "libelle": "CHEF POURSUITEUR",
+   "annexe": 8
+  },
+  "POU012": {
+   "libelle": "ASSISTANT POURSUITEUR",
+   "annexe": 8
+  },
+  "POU013": {
+   "libelle": "POURSUITEUR ADJOINT",
+   "annexe": 8
+  },
+  "PRE010": {
+   "libelle": "1ER ASSISTANT DECORATEUR",
+   "annexe": 8
+  },
+  "PRE015": {
+   "libelle": "1ER ASSISTANT DECORATEUR SPECIALISE",
+   "annexe": 8
+  },
+  "PRE016": {
+   "libelle": "1ER ASSISTANT DECORATEUR CINEMA",
+   "annexe": 8
+  },
+  "PRE020": {
+   "libelle": "1ER ASSISTANT OPV",
+   "annexe": 8
+  },
+  "PRE025": {
+   "libelle": "1ER ASSISTANT OPV SPECIALISE",
+   "annexe": 8
+  },
+  "PRE026": {
+   "libelle": "1ER ASSISTANT OPERATEUR CINEMA",
+   "annexe": 8
+  },
+  "PRE030": {
+   "libelle": "1ER ASSISTANT REALISATEUR",
+   "annexe": 8
+  },
+  "PRE035": {
+   "libelle": "1ER ASSISTANT REALISATEUR SPECIALISE",
+   "annexe": 8
+  },
+  "PRE036": {
+   "libelle": "1ER ASSISTANT REALISATEUR CINEMA",
+   "annexe": 8
+  },
+  "PRE050": {
+   "libelle": "1ER ASSISTANT SON",
+   "annexe": 8
+  },
+  "PRE055": {
+   "libelle": "1ER ASSISTANT SON SPECIALISE",
+   "annexe": 8
+  },
+  "PRE060": {
+   "libelle": "1ER DANSEUR",
+   "annexe": 10
+  },
+  "PRE070": {
+   "libelle": "PRENEUR DE SON",
+   "annexe": 8
+  },
+  "PRE071": {
+   "libelle": "CHEF PRENEUR DE SON",
+   "annexe": 8
+  },
+  "PRE072": {
+   "libelle": "ASSIST PRENEUR SON / A LA PRISE DE SON",
+   "annexe": 8
+  },
+  "PRE073": {
+   "libelle": "PRENEUR DE SON ADJOINT",
+   "annexe": 8
+  },
+  "PRE100": {
+   "libelle": "PRESENTATEUR",
+   "annexe": 8
+  },
+  "PRE110": {
+   "libelle": "PRESTIDIGITATEUR",
+   "annexe": 10
+  },
+  "PRE120": {
+   "libelle": "1ER ASSISTANT DE REALISATION AV",
+   "annexe": 8
+  },
+  "PRE130": {
+   "libelle": "1ER ASSISTANT DECORS",
+   "annexe": 8
+  },
+  "PRE140": {
+   "libelle": "1ER ASSISTANT CADREUR",
+   "annexe": 8
+  },
+  "PRE150": {
+   "libelle": "1ER ASSISTANT CAMERAMAN",
+   "annexe": 8
+  },
+  "PRE160": {
+   "libelle": "PREPARATEUR DE QUESTIONS",
+   "annexe": 8
+  },
+  "PRE176": {
+   "libelle": "1ER ASSISTANT DISTRIBUTION ROLES CINEMA",
+   "annexe": 8
+  },
+  "PRE186": {
+   "libelle": "1ER ASSISTANT MONTEUR CINEMA",
+   "annexe": 8
+  },
+  "PRO020": {
+   "libelle": "PRODUCTEUR ARTISTIQUE",
+   "annexe": 8
+  },
+  "PRO030": {
+   "libelle": "PRODUCTEUR COORDINATEUR DELEGUE",
+   "annexe": 8
+  },
+  "PRO040": {
+   "libelle": "PRODUCTEUR DELEGUE D'EMISSION DE RADIO",
+   "annexe": 8
+  },
+  "PRO050": {
+   "libelle": "PRODUCTEUR EXECUTIF",
+   "annexe": 8
+  },
+  "PRO060": {
+   "libelle": "PROGRAMMATEUR (PROGRAMMEUR) MUSICAL",
+   "annexe": 8
+  },
+  "PRO070": {
+   "libelle": "PROJECTIONNISTE",
+   "annexe": 8
+  },
+  "PRO071": {
+   "libelle": "CHEF PROJECTIONNISTE",
+   "annexe": 8
+  },
+  "PRO072": {
+   "libelle": "ASSISTANT PROJECTIONNISTE",
+   "annexe": 8
+  },
+  "PRO073": {
+   "libelle": "PROJECTIONNISTE ADJOINT",
+   "annexe": 8
+  },
+  "PRO080": {
+   "libelle": "PROMPTEUR",
+   "annexe": 8
+  },
+  "PRO081": {
+   "libelle": "CHEF PROMPTEUR",
+   "annexe": 8
+  },
+  "PRO082": {
+   "libelle": "ASSISTANT PROMPTEUR",
+   "annexe": 8
+  },
+  "PRO083": {
+   "libelle": "PROMPTEUR ADJOINT",
+   "annexe": 8
+  },
+  "PRO090": {
+   "libelle": "PROTHESISTE",
+   "annexe": 8
+  },
+  "PRO100": {
+   "libelle": "PROGRAMMEUR MULTIMEDIA",
+   "annexe": 8,
+   "evolution_2016": "M"
+  },
+  "PRO110": {
+   "libelle": "PROGRAMMATEUR ARTISTIQUE D'EMISSION",
+   "annexe": 8
+  },
+  "PRO120": {
+   "libelle": "PROJECTIONNISTE AV",
+   "annexe": 8
+  },
+  "PRO130": {
+   "libelle": "PROGRAMMEUR LUMIERE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "PUP010": {
+   "libelle": "PUPITREUR",
+   "annexe": 8
+  },
+  "PUP011": {
+   "libelle": "CHEF PUPITREUR",
+   "annexe": 8
+  },
+  "PUP012": {
+   "libelle": "ASSISTANT PUPITREUR",
+   "annexe": 8
+  },
+  "PUP013": {
+   "libelle": "PUPITREUR ADJOINT",
+   "annexe": 8
+  },
+  "PUP050": {
+   "libelle": "PUPITREUR LUMIERE",
+   "annexe": 8
+  },
+  "PUP060": {
+   "libelle": "PUPITREUR MOTORISATION ASSERVIE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "PYR010": {
+   "libelle": "PYROTECHNICIEN",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "REA010": {
+   "libelle": "REALISATEUR",
+   "annexe": 8
+  },
+  "REA016": {
+   "libelle": "REALISATEUR CINEMA",
+   "annexe": 8
+  },
+  "REA020": {
+   "libelle": "REALISATEUR ARTISTIQUE",
+   "annexe": 8
+  },
+  "REA030": {
+   "libelle": "REALISATEUR COIFFURE",
+   "annexe": 8
+  },
+  "REA031": {
+   "libelle": "CHEF REALISATEUR COIFFURE",
+   "annexe": 8
+  },
+  "REA032": {
+   "libelle": "ASSISTANT REALISATEUR COIFFURE",
+   "annexe": 8
+  },
+  "REA033": {
+   "libelle": "REALISATEUR COIFFURE ADJOINT",
+   "annexe": 8
+  },
+  "REA040": {
+   "libelle": "REALISATEUR (DE) COSTUME(S)",
+   "annexe": 8
+  },
+  "REA041": {
+   "libelle": "CHEF REALISATEUR COSTUMES",
+   "annexe": 8
+  },
+  "REA042": {
+   "libelle": "ASSISTANT REALISATEUR COSTUMES",
+   "annexe": 8
+  },
+  "REA043": {
+   "libelle": "REALISATEUR COSTUMES ADJOINT",
+   "annexe": 8
+  },
+  "REA060": {
+   "libelle": "REALISATEUR LUMIERE",
+   "annexe": 8
+  },
+  "REA061": {
+   "libelle": "CHEF REALISATEUR LUMIERE",
+   "annexe": 8
+  },
+  "REA062": {
+   "libelle": "ASSISTANT REALISATEUR LUMIERE",
+   "annexe": 8
+  },
+  "REA063": {
+   "libelle": "REALISATEUR LUMIERE ADJOINT",
+   "annexe": 8
+  },
+  "REA070": {
+   "libelle": "REALISATEUR MAQUILLAGES",
+   "annexe": 8
+  },
+  "REA071": {
+   "libelle": "CHEF REALISATEUR MAQUILLAGES",
+   "annexe": 8
+  },
+  "REA072": {
+   "libelle": "ASSISTANT REALISATEUR MAQUILLAGES",
+   "annexe": 8
+  },
+  "REA073": {
+   "libelle": "REALISATEUR MAQUILLAGES ADJOINT",
+   "annexe": 8
+  },
+  "REA080": {
+   "libelle": "REALISATEUR RADIO",
+   "annexe": 8
+  },
+  "REA090": {
+   "libelle": "REALISATEUR SON",
+   "annexe": 8
+  },
+  "REA091": {
+   "libelle": "CHEF REALISATEUR SON",
+   "annexe": 8
+  },
+  "REA092": {
+   "libelle": "ASSISTANT REALISATEUR SON",
+   "annexe": 8
+  },
+  "REA093": {
+   "libelle": "REALISATEUR SON ADJOINT",
+   "annexe": 8
+  },
+  "REA100": {
+   "libelle": "REALISATEUR AV",
+   "annexe": 8
+  },
+  "REA110": {
+   "libelle": "REALISATEUR DE SV",
+   "annexe": 8
+  },
+  "REA120": {
+   "libelle": "REALISATEUR DE FILMS PUBLICITAIRES",
+   "annexe": 8
+  },
+  "REA130": {
+   "libelle": "REALISATEUR PERRUQUES",
+   "annexe": 8
+  },
+  "REA131": {
+   "libelle": "CHEF REALISATEUR PERRUQUES",
+   "annexe": 8
+  },
+  "REA132": {
+   "libelle": "ASSISTANT REALISATEUR PERRUQUES",
+   "annexe": 8
+  },
+  "REA133": {
+   "libelle": "REALISATEUR PERRUQUES ADJOINT",
+   "annexe": 8
+  },
+  "REA140": {
+   "libelle": "REALISATEUR MASQUE",
+   "annexe": 8
+  },
+  "REA141": {
+   "libelle": "CHEF REALISATEUR MASQUES",
+   "annexe": 8
+  },
+  "REA142": {
+   "libelle": "ASSISTANT REALISATEUR MASQUE",
+   "annexe": 8
+  },
+  "REA143": {
+   "libelle": "REALISATEUR MASQUE ADJOINT",
+   "annexe": 8
+  },
+  "REC010": {
+   "libelle": "RECHERCHISTE",
+   "annexe": 8
+  },
+  "REC020": {
+   "libelle": "RECITANT",
+   "annexe": 10
+  },
+  "RED010": {
+   "libelle": "REDACTEUR",
+   "annexe": 8
+  },
+  "REG010": {
+   "libelle": "REGISSEUR",
+   "annexe": 8
+  },
+  "REG011": {
+   "libelle": "CHEF REGISSEUR",
+   "annexe": 8
+  },
+  "REG015": {
+   "libelle": "REGISSEUR SPECIALISE",
+   "annexe": 8
+  },
+  "REG020": {
+   "libelle": "REGISSEUR ADJOINT",
+   "annexe": 8
+  },
+  "REG025": {
+   "libelle": "REGISSEUR ADJOINT SPECIALISE",
+   "annexe": 8
+  },
+  "REG026": {
+   "libelle": "REGISSEUR ADJOINT CINEMA",
+   "annexe": 8
+  },
+  "REG030": {
+   "libelle": "REGISSEUR AUDIOVISUEL",
+   "annexe": 8
+  },
+  "REG031": {
+   "libelle": "CHEF REGISSEUR AUDIOVISUEL",
+   "annexe": 8
+  },
+  "REG032": {
+   "libelle": "ASSISTANT REGISSEUR AUDIOVISUEL",
+   "annexe": 8
+  },
+  "REG033": {
+   "libelle": "REGISSEUR AUDIOVISUEL ADJOINT",
+   "annexe": 8
+  },
+  "REG040": {
+   "libelle": "REGISSEUR (DE) PLATEAU",
+   "annexe": 8
+  },
+  "REG041": {
+   "libelle": "CHEF REGISSEUR (DE) PLATEAU",
+   "annexe": 8
+  },
+  "REG042": {
+   "libelle": "ASSISTANT REGISSEUR (DE) PLATEAU",
+   "annexe": 8
+  },
+  "REG043": {
+   "libelle": "REGISSEUR (DE) PLATEAU ADJOINT",
+   "annexe": 8
+  },
+  "REG050": {
+   "libelle": "REGISSEUR DE PRODUCTION",
+   "annexe": 8
+  },
+  "REG051": {
+   "libelle": "CHEF REGISSEUR DE PRODUCTION",
+   "annexe": 8
+  },
+  "REG052": {
+   "libelle": "ASSISTANT REGISSEUR DE PRODUCTION",
+   "annexe": 8
+  },
+  "REG053": {
+   "libelle": "REGISSEUR DE PRODUCTION ADJOINT",
+   "annexe": 8
+  },
+  "REG060": {
+   "libelle": "REGISSEUR DE SALLE & DE SITE (FESTIVAL)",
+   "annexe": 8
+  },
+  "REG061": {
+   "libelle": "CHEF REGISSEUR SALLE & SITE (FESTIVAL)",
+   "annexe": 8
+  },
+  "REG062": {
+   "libelle": "ASSIST REGISSEUR SALLE & SITE (FESTIVAL)",
+   "annexe": 8
+  },
+  "REG063": {
+   "libelle": "REGISSEUR SALLE & SITE ADJOINT (FESTIVAL",
+   "annexe": 8
+  },
+  "REG070": {
+   "libelle": "REGISSEUR DE SCENE",
+   "annexe": 8
+  },
+  "REG071": {
+   "libelle": "CHEF REGISSEUR DE SCENE",
+   "annexe": 8
+  },
+  "REG072": {
+   "libelle": "ASSISTANT REGISSEUR DE SCENE",
+   "annexe": 8
+  },
+  "REG073": {
+   "libelle": "REGISSEUR DE SCENE ADJOINT",
+   "annexe": 8
+  },
+  "REG090": {
+   "libelle": "REGISSEUR D'EQUIPEMENT SCENIQUE",
+   "annexe": 8
+  },
+  "REG091": {
+   "libelle": "CHEF REGISSEUR D'EQUIPEMENT SCENIQUE",
+   "annexe": 8
+  },
+  "REG092": {
+   "libelle": "ASSISTANT REGISSEUR EQUIPEMENT SCENIQUE",
+   "annexe": 8
+  },
+  "REG093": {
+   "libelle": "REGISSEUR D'EQUIPEMENT SCENIQUE ADJOINT",
+   "annexe": 8
+  },
+  "REG100": {
+   "libelle": "REGISSEUR D'EXTERIEUR(S)",
+   "annexe": 8
+  },
+  "REG105": {
+   "libelle": "REGISSEUR D'EXTERIEURS SPECIALISE",
+   "annexe": 8
+  },
+  "REG106": {
+   "libelle": "REGISSEUR D'EXTERIEURS CINEMA",
+   "annexe": 8
+  },
+  "REG110": {
+   "libelle": "REGISSEUR D'ORCHESTRE",
+   "annexe": 8
+  },
+  "REG111": {
+   "libelle": "CHEF REGISSEUR D'ORCHESTRE",
+   "annexe": 8
+  },
+  "REG112": {
+   "libelle": "ASSISTANT REGISSEUR D'ORCHESTRE",
+   "annexe": 8
+  },
+  "REG113": {
+   "libelle": "REGISSEUR D'ORCHESTRE ADJOINT",
+   "annexe": 8
+  },
+  "REG120": {
+   "libelle": "REGISSEUR GENERAL",
+   "annexe": 8
+  },
+  "REG121": {
+   "libelle": "CHEF REGISSEUR GENERAL",
+   "annexe": 8
+  },
+  "REG122": {
+   "libelle": "ASSISTANT REGISSEUR GENERAL",
+   "annexe": 8
+  },
+  "REG123": {
+   "libelle": "REGISSEUR GENERAL ADJOINT",
+   "annexe": 8
+  },
+  "REG125": {
+   "libelle": "REGISSEUR GENERAL SPECIALISE",
+   "annexe": 8
+  },
+  "REG126": {
+   "libelle": "REGISSEUR GENERAL CINEMA",
+   "annexe": 8
+  },
+  "REG130": {
+   "libelle": "REGISSEUR LUMIERE",
+   "annexe": 8
+  },
+  "REG131": {
+   "libelle": "CHEF REGISSEUR LUMIERE",
+   "annexe": 8
+  },
+  "REG132": {
+   "libelle": "ASSISTANT REGISSEUR LUMIERE",
+   "annexe": 8
+  },
+  "REG133": {
+   "libelle": "REGISSEUR LUMIERE ADJOINT",
+   "annexe": 8
+  },
+  "REG140": {
+   "libelle": "REGISSEUR PLATEAU SON (RETOUR)",
+   "annexe": 8
+  },
+  "REG141": {
+   "libelle": "CHEF REGISSEUR PLATEAU SON (RETOUR)",
+   "annexe": 8
+  },
+  "REG142": {
+   "libelle": "ASSISTANT REGISSEUR PLATEAU SON (RETOUR)",
+   "annexe": 8
+  },
+  "REG143": {
+   "libelle": "REGISSEUR ADJOINT PLATEAU SON (RETOUR)",
+   "annexe": 8
+  },
+  "REG150": {
+   "libelle": "REGISSEUR SON",
+   "annexe": 8
+  },
+  "REG151": {
+   "libelle": "CHEF REGISSEUR SON",
+   "annexe": 8
+  },
+  "REG152": {
+   "libelle": "ASSISTANT REGISSEUR SON",
+   "annexe": 8
+  },
+  "REG153": {
+   "libelle": "REGISSEUR SON ADJOINT",
+   "annexe": 8
+  },
+  "REG180": {
+   "libelle": "REGISSEUR DECORS",
+   "annexe": 8
+  },
+  "REG190": {
+   "libelle": "REGISSEUR STRUCTURE",
+   "annexe": 8
+  },
+  "REG200": {
+   "libelle": "REGULATEUR DE STATIONNEMENT",
+   "annexe": 8
+  },
+  "REG210": {
+   "libelle": "REGISSEUR DE CHOEUR",
+   "annexe": 8
+  },
+  "REG211": {
+   "libelle": "CHEF REGISSEUR DE CHOEUR",
+   "annexe": 8
+  },
+  "REG212": {
+   "libelle": "ASSISTANT REGISSEUR DE CHOEUR",
+   "annexe": 8
+  },
+  "REG213": {
+   "libelle": "REGISSEUR DE CHOEUR ADJOINT",
+   "annexe": 8
+  },
+  "REG220": {
+   "libelle": "REGISSEUR DE SALLE",
+   "annexe": 8
+  },
+  "REG230": {
+   "libelle": "REGISSEUR MOTORISATION ASSERVIE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "REJ010": {
+   "libelle": "REJONEADOR",
+   "annexe": 10
+  },
+  "REL010": {
+   "libelle": "RELEVEUR DE DIALOGUE",
+   "annexe": 8
+  },
+  "REP010": {
+   "libelle": "REPASSEUSE",
+   "annexe": 8
+  },
+  "REP011": {
+   "libelle": "CHEF REPASSEUSE",
+   "annexe": 8
+  },
+  "REP012": {
+   "libelle": "ASSISTANTE REPASSEUSE",
+   "annexe": 8
+  },
+  "REP013": {
+   "libelle": "REPASSEUSE ADJOINTE",
+   "annexe": 8
+  },
+  "REP020": {
+   "libelle": "REPETITEUR",
+   "annexe": 8
+  },
+  "REP021": {
+   "libelle": "CHEF REPETITEUR",
+   "annexe": 8
+  },
+  "REP022": {
+   "libelle": "ASSISTANT REPETITEUR",
+   "annexe": 8
+  },
+  "REP023": {
+   "libelle": "REPETITEUR ADJOINT",
+   "annexe": 8
+  },
+  "REP026": {
+   "libelle": "REPETITEUR CINEMA",
+   "annexe": 8
+  },
+  "REP030": {
+   "libelle": "REPEREUR",
+   "annexe": 8
+  },
+  "RES010": {
+   "libelle": "RESPONSABLE TECHNIQUE POST-PRODUCTION",
+   "annexe": 8
+  },
+  "RES030": {
+   "libelle": "RESPONSABLE DES ENFANTS",
+   "annexe": 8
+  },
+  "RES036": {
+   "libelle": "RESPONSABLE DES ENFANTS CINEMA",
+   "annexe": 8
+  },
+  "RES040": {
+   "libelle": "RESPONSABLE REPERAGES",
+   "annexe": 8
+  },
+  "RES045": {
+   "libelle": "RESPONSABLE REPERAGES SPECIALISE",
+   "annexe": 8
+  },
+  "RES050": {
+   "libelle": "RESPONSABLE D'EXPLOITATION",
+   "annexe": 8
+  },
+  "RES060": {
+   "libelle": "RESPONSABLE SCAN",
+   "annexe": 8
+  },
+  "RES070": {
+   "libelle": "RESPONSABLE ARTISTIQUE",
+   "annexe": 8
+  },
+  "RES080": {
+   "libelle": "RESPONSABLE CASTING",
+   "annexe": 8
+  },
+  "RES090": {
+   "libelle": "RESPONSABLE D'ENQUETE",
+   "annexe": 8
+  },
+  "RES110": {
+   "libelle": "RESPONSABLE DE RECHERCHE",
+   "annexe": 8
+  },
+  "RES120": {
+   "libelle": "RESPONSABLE TECHNIQUE MULTIMEDIA",
+   "annexe": 8
+  },
+  "RES130": {
+   "libelle": "RESPONSABLE DE QUESTIONS",
+   "annexe": 8
+  },
+  "RET010": {
+   "libelle": "RETOUCHEUSE",
+   "annexe": 8
+  },
+  "RET011": {
+   "libelle": "CHEF RETOUCHEUSE",
+   "annexe": 8
+  },
+  "RET012": {
+   "libelle": "ASSISTANTE RETOUCHEUSE",
+   "annexe": 8
+  },
+  "RET013": {
+   "libelle": "RETOUCHEUSE ADJOINTE",
+   "annexe": 8
+  },
+  "RIG010": {
+   "libelle": "RIGGER",
+   "annexe": 8
+  },
+  "RIG011": {
+   "libelle": "CHEF RIGGER",
+   "annexe": 8
+  },
+  "RIG012": {
+   "libelle": "ASSISTANT RIGGER",
+   "annexe": 8
+  },
+  "RIG013": {
+   "libelle": "RIGGER ADJOINT",
+   "annexe": 8
+  },
+  "RIP010": {
+   "libelle": "RIPPEUR",
+   "annexe": 8
+  },
+  "ROA010": {
+   "libelle": "ROAD",
+   "annexe": 8
+  },
+  "SAC010": {
+   "libelle": "SACQUEBOUTIER BASSE",
+   "annexe": 10
+  },
+  "SAX010": {
+   "libelle": "SAXOPHONISTE",
+   "annexe": 10
+  },
+  "SCA010": {
+   "libelle": "SCAFFOLDER",
+   "annexe": 8,
+   "evolution_2016": "M"
+  },
+  "SCE010": {
+   "libelle": "SCENOGRAPHE",
+   "annexe": 8
+  },
+  "SCE011": {
+   "libelle": "CHEF SCENOGRAPHE",
+   "annexe": 8
+  },
+  "SCE012": {
+   "libelle": "ASSISTANT SCENOGRAPHE",
+   "annexe": 8
+  },
+  "SCE013": {
+   "libelle": "SCENOGRAPHE ADJOINT",
+   "annexe": 8
+  },
+  "SCR010": {
+   "libelle": "SCRIPT(E)",
+   "annexe": 8
+  },
+  "SCR015": {
+   "libelle": "SCRIPTE SPECIALISE",
+   "annexe": 8
+  },
+  "SCR016": {
+   "libelle": "SCRIPTE CINEMA",
+   "annexe": 8
+  },
+  "SCR020": {
+   "libelle": "SCRIPT EDITEUR",
+   "annexe": 8
+  },
+  "SCR050": {
+   "libelle": "SCRIPTE AV",
+   "annexe": 8
+  },
+  "SCU020": {
+   "libelle": "SCULPTEUR DE THEATRE",
+   "annexe": 8
+  },
+  "SCU021": {
+   "libelle": "CHEF SCULPTEUR DE THEATRE",
+   "annexe": 8
+  },
+  "SCU022": {
+   "libelle": "ASSISTANT SCULPTEUR DE THEATRE",
+   "annexe": 8
+  },
+  "SCU023": {
+   "libelle": "SCULPTEUR DE THEATRE ADJOINT",
+   "annexe": 8
+  },
+  "SCU030": {
+   "libelle": "SCULPTEUR DECORATEUR",
+   "annexe": 8
+  },
+  "SCU040": {
+   "libelle": "SCULPTEUR DECORS",
+   "annexe": 8
+  },
+  "SCU046": {
+   "libelle": "SCULPTEUR DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "SCU050": {
+   "libelle": "SCULPTEUR DE SPECTACLES",
+   "annexe": 8
+  },
+  "SCU051": {
+   "libelle": "CHEF SCULPTEUR DE SPECTACLES",
+   "annexe": 8
+  },
+  "SCU052": {
+   "libelle": "ASSISTANT SCULPTEUR DE SPECTACLES",
+   "annexe": 8
+  },
+  "SCU053": {
+   "libelle": "SCULPTEUR DE SPECTACLES ADJOINT",
+   "annexe": 8
+  },
+  "SCU060": {
+   "libelle": "SCULPTEUR",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "SEC010": {
+   "libelle": "SECRETAIRE DE PRODUCTION",
+   "annexe": 8
+  },
+  "SEC015": {
+   "libelle": "SECRETAIRE DE PRODUCTION SPECIALISEE",
+   "annexe": 8
+  },
+  "SEC016": {
+   "libelle": "SECRETAIRE DE PRODUCTION CINEMA",
+   "annexe": 8
+  },
+  "SER010": {
+   "libelle": "SERRURIER",
+   "annexe": 8
+  },
+  "SER011": {
+   "libelle": "CHEF SERRURIER",
+   "annexe": 8
+  },
+  "SER012": {
+   "libelle": "ASSISTANT SERRURIER",
+   "annexe": 8
+  },
+  "SER013": {
+   "libelle": "SERRURIER ADJOINT",
+   "annexe": 8
+  },
+  "SER020": {
+   "libelle": "SERRURIER METALLIER DE THEATRE",
+   "annexe": 8
+  },
+  "SER021": {
+   "libelle": "CHEF SERRURIER METALLIER DE THEATRE",
+   "annexe": 8
+  },
+  "SER022": {
+   "libelle": "ASSISTANT SERRURIER METALLIER DE THEATRE",
+   "annexe": 8
+  },
+  "SER023": {
+   "libelle": "SERRURIER METALLIER DE THEATRE ADJOINT",
+   "annexe": 8
+  },
+  "SER030": {
+   "libelle": "SERRURIER METALLIER",
+   "annexe": 8
+  },
+  "SER046": {
+   "libelle": "SERRURIER DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "SER050": {
+   "libelle": "SERRURIER DE SPECTACLES",
+   "annexe": 8
+  },
+  "SER051": {
+   "libelle": "CHEF SERRURIER DE SPECTACLES",
+   "annexe": 8
+  },
+  "SER052": {
+   "libelle": "ASSISTANT SERRURIER DE SPECTACLES",
+   "annexe": 8
+  },
+  "SER053": {
+   "libelle": "SERRURIER DE SPECTACLES ADJOINT",
+   "annexe": 8
+  },
+  "SIL010": {
+   "libelle": "SILHOUETTE",
+   "annexe": 10
+  },
+  "SOB010": {
+   "libelle": "SOBRESALIENTE",
+   "annexe": 10
+  },
+  "SOL010": {
+   "libelle": "SOLISTE",
+   "annexe": 10
+  },
+  "SON010": {
+   "libelle": "SONORISATEUR",
+   "annexe": 8
+  },
+  "SON011": {
+   "libelle": "CHEF SONORISATEUR",
+   "annexe": 8
+  },
+  "SON013": {
+   "libelle": "SONORISATEUR ADJOINT",
+   "annexe": 8
+  },
+  "SOP010": {
+   "libelle": "SOPRANO",
+   "annexe": 10
+  },
+  "SOU010": {
+   "libelle": "SOUFFLEUR",
+   "annexe": 8
+  },
+  "SOU011": {
+   "libelle": "CHEF SOUFFLEUR",
+   "annexe": 8
+  },
+  "SOU012": {
+   "libelle": "ASSISTANT SOUFFLEUR",
+   "annexe": 8
+  },
+  "SOU013": {
+   "libelle": "SOUFFLEUR ADJOINT",
+   "annexe": 8
+  },
+  "SOU086": {
+   "libelle": "SOUS-CHEF ELECTRICIEN CONSTRUCTION CINE",
+   "annexe": 8
+  },
+  "SOU096": {
+   "libelle": "SOUS-CHEF ELECTRICIEN PRISE VUES CINEMA",
+   "annexe": 8
+  },
+  "SOU106": {
+   "libelle": "SOUS-CHEF MACHINISTE CONSTRUCTION CINEMA",
+   "annexe": 8
+  },
+  "SOU116": {
+   "libelle": "SOUS-CHEF MACHINISTE PRISE VUES CINEMA",
+   "annexe": 8
+  },
+  "SOU126": {
+   "libelle": "SOUS-CHEF MENUISIER DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "SOU136": {
+   "libelle": "SOUS-CHEF PEINTRE DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "SPE010": {
+   "libelle": "SPEAKER",
+   "annexe": 10
+  },
+  "STA010": {
+   "libelle": "STAFFEUR",
+   "annexe": 8
+  },
+  "STA012": {
+   "libelle": "ASSISTANT STAFFEUR",
+   "annexe": 8
+  },
+  "STA013": {
+   "libelle": "STAFFEUR ADJOINT",
+   "annexe": 8
+  },
+  "STA036": {
+   "libelle": "STAFFEUR DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "STE010": {
+   "libelle": "STEADICAMER",
+   "annexe": 8
+  },
+  "STE015": {
+   "libelle": "STEADICAMER SPECIALISE",
+   "annexe": 8
+  },
+  "STO010": {
+   "libelle": "STORYBOARDER",
+   "annexe": 8
+  },
+  "STR010": {
+   "libelle": "STRIPTEASEUR",
+   "annexe": 10
+  },
+  "STY010": {
+   "libelle": "STYLISTE",
+   "annexe": 8
+  },
+  "SUP010": {
+   "libelle": "SUPERVISEUR",
+   "annexe": 8
+  },
+  "SUP020": {
+   "libelle": "SUPERVISEUR DE MODELISATION",
+   "annexe": 8
+  },
+  "SUP030": {
+   "libelle": "SUPERVISEUR EFFETS SPECIAUX",
+   "annexe": 8
+  },
+  "SUP040": {
+   "libelle": "SUPERVISEUR RENDU ET ECLAIRAGE",
+   "annexe": 8
+  },
+  "SUP050": {
+   "libelle": "SUPERVISEUR EFFETS VISUELS NUMERIQUES",
+   "annexe": 8
+  },
+  "SUP070": {
+   "libelle": "SUPERVISEUR DE CALCULS",
+   "annexe": 8
+  },
+  "SUP080": {
+   "libelle": "SUPERVISEUR TRANSFERT DE DONNEES",
+   "annexe": 8
+  },
+  "SUP096": {
+   "libelle": "SUPERVISEUR D'EFFETS PHYSIQUES CINEMA",
+   "annexe": 8
+  },
+  "SUP100": {
+   "libelle": "SUPERVISEUR ACCROCHEUR",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "SUP110": {
+   "libelle": "SUPERVISEUR CONSTRUCTEUR DE DECORS",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "SUP120": {
+   "libelle": "SUPERVISEUR CONSTRUCTEUR DE MACHINERIE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "SUP130": {
+   "libelle": "SUPERVISEUR DE CHANTIER",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "SUP140": {
+   "libelle": "SUPERVISEUR DE CHANTIER ADJOINT",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "SUP150": {
+   "libelle": "SUPERVISEUR RIGGER",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "TAI010": {
+   "libelle": "TAILLEUR",
+   "annexe": 8
+  },
+  "TAI011": {
+   "libelle": "CHEF TAILLEUR",
+   "annexe": 8
+  },
+  "TAI012": {
+   "libelle": "ASSISTANT TAILLEUR",
+   "annexe": 8
+  },
+  "TAI013": {
+   "libelle": "TAILLEUR ADJOINT",
+   "annexe": 8
+  },
+  "TAP010": {
+   "libelle": "TAPISSIER",
+   "annexe": 8
+  },
+  "TAP020": {
+   "libelle": "TAPISSIER DE THEATRE",
+   "annexe": 8
+  },
+  "TAP021": {
+   "libelle": "CHEF TAPISSIER DE THEATRE",
+   "annexe": 8
+  },
+  "TAP022": {
+   "libelle": "ASSISTANT TAPISSIER DE THEATRE",
+   "annexe": 8
+  },
+  "TAP023": {
+   "libelle": "TAPISSIER DE THEATRE ADJOINT",
+   "annexe": 8
+  },
+  "TAP030": {
+   "libelle": "TAPISSIER DECORATEUR",
+   "annexe": 8
+  },
+  "TAP040": {
+   "libelle": "TAPISSIER DECORS",
+   "annexe": 8
+  },
+  "TAP046": {
+   "libelle": "TAPISSIER DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "TAP050": {
+   "libelle": "TAPISSIER DE SPECTACLES",
+   "annexe": 8
+  },
+  "TAP051": {
+   "libelle": "CHEF TAPISSIER DE SPECTACLES",
+   "annexe": 8
+  },
+  "TAP052": {
+   "libelle": "ASSISTANT TAPISSIER DE SPECTACLES",
+   "annexe": 8
+  },
+  "TAP053": {
+   "libelle": "TAPISSIER DE SPECTACLES ADJOINT",
+   "annexe": 8
+  },
+  "TEC010": {
+   "libelle": "TECHNICIEN BACKLINER",
+   "annexe": 8
+  },
+  "TEC020": {
+   "libelle": "TECHNICIEN CAO-PAO",
+   "annexe": 8
+  },
+  "TEC021": {
+   "libelle": "CHEF TECHNICIEN CAO-PAO",
+   "annexe": 8
+  },
+  "TEC022": {
+   "libelle": "ASSISTANT TECHNICIEN CAO-PAO",
+   "annexe": 8
+  },
+  "TEC023": {
+   "libelle": "TECHNICIEN CAO-PAO ADJOINT",
+   "annexe": 8
+  },
+  "TEC030": {
+   "libelle": "TECHNICIEN CONSOLE",
+   "annexe": 8
+  },
+  "TEC031": {
+   "libelle": "CHEF TECHNICIEN CONSOLE",
+   "annexe": 8
+  },
+  "TEC032": {
+   "libelle": "ASSISTANT TECHNICIEN CONSOLE",
+   "annexe": 8
+  },
+  "TEC033": {
+   "libelle": "TECHNICIEN CONSOLE ADJOINT",
+   "annexe": 8
+  },
+  "TEC040": {
+   "libelle": "TECHNICIEN MAINTENANCE (TOURNEE & FEST)",
+   "annexe": 8
+  },
+  "TEC041": {
+   "libelle": "CHEF TECH MAINTENANCE (TOURNEE & FESTIV)",
+   "annexe": 8
+  },
+  "TEC042": {
+   "libelle": "ASSIST TECH MAINTENANCE (TOURNEE & FEST)",
+   "annexe": 8
+  },
+  "TEC043": {
+   "libelle": "TECH MAINTENANCE ADJ (TOURNEE & FESTIVAL",
+   "annexe": 8
+  },
+  "TEC060": {
+   "libelle": "TECHNICIEN (DE) PLATEAU",
+   "annexe": 8
+  },
+  "TEC061": {
+   "libelle": "CHEF TECHNICIEN DE PLATEAU",
+   "annexe": 8
+  },
+  "TEC062": {
+   "libelle": "ASSISTANT TECHNICIEN DE PLATEAU",
+   "annexe": 8
+  },
+  "TEC063": {
+   "libelle": "TECHNICIEN DE PLATEAU ADJOINT",
+   "annexe": 8
+  },
+  "TEC070": {
+   "libelle": "TECHNICIEN DE PYROTECHNIE",
+   "annexe": 8
+  },
+  "TEC071": {
+   "libelle": "CHEF TECHNICIEN DE PYROTECHNIE",
+   "annexe": 8
+  },
+  "TEC072": {
+   "libelle": "ASSISTANT TECHNICIEN DE PYROTECHNIE",
+   "annexe": 8
+  },
+  "TEC073": {
+   "libelle": "ADJOINT TECHNICIEN DE PYROTECHNIE",
+   "annexe": 8
+  },
+  "TEC080": {
+   "libelle": "TECHNICIEN DE REPORTAGE",
+   "annexe": 8
+  },
+  "TEC100": {
+   "libelle": "TECHNICIEN DE SECURITE (CIRQUES)",
+   "annexe": 8
+  },
+  "TEC101": {
+   "libelle": "CHEF TECHNICIEN DE SECURITE (CIRQUES)",
+   "annexe": 8
+  },
+  "TEC102": {
+   "libelle": "ASSISTANT TECHNICIEN SECURITE (CIRQUES)",
+   "annexe": 8
+  },
+  "TEC103": {
+   "libelle": "TECHNICIEN DE SECURITE ADJOINT (CIRQUES)",
+   "annexe": 8
+  },
+  "TEC110": {
+   "libelle": "TECHNICIEN DE STRUCTURE",
+   "annexe": 8
+  },
+  "TEC150": {
+   "libelle": "TECHNICIEN EFFETS SPECIAUX",
+   "annexe": 8
+  },
+  "TEC151": {
+   "libelle": "CHEF TECHNICIEN EFFETS SPECIAUX",
+   "annexe": 8
+  },
+  "TEC152": {
+   "libelle": "ASSISTANT TECHNICIEN EFFETS SPECIAUX",
+   "annexe": 8
+  },
+  "TEC153": {
+   "libelle": "TECHNICIEN EFFETS SPECIAUX ADJOINT",
+   "annexe": 8
+  },
+  "TEC160": {
+   "libelle": "TECHNICIEN EFFETS SPECIAUX VOLUME",
+   "annexe": 8
+  },
+  "TEC170": {
+   "libelle": "TECHNICIEN GROUPE ELECTROGENE",
+   "annexe": 8
+  },
+  "TEC171": {
+   "libelle": "CHEF TECHNICIEN GROUPE ELECTROGENE",
+   "annexe": 8
+  },
+  "TEC172": {
+   "libelle": "ASSISTANT TECHNICIEN GROUPE ELECTROGENE",
+   "annexe": 8
+  },
+  "TEC173": {
+   "libelle": "TECHNICIEN GROUPE ELECTROGENE ADJOINT",
+   "annexe": 8
+  },
+  "TEC180": {
+   "libelle": "TECHNICIEN HF",
+   "annexe": 8
+  },
+  "TEC181": {
+   "libelle": "CHEF TECHNICIEN HF",
+   "annexe": 8
+  },
+  "TEC182": {
+   "libelle": "ASSISTANT TECHNICIEN HF",
+   "annexe": 8
+  },
+  "TEC183": {
+   "libelle": "TECHNICIEN HF ADJOINT",
+   "annexe": 8
+  },
+  "TEC190": {
+   "libelle": "TECHNICIEN HYDRAULIQUE",
+   "annexe": 8
+  },
+  "TEC191": {
+   "libelle": "CHEF TECHNICIEN HYDRAULIQUE",
+   "annexe": 8
+  },
+  "TEC192": {
+   "libelle": "ASSISTANT TECHNICIEN HYDRAULIQUE",
+   "annexe": 8
+  },
+  "TEC193": {
+   "libelle": "TECHNICIEN HYDRAULIQUE ADJOINT",
+   "annexe": 8
+  },
+  "TEC210": {
+   "libelle": "TECHNICIEN (DES) INSTRUMENT(S)",
+   "annexe": 8
+  },
+  "TEC220": {
+   "libelle": "TECHNICIEN INSTRUMENTS DE MUSIQUE",
+   "annexe": 8
+  },
+  "TEC221": {
+   "libelle": "CHEF TECHNICIEN INSTRUMENTS DE MUSIQUE",
+   "annexe": 8
+  },
+  "TEC222": {
+   "libelle": "ASSISTANT TECHNICIEN INSTRUMENTS MUSIQUE",
+   "annexe": 8
+  },
+  "TEC223": {
+   "libelle": "TECHNICIEN INSTRUMENTS MUSIQUE ADJOINT",
+   "annexe": 8
+  },
+  "TEC230": {
+   "libelle": "TECHNICIEN LUMIERE",
+   "annexe": 8
+  },
+  "TEC231": {
+   "libelle": "CHEF TECHNICIEN LUMIERE",
+   "annexe": 8
+  },
+  "TEC232": {
+   "libelle": "ASSISTANT TECHNICIEN LUMIERE",
+   "annexe": 8
+  },
+  "TEC233": {
+   "libelle": "TECHNICIEN LUMIERE ADJOINT",
+   "annexe": 8
+  },
+  "TEC235": {
+   "libelle": "ASSISTANT LUMIERE SPECIALISE",
+   "annexe": 8
+  },
+  "TEC240": {
+   "libelle": "TECHNICIEN REALISATEUR",
+   "annexe": 8
+  },
+  "TEC250": {
+   "libelle": "TECHNICIEN SON",
+   "annexe": 8
+  },
+  "TEC251": {
+   "libelle": "CHEF TECHNICIEN SON",
+   "annexe": 8
+  },
+  "TEC252": {
+   "libelle": "ASSISTANT TECHNICIEN SON",
+   "annexe": 8
+  },
+  "TEC253": {
+   "libelle": "TECHNICIEN SON ADJOINT",
+   "annexe": 8
+  },
+  "TEC260": {
+   "libelle": "TECHNICIEN TRUQUISTE",
+   "annexe": 8
+  },
+  "TEC270": {
+   "libelle": "TECHNICIEN VIDEO",
+   "annexe": 8
+  },
+  "TEC271": {
+   "libelle": "CHEF TECHNICIEN VIDEO",
+   "annexe": 8
+  },
+  "TEC272": {
+   "libelle": "ASSISTANT TECHNICIEN VIDEO",
+   "annexe": 8
+  },
+  "TEC273": {
+   "libelle": "TECHNICIEN VIDEO ADJOINT",
+   "annexe": 8
+  },
+  "TEC280": {
+   "libelle": "TECHNICIEN D'EXPLOITATION",
+   "annexe": 8
+  },
+  "TEC290": {
+   "libelle": "TECHNICIEN D'EXPLOITATION AV",
+   "annexe": 8
+  },
+  "TEC300": {
+   "libelle": "TECHNICIEN DE LA VISION SV",
+   "annexe": 8
+  },
+  "TEC310": {
+   "libelle": "TECHNICIEN DE MAINTENANCE",
+   "annexe": 8
+  },
+  "TEC320": {
+   "libelle": "TECHNICIEN DE MAINTENANCE N1",
+   "annexe": 8
+  },
+  "TEC330": {
+   "libelle": "TECHNICIEN DE MAINTENANCE N2",
+   "annexe": 8
+  },
+  "TEC350": {
+   "libelle": "TECHNICIEN DE SCENE",
+   "annexe": 8
+  },
+  "TEC380": {
+   "libelle": "TECHNICIEN RENOVATION SON",
+   "annexe": 8
+  },
+  "TEC390": {
+   "libelle": "TECHNICIEN REPIQUAGE",
+   "annexe": 8
+  },
+  "TEC400": {
+   "libelle": "TECHNICIEN REPORT OPTIQUE",
+   "annexe": 8
+  },
+  "TEC410": {
+   "libelle": "TECHNICIEN RESTAURATION NUMERIQUE",
+   "annexe": 8
+  },
+  "TEC420": {
+   "libelle": "TECHNICIEN SUPERIEUR D'EXPLOITATION AV",
+   "annexe": 8
+  },
+  "TEC430": {
+   "libelle": "TECHNICIEN SYSTEME",
+   "annexe": 8
+  },
+  "TEC440": {
+   "libelle": "TECHNICIEN SYSTEME ET RESEAU",
+   "annexe": 8
+  },
+  "TEC450": {
+   "libelle": "TECHNICIEN TRANSFERT SON",
+   "annexe": 8
+  },
+  "TEC470": {
+   "libelle": "TECHNICIEN AUTHORING",
+   "annexe": 8
+  },
+  "TEC486": {
+   "libelle": "TECH APPAREILS TELECOMMANDES (PDV) CINE",
+   "annexe": 8
+  },
+  "TEC496": {
+   "libelle": "TECHNICIEN REALISATEUR 2EME EQUIPE CINE",
+   "annexe": 8,
+   "evolution_2016": "M"
+  },
+  "TEC506": {
+   "libelle": "TECHNICIEN RETOUR IMAGE CINEMA",
+   "annexe": 8
+  },
+  "TEC510": {
+   "libelle": "TECHNICIEN DIFFUSION D'IMAGES",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "TEC520": {
+   "libelle": "TECHNICIEN ECHAFAUDEUR",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "TEC530": {
+   "libelle": "TECHNICIEN MEDIA SERVEUR",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "TEC540": {
+   "libelle": "TECHNICIEN MOTORISATION ASSERVIE",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "TEC550": {
+   "libelle": "TECHNICIEN RESEAUX",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "TEC560": {
+   "libelle": "TECHNICIEN SCAFFOLDER",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "TEC570": {
+   "libelle": "TECHNICIEN VIDEO SV",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "TEI020": {
+   "libelle": "TEINTURIER COLORISTE DE SPECTACLES",
+   "annexe": 8
+  },
+  "TEI021": {
+   "libelle": "CHEF TEINTURIER COLORISTE DE SPECTACLES",
+   "annexe": 8
+  },
+  "TEI022": {
+   "libelle": "ASSISTANT TEINTURIER COLORISTE SPECTACLE",
+   "annexe": 8
+  },
+  "TEI023": {
+   "libelle": "TEINTURIER COLORISTE SPECTACLES ADJOINT",
+   "annexe": 8
+  },
+  "TEI036": {
+   "libelle": "TEINTURIER PATINEUR COSTUMES CINEMA",
+   "annexe": 8
+  },
+  "TEL010": {
+   "libelle": "TELEPHONISTE D'EMISSION",
+   "annexe": 8
+  },
+  "TEN010": {
+   "libelle": "TENOR",
+   "annexe": 10
+  },
+  "TER010": {
+   "libelle": "TERCERO",
+   "annexe": 10
+  },
+  "TIM010": {
+   "libelle": "TIMBALES",
+   "annexe": 10
+  },
+  "TOP010": {
+   "libelle": "TOPPEUR",
+   "annexe": 8,
+   "evolution_2016": "C"
+  },
+  "TOR010": {
+   "libelle": "TORERO",
+   "annexe": 10
+  },
+  "TOU010": {
+   "libelle": "TOUPILLEUR",
+   "annexe": 8
+  },
+  "TOU026": {
+   "libelle": "TOUPILLEUR DE DECOR CINEMA",
+   "annexe": 8
+  },
+  "TRA010": {
+   "libelle": "TRACEUR",
+   "annexe": 8
+  },
+  "TRA030": {
+   "libelle": "TRADUCTEUR",
+   "annexe": 8
+  },
+  "TRA040": {
+   "libelle": "TRAPEZISTE",
+   "annexe": 10
+  },
+  "TRA050": {
+   "libelle": "TRANSFORMISTE",
+   "annexe": 10
+  },
+  "TRA060": {
+   "libelle": "TRADUCTEUR-ADAPTATEUR",
+   "annexe": 8
+  },
+  "TRA070": {
+   "libelle": "TRADUCTEUR INTERPRETE",
+   "annexe": 8
+  },
+  "TRO010": {
+   "libelle": "TROMBONE",
+   "annexe": 10
+  },
+  "TRO020": {
+   "libelle": "TROMPETTISTE",
+   "annexe": 10
+  },
+  "TRO036": {
+   "libelle": "3EME ASSISTANT DECORATEUR CINEMA",
+   "annexe": 8
+  },
+  "TRU010": {
+   "libelle": "TRUQUISTE",
+   "annexe": 8
+  },
+  "TRU030": {
+   "libelle": "TRUQUISTE AV",
+   "annexe": 8
+  },
+  "TUB010": {
+   "libelle": "TUBA",
+   "annexe": 10
+  },
+  "VAL010": {
+   "libelle": "VALET D' EPEE",
+   "annexe": 10
+  },
+  "VEN010": {
+   "libelle": "VENTRILOQUE",
+   "annexe": 10
+  },
+  "VER010": {
+   "libelle": "VERIFICATEUR D'ANIMATION",
+   "annexe": 8
+  },
+  "VER040": {
+   "libelle": "VERIFICATEUR TRACE-COLORISATION",
+   "annexe": 8
+  },
+  "VIB010": {
+   "libelle": "VIBRAPHONE",
+   "annexe": 10
+  },
+  "VID010": {
+   "libelle": "VIDEOGRAPHISTE",
+   "annexe": 8
+  },
+  "VID020": {
+   "libelle": "VIDEO JOCKEY (ARTISTE VJ)",
+   "annexe": 10
+  },
+  "VIO010": {
+   "libelle": "VIOLONCELLISTE",
+   "annexe": 10
+  },
+  "VIO020": {
+   "libelle": "VIOLONISTE",
+   "annexe": 10
+  },
+  "VOI010": {
+   "libelle": "VOIX-OFF",
+   "annexe": 10
+  },
+  "VOL010": {
+   "libelle": "VOLTIGEUR",
+   "annexe": 10
+  },
+  "XYL010": {
+   "libelle": "XYLOPHONISTE",
+   "annexe": 10
+  }
+ }
+}

@@ -1,0 +1,3428 @@
+{
+ "demos": {
+  "demo-1285-grande": {
+   "mois": {
+    "2024-04": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2025-01": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-01/DSN_Janvier2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-02": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-02/DSN_Fevrier2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-03": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-03/DSN_Mars2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-04": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-04/DSN_Avril2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-05": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-05/DSN_Mai2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-06": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-06/DSN_Juin2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-07": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-07/DSN_Juillet2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-08": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-08/DSN_Aout2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-09": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-09/DSN_Septembre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-10": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-10/DSN_Octobre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-11": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-11/DSN_Novembre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-12": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-12/DSN_Decembre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-01": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-01/DSN_Janvier2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-02": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-02/DSN_Fevrier2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-03": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-03/DSN_Mars2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-04": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-04/DSN_Avril2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-05": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-05/DSN_Mai2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-06": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-06/DSN_Juin2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-07": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-07/DSN_Juillet2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-08": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-08/DSN_Aout2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-09": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2026-10": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2026-11": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2026-12": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2027-04": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2028-04": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    }
+   },
+   "regularises": []
+  },
+  "demo-1285-petite": {
+   "mois": {
+    "2024-04": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2025-01": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-01/DSN_Janvier2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-02": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-02/DSN_Fevrier2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-03": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-03/DSN_Mars2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-04": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-04/DSN_Avril2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-05": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-05/DSN_Mai2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-06": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-06/DSN_Juin2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-07": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-07/DSN_Juillet2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-08": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-08/DSN_Aout2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-09": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-09/DSN_Septembre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-10": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-10/DSN_Octobre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-11": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-11/DSN_Novembre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-12": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-12/DSN_Decembre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-01": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-01/DSN_Janvier2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-02": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-02/DSN_Fevrier2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-03": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-03/DSN_Mars2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-04": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-04/DSN_Avril2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-05": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-05/DSN_Mai2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-06": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-06/DSN_Juin2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-07": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-07/DSN_Juillet2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-08": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-08/DSN_Aout2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-09": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2026-10": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2026-11": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2026-12": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2027-04": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2028-04": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    }
+   },
+   "regularises": []
+  },
+  "demo-3090-grande": {
+   "mois": {
+    "2024-04": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2025-01": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-01/DSN_Janvier2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-02": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-02/DSN_Fevrier2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-03": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-03/DSN_Mars2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-04": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-04/DSN_Avril2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-05": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-05/DSN_Mai2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-06": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-06/DSN_Juin2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-07": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-07/DSN_Juillet2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-08": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-08/DSN_Aout2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-09": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-09/DSN_Septembre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-10": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-10/DSN_Octobre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-11": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-11/DSN_Novembre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-12": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-12/DSN_Decembre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-01": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-01/DSN_Janvier2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-02": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-02/DSN_Fevrier2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-03": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-03/DSN_Mars2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-04": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-04/DSN_Avril2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-05": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-05/DSN_Mai2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-06": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-06/DSN_Juin2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-07": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-07/DSN_Juillet2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-08": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-08/DSN_Aout2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-09": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2026-10": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2026-11": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2026-12": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2027-04": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2028-04": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    }
+   },
+   "regularises": []
+  },
+  "demo-3090-petite": {
+   "mois": {
+    "2024-04": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2025-01": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-01/DSN_Janvier2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-02": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-02/DSN_Fevrier2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-03": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-03/DSN_Mars2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-04": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-04/DSN_Avril2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-05": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-05/DSN_Mai2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-06": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-06/DSN_Juin2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-07": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-07/DSN_Juillet2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-08": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-08/DSN_Aout2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-09": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-09/DSN_Septembre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-10": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-10/DSN_Octobre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-11": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-11/DSN_Novembre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2025-12": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2025-12/DSN_Decembre2025.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-01": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-01/DSN_Janvier2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-02": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-02/DSN_Fevrier2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-03": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-03/DSN_Mars2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-04": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-04/DSN_Avril2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-05": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-05/DSN_Mai2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-06": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-06/DSN_Juin2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-07": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-07/DSN_Juillet2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-08": {
+     "oeth": null,
+     "dsn": {
+      "chemin": "sorties/2026-08/DSN_Aout2026.dsn"
+     },
+     "dsn_nic": null
+    },
+    "2026-09": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2026-10": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2026-11": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2026-12": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2027-04": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    },
+    "2028-04": {
+     "oeth": null,
+     "dsn": null,
+     "dsn_nic": null
+    }
+   },
+   "regularises": []
+  }
+ },
+ "oeth": [
+  {
+   "nom": "standard",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "24",
+    "obligation": "1",
+    "beneficiaires": "0",
+    "manquants": "1",
+    "coefficient": 400,
+    "smic": "11.88",
+    "brute": "4752.00",
+    "nette": "4752.00",
+    "deductions": {
+     "060": "0.00",
+     "061": "0.00",
+     "062": "0.00",
+     "063": "0.00",
+     "064": "0.00"
+    },
+    "externes": [],
+    "accord": "",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [
+     [
+      "065",
+      "4752.00"
+     ],
+     [
+      "066",
+      "4752.00"
+     ],
+     [
+      "068",
+      "4752.00"
+     ]
+    ],
+    "bordereau": [
+     [
+      "730",
+      "4752.00"
+     ]
+    ],
+    "a_verser": "4752.00"
+   }
+  },
+  {
+   "nom": "sans_action_vrai",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": true
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "24",
+    "obligation": "1",
+    "beneficiaires": "0",
+    "manquants": "1",
+    "coefficient": 1500,
+    "smic": "11.88",
+    "brute": "17820.00",
+    "nette": "17820.00",
+    "deductions": {
+     "060": "0.00",
+     "061": "0.00",
+     "062": "0.00",
+     "063": "0.00",
+     "064": "0.00"
+    },
+    "externes": [],
+    "accord": "",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [
+     [
+      "065",
+      "17820.00"
+     ],
+     [
+      "066",
+      "17820.00"
+     ],
+     [
+      "068",
+      "17820.00"
+     ]
+    ],
+    "bordereau": [
+     [
+      "730",
+      "17820.00"
+     ]
+    ],
+    "a_verser": "17820.00"
+   }
+  },
+  {
+   "nom": "sans_action_absent",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH"
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : aucun beneficiaire et aucune sous-traitance cette annee. La contribution passe a 1 500 fois le SMIC par manquant si cela dure depuis PLUS DE TROIS ANS (D5212-21), et 400 fois sinon : ecrire \"aucune_action_depuis_plus_de_trois_ans\": true ou false. Le logiciel ne connait pas assez le passe pour le dire. Rien n'est ecrit."
+   }
+  },
+  {
+   "nom": "sans_action_texte",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": "oui"
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : aucun beneficiaire et aucune sous-traitance cette annee. La contribution passe a 1 500 fois le SMIC par manquant si cela dure depuis PLUS DE TROIS ANS (D5212-21), et 400 fois sinon : ecrire \"aucune_action_depuis_plus_de_trois_ans\": true ou false. Le logiciel ne connait pas assez le passe pour le dire. Rien n'est ecrit."
+   }
+  },
+  {
+   "nom": "millesime_2026",
+   "racine": "demo-3090-grande",
+   "mois": "2027-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2026": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2026,
+    "effectif": "24",
+    "obligation": "1",
+    "beneficiaires": "0",
+    "manquants": "1",
+    "coefficient": 400,
+    "smic": "12.31",
+    "brute": "4924.00",
+    "nette": "4924.00",
+    "deductions": {
+     "060": "0.00",
+     "061": "0.00",
+     "062": "0.00",
+     "063": "0.00",
+     "064": "0.00"
+    },
+    "externes": [],
+    "accord": "",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [
+     [
+      "065",
+      "4924.00"
+     ],
+     [
+      "066",
+      "4924.00"
+     ],
+     [
+      "068",
+      "4924.00"
+     ]
+    ],
+    "bordereau": [
+     [
+      "730",
+      "4924.00"
+     ]
+    ],
+    "a_verser": "4924.00"
+   }
+  },
+  {
+   "nom": "hors_avril",
+   "racine": "demo-3090-grande",
+   "mois": "2026-05",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false
+      }
+     }
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "externes_et_deductions",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 1,
+       "ecap": 2,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "boeth_externes": [
+        {
+         "type": "01",
+         "nombre": 0.5
+        },
+        {
+         "type": "03",
+         "nombre": 0
+        },
+        {
+         "type": "02",
+         "nombre": "1.25"
+        }
+       ],
+       "sous_traitance": 500,
+       "depenses": {
+        "accessibilite": 120.5,
+        "maintien": 80,
+        "accompagnement": 0
+       }
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "24",
+    "obligation": "1",
+    "beneficiaires": "2.75",
+    "manquants": "0",
+    "coefficient": 400,
+    "smic": "11.88",
+    "brute": "0.00",
+    "nette": "0.00",
+    "deductions": {
+     "060": "403.92",
+     "061": "500.00",
+     "062": "120.50",
+     "063": "80.00",
+     "064": "0.00"
+    },
+    "externes": [
+     [
+      "01",
+      "0.5"
+     ],
+     [
+      "02",
+      "1.25"
+     ]
+    ],
+    "accord": "",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [
+     [
+      "060",
+      "403.92"
+     ],
+     [
+      "061",
+      "500.00"
+     ],
+     [
+      "062",
+      "120.50"
+     ],
+     [
+      "063",
+      "80.00"
+     ],
+     [
+      "065",
+      "0.00"
+     ],
+     [
+      "066",
+      "0.00"
+     ],
+     [
+      "068",
+      "0.00"
+     ]
+    ],
+    "bordereau": [],
+    "a_verser": "0.00"
+   }
+  },
+  {
+   "nom": "plafond_75",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 100,
+       "boeth": 3,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "boeth_dus": 6,
+       "sous_traitance": 12000
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "100",
+    "obligation": "6",
+    "beneficiaires": "3",
+    "manquants": "3",
+    "coefficient": 400,
+    "smic": "11.88",
+    "brute": "14256.00",
+    "nette": "3564.00",
+    "deductions": {
+     "060": "0.00",
+     "061": "12000.00",
+     "062": "0.00",
+     "063": "0.00",
+     "064": "0.00"
+    },
+    "externes": [],
+    "accord": "",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [
+     [
+      "061",
+      "12000.00"
+     ],
+     [
+      "065",
+      "14256.00"
+     ],
+     [
+      "066",
+      "3564.00"
+     ],
+     [
+      "068",
+      "3564.00"
+     ]
+    ],
+    "bordereau": [
+     [
+      "730",
+      "3564.00"
+     ]
+    ],
+    "a_verser": "3564.00"
+   }
+  },
+  {
+   "nom": "plafond_50",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 100,
+       "boeth": 2,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "sous_traitance": 12000,
+       "depenses": {
+        "maintien": 9999
+       }
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "100",
+    "obligation": "6",
+    "beneficiaires": "2",
+    "manquants": "4",
+    "coefficient": 400,
+    "smic": "11.88",
+    "brute": "19008.00",
+    "nette": "7603.20",
+    "deductions": {
+     "060": "0.00",
+     "061": "12000.00",
+     "062": "0.00",
+     "063": "9999.00",
+     "064": "0.00"
+    },
+    "externes": [],
+    "accord": "",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [
+     [
+      "061",
+      "12000.00"
+     ],
+     [
+      "063",
+      "9999.00"
+     ],
+     [
+      "065",
+      "19008.00"
+     ],
+     [
+      "066",
+      "7603.20"
+     ],
+     [
+      "068",
+      "7603.20"
+     ]
+    ],
+    "bordereau": [
+     [
+      "730",
+      "7603.20"
+     ]
+    ],
+    "a_verser": "7603.20"
+   }
+  },
+  {
+   "nom": "net_nul",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 40,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "sous_traitance": 1
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "24",
+    "obligation": "1",
+    "beneficiaires": "0",
+    "manquants": "1",
+    "coefficient": 400,
+    "smic": "11.88",
+    "brute": "4752.00",
+    "nette": "0.00",
+    "deductions": {
+     "060": "8078.40",
+     "061": "1.00",
+     "062": "0.00",
+     "063": "0.00",
+     "064": "0.00"
+    },
+    "externes": [],
+    "accord": "",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [
+     [
+      "060",
+      "8078.40"
+     ],
+     [
+      "061",
+      "1.00"
+     ],
+     [
+      "065",
+      "4752.00"
+     ],
+     [
+      "066",
+      "0.00"
+     ],
+     [
+      "068",
+      "0.00"
+     ]
+    ],
+    "bordereau": [],
+    "a_verser": "0.00"
+   }
+  },
+  {
+   "nom": "effectif_260",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 260,
+       "boeth": 3,
+       "ecap": 0,
+       "source": "Urssaf",
+       "aucune_action_depuis_plus_de_trois_ans": false
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "260",
+    "obligation": "15",
+    "beneficiaires": "3",
+    "manquants": "12",
+    "coefficient": 500,
+    "smic": "11.88",
+    "brute": "71280.00",
+    "nette": "71280.00",
+    "deductions": {
+     "060": "0.00",
+     "061": "0.00",
+     "062": "0.00",
+     "063": "0.00",
+     "064": "0.00"
+    },
+    "externes": [],
+    "accord": "",
+    "non_realisees": "0.00",
+    "source": "Urssaf",
+    "blocs_82": [
+     [
+      "065",
+      "71280.00"
+     ],
+     [
+      "066",
+      "71280.00"
+     ],
+     [
+      "068",
+      "71280.00"
+     ]
+    ],
+    "bordereau": [
+     [
+      "730",
+      "71280.00"
+     ]
+    ],
+    "a_verser": "71280.00"
+   }
+  },
+  {
+   "nom": "effectif_800",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 800,
+       "boeth": 10,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "800",
+    "obligation": "48",
+    "beneficiaires": "10",
+    "manquants": "38",
+    "coefficient": 600,
+    "smic": "11.88",
+    "brute": "270864.00",
+    "nette": "270864.00",
+    "deductions": {
+     "060": "0.00",
+     "061": "0.00",
+     "062": "0.00",
+     "063": "0.00",
+     "064": "0.00"
+    },
+    "externes": [],
+    "accord": "",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [
+     [
+      "065",
+      "270864.00"
+     ],
+     [
+      "066",
+      "270864.00"
+     ],
+     [
+      "068",
+      "270864.00"
+     ]
+    ],
+    "bordereau": [
+     [
+      "730",
+      "270864.00"
+     ]
+    ],
+    "a_verser": "270864.00"
+   }
+  },
+  {
+   "nom": "effectif_flottant",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24.5,
+       "boeth": 0.5,
+       "ecap": 3.5,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "boeth_dus": 1
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "24.5",
+    "obligation": "1",
+    "beneficiaires": "0.5",
+    "manquants": "0.5",
+    "coefficient": 400,
+    "smic": "11.88",
+    "brute": "2376.00",
+    "nette": "1669.14",
+    "deductions": {
+     "060": "706.86",
+     "061": "0.00",
+     "062": "0.00",
+     "063": "0.00",
+     "064": "0.00"
+    },
+    "externes": [],
+    "accord": "",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [
+     [
+      "060",
+      "706.86"
+     ],
+     [
+      "065",
+      "2376.00"
+     ],
+     [
+      "066",
+      "1669.14"
+     ],
+     [
+      "068",
+      "1669.14"
+     ]
+    ],
+    "bordereau": [
+     [
+      "730",
+      "1669.14"
+     ]
+    ],
+    "a_verser": "1669.14"
+   }
+  },
+  {
+   "nom": "boeth_dus_faux",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "boeth_dus": 2
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : l'Urssaf transmet 2 beneficiaire(s) du(s), et 6 % de 24 arrondi a l'entier inferieur (D5212-2) en donne 1. L'un des deux est mal recopie -- ou une regle que le moteur ne connait pas s'applique. Rien n'est ecrit."
+   }
+  },
+  {
+   "nom": "boeth_dus_texte",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "boeth_dus": "1"
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "24",
+    "obligation": "1",
+    "beneficiaires": "0",
+    "manquants": "1",
+    "coefficient": 400,
+    "smic": "11.88",
+    "brute": "4752.00",
+    "nette": "4752.00",
+    "deductions": {
+     "060": "0.00",
+     "061": "0.00",
+     "062": "0.00",
+     "063": "0.00",
+     "064": "0.00"
+    },
+    "externes": [],
+    "accord": "",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [
+     [
+      "065",
+      "4752.00"
+     ],
+     [
+      "066",
+      "4752.00"
+     ],
+     [
+      "068",
+      "4752.00"
+     ]
+    ],
+    "bordereau": [
+     [
+      "730",
+      "4752.00"
+     ]
+    ],
+    "a_verser": "4752.00"
+   }
+  },
+  {
+   "nom": "cles_manquantes",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": "",
+       "source": null
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : il manque boeth, ecap, source. Ce sont les chiffres que l'Urssaf transmet avant le 15 mars (D5212-5) -- effectif d'assujettissement, beneficiaires employes, effectif ECAP -- et d'ou ils viennent. Rien n'est ecrit."
+   }
+  },
+  {
+   "nom": "type_externe_inconnu",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "boeth_externes": [
+        {
+         "type": "09",
+         "nombre": 1
+        }
+       ]
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : type de beneficiaire externe '09' inconnu (S21.G00.13.002 : 01, 02, 03, 04, 05, 06)."
+   }
+  },
+  {
+   "nom": "externe_nombre_negatif",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "boeth_externes": [
+        {
+         "type": "01",
+         "nombre": -1
+        }
+       ]
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : << boeth_externes.nombre >> est negatif (-1)."
+   }
+  },
+  {
+   "nom": "externe_nombre_absent",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "boeth_externes": [
+        {
+         "type": "01"
+        }
+       ]
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : << boeth_externes.nombre >> n'est pas un nombre (None)."
+   }
+  },
+  {
+   "nom": "depense_inconnue",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "depenses": {
+        "autre": 1,
+        "accessibilite": 1,
+        "zz": 2
+       }
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : depenses autre, zz inconnues. D5212-23 en vigueur n'en connait que trois (accessibilite, maintien, accompagnement) ; les codes 071 a 073 du cahier technique ne correspondent a aucun texte lu. Rien n'est ecrit."
+   }
+  },
+  {
+   "nom": "depense_texte",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 1,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "depenses": {
+        "maintien": "beaucoup"
+       }
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : << depenses.maintien >> n'est pas un nombre ('beaucoup')."
+   }
+  },
+  {
+   "nom": "effectif_texte",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": "beaucoup",
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : effectif d'assujettissement illisible : \"beaucoup\""
+   }
+  },
+  {
+   "nom": "boeth_negatif",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": -1,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : << boeth >> est negatif (-1)."
+   }
+  },
+  {
+   "nom": "sous_traitance_nulle",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 2,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "sous_traitance": null
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : << sous_traitance >> n'est pas un nombre (None)."
+   }
+  },
+  {
+   "nom": "accord",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "accord": "ABCDEFGHIJKL",
+       "depenses_non_realisees": 1234.567,
+       "boeth_externes": [
+        {
+         "type": "04",
+         "nombre": 2
+        }
+       ]
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "24",
+    "obligation": "0",
+    "beneficiaires": "0",
+    "manquants": "0",
+    "coefficient": 0,
+    "smic": "11.88",
+    "brute": "0.00",
+    "nette": "0.00",
+    "deductions": {},
+    "externes": [
+     [
+      "04",
+      "2"
+     ]
+    ],
+    "accord": "ABCDEFGHIJKL",
+    "non_realisees": "1234.57",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [
+     [
+      "069",
+      "1234.57"
+     ]
+    ],
+    "bordereau": [
+     [
+      "740",
+      "1234.57"
+     ]
+    ],
+    "a_verser": "1234.57"
+   }
+  },
+  {
+   "nom": "accord_sans_depenses",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "accord": " ABCDEFGHIJKL "
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "24",
+    "obligation": "0",
+    "beneficiaires": "0",
+    "manquants": "0",
+    "coefficient": 0,
+    "smic": "11.88",
+    "brute": "0.00",
+    "nette": "0.00",
+    "deductions": {},
+    "externes": [],
+    "accord": "ABCDEFGHIJKL",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [],
+    "bordereau": [],
+    "a_verser": "0.00"
+   }
+  },
+  {
+   "nom": "accord_court",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "accord": "ABC"
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : le code d'accord agree 'ABC' n'a pas douze caracteres (table AAETH, S21.G00.13.001)."
+   }
+  },
+  {
+   "nom": "accord_effectif_faible",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 5,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "accord": "ABCDEFGHIJKL"
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "5",
+    "obligation": "0",
+    "beneficiaires": "0",
+    "manquants": "0",
+    "coefficient": 0,
+    "smic": "11.88",
+    "brute": "0.00",
+    "nette": "0.00",
+    "deductions": {},
+    "externes": [],
+    "accord": "ABCDEFGHIJKL",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [],
+    "bordereau": [],
+    "a_verser": "0.00"
+   }
+  },
+  {
+   "nom": "effectif_faible",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 19,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false
+      }
+     }
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "effectif_20",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 20,
+       "boeth": 1,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "20",
+    "obligation": "1",
+    "beneficiaires": "1",
+    "manquants": "0",
+    "coefficient": 400,
+    "smic": "11.88",
+    "brute": "0.00",
+    "nette": "0.00",
+    "deductions": {
+     "060": "0.00",
+     "061": "0.00",
+     "062": "0.00",
+     "063": "0.00",
+     "064": "0.00"
+    },
+    "externes": [],
+    "accord": "",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [
+     [
+      "065",
+      "0.00"
+     ],
+     [
+      "066",
+      "0.00"
+     ],
+     [
+      "068",
+      "0.00"
+     ]
+    ],
+    "bordereau": [],
+    "a_verser": "0.00"
+   }
+  },
+  {
+   "nom": "effectif_vide",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": "",
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : il manque effectif_assujettissement. Ce sont les chiffres que l'Urssaf transmet avant le 15 mars (D5212-5) -- effectif d'assujettissement, beneficiaires employes, effectif ECAP -- et d'ou ils viennent. Rien n'est ecrit."
+   }
+  },
+  {
+   "nom": "assujetti_faux_sans_pourquoi",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "assujetti": false
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : \"assujetti\": false sans \"pourquoi\". Dire la raison (delai de cinq ans d'une entreprise creee a vingt salaries, L5212-4 ; seuil pas encore franchi, L. 130-1)."
+   }
+  },
+  {
+   "nom": "assujetti_faux",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "assujetti": false,
+       "pourquoi": "delai de cinq ans"
+      }
+     }
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "assujetti_faux_pourquoi_blanc",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false,
+       "assujetti": false,
+       "pourquoi": "  "
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "config/oeth.json, 2025 : \"assujetti\": false sans \"pourquoi\". Dire la raison (delai de cinq ans d'une entreprise creee a vingt salaries, L5212-4 ; seuil pas encore franchi, L. 130-1)."
+   }
+  },
+  {
+   "nom": "entree_nulle_effectif_haut",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": null
+     }
+    },
+    "config/effectifs.json": {
+     "json": {
+      "annees": {
+       "2021": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2022": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2023": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2024": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2025": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2026": {
+        "A01": {
+         "valeur": 25
+        }
+       }
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "DSN de 2026-04 : l'entreprise a atteint 20 salaries cinq annees de suite, elle doit la declaration OETH de 2025 (L5212-1, D5212-8), et config/oeth.json ne porte rien pour 2025. Y ecrire les chiffres que l'Urssaf transmet avant le 15 mars : \"2025\": {\"effectif_assujettissement\": ..., \"boeth\": ..., \"ecap\": ..., \"source\": \"...\"}. Rien n'est ecrit."
+   }
+  },
+  {
+   "nom": "effectif_haut_sans_chiffres",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/effectifs.json": {
+     "json": {
+      "annees": {
+       "2021": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2022": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2023": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2024": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2025": {
+        "A01": {
+         "valeur": 25
+        }
+       }
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "DSN de 2026-04 : l'entreprise a atteint 20 salaries cinq annees de suite, elle doit la declaration OETH de 2025 (L5212-1, D5212-8), et config/oeth.json ne porte rien pour 2025. Y ecrire les chiffres que l'Urssaf transmet avant le 15 mars : \"2025\": {\"effectif_assujettissement\": ..., \"boeth\": ..., \"ecap\": ..., \"source\": \"...\"}. Rien n'est ecrit."
+   }
+  },
+  {
+   "nom": "effectif_haut_sans_chiffres_2027",
+   "racine": "demo-3090-grande",
+   "mois": "2027-04",
+   "fichiers": {
+    "config/effectifs.json": {
+     "json": {
+      "annees": {
+       "2021": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2022": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2023": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2024": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2025": {
+        "A01": {
+         "valeur": 25
+        }
+       }
+      }
+     }
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "effectif_haut_oeth_autre_annee",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2026": {
+       "effectif_assujettissement": 24,
+       "boeth": 0,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false
+      }
+     }
+    },
+    "config/effectifs.json": {
+     "json": {
+      "annees": {
+       "2021": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2022": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2023": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2024": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2025": {
+        "A01": {
+         "valeur": 25
+        }
+       }
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "DSN de 2026-04 : l'entreprise a atteint 20 salaries cinq annees de suite, elle doit la declaration OETH de 2025 (L5212-1, D5212-8), et config/oeth.json ne porte rien pour 2025. Y ecrire les chiffres que l'Urssaf transmet avant le 15 mars : \"2025\": {\"effectif_assujettissement\": ..., \"boeth\": ..., \"ecap\": ..., \"source\": \"...\"}. Rien n'est ecrit."
+   }
+  },
+  {
+   "nom": "effectif_bas",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/effectifs.json": {
+     "json": {
+      "annees": {
+       "2021": {
+        "A01": {
+         "valeur": 10
+        }
+       },
+       "2022": {
+        "A01": {
+         "valeur": 10
+        }
+       },
+       "2023": {
+        "A01": {
+         "valeur": 10
+        }
+       },
+       "2024": {
+        "A01": {
+         "valeur": 10
+        }
+       },
+       "2025": {
+        "A01": {
+         "valeur": 10
+        }
+       }
+      }
+     }
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "effectif_inconnu",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/effectifs.json": {
+     "supprimer": true
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "a04_sous_seuil",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/effectifs.json": {
+     "json": {
+      "annees": {
+       "2021": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2022": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2023": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2024": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2025": {
+        "A01": {
+         "valeur": 25
+        },
+        "A04": {
+         "valeur": 15
+        }
+       }
+      }
+     }
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "a04_au_dessus",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/effectifs.json": {
+     "json": {
+      "annees": {
+       "2021": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2022": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2023": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2024": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2025": {
+        "A01": {
+         "valeur": 25
+        },
+        "A04": {
+         "valeur": 25.5
+        }
+       }
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "DSN de 2026-04 : l'entreprise a atteint 20 salaries cinq annees de suite, elle doit la declaration OETH de 2025 (L5212-1, D5212-8), et config/oeth.json ne porte rien pour 2025. Y ecrire les chiffres que l'Urssaf transmet avant le 15 mars : \"2025\": {\"effectif_assujettissement\": ..., \"boeth\": ..., \"ecap\": ..., \"source\": \"...\"}. Rien n'est ecrit."
+   }
+  },
+  {
+   "nom": "une_annee_basse",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/effectifs.json": {
+     "json": {
+      "annees": {
+       "2021": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2022": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2023": {
+        "A01": {
+         "valeur": 10
+        }
+       },
+       "2024": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2025": {
+        "A01": {
+         "valeur": 25
+        }
+       }
+      }
+     }
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "jamais_au_dessus",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/effectifs.json": {
+     "json": {
+      "annees": {
+       "2021": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2022": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2023": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2024": {
+        "A01": {
+         "valeur": 25
+        }
+       },
+       "2025": {
+        "A01": {
+         "valeur": 25
+        }
+       }
+      },
+      "jamais_au_dessus_de": {
+       "seuil": 11,
+       "jusqu_a": 2024,
+       "source": "x"
+      }
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "DSN de 2026-04 : l'entreprise a atteint 20 salaries cinq annees de suite, elle doit la declaration OETH de 2025 (L5212-1, D5212-8), et config/oeth.json ne porte rien pour 2025. Y ecrire les chiffres que l'Urssaf transmet avant le 15 mars : \"2025\": {\"effectif_assujettissement\": ..., \"boeth\": ..., \"ecap\": ..., \"source\": \"...\"}. Rien n'est ecrit."
+   }
+  },
+  {
+   "nom": "oeth_fichier_vide",
+   "racine": "demo-3090-grande",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {}
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "autre_demo_standard",
+   "racine": "demo-1285-petite",
+   "mois": "2026-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2025": {
+       "effectif_assujettissement": 61,
+       "boeth": 2,
+       "ecap": 0,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2025,
+    "effectif": "61",
+    "obligation": "3",
+    "beneficiaires": "2",
+    "manquants": "1",
+    "coefficient": 400,
+    "smic": "11.88",
+    "brute": "4752.00",
+    "nette": "4752.00",
+    "deductions": {
+     "060": "0.00",
+     "061": "0.00",
+     "062": "0.00",
+     "063": "0.00",
+     "064": "0.00"
+    },
+    "externes": [],
+    "accord": "",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [
+     [
+      "065",
+      "4752.00"
+     ],
+     [
+      "066",
+      "4752.00"
+     ],
+     [
+      "068",
+      "4752.00"
+     ]
+    ],
+    "bordereau": [
+     [
+      "730",
+      "4752.00"
+     ]
+    ],
+    "a_verser": "4752.00"
+   }
+  },
+  {
+   "nom": "autre_demo_2026",
+   "racine": "demo-1285-grande",
+   "mois": "2027-04",
+   "fichiers": {
+    "config/oeth.json": {
+     "json": {
+      "2026": {
+       "effectif_assujettissement": 300,
+       "boeth": 5,
+       "ecap": 1,
+       "source": "Urssaf, informations OETH",
+       "aucune_action_depuis_plus_de_trois_ans": false
+      }
+     }
+    }
+   },
+   "attendu": {
+    "millesime": 2026,
+    "effectif": "300",
+    "obligation": "18",
+    "beneficiaires": "5",
+    "manquants": "13",
+    "coefficient": 500,
+    "smic": "12.31",
+    "brute": "80015.00",
+    "nette": "79805.73",
+    "deductions": {
+     "060": "209.27",
+     "061": "0.00",
+     "062": "0.00",
+     "063": "0.00",
+     "064": "0.00"
+    },
+    "externes": [],
+    "accord": "",
+    "non_realisees": "0.00",
+    "source": "Urssaf, informations OETH",
+    "blocs_82": [
+     [
+      "060",
+      "209.27"
+     ],
+     [
+      "065",
+      "80015.00"
+     ],
+     [
+      "066",
+      "79805.73"
+     ],
+     [
+      "068",
+      "79805.73"
+     ]
+    ],
+    "bordereau": [
+     [
+      "730",
+      "79805.73"
+     ]
+    ],
+    "a_verser": "79805.73"
+   }
+  }
+ ],
+ "dsn": [
+  {
+   "nom": "sorties",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_a.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      }
+     ]
+    },
+    "sorties/2026-02/DSN_a.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": {
+    "chemin": "sorties/2026-02/DSN_a.dsn"
+   }
+  },
+  {
+   "nom": "derniere_gagne",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_a.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      },
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_b.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      },
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_c.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": false,
+       "detail": {},
+       "retours": []
+      },
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_d.dsn",
+       "mode": "test",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      }
+     ]
+    },
+    "sorties/2026-02/DSN_a.dsn": {
+     "texte": "x"
+    },
+    "sorties/2026-02/DSN_b.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": {
+    "chemin": "sorties/2026-02/DSN_b.dsn"
+   }
+  },
+  {
+   "nom": "a_la_racine",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_r.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      }
+     ]
+    },
+    "DSN_r.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": {
+    "chemin": "DSN_r.dsn"
+   }
+  },
+  {
+   "nom": "introuvable",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_a.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      }
+     ]
+    }
+   },
+   "attendu": {
+    "erreur": "La DSN de 2026-02 a ete deposee le 2026-03-10, mais le journal ne dit pas quel fichier (DSN_a.dsn) ou il n'est plus dans sorties/2026-02/. La regularisation se lit dans la DSN deposee, elle ne se recompose pas : retrouver le fichier d'abord."
+   }
+  },
+  {
+   "nom": "sans_nom",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dsn",
+       "quand": null,
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": null,
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      }
+     ]
+    }
+   },
+   "attendu": {
+    "erreur": "La DSN de 2026-02 a ete deposee le , mais le journal ne dit pas quel fichier (aucun nom) ou il n'est plus dans sorties/2026-02/. La regularisation se lit dans la DSN deposee, elle ne se recompose pas : retrouver le fichier d'abord."
+   }
+  },
+  {
+   "nom": "seulement_test",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_a.dsn",
+       "mode": "test",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      }
+     ]
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "seulement_refuse",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_a.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": false,
+       "detail": {},
+       "retours": []
+      }
+     ]
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "autre_mois",
+   "racine": "demo-3090-grande",
+   "mois": "2026-03",
+   "nic": null,
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_a.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      }
+     ]
+    },
+    "sorties/2026-02/DSN_a.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "autre_acte",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dpae",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_a.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      }
+     ]
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "nic_secondaire_absent",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": "00099",
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_a.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      }
+     ]
+    },
+    "sorties/2026-02/DSN_a.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "nic_secondaire",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": "00099",
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_a.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      },
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_s.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {
+        "etablissement": "00099"
+       },
+       "retours": []
+      }
+     ]
+    },
+    "sorties/2026-02/DSN_a.dsn": {
+     "texte": "x"
+    },
+    "sorties/2026-02/DSN_s.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": {
+    "chemin": "sorties/2026-02/DSN_s.dsn"
+   }
+  },
+  {
+   "nom": "nic_secondaire_principal_demande",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_a.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      },
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_s.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {
+        "etablissement": "00099"
+       },
+       "retours": []
+      }
+     ]
+    },
+    "sorties/2026-02/DSN_a.dsn": {
+     "texte": "x"
+    },
+    "sorties/2026-02/DSN_s.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": {
+    "chemin": "sorties/2026-02/DSN_a.dsn"
+   }
+  },
+  {
+   "nom": "nic_principal_explicite",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": "00016",
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_a.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {
+        "etablissement": "00016"
+       },
+       "retours": []
+      }
+     ]
+    },
+    "sorties/2026-02/DSN_a.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": {
+    "chemin": "sorties/2026-02/DSN_a.dsn"
+   }
+  },
+  {
+   "nom": "nic_vide",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": "",
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_a.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      }
+     ]
+    },
+    "sorties/2026-02/DSN_a.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": {
+    "chemin": "sorties/2026-02/DSN_a.dsn"
+   }
+  },
+  {
+   "nom": "rien",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "journal/depots.json": {
+     "supprimer": true
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "coolpaie_copie",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "historique/paies.json": {
+     "json": {
+      "paies": [
+       {
+        "mois": "2026-02",
+        "fichier": "C.dsn"
+       }
+      ]
+     }
+    },
+    "historique/coolpaie/DSN/C.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": {
+    "chemin": "historique/coolpaie/DSN/C.dsn"
+   }
+  },
+  {
+   "nom": "coolpaie_export_dsn",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "historique/paies.json": {
+     "json": {
+      "paies": [
+       {
+        "mois": "2026-02",
+        "fichier": "C.dsn"
+       }
+      ]
+     }
+    },
+    "export-coolpaie/DSN/C.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": {
+    "chemin": "export-coolpaie/DSN/C.dsn"
+   }
+  },
+  {
+   "nom": "coolpaie_export",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "historique/paies.json": {
+     "json": {
+      "paies": [
+       {
+        "mois": "2026-02",
+        "fichier": "C.dsn"
+       }
+      ]
+     }
+    },
+    "export-coolpaie/C.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": {
+    "chemin": "export-coolpaie/C.dsn"
+   }
+  },
+  {
+   "nom": "coolpaie_dernier",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "historique/paies.json": {
+     "json": {
+      "paies": [
+       {
+        "mois": "2026-02",
+        "fichier": "C1.dsn"
+       },
+       {
+        "mois": "2026-03",
+        "fichier": "Z.dsn"
+       },
+       {
+        "mois": "2026-02",
+        "fichier": "C2.dsn"
+       }
+      ]
+     }
+    },
+    "export-coolpaie/DSN/C1.dsn": {
+     "texte": "x"
+    },
+    "export-coolpaie/DSN/C2.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": {
+    "chemin": "export-coolpaie/DSN/C2.dsn"
+   }
+  },
+  {
+   "nom": "coolpaie_introuvable",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "historique/paies.json": {
+     "json": {
+      "paies": [
+       {
+        "mois": "2026-02",
+        "fichier": "C.dsn"
+       }
+      ]
+     }
+    }
+   },
+   "attendu": {
+    "erreur": "La DSN de 2026-02 (C.dsn) a ete reprise de l'historique, mais le fichier n'est plus sous historique/coolpaie/DSN/ ni dans le dossier d'ou elle a ete reprise. La regularisation se lit dans la DSN deposee : la remettre la d'abord."
+   }
+  },
+  {
+   "nom": "coolpaie_autre_mois",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "historique/paies.json": {
+     "json": {
+      "paies": [
+       {
+        "mois": "2026-03",
+        "fichier": "C.dsn"
+       }
+      ]
+     }
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "coolpaie_sans_fichier",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "historique/paies.json": {
+     "json": {
+      "paies": [
+       {
+        "mois": "2026-02"
+       }
+      ]
+     }
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "reel_prime_sur_coolpaie",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "journal/depots.json": {
+     "json": [
+      {
+       "quoi": "dsn",
+       "quand": "2026-03-10T09:00:00",
+       "origine": "",
+       "mois": "2026-02",
+       "fichier": "DSN_a.dsn",
+       "mode": "reel",
+       "qui": "x",
+       "accepte": true,
+       "detail": {},
+       "retours": []
+      }
+     ]
+    },
+    "historique/paies.json": {
+     "json": {
+      "paies": [
+       {
+        "mois": "2026-02",
+        "fichier": "C.dsn"
+       }
+      ]
+     }
+    },
+    "sorties/2026-02/DSN_a.dsn": {
+     "texte": "x"
+    },
+    "export-coolpaie/DSN/C.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": {
+    "chemin": "sorties/2026-02/DSN_a.dsn"
+   }
+  },
+  {
+   "nom": "coolpaie_nic_secondaire",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": "00099",
+   "fichiers": {
+    "historique/paies.json": {
+     "json": {
+      "paies": [
+       {
+        "mois": "2026-02",
+        "fichier": "C.dsn"
+       }
+      ]
+     }
+    },
+    "export-coolpaie/DSN/C.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": null
+  },
+  {
+   "nom": "coolpaie_source",
+   "racine": "demo-3090-grande",
+   "mois": "2026-02",
+   "nic": null,
+   "fichiers": {
+    "historique/paies.json": {
+     "json": {
+      "paies": [
+       {
+        "mois": "2026-02",
+        "fichier": "C.dsn"
+       }
+      ],
+      "source": "ailleurs"
+     }
+    },
+    "ailleurs/DSN/C.dsn": {
+     "texte": "x"
+    }
+   },
+   "attendu": {
+    "erreur": "La DSN de 2026-02 (C.dsn) a ete reprise de l'historique, mais le fichier n'est plus sous historique/coolpaie/DSN/ ni dans le dossier d'ou elle a ete reprise. La regularisation se lit dans la DSN deposee : la remettre la d'abord."
+   }
+  }
+ ],
+ "regularises": [
+  {
+   "nom": "absent",
+   "racine": "demo-3090-petite",
+   "fichiers": {},
+   "attendu": []
+  },
+  {
+   "nom": "invalide",
+   "racine": "demo-3090-petite",
+   "fichiers": {
+    "config/casc-svp.json": {
+     "texte": "{pas du json"
+    }
+   },
+   "attendu": []
+  },
+  {
+   "nom": "vide",
+   "racine": "demo-3090-petite",
+   "fichiers": {
+    "config/casc-svp.json": {
+     "json": {}
+    }
+   },
+   "attendu": []
+  },
+  {
+   "nom": "deux_annees",
+   "racine": "demo-3090-petite",
+   "fichiers": {
+    "config/casc-svp.json": {
+     "json": {
+      "regularisations": [
+       {
+        "annee": "2025",
+        "mois": [
+         "2025-03",
+         "2025-01",
+         "2025-02"
+        ],
+        "montant": "1"
+       },
+       {
+        "annee": "2026",
+        "mois": [
+         "2026-01",
+         "2025-01"
+        ]
+       },
+       {
+        "annee": "2027"
+       },
+       {
+        "mois": null
+       }
+      ]
+     }
+    }
+   },
+   "attendu": [
+    "2025-01",
+    "2025-02",
+    "2025-03",
+    "2026-01"
+   ]
+  }
+ ]
+}

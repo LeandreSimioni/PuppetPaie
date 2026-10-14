@@ -1,0 +1,135 @@
+{
+  "mois": "2026-09",
+  "taux_cachet": 170,
+  "date_paiement": "2026-09-30",
+  "engagements": [
+    {
+      "salarie": "NADAR",
+      "nature": "cdi",
+      "debut": "2022-01-03",
+      "numero": "NA.22.01",
+      "salaire_mensuel": 3010,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "DORVAL",
+      "nature": "cdi",
+      "debut": "2025-04-01",
+      "numero": "DO.25.01",
+      "salaire_mensuel": 2200,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "TURLUPIN",
+      "spectacle": "le-barbier-de-seville",
+      "debut": "2026-09-29",
+      "fin": "2026-09-30",
+      "numero": "TU3.26.05",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 2,
+          "taux": 170,
+          "lieu": "Scene fictive de Valence",
+          "dates": [
+            "2026-09-29",
+            "2026-09-30"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 2,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "DUMESNIL",
+      "spectacle": "le-barbier-de-seville",
+      "debut": "2026-09-29",
+      "fin": "2026-09-30",
+      "numero": "DU4.26.03",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 2,
+          "taux": 170,
+          "lieu": "Scene fictive de Valence",
+          "dates": [
+            "2026-09-29",
+            "2026-09-30"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 2,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "NOVERRE",
+      "spectacle": "le-barbier-de-seville",
+      "debut": "2026-09-29",
+      "fin": "2026-09-30",
+      "numero": "NO5.26.05",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 2,
+          "taux": 170,
+          "lieu": "Scene fictive de Valence",
+          "dates": [
+            "2026-09-29",
+            "2026-09-30"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 2,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "TORELLI",
+      "spectacle": "le-barbier-de-seville",
+      "debut": "2026-09-29",
+      "fin": "2026-09-30",
+      "numero": "TO7.26.05",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 16,
+          "taux": 17.5,
+          "lieu": "Scene fictive de Valence",
+          "dates": [
+            "2026-09-29",
+            "2026-09-30"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 2,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "DORVAL",
+      "spectacle": "le-barbier-de-seville",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 1,
+          "taux": 170,
+          "dates": [
+            "2026-09-03"
+          ]
+        }
+      ]
+    }
+  ],
+  "_origine": "Compagnie de demonstration demo-1285-grande, fabriquee par outils/compagnies_demo.py.",
+  "numeros_figes": true
+}

@@ -1,0 +1,10 @@
+{
+  "annee": 2026,
+  "socle": 2026,
+  "_quoi": "La surcouche de la compagnie de demonstration : son taux AT/MP de l'annee.",
+  "taux_atmp": {
+    "_source": "Saisi dans PuppetPaie le 03/10/2026 (notification AT/MP).",
+    "valeur": 1.4,
+    "code_risque": "923AD"
+  }
+}

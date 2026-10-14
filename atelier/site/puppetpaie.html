@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PuppetPaie — Compagnia UEUEUE</title>
+<meta name="description" content="PuppetPaie, le logiciel de paie des artistes intermittents de la Compagnia UEUEUE.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Libre+Franklin:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --papier:#FAFAF9; --toile:#F1F1F0; --encre:#141413; --gris:#55534F;
+  --filet:#E1E1DF; --carmin:#9B1B30; --rayon:4px;
+  --fs-display:clamp(2.7rem,9vw,5.4rem);
+  --fs-h2:clamp(1.45rem,3.4vw,2.1rem);
+  --fs-chapeau:clamp(1.05rem,2.6vw,1.4rem);
+  --marge:clamp(1rem,4vw,4.5rem);
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){:root{
+  --papier:#0D0D0C; --toile:#171716; --encre:#F0EFED; --gris:#95928E;
+  --filet:#2A2A28; --carmin:#C90F2A;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--papier);color:var(--encre);
+     font:400 1.0625rem/1.5 "Libre Franklin",system-ui,sans-serif}
+main{max-width:800px;margin:0 auto;padding:clamp(3rem,9vw,6rem) var(--marge) 0}
+h1,h2{font-family:"EB Garamond",Georgia,serif;font-weight:500;line-height:1.15}
+h1{font-size:var(--fs-display);margin:0 0 .4em;text-align:center}
+h2{font-size:var(--fs-h2);margin:2.6em 0 .6em}
+h2::before{content:"";display:block;width:34px;height:2px;
+           background:var(--carmin);margin-bottom:.7em}
+.chapeau{font-size:var(--fs-chapeau);color:var(--gris);text-align:center;
+         margin:0 auto 3rem;max-width:34ch}
+p,li{max-width:64ch}
+ul{padding-left:1.1em}
+li{margin:.35em 0}
+a{color:var(--encre);text-decoration-color:var(--carmin);
+  text-underline-offset:.18em}
+a:hover{color:var(--carmin)}
+:focus-visible{outline:2px solid var(--carmin);outline-offset:3px;
+               border-radius:var(--rayon)}
+.encadre{background:var(--toile);border:1px solid var(--filet);
+         border-radius:var(--rayon);padding:1.1rem 1.3rem;margin:1.6rem 0}
+.encadre p{margin:0}
+code{font-size:.92em;background:var(--toile);border:1px solid var(--filet);
+     border-radius:var(--rayon);padding:.1em .35em}
+.marque{display:block;width:max-content;margin:0 auto 1.4rem;
+        color:var(--encre);text-decoration:none}
+footer{margin-top:5rem;border-top:2px solid var(--carmin);
+       background:var(--toile)}
+.pied{max-width:800px;margin:0 auto;padding:1.8rem var(--marge);
+      font-size:.78rem;color:var(--gris);
+      display:flex;flex-wrap:wrap;gap:.6rem 1.6rem;justify-content:space-between}
+.pied a{color:var(--gris)}
+</style>
+
+<main>
+  <div class="marque" role="img" aria-label="PuppetPaie">
+    <svg viewBox="0 0 128 120" width="58" height="54" aria-hidden="true">
+      <path fill="currentColor" fill-rule="evenodd"
+            d="M0,4 H34 A26,26 0 0 1 34,56 H14 V104 H0 Z
+               M14,17 H33 A13,13 0 0 1 33,43 H14 Z"/>
+      <path fill="var(--carmin)" fill-rule="evenodd"
+            d="M68,4 H102 A26,26 0 0 1 102,56 H82 V104 H68 Z
+               M82,17 H101 A13,13 0 0 1 101,43 H82 Z"/>
+      <rect x="0" y="114" width="128" height="3" fill="var(--carmin)"/>
+    </svg>
+  </div>
+
+  <h1>PuppetPaie</h1>
+  <p class="chapeau">Le logiciel de paie des artistes intermittents de la
+     Compagnia&nbsp;UEUEUE.</p>
+
+  <h2>Ce qu'il fait</h2>
+  <p>PuppetPaie établit les paies au cachet des artistes engagés par la
+     compagnie&nbsp;: bulletins de paie, contrats d'engagement à durée
+     déterminée d'usage, déclaration préalable à l'embauche, attestations
+     employeur mensuelles pour France Travail, certificats d'emploi Congés
+     Spectacles et déclaration sociale nominative mensuelle.</p>
+  <p>C'est un logiciel de bureau, écrit pour l'usage propre de la compagnie et
+     destiné à être partagé avec d'autres compagnies de spectacle vivant.</p>
+
+  <h2>Le compte Google</h2>
+  <p>PuppetPaie peut, à la demande de l'utilisateur, se connecter à son compte
+     Google pour deux choses, et deux seulement&nbsp;:</p>
+  <ul>
+    <li><strong>envoyer à chaque artiste ses documents de paie</strong> —
+        bulletin, certificat Congés Spectacles et attestation employeur —
+        après relecture, message par message, dans une page affichée sur
+        l'ordinateur de l'utilisateur&nbsp;;</li>
+    <li><strong>archiver les documents produits</strong> dans un dossier du
+        Drive de l'utilisateur, créé par l'application.</li>
+  </ul>
+  <div class="encadre">
+    <p>L'application ne lit aucun message, n'accède à aucun fichier du Drive
+       qu'elle n'a pas créé elle-même, et ne transmet rien à personne d'autre
+       qu'aux destinataires choisis par l'utilisateur. L'autorisation se retire
+       à tout moment depuis
+       <a href="https://myaccount.google.com/permissions">myaccount.google.com</a>.</p>
+  </div>
+  <p>Le détail figure dans la
+     <a href="/puppetpaie-confidentialite.html">politique de
+     confidentialité</a>.</p>
+
+  <h2>Éditeur</h2>
+  <p>Compagnia UEUEUE, association loi 1901, 87 rue des Caillots,
+     93100 Montreuil, France.<br>
+     Contact&nbsp;: <a href="mailto:admueueue@gmail.com">admueueue@gmail.com</a></p>
+</main>
+
+<footer>
+  <div class="pied">
+    <span>Compagnia UEUEUE</span>
+    <span>
+      <a href="/puppetpaie-confidentialite.html">Confidentialité</a> ·
+      <a href="/puppetpaie-conditions.html">Conditions d'utilisation</a>
+    </span>
+  </div>
+</footer>
+</html>

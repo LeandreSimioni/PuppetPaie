@@ -1,0 +1,4962 @@
+[
+  {
+    "quoi": "dpae",
+    "quand": "2025-01-21T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": "DPAE_Janvier2025_20260930-1353.txt",
+    "empreinte": "dd3264bc809931de",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-38B2B1A75673",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135321",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135321",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-38B2B1A75673</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135321_depot-dpae_202501.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-01-21",
+          "fin": "2025-01-24"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2025-01-21",
+          "fin": "2025-01-24"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2025-01-21",
+          "fin": "2025-01-24"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-01-21T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": "DPAE_Janvier2025_20260930-1353.txt",
+    "empreinte": "dd3264bc809931de",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-010A44E69058",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135321",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135321",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-010A44E69058</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135321_depot-dpae_202501.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:21",
+        "flux": "DEMO-38B2B1A75673",
+        "empreinte": "dd3264bc809931de",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-01-21",
+          "fin": "2025-01-24"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2025-01-21",
+          "fin": "2025-01-24"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2025-01-21",
+          "fin": "2025-01-24"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-01-21T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "BRIOCHE",
+      "debut": "2025-01-21",
+      "recu": true,
+      "numero": "BR1.25.01",
+      "nom": "BRIOCHE Fanchon"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-01-21T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "SERAPHIN",
+      "debut": "2025-01-21",
+      "recu": true,
+      "numero": "SE2.25.01",
+      "nom": "SERAPHIN Valentin"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-01-21T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "LEMERCIER",
+      "debut": "2025-01-21",
+      "recu": true,
+      "numero": "LE3.25.01",
+      "nom": "LEMERCIER Nicole"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-02-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": "DSN_Janvier2025.dsn",
+    "empreinte": "c6064d1219da283b",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-03A6134B61AB",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-03A6134B61AB</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202501.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "6ba3eca97a484d49",
+      "versements": [
+        "261.95",
+        "203.02",
+        "176.88",
+        "26.37",
+        "685.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 3,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-02-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": "DSN_Janvier2025.dsn",
+    "empreinte": "c6064d1219da283b",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-9E33730EEA49",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-9E33730EEA49</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202501.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "6ba3eca97a484d49",
+      "versements": [
+        "261.95",
+        "203.02",
+        "176.88",
+        "26.37",
+        "685.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 3,
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-03A6134B61AB",
+        "empreinte": "c6064d1219da283b",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-02-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "fanchon.brioche@exemple.invalid, valentin.seraphin@exemple.invalid, nicole.lemercier@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "3 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "BRIOCHE",
+          "nom": "Fanchon BRIOCHE",
+          "pieces": [
+            "Bulletin_BRIOCHE_Janvier2025.pdf",
+            "CertificatCS_BRIOCHE_Janvier2025.pdf"
+          ]
+        },
+        {
+          "cle": "SERAPHIN",
+          "nom": "Valentin SERAPHIN",
+          "pieces": [
+            "Bulletin_SERAPHIN_Janvier2025.pdf",
+            "CertificatCS_SERAPHIN_Janvier2025.pdf"
+          ]
+        },
+        {
+          "cle": "LEMERCIER",
+          "nom": "Nicole LEMERCIER",
+          "pieces": [
+            "Bulletin_LEMERCIER_Janvier2025.pdf",
+            "CertificatCS_LEMERCIER_Janvier2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-03-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-02",
+    "fichier": "DSN_Fevrier2025.dsn",
+    "empreinte": "9916def2694745ca",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-FF8A118271EB",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-FF8A118271EB</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202502.txt",
+    "detail": {
+      "preuve": "",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "71bf944f12dd0875",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-03-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-02",
+    "fichier": "DSN_Fevrier2025.dsn",
+    "empreinte": "9916def2694745ca",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-AB2EDAD602BB",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-AB2EDAD602BB</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202502.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "71bf944f12dd0875",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-FF8A118271EB",
+        "empreinte": "9916def2694745ca",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-03-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-02",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "0 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-03-10T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": "DPAE_Mars2025_20260930-1353.txt",
+    "empreinte": "d37d37e2c491d2c2",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-FA0FF2A91E1A",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-FA0FF2A91E1A</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dpae_202503.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-03-10",
+          "fin": "2025-03-14"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2025-03-10",
+          "fin": "2025-03-14"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-03-10T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": "DPAE_Mars2025_20260930-1353.txt",
+    "empreinte": "d37d37e2c491d2c2",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-ED849205C44B",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-ED849205C44B</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dpae_202503.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-FA0FF2A91E1A",
+        "empreinte": "d37d37e2c491d2c2",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-03-10",
+          "fin": "2025-03-14"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2025-03-10",
+          "fin": "2025-03-14"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-03-10T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "BRIOCHE",
+      "debut": "2025-03-10",
+      "recu": true,
+      "numero": "BR1.25.02",
+      "nom": "BRIOCHE Fanchon"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-03-10T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "LEMERCIER",
+      "debut": "2025-03-10",
+      "recu": true,
+      "numero": "LE3.25.02",
+      "nom": "LEMERCIER Nicole"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-04-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": "DSN_Mars2025.dsn",
+    "empreinte": "0c913482745c4d14",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-9D976D7D3FBC",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-9D976D7D3FBC</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202503.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "364bd77f72db0c44",
+      "versements": [
+        "193.76",
+        "149.10",
+        "127.61",
+        "19.50",
+        "514.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-04-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": "DSN_Mars2025.dsn",
+    "empreinte": "0c913482745c4d14",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-B6E16651E9E3",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-B6E16651E9E3</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202503.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "364bd77f72db0c44",
+      "versements": [
+        "193.76",
+        "149.10",
+        "127.61",
+        "19.50",
+        "514.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-9D976D7D3FBC",
+        "empreinte": "0c913482745c4d14",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-04-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "fanchon.brioche@exemple.invalid, nicole.lemercier@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "2 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "BRIOCHE",
+          "nom": "Fanchon BRIOCHE",
+          "pieces": [
+            "Bulletin_BRIOCHE_Mars2025.pdf",
+            "CertificatCS_BRIOCHE_Mars2025.pdf"
+          ]
+        },
+        {
+          "cle": "LEMERCIER",
+          "nom": "Nicole LEMERCIER",
+          "pieces": [
+            "Bulletin_LEMERCIER_Mars2025.pdf",
+            "CertificatCS_LEMERCIER_Mars2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-04-25T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": "DPAE_Avril2025_20260930-1353.txt",
+    "empreinte": "07da189368fbd3c2",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-549AA0DC61F5",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-549AA0DC61F5</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dpae_202504.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-04-25",
+          "fin": "2025-04-27"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2025-04-25",
+          "fin": "2025-04-27"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2025-04-25",
+          "fin": "2025-04-27"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-04-25T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": "DPAE_Avril2025_20260930-1353.txt",
+    "empreinte": "07da189368fbd3c2",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-C5288AAF58D6",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-C5288AAF58D6</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dpae_202504.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-549AA0DC61F5",
+        "empreinte": "07da189368fbd3c2",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-04-25",
+          "fin": "2025-04-27"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2025-04-25",
+          "fin": "2025-04-27"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2025-04-25",
+          "fin": "2025-04-27"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-04-25T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "BRIOCHE",
+      "debut": "2025-04-25",
+      "recu": true,
+      "numero": "BR1.25.03",
+      "nom": "BRIOCHE Fanchon"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-04-25T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "SERAPHIN",
+      "debut": "2025-04-25",
+      "recu": true,
+      "numero": "SE2.25.02",
+      "nom": "SERAPHIN Valentin"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-04-25T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "LEMERCIER",
+      "debut": "2025-04-25",
+      "recu": true,
+      "numero": "LE3.25.03",
+      "nom": "LEMERCIER Nicole"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-05-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": "DSN_Avril2025.dsn",
+    "empreinte": "ee3a9ab8c0b6884b",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-4EF27F588200",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-4EF27F588200</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202504.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "b1a901546b9fcf85",
+      "versements": [
+        "204.60",
+        "158.34",
+        "137.44",
+        "20.59",
+        "534.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-05-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": "DSN_Avril2025.dsn",
+    "empreinte": "ee3a9ab8c0b6884b",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-72C1CF98DA1B",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-72C1CF98DA1B</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202504.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "b1a901546b9fcf85",
+      "versements": [
+        "204.60",
+        "158.34",
+        "137.44",
+        "20.59",
+        "534.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-4EF27F588200",
+        "empreinte": "ee3a9ab8c0b6884b",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-05-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "fanchon.brioche@exemple.invalid, valentin.seraphin@exemple.invalid, nicole.lemercier@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "3 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "BRIOCHE",
+          "nom": "Fanchon BRIOCHE",
+          "pieces": [
+            "Bulletin_BRIOCHE_Avril2025.pdf",
+            "CertificatCS_BRIOCHE_Avril2025.pdf"
+          ]
+        },
+        {
+          "cle": "SERAPHIN",
+          "nom": "Valentin SERAPHIN",
+          "pieces": [
+            "Bulletin_SERAPHIN_Avril2025.pdf",
+            "CertificatCS_SERAPHIN_Avril2025.pdf"
+          ]
+        },
+        {
+          "cle": "LEMERCIER",
+          "nom": "Nicole LEMERCIER",
+          "pieces": [
+            "Bulletin_LEMERCIER_Avril2025.pdf",
+            "CertificatCS_LEMERCIER_Avril2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-06-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-05",
+    "fichier": "DSN_Mai2025.dsn",
+    "empreinte": "2e7553b958974688",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-399BA3EF50BB",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-399BA3EF50BB</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202505.txt",
+    "detail": {
+      "preuve": "",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "68729da9d02c220c",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-06-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-05",
+    "fichier": "DSN_Mai2025.dsn",
+    "empreinte": "2e7553b958974688",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-61D8C8C98139",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-61D8C8C98139</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202505.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "68729da9d02c220c",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-399BA3EF50BB",
+        "empreinte": "2e7553b958974688",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-06-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-05",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "0 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-06-03T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-06",
+    "fichier": "DPAE_Juin2025_20260930-1353.txt",
+    "empreinte": "5578a6aa5fc95d11",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-5CD9D6560338",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-5CD9D6560338</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dpae_202506.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-06-03",
+          "fin": "2025-06-12"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-06-03T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-06",
+    "fichier": "DPAE_Juin2025_20260930-1353.txt",
+    "empreinte": "5578a6aa5fc95d11",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-04C5EF100D9A",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-04C5EF100D9A</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dpae_202506.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-5CD9D6560338",
+        "empreinte": "5578a6aa5fc95d11",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-06-03",
+          "fin": "2025-06-12"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-06-03T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-06",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "BRIOCHE",
+      "debut": "2025-06-03",
+      "recu": true,
+      "numero": "BR1.25.04",
+      "nom": "BRIOCHE Fanchon"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-07-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-06",
+    "fichier": "DSN_Juin2025.dsn",
+    "empreinte": "0d6c71a0cecfaebe",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-128A2C3DD050",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-128A2C3DD050</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202506.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "ae38b1fa19f6d84b",
+      "versements": [
+        "89.90",
+        "70.47",
+        "64.03",
+        "9.05",
+        "225.00"
+      ],
+      "salaries": 1,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-07-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-06",
+    "fichier": "DSN_Juin2025.dsn",
+    "empreinte": "0d6c71a0cecfaebe",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-41EADB182E7F",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-41EADB182E7F</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202506.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "ae38b1fa19f6d84b",
+      "versements": [
+        "89.90",
+        "70.47",
+        "64.03",
+        "9.05",
+        "225.00"
+      ],
+      "salaries": 1,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-128A2C3DD050",
+        "empreinte": "0d6c71a0cecfaebe",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-07-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-06",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "fanchon.brioche@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "1 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "BRIOCHE",
+          "nom": "Fanchon BRIOCHE",
+          "pieces": [
+            "Bulletin_BRIOCHE_Juin2025.pdf",
+            "CertificatCS_BRIOCHE_Juin2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-08-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-07",
+    "fichier": "DSN_Juillet2025.dsn",
+    "empreinte": "a8a9de38f465b0e5",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-4D182E1F21B0",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-4D182E1F21B0</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202507.txt",
+    "detail": {
+      "preuve": "",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "b398bfbd7acc4a06",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-08-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-07",
+    "fichier": "DSN_Juillet2025.dsn",
+    "empreinte": "a8a9de38f465b0e5",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-2D6621E9FE72",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-2D6621E9FE72</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202507.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "b398bfbd7acc4a06",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-4D182E1F21B0",
+        "empreinte": "a8a9de38f465b0e5",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-08-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-07",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "0 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-08-20T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-08",
+    "fichier": "DPAE_Aout2025_20260930-1353.txt",
+    "empreinte": "4a09dfd976d1e0be",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-BC01CC1DCD77",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-BC01CC1DCD77</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dpae_202508.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-08-20",
+          "fin": "2025-08-23"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2025-08-20",
+          "fin": "2025-08-23"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2025-08-20",
+          "fin": "2025-08-23"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-08-20T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-08",
+    "fichier": "DPAE_Aout2025_20260930-1353.txt",
+    "empreinte": "4a09dfd976d1e0be",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-9E8F043E2B86",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-9E8F043E2B86</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dpae_202508.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-BC01CC1DCD77",
+        "empreinte": "4a09dfd976d1e0be",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-08-20",
+          "fin": "2025-08-23"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2025-08-20",
+          "fin": "2025-08-23"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2025-08-20",
+          "fin": "2025-08-23"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-08-20T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-08",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "BRIOCHE",
+      "debut": "2025-08-20",
+      "recu": true,
+      "numero": "BR1.25.05",
+      "nom": "BRIOCHE Fanchon"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-08-20T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-08",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "SERAPHIN",
+      "debut": "2025-08-20",
+      "recu": true,
+      "numero": "SE2.25.03",
+      "nom": "SERAPHIN Valentin"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-08-20T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-08",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "LEMERCIER",
+      "debut": "2025-08-20",
+      "recu": true,
+      "numero": "LE3.25.04",
+      "nom": "LEMERCIER Nicole"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-09-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-08",
+    "fichier": "DSN_Aout2025.dsn",
+    "empreinte": "90881eb713701bbf",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-81DA3C292C6F",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-81DA3C292C6F</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202508.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "eba0a17c19d9983c",
+      "versements": [
+        "272.80",
+        "210.26",
+        "183.21",
+        "27.45",
+        "715.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 2,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-09-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-08",
+    "fichier": "DSN_Aout2025.dsn",
+    "empreinte": "90881eb713701bbf",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-7CC4BC5074E0",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-7CC4BC5074E0</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202508.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "eba0a17c19d9983c",
+      "versements": [
+        "272.80",
+        "210.26",
+        "183.21",
+        "27.45",
+        "715.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 2,
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-81DA3C292C6F",
+        "empreinte": "90881eb713701bbf",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-09-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-08",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "fanchon.brioche@exemple.invalid, valentin.seraphin@exemple.invalid, nicole.lemercier@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "3 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "BRIOCHE",
+          "nom": "Fanchon BRIOCHE",
+          "pieces": [
+            "Bulletin_BRIOCHE_Aout2025.pdf",
+            "CertificatCS_BRIOCHE_Aout2025.pdf"
+          ]
+        },
+        {
+          "cle": "SERAPHIN",
+          "nom": "Valentin SERAPHIN",
+          "pieces": [
+            "Bulletin_SERAPHIN_Aout2025.pdf",
+            "CertificatCS_SERAPHIN_Aout2025.pdf"
+          ]
+        },
+        {
+          "cle": "LEMERCIER",
+          "nom": "Nicole LEMERCIER",
+          "pieces": [
+            "Bulletin_LEMERCIER_Aout2025.pdf",
+            "CertificatCS_LEMERCIER_Aout2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-10-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-09",
+    "fichier": "DSN_Septembre2025.dsn",
+    "empreinte": "fc9fa719f19bc2ec",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-18C5AAB7A063",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-18C5AAB7A063</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202509.txt",
+    "detail": {
+      "preuve": "",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "56a400b8fb804b99",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-10-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-09",
+    "fichier": "DSN_Septembre2025.dsn",
+    "empreinte": "fc9fa719f19bc2ec",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-78744F97B546",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-78744F97B546</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202509.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "56a400b8fb804b99",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-18C5AAB7A063",
+        "empreinte": "fc9fa719f19bc2ec",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-10-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-09",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "0 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-10-06T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": "DPAE_Octobre2025_20260930-1353.txt",
+    "empreinte": "9294616ccd00cea9",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-C35EB0E47699",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-C35EB0E47699</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dpae_202510.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-10-06",
+          "fin": "2025-10-10"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2025-10-06",
+          "fin": "2025-10-10"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-10-06T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": "DPAE_Octobre2025_20260930-1353.txt",
+    "empreinte": "9294616ccd00cea9",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-DBD03ED1DCC9",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-DBD03ED1DCC9</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dpae_202510.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-C35EB0E47699",
+        "empreinte": "9294616ccd00cea9",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-10-06",
+          "fin": "2025-10-10"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2025-10-06",
+          "fin": "2025-10-10"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-10-06T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "BRIOCHE",
+      "debut": "2025-10-06",
+      "recu": true,
+      "numero": "BR1.25.06",
+      "nom": "BRIOCHE Fanchon"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-10-06T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "SERAPHIN",
+      "debut": "2025-10-06",
+      "recu": true,
+      "numero": "SE2.25.04",
+      "nom": "SERAPHIN Valentin"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-11-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": "DSN_Octobre2025.dsn",
+    "empreinte": "7e13bc5672e80aa2",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-DAF91BA7C714",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-DAF91BA7C714</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202510.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "5e4995abe360083f",
+      "versements": [
+        "148.80",
+        "116.64",
+        "105.98",
+        "14.98",
+        "371.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-11-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": "DSN_Octobre2025.dsn",
+    "empreinte": "7e13bc5672e80aa2",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-3E1F6FA5A63D",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-3E1F6FA5A63D</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202510.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "5e4995abe360083f",
+      "versements": [
+        "148.80",
+        "116.64",
+        "105.98",
+        "14.98",
+        "371.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-DAF91BA7C714",
+        "empreinte": "7e13bc5672e80aa2",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-11-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "fanchon.brioche@exemple.invalid, valentin.seraphin@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "2 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "BRIOCHE",
+          "nom": "Fanchon BRIOCHE",
+          "pieces": [
+            "Bulletin_BRIOCHE_Octobre2025.pdf",
+            "CertificatCS_BRIOCHE_Octobre2025.pdf"
+          ]
+        },
+        {
+          "cle": "SERAPHIN",
+          "nom": "Valentin SERAPHIN",
+          "pieces": [
+            "Bulletin_SERAPHIN_Octobre2025.pdf",
+            "CertificatCS_SERAPHIN_Octobre2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-11-04T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": "DPAE_Novembre2025_20260930-1353.txt",
+    "empreinte": "3d7b96395fa6c9ae",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-5D88E5632296",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-5D88E5632296</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dpae_202511.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-11-04",
+          "fin": "2025-11-07"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2025-11-04",
+          "fin": "2025-11-07"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2025-11-04",
+          "fin": "2025-11-07"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-11-04T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": "DPAE_Novembre2025_20260930-1353.txt",
+    "empreinte": "3d7b96395fa6c9ae",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-237AA150115B",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-237AA150115B</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dpae_202511.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-5D88E5632296",
+        "empreinte": "3d7b96395fa6c9ae",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-11-04",
+          "fin": "2025-11-07"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2025-11-04",
+          "fin": "2025-11-07"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2025-11-04",
+          "fin": "2025-11-07"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-11-04T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "BRIOCHE",
+      "debut": "2025-11-04",
+      "recu": true,
+      "numero": "BR1.25.07",
+      "nom": "BRIOCHE Fanchon"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-11-04T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "SERAPHIN",
+      "debut": "2025-11-04",
+      "recu": true,
+      "numero": "SE2.25.05",
+      "nom": "SERAPHIN Valentin"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-11-04T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "LEMERCIER",
+      "debut": "2025-11-04",
+      "recu": true,
+      "numero": "LE3.25.05",
+      "nom": "LEMERCIER Nicole"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-12-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": "DSN_Novembre2025.dsn",
+    "empreinte": "e5cfbc02db40372a",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-3209071CC638",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-3209071CC638</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202511.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "4566bab4bc620c80",
+      "versements": [
+        "251.10",
+        "194.15",
+        "170.54",
+        "25.27",
+        "651.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-12-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": "DSN_Novembre2025.dsn",
+    "empreinte": "e5cfbc02db40372a",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-1DC949F3EDD3",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135322",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-1DC949F3EDD3</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135322_depot-dsn_202511.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "4566bab4bc620c80",
+      "versements": [
+        "251.10",
+        "194.15",
+        "170.54",
+        "25.27",
+        "651.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:22",
+        "flux": "DEMO-3209071CC638",
+        "empreinte": "e5cfbc02db40372a",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-12-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "fanchon.brioche@exemple.invalid, valentin.seraphin@exemple.invalid, nicole.lemercier@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "3 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "BRIOCHE",
+          "nom": "Fanchon BRIOCHE",
+          "pieces": [
+            "Bulletin_BRIOCHE_Novembre2025.pdf",
+            "CertificatCS_BRIOCHE_Novembre2025.pdf"
+          ]
+        },
+        {
+          "cle": "SERAPHIN",
+          "nom": "Valentin SERAPHIN",
+          "pieces": [
+            "Bulletin_SERAPHIN_Novembre2025.pdf",
+            "CertificatCS_SERAPHIN_Novembre2025.pdf"
+          ]
+        },
+        {
+          "cle": "LEMERCIER",
+          "nom": "Nicole LEMERCIER",
+          "pieces": [
+            "Bulletin_LEMERCIER_Novembre2025.pdf",
+            "CertificatCS_LEMERCIER_Novembre2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-12-16T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-12",
+    "fichier": "DPAE_Decembre2025_20260930-1353.txt",
+    "empreinte": "7fe6d5e9c3540a88",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-D91E0966F3A2",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-D91E0966F3A2</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dpae_202512.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-12-16",
+          "fin": "2025-12-19"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2025-12-16",
+          "fin": "2025-12-19"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2025-12-16",
+          "fin": "2025-12-19"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-12-16T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-12",
+    "fichier": "DPAE_Decembre2025_20260930-1353.txt",
+    "empreinte": "7fe6d5e9c3540a88",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-084D38139769",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-084D38139769</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dpae_202512.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:23",
+        "flux": "DEMO-D91E0966F3A2",
+        "empreinte": "7fe6d5e9c3540a88",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2025-12-16",
+          "fin": "2025-12-19"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2025-12-16",
+          "fin": "2025-12-19"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2025-12-16",
+          "fin": "2025-12-19"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-12-16T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-12",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "BRIOCHE",
+      "debut": "2025-12-16",
+      "recu": true,
+      "numero": "BR1.25.08",
+      "nom": "BRIOCHE Fanchon"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-12-16T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-12",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "SERAPHIN",
+      "debut": "2025-12-16",
+      "recu": true,
+      "numero": "SE2.25.06",
+      "nom": "SERAPHIN Valentin"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-12-16T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-12",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "LEMERCIER",
+      "debut": "2025-12-16",
+      "recu": true,
+      "numero": "LE3.25.06",
+      "nom": "LEMERCIER Nicole"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-01-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-12",
+    "fichier": "DSN_Decembre2025.dsn",
+    "empreinte": "f640ff7bf5ac2a89",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-9F0A66328CFA",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-9F0A66328CFA</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202512.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "ba45f3eaecd2592e",
+      "versements": [
+        "275.28",
+        "213.39",
+        "186.60",
+        "27.70",
+        "730.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-01-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-12",
+    "fichier": "DSN_Decembre2025.dsn",
+    "empreinte": "f640ff7bf5ac2a89",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-BA07F15F304D",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-BA07F15F304D</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202512.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "ba45f3eaecd2592e",
+      "versements": [
+        "275.28",
+        "213.39",
+        "186.60",
+        "27.70",
+        "730.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:23",
+        "flux": "DEMO-9F0A66328CFA",
+        "empreinte": "f640ff7bf5ac2a89",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-01-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-12",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "fanchon.brioche@exemple.invalid, valentin.seraphin@exemple.invalid, nicole.lemercier@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "3 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "BRIOCHE",
+          "nom": "Fanchon BRIOCHE",
+          "pieces": [
+            "Bulletin_BRIOCHE_Decembre2025.pdf",
+            "CertificatCS_BRIOCHE_Decembre2025.pdf"
+          ]
+        },
+        {
+          "cle": "SERAPHIN",
+          "nom": "Valentin SERAPHIN",
+          "pieces": [
+            "Bulletin_SERAPHIN_Decembre2025.pdf",
+            "CertificatCS_SERAPHIN_Decembre2025.pdf"
+          ]
+        },
+        {
+          "cle": "LEMERCIER",
+          "nom": "Nicole LEMERCIER",
+          "pieces": [
+            "Bulletin_LEMERCIER_Decembre2025.pdf",
+            "CertificatCS_LEMERCIER_Decembre2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-02-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-01",
+    "fichier": "DSN_Janvier2026.dsn",
+    "empreinte": "22cd6af195fbfe61",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-C08EA3572DD2",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-C08EA3572DD2</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202601.txt",
+    "detail": {
+      "preuve": "",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "b9a8610d7ebc1d52",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-02-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-01",
+    "fichier": "DSN_Janvier2026.dsn",
+    "empreinte": "22cd6af195fbfe61",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-560793CE1E46",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-560793CE1E46</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202601.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "b9a8610d7ebc1d52",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:23",
+        "flux": "DEMO-C08EA3572DD2",
+        "empreinte": "22cd6af195fbfe61",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-02-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "0 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-02-09T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-02",
+    "fichier": "DPAE_Fevrier2026_20260930-1353.txt",
+    "empreinte": "2b8a7018469f4d30",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-754F8CA9EC1A",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-754F8CA9EC1A</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dpae_202602.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2026-02-09",
+          "fin": "2026-02-13"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2026-02-09",
+          "fin": "2026-02-13"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2026-02-09",
+          "fin": "2026-02-13"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-02-09T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-02",
+    "fichier": "DPAE_Fevrier2026_20260930-1353.txt",
+    "empreinte": "2b8a7018469f4d30",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-256DDD50BBAD",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-256DDD50BBAD</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dpae_202602.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:23",
+        "flux": "DEMO-754F8CA9EC1A",
+        "empreinte": "2b8a7018469f4d30",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2026-02-09",
+          "fin": "2026-02-13"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2026-02-09",
+          "fin": "2026-02-13"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2026-02-09",
+          "fin": "2026-02-13"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-02-09T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-02",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "BRIOCHE",
+      "debut": "2026-02-09",
+      "recu": true,
+      "numero": "BR1.26.01",
+      "nom": "BRIOCHE Fanchon"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-02-09T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-02",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "SERAPHIN",
+      "debut": "2026-02-09",
+      "recu": true,
+      "numero": "SE2.26.01",
+      "nom": "SERAPHIN Valentin"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-02-09T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-02",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "LEMERCIER",
+      "debut": "2026-02-09",
+      "recu": true,
+      "numero": "LE3.26.01",
+      "nom": "LEMERCIER Nicole"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-03-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-02",
+    "fichier": "DSN_Fevrier2026.dsn",
+    "empreinte": "9e01ad11ca8b9c0a",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-45FBEDD7437C",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-45FBEDD7437C</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202602.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "ff20f347d01400d4",
+      "versements": [
+        "316.20",
+        "239.84",
+        "207.65",
+        "43.87",
+        "783.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-03-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-02",
+    "fichier": "DSN_Fevrier2026.dsn",
+    "empreinte": "9e01ad11ca8b9c0a",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-CB4D2D5F3C67",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-CB4D2D5F3C67</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202602.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "ff20f347d01400d4",
+      "versements": [
+        "316.20",
+        "239.84",
+        "207.65",
+        "43.87",
+        "783.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:23",
+        "flux": "DEMO-45FBEDD7437C",
+        "empreinte": "9e01ad11ca8b9c0a",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-03-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-02",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "fanchon.brioche@exemple.invalid, valentin.seraphin@exemple.invalid, nicole.lemercier@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "3 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "BRIOCHE",
+          "nom": "Fanchon BRIOCHE",
+          "pieces": [
+            "Bulletin_BRIOCHE_Fevrier2026.pdf",
+            "CertificatCS_BRIOCHE_Fevrier2026.pdf"
+          ]
+        },
+        {
+          "cle": "SERAPHIN",
+          "nom": "Valentin SERAPHIN",
+          "pieces": [
+            "Bulletin_SERAPHIN_Fevrier2026.pdf",
+            "CertificatCS_SERAPHIN_Fevrier2026.pdf"
+          ]
+        },
+        {
+          "cle": "LEMERCIER",
+          "nom": "Nicole LEMERCIER",
+          "pieces": [
+            "Bulletin_LEMERCIER_Fevrier2026.pdf",
+            "CertificatCS_LEMERCIER_Fevrier2026.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-03-24T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": "DPAE_Mars2026_20260930-1353.txt",
+    "empreinte": "d2dc04ced876bae2",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-3108F35F9A0A",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-3108F35F9A0A</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dpae_202603.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2026-03-24",
+          "fin": "2026-03-26"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2026-03-24",
+          "fin": "2026-03-26"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2026-03-24",
+          "fin": "2026-03-26"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-03-24T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": "DPAE_Mars2026_20260930-1353.txt",
+    "empreinte": "d2dc04ced876bae2",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-890386A07505",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-890386A07505</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dpae_202603.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:23",
+        "flux": "DEMO-3108F35F9A0A",
+        "empreinte": "d2dc04ced876bae2",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2026-03-24",
+          "fin": "2026-03-26"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2026-03-24",
+          "fin": "2026-03-26"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2026-03-24",
+          "fin": "2026-03-26"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-03-24T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "BRIOCHE",
+      "debut": "2026-03-24",
+      "recu": true,
+      "numero": "BR1.26.02",
+      "nom": "BRIOCHE Fanchon"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-03-24T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "SERAPHIN",
+      "debut": "2026-03-24",
+      "recu": true,
+      "numero": "SE2.26.02",
+      "nom": "SERAPHIN Valentin"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-03-24T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "LEMERCIER",
+      "debut": "2026-03-24",
+      "recu": true,
+      "numero": "LE3.26.02",
+      "nom": "LEMERCIER Nicole"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-04-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": "DSN_Mars2026.dsn",
+    "empreinte": "7d86bc8f67f71904",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-1CA8940DD622",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-1CA8940DD622</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202603.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "fd39c2dc64234823",
+      "versements": [
+        "211.12",
+        "159.07",
+        "136.32",
+        "29.28",
+        "519.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-04-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": "DSN_Mars2026.dsn",
+    "empreinte": "7d86bc8f67f71904",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-3A314CE18B65",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-3A314CE18B65</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202603.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "fd39c2dc64234823",
+      "versements": [
+        "211.12",
+        "159.07",
+        "136.32",
+        "29.28",
+        "519.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:23",
+        "flux": "DEMO-1CA8940DD622",
+        "empreinte": "7d86bc8f67f71904",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-04-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "fanchon.brioche@exemple.invalid, valentin.seraphin@exemple.invalid, nicole.lemercier@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "3 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "BRIOCHE",
+          "nom": "Fanchon BRIOCHE",
+          "pieces": [
+            "Bulletin_BRIOCHE_Mars2026.pdf",
+            "CertificatCS_BRIOCHE_Mars2026.pdf"
+          ]
+        },
+        {
+          "cle": "SERAPHIN",
+          "nom": "Valentin SERAPHIN",
+          "pieces": [
+            "Bulletin_SERAPHIN_Mars2026.pdf",
+            "CertificatCS_SERAPHIN_Mars2026.pdf"
+          ]
+        },
+        {
+          "cle": "LEMERCIER",
+          "nom": "Nicole LEMERCIER",
+          "pieces": [
+            "Bulletin_LEMERCIER_Mars2026.pdf",
+            "CertificatCS_LEMERCIER_Mars2026.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-05-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-04",
+    "fichier": "DSN_Avril2026.dsn",
+    "empreinte": "8c19f0786078ac33",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-3F08ED121AE1",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-3F08ED121AE1</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202604.txt",
+    "detail": {
+      "preuve": "",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "5a2357a0353266a7",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-05-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-04",
+    "fichier": "DSN_Avril2026.dsn",
+    "empreinte": "8c19f0786078ac33",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-B80A25ACBC05",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-B80A25ACBC05</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202604.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "5a2357a0353266a7",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:23",
+        "flux": "DEMO-3F08ED121AE1",
+        "empreinte": "8c19f0786078ac33",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-05-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-04",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "0 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-05-19T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-05",
+    "fichier": "DPAE_Mai2026_20260930-1353.txt",
+    "empreinte": "65c9149e7c825751",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-377E6B92010D",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-377E6B92010D</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dpae_202605.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2026-05-19",
+          "fin": "2026-05-22"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2026-05-19",
+          "fin": "2026-05-22"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2026-05-19",
+          "fin": "2026-05-22"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-05-19T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-05",
+    "fichier": "DPAE_Mai2026_20260930-1353.txt",
+    "empreinte": "65c9149e7c825751",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-95FB6D3D07CD",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-95FB6D3D07CD</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dpae_202605.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:23",
+        "flux": "DEMO-377E6B92010D",
+        "empreinte": "65c9149e7c825751",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2026-05-19",
+          "fin": "2026-05-22"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2026-05-19",
+          "fin": "2026-05-22"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2026-05-19",
+          "fin": "2026-05-22"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-05-19T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-05",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "BRIOCHE",
+      "debut": "2026-05-19",
+      "recu": true,
+      "numero": "BR1.26.03",
+      "nom": "BRIOCHE Fanchon"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-05-19T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-05",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "SERAPHIN",
+      "debut": "2026-05-19",
+      "recu": true,
+      "numero": "SE2.26.03",
+      "nom": "SERAPHIN Valentin"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-05-19T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-05",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "LEMERCIER",
+      "debut": "2026-05-19",
+      "recu": true,
+      "numero": "LE3.26.03",
+      "nom": "LEMERCIER Nicole"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-06-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-05",
+    "fichier": "DSN_Mai2026.dsn",
+    "empreinte": "c3d1326f4fd2bffb",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-2E05E351892C",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-2E05E351892C</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202605.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "0ac33c184d5e127e",
+      "versements": [
+        "275.28",
+        "207.22",
+        "177.34",
+        "38.19",
+        "680.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-06-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-05",
+    "fichier": "DSN_Mai2026.dsn",
+    "empreinte": "c3d1326f4fd2bffb",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-79C46BA88580",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-79C46BA88580</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202605.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "0ac33c184d5e127e",
+      "versements": [
+        "275.28",
+        "207.22",
+        "177.34",
+        "38.19",
+        "680.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:23",
+        "flux": "DEMO-2E05E351892C",
+        "empreinte": "c3d1326f4fd2bffb",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-06-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-05",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "fanchon.brioche@exemple.invalid, valentin.seraphin@exemple.invalid, nicole.lemercier@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "3 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "BRIOCHE",
+          "nom": "Fanchon BRIOCHE",
+          "pieces": [
+            "Bulletin_BRIOCHE_Mai2026.pdf",
+            "CertificatCS_BRIOCHE_Mai2026.pdf"
+          ]
+        },
+        {
+          "cle": "SERAPHIN",
+          "nom": "Valentin SERAPHIN",
+          "pieces": [
+            "Bulletin_SERAPHIN_Mai2026.pdf",
+            "CertificatCS_SERAPHIN_Mai2026.pdf"
+          ]
+        },
+        {
+          "cle": "LEMERCIER",
+          "nom": "Nicole LEMERCIER",
+          "pieces": [
+            "Bulletin_LEMERCIER_Mai2026.pdf",
+            "CertificatCS_LEMERCIER_Mai2026.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-07-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-06",
+    "fichier": "DSN_Juin2026.dsn",
+    "empreinte": "560cd1c32264bc41",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-E67DAE328733",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-E67DAE328733</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202606.txt",
+    "detail": {
+      "preuve": "",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "a4d301b11ed6d0f5",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-07-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-06",
+    "fichier": "DSN_Juin2026.dsn",
+    "empreinte": "560cd1c32264bc41",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-169C0AE94F6A",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-169C0AE94F6A</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202606.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "a4d301b11ed6d0f5",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:23",
+        "flux": "DEMO-E67DAE328733",
+        "empreinte": "560cd1c32264bc41",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-07-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-06",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "0 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-08-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-07",
+    "fichier": "DSN_Juillet2026.dsn",
+    "empreinte": "3a9c89860f34e239",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-2D0340040094",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-2D0340040094</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202607.txt",
+    "detail": {
+      "preuve": "",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "ccf68a9f0b7115bd",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-08-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-07",
+    "fichier": "DSN_Juillet2026.dsn",
+    "empreinte": "3a9c89860f34e239",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-B254C25D6822",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135323",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-B254C25D6822</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135323_depot-dsn_202607.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "02",
+      "ordre": "1",
+      "empreinte_saisie": "ccf68a9f0b7115bd",
+      "versements": [
+        "0.00"
+      ],
+      "salaries": 0,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:23",
+        "flux": "DEMO-2D0340040094",
+        "empreinte": "3a9c89860f34e239",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-08-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-07",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "0 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-08-19T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-08",
+    "fichier": "DPAE_Aout2026_20260930-1353.txt",
+    "empreinte": "d3ddc25afbcbc3a6",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-54F992370C61",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135324",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135324",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-54F992370C61</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135324_depot-dpae_202608.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2026-08-19",
+          "fin": "2026-08-22"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2026-08-19",
+          "fin": "2026-08-22"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2026-08-19",
+          "fin": "2026-08-22"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-08-19T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-08",
+    "fichier": "DPAE_Aout2026_20260930-1353.txt",
+    "empreinte": "d3ddc25afbcbc3a6",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-9843380F2D9C",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135324",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135324",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-9843380F2D9C</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135324_depot-dpae_202608.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:24",
+        "flux": "DEMO-54F992370C61",
+        "empreinte": "d3ddc25afbcbc3a6",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "BRIOCHE",
+          "debut": "2026-08-19",
+          "fin": "2026-08-22"
+        },
+        {
+          "salarie": "SERAPHIN",
+          "debut": "2026-08-19",
+          "fin": "2026-08-22"
+        },
+        {
+          "salarie": "LEMERCIER",
+          "debut": "2026-08-19",
+          "fin": "2026-08-22"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-08-19T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-08",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "BRIOCHE",
+      "debut": "2026-08-19",
+      "recu": true,
+      "numero": "BR1.26.04",
+      "nom": "BRIOCHE Fanchon"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-08-19T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-08",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "SERAPHIN",
+      "debut": "2026-08-19",
+      "recu": true,
+      "numero": "SE2.26.04",
+      "nom": "SERAPHIN Valentin"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-08-19T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-08",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "LEMERCIER",
+      "debut": "2026-08-19",
+      "recu": true,
+      "numero": "LE3.26.04",
+      "nom": "LEMERCIER Nicole"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-09-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-08",
+    "fichier": "DSN_Aout2026.dsn",
+    "empreinte": "7fed9484d7543888",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-516129AC9CD0",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135324",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135324",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-516129AC9CD0</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135324_depot-dsn_202608.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "a9ed2344ab7c0eee",
+      "versements": [
+        "281.48",
+        "212.08",
+        "181.76",
+        "39.03",
+        "693.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-09-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-08",
+    "fichier": "DSN_Aout2026.dsn",
+    "empreinte": "7fed9484d7543888",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-9CD16CFAE271",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135324",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135324",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135324",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-9CD16CFAE271</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-3090-petite/retours/depots/20260930-135324_depot-dsn_202608.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "a9ed2344ab7c0eee",
+      "versements": [
+        "281.48",
+        "212.08",
+        "181.76",
+        "39.03",
+        "693.00"
+      ],
+      "salaries": 3,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:24",
+        "flux": "DEMO-516129AC9CD0",
+        "empreinte": "7fed9484d7543888",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00010"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-09-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-08",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "fanchon.brioche@exemple.invalid, valentin.seraphin@exemple.invalid, nicole.lemercier@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "3 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "BRIOCHE",
+          "nom": "Fanchon BRIOCHE",
+          "pieces": [
+            "Bulletin_BRIOCHE_Aout2026.pdf",
+            "CertificatCS_BRIOCHE_Aout2026.pdf"
+          ]
+        },
+        {
+          "cle": "SERAPHIN",
+          "nom": "Valentin SERAPHIN",
+          "pieces": [
+            "Bulletin_SERAPHIN_Aout2026.pdf",
+            "CertificatCS_SERAPHIN_Aout2026.pdf"
+          ]
+        },
+        {
+          "cle": "LEMERCIER",
+          "nom": "Nicole LEMERCIER",
+          "pieces": [
+            "Bulletin_LEMERCIER_Aout2026.pdf",
+            "CertificatCS_LEMERCIER_Aout2026.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  }
+]

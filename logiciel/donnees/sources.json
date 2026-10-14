@@ -1,0 +1,634 @@
+{
+  "_quoi": "Les sources officielles dont derivent les donnees livrees avec le logiciel (nomenclature des emplois, catalogue des metiers, minima conventionnels). Chaque entree dit CE QUE contient la source, de QUAND elle date, QUAND on l'a relevee, et le condensat de la copie gardee sur disque. `paie sources` relit ce fichier, sur le poste de l'editeur seulement (config/maj.json, `editeur`: true ; atelier/sources/paie/src/sources.rs) ; `--verifier` retelecharge chaque source et compare son condensat, et lit les livraisons KALI de la DILA pour les sources qui portent un bloc `kali` ; `--relever` pose la nouvelle version a cote de l'ancienne. A lancer avant chaque publication.",
+  "_regle": "Une donnee du logiciel ne se recopie pas d'un editeur ni d'un blog : elle se lit dans le texte qui fait foi, la copie est gardee dans reference/sources/ (hors depot public), et sa date est ecrite ici. Quand la source en ligne change, le condensat ne colle plus : c'est le signal de RELIRE, pas de recopier le nouveau fichier a l'aveugle. Les sources Legifrance portent un bloc `kali` (IDCC, conteneur, texte) : `--verifier` lit alors les livraisons open data KALI de la DILA depuis le releve, et dit si la convention ou le texte ont bouge.",
+  "_dossier": "reference/sources/ sous la racine des donnees (prive/). Les copies ne sont pas versionnees : ce sont des documents publics, retelechargeables.",
+  "sources": {
+    "francetravail-annexe8-notice": {
+      "titre": "Annexe 8 - Techniciens du spectacle. Liste des emplois et des secteurs d'activites",
+      "editeur": "France Travail Spectacle",
+      "url": "https://www.francetravail.fr/files/live/sites/PE/files/masters/spectacle/les-notices-reglementaires/Notice-Liste-Annexe-8.pdf",
+      "contenu": "Les dix listes de fonctions ouvrant l'annexe 8, convention collective par convention collective (IDCC 2642 audiovisuel, 3097 cinema, 2121 phonographique, 3252 prestations techniques, 1922 radio, 1285 et 3090 spectacle vivant, 1790 loisirs, 3241 telediffusion, 2412 animation), avec les codes NAF des employeurs et la liste des etablissements publics. 20 pages. C'est la version actualisee de la liste Unedic de 2016 (IDCC renumerotes, fonctions ajoutees : plumassier, technicien prompteur, garcon ou fille d'orchestre...).",
+      "version": "2025-12-03",
+      "version_lue_dans": "en-tete HTTP Last-Modified du fichier ; le PDF ne porte pas de date",
+      "releve_le": "2026-09-13",
+      "fichier": "francetravail-annexe8-notice-liste-emplois.pdf",
+      "sha256": "4060cf2b2835e7e39852a10b16c903877c1dcd7a2fff8d450a23bfa10fb39962",
+      "verification": "telechargement",
+      "nourrit": [
+        "emplois-base.json"
+      ]
+    },
+    "unedic-annexe8-liste-2016": {
+      "titre": "Annexe VIII - Liste relative au champ d'application de l'annexe VIII",
+      "editeur": "Unedic",
+      "url": "https://s3.eusc-de-east-1.amazonaws.eu/unedic-eks-prod-jobs/regulatory_texts/pdf/TXT-ANX-RG-1488379737733.pdf",
+      "page": "https://www.unedic.org/la-reglementation/conventions-d-assurance-chomage/annexe-viii-liste-relative-au-champ-d-application-de-l-annexe-viii",
+      "contenu": "Le texte reglementaire d'origine des listes de fonctions de l'annexe 8 (39 pages), annexe au reglement d'assurance chomage. Numerote chaque fonction. Sert de temoin : la notice France Travail en est la mise a jour.",
+      "version": "2016-12-16",
+      "version_lue_dans": "date du document sur la page Unedic",
+      "releve_le": "2026-09-13",
+      "fichier": "unedic-annexe8-liste-champ-application-20161216.pdf",
+      "sha256": "d389d8f31dd31597dbda63a467e4dfa6a75c726817ca94cab6ad686b273bd39b",
+      "verification": "telechargement",
+      "nourrit": [
+        "emplois-base.json"
+      ]
+    },
+    "francetravail-nomenclature-emplois-2016": {
+      "titre": "Liste des emplois occupes - codes emploi France Travail (ex-Pole emploi) du spectacle",
+      "editeur": "Pole emploi (aujourd'hui France Travail) ; copie hebergee par coolpaie.fr",
+      "url": "https://coolpaie.fr/Documents/LISTE_EMPLOI_OCCUPE_121216.pdf",
+      "contenu": "La nomenclature des 1 236 codes emploi (ACC010 ACCESSOIRISTE, ART120 ARTISTE DRAMATIQUE...) avec l'annexe de rattachement (8 ou 10) et la marque C/M des codes crees ou modifies au 12/12/2016. C'est le code que la DSN porte en S21.G00.40.005 et que l'AEM portait. ATTENTION : l'original n'a pas ete retrouve sur francetravail.fr le 13/09/2026 ; cette copie est celle qu'un editeur de paie redistribue (GHS en heberge une de 2008 au meme format). A remplacer par l'URL officielle des qu'elle est connue.",
+      "version": "2016-12-12",
+      "version_lue_dans": "titre du document (NOUVELLE LISTE DES EMPLOIS INTERMITTENTS AU 12/12/2016)",
+      "releve_le": "2026-09-13",
+      "fichier": "francetravail-nomenclature-emplois-spectacle-20161212.pdf",
+      "sha256": "433677e797eef54a45cb0c738602c038ccacb6bffe427fd983525c4e496712f6",
+      "verification": "telechargement",
+      "nourrit": [
+        "nomenclature-emplois-ft.json",
+        "emplois-base.json"
+      ]
+    },
+    "insee-pcs-ese-2017": {
+      "titre": "PCS-ESE 2017 - Liste des professions et categories socioprofessionnelles des emplois salaries des employeurs prives et publics",
+      "editeur": "Insee",
+      "url": "https://www.insee.fr/fr/statistiques/fichier/2912545/PCS-ESE_2017_Liste.xls",
+      "page": "https://www.insee.fr/fr/information/2912545",
+      "contenu": "Les 467 lignes de la nomenclature PCS-ESE 2017 (code a 4 caracteres, libelle). C'est le code que la DSN porte en S21.G00.40.004. Les fiches detaillees des rubriques du spectacle (353b, 353c, 354b, 354c, 354e, 354f, 465b, 637c : professions typiques, assimilees, exclues) sont relevees dans insee-pcs-ese-2017-fiches/, depuis https://www.insee.fr/fr/metadonnees/pcsese2017/rubriqueRegroupee/<code>.",
+      "version": "2017-10-04",
+      "version_lue_dans": "Derniere mise a jour de la page Insee ; les fiches de rubriques portent 19/12/2025",
+      "releve_le": "2026-09-13",
+      "fichier": "insee-pcs-ese-2017-liste.xls",
+      "sha256": "611ee453801d3e897654f1ad4607702d75365b4445d5e31f832d75a198aacd3e",
+      "verification": "telechargement",
+      "nourrit": [
+        "emplois-base.json"
+      ]
+    },
+    "legifrance-3090-avenant-salaires-20250721": {
+      "titre": "CCN des entreprises du secteur prive du spectacle vivant (IDCC 3090) - Avenant du 21 juillet 2025 relatif aux salaires minimaux applicables au 1er septembre 2025",
+      "editeur": "Legifrance (KALI)",
+      "url": "https://www.legifrance.gouv.fr/conv_coll/id/KALITEXT000053721738?idConteneur=KALICONT000028157262",
+      "page_de_veille": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000028157262",
+      "contenu": "Toutes les grilles de minima de la CCN 3090 : clauses communes (emplois techniques par niveau de qualification, emplois administratifs), annexe 1 theatre (cachets d'artiste dramatique par jauge et nombre de representations, repetitions, techniciens par jauge), annexe 2 musiques actuelles, annexe 3 cabarets, annexe 4 tournees (dont le cachet du marionnettiste), annexe 5 cirque, annexe 6 bals. Etendu par arrete du 17/02/2026 (JO du 24/02/2026), BO 2026-2. La copie est le texte de la page avec ses tableaux deplies, en Markdown.",
+      "version": "2025-07-21",
+      "en_vigueur": "2025-09-01",
+      "etendu_le": "2026-02-24",
+      "releve_le": "2026-09-13",
+      "fichier": "legifrance-3090-avenant-salaires-20250721.md",
+      "sha256": "9a38a50eef6c3047cf7ed62d75111156ba49d80afc071e1bd98006ae2b20f060",
+      "verification": "manuelle",
+      "verification_comment": "Legifrance refuse les telechargements automatiques (403) : la copie ne se reverifie pas en ligne. Mais les livraisons open data KALI de la DILA (bloc `kali`) disent si la convention a bouge depuis le releve : un texte salaires plus recent signifie que minima-conventionnels.json est perime. Dans le doute, ouvrir la page de veille, rubrique Textes Salaires.",
+      "nourrit": [
+        "minima-conventionnels.json",
+        "emplois-base.json"
+      ],
+      "kali": {
+        "idcc": "3090",
+        "conteneur": "KALICONT000028157262",
+        "texte": "KALITEXT000053721738"
+      }
+    },
+    "legifrance-1285-accord-salaires-20240502": {
+      "titre": "CCN des entreprises artistiques et culturelles (IDCC 1285, CCNEAC) - Accord du 2 mai 2024 relatif aux salaires pour l'annee 2024",
+      "editeur": "Legifrance (KALI)",
+      "url": "https://www.legifrance.gouv.fr/conv_coll/id/KALITEXT000049949387?idConteneur=KALICONT000005635964",
+      "page_de_veille": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000005635964",
+      "contenu": "Minima de la CCNEAC : artistes dramatiques et choregraphiques (mensuels, service de repetition 61,05, cachet jour 159,56 / 138,85), musiciens (quatre cas), lyriques, choeurs, cirque, grille des emplois autres qu'artistiques (groupes 1 a 9, douze echelons), defraiements. Etendu par arrete du 23/07/2024 (JO 09/08/2024), BO 2024-23. Dernier texte salaires ETENDU au 13/09/2026 ; la NAO 2026 (accord du 01/07/2026, effet 01/08/2026) n'est pas etendue, voir syndeac-ccneac-nao-2026.",
+      "version": "2024-05-02",
+      "en_vigueur": "2024-06-01",
+      "etendu_le": "2024-08-09",
+      "releve_le": "2026-09-13",
+      "fichier": "legifrance-1285-accord-salaires-20240502.md",
+      "sha256": "6508f70dd6612d1bf4d7c548134224381bda9d9155265f34c5709cef2e6afa2d",
+      "verification": "manuelle",
+      "verification_comment": "Legifrance refuse les telechargements automatiques (403) : la copie ne se reverifie pas en ligne. Mais les livraisons open data KALI de la DILA (bloc `kali`) disent si la convention a bouge depuis le releve : un texte salaires plus recent signifie que minima-conventionnels.json est perime. Dans le doute, ouvrir la page de veille, rubrique Textes Salaires.",
+      "nourrit": [
+        "minima-conventionnels.json"
+      ],
+      "kali": {
+        "idcc": "1285",
+        "conteneur": "KALICONT000005635964",
+        "texte": "KALITEXT000049949387"
+      }
+    },
+    "audiens-fp-taux-repartition-retraite-2026": {
+      "titre": "Audiens -- Retraite complementaire : taux et repartitions des cotisations (fiche pratique 2026, 4 pages)",
+      "editeur": "Audiens",
+      "url": "https://www.audiens.org/files/live/sites/siteAudiens/files/03_documents/entreprise/Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf",
+      "contenu": "Tableau n 1 : artistes intermittents 8,89 % en T1, 50/50. Tableau n 2 : taux specifiques en T1 selon l'adhesion a une organisation patronale (SYNDEAC, SNDTP avant 2024, La Scene independante, USPA, SNEP : 10,16 % pour les artistes intermittents ; UPC, AFPF : techniciens ; AnimFrance, FICAM : les deux ; FNDF, SNDLL : 8,89 % pour les permanents). Tableau n 3 : repartition PP/PS de la T1 par IDCC et population (3090 60/40 pour les permanents, 1285 2/3-1/3, 2642 et 3097 50/50 ; 50/50 pour tout le personnel si premier salarie avant 1999).",
+      "version": "2026-04-22",
+      "version_lue_dans": "les proprietes du PDF (creation 22/04/2026) et l'en-tete HTTP Last-Modified (23/04/2026)",
+      "releve_le": "2026-09-25",
+      "fichier": "audiens-fp-taux-repartition-retraite-2026.pdf",
+      "sha256": "c87526fa332b71649eebd03209768c05da9e567f3373674163b3d4b81ffd4303",
+      "verification": "telechargement",
+      "nourrit": [
+        "baremes/2025.json",
+        "baremes/2026.json"
+      ]
+    },
+    "ccneac-accord-nao-2026-signe": {
+      "titre": "CCNEAC -- Accord sur les salaires annee 2026, texte signe (Paris, 01/07/2026)",
+      "editeur": "SYNAVI (copie du texte signe)",
+      "url": "https://synavi.org/wp-content/uploads/2026/07/accord-nao-2026.pdf",
+      "contenu": "La page de signature : organisations d'employeurs FNAR, FSICPA, Les Forces musicales, Scene Ensemble, SMA, SYNDEAC ; de salaries F3C CFDT, SNAPAC CFDT, FNSAC CGT, SFA CGT, SNAM CGT, SYNPTAC CGT, Sud Culture Solidaires. Nourrit la liste des signataires de `non_etendu` (minima de la 1285).",
+      "version": "2026-07-01",
+      "version_lue_dans": "la date de signature",
+      "releve_le": "2026-09-25",
+      "fichier": "ccneac-accord-nao-2026-signe.pdf",
+      "sha256": "203503dfe46890a0d2208dcd14d81dcaff309e8c1c0a92b1f46d944e3a14d851",
+      "verification": "telechargement",
+      "nourrit": [
+        "minima-conventionnels.json"
+      ]
+    },
+    "syndeac-ccneac-nao-2026": {
+      "titre": "CCNEAC - Minima conventionnels des artistes dramatiques et choregraphiques, NAO 2026 (accord du 1er juillet 2026, en vigueur au 1er aout 2026)",
+      "editeur": "SYNDEAC (organisation d'employeurs signataire)",
+      "url": "https://www.syndeac.org/wp-content/uploads/2026/09/ARTISTES-DRAMATIQUES-ET-CHOREGRAPHIQUES-NAO-2026.xlsx",
+      "page": "https://www.syndeac.org/toutes-les-ressources/minima-conventionnels-et-defraiements/artistes-dramatiques-et-choregraphiques/",
+      "contenu": "La grille NAO 2026 des artistes dramatiques et choregraphiques : cachet jour 162,75 (1 ou 2 cachets dans le mois) / 141,63 (plus de 2), service de repetition 61,05, mensuels inchanges. NON ETENDU au 13/09/2026 : ne s'impose qu'aux adherents des organisations signataires. Source d'un signataire, pas de Legifrance : gardee parce que le texte n'est pas encore au KALI.",
+      "version": "2026-09-03",
+      "version_lue_dans": "en-tete HTTP Last-Modified du fichier",
+      "en_vigueur": "2026-08-01",
+      "etendu_le": null,
+      "releve_le": "2026-09-13",
+      "fichier": "syndeac-ccneac-artistes-dramatiques-nao-2026.xlsx",
+      "sha256": "f303b5f3f3c914573abf9dc4b22e539ee86cefa23eff363fbd56b5ac4591a3ec",
+      "verification": "telechargement",
+      "nourrit": [
+        "minima-conventionnels.json"
+      ]
+    },
+    "ghs-annexe10-artistes-2021": {
+      "titre": "Artistes du spectacle - codes emploi occupe et categorie professionnelle (Artiste / Artiste Cadre)",
+      "editeur": "GHS (editeur de paie) - document de verification, pas une source",
+      "url": "https://www.ghs.fr/wp-content/uploads/pdf/211227-Annexe-10.pdf",
+      "contenu": "Les codes emploi de l'annexe 10 avec, colonne de droite, la categorie professionnelle retenue par cet editeur (arrangeur, chef d'orchestre : Artiste Cadre). Sert uniquement a confronter `cadre_par_defaut` du catalogue a une pratique d'editeur.",
+      "version": "2021-12-27",
+      "releve_le": "2026-09-13",
+      "fichier": "ghs-annexe10-artistes-categories-20211227.pdf",
+      "sha256": "8a25d2b8498e4d9f173bd556a53172c680784bf0cf711d536b51b21b2a2bb66e",
+      "verification": "telechargement",
+      "nourrit": []
+    },
+    "legifrance-code-du-travail-permanents": {
+      "titre": "Code du travail - les articles qui font la paie d'un salarie permanent (conges payes, indemnite de precarite, preavis, indemnite de licenciement)",
+      "editeur": "Legifrance (DILA)",
+      "url": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006072050",
+      "page_de_veille": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006072050",
+      "contenu": "Releve article par article, dans la version en vigueur au 18/09/2026, avec l'identifiant Legifrance de chaque version : L3141-3 (2,5 jours ouvrables par mois, 30 au plus), L3141-10 et R3141-4 (periode de reference au 1er juin, 1er avril pour les professions a caisse de conges), L3141-24 (indemnite de conges = 1/10 de la remuneration de la periode, jamais moins que le maintien de salaire), L3141-28 (indemnite compensatrice), L1243-8/9/10 (indemnite de fin de CDD : 10 %, 6 % par accord, et la liste des cas ou elle n'est pas due -- dont le contrat d'usage), L1234-1 et L1234-5 (preavis et indemnite compensatrice), L1234-9, R1234-1, R1234-2 et R1234-4 (indemnite de licenciement : 8 mois d'anciennete, 1/4 puis 1/3 de mois par annee, salaire de reference le plus favorable des deux formules).",
+      "version": "en vigueur au 18/09/2026",
+      "releve_le": "2026-09-18",
+      "fichier": "code-du-travail/permanents-articles-20260918.md",
+      "sha256": "9fc9b957ab2332934faa6ce422d93f3d563b874a156378d4a4ef73f72cee60a6",
+      "verification": "manuelle",
+      "verification_comment": "Legifrance refuse les telechargements automatiques (403) : la copie ne se reverifie pas en ligne, et la veille KALI ne couvre que les conventions collectives, pas le code. Chaque article porte son identifiant de version (LEGIARTI...) : ouvrir https://www.legifrance.gouv.fr/codes/article_lc/<identifiant> montre si une version plus recente existe. A relire apres toute loi travail ou loi de finances qui touche les conges payes ou la rupture du contrat.",
+      "nourrit": [
+        "permanents-base.json"
+      ]
+    },
+    "urssaf-codes-types-personnel": {
+      "titre": "Table des codes types de personnel (CTP) avec historique",
+      "editeur": "Urssaf Caisse nationale — open data (open.urssaf.fr)",
+      "url": "https://open.urssaf.fr/explore/dataset/histocodestypescsv/download/?format=csv&timezone=Europe/Berlin&use_labels_for_header=true&csv_separator=%3B",
+      "page": "https://open.urssaf.fr/explore/dataset/histocodestypescsv/",
+      "contenu": "Les 7 752 lignes de la table des CTP, avec l'historique de chaque code : code, libelle, libelle court, format, taux plafonne, taux deplafonne, taux AT, date d'effet, date de fin. C'est ce que la DSN declare en S21.G00.23.001 (bordereau Urssaf, bloc 23), et c'est le seul endroit ou lire le CTP d'un salarie permanent — 100 RG cas general, 635 et 430 pour les complements maladie et allocations familiales, 332 FNAL plafonne, 772 assurance chomage, 937 AGS, 959 CFP moins de onze salaries, 668 reduction generale etendue. ATTENTION au format des dates : la colonne est en AAAA-JJ-MM, pas AAAA-MM-JJ (l'AGS passe a 0,25 le « 2024-01-07 », c'est-a-dire le 1er juillet 2024).",
+      "version": "table vivante, sans numero de version",
+      "version_lue_dans": "la colonne « Date d'effet » de chaque ligne ; une ligne sans « Date de fin » est en vigueur",
+      "releve_le": "2026-09-18",
+      "fichier": "urssaf-codes-types-personnel.csv",
+      "sha256": "12b280d883c49c3bcad7971ab9269e372a628d64bfc7f0254def1ce31ab73171",
+      "verification": "telechargement",
+      "verification_comment": "La table bouge a chaque changement de taux : un condensat qui ne colle plus ne veut pas dire que NOS codes ont change, seulement que la table a ete republiee. Ce qu'il faut relire alors, ce sont les lignes des CTP que config/organismes.json declare.",
+      "nourrit": [
+        "config/organismes.json",
+        "moteur/urssaf-codes-types-personnel.csv (copie livree avec le logiciel : les taux du bordereau Urssaf calcule, paie/src/bordereau.rs ; a recopier quand la source change)"
+      ]
+    },
+    "legifrance-3090-prevoyance-titre12": {
+      "titre": "CCN des entreprises du secteur prive du spectacle vivant (IDCC 3090) - Clauses communes, titre XII << Prevoyance >>, article 12.6 Cotisations",
+      "editeur": "Legifrance (KALI)",
+      "url": "https://www.legifrance.gouv.fr/conv_coll/id/KALITEXT000028157267?idConteneur=KALICONT000028157262",
+      "article": "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000028157451",
+      "page_de_veille": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000028157262",
+      "contenu": "Le taux de la prevoyance des salaries PERMANENTS de la branche : 12.6.1 l'assiette (remuneration brute limitee a la tranche A), 12.6.2 le taux (1,07 % de la tranche A les 24 premiers mois d'application du titre, puis 1,20 % -- les 24 mois sont echus, le titre etant en vigueur depuis le 01/07/2013 ; pour les cadres, cette cotisation s'impute sur l'obligation patronale de 1,50 % sur la tranche A), 12.6.3 la repartition (100 % employeur, ventilee en deces 0,53 % et incapacite/invalidite 0,67 % de la tranche A). Le titre XII est aux CLAUSES COMMUNES, donc valable pour toutes les annexes ; seule l'annexe 2 (chanson, varietes, jazz) porte en plus un regime supplementaire a 1,22 % de la tranche A sous deduction du 12.6.2, et la compagnie n'en releve pas. La copie est une transcription mot pour mot du texte de la page de l'article (KALIARTI000028157451, champ `article` ci-dessus ; `url` pointe le texte de base, comme l'attend la veille KALI). Ce texte nourrit un catalogue de BRANCHE livre avec le logiciel (moteur/prevoyance-conventionnelle-base.json), et non le bareme d'une compagnie : le taux est le meme pour toutes les entreprises de l'IDCC 3090.",
+      "version": "2012-02-03",
+      "en_vigueur": "2013-07-01",
+      "releve_le": "2026-09-19",
+      "fichier": "legifrance-3090-prevoyance-titre12-20260919.md",
+      "sha256": "7a1ba92cef8f44953847db70530aa35b04140b76a646fe6fa41f7a179fe3dd3b",
+      "verification": "manuelle",
+      "verification_comment": "Legifrance refuse les telechargements automatiques (403 Cloudflare, revu le 19/09/2026) : la copie ne se reverifie pas en ligne, et elle est une TRANSCRIPTION de la page, pas le fichier servi. Les livraisons open data KALI de la DILA (bloc `kali`) disent si la convention a bouge : un texte attache plus recent touchant la prevoyance -- il y a eu un accord du 12/05/2025 sur le degre eleve de solidarite, etendu par arrete du 21/05/2026 -- veut dire RELIRE l'article 12.6 avant de payer un permanent.",
+      "nourrit": [
+        "prevoyance-conventionnelle-base.json"
+      ],
+      "kali": {
+        "idcc": "3090",
+        "conteneur": "KALICONT000028157262",
+        "texte": "KALITEXT000028157267"
+      }
+    },
+    "audiens-3090-prevoyance-sante-fiche-produit": {
+      "titre": "Secteur prive du spectacle vivant - Dispositions communes. L'essentiel du regime de PREVOYANCE et SANTE (fiche produit)",
+      "editeur": "Audiens Sante Prevoyance",
+      "url": "https://www.audiens.org/files/live/sites/siteAudiens/files/03_documents/entreprise/CCN/SVP/FPDT-Secteur-prive-spectacle-vivant-Dispo-communes-2021.pdf",
+      "page": "https://www.audiens.org/solutions/regime-sante-et-prevoyance-des-entreprises-du-secteur-prive-du-spectacle-vivant.html",
+      "contenu": "Ce que l'organisme qui porte le regime dit du meme taux, et ce que la convention ne dit pas. Page 3, tableau << Cotisations prevoyance >> : 1,20 % T1 obligatoire pour l'ensemble du personnel permanent, 100 % employeur ; option complementaire a 1,50 % T1 pour les cadres uniquement (le 1,20 % inclus) ; extensions FACULTATIVES en T2, 2,32 % pour l'ensemble du personnel permanent et 2,62 % pour les cadres -- la T2 de cette fiche allant du plafond a QUATRE fois le plafond, ce n'est pas la T2 Agirc-Arrco. Meme page : la cotisation est due des l'embauche pour un cadre, et apres UN AN d'anciennete dans la branche pour un non cadre. Page 2 : l'adhesion a la garantie minimale conventionnelle est obligatoire des lors que l'entreprise applique la CCN 3090, et elle couvre tous les permanents, CDD, CDI ou CDII, temps plein ou partiel, apprentis compris. Les tableaux sont des IMAGES dans le PDF : ils se lisent a l'oeil, pas par extraction de texte.",
+      "version": "2021-01-18",
+      "version_lue_dans": "en-tete HTTP Last-Modified du fichier ; le pied de page dit << FPDT - Secteur prive du spectacle vivant - Dispositions communes_2020 >>",
+      "releve_le": "2026-09-19",
+      "fichier": "audiens-3090-prevoyance-sante-fiche-produit-2021.pdf",
+      "sha256": "abfce35b21dbcf7fe371ab3c46cc4077d451087def4eb93eec152a467e66a951",
+      "verification": "telechargement",
+      "verification_comment": "C'est une fiche COMMERCIALE, pas un texte qui fait foi : elle se lit a cote de l'article 12.6, jamais a sa place. Elle date de 2021 et Audiens n'en publie pas de plus recente au 19/09/2026 ; le taux conventionnel, lui, n'a pas bouge. Ce qu'elle apporte et que la convention n'a pas : les options (1,50 % T1 cadres, extensions T2) et les conditions d'ouverture.",
+      "nourrit": [
+        "prevoyance-conventionnelle-base.json"
+      ]
+    },
+    "legifrance-1285-prevoyance-titre12": {
+      "titre": "CCN pour les entreprises artistiques et culturelles (IDCC 1285, CCNEAC) - Titre XII << Retraite et prevoyance >>, article XII.2",
+      "editeur": "Legifrance (KALI)",
+      "url": "https://www.legifrance.gouv.fr/conv_coll/id/KALITEXT000005662413?idConteneur=KALICONT000005635964",
+      "article": "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000032207267",
+      "page_de_veille": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000005635964",
+      "contenu": "La prevoyance des permanents du secteur SUBVENTIONNE, en regard de celle du secteur prive (source `legifrance-3090-prevoyance-titre12`). XII.2.1.2, cadres permanents : 1,50 % de la tranche 1 (deces 0,82 + incapacite-invalidite 0,68) et 0,81 % de la tranche 2, 100 % employeur. XII.2.1.5, non cadres permanents : 0,95 % de la tranche 1 (0,44 + 0,51), 100 % employeur. XII.2.1.8, frais de sante : 20 EUR par mois, 50/50 -- c'est le seul de ces articles que les avenants du 25/05/2023 et du 24/04/2025 ont revise. ATTENTION : la version lue est affichee << en vigueur du 01/01/2016 au 01/10/2023 >>, donc CLOSE ; les taux sont releves mais pas confirmes, et l'entree 1285 du catalogue porte `applicable: false` tant qu'ils ne le sont pas. La copie est un RELEVE (chiffres et contexte), pas une transcription : l'outil de lecture a refuse de recopier le texte de la convention.",
+      "version": "version lue : 2016-01-01 -> 2023-10-01",
+      "releve_le": "2026-09-19",
+      "fichier": "legifrance-1285-prevoyance-titre12-20260919.md",
+      "sha256": "d05be1eb02c8812f2f753d4fbc7fd5f92eddf0cf0c5ca1a617fc5761ec06ce2c",
+      "verification": "manuelle",
+      "verification_comment": "Legifrance refuse les telechargements automatiques (403). Cette source est en ATTENTE : ce qu'il faut faire est ecrit en toutes lettres dans la copie -- ouvrir l'article, bouton << Voir les versions >>, lire la version en vigueur de XII.2.1.2 et XII.2.1.5, trancher l'assiette de la tranche 2, chercher une condition d'anciennete. Ensuite `applicable: true`. La veille KALI (bloc `kali`) dit si la convention bouge entre-temps.",
+      "nourrit": [
+        "prevoyance-conventionnelle-base.json"
+      ],
+      "kali": {
+        "idcc": "1285",
+        "conteneur": "KALICONT000005635964",
+        "texte": "KALITEXT000005662413"
+      }
+    },
+    "kali-1285-titres-ii-iii-x-xi-xii": {
+      "titre": "CCN pour les entreprises artistiques et culturelles (IDCC 1285, CCNEAC) - articles II.2 (FCAP), III.2 et III.3 (CSE, FNAS), X.4 (echelons), XI.3 (classification), XII.2 et XII.3 (prevoyance, frais de sante), versions en vigueur",
+      "editeur": "DILA, base KALI en open data",
+      "url": "https://www.legifrance.gouv.fr/conv_coll/id/KALITEXT000005662413?idConteneur=KALICONT000005635964",
+      "open_data": "https://echanges.dila.gouv.fr/OPENDATA/KALI/",
+      "page_de_veille": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000005635964",
+      "contenu": "TRANSCRIPTION des articles en vigueur, lus dans la base KALI complete du 13/07/2025 puis dans les 245 livraisons quotidiennes jusqu'au 22/09/2026. Elle tranche ce que le releve du 19/09/2026 laissait ouvert : taux de prevoyance des permanents inchanges depuis 2016 (1,50 % T1 + 0,81 % T2 cadres, 0,95 % T1 non cadres, 100 % employeur, dus des l'embauche) ; tranche 2 = du plafond a QUATRE plafonds ; frais de sante des permanents 0,81 % du PMSS en 2026 (0,58 Alsace-Moselle), 0,89 % au 01/01/2027, au moins 50 % employeur ; intermittents cadres TECHNICIENS 0,45 % T1 + 0,95 % T2 en plus de l'interbranche ; FNAS 1,45 % (moins de onze salaries ou carence), 0,825 / 1,325 % avec CSE conventionnel ou CSE adherent, rien avec un CSE de cinquante salaries qui n'adhere pas ; FCAP 0,25 % ; grille des emplois autres qu'artistiques en douze echelons et classement des emplois par groupe.",
+      "version": "XII.2 du 01/03/2026 ; III.2 et III.3 du 01/07/2025 ; II.2 du 01/04/2024 ; XII.3 du 01/10/2025 ; X.4 du 24/07/2012 ; XI.3 du 01/09/2022",
+      "releve_le": "2026-09-23",
+      "fichier": "kali-1285-titres-ii-iii-x-xi-xii-20260923.md",
+      "sha256": "b34ae71464dec49417db6af5605abc138bac39adf035c40108968da478ada1e3",
+      "verification": "manuelle",
+      "verification_comment": "La copie est extraite des archives open data de la DILA, qui se relisent sans compte (voir moteur/kali.py). La veille KALI (bloc `kali`) dit si la convention bouge apres le releve ; un article XII.2, III.3 ou II.2 modifie veut dire que la couche 1285 du bareme et le catalogue de prevoyance sont a relire.",
+      "nourrit": [
+        "prevoyance-conventionnelle-base.json",
+        "baremes/2026.json",
+        "minima-conventionnels.json",
+        "emplois-base.json"
+      ],
+      "kali": {
+        "idcc": "1285",
+        "conteneur": "KALICONT000005635964",
+        "texte": "KALITEXT000005662413"
+      }
+    },
+    "urssaf-table-des-urssaf": {
+      "titre": "Table des Urssaf (tables de reference pour le parametrage des logiciels de paye)",
+      "editeur": "Urssaf Caisse nationale -- service de depot de fichiers (SEVEN)",
+      "url": "https://fichierdirect.declaration.urssaf.fr/static/tableUrssaf.20260618.csv",
+      "page": "https://fichierdirect.declaration.urssaf.fr/TablesReference.htm",
+      "contenu": "Les 36 organismes de recouvrement avec leur CODIFICATION (U117 = Urssaf Ile-de-France), leur SIRET, leur numero national emetteur, leur denomination et leur adresse. Les trois chiffres qui suivent le U sont le C_URSSAF de la DPAE (positions 133-136, annexe II.1 de la norme) : c'est la liste des codes VALIDES, celle que le point de depot oppose au message d'erreur << Code URSSAF invalide - n'appartenant pas a la liste des Codes Urssaf >>. ATTENTION -- CE QU'ELLE NE DIT PAS : le territoire couvert par chaque organisme. Le code postal porte est celui du SIEGE de l'Urssaf, pas de sa circonscription. On ne peut donc pas en deduire l'Urssaf competente a partir du code postal de l'employeur, et le moteur ne le tente pas.",
+      "version": "2026-06-18",
+      "version_lue_dans": "le nom du fichier (tableUrssaf.20260618.csv) et la mention << Derniere actualisation le 18/06/2026 >> de la page",
+      "releve_le": "2026-09-22",
+      "fichier": "urssaf-table-des-urssaf-20260618.csv",
+      "sha256": "60c86ab3781bd9874e6a8e5cdf06044e8ad36ea7f108039a6f806127f2869ca2",
+      "verification": "telechargement",
+      "encodage": "windows-1252",
+      "nourrit": [
+        "urssaf-dpae-base.json"
+      ]
+    },
+    "urssaf-liste-des-sites": {
+      "titre": "Liste des sites et des activites du reseau des Urssaf",
+      "editeur": "Urssaf Caisse nationale -- portail open data",
+      "url": "https://open.urssaf.fr/api/explore/v2.1/catalog/datasets/liste-des-sites-et-des-activites/exports/csv?delimiter=%3B",
+      "page": "https://open.urssaf.fr/explore/dataset/liste-des-sites-et-des-activites/",
+      "contenu": "Les 152 sites du reseau, avec pour chacun son organisme, son adresse et -- c'est ce qu'on en tire -- la colonne `code_organisme_ur_regionale` a cote de `code_ancienne_region` et `code_nouvelle_region`. C'est le PONT publie entre une region et le code Urssaf : ancienne region 11 = 117 Ile-de-France, 82 = 827 Rhone-Alpes, 94 = 200 Corse. La Normandie porte 237 et 257 (heritage de la Haute et de la Basse) a cote de 287 ; seul 287 figure dans la Table des Urssaf, et c'est lui qu'on retient.",
+      "version": "2026-04-08",
+      "version_lue_dans": "le champ `modified` du jeu de donnees sur le portail",
+      "releve_le": "2026-09-22",
+      "fichier": "urssaf-liste-des-sites-et-des-activites.csv",
+      "sha256": "95fd488047c8a70ae70d447616ff5433d790bbe5d6e3eb6061dd77bd42423c04",
+      "verification": "telechargement",
+      "encodage": "utf-8 avec BOM",
+      "nourrit": [
+        "urssaf-dpae-base.json"
+      ]
+    },
+    "insee-cog-2015-departements": {
+      "titre": "Code officiel geographique au 1er janvier 2015 -- Liste des departements",
+      "editeur": "Insee",
+      "url": "https://www.insee.fr/fr/statistiques/fichier/2560698/depts2015-txt.zip",
+      "page": "https://www.insee.fr/fr/information/2560698",
+      "contenu": "Les 101 departements avec leur code REGION. Le millesime 2015 expres : c'est le dernier AVANT la reforme, donc celui des ANCIENNES regions -- exactement le decoupage sur lequel les codes Urssaf sont restes (827 Rhone-Alpes et 837 Auvergne coexistent alors que la region est une seule depuis 2016). Un COG recent ne saurait pas distinguer les deux.",
+      "version": "2015-01-01",
+      "version_lue_dans": "le millesime du fichier (depts2015), page Insee publiee le 22/09/2017",
+      "releve_le": "2026-09-22",
+      "fichier": "insee-cog-2015-departements.zip",
+      "sha256": "67ad93d56606e2b48e3560ca35de70abaea1ed267feb5519204daa0a2cdbc1f6",
+      "verification": "telechargement",
+      "nourrit": [
+        "urssaf-dpae-base.json"
+      ]
+    },
+    "insee-cog-2026-pays": {
+      "titre": "Code officiel geographique au 1er janvier 2026 -- Pays et territoires etrangers",
+      "editeur": "Insee",
+      "url": "https://www.insee.fr/fr/statistiques/fichier/8740222/v_pays_territoire_2026.csv",
+      "page": "https://www.insee.fr/fr/information/8740222",
+      "contenu": "229 pays et territoires etrangers actuels : code COG, actualite (1 actuel, 4 territoire ayant son propre code), pays de rattachement (CRPAY), libelle (LIBCOG), nom officiel (LIBENR), codes ISO 3166 (CODEISO2, CODEISO3, CODENUM3). La liste des pays de la fiche salarie (S21.G00.30.015, et le pays de nationalite d'ou se deduit S21.G00.30.013) : 213 codes ISO ; 14 lignes sans code ISO (Kosovo, regroupements de territoires) et 2 qui reprennent le code d'un Etat sont ecartees. Le dessin du fichier et les modalites d'ACTUAL sont deposes a cote (LISEZ-MOI.md).",
+      "version": "2026-01-01",
+      "version_lue_dans": "le millesime du fichier (v_pays_territoire_2026) et le titre de la page",
+      "releve_le": "2026-10-10",
+      "fichier": "insee-cog-pays/insee-cog-pays-territoires-etrangers-20260101.csv",
+      "sha256": "0dd9d1e83cfba3229b77444747fab0bba7d0ac1acec0442e8e5123c72fa1502d",
+      "verification": "telechargement",
+      "nourrit": [
+        "pays-base.json"
+      ]
+    },
+    "casc-svp-fiche-codification-dsn": {
+      "titre": "PARAMETRAGE DSN -- Aide a la codification de la cotisation du Comite d'Action Sociale et Culturelle du Spectacle Vivant Prive IDCC 3090 -- CASC SVP",
+      "editeur": "CASC-SVP",
+      "url": "https://static.123cegestionplus.com/CEV2_CASCSVPV2/2f16cb05-2efc-43ba-94e3-000ec20df6de.pdf",
+      "page": "https://casc-svp.portailce.com/Article/Article/9",
+      "contenu": "Comment la CASC-SVP se declare en DSN : adhesion prevoyance CASCSVP chez P0983 (S21.G00.15), versement a P0983 (S21.G00.20), composant de versement affecte CASCSVP (S21.G00.55), affiliation (S21.G00.70.012/013), base 31 a zero, composant 79 type 11 tranche A, cotisation 059. Taux 0,40 % jusqu'au 31/12/2025, 0,50 % depuis le 01/01/2026. C'est la piece qui fait coder la CASC dans dsn.py (prive/journal/CASC-SVP-REGULARISATION.md).",
+      "version": "2026-06",
+      "version_lue_dans": "le titre du document (Version juin 2026) et le libelle du lien de la page",
+      "releve_le": "2026-09-22",
+      "fichier": "casc-svp-fiche-codification-dsn-202606.pdf",
+      "sha256": "ae1977a23600fc4cb2d65ccc5c1187a475e189463ad274263e7a8be2733614a3",
+      "verification": "telechargement",
+      "nourrit": [
+        "casc-svp-base.json"
+      ]
+    },
+    "casc-svp-modele-liste-nominative": {
+      "titre": "Modele de liste nominative des salaries (CASC-SVP)",
+      "editeur": "CASC-SVP",
+      "url": "https://static.123cegestionplus.com/CEV2_CASCSVPV2/c6770a67-2616-47bb-ab20-70697bfee071.xlsx",
+      "page": "https://casc-svp.portailce.com/Article/Article/9",
+      "contenu": "Le modele que le CASC-SVP attend pour une regularisation hors DSN : une ligne par emploi, 37 colonnes (mention CASC-SVP, SIRET, annee, identite, adresse decoupee, emploi, dates, salaire de la periode, I ou P, A ou T, jours / heures / cachets, totaux cumules). Les trois lignes du haut sont des consignes, a retirer avant l'enregistrement en CSV point-virgule.",
+      "version": "2026-09-22",
+      "version_lue_dans": "aucune version portee par le fichier : la date du releve en tient lieu",
+      "releve_le": "2026-09-22",
+      "fichier": "casc-svp-modele-liste-nominative.xlsx",
+      "sha256": "d608d902da922a2dc7f5ed49d15298183d04e1c4f9145cae4b931d0cd4ca3d97",
+      "verification": "telechargement",
+      "nourrit": [
+        "operations_casc.py"
+      ]
+    },
+    "kali-3090-titres-iv-v-sante": {
+      "titre": "CCN des entreprises du secteur prive du spectacle vivant (IDCC 3090) - articles 4.22 (CASC-SVP), 5.1 a 5.3 (FCAP-SVP), accord du 19/07/2024 sur les frais de sante des permanents (preambule, art. 1, 2, 13), annexe II IV.3 art. 3.1 -- versions en vigueur",
+      "editeur": "DILA, base KALI en open data",
+      "url": "https://www.legifrance.gouv.fr/conv_coll/id/KALITEXT000028157267?idConteneur=KALICONT000028157262",
+      "open_data": "https://echanges.dila.gouv.fr/OPENDATA/KALI/",
+      "page_de_veille": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000028157262",
+      "contenu": "TRANSCRIPTION des articles en vigueur, lus dans la base KALI complete du 13/07/2025 puis dans les 245 livraisons quotidiennes jusqu'au 22/09/2026. Elle tranche le reste du releve du 23/09 (journal §77) : FCAP-SVP 0,1 % de la tranche A, plancher 80 EUR, plafond 300 EUR par an et par entreprise, tous employeurs assujettis, collecte annuelle en debut d'annee (5.1, 5.3) ; exemption de la CASC-SVP pour les entreprises d'au moins 50 salaries dotees d'un CSE dont la contribution aux activites sociales et culturelles est au moins egale (4.22 B) ; cotisation globale MINIMALE des frais de sante des permanents, en % du PMSS, socle 1,29 / 1,44 / 1,60 / 1,75 (2025 a 2028), annexe II 1,74 / 1,84 / 1,94 (2025 a 2027), au moins 50 % employeur (accord du 19/07/2024, art. 13).",
+      "version": "4.22 du 18/10/2024 ; 5.1 et 5.3 du 01/07/2013 ; 5.2 du 18/10/2024 ; accord du 19/07/2024 en vigueur etendu au 01/01/2025",
+      "releve_le": "2026-09-23",
+      "fichier": "kali-3090-titres-iv-v-sante-20260923.md",
+      "sha256": "f62e95074217f1e8813b5f0f28b7a12c244ef2df788b4c5c7feb8a89765fc811",
+      "verification": "manuelle",
+      "verification_comment": "La copie est extraite des archives open data de la DILA, qui se relisent sans compte (voir moteur/kali.py). La veille KALI (bloc `kali`) dit si la convention bouge apres le releve ; un article 4.22, 5.1 ou 13 de l'accord de 2024 modifie veut dire relire casc-svp-base.json et prevoyance-conventionnelle-base.json.",
+      "nourrit": [
+        "prevoyance-conventionnelle-base.json",
+        "casc-svp-base.json"
+      ],
+      "kali": {
+        "idcc": "3090",
+        "conteneur": "KALICONT000028157262",
+        "texte": "KALITEXT000028157267"
+      }
+    },
+    "boss-table-des-parametres": {
+      "titre": "BOSS -- Table des parametres (donnees generales, allegements, frais professionnels, avantages en nature, indemnites de rupture), fichier CSV",
+      "editeur": "BOSS (Bulletin officiel de la securite sociale)",
+      "url": "https://boss.gouv.fr/portail/files/Table%20des%20param%C3%A8tres/202601_Table%20param%C3%A8tres.csv",
+      "page_de_veille": "https://boss.gouv.fr/portail/accueil/table-des-parametres/donnees-generales.html",
+      "contenu": "128 parametres et 771 lignes d'historique (4 ans) : plafond de la securite sociale, SMIC horaire, seuils, parametres de la reduction generale. Separateur point-virgule, latin-1, decimales a la virgule. C'est la source de tete du socle pour ce qui est reglementaire (reference/veille-taux.md, section 1). PIEGE : chaque fichier est un instantane -- celui de janvier donne le SMIC a 12,02 sans date de fin et ignore la revalorisation du 01/06/2026 (12,31) ; toujours prendre le mois le plus recent. L'URL suit le gabarit AAAAMM que la veille documente ; la copie est celle de janvier 2026.",
+      "version": "2026-01",
+      "version_lue_dans": "le nom du fichier telecharge (gabarit AAAAMM_Table parametres.csv)",
+      "releve_le": "2026-09-18",
+      "fichier": "../boss-table-parametres-2026.csv",
+      "sha256": "384c78a41bf45738d7c9841307d99c5d12660ad97c12be38c0d103cadeba7a40",
+      "verification": "manuelle",
+      "verification_comment": "boss.gouv.fr est injoignable depuis l'environnement de travail (connexion reinitialisee) : le CSV se telecharge a la main, le mois le plus recent, et se compare aux valeurs du socle. `releve_le` est la date ou la copie est entree au depot : le telechargement lui-meme n'a pas ete date, il est anterieur ou egal.",
+      "nourrit": [
+        "baremes/2026.json"
+      ]
+    },
+    "audiens-parametres-et-taux-2026": {
+      "titre": "Audiens -- Parametres et taux 2026 (fiche technique, 4 pages)",
+      "editeur": "Audiens",
+      "url": "https://www.audiens.org/files/live/sites/siteAudiens/files/03_documents/entreprise/Fiches-techniques/Parametres-et-taux-2026.pdf",
+      "contenu": "Les taux de retraite complementaire population par population (page 3 : artistes et techniciens intermittents non cadres, T1 et CEG, parts salariale et patronale) et les plafonds (page 1 : T1 = 48 060 EUR annuels pour un intermittent non cadre). Source des taux `retraite_t1` du socle. Les millesimes anterieurs suivent un autre gabarit de nom (Parametres-Audiens-2025.pdf...) : verifier les deux formes en janvier.",
+      "version": "2026",
+      "version_lue_dans": "le titre et le nom du fichier",
+      "releve_le": "2026-09-12",
+      "fichier": "audiens-parametres-2026/Audiens-Parametres-2026.pdf",
+      "sha256": "62e55d5b40421ae624f6c083fc24e330e2a9a831caa03a57d5258403c7f0d68a",
+      "verification": "telechargement",
+      "nourrit": [
+        "baremes/2026.json"
+      ]
+    },
+    "audiens-webconference-nouveautes-2026": {
+      "titre": "Audiens -- Webconference << Nouveautes reglementaires 2026 >> (support)",
+      "editeur": "Audiens",
+      "url": "https://www.audiens.org",
+      "page_de_veille": "https://www.audiens.org",
+      "contenu": "La reduction generale degressive unique au 01/01/2026 (Tmin 0,0200, Tdelta 0,3781 / 0,3821, P 1,75, SMIC annuel gele), la CASC-SVP 0,50 % plafonnee a la T1 (p. 18), le FCAP des entreprises artistiques et culturelles en DSN (p. 18), les bulletins d'exemple de la 3090 (p. 12) et de la CCNEAC (p. 5), la DFS 2026. Source de tete du socle pour ces valeurs.",
+      "version": "2026",
+      "version_lue_dans": "le titre du support",
+      "releve_le": "2026-09-18",
+      "fichier": "../fiches-parametrage/Audiens-Webconf-Nouveautes-2026.pdf",
+      "sha256": "2a1786bf96d35739dd36b534935e758418e4aa0eb6eee34c67b9ae407414dc3d",
+      "verification": "manuelle",
+      "verification_comment": "Le support n'a pas d'adresse stable relevee : il se cherche chaque janvier sur audiens.org (reference/veille-taux.md). Le nom de la copie ne dit pas l'adresse d'ou elle vient. `releve_le` est la date ou la copie est entree au depot : le telechargement lui-meme n'a pas ete date, il est anterieur ou egal.",
+      "nourrit": [
+        "baremes/2026.json"
+      ]
+    },
+    "audiens-fiche-parametrage-oc-139": {
+      "titre": "Audiens Prevoyance (P0983) -- fiche de parametrage OC (FPOC) n 5206445, version 139",
+      "editeur": "Audiens, par net-entreprises",
+      "url": "https://www.net-entreprises.fr",
+      "page_de_veille": "https://www.net-entreprises.fr",
+      "contenu": "La fiche XML que l'organisme complementaire publie pour une entreprise adherente : ses contrats, populations, taux et codes de cotisation DSN (prevoyance, sante, CASC-SVP...). Creee le 13/12/2025. C'est elle qui a confirme les taux Audiens du socle et la codification des blocs 15, 70 et 81 ; une fiche plus recente arrive par les memes retours que la DSN, et l'espace employeur Audiens exporte le meme tableau en .xls (bouton << Taux de cotisations >>). Fiche d'UNE compagnie : elle confirme le socle, elle ne le remplace pas.",
+      "version": "139",
+      "version_lue_dans": "l'attribut Version de l'element FICHE (DateHeureCreation 2025-12-13)",
+      "releve_le": "2026-09-18",
+      "fichier": "../fiches-parametrage/audiens-2025-12-13-fiche139.xml",
+      "sha256": "441c91253687fc6f2420641d987685f033d475fd22cf69ac82608430273d522c",
+      "verification": "manuelle",
+      "verification_comment": "Elle ne se telecharge pas d'une adresse publique : elle arrive dans les retours de l'entreprise (API net-entreprises), ou s'exporte de l'espace employeur Audiens. `releve_le` est la date ou la copie est entree au depot : le telechargement lui-meme n'a pas ete date, il est anterieur ou egal.",
+      "nourrit": [
+        "baremes/2026.json"
+      ]
+    },
+    "afdas-contributions-2026-audiovisuel": {
+      "titre": "Afdas - Entreprises de l'audiovisuel. Vos contributions formation professionnelle et apprentissage en 2026",
+      "editeur": "Afdas",
+      "url": "https://www.afdas.com/fileadmin/user_upload/collecte/Collecte_2026/Contributions_2026_Audiovisuel.pdf",
+      "contenu": "Plaquette de collecte 2026 de la branche de l'audiovisuel : contribution legale des intermittents 2 % a l'Urssaf, contribution conventionnelle des intermittents 0,10 % + forfait a l'Afdas (la meme que dans le spectacle vivant), contribution conventionnelle des autres salaries (0,45 % sous onze salaries, 0,30 % de 11 a 49, 0,20 % de 50 a 299), contribution au dialogue social de la CPNEF (0,004 %, minimum 15, maximum 2 000 EUR HT). 2 pages.",
+      "version": "2026-01-22",
+      "version_lue_dans": "en-tete HTTP Last-Modified du fichier",
+      "releve_le": "2026-09-25",
+      "fichier": "afdas-contributions-2026-audiovisuel.pdf",
+      "sha256": "cd0e04fcee2aa58a9eff8d1414ac9c7a07c254e5ce7aa6dca469b4219ad95f26",
+      "verification": "telechargement",
+      "nourrit": [
+        "baremes/2026.json"
+      ]
+    },
+    "spiac-cgt-pav-minima-20260101": {
+      "titre": "Production audiovisuelle (IDCC 2642) - Salaires minima conventionnels applicables au 1er janvier 2026",
+      "editeur": "SPIAC-CGT (organisation syndicale representative de la branche)",
+      "url": "https://spiac-cgt.org/wp-content/uploads/2026/01/PAV-Salaires-minima-conventionnels-applicables-au-1er-janvier-2026.xlsx",
+      "page_de_veille": "https://spiac-cgt.org/salaires-conventions-collectives/salaires/salaires-production-audiovisuelle/",
+      "contenu": "La grille consolidee de la 2642 : categories A et B en CDI et CDD de droit commun (mensuel, au 01/01/2025, avenant 20) ; categorie B en CDDU par genre de programme -- fiction, flux, autres (documentaire, captation) -- a la semaine de 35 et 39 h, au jour de 7 et 8 h, au mois (au 01/07/2025, avenants 17 et 19) ; realisateurs de fiction ; categorie C ; artistes-musiciens ; artistes-interpretes. Classeur Excel, montants non arrondis.",
+      "version": "2026-01-01",
+      "version_lue_dans": "le nom du fichier et le titre de chaque feuille (<< Revalorisation du SMIC au 1er janvier 2026 >>)",
+      "releve_le": "2026-09-25",
+      "fichier": "spiac-cgt-pav-minima-20260101.xlsx",
+      "sha256": "1727fe26ec4aacfefa920b52167bc9e38dd2767d0a51f7cb23e2f354856f427e",
+      "verification": "telechargement",
+      "verification_comment": "PAS le texte qui fait foi : une consolidation syndicale. Elle est RECALCULEE depuis le texte (grille KALI de l'avenant n° 4 de 2012 et les pourcentages des avenants 7 a 20) : moins d'un demi-centime d'ecart sur chaque emploi essaye (journal §132). Un nouvel avenant salaires de la 2642 veut dire : relire, recalculer, puis seulement recopier -- l'entrepot KALI suit la 2642 (`conventions_a_relever`) et note ce qui change (`etat.json`, `changes`).",
+      "nourrit": [
+        "minima-conventionnels.json"
+      ]
+    },
+    "bocc-2121-prevoyance-20241213": {
+      "titre": "BOCC 2025/4 -- Convention collective nationale de l'edition (IDCC 2121) : accord du 13 decembre 2024 relatif a la modification du regime de prevoyance (NOR ASET2550110M)",
+      "editeur": "DILA, Bulletin officiel des conventions collectives, en open data",
+      "url": "https://echanges.dila.gouv.fr/OPENDATA/BOCC/2025/CCO20250004.complet.taz",
+      "page_de_veille": "https://www.journal-officiel.gouv.fr/pages/bocc-bulletin-officiel-conventions-collectives/",
+      "contenu": "Le texte integral de l'accord, avec les tableaux que KALI ne reproduit pas (<< tableau non reproduit >>) : article 6.1.1, taux contractuels des non cadres, T1/T2 jusqu'a quatre plafonds, 0,905 % employeur + 0,905 % salarie = 1,810 % (deces 0,440, arret de travail 1,370) ; article 6.1.2, taux appeles 2025 et 2026, 0,650 + 0,650 = 1,300 %, << maintenus pour une periode de deux ans >>, les taux du 6.1.1 s'appliquant ensuite ; article 6.2, cadres : un seul tableau, contractuel, T1 1,500 % employeur, T2 1,160 + 1,160 = 2,320 %. Fascicule 10 de l'archive (boc_20250004_0000_0010.pdf), pages 36 a 51 du BOCC, taux p. 41-42.",
+      "version": "BOCC 2025/4 du 25/01/2025",
+      "version_lue_dans": "couverture du BOCC (boc_20250004_0001_p000.pdf) et en-tete de chaque page",
+      "releve_le": "2026-09-29",
+      "fichier": "bocc-2121-prevoyance-20241213.pdf",
+      "sha256": "2c84b4fab413a5f132893d3170fe833d23b24d47b19daa2058329586a24f5834",
+      "verification": "manuelle",
+      "verification_comment": "Le PDF est extrait de l'archive open data de la DILA (fichier compress, `tar xzf`), qui se telecharge sans compte ; le lien direct journal-officiel.gouv.fr est refuse par le proxy des postes distants. Le texte de l'accord est suivi par la veille KALI de la 2121 : un avenant a l'accord du 13/12/2024 veut dire relire prevoyance-conventionnelle-base.json (IDCC 2121, conteneur KALICONT000005635096, texte KALITEXT000051379354).",
+      "nourrit": [
+        "prevoyance-conventionnelle-base.json"
+      ]
+    },
+    "unedic-circulaire-2016-25": {
+      "titre": "Unedic, circulaire n° 2016-25 du 21 juillet 2016 : les annexes VIII et X issues du decret n° 2016-961 du 13 juillet 2016",
+      "editeur": "Unedic (copie diffusee par Movinmotion : le lien de l'Unedic ne repond plus)",
+      "url": "https://www.movinmotion.com/wp-content/uploads/2016/07/circulaire-unedic.compressed.pdf",
+      "page_de_veille": "https://www.unedic.org/la-reglementation/circulaires",
+      "contenu": "Fiche 1, p. 12 : << les fonctions de realisateur signalees par un asterisque dans les dix types de fonctions par domaine d'activite comprises dans la liste relative au champ d'application de l'annexe VIII, sont integrees a l'annexe X en application des dispositions de l'article 46 de la loi n° 2016-925 du 7 juillet 2016 [...], lequel modifie l'article L. 7121-2 du code du travail >>. Fonctions marquees : Realisateur (production audiovisuelle, edition phonographique, telediffusion), Realisateur / realisatrice (films d'animation), Realisateur cinema, Realisateur de films publicitaires, Technicien realisateur deuxieme equipe cinema (production cinematographique), Realisateur artistique (edition phonographique), Realisateur AV et Realisateur de SV (prestations techniques), Realisateur radio (radiodiffusion). 210 pages.",
+      "version": "2016-07-21",
+      "version_lue_dans": "en-tete de la circulaire",
+      "releve_le": "2026-09-29",
+      "fichier": "unedic-circulaire-2016-25-annexes-8-10.pdf",
+      "sha256": "a9726db8b2ab643a7336f559f60b202fe517705fc9f287f30651deb141567439",
+      "verification": "manuelle",
+      "verification_comment": "Copie d'un tiers, pas du site de l'Unedic : elle se lit avec le code du travail, L. 7121-2, 10° (LEGIARTI000032859810, entrepot LEGI), qui fait du realisateur un artiste du spectacle. La nomenclature des emplois du 12/12/2016 porte encore ces codes en annexe 8 : emplois-base.json garde cette annexe dans `annexe_nomenclature`.",
+      "nourrit": [
+        "emplois-base.json"
+      ]
+    },
+    "unedic-reglement-general-assurance-chomage-20241115": {
+      "titre": "Unedic -- Reglement general annexe a la convention du 15 novembre 2024 relative a l'assurance chomage",
+      "editeur": "Unedic",
+      "url": "https://www.unedic.org/ged/documents/regulatory_texts/pdf/TXT-RG-Reglement_general_annexe_a_la_convention.pdf",
+      "page": "https://www.unedic.org/la-reglementation/conventions-d-assurance-chomage/reglement-general-annexe-a-la-convention-du-15-novembre-2024-relative-a-l-assurance-chomage",
+      "contenu": "Art. 49 (p. 34), section << Assiette >> : al. 1, les contributions sont assises sur les remunerations brutes entrant dans l'assiette des cotisations de securite sociale ; al. 2, << dans la limite d'un plafond fixe a quatre fois le plafond mentionne a l'article L. 241-3 du code de la securite sociale >>. Art. 50-1, § 1er (p. 35) : la contribution employeur, 4 %. C'est le plafond du chomage et de l'AGS d'un permanent (`brut_chomage`, paie/src/calcul.rs : le brut dans la limite de quatre plafonds de la periode). 50 pages. Le detail, et ce qui est infere (le plafond d'une periode incomplete), dans chomage-permanents/LISEZ-MOI.md.",
+      "version": "2025-03-12",
+      "version_lue_dans": "les proprietes du PDF (creation 12/03/2025) ; le texte est celui de la convention du 15/11/2024",
+      "releve_le": "2026-10-10",
+      "fichier": "chomage-permanents/unedic-reglement-general-convention-20241115.pdf",
+      "sha256": "33039432673f2d38e67e97d6f762d82cb422560287105de363aac848331ebc40",
+      "verification": "telechargement",
+      "nourrit": [
+        "baremes/2026.json",
+        "organismes-base.json"
+      ]
+    },
+    "urssaf-equivalence-dida": {
+      "titre": "Urssaf -- Tableau equivalence donnees individuelles et agregees (jeu equivalence-dida d'open.urssaf.fr)",
+      "editeur": "Urssaf Caisse nationale (open.urssaf.fr, licence ODbL)",
+      "url": "https://open.urssaf.fr/api/explore/v2.1/catalog/datasets/equivalence-dida/exports/csv?delimiter=%3B&use_labels=true",
+      "contenu": "Pour chaque code type de personnel (CTP), la base assujettie, la cotisation individuelle et le qualifiant d'assiette du bloc 23 qui lui repondent. l. 1640 : 772 (contributions assurance chomage) -> base 07, cotisation 040, qualifiant 920 ; l. 280 : 937 (AGS) -> base 07, cotisation 048, qualifiant 920. C'est le << tableur nomme Guide_Urssaf_equivalenceDIDA >> du guide Urssaf de declaration en DSN, § 1.2, auquel renvoie la norme DSN 2026.1, § 2.2.1.5. Detail dans chomage-permanents/LISEZ-MOI.md.",
+      "version": "2026-06-11",
+      "version_lue_dans": "la date de mise a jour du jeu sur open.urssaf.fr (11/06/2026), notee au releve",
+      "releve_le": "2026-10-10",
+      "fichier": "chomage-permanents/urssaf-equivalence-dida-20260611.csv",
+      "sha256": "043c5e1752074dddfe3e19b89285aeeca516e2736902a09ea7255dde7479bf9d",
+      "verification": "telechargement",
+      "verification_comment": "Un export de l'API, garde tel que servi (UTF-8 avec BOM) : si le condensat ne colle plus, relire les lignes du 772 et du 937 avant de conclure qu'elles ont change.",
+      "encodage": "utf-8 avec BOM",
+      "nourrit": [
+        "organismes-base.json"
+      ]
+    },
+    "insee-naf-2025-structure": {
+      "titre": "INSEE -- Structure de la NAF 2025 (Structure_NAF_2025_Maj_2024-10-04.xlsx)",
+      "editeur": "INSEE",
+      "url": "https://www.insee.fr/fr/information/8181066",
+      "page_de_veille": "https://www.insee.fr/fr/information/8181066",
+      "contenu": "La nomenclature NAF 2025 complete ; feuille Sous-classes : 747 codes (90.20Y Activites de spectacle, 90.39G production et organisation d'evenements culturels...). En vigueur le 1er janvier 2027 (decret n° 2025-736, art. 2). Detail dans insee-naf-2025/LISEZ-MOI.md.",
+      "version": "2024-10-04",
+      "version_lue_dans": "le nom du fichier servi (Maj_2024-10-04)",
+      "releve_le": "2026-10-11",
+      "fichier": "insee-naf-2025/insee-naf-2025-structure-20241004.xlsx",
+      "sha256": "6bbb9b9affc7d547f7b2b4a790043d6c942362d743bf38377d5e32bd7ceba2d7",
+      "verification": "manuelle",
+      "verification_comment": "Transmis par Leandre depuis la page INSEE (le conteneur n'a pas l'adresse directe du fichier) : ouvrir la page de veille, retelecharger, comparer le condensat ; s'il a bouge, relancer atelier/outils/extraire_naf.py et lire ce qui change.",
+      "nourrit": [
+        "naf-base.json"
+      ]
+    },
+    "insee-naf-rev2-vers-naf-2025": {
+      "titre": "INSEE -- Table de correspondance NAF rev. 2 vers NAF 2025 (Correspondances_NAFrev2-NAF2025.xlsx)",
+      "editeur": "INSEE",
+      "url": "https://www.insee.fr/fr/information/8181066",
+      "page_de_veille": "https://www.insee.fr/fr/information/8181066",
+      "contenu": "Pour chaque sous-classe NAF rev. 2 (732), la ou les sous-classes NAF 2025 et le contenu qui y passe, type Unique ou Multiple : 90.01Z -> 90.20Y (a l'exception de la production de spectacle) ou 90.39G (la production de spectacle). Detail dans insee-naf-2025/LISEZ-MOI.md.",
+      "version": "2026-01-07",
+      "version_lue_dans": "la date de modification du classeur (07/01/2026)",
+      "releve_le": "2026-10-11",
+      "fichier": "insee-naf-2025/insee-naf-2025-correspondances-naf-rev2-vers-naf-2025-20260107.xlsx",
+      "sha256": "8746ed6b5ec70dca426a158a9b43b91e97fd71cf34bc0d8094b982b7260397ab",
+      "verification": "manuelle",
+      "verification_comment": "Transmis par Leandre depuis la page INSEE : ouvrir la page de veille, retelecharger, comparer le condensat ; s'il a bouge, relancer atelier/outils/extraire_naf.py et lire ce qui change (une correspondance qui se precise change la phrase du refus, jamais le code d'une compagnie).",
+      "nourrit": [
+        "naf-base.json"
+      ]
+    }
+  },
+  "conventions_a_relever": {
+    "_quoi": "Les conventions collectives qui emploient des intermittents (celles des listes de l'annexe 8, notice France Travail du 03/12/2025, et de l'annexe 10) que le moteur ne porte pas encore. Aucune donnee du logiciel n'en derive : elles sont ici pour que l'entrepot local des textes KALI (outils/relever_les_conventions.py) en garde les articles, a relire avant d'ecrire une couche. IDCC et conteneurs lus dans la base KALI de la DILA (Freemium_kali_global_20250713) le 25/09/2026. Mission posee par l'editeur le 24/09/2026 (journal §129 et §130).",
+    "2642": {"titre": "Production audiovisuelle (13/12/2006)", "conteneur": "KALICONT000018828041"},
+    "3097": {"titre": "Production cinematographique (19/01/2012)", "conteneur": "KALICONT000028059838"},
+    "2412": {"titre": "Production de films d'animation (06/07/2004)", "conteneur": "KALICONT000005635129"},
+    "1922": {"titre": "Radiodiffusion (11/04/1996)", "conteneur": "KALICONT000005635741"},
+    "3241": {"titre": "Telediffusion (02/07/2021)", "conteneur": "KALICONT000044261829"},
+    "3252": {"titre": "Entreprises au service de la creation et de l'evenement (27/06/2024), qui remplace la 2717", "conteneur": "KALICONT000051346072"},
+    "2121": {"titre": "Edition (14/01/2000), dont l'edition phonographique", "conteneur": "KALICONT000005635096"},
+    "2770": {"titre": "Edition phonographique (30/06/2008), en vigueur dans KALI ; la notice France Travail la range sous la 2121", "conteneur": "KALICONT000023974024"},
+    "1790": {"titre": "Espaces de loisirs, d'attractions et culturels (05/01/1994)", "conteneur": "KALICONT000005635453"},
+    "1734": {"titre": "Artistes-interpretes engages pour des emissions de television (30/12/1992)", "conteneur": "KALICONT000005635286"},
+    "2411": {"titre": "Chaines thematiques (19/06/2017)", "conteneur": "KALICONT000005635585"}
+  }
+}

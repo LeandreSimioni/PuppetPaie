@@ -1,0 +1,70 @@
+# AUCUNE CONVERSION DE FINS DE LIGNE, NULLE PART.
+#
+# Ce logiciel produit et relit des formats a LARGEUR FIXE, compares OCTET POUR
+# OCTET : les gabarits AEM et DPAE de `prive/gabarits/` sont de vrais
+# enregistrements acceptes par l'administration, l'AEM V5 est en
+# enregistrements de 1000 caracteres separes par CRLF, et la DPAE compte 990
+# caracteres saut de ligne compris.
+#
+# Si Git normalisait les fins de ligne -- CRLF ici, LF sur un clone Linux --,
+# un gabarit changerait de longueur et le rejeu ne retrouverait plus les
+# fichiers de CoolPaie. La regle est donc : Git ne touche a rien.
+* -text
+
+# EXCEPTION : LE CODE ET LES DOCS DU LOGICIEL SONT EN LF, PARTOUT.
+#
+# La regle du dessus protege les DONNEES. Elle a un effet de bord : sur un
+# fichier de CODE, Git ne dit rien non plus quand les fins de ligne se
+# melangent. Un fichier en CRLF modifie depuis Linux recoit des insertions en
+# LF, et le fichier devient melange sans que rien ne le signale. C'est arrive
+# plusieurs fois. Le code n'est compare octet pour octet par personne : il
+# n'a aucune raison de garder du CRLF.
+#
+# Les fichiers ci-dessous sont donc normalises en LF, dans l'index comme dans
+# l'arbre de travail (`text eol=lf`), sur Linux comme sur Windows. Le perimetre
+# est ferme, par extension, et se limite a `logiciel/`, a `atelier/sources/`,
+# `atelier/docs/` et aux `.md` d'`atelier/`, au journal de `prive/journal/`
+# et aux `.md` de la racine. Les `.cmd` et `.bat` restent en
+# CRLF : c'est Windows qui les lit.
+#
+# CE QUI NE CHANGE PAS : les donnees gardent AUCUNE CONVERSION (`-text`, la
+# regle du dessus) -- gabarits AEM et DPAE, DSN et AEM de CoolPaie, retours,
+# fichiers `.dsn`, et tout ce qui est compare octet pour octet ou dont on
+# calcule une empreinte. Sont aussi laisses tels quels, volontairement : le
+# `.csv` de l'Urssaf (copie d'une source dont `sources.json` verifie le sha256),
+# les `.modele` et les `.txt`, les fixtures de `atelier/sources/paie/tests/donnees/`,
+# et tout ce qui est hors du perimetre. Un fichier hors regle garde sa fin de
+# ligne : on le lit et on l'ecrit en `newline=''`.
+logiciel/**/*.py text eol=lf
+logiciel/**/*.pyw text eol=lf
+logiciel/**/*.rs text eol=lf
+logiciel/**/*.js text eol=lf
+logiciel/**/*.css text eol=lf
+logiciel/**/*.html text eol=lf
+logiciel/**/*.md text eol=lf
+logiciel/**/*.json text eol=lf
+logiciel/**/*.toml text eol=lf
+logiciel/**/*.yml text eol=lf
+logiciel/**/*.yaml text eol=lf
+logiciel/**/*.sh text eol=lf
+logiciel/**/*.svg text eol=lf
+atelier/sources/**/*.rs text eol=lf
+atelier/sources/**/*.js text eol=lf
+atelier/sources/**/*.css text eol=lf
+atelier/sources/**/*.html text eol=lf
+atelier/sources/**/*.md text eol=lf
+atelier/sources/**/*.json text eol=lf
+atelier/sources/**/*.toml text eol=lf
+atelier/sources/**/*.lock text eol=lf
+atelier/docs/**/*.md text eol=lf
+atelier/*.md text eol=lf
+/*.md text eol=lf
+prive/journal/*.md text eol=lf
+prive/journal/archives/*.md text eol=lf
+
+# Les fixtures des tests de la paie restent des donnees, sans conversion.
+atelier/sources/paie/tests/donnees/** -text
+
+# Windows lit ces fichiers : CRLF, et Git n'y touche pas.
+*.cmd -text
+*.bat -text

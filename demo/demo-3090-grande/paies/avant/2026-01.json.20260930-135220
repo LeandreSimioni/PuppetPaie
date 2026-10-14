@@ -1,0 +1,133 @@
+{
+  "_origine": "Compagnie de demonstration demo-3090-grande, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2026-01",
+  "taux_cachet": 180.0,
+  "date_paiement": "2026-01-31",
+  "engagements": [
+    {
+      "salarie": "Montansier",
+      "nature": "cdi",
+      "debut": "2023-09-04",
+      "numero": "MO.23.01",
+      "salaire_mensuel": 3120.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Nicolet",
+      "nature": "cdi",
+      "debut": "2024-03-01",
+      "numero": "NI.24.01",
+      "salaire_mensuel": 2310.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Audinot",
+      "nature": "cdd",
+      "debut": "2025-09-01",
+      "numero": "AU.25.01",
+      "salaire_mensuel": 1980.0,
+      "quotite_contrat": 151.67,
+      "fin": "2026-06-30",
+      "motif_recours": "02"
+    },
+    {
+      "salarie": "Biancolelli",
+      "spectacle": "266Z00910022",
+      "debut": "2026-01-12",
+      "fin": "2026-01-30",
+      "date_paiement": "2026-01-30",
+      "lignes": [
+        {
+          "rubrique": "repetition",
+          "quantite": 15,
+          "taux": 95.0,
+          "heures": 4,
+          "lieu": "Salle de repetition, Tours",
+          "dates": [
+            "2026-01-12",
+            "2026-01-13",
+            "2026-01-14",
+            "2026-01-15",
+            "2026-01-16",
+            "2026-01-19",
+            "2026-01-20",
+            "2026-01-21",
+            "2026-01-22",
+            "2026-01-23",
+            "2026-01-26",
+            "2026-01-27",
+            "2026-01-28",
+            "2026-01-29",
+            "2026-01-30"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Clairon",
+      "spectacle": "266Z00910022",
+      "debut": "2026-01-12",
+      "fin": "2026-01-30",
+      "date_paiement": "2026-01-30",
+      "lignes": [
+        {
+          "rubrique": "repetition",
+          "quantite": 15,
+          "taux": 95.0,
+          "heures": 4,
+          "lieu": "Salle de repetition, Tours",
+          "dates": [
+            "2026-01-12",
+            "2026-01-13",
+            "2026-01-14",
+            "2026-01-15",
+            "2026-01-16",
+            "2026-01-19",
+            "2026-01-20",
+            "2026-01-21",
+            "2026-01-22",
+            "2026-01-23",
+            "2026-01-26",
+            "2026-01-27",
+            "2026-01-28",
+            "2026-01-29",
+            "2026-01-30"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Jacquet",
+      "spectacle": "266Z00910022",
+      "debut": "2026-01-12",
+      "fin": "2026-01-30",
+      "date_paiement": "2026-01-30",
+      "lignes": [
+        {
+          "rubrique": "repetition",
+          "quantite": 15,
+          "taux": 95.0,
+          "heures": 4,
+          "lieu": "Salle de repetition, Tours",
+          "dates": [
+            "2026-01-12",
+            "2026-01-13",
+            "2026-01-14",
+            "2026-01-15",
+            "2026-01-16",
+            "2026-01-19",
+            "2026-01-20",
+            "2026-01-21",
+            "2026-01-22",
+            "2026-01-23",
+            "2026-01-26",
+            "2026-01-27",
+            "2026-01-28",
+            "2026-01-29",
+            "2026-01-30"
+          ]
+        }
+      ]
+    }
+  ]
+}

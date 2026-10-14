@@ -1,0 +1,74 @@
+{
+  "_origine": "Compagnie de demonstration demo-3090-petite, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2026-02",
+  "taux_cachet": 150.0,
+  "date_paiement": "2026-02-28",
+  "engagements": [
+    {
+      "salarie": "Brioche",
+      "spectacle": "256Z00920022",
+      "debut": "2026-02-09",
+      "fin": "2026-02-13",
+      "date_paiement": "2026-02-13",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 5,
+          "taux": 150.0,
+          "lieu": "Ecoles du Puy-de-Dome",
+          "dates": [
+            "2026-02-09",
+            "2026-02-10",
+            "2026-02-11",
+            "2026-02-12",
+            "2026-02-13"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Seraphin",
+      "spectacle": "256Z00920022",
+      "debut": "2026-02-09",
+      "fin": "2026-02-13",
+      "date_paiement": "2026-02-13",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 5,
+          "taux": 150.0,
+          "lieu": "Ecoles du Puy-de-Dome",
+          "dates": [
+            "2026-02-09",
+            "2026-02-10",
+            "2026-02-11",
+            "2026-02-12",
+            "2026-02-13"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Lemercier",
+      "spectacle": "256Z00920022",
+      "debut": "2026-02-09",
+      "fin": "2026-02-13",
+      "date_paiement": "2026-02-13",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 30,
+          "taux": 18.0,
+          "lieu": "Ecoles du Puy-de-Dome",
+          "dates": [
+            "2026-02-09",
+            "2026-02-10",
+            "2026-02-11",
+            "2026-02-12",
+            "2026-02-13"
+          ]
+        }
+      ]
+    }
+  ]
+}

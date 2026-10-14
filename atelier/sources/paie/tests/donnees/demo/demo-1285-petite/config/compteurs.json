@@ -1,0 +1,16 @@
+{
+  "2025": {
+    "bulletin": 12,
+    "contrat_BEAUCHAMP": 4,
+    "contrat_CAMARGO": 4,
+    "contrat_JAELL": 4,
+    "certificat_cs": 12
+  },
+  "2026": {
+    "bulletin": 11,
+    "contrat_BEAUCHAMP": 4,
+    "contrat_CAMARGO": 4,
+    "certificat_cs": 23,
+    "contrat_JAELL": 3
+  }
+}

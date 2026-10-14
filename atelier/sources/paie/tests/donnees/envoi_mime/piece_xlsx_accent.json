@@ -1,0 +1,13 @@
+{
+ "sujet": "Octobre 2026",
+ "corps": "Bonjour,\n\nTout va bien.\n",
+ "html": "",
+ "pieces": [
+  {
+   "nom": "Liste_é.xlsx",
+   "taille": 300
+  }
+ ],
+ "dest": "marie@exemple.fr",
+ "exp": "compagnie@gmail.com"
+}

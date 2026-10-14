@@ -1,0 +1,9 @@
+Certificats d'emploi Conges Spectacles
+Compte (adherent Audiens) : 0000000000F
+----------------------------------------------------------------------------
+  N CE 40     TURLUPIN Lelio         23/06/2026 -> 27/06/2026   5 jour(s)/cachet(s)  brut   850  base   850
+  N CE 41     NOVERRE Lysandre       23/06/2026 -> 27/06/2026   5 jour(s)/cachet(s)  brut   850  base   850
+  N CE 42     TORELLI Oronte         23/06/2026 -> 27/06/2026   5 jour(s)/cachet(s)  brut   700  base   700
+----------------------------------------------------------------------------
+A remettre au salarie a la fin de son contrat. Rien a envoyer a
+Audiens : la cotisation part deja par la DSN (S21.G00.78 type 27).

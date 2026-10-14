@@ -1,0 +1,10 @@
+Certificats d'emploi Conges Spectacles
+Compte (adherent Audiens) : 0000000000F
+----------------------------------------------------------------------------
+  N CE 1      BIANCOLELLI Dominique  13/01/2025 -> 18/01/2025   3 jour(s)/cachet(s)  brut   732  base   732
+  N CE 2      DEBURAU Baptiste       13/01/2025 -> 18/01/2025   3 jour(s)/cachet(s)  brut   732  base   732
+  N CE 3      CLAIRON Lucile         13/01/2025 -> 18/01/2025   3 jour(s)/cachet(s)  brut   732  base   732
+  N CE 4      CHAMINADE Dorine       13/01/2025 -> 18/01/2025   5 jour(s)/cachet(s)  brut   740  base   740
+----------------------------------------------------------------------------
+A remettre au salarie a la fin de son contrat. Rien a envoyer a
+Audiens : la cotisation part deja par la DSN (S21.G00.78 type 27).

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<FICHE DateHeureCreation="2027-01-04T09:00:00" IdentifiantFiche="9000140" Version="140">
+  <Entreprise SIREN="123456782" NIC="00011" RaisonSociale="COMPAGNIE FICTIVE"/>
+  <ProducteurFiche CodeProducteur="P9999" RaisonSocialeProducteur="ORGANISME FICTIF"/>
+  <ContactTechniqueFiche Nom="Service fictif" Mail="contact@exemple.fr" Tel="0100000000"/>
+  <ContactGestionnaireFiche Nom="Gestion fictive" Mail="gestion@exemple.fr" Tel="0100000000"/>
+  <GROUPE NumeroGrp="00001" LibelleGrp="PERMANENTS SANTE">
+    <ParametresContrats DateDebutValidite="01012027" Periodicite="Mensuel">
+      <Organisme CodeOC="P9999"/>
+      <Contrat ReferenceContrat="SANTE-FICTIVE" LibelleContrat="SANTE FICTIVE"/>
+      <Option CodeOption="FAM" LibelleOption="FAMILLE"/>
+      <Population CodePopulation="NC" LibellePopulation="NON CADRES"/>
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique ValeurCodeNature="18" LibelleCodeNature="OUVRANT DROIT PSS" Condition="90">
+          <Taux>1.2900</Taux><Coef>1.00</Coef><Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+        <BaseMontantSpecifique ValeurCodeNature="18" LibelleCodeNature="CONJOINT PSS" Condition="91">
+          <Taux>1.2900</Taux><Coef>1.00</Coef><Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+        <BaseMontantSpecifique ValeurCodeNature="18" LibelleCodeNature="ENFANT PSS" Condition="94">
+          <Taux>0.7400</Taux><Coef>1.00</Coef><Assiette>PMSS</Assiette>
+          <BasePlafond><TauxPlafond>2.2200</TauxPlafond><CoefPlafond>1.00</CoefPlafond><AssiettePlafond>PMSS</AssiettePlafond></BasePlafond>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+    <ParametresContrats DateDebutValidite="01012027" Periodicite="Mensuel">
+      <Organisme CodeOC="P9999"/>
+      <Contrat ReferenceContrat="SANTE-FICTIVE" LibelleContrat="SANTE FICTIVE"/>
+      <Option CodeOption="ISO" LibelleOption="ISOLE"/>
+      <Population CodePopulation="NC" LibellePopulation="NON CADRES"/>
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique ValeurCodeNature="20" LibelleCodeNature="FORFAIT ISOLE" Condition="02">
+          <Montant>45.00</Montant>
+          <BasePlancher><MontantPlancher>30.00</MontantPlancher></BasePlancher>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+  </GROUPE>
+</FICHE>

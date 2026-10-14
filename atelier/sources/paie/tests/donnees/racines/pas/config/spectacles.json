@@ -1,0 +1,19 @@
+{
+  "_note": "Compagnie de demonstration : titres et numeros d'objet fabriques.",
+  "le-barbier-de-seville": {
+    "titre": "Le Barbier de Séville",
+    "numero_objet": "256Z00930011",
+    "alias": [
+      "le barbier de séville"
+    ],
+    "code_analytique": "TRAV"
+  },
+  "les-fetes-venitiennes": {
+    "titre": "Les Fêtes vénitiennes",
+    "numero_objet": "256Z00930022",
+    "alias": [
+      "les fêtes vénitiennes"
+    ],
+    "code_analytique": "VOIX"
+  }
+}

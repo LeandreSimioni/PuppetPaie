@@ -1,0 +1,16 @@
+{
+  "2025": {
+    "bulletin": 20,
+    "contrat_BRIOCHE": 8,
+    "contrat_SERAPHIN": 6,
+    "contrat_LEMERCIER": 6,
+    "certificat_cs": 20
+  },
+  "2026": {
+    "bulletin": 12,
+    "contrat_BRIOCHE": 4,
+    "contrat_SERAPHIN": 4,
+    "contrat_LEMERCIER": 4,
+    "certificat_cs": 32
+  }
+}

@@ -1,0 +1,17 @@
+{
+ "sujet": "Octobre 2026",
+ "corps": "Bonjour,\n\nTout va bien.\n",
+ "html": "",
+ "pieces": [
+  {
+   "nom": "Bulletin_dupont-marie_Octobre2026.pdf",
+   "taille": 400
+  },
+  {
+   "nom": "CertificatCS_dupont-marie_Octobre2026.pdf",
+   "taille": 250
+  }
+ ],
+ "dest": "marie@exemple.fr",
+ "exp": "compagnie@gmail.com"
+}

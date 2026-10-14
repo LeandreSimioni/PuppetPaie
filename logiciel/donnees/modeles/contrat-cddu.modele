@@ -1,0 +1,115 @@
+# Modèle de contrat d'engagement à durée déterminée d'usage — artiste du spectacle.
+#
+# CE FICHIER EST UNE DONNÉE, PAS DU CODE.
+# Il s'ouvre et se modifie dans n'importe quel éditeur de texte. Chaque
+# compagnie garde sa propre version : le moteur, lui, ne change pas.
+#
+# Pour SUPPRIMER un article : effacer son bloc ARTICLE en entier.
+# Pour en AJOUTER un : copier un bloc et l'écrire où l'on veut.
+# L'ordre des articles dans ce fichier est l'ordre dans le contrat imprimé.
+#
+# Les marqueurs {{...}} sont remplacés à l'édition. La liste complète est en
+# bas de ce fichier. Un marqueur inconnu arrête la génération plutôt que
+# d'imprimer un trou : on ne signe pas un contrat à moitié rempli.
+#
+# **texte** met en gras. Une ligne vide sépare deux paragraphes.
+
+TITRE: Contrat d'engagement à durée déterminée d'usage
+
+SOUSTITRE: Contrat n° {{contrat.numero}}
+
+# La phrase posée en tête d'un contrat qui ANNULE ET REMPLACE un contrat déjà
+# parti (refait en entier avant que son exécution commence). Sans cette clé,
+# le logiciel écrit la même phrase que celle-ci.
+ANNULE:
+Le présent contrat annule et remplace le contrat n° {{remplace.numero}} du {{remplace.date}}, qui est réputé n'avoir jamais produit d'effet.
+
+PREAMBULE:
+**Entre les soussignés,**
+
+L'employeur : **{{employeur.raison_sociale}}**, {{employeur.adresse}}, {{employeur.code_postal}} {{employeur.commune}} — SIRET {{employeur.siret}}, code APE {{employeur.naf}}, licence d'entrepreneur de spectacles n° {{employeur.licence}}, représentée par {{employeur.signataire}}, en qualité de {{employeur.signataire_fonction}}, ci-après dénommé **l'employeur**,
+
+**Et**
+
+L'artiste : **{{salarie.nom_complet}}**, né(e) le {{salarie.date_naissance}} à {{salarie.lieu_naissance}}, demeurant {{salarie.adresse}}, {{salarie.code_postal}} {{salarie.commune}}, n° de sécurité sociale {{salarie.nir}}, ci-après dénommé(e) **l'artiste**,
+
+Il a été convenu et arrêté ce qui suit.
+
+ARTICLE: Objet et nature du contrat
+L'artiste est engagé(e) en qualité {{salarie.qualite_de}}**{{salarie.emploi}}** pour le spectacle **{{spectacle.titre}}** (numéro d'objet France Travail {{spectacle.numero_objet}}).
+
+Le présent contrat est un contrat à durée déterminée d'usage conclu en application de l'article L.1242-2 3° du code du travail, de l'accord interbranche du 12 octobre 1998 sur le recours au contrat à durée déterminée d'usage dans le spectacle, et de la convention collective nationale applicable à l'employeur — {{employeur.convention}}, IDCC {{employeur.idcc}}. L'usage constant exclut le recours au contrat à durée indéterminée pour cet emploi.
+
+ARTICLE: Durée
+Le contrat prend effet le **{{contrat.debut}}** et prend fin de plein droit le **{{contrat.fin}}**, sans qu'il soit besoin d'un préavis.
+
+Dates de travail : {{contrat.dates_travail}}.
+
+ARTICLE: Lieu de travail
+Les prestations sont exécutées {{contrat.lieu}}, ainsi qu'en tout lieu nécessaire à la préparation et à la représentation du spectacle.
+
+ARTICLE: Rémunération
+L'artiste perçoit **{{remuneration.detail}} brut**, soit une rémunération brute totale de **{{remuneration.brut}} €**{{remuneration.periode}}{{remuneration.hors_brut}}, dont le net à payer estimé est de {{remuneration.net_estime}} €.
+
+Le paiement intervient par virement le {{contrat.date_paiement}}. Les congés payés sont réglés par la Caisse des Congés Spectacles, à laquelle l'employeur est affilié sous le numéro {{employeur.congesspectacles}}.
+
+ARTICLE: Protection sociale
+L'employeur procède à la déclaration préalable à l'embauche auprès de l'URSSAF et à l'attestation employeur mensuelle auprès de France Travail.
+
+L'artiste relève des annexes VIII et X du règlement d'assurance chômage. Retraite complémentaire et prévoyance : groupe AUDIENS.
+
+ARTICLE: Absence et maladie
+En cas de maladie ou d'empêchement d'assurer une répétition ou une représentation, l'artiste est tenu(e) d'en aviser l'employeur dans un délai de 24 heures en précisant la durée probable de son absence, et de transmettre dans les plus brefs délais un certificat médical.
+
+ARTICLE: Obligations de l'artiste
+L'artiste s'engage à se conformer aux horaires de répétition et de représentation, à respecter les consignes de sécurité et à n'accepter aucun engagement incompatible avec les dates ci-dessus.
+
+ARTICLE: Droit de priorité et d'exclusivité
+Le présent contrat donne à l'employeur une priorité sur tout autre engagement que l'artiste pourrait conclure par ailleurs sur la période couverte. Toute dérogation à cette clause fait l'objet d'un accord écrit préalable de l'employeur.
+
+ARTICLE: Médecine du travail
+L'artiste déclare avoir satisfait aux obligations relatives à la médecine du travail et communiquera à l'employeur l'attestation annuelle qui lui a été délivrée par cet organisme.
+
+ARTICLE: Assurances
+L'artiste est tenu(e) d'assurer contre tous les risques les objets lui appartenant. L'employeur déclare avoir souscrit les assurances nécessaires à la couverture des risques liés aux représentations du spectacle.
+
+ARTICLE: Droits voisins
+La rémunération ci-dessus couvre la seule prestation de travail. Toute fixation, reproduction ou communication au public de l'interprétation fera l'objet d'une autorisation écrite distincte et, le cas échéant, d'une rémunération séparée.
+
+ARTICLE: Litiges
+En cas de litige portant sur l'interprétation ou l'application du présent contrat, les parties conviennent de s'en remettre à l'appréciation des tribunaux compétents, après épuisement des voies amiables.
+
+SIGNATURES:
+Fait en double exemplaire à {{employeur.commune}}, le {{contrat.debut}}.
+
+# ---------------------------------------------------------------------------
+# MARQUEURS DISPONIBLES
+#
+#   employeur.raison_sociale      employeur.siret          employeur.idcc
+#   employeur.adresse             employeur.naf            employeur.convention
+#   employeur.code_postal         employeur.licence        employeur.congesspectacles
+#   employeur.commune             employeur.signataire     employeur.signataire_fonction
+#
+#   salarie.nom_complet           salarie.date_naissance   salarie.adresse
+#   salarie.nom                   salarie.lieu_naissance   salarie.code_postal
+#   salarie.prenom                salarie.nir              salarie.commune
+#   salarie.emploi                salarie.qualite_de  (« d' » ou « de », selon l'emploi)
+#
+#   contrat.numero                contrat.debut            contrat.dates_travail
+#   contrat.lieu                  contrat.fin              contrat.date_paiement
+#
+#   remplace.numero               remplace.date   (bloc ANNULE: seulement)
+#
+#   remuneration.detail           remuneration.brut        remuneration.net_estime
+#   remuneration.cachets          remuneration.taux_cachet remuneration.periode
+#     ^ periode : << pour le mois de mai 2026 >> quand le contrat se poursuit
+#       apres le mois (le total et le net sont ceux du mois) ; vide sinon.
+#     ^ ces deux-la ne valent que pour un contrat de cachets. `detail` dit
+#       la remuneration quelle que soit sa forme -- journee, repetition,
+#       masterclass -- et c'est lui qu'il faut employer.
+#   remuneration.hors_brut
+#     ^ `detail` ne cite que ce qui fait le brut. Ce qui est verse en plus
+#       (defraiements, indemnites non soumises) est dans `hors_brut` :
+#       << , auxquels s'ajoutent 3 defraiements au forfait a 20,20 EUR hors
+#       brut >>, vide sans eux. Un modele qui l'omet est refuse s'il y en a.
+# ---------------------------------------------------------------------------

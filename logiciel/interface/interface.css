@@ -1,0 +1,1448 @@
+/* La charte de la compagnie : carmin d'accent, bleu ardoise pour le texte.
+   Les memes couleurs que le bulletin et le contrat -- l'interface et les
+   documents produits doivent avoir l'air du meme logiciel. */
+:root {
+  /* TROIS COULEURS, TROIS RÔLES (30/09/2026). L'éditeur : « on clique sur
+     rouge pour valider, c'est vraiment bizarre ». La couleur de la compagnie
+     était l'accent de toute la page — boutons, cases actives, liens — et,
+     rouge par défaut, elle se confondait avec l'erreur. Désormais :
+       --action     ce qui se clique et ce qui a le focus : un vert sobre ;
+       --compagnie  l'identité seulement (le filet du logo, le liseré du
+                    bandeau), posée par le serveur depuis l'accueil ;
+       --erreur     l'erreur, et rien d'autre. */
+  --action: #2E6A57;
+  --action-fonce: #22503F;
+  --compagnie: #B22222;
+  --texte: #2C3E50;
+  --fond: #F7F6F4;
+  --carte: #FFFFFF;
+  --bord: #DDD8D2;
+  --discret: #7A8794;
+  --erreur: #B22222;
+  --alerte: #C77B27;
+  --succes: #4A7C46;
+  /* LES TEINTES, nommees une fois (24/09/2026). Chaque couleur de la page
+     vient d'ici : un fond de pastille, une bordure, un bouton. Une teinte
+     ecrite en dur ailleurs est une teinte que la charte ne connait pas. */
+  --erreur-fond: #F6E3E3;        /* pastille « erreur » */
+  --erreur-champ: #FDF6F6;       /* une case en faute */
+  --alerte-fond: #FBF0DF;        /* pastille « à vérifier », bandeau en souci */
+  --alerte-leger: #FBF5EA;       /* un encart « déclaré avant » */
+  --succes-fond: #E8F0E7;        /* pastille « fait », bandeau à jour */
+  --succes-trait: #CDDCC9;       /* le fil des étapes faites, une validation */
+  --archive-fond: #EEE;          /* pastille « archivé » */
+  --archive-texte: #555;
+  --vide-texte: #9a9aa0;         /* « rien de posé » */
+  --apercu-bord: #d6d9e0;        /* le cadre d'une signature, d'un tampon */
+  --veille-fond: #F0EEEA;        /* le bandeau des relèves */
+  --copie: #2F6F8F;              /* la copie de développement */
+  --hachure: #cfe3f2;            /* les rayures d'une compagnie fictive */
+  --blanc: #fff;                 /* le texte sur un fond de couleur */
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 14px/1.5 Arial, Helvetica, sans-serif;
+  color: var(--texte);
+  background: var(--fond);
+}
+
+/* --------------------------------------------------------------- bandeau */
+.bandeau {
+  display: flex; align-items: center; gap: 24px;
+  padding: 10px 20px;
+  background: var(--carte);
+  border-bottom: 3px solid var(--compagnie);
+  position: sticky; top: 0; z-index: 10;
+}
+.marque { display: flex; align-items: center; gap: 10px; }
+.marque strong { display: block; font-size: 15px; letter-spacing: .3px; }
+.marque .sous { color: var(--discret); font-size: 12px; }
+.marque .version { display: block; font-size: 11px; }
+.logo { width: 38px; height: 24px; }
+.logo .filet { fill: var(--compagnie); }
+.logo .pp { font: bold 30px Georgia, serif; fill: var(--texte); }
+
+.onglets { display: flex; gap: 4px; }
+.onglets button {
+  border: 1px solid transparent; background: none; cursor: pointer;
+  padding: 7px 14px; border-radius: 3px;
+  font: inherit; color: var(--discret);
+}
+.onglets button:hover { background: var(--fond); }
+.onglets button.actif {
+  color: var(--texte); border-color: var(--bord); background: var(--fond);
+  font-weight: bold;
+}
+/* LES SOUS-ONGLETS, UN CRAN PLUS LÉGERS (24/09/2026) : du texte, et un trait
+   sous celui qu'on regarde -- ils avaient le dessin des onglets, et rien ne
+   disait lequel était dans l'autre. Le groupe de l'installation, à droite. */
+.sous-onglets { display: flex; align-items: flex-end; gap: 2px;
+  border-bottom: 1px solid var(--bord); margin-bottom: 18px; }
+.sous-onglets button {
+  border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none;
+  padding: 8px 12px 7px; margin-bottom: -1px; font: inherit; color: var(--discret); cursor: pointer;
+}
+.sous-onglets button:hover { color: var(--texte); }
+.sous-onglets button.actif { color: var(--texte); border-bottom-color: var(--action); font-weight: bold; }
+.sous-onglets-installation { display: flex; gap: 2px; margin-left: auto; }
+.sous-onglets-installation button { font-size: 13px; }
+.etat { margin-left: auto; font-size: 12px; color: var(--discret); text-align: right; }
+
+/* La fenetre PuppetPaie (pywebview, sans bordure) : le bandeau sert de barre
+   de titre. Rien de ceci n'existe dans un navigateur (`body.fenetre` absent). */
+.fenetre-boutons, .fenetre-poignee, .retour-accueil { display: none; }
+/* Le chemin vers l'accueil des compagnies (ticket #113) : discret comme
+   « Un problème, une idée ? », a cote. Seulement si le lanceur sait y
+   revenir (`body.accueil-possible`, voir fenetreNative). */
+body.accueil-possible .retour-accueil {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+  border: none; background: none; color: var(--discret);
+  font-size: 11px; padding: 4px 8px; margin-right: 10px; cursor: pointer; align-self: center;
+}
+.retour-accueil .maison { width: 22px; height: 22px; }
+body.accueil-possible .retour-accueil:hover { color: var(--texte); }
+body.fenetre .bandeau { padding-right: 8px; }
+body.fenetre .fenetre-boutons { display: flex; gap: 2px; margin-left: 8px; align-self: flex-start; margin-top: -6px; }
+.fenetre-boutons button {
+  width: 34px; height: 26px; border: 0; background: transparent; color: var(--discret);
+  font: 13px/1 Arial, sans-serif; border-radius: 4px; cursor: default;
+  /* Le glyphe au centre, et pas dans le coin : un bouton a un padding par
+     defaut et pose son texte sur la ligne de base -- avec un tiret et une
+     croix, ca se voyait (16/09/2026, « les signes ne sont pas centres »). */
+  display: inline-flex; align-items: center; justify-content: center; padding: 0;
+}
+.fenetre-boutons button:hover { background: var(--fond); color: var(--texte); }
+.fenetre-boutons button.fermer:hover { background: var(--action); color: var(--blanc); }
+body.fenetre .fenetre-poignee {
+  display: block; position: fixed; right: 0; bottom: 0; width: 16px; height: 16px;
+  cursor: nwse-resize; z-index: 50;
+  background: linear-gradient(135deg, transparent 50%, var(--bord) 50%, var(--bord) 60%, transparent 60%, transparent 75%, var(--bord) 75%, var(--bord) 85%, transparent 85%);
+}
+.etat b { color: var(--texte); }
+
+/* ------------------------------------------------------------- la veille */
+.veille {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 20px;
+  background: var(--veille-fond); border-bottom: 1px solid var(--bord);
+  font-size: 12px; color: var(--discret);
+}
+.veille.souci { background: var(--alerte-fond); color: var(--alerte); }
+.veille.neuf { background: var(--succes-fond); color: var(--succes); }
+.veille-texte b { color: var(--texte); }
+.lien {
+  border: none; background: none; cursor: pointer; padding: 0;
+  font: inherit; color: var(--action); text-decoration: underline;
+}
+
+/* C'EST `main` QUI DEFILE, PAS LA PAGE (16/09/2026). Dans la fenetre sans
+   bordure, la barre de defilement de la page collait au bord de l'ecran et
+   << paraissait exterieure a la fenetre >>. Le corps ne defile plus : le
+   bandeau et la veille restent en haut, `main` prend le reste et porte sa
+   propre barre, fine et en retrait, sous le bandeau. La meme mise en page
+   dans un navigateur, pour n'avoir qu'une seule. */
+html, body { height: 100%; }
+body { display: flex; flex-direction: column; overflow: hidden; }
+.bandeau, .veille { flex: none; }
+main { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
+       padding: 20px 16px 20px 20px; margin: 0 6px 0 0; }
+main > .vue { max-width: 1400px; margin: 0 auto; }
+/* Toutes les barres (main, la colonne d'apercu, les boites) : fines, en
+   retrait, de la charte. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; margin: 8px 0; }
+::-webkit-scrollbar-thumb { background: var(--bord); border-radius: 5px; border: 2px solid var(--fond); }
+::-webkit-scrollbar-thumb:hover { background: var(--discret); }
+/* `!important` a une raison precise : `.voile` et `.vue` posent leur propre
+   `display`, avec la meme specificite qu'une classe. Sans lui, la derniere
+   regle du fichier gagnait et la boite de dialogue VIDE restait affichee
+   par-dessus la saisie. Cacher quelque chose ne doit pas dependre de l'ordre
+   des lignes dans une feuille de style. */
+.cachee { display: none !important; }
+
+h2 {
+  font-size: 13px; text-transform: uppercase; letter-spacing: .8px;
+  color: var(--discret); font-weight: bold;
+  margin: 22px 0 10px; padding-bottom: 5px;
+  border-bottom: 1px solid var(--bord);
+}
+h2:first-child { margin-top: 0; }
+h2 .discret { text-transform: none; letter-spacing: 0; font-weight: normal; }
+.discret { color: var(--discret); font-weight: normal; }
+
+/* ------------------------------------------------------------ formulaires */
+label { display: block; font-size: 12px; color: var(--discret); }
+input, select, textarea {
+  display: block; width: 100%; margin-top: 3px;
+  padding: 6px 8px; font: inherit; color: var(--texte);
+  border: 1px solid var(--bord); border-radius: 3px; background: var(--carte);
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--action);
+}
+input.faute { border-color: var(--erreur); background: var(--erreur-champ); }
+input.suspect { border-color: var(--alerte); }
+textarea { font-family: Consolas, monospace; font-size: 12px; }
+
+button {
+  font: inherit; cursor: pointer; padding: 7px 16px;
+  border-radius: 3px; border: 1px solid var(--bord); background: var(--carte);
+  color: var(--texte);
+}
+button:hover { border-color: var(--discret); }
+button.primaire {
+  background: var(--action); border-color: var(--action); color: var(--blanc);
+  font-weight: bold;
+}
+button.primaire:hover { background: var(--action-fonce); }
+button.secondaire { background: var(--carte); }
+button.discret { border: none; color: var(--discret); padding: 4px 8px; }
+button:disabled { opacity: .45; cursor: default; }
+input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-allowed; }
+/* Un acte en cours : le bouton reste lisible et dit ce qui se passe. */
+button.occupe:disabled { opacity: .8; cursor: progress; }
+button.occupe::before { content: ""; display: inline-block; width: .8em; height: .8em;
+  margin-right: .5em; vertical-align: -.1em; border: 2px solid currentColor;
+  border-right-color: transparent; border-radius: 50%; animation: tourne .8s linear infinite; }
+@keyframes tourne { to { transform: rotate(360deg); } }
+
+.colonnes { display: grid; grid-template-columns: 1fr 400px; gap: 24px; align-items: start; }
+.col-saisie, .col-apercu, .carte {
+  background: var(--carte); border: 1px solid var(--bord);
+  border-radius: 4px; padding: 18px;
+}
+.col-apercu { position: sticky; top: 0; }   /* colle en haut de `main`, qui defile */
+
+/* Il n'y reste que le mois, et un rappel de ce qui s'applique sans se saisir
+   (le taux repris du dernier, le paiement en fin de mois). Voir index.html. */
+.grille-mois {
+  display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap;
+}
+/* Le choix du mois (25/09/2026) : une case, ‹ Octobre 2026 ›, et l'année en
+   grille au clic. */
+.choix-mois { position: relative; width: 15rem; }
+.choix-mois-lib { display: block; font-size: 12px; color: var(--discret); }
+.choix-mois-case {
+  display: flex; align-items: stretch; margin-top: 3px;
+  border: 1px solid var(--bord); border-radius: 3px; background: var(--carte);
+}
+.choix-mois-case:hover { border-color: var(--discret); }
+.choix-mois-case:focus-within { border-color: var(--action); }
+.choix-mois button {
+  border: none; background: none; border-radius: 0; color: var(--texte);
+}
+.choix-mois-pas {
+  flex: none; width: 2rem; padding: 0; font-size: 18px; line-height: 1;
+  color: var(--discret) !important;
+}
+.choix-mois-pas:hover { color: var(--texte) !important; background: var(--fond) !important; }
+.choix-mois-nom {
+  flex: 1; padding: 6px 4px; font-weight: bold; text-align: center;
+}
+.choix-mois-nom:focus-visible, .choix-mois-pas:focus-visible { outline: 2px solid var(--action); outline-offset: -2px; }
+.choix-mois-grille {
+  position: absolute; z-index: 20; top: 100%; left: 0; margin-top: 4px;
+  width: 100%; min-width: 15rem; padding: 8px;
+  background: var(--carte); border: 1px solid var(--bord); border-radius: 4px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .12);
+}
+.choix-mois-annee {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--bord);
+}
+.choix-mois-annee .choix-mois-pas { height: 1.8rem; }
+.choix-mois-douze { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.choix-mois-douze button {
+  position: relative; padding: 7px 0; font-size: 13px; border-radius: 3px;
+}
+.choix-mois-douze button:hover { background: var(--fond); }
+.choix-mois-douze button.maintenant { box-shadow: inset 0 0 0 1px var(--discret); }
+.choix-mois-douze button.choisi,
+.choix-mois-douze button.choisi:hover { background: var(--action); color: var(--blanc); font-weight: bold; }
+/* un point sous les mois qui ont une saisie */
+.choix-mois-douze button.saisi::after {
+  content: ""; position: absolute; left: 50%; bottom: 2px; width: 4px; height: 4px;
+  margin-left: -2px; border-radius: 50%; background: currentColor; opacity: .55;
+}
+.grille-mois .note { margin: 0 0 .45rem; }
+
+/* ----------------------------------------------------------- engagements */
+/* Un mois ferme (DSN due) : on lit, on ne touche pas. */
+#engagements.lecture-seule { pointer-events: none; }
+#engagements.lecture-seule .engagement:not(.validee) { opacity: .75; }
+/* ... mais la carte d'une paie se LIT : « Voir le détail » et les pastilles
+   répondent (30/09/2026). Sans ça, rien d'un mois passé ne s'ouvrait, ni le
+   contrat ni la DPAE ; « Modifier… », dans le détail, reste caché tant que
+   le mois n'est pas rouvert. */
+#engagements.lecture-seule .e-resume { pointer-events: auto; }
+.engagement {
+  border: 1px solid var(--bord); border-radius: 4px;
+  padding: 12px; margin-bottom: 10px; background: var(--fond);
+}
+/* Qui, quel spectacle, quels jours. Le spectacle est ici et non dans le bloc
+   du mois : une paie est un spectacle est un numero d'objet, et un mois en
+   porte plusieurs. */
+/* Qui et quel spectacle -- les jours et le lieu sont descendus sur les lignes
+   de paie le 12/09/2026. */
+.engagement .ligne1 {
+  display: grid; grid-template-columns: 1.1fr 1.1fr 1.2fr 1.1fr auto; gap: 10px;
+  align-items: end;
+}
+/* La nature du contrat, cinquieme colonne depuis le 19/09/2026 : un
+   permanent n'a pas de spectacle, et sa case disparait alors. La grille
+   garde ses cinq colonnes -- une case cachee ne laisse pas de trou, `hidden`
+   la sort du flux. */
+.engagement .e-spectacle-bloc[hidden], .engagement .e-nature-bloc[hidden] { display: none; }
+.engagement .resolu { font-size: 12px; color: var(--discret); margin-top: 6px; }
+/* Le métier du contrat : vide, c'est celui de la fiche. La case « cadre »
+   n'apparaît qu'une fois un métier choisi, préréglée par le catalogue. */
+.engagement .e-metier-bloc select { max-width: 100%; }
+.engagement .e-cadre-bloc { display: flex; align-items: center; height: 30px; white-space: nowrap; font-size: 12px; gap: 4px; }
+.engagement .e-cadre-bloc input { width: auto; margin: 0; }
+.engagement .e-cadre-bloc[hidden] { display: none; }
+/* L'avis du moteur sur CETTE paie (minimum conventionnel...) : un encart
+   orange sous le bloc, non bloquant, qui dit quelle grille il a lue. */
+.engagement .avis .avis-paie { margin-top: 6px; font-size: 12px; }
+.engagement.validee .avis { display: none; }
+/* Le salarié : une liste à cocher qui a l'air d'un menu -- on coche qui on
+   veut, un seul bloc pour tous, et il se démultiplie à la validation
+   (etats-paies.js, validerPlusieurs). */
+.engagement .champ { display: block; font-size: 12px; color: var(--discret); }
+.e-qui { position: relative; margin-top: 3px; }
+.e-qui summary {
+  list-style: none; cursor: pointer; padding: 6px 26px 6px 8px;
+  font-size: 14px; color: var(--texte); background: var(--carte);
+  border: 1px solid var(--bord); border-radius: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.e-qui summary::-webkit-details-marker { display: none; }
+.e-qui summary::after {
+  content: "\25BE"; position: absolute; right: 8px; top: 6px; color: var(--discret);
+}
+.e-qui summary.vide { color: var(--discret); }
+.e-qui[open] summary { border-color: var(--action); }
+.e-qui-liste {
+  position: absolute; z-index: 5; left: 0; right: 0; top: 100%;
+  margin-top: 2px; padding: 4px 0; background: var(--carte);
+  border: 1px solid var(--bord); border-radius: 3px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .08);
+}
+.e-qui-liste label {
+  display: flex; align-items: center; gap: 8px; padding: 5px 10px;
+  font-size: 14px; color: var(--texte); cursor: pointer;
+}
+.e-qui-liste label:hover { background: var(--fond); }
+.e-qui-liste input { display: inline; width: auto; margin: 0; }
+.engagement.validee .e-qui summary { pointer-events: none; opacity: .6; }
+.engagement .resolu b { color: var(--texte); }
+.supprimer { color: var(--erreur); border: none; background: none; font-size: 18px; }
+
+.actions { display: flex; gap: 10px; margin-top: 18px; }
+.note { font-size: 12px; color: var(--discret); margin: 10px 0 0; }
+
+/* --------------------------------------------------------------- apercu */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 5px 6px; text-align: right; border-bottom: 1px solid var(--bord); }
+th { font-size: 11px; text-transform: uppercase; color: var(--discret); font-weight: normal; }
+th:first-child, td:first-child { text-align: left; }
+tr.total td { font-weight: bold; border-top: 2px solid var(--texte); border-bottom: none; }
+.num { font-variant-numeric: tabular-nums; }
+
+.encart {
+  border-left: 3px solid var(--bord); padding: 8px 12px; margin: 12px 0;
+  background: var(--fond); font-size: 13px;
+}
+.encart.attention { border-left-color: var(--alerte); }
+.encart.erreur { border-left-color: var(--erreur); }
+.encart.bien { border-left-color: var(--succes); }
+/* CE QUI RENSEIGNE SANS RIEN DEMANDER (24/09/2026, engagement.rs, Avis) : un
+   contrat qui se poursuit le mois suivant n'est pas une alerte. En gris. */
+.encart.info { color: var(--discret); }
+.encart b { display: block; margin-bottom: 3px; }
+/* L'AVENANT (30/09/2026) : l'ancien texte du contrat et le nouveau, cites. */
+.modif-avenant { margin: 10px 0; }
+.modif-avenant .citation { margin: 2px 0 6px 12px; font-style: italic; font-size: 13px; }
+/* LA COMPLEMENTAIRE SANTE d'une fiche salarie : un niveau, un conjoint, des
+   enfants. Trois controles sur une ligne -- une case a cocher qui prendrait
+   toute la largeur, avec son libelle au-dessus, se lit comme un champ de
+   saisie et se coche par erreur. */
+#config-sante { display: flex; gap: 16px; align-items: end; flex-wrap: wrap; }
+#config-sante > label:first-child { flex: 1 1 22rem; }
+#config-sante label.coche { display: flex; align-items: center; gap: 6px; height: 30px; }
+#config-sante label.coche input { width: auto; margin: 0; }
+#config-sante input[type="number"] { width: 6rem; }
+#config-sante .aide { flex-basis: 100%; }
+
+/* -------------------------------------------------------- configuration */
+/* LES FICHES, UNE LIGNE CHACUNE (24/09/2026) : les `.rang` de tout le
+   logiciel. Celle qu'on a ouverte se marque ; une archivée s'estompe, en
+   pointillé -- présente, lisible, et visiblement hors du courant. La grille
+   de cartes vertes est partie avec elles : le vert ne dit plus que « fait ». */
+.rang.fiche.selectionnee { border-color: var(--action); box-shadow: inset 3px 0 0 var(--action); }
+.rang.fiche.archivee { opacity: .62; border-style: dashed; }
+.rang.fiche.vient-d-etre-enregistree { border-color: var(--succes-trait); box-shadow: inset 3px 0 0 var(--succes-trait);
+  background: var(--succes-fond);
+  transition: border-color .6s, box-shadow .6s; }
+.rang.fiche .trouve { display: block; margin-top: 2px; color: var(--texte); }
+/* Les années passées d'un spectacle, sous son numéro de l'année. */
+.rang.fiche .annees { display: block; margin-top: 2px; }
+.rang.fiche .annees .lien { font-size: 12px; }
+.rang-infos .a-completer { font-weight: normal; font-style: italic; color: var(--alerte); }
+/* Le compte qu'ouvre un mot de passe, sous ce à quoi il sert. */
+.rang-infos .compte { display: block; margin-top: 2px; color: var(--texte); }
+.rang-infos .compte.a-completer { color: var(--alerte); }
+/* La recherche d'une liste : dans tous les champs de toutes les fiches. */
+.barre-liste { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.barre-liste input.recherche { max-width: 34rem; margin: 0; }
+/* Relire un dossier d'import, une fois l'historique repris. */
+details.relire { margin-top: 10px; }
+details.relire > summary { cursor: pointer; font-size: 13px; color: var(--discret); padding: 4px 0; }
+details.relire[open] > summary { margin-bottom: 8px; }
+.carte > .rang:only-child, .carte > .rang:first-child { margin-bottom: 0; border: 0; padding: 0; }
+/* La phrase qui ouvre une page de la Configuration : à quoi elle sert. */
+.intro { margin: 0 0 14px; color: var(--discret); font-size: 13px; }
+/* MODIFIER : un seul bouton, un crayon et le mot (24/09/2026), neutre
+   partout. */
+.modifier { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px;
+  font-size: 14px; color: var(--texte); background: var(--carte);
+  border: 1px solid var(--bord); border-radius: 3px; cursor: pointer; white-space: nowrap; }
+.modifier:hover { border-color: var(--discret); }
+.modifier svg { width: 15px; height: 15px; fill: none; stroke: currentColor;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.modifier:hover svg { animation: ecrire .6s ease-in-out infinite alternate; }
+.modifier input { display: none; }
+@keyframes ecrire { from { transform: translate(-2px, 1px) rotate(-8deg); }
+                    to { transform: translate(2px, -1px) rotate(6deg); } }
+.pastille {
+  display: inline-block; padding: 1px 7px; border-radius: 9px;
+  font-size: 11px; margin-top: 6px;
+}
+.pastille.erreur { background: var(--erreur-fond); color: var(--erreur); }
+.pastille.alerte { background: var(--alerte-fond); color: var(--alerte); }
+.pastille.bien { background: var(--succes-fond); color: var(--succes); }
+
+.champs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.champ.pleine { grid-column: 1 / -1; }
+.champ .aide { font-size: 12px; color: var(--discret); margin-top: 3px; }
+
+/* ------------------------------------------ la fiche en sections (22/09) */
+/* Une fiche entreprise est un formulaire d'etat civil, pas une liste de
+   trente cases : des blocs titres, et l'aide repliee derriere un « ? ». */
+.bloc { margin-top: 22px; }
+.bloc:first-of-type { margin-top: 4px; }
+.bloc > h3 {
+  margin: 0 0 12px; font-size: 13px; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--discret); font-weight: bold;
+  border-bottom: 1px solid var(--bord); padding-bottom: 6px;
+}
+.aide-bouton {
+  width: 16px; height: 16px; line-height: 14px; padding: 0; margin-left: 6px;
+  border: 1px solid var(--bord); border-radius: 50%; background: transparent;
+  color: var(--discret); font-size: 11px; cursor: pointer; vertical-align: middle;
+}
+.aide-bouton:hover, .aide-bouton.ouvert {
+  border-color: var(--action); color: var(--action);
+}
+.champ .aide p { margin: 0 0 4px; }
+.champ .aide p:last-child { margin-bottom: 0; }
+.champ .aide .ou-trouver { color: var(--texte); }
+.champ .aide a { color: var(--action); word-break: break-all; }
+
+/* Une structure : une case par valeur, jamais d'accolades a taper. */
+.champ.structure > .titre-structure {
+  font-weight: bold; display: block; margin-bottom: 8px;
+}
+.sous-champs {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px 14px;
+}
+.ligne-structure {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) 28px;
+  gap: 10px 14px; align-items: end;
+  border: 1px solid var(--bord); border-radius: 4px;
+  padding: 10px 12px; margin-bottom: 8px;
+}
+.retirer-ligne {
+  width: 26px; height: 30px; padding: 0; border: 1px solid var(--bord);
+  border-radius: 3px; background: transparent; color: var(--discret);
+  cursor: pointer;
+}
+.retirer-ligne:hover { border-color: var(--erreur); color: var(--erreur); }
+.ajouter-ligne { font-size: 12px; padding: 4px 10px; }
+/* Une valeur que le moteur a posée à partir d'une autre : elle se voit, et
+   elle dit d'où elle vient. Sans cette ligne, on croit l'avoir tapée. */
+.champ .suggere {
+  font-size: 11px; margin-top: 4px; color: var(--action);
+}
+.champ .declare {
+  font-size: 11px; margin-top: 4px; color: var(--discret);
+  font-family: Consolas, monospace;
+}
+.champ .declare .etiquette {
+  font-family: Arial, sans-serif; text-transform: uppercase;
+  letter-spacing: .5px; font-size: 9px;
+  border: 1px solid var(--bord); border-radius: 2px; padding: 0 4px;
+  margin-right: 6px;
+}
+.champ .declare .valeur { color: var(--texte); }
+/* UNE CASE A COCHER SE LIT COMME UNE PHRASE (23/09/2026) : la case, puis
+   ce qu'elle dit, sur une ligne -- et non une case seule au milieu d'une
+   colonne, sous un libelle qui parle d'autre chose. UNE SEULE CLASSE pour
+   toutes (24/09/2026) : il y en avait trois (`.coche` dans les fiches,
+   `.coche-simple` dans les Exports, un `style=` dans les boites), qui
+   disaient la meme chose en trois tailles. `.choix`, lui, est autre chose :
+   un choix encadre dans une liste, avec son etat. */
+label.coche {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  font-size: 13px; color: var(--texte); padding: 3px 0;
+}
+label.coche input { width: auto; margin: 0; flex: none; }
+.espace-haut { margin-top: 12px; }
+/* L'aide depliee : un encart qui se lit, pas une note de bas de page. */
+#config-formulaire .champ .aide:not([hidden]) {
+  font-size: 12px; line-height: 1.45; color: var(--texte);
+  background: var(--fond); border-left: 3px solid var(--bord);
+  padding: 6px 10px; margin-top: 6px; border-radius: 0 3px 3px 0;
+}
+/* L'avance : replie, un titre qu'on ouvre comme un tiroir. */
+details.bloc.avance {
+  margin-top: 22px; border: 1px solid var(--bord); border-radius: 4px;
+  padding: 10px 14px;
+}
+details.bloc.avance > summary {
+  cursor: pointer; font-size: 13px; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--discret); font-weight: bold;
+}
+details.bloc.avance[open] > summary { margin-bottom: 12px; }
+/* L'historique d'une fiche : replie, en bas, pour qui le cherche. */
+details.historique-fiche { margin-top: 8px; }
+details.historique-fiche > summary {
+  cursor: pointer; font-size: 12px; color: var(--discret);
+}
+details.historique-fiche[open] > summary { margin-bottom: 8px; }
+/* L'étoile d'un champ obligatoire. */
+.obligatoire { color: var(--erreur); }
+.champ .anomalie { font-size: 12px; margin-top: 3px; }
+.champ .anomalie.erreur { color: var(--erreur); }
+.champ .anomalie.avertissement { color: var(--alerte); }
+.champ .corriger { font-size: 11px; margin-top: 4px; padding: 2px 8px; }
+
+/* ------------------------------------------------------------ historique */
+/* UNE LIGNE (24/09/2026) : un objet qu'on regarde et sur lequel on agit --
+   un mois, une année, un arrêt, une correction, un mot de passe, une
+   signature. Il y en avait quatre sortes (`.mois-ligne`, `.mois-rang`,
+   `.reglage-rang`, `.identite-rang`), la même boîte blanche sous quatre
+   noms. Une seule : son nom, ce qu'on en sait (qui prend la place), son
+   état, ses gestes à droite ; ce qui s'ouvre dessous (une saisie, un
+   verdict, un encart) passe à la ligne. */
+.rangs { display: flex; flex-direction: column; }
+.rang {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  background: var(--carte); border: 1px solid var(--bord);
+  border-radius: 4px; padding: 12px 16px; margin-bottom: 8px;
+}
+.rang-nom { font-weight: bold; min-width: 90px; }
+.rang-infos { flex: 1 1 12rem; min-width: 0; font-size: 12px; color: var(--discret); }
+.rang-infos > .rang-nom { display: block; font-size: 14px; color: var(--texte); }
+.rang-etat { font-size: 12px; }
+.rang .pastille { margin-top: 0; }
+.rang-actions { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.rang > .encart, .rang > .k-verdict, .rang > .rang-forme { flex-basis: 100%; }
+.rang .k-verdict { font-size: 12px; }
+/* La ligne où mène un lien du bandeau. */
+.rang.montre { border-color: var(--alerte); box-shadow: inset 3px 0 0 var(--alerte); }
+.rang .k-verdict:empty { display: none; }
+/* Ce qui s'ouvre sous la ligne : la saisie d'un mot de passe. */
+.rang-forme { display: flex; flex-wrap: wrap; align-items: end;
+  gap: 10px 14px; padding-top: 10px; border-top: 1px solid var(--bord); }
+.rang-forme[hidden] { display: none; }
+.rang-forme label { display: flex; flex-direction: column; gap: 3px; font-size: 12px;
+  color: var(--discret); flex: 1 1 14rem; max-width: 26rem; }
+.rang-forme .barre-boutons { display: flex; gap: 14px; align-items: center; }
+.rang-forme .note { flex-basis: 100%; margin: 0; }
+/* Les mois de l'Historique : en grille, pour que leurs états et leurs
+   documents tombent en colonne d'un mois à l'autre. */
+.rang.mois { display: grid; grid-template-columns: 11rem auto minmax(0, 1fr) auto; }
+.rang.mois .rang-infos { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rang.exercice .rang-infos { font-size: 13px; }
+.rang.import .rang-nom { min-width: 220px; }
+/* Signature, tampon, logo : l'image en place, à gauche. */
+.rang-image .identite-apercu { width: 13rem; flex: none; margin: 0; min-height: 76px; padding: 6px; }
+.rang-image .identite-apercu img { max-height: 84px; }
+.rang-image .rang-infos { display: flex; flex-direction: column; gap: 4px; }
+.identite-apercu.vide { color: var(--vide-texte); font-size: 12px; font-style: italic; }
+.bouton-fichier { display: inline-block; padding: 7px 14px; border: 1px solid var(--bord);
+  border-radius: 3px; background: var(--carte); color: var(--texte); font-size: 14px;
+  cursor: pointer; white-space: nowrap; }
+.bouton-fichier:hover { border-color: var(--action); }
+.bouton-fichier input { display: none; }
+.acte-dernier.faute { color: var(--erreur); }
+#titre-corrections[hidden] { display: none; }
+@media (max-width: 780px) {
+  .rang.mois { grid-template-columns: 1fr auto; }
+  .rang.mois .rang-infos { grid-column: 1 / -1; }
+}
+
+/* ---------------------------------------------------------- dialogue */
+.voile {
+  position: fixed; inset: 0; background: rgba(20, 25, 30, .45);
+  display: flex; align-items: center; justify-content: center; z-index: 50;
+}
+.boite {
+  background: var(--carte); border-radius: 5px; padding: 24px;
+  width: 560px; max-width: 92vw; max-height: 86vh; overflow: auto;
+  box-shadow: 0 12px 40px rgba(0,0,0,.25);
+}
+.boite h3 { margin: 0 0 10px; font-size: 16px; }
+/* Le popup du mot de passe passe au-dessus de la boite courante. */
+#voile-mdp { z-index: 55; }
+.boite-mdp { width: 400px; }
+.boite-mdp input[type="password"] { width: 100%; box-sizing: border-box; font-size: 15px; }
+
+.message {
+  position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+  background: var(--texte); color: var(--blanc); padding: 10px 20px;
+  border-radius: 4px; z-index: 60; font-size: 13px; max-width: 70vw;
+}
+.message.erreur { background: var(--erreur); }
+
+.attente { opacity: .5; pointer-events: none; }
+
+
+/* ------------------------------------------------------- ecrans etroits */
+/* Sous 1100 px, la grille a quatre colonnes ecrase les libelles -- « Jours
+   joues (dans le mois) » se pliait sur cinq lignes. On repasse en colonnes
+   plus larges plutot que de raccourcir les libelles : un intitule clair vaut
+   mieux qu'un intitule qui tient. */
+@media (max-width: 1100px) {
+  .colonnes { grid-template-columns: 1fr; }
+  .col-apercu { position: static; }
+  .grille-mois { grid-template-columns: repeat(2, 1fr); }
+  .engagement .ligne1 { grid-template-columns: 1fr 1fr 1fr 1fr auto; }
+  .champs { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  main { padding: 12px; }
+  .bandeau { flex-wrap: wrap; gap: 12px; }
+  .etat { margin-left: 0; text-align: left; width: 100%; }
+  .grille-mois { grid-template-columns: 1fr; }
+  .engagement .ligne1 { grid-template-columns: 1fr 1fr; }
+}
+
+/* ------------------------------------------------- les lignes de paie
+   Une ligne = une rubrique, une quantite, un taux, et des heures quand la
+   rubrique les demande. Le champ des heures est cache sinon : un cachet ne
+   se discute pas, ses 12 heures viennent du reglement. */
+.rubriques { margin: .35rem 0 .2rem 0; }
+
+/* ELLE SE LIT COMME UNE PHRASE : « 1 cachet a 130 EUR ». La quantite ouvre,
+   la rubrique suit, et les deux mots de liaison portent le reste. L'unite
+   repetee en fin de ligne a disparu -- elle redisait le mot du deroulant. */
+.rubrique {
+  display: grid; position: relative;
+  /* La colonne des heures est en `auto` : cachee (`display: none`), elle ne
+     reserve alors AUCUNE place. Une largeur fixe aurait laisse un vide de
+     cinq caracteres sur chaque ligne de cachets, c'est-a-dire presque
+     toutes. */
+  grid-template-columns:
+    3.6rem minmax(6rem, .9fr) auto 4.8rem auto minmax(6rem, 1.3fr) auto minmax(5rem, .8fr) auto auto;
+  gap: .35rem;
+  align-items: center;
+  margin-bottom: .3rem;
+}
+
+.rubrique select,
+.rubrique input { padding: .3rem .4rem; min-width: 0; }
+
+.rubrique .r-mot { font-size: .9em; }
+
+/* LE CONTRAT, replié sous les lignes de paie : une ligne grise qui dit ses
+   bornes, orange dès qu'il déborde du mois. On l'ouvre pour allonger la fin. */
+.e-contrat { margin: .2rem 0 .1rem; font-size: 12px; }
+.e-contrat > summary {
+  list-style: none; cursor: pointer; color: var(--discret); padding: 2px 0;
+}
+.e-contrat > summary::-webkit-details-marker { display: none; }
+.e-contrat > summary::before { content: "▸ "; }
+.e-contrat[open] > summary::before { content: "▾ "; }
+.e-contrat.a-cheval > summary { color: var(--alerte); font-weight: bold; }
+.e-contrat-champs { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin: 4px 0; }
+.e-contrat-champs label { font-size: 12px; color: var(--discret); }
+.e-contrat-champs input { display: block; padding: .3rem .4rem; }
+.e-contrat .note { margin: 4px 0 0; }
+/* Le motif de recours d'un CDD ordinaire : une ligne a lui, parce que ses
+   libelles sont longs -- « Attente de la suppression definitive du poste du
+   salarie ayant quitte definitivement l'entreprise ». */
+.e-contrat .e-recours-bloc { margin-top: 6px; max-width: 34rem; }
+.e-contrat .e-recours-bloc[hidden] { display: none; }
+
+/* ------------------------------------------------- LE MOIS D'UN PERMANENT
+   Il n'a pas de lignes de paie : il a un salaire au mois et des FAITS --
+   des conges pris, une absence, une prime. Trois listes de la meme famille,
+   dessinees pareil, parce qu'elles se lisent pareil : une ligne, ses cases,
+   et la croix qui la retire. */
+.e-permanent { margin-top: 8px; }
+.e-permanent[hidden] { display: none; }
+.e-mois-paye { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+.e-mois-paye label { font-size: 12px; color: var(--discret); }
+.e-mois-paye input { display: block; padding: .3rem .4rem; width: 11rem; }
+.e-faits { margin-top: 8px; display: grid; gap: 8px; }
+.e-fait-groupe { border-left: 2px solid var(--bord); padding-left: 8px; }
+.e-fait-tete { font-size: 12px; font-weight: bold; margin-bottom: 4px; }
+.fait { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; margin-bottom: 4px; }
+.fait label { font-size: 12px; color: var(--discret); }
+.fait input, .fait select { display: block; padding: .3rem .4rem; }
+.fait input[type="number"] { width: 7rem; }
+.fait .f-rubrique { width: 10rem; }
+.fait .f-maintien-bloc[hidden] { display: none; }
+.fait .retirer-fait { align-self: center; }
+
+/* LA FIN DU CONTRAT, quand elle se signale (nature 07). Cachee sur un CDDU
+   du spectacle : sa fin part dans la mensuelle, et ces cases n'iraient
+   nulle part. */
+.e-rupture { margin-top: 8px; display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+.e-rupture[hidden] { display: none; }
+.e-rupture .e-fait-tete { width: 100%; margin: 0; }
+.e-rupture label { font-size: 12px; color: var(--discret); }
+.e-rupture input, .e-rupture select { display: block; padding: .3rem .4rem; }
+.e-rupture .e-preavis-dates[hidden] { display: none; }
+.engagement.validee .e-contrat { display: none; }
+.engagement.en-cours .e-contrat > summary { color: var(--texte); }
+.choix.grise { opacity: .55; }
+
+.ajouter-rubrique {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-size: .9em;
+  text-decoration: underline;
+}
+
+@media (max-width: 780px) {
+  .rubrique { grid-template-columns: 1fr 1fr; }
+  .rubrique .r-mot { display: none; }
+}
+
+/* Le lieu et les jours sont DANS la ligne de paie -- « 4 cachets a 130 EUR au
+   Theatre 12 le 14 15 17 18 ». Voir ligneRubrique(). */
+.rubrique .r-jours { font-variant-numeric: tabular-nums; }
+.rubrique .r-jours-btn {
+  font-variant-numeric: tabular-nums; text-align: left; padding: .3rem .5rem;
+  border: 1px solid var(--bord); background: var(--carte); color: var(--texte);
+  border-radius: 3px; cursor: pointer; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; min-width: 0; font-size: 13px;
+}
+.rubrique .r-jours-btn.vide { color: var(--discret); }
+.rubrique .r-jours-btn.planning { border-color: var(--alerte); }
+.rubrique .r-jours-btn:hover { border-color: var(--action); }
+
+/* LE CALENDRIER d'une ligne de paie : un mois, sept colonnes, et on coche.
+   Les jours joués du mois en rouge plein ; le planning des mois suivants en
+   orange — payé dans son mois, pas ici. */
+.calendrier {
+  position: absolute; z-index: 20; top: 100%; left: 0; margin-top: 4px;
+  width: 268px; background: var(--carte); border: 1px solid var(--bord);
+  border-radius: 4px; box-shadow: 0 6px 20px rgba(0,0,0,.12); padding: 8px 10px 10px;
+  font-size: 13px;
+}
+.calendrier .c-tete { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.calendrier .c-tete button {
+  border: 1px solid var(--bord); background: var(--fond); color: var(--texte);
+  width: 28px; height: 26px; padding: 0; border-radius: 3px; cursor: pointer; font-size: 16px; line-height: 1;
+}
+.calendrier .c-tete button:disabled { opacity: .35; cursor: default; }
+.calendrier .c-grille { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.calendrier .c-sem { text-align: center; font-size: 11px; color: var(--discret); }
+.calendrier .c-jour {
+  height: 28px; padding: 0; border: 1px solid transparent; border-radius: 3px;
+  background: var(--fond); color: var(--texte); cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.calendrier .c-jour:hover { border-color: var(--action); }
+.calendrier .c-jour.joue { background: var(--action); color: var(--blanc); font-weight: bold; }
+.calendrier .c-jour.prevu { background: var(--alerte); color: var(--blanc); font-weight: bold; }
+.calendrier .c-jour.hors, .calendrier .c-jour:disabled { opacity: .3; cursor: default; }
+/* Les mois passés : lecture seule. Une plage de contrat en gris, un jour joué
+   connu en gris soutenu. */
+.calendrier .c-jour.lu { display: inline-flex; align-items: center; justify-content: center;
+  cursor: default; border-color: transparent; color: var(--discret); }
+.calendrier .c-jour.lu.hist { background: var(--bord); color: var(--texte); border-radius: 0; }
+.calendrier .c-jour.lu.hist-joue { background: var(--discret); color: var(--blanc); font-weight: bold; }
+.c-passes { margin-top: 8px; font-size: 12px; display: grid; gap: 3px; align-content: start; }
+.c-passe { display: flex; justify-content: space-between; gap: 8px; }
+/* Un mois passe dans la vue du mois : le calendrier et la liste, cote a cote. */
+.declare-avant {
+  border: 1px dashed var(--bord); border-radius: 4px; padding: 12px; margin-bottom: 10px;
+  background: var(--carte);
+}
+.declare-avant .da-tete { margin-bottom: 8px; }
+.declare-avant .da-corps { display: grid; grid-template-columns: 268px 1fr; gap: 18px; align-items: start; }
+.declare-avant .c-grille { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; font-size: 13px; }
+.declare-avant .c-sem { text-align: center; font-size: 11px; color: var(--discret); }
+.declare-avant .c-jour { height: 28px; border: 1px solid transparent; border-radius: 3px; font-variant-numeric: tabular-nums; }
+.declare-avant .c-jour.lu { display: inline-flex; align-items: center; justify-content: center; color: var(--discret); }
+.declare-avant .c-jour.lu.hist { background: var(--bord); color: var(--texte); border-radius: 0; }
+.declare-avant .c-jour.lu.hist-joue { background: var(--discret); color: var(--blanc); font-weight: bold; }
+@media (max-width: 900px) { .declare-avant .da-corps { grid-template-columns: 1fr; } }
+.calendrier .c-pied { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 12px; }
+.calendrier .c-pied button { padding: 3px 10px; }
+.calendrier .c-avert {
+  margin-top: 8px; padding: 8px; font-size: 12px; line-height: 1.4;
+  background: var(--alerte-leger); border-left: 3px solid var(--alerte); border-radius: 3px;
+}
+.calendrier .c-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; }
+.calendrier .c-actions button { padding: 3px 10px; }
+
+.pastille.archive { background: var(--archive-fond); color: var(--archive-texte); }
+
+/* ------------------------------------------- l'histoire d'une fiche
+   Une fiche n'est pas un état, c'est une suite d'états : on déménage, on
+   change de téléphone, une valeur déclarée se corrige. Ce bloc se LIT et ne
+   se tape pas — il dit ce qui est réellement parti aux organismes, et une
+   déclaration déposée ne se réécrit pas. */
+.histoire {
+  border: 1px solid var(--bord); border-radius: 3px;
+  background: var(--fond);
+}
+.histoire-ligne {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding: 7px 10px; border-bottom: 1px solid var(--bord);
+  font-size: 12px;
+}
+.histoire-ligne:last-child { border-bottom: none; }
+.histoire-champ { color: var(--discret); min-width: 130px; }
+.histoire-valeur { color: var(--texte); font-weight: bold; }
+.histoire-date { margin-left: auto; color: var(--discret); }
+.histoire-note {
+  flex-basis: 100%; color: var(--discret); font-style: italic; margin-top: 2px;
+}
+
+/* --------------------------------- ce qu'un enregistrement ferait changer
+   L'écran ne se contente pas d'annoncer le changement : il dit ce que
+   l'ancienne valeur a déjà servi à déclarer. C'est ce nombre-là qui fait
+   décider — voir §18.12 du journal. */
+.changements { margin-bottom: 14px; }
+.changement {
+  padding: 10px; margin-bottom: 8px;
+  border: 1px solid var(--bord);
+  border-radius: 3px; background: var(--fond);
+}
+.changement-titre { font-size: 12px; color: var(--discret); }
+.changement-valeurs {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  margin: 3px 0;
+}
+.changement-valeurs .avant { color: var(--discret); }
+.changement-valeurs .fleche { color: var(--discret); }
+.changement-valeurs .apres { font-weight: bold; color: var(--texte); }
+.changement-prix { font-size: 12px; color: var(--texte); }
+
+.champ-boite { display: block; margin: 10px 0 0; }
+.champ-boite input { margin-top: 3px; }
+
+/* ------------------------------------------------ ce qui part du mois
+   Un acte par bloc : son nom, la phrase du journal, le fichier concerné, le
+   bouton. La phrase est la première chose qu'on lit — avant le bouton, et
+   pas sous lui : c'est elle qui dit s'il y a encore quelque chose à faire. */
+.acte {
+  border: 1px solid var(--bord); border-radius: 4px;
+  padding: 10px 12px; margin-bottom: 10px; background: var(--fond);
+}
+.acte-fichier {
+  font-size: 11px; font-family: Consolas, monospace;
+  margin-bottom: 8px; word-break: break-all;
+}
+.acte-fichier .discret { font-family: Arial, Helvetica, sans-serif; }
+.acte button { width: 100%; }
+.acte .note { margin-top: 6px; }
+
+.embauches-liste {
+  margin: 6px 0 10px; padding-left: 18px;
+  font-size: 12px; color: var(--discret);
+}
+
+/* La colonne de droite porte maintenant l'aperçu ET les actes : elle peut
+   dépasser la hauteur de l'écran, et collée en haut elle s'y ferait couper.
+   On la laisse défiler pour elle-même — mais seulement tant qu'elle est
+   collée. Sous 1100 px elle repasse en pleine largeur et dans le flux : lui
+   imposer une hauteur là couperait la liste au milieu, sans rien à gagner. */
+@media (min-width: 1101px) {
+  .col-apercu { max-height: calc(100vh - 90px); overflow-y: auto; }
+}
+
+/* --------------------------------------------- le mois déclaré, EN GROS
+   Ce n'est pas de la décoration. Recopier le mois était le seul geste qu'on
+   ne peut pas faire sans regarder l'écran, et il a été retiré du parcours ;
+   un mot de passe, lui, se tape de mémoire, les yeux ailleurs. Ce bloc porte
+   donc à lui seul la lecture avant un acte irréversible — d'où sa taille. */
+.mois-gros {
+  display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  margin: 6px 0 14px; padding: 12px 16px;
+  border: 2px solid var(--action); border-radius: 4px; background: var(--fond);
+}
+.mois-gros .clair {
+  font-size: 30px; line-height: 1.1; font-weight: bold;
+  color: var(--action); text-transform: capitalize;
+}
+.mois-gros .iso {
+  font-family: Consolas, monospace; font-size: 15px; color: var(--discret);
+}
+
+/* Les ordres de télépaiement, en entier et un par ligne. Résumés en « 5
+   versements », ils ne se relisent plus — et un dépôt réel les déclenche
+   tous. */
+.versements { list-style: none; margin: 6px 0; padding: 0; }
+.versements li {
+  font-size: 17px; font-weight: bold;
+  padding: 2px 0; border-bottom: 1px solid var(--bord);
+}
+.versements li:last-child { border-bottom: none; }
+
+/* La réponse de l'organisme, telle quelle. */
+pre.reponse {
+  font: 11px/1.45 Consolas, monospace; white-space: pre-wrap;
+  word-break: break-word; max-height: 260px; overflow: auto;
+  background: var(--fond); border: 1px solid var(--bord);
+  border-radius: 3px; padding: 10px; margin: 10px 0 0;
+}
+
+/* Qui reçoit quoi : une case, un nom, ce qu'il a déjà reçu. */
+.liste-choix { margin: 12px 0; }
+.tableau-detail { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 13px; }
+.tableau-detail th, .tableau-detail td { padding: 5px 6px; border-bottom: 1px solid var(--bord); text-align: left; }
+.tableau-detail .nombre { text-align: right; white-space: nowrap; }
+.tableau-detail tfoot td { border-bottom: 0; }
+.liste-pieces { list-style: none; margin: 12px 0; padding: 0; }
+.liste-pieces li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--bord); }
+.choix {
+  display: flex; align-items: flex-start; gap: 9px;
+  padding: 8px 10px; margin-bottom: 6px; font-size: 13px; color: var(--texte);
+  border: 1px solid var(--bord); border-radius: 3px; background: var(--fond);
+}
+.choix input { width: auto; margin: 2px 0 0; flex: none; }
+.choix .pastille { margin-top: 3px; }
+
+/* ------------------------------------------------------- l'écran par paie
+   Chaque engagement porte désormais son état. Le bandeau est SOUS la ligne
+   résolue, et pas au-dessus : on lit d'abord ce qu'on saisit, puis ce qui en
+   est parti. L'ordre inverse ferait d'un formulaire un tableau de bord, et
+   la saisie est encore le geste principal. */
+
+.engagement .etats { margin-top: 8px; }
+.etats-qui { font-size: 12px; font-weight: bold; }
+.etats-absent {
+  font-size: 12px; color: var(--alerte); margin: 4px 0 0;
+  padding-left: 9px; border-left: 3px solid var(--alerte);
+}
+.etats-absent b { color: var(--texte); }
+
+/* TROIS PETITS CARRÉS SUR UNE LIGNE. « J'imaginais ça en petit, juste un petit
+   carré qui est gris, qui passe au vert ou orange si problème ou pas encore
+   arrivé — ça prend trop de place comme ça » (12/09/2026).
+
+   La version d'avant faisait quatre encadrés en grille, chacun portant son
+   titre, sa date et sa maille : trois lignes de texte par acte, sous CHAQUE
+   engagement. C'était un tableau de bord greffé sur un formulaire. Ce qu'on
+   demande à cet endroit est un coup d'œil — fait / pas fait — et un coup
+   d'œil tient dans un carré de huit pixels. La date et la maille sont dans
+   l'infobulle : on les cherche rarement, et on les trouve quand on les
+   cherche. */
+.etats-actes {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 5px;
+}
+.etat-acte {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--discret); cursor: default;
+}
+.etat-acte .carre {
+  width: 9px; height: 9px; border-radius: 2px; flex: none;
+  background: var(--bord); border: 1px solid rgba(0, 0, 0, .12);
+}
+.etat-acte.vert   .carre { background: var(--succes); }
+.etat-acte.orange .carre { background: var(--alerte); }
+.etat-acte.rouge  .carre { background: var(--erreur); }
+.etat-acte.rouge  { color: var(--erreur); font-weight: bold; }
+.etat-acte.vert   { color: var(--texte); }
+.etat-acte.cliquable { cursor: pointer; }
+.etat-acte.cliquable:hover { text-decoration: underline dotted; }
+#config-nouvelle { float: right; font-size: 13px; padding: 4px 10px; }
+.etat-acte.orange { color: var(--texte); }
+
+/* --------------------------------------------- une paie validée est verte
+   « On valide, c'est vert, normalement on n'y revient pas, édition bloquée
+   temporairement avec un bouton pour modifier avec avertissement. »
+
+   Le bloc ENTIER change, et pas une pastille de plus : c'est l'état de la
+   paie, pas un détail dedans. Le liseré à gauche porte le message de loin.
+   (La teinte de fond verte est partie avec la ligne d'agenda du 23/09 : la
+   ligne est blanche, voir plus bas.) */
+.engagement.validee {
+  border-color: var(--succes);
+  border-left: 4px solid var(--succes);
+}
+.engagement.validee input:disabled,
+.engagement.validee select:disabled {
+  background: var(--carte); color: var(--texte); opacity: 1;
+  border-color: var(--succes-trait);
+}
+
+.validation {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid var(--bord); font-size: 12px;
+}
+.validation .boutons { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+.validation .retirer-paie { color: var(--erreur); }
+.validation.faite { border-top-color: var(--succes-trait); color: var(--succes); }
+.validation.faite b { color: var(--succes); }
+
+/* LA SAISIE D'UNE PAIE (23/09/2026), dans l'ordre où l'on remplit :
+   qui et quel spectacle en tête, les lignes de paie (jours d'abord), le net
+   en une ligne ; viser un montant et « Plus d'options » repliés ; en bas,
+   les pastilles, « Retirer » et « Valider ». Voir ligneEngagement(). */
+.engagement:not(.validee) { background: var(--carte); padding: 14px 16px; }
+.engagement:not(.validee) .ligne1 {
+  /* Deux ou trois champs selon que la Nature se montre : la grille suit. */
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 12px; margin-bottom: 12px;
+}
+.engagement .ligne1 .e-nature-bloc[hidden] { display: none; }
+.engagement:not(.validee) .ligne1 select,
+.engagement:not(.validee) .e-qui summary { font-size: 14px; }
+.engagement:not(.validee) .rubrique {
+  grid-template-columns:
+    minmax(7rem, .9fr) 3.4rem minmax(6rem, .8fr) auto 4.8rem auto minmax(6rem, 1.4fr) auto auto;
+}
+.engagement:not(.validee) .rubrique .r-jours-btn { font-weight: bold; }
+.e-pied {
+  display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--bord);
+}
+.e-net { font-size: 14px; }
+.e-net b { font-size: 16px; }
+.e-net .e-cout { margin-left: 22px; color: var(--discret); }
+.e-net .e-cout b { color: var(--texte); font-size: 15px; }
+/* Un contrat sur plusieurs mois : un fait, pas une alerte (26/09/2026). */
+.e-suite { font-size: 12px; color: var(--discret); }
+.e-suite:empty { display: none; }
+.e-pied .e-viser-btn { margin-left: auto; }
+.e-pied .lien { font-size: 12px; color: var(--discret); }
+.e-chiffres[hidden], .e-options[hidden] { display: none; }
+.e-options { margin-top: 8px; padding: 10px 12px; background: var(--fond);
+             border-radius: 4px; }
+.e-options-ligne { display: flex; gap: 12px; align-items: end; flex-wrap: wrap;
+                   margin-bottom: 6px; }
+.e-options-ligne .e-metier-bloc { font-size: 12px; color: var(--discret); min-width: 16rem; }
+.engagement:not(.validee) .resolu,
+.engagement:not(.validee) .etats-qui { display: none; }
+@media (max-width: 780px) {
+  .engagement:not(.validee) .ligne1 { grid-template-columns: 1fr; }
+  .engagement:not(.validee) .rubrique { grid-template-columns: 1fr 1fr; }
+}
+
+/* LA PAIE VALIDÉE, EN UNE LIGNE D'AGENDA (23/09/2026) -- voir peindreCarte().
+   Quand | qui et pour quoi | ce qui reste à faire | le net | Modifier.
+   Toute la saisie se replie, les états aussi : la ligne les porte. */
+.engagement.validee { padding: 0; background: var(--carte); }
+/* Le mois se précharge : ses blocs n'apparaissent qu'une fois leurs états
+   posés, repliés s'ils sont validés (ticket #113, voir chargerMois). */
+#engagements.en-lecture > .engagement { display: none; }
+.engagement.validee > :not(.e-resume) { display: none; }
+.e-resume:empty { display: none; }
+.e-resume {
+  display: grid; align-items: center; gap: 18px;
+  grid-template-columns: minmax(64px, 112px) minmax(0, 1fr) auto auto auto;
+  grid-template-areas: "quand qui actes net modifier";
+  padding: 10px 16px 10px 0;
+}
+.carte-quand { grid-area: quand; }
+.carte-qui { grid-area: qui; }
+.carte-actes { grid-area: actes; }
+.carte-net { grid-area: net; }
+.carte-modifier { grid-area: modifier; justify-self: end; }
+.carte-quand {
+  display: flex; flex-direction: column; align-items: center;
+  border-right: 1px solid var(--bord); line-height: 1.1; padding: 2px 0;
+}
+.carte-quand b { font-size: 19px; color: var(--texte); white-space: nowrap; }
+/* Des jours épars (« 1 · 2 · 7 · 14 · 16 ») ne tenaient pas dans la colonne
+   et passaient sous le nom (01/10/2026) : plus petits, sur deux lignes. */
+.carte-quand b.epars { font-size: 13px; white-space: normal; text-align: center;
+                       padding: 0 6px; }
+.carte-quand span { font-size: 11px; color: var(--discret); text-transform: uppercase;
+                    letter-spacing: .5px; }
+.carte-qui { display: flex; flex-direction: column; min-width: 0; }
+.carte-qui b { font-size: 14px; }
+.carte-qui .discret { font-size: 12px; white-space: nowrap; overflow: hidden;
+                      text-overflow: ellipsis; }
+.carte-actes .etats-actes { margin: 0; }
+.carte-net { font-size: 15px; font-weight: bold; white-space: nowrap;
+             min-width: 88px; text-align: right; }
+
+@media (max-width: 900px) {
+  .e-resume { grid-template-columns: 64px minmax(0, 1fr) auto; row-gap: 6px;
+              grid-template-areas: "quand qui net" "quand actes modifier"; }
+}
+
+
+
+/* Les derniers envois d'un acte, sous son etat reel : un test accepte ou
+   refuse se lit ici, sans passer pour un depot fait. */
+.acte-derniers { margin: 4px 0 6px; padding-left: 8px; border-left: 2px solid var(--bord); }
+.acte-dernier { font-size: 12px; color: var(--discret); margin: 2px 0; }
+.acte-dernier.test::before { content: "essai — "; font-style: italic; }
+.acte-dernier.reel::before { content: "réel — "; font-weight: bold; }
+
+/* Une paie validée ne répète pas sa saisie : la ligne « bulletin 34/2026 ·
+   contrat … · 1 Cachet · brut 130,00 € » dit déjà tout, et les champs fermés
+   au-dessus alourdissaient la page (l'éditeur, 13/09/2026). Ils sont masqués,
+   pas retirés : « Modifier… » retire la classe et ils reviennent tels quels. */
+.engagement.validee .ligne1 > *,
+.engagement.validee .rubriques,
+.engagement.validee .ajouter-rubrique { display: none; }
+.engagement.validee .ligne1 { margin-bottom: 0; }
+.engagement.validee .resolu { margin-top: 2px; }
+
+
+
+/* ------------------------------------------------------ les mots de passe */
+
+/* ------------------------------------------- les rappels, l'exercice */
+.rappel { padding: 4px 0 12px; border-bottom: 1px solid var(--bord); margin-bottom: 12px; }
+.rappel:last-of-type { border-bottom: 0; }
+.rappel h3 { margin-bottom: 4px; }
+.rappel.retard h3 { color: var(--erreur); }
+.rappel-question { font-size: 14px; margin: 4px 0; }
+.rappel .actions { margin-top: 10px; }
+.rappel-liste { margin: 6px 0 0 18px; font-size: 13px; }
+
+/* L'échéancier de l'ouverture (23/09/2026) : la date, la bienvenue, ce qui
+ * est à faire ce mois-ci, l'année qui vient repliée. Sobre, comme les fiches. */
+.accueil { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--bord); }
+.accueil-date { margin: 0; color: var(--discret); font-size: 13px; }
+.accueil-titre { margin: 2px 0 14px; font-size: 20px; color: var(--texte);
+                 text-transform: none; letter-spacing: 0; }
+.echeances { list-style: none; margin: 0; padding: 0; }
+.echeance { padding: 8px 0; border-top: 1px solid var(--bord); }
+.echeance:first-child { border-top: 0; }
+.echeance-titre { font-weight: bold; }
+.echeance .note { margin: 2px 0 0; }
+.echeance.fait .echeance-titre { color: var(--discret); font-weight: normal; }
+.echeance button.petit { margin-top: 6px; padding: 3px 10px; font-size: 12px; }
+.accueil-annee { margin-top: 10px; }
+.accueil-annee summary { cursor: pointer; color: var(--discret); }
+.echeances-annee { margin: 8px 0 0; padding-left: 18px; font-size: 13px; }
+.echeances-annee ul { margin: 0 0 4px; padding-left: 16px; }
+.tableau-compta { max-height: 50vh; overflow: auto; margin: 10px 0; }
+table.compta { border-collapse: collapse; font-size: 12px; width: 100%; }
+table.compta th, table.compta td { padding: 3px 6px; border-bottom: 1px solid var(--bord); text-align: left; }
+table.compta td.r { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------- corriger un mois depose (18/09/2026)
+   L'ecran vit dans l'Historique, et emprunte tout ce qui existe deja :
+   `.rang` pour un mois et pour une correction, `.encart.attention`
+   pour l'avertissement, `table.compta` pour l'avant / apres. Ne restent que
+   ces quelques poses. */
+.corrections-mois { margin-bottom: 12px; }
+.corrections-mois > b { display: block; margin-bottom: 6px; font-size: 13px; }
+.corrections-mois .rang-nom { min-width: 56px; }
+/* Les lignes de paie d'une correction, dans la boite : la meme grille que
+   dans la saisie, mais sur la largeur de la boite. */
+#cor-lignes { margin: 10px 0; }
+#cor-apercu { margin-top: 12px; }
+
+/* Ce qui ne se montre qu'a qui en a besoin : les bornes d'un contrat paye au
+   mois, les champs que << Emploie des permanents >> ouvre. `display: none`
+   explicite -- la feuille pose `input { display: block }` et des regles de
+   `display` sur .champ et .encart, qui l'emporteraient sur le defaut du
+   navigateur et laisseraient la case visible sans qu'on comprenne pourquoi. */
+.e-contrat-champs label[hidden] { display: none; }
+#config-formulaire .champ[hidden], #config-formulaire .encart[hidden] { display: none; }
+
+/* LES TROIS NOMBRES D'UN ENGAGEMENT (22/09/2026) : net, brut, cout. Ce sont
+   des cases et non du texte, parce qu'on y ECRIT -- viser un total, et le
+   taux se recalcule. La note dit ce qui a ete atteint, sur toute la largeur. */
+.e-chiffres {
+  display: flex; gap: 12px; align-items: end; flex-wrap: wrap;
+  margin: 8px 0 2px 0; padding-top: 8px; border-top: 1px dashed var(--bord);
+}
+.e-chiffres label { font-size: 12px; color: var(--discret); }
+.e-chiffres input { display: block; padding: .3rem .4rem; width: 8rem; text-align: right; }
+.e-chiffres-note { flex: 1 1 14rem; font-size: 12px; line-height: 1.35; }
+.e-chiffres-note .rouge { color: var(--erreur); }
+.engagement.validee .e-chiffres { border-top: 0; padding-top: 0; }
+
+/* Rouvrir un mois ferme n'est pas une action ordinaire : le bouton le dit. */
+button.secondaire.alerte { color: var(--alerte); border-color: var(--alerte); }
+
+/* ------------------------------------------------- les exports (22/09/2026)
+   L'onglet n'invente presque rien : le formulaire emprunte `.champs` et
+   `.champ` a la configuration, le tableau `table.compta` a l'export compta.
+   Ne restent que les deux lignes de total, qui doivent se distinguer d'une
+   ligne de donnee sans quoi on lit un sous-total pour un bulletin. */
+#vue-exports .champ select { width: 100%; }
+#vue-exports .champ select + select { margin-top: 6px; }
+#vue-exports .champ select.cachee { display: none; }
+#exports-resultat h2 { margin-top: 26px; }
+table.compta tr.sous-total td { border-top: 1px solid var(--bord); background: var(--fond); }
+table.compta tr.total-general td {
+  border-top: 2px solid var(--action); background: var(--fond);
+  font-size: 13px;
+}
+
+/* L'apercu d'une identite : signature, tampon, logo (22/09/2026).
+   Fond blanc impose -- une signature scannee est souvent transparente, et
+   sur un fond sombre elle disparaitrait. On voit ce qui part sur le papier,
+   pas ce que le theme de la page en fait. */
+.identite-apercu {
+  background: var(--blanc);
+  border: 1px solid var(--apercu-bord);
+  border-radius: 6px;
+  padding: 8px;
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 90px;
+}
+.identite-apercu img { max-width: 100%; max-height: 120px; }
+
+/* Les soucis du bandeau au-dela du premier : derriere un clic. */
+.ennuis { display: inline; }
+.ennuis summary { display: inline; cursor: pointer; }
+.ennuis[open] div { margin: 2px 0 0 12px; }
+
+pre.courriel { white-space: pre-wrap; font: 12px/1.5 Consolas, monospace;
+  background: var(--carte); border: 1px solid var(--bord); padding: 10px; }
+
+/* LE VOILE DU DEMARRAGE : la page ne se montre qu'une fois peinte. */
+#chargement { position: fixed; inset: 0; z-index: 9999; display: flex;
+  flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  background: var(--fond); color: var(--discret); font-size: 13px; transition: opacity .25s; }
+#chargement.fini { opacity: 0; pointer-events: none; }
+#chargement .roue { width: 34px; height: 34px; border-radius: 50%;
+  border: 3px solid var(--bord); border-top-color: var(--action); animation: roue 0.9s linear infinite; }
+@keyframes roue { to { transform: rotate(360deg); } }
+
+/* LA COPIE DE DEVELOPPEMENT (interface/compagnies.rs) : on doit la reconnaitre
+   d'un coup d'oeil, pour ne jamais la prendre pour la vraie compagnie. */
+.copie-dev { display: none; }
+body[data-copie="1"] .copie-dev { display: block; font-size: 11px; font-weight: bold;
+  color: var(--blanc); background: var(--copie); padding: 1px 6px; border-radius: 3px; margin-top: 2px; }
+/* Le code de l'accueil (25/09/2026) : une compagnie qui n'est pas reelle --
+   la copie de test, une fictive -- a le bandeau HACHURE, bleu clair et blanc,
+   comme sa tuile. Sa couleur ne se choisit pas. */
+body[data-copie="1"] .bandeau { background: repeating-linear-gradient(135deg,
+  var(--hachure) 0 22px, var(--carte) 22px 44px); }
+
+.casc-etape { margin: 16px 0; }
+.casc-etape h4 { margin: 0 0 6px; }
+.casc-choix { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.casc-option { border: 1px solid var(--bord); border-radius: 8px; padding: 12px 14px; }
+.casc-option.principale { border-width: 2px; border-color: var(--action); }
+.casc-option h5 { margin: 0 0 8px; font-size: 14px; }
+@media (max-width: 760px) { .casc-choix { grid-template-columns: 1fr; } }
+/* LA FICHE SALARIE (23/09/2026). La mention d'un champ qu'on peut laisser
+   vide ; le haut de fiche, son nom et le bouton d'export sur une ligne ;
+   la demande par courriel d'une fiche neuve. */
+.facultatif {
+  font-size: 11px; font-weight: normal; color: var(--discret);
+  font-style: italic; margin-left: 4px;
+}
+.entete-fiche {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.entete-fiche h2 { margin-bottom: 4px; }
+button.petit { font-size: 12px; padding: 4px 10px; }
+.encart.invitation h3 { margin: 0 0 6px; font-size: 14px; }
+.encart.invitation .actions { margin-top: 8px; }
+.encart.attente-fiches { margin-top: 12px; }
+.encart.attente-fiches ul { margin: 6px 0 0; padding-left: 18px; }
+section.bloc > .encart { margin-bottom: 10px; }
+
+
+/* LA COLONNE DU MOIS (23/09/2026). « Le mois » : deux nombres et une ligne
+   par salarié. « Les étapes » : un parcours numéroté, l'étape suivante seule
+   dépliée. Voir vueApercu() et dessinerActions(). */
+.mois-chiffres { display: flex; gap: 28px; margin: 4px 0 12px; }
+.mois-chiffres div { display: flex; flex-direction: column; }
+.mois-chiffres span { font-size: 11px; color: var(--discret); text-transform: uppercase;
+                      letter-spacing: .4px; }
+.mois-chiffres b { font-size: 20px; }
+.mois-salaries { list-style: none; margin: 0 0 18px; padding: 0; }
+.mois-salaries li { display: flex; justify-content: space-between; gap: 12px;
+                    padding: 6px 0; border-top: 1px solid var(--bord); font-size: 13px; }
+.mois-salaries li b { white-space: nowrap; }
+
+.etapes { list-style: none; margin: 4px 0 18px; padding: 0; position: relative; }
+.etape { position: relative; padding: 0 0 4px 0; }
+.etape:not(:last-child)::before {          /* le fil entre deux étapes */
+  content: ""; position: absolute; left: 13px; top: 30px; bottom: -2px;
+  width: 2px; background: var(--bord);
+}
+.etape.faite:not(:last-child)::before { background: var(--succes-trait); }
+.etape > details > summary {
+  list-style: none; display: flex; align-items: center; gap: 10px;
+  cursor: pointer; padding: 4px 0; flex-wrap: wrap;
+}
+.etape > details > summary::-webkit-details-marker { display: none; }
+.etape-rond {
+  flex: none; width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: bold; background: var(--carte);
+  border: 2px solid var(--bord); color: var(--discret);
+}
+.etape.faite .etape-rond { background: var(--succes); border-color: var(--succes); color: var(--blanc); }
+.etape.alerte .etape-rond { border-color: var(--alerte); color: var(--alerte); }
+.etape.refus .etape-rond { border-color: var(--erreur); color: var(--erreur); }
+.etape.suivante .etape-rond { border-color: var(--action); color: var(--action); }
+.etape-nom { font-weight: bold; font-size: 14px; }
+.etape-court { font-size: 12px; color: var(--discret); }
+.etape.faite .etape-nom { font-weight: normal; }
+.etape.refus .etape-court { color: var(--erreur); font-weight: bold; }
+.etape-limite { font-size: 12px; color: var(--alerte); margin-left: auto; }
+.etape-corps { margin: 4px 0 10px 38px; }
+.etape-phrase { font-size: 13px; margin-bottom: 2px; }
+.etape-detail { font-size: 12px; margin-bottom: 8px; }
+.etape-corps > button { width: 100%; margin-top: 4px; }
+.etape-envois { margin-top: 8px; font-size: 12px; }
+.etape-envois > summary { cursor: pointer; color: var(--discret); }
+#titre-arrets[hidden] { display: none; }
+.reprise { margin-top: 14px; font-size: 12px; }
+.reprise > summary { cursor: pointer; color: var(--discret); padding: 6px 0;
+                     border-top: 1px solid var(--bord); }
+.reprise[open] > summary { margin-bottom: 8px; }
+
+
+/* L'ONGLET EXPORTS (23/09/2026) : deux cartes, un état ou les documents
+   d'un salarié ; les questions sur une rangée ; des cases simples. */
+.carte-export { background: var(--carte); border: 1px solid var(--bord);
+                border-radius: 4px; padding: 16px 20px; margin-bottom: 18px; }
+.carte-export h2 { margin-top: 0; }
+.carte-export > summary { cursor: pointer; list-style: none; }
+.carte-export > summary::-webkit-details-marker { display: none; }
+.carte-export > summary h2 { display: inline; }
+.carte-export > summary h2::before { content: "▸ "; color: var(--discret); }
+.carte-export[open] > summary h2::before { content: "▾ "; }
+.carte-export[open] > summary { margin-bottom: 12px; }
+/* Le calendrier des exports (08/10/2026) : une ligne par année, douze mois. */
+.calendrier { display: flex; flex-direction: column; gap: 4px; }
+.calendrier .rangee { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; }
+.calendrier button { font: inherit; font-size: 12px; padding: 3px 6px; border: 1px solid var(--bord);
+  background: var(--carte); color: var(--texte); border-radius: 4px; cursor: pointer; min-width: 38px; }
+.calendrier button.an { font-weight: bold; min-width: 56px; }
+.calendrier button:disabled { opacity: .35; cursor: default; }
+.calendrier button.pris { background: var(--action); border-color: var(--action); color: #fff; }
+.carte-export h2 .discret { text-transform: none; letter-spacing: 0; }
+#vue-exports .champs { grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+#vue-exports .champ .aide { max-width: 34rem; }
+.d-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+          gap: 2px 18px; margin-top: 4px; }
+.d-tout { margin-left: 8px; font-size: 12px; }
+
+/* LES FICHES ARCHIVÉES, CACHÉES (23/09/2026) : une case sous les fiches
+   actives les montre. Voir dessinerConfig(). */
+label.coche.montrer-archives { margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--bord); }
+.montrer-archives + .rangs { margin-top: 10px; }
+
+
+
+/* LA DÉMONSTRATION QUI EXPLIQUE (27/09/2026) : le courriel tel que le
+   salarié le reçoit, et le circuit en bulles. */
+.demo-fenetre { max-width: 760px; }
+.demo-bulles { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 12px 0; }
+.demo-bulle { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; font-size: 13px;
+  padding: 6px 14px 6px 6px; border: 1px solid var(--bord, #d0d0d0); background: transparent; }
+.demo-bulle span { display: inline-grid; place-items: center; width: 22px; height: 22px;
+  border-radius: 50%; background: var(--bord, #d0d0d0); font-weight: bold; font-size: 12px; }
+.demo-bulle.actif { border-color: currentColor; font-weight: bold; }
+.demo-bulle.fait span { background: #2e7d32; color: #fff; }
+.demo-courriel { border: 1px solid var(--bord, #d0d0d0); border-radius: 6px; overflow: hidden; }
+.demo-entete { padding: 8px 12px; font-size: 13px; line-height: 1.6; background: rgba(0,0,0,.03);
+  border-bottom: 1px solid var(--bord, #d0d0d0); overflow-wrap: anywhere; }
+.demo-entete span { display: inline-block; min-width: 88px; color: var(--discret, #777); }
+.demo-corps { display: block; width: 100%; height: 340px; border: 0; background: #fff; }
+.demo-texte { margin: 0; padding: 12px; white-space: pre-wrap; font-family: inherit; font-size: 14px; }
+.demo-pdf { padding: 8px; background: #eee; }
+.demo-pdf-cadre { display: block; width: 100%; height: 440px; margin: 6px 0 0; border: 0; background: #fff; }
+.demo-fenetre h4 { margin: 14px 0 4px; }
+.demo-fenetre h4 + p { margin: 0; line-height: 1.5; }
+.demo-corps[hidden], .demo-pdf[hidden] { display: none; }
+/* Ce qui est parti chez l'editeur : le contenu exact, lisible, borne. */
+.d-pre { max-height: 240px; overflow: auto; font-size: 11px; white-space: pre-wrap;
+         word-break: break-word; background: var(--fond);
+         padding: 8px; border-radius: 6px; margin: 6px 0 0; }
+.detail-saisie { margin: 0 0 10px; line-height: 1.5; }
+
+/* LE RECAPITULATIF DE LA DSN (30/09/2026) : les contrats lus dans le
+   fichier, en tete de la boite de depot ; les ordres de paiement replies. */
+table.recap-dsn { font-size: 12.5px; margin: 6px 0 10px; }
+table.recap-dsn td, table.recap-dsn th { padding: 3px 6px; }
+table.recap-dsn tr.ecart td { background: var(--fond); }
+ul.absents { margin: 4px 0 8px; padding-left: 18px; }
+details.replie { margin: 10px 0; }
+details.replie > summary { cursor: pointer; color: var(--discret); font-size: 13px; }
+
+/* Deux cases côte à côte dans un encart (le taux AT/MP et son code risque). */
+.ligne-champs { display: flex; gap: 14px; flex-wrap: wrap; }
+.ligne-champs label { flex: 1 1 180px; }
+
+/* L'onglet Métiers (30/09/2026) : une famille par tiroir, les métiers en
+   colonnes, cochés ou non. */
+.metiers-outils { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 8px 0 14px; }
+.metiers-outils input[type="search"] { flex: 1 1 240px; max-width: 360px; }
+.metiers-famille { border-top: 1px solid var(--bord); padding: 8px 0; }
+.metiers-famille summary { cursor: pointer; }
+.metiers-colonnes { columns: 3 220px; column-gap: 20px; margin-top: 8px; }
+.metiers-colonnes label.coche { break-inside: avoid; }
+
+/* « Tout cocher », en tête d'une liste de choix (30/09/2026). */
+.tout-cocher { margin: 10px 0 -4px; padding-left: 13px; }
+
+/* Le coût de l'année, en tête d'une fiche salarié ou spectacle. */
+.cout-annee { margin: -4px 0 12px; font-size: 13px; line-height: 1.6; }
+
+/* Signaler un probleme : un lien dans le bandeau, la boite en dessous. */
+button.signaler { border: none; background: none; color: var(--discret); font-size: 12px;
+                  padding: 4px 8px; cursor: pointer; text-decoration: underline dotted; }
+button.signaler:hover { color: var(--texte); }
+#sg-texte { width: 100%; box-sizing: border-box; font: inherit; }
+.sg-vignettes { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
+.sg-vignettes:empty { display: none; }
+.sg-vignette { position: relative; }
+.sg-vignette img { display: block; max-width: 140px; max-height: 90px;
+                   border: 1px solid var(--discret); border-radius: 3px; }
+.sg-retirer { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px;
+              padding: 0; border: none; border-radius: 50%; line-height: 20px;
+              background: var(--texte); color: var(--carte); cursor: pointer; font-size: 13px; }
+#sg-ajout { margin: 8px 0 0; font-size: 12px; }
+#sg-ajout .lien { font-size: inherit; display: inline; margin: 0; }
+#sg-ajout input[type="file"] { display: none; }
+.sg-voir { margin-right: auto; font-size: 12px; color: var(--discret); }
+#sg-pre { margin-top: 12px; max-height: 40vh; overflow: auto; }
+/* La boite reduite : une pastille en bas a droite, au-dessus de tout sauf
+   des boites ouvertes. */
+/* LE BOUTON PAR-DESSUS LE VOILE (ticket #103) : celui du bandeau est sous le
+   voile, et le clic qui le visait tombait sur le voile, qui fermait la
+   fenêtre ouverte. Celui-ci est DANS le voile : il ne ferme rien. */
+button.signaler.sur-voile { position: absolute; top: 10px; right: 16px;
+                            color: #fff; background: rgba(0,0,0,.35); border-radius: 4px; }
+button.signaler.sur-voile:hover { color: #fff; background: rgba(0,0,0,.55); }
+.voile:has(#sg-boite) #signaler-voile { display: none; }
+/* Au-dessus du voile aussi : une fenêtre rouverte ne doit pas la cacher. */
+.sg-pastille { position: fixed; right: 16px; bottom: 16px; z-index: 54;
+               padding: 8px 14px; border: none; border-radius: 18px; cursor: pointer;
+               background: var(--action); color: #fff; font: inherit; font-size: 13px;
+               box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+.sg-liste { margin: 4px 0 0; padding-left: 18px; font-size: 12px; }
+.sg-nouvelles { font-weight: 600; color: var(--action); text-decoration: none; }
+.sg-titre-messages { margin: 20px 0 6px; font-size: 13px; }
+.sg-messages { margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.sg-messages li { padding: 8px 0; border-top: 1px solid var(--bord, #e3e3e3); }
+.sg-messages li.nouveau { border-left: 3px solid var(--action); padding-left: 8px; }
+.sg-reponse { margin: 6px 0 0; padding: 8px 10px; border-radius: 4px; white-space: pre-line;
+              background: rgba(46, 106, 87, .08); }

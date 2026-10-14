@@ -1,0 +1,12 @@
+{
+ "2025": {
+  "le": "2026-09-30T13:53:24",
+  "qui": "demonstration",
+  "archive": "sorties/exercices/Exercice_2025.zip",
+  "octets": 1272789,
+  "empreinte": "4a65bf9e7fb65617a4b6cc8527853011efae1d0b8299442dbdf9be2825212bce",
+  "fichiers": 154,
+  "forcee": false,
+  "sans_dsn": []
+ }
+}

@@ -1,0 +1,32 @@
+From: compagnie@gmail.com
+To: marie@exemple.fr
+Subject: Octobre 2026
+Date: Tue, 06 Oct 2026 21:26:31 +0200
+Message-ID: <FIXE.1.2@gmail.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="<BORNE>"
+
+--<BORNE>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Bonjour,
+
+Tout va bien.
+
+--<BORNE>
+Content-Type: application/pdf
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment;
+ filename*0*=utf-8''Bulletin_%F0%9F%91%A8%E2%80%8D%F0%9F%91%A9%E2%80%8D;
+ filename*1*=%F0%9F%91%A7%E2%80%8D%F0%9F%91%A6%20famille%20%F0%9F%8F%B3;
+ filename*2*=%EF%B8%8F%E2%80%8D%F0%9F%8C%88%20drapeau%20%F0%9F%91%A9;
+ filename*3*=%F0%9F%8F%BD%E2%80%8D%F0%9F%92%BB%20dev%20%F0%9F%8E%AD;
+ filename*4*=%F0%9F%8E%AD%F0%9F%8E%AD%F0%9F%8E%AD%F0%9F%8E%AD%F0%9F%8E%AD;
+ filename*5*=%F0%9F%8E%AD%F0%9F%8E%AD%F0%9F%8E%AD%F0%9F%8E%AD%F0%9F%8E%AD;
+ filename*6*=%F0%9F%8E%AD%F0%9F%8E%AD%F0%9F%8E%AD%F0%9F%8E%AD%F0%9F%8E%AD.pdf
+MIME-Version: 1.0
+
+AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dzj6vH4/wYNFBsiKTA3PkVMU1o=
+
+--<BORNE>--

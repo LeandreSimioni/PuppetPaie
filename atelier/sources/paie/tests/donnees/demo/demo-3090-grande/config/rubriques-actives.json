@@ -1,0 +1,10 @@
+{
+  "actives": [
+    "cachet",
+    "heure",
+    "journee",
+    "mois"
+  ],
+  "usages": {},
+  "_quoi": "Preference d'affichage, jamais un calcul."
+}

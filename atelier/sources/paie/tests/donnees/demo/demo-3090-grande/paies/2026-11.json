@@ -1,0 +1,154 @@
+{
+  "_origine": "Compagnie de demonstration demo-3090-grande, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2026-11",
+  "taux_cachet": 180.0,
+  "date_paiement": "2026-11-30",
+  "engagements": [
+    {
+      "salarie": "Montansier",
+      "nature": "cdi",
+      "debut": "2023-09-04",
+      "numero": "MO.23.01",
+      "salaire_mensuel": 3120.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Nicolet",
+      "nature": "cdi",
+      "debut": "2024-03-01",
+      "numero": "NI.24.01",
+      "salaire_mensuel": 2310.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Biancolelli",
+      "spectacle": "256Z00910011",
+      "debut": "2026-11-17",
+      "fin": "2026-11-20",
+      "date_paiement": "2026-11-20",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 190.0,
+          "lieu": "Centre culturel fictif, Bourges",
+          "dates": [
+            "2026-11-17",
+            "2026-11-18",
+            "2026-11-19",
+            "2026-11-20"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 4,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "Deburau",
+      "spectacle": "256Z00910011",
+      "debut": "2026-11-17",
+      "fin": "2026-11-20",
+      "date_paiement": "2026-11-20",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 190.0,
+          "lieu": "Centre culturel fictif, Bourges",
+          "dates": [
+            "2026-11-17",
+            "2026-11-18",
+            "2026-11-19",
+            "2026-11-20"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 4,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "Clairon",
+      "spectacle": "256Z00910011",
+      "debut": "2026-11-17",
+      "fin": "2026-11-20",
+      "date_paiement": "2026-11-20",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 190.0,
+          "lieu": "Centre culturel fictif, Bourges",
+          "dates": [
+            "2026-11-17",
+            "2026-11-18",
+            "2026-11-19",
+            "2026-11-20"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 4,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "Chaminade",
+      "spectacle": "256Z00910011",
+      "debut": "2026-11-17",
+      "fin": "2026-11-20",
+      "date_paiement": "2026-11-20",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 32,
+          "taux": 19.0,
+          "lieu": "Centre culturel fictif, Bourges",
+          "dates": [
+            "2026-11-17",
+            "2026-11-18",
+            "2026-11-19",
+            "2026-11-20"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 4,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "Servandoni",
+      "spectacle": "256Z00910011",
+      "debut": "2026-11-17",
+      "fin": "2026-11-20",
+      "date_paiement": "2026-11-20",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 32,
+          "taux": 18.0,
+          "lieu": "Centre culturel fictif, Bourges",
+          "dates": [
+            "2026-11-17",
+            "2026-11-18",
+            "2026-11-19",
+            "2026-11-20"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 4,
+          "taux": 20.7
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+ "format": 3,
+ "pdf_sha256": "cc66f934ee477c7ab03d5f33363fd14591be2f7d415a62b2541e8243e01eaa8d",
+ "description": {
+  "format": 3,
+  "style": "contrat",
+  "logo": {
+   "chemin": "C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\demo\\demo-3090-grande\\gabarits\\identite\\logo.svg",
+   "largeur": 74,
+   "marge_haut": 28,
+   "marge_droite": 34
+  },
+  "documents": [
+   {
+    "modele": {
+     "valeurs": {
+      "employeur.raison_sociale": "CIE FICTIVE LES MAREES HAUTES",
+      "employeur.adresse": "8 rue des Tanneurs",
+      "employeur.code_postal": "37000",
+      "employeur.commune": "Tours",
+      "employeur.siret": "12345691500016",
+      "employeur.naf": "9001Z",
+      "employeur.licence": "PLATESV-R-2023-101101",
+      "employeur.idcc": "3090",
+      "employeur.convention": "Spectacle vivant du secteur privé",
+      "employeur.congesspectacles": "970000000000F",
+      "employeur.signataire": "Adrienne Lecouvreur",
+      "employeur.signataire_fonction": "Directrice",
+      "salarie.nom": "CLAIRON",
+      "salarie.prenom": "Lucile",
+      "salarie.nom_complet": "Lucile CLAIRON",
+      "salarie.date_naissance": "02/10/1990",
+      "salarie.lieu_naissance": "Villeneuve-sur-Seine",
+      "salarie.adresse": "3 rue des Deux Ponts",
+      "salarie.code_postal": "45000",
+      "salarie.commune": "Orléans",
+      "salarie.nir": "290107599900921",
+      "salarie.emploi": "comédienne",
+      "salarie.qualite_de": "de ",
+      "contrat.numero": "CL6.26.08",
+      "contrat.debut": "21/09/2026",
+      "contrat.fin": "22/09/2026",
+      "contrat.dates_travail": "21/09/2026, 22/09/2026",
+      "contrat.lieu": "à Salle de repetition, Tours",
+      "contrat.date_paiement": "30/09/2026",
+      "remuneration.detail": "2 services de répétition à 95,00 €",
+      "remuneration.periode": "",
+      "remuneration.cachets": "0",
+      "remuneration.taux_cachet": "180,00",
+      "remuneration.brut": "190,00",
+      "remuneration.net_estime": "147,12",
+      "spectacle.titre": "La Double Inconstance",
+      "spectacle.numero_objet": "266Z00910022"
+     },
+     "signature": "C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\demo\\demo-3090-grande\\gabarits\\identite\\signature.svg",
+     "texte": "# Modèle de contrat d'engagement à durée déterminée d'usage — artiste du spectacle.\r\n#\r\n# CE FICHIER EST UNE DONNÉE, PAS DU CODE.\r\n# Il s'ouvre et se modifie dans n'importe quel éditeur de texte. Chaque\r\n# compagnie garde sa propre version : le moteur, lui, ne change pas.\r\n#\r\n# Pour SUPPRIMER un article : effacer son bloc ARTICLE en entier.\r\n# Pour en AJOUTER un : copier un bloc et l'écrire où l'on veut.\r\n# L'ordre des articles dans ce fichier est l'ordre dans le contrat imprimé.\r\n#\r\n# Les marqueurs {{...}} sont remplacés à l'édition. La liste complète est en\r\n# bas de ce fichier. Un marqueur inconnu arrête la génération plutôt que\r\n# d'imprimer un trou : on ne signe pas un contrat à moitié rempli.\r\n#\r\n# **texte** met en gras. Une ligne vide sépare deux paragraphes.\r\n\r\nTITRE: Contrat d'engagement à durée déterminée d'usage\r\n\r\nSOUSTITRE: Contrat n° {{contrat.numero}}\r\n\r\n# La phrase posée en tête d'un contrat qui ANNULE ET REMPLACE un contrat déjà\r\n# parti (refait en entier avant que son exécution commence). Sans cette clé,\r\n# le logiciel écrit la même phrase que celle-ci.\r\nANNULE:\r\nLe présent contrat annule et remplace le contrat n° {{remplace.numero}} du {{remplace.date}}, qui est réputé n'avoir jamais produit d'effet.\r\n\r\nPREAMBULE:\r\n**Entre les soussignés,**\r\n\r\nL'employeur : **{{employeur.raison_sociale}}**, {{employeur.adresse}}, {{employeur.code_postal}} {{employeur.commune}} — SIRET {{employeur.siret}}, code APE {{employeur.naf}}, licence d'entrepreneur de spectacles n° {{employeur.licence}}, représentée par {{employeur.signataire}}, en qualité de {{employeur.signataire_fonction}}, ci-après dénommé **l'employeur**,\r\n\r\n**Et**\r\n\r\nL'artiste : **{{salarie.nom_complet}}**, né(e) le {{salarie.date_naissance}} à {{salarie.lieu_naissance}}, demeurant {{salarie.adresse}}, {{salarie.code_postal}} {{salarie.commune}}, n° de sécurité sociale {{salarie.nir}}, ci-après dénommé(e) **l'artiste**,\r\n\r\nIl a été convenu et arrêté ce qui suit.\r\n\r\nARTICLE: Objet et nature du contrat\r\nL'artiste est engagé(e) en qualité {{salarie.qualite_de}}**{{salarie.emploi}}** pour le spectacle **{{spectacle.titre}}** (numéro d'objet France Travail {{spectacle.numero_objet}}).\r\n\r\nLe présent contrat est un contrat à durée déterminée d'usage conclu en application de l'article L.1242-2 3° du code du travail, de l'accord interbranche du 12 octobre 1998 sur le recours au contrat à durée déterminée d'usage dans le spectacle, et de la convention collective nationale applicable à l'employeur — {{employeur.convention}}, IDCC {{employeur.idcc}}. L'usage constant exclut le recours au contrat à durée indéterminée pour cet emploi.\r\n\r\nARTICLE: Durée\r\nLe contrat prend effet le **{{contrat.debut}}** et prend fin de plein droit le **{{contrat.fin}}**, sans qu'il soit besoin d'un préavis.\r\n\r\nDates de travail : {{contrat.dates_travail}}.\r\n\r\nARTICLE: Lieu de travail\r\nLes prestations sont exécutées {{contrat.lieu}}, ainsi qu'en tout lieu nécessaire à la préparation et à la représentation du spectacle.\r\n\r\nARTICLE: Rémunération\r\nL'artiste perçoit **{{remuneration.detail}} brut**, soit une rémunération brute totale de **{{remuneration.brut}} €**{{remuneration.periode}}, dont le net à payer estimé est de {{remuneration.net_estime}} €.\r\n\r\nLe paiement intervient par virement le {{contrat.date_paiement}}. Les congés payés sont réglés par la Caisse des Congés Spectacles, à laquelle l'employeur est affilié sous le numéro {{employeur.congesspectacles}}.\r\n\r\nARTICLE: Protection sociale\r\nL'employeur procède à la déclaration préalable à l'embauche auprès de l'URSSAF et à l'attestation employeur mensuelle auprès de France Travail.\r\n\r\nL'artiste relève des annexes VIII et X du règlement d'assurance chômage. Retraite complémentaire et prévoyance : groupe AUDIENS.\r\n\r\nARTICLE: Absence et maladie\r\nEn cas de maladie ou d'empêchement d'assurer une répétition ou une représentation, l'artiste est tenu(e) d'en aviser l'employeur dans un délai de 24 heures en précisant la durée probable de son absence, et de transmettre dans les plus brefs délais un certificat médical.\r\n\r\nARTICLE: Obligations de l'artiste\r\nL'artiste s'engage à se conformer aux horaires de répétition et de représentation, à respecter les consignes de sécurité et à n'accepter aucun engagement incompatible avec les dates ci-dessus.\r\n\r\nARTICLE: Droit de priorité et d'exclusivité\r\nLe présent contrat donne à l'employeur une priorité sur tout autre engagement que l'artiste pourrait conclure par ailleurs sur la période couverte. Toute dérogation à cette clause fait l'objet d'un accord écrit préalable de l'employeur.\r\n\r\nARTICLE: Médecine du travail\r\nL'artiste déclare avoir satisfait aux obligations relatives à la médecine du travail et communiquera à l'employeur l'attestation annuelle qui lui a été délivrée par cet organisme.\r\n\r\nARTICLE: Assurances\r\nL'artiste est tenu(e) d'assurer contre tous les risques les objets lui appartenant. L'employeur déclare avoir souscrit les assurances nécessaires à la couverture des risques liés aux représentations du spectacle.\r\n\r\nARTICLE: Droits voisins\r\nLa rémunération ci-dessus couvre la seule prestation de travail. Toute fixation, reproduction ou communication au public de l'interprétation fera l'objet d'une autorisation écrite distincte et, le cas échéant, d'une rémunération séparée.\r\n\r\nARTICLE: Litiges\r\nEn cas de litige portant sur l'interprétation ou l'application du présent contrat, les parties conviennent de s'en remettre à l'appréciation des tribunaux compétents, après épuisement des voies amiables.\r\n\r\nSIGNATURES:\r\nFait en double exemplaire à {{employeur.commune}}, le {{contrat.debut}}.\r\n\r\n# ---------------------------------------------------------------------------\r\n# MARQUEURS DISPONIBLES\r\n#\r\n#   employeur.raison_sociale      employeur.siret          employeur.idcc\r\n#   employeur.adresse             employeur.naf            employeur.convention\r\n#   employeur.code_postal         employeur.licence        employeur.congesspectacles\r\n#   employeur.commune             employeur.signataire     employeur.signataire_fonction\r\n#\r\n#   salarie.nom_complet           salarie.date_naissance   salarie.adresse\r\n#   salarie.nom                   salarie.lieu_naissance   salarie.code_postal\r\n#   salarie.prenom                salarie.nir              salarie.commune\r\n#   salarie.emploi                salarie.qualite_de  (« d' » ou « de », selon l'emploi)\r\n#\r\n#   contrat.numero                contrat.debut            contrat.dates_travail\r\n#   contrat.lieu                  contrat.fin              contrat.date_paiement\r\n#\r\n#   remplace.numero               remplace.date   (bloc ANNULE: seulement)\r\n#\r\n#   remuneration.detail           remuneration.brut        remuneration.net_estime\r\n#   remuneration.cachets          remuneration.taux_cachet remuneration.periode\r\n#     ^ periode : << pour le mois de mai 2026 >> quand le contrat se poursuit\r\n#       apres le mois (le total et le net sont ceux du mois) ; vide sinon.\r\n#     ^ ces deux-la ne valent que pour un contrat de cachets. `detail` dit\r\n#       la remuneration quelle que soit sa forme -- journee, repetition,\r\n#       masterclass -- et c'est lui qu'il faut employer.\r\n# ---------------------------------------------------------------------------\r\n"
+    }
+   }
+  ]
+ }
+}

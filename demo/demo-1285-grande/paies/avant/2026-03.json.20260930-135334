@@ -1,0 +1,102 @@
+{
+  "_origine": "Compagnie de demonstration demo-1285-grande, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2026-03",
+  "taux_cachet": 165.0,
+  "date_paiement": "2026-03-31",
+  "engagements": [
+    {
+      "salarie": "Nadar",
+      "nature": "cdi",
+      "debut": "2022-01-03",
+      "numero": "NA.22.01",
+      "salaire_mensuel": 3010.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Dorval",
+      "nature": "cdi",
+      "debut": "2025-04-01",
+      "numero": "DO.25.01",
+      "salaire_mensuel": 2200.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Turlupin",
+      "spectacle": "256Z00930022",
+      "debut": "2026-03-10",
+      "fin": "2026-03-13",
+      "date_paiement": "2026-03-13",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 170.0,
+          "lieu": "Scene fictive d'Annecy",
+          "dates": [
+            "2026-03-10",
+            "2026-03-11",
+            "2026-03-12",
+            "2026-03-13"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 4,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "Noverre",
+      "spectacle": "256Z00930022",
+      "debut": "2026-03-10",
+      "fin": "2026-03-13",
+      "date_paiement": "2026-03-13",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 170.0,
+          "lieu": "Scene fictive d'Annecy",
+          "dates": [
+            "2026-03-10",
+            "2026-03-11",
+            "2026-03-12",
+            "2026-03-13"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 4,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "Torelli",
+      "spectacle": "256Z00930022",
+      "debut": "2026-03-10",
+      "fin": "2026-03-13",
+      "date_paiement": "2026-03-13",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 32,
+          "taux": 17.5,
+          "lieu": "Scene fictive d'Annecy",
+          "dates": [
+            "2026-03-10",
+            "2026-03-11",
+            "2026-03-12",
+            "2026-03-13"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 4,
+          "taux": 20.7
+        }
+      ]
+    }
+  ]
+}

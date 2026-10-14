@@ -1,0 +1,9 @@
+Certificats d'emploi Conges Spectacles
+Compte (adherent Audiens) : 0000000000F
+----------------------------------------------------------------------------
+  N CE 4      BEAUCHAMP Clitandre    03/04/2025 -> 04/04/2025   2 jour(s)/cachet(s)  brut   330  base   330
+  N CE 5      CAMARGO Mariane        03/04/2025 -> 04/04/2025   2 jour(s)/cachet(s)  brut   330  base   330
+  N CE 6      JAELL Rosine           03/04/2025 -> 04/04/2025   2 jour(s)/cachet(s)  brut   272  base   272
+----------------------------------------------------------------------------
+A remettre au salarie a la fin de son contrat. Rien a envoyer a
+Audiens : la cotisation part deja par la DSN (S21.G00.78 type 27).

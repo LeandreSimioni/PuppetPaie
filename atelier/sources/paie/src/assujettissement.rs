@@ -1,0 +1,699 @@
+//! Le bloc S21.G00.44 « Assujettissement fiscal » de la DSN de decembre (corrections DSN, lot V3b ; point 11 de
+//! `prive/journal/RELECTURE-NORME-DSN.md`, fiche N8 de `prive/journal/norme/fiches-N8.md`).
+//!
+//! LA NORME (cahier technique DSN 2026.1, `prive/reference/norme-dsn/texte/`) :
+//! - § 2.3.1, p. 58 (`chapitre-2-principes-de-constitution.txt`, lignes 1954-1967 ; taxe par taxe, p. 58-59, lignes
+//!   1971-2059) : « L'assujettissement des entreprises est déclaré en DSN une fois par an, soit en fin d'exercice,
+//!   soit en cours d'exercice pour les cas de cessation d'activité. Conformément au code général des impôts, cet
+//!   assujettissement est déclaré par établissement de l'entreprise. [...] L'assujettissement ou le
+//!   non-assujettissement doit obligatoirement être déclaré. [...] Hors cas de cessation d'activité de l'entreprise,
+//!   le renseignement de ce bloc doit intervenir, au plus tard, dans la DSN mensuelle de décembre » ;
+//! - le bloc, p. 240 (`bloc-S21.G00.44.txt`) et p. 241 (sa suite est en tete de `bloc-S21.G00.45.txt`) : les codes 001 a
+//!   016 ; « Si une entreprise n'est pas assujettie à une taxe, le motif correspondant [...] doit être renseigné » ; la
+//!   taxe sur les salaires porte en 009 « le montant de l'assiette de la taxe sur les salaires au taux normal pour
+//!   l'ensemble des salariés », et « autant de blocs [...] que nécessaire » pour les assiettes aux taux majores ;
+//!   CCH-11 de 44.001 : montant obligatoire pour 005, 009, 015, 016 ; CCH-12 : montant interdit pour 002, 004, 006, 008,
+//!   010, 014 ; 44.003, le millesime ; 44.004 obligatoire pour 002, interdit sinon (CCH-11, p. 241), « Table MNATA »
+//!   (livree depuis le lot R2 : `logiciel/donnees/mnata-base.json`).
+//!
+//! CE QUI SE DEDUIT ET CE QUI SE SAISIT (regle 1 : rien ne se devine ; ce que le moteur sait deja ne se saisit pas une
+//! seconde fois). Les textes sont deposes sous `prive/reference/sources/` (LISEZ-MOI de `bloc-44-assujettissement/`) :
+//! - taxe d'apprentissage (001/002) et CFP (007/008) : elles se paient a l'Urssaf, au bordereau de chaque mois, et c'est
+//!   le moteur qui les y met (CTP 992, ou 993 en Alsace-Moselle ; CTP 983, 959 ou 971 de `config/organismes.json`,
+//!   compose depuis `donnees/organismes-base.json`). Le bloc 44 dit ce que le bordereau paie : 001 si le CTP 992 ou 993
+//!   y est, 007 si un CTP de formation y est (008 sinon). Sans la taxe d'apprentissage au bordereau : 002, avec le motif
+//!   de la table MNATA (44.004) que la fiche entreprise dit (`taxe_apprentissage_motif_non_assujettissement`), sinon
+//!   refus (lot R2). Le motif 007 « Associations sans but lucratif » ne vaut que jusqu'au millesime 2025 : L. 6241-1,
+//!   dans sa redaction du 21/02/2026, rend redevables « les associations [...] a activites non lucratives » ; celle du
+//!   16/02/2025 ne les nommait pas (les deux deposees, `prive/reference/sources/code-du-travail/`).
+//! - contribution supplementaire a l'apprentissage (003/004) : code du travail L. 6242-1 (entreprises d'au moins 250
+//!   salaries redevables de la taxe, effectif de l'annee meme, regle des cinq ans de L. 130-1 CSS). Sous 250 : 004.
+//!   A 250 et plus, le quotient des contrats d'alternance ne se calcule pas ici : la fiche le dit
+//!   (`contribution_supplementaire_apprentissage`, « due » ou « non_due »), sinon refus. (En decembre, l'Urssaf ne
+//!   l'a pas encore calcule : il arrive debut mars en CRM 118, codes A05 et A07, et la DSN de mars N+1 declare la
+//!   contribution elle-meme, calculee : `csa`, lot D2.)
+//! - PEEC (005/006) : CCH L. 313-1 et norme p. 58 (« les employeurs occupant au minimum cinquante salariés »), quelle
+//!   que soit la TVA (BOFiP BOI-TPS-PEEC-10, § 40). Sous 50 (effectif de l'annee du millesime, regle des cinq ans) :
+//!   006 ; a 50 et plus, 005 avec l'assiette (CCH-11) : les remunerations de l'annee qui servent de base aux cotisations
+//!   de securite sociale, la base 03 « assiette brute deplafonnee » de chaque contrat de l'etablissement.
+//! - taxe sur les salaires (009/010, 015/016) : CGI art. 231. Elle depend de la TVA de la compagnie, que le moteur ne
+//!   connait pas : la fiche le dit (`taxe_sur_les_salaires.assujettie`, `pourcentage_assujettissement`), sinon refus.
+//!   Les assiettes sont celles de l'etat « taxe sur les salaires » (`etats_compta`), etablissement par etablissement.
+//! - CPF-CDD (013/014) : code du travail L. 6331-6 (1 % des remunerations des titulaires d'un CDD), sauf le CDD
+//!   saisonnier (L. 6331-6) et ceux de D. 6331-72 ; l'intermittent du spectacle releve de la participation unique de
+//!   L. 6331-55 (« par dérogation [...] à l'article L. 6331-6 »). 013 si l'etablissement a eu dans l'annee un CDD de
+//!   droit commun qui y est soumis, 014 sinon.
+//!
+//! INFERENCES, ecrites comme telles dans la passation du lot (`prive/journal/norme/corrections/PASSATION-V3b.md`) :
+//! 015 et 016 sont les assiettes au premier et au second taux majore (8,50 % et 13,60 %) ; le montant du 005 est
+//! l'assiette de l'annee du millesime, et l'effectif qui le declenche celui de cette annee-la ; la part assujettie a la
+//! taxe sur les salaires s'applique aux montants 009, 015 et 016 ; un CDDU (motif 05) est un contrat d'intermittent au
+//! sens de L. 6331-55 ; 013 se declare seulement si l'annee a eu un CDD soumis a la contribution.
+
+use std::collections::BTreeMap;
+use std::path::Path;
+
+use serde_json::Value;
+
+use crate::calcul::Paie;
+use crate::contexte::Contexte;
+use crate::date::en_texte;
+use crate::dsn::{g, liste, txt};
+use crate::num::{add, dec_py, div, eur, mul, sub, Decimal, Resultat};
+
+/// Un bloc S21.G00.44 : le code taxe (44.001) et, s'il y en a un, le montant (44.002). Le millesime (44.003) est
+/// l'annee de la DSN de decembre.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Bloc44 {
+    pub code: &'static str,
+    pub montant: Option<Decimal>,
+    /// Le motif de non-assujettissement a la taxe d'apprentissage (44.004, table MNATA), pour un 002 seulement.
+    pub motif: Option<String>,
+}
+
+/// La taxe d'apprentissage au bordereau (table des CTP de l'Urssaf) : la part principale hors Alsace-Moselle (992,
+/// 0,59 %) et celle des etablissements du Bas-Rhin, du Haut-Rhin et de la Moselle (993, 0,44 % ; code du travail
+/// L. 6241-1-1, II).
+const CTP_TAXE_APPRENTISSAGE: [&str; 2] = ["992", "993"];
+/// La formation professionnelle au bordereau : intermittents (983), moins de onze salaries (959), onze et plus (971).
+const CTP_FORMATION: [&str; 3] = ["983", "959", "971"];
+/// Le champ de la fiche entreprise qui dit la taxe sur les salaires.
+pub const CHAMP_TAXE_SUR_LES_SALAIRES: &str = "taxe_sur_les_salaires";
+/// Le champ de la fiche entreprise qui dit pourquoi la compagnie ne doit pas la taxe d'apprentissage (un code MNATA).
+pub const CHAMP_MOTIF_TAXE_APPRENTISSAGE: &str = "taxe_apprentissage_motif_non_assujettissement";
+/// Le motif MNATA 007, « Associations sans but lucratif ».
+const MNATA_ASSOCIATIONS: &str = "007";
+/// Le premier millesime ou une association a activites non lucratives est redevable de la taxe d'apprentissage : C. trav.
+/// L. 6241-1, I, redaction en vigueur depuis le 21/02/2026 (loi n° 2026-103 de finances pour 2026, art. 135, XIII) :
+/// « En sont également redevables les associations [...] à activités non lucratives » (deposee :
+/// `prive/reference/sources/code-du-travail/xml/L6241-1.xml`). La redaction precedente (16/02/2025 - 21/02/2026,
+/// `code-du-travail/xml-anterieur/L6241-1-v20250216.xml`) ne les nommait pas. Le millesime 2026 couvre des salaires d'avant
+/// le 21/02/2026 : l'association y est redevable pour le reste de l'annee, elle declare 001 (INFERENCE).
+const MILLESIME_ASSOCIATIONS_REDEVABLES: i32 = 2026;
+/// La premiere periode d'emploi ou une association a activites non lucratives paie la taxe d'apprentissage : mars 2026.
+/// Guide Urssaf des contributions de formation et d'apprentissage, version du 12/03/2026
+/// (`prive/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt`,
+/// l. 1166-1176 et 1192-1196) : « À compter de la période d'emploi de mars 2026, conformément au XIII de l'article 135
+/// de la loi n° 2026-103 du 19 février 2026 de finances pour 2026 modifiant l'article L6241-1 du code du travail, la taxe
+/// d'apprentissage est également due par les associations [...] à activités non lucratives » (lot D1). Les salaires de
+/// janvier et fevrier 2026 n'en portent pas ; le millesime 2026 la porte de mars a decembre, et se declare 001.
+const PREMIERE_PERIODE_ASSOCIATIONS_REDEVABLES: (i32, u32) = (2026, 3);
+/// Le champ de la fiche entreprise qui dit la contribution supplementaire, a 250 salaries et plus.
+pub const CHAMP_CONTRIBUTION_SUPPLEMENTAIRE: &str = "contribution_supplementaire_apprentissage";
+
+// ------------------------------------------------------------ la taxe sur les salaires, salarie par salarie
+
+/// L'assiette de la taxe sur les salaires d'une paie : celle de la CSG, sans la reduction de 1,75 % (CGI art. 231, 1 :
+/// « La réduction mentionnée au I de l'article L. 136-2 du code de la sécurité sociale n'est pas applicable »).
+/// `abattement` : le facteur de la CSG du bareme (`abattement_csg`, 0,9825). Le calcul de l'etat « taxe sur les
+/// salaires » (`etats_compta`), mis ici pour que la DSN lise le meme.
+pub(crate) fn assiette_taxe_sur_les_salaires(p: &Paie, abattement: Decimal) -> Decimal {
+    let csg = p.bases.get("csg").copied().unwrap_or(Decimal::ZERO);
+    eur(add(sub(csg, eur(mul(p.brut, abattement))), p.brut))
+}
+
+/// Les fractions d'une remuneration individuelle annuelle soumises aux taux majores (CGI art. 231, 2 bis) : celle
+/// comprise entre `seuil_1` et `seuil_2`, et celle qui excede `seuil_2`.
+pub(crate) fn fractions_majorees(base: Decimal, seuil_1: Decimal, seuil_2: Decimal) -> (Decimal, Decimal) {
+    let positif = |x: Decimal| if x > Decimal::ZERO { x } else { Decimal::ZERO };
+    let premiere = positif(sub(if base < seuil_2 { base } else { seuil_2 }, seuil_1));
+    (premiere, positif(sub(base, seuil_2)))
+}
+
+/// Ce que la fiche dit de la taxe sur les salaires : `None` si la compagnie n'y est pas assujettie, sinon la part
+/// assujettie des remunerations en pourcentage (CGI art. 231, 1 : le rapport du chiffre d'affaires non passible de la
+/// TVA au chiffre d'affaires total). Muette ou illisible : refus, avec ce qu'il faut ecrire.
+pub(crate) fn taxe_sur_les_salaires_de_la_fiche(ent: &Value) -> Resultat<Option<Decimal>> {
+    let fiche = g(ent, CHAMP_TAXE_SUR_LES_SALAIRES);
+    let dire = "Configuration › Entreprise, « Taxe sur les salaires » (`taxe_sur_les_salaires` de config/entreprise.json) : \
+dire si la compagnie la doit. Elle la doit si elle n'est pas assujettie a la TVA, ou ne l'a pas ete sur 90 % au moins de \
+son chiffre d'affaires de l'annee precedente (CGI art. 231, 1) -- c'est le cas de beaucoup d'associations. Elle ne la \
+doit pas si elle est assujettie a la TVA sur 90 % au moins de son chiffre d'affaires, ou si ce chiffre d'affaires \
+n'excede pas les plafonds de la franchise en base de TVA (art. 293 B). L'ecrire : {\"assujettie\": true, \
+\"pourcentage_assujettissement\": 100} ou {\"assujettie\": false}.";
+    let assujettie = match fiche.get("assujettie") {
+        Some(Value::Bool(b)) => *b,
+        None | Some(Value::Null) => {
+            return Err(format!("La fiche de la compagnie ne dit pas si elle doit la taxe sur les salaires. {}", dire))
+        }
+        Some(autre) => {
+            return Err(format!(
+                "La fiche de la compagnie dit de la taxe sur les salaires `assujettie`: {}, qui n'est ni vrai ni faux. {}",
+                autre, dire
+            ))
+        }
+    };
+    if !assujettie {
+        return Ok(None);
+    }
+    let pct = match fiche.get("pourcentage_assujettissement") {
+        None | Some(Value::Null) => Decimal::ONE_HUNDRED,
+        Some(v) => dec_py(v).map_err(|_| format!("`taxe_sur_les_salaires.pourcentage_assujettissement` illisible ({}). {}", v, dire))?,
+    };
+    if pct <= Decimal::ZERO || pct > Decimal::ONE_HUNDRED {
+        return Err(format!(
+            "`taxe_sur_les_salaires.pourcentage_assujettissement` vaut {} : c'est la part (en %) des remunerations soumise a \
+la taxe, plus de 0 et 100 au plus (100 pour une compagnie qui n'est pas du tout assujettie a la TVA). {}",
+            pct, dire
+        ));
+    }
+    Ok(Some(pct))
+}
+
+// ------------------------------------------------------------ les mois de l'annee
+
+/// Une paie de l'annee : son salarie (`_cle`), et la paie calculee ou seulement son contrat.
+enum MoisDeLAnnee {
+    /// Les paies calculees du mois (le mois de la DSN, ou un mois saisi quand les montants sont necessaires).
+    Calcules(String, Vec<Paie>),
+    /// Les contrats saisis du mois, sans montants (`dsn::contrats_du_mois`).
+    Contrats(Vec<Paie>),
+    /// Un mois d'avant PuppetPaie (ou sans saisie) que seule une DSN deposee decrit.
+    Depose(String, String),
+}
+
+fn lire_latin1(chemin: &Path) -> Resultat<String> {
+    let octets = std::fs::read(chemin).map_err(|e| format!("{} illisible ({})", chemin.display(), e))?;
+    Ok(octets.iter().map(|&b| b as char).collect())
+}
+
+/// Les douze mois de l'annee de la DSN, pour l'etablissement `nic`. Le mois de la DSN est `paies` (celles qu'elle
+/// declare) ; un autre mois se lit dans sa saisie (`paies/AAAA-MM.json`), calcule si `montants`, sinon ses seuls
+/// contrats ; sans saisie, dans la DSN deposee du mois (`casc::dsn_deposee` : celle du journal, ou celle de l'ancien
+/// logiciel). Un mois sans rien n'a pas eu de salarie.
+fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[Paie], montants: bool) -> Resultat<Vec<MoisDeLAnnee>> {
+    let an = &mois[..4];
+    let mut out = Vec::new();
+    let de_l_etablissement = |ps: Vec<Paie>| -> Resultat<Vec<Paie>> {
+        let mut garde = Vec::new();
+        for p in ps {
+            if crate::bareme::etablissement_du_salarie(ent, &p.salarie)? == nic {
+                garde.push(p);
+            }
+        }
+        Ok(garde)
+    };
+    for m in 1..=12u32 {
+        let m = format!("{}-{:02}", an, m);
+        if m == mois {
+            out.push(MoisDeLAnnee::Calcules(m, paies.to_vec()));
+            continue;
+        }
+        let saisie = ctx.racine.join("paies").join(format!("{}.json", m));
+        if saisie.is_file() {
+            if montants {
+                let s = crate::engagement::charger(ctx, &saisie).map_err(|e| format!("{} : {}", m, e))?;
+                out.push(MoisDeLAnnee::Calcules(m, de_l_etablissement(s.paies)?));
+            } else {
+                out.push(MoisDeLAnnee::Contrats(de_l_etablissement(crate::dsn::contrats_du_mois(ctx, &m)?)?));
+            }
+        } else if let Some(chemin) = crate::casc::dsn_deposee(ctx, &m, Some(nic))? {
+            out.push(MoisDeLAnnee::Depose(m, lire_latin1(&chemin)?));
+        }
+    }
+    Ok(out)
+}
+
+// ------------------------------------------------------------ la contribution CPF-CDD
+
+/// Un contrat ouvre-t-il la contribution CPF-CDD (code du travail L. 6331-6) ? Ce que la DSN en dit : nature
+/// (40.007), dispositif (40.008), motif de recours (40.021).
+fn ouvre_cpf_cdd(nature: &str, dispositif: &str, motif: &str, qui: &str) -> Resultat<bool> {
+    // « titulaires d'un contrat à durée déterminée » : la nature 02 (CDD de droit prive) seule.
+    if nature != "02" {
+        return Ok(false);
+    }
+    match motif {
+        // L. 6331-55 : la participation unique des employeurs d'intermittents du spectacle, « par dérogation [...] à
+        // l'article L. 6331-6 ». INFERENCE : le CDD d'usage (05) d'une compagnie est celui d'un intermittent.
+        "05" => return Ok(false),
+        // L. 6331-6 : « ceux visant les salariés occupant un emploi à caractère saisonnier défini au 3° de l'article
+        // L. 1242-2 ». Le contrat vendanges (04) est un emploi saisonnier (INFERENCE).
+        "03" | "04" => return Ok(false),
+        "" => {
+            return Err(format!(
+                "{} : un CDD sans motif de recours (S21.G00.40.021). Le motif dit si le contrat ouvre la contribution \
+CPF-CDD (code du travail L. 6331-6 : pas un CDD saisonnier) ; il se saisit sur l'engagement (`motif_recours`).",
+                qui
+            ))
+        }
+        _ => {}
+    }
+    // D. 6331-72 : contrats d'accompagnement dans l'emploi, d'apprentissage, de professionnalisation, et ceux de
+    // L. 6321-9 -- tous portent un dispositif de politique publique (40.008), et le moteur n'en ecrit aucun.
+    if !dispositif.is_empty() && dispositif != "99" {
+        return Err(format!(
+            "{} : un CDD sous le dispositif de politique publique {} (S21.G00.40.008). D. 6331-72 du code du travail en \
+exclut certains de la contribution CPF-CDD (contrats d'accompagnement dans l'emploi, d'apprentissage, de \
+professionnalisation, ceux de L. 6321-9) : le moteur ne sait pas lequel c'est, et ne declare pas le bloc \
+S21.G00.44 sur une supposition.",
+            qui, dispositif
+        ));
+    }
+    Ok(true)
+}
+
+/// Ce que la DSN ecrit d'un contrat de nature `nat` : nature, dispositif, motif (celui de la nature, sinon celui de
+/// l'engagement).
+fn codes_de(nat: &crate::contrats::Nature, motif_recours: Option<&str>) -> (String, String, String) {
+    let code = |r: &str| -> String {
+        nat.codes.get(r).map(|v| match v.get("valeur") {
+            Some(x) => en_texte(x),
+            None => en_texte(v),
+        }).unwrap_or_default()
+    };
+    let motif = match code("S21.G00.40.021") {
+        m if !m.is_empty() => m,
+        _ => motif_recours.unwrap_or_default().to_string(),
+    };
+    (code("S21.G00.40.007"), code("S21.G00.40.008"), motif)
+}
+
+/// Ce que la DSN ecrit d'un contrat calcule ou saisi : nature, dispositif, motif.
+fn codes_du_contrat(p: &Paie) -> Resultat<(String, String, String)> {
+    Ok(codes_de(&*p.engagement.nat()?, p.engagement.motif_recours.as_deref()))
+}
+
+/// Le contrat paie-t-il la contribution CPF-CDD (code du travail L. 6331-6) ? La meme regle que le bloc 44 (013/014),
+/// pour le bulletin, le nominatif (cotisation 129) et le bordereau (CTP 987) : `bareme::bareme_cpf_cdd`. Un CDD sans
+/// motif de recours refuse (le motif dit s'il est saisonnier).
+pub fn contrat_ouvre_cpf_cdd(nat: &crate::contrats::Nature, motif_recours: Option<&str>, qui: &str) -> Resultat<bool> {
+    let (n, d, m) = codes_de(nat, motif_recours);
+    ouvre_cpf_cdd(&n, &d, &m, qui)
+}
+
+fn qui(p: &Paie) -> String {
+    format!(
+        "Contrat {} de {}",
+        p.engagement.numero.clone().unwrap_or_else(|| "sans numero".into()),
+        txt(g(&p.salarie, "_cle"))
+    )
+}
+
+/// Les contrats d'une DSN deposee : (numero 40.009, nature 40.007, dispositif 40.008, motif 40.021).
+fn contrats_deposes(texte: &str) -> Vec<(String, String, String, String)> {
+    let mut out: Vec<(String, String, String, String)> = Vec::new();
+    for l in crate::usages::lignes(texte) {
+        let (r, v) = crate::usages::rubrique_valeur(l);
+        match r {
+            "S21.G00.40.001" => out.push(Default::default()),
+            "S21.G00.40.007" | "S21.G00.40.008" | "S21.G00.40.009" | "S21.G00.40.021" => {
+                if let Some(c) = out.last_mut() {
+                    match r {
+                        "S21.G00.40.007" => c.1 = v.to_string(),
+                        "S21.G00.40.008" => c.2 = v.to_string(),
+                        "S21.G00.40.009" => c.0 = v.to_string(),
+                        _ => c.3 = v.to_string(),
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+fn cpf_cdd(annee: &[MoisDeLAnnee]) -> Resultat<bool> {
+    let mut soumis = false;
+    for m in annee {
+        match m {
+            MoisDeLAnnee::Calcules(_, ps) | MoisDeLAnnee::Contrats(ps) => {
+                for p in ps {
+                    let (n, d, mo) = codes_du_contrat(p)?;
+                    soumis |= ouvre_cpf_cdd(&n, &d, &mo, &qui(p))?;
+                }
+            }
+            MoisDeLAnnee::Depose(mois, texte) => {
+                for (numero, n, d, mo) in contrats_deposes(texte) {
+                    soumis |= ouvre_cpf_cdd(&n, &d, &mo, &format!("Contrat {} de la DSN deposee de {}", numero, mois))?;
+                }
+            }
+        }
+    }
+    Ok(soumis)
+}
+
+// ------------------------------------------------------------ les assiettes de l'annee
+
+/// La taxe sur les salaires de l'etablissement : les assiettes au taux normal, au premier et au second taux majore,
+/// la part assujettie appliquee a chacune (CGI art. 231, 1 et 2 bis ; BOFiP BOI-TPS-TS-30, § 240 : « en appliquant le
+/// rapport d'assujettissement [...] à chacune des fractions des rémunérations individuelles passibles des taux
+/// majorés »).
+fn assiettes_taxe_sur_les_salaires(annee: &[MoisDeLAnnee], bar: &Value, pct: Decimal) -> Resultat<(Decimal, Decimal, Decimal)> {
+    let ts = g(bar, "taxe_sur_les_salaires");
+    let seuil = |k: &str| -> Resultat<Decimal> {
+        match ts.get(k) {
+            Some(v) => dec_py(v),
+            None => Err(format!(
+                "Le bareme de l'annee ne porte pas la taxe sur les salaires (`taxe_sur_les_salaires.{}`) : les seuils des taux \
+majores se lisent sur la notice 2501-SD de l'annee.",
+                k
+            )),
+        }
+    };
+    let (s1, s2) = (seuil("seuil_1")?, seuil("seuil_2")?);
+    let abattement = match bar.get("abattement_csg").filter(|v| crate::fichiers::vrai(v)) {
+        Some(v) => dec_py(v)?,
+        None => Decimal::ONE,
+    };
+    let mut par_salarie: BTreeMap<String, Decimal> = BTreeMap::new();
+    let mut deposes = Vec::new();
+    for m in annee {
+        match m {
+            MoisDeLAnnee::Calcules(_, ps) => {
+                for p in ps.iter().filter(|p| !p.engagement.sans_paie()) {
+                    let b = par_salarie.entry(txt(g(&p.salarie, "_cle"))).or_insert(Decimal::ZERO);
+                    *b = add(*b, assiette_taxe_sur_les_salaires(p, abattement));
+                }
+            }
+            MoisDeLAnnee::Depose(mois, _) => deposes.push(mois.clone()),
+            MoisDeLAnnee::Contrats(_) => return Err("assiettes de la taxe sur les salaires : un mois sans montants".into()),
+        }
+    }
+    if !deposes.is_empty() {
+        return Err(format!(
+            "La taxe sur les salaires de l'annee se declare dans la DSN de decembre (S21.G00.44, codes 009, 015, 016), avec \
+son assiette salarie par salarie, et {} ne {} que par une DSN deposee hors de PuppetPaie, qui ne donne pas l'assiette de \
+la CSG ligne a ligne (la meme limite que l'etat « taxe sur les salaires »). Le moteur n'ecrit pas une assiette \
+incomplete : saisir ces mois dans PuppetPaie.",
+            deposes.join(", "),
+            if deposes.len() > 1 { "se connaissent" } else { "se connait" }
+        ));
+    }
+    let (mut normal, mut premier, mut second) = (Decimal::ZERO, Decimal::ZERO, Decimal::ZERO);
+    for b in par_salarie.values() {
+        let (f1, f2) = fractions_majorees(*b, s1, s2);
+        normal = add(normal, *b);
+        premier = add(premier, f1);
+        second = add(second, f2);
+    }
+    let part = |x: Decimal| eur(div(mul(x, pct), Decimal::ONE_HUNDRED));
+    Ok((part(normal), part(premier), part(second)))
+}
+
+/// Les bases 03 (« assiette brute deplafonnee ») d'une DSN deposee dont la periode (78.002) est dans l'annee `an`.
+fn bases_03_deposees(texte: &str, an: &str) -> Resultat<Decimal> {
+    let mut total = Decimal::ZERO;
+    let mut code = String::new();
+    let mut dans_l_annee = false;
+    for l in crate::usages::lignes(texte) {
+        let (r, v) = crate::usages::rubrique_valeur(l);
+        match r {
+            "S21.G00.78.001" => {
+                code = v.to_string();
+                dans_l_annee = false;
+            }
+            "S21.G00.78.002" => dans_l_annee = v.len() == 8 && &v[4..] == an,
+            "S21.G00.78.004" if code == "03" && dans_l_annee => {
+                total = add(total, v.parse::<Decimal>().map_err(|_| format!("S21.G00.78.004 illisible : {}", v))?);
+            }
+            _ => {}
+        }
+    }
+    Ok(total)
+}
+
+/// L'assiette de la PEEC de l'etablissement : les remunerations de l'annee qui servent de base aux cotisations de
+/// securite sociale, la base 03 de chaque contrat (celle que la DSN de chaque mois a declaree ou declare).
+fn assiette_peec(ctx: &Contexte, ent: &Value, orgs: &Value, nic: &str, an: &str, annee: &[MoisDeLAnnee]) -> Resultat<Decimal> {
+    let mut total = Decimal::ZERO;
+    for m in annee {
+        match m {
+            MoisDeLAnnee::Calcules(mois, ps) => {
+                if ps.is_empty() {
+                    continue;
+                }
+                let bar = crate::dsn::bar_du(ctx, ent, orgs, nic, mois)?;
+                // Les periodes elementaires d'un mois decoupe (lot R10) : chacune a sa base 03.
+                for p in ps.iter().flat_map(|p| p.elementaires()) {
+                    if let Some(c) = crate::dsn::cotisations(p, &bar)?.into_iter().find(|c| c.bloc78 == "03") {
+                        total = add(total, c.base78);
+                    }
+                }
+            }
+            MoisDeLAnnee::Depose(_, texte) => total = add(total, bases_03_deposees(texte, an)?),
+            MoisDeLAnnee::Contrats(_) => return Err("assiette de la PEEC : un mois sans montants".into()),
+        }
+    }
+    Ok(eur(total))
+}
+
+// ------------------------------------------------------------ le bloc
+
+fn effectif_atteint(ctx: &Contexte, seuil: i64, annee_paie: i32, quoi: &str) -> Resultat<bool> {
+    ctx.effectif()?.atteint(seuil, annee_paie).map_err(|m| format!("Bloc S21.G00.44 (assujettissement fiscal), {} : {}", quoi, m))
+}
+
+/// La table MNATA livree : (code, libelle).
+pub fn motifs_mnata() -> Resultat<Vec<(String, String)>> {
+    let t = crate::fichiers::json_en_cache(&crate::fichiers::dossier_du_code().join("mnata-base.json"))?;
+    Ok(liste(g(&t, "motifs")).iter().map(|m| (txt(g(m, "code")), txt(g(m, "libelle")))).collect())
+}
+
+/// Ou la fiche entreprise dit le motif de non-assujettissement a la taxe d'apprentissage.
+fn champ_du_motif() -> String {
+    format!("Configuration › Entreprise, « Taxe d'apprentissage : motif de non-assujettissement » (`{}`)", CHAMP_MOTIF_TAXE_APPRENTISSAGE)
+}
+
+/// Le motif MNATA que dit la fiche entreprise, avec son libelle, lu dans la table livree : `None` quand la fiche n'en dit
+/// pas ; refus quand il n'est pas dans la table (la DSN n'admet que ses valeurs, CRE-11 de 44.004).
+fn motif_de_la_fiche(ent: &Value) -> Resultat<Option<(String, String)>> {
+    let motif = txt(g(ent, CHAMP_MOTIF_TAXE_APPRENTISSAGE));
+    if motif.is_empty() {
+        return Ok(None);
+    }
+    let motifs = motifs_mnata()?;
+    match motifs.iter().find(|(c, _)| *c == motif) {
+        Some(m) => Ok(Some(m.clone())),
+        None => Err(format!(
+            "Le motif de non-assujettissement a la taxe d'apprentissage de la fiche (« {} ») n'est pas dans la table MNATA \
+de la DSN (S21.G00.44.004 : {}). {}. Rien n'est ecrit.",
+            motif,
+            motifs.iter().map(|(c, l)| format!("{} {}", c, l)).collect::<Vec<_>>().join(" ; "),
+            champ_du_motif()
+        )),
+    }
+}
+
+/// La taxe d'apprentissage des salaires de l'annee `an` est-elle hors du bordereau Urssaf ? Oui quand la fiche entreprise
+/// dit un motif de non-assujettissement (table MNATA) qui vaut pour cette annee : un motif dit que la taxe n'est pas due
+/// (lot R12, la question de R2). Le 007 (associations) ne vaut que jusqu'au millesime 2025
+/// (`MILLESIME_ASSOCIATIONS_REDEVABLES`, INFERENCE de R2 ecrite la-bas) : une association la paie pour 2026. Le
+/// bordereau de chaque mois (`dsn::lignes_bordereau`, `dsn::lignes_regularisees`), le solde d'avril
+/// (`dsn::solde_taxe_apprentissage`) et le bloc 44 de decembre (`blocs`) lisent cette meme decision : le fichier des
+/// organismes garde ses lignes 992/993, comme ses lignes qui dependent du statut ou de l'effectif.
+pub(crate) fn taxe_apprentissage_non_due(ent: &Value, an: i32) -> Resultat<bool> {
+    Ok(match motif_de_la_fiche(ent)? {
+        Some((code, _)) => !(code == MNATA_ASSOCIATIONS && an >= MILLESIME_ASSOCIATIONS_REDEVABLES),
+        None => false,
+    })
+}
+
+/// La taxe d'apprentissage des salaires de la periode d'emploi `an`-`mois` est-elle due ? Non quand la fiche dit un
+/// motif de non-assujettissement (table MNATA) qui vaut pour ce mois. Le 007 (associations) vaut jusqu'a la periode de
+/// fevrier 2026 (`PREMIERE_PERIODE_ASSOCIATIONS_REDEVABLES`, guide Urssaf du 12/03/2026). C'est la decision du MOIS,
+/// et la seule : le bareme du contrat (`bareme::bareme_taxe_apprentissage` : la ligne du bulletin et la cotisation
+/// individuelle 130 du bloc 81) et le bordereau (`dsn::lignes_bordereau`, `dsn::lignes_regularisees` : CTP 992 et 993)
+/// la lisent ici, pour que les trois faces disent la meme chose (lot D1 ; R12 ne retirait que le bordereau).
+pub(crate) fn taxe_apprentissage_non_due_au_mois(ent: &Value, an: i32, mois: u32) -> Resultat<bool> {
+    Ok(match motif_de_la_fiche(ent)? {
+        Some((code, _)) => !(code == MNATA_ASSOCIATIONS && (an, mois) >= PREMIERE_PERIODE_ASSOCIATIONS_REDEVABLES),
+        None => false,
+    })
+}
+
+/// Les CTP du bordereau (`ctp_urssaf` du fichier des organismes), sans ceux de la taxe d'apprentissage (992, 993) quand
+/// elle n'est pas due (`non_due` : `taxe_apprentissage_non_due_au_mois` pour le bordereau d'un mois,
+/// `taxe_apprentissage_non_due` pour le bloc 44 d'un millesime).
+pub(crate) fn ctp_sans_la_taxe_non_due(ctps: Vec<Value>, non_due: bool) -> Vec<Value> {
+    if !non_due {
+        return ctps;
+    }
+    ctps.into_iter().filter(|c| !CTP_TAXE_APPRENTISSAGE.contains(&txt(g(c, "code")).as_str())).collect()
+}
+
+/// Le bloc de la taxe d'apprentissage : 001 si le bordereau la paie (CTP 992 ou 993), 002 et son motif MNATA (44.004)
+/// sinon, le motif lu dans la fiche entreprise. `ctp` : les codes du bordereau, deja sans la taxe quand le motif vaut
+/// (`ctp_sans_la_taxe_non_due`). Un motif hors de la table, le motif 007 a partir du millesime 2026, une fiche qui dit
+/// un motif quand le bordereau paie la taxe (garde-fou : `blocs` lui donne un bordereau qui ne la paie plus) : refus.
+fn taxe_d_apprentissage(ent: &Value, ctp: &[String], an: i32) -> Resultat<Bloc44> {
+    let paye = ctp.iter().any(|c| CTP_TAXE_APPRENTISSAGE.contains(&c.as_str()));
+    let champ = champ_du_motif();
+    let motif = motif_de_la_fiche(ent).map_err(|e| format!("DSN de decembre {} : {}", an, e))?;
+    let Some((code, libelle)) = motif else {
+        if paye {
+            return Ok(Bloc44 { code: "001", montant: None, motif: None });
+        }
+        return Err(format!(
+            "DSN de decembre {} : config/organismes.json ne paie pas la taxe d'apprentissage (ni CTP {} ni CTP {} dans \
+`ctp_urssaf`), et le bloc S21.G00.44 declare donc « 002 - Non assujettissement », qui exige son motif (S21.G00.44.004, \
+table MNATA de la norme). La fiche ne le dit pas : {}. Si la compagnie doit la taxe (code du travail L. 6241-1), \
+recomposer les organismes (Configuration › Organismes et contrats). Rien n'est ecrit.",
+            an, CTP_TAXE_APPRENTISSAGE[0], CTP_TAXE_APPRENTISSAGE[1], champ
+        ));
+    };
+    if code == MNATA_ASSOCIATIONS && an >= MILLESIME_ASSOCIATIONS_REDEVABLES {
+        return Err(format!(
+            "DSN de decembre {} : la fiche dit la compagnie non assujettie a la taxe d'apprentissage au motif {} « {} ». \
+Depuis le 21/02/2026, le code du travail (L. 6241-1, I) dit qu'« en sont également redevables les associations [...] à \
+activités non lucratives » : pour le millesime {}, l'association la doit. Effacer le motif ({}) et recomposer les \
+organismes (Configuration › Organismes et contrats) pour que le bordereau la paie. Rien n'est ecrit.",
+            an, code, libelle, an, champ
+        ));
+    }
+    if paye {
+        return Err(format!(
+            "DSN de decembre {} : la fiche dit la compagnie non assujettie a la taxe d'apprentissage (motif MNATA {}), et le \
+bordereau la paie (CTP {} ou {} de config/organismes.json). L'un des deux est faux : {}, ou les organismes. Rien \
+n'est ecrit.",
+            an, code, CTP_TAXE_APPRENTISSAGE[0], CTP_TAXE_APPRENTISSAGE[1], champ
+        ));
+    }
+    // Le code vient de la table livree : `Bloc44.code` est statique, le motif ne l'est pas.
+    Ok(Bloc44 { code: "002", montant: None, motif: Some(code) })
+}
+
+/// Les blocs S21.G00.44 de la DSN mensuelle de `mois` pour l'etablissement `nic`, dans l'ordre des codes : aucun hors de
+/// decembre (la norme ne les demande qu'une fois l'an, « au plus tard » en decembre ; le moteur ne connait pas la
+/// cessation d'activite, seul autre cas de la p. 58). `ent` : la fiche entreprise ; `ent_e` : vue depuis
+/// l'etablissement ; `bar` : le bareme du mois pour l'etablissement ; `paies` : celles que la DSN declare.
+pub(crate) fn blocs(
+    ctx: &Contexte, ent: &Value, ent_e: &Value, orgs: &Value, bar: &Value, nic: &str, mois: &str, paies: &[Paie],
+) -> Resultat<Vec<Bloc44>> {
+    if mois.len() != 7 || &mois[5..7] != "12" {
+        return Ok(Vec::new());
+    }
+    let an_txt = &mois[..4];
+    let an: i32 = an_txt.parse().map_err(|_| format!("mois illisible : {}", mois))?;
+    // Le bordereau que la DSN ecrit : sans la taxe d'apprentissage quand la fiche dit un motif qui vaut (R12).
+    let ctp: Vec<String> =
+        ctp_sans_la_taxe_non_due(liste(g(orgs, "ctp_urssaf")).to_vec(), taxe_apprentissage_non_due(ent, an)?)
+            .iter()
+            .map(|c| txt(g(c, "code")))
+            .collect();
+    let mut out = Vec::new();
+
+    // La taxe d'apprentissage : ce que le bordereau paie ; sinon 002 et le motif que la fiche dit.
+    out.push(taxe_d_apprentissage(ent, &ctp, an)?);
+
+    // La contribution supplementaire : L. 6242-1, l'effectif de l'annee du millesime (V), la regle des cinq ans.
+    let csa = if effectif_atteint(ctx, 250, an + 1, "contribution supplementaire a l'apprentissage")? {
+        match g(ent, CHAMP_CONTRIBUTION_SUPPLEMENTAIRE).as_str() {
+            Some("due") => "003",
+            Some("non_due") => "004",
+            _ => {
+                return Err(format!(
+                    "DSN de decembre {} : la compagnie compte au moins 250 salaries depuis cinq ans, et la contribution \
+supplementaire a l'apprentissage (code du travail L. 6242-1) est due si moins de 5 % de son effectif annuel est en \
+contrat d'apprentissage, de professionnalisation, en CIFRE ou en CDI a leur suite. Le moteur ne compte pas ces contrats : \
+le dire dans Configuration › Entreprise, « Contribution supplementaire a l'apprentissage » (`{}` : \"due\" ou \
+\"non_due\"). Rien n'est ecrit.",
+                    an, CHAMP_CONTRIBUTION_SUPPLEMENTAIRE
+                ))
+            }
+        }
+    } else {
+        "004"
+    };
+    out.push(Bloc44 { code: csa, montant: None, motif: None });
+
+    // Ce qui demande les montants de l'annee : la taxe sur les salaires et la PEEC.
+    let ts = taxe_sur_les_salaires_de_la_fiche(ent).map_err(|m| format!("DSN de decembre {}, bloc S21.G00.44 : {} Rien n'est ecrit.", an, m))?;
+    if ts.is_some() {
+        let cp = txt(g(ent_e, "code_postal"));
+        if cp.starts_with("97") || cp.starts_with("98") {
+            return Err(format!(
+                "DSN de decembre {} : l'etablissement {} est outre-mer (code postal {}), ou la taxe sur les salaires a un taux \
+unique et pas de taux majores (CGI art. 231, 2 bis et 5). Le moteur ne connait que le bareme de metropole et n'ecrit \
+pas son assiette. Rien n'est ecrit.",
+                an, nic, cp
+            ));
+        }
+    }
+    // L'effectif est celui de l'annee du millesime, comme pour la contribution supplementaire : la PEEC declaree ici est
+    // assise sur les salaires de cette annee-la et s'investit l'annee d'apres (BOFiP BOI-TPS-PEEC-20, § 10), et L. 313-1
+    // renvoie a L. 130-1 CSS, qui retient l'effectif de l'annee civile precedant l'obligation (INFERENCE, passation).
+    let peec = effectif_atteint(ctx, 50, an + 1, "participation des employeurs a l'effort de construction")?;
+    let annee = mois_de_l_annee(ctx, ent, nic, mois, paies, ts.is_some() || peec)?;
+
+    // La PEEC : CCH L. 313-1, cinquante salaries.
+    out.push(if peec {
+        Bloc44 { code: "005", montant: Some(assiette_peec(ctx, ent, orgs, nic, an_txt, &annee)?), motif: None }
+    } else {
+        Bloc44 { code: "006", montant: None, motif: None }
+    });
+
+    // La formation professionnelle : ce que le bordereau paie.
+    out.push(Bloc44 { code: if ctp.iter().any(|c| CTP_FORMATION.contains(&c.as_str())) { "007" } else { "008" }, montant: None, motif: None });
+
+    // La taxe sur les salaires : ce que la fiche dit, les assiettes de l'annee.
+    let mut majorees = Vec::new();
+    match ts {
+        None => out.push(Bloc44 { code: "010", montant: None, motif: None }),
+        Some(pct) => {
+            let (normal, premier, second) = assiettes_taxe_sur_les_salaires(&annee, bar, pct)?;
+            out.push(Bloc44 { code: "009", montant: Some(normal), motif: None });
+            if premier > Decimal::ZERO {
+                majorees.push(Bloc44 { code: "015", montant: Some(premier), motif: None });
+            }
+            if second > Decimal::ZERO {
+                majorees.push(Bloc44 { code: "016", montant: Some(second), motif: None });
+            }
+        }
+    }
+
+    // La contribution CPF-CDD : les contrats de l'annee.
+    out.push(Bloc44 { code: if cpf_cdd(&annee)? { "013" } else { "014" }, montant: None, motif: None });
+    out.extend(majorees);
+    Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    fn d(s: &str) -> Decimal {
+        Decimal::from_str(s).unwrap()
+    }
+
+    #[test]
+    fn la_fiche_propose_les_motifs_de_la_table_mnata_livree() {
+        let motifs = motifs_mnata().unwrap();
+        assert_eq!(motifs.len(), 19);
+        assert_eq!(motifs.iter().find(|(c, _)| c == "007").map(|(_, l)| l.as_str()), Some("Associations sans but lucratif"));
+        let champs = crate::fichiers::json_en_cache(&crate::fichiers::dossier_du_code().join("champs-base.json")).unwrap();
+        let champ = liste(g(&champs, "entreprise")).iter().find(|c| txt(g(c, "cle")) == CHAMP_MOTIF_TAXE_APPRENTISSAGE).cloned().unwrap();
+        let choix: Vec<String> = liste(g(&champ, "choix")).iter().map(|c| c.as_str().unwrap().to_string()).filter(|c| !c.is_empty()).collect();
+        assert_eq!(choix, motifs.iter().map(|(c, _)| c.clone()).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn les_fractions_majorees_suivent_le_2_bis() {
+        let (s1, s2) = (d("9147"), d("18259"));
+        assert_eq!(fractions_majorees(d("5000"), s1, s2), (Decimal::ZERO, Decimal::ZERO));
+        assert_eq!(fractions_majorees(d("10000"), s1, s2), (d("853"), Decimal::ZERO));
+        // L'exemple du BOFiP (BOI-TPS-TS-30, § 240), seuils 2020 : 180 000 -> 7 977 et 164 019.
+        assert_eq!(fractions_majorees(d("180000"), d("8004"), d("15981")), (d("7977"), d("164019")));
+    }
+
+    #[test]
+    fn le_cpf_cdd_suit_la_nature_et_le_motif() {
+        assert!(!ouvre_cpf_cdd("01", "99", "", "x").unwrap(), "un CDI");
+        assert!(!ouvre_cpf_cdd("02", "99", "05", "x").unwrap(), "un CDD d'usage : L. 6331-55");
+        assert!(!ouvre_cpf_cdd("02", "99", "03", "x").unwrap(), "un saisonnier : L. 6331-6");
+        assert!(ouvre_cpf_cdd("02", "99", "02", "x").unwrap(), "un accroissement d'activite");
+        assert!(ouvre_cpf_cdd("02", "99", "", "x").is_err(), "sans motif, on ne sait pas");
+        assert!(ouvre_cpf_cdd("02", "64", "11", "x").is_err(), "un apprenti : D. 6331-72");
+    }
+
+    #[test]
+    fn une_dsn_deposee_donne_ses_contrats_et_ses_bases_03_de_l_annee() {
+        let t = "S21.G00.40.001,'01122025'\r\nS21.G00.40.007,'02'\r\nS21.G00.40.008,'99'\r\nS21.G00.40.009,'C1'\r\n\
+S21.G00.40.021,'05'\r\nS21.G00.78.001,'03'\r\nS21.G00.78.002,'01122025'\r\nS21.G00.78.003,'31122025'\r\n\
+S21.G00.78.004,'1000.00'\r\nS21.G00.78.001,'03'\r\nS21.G00.78.002,'01112024'\r\nS21.G00.78.003,'30112024'\r\n\
+S21.G00.78.004,'-50.00'\r\nS21.G00.78.001,'02'\r\nS21.G00.78.002,'01122025'\r\nS21.G00.78.004,'900.00'\r\n";
+        assert_eq!(contrats_deposes(t), vec![("C1".into(), "02".into(), "99".into(), "05".into())]);
+        assert_eq!(bases_03_deposees(t, "2025").unwrap(), d("1000.00"), "la regularisation de 2024 et la base 02 n'en sont pas");
+    }
+}

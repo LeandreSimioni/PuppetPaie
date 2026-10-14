@@ -1,0 +1,9 @@
+Certificats d'emploi Conges Spectacles
+Compte (adherent Audiens) : 0000000000F
+----------------------------------------------------------------------------
+  N CE 29     CLAIRON Lucile         18/11/2025 -> 21/11/2025   4 jour(s)/cachet(s)  brut   660  base   660
+  N CE 30     JACQUET Isabelle       18/11/2025 -> 21/11/2025   4 jour(s)/cachet(s)  brut   706  base   706
+  N CE 31     SERVANDONI Octave      18/11/2025 -> 21/11/2025   4 jour(s)/cachet(s)  brut   504  base   504
+----------------------------------------------------------------------------
+A remettre au salarie a la fin de son contrat. Rien a envoyer a
+Audiens : la cotisation part deja par la DSN (S21.G00.78 type 27).

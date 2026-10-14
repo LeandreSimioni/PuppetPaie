@@ -1,0 +1,21 @@
+{
+ "sujet": "Octobre 2026",
+ "corps": "Bonjour,\n\nTout va bien.\n",
+ "html": "",
+ "pieces": [
+  {
+   "nom": "a b;c,d=e'f(g)h.pdf",
+   "taille": 20
+  },
+  {
+   "nom": "x%y.pdf",
+   "taille": 20
+  },
+  {
+   "nom": "é;é=é.pdf",
+   "taille": 20
+  }
+ ],
+ "dest": "marie@exemple.fr",
+ "exp": "compagnie@gmail.com"
+}

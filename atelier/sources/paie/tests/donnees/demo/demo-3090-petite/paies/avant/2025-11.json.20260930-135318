@@ -1,0 +1,71 @@
+{
+  "_origine": "Compagnie de demonstration demo-3090-petite, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2025-11",
+  "taux_cachet": 150.0,
+  "date_paiement": "2025-11-30",
+  "engagements": [
+    {
+      "salarie": "Brioche",
+      "spectacle": "256Z00920022",
+      "debut": "2025-11-04",
+      "fin": "2025-11-07",
+      "date_paiement": "2025-11-07",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 150.0,
+          "lieu": "Centre culturel fictif, Riom",
+          "dates": [
+            "2025-11-04",
+            "2025-11-05",
+            "2025-11-06",
+            "2025-11-07"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Seraphin",
+      "spectacle": "256Z00920022",
+      "debut": "2025-11-04",
+      "fin": "2025-11-07",
+      "date_paiement": "2025-11-07",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 150.0,
+          "lieu": "Centre culturel fictif, Riom",
+          "dates": [
+            "2025-11-04",
+            "2025-11-05",
+            "2025-11-06",
+            "2025-11-07"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Lemercier",
+      "spectacle": "256Z00920022",
+      "debut": "2025-11-04",
+      "fin": "2025-11-07",
+      "date_paiement": "2025-11-07",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 24,
+          "taux": 17.5,
+          "lieu": "Centre culturel fictif, Riom",
+          "dates": [
+            "2025-11-04",
+            "2025-11-05",
+            "2025-11-06",
+            "2025-11-07"
+          ]
+        }
+      ]
+    }
+  ]
+}

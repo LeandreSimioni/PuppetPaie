@@ -1,0 +1,43 @@
+# Modèle du REÇU POUR SOLDE DE TOUT COMPTE — L1234-20, D1234-7 et D1234-8.
+#
+# CE FICHIER EST UNE DONNÉE, PAS DU CODE, comme le modèle de contrat.
+#
+# CE QUE LA LOI EXIGE, et qu'on ne retire donc pas à la légère (articles
+# relevés le 19/09/2026 dans la base LEGI) :
+#
+#   L1234-20  le reçu « fait l'INVENTAIRE des sommes versées au salarié lors
+#             de la rupture du contrat de travail » ; il « peut être dénoncé
+#             dans les SIX MOIS qui suivent sa signature, délai au-delà
+#             duquel il devient libératoire pour l'employeur pour les sommes
+#             qui y sont mentionnées » ;
+#   D1234-7   il est établi en DOUBLE EXEMPLAIRE, « mention en est faite sur
+#             le reçu », et l'un des exemplaires est remis au salarié ;
+#   D1234-8   il se dénonce par LETTRE RECOMMANDÉE.
+#
+# Le détail des sommes n'est pas dans ce fichier : il est calculé et inséré
+# à la place du marqueur {{solde.inventaire}} — c'est le solde de tout compte
+# que le bulletin du dernier mois porte déjà.
+
+TITRE: Reçu pour solde de tout compte
+
+SOUSTITRE: Article L1234-20 du code du travail
+
+PREAMBULE:
+Je soussigné(e) **{{salarie.nom_complet}}**, né(e) le {{salarie.date_naissance}}, demeurant {{salarie.adresse}}, {{salarie.code_postal}} {{salarie.commune}},
+
+reconnais avoir reçu de **{{employeur.raison_sociale}}**, {{employeur.adresse}}, {{employeur.code_postal}} {{employeur.commune}} — SIRET {{employeur.siret}}, pour solde de tout compte au titre de la rupture de mon contrat de travail **{{contrat.numero}}**, prenant fin le **{{contrat.fin}}**, les sommes suivantes.
+
+ARTICLE: Inventaire des sommes versées
+{{solde.inventaire}}
+
+**Net versé : {{solde.net}}.**
+
+ARTICLE: Ce que la signature de ce reçu emporte
+Le présent reçu peut être dénoncé dans les **six mois** qui suivent sa signature, par lettre recommandée (art. L1234-20 et D1234-8). Passé ce délai, il devient libératoire pour l'employeur **pour les seules sommes qui y sont mentionnées**.
+
+Il est établi en **double exemplaire**, dont l'un m'est remis (art. D1234-7).
+
+SIGNATURES:
+Fait à {{employeur.commune}}, le {{recu.date}}, en double exemplaire.
+
+Le salarié — mention « pour solde de tout compte », date et signature :

@@ -1,0 +1,86 @@
+{
+  "_quoi": "Les codes de la norme propres au signalement de fin de contrat de travail unique (nature 07). Aucun code reglementaire n'est ecrit dans fctu.py : il se lit ici, comme les motifs d'arret dans arrets-base.json et les natures de contrat dans contrats-base.json.",
+  "_source": "Cahier technique NEODeS 2026.1, releve a la main le 19/09/2026 : bloc S21.G00.63 p. 279-280 (types de preavis et leurs controles), bloc S21.G00.62 p. 270-278 (transaction, mois de rattachement), bloc S21.G00.50 p. 246 (rattachement M ou M-1). L'arborescence du modele est p. 122.",
+  "_arborescence": {
+    "_quoi": "Les cardinalites du modele << DSN SIGNAL FIN CONTRAT UNIQUE >>, cahier technique p. 122. C'est ce qui repond a la question que le tableau des usages ne repond pas : une rubrique a le droit d'etre la, mais son BLOC s'applique-t-il ?",
+    "S21.G00.06": "1,1",
+    "S21.G00.11": "1,1",
+    "S21.G00.15": "0,*",
+    "S21.G00.30": "1,1",
+    "S21.G00.40": "1,1",
+    "S21.G00.45": "0,1",
+    "S21.G00.60": "0,*",
+    "S21.G00.62": "1,1",
+    "S21.G00.63": "1,*",
+    "S21.G00.65": "0,*",
+    "S21.G00.70": "0,*",
+    "S21.G00.73": "0,*",
+    "S21.G00.71": "1,*",
+    "S21.G00.50": "1,*",
+    "S21.G00.51": "1,*",
+    "S21.G00.52": "0,*",
+    "S21.G00.53": "0,*",
+    "S21.G00.54": "0,*",
+    "S21.G00.78": "0,*",
+    "S21.G00.81": "0,*",
+    "S21.G00.85": "0,*",
+    "S21.G00.86": "0,*",
+    "_ce_qu_elles_disent": "UN individu et UN contrat par signalement -- c'est le mot << unique >> du nom. Le bloc 62 est obligatoire, et le bloc 63 (preavis) AUSSI : tout FCTU en porte au moins un, meme quand il n'y a pas de preavis du tout, et c'est alors le code 90. Les bases et les cotisations, elles, sont facultatives."
+  },
+  "types_preavis": {
+    "_rubrique": "S21.G00.63.001",
+    "_quoi": "Le preavis est-il effectue, paye, ni l'un ni l'autre. Le bloc 63 etant (1,*), il y en a toujours un.",
+    "codes": [
+      {"code": "01", "libelle": "preavis effectue et paye", "dates": true, "saisissable": true, "indemnite_de_preavis": "aucune"},
+      {"code": "02", "libelle": "preavis non effectue et paye", "dates": true, "saisissable": true, "non_effectue": true, "indemnite_de_preavis": "versee"},
+      {"code": "03", "libelle": "preavis non effectue et non paye", "dates": true, "saisissable": true, "non_effectue": true, "indemnite_de_preavis": "aucune"},
+      {"code": "10", "libelle": "preavis non effectue non paye dans le cadre d'un contrat de securisation professionnelle (CSP)", "dates": true, "saisissable": false, "non_effectue": true, "indemnite_de_preavis": "aucune"},
+      {"code": "50", "libelle": "preavis non effectue et paye dans le cadre d'un conge de reclassement", "dates": true, "saisissable": false, "non_effectue": true},
+      {"code": "51", "libelle": "preavis non effectue et paye dans le cadre d'un conge de mobilite", "dates": true, "saisissable": false, "non_effectue": true},
+      {"code": "60", "libelle": "delai de prevenance", "dates": true, "saisissable": true, "indemnite_de_preavis": "aucune"},
+      {"code": "61", "libelle": "preavis non effectue et non paye dans le cadre du parcours d'accompagnement personnalise (PAP)", "dates": true, "saisissable": false, "non_effectue": true, "indemnite_de_preavis": "aucune"},
+      {"code": "90", "libelle": "pas de clause de preavis applicable", "dates": false, "saisissable": true, "indemnite_de_preavis": "aucune"}
+    ],
+    "_indemnite_de_preavis": "Ce que le type dit de l'indemnite compensatrice de preavis que la paie du contrat verse (S21.G00.52.001 dans `codes_52_de_l_indemnite_de_preavis`) : `versee` (02, « non effectue et paye ») la veut, `aucune` l'interdit, un type sans drapeau (50, 51 : paye dans le cadre d'un conge de reclassement ou de mobilite, que le moteur ne connait pas) n'est pas confronte. Les libelles de 63.001 (cahier technique 2027.1.1, p. 283-284, prive/reference/norme-dsn/texte-2027/bloc-S21.G00.63.txt l. 98-106 ; l'extrait 2026.1, texte/bloc-S21.G00.63.txt, s'arrete a la page 279, et la page 280 porte 10 a 90, les memes) : 03, 10 et 61 sont « non paye ». Lecture, ecrite comme telle : 01 (« effectue »), 60 (« delai de prevenance ») et 90 (« pas de clause de preavis applicable ») ne disent pas un preavis non effectue, et 023 est l'indemnite d'un preavis « paye non effectue » (bloc S21.G00.52, p. 253) ; le moteur n'ecrit qu'un bloc 63 (CCH-15 en permet plusieurs, aux periodes contigues, qu'il ne sait pas ecrire) : un preavis en partie effectue ne s'y declare pas. Tenu par `fctu::desaccord_du_preavis`, que lisent `fctu::generer` (refus) et `solde::solde_de_tout_compte` (avertissement), lot P2. Le type ne se deduit pas du solde : il dit aussi si le preavis a ete effectue, ou le delai de prevenance, ce que la paie ne sait pas.",
+    "codes_52_de_l_indemnite_de_preavis": ["023", "032"],
+    "_codes_52_de_l_indemnite_de_preavis": "Bloc S21.G00.52 (cahier technique 2026.1, p. 253, prive/reference/norme-dsn/texte/bloc-S21.G00.52.txt) : « 023 - Indemnite compensatrice de preavis paye non effectue » et « 032 - Indemnite compensatrice de preavis pour inaptitude suite AT ou Maladie Professionnelle ».",
+    "_non_effectue": "Les types de preavis NON effectue : sur eux, le dernier jour travaille et paye au salaire habituel (S21.G00.62.006) precede le debut du preavis -- CCH-12 de S21.G00.62.006, cahier technique DSN 2026.1 p. 275 (prive/reference/norme-dsn/texte/bloc-S21.G00.62.txt), qui nomme 02, 03, 10, 50, 51 et 61. La fin du contrat n'y est donc jamais ce jour-la, et le moteur ne le devine pas (`fctu::dernier_jour_paye`).",
+    "_dates": "CCH-11 de S21.G00.63.002 et CCH-14 de .003 : les deux dates sont presentes SI ET SEULEMENT SI le type n'est pas 90. D'ou le drapeau `dates` ci-dessus.",
+    "_periode_essai": "CCH-11 du bloc 63 : si le motif de rupture est 034 ou 035 (fin de periode d'essai), seuls 60 et 90 sont permis. Applique depuis `types_permis_par_motif`.",
+    "_rupture_conventionnelle": "CCH-12 : si le motif est 043 ou 110 (rupture conventionnelle), seul 90 est permis. Applique depuis `types_permis_par_motif`.",
+    "types_permis_par_motif": {
+      "_quoi": "Les motifs de rupture qui LIMITENT le type de preavis declarable. Un motif absent de cette table n'est pas limite. Ecrites en prose depuis le 18/09/2026, ces deux regles n'etaient verifiees par rien jusqu'au 19 : un FCTU de rupture conventionnelle portant un preavis de deux mois serait parti, et CCH-12 l'aurait fait rejeter.",
+      "034": {"types": ["60", "90"], "controle": "CCH-11"},
+      "035": {"types": ["60", "90"], "controle": "CCH-11"},
+      "043": {"types": ["90"], "controle": "CCH-12"},
+      "110": {"types": ["90"], "controle": "CCH-12"},
+      "_pourquoi_90_pour_une_rupture_conventionnelle": "Il n'y a pas de preavis dans une rupture conventionnelle : la convention FIXE la date de rupture (L1237-13), elle ne la fait pas courir. « 90 - pas de clause de preavis applicable » n'est donc pas un pis-aller, c'est la verite du contrat."
+    },
+    "_contigues": "CCH-15 : plusieurs blocs 63 doivent avoir des periodes strictement contigues et sans chevauchement."
+  },
+  "transaction": {
+    "_rubrique": "S21.G00.62.008",
+    "_quoi": "Une transaction est un accord signe entre l'employeur et le salarie pour eteindre un litige ne de la rupture. La rubrique est OBLIGATOIRE dans un FCTU : elle se declare meme pour dire qu'il n'y en a pas.",
+    "codes": [
+      {"code": "01", "libelle": "oui"},
+      {"code": "02", "libelle": "non", "defaut": true}
+    ]
+  },
+  "rattachement_versement": {
+    "_rubrique": "S21.G00.50.020",
+    "_quoi": "Chaque bloc 50 d'un FCTU dit s'il porte le mois M -- celui de la rubrique S21.G00.62.020 -- ou le mois precedent.",
+    "codes": [
+      {"code": "01", "libelle": "elements de la DSN mensuelle portant les derniers elements declares dans le FCTU", "defaut": true},
+      {"code": "02", "libelle": "elements de la declaration precedant la DSN mensuelle portant les derniers elements declares dans le FCTU"}
+    ]
+  },
+  "notification_rupture": {
+    "_rubrique": "S21.G00.62.003",
+    "_champ": "notification_rupture",
+    "_quoi": "La date de notification de la rupture (envoi de la lettre de licenciement, remise de la demission, notification de la fin de la periode d'essai). OBLIGATOIRE dans un FCTU pour les motifs ci-dessous : un signalement qui ne la porte pas est refuse par le point de depot (certificat de conformite KO, 14/10/2026, FCTU d'un CDDU rompu en 036). Le moteur la demande (`routes_listes::ce_qui_manque`) et n'ecrit pas le signalement sans elle (`fctu::verifier`). En DSN mensuelle (nature 01), la rubrique est interdite (tableau des usages) : la regle ne vaut que pour le signalement.",
+    "_source": "Cahier technique DSN 2026.1, p. 275, CCH-12 de S21.G00.62.003 : << La rubrique est obligatoire si le \"Motif de la rupture du contrat - S21.G00.62.002\" est \"011\", \"012\", \"014\", \"015\", \"020\", \"025\", \"034\", \"035\", \"036\", \"037\", \"058\", \"059\", \"082\", \"083\", \"087\", \"088\", \"089\", \"095\", \"096\", \"097\",\"111\", \"112\", \"113\", \"115\" ou \"117\". >> (prive/reference/norme-dsn/texte/bloc-S21.G00.62.txt ; la meme liste en 2027.1.1, texte-2027/bloc-S21.G00.62.txt).",
+    "motifs": ["011", "012", "014", "015", "020", "025", "034", "035", "036", "037", "058", "059", "082", "083", "087", "088", "089", "095", "096", "097", "111", "112", "113", "115", "117"]
+  },
+  "_delai": "Cahier technique p. 107 : << dans les cinq jours ouvres qui suivent la survenance de la fin du contrat de travail >>, avec une DEROGATION pour les artistes du spectacle et les ouvriers et techniciens du spectacle (les contrats d'usage declares par AEM, ou infra-DSN mensuelle), sauf demande expresse du salarie. C'est cette derogation qui fait qu'un CDDU du spectacle n'emet pas de FCTU : sa fin part dans la DSN mensuelle, par le circuit derogatoire S21.G00.62.017 = 01.",
+  "_report_en_mensuelle": "Cahier technique p. 107 : << il y aura lieu dans tous les cas de reporter les informations du signalement au sein de la DSN mensuelle >>, y compris apres un annule-et-remplace. Et l'inverse : << toutes modifications en DSN mensuelle declarees posterieurement a la transmission d'un signalement FCTU, sur des donnees presentes dans les signalements, doivent faire l'objet d'un signalement annule-et-remplace ou annule >>."
+}

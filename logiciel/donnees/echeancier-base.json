@@ -1,0 +1,70 @@
+{
+  "_origine": "L'echeancier de PuppetPaie (23/09/2026). L'editeur : « un echeancier qui dise aux gens quoi faire, un pop-up au demarrage : on est le..., bienvenue, n'oublie pas de faire la DSN, ce mois-ci il faut declarer le FCAP ; avec les donnees publiques, pour les deux conventions, et les dates ou il faut clore l'annee ». Ce fichier dit les echeances de CALENDRIER, avec leur source. La DSN mensuelle n'y est pas ecrite en dur : son jour se deduit de l'effectif (R. 243-6 CSS : le 5 a partir de 50 salaries, le 15 sinon), et `operations_echeancier` la calcule mois par mois. Une echeance sans source ne s'ajoute pas ici : regle 1, rien ne se devine.",
+  "dsn": {
+    "titre": "Déposer la DSN {de_mois}",
+    "detail": "Au plus tard le {jour} {mois_suivant}. Elle part dès que les paies du mois sont finies ; les cotisations (Urssaf, retraite complémentaire, prévoyance, Congés Spectacles) sont prélevées à partir d'elle, rien d'autre à payer à part.",
+    "source": "Code de la sécurité sociale, art. R. 243-6 (le 5 à partir de 50 salariés, le 15 en dessous) ; le versement suit la DSN (cahier technique DSN 2026.1, bloc S21.G00.20)."
+  },
+  "annuelles": [
+    {
+      "cle": "cloture",
+      "mois": [1],
+      "titre": "Clore l'année {annee_precedente}",
+      "detail": "Après la DSN de décembre (le {jour_dsn} janvier au plus tard) : figer l'année et en garder l'archive (bulletins, contrats signés, DPAE, DSN, retours), puis l'export pour la comptabilité. Historique › L'exercice.",
+      "source": "La DSN de décembre est la dernière de l'exercice (R. 243-6 CSS) ; la clôture est celle de PuppetPaie (operations_exercice).",
+      "fait_par": "exercice_clos"
+    },
+    {
+      "cle": "revue-spectacles",
+      "mois": [1, 2, 3],
+      "titre": "Les spectacles de {annee}",
+      "detail": "Dire lesquels se jouent encore en {annee} ; les autres s'archivent et se réactivent d'un clic. Le numéro d'objet d'un spectacle ne change pas d'une année à l'autre. Configuration › Spectacles.",
+      "source": "Le numéro d'objet est attribué par spectacle ou production, sans durée de validité : France Travail (questions-réponses sur le numéro d'objet) ; net-entreprises, fiche 3344.",
+      "fait_par": "coche"
+    },
+    {
+      "cle": "at-mp",
+      "mois": [1, 2],
+      "titre": "Relever le taux AT/MP {annee}",
+      "detail": "Le taux de l'année est notifié sur le compte AT/MP de net-entreprises (et revient en retour de nature 34). À saisir dans Configuration › Entreprise (Taux accident du travail).",
+      "source": "Notification sur le compte AT/MP de net-entreprises, en janvier, et renvoyée en retour DSN de nature 34.",
+      "fait_par": "coche"
+    },
+    {
+      "cle": "fcap-svp",
+      "idcc": ["3090"],
+      "mois": [1, 2, 3],
+      "titre": "Payer le FCAP-SVP {annee}",
+      "detail": "0,1 % de la tranche A, 80 € au minimum et 300 € au plus par an. Collecté en début d'année par Audiens pour le FCAP-SVP (espace AgePro), hors DSN. Le montant : Exports › FCAP-SVP.",
+      "source": "CCN des entreprises du secteur privé du spectacle vivant (IDCC 3090), titre V, art. 5.1 à 5.3 : « La collecte du financement du paritarisme sera effectuée chaque année, en début d'année civile. »",
+      "fait_par": "coche"
+    },
+    {
+      "cle": "afdas-2642",
+      "idcc": ["2642", "3097"],
+      "mois": [1, 2],
+      "titre": "Déclarer et payer les contributions Afdas {annee}",
+      "detail": "Avant le 28 février, sur Globaldec' : la contribution au dialogue social de la CPNEF audiovisuel et la contribution conventionnelle des salariés autres que les intermittents, sur la masse salariale de l'année écoulée, hors DSN. Les montants : Exports › Contributions Afdas.",
+      "source": "Plaquette Afdas « Contributions 2026 Audiovisuel » : « Pour déclarer vos contributions conventionnelles et volontaires avant le 28/02/2026 : Globaldec' ».",
+      "fait_par": "coche"
+    },
+    {
+      "cle": "paritarisme-branche",
+      "idcc": ["3252", "3241", "1922", "2121", "1790"],
+      "mois": [1, 2, 3],
+      "titre": "Payer le financement du paritarisme {annee}",
+      "detail": "Une fois l'an, hors DSN, sur la masse salariale de l'année écoulée : 0,1 % pour la création et l'événement (3252, à l'AGP) ; 0,03 %, 50 € au moins, pour la télédiffusion (3241) ; 0,05 % pour la radiodiffusion (1922, à l'APAR, avant le 31 mars) ; 0,07 % pour l'édition phonographique (2121, appelé par l'AGEPRO) ; 0,05 %, 40 € au moins, pour les espaces de loisirs (1790, avant le 1er mars). L'appel vient de l'organisme collecteur de la branche. Le montant : Exports › Paritarisme de branche.",
+      "source": "CCN 3252, art. 3.6.1 ; CCN 3241, art. 11.1 et 11.2 (base KALI, 27/09/2026) ; protocole APEP (2121), art. 3 ; avenant n° 14 de la 1790, art. 3 et 5 (29/09/2026).",
+      "fait_par": "coche"
+    },
+    {
+      "cle": "fnas-fcap-1285",
+      "idcc": ["1285"],
+      "mois": [1],
+      "titre": "FNAS et FCAP : rien à faire à part",
+      "detail": "Pour la CCNEAC, le FNAS et le FCAP sont déclarés et prélevés avec chaque DSN (affiliations Audiens) : aucun appel séparé.",
+      "source": "CCNEAC (IDCC 1285), lue dans la base KALI de la DILA le 23/09/2026.",
+      "fait_par": "information"
+    }
+  ]
+}

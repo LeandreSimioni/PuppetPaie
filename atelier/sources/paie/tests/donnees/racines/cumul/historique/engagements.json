@@ -1,0 +1,84 @@
+{
+ "engagements": [
+  {
+   "salarie": "NADAR",
+   "debut": "2024-03-01",
+   "fin": "2024-03-31",
+   "numero_objet": "X1",
+   "heures": 80,
+   "cachets": 31,
+   "jours": 20,
+   "brut": "3100.5",
+   "heures_enseignement": 100
+  },
+  {
+   "salarie": "NADAR",
+   "debut": "2024-03-10",
+   "fin": "2024-03-12",
+   "numero_objet": "X2",
+   "heures": 8,
+   "cachets": 2,
+   "jours": 3,
+   "brut": 250
+  },
+  {
+   "salarie": "NADAR",
+   "debut": "2024-09-02",
+   "fin": "2024-09-30",
+   "heures": "40",
+   "cachets": 1,
+   "jours": 4,
+   "brut": 640.25,
+   "heures_enseignement": 20
+  },
+  {
+   "salarie": "NADAR",
+   "debut": "02/12/2025",
+   "fin": "15/12/2025",
+   "numero_objet": 7,
+   "heures": 12.9,
+   "jours": 2
+  },
+  {
+   "salarie": "NADAR",
+   "debut": "2025-04-05",
+   "fin": "2025-04-20",
+   "heures": 150,
+   "cachets": 3,
+   "jours": 5,
+   "brut": "100",
+   "heures_enseignement": 150
+  },
+  {
+   "salarie": "INCONNU",
+   "debut": "2025-04-05",
+   "fin": "2025-04-20",
+   "heures": 1,
+   "cachets": 1,
+   "jours": 1,
+   "brut": "1"
+  },
+  {
+   "debut": "2025-04-05",
+   "fin": "2025-04-20"
+  },
+  {
+   "salarie": "NADAR",
+   "debut": "pas une date",
+   "fin": "2025-04-20"
+  },
+  {
+   "salarie": "NADAR",
+   "debut": "2025-04-05",
+   "fin": "2025-04-20",
+   "heures": "douze"
+  },
+  {
+   "salarie": "NADAR",
+   "debut": "2025-04-05",
+   "fin": "2025-04-20",
+   "cachets": null
+  },
+  "une ligne qui n'est pas un objet"
+ ]
+}

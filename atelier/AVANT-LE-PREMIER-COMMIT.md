@@ -1,0 +1,164 @@
+# Avant le premier commit
+
+> **RÉVEILLÉ LE 09/10/2026 (Léandre : « on va préparer l'envoi sur le dépôt
+> public »).** Le Python est retiré du produit (lot K) ; la section 0 dit où en
+> est le terrain.
+>
+> **FAIT LE 14/10/2026 (Léandre : « on met tout sur le dépôt public »)** : le dépôt
+> `LeandreSimioni/PuppetPaie` (créé le 04/10, vide, **encore privé** : c'est Léandre
+> qui le rend public, après relecture) reçoit son premier commit, écrit par
+> `atelier/outils/exporter_depot_public.sh` depuis le dépôt de travail : tout ce que
+> Git suit ici, sauf `prive/`, `atelier/prive-dev/`, `import/`, les deux fichiers
+> scellés du bac à sable, `logiciel/donnees/google-application.json` (le
+> `client_secret`, §3 : retiré tant que Léandre n'a pas tranché, une ligne du script
+> le rend) et `atelier/PUPPETPAIE-TEL-QU-IL-EST.md` (le récit du banc d'essai). Le
+> dépôt de travail reste privé, garde `prive/` et reçoit les tickets ; le script se
+> relance à chaque fois qu'il faut rejouer l'export. **La licence est posée** :
+> `LICENCE` (texte français) et `LICENCE-EN` (texte anglais) de l'EUPL v. 1.2, relevés
+> le 14/10/2026 sur `joinup.ec.europa.eu` (`.../inline-files/EUPL v1_2 FR.txt` et
+> `.../custom-page/attachment/2020-03/EUPL-1.2 EN.txt`), BOM et CRLF retirés, texte
+> inchangé ; les trois `Cargo.toml` disent `license = "EUPL-1.2"`.
+
+## 0. Le terrain au 09/10/2026
+
+**Ce qui est prêt**
+- Le produit est en Rust seul : `paie/` (moteur), `fenetre/` (Tauri),
+  `donnees/` (référentiels), `interface/` (la page). Suite : `cargo test` vert.
+- Les tests ne lisent plus `prive/` ni `demo/` : compagnies fictives et copie
+  figée des démos (`paie/tests/donnees/demo/`).
+- Le nom de la compagnie réelle n'apparaît plus dans le code (un test de
+  signature le portait, corrigé).
+
+**Ce que le garde-fou relève** (`python3 atelier/outils/verifier_avant_commit.py`,
+réveillé le 14/10/2026, lot N1) : il lit désormais tout ce que Git emporterait
+hors de `prive/` (`demo/`, les `config/`, `.dsn` et `.xml` compris), reconnaît
+un NIR inventé à la marque du verrou de la suite (`999`, `123456`, `000`) et
+un NIR écrit avec sa clé. **Hors d'`atelier/prive-dev/`, il ne trouve plus
+rien.** Dans `atelier/prive-dev/` (la copie de développement : à sortir du
+dépôt public, Léandre tranche), 5 672 occurrences dans 954 fichiers, dont
+3 779 valeurs réelles de `prive/config/`. Limite : un vrai NIR absent de
+`salaries.json` (un ancien salarié) ne serait reconnu que par le motif
+générique ; les PDF (`import/`) ne se lisent pas.
+
+**Ce qui pèse** : `paie/bin/` (65 Mo, les programmes compilés commités),
+`paie/tests/donnees/` (47 Mo, dont 28 Mo de démos figées). Sur un dépôt
+public, les programmes se livrent par des *releases* et non dans l'historique ;
+les démos figées se remplacent par des démos rejouées par `vie_demo` quand
+elles seront refaites.
+
+**Le produit et l'atelier ne sont pas encore séparés** : la mise à jour
+(`paie maj --publier`, `maj::archiver`) emporte tout `logiciel/`, sources,
+tests et outils compris. La forme visée (`PLAN-DEPOT-PUBLIC.md` : `produit/`,
+`atelier/`) reste à faire.
+
+**L'atelier garde du Python, à porter** : `outils/` (extracteurs de la norme
+DSN, relevés KALI/DILA, tables NFKC, garde-fou). La vérification des sources
+(`sources --verifier`, chez l'éditeur) vivait dans le moteur Python : elle n'existe
+plus et sera à réécrire en Rust. Le serveur du filet est un service à part,
+déployé sur le VPS du site, en Python : il vit dans le dépôt du site
+de l'éditeur (`infra/filet/`, depuis le 13/10/2026), hors de ce dépôt.
+
+**Décidé le 08/10/2026** (`ETAT.md`) : **licence EUPL 1.2** (le texte
+officiel est à poser en `LICENCE` — pas encore fait : à prendre sur le site de
+la Commission, pas à recopier de mémoire) ; **signature des exe par SignPath
+Foundation**, qui demande, dans l'ordre : le dépôt public sain, l'EUPL dans
+chaque dépôt, une page « Code signing policy » sur le site de l'éditeur, la double
+authentification de chaque membre, une option pour couper l'envoi des
+incidents à l'éditeur.
+
+**Restent à Léandre** : le `client_secret` Google (`donnees/google-application.json`,
+section 3 ; exclu de l'export par défaut) ; le nom du dépôt est `PuppetPaie`, créé
+le 04/10/2026. **Et ce que l'export laisse derrière, à décider** : les textes déposés
+(`prive/reference/sources/`, que les `_source` du code citent) ne sont pas dans le
+dépôt public ; `atelier/site/` nomme l'éditeur (mentions légales) ; les démos
+portent des chemins du poste (suspens du verrou, `PASSATION-N1.md`). L'identifiant de la fenêtre est
+tranché depuis le 13/10/2026 : `fr.puppetpaie.fenetre` (`fenetre/tauri.conf.json`,
+du nom du site de l'éditeur) ; le changer encore déplacerait le dossier de
+données de la fenêtre sur chaque poste.
+
+---
+
+## 1. Ce qui a été retiré, et comment
+
+Le principe : **retirer les identités, garder les chiffres.** Les montants
+sont ce qui prouve que le moteur est calé au centime ; les noms n'apportent
+rien. Un test qui perd ses valeurs réelles perd sa valeur de preuve — c'était
+le piège à éviter.
+
+| Fichier | Ce qu'il portait | Ce qui a été fait |
+|---|---|---|
+| `tests/test_retours.py` | les deux NIR complets, le SIRET, un compte-rendu DGFiP réel | le CRM réel est devenu un **gabarit** : sa structure est intacte, ses NIR sont des marqueurs remplacés **au moment du test** par ceux de la configuration, qui n'est pas versionnée |
+| `tests/test_interface.py` | deux NIR en dur pour tester la clé | le test lit désormais les fiches et vérifie que **chaque clé déclarée correspond à son NIR** — plus fort qu'avant |
+| `tests/test_non_regression.py` | une adresse de courriel réelle | lue depuis la configuration |
+| `moteur/retours.py` | un NIR réel dans deux exemples | NIR fabriqué |
+| `moteur/champs.py` | une adresse réelle en exemple | adresse inventée |
+| `moteur/conges_spectacles.py` | le SIRET en exemple | SIRET fabriqué (clé de Luhn juste) |
+| `moteur/netentreprises.py` | « NOM PRÉNOM » du déclarant | formulation générique |
+
+Les valeurs fabriquées ont **des clés qui se vérifient** : un test ne doit pas
+pouvoir passer sur un numéro impossible. Elles sont listées, avec leur raison
+d'être, en tête de `outils/verifier_avant_commit.py`.
+
+Vérifié après nettoyage : **117 tests verts**, et `python -m moteur calibrer`
+rend exactement le même rapport qu'avant.
+
+## 2. Le garde-fou, en place
+
+`outils/verifier_avant_commit.py` cherche NIR, IBAN, BIC, SIRET, identités et
+adresses dans tout ce qui partirait. Il **ne contient aucune donnée
+sensible** : il lit ce qu'il faut protéger dans `prive/config/`, hors du
+dépôt. Un garde-fou qui porterait la liste des NIR à protéger serait
+exactement ce qu'il prétend empêcher.
+
+Deux façons de s'en servir, et il en faut deux — un hook s'installe, et peut
+ne pas l'être :
+
+```bash
+git config core.hooksPath atelier/.githooks     # refuse le commit fautif
+python atelier/outils/verifier_avant_commit.py  # à la demande, sur ce qui part
+```
+
+Il ne tourne plus dans la suite de tests depuis le 20/09/2026, et le hook
+n'est pas posé : un garde-fou qui refuserait chaque commit d'un dépôt privé
+plein de données réelles ne serait plus un garde-fou. À reposer le jour de la
+publication — et le texte du hook, qui dit encore « le dépôt est public »,
+sera à reprendre ce jour-là.
+
+Deux pièges rencontrés en l'écrivant, corrigés, à ne pas réapprendre :
+
+- le motif du BIC (`[A-Z]{4}FR…`) trouvait le mot **« chiffres »** dans une
+  phrase française — 56 fausses alertes. Un BIC est en capitales : la
+  recherche ne doit pas ignorer la casse ;
+- le motif du NIR acceptait un mois `60` et lisait l'horodatage
+  `20260906080000` comme un numéro de sécurité sociale.
+
+Un garde-fou qui crie au loup à chaque passage finit ignoré le jour où il a
+raison. C'est pour cela que ces deux corrections comptent.
+
+## 3. Ce qui reste à décider
+
+- **La licence** : EUPL 1.2 (Léandre, 08/10/2026).
+- **Le `client_secret` Google** (`donnees/google-application.json`). Il peut rester : Google
+  l'assume pour les applications de bureau, qui ne peuvent rien garder
+  secret, et il ne donne accès à rien sans l'autorisation d'un utilisateur. Ce
+  qu'il porte, c'est notre quota et le plafond de 100 comptes — publié, il
+  s'use plus vite. Décision à prendre en connaissance de cause, pas par défaut.
+- **Le nom du dépôt** : `puppetpaie`, sans doute.
+
+## 4. Le jour du premier commit
+
+L'historique d'un dépôt est définitif : une donnée poussée puis effacée reste
+consultable. Donc, dans cet ordre :
+
+```bash
+python atelier/outils/verifier_avant_commit.py   # DANS le dépôt de travail : il lit prive/config/
+cd <le dossier neuf du dépôt public>   # ce qui part (tout, hors de prive/) ; JAMAIS le dépôt de travail : son histoire porte les données
+git init
+git config core.hooksPath atelier/.githooks
+git add .
+git status                  # relire la liste AVANT de commiter
+git commit -m "PuppetPaie"
+```
+
+`git status` avant le premier commit n'est pas une formalité : c'est le
+dernier moment où la liste de ce qui part se lit en entier.

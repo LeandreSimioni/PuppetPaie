@@ -1,0 +1,21 @@
+{
+  "_quoi": "Les onze fetes legales de l'article L3133-1 du code du travail, et ce que la loi dit de leur chomage. Aucune date n'est ecrite dans `feries.py` : elles se lisent ici, comme les motifs d'arret dans `arrets-base.json` et les natures de contrat dans `contrats-base.json`.",
+  "_source": "Code du travail, releve le 19/09/2026 par `outils/relever_les_codes.py` dans la base LEGI de la DILA (open data). L3133-1 : LEGIARTI000033020901, en vigueur depuis le 10/08/2016. L3133-4 (le 1er mai chome) : LEGIARTI000033020884. L3133-3 (pas de perte de salaire des trois mois d'anciennete, et l'exclusion des intermittents) : LEGIARTI000033020893.",
+  "_chome_n_est_pas_ferie": "UN JOUR FERIE N'EST PAS FORCEMENT CHOME. La loi ne rend chome d'office que le 1er MAI (L3133-4). Pour les dix autres, c'est la convention collective, un accord ou l'usage de l'entreprise qui le dit (L3133-3-1). Le moteur ne le devine donc pas : `config/entreprise.json` porte `jours_feries_chomes`, et tant qu'il ne dit rien, seul le 1er mai est retire d'un decompte de conges -- le moteur le DIT a chaque fois.",
+  "_les_intermittents_n_y_ont_pas_droit": "L3133-3 : le chomage d'un jour ferie ne peut entrainer aucune perte de salaire des trois mois d'anciennete, mais ces dispositions << ne s'appliquent ni aux personnes travaillant a domicile, ni aux salaries intermittents, ni aux salaries temporaires >>. C'est une regle de PERMANENT.",
+  "jours": [
+    {"nom": "Jour de l'an", "article": "L3133-1 1°", "mois": 1, "jour": 1},
+    {"nom": "Lundi de Pâques", "article": "L3133-1 2°", "paques": 1},
+    {"nom": "Fête du Travail", "article": "L3133-1 3°", "mois": 5, "jour": 1,
+     "chome_de_droit": true, "chome_article": "L3133-4"},
+    {"nom": "Victoire de 1945", "article": "L3133-1 4°", "mois": 5, "jour": 8},
+    {"nom": "Ascension", "article": "L3133-1 5°", "paques": 39},
+    {"nom": "Lundi de Pentecôte", "article": "L3133-1 6°", "paques": 50},
+    {"nom": "Fête nationale", "article": "L3133-1 7°", "mois": 7, "jour": 14},
+    {"nom": "Assomption", "article": "L3133-1 8°", "mois": 8, "jour": 15},
+    {"nom": "Toussaint", "article": "L3133-1 9°", "mois": 11, "jour": 1},
+    {"nom": "Armistice de 1918", "article": "L3133-1 10°", "mois": 11, "jour": 11},
+    {"nom": "Noël", "article": "L3133-1 11°", "mois": 12, "jour": 25}
+  ],
+  "_paques": "Les trois jours mobiles se comptent depuis le dimanche de Paques : +1 le lundi de Paques, +39 l'Ascension (le jeudi de la sixieme semaine), +50 le lundi de Pentecote. La date de Paques elle-meme se calcule -- c'est le seul endroit du logiciel ou un comput remplace un relevé, et il n'y a pas le choix : aucune table officielle ne la publie."
+}

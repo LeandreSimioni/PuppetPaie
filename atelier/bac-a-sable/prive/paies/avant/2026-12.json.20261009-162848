@@ -1,0 +1,128 @@
+{
+  "mois": "2026-12",
+  "taux_cachet": 170,
+  "date_paiement": "2026-12-28",
+  "engagements": [
+    {
+      "salarie": "NADAR",
+      "nature": "cdi",
+      "debut": "2022-01-03",
+      "numero": "NA.22.01",
+      "salaire_mensuel": 3010,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "DORVAL",
+      "nature": "cdi",
+      "debut": "2025-04-01",
+      "numero": "DO.25.01",
+      "salaire_mensuel": 2200,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "NOVERRE",
+      "spectacle": "les-fetes-venitiennes",
+      "debut": "2026-12-08",
+      "fin": "2026-12-12",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 5,
+          "taux": 170,
+          "lieu": "Opera fictif de Lyon",
+          "dates": [
+            "2026-12-08",
+            "2026-12-09",
+            "2026-12-10",
+            "2026-12-11",
+            "2026-12-12"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 5,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "TURLUPIN",
+      "spectacle": "les-fetes-venitiennes",
+      "debut": "2026-12-08",
+      "fin": "2026-12-12",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 5,
+          "taux": 170,
+          "lieu": "Opera fictif de Lyon",
+          "dates": [
+            "2026-12-08",
+            "2026-12-09",
+            "2026-12-10",
+            "2026-12-11",
+            "2026-12-12"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 5,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "FARRENC",
+      "spectacle": "les-fetes-venitiennes",
+      "debut": "2026-12-08",
+      "fin": "2026-12-12",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 40,
+          "taux": 19.5,
+          "lieu": "Opera fictif de Lyon",
+          "dates": [
+            "2026-12-08",
+            "2026-12-09",
+            "2026-12-10",
+            "2026-12-11",
+            "2026-12-12"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 5,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "TORELLI",
+      "spectacle": "les-fetes-venitiennes",
+      "debut": "2026-12-08",
+      "fin": "2026-12-12",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 40,
+          "taux": 17.5,
+          "lieu": "Opera fictif de Lyon",
+          "dates": [
+            "2026-12-08",
+            "2026-12-09",
+            "2026-12-10",
+            "2026-12-11",
+            "2026-12-12"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 5,
+          "taux": 20.7
+        }
+      ]
+    }
+  ],
+  "_origine": "Compagnie de demonstration demo-1285-grande, fabriquee par outils/compagnies_demo.py."
+}

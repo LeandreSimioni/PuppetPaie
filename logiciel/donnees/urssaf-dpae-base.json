@@ -1,0 +1,388 @@
+{
+  "_quoi": "Les organismes de recouvrement et leur code a trois chiffres, tel que la DPAE l'attend en C_URSSAF (positions 133-136, annexe II.1 de la norme), et le departement dont chacun releve.",
+  "_source": "Trois sources relevees et datees -- `paie sources` : urssaf-table-des-urssaf (les codes), urssaf-liste-des-sites (region -> code), insee-cog-2015-departements (departement -> ancienne region). Extrait par outils/extraire_urssaf.py ; ne pas editer a la main.",
+  "_par_departement_est_une_suggestion": "Le rattachement d'une entreprise a une Urssaf est un fait ADMINISTRATIF, pas une consequence de son adresse : versement en lieu unique, pole grandes entreprises, GUSO. Cette table dit l'organisme du territoire, ce qui est le cas ordinaire ; l'ecran la propose, il ne l'impose pas, et la valeur de la fiche gagne toujours.",
+  "_defaut": "117 -- Urssaf Ile-de-France, la valeur du gabarit quand ni la fiche ni le departement ne disent rien.",
+  "organismes": [
+    {
+      "code": "109",
+      "codification": "U109",
+      "nom": "CDG PAM",
+      "siret": "53510475600015",
+      "emetteur": "113735"
+    },
+    {
+      "code": "116",
+      "codification": "U116",
+      "nom": "UR ile-de-France (116) Pole GE",
+      "siret": "78861779300013",
+      "emetteur": "112534"
+    },
+    {
+      "code": "117",
+      "codification": "U117",
+      "nom": "URSSAF ILE-DE-FRANCE",
+      "siret": "78861779300013",
+      "emetteur": "112534"
+    },
+    {
+      "code": "200",
+      "codification": "U200",
+      "nom": "URSSAF DE CORSE",
+      "siret": "78299314100038",
+      "emetteur": "274208"
+    },
+    {
+      "code": "217",
+      "codification": "U217",
+      "nom": "Champagne-Ardenne",
+      "siret": "75285582500010",
+      "emetteur": "105171"
+    },
+    {
+      "code": "227",
+      "codification": "U227",
+      "nom": "URSSAF DE PICARDIE",
+      "siret": "75366327700014",
+      "emetteur": "158496"
+    },
+    {
+      "code": "247",
+      "codification": "U247",
+      "nom": "Urssaf Centre Val de Loire",
+      "siret": "79512003900107",
+      "emetteur": "609028"
+    },
+    {
+      "code": "267",
+      "codification": "U267",
+      "nom": "Urssaf de Bourgogne",
+      "siret": "79471473300019",
+      "emetteur": "004354"
+    },
+    {
+      "code": "287",
+      "codification": "U287",
+      "nom": "Urssaf Normandie",
+      "siret": "90209799700016",
+      "emetteur": "240834"
+    },
+    {
+      "code": "311",
+      "codification": "U311",
+      "nom": "Urssaf Midi-Pyrénées-TGE",
+      "siret": "53514650090018",
+      "emetteur": "113417"
+    },
+    {
+      "code": "317",
+      "codification": "U317",
+      "nom": "Nord-Pas-de-Calais",
+      "siret": "75367340900011",
+      "emetteur": "143871"
+    },
+    {
+      "code": "417",
+      "codification": "U417",
+      "nom": "URSSAF DE LORRAINE",
+      "siret": "75333448100060",
+      "emetteur": "394679"
+    },
+    {
+      "code": "427",
+      "codification": "U427",
+      "nom": "URSSAF Alsace",
+      "siret": "75357004300012",
+      "emetteur": "114065"
+    },
+    {
+      "code": "437",
+      "codification": "U437",
+      "nom": "FRANCHE-COMTE",
+      "siret": "79507010100071",
+      "emetteur": "122335"
+    },
+    {
+      "code": "438",
+      "codification": "U438",
+      "nom": "CNTFS FRANCHE-COMTE",
+      "siret": "79507010100071",
+      "emetteur": "122335"
+    },
+    {
+      "code": "451",
+      "codification": "U451",
+      "nom": "Urssaf Centre Val de Loire",
+      "siret": "79512003900081",
+      "emetteur": "609028"
+    },
+    {
+      "code": "527",
+      "codification": "U527",
+      "nom": "URSSAF Pays de Loire",
+      "siret": "53510475600015",
+      "emetteur": "113735"
+    },
+    {
+      "code": "537",
+      "codification": "U537",
+      "nom": "URSSAF Bretagne",
+      "siret": "75375957000108",
+      "emetteur": "154431"
+    },
+    {
+      "code": "547",
+      "codification": "U547",
+      "nom": "URSSAF DU POITOU-CHARENTES",
+      "siret": "75364415200013",
+      "emetteur": "196509"
+    },
+    {
+      "code": "595",
+      "codification": "U595",
+      "nom": "URSSAF DU NORD - LILLE - TGE",
+      "siret": "78366205990022",
+      "emetteur": "143871"
+    },
+    {
+      "code": "693",
+      "codification": "U693",
+      "nom": "URSSAF RHONE ALPES",
+      "siret": "79484650190011",
+      "emetteur": "143065"
+    },
+    {
+      "code": "727",
+      "codification": "U727",
+      "nom": "URSSAF AQUITAINE",
+      "siret": "78877877700011",
+      "emetteur": "197378"
+    },
+    {
+      "code": "737",
+      "codification": "U737",
+      "nom": "URSSAF MIDI-PYRENEES",
+      "siret": "53514650000017",
+      "emetteur": "113417"
+    },
+    {
+      "code": "747",
+      "codification": "U747",
+      "nom": "Urssaf du Limousin",
+      "siret": "75391952100017",
+      "emetteur": "191299"
+    },
+    {
+      "code": "748",
+      "codification": "U748",
+      "nom": "Urssaf du Limousin",
+      "siret": "75391952100017",
+      "emetteur": "191299"
+    },
+    {
+      "code": "827",
+      "codification": "U827",
+      "nom": "URSSAF RHONE ALPES",
+      "siret": "79484650100011",
+      "emetteur": "143065"
+    },
+    {
+      "code": "828",
+      "codification": "U828",
+      "nom": "CNTFS",
+      "siret": "79484650100011",
+      "emetteur": "143065"
+    },
+    {
+      "code": "837",
+      "codification": "U837",
+      "nom": "URSSAF D AUVERGNE",
+      "siret": "53513821800016",
+      "emetteur": "308137"
+    },
+    {
+      "code": "917",
+      "codification": "U917",
+      "nom": "URSSAF Languedoc-Roussillon",
+      "siret": "75366412700077",
+      "emetteur": "108278"
+    },
+    {
+      "code": "937",
+      "codification": "U937",
+      "nom": "URSSAF PACA",
+      "siret": "79448723100019",
+      "emetteur": "277762"
+    },
+    {
+      "code": "971",
+      "codification": "U971",
+      "nom": "CGSS DE GUADELOUPE",
+      "siret": "31457202500307",
+      "emetteur": "402004"
+    },
+    {
+      "code": "972",
+      "codification": "U972",
+      "nom": "CGSS DE MARTINIQUE",
+      "siret": "31402496900029",
+      "emetteur": "343072"
+    },
+    {
+      "code": "973",
+      "codification": "U973",
+      "nom": "CGSS DE LA GUYANE",
+      "siret": "31519076900028",
+      "emetteur": "465862"
+    },
+    {
+      "code": "974",
+      "codification": "U974",
+      "nom": "CGSS DE LA REUNION",
+      "siret": "31463548300014",
+      "emetteur": "409968"
+    },
+    {
+      "code": "976",
+      "codification": "U976",
+      "nom": "CGSS DE MAYOTTE",
+      "siret": "47928171900035",
+      "emetteur": "514765"
+    },
+    {
+      "code": "979",
+      "codification": "U979",
+      "nom": "CENTRE DE GESTION PAM",
+      "siret": "31463548300014",
+      "emetteur": "409968"
+    }
+  ],
+  "par_ancienne_region": {
+    "94": "200",
+    "43": "437",
+    "23": "287",
+    "74": "747",
+    "93": "937",
+    "11": "117",
+    "24": "247",
+    "54": "547",
+    "42": "427",
+    "82": "827",
+    "22": "227",
+    "83": "837",
+    "21": "217",
+    "25": "287",
+    "53": "537",
+    "72": "727",
+    "26": "267",
+    "73": "737",
+    "31": "317",
+    "41": "417",
+    "91": "917",
+    "52": "527"
+  },
+  "par_departement": {
+    "01": "827",
+    "02": "227",
+    "03": "837",
+    "04": "937",
+    "05": "937",
+    "06": "937",
+    "07": "827",
+    "08": "217",
+    "09": "737",
+    "10": "217",
+    "11": "917",
+    "12": "737",
+    "13": "937",
+    "14": "287",
+    "15": "837",
+    "16": "547",
+    "17": "547",
+    "18": "247",
+    "19": "747",
+    "20": "200",
+    "21": "267",
+    "22": "537",
+    "23": "747",
+    "24": "727",
+    "25": "437",
+    "26": "827",
+    "27": "287",
+    "28": "247",
+    "29": "537",
+    "2A": "200",
+    "2B": "200",
+    "30": "917",
+    "31": "737",
+    "32": "737",
+    "33": "727",
+    "34": "917",
+    "35": "537",
+    "36": "247",
+    "37": "247",
+    "38": "827",
+    "39": "437",
+    "40": "727",
+    "41": "247",
+    "42": "827",
+    "43": "837",
+    "44": "527",
+    "45": "247",
+    "46": "737",
+    "47": "727",
+    "48": "917",
+    "49": "527",
+    "50": "287",
+    "51": "217",
+    "52": "217",
+    "53": "527",
+    "54": "417",
+    "55": "417",
+    "56": "537",
+    "57": "417",
+    "58": "267",
+    "59": "317",
+    "60": "227",
+    "61": "287",
+    "62": "317",
+    "63": "837",
+    "64": "727",
+    "65": "737",
+    "66": "917",
+    "67": "427",
+    "68": "427",
+    "69": "827",
+    "70": "437",
+    "71": "267",
+    "72": "527",
+    "73": "827",
+    "74": "827",
+    "75": "117",
+    "76": "287",
+    "77": "117",
+    "78": "117",
+    "79": "547",
+    "80": "227",
+    "81": "737",
+    "82": "737",
+    "83": "937",
+    "84": "937",
+    "85": "527",
+    "86": "547",
+    "87": "747",
+    "88": "417",
+    "89": "267",
+    "90": "437",
+    "91": "117",
+    "92": "117",
+    "93": "117",
+    "94": "117",
+    "95": "117",
+    "971": "971",
+    "972": "972",
+    "973": "973",
+    "974": "974",
+    "976": "976"
+  }
+}

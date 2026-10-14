@@ -1,0 +1,1744 @@
+//! La route `dossier-salarie` (`moteur/web.py`, `operations_dossier.dossier_salarie` et
+//! `dossier_json`) : tous les documents d'un salarie sur une periode, en un PDF par categorie,
+//! ou en un ZIP.
+//!
+//! Meme JSON que la route Python, memes refus sous la meme classe d'exception
+//! (`paie_rust.route` les releve), memes fichiers ecrits dans `exports/dossiers/`.
+//!
+//! UN DOCUMENT REMIS NE SE REGENERE PAS (regle 4 ; Leandre, 10/10/2026, lot V1p) : les bulletins
+//! d'un mois ecrit sont les pages memes de `sorties/<mois>/Bulletins_<Mois>.pdf`, les certificats
+//! Conges Spectacles celles de `CertificatsCS_<Mois>.pdf` -- a chaque salarie les siennes, rien de
+//! recalcule ni de reimprime ; ce qui ne se lit pas refuse. Les contrats, eux, se recreent encore
+//! depuis la saisie (aucun compteur n'avance ; les numeros se lisent dans le fichier groupe archive
+//! ou dans la saisie quand ils y sont figes) et portent en pied la mention « Reedite ». Le contrat
+//! signe, l'AER, les documents de fin et les PDF de CoolPaie se prennent tels quels, page a page,
+//! dedoublonnes.
+//!
+//! `dossier-envoyer` (`routes_envois`) envoie ce dossier-ci, construit par `construire`.
+//!
+//! Ecarts assumes :
+//! - le texte de CoolPaie se normalise (`_sans_accents`) par la table latine de
+//!   `contexte::sans_accent` (Latin-1 et Latin etendu A), pas par la normalisation NFD complete
+//!   de Python : un accent hors de cette table (vietnamien, par exemple) n'est pas retire ;
+//! - les chiffres des motifs de date et de nom de fichier sont les chiffres ASCII ;
+//! - un mois saisi est un fichier `paies/AAAA-MM.json`, rien d'autre.
+
+use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
+
+use serde_json::{json, Map, Value};
+
+use crate::calcul::Paie;
+use crate::conges_spectacles::{self, ContratCs, PaieCs};
+use crate::contexte::Contexte;
+use crate::date::Jour;
+use crate::engagement::{self, Engagement};
+use crate::etats::{items, nom_type, py_str};
+use crate::fiche_recapitulative::Recapitulatifs;
+use crate::fichiers::vrai;
+use crate::num::{eur2, Decimal};
+use crate::retours::Echec;
+use crate::routes_ouverture::{refus_du_calcul, Refus};
+
+type R<T> = Result<T, Refus>;
+
+/// Les routes que ce module sert.
+pub const ROUTES: [&str; 1] = ["dossier-salarie"];
+
+/// Une route de ce module.
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> Result<Value, Echec> {
+    match nom {
+        "dossier-salarie" => dossier_salarie_route(ctx, charge).map_err(Echec::from),
+        autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
+    }
+}
+
+// ------------------------------------------------------------------ les categories
+
+const BULLETINS: &str = "bulletins";
+const CONTRATS: &str = "contrats";
+const CONTRATS_SIGNES: &str = "contrats-signes";
+const CERTIFICATS_CS: &str = "certificats-cs";
+const ATTESTATIONS: &str = "attestations";
+const DOCUMENTS_FIN: &str = "documents-fin";
+const RECAPITULATIF: &str = "recapitulatif";
+pub(crate) const CATEGORIES: [&str; 7] = [BULLETINS, CONTRATS, CONTRATS_SIGNES, CERTIFICATS_CS, ATTESTATIONS, DOCUMENTS_FIN, RECAPITULATIF];
+
+pub(crate) fn libelle_de(c: &str) -> &'static str {
+    match c {
+        BULLETINS => "Bulletins de paie",
+        CONTRATS => "Contrats",
+        CONTRATS_SIGNES => "Contrats signés",
+        CERTIFICATS_CS => "Certificats Congés Spectacles",
+        ATTESTATIONS => "Attestations employeur (AER, AEM)",
+        DOCUMENTS_FIN => "Documents de fin de contrat",
+        _ => "Fiche récapitulative",
+    }
+}
+
+fn nom_de(c: &str) -> &'static str {
+    match c {
+        BULLETINS => "Bulletins",
+        CONTRATS => "Contrats",
+        CONTRATS_SIGNES => "Contrats-signes",
+        CERTIFICATS_CS => "Certificats-Conges-Spectacles",
+        ATTESTATIONS => "Attestations-employeur",
+        DOCUMENTS_FIN => "Documents-de-fin",
+        _ => "Fiche-recapitulative",
+    }
+}
+
+fn rang_de(c: &str) -> usize {
+    CATEGORIES.iter().position(|x| *x == c).unwrap_or(usize::MAX)
+}
+
+const PIED_REEDITE: &str = "Réédité par PuppetPaie le {} depuis les données de paie — numéros et montants identiques au document remis ; mise en page d'aujourd'hui.";
+
+/// `util.MOIS_FR`.
+const MOIS_FR: [&str; 12] = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"];
+
+// ------------------------------------------------------------------ les refus
+
+pub(crate) fn avec(classe: &'static str, message: impl Into<String>) -> Refus {
+    Refus { classe: Some(classe), message: message.into() }
+}
+
+fn erreur_operation(message: impl Into<String>) -> Refus {
+    avec("ErreurOperation", message)
+}
+
+/// Un refus de la fabrique de PDF (`FabriqueRefus`) : sa ligne de francais.
+fn refus_fabrique(m: String) -> Refus {
+    avec("FabriqueRefus", m.replace('\n', " ").trim().to_string())
+}
+
+// ------------------------------------------------------------------ la fabrique de PDF
+
+fn texte_pdf(chemin: &Path) -> R<Vec<String>> {
+    fabrique_pdf::lecture::texte(&chemin.to_string_lossy()).map(|(t, _)| t).map_err(|r| refus_fabrique(r.0))
+}
+
+fn pages_pdf(chemin: &Path) -> R<usize> {
+    fabrique_pdf::lecture::pages(&[chemin.to_string_lossy().into_owned()])
+        .map(|n| n[0])
+        .map_err(|r| refus_fabrique(r.0))
+}
+
+fn compter(octets: &[u8]) -> R<usize> {
+    fabrique_pdf::lecture::charger(octets).map(|d| d.get_pages().len()).map_err(|r| refus_fabrique(r.0))
+}
+
+/// `fabrique.ecrire`.
+pub(crate) fn ecrire_pdf(description: &Value, chemin: &Path) -> R<()> {
+    crate::fabrique::ecrire(description, chemin).map(|_| ()).map_err(refus_fabrique)
+}
+
+/// `_marquer` : le pied « reedite » sur chaque page d'un PDF du dossier de travail, en place.
+fn marquer(chemin: &Path, aujourdhui: &Jour) -> R<()> {
+    let nom = chemin.to_string_lossy().into_owned();
+    let octets = std::fs::read(chemin).map_err(|e| refus_fabrique(format!("{} illisible ({})", nom, e)))?;
+    let pied = PIED_REEDITE.replace("{}", &aujourdhui.jj_mm_aaaa());
+    let marque = fabrique_pdf::marquage::marquer(&octets, &pied).map_err(|r| refus_fabrique(format!("{} : {}", nom, r.0)))?;
+    std::fs::write(chemin, marque).map_err(|e| refus_fabrique(format!("écriture impossible de {} : {}", nom, e)))
+}
+
+/// `_fusion_fabrique` : des pieces (un PDF, ses pages 0-based ou toutes) fusionnees par la fabrique ;
+/// un refus est une `ErreurOperation`, aucun PDF n'est assemble autrement.
+fn fusion_pieces(pieces: &[(PathBuf, Option<Vec<usize>>)]) -> R<Vec<u8>> {
+    let liste: Vec<Value> = pieces
+        .iter()
+        .map(|(f, pages)| match pages {
+            Some(p) => json!({"fichier": f.to_string_lossy(), "pages": p.iter().map(|n| n + 1).collect::<Vec<_>>()}),
+            None => json!({"fichier": f.to_string_lossy()}),
+        })
+        .collect();
+    let description = json!({"format": 1, "pieces": liste});
+    fabrique_pdf::assemblage::assembler(&description.to_string()).map_err(|r| {
+        erreur_operation(format!(
+            "Assemblage impossible : la fabrique de PDF refuse la fusion ({}). Aucun PDF n'est assemblé autrement.",
+            r.0.replace('\n', " ").trim()
+        ))
+    })
+}
+
+/// `_fusion_fabrique` de PDF en memoire : chacun va dans un fichier de `tmp` le temps de la fusion.
+pub(crate) fn fusion_octets(morceaux: &[Vec<u8>], tmp: &Path) -> R<Vec<u8>> {
+    let dossier = Temporaire::nouveau_dans(tmp, "assemblage")?;
+    let mut pieces = Vec::new();
+    for (i, octets) in morceaux.iter().enumerate() {
+        let f = dossier.0.join(format!("piece{}.pdf", i));
+        std::fs::write(&f, octets).map_err(|e| avec("OSError", format!("{} : {}", f.display(), e)))?;
+        pieces.push((f, None));
+    }
+    fusion_pieces(&pieces)
+}
+
+/// Un dossier temporaire, retire quand on a fini (`tempfile.mkdtemp` puis `shutil.rmtree`).
+struct Temporaire(PathBuf);
+
+impl Temporaire {
+    fn nouveau_dans(parent: &Path, prefixe: &str) -> R<Temporaire> {
+        static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let p = parent.join(format!("{}-{}-{}", prefixe, std::process::id(), N.fetch_add(1, std::sync::atomic::Ordering::SeqCst)));
+        std::fs::create_dir_all(&p).map_err(|e| avec("OSError", format!("{} : {}", p.display(), e)))?;
+        Ok(Temporaire(p))
+    }
+}
+
+impl Drop for Temporaire {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+// ------------------------------------------------------------------ la periode
+
+/// Un chiffre pour Python (`\d`, `int`) : ASCII, arabe, devanagari, pleine chasse.
+fn chiffre(c: char) -> Option<u32> {
+    crate::routes_ecrites::chiffre_py(c)
+}
+
+/// Un mois, une annee, ou tout. Les bornes servent aux pages CoolPaie, qui n'ont qu'une date.
+struct Periode {
+    mois: Option<String>,
+    annee: Option<String>,
+    toutes: bool,
+}
+
+impl Periode {
+    fn nouveau(mois: Option<&Value>, annee: Option<&Value>, toutes: bool) -> R<Periode> {
+        let n = mois.is_some() as usize + annee.is_some() as usize + toutes as usize;
+        if n != 1 {
+            return Err(erreur_operation(
+                "Un dossier se demande pour UNE période : un mois (--mois AAAA-MM), une année (--annee AAAA), ou toute la période (--toutes-les-annees).",
+            ));
+        }
+        let mut p = Periode { mois: None, annee: None, toutes };
+        if let Some(m) = mois {
+            let Value::String(m) = m else {
+                return Err(avec("TypeError", format!("expected string or bytes-like object, got '{}'", nom_type(m))));
+            };
+            let c: Vec<char> = m.chars().collect();
+            let bon = c.len() == 7 && c[4] == '-' && c.iter().enumerate().all(|(i, x)| i == 4 || chiffre(*x).is_some());
+            if !bon {
+                return Err(erreur_operation(format!("Mois attendu sous la forme AAAA-MM : « {} ».", m)));
+            }
+            p.mois = Some(m.clone());
+        }
+        if let Some(a) = annee {
+            let t = py_str(a);
+            if !(t.chars().count() == 4 && t.chars().all(|x| chiffre(*&x).is_some())) {
+                return Err(erreur_operation(format!("Année attendue sous la forme AAAA : « {} ».", t)));
+            }
+            p.annee = Some(t);
+        }
+        Ok(p)
+    }
+
+    /// `m` : AAAA-MM.
+    fn contient(&self, m: &str) -> bool {
+        if self.toutes {
+            return true;
+        }
+        match &self.mois {
+            Some(x) => m == x,
+            None => m.starts_with(self.annee.as_deref().unwrap_or("")),
+        }
+    }
+
+    fn libelle(&self) -> R<String> {
+        if self.toutes {
+            return Ok("toute la période".to_string());
+        }
+        if let Some(m) = &self.mois {
+            let c: Vec<char> = m.chars().collect();
+            let n = (chiffre(c[5]).unwrap_or(0) * 10 + chiffre(c[6]).unwrap_or(0)) as i64;
+            let i = n - 1;
+            let i = if i < 0 { i + 12 } else { i };
+            if i >= 12 {
+                return Err(avec("IndexError", crate::date::mois_impossible(n)));
+            }
+            return Ok(format!("{} {}", MOIS_FR[i as usize], c[..4].iter().collect::<String>()));
+        }
+        Ok(self.annee.clone().unwrap_or_default())
+    }
+
+    fn nom(&self) -> String {
+        if self.toutes {
+            return "toute-la-periode".to_string();
+        }
+        self.mois.clone().or_else(|| self.annee.clone()).unwrap_or_default()
+    }
+}
+
+// ------------------------------------------------------------------ ce qu'on rend
+
+/// Une page du dossier, d'ou qu'elle vienne.
+struct Page {
+    categorie: &'static str,
+    cle: String,
+    /// AAAA-MM-JJ : l'ordre de lecture.
+    tri: String,
+    /// Le PDF d'ou la page est tiree.
+    source: PathBuf,
+    /// La page dans ce PDF (0 = la premiere).
+    numero: usize,
+}
+
+#[derive(Default)]
+pub(crate) struct Dossier {
+    pub(crate) salaries: Vec<String>,
+    pub(crate) categories: Vec<&'static str>,
+    pub(crate) periode: String,
+    pub(crate) fichiers: Vec<PathBuf>,
+    /// `{cle: {categorie: n}}`, dans l'ordre ou les cles et les categories sont apparues.
+    pub(crate) pages: Map<String, Value>,
+    avertissements: Vec<String>,
+    refus: Vec<String>,
+}
+
+fn categorie(c: &str) -> &'static str {
+    CATEGORIES[rang_de(c)]
+}
+
+/// `dossier_json`.
+pub(crate) fn dossier_json(d: &Dossier) -> Value {
+    let mut libelles = Map::new();
+    for c in CATEGORIES {
+        libelles.insert(c.to_string(), json!(libelle_de(c)));
+    }
+    json!({
+        "salaries": d.salaries,
+        "categories": d.categories,
+        "periode": d.periode,
+        "fichiers": d.fichiers.iter().map(|f| f.to_string_lossy().into_owned()).collect::<Vec<_>>(),
+        "pages": Value::Object(d.pages.clone()),
+        "avertissements": d.avertissements,
+        "refus": d.refus,
+        "libelles": Value::Object(libelles),
+    })
+}
+
+// ------------------------------------------------------------------ les noms de fichier
+
+/// `Path.glob("<debut>*<fin>")` d'un dossier : les noms qui commencent et finissent ainsi, dans
+/// l'ordre des noms.
+fn noms_commencant_finissant(dossier: &Path, debut: &str, fin: &str) -> Vec<String> {
+    let Ok(lecture) = std::fs::read_dir(dossier) else { return Vec::new() };
+    let mut out: Vec<String> = lecture
+        .flatten()
+        .filter_map(|e| e.file_name().to_str().map(str::to_string))
+        .filter(|n| n.len() >= debut.len() + fin.len() && n.starts_with(debut) && n.ends_with(fin))
+        .collect();
+    out.sort();
+    out
+}
+
+/// `glob("Contrat*_<cle>_*_signe.pdf")`.
+fn contrats_signes_de(dossier: &Path, cle: &str) -> Vec<String> {
+    let marque = format!("_{}_", cle);
+    let fin = "_signe.pdf";
+    noms_commencant_finissant(dossier, "Contrat", fin)
+        .into_iter()
+        .filter(|n| {
+            let mut de = "Contrat".len();
+            while let Some(i) = n.get(de..).and_then(|r| r.find(&marque)) {
+                let apres = de + i + marque.len();
+                if n.len() >= apres + fin.len() {
+                    return true;
+                }
+                de += i + 1;
+                while !n.is_char_boundary(de) {
+                    de += 1;
+                }
+            }
+            false
+        })
+        .collect()
+}
+
+/// `re.findall(r"[A-Z]+\d+\.\d\d\.\d+", nom)`.
+fn numeros_de_contrat(nom: &str) -> Vec<String> {
+    let c: Vec<char> = nom.chars().collect();
+    let chiffres = |de: usize| c.get(de..).map_or(0, |r| r.iter().take_while(|x| x.is_ascii_digit()).count());
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < c.len() {
+        let lettres = c[i..].iter().take_while(|x| x.is_ascii_uppercase()).count();
+        let mut fini = None;
+        if lettres > 0 {
+            let a = i + lettres;
+            let n1 = chiffres(a);
+            let b = a + n1;
+            if n1 > 0 && c.get(b) == Some(&'.') && chiffres(b + 1) == 2 && c.get(b + 3) == Some(&'.') {
+                let n3 = chiffres(b + 4);
+                if n3 > 0 {
+                    fini = Some(b + 4 + n3);
+                }
+            }
+        }
+        match fini {
+            Some(f) => {
+                out.push(c[i..f].iter().collect());
+                i = f;
+            }
+            None => i += 1,
+        }
+    }
+    out
+}
+
+/// `_nom_salarie`.
+fn nom_salarie(cle: &str) -> String {
+    let mut sortie = String::new();
+    let mut dans_un_trou = false;
+    for c in cle.chars() {
+        if c.is_ascii_alphanumeric() || c == '-' {
+            sortie.push(c);
+            dans_un_trou = false;
+        } else if !dans_un_trou {
+            sortie.push('-');
+            dans_un_trou = true;
+        }
+    }
+    let net = sortie.trim_matches('-').to_string();
+    if net.is_empty() {
+        "salarie".to_string()
+    } else {
+        net
+    }
+}
+
+// ------------------------------------------------------------------ les mois PuppetPaie
+
+pub(crate) fn cle_de(p: &Paie) -> String {
+    p.salarie.get("_cle").map(py_str).unwrap_or_default()
+}
+
+/// `charger(ctx, paies/<mois>.json, sans_numeros=True)` : la saisie lue, ses paies calculees ;
+/// un refus du calcul garde le type d'une saisie encore incomplete.
+pub(crate) fn charger(ctx: &Contexte, chemin: &Path) -> R<(Value, Vec<Paie>)> {
+    let data = engagement::lire_saisie(chemin)?;
+    let s = engagement::charger_donnees(ctx, &data).map_err(|m| refus_du_calcul(ctx, &data, m))?;
+    Ok((data, s.paies))
+}
+
+/// `numeroter` d'un mois dont les numeros ne sont pas dans l'archive : les compteurs en attente
+/// d'un mois a l'autre restent dans `attente`, comme `Contexte._compteurs_en_attente`.
+fn numeroter(ctx: &Contexte, data: &Value, paies: &mut [Paie], attente: &mut HashMap<(String, String), i64>) -> R<()> {
+    let mois = data.get("mois").map(py_str).ok_or_else(|| avec("KeyError", crate::fichiers::absent("mois")))?;
+    let annee = crate::apercu_dsn::int_py(&mois.chars().take(4).collect::<String>())
+        .ok_or_else(|| avec("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(&mois.chars().take(4).collect::<String>()))))?;
+    crate::routes_ouverture::numeroter_en_attente(ctx, paies, annee as i32, attente)
+}
+
+/// `etiquette(mois)`, ses refus sous leur classe.
+pub(crate) fn etiquette(mois: &str) -> R<String> {
+    crate::apercu_dsn::etiquette(mois).map_err(|m| {
+        if m.starts_with("list index") {
+            avec("IndexError", m)
+        } else {
+            avec("ValueError", m)
+        }
+    })
+}
+
+/// Le `UnicodeDecodeError` d'un `bytes.decode("utf-8")`, avec la phrase de Python.
+fn erreur_utf8(octets: &[u8], e: std::str::Utf8Error) -> Refus {
+    let debut = e.valid_up_to();
+    let (fin, raison) = match e.error_len() {
+        None => (octets.len(), "unexpected end of data"),
+        Some(n) => {
+            let b = octets[debut];
+            (debut + n, if (0x80..=0xC1).contains(&b) || b >= 0xF5 { "invalid start byte" } else { "invalid continuation byte" })
+        }
+    };
+    let message = if fin == debut + 1 {
+        format!("'utf-8' codec can't decode byte 0x{:02x} in position {}: {}", octets[debut], debut, raison)
+    } else {
+        format!("'utf-8' codec can't decode bytes in position {}-{}: {}", debut, fin - 1, raison)
+    };
+    avec("UnicodeDecodeError", message)
+}
+
+/// `_premier_ce` : le premier N CE inscrit au recapitulatif des certificats d'un mois.
+pub(crate) fn premier_ce(recap: &Path) -> R<Option<i64>> {
+    if !recap.exists() {
+        return Ok(None);
+    }
+    let octets = std::fs::read(recap).map_err(|e| avec("OSError", e.to_string()))?;
+    let texte = String::from_utf8(octets.clone()).map_err(|e| erreur_utf8(&octets, e.utf8_error()))?;
+    let c: Vec<char> = texte.chars().collect();
+    let marque: Vec<char> = "N CE".chars().collect();
+    let mut i = 0;
+    while i + marque.len() <= c.len() {
+        if c[i..i + marque.len()] == marque[..] {
+            let a = i + marque.len();
+            let blancs = c[a..].iter().take_while(|x| x.is_whitespace()).count();
+            let chiffres = c[a + blancs..].iter().take_while(|x| x.is_ascii_digit()).count();
+            if blancs > 0 && chiffres > 0 {
+                let t: String = c[a + blancs..a + blancs + chiffres].iter().collect();
+                return Ok(Some(t.parse().unwrap_or(i64::MAX)));
+            }
+        }
+        i += 1;
+    }
+    Ok(None)
+}
+
+/// `Paie` -> ce que le certificat en lit : le brut est celui du calcul, a deux decimales.
+pub(crate) fn paie_cs(p: &Paie) -> R<PaieCs> {
+    Ok(PaieCs { engagement: ContratCs::de(&p.engagement)?, brut: eur2(p.brut), salarie: p.salarie.clone() })
+}
+
+/// `paie_du_contrat_entier` : le contrat recompose sur tous ses mois, pour son certificat. Rend la
+/// paie du certificat et les mois du contrat absents du disque.
+fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> {
+    let eng = &p.engagement;
+    let cle = cle_de(p);
+    let mois_du = eng.mois_du_contrat()?;
+    let debut = eng.debut.iso();
+    let mut precedents: Vec<(String, Value)> = Vec::new();
+    for m in &mois_du {
+        if *m >= eng.mois {
+            break;
+        }
+        for (c, e) in engagement::engagements_du_mois(ctx, m)? {
+            if c == cle && engagement::debut_brut(&e) == debut {
+                precedents.push((m.clone(), e));
+            }
+        }
+    }
+    let presents: HashSet<&String> = precedents.iter().map(|(m, _)| m).collect();
+    let manquants: Vec<String> = mois_du.iter().filter(|m| **m < eng.mois && !presents.contains(m)).cloned().collect();
+    let mut lignes: Vec<Value> = Vec::new();
+    let mut bruts = Decimal::new(0, 2);
+    let mut jours = 0i64;
+    for (m, e) in &precedents {
+        let taux = e.get("taux_cachet").cloned().unwrap_or_else(|| json!(eng.taux_cachet));
+        let data = json!({"mois": m, "engagements": [e], "taux_cachet": taux});
+        let (_, sous) = {
+            let s = engagement::charger_donnees(ctx, &data).map_err(|msg| refus_du_calcul(ctx, &data, msg))?;
+            (s.mois, s.paies)
+        };
+        let sous = sous.into_iter().next().ok_or_else(|| avec("IndexError", crate::fichiers::trop_courte("la paie de l'engagement")))?;
+        if let Some(Value::Array(l)) = e.get("lignes").filter(|l| vrai(l)) {
+            lignes.extend(l.iter().cloned());
+        }
+        bruts += eur2(sous.brut);
+        jours += sous.engagement.jours;
+    }
+    lignes.extend(eng.lignes.iter().cloned());
+    // Le planning des mois passes a ete paye dans son mois : il ne compte pas deux fois.
+    for l in lignes.iter_mut() {
+        if let Value::Object(o) = l {
+            o.shift_remove("planning");
+        }
+    }
+    let mut dates: Vec<Value> = Vec::new();
+    for l in &lignes {
+        if let Some(Value::Array(d)) = l.get("dates").filter(|d| vrai(d)) {
+            dates.extend(d.iter().cloned());
+        }
+    }
+    let texte = |o: &Option<String>| o.clone().map_or(Value::Null, Value::String);
+    let fin = eng.fin.map_or(Value::Null, |f| json!(f.iso()));
+    let entier = json!({
+        "salarie": eng.salarie, "spectacle": texte(&eng.spectacle), "dates_travail": dates, "lignes": lignes,
+        "debut": eng.debut.iso(), "fin": fin, "numero": texte(&eng.numero), "jours": jours + eng.jours,
+        "taux_cachet": eng.taux_cachet, "date_paiement": texte(&eng.date_paiement), "lieu": eng.lieu,
+        "emploi": texte(&eng.emploi), "pcs_ese": texte(&eng.pcs_ese), "code_emploi_ft": texte(&eng.code_emploi_ft),
+        "statut": texte(&eng.statut), "statut_conventionnel": texte(&eng.statut_conventionnel),
+        "statut_categoriel_rc": texte(&eng.statut_categoriel_rc),
+    });
+    let entier = Engagement::nouveau(&ctx.racine, &entier).map_err(|m| avec("ValueError", m))?;
+    let cs = PaieCs { engagement: ContratCs::de(&entier)?, brut: bruts + eur2(p.brut), salarie: p.salarie.clone() };
+    Ok((cs, manquants))
+}
+
+/// Un certificat du : `(salarie, debut du contrat, paie du certificat)`.
+pub(crate) type Du = (String, String, Option<PaieCs>);
+
+/// `certificats_dus` : un certificat par contrat qui FINIT, pour le contrat entier quand il deborde
+/// du mois. Rend les certificats (dans l'ordre d'un dictionnaire Python) et les avertissements.
+pub(crate) fn certificats_dus(ctx: &Contexte, paies: &[Paie]) -> R<(Vec<Du>, Vec<String>)> {
+    let mut dus: Vec<Du> = Vec::new();
+    let mut avertissements = Vec::new();
+    let poser = |dus: &mut Vec<Du>, cle: String, debut: String, v: Option<PaieCs>| match dus.iter_mut().find(|d| d.0 == cle && d.1 == debut) {
+        Some(d) => d.2 = v,
+        None => dus.push((cle, debut, v)),
+    };
+    for p in paies {
+        // Un permanent n'a pas de certificat Conges Spectacles ; un CDDU de douze mois ou plus non plus : il n'est pas
+        // declare a la caisse (`caisse_conges::affilie`, code du travail D. 7121-41).
+        if p.engagement.nat()?.mensuelle() || !crate::caisse_conges::de_la_paie(p)? {
+            continue;
+        }
+        let (cle, debut) = (cle_de(p), p.engagement.debut.iso());
+        if !p.engagement.dernier_mois()? {
+            poser(&mut dus, cle, debut, None);
+        } else if !p.engagement.a_cheval()? {
+            poser(&mut dus, cle, debut, Some(paie_cs(p)?));
+        } else {
+            let (entier, manquants) = paie_du_contrat_entier(ctx, p)?;
+            poser(&mut dus, cle, debut, Some(entier));
+            if !manquants.is_empty() {
+                avertissements.push(format!(
+                    "Certificat Conges Spectacles du contrat {} : aucune paie sur le disque pour {} -- il ne porte que les mois presents.",
+                    p.engagement.numero.as_deref().unwrap_or("None"),
+                    manquants.iter().map(|m| engagement::libelle_mois(m)).collect::<Vec<_>>().join(", ")
+                ));
+            }
+        }
+    }
+    Ok((dus, avertissements))
+}
+
+/// `_mois_puppetpaie` : les pages d'un mois de PuppetPaie, pour les salaries demandes.
+///
+/// `contrats_vus` : les numeros de contrat deja reedites par un mois precedent. Un contrat
+/// plurimensuel est sur la paie de chacun de ses mois, mais c'est UN contrat : il ne sort qu'une
+/// fois, a son premier mois.
+#[allow(clippy::too_many_arguments)]
+fn mois_puppetpaie(
+    ctx: &Contexte,
+    mois: &str,
+    cles: &HashSet<String>,
+    categories: &HashSet<&str>,
+    tmp: &Path,
+    d: &mut Dossier,
+    aujourdhui: &Jour,
+    contrats_vus: &mut HashSet<String>,
+    attente: &mut HashMap<(String, String), i64>,
+) -> R<Vec<Page>> {
+    let mut pages = Vec::new();
+    let sortie = ctx.racine.join("sorties").join(mois);
+    let etiq = etiquette(mois)?;
+    let groupe = sortie.join(format!("Bulletins_{}.pdf", etiq));
+    let envoi_dir = sortie.join("envoi");
+    let ecrit = groupe.exists();
+    let (donnees, mut paies) = charger(ctx, &ctx.racine.join("paies").join(format!("{}.json", mois)))?;
+    let siennes: Vec<usize> = (0..paies.len()).filter(|i| cles.contains(&cle_de(&paies[*i]))).collect();
+    if siennes.is_empty() {
+        return Ok(pages);
+    }
+    let ent = crate::oracle::entreprise_du_mois(ctx, mois)?;
+    let lib = engagement::libelle_mois(mois);
+
+    let mut lus: HashMap<usize, crate::apercu_dsn::Lu> = HashMap::new();
+    // Les paies dont on tire les contrats d'un mois pas encore ecrit : celles de la saisie
+    // numerotee quand ses numeros sont figes.
+    let mut paies_contrats: Vec<Paie> = Vec::new();
+    let mut siennes_contrats: Vec<usize> = Vec::new();
+    if ecrit {
+        let (l, avert) = crate::apercu_dsn::numeroter_et_lire(ctx, &mut paies, &groupe)?;
+        lus = l;
+        d.avertissements.extend(avert.into_iter().map(|a| format!("{} : {}", lib, a)));
+    } else {
+        if categories.contains(BULLETINS) || categories.contains(CERTIFICATS_CS) {
+            d.avertissements.push(format!(
+                "{} n'est pas encore écrit : ni bulletin ni certificat à rééditer. Il s'écrit dans l'onglet Paie (« Produire »).",
+                lib
+            ));
+        }
+        // Les contrats d'un mois pas encore ecrit ont un numero s'il a ete FIGE par une production
+        // anterieure : la saisie numerotee le lit alors. Sinon, rien.
+        if !donnees.get("numeros_figes").is_some_and(vrai) {
+            if categories.contains(CONTRATS) {
+                d.refus.push(format!("{} : contrats non réédités — leurs numéros ne sont pas encore figés, et un numéro ne s'invente pas.", lib));
+            }
+        } else {
+            let (data, mut figees) = charger(ctx, &ctx.racine.join("paies").join(format!("{}.json", mois)))?;
+            numeroter(ctx, &data, &mut figees, attente)?;
+            siennes_contrats = (0..figees.len()).filter(|i| cles.contains(&cle_de(&figees[*i]))).collect();
+            paies_contrats = figees;
+        }
+    }
+    let mut cles_des_siennes: Vec<String> = siennes.iter().map(|i| cle_de(&paies[*i])).collect();
+    cles_des_siennes.sort();
+    cles_des_siennes.dedup();
+
+    // 1. Les bulletins : ceux de l'archive, tels qu'ils sont partis (regle 4 : un document remis ne se regenere pas ;
+    // Leandre, 10/10/2026). Le fichier du mois porte tous les salaries : chacun n'en recoit que SES pages, celles que
+    // `numeroter_et_lire` a rattachees a sa paie (son salarie, sa periode). Rien ne se recalcule ni ne se reimprime : un
+    // moteur qui a change de calcul depuis la production envoie quand meme ce que le salarie a recu. Ce qui ne se lit
+    // pas refuse, sans repli.
+    if categories.contains(BULLETINS) && ecrit {
+        let nom_archive = groupe.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        for cle in &cles_des_siennes {
+            let mut ses_pages: Vec<usize> = Vec::new();
+            for i in siennes.iter().filter(|i| cle_de(&paies[**i]) == *cle && !paies[**i].engagement.sans_paie()) {
+                let p = &paies[*i];
+                let Some(lu) = lus.get(i).filter(|lu| !lu.pages.is_empty()) else {
+                    return Err(erreur_operation(format!(
+                        "{}, {} : aucune page de sorties/{}/{} ne porte son bulletin du {} au {}. Un bulletin remis ne se réimprime pas : rien n'est envoyé à sa place.",
+                        lib,
+                        p.salarie.get("nom").map(py_str).ok_or_else(|| avec("KeyError", crate::fichiers::absent("nom")))?,
+                        mois,
+                        nom_archive,
+                        p.engagement.debut_periode().map_err(|m| avec("ValueError", m))?.jj_mm_aaaa(),
+                        p.engagement.fin_periode().map_err(|m| avec("ValueError", m))?.jj_mm_aaaa()
+                    )));
+                };
+                if lu.partage {
+                    return Err(erreur_operation(format!(
+                        "{}, {} : le bulletin n° {} partage une page de sorties/{}/{} avec un autre bulletin. Cette page porte la paie d'un autre salarié, elle ne se donne pas ; et un bulletin remis ne se réimprime pas : rien n'est envoyé à sa place.",
+                        lib,
+                        p.salarie.get("nom").map(py_str).ok_or_else(|| avec("KeyError", crate::fichiers::absent("nom")))?,
+                        lu.bulletin,
+                        mois,
+                        nom_archive
+                    )));
+                }
+                ses_pages.extend(lu.pages.iter().copied());
+            }
+            // Dans l'ordre du fichier, comme il les a recus.
+            ses_pages.sort_unstable();
+            ses_pages.dedup();
+            for n in ses_pages {
+                pages.push(Page { categorie: BULLETINS, cle: cle.clone(), tri: format!("{}-00", mois), source: groupe.clone(), numero: n });
+            }
+        }
+    }
+
+    // 2. Les contrats : ceux du mois ecrit portent les numeros de l'archive.
+    if categories.contains(CONTRATS) {
+        let (source, indices): (&Vec<Paie>, &Vec<usize>) = if ecrit { (&paies, &siennes) } else { (&paies_contrats, &siennes_contrats) };
+        let mut cles_contrats: Vec<String> = indices.iter().map(|i| cle_de(&source[*i])).collect();
+        cles_contrats.sort();
+        cles_contrats.dedup();
+        for cle in &cles_contrats {
+            // Un permanent n'a pas de contrat d'usage : le sien se redige a part, et
+            // `contrat.ecrire` n'ecrit que le CDDU d'un spectacle.
+            let a_lui: Vec<Paie> = indices
+                .iter()
+                .map(|i| &source[*i])
+                .filter(|p| {
+                    cle_de(p) == *cle
+                        && p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty())
+                        && vrai(&p.spectacle)
+                        && !contrats_vus.contains(p.engagement.numero.as_deref().unwrap_or(""))
+                })
+                .cloned()
+                .collect();
+            contrats_vus.extend(a_lui.iter().filter_map(|p| p.engagement.numero.clone()));
+            let sans = indices
+                .iter()
+                .map(|i| &source[*i])
+                .filter(|p| cle_de(p) == *cle && vrai(&p.spectacle) && p.engagement.numero.as_deref().map_or(true, str::is_empty))
+                .count();
+            if sans > 0 {
+                d.refus.push(format!("{}, {} : {} contrat(s) sans numéro lu, non réédité(s).", lib, cle, sans));
+            }
+            if a_lui.is_empty() {
+                continue;
+            }
+            let chemin = tmp.join(format!("C_{}_{}.pdf", cle, mois));
+            crate::contrat::ecrire(ctx, &a_lui, &ent, &chemin)?;
+            marquer(&chemin, aujourdhui)?;
+            for i in 0..pages_pdf(&chemin)? {
+                pages.push(Page { categorie: CONTRATS, cle: cle.clone(), tri: format!("{}-01", mois), source: chemin.clone(), numero: i });
+            }
+        }
+    }
+
+    // 3. Les certificats Conges Spectacles, aux N CE du recapitulatif.
+    if categories.contains(CERTIFICATS_CS) && ecrit {
+        let (pour_cs, avert) = certificats_dus(ctx, &paies)?;
+        d.avertissements.extend(avert.into_iter().map(|a| format!("{} : {}", lib, a)));
+        let recap = sortie.join(format!("CertificatsCS_{}_recapitulatif.txt", etiq));
+        let premier = premier_ce(&recap)?;
+        let a_faire = pour_cs.iter().any(|(_, _, v)| v.is_some());
+        let trouve = |cle: &str, debut: &str| pour_cs.iter().find(|(c, de, _)| c == cle && de == debut).and_then(|(_, _, v)| v.as_ref());
+        match (a_faire, premier) {
+            (true, None) => d.refus.push(format!(
+                "{} : certificats Congés Spectacles non joints — aucun récapitulatif de leurs N° CE ({}), et un N° CE ne se reprend pas à la séquence. « Écrire les documents des salariés » les émet pour de bon.",
+                lib,
+                recap.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
+            )),
+            (true, Some(premier)) => {
+                // Les N CE se donnent dans l'ordre de la saisie, TOUS salaries confondus : on les
+                // repasse tous, on ne garde que les siens.
+                let mut numero = premier;
+                let mut paires: Vec<(String, Vec<(&PaieCs, i64)>)> = Vec::new();
+                for p in &paies {
+                    let cle = cle_de(p);
+                    let Some(pc) = trouve(&cle, &p.engagement.debut.iso()) else { continue };
+                    if cles.contains(&cle) {
+                        match paires.iter_mut().find(|(c, _)| *c == cle) {
+                            Some((_, v)) => v.push((pc, numero)),
+                            None => paires.push((cle.clone(), vec![(pc, numero)])),
+                        }
+                    }
+                    numero += conges_spectacles::decouper(&pc.engagement)?.len() as i64;
+                }
+                paires.sort_by(|a, b| a.0.cmp(&b.0));
+                // Les certificats remis sont dans `CertificatsCS_<Mois>.pdf`, un par page, dans l'ordre de leurs N CE
+                // a partir du premier du recapitulatif (`produire_mois`, `ecrire_documents` : `description_numerotee`,
+                // un document par certificat, une page sans marge). Le N CE n donne la page n - premier ; la page porte
+                // le nom du salarie, sinon le fichier ne dit pas ce que le recapitulatif dit, et rien ne se joint.
+                // Comme les bulletins : la page meme, jamais un certificat reimprime (regle 4).
+                let archive = sortie.join(format!("CertificatsCS_{}.pdf", etiq));
+                let nom_archive = archive.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+                let total = (numero - premier) as usize;
+                let textes = if archive.exists() { Some(texte_pdf(&archive)?) } else { None };
+                match textes {
+                    None if !paires.is_empty() => d.refus.push(format!(
+                        "{} : certificats Congés Spectacles non joints — {} n'est pas dans sorties/{}/, et un certificat remis ne se réimprime pas.",
+                        lib, nom_archive, mois
+                    )),
+                    Some(t) if !paires.is_empty() && t.len() != total => d.refus.push(format!(
+                        "{} : certificats Congés Spectacles non joints — {} a {} page(s), le récapitulatif et la saisie en attendent {} (N° CE {} à {}). Le fichier ne dit pas ce que le récapitulatif dit : rien n'est joint à sa place.",
+                        lib,
+                        nom_archive,
+                        t.len(),
+                        total,
+                        premier,
+                        numero - 1
+                    )),
+                    Some(t) => {
+                        for (cle, siens) in &paires {
+                            let nom = siens
+                                .first()
+                                .and_then(|(pc, _)| pc.salarie.get("nom"))
+                                .map(py_str)
+                                .ok_or_else(|| avec("KeyError", crate::fichiers::absent("nom")))?;
+                            let mut ses_pages: Vec<usize> = Vec::new();
+                            let mut etrangeres: Vec<i64> = Vec::new();
+                            for (pc, n) in siens {
+                                for k in 0..conges_spectacles::decouper(&pc.engagement)?.len() as i64 {
+                                    let page = (n + k - premier) as usize;
+                                    if sans_accents(&t[page]).contains(&sans_accents(&nom)) {
+                                        ses_pages.push(page);
+                                    } else {
+                                        etrangeres.push(n + k);
+                                    }
+                                }
+                            }
+                            if !etrangeres.is_empty() {
+                                d.refus.push(format!(
+                                    "{}, {} : certificats Congés Spectacles non joints — dans {}, la page du N° CE {} ne porte pas son nom. Le fichier ne dit pas ce que le récapitulatif dit : rien n'est joint à sa place.",
+                                    lib,
+                                    cle,
+                                    nom_archive,
+                                    etrangeres.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(", ")
+                                ));
+                                continue;
+                            }
+                            for page in ses_pages {
+                                pages.push(Page { categorie: CERTIFICATS_CS, cle: cle.clone(), tri: format!("{}-02", mois), source: archive.clone(), numero: page });
+                            }
+                        }
+                    }
+                    None => {}
+                }
+            }
+            (false, _) => {}
+        }
+    }
+
+    // 4. Ce qui se prend tel quel : contrats signes, AER, documents de fin.
+    for cle in &cles_des_siennes {
+        if categories.contains(CONTRATS_SIGNES) && envoi_dir.is_dir() {
+            for nom in contrats_signes_de(&envoi_dir, cle) {
+                let f = envoi_dir.join(&nom);
+                // Le contrat signe est pris tel quel ; ses numeros, eux, se CONFRONTENT a ceux du
+                // mois ecrit.
+                let portes: std::collections::BTreeSet<String> = numeros_de_contrat(&nom).into_iter().collect();
+                let connus: std::collections::BTreeSet<String> = siennes
+                    .iter()
+                    .map(|i| &paies[*i])
+                    .filter(|p| cle_de(p) == *cle)
+                    .filter_map(|p| p.engagement.numero.clone())
+                    .filter(|n| !n.is_empty())
+                    .collect();
+                let hors: Vec<&String> = portes.difference(&connus).collect();
+                if ecrit && !hors.is_empty() {
+                    d.avertissements.push(format!(
+                        "{}, {} : le contrat signé {} porte {}, que le mois écrit ne connaît pas (bulletins et DSN : {}). Il est au dossier tel qu'il a été signé ; l'écart est à regarder.",
+                        lib,
+                        cle,
+                        nom,
+                        hors.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "),
+                        if connus.is_empty() { "aucun".to_string() } else { connus.iter().cloned().collect::<Vec<_>>().join(", ") }
+                    ));
+                }
+                for i in 0..pages_pdf(&f)? {
+                    pages.push(Page { categorie: CONTRATS_SIGNES, cle: cle.clone(), tri: format!("{}-01", mois), source: f.clone(), numero: i });
+                }
+            }
+        }
+        if categories.contains(ATTESTATIONS) {
+            let f = envoi_dir.join(format!("AER_{}_{}.pdf", cle, etiq));
+            if f.exists() {
+                for i in 0..pages_pdf(&f)? {
+                    pages.push(Page { categorie: ATTESTATIONS, cle: cle.clone(), tri: format!("{}-03", mois), source: f.clone(), numero: i });
+                }
+            }
+        }
+        if categories.contains(DOCUMENTS_FIN) {
+            for debut in [format!("CertificatTravail_{}_", cle), format!("RecuSoldeToutCompte_{}_", cle)] {
+                for nom in noms_commencant_finissant(&sortie, &debut, ".pdf") {
+                    let f = sortie.join(&nom);
+                    for i in 0..pages_pdf(&f)? {
+                        pages.push(Page { categorie: DOCUMENTS_FIN, cle: cle.clone(), tri: format!("{}-04", mois), source: f.clone(), numero: i });
+                    }
+                }
+            }
+        }
+    }
+    Ok(pages)
+}
+
+/// `signatures` : les courriels de signature d'un salarie sur la periode, la preuve de ses contrats
+/// signes. Ils vont dans le ZIP, pas dans un PDF.
+fn signatures(ctx: &Contexte, cle: &str, p: &Periode) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    for mois in crate::fiche_recapitulative::mois_saisis(ctx) {
+        if !p.contient(&mois) {
+            continue;
+        }
+        let d = ctx.racine.join("sorties").join(&mois).join("envoi");
+        if d.is_dir() {
+            out.extend(noms_commencant_finissant(&d, &format!("Signature_{}_", cle), ".eml").into_iter().map(|n| d.join(n)));
+        }
+    }
+    out
+}
+
+// ------------------------------------------------------------------ les pages CoolPaie
+
+/// Une categorie de fichier CoolPaie : `Some(None)` quand le nom melange bulletins et AEM (`&`).
+fn categorie_du_fichier(nom: &str) -> Option<Option<&'static str>> {
+    let bas: String = nom.chars().flat_map(char::to_lowercase).collect();
+    let c: Vec<char> = bas.chars().collect();
+    let mot = |x: char| x.is_alphanumeric() || x == '_';
+    if bas.starts_with("bs&aem") {
+        return Some(None);
+    }
+    let apres_bs = c.get(2).copied();
+    let bs = bas.starts_with("bs") && (apres_bs.map_or(true, |x| !mot(x)) || apres_bs == Some('-') || apres_bs.is_some_and(|x| chiffre(x).is_some()));
+    let souligne = bas.starts_with('_') && bas.chars().skip(1).collect::<String>().contains("_bulletin");
+    if bs || bas.starts_with("bspl") || souligne || bas.starts_with("paie") {
+        return Some(Some(BULLETINS));
+    }
+    if bas.starts_with("aem") {
+        return Some(Some(ATTESTATIONS));
+    }
+    if bas.starts_with("contrat") {
+        if bas["contrat".len()..].contains("sign") {
+            return Some(Some(CONTRATS_SIGNES));
+        }
+        return Some(Some(CONTRATS));
+    }
+    None
+}
+
+/// `dossier_coolpaie` : ou sont les documents de CoolPaie : la copie de l'import d'abord
+/// (`historique/coolpaie/`), le dossier `export/` sinon.
+fn dossier_coolpaie(ctx: &Contexte) -> Option<PathBuf> {
+    let a_des_pdf = |d: &Path| std::fs::read_dir(d).map_or(false, |l| l.flatten().any(|e| e.file_name().to_string_lossy().ends_with(".pdf")));
+    [ctx.racine.join("historique").join("coolpaie"), crate::routes_fiches::trouver_export(&ctx.racine)]
+        .into_iter()
+        .find(|d| d.is_dir() && a_des_pdf(d))
+}
+
+/// `_sans_accents` : sans accent, en majuscules.
+fn sans_accents(t: &str) -> String {
+    crate::contexte::sans_accent(t).to_uppercase()
+}
+
+/// `re.sub(r"[^A-Z0-9]+", " ", t)`.
+fn lettres_et_chiffres(t: &str) -> String {
+    let mut out = String::new();
+    let mut trou = false;
+    for c in t.chars() {
+        if c.is_ascii_uppercase() || c.is_ascii_digit() {
+            out.push(c);
+            trou = false;
+        } else if !trou {
+            out.push(' ');
+            trou = true;
+        }
+    }
+    out
+}
+
+/// `_categorie_page`.
+fn categorie_de_page(texte: &str) -> Option<&'static str> {
+    let t = sans_accents(&texte.chars().take(400).collect::<String>());
+    if t.contains("BULLETIN DE PAIE") {
+        return Some(BULLETINS);
+    }
+    if sans_accents(texte).contains("ATTESTATION (AEM)") || t.contains("UNEDIC") {
+        return Some(ATTESTATIONS);
+    }
+    if t.contains("CONTRAT") {
+        return Some(CONTRATS);
+    }
+    None
+}
+
+/// `_debut_de_document` : la page ouvre-t-elle un document (un bulletin, un contrat, une AEM) ?
+fn debut_de_document(texte: &str) -> bool {
+    let t = sans_accents(&texte.chars().take(300).collect::<String>());
+    t.contains("BULLETIN DE PAIE") || t.contains("CONTRAT D'ENGAGEMENT") || t.contains("CONTRAT D ENGAGEMENT") || t.contains("UNEDIC")
+}
+
+/// `_a_qui` : les salaries a qui une page se rattache, par le NIR, sinon par le nom ET le prenom.
+fn a_qui(texte: &str, fiches: &[(&String, &Value)]) -> Vec<String> {
+    let est_chiffre = |c: &char| c.is_ascii_digit() || chiffre(*c).is_some();
+    let chiffres: String = texte.chars().filter(est_chiffre).collect();
+    let t = format!(" {} ", lettres_et_chiffres(&sans_accents(texte)));
+    let mut out = Vec::new();
+    for (cle, f) in fiches {
+        let brut = f.get("nir").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+        let nir: String = brut.chars().filter(est_chiffre).take(13).collect();
+        if nir.chars().count() == 13 && chiffres.contains(&nir) {
+            out.push((*cle).clone());
+            continue;
+        }
+        let normal = |c: &str| lettres_et_chiffres(&sans_accents(&f.get(c).filter(|v| vrai(v)).map(py_str).unwrap_or_default())).trim().to_string();
+        let (nom, prenom) = (normal("nom"), normal("prenom"));
+        if !nom.is_empty() && !prenom.is_empty() && t.contains(&format!(" {} ", nom)) && t.contains(&format!(" {} ", prenom)) {
+            out.push((*cle).clone());
+        }
+    }
+    out
+}
+
+/// Un gabarit de date : `d` un chiffre, tout autre signe se lit tel quel.
+fn trouver_gabarit(c: &[char], gabarit: &str, separateur: impl Fn(char) -> bool) -> Vec<Vec<String>> {
+    // `s` : un separateur ; `d` : un chiffre ASCII ; les groupes sont les suites de `d`.
+    let g: Vec<char> = gabarit.chars().collect();
+    let mut trouves = Vec::new();
+    let mut i = 0;
+    while i + g.len() <= c.len() {
+        let avant_ok = i == 0 || !c[i - 1].is_ascii_digit();
+        let apres_ok = c.get(i + g.len()).map_or(true, |x| !x.is_ascii_digit());
+        let ok = avant_ok
+            && apres_ok
+            && g.iter().enumerate().all(|(k, x)| match x {
+                'd' => c[i + k].is_ascii_digit(),
+                's' => separateur(c[i + k]),
+                autre => c[i + k] == *autre,
+            });
+        if ok {
+            let mut groupes: Vec<String> = Vec::new();
+            let mut en_cours = String::new();
+            for (k, x) in g.iter().enumerate() {
+                if *x == 'd' {
+                    en_cours.push(c[i + k]);
+                } else if !en_cours.is_empty() {
+                    groupes.push(std::mem::take(&mut en_cours));
+                }
+            }
+            if !en_cours.is_empty() {
+                groupes.push(en_cours);
+            }
+            trouves.push(groupes);
+            i += g.len();
+        } else {
+            i += 1;
+        }
+    }
+    trouves
+}
+
+/// `_DU_AU.search` : `\bdu\s+(?:du\s+)?(\d\d)/(\d\d)/(\d{4})\s+au\b`, sans tenir compte de la casse.
+fn du_au(c: &[char]) -> Option<(String, String, String)> {
+    let mot = |x: char| x.is_alphanumeric() || x == '_';
+    let est = |de: usize, t: &str| t.chars().enumerate().all(|(k, x)| c.get(de + k).is_some_and(|y| y.to_lowercase().eq(x.to_lowercase())));
+    let blancs = |de: usize| c.get(de..).map_or(0, |r| r.iter().take_while(|x| x.is_whitespace()).count());
+    // La date a partir de `de`, puis `\s+au\b`.
+    let date_puis_au = |de: usize| -> Option<(String, String, String)> {
+        let g = |a: usize, n: usize| -> Option<String> {
+            let s: String = c.get(a..a + n)?.iter().collect();
+            s.chars().all(|x| x.is_ascii_digit()).then_some(s)
+        };
+        let (j, m, a) = (g(de, 2)?, g(de + 3, 2)?, g(de + 6, 4)?);
+        if c.get(de + 2) != Some(&'/') || c.get(de + 5) != Some(&'/') {
+            return None;
+        }
+        let fin = de + 10;
+        let b = blancs(fin);
+        if b == 0 || !est(fin + b, "au") || c.get(fin + b + 2).is_some_and(|x| mot(*x)) {
+            return None;
+        }
+        Some((j, m, a))
+    };
+    for i in 0..c.len() {
+        if (i > 0 && mot(c[i - 1])) || !est(i, "du") {
+            continue;
+        }
+        let b = blancs(i + 2);
+        if b == 0 {
+            continue;
+        }
+        let apres = i + 2 + b;
+        if est(apres, "du") {
+            let b2 = blancs(apres + 2);
+            if b2 > 0 {
+                if let Some(r) = date_puis_au(apres + 2 + b2) {
+                    return Some(r);
+                }
+            }
+        }
+        if let Some(r) = date_puis_au(apres) {
+            return Some(r);
+        }
+    }
+    None
+}
+
+/// `_date_du_nom` : la date que CoolPaie met dans ses noms de fichier : « Contrats_16-12-2021 »,
+/// « BS 06082021 FAVART », « AEM 092021 MARAIS » (mois seul).
+fn date_du_nom(nom: &str) -> Option<String> {
+    let c: Vec<char> = nom.chars().collect();
+    for (gabarit, jmo) in [("dd-dd-dddd", true), ("dddddddd", true), ("dddddd", false)] {
+        let trouves = trouver_gabarit(&c, gabarit, |_| false);
+        let Some(g) = trouves.into_iter().next() else { continue };
+        let iso = if jmo {
+            let (j, m, a) = if g.len() == 3 { (g[0].clone(), g[1].clone(), g[2].clone()) } else { (g[0][..2].to_string(), g[0][2..4].to_string(), g[0][4..].to_string()) };
+            format!("{}-{}-{}", a, m, j)
+        } else {
+            let (m, a) = (g[0][..2].to_string(), g[0][2..].to_string());
+            format!("{}-{}-01", a, m)
+        };
+        if ("01"..="12").contains(&&iso[5..7]) {
+            return Some(iso);
+        }
+    }
+    None
+}
+
+/// `_date_page` : la date d'une page CoolPaie (AAAA-MM-JJ).
+fn date_de_page(texte: &str, fiche: &Value, nom: &str) -> Option<String> {
+    let c: Vec<char> = texte.chars().collect();
+    if let Some((j, m, a)) = du_au(&c) {
+        return Some(format!("{}-{}-{}", a, m, j));
+    }
+    let naissance = fiche.get("date_naissance").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let valide = |j: &str, m: &str| ("01"..="12").contains(&m) && ("01"..="31").contains(&j);
+    for g in trouver_gabarit(&c, "dd dd dddd", |x| x == ' ') {
+        let iso = format!("{}-{}-{}", g[2], g[1], g[0]);
+        if iso != naissance && valide(&g[0], &g[1]) {
+            return Some(iso);
+        }
+    }
+    if let Some(d) = date_du_nom(nom) {
+        return Some(d);
+    }
+    for g in trouver_gabarit(&c, "ddsddsdddd", |x| x == '/' || x == ' ') {
+        let iso = format!("{}-{}-{}", g[2], g[1], g[0]);
+        if iso == naissance || !valide(&g[0], &g[1]) {
+            continue;
+        }
+        return Some(iso);
+    }
+    None
+}
+
+/// `_pages_coolpaie` : les pages des PDF de CoolPaie, rattachees a leur salarie et datees.
+fn pages_coolpaie(ctx: &Contexte, cles: &HashSet<String>, categories: &HashSet<&str>, p: &Periode, d: &mut Dossier) -> R<Vec<Page>> {
+    let Some(racine) = dossier_coolpaie(ctx) else { return Ok(Vec::new()) };
+    let fiches: Vec<(&String, &Value)> = ctx.salaries.iter().filter(|(k, v)| !k.starts_with('_') && v.is_object()).collect();
+    let (mut pages, mut illisibles, mut orphelines) = (Vec::new(), Vec::new(), 0usize);
+    let mut noms: Vec<String> = std::fs::read_dir(&racine)
+        .map(|l| l.flatten().filter_map(|e| e.file_name().to_str().map(str::to_string)).filter(|n| n.ends_with(".pdf")).collect())
+        .unwrap_or_default();
+    noms.sort();
+    // UNE PAGE SANS NOM CONTINUE LA PRECEDENTE, jamais au-dela du fichier.
+    for nom in noms {
+        let f = racine.join(&nom);
+        let Some(cat_fichier) = categorie_du_fichier(&nom) else { continue };
+        let textes = match texte_pdf(&f) {
+            Ok(t) => t,
+            Err(e) if e.classe == Some("FabriqueRefus") => {
+                if cat_fichier.map_or(true, |c| categories.contains(c)) {
+                    illisibles.push(nom);
+                }
+                continue;
+            }
+            Err(e) => return Err(e),
+        };
+        let mut precedente: Option<(Vec<String>, HashMap<String, Option<String>>)> = None;
+        for (i, texte) in textes.iter().enumerate() {
+            let cat = cat_fichier.or_else(|| categorie_de_page(texte));
+            let mut qui = a_qui(texte, &fiches);
+            let suite = qui.is_empty() && precedente.is_some() && !debut_de_document(texte);
+            if suite {
+                qui = precedente.as_ref().map(|p| p.0.clone()).unwrap_or_default();
+            } else if qui.is_empty() {
+                precedente = None;
+                if cat.is_some_and(|c| categories.contains(c)) {
+                    orphelines += 1;
+                }
+                continue;
+            }
+            let mut dates: HashMap<String, Option<String>> = HashMap::new();
+            for cle in &qui {
+                let v = if suite {
+                    precedente.as_ref().and_then(|p| p.1.get(cle).cloned()).unwrap_or(None)
+                } else {
+                    let fiche = fiches.iter().find(|(k, _)| *k == cle).map(|(_, v)| *v).unwrap_or(&Value::Null);
+                    date_de_page(texte, fiche, &nom)
+                };
+                dates.insert(cle.clone(), v);
+            }
+            precedente = Some((qui.clone(), dates.clone()));
+            let Some(cat) = cat.filter(|c| categories.contains(c)) else { continue };
+            for cle in &qui {
+                if !cles.contains(cle) {
+                    continue;
+                }
+                let quand = match dates.get(cle).cloned().unwrap_or(None) {
+                    None => {
+                        if !p.toutes {
+                            d.avertissements.push(format!(
+                                "{}, page {} : aucune date lisible, laissée hors du dossier de {} (elle y entre quand on demande toute la période).",
+                                nom,
+                                i + 1,
+                                cle
+                            ));
+                            continue;
+                        }
+                        "0000-00-00".to_string()
+                    }
+                    Some(q) => {
+                        if !p.contient(&q.chars().take(7).collect::<String>()) {
+                            continue;
+                        }
+                        q
+                    }
+                };
+                pages.push(Page { categorie: categorie(cat), cle: cle.clone(), tri: quand, source: f.clone(), numero: i });
+            }
+        }
+    }
+    if !illisibles.is_empty() {
+        d.avertissements.push(format!("Fichiers repris de l'historique illisibles (vides ou abîmés), laissés de côté : {}.", illisibles.join(", ")));
+    }
+    if orphelines > 0 {
+        d.avertissements.push(format!(
+            "{} page(s) reprise(s) de l'historique ne se rattachent à aucun salarié (ni NIR ni nom et prénom reconnus) : elles ne sont dans aucun dossier.",
+            orphelines
+        ));
+    }
+    Ok(pages)
+}
+
+/// Les pages des bulletins de paie que l'import a repris (`historique/paies.json`, colonne `bulletin` : le fichier de
+/// sa copie dans `historique/bulletins/` et la page) : rattachees par la cle du salarie, datees du debut de la paie,
+/// dans la periode par le mois de la paie. Une copie qui manque se dit ; rien d'autre ne se devine.
+fn pages_importees(ctx: &Contexte, cles: &HashSet<String>, p: &Periode, d: &mut Dossier) -> Vec<Page> {
+    let chemin = ctx.racine.join("historique").join("paies.json");
+    let Ok(Value::Object(f)) = crate::routes_etats::lire_json_ou_vide(&chemin) else { return Vec::new() };
+    let dossier = ctx.racine.join("historique").join("bulletins");
+    let texte = |x: &Value, k: &str| x.get(k).and_then(Value::as_str).unwrap_or("").to_string();
+    let (mut pages, mut manquent): (Vec<Page>, Vec<String>) = (Vec::new(), Vec::new());
+    for x in f.get("paies").and_then(Value::as_array).into_iter().flatten() {
+        let Some(b) = x.get("bulletin").filter(|b| b.is_object()) else { continue };
+        let (cle, mois, fichier) = (texte(x, "salarie"), texte(x, "mois"), texte(b, "fichier"));
+        let Some(page) = b.get("page").and_then(Value::as_u64).filter(|n| *n >= 1) else { continue };
+        if !cles.contains(&cle) || mois.is_empty() || !p.contient(&mois) || fichier.is_empty() || fichier.contains(['/', '\\']) {
+            continue;
+        }
+        let source = dossier.join(&fichier);
+        if !source.is_file() {
+            if !manquent.contains(&fichier) {
+                manquent.push(fichier);
+            }
+            continue;
+        }
+        let debut = texte(x, "debut");
+        let tri = if debut.is_empty() { format!("{}-01", mois) } else { debut };
+        pages.push(Page { categorie: BULLETINS, cle, tri, source, numero: page as usize - 1 });
+    }
+    if !manquent.is_empty() {
+        d.avertissements.push(format!(
+            "Bulletins repris à l'import dont la copie n'est plus dans historique/bulletins/, laissés hors du dossier : {}.",
+            manquent.join(", ")
+        ));
+    }
+    pages
+}
+
+// ------------------------------------------------------------------ l'assemblage
+
+/// `_assembler` : un PDF des pages donnees, dans l'ordre, dedoublonne, le logo une fois. Le
+/// dedoublonnage lit le TEXTE des pages (un appel par fichier).
+fn assembler(pages: &[&Page]) -> R<Option<Vec<u8>>> {
+    if pages.is_empty() {
+        return Ok(None);
+    }
+    let mut textes: HashMap<&Path, Vec<String>> = HashMap::new();
+    let mut vues: HashSet<String> = HashSet::new();
+    let mut retenues: Vec<&Page> = Vec::new();
+    for pg in pages {
+        if !textes.contains_key(pg.source.as_path()) {
+            textes.insert(pg.source.as_path(), texte_pdf(&pg.source)?);
+        }
+        let texte = textes[pg.source.as_path()].get(pg.numero).cloned().ok_or_else(|| avec("IndexError", crate::fichiers::trop_courte(&format!("la page {} de {}", pg.numero + 1, pg.source.display()))))?;
+        if !vues.insert(texte) {
+            continue;
+        }
+        retenues.push(pg);
+    }
+    if retenues.is_empty() {
+        return Ok(None);
+    }
+    // Les pages qui se suivent dans un meme fichier ne font qu'une piece.
+    let mut pieces: Vec<(PathBuf, Option<Vec<usize>>)> = Vec::new();
+    for pg in retenues {
+        match pieces.last_mut() {
+            Some((source, Some(liste))) if *source == pg.source => liste.push(pg.numero),
+            _ => pieces.push((pg.source.clone(), Some(vec![pg.numero]))),
+        }
+    }
+    fusion_pieces(&pieces).map(Some)
+}
+
+// ------------------------------------------------------------------ l'ecriture
+
+/// Un fichier du ZIP : son nom, son contenu, sa date locale (DOS), ses droits.
+pub(crate) struct Entree {
+    pub(crate) nom: String,
+    pub(crate) octets: Vec<u8>,
+    pub(crate) date: u16,
+    pub(crate) heure: u16,
+    pub(crate) attributs: u32,
+}
+
+/// La date et l'heure locales (Paris) au format DOS, a partir de secondes unix.
+fn horodatage_dos(secondes: i64) -> (u16, u16) {
+    let local = secondes + crate::paris::decalage(secondes);
+    let jour = Jour::depuis_jours_unix(local.div_euclid(86_400)).unwrap_or(Jour { an: 1980, mois: 1, jour: 1 });
+    let reste = local.rem_euclid(86_400);
+    let (h, m, s) = (reste / 3600, (reste % 3600) / 60, reste % 60);
+    if jour.an < 1980 {
+        return ((1 << 5) | 1, 0);
+    }
+    ((((jour.an - 1980) as u16) << 9) | ((jour.mois as u16) << 5) | jour.jour as u16, ((h as u16) << 11) | ((m as u16) << 5) | (s / 2) as u16)
+}
+
+fn maintenant() -> i64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0)
+}
+
+/// `zipfile.ZipFile(chemin, "w", ZIP_DEFLATED)` : deflate, CRC-32, cree sous Unix, comme Python.
+pub(crate) fn zip(entrees: &[Entree]) -> R<Vec<u8>> {
+    use flate2::write::DeflateEncoder;
+    use flate2::{Compression, Crc};
+    use std::io::Write;
+
+    let u16_ = |v: &mut Vec<u8>, x: u16| v.extend_from_slice(&x.to_le_bytes());
+    let u32_ = |v: &mut Vec<u8>, x: u32| v.extend_from_slice(&x.to_le_bytes());
+    let mut z: Vec<u8> = Vec::new();
+    let mut repertoire: Vec<u8> = Vec::new();
+    for e in entrees {
+        let mut crc = Crc::new();
+        crc.update(&e.octets);
+        let somme = crc.sum();
+        let mut enc = DeflateEncoder::new(Vec::new(), Compression::default());
+        enc.write_all(&e.octets).map_err(|x| avec("OSError", x.to_string()))?;
+        let comprime = enc.finish().map_err(|x| avec("OSError", x.to_string()))?;
+        let nom = e.nom.as_bytes();
+        let drapeau: u16 = if e.nom.is_ascii() { 0 } else { 0x800 };
+        let debut = z.len() as u32;
+        u32_(&mut z, 0x0403_4b50);
+        u16_(&mut z, 20);
+        u16_(&mut z, drapeau);
+        u16_(&mut z, 8);
+        u16_(&mut z, e.heure);
+        u16_(&mut z, e.date);
+        u32_(&mut z, somme);
+        u32_(&mut z, comprime.len() as u32);
+        u32_(&mut z, e.octets.len() as u32);
+        u16_(&mut z, nom.len() as u16);
+        u16_(&mut z, 0);
+        z.extend_from_slice(nom);
+        z.extend_from_slice(&comprime);
+        u32_(&mut repertoire, 0x0201_4b50);
+        u16_(&mut repertoire, 20 | (3 << 8));
+        u16_(&mut repertoire, 20);
+        u16_(&mut repertoire, drapeau);
+        u16_(&mut repertoire, 8);
+        u16_(&mut repertoire, e.heure);
+        u16_(&mut repertoire, e.date);
+        u32_(&mut repertoire, somme);
+        u32_(&mut repertoire, comprime.len() as u32);
+        u32_(&mut repertoire, e.octets.len() as u32);
+        u16_(&mut repertoire, nom.len() as u16);
+        u16_(&mut repertoire, 0);
+        u16_(&mut repertoire, 0);
+        u16_(&mut repertoire, 0);
+        u16_(&mut repertoire, 0);
+        u32_(&mut repertoire, e.attributs);
+        u32_(&mut repertoire, debut);
+        repertoire.extend_from_slice(nom);
+    }
+    let debut_repertoire = z.len() as u32;
+    z.extend_from_slice(&repertoire);
+    u32_(&mut z, 0x0605_4b50);
+    u16_(&mut z, 0);
+    u16_(&mut z, 0);
+    u16_(&mut z, entrees.len() as u16);
+    u16_(&mut z, entrees.len() as u16);
+    u32_(&mut z, repertoire.len() as u32);
+    u32_(&mut z, debut_repertoire);
+    u16_(&mut z, 0);
+    Ok(z)
+}
+
+/// `z.writestr(nom, octets)`.
+pub(crate) fn entree_ecrite(nom: String, octets: Vec<u8>) -> Entree {
+    let (date, heure) = horodatage_dos(maintenant());
+    Entree { nom, octets, date, heure, attributs: 0o600 << 16 }
+}
+
+/// `z.write(fichier, nom)` : la date et les droits du fichier.
+pub(crate) fn entree_fichier(f: &Path, nom: String) -> R<Entree> {
+    let octets = std::fs::read(f).map_err(|e| avec("OSError", format!("{} : {}", f.display(), e)))?;
+    let meta = std::fs::metadata(f).map_err(|e| avec("OSError", format!("{} : {}", f.display(), e)))?;
+    let (date, heure) = horodatage_dos(secondes(&meta));
+    Ok(Entree { nom, octets, date, heure, attributs: (mode(&meta) & 0xFFFF) << 16 })
+}
+
+/// `st_mtime` en secondes entieres.
+#[cfg(unix)]
+fn secondes(meta: &std::fs::Metadata) -> i64 {
+    use std::os::unix::fs::MetadataExt;
+    meta.mtime()
+}
+
+#[cfg(not(unix))]
+fn secondes(meta: &std::fs::Metadata) -> i64 {
+    meta.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0, |d| d.as_secs() as i64)
+}
+
+/// `st_mode` comme Python le lit. Sous Windows, Python le deduit de l'attribut lecture seule : `0o100444`, sinon
+/// `0o100666`.
+#[cfg(unix)]
+fn mode(meta: &std::fs::Metadata) -> u32 {
+    use std::os::unix::fs::MetadataExt;
+    meta.mode()
+}
+
+#[cfg(not(unix))]
+fn mode(meta: &std::fs::Metadata) -> u32 {
+    if meta.permissions().readonly() { 0o100444 } else { 0o100666 }
+}
+
+fn ecrire_octets(chemin: &Path, octets: &[u8]) -> R<()> {
+    std::fs::write(chemin, octets).map_err(|e| avec("OSError", crate::fichiers::ecriture_impossible(&e, chemin)))
+}
+
+/// `{cle: {categorie: octets}}`, dans l'ordre ou les cles et les categories sont apparues.
+type Contenus = Vec<(String, Vec<(&'static str, Vec<u8>)>)>;
+
+fn contenu_de<'a>(contenus: &'a Contenus, cle: &str) -> Option<&'a Vec<(&'static str, Vec<u8>)>> {
+    contenus.iter().find(|(c, _)| c == cle).map(|(_, v)| v)
+}
+
+/// `_ecrire_un`.
+fn ecrire_un(dossier: &Path, cle: &str, contenus: &[(&'static str, Vec<u8>)], preuves: &[PathBuf], cats: &[&'static str], p: &Periode, un_seul: bool) -> R<PathBuf> {
+    let base = format!("Dossier_{}_{}", nom_salarie(cle), p.nom());
+    if un_seul && !(cats == [CONTRATS_SIGNES] && !preuves.is_empty()) {
+        let cat = cats[0];
+        let chemin = dossier.join(format!("{}_{}.pdf", base, nom_de(cat)));
+        let octets = contenus.iter().find(|(c, _)| *c == cat).map(|(_, o)| o.as_slice()).unwrap_or(&[]);
+        ecrire_octets(&chemin, octets)?;
+        return Ok(chemin);
+    }
+    let chemin = dossier.join(format!("{}.zip", base));
+    let mut entrees = Vec::new();
+    for (i, (cat, octets)) in CATEGORIES.iter().filter_map(|c| contenus.iter().find(|(x, _)| x == c)).enumerate() {
+        entrees.push(entree_ecrite(format!("{}-{}.pdf", i + 1, nom_de(cat)), octets.clone()));
+    }
+    for f in preuves {
+        entrees.push(entree_fichier(f, format!("preuves-de-signature/{}", f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()))?);
+    }
+    ecrire_octets(&chemin, &zip(&entrees)?)?;
+    Ok(chemin)
+}
+
+/// `_ecrire_ensemble` : tous les salaries dans le meme fichier : un PDF par categorie qui les
+/// enchaine (une seule categorie : ce PDF-la), sinon un ZIP.
+fn ecrire_ensemble(dossier: &Path, contenus: &Contenus, preuves: &[(String, Vec<PathBuf>)], cats: &[&'static str], p: &Periode, un_seul: bool, tmp: &Path) -> R<PathBuf> {
+    let base = format!("Dossiers_{}", p.nom());
+    let mut cles: Vec<&String> = contenus.iter().map(|(c, _)| c).collect();
+    cles.sort();
+    let mut par_cat: Vec<(&'static str, Vec<Vec<u8>>)> = Vec::new();
+    for cle in cles {
+        for (cat, octets) in contenu_de(contenus, cle).into_iter().flatten() {
+            match par_cat.iter_mut().find(|(c, _)| c == cat) {
+                Some((_, v)) => v.push(octets.clone()),
+                None => par_cat.push((cat, vec![octets.clone()])),
+            }
+        }
+    }
+    let mut reunis: Vec<(&'static str, Vec<u8>)> = Vec::new();
+    for (cat, morceaux) in &par_cat {
+        reunis.push((cat, fusion_octets(morceaux, tmp)?));
+    }
+    let tout_preuves: Vec<&PathBuf> = preuves.iter().flat_map(|(_, l)| l.iter()).collect();
+    if un_seul && tout_preuves.is_empty() {
+        let chemin = dossier.join(format!("{}_{}.pdf", base, nom_de(cats[0])));
+        let octets = reunis.iter().find(|(c, _)| *c == cats[0]).map(|(_, o)| o.as_slice()).unwrap_or(&[]);
+        ecrire_octets(&chemin, octets)?;
+        return Ok(chemin);
+    }
+    let chemin = dossier.join(format!("{}.zip", base));
+    let mut entrees = Vec::new();
+    for (i, (cat, octets)) in CATEGORIES.iter().filter_map(|c| reunis.iter().find(|(x, _)| x == c)).enumerate() {
+        entrees.push(entree_ecrite(format!("{}-{}.pdf", i + 1, nom_de(cat)), octets.clone()));
+    }
+    for f in tout_preuves {
+        entrees.push(entree_fichier(f, format!("preuves-de-signature/{}", f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()))?);
+    }
+    ecrire_octets(&chemin, &zip(&entrees)?)?;
+    Ok(chemin)
+}
+
+// ------------------------------------------------------------------ la route
+
+/// Le jour reel de Paris : `date.today()`, pas `ctx.aujourdhui`.
+pub(crate) fn aujourdhui_reel() -> Jour {
+    let t = maintenant();
+    Jour::depuis_jours_unix((t + crate::paris::decalage(t)).div_euclid(86_400)).unwrap_or_else(crate::contexte::jour_reel)
+}
+
+/// `etats::getd(charge, cle)` puis `or None` : la valeur de la charge quand elle est vraie.
+fn vraie<'a>(charge: &'a Value, cle: &str) -> R<Option<&'a Value>> {
+    match charge {
+        Value::Object(o) => Ok(o.get(cle).filter(|v| vrai(v))),
+        autre => Err(avec("AttributeError", crate::fichiers::attendu("un objet", nom_type(autre)))),
+    }
+}
+
+/// `", ".join(liste)` d'une liste de valeurs JSON : un element qui n'est pas un texte est un `TypeError`.
+fn joindre(valeurs: &[Value]) -> R<String> {
+    let mut textes = Vec::new();
+    for (i, v) in valeurs.iter().enumerate() {
+        match v {
+            Value::String(s) => textes.push(s.clone()),
+            autre => return Err(avec("TypeError", crate::fichiers::element(i, &crate::fichiers::attendu("un texte", nom_type(autre))))),
+        }
+    }
+    Ok(textes.join(", "))
+}
+
+/// `for x in v` (liste, cles d'un dictionnaire, caracteres d'un texte), ses refus sous leur classe.
+fn parcourir(v: &Value) -> R<Vec<Value>> {
+    items(v).map(|l| l.into_iter().map(|c| c.into_owned()).collect()).map_err(Refus::from)
+}
+
+/// `dossier_salarie` puis `dossier_json` : ce que la route rend.
+fn dossier_salarie_route(ctx: &Contexte, charge: &Value) -> R<Value> {
+    construire(ctx, charge).map(|d| dossier_json(&d))
+}
+
+/// `operations_dossier.dossier_salarie` : le dossier construit (et ecrit, sauf `apercu`). L'envoi (`routes_envois`)
+/// en a besoin tel quel : ses salaries, ses fichiers, ses pages.
+pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
+    let salaries = vraie(charge, "salaries")?;
+    let mois = vraie(charge, "mois")?;
+    let annee = vraie(charge, "annee")?;
+    let toutes = vraie(charge, "toutes_les_annees")?.is_some();
+    let categories = vraie(charge, "categories")?;
+    let ensemble = vraie(charge, "ensemble")?.is_some();
+    let ecrire = vraie(charge, "apercu")?.is_none();
+
+    let p = Periode::nouveau(mois, annee, toutes)?;
+    let aujourdhui = aujourdhui_reel();
+    let cats_demandees: Vec<Value> = match categories {
+        Some(c) => parcourir(c)?,
+        None => CATEGORIES.iter().map(|c| json!(c)).collect(),
+    };
+    let inconnues: Vec<Value> = cats_demandees.iter().filter(|c| !c.as_str().is_some_and(|s| CATEGORIES.contains(&s))).cloned().collect();
+    if !inconnues.is_empty() {
+        return Err(erreur_operation(format!("Catégorie inconnue : {}. Les catégories sont {}.", joindre(&inconnues)?, CATEGORIES.join(", "))));
+    }
+    let cats: Vec<&'static str> = CATEGORIES.iter().copied().filter(|c| cats_demandees.iter().any(|x| x.as_str() == Some(c))).collect();
+    let fiches: Vec<&String> = ctx.salaries.iter().filter(|(k, v)| !k.starts_with('_') && v.is_object()).map(|(k, _)| k).collect();
+    let demandes: Option<Vec<Value>> = salaries.map(parcourir).transpose()?;
+    let cles: Vec<String> = match &demandes {
+        Some(liste) => {
+            let mut absents = Vec::new();
+            for c in liste {
+                match c {
+                    Value::Array(_) | Value::Object(_) => return Err(avec("TypeError", crate::fichiers::pas_une_cle(nom_type(c)))),
+                    Value::String(s) if fiches.contains(&s) => {}
+                    autre => absents.push(autre.clone()),
+                }
+            }
+            if !absents.is_empty() {
+                return Err(erreur_operation(format!("Salarié inconnu : {} (les clés de config/salaries.json).", joindre(&absents)?)));
+            }
+            liste.iter().filter_map(|c| c.as_str().map(str::to_string)).collect()
+        }
+        None => {
+            let mut tous: Vec<String> = fiches.iter().map(|k| (*k).clone()).collect();
+            tous.sort();
+            tous
+        }
+    };
+    let mut d = Dossier { categories: cats.clone(), periode: p.libelle()?, ..Dossier::default() };
+
+    let racine_tmp = Temporaire::nouveau_dans(&std::env::temp_dir(), "puppetpaie-dossier")?;
+    let tmp = racine_tmp.0.as_path();
+    let ensemble_cles: HashSet<String> = cles.iter().cloned().collect();
+    let ensemble_cats: HashSet<&str> = cats.iter().copied().collect();
+    let mut pages: Vec<Page> = Vec::new();
+    let mut contrats_vus: HashSet<String> = HashSet::new();
+    let mut attente: HashMap<(String, String), i64> = HashMap::new();
+    let mois_saisis = crate::fiche_recapitulative::mois_saisis(ctx);
+    for m in &mois_saisis {
+        if p.contient(m) {
+            pages.extend(mois_puppetpaie(ctx, m, &ensemble_cles, &ensemble_cats, tmp, &mut d, &aujourdhui, &mut contrats_vus, &mut attente)?);
+        }
+    }
+    // Les mois d'avant PuppetPaie : les PDF de CoolPaie, sauf pour un mois que PuppetPaie a
+    // lui-meme ecrit (double run d'aout 2026) -- le sien fait foi.
+    let nos_mois: HashSet<&String> = mois_saisis.iter().filter(|m| ctx.racine.join("sorties").join(m).is_dir()).collect();
+    pages.extend(pages_coolpaie(ctx, &ensemble_cles, &ensemble_cats, &p, &mut d)?.into_iter().filter(|pg| !nos_mois.iter().any(|m| m.as_str() == pg.tri.chars().take(7).collect::<String>())));
+    // Les bulletins repris a l'import (lot E) : la page meme, copiee dans `historique/bulletins/` (l'assemblage
+    // dedoublonne une page que CoolPaie aurait aussi rendue).
+    if ensemble_cats.contains(BULLETINS) {
+        pages.extend(pages_importees(ctx, &ensemble_cles, &p, &mut d).into_iter().filter(|pg| !nos_mois.iter().any(|m| m.as_str() == pg.tri.chars().take(7).collect::<String>())));
+    }
+    if cats.contains(&RECAPITULATIF) {
+        let mut recaps = Recapitulatifs::nouveau(ctx, p.mois.clone(), p.annee.clone(), p.toutes);
+        for cle in &cles {
+            if let Some(r) = recaps.pdf(cle, tmp)? {
+                for i in 0..pages_pdf(&r)? {
+                    pages.push(Page { categorie: RECAPITULATIF, cle: cle.clone(), tri: "9999".to_string(), source: r.clone(), numero: i });
+                }
+            }
+        }
+    }
+
+    // Par salarie, par categorie, dans l'ordre de lecture.
+    pages.sort_by(|a, b| (&a.cle, rang_de(a.categorie), &a.tri).cmp(&(&b.cle, rang_de(b.categorie), &b.tri)));
+    let mut par: Vec<(String, Vec<(&'static str, Vec<&Page>)>)> = Vec::new();
+    for pg in &pages {
+        let i = match par.iter().position(|(c, _)| *c == pg.cle) {
+            Some(i) => i,
+            None => {
+                par.push((pg.cle.clone(), Vec::new()));
+                par.len() - 1
+            }
+        };
+        let cats_du_salarie = &mut par[i].1;
+        match cats_du_salarie.iter_mut().find(|(c, _)| *c == pg.categorie) {
+            Some((_, v)) => v.push(pg),
+            None => cats_du_salarie.push((pg.categorie, vec![pg])),
+        }
+    }
+    let preuves: Vec<(String, Vec<PathBuf>)> = if cats.contains(&CONTRATS_SIGNES) { par.iter().map(|(c, _)| (c.clone(), signatures(ctx, c, &p))).collect() } else { Vec::new() };
+    d.salaries = cles.iter().filter(|c| par.iter().any(|(x, _)| x == *c)).cloned().collect();
+    if d.salaries.is_empty() {
+        // `AucunDocument` : une reponse, pas un incident (ticket #126).
+        return Err(avec("AucunDocument", format!(
+            "Aucun document sur la période ({}) pour {}.",
+            p.libelle()?,
+            if demandes.is_some() { cles.join(", ") } else { "aucun salarié".to_string() }
+        )));
+    }
+
+    let mut contenus: Contenus = Vec::new();
+    for cle in &d.salaries {
+        let Some((_, cats_du_salarie)) = par.iter().find(|(c, _)| c == cle) else { continue };
+        for (cat, siennes) in cats_du_salarie {
+            if let Some(octets) = assembler(siennes)? {
+                let n = compter(&octets)?;
+                match contenus.iter_mut().find(|(c, _)| c == cle) {
+                    Some((_, v)) => match v.iter_mut().find(|(x, _)| x == cat) {
+                        Some(e) => e.1 = octets,
+                        None => v.push((*cat, octets)),
+                    },
+                    None => contenus.push((cle.clone(), vec![(*cat, octets)])),
+                }
+                let entree = d.pages.entry(cle.clone()).or_insert_with(|| json!({}));
+                if let Some(o) = entree.as_object_mut() {
+                    o.insert(cat.to_string(), json!(n));
+                }
+            }
+        }
+    }
+    if !ecrire {
+        return Ok(d);
+    }
+    let dossier = ctx.racine.join("exports").join("dossiers");
+    std::fs::create_dir_all(&dossier).map_err(|e| avec("OSError", crate::fichiers::ecriture_impossible(&e, &dossier)))?;
+    let un_seul = cats.len() == 1;
+    if ensemble {
+        d.fichiers.push(ecrire_ensemble(&dossier, &contenus, &preuves, &cats, &p, un_seul, tmp)?);
+    } else {
+        for cle in d.salaries.clone() {
+            let siens = contenu_de(&contenus, &cle).cloned().unwrap_or_default();
+            let ses_preuves = preuves.iter().find(|(c, _)| *c == cle).map(|(_, l)| l.clone()).unwrap_or_default();
+            d.fichiers.push(ecrire_un(&dossier, &cle, &siens, &ses_preuves, &cats, &p, un_seul)?);
+        }
+    }
+    Ok(d)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn la_categorie_d_un_fichier_coolpaie_se_lit_dans_son_nom() {
+        assert_eq!(categorie_du_fichier("BS 06082021 FAVART.pdf"), Some(Some(BULLETINS)));
+        assert_eq!(categorie_du_fichier("bs-2021.pdf"), Some(Some(BULLETINS)));
+        assert_eq!(categorie_du_fichier("BS&AEM 2021.pdf"), Some(None));
+        assert_eq!(categorie_du_fichier("AEM 092021 MARAIS.pdf"), Some(Some(ATTESTATIONS)));
+        assert_eq!(categorie_du_fichier("Contrats_16-12-2021 signes.pdf"), Some(Some(CONTRATS_SIGNES)));
+        assert_eq!(categorie_du_fichier("Contrats_16-12-2021.pdf"), Some(Some(CONTRATS)));
+        assert_eq!(categorie_du_fichier("_2021_bulletin.pdf"), Some(Some(BULLETINS)));
+        assert_eq!(categorie_du_fichier("liasse.pdf"), None);
+        assert_eq!(categorie_du_fichier("bsx.pdf"), None);
+    }
+
+    #[test]
+    fn la_date_du_nom_prefere_le_jour_complet() {
+        assert_eq!(date_du_nom("Contrats_16-12-2021.pdf").as_deref(), Some("2021-12-16"));
+        assert_eq!(date_du_nom("BS 06082021 FAVART.pdf").as_deref(), Some("2021-08-06"));
+        assert_eq!(date_du_nom("AEM 092021 MARAIS.pdf").as_deref(), Some("2021-09-01"));
+        assert_eq!(date_du_nom("sans date.pdf"), None);
+    }
+
+    #[test]
+    fn la_periode_d_un_bulletin_donne_sa_date() {
+        let fiche = json!({"date_naissance": "1990-01-02"});
+        let t = "BULLETIN DE PAIE Période : du 01/09/2021 au 30/09/2021";
+        assert_eq!(date_de_page(t, &fiche, "x.pdf").as_deref(), Some("2021-09-01"));
+        let t = "né le 02 01 1990, embauche 25 02 2022";
+        assert_eq!(date_de_page(t, &fiche, "x.pdf").as_deref(), Some("2022-02-25"));
+    }
+
+    #[test]
+    fn un_contrat_signe_porte_ses_numeros() {
+        assert_eq!(numeros_de_contrat("Contrat_FA1.26.13_Favart_signe.pdf"), vec!["FA1.26.13".to_string()]);
+    }
+
+    #[test]
+    fn la_periode_se_demande_une_fois() {
+        assert!(Periode::nouveau(None, None, false).is_err());
+        let m = json!("2026-09");
+        let a = json!("2026");
+        assert!(Periode::nouveau(Some(&m), Some(&a), false).is_err());
+        let p = Periode::nouveau(Some(&m), None, false).unwrap();
+        assert_eq!(p.libelle().unwrap(), "septembre 2026");
+        assert!(p.contient("2026-09") && !p.contient("2026-10"));
+    }
+
+    #[test]
+    fn le_nom_d_un_salarie_se_nettoie() {
+        assert_eq!(nom_salarie("Celi"), "Celi");
+        assert_eq!(nom_salarie("a b/c"), "a-b-c");
+        assert_eq!(nom_salarie("///"), "salarie");
+    }
+}

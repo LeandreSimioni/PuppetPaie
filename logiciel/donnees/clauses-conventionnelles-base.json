@@ -1,0 +1,2194 @@
+{
+  "_quoi": "Les CLAUSES des conventions collectives qui changent un solde de tout compte ou un maintien de salaire : le préavis, l'indemnité de licenciement, la retraite, la maladie. C'est un catalogue de BRANCHE, livré avec le logiciel et le même pour toutes les compagnies de la convention, comme `minima-conventionnels.json` (les grilles de salaire) et `prevoyance-conventionnelle-base.json` (la prévoyance).",
+  "_regle": "LA LOI ET LA CONVENTION SE CALCULENT TOUTES LES DEUX, ET LA PLUS FAVORABLE L'EMPORTE. La loi le dit à chaque fois : L1234-1 (le préavis légal ne vaut que si la convention ne prévoit pas mieux), L1234-9 (l'indemnité légale est un plancher), L1237-7 et L1237-9 (idem pour la retraite). Une clause conventionnelle MOINS favorable que la loi n'est pas une erreur du fichier : elle est écrite telle qu'elle est, et le moteur retient la loi en le disant.",
+  "_ce_que_ce_fichier_n_est_pas": "Ni le code du travail — la loi est dans `permanents-base.json` —, ni un contrat de travail : ce qu'un contrat accorde de plus que la convention se saisit sur l'engagement.",
+  "_une_convention_absente": "Une convention qui n'est pas ici n'a PAS de clauses : c'est qu'elles ne sont pas relevées. Le moteur calcule alors la loi seule et le dit (`clauses.releve`), plutôt que de laisser croire qu'il a lu la convention. Au 25/09/2026, la 3090 (journal §114), la 1285 (§119) et la 2642 (§132) sont relevées.",
+  "_declaration": "Une indemnité conventionnelle SUPÉRIEURE à la légale se déclare en DEUX lignes du bloc S21.G00.52 : le montant légal sous son code légal (007, 003, 005, 001), et le SUPPLÉMENT sous le code conventionnel (021 pour le licenciement et la rupture conventionnelle, 004 pour la mise à la retraite, 006 pour le départ). Source : grille d'aide au remplissage « Indemnités » de net-entreprises (« vient s'ajouter éventuellement à l'indemnité légale », « 021 — supplémentaire aux indemnités légales » ; « 001 — il s'agit du minimum légal »), copie dans `prive/reference/norme-dsn/netentreprises-grille-aide-remplissage-indemnites.pdf` ; libellés du cahier technique 2026.1, p. 252-253.",
+  "_regime": "Le supplément conventionnel suit le régime du montant légal, et c'est la loi qui le dit : CGI 80 duodecies 3° b et 4° b (« le montant de l'indemnité [...] prévue par la convention collective de branche [...] ou, à défaut, par la loi »), CSS L136-1-1 III 5° a (CSG et CRDS : « le montant prévu par la convention collective de branche [...] ou la loi si ce dernier est le plus élevé »), CSS L242-1 II 7° (cotisations : ce qui n'est pas imposable, dans la limite de deux plafonds). C'est ce qui permet au moteur de l'écrire : jusqu'au 24/09/2026 il refusait toute indemnité au-dessus du montant légal, faute de savoir la partager.",
+  "conventions": {
+    "3090": {
+      "libelle": "Convention collective nationale des entreprises du secteur privé du spectacle vivant du 3 février 2012",
+      "_source": "Base KALI de la DILA (open data) : la base complète du 13/07/2025 et les 246 livraisons quotidiennes jusqu'à KALI_20260923-215642, relues le 24/09/2026. Aucune livraison postérieure au 13/07/2025 ne touche les articles cités ici. Transcription : `prive/reference/sources/kali-3090-titres-vii-x-xi-annexes-20260924.md`. Journal §114.",
+      "categories": {
+        "_quoi": "La convention classe par CATÉGORIE (artistes-interprètes ; employés, employés qualifiés ; agents de maîtrise ; cadres) — et l'annexe I a ses cadres de direction. Le moteur la lit dans cet ordre : `categorie_conventionnelle` sur la fiche du salarié (ou l'engagement), qui l'emporte toujours ; puis le statut artiste ; puis la case cadre ; puis le niveau 3090 du métier (`emplois-base.json`, `classification_3090.niveau`). Un métier de niveau cadre déclaré non cadre ne se tranche pas : le moteur demande.",
+        "valeurs": {
+          "artiste": "Artiste-interprète.",
+          "employe": "Employé, employé qualifié (groupes 1 et 2).",
+          "agent_de_maitrise": "Agent de maîtrise.",
+          "cadre": "Cadre, groupes 1 à 3.",
+          "cadre_de_direction": "Cadre de direction au sens du titre V de l'annexe I. Jamais déduit : il se déclare sur la fiche."
+        },
+        "par_niveau_3090": {
+          "employe": "employe",
+          "employe_qualifie_1": "employe",
+          "employe_qualifie_2": "employe",
+          "agent_de_maitrise": "agent_de_maitrise",
+          "cadre_groupe_1": "cadre",
+          "cadre_groupe_2": "cadre",
+          "cadre_groupe_3": "cadre"
+        }
+      },
+      "preavis": {
+        "article": "7.7",
+        "kali": "KALIARTI000041637774",
+        "en_vigueur_depuis": "2020-03-01",
+        "_texte": "« En cas de rupture du contrat de travail à durée indéterminée à l'initiative de l'employeur ou du salarié, la durée du préavis réciproque, sauf faute grave, faute lourde ou force majeure, est égale : Artistes-interprètes : 1 mois de travail effectif jusqu'à 2 ans d'ancienneté ; 2 mois de travail effectif après 2 ans d'ancienneté. Employés qualifiés groupe 2, employés qualifiés groupe 1 et employés : 1 mois [...] jusqu'à 2 ans ; 2 mois [...] après 2 ans. Agents de maîtrise : 2 mois de travail effectif. Cadres groupe 1 à 3 : 3 mois de travail effectif. »",
+        "_ce_que_ca_change": "Deux choses. SOUS SIX MOIS d'ancienneté, la loi ne donne aucune durée (L1234-1 1° renvoie à la convention) : le moteur refusait et demandait ; la 3090 répond — un mois. Et pour un agent de maîtrise ou un cadre, la convention donne plus que la loi (2 et 3 mois, dès le premier jour).",
+        "_reciproque": "« Réciproque » : le même préavis pour une démission. La loi ne fixe pas de préavis de démission ; celui-ci l'est.",
+        "motifs_hors_preavis": {
+          "087": "Faute grave (« sauf faute grave »).",
+          "088": "Faute lourde.",
+          "089": "Licenciement pour force majeure.",
+          "034": "Fin de période d'essai : l'article vise la rupture du CDI, pas celle de l'essai (délai de prévenance, 7.4 et L1221-25).",
+          "035": "Fin de période d'essai à l'initiative du salarié.",
+          "043": "Rupture conventionnelle : une date convenue, pas un préavis."
+        },
+        "par_categorie": {
+          "artiste": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": 24,
+              "mois": 1
+            },
+            {
+              "anciennete_mois_min": 24,
+              "anciennete_mois_max": null,
+              "mois": 2
+            }
+          ],
+          "employe": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": 24,
+              "mois": 1
+            },
+            {
+              "anciennete_mois_min": 24,
+              "anciennete_mois_max": null,
+              "mois": 2
+            }
+          ],
+          "agent_de_maitrise": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": null,
+              "mois": 2
+            }
+          ],
+          "cadre": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": null,
+              "mois": 3
+            }
+          ],
+          "cadre_de_direction": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": null,
+              "mois": 3,
+              "_source": "Annexe I, 5.6.1 : « le délai de préavis lequel est fixé à 3 mois » (KALIARTI000044323344) — le même que les cadres de 7.7."
+            }
+          ]
+        },
+        "_deux_ans": "« Jusqu'à 2 ans » et « après 2 ans » : à vingt-quatre mois tout rond, le moteur donne deux mois, comme la loi (L1234-1 3° : « au moins deux ans »)."
+      },
+      "indemnite_licenciement": {
+        "article": "7.8",
+        "kali": "KALIARTI000041637772",
+        "en_vigueur_depuis": "2020-03-01",
+        "_texte": "« Le salarié titulaire d'un contrat de travail à durée indéterminée, licencié alors qu'il compte 8 mois d'ancienneté ininterrompus au service du même employeur, a droit, sauf en cas de faute grave, à une indemnité de licenciement. L'indemnité de licenciement est calculée conformément aux dispositions prévues par le code du travail. L'indemnité ne peut pas être inférieure aux montants suivants : 1/4 de mois de salaire par année d'ancienneté pour les 10 premières années ; 1/3 de mois de salaire par année d'ancienneté à partir de la 11e année. » Le salaire de référence : le plus avantageux de la moyenne des 12 derniers mois et du tiers des 3 derniers.",
+        "_ce_que_ca_change": "RIEN SUR LE MONTANT : c'est la loi (L1234-9, R1234-2, R1234-4) recopiée. Ce qui change, c'est que le moteur peut le DIRE — « la 3090 donne la même chose » — au lieu d'écrire « ses clauses ne sont pas relevées, à vérifier ». Les annexes I et III, elles, font mieux pour certaines catégories (`par_annexe`).",
+        "anciennete_minimale_mois": 8,
+        "motifs_sans_indemnite": [
+          "087",
+          "088",
+          "059",
+          "039",
+          "034",
+          "035"
+        ],
+        "taux": [
+          {
+            "jusqu_a_annees": 10,
+            "fraction_de_mois": 0.25
+          },
+          {
+            "jusqu_a_annees": null,
+            "fraction_de_mois": 0.3333333333
+          }
+        ],
+        "par_annexe": {
+          "1": {
+            "technicien": {
+              "article": "annexe I, 3.12",
+              "kali": "KALIARTI000028157578",
+              "_texte": "« A partir de 1 an d'ancienneté ininterrompue au service du même employeur, l'indemnité de licenciement des personnels techniques sera égale à : jusqu'à 5 ans d'ancienneté ininterrompue au service de l'employeur : 1/4 de mois de salaire par année d'ancienneté ; à compter de la 5e année d'ancienneté ininterrompue au service de l'employeur : 1/3 de mois de salaire par année d'ancienneté ».",
+              "qui": "Le personnel technique : la grille « technique » du niveau 3090 du métier, pas la grille administrative.",
+              "anciennete_minimale_mois": 12,
+              "lectures": {
+                "par_tranches": [
+                  {
+                    "jusqu_a_annees": 5,
+                    "fraction_de_mois": 0.25
+                  },
+                  {
+                    "jusqu_a_annees": null,
+                    "fraction_de_mois": 0.3333333333
+                  }
+                ],
+                "par_bandes": [
+                  {
+                    "anciennete_annees_min": 0,
+                    "fraction_de_mois": 0.25
+                  },
+                  {
+                    "anciennete_annees_min": 5,
+                    "fraction_de_mois": 0.3333333333
+                  }
+                ]
+              },
+              "_deux_lectures": "LE TEXTE SE LIT DE DEUX FAÇONS, et elles ne donnent pas le même montant après cinq ans : un tiers pour les années au-delà de la cinquième (par tranches, comme R1234-2), ou un tiers pour TOUTES les années dès qu'on a passé cinq ans (par bandes). Le moteur ne tranche pas : quand les deux lectures divergent, il les montre et demande le montant retenu (`indemnite_licenciement`), qu'il accepte entre les deux.",
+              "motifs_legaux_seulement": []
+            },
+            "cadre_de_direction": {
+              "article": "annexe I, 5.6.1",
+              "kali": "KALIARTI000044323344",
+              "_texte": "« Cette indemnité de licenciement sera fixée à 1 mois d'appointements par année de présence et ne pourra en aucun cas dépasser 15 mois d'appointements. » Le salaire : 1/12 des 12 derniers mois ou 1/3 des 3 derniers, « l'assiette [...] s'entend du salaire mensuel brut de base hors indemnités et primes diverses ».",
+              "qui": "Le cadre de direction, déclaré comme tel sur la fiche (`categorie_conventionnelle`).",
+              "anciennete_minimale_mois": 0,
+              "plafond_mois": 15,
+              "lectures": {
+                "au_prorata": [
+                  {
+                    "jusqu_a_annees": null,
+                    "fraction_de_mois": 1
+                  }
+                ],
+                "annees_entieres": [
+                  {
+                    "jusqu_a_annees": null,
+                    "fraction_de_mois": 1,
+                    "annees_entieres": true
+                  }
+                ]
+              },
+              "_deux_lectures": "« Par année de présence » : une année entamée compte-t-elle à son prorata, comme R1234-1 le dit de l'indemnité légale, ou seulement les années pleines ? Le texte ne le dit pas. Les deux lectures divergent dès qu'une année est entamée : le moteur les montre et demande le montant retenu.",
+              "hors_primes": true,
+              "motifs_legaux_seulement": []
+            }
+          },
+          "3": {
+            "artiste": {
+              "article": "annexe III, 4.6",
+              "kali": "KALIARTI000028157796",
+              "_texte": "« A partir de 1 an d'ancienneté [...] les artistes percevront, en cas de licenciement pour motif personnel [...], sauf faute grave ou lourde, une indemnité de licenciement, qui remplacera toute autre indemnité, notamment légale, calculée comme suit : pour une ancienneté supérieure ou égale à 1 an et inférieure à 7 ans : 1/4 de mois par année ; à partir de 7 ans d'ancienneté : 1/4 + 1/15 de mois par année d'ancienneté. [...] En cas de licenciement pour motif économique, l'indemnité sera calculée en application des dispositions légales en vigueur. »",
+              "qui": "Les artistes de la filière artistique de l'annexe III (cabarets).",
+              "anciennete_minimale_mois": 12,
+              "lectures": {
+                "par_bandes": [
+                  {
+                    "anciennete_annees_min": 0,
+                    "fraction_de_mois": 0.25
+                  },
+                  {
+                    "anciennete_annees_min": 7,
+                    "fraction_de_mois": 0.3166666667
+                  }
+                ],
+                "par_tranches": [
+                  {
+                    "jusqu_a_annees": 7,
+                    "fraction_de_mois": 0.25
+                  },
+                  {
+                    "jusqu_a_annees": null,
+                    "fraction_de_mois": 0.3166666667
+                  }
+                ]
+              },
+              "_deux_lectures": "La rédaction par bandes (« pour une ancienneté supérieure ou égale à 1 an et inférieure à 7 ans ») est la plus littérale ; la lecture par tranches reste possible. Même règle : les deux divergent après sept ans, le moteur demande.",
+              "_remplace_la_loi": "« Remplacera toute autre indemnité, notamment légale » : une convention ne peut pas descendre SOUS l'indemnité légale, qui est d'ordre public. Le moteur retient donc toujours la plus forte des deux.",
+              "motifs_legaux_seulement": [
+                "011",
+                "012",
+                "014",
+                "025",
+                "026",
+                "117"
+              ],
+              "_motifs_legaux_seulement": "Les licenciements économiques : « l'indemnité sera calculée en application des dispositions légales en vigueur »."
+            }
+          }
+        }
+      },
+      "rupture_conventionnelle": {
+        "article": "7.6",
+        "kali": "KALIARTI000041637776",
+        "_texte": "« Rupture conventionnelle : en cas de recours à ce mode de rupture du contrat de travail, les parties signataires précisent qu'elles entendent par indemnité conventionnelle de licenciement au minimum l'indemnité de licenciement prévue par la convention collective et non celle qui est prévue par le code du travail. »",
+        "plancher": "indemnite_licenciement",
+        "_ce_que_ca_change": "Le plancher de l'indemnité spécifique est l'indemnité CONVENTIONNELLE de licenciement — celle de l'annexe quand elle fait mieux. Pour la convention commune, c'est le même montant que la loi."
+      },
+      "mise_a_la_retraite": {
+        "article": "7.9",
+        "kali": "KALIARTI000041637770",
+        "_texte": "« Le salarié partant à la retraite, à l'initiative de l'employeur, perçoit une indemnité de fin de carrière en fonction de son ancienneté dans l'entreprise et égale à : 1/5 de mois de salaire par année d'ancienneté, auquel s'ajoutent 2/15 de mois de salaire par année au-delà de 10 ans d'ancienneté. » Le salaire : 1/12 des 12 derniers mois ou le tiers des 3 derniers, « hors indemnités et primes diverses ».",
+        "par_annee": 0.2,
+        "au_dela_de_annees": 10,
+        "en_plus_par_annee_au_dela": 0.1333333333,
+        "hors_primes": true,
+        "_moins_que_la_loi": "CETTE CLAUSE DONNE MOINS QUE LA LOI, toujours : 1/5 contre 1/4 de mois pour les dix premières années, et au-delà 1/5 + 2/15 = 1/3, comme la loi. L1237-7 garantit au moins l'indemnité de licenciement : c'est donc la loi qui s'applique, et le moteur le dit. La clause reste écrite ici telle qu'elle est — elle deviendrait utile si la loi baissait.",
+        "prevenance_mois": 6,
+        "_prevenance": "« La partie prenant l'initiative du départ en retraite devra informer l'autre partie par lettre recommandée avec avis de réception, en respectant un délai de prévenance de 6 mois. » Un délai d'information, pas une durée de préavis payable : le moteur le rappelle, il ne le paie pas.",
+        "cadre_de_direction": {
+          "article": "annexe I, 5.6.2",
+          "kali": "KALIARTI000044323344",
+          "_texte": "« En cas de mise à la retraite à l'initiative de l'employeur alors que le cadre de direction justifie de plus de 10 ans révolus d'ancienneté dans l'entreprise, cette indemnité est cependant fixée à 6 mois de salaires minimum, sous réserve des dispositions plus favorables prévues à l'article VII. 8 ». Étendu sous réserve de D1237-2.",
+          "_etat": "RELEVÉ, PAS CALCULÉ : « 6 mois de salaires minimum » ne dit pas si c'est le salaire du cadre ou le minimum conventionnel de sa catégorie. Le moteur le signale et demande le montant."
+        }
+      },
+      "depart_a_la_retraite": {
+        "article": "7.9",
+        "kali": "KALIARTI000041637770",
+        "_texte": "« Le montant de l'indemnité de départ à la retraite est égal à : 1 mois de salaire après 10 ans d'ancienneté ; 2 mois de salaire après 20 ans d'ancienneté ; 3 mois après 30 ans d'ancienneté. »",
+        "paliers": [
+          {
+            "anciennete_annees": 10,
+            "mois_de_salaire": 1
+          },
+          {
+            "anciennete_annees": 20,
+            "mois_de_salaire": 2
+          },
+          {
+            "anciennete_annees": 30,
+            "mois_de_salaire": 3
+          }
+        ],
+        "_ce_que_ca_change": "Un palier, comme la loi (D1237-1), mais plus haut : un mois à dix ans (la loi : un demi), deux mois à vingt (un et demi), trois à trente (deux). Entre quinze et vingt ans, la loi et la convention donnent toutes deux un mois. Rien sous dix ans, là non plus.",
+        "_salaire": "L'article ne donne pas de salaire de référence pour le départ volontaire (celui qu'il donne est dans le paragraphe de la mise à la retraite). Le moteur prend celui de la loi (D1237-2 renvoie à R1234-4), et le dit.",
+        "prevenance_mois": 6
+      },
+      "maintien_de_salaire": {
+        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL — comme le maintien légal : le complément se calcule après déduction des indemnités journalières, qui viennent de la caisse. Le moteur dit ce que la convention garantit, à côté de la loi.",
+        "maladie": {
+          "article": "11.2",
+          "kali": "KALIARTI000028157422",
+          "anciennete_mois_minimum": 12,
+          "carence_jours": 3,
+          "base": "net",
+          "tranches_premiere_annee": [
+            {
+              "jours": 30,
+              "taux": 90.0
+            },
+            {
+              "jours": 30,
+              "taux": 66.66
+            }
+          ],
+          "par_anciennete": [
+            {
+              "anciennete_annees_min": 1,
+              "jours_90": 30,
+              "jours_66": 30
+            },
+            {
+              "anciennete_annees_min": 6,
+              "jours_90": 40,
+              "jours_66": 40
+            },
+            {
+              "anciennete_annees_min": 11,
+              "jours_90": 50,
+              "jours_66": 60
+            },
+            {
+              "anciennete_annees_min": 16,
+              "jours_90": 60,
+              "jours_66": 60
+            },
+            {
+              "anciennete_annees_min": 21,
+              "jours_90": 70,
+              "jours_66": 70
+            },
+            {
+              "anciennete_annees_min": 26,
+              "jours_90": 80,
+              "jours_66": 80
+            },
+            {
+              "anciennete_annees_min": 31,
+              "jours_90": 90,
+              "jours_66": 90
+            }
+          ],
+          "_ce_que_ca_change": "TROIS jours de carence au lieu de sept (D1226-3), et un pourcentage de la rémunération NETTE qu'il aurait perçue, là où la loi dit du brut. L'assiette : « la rémunération brute mensuelle fixe [...] hors part variable et primes ». Les durées sont celles de D1226-2 (la liste de l'article recopie ce décret, avec 60 jours au lieu de 50 à la tranche des 11 ans)."
+        },
+        "accident_du_travail": {
+          "article": "11.4",
+          "kali": "KALIARTI000028157427",
+          "carence_jours": 0,
+          "base": "net",
+          "tranches": [
+            {
+              "jours": 30,
+              "taux": 100.0
+            },
+            {
+              "jours": 30,
+              "taux": 90.0
+            }
+          ],
+          "_extension": "« Étendu, sous réserve du respect des dispositions des articles L. 1226-1, D. 1226-1 et D. 1226-2 du code du travail » (arrêté du 29/05/2013) : la condition d'un an d'ancienneté de la loi reste. Le moteur la garde."
+        },
+        "maternite": {
+          "article": "10.5",
+          "kali": "KALIARTI000028157419",
+          "anciennete_mois_minimum": 36,
+          "_texte": "« Pendant la durée légale du congé de maternité, l'entreprise maintiendra aux salariées ayant au moins 3 ans d'ancienneté leur plein salaire net, sous déduction des indemnités journalières de sécurité sociale et éventuellement des indemnités versées par les organismes de prévoyance. »",
+          "_etat": "RELEVÉ, PAS BRANCHÉ : une absence de permanent ne porte pas encore le motif maternité (seule la maladie est saisie au 24/09/2026)."
+        }
+      },
+      "conges": {
+        "article": "titre X",
+        "_etat": "RELEVÉ : RIEN À CODER. Le titre X ne donne AUCUN jour de congé payé supplémentaire — « Le nombre de jours de congés payés annuels est déterminé conformément aux dispositions légales » (10.1.1, KALIARTI000044322266), et la période est celle de la loi, du 1er juin au 31 mai (chapeau du titre X, KALIARTI000028157410). Ce que la liste des chantiers appelait « congés supplémentaires » n'existe pas dans cette convention.",
+        "evenements_familiaux": {
+          "article": "10.4",
+          "kali": "KALIARTI000038665861",
+          "jours_ouvrables": {
+            "mariage_ou_pacs": 5,
+            "mariage_d_un_enfant": 1,
+            "naissance_ou_adoption": 3,
+            "deces_conjoint_enfant_parent": 5,
+            "deces_beau_parent_frere_soeur": 3,
+            "annonce_handicap_enfant": 2
+          },
+          "_et_la_loi": "Depuis 2020 et 2021, L3142-4 donne plus que cette liste pour certains événements (le décès d'un enfant, l'annonce d'un handicap). La plus favorable des deux s'applique. Le moteur ne compte pas ces jours — l'absence 637 est rémunérée et c'est tout —, il n'y a donc rien à comparer à l'écran."
+        },
+        "feries": {
+          "article": "10.2",
+          "kali": "KALIARTI000028157415",
+          "_texte": "« S'agissant des personnels non cadres de la filière administrative gestion de la structure, les jours fériés seront chômés. Pour cette catégorie de personnel, en cas de travail un jour férié, celui-ci donnera lieu à une rémunération majorée de 15 %. »",
+          "_etat": "RELEVÉ, PAS CODÉ : les jours chômés de la compagnie se déclarent dans sa fiche (`feries-base.json`) ; la majoration de 15 % d'un administratif non cadre qui travaille un férié se saisit en prime."
+        }
+      },
+      "prime_anciennete": {
+        "article": "annexe I, 3.11",
+        "kali": "KALIARTI000028157577",
+        "_texte": "« Après 3 ans de présence, il est attribué à chaque technicien une prime d'ancienneté de 1 % du salaire conventionnel, versée mensuellement et calculée de la façon suivante : 4e année : 1 % ; 5e année : 2 % ; 6e année : 3 % et ainsi de suite jusqu'au plafond de 10 % après 13 années de présence. »",
+        "_etat": "CODÉ depuis le 24/09/2026 (journal §121) pour les techniciens AU MOIS de l'annexe I : ajoutée d'elle-même au bulletin. Ses grilles de salaire conventionnel sont celles de l'avenant du 21/07/2025, en vigueur au 01/09/2025 ; avant cette date, les grilles ne sont pas relevées et le moteur refuse plutôt que de prendre les suivantes.",
+        "annexe": "1",
+        "apres_annees": 3,
+        "pourcentage_par_annee": 1,
+        "plafond_pourcentage": 10,
+        "_pourcentage": "« 4e année : 1 % ; 5e année : 2 % [...] jusqu'au plafond de 10 % après 13 années de présence » : le pourcentage vaut le nombre d'années pleines de présence moins deux, de 1 à 10.",
+        "qui": "Le personnel technique de l'annexe I, costume compris (titre III : « personnel technique (y compris régisseurs, habilleuses ») : la grille « technique » du niveau 3090 du métier ; pas les administratifs ni les artistes.",
+        "_temps_partiel": "Le salaire conventionnel est celui d'un temps plein : le moteur le proratise à la quotité du contrat (sur 151,67 heures), comme le minimum qu'il représente.",
+        "salaires_conventionnels": [
+          {
+            "depuis": "2025-09-01",
+            "source": "Avenant du 21/07/2025 relatif aux salaires minimaux (KALITEXT000053721738), annexe 1, grilles « techniciens(nes) » et « habilleurs(euses), couturiers(ières), maquillage », par mois. Transcription : prive/reference/sources/legifrance-3090-avenant-salaires-20250721.md.",
+            "costume": {
+              "cadre": 2552.61,
+              "agent_de_maitrise": 2369.09,
+              "employe_qualifie": 2185.56,
+              "employe": 1988.39
+            },
+            "technique": {
+              "<=200": {
+                "cadre": 2261.4,
+                "agent_de_maitrise": 2185.56,
+                "employe_qualifie": 1988.39,
+                "employe": 1856.44
+              },
+              "201-500": {
+                "cadre": 2883.25,
+                "agent_de_maitrise": 2370.6,
+                "employe_qualifie": 1988.39,
+                "employe": 1856.44
+              },
+              ">500": {
+                "cadre": 3582.45,
+                "agent_de_maitrise": 2883.25,
+                "employe_qualifie": 2296.28,
+                "employe": 1942.89
+              }
+            }
+          }
+        ],
+        "familles_costume": [
+          "Costume, coiffure, maquillage"
+        ],
+        "niveaux": {
+          "cadre_groupe_1": "cadre",
+          "cadre_groupe_2": "cadre",
+          "cadre_groupe_3": "cadre",
+          "agent_de_maitrise": "agent_de_maitrise",
+          "employe_qualifie_1": "employe_qualifie",
+          "employe_qualifie_2": "employe_qualifie",
+          "employe": "employe"
+        },
+        "jauges": {
+          "<=200": "théâtre jusqu'à 200 places",
+          "201-500": "de 201 à 500 places",
+          ">500": "plus de 500 places"
+        }
+      }
+    },
+    "1285": {
+      "libelle": "Convention collective nationale des entreprises artistiques et culturelles du 1er janvier 1984 (CCNEAC)",
+      "_source": "Base KALI de la DILA : la base complète du 13/07/2025 (conteneur KALICONT000005635964, texte KALITEXT000005662413) et les 246 livraisons jusqu'au 23/09/2026. Les livraisons republient V.8, V.11 et V.12 sous les mêmes identifiants, au texte identique (vérifié le 24/09/2026). Journal §119.",
+      "categories": {
+        "_quoi": "Cadres, agents de maîtrise, employés et ouvriers (V.8). Les artistes ont leur préavis dans les titres qui leur sont propres (XIV à XVII), non relevés. Pas de lecture par le métier : la grille de la 1285 n'est pas celle de la 3090. La catégorie vient de la case cadre, du statut artiste, ou de la fiche.",
+        "valeurs": {
+          "artiste": "Artiste (préavis dans les titres XIV à XVII, non relevés).",
+          "employe": "Employé ou ouvrier.",
+          "agent_de_maitrise": "Agent de maîtrise.",
+          "cadre": "Cadre."
+        }
+      },
+      "preavis": {
+        "article": "V.8",
+        "kali": "KALIARTI000020810194",
+        "en_vigueur_depuis": "2009-02-20",
+        "_texte": "Cadre : licenciement 3 mois, démission 3 mois ; agent de maîtrise : 2 et 2 ; employé et ouvrier : licenciement 1 mois sous deux ans d'ancienneté, 2 mois au-delà, démission 1 mois. « 1 mois supplémentaire si le licencié est âgé de 40 à 50 ans ; ce supplément est porté à 2 mois si le licencié est âgé de 50 à 60 ans. » « Pour les catégories artistiques, le préavis est fixé par les titres relatifs aux artistes. »",
+        "motifs_hors_preavis": {
+          "087": "Faute grave.",
+          "088": "Faute lourde.",
+          "034": "Fin de période d'essai (« après la période d'essai »).",
+          "035": "Fin de période d'essai.",
+          "043": "Rupture conventionnelle : une date convenue.",
+          "038": "Mise à la retraite : V.12 fixe une information de 3 mois par lettre recommandée, pas ce préavis-ci.",
+          "039": "Départ à la retraite : idem (V.12)."
+        },
+        "par_categorie": {
+          "cadre": {
+            "licenciement": [
+              {
+                "anciennete_mois_min": 0,
+                "anciennete_mois_max": null,
+                "mois": 3
+              }
+            ],
+            "demission": [
+              {
+                "anciennete_mois_min": 0,
+                "anciennete_mois_max": null,
+                "mois": 3
+              }
+            ]
+          },
+          "agent_de_maitrise": {
+            "licenciement": [
+              {
+                "anciennete_mois_min": 0,
+                "anciennete_mois_max": null,
+                "mois": 2
+              }
+            ],
+            "demission": [
+              {
+                "anciennete_mois_min": 0,
+                "anciennete_mois_max": null,
+                "mois": 2
+              }
+            ]
+          },
+          "employe": {
+            "licenciement": [
+              {
+                "anciennete_mois_min": 0,
+                "anciennete_mois_max": 24,
+                "mois": 1
+              },
+              {
+                "anciennete_mois_min": 24,
+                "anciennete_mois_max": null,
+                "mois": 2
+              }
+            ],
+            "demission": [
+              {
+                "anciennete_mois_min": 0,
+                "anciennete_mois_max": null,
+                "mois": 1
+              }
+            ]
+          }
+        },
+        "supplement_age": [
+          {
+            "age_min": 40,
+            "age_max": 50,
+            "mois": 1
+          },
+          {
+            "age_min": 50,
+            "age_max": 60,
+            "mois": 2
+          }
+        ],
+        "_supplement_age": "Au licenciement seulement (« si le licencié est âgé »), l'âge au jour de la fin du contrat. « De 40 à 50 ans » : le moteur lit 40 ans inclus, 50 exclus, puis 50 inclus, 60 exclus."
+      },
+      "indemnite_licenciement": {
+        "article": "V.11",
+        "kali": "KALIARTI000020810196",
+        "en_vigueur_depuis": "2009-02-20",
+        "_texte": "« à partir de 1 an de présence dans le cas d'un licenciement individuel quel qu'en soit le motif non économique, l'indemnité sera égale à 1/5 mois de salaire par année de présence ; à partir de 1 an de présence lorsqu'il s'agira d'un licenciement individuel pour motif économique, l'indemnité sera égale à 1/2 mois de salaire par année de présence ; à partir de 2 ans de présence dans le cas d'un licenciement individuel quel qu'en soit le motif, l'indemnité sera égale à 1/2 mois de salaire par année de présence ; toute année incomplète sera prise en compte au prorata ». Salaire : moyenne des 12 derniers mois, ou des 3 derniers si plus favorable.",
+        "_ce_que_ca_change": "BEAUCOUP : un demi-mois par année dès deux ans de présence, contre un quart pour la loi. Entre un et deux ans, hors motif économique, 1/5 de mois : moins que la loi, qui s'applique alors. La rédaction est par bandes (« à partir de 2 ans ... par année de présence ») : une seule lecture, toutes les années au demi-mois.",
+        "anciennete_minimale_mois": 12,
+        "motifs_sans_indemnite": [
+          "087",
+          "088",
+          "059",
+          "039",
+          "034",
+          "035"
+        ],
+        "par_motif": {
+          "economique": {
+            "motifs": [
+              "011",
+              "012",
+              "014",
+              "025",
+              "026",
+              "117"
+            ],
+            "bandes": [
+              {
+                "anciennete_annees_min": 1,
+                "fraction_de_mois": 0.5
+              }
+            ]
+          },
+          "autre": {
+            "bandes": [
+              {
+                "anciennete_annees_min": 1,
+                "fraction_de_mois": 0.2
+              },
+              {
+                "anciennete_annees_min": 2,
+                "fraction_de_mois": 0.5
+              }
+            ]
+          }
+        }
+      },
+      "mise_a_la_retraite": {
+        "article": "V.12",
+        "kali": "KALIARTI000005808026",
+        "_texte": "« Le salarié partant à la retraite, que ce soit à son initiative ou à celle de l'employeur, perçoit une indemnité de fin de carrière égale à : entre 2 et 5 ans d'ancienneté : 1/10 de mois de salaire par année d'ancienneté ; après 5 ans : 1 mois ; après 10 ans : 1 mois 1/2 ; après 15 ans : 2 mois 1/2 ; après 20 ans : 3 mois 1/2 ; après 25 ans : 4 mois ; après 30 ans : 4 mois 1/2. » Salaire : moyenne des 12 derniers mois ou des 3 derniers.",
+        "prorata": {
+          "anciennete_annees_min": 2,
+          "jusqu_a_annees": 5,
+          "fraction_de_mois": 0.1
+        },
+        "paliers": [
+          {
+            "anciennete_annees": 5,
+            "mois_de_salaire": 1
+          },
+          {
+            "anciennete_annees": 10,
+            "mois_de_salaire": 1.5
+          },
+          {
+            "anciennete_annees": 15,
+            "mois_de_salaire": 2.5
+          },
+          {
+            "anciennete_annees": 20,
+            "mois_de_salaire": 3.5
+          },
+          {
+            "anciennete_annees": 25,
+            "mois_de_salaire": 4
+          },
+          {
+            "anciennete_annees": 30,
+            "mois_de_salaire": 4.5
+          }
+        ],
+        "prevenance_mois": 3,
+        "_moins_que_la_loi": "Pour la MISE à la retraite, la loi (L1237-7 : l'indemnité de licenciement, un quart de mois par an) donne presque toujours plus ; le moteur retient la plus forte et le dit."
+      },
+      "depart_a_la_retraite": {
+        "article": "V.12",
+        "kali": "KALIARTI000005808026",
+        "prorata": {
+          "anciennete_annees_min": 2,
+          "jusqu_a_annees": 5,
+          "fraction_de_mois": 0.1
+        },
+        "paliers": [
+          {
+            "anciennete_annees": 5,
+            "mois_de_salaire": 1
+          },
+          {
+            "anciennete_annees": 10,
+            "mois_de_salaire": 1.5
+          },
+          {
+            "anciennete_annees": 15,
+            "mois_de_salaire": 2.5
+          },
+          {
+            "anciennete_annees": 20,
+            "mois_de_salaire": 3.5
+          },
+          {
+            "anciennete_annees": 25,
+            "mois_de_salaire": 4
+          },
+          {
+            "anciennete_annees": 30,
+            "mois_de_salaire": 4.5
+          }
+        ],
+        "prevenance_mois": 3,
+        "_ce_que_ca_change": "Dès deux ans (la loi : dix), et bien plus haut : un mois à cinq ans, quatre et demi à trente (la loi : deux)."
+      },
+      "maintien_de_salaire": {
+        "_etat": "RELEVÉ : la convention ne prévoit aucun complément de salaire en cas de maladie ou d'accident (aucun article du texte de base n'en traite). La loi seule s'applique (L1226-1)."
+      }
+    },
+    "2642": {
+      "libelle": "Convention collective nationale de la production audiovisuelle du 13 décembre 2006",
+      "_source": "Base KALI de la DILA, entrepôt local au 25/09/2026 (conteneur KALICONT000018828041, texte KALITEXT000018828046) : V.1 (version du 28/09/2016, avenant n° 6), VIII.2 et VIII.3 (versions du 01/01/2015, avenant n° 5). Aucun article de la convention ne traite de la retraite. Journal §132.",
+      "categories": {
+        "_quoi": "La 2642 ne distingue pas les catégories pour le préavis ni pour l'indemnité : l'ancienneté seule (V.1.2). La catégorie ne sert qu'à la période d'essai.",
+        "valeurs": {
+          "artiste": "Artiste (préavis dans les titres XIV à XVII, non relevés).",
+          "employe": "Employé ou ouvrier.",
+          "agent_de_maitrise": "Agent de maîtrise.",
+          "cadre": "Cadre."
+        }
+      },
+      "preavis": {
+        "article": "V.1.2.1",
+        "kali": "KALIARTI000033669822",
+        "en_vigueur_depuis": "2016-09-28",
+        "_texte": "« a) Si le salarié justifie chez le même employeur d'une ancienneté inférieure à 6 mois, la durée de préavis est égale à 1 jour par semaine calendaire, dans la limite de 15 jours. b) [...] supérieure à 6 mois mais inférieure à 2 ans, la durée de préavis est de 1 mois. c) [...] supérieure à 2 ans, la durée de préavis est de 2 mois. » Réciproque : licenciement comme démission, « sauf pour faute grave ou lourde ». Plus 4 heures d'absence par semaine pour chercher un emploi, au licenciement.",
+        "_jours": "Sous six mois, des JOURS : une semaine calendaire d'ancienneté en donne un, quinze au plus. Rendu en mois de 30 jours pour l'indemnité compensatrice (`clauses.preavis_mois`, clé `jours`).",
+        "motifs_hors_preavis": {
+          "087": "Faute grave.",
+          "088": "Faute lourde.",
+          "034": "Fin de période d'essai (« après la période d'essai »).",
+          "035": "Fin de période d'essai.",
+          "043": "Rupture conventionnelle : une date convenue.",
+          "038": "Mise à la retraite : V.12 fixe une information de 3 mois par lettre recommandée, pas ce préavis-ci.",
+          "039": "Départ à la retraite : idem (V.12)."
+        },
+        "toutes_categories": [
+          {
+            "anciennete_mois_min": 0,
+            "anciennete_mois_max": 6,
+            "jours_par_semaine": 1,
+            "plafond_jours": 15
+          },
+          {
+            "anciennete_mois_min": 6,
+            "anciennete_mois_max": 24,
+            "mois": 1
+          },
+          {
+            "anciennete_mois_min": 24,
+            "anciennete_mois_max": null,
+            "mois": 2
+          }
+        ]
+      },
+      "indemnite_licenciement": {
+        "article": "V.1.2.2",
+        "kali": "KALIARTI000033669822",
+        "en_vigueur_depuis": "2016-09-28",
+        "_texte": "« due au salarié après une année d'ancienneté dans l'entreprise, par année ou fraction d'année d'ancienneté [...] a) Licenciement pour motif personnel : moins de 10 ans : 2/10 de mois de salaire par année ; à partir de 10 ans : 2/10 [...] plus 2/15e de mois de salaire par année au-delà de 10 ans. b) Licenciement pour motif économique : moins de 10 ans : 5/10 ; à partir de 10 ans : 5/10 plus 1/10e par année au-delà de 10 ans. »",
+        "_ce_que_ca_change": "Motif personnel : MOINS que la loi (1/5 contre 1/4 de mois par an jusqu'à dix ans ; au-delà, 1/5 + 2/15 = 1/3, comme la loi) -- la loi s'applique. Motif économique : le DOUBLE de la loi, un demi-mois par an, six dixièmes au-delà de dix ans. « Par année ou fraction d'année » : lu au prorata, comme la loi (R1234-1).",
+        "anciennete_minimale_mois": 12,
+        "motifs_sans_indemnite": [
+          "087",
+          "088",
+          "059",
+          "039",
+          "034",
+          "035"
+        ],
+        "par_motif": {
+          "economique": {
+            "motifs": [
+              "011",
+              "012",
+              "014",
+              "025",
+              "026",
+              "117"
+            ],
+            "taux": [
+              {
+                "jusqu_a_annees": 10,
+                "fraction_de_mois": 0.5
+              },
+              {
+                "jusqu_a_annees": null,
+                "fraction_de_mois": 0.6
+              }
+            ]
+          },
+          "autre": {
+            "taux": [
+              {
+                "jusqu_a_annees": 10,
+                "fraction_de_mois": 0.2
+              },
+              {
+                "jusqu_a_annees": null,
+                "fraction_de_mois": 0.3333333333
+              }
+            ]
+          }
+        }
+      },
+      "mise_a_la_retraite": {
+        "loi_seule": "la convention de la production audiovisuelle ne prevoit rien pour la mise a la retraite (base KALI, 25/09/2026) : la loi seule (L1237-7)."
+      },
+      "depart_a_la_retraite": {
+        "loi_seule": "la convention de la production audiovisuelle ne prevoit rien pour le depart a la retraite (base KALI, 25/09/2026) : la loi seule (L1237-9)."
+      },
+      "maintien_de_salaire": {
+        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "maladie": {
+          "article": "VIII.2",
+          "kali": "KALIARTI000028141154",
+          "anciennete_mois_minimum": 12,
+          "carence_jours": 3,
+          "base": "brut",
+          "par_anciennete": [
+            {
+              "anciennete_annees_min": 1,
+              "jours_90": 30,
+              "jours_66": 30
+            },
+            {
+              "anciennete_annees_min": 6,
+              "jours_90": 40,
+              "jours_66": 40
+            },
+            {
+              "anciennete_annees_min": 11,
+              "jours_90": 50,
+              "jours_66": 50
+            },
+            {
+              "anciennete_annees_min": 16,
+              "jours_90": 60,
+              "jours_66": 60
+            },
+            {
+              "anciennete_annees_min": 21,
+              "jours_90": 70,
+              "jours_66": 70
+            },
+            {
+              "anciennete_annees_min": 26,
+              "jours_90": 80,
+              "jours_66": 80
+            },
+            {
+              "anciennete_annees_min": 31,
+              "jours_90": 90,
+              "jours_66": 90
+            }
+          ],
+          "_texte": "Un an d'ancienneté (ou, en CDDU, un an de contrats cumulés sur les deux années précédentes) : 90 % de la rémunération BRUTE pendant 30 jours, 66,66 % pendant 30 jours, après 3 jours de carence ; « augmentées de 10 jours par période entière de 5 ans d'ancienneté en plus de la durée de 1 an [...] sans que chacune d'elle puisse dépasser 90 jours ». Subrogation au-delà de 10 salariés ETP.",
+          "_cddu": "La collaboration en CDDU compte (un an de contrats sur deux ans) : le moteur ne lit ici que l'ancienneté du contrat en cours."
+        },
+        "accident_du_travail": {
+          "article": "VIII.3.2",
+          "kali": "KALIARTI000028141151",
+          "anciennete_mois_minimum": 0,
+          "carence_jours": 0,
+          "base": "brut",
+          "tranches": [
+            {
+              "jours": 30,
+              "taux": 90.0
+            },
+            {
+              "jours": 30,
+              "taux": 66.66
+            }
+          ],
+          "tranches_deux_ans": [
+            {
+              "jours": 30,
+              "taux": 90.0
+            },
+            {
+              "jours": 30,
+              "taux": 72.0
+            }
+          ],
+          "_texte": "Moins de 2 ans : 90 % du brut 30 jours, 66,66 % 30 jours ; 2 ans et plus : 90 % puis 72 % ; sans carence. Durées augmentées de 10 jours par période de 5 ans au-delà d'un an, 90 jours au plus -- non lu ici."
+        }
+      }
+    },
+    "3097": {
+      "libelle": "Convention collective nationale de la production cinématographique du 19 janvier 2012",
+      "_source": "Base KALI de la DILA, entrepôt local au 25/09/2026 (IDCC 3097, texte KALITEXT000028053370) : titre IV, article II.4 (version du 01/09/2022, avenant du 19/07/2022 -- KALIARTI000046989032) ; titre Ier, article 24 (maladie : le code du travail). Les techniciens (titre II) et les artistes (titre III) sont engagés en CDDU : ces clauses sont celles des PERMANENTS. Journal §136.",
+      "categories": {
+        "_quoi": "Le titre IV distingue le cadre et le non-cadre (II.4.2.2), rien d'autre : la case cadre de la fiche le dit.",
+        "cadre_ou_non_cadre": true,
+        "valeurs": {
+          "non_cadre": "Salarié non cadre.",
+          "cadre": "Cadre."
+        }
+      },
+      "preavis": {
+        "article": "II.4.2.2 du titre IV",
+        "kali": "KALIARTI000046989032",
+        "en_vigueur_depuis": "2022-09-01",
+        "_texte": "« salarié non cadre ayant moins de 2 ans d'ancienneté : 1 mois ; salarié non cadre ayant 2 ans d'ancienneté et plus : 2 mois ; salarié cadre : 3 mois ; ces durées de préavis sont majorées de 1 mois en cas de licenciement lorsque le salarié est, à la date de notification de la rupture, âgé de plus de 50 ans. » Réciproque, sauf faute grave ou lourde. Deux heures par jour pour chercher un emploi, payées, au licenciement.",
+        "_age": "L'âge se compte en années révolues (`operations_permanents._age`) : « plus de 50 ans », c'est 50 ans révolus. Le supplément ne vaut qu'au licenciement : `clauses.preavis_mois` ne l'ajoute pas à une démission.",
+        "motifs_hors_preavis": {
+          "087": "Faute grave.",
+          "088": "Faute lourde.",
+          "034": "Fin de période d'essai : le délai de prévenance de II.4.1 b, pas ce préavis-ci.",
+          "035": "Fin de période d'essai : le délai de prévenance de II.4.1 b, pas ce préavis-ci.",
+          "043": "Rupture conventionnelle : une date convenue."
+        },
+        "par_categorie": {
+          "non_cadre": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": 24,
+              "mois": 1
+            },
+            {
+              "anciennete_mois_min": 24,
+              "anciennete_mois_max": null,
+              "mois": 2
+            }
+          ],
+          "cadre": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": null,
+              "mois": 3
+            }
+          ]
+        },
+        "supplement_age": [
+          {
+            "age_min": 50,
+            "age_max": 999,
+            "mois": 1
+          }
+        ]
+      },
+      "indemnite_licenciement": {
+        "article": "II.4.2.3 du titre IV",
+        "kali": "KALIARTI000046989032",
+        "en_vigueur_depuis": "2022-09-01",
+        "_texte": "« sous condition que l'intéressé ait au moins 6 mois de présence continue dans l'entreprise [...] a) entre 6 et 8 mois d'ancienneté, au pro rata temporis : un cinquième de rémunération mensuelle. Pour les salariés ayant au moins 8 mois d'ancienneté, au pro rata temporis : un quart de mois de salaire par année d'ancienneté jusqu'à dix ans ; un tiers de mois de salaire par année d'ancienneté à partir de dix ans. [...] c) Tout salarié licencié à plus de 50 ans et ayant au moins 10 ans de présence continue dans l'entreprise à la date de son licenciement a droit à une majoration de 25 % du montant total de l'indemnité. » Pas en cas de faute grave ou lourde.",
+        "_ce_que_ca_change": "Dès six mois (la loi : huit), un cinquième de mois par année au prorata ; ensuite le barème de la loi ; et 25 % de plus à 50 ans révolus avec dix ans de présence. « Un cinquième de rémunération mensuelle, au pro rata temporis » est lu par année, comme le reste de l'article.",
+        "anciennete_minimale_mois": 6,
+        "motifs_sans_indemnite": [
+          "087",
+          "088",
+          "059",
+          "039",
+          "034",
+          "035"
+        ],
+        "taux": [
+          {
+            "jusqu_a_annees": 10,
+            "fraction_de_mois": 0.25
+          },
+          {
+            "jusqu_a_annees": null,
+            "fraction_de_mois": 0.3333333333
+          }
+        ],
+        "taux_avant": {
+          "mois": 8,
+          "fraction_de_mois": 0.2
+        },
+        "majoration_age": {
+          "age_min": 50,
+          "anciennete_mois_min": 120,
+          "pourcentage": 25
+        }
+      },
+      "mise_a_la_retraite": {
+        "article": "II.4.2.1 d du titre IV",
+        "_texte": "« Le salarié mis à la retraite a droit à une indemnité égale au montant de l'indemnité conventionnelle de licenciement telle que prévue à l'article II.4.2.3. »",
+        "par_annee": 0.25,
+        "au_dela_de_annees": 10,
+        "en_plus_par_annee_au_dela": 0.0833333333,
+        "_bareme": "Le barème de II.4.2.3 a) : un quart de mois par année, un tiers au-delà de dix ans (un douzième de plus). Ce que le moteur ne lit pas ici : la fraction d'avant huit mois (une mise à la retraite n'arrive pas si tôt) et la majoration de 25 % à plus de 50 ans (un salarié mis à la retraite en a au moins 67)."
+      },
+      "depart_a_la_retraite": {
+        "loi_seule": "la convention de la production cinematographique renvoie au code du travail pour le depart volontaire a la retraite (titre IV, II.4.2.1 e : << calculee conformement aux dispositions des articles L. 1237-9 et D. 1237-1 >>) : la loi seule."
+      },
+      "maintien_de_salaire": {
+        "_etat": "La 3097 renvoie au code du travail (titre Ier, article 24 : « l'incapacité temporaire de travail [...] est régie conformément aux dispositions du code du travail ») : la loi seule, et le moteur la dit déjà."
+      }
+    },
+    "3252": {
+      "libelle": "Convention collective nationale des entreprises au service de la création et de l'événement du 27 juin 2024",
+      "_source": "Base KALI de la DILA, entrepôt local au 27/09/2026 (IDCC 3252, texte KALITEXT000050299244, étendu le 13/03/2025) : article 4.1.3 (version du 17/05/2025, avenant n° 3), articles 8.2.1 (17/05/2025) et 8.2.2 (01/04/2025). Les intermittents sont en CDD d'usage (4.3) : ces clauses sont celles des PERMANENTS. Journal §149.",
+      "categories": {
+        "_quoi": "L'article 4.1.3 distingue le cadre et le non-cadre, rien d'autre : la case cadre de la fiche le dit.",
+        "cadre_ou_non_cadre": true,
+        "valeurs": {
+          "non_cadre": "Salarié non cadre.",
+          "cadre": "Cadre."
+        }
+      },
+      "preavis": {
+        "article": "4.1.3 A",
+        "kali": "KALIARTI000051948399",
+        "en_vigueur_depuis": "2025-05-17",
+        "_texte": "« la durée de préavis réciproque, sauf faute grave ou lourde, est fixée selon le statut, l'ancienneté et l'âge du salarié à la date de la notification de la rupture » : non-cadre, moins de 2 ans, 1 mois (2 mois à 50 ans ou plus) ; au moins 2 ans, 2 mois (3 mois) ; cadre, 3 mois (4 mois). Deux heures par jour pour chercher un emploi, payées, au licenciement.",
+        "_age": "« 50 ans ou plus », à la notification, pour le licenciement COMME pour la démission (« à l'initiative de l'employeur ou du salarié ») : `supplement_age_demission`.",
+        "motifs_hors_preavis": {
+          "087": "Faute grave.",
+          "088": "Faute lourde.",
+          "034": "Fin de période d'essai : le délai de prévenance de 4.1.2, pas ce préavis-ci.",
+          "035": "Fin de période d'essai : le délai de prévenance de 4.1.2, pas ce préavis-ci.",
+          "043": "Rupture conventionnelle : une date convenue."
+        },
+        "par_categorie": {
+          "non_cadre": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": 24,
+              "mois": 1
+            },
+            {
+              "anciennete_mois_min": 24,
+              "anciennete_mois_max": null,
+              "mois": 2
+            }
+          ],
+          "cadre": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": null,
+              "mois": 3
+            }
+          ]
+        },
+        "supplement_age": [
+          {
+            "age_min": 50,
+            "age_max": 999,
+            "mois": 1
+          }
+        ],
+        "supplement_age_demission": true
+      },
+      "indemnite_licenciement": {
+        "article": "4.1.3 B",
+        "kali": "KALIARTI000051948399",
+        "en_vigueur_depuis": "2025-05-17",
+        "_texte": "« une indemnité de licenciement est due au salarié qui compte [...] au moins 8 mois d'ancienneté ininterrompus » : de la 1re à la 10e année, 30 % de mois de salaire par année d'ancienneté RÉVOLUE ; à partir de la 11e, 50 % pour un motif économique, 40 % pour tout autre motif. « L'indemnité ainsi calculée ne pourra être supérieure à douze fois le salaire de référence » (le meilleur de 1/12 des douze derniers mois ou de 1/3 des trois derniers). Pas en cas de faute grave ou lourde.",
+        "_ce_que_ca_change": "Plus que la loi (un quart, puis un tiers de mois par an), mais par années RÉVOLUES et plafonné à douze mois : au-delà de trente ans environ, ou sur une fraction d'année, la loi peut redevenir plus favorable -- le moteur compare, comme toujours.",
+        "_rupture_conventionnelle": "4.1.3 C : la branche est hors de l'ANI du 11/01/2008, et le minimum de la rupture conventionnelle est l'indemnité LÉGALE (R1234-2). D'où 043 parmi les motifs sans indemnité conventionnelle.",
+        "anciennete_minimale_mois": 8,
+        "motifs_sans_indemnite": [
+          "087",
+          "088",
+          "059",
+          "039",
+          "034",
+          "035",
+          "043"
+        ],
+        "plafond_mois": 12,
+        "par_motif": {
+          "economique": {
+            "motifs": [
+              "011",
+              "012",
+              "014",
+              "025",
+              "026",
+              "117"
+            ],
+            "taux": [
+              {
+                "jusqu_a_annees": 10,
+                "fraction_de_mois": 0.3,
+                "annees_entieres": true
+              },
+              {
+                "jusqu_a_annees": null,
+                "fraction_de_mois": 0.5,
+                "annees_entieres": true
+              }
+            ]
+          },
+          "autre": {
+            "taux": [
+              {
+                "jusqu_a_annees": 10,
+                "fraction_de_mois": 0.3,
+                "annees_entieres": true
+              },
+              {
+                "jusqu_a_annees": null,
+                "fraction_de_mois": 0.4,
+                "annees_entieres": true
+              }
+            ]
+          }
+        }
+      },
+      "mise_a_la_retraite": {
+        "article": "4.1.3 F",
+        "_texte": "« Le salarié mis à la retraite bénéficie d'une durée de préavis et d'une indemnisation au moins égales à celles applicables en cas de licenciement (cf. A et B du présent article). » Mise à la retraite possible à 67 ans avec l'accord du salarié, d'office à 70.",
+        "taux": [
+          {
+            "jusqu_a_annees": 10,
+            "fraction_de_mois": 0.3,
+            "annees_entieres": true
+          },
+          {
+            "jusqu_a_annees": null,
+            "fraction_de_mois": 0.4,
+            "annees_entieres": true
+          }
+        ],
+        "plafond_mois": 12,
+        "_bareme": "Le barème du licenciement pour un motif autre qu'économique : 30 % de mois par année révolue jusqu'à dix ans, 40 % au-delà, douze mois au plus."
+      },
+      "depart_a_la_retraite": {
+        "article": "4.1.3 E",
+        "kali": "KALIARTI000051948399",
+        "_texte": "« De 5 à 14 ans d'ancienneté : 1 mois de salaire ; de 15 à 19 ans : 2 mois ; de 20 à 29 ans : 3 mois ; à partir de 30 ans : 4 mois. » Salaire de référence : le douzième des douze derniers mois ou, s'il est plus favorable, le tiers des trois derniers.",
+        "paliers": [
+          {
+            "anciennete_annees": 5,
+            "mois_de_salaire": 1
+          },
+          {
+            "anciennete_annees": 15,
+            "mois_de_salaire": 2
+          },
+          {
+            "anciennete_annees": 20,
+            "mois_de_salaire": 3
+          },
+          {
+            "anciennete_annees": 30,
+            "mois_de_salaire": 4
+          }
+        ],
+        "_ce_que_ca_change": "Dès cinq ans (la loi : dix), et le double de la loi ou presque ensuite.",
+        "_transition": "Article 11.1 II 3° : un salarié embauché avant le 01/04/2025 sous la 2717 garde les règles antérieures de départ volontaire. Le moteur ne les porte pas : pour un tel salarié, les relire dans la CCN du 21/02/2008."
+      },
+      "maintien_de_salaire": {
+        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "maladie": {
+          "article": "8.2.1",
+          "kali": "KALIARTI000051948363",
+          "anciennete_mois_minimum": 12,
+          "carence_jours": 3,
+          "base": "brut",
+          "par_anciennete": [
+            {
+              "anciennete_annees_min": 1,
+              "tranches": [
+                {
+                  "jours": 60,
+                  "taux": 100.0
+                },
+                {
+                  "jours": 30,
+                  "taux": 75.0
+                }
+              ]
+            },
+            {
+              "anciennete_annees_min": 5,
+              "tranches": [
+                {
+                  "jours": 90,
+                  "taux": 100.0
+                }
+              ]
+            }
+          ],
+          "_texte": "Moins d'un an : rien. Entre 1 et 5 ans : 3 jours de carence, 100 % pendant 60 jours puis 75 % pendant 30 jours, sur douze mois. Plus de 5 ans : 100 % pendant 90 jours. Sous déduction des indemnités journalières et de la part patronale de la prévoyance ; la rémunération BRUTE mensuelle fixe, sans dépasser le net qu'il aurait perçu.",
+          "_cinq_ans": "« Entre 1 et 5 ans » et « plus de 5 ans » se chevauchent à cinq ans tout ronds : le moteur donne les 90 jours dès le cinquième anniversaire -- la lecture la plus favorable."
+        },
+        "accident_du_travail": {
+          "article": "8.2.2",
+          "kali": "KALIARTI000050299468",
+          "anciennete_mois_minimum": 0,
+          "carence_jours": 0,
+          "base": "brut",
+          "tranches": [
+            {
+              "jours": 90,
+              "taux": 100.0
+            }
+          ],
+          "_texte": "Tous les salariés quelle que soit leur ancienneté, sans carence : 100 % pendant 90 jours sur douze mois."
+        }
+      }
+    },
+    "3241": {
+      "libelle": "Convention collective nationale de la télédiffusion du 2 juillet 2021",
+      "_source": "Base KALI de la DILA, entrepôt local au 27/09/2026 (IDCC 3241, texte KALITEXT000044226308) : articles 52 (maladie, accident du travail), 58 (retraite, version du 14/04/2022), 59 (licenciement) et 61 (préavis). Les intermittents sont en CDDU (accord du 22/12/2006) : ces clauses sont celles des PERMANENTS. Journal §150.",
+      "categories": {
+        "_quoi": "L'article 61 distingue le cadre et le non-cadre, rien d'autre : la case cadre de la fiche le dit.",
+        "cadre_ou_non_cadre": true,
+        "valeurs": {
+          "non_cadre": "Salarié non cadre.",
+          "cadre": "Cadre."
+        }
+      },
+      "preavis": {
+        "article": "61",
+        "kali": "KALIARTI000044226534",
+        "en_vigueur_depuis": "2022-01-01",
+        "_texte": "« En dehors des cas de licenciements pour faute grave ou lourde [...] la durée du préavis est de : 2 mois pour les salariés non-cadres ; 3 mois pour les salariés cadres. » Démission, départ et mise à la retraite : les mêmes durées. Deux heures par jour ouvré pour chercher un emploi, payées, au licenciement.",
+        "motifs_hors_preavis": {
+          "087": "Faute grave.",
+          "088": "Faute lourde.",
+          "034": "Fin de période d'essai : le délai de prévenance de l'article 13.",
+          "035": "Fin de période d'essai : le délai de prévenance de l'article 13.",
+          "043": "Rupture conventionnelle : une date convenue."
+        },
+        "par_categorie": {
+          "non_cadre": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": null,
+              "mois": 2
+            }
+          ],
+          "cadre": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": null,
+              "mois": 3
+            }
+          ]
+        },
+        "_retraite": "L'article 58.1.1 donne au départ volontaire 1 mois sous deux ans d'ancienneté, 2 mois au-delà ; l'article 61 dit « des durées de préavis identiques » pour le départ et la mise à la retraite. TRANCHÉ le 27/09/2026 (journal §151) : l'article 61, qui vise nommément le départ et la mise à la retraite et vient après le 58 ; entre deux clauses d'un même texte, la plus favorable au salarié s'applique aussi."
+      },
+      "indemnite_licenciement": {
+        "article": "59",
+        "kali": "KALIARTI000044226531",
+        "en_vigueur_depuis": "2022-01-01",
+        "_texte": "« Il est alloué aux salariés licenciés ayant au moins 1 an d'ancienneté [...] 33 % de mois par année d'ancienneté jusqu'à 10 ans d'ancienneté ; et 40 % de mois par année pour les années au-delà de 10 ans » ; le tableau donne 0,67 à deux ans, 1,00 à trois, 3,33 à dix : un TIERS de mois. « Pour les salariés ayant entre 8 et 12 mois d'ancienneté, l'indemnité [...] prévue par le code du travail. » Année incomplète : au prorata des mois complets. « L'indemnité de licenciement ne pourra excéder 15 mois de salaire. »",
+        "_ce_que_ca_change": "Un tiers de mois dès la première année (la loi : un quart jusqu'à dix ans), 40 % au-delà (la loi : un tiers), plafonné à quinze mois. Le plafond « des salaires jusqu'à la retraite » n'est pas lu : il ne vaut que pour un salarié proche de la retraite, et jamais sous la loi.",
+        "anciennete_minimale_mois": 12,
+        "motifs_sans_indemnite": [
+          "087",
+          "088",
+          "059",
+          "039",
+          "034",
+          "035"
+        ],
+        "plafond_mois": 15,
+        "taux": [
+          {
+            "jusqu_a_annees": 10,
+            "fraction_de_mois": 0.3333333333
+          },
+          {
+            "jusqu_a_annees": null,
+            "fraction_de_mois": 0.4
+          }
+        ]
+      },
+      "mise_a_la_retraite": {
+        "article": "58.2.2",
+        "kali": "KALIARTI000046212501",
+        "_texte": "« Le salarié mis à la retraite perçoit l'indemnité conventionnelle de départ à la retraite lorsque celle-ci est plus favorable que l'indemnité légale. Il est à cet égard retenu l'indemnité conventionnelle suivante » : un tableau année par année, 0,25 mois à un an, 2,50 à dix, 12,50 à partir de quarante.",
+        "paliers": [
+          {
+            "anciennete_annees": 1,
+            "mois_de_salaire": 0.25
+          },
+          {
+            "anciennete_annees": 2,
+            "mois_de_salaire": 0.5
+          },
+          {
+            "anciennete_annees": 3,
+            "mois_de_salaire": 0.75
+          },
+          {
+            "anciennete_annees": 4,
+            "mois_de_salaire": 1.0
+          },
+          {
+            "anciennete_annees": 5,
+            "mois_de_salaire": 1.25
+          },
+          {
+            "anciennete_annees": 6,
+            "mois_de_salaire": 1.5
+          },
+          {
+            "anciennete_annees": 7,
+            "mois_de_salaire": 1.75
+          },
+          {
+            "anciennete_annees": 8,
+            "mois_de_salaire": 2.0
+          },
+          {
+            "anciennete_annees": 9,
+            "mois_de_salaire": 2.25
+          },
+          {
+            "anciennete_annees": 10,
+            "mois_de_salaire": 2.5
+          },
+          {
+            "anciennete_annees": 11,
+            "mois_de_salaire": 2.83
+          },
+          {
+            "anciennete_annees": 12,
+            "mois_de_salaire": 3.17
+          },
+          {
+            "anciennete_annees": 13,
+            "mois_de_salaire": 3.5
+          },
+          {
+            "anciennete_annees": 14,
+            "mois_de_salaire": 3.83
+          },
+          {
+            "anciennete_annees": 15,
+            "mois_de_salaire": 4.17
+          },
+          {
+            "anciennete_annees": 16,
+            "mois_de_salaire": 4.5
+          },
+          {
+            "anciennete_annees": 17,
+            "mois_de_salaire": 4.83
+          },
+          {
+            "anciennete_annees": 18,
+            "mois_de_salaire": 5.17
+          },
+          {
+            "anciennete_annees": 19,
+            "mois_de_salaire": 5.5
+          },
+          {
+            "anciennete_annees": 20,
+            "mois_de_salaire": 5.83
+          },
+          {
+            "anciennete_annees": 21,
+            "mois_de_salaire": 6.17
+          },
+          {
+            "anciennete_annees": 22,
+            "mois_de_salaire": 6.5
+          },
+          {
+            "anciennete_annees": 23,
+            "mois_de_salaire": 6.83
+          },
+          {
+            "anciennete_annees": 24,
+            "mois_de_salaire": 7.17
+          },
+          {
+            "anciennete_annees": 25,
+            "mois_de_salaire": 7.5
+          },
+          {
+            "anciennete_annees": 26,
+            "mois_de_salaire": 7.83
+          },
+          {
+            "anciennete_annees": 27,
+            "mois_de_salaire": 8.17
+          },
+          {
+            "anciennete_annees": 28,
+            "mois_de_salaire": 8.5
+          },
+          {
+            "anciennete_annees": 29,
+            "mois_de_salaire": 8.83
+          },
+          {
+            "anciennete_annees": 30,
+            "mois_de_salaire": 9.17
+          },
+          {
+            "anciennete_annees": 31,
+            "mois_de_salaire": 9.5
+          },
+          {
+            "anciennete_annees": 32,
+            "mois_de_salaire": 9.83
+          },
+          {
+            "anciennete_annees": 33,
+            "mois_de_salaire": 10.17
+          },
+          {
+            "anciennete_annees": 34,
+            "mois_de_salaire": 10.5
+          },
+          {
+            "anciennete_annees": 35,
+            "mois_de_salaire": 10.83
+          },
+          {
+            "anciennete_annees": 36,
+            "mois_de_salaire": 11.17
+          },
+          {
+            "anciennete_annees": 37,
+            "mois_de_salaire": 11.5
+          },
+          {
+            "anciennete_annees": 38,
+            "mois_de_salaire": 11.83
+          },
+          {
+            "anciennete_annees": 39,
+            "mois_de_salaire": 12.17
+          },
+          {
+            "anciennete_annees": 40,
+            "mois_de_salaire": 12.5
+          }
+        ],
+        "_bareme": "Le tableau recopie à peu près la loi (un quart de mois par an jusqu'à dix ans, un tiers au-delà), arrondi au centième, et s'arrête à quarante ans. Lu tel quel, par années révolues."
+      },
+      "depart_a_la_retraite": {
+        "article": "58.1.2",
+        "kali": "KALIARTI000046212501",
+        "_texte": "Tableau de l'article 58.1.2 : 0,10 mois de salaire à un an, 1,00 à dix, 2,00 à quinze, 3,00 à vingt, 5,00 à vingt-huit, 6,00 à partir de trente-six ans. Salaire de référence : la moyenne des douze derniers mois ou, si elle est plus favorable, des trois derniers.",
+        "paliers": [
+          {
+            "anciennete_annees": 1,
+            "mois_de_salaire": 0.1
+          },
+          {
+            "anciennete_annees": 2,
+            "mois_de_salaire": 0.2
+          },
+          {
+            "anciennete_annees": 3,
+            "mois_de_salaire": 0.3
+          },
+          {
+            "anciennete_annees": 4,
+            "mois_de_salaire": 0.4
+          },
+          {
+            "anciennete_annees": 5,
+            "mois_de_salaire": 0.5
+          },
+          {
+            "anciennete_annees": 6,
+            "mois_de_salaire": 0.6
+          },
+          {
+            "anciennete_annees": 7,
+            "mois_de_salaire": 0.7
+          },
+          {
+            "anciennete_annees": 8,
+            "mois_de_salaire": 0.8
+          },
+          {
+            "anciennete_annees": 9,
+            "mois_de_salaire": 0.9
+          },
+          {
+            "anciennete_annees": 10,
+            "mois_de_salaire": 1.0
+          },
+          {
+            "anciennete_annees": 11,
+            "mois_de_salaire": 1.2
+          },
+          {
+            "anciennete_annees": 12,
+            "mois_de_salaire": 1.4
+          },
+          {
+            "anciennete_annees": 13,
+            "mois_de_salaire": 1.6
+          },
+          {
+            "anciennete_annees": 14,
+            "mois_de_salaire": 1.8
+          },
+          {
+            "anciennete_annees": 15,
+            "mois_de_salaire": 2.0
+          },
+          {
+            "anciennete_annees": 16,
+            "mois_de_salaire": 2.2
+          },
+          {
+            "anciennete_annees": 17,
+            "mois_de_salaire": 2.4
+          },
+          {
+            "anciennete_annees": 18,
+            "mois_de_salaire": 2.6
+          },
+          {
+            "anciennete_annees": 19,
+            "mois_de_salaire": 2.8
+          },
+          {
+            "anciennete_annees": 20,
+            "mois_de_salaire": 3.0
+          },
+          {
+            "anciennete_annees": 21,
+            "mois_de_salaire": 3.25
+          },
+          {
+            "anciennete_annees": 22,
+            "mois_de_salaire": 3.5
+          },
+          {
+            "anciennete_annees": 23,
+            "mois_de_salaire": 3.75
+          },
+          {
+            "anciennete_annees": 24,
+            "mois_de_salaire": 4.0
+          },
+          {
+            "anciennete_annees": 25,
+            "mois_de_salaire": 4.25
+          },
+          {
+            "anciennete_annees": 26,
+            "mois_de_salaire": 4.5
+          },
+          {
+            "anciennete_annees": 27,
+            "mois_de_salaire": 4.75
+          },
+          {
+            "anciennete_annees": 28,
+            "mois_de_salaire": 5.0
+          },
+          {
+            "anciennete_annees": 29,
+            "mois_de_salaire": 5.0
+          },
+          {
+            "anciennete_annees": 30,
+            "mois_de_salaire": 5.25
+          },
+          {
+            "anciennete_annees": 31,
+            "mois_de_salaire": 5.25
+          },
+          {
+            "anciennete_annees": 32,
+            "mois_de_salaire": 5.5
+          },
+          {
+            "anciennete_annees": 33,
+            "mois_de_salaire": 5.5
+          },
+          {
+            "anciennete_annees": 34,
+            "mois_de_salaire": 5.75
+          },
+          {
+            "anciennete_annees": 35,
+            "mois_de_salaire": 5.75
+          },
+          {
+            "anciennete_annees": 36,
+            "mois_de_salaire": 6.0
+          }
+        ],
+        "_ce_que_ca_change": "Dès un an (la loi : dix), et bien plus haut ensuite.",
+        "prevenance_mois": 6,
+        "_prevenance": "58.1.3 : le salarié est invité à prévenir six mois avant -- une information, distincte du préavis."
+      },
+      "maintien_de_salaire": {
+        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "maladie": {
+          "article": "52.1.1",
+          "kali": "KALIARTI000044226515",
+          "anciennete_mois_minimum": 12,
+          "carence_jours": 0,
+          "base": "brut",
+          "par_anciennete": [
+            {
+              "anciennete_annees_min": 1,
+              "tranches": [
+                {
+                  "jours": 60,
+                  "taux": 90.0
+                },
+                {
+                  "jours": 60,
+                  "taux": 66.0
+                }
+              ]
+            },
+            {
+              "anciennete_annees_min": 5,
+              "tranches": [
+                {
+                  "jours": 90,
+                  "taux": 90.0
+                },
+                {
+                  "jours": 90,
+                  "taux": 66.0
+                }
+              ]
+            }
+          ],
+          "_texte": "Après un an d'ancienneté, sans carence « sauf à compter du 3e arrêt de travail inférieur ou égal à 5 jours constaté dans l'année civile » : 90 % de la rémunération brute pendant 60 jours, 66 % pendant les 60 suivants ; « au-delà de 5 ans révolus d'ancienneté », 90 jours chacun. Sur douze mois consécutifs.",
+          "_carence": "La carence du troisième arrêt court de l'année n'est pas lue ici : elle se dit au cas par cas."
+        },
+        "accident_du_travail": {
+          "article": "52.1.2",
+          "kali": "KALIARTI000044226515",
+          "anciennete_mois_minimum": 0,
+          "carence_jours": 0,
+          "base": "brut",
+          "tranches": [
+            {
+              "jours": 90,
+              "taux": 80.0
+            }
+          ],
+          "tranches_apres": {
+            "anciennete_mois": 6,
+            "tranches": [
+              {
+                "jours": 120,
+                "taux": 100.0
+              },
+              {
+                "jours": 60,
+                "taux": 80.0
+              }
+            ]
+          },
+          "_texte": "Moins de six mois d'ancienneté : 80 % du salaire mensuel brut pendant trois mois ; au-delà : 100 % pendant quatre mois, 80 % le cinquième et le sixième. Les mois sont rendus en jours (30)."
+        }
+      }
+    },
+    "1922": {
+      "libelle": "Convention collective nationale de la radiodiffusion du 11 avril 1996 (accord d'étape)",
+      "_source": "Base KALI, entrepôt local au 27/09/2026 (IDCC 1922, texte KALITEXT000005668049) : aucun article sur le préavis, le licenciement, la retraite ni la maladie. Journal §152.",
+      "preavis": {
+        "loi_seule": "la convention de la radiodiffusion (IDCC 1922), << accord d'etape >> du 11/04/1996, ne traite pas de la rupture du contrat (base KALI, 27/09/2026 : titres I a V, dispositions generales, CPPNI, droit syndical, institutions elues) : la loi seule."
+      },
+      "indemnite_licenciement": {
+        "loi_seule": "la convention de la radiodiffusion (IDCC 1922), << accord d'etape >> du 11/04/1996, ne traite pas de la rupture du contrat (base KALI, 27/09/2026 : titres I a V, dispositions generales, CPPNI, droit syndical, institutions elues) : la loi seule."
+      },
+      "mise_a_la_retraite": {
+        "loi_seule": "la convention de la radiodiffusion (IDCC 1922), << accord d'etape >> du 11/04/1996, ne traite pas de la rupture du contrat (base KALI, 27/09/2026 : titres I a V, dispositions generales, CPPNI, droit syndical, institutions elues) : la loi seule."
+      },
+      "depart_a_la_retraite": {
+        "loi_seule": "la convention de la radiodiffusion (IDCC 1922), << accord d'etape >> du 11/04/1996, ne traite pas de la rupture du contrat (base KALI, 27/09/2026 : titres I a V, dispositions generales, CPPNI, droit syndical, institutions elues) : la loi seule."
+      },
+      "maintien_de_salaire": {
+        "_etat": "Rien dans la convention : la loi seule (L1226-1), que le moteur dit déjà."
+      }
+    },
+    "2412": {
+      "libelle": "Convention collective nationale de la production de films d'animation du 6 juillet 2004",
+      "_source": "Base KALI, entrepôt local au 27/09/2026 (IDCC 2412, texte KALITEXT000005671601) : article 21 (version du 06/07/2004, KALIARTI000005830965). Les intermittents sont en CDDU : ces clauses sont celles des PERMANENTS. Rien sur la maladie : la loi. Journal §153.",
+      "categories": {
+        "_quoi": "L'article 21.1 distingue le cadre et le non-cadre.",
+        "cadre_ou_non_cadre": true,
+        "valeurs": {
+          "non_cadre": "Salarié non cadre.",
+          "cadre": "Cadre."
+        }
+      },
+      "preavis": {
+        "article": "21.1",
+        "kali": "KALIARTI000005830965",
+        "en_vigueur_depuis": "2004-07-06",
+        "_texte": "« non cadre : 1 mois, porté à 2 mois pour les salariés, dont l'ancienneté, au jour de la notification du licenciement ou de la démission, est supérieure à 2 ans ; cadre : 3 mois. » Réciproque, sauf faute grave ou lourde.",
+        "motifs_hors_preavis": {
+          "087": "Faute grave.",
+          "088": "Faute lourde.",
+          "034": "Fin de période d'essai.",
+          "035": "Fin de période d'essai.",
+          "043": "Rupture conventionnelle : une date convenue."
+        },
+        "par_categorie": {
+          "non_cadre": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": 24,
+              "mois": 1
+            },
+            {
+              "anciennete_mois_min": 24,
+              "anciennete_mois_max": null,
+              "mois": 2
+            }
+          ],
+          "cadre": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": null,
+              "mois": 3
+            }
+          ]
+        }
+      },
+      "indemnite_licenciement": {
+        "article": "21.2",
+        "kali": "KALIARTI000005830965",
+        "en_vigueur_depuis": "2004-07-06",
+        "_texte": "Après 2 ans d'ancienneté, par année ou fraction d'année : motif économique, 2,5/10 de mois par année, plus 2/10 par année au-delà de 10 ans ; autre motif, 1/10 de mois par année, plus 1/15 au-delà de 10 ans.",
+        "_ce_que_ca_change": "Motif économique : la loi jusqu'à dix ans (un quart), 0,45 de mois au-delà (la loi : un tiers). Autre motif : MOINS que la loi -- la loi s'applique, et le moteur le dit.",
+        "anciennete_minimale_mois": 24,
+        "motifs_sans_indemnite": [
+          "087",
+          "088",
+          "059",
+          "039",
+          "034",
+          "035"
+        ],
+        "par_motif": {
+          "economique": {
+            "motifs": [
+              "011",
+              "012",
+              "014",
+              "025",
+              "026",
+              "117"
+            ],
+            "taux": [
+              {
+                "jusqu_a_annees": 10,
+                "fraction_de_mois": 0.25
+              },
+              {
+                "jusqu_a_annees": null,
+                "fraction_de_mois": 0.45
+              }
+            ]
+          },
+          "autre": {
+            "taux": [
+              {
+                "jusqu_a_annees": 10,
+                "fraction_de_mois": 0.1
+              },
+              {
+                "jusqu_a_annees": null,
+                "fraction_de_mois": 0.1666666667
+              }
+            ]
+          }
+        }
+      },
+      "mise_a_la_retraite": {
+        "article": "21.3.2",
+        "_texte": "« La mise à la retraite d'un salarié par l'employeur [...] ouvre le droit à l'indemnité définie à l'article 21.2.1 » (le barème du licenciement économique). Le premier paragraphe (60 ans) est exclu de l'extension.",
+        "taux": [
+          {
+            "jusqu_a_annees": 10,
+            "fraction_de_mois": 0.25
+          },
+          {
+            "jusqu_a_annees": null,
+            "fraction_de_mois": 0.45
+          }
+        ],
+        "_bareme": "2,5/10 de mois par année, 4,5/10 au-delà de dix ans, au prorata."
+      },
+      "depart_a_la_retraite": {
+        "article": "21.3.1",
+        "kali": "KALIARTI000005830965",
+        "_texte": "« Tout salarié pouvant liquider une retraite à taux plein [...] percevra alors l'indemnité décrite à l'article 21.2.1 » -- le barème du licenciement économique, bien au-dessus de la loi.",
+        "taux": [
+          {
+            "jusqu_a_annees": 10,
+            "fraction_de_mois": 0.25
+          },
+          {
+            "jusqu_a_annees": null,
+            "fraction_de_mois": 0.45
+          }
+        ],
+        "anciennete_minimale_mois": 24,
+        "_deux_ans": "L'article 21.2.1 ouvre l'indemnité « après 2 ans d'ancienneté » : le moteur la lit ainsi pour le départ aussi."
+      },
+      "maintien_de_salaire": {
+        "_etat": "Rien dans la convention : la loi seule (L1226-1)."
+      }
+    },
+    "2121": {
+      "libelle": "Convention collective nationale de l'édition — l'édition phonographique, accord de remplacement du 12 avril 2024",
+      "_source": "Base KALI, entrepôt local au 25/09/2026 (IDCC 2121, accord du 12/04/2024, KALITEXT000049869758) : articles 2.3.2 d (KALIARTI000049869769) et 2.3.3 (KALIARTI000049869776), étendus par arrêté du 07/07/2025 avec exclusions. Ils valent pour le disque, à la place des articles 25 et 26 des clauses générales, pendant quatre ans à compter du 20/04/2024 (art. 6). Les intermittents sont en CDDU : ces clauses sont celles des PERMANENTS. Journal §156.",
+      "categories": {
+        "_quoi": "L'article 2.3.3 a distingue l'employé, l'agent de maîtrise et le cadre : la fiche le dit (catégorie dans la convention), ou la case cadre.",
+        "valeurs": {
+          "employe": "Employé.",
+          "agent_de_maitrise": "Agent de maîtrise.",
+          "cadre": "Cadre."
+        }
+      },
+      "preavis": {
+        "article": "2.3.3 a",
+        "kali": "KALIARTI000049869776",
+        "en_vigueur_depuis": "2024-04-20",
+        "_texte": "« 1 mois pour les employés ; 2 mois pour les agents de maîtrise ; 3 mois pour les cadres. Toutefois, en cas de rupture du fait de l'employeur, la durée du préavis ne pourra être inférieure à deux mois après deux ans de présence continue. » Réciproque, sauf force majeure ou faute grave.",
+        "_extension": "L'arrêté du 07/07/2025 exclut de l'extension « 2 mois pour les agents de maîtrise » et « 3 mois pour les cadres ». Ces durées ne s'imposent donc qu'à un employeur adhérent d'une organisation signataire ; le moteur ne retient que la part étendue : un mois pour l'employé, deux mois après deux ans pour tout licenciement, et la loi pour le reste.",
+        "motifs_hors_preavis": {
+          "087": "Faute grave.",
+          "088": "Faute lourde.",
+          "034": "Fin de période d'essai.",
+          "035": "Fin de période d'essai.",
+          "043": "Rupture conventionnelle : une date convenue."
+        },
+        "par_categorie": {
+          "employe": {
+            "licenciement": [
+              {
+                "anciennete_mois_min": 0,
+                "anciennete_mois_max": 24,
+                "mois": 1
+              },
+              {
+                "anciennete_mois_min": 24,
+                "anciennete_mois_max": null,
+                "mois": 2
+              }
+            ],
+            "demission": [
+              {
+                "anciennete_mois_min": 0,
+                "anciennete_mois_max": null,
+                "mois": 1
+              }
+            ]
+          },
+          "agent_de_maitrise": {
+            "licenciement": [
+              {
+                "anciennete_mois_min": 24,
+                "anciennete_mois_max": null,
+                "mois": 2
+              }
+            ],
+            "demission": []
+          },
+          "cadre": {
+            "licenciement": [
+              {
+                "anciennete_mois_min": 24,
+                "anciennete_mois_max": null,
+                "mois": 2
+              }
+            ],
+            "demission": []
+          }
+        }
+      },
+      "indemnite_licenciement": {
+        "article": "2.3.3 b",
+        "kali": "KALIARTI000049869776",
+        "en_vigueur_depuis": "2024-04-20",
+        "_texte": "« pour la tranche de 1 à 5 ans d'ancienneté inclus : 1/4 de mois par année d'ancienneté ; pour la tranche de 6 à 7 ans d'ancienneté inclus : 2/5 de mois ; pour la tranche au-delà de 7 ans : 3/5 de mois par année d'ancienneté. » De 50 à 55 ans et cinq ans d'ancienneté : +20 %, quatre mois au moins ; 55 ans et deux ans : deux mois au moins ; 55 ans et cinq ans : +30 %, six mois au moins. « ne peut pas dépasser la valeur de dix-huit mois de traitement. »",
+        "_lecture": "Par tranches, chaque tranche à sa fraction (« pour la tranche de... »). La première tranche commence à un an : rien avant (la loi, dès huit mois, reste le plancher).",
+        "_ce_que_ca_change": "Moins que la loi jusqu'à cinq ans (un quart, comme elle) ; au-delà, deux cinquièmes puis trois cinquièmes par an, bien au-dessus de la loi (un tiers après dix ans).",
+        "anciennete_minimale_mois": 12,
+        "motifs_sans_indemnite": [
+          "087",
+          "088",
+          "059",
+          "039",
+          "034",
+          "035"
+        ],
+        "taux": [
+          {
+            "jusqu_a_annees": 5,
+            "fraction_de_mois": 0.25
+          },
+          {
+            "jusqu_a_annees": 7,
+            "fraction_de_mois": 0.4
+          },
+          {
+            "jusqu_a_annees": null,
+            "fraction_de_mois": 0.6
+          }
+        ],
+        "plafond_mois": 18,
+        "plafond_majore_mois": 18,
+        "majoration_age": [
+          {
+            "age_min": 50,
+            "age_max": 55,
+            "anciennete_mois_min": 60,
+            "pourcentage": 20,
+            "plancher_mois": 4
+          },
+          {
+            "age_min": 55,
+            "age_max": null,
+            "anciennete_mois_min": 24,
+            "pourcentage": 0,
+            "plancher_mois": 2
+          },
+          {
+            "age_min": 55,
+            "age_max": null,
+            "anciennete_mois_min": 60,
+            "pourcentage": 30,
+            "plancher_mois": 6
+          }
+        ]
+      },
+      "mise_a_la_retraite": {
+        "article": "2.3.3 d",
+        "_texte": "« recevra une indemnité de départ en retraite au moins égale à trois mois de salaire », sous réserve de L1237-7 (l'indemnité légale de licenciement, si elle est plus forte). Préavis : trois mois.",
+        "paliers": [
+          {
+            "anciennete_annees": 0,
+            "mois_de_salaire": 3
+          }
+        ],
+        "prevenance_mois": 3
+      },
+      "depart_a_la_retraite": {
+        "article": "2.3.3 c",
+        "kali": "KALIARTI000049869776",
+        "_texte": "« 3 mois de salaire ; ou 4 mois de salaire lorsque le salarié a 20 ans révolus de présence dans l'entreprise ; ou 5 mois de salaire lorsque le salarié a 40 ans révolus de présence dans l'entreprise. » Sans condition d'ancienneté. Délai de prévenance : celui du préavis de l'emploi.",
+        "paliers": [
+          {
+            "anciennete_annees": 0,
+            "mois_de_salaire": 3
+          },
+          {
+            "anciennete_annees": 20,
+            "mois_de_salaire": 4
+          },
+          {
+            "anciennete_annees": 40,
+            "mois_de_salaire": 5
+          }
+        ],
+        "_ce_que_ca_change": "Trois mois dès le premier jour : la loi (L1237-9) donne un demi-mois après dix ans."
+      },
+      "maintien_de_salaire": {
+        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "maladie": {
+          "article": "2.3.2 d",
+          "kali": "KALIARTI000049869769",
+          "anciennete_mois_minimum": 12,
+          "carence_jours": 0,
+          "base": "brut",
+          "assiette": "la rémunération de l'horaire pratiqué pendant l'absence, sans dépasser le net qu'il aurait perçu",
+          "par_anciennete": [
+            {
+              "anciennete_annees_min": 1,
+              "tranches": [
+                {
+                  "jours": 60,
+                  "taux": 100.0
+                },
+                {
+                  "jours": 60,
+                  "taux": 50.0
+                }
+              ]
+            },
+            {
+              "anciennete_annees_min": 4,
+              "tranches": [
+                {
+                  "jours": 90,
+                  "taux": 100.0
+                },
+                {
+                  "jours": 90,
+                  "taux": 50.0
+                }
+              ]
+            },
+            {
+              "anciennete_annees_min": 10,
+              "tranches": [
+                {
+                  "jours": 120,
+                  "taux": 100.0
+                },
+                {
+                  "jours": 120,
+                  "taux": 50.0
+                }
+              ]
+            },
+            {
+              "anciennete_annees_min": 15,
+              "tranches": [
+                {
+                  "jours": 150,
+                  "taux": 100.0
+                },
+                {
+                  "jours": 150,
+                  "taux": 50.0
+                }
+              ]
+            }
+          ],
+          "_texte": "« de la première à la quatrième année incluse : deux mois à plein tarif et deux mois à demi-tarif ; de la cinquième à la dixième année incluse : trois mois [...] ; de la onzième à la quinzième année incluse : quatre mois [...] ; au-delà de la quinzième année : cinq mois [...] », après un an d'ancienneté, sur l'année civile, sous déduction des indemnités journalières et de la part patronale de la prévoyance.",
+          "_lecture": "« Plein tarif » et « demi-tarif » ne sont pas chiffrés par le texte : lus 100 % et 50 %. Les mois rendus en jours de 30. La cinquième année commence à quatre ans révolus. Aucune carence n'est dite : aucune."
+        },
+        "accident_du_travail": {
+          "article": "2.3.2 d",
+          "kali": "KALIARTI000049869769",
+          "anciennete_mois_minimum": 3,
+          "carence_jours": 0,
+          "base": "brut",
+          "tranches": [
+            {
+              "jours": 60,
+              "taux": 100.0
+            },
+            {
+              "jours": 60,
+              "taux": 50.0
+            }
+          ],
+          "comme_maladie_apres_mois": 12,
+          "_texte": "« En cas d'accident du travail, l'ancienneté nécessaire [...] est réduite à trois mois. » « Entre trois mois et douze mois de présence [...] deux mois à plein tarif et deux mois à demi-tarif. » Passé un an, le barème de la maladie."
+        }
+      }
+    },
+    "1790": {
+      "libelle": "Convention collective nationale des espaces de loisirs, d'attractions et culturels du 5 janvier 1994",
+      "_source": "Base KALI, entrepôt local au 25/09/2026 (IDCC 1790, texte KALITEXT000005660361) : titre IX, articles 1er à 3 (KALIARTI000005804019 à 021, versions du 01/09/1994, sans modification) ; titre X, chapitre III, article 1er (KALIARTI000005804029) et avenant n° 23, article 2 (KALIARTI000027944605). L'annexe spectacle (art. 2) exclut les CDD d'usage des « dispositions relatives à la rupture » : ces clauses sont celles des PERMANENTS. Journal §156.",
+      "categories": {
+        "_quoi": "L'article 1er du titre IX distingue les employés et ouvriers, les techniciens et les cadres. Il ne nomme pas les agents de maîtrise : pour eux, seul le plancher de deux mois après deux ans.",
+        "valeurs": {
+          "employe": "Employé ou ouvrier.",
+          "technicien": "Technicien.",
+          "agent_de_maitrise": "Agent de maîtrise.",
+          "cadre": "Cadre."
+        }
+      },
+      "preavis": {
+        "article": "IX, 1er",
+        "kali": "KALIARTI000005804019",
+        "en_vigueur_depuis": "1994-09-01",
+        "_texte": "« un mois pour les employés et les ouvriers ; deux mois pour les techniciens ; trois mois pour les cadres. Au-delà de deux années d'ancienneté, un préavis minimum réciproque de deux mois doit être respecté. » Démission et licenciement, sauf faute grave ou lourde.",
+        "motifs_hors_preavis": {
+          "087": "Faute grave.",
+          "088": "Faute lourde.",
+          "034": "Fin de période d'essai.",
+          "035": "Fin de période d'essai.",
+          "043": "Rupture conventionnelle : une date convenue."
+        },
+        "par_categorie": {
+          "employe": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": 24,
+              "mois": 1
+            },
+            {
+              "anciennete_mois_min": 24,
+              "anciennete_mois_max": null,
+              "mois": 2
+            }
+          ],
+          "technicien": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": null,
+              "mois": 2
+            }
+          ],
+          "agent_de_maitrise": [
+            {
+              "anciennete_mois_min": 24,
+              "anciennete_mois_max": null,
+              "mois": 2
+            }
+          ],
+          "cadre": [
+            {
+              "anciennete_mois_min": 0,
+              "anciennete_mois_max": null,
+              "mois": 3
+            }
+          ]
+        }
+      },
+      "indemnite_licenciement": {
+        "article": "IX, 2",
+        "kali": "KALIARTI000005804020",
+        "en_vigueur_depuis": "1994-09-01",
+        "_texte": "« à partir d'une année d'ancienneté révolue, un cinquième de mois par année d'ancienneté à compter de la date d'entrée dans l'entreprise ; au-delà de quinze années d'ancienneté révolues, il est ajouté au chiffre précédent un quinzième de mois par année d'ancienneté au-delà de quinze ans. » Salaire de référence : le douzième des douze derniers mois ou, s'il est plus favorable, la rémunération normale la plus élevée des trois derniers.",
+        "_ce_que_ca_change": "Moins que la loi jusqu'à dix ans (un cinquième contre un quart) : la loi s'applique, et le moteur le dit. Au-delà de quinze ans, 4/15 de mois par année au-delà.",
+        "anciennete_minimale_mois": 12,
+        "motifs_sans_indemnite": [
+          "087",
+          "088",
+          "059",
+          "039",
+          "034",
+          "035"
+        ],
+        "taux": [
+          {
+            "jusqu_a_annees": 15,
+            "fraction_de_mois": 0.2
+          },
+          {
+            "jusqu_a_annees": null,
+            "fraction_de_mois": 0.2666666667
+          }
+        ]
+      },
+      "mise_a_la_retraite": {
+        "article": "IX, 3.1 B et 3.2",
+        "_texte": "« il a droit au versement de l'indemnité de départ en retraite prévue ou, si cette solution est plus avantageuse pour lui, au versement de l'indemnité légale de licenciement » -- le barème du 3.2 ; la loi (L1237-7) reste le plancher.",
+        "paliers": [
+          {
+            "anciennete_annees": 1,
+            "mois_de_salaire": 0.5
+          },
+          {
+            "anciennete_annees": 5,
+            "mois_de_salaire": 1
+          },
+          {
+            "anciennete_annees": 10,
+            "mois_de_salaire": 1.5
+          },
+          {
+            "anciennete_annees": 15,
+            "mois_de_salaire": 2
+          },
+          {
+            "anciennete_annees": 20,
+            "mois_de_salaire": 2.5
+          },
+          {
+            "anciennete_annees": 30,
+            "mois_de_salaire": 3
+          }
+        ]
+      },
+      "depart_a_la_retraite": {
+        "article": "IX, 3.2",
+        "kali": "KALIARTI000005804021",
+        "_texte": "« un demi mois de un à cinq ans d'ancienneté révolus ; un mois de cinq à dix ans [...] ; un mois et demi de dix à quinze ans [...] ; deux mois de quinze à vingt ans [...] ; deux mois et demi de vingt à trente ans [...] ; trois mois au-delà de trente ans d'ancienneté révolus. »",
+        "paliers": [
+          {
+            "anciennete_annees": 1,
+            "mois_de_salaire": 0.5
+          },
+          {
+            "anciennete_annees": 5,
+            "mois_de_salaire": 1
+          },
+          {
+            "anciennete_annees": 10,
+            "mois_de_salaire": 1.5
+          },
+          {
+            "anciennete_annees": 15,
+            "mois_de_salaire": 2
+          },
+          {
+            "anciennete_annees": 20,
+            "mois_de_salaire": 2.5
+          },
+          {
+            "anciennete_annees": 30,
+            "mois_de_salaire": 3
+          }
+        ],
+        "_bornes": "« De vingt à trente ans » et « au-delà de trente » se touchent à trente ans tout ronds : le moteur donne trois mois dès le trentième anniversaire -- la lecture la plus favorable. Le 3.1 A renvoie au « paragraphe 2 » : c'est le barème du 3.2 qu'il désigne, le seul barème de retraite du texte."
+      },
+      "maintien_de_salaire": {
+        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "maladie": {
+          "article": "X, III, 1er ; avenant n° 23, art. 2",
+          "kali": "KALIARTI000027944605",
+          "anciennete_mois_minimum": 12,
+          "carence_jours": 7,
+          "base": "net",
+          "assiette": "le salaire net qu'il aurait perçu s'il avait travaillé",
+          "par_anciennete": [
+            {
+              "anciennete_annees_min": 1,
+              "tranches": [
+                {
+                  "jours": 30,
+                  "taux": 100.0
+                },
+                {
+                  "jours": 60,
+                  "taux": 75.0
+                }
+              ]
+            }
+          ],
+          "_texte": "Permanents : un an d'ancienneté (douze mois, 218 jours ou 1 607 heures) ; « 8e jour en cas d'arrêt de travail pour maladie » ; 30 jours à 100 % puis 60 jours à 75 % du salaire NET, prestations de la sécurité sociale comprises, sur douze mois glissants.",
+          "_saisonniers": "Les saisonniers (dix-huit mois d'ancienneté, douzième jour, dans la version de 1994) ne sont pas portés."
+        },
+        "accident_du_travail": {
+          "article": "X, III, 1er ; avenant n° 23, art. 2",
+          "kali": "KALIARTI000027944605",
+          "anciennete_mois_minimum": 0,
+          "carence_jours": 0,
+          "base": "net",
+          "tranches": [
+            {
+              "jours": 29,
+              "taux": 100.0
+            },
+            {
+              "jours": 61,
+              "taux": 75.0
+            }
+          ],
+          "_texte": "« aucune ancienneté n'est requise en cas d'accident du travail ou de maladie professionnelle » ; dès le premier jour ; 29 jours à 100 % puis 61 jours à 75 % du salaire net."
+        }
+      }
+    }
+  }
+}

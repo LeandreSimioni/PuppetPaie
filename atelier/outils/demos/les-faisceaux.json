@@ -1,0 +1,345 @@
+{
+ "nom": "Les Faisceaux (démonstration)",
+ "_quoi": "Une vie de compagnie de démonstration, jouée geste par geste par paie/examples/vie_demo.rs. Prestataire son, lumière et structure du spectacle et de l'événement, à Nantes : IDCC 3252. Aucune valeur ne désigne une entreprise ou une personne réelle ; les clés (SIRET, NIR, IBAN) se vérifient.",
+ "gestes": [
+  {
+   "jour": "2026-01-05",
+   "quoi": "la fiche de l'entreprise",
+   "route": "enregistrer-fiche",
+   "charge": {
+    "nom": "entreprise",
+    "donnees": {
+     "raison_sociale": "LES FAISCEAUX (DEMONSTRATION)",
+     "nom_affichage": "Les Faisceaux (démonstration)",
+     "siren": "325204402",
+     "nic": "00011",
+     "siret": "32520440200011",
+     "naf": "9002Z",
+     "licence_spectacle": "PLATESV-D-2024-000352",
+     "adresse": "12 QUAI DE LA FOSSE",
+     "adresse_affichage": "12 quai de la Fosse",
+     "code_postal": "44000",
+     "commune": "NANTES",
+     "commune_affichage": "Nantes",
+     "idcc": "3252",
+     "code_convention_dsn": "3252",
+     "retraite_complementaire": "AUDIENS",
+     "emploie_des_permanents": true,
+     "jours_feries_chomes": "tous",
+     "signataire": {
+      "nom": "APPIA",
+      "prenom": "ADOLPHE",
+      "fonction": "Gérant",
+      "tel": "0100000052",
+      "email": "direction@les-faisceaux.invalid",
+      "prenom_affichage": "Adolphe",
+      "nom_affichage": "Appia"
+     },
+     "banque": {
+      "bic": "BANQFRPPXXX",
+      "iban": "FR7630001007943252044000039"
+     },
+     "premiere_embauche": "2026-01-05",
+     "medecine_travail": "MT952",
+     "urssaf_compte": "5200000000",
+     "code_urssaf": "527",
+     "congesspectacles_affiliation": "975200000000F",
+     "congesspectacles_adherent": "0000052000F",
+     "code_employeur_france_travail": "8000005200",
+     "affiliation_france_travail": "80000052008",
+     "declarant_dsn": {
+      "nom_prenom": "APPIA ADOLPHE",
+      "tel": "0100000052",
+      "email": "DIRECTION@LES-FAISCEAUX.INVALID",
+      "qualite": "04"
+     }
+    }
+   }
+  },
+  {
+   "jour": "2026-01-05",
+   "quoi": "la fiche de Josef Svoboda",
+   "route": "enregistrer-fiche",
+   "charge": {
+    "nom": "salarie",
+    "cle": "SVOBODA",
+    "donnees": {
+     "code_salarie": "1",
+     "initiales_contrat": "SV",
+     "nom": "SVOBODA",
+     "prenom": "JOSEF",
+     "prenom_affichage": "Josef",
+     "nom_affichage": "Svoboda",
+     "nir": "1750544999001",
+     "nir_cle": "19",
+     "date_naissance": "1975-05-10",
+     "lieu_naissance": "VILLENEUVE-SUR-LOIRE",
+     "lieu_naissance_affichage": "Villeneuve-sur-Loire",
+     "departement_naissance": "44",
+     "pays_naissance": "FR",
+     "code_nationalite_dsn": "01",
+     "adresse": "4 RUE KERVÉGAN",
+     "adresse_affichage": "4 rue Kervégan",
+     "code_postal": "44000",
+     "commune": "NANTES",
+     "commune_affichage": "Nantes",
+     "email": "josef.svoboda@exemple.invalid",
+     "emploi": "DIRECTEUR TECHNIQUE",
+     "emploi_affichage": "Directeur technique",
+     "code_emploi_ft": "DIR210",
+     "pcs_ese": "353C",
+     "statut": "technicien",
+     "statut_conventionnel": "04",
+     "statut_categoriel_rc": "01",
+     "date_anciennete": "2026-01-05",
+     "actif": true
+    }
+   }
+  },
+  {
+   "jour": "2026-01-05",
+   "quoi": "la fiche de Loïe Fuller",
+   "route": "enregistrer-fiche",
+   "charge": {
+    "nom": "salarie",
+    "cle": "FULLER",
+    "donnees": {
+     "code_salarie": "2",
+     "initiales_contrat": "FU",
+     "nom": "FULLER",
+     "prenom": "LOIE",
+     "prenom_affichage": "Loïe",
+     "nom_affichage": "Fuller",
+     "nir": "2820144999002",
+     "nir_cle": "46",
+     "date_naissance": "1982-01-15",
+     "lieu_naissance": "VILLENEUVE-SUR-LOIRE",
+     "lieu_naissance_affichage": "Villeneuve-sur-Loire",
+     "departement_naissance": "44",
+     "pays_naissance": "FR",
+     "code_nationalite_dsn": "01",
+     "adresse": "7 RUE DE LA PAIX",
+     "adresse_affichage": "7 rue de la Paix",
+     "code_postal": "44000",
+     "commune": "NANTES",
+     "commune_affichage": "Nantes",
+     "email": "loïe.fuller@exemple.invalid",
+     "emploi": "REGISSEUSE LUMIERE",
+     "emploi_affichage": "Régisseuse lumière",
+     "code_emploi_ft": "REG130",
+     "pcs_ese": "465B",
+     "statut": "technicien",
+     "statut_conventionnel": "05",
+     "statut_categoriel_rc": "04",
+     "date_anciennete": "2026-02-02",
+     "actif": true
+    }
+   }
+  },
+  {
+   "jour": "2026-01-05",
+   "quoi": "la fiche de Edward Craig",
+   "route": "enregistrer-fiche",
+   "charge": {
+    "nom": "salarie",
+    "cle": "CRAIG",
+    "donnees": {
+     "code_salarie": "3",
+     "initiales_contrat": "CR",
+     "nom": "CRAIG",
+     "prenom": "EDWARD",
+     "prenom_affichage": "Edward",
+     "nom_affichage": "Craig",
+     "nir": "1790144999003",
+     "nir_cle": "48",
+     "date_naissance": "1979-01-16",
+     "lieu_naissance": "VILLENEUVE-SUR-LOIRE",
+     "lieu_naissance_affichage": "Villeneuve-sur-Loire",
+     "departement_naissance": "44",
+     "pays_naissance": "FR",
+     "code_nationalite_dsn": "01",
+     "adresse": "2 PLACE GRASLIN",
+     "adresse_affichage": "2 place Graslin",
+     "code_postal": "44000",
+     "commune": "NANTES",
+     "commune_affichage": "Nantes",
+     "email": "edward.craig@exemple.invalid",
+     "emploi": "PUPITREUR LUMIERE",
+     "emploi_affichage": "Pupitreur lumière",
+     "code_emploi_ft": "PUP050",
+     "pcs_ese": "465B",
+     "statut": "technicien",
+     "statut_conventionnel": "05",
+     "statut_categoriel_rc": "04",
+     "date_anciennete": "2026-02-02",
+     "actif": true
+    }
+   }
+  },
+  {
+   "jour": "2026-01-05",
+   "quoi": "la fiche de Charles Cros",
+   "route": "enregistrer-fiche",
+   "charge": {
+    "nom": "salarie",
+    "cle": "CROS",
+    "donnees": {
+     "code_salarie": "4",
+     "initiales_contrat": "CS",
+     "nom": "CROS",
+     "prenom": "CHARLES",
+     "prenom_affichage": "Charles",
+     "nom_affichage": "Cros",
+     "nir": "1861044999004",
+     "nir_cle": "42",
+     "date_naissance": "1986-10-01",
+     "lieu_naissance": "VILLENEUVE-SUR-LOIRE",
+     "lieu_naissance_affichage": "Villeneuve-sur-Loire",
+     "departement_naissance": "44",
+     "pays_naissance": "FR",
+     "code_nationalite_dsn": "01",
+     "adresse": "9 RUE CRÉBILLON",
+     "adresse_affichage": "9 rue Crébillon",
+     "code_postal": "44000",
+     "commune": "NANTES",
+     "commune_affichage": "Nantes",
+     "email": "charles.cros@exemple.invalid",
+     "emploi": "TECHNICIEN SON",
+     "emploi_affichage": "Technicien son",
+     "code_emploi_ft": "TEC250",
+     "pcs_ese": "465B",
+     "statut": "technicien",
+     "statut_conventionnel": "05",
+     "statut_categoriel_rc": "04",
+     "date_anciennete": "2026-02-02",
+     "actif": true
+    }
+   }
+  },
+  {
+   "jour": "2026-01-05",
+   "quoi": "la fiche de Gustave Eiffel",
+   "route": "enregistrer-fiche",
+   "charge": {
+    "nom": "salarie",
+    "cle": "EIFFEL",
+    "donnees": {
+     "code_salarie": "5",
+     "initiales_contrat": "EI",
+     "nom": "EIFFEL",
+     "prenom": "GUSTAVE",
+     "prenom_affichage": "Gustave",
+     "nom_affichage": "Eiffel",
+     "nir": "1901244999005",
+     "nir_cle": "71",
+     "date_naissance": "1990-12-15",
+     "lieu_naissance": "VILLENEUVE-SUR-LOIRE",
+     "lieu_naissance_affichage": "Villeneuve-sur-Loire",
+     "departement_naissance": "44",
+     "pays_naissance": "FR",
+     "code_nationalite_dsn": "01",
+     "adresse": "1 RUE VOLTAIRE",
+     "adresse_affichage": "1 rue Voltaire",
+     "code_postal": "49000",
+     "commune": "ANGERS",
+     "commune_affichage": "Angers",
+     "email": "gustave.eiffel@exemple.invalid",
+     "emploi": "TECHNICIEN DE STRUCTURE",
+     "emploi_affichage": "Technicien de structure",
+     "code_emploi_ft": "TEC110",
+     "pcs_ese": "637C",
+     "statut": "technicien",
+     "statut_conventionnel": "05",
+     "statut_categoriel_rc": "04",
+     "date_anciennete": "2026-03-02",
+     "actif": true
+    }
+   }
+  },
+  {
+   "jour": "2026-01-05",
+   "quoi": "l'événement « Les Nuits d'été de l'Erdre »",
+   "route": "enregistrer-fiche",
+   "charge": {
+    "nom": "spectacle",
+    "cle": "nuits-d-ete",
+    "donnees": {
+     "titre": "Les Nuits d'été de l'Erdre",
+     "alias": [
+      "les nuits d'été de l'erdre"
+     ],
+     "numero_objet": "266Z00952011"
+    }
+   }
+  },
+  {
+   "jour": "2026-01-05",
+   "quoi": "l'événement « Voiles et lumière »",
+   "route": "enregistrer-fiche",
+   "charge": {
+    "nom": "spectacle",
+    "cle": "voiles-lumiere",
+    "donnees": {
+     "titre": "Voiles et lumière",
+     "alias": [
+      "voiles et lumière"
+     ],
+     "numero_objet": "266Z00952022"
+    }
+   }
+  },
+  {
+   "jour": "2026-01-05",
+   "quoi": "le taux AT/MP 2026 notifié par l'Assurance Maladie",
+   "route": "taux-atmp",
+   "charge": {
+    "annee": 2026,
+    "valeur": "1.10",
+    "code_risque": "923AD"
+   }
+  },
+  {
+   "jour": "2026-01-05",
+   "quoi": "les contrats de prévoyance et de santé des permanents (en 3252, aucun organisme désigné : la compagnie a pris le dispositif de branche, chez Audiens ; références fabriquées)",
+   "route": "organismes-enregistrer",
+   "charge": {
+    "contrats": {
+     "prevoyance_permanents": {
+      "libelle": "PREVOYANCE 3252",
+      "organisme": "P0983"
+     },
+     "sante_permanents": {
+      "libelle": "SANTE 3252",
+      "organisme": "P0983"
+     }
+    }
+   }
+  },
+  {
+   "jour": "2026-01-05",
+   "quoi": "janvier : l'embauche de Josef Svoboda en CDI",
+   "route": "enregistrer-saisie",
+   "charge": {
+    "mois": "2026-01",
+    "saisie": {
+     "mois": "2026-01",
+     "date_paiement": "2026-01-30",
+     "engagements": [
+      {
+       "salarie": "SVOBODA",
+       "nature": "cdi",
+       "debut": "2026-01-05",
+       "salaire_mensuel": 3400.0,
+       "quotite_contrat": 151.67
+      }
+     ]
+    }
+   }
+  },
+  {
+   "jour": "2026-02-20",
+   "quoi": "l'horloge jusqu'au 20 février",
+   "horloge": true
+  }
+ ]
+}

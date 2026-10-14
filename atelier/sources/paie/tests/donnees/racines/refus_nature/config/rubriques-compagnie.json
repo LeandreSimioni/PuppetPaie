@@ -1,0 +1,35 @@
+{
+ "rubriques": {
+  "maison": {
+   "libelle": "Prime maison",
+   "unite": "jour",
+   "nature": "cadeau",
+   "saisie": [
+    "quantite",
+    "montant"
+   ],
+   "soumis": true,
+   "imposable": true,
+   "conges_spectacles": true,
+   "source": "Accord d'entreprise du test.",
+   "sens": "+",
+   "heures_forfait": 7,
+   "plafond": "cachet",
+   "aem": "cachet",
+   "dsn_type": "prime",
+   "dsn_autres_bruts": "25",
+   "annexe": "X",
+   "plafond_mensuel": 28,
+   "plafond_annuel_heures": {
+    "moins_de_50_ans": 507,
+    "50_ans_et_plus": 600
+   },
+   "compte_pour": "ouverture_des_droits",
+   "retabli": true,
+   "suspension": false,
+   "arret_de_travail": true,
+   "conges_pris": false,
+   "dsn_bloc52": "05"
+  }
+ }
+}

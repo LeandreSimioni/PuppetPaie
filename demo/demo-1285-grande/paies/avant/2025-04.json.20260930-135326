@@ -1,0 +1,88 @@
+{
+  "_origine": "Compagnie de demonstration demo-1285-grande, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2025-04",
+  "taux_cachet": 165.0,
+  "date_paiement": "2025-04-30",
+  "engagements": [
+    {
+      "salarie": "Nadar",
+      "nature": "cdi",
+      "debut": "2022-01-03",
+      "numero": "NA.22.01",
+      "salaire_mensuel": 2950.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Dorval",
+      "nature": "cdi",
+      "debut": "2025-04-01",
+      "numero": "DO.25.01",
+      "salaire_mensuel": 2150.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Turlupin",
+      "spectacle": "256Z00930022",
+      "debut": "2025-04-07",
+      "fin": "2025-04-25",
+      "date_paiement": "2025-04-25",
+      "lignes": [
+        {
+          "rubrique": "repetition",
+          "quantite": 14,
+          "taux": 70.0,
+          "heures": 4,
+          "lieu": "Salle de repetition, Lyon",
+          "dates": [
+            "2025-04-07",
+            "2025-04-08",
+            "2025-04-09",
+            "2025-04-10",
+            "2025-04-11",
+            "2025-04-14",
+            "2025-04-15",
+            "2025-04-16",
+            "2025-04-17",
+            "2025-04-18",
+            "2025-04-22",
+            "2025-04-23",
+            "2025-04-24",
+            "2025-04-25"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Noverre",
+      "spectacle": "256Z00930022",
+      "debut": "2025-04-07",
+      "fin": "2025-04-25",
+      "date_paiement": "2025-04-25",
+      "lignes": [
+        {
+          "rubrique": "repetition",
+          "quantite": 14,
+          "taux": 70.0,
+          "heures": 4,
+          "lieu": "Salle de repetition, Lyon",
+          "dates": [
+            "2025-04-07",
+            "2025-04-08",
+            "2025-04-09",
+            "2025-04-10",
+            "2025-04-11",
+            "2025-04-14",
+            "2025-04-15",
+            "2025-04-16",
+            "2025-04-17",
+            "2025-04-18",
+            "2025-04-22",
+            "2025-04-23",
+            "2025-04-24",
+            "2025-04-25"
+          ]
+        }
+      ]
+    }
+  ]
+}

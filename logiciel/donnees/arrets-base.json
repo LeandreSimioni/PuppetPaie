@@ -1,0 +1,402 @@
+{
+  "_quoi": "Les nomenclatures du bloc « Arrêt de travail - S21.G00.60 » de la norme NEODeS : motif de l'arrêt, motif de la reprise, subrogation. Livré avec le LOGICIEL, jamais avec les données : ce sont des codes de la norme, pas des choix d'une compagnie.",
+  "_pourquoi_ici": "Décidé le 17/09/2026 : aucune valeur réglementaire n'est écrite dans le code. Les codes de structure du CDDU déjà écrits dans `dsn.py` (nature du contrat, motif de recours, motif de rupture) restent à sortir de la même façon ; le bloc 60 commence droit.",
+  "_source": {
+    "titre": "Cahier technique NEODeS 2026.1 (CT2026.1.2 du 24/12/2025), rubriques S21.G00.60.001, .004, .011, .012, p. 265-270 ; tableau d'usages par modèle, p. 363-371",
+    "copie": "reference/norme-dsn/dsn-cahier-technique-2026.1.pdf (voir son LISEZMOI pour l'adresse et le condensat)",
+    "relu_le": "2026-09-18",
+    "conformite_2027": "Les usages des blocs d'un signalement d'arrêt (05, 07, 06, 11, 15, 30, 40, 60) sont IDENTIQUES dans le cahier technique 2027.1.1 du 10/06/2026 (comparés rubrique par rubrique le 18/09/2026). Seule la liste des motifs d'arrêt y gagne « 25 - Potentiel nouveau motif d'arrêt A », une valeur de réserve, non proposée à la saisie."
+  },
+  "motifs_arret": {
+    "_rubrique": "S21.G00.60.001",
+    "_regle": "`saisissable: false` ne veut pas dire interdit par la norme : c'est ce que ce logiciel ne propose pas aujourd'hui. Les motifs [FP] sont ceux de la fonction publique ; les « potentiel nouveau motif » sont des valeurs de réserve, sans emploi tant que la norme ne les définit pas.",
+    "codes": [
+      {
+        "code": "01",
+        "libelle": "maladie",
+        "saisissable": true
+      },
+      {
+        "code": "02",
+        "libelle": "maternité",
+        "saisissable": true
+      },
+      {
+        "code": "03",
+        "libelle": "paternité / accueil de l'enfant",
+        "saisissable": true
+      },
+      {
+        "code": "04",
+        "libelle": "congé suite à un accident de trajet",
+        "saisissable": true,
+        "date_accident": true
+      },
+      {
+        "code": "05",
+        "libelle": "congé suite à maladie professionnelle",
+        "saisissable": true,
+        "date_accident": true
+      },
+      {
+        "code": "06",
+        "libelle": "congé suite à accident de travail ou de service",
+        "saisissable": true,
+        "date_accident": true
+      },
+      {
+        "code": "07",
+        "libelle": "femme enceinte dispensée de travail",
+        "saisissable": true
+      },
+      {
+        "code": "09",
+        "libelle": "adoption",
+        "saisissable": true
+      },
+      {
+        "code": "10",
+        "libelle": "[FP] Congé suite à une maladie imputable au service",
+        "saisissable": false
+      },
+      {
+        "code": "11",
+        "libelle": "[FP] Congé de maladie des victimes ou réformés de guerre (art 41)",
+        "saisissable": false
+      },
+      {
+        "code": "12",
+        "libelle": "[FP] Congé de longue durée",
+        "saisissable": false
+      },
+      {
+        "code": "13",
+        "libelle": "[FP] Congé de longue maladie",
+        "saisissable": false
+      },
+      {
+        "code": "14",
+        "libelle": "[FP] Congé pour invalidité temporaire imputable au service",
+        "saisissable": false
+      },
+      {
+        "code": "15",
+        "libelle": "temps partiel thérapeutique (risque maladie)",
+        "saisissable": false,
+        "temps_partiel_therapeutique": true
+      },
+      {
+        "code": "16",
+        "libelle": "temps partiel thérapeutique (risque accident de travail)",
+        "saisissable": false,
+        "temps_partiel_therapeutique": true
+      },
+      {
+        "code": "17",
+        "libelle": "temps partiel thérapeutique (risque accident de trajet)",
+        "saisissable": false,
+        "temps_partiel_therapeutique": true
+      },
+      {
+        "code": "18",
+        "libelle": "temps partiel thérapeutique (risque maladie professionnelle)",
+        "saisissable": false,
+        "temps_partiel_therapeutique": true
+      },
+      {
+        "code": "19",
+        "libelle": "Deuil d'enfant",
+        "saisissable": true
+      },
+      {
+        "code": "20",
+        "libelle": "Congé supplémentaire de naissance",
+        "saisissable": true
+      },
+      {
+        "code": "21",
+        "libelle": "Potentiel nouveau motif d'arrêt B",
+        "saisissable": false,
+        "reserve": true
+      },
+      {
+        "code": "22",
+        "libelle": "Potentiel nouveau motif d'arrêt C",
+        "saisissable": false,
+        "reserve": true
+      },
+      {
+        "code": "23",
+        "libelle": "Potentiel nouveau motif d'arrêt D",
+        "saisissable": false,
+        "reserve": true
+      },
+      {
+        "code": "24",
+        "libelle": "Potentiel nouveau motif d'arrêt E",
+        "saisissable": false,
+        "reserve": true
+      },
+      {
+        "code": "25",
+        "libelle": "Potentiel nouveau motif d'arrêt A",
+        "saisissable": false,
+        "reserve": true,
+        "_norme": "2027.1.1"
+      },
+      {
+        "code": "99",
+        "libelle": "annulation",
+        "saisissable": false,
+        "annulation": true
+      }
+    ],
+    "_date_accident": "S21.G00.60.012, CCH-11 : obligatoire si et seulement si le motif est 04, 05 ou 06. D'où le drapeau `date_accident`.",
+    "_temps_partiel_therapeutique": "CCH-14 : les motifs 15 à 18 sont interdits hors DSN mensuelle et signalement FCTU, et SIG-13 impose alors un bloc « Temps partiel Thérapeutique - S21.G00.66 » que le moteur n'écrit pas. D'où `saisissable: false` tant que le bloc 66 n'existe pas.",
+    "_annulation": "CCH-12 : le motif 99 est interdit hors DSN mensuelle et signalement FCTU. Un signalement d'arrêt se rattrape donc par un annule-et-remplace (type 03), pas par un motif 99."
+  },
+  "motifs_reprise": {
+    "_rubrique": "S21.G00.60.011",
+    "codes": [
+      {
+        "code": "01",
+        "libelle": "reprise normale",
+        "saisissable": true
+      },
+      {
+        "code": "02",
+        "libelle": "reprise temps partiel thérapeutique",
+        "saisissable": false,
+        "temps_partiel_therapeutique": true
+      },
+      {
+        "code": "03",
+        "libelle": "reprise temps partiel raison personnelle",
+        "saisissable": true
+      }
+    ],
+    "_temps_partiel_therapeutique": "CCH-12 : la valeur 02 est interdite hors DSN mensuelle et signalement FCTU."
+  },
+  "subrogation": {
+    "_rubrique": "S21.G00.60.004",
+    "_quoi": "La subrogation est le fait, pour l'employeur, de percevoir les indemnités journalières à la place du salarié — en contrepartie de quoi il maintient le salaire à leur hauteur. Ce n'est pas un code à choisir au hasard : c'est un engagement de l'employeur, et les dates de début et de fin deviennent alors obligatoires (CCH-11 des rubriques .005 à .008), avec l'IBAN et le BIC de la compagnie.",
+    "codes": [
+      {
+        "code": "01",
+        "libelle": "oui",
+        "saisissable": true
+      },
+      {
+        "code": "02",
+        "libelle": "non",
+        "saisissable": true
+      }
+    ]
+  },
+  "usages": {
+    "_quoi": "Le tableau des usages du cahier technique, releve pour les blocs qu'un signalement d'arret ou de reprise peut porter. Trois lettres par rubrique, dans l'ordre : DSN mensuelle (01), signalement arret de travail (04), signalement reprise suite a arret (05).",
+    "_lettres": {
+      "O": "obligatoire",
+      "C": "conditionnelle",
+      "I": "interdite",
+      "N": "sans objet dans ce message"
+    },
+    "_a_quoi_ca_sert": "A VERIFIER, pas a produire. `tests/test_arrets.py` confronte chaque fichier produit a ce tableau : une rubrique interdite ecrite par megarde est une anomalie bloquante CST-04 cote plate-forme, et le fichier ne declare alors rien. Le generateur, lui, ne lit pas cette section -- sinon le test ne verifierait plus rien.",
+    "_releve": "Pages 363-371 du cahier technique 2026.1, rubrique par rubrique, le 18/09/2026. Le tableau y est imprime tourne a 90 degres.",
+    "rubriques": {
+      "S10.G00.00.001": "OOO",
+      "S10.G00.00.002": "OOO",
+      "S10.G00.00.003": "CCC",
+      "S10.G00.00.004": "CCC",
+      "S10.G00.00.005": "OOO",
+      "S10.G00.00.006": "OOO",
+      "S10.G00.00.007": "OOO",
+      "S10.G00.00.008": "OOO",
+      "S10.G00.01.001": "OOO",
+      "S10.G00.01.002": "OOO",
+      "S10.G00.01.003": "OOO",
+      "S10.G00.01.004": "CCC",
+      "S10.G00.01.005": "CCC",
+      "S10.G00.01.006": "CCC",
+      "S10.G00.01.007": "CCC",
+      "S10.G00.01.008": "CCC",
+      "S10.G00.01.009": "CCC",
+      "S10.G00.01.010": "CCC",
+      "S10.G00.02.001": "CCC",
+      "S10.G00.02.002": "OOO",
+      "S10.G00.02.004": "OOO",
+      "S10.G00.02.005": "OOO",
+      "S10.G00.02.006": "CCC",
+      "S20.G00.05.001": "OOO",
+      "S20.G00.05.002": "OOO",
+      "S20.G00.05.003": "OOO",
+      "S20.G00.05.004": "OOO",
+      "S20.G00.05.005": "OII",
+      "S20.G00.05.006": "ICC",
+      "S20.G00.05.007": "OOO",
+      "S20.G00.05.008": "OII",
+      "S20.G00.05.009": "CCC",
+      "S20.G00.05.010": "OII",
+      "S20.G00.05.011": "III",
+      "S20.G00.05.012": "III",
+      "S20.G00.05.013": "III",
+      "S20.G00.07.001": "OOO",
+      "S20.G00.07.002": "OOO",
+      "S20.G00.07.003": "OOO",
+      "S20.G00.07.004": "OOO",
+      "S21.G00.06.001": "OOO",
+      "S21.G00.06.002": "CCC",
+      "S21.G00.06.003": "OII",
+      "S21.G00.06.004": "CII",
+      "S21.G00.06.005": "CII",
+      "S21.G00.06.006": "CII",
+      "S21.G00.06.007": "CII",
+      "S21.G00.06.008": "CII",
+      "S21.G00.06.010": "CII",
+      "S21.G00.06.011": "CII",
+      "S21.G00.06.012": "CII",
+      "S21.G00.06.015": "CII",
+      "S21.G00.11.001": "OOO",
+      "S21.G00.11.002": "OII",
+      "S21.G00.11.003": "CCC",
+      "S21.G00.11.004": "CCC",
+      "S21.G00.11.005": "CCC",
+      "S21.G00.11.006": "CCC",
+      "S21.G00.11.007": "CCC",
+      "S21.G00.11.009": "CII",
+      "S21.G00.11.015": "CII",
+      "S21.G00.11.016": "CII",
+      "S21.G00.11.017": "CII",
+      "S21.G00.11.019": "CII",
+      "S21.G00.11.020": "CII",
+      "S21.G00.11.022": "OII",
+      "S21.G00.11.023": "CII",
+      "S21.G00.11.024": "III",
+      "S21.G00.11.025": "CII",
+      "S21.G00.15.001": "OOO",
+      "S21.G00.15.002": "OOO",
+      "S21.G00.15.003": "CCC",
+      "S21.G00.15.004": "OII",
+      "S21.G00.15.005": "OOO",
+      "S21.G00.30.001": "CCC",
+      "S21.G00.30.002": "OOO",
+      "S21.G00.30.003": "CCC",
+      "S21.G00.30.004": "OOO",
+      "S21.G00.30.005": "CII",
+      "S21.G00.30.006": "OOO",
+      "S21.G00.30.007": "CII",
+      "S21.G00.30.008": "CII",
+      "S21.G00.30.009": "CII",
+      "S21.G00.30.010": "CII",
+      "S21.G00.30.011": "CII",
+      "S21.G00.30.012": "CII",
+      "S21.G00.30.013": "OII",
+      "S21.G00.30.014": "OII",
+      "S21.G00.30.015": "OII",
+      "S21.G00.30.016": "CII",
+      "S21.G00.30.017": "CII",
+      "S21.G00.30.018": "CII",
+      "S21.G00.30.019": "CCC",
+      "S21.G00.30.020": "CCC",
+      "S21.G00.30.022": "CII",
+      "S21.G00.30.023": "CII",
+      "S21.G00.30.024": "CII",
+      "S21.G00.30.025": "CII",
+      "S21.G00.30.029": "CII",
+      "S21.G00.30.030": "CII",
+      "S21.G00.40.001": "OOO",
+      "S21.G00.40.002": "OII",
+      "S21.G00.40.003": "OII",
+      "S21.G00.40.004": "OII",
+      "S21.G00.40.005": "CII",
+      "S21.G00.40.006": "OII",
+      "S21.G00.40.007": "OII",
+      "S21.G00.40.008": "OII",
+      "S21.G00.40.009": "OOO",
+      "S21.G00.40.010": "CII",
+      "S21.G00.40.011": "OII",
+      "S21.G00.40.012": "OII",
+      "S21.G00.40.013": "OII",
+      "S21.G00.40.014": "OII",
+      "S21.G00.40.016": "OII",
+      "S21.G00.40.017": "OII",
+      "S21.G00.40.018": "OII",
+      "S21.G00.40.019": "OCC",
+      "S21.G00.40.020": "OII",
+      "S21.G00.40.021": "CII",
+      "S21.G00.40.022": "CII",
+      "S21.G00.40.023": "CII",
+      "S21.G00.40.024": "OII",
+      "S21.G00.40.025": "CII",
+      "S21.G00.40.026": "OII",
+      "S21.G00.40.027": "CII",
+      "S21.G00.40.028": "CII",
+      "S21.G00.40.029": "CII",
+      "S21.G00.40.030": "CII",
+      "S21.G00.40.031": "III",
+      "S21.G00.40.032": "CII",
+      "S21.G00.40.033": "CII",
+      "S21.G00.40.035": "CII",
+      "S21.G00.40.036": "OII",
+      "S21.G00.40.037": "OII",
+      "S21.G00.40.039": "OII",
+      "S21.G00.40.040": "OII",
+      "S21.G00.40.041": "CII",
+      "S21.G00.40.042": "CII",
+      "S21.G00.40.043": "CII",
+      "S21.G00.40.044": "CII",
+      "S21.G00.40.045": "CII",
+      "S21.G00.40.046": "CII",
+      "S21.G00.40.048": "CII",
+      "S21.G00.40.049": "CII",
+      "S21.G00.40.050": "CII",
+      "S21.G00.40.051": "CII",
+      "S21.G00.40.052": "CII",
+      "S21.G00.40.053": "CII",
+      "S21.G00.40.054": "CII",
+      "S21.G00.40.055": "CII",
+      "S21.G00.40.056": "CII",
+      "S21.G00.40.057": "CII",
+      "S21.G00.40.058": "CII",
+      "S21.G00.40.059": "CII",
+      "S21.G00.40.060": "CII",
+      "S21.G00.40.061": "CII",
+      "S21.G00.40.062": "CII",
+      "S21.G00.40.063": "CII",
+      "S21.G00.40.064": "CII",
+      "S21.G00.40.065": "CII",
+      "S21.G00.40.066": "CII",
+      "S21.G00.40.067": "CII",
+      "S21.G00.40.068": "CII",
+      "S21.G00.40.069": "CII",
+      "S21.G00.40.070": "CII",
+      "S21.G00.40.071": "CII",
+      "S21.G00.40.072": "CII",
+      "S21.G00.40.073": "CII",
+      "S21.G00.40.074": "CII",
+      "S21.G00.40.075": "CII",
+      "S21.G00.40.076": "CII",
+      "S21.G00.40.077": "CII",
+      "S21.G00.40.078": "CII",
+      "S21.G00.40.079": "CII",
+      "S21.G00.40.080": "CII",
+      "S21.G00.40.081": "CII",
+      "S21.G00.40.082": "III",
+      "S21.G00.40.083": "III",
+      "S21.G00.60.001": "OOO",
+      "S21.G00.60.002": "OOO",
+      "S21.G00.60.003": "OOO",
+      "S21.G00.60.004": "COI",
+      "S21.G00.60.005": "CCI",
+      "S21.G00.60.006": "CCI",
+      "S21.G00.60.007": "CCI",
+      "S21.G00.60.008": "CCI",
+      "S21.G00.60.010": "CCO",
+      "S21.G00.60.011": "CCO",
+      "S21.G00.60.012": "ICC",
+      "S21.G00.60.600": "CCC",
+      "S90.G00.90.001": "OOO",
+      "S90.G00.90.002": "OOO"
+    }
+  }
+}

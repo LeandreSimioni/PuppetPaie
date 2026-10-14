@@ -1,0 +1,10 @@
+{
+ "version": "2026.10.09",
+ "archive": "puppetpaie-2026.10.09.zip",
+ "sha256": "bebf8feb778956c293fee0066b13267e3d1372ea850f41ab9cb22219a52b299f",
+ "publiee_le": "2026-10-09",
+ "notes": "La mise a jour s'installe au lancement, sans que rien ne se voie.",
+ "calcul": "",
+ "exigee": "",
+ "signature": "snde7xysFhrIlosxXe/yJ/8lQ05bY2SYaWug/bPV26dFPC4BKoYhNN0KXPYvJdvI0k9dkwn6dOFOHnb0aaM5Cw=="
+}

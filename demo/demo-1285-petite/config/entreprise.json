@@ -1,0 +1,53 @@
+{
+  "_source": "COMPAGNIE DE DEMONSTRATION -- outils/compagnies_demo.py. Aucune de ces valeurs ne designe une entreprise, une personne ou un spectacle reels ; les cles (SIRET, NIR) se verifient.",
+  "raison_sociale": "CIE FICTIVE LA BOUSSOLE",
+  "nom_affichage": "La Boussole (démonstration)",
+  "siren": "123456949",
+  "nic": "00015",
+  "siret": "12345694900015",
+  "naf": "9001Z",
+  "adresse": "14 RUE FICTIVE DE L'AIGUILLERIE",
+  "adresse_affichage": "14 rue fictive de l'Aiguillerie",
+  "code_postal": "34000",
+  "commune": "MONTPELLIER",
+  "commune_affichage": "Montpellier",
+  "idcc": "1285",
+  "code_convention_dsn": "1285",
+  "convention_collective": "Entreprises artistiques et culturelles",
+  "annexe_convention": "",
+  "urssaf_compte": "1100000000",
+  "code_urssaf": "117",
+  "licence_spectacle": "PLATESV-R-2023-104434",
+  "congesspectacles_affiliation": "970000000000F",
+  "congesspectacles_adherent": "0000000000F",
+  "france_travail_dossier_recouvrement": "",
+  "congesspectacles_agrement": "",
+  "code_employeur_france_travail": "8000000000",
+  "affiliation_france_travail": "80000000008",
+  "retraite_complementaire": "AUDIENS",
+  "medecine_travail": "MT994",
+  "emploie_des_permanents": false,
+  "signataire": {
+    "nom": "BOULANGER",
+    "prenom": "LILI",
+    "fonction": "Présidente",
+    "tel": "0100000094",
+    "email": "direction@demo-1285-petite.invalid",
+    "nom_aem": "BOULANGER",
+    "prenom_affichage": "Lili",
+    "nom_affichage": "Boulanger"
+  },
+  "declarant_dsn": {
+    "nom_prenom": "BOULANGER LILI",
+    "tel": "0100000094",
+    "email": "DIRECTION@DEMO-1285-PETITE.INVALID",
+    "qualite": "04"
+  },
+  "banque": {
+    "bic": "BANQFRPPXXX",
+    "iban": "FR7630001007941234567890185",
+    "_note": "IBAN fabrique (cle 85 juste). Ne designe aucun compte."
+  },
+  "historique": [],
+  "jours_feries_chomes": "tous"
+}

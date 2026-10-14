@@ -1,0 +1,47 @@
+{
+  "_quoi": "Fabrique : ce qu'un releve de CRM 118 aurait ecrit.",
+  "annees": {
+    "2021": {
+      "A01": {
+        "valeur": 1.0,
+        "calcule_le": "2022-07-01T00:00:00",
+        "source": "fabrique"
+      }
+    },
+    "2022": {
+      "A01": {
+        "valeur": 1.0,
+        "calcule_le": "2023-07-01T00:00:00",
+        "source": "fabrique"
+      }
+    },
+    "2023": {
+      "A01": {
+        "valeur": 1.0,
+        "calcule_le": "2024-07-01T00:00:00",
+        "source": "fabrique"
+      }
+    },
+    "2024": {
+      "A01": {
+        "valeur": 1.0,
+        "calcule_le": "2025-07-01T00:00:00",
+        "source": "fabrique"
+      }
+    },
+    "2025": {
+      "A01": {
+        "valeur": 1.0,
+        "calcule_le": "2026-07-01T00:00:00",
+        "source": "fabrique"
+      }
+    },
+    "2020": {
+      "A01": {
+        "valeur": 1.0,
+        "calcule_le": "2021-07-01T00:00:00",
+        "source": "fabrique"
+      }
+    }
+  }
+}

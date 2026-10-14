@@ -1,0 +1,584 @@
+{
+ "format": 1,
+ "page": {
+  "largeur": 595.28,
+  "hauteur": 841.89,
+  "marges": {
+   "haut": 106,
+   "droite": 52,
+   "bas": 46,
+   "gauche": 52
+  }
+ },
+ "police": {
+  "taille": 7.5,
+  "interligne": 1.25,
+  "couleur": "#2C3E50"
+ },
+ "logo": {
+  "chemin": "@EXEMPLES@/logo.svg",
+  "largeur": 74,
+  "marge_haut": 28,
+  "marge_droite": 34
+ },
+ "titre": "Contrat CDDU — DUPONT",
+ "documents": [
+  {
+   "blocs": [
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "CONTRAT D’ENGAGEMENT À DURÉE DÉTERMINÉE D’USAGE"
+      }
+     ],
+     "taille": 11,
+     "alignement": "centre",
+     "espace_apres": 2
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Contrat fictif — exemple de la fabrique de PDF"
+      }
+     ],
+     "alignement": "centre",
+     "espace_apres": 8,
+     "couleur": "#7F8C8D"
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Entre la société "
+      },
+      {
+       "texte": "COMPAGNIE DES PETITS ŒUFS",
+       "gras": true
+      },
+      {
+       "texte": ", association loi 1901, dont le siège est situé 12, rue des Marionnettes, 75011 Paris, SIRET 000 000 000 00000, représentée par Madame Hélène Garçon, en qualité de présidente, ci-après « l’employeur »,"
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 3
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Et "
+      },
+      {
+       "texte": "Monsieur Zoé DUPONT",
+       "gras": true
+      },
+      {
+       "texte": ", né le 1er février 1990 à Saint-Étienne, demeurant 3, allée des Châtaigniers, 42000 Saint-Étienne, ci-après « le salarié »."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 1 — Objet et durée",
+       "gras": true
+      }
+     ],
+     "espace_avant": 4,
+     "espace_apres": 1.5,
+     "taille": 8.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Le salarié est engagé en qualité de comédien-marionnettiste pour les représentations du spectacle « Le Fou & la Marotte » les 12, 13 et 14 novembre 2026 au théâtre de la Halle, à Villeneuve-sur-Seine. Le présent contrat est conclu pour la durée de ces représentations et de leurs répétitions, conformément à l’article L. 1242-2 3° du code du travail."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 2 — Rémunération",
+       "gras": true
+      }
+     ],
+     "espace_avant": 4,
+     "espace_apres": 1.5,
+     "taille": 8.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Le salarié percevra un cachet brut de 152,75 € par représentation et de 98,40 € par service de répétition, soit un total brut de 1 249,35 € pour l’ensemble de l’engagement. Ces sommes s’entendent hors indemnité de congés spectacles et hors frais professionnels, remboursés sur justificatifs."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 3 — Horaires et lieu de travail",
+       "gras": true
+      }
+     ],
+     "espace_avant": 4,
+     "espace_apres": 1.5,
+     "taille": 8.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Les répétitions ont lieu de 10 h 00 à 13 h 00 et de 14 h 00 à 17 h 00 ; les représentations débutent à 20 h 30. Le salarié s’engage à être présent une heure avant chaque représentation. Toute modification de l’horaire est notifiée par écrit au moins 48 heures à l’avance."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 4 — Convention collective",
+       "gras": true
+      }
+     ],
+     "espace_avant": 4,
+     "espace_apres": 1.5,
+     "taille": 8.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Le présent contrat est soumis à la convention collective nationale des entreprises artistiques et culturelles (IDCC 1285). Le salarié reconnaît avoir pris connaissance de ses dispositions, notamment en matière de durée du travail, de repos et de prévoyance."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 5 — Protection sociale",
+       "gras": true
+      }
+     ],
+     "espace_avant": 4,
+     "espace_apres": 1.5,
+     "taille": 8.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "L’employeur déclare l’engagement auprès de l’Urssaf (DPAE) avant la prise de fonctions et affilie le salarié à Audiens pour la retraite complémentaire et la prévoyance. Les cotisations sont calculées sur la base du cachet brut défini à l’article 2."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 6 — Droits d’auteur et droit à l’image",
+       "gras": true
+      }
+     ],
+     "espace_avant": 4,
+     "espace_apres": 1.5,
+     "taille": 8.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Le salarié cède à l’employeur, à titre gratuit et pour la durée de la protection légale, le droit de fixer, reproduire et communiquer au public son interprétation, dans le cadre exclusif de la promotion du spectacle. Cette cession ne porte pas sur les œuvres préexistantes du salarié."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 7 — Obligations du salarié",
+       "gras": true
+      }
+     ],
+     "espace_avant": 4,
+     "espace_apres": 1.5,
+     "taille": 8.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Le salarié s’engage à exécuter ses prestations avec conscience et loyauté, à respecter le règlement intérieur du lieu d’accueil et à avertir l’employeur sans délai de toute indisponibilité. Il est tenu à la discrétion sur tout ce qui concerne l’organisation de la compagnie."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 8 — Déplacements et hébergement",
+       "gras": true
+      }
+     ],
+     "espace_avant": 4,
+     "espace_apres": 1.5,
+     "taille": 8.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Les frais de transport entre Saint-Étienne et Villeneuve-sur-Seine sont pris en charge sur la base du tarif SNCF de seconde classe. L’hébergement des nuits du 11 au 14 novembre 2026 est assuré par l’employeur, en chambre individuelle, petit-déjeuner compris."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 9 — Rupture anticipée",
+       "gras": true
+      }
+     ],
+     "espace_avant": 4,
+     "espace_apres": 1.5,
+     "taille": 8.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Le contrat ne peut être rompu avant son terme que dans les cas prévus par l’article L. 1243-1 du code du travail : accord des parties, faute grave, force majeure ou embauche en contrat à durée indéterminée. Toute rupture injustifiée ouvre droit à des dommages-intérêts."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 10 — Attribution de compétence",
+       "gras": true
+      }
+     ],
+     "espace_avant": 4,
+     "espace_apres": 1.5,
+     "taille": 8.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Tout litige relatif à l’exécution du présent contrat relève du conseil de prud’hommes de Paris. Les parties s’efforceront néanmoins de rechercher, au préalable, une solution amiable, dans un délai de trente jours à compter de la notification du désaccord."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 11 — Santé au travail",
+       "gras": true
+      }
+     ],
+     "taille": 8.5,
+     "espace_avant": 4,
+     "espace_apres": 1.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Le salarié est soumis à la visite d’information et de prévention prévue par le code du travail dans les conditions applicables aux salariés engagés pour de courtes durées. L’employeur s’assure de son aptitude avant la première représentation et prend les mesures nécessaires à la sécurité sur le plateau."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 12 — Matériel et costumes",
+       "gras": true
+      }
+     ],
+     "taille": 8.5,
+     "espace_avant": 4,
+     "espace_apres": 1.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Les marionnettes, les costumes et les accessoires sont fournis par l’employeur. Le salarié en prend soin et signale sans délai toute détérioration. Il lui est interdit de les emporter hors du lieu de travail sans autorisation écrite."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 13 — Congés spectacles",
+       "gras": true
+      }
+     ],
+     "taille": 8.5,
+     "espace_avant": 4,
+     "espace_apres": 1.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Une indemnité de congés payés est versée par la caisse des Congés Spectacles, sur la base de 15 % des rémunérations brutes déclarées. Le salarié en fait la demande directement auprès de la caisse, à l’ouverture de ses droits."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 14 — Assurance",
+       "gras": true
+      }
+     ],
+     "taille": 8.5,
+     "espace_avant": 4,
+     "espace_apres": 1.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "La compagnie a souscrit une assurance responsabilité civile couvrant les dommages causés à des tiers pendant les répétitions et les représentations. Les effets personnels du salarié restent sous sa garde, hors de la responsabilité de l’employeur."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 15 — Confidentialité",
+       "gras": true
+      }
+     ],
+     "taille": 8.5,
+     "espace_avant": 4,
+     "espace_apres": 1.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Le salarié s’interdit de divulguer les informations techniques, artistiques ou financières dont il a connaissance du fait de son engagement, y compris après l’expiration du contrat, pendant une durée de deux ans."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 16 — Communication",
+       "gras": true
+      }
+     ],
+     "taille": 8.5,
+     "espace_avant": 4,
+     "espace_apres": 1.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Les textes, photographies et enregistrements réalisés pendant les représentations ne peuvent être publiés par le salarié sans l’accord préalable de la compagnie, sauf pour un usage strictement privé."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 17 — Dispositions générales",
+       "gras": true
+      }
+     ],
+     "taille": 8.5,
+     "espace_avant": 4,
+     "espace_apres": 1.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Le présent contrat annule et remplace tout accord verbal antérieur. Toute modification doit faire l’objet d’un avenant signé des deux parties. Si l’une des clauses était déclarée nulle, les autres resteraient applicables."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Article 18 — Élection de domicile",
+       "gras": true
+      }
+     ],
+     "taille": 8.5,
+     "espace_avant": 4,
+     "espace_apres": 1.5
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Pour l’exécution du présent contrat et de ses suites, les parties font élection de domicile à leurs adresses respectives, indiquées en tête des présentes. Tout changement d’adresse doit être notifié à l’autre partie par lettre recommandée."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_apres": 2.6
+    },
+    {
+     "type": "paragraphe",
+     "morceaux": [
+      {
+       "texte": "Fait à Paris, le 30 septembre 2026, en deux exemplaires originaux.\nLa première ligne de ce paragraphe finit par un retour forcé, et la deuxième ligne reste à gauche, comme la dernière ligne d’un paragraphe justifié."
+      }
+     ],
+     "alignement": "justifie",
+     "espace_avant": 6,
+     "espace_apres": 4
+    },
+    {
+     "type": "colonnes",
+     "filet_haut": {
+      "couleur": "#CCCCCC",
+      "epaisseur": 0.5
+     },
+     "espace_avant": 6,
+     "marge_interne_haut": 5,
+     "colonnes": [
+      {
+       "largeur": 0.5,
+       "blocs": [
+        {
+         "type": "paragraphe",
+         "morceaux": [
+          {
+           "texte": "L’employeur",
+           "gras": true
+          }
+         ],
+         "espace_apres": 1
+        },
+        {
+         "type": "paragraphe",
+         "morceaux": [
+          {
+           "texte": "Hélène Garçon, présidente"
+          }
+         ],
+         "couleur": "#7F8C8D",
+         "espace_apres": 3
+        },
+        {
+         "type": "image",
+         "chemin": "@EXEMPLES@/signature.png",
+         "largeur": 92
+        },
+        {
+         "type": "paragraphe",
+         "morceaux": [
+          {
+           "texte": "Lu et approuvé, bon pour accord — signature"
+          }
+         ],
+         "taille": 6.5,
+         "couleur": "#7F8C8D"
+        }
+       ]
+      },
+      {
+       "largeur": 0.5,
+       "blocs": [
+        {
+         "type": "paragraphe",
+         "morceaux": [
+          {
+           "texte": "Le salarié",
+           "gras": true
+          }
+         ],
+         "espace_apres": 1
+        },
+        {
+         "type": "paragraphe",
+         "morceaux": [
+          {
+           "texte": "Zoé Dupont, comédien-marionnettiste"
+          }
+         ],
+         "couleur": "#7F8C8D",
+         "espace_apres": 3
+        },
+        {
+         "type": "espace",
+         "hauteur": 40
+        },
+        {
+         "type": "paragraphe",
+         "morceaux": [
+          {
+           "texte": "Lu et approuvé, bon pour accord — signature"
+          }
+         ],
+         "taille": 6.5,
+         "couleur": "#7F8C8D"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

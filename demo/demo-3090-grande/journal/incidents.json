@@ -1,0 +1,34 @@
+[
+  {
+    "quoi": "refus",
+    "quand": "2026-10-03T15:50:22",
+    "version": "2026.10.02",
+    "empreinte": "f9ab09649a6d",
+    "ou": "dossier-salarie",
+    "genre": "ErreurOperation",
+    "resume": "ErreurOperation: Aucun document sur la période (decembre 2026) pour AUDINOT.",
+    "detail": {},
+    "trace": "Traceback (most recent call last):\n  File \"C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\logiciel\\moteur\\web.py\", line 1717, in do_POST\n    \"resultat\": _traiter(frais, route, charge,\n                ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\n                         veille)})\n                         ^^^^^^^\n  File \"C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\logiciel\\moteur\\web.py\", line 1238, in _traiter\n    d = ops.dossier_salarie(\n        ctx, salaries=charge.get(\"salaries\") or None,\n    ...<3 lines>...\n        ensemble=bool(charge.get(\"ensemble\")) and route == \"dossier-salarie\",\n        ecrire=route == \"dossier-envoyer\" or not charge.get(\"apercu\"))\n  File \"C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\logiciel\\moteur\\operations_dossier.py\", line 731, in dossier_salarie\n    raise ErreurOperation(\n        \"Aucun document sur la période (%s) pour %s.\" %\n        (p.libelle, \", \".join(cles) if salaries else \"aucun salarié\"))\nmoteur.operations_socle.ErreurOperation: Aucun document sur la période (decembre 2026) pour AUDINOT.\n",
+    "caviarde": [],
+    "envoi": {
+      "etat": "depose",
+      "quand": "2026-10-03T15:52:38"
+    }
+  },
+  {
+    "quoi": "refus",
+    "quand": "2026-10-03T15:50:29",
+    "version": "2026.10.02",
+    "empreinte": "f9ab09649a6d",
+    "ou": "dossier-salarie",
+    "genre": "ErreurOperation",
+    "resume": "ErreurOperation: Aucun document sur la période (decembre 2026) pour CHAMINADE.",
+    "detail": {},
+    "trace": "Traceback (most recent call last):\n  File \"C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\logiciel\\moteur\\web.py\", line 1717, in do_POST\n    \"resultat\": _traiter(frais, route, charge,\n                ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\n                         veille)})\n                         ^^^^^^^\n  File \"C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\logiciel\\moteur\\web.py\", line 1238, in _traiter\n    d = ops.dossier_salarie(\n        ctx, salaries=charge.get(\"salaries\") or None,\n    ...<3 lines>...\n        ensemble=bool(charge.get(\"ensemble\")) and route == \"dossier-salarie\",\n        ecrire=route == \"dossier-envoyer\" or not charge.get(\"apercu\"))\n  File \"C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\logiciel\\moteur\\operations_dossier.py\", line 731, in dossier_salarie\n    raise ErreurOperation(\n        \"Aucun document sur la période (%s) pour %s.\" %\n        (p.libelle, \", \".join(cles) if salaries else \"aucun salarié\"))\nmoteur.operations_socle.ErreurOperation: Aucun document sur la période (decembre 2026) pour CHAMINADE.\n",
+    "caviarde": [],
+    "envoi": {
+      "etat": "depose",
+      "quand": "2026-10-03T15:52:38"
+    }
+  }
+]

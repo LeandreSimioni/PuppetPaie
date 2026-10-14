@@ -1,0 +1,99 @@
+{
+  "_origine": "Compagnie de demonstration demo-3090-grande, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2025-05",
+  "taux_cachet": 180.0,
+  "date_paiement": "2025-05-31",
+  "engagements": [
+    {
+      "salarie": "Montansier",
+      "nature": "cdi",
+      "debut": "2023-09-04",
+      "numero": "MO.23.01",
+      "salaire_mensuel": 3050.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Nicolet",
+      "nature": "cdi",
+      "debut": "2024-03-01",
+      "numero": "NI.24.01",
+      "salaire_mensuel": 2250.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Clairon",
+      "spectacle": "256Z00910033",
+      "debut": "2025-05-13",
+      "fin": "2025-05-23",
+      "date_paiement": "2025-05-23",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 8,
+          "taux": 160.0,
+          "lieu": "Ecoles de Touraine",
+          "dates": [
+            "2025-05-13",
+            "2025-05-14",
+            "2025-05-15",
+            "2025-05-16",
+            "2025-05-20",
+            "2025-05-21",
+            "2025-05-22",
+            "2025-05-23"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Jacquet",
+      "spectacle": "256Z00910033",
+      "debut": "2025-05-13",
+      "fin": "2025-05-23",
+      "date_paiement": "2025-05-23",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 8,
+          "taux": 176.45,
+          "lieu": "Ecoles de Touraine",
+          "dates": [
+            "2025-05-13",
+            "2025-05-14",
+            "2025-05-15",
+            "2025-05-16",
+            "2025-05-20",
+            "2025-05-21",
+            "2025-05-22",
+            "2025-05-23"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Servandoni",
+      "spectacle": "256Z00910033",
+      "debut": "2025-05-13",
+      "fin": "2025-05-23",
+      "date_paiement": "2025-05-23",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 56,
+          "taux": 17.5,
+          "lieu": "Ecoles de Touraine",
+          "dates": [
+            "2025-05-13",
+            "2025-05-14",
+            "2025-05-15",
+            "2025-05-16",
+            "2025-05-20",
+            "2025-05-21",
+            "2025-05-22",
+            "2025-05-23"
+          ]
+        }
+      ]
+    }
+  ]
+}

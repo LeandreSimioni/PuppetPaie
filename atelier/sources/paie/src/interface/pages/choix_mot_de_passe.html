@@ -1,0 +1,78 @@
+
+<style>
+  :root { --accent:#B22222; --texte:#2C3E50; --fond:#F7F6F4; --carte:#FFFFFF;
+          --bord:#DDD8D2; --discret:#7A8794; }
+  * { box-sizing:border-box; }
+  html, body { overflow:hidden; }   /* taille fixe : jamais de barre de defilement */
+  body { margin:0; height:100vh; display:flex; align-items:center;
+         justify-content:center; font:14px/1.5 Arial,Helvetica,sans-serif;
+         color:var(--texte); background:var(--fond); }
+  .carte { width:380px; padding:28px 32px 26px; background:var(--carte);
+           border:1px solid var(--bord); border-radius:6px; }
+  .filet { height:3px; background:var(--accent); width:48px; margin-bottom:14px; }
+  h1 { margin:0 0 2px; font-size:20px; }
+  .sous { color:var(--discret); font-size:12px; margin-bottom:18px; }
+  p { margin:0 0 12px; }
+  input { width:100%; padding:9px 10px; font:inherit; font-size:15px;
+          border:1px solid var(--bord); border-radius:4px; outline:none; }
+  input:focus { border-color:var(--accent); }
+  button { margin-top:12px; width:100%; padding:9px; font:inherit;
+           font-weight:bold; color:#fff; background:var(--accent);
+           border:1px solid var(--accent); border-radius:4px; cursor:pointer; }
+  button[disabled] { opacity:.5; cursor:default; }
+  .erreur { color:var(--accent); min-height:1.5em; margin-top:8px; }
+  .discret { color:var(--discret); font-size:12px; }
+  pre { white-space:pre-wrap; font:12px Consolas,monospace; color:var(--discret); }
+  .bande { position:fixed; top:0; left:0; right:0; height:36px; }
+  .carte { width:100%; max-width:460px; border:0; padding:30px 36px 24px; }
+  .croix { position:absolute; top:4px; right:6px; width:34px; height:28px; margin:0;
+           padding:0; background:transparent; color:var(--discret); border:0;
+           display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .croix:hover { background:var(--accent); color:#fff; }
+  .retour { position:absolute; top:4px; left:6px; width:auto; height:28px; margin:0; padding:0 10px;
+            background:transparent; color:var(--discret); border:0; font-weight:normal; font-size:13px; }
+  .retour:hover { background:var(--accent); color:#fff; }
+  /* La fenetre a sa vraie barre de titre (Tauri) : la croix de l'ancienne fenetre sans bordure ferait double. */
+  .croix { display:none !important; }
+</style>
+
+<div class="carte">
+  <div class="filet"></div>
+  <h1>PuppetPaie</h1>
+  <div class="sous">premi&egrave;re ouverture</div>
+  <form id="f">
+    <p>Choisissez le mot de passe du logiciel</p>
+    <input id="mdp" type="password" autocomplete="new-password" autofocus placeholder="six caract&egrave;res au moins">
+    <input id="mdp2" type="password" autocomplete="new-password" placeholder="une seconde fois">
+    <button id="ok" type="submit">Poser et ouvrir</button>
+    <div class="erreur" id="erreur"></div>
+  </form>
+  <div class="discret">Il sera demand&eacute; &agrave; chaque ouverture et &agrave; chaque
+  d&eacute;p&ocirc;t r&eacute;el. Ce n'est pas celui d'un organisme.</div>
+</div>
+<script>
+  const f = document.getElementById("f"), mdp = document.getElementById("mdp"),
+        mdp2 = document.getElementById("mdp2"),
+        ok = document.getElementById("ok"), err = document.getElementById("erreur");
+  f.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    ok.disabled = true; err.textContent = "";
+    const r = await window.pywebview.api.poser(mdp.value, mdp2.value);
+    if (r.ok) { mdp.value = mdp2.value = ""; ok.textContent = "D\u00e9marrage\u2026"; return; }
+    err.textContent = r.erreur; ok.disabled = false; mdp.focus();
+  });
+  window.addEventListener("pywebviewready", () => mdp.focus());
+</script>
+
+<div class="bande"><button class="retour" title="Revenir au choix de la compagnie"
+  onclick="window.pywebview.api.accueil().then(() => location.reload())">&lsaquo; Retour</button><button class="croix" title="Fermer"
+  onclick="window.pywebview.api.fermer()">&#x2715;</button></div>
+<script>
+  // Toute la page se tire (le corps porte la classe de pywebview) -- sauf le
+  // champ et les boutons, qui arretent le mousedown avant qu'il n'atteigne
+  // le corps, ou pywebview l'ecoute.
+  document.body.classList.add("pywebview-drag-region");
+  for (const el of document.querySelectorAll("input, button")) {
+    el.addEventListener("mousedown", (e) => e.stopPropagation());
+  }
+</script>

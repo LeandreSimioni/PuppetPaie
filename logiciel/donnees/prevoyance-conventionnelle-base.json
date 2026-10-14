@@ -1,0 +1,453 @@
+{
+  "_quoi": "La PREVOYANCE des salaries permanents, telle que la fixe la convention collective -- pas telle que la facture un organisme. C'est un catalogue de BRANCHE, livre avec le logiciel et le meme pour toutes les compagnies : le taux obligatoire, son assiette, sa repartition, qui en beneficie et a partir de quand, et les options que la branche laisse a l'entreprise. Ce que chaque compagnie decide, elle l'ecrit dans `config/entreprise.json` (`prevoyance_permanents`) ; ce que la loi impose, le moteur l'applique sans le demander.",
+  "_pourquoi_ici_et_pas_dans_le_bareme": "Un bareme est la paie d'UNE compagnie : ses taux notifies (AT), son plafond, ses choix. Un taux conventionnel, lui, est le meme pour toutes les entreprises de la branche, et une compagnie qui installe PuppetPaie ne doit pas avoir a le retrouver elle-meme. Il est donc livre avec le code, comme `minima-conventionnels.json`. Le 19/09/2026, ce taux avait d'abord ete ecrit dans le bareme de la compagnie banc d'essai : c'etait le ranger a l'endroit ou personne d'autre ne le lirait.",
+  "_regle": "Ce fichier porte le MINIMUM conventionnel, jamais le contrat d'une entreprise. Une entreprise peut souscrire mieux (`regime: \"contrat\"` avec ses taux) ; le moteur verifie alors que son contrat atteint le minimum de la branche, et refuse sinon -- un contrat sous le plancher conventionnel n'est pas un choix, c'est une infraction. Elle ne peut pas souscrire moins, ni rien souscrire : l'adhesion est obligatoire des lors qu'on applique la convention.",
+  "_sources": [
+    "legifrance-3090-prevoyance-titre12",
+    "audiens-3090-prevoyance-sante-fiche-produit",
+    "legifrance-1285-prevoyance-titre12",
+    "kali-1285-titres-ii-iii-x-xi-xii",
+    "kali-3090-titres-iv-v-sante"
+  ],
+  "_choix_de_l_entreprise": {
+    "_ou": "config/entreprise.json, cle `prevoyance_permanents`. Absente : le regime conventionnel obligatoire s'applique, et c'est le bon defaut -- il est obligatoire.",
+    "regime": "\"conventionnel\" (defaut) ou \"contrat\" -- un contrat d'entreprise plus favorable, dont les taux s'ecrivent alors dans `taux`.",
+    "extension_t2": "\"aucune\" (defaut), \"tous\" ou \"cadres\" : l'extension facultative de la garantie a la tranche 2 conventionnelle (du plafond a QUATRE plafonds). Elle se souscrit aupres de l'organisme ; l'ecrire ici sans l'avoir souscrite ferait cotiser dans le vide.",
+    "taux": "avec `regime: \"contrat\"` : {\"t1_non_cadre\": 1.30, \"t1_cadre\": 1.60, \"part_patronale\": 100}. Chaque taux est compare au minimum de la branche.",
+    "adhesion": "la reference d'adhesion communiquee par l'organisme. Le calcul n'en a pas besoin ; la DSN, si (S21.G00.70.013), et elle se lit sur la fiche de parametrage. Facultative ici, elle sert a documenter."
+  },
+  "obligation_cadre": {
+    "taux_t1": 1.5,
+    "charge": "employeur",
+    "_texte": "ANI du 17/11/2017, article 1er, qui a repris l'article 7 de la convention collective nationale de retraite et de prevoyance des cadres du 14/03/1947 : l'employeur verse au moins 1,50 % de la tranche A pour ses cadres, a titre exclusif, et par priorite a la couverture DECES.",
+    "_quoi": "Ce n'est pas une option : c'est un PLANCHER national, qui vaut quelle que soit la convention. Quand le taux conventionnel de la branche est inferieur, il s'y impute et l'entreprise complete la difference. Un cadre non couvert, c'est l'employeur qui doit le capital deces de sa poche."
+  },
+  "conventions": {
+    "3090": {
+      "libelle": "Entreprises du secteur prive du spectacle vivant",
+      "organisme": "AUDIENS (Audiens Sante Prevoyance) -- designe par la branche",
+      "texte": "CCN du 03/02/2012, clauses communes, titre XII << Prevoyance >>, article 12.6",
+      "en_vigueur": "2013-07-01",
+      "etat": "en vigueur etendu",
+      "source": "legifrance-3090-prevoyance-titre12",
+      "obligatoire": {
+        "taux": 1.2,
+        "base": "t1_mensuelle",
+        "part_patronale": 100,
+        "ventilation": {
+          "deces": 0.53,
+          "incapacite_invalidite": 0.67
+        },
+        "_source": "Article 12.6.2 (taux) et 12.6.3 (repartition et ventilation). 0,53 + 0,67 = 1,20. L'assiette est la tranche A (12.6.1) : du premier euro au plafond de la Securite sociale, soit `t1_mensuelle` dans ce moteur.",
+        "_historique": [
+          {
+            "taux": 1.07,
+            "pendant": "les 24 premiers mois d'application du titre, soit jusqu'au 30/06/2015",
+            "ventilation_incapacite": 0.54
+          }
+        ]
+      },
+      "beneficiaires": {
+        "_qui": "Tous les salaries permanents, cadres et non cadres, en CDD, CDI ou CDII, a temps plein ou partiel, apprentis compris. Pas les intermittents : leur prevoyance est celle de l'accord interbranches, et elle est dans le bareme.",
+        "ouverture_cadre_mois": 0,
+        "ouverture_non_cadre_mois": 12,
+        "_ouverture": "La cotisation est due des l'embauche pour un cadre, et apres UN AN d'anciennete DANS LA BRANCHE pour un non cadre -- dans la branche, pas dans l'entreprise : un salarie qui arrive d'une autre compagnie du spectacle vivant prive apporte son anciennete. Le moteur ne peut pas la deviner : quand un non cadre a moins d'un an dans l'entreprise, il DEMANDE `prevoyance_branche_depuis` sur sa fiche plutot que de supposer. Source : fiche produit Audiens, page 3."
+      },
+      "options": {
+        "extension_t2": {
+          "tous": 2.32,
+          "cadres": 2.62,
+          "base": "t2_conventionnelle",
+          "part_patronale": 100,
+          "_source": "Fiche produit Audiens, page 3 : << Extension facultative T2 du regime conventionnel pour l'ensemble du personnel permanent >> 2,32 %, << Extension facultative T2 pour les cadres permanents uniquement >> 2,62 %. ATTENTION a l'assiette : la T2 de ce regime va du plafond de la Securite sociale a QUATRE fois ce plafond -- ce n'est pas la T2 Agirc-Arrco, qui va jusqu'a huit. D'ou une base a elle, `t2_conventionnelle`.",
+          "_repartition": "La fiche ne donne qu'un taux global. Le regime conventionnel etant a 100 % patronal (12.6.3), l'extension l'est aussi par defaut ; une entreprise qui l'a souscrite autrement l'ecrit dans `prevoyance_permanents.taux.part_patronale`."
+        }
+      },
+      "sante_minimum": {
+        "_quoi": "La cotisation globale MINIMALE du regime obligatoire de frais de sante des salaries PERMANENTS, en % du plafond mensuel de la Securite sociale, pour le salarie seul. Le contrat de la compagnie (trois niveaux chez Audiens, lus par `bareme_sante`) peut cotiser plus, jamais moins : un niveau dont le taux tombe sous ce minimum fait REFUSER la paie. Les intermittents n'y sont pas (accord interbranche du 20/12/2006).",
+        "_source": "Accord du 19/07/2024 relatif au regime obligatoire de frais de sante des salaries hors intermittents, article 13, en vigueur etendu au 01/01/2025 (base KALI, kali-3090-titres-iv-v-sante). Il fait evoluer l'article IV.3 de l'annexe II et abroge l'avenant du 12/10/2017.",
+        "source": "kali-3090-titres-iv-v-sante",
+        "socle": {"2025-01-01": 1.29, "2026-01-01": 1.44, "2027-01-01": 1.60, "2028-01-01": 1.75},
+        "annexes": {"2": {"2025-01-01": 1.74, "2026-01-01": 1.84, "2027-01-01": 1.94}},
+        "part_patronale_minimum": 50
+      },
+      "financement_paritarisme": {
+        "_quoi": "Le FCAP-SVP : une contribution ANNUELLE de l'entreprise, hors DSN et hors bulletin, collectee en debut d'annee civile par le FCAP-SVP (qui peut la deleguer a un organisme social du spectacle). Tous les employeurs de la convention y sont assujettis. `python -m moteur exporter fcap-svp --annee AAAA` la calcule.",
+        "_source": "CCN 3090, titre V, articles 5.1 (taux, plancher, plafond), 5.2 (collecte par le FCAP-SVP) et 5.3 (collecte annuelle, tous assujettis) -- base KALI, kali-3090-titres-iv-v-sante.",
+        "source": "kali-3090-titres-iv-v-sante",
+        "taux": 0.1,
+        "assiette": "tranche A",
+        "plancher": 80,
+        "plafond": 300,
+        "_quelle_annee": "Le texte dit << par an et par entreprise >> et << collectee chaque annee, en debut d'annee civile >> ; il ne dit pas sur quelle annee de masse. Que ce soit la tranche A de l'annee ecoulee est une INFERENCE, a confirmer sur un appel du FCAP-SVP."
+      },
+      "annexes": {
+        "2": {
+          "taux": 1.22,
+          "base": "t1_mensuelle",
+          "part_patronale": 100,
+          "_quoi": "L'annexe 2 (chanson, varietes, jazz, musiques actuelles) ajoute a son titre IV un regime SUPPLEMENTAIRE : article 3.2, << une cotisation egale a 1,22 % de la tranche A, sous deduction de la cotisation prevue a l'article 12.6.2 >>. Le total reste donc 1,22 %, dont 1,20 conventionnel commun. Il couvre l'incapacite temporaire, l'invalidite et l'incapacite permanente, sans distinction cadre / non cadre.",
+          "_source": "CCN 3090, annexe II, titre IV, articles 2, 3.1 et 3.2 (Legifrance, KALISCTA000028157603), relu le 19/09/2026."
+        },
+        "_les_autres": "Les annexes 1 (dramatique, lyrique, choregraphique), 3 (cabarets), 4 (tournees), 5 (cirque) et 6 (bals) n'ont aucun titre de prevoyance : le plan du texte de base a ete relu annexe par annexe le 19/09/2026. Seul le titre XII des clauses communes s'y applique."
+      }
+    },
+    "1285": {
+      "libelle": "Entreprises artistiques et culturelles (CCNEAC) -- le secteur subventionne",
+      "organisme": "AUDIENS (Audiens Prevoyance) -- designe par la branche (XII.2.3.2)",
+      "texte": "CCN du 01/01/1984, titre XII << Retraite et prevoyance >>, article XII.2 (XII.2.1.2 pour les cadres permanents, XII.2.1.5 pour les non cadres)",
+      "en_vigueur": "2016-01-01",
+      "etat": "taux au 01/01/2016, repris sans changement par toutes les versions de l'article depuis, jusqu'a celle du 01/03/2026 (non etendue : elle ne change que les frais de sante)",
+      "source": "kali-1285-titres-ii-iii-x-xi-xii",
+      "applicable": true,
+      "_confirme": "CONFIRME le 23/09/2026 sur la base KALI de la DILA (open data), version en vigueur de l'article XII.2 (KALIARTI000054375135, du 01/03/2026) et toutes les versions intermediaires : les quatre nombres sont ceux de 2016 ; la tranche 2 << porte sur la remuneration comprise entre ce plafond et l'equivalent de 4 plafonds >> (en-tete de l'article) ; les deux cotisations sont << dues des le premier jour d'embauche >>. Le releve du 19/09/2026 avait lu une version close par un outil qui refusait de recopier ; il est remplace par une transcription.",
+      "obligatoire": {
+        "taux": 0.95,
+        "base": "t1_mensuelle",
+        "part_patronale": 100,
+        "ventilation": {
+          "deces": 0.44,
+          "incapacite_invalidite": 0.51
+        },
+        "_source": "Article XII.2.1.5 (salaries permanents NON CADRES) : 0,95 % de la tranche 1, dont 0,44 deces et 0,51 incapacite-invalidite, entierement a la charge de l'employeur, du des le premier jour d'embauche. Inchange depuis le 01/01/2016."
+      },
+      "obligatoire_cadre": {
+        "taux": 1.5,
+        "base": "t1_mensuelle",
+        "part_patronale": 100,
+        "ventilation": {
+          "deces": 0.82,
+          "incapacite_invalidite": 0.68
+        },
+        "t2": 0.81,
+        "t2_base": "t2_conventionnelle",
+        "_source": "Article XII.2.1.2 (salaries permanents CADRES), taux au 01/01/2016 : 1,50 % de la tranche 1, dont 0,82 deces et 0,68 incapacite-invalidite, plus 0,81 % de la tranche 2 pour l'incapacite-invalidite, le tout entierement a la charge de l'employeur. La CCNEAC couvre donc d'emblee l'obligation de 1,50 % de l'ANI du 17/11/2017, la ou la 3090 la laisse a une option.",
+        "_assiette_t2": "Du plafond de la Securite sociale a QUATRE plafonds : << la tranche 2 porte sur la remuneration comprise entre ce plafond et l'equivalent de 4 plafonds >> (en-tete de l'article XII.2). C'est `t2_conventionnelle` dans ce moteur -- la meme assiette que les extensions T2 de la 3090, et non la T2 Agirc-Arrco, qui va jusqu'a huit."
+      },
+      "beneficiaires": {
+        "_qui": "Tous les salaries permanents, cadres et non cadres, en CDD ou en CDI (XII.2.1.1 et XII.2.1.4). Est permanent le salarie qui n'est pas intermittent au sens du titre XII : un intermittent est un salarie en CDD dont la fonction figure dans la liste des emplois en CDD d'usage de la convention ou dans les annexes VIII et X.",
+        "ouverture_cadre_mois": 0,
+        "ouverture_non_cadre_mois": 0,
+        "_ouverture": "Des l'embauche, pour les deux : << due des le premier jour d'embauche >> (XII.2.1.2 et XII.2.1.5). La CCNEAC n'a pas la condition d'un an dans la branche de la 3090 ; le moteur ne demande donc jamais `prevoyance_branche_depuis` sous cette convention."
+      },
+      "agents_de_maitrise": {
+        "_quoi": "Article XII.3 (depuis le 01/10/2025) : l'entreprise a la FACULTE de faire beneficier ses agents de maitrise du regime des cadres, et doit formaliser ce choix ; ils sortent alors du regime des non cadres. Ce n'est pas un defaut : c'est une decision de l'entreprise. Dans ce moteur, elle se traduit sur la fiche du salarie -- son statut categoriel de retraite complementaire (S21.G00.40.003) le range en cadre, et c'est lui que la prevoyance lit."
+      },
+      "sante": {
+        "_quoi": "Les frais de sante des permanents (XII.2.1.7 a XII.2.1.11). Lus par `calcul.bareme_sante` quand la convention de l'entreprise est la 1285 : un taux unique au titre du seul salarie, et non les trois niveaux du contrat de la 3090.",
+        "base": "pss_periode",
+        "taux": {
+          "2023-10-01": 0.62,
+          "2025-07-01": 0.74,
+          "2026-01-01": 0.81,
+          "2027-01-01": 0.89
+        },
+        "taux_alsace_moselle": {
+          "2023-10-01": 0.44,
+          "2025-07-01": 0.53,
+          "2026-01-01": 0.58,
+          "2027-01-01": 0.64
+        },
+        "part_patronale_minimum": 50,
+        "_source": "XII.2.1.10 (cotisations, au titre de la couverture du seul salarie) et XII.2.1.11 (l'employeur prend en charge au moins 50 % de la cotisation). Le taux du 01/01/2027 vient de la version de l'article datee de ce jour, livree par la DILA le 02/07/2026 (KALIARTI000053128484). Alsace-Moselle (XII.2.1.10, << regime local d'Alsace-Moselle >>) : 0,44 % en 2023 (KALIARTI000048162263), 0,64 % au 01/01/2027 (KALIARTI000053128484), relus le 29/09/2026 et appliques (journal §159).",
+        "_dispenses": "Les dispenses d'affiliation (XII.2.1.8) existent -- CDD de moins de douze mois, couverture ailleurs, temps partiel a 10 % du brut... -- et se decident salarie par salarie, sur sa demande ecrite : `sante_dispense` sur sa fiche, avec le motif. Sans elle, le salarie est affilie, parce que c'est l'obligation."
+      },
+      "intermittents": {
+        "_quoi": "Ce que la CCNEAC ajoute a l'accord interbranches pour ses intermittents -- applique par la couche 1285 du bareme (par_convention), pas par ce module. Releve ici pour que les deux se lisent ensemble.",
+        "non_cadres": {
+          "ta_salariale": 0.12,
+          "ta_patronale": 1.11,
+          "_techniciens": "XII.2.2.4 : 1,05 % de la tranche 1 pour les techniciens non cadres, qui << s'impute en totalite >> sur l'obligation interbranche -- celle-ci est a 1,11 en 2026, il n'y a rien a ajouter."
+        },
+        "cadres_techniciens": {
+          "ta_salariale": 0.12,
+          "ta_patronale": 2.14,
+          "tb_patronale": 0.95,
+          "_source": "XII.2.2.1 et XII.2.2.2 : pour << les salaries intermittents cadres effectuant des prestations techniques >>, 0,45 % de la tranche 1 et 0,95 % de la tranche 2, 100 % employeur, en plus de l'interbranche (0,12 / 1,69). Audiens 2026 p. 11 : 1,33 + 0,81 = 2,14 en TA, 0,95 en TB."
+        },
+        "cadres_artistes": {
+          "ta_salariale": 0.12,
+          "ta_patronale": 1.69,
+          "_source": "XII.2.2.4 : << pour les salaries intermittents cadres et pour les artistes, les taux ... hors garanties complementaires specifiques a la branche, sont ceux de l'accord interbranches >> -- et le complement de XII.2.2.1 ne vise que les prestations techniques."
+        },
+        "_source": "Article XII.2.2 en vigueur (base KALI) ; Audiens, web-conference << Nouveautes reglementaires 2026 >> du 27/01/2026, page 11."
+      }
+    },
+    "2642": {
+      "libelle": "Production audiovisuelle",
+      "organisme": "AUDIENS (Audiens Prevoyance) -- designe par la branche (IX.2.3.1), designation exclue de l'extension (arrete du 13/11/2014) : une entreprise peut s'assurer ailleurs, aux memes garanties au moins",
+      "texte": "CCN du 13/12/2006, titre IX << Prevoyance >>, article IX.2",
+      "en_vigueur": "2015-01-01",
+      "etat": "version de l'article IX.2 en vigueur etendue depuis le 01/01/2015 (avenant n° 5 du 31/05/2013), sans modification depuis dans la base KALI au 25/09/2026",
+      "source": "kali-entrepot (IDCC 2642, KALIARTI000028141156)",
+      "applicable": true,
+      "_confirme": "Lu le 25/09/2026 sur la base KALI de la DILA, version en vigueur de l'article IX.2 (KALIARTI000028141156, du 01/01/2015) : << Les salaries non cadres et les entreprises acquittent une cotisation egale a 1 % de la remuneration comprise dans la tranche 1 ... reparties a hauteur de 50 % pour l'employeur et 50 % pour le salarie >>, avec le tableau de decomposition de l'avenant n° 5. Aucune condition d'anciennete pour la cotisation (la franchise du IX.2.2.3 ne vise que l'indemnite journaliere).",
+      "obligatoire": {
+        "taux": 1.0,
+        "base": "t1_mensuelle",
+        "part_patronale": 50,
+        "ventilation": {
+          "deces": 0.5,
+          "incapacite_invalidite": 0.5
+        },
+        "_source": "Article IX.2.1 : 1 % de la tranche 1, dont 0,50 deces (0,22 employeur + 0,28 salarie) et 0,50 incapacite-invalidite (maintien de salaire 0,06 employeur ; hors maintien 0,22 + 0,22) -- 0,50 employeur et 0,50 salarie au total."
+      },
+      "beneficiaires": {
+        "_qui": "Les salaries NON CADRES de droit commun -- les permanents, en CDI ou en CDD ordinaire (IX.2, premier alinea). Pas les intermittents : leur prevoyance est l'interbranche (IX.1), dans le bareme. PAS LES CADRES : la 2642 n'a pas de regime cadre ; ils n'ont que le plancher national de 1,50 % de la tranche A, a la charge exclusive de l'employeur (`obligation_cadre`), que `prevoyance.cotisation` applique alors a 100 % patronal.",
+        "ouverture_cadre_mois": 0,
+        "ouverture_non_cadre_mois": 0,
+        "_ouverture": "Des l'embauche : l'article IX.2 ne pose aucune condition d'anciennete a la cotisation."
+      },
+      "_sante": "La 2642 n'a PAS de regime de frais de sante (rien au titre IX ni ailleurs dans la base KALI au 25/09/2026) : c'est le contrat de chaque entreprise, au minimum legal (art. L911-7 CSS, la moitie a la charge de l'employeur). Le moteur ne sait pas encore le lire et refuse (`calcul.bareme_sante`)."
+    },
+    "3097": {
+      "libelle": "Production cinematographique et de films publicitaires",
+      "organisme": "aucun designe : la convention n'a pas de regime de prevoyance pour ses permanents",
+      "texte": "CCN du 19/01/2012, titre IV << Salaries permanents >>, chapitre VII << Sante, prevoyance >>",
+      "en_vigueur": "2022-09-01",
+      "etat": "chapitre VII du titre IV dans sa version de l'avenant du 19/07/2022 (en vigueur etendue au 01/09/2022), sans modification depuis dans la base KALI au 25/09/2026",
+      "source": "kali-entrepot (IDCC 3097, KALIARTI000046989035)",
+      "applicable": true,
+      "_confirme": "Lu le 25/09/2026 sur la base KALI de la DILA : << Les entreprises sont dans l'obligation de faire en sorte que les salaries du titre IV qu'elles emploient beneficient d'une couverture complementaire sante correspondant aux obligations legales. Par ailleurs, les partenaires sociaux s'engagent a ouvrir des negociations relatives a la prevoyance des salaries non-cadres. >> C'est tout : aucun taux, aucun organisme. L'article 25 du titre Ier renvoie la prevoyance aux titres II a IV ; l'article 45 du titre II ne vise que les techniciens INTERMITTENTS.",
+      "obligatoire": {
+        "taux": 0.0,
+        "base": "t1_mensuelle",
+        "part_patronale": 100,
+        "_source": "Aucun regime de branche. Le taux nul ne sert qu'aux cadres, pour que le plancher national s'y substitue (`prevoyance._minimum_t1`)."
+      },
+      "beneficiaires": {
+        "_qui": "Les CADRES permanents : le plancher national de 1,50 % de la tranche A, a la charge exclusive de l'employeur (`obligation_cadre`). Les NON CADRES : rien n'est du (`non_cadres: false`), et le bulletin ne porte pas de ligne. Une entreprise qui a souscrit un contrat pour eux le dit sur sa fiche (`prevoyance_permanents.regime: contrat`).",
+        "non_cadres": false,
+        "ouverture_cadre_mois": 0,
+        "ouverture_non_cadre_mois": 0
+      },
+      "_sante": "Pas de regime de branche : le contrat de chaque entreprise, au minimum legal (art. L911-7 CSS). Son taux se pose sur la fiche Entreprise (`sante_permanents.taux_contrat`), comme pour la 2642."
+    },
+    "3252": {
+      "libelle": "Entreprises au service de la creation et de l'evenement",
+      "organisme": "aucun designe : l'entreprise adhere au dispositif de branche ou a un contrat d'entreprise aux garanties au moins equivalentes (8.4.2 B, 8.4.3 A) ; Audiens ne gere que le fonds de solidarite (8.4.4 B)",
+      "texte": "CCN du 27/06/2024, titre VIII, section 8.4 << Protection sociale complementaire >>, articles 8.4.2 (sante) et 8.4.3 (prevoyance)",
+      "en_vigueur": "2026-01-01",
+      "etat": "section 8.4 en vigueur etendue au 01/01/2026 (article 11.1 II 2° : le premier jour de l'annee qui suit l'arrete d'extension du 13/03/2025) ; 8.4.2 dans sa version du 17/05/2025 (avenant n° 3), 8.4.3 dans celle du 01/04/2025, 8.4.1 dans celle du 01/09/2026 (avenant n° 6, les mannequins) -- base KALI au 27/09/2026",
+      "source": "kali-entrepot (IDCC 3252, texte KALITEXT000050299244 : 8.4.2 KALIARTI000051948405, 8.4.3 KALIARTI000050299494)",
+      "applicable": true,
+      "_confirme": "Lu le 27/09/2026 sur la base KALI de la DILA, article 8.4.3 D : << Les cotisations sont assises sur la remuneration brute [...] limitee a la tranche 1. Les salaries et les entreprises acquittent une cotisation egale a 0,79 % de l'assiette >> : non-cadre 0,395 % salarie + 0,395 % employeur ; cadre 0 % salarie + 0,79 % employeur, << imputables a l'obligation [...] de l'accord national interprofessionnel du 17 novembre 2017 >> (1,50 %). Aucune condition d'anciennete a la cotisation (la condition de 12 mois du 8.4.3 B 1° ne vise que la prestation incapacite).",
+      "obligatoire": {
+        "taux": 0.79,
+        "base": "t1_mensuelle",
+        "part_patronale": 50,
+        "_source": "Article 8.4.3 D : 0,79 % de la tranche 1, moitie-moitie pour un non-cadre (0,395 + 0,395). La part << incapacite temporaire >> est a la charge du salarie non cadre, dans la limite de la moitie du total : la repartition globale reste 50 / 50."
+      },
+      "beneficiaires": {
+        "_qui": "Tous les salaries de la convention (8.4.1), SAUF les intermittents des annexes VIII et X (l'accord interbranches, dans le bareme) et les mannequins (le versement sante de l'annexe V, article 3.10). LES CADRES : 0,79 % tout patronal, impute sur le plancher national de 1,50 % de la tranche A (`obligation_cadre`) -- `prevoyance.cotisation` porte donc un cadre a 1,50 % patronal, comme sous la 2642.",
+        "ouverture_cadre_mois": 0,
+        "ouverture_non_cadre_mois": 0,
+        "_ouverture": "Des l'embauche : l'article 8.4.3 ne pose aucune condition d'anciennete a la cotisation."
+      },
+      "sante": {
+        "_quoi": "Les frais de sante des permanents (8.4.2), lus par `calcul.bareme_sante` : un taux unique au titre du seul salarie, comme la CCNEAC. Une entreprise a contrat plus favorable le dit par sa part employeur ; ses garanties ne peuvent etre inferieures a celles du tableau de la branche (8.4.2 E).",
+        "base": "pss_periode",
+        "taux": {
+          "2026-01-01": 1.1
+        },
+        "taux_alsace_moselle": {
+          "2026-01-01": 0.78
+        },
+        "part_patronale_minimum": 50,
+        "_source": "Article 8.4.2 F (version du 17/05/2025) : << les cotisations s'elevent a 1,10 % du plafond mensuel de la securite sociale, au titre de la couverture du seul salarie. [...] Alsace-Moselle [...] 0,78 % [...] Ces cotisations sont reparties a part egale entre l'employeur et le salarie. >> Des le premier jour de presence (8.4.2 A). Alsace-Moselle lu par `calcul._sante_conventionnelle` depuis le 29/09/2026 (journal §159) : le code postal de l'etablissement du salarie (57, 67, 68)."
+      }
+    },
+    "3241": {
+      "libelle": "Telediffusion",
+      "organisme": "aucun designe : << avec un organisme de prevoyance >> (article 54.1), au choix de l'entreprise",
+      "texte": "CCN du 02/07/2021, article 54 et annexe 6 << Regime de prevoyance >> (avenant du 30/09/2022)",
+      "en_vigueur": "2024-01-01",
+      "etat": "annexe 6 en vigueur etendue au 01/01/2024 (arrete du 30/11/2023), sans modification dans la base KALI au 27/09/2026",
+      "source": "kali-entrepot (IDCC 3241, annexe 6 KALITEXT000046956325 : article 1er KALIARTI000046956333, 4.1 KALIARTI000046956341, 5 KALIARTI000046956348)",
+      "applicable": true,
+      "contrat_requis": true,
+      "_confirme": "Lu le 27/09/2026 sur la base KALI : l'annexe 6 institue << un socle minimum de garanties identiques pour l'ensemble des salaries, cadres et non cadres, seule la contribution patronale differant >> (preambule) -- deces, incapacite, invalidite (4.1), sur la remuneration brute annuelle dans la limite des tranches A et B, quatre plafonds (article 3). L'article 5 fixe la REPARTITION, pas le taux : non-cadres 50 / 50 sur A et B ; cadres 100 % employeur sur A, 50 / 50 sur B. Le taux est celui du contrat de l'entreprise : le moteur le demande (`contrat_requis`) et ne l'invente pas.",
+      "obligatoire": {
+        "taux": null,
+        "base": "t1_mensuelle",
+        "part_patronale": 50,
+        "t2_part_patronale": 50,
+        "t2_base": "t2_conventionnelle",
+        "_source": "Annexe 6, article 5 : la repartition. Tranche B : << la partie du salaire comprise entre ce plafond et 4 fois ce dernier au plus >> -- `t2_conventionnelle`."
+      },
+      "beneficiaires": {
+        "_qui": "Les salaries en CDI et en CDD de droit commun (annexe 6, article 1er) ; pas les intermittents en CDDU (l'interbranche, dans le bareme), ni les journalistes pigistes. Cadres : la tranche A tout patronale, au moins les 1,50 % du plancher national (`obligation_cadre`).",
+        "ouverture_cadre_mois": 0,
+        "ouverture_non_cadre_mois": 0,
+        "_ouverture": "L'annexe 6 (4.1) ouvre les garanties << au plus tard >> le premier jour du mois qui suit quatre mois d'anciennete : c'est un plafond, le contrat de l'entreprise peut ouvrir plus tot. TRANCHE le 27/09/2026 (l'editeur, journal §151) : le moteur cotise des l'embauche. C'est conforme au texte (<< au plus tard >> est un plafond, pas un delai de carence), c'est ce qu'exige deja l'ANI pour les cadres, et c'est la seule lecture qui ne laisse jamais un salarie decouvert."
+      },
+      "_sante": "Pas de regime de branche : << une assurance frais medicaux doit etre obligatoirement mise en place au sein de chaque entreprise >> (article 54.2), au panier de soins. Son taux se pose sur la fiche Entreprise (`sante_permanents.taux_contrat`), comme pour la 2642."
+    },
+    "1922": {
+      "libelle": "Radiodiffusion",
+      "organisme": "AUDIENS (Audiens Prevoyance) et l'OCIRP pour la rente education -- RECOMMANDES par la branche (article 11), pas designes",
+      "texte": "Accord du 17/12/2015 relatif a la creation d'un regime de sante et de prevoyance, articles 7 (sante) et 10 (prevoyance)",
+      "en_vigueur": "2017-07-01",
+      "etat": "article 10 inchange depuis le 01/07/2017 ; article 7 dans ses versions du 01/10/2025 et du 01/10/2026 (avenant du 17/01/2025, articles 2 et 3) -- base KALI au 27/09/2026",
+      "source": "kali-entrepot (IDCC 1922, texte KALITEXT000032241924 ; avenant KALITEXT000051834663)",
+      "applicable": true,
+      "_confirme": "Lu le 27/09/2026, article 10 : << La cotisation, fixee a 0,88 % de la tranche A, est repartie de la facon suivante : salaries non cadres [...] employeur 50 %, salarie 50 % ; salaries cadres [...] employeur 100 % >>, et << la cotisation de 0,88 % s'impute ainsi sur l'obligation pesant sur l'employeur de cotiser a hauteur de 1,50 % sur la tranche A >>. Article 3 : tous les salaries, cadres ou non, journalistes compris, en CDI ou CDD, << sans condition d'anciennete >> ; exclus les intermittents (l'interbranche) et les pigistes.",
+      "obligatoire": {
+        "taux": 0.88,
+        "base": "t1_mensuelle",
+        "part_patronale": 50,
+        "_source": "Article 10 : 0,88 % de la tranche A, moitie-moitie pour un non cadre. Un cadre : tout patronal, porte a 1,50 % par l'obligation nationale (`obligation_cadre`)."
+      },
+      "beneficiaires": {
+        "_qui": "Les salaries en CDI et en CDD de droit commun, cadres ou non (article 3). Pas les intermittents en CDDU, ni les journalistes a la pige.",
+        "ouverture_cadre_mois": 0,
+        "ouverture_non_cadre_mois": 0,
+        "_ouverture": "<< sans condition d'anciennete >> (article 3)."
+      },
+      "sante": {
+        "_quoi": "Les frais de sante des permanents (article 7) : un taux unique au titre du seul salarie, moitie-moitie (article 8 : l'employeur au moins 50 %). Lu par `calcul.bareme_sante`.",
+        "base": "pss_periode",
+        "taux": {
+          "2025-10-01": 1.011,
+          "2026-10-01": 1.06
+        },
+        "taux_alsace_moselle": {
+          "2025-10-01": 0.66,
+          "2026-10-01": 0.69
+        },
+        "part_patronale_minimum": 50,
+        "_source": "Article 7 de l'accord du 17/12/2015, versions de l'avenant du 17/01/2025 : 1,011 % du PMSS pour le salarie au 01/10/2025 (article 2, << augmentees de 12 % >>), 1,06 % au 01/10/2026 (article 3, << augmentees de 5 %, 12 mois apres l'extension >> -- l'arrete du 12/09/2025). Alsace-Moselle : 0,66 puis 0,69 % du PMSS, lus dans les deux versions de l'article 7 (tableau << Regime Alsace-Moselle >>, salarie) le 29/09/2026, appliques par `calcul._sante_conventionnelle` (journal §159)."
+      }
+    },
+    "2412": {
+      "libelle": "Production de films d'animation",
+      "organisme": "AUDIENS (Audiens Prevoyance) -- designe par l'annexe (article 7), designation exclue de l'extension (arrete du 15/12/2014) : une entreprise peut s'assurer ailleurs, aux memes garanties au moins",
+      "texte": "Annexe relative au regime de prevoyance (accord du 30/06/2005, avenant du 30/05/2012), article 4",
+      "en_vigueur": "2012-05-30",
+      "etat": "article 4 dans sa version du 30/05/2012, sans modification dans la base KALI au 27/09/2026",
+      "source": "kali-entrepot (IDCC 2412, KALIARTI000026707615)",
+      "applicable": true,
+      "_confirme": "Lu le 27/09/2026, article 4 : tranche 1 ; deces et IPT 0,90 % cadres, 0,50 % non cadres ; incapacite et invalidite 0,60 % cadres, 0,57 % non cadres ; << soit au total pour le personnel cadre permanent : 1,50 % [...] non cadre permanent 1,07 % >> ; cadres tout a la charge de l'employeur, non cadres a parite.",
+      "obligatoire": {
+        "taux": 1.07,
+        "base": "t1_mensuelle",
+        "part_patronale": 50,
+        "ventilation": {
+          "deces": 0.5,
+          "incapacite_invalidite": 0.57
+        },
+        "_source": "Article 4.2 et 4.3 : 1,07 % de la tranche 1, a parite, pour un non cadre permanent."
+      },
+      "obligatoire_cadre": {
+        "taux": 1.5,
+        "base": "t1_mensuelle",
+        "part_patronale": 100,
+        "ventilation": {
+          "deces": 0.9,
+          "incapacite_invalidite": 0.6
+        },
+        "_source": "Article 4.2 et 4.3 : 1,50 % de la tranche 1, tout patronal, pour un cadre permanent -- l'obligation nationale, exactement."
+      },
+      "beneficiaires": {
+        "_qui": "Le personnel permanent, cadre et non cadre (annexe, 1.1). Les intermittents : << exclusivement >> l'interbranche.",
+        "ouverture_cadre_mois": 0,
+        "ouverture_non_cadre_mois": 0,
+        "_ouverture": "L'annexe ne pose aucune condition d'anciennete a la cotisation."
+      },
+      "_sante": "Pas de regime de branche (rien dans la base KALI au 27/09/2026) : le contrat de chaque entreprise, au minimum legal (L911-7 CSS), taux sur la fiche Entreprise (`sante_permanents.taux_contrat`)."
+    },
+    "2121": {
+      "libelle": "Edition phonographique (IDCC 2121, annexe IX)",
+      "organisme": "AUDIENS Sante Prevoyance (avec l'OCIRP pour la rente education) et un second assureur co-recommande, nomme a l'article 8 (son nom n'est pas recopie ici : il contient celui d'une commune, que le garde-fou des donnees privees refuse) -- RECOMMANDES (article 8), pas designes : une entreprise peut s'assurer ailleurs, aux memes garanties au moins",
+      "texte": "Accord du 13/12/2024 relatif a la prevoyance de l'edition, article 6",
+      "en_vigueur": "2025-01-01",
+      "etat": "accord du 13/12/2024 (VIGUEUR_ETEN dans la base KALI au 25/09/2026) ; ses taux ne sont pas dans KALI, ils sont au BOCC 2025/4",
+      "source": "kali-entrepot (IDCC 2121, KALITEXT000051379354) ; taux : BOCC 2025/4, fascicule 10 (boc_20250004_0000_0010.pdf, p. 41-42, open data DILA)",
+      "applicable": true,
+      "_confirme": "Lu le 29/09/2026 (journal §156). Article 1er : l'accord << se substitue a l'ancien article 21.2 et l'ancienne sous-annexe 3 de l'annexe 1 de la CCN de l'edition phonographique >>. Article 6.1.2 : << Taux appeles applicables en 2025 et 2026 >>, non cadres, T1/T2 (max 4 PASS) : 0,650 % employeur, 0,650 % salarie, 1,300 % au total. Article 6.2, cadres et assimiles : T1 1,500 % employeur ; T2 (max 4 PASS) 1,160 % employeur, 1,160 % salarie, 2,320 % au total. Relu le 29/09/2026 (journal §159) sur le PDF du BOCC 2025/4 : les taux contractuels des non cadres (6.1.1), 1,810 %, s'appliquent au 01/01/2027 (`a_partir_du`).",
+      "obligatoire": {
+        "taux": 1.3,
+        "base": "t1_mensuelle",
+        "part_patronale": 50,
+        "t2": 1.3,
+        "t2_base": "t2_conventionnelle",
+        "ventilation": {
+          "deces": 0.317,
+          "incapacite_invalidite": 0.983
+        },
+        "_source": "Article 6.1.2 : les taux APPELES de 2025 et 2026, sur T1 et T2 jusqu'a quatre plafonds, a parite.",
+        "a_partir_du": {
+          "2027-01-01": {
+            "taux": 1.81,
+            "t2": 1.81,
+            "ventilation": {"deces": 0.44, "incapacite_invalidite": 1.37},
+            "_source": "Article 6.1.1, << Taux contractuels NON CADRES >>, T1/T2 (max 4 PASS) : deces 0,440 % tout employeur (capitaux 0,230, rente education 0,170, double effet 0,001, obseques 0,039) ; arret de travail 1,370 % (incapacite 0,700 salarie ; invalidite 0,465 employeur + 0,205 salarie) ; total 0,905 % employeur, 0,905 % salarie, 1,810 %. Article 6.1.2 : les taux appeles sont << maintenus pour une periode de deux ans >> (2025 et 2026) et << les cotisations prevues au 6.1.1 s'appliqueront a l'issue de la periode beneficiant du taux d'appel >> : au 01/01/2027. Lu le 29/09/2026 dans le BOCC 2025/4, fascicule 10, p. 41 (source bocc-2121-prevoyance-20241213, journal §159)."
+          }
+        }
+      },
+      "obligatoire_cadre": {
+        "taux": 1.5,
+        "part_patronale": 100,
+        "t2": 2.32,
+        "t2_part_patronale": 50,
+        "t2_base": "t2_conventionnelle",
+        "ventilation": {
+          "deces": 0.82,
+          "incapacite_invalidite": 0.68
+        },
+        "_source": "Article 6.2 : T1 1,50 % tout patronal (l'obligation nationale, exactement) ; T2 2,32 %, 1,16 % employeur et 1,16 % salarie. Pas de taux d'appel pour les cadres. Relu le 29/09/2026 (journal §159) : l'article 6.2 n'a qu'un tableau, << TAUX CONTRACTUELS CADRES ET ASSIMILES >> -- rien ne change pour les cadres au 01/01/2027."
+      },
+      "beneficiaires": {
+        "_qui": "Les salaries en CDI ou en CDD, cadres et assimiles (ANI du 17/11/2017, art. 2.1 et 2.2) ou non cadres (articles 2 et 3.1). Exclus : les intermittents de l'accord interbranche du 20/12/2006, et les VRP statutaires.",
+        "ouverture_cadre_mois": 0,
+        "ouverture_non_cadre_mois": 0,
+        "_ouverture": "Aucune condition d'anciennete a l'adhesion."
+      },
+      "_sante": "Pas de regime de branche pour le disque (rien dans la base KALI au 25/09/2026 ; la garantie << aide aux aidants >> de l'avenant du 05/09/2025 est propre a l'edition de livres) : le contrat de chaque entreprise, au minimum legal (L911-7 CSS), taux sur la fiche Entreprise (`sante_permanents.taux_contrat`)."
+    },
+    "1790": {
+      "libelle": "Espaces de loisirs, d'attractions et culturels",
+      "organisme": "Libre : l'avenant n° 68 dit les entreprises << libres de choisir l'organisme de prevoyance >> ; aucune designation en vigueur (celle de 2013, non etendue, a pris fin le 31/12/2016). Sante : AG2R Prevoyance RECOMMANDE (accord du 28/06/2013)",
+      "texte": "Avenant n° 44 du 28/06/2013, article 2, dans sa version de l'avenant n° 68 du 14/10/2021",
+      "en_vigueur": "2022-01-01",
+      "etat": "article 2 de l'avenant n° 44 remplace au 01/01/2022 (KALIARTI000045129944, VIGUEUR_ETEN) ; sante : annexe V, article 5 dans sa version du 01/01/2026 (avenant n° 74, KALIARTI000052369350) -- base KALI au 25/09/2026",
+      "source": "kali-entrepot (IDCC 1790, KALITEXT000045129940 ; KALITEXT000027941626)",
+      "applicable": true,
+      "_confirme": "Lu le 29/09/2026 (journal §156), avenant n° 68, article 1er : << 0,65 % des salaires bruts tranche 1 et tranche 2 (limite au total T1 + T2 a 4 Pass [et 3 Pass pour les non cadres de la filiere spectacle]) [...] pour l'ensemble des salaries permanents y compris ceux de la filiere spectacle >> ; << 40 % a la charge des salaries ; 60 % a la charge de l'employeur >> ; << les entreprises de la branche doivent se conformer a l'obligation resultant de la convention collective nationale des cadres du 14 mars 1947. Les cotisations visees ci-dessus seront prises en compte pour apprecier cette obligation. >>",
+      "obligatoire": {
+        "taux": 0.65,
+        "base": "t1_mensuelle",
+        "part_patronale": 60,
+        "t2": 0.65,
+        "t2_base": "t2_conventionnelle",
+        "ventilation": {
+          "deces": 0.22,
+          "incapacite_invalidite": 0.43
+        },
+        "_source": "Avenant n° 68, article 1er : 0,65 % de la T1 et de la T2, 60 % employeur, 40 % salarie. Un cadre : sa T1 portee a 1,50 % tout patronal par l'obligation nationale (les 0,65 % s'y imputent), sa T2 a 0,65 %, 60/40.",
+        "_trois_plafonds": "Pour un non cadre de la filiere spectacle, T1 + T2 s'arretent a TROIS plafonds, pas quatre. Le moteur prend quatre (`t2_conventionnelle`) : l'ecart ne touche qu'un salaire mensuel au-dela de trois plafonds (plus de 12 000 EUR en 2026)."
+      },
+      "beneficiaires": {
+        "_qui": "Tous les salaries permanents, cadres et non cadres, filiere spectacle comprise (avenant n° 68). Les intermittents de la filiere spectacle ont un regime a part (avenant n° 23, III, Audiens) qui fixe des garanties sans taux : l'interbranche du socle.",
+        "ouverture_cadre_mois": 0,
+        "ouverture_non_cadre_mois": 0,
+        "_ouverture": "Aucune condition d'anciennete a la cotisation (avenant n° 23, article 1er : << quel que soit le nombre d'heures effectuees >>)."
+      },
+      "sante": {
+        "_quoi": "Les frais de sante des permanents (annexe V, avenant n° 45 du 28/06/2013), << famille hors conjoint >>, moitie-moitie. Lu par `calcul.bareme_sante`.",
+        "base": "pss_periode",
+        "taux": {
+          "2024-01-01": 1.24,
+          "2026-01-01": 1.36
+        },
+        "taux_alsace_moselle": {
+          "2024-01-01": 0.78,
+          "2026-01-01": 0.86
+        },
+        "part_patronale_minimum": 50,
+        "_source": "Annexe V, article 5 : 1,24 % du PMSS au 01/01/2024 (KALIARTI000048577380, remplace) ; 1,36 % au 01/01/2026 (avenant n° 74 du 26/06/2025, etendu le 09/12/2025 ; KALIARTI000052369350) ; Alsace-Moselle 0,78 puis 0,86 %. << La cotisation est repartie a hauteur de 50 % pour l'employeur et 50 % pour le salarie. >> Dispenses (article 2) : un CDD de moins de douze mois, notamment."
+      }
+    },
+    "_les_autres": "Huit conventions sont relevees : 3090 (spectacle vivant prive), 1285 (entreprises artistiques et culturelles, le secteur subventionne) -- confirmee le 23/09/2026 sur la base KALI --, 2642 (production audiovisuelle, 25/09/2026), 3097 (production cinematographique, 25/09/2026 : pas de regime, le plancher des cadres seul), 3252 (creation et evenement, 27/09/2026 : 0,79 % de la T1 et la sante a 1,10 % du PMSS) 3241 (telediffusion, 27/09/2026 : des garanties sans taux, le contrat de l'entreprise) 1922 (radiodiffusion, 27/09/2026 : 0,88 % de la T1, sante 1,011 puis 1,06 % du PMSS) et 2412 (films d'animation, 27/09/2026 : 1,07 % non cadres, 1,50 % cadres). Audiens en sert treize (guide pratique 2026, p. 42 : presse, production audiovisuelle, cinema, radiodiffusion, telediffusion, espaces de loisirs, edition phonographique...). Pour chacune, le moteur REFUSE de payer un permanent plutot que d'appliquer le taux d'une branche voisine, et dit quoi relever : le titre prevoyance de la convention sur Legifrance, puis une entree ici avec sa source. Le mecanisme, lui, est deja ecrit : il n'y a qu'un bloc de nombres a ajouter."
+  }
+}

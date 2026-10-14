@@ -1,0 +1,164 @@
+{
+  "_origine": "Compagnie de demonstration demo-3090-grande, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2025-01",
+  "taux_cachet": 180.0,
+  "date_paiement": "2025-01-31",
+  "engagements": [
+    {
+      "salarie": "Montansier",
+      "nature": "cdi",
+      "debut": "2023-09-04",
+      "numero": "MO.23.01",
+      "salaire_mensuel": 3050.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Nicolet",
+      "nature": "cdi",
+      "debut": "2024-03-01",
+      "numero": "NI.24.01",
+      "salaire_mensuel": 2250.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Biancolelli",
+      "spectacle": "256Z00910011",
+      "debut": "2025-01-13",
+      "fin": "2025-01-18",
+      "date_paiement": "2025-01-18",
+      "lignes": [
+        {
+          "rubrique": "repetition",
+          "quantite": 2,
+          "taux": 96.0,
+          "heures": 4,
+          "lieu": "Theatre de l'Etuve, Blois",
+          "dates": [
+            "2025-01-13",
+            "2025-01-14"
+          ]
+        },
+        {
+          "rubrique": "cachet",
+          "quantite": 3,
+          "taux": 180.0,
+          "lieu": "Theatre de l'Etuve, Blois",
+          "dates": [
+            "2025-01-16",
+            "2025-01-17",
+            "2025-01-18"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 3,
+          "taux": 20.2
+        }
+      ],
+      "numero": "BI4.25.01"
+    },
+    {
+      "salarie": "Deburau",
+      "spectacle": "256Z00910011",
+      "debut": "2025-01-13",
+      "fin": "2025-01-18",
+      "date_paiement": "2025-01-18",
+      "lignes": [
+        {
+          "rubrique": "repetition",
+          "quantite": 2,
+          "taux": 96.0,
+          "heures": 4,
+          "lieu": "Theatre de l'Etuve, Blois",
+          "dates": [
+            "2025-01-13",
+            "2025-01-14"
+          ]
+        },
+        {
+          "rubrique": "cachet",
+          "quantite": 3,
+          "taux": 180.0,
+          "lieu": "Theatre de l'Etuve, Blois",
+          "dates": [
+            "2025-01-16",
+            "2025-01-17",
+            "2025-01-18"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 3,
+          "taux": 20.2
+        }
+      ],
+      "numero": "DE5.25.01"
+    },
+    {
+      "salarie": "Clairon",
+      "spectacle": "256Z00910011",
+      "debut": "2025-01-13",
+      "fin": "2025-01-18",
+      "date_paiement": "2025-01-18",
+      "lignes": [
+        {
+          "rubrique": "repetition",
+          "quantite": 2,
+          "taux": 96.0,
+          "heures": 4,
+          "lieu": "Theatre de l'Etuve, Blois",
+          "dates": [
+            "2025-01-13",
+            "2025-01-14"
+          ]
+        },
+        {
+          "rubrique": "cachet",
+          "quantite": 3,
+          "taux": 180.0,
+          "lieu": "Theatre de l'Etuve, Blois",
+          "dates": [
+            "2025-01-16",
+            "2025-01-17",
+            "2025-01-18"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 3,
+          "taux": 20.2
+        }
+      ],
+      "numero": "CL6.25.01"
+    },
+    {
+      "salarie": "Chaminade",
+      "spectacle": "256Z00910011",
+      "debut": "2025-01-13",
+      "fin": "2025-01-18",
+      "date_paiement": "2025-01-18",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 40,
+          "taux": 18.5,
+          "lieu": "Theatre de l'Etuve, Blois",
+          "dates": [
+            "2025-01-13",
+            "2025-01-14",
+            "2025-01-16",
+            "2025-01-17",
+            "2025-01-18"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 3,
+          "taux": 20.2
+        }
+      ],
+      "numero": "CH8.25.01"
+    }
+  ],
+  "numeros_figes": true
+}

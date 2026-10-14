@@ -1,0 +1,22 @@
+{
+  "2025": {
+    "bulletin": 62,
+    "contrat_BIANCOLELLI": 5,
+    "contrat_DEBURAU": 5,
+    "contrat_CLAIRON": 9,
+    "contrat_CHAMINADE": 5,
+    "certificat_cs": 34,
+    "contrat_JACQUET": 4,
+    "contrat_SERVANDONI": 6
+  },
+  "2026": {
+    "bulletin": 56,
+    "contrat_BIANCOLELLI": 7,
+    "contrat_CLAIRON": 8,
+    "contrat_JACQUET": 7,
+    "certificat_cs": 66,
+    "contrat_CHAMINADE": 4,
+    "contrat_SERVANDONI": 5,
+    "contrat_DEBURAU": 1
+  }
+}

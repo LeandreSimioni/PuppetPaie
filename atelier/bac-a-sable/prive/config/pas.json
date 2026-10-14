@@ -1,0 +1,1110 @@
+{
+  "_source": "Compagnie de demonstration : des taux de prelevement a la source FABRIQUES, comme s'ils venaient des comptes-rendus de la DGFiP (nature 94). Les salaries sans taux partent sur la grille de l'article 204 H.",
+  "salaries": {
+    "NADAR": {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08"
+    },
+    "TURLUPIN": {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08"
+    },
+    "DUMESNIL": {
+      "taux": "6.00",
+      "type": "01",
+      "identifiant": "893162026",
+      "mis_a_disposition": "20261108120000",
+      "periode": "202611",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-11-08"
+    },
+    "NOVERRE": {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08"
+    },
+    "FARRENC": {
+      "taux": "3.30",
+      "type": "01",
+      "identifiant": "893182027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08"
+    },
+    "TORELLI": {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08"
+    },
+    "DORVAL": {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08"
+    }
+  },
+  "journal": [
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132024",
+      "mis_a_disposition": "20241210120000",
+      "periode": "202412",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2024-12-10",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132025",
+      "mis_a_disposition": "20250208120000",
+      "periode": "202502",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-02-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152025",
+      "mis_a_disposition": "20250208120000",
+      "periode": "202502",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-02-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "6.00",
+      "type": "01",
+      "identifiant": "893162025",
+      "mis_a_disposition": "20250208120000",
+      "periode": "202502",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-02-08",
+      "salarie": "DUMESNIL"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172025",
+      "mis_a_disposition": "20250208120000",
+      "periode": "202502",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-02-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "3.30",
+      "type": "01",
+      "identifiant": "893182025",
+      "mis_a_disposition": "20250208120000",
+      "periode": "202502",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-02-08",
+      "salarie": "FARRENC"
+    },
+    {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192025",
+      "mis_a_disposition": "20250208120000",
+      "periode": "202502",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-02-08",
+      "salarie": "TORELLI"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132025",
+      "mis_a_disposition": "20250308120000",
+      "periode": "202503",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-03-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132025",
+      "mis_a_disposition": "20250408120000",
+      "periode": "202504",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-04-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152025",
+      "mis_a_disposition": "20250408120000",
+      "periode": "202504",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-04-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "6.00",
+      "type": "01",
+      "identifiant": "893162025",
+      "mis_a_disposition": "20250408120000",
+      "periode": "202504",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-04-08",
+      "salarie": "DUMESNIL"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172025",
+      "mis_a_disposition": "20250408120000",
+      "periode": "202504",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-04-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192025",
+      "mis_a_disposition": "20250408120000",
+      "periode": "202504",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-04-08",
+      "salarie": "TORELLI"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132025",
+      "mis_a_disposition": "20250508120000",
+      "periode": "202505",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-05-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142025",
+      "mis_a_disposition": "20250508120000",
+      "periode": "202505",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-05-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152025",
+      "mis_a_disposition": "20250508120000",
+      "periode": "202505",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-05-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172025",
+      "mis_a_disposition": "20250508120000",
+      "periode": "202505",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-05-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132025",
+      "mis_a_disposition": "20250608120000",
+      "periode": "202506",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-06-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142025",
+      "mis_a_disposition": "20250608120000",
+      "periode": "202506",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-06-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152025",
+      "mis_a_disposition": "20250608120000",
+      "periode": "202506",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-06-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172025",
+      "mis_a_disposition": "20250608120000",
+      "periode": "202506",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-06-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "3.30",
+      "type": "01",
+      "identifiant": "893182025",
+      "mis_a_disposition": "20250608120000",
+      "periode": "202506",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-06-08",
+      "salarie": "FARRENC"
+    },
+    {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192025",
+      "mis_a_disposition": "20250608120000",
+      "periode": "202506",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-06-08",
+      "salarie": "TORELLI"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132025",
+      "mis_a_disposition": "20250708120000",
+      "periode": "202507",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-07-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142025",
+      "mis_a_disposition": "20250708120000",
+      "periode": "202507",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-07-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132025",
+      "mis_a_disposition": "20250808120000",
+      "periode": "202508",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-08-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142025",
+      "mis_a_disposition": "20250808120000",
+      "periode": "202508",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-08-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152025",
+      "mis_a_disposition": "20250808120000",
+      "periode": "202508",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-08-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172025",
+      "mis_a_disposition": "20250808120000",
+      "periode": "202508",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-08-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192025",
+      "mis_a_disposition": "20250808120000",
+      "periode": "202508",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-08-08",
+      "salarie": "TORELLI"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132025",
+      "mis_a_disposition": "20250908120000",
+      "periode": "202509",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-09-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142025",
+      "mis_a_disposition": "20250908120000",
+      "periode": "202509",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-09-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132025",
+      "mis_a_disposition": "20251008120000",
+      "periode": "202510",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-10-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142025",
+      "mis_a_disposition": "20251008120000",
+      "periode": "202510",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-10-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132025",
+      "mis_a_disposition": "20251108120000",
+      "periode": "202511",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-11-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142025",
+      "mis_a_disposition": "20251108120000",
+      "periode": "202511",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-11-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152025",
+      "mis_a_disposition": "20251108120000",
+      "periode": "202511",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-11-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "6.00",
+      "type": "01",
+      "identifiant": "893162025",
+      "mis_a_disposition": "20251108120000",
+      "periode": "202511",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-11-08",
+      "salarie": "DUMESNIL"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172025",
+      "mis_a_disposition": "20251108120000",
+      "periode": "202511",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-11-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "3.30",
+      "type": "01",
+      "identifiant": "893182025",
+      "mis_a_disposition": "20251108120000",
+      "periode": "202511",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-11-08",
+      "salarie": "FARRENC"
+    },
+    {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192025",
+      "mis_a_disposition": "20251108120000",
+      "periode": "202511",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-11-08",
+      "salarie": "TORELLI"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132025",
+      "mis_a_disposition": "20251208120000",
+      "periode": "202512",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-12-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142025",
+      "mis_a_disposition": "20251208120000",
+      "periode": "202512",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-12-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152025",
+      "mis_a_disposition": "20251208120000",
+      "periode": "202512",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-12-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172025",
+      "mis_a_disposition": "20251208120000",
+      "periode": "202512",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-12-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192025",
+      "mis_a_disposition": "20251208120000",
+      "periode": "202512",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-12-08",
+      "salarie": "TORELLI"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132026",
+      "mis_a_disposition": "20260108120000",
+      "periode": "202601",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-01-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142026",
+      "mis_a_disposition": "20260108120000",
+      "periode": "202601",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-01-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132026",
+      "mis_a_disposition": "20260208120000",
+      "periode": "202602",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-02-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142026",
+      "mis_a_disposition": "20260208120000",
+      "periode": "202602",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-02-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152026",
+      "mis_a_disposition": "20260208120000",
+      "periode": "202602",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-02-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "6.00",
+      "type": "01",
+      "identifiant": "893162026",
+      "mis_a_disposition": "20260208120000",
+      "periode": "202602",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-02-08",
+      "salarie": "DUMESNIL"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172026",
+      "mis_a_disposition": "20260208120000",
+      "periode": "202602",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-02-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "3.30",
+      "type": "01",
+      "identifiant": "893182026",
+      "mis_a_disposition": "20260208120000",
+      "periode": "202602",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-02-08",
+      "salarie": "FARRENC"
+    },
+    {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192026",
+      "mis_a_disposition": "20260208120000",
+      "periode": "202602",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-02-08",
+      "salarie": "TORELLI"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132026",
+      "mis_a_disposition": "20260308120000",
+      "periode": "202603",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-03-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142026",
+      "mis_a_disposition": "20260308120000",
+      "periode": "202603",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-03-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132026",
+      "mis_a_disposition": "20260408120000",
+      "periode": "202604",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-04-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142026",
+      "mis_a_disposition": "20260408120000",
+      "periode": "202604",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-04-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152026",
+      "mis_a_disposition": "20260408120000",
+      "periode": "202604",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-04-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172026",
+      "mis_a_disposition": "20260408120000",
+      "periode": "202604",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-04-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192026",
+      "mis_a_disposition": "20260408120000",
+      "periode": "202604",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-04-08",
+      "salarie": "TORELLI"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132026",
+      "mis_a_disposition": "20260508120000",
+      "periode": "202605",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-05-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142026",
+      "mis_a_disposition": "20260508120000",
+      "periode": "202605",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-05-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152026",
+      "mis_a_disposition": "20260508120000",
+      "periode": "202605",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-05-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "6.00",
+      "type": "01",
+      "identifiant": "893162026",
+      "mis_a_disposition": "20260508120000",
+      "periode": "202605",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-05-08",
+      "salarie": "DUMESNIL"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172026",
+      "mis_a_disposition": "20260508120000",
+      "periode": "202605",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-05-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "3.30",
+      "type": "01",
+      "identifiant": "893182026",
+      "mis_a_disposition": "20260508120000",
+      "periode": "202605",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-05-08",
+      "salarie": "FARRENC"
+    },
+    {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192026",
+      "mis_a_disposition": "20260508120000",
+      "periode": "202605",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-05-08",
+      "salarie": "TORELLI"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132026",
+      "mis_a_disposition": "20260608120000",
+      "periode": "202606",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-06-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142026",
+      "mis_a_disposition": "20260608120000",
+      "periode": "202606",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-06-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132026",
+      "mis_a_disposition": "20260708120000",
+      "periode": "202607",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-07-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142026",
+      "mis_a_disposition": "20260708120000",
+      "periode": "202607",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-07-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152026",
+      "mis_a_disposition": "20260708120000",
+      "periode": "202607",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-07-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172026",
+      "mis_a_disposition": "20260708120000",
+      "periode": "202607",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-07-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192026",
+      "mis_a_disposition": "20260708120000",
+      "periode": "202607",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-07-08",
+      "salarie": "TORELLI"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132026",
+      "mis_a_disposition": "20260808120000",
+      "periode": "202608",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-08-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142026",
+      "mis_a_disposition": "20260808120000",
+      "periode": "202608",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-08-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132026",
+      "mis_a_disposition": "20260908120000",
+      "periode": "202609",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-09-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142026",
+      "mis_a_disposition": "20260908120000",
+      "periode": "202609",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-09-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132026",
+      "mis_a_disposition": "20261008120000",
+      "periode": "202610",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-10-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142026",
+      "mis_a_disposition": "20261008120000",
+      "periode": "202610",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-10-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152026",
+      "mis_a_disposition": "20261008120000",
+      "periode": "202610",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-10-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "6.00",
+      "type": "01",
+      "identifiant": "893162026",
+      "mis_a_disposition": "20261008120000",
+      "periode": "202610",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-10-08",
+      "salarie": "DUMESNIL"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172026",
+      "mis_a_disposition": "20261008120000",
+      "periode": "202610",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-10-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192026",
+      "mis_a_disposition": "20261008120000",
+      "periode": "202610",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-10-08",
+      "salarie": "TORELLI"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132026",
+      "mis_a_disposition": "20261108120000",
+      "periode": "202611",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-11-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142026",
+      "mis_a_disposition": "20261108120000",
+      "periode": "202611",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-11-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152026",
+      "mis_a_disposition": "20261108120000",
+      "periode": "202611",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-11-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "6.00",
+      "type": "01",
+      "identifiant": "893162026",
+      "mis_a_disposition": "20261108120000",
+      "periode": "202611",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-11-08",
+      "salarie": "DUMESNIL"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172026",
+      "mis_a_disposition": "20261108120000",
+      "periode": "202611",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-11-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192026",
+      "mis_a_disposition": "20261108120000",
+      "periode": "202611",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-11-08",
+      "salarie": "TORELLI"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132026",
+      "mis_a_disposition": "20261208120000",
+      "periode": "202612",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-12-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142026",
+      "mis_a_disposition": "20261208120000",
+      "periode": "202612",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-12-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152026",
+      "mis_a_disposition": "20261208120000",
+      "periode": "202612",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-12-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172026",
+      "mis_a_disposition": "20261208120000",
+      "periode": "202612",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-12-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "3.30",
+      "type": "01",
+      "identifiant": "893182026",
+      "mis_a_disposition": "20261208120000",
+      "periode": "202612",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-12-08",
+      "salarie": "FARRENC"
+    },
+    {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192026",
+      "mis_a_disposition": "20261208120000",
+      "periode": "202612",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-12-08",
+      "salarie": "TORELLI"
+    },
+    {
+      "taux": "9.40",
+      "type": "01",
+      "identifiant": "893132027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08",
+      "salarie": "NADAR"
+    },
+    {
+      "taux": "1.80",
+      "type": "01",
+      "identifiant": "893142027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08",
+      "salarie": "DORVAL"
+    },
+    {
+      "taux": "1.50",
+      "type": "01",
+      "identifiant": "893152027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08",
+      "salarie": "TURLUPIN"
+    },
+    {
+      "taux": "7.20",
+      "type": "01",
+      "identifiant": "893172027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08",
+      "salarie": "NOVERRE"
+    },
+    {
+      "taux": "3.30",
+      "type": "01",
+      "identifiant": "893182027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08",
+      "salarie": "FARRENC"
+    },
+    {
+      "taux": "2.90",
+      "type": "01",
+      "identifiant": "893192027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08",
+      "salarie": "TORELLI"
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "_origine": "Compagnie de demonstration demo-3090-petite, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2025-12",
+  "taux_cachet": 150.0,
+  "date_paiement": "2025-12-31",
+  "engagements": [
+    {
+      "salarie": "Brioche",
+      "spectacle": "256Z00920011",
+      "debut": "2025-12-16",
+      "fin": "2025-12-19",
+      "date_paiement": "2025-12-19",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 150.0,
+          "lieu": "Theatre fictif de Vichy",
+          "dates": [
+            "2025-12-16",
+            "2025-12-17",
+            "2025-12-18",
+            "2025-12-19"
+          ]
+        }
+      ],
+      "numero": "BR1.25.08"
+    },
+    {
+      "salarie": "Seraphin",
+      "spectacle": "256Z00920011",
+      "debut": "2025-12-16",
+      "fin": "2025-12-19",
+      "date_paiement": "2025-12-19",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 150.0,
+          "lieu": "Theatre fictif de Vichy",
+          "dates": [
+            "2025-12-16",
+            "2025-12-17",
+            "2025-12-18",
+            "2025-12-19"
+          ]
+        }
+      ],
+      "numero": "SE2.25.06"
+    },
+    {
+      "salarie": "Lemercier",
+      "spectacle": "256Z00920011",
+      "debut": "2025-12-16",
+      "fin": "2025-12-19",
+      "date_paiement": "2025-12-19",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 32,
+          "taux": 18.0,
+          "lieu": "Theatre fictif de Vichy",
+          "dates": [
+            "2025-12-16",
+            "2025-12-17",
+            "2025-12-18",
+            "2025-12-19"
+          ]
+        }
+      ],
+      "numero": "LE3.25.06"
+    }
+  ],
+  "numeros_figes": true
+}

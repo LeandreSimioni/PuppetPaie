@@ -1,0 +1,25 @@
+{
+ "quand": "09/10/2026 16:27",
+ "secondes": 0.4,
+ "sauvegarde": "",
+ "retours": "Aucun retour sur la periode.",
+ "hors_ligne": false,
+ "nouveaux": 0,
+ "signatures": "",
+ "fiches": "",
+ "signatures_recues": [],
+ "sources": "",
+ "maj": "",
+ "maj_note": "",
+ "maj_attend": [],
+ "maj_exigee": "",
+ "maj_etat": {},
+ "sources_etat": {},
+ "incidents": [],
+ "manquants": [],
+ "a_poser": [],
+ "taux_pas": [],
+ "horloge": [
+  "Le 03/09/2026 : contrats de l'embauche du 03/09/2026 revenus signés"
+ ]
+}

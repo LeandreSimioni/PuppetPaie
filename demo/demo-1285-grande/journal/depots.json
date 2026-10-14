@@ -1,0 +1,6378 @@
+[
+  {
+    "quoi": "dpae",
+    "quand": "2025-01-22T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": "DPAE_Janvier2025_20260930-1353.txt",
+    "empreinte": "b6c246defd2c4bfd",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-9904229C01F6",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-9904229C01F6</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dpae_202501.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2025-01-22",
+          "fin": "2025-01-31"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2025-01-22",
+          "fin": "2025-01-31"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2025-01-22",
+          "fin": "2025-01-31"
+        },
+        {
+          "salarie": "FARRENC",
+          "debut": "2025-01-22",
+          "fin": "2025-01-31"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2025-01-22",
+          "fin": "2025-01-31"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-01-22T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": "DPAE_Janvier2025_20260930-1353.txt",
+    "empreinte": "b6c246defd2c4bfd",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-AF18B7B15D29",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-AF18B7B15D29</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dpae_202501.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:40",
+        "flux": "DEMO-9904229C01F6",
+        "empreinte": "b6c246defd2c4bfd",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2025-01-22",
+          "fin": "2025-01-31"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2025-01-22",
+          "fin": "2025-01-31"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2025-01-22",
+          "fin": "2025-01-31"
+        },
+        {
+          "salarie": "FARRENC",
+          "debut": "2025-01-22",
+          "fin": "2025-01-31"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2025-01-22",
+          "fin": "2025-01-31"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-01-22T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TURLUPIN",
+      "debut": "2025-01-22",
+      "recu": true,
+      "numero": "TU3.25.01",
+      "nom": "TURLUPIN Lelio"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-01-22T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "DUMESNIL",
+      "debut": "2025-01-22",
+      "recu": true,
+      "numero": "DU4.25.01",
+      "nom": "DUMESNIL Elmire"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-01-22T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "NOVERRE",
+      "debut": "2025-01-22",
+      "recu": true,
+      "numero": "NO5.25.01",
+      "nom": "NOVERRE Lysandre"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-01-22T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "FARRENC",
+      "debut": "2025-01-22",
+      "recu": true,
+      "numero": "FA6.25.01",
+      "nom": "FARRENC Henriette"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-01-22T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TORELLI",
+      "debut": "2025-01-22",
+      "recu": true,
+      "numero": "TO7.25.01",
+      "nom": "TORELLI Oronte"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-02-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": "DSN_Janvier2025.dsn",
+    "empreinte": "75258a04833a30a7",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-286D183C4C1E",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-286D183C4C1E</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dsn_202501.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "5afd8da8b9213f75",
+      "versements": [
+        "970.92",
+        "754.54",
+        "951.08",
+        "164.30",
+        "4147.00"
+      ],
+      "salaries": 6,
+      "pas_bareme": 5,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-02-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": "DSN_Janvier2025.dsn",
+    "empreinte": "75258a04833a30a7",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-4FC3B7EF3EA9",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-4FC3B7EF3EA9</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dsn_202501.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "5afd8da8b9213f75",
+      "versements": [
+        "970.92",
+        "754.54",
+        "951.08",
+        "164.30",
+        "4147.00"
+      ],
+      "salaries": 6,
+      "pas_bareme": 5,
+      "repetition": {
+        "test": "2026-09-30T13:53:40",
+        "flux": "DEMO-286D183C4C1E",
+        "empreinte": "75258a04833a30a7",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-02-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, lelio.turlupin@exemple.invalid, elmire.dumesnil@exemple.invalid, lysandre.noverre@exemple.invalid, henriette.farrenc@exemple.invalid, oronte.torelli@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "6 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Janvier2025.pdf"
+          ]
+        },
+        {
+          "cle": "TURLUPIN",
+          "nom": "Lelio TURLUPIN",
+          "pieces": [
+            "Bulletin_TURLUPIN_Janvier2025.pdf",
+            "CertificatCS_TURLUPIN_Janvier2025.pdf"
+          ]
+        },
+        {
+          "cle": "DUMESNIL",
+          "nom": "Elmire DUMESNIL",
+          "pieces": [
+            "Bulletin_DUMESNIL_Janvier2025.pdf",
+            "CertificatCS_DUMESNIL_Janvier2025.pdf"
+          ]
+        },
+        {
+          "cle": "NOVERRE",
+          "nom": "Lysandre NOVERRE",
+          "pieces": [
+            "Bulletin_NOVERRE_Janvier2025.pdf",
+            "CertificatCS_NOVERRE_Janvier2025.pdf"
+          ]
+        },
+        {
+          "cle": "FARRENC",
+          "nom": "Henriette FARRENC",
+          "pieces": [
+            "Bulletin_FARRENC_Janvier2025.pdf",
+            "CertificatCS_FARRENC_Janvier2025.pdf"
+          ]
+        },
+        {
+          "cle": "TORELLI",
+          "nom": "Oronte TORELLI",
+          "pieces": [
+            "Bulletin_TORELLI_Janvier2025.pdf",
+            "CertificatCS_TORELLI_Janvier2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-03-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-02",
+    "fichier": "DSN_Fevrier2025.dsn",
+    "empreinte": "e28c2ae1dcc33893",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-9DDDFC26C912",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-9DDDFC26C912</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dsn_202502.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "9474403985d4a342",
+      "versements": [
+        "297.37",
+        "75.97",
+        "1561.00"
+      ],
+      "salaries": 1,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-03-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-02",
+    "fichier": "DSN_Fevrier2025.dsn",
+    "empreinte": "e28c2ae1dcc33893",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-5F41F7598B9E",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-5F41F7598B9E</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dsn_202502.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "9474403985d4a342",
+      "versements": [
+        "297.37",
+        "75.97",
+        "1561.00"
+      ],
+      "salaries": 1,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:40",
+        "flux": "DEMO-9DDDFC26C912",
+        "empreinte": "e28c2ae1dcc33893",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-03-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-02",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "1 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Fevrier2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-03-06T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": "DPAE_Mars2025_20260930-1353.txt",
+    "empreinte": "c4ffec0902b1056c",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-ED0974CCD809",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-ED0974CCD809</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dpae_202503.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2025-03-06",
+          "fin": "2025-03-07"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2025-03-06",
+          "fin": "2025-03-07"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2025-03-06",
+          "fin": "2025-03-07"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2025-03-06",
+          "fin": "2025-03-07"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-03-06T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": "DPAE_Mars2025_20260930-1353.txt",
+    "empreinte": "c4ffec0902b1056c",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-766273E36F05",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-766273E36F05</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dpae_202503.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:40",
+        "flux": "DEMO-ED0974CCD809",
+        "empreinte": "c4ffec0902b1056c",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2025-03-06",
+          "fin": "2025-03-07"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2025-03-06",
+          "fin": "2025-03-07"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2025-03-06",
+          "fin": "2025-03-07"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2025-03-06",
+          "fin": "2025-03-07"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-03-06T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TURLUPIN",
+      "debut": "2025-03-06",
+      "recu": true,
+      "numero": "TU3.25.02",
+      "nom": "TURLUPIN Lelio"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-03-06T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "DUMESNIL",
+      "debut": "2025-03-06",
+      "recu": true,
+      "numero": "DU4.25.02",
+      "nom": "DUMESNIL Elmire"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-03-06T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "NOVERRE",
+      "debut": "2025-03-06",
+      "recu": true,
+      "numero": "NO5.25.02",
+      "nom": "NOVERRE Lysandre"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-03-06T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TORELLI",
+      "debut": "2025-03-06",
+      "recu": true,
+      "numero": "TO7.25.02",
+      "nom": "TORELLI Oronte"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-04-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": "DSN_Mars2025.dsn",
+    "empreinte": "de0995000a7ca8a7",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-3B267A44EB3D",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-3B267A44EB3D</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dsn_202503.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "28b221a9c0cf19f1",
+      "versements": [
+        "195.61",
+        "151.58",
+        "430.37",
+        "93.79",
+        "2063.00"
+      ],
+      "salaries": 5,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-04-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": "DSN_Mars2025.dsn",
+    "empreinte": "de0995000a7ca8a7",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-97691970A76E",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-97691970A76E</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dsn_202503.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "28b221a9c0cf19f1",
+      "versements": [
+        "195.61",
+        "151.58",
+        "430.37",
+        "93.79",
+        "2063.00"
+      ],
+      "salaries": 5,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:40",
+        "flux": "DEMO-3B267A44EB3D",
+        "empreinte": "de0995000a7ca8a7",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-04-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, lelio.turlupin@exemple.invalid, elmire.dumesnil@exemple.invalid, lysandre.noverre@exemple.invalid, oronte.torelli@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "5 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Mars2025.pdf"
+          ]
+        },
+        {
+          "cle": "TURLUPIN",
+          "nom": "Lelio TURLUPIN",
+          "pieces": [
+            "Bulletin_TURLUPIN_Mars2025.pdf",
+            "CertificatCS_TURLUPIN_Mars2025.pdf"
+          ]
+        },
+        {
+          "cle": "DUMESNIL",
+          "nom": "Elmire DUMESNIL",
+          "pieces": [
+            "Bulletin_DUMESNIL_Mars2025.pdf",
+            "CertificatCS_DUMESNIL_Mars2025.pdf"
+          ]
+        },
+        {
+          "cle": "NOVERRE",
+          "nom": "Lysandre NOVERRE",
+          "pieces": [
+            "Bulletin_NOVERRE_Mars2025.pdf",
+            "CertificatCS_NOVERRE_Mars2025.pdf"
+          ]
+        },
+        {
+          "cle": "TORELLI",
+          "nom": "Oronte TORELLI",
+          "pieces": [
+            "Bulletin_TORELLI_Mars2025.pdf",
+            "CertificatCS_TORELLI_Mars2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-04-01T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": "DPAE_Avril2025_20260930-1353.txt",
+    "empreinte": "3f3adb075f45ea57",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-0D2438A82543",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-0D2438A82543</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dpae_202504.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "DORVAL",
+          "debut": "2025-04-01",
+          "fin": ""
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-04-01T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": "DPAE_Avril2025_20260930-1353.txt",
+    "empreinte": "3f3adb075f45ea57",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-99960C53C4A1",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-99960C53C4A1</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dpae_202504.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:40",
+        "flux": "DEMO-0D2438A82543",
+        "empreinte": "3f3adb075f45ea57",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "DORVAL",
+          "debut": "2025-04-01",
+          "fin": ""
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-04-07T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": "DPAE_Avril2025_20260930-1353.txt",
+    "empreinte": "e8fbf505bf7529fd",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-9A252F66C3FE",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-9A252F66C3FE</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dpae_202504.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2025-04-07",
+          "fin": "2025-04-25"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2025-04-07",
+          "fin": "2025-04-25"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-04-07T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": "DPAE_Avril2025_20260930-1353.txt",
+    "empreinte": "e8fbf505bf7529fd",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-306B77C8665C",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-306B77C8665C</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dpae_202504.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:40",
+        "flux": "DEMO-9A252F66C3FE",
+        "empreinte": "e8fbf505bf7529fd",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2025-04-07",
+          "fin": "2025-04-25"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2025-04-07",
+          "fin": "2025-04-25"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-04-07T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TURLUPIN",
+      "debut": "2025-04-07",
+      "recu": true,
+      "numero": "TU3.25.03",
+      "nom": "TURLUPIN Lelio"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-04-07T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "NOVERRE",
+      "debut": "2025-04-07",
+      "recu": true,
+      "numero": "NO5.25.03",
+      "nom": "NOVERRE Lysandre"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-05-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": "DSN_Avril2025.dsn",
+    "empreinte": "e3597b608c138297",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-74067BD5E2B2",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-74067BD5E2B2</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dsn_202504.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "72effef6429dd827",
+      "versements": [
+        "303.80",
+        "239.12",
+        "655.76",
+        "153.76",
+        "3194.00"
+      ],
+      "salaries": 4,
+      "pas_bareme": 1,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-05-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": "DSN_Avril2025.dsn",
+    "empreinte": "e3597b608c138297",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-7E6844644F5E",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-7E6844644F5E</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dsn_202504.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "72effef6429dd827",
+      "versements": [
+        "303.80",
+        "239.12",
+        "655.76",
+        "153.76",
+        "3194.00"
+      ],
+      "salaries": 4,
+      "pas_bareme": 1,
+      "repetition": {
+        "test": "2026-09-30T13:53:40",
+        "flux": "DEMO-74067BD5E2B2",
+        "empreinte": "e3597b608c138297",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-05-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-04",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid, lelio.turlupin@exemple.invalid, lysandre.noverre@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "4 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Avril2025.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Avril2025.pdf"
+          ]
+        },
+        {
+          "cle": "TURLUPIN",
+          "nom": "Lelio TURLUPIN",
+          "pieces": [
+            "Bulletin_TURLUPIN_Avril2025.pdf",
+            "CertificatCS_TURLUPIN_Avril2025.pdf"
+          ]
+        },
+        {
+          "cle": "NOVERRE",
+          "nom": "Lysandre NOVERRE",
+          "pieces": [
+            "Bulletin_NOVERRE_Avril2025.pdf",
+            "CertificatCS_NOVERRE_Avril2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-05-05T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-05",
+    "fichier": "DPAE_Mai2025_20260930-1353.txt",
+    "empreinte": "bf9deff8c1947070",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-76EF537482D3",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-76EF537482D3</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dpae_202505.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2025-05-05",
+          "fin": "2025-05-24"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2025-05-05",
+          "fin": "2025-05-24"
+        },
+        {
+          "salarie": "FARRENC",
+          "debut": "2025-05-05",
+          "fin": "2025-05-24"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2025-05-05",
+          "fin": "2025-05-24"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-05-05T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-05",
+    "fichier": "DPAE_Mai2025_20260930-1353.txt",
+    "empreinte": "bf9deff8c1947070",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-140E4F1A91B2",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135340",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-140E4F1A91B2</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135340_depot-dpae_202505.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:40",
+        "flux": "DEMO-76EF537482D3",
+        "empreinte": "bf9deff8c1947070",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2025-05-05",
+          "fin": "2025-05-24"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2025-05-05",
+          "fin": "2025-05-24"
+        },
+        {
+          "salarie": "FARRENC",
+          "debut": "2025-05-05",
+          "fin": "2025-05-24"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2025-05-05",
+          "fin": "2025-05-24"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-05-05T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-05",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TURLUPIN",
+      "debut": "2025-05-05",
+      "recu": true,
+      "numero": "TU3.25.04",
+      "nom": "TURLUPIN Lelio"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-05-05T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-05",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "NOVERRE",
+      "debut": "2025-05-05",
+      "recu": true,
+      "numero": "NO5.25.04",
+      "nom": "NOVERRE Lysandre"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-05-05T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-05",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "FARRENC",
+      "debut": "2025-05-05",
+      "recu": true,
+      "numero": "FA6.25.02",
+      "nom": "FARRENC Henriette"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-05-05T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-05",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TORELLI",
+      "debut": "2025-05-05",
+      "recu": true,
+      "numero": "TO7.25.03",
+      "nom": "TORELLI Oronte"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-06-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-05",
+    "fichier": "DSN_Mai2025.dsn",
+    "empreinte": "5d78e0b3684a8fc4",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-BC3036083CD3",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-BC3036083CD3</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135341_depot-dsn_202505.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "e1b2fd305658ad8b",
+      "versements": [
+        "1156.92",
+        "891.34",
+        "1201.88",
+        "231.37",
+        "5577.00"
+      ],
+      "salaries": 6,
+      "pas_bareme": 1,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-06-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-05",
+    "fichier": "DSN_Mai2025.dsn",
+    "empreinte": "5d78e0b3684a8fc4",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-615AA1DB61A7",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-615AA1DB61A7</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135341_depot-dsn_202505.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "e1b2fd305658ad8b",
+      "versements": [
+        "1156.92",
+        "891.34",
+        "1201.88",
+        "231.37",
+        "5577.00"
+      ],
+      "salaries": 6,
+      "pas_bareme": 1,
+      "repetition": {
+        "test": "2026-09-30T13:53:41",
+        "flux": "DEMO-BC3036083CD3",
+        "empreinte": "5d78e0b3684a8fc4",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-06-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-05",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid, lelio.turlupin@exemple.invalid, lysandre.noverre@exemple.invalid, henriette.farrenc@exemple.invalid, oronte.torelli@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "6 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Mai2025.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Mai2025.pdf"
+          ]
+        },
+        {
+          "cle": "TURLUPIN",
+          "nom": "Lelio TURLUPIN",
+          "pieces": [
+            "Bulletin_TURLUPIN_Mai2025.pdf",
+            "CertificatCS_TURLUPIN_Mai2025.pdf"
+          ]
+        },
+        {
+          "cle": "NOVERRE",
+          "nom": "Lysandre NOVERRE",
+          "pieces": [
+            "Bulletin_NOVERRE_Mai2025.pdf",
+            "CertificatCS_NOVERRE_Mai2025.pdf"
+          ]
+        },
+        {
+          "cle": "FARRENC",
+          "nom": "Henriette FARRENC",
+          "pieces": [
+            "Bulletin_FARRENC_Mai2025.pdf",
+            "CertificatCS_FARRENC_Mai2025.pdf"
+          ]
+        },
+        {
+          "cle": "TORELLI",
+          "nom": "Oronte TORELLI",
+          "pieces": [
+            "Bulletin_TORELLI_Mai2025.pdf",
+            "CertificatCS_TORELLI_Mai2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-07-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-06",
+    "fichier": "DSN_Juin2025.dsn",
+    "empreinte": "770b958695abcdda",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-926ACFFCB4ED",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-926ACFFCB4ED</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135341_depot-dsn_202506.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "7822df13d45af644",
+      "versements": [
+        "439.40",
+        "126.12",
+        "2430.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-07-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-06",
+    "fichier": "DSN_Juin2025.dsn",
+    "empreinte": "770b958695abcdda",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-523153DF4172",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-523153DF4172</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135341_depot-dsn_202506.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "7822df13d45af644",
+      "versements": [
+        "439.40",
+        "126.12",
+        "2430.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:41",
+        "flux": "DEMO-926ACFFCB4ED",
+        "empreinte": "770b958695abcdda",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-07-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-06",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "2 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Juin2025.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Juin2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-07-08T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-07",
+    "fichier": "DPAE_Juillet2025_20260930-1353.txt",
+    "empreinte": "94cc8e0b5647daa0",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-798E5EE2BC71",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-798E5EE2BC71</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135341_depot-dpae_202507.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2025-07-08",
+          "fin": "2025-07-12"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2025-07-08",
+          "fin": "2025-07-12"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2025-07-08",
+          "fin": "2025-07-12"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-07-08T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-07",
+    "fichier": "DPAE_Juillet2025_20260930-1353.txt",
+    "empreinte": "94cc8e0b5647daa0",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-274D2259FD54",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-274D2259FD54</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135341_depot-dpae_202507.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:41",
+        "flux": "DEMO-798E5EE2BC71",
+        "empreinte": "94cc8e0b5647daa0",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2025-07-08",
+          "fin": "2025-07-12"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2025-07-08",
+          "fin": "2025-07-12"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2025-07-08",
+          "fin": "2025-07-12"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-07-08T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-07",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TURLUPIN",
+      "debut": "2025-07-08",
+      "recu": true,
+      "numero": "TU3.25.05",
+      "nom": "TURLUPIN Lelio"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-07-08T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-07",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "NOVERRE",
+      "debut": "2025-07-08",
+      "recu": true,
+      "numero": "NO5.25.05",
+      "nom": "NOVERRE Lysandre"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-07-08T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-07",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TORELLI",
+      "debut": "2025-07-08",
+      "recu": true,
+      "numero": "TO7.25.04",
+      "nom": "TORELLI Oronte"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-08-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-07",
+    "fichier": "DSN_Juillet2025.dsn",
+    "empreinte": "9263f4878f5bfe2f",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-3CE258C435CF",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-3CE258C435CF</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135341_depot-dsn_202507.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "f6aa59ee6899d986",
+      "versements": [
+        "361.16",
+        "277.15",
+        "680.74",
+        "276.11",
+        "3365.00"
+      ],
+      "salaries": 5,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-08-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-07",
+    "fichier": "DSN_Juillet2025.dsn",
+    "empreinte": "9263f4878f5bfe2f",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-41B4202C5F42",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-41B4202C5F42</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135341_depot-dsn_202507.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "f6aa59ee6899d986",
+      "versements": [
+        "361.16",
+        "277.15",
+        "680.74",
+        "276.11",
+        "3365.00"
+      ],
+      "salaries": 5,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:41",
+        "flux": "DEMO-3CE258C435CF",
+        "empreinte": "9263f4878f5bfe2f",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-08-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-07",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid, lelio.turlupin@exemple.invalid, lysandre.noverre@exemple.invalid, oronte.torelli@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "5 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Juillet2025.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Juillet2025.pdf"
+          ]
+        },
+        {
+          "cle": "TURLUPIN",
+          "nom": "Lelio TURLUPIN",
+          "pieces": [
+            "Bulletin_TURLUPIN_Juillet2025.pdf",
+            "CertificatCS_TURLUPIN_Juillet2025.pdf"
+          ]
+        },
+        {
+          "cle": "NOVERRE",
+          "nom": "Lysandre NOVERRE",
+          "pieces": [
+            "Bulletin_NOVERRE_Juillet2025.pdf",
+            "CertificatCS_NOVERRE_Juillet2025.pdf"
+          ]
+        },
+        {
+          "cle": "TORELLI",
+          "nom": "Oronte TORELLI",
+          "pieces": [
+            "Bulletin_TORELLI_Juillet2025.pdf",
+            "CertificatCS_TORELLI_Juillet2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-09-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-08",
+    "fichier": "DSN_Aout2025.dsn",
+    "empreinte": "638eb78f406ef9a1",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-41853C7E8A93",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-41853C7E8A93</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135341_depot-dsn_202508.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "08bf300b2855a5a0",
+      "versements": [
+        "439.40",
+        "209.48",
+        "2430.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-09-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-08",
+    "fichier": "DSN_Aout2025.dsn",
+    "empreinte": "638eb78f406ef9a1",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-E70DD8145072",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-E70DD8145072</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135341_depot-dsn_202508.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "08bf300b2855a5a0",
+      "versements": [
+        "439.40",
+        "209.48",
+        "2430.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:41",
+        "flux": "DEMO-41853C7E8A93",
+        "empreinte": "638eb78f406ef9a1",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-09-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-08",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "2 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Aout2025.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Aout2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-10-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-09",
+    "fichier": "DSN_Septembre2025.dsn",
+    "empreinte": "1c508507744808a0",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-378B6D4FC2B6",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-378B6D4FC2B6</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135341_depot-dsn_202509.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "cd105cfcfeaec2a8",
+      "versements": [
+        "439.40",
+        "209.48",
+        "2430.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-10-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-09",
+    "fichier": "DSN_Septembre2025.dsn",
+    "empreinte": "1c508507744808a0",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-2F162F70A536",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135341",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-2F162F70A536</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135341_depot-dsn_202509.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "cd105cfcfeaec2a8",
+      "versements": [
+        "439.40",
+        "209.48",
+        "2430.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:41",
+        "flux": "DEMO-378B6D4FC2B6",
+        "empreinte": "1c508507744808a0",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-10-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-09",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "2 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Septembre2025.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Septembre2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-10-14T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": "DPAE_Octobre2025_20260930-1353.txt",
+    "empreinte": "803f025693c8174a",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-4FD766E7548E",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-4FD766E7548E</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135342_depot-dpae_202510.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2025-10-14",
+          "fin": "2025-10-17"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2025-10-14",
+          "fin": "2025-10-17"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2025-10-14",
+          "fin": "2025-10-17"
+        },
+        {
+          "salarie": "FARRENC",
+          "debut": "2025-10-14",
+          "fin": "2025-10-17"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2025-10-14",
+          "fin": "2025-10-17"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-10-14T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": "DPAE_Octobre2025_20260930-1353.txt",
+    "empreinte": "803f025693c8174a",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-A83B28A21694",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-A83B28A21694</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135342_depot-dpae_202510.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:42",
+        "flux": "DEMO-4FD766E7548E",
+        "empreinte": "803f025693c8174a",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2025-10-14",
+          "fin": "2025-10-17"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2025-10-14",
+          "fin": "2025-10-17"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2025-10-14",
+          "fin": "2025-10-17"
+        },
+        {
+          "salarie": "FARRENC",
+          "debut": "2025-10-14",
+          "fin": "2025-10-17"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2025-10-14",
+          "fin": "2025-10-17"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-10-14T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TURLUPIN",
+      "debut": "2025-10-14",
+      "recu": true,
+      "numero": "TU3.25.06",
+      "nom": "TURLUPIN Lelio"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-10-14T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "DUMESNIL",
+      "debut": "2025-10-14",
+      "recu": true,
+      "numero": "DU4.25.03",
+      "nom": "DUMESNIL Elmire"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-10-14T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "NOVERRE",
+      "debut": "2025-10-14",
+      "recu": true,
+      "numero": "NO5.25.06",
+      "nom": "NOVERRE Lysandre"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-10-14T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "FARRENC",
+      "debut": "2025-10-14",
+      "recu": true,
+      "numero": "FA6.25.03",
+      "nom": "FARRENC Henriette"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-10-14T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TORELLI",
+      "debut": "2025-10-14",
+      "recu": true,
+      "numero": "TO7.25.05",
+      "nom": "TORELLI Oronte"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-11-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": "DSN_Octobre2025.dsn",
+    "empreinte": "c24955b0af6ef69e",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-204210973919",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-204210973919</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135342_depot-dsn_202510.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "a13e8ee14dd04baf",
+      "versements": [
+        "485.46",
+        "375.76",
+        "766.23",
+        "299.04",
+        "3722.00"
+      ],
+      "salaries": 7,
+      "pas_bareme": 2,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-11-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": "DSN_Octobre2025.dsn",
+    "empreinte": "c24955b0af6ef69e",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-507239F70817",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-507239F70817</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135342_depot-dsn_202510.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "a13e8ee14dd04baf",
+      "versements": [
+        "485.46",
+        "375.76",
+        "766.23",
+        "299.04",
+        "3722.00"
+      ],
+      "salaries": 7,
+      "pas_bareme": 2,
+      "repetition": {
+        "test": "2026-09-30T13:53:42",
+        "flux": "DEMO-204210973919",
+        "empreinte": "c24955b0af6ef69e",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-11-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-10",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid, lelio.turlupin@exemple.invalid, elmire.dumesnil@exemple.invalid, lysandre.noverre@exemple.invalid, henriette.farrenc@exemple.invalid, oronte.torelli@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "7 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Octobre2025.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Octobre2025.pdf"
+          ]
+        },
+        {
+          "cle": "TURLUPIN",
+          "nom": "Lelio TURLUPIN",
+          "pieces": [
+            "Bulletin_TURLUPIN_Octobre2025.pdf",
+            "CertificatCS_TURLUPIN_Octobre2025.pdf"
+          ]
+        },
+        {
+          "cle": "DUMESNIL",
+          "nom": "Elmire DUMESNIL",
+          "pieces": [
+            "Bulletin_DUMESNIL_Octobre2025.pdf",
+            "CertificatCS_DUMESNIL_Octobre2025.pdf"
+          ]
+        },
+        {
+          "cle": "NOVERRE",
+          "nom": "Lysandre NOVERRE",
+          "pieces": [
+            "Bulletin_NOVERRE_Octobre2025.pdf",
+            "CertificatCS_NOVERRE_Octobre2025.pdf"
+          ]
+        },
+        {
+          "cle": "FARRENC",
+          "nom": "Henriette FARRENC",
+          "pieces": [
+            "Bulletin_FARRENC_Octobre2025.pdf",
+            "CertificatCS_FARRENC_Octobre2025.pdf"
+          ]
+        },
+        {
+          "cle": "TORELLI",
+          "nom": "Oronte TORELLI",
+          "pieces": [
+            "Bulletin_TORELLI_Octobre2025.pdf",
+            "CertificatCS_TORELLI_Octobre2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-11-25T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": "DPAE_Novembre2025_20260930-1353.txt",
+    "empreinte": "aebd422e08f3b9cd",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-FD7132096B35",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-FD7132096B35</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135342_depot-dpae_202511.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2025-11-25",
+          "fin": "2025-11-28"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2025-11-25",
+          "fin": "2025-11-28"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2025-11-25",
+          "fin": "2025-11-28"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2025-11-25T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": "DPAE_Novembre2025_20260930-1353.txt",
+    "empreinte": "aebd422e08f3b9cd",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-DFCD6482AC5C",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-DFCD6482AC5C</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135342_depot-dpae_202511.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:42",
+        "flux": "DEMO-FD7132096B35",
+        "empreinte": "aebd422e08f3b9cd",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2025-11-25",
+          "fin": "2025-11-28"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2025-11-25",
+          "fin": "2025-11-28"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2025-11-25",
+          "fin": "2025-11-28"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-11-25T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TURLUPIN",
+      "debut": "2025-11-25",
+      "recu": true,
+      "numero": "TU3.25.07",
+      "nom": "TURLUPIN Lelio"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-11-25T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "NOVERRE",
+      "debut": "2025-11-25",
+      "recu": true,
+      "numero": "NO5.25.07",
+      "nom": "NOVERRE Lysandre"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2025-11-25T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TORELLI",
+      "debut": "2025-11-25",
+      "recu": true,
+      "numero": "TO7.25.06",
+      "nom": "TORELLI Oronte"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-12-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": "DSN_Novembre2025.dsn",
+    "empreinte": "955b6f84e771654f",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-AB9C4684DB25",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-AB9C4684DB25</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135342_depot-dsn_202511.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "9d62b8dd2107d301",
+      "versements": [
+        "288.92",
+        "221.72",
+        "632.47",
+        "262.78",
+        "3177.00"
+      ],
+      "salaries": 5,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2025-12-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": "DSN_Novembre2025.dsn",
+    "empreinte": "955b6f84e771654f",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-EF7579A3A0F0",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135342",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-EF7579A3A0F0</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135342_depot-dsn_202511.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "9d62b8dd2107d301",
+      "versements": [
+        "288.92",
+        "221.72",
+        "632.47",
+        "262.78",
+        "3177.00"
+      ],
+      "salaries": 5,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:42",
+        "flux": "DEMO-AB9C4684DB25",
+        "empreinte": "955b6f84e771654f",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2025-12-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-11",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid, lelio.turlupin@exemple.invalid, lysandre.noverre@exemple.invalid, oronte.torelli@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "5 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Novembre2025.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Novembre2025.pdf"
+          ]
+        },
+        {
+          "cle": "TURLUPIN",
+          "nom": "Lelio TURLUPIN",
+          "pieces": [
+            "Bulletin_TURLUPIN_Novembre2025.pdf",
+            "CertificatCS_TURLUPIN_Novembre2025.pdf"
+          ]
+        },
+        {
+          "cle": "NOVERRE",
+          "nom": "Lysandre NOVERRE",
+          "pieces": [
+            "Bulletin_NOVERRE_Novembre2025.pdf",
+            "CertificatCS_NOVERRE_Novembre2025.pdf"
+          ]
+        },
+        {
+          "cle": "TORELLI",
+          "nom": "Oronte TORELLI",
+          "pieces": [
+            "Bulletin_TORELLI_Novembre2025.pdf",
+            "CertificatCS_TORELLI_Novembre2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-01-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-12",
+    "fichier": "DSN_Decembre2025.dsn",
+    "empreinte": "73a90f8838596472",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-A05CD96C9618",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-A05CD96C9618</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135343_depot-dsn_202512.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "9d8934a166cafaca",
+      "versements": [
+        "476.96",
+        "221.42",
+        "2626.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-01-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-12",
+    "fichier": "DSN_Decembre2025.dsn",
+    "empreinte": "73a90f8838596472",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-B900D34DE1AD",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-B900D34DE1AD</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135343_depot-dsn_202512.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "9d8934a166cafaca",
+      "versements": [
+        "476.96",
+        "221.42",
+        "2626.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:43",
+        "flux": "DEMO-A05CD96C9618",
+        "empreinte": "73a90f8838596472",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-01-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2025-12",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "2 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Decembre2025.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Decembre2025.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-01-20T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-01",
+    "fichier": "DPAE_Janvier2026_20260930-1353.txt",
+    "empreinte": "dcfe843c40b9014a",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-DD6718E64803",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-DD6718E64803</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135343_depot-dpae_202601.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2026-01-20",
+          "fin": "2026-01-24"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2026-01-20",
+          "fin": "2026-01-24"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2026-01-20",
+          "fin": "2026-01-24"
+        },
+        {
+          "salarie": "FARRENC",
+          "debut": "2026-01-20",
+          "fin": "2026-01-24"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2026-01-20",
+          "fin": "2026-01-24"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-01-20T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-01",
+    "fichier": "DPAE_Janvier2026_20260930-1353.txt",
+    "empreinte": "dcfe843c40b9014a",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-A32C1161C0F2",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-A32C1161C0F2</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135343_depot-dpae_202601.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:43",
+        "flux": "DEMO-DD6718E64803",
+        "empreinte": "dcfe843c40b9014a",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2026-01-20",
+          "fin": "2026-01-24"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2026-01-20",
+          "fin": "2026-01-24"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2026-01-20",
+          "fin": "2026-01-24"
+        },
+        {
+          "salarie": "FARRENC",
+          "debut": "2026-01-20",
+          "fin": "2026-01-24"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2026-01-20",
+          "fin": "2026-01-24"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-01-20T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TURLUPIN",
+      "debut": "2026-01-20",
+      "recu": true,
+      "numero": "TU3.26.01",
+      "nom": "TURLUPIN Lelio"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-01-20T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "DUMESNIL",
+      "debut": "2026-01-20",
+      "recu": true,
+      "numero": "DU4.26.01",
+      "nom": "DUMESNIL Elmire"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-01-20T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "NOVERRE",
+      "debut": "2026-01-20",
+      "recu": true,
+      "numero": "NO5.26.01",
+      "nom": "NOVERRE Lysandre"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-01-20T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "FARRENC",
+      "debut": "2026-01-20",
+      "recu": true,
+      "numero": "FA6.26.01",
+      "nom": "FARRENC Henriette"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-01-20T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TORELLI",
+      "debut": "2026-01-20",
+      "recu": true,
+      "numero": "TO7.26.01",
+      "nom": "TORELLI Oronte"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-02-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-01",
+    "fichier": "DSN_Janvier2026.dsn",
+    "empreinte": "9177cba07911ac0e",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-98E0E501A1C2",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-98E0E501A1C2</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135343_depot-dsn_202601.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "7c7ab20f38440c1c",
+      "versements": [
+        "624.65",
+        "469.27",
+        "796.79",
+        "354.57",
+        "3684.00"
+      ],
+      "salaries": 7,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-02-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-01",
+    "fichier": "DSN_Janvier2026.dsn",
+    "empreinte": "9177cba07911ac0e",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-C4BEA96DEE84",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-C4BEA96DEE84</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135343_depot-dsn_202601.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "7c7ab20f38440c1c",
+      "versements": [
+        "624.65",
+        "469.27",
+        "796.79",
+        "354.57",
+        "3684.00"
+      ],
+      "salaries": 7,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:43",
+        "flux": "DEMO-98E0E501A1C2",
+        "empreinte": "9177cba07911ac0e",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-02-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-01",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid, lelio.turlupin@exemple.invalid, elmire.dumesnil@exemple.invalid, lysandre.noverre@exemple.invalid, henriette.farrenc@exemple.invalid, oronte.torelli@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "7 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Janvier2026.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Janvier2026.pdf"
+          ]
+        },
+        {
+          "cle": "TURLUPIN",
+          "nom": "Lelio TURLUPIN",
+          "pieces": [
+            "Bulletin_TURLUPIN_Janvier2026.pdf",
+            "CertificatCS_TURLUPIN_Janvier2026.pdf"
+          ]
+        },
+        {
+          "cle": "DUMESNIL",
+          "nom": "Elmire DUMESNIL",
+          "pieces": [
+            "Bulletin_DUMESNIL_Janvier2026.pdf",
+            "CertificatCS_DUMESNIL_Janvier2026.pdf"
+          ]
+        },
+        {
+          "cle": "NOVERRE",
+          "nom": "Lysandre NOVERRE",
+          "pieces": [
+            "Bulletin_NOVERRE_Janvier2026.pdf",
+            "CertificatCS_NOVERRE_Janvier2026.pdf"
+          ]
+        },
+        {
+          "cle": "FARRENC",
+          "nom": "Henriette FARRENC",
+          "pieces": [
+            "Bulletin_FARRENC_Janvier2026.pdf",
+            "CertificatCS_FARRENC_Janvier2026.pdf"
+          ]
+        },
+        {
+          "cle": "TORELLI",
+          "nom": "Oronte TORELLI",
+          "pieces": [
+            "Bulletin_TORELLI_Janvier2026.pdf",
+            "CertificatCS_TORELLI_Janvier2026.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-03-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-02",
+    "fichier": "DSN_Fevrier2026.dsn",
+    "empreinte": "2d375623b0b503dc",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-3E6D80C492E2",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-3E6D80C492E2</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135343_depot-dsn_202602.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "b55d8d4f41d6ede7",
+      "versements": [
+        "397.61",
+        "219.51",
+        "2135.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-03-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-02",
+    "fichier": "DSN_Fevrier2026.dsn",
+    "empreinte": "2d375623b0b503dc",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-9081000C9B1E",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-9081000C9B1E</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135343_depot-dsn_202602.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "b55d8d4f41d6ede7",
+      "versements": [
+        "397.61",
+        "219.51",
+        "2135.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:43",
+        "flux": "DEMO-3E6D80C492E2",
+        "empreinte": "2d375623b0b503dc",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-03-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-02",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "2 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Fevrier2026.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Fevrier2026.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-03-10T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": "DPAE_Mars2026_20260930-1353.txt",
+    "empreinte": "2871b76555f39e9b",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-0E866A3C4693",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-0E866A3C4693</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135343_depot-dpae_202603.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2026-03-10",
+          "fin": "2026-03-13"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2026-03-10",
+          "fin": "2026-03-13"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2026-03-10",
+          "fin": "2026-03-13"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-03-10T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": "DPAE_Mars2026_20260930-1353.txt",
+    "empreinte": "2871b76555f39e9b",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-86DCDC9BFC30",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-86DCDC9BFC30</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135343_depot-dpae_202603.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:43",
+        "flux": "DEMO-0E866A3C4693",
+        "empreinte": "2871b76555f39e9b",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2026-03-10",
+          "fin": "2026-03-13"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2026-03-10",
+          "fin": "2026-03-13"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2026-03-10",
+          "fin": "2026-03-13"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-03-10T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TURLUPIN",
+      "debut": "2026-03-10",
+      "recu": true,
+      "numero": "TU3.26.02",
+      "nom": "TURLUPIN Lelio"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-03-10T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "NOVERRE",
+      "debut": "2026-03-10",
+      "recu": true,
+      "numero": "NO5.26.02",
+      "nom": "NOVERRE Lysandre"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-03-10T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TORELLI",
+      "debut": "2026-03-10",
+      "recu": true,
+      "numero": "TO7.26.02",
+      "nom": "TORELLI Oronte"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-04-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": "DSN_Mars2026.dsn",
+    "empreinte": "ef24f62e4de6b2de",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-2FB9DAD249E9",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-2FB9DAD249E9</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135343_depot-dsn_202603.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "30c8701639a9f044",
+      "versements": [
+        "297.60",
+        "224.24",
+        "590.27",
+        "283.85",
+        "2865.00"
+      ],
+      "salaries": 5,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-04-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": "DSN_Mars2026.dsn",
+    "empreinte": "ef24f62e4de6b2de",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-FEF2A49CEFD5",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135343",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-FEF2A49CEFD5</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135343_depot-dsn_202603.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "30c8701639a9f044",
+      "versements": [
+        "297.60",
+        "224.24",
+        "590.27",
+        "283.85",
+        "2865.00"
+      ],
+      "salaries": 5,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:43",
+        "flux": "DEMO-2FB9DAD249E9",
+        "empreinte": "ef24f62e4de6b2de",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-04-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-03",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid, lelio.turlupin@exemple.invalid, lysandre.noverre@exemple.invalid, oronte.torelli@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "5 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Mars2026.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Mars2026.pdf"
+          ]
+        },
+        {
+          "cle": "TURLUPIN",
+          "nom": "Lelio TURLUPIN",
+          "pieces": [
+            "Bulletin_TURLUPIN_Mars2026.pdf",
+            "CertificatCS_TURLUPIN_Mars2026.pdf"
+          ]
+        },
+        {
+          "cle": "NOVERRE",
+          "nom": "Lysandre NOVERRE",
+          "pieces": [
+            "Bulletin_NOVERRE_Mars2026.pdf",
+            "CertificatCS_NOVERRE_Mars2026.pdf"
+          ]
+        },
+        {
+          "cle": "TORELLI",
+          "nom": "Oronte TORELLI",
+          "pieces": [
+            "Bulletin_TORELLI_Mars2026.pdf",
+            "CertificatCS_TORELLI_Mars2026.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-04-21T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-04",
+    "fichier": "DPAE_Avril2026_20260930-1353.txt",
+    "empreinte": "d78afba5ee41204a",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-2B4BD237B324",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-2B4BD237B324</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135344_depot-dpae_202604.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2026-04-21",
+          "fin": "2026-04-24"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2026-04-21",
+          "fin": "2026-04-24"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2026-04-21",
+          "fin": "2026-04-24"
+        },
+        {
+          "salarie": "FARRENC",
+          "debut": "2026-04-21",
+          "fin": "2026-04-24"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2026-04-21",
+          "fin": "2026-04-24"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-04-21T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-04",
+    "fichier": "DPAE_Avril2026_20260930-1353.txt",
+    "empreinte": "d78afba5ee41204a",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-CA99426CC4BA",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-CA99426CC4BA</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135344_depot-dpae_202604.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:44",
+        "flux": "DEMO-2B4BD237B324",
+        "empreinte": "d78afba5ee41204a",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2026-04-21",
+          "fin": "2026-04-24"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2026-04-21",
+          "fin": "2026-04-24"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2026-04-21",
+          "fin": "2026-04-24"
+        },
+        {
+          "salarie": "FARRENC",
+          "debut": "2026-04-21",
+          "fin": "2026-04-24"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2026-04-21",
+          "fin": "2026-04-24"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-04-21T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-04",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TURLUPIN",
+      "debut": "2026-04-21",
+      "recu": true,
+      "numero": "TU3.26.03",
+      "nom": "TURLUPIN Lelio"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-04-21T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-04",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "DUMESNIL",
+      "debut": "2026-04-21",
+      "recu": true,
+      "numero": "DU4.26.02",
+      "nom": "DUMESNIL Elmire"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-04-21T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-04",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "NOVERRE",
+      "debut": "2026-04-21",
+      "recu": true,
+      "numero": "NO5.26.03",
+      "nom": "NOVERRE Lysandre"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-04-21T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-04",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "FARRENC",
+      "debut": "2026-04-21",
+      "recu": true,
+      "numero": "FA6.26.02",
+      "nom": "FARRENC Henriette"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-04-21T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-04",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TORELLI",
+      "debut": "2026-04-21",
+      "recu": true,
+      "numero": "TO7.26.03",
+      "nom": "TORELLI Oronte"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-05-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-04",
+    "fichier": "DSN_Avril2026.dsn",
+    "empreinte": "208a3f7d0882fe89",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-27C4270FCAF4",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-27C4270FCAF4</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135344_depot-dsn_202604.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "6940386d30521d18",
+      "versements": [
+        "499.72",
+        "375.41",
+        "716.93",
+        "327.54",
+        "3373.00"
+      ],
+      "salaries": 7,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-05-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-04",
+    "fichier": "DSN_Avril2026.dsn",
+    "empreinte": "208a3f7d0882fe89",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-4C7EBC4F98F2",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-4C7EBC4F98F2</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135344_depot-dsn_202604.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "6940386d30521d18",
+      "versements": [
+        "499.72",
+        "375.41",
+        "716.93",
+        "327.54",
+        "3373.00"
+      ],
+      "salaries": 7,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:44",
+        "flux": "DEMO-27C4270FCAF4",
+        "empreinte": "208a3f7d0882fe89",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-05-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-04",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid, lelio.turlupin@exemple.invalid, elmire.dumesnil@exemple.invalid, lysandre.noverre@exemple.invalid, henriette.farrenc@exemple.invalid, oronte.torelli@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "7 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Avril2026.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Avril2026.pdf"
+          ]
+        },
+        {
+          "cle": "TURLUPIN",
+          "nom": "Lelio TURLUPIN",
+          "pieces": [
+            "Bulletin_TURLUPIN_Avril2026.pdf",
+            "CertificatCS_TURLUPIN_Avril2026.pdf"
+          ]
+        },
+        {
+          "cle": "DUMESNIL",
+          "nom": "Elmire DUMESNIL",
+          "pieces": [
+            "Bulletin_DUMESNIL_Avril2026.pdf",
+            "CertificatCS_DUMESNIL_Avril2026.pdf"
+          ]
+        },
+        {
+          "cle": "NOVERRE",
+          "nom": "Lysandre NOVERRE",
+          "pieces": [
+            "Bulletin_NOVERRE_Avril2026.pdf",
+            "CertificatCS_NOVERRE_Avril2026.pdf"
+          ]
+        },
+        {
+          "cle": "FARRENC",
+          "nom": "Henriette FARRENC",
+          "pieces": [
+            "Bulletin_FARRENC_Avril2026.pdf",
+            "CertificatCS_FARRENC_Avril2026.pdf"
+          ]
+        },
+        {
+          "cle": "TORELLI",
+          "nom": "Oronte TORELLI",
+          "pieces": [
+            "Bulletin_TORELLI_Avril2026.pdf",
+            "CertificatCS_TORELLI_Avril2026.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-06-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-05",
+    "fichier": "DSN_Mai2026.dsn",
+    "empreinte": "aba8bb65a57dd750",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-4E590714FDB7",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-4E590714FDB7</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135344_depot-dsn_202605.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "f49dc8c431f75af4",
+      "versements": [
+        "397.61",
+        "219.51",
+        "2135.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-06-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-05",
+    "fichier": "DSN_Mai2026.dsn",
+    "empreinte": "aba8bb65a57dd750",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-4FBEECF94693",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-4FBEECF94693</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135344_depot-dsn_202605.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "f49dc8c431f75af4",
+      "versements": [
+        "397.61",
+        "219.51",
+        "2135.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:44",
+        "flux": "DEMO-4E590714FDB7",
+        "empreinte": "aba8bb65a57dd750",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-06-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-05",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "2 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Mai2026.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Mai2026.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-06-23T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-06",
+    "fichier": "DPAE_Juin2026_20260930-1353.txt",
+    "empreinte": "4c20ae93c3ea6ce7",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-738CCE6D58FE",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-738CCE6D58FE</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135344_depot-dpae_202606.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2026-06-23",
+          "fin": "2026-06-27"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2026-06-23",
+          "fin": "2026-06-27"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2026-06-23",
+          "fin": "2026-06-27"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-06-23T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-06",
+    "fichier": "DPAE_Juin2026_20260930-1353.txt",
+    "empreinte": "4c20ae93c3ea6ce7",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-BD4F8520FB01",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-BD4F8520FB01</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135344_depot-dpae_202606.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-09-30T13:53:44",
+        "flux": "DEMO-738CCE6D58FE",
+        "empreinte": "4c20ae93c3ea6ce7",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2026-06-23",
+          "fin": "2026-06-27"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2026-06-23",
+          "fin": "2026-06-27"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2026-06-23",
+          "fin": "2026-06-27"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-06-23T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-06",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TURLUPIN",
+      "debut": "2026-06-23",
+      "recu": true,
+      "numero": "TU3.26.04",
+      "nom": "TURLUPIN Lelio"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-06-23T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-06",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "NOVERRE",
+      "debut": "2026-06-23",
+      "recu": true,
+      "numero": "NO5.26.04",
+      "nom": "NOVERRE Lysandre"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-06-23T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-06",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TORELLI",
+      "debut": "2026-06-23",
+      "recu": true,
+      "numero": "TO7.26.04",
+      "nom": "TORELLI Oronte"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-07-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-06",
+    "fichier": "DSN_Juin2026.dsn",
+    "empreinte": "03c25d95ef6e6d06",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-8B577BA85AF0",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-8B577BA85AF0</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135344_depot-dsn_202606.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "cb8a4abb12c74c5a",
+      "versements": [
+        "372.00",
+        "280.31",
+        "638.45",
+        "299.94",
+        "3046.00"
+      ],
+      "salaries": 5,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-07-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-06",
+    "fichier": "DSN_Juin2026.dsn",
+    "empreinte": "03c25d95ef6e6d06",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-FCC0A5FA0A80",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-FCC0A5FA0A80</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135344_depot-dsn_202606.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "cb8a4abb12c74c5a",
+      "versements": [
+        "372.00",
+        "280.31",
+        "638.45",
+        "299.94",
+        "3046.00"
+      ],
+      "salaries": 5,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:44",
+        "flux": "DEMO-8B577BA85AF0",
+        "empreinte": "03c25d95ef6e6d06",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-07-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-06",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid, lelio.turlupin@exemple.invalid, lysandre.noverre@exemple.invalid, oronte.torelli@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "5 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Juin2026.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Juin2026.pdf"
+          ]
+        },
+        {
+          "cle": "TURLUPIN",
+          "nom": "Lelio TURLUPIN",
+          "pieces": [
+            "Bulletin_TURLUPIN_Juin2026.pdf",
+            "CertificatCS_TURLUPIN_Juin2026.pdf"
+          ]
+        },
+        {
+          "cle": "NOVERRE",
+          "nom": "Lysandre NOVERRE",
+          "pieces": [
+            "Bulletin_NOVERRE_Juin2026.pdf",
+            "CertificatCS_NOVERRE_Juin2026.pdf"
+          ]
+        },
+        {
+          "cle": "TORELLI",
+          "nom": "Oronte TORELLI",
+          "pieces": [
+            "Bulletin_TORELLI_Juin2026.pdf",
+            "CertificatCS_TORELLI_Juin2026.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-08-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-07",
+    "fichier": "DSN_Juillet2026.dsn",
+    "empreinte": "93c82eddda4e393d",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-1E6A7431F236",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-1E6A7431F236</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135344_depot-dsn_202607.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "9188cb918044c8aa",
+      "versements": [
+        "397.61",
+        "219.51",
+        "2135.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-08-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-07",
+    "fichier": "DSN_Juillet2026.dsn",
+    "empreinte": "93c82eddda4e393d",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-05FD10653AD0",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135344",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-05FD10653AD0</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135344_depot-dsn_202607.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "9188cb918044c8aa",
+      "versements": [
+        "397.61",
+        "219.51",
+        "2135.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:44",
+        "flux": "DEMO-1E6A7431F236",
+        "empreinte": "93c82eddda4e393d",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-08-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-07",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "2 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Juillet2026.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Juillet2026.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-09-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-08",
+    "fichier": "DSN_Aout2026.dsn",
+    "empreinte": "7f920464ba2b3342",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-FE21B15F56D5",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135346",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135346",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-FE21B15F56D5</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135346_depot-dsn_202608.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "88075ca3a203a136",
+      "versements": [
+        "397.61",
+        "219.51",
+        "2135.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-09-15T10:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-08",
+    "fichier": "DSN_Aout2026.dsn",
+    "empreinte": "7f920464ba2b3342",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-9E4C34F69B53",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20260930135346",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135346",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20260930135346",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-9E4C34F69B53</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "../demo/demo-1285-grande/retours/depots/20260930-135346_depot-dsn_202608.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "88075ca3a203a136",
+      "versements": [
+        "397.61",
+        "219.51",
+        "2135.00"
+      ],
+      "salaries": 2,
+      "pas_bareme": 0,
+      "repetition": {
+        "test": "2026-09-30T13:53:46",
+        "flux": "DEMO-FE21B15F56D5",
+        "empreinte": "7f920464ba2b3342",
+        "compte_rendu": "attendu"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-09-15T11:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-08",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "2 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Aout2026.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Aout2026.pdf"
+          ]
+        }
+      ],
+      "expediteur": "demonstration@puppetpaie.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-09-29T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-09",
+    "fichier": "DPAE_Septembre2026_20261002-1848.txt",
+    "empreinte": "fc548ea5c3b3ff14",
+    "mode": "test",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-52B5A9637E19",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20261002184841",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20261002184841",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-52B5A9637E19</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\demo\\demo-1285-grande\\retours\\depots\\20261002-184841_depot-dpae_202609.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2026-09-29",
+          "fin": "2026-09-30"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2026-09-29",
+          "fin": "2026-09-30"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2026-09-29",
+          "fin": "2026-09-30"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2026-09-29",
+          "fin": "2026-09-30"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-09-29T07:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-09",
+    "fichier": "DPAE_Septembre2026_20261002-1848.txt",
+    "empreinte": "fc548ea5c3b3ff14",
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-BCB23EF9E334",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20261002184841",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20261002184841",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-BCB23EF9E334</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\demo\\demo-1285-grande\\retours\\depots\\20261002-184841_depot-dpae_202609.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-10-02T18:48:41",
+        "flux": "DEMO-52B5A9637E19",
+        "empreinte": "fc548ea5c3b3ff14",
+        "compte_rendu": "attendu"
+      },
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2026-09-29",
+          "fin": "2026-09-30"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2026-09-29",
+          "fin": "2026-09-30"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2026-09-29",
+          "fin": "2026-09-30"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2026-09-29",
+          "fin": "2026-09-30"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-09-29T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-09",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TURLUPIN",
+      "debut": "2026-09-29",
+      "recu": true,
+      "numero": "TU3.26.05",
+      "nom": "TURLUPIN Lelio"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-09-29T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-09",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "DUMESNIL",
+      "debut": "2026-09-29",
+      "recu": true,
+      "numero": "DU4.26.03",
+      "nom": "DUMESNIL Elmire"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-09-29T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-09",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "NOVERRE",
+      "debut": "2026-09-29",
+      "recu": true,
+      "numero": "NO5.26.05",
+      "nom": "NOVERRE Lysandre"
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-09-29T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-09",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "TORELLI",
+      "debut": "2026-09-29",
+      "recu": true,
+      "numero": "TO7.26.05",
+      "nom": "TORELLI Oronte"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-10-02T18:48:48",
+    "origine": "",
+    "mois": "2026-10",
+    "fichier": "DPAE_Octobre2026_20261002-1848.txt",
+    "empreinte": "82d54275a920100d",
+    "mode": "test",
+    "qui": "veille",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-8531D0FFE888",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20261002185242",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20261002185242",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-8531D0FFE888</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\demo\\demo-1285-grande\\retours\\depots\\20261002-184848_depot-dpae_202610.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2026-10-13",
+          "fin": "2026-10-16"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2026-10-13",
+          "fin": "2026-10-16"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2026-10-13",
+          "fin": "2026-10-16"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2026-10-13",
+          "fin": "2026-10-16"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-10-02T18:52:42",
+    "origine": "",
+    "mois": "2026-09",
+    "fichier": "DSN_Septembre2026.dsn",
+    "empreinte": "4f5d3b25539d8439",
+    "mode": "test",
+    "qui": "interface",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-49CEF8797D50",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20261002185248",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20261002185248",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-49CEF8797D50</idflux>\nDemonstration : DSN de test jouee, rien n'a quitte le poste.",
+    "trace": "C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\demo\\demo-1285-grande\\retours\\depots\\20261002-185242_depot-dsn_202609.txt",
+    "detail": {
+      "preuve": "",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "5133db0351eef063",
+      "versements": [
+        "201.50",
+        "153.43",
+        "531.50",
+        "263.07",
+        "2631.00"
+      ],
+      "salaries": 6,
+      "pas_bareme": 1,
+      "repetition": null,
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dsn",
+    "quand": "2026-10-02T18:52:50",
+    "origine": "",
+    "mois": "2026-09",
+    "fichier": "DSN_Septembre2026.dsn",
+    "empreinte": "4f5d3b25539d8439",
+    "mode": "reel",
+    "qui": "interface",
+    "accepte": true,
+    "destinataire": "net-entreprises",
+    "flux": "DEMO-D5B703012805",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20261002185258",
+        "anomalies": [],
+        "nature": "10",
+        "verdict": "OK",
+        "libelle": "Accuse de reception (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20261002185258",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20261002185258",
+        "anomalies": [],
+        "nature": "46",
+        "libelle": "Attestation employeur rematerialisee (demonstration)"
+      }
+    ],
+    "reponse": "<idflux>DEMO-D5B703012805</idflux>\nDemonstration : DSN reelle jouee, rien n'a quitte le poste.",
+    "trace": "C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\demo\\demo-1285-grande\\retours\\depots\\20261002-185250_depot-dsn_202609.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "type": "01",
+      "ordre": "1",
+      "empreinte_saisie": "5133db0351eef063",
+      "versements": [
+        "201.50",
+        "153.43",
+        "531.50",
+        "263.07",
+        "2631.00"
+      ],
+      "salaries": 6,
+      "pas_bareme": 1,
+      "repetition": {
+        "test": "2026-10-02T18:52:42",
+        "flux": "DEMO-49CEF8797D50",
+        "empreinte": "4f5d3b25539d8439",
+        "compte_rendu": "ok"
+      },
+      "ordre_test": null,
+      "etablissement": "00013"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-10-08T19:38:56",
+    "origine": "",
+    "mois": "2026-10",
+    "fichier": "DPAE_Octobre2026_20261002-1848.txt",
+    "empreinte": "82d54275a920100d",
+    "mode": "test",
+    "qui": "interface",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-C8DC3EDECA8B",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20261008193902",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20261008193902",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-C8DC3EDECA8B</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\demo\\demo-1285-grande\\retours\\depots\\20261008-193856_depot-dpae_202610.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2026-10-13",
+          "fin": "2026-10-16"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2026-10-13",
+          "fin": "2026-10-16"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2026-10-13",
+          "fin": "2026-10-16"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2026-10-13",
+          "fin": "2026-10-16"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-10-08T19:39:03",
+    "origine": "",
+    "mois": "2026-10",
+    "fichier": "DPAE_Octobre2026_20261002-1848.txt",
+    "empreinte": "82d54275a920100d",
+    "mode": "reel",
+    "qui": "interface",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-9D24D38FEB9F",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20261008193912",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20261008193912",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-9D24D38FEB9F</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\demo\\demo-1285-grande\\retours\\depots\\20261008-193903_depot-dpae_202610.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-10-08T19:38:56",
+        "flux": "DEMO-C8DC3EDECA8B",
+        "empreinte": "82d54275a920100d",
+        "compte_rendu": "ok"
+      },
+      "embauches": [
+        {
+          "salarie": "TURLUPIN",
+          "debut": "2026-10-13",
+          "fin": "2026-10-16"
+        },
+        {
+          "salarie": "DUMESNIL",
+          "debut": "2026-10-13",
+          "fin": "2026-10-16"
+        },
+        {
+          "salarie": "NOVERRE",
+          "debut": "2026-10-13",
+          "fin": "2026-10-16"
+        },
+        {
+          "salarie": "TORELLI",
+          "debut": "2026-10-13",
+          "fin": "2026-10-16"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "documents",
+    "quand": "2026-10-08T19:39:12",
+    "origine": "",
+    "mois": "2026-09",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "interface",
+    "accepte": true,
+    "destinataire": "ergaste.nadar@exemple.invalid, hortense.dorval@exemple.invalid, lelio.turlupin@exemple.invalid, elmire.dumesnil@exemple.invalid, lysandre.noverre@exemple.invalid, oronte.torelli@exemple.invalid",
+    "flux": "",
+    "retours": [],
+    "reponse": "6 message(s) envoye(s)",
+    "trace": null,
+    "detail": {
+      "salaries": [
+        {
+          "cle": "NADAR",
+          "nom": "Ergaste NADAR",
+          "pieces": [
+            "Bulletin_NADAR_Septembre2026.pdf"
+          ]
+        },
+        {
+          "cle": "DORVAL",
+          "nom": "Hortense DORVAL",
+          "pieces": [
+            "Bulletin_DORVAL_Septembre2026.pdf"
+          ]
+        },
+        {
+          "cle": "TURLUPIN",
+          "nom": "Lelio TURLUPIN",
+          "pieces": [
+            "Bulletin_TURLUPIN_Septembre2026.pdf",
+            "CertificatCS_TURLUPIN_Septembre2026.pdf"
+          ]
+        },
+        {
+          "cle": "DUMESNIL",
+          "nom": "Elmire DUMESNIL",
+          "pieces": [
+            "Bulletin_DUMESNIL_Septembre2026.pdf",
+            "CertificatCS_DUMESNIL_Septembre2026.pdf"
+          ]
+        },
+        {
+          "cle": "NOVERRE",
+          "nom": "Lysandre NOVERRE",
+          "pieces": [
+            "Bulletin_NOVERRE_Septembre2026.pdf",
+            "CertificatCS_NOVERRE_Septembre2026.pdf"
+          ]
+        },
+        {
+          "cle": "TORELLI",
+          "nom": "Oronte TORELLI",
+          "pieces": [
+            "Bulletin_TORELLI_Septembre2026.pdf",
+            "CertificatCS_TORELLI_Septembre2026.pdf"
+          ]
+        }
+      ],
+      "expediteur": "direction@demo-1285-grande.invalid"
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-10-08T19:39:58",
+    "origine": "",
+    "mois": "2026-09",
+    "fichier": "DPAE_Septembre2026_20261008-1939.txt",
+    "empreinte": "dc14774da5ffe31b",
+    "mode": "test",
+    "qui": "interface",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-402505AF0988",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20261008194004",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20261008194004",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-402505AF0988</idflux>\nDemonstration : DPAE de test jouee, rien n'a quitte le poste.",
+    "trace": "C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\demo\\demo-1285-grande\\retours\\depots\\20261008-193958_depot-dpae_202609.txt",
+    "detail": {
+      "preuve": "",
+      "repetition": null,
+      "embauches": [
+        {
+          "salarie": "DORVAL",
+          "debut": "2026-09-03",
+          "fin": "2026-09-03"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "dpae",
+    "quand": "2026-10-08T19:40:06",
+    "origine": "",
+    "mois": "2026-09",
+    "fichier": "DPAE_Septembre2026_20261008-1939.txt",
+    "empreinte": "dc14774da5ffe31b",
+    "mode": "reel",
+    "qui": "interface",
+    "accepte": true,
+    "destinataire": "urssaf",
+    "flux": "DEMO-8A12B6DC7E49",
+    "retours": [
+      {
+        "statut": "demonstration",
+        "publication": "20261008194015",
+        "anomalies": [],
+        "nature": "11",
+        "verdict": "OK",
+        "libelle": "Bilan de conformite (demonstration)"
+      },
+      {
+        "statut": "demonstration",
+        "publication": "20261008194015",
+        "anomalies": [],
+        "nature": "41",
+        "verdict": "OK",
+        "libelle": "Certificat de conformite des DPAE (demonstration)",
+        "dpae": []
+      }
+    ],
+    "reponse": "<idflux>DEMO-8A12B6DC7E49</idflux>\nDemonstration : DPAE reelle jouee, rien n'a quitte le poste.",
+    "trace": "C:\\Users\\leand\\Documents\\coolpaie - Copie\\claude\\demo\\demo-1285-grande\\retours\\depots\\20261008-194006_depot-dpae_202609.txt",
+    "detail": {
+      "preuve": "demonstration",
+      "repetition": {
+        "test": "2026-10-08T19:39:58",
+        "flux": "DEMO-402505AF0988",
+        "empreinte": "dc14774da5ffe31b",
+        "compte_rendu": "ok"
+      },
+      "embauches": [
+        {
+          "salarie": "DORVAL",
+          "debut": "2026-09-03",
+          "fin": "2026-09-03"
+        }
+      ]
+    }
+  },
+  {
+    "quoi": "contrat-recu",
+    "quand": "2026-09-03T08:00:00",
+    "origine": "demonstration : joue par l'horloge (moteur/simulation.py)",
+    "mois": "2026-09",
+    "fichier": null,
+    "empreinte": null,
+    "mode": "reel",
+    "qui": "demonstration",
+    "accepte": true,
+    "destinataire": "",
+    "flux": "",
+    "retours": [],
+    "reponse": "contrat signe recu, range a la main",
+    "trace": null,
+    "detail": {
+      "salarie": "DORVAL",
+      "debut": "2026-09-03",
+      "recu": true,
+      "numero": "DO2.26.01",
+      "nom": "DORVAL Hortense"
+    }
+  }
+]

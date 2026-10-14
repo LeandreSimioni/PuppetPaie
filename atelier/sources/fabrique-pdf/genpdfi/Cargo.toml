@@ -1,0 +1,31 @@
+# Copie locale de genpdfi 0.2.7 (Apache-2.0 OU MIT), modifiée pour PuppetPaie.
+# Les modifications sont listées dans MODIFICATIONS.md.
+[package]
+name = "genpdfi"
+version = "0.2.7-puppetpaie.1"
+edition = "2018"
+authors = [
+    "Robin Krahl <robin.krahl@ireas.org>",
+    "Ismael Sh <me@theiskaa.com>",
+]
+description = "Générateur de PDF (copie locale de genpdfi 0.2.7, modifiée pour la fabrique de PDF de PuppetPaie)"
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/theiskaa/genpdfi"
+publish = false
+
+[features]
+default = ["images", "svg"]
+# PNG et JPEG (crate `image`, sans autre format que ceux que printpdf impose).
+images = ["image", "printpdf/embedded_images"]
+# SVG posé en vectoriel (printpdf::svg, donc svg2pdf + usvg).
+svg = ["printpdf/svg", "usvg"]
+
+[dependencies]
+derive_more = { version = "0.99", default-features = false, features = [
+    "add", "add_assign", "from", "into", "mul", "mul_assign", "sum",
+] }
+image = { version = "0.24.9", optional = true, default-features = false, features = ["png", "jpeg"] }
+usvg = { version = "0.35", optional = true, default-features = false }
+printpdf = { version = "0.7.0", default-features = false }
+rusttype = "0.8"
+ttf-parser = "0.24"

@@ -1,0 +1,134 @@
+{
+  "_origine": "Compagnie de demonstration demo-1285-grande, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2026-01",
+  "taux_cachet": 165.0,
+  "date_paiement": "2026-01-31",
+  "engagements": [
+    {
+      "salarie": "Nadar",
+      "nature": "cdi",
+      "debut": "2022-01-03",
+      "numero": "NA.22.01",
+      "salaire_mensuel": 3010.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Dorval",
+      "nature": "cdi",
+      "debut": "2025-04-01",
+      "numero": "DO.25.01",
+      "salaire_mensuel": 2200.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Turlupin",
+      "spectacle": "256Z00930011",
+      "debut": "2026-01-20",
+      "fin": "2026-01-24",
+      "date_paiement": "2026-01-24",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 5,
+          "taux": 170.0,
+          "lieu": "Theatre fictif de la Croix-Rousse",
+          "dates": [
+            "2026-01-20",
+            "2026-01-21",
+            "2026-01-22",
+            "2026-01-23",
+            "2026-01-24"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Dumesnil",
+      "spectacle": "256Z00930011",
+      "debut": "2026-01-20",
+      "fin": "2026-01-24",
+      "date_paiement": "2026-01-24",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 5,
+          "taux": 170.0,
+          "lieu": "Theatre fictif de la Croix-Rousse",
+          "dates": [
+            "2026-01-20",
+            "2026-01-21",
+            "2026-01-22",
+            "2026-01-23",
+            "2026-01-24"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Noverre",
+      "spectacle": "256Z00930011",
+      "debut": "2026-01-20",
+      "fin": "2026-01-24",
+      "date_paiement": "2026-01-24",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 5,
+          "taux": 170.0,
+          "lieu": "Theatre fictif de la Croix-Rousse",
+          "dates": [
+            "2026-01-20",
+            "2026-01-21",
+            "2026-01-22",
+            "2026-01-23",
+            "2026-01-24"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Farrenc",
+      "spectacle": "256Z00930011",
+      "debut": "2026-01-20",
+      "fin": "2026-01-24",
+      "date_paiement": "2026-01-24",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 40,
+          "taux": 19.5,
+          "lieu": "Theatre fictif de la Croix-Rousse",
+          "dates": [
+            "2026-01-20",
+            "2026-01-21",
+            "2026-01-22",
+            "2026-01-23",
+            "2026-01-24"
+          ]
+        }
+      ]
+    },
+    {
+      "salarie": "Torelli",
+      "spectacle": "256Z00930011",
+      "debut": "2026-01-20",
+      "fin": "2026-01-24",
+      "date_paiement": "2026-01-24",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 40,
+          "taux": 17.5,
+          "lieu": "Theatre fictif de la Croix-Rousse",
+          "dates": [
+            "2026-01-20",
+            "2026-01-21",
+            "2026-01-22",
+            "2026-01-23",
+            "2026-01-24"
+          ]
+        }
+      ]
+    }
+  ]
+}

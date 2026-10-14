@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<FICHE DateHeureCreation="2026-12-14T09:00:00" IdentifiantFiche="9000139" Version="139">
+  <Entreprise SIREN="123456782" NIC="00011" RaisonSociale="COMPAGNIE FICTIVE"/>
+  <ProducteurFiche CodeProducteur="P9999" RaisonSocialeProducteur="ORGANISME FICTIF"/>
+  <ContactTechniqueFiche Nom="Service fictif" Mail="contact@exemple.fr" Tel="0100000000"/>
+  <ContactGestionnaireFiche Nom="Gestion fictive" Mail="gestion@exemple.fr" Tel="0100000000"/>
+  <GROUPE NumeroGrp="00001" LibelleGrp="PERMANENTS PREVOYANCE">
+    <ParametresContrats DateDebutValidite="01012026" Periodicite="Mensuel">
+      <Organisme CodeOC="P9999"/>
+      <Contrat ReferenceContrat="PREV-FICTIVE" LibelleContrat="PREVOYANCE FICTIVE"/>
+      <Population CodePopulation="NC" LibellePopulation="NON CADRES"/>
+      <ElementsDeCalculAttendus>
+        <TAPrev><Taux>0.7500</Taux></TAPrev>
+        <BaseMontantSpecifique ValeurCodeNature="18" LibelleCodeNature="ISOLE PSS">
+          <Taux>0.5000</Taux><Coef>1.00</Coef><Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+  </GROUPE>
+  <GROUPE NumeroGrp="00002" LibelleGrp="PERMANENTS SANTE">
+    <ParametresContrats DateDebutValidite="01012026" DateFinValidite="31122026" Periodicite="Mensuel">
+      <Organisme CodeOC="P9999"/>
+      <Contrat ReferenceContrat="SANTE-FICTIVE" LibelleContrat="SANTE FICTIVE"/>
+      <Option CodeOption="AD" LibelleOption="SELON AYANTS DROIT"/>
+      <Population CodePopulation="NC" LibellePopulation="NON CADRES"/>
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique ValeurCodeNature="20" LibelleCodeNature="ISOLE" Condition="02"><Montant>40.00</Montant></BaseMontantSpecifique>
+        <BaseMontantSpecifique ValeurCodeNature="20" LibelleCodeNature="AVEC 1 AYANT DROIT" Condition="05"><Montant>70.00</Montant></BaseMontantSpecifique>
+        <BaseMontantSpecifique ValeurCodeNature="20" LibelleCodeNature="AVEC 2 AYANTS DROIT OU PLUS" Condition="07"><Montant>95.00</Montant></BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+  </GROUPE>
+</FICHE>

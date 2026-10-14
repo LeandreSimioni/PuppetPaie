@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 120" width="128" height="120" role="img" aria-label="PuppetPaie">
+  <title>PuppetPaie</title>
+  <!-- Les deux P de PuppetPaie : le premier a l'encre, le second au carmin,
+       sous un filet d'accent. Les lettres sont dessinees en chemins et non
+       composees en EB Garamond, pour que le rendu ne depende d'aucune police
+       installee -- une image de marque ne doit pas changer d'aspect selon la
+       machine. Un P mirroir avait ete essaye : il se lit « q ». -->
+  <defs>
+    <path id="pp-lettre" fill-rule="evenodd"
+          d="M0,0 H34 A26,26 0 0 1 34,52 H14 V100 H0 Z
+             M14,13 H33 A13,13 0 0 1 33,39 H14 Z"/>
+  </defs>
+  <use href="#pp-lettre" x="0" y="4" fill="#141413"/>
+  <use href="#pp-lettre" x="68" y="4" fill="#9B1B30"/>
+  <rect x="0" y="114" width="128" height="3" fill="#9B1B30"/>
+</svg>

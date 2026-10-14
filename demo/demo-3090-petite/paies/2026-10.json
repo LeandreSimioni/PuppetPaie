@@ -1,0 +1,34 @@
+{
+  "_origine": "Compagnie de demonstration demo-3090-petite, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2026-10",
+  "taux_cachet": 150.0,
+  "date_paiement": "2026-10-31",
+  "engagements": [
+    {
+      "salarie": "Brioche",
+      "spectacle": "256Z00920022",
+      "debut": "2026-10-13",
+      "fin": "2026-10-22",
+      "date_paiement": "2026-10-22",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 150.0,
+          "lieu": "Mediatheques du Cantal",
+          "dates": [
+            "2026-10-13",
+            "2026-10-15",
+            "2026-10-20",
+            "2026-10-22"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 4,
+          "taux": 20.7
+        }
+      ]
+    }
+  ]
+}

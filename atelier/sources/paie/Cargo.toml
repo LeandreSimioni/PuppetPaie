@@ -1,0 +1,126 @@
+[package]
+name = "paie"
+version = "0.1.0"
+edition = "2021"
+description = "Le moteur de PuppetPaie en Rust : du fichier de mois au bulletin (docs/PORTAGE-RUST.md)."
+license = "EUPL-1.2"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "paie"
+path = "src/main.rs"
+
+# Le binaire de l'ATELIER (lot J2a, preuve) : le meme code, construit avec `--features atelier`, pour les essais seulement,
+# jamais livre. Il peut etre pointe vers de faux serveurs locaux et refuse tout acte reel. La construction ordinaire
+# (`cargo build --release`) ne le fait pas : elle donne `paie` seul, sans une ligne de la redirection.
+[[bin]]
+name = "paie-atelier"
+path = "src/main.rs"
+required-features = ["atelier"]
+
+[features]
+atelier = []
+
+[dependencies]
+# Arithmetique decimale : ROUND_HALF_UP = MidpointAwayFromZero (PORTAGE-RUST §2).
+rust_decimal = { version = "1", default-features = false, features = ["std", "maths"] }
+# Les fichiers se lisent en serde_json::Value, comme le Python lit des dict :
+# les cles inconnues et `_commentaires` survivent sans schema a maintenir.
+# `float_roundtrip` : un flottant lu est exactement celui de Python, puis
+# `num::dec` passe par sa representation la plus courte, comme Decimal(str(x)).
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+# Le .zip de la DPAE : deflate et CRC-32, deja lies par la fabrique de PDF.
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+# Les retours DSN sont du XML : lecture seule, Rust pur (`retours.rs`).
+roxmltree = { version = "0.20", default-features = false, features = ["std"] }
+# L'empreinte d'un fichier du journal (deja liee par la fabrique de PDF).
+sha2 = { version = "0.10", default-features = false }
+# L'empreinte MD5 que Drive publie pour chaque fichier (`sauvegarde.rs`) : RustCrypto, sans options par defaut.
+md-5 = { version = "0.10", default-features = false }
+# Les motifs du journal des incidents (caviardage, ce qui part chez l'editeur) ;
+# sans les optimisations par defaut, qui pesent sur le binaire.
+regex = { version = "1", default-features = false, features = ["std", "unicode"] }
+# Le bulletin : la description part a la fabrique dans le meme processus.
+fabrique-pdf = { path = "../fabrique-pdf" }
+# Le transport vers net-entreprises et l'Urssaf (`transport.rs`) : HTTP/1.1
+# synchrone, TLS par rustls, racines du systeme (`SSL_CERT_FILE` honore),
+# proxy lu dans l'environnement. Ni gzip (flate2 s'en charge), ni cookies, ni json.
+ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier"] }
+# Le coffre (`coffre.rs`) : AES-256-GCM et scrypt de RustCrypto, aleas du systeme.
+# Rien de leurs options par defaut (ni `password-hash`, ni `std`).
+aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
+scrypt = { version = "0.11", default-features = false }
+getrandom = "0.3"
+# Les courriels joués de la démonstration (`simulation_courriels.rs`) : lecture MIME, bibliothèque éprouvée.
+mailparse = "0.16"
+# Les classeurs .xlsx de `exporter` et la liste nominative du CASC-SVP : ecriture seule, bibliotheque eprouvee.
+rust_xlsxwriter = "0.90"
+# La messagerie (`courriel.rs`, `envoi.rs`) : SMTP par `lettre` (sans son batisseur de messages : on lui passe nos
+# octets, `send_raw`), TLS par rustls et verificateur de la plate-forme (la racine d'un antivirus installee dans le
+# magasin du systeme passe, comme pour l'Urssaf) ; IMAP ecrit sur un flux rustls, reponses lues par `imap-proto`.
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "rustls", "ring", "rustls-platform-verifier"] }
+imap-proto = "0.17"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-platform-verifier = "0.7"
+# La mise a jour (`maj.rs`, lot J4) : la signature Ed25519 de l'editeur, et l'archive zip (lecture et ecriture).
+ed25519-dalek = { version = "2", default-features = false, features = ["std", "zeroize"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+
+# La saisie du mot de passe SANS ECHO dans la console de Windows (`demande.rs`, le canal « terminal ») : l'API de la
+# console (CONIN$ / CONOUT$, mode sans echo, UTF-16) est celle de cette petite bibliotheque entretenue ; sous Unix le
+# terminal se lit par `/dev/tty` et `stty`, sans dependance. Rien dans le binaire Linux ni macOS.
+[target.'cfg(windows)'.dependencies]
+rpassword = "7"
+
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# scrypt brasse 32 Mo par essai : le code des briques de chiffrement va vite,
+# le reste du binaire reste petit.
+[profile.release.package.scrypt]
+opt-level = 3
+[profile.release.package.salsa20]
+opt-level = 3
+[profile.release.package.pbkdf2]
+opt-level = 3
+[profile.release.package.sha2]
+opt-level = 3
+
+# Les tests (profil dev) derivent des cles scrypt par dizaines (le mot de passe du logiciel, les demandes de `demande.rs`) :
+# ces briques-la, optimisees, les font passer de minutes a secondes.
+[profile.dev.package.scrypt]
+opt-level = 3
+[profile.dev.package.salsa20]
+opt-level = 3
+[profile.dev.package.pbkdf2]
+opt-level = 3
+[profile.dev.package.sha2]
+opt-level = 3
+
+# Le profil des ESSAIS (`cargo test --profile essais`) : le code optimise de `release`, sans le LTO ni l'unite de
+# compilation unique, qui se repaient pour chacun des binaires de `tests/`. L'exe livre (`release`) ne change pas.
+[profile.essais]
+inherits = "release"
+opt-level = 1
+lto = false
+codegen-units = 16
+incremental = true
+strip = false
+panic = "unwind"
+[profile.essais.package."*"]
+opt-level = 2
+[profile.essais.package.scrypt]
+opt-level = 3
+[profile.essais.package.salsa20]
+opt-level = 3
+[profile.essais.package.pbkdf2]
+opt-level = 3
+[profile.essais.package.sha2]
+opt-level = 3

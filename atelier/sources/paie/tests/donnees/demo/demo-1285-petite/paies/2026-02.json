@@ -1,0 +1,108 @@
+{
+  "_origine": "Compagnie de demonstration demo-1285-petite, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2026-02",
+  "taux_cachet": 165.0,
+  "date_paiement": "2026-02-28",
+  "engagements": [
+    {
+      "salarie": "Beauchamp",
+      "spectacle": "266Z00940022",
+      "debut": "2026-02-02",
+      "fin": "2026-02-13",
+      "date_paiement": "2026-02-13",
+      "lignes": [
+        {
+          "rubrique": "repetition",
+          "quantite": 5,
+          "taux": 65.0,
+          "heures": 4,
+          "lieu": "Theatre fictif de la Vignette",
+          "dates": [
+            "2026-02-02",
+            "2026-02-03",
+            "2026-02-04",
+            "2026-02-05",
+            "2026-02-06"
+          ]
+        },
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 170.0,
+          "lieu": "Theatre fictif de la Vignette",
+          "dates": [
+            "2026-02-10",
+            "2026-02-11",
+            "2026-02-12",
+            "2026-02-13"
+          ]
+        }
+      ],
+      "numero": "BE1.26.02"
+    },
+    {
+      "salarie": "Camargo",
+      "spectacle": "266Z00940022",
+      "debut": "2026-02-02",
+      "fin": "2026-02-13",
+      "date_paiement": "2026-02-13",
+      "lignes": [
+        {
+          "rubrique": "repetition",
+          "quantite": 5,
+          "taux": 65.0,
+          "heures": 4,
+          "lieu": "Theatre fictif de la Vignette",
+          "dates": [
+            "2026-02-02",
+            "2026-02-03",
+            "2026-02-04",
+            "2026-02-05",
+            "2026-02-06"
+          ]
+        },
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 170.0,
+          "lieu": "Theatre fictif de la Vignette",
+          "dates": [
+            "2026-02-10",
+            "2026-02-11",
+            "2026-02-12",
+            "2026-02-13"
+          ]
+        }
+      ],
+      "numero": "CA2.26.02"
+    },
+    {
+      "salarie": "Jaell",
+      "spectacle": "266Z00940022",
+      "debut": "2026-02-02",
+      "fin": "2026-02-13",
+      "date_paiement": "2026-02-13",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 72,
+          "taux": 17.5,
+          "lieu": "Theatre fictif de la Vignette",
+          "dates": [
+            "2026-02-02",
+            "2026-02-03",
+            "2026-02-04",
+            "2026-02-05",
+            "2026-02-06",
+            "2026-02-10",
+            "2026-02-11",
+            "2026-02-12",
+            "2026-02-13"
+          ]
+        }
+      ],
+      "numero": "JA3.26.01"
+    }
+  ],
+  "numeros_figes": true
+}

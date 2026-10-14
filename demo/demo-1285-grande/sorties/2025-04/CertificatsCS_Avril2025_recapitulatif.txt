@@ -1,0 +1,8 @@
+Certificats d'emploi Conges Spectacles
+Compte (adherent Audiens) : 0000000000F
+----------------------------------------------------------------------------
+  N CE 10     TURLUPIN Lelio         07/04/2025 -> 25/04/2025  14 jour(s)/cachet(s)  brut   980  base   980
+  N CE 11     NOVERRE Lysandre       07/04/2025 -> 25/04/2025  14 jour(s)/cachet(s)  brut   980  base   980
+----------------------------------------------------------------------------
+A remettre au salarie a la fin de son contrat. Rien a envoyer a
+Audiens : la cotisation part deja par la DSN (S21.G00.78 type 27).

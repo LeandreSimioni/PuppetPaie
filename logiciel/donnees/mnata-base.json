@@ -1,0 +1,82 @@
+{
+ "_quoi": "La table MNATA de la DSN : les motifs de non-assujettissement à la taxe d'apprentissage, valeurs de S21.G00.44.004, « obligatoire si la rubrique \"Code taxe - S21.G00.44.001\" est renseignée avec la valeur \"002 - Non assujettissement à la taxe à l'apprentissage\" », « CRE-11 : valeurs autorisées », « Table MNATA » (cahier technique DSN 2026.1, p. 241 ; prive/reference/norme-dsn/texte/bloc-S21.G00.45.txt, l. 42-52). Le moteur l'écrit depuis le motif que la fiche entreprise dit (`taxe_apprentissage_motif_non_assujettissement`), quand le bordereau ne paie pas la taxe (`paie/src/assujettissement.rs`).",
+ "_source": "net-entreprises, nomenclatures DSN NEODeS, fichier cumulé P27V01 (et P26V01, table MNATA identique) daté du 24/09/2026, relevé le 11/10/2026 : prive/reference/sources/dsn-nomenclatures/net-entreprises-neodes-nomenclatures-P27V01-20260924.csv (brut, latin-1), transcription UTF-8 : prive/reference/sources/dsn-nomenclatures/table-MNATA-20260924.txt (LISEZ-MOI.md à côté). 19 motifs, sans date de validité, repris tels quels.",
+ "motifs": [
+  {
+   "code": "001",
+   "libelle": "Non assujetti par choix du régime fiscal (option IR en catégorie BNC)"
+  },
+  {
+   "code": "002",
+   "libelle": "Collectivités publiques, Parlementaires"
+  },
+  {
+   "code": "003",
+   "libelle": "Etablissements publics de recherche et les établissements publics d'enseignement supérieurs"
+  },
+  {
+   "code": "004",
+   "libelle": "Personnes morales créées pour la gestion d'un pôle de recherche et d'enseignement supérieur ou d'un réseau thématique de recherche avancée"
+  },
+  {
+   "code": "005",
+   "libelle": "Fondations reconnues d'utilité public du secteur de la recherche"
+  },
+  {
+   "code": "006",
+   "libelle": "Sociétés et personnes morales ayant pour objet exclusif l'enseignement"
+  },
+  {
+   "code": "007",
+   "libelle": "Associations sans but lucratif"
+  },
+  {
+   "code": "008",
+   "libelle": "Syndicats professionnels"
+  },
+  {
+   "code": "009",
+   "libelle": "Entreprises sans établissement en France (ESEF)"
+  },
+  {
+   "code": "010",
+   "libelle": "Sociétés civiles de moyens (SCM) non commerciale"
+  },
+  {
+   "code": "011",
+   "libelle": "Personnes physiques ou morales assujetties aux BNC ou BA"
+  },
+  {
+   "code": "012",
+   "libelle": "Les coopératives agricoles"
+  },
+  {
+   "code": "013",
+   "libelle": "Les coopératives artisanales, transport (y compris fluvial et maritime) et leurs unions"
+  },
+  {
+   "code": "014",
+   "libelle": "Les groupements d'employeurs dont agricoles"
+  },
+  {
+   "code": "015",
+   "libelle": "Les sociétés civiles agricoles"
+  },
+  {
+   "code": "016",
+   "libelle": "Les mutuelles et organismes mutualistes"
+  },
+  {
+   "code": "017",
+   "libelle": "Les organismes HLM, SA de crédit immobilier (I et au II de l'article L. 422-4 du code de la construction et de l'habitation ) et unions d'économie sociale"
+  },
+  {
+   "code": "018",
+   "libelle": "Les sociétés coopératives de construction désignées à l'article L. 432-2 du code de la construction et de l'habitation."
+  },
+  {
+   "code": "019",
+   "libelle": "Organismes chargés de l'organisation en France d'une compétition sportive internationale en France (Article L6131-1 du code du travail)"
+  }
+ ]
+}

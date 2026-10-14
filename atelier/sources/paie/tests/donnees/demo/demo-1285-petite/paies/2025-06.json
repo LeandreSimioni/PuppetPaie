@@ -1,0 +1,75 @@
+{
+  "_origine": "Compagnie de demonstration demo-1285-petite, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2025-06",
+  "taux_cachet": 165.0,
+  "date_paiement": "2025-06-30",
+  "engagements": [
+    {
+      "salarie": "Beauchamp",
+      "spectacle": "256Z00940011",
+      "debut": "2025-06-24",
+      "fin": "2025-06-27",
+      "date_paiement": "2025-06-27",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 170.0,
+          "lieu": "Festival fictif de danse, Montpellier",
+          "dates": [
+            "2025-06-24",
+            "2025-06-25",
+            "2025-06-26",
+            "2025-06-27"
+          ]
+        }
+      ],
+      "numero": "BE1.25.03"
+    },
+    {
+      "salarie": "Camargo",
+      "spectacle": "256Z00940011",
+      "debut": "2025-06-24",
+      "fin": "2025-06-27",
+      "date_paiement": "2025-06-27",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 170.0,
+          "lieu": "Festival fictif de danse, Montpellier",
+          "dates": [
+            "2025-06-24",
+            "2025-06-25",
+            "2025-06-26",
+            "2025-06-27"
+          ]
+        }
+      ],
+      "numero": "CA2.25.03"
+    },
+    {
+      "salarie": "Jaell",
+      "spectacle": "256Z00940011",
+      "debut": "2025-06-24",
+      "fin": "2025-06-27",
+      "date_paiement": "2025-06-27",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 32,
+          "taux": 17.0,
+          "lieu": "Festival fictif de danse, Montpellier",
+          "dates": [
+            "2025-06-24",
+            "2025-06-25",
+            "2025-06-26",
+            "2025-06-27"
+          ]
+        }
+      ],
+      "numero": "JA3.25.03"
+    }
+  ],
+  "numeros_figes": true
+}

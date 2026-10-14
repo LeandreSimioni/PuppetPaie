@@ -1,0 +1,38 @@
+# Modèle du CERTIFICAT DE TRAVAIL — articles L1234-19 et D1234-6 du code du travail.
+#
+# CE FICHIER EST UNE DONNÉE, PAS DU CODE, comme le modèle de contrat.
+#
+# MAIS CELUI-CI SE MODIFIE AVEC PRÉCAUTION, et il faut dire pourquoi :
+# D1234-6 dit que le certificat de travail « contient EXCLUSIVEMENT les
+# mentions suivantes » — la date d'entrée et celle de sortie, la nature de
+# l'emploi ou des emplois successivement occupés et les périodes pendant
+# lesquelles ces emplois ont été tenus. Y ajouter une appréciation, un motif
+# de rupture ou le montant d'un salaire, c'est sortir de ce que la loi
+# autorise. Relevé le 19/09/2026 dans la base LEGI (LEGIARTI000021339779).
+#
+# Les marqueurs {{...}} sont remplacés à l'édition ; un marqueur inconnu
+# arrête la génération plutôt que d'imprimer un trou.
+
+TITRE: Certificat de travail
+
+SOUSTITRE: Article L1234-19 du code du travail
+
+PREAMBULE:
+Je soussigné(e) **{{employeur.signataire}}**, {{employeur.signataire_fonction}} de **{{employeur.raison_sociale}}**, {{employeur.adresse}}, {{employeur.code_postal}} {{employeur.commune}} — SIRET {{employeur.siret}}, code APE {{employeur.naf}},
+
+certifie que **{{salarie.nom_complet}}**, né(e) le {{salarie.date_naissance}} à {{salarie.lieu_naissance}}, demeurant {{salarie.adresse}}, {{salarie.code_postal}} {{salarie.commune}}, a été employé(e) dans notre entreprise dans les conditions suivantes.
+
+ARTICLE: Dates d'entrée et de sortie
+Date d'entrée : **{{contrat.debut}}**.
+
+Date de sortie : **{{contrat.fin}}**.
+
+ARTICLE: Emploi occupé
+Emploi : **{{contrat.emploi}}**, du {{contrat.debut}} au {{contrat.fin}}.
+
+Nature du contrat : {{contrat.nature}}.
+
+SIGNATURES:
+{{salarie.nom_complet}} est libre de tout engagement envers notre entreprise.
+
+Certificat établi à {{employeur.commune}}, le {{certificat.date}}, pour servir et valoir ce que de droit.

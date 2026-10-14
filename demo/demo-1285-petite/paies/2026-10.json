@@ -1,0 +1,80 @@
+{
+  "_origine": "Compagnie de demonstration demo-1285-petite, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2026-10",
+  "taux_cachet": 165.0,
+  "date_paiement": "2026-10-31",
+  "engagements": [
+    {
+      "salarie": "Beauchamp",
+      "spectacle": "266Z00940022",
+      "debut": "2026-10-15",
+      "fin": "2026-10-16",
+      "date_paiement": "2026-10-16",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 2,
+          "taux": 170.0,
+          "lieu": "Theatre fictif de Beziers",
+          "dates": [
+            "2026-10-15",
+            "2026-10-16"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 2,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "Camargo",
+      "spectacle": "266Z00940022",
+      "debut": "2026-10-15",
+      "fin": "2026-10-16",
+      "date_paiement": "2026-10-16",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 2,
+          "taux": 170.0,
+          "lieu": "Theatre fictif de Beziers",
+          "dates": [
+            "2026-10-15",
+            "2026-10-16"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 2,
+          "taux": 20.7
+        }
+      ]
+    },
+    {
+      "salarie": "Jaell",
+      "spectacle": "266Z00940022",
+      "debut": "2026-10-15",
+      "fin": "2026-10-16",
+      "date_paiement": "2026-10-16",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 16,
+          "taux": 17.5,
+          "lieu": "Theatre fictif de Beziers",
+          "dates": [
+            "2026-10-15",
+            "2026-10-16"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 2,
+          "taux": 20.7
+        }
+      ]
+    }
+  ]
+}

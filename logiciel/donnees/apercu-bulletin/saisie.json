@@ -1,0 +1,10 @@
+{
+  "_source": "La paie fictive de l'apercu du bulletin (lot R11) : deux jours de regie, au tarif horaire.",
+  "mois": "2026-10",
+  "date_paiement": "2026-10-31",
+  "engagements": [
+    {"salarie": "APERCU", "spectacle": "266Z00900011", "debut": "2026-10-20", "fin": "2026-10-21", "numero": "AP1.26.10",
+     "date_paiement": "2026-10-21",
+     "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 14.0, "lieu": "Théâtre fictif", "dates": ["2026-10-20", "2026-10-21"]}]}
+  ]
+}

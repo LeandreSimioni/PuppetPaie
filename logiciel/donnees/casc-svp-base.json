@@ -1,0 +1,33 @@
+{
+  "_quoi": "La regularisation de la cotisation CASC-SVP qu'une DSN n'a pas portee. Depuis les salaires de janvier 2025, la CASC-SVP (IDCC 3090) se declare et se paie chaque mois dans la DSN, par Audiens ; un logiciel de paie qui n'etait pas parametre l'a omise, et les mois manquants se rattrapent par virement et par courriel. Lu par moteur/operations_casc.py (`python -m moteur exporter regularisation-casc-svp`).",
+  "_source": "Page employeurs du CASC-SVP, << Informations generales employeurs >>, modifiee le 19/06/2026, lue le 22/09/2026 : https://casc-svp.portailce.com/Article/Article/9 -- paragraphes << Declaration des salaires a partir du 1er janvier 2025 - via la DSN >> et << Declarations en retard pour cause de parametrage DSN en retard >>. Recoupee par le courriel du CASC-SVP du 24/09/2025 << Cotisation CASC-SVP 2025 : DSN non parametree >> et par la fiche de parametrage Audiens n. 139 (groupes 00009 et 00010, contrat CASCSVP).",
+  "idcc": "3090",
+  "depuis": "2025-01",
+  "taux": {
+    "2025": 0.40,
+    "2026": 0.50,
+    "_source": "0,40 % sur la T1 Agirc-Arrco des salaires de 2025, 0,50 % a compter de 2026, sans plancher (page employeurs du CASC-SVP ; fiche Audiens 139 : TAPrev 0,4000 puis 0,5000 au 01/01/2026). Une annee absente d'ici fait REFUSER l'export : le taux se releve, il ne se prolonge pas."
+  },
+  "assiette": "La tranche 1 Agirc-Arrco. Pour un intermittent non cadre, calcul sur une base annuelle ; pour un intermittent cadre, plafond journalier x jours travailles. L'export prend le BRUT et le dit : il est egal a la T1 tant que le brut reste sous le plafond, et l'export signale le salarie dont le brut d'un mois depasse le plafond mensuel -- celui-la, la base se recalcule a la main.",
+  "reglement": {
+    "beneficiaire": "Audiens Sante Prevoyance - Encaist",
+    "libelle": "CASC SVP {siret} {annee}",
+    "_iban": "L'IBAN n'est PAS recopie ici : il se lit sur la page employeurs du CASC-SVP ou dans l'espace Audiens, au moment de payer. Un IBAN recopie dans un fichier se perime sans que rien ne le dise.",
+    "par": "annee"
+  },
+  "courriel_audiens": {
+    "a": "comptes-tiers-dsn@audiens.org",
+    "objet": "{siret}"
+  },
+  "courriel_casc": {
+    "a": "entreprises@casc-svp.fr",
+    "objet": "{siret}"
+  },
+  "page": "https://casc-svp.portailce.com/Article/Article/9",
+  "dsn": {
+    "contrat": "CASCSVP",
+    "lignes_bulletin": ["ccn"],
+    "_quoi": "Ce que la DSN declare, depuis le 23/09/2026 (moteur/dsn.py, `casc_svp`) : une base 31 et une cotisation 059 sous l'adhesion prevoyance dont le libelle est `contrat` (sa reference est celle de la compagnie, dans config/organismes.json) ; montant = les lignes `lignes_bulletin` du bulletin, rubrique de la couche 3090 du bareme. Pas pour un mois regularise hors DSN (config/casc-svp.json).",
+    "_source": "Fiche de parametrage Audiens n. 139, groupes 00009 et 00010 : contrat CASCSVP, TAPrev 0,50 depuis le 01/01/2026. Web-conference Audiens 2026 p. 12 (bulletin d'un intermittent 3090 : CASC svp 0,5) et p. 18."
+  }
+}

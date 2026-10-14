@@ -1,0 +1,27 @@
+{
+  "_note": "Compagnie de demonstration : titres et numeros d'objet fabriques.",
+  "les-fausses-confidences": {
+    "titre": "Les Fausses Confidences",
+    "numero_objet": "256Z00910011",
+    "alias": [
+      "les fausses confidences"
+    ],
+    "code_analytique": "VENT"
+  },
+  "la-double-inconstance": {
+    "titre": "La Double Inconstance",
+    "numero_objet": "266Z00910022",
+    "alias": [
+      "la double inconstance"
+    ],
+    "code_analytique": "LUNE"
+  },
+  "le-medecin-volant": {
+    "titre": "Le Médecin volant",
+    "numero_objet": "256Z00910033",
+    "alias": [
+      "le médecin volant"
+    ],
+    "code_analytique": "PH"
+  }
+}

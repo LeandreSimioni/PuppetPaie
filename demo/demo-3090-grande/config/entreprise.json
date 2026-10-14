@@ -1,0 +1,99 @@
+{
+  "_source": "COMPAGNIE DE DEMONSTRATION -- outils/compagnies_demo.py. Aucune de ces valeurs ne designe une entreprise, une personne ou un spectacle reels ; les cles (SIRET, NIR) se verifient.",
+  "raison_sociale": "LES MAREES HAUTES (DEMONSTRATION)",
+  "nom_affichage": "Les Marées hautes (démonstration)",
+  "siren": "123456915",
+  "nic": "00016",
+  "siret": "12345691500016",
+  "naf": "9001Z",
+  "adresse": "8 RUE DES TANNEURS",
+  "adresse_affichage": "8 rue des Tanneurs",
+  "code_postal": "37000",
+  "commune": "TOURS",
+  "commune_affichage": "Tours",
+  "idcc": "3090",
+  "code_convention_dsn": "3090",
+  "convention_collective": "Entreprises du secteur prive du spectacle vivant",
+  "annexe_convention": "4",
+  "urssaf_compte": "1100000000",
+  "code_urssaf": "117",
+  "licence_spectacle": "PLATESV-R-2023-101101",
+  "congesspectacles_affiliation": "970000000000F",
+  "congesspectacles_adherent": "0000000000F",
+  "france_travail_dossier_recouvrement": "",
+  "congesspectacles_agrement": "",
+  "code_employeur_france_travail": "8000000000",
+  "affiliation_france_travail": "80000000008",
+  "retraite_complementaire": "AUDIENS",
+  "medecine_travail": "MT991",
+  "emploie_des_permanents": true,
+  "signataire": {
+    "nom": "LECOUVREUR",
+    "prenom": "ADRIENNE",
+    "fonction": "Directrice",
+    "tel": "0100000091",
+    "email": "direction@demo-3090-grande.invalid",
+    "nom_aem": "LECOUVREUR",
+    "prenom_affichage": "Adrienne",
+    "nom_affichage": "Lecouvreur"
+  },
+  "declarant_dsn": {
+    "nom_prenom": "LECOUVREUR ADRIENNE",
+    "tel": "0100000091",
+    "email": "DIRECTION@DEMO-3090-GRANDE.INVALID",
+    "qualite": "04",
+    "nom_affichage": "Lecouvreur",
+    "prenom_affichage": "Adrienne"
+  },
+  "banque": {
+    "bic": "BANQFRPPXXX",
+    "iban": "FR7630001007941234567890185",
+    "_note": "IBAN fabrique (cle 85 juste). Ne designe aucun compte."
+  },
+  "historique": [
+    {
+      "champ": "code_convention_dsn",
+      "valeur": "3090",
+      "jusqu_au": "2026-10-02",
+      "note": ""
+    },
+    {
+      "champ": "code_convention_dsn",
+      "valeur": "1285",
+      "jusqu_au": "2026-10-02",
+      "note": ""
+    },
+    {
+      "champ": "idcc",
+      "valeur": "3090",
+      "jusqu_au": "2026-10-02",
+      "note": ""
+    },
+    {
+      "champ": "idcc",
+      "valeur": "1285",
+      "jusqu_au": "2026-10-02",
+      "note": ""
+    },
+    {
+      "champ": "raison_sociale",
+      "valeur": "CIE FICTIVE LES MAREES HAUTES",
+      "jusqu_au": "2026-10-02",
+      "note": ""
+    }
+  ],
+  "jours_feries_chomes": "tous",
+  "premiere_embauche": "",
+  "jauge_annexe_1": "",
+  "type_radio_1922": "",
+  "cinquante_salaries_3241": true,
+  "organisation_patronale": "",
+  "organisation_patronale_depuis": "",
+  "representation_personnel": "",
+  "casc_svp_exemptee": false,
+  "prevoyance_techniciens_3097": "",
+  "etablissements": null,
+  "secteur_2121": "",
+  "prevoyance_permanents": null,
+  "sante_permanents": null
+}

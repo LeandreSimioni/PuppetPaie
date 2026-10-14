@@ -1,0 +1,25 @@
+{
+  "_origine": "Compagnie de demonstration demo-1285-grande, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2026-05",
+  "taux_cachet": 165.0,
+  "date_paiement": "2026-05-31",
+  "engagements": [
+    {
+      "salarie": "Nadar",
+      "nature": "cdi",
+      "debut": "2022-01-03",
+      "numero": "NA.22.01",
+      "salaire_mensuel": 3010.0,
+      "quotite_contrat": 151.67
+    },
+    {
+      "salarie": "Dorval",
+      "nature": "cdi",
+      "debut": "2025-04-01",
+      "numero": "DO.25.01",
+      "salaire_mensuel": 2200.0,
+      "quotite_contrat": 151.67
+    }
+  ],
+  "numeros_figes": true
+}

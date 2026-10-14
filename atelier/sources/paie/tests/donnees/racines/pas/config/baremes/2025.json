@@ -1,0 +1,10 @@
+{
+  "annee": 2025,
+  "socle": 2025,
+  "_quoi": "La surcouche de la compagnie de demonstration : son taux AT/MP de l'annee.",
+  "taux_atmp": {
+    "valeur": 1.3,
+    "code_risque": "923AD",
+    "_source": "Fabrique. Un vrai taux est notifie chaque janvier par l'Assurance Maladie."
+  }
+}

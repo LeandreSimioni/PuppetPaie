@@ -1,0 +1,8 @@
+{
+ "sujet": "un\t\tdeux\t\ttrois quatre cinq six sept huit neuf dix onze douze treize quatorze quinze seize dix-sept",
+ "corps": "Bonjour,\n\nTout va bien.\n",
+ "html": "",
+ "pieces": [],
+ "dest": "marie@exemple.fr",
+ "exp": "compagnie@gmail.com"
+}

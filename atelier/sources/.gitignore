@@ -1,0 +1,54 @@
+__pycache__/
+*.pyc
+
+# ---------------------------------------------------------------------------
+# Les donnees ne sont plus ici : elles vivent dans ../prive/, hors du depot.
+# C'est la vraie protection -- ce qui n'est pas dans le dossier ne peut pas
+# etre commite par accident.
+#
+# Ces regles restent malgre tout, pour deux cas :
+#   - une installation d'un seul tenant, ou code et donnees se melangent
+#     (ce que le logiciel accepte : voir moteur/contexte.py) ;
+#   - un fichier depose ici par erreur, un jour de fatigue.
+# ---------------------------------------------------------------------------
+config/
+paies/
+sorties/
+retours/
+gabarits/
+reference/
+prive/
+
+# SAUF la copie figee des demonstrations sur laquelle tournent les tests Rust
+# (09/10/2026) : des compagnies FICTIVES, figees a l'etat ou les sorties de
+# l'ancien moteur ont ete relevees. `demo/`, lui, vit (le poste le fait jouer).
+!/paie/tests/donnees/demo/*/config/
+!/paie/tests/donnees/demo/*/paies/
+!/paie/tests/donnees/demo/*/sorties/
+!/paie/tests/donnees/demo/*/retours/
+!/paie/tests/donnees/demo/*/gabarits/
+
+# Le compte Google : identifiant de l'application et jeton de rafraichissement.
+# Deja couverts par config/, repetes ici pour que la regle reste vraie si
+# config/ etait un jour partiellement versionne.
+config/google.json
+config/google-jeton.bin
+*google-jeton*
+
+# Le verrou des compteurs : un fichier de travail, jamais du code.
+.compteurs.verrou
+
+# Les fichiers de declaration, ou qu'ils soient : ils portent des NIR.
+*.dsn
+DPAE_*.txt
+AEM_*.txt
+# (sauf celles des demonstrations figees des tests : fictives)
+!/paie/tests/donnees/demo/**/*.dsn
+!/paie/tests/donnees/demo/**/DPAE_*.txt
+!/paie/tests/donnees/demo/**/AEM_*.txt
+
+# La version d avant, gardee par la mise a jour (moteur/maj.py) : jamais du code a versionner.
+.avant/
+# Et la copie de travail d un seul fichier, faite avant de le reecrire :
+# `moteur/contrat.py.avant` a vecu neuf jours dans le depot (19/09/2026).
+*.avant

@@ -1,0 +1,128 @@
+[
+  {
+    "quoi": "refus",
+    "quand": "2026-10-08T19:39:38",
+    "version": "2026.10.02",
+    "empreinte": "3e1a5acf593a",
+    "ou": "apercu",
+    "genre": "CalculRefuse",
+    "resume": "CalculRefuse: L'engagement 7 de 2026-09 ne dit pas quel spectacle il joue, et le mois n'en propose aucun. Le spectacle porte le numero d'objet, qui part en DSN, en AEM et sur le bulletin : il se choisit, il ne se devine pas.",
+    "detail": {
+      "route": "apercu"
+    },
+    "trace": null,
+    "caviarde": [],
+    "envoi": {
+      "etat": "depose",
+      "quand": "2026-10-09T15:42:37"
+    }
+  },
+  {
+    "quoi": "refus",
+    "quand": "2026-10-08T19:39:39",
+    "version": "2026.10.02",
+    "empreinte": "5a9bf7ba927e",
+    "ou": "enregistrer-saisie",
+    "genre": "CalculRefuse",
+    "resume": "CalculRefuse: L'engagement 7 de 2026-09 ne dit pas quel spectacle il joue, et le mois n'en propose aucun. Le spectacle porte le numero d'objet, qui part en DSN, en AEM et sur le bulletin : il se choisit, il ne se devine pas.",
+    "detail": {
+      "route": "enregistrer-saisie"
+    },
+    "trace": null,
+    "caviarde": [],
+    "envoi": {
+      "etat": "depose",
+      "quand": "2026-10-09T15:42:37"
+    }
+  },
+  {
+    "quoi": "refus",
+    "quand": "2026-10-08T19:39:41",
+    "version": "2026.10.02",
+    "empreinte": "3e1a5acf593a",
+    "ou": "apercu",
+    "genre": "CalculRefuse",
+    "resume": "CalculRefuse: L'engagement 7 de 2026-09 ne dit aucun jour joue. Les jours se portent sur chaque ligne de paie (\"dates\"). Sans eux il n'y a ni debut, ni fin, ni contrat. Un mois du contrat sans aucun cachet s'ecrit `lignes: []`, avec `debut` et `fin`.",
+    "detail": {
+      "route": "apercu"
+    },
+    "trace": null,
+    "caviarde": [],
+    "envoi": {
+      "etat": "depose",
+      "quand": "2026-10-09T15:42:37"
+    }
+  },
+  {
+    "quoi": "refus",
+    "quand": "2026-10-08T19:39:41",
+    "version": "2026.10.02",
+    "empreinte": "5a9bf7ba927e",
+    "ou": "enregistrer-saisie",
+    "genre": "CalculRefuse",
+    "resume": "CalculRefuse: L'engagement 7 de 2026-09 ne dit aucun jour joue. Les jours se portent sur chaque ligne de paie (\"dates\"). Sans eux il n'y a ni debut, ni fin, ni contrat. Un mois du contrat sans aucun cachet s'ecrit `lignes: []`, avec `debut` et `fin`.",
+    "detail": {
+      "route": "enregistrer-saisie"
+    },
+    "trace": null,
+    "caviarde": [],
+    "envoi": {
+      "etat": "depose",
+      "quand": "2026-10-09T15:42:37"
+    }
+  },
+  {
+    "quoi": "refus",
+    "quand": "2026-10-08T19:40:14",
+    "version": "2026.10.02",
+    "empreinte": "7145f2d924a2",
+    "ou": "demander-signature",
+    "genre": "CalculRefuse",
+    "resume": "CalculRefuse: description illisible : une valeur du modele de contrat n'est pas un texte",
+    "detail": {
+      "route": "demander-signature"
+    },
+    "trace": null,
+    "caviarde": [],
+    "envoi": {
+      "etat": "depose",
+      "quand": "2026-10-09T15:42:37"
+    }
+  },
+  {
+    "quoi": "refus",
+    "quand": "2026-10-08T19:40:24",
+    "version": "2026.10.02",
+    "empreinte": "7145f2d924a2",
+    "ou": "demander-signature",
+    "genre": "CalculRefuse",
+    "resume": "CalculRefuse: description illisible : une valeur du modele de contrat n'est pas un texte",
+    "detail": {
+      "route": "demander-signature"
+    },
+    "trace": null,
+    "caviarde": [],
+    "envoi": {
+      "etat": "depose",
+      "quand": "2026-10-09T15:42:37"
+    }
+  },
+  {
+    "quoi": "refus",
+    "quand": "2026-10-08T19:42:18",
+    "version": "2026.10.02",
+    "empreinte": "7145f2d924a2",
+    "ou": "demander-signature",
+    "genre": "CalculRefuse",
+    "resume": "CalculRefuse: description illisible : une valeur du modele de contrat n'est pas un texte",
+    "detail": {
+      "route": "demander-signature"
+    },
+    "trace": null,
+    "caviarde": [],
+    "envoi": {
+      "etat": "depose",
+      "quand": "2026-10-09T15:42:37"
+    }
+  }
+]

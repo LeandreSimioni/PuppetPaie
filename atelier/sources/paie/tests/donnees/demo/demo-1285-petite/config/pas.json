@@ -1,0 +1,354 @@
+{
+  "_source": "Compagnie de demonstration : des taux de prelevement a la source FABRIQUES, comme s'ils venaient des comptes-rendus de la DGFiP (nature 94). Les salaries sans taux partent sur la grille de l'article 204 H.",
+  "salaries": {
+    "BEAUCHAMP": {
+      "taux": "3.50",
+      "type": "01",
+      "identifiant": "894202027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08"
+    },
+    "CAMARGO": {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894212027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08"
+    },
+    "JAELL": {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894222027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08"
+    }
+  },
+  "journal": [
+    {
+      "taux": "3.50",
+      "type": "01",
+      "identifiant": "894202025",
+      "mis_a_disposition": "20250308120000",
+      "periode": "202503",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-03-08",
+      "salarie": "BEAUCHAMP"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894212025",
+      "mis_a_disposition": "20250308120000",
+      "periode": "202503",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-03-08",
+      "salarie": "CAMARGO"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894222025",
+      "mis_a_disposition": "20250308120000",
+      "periode": "202503",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-03-08",
+      "salarie": "JAELL"
+    },
+    {
+      "taux": "3.50",
+      "type": "01",
+      "identifiant": "894202025",
+      "mis_a_disposition": "20250508120000",
+      "periode": "202505",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-05-08",
+      "salarie": "BEAUCHAMP"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894212025",
+      "mis_a_disposition": "20250508120000",
+      "periode": "202505",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-05-08",
+      "salarie": "CAMARGO"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894222025",
+      "mis_a_disposition": "20250508120000",
+      "periode": "202505",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-05-08",
+      "salarie": "JAELL"
+    },
+    {
+      "taux": "3.50",
+      "type": "01",
+      "identifiant": "894202025",
+      "mis_a_disposition": "20250708120000",
+      "periode": "202507",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-07-08",
+      "salarie": "BEAUCHAMP"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894212025",
+      "mis_a_disposition": "20250708120000",
+      "periode": "202507",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-07-08",
+      "salarie": "CAMARGO"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894222025",
+      "mis_a_disposition": "20250708120000",
+      "periode": "202507",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-07-08",
+      "salarie": "JAELL"
+    },
+    {
+      "taux": "3.50",
+      "type": "01",
+      "identifiant": "894202025",
+      "mis_a_disposition": "20251108120000",
+      "periode": "202511",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-11-08",
+      "salarie": "BEAUCHAMP"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894212025",
+      "mis_a_disposition": "20251108120000",
+      "periode": "202511",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-11-08",
+      "salarie": "CAMARGO"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894222025",
+      "mis_a_disposition": "20251108120000",
+      "periode": "202511",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-11-08",
+      "salarie": "JAELL"
+    },
+    {
+      "taux": "3.50",
+      "type": "01",
+      "identifiant": "894202026",
+      "mis_a_disposition": "20260208120000",
+      "periode": "202602",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-02-08",
+      "salarie": "BEAUCHAMP"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894212026",
+      "mis_a_disposition": "20260208120000",
+      "periode": "202602",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-02-08",
+      "salarie": "CAMARGO"
+    },
+    {
+      "taux": "3.50",
+      "type": "01",
+      "identifiant": "894202026",
+      "mis_a_disposition": "20260308120000",
+      "periode": "202603",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-03-08",
+      "salarie": "BEAUCHAMP"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894212026",
+      "mis_a_disposition": "20260308120000",
+      "periode": "202603",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-03-08",
+      "salarie": "CAMARGO"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894222026",
+      "mis_a_disposition": "20260308120000",
+      "periode": "202603",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-03-08",
+      "salarie": "JAELL"
+    },
+    {
+      "taux": "3.50",
+      "type": "01",
+      "identifiant": "894202026",
+      "mis_a_disposition": "20260508120000",
+      "periode": "202605",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-05-08",
+      "salarie": "BEAUCHAMP"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894212026",
+      "mis_a_disposition": "20260508120000",
+      "periode": "202605",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-05-08",
+      "salarie": "CAMARGO"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894222026",
+      "mis_a_disposition": "20260508120000",
+      "periode": "202605",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-05-08",
+      "salarie": "JAELL"
+    },
+    {
+      "taux": "3.50",
+      "type": "01",
+      "identifiant": "894202026",
+      "mis_a_disposition": "20260708120000",
+      "periode": "202607",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-07-08",
+      "salarie": "BEAUCHAMP"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894212026",
+      "mis_a_disposition": "20260708120000",
+      "periode": "202607",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-07-08",
+      "salarie": "CAMARGO"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894222026",
+      "mis_a_disposition": "20260708120000",
+      "periode": "202607",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-07-08",
+      "salarie": "JAELL"
+    },
+    {
+      "taux": "3.50",
+      "type": "01",
+      "identifiant": "894202026",
+      "mis_a_disposition": "20261108120000",
+      "periode": "202611",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-11-08",
+      "salarie": "BEAUCHAMP"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894212026",
+      "mis_a_disposition": "20261108120000",
+      "periode": "202611",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-11-08",
+      "salarie": "CAMARGO"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894222026",
+      "mis_a_disposition": "20261108120000",
+      "periode": "202611",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-11-08",
+      "salarie": "JAELL"
+    },
+    {
+      "taux": "3.50",
+      "type": "01",
+      "identifiant": "894202026",
+      "mis_a_disposition": "20261208120000",
+      "periode": "202612",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-12-08",
+      "salarie": "BEAUCHAMP"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894212026",
+      "mis_a_disposition": "20261208120000",
+      "periode": "202612",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-12-08",
+      "salarie": "CAMARGO"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894222026",
+      "mis_a_disposition": "20261208120000",
+      "periode": "202612",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-12-08",
+      "salarie": "JAELL"
+    },
+    {
+      "taux": "3.50",
+      "type": "01",
+      "identifiant": "894202027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08",
+      "salarie": "BEAUCHAMP"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894212027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08",
+      "salarie": "CAMARGO"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "894222027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08",
+      "salarie": "JAELL"
+    }
+  ]
+}

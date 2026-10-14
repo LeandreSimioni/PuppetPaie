@@ -1,0 +1,1376 @@
+{
+ "_quoi": "La table « Pays » de la DSN (NEODeS), celle où se lit S21.G00.30.015, le code pays de naissance : « Le Code pays de naissance est à déterminer dans la table \"Codes Pays\" ISO 3166-1-A2 », « CRE-11 : valeurs autorisées », « X [2,2] Table Pays » (cahier technique DSN 2026.1, p. 174 ; prive/reference/norme-dsn/texte/bloc-S21.G00.30.txt, l. 297-303). `code` et `libelle` sont ceux de la table PAYS ; `ne_a_l_etranger` dit si le code est aussi dans la table PAY (la même sans la France, Monaco, les DROM et les COM : les treize valeurs que la fiche net-entreprises 2951 interdit en 30.015 pour un individu né à l'étranger ; c'est une inférence, la table PAY n'a pas de définition dans le fichier). Elle sert au pays de naissance (`paie/src/pays.rs`, `de_naissance`, et la liste de la fiche) ; le pays de NATIONALITÉ garde la liste du COG (`pays-base.json`), qui porte le rattachement d'un territoire dont se déduit S21.G00.30.013.",
+ "_source": "net-entreprises, nomenclatures DSN NEODeS, fichier cumulé P27V01 (et P26V01, tables PAYS et PAY identiques) daté du 24/09/2026, relevé le 11/10/2026 : prive/reference/sources/dsn-nomenclatures/net-entreprises-neodes-nomenclatures-P27V01-20260924.csv (brut, latin-1), transcription UTF-8 des deux tables : prive/reference/sources/dsn-nomenclatures/tables-PAYS-et-PAY-20260924.txt (LISEZ-MOI.md à côté). 274 codes PAYS, 261 PAY, aucune date de validité. Reprise telle quelle, dans l'ordre de la table.",
+ "pays": [
+  {
+   "code": "AD",
+   "libelle": "ANDORRE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AE",
+   "libelle": "EMIRATS ARABES UNIS",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AF",
+   "libelle": "AFGHANISTAN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AG",
+   "libelle": "ANTIGUA-ET-BARBUDA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AI",
+   "libelle": "ANGUILLA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AL",
+   "libelle": "ALBANIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AM",
+   "libelle": "ARMENIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AN",
+   "libelle": "ANTILLES NEERLANDAISES LES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AO",
+   "libelle": "ANGOLA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AQ",
+   "libelle": "ANTARCTIQUE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AR",
+   "libelle": "ARGENTINE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AS",
+   "libelle": "SAMOA AMERICAINES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AT",
+   "libelle": "AUTRICHE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AU",
+   "libelle": "AUSTRALIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AW",
+   "libelle": "ARUBA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AX",
+   "libelle": "ALAND ILES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "AZ",
+   "libelle": "AZERBAIDJAN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BA",
+   "libelle": "BOSNIE-HERZEGOVINE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BB",
+   "libelle": "BARBADE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BD",
+   "libelle": "BANGLADESH",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BE",
+   "libelle": "BELGIQUE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BF",
+   "libelle": "BURKINA FASO",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BG",
+   "libelle": "BULGARIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BH",
+   "libelle": "BAHREIN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BI",
+   "libelle": "BURUNDI",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BJ",
+   "libelle": "BENIN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BL",
+   "libelle": "SAINT-BARTHELEMY",
+   "ne_a_l_etranger": false
+  },
+  {
+   "code": "BM",
+   "libelle": "BERMUDES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BN",
+   "libelle": "BRUNEI DARUSSALAM",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BO",
+   "libelle": "BOLIVIE ETAT PLURINATIONAL DE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BQ",
+   "libelle": "BONAIRE SAINT-EUSTACHE ET SABA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BR",
+   "libelle": "BRESIL",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BS",
+   "libelle": "BAHAMAS",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BT",
+   "libelle": "BHOUTAN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BU",
+   "libelle": "BIRMANIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BV",
+   "libelle": "BOUVET ILE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BW",
+   "libelle": "BOTSWANA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BY",
+   "libelle": "BELARUS",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "BZ",
+   "libelle": "BELIZE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CA",
+   "libelle": "CANADA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CC",
+   "libelle": "COCOS (KEELING) ILES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CD",
+   "libelle": "CONGO REPUBLIQUE DEMOCRATIQUE DU",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CF",
+   "libelle": "CENTRAFRICAINE REPUBLIQUE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CG",
+   "libelle": "CONGO",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CH",
+   "libelle": "SUISSE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CI",
+   "libelle": "COTE D'IVOIRE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CK",
+   "libelle": "COOK ILES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CL",
+   "libelle": "CHILI",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CM",
+   "libelle": "CAMEROUN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CN",
+   "libelle": "CHINE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CO",
+   "libelle": "COLOMBIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CR",
+   "libelle": "COSTA RICA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CS",
+   "libelle": "TCHECOSLOVAQUIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CT",
+   "libelle": "CANTON ET ENDERBURY ILES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CU",
+   "libelle": "CUBA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CV",
+   "libelle": "CABO VERDE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CW",
+   "libelle": "CURACAO",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CX",
+   "libelle": "CHRISTMAS ILE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CY",
+   "libelle": "CHYPRE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "CZ",
+   "libelle": "TCHEQUIE LA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "DD",
+   "libelle": "ALLEMANDE REPUBLIQUE DEMOCRATIQUE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "DE",
+   "libelle": "ALLEMAGNE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "DJ",
+   "libelle": "DJIBOUTI",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "DK",
+   "libelle": "DANEMARK",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "DM",
+   "libelle": "DOMINIQUE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "DO",
+   "libelle": "DOMINICAINE REPUBLIQUE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "DY",
+   "libelle": "DAHOMEY",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "DZ",
+   "libelle": "ALGERIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "EC",
+   "libelle": "EQUATEUR",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "EE",
+   "libelle": "ESTONIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "EG",
+   "libelle": "EGYPTE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "EH",
+   "libelle": "SAHARA OCCIDENTAL",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "ER",
+   "libelle": "ERYTHREE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "ES",
+   "libelle": "ESPAGNE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "ET",
+   "libelle": "ETHIOPIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "FI",
+   "libelle": "FINLANDE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "FJ",
+   "libelle": "FIDJI",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "FK",
+   "libelle": "FALKLAND ILES MALVINAS",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "FM",
+   "libelle": "MICRONESIE ETATS FEDERES DE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "FO",
+   "libelle": "FEROE ILES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "FQ",
+   "libelle": "AUSTRALES ET ANTARCTIQUES FRANCAISES TERRES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "FR",
+   "libelle": "FRANCE",
+   "ne_a_l_etranger": false
+  },
+  {
+   "code": "GA",
+   "libelle": "GABON",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GB",
+   "libelle": "ROYAUME-UNI DE GRANDE-BRETAGNE ET D'IRLANDE DU NORD",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GD",
+   "libelle": "GRENADE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GE",
+   "libelle": "GEORGIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GF",
+   "libelle": "GUYANE FRANCAISE",
+   "ne_a_l_etranger": false
+  },
+  {
+   "code": "GG",
+   "libelle": "GUERNESEY",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GH",
+   "libelle": "GHANA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GI",
+   "libelle": "GIBRALTAR",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GL",
+   "libelle": "GROENLAND",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GM",
+   "libelle": "GAMBIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GN",
+   "libelle": "GUINEE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GP",
+   "libelle": "GUADELOUPE",
+   "ne_a_l_etranger": false
+  },
+  {
+   "code": "GQ",
+   "libelle": "GUINEE EQUATORIALE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GR",
+   "libelle": "GRECE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GS",
+   "libelle": "GEORGIE DU SUD-ET-LES ILES SANDWICH DU SUD",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GT",
+   "libelle": "GUATEMALA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GU",
+   "libelle": "GUAM",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GW",
+   "libelle": "GUINEE-BISSAU",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "GY",
+   "libelle": "GUYANA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "HK",
+   "libelle": "HONG KONG",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "HM",
+   "libelle": "HEARD-ET-ILES MACDONALD ILE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "HN",
+   "libelle": "HONDURAS",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "HR",
+   "libelle": "CROATIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "HT",
+   "libelle": "HAITI",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "HU",
+   "libelle": "HONGRIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "HV",
+   "libelle": "HAUTE-VOLTA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "ID",
+   "libelle": "INDONESIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "IE",
+   "libelle": "IRLANDE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "IL",
+   "libelle": "ISRAEL",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "IM",
+   "libelle": "ILE DE MAN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "IN",
+   "libelle": "INDE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "IO",
+   "libelle": "OCEAN INDIEN TERRITOIRE BRITANNIQUE DE L",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "IQ",
+   "libelle": "IRAQ",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "IR",
+   "libelle": "IRAN REPUBLIQUE ISLAMIQUE D",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "IS",
+   "libelle": "ISLANDE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "IT",
+   "libelle": "ITALIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "JE",
+   "libelle": "JERSEY",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "JM",
+   "libelle": "JAMAIQUE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "JO",
+   "libelle": "JORDANIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "JP",
+   "libelle": "JAPON",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "JT",
+   "libelle": "JOHNSTON ILE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "KE",
+   "libelle": "KENYA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "KG",
+   "libelle": "KIRGHIZISTAN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "KH",
+   "libelle": "CAMBODGE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "KI",
+   "libelle": "KIRIBATI",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "KM",
+   "libelle": "COMORES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "KN",
+   "libelle": "SAINT-KITTS-ET-NEVIS",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "KP",
+   "libelle": "COREE REPUBLIQUE POPULAIRE DEMOCRATIQUE DE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "KR",
+   "libelle": "COREE REPUBLIQUE DE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "KW",
+   "libelle": "KOWEIT",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "KY",
+   "libelle": "CAIMANS ILES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "KZ",
+   "libelle": "KAZAKHSTAN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "LA",
+   "libelle": "LAO REPUBLIQUE DEMOCRATIQUE POPULAIRE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "LB",
+   "libelle": "LIBAN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "LC",
+   "libelle": "SAINTE-LUCIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "LI",
+   "libelle": "LIECHTENSTEIN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "LK",
+   "libelle": "SRI LANKA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "LR",
+   "libelle": "LIBERIA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "LS",
+   "libelle": "LESOTHO",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "LT",
+   "libelle": "LITUANIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "LU",
+   "libelle": "LUXEMBOURG",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "LV",
+   "libelle": "LETTONIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "LY",
+   "libelle": "LIBYE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MA",
+   "libelle": "MAROC",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MC",
+   "libelle": "MONACO",
+   "ne_a_l_etranger": false
+  },
+  {
+   "code": "MD",
+   "libelle": "MOLDOVA REPUBLIQUE DE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "ME",
+   "libelle": "MONTENEGRO",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MF",
+   "libelle": "SAINT-MARTIN PARTIE FRANCAISE",
+   "ne_a_l_etranger": false
+  },
+  {
+   "code": "MG",
+   "libelle": "MADAGASCAR",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MH",
+   "libelle": "MARSHALL ILES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MI",
+   "libelle": "MIDWAY ILES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MK",
+   "libelle": "MACEDOINE DU NORD",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "ML",
+   "libelle": "MALI",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MM",
+   "libelle": "MYANMAR",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MN",
+   "libelle": "MONGOLIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MO",
+   "libelle": "MACAO",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MP",
+   "libelle": "MARIANNES DU NORD ILES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MQ",
+   "libelle": "MARTINIQUE",
+   "ne_a_l_etranger": false
+  },
+  {
+   "code": "MR",
+   "libelle": "MAURITANIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MS",
+   "libelle": "MONTSERRAT",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MT",
+   "libelle": "MALTE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MU",
+   "libelle": "MAURICE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MV",
+   "libelle": "MALDIVES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MW",
+   "libelle": "MALAWI",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MX",
+   "libelle": "MEXIQUE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MY",
+   "libelle": "MALAISIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "MZ",
+   "libelle": "MOZAMBIQUE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "NA",
+   "libelle": "NAMIBIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "NC",
+   "libelle": "NOUVELLE-CALEDONIE",
+   "ne_a_l_etranger": false
+  },
+  {
+   "code": "NE",
+   "libelle": "NIGER",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "NF",
+   "libelle": "NORFOLK ILE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "NG",
+   "libelle": "NIGERIA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "NH",
+   "libelle": "NOUVELLES-HEBRIDES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "NI",
+   "libelle": "NICARAGUA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "NL",
+   "libelle": "PAYS-BAS",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "NO",
+   "libelle": "NORVEGE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "NP",
+   "libelle": "NEPAL",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "NQ",
+   "libelle": "TERRE DE LA REINE MAUD",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "NR",
+   "libelle": "NAURU",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "NT",
+   "libelle": "ZONE NEUTRE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "NU",
+   "libelle": "NIUE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "NZ",
+   "libelle": "NOUVELLE-ZELANDE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "OM",
+   "libelle": "OMAN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PA",
+   "libelle": "PANAMA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PC",
+   "libelle": "PACIFIQUE ILES DU TERRITOIRE SOUS TUTELLE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PE",
+   "libelle": "PEROU",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PF",
+   "libelle": "POLYNESIE FRANCAISE",
+   "ne_a_l_etranger": false
+  },
+  {
+   "code": "PG",
+   "libelle": "PAPOUASIE-NOUVELLE-GUINEE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PH",
+   "libelle": "PHILIPPINES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PK",
+   "libelle": "PAKISTAN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PL",
+   "libelle": "POLOGNE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PM",
+   "libelle": "SAINT-PIERRE-ET-MIQUELON",
+   "ne_a_l_etranger": false
+  },
+  {
+   "code": "PN",
+   "libelle": "PITCAIRN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PR",
+   "libelle": "PORTO RICO",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PS",
+   "libelle": "PALESTINE ETAT DE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PT",
+   "libelle": "PORTUGAL",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PU",
+   "libelle": "PACIFIQUE DIVERSES ILES DU ETATS-UNIS",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PW",
+   "libelle": "PALAOS",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PY",
+   "libelle": "PARAGUAY",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "PZ",
+   "libelle": "PANAMA ZONE DU CANAL DE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "QA",
+   "libelle": "QATAR",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "RE",
+   "libelle": "REUNION",
+   "ne_a_l_etranger": false
+  },
+  {
+   "code": "RH",
+   "libelle": "RHODESIE DU SUD",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "RO",
+   "libelle": "ROUMANIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "RS",
+   "libelle": "SERBIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "RU",
+   "libelle": "RUSSIE FEDERATION DE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "RW",
+   "libelle": "RWANDA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SA",
+   "libelle": "ARABIE SAOUDITE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SB",
+   "libelle": "SALOMON ILES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SC",
+   "libelle": "SEYCHELLES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SD",
+   "libelle": "SOUDAN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SE",
+   "libelle": "SUEDE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SG",
+   "libelle": "SINGAPOUR",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SH",
+   "libelle": "SAINTE-HELENE ASCENSION ET TRISTAN DA CUNHA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SI",
+   "libelle": "SLOVENIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SJ",
+   "libelle": "SVALBARD ET ILE JAN MAYEN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SK",
+   "libelle": "SLOVAQUIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SL",
+   "libelle": "SIERRA LEONE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SM",
+   "libelle": "SAINT-MARIN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SN",
+   "libelle": "SENEGAL",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SO",
+   "libelle": "SOMALIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SR",
+   "libelle": "SURINAME",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SS",
+   "libelle": "SOUDAN DU SUD",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "ST",
+   "libelle": "SAO TOME-ET-PRINCIPE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SU",
+   "libelle": "URSS",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SV",
+   "libelle": "EL SALVADOR",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SX",
+   "libelle": "SAINT-MARTIN PARTIE NEERLANDAISE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SY",
+   "libelle": "SYRIENNE REPUBLIQUE ARABE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "SZ",
+   "libelle": "ESWATINI",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TC",
+   "libelle": "TURKS-ET-CAICOS ILES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TD",
+   "libelle": "TCHAD",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TF",
+   "libelle": "TERRES AUSTRALES FRANCAISES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TG",
+   "libelle": "TOGO",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TH",
+   "libelle": "THAILANDE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TJ",
+   "libelle": "TADJIKISTAN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TK",
+   "libelle": "TOKELAU",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TL",
+   "libelle": "TIMOR-LESTE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TM",
+   "libelle": "TURKMENISTAN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TN",
+   "libelle": "TUNISIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TO",
+   "libelle": "TONGA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TP",
+   "libelle": "TIMOR ORIENTAL",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TR",
+   "libelle": "TURQUIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TT",
+   "libelle": "TRINITE-ET-TOBAGO",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TV",
+   "libelle": "TUVALU",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TW",
+   "libelle": "TAIWAN PROVINCE DE CHINE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "TZ",
+   "libelle": "TANZANIE REPUBLIQUE-UNIE DE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "UA",
+   "libelle": "UKRAINE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "UG",
+   "libelle": "OUGANDA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "UM",
+   "libelle": "ILES MINEURES ELOIGNEES DES ETATS-UNIS",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "US",
+   "libelle": "ETATS-UNIS D'AMERIQUE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "UY",
+   "libelle": "URUGUAY",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "UZ",
+   "libelle": "OUZBEKISTAN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "VA",
+   "libelle": "SAINT-SIEGE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "VC",
+   "libelle": "SAINT-VINCENT-ET-LES GRENADINES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "VD",
+   "libelle": "VIET-NAM REPUBLIQUE DEMOCRATIQUE DU",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "VE",
+   "libelle": "VENEZUELA REPUBLIQUE BOLIVARIENNE DU",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "VG",
+   "libelle": "ILES VIERGES BRITANNIQUES",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "VI",
+   "libelle": "ILES VIERGES DES ETATS-UNIS",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "VN",
+   "libelle": "VIET NAM",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "VU",
+   "libelle": "VANUATU",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "WF",
+   "libelle": "WALLIS ET FUTUNA",
+   "ne_a_l_etranger": false
+  },
+  {
+   "code": "WK",
+   "libelle": "WAKE ILE DE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "WS",
+   "libelle": "SAMOA",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "XK",
+   "libelle": "KOSOVO",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "YD",
+   "libelle": "YEMEN DEMOCRATIQUE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "YE",
+   "libelle": "YEMEN",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "YT",
+   "libelle": "MAYOTTE",
+   "ne_a_l_etranger": false
+  },
+  {
+   "code": "YU",
+   "libelle": "YOUGOSLAVIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "ZA",
+   "libelle": "AFRIQUE DU SUD",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "ZM",
+   "libelle": "ZAMBIE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "ZR",
+   "libelle": "ZAIRE",
+   "ne_a_l_etranger": true
+  },
+  {
+   "code": "ZW",
+   "libelle": "ZIMBABWE",
+   "ne_a_l_etranger": true
+  }
+ ]
+}

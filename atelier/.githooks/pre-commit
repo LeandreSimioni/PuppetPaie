@@ -1,0 +1,23 @@
+#!/bin/sh
+# Refuse un commit qui emporterait une donnee personnelle.
+#
+# A poser une fois, dans le depot public, depuis sa racine :
+#
+#     git config core.hooksPath atelier/.githooks
+#
+# A POSER LE JOUR DE LA PUBLICATION, PAS AVANT (20/09/2026). Le depot de
+# travail est PRIVE et porte les donnees : les tests s'appuient sur de vraies
+# declarations, et c'est ce qui leur donne valeur de preuve. Pose aujourd'hui,
+# ce hook refuserait chaque commit. Il vaut pour le depot PUBLIC a venir, ou
+# l'historique est definitif -- une fois pousse, efface ne veut plus rien
+# dire. Voir AVANT-LE-PREMIER-COMMIT.md.
+#
+# Pour passer outre en connaissance de cause : git commit --no-verify.
+# Ne le faire qu'apres avoir REGARDE ce qui est signale.
+
+python atelier/outils/verifier_avant_commit.py --indexes || {
+    echo
+    echo "Commit refuse. Voir AVANT-LE-PREMIER-COMMIT.md."
+    echo "Pour passer outre malgre tout : git commit --no-verify"
+    exit 1
+}

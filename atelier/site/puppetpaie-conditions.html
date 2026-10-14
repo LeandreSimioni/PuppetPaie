@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PuppetPaie — Conditions d'utilisation</title>
+<meta name="description" content="Conditions d'utilisation de PuppetPaie, logiciel de paie de la Compagnia UEUEUE.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Libre+Franklin:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --papier:#FAFAF9; --toile:#F1F1F0; --encre:#141413; --gris:#55534F;
+  --filet:#E1E1DF; --carmin:#9B1B30; --rayon:4px;
+  --fs-display:clamp(2.2rem,7vw,3.6rem);
+  --fs-h2:clamp(1.45rem,3.4vw,2.1rem);
+  --marge:clamp(1rem,4vw,4.5rem);
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){:root{
+  --papier:#0D0D0C; --toile:#171716; --encre:#F0EFED; --gris:#95928E;
+  --filet:#2A2A28; --carmin:#C90F2A;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--papier);color:var(--encre);
+     font:400 1.0625rem/1.5 "Libre Franklin",system-ui,sans-serif}
+main{max-width:800px;margin:0 auto;padding:clamp(2.4rem,7vw,4.5rem) var(--marge) 0}
+h1,h2{font-family:"EB Garamond",Georgia,serif;font-weight:500;line-height:1.15}
+h1{font-size:var(--fs-display);margin:0 0 .3em;text-align:center}
+h2{font-size:var(--fs-h2);margin:2.6em 0 .6em}
+h2::before{content:"";display:block;width:34px;height:2px;
+           background:var(--carmin);margin-bottom:.7em}
+.date{color:var(--gris);font-size:.78rem;text-align:center;
+      letter-spacing:.12em;text-transform:uppercase;margin:0 0 3rem}
+p,li{max-width:64ch}
+ul{padding-left:1.1em}
+li{margin:.45em 0}
+a{color:var(--encre);text-decoration-color:var(--carmin);
+  text-underline-offset:.18em}
+a:hover{color:var(--carmin)}
+:focus-visible{outline:2px solid var(--carmin);outline-offset:3px;
+               border-radius:var(--rayon)}
+.marque{display:block;width:max-content;margin:0 auto 1.4rem;
+        color:var(--encre);text-decoration:none}
+footer{margin-top:5rem;border-top:2px solid var(--carmin);background:var(--toile)}
+.pied{max-width:800px;margin:0 auto;padding:1.8rem var(--marge);
+      font-size:.78rem;color:var(--gris);
+      display:flex;flex-wrap:wrap;gap:.6rem 1.6rem;justify-content:space-between}
+.pied a{color:var(--gris)}
+</style>
+
+<main>
+  <a class="marque" href="/puppetpaie.html" aria-label="PuppetPaie">
+    <svg viewBox="0 0 128 120" width="58" height="54" aria-hidden="true">
+      <path fill="currentColor" fill-rule="evenodd"
+            d="M0,4 H34 A26,26 0 0 1 34,56 H14 V104 H0 Z
+               M14,17 H33 A13,13 0 0 1 33,43 H14 Z"/>
+      <path fill="var(--carmin)" fill-rule="evenodd"
+            d="M68,4 H102 A26,26 0 0 1 102,56 H82 V104 H68 Z
+               M82,17 H101 A13,13 0 0 1 101,43 H82 Z"/>
+      <rect x="0" y="114" width="128" height="3" fill="var(--carmin)"/>
+    </svg>
+  </a>
+
+  <h1>Conditions d'utilisation</h1>
+  <p class="date">PuppetPaie · 9 septembre 2026</p>
+
+  <p>PuppetPaie est un logiciel de paie édité par la Compagnia UEUEUE,
+     association loi 1901, 87 rue des Caillots, 93100 Montreuil, France.
+     L'installer ou l'utiliser vaut acceptation des conditions ci-dessous.</p>
+
+  <h2>Objet</h2>
+  <p>PuppetPaie établit les paies au cachet des artistes et techniciens
+     intermittents du spectacle, et produit les documents et déclarations qui
+     s'y rattachent. Il s'exécute sur l'ordinateur de l'utilisateur.</p>
+
+  <h2>L'utilisateur reste l'employeur</h2>
+  <p>Le logiciel calcule et met en forme&nbsp;; il ne déclare pas à votre place
+     et n'engage pas votre responsabilité d'employeur. Vous demeurez seul
+     responsable de l'exactitude des données saisies, du contrôle des documents
+     produits, de leur dépôt dans les délais légaux et du paiement des
+     cotisations dues.</p>
+  <p>Les barèmes, taux et plafonds livrés avec le logiciel sont fournis à titre
+     indicatif et doivent être vérifiés aux sources officielles avant toute
+     déclaration.</p>
+
+  <h2>Compte Google</h2>
+  <p>L'envoi des documents aux salariés et leur archivage sur Drive supposent
+     que vous autorisiez PuppetPaie à accéder à votre compte Google. Cette
+     autorisation est facultative, demandée explicitement, et révocable à tout
+     moment depuis
+     <a href="https://myaccount.google.com/permissions">myaccount.google.com</a>.
+     Le traitement des données correspondantes est décrit dans la
+     <a href="/puppetpaie-confidentialite.html">politique de
+     confidentialité</a>.</p>
+  <p>Aucun message n'est envoyé sans une relecture et une confirmation
+     explicites de votre part, message par message.</p>
+
+  <h2>Garantie et responsabilité</h2>
+  <p>Le logiciel est fourni en l'état, sans garantie d'aucune sorte. L'éditeur
+     ne saurait être tenu responsable des conséquences d'une erreur de saisie,
+     d'un barème périmé, d'un défaut du logiciel, d'un retard de déclaration ou
+     d'une perte de données. Il vous appartient de conserver des sauvegardes de
+     vos données.</p>
+
+  <h2>Droit applicable</h2>
+  <p>Les présentes conditions sont régies par le droit français.</p>
+
+  <h2>Contact</h2>
+  <p><a href="mailto:admueueue@gmail.com">admueueue@gmail.com</a></p>
+</main>
+
+<footer>
+  <div class="pied">
+    <span><a href="/puppetpaie.html">PuppetPaie</a> · Compagnia UEUEUE</span>
+    <span><a href="/puppetpaie-confidentialite.html">Confidentialité</a></span>
+  </div>
+</footer>
+</html>

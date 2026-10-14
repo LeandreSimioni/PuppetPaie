@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PuppetPaie — accueil</title>
+<!-- MAQUETTE (25/09/2026). L'écran d'accueil multi-compagnies :
+     - une compagnie réelle a UNE couleur, modifiable, posée en aplat ; elle
+       deviendra son --accent quand on l'ouvre ;
+     - une compagnie fictive (les démos, et la copie de test de la compagnie du poste) est
+       hachurée bleu clair et blanc, sans couleur à choisir : on la reconnaît
+       d'un coup d'oeil.
+     Rien ici ne lit ni n'écrit les données : la couleur choisie reste dans
+     ce navigateur. -->
+<style>
+:root {
+  --texte: #2C3E50;
+  --fond: #F7F6F4;
+  --carte: #FFFFFF;
+  --bord: #DDD8D2;
+  --discret: #7A8794;
+  --hachure: #cfe3f2;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.5 Arial, Helvetica, sans-serif; color: var(--texte); background: var(--fond); }
+
+.bandeau { display: flex; align-items: center; gap: 24px; padding: 10px 20px;
+  background: var(--carte); border-bottom: 1px solid var(--bord); }
+.marque { display: flex; align-items: center; gap: 10px; }
+.marque strong { display: block; font-size: 15px; letter-spacing: .3px; }
+.marque .sous { color: var(--discret); font-size: 12px; }
+.logo-pp { width: 38px; height: 24px; }
+.bascule { margin-left: auto; display: flex; border: 1px solid var(--bord); border-radius: 3px; overflow: hidden; }
+.bascule button { border: 0; background: none; padding: 6px 14px; font: inherit; color: var(--discret); cursor: pointer; }
+.bascule button.actif { background: var(--texte); color: #fff; font-weight: bold; }
+
+main { max-width: 1100px; margin: 0 auto; padding: 28px 16px 48px; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+.chapeau { color: var(--discret); margin: 0 0 22px; }
+.demo-bandeau { display: none; background: var(--carte); border: 1px solid var(--bord);
+  padding: 10px 14px; margin-bottom: 22px; border-radius: 3px; }
+body.demo .demo-bandeau { display: block; }
+body.demo .complet-seul { display: none !important; }
+
+.grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
+
+.tuile { position: relative; background: var(--carte); border: 1px solid var(--bord); border-radius: 4px;
+  overflow: hidden; display: flex; flex-direction: column; cursor: pointer;
+  transition: box-shadow .15s, transform .15s; }
+.tuile:hover { box-shadow: 0 4px 14px rgba(44,62,80,.14); transform: translateY(-2px); }
+
+.tete { height: 108px; display: grid; place-items: center; background: var(--cie); }
+.tuile.fictive .tete { background: repeating-linear-gradient(135deg, var(--hachure) 0 22px, #fff 22px 44px); }
+.medaillon { width: 80px; height: 80px; border-radius: 50%; background: #fff; display: grid; place-items: center; }
+.medaillon img, .medaillon svg { width: 58px; height: 58px; }
+
+.corps { padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 1px; }
+.nom { font-weight: bold; font-size: 16px; line-height: 1.3; }
+.lieu, .etat { color: var(--discret); font-size: 12.5px; }
+.etat { margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee9e3; color: var(--texte); }
+
+.tete { position: relative; }
+.choix-couleur { position: absolute; right: 10px; top: 10px; width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(255,255,255,.92); display: grid; place-items: center; cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,.18); opacity: .85; transition: opacity .15s; }
+.tuile:hover .choix-couleur { opacity: 1; }
+.choix-couleur svg { width: 15px; height: 15px; }
+.choix-couleur input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border: 0; padding: 0; }
+
+.ajouter { border: 2px dashed var(--bord); background: transparent; align-items: center; justify-content: center; color: var(--discret); }
+.ajouter:hover { border-color: var(--texte); color: var(--texte); }
+.ajouter { min-height: 200px; }
+.ajouter .plus { font-size: 40px; line-height: 1; }
+.ajouter strong { font-size: 15px; margin-top: 6px; }
+
+@media (max-width: 520px) { .bandeau { flex-wrap: wrap; gap: 10px; } .bascule { margin-left: 0; } }
+</style>
+</head>
+<body>
+
+<header class="bandeau">
+  <div class="marque">
+    <svg class="logo-pp" viewBox="0 0 38 24"><rect x="0" y="20" width="38" height="3" fill="#B22222"/><text x="1" y="19" font-family="Georgia,serif" font-weight="bold" font-size="20" fill="#2C3E50">PP</text></svg>
+    <div><strong>PuppetPaie</strong><span class="sous" id="sous-titre">Version complète</span></div>
+  </div>
+  <div class="bascule" role="group" aria-label="Voir la version">
+    <button type="button" class="actif" data-mode="complet">Complète</button>
+    <button type="button" data-mode="demo">Démo</button>
+  </div>
+</header>
+
+<main>
+  <h1>Vos compagnies</h1>
+  <p class="chapeau">Choisissez celle sur laquelle travailler.</p>
+
+  <div class="demo-bandeau">
+    <strong>Version démo.</strong> Quatre compagnies fictives, payées par le vrai moteur de janvier 2025 à novembre 2026.
+    DPAE, DSN et courriels sont <em>simulés</em> : chaque envoi montre ce qui serait parti, et explique comment ça marche.
+  </div>
+
+  <div class="grille" id="grille"></div>
+</main>
+
+<script>
+const LOGO = {
+  vagues: '<svg viewBox="0 0 100 100"><g fill="none" stroke="#1f5f8b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 34 q12 -14 24 0 t24 0 t24 0"/><path d="M6 48 q12 -14 24 0 t24 0 t24 0"/><path d="M6 62 q12 -14 24 0 t24 0 t24 0"/><circle cx="66" cy="16" r="8"/></g></svg>',
+  fil: '<svg viewBox="0 0 100 100"><g fill="none" stroke="#a33b2f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 H96"/><path d="M50 20 V38"/><path d="M36 30 H64"/><circle cx="50" cy="46" r="8"/><path d="M50 54 V72 M50 60 L38 68 M50 60 L62 68 M50 72 L42 88 M50 72 L58 88"/></g></svg>',
+  pont: '<svg viewBox="0 0 100 100"><g fill="none" stroke="#2e7d4f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 70 Q50 10 94 70"/><path d="M18 70 Q50 34 82 70"/><path d="M4 76 H96"/><path d="M30 70 V52 M50 70 V40 M70 70 V52"/></g></svg>',
+  boussole: '<svg viewBox="0 0 100 100"><g fill="none" stroke="#c07a12" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><circle cx="50" cy="50" r="40"/><path d="M50 12 L58 50 L50 88 L42 50 Z"/><path d="M12 50 L50 44 L88 50 L50 56 Z"/></g></svg>',
+  poste: '<svg viewBox="0 0 100 100"><g fill="none" stroke="#B22222" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 86 V40 L50 14 L86 40 V86 Z"/><path d="M40 86 V60 H60 V86"/></g></svg>',
+};
+
+// Les six dossiers du poste : prive/, prive-dev/, demo/demo-*.
+// reelle : une couleur, modifiable. Sinon : hachuré, inamovible.
+const COMPAGNIES = [
+  { id: 'prive',            nom: 'La compagnie du poste',  lieu: 'IDCC 3090', reelle: true, couleur: '#B22222', etat: 'DSN de septembre : à déposer avant le 15/10', logo: 'poste', demo: false },
+  { id: 'prive-dev',        nom: 'La compagnie du poste',  lieu: 'Copie de test', etat: 'Branchée sur la compagnie du poste : DPAE et DSN en test, courriels', logo: 'poste', demo: false },
+  { id: 'demo-3090-grande', nom: 'Les Marées hautes', lieu: 'Tours · IDCC 3090', etat: '3 permanents, 6 intermittents', logo: 'vagues', demo: true },
+  { id: 'demo-3090-petite', nom: 'Le Fil tendu',      lieu: 'Clermont-Ferrand · IDCC 3090', etat: '3 intermittents, 2 spectacles', logo: 'fil', demo: true },
+  { id: 'demo-1285-grande', nom: 'Les Deux Rives',    lieu: 'Lyon · IDCC 1285', etat: '2 permanents, 5 intermittents', logo: 'pont', demo: true },
+  { id: 'demo-1285-petite', nom: 'La Boussole',       lieu: 'Montpellier · IDCC 1285', etat: '3 intermittents, 2 pièces', logo: 'boussole', demo: true },
+];
+
+function lire(cle) { try { return localStorage.getItem(cle); } catch (e) { return null; } }
+function ecrire(cle, v) { try { localStorage.setItem(cle, v); } catch (e) {} }
+
+const grille = document.getElementById('grille');
+
+function tuile(c) {
+  const el = document.createElement('div');
+  el.className = 'tuile' + (c.reelle ? '' : ' fictive') + (c.demo ? '' : ' complet-seul');
+  const couleur = c.reelle ? (lire('couleur:' + c.id) || c.couleur) : null;
+  if (couleur) el.style.setProperty('--cie', couleur);
+  el.innerHTML = `
+    <div class="tete"><div class="medaillon">${LOGO[c.logo]}</div>${c.reelle ? `<label class="choix-couleur" title="Changer la couleur"><svg viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><input type="color" value="${couleur}"></label>` : ''}</div>
+    <div class="corps">
+      <span class="nom">${c.nom}</span>
+      <span class="lieu">${c.lieu}</span>
+      <span class="etat">${c.etat}</span>
+    </div>
+    </div>`;
+  const choix = el.querySelector('input[type=color]');
+  if (choix) {
+    choix.addEventListener('click', e => e.stopPropagation());
+    choix.addEventListener('input', e => { el.style.setProperty('--cie', e.target.value); ecrire('couleur:' + c.id, e.target.value); });
+    el.querySelector('.choix-couleur').addEventListener('click', e => e.stopPropagation());
+  }
+  el.addEventListener('click', () => alert(`Ouvrir ${c.nom}${c.id === 'prive-dev' ? ' (copie de test)' : ''} — maquette : rien n'est branché.`));
+  return el;
+}
+
+COMPAGNIES.forEach(c => grille.appendChild(tuile(c)));
+
+const ajout = document.createElement('div');
+ajout.className = 'tuile ajouter complet-seul';
+ajout.innerHTML = '<span class="plus">+</span><strong>Ajouter une compagnie</strong>';
+ajout.addEventListener('click', () => alert('Ajouter une compagnie — maquette.'));
+grille.appendChild(ajout);
+
+document.querySelectorAll('.bascule button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.bascule button').forEach(x => x.classList.toggle('actif', x === b));
+  const demo = b.dataset.mode === 'demo';
+  document.body.classList.toggle('demo', demo);
+  document.getElementById('sous-titre').textContent = demo ? 'Version démo' : 'Version complète';
+}));
+</script>
+</body>
+</html>

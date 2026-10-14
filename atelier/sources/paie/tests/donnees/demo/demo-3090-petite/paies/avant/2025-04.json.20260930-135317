@@ -1,0 +1,83 @@
+{
+  "_origine": "Compagnie de demonstration demo-3090-petite, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2025-04",
+  "taux_cachet": 150.0,
+  "date_paiement": "2025-04-30",
+  "engagements": [
+    {
+      "salarie": "Brioche",
+      "spectacle": "256Z00920011",
+      "debut": "2025-04-25",
+      "fin": "2025-04-27",
+      "date_paiement": "2025-04-27",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 3,
+          "taux": 150.0,
+          "lieu": "Festival fictif de marionnettes, Charleville",
+          "dates": [
+            "2025-04-25",
+            "2025-04-26",
+            "2025-04-27"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 3,
+          "taux": 20.2
+        }
+      ]
+    },
+    {
+      "salarie": "Seraphin",
+      "spectacle": "256Z00920011",
+      "debut": "2025-04-25",
+      "fin": "2025-04-27",
+      "date_paiement": "2025-04-27",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 3,
+          "taux": 150.0,
+          "lieu": "Festival fictif de marionnettes, Charleville",
+          "dates": [
+            "2025-04-25",
+            "2025-04-26",
+            "2025-04-27"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 3,
+          "taux": 20.2
+        }
+      ]
+    },
+    {
+      "salarie": "Lemercier",
+      "spectacle": "256Z00920011",
+      "debut": "2025-04-25",
+      "fin": "2025-04-27",
+      "date_paiement": "2025-04-27",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 24,
+          "taux": 17.5,
+          "lieu": "Festival fictif de marionnettes, Charleville",
+          "dates": [
+            "2025-04-25",
+            "2025-04-26",
+            "2025-04-27"
+          ]
+        },
+        {
+          "rubrique": "defraiement_forfait",
+          "quantite": 3,
+          "taux": 20.2
+        }
+      ]
+    }
+  ]
+}

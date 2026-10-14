@@ -1,0 +1,222 @@
+//! La paie calculee, a cote de la saisie : `paies/AAAA-MM.calcul.json`.
+//!
+//! Le fichier porte le resultat du calcul de `paies/AAAA-MM.json`
+//! (la reponse telle quelle, sous `resultat`) et la liste de ses entrees avec
+//! leur empreinte (`entrees`, puis `empreinte` : le SHA-256 de cette liste).
+//! Les entrees sont tout ce que le calcul a lu (`fichiers::suivre`) : le
+//! contenu de chaque fichier (saisie, fiches, baremes du socle et de la
+//! compagnie, catalogues livres, effectifs, paies des mois precedents...),
+//! les fichiers lus et absents, la liste des `.json` d'un dossier parcouru, les
+//! fiches telles qu'elles etaient a `--date`, la date ou le jour courant
+//! quand le calcul les a lus, et la version du moteur. Rien n'est devine :
+//! un fichier de plus ou de moins, un octet change, et l'empreinte change.
+//!
+//! `commande` relit sans calculer tant que les entrees sont les
+//! memes ; sinon, mois non parti : il recalcule et reecrit sans rien dire ;
+//! mois parti (DSN deposee) : il garde les chiffres stockes.
+
+use std::collections::{BTreeMap, HashMap};
+use std::path::Path;
+
+use serde_json::{Map, Value};
+
+use crate::contexte::Contexte;
+use crate::fichiers::{self, dossier_du_code};
+use crate::num::Resultat;
+use crate::service::{calculer_avec, contexte, racine_de};
+
+/// La version du moteur : celle du crate et la marque de ses sources
+/// (`build.rs`). Tout changement du code recalcule les mois non partis.
+pub const MOTEUR: &str = concat!(env!("CARGO_PKG_VERSION"), "+", env!("PAIE_SOURCES"));
+
+fn mois_valide(m: &str) -> bool {
+    let b = m.as_bytes();
+    b.len() == 7 && b[4] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit())
+}
+
+/// Les fiches telles qu'elles etaient a la date du contexte : c'est par elles
+/// que `--date` entre dans le calcul.
+fn empreinte_fiches(ctx: &Contexte) -> String {
+    let v = Value::Array(vec![ctx.entreprise.clone(), Value::Object(ctx.salaries.clone()), Value::Object(ctx.spectacles.clone())]);
+    fichiers::sha256_hex(v.to_string().as_bytes())
+}
+
+/// L'empreinte de la liste : une ligne `cle<TAB>valeur` par entree, triee.
+fn empreinte(entrees: &BTreeMap<String, String>) -> String {
+    let mut t = String::new();
+    for (k, v) in entrees {
+        t.push_str(k);
+        t.push('\t');
+        t.push_str(v);
+        t.push('\n');
+    }
+    fichiers::sha256_hex(t.as_bytes())
+}
+
+/// `calculer` en notant tout ce qu'il lit : la reponse, et les entrees.
+/// A lancer dans un processus neuf : un cache deja chaud ne relit pas.
+pub fn calculer_suivi(o: &HashMap<String, String>, demande: &Value) -> Resultat<(Value, BTreeMap<String, String>)> {
+    fichiers::suivre(&racine_de(o), &dossier_du_code());
+    let r = contexte(o).and_then(|ctx| {
+        let rep = calculer_avec(&ctx, demande)?;
+        fichiers::noter_valeur("fiches", empreinte_fiches(&ctx));
+        Ok(rep)
+    });
+    let mut entrees = fichiers::rendre();
+    entrees.insert("moteur".into(), MOTEUR.into());
+    Ok((r?, entrees))
+}
+
+fn fichier_calcul(racine: &Path, mois: &str) -> std::path::PathBuf {
+    racine.join("paies").join(format!("{}.calcul.json", mois))
+}
+
+fn enregistrer(chemin: &Path, resultat: &Value, entrees: &BTreeMap<String, String>) -> Resultat<()> {
+    let mut f = Map::new();
+    f.insert("empreinte".into(), Value::String(empreinte(entrees)));
+    f.insert("entrees".into(), Value::Object(entrees.iter().map(|(k, v)| (k.clone(), Value::String(v.clone()))).collect()));
+    f.insert("resultat".into(), resultat.clone());
+    crate::ecriture::ecrire_json(chemin, &Value::Object(f), 2)
+}
+
+/// Le fichier stocke : `(resultat, entrees, integre)`. `integre` : l'empreinte
+/// dit bien ce que la liste contient.
+fn stocke(chemin: &Path) -> Option<(Value, BTreeMap<String, String>, bool)> {
+    let f = fichiers::lire_json(chemin).ok()?;
+    let resultat = f.get("resultat").filter(|r| r.is_object())?.clone();
+    let mut entrees = BTreeMap::new();
+    let mut integre = true;
+    match f.get("entrees") {
+        Some(Value::Object(m)) => {
+            for (k, v) in m {
+                match v.as_str() {
+                    Some(s) => {
+                        entrees.insert(k.clone(), s.to_string());
+                    }
+                    None => integre = false,
+                }
+            }
+        }
+        _ => integre = false,
+    }
+    integre = integre && f.get("empreinte").and_then(Value::as_str) == Some(empreinte(&entrees).as_str());
+    Some((resultat, entrees, integre))
+}
+
+/// Les entrees valent-elles encore ce qu'elles valaient ? Chacune est relue
+/// directement sur le disque ; aucun calcul.
+fn a_jour(o: &HashMap<String, String>, entrees: &BTreeMap<String, String>) -> bool {
+    match contexte(o) {
+        Ok(ctx) => a_jour_avec(o, &ctx, entrees),
+        Err(_) => false,
+    }
+}
+
+/// `a_jour` avec le Contexte que l'appelant a deja lu (aucune relecture des fiches).
+fn a_jour_avec(o: &HashMap<String, String>, ctx: &Contexte, entrees: &BTreeMap<String, String>) -> bool {
+    let (racine, code) = (racine_de(o), dossier_du_code());
+    entrees.iter().all(|(k, v)| match k.as_str() {
+        "moteur" => v == MOTEUR,
+        "fiches" => *v == empreinte_fiches(ctx),
+        "date" => *v == ctx.date.iso(),
+        "aujourdhui" => crate::contexte::aujourdhui_sans_note().is_ok_and(|j| *v == j.iso()),
+        _ => match fichiers::chemin_de(k, &racine, &code) {
+            Some((genre, p)) => match genre.as_str() {
+                "fichier" => *v == fichiers::empreinte_fichier(&p),
+                "existe" => *v == if p.exists() { "oui" } else { "non" },
+                "dossier?" => *v == if p.is_dir() { "oui" } else { "non" },
+                "dossier" => *v == fichiers::empreinte_dossier(&p),
+                _ => false,
+            },
+            None => false,
+        },
+    })
+}
+
+fn demande(entree: &str) -> Resultat<(String, Value)> {
+    let d: Value = serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))?;
+    let mois = d.get("mois").and_then(Value::as_str).filter(|m| mois_valide(m)).ok_or("demande illisible : il faut `mois` (AAAA-MM)")?;
+    Ok((mois.to_string(), d))
+}
+
+/// Le mois est « parti » quand le journal des depots porte une DSN REELLE
+/// acceptee pour lui (`etats::dsn_du_mois`) : ses chiffres ne bougent plus.
+pub fn mois_parti(ctx: &Contexte, mois: &str) -> Resultat<bool> {
+    let lignes = crate::etats::charger(&ctx.racine).map_err(|e| e.message)?;
+    let depot = crate::etats::dsn_du_mois(&lignes, &ctx.entreprise, mois).map_err(|e| e.message)?;
+    Ok(fichiers::vrai(&depot))
+}
+
+/// Le calcul du mois, `{"mois": "AAAA-MM", "parti": bool}` : la meme reponse que
+/// `calculer_suivi` de `{"fichier": paies/AAAA-MM.json}`. Le mois est
+/// parti si le journal le dit ; `parti` de la demande ne peut que l'ajouter.
+pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
+    let (mois, d) = demande(entree)?;
+    let ctx = contexte(o);
+    let du_journal = match &ctx {
+        Ok(c) => mois_parti(c, &mois)?,
+        Err(_) => false,
+    };
+    let parti = d.get("parti").and_then(Value::as_bool).unwrap_or(false) || du_journal;
+    calcul_avec(o, ctx.as_ref().ok(), &mois, parti)
+}
+
+/// Le calcul du mois pour un Contexte deja lu (`None` : il ne se lit pas, le
+/// calcul le dira). Relu sans calcul si ses entrees n'ont pas change.
+pub fn calcul_avec(o: &HashMap<String, String>, ctx: Option<&Contexte>, mois: &str, parti: bool) -> Resultat<Value> {
+    let racine = racine_de(o);
+    let calcul = fichier_calcul(&racine, mois);
+    if let Some((resultat, entrees, integre)) = stocke(&calcul) {
+        if parti || (integre && ctx.is_some_and(|c| a_jour_avec(o, c, &entrees))) {
+            return Ok(resultat);
+        }
+    }
+    let saisie = racine.join("paies").join(format!("{}.json", mois));
+    let demande_calcul = serde_json::json!({ "fichier": saisie.to_string_lossy() });
+    let (rep, entrees) = calculer_suivi(o, &demande_calcul)?;
+    if !parti {
+        // Un dossier qui refuse l'ecriture ne change pas le resultat.
+        let _ = enregistrer(&calcul, &rep, &entrees);
+    }
+    Ok(rep)
+}
+
+/// Ecrit `paies/AAAA-MM.calcul.json` avec ce que `calculer_suivi` a rendu pour une saisie en main dont le fichier vient
+/// d'etre ecrit tel quel : `true` si le fichier est ecrit. Le fichier du mois, qui n'existait pas ou pas encore comme cela
+/// quand le calcul a lu le disque, prend sa valeur d'aujourd'hui. Si le calcul a lu l'ancien fichier du mois, rien n'est
+/// ecrit : son resultat n'est pas celui du nouveau.
+pub fn ecrire_calcul(o: &HashMap<String, String>, mois: &str, resultat: &Value, mut entrees: BTreeMap<String, String>) -> bool {
+    let racine = racine_de(o);
+    let saisie = racine.join("paies").join(format!("{}.json", mois));
+    let cle = |genre: &str, rel: &str| format!("{} racine:{}", genre, rel);
+    let rel = format!("paies/{}.json", mois);
+    if entrees.contains_key(&cle("fichier", &rel)) || resultat.get("mois").and_then(Value::as_str) != Some(mois) {
+        false
+    } else {
+        entrees.insert(cle("fichier", &rel), fichiers::empreinte_fichier(&saisie));
+        entrees.insert(cle("existe", &rel), "oui".into());
+        let dossier = cle("dossier", "paies");
+        if entrees.contains_key(&dossier) {
+            entrees.insert(dossier, fichiers::empreinte_dossier(&racine.join("paies")));
+        }
+        enregistrer(&fichier_calcul(&racine, mois), resultat, &entrees).is_ok()
+    }
+}
+
+/// `{"mois", "resultat"}`, un calcul frais de
+/// `paies/AAAA-MM.json` tel qu'il est sur le disque. `constat` : `absent` (pas
+/// de fichier stocke ou illisible), `perime` (ses entrees ont change), `egal`,
+/// ou `ecart` : memes entrees, autre resultat. Un `ecart` veut dire que le
+/// fichier a ete modifie a la main, ou qu'une entree du calcul echappe a
+/// l'empreinte.
+pub fn comparer(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
+    let (mois, d) = demande(entree)?;
+    let frais = d.get("resultat").filter(|r| r.is_object()).ok_or("demande illisible : il faut `resultat`")?;
+    let constat = match stocke(&fichier_calcul(&racine_de(o), &mois)) {
+        None => "absent",
+        Some((_, entrees, integre)) if !integre || !a_jour(o, &entrees) => "perime",
+        Some((resultat, _, _)) if &resultat == frais => "egal",
+        Some(_) => "ecart",
+    };
+    Ok(serde_json::json!({ "ok": true, "constat": constat }))
+}

@@ -1,0 +1,324 @@
+﻿Journal;Date;Compte;Libelle;Debit;Credit;Analytique
+OD;31/01/2025;641100;Salaires bruts -- Janvier 2025;6264,00;;Le Barbier de Séville
+OD;31/01/2025;641100;Salaires bruts -- Janvier 2025;2950,00;;Salariés au mois
+OD;31/01/2025;645100;Cotisations Urssaf -- accidents du travail -- Janvier 2025;104,33;;
+OD;31/01/2025;645100;Cotisations Urssaf -- allocations familiales -- Janvier 2025;327,01;;
+OD;31/01/2025;645100;Cotisations Urssaf -- maladie -- Janvier 2025;728,14;;
+OD;31/01/2025;645100;Cotisations Urssaf -- vieillesse deplafonnee -- Janvier 2025;161,96;;
+OD;31/01/2025;645100;Cotisations Urssaf -- vieillesse plafonnee -- Janvier 2025;686,43;;
+OD;31/01/2025;645100;Reduction generale degressive unique -- Janvier 2025;;76,29;
+OD;31/01/2025;645200;Complementaire sante (mutuelle) -- Janvier 2025;12,17;;
+OD;31/01/2025;645300;APEC T1 (Audiens) -- Janvier 2025;1,06;;
+OD;31/01/2025;645300;Prevoyance (Audiens) -- Janvier 2025;109,41;;
+OD;31/01/2025;645300;Retraite complementaire T1 (Audiens) -- Janvier 2025;540,76;;
+OD;31/01/2025;645400;Assurance chomage (France Travail) -- Janvier 2025;740,73;;
+OD;31/01/2025;645500;Conges Spectacles -- Janvier 2025;970,92;;
+OD;31/01/2025;645800;Autres contributions employeur (FNAL, CSA, dialogue social, formation) -- Janvier 2025;176,89;;
+OD;31/01/2025;645800;Autres contributions employeur (sur brut majore 110) -- Janvier 2025;66,94;;
+OD;31/01/2025;645800;Autres contributions employeur (sur brut majore 115) -- Janvier 2025;8,61;;
+OD;31/01/2025;645800;Cotisations conventionnelles (CASC-SVP pour la 3090, FNAS pour la 1285) -- Janvier 2025;133,61;;
+OD;31/01/2025;645800;FCAP, fonds commun d'aide au paritarisme (IDCC 1285) -- Janvier 2025;23,04;;
+OD;31/01/2025;431000;Urssaf -- Janvier 2025;;3683,87;
+OD;31/01/2025;437100;Audiens (retraite et prevoyance) -- Janvier 2025;;1092,34;
+OD;31/01/2025;437200;France Travail (assurance chomage) -- Janvier 2025;;881,39;
+OD;31/01/2025;437300;Caisse des Conges Spectacles -- Janvier 2025;;970,92;
+OD;31/01/2025;437400;Organismes conventionnels (Audiens : CASC-SVP, FNAS, FCAP) -- Janvier 2025;;156,65;
+OD;31/01/2025;421000;Net a payer -- Janvier 2025;;1022,19;DUMESNIL Elmire
+OD;31/01/2025;421000;Net a payer -- Janvier 2025;;921,24;FARRENC Henriette
+OD;31/01/2025;421000;Net a payer -- Janvier 2025;;2332,49;NADAR Ergaste
+OD;31/01/2025;421000;Net a payer -- Janvier 2025;;1022,19;NOVERRE Lysandre
+OD;31/01/2025;421000;Net a payer -- Janvier 2025;;824,25;TORELLI Oronte
+OD;31/01/2025;421000;Net a payer -- Janvier 2025;;1022,19;TURLUPIN Lelio
+OD;28/02/2025;641100;Salaires bruts -- Fevrier 2025;2950,00;;Salariés au mois
+OD;28/02/2025;645100;Cotisations Urssaf -- accidents du travail -- Fevrier 2025;38,35;;
+OD;28/02/2025;645100;Cotisations Urssaf -- allocations familiales -- Fevrier 2025;101,78;;
+OD;28/02/2025;645100;Cotisations Urssaf -- maladie -- Fevrier 2025;206,50;;
+OD;28/02/2025;645100;Cotisations Urssaf -- vieillesse deplafonnee -- Fevrier 2025;59,59;;
+OD;28/02/2025;645100;Cotisations Urssaf -- vieillesse plafonnee -- Fevrier 2025;252,23;;
+OD;28/02/2025;645200;Complementaire sante (mutuelle) -- Fevrier 2025;12,17;;
+OD;28/02/2025;645300;APEC T1 (Audiens) -- Fevrier 2025;1,06;;
+OD;28/02/2025;645300;Prevoyance (Audiens) -- Fevrier 2025;44,25;;
+OD;28/02/2025;645300;Retraite complementaire T1 (Audiens) -- Fevrier 2025;192,94;;
+OD;28/02/2025;645400;Assurance chomage (France Travail) -- Fevrier 2025;126,86;;
+OD;28/02/2025;645800;Autres contributions employeur (FNAL, CSA, dialogue social, formation) -- Fevrier 2025;25,55;;
+OD;28/02/2025;645800;Autres contributions employeur (sur brut majore 110) -- Fevrier 2025;20,07;;
+OD;28/02/2025;645800;Autres contributions employeur (sur brut majore 115) -- Fevrier 2025;2,95;;
+OD;28/02/2025;645800;Cotisations conventionnelles (CASC-SVP pour la 3090, FNAS pour la 1285) -- Fevrier 2025;42,78;;
+OD;28/02/2025;645800;FCAP, fonds commun d'aide au paritarisme (IDCC 1285) -- Fevrier 2025;7,38;;
+OD;28/02/2025;431000;Urssaf -- Fevrier 2025;;1208,99;
+OD;28/02/2025;437100;Audiens (retraite et prevoyance) -- Fevrier 2025;;365,96;
+OD;28/02/2025;437200;France Travail (assurance chomage) -- Fevrier 2025;;126,86;
+OD;28/02/2025;437400;Organismes conventionnels (Audiens : CASC-SVP, FNAS, FCAP) -- Fevrier 2025;;50,16;
+OD;28/02/2025;421000;Net a payer -- Fevrier 2025;;2332,49;NADAR Ergaste
+OD;31/03/2025;641100;Salaires bruts -- Mars 2025;1262,00;;Le Barbier de Séville
+OD;31/03/2025;641100;Salaires bruts -- Mars 2025;2950,00;;Salariés au mois
+OD;31/03/2025;641400;Indemnites non soumises (repas, defraiements) -- Mars 2025;161,60;;Le Barbier de Séville
+OD;31/03/2025;645100;Cotisations Urssaf -- accidents du travail -- Mars 2025;50,89;;
+OD;31/03/2025;645100;Cotisations Urssaf -- allocations familiales -- Mars 2025;147,58;;
+OD;31/03/2025;645100;Cotisations Urssaf -- maladie -- Mars 2025;315,63;;
+OD;31/03/2025;645100;Cotisations Urssaf -- vieillesse deplafonnee -- Mars 2025;79,03;;
+OD;31/03/2025;645100;Cotisations Urssaf -- vieillesse plafonnee -- Mars 2025;334,80;;
+OD;31/03/2025;645100;Reduction generale degressive unique -- Mars 2025;;19,01;
+OD;31/03/2025;645200;Complementaire sante (mutuelle) -- Mars 2025;12,17;;
+OD;31/03/2025;645300;APEC T1 (Audiens) -- Mars 2025;1,06;;
+OD;31/03/2025;645300;Prevoyance (Audiens) -- Mars 2025;57,37;;
+OD;31/03/2025;645300;Retraite complementaire T1 (Audiens) -- Mars 2025;264,02;;
+OD;31/03/2025;645400;Assurance chomage (France Travail) -- Mars 2025;250,54;;
+OD;31/03/2025;645500;Conges Spectacles -- Mars 2025;195,61;;
+OD;31/03/2025;645800;Autres contributions employeur (FNAL, CSA, dialogue social, formation) -- Mars 2025;56,03;;
+OD;31/03/2025;645800;Autres contributions employeur (sur brut majore 110) -- Mars 2025;29,52;;
+OD;31/03/2025;645800;Autres contributions employeur (sur brut majore 115) -- Mars 2025;4,03;;
+OD;31/03/2025;645800;Cotisations conventionnelles (CASC-SVP pour la 3090, FNAS pour la 1285) -- Mars 2025;61,09;;
+OD;31/03/2025;645800;FCAP, fonds commun d'aide au paritarisme (IDCC 1285) -- Mars 2025;10,55;;
+OD;31/03/2025;431000;Urssaf -- Mars 2025;;1698,43;
+OD;31/03/2025;437100;Audiens (retraite et prevoyance) -- Mars 2025;;513,61;
+OD;31/03/2025;437200;France Travail (assurance chomage) -- Mars 2025;;278,42;
+OD;31/03/2025;437300;Caisse des Conges Spectacles -- Mars 2025;;195,61;
+OD;31/03/2025;437400;Organismes conventionnels (Audiens : CASC-SVP, FNAS, FCAP) -- Mars 2025;;71,64;
+OD;31/03/2025;421000;Net a payer -- Mars 2025;;295,95;DUMESNIL Elmire
+OD;31/03/2025;421000;Net a payer -- Mars 2025;;2332,49;NADAR Ergaste
+OD;31/03/2025;421000;Net a payer -- Mars 2025;;295,95;NOVERRE Lysandre
+OD;31/03/2025;421000;Net a payer -- Mars 2025;;246,46;TORELLI Oronte
+OD;31/03/2025;421000;Net a payer -- Mars 2025;;295,95;TURLUPIN Lelio
+OD;30/04/2025;641100;Salaires bruts -- Avril 2025;1960,00;;Les Fêtes vénitiennes
+OD;30/04/2025;641100;Salaires bruts -- Avril 2025;5100,00;;Salariés au mois
+OD;30/04/2025;645100;Cotisations Urssaf -- accidents du travail -- Avril 2025;84,14;;
+OD;30/04/2025;645100;Cotisations Urssaf -- allocations familiales -- Avril 2025;248,08;;
+OD;30/04/2025;645100;Cotisations Urssaf -- maladie -- Avril 2025;535,36;;
+OD;30/04/2025;645100;Cotisations Urssaf -- vieillesse deplafonnee -- Avril 2025;130,66;;
+OD;30/04/2025;645100;Cotisations Urssaf -- vieillesse plafonnee -- Avril 2025;553,46;;
+OD;30/04/2025;645100;Reduction generale degressive unique -- Avril 2025;;390,23;
+OD;30/04/2025;645200;Complementaire sante (mutuelle) -- Avril 2025;24,34;;
+OD;30/04/2025;645300;APEC T1 (Audiens) -- Avril 2025;1,06;;
+OD;30/04/2025;645300;Prevoyance (Audiens) -- Avril 2025;85,06;;
+OD;30/04/2025;645300;Retraite complementaire T1 (Audiens) -- Avril 2025;446,06;;
+OD;30/04/2025;645400;Assurance chomage (France Travail) -- Avril 2025;411,40;;
+OD;30/04/2025;645500;Conges Spectacles -- Avril 2025;303,80;;
+OD;30/04/2025;645800;Autres contributions employeur (FNAL, CSA, dialogue social, formation) -- Avril 2025;91,53;;
+OD;30/04/2025;645800;Autres contributions employeur (sur brut majore 110) -- Avril 2025;49,36;;
+OD;30/04/2025;645800;Autres contributions employeur (sur brut majore 115) -- Avril 2025;6,62;;
+OD;30/04/2025;645800;Cotisations conventionnelles (CASC-SVP pour la 3090, FNAS pour la 1285) -- Avril 2025;102,38;;
+OD;30/04/2025;645800;FCAP, fonds commun d'aide au paritarisme (IDCC 1285) -- Avril 2025;17,66;;
+OD;30/04/2025;431000;Urssaf -- Avril 2025;;2587,79;
+OD;30/04/2025;437100;Audiens (retraite et prevoyance) -- Avril 2025;;791,86;
+OD;30/04/2025;437200;France Travail (assurance chomage) -- Avril 2025;;408,96;
+OD;30/04/2025;437300;Caisse des Conges Spectacles -- Avril 2025;;303,80;
+OD;30/04/2025;437400;Organismes conventionnels (Audiens : CASC-SVP, FNAS, FCAP) -- Avril 2025;;120,04;
+OD;30/04/2025;421000;Net a payer -- Avril 2025;;1698,00;DORVAL Hortense
+OD;30/04/2025;421000;Net a payer -- Avril 2025;;2332,49;NADAR Ergaste
+OD;30/04/2025;421000;Net a payer -- Avril 2025;;758,90;NOVERRE Lysandre
+OD;30/04/2025;421000;Net a payer -- Avril 2025;;758,90;TURLUPIN Lelio
+OD;31/05/2025;641100;Salaires bruts -- Mai 2025;7464,00;;Les Fêtes vénitiennes
+OD;31/05/2025;641100;Salaires bruts -- Mai 2025;5100,00;;Salariés au mois
+OD;31/05/2025;645100;Cotisations Urssaf -- accidents du travail -- Mai 2025;148,83;;
+OD;31/05/2025;645100;Cotisations Urssaf -- allocations familiales -- Mai 2025;442,03;;
+OD;31/05/2025;645100;Cotisations Urssaf -- maladie -- Mai 2025;957,60;;
+OD;31/05/2025;645100;Cotisations Urssaf -- vieillesse deplafonnee -- Mai 2025;231,11;;
+OD;31/05/2025;645100;Cotisations Urssaf -- vieillesse plafonnee -- Mai 2025;979,01;;
+OD;31/05/2025;645100;Reduction generale degressive unique -- Mai 2025;;513,99;
+OD;31/05/2025;645200;Complementaire sante (mutuelle) -- Mai 2025;24,34;;
+OD;31/05/2025;645300;APEC T1 (Audiens) -- Mai 2025;1,06;;
+OD;31/05/2025;645300;Prevoyance (Audiens) -- Mai 2025;142,30;;
+OD;31/05/2025;645300;Retraite complementaire T1 (Audiens) -- Mai 2025;742,93;;
+OD;31/05/2025;645400;Assurance chomage (France Travail) -- Mai 2025;944,52;;
+OD;31/05/2025;645500;Conges Spectacles -- Mai 2025;1156,92;;
+OD;31/05/2025;645800;Autres contributions employeur (FNAL, CSA, dialogue social, formation) -- Mai 2025;224,48;;
+OD;31/05/2025;645800;Autres contributions employeur (sur brut majore 110) -- Mai 2025;90,52;;
+OD;31/05/2025;645800;Autres contributions employeur (sur brut majore 115) -- Mai 2025;12,17;;
+OD;31/05/2025;645800;Cotisations conventionnelles (CASC-SVP pour la 3090, FNAS pour la 1285) -- Mai 2025;182,21;;
+OD;31/05/2025;645800;FCAP, fonds commun d'aide au paritarisme (IDCC 1285) -- Mai 2025;31,44;;
+OD;31/05/2025;431000;Urssaf -- Mai 2025;;4782,15;
+OD;31/05/2025;437100;Audiens (retraite et prevoyance) -- Mai 2025;;1401,85;
+OD;31/05/2025;437200;France Travail (assurance chomage) -- Mai 2025;;1059,26;
+OD;31/05/2025;437300;Caisse des Conges Spectacles -- Mai 2025;;1156,92;
+OD;31/05/2025;437400;Organismes conventionnels (Audiens : CASC-SVP, FNAS, FCAP) -- Mai 2025;;213,65;
+OD;31/05/2025;421000;Net a payer -- Mai 2025;;1698,00;DORVAL Hortense
+OD;31/05/2025;421000;Net a payer -- Mai 2025;;1497,01;FARRENC Henriette
+OD;31/05/2025;421000;Net a payer -- Mai 2025;;2332,49;NADAR Ergaste
+OD;31/05/2025;421000;Net a payer -- Mai 2025;;1440,36;NOVERRE Lysandre
+OD;31/05/2025;421000;Net a payer -- Mai 2025;;1339,43;TORELLI Oronte
+OD;31/05/2025;421000;Net a payer -- Mai 2025;;1440,36;TURLUPIN Lelio
+OD;30/06/2025;641100;Salaires bruts -- Juin 2025;5100,00;;Salariés au mois
+OD;30/06/2025;645100;Cotisations Urssaf -- accidents du travail -- Juin 2025;66,30;;
+OD;30/06/2025;645100;Cotisations Urssaf -- allocations familiales -- Juin 2025;175,96;;
+OD;30/06/2025;645100;Cotisations Urssaf -- maladie -- Juin 2025;357,00;;
+OD;30/06/2025;645100;Cotisations Urssaf -- vieillesse deplafonnee -- Juin 2025;103,02;;
+OD;30/06/2025;645100;Cotisations Urssaf -- vieillesse plafonnee -- Juin 2025;436,06;;
+OD;30/06/2025;645100;Reduction generale degressive unique -- Juin 2025;;390,01;
+OD;30/06/2025;645200;Complementaire sante (mutuelle) -- Juin 2025;24,34;;
+OD;30/06/2025;645300;APEC T1 (Audiens) -- Juin 2025;1,06;;
+OD;30/06/2025;645300;Prevoyance (Audiens) -- Juin 2025;64,68;;
+OD;30/06/2025;645300;Retraite complementaire T1 (Audiens) -- Juin 2025;333,56;;
+OD;30/06/2025;645400;Assurance chomage (France Travail) -- Juin 2025;216,76;;
+OD;30/06/2025;645800;Autres contributions employeur (FNAL, CSA, dialogue social, formation) -- Juin 2025;44,17;;
+OD;30/06/2025;645800;Autres contributions employeur (sur brut majore 110) -- Juin 2025;34,70;;
+OD;30/06/2025;645800;Autres contributions employeur (sur brut majore 115) -- Juin 2025;5,10;;
+OD;30/06/2025;645800;Cotisations conventionnelles (CASC-SVP pour la 3090, FNAS pour la 1285) -- Juin 2025;73,96;;
+OD;30/06/2025;645800;FCAP, fonds commun d'aide au paritarisme (IDCC 1285) -- Juin 2025;12,76;;
+OD;30/06/2025;431000;Urssaf -- Juin 2025;;1821,55;
+OD;30/06/2025;437100;Audiens (retraite et prevoyance) -- Juin 2025;;552,76;
+OD;30/06/2025;437200;France Travail (assurance chomage) -- Juin 2025;;167,90;
+OD;30/06/2025;437400;Organismes conventionnels (Audiens : CASC-SVP, FNAS, FCAP) -- Juin 2025;;86,72;
+OD;30/06/2025;421000;Net a payer -- Juin 2025;;1698,00;DORVAL Hortense
+OD;30/06/2025;421000;Net a payer -- Juin 2025;;2332,49;NADAR Ergaste
+OD;31/07/2025;641100;Salaires bruts -- Juillet 2025;2330,00;;Les Fêtes vénitiennes
+OD;31/07/2025;641100;Salaires bruts -- Juillet 2025;5100,00;;Salariés au mois
+OD;31/07/2025;641400;Indemnites non soumises (repas, defraiements) -- Juillet 2025;303,00;;Les Fêtes vénitiennes
+OD;31/07/2025;645100;Cotisations Urssaf -- accidents du travail -- Juillet 2025;90,16;;
+OD;31/07/2025;645100;Cotisations Urssaf -- allocations familiales -- Juillet 2025;260,14;;
+OD;31/07/2025;645100;Cotisations Urssaf -- maladie -- Juillet 2025;554,76;;
+OD;31/07/2025;645100;Cotisations Urssaf -- vieillesse deplafonnee -- Juillet 2025;140,02;;
+OD;31/07/2025;645100;Cotisations Urssaf -- vieillesse plafonnee -- Juillet 2025;593,04;;
+OD;31/07/2025;645100;Reduction generale degressive unique -- Juillet 2025;;437,54;
+OD;31/07/2025;645200;Complementaire sante (mutuelle) -- Juillet 2025;29,04;;
+OD;31/07/2025;645300;APEC T1 (Audiens) -- Juillet 2025;1,06;;
+OD;31/07/2025;645300;Prevoyance (Audiens) -- Juillet 2025;88,91;;
+OD;31/07/2025;645300;Retraite complementaire T1 (Audiens) -- Juillet 2025;463,82;;
+OD;31/07/2025;645400;Assurance chomage (France Travail) -- Juillet 2025;443,94;;
+OD;31/07/2025;645500;Conges Spectacles -- Juillet 2025;361,16;;
+OD;31/07/2025;645800;Autres contributions employeur (FNAL, CSA, dialogue social, formation) -- Juillet 2025;100,46;;
+OD;31/07/2025;645800;Autres contributions employeur (sur brut majore 110) -- Juillet 2025;52,12;;
+OD;31/07/2025;645800;Autres contributions employeur (sur brut majore 115) -- Juillet 2025;7,14;;
+OD;31/07/2025;645800;Cotisations conventionnelles (CASC-SVP pour la 3090, FNAS pour la 1285) -- Juillet 2025;107,74;;
+OD;31/07/2025;645800;FCAP, fonds commun d'aide au paritarisme (IDCC 1285) -- Juillet 2025;18,58;;
+OD;31/07/2025;431000;Urssaf -- Juillet 2025;;2723,28;
+OD;31/07/2025;437100;Audiens (retraite et prevoyance) -- Juillet 2025;;830,53;
+OD;31/07/2025;437200;France Travail (assurance chomage) -- Juillet 2025;;445,05;
+OD;31/07/2025;437300;Caisse des Conges Spectacles -- Juillet 2025;;361,16;
+OD;31/07/2025;437400;Organismes conventionnels (Audiens : CASC-SVP, FNAS, FCAP) -- Juillet 2025;;126,32;
+OD;31/07/2025;421000;Net a payer -- Juillet 2025;;1695,42;DORVAL Hortense
+OD;31/07/2025;421000;Net a payer -- Juillet 2025;;2329,91;NADAR Ergaste
+OD;31/07/2025;421000;Net a payer -- Juillet 2025;;739,86;NOVERRE Lysandre
+OD;31/07/2025;421000;Net a payer -- Juillet 2025;;616,16;TORELLI Oronte
+OD;31/07/2025;421000;Net a payer -- Juillet 2025;;739,86;TURLUPIN Lelio
+OD;31/08/2025;641100;Salaires bruts -- Aout 2025;5100,00;;Salariés au mois
+OD;31/08/2025;645100;Cotisations Urssaf -- accidents du travail -- Aout 2025;66,30;;
+OD;31/08/2025;645100;Cotisations Urssaf -- allocations familiales -- Aout 2025;175,96;;
+OD;31/08/2025;645100;Cotisations Urssaf -- maladie -- Aout 2025;357,00;;
+OD;31/08/2025;645100;Cotisations Urssaf -- vieillesse deplafonnee -- Aout 2025;103,02;;
+OD;31/08/2025;645100;Cotisations Urssaf -- vieillesse plafonnee -- Aout 2025;436,06;;
+OD;31/08/2025;645100;Reduction generale degressive unique -- Aout 2025;;390,01;
+OD;31/08/2025;645200;Complementaire sante (mutuelle) -- Aout 2025;29,04;;
+OD;31/08/2025;645300;APEC T1 (Audiens) -- Aout 2025;1,06;;
+OD;31/08/2025;645300;Prevoyance (Audiens) -- Aout 2025;64,68;;
+OD;31/08/2025;645300;Retraite complementaire T1 (Audiens) -- Aout 2025;333,56;;
+OD;31/08/2025;645400;Assurance chomage (France Travail) -- Aout 2025;216,76;;
+OD;31/08/2025;645800;Autres contributions employeur (FNAL, CSA, dialogue social, formation) -- Aout 2025;44,17;;
+OD;31/08/2025;645800;Autres contributions employeur (sur brut majore 110) -- Aout 2025;34,70;;
+OD;31/08/2025;645800;Autres contributions employeur (sur brut majore 115) -- Aout 2025;5,10;;
+OD;31/08/2025;645800;Cotisations conventionnelles (CASC-SVP pour la 3090, FNAS pour la 1285) -- Aout 2025;73,96;;
+OD;31/08/2025;645800;FCAP, fonds commun d'aide au paritarisme (IDCC 1285) -- Aout 2025;12,76;;
+OD;31/08/2025;431000;Urssaf -- Aout 2025;;1822,01;
+OD;31/08/2025;437100;Audiens (retraite et prevoyance) -- Aout 2025;;562,16;
+OD;31/08/2025;437200;France Travail (assurance chomage) -- Aout 2025;;167,90;
+OD;31/08/2025;437400;Organismes conventionnels (Audiens : CASC-SVP, FNAS, FCAP) -- Aout 2025;;86,72;
+OD;31/08/2025;421000;Net a payer -- Aout 2025;;1695,42;DORVAL Hortense
+OD;31/08/2025;421000;Net a payer -- Aout 2025;;2329,91;NADAR Ergaste
+OD;30/09/2025;641100;Salaires bruts -- Septembre 2025;5100,00;;Salariés au mois
+OD;30/09/2025;645100;Cotisations Urssaf -- accidents du travail -- Septembre 2025;66,30;;
+OD;30/09/2025;645100;Cotisations Urssaf -- allocations familiales -- Septembre 2025;175,96;;
+OD;30/09/2025;645100;Cotisations Urssaf -- maladie -- Septembre 2025;357,00;;
+OD;30/09/2025;645100;Cotisations Urssaf -- vieillesse deplafonnee -- Septembre 2025;103,02;;
+OD;30/09/2025;645100;Cotisations Urssaf -- vieillesse plafonnee -- Septembre 2025;436,06;;
+OD;30/09/2025;645100;Reduction generale degressive unique -- Septembre 2025;;390,01;
+OD;30/09/2025;645200;Complementaire sante (mutuelle) -- Septembre 2025;29,04;;
+OD;30/09/2025;645300;APEC T1 (Audiens) -- Septembre 2025;1,06;;
+OD;30/09/2025;645300;Prevoyance (Audiens) -- Septembre 2025;64,68;;
+OD;30/09/2025;645300;Retraite complementaire T1 (Audiens) -- Septembre 2025;333,56;;
+OD;30/09/2025;645400;Assurance chomage (France Travail) -- Septembre 2025;216,76;;
+OD;30/09/2025;645800;Autres contributions employeur (FNAL, CSA, dialogue social, formation) -- Septembre 2025;44,17;;
+OD;30/09/2025;645800;Autres contributions employeur (sur brut majore 110) -- Septembre 2025;34,70;;
+OD;30/09/2025;645800;Autres contributions employeur (sur brut majore 115) -- Septembre 2025;5,10;;
+OD;30/09/2025;645800;Cotisations conventionnelles (CASC-SVP pour la 3090, FNAS pour la 1285) -- Septembre 2025;73,96;;
+OD;30/09/2025;645800;FCAP, fonds commun d'aide au paritarisme (IDCC 1285) -- Septembre 2025;12,76;;
+OD;30/09/2025;431000;Urssaf -- Septembre 2025;;1822,01;
+OD;30/09/2025;437100;Audiens (retraite et prevoyance) -- Septembre 2025;;562,16;
+OD;30/09/2025;437200;France Travail (assurance chomage) -- Septembre 2025;;167,90;
+OD;30/09/2025;437400;Organismes conventionnels (Audiens : CASC-SVP, FNAS, FCAP) -- Septembre 2025;;86,72;
+OD;30/09/2025;421000;Net a payer -- Septembre 2025;;1695,42;DORVAL Hortense
+OD;30/09/2025;421000;Net a payer -- Septembre 2025;;2329,91;NADAR Ergaste
+OD;31/10/2025;641100;Salaires bruts -- Octobre 2025;3132,00;;Le Barbier de Séville
+OD;31/10/2025;641100;Salaires bruts -- Octobre 2025;5100,00;;Salariés au mois
+OD;31/10/2025;641400;Indemnites non soumises (repas, defraiements) -- Octobre 2025;404,00;;Le Barbier de Séville
+OD;31/10/2025;645100;Cotisations Urssaf -- accidents du travail -- Octobre 2025;99,30;;
+OD;31/10/2025;645100;Cotisations Urssaf -- allocations familiales -- Octobre 2025;288,58;;
+OD;31/10/2025;645100;Cotisations Urssaf -- maladie -- Octobre 2025;617,82;;
+OD;31/10/2025;645100;Cotisations Urssaf -- vieillesse deplafonnee -- Octobre 2025;154,22;;
+OD;31/10/2025;645100;Cotisations Urssaf -- vieillesse plafonnee -- Octobre 2025;653,14;;
+OD;31/10/2025;645100;Reduction generale degressive unique -- Octobre 2025;;428,16;
+OD;31/10/2025;645200;Complementaire sante (mutuelle) -- Octobre 2025;29,04;;
+OD;31/10/2025;645300;APEC T1 (Audiens) -- Octobre 2025;1,06;;
+OD;31/10/2025;645300;Prevoyance (Audiens) -- Octobre 2025;97,24;;
+OD;31/10/2025;645300;Retraite complementaire T1 (Audiens) -- Octobre 2025;507,45;;
+OD;31/10/2025;645400;Assurance chomage (France Travail) -- Octobre 2025;522,13;;
+OD;31/10/2025;645500;Conges Spectacles -- Octobre 2025;485,46;;
+OD;31/10/2025;645800;Autres contributions employeur (FNAL, CSA, dialogue social, formation) -- Octobre 2025;119,85;;
+OD;31/10/2025;645800;Autres contributions employeur (sur brut majore 110) -- Octobre 2025;58,11;;
+OD;31/10/2025;645800;Autres contributions employeur (sur brut majore 115) -- Octobre 2025;7,95;;
+OD;31/10/2025;645800;Cotisations conventionnelles (CASC-SVP pour la 3090, FNAS pour la 1285) -- Octobre 2025;119,38;;
+OD;31/10/2025;645800;FCAP, fonds commun d'aide au paritarisme (IDCC 1285) -- Octobre 2025;20,59;;
+OD;31/10/2025;431000;Urssaf -- Octobre 2025;;3059,40;
+OD;31/10/2025;437100;Audiens (retraite et prevoyance) -- Octobre 2025;;925,30;
+OD;31/10/2025;437200;France Travail (assurance chomage) -- Octobre 2025;;543,66;
+OD;31/10/2025;437300;Caisse des Conges Spectacles -- Octobre 2025;;485,46;
+OD;31/10/2025;437400;Organismes conventionnels (Audiens : CASC-SVP, FNAS, FCAP) -- Octobre 2025;;139,97;
+OD;31/10/2025;421000;Net a payer -- Octobre 2025;;1695,42;DORVAL Hortense
+OD;31/10/2025;421000;Net a payer -- Octobre 2025;;591,90;DUMESNIL Elmire
+OD;31/10/2025;421000;Net a payer -- Octobre 2025;;541,42;FARRENC Henriette
+OD;31/10/2025;421000;Net a payer -- Octobre 2025;;2329,91;NADAR Ergaste
+OD;31/10/2025;421000;Net a payer -- Octobre 2025;;591,90;NOVERRE Lysandre
+OD;31/10/2025;421000;Net a payer -- Octobre 2025;;492,92;TORELLI Oronte
+OD;31/10/2025;421000;Net a payer -- Octobre 2025;;591,90;TURLUPIN Lelio
+OD;30/11/2025;641100;Salaires bruts -- Novembre 2025;1864,00;;Les Fêtes vénitiennes
+OD;30/11/2025;641100;Salaires bruts -- Novembre 2025;5100,00;;Salariés au mois
+OD;30/11/2025;641400;Indemnites non soumises (repas, defraiements) -- Novembre 2025;242,40;;Les Fêtes vénitiennes
+OD;30/11/2025;645100;Cotisations Urssaf -- accidents du travail -- Novembre 2025;85,39;;
+OD;30/11/2025;645100;Cotisations Urssaf -- allocations familiales -- Novembre 2025;243,31;;
+OD;30/11/2025;645100;Cotisations Urssaf -- maladie -- Novembre 2025;515,20;;
+OD;30/11/2025;645100;Cotisations Urssaf -- vieillesse deplafonnee -- Novembre 2025;132,63;;
+OD;30/11/2025;645100;Cotisations Urssaf -- vieillesse plafonnee -- Novembre 2025;561,63;;
+OD;30/11/2025;645100;Reduction generale degressive unique -- Novembre 2025;;428,04;
+OD;30/11/2025;645200;Complementaire sante (mutuelle) -- Novembre 2025;29,04;;
+OD;30/11/2025;645300;APEC T1 (Audiens) -- Novembre 2025;1,06;;
+OD;30/11/2025;645300;Prevoyance (Audiens) -- Novembre 2025;84,06;;
+OD;30/11/2025;645300;Retraite complementaire T1 (Audiens) -- Novembre 2025;437,77;;
+OD;30/11/2025;645400;Assurance chomage (France Travail) -- Novembre 2025;398,50;;
+OD;30/11/2025;645500;Conges Spectacles -- Novembre 2025;288,92;;
+OD;30/11/2025;645800;Autres contributions employeur (FNAL, CSA, dialogue social, formation) -- Novembre 2025;89,21;;
+OD;30/11/2025;645800;Autres contributions employeur (sur brut majore 110) -- Novembre 2025;48,63;;
+OD;30/11/2025;645800;Autres contributions employeur (sur brut majore 115) -- Novembre 2025;6,75;;
+OD;30/11/2025;645800;Cotisations conventionnelles (CASC-SVP pour la 3090, FNAS pour la 1285) -- Novembre 2025;100,99;;
+OD;30/11/2025;645800;FCAP, fonds commun d'aide au paritarisme (IDCC 1285) -- Novembre 2025;17,42;;
+OD;30/11/2025;431000;Urssaf -- Novembre 2025;;2543,03;
+OD;30/11/2025;437100;Audiens (retraite et prevoyance) -- Novembre 2025;;776,84;
+OD;30/11/2025;437200;France Travail (assurance chomage) -- Novembre 2025;;389,62;
+OD;30/11/2025;437300;Caisse des Conges Spectacles -- Novembre 2025;;288,92;
+OD;30/11/2025;437400;Organismes conventionnels (Audiens : CASC-SVP, FNAS, FCAP) -- Novembre 2025;;118,41;
+OD;30/11/2025;421000;Net a payer -- Novembre 2025;;1695,42;DORVAL Hortense
+OD;30/11/2025;421000;Net a payer -- Novembre 2025;;2329,91;NADAR Ergaste
+OD;30/11/2025;421000;Net a payer -- Novembre 2025;;591,90;NOVERRE Lysandre
+OD;30/11/2025;421000;Net a payer -- Novembre 2025;;492,92;TORELLI Oronte
+OD;30/11/2025;421000;Net a payer -- Novembre 2025;;591,90;TURLUPIN Lelio
+OD;31/12/2025;641100;Salaires bruts -- Decembre 2025;5472,70;;Salariés au mois
+OD;31/12/2025;645100;Cotisations Urssaf -- accidents du travail -- Decembre 2025;71,15;;
+OD;31/12/2025;645100;Cotisations Urssaf -- allocations familiales -- Decembre 2025;188,83;;
+OD;31/12/2025;645100;Cotisations Urssaf -- maladie -- Decembre 2025;383,09;;
+OD;31/12/2025;645100;Cotisations Urssaf -- vieillesse deplafonnee -- Decembre 2025;110,55;;
+OD;31/12/2025;645100;Cotisations Urssaf -- vieillesse plafonnee -- Decembre 2025;467,92;;
+OD;31/12/2025;645100;Reduction generale degressive unique -- Decembre 2025;;390,01;
+OD;31/12/2025;645200;Complementaire sante (mutuelle) -- Decembre 2025;29,04;;
+OD;31/12/2025;645300;APEC T1 (Audiens) -- Decembre 2025;1,20;;
+OD;31/12/2025;645300;Prevoyance (Audiens) -- Decembre 2025;70,27;;
+OD;31/12/2025;645300;Retraite complementaire T1 (Audiens) -- Decembre 2025;357,92;;
+OD;31/12/2025;645400;Assurance chomage (France Travail) -- Decembre 2025;232,61;;
+OD;31/12/2025;645800;Autres contributions employeur (FNAL, CSA, dialogue social, formation) -- Decembre 2025;47,41;;
+OD;31/12/2025;645800;Autres contributions employeur (sur brut majore 110) -- Decembre 2025;37,24;;
+OD;31/12/2025;645800;Autres contributions employeur (sur brut majore 115) -- Decembre 2025;5,47;;
+OD;31/12/2025;645800;Cotisations conventionnelles (CASC-SVP pour la 3090, FNAS pour la 1285) -- Decembre 2025;79,37;;
+OD;31/12/2025;645800;FCAP, fonds commun d'aide au paritarisme (IDCC 1285) -- Decembre 2025;13,70;;
+OD;31/12/2025;431000;Urssaf -- Decembre 2025;;1974,63;
+OD;31/12/2025;437100;Audiens (retraite et prevoyance) -- Decembre 2025;;605,31;
+OD;31/12/2025;437200;France Travail (assurance chomage) -- Decembre 2025;;183,75;
+OD;31/12/2025;437400;Organismes conventionnels (Audiens : CASC-SVP, FNAS, FCAP) -- Decembre 2025;;93,07;
+OD;31/12/2025;421000;Net a payer -- Decembre 2025;;1695,42;DORVAL Hortense
+OD;31/12/2025;421000;Net a payer -- Decembre 2025;;2626,28;NADAR Ergaste

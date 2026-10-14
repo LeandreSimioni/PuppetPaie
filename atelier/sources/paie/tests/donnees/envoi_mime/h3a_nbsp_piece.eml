@@ -1,0 +1,26 @@
+From: compagnie@gmail.com
+To: marie@exemple.fr
+Subject: Octobre 2026
+Date: Tue, 06 Oct 2026 21:26:31 +0200
+Message-ID: <FIXE.1.2@gmail.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="<BORNE>"
+
+--<BORNE>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Bonjour,
+
+Tout va bien.
+
+--<BORNE>
+Content-Type: application/pdf
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment;
+ filename*=utf-8''Bulletin%C2%A0d%27%C3%89l%C3%A9onore%C2%A0Octobre2026.pdf
+MIME-Version: 1.0
+
+AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dzj6vH4/wYNFBsiKTA3PkVMU1o=
+
+--<BORNE>--

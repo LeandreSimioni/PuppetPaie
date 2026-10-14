@@ -1,0 +1,68 @@
+# Modèle d'avenant au contrat d'engagement à durée déterminée d'usage.
+#
+# CE FICHIER EST UNE DONNÉE, PAS DU CODE, comme contrat-cddu.modele : même
+# format, mêmes marqueurs, et chaque compagnie peut garder sa version dans
+# son dossier gabarits/.
+#
+# L'avenant cite l'ancien texte du contrat et le nouveau, article par
+# article. Le bloc MODIFICATION: s'écrit UNE FOIS PAR ARTICLE MODIFIÉ, sous
+# le titre « Modification de l'article … » ; un paragraphe qui porte
+# {{modification.avant}} ou {{modification.apres}} se répète pour chaque
+# paragraphe cité. Les articles ARTICLE: suivent, numérotés à la suite.
+#
+# Formulations d'usage, pas un texte de loi : aucune source officielle ne
+# fixe la forme d'un avenant (journal §165). L'écrit est ce qui prouve
+# l'accord du salarié sur un élément de son contrat (Cass. soc. 10/07/1996,
+# n° 93-41.137).
+
+TITRE: Avenant n° {{avenant.numero}} au contrat d'engagement
+
+SOUSTITRE: Contrat d'engagement à durée déterminée d'usage n° {{contrat.numero}} du {{avenant.date_contrat}}
+
+PREAMBULE:
+**Entre les soussignés,**
+
+L'employeur : **{{employeur.raison_sociale}}**, {{employeur.adresse}}, {{employeur.code_postal}} {{employeur.commune}} — SIRET {{employeur.siret}}, licence d'entrepreneur de spectacles n° {{employeur.licence}}, représentée par {{employeur.signataire}}, en qualité de {{employeur.signataire_fonction}}, ci-après dénommé **l'employeur**,
+
+**Et**
+
+L'artiste : **{{salarie.nom_complet}}**, né(e) le {{salarie.date_naissance}} à {{salarie.lieu_naissance}}, ci-après dénommé(e) **l'artiste**,
+
+Les parties sont liées par le contrat d'engagement n° {{contrat.numero}} du {{avenant.date_contrat}}, conclu pour le spectacle **{{spectacle.titre}}**. Elles conviennent de le modifier comme suit.
+
+MODIFICATION:
+L'article {{modification.numero}} « {{modification.article}} » du contrat stipulait :
+
+« {{modification.avant}} »
+
+Il est désormais rédigé ainsi :
+
+« {{modification.apres}} »
+
+ARTICLE: Autres clauses
+Les autres clauses du contrat n° {{contrat.numero}} demeurent inchangées, notamment le motif de recours au contrat à durée déterminée d'usage et la convention collective applicable — {{employeur.convention}}, IDCC {{employeur.idcc}}.
+
+ARTICLE: Date d'effet
+Le présent avenant prend effet le **{{avenant.effet}}**.
+
+SIGNATURES:
+Fait en double exemplaire à {{employeur.commune}}, le {{avenant.date}}.
+
+# ---------------------------------------------------------------------------
+# MARQUEURS DISPONIBLES
+#
+#   tous ceux du contrat (voir contrat-cddu.modele), avec les valeurs
+#   d'aujourd'hui, et :
+#
+#   avenant.numero          1, 2… par contrat
+#   avenant.date_contrat    le jour où le contrat modifié a été signé
+#                           (à défaut, envoyé)
+#   avenant.effet           la date d'effet choisie à l'envoi
+#   avenant.date            le jour où l'avenant est établi
+#
+#   dans le bloc MODIFICATION: seulement
+#   modification.numero     le numéro de l'article modifié
+#   modification.article    son titre
+#   modification.avant      un paragraphe du contrat signé, tel qu'il s'y lit
+#   modification.apres      le même paragraphe, à jour
+# ---------------------------------------------------------------------------

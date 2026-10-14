@@ -1,0 +1,424 @@
+{
+  "_source": "Compagnie de demonstration : des taux de prelevement a la source FABRIQUES, comme s'ils venaient des comptes-rendus de la DGFiP (nature 94). Les salaries sans taux partent sur la grille de l'article 204 H.",
+  "salaries": {
+    "BRIOCHE": {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08"
+    },
+    "SERAPHIN": {
+      "taux": "5.40",
+      "type": "01",
+      "identifiant": "892112027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08"
+    },
+    "LEMERCIER": {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "892122027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08"
+    }
+  },
+  "journal": [
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012025",
+      "mis_a_disposition": "20250208120000",
+      "periode": "202502",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-02-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "5.40",
+      "type": "01",
+      "identifiant": "892112025",
+      "mis_a_disposition": "20250208120000",
+      "periode": "202502",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-02-08",
+      "salarie": "SERAPHIN"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "892122025",
+      "mis_a_disposition": "20250208120000",
+      "periode": "202502",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-02-08",
+      "salarie": "LEMERCIER"
+    },
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012025",
+      "mis_a_disposition": "20250408120000",
+      "periode": "202504",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-04-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "892122025",
+      "mis_a_disposition": "20250408120000",
+      "periode": "202504",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-04-08",
+      "salarie": "LEMERCIER"
+    },
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012025",
+      "mis_a_disposition": "20250508120000",
+      "periode": "202505",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-05-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "5.40",
+      "type": "01",
+      "identifiant": "892112025",
+      "mis_a_disposition": "20250508120000",
+      "periode": "202505",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-05-08",
+      "salarie": "SERAPHIN"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "892122025",
+      "mis_a_disposition": "20250508120000",
+      "periode": "202505",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-05-08",
+      "salarie": "LEMERCIER"
+    },
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012025",
+      "mis_a_disposition": "20250708120000",
+      "periode": "202507",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-07-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012025",
+      "mis_a_disposition": "20250908120000",
+      "periode": "202509",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-09-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "5.40",
+      "type": "01",
+      "identifiant": "892112025",
+      "mis_a_disposition": "20250908120000",
+      "periode": "202509",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-09-08",
+      "salarie": "SERAPHIN"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "892122025",
+      "mis_a_disposition": "20250908120000",
+      "periode": "202509",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-09-08",
+      "salarie": "LEMERCIER"
+    },
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012025",
+      "mis_a_disposition": "20251108120000",
+      "periode": "202511",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-11-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "5.40",
+      "type": "01",
+      "identifiant": "892112025",
+      "mis_a_disposition": "20251108120000",
+      "periode": "202511",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-11-08",
+      "salarie": "SERAPHIN"
+    },
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012025",
+      "mis_a_disposition": "20251208120000",
+      "periode": "202512",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-12-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "5.40",
+      "type": "01",
+      "identifiant": "892112025",
+      "mis_a_disposition": "20251208120000",
+      "periode": "202512",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-12-08",
+      "salarie": "SERAPHIN"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "892122025",
+      "mis_a_disposition": "20251208120000",
+      "periode": "202512",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2025-12-08",
+      "salarie": "LEMERCIER"
+    },
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012026",
+      "mis_a_disposition": "20260108120000",
+      "periode": "202601",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-01-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "5.40",
+      "type": "01",
+      "identifiant": "892112026",
+      "mis_a_disposition": "20260108120000",
+      "periode": "202601",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-01-08",
+      "salarie": "SERAPHIN"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "892122026",
+      "mis_a_disposition": "20260108120000",
+      "periode": "202601",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-01-08",
+      "salarie": "LEMERCIER"
+    },
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012026",
+      "mis_a_disposition": "20260308120000",
+      "periode": "202603",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-03-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "5.40",
+      "type": "01",
+      "identifiant": "892112026",
+      "mis_a_disposition": "20260308120000",
+      "periode": "202603",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-03-08",
+      "salarie": "SERAPHIN"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "892122026",
+      "mis_a_disposition": "20260308120000",
+      "periode": "202603",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-03-08",
+      "salarie": "LEMERCIER"
+    },
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012026",
+      "mis_a_disposition": "20260408120000",
+      "periode": "202604",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-04-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "5.40",
+      "type": "01",
+      "identifiant": "892112026",
+      "mis_a_disposition": "20260408120000",
+      "periode": "202604",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-04-08",
+      "salarie": "SERAPHIN"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "892122026",
+      "mis_a_disposition": "20260408120000",
+      "periode": "202604",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-04-08",
+      "salarie": "LEMERCIER"
+    },
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012026",
+      "mis_a_disposition": "20260608120000",
+      "periode": "202606",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-06-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "5.40",
+      "type": "01",
+      "identifiant": "892112026",
+      "mis_a_disposition": "20260608120000",
+      "periode": "202606",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-06-08",
+      "salarie": "SERAPHIN"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "892122026",
+      "mis_a_disposition": "20260608120000",
+      "periode": "202606",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-06-08",
+      "salarie": "LEMERCIER"
+    },
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012026",
+      "mis_a_disposition": "20260908120000",
+      "periode": "202609",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-09-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "5.40",
+      "type": "01",
+      "identifiant": "892112026",
+      "mis_a_disposition": "20260908120000",
+      "periode": "202609",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-09-08",
+      "salarie": "SERAPHIN"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "892122026",
+      "mis_a_disposition": "20260908120000",
+      "periode": "202609",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-09-08",
+      "salarie": "LEMERCIER"
+    },
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012026",
+      "mis_a_disposition": "20261108120000",
+      "periode": "202611",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-11-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012026",
+      "mis_a_disposition": "20261208120000",
+      "periode": "202612",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-12-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "5.40",
+      "type": "01",
+      "identifiant": "892112026",
+      "mis_a_disposition": "20261208120000",
+      "periode": "202612",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-12-08",
+      "salarie": "SERAPHIN"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "892122026",
+      "mis_a_disposition": "20261208120000",
+      "periode": "202612",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2026-12-08",
+      "salarie": "LEMERCIER"
+    },
+    {
+      "taux": "4.30",
+      "type": "01",
+      "identifiant": "892012027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08",
+      "salarie": "BRIOCHE"
+    },
+    {
+      "taux": "5.40",
+      "type": "01",
+      "identifiant": "892112027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08",
+      "salarie": "SERAPHIN"
+    },
+    {
+      "taux": "0.00",
+      "type": "01",
+      "identifiant": "892122027",
+      "mis_a_disposition": "20270108120000",
+      "periode": "202701",
+      "source": "demonstration : compte-rendu DGFiP de nature 94 FABRIQUE par outils/compagnies_demo.py",
+      "releve_le": "2027-01-08",
+      "salarie": "LEMERCIER"
+    }
+  ]
+}

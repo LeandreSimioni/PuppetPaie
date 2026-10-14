@@ -1,0 +1,45 @@
+//! Le `Contexte` des quatre demonstrations contre `contexte.json` : SMIC, licence, PSS et l'empreinte du bareme resolu a
+//! quatre dates (le bareme lui-meme est prouve par `bareme.rs`), la recherche des fiches et des spectacles, refus
+//! compris. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
+
+use crate::outils::{demo, egal, lire_oracle, oracle_selon, sceller};
+use paie::contexte::Contexte;
+use paie::date::d;
+use serde_json::json;
+
+#[test]
+fn le_contexte_des_demos() {
+    let mut cas = lire_oracle("contexte.json");
+    for c in cas.as_array_mut().unwrap() {
+        let ctx = Contexte::nouveau(&demo(c["racine"].as_str().unwrap()), Some(d(&json!("2026-09-27")).unwrap())).unwrap();
+        let o = c.as_object_mut().unwrap();
+        let r = if let Some(j) = o.get("jour") {
+            let jour = d(j).unwrap();
+            let (m, h) = ctx.plafond_securite_sociale(jour.an).unwrap();
+            o.remove("bareme");
+            json!({"empreinte_bareme": sceller(&ctx.bareme(&jour).unwrap()), "smic": ctx.smic(&jour).unwrap(),
+                   "licence": ctx.licence(&jour).unwrap(), "pss": [m, h]})
+        } else {
+            let r = match o.get("salarie") {
+                Some(n) => ctx.salarie(n.as_str().unwrap()),
+                None => ctx.spectacle(o["spectacle"].as_str().unwrap()),
+            };
+            o.remove("ok");
+            o.remove("erreur");
+            r.map_or_else(|e| json!({"erreur": e}), |v| json!({"ok": v["_cle"]}))
+        };
+        o.extend(r.as_object().unwrap().clone());
+    }
+    oracle_selon("contexte.json", "", &cas, egal);
+}
+
+#[test]
+fn un_spectacle_sans_nom_se_refuse() {
+    let ctx = Contexte::nouveau(&demo("demo-3090-petite"), Some(d(&json!("2026-09-27")).unwrap())).unwrap();
+    for nom in ["", "   ", " - "] {
+        let e = ctx.spectacle(nom).expect_err(nom);
+        assert!(e.starts_with("Aucun spectacle n'est nomme"), "{:?} : {}", nom, e);
+    }
+    // Un vrai nom se trouve toujours.
+    assert_eq!(ctx.spectacle("Ubu roi").unwrap()["_cle"], "ubu-roi");
+}
