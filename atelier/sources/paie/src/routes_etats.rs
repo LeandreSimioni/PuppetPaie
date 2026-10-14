@@ -20,7 +20,7 @@
 //! version de Python --, que le moteur ne peut pas dire).
 
 use std::collections::{BTreeSet, HashMap, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
@@ -493,7 +493,7 @@ fn attend_l_editeur(racine: &Path) -> Vec<Value> {
             "parti": etat == crate::incidents::DEPOSE, "repondu": false,
         }));
     }
-    for s in signalements(racine) {
+    for s in crate::problemes::signalements(racine) {
         let debut = texte(&s, "debut");
         if !parle_d_import(&debut) {
             continue;
@@ -501,7 +501,7 @@ fn attend_l_editeur(racine: &Path) -> Vec<Value> {
         out.push(json!({
             "canal": "signalement", "quand": texte(&s, "quand"), "resume": debut,
             "numero": s.get("numero").cloned().unwrap_or(Value::Null),
-            "parti": true, "repondu": s.get("reponse").is_some_and(vrai),
+            "parti": s.get("etat").and_then(Value::as_str) == Some("arrive"), "repondu": s.get("reponse").is_some_and(vrai),
         }));
     }
     out
@@ -593,29 +593,9 @@ pub(crate) fn version(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
 
 // ------------------------------------------------------------------ les signalements
 
-/// `operations_filet.signalements` : les signalements faits depuis ce poste, du
-/// plus recent au plus ancien. Un fichier absent ou illisible n'en dit aucun.
-fn signalements(racine: &Path) -> Vec<Value> {
-    let dossier = match std::env::var_os("PUPPETPAIE_INCIDENTS").filter(|e| !e.is_empty()) {
-        Some(e) => PathBuf::from(e),
-        None => racine.join("journal"),
-    };
-    let lus = std::fs::read(dossier.join("signalements.json"))
-        .ok()
-        .and_then(|o| String::from_utf8(o).ok())
-        .and_then(|t| serde_json::from_str::<Value>(&t).ok());
-    match lus {
-        Some(Value::Array(mut a)) => {
-            a.reverse();
-            a
-        }
-        _ => Vec::new(),
-    }
-}
-
 /// La route `signalements` : `{"signalements", "non_lues"}`.
 fn signalements_route(racine: &Path) -> R<Value> {
-    let liste = signalements(racine);
+    let liste = crate::problemes::signalements(racine);
     // `reponses_non_lues` : les reponses que la boite n'a pas encore montrees.
     let mut non_lues = 0;
     for l in &liste {

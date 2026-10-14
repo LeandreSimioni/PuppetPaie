@@ -233,6 +233,12 @@ apt-get install -y libwebkit2gtk-4.1-dev libsoup-3.0-dev librsvg2-dev xvfb   # p
 (cd atelier/sources/paie && cargo build --release)
 ```
 
+**Le moteur Linux est déjà dans le dépôt** (Léandre, 14/10/2026) : `atelier/sources/paie/bin/linux/paie` (et la fenêtre,
+`bin/linux/puppetpaie`), livrés par « Moteur Rust » ; `bin/SOURCES` dit de quelles sources. Pour reproduire un
+comportement du poste (une route, un envoi), on s'en sert tout de suite plutôt que de compiler :
+`echo '{"route":"…","charge":{…}}' | atelier/sources/paie/bin/linux/paie route --racine <copie d'une compagnie>`.
+Il peut retarder sur les sources : ce qu'on vient de changer se compile, et les tests compilent toujours.
+
 ### Les tests
 
 **Tout doit être vert. Une PR dont la suite est rouge ne se fusionne pas.**

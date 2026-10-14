@@ -908,6 +908,7 @@ fn decision_2_la_trace_garde_les_champs_maj_et_sources_de_la_trace_precedente() 
 #[test]
 fn decision_3_incidents_et_reponses_de_l_editeur_partent_seulement_quand_l_appelant_ne_s_en_charge_pas() {
     let _t = tour();
+    const ATTEND: &str = "20261005T100000-000000000001";
     // Le faux serveur de l'editeur : `/rapport` recoit les incidents, `/reponses` rend la reponse a un signalement.
     let (url, recu) = serveur(|q: &Requete| {
         let v = q.json();
@@ -915,6 +916,7 @@ fn decision_3_incidents_et_reponses_de_l_editeur_partent_seulement_quand_l_appel
             "poste" => json!({"poste": "a1b2c3d4e5f60718a1b2c3d4e5f60718", "cle": "0f1e2d3c4b5a6978".repeat(4)}),
             "rapport" => json!({"recus": v["incidents"].as_array().into_iter().flatten().map(|x| json!([x["empreinte"], x["quand"]])).collect::<Vec<_>>()}),
             "reponses" => json!({"retours": [{"numero": "R-000001", "reponse": "Merci, c'est corrige.", "repondu_le": "2026-10-06"}]}),
+            "retour" => json!({"numero": "R-000002"}),
             _ => json!({}),
         };
         Some(http_json(200, &rep))
@@ -931,7 +933,12 @@ fn decision_3_incidents_et_reponses_de_l_editeur_partent_seulement_quand_l_appel
             })
             .collect();
         ecrire(&c, "journal/incidents.json", &Value::Array(lignes));
-        ecrire(&c, "journal/signalements.json", &json!([{"numero": "R-000001", "quand": "2026-10-01T10:00:00", "texte": "un probleme", "reponse": "", "lu": false}]));
+        // Et un message « Un probleme, une idee ? » que l'envoi en fond n'a pas fait partir : la veille le reprend.
+        ecrire(&c, "journal/signalements.json", &json!([
+            {"numero": "R-000001", "quand": "2026-10-01T10:00:00", "texte": "un probleme", "reponse": "", "lu": false},
+            {"id": ATTEND, "quand": "2026-10-05T10:00", "debut": "en attente", "envoi": {"etat": "en-attente", "quand": null, "essai": null, "erreur": "injoignable"}},
+        ]));
+        ecrire(&c, &format!("journal/signalements/{}.json", ATTEND), &json!({"texte": "en attente"}));
         ecrire(&c, "config/filet-dpae.json", &json!({"serveur": url}));
         c
     };
@@ -942,7 +949,10 @@ fn decision_3_incidents_et_reponses_de_l_editeur_partent_seulement_quand_l_appel
     let n = recu.lock().unwrap().len();
     let o_filet = Options { filet: true, ..o.clone() };
     sans_clients(&c, &o_filet);
-    assert_eq!(actions(n), ["poste", "rapport", "reponses"], "l'identite du poste d'abord (serveur version 7)");
+    assert_eq!(actions(n), ["poste", "rapport", "retour", "reponses"], "l'identite du poste d'abord (serveur version 7)");
+    let attendait = lire(&c, "journal/signalements.json")[1].clone();
+    assert_eq!((attendait["envoi"]["etat"].clone(), attendait["numero"].clone()), (json!("depose"), json!("R-000002")));
+    assert!(!c.join(format!("journal/signalements/{}.json", ATTEND)).exists(), "parti, son corps s'efface");
     assert!(lire(&c, "journal/incidents.json").as_array().unwrap().iter().take(5).all(|l| l["envoi"]["etat"] == json!("depose")));
     assert!(lire(&c, "journal/signalements.json")[0]["reponse"].as_str().unwrap().starts_with("Merci"));
     // Rien de plus a envoyer.

@@ -297,6 +297,10 @@ function boiteSignalement() {
       $("sg-pre").hidden = false;
     } catch (e) { montrerErreur(e.message); }
   };
+  // ENVOYER REND LA MAIN TOUT DE SUITE (Léandre, 14/10/2026) : le moteur
+  // enregistre le message sur l'ordinateur et le fait partir en fond ; ce qui
+  // ne part pas tout de suite, la veille le renvoie. La page ne fait que
+  // montrer où il en est, dans « Vos messages ».
   envoyer.onclick = async () => {
     montrerErreur("");
     const rendre = occupe(envoyer, "Envoi…");
@@ -304,15 +308,16 @@ function boiteSignalement() {
       const r = await api("signalement-envoyer", charge());
       $("sg-pre").hidden = true;
       $("sg-resultat").hidden = false;
-      // D'ABORD MERCI (01/10/2026). Le ticket est dans un dépôt privé : son
-      // lien ne servirait à rien ici. La réponse revient dans « Vos messages ».
-      $("sg-resultat").innerHTML = `<b>Merci, c'est bien arrivé.</b>
-        La réponse viendra ici, dans « Vos messages ».`;
+      // D'ABORD MERCI (01/10/2026). La réponse revient dans « Vos messages ».
+      $("sg-resultat").innerHTML = `<b>Merci, votre message est enregistré.</b>
+        Il part chez l'éditeur ; s'il ne peut pas partir tout de suite, PuppetPaie
+        le renverra de lui-même. La réponse viendra ici, dans « Vos messages ».`;
       $("sg-messages").innerHTML = vosMessages(r.signalements || []);
       ["sg-voir", "sg-reduire", "sg-ajout"].forEach((id) => { $(id).hidden = true; });
       envoyer.hidden = true;
       texte.readOnly = true;
       $("sg-vignettes").querySelectorAll(".sg-retirer").forEach((b) => { b.hidden = true; });
+      suivreLesMessages(boite, Date.now());
     } catch (e) { rendre(); montrerErreur(e.message); }
   };
   texte.focus();
@@ -367,8 +372,31 @@ function vosMessages(liste) {
   return `<h4 class="sg-titre-messages">Vos messages</h4><ul class="sg-messages">${liste.map((s) => `
     <li${s.reponse && !s.lu ? ' class="nouveau"' : ""}><span class="discret">${echapper(quand(s.quand))}</span>
       ${echapper(s.debut)}${s.debut && s.debut.length >= 80 ? "…" : ""}
-      ${s.reponse ? `<p class="sg-reponse">${echapper(s.reponse)}</p>`
-                  : ` <span class="discret">— en attente de réponse</span>`}</li>`).join("")}</ul>`;
+      ${s.reponse ? `<p class="sg-reponse">${echapper(s.reponse)}</p>` : etatDuMessage(s)}</li>`).join("")}</ul>`;
+}
+
+/** Où en est un message (l'état vient du moteur, `problemes::signalements`). */
+function etatDuMessage(s) {
+  if (s.etat === "en-cours") return ` <span class="pastille">en cours d'envoi</span>`;
+  if (s.etat === "pas-parti") {
+    return ` <span class="pastille alerte">pas encore parti</span>
+      <span class="discret">— ${echapper(s.raison || "")}</span>`;
+  }
+  return ` <span class="discret">— arrivé, en attente de réponse</span>`;
+}
+
+/** Tant qu'un message est en cours d'envoi et la boîte ouverte, la liste se
+ *  relit (toutes les trois secondes, deux minutes au plus). */
+function suivreLesMessages(boite, depuis) {
+  setTimeout(async () => {
+    if (!boite.isConnected && !SIGNALEMENT_REDUIT) return;
+    if (Date.now() - depuis > 2 * 60 * 1000) return;
+    let l;
+    try { l = (await api("signalements")).signalements; } catch (e) { return; }
+    const nid = boite.querySelector("#sg-messages");
+    if (nid) nid.innerHTML = vosMessages(l);
+    if (l.some((s) => s.etat === "en-cours")) suivreLesMessages(boite, depuis);
+  }, 3000);
 }
 
 async function dessinerPastilleReponses() {
@@ -384,7 +412,7 @@ function listeSignalements(liste) {
   return `<h4>Vos signalements</h4><ul class="sg-liste">${liste.map((s) => `
     <li><span class="discret">${echapper(quand(s.quand))}</span> <b>${echapper(s.numero)}</b>
       — ${echapper(s.debut)}${s.ticket
-        ? ` <a href="${echapper(s.ticket)}" target="_blank" rel="noopener">ticket n° ${echapper(String(s.ticket_numero ?? ""))}</a>` : ""}</li>`).join("")}</ul>`;
+        ? ` <a href="${echapper(s.ticket)}" target="_blank" rel="noopener">ticket n° ${echapper(String(s.ticket_numero ?? ""))}</a>` : ""}${s.etat !== "arrive" ? etatDuMessage(s) : ""}</li>`).join("")}</ul>`;
 }
 
 /** La ligne du filet de sécurité DPAE (27/09/2026). L'état vient du moteur

@@ -286,8 +286,10 @@ fn l_identite_du_poste_se_demande_une_fois_se_garde_et_sa_cle_ne_sort_jamais() {
     let b = p.ok("incidents-envoyer", json!({}));
     assert_eq!(b["envoyes"], json!(0));
     assert!(b["erreur"].as_str().unwrap().contains("révoqué") && b["erreur"].as_str().unwrap().contains("config/diagnostic.json"), "{}", b);
-    let r = p.route("signalement-envoyer", json!({"texte": "x"}));
-    assert!(r["erreur"].as_str().unwrap().contains("config/diagnostic.json"), "{}", r);
+    p.ok("signalement-envoyer", json!({"texte": "x"}));
+    let b = p.ok("signalements-partir", json!({}));
+    assert!(b["erreur"].as_str().unwrap().contains("config/diagnostic.json"), "{}", b);
+    assert!(p.ok("signalements", json!({}))["signalements"][0]["raison"].as_str().unwrap().contains("config/diagnostic.json"));
 }
 
 #[test]
@@ -302,11 +304,16 @@ fn un_serveur_qui_refuse_l_identite_laisse_tout_en_attente() {
     assert!(b["erreur"].as_str().unwrap().contains("Trop de demandes"), "{}", b);
     assert_eq!(actions(&recu), ["poste"], "rien d'autre ne part");
     assert!(!p.racine.join("config/diagnostic.json").exists(), "aucune identite ecrite");
-    let r = p.route("signalement-envoyer", json!({"texte": "x"}));
-    assert_eq!((r["ok"].clone(), r["classe"].clone()), (json!(false), json!("ErreurOperation")));
-    assert!(r["erreur"].as_str().unwrap().contains("n'est pas parti"), "{}", r);
+    // Le message s'enregistre, et attend : la raison se dit, rien ne se perd.
+    let id = p.ok("signalement-envoyer", json!({"texte": "x"}))["id"].as_str().unwrap().to_string();
+    let b = p.ok("signalements-partir", json!({}));
+    assert_eq!((b["partis"].clone(), b["reste"].clone()), (json!(0), json!(1)), "{}", b);
+    let m = p.ok("signalements", json!({}))["signalements"][0].clone();
+    assert_eq!(m["etat"], json!("pas-parti"));
+    assert!(m["raison"].as_str().unwrap().contains("Trop de demandes"), "{}", m);
+    assert!(p.racine.join(format!("journal/signalements/{}.json", id)).exists(), "son corps attend");
     assert_eq!(p.ok("signalements-reponses", json!({}))["nouvelles"], json!(0));
-    assert!(!p.racine.join("journal/signalements.json").exists());
+    assert_eq!(actions(&recu), ["poste", "poste"], "rien d'autre ne part");
     // Une identite qui n'en est pas une (un serveur d'avant la version 7, qui ne connait pas `/poste`) : pareil.
     let (url2, _) = serveur(|_, _| (404, json!({"erreur": "Action inconnue."})));
     p.serveur(&url2, json!({}));
@@ -370,15 +377,21 @@ fn le_signalement_s_apercoit_s_envoie_et_sa_reponse_se_releve_puis_se_lit() {
     assert_eq!(a["corps"]["captures"][0]["donnees"], json!("(1 Ko, non affichés)"));
     assert!(recu.lock().unwrap().is_empty(), "l'apercu n'envoie rien");
     let r = p.ok("signalement-envoyer", charge);
-    assert_eq!((r["numero"].clone(), r["ticket_numero"].clone()), (json!("R-000001"), json!(42)));
+    assert!(recu.lock().unwrap().is_empty(), "envoyer enregistre, rien ne part");
+    assert_eq!(r["signalements"][0]["etat"], json!("en-cours"));
+    let b = p.ok("signalements-partir", json!({}));
+    assert_eq!((b["partis"].clone(), b["reste"].clone(), b["erreur"].clone()), (json!(1), json!(0), json!("")));
     assert_eq!(actions(&recu), ["poste", "retour"]);
+    let ligne = p.fichier("journal/signalements.json")[0].clone();
+    assert_eq!((ligne["numero"].clone(), ligne["ticket_numero"].clone(), ligne["envoi"]["etat"].clone()), (json!("R-000001"), json!(42), json!("depose")));
     let vu = vus(&recu)[1].clone();
     assert_eq!(vu.corps["captures"][0]["donnees"], json!(png), "la capture part, sans son prefixe");
     assert_eq!(vu.corps["incidents"].as_array().unwrap().len(), 10);
     assert_eq!((vu.cle.as_str(), vu.corps["poste"].clone()), (CLE_DONNEE, json!(POSTE_DONNE)));
     // La boite garde ce que ce poste a signale.
     let boite = p.ok("signalements", json!({}));
-    assert_eq!(boite["signalements"][0]["numero"], json!("R-000001"));
+    assert_eq!((boite["signalements"][0]["numero"].clone(), boite["signalements"][0]["etat"].clone()), (json!("R-000001"), json!("arrive")));
+    assert!(std::fs::read_dir(p.racine.join("journal/signalements")).unwrap().next().is_none(), "parties, les captures ne restent pas sur le poste");
     // La reponse se releve (une seule fois), arrive non lue, puis se lit.
     assert_eq!(p.ok("signalements-reponses", json!({}))["nouvelles"], json!(1));
     assert_eq!(p.ok("signalements-reponses", json!({}))["nouvelles"], json!(0));
@@ -412,8 +425,11 @@ fn un_signalement_invalide_est_refuse_et_sans_serveur_pose_il_vise_celui_du_mote
     assert_eq!((a["peut_envoyer"].clone(), a["serveur"].clone()), (json!(true), json!("https://filet.puppetpaie.fr")));
     let (mandataire, demandes) = crate::outils::mandataire();
     let r = p.route_par(&mandataire, "signalement-envoyer", json!({"texte": "x"}));
-    assert_eq!((r["ok"].clone(), r["classe"].clone()), (json!(false), json!("ErreurOperation")));
-    assert!(r["erreur"].as_str().unwrap().contains("n'est pas parti"), "{}", r);
+    assert_eq!(r["ok"], json!(true), "{}", r);
+    assert!(demandes.lock().unwrap().is_empty(), "envoyer ne parle a personne");
+    let r = p.route_par(&mandataire, "signalements-partir", json!({}));
+    assert_eq!((r["resultat"]["partis"].clone(), r["resultat"]["reste"].clone()), (json!(0), json!(1)), "{}", r);
+    assert!(!r["resultat"]["erreur"].as_str().unwrap().is_empty(), "{}", r);
     assert!(demandes.lock().unwrap().iter().all(|l| l.starts_with("CONNECT filet.puppetpaie.fr:443")), "{:?}", demandes.lock().unwrap());
     assert!(!demandes.lock().unwrap().is_empty());
 }
@@ -432,6 +448,65 @@ fn ce_qui_part_dit_la_machine_et_rien_de_la_personne() {
     assert_eq!(a["corps"]["contexte"]["compagnie"], json!(""));
 }
 
+/// Un message qui n'a pas pu partir repart au passage suivant, une seule fois : deux messages, une panne, puis le serveur
+/// revient -- chacun arrive une fois, dans l'ordre, et un passage de plus n'envoie rien.
+#[test]
+fn un_message_qui_n_est_pas_parti_repart_une_seule_fois() {
+    let p = poste("signalement-reprise", &[]);
+    let panne = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
+    let en_panne = panne.clone();
+    let (url, recu) = serveur(move |action, corps| match action {
+        "retour" if en_panne.load(std::sync::atomic::Ordering::SeqCst) => (500, json!({"erreur": "Action inconnue."})),
+        "retour" => (200, json!({"numero": format!("R-{}", corps["texte"].as_str().unwrap())})),
+        _ => (200, json!({})),
+    });
+    p.serveur(&url, json!({}));
+    p.ok("signalement-envoyer", json!({"texte": "un"}));
+    p.ok("signalement-envoyer", json!({"texte": "deux"}));
+    let b = p.ok("signalements-partir", json!({}));
+    assert_eq!((b["partis"].clone(), b["reste"].clone()), (json!(0), json!(2)), "{}", b);
+    assert_eq!(actions(&recu), ["poste", "retour"], "la panne arrete le passage");
+    for m in p.ok("signalements", json!({}))["signalements"].as_array().unwrap() {
+        assert_eq!(m["etat"], json!("pas-parti"));
+        assert!(m["raison"].as_str().unwrap().contains("Action inconnue"), "la raison vaut pour tous : {}", m);
+    }
+    panne.store(false, std::sync::atomic::Ordering::SeqCst);
+    let b = p.ok("signalements-partir", json!({}));
+    assert_eq!((b["partis"].clone(), b["reste"].clone(), b["erreur"].clone()), (json!(2), json!(0), json!("")));
+    let partis: Vec<String> = vus(&recu).iter().filter(|v| v.action == "retour").skip(1).map(|v| v.corps["texte"].as_str().unwrap().to_string()).collect();
+    assert_eq!(partis, ["un", "deux"], "du plus ancien au plus recent");
+    let boite = p.fichier("journal/signalements.json");
+    let numeros: Vec<Value> = boite.as_array().unwrap().iter().map(|l| l["numero"].clone()).collect();
+    assert_eq!(numeros, [json!("R-un"), json!("R-deux")]);
+    assert!(boite.as_array().unwrap().iter().all(|l| l["envoi"]["etat"] == json!("depose") && l["envoi"]["erreur"] == json!("")));
+    let n = recu.lock().unwrap().len();
+    assert_eq!(p.ok("signalements-partir", json!({}))["partis"], json!(0));
+    assert_eq!(recu.lock().unwrap().len(), n, "un passage de plus n'envoie rien");
+}
+
+/// Un seul passage a la fois : un autre tient le verrou d'envoi, celui-ci rend `occupe` et n'envoie rien ; le message
+/// attend, enregistre. Un fichier d'attente que la boite ne connait plus (parti, ou jamais inscrit) s'efface.
+#[test]
+fn un_seul_envoi_a_la_fois_et_rien_ne_reste_de_ce_qui_est_parti() {
+    let p = poste("signalement-verrou", &[]);
+    let (url, recu) = serveur(|_, _| (200, json!({"numero": "R-1"})));
+    p.serveur(&url, json!({}));
+    let id = p.ok("signalement-envoyer", json!({"texte": "x"}))["id"].as_str().unwrap().to_string();
+    let verrou = p.racine.join("journal/.signalements-envoi.verrou");
+    std::fs::write(&verrou, "signalements-envoi pid 1 2026-10-14T10:00:00").unwrap();
+    let b = p.ok("signalements-partir", json!({}));
+    assert_eq!((b["occupe"].clone(), b["partis"].clone(), b["reste"].clone()), (json!(true), json!(0), json!(1)));
+    assert!(recu.lock().unwrap().is_empty());
+    std::fs::remove_file(&verrou).unwrap();
+    let orphelin = p.racine.join("journal/signalements/20261014T090000-000000000000.json");
+    std::fs::write(&orphelin, "{}").unwrap();
+    assert_eq!(p.ok("signalements-partir", json!({}))["partis"], json!(1));
+    assert_eq!(actions(&recu), ["poste", "retour"]);
+    assert!(!p.racine.join(format!("journal/signalements/{}.json", id)).exists());
+    assert!(!orphelin.exists(), "un fichier que la boite ne connait pas s'efface");
+    assert!(!verrou.exists(), "le passage rend son verrou");
+}
+
 // ======================================================= la soudure de la fictive
 
 #[test]
@@ -447,6 +522,7 @@ fn le_paquet_soude_ne_parle_qu_a_l_editeur() {
     // Les trois actions de l'editeur passent : rapport, retour, reponses.
     assert_eq!(p.ok("incidents-envoyer", json!({}))["envoyes"], json!(1));
     p.ok("signalement-envoyer", json!({"texte": "bonjour"}));
+    assert_eq!(p.ok("signalements-partir", json!({}))["partis"], json!(1));
     p.ok("signalements-reponses", json!({}));
     assert_eq!(actions(&recu), ["poste", "rapport", "retour", "reponses"]);
     // Celles du filet DPAE ne partent pas : la porte est soudee.

@@ -278,6 +278,15 @@ fn filet_en_fond(racine: &Path) {
     });
 }
 
+/// « Un probleme, une idee ? » part en fond (Leandre, 14/10/2026) : `signalement-envoyer` a enregistre le message et
+/// rendu la main ; `signalements-partir` le fait partir, le temps du serveur de l'editeur, sans que la page attende.
+fn signalements_en_fond(racine: &Path) {
+    let r = racine.to_path_buf();
+    std::thread::spawn(move || {
+        let _ = route(&r, "signalements-partir", &json!({}));
+    });
+}
+
 fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>) -> Result<Value, Refus> {
     match nom {
         "ouvrir-piece" => ouvrir_piece(racine, charge),
@@ -309,6 +318,13 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>) ->
             let r = route(racine, nom, charge);
             if r.is_ok() {
                 filet_en_fond(racine);
+            }
+            r
+        }
+        "signalement-envoyer" => {
+            let r = route(racine, nom, charge);
+            if r.is_ok() {
+                signalements_en_fond(racine);
             }
             r
         }
