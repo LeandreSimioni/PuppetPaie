@@ -54,9 +54,9 @@ pub const CLE_PUBLIQUE: &str = "sDj5+46oBt7Yy1x00VJ1ThJNOwf5jT5+bttXEN/yAIU=";
 /// LA CLE PUBLIQUE DE GITHUB (lot P1, 14/10/2026) : le flux « Publier » du depot public signe l'archive avec une cle
 /// neuve, dediee, dont la graine est le secret `PUPPETPAIE_CLE_SIGNATURE` de l'environnement `publication` (approuve
 /// par Leandre). Fabriquee sur le poste de l'editeur par `paie maj --cle-github` (`generer_cle_github`), qui ecrit la
-/// cle publique dans un fichier a reporter ICI. Vide tant qu'elle n'est pas reportee : alors aucune archive n'est
-/// acceptee par elle, et le flux refuse de publier (`publier_depuis_l_environnement`).
-pub const CLE_PUBLIQUE_GITHUB: &str = "";
+/// cle publique dans un fichier a reporter ICI. Reportee le 14/10/2026 (fabriquee par Leandre sur son poste). Vide,
+/// aucune archive ne serait acceptee par elle et le flux refuserait de publier (`publier_depuis_l_environnement`).
+pub const CLE_PUBLIQUE_GITHUB: &str = "48dC1Gb82e2Zh7z7NiUH14EbXX7IvXTp83Xaui/31wg=";
 /// Le depot des mises a jour QUAND LE REGLAGE DE L'INSTALLATION NE DIT RIEN : les fichiers de la DERNIERE RELEASE du
 /// depot public (lot P1, 14/10/2026 ; avant, le serveur du filet, qui ne servait rien). GitHub repond a
 /// `releases/latest/download/<fichier>` par une redirection vers la Release la plus recente, puis vers son stockage :
@@ -960,6 +960,10 @@ pub fn relais(args: &[String]) -> i32 {
 /// --exigee T] [--cle [--remplacer]] [--cle-github [DOSSIER]] [--publier-github --logiciel L --sortie S --notes T
 /// --calcul T --exigee T]`.
 pub fn commande(args: &[String]) -> i32 {
+    // D'abord savoir ou l'on est installe : sans cela, `installation()` retombe sur le dossier ou le programme a ete
+    // compile (un chemin du conteneur, que Windows lit sur le lecteur courant : le 14/10/2026, la graine de `--cle-github`
+    // est allee dans `D:\home\user\puppetpaieprivate\maj\`).
+    crate::commandes::compagnie::fixer_le_code();
     let drapeau = |n: &str| args.iter().any(|a| a == n);
     let valeur = |n: &str| args.iter().position(|a| a == n).and_then(|i| args.get(i + 1)).filter(|v| !v.starts_with("--")).cloned();
     // Les deux gestes de la publication par GitHub (lot P1) : ni compagnie ni coffre.
@@ -997,7 +1001,6 @@ pub fn commande(args: &[String]) -> i32 {
             }
         };
     }
-    crate::commandes::compagnie::fixer_le_code();
     let racine = crate::routes_accueil::racine_du_poste();
     let r = if drapeau("--cle") {
         generer_cle(&racine, drapeau("--remplacer")).map(|r| {

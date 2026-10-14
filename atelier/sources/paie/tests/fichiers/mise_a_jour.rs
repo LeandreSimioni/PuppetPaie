@@ -378,3 +378,24 @@ fn la_cle_de_github_se_fabrique_dans_un_fichier_et_ne_s_affiche_jamais() {
     let dit = maj::verifier_avec(&inst, true, &[maj::CLE_PUBLIQUE, &publique]);
     assert!(dit.contains("01.11.2026 est telechargee, controlee, prete"), "{}", dit);
 }
+
+/// `--cle-github` SANS DOSSIER, lance depuis une installation (le programme dans `<installation>/logiciel/`) : la graine
+/// va dans `<installation>/maj/`, pas dans le dossier ou le programme a ete compile. Le 14/10/2026, la commande prenait
+/// le chemin de compilation (`installation()` avant `fixer_le_code`) et Windows a ecrit la graine dans
+/// `D:\home\user\puppetpaieprivate\maj\`.
+#[test]
+fn la_cle_de_github_va_dans_le_dossier_maj_de_l_installation() {
+    let inst = dossier_de_test("mise_a_jour", "cle_github_installation");
+    let code = logiciel(&inst.join("logiciel"), "2026.10.14");
+    let s = std::process::Command::new(maj::programme(&code, "puppetpaie"))
+        .args(["maj", "--cle-github"])
+        .env_remove("PUPPETPAIE_CODE")
+        .env_remove(maj::VARIABLE_GRAINE)
+        .current_dir(&inst)
+        .output()
+        .unwrap();
+    let dit = format!("{}{}", String::from_utf8_lossy(&s.stdout), String::from_utf8_lossy(&s.stderr));
+    assert_eq!(s.status.code(), Some(0), "{}", dit);
+    assert!(inst.join("maj").join("cle-github-graine.txt").is_file(), "{}", dit);
+    assert!(inst.join("maj").join("cle-github-publique.txt").is_file(), "{}", dit);
+}
