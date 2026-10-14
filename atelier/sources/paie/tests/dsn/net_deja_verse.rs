@@ -4,7 +4,7 @@
 //! deposee (regle 4 : ce qui a ete paye se lit). Sans bulletin archive, sans le contrat dedans, ou avec deux bulletins
 //! du contrat sur sa periode : refus, la DSN du mois ne se produit pas.
 //!
-//! Chaque test monte une copie de `demo-3090-grande` (compagnie inventee) dans un dossier a lui ; aucun reseau, aucun
+//! Chaque test monte une copie de `fictive-3090-grande` (compagnie inventee) dans un dossier a lui ; aucun reseau, aucun
 //! depot. Le depot reel d'un mois produit par le test s'ecrit au journal de la copie.
 
 use crate::outils::{self, compagnie, dsn_deposee, ecrire, lire, mois_pret};
@@ -16,7 +16,7 @@ const SERVANDONI: &str = "SE9.26.05";
 
 /// La 3090-grande sans ses pieces, sauf juin et juillet 2026 (les bulletins archives que relit la correction).
 fn copie(test: &str) -> PathBuf {
-    compagnie::ses_dsn("demo-3090-grande", &["2026-06", "2026-07"], &outils::dossier_de_test("net_deja_verse", test))
+    compagnie::ses_dsn("fictive-3090-grande", &["2026-06", "2026-07"], &outils::dossier_de_test("net_deja_verse", test))
 }
 
 fn produire_le(racine: &Path, mois: &str, jour: &str) -> Value {
@@ -86,7 +86,7 @@ const NET_RECTIFIE: &str = "Net à payer avant impôt du bulletin rectifié";
 
 #[test]
 fn le_net_deja_verse_de_servandoni_est_celui_de_son_bulletin_de_juillet() {
-    // SE9.26.05 (juillet 2026 de la demo figee) : defraye (21 x 20,70 = 434,70), deposee par un moteur d'avant la
+    // SE9.26.05 (juillet 2026 de la fictive figee) : defraye (21 x 20,70 = 434,70), deposee par un moteur d'avant la
     // vague 1b, dont le 58.004 portait le net a payer (2 943,62, defraiements compris). Le bulletin archive imprime
     // 2 943,62 : c'est ce qui a ete paye. La reconstitution depuis la DSN comptait les defraiements une seconde fois
     // (2 943,62 + 434,70 = 3 378,32). Le bulletin est d'avant le modele de l'arrete (vague V2g) : le lecteur des archives

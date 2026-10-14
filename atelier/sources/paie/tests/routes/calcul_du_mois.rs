@@ -1,8 +1,8 @@
 //! La paie calculee a cote de la saisie (`paies/AAAA-MM.calcul.json`, `calcul_du_mois`) : relue tant que ses entrees n'ont
-//! pas change, recalculee sinon, figee quand le mois est parti. Chaque test monte sa compagnie (la config de la demo et deux
+//! pas change, recalculee sinon, figee quand le mois est parti. Chaque test monte sa compagnie (la config de la fictive et deux
 //! mois, sans le journal) ; le code livre se lit tel quel, et ce qu'il pese dans le calcul se prouve par l'entree stockee.
 
-use crate::outils::{copier, demo, dossier_de_test};
+use crate::outils::{copier, fictive, dossier_de_test};
 use paie::calcul_du_mois::{calculer_suivi, commande, ecrire_calcul};
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -18,10 +18,10 @@ struct Compagnie {
 
 fn compagnie(nom: &str) -> Compagnie {
     let racine = dossier_de_test("calcul_du_mois", nom).join("compagnie");
-    copier(&demo("demo-3090-grande").join("config"), &racine.join("config"));
+    copier(&fictive("fictive-3090-grande").join("config"), &racine.join("config"));
     std::fs::create_dir_all(racine.join("paies")).unwrap();
     for m in [AVANT, MOIS] {
-        std::fs::copy(demo("demo-3090-grande").join("paies").join(format!("{}.json", m)), racine.join("paies").join(format!("{}.json", m))).unwrap();
+        std::fs::copy(fictive("fictive-3090-grande").join("paies").join(format!("{}.json", m)), racine.join("paies").join(format!("{}.json", m))).unwrap();
     }
     Compagnie { racine }
 }

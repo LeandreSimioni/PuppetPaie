@@ -1,5 +1,5 @@
 //! Le signalement de fin de contrat (nature 07) et le signalement d'amorcage (nature 08) : le texte ou le refus de chaque
-//! cas de `tests/donnees/fctu_amorcage.json` sur `demo-3090-grande` (les numeros de bulletin et de contrat y sont poses),
+//! cas de `tests/donnees/fctu_amorcage.json` sur `fictive-3090-grande` (les numeros de bulletin et de contrat y sont poses),
 //! un instantane du moteur que le test reecrit sur demande ; et les controles propres a la nature 07 (CCH-14, CCH-15),
 //! la rupture d'un CDD (CCH-11 du 62.002), l'etablissement secondaire, le 62.006, l'amorcage 03 (CCH-15).
 
@@ -22,7 +22,7 @@ fn releve() -> Value {
 }
 
 fn racine(nom: &str) -> PathBuf {
-    outils::demo(nom)
+    outils::fictive(nom)
 }
 
 /// La paie du cas, avec les numeros que le releve lui attribue.
@@ -143,7 +143,7 @@ fn l_inaptitude_d_un_cdd_est_033_jamais_091_ni_092() {
     let cdi = paie::contrats::nature(Some("cdi")).unwrap();
     assert!(cdi.motif_rupture_refuse("091", "X").is_none() && cdi.motif_rupture_refuse("092", "X").is_none());
 
-    // Le FCTU de la demo (un CDD, AU.25.01) avec 091 : refuse ; avec 033 : ecrit.
+    // Le FCTU de la fictive (un CDD, AU.25.01) avec 091 : refuse ; avec 033 : ecrit.
     let v = releve();
     let nom = v["racine"].as_str().unwrap();
     let ctx = Contexte::nouveau(&racine(nom), Some(Jour::lire(v["date"].as_str().unwrap()).unwrap())).unwrap();
@@ -178,7 +178,7 @@ fn valeur(texte: &str, rubrique: &str) -> Option<String> {
     outils::valeur(&outils::paires(texte), rubrique)
 }
 
-/// Un etablissement secondaire, 00099, ajoute a la fiche de la demonstration.
+/// Un etablissement secondaire, 00099, ajoute a la fiche de la compagnie fictive.
 fn avec_un_secondaire(ctx: &mut Contexte) {
     ctx.entreprise["etablissements"] = serde_json::json!([{
         "nic": "00099", "naf": ctx.entreprise["naf"].clone(), "adresse": "1 RUE DE L'ESSAI",
@@ -263,7 +263,7 @@ fn le_fctu_et_l_amorcage_d_un_salarie_d_un_secondaire_portent_son_etablissement(
     }
 }
 
-/// Une copie de `demo-3090-grande` ou le CDD AU.25.01 (fin le 30/06/2026) est rompu par l'employeur (036) avec un
+/// Une copie de `fictive-3090-grande` ou le CDD AU.25.01 (fin le 30/06/2026) est rompu par l'employeur (036) avec un
 /// preavis non effectue et non paye (03 ; c'etait 02 jusqu'au lot P2, qui refuse un « paye » sans indemnite dans la paie)
 /// du 16 au 30 juin ; `dernier_jour_paye` : ce que la saisie en dit.
 fn rupture_avec_preavis_non_effectue(test: &str, dernier_jour_paye: Option<&str>) -> Contexte {

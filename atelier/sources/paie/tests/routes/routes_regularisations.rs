@@ -1,6 +1,6 @@
 //! Les regularisations par la route : `regularisation-ecrire`, `regularisation-annuler`, `regularisation-apercu`. La
-//! demonstration a ses DSN de 2025 parties pour de vrai, l'echeance passee : juin 2025 se regularise. Ce qui ne change
-//! rien, un mois non depose, une preuve absente refusent sans rien ecrire. Sur `demo-3090-petite` (config, journal,
+//! fictive a ses DSN de 2025 parties pour de vrai, l'echeance passee : juin 2025 se regularise. Ce qui ne change
+//! rien, un mois non depose, une preuve absente refusent sans rien ecrire. Sur `fictive-3090-petite` (config, journal,
 //! juin 2025 et decembre 2026).
 
 use crate::outils::{compagnie, dossier_de_test, lire, refus};
@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::config_et_mois("demo-3090-petite", &["2025-06", "2026-12"], &dossier_de_test("routes_regularisations", nom).join("compagnie"))
+    compagnie::config_et_mois("fictive-3090-petite", &["2025-06", "2026-12"], &dossier_de_test("routes_regularisations", nom).join("compagnie"))
 }
 
 fn route(racine: &Path, nom: &str, charge: Value) -> Value {

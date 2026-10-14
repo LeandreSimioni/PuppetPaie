@@ -12,10 +12,10 @@ use paie::fctu::{self, Echec};
 use serde_json::{json, Value};
 use std::path::PathBuf;
 
-const DEMO: &str = "demo-3090-grande";
+const DEMO: &str = "fictive-3090-grande";
 const JOUR: &str = "2026-10-20";
 
-/// Une copie de la demonstration ou le CDI de Montansier (MO.23.01, depuis le 04/09/2023, 3 120 EUR) finit le 30/06/2026
+/// Une copie de la compagnie fictive ou le CDI de Montansier (MO.23.01, depuis le 04/09/2023, 3 120 EUR) finit le 30/06/2026
 /// pour `motif`, avec les `champs` poses sur son engagement de juin.
 fn fin_du_cdi(test: &str, motif: &str, champs: Value) -> PathBuf {
     let racine = compagnie::ses_dsn(DEMO, &[], &outils::dossier_de_test("preavis", test));
@@ -37,7 +37,7 @@ fn codes_52(racine: &PathBuf, numero: &str) -> Vec<String> {
 }
 
 /// Un licenciement dont le preavis (trois mois saisis) n'est pas effectue, a 1 500 EUR par mois (le brut du mois reste sous
-/// les quatre plafonds que le CTP 772 de la demonstration ne sait pas plafonner).
+/// les quatre plafonds que le CTP 772 de la compagnie fictive ne sait pas plafonner).
 fn licenciement_sans_preavis_effectue(test: &str, motif: &str) -> PathBuf {
     fin_du_cdi(
         test,

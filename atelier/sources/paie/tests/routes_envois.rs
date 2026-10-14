@@ -1,7 +1,7 @@
 //! Les six routes d'envoi : `envoyer-documents`, `dossier-envoyer`, `casc-envoyer`, `demander-signature`,
 //! `avenant-envoyer`, `avenants-envoyer`. Rien ne part sans la preuve (« Rien n'est parti »), un envoi qui casse au milieu
 //! le dit et le note, les numeros de contrat ne s'avancent que jusqu'au dernier parti, ce qui part est l'archive. Aucun
-//! reseau : la boite simulee de la demonstration, ou un faux `Courriel` ; chaque test sur sa copie d'une demonstration.
+//! reseau : la boite simulee de la compagnie fictive, ou un faux `Courriel` ; chaque test sur sa copie d'une compagnie fictive.
 //!
 //! Le jour et la cle du poste sont dans l'environnement du processus, poses une fois ; `avec_le` change le jour le temps
 //! d'un appel et tourne seul (`tour_seul`).
@@ -55,15 +55,15 @@ fn dossier_poste() -> PathBuf {
     D.get_or_init(|| dossier_du_processus("routes-envois-poste")).clone()
 }
 
-/// Une copie de `demo-3090-petite`. `demonstration` : elle garde son marqueur, ses envois sont joues (boite simulee, rien
+/// Une copie de `fictive-3090-petite`. `fictive` : elle garde son marqueur, ses envois sont joues (boite simulee, rien
 /// a prouver) ; sinon c'est une compagnie ordinaire : la preuve est exigee, la boite est un faux client.
-fn compagnie(nom: &str, demonstration: bool) -> PathBuf {
-    compagnie_de(nom, "demo-3090-petite", demonstration)
+fn compagnie(nom: &str, fictive: bool) -> PathBuf {
+    compagnie_de(nom, "fictive-3090-petite", fictive)
 }
 
-fn compagnie_de(nom: &str, demo: &str, demonstration: bool) -> PathBuf {
-    let racine = compagnie::entiere(demo, &dossier_de_test("routes_envois", nom).join("compagnie"));
-    if !demonstration {
+fn compagnie_de(nom: &str, modele: &str, fictive: bool) -> PathBuf {
+    let racine = compagnie::entiere(modele, &dossier_de_test("routes_envois", nom).join("compagnie"));
+    if !fictive {
         std::fs::remove_file(racine.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
     }
     racine
@@ -122,7 +122,7 @@ fn avec(racine: &Path, nom: &str, charge: Value, faux: &Faux) -> Result<Value, E
     routes_envois::route_avec(&options(racine), &contexte(racine), nom, &charge, &mut || Ok(Box::new(faux.clone())))
 }
 
-/// Une route d'envoi avec la boite que `_client_courriel` choisit : la simulee en demonstration, sinon aucune.
+/// Une route d'envoi avec la boite que `_client_courriel` choisit : la simulee dans une compagnie fictive, sinon aucune.
 fn telle_quelle(racine: &Path, nom: &str, charge: Value) -> Result<Value, Echec> {
     routes_envois::route(&options(racine), &contexte(racine), nom, &charge)
 }
@@ -144,9 +144,9 @@ fn apercu(racine: &Path, nom: &str, charge: Value) -> Value {
 // ================================================================== envoyer-documents
 
 #[test]
-fn envoyer_documents_en_demonstration_ecrit_les_courriels_simules_et_le_journal() {
+fn envoyer_documents_dans_une_fictive_ecrit_les_courriels_simules_et_le_journal() {
     let _t = tour();
-    let racine = compagnie("documents-demo", true);
+    let racine = compagnie("documents-fictive", true);
     ecrire_les_documents(&racine, "2026-08");
     let avant = journal(&racine).len();
     let r = telle_quelle(&racine, "envoyer-documents", json!({"mois": "2026-08"})).unwrap();
@@ -285,7 +285,7 @@ fn envoyer_documents_refuse_une_boite_absente_et_un_mois_non_ecrit() {
 
 // ================================================================== demander-signature
 
-/// Le mois d'octobre de la demo, avec deux salaries et un salarie a deux contrats : de quoi essayer les envois groupes.
+/// Le mois d'octobre de la fictive, avec deux salaries et un salarie a deux contrats : de quoi essayer les envois groupes.
 fn octobre_a_signer(racine: &Path) {
     let mut s = lire(racine, "paies/2026-10.json");
     let eng = s["engagements"][0].clone();
@@ -498,9 +498,9 @@ fn demander_signature_qui_echoue_le_note_sans_rien_reserver() {
 }
 
 #[test]
-fn demander_signature_en_demonstration_joue_le_courriel() {
+fn demander_signature_dans_une_fictive_joue_le_courriel() {
     let _t = tour();
-    let racine = compagnie("signature-demo", true);
+    let racine = compagnie("signature-fictive", true);
     let r = telle_quelle(&racine, "demander-signature", json!({"mois": "2026-10"})).unwrap();
     assert_eq!(r["partis"], json!(["fanchon.brioche@exemple.invalid"]));
     assert_eq!(r["expediteur"], json!("direction@demo-3090-petite.invalid"));
@@ -913,9 +913,9 @@ fn dossier_envoyer_refait_le_dossier_puis_l_envoie_a_chaque_salarie() {
 }
 
 #[test]
-fn dossier_envoyer_en_demonstration_joue_les_courriels() {
+fn dossier_envoyer_dans_une_fictive_joue_les_courriels() {
     let _t = tour();
-    let racine = compagnie("dossier-demo", true);
+    let racine = compagnie("dossier-fictive", true);
     let r = telle_quelle(&racine, "dossier-envoyer", json!({"salaries": ["LEMERCIER"], "mois": "2026-08", "categories": ["bulletins"]})).unwrap();
     assert_eq!(r["envoi"]["partis"], json!(["nicole.lemercier@exemple.invalid"]));
     assert_eq!(r["envoi"]["expediteur"], json!("direction@demo-3090-petite.invalid"));
@@ -1031,7 +1031,7 @@ fn dossier_envoyer_refuse_un_salarie_sans_courriel_et_envoie_un_seul_salarie_sur
     assert!(siennes.len() >= 2, "{}", siennes.len());
     assert_eq!(textes_octets(&faux.message(0).pieces_octets()[0], "annee"), siennes);
     // Toute la periode : le courriel ne dit pas de periode (une compagnie qui n'a qu'aout 2026, pour ne pas tout relire).
-    let racine = compagnie::config_et_mois("demo-3090-petite", &["2026-08"], &dossier_de_test("routes_envois", "dossier-toutes-les-annees").join("compagnie"));
+    let racine = compagnie::config_et_mois("fictive-3090-petite", &["2026-08"], &dossier_de_test("routes_envois", "dossier-toutes-les-annees").join("compagnie"));
     poser_le_mot_de_passe(&racine);
     let tout = Faux::nouveau();
     avec(&racine, "dossier-envoyer", json!({"salaries": ["BRIOCHE"], "toutes_les_annees": true, "categories": ["bulletins"], "motdepasse": MOT_DE_PASSE}), &tout).unwrap();
@@ -1131,9 +1131,9 @@ fn casc_envoyer_qui_echoue_ne_garde_ni_eml_ni_annee() {
 }
 
 #[test]
-fn casc_envoyer_en_demonstration_joue_les_courriels() {
+fn casc_envoyer_dans_une_fictive_joue_les_courriels() {
     let _t = tour();
-    let racine = compagnie("casc-demo", true);
+    let racine = compagnie("casc-fictive", true);
     let r = telle_quelle(&racine, "casc-envoyer", json!({"vire_le": {"2025": "2026-09-01"}})).unwrap();
     assert_eq!(r["partis"].as_array().unwrap().len(), 2);
     assert_eq!(noms(&racine.join("courriels-simules")).iter().filter(|n| n.ends_with(".eml")).count(), 2);
@@ -1176,7 +1176,7 @@ fn casc_du_mois(racine: &Path, mois: &str, taux: Decimal) -> Decimal {
 #[test]
 fn casc_envoyer_avec_des_masses_les_montants_non_nuls_et_le_classeur() {
     let _t = tour();
-    let racine = compagnie_de("casc-masses", "demo-3090-grande", false);
+    let racine = compagnie_de("casc-masses", "fictive-3090-grande", false);
     poser_le_mot_de_passe(&racine);
     sans_casc(&racine, &["2025-03", "2025-10", "2025-11"]);
     let faux = Faux::nouveau();

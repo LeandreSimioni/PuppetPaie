@@ -1,13 +1,13 @@
 //! Le coffre par la route : `coffre-poser`, `coffre-compte-dpae`, `coffre-oublier`, le mot de passe du logiciel
 //! (`mot-de-passe-changer`, `mot-de-passe-retirer`) et `google-oublier`. Aucun secret ne sort d'une reponse ; ce qui est
-//! trop court ou inconnu refuse. Sur la configuration de `demo-3090-petite`, mots de passe inventes, cle de poste a part.
+//! trop court ou inconnu refuse. Sur la configuration de `fictive-3090-petite`, mots de passe inventes, cle de poste a part.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, refus, reussi};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::saisies("demo-3090-petite", &[], &dossier_de_test("routes_coffre", nom).join("compagnie"))
+    compagnie::saisies("fictive-3090-petite", &[], &dossier_de_test("routes_coffre", nom).join("compagnie"))
 }
 
 fn route(racine: &Path, nom: &str, charge: Value) -> Value {

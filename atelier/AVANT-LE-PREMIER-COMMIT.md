@@ -25,7 +25,7 @@
 - Le produit est en Rust seul : `paie/` (moteur), `fenetre/` (Tauri),
   `donnees/` (référentiels), `interface/` (la page). Suite : `cargo test` vert.
 - Les tests ne lisent plus `prive/` ni `demo/` : compagnies fictives et copie
-  figée des démos (`paie/tests/donnees/demo/`).
+  figée des démos (`paie/tests/donnees/fictives/`).
 - Le nom de la compagnie réelle n'apparaît plus dans le code (un test de
   signature le portait, corrigé).
 
@@ -43,7 +43,7 @@ générique ; les PDF (`import/`) ne se lisent pas.
 **Ce qui pèse** : `paie/bin/` (65 Mo, les programmes compilés commités),
 `paie/tests/donnees/` (47 Mo, dont 28 Mo de démos figées). Sur un dépôt
 public, les programmes se livrent par des *releases* et non dans l'historique ;
-les démos figées se remplacent par des démos rejouées par `vie_demo` quand
+les démos figées se remplacent par des démos rejouées par `vie_fictive` quand
 elles seront refaites.
 
 **Le produit et l'atelier ne sont pas encore séparés** : la mise à jour

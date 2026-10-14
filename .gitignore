@@ -51,8 +51,13 @@ prive/config/.jeton-interface
 # Le verrou des compteurs : un fichier de travail, jamais une donnee.
 .compteurs.verrou
 
-# La version d'avant, gardee par la mise a jour (moteur/maj.py).
+# La version d'avant, gardee par la mise a jour (paie/src/maj.rs), et ce que `revenir` met de cote un instant.
 .avant/
+.apres/
+# La mise a jour de l'INSTALLATION (lot U1, paie/src/maj.rs, `dossier_maj`) : a cote de `logiciel/`, son reglage, la
+# version prete, le relais, le journal. Le poste de l'editeur recoit comme les autres : ce dossier n'entre jamais
+# dans le depot.
+/maj/
 
 # LA COPIE DE DEVELOPPEMENT (logiciel/moteur/compagnies.py). Elle SE
 # VERSIONNE, pour que les essais suivent d'un poste a l'autre (Leandre,
@@ -70,20 +75,28 @@ atelier/prive-dev/config/.jeton-interface
 # cle USB, et la cle ouvre le coffre.
 /PORTABLE.json
 /cle-poste.bin
+# Le cache du navigateur de la fenetre, pose a cote d'elle en portable (WebView2, 14/10/2026) : refait seul.
+/logiciel/puppetpaie.exe.WebView2/
 /ouverture-gardee.bin
 
 # Le mode developpeur de CE poste (moteur/compagnies.py).
 .mode-developpeur.json
-# Ce que montre l'accueil de CE poste, demo ou complete (le geste secret).
+# Le bridage de CE poste, bride ou debloque (le geste secret de l'accueil, paie/src/bridage.rs).
 .edition.json
 
 # LES PAQUETS DU LOGICIEL (outils/exporter.py) : ils se refont d'une
 # commande, depuis le code qui est deja ici.
 exports-logiciel/
 
-# LES COMPAGNIES DE DEMONSTRATION (25/09/2026) : ouvertes une fois, elles
-# posent elles aussi un coffre et un jeton d'interface. Memes exclusions que
-# prive/ et prive-dev/ -- un fichier scelle qui part dans une histoire y reste.
+# LES COMPAGNIES FICTIVES (25/09/2026 ; `fictives/` depuis le lot U1, `demo/`
+# avant -- un poste peut encore garder l'ancien dossier, avec ce qui n'etait
+# pas suivi) : ouvertes une fois, elles posent elles aussi un coffre et un jeton
+# d'interface. Memes exclusions que prive/ et prive-dev/ -- un fichier scelle
+# qui part dans une histoire y reste.
+fictives/*/config/coffre.bin
+fictives/*/config/google-jeton.bin
+fictives/*/config/maj-cle-privee.bin
+fictives/*/config/.jeton-interface
 demo/*/config/coffre.bin
 demo/*/config/google-jeton.bin
 demo/*/config/maj-cle-privee.bin
@@ -91,9 +104,10 @@ demo/*/config/.jeton-interface
 # ET LEUR JOURNAL DE LA FENETRE (14/10/2026, lot N1) : `journal/interface.log`
 # est ecrit par la fenetre a chaque lancement, avec le chemin du dossier sur
 # le poste. Le moteur le range parmi ce qui appartient au poste et non a la
-# demonstration (PROPRES_AU_POSTE, paie/src/interface/compagnies.rs) : une
-# remise a zero le garde, la photo d'origine ne le porte pas. Une demo n'en a
-# pas besoin pour tourner.
+# compagnie fictive (PROPRES_AU_POSTE, paie/src/interface/compagnies.rs) : une
+# remise a zero le garde, la photo d'origine ne le porte pas. Une fictive n'en
+# a pas besoin pour tourner.
+fictives/*/journal/interface.log
 demo/*/journal/interface.log
 
 # LA FABRIQUE DE PDF (Rust) : le dossier de compilation se refait d'une
@@ -106,6 +120,7 @@ atelier/sources/fenetre/target/
 # LES PHOTOS D'ORIGINE DES FICTIVES (02/10/2026) : prises a la premiere
 # ouverture, sur chaque poste, pour « Remettre a zero » (moteur/compagnies.py).
 # Elles se refont toutes seules ; 20 Mo qui n'ont rien a faire dans l'histoire.
+fictives/.origine/
 demo/.origine/
 
 # La paie calculee a cote de la saisie (paies/AAAA-MM.calcul.json) : un
@@ -127,6 +142,7 @@ atelier/sources/fenetre/gen/schemas/windows-schema.json
 
 # LE BAC A SABLE DE LA MISE A JOUR (atelier/bac-a-sable/LISEZ-MOI.md) : le programme y est copie, ce qu'il fabrique ne se garde pas.
 atelier/bac-a-sable/logiciel/
+atelier/bac-a-sable/maj/
 atelier/bac-a-sable/prive/maj/
 atelier/bac-a-sable/prive/journal/
 
@@ -134,7 +150,7 @@ atelier/bac-a-sable/prive/journal/
 # LE DEPOT PUBLIC (bloc ajoute par atelier/outils/exporter_depot_public.sh) :
 # les donnees d'une compagnie vivent a cote du code et n'y entrent jamais
 # (a la racine seulement : le bac a sable de l'atelier garde son `prive/`,
-# qui est une demonstration copiee).
+# qui est une compagnie fictive copiee).
 # ---------------------------------------------------------------------------
 /prive/
 /compagnies/

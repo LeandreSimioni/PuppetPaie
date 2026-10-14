@@ -9,7 +9,7 @@
 //!   tape n'est ecrit, journalise, repete ou rendu : il va au coffre, qui le scelle, puis il est lache.
 //! - Poser, oublier, changer le mot de passe du logiciel sont des ACTES : si un mot de passe du logiciel est pose, le moteur le
 //!   demande LUI-MEME a un humain avant (`filet::exiger_mot_de_passe`, comme la page), sinon il refuse ; le Python ne demandait rien
-//!   ici (un ecart voulu : la page le demandait deja). Dans `paie-atelier`, hors demonstration, ces gestes sont refuses.
+//!   ici (un ecart voulu : la page le demandait deja). Dans `paie-atelier`, hors compagnie fictive, ces gestes sont refuses.
 //! - `verifier` ne lit jamais un secret : il appelle la route `coffre-verifier`, qui ne rend qu'un verdict (UNE tentative par compte).
 //! - `seance` : le mot de passe du logiciel tape une fois (par `demande::ouvrir_seance`), garde 12 h ; il ouvre le coffre, il
 //!   n'autorise jamais un acte reel.

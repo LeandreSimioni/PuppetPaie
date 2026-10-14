@@ -1,12 +1,12 @@
 //! `journal-reprise` : la reprise du journal des depots depuis les retours archives. Sans `ecrire`, elle dit ce qu'elle
-//! ferait et le journal ne bouge pas ; une piece illisible est nommee, les autres passent. Sur `demo-3090-petite` entiere.
+//! ferait et le journal ne bouge pas ; une piece illisible est nommee, les autres passent. Sur `fictive-3090-petite` entiere.
 
 use crate::outils::{compagnie, dossier_de_test, reussi, route};
 use serde_json::json;
 use std::path::PathBuf;
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::entiere("demo-3090-petite", &dossier_de_test("routes_reprise", nom).join("compagnie"))
+    compagnie::entiere("fictive-3090-petite", &dossier_de_test("routes_reprise", nom).join("compagnie"))
 }
 
 #[test]

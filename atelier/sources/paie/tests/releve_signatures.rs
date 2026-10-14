@@ -1,10 +1,10 @@
 //! La releve des reponses « Je signe » (lot I2a) : `releve_signatures::relever_signatures`, la route `signatures-relever`, la
-//! boite de la demonstration, `contrat_recu_avec`, `contresigner`.
+//! boite de la compagnie fictive, `contrat_recu_avec`, `contresigner`.
 //!
 //! Le tri strict des reponses, ce qui est note, archive, contresigne et renvoye, les pannes, les defauts corriges et les choix
 //! de l'utilisateur du 07/10/2026. Fichier seul : le jour et la cle du poste passent par l'environnement (le moteur les y lit).
-//! Chaque test monte une copie d'une compagnie de demonstration dans un dossier temporaire a lui (jamais le vrai `prive/` ni
-//! `demo/`). AUCUN RESEAU, AUCUN COURRIEL : la boite est le faux client du trait `Courriel` (ou la boite simulee de la demonstration).
+//! Chaque test monte une copie d'une compagnie fictive dans un dossier temporaire a lui (jamais le vrai `prive/` ni
+//! `fictives/`). AUCUN RESEAU, AUCUN COURRIEL : la boite est le faux client du trait `Courriel` (ou la boite simulee de la compagnie fictive).
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -96,14 +96,14 @@ fn demandes(racine: &Path) -> Vec<Demande> {
     out
 }
 
-/// Monte (une fois) une copie de demo ou les contrats d'un mois sont partis a la signature.
-fn modele(cle: &'static str, demo: &str, mois: &str, saisie: impl Fn(&mut Value)) -> PathBuf {
+/// Monte (une fois) une copie de fictive ou les contrats d'un mois sont partis a la signature.
+fn modele(cle: &'static str, fictive: &str, mois: &str, saisie: impl Fn(&mut Value)) -> PathBuf {
     let racine = dossier_du_processus(&format!("releve-signatures-modele-{}", cle));
-    copier(&Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/demo").join(demo), &racine);
+    copier(&Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fictives").join(fictive), &racine);
     let mut s = lire(&racine, &format!("paies/{}.json", mois));
     saisie(&mut s);
     ecrire(&racine, &format!("paies/{}.json", mois), &s);
-    // Les demos ont deja note leurs contrats recus : on retire ceux du mois (dans la copie), pour que la signature soit attendue.
+    // Les fictives ont deja note leurs contrats recus : on retire ceux du mois (dans la copie), pour que la signature soit attendue.
     let reste: Vec<Value> = journal(&racine).into_iter().filter(|l| !(l["quoi"] == json!("contrat-recu") && l["mois"] == json!(mois))).collect();
     ecrire(&racine, "journal/depots.json", &Value::Array(reste));
     let ap = route(&racine, "signature-apercu", json!({"mois": mois}));
@@ -115,20 +115,20 @@ fn modele(cle: &'static str, demo: &str, mois: &str, saisie: impl Fn(&mut Value)
 /// Trois salaries intermittents (Brioche, Seraphin, Lemercier), un contrat chacun, en mars 2026.
 fn petite() -> &'static Path {
     static M: OnceLock<PathBuf> = OnceLock::new();
-    M.get_or_init(|| modele("petite", "demo-3090-petite", "2026-03", |_| {}))
+    M.get_or_init(|| modele("petite", "fictive-3090-petite", "2026-03", |_| {}))
 }
 
-/// Une demo ou Biancolelli et Clairon ont deux contrats en mars 2026 : deux contrats dans un seul courriel (un PDF, deux pages).
+/// Une fictive ou Biancolelli et Clairon ont deux contrats en mars 2026 : deux contrats dans un seul courriel (un PDF, deux pages).
 fn grande() -> &'static Path {
     static M: OnceLock<PathBuf> = OnceLock::new();
-    M.get_or_init(|| modele("grande", "demo-3090-grande", "2026-03", |_| {}))
+    M.get_or_init(|| modele("grande", "fictive-3090-grande", "2026-03", |_| {}))
 }
 
 /// Brioche a deux contrats qui commencent le meme jour (retours Windows, B).
 fn meme_jour() -> &'static Path {
     static M: OnceLock<PathBuf> = OnceLock::new();
     M.get_or_init(|| {
-        modele("meme-jour", "demo-3090-petite", "2026-03", |s| {
+        modele("meme-jour", "fictive-3090-petite", "2026-03", |s| {
             let mut e = s["engagements"][0].clone();
             e["numero"] = json!("BR1.26.03");
             e["lignes"][0]["quantite"] = json!(1);
@@ -869,10 +869,10 @@ fn la_route_signatures_relever_rend_le_json_des_appelants_avec_un_faux_client() 
     assert!(rs::route(&options(&racine2), &contexte(&racine2), "signatures-inconnue", &json!({})).is_err());
 }
 
-// ================================================================== la demonstration
+// ================================================================== la compagnie fictive
 
-/// Les demandes datent d'hier : plus vieilles que le delai de la demonstration (20 s), plus jeunes que les sept
-/// jours du dernier cas de `la_boite_de_la_demonstration_rejoue...`. Une date en dur (le 07/10/2026, jusqu'au
+/// Les demandes datent d'hier : plus vieilles que le delai de la compagnie fictive (20 s), plus jeunes que les sept
+/// jours du dernier cas de `la_boite_de_la_fictive_rejoue...`. Une date en dur (le 07/10/2026, jusqu'au
 /// 14/10/2026) a fait tomber ce cas le jour ou les sept jours ont ete depasses.
 fn vieillir(racine: &Path) {
     let hier = paie::releve_retours::iso_de_naif(paie::releve_retours::maintenant_naif() - 86_400);
@@ -886,34 +886,34 @@ fn vieillir(racine: &Path) {
 }
 
 #[test]
-fn en_demonstration_les_salaries_signent_apres_le_delai_avec_le_bouton_de_leur_courriel() {
+fn dans_une_fictive_les_salaries_signent_apres_le_delai_avec_le_bouton_de_leur_courriel() {
     tour();
     // Jeune : rien ne repond encore (delai de 20 s).
-    let jeune = copie(petite(), "demo-jeune");
-    let r = rs::relever_signatures_demonstration(&options(&jeune), &contexte(&jeune), rs::DELAI_DEMONSTRATION).unwrap();
+    let jeune = copie(petite(), "fictive-jeune");
+    let r = rs::relever_signatures_fictive(&options(&jeune), &contexte(&jeune), rs::DELAI_FICTIVE).unwrap();
     assert_eq!((r.attendues, r.recues.len()), (3, 0));
     // Vieux : tous signent, la vraie releve lit, contresigne et renvoie (dans courriels-simules/).
-    let racine = copie(petite(), "demo-vieux");
+    let racine = copie(petite(), "fictive-vieux");
     vieillir(&racine);
     let avant = std::fs::read_dir(racine.join("courriels-simules")).unwrap().count();
-    let r = rs::relever_signatures_demonstration(&options(&racine), &contexte(&racine), rs::DELAI_DEMONSTRATION).unwrap();
+    let r = rs::relever_signatures_fictive(&options(&racine), &contexte(&racine), rs::DELAI_FICTIVE).unwrap();
     assert_eq!((r.attendues, r.recues.len(), r.incidents.len()), (3, 3, 0));
     assert!(r.recues.iter().all(|s| s.renvoye && s.adresse.ends_with("@exemple.invalid")));
     assert_eq!(std::fs::read_dir(racine.join("courriels-simules")).unwrap().count(), avant + 3);
     for l in lignes(&racine, "contrat-recu").iter().rev().take(3) {
-        assert_eq!(l["qui"], json!("demonstration"));
+        assert_eq!(l["qui"], json!("horloge"));
     }
-    // Par la route, sans client : la boite de la demonstration, comme l'ouverture (`veille`).
-    let r2 = copie(petite(), "demo-route");
+    // Par la route, sans client : la boite de la compagnie fictive, comme l'ouverture (`veille`).
+    let r2 = copie(petite(), "fictive-route");
     vieillir(&r2);
     let v = rs::route(&options(&r2), &contexte(&r2), "signatures-relever", &json!({"qui": "veille"})).unwrap();
     assert_eq!((v["attendues"].as_u64(), v["recues"].as_array().unwrap().len()), (Some(3), 3));
 }
 
 #[test]
-fn la_boite_de_la_demonstration_rejoue_le_bouton_de_la_demande_a_defaut_la_reponse_de_repli() {
+fn la_boite_de_la_fictive_rejoue_le_bouton_de_la_demande_a_defaut_la_reponse_de_repli() {
     tour();
-    let racine = copie(petite(), "demo-boite");
+    let racine = copie(petite(), "fictive-boite");
     vieillir(&racine);
     let dm = demandes(&racine);
     let mut boite = rs::boite_des_signatures(&contexte(&racine), 20).unwrap();
@@ -921,7 +921,7 @@ fn la_boite_de_la_demonstration_rejoue_le_bouton_de_la_demande_a_defaut_la_repon
     assert_eq!(ids, [dm[0].code.clone()]);
     let brut = boite.message_brut(&ids[0]).unwrap();
     assert_eq!(entete(&brut, "From"), dm[0].adresse);
-    assert!(entete(&brut, "Message-ID").ends_with("@demonstration.puppetpaie>"));
+    assert!(entete(&brut, "Message-ID").ends_with("@fictive.puppetpaie>"));
     assert!(texte(&brut).contains(&format!("Code de signature : {}", dm[0].code)));
     assert!(boite.rechercher("\"SIG-INCONNU\"", 10).unwrap().is_empty());
     // Sans le courriel de la demande : la reponse de repli, « Re: contrat ».
@@ -935,24 +935,24 @@ fn la_boite_de_la_demonstration_rejoue_le_bouton_de_la_demande_a_defaut_la_repon
 }
 
 #[test]
-fn la_garde_de_la_demonstration_ne_joue_rien_dans_une_compagnie_ordinaire() {
+fn la_garde_de_la_fictive_ne_joue_rien_dans_une_compagnie_ordinaire() {
     tour();
-    let racine = copie(petite(), "demo-garde");
+    let racine = copie(petite(), "fictive-garde");
     vieillir(&racine);
     std::fs::remove_file(racine.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
     let j0 = journal(&racine);
-    let r = rs::relever_signatures_demonstration(&options(&racine), &contexte(&racine), 0).unwrap();
+    let r = rs::relever_signatures_fictive(&options(&racine), &contexte(&racine), 0).unwrap();
     assert_eq!((r.attendues, r.recues.len(), r.incidents.len()), (0, 0, 0));
     assert_eq!(journal(&racine), j0);
     assert_eq!(r.resume(), "");
 }
 
-/// CHOIX 3 de l'utilisateur (07/10/2026) : en demonstration, une adresse de salarie avec nom d'affichage est acceptee, pour les
+/// CHOIX 3 de l'utilisateur (07/10/2026) : dans une compagnie fictive, une adresse de salarie avec nom d'affichage est acceptee, pour les
 /// signatures comme pour les fiches (le Python l'ecrit telle quelle ; le Rust ne savait ecrire que des adresses simples).
 #[test]
-fn choix_3_une_adresse_de_salarie_avec_nom_d_affichage_est_acceptee_en_demonstration() {
+fn choix_3_une_adresse_de_salarie_avec_nom_d_affichage_est_acceptee_en_fictive() {
     tour();
-    let racine = copie(petite(), "demo-affichage");
+    let racine = copie(petite(), "fictive-affichage");
     vieillir(&racine);
     let mut j = journal(&racine);
     for l in j.iter_mut() {
@@ -972,7 +972,7 @@ fn choix_3_une_adresse_de_salarie_avec_nom_d_affichage_est_acceptee_en_demonstra
     let octets = paie_reponse("José Brûlé <f@x.invalid>");
     assert!(octets.starts_with(b"From: =?utf-8?b?Sm9zw6kgQnLDu2zDqQ==?= <f@x.invalid>\n"), "{}", String::from_utf8_lossy(&octets[..90]));
     // Et la releve s'en sert : la reponse vient de l'adresse nue, le journal garde l'adresse avec son nom (incident dit, comme le Python).
-    let r = rs::relever_signatures_demonstration(&options(&racine), &contexte(&racine), 20).unwrap();
+    let r = rs::relever_signatures_fictive(&options(&racine), &contexte(&racine), 20).unwrap();
     assert_eq!(r.recues.len(), 0);
     assert_eq!(r.incidents.len(), 3);
     assert!(r.incidents[0].contains("vient de fanchon.brioche@exemple.invalid et non de Brioche <fanchon.brioche@exemple.invalid>"), "{}", r.incidents[0]);

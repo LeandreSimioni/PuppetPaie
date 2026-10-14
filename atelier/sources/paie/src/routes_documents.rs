@@ -932,13 +932,13 @@ fn envoi_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     Ok(Value::Object(r))
 }
 
-/// `client.compte` : l'adresse de la boite qui enverrait. Celle de la demonstration est le courriel du
+/// `client.compte` : l'adresse de la boite qui enverrait. Celle de la compagnie fictive est le courriel du
 /// signataire ; sinon l'adresse posee avec le mot de passe (jamais le mot de passe).
 fn compte_de_la_boite(ctx: &Contexte) -> R<String> {
     if crate::routes_accueil::simulation_active(&ctx.racine) {
         let sg = ctx.entreprise.get("signataire").filter(|v| vrai(v));
         let mail = sg.and_then(|s| s.get("email")).filter(|v| vrai(v)).map(py_str);
-        return Ok(mail.unwrap_or_else(|| "demonstration@puppetpaie.invalid".to_string()));
+        return Ok(mail.unwrap_or_else(|| "fictive@puppetpaie.invalid".to_string()));
     }
     let coffre = crate::coffre::Coffre::du_poste(&ctx.racine, "");
     let vers = |x: crate::coffre::Echec| Echec { classe: Some(x.classe), message: x.message };

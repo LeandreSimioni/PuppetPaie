@@ -14,7 +14,7 @@
 //! Le reste (le type 35, l'ancien taux du bloc 41) ne s'ecrit pas : rien ici ne les appelle.
 //!
 //! Lot R9 : la compagnie fictive opte pour la DFS (fiche entreprise) et Deburau est artiste dramatique, dans une copie
-//! de `demo-3090-grande`.
+//! de `fictive-3090-grande`.
 
 use crate::outils::{self, compagnie, contrat, paires, versement};
 use paie::calcul::Paie;
@@ -26,11 +26,11 @@ use paie::num::Decimal;
 use serde_json::json;
 use std::str::FromStr;
 
-/// Octobre 2026 dans une copie de `demo-3090-grande` ou Deburau (comedien, categorie 25 : 18 % en 2026) exerce la DFS :
+/// Octobre 2026 dans une copie de `fictive-3090-grande` ou Deburau (comedien, categorie 25 : 18 % en 2026) exerce la DFS :
 /// Deburau, un cachet de 200,00 sous DFS (brut abattu 164,00, deduction 36,00) ; Clairon, le meme cachet le meme jour,
 /// sans DFS. Rend les paies et la DSN.
 fn octobre_sous_dfs() -> (Vec<Paie>, String) {
-    let r = compagnie::ses_dsn("demo-3090-grande", &[], &outils::dossier_de_test("dfs_dsn", "octobre"));
+    let r = compagnie::ses_dsn("fictive-3090-grande", &[], &outils::dossier_de_test("dfs_dsn", "octobre"));
     // Lot R9 : la DFS est une option de l'employeur (fiche entreprise), la fiche salarie dit la profession (arrete
     // du 4 septembre 2025, art. 9) ; le socle la porte verifiee.
     let mut ent = outils::lire(&r, "config/entreprise.json");

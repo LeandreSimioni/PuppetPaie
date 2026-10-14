@@ -1,21 +1,21 @@
-//! L'horloge de la demonstration (`moteur/simulation.py`, a partir de `QUI_HORLOGE`) : `rattraper`, `dernier_rattrapage`
+//! L'horloge de la compagnie fictive (`moteur/simulation.py`, a partir de `QUI_HORLOGE`) : `rattraper`, `dernier_rattrapage`
 //! et tout ce qu'ils appellent -- lot I1.
 //!
 //! ECRIT, NON PROUVE, NON BRANCHE. « Que l'horloge avance automatiquement a la date limite » (l'editeur, 27/09/2026) :
-//! a chaque ouverture, la compagnie de DEMONSTRATION joue ce qu'une compagnie bien tenue aurait fait AVANT aujourd'hui,
+//! a chaque ouverture, la COMPAGNIE FICTIVE joue ce qu'une compagnie bien tenue aurait fait AVANT aujourd'hui,
 //! a sa date. Le 1er du mois, le mois s'ecrit (contrats, DPAE du mois, bulletins, certificats, DSN) ; le jour de chaque
 //! embauche, a 7 h, sa DPAE part (test puis reel) et son contrat revient signe a 8 h ; a l'echeance de la DSN, la DSN
 //! part (test puis reel) et les documents aux salaries ; fin janvier, l'annee passee se clot et s'exporte pour la
 //! comptabilite ; les echeances annuelles qu'on coche se cochent a la fin de leur fenetre. Ce qui vient apres aujourd'hui
 //! reste au visiteur. Ce qu'il a deja fait lui-meme n'est pas refait : chaque pas regarde d'abord le journal.
 //!
-//! ELLE NE JOUE QUE DANS UNE DEMONSTRATION, ET LE CODE LE DIT A CHAQUE ENDROIT QUI AGIT.
-//! - `rattraper` commence par `Demonstration::verifier` : sans demonstration active (`simulation_active` : le paquet
-//!   demo soude, ou une compagnie dont le marqueur dit « compagnie de demonstration »), elle rend une liste vide et ne
+//! ELLE NE JOUE QUE DANS UNE COMPAGNIE FICTIVE, ET LE CODE LE DIT A CHAQUE ENDROIT QUI AGIT.
+//! - `rattraper` commence par `HorlogeFictive::verifier` : sans compagnie fictive active (`simulation_active` : le paquet
+//!   soude, ou une compagnie dont le marqueur dit « compagnie fictive »), elle rend une liste vide et ne
 //!   touche a rien -- pas meme `config/horloge.json`.
-//! - Tout geste qui agit recoit la `Demonstration` et la RE-VERIFIE avant d'agir (`pas`, `deposer_*_joue`) : un marqueur
+//! - Tout geste qui agit recoit la `HorlogeFictive` et la RE-VERIFIE avant d'agir (`pas`, `deposer_*_joue`) : un marqueur
 //!   change en route arrete le pas, il ne le laisse pas partir vers un vrai point de depot.
-//! - Les depots ne passent que par `depot_acte::deposer_dsn` et `deposer_dpae`, qui jouent la reponse `DEMO-...` quand la
+//! - Les depots ne passent que par `depot_acte::deposer_dsn` et `deposer_dpae`, qui jouent la reponse `FICTIF-...` quand la
 //!   simulation est active et ne s'ouvrent jamais autrement ici (la re-verification les precede) ; aucune preuve, aucun
 //!   secret, aucun coffre n'est lu.
 //! - Les courriels ne passent que par `BoiteMuette` : un client du trait `Courriel` qui rend un identifiant et ne garde
@@ -40,37 +40,37 @@ use crate::retours::Echec;
 use crate::routes_mois::Moteur;
 
 /// Qui signe, au journal, ce que l'horloge joue.
-pub const QUI_HORLOGE: &str = "demonstration";
+pub const QUI_HORLOGE: &str = "horloge";
 /// La memoire de l'horloge, dans `config/`.
 pub const FICHIER_HORLOGE: &str = "horloge.json";
 /// Les routes de ce module.
 pub const ROUTES: [&str; 2] = ["horloge-rattraper", "horloge-derniere"];
 
-const ORIGINE: &str = "demonstration : joue par l'horloge (moteur/simulation.py)";
-const QUOI: &str = "L'horloge de la demonstration (moteur/simulation.py) : le dernier jour joue, ce qui n'est plus a regarder, et ce qu'elle a fait en dernier (le bandeau le dit).";
+const ORIGINE: &str = "compagnie fictive : joue par l'horloge (moteur/simulation.py)";
+const QUOI: &str = "L'horloge de la compagnie fictive (moteur/simulation.py) : le dernier jour joue, ce qui n'est plus a regarder, et ce qu'elle a fait en dernier (le bandeau le dit).";
 
 // ------------------------------------------------------------------ la garde
 
-/// LA GARDE : la preuve que la racine est une compagnie de DEMONSTRATION, exigee de tout ce qui agit. Elle ne se fabrique
+/// LA GARDE : la preuve que la racine est une COMPAGNIE FICTIVE, exigee de tout ce qui agit. Elle ne se fabrique
 /// que par `verifier`, qui lit `simulation_active` ; `reverifier` la relit avant chaque geste.
-pub struct Demonstration<'a> {
+pub struct HorlogeFictive<'a> {
     racine: &'a Path,
     /// LE JOUR JOUE : celui que l'horloge rattrape. Chaque contexte qu'elle ouvre porte ce jour (`aujourdhui` ET `date`),
     /// jamais l'horloge reelle de la machine : l'ancien Python jugeait la cloture d'une annee, l'export, le jour inscrit
-    /// a l'echeancier, la DPAE sur `date.today()`, et rejouee dans le futur d'une copie la demonstration disait « exercice
+    /// a l'echeancier, la DPAE sur `date.today()`, et rejouee dans le futur d'une copie la compagnie fictive disait « exercice
     /// 2026 clos -- non joue » (defaut du Python, corrige ici ; le contexte de l'interface, lui, garde la date reelle).
     jour: Jour,
 }
 
-impl<'a> Demonstration<'a> {
+impl<'a> HorlogeFictive<'a> {
     /// `simulation.active(ctx)` : `None` si les envois de cette racine ne sont pas joues.
-    pub fn verifier(racine: &'a Path) -> Option<Demonstration<'a>> {
-        crate::routes_accueil::simulation_active(racine).then(|| Demonstration { racine, jour: crate::contexte::jour_reel() })
+    pub fn verifier(racine: &'a Path) -> Option<HorlogeFictive<'a>> {
+        crate::routes_accueil::simulation_active(racine).then(|| HorlogeFictive { racine, jour: crate::contexte::jour_reel() })
     }
 
-    /// Le jour que cette demonstration joue.
-    fn au_jour(self, jour: Jour) -> Demonstration<'a> {
-        Demonstration { jour, ..self }
+    /// Le jour que cette compagnie fictive joue.
+    fn au_jour(self, jour: Jour) -> HorlogeFictive<'a> {
+        HorlogeFictive { jour, ..self }
     }
 
     /// Un contexte AU JOUR JOUE (`date` et `aujourdhui`), a la place de `Contexte(racine)` du Python.
@@ -85,12 +85,12 @@ impl<'a> Demonstration<'a> {
         Ok(ctx)
     }
 
-    /// Relit le marqueur : refuse tout geste si la racine a cesse d'etre une demonstration.
+    /// Relit le marqueur : refuse tout geste si la racine a cesse d'etre une compagnie fictive.
     fn reverifier(&self) -> R<()> {
         if crate::routes_accueil::simulation_active(self.racine) {
             Ok(())
         } else {
-            Err(erreur("ErreurOperation", "Ce dossier n'est pas une compagnie de demonstration : l'horloge ne joue rien ici."))
+            Err(erreur("ErreurOperation", "Ce dossier n'est pas une compagnie fictive : l'horloge ne joue rien ici."))
         }
     }
 }
@@ -103,7 +103,7 @@ struct BoiteMuette {
 
 impl BoiteMuette {
     fn nouvelle() -> BoiteMuette {
-        BoiteMuette { compte: "demonstration@puppetpaie.invalid".to_string() }
+        BoiteMuette { compte: "fictive@puppetpaie.invalid".to_string() }
     }
 }
 
@@ -113,7 +113,7 @@ impl Courriel for BoiteMuette {
     }
 
     fn envoyer(&mut self, _message_mime: &[u8]) -> Result<String, ErreurCourriel> {
-        Ok(format!("<{}@demonstration.puppetpaie>", crate::courriel::hexa_au_hasard(8)))
+        Ok(format!("<{}@fictive.puppetpaie>", crate::courriel::hexa_au_hasard(8)))
     }
 
     fn rechercher(&mut self, _requete: &str, _maximum: usize) -> Result<Vec<String>, ErreurCourriel> {
@@ -219,7 +219,7 @@ fn motif_de(e: &Echec) -> String {
 /// `_pas` : un pas joue -- le geste, ses lignes de journal datees, et sa phrase. Une erreur devient la phrase, sans
 /// arreter les autres pas. `geste` rend `true` quand il a fait quelque chose (sa phrase se dit), `false` quand il n'y
 /// avait rien a faire (`return False` du Python : ni phrase, ni date).
-fn pas(d: &Demonstration, quoi: &str, quand: &str, mut geste: impl FnMut(&Contexte) -> R<bool>) -> Vec<String> {
+fn pas(d: &HorlogeFictive, quoi: &str, quand: &str, mut geste: impl FnMut(&Contexte) -> R<bool>) -> Vec<String> {
     let racine = d.racine;
     let echec = |e: &Echec| vec![format!("Le {} : {} — non joué ({})", le(quand), quoi, motif_de(e))];
     let ctx = match d.contexte() {
@@ -227,7 +227,7 @@ fn pas(d: &Demonstration, quoi: &str, quand: &str, mut geste: impl FnMut(&Contex
         Err(e) => return echec(&e),
     };
     let n = n_lignes(racine);
-    // La re-verification precede TOUT geste : ce qui suit ne s'execute que dans une demonstration.
+    // La re-verification precede TOUT geste : ce qui suit ne s'execute que dans une compagnie fictive.
     let dit = match d.reverifier().and_then(|_| geste(&ctx)) {
         Ok(b) => b,
         Err(e) => return echec(&e),
@@ -246,21 +246,21 @@ fn dsn_partie(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<bool
 }
 
 /// `ops.deposer_dsn(ctx, fichier, reel=..., qui=QUI_HORLOGE)` : JOUE. La re-verification precede l'appel.
-fn deposer_dsn_joue(d: &Demonstration, o: &HashMap<String, String>, ctx: &Contexte, fichier: &str, reel: bool) -> R<()> {
+fn deposer_dsn_joue(d: &HorlogeFictive, o: &HashMap<String, String>, ctx: &Contexte, fichier: &str, reel: bool) -> R<()> {
     d.reverifier()?;
     depot_acte::deposer_dsn(o, ctx, &json!(fichier), reel, None, QUI_HORLOGE, false, "")?;
     Ok(())
 }
 
 /// `ops.deposer_dpae(ctx, fichier, reel=..., qui=QUI_HORLOGE)` : JOUE. La re-verification precede l'appel.
-fn deposer_dpae_joue(d: &Demonstration, o: &HashMap<String, String>, ctx: &Contexte, fichier: &str, reel: bool) -> R<()> {
+fn deposer_dpae_joue(d: &HorlogeFictive, o: &HashMap<String, String>, ctx: &Contexte, fichier: &str, reel: bool) -> R<()> {
     d.reverifier()?;
     depot_acte::deposer_dpae(o, ctx, &json!(fichier), reel, None, QUI_HORLOGE, false, "")?;
     Ok(())
 }
 
 /// `simulation.rattacher(ctx, delai=0)` : les retours des depots joues arrivent tout de suite.
-fn rattacher(d: &Demonstration, ctx: &Contexte) -> R<()> {
+fn rattacher(d: &HorlogeFictive, ctx: &Contexte) -> R<()> {
     d.reverifier()?;
     crate::releve_retours::rattacher_simulation(ctx, 0)?;
     Ok(())
@@ -292,11 +292,11 @@ pub fn dernier_rattrapage(racine: &Path, aujourdhui: Option<Jour>) -> R<Vec<Stri
 // ------------------------------------------------------------------ rattraper
 
 /// `rattraper(ctx, aujourdhui, retenir)` : joue ce qui est du avant `aujourdhui` et ne l'a pas ete. Rend ce qui a ete
-/// fait, en phrases. Ne leve jamais pour un pas : il devient une phrase, et les autres continuent -- la demonstration
-/// s'ouvre toujours. Sans demonstration active : liste vide, rien n'est touche.
+/// fait, en phrases. Ne leve jamais pour un pas : il devient une phrase, et les autres continuent -- la compagnie fictive
+/// s'ouvre toujours. Hors compagnie fictive : liste vide, rien n'est touche.
 pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Vec<String>> {
     // LA GARDE, d'abord et avant tout.
-    let Some(d) = Demonstration::verifier(racine) else {
+    let Some(d) = HorlogeFictive::verifier(racine) else {
         return Ok(Vec::new());
     };
     let jour = match aujourdhui {
@@ -380,7 +380,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
 
 /// `_le_premier_du_mois` : le 1er, le mois s'ecrit ; le jour de chaque embauche, a sa date limite, sa DPAE part (test
 /// puis reel) et son contrat revient signe.
-fn le_premier_du_mois(d: &Demonstration, o: &HashMap<String, String>, mois: &str, saisies: &mut Map<String, Value>, jour: Jour) -> R<Vec<String>> {
+fn le_premier_du_mois(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, saisies: &mut Map<String, Value>, jour: Jour) -> R<Vec<String>> {
     let mut fait: Vec<String> = Vec::new();
     let quand = format!("{}-01T09:00:00", mois);
 
@@ -419,7 +419,7 @@ fn le_premier_du_mois(d: &Demonstration, o: &HashMap<String, String>, mois: &str
     fait.extend(faits.into_iter().map(|f| if reecrit { f.replace("écrit — ", "réécrit, la saisie ayant changé — ") } else { f }));
 
     // CHAQUE GESTE A SA DATE LIMITE (l'editeur, 27/09/2026) : « s'il arrive deux jours avant, il peut faire la DPAE ; des
-    // qu'on passe la date, c'est vert et deja fait par le moteur de demo ». La DPAE est due avant la premiere heure de
+    // qu'on passe la date, c'est vert et deja fait par le moteur de demo » (la compagnie fictive). La DPAE est due avant la premiere heure de
     // travail : l'horloge la fait le jour de l'embauche, a 7 h, et le contrat revient signe le meme matin. D'ici la,
     // c'est au visiteur.
     let jour_iso = jour.iso();
@@ -487,7 +487,7 @@ fn le_premier_du_mois(d: &Demonstration, o: &HashMap<String, String>, mois: &str
 // ------------------------------------------------------------------ l'echeance de la DSN
 
 /// `_a_l_echeance` : a l'echeance, la DSN du mois part (test puis reel), puis les documents aux salaries.
-fn a_l_echeance(d: &Demonstration, o: &HashMap<String, String>, mois: &str, echeance: Jour) -> Vec<String> {
+fn a_l_echeance(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, echeance: Jour) -> Vec<String> {
     let mut fait = Vec::new();
     let jour = echeance.iso();
 
@@ -546,7 +546,7 @@ fn export_compta_a_jour(ctx: &Contexte, annee: i32) -> bool {
 
 /// `_l_annee` : fin janvier, l'annee precedente se clot et s'exporte ; les echeances qu'on coche se cochent a la fin de
 /// leur fenetre (la revue des spectacles comprise : tous continuent).
-fn l_annee(d: &Demonstration, o: &HashMap<String, String>, annee: i32, jour: Jour) -> R<Vec<String>> {
+fn l_annee(d: &HorlogeFictive, o: &HashMap<String, String>, annee: i32, jour: Jour) -> R<Vec<String>> {
     let racine = d.racine;
     let mut fait = Vec::new();
     let precedente = annee - 1;
@@ -629,10 +629,10 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 
 // ------------------------------------------------------------------ les tests
 
-/// Une racine d'essai (dans le dossier temporaire, jamais `prive/` ni `demo/`) : les trois fiches vides de quoi ouvrir un
-/// `Contexte`, et, si `demo`, le marqueur d'une compagnie de demonstration.
+/// Une racine d'essai (dans le dossier temporaire, jamais `prive/` ni `fictives/`) : les trois fiches vides de quoi ouvrir un
+/// `Contexte`, et, si `fictive`, le marqueur d'une compagnie fictive.
 #[cfg(test)]
-pub(crate) fn racine_d_essai(demo: bool) -> std::path::PathBuf {
+pub(crate) fn racine_d_essai(fictive: bool) -> std::path::PathBuf {
     use std::sync::atomic::{AtomicUsize, Ordering};
     static N: AtomicUsize = AtomicUsize::new(0);
     let r = std::env::temp_dir().join(format!("paie-horloge-{}-{}", std::process::id(), N.fetch_add(1, Ordering::SeqCst)));
@@ -641,8 +641,8 @@ pub(crate) fn racine_d_essai(demo: bool) -> std::path::PathBuf {
     for f in ["entreprise.json", "salaries.json", "spectacles.json"] {
         std::fs::write(r.join("config").join(f), "{}").unwrap();
     }
-    if demo {
-        std::fs::write(r.join("COPIE-DE-DEVELOPPEMENT.json"), r#"{"copie_de": "compagnie de demonstration essai"}"#).unwrap();
+    if fictive {
+        std::fs::write(r.join("COPIE-DE-DEVELOPPEMENT.json"), r#"{"copie_de": "compagnie fictive essai"}"#).unwrap();
     }
     r
 }
@@ -677,31 +677,31 @@ mod tests {
     // ---------------------------------------------------------------- la garde
 
     #[test]
-    fn la_garde_sans_demonstration_ne_joue_rien_et_ne_touche_a_rien() {
+    fn la_garde_hors_compagnie_fictive_ne_joue_rien_et_ne_touche_a_rien() {
         let r = racine_d_essai(false);
         std::fs::create_dir_all(r.join("paies")).unwrap();
         std::fs::write(r.join("paies").join("2026-10.json"), "{}").unwrap();
         let avant = photo(&r);
-        assert!(Demonstration::verifier(&r).is_none());
+        assert!(HorlogeFictive::verifier(&r).is_none());
         assert_eq!(rattraper(&r, Some(jour("2027-03-01")), true).unwrap(), Vec::<String>::new());
         assert_eq!(rattraper(&r, Some(jour("2027-03-01")), false).unwrap(), Vec::<String>::new());
         assert_eq!(photo(&r), avant, "pas meme config/horloge.json");
         assert!(!r.join("config").join(FICHIER_HORLOGE).exists());
-        // Un marqueur de copie de developpement qui n'est PAS une demonstration ne suffit pas.
+        // Un marqueur de copie de developpement qui n'est PAS une compagnie fictive ne suffit pas.
         std::fs::write(r.join("COPIE-DE-DEVELOPPEMENT.json"), r#"{"copie_de": "prive"}"#).unwrap();
         let avant = photo(&r);
-        assert!(Demonstration::verifier(&r).is_none());
+        assert!(HorlogeFictive::verifier(&r).is_none());
         assert_eq!(rattraper(&r, Some(jour("2027-03-01")), true).unwrap(), Vec::<String>::new());
         assert_eq!(photo(&r), avant);
         // Ni un marqueur illisible.
         std::fs::write(r.join("COPIE-DE-DEVELOPPEMENT.json"), "{ pas du json").unwrap();
-        assert!(Demonstration::verifier(&r).is_none());
+        assert!(HorlogeFictive::verifier(&r).is_none());
     }
 
     #[test]
     fn la_garde_est_relue_avant_chaque_geste() {
         let r = racine_d_essai(true);
-        let d = Demonstration::verifier(&r).unwrap().au_jour(jour("2026-10-13"));
+        let d = HorlogeFictive::verifier(&r).unwrap().au_jour(jour("2026-10-13"));
         // Le marqueur disparait en route : le geste ne part pas, le pas devient sa phrase.
         std::fs::remove_file(r.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
         let parti = Cell::new(false);
@@ -712,7 +712,7 @@ mod tests {
         assert!(!parti.get(), "le geste ne doit pas partir");
         assert_eq!(phrases.len(), 1);
         assert!(phrases[0].starts_with("Le 13/10/2026 : DPAE envoyée — non joué ("), "{}", phrases[0]);
-        assert!(phrases[0].contains("n'est pas une compagnie de demonstration"), "{}", phrases[0]);
+        assert!(phrases[0].contains("n'est pas une compagnie fictive"), "{}", phrases[0]);
         assert!(d.reverifier().is_err());
         assert!(deposer_dsn_joue(&d, &options(&r), &Contexte::nouveau(&r, None).unwrap(), "x.dsn", false).is_err());
         assert!(deposer_dpae_joue(&d, &options(&r), &Contexte::nouveau(&r, None).unwrap(), "x.txt", true).is_err());
@@ -720,7 +720,7 @@ mod tests {
     }
 
     #[test]
-    fn dans_une_demonstration_elle_ecrit_sa_memoire_meme_sans_rien_a_jouer() {
+    fn dans_une_compagnie_fictive_elle_ecrit_sa_memoire_meme_sans_rien_a_jouer() {
         let r = racine_d_essai(true);
         assert_eq!(rattraper(&r, Some(jour("2026-10-13")), true).unwrap(), Vec::<String>::new());
         let m: Value = serde_json::from_str(&std::fs::read_to_string(r.join("config").join(FICHIER_HORLOGE)).unwrap()).unwrap();
@@ -771,7 +771,7 @@ mod tests {
     #[test]
     fn le_contexte_de_l_horloge_porte_le_jour_joue() {
         let r = racine_d_essai(true);
-        let d = Demonstration::verifier(&r).unwrap().au_jour(jour("2027-03-01"));
+        let d = HorlogeFictive::verifier(&r).unwrap().au_jour(jour("2027-03-01"));
         let c = d.contexte().unwrap();
         assert_eq!((c.aujourdhui, c.date), (jour("2027-03-01"), jour("2027-03-01")));
         let fin = d.contexte_a(jour("2026-10-31")).unwrap();
@@ -807,11 +807,11 @@ mod tests {
     #[test]
     fn l_echeance_cochee_par_l_horloge_porte_le_jour_joue() {
         let r = racine_d_essai(true);
-        let d = Demonstration::verifier(&r).unwrap().au_jour(jour("2027-03-01"));
+        let d = HorlogeFictive::verifier(&r).unwrap().au_jour(jour("2027-03-01"));
         let ctx = d.contexte().unwrap();
         crate::routes_ecrites::marquer_echeance(&ctx, "at-mp:2027", true, QUI_HORLOGE).unwrap();
         let e: Value = serde_json::from_str(&std::fs::read_to_string(r.join("config").join("echeancier.json")).unwrap()).unwrap();
-        assert_eq!(e["fait"]["at-mp:2027"], json!({"le": "2027-03-01", "qui": "demonstration"}));
+        assert_eq!(e["fait"]["at-mp:2027"], json!({"le": "2027-03-01", "qui": "horloge"}));
         // L'interface, elle, garde le jour du contexte (reel).
         let mut ctx = Contexte::nouveau(&r, None).unwrap();
         ctx.aujourdhui = jour("2026-10-07");
@@ -825,10 +825,10 @@ mod tests {
     #[test]
     fn la_boite_muette_rend_un_identifiant_et_ne_garde_rien() {
         let mut b = BoiteMuette::nouvelle();
-        assert_eq!(b.compte(), "demonstration@puppetpaie.invalid");
+        assert_eq!(b.compte(), "fictive@puppetpaie.invalid");
         let a = b.envoyer(b"From: x\r\n\r\nbonjour").unwrap();
         let c = b.envoyer(b"From: x\r\n\r\nbonjour").unwrap();
-        assert!(a.starts_with('<') && a.ends_with("@demonstration.puppetpaie>"), "{}", a);
+        assert!(a.starts_with('<') && a.ends_with("@fictive.puppetpaie>"), "{}", a);
         assert_ne!(a, c, "un identifiant au hasard a chaque envoi");
         assert!(b.rechercher("tout", 50).unwrap().is_empty());
         assert!(b.message_brut(&a).unwrap().is_empty());
@@ -906,7 +906,7 @@ mod tests {
     #[test]
     fn un_pas_dit_ce_qu_il_a_fait_et_se_tait_quand_il_n_y_a_rien_a_faire() {
         let r = racine_d_essai(true);
-        let d = Demonstration::verifier(&r).unwrap().au_jour(jour("2026-10-13"));
+        let d = HorlogeFictive::verifier(&r).unwrap().au_jour(jour("2026-10-13"));
         assert_eq!(pas(&d, "DPAE de l'embauche du 13/10/2026 envoyée", "2026-10-13T07:00:00", |_| Ok(true)), vec!["Le 13/10/2026 : DPAE de l'embauche du 13/10/2026 envoyée"]);
         assert!(pas(&d, "rien", "2026-10-13T07:00:00", |_| Ok(false)).is_empty());
         let p = pas(&d, "DSN de octobre 2026 déposée", "2026-11-15T10:00:00", |_| Err(Echec { classe: Some("KeyError"), message: "'nom'\nsuite".into() }));
@@ -940,14 +940,14 @@ mod tests {
     #[test]
     fn la_route_rattrape_et_dit_le_dernier_rattrapage() {
         assert_eq!(ROUTES, ["horloge-rattraper", "horloge-derniere"]);
-        // Non demo : [] et rien d'ecrit.
+        // Pas une fictive : [] et rien d'ecrit.
         let r = racine_d_essai(false);
         let ctx = Contexte::nouveau(&r, None).unwrap();
         let o = options(&r);
         let avant = photo(&r);
         assert_eq!(route(&o, &ctx, "horloge-rattraper", &json!({"aujourdhui": "2027-03-01"})).unwrap(), json!([]));
         assert_eq!(photo(&r), avant);
-        // Demo : la memoire dit ce que le bandeau lit, ce jour-la seulement.
+        // Une fictive : la memoire dit ce que le bandeau lit, ce jour-la seulement.
         let r = racine_d_essai(true);
         let ctx = Contexte::nouveau(&r, None).unwrap();
         let o = options(&r);

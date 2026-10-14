@@ -1,0 +1,148 @@
+# PUBLIER UNE VERSION DE PUPPETPAIE (lot P1, 14/10/2026 ; Leandre : « juste publier avec le moteur Rust et ca se met a
+# jour automatiquement »). Sur le depot public seulement, depuis `main` seulement, lance a la main (onglet Actions,
+# « Publier », « Run workflow » ; le navigateur du telephone suffit).
+#
+#   1. fabriquer  compile la fenetre et le moteur Windows (atelier/installeur/construire.sh, MinGW sur Linux), pose la
+#                 fenetre neuve dans `logiciel/`, fabrique l'installeur, et le moteur Linux qui signera. Aucun secret.
+#   2. publier    ATTEND L'APPROBATION DE LEANDRE (environnement `publication` : approbateur Leandre, `main` seule),
+#                 puis seulement voit le secret PUPPETPAIE_CLE_SIGNATURE (la graine de la cle de GitHub). Le moteur
+#                 lui-meme signe (`paie maj --publier-github`, paie/src/maj.rs) : l'archive de `logiciel/`, verifiee
+#                 contre CLE_PUBLIQUE_GITHUB, et `derniere.json` ; il refuse une version qui n'est pas plus recente que
+#                 la derniere Release. Puis une Release GitHub `v<version>` porte l'archive, `derniere.json` et
+#                 l'installeur : toutes les installations la lisent (maj.rs, DEPOT_PAR_DEFAUT,
+#                 `releases/latest/download`).
+#
+# Le numero de version est la date du jour (AAAA.MM.JJ, lue JJ.MM.AAAA), posee par le flux : une version par jour.
+# Aucun agent n'approuve un deploiement (atelier/CLAUDE.md). Sources : prive/reference/sources/github/ (depot prive).
+
+name: Publier
+
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "Ce qui change (une phrase, lue par les compagnies)"
+        required: false
+        default: ""
+      calcul:
+        description: "SEULEMENT si la version change un calcul de paie (sinon laisser vide)"
+        required: false
+        default: ""
+      exigee:
+        description: "SEULEMENT si la version est exigee avant tout depot reel (sinon laisser vide)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publier
+  cancel-in-progress: false
+
+env:
+  DEPOT: LeandreSimioni/PuppetPaie
+
+jobs:
+  fabriquer:
+    if: github.repository == 'LeandreSimioni/PuppetPaie' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/../cible
+    steps:
+      - uses: actions/checkout@v4
+
+      # LE NUMERO DE VERSION EST LA DATE DU JOUR (Paris), ecrite ici dans `logiciel/VERSION` avant de fabriquer : rien a
+      # augmenter a la main (Leandre, 14/10/2026 : « je veux un truc simple »). Une version par jour : si la Release du
+      # jour existe deja, le flux s'arrete ici, avant la compilation.
+      - name: Le numero de version (la date du jour)
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="$(TZ=Europe/Paris date +%Y.%m.%d)"
+          D="$(gh release list -R "$DEPOT" --limit 1 --exclude-drafts --exclude-pre-releases --json tagName --jq '.[0].tagName // ""')"
+          D="${D#v}"
+          if [ -n "$D" ] && [[ ! "$V" > "$D" ]]; then
+            echo "::error::La version du jour ($V) est deja publiee (derniere Release : $D). Une version par jour : relancer demain."
+            exit 1
+          fi
+          printf '%s\n' "$V" > logiciel/VERSION
+          echo "Version $V (derniere Release : ${D:-aucune})"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Les outils (MinGW, NSIS)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq gcc-mingw-w64-x86-64 nsis
+
+      - name: La fenetre et le moteur Windows, l'installeur
+        run: bash atelier/installeur/construire.sh
+
+      - name: Le moteur Linux, qui signera
+        run: cargo build --profile essais --locked --manifest-path atelier/sources/paie/Cargo.toml --bin paie
+
+      # Le logiciel tel que la mise a jour le publie (maj::archiver) : les fichiers suivis de `logiciel/`, la fenetre
+      # neuve a la place de `logiciel/puppetpaie.exe`.
+      - name: Rassembler
+        run: |
+          V="${{ steps.version.outputs.version }}"
+          L="${V:8:2}.${V:5:2}.${V:0:4}"
+          cp "$CARGO_TARGET_DIR/x86_64-pc-windows-gnu/release/puppetpaie.exe" logiciel/puppetpaie.exe
+          mkdir -p publication
+          cp "atelier/depot/installeur/PuppetPaie-$L-installeur.exe" publication/
+          cp "$CARGO_TARGET_DIR/essais/paie" publication/paie
+          tar -cf publication.tar logiciel publication
+          ls -l publication
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: publication
+          path: publication.tar
+          retention-days: 7
+          if-no-files-found: error
+
+  publier:
+    needs: fabriquer
+    runs-on: ubuntu-latest
+    environment: publication
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: publication
+
+      - name: Deballer
+        run: tar -xf publication.tar && chmod +x publication/paie
+
+      # Le `derniere.json` de la derniere Release, a cote de ce qu'on signe : le moteur refuse une version qui n'est
+      # pas plus recente (maj::publier_signe).
+      - name: La derniere Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p sortie
+          D="$(gh release list -R "$DEPOT" --limit 1 --exclude-drafts --exclude-pre-releases --json tagName --jq '.[0].tagName // ""')"
+          if [ -n "$D" ]; then gh release download "$D" -R "$DEPOT" --pattern derniere.json --dir sortie; fi
+          echo "Derniere Release : ${D:-aucune}"
+
+      - name: Signer (le moteur)
+        env:
+          PUPPETPAIE_CLE_SIGNATURE: ${{ secrets.PUPPETPAIE_CLE_SIGNATURE }}
+          NOTES: ${{ inputs.notes }}
+          CALCUL: ${{ inputs.calcul }}
+          EXIGEE: ${{ inputs.exigee }}
+        run: ./publication/paie maj --publier-github --logiciel logiciel --sortie sortie --notes "$NOTES" --calcul "$CALCUL" --exigee "$EXIGEE"
+
+      - name: La Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES: ${{ inputs.notes }}
+        run: |
+          V="$(jq -r .version sortie/derniere.json)"
+          test "$V" = "${{ needs.fabriquer.outputs.version }}"
+          L="${V:8:2}.${V:5:2}.${V:0:4}"
+          gh release create "v$V" -R "$DEPOT" --target "${{ github.sha }}" --latest \
+            --title "PuppetPaie $L" --notes "${NOTES:-PuppetPaie $L}" \
+            "sortie/puppetpaie-$V.zip" sortie/derniere.json "publication/PuppetPaie-$L-installeur.exe"

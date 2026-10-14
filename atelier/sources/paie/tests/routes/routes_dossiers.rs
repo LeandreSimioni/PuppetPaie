@@ -1,12 +1,12 @@
 //! `paie route` : `arret-contrats`, `dossier-formes` et `exports-periodes`, qui ne font que lire. Sur
-//! `demo-3090-petite` (config, janvier a mars 2025, journal vide), que chaque test mute ; un fichier abime refuse.
+//! `fictive-3090-petite` (config, janvier a mars 2025, journal vide), que chaque test mute ; un fichier abime refuse.
 
-use crate::outils::{compagnie, demo, dossier_de_test, ecrire, lire, reussi, route};
+use crate::outils::{compagnie, fictive, dossier_de_test, ecrire, lire, reussi, route};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::saisies("demo-3090-petite", &["2025-01", "2025-02", "2025-03"], &dossier_de_test("routes_dossiers", nom).join("compagnie"))
+    compagnie::saisies("fictive-3090-petite", &["2025-01", "2025-02", "2025-03"], &dossier_de_test("routes_dossiers", nom).join("compagnie"))
 }
 
 fn resultat(c: &Path, nom: &str, charge: Value) -> Value {
@@ -95,7 +95,7 @@ fn les_formes_listent_les_salaries_les_categories_et_les_mois() {
     assert_eq!(r["categories"][2], json!({"categorie": "contrats-signes", "quoi": "Contrats signés"}));
     assert_eq!(r["mois"], json!(["2025-01", "2025-02", "2025-03"]));
     assert_eq!(r["annees"], json!(["2025"]));
-    assert_eq!(r["boite_liee"], json!(false), "ni compagnie de demonstration, ni mot de passe de boite au coffre");
+    assert_eq!(r["boite_liee"], json!(false), "ni compagnie fictive, ni mot de passe de boite au coffre");
     assert!(r["dossier"].as_str().unwrap().ends_with("/exports/dossiers"));
 }
 
@@ -123,11 +123,11 @@ fn une_fiche_archivee_reste_proposee_sans_courriel() {
 }
 
 #[test]
-fn la_boite_est_liee_pour_une_compagnie_de_demonstration_seulement() {
+fn la_boite_est_liee_pour_une_compagnie_de_fictive_seulement() {
     let c = &compagnie("df-boite");
     assert_eq!(formes(c)["boite_liee"], json!(false));
-    std::fs::copy(demo("demo-3090-petite").join("COPIE-DE-DEVELOPPEMENT.json"), c.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
-    assert_eq!(formes(c)["boite_liee"], json!(true), "une compagnie de demonstration joue ses envois");
+    std::fs::copy(fictive("fictive-3090-petite").join("COPIE-DE-DEVELOPPEMENT.json"), c.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
+    assert_eq!(formes(c)["boite_liee"], json!(true), "une compagnie fictive joue ses envois");
 }
 
 #[test]

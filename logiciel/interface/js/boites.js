@@ -102,9 +102,9 @@ document.getElementById("voile").onclick = (e) => {
    Chrome, et il n'y aura pas Chrome ». Le mot de passe se tape, à chaque
    fois, et c'est le but. */
 function demanderMotDePasse(pourquoi) {
-  // LA DÉMONSTRATION (routes_accueil::simulation_active) : rien ne part, rien à prouver.
+  // LA COMPAGNIE FICTIVE (routes_accueil::simulation_active) : rien ne part, rien à prouver.
   // L'acte suit son cours comme en vrai, sans le popup.
-  if (enDemonstration()) return Promise.resolve("demonstration");
+  if (enFictive()) return Promise.resolve("fictive");
   return new Promise((resoudre) => {
     const voile = document.getElementById("voile-mdp");
     const forme = document.getElementById("forme-mdp");

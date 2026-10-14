@@ -5,7 +5,7 @@
 //! GARDE-FOUS. `activer` et `desactiver` engagent (un compte chez le serveur du filet, des reveils) : la route exige le mot de passe
 //! du logiciel (`filet::exiger_mot_de_passe`) et, sans `motdepasse` dans la charge, le MOTEUR le demande lui-meme a un humain
 //! (fenetre, terminal sans echo), sinon il refuse -- jamais un mot de passe en option ni en variable. Dans `paie-atelier`, hors
-//! demonstration, ils sont refuses. `verifier` ne lit que l'etat chez le serveur du filet (l'adresse vient de la configuration de la
+//! compagnie fictive, ils sont refuses. `verifier` ne lit que l'etat chez le serveur du filet (l'adresse vient de la configuration de la
 //! compagnie, comme celle du serveur des incidents), sans secret. `preparer` teste les DPAE a venir EN TEST chez l'Urssaf (jamais un
 //! depot reel, donc sans preuve, comme la veille) : dans `paie-atelier`, il exige le faux Urssaf local. `qui` : `ligne de commande`,
 //! comme le Python.

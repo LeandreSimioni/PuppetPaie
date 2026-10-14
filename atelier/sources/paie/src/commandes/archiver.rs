@@ -1,7 +1,7 @@
 //! `paie archiver MOIS [--racine-drive NOM]` : deposer les sorties d'un mois dans le Drive (`moteur/cli.py`, `cmd_archiver`).
 //! `archivage::archiver` fait le travail ; le jeton est lu au coffre par le client Drive, jamais passe par la commande.
 //!
-//! Dans `paie-atelier`, hors demonstration, la commande exige le faux Google (`PUPPETPAIE_ATELIER_GOOGLE`).
+//! Dans `paie-atelier`, hors compagnie fictive, la commande exige le faux Google (`PUPPETPAIE_ATELIER_GOOGLE`).
 //!
 //! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : un mois illisible (`..`) se lisait tel quel (corrige dans `archivage.rs` : refus
 //! `ErreurOperation`) ; une erreur de disque hors `ErreurGoogle` sortait en trace d'appels.

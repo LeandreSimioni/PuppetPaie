@@ -1,5 +1,5 @@
 //! `paie route` : les routes du mois, sans calcul de paie (`etat-par-paie`, `etat-du-mois`, `embauches-a-declarer`,
-//! `mois-a-ouvrir`, `bilan-du-mois`, `fichiers-deposables`). Sur `demo-3090-petite` (config, aout 2026), avec le journal
+//! `mois-a-ouvrir`, `bilan-du-mois`, `fichiers-deposables`). Sur `fictive-3090-petite` (config, aout 2026), avec le journal
 //! des depots que chaque test ecrit ; le contexte est au 03/10/2026, le jour du test varie.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, reussi, route_avec};
@@ -11,7 +11,7 @@ use std::time::{Duration, UNIX_EPOCH};
 const MOIS: &str = "2026-08";
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::saisies("demo-3090-petite", &[MOIS], &dossier_de_test("routes_mois", nom).join("compagnie"))
+    compagnie::saisies("fictive-3090-petite", &[MOIS], &dossier_de_test("routes_mois", nom).join("compagnie"))
 }
 
 fn journal(c: &Path, lignes: &[Value]) {
@@ -393,12 +393,12 @@ fn une_saisie_en_cours_garde_son_nom_et_un_journal_abime_refuse() {
 }
 
 /// Un CDI n'a pas de fin : les routes du mois la rendent `null`, comme `Engagement::canon`, et non le texte « None »
-/// (reste R1 #6). La copie figee `demo-3090-grande` : Montansier et Nicolet sont en CDI en octobre 2026 ; Nicolet y
+/// (reste R1 #6). La copie figee `fictive-3090-grande` : Montansier et Nicolet sont en CDI en octobre 2026 ; Nicolet y
 /// est embauchee le 1er octobre, pour que sa DPAE soit a faire.
 #[test]
 fn un_cdi_sans_fin_se_rend_null_et_pas_none() {
-    let c = &compagnie::saisies("demo-3090-grande", &[], &dossier_de_test("routes_mois", "cdi-sans-fin").join("compagnie"));
-    let mut saisie = lire(&crate::outils::demo("demo-3090-grande"), "paies/2026-10.json");
+    let c = &compagnie::saisies("fictive-3090-grande", &[], &dossier_de_test("routes_mois", "cdi-sans-fin").join("compagnie"));
+    let mut saisie = lire(&crate::outils::fictive("fictive-3090-grande"), "paies/2026-10.json");
     for e in saisie["engagements"].as_array_mut().unwrap() {
         if e["numero"] == json!("NI.24.01") {
             e["debut"] = json!("2026-10-01");

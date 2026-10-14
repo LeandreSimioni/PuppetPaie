@@ -194,3 +194,16 @@ fn la_cale_precede_le_premier_script_et_l_empreinte_suit_js() {
     std::fs::write(&css, &original).unwrap();
     assert_ne!(apres[0], avant[0], "la feuille change, l'empreinte aussi");
 }
+
+/// La version se lit JJ.MM.AAAA (Leandre, 14/10/2026 ; `prive/journal/ETAT.md`, « DECIDE LE 14/10/2026 ») : le banc a
+/// `VERSION` = `2026.10.09`, la page dit `version 09.10.2026`, et rien n'y commence par l'annee.
+#[test]
+fn la_page_montre_la_version_jour_mois_annee() {
+    let (b, _v) = banc();
+    let p = paie::interface::page_logiciel(&b.compagnie, "jeton-du-banc-0123456789abcdef").unwrap();
+    assert!(p.contains("version 09.10.2026"), "la version lue est sous le nom");
+    let annee_d_abord = p.as_bytes().windows(10).any(|w| {
+        w.iter().enumerate().all(|(i, c)| if i == 4 || i == 7 { *c == b'.' } else { c.is_ascii_digit() })
+    });
+    assert!(!annee_d_abord, "aucune version AAAA.MM.JJ dans la page");
+}

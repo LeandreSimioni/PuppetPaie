@@ -56,7 +56,7 @@ pub fn fixer_le_code() {
 }
 
 /// `compagnies.dossier_dev` : dans l'atelier (`atelier/prive-dev`), pas a cote de ce que les gens recoivent (rangement
-/// du 09/10/2026 : a la racine, `logiciel/`, `demo/`, `prive/` et `atelier/`).
+/// du 09/10/2026 : a la racine, `logiciel/`, `fictives/`, `prive/` et `atelier/`).
 pub fn dossier_dev() -> PathBuf {
     parent_du_logiciel().join("atelier").join(NOM_DEV)
 }
@@ -117,7 +117,7 @@ pub fn racine(dev: bool) -> Result<PathBuf, String> {
     Ok(crate::routes_accueil::racine_du_poste())
 }
 
-/// La compagnie est-elle une copie (developpement ou demonstration) ?
+/// La compagnie est-elle une copie (developpement ou compagnie fictive) ?
 pub fn est_copie(racine: &Path) -> bool {
     racine.join(MARQUEUR).is_file()
 }

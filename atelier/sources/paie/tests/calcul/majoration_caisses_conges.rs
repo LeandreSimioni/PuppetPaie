@@ -9,8 +9,8 @@
 //! majoree (annexe 1, R2), la majoration apres la deduction forfaitaire specifique (R6) ; seules les remunerations
 //! declarees a la caisse (R5). Tissot (2017) : « pour le versement de transport, le CTP 900 ».
 //!
-//! Sur une copie de la demonstration figee `demo-3090-grande` (compagnie inventee), dans le dossier temporaire des
-//! tests : sa surcouche y recoit un versement mobilite fictif, et rien n'est ecrit dans `tests/donnees/demo/`.
+//! Sur une copie de la compagnie fictive figee `fictive-3090-grande` (compagnie inventee), dans le dossier temporaire des
+//! tests : sa surcouche y recoit un versement mobilite fictif, et rien n'est ecrit dans `tests/donnees/fictives/`.
 
 use paie::calcul::Paie;
 use paie::contexte::Contexte;
@@ -20,7 +20,7 @@ use paie::engagement::{charger, Saisie};
 use paie::num::{eur, Decimal};
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Value};
-use crate::outils::{base78, chemin_unique, ctp, dec, demo, ecrire, lire, versement, Copie};
+use crate::outils::{base78, chemin_unique, ctp, dec, fictive, ecrire, lire, versement, Copie};
 use std::str::FromStr;
 
 /// Le 81.003 de la cotisation `code81` du versement (la premiere).
@@ -30,14 +30,14 @@ fn base81(v: &[(String, String)], code81: &str) -> Decimal {
 
 const TAUX_VM: &str = "2.0";
 
-/// La config de `demo-3090-grande` (et sa saisie de juillet 2026), douze salaries depuis cinq ans : le versement mobilite
+/// La config de `fictive-3090-grande` (et sa saisie de juillet 2026), douze salaries depuis cinq ans : le versement mobilite
 /// est du (CGCT L. 2333-64), fictif a 2 %, et la formation des permanents passe a 1 % (code du travail L. 6331-3), que la
 /// compagnie ecrit dans sa surcouche ; `retouche` appliquee a la surcouche et aux fiches.
 fn copie(retouche: impl Fn(&mut Value, &mut Value)) -> Copie {
-    let c = Copie::config_de("demo-3090-grande");
+    let c = Copie::config_de("fictive-3090-grande");
     let r = &c.0;
     std::fs::create_dir_all(r.join("paies")).unwrap();
-    std::fs::copy(demo("demo-3090-grande").join("paies/2026-07.json"), r.join("paies/2026-07.json")).unwrap();
+    std::fs::copy(fictive("fictive-3090-grande").join("paies/2026-07.json"), r.join("paies/2026-07.json")).unwrap();
     let (mut bar, mut sal, mut eff) = (lire(r, "config/baremes/2026.json"), lire(r, "config/salaries.json"), lire(r, "config/effectifs.json"));
     for an in eff["annees"].as_object_mut().unwrap().values_mut() {
         an["A01"]["valeur"] = json!(12.0);
@@ -77,7 +77,7 @@ fn intermittent(p: &Paie) -> bool {
 
 #[test]
 fn le_versement_mobilite_d_un_intermittent_se_majore_de_11_5_pour_cent_pas_celui_d_un_permanent() {
-    // Juillet 2026 de la demo : deux CDI (Montansier, Nicolet), trois artistes et deux techniciens intermittents, tous
+    // Juillet 2026 de la fictive : deux CDI (Montansier, Nicolet), trois artistes et deux techniciens intermittents, tous
     // au-dessus de leur plafond -- le versement mobilite, deplafonne, n'en tient pas compte.
     let copie = copie(|_, _| {});
     let ctx = Contexte::nouveau(&copie.0, Some(Jour::lire("2026-07-28").unwrap())).unwrap();

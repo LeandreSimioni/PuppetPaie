@@ -1,17 +1,17 @@
 //! La route `produire` : un mois pret s'ecrit (bulletins numerotes a la suite, DSN constituee le jour meme, contact du
 //! declarant, emplois multiples), un mois pas pret, hors delai ou clos refuse sans rien ecrire, un mois depose repart en
-//! annule-et-remplace, un numero de contrat se lit et ne s'ecrase pas. Sur `demo-3090-grande` : config, journal, toutes
+//! annule-et-remplace, un numero de contrat se lit et ne s'ecrase pas. Sur `fictive-3090-grande` : config, journal, toutes
 //! ses saisies, ses DSN deposees, et les sorties entieres des seuls mois que le test relit.
 
-use crate::outils::{compagnie, copier, demo, dossier_de_test, ecrire, lire, noms};
+use crate::outils::{compagnie, copier, fictive, dossier_de_test, ecrire, lire, noms};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str, sorties: &[&str]) -> PathBuf {
-    let racine = compagnie::config_et_mois("demo-3090-grande", sorties, &dossier_de_test("routes_produire", nom).join("compagnie"));
-    copier(&demo("demo-3090-grande").join("paies"), &racine.join("paies"));
+    let racine = compagnie::config_et_mois("fictive-3090-grande", sorties, &dossier_de_test("routes_produire", nom).join("compagnie"));
+    copier(&fictive("fictive-3090-grande").join("paies"), &racine.join("paies"));
     // Les DSN deposees, sans les PDF : la production relit l'identite declaree.
-    let sorties = demo("demo-3090-grande").join("sorties");
+    let sorties = fictive("fictive-3090-grande").join("sorties");
     for m in noms(&sorties) {
         for f in noms(&sorties.join(&m)).into_iter().filter(|f| f.ends_with(".dsn")) {
             std::fs::create_dir_all(racine.join("sorties").join(&m)).unwrap();
@@ -169,7 +169,7 @@ fn un_mois_neuf_numerote_date_et_contacte_puis_le_suivant_continue_la_numerotati
     assert!(saisie["engagements"].as_array().unwrap().iter().all(|e| e.get("numero").is_some()));
     // Retours Windows, F : constituee le jour ou elle est produite (le 10/11), pas a la fin de periode la plus tardive.
     assert_eq!(constitution_de(&r, f), "10112026");
-    // CT DSN 2026.1, p. 132 : la copie figee des demos dit « madame » de son contact, la DSN aussi.
+    // CT DSN 2026.1, p. 132 : la copie figee des fictives dit « madame » de son contact, la DSN aussi.
     assert_eq!(rubrique_de(&r, f, "S10.G00.02.001"), "02");
     assert_eq!(rubrique_de(&r, f, "S10.G00.02.002"), "LECOUVREUR ADRIENNE");
 

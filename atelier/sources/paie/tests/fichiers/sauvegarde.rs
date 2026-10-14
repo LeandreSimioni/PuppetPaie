@@ -4,8 +4,8 @@
 //! le 7 dans `tests/archivage.rs`).
 //!
 //! AUCUN RESEAU, AUCUN GOOGLE : le faux ne tient que des dossiers et des fichiers en memoire. Chaque test monte sa
-//! compagnie dans un dossier temporaire a lui (jamais `prive/`, jamais un vrai coffre ni jeton : `coffre.bin` n'y est
-//! qu'un texte inventé, pour montrer qu'il ne part pas).
+//! compagnie dans un dossier temporaire a lui (jamais `prive/`, jamais un vrai coffre ni jeton : `coffre.bin` et
+//! `google-jeton.bin` n'y sont que des textes inventés, pour montrer lequel part et lequel ne part pas).
 
 use crate::faux_drive;
 
@@ -23,7 +23,7 @@ fn racine(nom: &str) -> PathBuf {
     racine_de("sauvegarde", nom)
 }
 
-/// Une compagnie : 8 fichiers a sauvegarder, 8 qui ne partent pas.
+/// Une compagnie : 8 fichiers a sauvegarder, 7 qui ne partent pas (sans coffre : `le_coffre_monte_le_jeton_google_non`).
 fn monde(nom: &str) -> PathBuf {
     let r = racine(nom);
     for (rel, contenu) in [
@@ -36,7 +36,6 @@ fn monde(nom: &str) -> PathBuf {
         ("sorties/2026-06/bulletin.pdf", "%PDF"),
         ("sorties/2026-06/x.tmp/garde.txt", "dans un dossier x.tmp"),
         // ce qui ne part pas
-        ("config/coffre.bin", "SECRET-INVENTE"),
         ("config/google-jeton.bin", "JETON-INVENTE"),
         ("config/.jeton-interface", "j"),
         ("config/.compteurs.verrou", "v"),
@@ -155,7 +154,7 @@ fn inventaire_ordre_exclusions_et_nombre_d_ecartes() {
             "sorties/2026-06/x.tmp/garde.txt",
         ]
     );
-    assert_eq!(ecartes, 8);
+    assert_eq!(ecartes, 7);
     let (_, e) = presents.iter().find(|(n, _)| n == "notes.txt").unwrap();
     assert_eq!((e.octets, e.mtime), (5, 1_700_000_000));
 }
@@ -164,17 +163,17 @@ fn inventaire_ordre_exclusions_et_nombre_d_ecartes() {
 fn inventaire_les_noms_exclus_ou_les_suffixes_n_importe_ou() {
     let r = racine("exclusions");
     for rel in [
-        "coffre.bin", "google-jeton.bin", ".jeton-interface", ".compteurs.verrou", ".sauvegarde.json", ".ouverture.json", // les noms
+        "google-jeton.bin", ".jeton-interface", ".compteurs.verrou", ".sauvegarde.json", ".ouverture.json",               // les noms
         "a.pyc", "a.tmp", "a.lock", "a.part",                                                                              // les suffixes
         "__pycache__/f.txt", "x/__pycache__/y/f.txt", ".git/HEAD", "d/.git/objets/o",                                      // les dossiers, au milieu d'un chemin
-        "garde.txt", "coffre.bin.txt", "tmp", "x.tmp.txt", "dossier.tmp/dedans.txt", ".gitignore", "git/f.txt",            // ce qui reste
+        "garde.txt", "coffre.bin", "coffre.bin.txt", "tmp", "x.tmp.txt", "dossier.tmp/dedans.txt", ".gitignore", "git/f.txt",            // ce qui reste
     ] {
         ecrire(&r, rel, "1");
     }
     let (presents, ecartes) = inventaire(&r);
     let noms: Vec<&str> = presents.iter().map(|(n, _)| n.as_str()).collect();
-    assert_eq!(noms, [".gitignore", "coffre.bin.txt", "dossier.tmp/dedans.txt", "garde.txt", "git/f.txt", "tmp", "x.tmp.txt"]);
-    assert_eq!(ecartes, 14);
+    assert_eq!(noms, [".gitignore", "coffre.bin", "coffre.bin.txt", "dossier.tmp/dedans.txt", "garde.txt", "git/f.txt", "tmp", "x.tmp.txt"]);
+    assert_eq!(ecartes, 13);
 }
 
 // Unix seulement : sous Windows, un lien symbolique demande des droits que le poste n'a pas.
@@ -219,7 +218,7 @@ fn premiere_passe_tout_part_dans_l_ordre_et_l_index_est_ecrit() {
     assert_eq!(d.journal, journal_de_la_premiere_passe());
     assert_eq!(s.deposes.len(), 8);
     assert!(s.deposes.iter().all(|f| f.etat == EtatFichier::Neuf));
-    assert_eq!((s.identiques, s.exclus, s.disparus, s.hors_ligne), (0, 8, 0, false));
+    assert_eq!((s.identiques, s.exclus, s.disparus, s.hors_ligne), (0, 7, 0, false));
     assert!(s.incidents.is_empty());
     assert_eq!(s.compte.as_deref(), Some("compte@exemple.invalid"));
     assert_eq!(s.racine_drive, RD);
@@ -232,6 +231,21 @@ fn premiere_passe_tout_part_dans_l_ordre_et_l_index_est_ecrit() {
     assert_eq!(arbre["PuppetPaie/sauvegarde/sorties/2026-06/x.tmp/garde.txt"], ["dans un dossier x.tmp"]);
     assert!(arbre.keys().all(|k| !k.contains("coffre.bin") && !k.contains("google-jeton") && !k.contains(".git") && !k.contains("pycache")));
     assert!(d.fichiers.iter().all(|f| !String::from_utf8_lossy(&f.contenu).contains("INVENTE")));
+}
+
+/// Le coffre monte, le jeton Google non (Leandre, 13/10/2026, redit le 14/10 : « j'avais choisi de l'envoyer sur le
+/// drive » ; `prive/journal/ETAT.md`). Le coffre est scelle par le mot de passe du logiciel : c'est ce qui l'ouvre sur un
+/// poste neuf apres `paie restaurer`. Le jeton Google, lui, se refait en reliant le compte.
+#[test]
+fn le_coffre_monte_le_jeton_google_non() {
+    let r = monde("coffre-monte");
+    ecrire(&r, "config/coffre.bin", "COFFRE-INVENTE");
+    let mut d = FauxDrive::nouveau();
+    let s = passer(&r, &mut d);
+    let arbre = d.arbre();
+    assert_eq!(arbre["PuppetPaie/sauvegarde/config/coffre.bin"], ["COFFRE-INVENTE"]);
+    assert!(arbre.keys().all(|k| !k.contains("google-jeton")));
+    assert_eq!((s.deposes.len(), s.exclus), (9, 7));
 }
 
 #[test]
@@ -278,7 +292,7 @@ fn rien_de_change_rien_ne_part_et_les_dossiers_connus_ne_sont_pas_recherches() {
     d.journal.clear();
     let s = passer(&r, &mut d);
     assert!(s.deposes.is_empty() && !s.a_change());
-    assert_eq!((s.identiques, s.exclus), (8, 9)); // l'index ecrit s'ajoute aux ecartes
+    assert_eq!((s.identiques, s.exclus), (8, 8)); // l'index ecrit s'ajoute aux ecartes
     assert_eq!(d.appels("televerser"), 0);
     assert_eq!(d.appels("chemin"), 0, "les identifiants de dossiers viennent de l'index");
     assert_eq!(d.appels("lister"), 8, "un listage par dossier");

@@ -6,11 +6,11 @@
 #   2. le moteur `paie.exe` (preuve que le moteur se compile ; il n'est PAS dans l'installeur : une compagnie
 #      recoit `logiciel/`, ou la fenetre sert aussi les routes, `puppetpaie route ...`) ;
 #   3. la fenetre `puppetpaie.exe` (Tauri 2) ;
-#   4. l'installeur NSIS `PuppetPaie-<VERSION>-installeur.exe`, dans `atelier/depot/installeur/`.
+#   4. l'installeur NSIS `PuppetPaie-<JJ.MM.AAAA>-installeur.exe` (la version lue, pas l'identifiant), dans `atelier/depot/installeur/`.
 #
 # Ce que l'installeur pose : exactement ce qu'une compagnie recoit (CLAUDE.md, « Le rangement ») -- les fichiers
-# suivis par Git de `logiciel/` et de `demo/` --, la fenetre fraichement compilee a la place de
-# `logiciel/puppetpaie.exe`, et `logiciel/EDITION.json` (toujours demo, a cote de ce script).
+# suivis par Git de `logiciel/` et de `fictives/` --, la fenetre fraichement compilee a la place de
+# `logiciel/puppetpaie.exe`, et `logiciel/EDITION.json` (toujours bride, a cote de ce script).
 #
 # Usage :
 #   atelier/installeur/construire.sh                     tout
@@ -82,8 +82,8 @@ dire "Ce que l'installeur pose"
 rm -rf "$PREPA"
 mkdir -p "$PREPA/pose"
 cd "$DEPOT"
-# Les fichiers suivis par Git, et eux seuls : ni les coffres d'une demo ouverte (.gitignore), ni `demo/.origine/`.
-git ls-files -z logiciel demo > "$PREPA/liste.z"
+# Les fichiers suivis par Git, et eux seuls : ni les coffres d'une fictive ouverte (.gitignore), ni `fictives/.origine/`.
+git ls-files -z logiciel fictives > "$PREPA/liste.z"
 while IFS= read -r -d '' f; do
     mkdir -p "$PREPA/pose/$(dirname "$f")"
     cp -p "$f" "$PREPA/pose/$f"
@@ -92,6 +92,9 @@ cp -p "$FENETRE" "$PREPA/pose/logiciel/puppetpaie.exe"
 cp -p "$ICI/EDITION.json" "$PREPA/pose/logiciel/EDITION.json"
 VERSION="$(tr -d ' \r\n' < "$DEPOT/logiciel/VERSION")"
 [[ "$VERSION" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}$ ]] || { echo "VERSION illisible : '$VERSION'" >&2; exit 1; }
+# Ce qu'un humain lit (nom du fichier, pages, « Applications installees ») : JJ.MM.AAAA (Leandre, 14/10/2026 ; le pendant
+# de `maj::version_lue`). L'identifiant AAAA.MM.JJ reste dans `logiciel/VERSION` et donne VERSION_WINDOWS.
+VERSION_LUE="${VERSION:8:2}.${VERSION:5:2}.${VERSION:0:4}"
 
 # Les deux listes de l'installeur, tirees du meme dossier : ce qu'il pose, ce que le desinstalleur retire.
 # Chemins Windows (`\`) ; un `$` se double pour NSIS (aucun aujourd'hui).
@@ -134,9 +137,9 @@ PY
 # --- 5. L'installeur ------------------------------------------------------------------------------------------
 dire "L'installeur (NSIS)"
 mkdir -p "$SORTIE"
-NOM="PuppetPaie-$VERSION-installeur.exe"
+NOM="PuppetPaie-$VERSION_LUE-installeur.exe"
 makensis -V2 -INPUTCHARSET UTF8 \
-    "-DVERSION=$VERSION" \
+    "-DVERSION=$VERSION_LUE" \
     "-DVERSION_WINDOWS=$(echo "$VERSION" | awk -F. '{printf "%d.%d.%d.0", $1, $2, $3}')" \
     "-DPREPA=$PREPA" \
     "-DICONE=$SOURCES/fenetre/icons/icon.ico" \

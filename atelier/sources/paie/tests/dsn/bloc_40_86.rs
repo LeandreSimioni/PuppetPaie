@@ -10,15 +10,15 @@
 //! - `S21.G00.40.005` d'un permanent (natures `cdi`, `cdd`) : « 999SPT pour les emplois permanents du spectacle »
 //!   (CCH-18, p. 185, `bloc-S21.G00.40.txt` l. 325-329), tranche par Leandre le 10/10/2026 ; un CDDU garde son code.
 //!
-//! Sur une copie de `demo-3090-grande` (compagnie inventee). La nature qui fixe 999SPT et les statuts que la fiche admet
+//! Sur une copie de `fictive-3090-grande` (compagnie inventee). La nature qui fixe 999SPT et les statuts que la fiche admet
 //! se prouvent dans `src/contrats.rs` et `src/champs.rs`.
 
-use crate::outils::{self, compagnie, demo};
+use crate::outils::{self, compagnie, fictive};
 use serde_json::json;
 use std::path::PathBuf;
 
 fn copie(test: &str) -> PathBuf {
-    compagnie::ses_dsn("demo-3090-grande", &[], &outils::dossier_de_test("bloc_40_86", test))
+    compagnie::ses_dsn("fictive-3090-grande", &[], &outils::dossier_de_test("bloc_40_86", test))
 }
 
 /// La DSN de juillet 2026 de la 3090-grande (deux CDI, MONTANSIER et NICOLET, et des CDDU), les fiches retouchees
@@ -98,7 +98,7 @@ fn un_cadre_permanent_ecrit_01_et_un_statut_que_la_cch_11_admet() {
     let dsn = dsn_de_juillet("cadre", &[("MONTANSIER", json!({"statut_conventionnel": null, "statut_categoriel_rc": "01"}))]).unwrap();
     let s = statuts(&dsn, "MONTANSIER");
     assert_eq!(s, vec![("04".to_string(), "01".to_string())]);
-    // La fiche de la demonstration, telle quelle, ne change pas.
+    // La fiche de la compagnie fictive, telle quelle, ne change pas.
     let dsn = dsn_de_juillet("cadre-tel-quel", &[]).unwrap();
     assert_eq!(statuts(&dsn, "MONTANSIER"), vec![("04".to_string(), "01".to_string())]);
 }
@@ -230,7 +230,7 @@ fn contrats_et_78006(dsn: &str) -> std::collections::BTreeMap<String, (usize, us
 /// -- le depot fige de juillet 2026, fait par lui, le montre.
 #[test]
 fn le_numero_du_contrat_ne_s_ecrit_sur_les_bases_qu_avec_plusieurs_contrats() {
-    let depose = String::from_utf8(std::fs::read(demo("demo-3090-grande").join("sorties/2026-07/DSN_Juillet2026.dsn")).unwrap()).unwrap();
+    let depose = String::from_utf8(std::fs::read(fictive("fictive-3090-grande").join("sorties/2026-07/DSN_Juillet2026.dsn")).unwrap()).unwrap();
     let avant = contrats_et_78006(&depose);
     assert!(avant.values().any(|(c, n)| *c == 1 && *n > 0), "le depot d'avant ecrivait 78.006 pour un contrat unique : {:?}", avant);
     // Mars 2026 : Biancolelli et Clairon y ont chacun deux contrats ; les autres, un.

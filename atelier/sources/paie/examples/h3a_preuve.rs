@@ -7,7 +7,7 @@
 //!     h3a_preuve preparer RACINE MOIS DOSSIER SORTIE.json [fiche]
 //!     h3a_preuve envoyer SPEC.json SORTIE/    `envoyer` contre un faux client (echec au n-ieme)
 //!     h3a_preuve ecrire RACINE MOIS           `pieces_individuelles` par la route `ecrire-documents`
-//!     h3a_preuve lire RACINE                  `demonstration-courriels` : les courriels joues, relus
+//!     h3a_preuve lire RACINE                  `courriels-fictifs` : les courriels joues, relus
 //!     h3a_preuve boite RACINE MESSAGE.eml     `BoiteSimulee::envoyer`
 //!     h3a_preuve client RACINE SCENARIO.json SORTIE.json   le vrai `Client` contre des serveurs locaux
 //!
@@ -70,7 +70,7 @@ fn mime(spec: &str, sortie: &str) {
     }
 }
 
-fn demo(racine: &str) -> Contexte {
+fn fictive(racine: &str) -> Contexte {
     Contexte::nouveau(Path::new(racine), Some(d(&json!("2026-09-27")).unwrap())).unwrap()
 }
 
@@ -81,7 +81,7 @@ fn paies_du_mois(racine: &str, ctx: &Contexte, mois: &str) -> Vec<Paie> {
 }
 
 fn preparer(racine: &str, mois: &str, dossier: &str, sortie: &str, avec_fiche: bool) {
-    let ctx = demo(racine);
+    let ctx = fictive(racine);
     let paies = paies_du_mois(racine, &ctx, mois);
     let fiches = ctx.salaries.clone();
     let fiche = move |cle: &str| -> Value { fiches[cle].clone() };
@@ -154,24 +154,24 @@ fn envoyer(spec: &str, sortie: &str) {
 
 /// `envoi::pieces_individuelles` par la route `ecrire-documents` (le redecoupage d'un mois produit).
 fn ecrire(racine: &str, mois: &str) {
-    let ctx = demo(racine);
+    let ctx = fictive(racine);
     match paie::ecrire_documents::ecrire_documents(&ctx, &json!({ "mois": mois })) {
         Ok(v) => println!("{}", v),
         Err(e) => println!("{}", json!({"erreur": e.message})),
     }
 }
 
-/// `demonstration-courriels` : les courriels joues d'une racine de demonstration.
+/// `courriels-fictifs` : les courriels joues d'une racine fictive.
 fn lire(racine: &str) {
-    let ctx = demo(racine);
-    match paie::simulation_courriels::demonstration_courriels(&ctx, &json!({})) {
+    let ctx = fictive(racine);
+    match paie::simulation_courriels::courriels_fictifs(&ctx, &json!({})) {
         Ok(v) => println!("{}", v),
         Err(e) => println!("{}", json!({"erreur": e.message})),
     }
 }
 
 fn boite(racine: &str, eml: &str) {
-    let ctx = demo(racine);
+    let ctx = fictive(racine);
     let mut b = BoiteSimulee::du_contexte(&ctx);
     let ident = b.envoyer(&std::fs::read(eml).unwrap()).unwrap();
     println!("{}", json!({"compte": b.compte(), "ident": ident}));

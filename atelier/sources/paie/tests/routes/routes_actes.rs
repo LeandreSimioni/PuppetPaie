@@ -1,27 +1,27 @@
 //! Les actes du mois par la route : `dpae` (flux, zip et recapitulatif ecrits, rien de depose), `arret-signaler`,
 //! `fin-contrat-signaler`, `fin-contrat-documents`, et le numero d'ordre et le contact des signalements. Sur
-//! `demo-3090-petite` (config, journal, mars 2026 et ses sorties) ; aucun reseau, aucun depot.
+//! `fictive-3090-petite` (config, journal, mars 2026 et ses sorties) ; aucun reseau, aucun depot.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, noms, refus, reussi};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::config_et_mois("demo-3090-petite", &["2026-03"], &dossier_de_test("routes_actes", nom).join("compagnie"))
+    compagnie::config_et_mois("fictive-3090-petite", &["2026-03"], &dossier_de_test("routes_actes", nom).join("compagnie"))
 }
 
 fn route(racine: &Path, nom: &str, charge: Value) -> Value {
     crate::outils::route(racine, nom, charge, "2026-03-20")
 }
 
-/// Le journal sans aucune ligne de DPAE : les embauches des demos y sont toutes deja parties.
+/// Le journal sans aucune ligne de DPAE : les embauches des fictives y sont toutes deja parties.
 fn sans_dpae_au_journal(racine: &Path) {
     let mut j = lire(racine, "journal/depots.json");
     j.as_array_mut().unwrap().retain(|x| x["quoi"] != json!("dpae"));
     ecrire(racine, "journal/depots.json", &j);
 }
 
-/// Les DPAE de mars 2026 que la demo a deja ecrites (le complet et un partiel) : on part d'un dossier sans elles.
+/// Les DPAE de mars 2026 que la fictive a deja ecrites (le complet et un partiel) : on part d'un dossier sans elles.
 fn sans_dpae_ecrites(racine: &Path) {
     for n in noms(&racine.join("sorties/2026-03")) {
         if n.starts_with("DPAE_") {
@@ -46,7 +46,7 @@ fn dpae_refuse_un_mois_sans_saisie_une_selection_introuvable_et_ce_qui_est_deja_
     let racine = compagnie("dpae-refus");
     let (_, m) = refus(&route(&racine, "dpae", json!({"mois": "2031-01"})));
     assert!(m.contains("2031-01"), "{}", m);
-    // le journal des demos dit que mars 2026 est deja parti : rien ne s'ecrit
+    // le journal des fictives dit que mars 2026 est deja parti : rien ne s'ecrit
     let (_, m) = refus(&route(&racine, "dpae", json!({"mois": "2026-03"})));
     assert!(m.contains("Deja declaree"), "{}", m);
     sans_dpae_au_journal(&racine);
@@ -312,7 +312,7 @@ fn le_contact_d_un_signalement_est_le_declarant_avec_sa_civilite_ou_rien_ne_s_ec
     e["declarant_dsn"]["civilite"] = json!("01");
     ecrire(&racine, "config/entreprise.json", &e);
     reussi(&route(&racine, "arret-signaler", json!({"salarie": "BRIOCHE", "dernier_jour": "2026-03-25"})));
-    // Le signataire de la demo est SAND GEORGE : il ne se melange plus au courriel du declarant.
+    // Le signataire de la fictive est SAND GEORGE : il ne se melange plus au courriel du declarant.
     assert_eq!(
         ["S10.G00.02.001", "S10.G00.02.002", "S10.G00.02.004"].map(|c| rubrique(&fichier, c)),
         ["01", "MOLIERE JEAN", "ADMINISTRATION@DEMO.INVALID"].map(String::from)

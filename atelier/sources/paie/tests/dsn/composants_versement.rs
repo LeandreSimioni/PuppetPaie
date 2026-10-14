@@ -12,10 +12,10 @@
 //! soient la nature du contrat et l'annee ; les permanents partaient sous les contrats des intermittents, et en 2025 la
 //! somme des 55.001 ne faisait pas le 20.005 (3090-grande, juin 2025 : 296,51 pour 195,23).
 //!
-//! Sur la copie figee des demonstrations (compagnies inventees) ; les essais qui changent config/organismes.json le font
+//! Sur la copie figee des compagnies fictives (compagnies inventees) ; les essais qui changent config/organismes.json le font
 //! sur une copie. La periode d'affectation et le code d'affectation se prouvent dans `src/dsn.rs`.
 
-use crate::outils::{self, compagnie, dec, demo, paires as lignes};
+use crate::outils::{self, compagnie, dec, fictive, paires as lignes};
 use paie::num::Decimal;
 use serde_json::json;
 use std::collections::BTreeMap;
@@ -83,7 +83,7 @@ fn somme(v: &Versement) -> Decimal {
 fn intermittents_et_permanents_chez_audiens_chacun_sous_son_contrat() {
     // 3090-grande, mars 2026 : des CDDU d'intermittents et des permanents. Le releve de la norme (fiche N3, 55.001 a) : 55
     // TSINTERMITTENTS = 92,26 (74,52 de prevoyance SVP des CDI dedans) et INTERBRANCHE = 225,00 (115,36 de sante des CDI).
-    let dsn = dsn_du_mois(&demo("demo-3090-grande"), "2026-03");
+    let dsn = dsn_du_mois(&fictive("fictive-3090-grande"), "2026-03");
     let v = &versements(&dsn)["P0983"];
     let adh = adhesions_15(&dsn);
     // Chaque code d'affectation est la reference d'un contrat declare en bloc 15 chez le meme organisme (CCH-11, p. 260).
@@ -110,7 +110,7 @@ fn intermittents_et_permanents_chez_audiens_chacun_sous_son_contrat() {
 fn en_2025_ni_thalie_ni_composant_compte_deux_fois() {
     // 3090-grande, juin 2025 : avant, 72,75 + 101,28 + 101,28 + 21,20 = 296,51 pour un 20.005 de 195,23, sous
     // « TSINTERMITTENTS » (aucun bloc 15 : l'adhesion date de 2026) et « INTERBRANCHE » + « CASCSVP » pour le meme 203.
-    let dsn = dsn_du_mois(&demo("demo-3090-grande"), "2025-06");
+    let dsn = dsn_du_mois(&fictive("fictive-3090-grande"), "2025-06");
     let v = &versements(&dsn)["P0983"];
     assert!(!adhesions_15(&dsn).values().any(|(l, _)| l == "TSINTERMITTENTS"), "pas d'adhesion Thalie en 2025");
     assert_eq!(v.composants, vec![
@@ -128,7 +128,7 @@ fn lignes_55(dsn: &str) -> Vec<(String, String)> {
 }
 
 fn fige(nom: &str, mois: &str) -> String {
-    let dossier = demo(nom).join("sorties").join(mois);
+    let dossier = fictive(nom).join("sorties").join(mois);
     let f = std::fs::read_dir(&dossier).unwrap().flatten().map(|e| e.path()).find(|p| p.extension().is_some_and(|x| x == "dsn")).unwrap();
     String::from_utf8_lossy(&std::fs::read(f).unwrap()).into_owned()
 }
@@ -137,8 +137,8 @@ fn fige(nom: &str, mois: &str) -> String {
 fn un_mois_d_intermittents_de_2026_ne_change_pas() {
     // Les adhesions 202 et 203 des intermittents sont en 2026 TSINTERMITTENTS et INTERBRANCHE : ce que les etiquettes en
     // dur disaient. La norme n'exige rien d'autre : le bloc 55 est celui que le moteur ecrivait (copie figee des sorties).
-    for (nom, mois) in [("demo-3090-petite", "2026-02"), ("demo-3090-petite", "2026-08"), ("demo-1285-petite", "2026-01")] {
-        let dsn = dsn_du_mois(&demo(nom), mois);
+    for (nom, mois) in [("fictive-3090-petite", "2026-02"), ("fictive-3090-petite", "2026-08"), ("fictive-1285-petite", "2026-01")] {
+        let dsn = dsn_du_mois(&fictive(nom), mois);
         assert_eq!(lignes_55(&dsn), lignes_55(&fige(nom, mois)), "{} {}", nom, mois);
         let v = &versements(&dsn)["P0983"];
         assert_eq!(somme(v), v.montant);
@@ -149,9 +149,9 @@ fn un_mois_d_intermittents_de_2026_ne_change_pas() {
 fn un_mois_d_intermittents_de_2025_nomme_les_contrats_de_2025() {
     // 2025, sans Thalie : l'affectation 202 des intermittents est l'interbranche, la 203 la CASC-SVP. La sortie figee les
     // nommait TSINTERMITTENTS et INTERBRANCHE, un contrat sans bloc 15 (CCH-11) et l'autre au montant d'un autre.
-    let fige = fige("demo-3090-petite", "2025-01");
+    let fige = fige("fictive-3090-petite", "2025-01");
     assert!(lignes_55(&fige).iter().any(|(_, v)| v == "TSINTERMITTENTS"), "le defaut, dans la sortie figee");
-    let dsn = dsn_du_mois(&demo("demo-3090-petite"), "2025-01");
+    let dsn = dsn_du_mois(&fictive("fictive-3090-petite"), "2025-01");
     let v = &versements(&dsn)["P0983"];
     assert_eq!(v.composants, vec![
         ("INTERBRANCHE".to_string(), "2025T01".to_string(), dec("19.61")),
@@ -163,7 +163,7 @@ fn un_mois_d_intermittents_de_2025_nomme_les_contrats_de_2025() {
 #[test]
 fn la_1285_declare_le_fnas_et_le_fcap_sous_leurs_adhesions() {
     // 1285-grande : FNAS et FCAP (contributions de branche) sous leurs adhesions, chaque mois ou il y a un versement.
-    let racine = demo("demo-1285-grande");
+    let racine = fictive("fictive-1285-grande");
     let mut vus = 0;
     for mois in ["2025-03", "2025-10", "2026-03", "2026-09"] {
         let dsn = dsn_du_mois(&racine, mois);
@@ -183,10 +183,10 @@ fn la_1285_declare_le_fnas_et_le_fcap_sous_leurs_adhesions() {
     assert!(vus >= 2);
 }
 
-/// Une copie de `demo-3090-grande` ou la prevoyance et la sante des permanents sont chez un autre organisme (P1234),
+/// Une copie de `fictive-3090-grande` ou la prevoyance et la sante des permanents sont chez un autre organisme (P1234),
 /// avec ou sans versement a cet organisme dans config/organismes.json.
 fn deux_organismes(test: &str, avec_versement: bool) -> PathBuf {
-    let racine = compagnie::ses_dsn("demo-3090-grande", &[], &outils::dossier_de_test("composants_versement", test));
+    let racine = compagnie::ses_dsn("fictive-3090-grande", &[], &outils::dossier_de_test("composants_versement", test));
     let mut o = outils::lire(&racine, "config/organismes.json");
     for a in o["adhesions_prevoyance"].as_array_mut().unwrap() {
         if a["libelle"] == "PREVOYANCE SVP" || a["libelle"] == "FM SPECT VIVANT PRIV" {

@@ -12,7 +12,7 @@
 //! (`transport::operation`), n'est ni journalise, ni affiche, ni renvoye.
 //!
 //! Le reseau passe par `transport::operation` (le meme JSON que `paie transport`) : rien n'est reecrit.
-//! La demonstration (`simulation.rattacher`) pose les retours des depots joues, sans reseau.
+//! La compagnie fictive (`simulation.rattacher`) pose les retours des depots joues, sans reseau.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -471,13 +471,13 @@ pub fn rattacher_simulation(ctx: &Contexte, delai: i64) -> R<i64> {
         let age = l.get("quand").and_then(Value::as_str).and_then(naif_de_iso).map_or(0, |t| maintenant - t);
         if (quoi == "dsn" || quoi == "dpae")
             && l.get("accepte").is_some_and(vrai)
-            && flux.starts_with("DEMO-")
+            && (flux.starts_with(crate::depot_acte::PREFIXE_FLUX_FICTIF) || flux.starts_with(crate::depot_acte::ANCIEN_PREFIXE_FLUX_FICTIF))
             && !l.get("retours").is_some_and(vrai)
             && age >= delai
         {
             let base = |nature: &str, verdict: Option<&str>, libelle: &str| {
                 let mut m = Map::new();
-                m.insert("statut".into(), json!("demonstration"));
+                m.insert("statut".into(), json!("fictive"));
                 m.insert("publication".into(), json!(pub_));
                 m.insert("anomalies".into(), json!([]));
                 m.insert("nature".into(), json!(nature));
@@ -489,15 +489,15 @@ pub fn rattacher_simulation(ctx: &Contexte, delai: i64) -> R<i64> {
             };
             let mut retours: Vec<Value> = Vec::new();
             if quoi == "dpae" {
-                retours.push(Value::Object(base("11", Some("OK"), "Bilan de conformite (demonstration)")));
-                let mut m = base("41", Some("OK"), "Certificat de conformite des DPAE (demonstration)");
+                retours.push(Value::Object(base("11", Some("OK"), "Bilan de conformite (compagnie fictive)")));
+                let mut m = base("41", Some("OK"), "Certificat de conformite des DPAE (compagnie fictive)");
                 m.insert("dpae".into(), json!([]));
                 retours.push(Value::Object(m));
             } else {
-                retours.push(Value::Object(base("10", Some("OK"), "Accuse de reception (demonstration)")));
-                retours.push(Value::Object(base("11", Some("OK"), "Bilan de conformite (demonstration)")));
+                retours.push(Value::Object(base("10", Some("OK"), "Accuse de reception (compagnie fictive)")));
+                retours.push(Value::Object(base("11", Some("OK"), "Bilan de conformite (compagnie fictive)")));
                 if l.get("mode").and_then(Value::as_str) == Some("reel") {
-                    retours.push(Value::Object(base("46", None, "Attestation employeur rematerialisee (demonstration)")));
+                    retours.push(Value::Object(base("46", None, "Attestation employeur rematerialisee (compagnie fictive)")));
                 }
             }
             l["retours"] = Value::Array(retours);
@@ -524,7 +524,7 @@ pub fn relever_retours(
     canal: &str,
 ) -> R<Releve> {
     let mut releve = Releve::default();
-    // LA DEMONSTRATION : les retours des depots joues arrivent d'ici, sans reseau ni mot de passe.
+    // LA COMPAGNIE FICTIVE : les retours des depots joues arrivent d'ici, sans reseau ni mot de passe.
     if client.is_none() && crate::routes_accueil::simulation_active(&ctx.racine) {
         releve.rattaches = rattacher_simulation(ctx, 6)?;
         return Ok(releve);

@@ -114,13 +114,13 @@
       e.stopPropagation();
       const nom = tuile.querySelector(".nom").textContent;
       if (!confirm("Remettre « " + nom + " » à zéro ?\n\nTout ce qui a été fait "
-                   + "dans cette compagnie de démonstration sera effacé.")) return;
+                   + "dans cette compagnie fictive sera effacé.")) return;
       const r = await window.pywebview.api.remettre_a_zero(tuile.dataset.id);
       err.textContent = r.ok ? r.message : r.erreur;
     });
   }
   // LE GESTE (l'editeur, 02/10/2026) : cinq secondes d'appui sur le filet
-  // rouge, au-dessus du nom, basculent entre la demo et le complet. Rien ne
+  // rouge, au-dessus du nom, brident ou débloquent le logiciel. Rien ne
   // le montre, et rien ne bouge pendant l'appui.
   const geste = document.getElementById("geste");
   let minuterie = null;

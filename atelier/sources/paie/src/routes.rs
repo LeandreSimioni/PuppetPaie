@@ -104,26 +104,26 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
             autre => autre,
         },
         // Les envois du lot H3b : les documents du mois, un contrat ou un avenant a la signature, un dossier, les courriels
-        // de la regularisation CASC. Le mot de passe du logiciel, retape ; la boite simulee en demonstration. Le filet DPAE
+        // de la regularisation CASC. Le mot de passe du logiciel, retape ; la boite simulee dans une compagnie fictive. Le filet DPAE
         // en fond de `demander-signature` n'est pas ici : `web.py` le lance apres l'appel.
         r if crate::routes_envois::ROUTES.contains(&r) => crate::routes_envois::route(o, &ctx, route, &charge),
         // Les fiches par courriel et la verification des comptes du lot H4a : la fiche remplie par le salarie lui-meme
         // (la demande part avec le mot de passe du logiciel ; la releve ne fait rien partir), et le secret pose ouvre-t-il
         // une session chez l'organisme (UNE seule tentative).
         r if crate::routes_fiches_courriel::ROUTES.contains(&r) => crate::routes_fiches_courriel::route(o, &ctx, route, &charge),
-        // La releve des reponses « Je signe » du lot I2a : cherche les codes attendus dans la boite (la vraie, ou celle de la
-        // demonstration), note les signatures, archive la preuve, contresigne et renvoie le contrat. N'a de sens, hors d'une
-        // copie de demonstration, que pour relever pour de bon : une vraie boite est lue.
+        // La releve des reponses « Je signe » du lot I2a : cherche les codes attendus dans la boite (la vraie, ou celle d'une
+        // compagnie fictive), note les signatures, archive la preuve, contresigne et renvoie le contrat. N'a de sens, hors d'une
+        // compagnie fictive, que pour relever pour de bon : une vraie boite est lue.
         r if crate::releve_signatures::ROUTES.contains(&r) => crate::releve_signatures::route(o, &ctx, route, &charge),
         // L'ouverture du logiciel et la veille (lot I2b) : sauvegarder, relever les retours, les signatures et les fiches, sans
-        // jamais echouer. ATTENTION : hors d'une copie de demonstration, cette route va au reseau (net-entreprises, Urssaf,
+        // jamais echouer. ATTENTION : hors d'une compagnie fictive, cette route va au reseau (net-entreprises, Urssaf,
         // boite courriel, Drive, serveur des incidents).
         r if crate::ouverture::ROUTES.contains(&r) => crate::ouverture::route(o, &ctx, route, &charge),
         crate::coffre_verifier::ROUTE => crate::coffre_verifier::route(&ctx, &charge),
         // La veille lit la sauvegarde sans reseau : ce que l'index dit du dernier passage, et si le disque n'a pas bouge (lot H4b).
         r if crate::routes_sauvegarde::ROUTES.contains(&r) => crate::routes_sauvegarde::route(o, &ctx, route, &charge),
-        // L'horloge de la demonstration (lot I1) : rattraper ce qui etait du, et ce que le bandeau « pendant votre absence »
-        // lit. Elle ne joue que dans une compagnie de demonstration (`horloge::Demonstration`).
+        // L'horloge de la compagnie fictive (lot I1) : rattraper ce qui etait du, et ce que le bandeau « pendant votre absence »
+        // lit. Elle ne joue que dans une compagnie fictive (`horloge::HorlogeFictive`).
         r if crate::horloge::ROUTES.contains(&r) => crate::horloge::route(o, &ctx, route, &charge),
         // Le compte Google : le jeton se rafraichit reellement aupres de Google.
         "google-etat" => crate::routes_google::route(o, &ctx, route, &charge),

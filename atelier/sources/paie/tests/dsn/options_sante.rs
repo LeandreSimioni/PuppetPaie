@@ -16,8 +16,8 @@
 //!   groupes 00003 a 00008 : `ReferenceContrat="FM SPECT VIVANT PRIV"`, `CodeOption` NIV1/I/GE ... NIV3F/IACE/GE,
 //!   `BaseMontantSpecifique` `ValeurCodeNature="18"`, `Assiette` PMSS, par assure, conjoint et enfant.
 //!
-//! Sur des copies des demonstrations figees (compagnies inventees), dans le dossier temporaire des tests ; rien n'est
-//! ecrit dans `tests/donnees/demo/`.
+//! Sur des copies des compagnies fictives figees (compagnies inventees), dans le dossier temporaire des tests ; rien n'est
+//! ecrit dans `tests/donnees/fictives/`.
 
 use paie::contexte::Contexte;
 use paie::date::Jour;
@@ -26,9 +26,9 @@ use paie::engagement::{charger, Saisie};
 use crate::outils::{chemin_unique, contrat, dec, ecrire, lire, paires, valeur, versement, Copie};
 use serde_json::{json, Value};
 
-/// La config d'une demonstration, copiee ; `changer` recoit ses salaries et la fiche de l'entreprise.
-fn copie_de(demo: &str, changer: impl FnOnce(&mut Value, &mut Value)) -> Copie {
-    let c = Copie::config_de(demo);
+/// La config d'une compagnie fictive, copiee ; `changer` recoit ses salaries et la fiche de l'entreprise.
+fn copie_de(fictive: &str, changer: impl FnOnce(&mut Value, &mut Value)) -> Copie {
+    let c = Copie::config_de(fictive);
     let (mut sal, mut ent) = (lire(&c.0, "config/salaries.json"), lire(&c.0, "config/entreprise.json"));
     changer(&mut sal, &mut ent);
     ecrire(&c.0, "config/salaries.json", &sal);
@@ -130,7 +130,7 @@ fn un_permanent_au_niveau_2_famille_declare_son_option_son_conjoint_et_ses_enfan
     // Deburau en CDI depuis le 01/09/2026, sante SVP au niveau 2 avec son conjoint et deux enfants : groupe 00006 de la
     // fiche 139, NIV2F/IACE/GE, cotisation par ASSURE PSS, CONJOINT PSS et ENFANT PSS -- les deux compteurs entrent dans
     // le calcul, 70.008 = 1 et 70.011 = 2. 70.010 n'est pas ecrit (aucun ascendant dans la fiche), donc 70.009 non plus.
-    let copie = copie_de("demo-3090-grande", |sal, _| {
+    let copie = copie_de("fictive-3090-grande", |sal, _| {
         sal["DEBURAU"]["sante_svp"] = json!({"niveau": "2", "conjoint": true, "enfants": 2});
         sal["DEBURAU"]["prevoyance_branche_depuis"] = json!("2024-01-08");
     });
@@ -160,7 +160,7 @@ fn la_base_31_de_la_sante_d_un_permanent_3090_declare_la_base_forfaitaire_du_pla
     // Fiche 139 : chaque option de FM SPECT VIVANT PRIV attend `BaseMontantSpecifique ValeurCodeNature="18"` sur le
     // PMSS. Le composant de la base 31 de la sante est donc la base forfaitaire (18), le plafond du mois sur lequel la
     // mutuelle est calculee -- pas la tranche A (11) sur le brut, que garde la prevoyance (groupes TAPrev).
-    let copie = copie_de("demo-3090-grande", |sal, _| {
+    let copie = copie_de("fictive-3090-grande", |sal, _| {
         sal["DEBURAU"]["sante_svp"] = json!({"niveau": "2", "conjoint": true, "enfants": 2});
         sal["DEBURAU"]["prevoyance_branche_depuis"] = json!("2024-01-08");
     });
@@ -183,7 +183,7 @@ fn la_base_31_de_la_sante_d_un_permanent_3090_declare_la_base_forfaitaire_du_pla
 
 #[test]
 fn un_permanent_isole_au_niveau_1_declare_son_option_sans_ayants_droit() {
-    let copie = copie_de("demo-3090-grande", |sal, _| {
+    let copie = copie_de("fictive-3090-grande", |sal, _| {
         sal["DEBURAU"]["sante_svp"] = json!({"niveau": "1", "conjoint": false, "enfants": 0});
         sal["DEBURAU"]["prevoyance_branche_depuis"] = json!("2024-01-08");
     });
@@ -202,7 +202,7 @@ fn un_permanent_isole_au_niveau_1_declare_son_option_sans_ayants_droit() {
 fn un_intermittent_ne_declare_ni_option_ni_ayant_droit() {
     // Thalie Sante (groupe 00011), l'interbranche (00001/00002) et la CASC-SVP : la fiche 139 n'y donne ni option ni
     // population, et le CDDU commence apres le 01/01/2026 : rien d'autre que 70.012 et 70.013.
-    let copie = copie_de("demo-3090-grande", |_, _| {});
+    let copie = copie_de("fictive-3090-grande", |_, _| {});
     let ctx = copie.contexte("2026-10-28");
     let s = saisie(&ctx, "2026-10", json!([cddu("Clairon", "CL3.26.10", "2026-10-20", "2026-10-20", "2026-10-20")])).unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-10", &[], &[], &Options::default()).unwrap();
@@ -218,7 +218,7 @@ fn un_intermittent_ne_declare_ni_option_ni_ayant_droit() {
 fn un_permanent_affilie_a_la_sante_svp_sans_niveau_refuse() {
     // Le calcul refuse deja (`bareme_sante`) ; la DSN refuse aussi, d'elle-meme, de declarer l'affiliation sans son
     // option : elle nomme la fiche du salarie et la fiche de parametrage Audiens.
-    let copie = copie_de("demo-3090-grande", |sal, _| {
+    let copie = copie_de("fictive-3090-grande", |sal, _| {
         sal["DEBURAU"]["sante_svp"] = json!({"niveau": "2", "conjoint": false, "enfants": 0});
         sal["DEBURAU"]["prevoyance_branche_depuis"] = json!("2024-01-08");
         sal["CLAIRON"]["prevoyance_branche_depuis"] = json!("2024-01-08");
@@ -247,7 +247,7 @@ fn un_permanent_affilie_a_la_sante_svp_sans_niveau_refuse() {
 #[test]
 fn un_permanent_du_regime_local_refuse_faute_d_option_a_lui() {
     // Les six options de la fiche 139 sont du « Régime Général » (GE) : celle d'un salarie d'Alsace-Moselle n'y est pas.
-    let copie = copie_de("demo-3090-grande", |sal, ent| {
+    let copie = copie_de("fictive-3090-grande", |sal, ent| {
         sal["DEBURAU"]["sante_svp"] = json!({"niveau": "1", "conjoint": false, "enfants": 0});
         sal["DEBURAU"]["prevoyance_branche_depuis"] = json!("2024-01-08");
         ent["code_postal"] = json!("67000");
@@ -262,7 +262,7 @@ fn un_permanent_du_regime_local_refuse_faute_d_option_a_lui() {
 fn thalie_sante_dit_sa_date_d_affiliation_a_un_cddu_commence_en_2025() {
     // TSINTERMITTENTS existe depuis le 01/01/2026 (fiche 139, groupe 00011 ; `organismes-base.json`, `depuis`) : un
     // CDDU commence le 20/12/2025 n'y est affilie que depuis le 01/01/2026 -- 70.014 ; l'interbranche, des le contrat.
-    let copie = copie_de("demo-3090-grande", |_, _| {});
+    let copie = copie_de("fictive-3090-grande", |_, _| {});
     let ctx = copie.contexte("2026-01-28");
     let s = saisie(&ctx, "2026-01", json!([cddu("Clairon", "CL9.25.12", "2025-12-20", "2026-01-10", "2026-01-08")])).unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-01", &[], &[], &Options::default()).unwrap();
@@ -280,7 +280,7 @@ fn un_non_cadre_de_moins_d_un_an_dans_la_branche_n_est_pas_affilie_a_la_prevoyan
     // CCN 3090, art. 12 (`prevoyance-conventionnelle-base.json`, `ouverture_non_cadre_mois` 12) : arrive dans la
     // branche le 15/01/2026, Deburau n'a droit a la prevoyance qu'au 15/01/2027. En octobre 2026, la DSN ne le rattache
     // pas a PREVOYANCE SVP (ni bloc 70, ni base 31 a zero) et l'adhesion n'a plus personne de couvert (15.004 = 02).
-    let copie = copie_de("demo-3090-grande", |sal, _| {
+    let copie = copie_de("fictive-3090-grande", |sal, _| {
         sal["DEBURAU"]["sante_svp"] = json!({"niveau": "1", "conjoint": false, "enfants": 0});
         sal["DEBURAU"]["prevoyance_branche_depuis"] = json!("2026-01-15");
     });
@@ -299,7 +299,7 @@ fn un_non_cadre_de_moins_d_un_an_dans_la_branche_n_est_pas_affilie_a_la_prevoyan
 fn la_prevoyance_d_un_non_cadre_dit_le_jour_ou_elle_s_ouvre() {
     // Arrive dans la branche le 15/10/2025, en CDI depuis le 01/09/2026 : la prevoyance s'ouvre le 15/10/2026, apres le
     // debut du contrat -- 70.014 = 15102026 sous PREVOYANCE SVP, et rien sous la sante, ouverte avec le contrat.
-    let copie = copie_de("demo-3090-grande", |sal, _| {
+    let copie = copie_de("fictive-3090-grande", |sal, _| {
         sal["DEBURAU"]["sante_svp"] = json!({"niveau": "1", "conjoint": false, "enfants": 0});
         sal["DEBURAU"]["prevoyance_branche_depuis"] = json!("2025-10-15");
     });
@@ -312,7 +312,7 @@ fn la_prevoyance_d_un_non_cadre_dit_le_jour_ou_elle_s_ouvre() {
     bases_31_rattachees(&dsn, "DE5.26.09");
 
     // Entre dans la branche avec son contrat il y a plus d'un an : affilie depuis le 01/09/2025, 70.014 aussi.
-    let copie = copie_de("demo-3090-grande", |sal, _| {
+    let copie = copie_de("fictive-3090-grande", |sal, _| {
         sal["DEBURAU"]["sante_svp"] = json!({"niveau": "1", "conjoint": false, "enfants": 0});
         sal["DEBURAU"]["prevoyance_branche_depuis"] = json!("2025-09-01");
     });
@@ -328,7 +328,7 @@ fn une_prevoyance_ouverte_sans_date_d_entree_dans_la_branche_refuse_quand_elle_a
     // Pas de `prevoyance_branche_depuis` : le calcul se contente de l'anciennete dans l'entreprise (plus d'un an, donc
     // au moins autant dans la branche) ; mais la DSN ne sait pas si l'affiliation a commence avec le contrat (le
     // 01/09/2025) ou un an plus tard. Elle refuse et demande la date.
-    let copie = copie_de("demo-3090-grande", |sal, _| {
+    let copie = copie_de("fictive-3090-grande", |sal, _| {
         sal["DEBURAU"]["sante_svp"] = json!({"niveau": "1", "conjoint": false, "enfants": 0});
         sal["DEBURAU"]["date_anciennete"] = json!("2025-09-01");
         sal["DEBURAU"].as_object_mut().unwrap().remove("prevoyance_branche_depuis");
@@ -339,7 +339,7 @@ fn une_prevoyance_ouverte_sans_date_d_entree_dans_la_branche_refuse_quand_elle_a
     assert!(e.contains("prevoyance_branche_depuis") && e.contains("S21.G00.70.014"), "{}", e);
 
     // Dans l'entreprise depuis plus d'un an AVANT ce contrat : l'affiliation commence avec lui, rien a dater.
-    let copie = copie_de("demo-3090-grande", |sal, _| {
+    let copie = copie_de("fictive-3090-grande", |sal, _| {
         sal["DEBURAU"]["sante_svp"] = json!({"niveau": "1", "conjoint": false, "enfants": 0});
         sal["DEBURAU"]["date_anciennete"] = json!("2024-01-08");
         sal["DEBURAU"].as_object_mut().unwrap().remove("prevoyance_branche_depuis");
@@ -355,7 +355,7 @@ fn un_permanent_dispense_de_sante_n_est_pas_affilie_a_la_sante() {
     // CCNEAC, XII.2.1.8 : la dispense, a la demande ecrite du salarie (`sante_dispense`) ; le bulletin n'a plus de
     // mutuelle. La DSN ne le rattache pas a SANTE CCNEAC (ni bloc 70, ni base 31 a zero) : 70.014/.015 decrivent la
     // dispense comme ce qui ouvre ou ferme une affiliation (p. 287). La prevoyance reste.
-    let copie = copie_de("demo-1285-grande", |sal, _| {
+    let copie = copie_de("fictive-1285-grande", |sal, _| {
         sal["DUMESNIL"]["sante_dispense"] = json!("couverture collective obligatoire chez son conjoint");
     });
     let ctx = copie.contexte("2026-10-28");
@@ -376,7 +376,7 @@ fn un_permanent_dispense_de_sante_n_est_pas_affilie_a_la_sante() {
 /// restent. Le motif n'est pas lu : la dispense suffit, son niveau `sante_svp` aussi devient sans objet.
 #[test]
 fn un_permanent_3090_dispense_de_sante_n_est_pas_affilie_a_la_sante() {
-    let copie = copie_de("demo-3090-grande", |sal, _| {
+    let copie = copie_de("fictive-3090-grande", |sal, _| {
         sal["DEBURAU"]["prevoyance_branche_depuis"] = json!("2024-01-08");
         sal["DEBURAU"]["sante_dispense"] = json!("9.2.2 c : couvert au titre de l'emploi de son conjoint");
         sal["DEBURAU"].as_object_mut().unwrap().remove("sante_svp");
@@ -395,7 +395,7 @@ fn un_permanent_3090_dispense_de_sante_n_est_pas_affilie_a_la_sante() {
 
     // Ses bornes valent pour la 3090 comme pour la CCNEAC (Q13) : une dispense jusqu'au 30/09 (9.2.2 b, l'echeance de
     // son assurance individuelle) le laisse affilie en octobre, l'affiliation datee du 01/10.
-    let copie = copie_de("demo-3090-grande", |sal, _| {
+    let copie = copie_de("fictive-3090-grande", |sal, _| {
         sal["DEBURAU"]["sante_svp"] = json!({"niveau": "1", "conjoint": false, "enfants": 0});
         sal["DEBURAU"]["prevoyance_branche_depuis"] = json!("2024-01-08");
         sal["DEBURAU"]["sante_dispense"] = json!("9.2.2 b : assurance individuelle jusqu'a son echeance");
@@ -424,7 +424,7 @@ fn la_fiche_propose_la_dispense_de_sante_en_ccneac_et_en_3090() {
 /// pas entre l'affiliation et la dispense.
 #[test]
 fn une_dispense_de_sante_que_le_bulletin_ne_suit_pas_refuse() {
-    let copie = copie_de("demo-3090-grande", |sal, _| {
+    let copie = copie_de("fictive-3090-grande", |sal, _| {
         sal["DEBURAU"]["sante_svp"] = json!({"niveau": "1", "conjoint": false, "enfants": 0});
         sal["DEBURAU"]["prevoyance_branche_depuis"] = json!("2024-01-08");
     });
@@ -447,7 +447,7 @@ fn une_dispense_de_sante_que_le_bulletin_ne_suit_pas_refuse() {
 /// de mutuelle ni d'affiliation a la sante ; en juillet, affilie comme un autre, l'affiliation datee du 01/07.
 #[test]
 fn une_dispense_de_sante_jusqu_au_30_juin_laisse_le_salarie_affilie_en_juillet() {
-    let copie = copie_de("demo-1285-grande", |sal, _| {
+    let copie = copie_de("fictive-1285-grande", |sal, _| {
         sal["DUMESNIL"]["sante_dispense"] = json!("assurance individuelle jusqu'a son echeance");
         sal["DUMESNIL"]["sante_dispense_jusqu_au"] = json!("2026-06-30");
     });
@@ -469,14 +469,14 @@ fn une_dispense_de_sante_jusqu_au_30_juin_laisse_le_salarie_affilie_en_juillet()
 /// qui dit la date et quoi faire. Une dispense qui commence avec le contrat n'est pas « en cours de periode ».
 #[test]
 fn une_dispense_qui_finit_en_cours_de_mois_refuse_et_une_qui_commence_avec_le_contrat_passe() {
-    let copie = copie_de("demo-1285-grande", |sal, _| {
+    let copie = copie_de("fictive-1285-grande", |sal, _| {
         sal["DUMESNIL"]["sante_dispense"] = json!("assurance individuelle jusqu'a son echeance");
         sal["DUMESNIL"]["sante_dispense_jusqu_au"] = json!("2026-07-15");
     });
     let ctx = copie.contexte("2026-10-28");
     let e = saisie(&ctx, "2026-07", json!([cdi("Dumesnil", "DU5.26.01", "2026-01-05")])).map(|_| ()).unwrap_err();
     assert!(e.contains("15/07/2026") && e.contains("dispense"), "{}", e);
-    let copie = copie_de("demo-1285-grande", |sal, _| {
+    let copie = copie_de("fictive-1285-grande", |sal, _| {
         sal["DUMESNIL"]["sante_dispense"] = json!("CDD de moins de douze mois");
         sal["DUMESNIL"]["sante_dispense_depuis"] = json!("2026-07-13");
     });
@@ -489,7 +489,7 @@ fn une_dispense_qui_finit_en_cours_de_mois_refuse_et_une_qui_commence_avec_le_co
 #[test]
 fn les_bornes_d_une_dispense_se_controlent_a_la_fiche() {
     let fiche = |v: Value| -> Vec<Value> {
-        let base = lire(&crate::outils::demo("demo-1285-grande"), "config/salaries.json")["DUMESNIL"].clone();
+        let base = lire(&crate::outils::fictive("fictive-1285-grande"), "config/salaries.json")["DUMESNIL"].clone();
         let mut m = base.as_object().unwrap().clone();
         for (k, x) in v.as_object().unwrap() {
             m.insert(k.clone(), x.clone());

@@ -8,7 +8,7 @@
 //!
 //! CE QUE CE MODULE OFFRE : le trait `Courriel` (`compte`, `envoyer(mime) -> identifiant`, `rechercher`,
 //! `message_brut`, `fermer`), avec DEUX realisations : `Client`, le vrai (IMAP ecrit ici sur un flux rustls, SMTP par
-//! `lettre`), et `BoiteSimulee`, la boite de la demonstration, qui GARDE les messages et ne les envoie pas. Un
+//! `lettre`), et `BoiteSimulee`, la boite de la compagnie fictive, qui GARDE les messages et ne les envoie pas. Un
 //! identifiant de message ENVOYE est son en-tete `Message-ID` ; celui d'un message RECU est son UID IMAP. La
 //! recherche est celle du serveur (`UID SEARCH TEXT`), dans la boite de reception seule.
 //!
@@ -595,7 +595,7 @@ pub fn verifier(racine: &Path) -> Result<Value, ErreurCourriel> {
 
 // ---------------------------------------------------------------------------------------------- la boite simulee
 
-/// La boite courriel de la demonstration : elle garde, elle n'envoie pas. Meme surface que `Client`. Chaque message
+/// La boite courriel de la compagnie fictive : elle garde, elle n'envoie pas. Meme surface que `Client`. Chaque message
 /// est ecrit tel quel dans `courriels-simules/`, pour qu'on puisse l'ouvrir et voir ce qui serait parti.
 pub struct BoiteSimulee {
     racine: PathBuf,
@@ -610,7 +610,7 @@ impl BoiteSimulee {
             .and_then(|s| s.get("email"))
             .and_then(Value::as_str)
             .filter(|e| !e.is_empty())
-            .unwrap_or("demonstration@puppetpaie.invalid");
+            .unwrap_or("fictive@puppetpaie.invalid");
         BoiteSimulee { racine: racine.to_path_buf(), compte: adresse.to_lowercase() }
     }
 
@@ -674,11 +674,11 @@ impl Courriel for BoiteSimulee {
     }
 
     /// Ecrit le message dans `courriels-simules/` ; l'identifiant est son `Message-ID`, comme chez le vrai client :
-    /// c'est par lui que la demonstration retrouve ce qui est parti.
+    /// c'est par lui que la compagnie fictive retrouve ce qui est parti.
     fn envoyer(&mut self, message_mime: &[u8]) -> Result<String, ErreurCourriel> {
         let dossier = self.racine.join(DOSSIER_COURRIELS);
         std::fs::create_dir_all(&dossier).map_err(|e| erreur(format!("{} : {}", dossier.display(), e)))?;
-        let ident = message_id_de(message_mime).unwrap_or_else(|| format!("<{}@demonstration.puppetpaie>", hexa_au_hasard(8)));
+        let ident = message_id_de(message_mime).unwrap_or_else(|| format!("<{}@fictive.puppetpaie>", hexa_au_hasard(8)));
         let maintenant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default();
         let nom = format!("{}_{}.eml", horodatage_de(maintenant), hexa_au_hasard(4));
         let chemin = dossier.join(&nom);

@@ -11,7 +11,7 @@
 //!   (principe c) et jamais pour un identifiant (principe d) ; « Le changement d'une des modalites visees doit
 //!   imperativement etre declare via un bloc « Changements Contrat - S21.G00.41 » » (§ 2.1.2.5.2, p. 25).
 //!
-//! Sur la copie figee de `demo-1285-grande` (`tests/donnees/demo/`, compagnie inventee : deux CDI, NADAR depuis le
+//! Sur la copie figee de `fictive-1285-grande` (`tests/donnees/fictives/`, compagnie inventee : deux CDI, NADAR depuis le
 //! 03/01/2022, cadre, et DORVAL depuis le 01/04/2025, non cadre ; toutes les DSN deposees jusqu'a aout 2026), copiee
 //! dans le dossier temporaire des tests avant d'y retoucher les fiches et les saisies.
 
@@ -25,7 +25,7 @@ use std::path::{Path, PathBuf};
 
 /// Une copie de la 1285-grande, sans ses pieces, propre a un test.
 fn copie(test: &str) -> PathBuf {
-    compagnie::ses_dsn("demo-1285-grande", &[], &outils::dossier_de_test("bloc_41", test))
+    compagnie::ses_dsn("fictive-1285-grande", &[], &outils::dossier_de_test("bloc_41", test))
 }
 
 fn retoucher_fiche(racine: &Path, cle: &str, champs: Value) {
@@ -200,7 +200,7 @@ fn un_passage_cadre_declare_l_ancien_statut_en_bloc_41_et_le_mois_suivant_n_en_p
     paie::formats::verifier_fichier(&sept).unwrap();
     // Septembre depose : octobre declare 04 / 01 sans bloc 41.
     deposer(&racine, "2026-09", "DSN_Septembre2026.dsn", &sept);
-    // Octobre n'est pas produit dans la demonstration : ses CDDU n'ont pas de numero ; seuls les deux CDI restent.
+    // Octobre n'est pas produit dans la compagnie fictive : ses CDDU n'ont pas de numero ; seuls les deux CDI restent.
     let mut s = outils::lire(&racine, "paies/2026-10.json");
     s["engagements"].as_array_mut().unwrap().retain(|e| e["nature"] == "cdi");
     outils::ecrire(&racine, "paies/2026-10.json", &s);

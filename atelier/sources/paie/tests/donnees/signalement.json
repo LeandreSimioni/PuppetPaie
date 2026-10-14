@@ -1,7 +1,7 @@
 [
  {
-  "nom": "demo-3090-petite/arret-maladie-sans-subrogation",
-  "racine": "demo-3090-petite",
+  "nom": "fictive-3090-petite/arret-maladie-sans-subrogation",
+  "racine": "fictive-3090-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BRIOCHE",
@@ -30,8 +30,8 @@
   }
  },
  {
-  "nom": "demo-3090-petite/arret-maladie-subrogation",
-  "racine": "demo-3090-petite",
+  "nom": "fictive-3090-petite/arret-maladie-subrogation",
+  "racine": "fictive-3090-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BRIOCHE",
@@ -61,8 +61,8 @@
   }
  },
  {
-  "nom": "demo-3090-petite/arret-accident-du-travail",
-  "racine": "demo-3090-petite",
+  "nom": "fictive-3090-petite/arret-accident-du-travail",
+  "racine": "fictive-3090-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BRIOCHE",
@@ -92,8 +92,8 @@
   }
  },
  {
-  "nom": "demo-3090-petite/reprise-anticipee",
-  "racine": "demo-3090-petite",
+  "nom": "fictive-3090-petite/reprise-anticipee",
+  "racine": "fictive-3090-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BRIOCHE",
@@ -122,8 +122,8 @@
   }
  },
  {
-  "nom": "demo-3090-petite/annule-et-remplace",
-  "racine": "demo-3090-petite",
+  "nom": "fictive-3090-petite/annule-et-remplace",
+  "racine": "fictive-3090-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BRIOCHE",
@@ -155,8 +155,8 @@
   }
  },
  {
-  "nom": "demo-3090-petite/refus-sans-subrogation",
-  "racine": "demo-3090-petite",
+  "nom": "fictive-3090-petite/refus-sans-subrogation",
+  "racine": "fictive-3090-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BRIOCHE",
@@ -185,8 +185,8 @@
   }
  },
  {
-  "nom": "demo-3090-petite/refus-accident-sans-date",
-  "racine": "demo-3090-petite",
+  "nom": "fictive-3090-petite/refus-accident-sans-date",
+  "racine": "fictive-3090-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BRIOCHE",
@@ -215,8 +215,8 @@
   }
  },
  {
-  "nom": "demo-3090-petite/refus-reprise-a-la-fin-previsionnelle",
-  "racine": "demo-3090-petite",
+  "nom": "fictive-3090-petite/refus-reprise-a-la-fin-previsionnelle",
+  "racine": "fictive-3090-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BRIOCHE",
@@ -245,8 +245,8 @@
   }
  },
  {
-  "nom": "demo-3090-petite/refus-annule-et-remplace-sans-identifiant",
-  "racine": "demo-3090-petite",
+  "nom": "fictive-3090-petite/refus-annule-et-remplace-sans-identifiant",
+  "racine": "fictive-3090-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BRIOCHE",
@@ -276,8 +276,8 @@
   }
  },
  {
-  "nom": "demo-3090-petite/refus-motif-annulation",
-  "racine": "demo-3090-petite",
+  "nom": "fictive-3090-petite/refus-motif-annulation",
+  "racine": "fictive-3090-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BRIOCHE",
@@ -306,8 +306,8 @@
   }
  },
  {
-  "nom": "demo-1285-petite/arret-maladie-sans-subrogation",
-  "racine": "demo-1285-petite",
+  "nom": "fictive-1285-petite/arret-maladie-sans-subrogation",
+  "racine": "fictive-1285-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BEAUCHAMP",
@@ -336,8 +336,8 @@
   }
  },
  {
-  "nom": "demo-1285-petite/arret-maladie-subrogation",
-  "racine": "demo-1285-petite",
+  "nom": "fictive-1285-petite/arret-maladie-subrogation",
+  "racine": "fictive-1285-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BEAUCHAMP",
@@ -367,8 +367,8 @@
   }
  },
  {
-  "nom": "demo-1285-petite/arret-accident-du-travail",
-  "racine": "demo-1285-petite",
+  "nom": "fictive-1285-petite/arret-accident-du-travail",
+  "racine": "fictive-1285-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BEAUCHAMP",
@@ -398,8 +398,8 @@
   }
  },
  {
-  "nom": "demo-1285-petite/reprise-anticipee",
-  "racine": "demo-1285-petite",
+  "nom": "fictive-1285-petite/reprise-anticipee",
+  "racine": "fictive-1285-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BEAUCHAMP",
@@ -428,8 +428,8 @@
   }
  },
  {
-  "nom": "demo-1285-petite/annule-et-remplace",
-  "racine": "demo-1285-petite",
+  "nom": "fictive-1285-petite/annule-et-remplace",
+  "racine": "fictive-1285-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BEAUCHAMP",
@@ -461,8 +461,8 @@
   }
  },
  {
-  "nom": "demo-1285-petite/refus-sans-subrogation",
-  "racine": "demo-1285-petite",
+  "nom": "fictive-1285-petite/refus-sans-subrogation",
+  "racine": "fictive-1285-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BEAUCHAMP",
@@ -491,8 +491,8 @@
   }
  },
  {
-  "nom": "demo-1285-petite/refus-accident-sans-date",
-  "racine": "demo-1285-petite",
+  "nom": "fictive-1285-petite/refus-accident-sans-date",
+  "racine": "fictive-1285-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BEAUCHAMP",
@@ -521,8 +521,8 @@
   }
  },
  {
-  "nom": "demo-1285-petite/refus-reprise-a-la-fin-previsionnelle",
-  "racine": "demo-1285-petite",
+  "nom": "fictive-1285-petite/refus-reprise-a-la-fin-previsionnelle",
+  "racine": "fictive-1285-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BEAUCHAMP",
@@ -551,8 +551,8 @@
   }
  },
  {
-  "nom": "demo-1285-petite/refus-annule-et-remplace-sans-identifiant",
-  "racine": "demo-1285-petite",
+  "nom": "fictive-1285-petite/refus-annule-et-remplace-sans-identifiant",
+  "racine": "fictive-1285-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BEAUCHAMP",
@@ -582,8 +582,8 @@
   }
  },
  {
-  "nom": "demo-1285-petite/refus-motif-annulation",
-  "racine": "demo-1285-petite",
+  "nom": "fictive-1285-petite/refus-motif-annulation",
+  "racine": "fictive-1285-petite",
   "date": "2026-09-27",
   "arret": {
    "salarie": "BEAUCHAMP",

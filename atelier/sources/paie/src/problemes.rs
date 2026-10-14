@@ -149,7 +149,7 @@ fn corps_signalement(racine: &Path, texte: &Value, ecran: &Value, captures: &[Va
     }
     let caps = captures_valides(captures)?;
     let (texte, trouve) = incidents::caviarder(&texte);
-    let demo = crate::editeur::est_demonstration(racine);
+    let fictive = crate::interface::compagnies::est_fictive(racine);
     let nom_du_dossier = racine.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let poste = incidents::poste(racine)?;
     let ecran_txt = if vrai(ecran) { tete(&py_str(ecran), 200) } else { String::new() };
@@ -161,8 +161,10 @@ fn corps_signalement(racine: &Path, texte: &Value, ecran: &Value, captures: &[Va
         "texte": texte,
         "version": incidents::version(),
         "contexte": {
-            "ecran": ecran_txt, "demonstration": demo,
-            "compagnie": if demo { nom_du_dossier } else { String::new() },
+            // `demonstration` : le nom du champ que le serveur de l'editeur attend (son contrat, `infra/filet/`) ; il dit
+            // si le retour vient d'une compagnie fictive.
+            "ecran": ecran_txt, "demonstration": fictive,
+            "compagnie": if fictive { nom_du_dossier } else { String::new() },
             "systeme": incidents::machine(),
         },
         "incidents": joints,

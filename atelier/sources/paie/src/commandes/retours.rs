@@ -4,7 +4,7 @@
 //! qui s'affiche -- et le traitement du taux de PAS, qui demande un oeil humain.
 //!
 //! ATTENTION : cette commande va au RESEAU (net-entreprises, ou le service DPAE de l'Urssaf avec `--dpae`). Sur une
-//! compagnie de demonstration, les retours sont joues sans reseau. Une lecture : on archive sans rien demander, mais on
+//! compagnie fictive, les retours sont joues sans reseau. Une lecture : on archive sans rien demander, mais on
 //! n'ECRIT JAMAIS un taux de PAS dans la configuration sans `--appliquer`.
 //!
 //! LE MOT DE PASSE. Si le coffre est ferme (ni la cle du poste, ni une seance), `Cadre::ouvrir_le_coffre` le demande par

@@ -1,5 +1,5 @@
 //! `paie route` : `saisie` et `echeancier`, qui ne calculent rien (les baremes se retirent pour le prouver), et
-//! `echeance-faite`, qui coche une echeance. Sur la configuration de `demo-3090-petite` et les mois de chaque test,
+//! `echeance-faite`, qui coche une echeance. Sur la configuration de `fictive-3090-petite` et les mois de chaque test,
 //! sans compteurs ni echeance cochee.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, refus, reussi, route};
@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str, mois: &[&str]) -> PathBuf {
-    let racine = compagnie::saisies("demo-3090-petite", mois, &dossier_de_test("routes_saisie", nom).join("compagnie"));
+    let racine = compagnie::saisies("fictive-3090-petite", mois, &dossier_de_test("routes_saisie", nom).join("compagnie"));
     std::fs::remove_file(racine.join("config/compteurs.json")).unwrap();
     std::fs::remove_file(racine.join("config/echeancier.json")).unwrap();
     racine
@@ -353,9 +353,9 @@ fn un_journal_abime_refuse_l_echeancier() {
 
 // ======================================================== echeance-faite
 
-/// La compagnie avec l'echeancier de la demonstration (des echeances deja cochees).
+/// La compagnie avec l'echeancier de la compagnie fictive (des echeances deja cochees).
 fn avec_son_echeancier(nom: &str) -> PathBuf {
-    compagnie::saisies("demo-3090-petite", &[], &dossier_de_test("routes_saisie", nom).join("compagnie"))
+    compagnie::saisies("fictive-3090-petite", &[], &dossier_de_test("routes_saisie", nom).join("compagnie"))
 }
 
 fn faite(racine: &Path, charge: Value) -> Value {

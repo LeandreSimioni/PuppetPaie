@@ -1,5 +1,5 @@
 //! `envoi` sans reseau : `envoyer` contre un faux client (l'ordre, l'echec au troisieme, `identifiants`, `copies`),
-//! `preparer` et `recap_france_travail` sur la compagnie de demonstration, `etiquette`, `nom_fichier`, `Message`.
+//! `preparer` et `recap_france_travail` sur la compagnie fictive, `etiquette`, `nom_fichier`, `Message`.
 //! L'octet pres d'`en_mime` est dans `envoi_mime.rs`.
 
 use std::path::{Path, PathBuf};
@@ -139,12 +139,12 @@ fn les_tables_du_message() {
     assert!(envoi::NOTE_SANS_AER.starts_with("Ton attestation employeur France Travail"));
 }
 
-// -------------------------------------------------------------------------------------- preparer, sur la demo
+// -------------------------------------------------------------------------------------- preparer, sur la fictive
 
 const MOIS: &str = "2025-10";
 
-fn demo() -> (PathBuf, Contexte) {
-    let racine = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/demo/demo-3090-grande");
+fn fictive() -> (PathBuf, Contexte) {
+    let racine = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fictives/fictive-3090-grande");
     let ctx = Contexte::nouveau(&racine, Some(d(&json!("2026-09-27")).unwrap())).unwrap();
     (racine, ctx)
 }
@@ -161,7 +161,7 @@ fn salarie<'a>(paies: &'a [Paie], cle: &str) -> Vec<&'a Paie> {
 
 #[test]
 fn recap_france_travail_par_contrat() {
-    let (racine, ctx) = demo();
+    let (racine, ctx) = fictive();
     let paies = paies_du_mois(&racine, &ctx);
     let ent = "Les Marées hautes (démonstration)";
     let r = envoi::recap_france_travail(&salarie(&paies, "BIANCOLELLI"), MOIS, ent).unwrap();
@@ -190,7 +190,7 @@ fn pieces_ecrites(dossier: &Path, cle: &str, noms: &[&str]) {
 
 #[test]
 fn preparer_un_message_par_salarie() {
-    let (racine, ctx) = demo();
+    let (racine, ctx) = fictive();
     let paies = paies_du_mois(&racine, &ctx);
     let t = travail("preparer");
     pieces_ecrites(&t, "BIANCOLELLI", &["bulletin", "cs"]);
@@ -232,7 +232,7 @@ fn preparer_un_message_par_salarie() {
 
 #[test]
 fn preparer_refuse_un_salarie_sans_adresse() {
-    let (racine, ctx) = demo();
+    let (racine, ctx) = fictive();
     let mut paies = paies_du_mois(&racine, &ctx);
     for p in paies.iter_mut() {
         if p.salarie["_cle"] == "CLAIRON" {
@@ -245,7 +245,7 @@ fn preparer_refuse_un_salarie_sans_adresse() {
 
 #[test]
 fn preparer_ramasse_le_rectificatif_de_qui_n_a_pas_de_paie() {
-    let (racine, ctx) = demo();
+    let (racine, ctx) = fictive();
     let paies = paies_du_mois(&racine, &ctx);
     let t = travail("rectificatif");
     pieces_ecrites(&t, "JACQUET", &["rectificatif"]);
@@ -300,24 +300,24 @@ fn date_de_rend_l_heure_de_paris_aux_changements_d_heure() {
     }
 }
 
-// ------------------------------------------------------------- preparer sur des demonstrations (lot H3a, la preuve)
+// ------------------------------------------------------------- preparer sur des compagnies fictives (lot H3a, la preuve)
 
-/// `tests/donnees/preparer_demos.json` : les messages de deux mois de deux demonstrations, avec les fiches (un bulletin
+/// `tests/donnees/preparer_fictives.json` : les messages de deux mois de deux compagnies fictives, avec les fiches (un bulletin
 /// rectificatif, des AER, un salarie sans paie) ; le dossier ne porte que les noms de fichiers listes. (Le mois 2025-10 de
-/// `demo-3090-grande` est prouve plus haut, a la main.) L'elision (« d'octobre », « d'avril », « d'aout ») est dans
+/// `fictive-3090-grande` est prouve plus haut, a la main.) L'elision (« d'octobre », « d'avril », « d'aout ») est dans
 /// `src/envoi.rs` (`de_mois`) et dans `recap_france_travail_par_contrat`.
 /// `PUPPETPAIE_REECRIRE_ORACLES=1` le reecrit depuis le moteur.
 #[test]
-fn preparer_rend_les_messages_attendus_sur_deux_demonstrations() {
-    let mut cas: Value = lire_oracle("preparer_demos.json");
+fn preparer_rend_les_messages_attendus_sur_deux_fictives() {
+    let mut cas: Value = lire_oracle("preparer_fictives.json");
     for un in cas.as_array_mut().unwrap() {
-        let (demo_nom, mois) = (un["demo"].as_str().unwrap().to_string(), un["mois"].as_str().unwrap().to_string());
-        let racine = crate::outils::demo(&demo_nom);
+        let (nom_fictive, mois) = (un["fictive"].as_str().unwrap().to_string(), un["mois"].as_str().unwrap().to_string());
+        let racine = crate::outils::fictive(&nom_fictive);
         let ctx = Contexte::nouveau(&racine, Some(d(&json!("2026-09-27")).unwrap())).unwrap();
         let lignes: LignesPermanent = &paie::conges::lignes_du_mois;
         let (_, engs, _) = engagements_du_fichier(&ctx, &racine.join("paies").join(format!("{}.json", mois)), lignes).unwrap();
         let paies: Vec<Paie> = engs.iter().map(|e| calculer(&ctx, e).unwrap()).collect();
-        let t = travail(&format!("demo-{}-{}", demo_nom, mois));
+        let t = travail(&format!("fictive-{}-{}", nom_fictive, mois));
         for f in un["fichiers"].as_array().unwrap() {
             std::fs::write(t.join(f.as_str().unwrap()), b"%PDF-1.4\n").unwrap();
         }
@@ -332,5 +332,5 @@ fn preparer_rend_les_messages_attendus_sur_deux_demonstrations() {
             })
             .collect();
     }
-    oracle("preparer_demos.json", "", &cas);
+    oracle("preparer_fictives.json", "", &cas);
 }

@@ -1,8 +1,8 @@
 //! Le lot « Incidents et canal editeur » de bout en bout : `paie route` contre un
 //! faux serveur local (jamais le vrai serveur de l'editeur) -- le journal des
 //! incidents, l'envoi chez l'editeur, « Un probleme, une idee ? », le filet DPAE
-//! (le mot de passe du logiciel est verifie par le moteur) et la soudure de la demo.
-//! Chaque test monte sa compagnie dans un dossier a lui, copie de la demo inventee.
+//! (le mot de passe du logiciel est verifie par le moteur) et la soudure de la fictive.
+//! Chaque test monte sa compagnie dans un dossier a lui, copie de la fictive inventee.
 
 use crate::outils::{copier, http_json, Recu};
 use paie::coffre::Coffre;
@@ -57,21 +57,21 @@ struct Poste {
     cle: PathBuf,
 }
 
-/// La demo `demo-3090-petite` (inventee), avec ces mois de paie ; le code livre
-/// est dans `logiciel/donnees` (a cote de lui, `logiciel/EDITION.json` dirait `demo`).
+/// La fictive `fictive-3090-petite` (inventee), avec ces mois de paie ; le code livre
+/// est dans `logiciel/donnees` (a cote de lui, `logiciel/EDITION.json` dirait `fictive`).
 fn poste(nom: &str, mois: &[&str]) -> Poste {
     let base = Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!("incidents-filet-{}", nom));
     let _ = std::fs::remove_dir_all(&base);
-    let demo = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/demo/demo-3090-petite");
+    let fictive = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fictives/fictive-3090-petite");
     let racine = base.join("compagnie");
-    copier(&demo.join("config"), &racine.join("config"));
+    copier(&fictive.join("config"), &racine.join("config"));
     let _ = std::fs::remove_file(racine.join("config/compteurs.json"));
     let _ = std::fs::remove_file(racine.join("config/filet-dpae.json"));
     std::fs::create_dir_all(racine.join("paies")).unwrap();
     std::fs::create_dir_all(racine.join("journal")).unwrap();
     std::fs::write(racine.join("journal/depots.json"), "[]").unwrap();
     for m in mois {
-        std::fs::copy(demo.join("paies").join(format!("{}.json", m)), racine.join("paies").join(format!("{}.json", m))).unwrap();
+        std::fs::copy(fictive.join("paies").join(format!("{}.json", m)), racine.join("paies").join(format!("{}.json", m))).unwrap();
     }
     let moteur = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../logiciel/donnees");
     let code = base.join("logiciel/donnees");
@@ -432,12 +432,12 @@ fn ce_qui_part_dit_la_machine_et_rien_de_la_personne() {
     assert_eq!(a["corps"]["contexte"]["compagnie"], json!(""));
 }
 
-// ======================================================= la soudure de la demo
+// ======================================================= la soudure de la fictive
 
 #[test]
-fn la_demo_ne_parle_qu_a_l_editeur() {
-    let p = poste("demo", &[]);
-    std::fs::write(p.base.join("logiciel/EDITION.json"), r#"{"edition": "demo"}"#).unwrap();
+fn le_paquet_soude_ne_parle_qu_a_l_editeur() {
+    let p = poste("fictive", &[]);
+    std::fs::write(p.base.join("logiciel/EDITION.json"), r#"{"edition": "bride"}"#).unwrap();
     let (url, recu) = serveur(|_, corps| {
         let paires: Vec<Value> = corps["incidents"].as_array().into_iter().flatten().map(|x| json!([x["empreinte"], x["quand"]])).collect();
         (200, json!({"recus": paires, "numero": "R-1", "cle": "k", "confirme": true}))
@@ -451,7 +451,7 @@ fn la_demo_ne_parle_qu_a_l_editeur() {
     assert_eq!(actions(&recu), ["poste", "rapport", "retour", "reponses"]);
     // Celles du filet DPAE ne partent pas : la porte est soudee.
     let r = p.route("filet-activer", json!({"adresse": "a@b.fr"}));
-    assert_eq!((r["ok"].clone(), r["classe"].clone()), (json!(false), json!("EditionDemo")), "{}", r);
+    assert_eq!((r["ok"].clone(), r["classe"].clone()), (json!(false), json!("EditionBridee")), "{}", r);
     assert_eq!(recu.lock().unwrap().len(), 4, "rien de plus n'est parti");
 }
 

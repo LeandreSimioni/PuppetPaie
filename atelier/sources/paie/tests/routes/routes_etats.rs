@@ -1,5 +1,5 @@
 //! `paie route` : les petites lectures de l'ouverture (`exercices`, `coffre-etat`, `filet-etat`, `importation-etat`,
-//! `maj-etat`, `signalements`, `pieces-parties`) et la decision `maj-malgre-calcul`. Sur `demo-3090-petite` (config, aout
+//! `maj-etat`, `signalements`, `pieces-parties`) et la decision `maj-malgre-calcul`. Sur `fictive-3090-petite` (config, aout
 //! et septembre 2026, journal vide) ; le coffre ne se lit que par des presences, sans cle de poste.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, reussi, route_avec};
@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::saisies("demo-3090-petite", &["2026-08", "2026-09"], &dossier_de_test("routes_etats", nom).join("compagnie"))
+    compagnie::saisies("fictive-3090-petite", &["2026-08", "2026-09"], &dossier_de_test("routes_etats", nom).join("compagnie"))
 }
 
 fn route(c: &Path, nom: &str, charge: Value, env: &[(&str, &str)]) -> Value {
@@ -188,66 +188,95 @@ fn l_importation_dit_les_reprises_par_source_et_ce_qui_attend_l_editeur() {
 
 // ------------------------------------------------------------------ la mise a jour
 
-fn prete(c: &Path, extra: Value) {
-    std::fs::create_dir_all(c.join("maj/2099.01.01/logiciel/donnees")).unwrap();
+/// La mise a jour est celle de l'INSTALLATION (lot U1) : la compagnie et, a cote, une installation (son `logiciel/`, son
+/// `maj/`), que la route trouve par `PUPPETPAIE_CODE`.
+fn installation(c: &Path) -> PathBuf {
+    crate::outils::installation(&c.parent().unwrap().join("installation"), "2026.10.09")
+}
+
+fn lu_dans(c: &Path, inst: &Path, nom: &str) -> Value {
+    reussi(&route(c, nom, json!({}), &[("PUPPETPAIE_CODE", &crate::outils::code_de(inst))])).clone()
+}
+
+fn prete(inst: &Path, extra: Value) {
+    std::fs::create_dir_all(inst.join("maj/2099.01.01/logiciel/donnees")).unwrap();
     let mut p = json!({"version": "2099.01.01", "calcul": "un calcul", "exigee": ""});
     for (k, v) in extra.as_object().unwrap() {
         p[k] = v.clone();
     }
-    ecrire(c, "maj/prete.json", &p);
+    ecrire(inst, "maj/prete.json", &p);
 }
 
 #[test]
 fn une_version_qui_change_un_calcul_attend_les_mois_saisis_sans_dsn() {
     let c = &compagnie("maj");
-    let r = lu(c, "maj-etat");
+    let inst = &installation(c);
+    let r = lu_dans(c, inst, "maj-etat");
     assert_eq!((r["prete"].clone(), r["attend"].clone(), r["signee"].clone()), (Value::Null, json!([]), json!(true)));
+    assert_eq!(r["courante"], json!("2026.10.09"), "la version de l'installation");
     for mois in ["2026-08", "2026-09"] {
         ecrire(c, &format!("paies/{}.json", mois), &json!({"mois": mois, "engagements": [{"salarie": "INVENTE"}]}));
     }
-    prete(c, json!({}));
-    let r = lu(c, "maj-etat");
+    prete(inst, json!({}));
+    let r = lu_dans(c, inst, "maj-etat");
     assert_eq!(r["prete"], json!("2099.01.01"));
     assert_eq!(r["calcul"], json!("un calcul"));
     assert_eq!(r["attend"], json!(["2026-08", "2026-09"]), "les deux mois saisis, sans DSN reelle acceptee");
     ecrire(c, "paies/2026-09.calcul.json", &json!({"engagements": [1]}));
-    assert_eq!(lu(c, "maj-etat")["attend"], json!(["2026-08", "2026-09"]), "`AAAA-MM.calcul.json` n'est pas un mois");
-    prete(c, json!({"malgre_calcul": true}));
-    assert_eq!(lu(c, "maj-etat")["attend"], json!([]), "passer outre");
-    prete(c, json!({"calcul": ""}));
-    assert_eq!(lu(c, "maj-etat")["attend"], json!([]), "sans note de calcul, rien ne retient");
-    std::fs::remove_dir_all(c.join("maj/2099.01.01")).unwrap();
-    assert_eq!(lu(c, "maj-etat")["prete"], Value::Null, "le dossier a disparu : rien de pret");
+    assert_eq!(lu_dans(c, inst, "maj-etat")["attend"], json!(["2026-08", "2026-09"]), "`AAAA-MM.calcul.json` n'est pas un mois");
+    // Une compagnie fictive (ou une copie) ne retient rien : elle ne depose jamais.
+    ecrire(c, "COPIE-DE-DEVELOPPEMENT.json", &json!({"copie_de": "compagnie fictive essai"}));
+    assert_eq!(lu_dans(c, inst, "maj-etat")["attend"], json!([]), "une fictive ne retient pas la version");
+    std::fs::remove_file(c.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
+    prete(inst, json!({"malgre_calcul": true}));
+    assert_eq!(lu_dans(c, inst, "maj-etat")["attend"], json!([]), "passer outre");
+    prete(inst, json!({"calcul": ""}));
+    assert_eq!(lu_dans(c, inst, "maj-etat")["attend"], json!([]), "sans note de calcul, rien ne retient");
+    std::fs::remove_dir_all(inst.join("maj/2099.01.01")).unwrap();
+    assert_eq!(lu_dans(c, inst, "maj-etat")["prete"], Value::Null, "le dossier a disparu : rien de pret");
+    assert!(!c.join("maj").exists(), "rien ne se range dans la compagnie");
 }
 
-/// Le depot des mises a jour quand `config/maj.json` ne le dit pas : celui du moteur, sous `/maj/` du serveur du filet
-/// (lot S1 ; `maj::DEPOT_PAR_DEFAUT`). Un depot pose le remplace (`la_configuration_de_la_mise_a_jour_illisible_refuse`).
+/// Le depot des mises a jour quand le reglage de l'installation ne le dit pas : celui du moteur, sous `/maj/` du serveur
+/// du filet (lot S1 ; `maj::DEPOT_PAR_DEFAUT`). Un depot pose le remplace ; le reglage d'avant le lot U1
+/// (`prive/config/maj.json`) se lit en repli, et le reglage de l'installation passe avant lui.
 #[test]
 fn le_depot_des_mises_a_jour_est_celui_du_moteur_tant_qu_aucun_n_est_pose() {
     let c = &compagnie("maj-depot");
+    let inst = &installation(c);
     for rien in [None, Some(json!({"editeur": false})), Some(json!({"depot": "", "editeur": false}))] {
         match &rien {
             None => {
-                let _ = std::fs::remove_file(c.join("config/maj.json"));
+                let _ = std::fs::remove_file(inst.join("maj/reglage.json"));
             }
-            Some(v) => ecrire(c, "config/maj.json", v),
+            Some(v) => ecrire(inst, "maj/reglage.json", v),
         }
-        assert_eq!(lu(c, "maj-etat")["depot"], json!("https://filet.puppetpaie.fr/maj"), "{:?}", rien);
+        assert_eq!(lu_dans(c, inst, "maj-etat")["depot"], json!("https://github.com/LeandreSimioni/PuppetPaie/releases/latest/download"), "{:?}", rien);
     }
-    ecrire(c, "config/maj.json", &json!({"depot": "https://ailleurs.test/versions"}));
-    assert_eq!(lu(c, "maj-etat")["depot"], json!("https://ailleurs.test/versions"));
+    ecrire(c, "config/maj.json", &json!({"depot": "https://de-la-compagnie.test"}));
+    assert_eq!(lu_dans(c, inst, "maj-etat")["depot"], json!("https://github.com/LeandreSimioni/PuppetPaie/releases/latest/download"), "une compagnie ne regle plus rien");
+    std::fs::remove_file(inst.join("maj/reglage.json")).unwrap();
+    ecrire(inst, "prive/config/maj.json", &json!({"depot": "D:/depot-d-avant", "editeur": true}));
+    let r = lu_dans(c, inst, "maj-etat");
+    assert_eq!((r["depot"].clone(), r["editeur"].clone()), (json!("D:/depot-d-avant"), json!(true)), "le reglage d'avant, en repli");
+    ecrire(inst, "maj/reglage.json", &json!({"depot": "https://ailleurs.test/versions"}));
+    let r = lu_dans(c, inst, "maj-etat");
+    assert_eq!((r["depot"].clone(), r["editeur"].clone()), (json!("https://ailleurs.test/versions"), json!(false)));
 }
 
 #[test]
 fn la_configuration_de_la_mise_a_jour_illisible_refuse() {
     let c = &compagnie("maj-config");
-    ecrire(c, "config/maj.json", &json!({"depot": "/depot", "editeur": 1}));
-    let r = lu(c, "maj-etat");
+    let inst = &installation(c);
+    let code = crate::outils::code_de(inst);
+    let env = [("PUPPETPAIE_CODE", code.as_str())];
+    ecrire(inst, "maj/reglage.json", &json!({"depot": "/depot", "editeur": true}));
+    let r = lu_dans(c, inst, "maj-etat");
     assert_eq!((r["depot"].clone(), r["editeur"].clone()), (json!("/depot"), json!(true)));
-    ecrire_texte(c, "config/maj.json", "{abime");
-    assert!(refuse(c, "maj-etat"));
-    ecrire(c, "config/maj.json", &json!([1]));
-    assert!(refuse(c, "maj-etat"));
+    ecrire_texte(inst, "maj/reglage.json", "{abime");
+    assert_eq!(route(c, "maj-etat", json!({}), &env)["ok"], json!(false));
+    ecrire(inst, "maj/reglage.json", &json!([1]));
+    assert_eq!(route(c, "maj-etat", json!({}), &env)["ok"], json!(false));
 }
 
 // ------------------------------------------------------------------ les exercices
@@ -352,11 +381,14 @@ fn l_identifiant_du_compte_dit_ce_qui_manque() {
 #[test]
 fn passer_outre_un_calcul_s_ecrit_dans_la_version_prete() {
     let racine = compagnie("maj-malgre-calcul");
-    let r = route(&racine, "maj-malgre-calcul", json!({}), &[]);
+    let inst = installation(&racine);
+    let code = crate::outils::code_de(&inst);
+    let env = [("PUPPETPAIE_CODE", code.as_str())];
+    let r = route(&racine, "maj-malgre-calcul", json!({}), &env);
     assert_eq!(r["erreur"], json!("Aucune version prete."), "{}", r);
-    std::fs::create_dir_all(racine.join("maj").join("9.9.9").join("logiciel").join("donnees")).unwrap();
-    std::fs::write(racine.join("maj").join("9.9.9").join("logiciel").join("donnees").join("x.json"), "{}\n").unwrap();
-    std::fs::write(racine.join("maj").join("prete.json"), r#"{"version": "9.9.9", "note_calcul": "é"}"#).unwrap();
-    reussi(&route(&racine, "maj-malgre-calcul", json!({}), &[]));
-    assert_eq!(lire(&racine, "maj/prete.json"), json!({"version": "9.9.9", "note_calcul": "é", "malgre_calcul": true}));
+    std::fs::create_dir_all(inst.join("maj").join("9.9.9").join("logiciel").join("donnees")).unwrap();
+    std::fs::write(inst.join("maj").join("9.9.9").join("logiciel").join("donnees").join("x.json"), "{}\n").unwrap();
+    std::fs::write(inst.join("maj").join("prete.json"), r#"{"version": "9.9.9", "note_calcul": "é"}"#).unwrap();
+    reussi(&route(&racine, "maj-malgre-calcul", json!({}), &env));
+    assert_eq!(lire(&inst, "maj/prete.json"), json!({"version": "9.9.9", "note_calcul": "é", "malgre_calcul": true}));
 }

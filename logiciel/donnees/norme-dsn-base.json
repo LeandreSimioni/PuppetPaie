@@ -10,7 +10,7 @@
    "mensuelle": {
     "du": null,
     "au": "2026-12",
-    "_pourquoi": "`du` vide : la plus ancienne version que le moteur connaisse ; un mois de 2025 rejoue part en P26V01, comme le moteur le faisait avant que la version se lise ici (les 84 DSN figees de `paie/tests/donnees/demo/`, janvier 2025 a septembre 2026). `au` : inference, voir `_inference`."
+    "_pourquoi": "`du` vide : la plus ancienne version que le moteur connaisse ; un mois de 2025 rejoue part en P26V01, comme le moteur le faisait avant que la version se lise ici (les 84 DSN figees de `paie/tests/donnees/fictives/`, janvier 2025 a septembre 2026). `au` : inference, voir `_inference`."
    },
    "signalements": {
     "du": null,

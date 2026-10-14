@@ -1,13 +1,13 @@
 //! `couts` : le cout de l'annee, paye et prevu, par spectacle et par salarie ; un mois declare avant PuppetPaie compte
-//! sans cout employeur. Sur `demo-3090-petite` (config et toutes ses saisies).
+//! sans cout employeur. Sur `fictive-3090-petite` (config et toutes ses saisies).
 
-use crate::outils::{compagnie, copier, demo, dossier_de_test, refus, route};
+use crate::outils::{compagnie, copier, fictive, dossier_de_test, refus, route};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    let racine = compagnie::saisies("demo-3090-petite", &[], &dossier_de_test("routes_couts", nom).join("compagnie"));
-    copier(&demo("demo-3090-petite").join("paies"), &racine.join("paies"));
+    let racine = compagnie::saisies("fictive-3090-petite", &[], &dossier_de_test("routes_couts", nom).join("compagnie"));
+    copier(&fictive("fictive-3090-petite").join("paies"), &racine.join("paies"));
     racine
 }
 

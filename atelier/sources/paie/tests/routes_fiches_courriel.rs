@@ -1,7 +1,7 @@
 //! `fiche-demander` et `fiches-relever` : la fiche remplie par le salarie lui-meme, par courriel. La demande exige une
 //! adresse valide, une boite et la preuve ; la releve ne retient que la reponse de la bonne adresse, le code hors de la
-//! citation, et complete une fiche existante dans ses cases vides. Aucun reseau : la boite simulee de la demonstration ou
-//! un faux `Courriel` ; chaque test sur sa copie de `demo-3090-petite`.
+//! citation, et complete une fiche existante dans ses cases vides. Aucun reseau : la boite simulee de la compagnie fictive ou
+//! un faux `Courriel` ; chaque test sur sa copie de `fictive-3090-petite`.
 //!
 //! L'environnement est celui du processus, pose une fois (`tour`) : le jour, la cle du poste, aucune variable de service.
 
@@ -44,12 +44,12 @@ fn dossier_poste() -> PathBuf {
     D.get_or_init(|| dossier_du_processus("routes-fiches-poste")).clone()
 }
 
-/// Une copie de `demo-3090-petite`. `demonstration` : elle garde son marqueur (boite simulee, rien a prouver) ; sinon c'est
+/// Une copie de `fictive-3090-petite`. `fictive` : elle garde son marqueur (boite simulee, rien a prouver) ; sinon c'est
 /// une compagnie ordinaire : la preuve est exigee (le mot de passe du logiciel est pose), la boite est un faux client.
-fn compagnie(nom: &str, demonstration: bool) -> PathBuf {
+fn compagnie(nom: &str, fictive: bool) -> PathBuf {
     let racine = dossier_de_test("routes-fiches-courriel", nom).join("compagnie");
-    copier(&Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/demo/demo-3090-petite"), &racine);
-    if !demonstration {
+    copier(&Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fictives/fictive-3090-petite"), &racine);
+    if !fictive {
         std::fs::remove_file(racine.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
         // Le mot de passe du logiciel : pose une fois (scrypt est lent hors optimisations), le coffre est recopie ensuite.
         let modele = coffre_modele();
@@ -211,9 +211,9 @@ fn entete(octets: &[u8], nom: &str) -> String {
 // ================================================================== fiche-demander
 
 #[test]
-fn demander_en_demonstration_ecrit_le_courriel_simule_et_le_journal() {
+fn demander_dans_une_fictive_ecrit_le_courriel_simule_et_le_journal() {
     tour();
-    let racine = compagnie("demander-demo", true);
+    let racine = compagnie("demander-fictive", true);
     let r = demande_telle_quelle(&racine, json!({"adresse": "  Nouvelle@Exemple.INVALID ", "prenom": " Zoé "})).unwrap();
     // Retours Windows, A : code et adresse seulement, aucune configuration (donc ni NIR ni IBAN).
     assert_eq!(cles(&r), ["adresse", "code"]);
@@ -235,7 +235,7 @@ fn demander_en_demonstration_ecrit_le_courriel_simule_et_le_journal() {
     assert!(texte.contains("Prénom : \nNom de famille (de naissance) : \n"));
     assert!(html.contains("Remplir ma fiche"));
     assert!(html.contains("href=\"mailto:"));
-    // Une ligne du journal, sans que rien soit exige : la demonstration ne prouve rien.
+    // Une ligne du journal, sans que rien soit exige : la compagnie fictive ne prouve rien.
     let l = lignes_du_journal(&racine, "fiche-demande");
     assert_eq!(l.len(), 1);
     assert_eq!(l[0]["accepte"], json!(true));
@@ -294,7 +294,7 @@ fn une_adresse_invalide_est_refusee_avant_la_boite_et_avant_la_preuve() {
 }
 
 #[test]
-fn la_preuve_est_exigee_hors_demonstration() {
+fn la_preuve_est_exigee_hors_fictive() {
     tour();
     let racine = compagnie("demander-preuve", false);
     let faux = Faux::nouveau();
@@ -339,17 +339,23 @@ fn sans_mot_de_passe_du_logiciel_rien_ne_part() {
 fn une_version_exigee_arrete_la_demande() {
     tour();
     let racine = compagnie("demander-version", false);
-    std::fs::create_dir_all(racine.join("maj/9999.0.0/logiciel/donnees")).unwrap();
-    ecrire(&racine, "maj/prete.json", &json!({"version": "9999.0.0", "exigee": "calcul de la CSG corrige"}));
+    // La version prete est celle de l'INSTALLATION (lot U1), pas de la compagnie : celle du contexte (`ctx.code`).
+    let inst = outils::installation(&racine.parent().unwrap().join("installation"), "2026.10.09");
+    std::fs::create_dir_all(inst.join("maj/9999.0.0/logiciel/donnees")).unwrap();
+    ecrire(&inst, "maj/prete.json", &json!({"version": "9999.0.0", "exigee": "calcul de la CSG corrige"}));
+    let mut ctx = contexte(&racine);
+    ctx.code = inst.join("logiciel").join("donnees");
     let faux = Faux::nouveau();
-    let (classe, message) = phrase(demande_avec(&racine, json!({"adresse": "z@exemple.invalid", "motdepasse": MOT_DE_PASSE}), &faux));
+    let mut f = faux.clone();
+    let r = rfc::route_avec(&options(&racine), &ctx, "fiche-demander", &json!({"adresse": "z@exemple.invalid", "motdepasse": MOT_DE_PASSE}), Some(&mut f));
+    let (classe, message) = phrase(r);
     assert_eq!(classe, "VersionExigee");
     assert!(message.starts_with("Rien n'est parti : la version 9999.0.0 est indispensable avant de declarer (calcul de la CSG corrige)"), "{}", message);
     assert_eq!(faux.partis(), 0);
 }
 
 #[test]
-fn sans_boite_hors_demonstration_la_demande_est_refusee() {
+fn sans_boite_hors_fictive_la_demande_est_refusee() {
     tour();
     let racine = compagnie("demander-boite-absente", false);
     // La boite d'abord, la preuve ensuite : meme avec le bon mot de passe, et meme sans.
@@ -783,7 +789,7 @@ fn la_releve_de_la_veille_se_note_sous_son_nom() {
     assert_eq!(rfc::ReleveFiches::default().resume(), "");
 }
 
-// ================================================================== la demonstration
+// ================================================================== la compagnie fictive
 
 /// Date la demande (la ligne du journal) `secondes` avant maintenant.
 fn dater_la_demande(racine: &Path, secondes: i64) {
@@ -798,9 +804,9 @@ fn dater_la_demande(racine: &Path, secondes: i64) {
 }
 
 #[test]
-fn en_demonstration_la_personne_fictive_repond_et_la_vraie_releve_la_lit() {
+fn dans_une_fictive_la_personne_fictive_repond_et_la_vraie_releve_la_lit() {
     tour();
-    let racine = compagnie("demo-releve", true);
+    let racine = compagnie("fictive-releve", true);
     let a = demande_telle_quelle(&racine, json!({"adresse": "marie@exemple.invalid", "prenom": "Marie"})).unwrap()["code"].as_str().unwrap().to_string();
     demande_telle_quelle(&racine, json!({"adresse": "sans.prenom@exemple.invalid"})).unwrap();
     // Trop tot : elle n'a pas encore repondu (20 secondes).
@@ -830,9 +836,9 @@ fn en_demonstration_la_personne_fictive_repond_et_la_vraie_releve_la_lit() {
 }
 
 #[test]
-fn en_demonstration_une_demande_sans_son_courriel_joue_est_quand_meme_repondue() {
+fn dans_une_fictive_une_demande_sans_son_courriel_joue_est_quand_meme_repondue() {
     tour();
-    let racine = compagnie("demo-sans-bouton", true);
+    let racine = compagnie("fictive-sans-bouton", true);
     demande_telle_quelle(&racine, json!({"adresse": "marie@exemple.invalid", "prenom": "Marie"})).unwrap();
     dater_la_demande(&racine, 60);
     std::fs::remove_dir_all(racine.join("courriels-simules")).unwrap();

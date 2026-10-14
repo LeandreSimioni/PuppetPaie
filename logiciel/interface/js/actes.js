@@ -388,7 +388,7 @@ function corpsDsn(a) {
     <details class="replie">
       <summary>Ordres de télépaiement (${v.length}) — la conséquence de ce que
         la DSN déclare ; un dépôt réel les déclenche tous</summary>
-      <div class="encart ${enDemonstration() ? "info" : "attention"}">
+      <div class="encart ${enFictive() ? "info" : "attention"}">
       ${v.length
         ? `<ul class="versements">${v.map((x) =>
              `<li class="num">${echapper(euros(x))}</li>`).join("")}</ul>
@@ -455,7 +455,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
       ${echapper(a.deja_depose.mode)}. Redéposer le même fichier ne remplace
       rien : un annule-et-remplace se produit, il ne se redépose pas.</div>` : ""}
     <div id="d-bilan">${encartRepetition(a.repetition, quoi, a)}</div>
-    ${enDemonstration() ? noteDemonstration(quoi === "dsn" ? "net-entreprises" : "l'Urssaf")
+    ${enFictive() ? noteFictive(quoi === "dsn" ? "net-entreprises" : "l'Urssaf")
       : `<p class="note">Un dépôt réel demande le mot de passe <b>du logiciel</b>,
       qui ne sert qu'à prouver que quelqu'un est là. Celui de l'organisme ne
       passe pas par cette page : le moteur va le chercher au coffre.</p>`}
@@ -584,7 +584,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
         : `<div class="encart"><b>Test envoyé — on attend son compte rendu, il
             arrive bientôt</b> Restez sur cette fenêtre : le dépôt réel s'ouvrira ici.</div>`)
         + (r && r.incident ? `<p class="discret">${echapper(r.incident)}</p>` : ""));
-      await new Promise((ok) => setTimeout(ok, enDemonstration() ? 3000 : 10000));
+      await new Promise((ok) => setTimeout(ok, enFictive() ? 3000 : 10000));
     }
     ecrire(`<div class="encart attention"><b>Le compte rendu n'est
       pas arrivé en cinq minutes</b> Le point de dépôt a accepté le test : le
@@ -648,7 +648,7 @@ async function suivreDepot(quoi, flux, mois) {
   if (!flux) return;
   const nom = quoi === "dsn" ? "La DSN" : "La DPAE";
   for (let tour = 0; tour < 40; tour++) {
-    await new Promise((ok) => setTimeout(ok, enDemonstration() ? 4000 : 15000));
+    await new Promise((ok) => setTimeout(ok, enFictive() ? 4000 : 15000));
     let r = null;
     try { r = await api("suivre-depot", { quoi, flux, mois }); } catch (e) { continue; }
     if (r && r.fini) {
@@ -878,7 +878,7 @@ async function boiteEnvoi(mois) {
     ${a.deja ? `<div class="encart attention"><b>Déjà envoyé</b>
       Le ${echapper(quand(a.deja.quand))} — ${echapper(a.deja.reponse || "")}.
       Renvoyer enverra une seconde fois.</div>` : ""}
-    ${!peut ? "" : enDemonstration() ? noteDemonstration("les salariés", false)
+    ${!peut ? "" : enFictive() ? noteFictive("les salariés", false)
       : `<p class="note">Un courriel n'engage pas l'employeur comme une
       déclaration — personne ne prélève rien — mais il part chez quelqu'un et
       ne revient pas. Le mot de passe du logiciel est demandé à l'envoi.</p>`}
@@ -923,13 +923,13 @@ async function boiteEnvoi(mois) {
     if (!mdp) return;
     const rendre = occupe(document.getElementById("e-envoyer"),
                           "Envoi des documents en cours…");
-    const repere = await repereCourrielsDemo();
+    const repere = await repereCourrielsFictifs();
     try {
       const r = await api("envoyer-documents", { mois, motdepasse: mdp });
       fermerBoite();
       dire(r.partis.length + " message(s) envoyé(s).");
       afficherEnvoi("Documents aux salariés", mois, r.partis, r.avertissements);
-      fenetreCourrielsDemo("documents", repere);
+      fenetreCourrielsFictifs("documents", repere);
       await rafraichirActions();
     } catch (e) {
       rendre();
@@ -987,7 +987,7 @@ async function boiteSignature(mois, seulement) {
       réponse${a.attendues > 1 ? "s" : ""} attendue${a.attendues > 1 ? "s" : ""}.</b>` : ""}
       Un contrat signé à la main se note toujours d'un clic sur sa pastille.
     </div>
-    ${enDemonstration() ? noteDemonstration("les salariés").replace("sa réponse arrive comme la vraie",
+    ${enFictive() ? noteFictive("les salariés").replace("sa réponse arrive comme la vraie",
       "la signature revient comme la vraie") : ""}
     ${noteDpaeAvance()}
     <div class="liste-choix">
@@ -1082,7 +1082,7 @@ async function boiteSignature(mois, seulement) {
     const mdp = await demanderMotDePasse("envoyer " + quoi + " à la signature");
     if (!mdp) return;
     const rendre = occupe(document.getElementById("s-envoyer"), "Envoi de " + quoi + " en cours…");
-    const repere = await repereCourrielsDemo();
+    const repere = await repereCourrielsFictifs();
     try {
       const r = contrats.length
         ? await api("demander-signature", { mois, contrats, motdepasse: mdp })
@@ -1098,9 +1098,9 @@ async function boiteSignature(mois, seulement) {
       dire(quoi + " envoyé(s) à la signature.");
       afficherEnvoi("Contrats à signer", mois, [...new Set(r.partis)],
                     r.contrats.map((c) => c.fichier));
-      if (enDemonstration()) {
-        attendreSignaturesDemo();
-        fenetreCourrielsDemo("signature", repere);
+      if (enFictive()) {
+        attendreSignaturesFictives();
+        fenetreCourrielsFictifs("signature", repere);
       }
       await rafraichirActions();
     } catch (e) {

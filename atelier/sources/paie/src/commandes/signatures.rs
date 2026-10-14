@@ -9,7 +9,7 @@
 //! decision de l'employeur ; l'envoi est la reponse a un « Je signe » deja recu, pour un contrat deja envoye apres le mot de passe
 //! du logiciel). La commande n'ajoute donc pas de preuve ; elle n'enleve rien non plus : la boite est ouverte par le moteur,
 //! le coffre par la cle du poste ou une seance. Dans `paie-atelier`, la boite courriel n'est pas redirigee vers un faux serveur :
-//! la commande y est REFUSEE hors demonstration (`ActeReelRefuse`), pour qu'un essai ne touche jamais une vraie boite.
+//! la commande y est REFUSEE hors compagnie fictive (`ActeReelRefuse`), pour qu'un essai ne touche jamais une vraie boite.
 //!
 //! DEFAUT DU PYTHON, NE SE REPRODUIT PAS : un refus de la route (un fichier qui ne s'ecrit pas, une panne de la boite) sortait en
 //! trace d'appels. Ici : `! phrase`, code 2.

@@ -16,7 +16,7 @@
 //! - annexes VIII et X du 15/11/2024, art. 49 : le chomage « avant application de l'abattement » ; norme DSN, bloc 78 :
 //!   les Conges Spectacles « avant toute deduction forfaitaire specifique ».
 //!
-//! Sur une copie de la config et des saisies de `demo-3090-grande` (compagnie inventee), dans le dossier temporaire des
+//! Sur une copie de la config et des saisies de `fictive-3090-grande` (compagnie inventee), dans le dossier temporaire des
 //! tests ; l'original n'est pas touche. Deburau (comedien) et Jacquet (musicien) y sont des artistes intermittents,
 //! Chaminade (regisseur lumiere) un technicien, Montansier une cadre ; Deburau a un contrat en mars 2026. La reduction
 //! generale sous DFS : arrete du 4 decembre 2019, art. 1er (`dfs/arrete-2019-reduction-generale/`).
@@ -26,13 +26,13 @@ use paie::contexte::Contexte;
 use paie::engagement::{charger, Saisie};
 use paie::num::Decimal;
 use serde_json::{json, Value};
-use crate::outils::{chemin_unique, copier, dec, demo, ecrire, lire, Copie};
+use crate::outils::{chemin_unique, copier, dec, fictive, ecrire, lire, Copie};
 use std::str::FromStr;
 
-/// La config et les saisies de `demo-3090-grande`, `retouche` appliquee a sa fiche entreprise et a ses fiches salaries.
+/// La config et les saisies de `fictive-3090-grande`, `retouche` appliquee a sa fiche entreprise et a ses fiches salaries.
 fn copie(retouche: impl Fn(&mut Value, &mut Value)) -> Copie {
-    let c = Copie::config_de("demo-3090-grande");
-    copier(&demo("demo-3090-grande").join("paies"), &c.0.join("paies"));
+    let c = Copie::config_de("fictive-3090-grande");
+    copier(&fictive("fictive-3090-grande").join("paies"), &c.0.join("paies"));
     let (mut ent, mut sal) = (lire(&c.0, "config/entreprise.json"), lire(&c.0, "config/salaries.json"));
     retouche(&mut ent, &mut sal);
     ecrire(&c.0, "config/entreprise.json", &ent);

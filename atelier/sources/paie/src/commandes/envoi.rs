@@ -6,7 +6,7 @@
 //! `routes_envois::expedier_envoi`, donc `depot_acte::verifier_preuve` -- le moteur demande LUI-MEME le mot de passe du logiciel a
 //! un humain (fenetre, terminal sans echo ; sinon REFUS), c'est la confirmation. Aucun mot de passe en option, en variable lue en
 //! clair ni dans une sortie. Dans `paie-atelier`, tout envoi reel est refuse (`ActeReelRefuse`). `--sans-navigateur` est accepte
-//! (il n'y a plus de navigateur) et sans effet. En demonstration rien ne quitte le poste : la boite simulee ecrit les messages.
+//! (il n'y a plus de navigateur) et sans effet. Dans une compagnie fictive rien ne quitte le poste : la boite simulee ecrit les messages.
 //!
 //! `--json` s'arrete a la preparation, comme le Python (`envoye: false`) : un programme ne confirme pas un envoi.
 //!

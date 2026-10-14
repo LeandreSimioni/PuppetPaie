@@ -1,5 +1,5 @@
 //! Les emplois : `resoudre`, `metier`, `statut_non_cadre` (`emplois.json`), `emploi_a_la_date` et `emploi_de`
-//! (`emploi_de.json`) sur les codes de la demo, du catalogue et de la nomenclature, et un code inconnu ; contre les
+//! (`emploi_de.json`) sur les codes de la fictive, du catalogue et de la nomenclature, et un code inconnu ; contre les
 //! oracles, que `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit.
 
 use crate::outils::{lire_oracle, oracle};
@@ -41,7 +41,7 @@ fn resoudre_metier_et_statut_non_cadre() {
 }
 
 #[test]
-fn les_codes_de_la_demo() {
+fn les_codes_de_la_fictive() {
     for c in ["ADM020", "ATT010", "CHA080", "COM010", "DAN010", "MAR010", "MUS010", "REG010", "REG120", "REG130", "REG150"] {
         let r = resoudre(c, None, false).unwrap();
         assert_eq!(r["code_emploi_ft"], c);

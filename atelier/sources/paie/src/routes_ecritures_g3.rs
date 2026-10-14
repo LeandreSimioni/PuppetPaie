@@ -211,16 +211,17 @@ fn google_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 /// `operations_ouverture.appliquer_maj_malgre_calcul` : decider, depuis l'interface, qu'une version qui change
 /// un calcul s'appliquera au prochain demarrage meme si un mois saisi n'a pas sa DSN. La decision s'ecrit dans
-/// `maj/prete.json` ; la reponse est celle de `maj-etat`.
+/// `maj/prete.json` de l'installation ; la reponse est celle de `maj-etat`.
 fn maj_malgre_calcul(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
-    let Some(mut p) = crate::routes_etats::prete(&ctx.racine)? else {
+    let inst = crate::fichiers::dossier_du_code().join("..").join("..");
+    let Some(mut p) = crate::routes_etats::prete(&inst)? else {
         return Err(refus("Aucune version prete."));
     };
     let Value::Object(m) = &mut p else {
         return Err(erreur("TypeError", "prete.json : un objet est attendu"));
     };
     m.insert("malgre_calcul".into(), Value::Bool(true));
-    let chemin = ctx.racine.join("maj").join("prete.json");
+    let chemin = crate::maj::dossier_maj(&inst).join("prete.json");
     // `write_text(json.dumps(p, ensure_ascii=False, indent=1))` : sans saut de ligne final.
     std::fs::write(&chemin, crate::ecriture::json_py(&p, 1)).map_err(|e| erreur("OSError", format!("{} : {}", Path::new(&chemin).display(), e)))?;
     version(o, ctx)

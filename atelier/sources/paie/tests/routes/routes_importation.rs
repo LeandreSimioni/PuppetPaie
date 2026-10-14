@@ -1,26 +1,26 @@
 //! L'import des paies declarees ailleurs : `importation-apercu` (rien n'est ecrit) et `importer`, depuis un export
 //! (DSN et AEM) ou le dossier `import/` (DSN, AEM, bulletins PDF) ; ce qui est d'une autre entreprise n'est pas lu,
-//! l'incident propose est caviarde. Sur la configuration de `demo-3090-petite`, avec un export fictif sous `export/`.
+//! l'incident propose est caviarde. Sur la configuration de `fictive-3090-petite`, avec un export fictif sous `export/`.
 
 use crate::outils::{compagnie, dossier_de_test, lire, refus, reussi};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
-fn demo() -> PathBuf {
-    crate::outils::demo("demo-3090-petite")
+fn fictive() -> PathBuf {
+    crate::outils::fictive("fictive-3090-petite")
 }
 
-/// La configuration de la demonstration, et un export fictif : la DSN de mars 2025 sous `export/DSN`, `export/AEM_EDI` vide.
+/// La configuration de la compagnie fictive, et un export fictif : la DSN de mars 2025 sous `export/DSN`, `export/AEM_EDI` vide.
 fn compagnie(nom: &str) -> PathBuf {
-    let racine = compagnie::saisies("demo-3090-petite", &[], &dossier_de_test("routes_importation", nom).join("compagnie"));
+    let racine = compagnie::saisies("fictive-3090-petite", &[], &dossier_de_test("routes_importation", nom).join("compagnie"));
     std::fs::remove_file(racine.join("journal/depots.json")).unwrap();
     std::fs::create_dir_all(racine.join("export/DSN")).unwrap();
     std::fs::create_dir_all(racine.join("export/AEM_EDI")).unwrap();
-    std::fs::copy(demo().join("sorties/2025-03/DSN_Mars2025.dsn"), racine.join("export/DSN/DSN_Mars2025.dsn")).unwrap();
+    std::fs::copy(fictive().join("sorties/2025-03/DSN_Mars2025.dsn"), racine.join("export/DSN/DSN_Mars2025.dsn")).unwrap();
     racine
 }
 
-/// Un enregistrement AEM au Siret de la compagnie de demonstration (`importation::AEM_SIRET`), attestation n° 000123.
+/// Un enregistrement AEM au Siret de la compagnie fictive (`importation::AEM_SIRET`), attestation n° 000123.
 fn aem(nir: &str, debut: &str, fin: &str, objet: &str) -> String {
     aem_de(Some("12345692300010"), nir, debut, fin, objet)
 }
@@ -48,7 +48,7 @@ fn un_contrat_deja_dans_l_historique_n_est_plus_nouveau() {
         format!("{}\r\n", aem("2881175999001", "20250310", "20250314", "256Z00920022")),
     )
     .unwrap();
-    // BRIOCHE a une fiche (le NIR de la demonstration) : le contrat est a importer.
+    // BRIOCHE a une fiche (le NIR de la compagnie fictive) : le contrat est a importer.
     let r = route(&racine, "importation-apercu", json!({}));
     assert_eq!(r["ok"], json!(true), "{}", r);
     assert_eq!(r["resultat"]["contrats"], json!(1));
@@ -74,7 +74,7 @@ fn un_contrat_deja_dans_l_historique_n_est_plus_nouveau() {
 use crate::bulletins_fictifs;
 use bulletins_fictifs::{a_heures, a_repetitions, b_cachets, page_a, page_b, pdf, pdf_en_traces};
 
-/// Un texte de la page fabriquee remplace par un autre (le Siret de la demonstration, un autre salarie...).
+/// Un texte de la page fabriquee remplace par un autre (le Siret de la compagnie fictive, un autre salarie...).
 fn remplacer(page: Vec<Value>, de: &str, vers: &str) -> Vec<Value> {
     page.into_iter()
         .map(|mut b| {
@@ -86,7 +86,7 @@ fn remplacer(page: Vec<Value>, de: &str, vers: &str) -> Vec<Value> {
         .collect()
 }
 
-/// Le Siret de la compagnie de demonstration, a la place de celui des PDF fictifs.
+/// Le Siret de la compagnie fictive, a la place de celui des PDF fictifs.
 fn a_la_compagnie(page: Vec<Value>) -> Vec<Value> {
     remplacer(remplacer(page, "99999999900017", "12345692300010"), "999 999 999 00025", "123 456 923 00010")
 }
@@ -124,7 +124,7 @@ fn boite_aux_lettres(nom: &str) -> PathBuf {
     let import = racine.join("import");
     std::fs::create_dir_all(import.join("aem")).unwrap();
     std::fs::create_dir_all(import.join("bulletins")).unwrap();
-    std::fs::copy(demo().join("sorties").join("2025-03").join("DSN_Mars2025.dsn"), import.join("DSN_Mars2025.dsn")).unwrap();
+    std::fs::copy(fictive().join("sorties").join("2025-03").join("DSN_Mars2025.dsn"), import.join("DSN_Mars2025.dsn")).unwrap();
     std::fs::write(import.join("aem/AEM_EDIV5_1.txt"), format!("{}\r\n", marquee(aem("2881175999001", "20250310", "20250314", "256Z00920022")))).unwrap();
     pdf(vec![a_mars_2025(), a_nouveau_salarie()], &import.join("bulletins").join("coolpaie.pdf"));
     pdf(vec![a_la_compagnie(page_b(&b_cachets()))], &import.join("bulletins").join("spaiectacle.pdf"));
@@ -328,7 +328,7 @@ fn un_second_apercu_ne_double_rien() {
 fn un_bulletin_d_une_autre_entreprise_n_est_pas_repris() {
     let racine = compagnie("autre-entreprise");
     std::fs::create_dir_all(racine.join("import")).unwrap();
-    // Le Siret du PDF fictif tel quel : ce n'est pas celui de la compagnie de demonstration.
+    // Le Siret du PDF fictif tel quel : ce n'est pas celui de la compagnie fictive.
     pdf(vec![page_b(&b_cachets())], &racine.join("import").join("ailleurs.pdf"));
     let r = route(&racine, "importation-apercu", json!({"dossier": racine.join("import").to_str().unwrap()}));
     assert_eq!(r["ok"], json!(true), "{}", r);
@@ -515,7 +515,7 @@ fn mettre(racine: &Path, dsn: bool, bulletin: bool) {
     let import = racine.join("import");
     std::fs::create_dir_all(&import).unwrap();
     if dsn {
-        std::fs::copy(demo().join("sorties").join("2025-03").join("DSN_Mars2025.dsn"), import.join("DSN_Mars2025.dsn")).unwrap();
+        std::fs::copy(fictive().join("sorties").join("2025-03").join("DSN_Mars2025.dsn"), import.join("DSN_Mars2025.dsn")).unwrap();
     }
     if bulletin {
         pdf(vec![a_mars_2025()], &import.join("mars.pdf"));
@@ -722,9 +722,9 @@ fn remplacer_octets(octets: &[u8], de: &str, vers: &str) -> Vec<u8> {
     out
 }
 
-/// La DSN de mars 2025 de la demonstration, devenue celle d'une autre entreprise (Siren, raison sociale, mois, NIR, objet).
+/// La DSN de mars 2025 de la compagnie fictive, devenue celle d'une autre entreprise (Siren, raison sociale, mois, NIR, objet).
 fn dsn_d_une_autre_entreprise(siren: &str) -> Vec<u8> {
-    let mut o = std::fs::read(demo().join("sorties").join("2025-03").join("DSN_Mars2025.dsn")).unwrap();
+    let mut o = std::fs::read(fictive().join("sorties").join("2025-03").join("DSN_Mars2025.dsn")).unwrap();
     for (de, vers) in [
         ("'123456923'", format!("'{}'", siren)),
         ("CIE FICTIVE DU FIL TENDU", "AUTRE CIE INVENTEE".to_string()),
@@ -806,7 +806,7 @@ fn la_fiche_vide_et_des_dsn_de_deux_entreprises_tout_est_refuse() {
     std::fs::write(racine.join("config").join("entreprise.json"), e.to_string()).unwrap();
     let import = racine.join("import");
     std::fs::create_dir_all(&import).unwrap();
-    std::fs::copy(demo().join("sorties").join("2025-03").join("DSN_Mars2025.dsn"), import.join("DSN_Mars2025.dsn")).unwrap();
+    std::fs::copy(fictive().join("sorties").join("2025-03").join("DSN_Mars2025.dsn"), import.join("DSN_Mars2025.dsn")).unwrap();
     std::fs::write(import.join("autre.dsn"), dsn_d_une_autre_entreprise("999999999")).unwrap();
     std::fs::write(import.join("AEM_1.txt"), aem_marquee(Some("12345692300010"), "2881175999001", "256Z00920022")).unwrap();
     pdf(vec![a_la_compagnie(page_b(&b_cachets()))], &import.join("bulletin.pdf"));
@@ -913,10 +913,10 @@ fn la_boite_aux_lettres_absente_se_cree_vide_un_dossier_donne_absent_est_refuse(
     assert!(!ailleurs.exists());
 }
 
-/// La DSN de mars 2025 de la demonstration, son premier salarie devenu inconnu de la compagnie (une fiche a creer), avec
+/// La DSN de mars 2025 de la compagnie fictive, son premier salarie devenu inconnu de la compagnie (une fiche a creer), avec
 /// ces valeurs a sa place : `30.013`, `30.015`, `40.005`.
 fn dsn_d_un_inconnu(nationalite: &str, pays: &str, emploi: &str) -> Vec<u8> {
-    let mut o = std::fs::read(demo().join("sorties").join("2025-03").join("DSN_Mars2025.dsn")).unwrap();
+    let mut o = std::fs::read(fictive().join("sorties").join("2025-03").join("DSN_Mars2025.dsn")).unwrap();
     for (de, vers) in [
         ("2881175999001".to_string(), AUTRES_NIR[2].to_string()),
         ("S21.G00.30.013,'01'\r\nS21.G00.30.014".to_string(), format!("S21.G00.30.013,'{}'\r\nS21.G00.30.014", nationalite)),
@@ -969,4 +969,258 @@ fn un_historique_qui_n_est_pas_un_objet_refuse_avant_toute_ecriture() {
     refus(&route(&racine, "importer", json!({"export": racine.join("export").to_str().unwrap()})));
     assert_eq!(std::fs::read_to_string(racine.join("config/salaries.json")).unwrap(), "{}");
     assert!(!racine.join("historique/engagements.json").exists());
+}
+
+// ------------------------------------------------------------------ ce que l'import complete (lot I2)
+
+/// Le titre d'un spectacle de la compagnie, ecrit dans sa fiche.
+fn poser_titre(racine: &Path, cle: &str, titre: &str) {
+    let mut sp = lire(racine, "config/spectacles.json");
+    sp[cle]["titre"] = json!(titre);
+    std::fs::write(racine.join("config/spectacles.json"), sp.to_string()).unwrap();
+}
+
+fn entree<'a>(r: &'a Value, liste: &str, cle: &str) -> &'a Value {
+    r[liste].as_array().unwrap().iter().find(|e| e["cle"] == json!(cle)).unwrap_or_else(|| panic!("{} absent : {}", cle, r[liste]))
+}
+
+/// Lot I2, point 2 (Leandre, 14/10/2026 : « pourquoi la fiche fait loi alors que le bulletin a les bonnes infos ? ») :
+/// la fiche d'un spectacle que l'import des DSN a creee porte le titre « A COMPLETER » (la DSN ne porte que le numero
+/// d'objet, S21.G00.40.050) ; le bulletin imprime le titre : il le prend, sans casse, comme pour une fiche qu'il cree.
+/// Un vrai titre saisi reste, et l'ecart est seulement signale.
+#[test]
+fn un_titre_a_completer_prend_celui_du_bulletin_un_vrai_titre_reste() {
+    let racine = compagnie("titre-a-completer");
+    poser_titre(&racine, "les-pupazzi", "a completer");
+    mettre(&racine, false, true);
+    let r = ok(route(&racine, "importation-apercu", json!({"dossier": ""})));
+    let s = entree(&r, "spectacles", "les-pupazzi");
+    assert_eq!(s["etat"], json!("existante"), "{}", s);
+    assert_eq!(s["completer"]["titre"]["valeur"], json!("Les Pupazzi"), "{}", s);
+    assert_eq!((s["completer"]["titre"]["source"].clone(), s["completer"]["titre"]["fichier"].clone()), (json!("bulletin"), json!("mars.pdf")));
+    assert_eq!(s["ecarts"].get("titre"), None, "un titre a completer n'est pas un ecart : {}", s);
+    assert_eq!(r["rien_a_faire"], json!(false));
+
+    let r = ok(route(&racine, "importer", json!({"dossier": ""})));
+    assert_eq!(entree(&r, "spectacles", "les-pupazzi")["etat"], json!("completee"));
+    let sp = lire(&racine, "config/spectacles.json");
+    assert_eq!(sp["les-pupazzi"]["titre"], json!("Les Pupazzi"));
+    assert_eq!(sp["les-pupazzi"]["numero_objet"], json!("256Z00920022"));
+    assert_eq!(sp["les-pupazzi"].get("historique"), None, "une case vide n'avait rien declare : rien ne se date");
+    // Rejoue : la fiche a son titre, rien a completer.
+    let a = ok(route(&racine, "importation-apercu", json!({"dossier": ""})));
+    assert_eq!(entree(&a, "spectacles", "les-pupazzi").get("completer"), None, "{}", a);
+
+    // Un vrai titre saisi reste : l'ecart est signale, rien n'est complete ni ecrit.
+    let autre = compagnie("titre-saisi");
+    poser_titre(&autre, "les-pupazzi", "Pupazzi, la reprise");
+    mettre(&autre, false, true);
+    let r = ok(route(&autre, "importation-apercu", json!({"dossier": ""})));
+    let s = entree(&r, "spectacles", "les-pupazzi");
+    assert_eq!(s.get("completer"), None, "{}", s);
+    assert_eq!(s["ecarts"]["titre"]["bulletin"], json!("Les Pupazzi"), "{}", s);
+    ok(route(&autre, "importer", json!({"dossier": ""})));
+    assert_eq!(lire(&autre, "config/spectacles.json")["les-pupazzi"]["titre"], json!("Pupazzi, la reprise"));
+}
+
+/// Des champs d'une fiche de la compagnie (`config/<fichier>`, sous `cle` ; rien : le fichier entier, l'entreprise).
+fn poser(racine: &Path, fichier: &str, cle: Option<&str>, champs: Value) {
+    let chemin = racine.join("config").join(fichier);
+    let mut f: Value = serde_json::from_str(&std::fs::read_to_string(&chemin).unwrap()).unwrap();
+    let cible = match cle {
+        Some(k) => &mut f[k],
+        None => &mut f,
+    };
+    for (k, v) in champs.as_object().unwrap() {
+        cible[k] = v.clone();
+    }
+    std::fs::write(&chemin, f.to_string()).unwrap();
+}
+
+/// Lot I2, point 3a (Leandre, 14/10/2026 : « est-ce qu'il prend bien TOUT ce qu'il peut tirer des imports ? ») : une
+/// fiche existante recoit de la DSN ce qui y est vide (avec sa forme lisible), et garde tout champ rempli -- l'ecart reste
+/// signale. Puis rien n'est plus a completer.
+#[test]
+fn une_fiche_existante_recoit_de_la_dsn_ce_qui_y_est_vide_et_garde_ce_qui_est_rempli() {
+    let racine = compagnie("completer-dsn");
+    poser(&racine, "salaries.json", Some("BRIOCHE"), json!({"email": "", "lieu_naissance": "", "lieu_naissance_affichage": "", "commune": "AUBIERE"}));
+    poser(&racine, "entreprise.json", None, json!({"naf": "a completer"}));
+    let r = ok(route(&racine, "importation-apercu", json!({})));
+    let b = entree(&r, "salaries", "BRIOCHE");
+    assert_eq!(b["completer"]["email"], json!({"valeur": "fanchon.brioche@exemple.invalid", "source": "dsn", "mois": "2025-03"}), "{}", b);
+    assert_eq!(b["completer"]["lieu_naissance"]["valeur"], json!("VILLENEUVE-SUR-SEINE"), "{}", b);
+    assert!(b["completer"]["lieu_naissance_affichage"]["valeur"].is_string(), "la forme lisible suit : {}", b);
+    assert_eq!(b["completer"].get("commune"), None, "un champ rempli ne se complete pas : {}", b);
+    assert_eq!(b["ecarts"]["commune"]["dsn"], json!("CLERMONT FERRAND"), "{}", b);
+    assert_eq!(b["completer"].get("taux_pas"), None, "taux_pas n'est plus lu par personne : {}", b);
+    assert_eq!(r["entreprise"]["completer"]["naf"]["valeur"], json!("9001Z"), "{}", r["entreprise"]);
+    assert_eq!(r["entreprise"]["ecarts"].get("naf"), None);
+    assert_eq!(r["rien_a_faire"], json!(false));
+
+    let r = ok(route(&racine, "importer", json!({})));
+    assert_eq!((entree(&r, "salaries", "BRIOCHE")["etat"].clone(), r["entreprise"]["etat"].clone()), (json!("completee"), json!("completee")));
+    let s = &lire(&racine, "config/salaries.json")["BRIOCHE"];
+    assert_eq!((s["email"].clone(), s["lieu_naissance"].clone(), s["commune"].clone()), (json!("fanchon.brioche@exemple.invalid"), json!("VILLENEUVE-SUR-SEINE"), json!("AUBIERE")));
+    assert!(s["lieu_naissance_affichage"].as_str().is_some_and(|t| !t.is_empty()), "{}", s);
+    assert_eq!(lire(&racine, "config/entreprise.json")["naf"], json!("9001Z"));
+    let a = ok(route(&racine, "importation-apercu", json!({})));
+    assert_eq!(entree(&a, "salaries", "BRIOCHE").get("completer"), None, "{}", a);
+    assert_eq!(a["rien_a_faire"], json!(true), "{}", a);
+}
+
+/// Lot I2, point 3a : les bulletins completent aussi une fiche existante -- le n° Congés Spectacles qu'elle n'a pas, le
+/// NAF que la fiche Entreprise n'a pas --, la date de naissance remplie reste (l'ecart est signale).
+#[test]
+fn une_fiche_existante_recoit_du_bulletin_ce_qui_y_est_vide() {
+    let racine = compagnie("completer-bulletin");
+    poser(&racine, "entreprise.json", None, json!({"naf": ""}));
+    mettre(&racine, false, true);
+    let r = ok(route(&racine, "importation-apercu", json!({"dossier": ""})));
+    let b = entree(&r, "salaries", "BRIOCHE");
+    assert_eq!(b["completer"]["num_conges_spectacles"], json!({"valeur": "Z0000001", "source": "bulletin", "fichier": "mars.pdf", "page": 1}), "{}", b);
+    assert_eq!(b["completer"].get("date_naissance"), None);
+    assert_eq!(b["ecarts"]["date_naissance"]["bulletin"], json!("1988-11-03"));
+    assert_eq!(r["entreprise"]["completer"]["naf"]["valeur"], json!("9001Z"), "{}", r["entreprise"]);
+    ok(route(&racine, "importer", json!({"dossier": ""})));
+    let s = &lire(&racine, "config/salaries.json")["BRIOCHE"];
+    assert_eq!((s["num_conges_spectacles"].clone(), s["date_naissance"].clone()), (json!("Z0000001"), json!("1988-11-04")));
+    assert_eq!(lire(&racine, "config/entreprise.json")["naf"], json!("9001Z"));
+}
+
+/// Lot I2, point 3d : une fiche que la DSN cree est completee par le bulletin de la meme personne -- le n° Congés
+/// Spectacles, que la DSN ne porte pas ; ce que la DSN donne reste (sa date de naissance, quand le bulletin en imprime une
+/// autre).
+#[test]
+fn une_fiche_que_la_dsn_cree_est_completee_par_le_bulletin() {
+    let racine = compagnie("dsn-cree-bulletin-complete");
+    let mut s = lire(&racine, "config/salaries.json");
+    s.as_object_mut().unwrap().remove("BRIOCHE");
+    std::fs::write(racine.join("config/salaries.json"), s.to_string()).unwrap();
+    mettre(&racine, true, true);
+    let r = ok(route(&racine, "importation-apercu", json!({"dossier": ""})));
+    let neuves: Vec<&Value> = r["salaries"].as_array().unwrap().iter().filter(|e| e["donnees"]["nir"] == json!("2881175999001")).collect();
+    assert_eq!(neuves.len(), 1, "{}", r["salaries"]);
+    let d = &neuves[0]["donnees"];
+    assert_eq!(neuves[0]["etat"], json!("a_creer"));
+    assert_eq!((d["num_conges_spectacles"].clone(), d["date_naissance"].clone()), (json!("Z0000001"), json!("1988-11-04")), "{}", d);
+    ok(route(&racine, "importer", json!({"dossier": ""})));
+    let cle = cle_du_nir(&racine, "2881175999001");
+    assert_eq!(lire(&racine, "config/salaries.json")[&cle]["num_conges_spectacles"], json!("Z0000001"));
+}
+
+/// La DSN de mars 2025 de la compagnie fictive, deposee par un cabinet (invente) : son Siren, son nom et son adresse dans
+/// l'en-tete de l'emetteur (S10.G00.01), l'entreprise inchangee en S21.G00.06 et S21.G00.11.
+fn dsn_deposee_par_un_cabinet() -> Vec<u8> {
+    let mut o = std::fs::read(fictive().join("sorties").join("2025-03").join("DSN_Mars2025.dsn")).unwrap();
+    for (de, vers) in [
+        ("S10.G00.01.001,'123456923'", "S10.G00.01.001,'888888888'"),
+        ("S10.G00.01.003,'CIE FICTIVE DU FIL TENDU'", "S10.G00.01.003,'CABINET INVENTE'"),
+        ("S10.G00.01.004,'21 RUE DU PORT'", "S10.G00.01.004,'1 RUE DU CABINET'"),
+        ("S10.G00.01.005,'63000'", "S10.G00.01.005,'99990'"),
+        ("S10.G00.01.006,'CLERMONT FERRAND'", "S10.G00.01.006,'VILLE CABINET'"),
+    ] {
+        let avant = o.clone();
+        o = remplacer_octets(&o, de, vers);
+        assert_ne!(o, avant, "{} absent de la DSN de fictive", de);
+    }
+    o
+}
+
+/// Lot I2, point 3b : l'entreprise se lit dans S21.G00.06 et S21.G00.11, pas dans l'en-tete de l'emetteur (S10.G00.01),
+/// qui est celui du cabinet quand un tiers depose (cahier technique 2026.1, p. 130). La DSN d'un cabinet est celle de la
+/// compagnie ; rien du cabinet n'entre dans la fiche ; la raison sociale de l'emetteur ne se reprend que s'il est
+/// l'entreprise.
+#[test]
+fn l_entreprise_se_lit_dans_les_blocs_06_et_11_pas_chez_l_emetteur() {
+    // La fiche Entreprise existe : la DSN du cabinet n'est pas « d'une autre entreprise », et ne fait aucun ecart.
+    let racine = compagnie("cabinet");
+    std::fs::create_dir_all(racine.join("import")).unwrap();
+    std::fs::write(racine.join("import").join("cabinet.dsn"), dsn_deposee_par_un_cabinet()).unwrap();
+    let r = ok(route(&racine, "importation-apercu", json!({"dossier": ""})));
+    assert_eq!(sort(&r, "cabinet.dsn").0, json!("repris"), "{}", fichier(&r, "cabinet.dsn"));
+    assert!(!r["entreprise"].to_string().contains("CABINET"), "{}", r["entreprise"]);
+
+    // Sans Siren dans la fiche : la fiche a creer est celle de l'entreprise, sans le nom ni l'adresse du cabinet.
+    poser(&racine, "entreprise.json", None, json!({"siren": ""}));
+    let r = ok(route(&racine, "importation-apercu", json!({"dossier": ""})));
+    let d = &r["entreprise"]["donnees"];
+    assert_eq!(r["entreprise"]["etat"], json!("a_creer"), "{}", r["entreprise"]);
+    for (k, v) in [("siren", "123456923"), ("nic", "00010"), ("siret", "12345692300010"), ("naf", "9001Z"), ("adresse", "21 RUE DU PORT"), ("code_postal", "63000")] {
+        assert_eq!(d[k], json!(v), "{} : {}", k, d);
+    }
+    assert_eq!(d.get("raison_sociale"), None, "la DSN ne declare pas la raison sociale de l'entreprise : {}", d);
+    assert!(!d.to_string().contains("CABINET"), "{}", d);
+
+    // L'entreprise qui depose elle-meme : la raison sociale de l'emetteur est la sienne.
+    let seule = compagnie("emetteur-entreprise");
+    poser(&seule, "entreprise.json", None, json!({"siren": ""}));
+    mettre(&seule, true, false);
+    let r = ok(route(&seule, "importation-apercu", json!({"dossier": ""})));
+    assert_eq!(r["entreprise"]["donnees"]["raison_sociale"], json!("CIE FICTIVE DU FIL TENDU"), "{}", r["entreprise"]);
+}
+
+/// Lot I2, point 3c : le sexe que la DSN declare (S21.G00.30.005, « 02 - féminin », cahier technique 2026.1, p. 171)
+/// devient le « 2 » de la fiche : dans une fiche qu'elle cree, et dans une fiche existante ou il manque.
+#[test]
+fn le_sexe_que_la_dsn_declare_entre_dans_la_fiche() {
+    let racine = compagnie("sexe");
+    let o = std::fs::read(fictive().join("sorties").join("2025-03").join("DSN_Mars2025.dsn")).unwrap();
+    let o = remplacer_octets(&o, "S21.G00.30.006,'04111988'", "S21.G00.30.005,'02'\r\nS21.G00.30.006,'04111988'");
+    std::fs::write(racine.join("export").join("DSN").join("DSN_Mars2025.dsn"), &o).unwrap();
+    let r = ok(route(&racine, "importation-apercu", json!({})));
+    assert_eq!(entree(&r, "salaries", "BRIOCHE")["completer"]["sexe"]["valeur"], json!("2"), "{}", r["salaries"]);
+    ok(route(&racine, "importer", json!({})));
+    assert_eq!(lire(&racine, "config/salaries.json")["BRIOCHE"]["sexe"], json!("2"));
+
+    // Une fiche que la DSN cree.
+    let neuve = compagnie("sexe-neuve");
+    let o = remplacer_octets(&o, "2881175999001", AUTRES_NIR[2]);
+    std::fs::write(neuve.join("export").join("DSN").join("DSN_Mars2025.dsn"), &o).unwrap();
+    let r = ok(route(&neuve, "importation-apercu", json!({})));
+    let s = r["salaries"].as_array().unwrap().iter().find(|s| s["etat"] == json!("a_creer")).expect("une fiche a creer");
+    assert_eq!(s["donnees"]["sexe"], json!("2"), "{}", s);
+}
+
+/// Lot I2, point 3e : ce que l'import lisait sans l'ecrire. De la DSN, le compte qui paie les organismes (BIC et IBAN du
+/// bloc 20, cahier technique 2026.1, p. 156) et le dossier de recouvrement France Travail (20.002 du versement a France
+/// Travail, p. 155) ; du bulletin, le compte Urssaf imprime apres « Urssaf : ». Dans les cases vides de la fiche.
+#[test]
+fn la_banque_le_dossier_france_travail_et_le_compte_urssaf_entrent_dans_la_fiche_entreprise() {
+    let racine = compagnie("organismes");
+    let o = std::fs::read(fictive().join("sorties").join("2025-03").join("DSN_Mars2025.dsn")).unwrap();
+    let o = remplacer_octets(&o, "S21.G00.20.001,'13000548100010'", "S21.G00.20.001,'13000548100010'\r\nS21.G00.20.002,'CS00012345'");
+    std::fs::write(racine.join("export").join("DSN").join("DSN_Mars2025.dsn"), &o).unwrap();
+    poser(&racine, "entreprise.json", None, json!({"banque": {}, "france_travail_dossier_recouvrement": "", "urssaf_compte": ""}));
+    let r = ok(route(&racine, "importation-apercu", json!({})));
+    let c = &r["entreprise"]["completer"];
+    assert_eq!(c["banque"]["valeur"], json!({"bic": "BANQFRPPXXX", "iban": "FR7630001007941234567890185"}), "{}", r["entreprise"]);
+    assert_eq!(c["france_travail_dossier_recouvrement"]["valeur"], json!("CS00012345"), "{}", r["entreprise"]);
+    ok(route(&racine, "importer", json!({})));
+    let e = lire(&racine, "config/entreprise.json");
+    assert_eq!((e["banque"]["iban"].clone(), e["france_travail_dossier_recouvrement"].clone()), (json!("FR7630001007941234567890185"), json!("CS00012345")));
+
+    // Le bulletin : le compte Urssaf.
+    mettre(&racine, false, true);
+    let r = ok(route(&racine, "importation-apercu", json!({"dossier": ""})));
+    assert_eq!(r["entreprise"]["completer"]["urssaf_compte"]["valeur"], json!("999999999999"), "{}", r["entreprise"]);
+    // Une banque deja la, avec sa note : pas d'ecart pour une cle que la DSN ne declare pas.
+    let r = ok(route(&compagnie("banque-notee"), "importation-apercu", json!({})));
+    assert_eq!(r["entreprise"]["ecarts"].get("banque"), None, "{}", r["entreprise"]);
+}
+
+/// Lot I2, point 3g : le bulletin compare a la fiche Entreprise sa raison sociale, son adresse et son IDCC, plus seulement
+/// le Siret et le NAF ; la fiche fait foi, l'ecart est signale. (Le bulletin fictif imprime « Compagnie des Essais »,
+/// « 12 rue Imaginaire, 99998 Nullepart » ; la compagnie fictive est « CIE FICTIVE DU FIL TENDU » a Clermont-Ferrand.)
+#[test]
+fn le_bulletin_compare_la_raison_sociale_et_l_adresse_de_l_entreprise() {
+    let racine = compagnie("ecarts-entreprise");
+    mettre(&racine, false, true);
+    let r = ok(route(&racine, "importation-apercu", json!({"dossier": ""})));
+    let ec = &r["entreprise"]["ecarts"];
+    assert_eq!(ec["raison_sociale"]["bulletin"], json!("Compagnie des Essais"), "{}", ec);
+    assert_eq!(ec["commune"]["bulletin"], json!("Nullepart"), "{}", ec);
+    assert_eq!(ec["code_postal"]["fiche"], json!("63000"), "{}", ec);
+    assert_eq!(ec.get("idcc"), None, "meme IDCC : {}", ec);
+    ok(route(&racine, "importer", json!({"dossier": ""})));
+    assert_eq!(lire(&racine, "config/entreprise.json")["raison_sociale"], json!("CIE FICTIVE DU FIL TENDU"));
 }

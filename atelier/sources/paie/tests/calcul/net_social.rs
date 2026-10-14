@@ -9,7 +9,7 @@
 //!   ni les frais professionnels, ni les mouvements de tresorerie, ni le financement patronal des garanties. Le moteur
 //!   lit ce qu'est une ligne hors assiette dans la `nature` de sa rubrique ; une autre nature se refuse (regle 1).
 //!
-//! Sur la copie figee des demonstrations (`tests/donnees/demo/`) ; saisies et compagnie retouchee dans le dossier des tests.
+//! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`) ; saisies et compagnie retouchee dans le dossier des tests.
 
 use paie::bulletin::{fmt_eur, jeux_et_description};
 use paie::calcul::Paie;
@@ -22,7 +22,7 @@ use paie::num::Decimal;
 use paie::oracle::entreprise_du_mois;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use crate::outils::{dec, demo, versement};
+use crate::outils::{dec, fictive, versement};
 use paie::pas::{du_versement, ZONE_DEFAUT};
 use std::path::PathBuf;
 
@@ -94,7 +94,7 @@ fn bulletin(ctx: &Contexte, p: &Paie, mois: &str) -> Value {
 
 #[test]
 fn defraiement_acompte_et_indemnite_dans_les_nets_fiscal_et_social() {
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     let s = saisie(
         &ctx,
         json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": [
@@ -157,12 +157,12 @@ fn defraiement_acompte_et_indemnite_dans_les_nets_fiscal_et_social() {
 }
 
 #[test]
-fn le_contrat_bi4_26_06_de_la_demo_declare_les_nets_de_la_fiche_n2() {
+fn le_contrat_bi4_26_06_de_la_fictive_declare_les_nets_de_la_fiche_n2() {
     // Fiche N2 : brut 4 077,00, defraiements 434,70 ; la vieillesse plafonnee salariale sur le plafond des 23 jours
     // remuneres (BOSS § 1090), 4 005 x 23 / 31 = 2 971,45 : cotisations salariales 866,71. Montant net social et 50.004
     // 3 210,29 (les defraiements n'y sont pas), 50.002 3 327,77, net a payer 3 644,99.
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &demo("demo-3090-grande").join("paies/2026-07.json")).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
+    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     let v = versement(&dsn, "BI4.26.06");
     assert_eq!(nets_sociaux(&v), vec![("03".to_string(), dec("3210.29"))]);
@@ -177,7 +177,7 @@ fn le_contrat_bi4_26_06_de_la_demo_declare_les_nets_de_la_fiche_n2() {
 
 #[test]
 fn chaque_rubrique_livree_hors_assiette_dit_ce_qu_elle_est_pour_le_net_social() {
-    let cat = catalogue(&demo("demo-3090-grande")).unwrap();
+    let cat = catalogue(&fictive("fictive-3090-grande")).unwrap();
     let mut vus: Vec<(String, HorsAssiette)> = Vec::new();
     for r in cat.iter().filter(|r| !r.soumis && r.origine == "base") {
         vus.push((r.code.clone(), r.hors_assiette().unwrap_or_else(|e| panic!("{} : {}", r.code, e))));
@@ -206,7 +206,7 @@ fn chaque_rubrique_livree_hors_assiette_dit_ce_qu_elle_est_pour_le_net_social() 
 fn une_ligne_hors_assiette_dont_la_nature_ne_dit_pas_ce_qu_elle_est_se_refuse() {
     // Une compagnie ajoute une prime hors assiette : revenu, remboursement ou mouvement, sa nature (`prime`) ne le dit
     // pas d'une ligne hors assiette. Le montant net social ne se devine pas : la paie se refuse, et dit pourquoi.
-    let racine = crate::outils::compagnie::config_et_mois("demo-3090-grande", &[], &crate::outils::dossier_de_test("net_social", "refus"));
+    let racine = crate::outils::compagnie::config_et_mois("fictive-3090-grande", &[], &crate::outils::dossier_de_test("net_social", "refus"));
     std::fs::write(
         racine.join("config/rubriques-compagnie.json"),
         json!({"rubriques": {"prime_maison": {
@@ -242,8 +242,8 @@ fn une_ligne_hors_assiette_dont_la_nature_ne_dit_pas_ce_qu_elle_est_se_refuse() 
 /// le test `defraiement_acompte_et_indemnite_dans_les_nets_fiscal_et_social`.
 #[test]
 fn la_part_patronale_de_prevoyance_et_du_fonds_sante_d_un_intermittent_reste_hors_du_montant_net_social() {
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &demo("demo-3090-grande").join("paies/2026-07.json")).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
+    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     let p = s.paies.iter().find(|p| p.engagement.numero.as_deref() == Some("BI4.26.06")).unwrap();
     let patronale = somme(p, "prevoyance", true);
@@ -265,7 +265,7 @@ fn le_bulletin_imprime_les_libelles_et_l_ordre_du_modele_de_l_arrete() {
     // s'impriment sous les remboursements et deductions, plus au-dessus du brut. Avant : « NET SOCIAL / NET A PAYER
     // AVANT IMPÔT » quand les nets etaient egaux, « NET À PAYER AVANT IMPÔT », « Net imposable », « NET PAYÉ » seulement
     // avec un prelevement, et le defraiement au-dessus de « SALAIRE BRUT ».
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     let s = saisie(
         &ctx,
         json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": [
@@ -359,7 +359,7 @@ fn une_correction_du_seul_montant_net_social_declare_garde_la_periode_d_origine(
     // effectivement verse au salarie etait correct », la correction se rattache « a la periode d'emploi concernee ».
     // Octobre est corrige en novembre, sans rien changer de ce qui a ete paye : l'annulation du 58.004 depose (le net a
     // payer) et le montant net social juste, aux dates d'octobre ; aucun 58 aux dates de novembre.
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-11-28").unwrap())).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-11-28").unwrap())).unwrap();
     let (p, declare) = octobre_d_avant_1b(&ctx, 19.0);
     let r = paie::dsn::Regularisation {
         mois: "2026-10".into(), avant: p.clone(), declare, apres: p.clone(), taux_pas_origine: None, net_deja_verse: p.net_a_payer,
@@ -384,7 +384,7 @@ fn une_correction_qui_verse_un_rappel_le_date_du_mois_du_versement() {
     // ete paye (Q 41, « en precisant quel etait le montant net social effectivement verse »), aux dates d'octobre ; la
     // difference, aux dates de novembre. Avant (vagues 0 a 1n) : l'annulation et le montant net social corrige entier,
     // aux dates d'octobre.
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-11-28").unwrap())).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-11-28").unwrap())).unwrap();
     let (p, declare) = octobre_d_avant_1b(&ctx, 19.0);
     let (q, _) = octobre_d_avant_1b(&ctx, 20.0);
     assert!(q.net_social > p.net_social);
@@ -405,8 +405,8 @@ fn une_correction_qui_verse_un_rappel_le_date_du_mois_du_versement() {
 
 #[test]
 fn l_abattement_contrats_courts_ne_s_ecrit_plus_en_50_012() {
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &demo("demo-3090-grande").join("paies/2026-07.json")).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
+    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
     let p = s.paies.iter().find(|p| p.engagement.numero.as_deref() == Some("BI4.26.06")).unwrap();
     // Sans taux DGFiP : la grille, et l'abattement d'un contrat court.
     let mut o = Options::default();

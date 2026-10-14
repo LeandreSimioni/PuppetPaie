@@ -1,13 +1,13 @@
 //! `paie route` : les apercus, qui ne font que lire (`documents-liste`, `bilan-repetition`, `depot-apercu` d'une DPAE et
-//! d'une DSN). Sur `demo-3090-petite` (config, aout et septembre 2026, journal vide), que chaque test mute ; ce qu'une
+//! d'une DSN). Sur `fictive-3090-petite` (config, aout et septembre 2026, journal vide), que chaque test mute ; ce qu'une
 //! charge ou un fichier ne permet pas de lire refuse.
 
-use crate::outils::{compagnie, demo, dossier_de_test, ecrire, route, reussi};
+use crate::outils::{compagnie, fictive, dossier_de_test, ecrire, route, reussi};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::saisies("demo-3090-petite", &["2026-08", "2026-09"], &dossier_de_test("routes_apercus", nom).join("compagnie"))
+    compagnie::saisies("fictive-3090-petite", &["2026-08", "2026-09"], &dossier_de_test("routes_apercus", nom).join("compagnie"))
 }
 
 fn lire(c: &Path, nom: &str, charge: Value) -> Value {
@@ -167,7 +167,7 @@ fn bilan_repetition_resout_le_chemin_et_refuse_ce_qui_ne_designe_pas_un_fichier(
 // ------------------------------------------------------------------ depot-apercu, la DPAE
 
 fn poser_dpae(c: &Path) -> String {
-    let src = demo("demo-3090-petite").join("sorties/2026-08/DPAE_Aout2026.txt");
+    let src = fictive("fictive-3090-petite").join("sorties/2026-08/DPAE_Aout2026.txt");
     let dst = c.join("sorties/2026-08/DPAE_Aout2026.txt");
     std::fs::create_dir_all(dst.parent().unwrap()).unwrap();
     std::fs::copy(src, &dst).unwrap();
@@ -186,7 +186,7 @@ fn depot_apercu_dpae_relit_le_fichier_et_dit_les_embauches_deja_declarees() {
     assert_eq!(r["enregistrements"], json!(embauches.len()));
     assert!(!embauches.is_empty());
     assert!(embauches.iter().all(|e| e["deja_declaree"] == json!(false)));
-    assert!(embauches.iter().all(|e| e["salarie"] != json!("?")), "les NIR de la demonstration sont connus : {}", r);
+    assert!(embauches.iter().all(|e| e["salarie"] != json!("?")), "les NIR de la compagnie fictive sont connus : {}", r);
     assert_eq!(r["mois"], json!("2026-08"));
     assert_eq!(r["deja_depose"], json!(null));
     assert_eq!(r["repetition"]["conforme"], json!(null));
@@ -224,12 +224,12 @@ fn depot_apercu_dpae_refuse_ce_qui_n_est_pas_un_fichier_et_lit_un_flux_vide() {
 
 // ------------------------------------------------------------------ depot-apercu, la DSN
 
-/// La DSN d'aout de la demonstration, et l'archive des bulletins dont elle porte les numeros.
+/// La DSN d'aout de la compagnie fictive, et l'archive des bulletins dont elle porte les numeros.
 fn poser_dsn(c: &Path) -> String {
     for nom in ["DSN_Aout2026.dsn", "Bulletins_Aout2026.pdf"] {
         let dst = c.join(&format!("sorties/2026-08/{}", nom));
         std::fs::create_dir_all(dst.parent().unwrap()).unwrap();
-        std::fs::copy(demo("demo-3090-petite").join("sorties/2026-08").join(nom), &dst).unwrap();
+        std::fs::copy(fictive("fictive-3090-petite").join("sorties/2026-08").join(nom), &dst).unwrap();
     }
     "sorties/2026-08/DSN_Aout2026.dsn".to_string()
 }

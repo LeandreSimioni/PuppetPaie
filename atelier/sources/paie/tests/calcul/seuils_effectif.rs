@@ -10,22 +10,22 @@
 //! prive/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt,
 //! l. 568-586) le dit de la CFP : sous le seuil, le taux de L. 6331-1, 0,55 %.
 //!
-//! Sur une copie de la demonstration figee `demo-3090-grande` (compagnie inventee, cinq salaries chaque annee), dans le
-//! dossier temporaire des tests : rien n'est ecrit dans `tests/donnees/demo/`.
+//! Sur une copie de la compagnie fictive figee `fictive-3090-grande` (compagnie inventee, cinq salaries chaque annee), dans le
+//! dossier temporaire des tests : rien n'est ecrit dans `tests/donnees/fictives/`.
 
-use crate::outils::{demo, ecrire, lire, Copie};
+use crate::outils::{fictive, ecrire, lire, Copie};
 use paie::contexte::Contexte;
 use paie::date::Jour;
 use paie::engagement::charger;
 use serde_json::{json, Value};
 
-/// La config de la demo et sa saisie de juillet 2026, la surcouche portant la formation des permanents a 1 % (ce que
+/// La config de la fictive et sa saisie de juillet 2026, la surcouche portant la formation des permanents a 1 % (ce que
 /// L. 6331-3 demande a partir de onze salaries), l'effectif de chaque annee civile donne par `effectif`.
 fn copie(effectif: impl Fn(&str) -> f64) -> Copie {
-    let c = Copie::config_de("demo-3090-grande");
+    let c = Copie::config_de("fictive-3090-grande");
     let r = &c.0;
     std::fs::create_dir_all(r.join("paies")).unwrap();
-    std::fs::copy(demo("demo-3090-grande").join("paies/2026-07.json"), r.join("paies/2026-07.json")).unwrap();
+    std::fs::copy(fictive("fictive-3090-grande").join("paies/2026-07.json"), r.join("paies/2026-07.json")).unwrap();
     let (mut bar, mut eff) = (lire(r, "config/baremes/2026.json"), lire(r, "config/effectifs.json"));
     for (an, v) in eff["annees"].as_object_mut().unwrap().iter_mut() {
         v["A01"]["valeur"] = json!(effectif(an));

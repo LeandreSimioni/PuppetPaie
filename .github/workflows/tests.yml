@@ -2,8 +2,8 @@
 #
 # Le Python est retire (lot K, 09/10/2026) : la suite est celle du moteur
 # Rust, `cargo nextest run` dans `atelier/sources/paie/` (puis la suite de l'atelier, dans sa cible). Elle tourne sur les compagnies
-# fictives et sur la copie figee des demonstrations
-# (`paie/tests/donnees/demo/`), jamais sur `prive/`.
+# fictives et sur leur copie figee
+# (`paie/tests/donnees/fictives/`), jamais sur `prive/`.
 #
 # ROUGE = ON NE FUSIONNE PAS.
 

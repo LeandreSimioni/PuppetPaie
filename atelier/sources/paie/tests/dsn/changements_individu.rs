@@ -4,7 +4,7 @@
 //! (cahier technique 2026.1, p. 177-179 ; § 2.1.1, p. 18 ; § 2.1.2.2-2.1.2.3, p. 20-21 ;
 //! `prive/reference/norme-dsn/texte/bloc-S21.G00.31.txt`, `chapitre-2-principes-de-constitution.txt`).
 //!
-//! Chaque test monte une copie de `demo-3090-grande` (compagnie inventee) dans un dossier a lui : les DSN de janvier
+//! Chaque test monte une copie de `fictive-3090-grande` (compagnie inventee) dans un dossier a lui : les DSN de janvier
 //! 2025 a aout 2026 y sont deposees (journal et `sorties/`). Aucun reseau, aucun depot.
 
 use crate::outils::{self, compagnie, ecrire as ecrire_json, lire, mois_pret};
@@ -12,7 +12,7 @@ use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn copie(test: &str) -> PathBuf {
-    compagnie::ses_dsn("demo-3090-grande", &[], &outils::dossier_de_test("changements_individu", test))
+    compagnie::ses_dsn("fictive-3090-grande", &[], &outils::dossier_de_test("changements_individu", test))
 }
 
 /// La DSN de `mois` est deposee en reel et acceptee.

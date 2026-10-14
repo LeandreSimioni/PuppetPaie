@@ -175,7 +175,7 @@ fn classe_connue(c: &str) -> &'static str {
     const CONNUES: [&str; 36] = [
         "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "MoisPasPret", "KeyError", "ValueError",
         "FileNotFoundError", "PermissionError", "OSError", "UnicodeDecodeError", "JSONDecodeError", "TypeError", "AttributeError",
-        "ErreurApi", "ErreurCoffre", "ErreurGoogle", "DepotRefuse", "VersionExigee", "EditionDemo", "CompteursVerrouilles", "CalculRefuse",
+        "ErreurApi", "ErreurCoffre", "ErreurGoogle", "DepotRefuse", "VersionExigee", "EditionBridee", "CompteursVerrouilles", "CalculRefuse",
         // Les classes des actes (lot J2b) : un depot, une correction, un arret.
         "DsnDejaDeposee", "DpaeDejaDeclaree", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai", "MoisNonRegularisable",
         "ExerciceClos", "ClotureRefusee", "MoisHorsDelai", "ActeReelRefuse", "ArretIntrouvable",
@@ -211,7 +211,7 @@ fn commandes() -> Vec<Commande> {
         Commande { nom: "retours", aide: "recuperer les retours DSN (lecture seule)", cachee: false, spec: &retours::SPEC, executer: retours::executer },
         // L'enquete de l'editeur sur le poste d'une compagnie : elle marche, elle ne figure pas dans l'aide.
         Commande { nom: "depots", aide: "lister les depots vus par net-entreprises (enquete)", cachee: true, spec: &depots::SPEC, executer: depots::executer },
-        // L'outil de l'editeur, avant chaque publication : refuse ailleurs que sur son poste (`config/maj.json`).
+        // L'outil de l'editeur, avant chaque publication : refuse ailleurs que sur son poste (le reglage de l'installation, `maj::reglage`).
         Commande { nom: "sources", aide: "les sources des donnees livrees, et leur veille (poste de l'editeur)", cachee: true, spec: &sources::SPEC, executer: sources::executer },
         Commande { nom: "fiche", aide: "rappeler les donnees de reference", cachee: false, spec: &fiche::SPEC, executer: fiche::executer },
         Commande { nom: "nouveau", aide: "creer un fichier de saisie pour un mois", cachee: false, spec: &nouveau::SPEC, executer: nouveau::executer },

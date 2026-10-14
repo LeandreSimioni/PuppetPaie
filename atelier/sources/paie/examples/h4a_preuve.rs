@@ -3,7 +3,7 @@
 //!
 //!     h4a_preuve RACINE JOUR ROUTE CHARGE.json SORTIE/ [normal | faux [CONFIG.json]]
 //!
-//! `normal` : la vraie route (boite simulee en demonstration, sinon aucune ; `coffre-verifier` : rien n'est jamais
+//! `normal` : la vraie route (boite simulee dans une compagnie fictive, sinon aucune ; `coffre-verifier` : rien n'est jamais
 //! ouvert vers l'exterieur par le harnais, les cas ne posent ni mot de passe, ou un declarant incomplet). `faux` : un
 //! faux client (courriel) ou un faux `authentifier` / faux `courriel.verifier` (coffre-verifier), selon CONFIG.json :
 //!   courriel : {"compte", "echec_envoi": n, "messages": {id: chemin.eml}, "ordre": [id..], "recherche": "tous"|"erreur",

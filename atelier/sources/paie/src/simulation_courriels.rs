@@ -1,4 +1,4 @@
-//! `demonstration-courriels` (`moteur/simulation.courriels_json`) : les courriels joues de la demonstration
+//! `courriels-fictifs` (`moteur/simulation.courriels_json`) : les courriels joues de la compagnie fictive
 //! (`courriels-simules/*.eml`), tels que le salarie les recoit -- et, s'ils portent un bouton, la reponse toute
 //! ecrite que ce bouton prepare. `dernier` : le repere a redonner la fois suivante.
 //!
@@ -303,10 +303,10 @@ fn adresses(m: &ParsedMail, champ: &str) -> String {
     vus.join(", ")
 }
 
-/// `simulation.courriels_json` : la route `demonstration-courriels`.
-pub fn demonstration_courriels(ctx: &Contexte, charge: &Value) -> R<Value> {
+/// `simulation.courriels_json` : la route `courriels-fictifs`.
+pub fn courriels_fictifs(ctx: &Contexte, charge: &Value) -> R<Value> {
     if !crate::routes_accueil::simulation_active(&ctx.racine) {
-        return Err(erreur("ErreurOperation", "Seulement dans la démonstration."));
+        return Err(erreur("ErreurOperation", "Seulement dans la compagnie fictive."));
     }
     let apres = charge.get("apres").filter(|v| crate::fichiers::vrai(v)).map(crate::etats::py_str).unwrap_or_default();
     let (mut sortie, mut dernier) = (vec![], String::new());
@@ -366,9 +366,9 @@ pub(crate) fn bouton_de_la_demande(envoyes: &HashMap<String, Vec<u8>>, identifia
 }
 
 /// `simulation._reponse` : le courriel que la personne fictive renvoie a la boite (de `de` a `a`), date de maintenant,
-/// identifiant `<ident@demonstration.puppetpaie>`.
+/// identifiant `<ident@fictive.puppetpaie>`.
 pub fn reponse_jouee(de: &str, a: &str, sujet: &str, corps: &str, ident: &str) -> Result<Vec<u8>, String> {
-    // CHOIX DE L'UTILISATEUR (07/10/2026) : en demonstration, une adresse de salarie AVEC NOM D'AFFICHAGE (`Nom <adresse>`) est
+    // CHOIX DE L'UTILISATEUR (07/10/2026) : dans une compagnie fictive, une adresse de salarie AVEC NOM D'AFFICHAGE (`Nom <adresse>`) est
     // acceptee, comme chez le Python (`EmailMessage` ecrit l'en-tete tel quel). `envoi::en_mime_avec` n'ecrit que des adresses
     // simples (H3a) : le message se fabrique avec l'adresse nue, puis l'en-tete `From` est remis tel que le Python l'ecrit.
     let (nu, rendu) = adresse_d_affichage(de);
@@ -385,7 +385,7 @@ pub fn reponse_jouee(de: &str, a: &str, sujet: &str, corps: &str, ident: &str) -
     let octets = crate::envoi::en_mime_avec(
         &message,
         &nu,
-        crate::envoi::Hasards { date: crate::envoi::date_de(t), message_id: format!("<{}@demonstration.puppetpaie>", ident), frontiere: &mut frontiere },
+        crate::envoi::Hasards { date: crate::envoi::date_de(t), message_id: format!("<{}@fictive.puppetpaie>", ident), frontiere: &mut frontiere },
     )?;
     let entete_nu = format!("From: {}", nu);
     match rendu {
@@ -413,7 +413,7 @@ fn adresse_d_affichage(de: &str) -> (String, Option<String>) {
     (nu.clone(), Some(format!("{} <{}>", nom_ecrit, nu)))
 }
 
-/// `simulation._BoiteQuiRepond` : la boite de la demonstration, vue par une releve. Chaque code attendu y trouve sa
+/// `simulation._BoiteQuiRepond` : la boite de la compagnie fictive, vue par une releve. Chaque code attendu y trouve sa
 /// reponse, fabriquee d'avance. Ce qu'on y envoie (le contrat contresigne) s'ecrit comme tout courriel joue.
 pub struct BoiteQuiRepond {
     boite: BoiteSimulee,

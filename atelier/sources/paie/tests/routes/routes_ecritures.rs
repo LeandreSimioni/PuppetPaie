@@ -1,6 +1,6 @@
 //! Les routes qui ECRIVENT une fiche ou une saisie : `activer-fiche`, `enregistrer-fiche`, `fiche-oublier-demande`,
 //! `poser-identite`, `retirer-identite`, `enregistrer-saisie`, `ajuster`, `metier-retenu`, `metiers-ajoutes`. Ce qui
-//! s'ecrit, avec sa copie `avant/` ; ce qui refuse n'ecrit rien. Sur `demo-3090-petite` (config, journal, mars 2025 et
+//! s'ecrit, avec sa copie `avant/` ; ce qui refuse n'ecrit rien. Sur `fictive-3090-petite` (config, journal, mars 2025 et
 //! novembre 2026).
 
 use crate::outils::{compagnie, dossier_de_test, lire, noms};
@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::config_et_mois("demo-3090-petite", &["2025-03", "2026-11"], &dossier_de_test("routes_ecritures", nom).join("compagnie"))
+    compagnie::config_et_mois("fictive-3090-petite", &["2025-03", "2026-11"], &dossier_de_test("routes_ecritures", nom).join("compagnie"))
 }
 
 fn route(racine: &Path, nom: &str, charge: Value) -> Value {
@@ -305,7 +305,7 @@ fn enregistrer_une_saisie_garde_la_validation_que_l_ecran_ne_renvoie_pas() {
     let mois = "2026-11";
     let chemin = racine.join(format!("paies/{}.json", mois));
     let mut fichier = lire(&racine, &format!("paies/{}.json", mois));
-    assert!(fichier["engagements"].as_array().is_some_and(|e| !e.is_empty()), "la demonstration a des engagements en {}", mois);
+    assert!(fichier["engagements"].as_array().is_some_and(|e| !e.is_empty()), "la compagnie fictive a des engagements en {}", mois);
     fichier["_origine"] = json!("ecrite a la main");
     fichier["engagements"][0]["valide"] = json!("2026-09-12T11:30:00");
     fichier["engagements"][0]["numero"] = json!("ZZ1.26.01");

@@ -40,7 +40,7 @@ fn dossier_poste() -> PathBuf {
 }
 
 fn compagnie(test: &str) -> Contexte {
-    let racine = outils::compagnie::config_et_mois("demo-3090-petite", &[], &outils::dossier_de_test("coffre_verifier", test));
+    let racine = outils::compagnie::config_et_mois("fictive-3090-petite", &[], &outils::dossier_de_test("coffre_verifier", test));
     Contexte::nouveau(&racine, Some(Jour::lire("2026-10-03").unwrap())).unwrap()
 }
 

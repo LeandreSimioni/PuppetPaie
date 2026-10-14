@@ -1,7 +1,7 @@
 //! `importation_tri` (lot A du plan d'import des bulletins) : la boite aux lettres `import/` se trie par le
 //! contenu, jamais par le nom, et chaque fichier a un sort.
 //!
-//! Le dossier est FICTIF, monte ici : une DSN de la copie figee des demonstrations (`demo-3090-petite`), des AEM
+//! Le dossier est FICTIF, monte ici : une DSN de la copie figee des compagnies fictives (`fictive-3090-petite`), des AEM
 //! ecrites ici, un PDF fabrique par la fabrique, un PDF ecrit a la main avec un seul trait, un PDF casse, un
 //! `.txt`, un fichier vide, une archive zip, des doublons. Rien de `prive/`, aucun des PDF reels de `import/`.
 
@@ -10,7 +10,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use crate::bulletins_fictifs::pdf_en_traces;
-use crate::outils::{aem, copier, demo, dossier_de_test, route};
+use crate::outils::{aem, copier, fictive, dossier_de_test, route};
 use paie::importation_tri::{trier, Sorte};
 
 /// Un enregistrement AEM marque `AEMEDIC2`.
@@ -48,7 +48,7 @@ fn monter(base: &Path) -> PathBuf {
     std::fs::write(import.join("b-trace.pdf"), pdf_en_traces()).unwrap();
     std::fs::write(import.join("c-casse.pdf"), b"%PDF-1.7\nceci n'est pas un PDF\n").unwrap();
     // Une DSN qui s'appelle « .pdf » : c'est le contenu qui decide.
-    std::fs::copy(demo("demo-3090-petite").join("sorties/2025-03/DSN_Mars2025.dsn"), import.join("declaration.pdf")).unwrap();
+    std::fs::copy(fictive("fictive-3090-petite").join("sorties/2025-03/DSN_Mars2025.dsn"), import.join("declaration.pdf")).unwrap();
     let deux = format!(
         "{}\r\n{}\r\n",
         aem2("2881175999001", "20250310", "20250314", "256Z00920022"),
@@ -164,7 +164,7 @@ fn importation_tri_la_route_lit_import_de_la_compagnie_sans_rien_y_ecrire() {
     let base = dossier_de_test("importation_tri", "route");
     let import = monter(&base.join("compagnie"));
     let racine = base.join("compagnie");
-    copier(&demo("demo-3090-petite").join("config"), &racine.join("config"));
+    copier(&fictive("fictive-3090-petite").join("config"), &racine.join("config"));
     std::fs::create_dir_all(racine.join("paies")).unwrap();
     let mut avant = Vec::new();
     arbre(&racine, &racine, &mut avant);

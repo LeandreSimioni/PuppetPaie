@@ -1,8 +1,8 @@
 //! Le prelevement a la source contre `pas.json` : la grille de l'article 204 H (`taux_par_defaut`, `du_versement`,
-//! l'abattement, de 0 a 10 000 EUR, de part et d'autre des changements de bareme) et `oracle pas` sur les demos et sur la
+//! l'abattement, de 0 a 10 000 EUR, de part et d'autre des changements de bareme) et `oracle pas` sur les fictives et sur la
 //! racine `racines/pas`. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
-use crate::outils::{chemin_oracle, code_livre, demo, lire_oracle, oracle};
+use crate::outils::{chemin_oracle, code_livre, fictive, lire_oracle, oracle};
 use paie::bareme::canon;
 use paie::contexte::Contexte;
 use paie::date::Jour;
@@ -117,7 +117,7 @@ fn le_prelevement_d_un_versement() {
 #[test]
 fn le_bareme_resolu_par_le_contexte() {
     let a = attendus();
-    let ctx = Contexte::nouveau(&demo("demo-1285-grande"), Some(Jour::lire("2026-09-27").unwrap())).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-1285-grande"), Some(Jour::lire("2026-09-27").unwrap())).unwrap();
     let mut cas = a["grille"]["resolus"].clone();
     for (cle, v) in cas.as_object_mut().unwrap() {
         let p: Vec<&str> = cle.split('|').collect();
@@ -132,17 +132,17 @@ fn racine_de(nom: &str) -> PathBuf {
     if nom == "pas" {
         chemin_oracle("racines/pas")
     } else {
-        demo(nom)
+        fictive(nom)
     }
 }
 
 #[test]
-fn oracle_pas_sur_les_demos_et_la_racine_montee() {
+fn oracle_pas_sur_les_fictives_et_la_racine_montee() {
     let mut cas = attendus()["oracle"].clone();
     for c in cas.as_array_mut().unwrap() {
         let mut o: HashMap<String, String> =
             c["options"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v.as_str().unwrap().to_string())).collect();
-        let fichier = demo(&o["demo"]).join("paies").join(&o["fichier"]);
+        let fichier = fictive(&o["fictive"]).join("paies").join(&o["fichier"]);
         o.insert("racine".into(), racine_de(&o["racine"]).to_string_lossy().into_owned());
         c["attendu"] = paie::oracle::pas_cmd(&o, fichier.to_str().unwrap()).map_or_else(|e| json!({"erreur": e}), |v| json!({"ok": canon(&v)}));
     }
@@ -200,7 +200,7 @@ fn un_mois_depose_relu_apres_un_changement_de_taux_garde_son_pas() {
     // retenue est faite au paiement, au taux transmis. Le mois depose a preleve ce que sa DSN dit ; relu plus tard,
     // apres un nouveau taux de la DGFiP, il le garde (regles 1 et 4). Jusqu'au lot D2 : recalcule au taux du jour.
     let mois = "2025-04";
-    let depose = crate::outils::compagnie::config_et_mois("demo-3090-petite", &[mois], &crate::outils::dossier_de_test("pas", "depose"));
+    let depose = crate::outils::compagnie::config_et_mois("fictive-3090-petite", &[mois], &crate::outils::dossier_de_test("pas", "depose"));
     changer_les_taux(&depose);
     let lus = pas_des_paies(&depose, mois);
     assert!(!lus.is_empty());
@@ -214,7 +214,7 @@ fn un_mois_depose_relu_apres_un_changement_de_taux_garde_son_pas() {
         assert_ne!(taux, "33.30", "le contrat {} : pas le taux du jour", numero);
     }
     // Le meme mois, jamais depose : il se calcule, au taux du jour.
-    let neuf = crate::outils::compagnie::saisies("demo-3090-petite", &[mois], &crate::outils::dossier_de_test("pas", "neuf"));
+    let neuf = crate::outils::compagnie::saisies("fictive-3090-petite", &[mois], &crate::outils::dossier_de_test("pas", "neuf"));
     changer_les_taux(&neuf);
     assert!(pas_des_paies(&neuf, mois).iter().any(|(_, t, _)| t == "33.30"), "un mois non depose suit le taux du jour");
     let _ = std::fs::remove_dir_all(&depose);

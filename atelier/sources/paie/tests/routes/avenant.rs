@@ -1,6 +1,6 @@
 //! `avenant` : l'ecart du contrat parti a la paie d'aujourd'hui (`ecart_au_contrat_signe`), le texte qu'on compare
 //! (`nfkc` contre 174 paires de `unicodedata.normalize`, `donnees/nfkc.json` ; `normaliser`, `motif`), le brut et
-//! l'emploi que le contrat ecrit. La compagnie est celle de la demonstration (inventee).
+//! l'emploi que le contrat ecrit. La compagnie est celle de la compagnie fictive (inventee).
 
 use crate::outils;
 use paie::avenant::{ecart_au_contrat_signe, motif, normaliser, retrouve, valeurs_du_contrat};
@@ -139,14 +139,14 @@ impl Monde {
     }
 }
 
-/// Une compagnie : la configuration de la demonstration (inventee), un contrat de mars parti a la
+/// Une compagnie : la configuration de la compagnie fictive (inventee), un contrat de mars parti a la
 /// signature, ecrit par la fabrique avec ce que la paie disait ce jour-la.
-/// La configuration de la demonstration (inventee), sans paie.
+/// La configuration de la compagnie fictive (inventee), sans paie.
 fn configuration(test: &str) -> PathBuf {
     let racine = outils::dossier_de_test("avenant", test);
-    let demo = outils::demo("demo-3090-grande");
-    outils::copier(&demo.join("config"), &racine.join("config"));
-    std::fs::copy(demo.join("COPIE-DE-DEVELOPPEMENT.json"), racine.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
+    let fictive = outils::fictive("fictive-3090-grande");
+    outils::copier(&fictive.join("config"), &racine.join("config"));
+    std::fs::copy(fictive.join("COPIE-DE-DEVELOPPEMENT.json"), racine.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
     std::fs::create_dir_all(racine.join("paies")).unwrap();
     racine
 }

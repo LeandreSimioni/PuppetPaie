@@ -5,8 +5,9 @@
 //! `derniere` et `rien_n_a_bouge`. Le client Drive se passe en parametre (`drive::Drive`).
 //!
 //! CE QU'ELLE SAUVE : tout le dossier des donnees (`config/`, `paies/`, `sorties/`, `retours/`,
-//! `gabarits/`, `journal/`, `reference/`), sauf les secrets (`coffre.bin`, `google-jeton.bin`),
-//! l'etat de la machine (`.compteurs.verrou`, l'index lui-meme) et le rebut.
+//! `gabarits/`, `journal/`, `reference/`), coffre compris (`coffre.bin`, scelle par le mot de passe du logiciel, qui
+//! l'ouvre sur un poste neuf apres `paie restaurer` : Leandre, 13/10/2026, redit le 14/10), sauf le jeton Google
+//! (`google-jeton.bin`, le compte se relie), l'etat de la machine (`.compteurs.verrou`, l'index lui-meme) et le rebut.
 //!
 //! ELLE NE SUPPRIME JAMAIS RIEN dans le Drive : le trait `Drive` n'a d'ailleurs aucune
 //! suppression. Un fichier efface ici reste la-bas.
@@ -30,7 +31,7 @@ pub const DOSSIER_DRIVE: &str = "sauvegarde";
 pub const INDEX: &str = ".sauvegarde.json";
 
 /// Ce qui ne monte pas (`NOMS_EXCLUS`).
-const NOMS_EXCLUS: [&str; 6] = ["coffre.bin", "google-jeton.bin", ".jeton-interface", ".compteurs.verrou", ".sauvegarde.json", ".ouverture.json"];
+const NOMS_EXCLUS: [&str; 5] = ["google-jeton.bin", ".jeton-interface", ".compteurs.verrou", ".sauvegarde.json", ".ouverture.json"];
 const SUFFIXES_EXCLUS: [&str; 4] = [".pyc", ".tmp", ".lock", ".part"];
 const DOSSIERS_EXCLUS: [&str; 2] = ["__pycache__", ".git"];
 

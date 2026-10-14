@@ -2,7 +2,7 @@
 //! (`moteur/commandes_ouverture.py`, `cmd_sauvegarder`). Ne supprime jamais rien la-bas.
 //!
 //! `--json` est accepte et sans effet (le Python n'a pas de sortie JSON ici). Ni mot de passe ni jeton ne passe par la commande : le
-//! client Drive lit le jeton au coffre (`sauvegarde::sauvegarder`, `Client::nouveau`). Dans `paie-atelier`, hors demonstration, la
+//! client Drive lit le jeton au coffre (`sauvegarde::sauvegarder`, `Client::nouveau`). Dans `paie-atelier`, hors compagnie fictive, la
 //! commande exige le faux Google (`PUPPETPAIE_ATELIER_GOOGLE`) : sinon elle irait au vrai Drive.
 //!
 //! DEFAUT DU PYTHON, QUI NE SE REPRODUIT PAS : une `ErreurGoogle` (ou une erreur de disque) hors des cas attrapes sortait en trace

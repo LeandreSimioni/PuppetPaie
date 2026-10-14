@@ -97,8 +97,9 @@ fn echapper(t: &str) -> String {
     t.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;").replace('\'', "&#x27;")
 }
 
+/// La version telle que la fenetre la montre : `JJ.MM.AAAA` (`maj::version_lue`) ; le fichier garde l'identifiant.
 fn version() -> String {
-    std::fs::read_to_string(compagnies::logiciel().join("VERSION")).map(|v| v.trim().to_string()).unwrap_or_else(|_| "0.0.0".into())
+    crate::maj::version_lue(&std::fs::read_to_string(compagnies::logiciel().join("VERSION")).unwrap_or_else(|_| "0.0.0".into()))
 }
 
 fn ressources() -> PathBuf {
@@ -226,8 +227,8 @@ fn page_accueil() -> String {
             ),
         ));
     }
-    let demo = compagnies::est_demo();
-    let grille = if demo {
+    let bride = crate::bridage::est_bride();
+    let grille = if bride {
         format!("<div class=\"grille\">{}</div>", tuiles.iter().map(|(_, t)| t.as_str()).collect::<String>())
     } else {
         let reelles: String = tuiles.iter().filter(|(r, _)| *r).map(|(_, t)| t.as_str()).collect::<String>() + TUILE_AJOUTER;
@@ -235,7 +236,7 @@ fn page_accueil() -> String {
         let mut g = format!("<div class=\"grille\">{}</div>", reelles);
         if !fictives.is_empty() {
             g += &format!(
-                "<details class=\"fictives\"><summary>Compagnies de d&eacute;monstration ({}) &mdash; pour essayer, rien ne part</summary><div class=\"grille\">{}</div></details>",
+                "<details class=\"fictives\"><summary>Compagnies fictives ({}) &mdash; pour essayer, rien ne part</summary><div class=\"grille\">{}</div></details>",
                 fictives.len(),
                 fictives.concat()
             );
@@ -245,7 +246,7 @@ fn page_accueil() -> String {
     ACCUEIL
         .replace(
             "{{SOUS_TITRE}}",
-            if demo { "version d&eacute;mo &mdash; des compagnies fictives, et rien ne part" } else { "quelle compagnie ouvrir ?" },
+            if bride { "des compagnies fictives, et rien ne part" } else { "quelle compagnie ouvrir ?" },
         )
         .replace("{{TUILES}}", &grille)
 }
@@ -264,7 +265,7 @@ pub fn page_logiciel(racine: &Path, jeton: &str) -> Result<String, String> {
             "{{STYLE_COMPAGNIE}}",
             &if copie { String::new() } else { format!("<style>:root {{ --compagnie: {}; }}</style>", compagnies::couleur(racine)) },
         )
-        .replace("{{EDITION}}", if compagnies::est_demo() { " &middot; d&eacute;mo" } else { "" });
+        .replace("{{EDITION}}", if crate::bridage::est_bride() { " &middot; brid&eacute;" } else { "" });
     let cale = CALE.replace("{{JETON}}", jeton).replace("{{NOMS}}", NOMS_LOGICIEL);
     // Avant le PREMIER script de la page (`/js/tuyau.js`, qui definit `api`) : la cale doit exister avant lui.
     p = p.replacen("<script src=\"/js/", &format!("{}<script src=\"/js/", cale), 1);
@@ -322,7 +323,7 @@ impl Fenetre {
         let _ = std::fs::write(&journal, "");
         *self.journal.lock().unwrap_or_else(|e| e.into_inner()) = Some(journal);
         self.ecrire(&format!("Compagnie : {}\n", racine.display()));
-        if compagnies::est_demo() || compagnies::est_demonstration(&racine) {
+        if crate::bridage::est_bride() || compagnies::est_fictive(&racine) {
             self.ouvrir(racine);
             return Ok(());
         }
@@ -332,8 +333,8 @@ impl Fenetre {
     }
 
     fn ouvrir(&self, racine: PathBuf) {
-        // La mise a jour ne se fait plus ici (elle fermait et rouvrait la fenetre sous les yeux) : la version prete
-        // s'applique au lancement suivant, avant toute fenetre (`maj::au_lancement`).
+        // La mise a jour ne se fait pas ici : le logiciel la cherche au lancement (`maj::chercher_en_fond`) et l'applique
+        // au lancement suivant, avant toute fenetre (`maj::au_lancement`), sans qu'aucune compagnie soit ouverte.
         let veille = Veille::nouvelle(&racine, self.minutes_veille);
         veille.demarrer();
         // Les etats des mois se refont en fond s'ils ne sont plus justes : un mois s'affiche ensuite sans calcul.
@@ -364,7 +365,7 @@ impl Fenetre {
                 Ok(c) => json!({"ok": true, "couleur": c}),
                 Err(m) => refus(m),
             },
-            ("basculer", Phase::Accueil) => match compagnies::basculer_mode() {
+            ("basculer", Phase::Accueil) => match crate::bridage::basculer() {
                 Ok(()) => ok(true),
                 Err(m) => refus(m),
             },
@@ -471,7 +472,7 @@ impl Fenetre {
                 };
                 Reponse::nouvelle(200, "text/html; charset=utf-8", html)
             }
-            "/demonstration/page" => self.piece_de_demonstration(&r),
+            "/fictive/page" => self.piece_fictive(&r),
             "/apercu/bulletin" => self.apercu_bulletin(&r),
             c if c.starts_with("/identite/") => self.identite(&r, &c["/identite/".len()..]),
             c => match fichier_de_la_page(c) {
@@ -481,8 +482,8 @@ impl Fenetre {
         }
     }
 
-    /// Le PDF joint a un courriel joue de la demonstration, tel quel (le lecteur de la fenetre l'affiche).
-    fn piece_de_demonstration(&self, r: &Requete) -> Reponse {
+    /// Le PDF joint a un courriel joue d'une compagnie fictive, tel quel (le lecteur de la fenetre l'affiche).
+    fn piece_fictive(&self, r: &Requete) -> Reponse {
         let interdit = Reponse::nouvelle(403, "text/plain", Vec::new());
         let Phase::Ouverte { racine, .. } = self.phase() else { return interdit };
         if !self.autorise(r) || !crate::routes_accueil::simulation_active(&racine) {
@@ -569,6 +570,15 @@ fn egal_en_temps_constant(a: &[u8], b: &[u8]) -> bool {
 }
 
 /// Demarre le serveur de la fenetre dans un fil, au port par defaut. Rend la fenetre et le port.
+/// AU LANCEMENT, avant tout : ce qu'une installation posee avant le lot U1 doit ranger (`demo/` devient `fictives/`,
+/// `compagnies::ranger_les_fictives`). Ce qui s'est passe va dans le journal de l'installation (`maj::noter`).
+pub fn preparer_l_installation() {
+    let inst = crate::maj::installation();
+    if let Some(t) = compagnies::ranger_les_fictives(&inst) {
+        crate::maj::noter(&inst, &t);
+    }
+}
+
 pub fn demarrer(minutes_veille: u64) -> std::io::Result<(Arc<Fenetre>, u16)> {
     demarrer_sur(minutes_veille, PORT_DEFAUT)
 }
@@ -679,6 +689,10 @@ pub fn commande(args: &[String]) -> i32 {
         println!("PuppetPaie est deja ouvert sur ce poste : sa fenetre revient devant.");
         return 0;
     };
+    // La mise a jour se cherche au lancement, pour l'installation (`maj::chercher_en_fond`) ; elle s'appliquera au
+    // prochain lancement de la fenetre.
+    preparer_l_installation();
+    crate::maj::chercher_en_fond();
     let (f, port) = match demarrer_sur(minutes, options.port) {
         Ok(x) => x,
         Err(e) => {

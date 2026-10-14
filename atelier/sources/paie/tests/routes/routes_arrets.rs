@@ -1,12 +1,12 @@
 //! Les arrets de travail saisis par la route : `arret-enregistrer`, `arret-reprise`, `arret-oublier`. Ce que la norme
-//! refuse n'ecrit rien, un arret deja declare ne se retire pas. Sur `demo-3090-petite` (config, janvier et mars 2025).
+//! refuse n'ecrit rien, un arret deja declare ne se retire pas. Sur `fictive-3090-petite` (config, janvier et mars 2025).
 
 use crate::outils::{compagnie, dossier_de_test, lire, refus};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::saisies("demo-3090-petite", &["2025-01", "2025-03"], &dossier_de_test("routes_arrets", nom).join("compagnie"))
+    compagnie::saisies("fictive-3090-petite", &["2025-01", "2025-03"], &dossier_de_test("routes_arrets", nom).join("compagnie"))
 }
 
 fn route(racine: &Path, nom: &str, charge: Value) -> Value {

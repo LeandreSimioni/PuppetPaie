@@ -3,8 +3,8 @@
 //! (`rapport`), « Un probleme, une idee ? » (`retour`, `reponses`) et le filet
 //! DPAE (`inscrire`, `etat`, `armer`, `desarmer`, `desinscrire`).
 //!
-//! Le paquet de DEMONSTRATION (`EDITION.json`, `{"edition": "demo"}`) ne garde
-//! que les actions de l'editeur (et `poste`) : les autres levent `EditionDemo`,
+//! Le PAQUET SOUDE, bride pour toujours (`bridage::paquet_soude`) ne garde que
+//! les actions de l'editeur (et `poste`) : les autres levent `EditionBridee`,
 //! comme le faisait `editeur.poster` (et la soudure de `filet.Client._post`).
 //!
 //! UNE CLE PAR POSTE, PLUS DE SECRET PARTAGE (serveur version 7, 13/10/2026 ;
@@ -19,16 +19,14 @@
 //! ne dit rien, c'est `SERVEUR_PAR_DEFAUT` (lot S1) : un essai qui veut le voir
 //! passe par un faux mandataire local (`tests/outils`, `mandataire`), qui refuse.
 
-use std::path::Path;
 
 use serde_json::Value;
 
-use crate::fichiers::dossier_du_code;
 use crate::retours::Echec;
 use crate::transport::{envoyer, Panne, Requete};
 
-/// `editeur.ACTIONS_DEMO` : ce que le paquet de demonstration peut poster.
-pub const ACTIONS_DEMO: [&str; 4] = ["poste", "rapport", "retour", "reponses"];
+/// `editeur.ACTIONS_DEMO` du Python : ce que le paquet soude (bride pour toujours) peut poster.
+pub const ACTIONS_BRIDEES: [&str; 4] = ["poste", "rapport", "retour", "reponses"];
 
 /// Les actions qui exigent l'identite du poste (`poste` dans le corps, `X-Filet-Cle`).
 pub const ACTIONS_DU_POSTE: [&str; 4] = ["inscrire", "rapport", "retour", "reponses"];
@@ -81,33 +79,12 @@ impl ErreurFilet {
     }
 }
 
-/// `compagnies.paquet_soude` : `EDITION.json`, a cote du code, dit `demo`.
-pub fn paquet_soude() -> bool {
-    let logiciel = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
-    std::fs::read(logiciel.join("EDITION.json"))
-        .ok()
-        .and_then(|o| String::from_utf8(o).ok())
-        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
-        .is_some_and(|d| d.get("edition").and_then(Value::as_str) == Some("demo"))
-}
-
-/// `compagnies.est_demonstration` : la compagnie porte le marqueur d'une copie
-/// dont l'origine est une compagnie de DEMONSTRATION (ses envois sont joues).
-pub fn est_demonstration(racine: &Path) -> bool {
-    std::fs::read(racine.join("COPIE-DE-DEVELOPPEMENT.json"))
-        .ok()
-        .and_then(|o| String::from_utf8(o).ok())
-        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
-        .and_then(|i| i.get("copie_de").filter(|v| crate::fichiers::vrai(v)).map(crate::etats::py_str))
-        .is_some_and(|c| c.starts_with("compagnie de demonstration"))
-}
-
-/// Le message d'`EditionDemo(quoi)`.
-fn edition_demo(quoi: &str) -> String {
+/// Le message d'`EditionBridee(quoi)`.
+fn edition_bridee(quoi: &str) -> String {
     format!(
-        "Version demo : cet envoi n'existe pas dans ce paquet ({}). Dans la \
-         version complete, c'est ici que le fichier part vers l'organisme ou \
-         que le courriel s'envoie ; ici, rien ne quitte le poste.",
+        "Logiciel bride : cet envoi n'existe pas dans ce paquet ({}). Debloque, \
+         c'est ici que le fichier part vers l'organisme ou que le courriel \
+         s'envoie ; ici, rien ne quitte le poste.",
         quoi
     )
 }
@@ -250,8 +227,8 @@ fn chaine(t: &str, s: &mut String) {
 /// `editeur.poster(serveur, action, corps, entetes, delai)` : la reponse JSON du
 /// serveur, ou l'`ErreurFilet` qu'elle a causee.
 pub fn poster(serveur: &str, action: &str, corps: &Value, entetes: &[(&str, &str)], delai: u64) -> Result<Value, ErreurFilet> {
-    if paquet_soude() && !ACTIONS_DEMO.contains(&action) {
-        return Err(ErreurFilet::autre("EditionDemo", edition_demo(action)));
+    if crate::bridage::paquet_soude() && !ACTIONS_BRIDEES.contains(&action) {
+        return Err(ErreurFilet::autre("EditionBridee", edition_bridee(action)));
     }
     let donnees = json_ascii(corps);
     let url = format!("{}/{}", serveur.trim_end_matches('/'), action);

@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::OnceLock;
 
-use crate::outils::{compagnie, copier, demo, dossier_de_test, dossier_du_processus, lire};
+use crate::outils::{compagnie, copier, fictive, dossier_de_test, dossier_du_processus, lire};
 use serde_json::{json, Value};
 
 const AUJOURDHUI: &str = "2026-10-08";
@@ -27,21 +27,21 @@ fn monde() -> &'static Path {
     })
 }
 
-/// La configuration et le journal d'une démonstration (avec ses DSN déposées si `sorties`), marqueur compris.
-fn copie(nom_demo: &str, test: &str, sorties: bool) -> PathBuf {
+/// La configuration et le journal d'une compagnie fictive (avec ses DSN déposées si `sorties`), marqueur compris.
+fn copie(nom_fictive: &str, test: &str, sorties: bool) -> PathBuf {
     let racine = dossier_de_test("commandes", test);
     if sorties {
-        compagnie::entiere(nom_demo, &racine);
+        compagnie::entiere(nom_fictive, &racine);
     } else {
-        compagnie::config_et_mois(nom_demo, &[], &racine);
-        std::fs::copy(demo(nom_demo).join("COPIE-DE-DEVELOPPEMENT.json"), racine.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
+        compagnie::config_et_mois(nom_fictive, &[], &racine);
+        std::fs::copy(fictive(nom_fictive).join("COPIE-DE-DEVELOPPEMENT.json"), racine.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
     }
     racine
 }
 
-/// La démonstration devenue compagnie ordinaire (déclarant et compte Urssaf posés).
+/// La compagnie fictive devenue compagnie ordinaire (déclarant et compte Urssaf posés).
 fn ordinaire(test: &str) -> PathBuf {
-    let racine = copie("demo-3090-petite", test, false);
+    let racine = copie("fictive-3090-petite", test, false);
     compagnie::ordinaire(&racine);
     racine
 }
@@ -106,7 +106,7 @@ fn ecrire(racine: &Path, chemin: &str, contenu: &str) {
 /// refus (pas un défaut du logiciel).
 #[test]
 fn une_date_illisible_est_un_refus() {
-    let cie = copie("demo-1285-petite", "dates", false);
+    let cie = copie("fictive-1285-petite", "dates", false);
     let mut appels = 0;
     for le in ["2027-13-45", "2027-02-30", "2027-04-31", "0000-01-01", "2027-1-5", "31/12/2026", "pas-une-date"] {
         for commande in ["echeancier", "rappels"] {
@@ -137,7 +137,7 @@ fn une_date_illisible_est_un_refus() {
 /// Marquer une échéance faite, puis la défaire, rend l'échéancier tel qu'il était.
 #[test]
 fn une_echeance_se_marque_faite_puis_se_defait() {
-    let cie = copie("demo-1285-petite", "echeance", false);
+    let cie = copie("fictive-1285-petite", "echeance", false);
     let avant = std::fs::read(cie.join("config/echeancier.json")).ok();
     let fait = paie(&cie, &["echeancier", "--fait", "fcap-svp:2026"]);
     assert_eq!(fait.code, 0, "--fait : {}", fait.err);
@@ -153,7 +153,7 @@ fn une_echeance_se_marque_faite_puis_se_defait() {
 
 #[test]
 fn droits_plafond_des_28_cachets_enseignement_et_naissance_absente() {
-    let cie = copie("demo-1285-petite", "droits", false);
+    let cie = copie("fictive-1285-petite", "droits", false);
     let fiches = lire(&cie, "config/salaries.json");
     let ks: Vec<String> = fiches.as_object().unwrap().keys().filter(|k| !k.starts_with('_')).cloned().collect();
     assert!(ks.len() >= 3);
@@ -198,7 +198,7 @@ fn droits_plafond_des_28_cachets_enseignement_et_naissance_absente() {
 
 #[test]
 fn incidents_regroupes_par_empreinte_et_lignes_abimees() {
-    let cie = copie("demo-1285-petite", "incidents", false);
+    let cie = copie("fictive-1285-petite", "incidents", false);
     let incident = |quand: Value, ou: &str, genre: &str, resume: &str, quoi: &str| {
         json!({"quoi": quoi, "quand": quand, "version": "2026.10.02", "empreinte": format!("{:x}", genre.len() * 7919 + ou.len()),
                "ou": ou, "genre": genre, "resume": resume, "detail": {}, "trace": null, "caviarde": [],
@@ -237,7 +237,7 @@ fn incidents_regroupes_par_empreinte_et_lignes_abimees() {
 
 #[test]
 fn version_dit_la_signature_et_refuse_un_maj_json_illisible() {
-    let cie = copie("demo-1285-petite", "version", false);
+    let cie = copie("fictive-1285-petite", "version", false);
     let r = paie(&cie, &["version", "--json"]);
     assert_eq!(r.code, 0, "{}", r.err);
     let j = r.json();
@@ -246,32 +246,40 @@ fn version_dit_la_signature_et_refuse_un_maj_json_illisible() {
     assert!(j["resultat"].get("atelier").is_none(), "le binaire livre ne parle pas de l'atelier : {}", r.out);
     let texte = paie(&cie, &["version"]);
     assert!(texte.out.starts_with("PuppetPaie ") && !texte.out.contains("ATELIER"), "{}", texte.out);
-    // un maj.json illisible : un refus (code 1, la phrase en derniere ligne), pas un silence
-    ecrire(&cie, "config/maj.json", "{ceci n'est pas du json\n");
-    let r = paie(&cie, &["version"]);
+    // L'identifiant (JSON) garde AAAA.MM.JJ ; l'humain lit JJ.MM.AAAA (Leandre, 14/10/2026).
+    let id = j["resultat"]["courante"].as_str().unwrap().to_string();
+    let lue = paie::maj::version_lue(&id);
+    assert!(id.len() == 10 && lue.len() == 10 && lue[6..] == id[..4], "{} -> {}", id, lue);
+    assert!(texte.out.starts_with(&format!("PuppetPaie {}", lue)), "{}", texte.out);
+    // un reglage de l'installation illisible : un refus (code 1, la phrase en derniere ligne), pas un silence
+    let inst = crate::outils::installation(&cie.parent().unwrap().join("version-installation"), "2026.10.09");
+    let code = crate::outils::code_de(&inst);
+    let dans = |args: &[&str]| lancer(env!("CARGO_BIN_EXE_paie"), Some(&cie), args, &[("PUPPETPAIE_CODE", &code)]);
+    ecrire(&inst, "maj/reglage.json", "{ceci n'est pas du json\n");
+    let r = dans(&["version"]);
     assert_eq!(r.code, 1);
-    assert!(r.derniere_ligne_err().starts_with("config/maj.json illisible : "), "{}", r.err);
-    std::fs::remove_file(cie.join("config/maj.json")).unwrap();
-    assert_eq!(paie(&cie, &["version"]).code, 0);
+    assert!(r.derniere_ligne_err().starts_with("maj/reglage.json illisible"), "{}", r.err);
+    std::fs::remove_file(inst.join("maj/reglage.json")).unwrap();
+    assert_eq!(dans(&["version"]).code, 0);
 }
 
-/// Le depot des mises a jour d'une compagnie qui n'en pose pas : celui du moteur (`maj::DEPOT_PAR_DEFAUT`, lot S1),
-/// `https://filet.puppetpaie.fr/maj` -- un faux mandataire local voit la demande et refuse, rien ne sort. Un depot pose
-/// le remplace : c'est lui qu'on interroge.
+/// Le depot des mises a jour d'une installation qui n'en pose pas : celui du moteur (`maj::DEPOT_PAR_DEFAUT`, lot P1),
+/// la derniere Release du depot public -- un faux mandataire local voit la demande et refuse, rien ne sort. Un depot pose
+/// dans le reglage de l'installation le remplace : c'est lui qu'on interroge. `paie maj` n'a besoin d'aucune compagnie.
 #[test]
 fn maj_cherche_au_depot_du_moteur_tant_qu_aucun_n_est_pose() {
     use crate::outils::{http_json, mandataire, serveur};
-    let cie = ordinaire("maj-depot");
-    ecrire(&cie, "config/maj.json", &json!({"editeur": false}).to_string());
+    let inst = crate::outils::installation(&dossier_de_test("commandes", "maj-depot"), "2026.10.09");
+    let code = crate::outils::code_de(&inst);
     let (proxy, demandes) = mandataire();
-    let r = lancer(env!("CARGO_BIN_EXE_paie"), Some(&cie), &["maj", "--sans-telecharger"], &[("HTTPS_PROXY", &proxy)]);
+    let r = lancer(env!("CARGO_BIN_EXE_paie"), None, &["maj", "--sans-telecharger"], &[("HTTPS_PROXY", &proxy), ("PUPPETPAIE_CODE", &code)]);
     assert_eq!(r.code, 0, "{}{}", r.out, r.err);
-    assert!(r.out.contains("depot injoignable") && r.out.contains("https://filet.puppetpaie.fr/maj/derniere.json"), "{}", r.out);
-    assert_eq!(*demandes.lock().unwrap(), ["CONNECT filet.puppetpaie.fr:443 HTTP/1.1"]);
+    assert!(r.out.contains("depot injoignable") && r.out.contains("https://github.com/LeandreSimioni/PuppetPaie/releases/latest/download/derniere.json"), "{}", r.out);
+    assert_eq!(*demandes.lock().unwrap(), ["CONNECT github.com:443 HTTP/1.1"]);
     // Un depot pose : le moteur ne parle qu'a lui.
     let (base, recu) = serveur(|_| Some(http_json(200, &json!({"version": "2000.01.01", "archive": "a.zip", "sha256": "x"}))));
-    ecrire(&cie, "config/maj.json", &json!({"editeur": false, "depot": base}).to_string());
-    let r = paie(&cie, &["maj", "--sans-telecharger"]);
+    ecrire(&inst, "maj/reglage.json", &json!({"depot": base}).to_string());
+    let r = lancer(env!("CARGO_BIN_EXE_paie"), None, &["maj", "--sans-telecharger"], &[("PUPPETPAIE_CODE", &code)]);
     assert!(r.out.contains("a jour"), "{}{}", r.out, r.err);
     assert_eq!(recu.lock().unwrap().iter().map(|q| q.chemin.clone()).collect::<Vec<_>>(), ["/derniere.json"]);
 }
@@ -280,8 +288,8 @@ fn maj_cherche_au_depot_du_moteur_tant_qu_aucun_n_est_pose() {
 
 #[test]
 fn pas_amorcer_ecrit_une_fois_puis_ne_reecrit_rien() {
-    let cie = copie("demo-1285-petite", "amorcer", true);
-    // le magasin remis a zero, et les DSN de la demonstration rangees ou l'amorcage les cherche
+    let cie = copie("fictive-1285-petite", "amorcer", true);
+    // le magasin remis a zero, et les DSN de la compagnie fictive rangees ou l'amorcage les cherche
     ecrire(&cie, "config/pas.json", r#"{"salaries": {}, "journal": []}"#);
     for f in std::fs::read_dir(cie.join("sorties")).unwrap().flatten().filter(|f| f.path().is_dir()) {
         for d in std::fs::read_dir(f.path()).unwrap().flatten().filter(|d| d.path().extension().is_some_and(|e| e == "dsn")) {
@@ -313,7 +321,7 @@ fn pas_amorcer_ecrit_une_fois_puis_ne_reecrit_rien() {
 
 #[test]
 fn la_compagnie_par_defaut_est_prive_a_cote_du_code_et_dev_est_refuse_eteint() {
-    let cie = copie("demo-1285-petite", "defaut", false);
+    let cie = copie("fictive-1285-petite", "defaut", false);
     let prive = monde().join("prive");
     let _ = std::fs::remove_dir_all(&prive);
     std::fs::rename(&cie, &prive).unwrap();
@@ -333,7 +341,7 @@ fn la_compagnie_par_defaut_est_prive_a_cote_du_code_et_dev_est_refuse_eteint() {
 
 #[test]
 fn arrivee_donne_les_etapes_dans_l_ordre() {
-    let cie = copie("demo-1285-petite", "arrivee", false);
+    let cie = copie("fictive-1285-petite", "arrivee", false);
     let r = paie(&cie, &["arrivee", "--json"]);
     let j = r.json();
     let etapes = j["resultat"]["etapes"].as_array().unwrap();
@@ -350,7 +358,7 @@ fn arrivee_donne_les_etapes_dans_l_ordre() {
 /// L'onglet s'appelle « Reprendre l'historique » (§217), et aucun logiciel n'est nommé à l'écran.
 #[test]
 fn arrivee_renvoie_a_l_onglet_reprendre_l_historique_sans_nommer_de_logiciel() {
-    let cie = copie("demo-1285-petite", "arrivee-export", false);
+    let cie = copie("fictive-1285-petite", "arrivee-export", false);
     std::fs::create_dir_all(cie.join("export").join("DSN")).unwrap();
     let j = paie(&cie, &["arrivee", "--json"]).json();
     let import = j["resultat"]["etapes"].as_array().unwrap().iter().find(|e| e["cle"] == "import").unwrap().clone();
@@ -430,13 +438,14 @@ fn restaurer_sans_drive_relie_refuse_et_n_ecrit_rien() {
 
 // ------------------------------------------------------------------ sources (le poste de l'editeur)
 
-/// Le poste de l'editeur : une compagnie ordinaire dont `config/maj.json` dit `"editeur": true`, et un dossier de code
-/// (les donnees livrees) dont `sources.json` est remplace par un manifeste fictif. Rend (racine, code).
+/// Le poste de l'editeur : une compagnie ordinaire, et une installation dont le reglage dit `"editeur": true`, ses
+/// donnees livrees portant un `sources.json` remplace par un manifeste fictif. Rend (racine, code).
 fn poste_de_l_editeur(test: &str, sources: Value) -> (PathBuf, PathBuf) {
     let racine = ordinaire(test);
-    ecrire(&racine, "config/maj.json", &json!({"editeur": true}).to_string());
-    let code = racine.parent().unwrap().join(format!("{}-code", test));
-    let _ = std::fs::remove_dir_all(&code);
+    let inst = racine.parent().unwrap().join(format!("{}-installation", test));
+    let _ = std::fs::remove_dir_all(&inst);
+    ecrire(&inst, "maj/reglage.json", &json!({"editeur": true}).to_string());
+    let code = inst.join("logiciel").join("donnees");
     copier(&monde().join("logiciel/donnees"), &code);
     let manifeste = json!({"_quoi": "manifeste fictif", "sources": sources});
     std::fs::write(code.join("sources.json"), serde_json::to_string_pretty(&manifeste).unwrap()).unwrap();
@@ -458,21 +467,22 @@ fn sources(racine: &Path, code: &Path, args: &[&str]) -> Sortie {
 }
 
 /// La verification des sources est un outil de l'editeur (atelier/CLAUDE.md, « Publier une version ») : ailleurs que sur
-/// son poste -- une compagnie, une copie de demonstration --, la commande refuse, rien n'est lu ni ecrit.
+/// son poste -- une compagnie, une compagnie fictive --, la commande refuse, rien n'est lu ni ecrit.
 #[test]
 fn sources_refusee_hors_du_poste_de_l_editeur() {
     let (cie, code) = poste_de_l_editeur("sources-refus", json!({}));
-    ecrire(&cie, "config/maj.json", &json!({"editeur": false}).to_string());
+    let inst = code.parent().unwrap().parent().unwrap().to_path_buf();
+    ecrire(&inst, "maj/reglage.json", &json!({"editeur": false}).to_string());
     let r = sources(&cie, &code, &["--verifier"]);
     assert_eq!(r.code, 1, "{}{}", r.out, r.err);
     assert!(r.out.is_empty() && r.err.contains("n'est pas celui de l'editeur"), "{}", r.err);
     r.propre();
-    let demo = copie("demo-3090-petite", "sources-demo", false);
-    ecrire(&demo, "config/maj.json", &json!({"editeur": true}).to_string());
-    let r = sources(&demo, &code, &[]);
+    ecrire(&inst, "maj/reglage.json", &json!({"editeur": true}).to_string());
+    let fictive = copie("fictive-3090-petite", "sources-fictive", false);
+    let r = sources(&fictive, &code, &[]);
     assert_eq!(r.code, 1, "une copie ne verifie rien : {}", r.out);
     assert!(r.err.contains("Copie de developpement"), "{}", r.err);
-    assert!(!cie.join("reference").exists() && !demo.join("reference").exists());
+    assert!(!cie.join("reference").exists() && !fictive.join("reference").exists());
 }
 
 /// Sans reseau : la copie de `reference/sources/` confrontee au condensat du manifeste -- conforme, differente, absente --

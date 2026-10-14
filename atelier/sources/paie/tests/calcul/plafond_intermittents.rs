@@ -6,7 +6,7 @@
 //! 15/11/2024, art. 49 (le chomage dans la limite de quatre fois ce plafond). Norme DSN 2026.1 : « 02 - Assiette brute
 //! plafonnee », « 07 - Assiette des contributions d'Assurance Chomage » (p. 294), « 921 - Assiette plafonnee » (p. 168).
 //!
-//! Sur la copie figee des demonstrations (`tests/donnees/demo/`, compagnies inventees), lue sans y rien ecrire : les
+//! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`, compagnies inventees), lue sans y rien ecrire : les
 //! saisies s'ecrivent dans le dossier temporaire des tests.
 
 use paie::calcul::Paie;
@@ -17,7 +17,7 @@ use paie::engagement::{charger, Saisie};
 use paie::num::{eur, pct, Decimal};
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Value};
-use crate::outils::{base78, compagnie::sans_les_pdf, ctp, dec, demo, dossier_de_test, paires, versement};
+use crate::outils::{base78, compagnie::sans_les_pdf, ctp, dec, fictive, dossier_de_test, paires, versement};
 use std::path::PathBuf;
 
 /// Le 81.003 de la cotisation `code81` du versement (la premiere).
@@ -54,11 +54,11 @@ fn a_l_euro(x: Decimal) -> Decimal {
 
 #[test]
 fn juillet_2026_les_intermittents_au_dessus_de_leur_plafond_cotisent_sur_lui() {
-    // La demo figee 3090-grande, juillet 2026 : trois artistes a 4 077,00 et deux techniciens a l'heure (3 496,00 et
+    // La fictive figee 3090-grande, juillet 2026 : trois artistes a 4 077,00 et deux techniciens a l'heure (3 496,00 et
     // 3 312,00), tous du 02 au 25/07. Vague 1o : chacun a le plafond de ses jours remuneres (BOSS, assiette generale,
     // § 1090), 4 005 x jours dates / 31 ; vague 1l : les 24 jours du contrat, 3 100,65 pour tous.
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &demo("demo-3090-grande").join("paies/2026-07.json")).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
+    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     for (numero, brut) in [("BI4.26.06", "4077.00"), ("CH8.26.04", "3496.00"), ("SE9.26.05", "3312.00")] {
         let p = paie(&s, numero);
@@ -126,7 +126,7 @@ fn un_artiste_engage_moins_de_cinq_jours_a_douze_fois_le_plafond_horaire_par_jou
     // Deburau, deux cachets de 600,00 les 20 et 21/10/2026 : 12 x 30 x 2 = 720,00 (et non 4 005 x 2 / 31). Brut 1 200,00 :
     // la vieillesse plafonnee sur 720,00, le FNAL sur 802,80 ; le chomage (4 x 720 = 2 880) reste sur le brut.
     // Clairon, un cachet de 1 500,00 le 22/10 : plafond 360,00, chomage dans la limite de 1 440,00.
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     let s = saisie(
         &ctx,
         json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": [
@@ -171,7 +171,7 @@ fn un_artiste_engage_moins_de_cinq_jours_a_douze_fois_le_plafond_horaire_par_jou
 #[test]
 fn un_technicien_entre_en_cours_de_mois_a_le_plafond_au_prorata_de_ses_jours() {
     // Chaminade, technicien a l'heure du 20 au 31/10/2026 : 120 h a 30,00 = 3 600,00 ; plafond 4 005 x 12 / 31 = 1 550,32.
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     let dates: Vec<String> = (20..=31).map(|d| format!("2026-10-{}", d)).collect();
     let s = saisie(
         &ctx,
@@ -198,7 +198,7 @@ fn un_technicien_entre_en_cours_de_mois_a_le_plafond_au_prorata_de_ses_jours() {
 #[test]
 fn un_intermittent_sous_son_plafond_n_a_rien_de_change() {
     // Deburau, un cachet de 200,00 : plafond 360,00. Toutes les bases sont le brut, le FNAL le brut majore.
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     let s = saisie(
         &ctx,
         json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": [
@@ -226,8 +226,8 @@ fn un_permanent_garde_sa_tranche_1_et_son_chomage_sur_le_brut() {
     // Montansier (CDI) a 5 000,00 en octobre 2026 : vieillesse plafonnee et FNAL sur la tranche 1 (4 005,00), chomage
     // sur le brut, qui est sous quatre plafonds (16 020,00) ; aucune assiette d'intermittent dans ses bases. Lot V2e :
     // `brut_chomage` est desormais pose pour un permanent aussi (quatre plafonds de la periode), et vaut ici le brut ;
-    // le config/organismes.json fige de la demo, compose avant le lot (772 et 937 sur `brut_permanent`), reste juste.
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
+    // le config/organismes.json fige de la fictive, compose avant le lot (772 et 937 sur `brut_permanent`), reste juste.
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     let s = saisie(
         &ctx,
         json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": [
@@ -263,9 +263,9 @@ fn un_permanent_garde_sa_tranche_1_et_son_chomage_sur_le_brut() {
 // reduit au prorata des jours d'emploi) ; tableau d'equivalence de l'Urssaf : 772 -> base 07 / 040, 937 -> base 07 /
 // 048, qualifiant 920.
 
-/// Une copie de la demo (sans ses PDF) dans le dossier du test, son config/organismes.json recompose depuis
+/// Une copie de la fictive (sans ses PDF) dans le dossier du test, son config/organismes.json recompose depuis
 /// `donnees/organismes-base.json` comme le fait l'ecran (Configuration › Organismes et contrats, Enregistrer).
-fn demo_recomposee(nom: &str, cible: &str) -> PathBuf {
+fn fictive_recomposee(nom: &str, cible: &str) -> PathBuf {
     let racine = sans_les_pdf(nom, &dossier_de_test("plafond_intermittents", cible));
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     paie::organismes::enregistrer(&ctx, &json!({"contrats": {}})).unwrap();
@@ -323,13 +323,13 @@ fn lignes_23(dsn: &str) -> Vec<(String, String, String)> {
 #[test]
 fn un_fichier_des_organismes_recompose_porte_les_ctp_des_techniciens_comme_l_ancien_relu() {
     // Lot R2 : `donnees/organismes-base.json` met 432 et 636 sur le brut des artistes et ajoute 430 et 635 sur celui des
-    // techniciens. Juillet 2026 de la demo 3090-grande (artistes, techniciens et permanents) : le fichier recompose et
+    // techniciens. Juillet 2026 de la fictive 3090-grande (artistes, techniciens et permanents) : le fichier recompose et
     // l'ancien, relu sans etre recompose (`dsn::ctp_urssaf`), font le meme bordereau, ligne pour ligne.
     let jour = Some(Jour::lire("2026-07-28").unwrap());
-    let ancien = Contexte::nouveau(&demo("demo-3090-grande"), jour).unwrap();
-    let s = charger(&ancien, &demo("demo-3090-grande").join("paies/2026-07.json")).unwrap();
+    let ancien = Contexte::nouveau(&fictive("fictive-3090-grande"), jour).unwrap();
+    let s = charger(&ancien, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
     let avant = generer(&ancien, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
-    let racine = demo_recomposee("demo-3090-grande", "organismes-recomposes-juillet");
+    let racine = fictive_recomposee("fictive-3090-grande", "organismes-recomposes-juillet");
     let ctx = Contexte::nouveau(&racine, jour).unwrap();
     let o: Value = serde_json::from_str(&std::fs::read_to_string(racine.join("config/organismes.json")).unwrap()).unwrap();
     let siens: Vec<(String, String)> =
@@ -344,11 +344,11 @@ fn un_fichier_des_organismes_recompose_porte_les_ctp_des_techniciens_comme_l_anc
     assert_eq!(l_avant, l_apres);
 }
 
-/// La demo recomposee a soixante salaries depuis cinq ans (config/effectifs.json), et sa surcouche ecrit ce que
+/// La fictive recomposee a soixante salaries depuis cinq ans (config/effectifs.json), et sa surcouche ecrit ce que
 /// `seuils_effectif` du socle demande a ce seuil : le FNAL sur le brut majore entier (0,35 % pour un artiste, 0,50 %
 /// sinon), le `tdelta` de la reduction generale, la formation des permanents a 1 %, le versement mobilite « aucun ».
-fn demo_a_soixante(cible: &str) -> PathBuf {
-    let racine = demo_recomposee("demo-3090-grande", cible);
+fn fictive_a_soixante(cible: &str) -> PathBuf {
+    let racine = fictive_recomposee("fictive-3090-grande", cible);
     let lire = |rel: &str| -> Value { serde_json::from_str(&std::fs::read_to_string(racine.join(rel)).unwrap()).unwrap() };
     let mut eff = lire("config/effectifs.json");
     for an in eff["annees"].as_object_mut().unwrap().values_mut() {
@@ -375,9 +375,9 @@ fn a_cinquante_salaries_le_fnal_des_artistes_se_declare_sous_le_ctp_316_sur_la_t
     // Lot R2 : « Fnal : Effectif de moins de 50 salaries : 0,07 % dans la limite du plafond ; Effectif 50 salaries et
     // plus : 0,35 % » ; « CTP 316 : FNAL artistes totalite ; CTP 334 : FNAL artistes plafonne » (Urssaf, « Les taux
     // reduits cas particuliers », prive/reference/sources/urssaf-taux-reduits-artistes/, l. 89-92 et 148-149 du .txt).
-    // Juillet 2026 de la demo 3090-grande a soixante salaries : le 316 sous 920 porte le brut majore de 11,5 % des
+    // Juillet 2026 de la fictive 3090-grande a soixante salaries : le 316 sous 920 porte le brut majore de 11,5 % des
     // artistes, entier, comme leur 81.003 du 049 ; plus de 334.
-    let racine = demo_a_soixante("fnal-artistes-cinquante");
+    let racine = fictive_a_soixante("fnal-artistes-cinquante");
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-07-28").unwrap())).unwrap();
     let s = charger(&ctx, &racine.join("paies/2026-07.json")).unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
@@ -392,8 +392,8 @@ fn a_cinquante_salaries_le_fnal_des_artistes_se_declare_sous_le_ctp_316_sur_la_t
     assert_eq!(ctp(&dsn, "316", "920"), Some(a_l_euro(x115)));
     assert_eq!(ctp(&dsn, "334", "921"), None, "plus de FNAL plafonne des artistes");
 
-    // Sous cinquante (la demo recomposee telle quelle) : le 334, pas de 316.
-    let racine = demo_recomposee("demo-3090-grande", "fnal-artistes-sous-cinquante");
+    // Sous cinquante (la fictive recomposee telle quelle) : le 334, pas de 316.
+    let racine = fictive_recomposee("fictive-3090-grande", "fnal-artistes-sous-cinquante");
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-07-28").unwrap())).unwrap();
     let s = charger(&ctx, &racine.join("paies/2026-07.json")).unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
@@ -405,8 +405,8 @@ fn a_cinquante_salaries_le_fnal_des_artistes_se_declare_sous_le_ctp_316_sur_la_t
 fn a_cinquante_salaries_un_fichier_des_organismes_compose_avant_refuse_le_fnal_des_artistes() {
     // Le fichier de la copie figee n'a pas de 316 : a soixante salaries, il declarerait le FNAL des artistes sous le 334
     // plafonne. La DSN refuse, et dit comment recomposer.
-    let racine = demo_a_soixante("fnal-artistes-ancien");
-    std::fs::copy(demo("demo-3090-grande").join("config/organismes.json"), racine.join("config/organismes.json")).unwrap();
+    let racine = fictive_a_soixante("fnal-artistes-ancien");
+    std::fs::copy(fictive("fictive-3090-grande").join("config/organismes.json"), racine.join("config/organismes.json")).unwrap();
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-07-28").unwrap())).unwrap();
     let s = charger(&ctx, &racine.join("paies/2026-07.json")).unwrap();
     let e = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap_err();
@@ -418,7 +418,7 @@ fn un_permanent_au_dessus_de_quatre_plafonds_cotise_le_chomage_sur_quatre_plafon
     // Montansier (CDI) a 20 000,00 sur tout octobre 2026 : quatre plafonds = 4 x 4 005,00 = 16 020,00. Le chomage (4,00)
     // et l'AGS (0,25) du bulletin, la base 07 et les 81.003 de 040 et 048 de la DSN, les CTP 772 et 937 du bordereau :
     // tous sur 16 020,00. Le reste ne bouge pas : 100/920 sur le brut, 100/921 sur la tranche 1.
-    let racine = demo_recomposee("demo-3090-grande", "chomage-permanent-20000");
+    let racine = fictive_recomposee("fictive-3090-grande", "chomage-permanent-20000");
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     let s = montansier(&ctx, "2023-09-04", "MO.23.01", 20000.0);
     let dsn = generer(&ctx, &s.paies, "2026-10", &[], &[], &Options::default()).unwrap();
@@ -453,7 +453,7 @@ fn un_permanent_au_dessus_de_quatre_plafonds_cotise_le_chomage_sur_quatre_plafon
 fn un_permanent_entre_en_cours_de_mois_a_quatre_plafonds_au_prorata_de_ses_jours() {
     // Entre le 16/10/2026 : 16 jours sur 31, plafond de la periode 4 005 x 16 / 31 = 2 067,10 (CSS R. 242-2, al. 3) ;
     // quatre plafonds 8 268,40. Avec 10 000,00 de brut, le chomage s'assied sur 8 268,40, partout.
-    let racine = demo_recomposee("demo-3090-grande", "chomage-permanent-entree");
+    let racine = fictive_recomposee("fictive-3090-grande", "chomage-permanent-entree");
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     let s = montansier(&ctx, "2026-10-16", "MO.26.10", 10000.0);
     let dsn = generer(&ctx, &s.paies, "2026-10", &[], &[], &Options::default()).unwrap();
@@ -470,9 +470,9 @@ fn un_permanent_entre_en_cours_de_mois_a_quatre_plafonds_au_prorata_de_ses_jours
 
 #[test]
 fn un_fichier_des_organismes_compose_avant_refuse_un_permanent_au_dessus_de_quatre_plafonds() {
-    // La demo figee telle quelle : son config/organismes.json met 772 et 937 sur `brut_permanent`. A 20 000,00, il
+    // La fictive figee telle quelle : son config/organismes.json met 772 et 937 sur `brut_permanent`. A 20 000,00, il
     // paierait le chomage sur 20 000 quand le nominatif declare 16 020 : la DSN refuse, et dit comment recomposer.
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     let s = montansier(&ctx, "2023-09-04", "MO.23.01", 20000.0);
     let e = generer(&ctx, &s.paies, "2026-10", &[], &[], &Options::default()).unwrap_err();
     assert!(e.contains("CTP 772") && e.contains("recomposez"), "{}", e);
@@ -490,7 +490,7 @@ fn en_2025_un_permanent_au_dessus_de_quatre_plafonds_cotise_le_chomage_sur_quatr
     // Montansier (CDI) a 20 000,00 sur tout octobre 2025 : PSS 3 925,00, quatre plafonds = 15 700,00. Le chomage (4,00
     // depuis le 01/05/2025) et l'AGS (0,25) du bulletin, la base 07 et les 81.003 de 040 et 048, les CTP 772 et 937 :
     // tous sur 15 700,00 ; 100/920 sur le brut, 100/921 sur la tranche 1.
-    let racine = demo_recomposee("demo-3090-grande", "chomage-permanent-2025-20000");
+    let racine = fictive_recomposee("fictive-3090-grande", "chomage-permanent-2025-20000");
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2025-10-28").unwrap())).unwrap();
     let s = montansier_en(&ctx, "2025-10", "2023-09-04", "MO.23.01", 20000.0);
     let dsn = generer(&ctx, &s.paies, "2025-10", &[], &[], &Options::default()).unwrap();
@@ -520,8 +520,8 @@ fn en_2025_un_permanent_au_dessus_de_quatre_plafonds_cotise_le_chomage_sur_quatr
 
 #[test]
 fn en_2025_un_fichier_des_organismes_compose_avant_refuse_un_permanent_au_dessus_de_quatre_plafonds() {
-    // La demo figee telle quelle (772 et 937 sur `brut_permanent`), octobre 2025 a 20 000,00 : la meme phrase qu'en 2026.
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2025-10-28").unwrap())).unwrap();
+    // La fictive figee telle quelle (772 et 937 sur `brut_permanent`), octobre 2025 a 20 000,00 : la meme phrase qu'en 2026.
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2025-10-28").unwrap())).unwrap();
     let s = montansier_en(&ctx, "2025-10", "2023-09-04", "MO.23.01", 20000.0);
     let e = generer(&ctx, &s.paies, "2025-10", &[], &[], &Options::default()).unwrap_err();
     assert!(e.contains("CTP 772") && e.contains("recomposez"), "{}", e);

@@ -55,7 +55,7 @@ jobs:
         if: runner.os == 'macOS'
         run: rustup target add x86_64-apple-darwin aarch64-apple-darwin
 
-      # Les tests de la fabrique ; ceux du moteur relisent les demos et les
+      # Les tests de la fabrique ; ceux du moteur relisent les fictives et les
       # paies du poste, et se lancent dans le conteneur.
       - name: Tests de la fabrique
         working-directory: atelier/sources/fabrique-pdf

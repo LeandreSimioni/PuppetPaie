@@ -26,9 +26,9 @@ mod outils;
 const FAUX_MOTDEPASSE: &str = "faux-motdepasse-atelier-0001";
 const AUJOURDHUI: &str = "2026-10-08";
 
-/// Une copie d'une demonstration devenue compagnie ordinaire (marqueur retire, declarant et compte Urssaf poses).
+/// Une copie d'une compagnie fictive devenue compagnie ordinaire (marqueur retire, declarant et compte Urssaf poses).
 fn compagnie(nom: &str) -> PathBuf {
-    let racine = cie::entiere("demo-3090-petite", &dossier_de_test("atelier", nom).join("compagnie"));
+    let racine = cie::entiere("fictive-3090-petite", &dossier_de_test("atelier", nom).join("compagnie"));
     cie::ordinaire(&racine);
     racine
 }
@@ -249,7 +249,7 @@ mod livre {
     }
 
     /// La meme charge qu'a l'atelier : ici elle va jusqu'a la preuve et s'arrete faute de mot de passe du logiciel (aucun n'est
-    /// pose dans une copie de demonstration). Elle ne rend surtout pas `ActeReelRefuse`, qui n'existe que dans l'atelier.
+    /// pose dans une compagnie fictive). Elle ne rend surtout pas `ActeReelRefuse`, qui n'existe que dans l'atelier.
     #[test]
     fn la_meme_charge_dans_le_binaire_livre_est_refusee_pour_une_autre_raison() {
         let racine = compagnie("livre-acte");

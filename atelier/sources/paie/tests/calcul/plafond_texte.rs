@@ -11,7 +11,7 @@
 //!   (prive/reference/sources/code-de-la-securite-sociale/articles-20261010.md).
 //!
 //! Plafond 2026 : 4 005 par mois, 30 de l'heure ; 2025 : 3 925 et 29 (`logiciel/donnees/baremes/`). Sur la copie figee
-//! des demonstrations (`tests/donnees/demo/`, compagnies inventees), lue sans y rien ecrire : les saisies s'ecrivent dans
+//! des compagnies fictives (`tests/donnees/fictives/`, compagnies inventees), lue sans y rien ecrire : les saisies s'ecrivent dans
 //! le dossier temporaire des tests.
 
 use paie::calcul::Paie;
@@ -21,7 +21,7 @@ use paie::dsn::{generer, Options};
 use paie::engagement::{charger, Saisie};
 use paie::num::{eur, Decimal, Resultat};
 use serde_json::{json, Value};
-use crate::outils::{dec, demo, versement};
+use crate::outils::{dec, fictive, versement};
 
 /// Les 78.004 du bloc `code` du versement du contrat `numero`.
 fn base78(dsn: &str, numero: &str, code: &str) -> Vec<Decimal> {
@@ -29,7 +29,7 @@ fn base78(dsn: &str, numero: &str, code: &str) -> Vec<Decimal> {
 }
 
 fn ctx(date: &str) -> Contexte {
-    Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire(date).unwrap())).unwrap()
+    Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire(date).unwrap())).unwrap()
 }
 
 fn essayer(ctx: &Contexte, s: Value) -> Resultat<Saisie> {

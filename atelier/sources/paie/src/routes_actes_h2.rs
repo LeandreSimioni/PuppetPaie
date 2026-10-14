@@ -3,7 +3,7 @@
 //!
 //! - `deposer` : une DSN ou une DPAE, en test ou en reel (`depot_acte`) -- la preuve du mot de passe du logiciel,
 //!   la repetition exigee avant le reel, le journal, les incidents, la trace sur les arrets, le desarmement du
-//!   filet ; la demonstration joue le depot ;
+//!   filet ; la compagnie fictive joue le depot ;
 //! - `suivre-depot` : juste apres un depot REEL, relever ses retours et dire s'il est tranche ;
 //! - `bilan-repetition` : ou en est le test de CE fichier, et -- s'il attend son compte rendu -- aller le
 //!   chercher maintenant (`releve_retours`) ;
@@ -225,7 +225,7 @@ fn tester_les_dpae(
     mut client: Option<&mut crate::releve_retours::Client>,
 ) -> R<Option<Value>> {
     // La copie de developpement ne teste pas d'elle-meme ; sans le mot de passe Urssaf, rien ne part. LA
-    // DEMONSTRATION, elle, teste (27/09/2026) : son depot est joue.
+    // COMPAGNIE FICTIVE, elle, teste (27/09/2026) : son depot est joue.
     // Un client donne (la preuve) tient lieu du mot de passe : le coffre n'est pas confronte.
     if !crate::routes_accueil::simulation_active(&ctx.racine) {
         let copie = ctx.racine.join("COPIE-DE-DEVELOPPEMENT.json").is_file();

@@ -10,7 +10,7 @@
 //! ou une seance que le moteur demande lui-meme ; ses phrases vont sur la sortie d'erreur, donc pas dans un `--json`). Aucun mot de
 //! passe ne passe par la commande.
 //!
-//! DANS `paie-atelier`, HORS DEMONSTRATION, la commande ne touche que ce que l'atelier redirige vers un faux serveur local : la boite
+//! DANS `paie-atelier`, HORS COMPAGNIE FICTIVE, la commande ne touche que ce que l'atelier redirige vers un faux serveur local : la boite
 //! courriel n'est jamais redirigee (signatures et fiches coupees), la sauvegarde exige le faux Google, les retours exigent le faux
 //! net-entreprises ET le faux Urssaf, le filet (le test des DPAE chez l'Urssaf) exige le faux Urssaf, et ce qui part chez l'editeur
 //! (incidents) est coupe. Chaque coupure est dite sur la sortie d'erreur. Dans `paie`, rien n'est coupe.
@@ -45,7 +45,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     let mut signatures = !args.drapeau("sans-signatures");
     let mut filet = true;
     let mut incidents_editeur = true;
-    // L'atelier hors demonstration : on ne coupe que ce qui irait au vrai serveur. Ce bloc n'est pas compile dans `paie`.
+    // L'atelier hors compagnie fictive : on ne coupe que ce qui irait au vrai serveur. Ce bloc n'est pas compile dans `paie`.
     #[cfg(feature = "atelier")]
     {
     let mut coupures: Vec<&str> = Vec::new();
@@ -70,7 +70,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
         coupures.push("l'envoi des incidents chez l'editeur");
     }
     for c in &coupures {
-        eprintln!("paie-atelier : coupe hors demonstration : {}.", c);
+        eprintln!("paie-atelier : coupe hors compagnie fictive : {}.", c);
     }
     }
     if retours || signatures || filet {

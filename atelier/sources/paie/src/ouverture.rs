@@ -3,7 +3,7 @@
 //!
 //! PROUVE contre l'ancien Python (harnais `prive/journal/i/i2b-harnais/`), TESTE (`tests/ouverture.rs`), BRANCHE (`web.py`,
 //! `commandes_ouverture.py`). Ce que le logiciel fait tout seul quand on l'ouvre -- interface ou ligne de commande,
-//! c'est la meme fonction -- et toutes les vingt minutes ensuite : l'horloge de la demonstration, les retours DSN et DPAE,
+//! c'est la meme fonction -- et toutes les vingt minutes ensuite : l'horloge de la compagnie fictive, les retours DSN et DPAE,
 //! les taux de PAS, les signatures et les fiches, le filet DPAE, les incidents et les reponses de l'editeur, la
 //! sauvegarde en dernier, puis la trace `config/.ouverture.json`.
 //!
@@ -13,7 +13,7 @@
 //!
 //! RIEN N'EST REECRIT : chaque acte est celui qui existe deja, appele tel quel --
 //! `releve_retours::{relever_retours, relever_retours_dpae, rattacher_simulation}` (lot H2),
-//! `releve_signatures::{relever_signatures, relever_signatures_demonstration}` (lot I2a),
+//! `releve_signatures::{relever_signatures, relever_signatures_fictive}` (lot I2a),
 //! `routes_fiches_courriel::relever_fiches` (H4a), `horloge::{rattraper, dernier_rattrapage}` (I1),
 //! `pas::avertissements`, `routes_actes_h2::filet_preparer` (le passage du filet DPAE, ouvert en `pub(crate)`),
 //! `incidents::envoyer` et `problemes::relever_reponses` (le canal de l'editeur), `sauvegarde::{sauvegarder,
@@ -68,8 +68,8 @@ const LOT_J: &[(&str, fn() -> Value)] = &[
     ("sources_etat", || json!({})),
 ];
 
-/// Secondes entre un depot joue et son compte rendu, en demonstration (`simulation.DELAI`).
-const DELAI_RETOURS_DEMONSTRATION: i64 = 6;
+/// Secondes entre un depot joue et son compte rendu, dans une compagnie fictive (`simulation.DELAI`).
+const DELAI_RETOURS_FICTIVE: i64 = 6;
 
 // ------------------------------------------------------------------ les options et les clients
 
@@ -166,7 +166,7 @@ pub struct Ouverture {
     /// `JJ/MM/AAAA HH:MM`, l'heure de Paris.
     pub quand: String,
     pub sauvegarde: Option<Sauvegarde>,
-    /// Les retours DSN (en demonstration : un releve vide qui ne porte que `rattaches`).
+    /// Les retours DSN (dans une compagnie fictive : un releve vide qui ne porte que `rattaches`).
     pub releve: Option<Releve>,
     pub releve_dpae: Option<Releve>,
     pub signatures: Option<ReleveSignatures>,
@@ -181,7 +181,7 @@ pub struct Ouverture {
     pub taux_pas: Vec<String>,
     /// Le passage du filet DPAE : `{testees, armes, desarmes, incidents, occupe}`.
     pub filet: Option<Value>,
-    /// Ce que l'horloge de la demonstration a joue aujourd'hui, en phrases.
+    /// Ce que l'horloge de la compagnie fictive a joue aujourd'hui, en phrases.
     pub horloge: Vec<String>,
     pub secondes: f64,
     /// Le reseau manquait : dit une fois, pas par erreur.
@@ -279,7 +279,7 @@ impl Ouverture {
 /// Une route de ce module.
 ///
 /// - `ouverture` : `{"sauvegarder"?, "retours"?, "signatures"?, "filet"?, "jours"?, "racine_drive"?, "pas_avant"?, "veille"?,
-///   "incidents_editeur"?, "sources"?, "maj"?}` -> `Ouverture::en_json`. **Hors d'une copie de demonstration, elle va au
+///   "incidents_editeur"?, "sources"?, "maj"?}` -> `Ouverture::en_json`. **Hors d'une compagnie fictive, elle va au
 ///   reseau.** Elle ne rend jamais d'erreur : une panne est une phrase de `incidents`.
 /// - `ouverture-derniere` : la trace de la derniere ouverture (`config/.ouverture.json`), `{}` si elle manque ou ne se lit
 ///   pas. Sans reseau.
@@ -491,7 +491,7 @@ fn completer_la_trace(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Insta
 /// signatures d'elle-meme (la copie et l'original liraient la meme boite et renverraient chacun le contrat contresigne). Les
 /// retours, eux, se relevent : ce sont ceux des depots de test qu'on y fait.
 ///
-/// LA DEMONSTRATION : l'horloge d'abord, les retours des depots joues, les signatures et les fiches qui repondent, le filet,
+/// LA COMPAGNIE FICTIVE : l'horloge d'abord, les retours des depots joues, les signatures et les fiches qui repondent, le filet,
 /// et rien d'autre (ni coffre, ni reseau, ni sauvegarde).
 pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut apres_releve: Option<&mut dyn FnMut()>) -> Ouverture {
     let debut = std::time::Instant::now();
@@ -523,18 +523,18 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
         signatures = false;
     }
 
-    // LA DEMONSTRATION : les retours des depots joues et les signatures demandees arrivent d'ici, sans coffre ni reseau --
+    // LA COMPAGNIE FICTIVE : les retours des depots joues et les signatures demandees arrivent d'ici, sans coffre ni reseau --
     // et rien ne manque au coffre, puisqu'il n'y a rien a y poser.
     if crate::routes_accueil::simulation_active(&ctx.racine) {
         // L'HORLOGE D'ABORD : ce qui etait du avant aujourd'hui se joue, a sa date.
         let jouee = crate::horloge::rattraper(&ctx.racine, None, true).and_then(|fait| if fait.is_empty() { crate::horloge::dernier_rattrapage(&ctx.racine, None) } else { Ok(fait) });
         match jouee {
             Ok(fait) => r.horloge = fait,
-            Err(e) => r.incidents.push(format!("Horloge de la démonstration : {}", e.message)),
+            Err(e) => r.incidents.push(format!("Horloge de la compagnie fictive : {}", e.message)),
         }
         if retours {
             let mut releve = Releve::default();
-            match releve_retours::rattacher_simulation(ctx, DELAI_RETOURS_DEMONSTRATION) {
+            match releve_retours::rattacher_simulation(ctx, DELAI_RETOURS_FICTIVE) {
                 Ok(n) => releve.rattaches = n,
                 // Le Python ne rattrapait rien ici : l'ouverture ne doit pas tomber (lot I2b).
                 Err(e) => r.incidents.push(format!("Retours : {}", e.message)),
@@ -542,10 +542,10 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
             r.releve = Some(releve);
         }
         // Le resultat de la relève jouee n'est pas gardé : le Python le jetait aussi (`simulation.relever_signatures(ctx)`).
-        if let Err(e) = releve_signatures::relever_signatures_demonstration(o, ctx, releve_signatures::DELAI_DEMONSTRATION) {
+        if let Err(e) = releve_signatures::relever_signatures_fictive(o, ctx, releve_signatures::DELAI_FICTIVE) {
             r.incidents.push(format!("Signatures : {}", e.message));
         }
-        match routes_fiches_courriel::relever_fiches(ctx, reborrow_courriel(&mut clients.courriel), "demonstration") {
+        match routes_fiches_courriel::relever_fiches(ctx, reborrow_courriel(&mut clients.courriel), crate::horloge::QUI_HORLOGE) {
             // Les incidents de la relève des fiches jouée ne sont pas repris : le Python non plus.
             Ok(f) => r.fiches = Some(f),
             Err(e) => r.incidents.push(format!("Fiches salariés : {}", e.message)),
@@ -599,11 +599,11 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
     }
 
     // LE DIAGNOSTIC A DISTANCE (29/09/2026) : ce que le journal des incidents a note part chez l'editeur -- pas depuis la
-    // copie de developpement (ses refus sont ceux qu'on provoque pour essayer), mais depuis une demonstration. Et les
+    // copie de developpement (ses refus sont ceux qu'on provoque pour essayer), mais depuis une compagnie fictive. Et les
     // reponses de l'editeur aux signalements de ce poste. Pas pendant les tests (`PUPPETPAIE_INCIDENTS` pose : le journal est
     // celui d'un bac a sable). Le Python lancait cela dans un fil ; ici c'est fait avant de rendre la main.
     let bac_a_sable = std::env::var("PUPPETPAIE_INCIDENTS").is_ok_and(|v| !v.is_empty());
-    if opt.filet && opt.incidents_editeur && !bac_a_sable && (!copie || crate::editeur::est_demonstration(&ctx.racine)) {
+    if opt.filet && opt.incidents_editeur && !bac_a_sable && (!copie || crate::interface::compagnies::est_fictive(&ctx.racine)) {
         let _ = crate::incidents::envoyer(&ctx.racine);
         let _ = crate::problemes::relever_reponses(&ctx.racine);
     }
@@ -623,7 +623,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
     r
 }
 
-/// `sauvegarde_seule` : la seconde moitie de la veille. La copie de developpement et la demonstration ne sauvegardent pas
+/// `sauvegarde_seule` : la seconde moitie de la veille. La copie de developpement et la compagnie fictive ne sauvegardent pas
 /// (rien a faire, la trace n'est pas touchee) ; sinon la sauvegarde, en dernier, et la trace du premier appel completee.
 fn sauvegarder_seulement(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut r: Ouverture, debut: std::time::Instant, precedente: &Value) -> Ouverture {
     let ne_sauvegarde_pas = !opt.sauvegarder || est_copie(&ctx.racine) || crate::routes_accueil::simulation_active(&ctx.racine);

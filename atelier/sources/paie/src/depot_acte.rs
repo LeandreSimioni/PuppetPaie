@@ -12,7 +12,7 @@
 //! journalise, ni affiche, ni renvoye. Un depot de test ne part jamais avec la nature `02` ni l'indicateur
 //! `120` : la bascule se fait en memoire (`depot::basculer_*`), jamais sur le disque.
 //!
-//! La DEMONSTRATION (`simulation.active`) joue le depot -- un flux `DEMO-...` -- et rien ne quitte le poste ;
+//! La COMPAGNIE FICTIVE (`simulation.active`) joue le depot -- un flux `FICTIF-...` -- et rien ne quitte le poste ;
 //! le reste (repetition, journal) se deroule comme en vrai.
 
 use std::collections::HashMap;
@@ -93,9 +93,10 @@ fn cle_de_version(v: &str) -> Vec<i64> {
 
 /// `maj.exigee_en_attente` : la raison pour laquelle une version telechargee et pas encore appliquee est
 /// indispensable avant de declarer -- ou `""`.
+/// La version prete est celle de l'INSTALLATION du contexte (`<installation>/logiciel/donnees` = `ctx.code`, lot U1).
 pub(crate) fn exigee_en_attente(ctx: &Contexte) -> R<String> {
-    let code = crate::fichiers::dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
-    let Some(p) = crate::routes_etats::prete(&ctx.racine)? else { return Ok(String::new()) };
+    let code = ctx.code.parent().map(Path::to_path_buf).unwrap_or_default();
+    let Some(p) = crate::routes_etats::prete(&code.join(".."))? else { return Ok(String::new()) };
     let exigee = p.get("exigee").filter(|e| vrai(e)).map(py_str).unwrap_or_default();
     let version = p.get("version").map(py_str).unwrap_or_default();
     if exigee.is_empty() || cle_de_version(&version) <= cle_de_version(&crate::routes_etats::courante(&code)?) {
@@ -132,9 +133,9 @@ fn refus_atelier(_ctx: &Contexte, _preuve: Option<&Preuve>, _mois_attendu: &str,
 
 #[cfg_attr(feature = "atelier", allow(dead_code))]
 fn verifier_preuve_du_logiciel(ctx: &Contexte, preuve: Option<&Preuve>, mois_attendu: &str, quoi: &str, a_qui: &str) -> R<String> {
-    // LA DEMONSTRATION : rien ne part, il n'y a rien a prouver.
+    // LA COMPAGNIE FICTIVE : rien ne part, il n'y a rien a prouver.
     if crate::routes_accueil::simulation_active(&ctx.racine) {
-        return Ok("demonstration".into());
+        return Ok("fictive".into());
     }
     // Une version EXIGEE attend d'etre appliquee : l'ancienne ferait une declaration fausse.
     let presse = exigee_en_attente(ctx)?;
@@ -308,7 +309,7 @@ fn archiver_reponse(ctx: &Contexte, quoi: &str, mois: &str, reponse: &str) -> R<
     let etiquette = if etiquette.is_empty() { "sans-date".to_string() } else { etiquette };
     let iso = maintenant_iso();
     let horo = format!("{}{}{}-{}{}{}", &iso[0..4], &iso[5..7], &iso[8..10], &iso[11..13], &iso[14..16], &iso[17..19]);
-    // JAMAIS PAR-DESSUS UN AUTRE (lot I1 : un depot de test puis le reel, joues a la suite par l'horloge de la demonstration dans
+    // JAMAIS PAR-DESSUS UN AUTRE (lot I1 : un depot de test puis le reel, joues a la suite par l'horloge de la compagnie fictive dans
     // la meme seconde, portaient le meme nom, et la reponse du test disparaissait ; l'ancien Python aussi). Le nom ordinaire ne
     // change pas ; en cas de collision le fichier prend `-2`, `-3`... avant `.txt`.
     let mut rang = 1;
@@ -363,15 +364,20 @@ fn noter(
     crate::journal::noter(&ctx.racine, &n, &maintenant_iso()).map_err(|m| erreur("OSError", m))
 }
 
-// ----------------------------------------------------------------- la demonstration
+// ----------------------------------------------------------------- la compagnie fictive
+
+/// Le flux d'un depot joue par une compagnie fictive : `FICTIF-` et douze chiffres hexadecimaux. Les depots joues avant le
+/// lot U1 portent `DEMO-` (`ANCIEN_PREFIXE_FLUX_FICTIF`) : leurs retours se jouent encore (`releve_retours`).
+pub(crate) const PREFIXE_FLUX_FICTIF: &str = "FICTIF-";
+pub(crate) const ANCIEN_PREFIXE_FLUX_FICTIF: &str = "DEMO-";
 
 /// `simulation.reponse_depot` : ce que le point de depot aurait repondu -- un flux, et la mention.
-fn reponse_demonstration(quoi: &str, reel: bool) -> R<String> {
+fn reponse_fictive(quoi: &str, reel: bool) -> R<String> {
     let mut o = [0u8; 6];
     getrandom::fill(&mut o).map_err(|e| erreur("OSError", format!("pas d'alea du systeme : {}", e)))?;
-    let flux = format!("DEMO-{}", o.iter().map(|b| format!("{:02X}", b)).collect::<String>());
+    let flux = format!("{}{}", PREFIXE_FLUX_FICTIF, o.iter().map(|b| format!("{:02X}", b)).collect::<String>());
     Ok(format!(
-        "<idflux>{}</idflux>\nDemonstration : {} {} jouee, rien n'a quitte le poste.",
+        "<idflux>{}</idflux>\nCompagnie fictive : {} {} jouee, rien n'a quitte le poste.",
         flux,
         if quoi == "dsn" { "DSN" } else { "DPAE" },
         if reel { "reelle" } else { "de test" }
@@ -658,7 +664,7 @@ pub fn deposer_dsn_dans(
 
     let envoi = || -> R<String> {
         if joue {
-            return reponse_demonstration("dsn", reel);
+            return reponse_fictive("dsn", reel);
         }
         let mut client = Client::dsn(ctx, environnement, mdp.clone()).map_err(Panne::en_echec)?;
         client.authentifier().map_err(Panne::en_echec)?;
@@ -822,7 +828,7 @@ pub fn deposer_dpae_avec(
 
     let mut envoi = || -> R<String> {
         if joue {
-            return reponse_demonstration("dpae", reel);
+            return reponse_fictive("dpae", reel);
         }
         let c: &mut Client = match donne.as_deref_mut() {
             Some(c) => c,

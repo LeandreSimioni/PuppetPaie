@@ -6,7 +6,7 @@
 //! recevoir la mise a jour signee). Il est dans le `paie` livre, comme `paie maj --publier`, parce que c'est ce
 //! programme-la que le poste de l'editeur fait tourner (il ne compile pas le Rust ; `paie-atelier` n'est jamais livre),
 //! et il est refuse ailleurs que sur ce poste, de la meme facon que la publication (`maj::exiger_editeur` :
-//! `config/maj.json`, `"editeur": true`, et jamais depuis une copie). CACHEE : elle n'apparait pas dans l'aide.
+//! le reglage de l'installation, `"editeur": true`, et jamais depuis une copie). CACHEE : elle n'apparait pas dans l'aide.
 //!
 //! ATTENTION : `--verifier` va au RESEAU (chaque source « telechargement », et l'index KALI de la DILA). Lecture seule,
 //! hors `reference/sources/` de la compagnie de l'editeur : le resume des livraisons KALI (`veille-kali.json`), et avec
