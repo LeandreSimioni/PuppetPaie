@@ -127,6 +127,9 @@ pub fn version_lue(v: &str) -> String {
     let chiffres = |x: &str, n: usize| x.len() == n && x.bytes().all(|c| c.is_ascii_digit());
     if p.len() == 3 && chiffres(p[0], 4) && chiffres(p[1], 2) && chiffres(p[2], 2) {
         format!("{}.{}.{}", p[2], p[1], p[0])
+    } else if p.len() == 4 && chiffres(p[0], 4) && chiffres(p[1], 2) && chiffres(p[2], 2) && p[3].parse::<u32>().is_ok() {
+        // La deuxieme version d'un meme jour (`AAAA.MM.JJ.N`, posee par le flux « Publier ») : « JJ.MM.AAAA (N) ».
+        format!("{}.{}.{} ({})", p[2], p[1], p[0], p[3])
     } else {
         t.to_string()
     }
@@ -1191,6 +1194,8 @@ mod tests {
         assert_eq!(version_lue(" 2026.11.01\n"), "01.11.2026");
         assert_eq!(version_lue("0.0.0"), "0.0.0");
         assert_eq!(version_lue("2026.10"), "2026.10");
+        assert_eq!(version_lue("2026.10.14.2"), "14.10.2026 (2)");
+        assert!(plus_recente("2026.10.14.2", "2026.10.14") && plus_recente("2026.10.15", "2026.10.14.2"));
         // L'identifiant garde l'ordre : la lecture ne sert jamais a comparer.
         assert!(plus_recente("2026.11.01", "2026.10.14") && version_lue("2026.11.01") < version_lue("2026.10.14"));
     }

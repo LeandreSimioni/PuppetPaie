@@ -90,11 +90,15 @@ while IFS= read -r -d '' f; do
 done < "$PREPA/liste.z"
 cp -p "$FENETRE" "$PREPA/pose/logiciel/puppetpaie.exe"
 cp -p "$ICI/EDITION.json" "$PREPA/pose/logiciel/EDITION.json"
+# L'application Google n'est pas suivie par le depot public : le flux « Publier » la pose depuis un secret GitHub.
+[ -f "$DEPOT/logiciel/donnees/google-application.json" ] && cp -p "$DEPOT/logiciel/donnees/google-application.json" "$PREPA/pose/logiciel/donnees/"
 VERSION="$(tr -d ' \r\n' < "$DEPOT/logiciel/VERSION")"
-[[ "$VERSION" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}$ ]] || { echo "VERSION illisible : '$VERSION'" >&2; exit 1; }
+[[ "$VERSION" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}(\.[0-9]+)?$ ]] || { echo "VERSION illisible : '$VERSION'" >&2; exit 1; }
 # Ce qu'un humain lit (nom du fichier, pages, « Applications installees ») : JJ.MM.AAAA (Leandre, 14/10/2026 ; le pendant
 # de `maj::version_lue`). L'identifiant AAAA.MM.JJ reste dans `logiciel/VERSION` et donne VERSION_WINDOWS.
 VERSION_LUE="${VERSION:8:2}.${VERSION:5:2}.${VERSION:0:4}"
+# Une deuxieme version du meme jour (AAAA.MM.JJ.N, flux « Publier ») : « JJ.MM.AAAA-N » dans le nom de l'installeur.
+[ "${#VERSION}" -gt 10 ] && VERSION_LUE="$VERSION_LUE-${VERSION:11}"
 
 # Les deux listes de l'installeur, tirees du meme dossier : ce qu'il pose, ce que le desinstalleur retire.
 # Chemins Windows (`\`) ; un `$` se double pour NSIS (aucun aujourd'hui).
@@ -140,7 +144,7 @@ mkdir -p "$SORTIE"
 NOM="PuppetPaie-$VERSION_LUE-installeur.exe"
 makensis -V2 -INPUTCHARSET UTF8 \
     "-DVERSION=$VERSION_LUE" \
-    "-DVERSION_WINDOWS=$(echo "$VERSION" | awk -F. '{printf "%d.%d.%d.0", $1, $2, $3}')" \
+    "-DVERSION_WINDOWS=$(echo "$VERSION" | awk -F. '{printf "%d.%d.%d.%d", $1, $2, $3, $4}')" \
     "-DPREPA=$PREPA" \
     "-DICONE=$SOURCES/fenetre/icons/icon.ico" \
     "-DSORTIE=$SORTIE/$NOM" \
