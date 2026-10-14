@@ -138,7 +138,7 @@ raison. C'est pour cela que ces deux corrections comptent.
 ## 3. Ce qui reste à décider
 
 - **La licence** : EUPL 1.2 (Léandre, 08/10/2026).
-- **Le `client_secret` Google** (`donnees/google-application.json`). Il peut rester : Google
+- **Le `client_secret` Google** (`donnees/google-application.json`) — **DÉCIDÉ (Léandre, 14/10/2026) : il est livré dans chaque Release, mais pas dans le code public : c'est le secret GitHub `PUPPETPAIE_GOOGLE_APPLICATION`, posé par le flux « Publier ».** Google
   l'assume pour les applications de bureau, qui ne peuvent rien garder
   secret, et il ne donne accès à rien sans l'autorisation d'un utilisateur. Ce
   qu'il porte, c'est notre quota et le plafond de 100 comptes — publié, il

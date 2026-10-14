@@ -12,7 +12,7 @@
 #                 l'installeur : toutes les installations la lisent (maj.rs, DEPOT_PAR_DEFAUT,
 #                 `releases/latest/download`).
 #
-# Le numero de version est la date du jour (AAAA.MM.JJ, lue JJ.MM.AAAA), posee par le flux : une version par jour.
+# Le numero de version est la date du jour (AAAA.MM.JJ, lue JJ.MM.AAAA), posee par le flux ; `.2`, `.3`... le meme jour.
 # Aucun agent n'approuve un deploiement (atelier/CLAUDE.md). Sources : prive/reference/sources/github/ (depot prive).
 
 name: Publier
@@ -55,26 +55,35 @@ jobs:
       - uses: actions/checkout@v4
 
       # LE NUMERO DE VERSION EST LA DATE DU JOUR (Paris), ecrite ici dans `logiciel/VERSION` avant de fabriquer : rien a
-      # augmenter a la main (Leandre, 14/10/2026 : « je veux un truc simple »). Une version par jour : si la Release du
-      # jour existe deja, le flux s'arrete ici, avant la compilation.
+      # augmenter a la main (Leandre, 14/10/2026 : « je veux un truc simple »). Une deuxieme version le meme jour prend
+      # `AAAA.MM.JJ.2`, puis `.3`... (lue « JJ.MM.AAAA (2) » : maj::version_lue ; plus recente pour maj::plus_recente).
       - name: Le numero de version (la date du jour)
         id: version
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          V="$(TZ=Europe/Paris date +%Y.%m.%d)"
-          D="$(gh release list -R "$DEPOT" --limit 1 --exclude-drafts --exclude-pre-releases --json tagName --jq '.[0].tagName // ""')"
-          D="${D#v}"
-          if [ -n "$D" ] && [[ ! "$V" > "$D" ]]; then
-            echo "::error::La version du jour ($V) est deja publiee (derniere Release : $D). Une version par jour : relancer demain."
-            exit 1
-          fi
+          J="$(TZ=Europe/Paris date +%Y.%m.%d)"
+          TAGS="$(gh release list -R "$DEPOT" --limit 100 --exclude-drafts --json tagName --jq '.[].tagName')"
+          V="$J"; N=1
+          while grep -qx "v$V" <<< "$TAGS"; do N=$((N+1)); V="$J.$N"; done
           printf '%s\n' "$V" > logiciel/VERSION
-          echo "Version $V (derniere Release : ${D:-aucune})"
+          echo "Version $V"
           echo "version=$V" >> "$GITHUB_OUTPUT"
 
       - name: Les outils (MinGW, NSIS)
         run: sudo apt-get update -qq && sudo apt-get install -y -qq gcc-mingw-w64-x86-64 nsis
+
+      # L'application Google du logiciel (`logiciel/donnees/google-application.json`, client_id et client_secret, le meme
+      # pour toutes les compagnies : la fenetre « PuppetPaie veut acceder a votre Drive ») n'est pas dans le code public ;
+      # elle vient du secret du depot PUPPETPAIE_GOOGLE_APPLICATION et part dans l'archive et l'installeur (Leandre,
+      # 14/10/2026). Sans elle, aucune installation ne sauvegarderait sur le Drive : le flux s'arrete.
+      - name: L'application Google
+        env:
+          APPLICATION: ${{ secrets.PUPPETPAIE_GOOGLE_APPLICATION }}
+        run: |
+          [ -n "$APPLICATION" ] || { echo "::error::Le secret PUPPETPAIE_GOOGLE_APPLICATION manque (Settings, Secrets and variables, Actions)."; exit 1; }
+          printf '%s' "$APPLICATION" > logiciel/donnees/google-application.json
+          python3 -c "import json;d=json.load(open('logiciel/donnees/google-application.json'));assert d" || { echo "::error::PUPPETPAIE_GOOGLE_APPLICATION n'est pas un JSON lisible."; exit 1; }
 
       - name: La fenetre et le moteur Windows, l'installeur
         run: bash atelier/installeur/construire.sh
@@ -87,7 +96,7 @@ jobs:
       - name: Rassembler
         run: |
           V="${{ steps.version.outputs.version }}"
-          L="${V:8:2}.${V:5:2}.${V:0:4}"
+          L="${V:8:2}.${V:5:2}.${V:0:4}"; [ "${#V}" -gt 10 ] && L="$L-${V:11}"
           cp "$CARGO_TARGET_DIR/x86_64-pc-windows-gnu/release/puppetpaie.exe" logiciel/puppetpaie.exe
           mkdir -p publication
           cp "atelier/depot/installeur/PuppetPaie-$L-installeur.exe" publication/
@@ -142,7 +151,7 @@ jobs:
         run: |
           V="$(jq -r .version sortie/derniere.json)"
           test "$V" = "${{ needs.fabriquer.outputs.version }}"
-          L="${V:8:2}.${V:5:2}.${V:0:4}"
+          L="${V:8:2}.${V:5:2}.${V:0:4}"; [ "${#V}" -gt 10 ] && L="$L-${V:11}"
           gh release create "v$V" -R "$DEPOT" --target "${{ github.sha }}" --latest \
-            --title "PuppetPaie $L" --notes "${NOTES:-PuppetPaie $L}" \
+            --title "PuppetPaie ${L/-/ (}$([ "${#V}" -gt 10 ] && echo ")")" --notes "${NOTES:-PuppetPaie $L}" \
             "sortie/puppetpaie-$V.zip" sortie/derniere.json "publication/PuppetPaie-$L-installeur.exe"

@@ -26,7 +26,7 @@ EXCLUS=(
     "import/"                                           # des bulletins reels d'autres compagnies (lot N1)
     "atelier/bac-a-sable/prive/config/coffre.bin"       # un fichier scelle suivi par Git (lot N1)
     "atelier/bac-a-sable/prive/config/.jeton-interface" # idem
-    "logiciel/donnees/google-application.json"          # le client_secret Google : a Leandre (AVANT-LE-PREMIER-COMMIT §3)
+    "logiciel/donnees/google-application.json"          # l'application Google : un secret GitHub, pose par le flux « Publier » (14/10/2026)
     "atelier/PUPPETPAIE-TEL-QU-IL-EST.md"               # le recit de la compagnie du banc d'essai (lot N1, point 3)
 )
 
