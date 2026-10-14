@@ -605,6 +605,8 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
     let bac_a_sable = std::env::var("PUPPETPAIE_INCIDENTS").is_ok_and(|v| !v.is_empty());
     if opt.filet && opt.incidents_editeur && !bac_a_sable && (!copie || crate::interface::compagnies::est_fictive(&ctx.racine)) {
         let _ = crate::incidents::envoyer(&ctx.racine);
+        // Les messages « Un probleme, une idee ? » que l'envoi en fond n'a pas fait partir (serveur injoignable...).
+        let _ = crate::problemes::partir(&ctx.racine);
         let _ = crate::problemes::relever_reponses(&ctx.racine);
     }
 

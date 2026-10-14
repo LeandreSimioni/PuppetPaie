@@ -28,13 +28,14 @@ voit que ce que les gens reçoivent, et l'atelier en plus :
 | `prive/` | la compagnie du poste (chez une autre compagnie : la sienne) |
 | `atelier/` | tout le reste : `sources/` (paie, fenetre, fabrique-pdf ; `paie.exe` et les exe Linux/Mac dans `sources/paie/bin/`), `outils/`, `docs/`, `prive-dev/`, `depot/` (versions publiées), plans, maquettes, site. **Le serveur du filet n'est plus ici** (13/10/2026) : il vit dans le dépôt du site de l'éditeur, sous `infra/filet/` |
 
-**Deux dépôts depuis le 14/10/2026** : le dépôt de travail `puppetpaieprivate` (privé : le code **et** `prive/`,
-les tickets) et le dépôt `PuppetPaie` (le même code, sans rien de réel, histoire neuve), écrit par
-`atelier/outils/exporter_depot_public.sh` — ce qu'il écarte, et pourquoi, est dans le script. **Règle (Léandre,
-14/10/2026) : il ouvre toujours les deux dépôts.** Ce qui s'adresse à lui — un topo, une marche à suivre sur son poste,
-une passation, le journal, les tickets — s'écrit **dans le privé**, sous `prive/journal/` (lui seul y a accès) ; le public ne
-porte que ce qui vaut pour toute compagnie et tout développeur. Le public, lui, construit (ses minutes GitHub Actions sont
-gratuites : « Moteur Rust », les exe Windows, Linux, Mac) ; le privé garde la règle « à la fin seulement ».
+**Deux dépôts, le code n'est que dans le public (Léandre, 14/10/2026 : « on écrit direct sur le public, sinon on perd
+un temps fou en aller-retour »).** Le dépôt `PuppetPaie` (public) est **le seul dépôt du code** : on y crée sa branche, on
+y code, on y teste, on y ouvre la PR ; il construit (« Moteur Rust », les exe Windows, Linux, Mac, minutes gratuites) et
+publie. Le dépôt `puppetpaieprivate` (privé) ne garde que **ce qui est réel** : `prive/` (la compagnie du poste, le journal,
+`ETAT.md`) et les **tickets** du filet. Plus d'export du privé vers le public : `exporter_depot_public.sh` ne sert plus.
+Une séance ouvre toujours les deux : le public pour le code, le privé pour lire `ETAT.md`, les tickets, et écrire ce qui
+s'adresse à Léandre (topo, marche à suivre, passation, journal) sous `prive/journal/`. Rien de réel n'entre jamais dans le
+public : le garde-fou (`python3 atelier/outils/verifier_avant_commit.py`) et `donnees_reelles` passent avant chaque commit.
 
 On compile hors du dépôt, sans espace dans le chemin :
 `CARGO_TARGET_DIR` dans `%LOCALAPPDATA%\puppetpaie-compilation` du poste, chaîne
@@ -233,6 +234,12 @@ apt-get install -y libwebkit2gtk-4.1-dev libsoup-3.0-dev librsvg2-dev xvfb   # p
 (cd atelier/sources/paie && cargo build --release)
 ```
 
+**Le moteur Linux est déjà dans le dépôt** (Léandre, 14/10/2026) : `atelier/sources/paie/bin/linux/paie` (et la fenêtre,
+`bin/linux/puppetpaie`), livrés par « Moteur Rust » ; `bin/SOURCES` dit de quelles sources. Pour reproduire un
+comportement du poste (une route, un envoi), on s'en sert tout de suite plutôt que de compiler :
+`echo '{"route":"…","charge":{…}}' | atelier/sources/paie/bin/linux/paie route --racine <copie d'une compagnie>`.
+Il peut retarder sur les sources : ce qu'on vient de changer se compile, et les tests compilent toujours.
+
 ### Les tests
 
 **Tout doit être vert. Une PR dont la suite est rouge ne se fusionne pas.**
@@ -421,8 +428,7 @@ version n'a été publiée depuis longtemps.
 
 **Depuis le 14/10/2026 (lot P1), on publie depuis GitHub** (`prive/journal/finitions/PUBLIER.md`) :
 
-1. **À la fin de chaque séance de code**, suite verte, exporter vers le dépôt public
-   (`atelier/outils/exporter_depot_public.sh`) et le porter sur sa `main` (PR que Léandre fusionne). Le numéro de version
+1. **À la fin de chaque séance de code**, suite verte, la PR du dépôt public sur sa `main` (Léandre la fusionne). Le numéro de version
    n'est plus à augmenter : le flux pose la date du jour dans `logiciel/VERSION` (une version par jour).
 2. Léandre lance le flux « Publier » du dépôt public (`.github/workflows/publier.yml`) ; `notes`, et `calcul`
    **seulement** si la version change un calcul de paie (la seule phrase qu'une compagnie verra ; un taux qui change

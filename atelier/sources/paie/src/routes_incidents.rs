@@ -5,7 +5,8 @@
 //!   des incidents ecrit, et c'est tout ; ne leve jamais) ;
 //! - `diagnostic-etat`, `diagnostic-envoyer` : ce qui est parti chez l'editeur, et
 //!   l'envoi de ce qui attend ;
-//! - `signalement-apercu`, `signalement-envoyer`, `signalements-lus` : « Un
+//! - `signalement-apercu`, `signalement-envoyer` (enregistre, ne part pas),
+//!   `signalements-partir` (le depart, en fond), `signalements-lus` : « Un
 //!   probleme, une idee ? » ;
 //! - `filet-verifier`, `filet-activer`, `filet-desactiver` : le filet DPAE (activer
 //!   et desactiver exigent le mot de passe du logiciel s'il est pose : le moteur
@@ -31,7 +32,7 @@ use crate::retours::Echec;
 use crate::{filet, problemes};
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 17] = [
+pub const ROUTES: [&str; 18] = [
     "incident-navigateur",
     "diagnostic-etat",
     "diagnostic-envoyer",
@@ -39,6 +40,7 @@ pub const ROUTES: [&str; 17] = [
     "signalement-apercu",
     "signalement-envoyer",
     "signalements-lus",
+    "signalements-partir",
     "signalements-reponses",
     "filet-verifier",
     "filet-activer",
@@ -89,6 +91,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "signalement-apercu" => problemes::apercu(racine, &champ(charge, "texte"), &ou_vide(charge, "ecran"), &problemes::captures_de(charge)?),
         "signalement-envoyer" => problemes::envoyer(racine, &champ(charge, "texte"), &ou_vide(charge, "ecran"), &problemes::captures_de(charge)?),
         "signalements-lus" => Ok(json!({"lues": problemes::signalements_lus(racine)?})),
+        "signalements-partir" => Ok(problemes::partir(racine)),
         "signalements-reponses" => Ok(json!({"nouvelles": problemes::relever_reponses(racine)?})),
         "filet-verifier" => filet::verifier(racine),
         "filet-activer" => filet::activer(racine, &ou_vide(charge, "adresse"), &champ(charge, "motdepasse")),

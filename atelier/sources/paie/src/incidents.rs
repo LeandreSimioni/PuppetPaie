@@ -650,7 +650,17 @@ fn systeme() -> String {
 
 #[cfg(not(unix))]
 fn systeme() -> String {
-    let sortie = std::process::Command::new("cmd").args(["/C", "ver"]).output().ok().map(|o| String::from_utf8_lossy(&o.stdout).to_string()).unwrap_or_default();
+    use std::os::windows::process::CommandExt;
+    // Sans console (CREATE_NO_WINDOW) : la route tourne sans console (`api::route`), et `cmd` en ouvrirait une, le temps
+    // de dire sa version -- la boite noire qui clignote a l'envoi d'un message.
+    let sortie = std::process::Command::new("cmd")
+        .args(["/C", "ver"])
+        .creation_flags(0x0800_0000)
+        .stdin(std::process::Stdio::null())
+        .output()
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).to_string())
+        .unwrap_or_default();
     let version = sortie.split("Version ").nth(1).and_then(|r| r.split(']').next()).unwrap_or("").trim().to_string();
     let build: u32 = version.split('.').nth(2).and_then(|b| b.parse().ok()).unwrap_or(0);
     format!("Windows {} ({})", if build >= 22000 { "11" } else { "10" }, version)
