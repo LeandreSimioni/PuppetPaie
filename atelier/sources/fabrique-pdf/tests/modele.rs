@@ -247,7 +247,7 @@ fn sans_phrase_annule_le_defaut_du_contrat_sert() {
 
 #[test]
 fn le_vrai_contrat_cddu_passe_avec_tous_ses_marqueurs() {
-    let chemin = Path::new(env!("CARGO_MANIFEST_DIR")).join("../moteur/modeles/contrat-cddu.modele");
+    let chemin = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../logiciel/donnees/modeles/contrat-cddu.modele");
     let texte = std::fs::read_to_string(&chemin).unwrap();
     let m = modele::lire_modele(&texte, "contrat-cddu.modele").unwrap();
     assert_eq!(m.articles.len(), 12);
@@ -422,7 +422,7 @@ fn l_avenant_donne_le_pdf_des_blocs_equivalents() {
 
 #[test]
 fn le_vrai_avenant_passe_avec_tous_ses_marqueurs() {
-    let chemin = Path::new(env!("CARGO_MANIFEST_DIR")).join("../moteur/modeles/avenant-cddu.modele");
+    let chemin = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../logiciel/donnees/modeles/avenant-cddu.modele");
     let texte = std::fs::read_to_string(&chemin).unwrap();
     let m = modele::lire_modele(&texte, "avenant-cddu.modele").unwrap();
     assert!(!m.modification.is_empty());
