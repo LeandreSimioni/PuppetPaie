@@ -4,7 +4,7 @@
 //! Textes : decret n° 2025-736 (art. 2 et 6 : NAF 2025 en vigueur, NAF rev. 2 abrogee, au 1er janvier 2027) ; table de
 //! correspondance de l'INSEE (`prive/reference/sources/insee-naf-2025/`, relevee dans `logiciel/donnees/naf-base.json`) ;
 //! actualite net-entreprises du 08/10/2026 (`prive/reference/sources/net-entreprises-actualites/`) : apres la mise en
-//! production de janvier 2027, la NAF 2025 s'applique en P26 comme en P27. Compagnie : une copie de `demo-3090-grande`
+//! production de janvier 2027, la NAF 2025 s'applique en P26 comme en P27. Compagnie : une copie de `fictive-3090-grande`
 //! (compagnie inventee). La table livree et la fiche se prouvent dans `src/naf.rs` et `src/champs.rs` ; un fichier P27V01
 //! en NAF 2025 part sans code APE : `norme_par_fichier.rs`.
 
@@ -17,10 +17,10 @@ use paie::engagement::charger;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
-/// `demo-3090-grande`, sa surcouche de bareme 2026 valant aussi pour 2027 (comme `norme_par_fichier`), et la fiche
+/// `fictive-3090-grande`, sa surcouche de bareme 2026 valant aussi pour 2027 (comme `norme_par_fichier`), et la fiche
 /// entreprise modifiee par `entreprise`.
 fn copie(test: &str, entreprise: Value) -> PathBuf {
-    let racine = compagnie::ses_dsn("demo-3090-grande", &[], &outils::dossier_de_test("naf_2025", test));
+    let racine = compagnie::ses_dsn("fictive-3090-grande", &[], &outils::dossier_de_test("naf_2025", test));
     let mut b = lire(&racine, "config/baremes/2026.json");
     b["annee"] = json!(2027);
     b["socle"] = json!(2026);

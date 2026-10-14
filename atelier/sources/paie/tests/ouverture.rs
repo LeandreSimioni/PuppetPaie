@@ -7,7 +7,7 @@
 //! l'environnement toute variable de mot de passe, pose `PUPPETPAIE_CODE` sur un dossier de code sans `EDITEUR.json`
 //! (le serveur des incidents de l'editeur n'est alors que celui qu'un test pose, jamais celui du poste), et un test ne
 //! laisse `incidents_editeur` vrai que pour parler a son faux serveur. Chaque test monte sa compagnie dans un dossier a
-//! lui, copie de `demo/` (jamais `prive/`, jamais un vrai coffre ni jeton).
+//! lui, copie de `fictives/` (jamais `prive/`, jamais un vrai coffre ni jeton).
 
 mod faux_drive;
 #[path = "outils/mod.rs"]
@@ -75,10 +75,10 @@ fn tour() -> MutexGuard<'static, ()> {
 
 // ------------------------------------------------------------------ les compagnies
 
-/// Une copie d'une demonstration. `ordinaire` : le marqueur est retire (une compagnie comme une autre, coffre vide) et
+/// Une copie d'une compagnie fictive. `ordinaire` : le marqueur est retire (une compagnie comme une autre, coffre vide) et
 /// l'identite du declarant net-entreprises et du compte Urssaf est posee (ce que fait une compagnie qui releve).
-fn compagnie(nom: &str, demo: &str, ordinaire: bool) -> PathBuf {
-    let racine = cie::entiere(demo, &dossier_de_test("ouverture", nom).join("compagnie"));
+fn compagnie(nom: &str, fictive: &str, ordinaire: bool) -> PathBuf {
+    let racine = cie::entiere(fictive, &dossier_de_test("ouverture", nom).join("compagnie"));
     if ordinaire {
         cie::ordinaire(&racine);
     }
@@ -133,7 +133,7 @@ fn sans_clients(racine: &Path, o: &Options) -> Ouverture {
     jouer(racine, o, Clients::default())
 }
 
-/// L'horloge de la demonstration remise a une date (ce qui etait du depuis se rejoue d'un coup).
+/// L'horloge de la compagnie fictive remise a une date (ce qui etait du depuis se rejoue d'un coup).
 fn reculer_l_horloge(racine: &Path, le: &str) {
     let mut h = lire(racine, "config/horloge.json");
     h["le"] = json!(le);
@@ -366,12 +366,12 @@ fn seule_la_sauvegarde() -> Options {
     Options { retours: false, signatures: false, filet: false, ..opt() }
 }
 
-// ============================================================================ la demonstration
+// ============================================================================ la compagnie fictive
 
 #[test]
-fn la_demonstration_joue_l_horloge_les_retours_et_ne_fait_rien_d_autre() {
+fn la_fictive_joue_l_horloge_les_retours_et_ne_fait_rien_d_autre() {
     let _t = tour();
-    let c = compagnie("demo-horloge", "demo-3090-petite", false);
+    let c = compagnie("fictive-horloge", "fictive-3090-petite", false);
     reculer_l_horloge(&c, "2026-08-15");
     let r = sans_clients(&c, &Options { filet: false, ..opt() });
     assert!(!r.horloge.is_empty(), "l'horloge a rejoue ce qui etait du avant aujourd'hui");
@@ -390,22 +390,22 @@ fn la_demonstration_joue_l_horloge_les_retours_et_ne_fait_rien_d_autre() {
 }
 
 #[test]
-fn la_demonstration_sans_retours_n_en_rattache_pas() {
+fn la_fictive_sans_retours_n_en_rattache_pas() {
     let _t = tour();
-    let c = compagnie("demo-sans-retours", "demo-3090-petite", false);
+    let c = compagnie("fictive-sans-retours", "fictive-3090-petite", false);
     let r = sans_clients(&c, &Options { retours: false, filet: false, ..opt() });
     assert!(r.releve.is_none());
     assert!(r.a_poser.is_empty() && r.sauvegarde.is_none());
 }
 
 #[test]
-fn la_demonstration_ne_sauvegarde_pas_meme_quand_on_le_demande() {
+fn la_fictive_ne_sauvegarde_pas_meme_quand_on_le_demande() {
     let _t = tour();
-    let c = compagnie("demo-sauvegarde", "demo-3090-petite", false);
+    let c = compagnie("fictive-sauvegarde", "fictive-3090-petite", false);
     let (mut d, appels) = drive_compte();
     let r = jouer(&c, &Options { filet: false, ..opt() }, avec_drive(&mut d));
     assert!(r.sauvegarde.is_none());
-    assert_eq!(appels.get(), 0, "aucun appel au Drive depuis une demonstration");
+    assert_eq!(appels.get(), 0, "aucun appel au Drive depuis une compagnie fictive");
 }
 
 // ============================================================================ la copie de developpement
@@ -413,7 +413,7 @@ fn la_demonstration_ne_sauvegarde_pas_meme_quand_on_le_demande() {
 #[test]
 fn la_copie_de_developpement_ne_sauvegarde_pas_et_ne_releve_pas_les_signatures_mais_releve_les_retours() {
     let _t = tour();
-    let c = compagnie("copie-dev", "demo-3090-petite", true);
+    let c = compagnie("copie-dev", "fictive-3090-petite", true);
     ecrire(&c, "COPIE-DE-DEVELOPPEMENT.json", &json!({"copie_de": "compagnie ordinaire du poste (fictive)", "quand": "2026-10-01T10:00:00"}));
     let (base, _recu, _) = organismes(vec![dsn("F1", "11", BILAN)], Pannes::default());
     let (mut d, appels) = drive_compte();
@@ -431,7 +431,7 @@ fn la_copie_de_developpement_ne_sauvegarde_pas_et_ne_releve_pas_les_signatures_m
 #[test]
 fn coffre_vide_trois_manques_et_une_trace_sans_les_phrases_du_coffre() {
     let _t = tour();
-    let c = compagnie("coffre-vide", "demo-3090-petite", true);
+    let c = compagnie("coffre-vide", "fictive-3090-petite", true);
     let r = sans_clients(&c, &Options { filet: false, ..opt() });
     assert_eq!(r.a_poser, ["net-entreprises", "urssaf", "google"]);
     assert_eq!(r.manquants.len(), 3);
@@ -454,7 +454,7 @@ fn coffre_vide_trois_manques_et_une_trace_sans_les_phrases_du_coffre() {
 #[test]
 fn un_client_donne_n_est_jamais_confronte_au_coffre() {
     let _t = tour();
-    let c = compagnie("client-donne", "demo-3090-petite", true);
+    let c = compagnie("client-donne", "fictive-3090-petite", true);
     let (base, recu, _) = organismes(
         vec![dsn("F-REEL", "11", BILAN), dsn("F-ATMP", "34", ATMP)],
         Pannes::default(),
@@ -484,7 +484,7 @@ fn un_client_donne_n_est_jamais_confronte_au_coffre() {
 #[test]
 fn le_canal_dpae_avec_un_client_donne_releve_les_retours_de_l_urssaf() {
     let _t = tour();
-    let c = compagnie("canal-dpae", "demo-3090-petite", true);
+    let c = compagnie("canal-dpae", "fictive-3090-petite", true);
     let (base, recu, _) = organismes(vec![dpae("F-DPAE", "41", BILAN)], Pannes::default());
     let o = Options { filet: false, sauvegarder: false, signatures: false, ..opt() };
     let r = jouer(&c, &o, Clients { dpae: Some(client_dpae(&c, &base)), ..Clients::default() });
@@ -499,7 +499,7 @@ fn le_canal_dpae_avec_un_client_donne_releve_les_retours_de_l_urssaf() {
 #[test]
 fn les_pannes_d_un_organisme_sont_des_incidents_pas_un_arret() {
     let _t = tour();
-    let c = compagnie("pannes", "demo-3090-petite", true);
+    let c = compagnie("pannes", "fictive-3090-petite", true);
     let o = Options { filet: false, sauvegarder: false, signatures: false, ..opt() };
     let un = dsn("F1", "11", BILAN);
     for (pannes, morceau) in [
@@ -528,7 +528,7 @@ fn les_pannes_d_un_organisme_sont_des_incidents_pas_un_arret() {
 #[test]
 fn hors_ligne_une_seule_phrase_et_pas_de_ligne_de_retours() {
     let _t = tour();
-    let c = compagnie("hors-ligne", "demo-3090-petite", true);
+    let c = compagnie("hors-ligne", "fictive-3090-petite", true);
     let ferme = port_ferme();
     let (mut d, _) = drive_compte();
     d.drive.pannes.push(Panne { operation: "chemin", motif: "".into(), erreur: ErreurGoogle::google("Reseau injoignable : [Errno 111] Connection refused") });
@@ -549,7 +549,7 @@ fn hors_ligne_une_seule_phrase_et_pas_de_ligne_de_retours() {
 fn defaut_un_coffre_qui_refuse_de_s_ouvrir_est_un_incident_pas_une_chute() {
     // L'ancien Python laissait lever l'erreur du coffre (`coffre.disponible` etait hors de tout `try`) : l'ouverture tombait.
     let _t = tour();
-    let c = compagnie("coffre-refuse", "demo-3090-petite", true);
+    let c = compagnie("coffre-refuse", "fictive-3090-petite", true);
     std::fs::create_dir(c.join("config/coffre.bin")).unwrap(); // illisible : OSError, pas « non pose »
     let r = sans_clients(&c, &Options { filet: false, sauvegarder: false, signatures: false, ..opt() });
     assert!(r.incidents.iter().any(|i| i.starts_with("Retours : ")), "{:?}", r.incidents);
@@ -560,20 +560,20 @@ fn defaut_un_coffre_qui_refuse_de_s_ouvrir_est_un_incident_pas_une_chute() {
 
 #[test]
 fn defaut_un_journal_illisible_ne_fait_pas_tomber_l_ouverture() {
-    // Le Python levait : en demonstration (`simulation.rattacher`), et dans la trace (`journal.flux_de_test`).
+    // Le Python levait : dans une compagnie fictive (`simulation.rattacher`), et dans la trace (`journal.flux_de_test`).
     let _t = tour();
-    let c = compagnie("journal-illisible", "demo-3090-petite", true);
+    let c = compagnie("journal-illisible", "fictive-3090-petite", true);
     std::fs::write(c.join("journal/depots.json"), "{ ceci n'est pas du json").unwrap();
     let r = sans_clients(&c, &seule_la_trace());
     assert!(c.join("config/.ouverture.json").is_file(), "la trace s'ecrit : les retours de test sont supposes vides");
     assert_eq!(trace(&c)["nouveaux"], json!(0));
     assert!(r.incidents.is_empty());
-    // Une demonstration dont le journal est illisible : des incidents, pas une chute.
-    let d = compagnie("journal-illisible-demo", "demo-3090-petite", false);
+    // Une compagnie fictive dont le journal est illisible : des incidents, pas une chute.
+    let d = compagnie("journal-illisible-fictive", "fictive-3090-petite", false);
     std::fs::write(d.join("journal/depots.json"), "{ ceci n'est pas du json").unwrap();
     let r = sans_clients(&d, &opt());
     assert!(r.incidents.iter().any(|i| i.starts_with("Retours : ")), "{:?}", r.incidents);
-    assert!(r.incidents.iter().any(|i| i.starts_with("Horloge de la démonstration : ")), "{:?}", r.incidents);
+    assert!(r.incidents.iter().any(|i| i.starts_with("Horloge de la compagnie fictive : ")), "{:?}", r.incidents);
 }
 
 #[test]
@@ -581,7 +581,7 @@ fn defaut_un_delai_depasse_n_est_pas_un_reseau_absent() {
     // Le Python rangeait « timed out » parmi les signes de reseau absent (`_SIGNES_HORS_LIGNE`) : un refus lent devenait
     // « hors ligne » et sortait des incidents. Le serveur repond : c'est une vraie panne, a lire.
     let _t = tour();
-    let c = compagnie("timed-out", "demo-3090-petite", true);
+    let c = compagnie("timed-out", "fictive-3090-petite", true);
     let (mut d, _) = drive_compte();
     d.drive.pannes.push(Panne { operation: "lister", motif: "sauvegarde/config".into(), erreur: ErreurGoogle::nouvelle("TimeoutError", "The read operation timed out") });
     let r = jouer(&c, &seule_la_sauvegarde(), avec_drive(&mut d));
@@ -595,7 +595,7 @@ fn defaut_un_delai_depasse_n_est_pas_un_reseau_absent() {
 #[test]
 fn les_taux_de_pas_sont_ceux_du_module_pas() {
     let _t = tour();
-    let c = compagnie("pas", "demo-3090-petite", true);
+    let c = compagnie("pas", "fictive-3090-petite", true);
     let r = sans_clients(&c, &seule_la_trace());
     let attendu = paie::pas::avertissements(&contexte(&c), None, None).unwrap();
     assert_eq!(r.taux_pas, attendu);
@@ -605,7 +605,7 @@ fn les_taux_de_pas_sont_ceux_du_module_pas() {
 #[test]
 fn une_fiche_attendue_et_sa_reponse_dans_la_boite() {
     let _t = tour();
-    let c = compagnie("fiches", "demo-3090-petite", true);
+    let c = compagnie("fiches", "fictive-3090-petite", true);
     noter_demande_de_fiche(&c);
     let mut boite = FauxCourriel::avec(vec![("m1", reponse_de_fiche())]);
     let o = Options { retours: false, filet: false, sauvegarder: false, ..opt() };
@@ -626,7 +626,7 @@ fn une_fiche_attendue_et_sa_reponse_dans_la_boite() {
 #[test]
 fn sans_boite_courriel_une_fiche_attendue_est_un_incident() {
     let _t = tour();
-    let c = compagnie("fiches-sans-boite", "demo-3090-petite", true);
+    let c = compagnie("fiches-sans-boite", "fictive-3090-petite", true);
     noter_demande_de_fiche(&c);
     let r = sans_clients(&c, &Options { retours: false, filet: false, sauvegarder: false, ..opt() });
     assert!(r.incidents.iter().any(|i| i.contains("Aucune boite courriel")), "{:?}", r.incidents);
@@ -638,8 +638,8 @@ fn sans_boite_courriel_une_fiche_attendue_est_un_incident() {
 #[test]
 fn le_test_automatique_de_la_dpae_du_filet_depose_chez_le_faux_urssaf_une_seule_fois() {
     let _t = tour();
-    let c = compagnie("filet", "demo-1285-petite", false);
-    // La demonstration joue d'abord son passe (jusqu'a aujourd'hui) ; puis c'est une compagnie ordinaire.
+    let c = compagnie("filet", "fictive-1285-petite", false);
+    // La compagnie fictive joue d'abord son passe (jusqu'a aujourd'hui) ; puis c'est une compagnie ordinaire.
     sans_clients(&c, &Options { filet: false, ..opt() });
     cie::ordinaire(&c);
     let o = Options { retours: false, signatures: false, sauvegarder: false, ..opt() };
@@ -665,7 +665,7 @@ fn le_test_automatique_de_la_dpae_du_filet_depose_chez_le_faux_urssaf_une_seule_
 #[test]
 fn un_refus_de_l_urssaf_au_test_du_filet_devient_un_incident() {
     let _t = tour();
-    let c = compagnie("filet-refus", "demo-1285-petite", false);
+    let c = compagnie("filet-refus", "fictive-1285-petite", false);
     sans_clients(&c, &Options { filet: false, ..opt() });
     cie::ordinaire(&c);
     let (base, _, _) = organismes(vec![], Pannes { depot: Some(500), ..Pannes::default() });
@@ -679,7 +679,7 @@ fn un_refus_de_l_urssaf_au_test_du_filet_devient_un_incident() {
 #[test]
 fn la_sauvegarde_part_en_dernier_et_la_veille_ne_rappelle_pas_le_drive_quand_rien_n_a_bouge() {
     let _t = tour();
-    let c = compagnie("sauvegarde", "demo-3090-petite", true);
+    let c = compagnie("sauvegarde", "fictive-3090-petite", true);
     let (mut d, appels) = drive_compte();
     let r = jouer(&c, &seule_la_sauvegarde(), avec_drive(&mut d));
     let s = r.sauvegarde.as_ref().expect("sauvegarde");
@@ -704,7 +704,7 @@ fn la_sauvegarde_part_en_dernier_et_la_veille_ne_rappelle_pas_le_drive_quand_rie
 #[test]
 fn un_compte_google_non_lie_est_un_manque_meme_en_veille() {
     let _t = tour();
-    let c = compagnie("google-non-lie", "demo-3090-petite", true);
+    let c = compagnie("google-non-lie", "fictive-3090-petite", true);
     let r = sans_clients(&c, &seule_la_sauvegarde());
     assert_eq!(r.a_poser, ["google"]);
     assert!(r.manquants[0].starts_with("Compte Google non lie"));
@@ -716,7 +716,7 @@ fn un_compte_google_non_lie_est_un_manque_meme_en_veille() {
 #[test]
 fn les_incidents_du_drive_sont_repris_et_ne_sont_pas_hors_ligne() {
     let _t = tour();
-    let c = compagnie("drive-incidents", "demo-3090-petite", true);
+    let c = compagnie("drive-incidents", "fictive-3090-petite", true);
     let (mut d, _) = drive_compte();
     d.drive.pannes.push(Panne { operation: "lister", motif: "sauvegarde/config".into(), erreur: ErreurGoogle::google("HTTP 403 : quota depasse") });
     let r = jouer(&c, &seule_la_sauvegarde(), avec_drive(&mut d));
@@ -730,7 +730,7 @@ fn defaut_en_veille_la_racine_du_drive_compte() {
     // Le Python ignorait la racine dans `rien_n_a_bouge` : apres une sauvegarde dans « PuppetPaie », une veille vers une
     // autre racine ne sauvegardait rien alors que ce Drive-la est vide. Le Rust compare avec la racine demandee.
     let _t = tour();
-    let c = compagnie("racine-veille", "demo-3090-petite", true);
+    let c = compagnie("racine-veille", "fictive-3090-petite", true);
     let (mut d, _) = drive_compte();
     let r = jouer(&c, &seule_la_sauvegarde(), avec_drive(&mut d));
     assert!(r.sauvegarde.is_some());
@@ -746,7 +746,7 @@ fn defaut_pas_avant_retient_vraiment_et_ne_reecrit_pas_la_trace() {
     // Le Python relisait `quand` (ecrit « JJ/MM/AAAA HH:MM ») avec « %Y-%m-%d %H:%M » : ValueError rattrapee par un `pass`,
     // donc `--pas-avant N` ne retenait jamais rien. Decision du 07/10/2026 : il retient.
     let _t = tour();
-    let c = compagnie("pas-avant", "demo-3090-petite", true);
+    let c = compagnie("pas-avant", "fictive-3090-petite", true);
     let o = Options { pas_avant: 60, ..seule_la_trace() };
     let r = sans_clients(&c, &o);
     assert!(!r.retenue, "la premiere ouverture se fait");
@@ -762,7 +762,7 @@ fn defaut_pas_avant_retient_vraiment_et_ne_reecrit_pas_la_trace() {
 #[test]
 fn pas_avant_ne_retient_pas_une_trace_plus_vieille_illisible_ou_absente() {
     let _t = tour();
-    let c = compagnie("pas-avant-ne-retient-pas", "demo-3090-petite", true);
+    let c = compagnie("pas-avant-ne-retient-pas", "fictive-3090-petite", true);
     let o = Options { pas_avant: 60, sauvegarder: true, ..seule_la_trace() };
     let ecrire_quand = |quand: Value| {
         ecrire(&c, "config/.ouverture.json", &json!({"quand": quand, "secondes": 0.1}));
@@ -798,7 +798,7 @@ fn pas_avant_ne_retient_pas_une_trace_plus_vieille_illisible_ou_absente() {
 #[test]
 fn derniere_ouverture_est_vide_quand_la_trace_manque_ou_ne_se_lit_pas() {
     let _t = tour();
-    let c = compagnie("derniere", "demo-3090-petite", true);
+    let c = compagnie("derniere", "fictive-3090-petite", true);
     let ctx = contexte(&c);
     let p = c.join("config/.ouverture.json");
     assert_eq!(derniere_ouverture(&ctx), json!({}), "absente");
@@ -824,7 +824,7 @@ fn derniere_ouverture_est_vide_quand_la_trace_manque_ou_ne_se_lit_pas() {
 #[test]
 fn la_trace_et_le_resultat_portent_toutes_leurs_cles() {
     let _t = tour();
-    let c = compagnie("trace-cles", "demo-3090-petite", true);
+    let c = compagnie("trace-cles", "fictive-3090-petite", true);
     sans_clients(&c, &Options { filet: false, ..opt() });
     let t = trace(&c);
     assert_eq!(
@@ -852,7 +852,7 @@ fn la_trace_et_le_resultat_portent_toutes_leurs_cles() {
 #[test]
 fn les_retours_des_depots_de_test_se_relevent_mais_ne_se_comptent_pas_dans_la_trace() {
     let _t = tour();
-    let c = compagnie("retours-de-test", "demo-3090-petite", true);
+    let c = compagnie("retours-de-test", "fictive-3090-petite", true);
     let mut j = lire(&c, "journal/depots.json").as_array().unwrap().clone();
     j.push(json!({"quoi": "dsn", "quand": "2026-10-01T10:00:00", "mois": "2026-09", "fichier": "DSN_test.dsn", "mode": "test", "qui": "essai", "accepte": true, "flux": "F-TEST", "retours": []}));
     ecrire(&c, "journal/depots.json", &Value::Array(j));
@@ -873,7 +873,7 @@ fn les_retours_des_depots_de_test_se_relevent_mais_ne_se_comptent_pas_dans_la_tr
 fn defaut_une_trace_qui_ne_s_ecrit_pas_ne_fait_pas_tomber_l_ouverture() {
     // Un dossier a la place de la trace : l'ecriture echoue (`except OSError: pass` du Python, mais celui-ci levait avant, a la lecture).
     let _t = tour();
-    let c = compagnie("trace-dossier", "demo-3090-petite", true);
+    let c = compagnie("trace-dossier", "fictive-3090-petite", true);
     std::fs::create_dir(c.join("config/.ouverture.json")).unwrap();
     let r = sans_clients(&c, &Options { filet: false, ..opt() });
     assert_eq!(r.a_poser.len(), 3);
@@ -884,7 +884,7 @@ fn defaut_une_trace_qui_ne_s_ecrit_pas_ne_fait_pas_tomber_l_ouverture() {
 #[test]
 fn decision_2_la_trace_garde_les_champs_maj_et_sources_de_la_trace_precedente() {
     let _t = tour();
-    let c = compagnie("garde-maj", "demo-3090-petite", true);
+    let c = compagnie("garde-maj", "fictive-3090-petite", true);
     let avant = json!({
         "quand": "01/10/2026 10:00", "secondes": 0.5, "sources": "3 sources a relire", "maj": "Version 2026.10.09 prete", "maj_note": "un calcul change",
         "maj_attend": ["2026-09"], "maj_exigee": "norme DSN", "maj_etat": {"courante": "2026.10.02", "derniere": "2026.10.09", "prete": true, "detail": "d"},
@@ -920,7 +920,7 @@ fn decision_3_incidents_et_reponses_de_l_editeur_partent_seulement_quand_l_appel
         Some(http_json(200, &rep))
     });
     let fabriquer = |nom: &str| -> PathBuf {
-        let c = compagnie(nom, "demo-3090-petite", true);
+        let c = compagnie(nom, "fictive-3090-petite", true);
         let lignes: Vec<Value> = (0..5)
             .map(|i| {
                 json!({
@@ -978,7 +978,7 @@ fn les_retours_et_le_rappel() -> Options {
 #[test]
 fn decision_4_apres_releve_est_appele_une_fois_avant_la_sauvegarde_la_trace_deja_ecrite() {
     let _t = tour();
-    let c = compagnie("apres-releve", "demo-3090-petite", true);
+    let c = compagnie("apres-releve", "fictive-3090-petite", true);
     let (mut d, appels) = drive_compte();
     let vus = RefCell::new(Vec::new());
     let mut rappel = || {
@@ -1003,7 +1003,7 @@ fn decision_4_apres_releve_est_appele_une_fois_avant_la_sauvegarde_la_trace_deja
 #[test]
 fn decision_4_la_seconde_moitie_complete_la_trace_sans_rien_effacer() {
     let _t = tour();
-    let c = compagnie("deux-appels", "demo-3090-petite", true);
+    let c = compagnie("deux-appels", "fictive-3090-petite", true);
     let (base, _, _) = organismes(vec![dsn("F-ATMP", "34", ATMP)], Pannes::default());
     // Appel 1 : la releve, sans sauvegarde.
     let r1 = jouer(&c, &les_retours_et_le_rappel(), les_deux(&c, &base));
@@ -1028,7 +1028,7 @@ fn decision_4_la_seconde_moitie_complete_la_trace_sans_rien_effacer() {
 #[test]
 fn decision_4_le_hors_ligne_ne_vient_que_de_la_seconde_moitie() {
     let _t = tour();
-    let c = compagnie("deux-appels-hors-ligne", "demo-3090-petite", true);
+    let c = compagnie("deux-appels-hors-ligne", "fictive-3090-petite", true);
     let (base, _, _) = organismes(vec![dsn("F-ATMP", "34", ATMP)], Pannes::default());
     jouer(&c, &les_retours_et_le_rappel(), les_deux(&c, &base));
     let t1 = trace(&c);
@@ -1047,7 +1047,7 @@ fn decision_4_le_hors_ligne_ne_vient_que_de_la_seconde_moitie() {
 #[test]
 fn decision_4_le_manque_google_de_la_seconde_moitie_s_ajoute_a_a_poser() {
     let _t = tour();
-    let c = compagnie("deux-appels-google", "demo-3090-petite", true);
+    let c = compagnie("deux-appels-google", "fictive-3090-petite", true);
     let (base, _, _) = organismes(vec![], Pannes::default());
     jouer(&c, &les_retours_et_le_rappel(), les_deux(&c, &base));
     assert_eq!(trace(&c)["a_poser"], json!([]));
@@ -1059,17 +1059,17 @@ fn decision_4_le_manque_google_de_la_seconde_moitie_s_ajoute_a_a_poser() {
 }
 
 #[test]
-fn decision_4_la_seconde_moitie_ne_fait_rien_en_demonstration_en_copie_ou_sans_sauvegarde() {
+fn decision_4_la_seconde_moitie_ne_fait_rien_dans_une_fictive_en_copie_ou_sans_sauvegarde() {
     let _t = tour();
-    // Demonstration.
-    let d = compagnie("seule-demo", "demo-3090-petite", false);
+    // Une compagnie fictive.
+    let d = compagnie("seule-fictive", "fictive-3090-petite", false);
     sans_clients(&d, &Options { filet: false, ..opt() });
     let avant = trace_octets(&d);
     let r = sans_clients(&d, &Options { sauvegarde_seule: true, ..opt() });
     assert!(r.sauvegarde.is_none() && r.a_poser.is_empty());
     assert_eq!(trace_octets(&d), avant);
     // Copie de developpement.
-    let c = compagnie("seule-copie", "demo-3090-petite", true);
+    let c = compagnie("seule-copie", "fictive-3090-petite", true);
     ecrire(&c, "COPIE-DE-DEVELOPPEMENT.json", &json!({"copie_de": "compagnie ordinaire du poste (fictive)", "quand": "2026-10-01T10:00:00"}));
     sans_clients(&c, &seule_la_trace());
     let avant = trace_octets(&c);
@@ -1078,18 +1078,18 @@ fn decision_4_la_seconde_moitie_ne_fait_rien_en_demonstration_en_copie_ou_sans_s
     assert_eq!(appels.get(), 0);
     assert_eq!(trace_octets(&c), avant);
     // `sauvegarder: false`.
-    let o = compagnie("seule-sans", "demo-3090-petite", true);
+    let o = compagnie("seule-sans", "fictive-3090-petite", true);
     sans_clients(&o, &seule_la_trace());
     let avant = trace_octets(&o);
     jouer(&o, &Options { sauvegarde_seule: true, sauvegarder: false, ..opt() }, avec_drive(&mut dr));
     assert_eq!(trace_octets(&o), avant);
     // Une trace qui manque : la trace ordinaire de ce passage.
-    let n = compagnie("seule-sans-trace", "demo-3090-petite", true);
+    let n = compagnie("seule-sans-trace", "fictive-3090-petite", true);
     let r = jouer(&n, &Options { sauvegarde_seule: true, ..opt() }, avec_drive(&mut dr));
     assert!(r.sauvegarde.is_some());
     assert!(trace(&n)["sauvegarde"].as_str().unwrap().starts_with("Sauvegarde : "));
     // La seconde moitie garde aussi maj et sources.
-    let g = compagnie("seule-garde", "demo-3090-petite", true);
+    let g = compagnie("seule-garde", "fictive-3090-petite", true);
     ecrire(&g, "config/.ouverture.json", &json!({"quand": "01/10/2026 10:00", "secondes": 1.0, "retours": "x", "incidents": [], "manquants": [], "a_poser": [], "maj": "prete", "sources": "s"}));
     jouer(&g, &Options { sauvegarde_seule: true, ..opt() }, avec_drive(&mut dr));
     let t = trace(&g);
@@ -1144,11 +1144,11 @@ fn route(racine: &Path, nom: &str, charge: Value) -> Value {
 #[test]
 fn la_route_ouverture_ne_rend_jamais_d_erreur_et_la_derniere_trace_se_relit() {
     let _t = tour();
-    let c = compagnie("route", "demo-3090-petite", false);
+    let c = compagnie("route", "fictive-3090-petite", false);
     // La trace d'avant : absente.
     let r = route(&c, "ouverture-derniere", json!({}));
     assert_eq!((r["ok"].clone(), r["resultat"].clone()), (json!(true), json!({})));
-    // Une demonstration, avec n'importe quelle charge, y compris de travers : jamais une erreur.
+    // Une compagnie fictive, avec n'importe quelle charge, y compris de travers : jamais une erreur.
     for charge in [json!({}), json!(null), json!("x"), json!([1]), json!({"jours": "abc", "racine_drive": 5, "pas_avant": "x", "sources": true, "maj": true, "incidents_editeur": false})] {
         let r = route(&c, "ouverture", charge.clone());
         assert_eq!(r["ok"], json!(true), "{} : {}", charge, r);
@@ -1161,7 +1161,7 @@ fn la_route_ouverture_ne_rend_jamais_d_erreur_et_la_derniere_trace_se_relit() {
     assert_eq!(d["resultat"], trace(&c));
     assert_eq!(d["resultat"]["maj"], json!(""));
     // Une compagnie ordinaire, coffre vide et environnement nettoye : les manques, rien ne part.
-    let o = compagnie("route-ordinaire", "demo-3090-petite", true);
+    let o = compagnie("route-ordinaire", "fictive-3090-petite", true);
     let r = route(&o, "ouverture", json!({"filet": false, "incidents_editeur": false}));
     assert_eq!(r["ok"], json!(true), "{}", r);
     assert_eq!(r["resultat"]["a_poser"], json!(["net-entreprises", "urssaf", "google"]));

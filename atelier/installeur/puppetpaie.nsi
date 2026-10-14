@@ -1,7 +1,7 @@
 ; L'INSTALLEUR WINDOWS DE PUPPETPAIE (lot I1, 14/10/2026). Se compile par `construire.sh`, jamais seul : il recoit
-; VERSION, VERSION_WINDOWS (la meme en a.b.c.0), PREPA (le dossier de preparation, avec poser.nsh, retirer.nsh et pose\), ICONE et SORTIE.
+; VERSION (la version LUE, JJ.MM.AAAA : tout ce que l'installeur montre), VERSION_WINDOWS (l'identifiant AAAA.MM.JJ en a.b.c.0), PREPA (le dossier de preparation, avec poser.nsh, retirer.nsh et pose\), ICONE et SORTIE.
 ;
-; Il pose ce qu'une compagnie recoit -- `logiciel\` et `demo\` -- dans un dossier ou l'utilisateur ecrit sans etre
+; Il pose ce qu'une compagnie recoit -- `logiciel\` et `fictives\` -- dans un dossier ou l'utilisateur ecrit sans etre
 ; administrateur : `prive\` et `compagnies\` naitront a cote de `logiciel\` (paie/src/interface/compagnies.rs,
 ; base()). Deux chemins, choisis au debut (Leandre, 14/10/2026) :
 ;   - PAR DEFAUT : Documents\PuppetPaie (visible, par utilisateur, dans les sauvegardes Windows), un raccourci dans le
@@ -9,7 +9,7 @@
 ;   - PORTABLE : le dossier de son choix (une cle USB) ; le logiciel, ses donnees et la cle qui les scelle y vivent
 ;     ensemble et s'ouvrent sur n'importe quel ordinateur (`PORTABLE.json` a cote de `logiciel\`, lu par le moteur :
 ;     paie/src/coffre.rs, dossier_portable). Ni raccourci, ni entree dans Windows, ni desinstalleur : on efface le dossier.
-; TOUJOURS DEMO : `logiciel\EDITION.json` dit `"defaut": "demo"`.
+; TOUJOURS BRIDE : `logiciel\EDITION.json` dit `"defaut": "bride"` (paie/src/bridage.rs).
 ; Le desinstalleur retire ce qu'il a pose, fichier par fichier, et laisse tout le reste.
 ;
 ; Les textes lus pour l'ecrire (a deposer, voir prive/journal/finitions/PASSATION-I1.md) : l'exemple NSIS
@@ -76,7 +76,7 @@ Var TexteFin
 
 ; --- Les pages de l'installeur ---
 !define MUI_WELCOMEPAGE_TITLE "Installer ${NOM} ${VERSION}"
-!define MUI_WELCOMEPAGE_TEXT "${NOM} est un logiciel de paie du spectacle vivant.$\r$\n$\r$\nCette installation est une version de DÉMONSTRATION : l'accueil montre des compagnies fictives, et rien ne part vers un organisme.$\r$\n$\r$\nLe logiciel s'installe pour vous seul, dans un dossier où vous écrivez sans être administrateur : vos données naîtront à côté du programme. La page suivante propose une installation par défaut, dans vos Documents, ou portable, sur une clé USB."
+!define MUI_WELCOMEPAGE_TEXT "${NOM} est un logiciel de paie du spectacle vivant.$\r$\n$\r$\nLe logiciel s'installe bridé : l'accueil ne propose que des compagnies fictives, et rien ne part vers un organisme.$\r$\n$\r$\nLe logiciel s'installe pour vous seul, dans un dossier où vous écrivez sans être administrateur : vos données naîtront à côté du programme. La page suivante propose une installation par défaut, dans vos Documents, ou portable, sur une clé USB."
 !insertmacro MUI_PAGE_WELCOME
 
 Page custom PageMode PageModeQuitter
@@ -93,7 +93,7 @@ Page custom PageMode PageModeQuitter
 !insertmacro MUI_PAGE_FINISH
 
 ; --- Les pages du desinstalleur ---
-!define MUI_UNCONFIRMPAGE_TEXT_TOP "Le désinstalleur retire le programme (« logiciel ») et les compagnies de démonstration (« demo ») tels qu'ils ont été installés, le raccourci du menu Démarrer, et le choix démo / complète retenu sur ce poste.$\r$\n$\r$\nIl LAISSE vos données : « prive », « compagnies », et tout ce que le logiciel a écrit dans ce dossier."
+!define MUI_UNCONFIRMPAGE_TEXT_TOP "Le désinstalleur retire le programme (« logiciel ») et les compagnies fictives (« fictives ») tels qu'ils ont été installés, la mise à jour préparée (« maj »), le raccourci du menu Démarrer, et le choix bridé / débloqué retenu sur ce poste.$\r$\n$\r$\nIl LAISSE vos données : « prive », « compagnies », et tout ce que le logiciel a écrit dans ce dossier."
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 !define MUI_FINISHPAGE_TITLE "${NOM} est désinstallé"
@@ -147,11 +147,11 @@ Function PageModeQuitter
   ${NSD_GetState} $BoutonPortable $0
   ${If} $0 == ${BST_CHECKED}
     StrCpy $Portable 1
-    StrCpy $TexteDossier "Portable : choisissez le dossier (une clé USB, par exemple). Le programme va dans son sous-dossier « logiciel », les compagnies de démonstration dans « demo » ; vos données (« prive », « compagnies ») et la clé qui les scelle naîtront dans ce même dossier."
+    StrCpy $TexteDossier "Portable : choisissez le dossier (une clé USB, par exemple). Le programme va dans son sous-dossier « logiciel », les compagnies fictives dans « fictives » ; vos données (« prive », « compagnies ») et la clé qui les scelle naîtront dans ce même dossier."
     StrCpy $TexteFin "${NOM} est installé en portable dans :$\r$\n$INSTDIR$\r$\n$\r$\nIl s'ouvre par logiciel\puppetpaie.exe, sur n'importe quel ordinateur. Pour le retirer, effacez le dossier."
   ${Else}
     StrCpy $Portable 0
-    StrCpy $TexteDossier "Le programme va dans le sous-dossier « logiciel », les compagnies de démonstration dans « demo ». Vos données (« prive », « compagnies ») naîtront dans ce même dossier : choisissez un dossier où vous avez le droit d'écrire (pas « Program Files »)."
+    StrCpy $TexteDossier "Le programme va dans le sous-dossier « logiciel », les compagnies fictives dans « fictives ». Vos données (« prive », « compagnies ») naîtront dans ce même dossier : choisissez un dossier où vous avez le droit d'écrire (pas « Program Files »)."
     StrCpy $TexteFin "Le raccourci « ${NOM} » est dans le menu Démarrer.$\r$\n$\r$\nPour le retirer : Paramètres, Applications, ${NOM}. Le désinstalleur laisse vos données."
   ${EndIf}
 FunctionEnd
@@ -172,8 +172,8 @@ Section "PuppetPaie" SecProgramme
   SectionIn RO
   SetShellVarContext current
 
-  ; Ce qu'une compagnie recoit : logiciel\ et demo\, fichier par fichier (liste tiree de Git par construire.sh),
-  ; et logiciel\EDITION.json : toujours demo (le paquet n'est pas soude : le geste de l'accueil reste possible).
+  ; Ce qu'une compagnie recoit : logiciel\ et fictives\, fichier par fichier (liste tiree de Git par construire.sh),
+  ; et logiciel\EDITION.json : toujours bride (le paquet n'est pas soude : le geste de l'accueil reste possible).
   !include "${PREPA}/poser.nsh"
 
   SetOutPath "$INSTDIR"
@@ -226,8 +226,10 @@ Section "Uninstall"
   ; Ce que l'installeur a pose, et rien d'autre ; un dossier qui garde quelque chose reste.
   !include "${PREPA}/retirer.nsh"
 
-  ; Le choix demo / complete retenu sur ce poste (le geste de l'accueil) : une reinstallation repart en demo.
+  ; Le choix bride / debloque retenu sur ce poste (le geste de l'accueil) : une reinstallation repart bridee.
   Delete "$INSTDIR\.edition.json"
+  ; La mise a jour de l'installation (paie/src/maj.rs, lot U1) : son reglage, la version prete, son journal.
+  RMDir /r "$INSTDIR\maj"
 
   Delete "$SMPROGRAMS\${NOM}.lnk"
   DeleteRegKey HKCU "${CLE_DESINSTALLATION}"

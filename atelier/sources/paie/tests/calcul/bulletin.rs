@@ -2,7 +2,7 @@
 //! (mois entier, une paie avec celles du mois, cumuls bornes, rectificatifs, refus), et la description de jeux fabriques
 //! (prelevement ou plafond absents, conges, enseignement, logo). `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
-use crate::outils::{chemin_oracle, demo, lire_oracle, oracle};
+use crate::outils::{chemin_oracle, fictive, lire_oracle, oracle};
 use paie::bareme::canon;
 use paie::bulletin::{description, fmt_eur, fmt_heures, fmt_taux, jeux_et_description, jj_mm_aaaa, jours, remboursements, Jeu};
 use paie::contexte::Contexte;
@@ -29,12 +29,12 @@ fn racine_de(nom: &str) -> PathBuf {
     if nom == "cumul" {
         chemin_oracle("racines/cumul")
     } else {
-        demo(nom)
+        fictive(nom)
     }
 }
 
 fn fichier_de(c: &Value) -> PathBuf {
-    let base = if c["racine"] == "cumul" { demo("demo-1285-grande") } else { racine_de(c["racine"].as_str().unwrap()) };
+    let base = if c["racine"] == "cumul" { fictive("fictive-1285-grande") } else { racine_de(c["racine"].as_str().unwrap()) };
     base.join("paies").join(format!("{}.json", c["mois"].as_str().unwrap()))
 }
 
@@ -45,9 +45,9 @@ fn jour(s: &str) -> Jour {
 /// Les chemins sous le depot s'ecrivent `@/...`.
 fn relatif(v: &Value) -> Value {
     match v {
-        // La copie figee des demos se lit comme `demo/`, ou les sorties attendues ont ete relevees.
-        Value::String(s) if s.starts_with(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/demo").to_str().unwrap()) => {
-            Value::String(s.replacen(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/demo").to_str().unwrap(), "@/demo", 1))
+        // La copie figee des fictives se lit comme `fictives/`, ou les sorties attendues ont ete relevees.
+        Value::String(s) if s.starts_with(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fictives").to_str().unwrap()) => {
+            Value::String(s.replacen(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fictives").to_str().unwrap(), "@/fictives", 1))
         }
         Value::String(s) => match s.strip_prefix(depot().to_str().unwrap()) {
             Some(reste) => Value::String(format!("@{}", reste)),

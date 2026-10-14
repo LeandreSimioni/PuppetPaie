@@ -39,17 +39,17 @@ function compteDuService(s) {
  *  regroupé (`operations_filet.diagnostic_etat`) : ce qui est parti, ce qui
  *  attend, et pour chaque groupe le contenu EXACT qui quitte le poste. */
 async function dessinerCoffre(cible) {
-  // LA DÉMONSTRATION (27/09/2026, l'éditeur) : le même écran, tout grisé —
+  // LA COMPAGNIE FICTIVE (27/09/2026, l'éditeur) : le même écran, tout grisé —
   // on voit ce qui se pose et où, sans rien pouvoir y écrire. Rien ne part,
   // il n'y a donc rien à poser ; la page ne branche aucun geste.
-  const demo = enDemonstration();
+  const fictive = enFictive();
   const c = await api("coffre-etat");
   const exige = c.mot_de_passe_pose;
   // UNE LIGNE PAR SECRET (23/09/2026), comme les mois de l'Historique : ce
   // qu'il sert à faire, où il en est, et les gestes. Les cases de saisie ne
   // s'ouvrent que sur « Poser… » ou « Modifier… » -- cinq formulaires ouverts
   // d'office faisaient croire qu'il y avait cinq choses à remplir.
-  const etatService = (s) => demo ? `<span class="pastille">simulé</span>`
+  const etatService = (s) => fictive ? `<span class="pastille">simulé</span>`
     : s.environnement
     ? `<span class="pastille alerte" title="Il passe devant le coffre.">fourni par l'environnement</span>`
     : s.pose ? `<span class="pastille bien" title="${echapper(s.pose_le)}">posé le ${echapper(jjmmaaaa(String(s.pose_le || "").slice(0, 10)))}</span>${
@@ -58,10 +58,10 @@ async function dessinerCoffre(cible) {
   cible.innerHTML = `
     <p class="intro">Les mots de passe dont le logiciel a besoin pour déposer, relever et
       envoyer. La page ne voit jamais un mot de passe, seulement s'il est posé.</p>
-    ${demo ? `<div class="encart info"><b>Démonstration — les champs sont grisés</b>
+    ${fictive ? `<div class="encart info"><b>Compagnie fictive — les champs sont grisés</b>
       Les dépôts de DPAE et de DSN, leurs retours, les courriels et les
       signatures sont simulés : aucun mot de passe n'est demandé, et rien ne
-      quitte le poste. Dans la version complète, c'est ici que se posent les
+      quitte le poste. Dans une compagnie réelle, c'est ici que se posent les
       accès à net-entreprises, à l'Urssaf et à la boîte courriel — et que
       s'active le filet de sécurité DPAE, un courriel de rappel si une DPAE
       n'est pas partie la veille d'une embauche.</div>`
@@ -72,10 +72,10 @@ async function dessinerCoffre(cible) {
     <div class="rangs">
       <div class="rang">
         <div class="rang-infos"><b class="rang-nom">Le mot de passe du logiciel</b>
-          <span class="discret">${exige || demo
+          <span class="discret">${exige || fictive
             ? "demandé à l'ouverture et à chaque dépôt réel, envoi ou signature"
             : "rien ne peut partir en réel tant qu'il n'est pas posé"}</span></div>
-        <div class="rang-etat">${demo ? `<span class="pastille">simulé</span>`
+        <div class="rang-etat">${fictive ? `<span class="pastille">simulé</span>`
           : exige ? `<span class="pastille bien">posé</span>`
           : `<span class="pastille alerte">aucun</span>`}</div>
         <div class="rang-actions">
@@ -96,10 +96,10 @@ async function dessinerCoffre(cible) {
       ${c.services.map((s) => `
       <div class="rang" data-service="${echapper(s.service)}">
         <div class="rang-infos"><b class="rang-nom">${echapper(s.libelle)}</b>
-          <span class="discret">${echapper(s.sert_a)}</span>${demo ? "" : compteDuService(s)}</div>
+          <span class="discret">${echapper(s.sert_a)}</span>${fictive ? "" : compteDuService(s)}</div>
         <div class="rang-etat">${etatService(s)}</div>
         <div class="rang-actions">
-          ${!demo && (s.pose || s.environnement) ? `<button class="lien k-verifier"
+          ${!fictive && (s.pose || s.environnement) ? `<button class="lien k-verifier"
             title="Une tentative de connexion chez l'organisme, une seule">Vérifier</button>` : ""}
           ${s.pose ? `<button class="lien k-oublier">Oublier</button>` : ""}
           ${s.pose ? `<button class="modifier k-ouvrir">${CRAYON}Modifier…</button>`
@@ -177,7 +177,7 @@ async function dessinerCoffre(cible) {
       </div>
     </div>`;
 
-  if (demo) {
+  if (fictive) {
     // Les lignes ouvertes, pour voir leurs champs ; tout est grisé, sauf les
     // liens vers la fiche Entreprise, qui ne font que naviguer.
     cible.querySelectorAll(".rang-forme").forEach((f) => { f.hidden = false; });

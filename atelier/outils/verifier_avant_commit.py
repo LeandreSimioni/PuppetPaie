@@ -5,7 +5,7 @@
 
 **REVEILLE LE 14/10/2026 (lot N1), POUR LE JOUR DU PREMIER COMMIT.** Le depot
 public part de la racine de ce depot-ci, hors de `prive/` : `logiciel/` (ce
-qu'une compagnie recoit), `demo/` (les compagnies fictives), `atelier/` (les
+qu'une compagnie recoit), `fictives/` (les compagnies fictives), `atelier/` (les
 sources, les outils, les docs), `.claude/` et les fichiers de la racine
 (`atelier/PLAN-DEPOT-PUBLIC.md`, « La forme du depot public » ;
 `atelier/AVANT-LE-PREMIER-COMMIT.md`). Ce qui part, c'est ce que Git
@@ -46,13 +46,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-# La racine du depot (`atelier/outils/` -> `atelier/` -> la racine) : `logiciel/`, `demo/`, `atelier/`, `.claude/`.
+# La racine du depot (`atelier/outils/` -> `atelier/` -> la racine) : `logiciel/`, `fictives/`, `atelier/`, `.claude/`.
 CODE = Path(__file__).resolve().parent.parent.parent
 
 # Ce qui ne part jamais : les donnees de la compagnie du poste.
 PRIVE = "prive/"
 # Les fichiers ecrits en texte. Les formats de declaration en sont (`.dsn`,
-# les gabarits `.txt`, les retours `.xml`) : ceux des demonstrations portent
+# les gabarits `.txt`, les retours `.xml`) : ceux des compagnies fictives portent
 # des NIR, inventes, qu'il faut voir passer.
 EXTENSIONS = {".py", ".md", ".html", ".css", ".js", ".json", ".txt", ".cmd",
               ".pyw", ".modele", ".yml", ".yaml", ".toml", ".rs", ".dsn",

@@ -23,9 +23,9 @@ use serde_json::{json, Value};
 
 // ------------------------------------------------------------------ les dossiers
 
-/// La copie figée d'une démonstration (`tests/donnees/demo/<nom>`), qu'aucun test n'écrit.
-pub fn demo(nom: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/demo").join(nom)
+/// La copie figée d'une compagnie fictive (`tests/donnees/fictives/<nom>`), qu'aucun test n'écrit.
+pub fn fictive(nom: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fictives").join(nom)
 }
 
 /// Les données livrées (`logiciel/donnees`).
@@ -43,6 +43,19 @@ pub fn copier(src: &Path, dst: &Path) {
             std::fs::copy(&s, &d).unwrap();
         }
     }
+}
+
+/// Une INSTALLATION (lot U1) : `<dossier>/logiciel/` avec les données livrées et `VERSION`. La mise à jour est la sienne
+/// (`<dossier>/maj/`) ; un `paie` la trouve par `PUPPETPAIE_CODE` = `code_de(<dossier>)`. Rend `<dossier>`.
+pub fn installation(dossier: &Path, version: &str) -> PathBuf {
+    copier(&code_livre(), &dossier.join("logiciel").join("donnees"));
+    std::fs::write(dossier.join("logiciel").join("VERSION"), format!("{}\n", version)).unwrap();
+    dossier.to_path_buf()
+}
+
+/// Le `PUPPETPAIE_CODE` d'une installation.
+pub fn code_de(installation: &Path) -> String {
+    installation.join("logiciel").join("donnees").display().to_string()
 }
 
 fn neuf(d: PathBuf) -> PathBuf {
@@ -92,15 +105,15 @@ pub fn noms(dossier: &Path) -> Vec<String> {
 pub mod compagnie {
     use super::*;
 
-    /// La démonstration entière, copiée dans `racine`.
-    pub fn entiere(demo: &str, racine: &Path) -> PathBuf {
-        copier(&super::demo(demo), racine);
+    /// La compagnie fictive entière, copiée dans `racine`.
+    pub fn entiere(fictive: &str, racine: &Path) -> PathBuf {
+        copier(&super::fictive(fictive), racine);
         racine.to_path_buf()
     }
 
-    /// La démonstration entière sans ses PDF (les bulletins, les contrats : le gros de `sorties/`), pour un cas qui relit
+    /// La compagnie fictive entière sans ses PDF (les bulletins, les contrats : le gros de `sorties/`), pour un cas qui relit
     /// le journal et les DSN déposées.
-    pub fn sans_les_pdf(demo: &str, racine: &Path) -> PathBuf {
+    pub fn sans_les_pdf(fictive: &str, racine: &Path) -> PathBuf {
         fn copier_sans_pdf(src: &Path, dst: &Path) {
             std::fs::create_dir_all(dst).unwrap();
             for e in std::fs::read_dir(src).unwrap().flatten() {
@@ -112,13 +125,13 @@ pub mod compagnie {
                 }
             }
         }
-        copier_sans_pdf(&super::demo(demo), racine);
+        copier_sans_pdf(&super::fictive(fictive), racine);
         racine.to_path_buf()
     }
 
     /// `config/`, `journal/`, les saisies des `mois` et leurs `sorties/<mois>/` quand il y en a.
-    pub fn config_et_mois(demo: &str, mois: &[&str], racine: &Path) -> PathBuf {
-        let d = super::demo(demo);
+    pub fn config_et_mois(fictive: &str, mois: &[&str], racine: &Path) -> PathBuf {
+        let d = super::fictive(fictive);
         for sous in ["config", "journal"] {
             if d.join(sous).is_dir() {
                 copier(&d.join(sous), &racine.join(sous));
@@ -137,8 +150,8 @@ pub mod compagnie {
     }
 
     /// `config/`, les saisies des `mois` et un journal vide : ni sorties, ni dépôts.
-    pub fn saisies(demo: &str, mois: &[&str], racine: &Path) -> PathBuf {
-        let d = super::demo(demo);
+    pub fn saisies(fictive: &str, mois: &[&str], racine: &Path) -> PathBuf {
+        let d = super::fictive(fictive);
         copier(&d.join("config"), &racine.join("config"));
         std::fs::create_dir_all(racine.join("paies")).unwrap();
         for m in mois {
@@ -149,10 +162,10 @@ pub mod compagnie {
         racine.to_path_buf()
     }
 
-    /// La démonstration sans les pièces de `sorties/` (bulletins, contrats, DPAE, certificats) : ses DSN déposées, que
+    /// La compagnie fictive sans les pièces de `sorties/` (bulletins, contrats, DPAE, certificats) : ses DSN déposées, que
     /// relit la DSN d'un mois suivant ; les mois `entiers` gardent tout.
-    pub fn ses_dsn(demo: &str, entiers: &[&str], racine: &Path) -> PathBuf {
-        let d = super::demo(demo);
+    pub fn ses_dsn(fictive: &str, entiers: &[&str], racine: &Path) -> PathBuf {
+        let d = super::fictive(fictive);
         std::fs::create_dir_all(racine).unwrap();
         for e in std::fs::read_dir(&d).unwrap().flatten() {
             let (s, nom) = (e.path(), e.file_name());
@@ -190,7 +203,7 @@ pub mod compagnie {
         code
     }
 
-    /// Une démonstration devenue compagnie ordinaire : marqueur retiré, déclarant net-entreprises et compte Urssaf posés.
+    /// Une compagnie fictive devenue compagnie ordinaire : marqueur retiré, déclarant net-entreprises et compte Urssaf posés.
     pub fn ordinaire(racine: &Path) {
         let _ = std::fs::remove_file(racine.join("COPIE-DE-DEVELOPPEMENT.json"));
         let mut e = lire(racine, "config/entreprise.json");
@@ -227,7 +240,7 @@ pub fn dsn_du_mois(racine: &Path, mois: &str, jour: &str) -> Result<String, Stri
 }
 
 /// Le mois est prêt à produire : les DPAE des engagements qui y commencent sont parties et leurs contrats sont revenus
-/// signés (des lignes de journal comme celles de la démonstration).
+/// signés (des lignes de journal comme celles de la compagnie fictive).
 pub fn mois_pret(racine: &Path, mois: &str) {
     let saisie = lire(racine, &format!("paies/{}.json", mois));
     let mut j = lire(racine, "journal/depots.json");
@@ -268,27 +281,27 @@ pub fn dsn_deposee(racine: &Path, mois: &str, fichier: &str, quand: &str) {
     ecrire(racine, "journal/depots.json", &j);
 }
 
-/// Une copie d'une démonstration, retouchée par le test, qui s'efface quand elle sort de portée.
+/// Une copie d'une compagnie fictive, retouchée par le test, qui s'efface quand elle sort de portée.
 pub struct Copie(pub PathBuf);
 
 impl Copie {
-    fn dossier(demo: &str) -> PathBuf {
+    fn dossier(fictive: &str) -> PathBuf {
         static N: AtomicUsize = AtomicUsize::new(0);
-        let d = Path::new(env!("CARGO_TARGET_TMPDIR")).join("copies").join(format!("{}-{}-{}", demo, std::process::id(), N.fetch_add(1, Ordering::SeqCst)));
+        let d = Path::new(env!("CARGO_TARGET_TMPDIR")).join("copies").join(format!("{}-{}-{}", fictive, std::process::id(), N.fetch_add(1, Ordering::SeqCst)));
         let _ = std::fs::remove_dir_all(&d);
         d
     }
 
-    pub fn de(demo: &str) -> Copie {
-        let d = Copie::dossier(demo);
-        copier(&self::demo(demo), &d);
+    pub fn de(fictive: &str) -> Copie {
+        let d = Copie::dossier(fictive);
+        copier(&self::fictive(fictive), &d);
         Copie(d)
     }
 
-    /// La seule config de la démonstration : ni journal, ni paies, ni sorties.
-    pub fn config_de(demo: &str) -> Copie {
-        let d = Copie::dossier(demo);
-        copier(&self::demo(demo).join("config"), &d.join("config"));
+    /// La seule config de la compagnie fictive : ni journal, ni paies, ni sorties.
+    pub fn config_de(fictive: &str) -> Copie {
+        let d = Copie::dossier(fictive);
+        copier(&self::fictive(fictive).join("config"), &d.join("config"));
         Copie(d)
     }
 

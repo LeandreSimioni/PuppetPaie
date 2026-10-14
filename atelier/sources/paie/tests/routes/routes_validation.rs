@@ -1,13 +1,13 @@
 //! La validation d'une paie : `valider-paie` valide CE contrat et pas son jumeau du meme jour (par numero ou par rang),
 //! `etat-par-paie` ne prete pas la validation de l'un a l'autre, `contrat-recu` ne touche pas au calcul du mois, et une
-//! charge incomplete refuse. Sur `demo-3090-petite` (config, journal, novembre 2026).
+//! charge incomplete refuse. Sur `fictive-3090-petite` (config, journal, novembre 2026).
 
 use crate::outils::{compagnie, dossier_de_test, lire, refus, reussi};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::config_et_mois("demo-3090-petite", &["2026-11"], &dossier_de_test("routes_validation", nom).join("compagnie"))
+    compagnie::config_et_mois("fictive-3090-petite", &["2026-11"], &dossier_de_test("routes_validation", nom).join("compagnie"))
 }
 
 fn route(racine: &Path, nom: &str, charge: Value) -> Value {

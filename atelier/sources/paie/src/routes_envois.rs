@@ -2,13 +2,13 @@
 //! ici ; `demander-signature`, `avenant-envoyer`, `avenants-envoyer` dans `envois_signature.rs`. Lot H3b.
 //!
 //! ECRIT, NON PROUVE, NON BRANCHE. Chaque route fait ce que fait le Python : preparer ce qui partira (les memes
-//! messages que l'apercu a montres), ouvrir la boite (`_client_courriel` : la boite simulee de la demonstration,
+//! messages que l'apercu a montres), ouvrir la boite (`_client_courriel` : la boite simulee de la compagnie fictive,
 //! sinon le vrai client, sinon le refus « boite absente »), exiger la PREUVE (le mot de passe du logiciel, retape :
 //! `depot_acte::verifier_preuve`), envoyer par `envoi::envoyer`, puis noter au journal ce qui s'est passe --
 //! l'echec comme la reussite -- et ecrire ce que l'envoi laisse derriere lui (contrats partis, numeros reserves,
 //! `.eml` gardes). La reponse a les memes cles que celle de `web.py`.
 //!
-//! Rien ne part sans la preuve. En demonstration il n'y a rien a prouver : rien ne quitte le poste, la boite
+//! Rien ne part sans la preuve. Dans une compagnie fictive il n'y a rien a prouver : rien ne quitte le poste, la boite
 //! simulee ecrit les messages dans `courriels-simules/`.
 //!
 //! LE FILET EN FOND de `demander-signature` (`ops.preparer_filet_en_fond`) N'EST PAS ICI : au branchement, `web.py`
@@ -96,7 +96,7 @@ pub(crate) fn preuve_de(charge: &Value) -> Preuve {
     Preuve::de_la_charge(charge)
 }
 
-/// `operations_documents._client_courriel` : la boite qui envoie. La demonstration ecrit les messages, elle ne
+/// `operations_documents._client_courriel` : la boite qui envoie. La compagnie fictive ecrit les messages, elle ne
 /// les envoie pas ; sans mot de passe d'application au coffre, il n'y en a pas (`BoiteAbsente`).
 pub(crate) fn client_courriel(ctx: &Contexte) -> R<Box<dyn Courriel>> {
     if crate::routes_accueil::simulation_active(&ctx.racine) {
@@ -132,8 +132,8 @@ pub(crate) fn noter_echec_d_envoi(ctx: &Contexte, quoi: &str, mois: Option<&str>
     noter(ctx, quoi, mois, qui, false, &e.partis.join(", "), &reponse, Some(&Value::Object(d)))
 }
 
-/// `journal.noter(ctx, quoi, ...)` : une ligne a la fin de `journal/depots.json`, en mode `reel` (la
-/// demonstration aussi : c'est ce que fait le Python). `qui` : « interface ».
+/// `journal.noter(ctx, quoi, ...)` : une ligne a la fin de `journal/depots.json`, en mode `reel` (une
+/// compagnie fictive aussi : c'est ce que fait le Python). `qui` : « interface ».
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn noter(
     ctx: &Contexte,
@@ -240,7 +240,7 @@ fn envoyer_documents(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
 }
 
 /// `envoyer_documents(ctx, mois, preuve=..., qui=...)` : la meme operation, `qui` et la preuve donnes (l'horloge de
-/// la demonstration passe `demonstration` et une boite muette).
+/// la compagnie fictive passe `horloge` et une boite muette).
 pub(crate) fn envoyer_documents_de(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, preuve: &Preuve, qui: &str, ouvrir: Ouvrir) -> R<Value> {
     let prepare = preparer_envoi(o, ctx, mois, ouvrir)?;
     expedier_envoi(ctx, prepare, mois, preuve, qui)

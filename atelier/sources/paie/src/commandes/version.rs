@@ -31,30 +31,31 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         return Ok(0);
     }
     let vrai = |k: &str| v.get(k).is_some_and(crate::fichiers::vrai);
-    dire!("PuppetPaie {}{}", champ(&v, "courante"), if vrai("editeur") { " (poste de l'editeur)" } else { "" });
+    let lue = |k: &str| crate::maj::version_lue(&champ(&v, k));
+    dire!("PuppetPaie {}{}", lue("courante"), if vrai("editeur") { " (poste de l'editeur)" } else { "" });
     #[cfg(feature = "atelier")]
     dire!("  BINAIRE DE L'ATELIER (paie-atelier) : pour les essais seulement, jamais livre ; il refuse tout acte reel (depot reel, envoi, signature)");
-    dire!("  depot : {}", if vrai("depot") { champ(&v, "depot") } else { "aucun (config/maj.json)".to_string() });
+    dire!("  depot : {}", if vrai("depot") { champ(&v, "depot") } else { "aucun (maj/reglage.json)".to_string() });
     let attend: Vec<String> = v.get("attend").and_then(Value::as_array).map(|a| a.iter().map(texte).collect()).unwrap_or_default();
     if vrai("prete") && vrai("exigee") {
         dire!(
             "  prete : {} -- INDISPENSABLE avant de declarer ({}) : aucun depot ne part avant qu'elle soit appliquee (redemarrer le logiciel)",
-            champ(&v, "prete"),
+            lue("prete"),
             champ(&v, "exigee")
         );
     } else if vrai("prete") && !attend.is_empty() {
         dire!(
             "  prete : {} -- change un calcul ({}) et attend la DSN de {} ; la fenetre propose de l'appliquer malgre tout",
-            champ(&v, "prete"),
+            lue("prete"),
             champ(&v, "calcul"),
             attend.join(", ")
         );
     } else if vrai("prete") {
-        dire!("  prete : {} -- s'applique au prochain demarrage", champ(&v, "prete"));
+        dire!("  prete : {} -- s'applique au prochain demarrage", lue("prete"));
     }
     dire!("  archives : {}", if vrai("signee") { "signees par l'editeur" } else { "NON signees (maj.CLE_PUBLIQUE vide)" });
     if vrai("avant") {
-        dire!("  avant : {} dans .avant/ -- la mise a jour peut y revenir", champ(&v, "avant"));
+        dire!("  avant : {} dans .avant/ -- la mise a jour peut y revenir", lue("avant"));
     }
     Ok(0)
 }

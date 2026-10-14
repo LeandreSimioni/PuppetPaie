@@ -12,7 +12,7 @@
 //! l. 170-172) ; la compagnie choisit pour tous, la case du salarie l'emporte. La caisse des Conges Spectacles se range
 //! dans « Autres charges dues par l'employeur » (Q 11 et 12, l. 173-178).
 //!
-//! Sur la copie figee des demonstrations (`tests/donnees/demo/`), lue sans y rien ecrire.
+//! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`), lue sans y rien ecrire.
 
 use paie::bulletin::{fmt_eur, fmt_taux, jeux_et_description};
 use paie::calcul::Paie;
@@ -23,7 +23,7 @@ use paie::num::{dec_f64, Decimal};
 use paie::oracle::entreprise_du_mois;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use crate::outils::demo;
+use crate::outils::fictive;
 use std::path::Path;
 
 fn saisie(ctx: &Contexte, s: Value) -> Saisie {
@@ -34,7 +34,7 @@ fn saisie(ctx: &Contexte, s: Value) -> Saisie {
 
 /// Montansier (cadre permanent : mutuelle, prevoyance conventionnelle, Apec, CET) en octobre 2026.
 fn permanent() -> (Contexte, Paie, &'static str) {
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     let s = saisie(
         &ctx,
         json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": [
@@ -47,15 +47,15 @@ fn permanent() -> (Contexte, Paie, &'static str) {
 
 /// Biancolelli (artiste intermittente, Conges Spectacles, prevoyance et Fonds sante, defraiements), juillet 2026.
 fn intermittent() -> (Contexte, Paie, &'static str) {
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &demo("demo-3090-grande").join("paies/2026-07.json")).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
+    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
     let p = s.paies.iter().find(|p| p.engagement.numero.as_deref() == Some("BI4.26.06")).unwrap().clone();
     (ctx, p, "2026-07")
 }
 
 /// Chaminade (technicien intermittent : la reduction generale s'applique), octobre 2026.
 fn technicien() -> (Contexte, Paie, &'static str) {
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     let s = saisie(
         &ctx,
         json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": [

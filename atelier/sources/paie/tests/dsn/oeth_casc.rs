@@ -1,8 +1,8 @@
 //! L'OETH (`oeth::declaration`) et ce que la DSN lit de la CASC-SVP (`casc::dsn_deposee`, `casc::mois_regularises`)
-//! contre `oeth_casc.json` : les quatre demonstrations mois par mois, et des variantes montees depuis la config d'une
-//! demo. Les refus sont des attendus. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
+//! contre `oeth_casc.json` : les quatre compagnies fictives mois par mois, et des variantes montees depuis la config d'une
+//! fictive. Les refus sont des attendus. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
-use crate::outils::{code_livre, copier, demo, dossier_de_test, lire, lire_oracle, oracle};
+use crate::outils::{code_livre, copier, fictive, dossier_de_test, lire, lire_oracle, oracle};
 use paie::casc::{base, dsn_deposee, mois_regularises};
 use paie::contexte::Contexte;
 use paie::date::Jour;
@@ -17,10 +17,10 @@ fn contexte(racine: &Path) -> Contexte {
     Contexte::nouveau(racine, Some(Jour::lire("2026-09-27").unwrap())).unwrap()
 }
 
-/// La config de la demo, puis les fichiers de la variante.
+/// La config de la fictive, puis les fichiers de la variante.
 fn variante(spec: &Value, test: &str, n: usize) -> PathBuf {
     let racine = dossier_de_test("oeth_casc", &format!("{}-{}", test, n));
-    copier(&demo(spec["racine"].as_str().unwrap()).join("config"), &racine.join("config"));
+    copier(&fictive(spec["racine"].as_str().unwrap()).join("config"), &racine.join("config"));
     for (chemin, v) in spec["fichiers"].as_object().unwrap() {
         let p = racine.join(chemin);
         if v.get("supprimer").is_some() {
@@ -68,11 +68,11 @@ fn dsn(ctx: &Contexte, mois: &str, nic: Option<&str>) -> Value {
 }
 
 #[test]
-fn les_demos_mois_par_mois() {
-    let mut demos = lire_oracle(ORACLE)["demos"].clone();
+fn les_fictives_mois_par_mois() {
+    let mut fictives = lire_oracle(ORACLE)["fictives"].clone();
     let mut n = 0;
-    for (nom, x) in demos.as_object_mut().unwrap() {
-        let ctx = contexte(&demo(nom));
+    for (nom, x) in fictives.as_object_mut().unwrap() {
+        let ctx = contexte(&fictive(nom));
         x["regularises"] = json!(mois_regularises(&ctx).unwrap());
         for (mois, r) in x["mois"].as_object_mut().unwrap() {
             n += 1;
@@ -82,7 +82,7 @@ fn les_demos_mois_par_mois() {
         }
     }
     assert!(n >= 100, "{} mois", n);
-    oracle(ORACLE, "/demos", &demos);
+    oracle(ORACLE, "/fictives", &fictives);
 }
 
 #[test]

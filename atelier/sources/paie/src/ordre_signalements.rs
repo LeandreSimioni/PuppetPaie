@@ -23,7 +23,7 @@
 //! PASSATION-O1). Tous SIRET de l'entreprise confondus, comme le journal le faisait : trop grand ne coute rien.
 //!
 //! SANS RESEAU, OU SANS MOT DE PASSE, le journal et les bilans deja archives decident, et l'avertissement le dit : jamais
-//! en silence. Une compagnie de demonstration n'a pas de plate-forme : ses envois sont joues, son journal est la seule
+//! en silence. Une compagnie fictive n'a pas de plate-forme : ses envois sont joues, son journal est la seule
 //! memoire, rien n'est a dire.
 
 use std::collections::HashMap;
@@ -121,7 +121,7 @@ pub fn dernier_ordre_connu(o: &HashMap<String, String>, ctx: &Contexte, client: 
     let journal = reels.max(dernier_ordre_des_essais(&ctx.racine)?);
     let mut avertissements = Vec::new();
 
-    // LA PLATE-FORME : une demonstration n'en a pas ; ailleurs, ce qui empeche de la lire se dit.
+    // LA PLATE-FORME : une compagnie fictive n'en a pas ; ailleurs, ce qui empeche de la lire se dit.
     let joue = client.is_none() && crate::routes_accueil::simulation_active(&ctx.racine);
     let lue: Result<(), String> = if joue {
         Ok(())

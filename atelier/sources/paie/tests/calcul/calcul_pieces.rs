@@ -1,9 +1,9 @@
-//! Les pieces de `calculer` contre `calcul-pieces.json` : les lignes de remuneration de chaque engagement des demos et
+//! Les pieces de `calculer` contre `calcul-pieces.json` : les lignes de remuneration de chaque engagement des fictives et
 //! leur designation, `_code_54`, la `Paie` fabriquee, la reduction generale et le seuil de SMIC sur une grille (par
 //! empreinte, en entier pour quelques groupes). Les refus sont des attendus. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit
 //! l'oracle. La deduction forfaitaire specifique est prouvee par `dfs.rs` ; ici, une fiche sans profession.
 
-use crate::outils::{dec, demo, lire_oracle, oracle, sceller};
+use crate::outils::{dec, fictive, lire_oracle, oracle, sceller};
 use paie::calcul::{au_dela_du_seuil, code_54, deduction_forfaitaire, lignes_brut, reduction_generale, LigneBrut, LigneCotisation, Paie};
 use paie::catalogue::rubrique;
 use paie::contexte::Contexte;
@@ -72,7 +72,7 @@ fn les_lignes_de_remuneration_et_la_paie_fabriquee() {
     let (mut n, mut lignes_n) = (0, 0);
     for c in mois.as_array_mut().unwrap() {
         let (nom, fichier) = (c["racine"].as_str().unwrap().to_string(), c["fichier"].as_str().unwrap().to_string());
-        let racine = demo(&nom);
+        let racine = fictive(&nom);
         let ctx = contexte(&racine);
         let permanents = eng["mois"].as_array().unwrap().iter().find(|m| m["racine"] == nom.as_str() && m["fichier"] == fichier.as_str()).unwrap()["permanents"].as_array().unwrap();
         let appel = Cell::new(0);
@@ -137,7 +137,7 @@ fn les_designations() {
 #[test]
 fn le_code_du_bloc_54() {
     let mut cas = lire_oracle(ORACLE)["code_54"].clone();
-    let racine = demo("demo-1285-grande");
+    let racine = fictive("fictive-1285-grande");
     let mut refus = 0;
     for c in cas.as_array_mut().unwrap() {
         let r = rubrique(&racine, c[0].as_str().unwrap()).unwrap();
@@ -209,7 +209,7 @@ fn le_seuil_de_smic() {
 #[test]
 fn la_deduction_forfaitaire_d_une_fiche_sans_profession() {
     let rel = lire_oracle(ORACLE);
-    let ctx = contexte(&demo("demo-1285-grande"));
+    let ctx = contexte(&fictive("fictive-1285-grande"));
     for bar in [&rel["baremes"][0], &rel["baremes"][42]] {
         assert!(deduction_forfaitaire(bar, &ctx.salarie("NADAR").unwrap(), &Value::Null).unwrap().is_none());
         assert!(deduction_forfaitaire(bar, &json!({}), &Value::Null).unwrap().is_none());

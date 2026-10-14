@@ -94,14 +94,8 @@ impl Veille {
     pub fn demarrer(self: &Arc<Self>) {
         let v = self.clone();
         std::thread::spawn(move || {
-            // La mise a jour se cherche a l'ouverture, ni dans une copie ni dans la demonstration (lot J4).
-            if !crate::interface::compagnies::est_copie(&v.racine) && !crate::routes_accueil::simulation_active(&v.racine) {
-                let dit = crate::maj::verifier(&v.racine, true);
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(v.racine.join("journal").join("interface.log")) {
-                    use std::io::Write;
-                    let _ = writeln!(f, "Mise a jour : {}", dit);
-                }
-            }
+            // La mise a jour ne se cherche plus ici, a l'ouverture d'une compagnie : c'est le logiciel qui la cherche pour
+            // lui-meme, au lancement (`maj::chercher_en_fond`, lot U1).
             v.tour(false, true);
             while v.minutes > 0 {
                 for _ in 0..v.minutes * 60 {

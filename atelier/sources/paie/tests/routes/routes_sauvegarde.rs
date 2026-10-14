@@ -1,6 +1,6 @@
 //! `sauvegarde-derniere` et `sauvegarde-rien-n-a-bouge` : ce que la page lit de la sauvegarde, sans reseau et sans rien
 //! ecrire (le faux Drive n'est consulte que par la sauvegarde elle-meme). Les routes passent par l'aiguillage, dans le
-//! processus. Sur `demo-3090-petite` (config, aout 2026).
+//! processus. Sur `fictive-3090-petite` (config, aout 2026).
 
 use crate::faux_drive::FauxDrive;
 use crate::outils::{compagnie, dossier_de_test, reussi, route_en_processus};
@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::saisies("demo-3090-petite", &["2026-08"], &dossier_de_test("routes_sauvegarde", nom).join("compagnie"))
+    compagnie::saisies("fictive-3090-petite", &["2026-08"], &dossier_de_test("routes_sauvegarde", nom).join("compagnie"))
 }
 
 fn reponse(racine: &Path, route: &str, charge: Value) -> Value {

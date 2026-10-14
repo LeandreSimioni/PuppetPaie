@@ -1,10 +1,10 @@
-//! L'`Engagement` contre `engagement.json` : les fichiers de mois des quatre demonstrations et leur reprise, des
+//! L'`Engagement` contre `engagement.json` : les fichiers de mois des quatre compagnies fictives et leur reprise, des
 //! engagements et des saisies fabriques (refus compris), la reprise d'un contrat a cheval ; sans oracle : les jumeaux,
 //! les heures d'un permanent, un numero sur deux salaries. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 //! Les `permanents` de l'oracle sont une entree : les lignes de permanent de chaque mois, a la place de
 //! `conges::lignes_du_mois`.
 
-use crate::outils::{copier, demo, dossier_de_test, lire_oracle, oracle};
+use crate::outils::{copier, fictive, dossier_de_test, lire_oracle, oracle};
 use paie::contexte::Contexte;
 use paie::date::{d, Jour};
 use paie::engagement::{engagements, engagements_du_fichier, suivre_contrat, Avis, Engagement};
@@ -70,7 +70,7 @@ fn les_fichiers_de_mois_et_leur_reprise() {
     let mut mois = lire_oracle("engagement.json")["mois"].clone();
     let mut engs_n = 0;
     for c in mois.as_array_mut().unwrap() {
-        let racine = demo(c["racine"].as_str().unwrap());
+        let racine = fictive(c["racine"].as_str().unwrap());
         let fichier = racine.join("paies").join(c["fichier"].as_str().unwrap());
         let ctx = contexte(&racine);
         let permanents = c["permanents"].as_array().unwrap().clone();
@@ -106,7 +106,7 @@ fn les_fichiers_de_mois_et_leur_reprise() {
 #[test]
 fn les_engagements_fabriques_et_leurs_refus() {
     let mut directs = lire_oracle("engagement.json")["directs"].clone();
-    let racine = demo("demo-1285-grande");
+    let racine = fictive("fictive-1285-grande");
     let mut refus = 0;
     for c in directs.as_array_mut().unwrap() {
         c["attendu"] = Engagement::nouveau(&racine, &c["kwargs"]).map_or_else(|m| json!({"refus": m}), |e| releve(&e));
@@ -122,7 +122,7 @@ fn les_saisies_fabriquees_et_leurs_refus() {
     let mut saisies = lire_oracle("engagement.json")["saisies"].clone();
     let mut refus = 0;
     for c in saisies.as_array_mut().unwrap() {
-        let mut ctx = contexte(&demo(c["racine"].as_str().unwrap()));
+        let mut ctx = contexte(&fictive(c["racine"].as_str().unwrap()));
         ctx.entreprise.as_object_mut().unwrap().insert("emploie_des_permanents".into(), c["permanents"].clone());
         c["attendu"] = engagements(&ctx, &c["data"], &sans_permanents).map_or_else(|m| json!({"refus": m}), |(v, _)| Value::Array(v.iter().map(releve).collect()));
         refus += c["attendu"].get("refus").is_some() as usize;
@@ -136,7 +136,7 @@ fn le_contrat_a_cheval_recopie_le_premier_mois() {
     let mut reprises = lire_oracle("engagement.json")["reprises"].clone();
     for c in reprises.as_array_mut().unwrap() {
         let tmp = dossier_de_test("engagement", c["nom"].as_str().unwrap());
-        copier(&demo(c["config"].as_str().unwrap()).join("config"), &tmp.join("config"));
+        copier(&fictive(c["config"].as_str().unwrap()).join("config"), &tmp.join("config"));
         std::fs::create_dir_all(tmp.join("paies")).unwrap();
         for (m, data) in c["fichiers"].as_object().unwrap() {
             std::fs::write(tmp.join("paies").join(format!("{}.json", m)), data.to_string()).unwrap();
@@ -159,7 +159,7 @@ fn le_contrat_a_cheval_recopie_le_premier_mois() {
 #[test]
 fn le_mois_suivant_d_un_jumeau_recopie_son_premier_mois_et_pas_celui_de_l_autre() {
     let tmp = dossier_de_test("engagement", "jumeaux");
-    copier(&demo("demo-3090-petite").join("config"), &tmp.join("config"));
+    copier(&fictive("fictive-3090-petite").join("config"), &tmp.join("config"));
     std::fs::create_dir_all(tmp.join("paies")).unwrap();
     let ecrire = |mois: &str, engagements: Value| {
         let v = json!({"mois": mois, "spectacle": "ubu-roi", "taux_cachet": 130.0, "engagements": engagements});
@@ -199,10 +199,10 @@ fn le_mois_suivant_d_un_jumeau_recopie_son_premier_mois_et_pas_celui_de_l_autre(
 
 // ------------------------------------------------- les heures d'un permanent
 
-/// Un mois de permanent de la demo (inventee), lu par `engagements` avec les
+/// Un mois de permanent de la fictive (inventee), lu par `engagements` avec les
 /// vraies lignes du mois, puis calcule.
 fn mois_permanent(e: Value) -> (Engagement, paie::calcul::Paie) {
-    let ctx = contexte(&demo("demo-1285-grande"));
+    let ctx = contexte(&fictive("fictive-1285-grande"));
     let data = json!({"mois": "2026-03", "date_paiement": "2026-03-31", "engagements": [e]});
     let (engs, _) = engagements(&ctx, &data, &paie::conges::lignes_du_mois).unwrap();
     let eng = engs.into_iter().next().unwrap();
@@ -261,8 +261,8 @@ fn une_absence_retire_ses_heures_de_ce_que_la_dsn_declare() {
 /// le numero et les deux salaries, quelle que soit la face qui l'a ecrite.
 #[test]
 fn un_numero_de_contrat_porte_par_deux_salaries_se_refuse() {
-    let ctx = contexte(&demo("demo-3090-petite"));
-    let mut data = crate::outils::lire(&demo("demo-3090-petite"), "paies/2026-08.json");
+    let ctx = contexte(&fictive("fictive-3090-petite"));
+    let mut data = crate::outils::lire(&fictive("fictive-3090-petite"), "paies/2026-08.json");
     assert!(paie::engagement::charger_donnees(&ctx, &data).is_ok());
     let numero = data["engagements"][0]["numero"].clone();
     data["engagements"][1]["numero"] = numero.clone();
@@ -280,7 +280,7 @@ fn un_numero_de_contrat_porte_par_deux_salaries_se_refuse() {
 /// `Engagement::nouveau` (l'engagement seul) et `engagements` (le fichier du mois).
 #[test]
 fn un_engagement_sans_cachet_ni_taux_ecrit_n_a_aucun_taux_de_cachet() {
-    let racine = demo("demo-1285-grande");
+    let racine = fictive("fictive-1285-grande");
     let taux = |e: &Engagement| e.canon().unwrap()["taux_cachet"].clone();
     // Un mois du contrat sans cachet (`lignes: []`), et un CDI paye au mois : aucun taux de cachet n'est ecrit.
     let a_cheval = json!({"salarie": "X", "spectacle": "S", "dates_travail": [], "lignes": [],

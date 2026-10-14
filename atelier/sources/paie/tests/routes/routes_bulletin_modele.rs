@@ -1,6 +1,6 @@
 //! Le modele de bulletin : l'apercu d'une paie FICTIVE sous chaque modele n'ecrit rien dans `logiciel/donnees/apercu-bulletin/`,
 //! le choix de la compagnie vaut pour tous et la case d'un salarie l'emporte. Routes appelees dans le processus, sur
-//! `demo-3090-petite` (config, octobre 2026).
+//! `fictive-3090-petite` (config, octobre 2026).
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, route_en_processus};
 use paie::bulletin::{jeux_et_description, Modele};
@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::saisies("demo-3090-petite", &["2026-10"], &dossier_de_test("routes_bulletin_modele", nom).join("compagnie"))
+    compagnie::saisies("fictive-3090-petite", &["2026-10"], &dossier_de_test("routes_bulletin_modele", nom).join("compagnie"))
 }
 
 fn route(racine: &Path, nom: &str, charge: Value) -> Value {

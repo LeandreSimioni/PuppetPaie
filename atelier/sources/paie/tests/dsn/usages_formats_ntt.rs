@@ -1,6 +1,6 @@
 //! Les controles avant depot (regle 7) contre `usages-formats-ntt.json` : le tableau des usages (P26V01), le moteur
 //! d'expressions des formats (motif par motif), la mauvaise valeur et les caracteres refuses d'une rubrique, les DSN des
-//! demos et leurs variantes mutees passees aux trois controles, le NIR et le NTT. `PUPPETPAIE_REECRIRE_ORACLES=1`
+//! fictives et leurs variantes mutees passees aux trois controles, le NIR et le NTT. `PUPPETPAIE_REECRIRE_ORACLES=1`
 //! reecrit l'oracle.
 
 use crate::outils::{chemin_oracle, lire_oracle, oracle};
@@ -19,7 +19,7 @@ fn p26() -> paie::norme::Norme {
     paie::norme::Norme::connue("P26V01").unwrap()
 }
 
-/// Les chemins de l'oracle (`demo/...`) se lisent dans la copie figee des demonstrations.
+/// Les chemins de l'oracle (`fictives/...`) se lisent dans la copie figee des compagnies fictives.
 fn latin1(chemin: &str) -> String {
     std::fs::read(chemin_oracle(chemin)).unwrap().iter().map(|&b| b as char).collect()
 }
@@ -105,7 +105,7 @@ fn mauvaise_valeur_et_caracteres_refuses() {
 }
 
 #[test]
-fn fichiers_des_demos() {
+fn fichiers_des_fictives() {
     let mut fichiers = lire_oracle(ORACLE)["fichiers"].clone();
     for e in fichiers.as_array_mut().unwrap() {
         let texte = latin1(e["chemin"].as_str().unwrap());

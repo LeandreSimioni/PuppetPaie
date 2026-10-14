@@ -1,12 +1,12 @@
 //! `paie route` : les listes que la page lit en s'ouvrant (`arrets`, `fins-de-contrat`, `regularisations`). Sur
-//! `demo-3090-petite` (config, aout et septembre 2026, journal vide), que chaque test mute ; un fichier abime refuse.
+//! `fictive-3090-petite` (config, aout et septembre 2026, journal vide), que chaque test mute ; un fichier abime refuse.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, reussi, route};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::saisies("demo-3090-petite", &["2026-08", "2026-09"], &dossier_de_test("routes_listes", nom).join("compagnie"))
+    compagnie::saisies("fictive-3090-petite", &["2026-08", "2026-09"], &dossier_de_test("routes_listes", nom).join("compagnie"))
 }
 
 fn liste(c: &Path, nom: &str, charge: Value, jour: &str) -> Value {
@@ -124,7 +124,7 @@ fn un_cdd_qui_finit_dans_le_mois_dit_ce_que_la_saisie_ne_dit_pas() {
     let r = liste(c, "fins-de-contrat", json!({"mois": "2026-08"}), "2026-10-03");
     assert_eq!(r["mois"], json!("2026-08"));
     let fins = r["fins"].as_array().unwrap();
-    assert_eq!(fins.len(), 1, "les cachets de la demonstration (CDDU) ne se signalent pas");
+    assert_eq!(fins.len(), 1, "les cachets de la compagnie fictive (CDDU) ne se signalent pas");
     let f = &fins[0];
     assert_eq!(f["salarie"], json!("LEMERCIER"));
     assert_eq!(f["numero"], json!("LE1.26.01"));

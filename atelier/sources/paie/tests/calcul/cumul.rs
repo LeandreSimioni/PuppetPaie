@@ -1,6 +1,6 @@
 //! Le cumul des droits intermittents : les constantes et le plafond d'enseignement de la fiche livree
 //! (`logiciel/donnees/rubriques-base.json`, France Travail cite), les positions sur chaque fenetre (engagements fabriques)
-//! et `oracle droits` sur les demonstrations et la racine `racines/cumul` (historique abime, naissances autour de 50 ans,
+//! et `oracle droits` sur les compagnies fictives et la racine `racines/cumul` (historique abime, naissances autour de 50 ans,
 //! anniversaires des droits), contre `donnees/cumul-positions.json` et `cumul-droits.json`, instantanes du moteur que les
 //! tests reecrivent sur demande.
 
@@ -30,8 +30,8 @@ fn attendus(quoi: &str) -> Value {
     lire_json(&oracle(quoi)).unwrap()
 }
 
-fn demo(nom: &str) -> PathBuf {
-    outils::demo(nom)
+fn fictive(nom: &str) -> PathBuf {
+    outils::fictive(nom)
 }
 
 fn jour(v: &Value) -> Option<Jour> {
@@ -40,7 +40,7 @@ fn jour(v: &Value) -> Option<Jour> {
 
 #[test]
 fn les_constantes_viennent_des_donnees_livrees() {
-    let c = Constantes::lire(&demo("demo-1285-grande")).unwrap();
+    let c = Constantes::lire(&fictive("fictive-1285-grande")).unwrap();
     assert_eq!((c.heures_par_cachet, c.cachets_par_mois, c.seuil_heures, c.fenetre_jours), (12, 28, 507, 365));
 }
 
@@ -50,7 +50,7 @@ fn les_constantes_viennent_des_donnees_livrees() {
 fn le_plafond_d_enseignement_suit_l_age_a_la_date() {
     let fiche = outils::lire(&outils::code_livre(), "rubriques-base.json")["rubriques"]["enseignement"]["plafond_annuel_heures"].clone();
     assert_eq!(fiche, json!({"moins_de_50_ans": 70, "50_ans_et_plus": 120}));
-    let racine = demo("demo-1285-grande");
+    let racine = fictive("fictive-1285-grande");
     let j = |s: &str| Jour::lire(s).unwrap();
     let plafond = |naissance: Option<&str>, date: &str| plafond_enseignement(&racine, naissance.map(j), j(date)).unwrap();
     assert_eq!(plafond(None, "2026-09-27"), 70, "sans date de naissance, le plafond bas");
@@ -90,7 +90,7 @@ fn fenetre(c: &Constantes, spec: &[Value]) -> Fenetre {
 fn les_positions_sur_chaque_fenetre() {
     let mut a = attendus("positions");
     let aujourdhui = jour(&a["aujourdhui"]).unwrap();
-    let ctx = Contexte::nouveau(&demo("demo-1285-grande"), Some(aujourdhui)).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-1285-grande"), Some(aujourdhui)).unwrap();
     let c = Constantes::lire(&ctx.racine).unwrap();
     let engs: Vec<Engagement> = a["lignes"].as_array().unwrap().iter().map(engagement).collect();
     let cas = a["cas"].as_array_mut().unwrap();
@@ -107,14 +107,14 @@ fn racine_de(nom: &str) -> PathBuf {
     if nom == "cumul" {
         donnees().join("racines/cumul")
     } else {
-        demo(nom)
+        fictive(nom)
     }
 }
 
 /// Sans anniversaire, la fenetre de douze mois finit a `a-la-date`, a defaut a la derniere fin, a defaut aujourd'hui :
 /// chaque cas de l'oracle sans derniere fin donne `a-la-date`, le test ne depend pas du jour. Une option illisible refuse.
 #[test]
-fn oracle_droits_sur_les_demos_et_la_racine_montee() {
+fn oracle_droits_sur_les_fictives_et_la_racine_montee() {
     let mut tout = attendus("droits");
     let cas = tout.as_array_mut().unwrap();
     assert!(cas.len() > 20);
@@ -140,7 +140,7 @@ fn oracle_droits_sur_les_demos_et_la_racine_montee() {
 #[test]
 fn une_ligne_moins_d_enseignement_retire_ses_heures() {
     let racine = outils::dossier_de_test("cumul", "enseignement-moins");
-    outils::copier(&demo("demo-3090-petite").join("config"), &racine.join("config"));
+    outils::copier(&fictive("fictive-3090-petite").join("config"), &racine.join("config"));
     let base = outils::lire(&outils::code_livre(), "rubriques-base.json");
     let mut retrait = base["rubriques"]["enseignement"].clone();
     retrait["sens"] = "-".into();

@@ -1351,27 +1351,27 @@ label.coche.montrer-archives { margin-top: 16px; padding-top: 10px; border-top: 
 
 
 
-/* LA DÉMONSTRATION QUI EXPLIQUE (27/09/2026) : le courriel tel que le
+/* LA COMPAGNIE FICTIVE QUI EXPLIQUE (27/09/2026) : le courriel tel que le
    salarié le reçoit, et le circuit en bulles. */
-.demo-fenetre { max-width: 760px; }
-.demo-bulles { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 12px 0; }
-.demo-bulle { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; font-size: 13px;
+.fictive-fenetre { max-width: 760px; }
+.fictive-bulles { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 12px 0; }
+.fictive-bulle { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; font-size: 13px;
   padding: 6px 14px 6px 6px; border: 1px solid var(--bord, #d0d0d0); background: transparent; }
-.demo-bulle span { display: inline-grid; place-items: center; width: 22px; height: 22px;
+.fictive-bulle span { display: inline-grid; place-items: center; width: 22px; height: 22px;
   border-radius: 50%; background: var(--bord, #d0d0d0); font-weight: bold; font-size: 12px; }
-.demo-bulle.actif { border-color: currentColor; font-weight: bold; }
-.demo-bulle.fait span { background: #2e7d32; color: #fff; }
-.demo-courriel { border: 1px solid var(--bord, #d0d0d0); border-radius: 6px; overflow: hidden; }
-.demo-entete { padding: 8px 12px; font-size: 13px; line-height: 1.6; background: rgba(0,0,0,.03);
+.fictive-bulle.actif { border-color: currentColor; font-weight: bold; }
+.fictive-bulle.fait span { background: #2e7d32; color: #fff; }
+.fictive-courriel { border: 1px solid var(--bord, #d0d0d0); border-radius: 6px; overflow: hidden; }
+.fictive-entete { padding: 8px 12px; font-size: 13px; line-height: 1.6; background: rgba(0,0,0,.03);
   border-bottom: 1px solid var(--bord, #d0d0d0); overflow-wrap: anywhere; }
-.demo-entete span { display: inline-block; min-width: 88px; color: var(--discret, #777); }
-.demo-corps { display: block; width: 100%; height: 340px; border: 0; background: #fff; }
-.demo-texte { margin: 0; padding: 12px; white-space: pre-wrap; font-family: inherit; font-size: 14px; }
-.demo-pdf { padding: 8px; background: #eee; }
-.demo-pdf-cadre { display: block; width: 100%; height: 440px; margin: 6px 0 0; border: 0; background: #fff; }
-.demo-fenetre h4 { margin: 14px 0 4px; }
-.demo-fenetre h4 + p { margin: 0; line-height: 1.5; }
-.demo-corps[hidden], .demo-pdf[hidden] { display: none; }
+.fictive-entete span { display: inline-block; min-width: 88px; color: var(--discret, #777); }
+.fictive-corps { display: block; width: 100%; height: 340px; border: 0; background: #fff; }
+.fictive-texte { margin: 0; padding: 12px; white-space: pre-wrap; font-family: inherit; font-size: 14px; }
+.fictive-pdf { padding: 8px; background: #eee; }
+.fictive-pdf-cadre { display: block; width: 100%; height: 440px; margin: 6px 0 0; border: 0; background: #fff; }
+.fictive-fenetre h4 { margin: 14px 0 4px; }
+.fictive-fenetre h4 + p { margin: 0; line-height: 1.5; }
+.fictive-corps[hidden], .fictive-pdf[hidden] { display: none; }
 /* Ce qui est parti chez l'editeur : le contenu exact, lisible, borne. */
 .d-pre { max-height: 240px; overflow: auto; font-size: 11px; white-space: pre-wrap;
          word-break: break-word; background: var(--fond);

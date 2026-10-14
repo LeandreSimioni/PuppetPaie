@@ -3,7 +3,7 @@
 //! Bulletin, certificat d'emploi Conges Spectacles et attestation France Travail dans un seul message. Rien ne
 //! part sans un clic : le garde-fou est a l'appelant (le mot de passe du logiciel, la page de relecture de
 //! l'interface) ; ce module prepare (`preparer`), assemble (`en_mime`) et envoie un par un (`envoyer`) par le
-//! client `courriel::Courriel` qu'on lui passe -- le vrai (IMAP/SMTP) ou la boite simulee de la demonstration.
+//! client `courriel::Courriel` qu'on lui passe -- le vrai (IMAP/SMTP) ou la boite simulee de la compagnie fictive.
 //!
 //! Hors perimetre, renvoye au lot J avec le tri de la ligne de commande : `relire_et_agir`, `_page` et `PAGE`
 //! (la page de relecture servie en local ; l'interface a son propre ecran et passe par `envoyer`).

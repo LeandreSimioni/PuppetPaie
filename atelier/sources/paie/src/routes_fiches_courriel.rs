@@ -7,14 +7,14 @@
 //! code dans la boite, lit ce que la personne a ECRIT (la citation exclue) et CREE la fiche salarie avec ce qu'elle a
 //! repondu, par le meme code que `enregistrer-fiche` (`routes_ecritures::ecrire_fiche`, `forcer`).
 //!
-//! - `demander_fiche` part chez quelqu'un : la PREUVE (le mot de passe du logiciel, retape), comme les contrats. En
-//!   demonstration, la boite simulee ecrit le message dans `courriels-simules/`. Le journal garde l'echec comme la
+//! - `demander_fiche` part chez quelqu'un : la PREUVE (le mot de passe du logiciel, retape), comme les contrats. Dans
+//!   une compagnie fictive, la boite simulee ecrit le message dans `courriels-simules/`. Le journal garde l'echec comme la
 //!   reussite.
 //! - `relever_fiches` ne fait rien partir et ne demande rien. Trois filtres : notre propre envoi est ecarte, le code
 //!   doit etre dans ce que la personne a ECRIT, et la reponse doit venir de l'adresse a laquelle la demande est
 //!   partie. Elle ne leve pas pour une boite absente : elle le dit dans `incidents`. C'est UNE FONCTION, que la veille
 //!   (lot I) appellera avec son `qui`.
-//! - En demonstration, la personne fictive repond (`BoiteDesFiches`) et c'est la vraie releve qui la lit.
+//! - Dans une compagnie fictive, la personne fictive repond (`BoiteDesFiches`) et c'est la vraie releve qui la lit.
 //!
 //! Les phrases des refus et des incidents sont celles du Python ; la classe d'un refus peut differer.
 
@@ -39,8 +39,8 @@ use crate::routes_envois::{capitaliser, client_courriel, echec_d_envoi, html_ech
 /// Les routes de ce module.
 pub const ROUTES: [&str; 2] = ["fiche-demander", "fiches-relever"];
 
-/// Secondes entre une demande de fiche et la reponse de la personne fictive de la demonstration (`DELAI_SIGNATURE`).
-pub const DELAI_DEMONSTRATION: i64 = 20;
+/// Secondes entre une demande de fiche et la reponse de la personne fictive de la compagnie fictive (`DELAI_SIGNATURE`).
+pub const DELAI_FICTIVE: i64 = 20;
 
 /// Une route de ce module, avec la vraie boite (ou la simulee).
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -85,8 +85,8 @@ pub struct FicheDemandee {
 }
 
 /// `operations_questionnaire.demander_fiche` : envoie a `adresse` le courriel « Remplir ma fiche ». Le journal garde
-/// le code : c'est par lui que la releve reconnaitra la reponse. `client` : la boite, ouverte ici (boite simulee en
-/// demonstration, sinon refus « boite absente ») quand l'appelant n'en donne pas.
+/// le code : c'est par lui que la releve reconnaitra la reponse. `client` : la boite, ouverte ici (boite simulee dans une
+/// compagnie fictive, sinon refus « boite absente ») quand l'appelant n'en donne pas.
 pub fn demander_fiche(ctx: &Contexte, adresse: &str, prenom: &str, preuve: &Preuve, qui: &str, client: Option<&mut dyn Courriel>) -> R<FicheDemandee> {
     let adresse = strip(adresse).to_lowercase();
     if !adresse_valide(&adresse) {
@@ -218,7 +218,7 @@ fn os(m: String) -> Echec {
 
 /// `operations_questionnaire.relever_fiches` : cherche les reponses aux demandes de fiche et cree chaque fiche.
 ///
-/// `client` : la boite, ouverte ici quand l'appelant n'en donne pas -- la personne fictive de la demonstration, ou la
+/// `client` : la boite, ouverte ici quand l'appelant n'en donne pas -- la personne fictive de la compagnie fictive, ou la
 /// vraie boite ; sans boite, un incident et rien d'autre. `qui` : `interface`, ou `veille`.
 pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &str) -> R<ReleveFiches> {
     let mut r = ReleveFiches::default();
@@ -231,8 +231,8 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
     let client: &mut dyn Courriel = match client {
         Some(c) => c,
         None if crate::routes_accueil::simulation_active(&ctx.racine) => {
-            // LA DEMONSTRATION : la personne fictive repond, et c'est la vraie lecture qui suit.
-            ouverte.insert(Box::new(boite_des_fiches(ctx, &attendues, DELAI_DEMONSTRATION)?)).as_mut()
+            // LA COMPAGNIE FICTIVE : la personne fictive repond, et c'est la vraie lecture qui suit.
+            ouverte.insert(Box::new(boite_des_fiches(ctx, &attendues, DELAI_FICTIVE)?)).as_mut()
         }
         None => {
             if !courriel::disponible(&ctx.racine) {
@@ -360,9 +360,9 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
     Ok(r)
 }
 
-// ------------------------------------------------------------------ la demonstration
+// ------------------------------------------------------------------ la compagnie fictive
 
-/// Des personnes inventees, comme celles des compagnies de demonstration : (prenom, nom, sexe INSEE). Le NIR se
+/// Des personnes inventees, comme celles des compagnies fictives : (prenom, nom, sexe INSEE). Le NIR se
 /// fabrique a la demande, cle comprise.
 const PERSONNES: [(&str, &str, &str); 4] = [("Marie", "Dorval", "2"), ("Pierre", "Bocage", "1"), ("Rose", "Cheri", "2"), ("Frederick", "Lemaitre", "1")];
 
@@ -397,7 +397,7 @@ fn reponse_de_fiche(demande: &Attendue, compte: &str, bouton: Option<&(String, S
     crate::simulation_courriels::reponse_jouee(&demande.adresse, compte, &sujet, &lignes.join("\n"), &format!("fiche-{}", code))
 }
 
-/// `simulation.BoiteDesFiches` : la boite de la demonstration, vue par la releve. Chaque demande de fiche partie
+/// `simulation.BoiteDesFiches` : la boite de la compagnie fictive, vue par la releve. Chaque demande de fiche partie
 /// depuis `delai` secondes y trouve sa reponse remplie ; la vraie releve la lit et cree la fiche. Ce qu'on y envoie
 /// s'ecrit comme tout courriel joue (`BoiteQuiRepond`, partagee avec `BoiteDesSignatures`).
 pub fn boite_des_fiches(ctx: &Contexte, attendues: &[Attendue], delai: i64) -> R<BoiteQuiRepond> {

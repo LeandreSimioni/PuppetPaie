@@ -1,6 +1,6 @@
 {
  "nom": "Les Faisceaux (démonstration)",
- "_quoi": "Une vie de compagnie de démonstration, jouée geste par geste par paie/examples/vie_demo.rs. Prestataire son, lumière et structure du spectacle et de l'événement, à Nantes : IDCC 3252. Aucune valeur ne désigne une entreprise ou une personne réelle ; les clés (SIRET, NIR, IBAN) se vérifient.",
+ "_quoi": "Une vie de compagnie de démonstration, jouée geste par geste par paie/examples/vie_fictive.rs. Prestataire son, lumière et structure du spectacle et de l'événement, à Nantes : IDCC 3252. Aucune valeur ne désigne une entreprise ou une personne réelle ; les clés (SIRET, NIR, IBAN) se vérifient.",
  "gestes": [
   {
    "jour": "2026-01-05",

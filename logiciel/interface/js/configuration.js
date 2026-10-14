@@ -311,8 +311,9 @@ function dessinerConfig() {
 /* ---------------------------------------------------- reprendre l'historique
    Deux temps, et jamais un seul : l'aperçu dit ce qui serait créé et ce que
    les DSN disaient autrement que les fiches ; le bouton n'écrit qu'après.
-   Une fiche existante n'est jamais modifiée par l'import — la fiche fait
-   foi, un changement se date à la main (operations_fiches).
+   Une fiche existante reçoit seulement ce qui y est vide ou « A COMPLETER »
+   (`importation_completer`, lot I2) ; tout champ rempli fait foi, l'écart
+   est signalé, un changement se date à la main (operations_fiches).
 
    LA BOÎTE AUX LETTRES (lot F du plan d'import, 10/10/2026). Une seule
    entrée : le dossier `import/` de la compagnie, où l'on met tout ce que
@@ -447,14 +448,37 @@ function vueEtatImportation(e) {
   return repris + (editeur ? `<h3>Ce qui attend l'éditeur</h3>${editeur}` : "");
 }
 
-/* Une fiche que l'import crée, laisse, ou sur laquelle il a à redire. Un
-   écart vient d'une DSN (`dsn`, `mois`) ou d'un bulletin (`bulletin`,
-   `fichier`, `page`) : la fiche fait foi, il est seulement signalé. */
+/* D'où vient une valeur : la DSN d'un mois, ou un bulletin (fichier, page). */
+function origineImport(e) {
+  return e.source === "bulletin" || "bulletin" in e
+    ? `le bulletin${e.fichier ? ` (${echapper(e.fichier)}${e.page ? `, page ${e.page}` : ""})` : ""}`
+    : `la DSN de ${echapper(moisEnClair(e.mois))}`;
+}
+
+/* Ce que l'import met dans une case vide ou « A COMPLETER » d'une fiche
+   existante (`completer`) : le moteur l'a décidé, la page le dit. */
+function valeurImportee(v) {
+  if (v && typeof v === "object") return Array.isArray(v)
+    ? v.map((x) => (x && typeof x === "object" ? Object.values(x).join(" ") : x)).join(", ")
+    : Object.entries(v).map(([k, x]) => `${k} ${x}`).join(", ");
+  return v;
+}
+
+/* Une fiche que l'import crée, complète, laisse, ou sur laquelle il a à
+   redire. Un écart vient d'une DSN (`dsn`, `mois`) ou d'un bulletin
+   (`bulletin`, `fichier`, `page`) : la fiche fait foi, il est seulement
+   signalé. Une case vide est complétée, et la page dit d'où. */
 function fichesImportees(fiches, titre) {
   const lignes = (fiches || []).filter((f) => f).map((f) => {
-    const etat = f.etat === "existante" ? `<span class="pastille bien">existe déjà</span>`
+    const aCompleter = Object.keys(f.completer || {}).length;
+    const etat = f.etat === "completee" ? `<span class="pastille bien">complétée</span>`
+      : f.etat === "existante" && aCompleter ? `<span class="pastille alerte">à compléter</span>`
+      : f.etat === "existante" ? `<span class="pastille bien">existe déjà</span>`
       : f.etat === "creee" ? `<span class="pastille bien">créée (${echapper(f.cle)})</span>`
       : `<span class="pastille alerte">à créer</span>`;
+    const completes = Object.entries(f.completer || {}).map(([champ, e]) =>
+      `<div class="acte-dernier"><b>${echapper(champ)}</b> ${f.etat === "completee" ? "a reçu" : "recevra"}
+         « ${echapper(valeurImportee(e.valeur))} », lu dans ${origineImport(e)} — la case était vide</div>`).join("");
     const ecarts = Object.entries(f.ecarts || {}).map(([champ, e]) => {
       const ou = "bulletin" in e
         ? `le bulletin (${echapper(e.fichier || "")}${e.page ? `, page ${e.page}` : ""}) disait`
@@ -468,7 +492,7 @@ function fichesImportees(fiches, titre) {
     return `<div class="rang import">
       <span class="rang-nom">${echapper(f.libelle)}</span>
       ${etat}
-      <span class="rang-infos">${ecarts}${erreurs}</span></div>`;
+      <span class="rang-infos">${completes}${ecarts}${erreurs}</span></div>`;
   });
   if (!lignes.length) return "";
   return `<h3>${titre}</h3>${lignes.join("")}`;
@@ -622,7 +646,8 @@ function vueImportation(r) {
     : "aucune DSN ni AEM dans le dossier";
   const avert = (r.avertissements || []).map((a) => `<div class="encart attention">${echapper(a)}</div>`).join("");
   const b = r.bulletins || {};
-  const nb = [r.entreprise, ...(r.salaries || []), ...(r.spectacles || [])].filter((f) => f && f.etat === "a_creer").length;
+  const nb = [r.entreprise, ...(r.salaries || []), ...(r.spectacles || [])].filter((f) => f && (f.etat === "a_creer"
+    || (f.etat === "existante" && Object.keys(f.completer || {}).length))).length;
   const nc = (r.contrats_nouveaux || 0) + (b.contrats_nouveaux || 0);
   const np = (b.paies_nouvelles || 0) + (b.paies_completees || 0);
   const quoi = [
@@ -686,7 +711,7 @@ async function ecrireImportation() {
     const b = r.bulletins || {};
     dire(`Repris : ${(r.contrats_nouveaux || 0) + (b.contrats_nouveaux || 0)} contrat(s), ${
       (b.paies_nouvelles || 0) + (b.paies_completees || 0)} bulletin(s), ${
-      [r.entreprise, ...(r.salaries || []), ...(r.spectacles || [])].filter((f) => f && f.etat === "creee").length} fiche(s).`, "ok");
+      [r.entreprise, ...(r.salaries || []), ...(r.spectacles || [])].filter((f) => f && (f.etat === "creee" || f.etat === "completee")).length} fiche(s).`, "ok");
   } catch (e) {
     cible.innerHTML = `<div class="encart erreur">${echapper(e.message)}</div>`;
   } finally {

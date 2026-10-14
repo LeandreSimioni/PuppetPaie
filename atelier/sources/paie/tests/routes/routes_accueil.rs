@@ -1,14 +1,14 @@
 //! `paie route etat` (et `configuration`) : ce que la page lit en s'ouvrant -- la configuration verifiee, l'historique
-//! des mois, les listes ou l'on choisit, les referentiels. Sur `demo-3090-petite` (config, aout et septembre 2026,
+//! des mois, les listes ou l'on choisit, les referentiels. Sur `fictive-3090-petite` (config, aout et septembre 2026,
 //! journal vide), que chaque test mute ; la boite ne s'essaie que par des variables factices, jamais par le coffre.
 
-use crate::outils::{code_livre, compagnie, demo, dossier_de_test, ecrire, lire, route_avec};
+use crate::outils::{code_livre, compagnie, fictive, dossier_de_test, ecrire, lire, route_avec};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, UNIX_EPOCH};
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::saisies("demo-3090-petite", &["2026-08", "2026-09"], &dossier_de_test("routes_accueil", nom).join("compagnie"))
+    compagnie::saisies("fictive-3090-petite", &["2026-08", "2026-09"], &dossier_de_test("routes_accueil", nom).join("compagnie"))
 }
 
 /// Modifie un fichier de `config/` (un objet JSON).
@@ -94,7 +94,7 @@ fn l_etat_rend_tout_ce_que_la_page_lit_en_s_ouvrant() {
     assert_eq!(cf["permanents"], false);
     assert_eq!(cf["etablissements"], false);
     assert_eq!(cf["salaries_au_mois"], json!([]));
-    // Sans marqueur de demonstration ni boite posee : ni envoi joue, ni boite liee.
+    // Sans marqueur de fictive ni boite posee : ni envoi joue, ni boite liee.
     assert_eq!(e["simulation"], false);
     assert_eq!(cf["boite_liee"], false);
     // Les listes ou l'on CHOISIT.
@@ -334,18 +334,18 @@ fn les_fiches_demandees_en_attente_se_lisent_au_journal() {
 }
 
 #[test]
-fn la_demonstration_joue_les_envois_et_une_vraie_compagnie_dit_si_sa_boite_est_liee() {
+fn la_fictive_joue_les_envois_et_une_vraie_compagnie_dit_si_sa_boite_est_liee() {
     let c = &compagnie("boite");
-    // Une compagnie de demonstration : tout est joue, la boite se dit liee.
-    assert_eq!(etat(c)["simulation"], false, "sans marqueur, ce n'est pas une demonstration");
-    std::fs::copy(demo("demo-3090-petite").join("COPIE-DE-DEVELOPPEMENT.json"), c.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
+    // Une compagnie fictive : tout est joue, la boite se dit liee.
+    assert_eq!(etat(c)["simulation"], false, "sans marqueur, ce n'est pas une compagnie fictive");
+    std::fs::copy(fictive("fictive-3090-petite").join("COPIE-DE-DEVELOPPEMENT.json"), c.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
     let e = etat(c);
     assert_eq!((e["simulation"].clone(), e["configuration"]["boite_liee"].clone()), (json!(true), json!(true)));
-    // Une copie de developpement n'est pas une demonstration.
+    // Une copie de developpement n'est pas une compagnie fictive.
     ecrire(c, "COPIE-DE-DEVELOPPEMENT.json", &json!({"copie_de": "prive", "quand": "2026-09-30T10:00:00"}));
     let e = etat(c);
     assert_eq!((e["simulation"].clone(), e["configuration"]["boite_liee"].clone()), (json!(false), json!(false)));
-    // Un marqueur illisible ne fait pas une demonstration.
+    // Un marqueur illisible ne fait pas une compagnie fictive.
     std::fs::write(c.join("COPIE-DE-DEVELOPPEMENT.json"), "pas du json").unwrap();
     assert_eq!(etat(c)["simulation"], false);
     // La boite est liee quand l'adresse ET le secret sont la : ici par
@@ -490,11 +490,11 @@ fn un_salarie_sans_prenom_refuse_la_page() {
 }
 
 #[test]
-fn les_courriels_joues_de_la_demonstration_se_lisent_et_une_vraie_compagnie_refuse() {
+fn les_courriels_joues_de_la_fictive_se_lisent_et_une_vraie_compagnie_refuse() {
     let c = &compagnie("courriels-joues");
-    let lus = |apres: &str| route_avec(c, "demonstration-courriels", json!({"apres": apres}), "2026-10-03", &[]);
-    assert_eq!(lus("")["ok"], json!(false), "sans marqueur, ce n'est pas une demonstration");
-    std::fs::copy(demo("demo-3090-petite").join("COPIE-DE-DEVELOPPEMENT.json"), c.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
+    let lus = |apres: &str| route_avec(c, "courriels-fictifs", json!({"apres": apres}), "2026-10-03", &[]);
+    assert_eq!(lus("")["ok"], json!(false), "sans marqueur, ce n'est pas une compagnie fictive");
+    std::fs::copy(fictive("fictive-3090-petite").join("COPIE-DE-DEVELOPPEMENT.json"), c.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
     std::fs::create_dir_all(c.join("courriels-simules")).unwrap();
     let eml = "From: Direction <direction@exemple.invalid>\r\nTo: zoe@exemple.invalid\r\nSubject: Ta fiche\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nBonjour Zoe\r\n";
     std::fs::write(c.join("courriels-simules/2026-10-03_01.eml"), eml).unwrap();

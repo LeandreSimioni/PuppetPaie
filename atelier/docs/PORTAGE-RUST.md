@@ -1364,7 +1364,7 @@ congés, précarité, préavis, les quatre ruptures), `clauses`, `minima`,
 >   écrit la paie avec son résultat ; l'ouverture du logiciel et d'une
 >   compagnie relit ces fichiers sans calculer ; « Modifier » relance le
 >   calcul. Un mois déclaré garde ses chiffres. Mesure du 03/10 (Linux,
->   `demo-3090-grande`) : l'ouverture d'une compagnie lance 77 calculs, dont
+>   `fictive-3090-grande`) : l'ouverture d'une compagnie lance 77 calculs, dont
 >   56 identiques ; `mois_a_ouvrir` calcule chaque mois non clos pour n'en
 >   lire que les états (84 % du temps). Tauri seul : 5,6 s → ~4,5 s.
 > - Ordre : le coffre, l'écriture des fichiers (verrou, journal), puis les
@@ -1532,7 +1532,7 @@ congés, précarité, préavis, les quatre ruptures), `clauses`, `minima`,
 > - **Preuve** contre `36d3702` : 30 cas (six compagnies, cinq dates 2026-2027) + 244 cas sur 122
 >   variantes mutees (fiches fautives par fuzz, archives, permanents et etablissements, exercice
 >   clos, catalogue, metiers, demonstration, boite, fiches attendues, identite, fichiers abimes) :
->   0 ecart hors les deux ecarts assumes. `demo-3090-grande` : 0,29 s et 24 processus `paie`
+>   0 ecart hors les deux ecarts assumes. `fictive-3090-grande` : 0,29 s et 24 processus `paie`
 >   avant, 0,07 s et 1 apres. Binaire release : 8 823 Ko.
 
 > ## Fait le 04/10/2026 : phase 6, l'écart au contrat signé et l'ouverture mesurée (journal §193)
@@ -1547,7 +1547,7 @@ congés, précarité, préavis, les quatre ruptures), `clauses`, `minima`,
 >   0 écart hors les écarts assumés (`mois_connus` strict, phrase d'un JSON abîmé).
 >   `export_compta_a_jour` ignore les `.calcul.json` (sinon l'export paraîtrait périmé à chaque
 >   ouverture). `paie_rust` ne connaît pas le coffre : `coffre.py` y inscrit `ErreurCoffre`.
-> - **L'ouverture de `demo-3090-grande`** (page dans Chromium, premier tour de la veille
+> - **L'ouverture de `fictive-3090-grande`** (page dans Chromium, premier tour de la veille
 >   compris, médiane de 3, ce conteneur) : 13,6 s, 77 calculs et ~460 appels `paie` avant ;
 >   3,1 s, 1 calcul (le premier `calcul.json`) et ~115 appels après. Les ~80 `paie journal`
 >   restants viennent des routes pas encore portées.
@@ -1616,7 +1616,7 @@ congés, précarité, préavis, les quatre ruptures), `clauses`, `minima`,
 >   `conges_spectacles.rs`, `fiche_recapitulative.rs` (`dossier-salarie` ; `dossier-envoyer`
 >   reste au lot H). Branchées dans `web.py`, sans repli.
 > - **Preuve** : 769 + 360 (routes écrites), 37 dont 3 appels réels à Google, 358 (dossier, sans
->   `demo-3090-grande` en entier ni `demo-1285-grande`) ; 0 écart de valeur, écarts admis sur la
+>   `fictive-3090-grande` en entier ni `fictive-1285-grande`) ; 0 écart de valeur, écarts admis sur la
 >   phrase d'un JSON abîmé et des classes de refus. Retirés : `revue_spectacles`, `poser_taux_atmp`.
 > - **Au lot « Incidents et canal éditeur »** : `diagnostic-etat` et `bilan-repetition` attendu.
 

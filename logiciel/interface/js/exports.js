@@ -186,11 +186,11 @@ async function lancerDossier(route, apercu) {
   }
   const cible = document.getElementById("dossier-resultat");
   cible.innerHTML = `<p class="discret">…</p>`;
-  const repere = route === "dossier-envoyer" ? await repereCourrielsDemo() : null;
+  const repere = route === "dossier-envoyer" ? await repereCourrielsFictifs() : null;
   let r;
   try { r = await api(route, charge); }
   catch (e) { cible.innerHTML = `<div class="encart erreur">${echapper(e.message)}</div>`; return; }
-  if (r.envoi) fenetreCourrielsDemo("documents", repere);
+  if (r.envoi) fenetreCourrielsFictifs("documents", repere);
   const lignes = r.salaries.map((c) => `<tr><td>${echapper(c)}</td><td>${
     Object.entries(r.pages[c] || {}).map(([k, n]) => echapper(r.libelles[k]) + " : " + n + " p.").join(" · ")
   }</td></tr>`).join("");
@@ -500,14 +500,14 @@ function dessinerCasc(r) {
     const mdp = await demanderMotDePasse("envoyer à Audiens et au CASC-SVP la régularisation " + liste.join(" et "));
     if (!mdp) return;
     envoyer.disabled = true;
-    const repere = await repereCourrielsDemo();
+    const repere = await repereCourrielsFictifs();
     try {
       const e = await api("casc-envoyer", { vire_le, motdepasse: mdp });
       dire(`${e.partis.length} courriel(s) envoyé(s) à ${e.partis.join(" et ")} — ` +
            `${e.annees.map((a) => a.annee).join(" et ")} notée(s) régularisée(s).`);
       cible.innerHTML = `<p>CASC-SVP ${echapper(e.periode)} : ${echapper(euros(e.total))}, envoyé depuis
         ${echapper(e.expediteur)}. Copie des courriels dans ${echapper(e.dossier)}.</p>`;
-      fenetreCourrielsDemo("courriel", repere);
+      fenetreCourrielsFictifs("courriel", repere);
     } catch (x) {
       envoyer.disabled = false;
       dire(x.message, "erreur");

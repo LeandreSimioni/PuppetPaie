@@ -11,7 +11,7 @@
 //! La contribution supplementaire a l'apprentissage, dont decembre dit l'assujettissement (003/004), se declare en mars
 //! de l'annee suivante (lot D2, `src/csa.rs`) : ses tests sont a la fin.
 //!
-//! Sur des copies des demonstrations (compagnies inventees) : la fiche, l'effectif et la surcouche du bareme y changent.
+//! Sur des copies des compagnies fictives (compagnies inventees) : la fiche, l'effectif et la surcouche du bareme y changent.
 
 use crate::outils::{self, compagnie, dec, ecrire, lire, paires as lignes};
 use paie::calcul::Paie;
@@ -24,7 +24,7 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-/// Une copie d'une demonstration figee, sans ses pieces, effacee a la fin du test.
+/// Une copie d'une compagnie fictive figee, sans ses pieces, effacee a la fin du test.
 struct Copie(PathBuf);
 
 impl Copie {
@@ -201,7 +201,7 @@ fn taxe_sur_les_salaires_2025(c: &Copie, pct: Decimal) -> (Decimal, Decimal, Dec
 fn la_dsn_de_decembre_declare_chaque_taxe_avec_ses_assiettes() {
     // 3090-grande, 2025 : des CDI, un CDD de droit commun (motif 02), des intermittents ; cinq salaries ; la fiche dit
     // la compagnie redevable de la taxe sur les salaires sur toutes ses remunerations.
-    let c = Copie::de("demo-3090-grande").fiche(assujettie(Some(100.0)));
+    let c = Copie::de("fictive-3090-grande").fiche(assujettie(Some(100.0)));
     let dsn = c.dsn("2025-12").unwrap();
     let (normal, premier, second) = taxe_sur_les_salaires_2025(&c, dec("100"));
     assert!(premier > Decimal::ZERO && second > Decimal::ZERO, "les permanents depassent les deux seuils : {} {}", premier, second);
@@ -234,7 +234,7 @@ fn la_dsn_de_decembre_declare_chaque_taxe_avec_ses_assiettes() {
 #[test]
 fn une_part_assujettie_se_porte_sur_chaque_assiette() {
     // Une compagnie assujettie a la TVA sur 40 % de son chiffre d'affaires : 60 % de chaque assiette (CGI art. 231, 1).
-    let c = Copie::de("demo-3090-grande").fiche(assujettie(Some(60.0)));
+    let c = Copie::de("fictive-3090-grande").fiche(assujettie(Some(60.0)));
     let dsn = c.dsn("2025-12").unwrap();
     let (normal, premier, second) = taxe_sur_les_salaires_2025(&c, dec("60"));
     assert_eq!((montant(&dsn, "009"), montant(&dsn, "015"), montant(&dsn, "016")), (Some(normal), Some(premier), Some(second)));
@@ -244,7 +244,7 @@ fn une_part_assujettie_se_porte_sur_chaque_assiette() {
 fn une_compagnie_qui_ne_doit_pas_la_taxe_et_n_a_que_des_intermittents() {
     // 3090-petite : trois intermittents, aucun CDD de droit commun ; la fiche dit la compagnie assujettie a la TVA.
     // Aucun montant : CCH-12 les interdit aux codes de non-assujettissement, et 001 et 007 n'en demandent pas.
-    let c = Copie::de("demo-3090-petite").fiche(assujettie(None));
+    let c = Copie::de("fictive-3090-petite").fiche(assujettie(None));
     let dsn = c.dsn("2025-12").unwrap();
     assert_eq!(codes(&dsn), ["001", "004", "006", "007", "010", "014"]);
     assert!(blocs_44(&dsn).iter().all(|b| b.1.is_none() && b.2 == "2025"));
@@ -254,7 +254,7 @@ fn une_compagnie_qui_ne_doit_pas_la_taxe_et_n_a_que_des_intermittents() {
 fn un_autre_mois_n_a_pas_de_bloc_44() {
     // « une fois par an [...] au plus tard, dans la DSN mensuelle de décembre » (p. 58) : le moteur ne connait pas la
     // cessation d'activite, seul autre cas.
-    let c = Copie::de("demo-3090-grande").fiche(assujettie(Some(100.0)));
+    let c = Copie::de("fictive-3090-grande").fiche(assujettie(Some(100.0)));
     for mois in ["2025-11", "2026-01", "2026-06"] {
         assert!(!c.dsn(mois).unwrap().contains("S21.G00.44"), "{}", mois);
     }
@@ -262,7 +262,7 @@ fn un_autre_mois_n_a_pas_de_bloc_44() {
 
 #[test]
 fn une_fiche_muette_sur_la_taxe_sur_les_salaires_fait_refuser_decembre() {
-    let c = Copie::de("demo-3090-petite").fiche(|e| {
+    let c = Copie::de("fictive-3090-petite").fiche(|e| {
         e.as_object_mut().unwrap().remove("taxe_sur_les_salaires");
     });
     let e = c.dsn("2025-12").unwrap_err();
@@ -270,7 +270,7 @@ fn une_fiche_muette_sur_la_taxe_sur_les_salaires_fait_refuser_decembre() {
     // Novembre ne la demande pas.
     assert!(c.dsn("2025-11").is_ok());
     // Une valeur qui n'est ni vrai ni faux (une case texte « true ») ne vaut pas reponse.
-    let c = Copie::de("demo-3090-petite").fiche(|e| e["taxe_sur_les_salaires"] = json!({"assujettie": "true"}));
+    let c = Copie::de("fictive-3090-petite").fiche(|e| e["taxe_sur_les_salaires"] = json!({"assujettie": "true"}));
     let e = c.dsn("2025-12").unwrap_err();
     assert!(e.contains("ni vrai ni faux"), "{}", e);
 }
@@ -279,7 +279,7 @@ fn une_fiche_muette_sur_la_taxe_sur_les_salaires_fait_refuser_decembre() {
 fn a_cinquante_salaries_la_peec_porte_l_assiette_de_l_annee() {
     // Soixante salaries depuis cinq ans (CRM 118) : la PEEC est due (CCH L. 313-1, effectif de L. 130-1 CSS), et son
     // montant est l'assiette brute deplafonnee (base 03) que les douze DSN de l'annee ont declaree, contrat par contrat.
-    let c = Copie::de("demo-3090-petite").fiche(assujettie(None)).effectif(60.0).au_dela_de_cinquante();
+    let c = Copie::de("fictive-3090-petite").fiche(assujettie(None)).effectif(60.0).au_dela_de_cinquante();
     let mut bases_03 = Decimal::ZERO;
     for m in 1..=11 {
         let mois = format!("2025-{:02}", m);
@@ -310,7 +310,7 @@ fn a_cinquante_salaries_la_peec_porte_l_assiette_de_l_annee() {
 #[test]
 fn a_deux_cent_cinquante_salaries_la_contribution_supplementaire_se_dit() {
     // L. 6242-1 : due a 250 salaries si moins de 5 % de l'effectif est en alternance, ce que le moteur ne compte pas.
-    let c = Copie::de("demo-3090-petite").fiche(assujettie(None)).effectif(300.0).au_dela_de_cinquante();
+    let c = Copie::de("fictive-3090-petite").fiche(assujettie(None)).effectif(300.0).au_dela_de_cinquante();
     let e = c.dsn("2025-12").unwrap_err();
     assert!(e.contains("contribution_supplementaire_apprentissage") && e.contains("250"), "{}", e);
     let c = c.fiche(|e| e["contribution_supplementaire_apprentissage"] = json!("due"));
@@ -322,7 +322,7 @@ fn a_deux_cent_cinquante_salaries_la_contribution_supplementaire_se_dit() {
 #[test]
 fn une_dsn_de_decembre_sans_salarie_porte_aussi_le_bloc_44() {
     // CoolPaie l'ecrivait dans la DSN « neant » de decembre 2020 : la declaration est due, salaries ou non.
-    let c = Copie::de("demo-3090-petite").fiche(assujettie(Some(100.0)));
+    let c = Copie::de("fictive-3090-petite").fiche(assujettie(Some(100.0)));
     let ctx = c.contexte("2025-12");
     let dsn = generer(&ctx, &[], "2025-12", &[], &[], &Options::default()).unwrap();
     assert!(dsn.contains("S10.G00.00.008,'02'"), "une DSN sans individu");
@@ -335,7 +335,7 @@ fn une_dsn_de_decembre_sans_salarie_porte_aussi_le_bloc_44() {
 fn la_taxe_d_apprentissage_est_ce_que_le_bordereau_paie() {
     // Un etablissement d'Alsace-Moselle paie la taxe d'apprentissage sous le CTP 993 (0,44 %, code du travail
     // L. 6241-1-1, II) : il y est assujetti comme les autres.
-    let c = Copie::de("demo-3090-petite").fiche(assujettie(None)).organismes(|o| {
+    let c = Copie::de("fictive-3090-petite").fiche(assujettie(None)).organismes(|o| {
         for l in o["ctp_urssaf"].as_array_mut().unwrap() {
             if l["code"] == "992" {
                 l["code"] = json!("993");
@@ -367,7 +367,7 @@ fn une_association_non_redevable_en_2025_declare_002_et_son_motif_mnata() {
     // L. 6241-1 dans sa redaction du 16/02/2025, deposee) : son bordereau ne la paie pas, et decembre 2025 declare 002
     // avec le motif 007 « Associations sans but lucratif ».
     let sans_ta = |o: &mut Value| o["ctp_urssaf"].as_array_mut().unwrap().retain(|l| l["code"] != "992" && l["code"] != "993");
-    let c = Copie::de("demo-3090-petite").fiche(motif_ta("007")).organismes(sans_ta);
+    let c = Copie::de("fictive-3090-petite").fiche(motif_ta("007")).organismes(sans_ta);
     let dsn = c.dsn("2025-12").unwrap();
     assert_eq!(codes(&dsn)[0], "002");
     assert_eq!(motif_44(&dsn, "002").as_deref(), Some("007"));
@@ -376,18 +376,18 @@ fn une_association_non_redevable_en_2025_declare_002_et_son_motif_mnata() {
 
     // Un motif hors de la table refuse (le bordereau du mois ne sait pas si la taxe est due ; R12) : des le bulletin, que
     // la meme decision du mois commande depuis le lot D1.
-    let c = Copie::de("demo-3090-petite").fiche(motif_ta("999")).organismes(sans_ta);
+    let c = Copie::de("fictive-3090-petite").fiche(motif_ta("999")).organismes(sans_ta);
     let e = charger(&c.contexte("2025-12"), &c.0.join("paies/2025-12.json")).map(|_| ()).unwrap_err();
     assert!(e.contains("« 999 »") && e.contains("MNATA"), "{}", e);
 
     // Depuis le 21/02/2026, L. 6241-1 rend redevables « les associations [...] a activites non lucratives » : le motif
     // 007 ne vaut plus pour le millesime 2026.
-    let c = Copie::de("demo-3090-petite").fiche(motif_ta("007")).organismes(sans_ta);
+    let c = Copie::de("fictive-3090-petite").fiche(motif_ta("007")).organismes(sans_ta);
     let ctx = c.contexte("2026-12");
     let e = generer(&ctx, &[], "2026-12", &[], &[], &Options::default()).unwrap_err();
     assert!(e.contains("L. 6241-1") && e.contains("21/02/2026") && e.contains("007"), "{}", e);
     // Un autre motif (006, l'enseignement : L. 6241-1, III, 1°) reste admis.
-    let c = Copie::de("demo-3090-petite").fiche(motif_ta("006")).organismes(sans_ta);
+    let c = Copie::de("fictive-3090-petite").fiche(motif_ta("006")).organismes(sans_ta);
     let ctx = c.contexte("2026-12");
     let dsn = generer(&ctx, &[], "2026-12", &[], &[], &Options::default()).unwrap();
     assert_eq!(motif_44(&dsn, "002").as_deref(), Some("006"));
@@ -405,7 +405,7 @@ fn ctp(dsn: &str) -> Vec<String> {
 /// en 2026 l'association la paie, et avril 2026 ne solde pas la taxe de 2025, qu'elle ne devait pas.
 #[test]
 fn le_motif_de_la_fiche_retire_la_taxe_d_apprentissage_du_bordereau() {
-    let c = Copie::de("demo-3090-petite").fiche(motif_ta("007"));
+    let c = Copie::de("fictive-3090-petite").fiche(motif_ta("007"));
     let compose = lire(&c.0, "config/organismes.json");
     assert!(compose["ctp_urssaf"].as_array().unwrap().iter().any(|l| l["code"] == "992"), "le fichier compose porte le 992");
     for mois in ["2025-11", "2025-12"] {
@@ -420,11 +420,11 @@ fn le_motif_de_la_fiche_retire_la_taxe_d_apprentissage_du_bordereau() {
     assert!(ctp(&avril).iter().any(|x| x == "992"), "{:?}", ctp(&avril));
     assert!(!ctp(&avril).iter().any(|x| x == "995") && !avril.contains("S21.G00.82.002,'076'"), "{:?}", ctp(&avril));
     // Sans motif, le meme avril solde 2025 : c'est bien le motif qui l'a retire.
-    let c = Copie::de("demo-3090-petite").fiche(assujettie(None));
+    let c = Copie::de("fictive-3090-petite").fiche(assujettie(None));
     let avril = c.dsn("2026-04").unwrap();
     assert!(ctp(&avril).iter().any(|x| x == "995") && avril.contains("S21.G00.82.002,'076'"), "{:?}", ctp(&avril));
     // Un motif qui vaut en 2026 (006, l'enseignement) retire aussi la taxe de 2026.
-    let c = Copie::de("demo-3090-petite").fiche(motif_ta("006"));
+    let c = Copie::de("fictive-3090-petite").fiche(motif_ta("006"));
     assert!(!ctp(&c.dsn("2026-04").unwrap()).iter().any(|x| x == "992" || x == "995"));
 }
 
@@ -440,11 +440,11 @@ fn la_taxe_non_due_ne_se_calcule_ni_au_bulletin_ni_au_nominatif_ni_au_bordereau(
     let porte_130 = |dsn: &str| lignes(dsn).iter().any(|(k, v)| k == "S21.G00.81.001" && v == "130");
     let porte_992 = |dsn: &str| ctp(dsn).iter().any(|x| x == "992" || x == "993");
     // Sans motif : les trois faces la portent.
-    let c = Copie::de("demo-3090-petite").fiche(assujettie(None));
+    let c = Copie::de("fictive-3090-petite").fiche(assujettie(None));
     let dsn = c.dsn("2025-11").unwrap();
     assert!(ta_au_bulletin(&c, "2025-11") && porte_130(&dsn) && porte_992(&dsn));
     // Un motif qui vaut toute l'annee (006, l'enseignement) : aucune des trois.
-    let c = Copie::de("demo-3090-petite").fiche(motif_ta("006"));
+    let c = Copie::de("fictive-3090-petite").fiche(motif_ta("006"));
     for mois in ["2025-11", "2026-03"] {
         let dsn = c.dsn(mois).unwrap();
         assert!(!ta_au_bulletin(&c, mois), "{} : pas de taxe d'apprentissage au bulletin", mois);
@@ -454,7 +454,7 @@ fn la_taxe_non_due_ne_se_calcule_ni_au_bulletin_ni_au_nominatif_ni_au_bordereau(
         paie::formats::verifier_fichier(&dsn).unwrap();
     }
     // Une association (007) : rien jusqu'a fevrier 2026, les trois faces a partir de mars 2026.
-    let c = Copie::de("demo-3090-petite").fiche(motif_ta("007"));
+    let c = Copie::de("fictive-3090-petite").fiche(motif_ta("007"));
     let fevrier = c.dsn("2026-02").unwrap();
     assert!(!ta_au_bulletin(&c, "2026-02") && !porte_130(&fevrier) && !porte_992(&fevrier), "fevrier 2026 : {:?}", ctp(&fevrier));
     let mars = c.dsn("2026-03").unwrap();
@@ -465,7 +465,7 @@ fn la_taxe_non_due_ne_se_calcule_ni_au_bulletin_ni_au_nominatif_ni_au_bordereau(
 fn l_effectif_de_la_peec_est_celui_de_l_annee_du_millesime() {
     // Soixante salaries de 2020 a 2024, trente en 2025 : la PEEC declaree en decembre 2025 porte sur les salaires de
     // 2025, et c'est l'effectif de 2025 qui la declenche (CCH L. 313-1, L. 130-1 CSS) -- 006.
-    let c = Copie::de("demo-3090-petite").fiche(assujettie(None)).effectif(60.0).effectif_de("2025", 30.0).au_dela_de_cinquante();
+    let c = Copie::de("fictive-3090-petite").fiche(assujettie(None)).effectif(60.0).effectif_de("2025", 30.0).au_dela_de_cinquante();
     assert_eq!(codes(&c.dsn("2025-12").unwrap()), ["001", "004", "006", "007", "010", "014"]);
 }
 
@@ -504,7 +504,7 @@ impl Copie {
     /// Trois cents salaries depuis cinq ans, assujettie a la taxe d'apprentissage : la contribution supplementaire de
     /// 2025 se declare en mars 2026.
     fn trois_cents() -> Copie {
-        Copie::de("demo-3090-petite")
+        Copie::de("fictive-3090-petite")
             .fiche(assujettie(None))
             .fiche(|e| e["contribution_supplementaire_apprentissage"] = json!("due"))
             .effectif(300.0)
@@ -623,7 +623,7 @@ fn sans_les_effectifs_du_crm_118_la_contribution_supplementaire_refuse() {
     let e = c.dsn("2026-03").unwrap_err();
     assert!(e.contains("A05") && e.contains("A07") && e.contains("118") && e.contains("Rien n'est ecrit"), "{}", e);
     // Sous 250 salaries, rien a declarer, rien a lire.
-    let petite = Copie::de("demo-3090-petite").fiche(assujettie(None));
+    let petite = Copie::de("fictive-3090-petite").fiche(assujettie(None));
     let dsn = petite.dsn("2026-03").unwrap();
     assert!(blocs_82(&dsn).iter().all(|b| b.1 != "079" && b.1 != "080") && ctp_23(&dsn, "998").is_none());
 }

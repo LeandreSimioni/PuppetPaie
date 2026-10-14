@@ -14,7 +14,7 @@
 //!
 //! AUCUN CALCUL DE PAIE, et aucun secret lu : la boite courriel se dit par un
 //! booleen (l'adresse posee et le secret present dans l'environnement ou le
-//! coffre, jamais sa valeur), la demonstration par le marqueur de la compagnie.
+//! coffre, jamais sa valeur), la compagnie fictive par son marqueur.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
@@ -304,23 +304,10 @@ pub fn identite(ctx: &Contexte, gabarits: &Path) -> R<Value> {
 }
 
 /// `simulation.active` : les envois de ce contexte sont-ils joues ? Le paquet
-/// demo soude (`EDITION.json`), ou une compagnie de DEMONSTRATION (son
-/// marqueur le dit). Le mode demo, lui, ne joue rien.
+/// soude (`bridage::paquet_soude`), ou une COMPAGNIE FICTIVE (son marqueur le
+/// dit, `compagnies::est_fictive`). Le logiciel simplement bride, lui, ne joue rien.
 pub fn simulation_active(racine: &Path) -> bool {
-    let logiciel = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
-    let edition = std::fs::read_to_string(logiciel.join("EDITION.json")).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok());
-    if edition.as_ref().and_then(|e| e.get("edition")).and_then(Value::as_str) == Some("demo") {
-        return true;
-    }
-    let marqueur = racine.join("COPIE-DE-DEVELOPPEMENT.json");
-    if !marqueur.is_file() {
-        return false;
-    }
-    std::fs::read_to_string(&marqueur)
-        .ok()
-        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
-        .and_then(|i| i.get("copie_de").filter(|v| vrai(v)).map(py_str))
-        .is_some_and(|c| c.starts_with("compagnie de demonstration"))
+    crate::bridage::paquet_soude() || crate::interface::compagnies::est_fictive(racine)
 }
 
 /// `boite_liee` : peut-on envoyer, et les signatures reviennent-elles seules ?
@@ -888,7 +875,7 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
 
     Ok(json!({
         "configuration": configuration,
-        // LA DEMONSTRATION : les envois sont joues, et la page ne demande aucun
+        // UNE COMPAGNIE FICTIVE : les envois sont joues, et la page ne demande aucun
         // mot de passe.
         "simulation": simulation_active(&ctx.racine),
         "historique": historique,

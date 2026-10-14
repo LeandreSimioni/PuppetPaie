@@ -1,13 +1,13 @@
 //! `paie route` : les routes de la fiche, qui n'ecrivent rien (`taux-atmp`, `verifier-fiche`, `changements-declares`) ;
 //! une charge qui ne se lit pas refuse. `normaliser` se teste dans `src/routes_fiches.rs`. Sur la configuration de
-//! `demo-3090-petite`, que chaque test mute.
+//! `fictive-3090-petite`, que chaque test mute.
 
-use crate::outils::{compagnie, demo, dossier_de_test, ecrire, lire, reussi, route};
+use crate::outils::{compagnie, fictive, dossier_de_test, ecrire, lire, reussi, route};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::saisies("demo-3090-petite", &[], &dossier_de_test("routes_fiches", nom).join("compagnie"))
+    compagnie::saisies("fictive-3090-petite", &[], &dossier_de_test("routes_fiches", nom).join("compagnie"))
 }
 
 fn resultat(c: &Path, nom: &str, charge: Value) -> Value {
@@ -59,7 +59,7 @@ fn le_taux_atmp_refuse_une_annee_illisible_ou_un_fichier_qui_n_est_pas_un_objet(
 // ------------------------------------------------------------ verifier-fiche
 
 fn fiche_salarie() -> Value {
-    let t = lire(&demo("demo-3090-petite"), "config/salaries.json");
+    let t = lire(&fictive("fictive-3090-petite"), "config/salaries.json");
     t.as_object().unwrap().iter().find(|(k, _)| !k.starts_with('_')).unwrap().1.clone()
 }
 
@@ -111,7 +111,7 @@ fn verifier_fiche_refuse_une_charge_ou_des_valeurs_qui_ne_se_lisent_pas() {
 // ------------------------------------------------------ changements-declares
 
 fn premiere_cle_salarie() -> String {
-    let t = lire(&demo("demo-3090-petite"), "config/salaries.json");
+    let t = lire(&fictive("fictive-3090-petite"), "config/salaries.json");
     t.as_object().unwrap().keys().find(|k| !k.starts_with('_')).unwrap().clone()
 }
 

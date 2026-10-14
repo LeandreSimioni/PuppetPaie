@@ -1,6 +1,6 @@
 //! La cloture de l'exercice (archive relue octet pour octet, reouverture) et la comptabilite : `export-compta` (le PAS au
 //! 442100 egal a l'etat du PAS, l'equilibre avec et sans PAS, l'acompte au 425), `retenir-logiciel`, `exporter` en
-//! apercu. Sur `demo-3090-petite` entiere, sans les archives de ses exercices.
+//! apercu. Sur `fictive-3090-petite` entiere, sans les archives de ses exercices.
 
 use crate::outils::{compagnie, dossier_de_test, lire, refus, reussi};
 use serde_json::{json, Value};
@@ -9,7 +9,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    let racine = compagnie::entiere("demo-3090-petite", &dossier_de_test("routes_cloture_compta", nom).join("compagnie"));
+    let racine = compagnie::entiere("fictive-3090-petite", &dossier_de_test("routes_cloture_compta", nom).join("compagnie"));
     std::fs::remove_dir_all(racine.join("sorties/exercices")).unwrap();
     racine
 }
@@ -49,12 +49,12 @@ fn entrees_du_zip(octets: &[u8]) -> Vec<(String, Vec<u8>)> {
 #[test]
 fn la_cloture_ecrit_une_archive_fidele_et_se_rouvre() {
     let racine = compagnie("cloture");
-    // La demonstration est deja close sur 2025 : on la rouvre d'abord.
+    // La compagnie fictive est deja close sur 2025 : on la rouvre d'abord.
     let r = route(&racine, "cloture", json!({"annee": "2025", "rouvrir": true}));
     assert_eq!(reussi(&r)["annee"], json!("2025"), "{}", r);
     assert!(lire(&racine, "config/exercices.json").get("2025").is_none());
     assert_eq!(lire(&racine, "config/exercices.json")["_rouverts"].as_array().unwrap().len(), 1);
-    // La demonstration a des DSN reelles au journal ; sans elles : refus, sauf `forcer`.
+    // La compagnie fictive a des DSN reelles au journal ; sans elles : refus, sauf `forcer`.
     std::fs::write(racine.join("journal").join("depots.json"), "[]").unwrap();
     let (_, m) = refus(&route(&racine, "cloture", json!({"annee": "2025", "forcer": false})));
     assert!(m.contains("Pas de DSN réelle acceptée"), "{}", m);
@@ -129,7 +129,7 @@ fn sommes_par_mois(c: &Value) -> Vec<(String, i64, i64, i64, i64, usize)> {
 #[test]
 fn l_export_compta_porte_le_prelevement_a_la_source_et_s_equilibre_avec_et_sans() {
     let racine = compagnie("compta");
-    // AVEC PAS : la demonstration a des taux DGFiP (config/pas.json) ; chaque mois de paie en retient.
+    // AVEC PAS : la compagnie fictive a des taux DGFiP (config/pas.json) ; chaque mois de paie en retient.
     let r = route(&racine, "export-compta", json!({"annee": "2025", "apercu": true}));
     let c = reussi(&r);
     assert!(c["fichier"].is_null(), "un apercu n'ecrit rien : {}", r);
@@ -154,7 +154,7 @@ fn l_export_compta_porte_le_prelevement_a_la_source_et_s_equilibre_avec_et_sans(
         assert_eq!(*lignes_pas, usize::from(*pas != 0), "{} : une ligne de PAS par mois qui en retient, aucune sinon", m);
         mois_avec_pas += usize::from(*pas != 0);
     }
-    assert!(mois_avec_pas > 0, "la demonstration ne retient aucun PAS");
+    assert!(mois_avec_pas > 0, "la compagnie fictive ne retient aucun PAS");
     // Des taux DGFiP a zero, recus apres coup : les mois deposes gardent le PAS que leur DSN a declare (lot D2 : il se
     // lit, il ne se recalcule pas ; CGI art. 1671).
     let chemin = racine.join("config").join("pas.json");

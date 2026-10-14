@@ -1,5 +1,5 @@
 //! Ce que la DSN et les signalements ecrivent, bloc par bloc : les corrections DSN par vague, les rubriques 2027, le rejeu
-//! des mois deposes des demonstrations.
+//! des mois deposes des compagnies fictives.
 //!
 //! Un binaire pour tout le groupe (11/10/2026, séance « tests plus rapides ») : moins d'éditions de liens, moins de
 //! disque, et les tests des différents fichiers se répartissent sur les cœurs. Un fichier seul :
@@ -16,7 +16,7 @@ mod bloc_44;
 mod changements_individu;
 mod composants_versement;
 mod cpf_cdd;
-mod demonstrations;
+mod fictives;
 mod dfs_dsn;
 mod fctu_amorcage;
 mod fin_cddu;

@@ -4657,14 +4657,14 @@ mod tests {
         Contexte::nouveau(&racine, Some(d(&json!("2026-09-27")).unwrap())).unwrap()
     }
 
-    /// Le contexte d'une compagnie de demonstration 1285, pour son bareme.
-    fn demo_1285() -> Contexte {
-        let racine = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/demo/demo-1285-petite");
+    /// Le contexte d'une compagnie fictive 1285, pour son bareme.
+    fn fictive_1285() -> Contexte {
+        let racine = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fictives/fictive-1285-petite");
         Contexte::nouveau(&racine, Some(d(&json!("2026-09-27")).unwrap())).unwrap()
     }
 
     fn bar_1285() -> Value {
-        let mut b = demo_1285().bareme(&d(&json!("2026-09-13")).unwrap()).unwrap();
+        let mut b = fictive_1285().bareme(&d(&json!("2026-09-13")).unwrap()).unwrap();
         b["_entreprise"] = json!({"idcc": "1285", "effectif": 3});
         b
     }
@@ -4714,7 +4714,7 @@ mod tests {
     fn fnas_et_fcap_prennent_les_places_204_et_205() {
         let b = bar_1285();
         assert_eq!(places_par_contrat(&b), 4);
-        let c = contributions_dsn(&demo_1285(), &json!({"idcc": "1285"}), &orgs_fnas(), "2026-09", &b).unwrap();
+        let c = contributions_dsn(&fictive_1285(), &json!({"idcc": "1285"}), &orgs_fnas(), "2026-09", &b).unwrap();
         let vu: Vec<(Value, Value, Value)> =
             c.iter().map(|x| (x["reference"].clone(), x["lignes"].clone(), x["natures"].clone())).collect();
         assert_eq!(
@@ -4728,7 +4728,7 @@ mod tests {
 
     #[test]
     fn avant_juillet_2025_le_fnas_n_est_pas_en_dsn() {
-        let c = contributions_dsn(&demo_1285(), &json!({"idcc": "1285"}), &orgs_fnas(), "2025-06", &bar_1285()).unwrap();
+        let c = contributions_dsn(&fictive_1285(), &json!({"idcc": "1285"}), &orgs_fnas(), "2025-06", &bar_1285()).unwrap();
         let refs: Vec<Value> = c.iter().map(|x| x["reference"].clone()).collect();
         assert_eq!(refs, vec![json!("105")]);
     }
@@ -4738,7 +4738,7 @@ mod tests {
         let mut o = orgs_fnas();
         o["adhesions_prevoyance"] = json!([{"libelle": "INTERBRANCHE", "reference": "102"},
                                            {"libelle": "TSINTERMITTENTS", "reference": "103"}]);
-        let e = contributions_dsn(&demo_1285(), &json!({"idcc": "1285"}), &o, "2026-09", &bar_1285()).unwrap_err();
+        let e = contributions_dsn(&fictive_1285(), &json!({"idcc": "1285"}), &o, "2026-09", &bar_1285()).unwrap_err();
         assert!(e.contains("FNAS") && e.contains("organismes.json"), "{}", e);
     }
 
@@ -4837,7 +4837,7 @@ mod tests {
             chomage: dec("1.51"),
             agirc_arrco: dec("2.28"),
         });
-        let bar = demo_1285().bareme(&jour("2026-09-13")).unwrap();
+        let bar = fictive_1285().bareme(&jour("2026-09-13")).unwrap();
         let lignes = cotisations(&p, &bar).unwrap();
         let parts: Vec<(String, Option<String>, Option<Decimal>, Option<String>)> = lignes
             .iter()
@@ -4922,7 +4922,7 @@ mod tests {
         // § 8.2, prive/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt, lignes 1289-1290 et 1300-1311) :
         // la part securite sociale et, pour un permanent, la part chomage. Avant, le bordereau ne prenait que la premiere,
         // et la relecture d'une DSN deposee refusait de departager les deux lignes.
-        let bar = demo_1285().bareme(&d(&json!("2026-09-13")).unwrap()).unwrap();
+        let bar = fictive_1285().bareme(&d(&json!("2026-09-13")).unwrap()).unwrap();
         let dec = |s: &str| Decimal::from_str_exact(s).unwrap();
         // Un technicien intermittent : la part chomage va a France Travail ; l'Urssaf ne recouvre que sa part (671).
         let tech = paie_avec_reduction("cddu_spectacle", "technicien");
@@ -4999,7 +4999,7 @@ mod tests {
     /// les bases 31 et 43. Rouge avant la vague 1e : deux blocs 03 a 56,00 sous le meme versement.
     #[test]
     fn la_reduction_generale_s_ecrit_sous_l_unique_base_03_du_versement() {
-        let bar = demo_1285().bareme(&d(&json!("2026-09-13")).unwrap()).unwrap();
+        let bar = fictive_1285().bareme(&d(&json!("2026-09-13")).unwrap()).unwrap();
         let mut perm = paie_avec_reduction("cdi", "technicien");
         for (k, v) in [("t1_mensuelle", 56), ("t2_mensuelle", 0), ("apec_mensuelle", 0), ("cet_mensuelle", 0), ("pss_periode", 4005), ("t2_conventionnelle", 0)] {
             perm.bases.insert(k.into(), Decimal::from(v));

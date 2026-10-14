@@ -87,7 +87,7 @@ pub const CHAMPS: [(&str, usize, usize); 14] = [
 /// L'EMPLOYEUR (24/09/2026). Ces zones restaient celles du gabarit -- un
 /// enregistrement REEL de la compagnie du poste --, et toute autre compagnie
 /// aurait declare ses embauches sous le SIRET, la raison sociale, l'adresse et
-/// le telephone de celle-la. Releve par les compagnies de demonstration. Elles
+/// le telephone de celle-la. Releve par les compagnies fictives. Elles
 /// viennent maintenant de la fiche entreprise (`employeur`), positions du
 /// dessin Format 120 v5.3, categories II et III, comptees a partir de 0.
 pub const EMPLOYEUR: [(&str, usize, usize); 10] = [
@@ -252,7 +252,7 @@ const MARQUEUR_COPIE: &str = "COPIE-DE-DEVELOPPEMENT.json";
 /// qui porte son centre de medecine du travail.
 ///
 /// UNE COPIE N'EMPRUNTE RIEN AU POSTE (25/09/2026). Une compagnie qui porte le
-/// marqueur `COPIE-DE-DEVELOPPEMENT.json` -- fictive, de demonstration --
+/// marqueur `COPIE-DE-DEVELOPPEMENT.json` -- une compagnie fictive --
 /// sautait au modele du poste des qu'elle n'avait pas le sien : ses contrats
 /// sortaient avec les clauses de la compagnie reelle, jusqu'a son centre de
 /// medecine du travail. Elle prend desormais le modele livre.

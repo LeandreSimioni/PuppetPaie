@@ -89,19 +89,19 @@ function dessinerVeille(v) {
   const morceaux = [`<span class="veille-etat" title="${echapper(detail)}">${d.hors_ligne
     ? "<b>Hors connexion</b> — sauvegarde et retours au prochain passage"
     : `À jour — relevé ${echapper(heureDuPassage(d.quand))}${v.sauvegarde_en_cours
-        ? " · sauvegarde en cours…" : ""}`}</span>${enDemonstration()
-    ? ` · <button class="lien" data-demo-explique="coulisses">démonstration : ni sauvegarde
-        ni mise à jour — pourquoi ?</button>` : ""}`];
+        ? " · sauvegarde en cours…" : ""}`}</span>${enFictive()
+    ? ` · <button class="lien" data-fictive-explique="coulisses">compagnie fictive : pas de
+        sauvegarde — pourquoi ?</button>` : ""}`];
 
   // 2. LES NOUVELLES : ce qui est arrivé depuis le dernier regard.
   const nouvelles = [];
   if (d.nouveaux) nouvelles.push(`${d.nouveaux} retour${d.nouveaux > 1 ? "s" : ""} nouveau${d.nouveaux > 1 ? "x" : ""}`);
   (d.signatures_recues || []).forEach((x) => nouvelles.push(`contrat signé par ${x.nom}`));
   if (d.maj && !d.maj_exigee) nouvelles.push(d.maj);
-  // L'HORLOGE DE LA DÉMONSTRATION : ce que l'administrateur fictif a fait
+  // L'HORLOGE DE LA COMPAGNIE FICTIVE : ce que l'administrateur fictif a fait
   // pendant l'absence du visiteur, chaque geste à sa date limite.
-  const horloge = enDemonstration() && (d.horloge || []).length
-    ? ` <button class="lien" id="demo-horloge">pendant votre absence, la compagnie a
+  const horloge = enFictive() && (d.horloge || []).length
+    ? ` <button class="lien" id="fictive-horloge">pendant votre absence, la compagnie a
         travaillé (${d.horloge.length}) — voir</button>` : "";
   if (nouvelles.length) morceaux.push(`<b>${nouvelles.map(echapper).join(" · ")}</b>`);
   if (horloge) morceaux.push(horloge);
@@ -139,8 +139,8 @@ function dessinerVeille(v) {
   if (d.taux_pas && d.taux_pas.length) {
     afaire.push(`<span title="${echapper(d.taux_pas.join(" · "))}">${d.taux_pas.length}
       salarié${d.taux_pas.length > 1 ? "s" : ""} sans taux de PAS valide : la grille
-      par défaut s'appliquera</span>${enDemonstration()
-      ? ` <button class="lien" data-demo-explique="pas">pourquoi ?</button>` : ""}`);
+      par défaut s'appliquera</span>${enFictive()
+      ? ` <button class="lien" data-fictive-explique="pas">pourquoi ?</button>` : ""}`);
   }
   [...(d.manquants || []), ...(d.incidents || []), ...(v.erreur ? [v.erreur] : [])]
     .forEach((x) => afaire.push(echapper(x)));
@@ -157,10 +157,10 @@ function dessinerVeille(v) {
   texte.querySelectorAll("[data-aller]").forEach((b) => {
     b.onclick = () => allerAuxMotsDePasse(b.dataset.aller);
   });
-  const bh = texte.querySelector("#demo-horloge");
+  const bh = texte.querySelector("#fictive-horloge");
   if (bh) bh.onclick = () => ouvrirBoite(`
-    <div class="demo-fenetre">
-      <h3>Démonstration — Pendant votre absence</h3>
+    <div class="fictive-fenetre">
+      <h3>Compagnie fictive — Pendant votre absence</h3>
       <p class="intro">L'administrateur fictif a fait ce qui tombait, chacun à sa date
         limite : le 1er du mois, le mois s'écrit ; le jour d'une embauche, sa DPAE part ;
         à l'échéance, la DSN. Tout est joué, rien n'a quitté le poste — et le journal
@@ -168,8 +168,8 @@ function dessinerVeille(v) {
       <ul>${d.horloge.map((x) => `<li>${echapper(x)}</li>`).join("")}</ul>
       <div class="actions"><button class="primaire" onclick="fermerBoite()">Compris</button></div>
     </div>`);
-  texte.querySelectorAll("[data-demo-explique]").forEach((b) => {
-    b.onclick = (ev) => { ev.preventDefault(); fenetreExplicationDemo(b.dataset.demoExplique); };
+  texte.querySelectorAll("[data-fictive-explique]").forEach((b) => {
+    b.onclick = (ev) => { ev.preventDefault(); fenetreExplicationFictive(b.dataset.fictiveExplique); };
   });
 }
 

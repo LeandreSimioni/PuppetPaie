@@ -624,6 +624,38 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
     finir_fiche(cle, &chemin, contenu, donnees, anomalies, derives)
 }
 
+/// L'IMPORT COMPLETE UNE FICHE QUI EXISTE (lot I2, `importation_completer`) : chaque champ de `champs` va dans la fiche
+/// telle qu'elle est sur le disque, s'il y est vide ou « A COMPLETER » -- et seulement alors : un champ rempli depuis
+/// l'apercu reste ce qu'il est. Rien ne se date (une case vide n'avait rien declare), rien d'autre ne bouge ; l'ancien
+/// fichier est sauvegarde comme pour une fiche de l'ecran. Rend les champs ecrits.
+pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, champs: &Map<String, Value>) -> R<Map<String, Value>> {
+    let Some(fichier) = fichier_de(nom) else {
+        return Err(refus(format!("Fiche inconnue : {}", crate::fichiers::repr(nom))));
+    };
+    let chemin = ctx.racine.join("config").join(fichier);
+    let mut contenu = objet_du_fichier(&chemin)?;
+    let cible: &mut Map<String, Value> = if nom == "entreprise" {
+        &mut contenu
+    } else {
+        match cle.and_then(|k| contenu.get_mut(k)) {
+            Some(Value::Object(m)) => m,
+            _ => return Err(refus(format!("La fiche {} {} n'existe plus : rien n'est complete.", nom, cle.unwrap_or("?")))),
+        }
+    };
+    let mut ecrits = Map::new();
+    for (k, v) in champs {
+        if crate::importation_completer::vide(cible.get(k)) {
+            cible.insert(k.clone(), v.clone());
+            ecrits.insert(k.clone(), v.clone());
+        }
+    }
+    if !ecrits.is_empty() {
+        sauver_avant(&chemin)?;
+        ecrire(&chemin, Value::Object(contenu))?;
+    }
+    Ok(ecrits)
+}
+
 /// `fiche_ecrite["historique"] = hist`, ou la cle retiree quand il n'y a rien.
 fn poser_historique(fiche: &mut Map<String, Value>, hist: Vec<Value>) {
     if hist.is_empty() {

@@ -1,8 +1,8 @@
 //! Les compagnies du poste, telles que l'accueil les propose (`moteur/compagnies.py`, lot J3b).
 //!
-//! A cote du code : `prive/` (la vraie), `compagnies/*` (les autres vraies), `demo/*` (les fictives). La copie de
-//! developpement (`prive-dev/`) n'est jamais proposee. Le mode « demo » (le geste secret de l'accueil) ne montre que
-//! les fictives.
+//! A cote du code : `prive/` (la vraie), `compagnies/*` (les autres vraies), `fictives/*` (les compagnies fictives, livrees
+//! avec le logiciel). La copie de developpement (`prive-dev/`) n'est jamais proposee. Bride (`bridage.rs`), l'accueil ne
+//! montre que les fictives.
 
 use std::path::{Path, PathBuf};
 
@@ -11,7 +11,6 @@ use serde_json::{json, Value};
 use crate::fichiers::dossier_du_code;
 
 const MARQUEUR: &str = "COPIE-DE-DEVELOPPEMENT.json";
-const FICHIER_MODE_EDITION: &str = ".edition.json";
 const COULEUR_DEFAUT: &str = "#B22222";
 const DOSSIER_ORIGINE: &str = ".origine";
 /// Ce qui appartient au poste et survit a une remise a zero.
@@ -29,7 +28,7 @@ pub fn logiciel() -> PathBuf {
     code.parent().map(Path::to_path_buf).unwrap_or_default()
 }
 
-/// Ce qui est a cote du logiciel : `prive/`, `demo/`, `compagnies/`.
+/// Ce qui est a cote du logiciel : `prive/`, `fictives/`, `compagnies/`, `maj/`.
 pub fn base() -> PathBuf {
     logiciel().parent().map(Path::to_path_buf).unwrap_or_default()
 }
@@ -56,33 +55,47 @@ pub fn est_copie(racine: &Path) -> bool {
     racine.join(MARQUEUR).is_file()
 }
 
-pub fn est_demonstration(racine: &Path) -> bool {
-    crate::editeur::est_demonstration(racine)
+/// Le dossier des COMPAGNIES FICTIVES, a cote du logiciel (lot U1 ; Leandre, 14/10/2026 : « On pourrait renommer les
+/// compagnies demo en fictives »). Livrees avec le logiciel, rien n'en part : leurs envois sont joues.
+pub const DOSSIER_FICTIVES: &str = "fictives";
+/// Le nom de ce dossier avant le lot U1. Une installation deja posee le garde (la mise a jour ne porte que `logiciel/`) :
+/// `ranger_les_fictives` le renomme une fois, au lancement.
+const ANCIEN_DOSSIER_FICTIVES: &str = "demo";
+/// Le marqueur d'une compagnie fictive : `COPIE-DE-DEVELOPPEMENT.json`, dont `copie_de` commence par ceci. Celles d'avant le
+/// lot U1 disent `compagnie de demonstration …` : elles se lisent encore.
+pub const MARQUE_FICTIVE: &str = "compagnie fictive";
+const ANCIENNE_MARQUE_FICTIVE: &str = "compagnie de demonstration";
+
+/// Une COMPAGNIE FICTIVE : son marqueur le dit (ses envois sont joues, rien n'en part).
+pub fn est_fictive(racine: &Path) -> bool {
+    lire(&racine.join(MARQUEUR))
+        .and_then(|i| i.get("copie_de").filter(|v| crate::fichiers::vrai(v)).map(crate::etats::py_str))
+        .is_some_and(|c| c.starts_with(MARQUE_FICTIVE) || c.starts_with(ANCIENNE_MARQUE_FICTIVE))
 }
 
-/// demo ou complete : le paquet soude reste demo ; sinon ce que le poste a retenu, sinon le defaut du paquet.
-pub fn est_demo() -> bool {
-    if crate::editeur::paquet_soude() {
-        return true;
+/// AU LANCEMENT, une fois : le dossier `demo/` d'une installation posee avant le lot U1 devient `fictives/`, et chaque
+/// `demo-<nom>` (et sa photo d'origine) `fictive-<nom>`. Rien ne bouge si `fictives/` existe deja (une reinstallation l'a
+/// pose : l'ancien reste ou il est). Ce qui ne se renomme pas (un fichier ouvert ailleurs) se retente au lancement
+/// suivant ; rien n'est perdu. Rend ce qui s'est passe, ou `None` s'il n'y avait rien a faire.
+pub fn ranger_les_fictives(inst: &Path) -> Option<String> {
+    let (ancien, neuf) = (inst.join(ANCIEN_DOSSIER_FICTIVES), inst.join(DOSSIER_FICTIVES));
+    if !ancien.is_dir() || neuf.exists() {
+        return None;
     }
-    if let Some(e) = lire(&base().join(FICHIER_MODE_EDITION)).and_then(|d| d.get("edition").and_then(Value::as_str).map(String::from)) {
-        if e == "demo" || e == "complete" {
-            return e == "demo";
+    let renommer_dedans = |d: &Path| {
+        for e in std::fs::read_dir(d).into_iter().flatten().flatten() {
+            let nom = e.file_name().to_string_lossy().into_owned();
+            if let Some(reste) = nom.strip_prefix("demo-") {
+                let _ = std::fs::rename(e.path(), d.join(format!("fictive-{}", reste)));
+            }
         }
-    }
-    lire(&logiciel().join("EDITION.json")).and_then(|d| d.get("defaut").and_then(Value::as_str).map(|s| s == "demo")).unwrap_or(false)
-}
-
-/// Le geste secret de l'accueil : demo <-> complete, retenu sur le poste.
-pub fn basculer_mode() -> Result<(), String> {
-    if crate::editeur::paquet_soude() {
-        return Ok(());
-    }
-    let nouveau = if est_demo() { "complete" } else { "demo" };
-    ecrire(
-        &base().join(FICHIER_MODE_EDITION),
-        &json!({"edition": nouveau, "_quoi": "Ce que montre l'accueil de PuppetPaie sur ce poste : demo (les compagnies fictives) ou complete. Change par le geste de l'accueil."}),
-    )
+    };
+    renommer_dedans(&ancien);
+    renommer_dedans(&ancien.join(DOSSIER_ORIGINE));
+    Some(match std::fs::rename(&ancien, &neuf) {
+        Ok(()) => format!("Compagnies fictives rangees dans {}.", neuf.display()),
+        Err(e) => format!("Compagnies fictives non rangees ({} -> {}) : {}", ancien.display(), neuf.display(), e),
+    })
 }
 
 fn fiche(racine: &Path) -> Value {
@@ -167,7 +180,10 @@ pub struct Compagnie {
 fn entree(id: String, racine: &Path, reelle: bool) -> Compagnie {
     let mut n = nom(racine);
     if !reelle {
-        n = n.replace(" (démonstration)", "").replace(" (demonstration)", "");
+        // Le nom d'une fictive porte parfois sa nature, entre parentheses : la tuile la dit deja.
+        for suffixe in [" (fictive)", " (démonstration)", " (demonstration)"] {
+            n = n.replace(suffixe, "");
+        }
     }
     Compagnie { id, nom: n, lieu: lieu(racine), racine: racine.to_path_buf(), reelle, couleur: couleur(racine) }
 }
@@ -188,7 +204,7 @@ fn nom_dossier(p: &Path) -> String {
 pub fn liste() -> Vec<Compagnie> {
     let b = base();
     let mut out = Vec::new();
-    if !est_demo() {
+    if !crate::bridage::est_bride() {
         let reel = dossier_reel();
         if reel.join("config").is_dir() {
             out.push(entree("reelle".into(), &reel, true));
@@ -197,8 +213,8 @@ pub fn liste() -> Vec<Compagnie> {
             out.push(entree(format!("cie:{}", nom_dossier(&d)), &d, true));
         }
     }
-    for d in sous_dossiers(&b.join("demo")) {
-        out.push(entree(format!("demo:{}", nom_dossier(&d)), &d, false));
+    for d in sous_dossiers(&b.join(DOSSIER_FICTIVES)) {
+        out.push(entree(format!("fictive:{}", nom_dossier(&d)), &d, false));
     }
     out
 }
@@ -262,8 +278,8 @@ fn nom_de_dossier(nom: &str) -> String {
 
 /// « Ajouter une compagnie » : le dossier et les trois fiches sans lesquelles le contexte ne s'ouvre pas.
 pub fn ajouter(nom: &str) -> Result<Compagnie, String> {
-    if est_demo() {
-        return Err("La version demo n'ajoute pas de compagnie.".into());
+    if crate::bridage::est_bride() {
+        return Err("Le logiciel est bridé : il n'ajoute pas de compagnie.".into());
     }
     let nom = nom.split_whitespace().collect::<Vec<_>>().join(" ");
     if nom.chars().count() < 2 {
@@ -309,7 +325,7 @@ fn copier_arbre(de: &Path, vers: &Path, rel: &Path, sauf: &[&str]) -> std::io::R
 
 /// La photo d'origine d'une fictive, prise avant le premier geste (un dossier `.origine/<nom>/`).
 pub fn figer_origine(racine: &Path) -> Result<(), String> {
-    if !est_demonstration(racine) {
+    if !est_fictive(racine) {
         return Ok(());
     }
     let o = origine(racine);
@@ -326,8 +342,8 @@ pub fn figer_origine(racine: &Path) -> Result<(), String> {
 pub fn remettre_a_zero(id: &str) -> Result<(String, bool), String> {
     let c = liste()
         .into_iter()
-        .find(|c| c.id == id && !c.reelle && est_demonstration(&c.racine))
-        .ok_or("Seule une compagnie de démonstration se remet à zéro.")?;
+        .find(|c| c.id == id && !c.reelle && est_fictive(&c.racine))
+        .ok_or("Seule une compagnie fictive se remet à zéro.")?;
     let o = origine(&c.racine);
     if !o.is_dir() {
         return Ok((c.nom, true));
@@ -357,11 +373,57 @@ pub fn remettre_a_zero(id: &str) -> Result<(String, bool), String> {
 
 /// L'etiquette du bandeau d'une compagnie qui n'est pas reelle (deja en HTML).
 pub fn texte_copie(racine: &Path) -> String {
-    if est_demonstration(racine) {
-        return "d&eacute;monstration &mdash; les envois sont simul&eacute;s".into();
+    if est_fictive(racine) {
+        return "compagnie fictive &mdash; les envois sont simul&eacute;s".into();
     }
-    if racine.parent().and_then(Path::file_name).is_some_and(|n| n == "demo") {
+    if racine.parent().and_then(Path::file_name).is_some_and(|n| n == DOSSIER_FICTIVES) {
         return "compagnie fictive &mdash; rien ne part".into();
     }
     "copie de test &mdash; rien ne part en r&eacute;el".into()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dossier(nom: &str) -> PathBuf {
+        let d = std::env::temp_dir().join(format!("puppetpaie-compagnies-{}-{}", nom, std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    /// Une installation posee avant le lot U1 : `demo/demo-<nom>` (et sa photo d'origine) devient `fictives/fictive-<nom>`,
+    /// une fois ; ensuite il n'y a plus rien a faire.
+    #[test]
+    fn l_ancien_dossier_des_fictives_se_range_une_fois() {
+        let inst = dossier("ranger");
+        std::fs::create_dir_all(inst.join("demo/demo-3090-petite/config")).unwrap();
+        std::fs::create_dir_all(inst.join("demo/.origine/demo-3090-petite/config")).unwrap();
+        std::fs::write(inst.join("demo/demo-3090-petite/config/entreprise.json"), "{}").unwrap();
+        assert!(ranger_les_fictives(&inst).is_some_and(|t| t.starts_with("Compagnies fictives rangees")));
+        assert!(!inst.join("demo").exists());
+        assert!(inst.join("fictives/fictive-3090-petite/config/entreprise.json").is_file());
+        assert!(inst.join("fictives/.origine/fictive-3090-petite/config").is_dir(), "la photo d'origine suit");
+        assert_eq!(ranger_les_fictives(&inst), None, "une seule fois");
+        // `fictives/` deja la (une reinstallation) : l'ancien reste ou il est.
+        std::fs::create_dir_all(inst.join("demo/demo-x")).unwrap();
+        assert_eq!(ranger_les_fictives(&inst), None);
+        assert!(inst.join("demo/demo-x").is_dir());
+        let _ = std::fs::remove_dir_all(&inst);
+    }
+
+    /// Le marqueur d'une fictive : le neuf, et celui d'avant le lot U1 ; une copie de developpement n'en est pas une.
+    #[test]
+    fn une_fictive_se_lit_a_son_marqueur_neuf_ou_ancien() {
+        let r = dossier("marqueur");
+        let poser = |t: &str| std::fs::write(r.join(MARQUEUR), format!("{{\"copie_de\": \"{}\"}}", t)).unwrap();
+        poser("compagnie fictive fictive-3090-petite");
+        assert!(est_fictive(&r) && est_copie(&r));
+        poser("compagnie de demonstration demo-3090-petite");
+        assert!(est_fictive(&r), "le marqueur d'avant le lot U1");
+        poser("prive");
+        assert!(!est_fictive(&r) && est_copie(&r));
+        let _ = std::fs::remove_dir_all(&r);
+    }
 }

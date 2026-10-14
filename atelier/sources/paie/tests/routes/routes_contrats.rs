@@ -1,5 +1,5 @@
 //! `paie route` : `contrats-en-cours`, `contrats-passes`, `emploi`, `rubriques-actives` et `metiers-catalogue`. Sur la
-//! configuration de `demo-3090-petite` et les mois que chaque test ecrit ; le code livre est copie sans ses baremes :
+//! configuration de `fictive-3090-petite` et les mois que chaque test ecrit ; le code livre est copie sans ses baremes :
 //! aucune de ces routes ne calcule de paie.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, reussi, route};
@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
-    let racine = compagnie::saisies("demo-3090-petite", &[], &dossier_de_test("routes_contrats", nom).join("compagnie"));
+    let racine = compagnie::saisies("fictive-3090-petite", &[], &dossier_de_test("routes_contrats", nom).join("compagnie"));
     compagnie::avec_le_code(&racine, true);
     racine
 }

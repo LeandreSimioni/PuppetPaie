@@ -19,11 +19,10 @@ fn poste(racine: &Path, nom: &str) -> Coffre {
     Coffre { racine: racine.to_path_buf(), dossier_cle: chemin_unique(nom), maintenant: "2026-10-14T10:05".into(), variables: BTreeMap::new() }
 }
 
-/// La compagnie de l'editeur sur le poste A : `config/maj.json` le dit editeur ; le coffre a le mot de passe du logiciel.
+/// La compagnie de l'editeur sur le poste A : le coffre a le mot de passe du logiciel.
 fn editeur(nom: &str) -> Coffre {
     let racine = chemin_unique(nom).join("compagnie");
     std::fs::create_dir_all(racine.join("config")).unwrap();
-    std::fs::write(racine.join("config/maj.json"), r#"{"editeur": true}"#).unwrap();
     let a = poste(&racine, "poste-a");
     a.poser_ouverture(LOGICIEL, None).unwrap();
     a
@@ -105,7 +104,6 @@ fn une_cle_scellee_a_l_ancienne_s_ouvre_sur_son_poste_et_s_y_rescelle_par_le_cof
 fn sans_mot_de_passe_du_logiciel_la_cle_ne_se_fabrique_pas_elle_serait_perdue_avec_le_poste() {
     let racine = chemin_unique("cle-sans-logiciel").join("compagnie");
     std::fs::create_dir_all(racine.join("config")).unwrap();
-    std::fs::write(racine.join("config/maj.json"), r#"{"editeur": true}"#).unwrap();
     let a = poste(&racine, "poste-a");
     // Un coffre qui ne porte qu'un mot de passe d'organisme : seule la cle du poste l'ouvre.
     a.poser("net-entreprises", "unvraimotdepasse", None).unwrap();
@@ -134,7 +132,6 @@ fn paie_maj_cle_sur_une_cle_a_l_ancienne_la_rescelle_sans_changer_la_paire_ou_di
     // Sans mot de passe du logiciel : la cle s'ouvre, reste comme elle est, et la reponse dit pourquoi et quoi faire.
     let racine = chemin_unique("cle-ancienne-cle").join("compagnie");
     std::fs::create_dir_all(racine.join("config")).unwrap();
-    std::fs::write(racine.join("config/maj.json"), r#"{"editeur": true}"#).unwrap();
     let a = poste(&racine, "poste-a");
     a.poser("net-entreprises", "unvraimotdepasse", None).unwrap();
     let graine = [9u8; 32];

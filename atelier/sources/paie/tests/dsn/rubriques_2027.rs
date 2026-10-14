@@ -13,7 +13,7 @@
 //! - `S21.G00.65` : « absence a temps plein du salarie sans maintien de sa remuneration normale » (p. 285).
 //!
 //! Chaque cas se fait aussi en decembre 2026 (P26V01) : rien de tout cela n'y change. Sur la copie figee des
-//! demonstrations (`tests/donnees/demo/`, compagnies inventees), lue sans y rien ecrire : la compagnie retouchee et les
+//! compagnies fictives (`tests/donnees/fictives/`, compagnies inventees), lue sans y rien ecrire : la compagnie retouchee et les
 //! saisies s'ecrivent dans le dossier temporaire des tests.
 
 use paie::calcul::Paie;
@@ -26,11 +26,11 @@ use paie::num::{Decimal, Resultat};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
-/// Une copie de `demo-3090-grande` dont la surcouche de bareme couvre 2027 sur le socle 2026 (comme
+/// Une copie de `fictive-3090-grande` dont la surcouche de bareme couvre 2027 sur le socle 2026 (comme
 /// `norme_par_fichier.rs`), les permanents au niveau 3 de la sante (le minimum 2027 monte), et la fiche entreprise
 /// retouchee par `entreprise`.
 fn copie(test: &str, entreprise: Value) -> PathBuf {
-    let racine = compagnie::ses_dsn("demo-3090-grande", &[], &outils::dossier_de_test("rubriques_2027", test));
+    let racine = compagnie::ses_dsn("fictive-3090-grande", &[], &outils::dossier_de_test("rubriques_2027", test));
     let mut b = lire(&racine, "config/baremes/2026.json");
     b["annee"] = json!(2027);
     b["socle"] = json!(2026);
@@ -62,7 +62,7 @@ fn saisie(ctx: &Contexte, s: Value) -> Resultat<Vec<Paie>> {
 
 /// Nicolet (CDI, technicien, non cadre) le mois `mois`, a la quotite `heures`, payee `salaire`, avec `autres` lignes.
 /// Un contrat qui commence le 1er du mois (numero `NT.<mois>`) : son premier mois n'a pas de bloc 41 a declarer (le
-/// contrat NI.24.01 de la demonstration a ete declare a 151,67 h en aout 2026).
+/// contrat NI.24.01 de la compagnie fictive a ete declare a 151,67 h en aout 2026).
 fn nicolet(mois: &str, heures: f64, salaire: f64, autres: Vec<Value>) -> Value {
     let mut lignes = vec![json!({"rubrique": "mois", "quantite": 1, "taux": salaire, "heures": heures})];
     lignes.extend(autres);

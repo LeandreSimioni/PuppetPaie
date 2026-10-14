@@ -1,6 +1,6 @@
 //! `paie route` : les routes de l'ouverture, `rappels` (sans aucun calcul : les baremes se retirent pour le prouver) et
 //! `apercu` (relu quand la saisie est enregistree, calcule en memoire sinon, rien d'ecrit, numeros reserves sans les
-//! ecrire). Sur la configuration de `demo-3090-petite` sans compteurs, et les mois de chaque test.
+//! ecrire). Sur la configuration de `fictive-3090-petite` sans compteurs, et les mois de chaque test.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, reussi, route};
 use paie::date::Jour;
@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str, mois: &[&str]) -> PathBuf {
-    let racine = compagnie::saisies("demo-3090-petite", mois, &dossier_de_test("routes_ouverture", nom).join("compagnie"));
+    let racine = compagnie::saisies("fictive-3090-petite", mois, &dossier_de_test("routes_ouverture", nom).join("compagnie"));
     std::fs::remove_file(racine.join("config/compteurs.json")).unwrap();
     racine
 }

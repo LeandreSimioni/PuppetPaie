@@ -27,7 +27,7 @@ Claude sert à parler à ce moteur en français, pas à calculer la paie.
 
 Ce rapport est celui du calcul Python, retiré le 02/10/2026 : le moteur Rust
 (`atelier/sources/paie/`), qui calcule depuis, en reproduisait les sorties à l'octet sur tous
-les mois des démonstrations et de la compagnie (`docs/PORTAGE-RUST.md` §14).
+les mois des compagnies fictives et de la compagnie (`docs/PORTAGE-RUST.md` §14).
 
 ## L'arrivée d'une compagnie
 
@@ -443,8 +443,10 @@ changé.
 Drive : une sauvegarde qui répercute les suppressions n'est pas une sauvegarde,
 c'est un miroir, et un miroir recopie fidèlement les accidents.
 
-Ne montent jamais : `coffre.bin` et `google-jeton.bin` (des secrets, chiffrés
-pour cette machine — ils n'aideraient personne ailleurs),
+Le coffre (`coffre.bin`) monte (décidé par Léandre, 13 et 14/10/2026) : il est
+scellé par le mot de passe du logiciel, qui l'ouvre sur un poste neuf après
+`paie restaurer` ; sans ce mot de passe, il ne s'ouvre nulle part ailleurs.
+Ne montent jamais : `google-jeton.bin` (le compte se relie de nouveau),
 `.compteurs.verrou`, `.sauvegarde.json`, `.ouverture.json` (de l'état machine,
 qui ment ailleurs), et le rebut (`*.tmp`).
 
@@ -921,8 +923,8 @@ même chose pour un programme.
 C'est un **outil de l'éditeur**, lancé avant chaque publication (`atelier/CLAUDE.md`,
 « Publier une version ») : la commande est dans le `paie` livré, comme
 `paie maj --publier`, et refusée de la même façon ailleurs que sur son poste
-(`config/maj.json`, `"editeur": true` ; jamais depuis une copie). Elle ne
-figure pas dans l'aide. Une compagnie ne fait que recevoir la mise à jour
+(le réglage de l'installation, `"editeur": true` ; jamais depuis une copie). Elle
+ne figure pas dans l'aide. Une installation ne fait que recevoir la mise à jour
 signée ; la publication ne vérifie pas d'elle-même que les sources l'ont été.
 
 Légifrance refuse les robots, mais la DILA publie chaque soir en open data
@@ -1496,14 +1498,18 @@ Le logiciel porte un numéro de version — une date, dans le fichier
 `VERSION` — que `paie version` affiche, comme la fenêtre de
 lancement et le bandeau de l'interface.
 
-Chez une compagnie, l'ouverture **cherche une nouvelle version** au dépôt
-(`config/maj.json`, clé `depot` : un dossier ou une adresse web ; sinon
-l'adresse par défaut du code). Si elle existe, elle est téléchargée dans le
-fil de fond (le code compressé fait moins d'un mégaoctet), vérifiée
-(condensat, puis **signature de l'éditeur** — Ed25519, la clé publique est
-dans `paie/src/maj.rs`, `CLE_PUBLIQUE` : un dépôt compromis ne peut pas glisser
-une version qui n'est pas la nôtre), déballée dans `prive/maj/`, et
-**contrôlée** : son programme doit lire la configuration de la compagnie. Alors
+**Une installation, un logiciel, une mise à jour** (lot U1, 14/10/2026) : ce
+n'est pas une compagnie qui se met à jour, c'est le logiciel. Au lancement, il
+**cherche une nouvelle version** pour lui-même, sans qu'aucune compagnie soit
+ouverte, au dépôt que dit le réglage de l'installation (`maj/reglage.json`, à
+côté de `logiciel/`, clé `depot` : un dossier ou une adresse web ; en repli,
+`prive/config/maj.json` ; sinon l'adresse par défaut du code). Si elle existe,
+elle est téléchargée dans le fil de fond, vérifiée (condensat, puis **signature
+de l'éditeur** — Ed25519, la clé publique est dans `paie/src/maj.rs`,
+`CLE_PUBLIQUE` : un dépôt compromis ne peut pas glisser une version qui n'est
+pas la nôtre), déballée dans `maj/`, à côté de `logiciel/`, et **contrôlée** :
+son programme doit lire la configuration de chaque compagnie de l'installation.
+Ce qui s'est passé s'écrit dans `maj/journal.log`. Alors
 seulement le bandeau dit *« version 2026.09.16 — la 2026.10.02 est prête :
 redémarrez PuppetPaie quand vous voulez »*. Rien d'autre ne change : le
 logiciel en cours continue.
@@ -1526,8 +1532,9 @@ Deux garde-fous de plus depuis le 17/09/2026 :
 
 - **Une version qui change un calcul attend la DSN.** Entre la saisie d'un
   mois et son dépôt, les bulletins sont produits, parfois envoyés ; changer
-  le calcul ferait une DSN qui ne dit plus ce que dit le bulletin. La version
-  reste prête, le bandeau dit *« attend la DSN de 2026-11 »*, et elle
+  le calcul ferait une DSN qui ne dit plus ce que dit le bulletin. Tant qu'un
+  mois saisi d'une compagnie réelle de l'installation attend sa DSN (une fictive
+  ne retient rien : elle ne dépose jamais), la version reste prête, le bandeau dit *« attend la DSN de 2026-11 »*, et elle
   s'applique après le dépôt. Pour passer outre sciemment (la correction est
   justement celle qu'il faut avant de déposer) : le bouton du bandeau, ou
   `paie maj --appliquer --malgre-calcul`.
@@ -1538,9 +1545,10 @@ Deux garde-fous de plus depuis le 17/09/2026 :
   avant de déclarer »* —, **aucun dépôt réel ne part** tant qu'elle n'est
   pas appliquée, et elle passe outre l'attente du calcul.
 
-Chez l'éditeur (`config/maj.json`, `"editeur": true`), pas de mise à jour
-reçue — c'est lui qui les fabrique, après relecture des sources (voir
-plus haut) :
+Chez l'éditeur (`"editeur": true` dans le réglage de l'installation, ou en repli
+`prive/config/maj.json`), on **publie** en plus, après relecture des sources (voir
+plus haut) ; son installation reçoit comme les autres une version plus récente
+que la sienne :
 
 ```bash
 paie maj --cle                      # une fois : la clé qui signe
@@ -1574,7 +1582,7 @@ son dernier bilan (21/09/2026), qui n'est plus régénéré.
 
 Les tests du moteur Rust montent leurs propres compagnies fictives
 (`sources/paie/tests/donnees/racines/`, et celles que les tests écrivent) et
-lisent la copie figée des démonstrations (`sources/paie/tests/donnees/demo/`).
+lisent la copie figée des compagnies fictives (`sources/paie/tests/donnees/fictives/`).
 Les identités y sont inventées et **leurs clés se vérifient** : clé de NIR
 calculée, clé de Luhn du SIRET, IBAN de forme juste. Un test ne doit pas
 pouvoir passer sur un numéro impossible.
@@ -1619,7 +1627,8 @@ logiciel/                 exactement ce qu'une compagnie reçoit, et ce que publ
                           la mise à jour : puppetpaie.exe, WebView2Loader.dll,
                           VERSION (une date), donnees/ (barèmes, bases, modèles,
                           sources.json), interface/ (la page)
-demo/                     les compagnies de démonstration, livrées aussi
+fictives/                 les compagnies fictives, livrées aussi
+maj/                      la mise à jour de l'installation (jamais dans Git)
 prive/                    les données de la compagnie du poste
 atelier/                  ← ce dossier : tout le reste
   sources/paie/           le moteur (programme `paie`) : calcul, bulletin,

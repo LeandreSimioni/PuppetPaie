@@ -1,4 +1,4 @@
 {
-  "defaut": "demo",
-  "_quoi": "Pose par l'installeur (atelier/installeur, lot I1) : apres l'installation, l'accueil montre les compagnies de demonstration. Le geste de l'accueil peut passer en complete ; ce choix est retenu a cote de logiciel/ (.edition.json) et l'emporte sur ce defaut. Le paquet n'est pas soude : pas de cle edition ici (paie/src/interface/compagnies.rs, est_demo ; paie/src/editeur.rs, paquet_soude)."
+  "defaut": "bride",
+  "_quoi": "Pose par l'installeur (atelier/installeur, lot I1 ; lot U1) : apres l'installation, le logiciel est BRIDE -- l'accueil ne propose que les compagnies fictives. Le geste de l'accueil le debloque ; ce choix est retenu a cote de logiciel/ (.edition.json) et l'emporte sur ce defaut. Le paquet n'est pas soude : pas de cle edition ici (paie/src/bridage.rs). La mise a jour ne touche jamais ce fichier."
 }

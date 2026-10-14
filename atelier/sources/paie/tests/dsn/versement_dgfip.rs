@@ -7,9 +7,9 @@
 //! dernier jour du mois principal declare (p. 158-159), 20.010 = 05 ou 06 (CCH-14, p. 161), 20.011 non concerne
 //! (p. 161), 20.012 interdite en prelevement SEPA (CCH-13, p. 162).
 //!
-//! Sur la copie figee des demonstrations (`tests/donnees/demo/`, compagnie inventee).
+//! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`, compagnie inventee).
 
-use crate::outils::{self, compagnie, dec, demo, paires as lignes};
+use crate::outils::{self, compagnie, dec, fictive, paires as lignes};
 use paie::contexte::Contexte;
 use paie::date::Jour;
 use paie::dsn::{generer, Options};
@@ -20,7 +20,7 @@ use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
 fn contexte() -> Contexte {
-    Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap()
+    Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap()
 }
 
 /// Les blocs 20 de la DGFiP : chacun, ses rubriques jusqu'au bloc suivant (20.001 suivant ou autre bloc que 20).
@@ -66,10 +66,10 @@ fn pas_nul(paies: &[paie::calcul::Paie]) -> Options {
 #[test]
 fn un_mois_avec_du_pas_retenu_le_reverse_a_la_dgfip() {
     let ctx = contexte();
-    let s = charger(&ctx, &demo("demo-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     let retenu = pas_du_nominatif(&dsn);
-    assert!(retenu > Decimal::ZERO, "la demonstration retient du PAS en juillet 2026");
+    assert!(retenu > Decimal::ZERO, "la compagnie fictive retient du PAS en juillet 2026");
     let blocs = blocs_dgfip(&dsn);
     assert_eq!(blocs.len(), 1, "un versement DGFiP, un seul");
     let b = &blocs[0];
@@ -93,7 +93,7 @@ fn un_mois_avec_du_pas_retenu_le_reverse_a_la_dgfip() {
 #[test]
 fn un_mois_a_pas_nul_n_ecrit_pas_de_versement_dgfip() {
     let ctx = contexte();
-    let s = charger(&ctx, &demo("demo-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &pas_nul(&s.paies)).unwrap();
     assert_eq!(pas_du_nominatif(&dsn), Decimal::ZERO);
     assert!(blocs_dgfip(&dsn).is_empty(), "rien a reverser : aucun bloc DGFiP sur une DSN normale");
@@ -102,7 +102,7 @@ fn un_mois_a_pas_nul_n_ecrit_pas_de_versement_dgfip() {
 #[test]
 fn un_annule_et_remplace_sans_pas_ecrit_un_versement_a_zero_si_la_declaration_remplacee_en_portait_un() {
     let ctx = contexte();
-    let s = charger(&ctx, &demo("demo-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
     let ar = |versait: Option<bool>| {
         let mut o = pas_nul(&s.paies);
         o.type_declaration = "03".into();
@@ -135,7 +135,7 @@ fn une_dsn_sans_individu_ne_verse_rien_a_la_dgfip_sauf_a_remplacer_un_versement(
 #[test]
 fn sans_coordonnees_bancaires_la_dsn_refuse_et_dit_ou_les_saisir() {
     let mut ctx = contexte();
-    let s = charger(&ctx, &demo("demo-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
     ctx.entreprise["banque"] = json!({"bic": "", "iban": "FR7630001007941234567890185"});
     let refus = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap_err();
     assert!(refus.contains("le BIC (S21.G00.20.003)") && !refus.contains("l'IBAN"), "{}", refus);
@@ -153,7 +153,7 @@ fn chaque_etablissement_reverse_le_pas_de_ses_salaries() {
         "code_postal": "69001", "commune": "LYON",
         "taux_atmp": {"valeur": 1.25, "code_risque": "923AD"}
     }]);
-    let s = charger(&ctx, &demo("demo-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
     // Le premier salarie qui retient du PAS part a l'etablissement secondaire.
     let seul = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     let cle = s
@@ -198,10 +198,10 @@ fn chaque_etablissement_reverse_le_pas_de_ses_salaries() {
 
 // ------------------------------------------------- l'annule-et-remplace produit par le moteur, de bout en bout
 
-/// Une copie de `demo-3090-grande` (juillet 2026 y est depose en reel), ou tous les salaries de juillet ont un taux
+/// Une copie de `fictive-3090-grande` (juillet 2026 y est depose en reel), ou tous les salaries de juillet ont un taux
 /// DGFiP nul ; `dgfip` : le depot de juillet portait un versement DGFiP.
 fn compagnie_pas_nul(test: &str, dgfip: bool) -> PathBuf {
-    let racine = compagnie::ses_dsn("demo-3090-grande", &["2026-07"], &outils::dossier_de_test("versement_dgfip", test));
+    let racine = compagnie::ses_dsn("fictive-3090-grande", &["2026-07"], &outils::dossier_de_test("versement_dgfip", test));
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-08-03").unwrap())).unwrap();
     let s = charger(&ctx, &racine.join("paies/2026-07.json")).unwrap();
     let chemin = racine.join("config/pas.json");

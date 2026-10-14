@@ -1,6 +1,6 @@
 {
- "demos": {
-  "demo-1285-grande": {
+ "fictives": {
+  "fictive-1285-grande": {
    "mois": {
     "2024-04": {
      "oeth": null,
@@ -180,7 +180,7 @@
    },
    "regularises": []
   },
-  "demo-1285-petite": {
+  "fictive-1285-petite": {
    "mois": {
     "2024-04": {
      "oeth": null,
@@ -360,7 +360,7 @@
    },
    "regularises": []
   },
-  "demo-3090-grande": {
+  "fictive-3090-grande": {
    "mois": {
     "2024-04": {
      "oeth": null,
@@ -540,7 +540,7 @@
    },
    "regularises": []
   },
-  "demo-3090-petite": {
+  "fictive-3090-petite": {
    "mois": {
     "2024-04": {
      "oeth": null,
@@ -724,7 +724,7 @@
  "oeth": [
   {
    "nom": "standard",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -785,7 +785,7 @@
   },
   {
    "nom": "sans_action_vrai",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -846,7 +846,7 @@
   },
   {
    "nom": "sans_action_absent",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -866,7 +866,7 @@
   },
   {
    "nom": "sans_action_texte",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -887,7 +887,7 @@
   },
   {
    "nom": "millesime_2026",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2027-04",
    "fichiers": {
     "config/oeth.json": {
@@ -948,7 +948,7 @@
   },
   {
    "nom": "hors_avril",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-05",
    "fichiers": {
     "config/oeth.json": {
@@ -967,7 +967,7 @@
   },
   {
    "nom": "externes_et_deductions",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1068,7 +1068,7 @@
   },
   {
    "nom": "plafond_75",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1135,7 +1135,7 @@
   },
   {
    "nom": "plafond_50",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1208,7 +1208,7 @@
   },
   {
    "nom": "net_nul",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1273,7 +1273,7 @@
   },
   {
    "nom": "effectif_260",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1334,7 +1334,7 @@
   },
   {
    "nom": "effectif_800",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1395,7 +1395,7 @@
   },
   {
    "nom": "effectif_flottant",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1461,7 +1461,7 @@
   },
   {
    "nom": "boeth_dus_faux",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1483,7 +1483,7 @@
   },
   {
    "nom": "boeth_dus_texte",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1545,7 +1545,7 @@
   },
   {
    "nom": "cles_manquantes",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1564,7 +1564,7 @@
   },
   {
    "nom": "type_externe_inconnu",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1591,7 +1591,7 @@
   },
   {
    "nom": "externe_nombre_negatif",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1618,7 +1618,7 @@
   },
   {
    "nom": "externe_nombre_absent",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1644,7 +1644,7 @@
   },
   {
    "nom": "depense_inconnue",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1670,7 +1670,7 @@
   },
   {
    "nom": "depense_texte",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1694,7 +1694,7 @@
   },
   {
    "nom": "effectif_texte",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1715,7 +1715,7 @@
   },
   {
    "nom": "boeth_negatif",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1736,7 +1736,7 @@
   },
   {
    "nom": "sous_traitance_nulle",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1758,7 +1758,7 @@
   },
   {
    "nom": "accord",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1818,7 +1818,7 @@
   },
   {
    "nom": "accord_sans_depenses",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1856,7 +1856,7 @@
   },
   {
    "nom": "accord_court",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1878,7 +1878,7 @@
   },
   {
    "nom": "accord_effectif_faible",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1916,7 +1916,7 @@
   },
   {
    "nom": "effectif_faible",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1935,7 +1935,7 @@
   },
   {
    "nom": "effectif_20",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -1991,7 +1991,7 @@
   },
   {
    "nom": "effectif_vide",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -2012,7 +2012,7 @@
   },
   {
    "nom": "assujetti_faux_sans_pourquoi",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -2034,7 +2034,7 @@
   },
   {
    "nom": "assujetti_faux",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -2055,7 +2055,7 @@
   },
   {
    "nom": "assujetti_faux_pourquoi_blanc",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -2078,7 +2078,7 @@
   },
   {
    "nom": "entree_nulle_effectif_haut",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -2129,7 +2129,7 @@
   },
   {
    "nom": "effectif_haut_sans_chiffres",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/effectifs.json": {
@@ -2170,7 +2170,7 @@
   },
   {
    "nom": "effectif_haut_sans_chiffres_2027",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2027-04",
    "fichiers": {
     "config/effectifs.json": {
@@ -2209,7 +2209,7 @@
   },
   {
    "nom": "effectif_haut_oeth_autre_annee",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -2261,7 +2261,7 @@
   },
   {
    "nom": "effectif_bas",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/effectifs.json": {
@@ -2300,7 +2300,7 @@
   },
   {
    "nom": "effectif_inconnu",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/effectifs.json": {
@@ -2311,7 +2311,7 @@
   },
   {
    "nom": "a04_sous_seuil",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/effectifs.json": {
@@ -2353,7 +2353,7 @@
   },
   {
    "nom": "a04_au_dessus",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/effectifs.json": {
@@ -2397,7 +2397,7 @@
   },
   {
    "nom": "une_annee_basse",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/effectifs.json": {
@@ -2436,7 +2436,7 @@
   },
   {
    "nom": "jamais_au_dessus",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/effectifs.json": {
@@ -2482,7 +2482,7 @@
   },
   {
    "nom": "oeth_fichier_vide",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -2493,7 +2493,7 @@
   },
   {
    "nom": "autre_demo_standard",
-   "racine": "demo-1285-petite",
+   "racine": "fictive-1285-petite",
    "mois": "2026-04",
    "fichiers": {
     "config/oeth.json": {
@@ -2554,7 +2554,7 @@
   },
   {
    "nom": "autre_demo_2026",
-   "racine": "demo-1285-grande",
+   "racine": "fictive-1285-grande",
    "mois": "2027-04",
    "fichiers": {
     "config/oeth.json": {
@@ -2621,7 +2621,7 @@
  "dsn": [
   {
    "nom": "sorties",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -2651,7 +2651,7 @@
   },
   {
    "nom": "derniere_gagne",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -2720,7 +2720,7 @@
   },
   {
    "nom": "a_la_racine",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -2750,7 +2750,7 @@
   },
   {
    "nom": "introuvable",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -2777,7 +2777,7 @@
   },
   {
    "nom": "sans_nom",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -2804,7 +2804,7 @@
   },
   {
    "nom": "seulement_test",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -2829,7 +2829,7 @@
   },
   {
    "nom": "seulement_refuse",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -2854,7 +2854,7 @@
   },
   {
    "nom": "autre_mois",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-03",
    "nic": null,
    "fichiers": {
@@ -2882,7 +2882,7 @@
   },
   {
    "nom": "autre_acte",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -2907,7 +2907,7 @@
   },
   {
    "nom": "nic_secondaire_absent",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": "00099",
    "fichiers": {
@@ -2935,7 +2935,7 @@
   },
   {
    "nom": "nic_secondaire",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": "00099",
    "fichiers": {
@@ -2982,7 +2982,7 @@
   },
   {
    "nom": "nic_secondaire_principal_demande",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -3029,7 +3029,7 @@
   },
   {
    "nom": "nic_principal_explicite",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": "00016",
    "fichiers": {
@@ -3061,7 +3061,7 @@
   },
   {
    "nom": "nic_vide",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": "",
    "fichiers": {
@@ -3091,7 +3091,7 @@
   },
   {
    "nom": "rien",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -3103,7 +3103,7 @@
   },
   {
    "nom": "coolpaie_copie",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -3127,7 +3127,7 @@
   },
   {
    "nom": "coolpaie_export_dsn",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -3151,7 +3151,7 @@
   },
   {
    "nom": "coolpaie_export",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -3175,7 +3175,7 @@
   },
   {
    "nom": "coolpaie_dernier",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -3210,7 +3210,7 @@
   },
   {
    "nom": "coolpaie_introuvable",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -3231,7 +3231,7 @@
   },
   {
    "nom": "coolpaie_autre_mois",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -3250,7 +3250,7 @@
   },
   {
    "nom": "coolpaie_sans_fichier",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -3268,7 +3268,7 @@
   },
   {
    "nom": "reel_prime_sur_coolpaie",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -3311,7 +3311,7 @@
   },
   {
    "nom": "coolpaie_nic_secondaire",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": "00099",
    "fichiers": {
@@ -3333,7 +3333,7 @@
   },
   {
    "nom": "coolpaie_source",
-   "racine": "demo-3090-grande",
+   "racine": "fictive-3090-grande",
    "mois": "2026-02",
    "nic": null,
    "fichiers": {
@@ -3360,13 +3360,13 @@
  "regularises": [
   {
    "nom": "absent",
-   "racine": "demo-3090-petite",
+   "racine": "fictive-3090-petite",
    "fichiers": {},
    "attendu": []
   },
   {
    "nom": "invalide",
-   "racine": "demo-3090-petite",
+   "racine": "fictive-3090-petite",
    "fichiers": {
     "config/casc-svp.json": {
      "texte": "{pas du json"
@@ -3376,7 +3376,7 @@
   },
   {
    "nom": "vide",
-   "racine": "demo-3090-petite",
+   "racine": "fictive-3090-petite",
    "fichiers": {
     "config/casc-svp.json": {
      "json": {}
@@ -3386,7 +3386,7 @@
   },
   {
    "nom": "deux_annees",
-   "racine": "demo-3090-petite",
+   "racine": "fictive-3090-petite",
    "fichiers": {
     "config/casc-svp.json": {
      "json": {

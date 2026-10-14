@@ -5,7 +5,7 @@
 //! (`prive/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2062-derogations-fin-de-contrat-fctu-20250905.txt`) ;
 //! CCH-12 de S21.G00.62.017, « 01 » autorise « uniquement si […] le motif de la rupture […] est renseigne a 031 […] ou
 //! 099 » (cahier technique DSN 2026.1, p. 277, `prive/reference/norme-dsn/texte/bloc-S21.G00.62.txt`) ; CCH-11 de
-//! S21.G00.62.002, les motifs de la nature 02 (p. 270-273). Sur `demo-3090-grande`, mai 2026 : les CDDU BI4.26.05
+//! S21.G00.62.002, les motifs de la nature 02 (p. 270-273). Sur `fictive-3090-grande`, mai 2026 : les CDDU BI4.26.05
 //! (Biancolelli) et CL6.26.06 (Clairon), du 12 au 22 mai.
 
 use crate::outils::{self, compagnie, refus, reussi, route_en_processus};
@@ -17,7 +17,7 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-const DEMO: &str = "demo-3090-grande";
+const DEMO: &str = "fictive-3090-grande";
 const ROMPU: &str = "BI4.26.05";
 const A_TERME: &str = "CL6.26.06";
 

@@ -18,7 +18,7 @@
 //! d'un CDD declare a la caisse » ; guide Urssaf des contributions de formation du 12/03/2026) et
 //! `prive/reference/sources/net-entreprises-base-connaissances/` (fiches 2502 et 2503).
 //!
-//! Sur la copie figee des demonstrations (`tests/donnees/demo/`, compagnies inventees) : demo-3090-grande, mars 2026,
+//! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`, compagnies inventees) : fictive-3090-grande, mars 2026,
 //! AUDINOT en CDD (motif 02, accroissement temporaire d'activite, technicienne : non declaree a la caisse) et MONTANSIER
 //! en CDI ; en octobre 2026, Deburau, comedien, en CDD de droit commun de trois mois (declare a la caisse).
 
@@ -29,7 +29,7 @@ use paie::dsn::{generer, Options};
 use paie::engagement::charger;
 use paie::num::{pct, Decimal};
 use rust_decimal::RoundingStrategy;
-use crate::outils::{base81, chemin_unique, ctp, dec, demo, ecrire, lire, versement, Copie};
+use crate::outils::{base81, chemin_unique, ctp, dec, fictive, ecrire, lire, versement, Copie};
 use serde_json::{json, Value};
 
 /// Les rubriques 81.002 a 81.007 de la cotisation `code81` du versement, s'il la porte.
@@ -44,7 +44,7 @@ fn paie<'a>(ps: &'a [Paie], numero: &str) -> &'a Paie {
 
 #[test]
 fn un_cdd_de_droit_commun_paie_la_contribution_cpf_cdd_au_bulletin_au_nominatif_et_au_bordereau() {
-    let racine = demo("demo-3090-grande");
+    let racine = fictive("fictive-3090-grande");
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-03-28").unwrap())).unwrap();
     let s = charger(&ctx, &racine.join("paies/2026-03.json")).unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-03", &[], &[], &Options::default()).unwrap();
@@ -75,7 +75,7 @@ fn un_cdd_de_droit_commun_paie_la_contribution_cpf_cdd_au_bulletin_au_nominatif_
 fn un_cdd_saisonnier_ou_un_cddu_ne_la_paient_pas() {
     // L. 6331-6 : « ceux visant les salaries occupant un emploi a caractere saisonnier » n'y donnent pas lieu (motif 03) ;
     // L. 6331-55 : l'intermittent en CDDU non plus.
-    let racine = demo("demo-3090-grande");
+    let racine = fictive("fictive-3090-grande");
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-03-28").unwrap())).unwrap();
     let mut saisie: Value = serde_json::from_str(&std::fs::read_to_string(racine.join("paies/2026-03.json")).unwrap()).unwrap();
     for e in saisie["engagements"].as_array_mut().unwrap() {
@@ -102,7 +102,7 @@ fn un_cdd_saisonnier_ou_un_cddu_ne_la_paient_pas() {
 /// (le 959 y reste sur `brut_permanent`, l'assiette d'un fichier compose avant : `dsn::ctp_urssaf` le lit comme le
 /// fichier livre).
 fn cdd_d_artiste_declare_a_la_caisse() -> (Copie, Contexte, Vec<Paie>) {
-    let c = Copie::config_de("demo-3090-grande");
+    let c = Copie::config_de("fictive-3090-grande");
     let r = &c.0;
     let (mut sal, mut orgs) = (lire(r, "config/salaries.json"), lire(r, "config/organismes.json"));
     sal["DEBURAU"]["sante_svp"] = json!({"niveau": "1", "conjoint": false, "enfants": 0});

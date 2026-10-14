@@ -885,7 +885,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
 
 /// `dpae.ecrire(embauches, sortie / "DPAE_<etiq>.txt", code_urssaf=..., ent=ent)` puis son recapitulatif
 /// `DPAE_<etiq>_recapitulatif.txt` : le fichier DPAE du MOIS entier que `produire_mois` ecrit quand il n'est pas
-/// `sans_contrat` (l'horloge de la demonstration). Rend le chemin du `.txt` (le `.zip` est ecrit a cote).
+/// `sans_contrat` (l'horloge de la compagnie fictive). Rend le chemin du `.txt` (le `.zip` est ecrit a cote).
 pub(crate) fn ecrire_dpae_du_mois(ctx: &Contexte, ent: &Value, embauches: &[&Paie], sortie: &Path, etiq: &str) -> R<PathBuf> {
     let code = code_urssaf(&ctx.entreprise)?;
     let chemins = Chemins { defaut: dossier_du_code().join("modeles").join("due_tel_gabarit.txt"), poste: crate::avenant::gabarits_du_poste() };

@@ -786,7 +786,7 @@ async function demanderFiche(bouton) {
   const mdp = await demanderMotDePasse(`envoyer la demande de fiche à ${adresse}`);
   if (!mdp) return;
   bouton.disabled = true;
-  const repere = await repereCourrielsDemo();
+  const repere = await repereCourrielsFictifs();
   try {
     const r = await api("fiche-demander", { adresse, prenom, motdepasse: mdp });
     // La réponse ne porte plus la configuration (ni NIR ni IBAN) : la page la relit.
@@ -796,7 +796,7 @@ async function demanderFiche(bouton) {
     FICHE_NEUVE = false;
     dessinerConfig();
     dire(`Demande envoyée à ${r.adresse}. Sa fiche se créera à l'arrivée de sa réponse.`);
-    fenetreCourrielsDemo("fiche", repere);
+    fenetreCourrielsFictifs("fiche", repere);
   } catch (e) {
     bouton.disabled = false;
     dire(e.message, "erreur");

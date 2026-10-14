@@ -69,7 +69,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 
 /// `paie google oublier` : efface le jeton local (rien ne part au reseau). La route exige le mot de passe du logiciel s'il en est un
 /// de pose : le MOTEUR le demande lui-meme a un humain (fenetre, terminal sans echo), sinon il refuse. Dans `paie-atelier`, hors
-/// demonstration, le geste est refuse. Les erreurs sont rendues comme le Python : le message nu (code 2), ou `--json`.
+/// compagnie fictive, le geste est refuse. Les erreurs sont rendues comme le Python : le message nu (code 2), ou `--json`.
 fn oublier(cadre: &Cadre, json: bool) -> i32 {
     let r = super::actes::refuser_dans_l_atelier(cadre, "d'oublier le compte Google").and_then(|()| cadre.route("google-oublier", json!({})));
     match r {
@@ -99,7 +99,7 @@ fn oublier(cadre: &Cadre, json: bool) -> i32 {
 /// fichier scelle par la cle du poste.
 ///
 /// GARDE-FOUS. Le mot de passe du logiciel s'il en est un de pose : le moteur le demande lui-meme a un humain (`exiger_mot_de_passe`),
-/// sinon il refuse. Dans `paie-atelier`, hors demonstration : refuse, sauf si Google est redirige vers le faux Google local.
+/// sinon il refuse. Dans `paie-atelier`, hors compagnie fictive : refuse, sauf si Google est redirige vers le faux Google local.
 /// L'URL va sur la sortie standard (comme le Python) ; avec `--json`, sur la sortie d'erreur, pour que la sortie standard ne porte que
 /// le JSON d'une erreur.
 fn autoriser(cadre: &Cadre, json: bool) -> i32 {

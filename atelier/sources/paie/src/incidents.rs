@@ -101,7 +101,7 @@ fn motif(source: &str) -> Regex {
 fn motif_chemin() -> &'static Regex {
     static M: OnceLock<Regex> = OnceLock::new();
     M.get_or_init(|| {
-        motif(r#"(?:\b[A-Za-z]:)?[\\/][^"'\n<>|;]*?[\\/]((?:logiciel|atelier|moteur|prive|prive-dev|demo|Lib|lib|site-packages)[\\/])"#)
+        motif(r#"(?:\b[A-Za-z]:)?[\\/][^"'\n<>|;]*?[\\/]((?:logiciel|atelier|moteur|prive|prive-dev|fictives|demo|Lib|lib|site-packages)[\\/])"#)
     })
 }
 
@@ -308,7 +308,7 @@ pub fn nature_de(classe: &str) -> &'static str {
 /// `nature` absente : elle se deduit du type. Les copies de developpement ne
 /// notent rien (« rien ne part d'ici », le moteur tient sa porte).
 pub fn depuis_exception(racine: &Path, classe: &str, message: &str, nature: Option<&str>, ou: &str, detail: Value, trace: Option<&str>) -> Option<Value> {
-    if classe == "CopieDeDeveloppement" || classe == "EditionDemo" {
+    if classe == "CopieDeDeveloppement" || classe == "EditionBridee" {
         return None;
     }
     let nature = nature.unwrap_or_else(|| nature_de(classe));
@@ -656,24 +656,9 @@ fn systeme() -> String {
     format!("Windows {} ({})", if build >= 22000 { "11" } else { "10" }, version)
 }
 
-/// `compagnies.edition()` : `demo` pour le paquet soude, sinon le mode retenu
-/// sur le poste (`.edition.json` a cote de `logiciel/`), sinon le defaut du
-/// paquet, sinon `complete`.
+/// `compagnies.edition()` : le bridage du poste, `bride` ou `debloque` (`bridage::etat`).
 pub fn edition() -> String {
-    if crate::editeur::paquet_soude() {
-        return "demo".to_string();
-    }
-    let logiciel = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
-    let lu = |p: PathBuf| std::fs::read(p).ok().and_then(|o| String::from_utf8(o).ok()).and_then(|t| serde_json::from_str::<Value>(&t).ok());
-    if let Some(Value::Object(d)) = logiciel.parent().and_then(|r| lu(r.join(".edition.json"))) {
-        if let Some(e) = d.get("edition").and_then(Value::as_str).filter(|e| *e == "complete" || *e == "demo") {
-            return e.to_string();
-        }
-    }
-    match lu(logiciel.join("EDITION.json")) {
-        Some(Value::Object(d)) if d.get("defaut").and_then(Value::as_str) == Some("demo") => "demo".to_string(),
-        _ => "complete".to_string(),
-    }
+    crate::bridage::etat().to_string()
 }
 
 /// L'ENVOI A L'EDITEUR SE COUPE (Leandre, 08/10/2026 ; c'est aussi une condition de SignPath). `config/diagnostic.json`,
@@ -787,7 +772,7 @@ pub fn configuration(racine: &Path) -> R<Option<(String, PathBuf)>> {
     let logiciel = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
     let voisin = logiciel.parent().map(|r| r.join("prive")).unwrap_or_default();
     let reel = if voisin.join("config").is_dir() { voisin } else { logiciel.clone() };
-    if crate::editeur::est_demonstration(racine) && reel != racine && reel.join("config").is_dir() {
+    if crate::interface::compagnies::est_fictive(racine) && reel != racine && reel.join("config").is_dir() {
         let serveur = serveur_propre(&reel)?;
         if !serveur.is_empty() {
             return Ok(Some((serveur, reel)));

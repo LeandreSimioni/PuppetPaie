@@ -6,7 +6,7 @@
 //! `prive/reference/sources/agirc-arrco/`) ; fiche net-entreprises 1265, l. 52 ; norme DSN 2026.1, § 2.1.3.2 a 2.1.3.5,
 //! p. 28-29, et § 2.1.2.5, p. 22-23 ; CSS R. 242-2, I ; BOSS, assiette generale, § 700-770.
 //!
-//! Sur la copie figee de `demo-1285-grande` (`tests/donnees/demo/`, compagnie inventee : deux CDI, NADAR depuis 2022,
+//! Sur la copie figee de `fictive-1285-grande` (`tests/donnees/fictives/`, compagnie inventee : deux CDI, NADAR depuis 2022,
 //! cadre, 3 010 EUR ; DORVAL depuis le 01/04/2025, technicienne non cadre, 2 200 EUR ; toutes les DSN deposees jusqu'a
 //! aout 2026), copiee dans le dossier temporaire des tests avant d'y retoucher les fiches et les saisies.
 
@@ -22,7 +22,7 @@ use std::path::{Path, PathBuf};
 
 /// Une copie de la 1285-grande sans ses PDF, propre a un test.
 fn compagnie(dossier: &str) -> PathBuf {
-    sans_les_pdf("demo-1285-grande", &dossier_de_test("periodes", dossier))
+    sans_les_pdf("fictive-1285-grande", &dossier_de_test("periodes", dossier))
 }
 
 /// La valeur de la rubrique, ou rien.

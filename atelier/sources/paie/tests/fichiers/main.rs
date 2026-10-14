@@ -33,6 +33,7 @@ mod envoi;
 mod envoi_mime;
 mod importation_tri;
 mod incidents_filet;
+mod mise_a_jour;
 mod restauration;
 mod retours;
 mod sauvegarde;

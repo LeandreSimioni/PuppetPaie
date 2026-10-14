@@ -1,4 +1,4 @@
-//! `courriel` sans reseau : `serveurs` avec et sans `config/courriel.json`, la boite simulee de la demonstration,
+//! `courriel` sans reseau : `serveurs` avec et sans `config/courriel.json`, la boite simulee de la compagnie fictive,
 //! le dialogue IMAP contre un faux serveur en memoire (un flux qui rend des reponses ecrites d'avance : les litteraux
 //! `{n}` se lisent par leur longueur, jamais par ce qu'ils contiennent), la traduction des refus, les destinataires
 //! d'un message. Rien n'ouvre de connexion, rien n'envoie : `Client` n'est jamais appele. L'adresse et le secret lus dans
@@ -78,9 +78,9 @@ fn fiche(signataire: Value) -> Value {
 fn boite_simulee_le_compte() {
     let r = racine("boite-compte");
     assert_eq!(BoiteSimulee::nouvelle(&r, &fiche(json!({"email": "Direction@Demo.INVALID"}))).compte(), "direction@demo.invalid");
-    assert_eq!(BoiteSimulee::nouvelle(&r, &fiche(json!({}))).compte(), "demonstration@puppetpaie.invalid");
-    assert_eq!(BoiteSimulee::nouvelle(&r, &fiche(json!({"email": ""}))).compte(), "demonstration@puppetpaie.invalid");
-    assert_eq!(BoiteSimulee::nouvelle(&r, &json!({})).compte(), "demonstration@puppetpaie.invalid");
+    assert_eq!(BoiteSimulee::nouvelle(&r, &fiche(json!({}))).compte(), "fictive@puppetpaie.invalid");
+    assert_eq!(BoiteSimulee::nouvelle(&r, &fiche(json!({"email": ""}))).compte(), "fictive@puppetpaie.invalid");
+    assert_eq!(BoiteSimulee::nouvelle(&r, &json!({})).compte(), "fictive@puppetpaie.invalid");
 }
 
 #[test]
@@ -94,7 +94,7 @@ fn boite_simulee_garde_sans_envoyer() {
     assert_eq!(b.envoyer(&m1).unwrap(), "<un.deux@demo.invalid>");
     assert_eq!(b.envoyer(&m2).unwrap(), "<plie@demo.invalid>");
     let i3 = b.envoyer(&m3).unwrap();
-    assert!(i3.starts_with('<') && i3.ends_with("@demonstration.puppetpaie>") && i3.len() == "<0123456789abcdef@demonstration.puppetpaie>".len(), "{}", i3);
+    assert!(i3.starts_with('<') && i3.ends_with("@fictive.puppetpaie>") && i3.len() == "<0123456789abcdef@fictive.puppetpaie>".len(), "{}", i3);
     // Chaque message est ecrit tel quel dans `courriels-simules/`.
     let mut noms: Vec<String> = std::fs::read_dir(r.join("courriels-simules"))
         .unwrap()
@@ -112,7 +112,7 @@ fn boite_simulee_garde_sans_envoyer() {
     for m in [&m1, &m2, &m3] {
         assert!(ecrits.contains(m));
     }
-    // Elle ne retrouve rien : la demonstration releve ses signatures a sa maniere.
+    // Elle ne retrouve rien : la compagnie fictive releve ses signatures a sa maniere.
     assert!(b.rechercher("Je signe", 50).unwrap().is_empty());
     assert!(b.message_brut("1").unwrap().is_empty());
     b.fermer();

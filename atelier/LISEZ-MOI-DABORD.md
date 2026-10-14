@@ -75,7 +75,7 @@ l'utilisera — ses données à elle, notre code.
 | `donnees/` | les référentiels livrés : barèmes, bases, modèles, avec leurs sources (`sources.json`) |
 | `interface/` | la page que la fenêtre affiche |
 | `docs/` | ARCHITECTURE.md (les formats et les taux), RUBRIQUES.md (comment une rubrique se construit), PORTAGE-RUST.md, COMPAGNIES-FICTIVES.md et COMPAGNIES-FICTIVES-DEPOT.md |
-| `outils/` | l'atelier, seul endroit où le Python reste (à porter) : extracteurs de la norme DSN, relevés, garde-fou de publication ; `outils/demos/`, les scénarios joués par `paie/examples/vie_demo.rs` |
+| `outils/` | l'atelier, seul endroit où le Python reste (à porter) : extracteurs de la norme DSN, relevés, garde-fou de publication ; `outils/demos/`, les scénarios joués par `paie/examples/vie_fictive.rs` |
 | `site/` | les pages publiques de PuppetPaie, à mettre sur le site de l'éditeur |
 | `.claude/` | les compétences : ce que Claude Code sait faire du logiciel |
 | `README.md` | le mode d'emploi |
@@ -126,7 +126,7 @@ La sauvegarde du Drive (`PuppetPaie / sauvegarde`) est la copie de `prive/`. Sur
 2. Relier le Drive de la compagnie : `paie google autoriser` (si elle avait son propre `config/google.json`, le remettre d'abord).
 3. `paie restaurer` : `prive/` redescend, chaque fichier vérifié par son empreinte, rien d'effacé ; la commande dit ce qu'il reste à faire.
 4. Le mot de passe du logiciel : `paie coffre ouverture` (l'actuel si le coffre est revenu, sinon un nouveau).
-5. Les mots de passe d'organisme que `paie restaurer` nomme : aujourd'hui les trois, `coffre.bin` ne montant pas (`paie coffre poser net-entreprises`, `urssaf`, `courriel --compte <adresse>`). La clé qui signe les mises à jour (chez l'éditeur) redescend aussi : scellée par le coffre depuis le 14/10/2026, elle s'ouvre par le mot de passe du logiciel, mais seulement avec le `coffre.bin` qui l'a scellée, qui ne monte pas encore ; sans lui, `paie restaurer` le dit, et il reste `paie maj --cle --remplacer` (une nouvelle clé publique à faire parvenir aux compagnies). Une clé faite avant le 14/10 se rescelle par le coffre en lançant `paie maj --cle` sur son poste.
+5. Ce qui manque, que `paie restaurer` nomme. Le coffre monte dans la sauvegarde depuis le 14/10/2026 (décidé par Léandre) : revenu, il s'ouvre par le mot de passe du logiciel, et les mots de passe d'organisme qu'il porte reviennent avec lui ; sans mot de passe du logiciel posé sur l'ancien poste, il ne s'ouvre pas, et les trois se reposent (`paie coffre poser net-entreprises`, `urssaf`, `courriel --compte <adresse>`). La clé qui signe les mises à jour (chez l'éditeur) redescend aussi : scellée par le coffre, elle s'ouvre avec lui ; s'il manque, `paie restaurer` le dit, et il reste `paie maj --cle --remplacer` (une nouvelle clé publique à faire parvenir aux compagnies). Une clé faite avant le 14/10 se rescelle par le coffre en lançant `paie maj --cle` sur son poste. Le jeton Google ne monte pas : on relie le compte de nouveau.
 
 On l'essaie une fois avant d'en avoir besoin : `paie restaurer <un dossier vide>`.
 

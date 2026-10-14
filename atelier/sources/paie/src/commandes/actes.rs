@@ -134,7 +134,7 @@ pub fn est_refus_d_envoi(classe: Option<&str>) -> bool {
 }
 
 /// Avant de toucher a la boite courriel : son mot de passe d'application est au coffre, que la cle du poste ouvre ou, a defaut,
-/// une seance (`Cadre::ouvrir_le_coffre`). La demonstration n'a ni boite ni coffre a ouvrir. Ceci n'AUTORISE rien : l'envoi reel
+/// une seance (`Cadre::ouvrir_le_coffre`). La compagnie fictive n'a ni boite ni coffre a ouvrir. Ceci n'AUTORISE rien : l'envoi reel
 /// reste soumis a la preuve du moteur (`depot_acte::verifier_preuve`), qui demande elle-meme le mot de passe a un humain.
 pub fn ouvrir_la_boite(cadre: &super::Cadre) {
     if !crate::routes_accueil::simulation_active(&cadre.racine) {
@@ -182,7 +182,7 @@ pub enum Organisme {
     Google,
 }
 
-/// Dans `paie-atelier`, HORS DEMONSTRATION : l'organisme n'est-il PAS redirige vers un faux serveur local ? Alors une commande qui lui
+/// Dans `paie-atelier`, HORS COMPAGNIE FICTIVE : l'organisme n'est-il PAS redirige vers un faux serveur local ? Alors une commande qui lui
 /// parlerait irait au vrai, avec les vrais mots de passe du poste : elle doit s'arreter. Dans `paie` : jamais (c'est le vrai
 /// serveur, et c'est son role ; les garde-fous des actes reels tiennent seuls).
 #[cfg(feature = "atelier")]
@@ -200,7 +200,7 @@ pub fn pas_redirige(_cadre: &super::Cadre, _organisme: Organisme) -> bool {
     false
 }
 
-/// Dans `paie-atelier`, hors demonstration : la boite courriel n'est pas redirigee, donc rien ne la lit ni ne l'ouvre.
+/// Dans `paie-atelier`, hors compagnie fictive : la boite courriel n'est pas redirigee, donc rien ne la lit ni ne l'ouvre.
 #[cfg(feature = "atelier")]
 pub fn boite_interdite(cadre: &super::Cadre) -> bool {
     !crate::routes_accueil::simulation_active(&cadre.racine)
@@ -211,7 +211,7 @@ pub fn boite_interdite(_cadre: &super::Cadre) -> bool {
     false
 }
 
-/// `paie-atelier` refuse, hors demonstration, ce qui passe par le mot de passe du logiciel (`filet::exiger_mot_de_passe` : poser ou
+/// `paie-atelier` refuse, hors compagnie fictive, ce qui passe par le mot de passe du logiciel (`filet::exiger_mot_de_passe` : poser ou
 /// retirer un mot de passe, le changer, oublier Google, activer ou desactiver le filet) : ce sont des gestes sur les secrets du
 /// poste, que l'atelier ne touche pas. `quoi` dit ce qui est refuse (« de poser un mot de passe »). Dans `paie` : rien n'est refuse ici.
 #[cfg(feature = "atelier")]
@@ -221,7 +221,7 @@ pub fn refuser_dans_l_atelier(cadre: &super::Cadre, quoi: &str) -> Result<(), Ec
     }
     Err(Echec {
         classe: Some("ActeReelRefuse"),
-        message: format!("Ceci est le binaire de l'atelier (paie-atelier) : il refuse {} hors demonstration. Rien n'a ete modifie.", quoi),
+        message: format!("Ceci est le binaire de l'atelier (paie-atelier) : il refuse {} hors compagnie fictive. Rien n'a ete modifie.", quoi),
     })
 }
 

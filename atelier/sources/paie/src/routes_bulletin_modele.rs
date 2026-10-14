@@ -7,8 +7,8 @@
 //! - `bulletin-modele-apercu` (lecture) : le PDF d'une paie FICTIVE sous un modele, en base64. La paie est celle de la
 //!   compagnie fictive livree (`donnees/apercu-bulletin/` : ni NIR, ni personne, ni spectacle reels ; regle 9a), calculee
 //!   par le moteur du jour sur le socle du bareme ; rien n'y est ecrit. La fenetre la sert en PDF a
-//!   `/apercu/bulletin?modele=...` (`interface::Fenetre::apercu_bulletin`), que la page affiche comme les pieces de la
-//!   demonstration.
+//!   `/apercu/bulletin?modele=...` (`interface::Fenetre::apercu_bulletin`), que la page affiche comme les pieces d'une
+//!   compagnie fictive.
 //! - `bulletin-modele-choisir` (ecriture) : pose `modele_bulletin` dans `config/entreprise.json` (copie `avant/` d'abord).
 //!
 //! Les bulletins deja produits ne changent pas : on renvoie toujours l'archive (V1p) ; seuls les bulletins produits apres

@@ -3,7 +3,7 @@
 //!
 //! Le Drive est celui que la compagnie de ce poste a relie (`paie google autoriser`) : le client lit son jeton dans le dossier
 //! des donnees du poste. `DOSSIER` est ou ecrire ; par defaut, ce meme dossier des donnees (le cas d'un poste neuf : relier le
-//! Drive, puis restaurer). Dans `paie-atelier`, hors demonstration, la commande exige le faux Google, comme `sauvegarder`.
+//! Drive, puis restaurer). Dans `paie-atelier`, hors compagnie fictive, la commande exige le faux Google, comme `sauvegarder`.
 //!
 //! Codes : 0 tout est revenu ; 1 des incidents (un fichier, une empreinte) ; 2 un refus, rien n'a ete ecrit.
 

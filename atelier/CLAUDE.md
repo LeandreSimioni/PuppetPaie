@@ -4,6 +4,16 @@ Allégé le 04/10/2026 : les règles sont toutes là, leur récit (dates, incide
 qui les ont fait écrire) est dans `prive/journal/archives/2026-10-04-claude-md-avant.md`.
 Les numéros des règles de fond (0 à 11) ne bougent pas : le code les cite.
 
+## Deux règles de travail (Léandre, 14/10/2026) — elles passent avant le reste
+
+1. **On finit ce qu'on commence.** Un chantier se mène jusqu'à ce qu'il marche pour de vrai, dans la séance. Pas de
+   « c'est fait, mais il reste ceci » repoussé à plus tard. Ne s'arrête que ce qui attend vraiment Léandre (une décision,
+   un geste sur son poste), et ça se dit en une ligne.
+2. **Pas de précautions de transition tant que Léandre est le seul utilisateur** (jusqu'à l'arrivée des premières
+   compagnies, décembre 2026). Pas de compatibilité avec l'ancien, pas de circuit provisoire, pas d'essai manuel d'un
+   circuit qu'on va remplacer : on fait directement la version définitive, proprement, quitte à tout casser. Si le
+   logiciel est indisponible deux jours pendant qu'on code, ce n'est pas grave : l'ancien marche pour les paies.
+
 ## Le rangement (09/10/2026)
 
 À la racine du dépôt (le dossier du dépôt sur le poste), on ne
@@ -13,7 +23,8 @@ voit que ce que les gens reçoivent, et l'atelier en plus :
 |---|---|
 | `PuppetPaie.cmd` | le lanceur |
 | `logiciel/` | **exactement ce qu'une compagnie reçoit** : `puppetpaie.exe`, `WebView2Loader.dll`, `VERSION`, `donnees/` (barèmes, bases, modèles), `interface/` (la page). Les deux dossiers restent des fichiers visibles et se changent sans changer le moteur (décidé). C'est aussi ce que publie la mise à jour. |
-| `demo/` | les compagnies de démonstration, livrées aussi |
+| `fictives/` | les compagnies fictives, livrées aussi (`demo/` avant le 14/10/2026 ; le logiciel renomme l'ancien dossier au lancement) |
+| `maj/` | la mise à jour de l'installation, à côté de `logiciel/` : son réglage, la version prête, son journal (jamais dans Git) |
 | `prive/` | la compagnie du poste (chez une autre compagnie : la sienne) |
 | `atelier/` | tout le reste : `sources/` (paie, fenetre, fabrique-pdf ; `paie.exe` et les exe Linux/Mac dans `sources/paie/bin/`), `outils/`, `docs/`, `prive-dev/`, `depot/` (versions publiées), plans, maquettes, site. **Le serveur du filet n'est plus ici** (13/10/2026) : il vit dans le dépôt du site de l'éditeur, sous `infra/filet/` |
 
@@ -73,10 +84,13 @@ le lance **une seule fois**, à la fin du portage ou le jour où l'utilisateur v
 rouvrir le logiciel. Jamais de soi-même, ni « pour être sûr » ; en cas de doute,
 demander.
 
-## Les sous-agents : Opus (Léandre, 09/10/2026 : plus de Sonnet, on code avec Opus)
+## Les sous-agents : Opus pour coder, Sonnet ou Haiku pour lire (Léandre, 09/10 et 14/10/2026)
 
-Un agent peut déléguer à un sous-agent **Opus** (`Agent`, `model: "opus"`) :
-une recherche en éventail, un inventaire, une relecture, un lot de portage. Il
+**Ce qui écrit du code ou tranche une conception va à un Opus** (`Agent`, `model: "opus"`) : un lot de portage, une
+correction. **Ce qui lit seulement va à un Sonnet ou un Haiku** (`model: "sonnet"` / `"haiku"`), plus rapides et moins
+chers (Léandre, 14/10/2026 : « pour faire de la lecture je les trouve hyper performants, moins chers, plus rapides ») :
+une recherche en éventail, un inventaire, une relecture ; Haiku pour une recherche simple, Sonnet quand il faut
+comprendre ce qu'on lit. Il
 rapporte une conclusion courte ; **c'est un rapport, pas une preuve** : il se
 vérifie avant de s'affirmer.
 
@@ -142,6 +156,7 @@ Comment on dépose :
 prive/config/coffre.bin          les mots de passe net-entreprises, Urssaf et de la boite courriel
 prive/config/google-jeton.bin    le jeton du compte Google
 prive/config/maj-cle-privee.bin  la cle qui signe les mises a jour (editeur)
+maj/cle-github-graine.txt        la graine de la cle de GitHub, le temps que Leandre la colle (lot P1)
 ```
 
 **Ne jamais lire, afficher, copier ni recopier le contenu de ces fichiers**, ni
@@ -166,6 +181,7 @@ toujours : `paie coffre` (ce qui est posé, depuis quand, pour quel usage).
 | lire, calculer, produire un mois, sauvegarder, relever les retours | aucune |
 | **déposer en test** (`depot-dsn --test`, `deposer-dpae --test`…) | aucune, **sans demander d'aval** (l'utilisateur, 29/09/2026) |
 | **déposer une DSN ou une DPAE en réel, envoyer, faire signer** | **le mot de passe du logiciel, tapé par un humain au moment de l'acte** |
+| **approuver une publication** (l'environnement `publication` du dépôt public) | **jamais un agent** : les sessions Claude agissent sur GitHub sous l'identité de Léandre (vu le 14/10/2026) ; seul Léandre approuve |
 
 **DEUX MOTS DE PASSE, DEUX CHEMINS, ET PAS D'AUTRE (l'utilisateur, 23/09/2026).**
 - **Ouvrir le coffre = la séance.** `paie coffre seance --fenetre` :
@@ -265,7 +281,7 @@ CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target}-atelier" cargo nextest run --cargo
   fonctionnalité en plus (le profil entre dans le hachage de Cargo : chaque variante est un jeu complet d'artefacts,
   5 Go au lieu de 2) ; `target/tmp` se vide avant une suite.
 - Les tests tournent sur des compagnies fictives et sur la **copie figée des
-  démonstrations**, `paie/tests/donnees/demo/` : `demo/` vit (le poste la fait
+  fictives livrées**, `paie/tests/donnees/fictives/` : `fictives/` vit (le poste la fait
   jouer et la commite), un test ne la lit jamais.
 - **Le minimum de tests : une fois, à la fin, avant de pousser (l'utilisateur,
   29/09 et 04/10/2026).** Pendant le travail, on corrige sans relancer.
@@ -351,8 +367,8 @@ CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target}-atelier" cargo nextest run --cargo
    l'autre.
 
    a) **Les tests.** La suite tourne sur des compagnies fictives et sur la copie
-      figée des démonstrations, et ne lit rien de `prive/` :
-      `paie/tests/fichiers/donnees_reelles.rs` refuse, dans `logiciel/`, `demo/` et
+      figée des fictives livrées, et ne lit rien de `prive/` :
+      `paie/tests/fichiers/donnees_reelles.rs` refuse, dans `logiciel/`, `fictives/` et
       `atelier/sources/`, un NIR non inventé, le SIREN et le nom de la compagnie du
       poste, et un chemin vers `prive/` construit par un test (la racine par défaut du
       moteur, `prive/` voisine du code, est celle du poste par conception : un test
@@ -361,8 +377,8 @@ CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target}-atelier" cargo nextest run --cargo
       indépendants du moteur, transcrits sans nom ni NIR dans un test fictif ; un cas
       qui a attrapé une vraie erreur se **réécrit d'abord en fictif** — retirer une
       valeur réelle avant, c'est retirer une preuve. Un test qui ne prouve
-      qu'une règle s'écrit sur la fictive. Les fictives sont les démonstrations
-      (`demo/`, copie figée `paie/tests/donnees/demo/`) : `docs/COMPAGNIES-FICTIVES.md`.
+      qu'une règle s'écrit sur la fictive. Les fictives sont celles livrées avec le logiciel
+      (`fictives/`, copie figée `paie/tests/donnees/fictives/`) : `docs/COMPAGNIES-FICTIVES.md`.
    b) **La préparation d'une publication est un chantier à part, en sommeil** : on
       n'en parle pas dans les comptes rendus ; ce qu'elle demandera est dans
       `AVANT-LE-PREMIER-COMMIT.md` et `PLAN-DEPOT-PUBLIC.md`, et c'est
@@ -395,22 +411,30 @@ octet. Un fichier hors règle **garde la fin de ligne qu'il a** : `newline=''`,
 
 ## Publier une version
 
-Ce poste est celui de l'éditeur (`prive/config/maj.json`, `"editeur": true`) : il
-relit les sources (`paie sources --verifier`, lot S1 du 13/10/2026) et **publie** ; une
-compagnie reçoit (`paie maj`, `paie/src/maj.rs`). **On est en développement** : la première
+Ce poste est celui de l'éditeur (le réglage de l'installation, `maj/reglage.json`, ou en
+repli `prive/config/maj.json` : `"editeur": true`) : il relit les sources (`paie sources
+--verifier`, lot S1 du 13/10/2026) et **publie**. Toute installation reçoit, la sienne
+comprise (Léandre, 14/10/2026) : la mise à jour est celle du logiciel, une par installation,
+cherchée au lancement et appliquée au lancement suivant (`paie maj`, `paie/src/maj.rs`). **On est en développement** : la première
 version diffusée portera toutes les conventions visées ; ne pas signaler qu'aucune
 version n'a été publiée depuis longtemps.
 
-1. Augmenter `VERSION` (une date : `2026.10.02`).
-2. Suite verte.
-3. `paie maj --publier --notes "..."` ; `--calcul "..."` **seulement**
-   si la version change un calcul de paie (la seule phrase qu'une compagnie verra ;
-   un taux qui change n'en est pas une) ; `--exigee "..."` plus rarement encore
-   (norme DSN qui change, déclaration que l'ancienne version ferait fausse : elle
-   bloque tout dépôt réel tant qu'elle n'est pas appliquée).
+**Depuis le 14/10/2026 (lot P1), on publie depuis GitHub** (`prive/journal/finitions/PUBLIER.md`) :
 
-L'archive est signée (Ed25519) avec `prive/config/maj-cle-privee.bin` — on ne la
-lit pas ; sans elle, `publier` refuse. Une version qui change un calcul attend la
-DSN d'un mois saisi avant de s'appliquer (`--malgre-calcul` pour passer outre),
+1. **À la fin de chaque séance de code**, suite verte, exporter vers le dépôt public
+   (`atelier/outils/exporter_depot_public.sh`) et le porter sur sa `main` (PR que Léandre fusionne). Le numéro de version
+   n'est plus à augmenter : le flux pose la date du jour dans `logiciel/VERSION` (une version par jour).
+2. Léandre lance le flux « Publier » du dépôt public (`.github/workflows/publier.yml`) ; `notes`, et `calcul`
+   **seulement** si la version change un calcul de paie (la seule phrase qu'une compagnie verra ; un taux qui change
+   n'en est pas une) ; `exigee` plus rarement encore (norme DSN qui change, déclaration que l'ancienne version ferait
+   fausse : elle bloque tout dépôt réel tant qu'elle n'est pas appliquée).
+3. **Léandre approuve** (environnement `publication`) ; le moteur signe (`paie maj --publier-github`, la clé de GitHub,
+   `CLE_PUBLIQUE_GITHUB`) et une Release porte l'archive, `derniere.json` et l'installeur, que toutes les installations
+   lisent (`DEPOT_PAR_DEFAUT`).
+
+Les installations acceptent deux clés : celle de GitHub et celle du poste (`paie maj --publier`, qui écrit dans un
+dossier, reste possible). La clé du poste est `prive/config/maj-cle-privee.bin` — on ne la lit pas ; la graine de
+GitHub n'existe que dans le secret de l'environnement (et, le temps de la coller, dans un fichier que Léandre efface). Une version qui change un calcul attend la
+DSN des mois saisis des compagnies réelles de l'installation avant de s'appliquer (`--malgre-calcul` pour passer outre),
 sauf si elle est exigée. Ne jamais appliquer une mise à jour pendant que
 l'interface tourne ; ne pas republier un numéro (les deux sont refusés).

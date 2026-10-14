@@ -1,7 +1,7 @@
 //! `conges` contre `conges.json` : les jours ouvrables selon les feries chomes, les lignes d'un mois de permanent avec
 //! leurs avertissements, le compteur de conges. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
-use crate::outils::{demo, lire_oracle, oracle};
+use crate::outils::{fictive, lire_oracle, oracle};
 use paie::conges::{compteur_conges, jours_ouvrables, lignes_du_mois};
 use paie::contexte::Contexte;
 use paie::date::Jour;
@@ -15,9 +15,9 @@ fn jour(s: &str) -> Jour {
     Jour::lire(s).unwrap()
 }
 
-/// La compagnie de la demo, a la date du relevé, avec les feries chomes du cas.
+/// La compagnie de la fictive, a la date du relevé, avec les feries chomes du cas.
 fn contexte(feries: &Value) -> Contexte {
-    let mut ctx = Contexte::nouveau(&demo("demo-1285-grande"), Some(jour("2026-09-27"))).unwrap();
+    let mut ctx = Contexte::nouveau(&fictive("fictive-1285-grande"), Some(jour("2026-09-27"))).unwrap();
     let ent = ctx.entreprise.as_object_mut().unwrap();
     if feries == "<absent>" {
         ent.remove("jours_feries_chomes");

@@ -37,7 +37,7 @@ fn main() -> std::process::ExitCode {
             let ok = cfg!(any(windows, target_os = "macos")) || ecran("DISPLAY") || ecran("WAYLAND_DISPLAY");
             return if ok { std::process::ExitCode::SUCCESS } else { std::process::ExitCode::FAILURE };
         }
-        // Le relais de la mise a jour (`paie::maj`) : lance depuis prive/maj/, il bascule puis rouvre la fenetre.
+        // Le relais de la mise a jour (`paie::maj`) : lance depuis le `maj/` de l'installation, il bascule puis rouvre la fenetre.
         Some("maj-relais") => std::process::exit(paie::maj::relais(&args[1..])),
         // `puppetpaie maj` : chercher et preparer une version tout de suite (le bac a sable de l'atelier s'en sert).
         Some("maj") => std::process::exit(paie::maj::commande(&args[1..])),
@@ -48,10 +48,15 @@ fn main() -> std::process::ExitCode {
     let Some(_verrou) = paie::interface::prendre_instance(devant) else {
         return std::process::ExitCode::SUCCESS;
     };
+    // Une installation posee avant le lot U1 range ses compagnies fictives (`demo/` devient `fictives/`).
+    paie::interface::preparer_l_installation();
     // Une version prete s'applique ICI, avant toute fenetre : le relais attend notre fin, bascule et ouvre la neuve.
     if paie::maj::au_lancement() {
         return std::process::ExitCode::SUCCESS;
     }
+    // Sinon le logiciel cherche, en fond, une version plus recente pour l'installation : elle s'appliquera au prochain
+    // lancement (lot U1 : c'est le logiciel qui se met a jour, une fois par installation, pas une compagnie).
+    paie::maj::chercher_en_fond();
     let (fenetre, port) = match paie::interface::demarrer(paie::interface::MINUTES_VEILLE) {
         Ok(x) => x,
         Err(e) => {

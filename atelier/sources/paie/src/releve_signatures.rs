@@ -19,14 +19,14 @@
 //! NE LEVE PAS pour une boite absente : c'est un travail de fond, il dit ce qui l'empeche dans `incidents` et rend la
 //! main. C'est UNE FONCTION, que l'ouverture (lot I2b) appellera avec son `qui` et son client.
 //!
-//! En demonstration, les salaries « signent » (`boite_des_signatures`) : chaque demande partie depuis `delai` secondes
+//! Dans une compagnie fictive, les salaries « signent » (`boite_des_signatures`) : chaque demande partie depuis `delai` secondes
 //! recoit sa reponse -- celle que le bouton du courriel prepare --, et c'est la VRAIE releve qui la lit.
-//! `relever_signatures_demonstration` est `simulation.relever_signatures`, avec la garde de l'horloge (rien ne se joue
-//! dans une compagnie qui n'est pas une demonstration : le Python laissait ce garde a ses appelants).
+//! `relever_signatures_fictive` est `simulation.relever_signatures`, avec la garde de l'horloge (rien ne se joue
+//! dans une compagnie qui n'est pas une compagnie fictive : le Python laissait ce garde a ses appelants).
 //!
 //! Reutilise : `etats::signatures_attendues` (le journal), `courriel_lecture` (adresse, identifiant, date, texte ecrit),
 //! `routes_ecritures_g4::contrat_recu_avec` (la ligne `contrat-recu`), `contrat::contresigner`, `envoi::envoyer`,
-//! `simulation_courriels::BoiteQuiRepond` (la boite de la demonstration, aussi celle des fiches).
+//! `simulation_courriels::BoiteQuiRepond` (la boite de la compagnie fictive, aussi celle des fiches).
 //!
 //! Les phrases des incidents sont celles du Python ; la classe d'un refus peut differer.
 
@@ -41,7 +41,7 @@ use crate::courriel_lecture as lecture;
 use crate::envoi::{self, Message};
 use crate::etats::{self, erreur, py_str, R};
 use crate::fichiers::vrai;
-use crate::horloge::{Demonstration, QUI_HORLOGE};
+use crate::horloge::{HorlogeFictive, QUI_HORLOGE};
 use crate::journal::{self, Note};
 use crate::retours::Echec;
 use crate::routes_envois::maintenant;
@@ -50,9 +50,9 @@ use crate::simulation_courriels::BoiteQuiRepond;
 /// Les routes de ce module.
 pub const ROUTES: [&str; 1] = ["signatures-relever"];
 
-/// Secondes entre une demande de signature et le « Je signe » du salarie fictif de la demonstration
+/// Secondes entre une demande de signature et le « Je signe » du salarie fictif de la compagnie fictive
 /// (`simulation.DELAI_SIGNATURE`).
-pub const DELAI_DEMONSTRATION: i64 = crate::routes_fiches_courriel::DELAI_DEMONSTRATION;
+pub const DELAI_FICTIVE: i64 = crate::routes_fiches_courriel::DELAI_FICTIVE;
 
 const SUJET_CONTRESIGNE: &str = "Ton contrat signé - {spectacle}";
 const SUJET_CONTRESIGNE_PLURIEL: &str = "Tes contrats signés - {mois} {annee}";
@@ -128,8 +128,8 @@ impl ReleveSignatures {
 
 // ------------------------------------------------------------------ la route
 
-/// `signatures-relever` : `{"mois"?, "qui"?}` -> `ReleveSignatures.en_json`. La vraie boite (ou celle de la
-/// demonstration) : a n'appeler, hors d'une copie de demonstration, que pour relever pour de bon.
+/// `signatures-relever` : `{"mois"?, "qui"?}` -> `ReleveSignatures.en_json`. La vraie boite (ou celle d'une
+/// compagnie fictive) : a n'appeler, hors d'une compagnie fictive, que pour relever pour de bon.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     route_avec(o, ctx, nom, charge, None)
 }
@@ -147,9 +147,9 @@ pub fn route_avec(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge
     }
 }
 
-// ------------------------------------------------------------------ la demonstration
+// ------------------------------------------------------------------ la compagnie fictive
 
-/// `simulation.BoiteDesSignatures` : la boite de la demonstration, vue par la releve. Chaque demande de signature partie
+/// `simulation.BoiteDesSignatures` : la boite de la compagnie fictive, vue par la releve. Chaque demande de signature partie
 /// depuis `delai` secondes y trouve la reponse « Je signe » que le bouton de son courriel prepare (a defaut, une reponse
 /// au code dans les termes de `CORPS_REPONSE`) ; la vraie releve la lit, note la signature, contresigne le contrat et le
 /// renvoie au salarie.
@@ -185,11 +185,11 @@ pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
     Ok(boite)
 }
 
-/// `simulation.relever_signatures` : les salaries de la demonstration signent, et la VRAIE releve lit leur reponse. Rien
-/// ne se joue dans une compagnie qui n'est pas une demonstration (la garde de l'horloge) : la releve rendue est alors
+/// `simulation.relever_signatures` : les salaries de la compagnie fictive signent, et la VRAIE releve lit leur reponse. Rien
+/// ne se joue dans une compagnie qui n'est pas une compagnie fictive (la garde de l'horloge) : la releve rendue est alors
 /// vide.
-pub fn relever_signatures_demonstration(o: &HashMap<String, String>, ctx: &Contexte, delai: i64) -> R<ReleveSignatures> {
-    if Demonstration::verifier(&ctx.racine).is_none() {
+pub fn relever_signatures_fictive(o: &HashMap<String, String>, ctx: &Contexte, delai: i64) -> R<ReleveSignatures> {
+    if HorlogeFictive::verifier(&ctx.racine).is_none() {
         return Ok(ReleveSignatures::nouvelle());
     }
     let mut boite = boite_des_signatures(ctx, delai)?;
@@ -227,9 +227,9 @@ fn os(m: String) -> Echec {
 /// `operations_documents.relever_signatures` : cherche dans la boite les reponses « Je signe » encore attendues, et fait
 /// tout ce qui suit.
 ///
-/// `client` : la boite, ouverte ici quand l'appelant n'en donne pas -- celle de la demonstration (les salaries
+/// `client` : la boite, ouverte ici quand l'appelant n'en donne pas -- celle de la compagnie fictive (les salaries
 /// fictifs repondent) ou la vraie ; sans boite, un incident et rien d'autre. `mois` : seulement les demandes de ce mois.
-/// `qui` : `veille`, `interface`, `ligne de commande`, `demonstration`. Une erreur de transport ou de lecture se dit dans
+/// `qui` : `veille`, `interface`, `ligne de commande`, `horloge`. Une erreur de transport ou de lecture se dit dans
 /// `incidents` ; seul un refus que le Python laissait lever (la paie du contrat n'est plus dans la saisie, un fichier qui
 /// ne s'ecrit pas) remonte en `Err`.
 pub fn relever_signatures(o: &HashMap<String, String>, ctx: &Contexte, client: Option<&mut dyn Courriel>, mois: Option<&str>, qui: &str) -> R<ReleveSignatures> {
@@ -245,8 +245,8 @@ pub fn relever_signatures(o: &HashMap<String, String>, ctx: &Contexte, client: O
     let client: &mut dyn Courriel = match client {
         Some(c) => c,
         None if crate::routes_accueil::simulation_active(&ctx.racine) => {
-            // LA DEMONSTRATION : les reponses « Je signe » sont jouees, et tout ce qui suit est le vrai circuit.
-            ouverte.insert(Box::new(boite_des_signatures(ctx, DELAI_DEMONSTRATION)?)).as_mut()
+            // LA COMPAGNIE FICTIVE : les reponses « Je signe » sont jouees, et tout ce qui suit est le vrai circuit.
+            ouverte.insert(Box::new(boite_des_signatures(ctx, DELAI_FICTIVE)?)).as_mut()
         }
         None => {
             if !courriel::disponible(&ctx.racine) {

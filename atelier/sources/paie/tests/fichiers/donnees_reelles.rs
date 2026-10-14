@@ -1,4 +1,4 @@
-//! Le verrou des données réelles (règle de fond 9a) : ce qui sera public — `logiciel/`, `demo/`, `atelier/sources/` — n'écrit
+//! Le verrou des données réelles (règle de fond 9a) : ce qui sera public — `logiciel/`, `fictives/`, `atelier/sources/` — n'écrit
 //! pas un NIR qui ne soit pas inventé ; aucun test ne construit un chemin vers `prive/` ; la suite ne prend pas `prive/` pour
 //! racine. Tout ce qui part du dépôt hors de `prive/` (`atelier/` entier, `.claude/`, la racine : le dépôt public part de
 //! là, `atelier/PLAN-DEPOT-PUBLIC.md`, « La forme du dépôt public ») ne porte ni le SIREN ni le nom de la compagnie du poste,
@@ -20,7 +20,7 @@ const NOM_REEL: &str = concat!("ueu", "eue");
 /// Ce qui ne s'écrit pas à la main : ce que construit cargo (ses empreintes ressemblent à des NIR), les caches.
 const HORS_CODE: [&str; 4] = ["target", ".git", "__pycache__", ".pytest_cache"];
 const INVENTE: [&str; 3] = ["999", "123456", "000"];
-const PUBLIC: [&str; 3] = ["logiciel", "demo", "atelier/sources"];
+const PUBLIC: [&str; 3] = ["logiciel", "fictives", "atelier/sources"];
 
 /// Ce qu'un verrou cherche hors de `prive/`.
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -40,9 +40,9 @@ const EN_SUSPENS: [(Verrou, &str, &str); 8] = [
     (Verrou::Chemin, "^atelier/prive-dev/", "la copie de développement : des données de la compagnie du poste"),
     (Verrou::Nom, "^atelier/site/", "les pages du site de l'éditeur, qui nomment l'éditeur : ici ou dans le dépôt du site"),
     (Verrou::Chemin, "^atelier/bac-a-sable/", "le bac à sable de la mise à jour : son maj.json et ses sorties portent le poste"),
-    (Verrou::Chemin, r"^demo/[^/]+/journal/depots\.json$", "le moteur écrit la trace d'un dépôt par son chemin absolu (depot_acte.rs)"),
-    (Verrou::Chemin, r"^demo/[^/]+/journal/incidents\.json$", "des traces Python d'avant le portage ; un fichier propre au poste (PROPRES_AU_POSTE)"),
-    (Verrou::Chemin, r"^demo/[^/]+/sorties/.+\.description\.json$", "le moteur écrit le logo et la signature par leur chemin absolu (contrat.rs, bulletin.rs)"),
+    (Verrou::Chemin, r"^fictives/[^/]+/journal/depots\.json$", "le moteur écrit la trace d'un dépôt par son chemin absolu (depot_acte.rs)"),
+    (Verrou::Chemin, r"^fictives/[^/]+/journal/incidents\.json$", "des traces Python d'avant le portage ; un fichier propre au poste (PROPRES_AU_POSTE)"),
+    (Verrou::Chemin, r"^fictives/[^/]+/sorties/.+\.description\.json$", "le moteur écrit le logo et la signature par leur chemin absolu (contrat.rs, bulletin.rs)"),
 ];
 
 /// Un chemin absolu sous le dossier des utilisateurs de Windows, dans toutes ses écritures (`\`, `/`, `\\` d'un JSON).
@@ -301,7 +301,7 @@ fn le_verrou_reconnait_ce_qu_il_refuse() {
     for ailleurs in ["%LOCALAPPDATA%\\puppetpaie", "/home/user/depot", "C:/Program Files/PuppetPaie"] {
         assert!(!poste.is_match(ailleurs.as_bytes()), "{}", ailleurs);
     }
-    assert_eq!(suspendu(Verrou::Chemin, "demo/demo-x/sorties/2026-10/Contrats.description.json"), Some(EN_SUSPENS[7].1));
-    assert_eq!(suspendu(Verrou::Chemin, "demo/demo-x/config/entreprise.json"), None);
+    assert_eq!(suspendu(Verrou::Chemin, "fictives/fictive-x/sorties/2026-10/Contrats.description.json"), Some(EN_SUSPENS[7].1));
+    assert_eq!(suspendu(Verrou::Chemin, "fictives/fictive-x/config/entreprise.json"), None);
     assert_eq!(suspendu(Verrou::Nom, "atelier/bac-a-sable/LISEZ-MOI.md"), None);
 }

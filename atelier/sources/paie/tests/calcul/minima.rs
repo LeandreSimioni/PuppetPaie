@@ -1,9 +1,9 @@
-//! `minima::avertissements` et `minima::sous_le_smic` contre `minima.json` : les mois des demos, puis un balayage de
+//! `minima::avertissements` et `minima::sous_le_smic` contre `minima.json` : les mois des fictives, puis un balayage de
 //! paies fabriquees (conventions, metiers, lignes, fiches) par empreinte, sur un echantillon a graine fixe (decision E)
 //! et les cas lisibles ; et l'avertissement d'un cachet sous le minimum porte par `charger`.
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
-use crate::outils::{demo, fnv, lire_oracle, oracle, reecrire_oracles, tire};
+use crate::outils::{fictive, fnv, lire_oracle, oracle, reecrire_oracles, tire};
 use paie::calcul::Paie;
 use paie::contexte::Contexte;
 use paie::date::Jour;
@@ -20,11 +20,11 @@ fn attendus() -> Value {
 }
 
 fn contexte(racine: &str, date: &str) -> Contexte {
-    Contexte::nouveau(&demo(racine), Some(Jour::lire(date).unwrap())).unwrap()
+    Contexte::nouveau(&fictive(racine), Some(Jour::lire(date).unwrap())).unwrap()
 }
 
 fn paies(ctx: &Contexte, fichier: &str) -> Vec<Paie> {
-    charger(ctx, &demo(fichier)).unwrap().paies
+    charger(ctx, &fictive(fichier)).unwrap().paies
 }
 
 fn en_json<T>(r: Result<Vec<Avis>, String>, f: impl Fn(&Avis) -> T) -> Value
@@ -46,7 +46,7 @@ fn lire(ctx: &Contexte, p: &Paie, ctx_smic: &Contexte) -> Value {
 }
 
 #[test]
-fn les_mois_des_demos() {
+fn les_mois_des_fictives() {
     let att = attendus();
     let date = att["date"].as_str().unwrap();
     let mois: Vec<Value> = att["mois"]
@@ -62,10 +62,10 @@ fn les_mois_des_demos() {
     oracle("minima.json", "/mois", &Value::Array(mois));
 }
 
-/// Aucun mois des demonstrations n'avertit : un cachet de 20,00 le fait, et `charger` le dit sur la paie.
+/// Aucun mois des compagnies fictives n'avertit : un cachet de 20,00 le fait, et `charger` le dit sur la paie.
 #[test]
 fn charger_porte_l_avertissement_d_un_cachet_sous_le_minimum() {
-    let ctx = contexte("demo-3090-petite", "2026-10-02");
+    let ctx = contexte("fictive-3090-petite", "2026-10-02");
     let chemin = crate::outils::dossier_de_test("minima", "cachet-sous-le-minimum").join("2026-03.json");
     let cachet = json!({"rubrique": "cachet", "quantite": 1, "taux": 20.0, "lieu": "Scene fictive", "dates": ["2026-03-24"]});
     let e = json!({"salarie": "Brioche", "spectacle": "256Z00920011", "debut": "2026-03-24", "fin": "2026-03-24", "numero": "BR1.26.09", "lignes": [cachet]});

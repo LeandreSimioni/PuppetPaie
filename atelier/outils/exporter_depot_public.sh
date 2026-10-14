@@ -63,7 +63,7 @@ bloc = """
 # LE DEPOT PUBLIC (bloc ajoute par atelier/outils/exporter_depot_public.sh) :
 # les donnees d'une compagnie vivent a cote du code et n'y entrent jamais
 # (a la racine seulement : le bac a sable de l'atelier garde son `prive/`,
-# qui est une demonstration copiee).
+# qui est une compagnie fictive copiee).
 # ---------------------------------------------------------------------------
 /prive/
 /compagnies/

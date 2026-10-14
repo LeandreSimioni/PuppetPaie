@@ -1,7 +1,7 @@
 //! `feries` (Paques, jours feries, chomes) et `permanents` (conges, fin de contrat, preavis et indemnites legales,
 //! maintien de salaire) contre `permanents.json`. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle. Et le preavis d'un
 //! CDD rompu avant son terme (`solde::duree_du_preavis`, C. trav. L1243-1 et L1243-2), et l'indemnite d'un preavis non
-//! effectue, motif par motif (`solde::solde_de_tout_compte`, lot P1), sur `demo-3090-petite`.
+//! effectue, motif par motif (`solde::solde_de_tout_compte`, lot P1), sur `fictive-3090-petite`.
 
 use crate::outils::{egal, fnv, lire_oracle, oracle_selon};
 use paie::contrats::{nature, Nature};
@@ -218,7 +218,7 @@ fn le_solde_d_un_cdd_rompu_avant_son_terme_ne_paie_pas_le_preavis_du_licenciemen
     // `solde::duree_du_preavis`, que le solde de tout compte et `paie preavis` lisent : un CDD de plus de deux ans rompu
     // pour faute grave (L1243-1) n'a aucun preavis ; rompu par le salarie (L1243-2), la loi en donne un en jours que le
     // moteur ne compte pas, sans la convention du licenciement. Textes : `code-du-travail/articles-20261013.md`.
-    let ctx = paie::contexte::Contexte::nouveau(&crate::outils::demo("demo-3090-petite"), Some(Jour::lire("2026-08-31").unwrap())).unwrap();
+    let ctx = paie::contexte::Contexte::nouveau(&crate::outils::fictive("fictive-3090-petite"), Some(Jour::lire("2026-08-31").unwrap())).unwrap();
     let e = |motif: &str| json!({"salarie": "LEMERCIER", "nature": "cdd", "debut": "2019-03-04", "fin": "2026-08-20", "motif_rupture": motif});
     let anciennete = p::anciennete_mois(&Jour::lire("2019-03-04").unwrap(), &Jour::lire("2026-08-20").unwrap());
     let faute = paie::solde::duree_du_preavis(&ctx, &e("095"), anciennete, Some("095")).unwrap();
@@ -239,7 +239,7 @@ fn le_solde_d_un_cdd_rompu_avant_son_terme_ne_paie_pas_le_preavis_du_licenciemen
 /// Le solde de tout compte d'un contrat fini le 20/08/2026 pour `motif`, preavis declare non effectue (trois mois saisis,
 /// au moins ce que la loi et la convention donnent), salaire de 2 000 EUR : les lignes, et les avis mis bout a bout.
 fn solde_sans_preavis_effectue(nature: &str, motif: &str) -> (Vec<Value>, String) {
-    let ctx = paie::contexte::Contexte::nouveau(&crate::outils::demo("demo-3090-petite"), Some(Jour::lire("2026-08-31").unwrap())).unwrap();
+    let ctx = paie::contexte::Contexte::nouveau(&crate::outils::fictive("fictive-3090-petite"), Some(Jour::lire("2026-08-31").unwrap())).unwrap();
     let e = json!({"salarie": "LEMERCIER", "numero": "P1", "nature": nature, "debut": "2019-03-04", "fin": "2026-08-20",
                    "motif_rupture": motif, "salaire_mensuel": 2000, "preavis_non_effectue": true, "preavis_mois": 3});
     let (lignes, avis) = paie::solde::solde_de_tout_compte(&ctx, &e, "2026-08", &[]).unwrap();
@@ -318,7 +318,7 @@ fn une_mise_a_la_retraite_paie_comme_avant_et_dit_qu_aucun_texte_ne_tranche() {
 /// Le solde d'un contrat `nature` commence le `debut`, fini le 20/08/2026 pour `motif`, la rupture notifiee le
 /// `notification`, avec les `champs` en plus : les lignes et les avis, ou le refus.
 fn solde_d_une_fin_d_essai(nature: &str, motif: &str, debut: &str, notification: &str, champs: Value) -> Result<(Vec<Value>, String), String> {
-    let ctx = paie::contexte::Contexte::nouveau(&crate::outils::demo("demo-3090-petite"), Some(Jour::lire("2026-08-31").unwrap())).unwrap();
+    let ctx = paie::contexte::Contexte::nouveau(&crate::outils::fictive("fictive-3090-petite"), Some(Jour::lire("2026-08-31").unwrap())).unwrap();
     let mut e = json!({"salarie": "LEMERCIER", "numero": "P2", "nature": nature, "debut": debut, "fin": "2026-08-20",
                        "motif_rupture": motif, "salaire_mensuel": 3100, "notification_rupture": notification});
     for (k, v) in champs.as_object().unwrap() {

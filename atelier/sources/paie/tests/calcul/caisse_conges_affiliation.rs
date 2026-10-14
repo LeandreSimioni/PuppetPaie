@@ -8,10 +8,10 @@
 //! de travail ») ; CSS L. 243-1-3, D. 243-0-2 (les majorations, 11,5 % ; 10 % pour la taxe d'apprentissage des seuls
 //! intermittents de L. 6331-55) ; lettre circulaire Acoss 2013-019, annexe 1, R2 et R5.
 //!
-//! Sur une copie de la demonstration figee `demo-3090-grande` (compagnie inventee), dans le dossier temporaire des
+//! Sur une copie de la compagnie fictive figee `fictive-3090-grande` (compagnie inventee), dans le dossier temporaire des
 //! tests : sa surcouche y recoit un versement mobilite fictif, la fiche de Deburau ce qu'un permanent demande (sante,
 //! anciennete dans la branche), et son config/organismes.json le CTP 332 des permanents tel que le recompose
-//! `donnees/organismes-base.json`. Rien n'est ecrit dans `tests/donnees/demo/`.
+//! `donnees/organismes-base.json`. Rien n'est ecrit dans `tests/donnees/fictives/`.
 
 use paie::caisse_conges::{affilie, douze_mois_ou_plus};
 use paie::calcul::Paie;
@@ -24,11 +24,11 @@ use paie::num::Decimal;
 use serde_json::{json, Value};
 use crate::outils::{base81, chemin_unique, contrat, ctp, dec, ecrire, lire, valeur, versement, Copie};
 
-/// La config de demo-3090-grande, douze salaries depuis cinq ans : le versement mobilite est du (CGCT L. 2333-64), et la
+/// La config de fictive-3090-grande, douze salaries depuis cinq ans : le versement mobilite est du (CGCT L. 2333-64), et la
 /// formation des permanents passe a 1 % (code du travail L. 6331-3), que la compagnie ecrit dans sa surcouche ; Deburau
 /// a la sante SVP et la prevoyance de branche. `recompose` : le fichier des organismes recompose (CTP 332 des permanents).
 fn copie(recompose: bool) -> Copie {
-    let c = Copie::config_de("demo-3090-grande");
+    let c = Copie::config_de("fictive-3090-grande");
     let r = &c.0;
     let (mut bar, mut sal, mut orgs, mut eff) =
         (lire(r, "config/baremes/2026.json"), lire(r, "config/salaries.json"), lire(r, "config/organismes.json"), lire(r, "config/effectifs.json"));

@@ -1,7 +1,7 @@
 //! Les routes qui ECRIVENT du lot G4 (`moteur/web.py`, `operations_paies`, `operations_documents`,
 //! `operations_retours`, `operations_exports`, `operations_ecritures`, `operations_casc`, `simulation`) :
 //! `valider-paie`, `contrat-recu`, `journal-reprise`, `ecrire-documents`, `exporter`, `retenir-logiciel`,
-//! `casc-regularise` et `demonstration-courriels`.
+//! `casc-regularise` et `courriels-fictifs`.
 //!
 //! Memes fichiers ecrits, memes reponses que le Python (ce qui compte, ce sont les VALEURS). Un refus garde sa
 //! phrase quand elle est utile a la page ; la classe de l'exception peut differer.
@@ -26,7 +26,7 @@ use crate::retours::Echec;
 use crate::routes_ouverture::Refus;
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 8] = ["valider-paie", "contrat-recu", "retenir-logiciel", "casc-regularise", "demonstration-courriels", "journal-reprise", "ecrire-documents", "exporter"];
+pub const ROUTES: [&str; 8] = ["valider-paie", "contrat-recu", "retenir-logiciel", "casc-regularise", "courriels-fictifs", "journal-reprise", "ecrire-documents", "exporter"];
 
 /// Une route de ce module.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -38,7 +38,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "exporter" => exporter(ctx, charge),
         "ecrire-documents" => crate::ecrire_documents::ecrire_documents(ctx, charge),
         "journal-reprise" => crate::reprise_journal::reprise(ctx, charge, &maintenant()),
-        "demonstration-courriels" => crate::simulation_courriels::demonstration_courriels(ctx, charge),
+        "courriels-fictifs" => crate::simulation_courriels::courriels_fictifs(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -155,8 +155,8 @@ fn contrat_recu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     contrat_recu_avec(o, ctx, mois, salarie, debut, numero.as_deref(), recu, "interface", None)
 }
 
-/// `contrat_recu(ctx, mois, salarie, debut, recu=..., qui=...)` : la meme note, `qui` donne (l'horloge de la
-/// demonstration passe `demonstration`).
+/// `contrat_recu(ctx, mois, salarie, debut, recu=..., qui=...)` : la meme note, `qui` donne (l'horloge d'une
+/// compagnie fictive passe `horloge`).
 pub(crate) fn contrat_recu_par(
     o: &HashMap<String, String>,
     ctx: &Contexte,

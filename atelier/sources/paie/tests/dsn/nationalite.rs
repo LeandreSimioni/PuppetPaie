@@ -19,7 +19,7 @@ const JOUR: &str = "2026-10-03";
 
 /// La DSN de juillet 2026 de la 3090-grande, les fiches retouchées.
 fn dsn_de_juillet(test: &str, retouches: &[(&str, Value)]) -> Result<String, String> {
-    let r = compagnie::ses_dsn("demo-3090-grande", &[], &outils::dossier_de_test("nationalite", test));
+    let r = compagnie::ses_dsn("fictive-3090-grande", &[], &outils::dossier_de_test("nationalite", test));
     outils::retoucher_fiches(&r, retouches);
     outils::dsn_du_mois(&r, "2026-07", "2026-07-28")
 }
@@ -51,7 +51,7 @@ fn de(a: &str, b: &str) -> (Option<String>, Option<String>) {
 
 /// La 3090-petite (configuration, août et septembre 2026), pour les routes.
 fn petite(test: &str) -> PathBuf {
-    compagnie::config_et_mois("demo-3090-petite", &["2026-08", "2026-09"], &outils::dossier_de_test("nationalite", test))
+    compagnie::config_et_mois("fictive-3090-petite", &["2026-08", "2026-09"], &outils::dossier_de_test("nationalite", test))
 }
 
 fn route(racine: &Path, nom: &str, charge: Value) -> Value {

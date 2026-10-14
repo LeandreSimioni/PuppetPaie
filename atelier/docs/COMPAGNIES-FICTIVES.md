@@ -1,5 +1,13 @@
 # Compagnies fictives : le jeu de problemes
 
+Deux sortes de compagnies fictives (lot U1, 14/10/2026 : le mot « demonstration » a quitte le logiciel) :
+- **celles livrees avec le logiciel**, dans `fictives/` (`fictive-1285-grande`, `fictive-1285-petite`,
+  `fictive-3090-grande`, `fictive-3090-petite`), payees de janvier 2025 a decembre 2026 ; leur marqueur
+  (`COPIE-DE-DEVELOPPEMENT.json`, `"copie_de": "compagnie fictive …"`) fait jouer leurs envois. Les tests en lisent la
+  copie figee, `atelier/sources/paie/tests/donnees/fictives/`. Une installation posee avant le lot U1 les a sous
+  `demo/demo-*` : le logiciel renomme ce dossier au lancement (`interface::compagnies::ranger_les_fictives`) ;
+- **le jeu de problemes** ci-dessous, monte par les tests et par `outils/compagnies_fictives.py`.
+
 Produit par `outils/compagnies_fictives.py --tout` sur le mois 2026-06.
 Cet outil ne repare rien : la liste EST le travail a venir, et ce qui en sort est le travail fait.
 

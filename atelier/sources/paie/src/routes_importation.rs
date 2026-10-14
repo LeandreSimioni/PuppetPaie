@@ -130,8 +130,15 @@ fn ecarts(nom: &str, fiche: &Value, declare: &Map<String, Value>, mois: &str) ->
         }
         let a = fiche.get(&c.cle).unwrap_or(&Value::Null);
         let b = &declare[&c.cle];
-        if a.is_null() || a.as_str() == Some("") || py_str(a) == py_str(b) {
+        // Une case vide ou « A COMPLETER » n'est pas un ecart : l'import la complete (`importation_completer`).
+        if crate::importation_completer::vide(Some(a)) || py_str(a) == py_str(b) {
             continue;
+        }
+        // Une structure (la banque) ne differe que par ce que la DSN en declare : ses notes et autres cles restent.
+        if let (Value::Object(x), Value::Object(y)) = (a, b) {
+            if y.iter().all(|(k, v)| x.get(k).map(py_str) == Some(py_str(v))) {
+                continue;
+            }
         }
         out.insert(c.cle.clone(), json!({"fiche": a, "dsn": b, "mois": mois}));
     }
@@ -167,6 +174,25 @@ fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
     Ok(f)
 }
 
+/// La fiche Entreprise que les DSN donnent : ce qu'elles declarent de l'entreprise, son Siret, la suite de ses licences.
+fn fiche_entreprise(lecture: &importation::LectureDsn) -> R<Map<String, Value>> {
+    let mut e = lecture.entreprise.clone();
+    let (siren, nic) = (e.get("siren").filter(|v| vrai(v)).cloned(), e.get("nic").filter(|v| vrai(v)).cloned());
+    if let (Some(s), Some(n)) = (siren, nic) {
+        e.insert("siret".into(), json!(format!("{}{}", py_str(&s), py_str(&n))));
+    }
+    if !lecture.licences.is_empty() {
+        let l: Vec<Value> = lecture.licences.iter().map(|(m, n)| json!({"depuis": format!("{}-01", m), "numero": n})).collect();
+        e.insert("licence_spectacle".into(), Value::Array(l));
+    }
+    let mut e = crate::champs::combler_affichage("entreprise", &e)?;
+    if e.get("raison_sociale").is_some_and(vrai) && !e.get("nom_affichage").is_some_and(vrai) {
+        let t = titre_de(e.get("raison_sociale"));
+        e.insert("nom_affichage".into(), json!(t));
+    }
+    Ok(e)
+}
+
 /// Le dossier de l'export demandé : `charge.export`, ou celui qu'on trouve a cote des donnees.
 pub(crate) fn export_de(ctx: &Contexte, charge: &Value) -> R<PathBuf> {
     let export_v = charge.get("export").filter(|v| vrai(v));
@@ -192,6 +218,8 @@ pub(crate) struct ACreer {
 pub(crate) struct Apercu {
     pub(crate) reponse: Map<String, Value>,
     pub(crate) a_creer: Vec<ACreer>,
+    /// Les fiches existantes que l'import completerait (`importation_completer`).
+    pub(crate) a_completer: Vec<crate::importation_completer::ACompleter>,
     pub(crate) contrats: Vec<importation::ContratAtteste>,
     /// `imp._paies` : les versements declares par les DSN, rattaches a une fiche (ou `<a creer>`).
     pub(crate) paies: Vec<Value>,
@@ -325,27 +353,30 @@ pub(crate) fn apercu_lu(
         None => Default::default(),
     };
     let mut avertissements: Vec<String> = lecture.illisibles.iter().map(|f| format!("DSN illisible, ignoree : {}", f)).collect();
+    // LA FICHE NE PORTE QU'UN ETABLISSEMENT (celui de son NIC, `champs-base.json`, `etablissements`) : des DSN qui en
+    // declarent plusieurs, ou dont le siege n'est pas l'etablissement declare, le disent (lot I2, 3b).
+    if lecture.etablissements.len() > 1 {
+        avertissements.push(format!(
+            "les DSN déclarent plusieurs établissements (S21.G00.11.001 : {}) : la fiche Entreprise n'en porte qu'un, celui de son NIC ; le moteur ne déclare que celui-là",
+            lecture.etablissements.iter().cloned().collect::<Vec<_>>().join(", ")
+        ));
+    }
+    if lecture.nics_siege.iter().any(|n| !lecture.etablissements.contains(n)) && !lecture.etablissements.is_empty() {
+        avertissements.push(format!(
+            "le siège de l'entreprise (S21.G00.06.002 : {}) n'est pas l'établissement déclaré (S21.G00.11.001) : la fiche Entreprise porte l'établissement, et le moteur déclare son NIC aux deux places",
+            lecture.nics_siege.iter().cloned().collect::<Vec<_>>().join(", ")
+        ));
+    }
 
     // 1. L'entreprise : seulement si la fiche est vide.
     let mut entreprise = Value::Null;
     let mut a_creer = 0usize;
     let mut a_creer_liste: Vec<ACreer> = Vec::new();
+    let mut a_completer: Vec<crate::importation_completer::ACompleter> = Vec::new();
+    let origine_dsn = |mois: &str| json!({"source": "dsn", "mois": mois});
     if !lecture.entreprise.is_empty() {
+        let e = fiche_entreprise(&lecture)?;
         if !ctx.entreprise.get("siren").is_some_and(|s| vrai(s) && !py_str(s).trim().is_empty()) {
-            let mut e = lecture.entreprise.clone();
-            let (siren, nic) = (e.get("siren").filter(|v| vrai(v)).cloned(), e.get("nic").filter(|v| vrai(v)).cloned());
-            if let (Some(s), Some(n)) = (siren, nic) {
-                e.insert("siret".into(), json!(format!("{}{}", py_str(&s), py_str(&n))));
-            }
-            if !lecture.licences.is_empty() {
-                let l: Vec<Value> = lecture.licences.iter().map(|(m, n)| json!({"depuis": format!("{}-01", m), "numero": n})).collect();
-                e.insert("licence_spectacle".into(), Value::Array(l));
-            }
-            let mut e = crate::champs::combler_affichage("entreprise", &e)?;
-            if e.get("raison_sociale").is_some_and(vrai) && !e.get("nom_affichage").is_some_and(vrai) {
-                let t = titre_de(e.get("raison_sociale"));
-                e.insert("nom_affichage".into(), json!(t));
-            }
             let anomalies = crate::champs::verifier_fiche("entreprise", &e)?;
             let libelle = e.get("raison_sociale").map_or("?".to_string(), py_str);
             a_creer_liste.push(ACreer { nom: "entreprise", rang: None, donnees: e.clone() });
@@ -355,6 +386,9 @@ pub(crate) fn apercu_lu(
             let libelle = ctx.entreprise.get("raison_sociale").map_or(String::new(), py_str);
             let ec = ecarts("entreprise", &ctx.entreprise, &lecture.entreprise, &lecture.dernier_mois)?;
             entreprise = fiche_importee("entreprise", None, &libelle, "existante", ec, Vec::new(), json!({}));
+            let champs = crate::importation_completer::champs_a_completer("entreprise", &ctx.entreprise, &e)?;
+            crate::importation_completer::noter(&mut entreprise, &champs, origine_dsn(&lecture.dernier_mois));
+            crate::importation_completer::ajouter(&mut a_completer, "entreprise", None, &champs);
         }
     }
 
@@ -377,7 +411,11 @@ pub(crate) fn apercu_lu(
         );
         if let Some(cle) = par_nir.get(&decl.nir) {
             let ec = ecarts("salarie", &ctx.salaries[cle], &decl.fiche, &decl.mois)?;
-            salaries.push(fiche_importee("salarie", Some(cle), &libelle, "existante", ec, Vec::new(), json!({})));
+            let mut entree = fiche_importee("salarie", Some(cle), &libelle, "existante", ec, Vec::new(), json!({}));
+            let champs = crate::importation_completer::champs_a_completer("salarie", &ctx.salaries[cle], &fiche_salarie(decl)?)?;
+            crate::importation_completer::noter(&mut entree, &champs, origine_dsn(&decl.mois));
+            crate::importation_completer::ajouter(&mut a_completer, "salarie", Some(cle), &champs);
+            salaries.push(entree);
             continue;
         }
         let donnees = fiche_salarie(decl)?;
@@ -499,7 +537,7 @@ pub(crate) fn apercu_lu(
             paies_nouvelles += 1;
         }
     }
-    let rien_a_faire = a_creer == 0 && contrats_nouveaux == 0 && paies_nouvelles == 0;
+    let rien_a_faire = a_creer == 0 && a_completer.is_empty() && contrats_nouveaux == 0 && paies_nouvelles == 0;
     // `_paies_declarees` : DEUX SOURCES POUR UNE LIGNE -- les montants viennent de la DSN, le numero d'objet peut
     // venir de l'AEM (rapprochee sur salarie, debut, fin).
     let objets_aem: HashMap<(String, String, String), String> = contrats
@@ -555,7 +593,7 @@ pub(crate) fn apercu_lu(
     }) else {
         unreachable!("un objet")
     };
-    Ok(Apercu { reponse, a_creer: a_creer_liste, contrats, paies, engagements_bulletins: Vec::new(), source: source.to_string() })
+    Ok(Apercu { reponse, a_creer: a_creer_liste, a_completer, contrats, paies, engagements_bulletins: Vec::new(), source: source.to_string() })
 }
 
 /// `int(x)` d'une valeur JSON : un entier, un reel, un texte qui se lit comme un entier.

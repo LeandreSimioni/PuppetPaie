@@ -5,9 +5,9 @@
 //! « regularisation des periodes anterieures a 2025 » et attend « 131 - Cotisation regime unifie Agirc-Arrco » et
 //! « 132 - Cotisation Apec » (p. 302, lignes 79-81 ; liste p. 305) ; CCH-12 de 81.004 (p. 309) : 131 et 132 portent
 //! chacune leur montant. Agirc-Arrco ne renseigne 81.003 que « pour une reduction, exoneration » (p. 307).
-//! Le rejeu des mois deposes des demonstrations : `demonstrations.rs`.
+//! Le rejeu des mois deposes des compagnies fictives : `compagnies fictives.rs`.
 
-use crate::outils::{self, compagnie, dec, demo, paires as lignes, versement};
+use crate::outils::{self, compagnie, dec, fictive, paires as lignes, versement};
 use paie::calcul::Paie;
 use paie::contexte::Contexte;
 use paie::date::Jour;
@@ -96,7 +96,7 @@ pub(crate) fn versement_20_et_lignes(dsn: &str, siret: &str, codes: &[&str]) -> 
 #[test]
 fn un_cadre_et_un_non_cadre_permanents_declarent_131_et_132_aux_montants_du_bulletin() {
     // Montansier (cadre, CDI) a 5 000 EUR : tranche 2, CET et Apec non nulles. Nicolet (non cadre, CDI).
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     let s = saisie(
         &ctx,
         json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": [
@@ -135,7 +135,7 @@ fn un_cadre_et_un_non_cadre_permanents_declarent_131_et_132_aux_montants_du_bull
 
     // Le versement Agirc-Arrco : la copie figee nomme encore le seul 105 dans `config/organismes.json` (un fichier
     // compose avant ce lot) ; il porte quand meme les 131 et 132, et la reduction generale (106).
-    let orgs: Value = serde_json::from_slice(&std::fs::read(demo("demo-3090-grande").join("config/organismes.json")).unwrap()).unwrap();
+    let orgs: Value = serde_json::from_slice(&std::fs::read(fictive("fictive-3090-grande").join("config/organismes.json")).unwrap()).unwrap();
     let audiens = orgs["versements"].as_array().unwrap().iter().find(|v| v["siret"] == json!(AUDIENS_RETRAITE)).unwrap();
     assert_eq!(audiens["codes81"], json!(["105", "106"]));
     let (verse, lignes) = versement_20_et_lignes(&dsn, AUDIENS_RETRAITE, &["131", "132", "106"]);
@@ -146,11 +146,11 @@ fn un_cadre_et_un_non_cadre_permanents_declarent_131_et_132_aux_montants_du_bull
 #[test]
 fn un_cadre_intermittent_declare_sa_retraite_en_131_et_son_apec_en_132() {
     // Biancolelli (artiste) et Servandoni (technicien) passes cadres dans une copie de la compagnie ; Clairon reste non
-    // cadre. Juillet 2026 de la demonstration.
+    // cadre. Juillet 2026 de la compagnie fictive.
     // Cadre aussi au classement conventionnel (04) : la CCH-11 du bloc 40 (p. 182) refuse un cadre (40.003 = 01)
     // reste classe 05, et le moteur la verifie avant de produire (vague V2b).
     let cadre = json!({"statut_categoriel_rc": "01", "statut_conventionnel": "04"});
-    let racine = compagnie::ses_dsn("demo-3090-grande", &[], &outils::dossier_de_test("agirc_arrco", "cadres"));
+    let racine = compagnie::ses_dsn("fictive-3090-grande", &[], &outils::dossier_de_test("agirc_arrco", "cadres"));
     outils::retoucher_fiches(&racine, &[("BIANCOLELLI", cadre.clone()), ("SERVANDONI", cadre)]);
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-07-28").unwrap())).unwrap();
     let s = charger(&ctx, &racine.join("paies/2026-07.json")).unwrap();
@@ -185,7 +185,7 @@ fn le_taux_d_une_organisation_patronale_se_pose_sur_le_131() {
     use paie::contrats::nature;
     use paie::emplois::{emploi_de, EmploiEngagement};
     let jour = Jour::lire("2026-07-15").unwrap();
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(jour)).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(jour)).unwrap();
     let mut bar = ctx.bareme(&jour).unwrap();
     bar["_entreprise"]["organisation_patronale"] = json!("SYNDEAC");
     bar["_entreprise"]["organisation_patronale_depuis"] = json!("2020-01-01");
@@ -297,11 +297,11 @@ fn taux3(x: f64) -> String {
 
 #[test]
 fn un_intermittent_non_cadre_declare_sa_part_patronale_t1_en_142_a_l_urssaf() {
-    // Juillet 2026 de la demonstration : Clairon (artiste), Chaminade et Servandoni (techniciens), non cadres. Le 131
+    // Juillet 2026 de la compagnie fictive : Clairon (artiste), Chaminade et Servandoni (techniciens), non cadres. Le 131
     // porte un taux sur le brut ; le 142, sous le meme bloc 78, la part patronale de la ligne de retraite T1 du bulletin,
     // son assiette et son taux patronal. Aucun 146 : un non cadre intermittent n'a pas de tranche 2.
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &demo("demo-3090-grande").join("paies/2026-07.json")).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
+    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     sig_18(&dsn, "3090-grande 2026-07");
     for numero in ["CL6.26.07", "CH8.26.04", "SE9.26.05"] {
@@ -332,7 +332,7 @@ fn un_cadre_intermittent_au_dela_de_la_tranche_1_declare_142_et_146() {
     // 11,97). 146 de la T2 : 30 x 12,95 % = 3,89 + 30 x 1,62 % = 0,49 -> 4,38 (la ligne : 3,89 + 0,55 = 4,44). 146 de la
     // CET : le reste, 0,46 + 0,06 = 0,52, sur 220 + 30, au taux de 0,21.
     // Un cadre se classe 04 (CCH-11 du bloc 40, lot V2b) : la fiche le dit, sinon la DSN refuse.
-    let racine = compagnie::ses_dsn("demo-3090-grande", &[], &outils::dossier_de_test("agirc_arrco", "142-146"));
+    let racine = compagnie::ses_dsn("fictive-3090-grande", &[], &outils::dossier_de_test("agirc_arrco", "142-146"));
     outils::retoucher_fiches(&racine, &[("BIANCOLELLI", json!({"statut_categoriel_rc": "01", "statut_conventionnel": "04"}))]);
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     let s = saisie(
@@ -375,7 +375,7 @@ fn un_cadre_intermittent_au_dela_de_la_tranche_1_declare_142_et_146() {
 fn un_cadre_permanent_declare_142_sous_la_tranche_1_et_146_sous_la_tranche_2_et_pour_la_cet() {
     // Montansier (cadre, CDI) a 5 000 EUR : tranche 1 (le plafond), tranche 2, CET sur le brut entier. Nicolet (non cadre)
     // a 2 310 EUR : sous le plafond, sa tranche 2 est nulle, pas de 146.
-    let ctx = Contexte::nouveau(&demo("demo-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
+    let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-10-28").unwrap())).unwrap();
     let s = saisie(
         &ctx,
         json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": [
@@ -437,7 +437,7 @@ fn x_taux(x: &L81) -> &str {
 fn le_142_porte_le_taux_patronal_d_une_organisation_patronale() {
     // SYNDEAC : `bareme::poser_t1` pose 10,16 % (CEG en plus) sur la retraite T1 d'un artiste ; le 142 porte la part et le
     // taux patronaux de cette ligne-la.
-    let racine = compagnie::ses_dsn("demo-3090-grande", &[], &outils::dossier_de_test("agirc_arrco", "syndeac"));
+    let racine = compagnie::ses_dsn("fictive-3090-grande", &[], &outils::dossier_de_test("agirc_arrco", "syndeac"));
     let mut e = outils::lire(&racine, "config/entreprise.json");
     e["organisation_patronale"] = json!("SYNDEAC");
     e["organisation_patronale_depuis"] = json!("2020-01-01");

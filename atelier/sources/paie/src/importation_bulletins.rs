@@ -51,6 +51,7 @@ use crate::contexte::Contexte;
 use crate::date::Jour;
 use crate::etats::{erreur, py_str, R};
 use crate::fichiers::vrai;
+use crate::importation_completer as completer;
 use crate::importation_tri::Sorte;
 use crate::num::Decimal;
 use crate::routes_importation::{self as ri, ACreer, Apercu, CleEngagement};
@@ -218,6 +219,15 @@ fn adresse_lue(rangs: &[String]) -> Option<(String, String, String)> {
     let rue = rangs[..i].join(", ");
     let (cp, commune) = rangs[i].split_at(5);
     Some((rue, cp.to_string(), commune.trim().to_string()))
+}
+
+/// LE COMPTE URSSAF imprime apres « Urssaf : » (lot I2, 3e) : ses chiffres, sans espaces. C'est la case que le moteur
+/// imprime de `urssaf_compte` sous la meme etiquette (`bulletin.rs`) ; sur les bulletins CoolPaie du poste, la valeur
+/// imprimee a cette place est celle du `urssaf_compte` de la fiche (releve du 14/10/2026 sur trois bulletins de 2022 a
+/// 2026, valeurs non recopiees) -- une inference pour un autre logiciel. Ce qui n'est pas que des chiffres ne se reprend pas.
+fn urssaf_lu(b: &BulletinLu) -> Option<String> {
+    let t: String = b.entreprise.urssaf.as_deref()?.chars().filter(|c| !c.is_whitespace()).collect();
+    (!t.is_empty() && t.chars().all(|c| c.is_ascii_digit())).then_some(t)
 }
 
 /// L'IDCC d'une convention imprimee (« IDCC n° 3090 - ... ») ; rien si le texte ne le dit pas.
@@ -493,18 +503,31 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         if let Some(cle) = par_nir.get(nir) {
             let fiche = &ctx.salaries[cle];
             let ec = ecarts_salarie(fiche, &siens, &chemin_de);
+            // Ce qui y est vide, de ce que les bulletins impriment (la fiche qu'ils creeraient) ; ce que la DSN complete
+            // deja garde la valeur de la DSN (`completer::ajouter`).
+            let champs = completer::champs_a_completer("salarie", fiche, &fiche_salarie(nir, &siens)?)?;
             let liste = reponse.get_mut("salaries").and_then(Value::as_array_mut).expect("une liste");
-            match liste.iter_mut().find(|e| e.get("cle").and_then(Value::as_str) == Some(cle.as_str())) {
-                Some(e) => fusionner_ecarts(e, ec),
+            let rang = match liste.iter().position(|e| e.get("cle").and_then(Value::as_str) == Some(cle.as_str())) {
+                Some(i) => {
+                    fusionner_ecarts(&mut liste[i], ec);
+                    i
+                }
                 None => {
                     let libelle = format!("{} {}", fiche.get("nom").map_or(String::new(), py_str), ri::titre_de(fiche.get("prenom")));
                     liste.push(ri::fiche_importee("salarie", Some(cle), &libelle, "existante", ec, Vec::new(), json!({})));
+                    liste.len() - 1
                 }
-            }
+            };
+            noter_par_champ(&mut liste[rang], &champs, &siens, &chemin_de);
+            completer::ajouter(&mut ap.a_completer, "salarie", Some(cle), &champs);
             continue;
         }
         if nirs_dsn.contains(nir) {
-            continue; // la DSN la cree
+            // LA DSN LA CREE, LE BULLETIN LA COMPLETE (lot I2, 3d) : ce que la DSN ne porte pas (le n° Congés Spectacles,
+            // une adresse qu'elle n'a pas) vient du bulletin ; ce que la DSN donne reste.
+            let proposees = fiche_salarie(nir, &siens)?;
+            completer_a_creer(&mut ap.a_creer, &mut reponse, "salarie", Some(nir), &proposees)?;
+            continue;
         }
         let donnees = fiche_salarie(nir, &siens)?;
         let anomalies = crate::champs::verifier_fiche("salarie", &donnees)?;
@@ -518,13 +541,20 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
     // 6. L'entreprise : creee des bulletins si ni la fiche ni une DSN ne la donne ; sinon ses ecarts.
     if let Some(dernier) = lus.iter().rev().find(|l| siret_lu(&l.b).is_some()).or(lus.last()) {
         if siren_fiche.is_some() {
-            let ec = ecarts_entreprise(&ctx.entreprise, dernier, &chemin_de(dernier));
+            let ec = ecarts_entreprise(&ctx.entreprise, &lus, dernier, &chemin_de(dernier));
             if reponse.get("entreprise").is_some_and(Value::is_object) {
                 fusionner_ecarts(&mut reponse["entreprise"], ec);
             } else {
                 let libelle = ctx.entreprise.get("raison_sociale").map_or(String::new(), py_str);
                 reponse.insert("entreprise".into(), ri::fiche_importee("entreprise", None, &libelle, "existante", ec, Vec::new(), json!({})));
             }
+            let champs = completer::champs_a_completer("entreprise", &ctx.entreprise, &fiche_entreprise(&lus, dernier)?)?;
+            completer::noter(&mut reponse["entreprise"], &champs, json!({"source": "bulletin", "fichier": chemin_de(dernier), "page": dernier.page}));
+            completer::ajouter(&mut ap.a_completer, "entreprise", None, &champs);
+        } else if reponse.get("entreprise").and_then(|e| e.get("etat")).and_then(Value::as_str) == Some("a_creer") {
+            // La fiche que les DSN creent, completee de ce que le bulletin imprime et qu'elles ne portent pas (3d).
+            let proposees = fiche_entreprise(&lus, dernier)?;
+            completer_a_creer(&mut ap.a_creer, &mut reponse, "entreprise", None, &proposees)?;
         } else if reponse.get("entreprise").is_none_or(Value::is_null) {
             let e = fiche_entreprise(&lus, dernier)?;
             let anomalies = crate::champs::verifier_fiche("entreprise", &e)?;
@@ -556,19 +586,37 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         if let Some(cle) = connus.get(numero) {
             let fiche = &ctx.spectacles[cle];
             let mut ec = Map::new();
+            // UN TITRE VIDE OU « A COMPLETER » (celui que l'import des DSN donne, la DSN ne portant pas le titre) prend
+            // celui du bulletin, comme une fiche que l'import cree (Leandre, 14/10/2026) ; un vrai titre saisi reste, et
+            // l'ecart est seulement signale.
             if let (Some(t), Some(p)) = (&titre, porteur) {
                 let a = fiche.get("titre").map_or(String::new(), py_str);
-                if !a.is_empty() && compare(&a) != compare(t) {
+                if !completer::vide(fiche.get("titre")) && compare(&a) != compare(t) {
                     ec.insert("titre".into(), json!({"fiche": a, "bulletin": t, "fichier": chemin_de(p), "page": p.page}));
                 }
             }
-            match liste.iter_mut().find(|e| e.get("cle").and_then(Value::as_str) == Some(cle.as_str())) {
-                Some(e) => fusionner_ecarts(e, Value::Object(ec)),
+            let mut proposees = Map::new();
+            if let Some(t) = &titre {
+                proposees.insert("titre".into(), json!(t));
+            }
+            if let Some(x) = &analytique {
+                proposees.insert("code_analytique".into(), json!(x));
+            }
+            let champs = completer::champs_a_completer("spectacle", fiche, &proposees)?;
+            let origine = porteur.map_or_else(|| json!({"source": "bulletin"}), |p| json!({"source": "bulletin", "fichier": chemin_de(p), "page": p.page}));
+            let rang = match liste.iter().position(|e| e.get("cle").and_then(Value::as_str) == Some(cle.as_str())) {
+                Some(i) => {
+                    fusionner_ecarts(&mut liste[i], Value::Object(ec));
+                    i
+                }
                 None => {
                     let t = fiche.get("titre").map_or("?".to_string(), py_str);
                     liste.push(ri::fiche_importee("spectacle", Some(cle), &format!("{} ({})", t, numero), "existante", Value::Object(ec), Vec::new(), json!({})));
+                    liste.len() - 1
                 }
-            }
+            };
+            completer::noter(&mut liste[rang], &champs, origine);
+            completer::ajouter(&mut ap.a_completer, "spectacle", Some(cle), &champs);
             continue;
         }
         let deja_la = liste.iter().position(|e| {
@@ -980,7 +1028,13 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
     let rien = reponse.get("rien_a_faire").is_some_and(|v| v == &json!(true));
     reponse.insert(
         "rien_a_faire".into(),
-        json!(rien && nouvelles_fiches == 0 && ap.engagements_bulletins.is_empty() && paies_nouvelles == 0 && paies_completees == 0),
+        json!(
+            rien && nouvelles_fiches == 0
+                && ap.a_completer.is_empty()
+                && ap.engagements_bulletins.is_empty()
+                && paies_nouvelles == 0
+                && paies_completees == 0
+        ),
     );
     ap.reponse = reponse;
     Ok(DossierLu { ap, tri, copies, salaries_lus, entreprises_lues })
@@ -998,6 +1052,44 @@ fn infos_de(l: &Lu, salarie: Option<&str>) -> Map<String, Value> {
     infos.insert("fin".into(), json!(l.b.fin.iso()));
     infos.insert("mois".into(), json!(l.mois));
     infos
+}
+
+/// Une fiche que l'import cree des DSN (`a_creer` ; un salarie par son NIR, ou l'entreprise), completee de ce que les
+/// bulletins impriment et qu'elle n'a pas ; ses anomalies se refont, et la reponse montre la fiche completee.
+fn completer_a_creer(a_creer: &mut [ACreer], reponse: &mut Map<String, Value>, nom: &str, nir: Option<&str>, proposees: &Map<String, Value>) -> R<()> {
+    let Some(a) = a_creer.iter_mut().find(|a| a.nom == nom && nir.is_none_or(|n| a.donnees.get("nir").map(py_str).as_deref() == Some(n))) else {
+        return Ok(());
+    };
+    let champs = completer::champs_a_completer(nom, &Value::Object(a.donnees.clone()), proposees)?;
+    if champs.is_empty() {
+        return Ok(());
+    }
+    a.donnees.extend(champs);
+    let anomalies = crate::champs::verifier_fiche(nom, &a.donnees)?;
+    let entree = match (nom, a.rang) {
+        ("entreprise", _) => reponse.get_mut("entreprise"),
+        (_, Some(i)) => reponse.get_mut("salaries").and_then(|l| l.get_mut(i)),
+        _ => None,
+    };
+    if let Some(e) = entree {
+        e["donnees"] = ri::brut(&Value::Object(a.donnees.clone()));
+        e["anomalies"] = ri::brut(&Value::Array(anomalies));
+    }
+    Ok(())
+}
+
+/// Note dans l'entree d'un salarie ce que ses bulletins completent, chaque champ avec le bulletin le plus recent qui
+/// l'imprime (`identite`) ; l'adresse, le statut, l'anciennete et la cle du NIR, avec le plus recent.
+fn noter_par_champ(entree: &mut Value, champs: &Map<String, Value>, ls: &[&Lu], chemin: &dyn Fn(&Lu) -> String) {
+    let Some(dernier) = ls.last() else { return };
+    let par: HashMap<&str, &Lu> = identite(ls).into_iter().map(|(cle, _, l)| (cle, l)).collect();
+    for (k, v) in champs {
+        let base = k.strip_suffix("_affichage").unwrap_or(k);
+        let l = par.get(base).copied().unwrap_or(dernier);
+        let mut un = Map::new();
+        un.insert(k.clone(), v.clone());
+        completer::noter(entree, &un, json!({"source": "bulletin", "fichier": chemin(l), "page": l.page}));
+    }
 }
 
 /// Les ecarts d'une entree de la reponse, completes de ceux du bulletin (une cle deja notee par la DSN reste la sienne).
@@ -1046,7 +1138,8 @@ fn ecarts_salarie(fiche: &Value, ls: &[&Lu], chemin: &dyn Fn(&Lu) -> String) -> 
             continue;
         }
         let a = fiche.get(cle).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
-        if a.trim().is_empty() || compare(&a) == compare(&lu) {
+        // Une case vide ou « A COMPLETER » n'est pas un ecart : l'import la complete.
+        if completer::vide(fiche.get(cle)) || compare(&a) == compare(&lu) {
             continue;
         }
         out.insert(cle.into(), json!({"fiche": a, "bulletin": lu, "fichier": chemin(l), "page": l.page}));
@@ -1054,13 +1147,26 @@ fn ecarts_salarie(fiche: &Value, ls: &[&Lu], chemin: &dyn Fn(&Lu) -> String) -> 
     Value::Object(out)
 }
 
-fn ecarts_entreprise(fiche: &Value, l: &Lu, chemin: &str) -> Value {
+/// Ce que le bulletin dit de l'entreprise autrement que la fiche (compare sans casse ni accents) : le Siret, le NAF, et
+/// (lot I2, 3g) la raison sociale, l'adresse, l'IDCC et le compte Urssaf -- ce que `fiche_entreprise` en lit.
+fn ecarts_entreprise(fiche: &Value, lus: &[Lu], l: &Lu, chemin: &str) -> Value {
     let mut out = Map::new();
     let t = |k: &str| fiche.get(k).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
     let siret_fiche = if t("siret").is_empty() { format!("{}{}", t("siren"), t("nic")) } else { t("siret") };
-    for (cle, a, lu) in [("siret", siret_fiche, siret_lu(&l.b)), ("naf", t("naf"), l.b.entreprise.naf.clone())] {
+    let lue = fiche_entreprise(lus, l).unwrap_or_default();
+    let de = |k: &str| lue.get(k).filter(|v| vrai(v)).map(py_str);
+    for (cle, a, lu) in [
+        ("siret", siret_fiche, siret_lu(&l.b)),
+        ("naf", t("naf"), l.b.entreprise.naf.clone()),
+        ("raison_sociale", t("raison_sociale"), de("raison_sociale")),
+        ("adresse", t("adresse"), de("adresse")),
+        ("code_postal", t("code_postal"), de("code_postal")),
+        ("commune", t("commune"), de("commune")),
+        ("idcc", t("idcc"), de("idcc")),
+        ("urssaf_compte", t("urssaf_compte"), de("urssaf_compte")),
+    ] {
         let Some(lu) = lu else { continue };
-        if a.trim().is_empty() || compare(&a) == compare(&lu) {
+        if completer::vide(Some(&json!(a))) || compare(&a) == compare(&lu) {
             continue;
         }
         out.insert(cle.into(), json!({"fiche": a, "bulletin": lu, "fichier": chemin, "page": l.page}));
@@ -1121,6 +1227,9 @@ fn fiche_entreprise(lus: &[Lu], l: &Lu) -> R<Map<String, Value>> {
     }
     if let Some(i) = e.convention.as_deref().and_then(idcc_lu) {
         f.insert("idcc".into(), json!(i));
+    }
+    if let Some(u) = urssaf_lu(&l.b) {
+        f.insert("urssaf_compte".into(), json!(u));
     }
     let mut licences: Vec<(String, String)> = Vec::new();
     for x in lus {

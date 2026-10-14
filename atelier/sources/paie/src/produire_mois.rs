@@ -935,9 +935,9 @@ pub(crate) fn produire_pour(o: &HashMap<String, String>, ctx: &Contexte, charge:
     Ok((mois_produit(produit), apercu_avertissements))
 }
 
-// ------------------------------------------------------- l'horloge de la demonstration
+// ------------------------------------------------------- l'horloge de la compagnie fictive
 
-/// `operations_paies.produire_mois(ctx, saisie, qui=..., forcer_delai=True)` tel que l'HORLOGE de la demonstration
+/// `operations_paies.produire_mois(ctx, saisie, qui=..., forcer_delai=True)` tel que l'HORLOGE de la compagnie fictive
 /// l'appelle (`horloge.rs`) : le mois s'ecrit en entier -- contrats, DPAE du mois, bulletins, certificats, DSN --,
 /// SANS passer par `fermer_mois` (la DPAE de chaque embauche n'est pas encore partie : l'horloge la fera le jour de
 /// l'embauche), et SANS enregistrer la saisie (la route `produire` le fait ; l'horloge relit le fichier tel quel,

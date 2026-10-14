@@ -4,7 +4,7 @@
 //! jeton ou des copies identiques, d'ou la reprise apres une coupure) ; l'empreinte qui ne colle pas ; ce qui ne redescend
 //! pas ; et ce qu'il reste a faire, coffre compris (un coffre invente, sur deux postes inventes).
 //!
-//! AUCUN RESEAU, AUCUN GOOGLE, jamais `prive/` ni `demo/` vivante : la copie figee `tests/donnees/demo/`.
+//! AUCUN RESEAU, AUCUN GOOGLE, jamais `prive/` ni `fictives/` vivante : la copie figee `tests/donnees/fictives/`.
 
 use crate::faux_drive;
 use crate::outils::{chemin_unique, compagnie, dossier_de_test};
@@ -74,7 +74,7 @@ fn tout(r: &Path) -> Vec<String> {
 #[test]
 fn une_compagnie_sauvegardee_revient_octet_pour_octet_dans_un_dossier_vide() {
     let base = dossier("aller-retour");
-    let source = compagnie::entiere("demo-1285-petite", &base.join("source"));
+    let source = compagnie::entiere("fictive-1285-petite", &base.join("source"));
     ecrire(&source, "config/google-jeton.bin", "JETON-INVENTE");
     let mut d = FauxDrive::nouveau();
     sauvegarder_dans(&source, &mut d);
@@ -291,11 +291,8 @@ fn coffre(racine: &Path, poste: &Path) -> Coffre {
 }
 
 /// Une petite compagnie au coffre fait sur le poste A (`mot_de_passe` : avec l'enveloppe du mot de passe du logiciel),
-/// sauvegardee puis restauree sur le poste B. AUJOURD'HUI `coffre.bin` NE MONTE PAS (`sauvegarde::NOMS_EXCLUS` ; le point 2
-/// du lot R1, « les deux fichiers scelles montent », attend l'accord de Leandre) : la restauration ne le trouve donc pas, ce
-/// que le test constate. Ses octets sont alors poses a la main dans le dossier restaure, tels que la restauration les
-/// redescendrait (octet pour octet, l'empreinte verifiee : `une_compagnie_sauvegardee_revient_octet_pour_octet...`), pour
-/// prouver la suite : ce qu'il reste a faire, et que le mot de passe du logiciel l'ouvre au poste B.
+/// sauvegardee puis restauree sur le poste B. `coffre.bin` monte (Leandre, 13/10/2026, redit le 14/10) et redescend
+/// octet pour octet : la suite prouve ce qu'il reste a faire, et que le mot de passe du logiciel l'ouvre au poste B.
 fn coffre_restaure(test: &str, mot_de_passe: bool) -> Coffre {
     let base = dossier(test);
     let source = base.join("source");
@@ -310,9 +307,9 @@ fn coffre_restaure(test: &str, mot_de_passe: bool) -> Coffre {
     let cible = base.join("poste-b");
     let r = restaurer(&cible, RD, &mut d).unwrap();
     assert!(r.incidents.is_empty(), "{:?}", r.incidents);
-    assert!(d.arbre().keys().all(|k| !k.contains("coffre.bin")) && !cible.join("config/coffre.bin").exists());
+    assert!(d.arbre().keys().any(|k| k.ends_with("config/coffre.bin")), "le coffre monte");
     let b = coffre(&cible, &chemin_unique("poste-b"));
-    std::fs::copy(a.chemin(), b.chemin()).unwrap();
+    assert_eq!(std::fs::read(b.chemin()).unwrap(), std::fs::read(a.chemin()).unwrap(), "le coffre redescend tel quel");
     b
 }
 
@@ -393,9 +390,8 @@ fn cle_restauree(test: &str) -> (Coffre, Coffre, String) {
 #[test]
 fn la_cle_de_signature_redescend_et_s_ouvre_ailleurs_par_le_mot_de_passe_du_logiciel_avec_son_coffre() {
     let (a, b, publique) = cle_restauree("cle-et-coffre");
-    // `coffre.bin` ne monte pas encore (point 2 du lot K1, en attente) : ses octets sont poses a la main, comme
-    // `coffre_restaure` le fait, tels que la restauration les redescendrait.
-    std::fs::copy(a.chemin(), b.chemin()).unwrap();
+    // Le coffre est redescendu avec elle, tel quel.
+    assert_eq!(std::fs::read(b.chemin()).unwrap(), std::fs::read(a.chemin()).unwrap());
     let lignes = a_faire(&b);
     assert_eq!(
         lignes.last().unwrap(),
@@ -412,6 +408,8 @@ fn la_cle_de_signature_redescend_et_s_ouvre_ailleurs_par_le_mot_de_passe_du_logi
 #[test]
 fn la_cle_de_signature_revenue_sans_son_coffre_ne_s_ouvre_pas_et_le_dit() {
     let (_, b, _) = cle_restauree("cle-sans-coffre");
+    // Le coffre redescend avec elle ; le cas est celui ou il manque quand meme (perdu, ou ecarte a la main).
+    std::fs::remove_file(b.chemin()).unwrap();
     let lignes = a_faire(&b);
     assert!(lignes[0].starts_with("Le coffre n'est pas dans la sauvegarde"), "{}", lignes[0]);
     let derniere = lignes.last().unwrap();

@@ -11,7 +11,7 @@
 //! 105 n'est plus dans la liste de 81.001 (p. 312) ; le 146 devient « hors CET » et la CET part en 148, a l'Urssaf (fiche
 //! net-entreprises 2556, lot R5b).
 //!
-//! Sur des copies des demonstrations (compagnies inventees). Les tables 2027 et le refus d'un fichier sans version connue
+//! Sur des copies des compagnies fictives (compagnies inventees). Les tables 2027 et le refus d'un fichier sans version connue
 //! se prouvent dans `src/usages.rs` et `src/formats.rs`.
 
 use paie::amorcage;
@@ -22,14 +22,14 @@ use paie::dsn::{generer, Options};
 use paie::engagement::charger;
 use paie::fctu::{self, Echec};
 use serde_json::{json, Value};
-use crate::outils::{self, compagnie, demo, ecrire, lire, porte};
+use crate::outils::{self, compagnie, fictive, ecrire, lire, porte};
 use std::path::{Path, PathBuf};
 
-/// Une copie de `demo-3090-grande` dont la surcouche de bareme couvre aussi 2027 et 2028 sur le socle 2026 (le socle
+/// Une copie de `fictive-3090-grande` dont la surcouche de bareme couvre aussi 2027 et 2028 sur le socle 2026 (le socle
 /// 2027 n'est pas livre ; `contexte::bareme_de_l_annee` accepte un socle d'une autre annee). Les taux n'importent pas
 /// ici : seule la version de la norme est en cause.
 fn copie(test: &str) -> PathBuf {
-    let racine = compagnie::ses_dsn("demo-3090-grande", &[], &outils::dossier_de_test("norme_par_fichier", test));
+    let racine = compagnie::ses_dsn("fictive-3090-grande", &[], &outils::dossier_de_test("norme_par_fichier", test));
     let surcouche = lire(&racine, "config/baremes/2026.json");
     for an in [2027, 2028] {
         let mut b = surcouche.clone();
@@ -49,14 +49,14 @@ fn copie(test: &str) -> PathBuf {
 }
 
 /// La fiche entreprise en NAF 2025 : un fichier P27V01 ne part qu'avec un code NAF 2025 (`naf::verifier_pour`, lot
-/// R5b) ; 9020Y, l'un des deux codes vers lesquels passe le 9001Z des demonstrations.
+/// R5b) ; 9020Y, l'un des deux codes vers lesquels passe le 9001Z des compagnies fictives.
 fn en_naf_2025(racine: &Path) {
     let mut ent = lire(racine, "config/entreprise.json");
     ent["naf"] = json!("9020Y");
     ecrire(racine, "config/entreprise.json", &ent);
 }
 
-/// Une copie de la demonstration figee `nom`, en NAF 2025 ; une par appel (les tests tournent en parallele).
+/// Une copie de la compagnie fictive figee `nom`, en NAF 2025 ; une par appel (les tests tournent en parallele).
 fn copie_en_naf_2025(nom: &str) -> PathBuf {
     let racine = compagnie::ses_dsn(nom, &[], &outils::chemin_unique(nom));
     en_naf_2025(&racine);
@@ -247,7 +247,7 @@ fn paie_du_releve(ctx: &Contexte, quoi: &str) -> (Paie, Value) {
     let v = releve_fctu_amorcage();
     let c = v[quoi].as_array().unwrap().iter().find(|c| c.get("attendu").is_some()).unwrap().clone();
     let mois = c["mois"].as_str().unwrap();
-    let mut s = charger(ctx, &demo("demo-3090-grande").join("paies").join(format!("{}.json", mois))).unwrap();
+    let mut s = charger(ctx, &fictive("fictive-3090-grande").join("paies").join(format!("{}.json", mois))).unwrap();
     for (p, n) in s.paies.iter_mut().zip(c["numeros"].as_array().unwrap()) {
         p.numero_bulletin = n[0].as_str().map(str::to_string);
         p.engagement.numero = n[1].as_str().map(str::to_string);
@@ -255,12 +255,12 @@ fn paie_du_releve(ctx: &Contexte, quoi: &str) -> (Paie, Value) {
     (s.paies.remove(c["index"].as_u64().unwrap() as usize), c)
 }
 
-fn ctx_demo() -> Contexte {
-    Contexte::nouveau(&copie_en_naf_2025("demo-3090-grande"), Some(Jour::lire("2026-10-20").unwrap())).unwrap()
+fn ctx_fictive() -> Contexte {
+    Contexte::nouveau(&copie_en_naf_2025("fictive-3090-grande"), Some(Jour::lire("2026-10-20").unwrap())).unwrap()
 }
 
 fn fctu_constitue_le(jour: &str) -> Result<String, Echec> {
-    let ctx = ctx_demo();
+    let ctx = ctx_fictive();
     let (paie, c) = paie_du_releve(&ctx, "fctu");
     let f = &c["fin"];
     let t = |k: &str| f.get(k).and_then(Value::as_str).map(String::from);
@@ -304,7 +304,7 @@ fn un_fctu_suit_le_jour_ou_il_est_constitue() {
 }
 
 fn amorcage_constitue_le(jour: &str) -> Result<String, Echec> {
-    let ctx = ctx_demo();
+    let ctx = ctx_fictive();
     let (paie, c) = paie_du_releve(&ctx, "amorcage");
     let op = amorcage::Options {
         motif: c["motif"].as_str().unwrap().to_string(),
@@ -360,7 +360,7 @@ fn un_signalement_d_arret_suit_le_jour_ou_il_est_constitue() {
 /// quel un 105 depose (`dsn::annuler_le_declare`).
 #[test]
 fn un_105_dans_un_fichier_p27v01_refuse_avec_la_phrase() {
-    let chemin = demo("demo-3090-grande").join("sorties/2025-10/DSN_Octobre2025.dsn");
+    let chemin = fictive("fictive-3090-grande").join("sorties/2025-10/DSN_Octobre2025.dsn");
     let texte: String = std::fs::read(&chemin).unwrap().iter().map(|&b| b as char).collect();
     assert!(texte.contains("S21.G00.81.001,'105'"));
     paie::usages::verifier_fichier(&texte).unwrap();

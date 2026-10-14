@@ -442,12 +442,14 @@ struct Ecrit {
     contrats_bulletins: usize,
     paies: usize,
     restent_a_creer: usize,
+    /// Les fiches existantes completees.
+    completees: usize,
     avertissements: Vec<String>,
 }
 
 impl Ecrit {
     fn rien(&self) -> bool {
-        self.restent_a_creer == 0 && self.contrats_aem == 0 && self.contrats_bulletins == 0 && self.paies == 0
+        self.restent_a_creer == 0 && self.completees == 0 && self.contrats_aem == 0 && self.contrats_bulletins == 0 && self.paies == 0
     }
 }
 
@@ -478,6 +480,36 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
             _ => "spectacles.json",
         };
         ecrits.insert(ctx.racine.join("config").join(fichier).display().to_string());
+    }
+    // Les fiches qui existent : ce qui y est vide ou « A COMPLETER » (`importation_completer`), rien d'autre.
+    let mut completees = 0usize;
+    for a in &imp.a_completer {
+        let faits = crate::routes_ecritures::completer_fiche(ctx, a.nom, a.cle.as_deref(), &a.champs)?;
+        if faits.is_empty() {
+            continue;
+        }
+        let liste = match a.nom {
+            "entreprise" => None,
+            "salarie" => Some("salaries"),
+            _ => Some("spectacles"),
+        };
+        let emplacement = match liste {
+            None => Some(&mut reponse["entreprise"]),
+            Some(l) => reponse[l].as_array_mut().and_then(|v| v.iter_mut().find(|e| e.get("cle").and_then(Value::as_str) == a.cle.as_deref())),
+        };
+        if let Some(e) = emplacement.filter(|e| e.is_object()) {
+            e["etat"] = json!("completee");
+            if let Some(Value::Object(c)) = e.get_mut("completer") {
+                c.retain(|k, _| faits.contains_key(k));
+            }
+        }
+        let fichier = match a.nom {
+            "entreprise" => "entreprise.json",
+            "salarie" => "salaries.json",
+            _ => "spectacles.json",
+        };
+        ecrits.insert(ctx.racine.join("config").join(fichier).display().to_string());
+        completees += 1;
     }
     let mut fichiers: Vec<Value> = ecrits.into_iter().map(Value::String).collect();
     let mut avertissements: Vec<String> = Vec::new();
@@ -592,7 +624,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
         crate::ecriture::ecrire_json(&chemin_paies, &Value::Object(paies), 1).map_err(|m| erreur("OSError", m))?;
         fichiers.push(json!(chemin_paies.display().to_string()));
     }
-    Ok(Ecrit { fichiers, contrats_aem, contrats_bulletins, paies: neuves, restent_a_creer, avertissements })
+    Ok(Ecrit { fichiers, contrats_aem, contrats_bulletins, paies: neuves, restent_a_creer, completees, avertissements })
 }
 
 // ------------------------------------------------------------------ la route

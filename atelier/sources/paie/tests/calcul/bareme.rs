@@ -1,10 +1,10 @@
-//! La pile de bareme (`bareme_applique`) contre `bareme.json` : les salaries des quatre demonstrations x trois dates x
-//! chaque nature x cadre oui / non / defaut, et des cas retouches pour les branches que les demos ne couvrent pas
+//! La pile de bareme (`bareme_applique`) contre `bareme.json` : les salaries des quatre compagnies fictives x trois dates x
+//! chaque nature x cadre oui / non / defaut, et des cas retouches pour les branches que les fictives ne couvrent pas
 //! (Alsace-Moselle, sante conventionnelle, prevoyance de branche, refus). Douze baremes en entier, les autres par
 //! empreinte (cle par cle, element par element pour les listes) ; les refus sont des attendus.
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
-use crate::outils::{demo, lire_oracle, oracle, sceller};
+use crate::outils::{fictive, lire_oracle, oracle, sceller};
 use paie::bareme::{bareme_applique, canon};
 use paie::contexte::{telle_qu_au, Contexte};
 use paie::contrats::nature;
@@ -78,7 +78,7 @@ fn la_pile_de_bareme() {
         let date = c["date"].as_str().unwrap().to_string();
         let jour = Jour::lire(&date).unwrap();
         let (ctx, bar) = contextes.entry((racine.clone(), date.clone())).or_insert_with(|| {
-            let ctx = Contexte::nouveau(&demo(&racine), Some(jour)).unwrap();
+            let ctx = Contexte::nouveau(&fictive(&racine), Some(jour)).unwrap();
             let bar = ctx.bareme(&jour).unwrap();
             (ctx, bar)
         });

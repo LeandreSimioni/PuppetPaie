@@ -15,11 +15,11 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-/// Le SIREN de `demo-3090-petite`.
+/// Le SIREN de `fictive-3090-petite`.
 const SIREN: &str = "123456923";
 
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::saisies("demo-3090-petite", &[], &dossier_de_test("ordre_signalements", nom).join("compagnie"))
+    compagnie::saisies("fictive-3090-petite", &[], &dossier_de_test("ordre_signalements", nom).join("compagnie"))
 }
 
 fn contexte(racine: &Path) -> Contexte {

@@ -4,7 +4,7 @@
 //! annule-et-remplace), le rappel porte par une correction precedente -- et l'agrege (bordereau Urssaf du mois
 //! d'origine, versements 20, bloc 55) porte la meme difference que le nominatif.
 //!
-//! Chaque test monte une copie de `demo-3090-grande` (compagnie inventee) dans un dossier a lui : juillet 2026 y est
+//! Chaque test monte une copie de `fictive-3090-grande` (compagnie inventee) dans un dossier a lui : juillet 2026 y est
 //! depose pour de vrai (journal et `sorties/2026-07/DSN_Juillet2026.dsn`), l'echeance passee. On corrige le contrat de
 //! Servandoni (technicien, SE9.26.05, pas paye en octobre), on change parfois un taux du bareme livre (dans une copie de
 //! `logiciel/donnees/`, ou `PUPPETPAIE_CODE` pointe alors), et on produit octobre : la DSN d'octobre porte la correction
@@ -26,7 +26,7 @@ const FRANCE_TRAVAIL: &str = "13000548100010";
 /// La 3090-grande sans ses pieces, sauf juillet 2025 et juillet 2026 (les bulletins archives que relit la correction),
 /// dans `<dossier du test>/compagnie` : le code livre, quand un cas le change, se copie a cote.
 fn copie(test: &str) -> PathBuf {
-    compagnie::ses_dsn("demo-3090-grande", &["2025-07", "2026-07"], &outils::dossier_de_test("regularisation_declaree", test).join("compagnie"))
+    compagnie::ses_dsn("fictive-3090-grande", &["2025-07", "2026-07"], &outils::dossier_de_test("regularisation_declaree", test).join("compagnie"))
 }
 
 fn route_le(racine: &Path, jour: &str, nom: &str, charge: Value) -> Value {

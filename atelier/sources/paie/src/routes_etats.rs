@@ -519,9 +519,9 @@ pub(crate) fn courante(code: &Path) -> R<String> {
     }
 }
 
-/// `maj.prete` : la version telechargee et controlee, ou `None`.
-pub(crate) fn prete(racine: &Path) -> R<Option<Value>> {
-    let dossier = racine.join("maj");
+/// `maj.prete` : la version telechargee et controlee de l'installation (`maj::dossier_maj`), ou `None`.
+pub(crate) fn prete(inst: &Path) -> R<Option<Value>> {
+    let dossier = crate::maj::dossier_maj(inst);
     let Some(d) = lire_json_tolerant(&dossier.join("prete.json"))? else {
         return Ok(None);
     };
@@ -539,7 +539,7 @@ pub(crate) fn prete(racine: &Path) -> R<Option<Value>> {
 /// `maj.mois_saisis_non_deposes` : les mois dont le fichier de paie porte au
 /// moins un engagement et dont aucune DSN reelle n'est acceptee (ou dont la
 /// derniere est refusee).
-fn mois_saisis_non_deposes(o: &HashMap<String, String>, ctx: &Contexte) -> R<Vec<Value>> {
+pub(crate) fn mois_saisis_non_deposes(o: &HashMap<String, String>, ctx: &Contexte) -> R<Vec<Value>> {
     let mut m = Moteur::nouveau(o, ctx);
     let mut out = Vec::new();
     for mois in crate::routes_mois::mois_saisis(&ctx.racine) {
@@ -561,24 +561,17 @@ fn mois_saisis_non_deposes(o: &HashMap<String, String>, ctx: &Contexte) -> R<Vec
 /// qui est configure. Ne va voir aucun depot.
 pub(crate) fn version(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     let code = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
-    // `maj.configuration` : prive/config/maj.json.
-    let p = ctx.racine.join("config").join("maj.json");
-    let cfg = if p.exists() {
-        let octets = std::fs::read(&p).map_err(|e| erreur_io(&e, &p))?;
-        let lu = String::from_utf8(octets).map_err(|e| e.to_string()).and_then(|t| serde_json::from_str::<Value>(&t).map_err(|e| e.to_string()));
-        match lu {
-            Ok(v) => v,
-            Err(e) => return Err(erreur("ValueError", format!("config/maj.json illisible : {}", e))),
-        }
-    } else {
-        Value::Object(Map::new())
-    };
+    // La mise a jour est celle de l'INSTALLATION (lot U1) : son reglage (`maj::reglage`), sa version prete.
+    let inst = code.parent().map(Path::to_path_buf).unwrap_or_default();
+    let (depot, editeur) = crate::maj::reglage(&inst).map_err(|e| erreur("ValueError", e))?;
     // Le depot d'ou l'on recoit : celui qui est pose, sinon celui du moteur (`maj::DEPOT_PAR_DEFAUT`, lot S1).
-    let depot = json!(crate::maj::depot(get(&cfg, "depot")?.as_str().filter(|s| !s.is_empty()).map(String::from)));
-    let editeur = vrai(getd(&cfg, "editeur", &Value::Bool(false))?);
-    let prete = prete(&ctx.racine)?;
+    let depot = json!(crate::maj::depot(depot));
+    let prete = prete(&inst)?;
     let courante_v = courante(&code)?;
+    // Ce que CETTE compagnie retient (ses mois saisis sans DSN acceptee) ; une fictive ou une copie ne retient rien
+    // (`maj::mois_qui_retiennent`, qui regarde toutes les compagnies reelles de l'installation).
     let attend: Vec<Value> = match &prete {
+        _ if crate::interface::compagnies::est_copie(&ctx.racine) => Vec::new(),
         Some(pr) if vrai(get(pr, "malgre_calcul")?) => Vec::new(),
         Some(pr) if vrai(get(pr, "calcul")?) => mois_saisis_non_deposes(o, ctx)?,
         _ => Vec::new(),

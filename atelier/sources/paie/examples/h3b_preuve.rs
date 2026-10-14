@@ -3,7 +3,7 @@
 //!
 //!     h3b_preuve RACINE JOUR ROUTE CHARGE.json SORTIE/ [normal | faux [ECHEC_AU_N]]
 //!
-//! `normal` : la boite que `_client_courriel` choisit (simulee en demonstration, sinon aucune). `faux` : un faux client
+//! `normal` : la boite que `_client_courriel` choisit (simulee dans une compagnie fictive, sinon aucune). `faux` : un faux client
 //! qui ecrit chaque message recu dans SORTIE/NN.eml (octets exacts), et refuse le message numero ECHEC_AU_N (depuis 0).
 //! Ecrit sur la sortie standard `{"ok":true,"resultat":...}` ou `{"ok":false,"classe":...,"erreur":...}`.
 //! Aucun reseau : le vrai `Client` n'est jamais ouvert sans mot de passe d'application au coffre.
