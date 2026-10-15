@@ -9,6 +9,14 @@
  "_derniere_livraison": "20261015-122925",
  "_changes_depuis_le_global": [
   {
+   "apres": "LEGIARTI000048806579",
+   "article": "204 E",
+   "avant": "LEGIARTI000033780180",
+   "depuis": "2025-09-01",
+   "livraison": "20250831-211703",
+   "texte": "impots"
+  },
+  {
    "apres": "LEGIARTI000006308879",
    "article": "231",
    "avant": "LEGIARTI000051764961",
@@ -369,6 +377,38 @@
    "texte": "impots"
   },
   {
+   "apres": "LEGIARTI000053542654",
+   "article": "204 H",
+   "avant": "LEGIARTI000051765116",
+   "depuis": "2026-02-21",
+   "livraison": "20260223-224003",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000053545390",
+   "article": "83",
+   "avant": "LEGIARTI000051765287",
+   "depuis": "2026-02-21",
+   "livraison": "20260223-224003",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000054373766",
+   "article": "83",
+   "avant": "LEGIARTI000053545390",
+   "depuis": "2026-07-01",
+   "livraison": "20260702-223445",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000054373568",
+   "article": "204 H",
+   "avant": "LEGIARTI000053542654",
+   "depuis": "2026-07-01",
+   "livraison": "20260702-223445",
+   "texte": "impots"
+  },
+  {
    "apres": "LEGIARTI000054373070",
    "article": "1679 A",
    "avant": "LEGIARTI000053278878",
@@ -399,6 +439,31 @@
    "en_vigueur": true,
    "id": "LEGIARTI000006312863"
   },
+  "204 A": {
+   "debut": "2019-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033812067"
+  },
+  "204 B": {
+   "debut": "2023-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000046860893"
+  },
+  "204 E": {
+   "debut": "2025-09-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000048806579"
+  },
+  "204 F": {
+   "debut": "2019-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000036354271"
+  },
+  "204 H": {
+   "debut": "2026-07-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000054373568"
+  },
   "231": {
    "debut": "2025-06-19",
    "en_vigueur": true,
@@ -413,6 +478,11 @@
    "debut": "2025-02-16",
    "en_vigueur": true,
    "id": "LEGIARTI000051200373"
+  },
+  "83": {
+   "debut": "2026-07-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000054373766"
   }
  }
 }

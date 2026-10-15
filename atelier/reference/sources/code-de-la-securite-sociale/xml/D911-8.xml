@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000031808538</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/31/80/85/LEGIARTI000031808538.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>D911-8</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2016-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106031">Partie réglementaire - Décrets simples</TITRE_TM>
+<TM>
+<TITRE_TM debut="2004-01-01" fin="2999-01-01" id="LEGISCTA000006126877">Livre IX : Dispositions relatives à la protection sociale complémentaire des salariés et aux institutions à caractère paritaire</TITRE_TM>
+<TM>
+<TITRE_TM debut="2004-01-01" fin="2999-01-01" id="LEGISCTA000029436132">Titre I : Dispositions générales relatives à la protection sociale complémentaire des salariés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2014-09-11" fin="2999-01-01" id="LEGISCTA000029436177">Chapitre Ier : Détermination des garanties complémentaires des salariés</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2016-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000031808538" num="D911-8" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<div align="left">I.-Le montant du versement mentionné à l'article L. 911-7-1 est calculé mensuellement sur la base du montant de référence défini au II du présent article auquel est appliqué le coefficient défini au III du présent article. <br/>
+<br/>II.-Le montant de référence mentionné au I du présent article correspond à la contribution mensuelle de l'employeur au financement de la couverture mentionnée au III de l'article L. 911-7 pour la catégorie à laquelle appartient le salarié et pour la période concernée. Elle tient compte, le cas échéant, de la rémunération du salarié. <br/>
+<br/>Lorsque tout ou partie de la contribution est forfaitaire et indépendante de la durée effective de travail, il lui est appliqué un coefficient égal au rapport, dans la limite de 1, entre la durée effective de travail telle qu'elle résulte sur le mois considéré des dispositions prévues par le contrat de travail du salarié et la durée mensualisée correspondant à la durée légale du travail. Ce coefficient n'est pas applicable, le cas échéant, à la composante de la contribution proportionnelle à la rémunération. <br/>
+<br/>Le calcul du versement s'effectue, pour les salariés mis à disposition dans le cadre de l'article L. 5132-9 du code du travail, sur le fondement du nombre d'heures faisant l'objet de cette mise à disposition. <br/>
+<br/>En l'absence de montant applicable au financement de la couverture collective et obligatoire, le montant de référence est fixé à 15 euros ou, pour les personnes relevant à titre obligatoire du régime mentionné à l'article L. 325-1, à 5 euros. Il est appliqué à l'un ou l'autre de ces deux montants un coefficient égal au rapport, dans la limite de 1, entre la durée effective de travail telle qu'elle résulte sur le mois considéré des dispositions prévues par le contrat de travail du salarié et la durée mensualisée correspondant à la durée légale du travail. Ces montants sont revalorisés chaque année, au 1er janvier, par arrêté du ministre chargé de la sécurité sociale, suivant l'objectif national des dépenses d'assurance maladie fixé par la loi de financement de la sécurité sociale pour l'année antérieure, et arrondis à la deuxième décimale la plus proche. <br/>
+<br/>L'application du présent II ne peut conduire à retenir un montant de référence inférieur à celui calculé à l'alinéa précédent. <br/>
+<br/>III.-Le coefficient mentionné au I du présent article est égal à 105 % pour les salariés bénéficiant d'un contrat à durée indéterminée et à 125 % pour les salariés bénéficiant d'un contrat à durée déterminée ou d'un contrat de mission.<br/>
+</div>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000031740777" datesignatexte="2015-12-30" id="LEGIARTI000031800941" naturetexte="DECRET" nortexte="AFSS1532054D" num="2" numtexte="2015-1883" sens="cible" typelien="CREE">Décret n°2015-1883 du 30 décembre 2015 - art. 2</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000053346060" datesignatexte="2025-01-08" id="LEGITEXT000053349715" naturetexte="ARRETE" nortexte="TRSS2600881A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 8 janvier 2025 (V)</LIEN>
+
+
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903504" naturetexte="CODE" nortexte="" num="L5132-9" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L5132-9</LIEN>
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006742525" naturetexte="CODE" nortexte="" num="L325-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L325-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000027549125" naturetexte="CODE" nortexte="" num="L911-7" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L911-7</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000031667076" naturetexte="CODE" nortexte="" num="L911-7-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L911-7-1</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>

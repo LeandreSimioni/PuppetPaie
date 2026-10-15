@@ -96,6 +96,19 @@ fn a_des_spectacles(ctx: &Contexte) -> bool {
         .unwrap_or(false)
 }
 
+/// Une suspension saisie (un imprevu du bloc 65) dont le motif n'est pas remunere. Un magasin illisible ne dit rien ici :
+/// la paie le refusera elle-meme.
+fn une_suspension_non_remuneree(ctx: &Contexte) -> bool {
+    crate::imprevus::tous(&ctx.racine).unwrap_or_default().iter().any(|imp| {
+        crate::imprevus::est_une_suspension(imp)
+            && imp
+                .get("motif")
+                .map(crate::date::en_texte)
+                .and_then(|m| crate::imprevus::motif_de_suspension(&m).ok().flatten())
+                .is_some_and(|m| !m.get("remunere").is_some_and(vrai))
+    })
+}
+
 /// Tout ce qui manque a la compagnie pour ses premiers actes. Vide : rien ne manque.
 pub fn manques(ctx: &Contexte) -> Vec<Value> {
     let ent = &ctx.entreprise;
@@ -161,6 +174,15 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         } else {
             out.push(manque("dpae", "L'employeur de la DPAE".into(), "la DPAE", ENTREPRISE, None, m));
         }
+    }
+    // La sante d'un permanent suspendu sans indemnisation tout un mois : hors de la 3090, aucun texte ne la dit, et le mois
+    // refuse tant que la fiche ne repond pas (`calcul::sante_de_la_suspension`). Elle ne se demande que si une suspension
+    // non remuneree est saisie : un champ n'apparait que parce qu'un fait l'exige.
+    let idcc = ent.get("idcc").map(crate::date::en_texte).unwrap_or_default();
+    if idcc != "3090" && !valeur(ent, crate::calcul::SANTE_SUSPENSION).is_some_and(vrai) && une_suspension_non_remuneree(ctx) {
+        let cle = crate::calcul::SANTE_SUSPENSION;
+        let (libelle, aide) = champ(cle);
+        out.push(manque(cle, libelle, "le mois d'un permanent suspendu sans indemnisation tout le mois", ENTREPRISE, Some(cle), aide));
     }
     // Les organismes de la DSN : aucun ecran ne les ecrit encore.
     if !ctx.racine.join("config").join("organismes.json").is_file() {

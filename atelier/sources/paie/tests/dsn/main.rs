@@ -32,5 +32,6 @@ mod preavis;
 mod regularisation_declaree;
 mod rubriques_2027;
 mod signalement;
+mod suspension;
 mod usages_formats_ntt;
 mod versement_dgfip;

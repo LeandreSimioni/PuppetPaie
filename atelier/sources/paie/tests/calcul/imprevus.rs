@@ -38,18 +38,16 @@ fn lignes_de(p: &paie::calcul::Paie, rubrique: &str) -> Vec<Value> {
 }
 
 fn d(v: &Value) -> Decimal {
-    Decimal::from_str(&v.to_string()).unwrap()
+    paie::num::dec(v).unwrap()
 }
 
-/// Les heures que retire une absence du `debut` au `fin` sur un mois plein de 151,67 h : la quotite au prorata des
-/// jours ouvrables (la mesure de `conges::lignes_du_mois`, celle des conges pris).
-fn heures(ctx: &Contexte, debut: &str, fin: &str, mois: &str) -> Decimal {
-    let ent = Some(&ctx.entreprise);
-    let ouvres = Decimal::from(paie::conges::jours_ouvrables(&jour(debut), &jour(fin), ent).unwrap());
-    let du_mois = Decimal::from(
-        paie::conges::jours_ouvrables(&paie::date::premier_du_mois(mois).unwrap(), &paie::date::dernier_du_mois(mois).unwrap(), ent).unwrap(),
-    );
-    eur2(div(mul(Decimal::from_str("151.67").unwrap(), ouvres), du_mois))
+/// Les heures que retire une absence du `debut` au `fin` d'un temps plein de 151,67 h (35 h par semaine) : au reel,
+/// 7 h par jour oeuvre, du lundi au vendredi moins les feries chomes (fiche DSN 2640, « Nb d'heures travaillees/jours
+/// oeuvres x Nb de jours theoriquement oeuvres » ; fiche 2693, exemple 10 : 22 x 7 h ;
+/// `atelier/reference/sources/suspension-non-remuneree/`).
+fn heures(ctx: &Contexte, debut: &str, fin: &str) -> Decimal {
+    let oeuvres = paie::conges::jours_oeuvres(&jour(debut), &jour(fin), Some(&ctx.entreprise)).unwrap();
+    eur2(mul(Decimal::from(7), Decimal::from(oeuvres)))
 }
 
 fn arret_de_nicolet(maintien: Value) -> Value {
@@ -74,17 +72,18 @@ fn l_arret_d_un_permanent_retire_le_salaire_de_chaque_mois_qu_il_traverse() {
     let juillet = paie(&ctx, "2026-07", "NICOLET");
     let absence = lignes_de(&juillet, "absence_maladie");
     assert_eq!(absence.len(), 1, "{:?}", juillet.engagement.lignes);
-    assert_eq!(d(&absence[0]["quantite"]), heures(&ctx, "2026-07-15", "2026-07-31", "2026-07"));
+    assert_eq!(d(&absence[0]["quantite"]), heures(&ctx, "2026-07-15", "2026-07-31"));
     let maintien = lignes_de(&juillet, "maintien_salaire");
     assert_eq!(maintien.len(), 1);
-    let verse = d(&maintien[0]["quantite"]) * d(&maintien[0]["taux"]);
-    assert!((verse - Decimal::from(300)).abs() < Decimal::from_str("0.01").unwrap() * d(&maintien[0]["quantite"]), "{}", verse);
+    // Le maintien saisi est verse au centime : son taux n'est pas arrondi avant de multiplier.
+    let verse: Decimal = juillet.remuneration.iter().filter(|l| l.code == "maintien_salaire").map(|l| l.montant).sum();
+    assert_eq!(verse, Decimal::from_str("300.00").unwrap());
     assert_eq!(juillet.heures_absence, d(&absence[0]["quantite"]));
     assert!(juillet.avertissements.iter().any(|a| a.texte.contains("arret de travail (maladie) du 15/07/2026 au 09/08/2026")));
 
     let aout = paie(&ctx, "2026-08", "NICOLET");
     let absence = lignes_de(&aout, "absence_maladie");
-    assert_eq!(d(&absence[0]["quantite"]), heures(&ctx, "2026-08-01", "2026-08-09", "2026-08"));
+    assert_eq!(d(&absence[0]["quantite"]), heures(&ctx, "2026-08-01", "2026-08-09"));
     assert!(lignes_de(&aout, "maintien_salaire").is_empty(), "le maintien d'aout n'est pas saisi : rien n'est verse");
     assert!(aout.avertissements.iter().any(|a| !a.info && a.texte.contains("maintien de salaire de aout 2026 n'est pas saisi")), "{:?}", aout.avertissements);
 
@@ -127,7 +126,7 @@ fn une_suspension_se_retire_et_se_declare_dans_chaque_mois_traverse() {
         let p = paie(&ctx, mois, "NICOLET");
         let l = lignes_de(&p, "absence_non_remuneree");
         assert_eq!(l.len(), 1, "{} : {:?}", mois, p.engagement.lignes);
-        assert_eq!(d(&l[0]["quantite"]), heures(&ctx, debut, fin, mois), "{}", mois);
+        assert_eq!(d(&l[0]["quantite"]), heures(&ctx, debut, fin), "{}", mois);
         assert_eq!(p.engagement.suspensions, vec![json!({"motif": "632", "debut": "2026-07-20", "fin": "2026-09-10"})], "{}", mois);
     }
     let octobre = paie(&ctx, "2026-10", "NICOLET");

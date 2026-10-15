@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000029336723</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/29/33/67/LEGIARTI000029336723.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L1225-57</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2014-08-06</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132321">Première partie : Les relations individuelles de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145393">Livre II : Le contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160709">Titre II : Formation et exécution du contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006177854">Chapitre V : Maternité, paternité, adoption et éducation des enfants</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006189425">Section 4 : Congés d'éducation des enfants</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006195596">Sous-section 1 : Congé parental d'éducation et passage à temps partiel.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-05-01" etat="MODIFIE" fin="2014-03-07" id="LEGIARTI000006900942" num="L1225-57" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2014-03-07" etat="MODIFIE" fin="2014-08-06" id="LEGIARTI000028697999" num="L1225-57" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2014-08-06" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000029336723" num="L1225-57" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<br/>
+<br/>
+<br/>
+<p>
+<br clear="none"/>
+</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Le salarié qui reprend son activité initiale à l'issue du congé parental d'éducation ou d'une période d'activité à temps partiel pour élever un enfant a droit à l'entretien professionnel mentionné au I de l'article L. 6315-1.</p>
+<p>Au cours de cet entretien, l'employeur et le salarié organisent le retour à l'emploi du salarié ; ils déterminent les besoins de formation du salarié et examinent les conséquences éventuelles du congé sur sa rémunération et l'évolution de sa carrière. <br/>
+<br/> A la demande du salarié, l'entretien peut avoir lieu avant la fin du congé parental d'éducation. </p>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000465978" datesignatexte="2007-03-12" id="JORFTEXT000000465978" naturetexte="ORDONNANCE" nortexte="SOCX0700017R" num="" numtexte="2007-329" sens="source" typelien="CODIFICATION">Ordonnance n°2007-329 du 12 mars 2007</LIEN>
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000029330832" datesignatexte="2014-08-04" id="LEGIARTI000029333506" naturetexte="LOI" nortexte="FVJX1313602L" num="12" numtexte="2014-873" sens="cible" typelien="MODIFIE">LOI n°2014-873 du 4 août 2014 - art. 12</LIEN>
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006646075" naturetexte="CODE" nortexte="" num="L122-28-7" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L122-28-7 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000021340649" naturetexte="CODE" nortexte="" num="L6315-1" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L6315-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGITEXT000006072050" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail L122-28-7 alinéa 6</LIEN>
+
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>

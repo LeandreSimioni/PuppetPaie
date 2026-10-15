@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000029336639</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/29/33/66/LEGIARTI000029336639.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L1225-48</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2014-08-06</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132321">Première partie : Les relations individuelles de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145393">Livre II : Le contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160709">Titre II : Formation et exécution du contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006177854">Chapitre V : Maternité, paternité, adoption et éducation des enfants</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006189425">Section 4 : Congés d'éducation des enfants</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006195596">Sous-section 1 : Congé parental d'éducation et passage à temps partiel.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-03-01" etat="MODIFIE" fin="2008-05-01" id="LEGIARTI000006900933" num="L1225-48" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-05-01" etat="MODIFIE" fin="2014-08-06" id="LEGIARTI000018764623" num="L1225-48" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2014-08-06" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000029336639" num="L1225-48" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément au VI de l'article 8 de la loi n° 2014-873 du 4 août 2014, le présent article, tel que modifié par ledit article, est applicable aux enfants nés ou adoptés à partir du 1er octobre 2014.<br clear="none"/>Pour les enfants nés ou adoptés avant le 1er octobre 2014, les dispositions du présent code demeurent applicables dans leur rédaction antérieure à la date d'entrée en vigueur de l'article précité.</p>
+<br/>
+<br/>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Le congé parental d'éducation et la période d'activité à temps partiel ont une durée initiale d'un an au plus. Ils peuvent être prolongés deux fois pour prendre fin au plus tard au terme des périodes définies aux deuxième et quatrième alinéas, quelle que soit la date de leur début.</p>
+<p>Le congé parental d'éducation et la période d'activité à temps partiel prennent fin au plus tard au troisième anniversaire de l'enfant.</p>
+<p>En cas de naissances multiples, le congé parental d'éducation peut être prolongé jusqu'à l'entrée à l'école maternelle des enfants. Pour les naissances multiples d'au moins trois enfants ou les arrivées simultanées d'au moins trois enfants adoptés ou confiés en vue d'adoption, il peut être prolongé cinq fois pour prendre fin au plus tard au sixième anniversaire des enfants.</p>
+<p>En cas d'adoption d'un enfant de moins de trois ans, le congé parental et la période d'activité à temps partiel prennent fin à l'expiration d'un délai de trois ans à compter de l'arrivée au foyer de l'enfant.</p>
+<p>Lorsque l'enfant adopté ou confié en vue de son adoption est âgé de plus de trois ans mais n'a pas encore atteint l'âge de la fin de l'obligation scolaire, le congé parental et la période d'activité à temps partiel ne peuvent excéder une année à compter de l'arrivée au foyer.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000029330832" datesignatexte="2014-08-04" id="LEGIARTI000029333392" naturetexte="LOI" nortexte="FVJX1313602L" num="8" numtexte="2014-873" sens="cible" typelien="MODIFIE">LOI n°2014-873 du 4 août 2014 - art. 8</LIEN>
+
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006646797" naturetexte="CODE" nortexte="" num="L122-28-1" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L122-28-1 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006900934" naturetexte="CODE" nortexte="" num="L1225-49" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1225-49 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGITEXT000006072050" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail L122-28-1 alinéas 2 et 3</LIEN>
+
+
+
+</LIENS>
+</ARTICLE>

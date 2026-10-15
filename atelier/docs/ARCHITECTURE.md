@@ -1039,6 +1039,28 @@ décident. Les articles sont relevés et datés dans
   traversé en tire sa ligne et son bloc 65, entier, sans recopie. Un **congé payé n'en est pas une** — il est payé, le contrat n'est pas
   suspendu, et le moteur refuse d'écrire le motif « 200 - COP ».
 
+  **Un mois entier sans rémunération** (15/10/2026 ; textes et rapport :
+  `atelier/reference/sources/suspension-non-remuneree/`) :
+  - la **retenue** d'une absence (arrêt comme suspension) se calcule **au réel du mois** : le salaire du mois
+    fois les heures d'absence sur les heures de travail du mois (Cass. soc. 11/02/1982), au taux exact,
+    jamais arrondi avant de multiplier ; les heures se comptent au réel, jours ouvrés (lundi à vendredi,
+    moins les fériés chômés) fois la durée hebdomadaire sur cinq (fiche DSN 2640 : l'hypothèse « classique »
+    quand le planning n'est pas connu ; fiche 2693 : septembre 2026 entier = 22 × 7 = 154 h). Un mois
+    entier retire le salaire entier : le brut est 0,00, l'activité rémunérée (53 type 01) 0.00, l'absence
+    (53 type 02) les heures réelles ;
+  - la **complémentaire santé** : en 3090 les garanties sont suspendues (accord du 19/07/2024, art. 4.2) —
+    pas de mutuelle sur le bulletin, pas de rattachement santé dans la DSN ce mois-là (inférence pour la DSN :
+    aucune fiche ne le dit) ; ailleurs, la fiche entreprise dit ce que fait le contrat de santé,
+    `sante_suspension_non_indemnisee` = « suspendue » ou « maintenue », et sans réponse le mois refuse
+    (`calcul::sante_de_la_suspension`) ;
+  - un **net fiscal négatif** (une part patronale de santé maintenue et réintégrée) se déclare tel quel en
+    50.002, et le montant soumis au PAS (50.013) comme le PAS (50.009) à 0.00 (fiche DSN 1810,
+    `pas::du_versement`) ; le net social négatif s'affiche (BOSS, FAQ Q37) ;
+  - les **congés payés** ne s'acquièrent pas sur les jours d'une suspension qui n'acquiert pas
+    (`acquiert_conges`, L3141-5 ; `imprevus::jours_de_conges_non_acquis`) ; l'**ancienneté** compte pour moitié
+    le congé parental (L1225-54) et ne compte pas, en l'avertissant, une autre suspension non rémunérée
+    (`imprevus::anciennete_depuis`).
+
 - **jours fériés** : les onze fêtes légales de L3133-1, dont trois qui
   dépendent de Pâques — le seul calcul du logiciel qui remplace un relevé,
   aucune table officielle ne publiant cette date. Mais **férié n'est pas

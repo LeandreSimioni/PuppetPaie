@@ -1,0 +1,454 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000054373766</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/54/37/37/LEGIARTI000054373766.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>83</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2026-07-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006069577" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code général des impôts, CGI." debut="1952-02-14" fin="2999-01-01" id_txt="LEGITEXT000006069577">Code général des impôts</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1952-02-14" fin="2999-01-01" id="LEGISCTA000006084232">Livre premier : Assiette et liquidation de l'impôt</TITRE_TM>
+<TM>
+<TITRE_TM debut="1952-02-14" fin="2999-01-01" id="LEGISCTA000006114494">Première Partie : Impôts d'État</TITRE_TM>
+<TM>
+<TITRE_TM debut="1954-08-05" fin="2999-01-01" id="LEGISCTA000006133844">Titre premier : Impôts directs et taxes assimilées</TITRE_TM>
+<TM>
+<TITRE_TM debut="1954-08-05" fin="2999-01-01" id="LEGISCTA000006147017">Chapitre premier : Impôt sur le revenu</TITRE_TM>
+<TM>
+<TITRE_TM debut="1954-08-05" fin="2999-01-01" id="LEGISCTA000006162523">Section II : Revenus imposables</TITRE_TM>
+<TM>
+<TITRE_TM debut="1954-08-05" fin="2999-01-01" id="LEGISCTA000006179572">1re Sous-section : Détermination des bénéfices ou revenus nets des diverses catégories de revenus</TITRE_TM>
+<TM>
+<TITRE_TM debut="1978-07-20" fin="2999-01-01" id="LEGISCTA000006191575">V : Traitements, salaires, pensions et rentes viagères</TITRE_TM>
+<TM>
+<TITRE_TM debut="1979-07-01" fin="2999-01-01" id="LEGISCTA000006197201">2 : Détermination du revenu imposable</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1950-04-30" etat="MODIFIE" fin="1952-04-15" id="LEGIARTI000048121510" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1952-04-15" etat="MODIFIE" fin="1954-08-15" id="LEGIARTI000049436960" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1954-08-15" etat="MODIFIE" fin="1979-07-01" id="LEGIARTI000049509405" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1979-07-01" etat="MODIFIE" fin="1982-01-01" id="LEGIARTI000006307096" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1982-01-01" etat="MODIFIE" fin="1982-09-01" id="LEGIARTI000006307097" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1982-09-01" etat="MODIFIE" fin="1982-11-05" id="LEGIARTI000006307098" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1983-10-09" etat="MODIFIE" fin="1984-07-11" id="LEGIARTI000006307099" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1984-07-11" etat="MODIFIE" fin="1985-01-01" id="LEGIARTI000006307100" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1985-07-12" etat="MODIFIE" fin="1986-07-31" id="LEGIARTI000006307101" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1986-07-31" etat="MODIFIE" fin="1987-01-28" id="LEGIARTI000006307102" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1987-01-28" etat="MODIFIE" fin="1987-12-31" id="LEGIARTI000006307103" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1987-12-31" etat="MODIFIE" fin="1988-12-30" id="LEGIARTI000006307104" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1988-12-30" etat="MODIFIE" fin="1990-06-15" id="LEGIARTI000006307105" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1990-06-15" etat="MODIFIE" fin="1990-12-30" id="LEGIARTI000006307106" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1990-12-30" etat="MODIFIE" fin="1991-06-24" id="LEGIARTI000006307107" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1991-06-24" etat="MODIFIE" fin="1994-07-16" id="LEGIARTI000006307108" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1992-07-17" etat="MODIFIE" fin="1993-08-18" id="LEGIARTI000006307109" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1993-08-18" etat="MODIFIE" fin="1994-09-02" id="LEGIARTI000006307110" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1994-09-02" etat="MODIFIE" fin="1995-10-27" id="LEGIARTI000006307111" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1995-10-27" etat="MODIFIE" fin="1997-04-11" id="LEGIARTI000006307112" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1997-04-11" etat="MODIFIE" fin="1998-04-22" id="LEGIARTI000006307113" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1998-04-22" etat="MODIFIE" fin="2001-12-29" id="LEGIARTI000006307114" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2001-12-29" etat="MODIFIE" fin="2002-03-31" id="LEGIARTI000006307115" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2002-03-31" etat="MODIFIE" fin="2003-08-22" id="LEGIARTI000006307116" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2003-08-31" etat="MODIFIE" fin="2003-12-31" id="LEGIARTI000006307117" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2003-12-31" etat="MODIFIE" fin="2004-08-17" id="LEGIARTI000006307118" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2004-08-17" etat="MODIFIE" fin="2006-03-24" id="LEGIARTI000006307119" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2006-03-24" etat="MODIFIE" fin="2007-01-01" id="LEGIARTI000006307120" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2007-01-01" etat="MODIFIE" fin="2007-12-22" id="LEGIARTI000006307121" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2007-12-22" etat="MODIFIE" fin="2008-04-03" id="LEGIARTI000017845142" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-04-03" etat="MODIFIE" fin="2008-08-06" id="LEGIARTI000018620194" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-08-06" etat="MODIFIE" fin="2009-01-01" id="LEGIARTI000019298424" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2009-01-01" etat="MODIFIE" fin="2009-04-10" id="LEGIARTI000020051825" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2009-04-10" etat="MODIFIE" fin="2009-04-23" id="LEGIARTI000020549422" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2009-04-23" etat="MODIFIE" fin="2010-05-01" id="LEGIARTI000020551008" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2010-05-01" etat="MODIFIE" fin="2011-01-01" id="LEGIARTI000022201005" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2011-01-01" etat="MODIFIE" fin="2011-06-12" id="LEGIARTI000023378435" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2011-06-12" etat="MODIFIE" fin="2011-12-30" id="LEGIARTI000024189487" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2011-12-30" etat="MODIFIE" fin="2012-05-07" id="LEGIARTI000025091731" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2012-05-07" etat="MODIFIE" fin="2013-01-01" id="LEGIARTI000025842498" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2013-01-01" etat="MODIFIE" fin="2013-06-07" id="LEGIARTI000026946361" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2013-06-07" etat="MODIFIE" fin="2014-01-01" id="LEGIARTI000027518314" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2014-01-01" etat="MODIFIE" fin="2014-05-30" id="LEGIARTI000028416904" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2014-05-30" etat="MODIFIE" fin="2014-08-02" id="LEGIARTI000029042340" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2014-08-02" etat="MODIFIE" fin="2015-06-06" id="LEGIARTI000029321172" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2015-06-06" etat="MODIFIE" fin="2016-06-13" id="LEGIARTI000030701011" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2016-06-13" etat="MODIFIE" fin="2017-01-01" id="LEGIARTI000032701943" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2017-01-01" etat="MODIFIE" fin="2017-01-01" id="LEGIARTI000028449311" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2017-01-01" etat="MODIFIE" fin="2017-05-05" id="LEGIARTI000033805468" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2017-05-05" etat="MODIFIE" fin="2018-01-01" id="LEGIARTI000034597221" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2018-01-01" etat="MODIFIE" fin="2018-06-23" id="LEGIARTI000036429189" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2018-06-23" etat="MODIFIE" fin="2018-12-31" id="LEGIARTI000037099957" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2018-12-31" etat="MODIFIE" fin="2019-06-08" id="LEGIARTI000037985819" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2019-06-08" etat="MODIFIE" fin="2019-10-01" id="LEGIARTI000038687715" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2019-10-01" etat="MODIFIE" fin="2020-01-01" id="LEGIARTI000038836866" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2020-01-01" etat="MODIFIE" fin="2020-07-25" id="LEGIARTI000041471577" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2020-07-25" etat="MODIFIE" fin="2021-06-12" id="LEGIARTI000042159036" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2021-06-12" etat="MODIFIE" fin="2022-01-01" id="LEGIARTI000043662712" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2022-01-01" etat="MODIFIE" fin="2022-03-01" id="LEGIARTI000044626684" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2022-03-01" etat="MODIFIE" fin="2022-05-07" id="LEGIARTI000046559951" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2022-05-07" etat="MODIFIE" fin="2022-08-18" id="LEGIARTI000045765903" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2022-08-18" etat="MODIFIE" fin="2023-06-03" id="LEGIARTI000046197322" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2023-06-03" etat="MODIFIE" fin="2024-06-02" id="LEGIARTI000047622408" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2024-06-02" etat="MODIFIE" fin="2025-06-19" id="LEGIARTI000049641925" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2025-06-19" etat="MODIFIE" fin="2026-02-21" id="LEGIARTI000051765287" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2026-02-21" etat="MODIFIE" fin="2026-07-01" id="LEGIARTI000053545390" num="83" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2026-07-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000054373766" num="83" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Modification effectuée en conséquence de l'article 4-I B 1° a de la loi n° 2026-103 du 19 février 2026.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Le montant net du revenu imposable est déterminé en déduisant du montant brut des sommes payées et des avantages en argent ou en nature accordés :</p>
+<p>1° Les cotisations de sécurité sociale, y compris :</p>
+<p>a) Les cotisations d'assurance vieillesse versées en exercice des facultés de rachat prévues aux articles L. 351-14-1 du code de la sécurité sociale, L. 9 bis du code des pensions civiles et militaires de retraite, ainsi que celles prévues par des dispositions réglementaires ayant le même objet prises sur le fondement de l'article L. 711-1 du code de la sécurité sociale ;</p>
+<p>b) Les cotisations versées aux régimes de retraite complémentaire mentionnés au chapitre Ier du titre II du livre IX du code de la sécurité sociale ;</p>
+<p>c) Les cotisations au régime public de retraite additionnel obligatoire institué par l'article 76 de la loi n° 2003-775 du 21 août 2003 portant réforme des retraites ;</p>
+<p>1° 0 bis Les cotisations versées conformément aux dispositions du règlement CEE n° 1408/71 du Conseil du 14 juin 1971 relatif à l'application des régimes de sécurité sociale aux travailleurs salariés et aux membres de leur famille qui se déplacent à l'intérieur de la Communauté ou conformément aux stipulations d'une convention ou d'un accord international relatif à l'application des régimes de sécurité sociale ;</p>
+<p>1° bis (Abrogé)</p>
+<p>1° ter (Abrogé à compter de l'entrée en vigueur de la loi n° 2002-73 du 17 janvier 2002).</p>
+<p>1° quater Les cotisations ou primes versées aux régimes de prévoyance complémentaire obligatoires et collectifs, au sens du sixième alinéa de l'article L. 242-1 du code de la sécurité sociale, à condition, lorsque ces cotisations ou primes financent des garanties portant sur le remboursement ou l'indemnisation de frais occasionnés par une maladie, une maternité ou un accident, que ces garanties respectent les conditions mentionnées à l'article L. 871-1 du code de la sécurité sociale. Il en va de même des cotisations ou primes versées par les employeurs publics et leurs agents aux contrats collectifs de protection sociale complémentaire pour lesquels la souscription des agents est rendue obligatoire en application d'un accord prévu à l'article L. 827-2 du code général de la fonction publique ou en application de l'arrêté mentionné au II de l'article L. 4123-3 du code de la défense.</p>
+<p>Les cotisations ou les primes mentionnées au premier alinéa s'entendent, s'agissant des cotisations à la charge de l'employeur, de celles correspondant à des garanties autres que celles portant sur le remboursement ou l'indemnisation de frais occasionnés par une maladie, une maternité ou un accident.</p>
+<p>Les cotisations à la charge de l'employeur correspondant à des garanties portant sur le remboursement ou l'indemnisation de frais occasionnés par une maladie, une maternité ou un accident sont ajoutées à la rémunération prise en compte pour la détermination des bases d'imposition.</p>
+<p>Les cotisations ou les primes déductibles en application des premier et deuxième alinéas le sont dans la limite d'un montant égal à la somme de 5 % du montant annuel du plafond mentionné à l'article L. 241-3 du code de la sécurité sociale et de 2 % de la rémunération annuelle brute, sans que le total ainsi obtenu puisse excéder 2 % de huit fois le montant annuel du plafond précité. En cas d'excédent, celui-ci est ajouté à la rémunération.</p>
+<p>2° Les cotisations ou primes versées aux régimes de retraite supplémentaire, y compris ceux gérés par une institution mentionnée à l'article L. 370-1 du code des assurances pour les contrats mentionnés à l'article L. 143-1 dudit code lorsqu'ils ont pour objet l'acquisition et la jouissance de droits viagers, auxquels le salarié est affilié à titre obligatoire, les cotisations versées, à compter du 1er janvier 1993, à titre obligatoire au régime de prévoyance des joueurs professionnels de football institué par la charte du football professionnel ainsi que les cotisations versées, à compter du 1<sup>er</sup> janvier 2026, par les joueurs professionnels de rugby au titre du pécule de reconversion institué par la convention collective du rugby professionnel.</p>
+<p>Il en va de même des versements mentionnés au 3° de l'article L. 224-2 du code monétaire et financier dans un plan d'épargne retraite mentionné à l'article L. 224-13 ou à l'article L. 224-23 du même code.</p>
+<p>Les versements mentionnés aux alinéas précédents sont déductibles dans la limite, y compris les versements de l'employeur, de 8 % de la rémunération annuelle brute retenue à concurrence de huit fois le montant annuel du plafond mentionné à l'article L. 241-3 du code de la sécurité sociale. En cas d'excédent, celui-ci est ajouté à la rémunération ;</p>
+<p>La limite mentionnée au troisième alinéa est réduite, le cas échéant, des sommes versées aux plans d'épargne retraite qui sont exonérées en application du 18° de l'article 81 ;</p>
+<p>2°-0 bis (Abrogé) ;</p>
+<p>2°-0 ter Dans les limites prévues au quatrième alinéa du 1° quater, les cotisations versées aux régimes de prévoyance complémentaire et, dans les limites prévues aux troisième et dernier alinéas du 2°, les cotisations versées aux régimes de retraite complémentaire répondant aux conditions fixées à l'article 3 de la directive 98/49/ CE du Conseil du 29 juin 1998 relative à la sauvegarde des droits à pension complémentaire des travailleurs salariés et non salariés qui se déplacent à l'intérieur de la Communauté ou à celles prévues par les conventions ou accords internationaux de sécurité sociale, auxquels les personnes désignées au 1 du I de l'article 155 B étaient affiliées ès qualités dans un autre Etat avant leur prise de fonctions en France. Les cotisations sont déductibles jusqu'au 31 décembre de la huitième année suivant celle de leur prise de fonctions ;</p>
+<p>2°-0 quater La contribution prévue à l'article L. 137-11-1 du code de la sécurité sociale dans la limite de la fraction acquittée au titre des premiers 1 000 € de rente mensuelle ;</p>
+<p>2° bis Les contributions versées par les salariés en application des dispositions de l'article L. 5422-9 du code du travail et destinées à financer le régime d'assurance des travailleurs privés d'emploi ;</p>
+<p>2° ter (Abrogé).</p>
+<p>2° quater (Abrogé).</p>
+<p>2° quinquies (Abrogé).</p>
+<p>3° Les frais inhérents à la fonction ou à l'emploi lorsqu'ils ne sont pas couverts par des allocations spéciales.</p>
+<p>La déduction à effectuer du chef des frais professionnels est calculée forfaitairement en fonction du revenu brut, après défalcation des cotisations, contributions et intérêts mentionnés aux 1° à 2° ter ; elle est fixée à 10 % du montant de ce revenu. Elle est limitée à 14 555 € pour l'imposition des rémunérations perçues en 2025 ; chaque année, le plafond retenu pour l'imposition des revenus de l'année précédente est relevé dans la même proportion que la limite supérieure de la première tranche du barème de l'impôt sur le revenu.</p>
+<p>Le montant de la déduction forfaitaire pour frais professionnels ne peut être inférieur à 509 €, sans pouvoir excéder le montant brut des traitements et salaires. Cette disposition s'applique séparément aux rémunérations perçues par chaque membre du foyer fiscal désigné aux 1 et 3 de l'article 6.</p>
+<p>La somme figurant au troisième alinéa est révisée chaque année dans la même proportion que la limite supérieure de la première tranche du barème de l'impôt sur le revenu.</p>
+<p>Les bénéficiaires de traitements et salaires sont également admis à justifier du montant de leurs frais réels, soit dans la déclaration visée à l'article 170, soit sous forme de réclamation adressée au service des impôts dans le délai prévu aux articles R* 196-1 et R* 196-3 du livre des procédures fiscales. Le montant des frais réels à prendre en compte au titre de l'acquisition des immeubles, des véhicules et autres biens dont la durée d'utilisation est supérieure à un an s'entend de la dépréciation que ces biens ont subie au cours de l'année d'imposition.</p>
+<p>Sont assimilées à des frais professionnels réels les dépenses exposées en vue de l'obtention d'un diplôme ou d'une qualification professionnelle dans la perspective d'une insertion ou d'une conversion professionnelle par les personnes tirant un revenu de la pratique d'un sport.</p>
+<p>Les frais de déplacement de moins de quarante kilomètres entre le domicile et le lieu de travail sont admis, sur justificatifs, au titre des frais professionnels réels. Lorsque la distance est supérieure, la déduction admise porte sur les quarante premiers kilomètres, sauf circonstances particulières notamment liées à l'emploi justifiant une prise en compte complète. Les frais de déplacement mentionnés au présent alinéa engagés par un passager au titre du partage des frais dans le cadre d'un covoiturage défini à l'article L. 3132-1 du code des transports sont admis, sur justificatifs, au titre des frais professionnels réels.</p>
+<p>Lorsque les bénéficiaires de traitements et salaires optent pour le régime des frais réels, l'évaluation des frais de déplacement, autres que les frais de péage, de garage ou de parking et d'intérêts annuels afférents à l'achat à crédit du véhicule utilisé, peut s'effectuer sur le fondement d'un barème forfaitaire fixé par arrêté du ministre chargé du budget en fonction de la puissance administrative du véhicule, retenue dans la limite maximale de sept chevaux, du type de motorisation du véhicule, et de la distance annuelle parcourue.</p>
+<p>Lorsque les bénéficiaires mentionnés au huitième alinéa ne font pas application dudit barème, les frais réels déductibles, autres que les frais de péage, de garage ou de parking et d'intérêts annuels afférents à l'achat à crédit du véhicule utilisé, ne peuvent excéder le montant qui serait admis en déduction en application du barème précité, à distance parcourue identique, pour un véhicule de la puissance administrative maximale retenue par le barème.</p>
+<p>Les frais, droits et intérêts d'emprunt versés pour acquérir ou souscrire des parts ou des actions d'une société ayant une activité industrielle, commerciale, artisanale, agricole ou libérale dans laquelle le salarié ou le dirigeant exerce son activité professionnelle principale sont admis, sur justificatifs, au titre des frais professionnels réels dès lors que ces dépenses sont utiles à l'acquisition ou à la conservation de ses revenus. Les intérêts admis en déduction sont ceux qui correspondent à la part de l'emprunt dont le montant est proportionné à la rémunération annuelle perçue ou escomptée au moment où l'emprunt est contracté. La rémunération prise en compte s'entend des revenus mentionnés à l'article 79 et imposés sur le fondement de cet article. La fraction des versements effectués au titre des souscriptions ou acquisitions de titres donnant lieu aux réductions d'impôt prévues aux articles 199 terdecies-0A, 199 terdecies-0 AB ou 199 terdecies-0 B, ainsi que les souscriptions et acquisitions de titres figurant dans un plan d'épargne en actions défini à l'article 163 quinquies D ou dans un plan d'épargne salariale prévu au titre III du livre III de la troisième partie du code du travail, ne peuvent donner lieu à aucune déduction d'intérêts d'emprunt.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000838203" datesignatexte="1978-07-03" id="LEGIARTI000038108210" naturetexte="ARRETE" nortexte="" num="2 ter" numtexte="" sens="cible" typelien="CITATION">Arrêté du 3 juillet 1978 - art. 2 ter (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000000716493" datesignatexte="1990-07-02" id="LEGIARTI000032443166" naturetexte="LOI" nortexte="PTTX9000053L" num="30" numtexte="90-568" sens="cible" typelien="CITATION">Loi n° 90-568 du 2 juillet 1990 - art. 30 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000388784" datesignatexte="2000-12-26" id="LEGIARTI000021699451" naturetexte="ARRETE" nortexte="MESS0023511A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 26 décembre 2000 - art. 2 (VD)</LIEN>
+<LIEN cidtexte="JORFTEXT000000388784" datesignatexte="2000-12-26" id="LEGIARTI000021699458" naturetexte="ARRETE" nortexte="MESS0023511A" num="4" numtexte="" sens="cible" typelien="CITATION">Arrêté du 26 décembre 2000 - art. 4 (VD)</LIEN>
+<LIEN cidtexte="JORFTEXT000000408905" datesignatexte="2002-01-17" id="JORFTEXT000000408905" naturetexte="LOI" nortexte="MESX0000077L" num="" numtexte="2002-73" sens="source" typelien="CITATION">Loi n° 2002-73 du 17 janvier 2002</LIEN>
+<LIEN cidtexte="JORFTEXT000000781627" datesignatexte="2003-08-21" id="LEGIARTI000006758621" naturetexte="LOI" nortexte="SOCX0300057L" num="76" numtexte="2003-775" sens="source" typelien="CITATION">Loi n° 2003-775 du 21 août 2003 - art. 76</LIEN>
+
+<LIEN cidtexte="JORFTEXT000018437811" datesignatexte="2008-03-26" id="LEGIARTI000044620638" naturetexte="DECRET" nortexte="ECET0805254D" num="1" numtexte="2008-284" sens="cible" typelien="CITATION">Décret n°2008-284 du 26 mars 2008 - art. 1 (V)</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000019591417" datesignatexte="2008-10-07" id="LEGIARTI000019591778" naturetexte="DECRET" nortexte="MTSS0813727D" num="1" numtexte="2008-1024" sens="cible" typelien="CITATION">Décret n°2008-1024
+ du 7 octobre 2008 - art. 1 (M)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000022285005" datesignatexte="2010-05-10" id="LEGIARTI000022286732" naturetexte="ARRETE" nortexte="MTSE1012449A" num="Annexe" numtexte="" sens="cible" typelien="CITATION">Arrêté du 10 mai 2010 - art. Annexe (Ab)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000023311316" datesignatexte="2010-12-17" id="LEGITEXT000034794085" naturetexte="ARRETE" nortexte="EFII1031009A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 17 décembre 2010 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000024043094" datesignatexte="2011-05-12" id="LEGITEXT000038103528" naturetexte="ARRETE" nortexte="EFII1030981A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 12 mai 2011 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000024043113" datesignatexte="2011-05-12" id="LEGITEXT000045738858" naturetexte="ARRETE" nortexte="EFII1111446A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 12 mai 2011 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000024043113" datesignatexte="2011-05-12" id="LEGIARTI000045738896" naturetexte="ARRETE" nortexte="EFII1111446A" num="5" numtexte="" sens="cible" typelien="CITATION">Arrêté du 12 mai 2011 - art. 5 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000024043094" datesignatexte="2011-05-12" id="LEGIARTI000038103580" naturetexte="ARRETE" nortexte="EFII1030981A" num="6" numtexte="" sens="cible" typelien="CITATION">Arrêté du 12 mai 2011 - art. 6 (V)</LIEN>
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000027286994" datesignatexte="2013-03-30" id="LEGITEXT000027287474" naturetexte="ARRETE" nortexte="EFIE1304378A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 30 mars 2013 (V)</LIEN>
+
+
+
+<LIEN cidtexte="JORFTEXT000030295547" datesignatexte="2015-02-26" id="LEGITEXT000030296929" naturetexte="ARRETE" nortexte="FCPE1503903A" num="" numtexte="" sens="cible" typelien="CITATION">ARRÊTÉ du 26 février 2015 (V)</LIEN>
+
+
+
+
+<LIEN cidtexte="JORFTEXT000033670816" datesignatexte="2016-12-09" id="LEGIARTI000049335512" naturetexte="ARRETE" nortexte="ECFE1631507A" num="4" numtexte="" sens="cible" typelien="CITATION">Arrêté du 9 décembre 2016 - art. 4 (V)</LIEN>
+
+
+
+<LIEN cidtexte="JORFTEXT000039701752" datesignatexte="2019-12-30" id="LEGIARTI000041405059" naturetexte="DECRET" nortexte="LOGL1920187D" num="2" numtexte="2019-1574" sens="cible" typelien="CITATION">Décret n°2019-1574 du 30 décembre 2019 - art. 2</LIEN>
+<LIEN cidtexte="JORFTEXT000041661664" datesignatexte="2020-02-26" id="LEGITEXT000041666345" naturetexte="ARRETE" nortexte="CPAE2003592A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 26 février 2020 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000041963883" datesignatexte="2020-06-05" id="LEGIARTI000041965444" naturetexte="DECRET" nortexte="TRET2002375D" num="1" numtexte="2020-678" sens="cible" typelien="CITATION">Décret n°2020-678 du 5 juin 2020 - art. 1</LIEN>
+
+<LIEN cidtexte="JORFTEXT000043155901" datesignatexte="2021-02-15" id="LEGITEXT000043156755" naturetexte="ARRETE" nortexte="ECOE2104646A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 15 février 2021 (V)</LIEN>
+
+<LIEN cidtexte="LEGITEXT000044416551" datesignatexte="2999-01-01" id="LEGIARTI000044424165" naturetexte="CODE" nortexte="" num="L827-2" numtexte="" sens="source" typelien="CITATION">Code général de la fonction publique - art. L827-2</LIEN>
+<LIEN cidtexte="JORFTEXT000044615964" datesignatexte="2021-12-23" id="LEGIARTI000045012859" naturetexte="ARRETE" nortexte="SSAS2123528A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 23 décembre 2021 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000045160753" datesignatexte="2022-02-01" id="LEGITEXT000045163197" naturetexte="ARRETE" nortexte="ECOE2202731A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 1er février 2022 (V)</LIEN>
+
+
+
+
+<LIEN cidtexte="JORFTEXT000047416556" datesignatexte="2023-03-27" id="LEGITEXT000047417238" naturetexte="ARRETE" nortexte="ECOE2307260A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 27 mars 2023 (V)</LIEN>
+
+
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000052198430" datesignatexte="2025-09-04" id="LEGITEXT000052206387" naturetexte="ARRETE" nortexte="TSSS2523915A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 4 septembre 2025 (V)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000054341109" datesignatexte="2026-06-29" id="LEGIARTI000054355937" naturetexte="DECRET" nortexte="ECOE2609183D" num="2" numtexte="2026-562" sens="cible" typelien="MODIFIE">Décret n°2026-562 du 29 juin 2026 - art. 2</LIEN>
+
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000006303045" naturetexte="CODE" nortexte="" num="163 octodecies A" numtexte="" sens="cible" typelien="CITATION">CODE GENERAL DES IMPOTS, CGI. - art. 163 octodecies A (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006074096" datesignatexte="2999-01-01" id="LEGIARTI000021632267" naturetexte="CODE" nortexte="" num="R351-5" numtexte="" sens="cible" typelien="CITATION">Code de la construction et de l'habitation. - art. R351-5 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006074096" datesignatexte="2999-01-01" id="LEGIARTI000021632284" naturetexte="CODE" nortexte="" num="R351-7" numtexte="" sens="cible" typelien="CITATION">Code de la construction et de l'habitation. - art. R351-7 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006074096" datesignatexte="2999-01-01" id="LEGIARTI000038878963" naturetexte="CODE" nortexte="" num="R822-19" numtexte="" sens="cible" typelien="CITATION">Code de la construction et de l'habitation. - art. R822-19 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006074096" datesignatexte="2999-01-01" id="LEGIARTI000041419142" naturetexte="CODE" nortexte="" num="R822-3" numtexte="" sens="cible" typelien="CITATION">Code de la construction et de l'habitation. - art. R822-3 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006074096" datesignatexte="2999-01-01" id="LEGIARTI000045920163" naturetexte="CODE" nortexte="" num="R822-4" numtexte="" sens="cible" typelien="CITATION">Code de la construction et de l'habitation. - art. R822-4 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006074067" datesignatexte="2999-01-01" id="LEGIARTI000038724620" naturetexte="CODE" nortexte="" num="L222-4" numtexte="" sens="cible" typelien="CITATION">Code de la mutualité - art. L222-4 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000020986758" naturetexte="CODE" nortexte="" num="D542-10" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D542-10 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000048683707" naturetexte="CODE" nortexte="" num="L131-6" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L131-6 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000036390283" naturetexte="CODE" nortexte="" num="L136-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L136-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000051382496" naturetexte="CODE" nortexte="" num="L871-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L871-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000038724815" naturetexte="CODE" nortexte="" num="L932-41" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L932-41 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000041419421" naturetexte="CODE" nortexte="" num="R532-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R532-3 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000031694502" naturetexte="CODE" nortexte="" num="R532-8" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R532-8 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000020986739" naturetexte="CODE" nortexte="" num="R831-6" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R831-6 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073984" datesignatexte="2999-01-01" id="LEGIARTI000038724479" naturetexte="CODE" nortexte="" num="L143-2" numtexte="" sens="cible" typelien="CITATION">Code des assurances - art. L143-2 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000023086525" datesignatexte="2999-01-01" id="LEGIARTI000041969701" naturetexte="CODE" nortexte="" num="R3132-1" numtexte="" sens="cible" typelien="CITATION">Code des transports - art. R3132-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000038837111" naturetexte="CODE" nortexte="" num="L3152-4" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L3152-4 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000022234881" naturetexte="CODE" nortexte="" num="L3153-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L3153-3 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000019870599" naturetexte="CODE" nortexte="" num="L3334-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L3334-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000031012174" naturetexte="CODE" nortexte="" num="L3334-8" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L3334-8 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000043197156" naturetexte="CODE" nortexte="" num="L3341-7" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L3341-7 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000006307476" naturetexte="CODE" nortexte="" num="155 B" numtexte="" sens="source" typelien="CITATION">Code général des impôts, CGI. - art. 155 B</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000020548871" naturetexte="CODE" nortexte="" num="1600-0 H" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 1600-0 H (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000053542827" naturetexte="CODE" nortexte="" num="163 quatervicies" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 163 quatervicies (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000006303008" naturetexte="CODE" nortexte="" num="163 quinquies D" numtexte="" sens="source" typelien="CITATION">Code général des impôts, CGI. - art. 163 quinquies D</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000047288572" naturetexte="CODE" nortexte="" num="163 quinvicies" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 163 quinvicies (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000006308214" naturetexte="CODE" nortexte="" num="170" numtexte="" sens="source" typelien="CITATION">Code général des impôts, CGI. - art. 170</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000030949107" naturetexte="CODE" nortexte="" num="199 quater C" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 199 quater C (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000022201305" naturetexte="CODE" nortexte="" num="199 terdecies-0 A" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 199 terdecies-0 A (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000036428982" naturetexte="CODE" nortexte="" num="199 terdecies-0 B" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 199 terdecies-0 B (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000051217806" naturetexte="CODE" nortexte="" num="199 terdecies-0 C" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 199 terdecies-0 C (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000036354271" naturetexte="CODE" nortexte="" num="204 F" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 204 F (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000022328024" naturetexte="CODE" nortexte="" num="77 A" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 77 A (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000006302537" naturetexte="CODE" nortexte="" num="79" numtexte="" sens="source" typelien="CITATION">Code général des impôts, CGI. - art. 79</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000006307126" naturetexte="CODE" nortexte="" num="83 bis" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 83 bis (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000006305585" naturetexte="CODE" nortexte="" num="885-0 V bis" numtexte="" sens="source" typelien="CITATION">Code général des impôts, CGI. - art. 885-0 V bis</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000053559885" naturetexte="CODE" nortexte="" num="93" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 93 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069574" datesignatexte="2999-01-01" id="LEGIARTI000030695519" naturetexte="CODE" nortexte="" num="38 septdecies A" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe 3, CGIAN3. - art. 38 septdecies A (P)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069574" datesignatexte="2999-01-01" id="LEGIARTI000030695511" naturetexte="CODE" nortexte="" num="38 septdecies D" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe 3, CGIAN3. - art. 38 septdecies D (P)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069574" datesignatexte="2999-01-01" id="LEGIARTI000030695530" naturetexte="CODE" nortexte="" num="38 sexdecies-0 A" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe 3, CGIAN3. - art. 38 sexdecies-0 A (P)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069574" datesignatexte="2999-01-01" id="LEGIARTI000053218832" naturetexte="CODE" nortexte="" num="39" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe III, CGIANIII. - art. 39 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069576" datesignatexte="2999-01-01" id="LEGIARTI000047417683" naturetexte="CODE" nortexte="" num="6 B" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe IV, CGIANIV. - art. 6 B (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072026" datesignatexte="2999-01-01" id="LEGIARTI000030062759" naturetexte="CODE" nortexte="" num="L221-31" numtexte="" sens="cible" typelien="CITATION">Code monétaire et financier - art. L221-31 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072026" datesignatexte="2999-01-01" id="LEGIARTI000048506410" naturetexte="CODE" nortexte="" num="L224-40" numtexte="" sens="cible" typelien="CITATION">Code monétaire et financier - art. L224-40 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000032360385" naturetexte="CODE" nortexte="" num="L371-8" numtexte="" sens="cible" typelien="CITATION">Code rural - art. L371-8 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000044073283" naturetexte="CODE" nortexte="" num="L321-11" numtexte="" sens="cible" typelien="CITATION">Code rural et de la pêche maritime - art. L321-11 (VD)</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006069583" datesignatexte="2999-01-01" id="LEGIARTI000006316302" naturetexte="CODE" nortexte="" num="R*196-1" numtexte="" sens="source" typelien="CITATION">Livre des procédures fiscales - art. R*196-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006070302" datesignatexte="2999-01-01" id="LEGIARTI000006362684" naturetexte="CODE" nortexte="" num="L9 bis" numtexte="" sens="source" typelien="CITATION">Code des pensions civiles et militaires de retraite - art. L9 bis</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGISCTA000006160768" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CITATION">Code du travail</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903086" naturetexte="CODE" nortexte="" num="L3334-1" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3334-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903831" naturetexte="CODE" nortexte="" num="L5422-9" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L5422-9</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903872" naturetexte="CODE" nortexte="" num="L5423-26" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L5423-26</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGISCTA000006156355" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale.</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000023262802" naturetexte="CODE" nortexte="" num="L137-11-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L137-11-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741897" naturetexte="CODE" nortexte="" num="L241-3" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L241-3</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741953" naturetexte="CODE" nortexte="" num="L242-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L242-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006742680" naturetexte="CODE" nortexte="" num="L351-14-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L351-14-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006743980" naturetexte="CODE" nortexte="" num="L711-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L711-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073984" datesignatexte="2999-01-01" id="LEGIARTI000006793656" naturetexte="CODE" nortexte="" num="L143-1" numtexte="" sens="source" typelien="CITATION">Code des assurances - art. L143-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073984" datesignatexte="2999-01-01" id="LEGIARTI000006800536" naturetexte="CODE" nortexte="" num="L370-1" numtexte="" sens="source" typelien="CITATION">Code des assurances - art. L370-1</LIEN>
+</LIENS>
+</ARTICLE>
