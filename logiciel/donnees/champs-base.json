@@ -817,6 +817,29 @@
    "ecran": true
   },
   {
+   "_note": "LA SANTE D'UN PERMANENT SUSPENDU SANS INDEMNISATION TOUT LE MOIS (15/10/2026).\nLa 3090 suspend les garanties (accord sante du 19/07/2024, etendu, art. 4.2\net 15 : `kali-3090-accord-sante-permanents-20240719-20261011.md`) ; ailleurs\n(1285 : l'accord du 30/01/2026 ne parle que du suspendu indemnise ; un\ncontrat d'entreprise) aucun texte depose ne le dit, le maintien est\nfacultatif (instruction DSS/3C/5B/2021/127, II.B) et c'est le contrat\nd'adhesion qui tranche. Vide : le moteur refuse un mois entierement suspendu\nsans indemnisation (regle 1). << suspendue >> : rien sur la paie ; <<\nmaintenue >> : la paie cotise comme un mois ordinaire. La decision :\n`calcul::sante_de_la_suspension`. Textes :\natelier/reference/sources/suspension-non-remuneree/RAPPORT-20261015.md.",
+   "cle": "sante_suspension_non_indemnisee",
+   "libelle": "Santé d'un permanent suspendu sans indemnisation",
+   "forme": "choix",
+   "aide": "Seulement si un permanent est absent tout un mois sans être payé (congé parental, congé sabbatique, congé sans solde) : votre contrat de complémentaire santé suspend-il ses garanties ce mois-là (« suspendue » : rien sur le bulletin ; s'il veut rester couvert, le salarié paie l'assureur directement), ou les maintient-il avec les cotisations sur le bulletin (« maintenue ») ? La réponse est dans le contrat d'adhésion ou la notice de l'assureur. Rien à remplir sous la 3090 : sa convention suspend les garanties.",
+   "obligatoire": false,
+   "longueur": null,
+   "exemple": "",
+   "choix": [
+    "suspendue",
+    "maintenue"
+   ],
+   "declare": false,
+   "derive_de": null,
+   "rubrique": null,
+   "si_permanents": true,
+   "si": null,
+   "si_etablissements": false,
+   "si_entreprise": null,
+   "booleen_defaut": true,
+   "ecran": true
+  },
+  {
    "_note": "L'ARTICLE 45 DE LA 3097 (journal §136, §137) : absorbe par les taux\nuniques de l'accord interbranches (avenants 5 et 7) ; la case reste pour\nune compagnie dont le contrat Audiens dirait autre chose.",
    "cle": "prevoyance_techniciens_3097",
    "libelle": "Prévoyance des techniciens (cinéma)",

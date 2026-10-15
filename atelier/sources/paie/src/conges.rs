@@ -91,15 +91,41 @@ pub(crate) fn nature_de(v: Option<&Value>) -> Resultat<std::sync::Arc<Nature>> {
 /// Le nombre de jours ouvrables entre deux dates, bornes incluses : du lundi
 /// au samedi, moins les feries que l'entreprise chome.
 pub fn jours_ouvrables(debut: &Jour, fin: &Jour, entreprise: Option<&Value>) -> Resultat<i64> {
+    jours_de_semaine(debut, fin, entreprise, 6)
+}
+
+/// LES JOURS OEUVRES entre deux dates, bornes incluses : du lundi au vendredi, moins les feries que l'entreprise chome
+/// -- les jours ou un salarie a temps plein « doit travailler » dans la modalite classique (cinq jours de sept heures
+/// pour 35 h). Fiche DSN 2640 (`atelier/reference/sources/suspension-non-remuneree/net-entreprises-fiche2640-volumes-
+/// activite-s21g00-53-20260929.txt`, « Le decompte et calcul des absences au reel ») : quand le planning du salarie n'est
+/// pas connu du logiciel, « Nombre d'heures d'absence = Nb d'heures travaillees/jours oeuvres x Nb de jours
+/// theoriquement oeuvres sur la periode », sur « une ou plusieurs hypotheses de modalites classiques de travail » ;
+/// fiche 2693, exemple 10 : un mois de septembre 2026 entier, « 154 heures (22 x 7 heures) ». INFERENCE NOMMEE : la
+/// saisie ne dit pas les jours de la semaine d'un permanent, et le moteur prend l'hypothese classique, du lundi au
+/// vendredi (la mesure des absences, `imprevus::lignes_du_mois`).
+pub fn jours_oeuvres(debut: &Jour, fin: &Jour, entreprise: Option<&Value>) -> Resultat<i64> {
+    jours_de_semaine(debut, fin, entreprise, 5)
+}
+
+/// Les jours de `debut` a `fin` dont le rang dans la semaine (lundi = 0) est sous `jusqu_a`, moins les feries chomes.
+fn jours_de_semaine(debut: &Jour, fin: &Jour, entreprise: Option<&Value>, jusqu_a: u32) -> Resultat<i64> {
     let chomes = feries::chomes_entre(debut, fin, entreprise)?;
     let (mut n, mut jour) = (0, *debut);
     while jour <= *fin {
-        if jour.jour_de_la_semaine() < 6 && !chomes.iter().any(|(j, _)| *j == jour) {
+        if jour.jour_de_la_semaine() < jusqu_a && !chomes.iter().any(|(j, _)| *j == jour) {
             n += 1;
         }
         jour = jour.plus_jours(1)?;
     }
     Ok(n)
+}
+
+/// LES HEURES D'UN JOUR OEUVRE d'un contrat paye au mois de quotite `quotite` (heures par mois) : la duree hebdomadaire
+/// (quotite x 12 / 52, au centieme : 151,67 h font 35,00 h) sur cinq jours (`jours_oeuvres`) -- 7 h pour un temps plein.
+/// Fiche DSN 2640, « Nb d'heures travaillees/jours oeuvres » ; l'hypothese des cinq jours est l'inference de
+/// `jours_oeuvres`.
+pub fn heures_par_jour_oeuvre(quotite: Decimal) -> Decimal {
+    div(eur2(div(mul(quotite, Decimal::from(12)), Decimal::from(52))), Decimal::from(5))
 }
 
 pub(crate) fn jours_ouvrables_de(c: &Value, ent: &Value) -> Resultat<i64> {
@@ -285,18 +311,19 @@ fn periode(
             if p_fin < p_debut {
                 continue;
             }
-            acquis = add(acquis, jours_acquis(&p_debut, &p_fin)?);
+            // La presence, moins les suspensions qui n'acquierent pas (`imprevus::jours_de_conges_non_acquis`).
+            let non_acquis = non_acquis_du_contrat(ctx, e, &p_debut, &p_fin)?;
+            acquis = add(acquis, sub(jours_acquis(&p_debut, &p_fin)?, non_acquis).max(Decimal::ZERO));
             // Les jours pris se comptent comme la retenue du bulletin.
             for c in e.get("conges_pris").and_then(|c| c.as_array()).map_or(&[][..], |a| &a[..]) {
                 pris += Decimal::from(jours_ouvrables_de(c, ent)?);
             }
-            if !crate::imprevus::du_contrat_dans_le_mois(ctx, e, &mois)?.is_empty() {
+            if crate::imprevus::du_contrat_dans_le_mois(ctx, e, &mois)?.iter().any(crate::imprevus::est_un_arret) {
                 avert.push(avertir(format!(
-                    "{} : une suspension en {}. Le compteur de conges compte \
-                     le TEMPS DE PRESENCE ; les periodes assimilees a du \
-                     travail effectif (L3141-4 et L3141-5) ne sont pas \
-                     relevees, et certaines suspensions acquierent quand \
-                     meme des conges. A verifier a la main.",
+                    "{} : un arret de travail en {}. Le compteur de conges compte \
+                     le TEMPS DE PRESENCE d'un arret ; les periodes assimilees a \
+                     du travail effectif pendant un arret (L3141-5) ne sont pas \
+                     appliquees. A verifier a la main.",
                     cle_salarie, mois
                 )));
             }
@@ -307,6 +334,14 @@ fn periode(
         }
     }
     Ok((plafonner(acquis)?, pris, brut, avert))
+}
+
+/// `imprevus::jours_de_conges_non_acquis` du contrat d'un engagement de saisie (sa fiche, son numero, sa date de debut).
+fn non_acquis_du_contrat(ctx: &Contexte, e: &Value, debut: &Jour, fin: &Jour) -> Resultat<Decimal> {
+    let Some(contrat_debut) = e.get("debut").filter(|x| vrai(x)).map(d).transpose()? else { return Ok(Decimal::ZERO) };
+    let cle = cle_de_fiche(ctx, &en_texte(requis(e, "salarie")?));
+    let numero = e.get("numero").filter(|x| vrai(x)).map(en_texte);
+    crate::imprevus::jours_de_conges_non_acquis(&ctx.racine, &cle, numero.as_deref(), &contrat_debut, debut, fin)
 }
 
 fn compteur(
@@ -724,7 +759,10 @@ pub fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> Resultat
     let p_debut = eng.debut_periode()?.max(debut);
     let p_fin = eng.fin_periode()?.min(fin);
     if p_fin >= p_debut {
-        cpt.acquis = plafonner(add(cpt.acquis, jours_acquis(&p_debut, &p_fin)?))?;
+        let cle_fiche = cle_de_fiche(ctx, cle);
+        let non_acquis =
+            crate::imprevus::jours_de_conges_non_acquis(&ctx.racine, &cle_fiche, eng.numero.as_deref(), &eng.debut, &p_debut, &p_fin)?;
+        cpt.acquis = plafonner(add(cpt.acquis, sub(jours_acquis(&p_debut, &p_fin)?, non_acquis).max(Decimal::ZERO)))?;
     }
     cpt.pris += conges_pris_de_la_paie(&ctx.racine, paie)?;
     Ok(cpt)
@@ -821,12 +859,16 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
         "heures": flot(eur2(quotite)),
     })];
 
-    let taux_horaire = if quotite != Decimal::ZERO { eur2(div(salaire, quotite)) } else { zero2() };
+    // Le salaire du mois tel que la ligne « mois » le paie (`calcul::lignes_brut` : le montant arrondi ligne par ligne).
+    let salaire_du_mois = crate::num::eur(mul(dec(requis(&lignes[0], "taux")?)?, dec(requis(&lignes[0], "quantite")?)?));
     // L'entreprise dit quels jours feries elle chome.
     let ent = &ctx.entreprise;
     let ouvrables = Decimal::from(jours_ouvrables(&debut, &fin, Some(ent))?);
     let ouvrables_du_mois = if ouvrables != Decimal::ZERO { ouvrables } else { Decimal::ONE };
     let taux_jour_ouvrable = eur2(div(mul(salaire, fraction), ouvrables_du_mois));
+    // Les heures de travail du mois, au reel (la mesure des absences : `imprevus::lignes_du_mois`).
+    let heures_par_jour = heures_par_jour_oeuvre(quotite);
+    let heures_du_mois = eur2(mul(heures_par_jour, Decimal::from(jours_oeuvres(&debut, &fin, Some(ent))?)));
 
     // --- les conges pris : une retenue, et une indemnite qui la couvre
     let mut pris = Decimal::ZERO;
@@ -874,7 +916,7 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
         ctx,
         e,
         mois,
-        &crate::imprevus::MoisDuContrat { debut, fin, quotite, taux_horaire, ouvrables_du_mois, taux_jour_ouvrable },
+        &crate::imprevus::MoisDuContrat { debut, fin, salaire_du_mois, heures_par_jour, heures_du_mois, taux_jour_ouvrable },
     )?;
     lignes.extend(l);
     avert.extend(a);
@@ -889,7 +931,19 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
     }
 
     // --- la prime d'anciennete de l'annexe I de la 3090
-    let fiche = ctx.salarie(&en_texte(requis(e, "salarie")?)).unwrap_or_else(|_| json!({}));
+    let mut fiche = ctx.salarie(&en_texte(requis(e, "salarie")?)).unwrap_or_else(|_| json!({}));
+    // Les annees de presence que les suspensions laissent (L1225-54 : `imprevus::anciennete_depuis`).
+    let mut sur_l_anciennete = Vec::new();
+    if let Some(depuis) = fiche.get("date_anciennete").filter(|x| vrai(x)).or_else(|| e.get("debut").filter(|x| vrai(x))).map(d).transpose()? {
+        let cle = fiche.get("_cle").map(en_texte).unwrap_or_default();
+        let (retenu, dit) = crate::imprevus::anciennete_depuis(&ctx.racine, &cle, &depuis, &fin_mois)?;
+        if retenu != depuis {
+            if let Some(o) = fiche.as_object_mut() {
+                o.insert("date_anciennete".into(), Value::String(retenu.iso()));
+            }
+            sur_l_anciennete = dit;
+        }
+    }
     let null = Value::Null;
     let pa = clauses::prime_anciennete(
         ctx.entreprise.get("idcc").unwrap_or(&null),
@@ -925,6 +979,8 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
             montant,
             en_texte(&pa["article"])
         )));
+        // Ce que les suspensions ont retire des annees de presence se dit avec la prime.
+        avert.extend(sur_l_anciennete);
     }
 
     // --- le solde de tout compte, le mois ou le contrat se termine

@@ -991,6 +991,20 @@ fn affiliations_du_permanent(p: &Paie, ent: &Value) -> Resultat<Option<Affiliati
     // salarie n'est pas rattache au contrat de sante -- 70.014/.015 decrivent la dispense comme ce qui ouvre ou ferme
     // l'affiliation (cahier technique 2026.1, p. 287).
     let dispense = vrai(g(&p.salarie, "sante_dispense"));
+    // Un mois entierement suspendu sans indemnisation, garanties suspendues (`calcul::sante_de_la_suspension` : 3090,
+    // accord sante du 19/07/2024, art. 4.2 et 15) : pas de cotisation, et pas de rattachement a la sante ce mois-la --
+    // comme une dispense. INFERENCE NOMMEE : aucune fiche DSN deposee ne dit comment declarer une affiliation sante
+    // suspendue (pas de bloc 70 ? un bloc 70 avec une fin de rattachement ? une base 31 a zero ?) ; le moteur n'ecrit ni
+    // bloc 70 ni base 31 de sante pour ce mois (`atelier/reference/sources/suspension-non-remuneree/RAPPORT-20261015.md`,
+    // point 2 et « Ce qui reste ouvert », 3).
+    let suspendue = vrai(g(&p.salarie, crate::calcul::SANTE_SUSPENDUE));
+    if suspendue && p.lignes.iter().any(|l| l.id == "mutuelle") {
+        return Err(format!(
+            "{} : sa sante est suspendue ce mois-ci ({}) et le bulletin cotise a la mutuelle. Rien n'est declare.",
+            qui_contrat(p),
+            txt(g(&p.salarie, crate::calcul::SANTE_SUSPENDUE))
+        ));
+    }
     if dispense && p.lignes.iter().any(|l| l.id == "mutuelle") {
         return Err(format!(
             "{} : la fiche porte une dispense de complementaire sante (`sante_dispense` : « {} ») et le bulletin cotise a \
@@ -1002,7 +1016,7 @@ declare.",
             txt(g(ent, "idcc"))
         ));
     }
-    Ok(Some(AffiliationsDuPermanent { prevoyance, sante: !dispense }))
+    Ok(Some(AffiliationsDuPermanent { prevoyance, sante: !dispense && !suspendue }))
 }
 
 /// Les places (`Affiliation::place`) des adhesions de sa nature auxquelles le salarie n'est pas affilie ce mois-la.
