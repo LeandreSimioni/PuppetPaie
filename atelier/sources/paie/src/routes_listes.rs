@@ -110,20 +110,6 @@ fn entier(t: &str) -> R<i64> {
     t.trim().parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr(t))))
 }
 
-/// `date_limite_dsn(mois, echeance)` : le jour d'echeance du mois suivant, avec
-/// les refus de `datetime.date` (mois, annee ou jour hors du calendrier).
-fn date_limite_dsn(mois: &str, echeance: u32) -> R<Jour> {
-    let (an, mo) = (entier(&mois.chars().take(4).collect::<String>())?, entier(&mois.chars().skip(5).take(2).collect::<String>())?);
-    let (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };
-    if !(1..=12).contains(&mo) {
-        return Err(erreur("ValueError", crate::date::mois_impossible(mo)));
-    }
-    if !(1..=9999).contains(&an) {
-        return Err(erreur("ValueError", crate::date::annee_impossible(an)));
-    }
-    Jour::nouveau(an as i32, mo as u32, echeance).ok_or_else(|| erreur("ValueError", crate::date::jour_impossible(an as i64, mo as i64, echeance)))
-}
-
 /// Refuse `c` quand ce n'est pas un objet, qu'il porte une cle inconnue ou qu'il oublie un champ obligatoire.
 fn construire(classe: &str, c: &Value, champs: &[&str], requis: usize) -> R<()> {
     let Value::Object(m) = c else {
@@ -146,57 +132,15 @@ fn champ(v: &Value, k: &str, defaut: Value) -> Value {
 
 // -------------------------------------------------------------------- arrets
 
-const CHAMPS_ARRET: [&str; 16] = [
-    "salarie", "contrat_debut", "contrat_numero", "motif", "dernier_jour_travaille", "fin_previsionnelle", "subrogation",
-    "subrogation_debut", "subrogation_fin", "reprise", "reprise_motif", "date_accident", "saisi_le", "qui", "note", "envois",
-];
-
-/// `operations_arrets.tous_les_arrets` : les arrets de `arrets/AAAA-MM.json`,
-/// dans l'ordre des mois (chacun tel que le fichier le dit, completes de leurs
-/// valeurs par defaut).
-pub(crate) fn tous_les_arrets(ctx: &Contexte) -> R<Vec<Value>> {
-    let dossier = ctx.racine.join("arrets");
-    if !dossier.exists() {
-        return Ok(Vec::new());
-    }
-    let mut out = Vec::new();
-    for (_, chemin) in fichiers_de_mois(&dossier) {
-        // `lire_arrets` : `d_.get("arrets", [])`, puis `Arret(**a)` pour chacun.
-        let contenu = lire_json(&chemin)?;
-        let liste = getd(&contenu, "arrets", &LISTE_VIDE)?;
-        for a in items(liste)? {
-            construire("Arret", &a, &CHAMPS_ARRET, 6)?;
-            out.push(a.into_owned());
-        }
-    }
-    Ok(out)
+/// Un refus du magasin des imprevus (`imprevus`) : un fichier abime, un genre inconnu, le dossier `arrets/` d'avant.
+pub(crate) fn refus_magasin(m: String) -> Echec {
+    erreur("ErreurOperation", m)
 }
 
-/// `operations_arrets.lire_arrets` : les arrets de `arrets/AAAA-MM.json`, chacun comme `asdict(Arret)`
-/// l'ecrirait (les seize champs dans l'ordre de la classe, ceux qui manquent a leur valeur par defaut).
-pub(crate) fn lire_arrets(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
-    let p = ctx.racine.join("arrets").join(format!("{}.json", mois));
-    if !p.exists() {
-        return Ok(Vec::new());
-    }
-    let contenu = lire_json(&p)?;
-    let liste = getd(&contenu, "arrets", &LISTE_VIDE)?;
-    let mut out = Vec::new();
-    for a in items(liste)? {
-        construire("Arret", &a, &CHAMPS_ARRET, 6)?;
-        let mut o = Map::new();
-        for k in CHAMPS_ARRET {
-            let defaut = match k {
-                "qui" => json!("?"),
-                "note" => json!(""),
-                "envois" => json!([]),
-                _ => Value::Null,
-            };
-            o.insert(k.to_string(), champ(&a, k, defaut));
-        }
-        out.push(Value::Object(o));
-    }
-    Ok(out)
+/// Les arrets de travail du magasin des imprevus (`imprevus/AAAA-MM.json`, genre `arret`), dans l'ordre des mois du
+/// magasin, chacun complet.
+pub(crate) fn tous_les_arrets(ctx: &Contexte) -> R<Vec<Value>> {
+    Ok(crate::imprevus::tous(&ctx.racine).map_err(refus_magasin)?.into_iter().filter(crate::imprevus::est_un_arret).collect())
 }
 
 /// `signalement.nomenclatures()`.
@@ -213,7 +157,7 @@ fn codes(n: &Value, quoi: &str) -> R<Vec<Value>> {
 }
 
 /// `signalement.motifs_arret()` et `motifs_reprise()` : les codes saisissables.
-fn saisissables(n: &Value, quoi: &str) -> R<Vec<Value>> {
+pub(crate) fn saisissables(n: &Value, quoi: &str) -> R<Vec<Value>> {
     let mut out = Vec::new();
     for c in codes(n, quoi)? {
         if vrai(get(&c, "saisissable")?) {
@@ -270,6 +214,9 @@ pub(crate) fn resume_arret(n: &Value, a: &Value) -> R<Value> {
         mois.push(get(r, "mois")?.clone());
     }
     let signale = !signalements.is_empty();
+    // UN SIGNALEMENT EST-IL DU ? Pas pour un motif que la DSN ne couvre pas (le deuil d'enfant : `obligations-base.json`,
+    // `signalement_arret.sauf_motifs`) ; son obligation est alors l'attestation de salaire hors DSN.
+    let signalement_du = crate::obligations::signalement_du(&crate::date::en_texte(&motif))?;
     Ok(json!({
         "salarie": champ(a, "salarie", Value::Null),
         "contrat": champ(a, "contrat_numero", Value::Null),
@@ -287,35 +234,29 @@ pub(crate) fn resume_arret(n: &Value, a: &Value) -> R<Value> {
         "note": champ(a, "note", json!("")),
         "saisi_le": champ(a, "saisi_le", Value::Null),
         "signale": signale,
+        "signalement_du": signalement_du,
         "signalements": signalements,
         "reporte_par": mois,
-        "etat": if signale { "signale" } else { "a signaler" },
+        "etat": if signale { "signale" } else if signalement_du { "a signaler" } else { "sans signalement" },
     }))
 }
 
-/// La route `arrets`.
+/// La route `arrets` : les arrets de travail du magasin des imprevus, chacun resume comme `imprevus` le resume
+/// (`routes_imprevus::resume`), ceux qu'aucun signalement n'a annonces, et les nomenclatures du bloc 60.
 fn arrets(ctx: &Contexte) -> R<Value> {
     let tous = tous_les_arrets(ctx)?;
     let n = nomenclatures(ctx)?;
-    // `{"arrets": [resume(a) for a in tous_les_arrets(ctx)], "a_signaler": ...}`
+    // LES OBLIGATIONS de chaque arret (`obligations::de_l_arret`, 15/10/2026) : un champ de plus a son resume.
+    let suivi = crate::obligations::Suivi::lire(ctx)?;
     let mut resumes = Vec::new();
-    for a in &tous {
-        resumes.push(resume_arret(&n, a)?);
-    }
-    // `a_signaler` relit les arrets : meme fichiers, meme refus -- et `any`
-    // s'arrete au premier envoi qui signale.
     let mut a_signaler = Vec::new();
     for a in &tous {
-        let mut signale = false;
-        for e in envois(a)? {
-            if matches!(get(&e, "nature")?.as_str(), Some("04") | Some("05")) {
-                signale = true;
-                break;
-            }
+        let mut r = crate::routes_imprevus::resume(ctx, &n, a)?;
+        r["obligations"] = Value::Array(crate::obligations::de_l_arret(ctx, a, &suivi, ctx.aujourdhui)?);
+        if !r["signale"].as_bool().unwrap_or(false) && r["signalement_du"].as_bool().unwrap_or(true) {
+            a_signaler.push(r.clone());
         }
-        if !signale {
-            a_signaler.push(resume_arret(&n, a)?);
-        }
+        resumes.push(r);
     }
     let subrogation = n.get("subrogation").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("subrogation")))?;
     Ok(json!({
@@ -437,6 +378,7 @@ fn fins_a_signaler(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     let engagements = getd(&saisie, "engagements", &Value::Null)?;
     let liste = if vrai(engagements) { items(engagements)? } else { Vec::new() };
     let mut out = Vec::new();
+    let journal = crate::etats::charger(&ctx.racine)?;
     for e in liste {
         let e: &Value = &e;
         let nat = nature_de(get(e, "nature")?)?;
@@ -451,6 +393,8 @@ fn fins_a_signaler(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
             continue;
         }
         let salarie = e.get("salarie").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("salarie")))?;
+        // La cle de la fiche : celle que porte le nom du fichier du signalement (`fin-contrat-signaler`).
+        let cle = ctx.salarie(&py_str(salarie)).ok().and_then(|f| f.get("_cle").map(py_str));
         out.push(json!({
             "salarie": salarie,
             "numero": get(e, "numero")?,
@@ -459,6 +403,8 @@ fn fins_a_signaler(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
             "motif_rupture": get(e, "motif_rupture")?,
             "preavis": get(e, "preavis")?,
             "a_saisir": ce_qui_manque(ctx, e)?,
+            // LE DELAI ET OU ON EN EST (`obligations::de_la_fin`, 15/10/2026) : un champ de plus.
+            "obligation": crate::obligations::de_la_fin(ctx, cle.as_deref(), fin, &journal, ctx.aujourdhui)?,
         }));
     }
     Ok(out)
@@ -606,14 +552,14 @@ fn corrections_par_mois(ctx: &Contexte) -> R<Vec<Value>> {
 /// `etat_mois` : ce mois se corrige-t-il par regularisation, et sinon, quoi faire.
 fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
     let e = m.dsn_du_mois(mois)?;
-    let echeance = ctx.echeance_dsn().map_err(plain)?;
-    let limite = date_limite_dsn(mois, echeance)?;
+    let echeance = crate::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
+    let limite = echeance.jour;
     let passee = ctx.aujourdhui > limite;
     let deposee = vrai(&e);
     let drapeau = |k: &str| -> R<bool> { Ok(deposee && vrai(get(&e, k)?)) };
     let (partie_passee, refusee) = (drapeau("passee")?, drapeau("refusee")?);
-    // `_remplacement.limite` : la veille de l'echeance, a minuit.
-    let veille = limite.plus_jours(-1).map_err(plain)?;
+    // `_remplacement.limite` : la veille de l'echeance (reportee), a minuit.
+    let veille = echeance.veille().map_err(plain)?;
     let mut regularisable = false;
     let raison = if !deposee {
         let retard = if passee { format!(" (en retard : `paie mois paies/{}.json --forcer`)", mois) } else { String::new() };
@@ -640,7 +586,7 @@ fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
     };
     Ok(json!({
         "mois": mois, "deposee": deposee, "passee": partie_passee, "refusee": refusee,
-        "echeance": limite.iso(), "echeance_passee": passee,
+        "echeance": limite.iso(), "echeance_passee": passee, "echeance_depot": echeance.en_json(),
         "mois_courant": ctx.aujourdhui.mois_iso(),
         "regularisable": regularisable, "raison": raison,
     }))

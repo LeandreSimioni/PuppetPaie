@@ -12,10 +12,21 @@
 //!              puis `maj/prete.json` est pose.
 //!   appliquer  au demarrage suivant. Ce qui est dans `logiciel/` va dans `logiciel/.avant/`, la version prete prend sa
 //!              place ; si ca casse en route, tout revient.
-//!   publier    chez l'editeur : l'archive signee et `derniere.json` dans le depot. Depuis le lot P1 (14/10/2026), la
+//!   publier    chez l'editeur : les archives signees et `derniere.json` dans le depot. Depuis le lot P1 (14/10/2026), la
 //!              publication se fait sur GitHub : le flux « Publier » du depot public (`.github/workflows/publier.yml`)
 //!              fabrique `logiciel/`, attend l'approbation de Leandre, signe par `publier_depuis_l_environnement` et
-//!              pose l'archive, `derniere.json` et l'installeur dans une Release, que `DEPOT_PAR_DEFAUT` lit.
+//!              pose les archives, `derniere.json` et l'installeur dans une Release, que `DEPOT_PAR_DEFAUT` lit.
+//!
+//! QUATRE ARCHIVES PAR VERSION (Leandre, 15/10/2026 : « Il y a les quatre : une par systeme et une tout-systeme,
+//! ensemble »). `logiciel/` porte les programmes des trois systemes : `puppetpaie.exe` et `WebView2Loader.dll` a la
+//! racine (Windows, le seul suivi par Git), `linux/puppetpaie` et `linux/paie`, `mac/puppetpaie` et `mac/paie` (poses
+//! par le flux, universels Intel et Apple pour le Mac) : Linux et Mac ont tous deux un `puppetpaie`, chacun son dossier
+//! (`dossier_programmes`). La publication fait une archive par systeme (les fichiers communs et ceux de ce systeme,
+//! `systeme_du_fichier`) et une qui porte tout (`TOUT_SYSTEME` : un dossier portable pour plusieurs machines, et le repli),
+//! chacune signee ; `derniere.json` les nomme sous `archives`. Une installation prend celle de son systeme (`SYSTEME`), ou
+//! la tout-systeme si la sienne manque (`telecharger`). « Publier » choisit ce qu'il fabrique (Windows seul, Windows et
+//! Linux, ou les trois ; Leandre, 15/10/2026) : seules les archives fabriquees sont nommees, la tout-systeme dit sous
+//! `systemes` ceux qu'elle porte, et une installation dont le systeme n'est pas publie garde sa version et le dit.
 //!
 //! LE RELAIS, AU LANCEMENT (09/10/2026 : « que personne ne voit »). Sous Windows, un programme ne se remplace pas pendant
 //! qu'il tourne. Le programme qu'on lance regarde donc, AVANT TOUTE FENETRE, si l'installation a une version prete et
@@ -60,7 +71,7 @@ pub const CLE_PUBLIQUE_GITHUB: &str = "48dC1Gb82e2Zh7z7NiUH14EbXX7IvXTp83Xaui/31
 /// Le depot des mises a jour QUAND LE REGLAGE DE L'INSTALLATION NE DIT RIEN : les fichiers de la DERNIERE RELEASE du
 /// depot public (lot P1, 14/10/2026 ; avant, le serveur du filet, qui ne servait rien). GitHub repond a
 /// `releases/latest/download/<fichier>` par une redirection vers la Release la plus recente, puis vers son stockage :
-/// `lire_depot` les suit (ureq, dix au plus). `derniere.json` y nomme l'archive, servie a cote. Un `depot` pose dans le
+/// `lire_depot` les suit (ureq, dix au plus). `derniere.json` y nomme les archives, servies a cote. Un `depot` pose dans le
 /// reglage le remplace toujours. Il ne sert qu'a RECEVOIR (`verifier`) : `publier` ecrit dans un dossier.
 pub const DEPOT_PAR_DEFAUT: &str = "https://github.com/LeandreSimioni/PuppetPaie/releases/latest/download";
 /// La variable d'environnement ou le flux « Publier » pose la graine (base64) : lue par `publier_depuis_l_environnement`,
@@ -85,6 +96,30 @@ const NE_PAS_TOUCHER: [&str; 3] = [".git", ".avant", ".apres"];
 /// de `logiciel/` : la bascule n'y touche pas.) Avant, l'`EDITION.json` de l'installeur partait a la premiere mise a jour
 /// et le poste se debloquait sans geste (`PASSATION-I1.md`, ouvert 1).
 const PROPRES_A_L_INSTALLATION: [&str; 1] = ["EDITION.json"];
+/// Les programmes d'un systeme Unix, dans son dossier de `logiciel/` (`linux/`, `mac/`) : la fenetre, et le moteur (pour un
+/// Linux sans WebKitGTK, qui ouvre la meme page dans le navigateur ; et le flux « Publier » signe avec celui de Linux).
+/// Un zip ne garde le bit d'execution que si on l'y marque : `archiver` le marque sur eux, `deballer` le remet.
+const PROGRAMMES_UNIX: [&str; 2] = ["puppetpaie", "paie"];
+
+/// LES TROIS SYSTEMES, chacun son archive (Leandre, 15/10/2026). Le nom est celui du dossier des programmes de ce systeme
+/// dans `logiciel/` (sauf Windows, dont les programmes sont a la racine : `dossier_programmes_de`) et la cle de son
+/// archive dans `derniere.json`.
+pub const SYSTEMES: [&str; 3] = ["windows", "linux", "mac"];
+/// L'archive qui porte les trois systemes a la fois : un dossier portable qui passe d'une machine a l'autre, et le repli
+/// d'une installation dont le systeme n'a pas d'archive a lui dans `derniere.json`.
+pub const TOUT_SYSTEME: &str = "tout-systeme";
+/// Le systeme de ce programme, tel qu'il a ete compile. Ce qui n'est ni Windows ni macOS est lu comme Linux : le flux ne
+/// compile pour aucun autre, et un programme Linux qui ne se lance pas ailleurs est refuse par `controler`.
+pub const SYSTEME: &str = if cfg!(windows) {
+    "windows"
+} else if cfg!(target_os = "macos") {
+    "mac"
+} else {
+    "linux"
+};
+/// Ce qui, a la racine de `logiciel/`, n'est que de Windows : la fenetre (suivie par Git), le chargeur de WebView2 qu'elle
+/// charge au demarrage, et le moteur s'il y est pose.
+const PROPRES_A_WINDOWS: [&str; 3] = ["puppetpaie.exe", "WebView2Loader.dll", "paie.exe"];
 
 type R<T> = Result<T, String>;
 
@@ -93,14 +128,46 @@ pub fn code() -> PathBuf {
     crate::interface::compagnies::logiciel()
 }
 
-/// Le dossier des programmes : `logiciel/` lui-meme, ou l'exe est pose a cote de `donnees/` et `interface/` (rangement
-/// du 09/10/2026 : `logiciel/` est exactement ce que les gens recoivent).
+/// Le dossier des programmes de CE systeme dans `logiciel/` (`dossier_programmes_de`).
 pub fn dossier_programmes(code: &Path) -> PathBuf {
-    code.to_path_buf()
+    dossier_programmes_de(code, SYSTEME)
 }
 
+/// Le dossier des programmes d'un systeme : `logiciel/` lui-meme pour Windows, ou l'exe est pose a cote de `donnees/` et
+/// `interface/` (rangement du 09/10/2026 : `logiciel/` est exactement ce que les gens recoivent ; le raccourci de
+/// l'installeur et `PuppetPaie.cmd` le lancent la) ; `logiciel/linux/` et `logiciel/mac/` pour les deux autres, qui ont
+/// chacun un `puppetpaie` (15/10/2026 : l'archive de tous les systemes les porte ensemble). Un programme pose dans un
+/// sous-dossier trouve ses `donnees/` en remontant (`commandes::compagnie::fixer_le_code`).
+pub fn dossier_programmes_de(code: &Path, systeme: &str) -> PathBuf {
+    if systeme == "windows" {
+        code.to_path_buf()
+    } else {
+        code.join(systeme)
+    }
+}
+
+/// Le programme `nom` de CE systeme dans `logiciel/`.
 pub fn programme(code: &Path, nom: &str) -> PathBuf {
-    dossier_programmes(code).join(if cfg!(windows) { format!("{}.exe", nom) } else { nom.to_string() })
+    programme_de(code, SYSTEME, nom)
+}
+
+/// Le programme `nom` d'un systeme dans `logiciel/` : `puppetpaie.exe`, `linux/puppetpaie`, `mac/puppetpaie`.
+pub fn programme_de(code: &Path, systeme: &str, nom: &str) -> PathBuf {
+    dossier_programmes_de(code, systeme).join(if systeme == "windows" { format!("{}.exe", nom) } else { nom.to_string() })
+}
+
+/// Le systeme d'un fichier de `logiciel/` (chemin relatif, `/` comme separateur), ou `None` s'il est commun a tous
+/// (`VERSION`, `donnees/`, `interface/`) : ce qui decide de ce que porte l'archive d'un systeme.
+pub fn systeme_du_fichier(rel: &str) -> Option<&'static str> {
+    match rel.split_once('/') {
+        Some((tete, _)) => SYSTEMES.into_iter().find(|s| *s != "windows" && *s == tete),
+        None => PROPRES_A_WINDOWS.contains(&rel).then_some("windows"),
+    }
+}
+
+/// Le nom de l'archive d'une version pour un systeme (ou `TOUT_SYSTEME`) : `puppetpaie-<version>-<systeme>.zip`.
+pub fn nom_d_archive(version: &str, systeme: &str) -> String {
+    format!("puppetpaie-{}-{}.zip", version, systeme)
 }
 
 pub fn courante(code: &Path) -> String {
@@ -209,14 +276,36 @@ fn lire_depot(depot: &str, nom: &str) -> R<Vec<u8>> {
     std::fs::read(Path::new(depot).join(nom)).map_err(|e| format!("{} : {}", Path::new(depot).join(nom).display(), e))
 }
 
+/// `derniere.json` du depot : la `version`, et sous `archives` une entree par systeme publie (`SYSTEMES`, `TOUT_SYSTEME`),
+/// chacune avec son `archive` (le nom du fichier, a cote), son `sha256` et sa `signature`. Toute autre forme est refusee.
 pub fn derniere(depot: &str) -> R<Value> {
     let d: Value = serde_json::from_slice(&lire_depot(depot, DERNIERE)?).map_err(|e| format!("derniere.json illisible : {}", e))?;
-    for k in ["version", "archive", "sha256"] {
-        if d.get(k).and_then(Value::as_str).filter(|s| !s.is_empty()).is_none() {
-            return Err(format!("derniere.json sans « {} »", k));
+    if d.get("version").and_then(Value::as_str).filter(|s| !s.is_empty()).is_none() {
+        return Err("derniere.json sans « version »".into());
+    }
+    let archives = d.get("archives").and_then(Value::as_object).filter(|a| !a.is_empty()).ok_or("derniere.json sans « archives »")?;
+    for (systeme, a) in archives {
+        if systeme != TOUT_SYSTEME && !SYSTEMES.contains(&systeme.as_str()) {
+            return Err(format!("derniere.json : « {} » n'est pas un systeme", systeme));
+        }
+        for k in ["archive", "sha256", "signature"] {
+            if a.get(k).and_then(Value::as_str).filter(|s| !s.is_empty()).is_none() {
+                return Err(format!("derniere.json : l'archive « {} » sans « {} »", systeme, k));
+            }
+        }
+    }
+    // Celle de tous les systemes dit lesquels elle porte : ceux qui ont ete fabriques.
+    if let Some(t) = archives.get(TOUT_SYSTEME) {
+        let portes = t.get("systemes").and_then(Value::as_array).filter(|l| !l.is_empty()).ok_or("derniere.json : l'archive « tout-systeme » sans « systemes »")?;
+        if let Some(x) = portes.iter().find(|x| !x.as_str().is_some_and(|x| SYSTEMES.contains(&x))) {
+            return Err(format!("derniere.json : « {} » n'est pas un systeme", x));
         }
     }
     Ok(d)
+}
+
+fn condensat(octets: &[u8]) -> String {
+    Sha256::digest(octets).iter().map(|b| format!("{:02x}", b)).collect()
 }
 
 fn b64(t: &str) -> R<Vec<u8>> {
@@ -295,15 +384,18 @@ fn deballer(octets: &[u8], cible: &Path) -> R<()> {
         if let Some(p) = chemin.parent() {
             std::fs::create_dir_all(p).map_err(|e| e.to_string())?;
         }
+        // Un programme d'un systeme Unix : `archiver` l'a marque executable, il le redevient ici.
+        let executable = f.unix_mode().is_some_and(|m| m & 0o111 != 0);
         let mut o = Vec::new();
         f.read_to_end(&mut o).map_err(|e| e.to_string())?;
         std::fs::write(&chemin, o).map_err(|e| e.to_string())?;
-    }
-    // Le programme d'un systeme Unix : executable (le zip ne le garde pas).
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = std::fs::set_permissions(cible.join("puppetpaie"), std::fs::Permissions::from_mode(0o755));
+        #[cfg(unix)]
+        if executable {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&chemin, std::fs::Permissions::from_mode(0o755)).map_err(|e| format!("{} : {}", chemin.display(), e))?;
+        }
+        #[cfg(not(unix))]
+        let _ = executable;
     }
     Ok(())
 }
@@ -341,15 +433,49 @@ fn controler(neuf: &Path, racine: &Path) -> R<()> {
     }
 }
 
-fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str]) -> R<()> {
+/// L'archive de CE systeme, sinon celle de tous les systemes SI ELLE LE PORTE (sa liste `systemes`) : leur cle dans
+/// `derniere.json` et leur entree, dans l'ordre ou les essayer. Vide : la version est publiee sans ce systeme (Leandre,
+/// 15/10/2026 : « Publier » choisit Windows seul, Windows et Linux, ou les trois), l'installation ne telecharge rien.
+fn archives_a_essayer(d: &Value) -> Vec<(&'static str, &Value)> {
+    let porte = |a: &Value| a["systemes"].as_array().is_some_and(|l| l.iter().any(|x| x.as_str() == Some(SYSTEME)));
+    let mut v: Vec<(&'static str, &Value)> = d["archives"].get(SYSTEME).map(|a| (SYSTEME, a)).into_iter().collect();
+    v.extend(d["archives"].get(TOUT_SYSTEME).filter(|a| porte(a)).map(|a| (TOUT_SYSTEME, a)));
+    v
+}
+
+/// La version est-elle publiee pour ce systeme (son archive, ou celle de tous qui le porte) ?
+fn publiee_pour_ce_systeme(d: &Value) -> bool {
+    !archives_a_essayer(d).is_empty()
+}
+
+/// Telecharge l'archive de ce systeme (ou, si `derniere.json` n'en a pas pour lui ou qu'elle ne se telecharge pas, celle
+/// de tous les systemes, si elle le porte), la verifie, la deballe, la controle et la pose prete. Rend la cle de l'archive prise. Une
+/// archive telechargee dont le condensat ou la signature ne vaut pas est refusee sans essayer l'autre : ce n'est pas
+/// qu'elle manque, c'est qu'elle n'est pas la notre.
+fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str]) -> R<&'static str> {
     let version = d["version"].as_str().unwrap_or_default();
-    let octets = lire_depot(depot, d["archive"].as_str().unwrap_or_default())?;
-    let sha: String = Sha256::digest(&octets).iter().map(|b| format!("{:02x}", b)).collect();
-    let attendu = d["sha256"].as_str().unwrap_or_default();
+    let candidates = archives_a_essayer(d);
+    if candidates.is_empty() {
+        return Err(format!("derniere.json n'a pas d'archive qui porte ce systeme ({})", SYSTEME));
+    }
+    let mut manquees = Vec::new();
+    let mut prise = None;
+    for (k, a) in candidates {
+        match lire_depot(depot, a["archive"].as_str().unwrap_or_default()) {
+            Ok(o) => {
+                prise = Some((k, a, o));
+                break;
+            }
+            Err(e) => manquees.push(e),
+        }
+    }
+    let (systeme, a, octets) = prise.ok_or_else(|| manquees.join(" ; "))?;
+    let sha = condensat(&octets);
+    let attendu = a["sha256"].as_str().unwrap_or_default();
     if sha != attendu {
         return Err(format!("archive alteree (condensat {}… attendu {}…)", &sha[..12], attendu.chars().take(12).collect::<String>()));
     }
-    let signature = d.get("signature").and_then(Value::as_str).ok_or("archive non signee : derniere.json n'a pas de « signature »")?;
+    let signature = a.get("signature").and_then(Value::as_str).ok_or("archive non signee : derniere.json n'a pas de « signature »")?;
     if !signee_par_l_une(&octets, signature, cles) {
         return Err("la signature de l'archive n'est pas celle de l'editeur".into());
     }
@@ -360,6 +486,11 @@ fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str]) -> R<()> {
     deballer(&octets, &neuf)?;
     if courante(&neuf) != version {
         return Err(format!("l'archive dit {}, derniere.json dit {}", version_lue(&courante(&neuf)), version_lue(version)));
+    }
+    // Le programme de ce systeme doit y etre, meme sans compagnie a controler.
+    if !programme(&neuf, "puppetpaie").is_file() {
+        let _ = std::fs::remove_dir_all(&cible);
+        return Err(format!("le programme de ce systeme manque dans l'archive ({})", programme(Path::new(""), "puppetpaie").display()));
     }
     // Le programme neuf lit la configuration de chaque compagnie de l'installation (sans compagnie, il n'y a rien a lire).
     for racine in compagnies_de(inst) {
@@ -372,10 +503,12 @@ fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str]) -> R<()> {
         &dossier_maj(inst).join("prete.json"),
         &json!({
             "version": version, "quand": crate::releve_retours::iso_de_naif(crate::releve_retours::maintenant_naif())[..16].to_string(),
+            "archive": a["archive"].clone(),
             "notes": d.get("notes").cloned().unwrap_or(json!("")), "calcul": d.get("calcul").cloned().unwrap_or(json!("")),
             "exigee": d.get("exigee").cloned().unwrap_or(json!("")),
         }),
-    )
+    )?;
+    Ok(systeme)
 }
 
 /// Au lancement, en fond. Ne leve jamais : rend une phrase (ce qui s'est passe), pour le journal de la mise a jour.
@@ -404,11 +537,21 @@ pub fn verifier_avec(inst: &Path, telecharger_aussi: bool, cles: &[&str]) -> Str
         return format!("version {}, a jour", cour);
     }
     let lue = version_lue(&v);
+    // Publiee sans ce systeme : rien a telecharger, la version en place reste (une tout-systeme qui ne le porte pas ne
+    // se lancerait pas ici).
+    if !publiee_pour_ce_systeme(&d) {
+        return format!("version {} -- la {} est publiee sans ce systeme ({}) : cette installation garde sa version", cour, lue, SYSTEME);
+    }
     if prete(inst).and_then(|p| p["version"].as_str().map(String::from)).as_deref() == Some(v.as_str()) || !telecharger_aussi {
         return format!("version {} -- la {} est prete", cour, lue);
     }
     match telecharger(inst, &depot, &d, cles) {
-        Ok(()) => format!("version {} -- la {} est telechargee, controlee, prete : elle s'appliquera au prochain demarrage", cour, lue),
+        Ok(prise) => format!(
+            "version {} -- la {} est telechargee, controlee, prete : elle s'appliquera au prochain demarrage{}",
+            cour,
+            lue,
+            if prise == SYSTEME { String::new() } else { format!(" (archive {} : celle de ce systeme manque)", prise) }
+        ),
         Err(e) => format!("version {} -- la {} existe mais n'a pas pu etre preparee : {}", cour, lue, e),
     }
 }
@@ -577,17 +720,28 @@ fn fichiers(code: &Path, rel: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-/// Le contenu de `logiciel/`, sans caches ni depot git ni version d'avant, dans un zip deterministe.
-pub fn archiver(code: &Path) -> R<Vec<u8>> {
+/// L'archive d'un systeme (`SYSTEMES`) ou de tous (`TOUT_SYSTEME`) : le contenu de `logiciel/`, sans caches ni depot git ni
+/// version d'avant, dans un zip deterministe ; pour un systeme, les fichiers communs et les siens seulement
+/// (`systeme_du_fichier`). Les programmes Unix (`linux/puppetpaie`, `mac/paie`...) y sont marques executables, et eux seuls.
+pub fn archiver(code: &Path, systeme: &str) -> R<Vec<u8>> {
+    if systeme != TOUT_SYSTEME && !SYSTEMES.contains(&systeme) {
+        return Err(format!("« {} » n'est pas un systeme", systeme));
+    }
     let mut liste = Vec::new();
     fichiers(code, Path::new(""), &mut liste);
     let mut z = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
     let date = zip::DateTime::from_date_and_time(2020, 1, 1, 0, 0, 0).map_err(|e| format!("{:?}", e))?;
     for rel in liste {
         let nom = rel.to_string_lossy().replace('\\', "/");
-        let o = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated).last_modified_time(date).unix_permissions(
-            if nom == "puppetpaie" { 0o755 } else { 0o644 },
-        );
+        let du_systeme = systeme_du_fichier(&nom);
+        if systeme != TOUT_SYSTEME && du_systeme.is_some_and(|s| s != systeme) {
+            continue;
+        }
+        let programme_unix = du_systeme.is_some_and(|s| s != "windows") && nom.rsplit('/').next().is_some_and(|n| PROGRAMMES_UNIX.contains(&n));
+        let o = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated)
+            .last_modified_time(date)
+            .unix_permissions(if programme_unix { 0o755 } else { 0o644 });
         z.start_file(nom, o).map_err(|e| e.to_string())?;
         z.write_all(&std::fs::read(code.join(&rel)).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
     }
@@ -712,7 +866,7 @@ pub fn generer_cle_au_poste(coffre: &Coffre, remplacer: bool) -> R<Value> {
     Ok(json!({"chemin": chemin.display().to_string(), "cle_publique": publique, "correspond": publique == CLE_PUBLIQUE}))
 }
 
-/// Chez l'editeur : l'archive signee et `derniere.json` dans le depot (un dossier).
+/// Chez l'editeur : les archives signees et `derniere.json` dans le depot (un dossier).
 pub fn publier(racine: &Path, depot: Option<&str>, notes: &str, calcul: &str, exigee: &str) -> R<Value> {
     exiger_editeur(racine, "la publication d'une version")?;
     let depot = match depot {
@@ -720,7 +874,7 @@ pub fn publier(racine: &Path, depot: Option<&str>, notes: &str, calcul: &str, ex
         None => reglage(&installation())?.0.ok_or("Aucun depot : le donner en argument ou dans le reglage de l'installation (maj/reglage.json).")?,
     };
     if depot.starts_with("http://") || depot.starts_with("https://") {
-        return Err("publier ecrit dans un dossier ; pour un depot en ligne, y deposer ensuite les deux fichiers".into());
+        return Err("publier ecrit dans un dossier ; pour un depot en ligne, y deposer ensuite les archives et derniere.json".into());
     }
     let privee = cle_privee(&Coffre::du_poste(racine, ""))?.ok_or(SANS_CLE)?;
     let mut r = publier_signe(&code(), Path::new(&depot), &privee, CLE_PUBLIQUE, notes, calcul, exigee)?;
@@ -730,8 +884,9 @@ pub fn publier(racine: &Path, depot: Option<&str>, notes: &str, calcul: &str, ex
     Ok(r)
 }
 
-/// Le coeur de `publier`, le logiciel, la graine et la cle publique donnes : l'archive de `c`, signee et verifiee, et
-/// `derniere.json` dans le dossier `d`. Le moteur livre n'y passe que par `publier` (la cle du poste, `CLE_PUBLIQUE`) ;
+/// Le coeur de `publier`, le logiciel, la graine et la cle publique donnes : les archives de `c` (une par systeme dont la
+/// fenetre y est, et celle de tous les systemes, qui porte ceux-la et le dit sous `systemes`), chacune signee et verifiee,
+/// et `derniere.json` qui les nomme, dans le dossier `d`. Le moteur livre n'y passe que par `publier` (la cle du poste, `CLE_PUBLIQUE`) ;
 /// les essais de bout en bout y passent une cle d'essai (`tests/fichiers/mise_a_jour.rs`).
 pub fn publier_signe(c: &Path, d: &Path, privee: &[u8], cle_publique: &str, notes: &str, calcul: &str, exigee: &str) -> R<Value> {
     let version = courante(c);
@@ -741,8 +896,10 @@ pub fn publier_signe(c: &Path, d: &Path, privee: &[u8], cle_publique: &str, note
     let depot = d.display().to_string();
     std::fs::create_dir_all(&d).map_err(|e| e.to_string())?;
     if d.join(DERNIERE).exists() {
-        let avant = derniere(&depot)?;
-        let av = avant["version"].as_str().unwrap_or_default();
+        // Seule sa version compte ici : le `derniere.json` de la Release d'avant peut etre d'une forme plus ancienne (une
+        // seule archive, avant le 15/10/2026), que `derniere` refuserait a juste titre chez celui qui recoit.
+        let avant: Value = serde_json::from_slice(&lire_depot(&depot, DERNIERE)?).map_err(|e| format!("derniere.json illisible : {}", e))?;
+        let av = avant["version"].as_str().filter(|v| !v.is_empty()).ok_or("le derniere.json deja la n'a pas de « version »")?;
         if !plus_recente(&version, av) {
             return Err(format!(
                 "le depot est deja en {} ; augmenter VERSION (aujourd'hui {}, le fichier s'ecrit AAAA.MM.JJ : {}) avant de publier",
@@ -752,24 +909,63 @@ pub fn publier_signe(c: &Path, d: &Path, privee: &[u8], cle_publique: &str, note
             ));
         }
     }
-    let octets = archiver(c)?;
-    let signature = signer(&octets, privee)?;
-    if !signature_valide(&octets, &signature, cle_publique) {
-        return Err("la cle privee de ce poste ne correspond pas a la cle publique du code : refaire `paie maj --cle` et reporter la cle publique".into());
+    // Une archive par systeme dont la fenetre est dans `logiciel/` (le flux les pose toutes trois ; un poste qui publie
+    // depuis son propre `logiciel/` n'a que la sienne), et celle de tous les systemes. Sans aucune fenetre, aucune
+    // installation ne pourrait lancer la version : rien n'est publie.
+    let presents: Vec<&str> = SYSTEMES.into_iter().filter(|s| programme_de(c, s, "puppetpaie").is_file()).collect();
+    if presents.is_empty() {
+        return Err(format!(
+            "aucune fenetre dans {} (ni {}) : aucune installation ne pourrait lancer cette version",
+            c.display(),
+            SYSTEMES.map(|s| programme_de(Path::new(""), s, "puppetpaie").to_string_lossy().replace('\\', "/")).join(", ni ")
+        ));
     }
-    let nom = format!("puppetpaie-{}.zip", version);
-    std::fs::write(d.join(&nom), &octets).map_err(|e| e.to_string())?;
+    let mut archives = serde_json::Map::new();
+    let mut octets_de = serde_json::Map::new();
+    let mut faites: Vec<(String, Vec<u8>)> = Vec::new();
+    for systeme in presents.iter().copied().chain([TOUT_SYSTEME]) {
+        let octets = archiver(c, systeme)?;
+        let signature = signer(&octets, privee)?;
+        if !signature_valide(&octets, &signature, cle_publique) {
+            return Err("la cle privee de ce poste ne correspond pas a la cle publique du code : refaire `paie maj --cle` et reporter la cle publique".into());
+        }
+        let nom = nom_d_archive(&version, systeme);
+        let mut a = json!({"archive": nom, "sha256": condensat(&octets), "signature": signature});
+        if systeme == TOUT_SYSTEME {
+            a["systemes"] = json!(presents);
+        }
+        archives.insert(systeme.to_string(), a);
+        octets_de.insert(systeme.to_string(), json!(octets.len()));
+        faites.push((nom, octets));
+    }
+    // Rien n'est ecrit avant que toutes soient signees et verifiees.
+    for (nom, octets) in &faites {
+        std::fs::write(d.join(nom), octets).map_err(|e| e.to_string())?;
+    }
     let manifeste = json!({
-        "version": version, "archive": nom,
-        "sha256": Sha256::digest(&octets).iter().map(|b| format!("{:02x}", b)).collect::<String>(),
+        "version": version,
         "publiee_le": crate::releve_retours::iso_de_naif(crate::releve_retours::maintenant_naif())[..10].to_string(),
-        "notes": notes, "calcul": calcul, "exigee": exigee, "signature": signature,
+        "notes": notes, "calcul": calcul, "exigee": exigee,
+        "archives": archives,
     });
     ecrire_json(&d.join(DERNIERE), &manifeste)?;
     let mut r = manifeste;
-    r["octets"] = json!(octets.len());
+    r["octets"] = Value::Object(octets_de);
     r["dossier"] = json!(d.display().to_string());
     Ok(r)
+}
+
+/// Ce que `paie maj --publier` et `--publier-github` disent des archives publiees : leur nom et leur taille.
+fn dire_les_archives(r: &Value) -> String {
+    r["archives"]
+        .as_object()
+        .map(|a| {
+            a.iter()
+                .map(|(k, v)| format!("{} ({} Ko)", v["archive"].as_str().unwrap_or(""), r["octets"][k].as_u64().unwrap_or(0) / 1024))
+                .collect::<Vec<_>>()
+                .join(", ")
+        })
+        .unwrap_or_default()
 }
 
 /// LA CLE DE GITHUB, fabriquee sur le poste de l'editeur (`paie maj --cle-github [DOSSIER]`, lot P1). Une cle neuve,
@@ -820,8 +1016,8 @@ pub fn publier_par_graine(logiciel: &Path, sortie: &Path, graine_b64: &str, cle_
     })
 }
 
-/// LA PUBLICATION PAR LE FLUX DE GITHUB (`paie maj --publier-github --logiciel L --sortie S`, lot P1) : l'archive de `L`
-/// signee par la graine de `PUPPETPAIE_CLE_SIGNATURE`, verifiee contre `CLE_PUBLIQUE_GITHUB`, et `derniere.json`, dans
+/// LA PUBLICATION PAR LE FLUX DE GITHUB (`paie maj --publier-github --logiciel L --sortie S`, lot P1) : les archives de `L`
+/// signees par la graine de `PUPPETPAIE_CLE_SIGNATURE`, verifiee contre `CLE_PUBLIQUE_GITHUB`, et `derniere.json`, dans
 /// `S`. Si `S` porte deja le `derniere.json` de la derniere Release (le flux l'y telecharge), une version qui n'est pas
 /// plus recente est refusee (`publier_signe`). Ni le reglage « editeur » ni le coffre n'y jouent : le secret n'existe
 /// que dans le travail approuve par Leandre.
@@ -985,7 +1181,7 @@ pub fn commande(args: &[String]) -> i32 {
         match (valeur("--logiciel"), valeur("--sortie")) {
             (Some(l), Some(s)) => Some(
                 publier_depuis_l_environnement(Path::new(&l), Path::new(&s), &valeur("--notes").unwrap_or_default(), &valeur("--calcul").unwrap_or_default(), &valeur("--exigee").unwrap_or_default())
-                    .map(|r| format!("Signee : {} ({}, {} Ko) dans {}", r["version"].as_str().unwrap_or(""), r["archive"].as_str().unwrap_or(""), r["octets"].as_u64().unwrap_or(0) / 1024, r["dossier"].as_str().unwrap_or(""))),
+                    .map(|r| format!("Signee : {} ({}) dans {}", r["version"].as_str().unwrap_or(""), dire_les_archives(&r), r["dossier"].as_str().unwrap_or(""))),
             ),
             _ => Some(Err("--publier-github demande --logiciel DOSSIER et --sortie DOSSIER".into())),
         }
@@ -1028,7 +1224,7 @@ pub fn commande(args: &[String]) -> i32 {
     } else if drapeau("--publier") {
         publier(&racine, valeur("--publier").as_deref(), &valeur("--notes").unwrap_or_default(), &valeur("--calcul").unwrap_or_default(), &valeur("--exigee").unwrap_or_default())
             .map(|r| {
-                let t = format!("Publiee : {} ({}, {} Ko) dans {}", version_lue(r["version"].as_str().unwrap_or("")), r["archive"].as_str().unwrap_or(""), r["octets"].as_u64().unwrap_or(0) / 1024, r["dossier"].as_str().unwrap_or(""));
+                let t = format!("Publiee : {} ({}) dans {}", version_lue(r["version"].as_str().unwrap_or("")), dire_les_archives(&r), r["dossier"].as_str().unwrap_or(""));
                 match r["a_l_ancienne"].as_str() {
                     Some(a) => format!("{}\n{}", t, a),
                     None => t,
@@ -1121,7 +1317,7 @@ mod tests {
         arbre(&base, "2026.11.01");
         std::fs::write(base.join("EDITION.json"), "{}").unwrap();
         std::fs::write(base.join("donnees").join("EDITION.json"), "{}").unwrap();
-        let mut z = zip::ZipArchive::new(std::io::Cursor::new(archiver(&base).unwrap())).unwrap();
+        let mut z = zip::ZipArchive::new(std::io::Cursor::new(archiver(&base, TOUT_SYSTEME).unwrap())).unwrap();
         let noms: Vec<String> = (0..z.len()).map(|i| z.by_index(i).unwrap().name().to_string()).collect();
         assert!(!noms.contains(&"EDITION.json".to_string()) && noms.contains(&"VERSION".to_string()), "{:?}", noms);
         assert!(noms.contains(&"donnees/EDITION.json".to_string()), "seul celui de la racine du logiciel est ecarte");
@@ -1167,8 +1363,8 @@ mod tests {
         std::fs::write(code.join("VERSION"), "2026.10.09\n").unwrap();
         std::fs::write(code.join("donnees").join("a.json"), "{}").unwrap();
         std::fs::write(code.join("target").join("gros"), "a ne pas livrer").unwrap();
-        let octets = archiver(&code).unwrap();
-        assert_eq!(octets, archiver(&code).unwrap(), "le zip est deterministe");
+        let octets = archiver(&code, TOUT_SYSTEME).unwrap();
+        assert_eq!(octets, archiver(&code, TOUT_SYSTEME).unwrap(), "le zip est deterministe");
         let graine = [7u8; 32];
         let k = ed25519_dalek::SigningKey::from_bytes(&graine);
         let publique = crate::retours::base64_ecrire(k.verifying_key().as_bytes());

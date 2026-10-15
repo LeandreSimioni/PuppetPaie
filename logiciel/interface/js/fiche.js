@@ -757,7 +757,8 @@ function brancherNir() {
  *  - l'echelon CCNEAC ne se montre que pour une compagnie de la CCNEAC ;
  *  - « Exporter ses documents » mene a l'onglet Exports, le dossier de ce
  *    salarie deja choisi, sur l'annee la plus recente ;
- *  - une fiche neuve peut partir chez la personne, par courriel.
+ *  - une fiche neuve peut partir chez la personne, par courriel ;
+ *  - ses imprévus (15/10/2026), et la porte pour en saisir un (js/imprevus.js).
  */
 function brancherSalarie(fiche) {
   if (FICHE_ACTIVE !== "salarie") return;
@@ -770,6 +771,7 @@ function brancherSalarie(fiche) {
   if (exporter) exporter.onclick = () => exporterSalarie(fiche.cle);
   const inviter = document.getElementById("invitation-envoyer");
   if (inviter) inviter.onclick = () => demanderFiche(inviter);
+  if (fiche.cle) dessinerImprevusDuSalarie(fiche.cle);
 }
 
 /* Le salarie a choisir dans « Le dossier d'un salarié », a l'arrivee dans

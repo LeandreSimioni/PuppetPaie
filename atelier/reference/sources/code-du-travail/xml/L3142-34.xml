@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000033022097</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/33/02/20/LEGIARTI000033022097.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L3142-34</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2016-08-10</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132332">Troisième partie : Durée du travail, salaire, intéressement, participation et épargne salariale    </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145403">Livre Ier : Durée du travail, repos et congés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160756">Titre IV : Congés payés et autres congés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006178010">Chapitre II : Autres congés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2016-08-10" id="LEGISCTA000006189652">Section 1 : Congés rémunérés</TITRE_TM>
+<TITRE_TM debut="2016-08-10" fin="2999-01-01" id="LEGISCTA000033021956">Section 1 : Congés d'articulation entre la vie professionnelle et la vie personnelle et familiale</TITRE_TM>
+<TM>
+<TITRE_TM debut="2016-08-10" fin="2999-01-01" id="LEGISCTA000033003580">Sous-section 4 : Congé sabbatique </TITRE_TM>
+<TM>
+<TITRE_TM debut="2016-08-10" fin="2999-01-01" id="LEGISCTA000033003586">Paragraphe 3 : Dispositions supplétives </TITRE_TM>
+<TM>
+<TITRE_TM debut="2016-08-10" fin="2999-01-01" id="LEGISCTA000033003588">Sous-paragraphe 1 : Règles générales de prise du congé</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="TRANSFERE">
+<LIEN_ART debut="2008-05-01" etat="TRANSFERE" fin="2008-05-01" id="LEGIARTI000006902702" num="L3142-34" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-05-01" etat="MODIFIE" fin="2016-08-10" id="LEGIARTI000018765317" num="L3142-34" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2016-08-10" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000033022097" num="L3142-34" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<br/>
+<br/>
+<br/>
+<p>
+<br clear="none"/>
+</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>A défaut de convention ou d'accord mentionné à l'article L. 3142-32, les dispositions suivantes sont applicables : </p>
+<br/>
+<p>1° La durée minimale du congé est de six mois et sa durée maximale est de onze mois ; </p>
+<br/>
+<p>2° Le droit à ce congé est ouvert au salarié justifiant, à la date de départ en congé, d'une ancienneté dans l'entreprise d'au moins trente-six mois, consécutifs ou non, et n'ayant pas bénéficié dans l'entreprise, au cours des six années précédentes, des dispositifs mentionnés au second alinéa de l'article L. 3142-28 ; </p>
+<br/>
+<p>3° Les conditions et délais mentionnés au 5° de l'article L. 3142-32 sont fixés par décret ; </p>
+<br/>
+<p>4° Les plafonds mentionnés à l'article L. 3142-29 sont fixés par décret.</p>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000032983213" datesignatexte="2016-08-08" id="LEGIARTI000033001008" naturetexte="LOI" nortexte="ETSX1604461L" num="9" numtexte="2016-1088" sens="cible" typelien="MODIFIE">LOI n°2016-1088 du 8 août 2016 - art. 9</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018534181" naturetexte="CODE" nortexte="" num="D3142-16" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D3142-16 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006647439" naturetexte="CODE" nortexte="" num="L225-2" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L225-2 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006647439" naturetexte="CODE" nortexte="" num="L225-2" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail - art. L225-2 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006902692" naturetexte="CODE" nortexte="" num="L3142-24" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L3142-24 (T)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006902696" naturetexte="CODE" nortexte="" num="L3142-28" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3142-28 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006902697" naturetexte="CODE" nortexte="" num="L3142-29" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3142-29 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006902700" naturetexte="CODE" nortexte="" num="L3142-32" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3142-32 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018765279" naturetexte="CODE" nortexte="" num="L3142-44" numtexte="" sens="source" typelien="CONCORDE">Code du travail - art. L3142-44 (M)</LIEN>
+</LIENS>
+</ARTICLE>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000038423389</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/38/42/33/LEGIARTI000038423389.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>R441-2</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2019-12-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1961-01-12" fin="2999-01-01" id="LEGISCTA000006106085">Partie réglementaire - Décrets en Conseil d'Etat</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126960">Livre IV : Accidents du travail et maladies professionnelles (Dispositions propres et dispositions communes avec d'autres branches)</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141911">Titre IV : Procédures - Révision - Rechute - Accidents survenus hors du territoire métropolitain</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006156663">Chapitre 1er : Déclarations et formalités</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2019-12-01" id="LEGISCTA000006173458">Section 1 : Dispositions générales.</TITRE_TM>
+<TITRE_TM debut="2019-12-01" fin="2999-01-01" id="LEGISCTA000038423399">Section 1 : Obligations déclaratives spécifiques aux accidents du travail</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1985-12-21" etat="MODIFIE" fin="2019-12-01" id="LEGIARTI000006750404" num="R441-2" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2019-12-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000038423389" num="R441-2" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>La déclaration à laquelle la victime d'un accident du travail est tenue conformément à l'article L. 441-1 doit être effectuée dans la journée où l'accident s'est produit ou au plus tard dans les vingt-quatre heures.</p>
+<p>Elle doit être envoyée, par tout moyen conférant date certaine à sa réception, si elle n'est pas faite à l'employeur ou à son préposé sur le lieu de l'accident.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000495266" datesignatexte="1946-12-31" id="JORFTEXT000000495266" naturetexte="DECRET" nortexte="" num="" numtexte="46-2959" sens="source" typelien="CONCORDANCE">Décret 46-2959 1946-12-31 art. 39 al. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000000866621" datesignatexte="1985-12-17" id="JORFTEXT000000866621" naturetexte="DECRET" nortexte="" num="" numtexte="85-1353" sens="source" typelien="CODIFICATION">Décret n° 85-1353 du 17 décembre 1985</LIEN>
+<LIEN cidtexte="JORFTEXT000038409795" datesignatexte="2019-04-23" id="LEGIARTI000038413950" naturetexte="DECRET" nortexte="SSAS1828778D" num="1" numtexte="2019-356" sens="cible" typelien="MODIFIE">Décret n°2019-356 du 23 avril 2019 - art. 1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGITEXT000006073189" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CONCORDANCE">Code de la sécurité sociale L472 al. 1 ELEMENTS REGLEMENTAIRES</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006743182" naturetexte="CODE" nortexte="" num="L441-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L441-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000020986990" naturetexte="CODE" nortexte="" num="R147-7" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R147-7 (V)</LIEN>
+</LIENS>
+</ARTICLE>

@@ -1,0 +1,14 @@
+Signalement arrêt de travail
+Signalement arrêt de travail
+Quand effectuer un signalement d'arrêt de travail ?
+Dès lors qu'un arrêt de travail est constaté, un signalement doit obligatoirement être émis (dans un délai de 5 jours). En effet, sans signalement, aucune attestation de salaire ne peut être reconstituée par le système pour le versement des indemnités journalières du salarié. Des contrôles seront opérés à postériori pour s'assurer de la cohérence entre les éléments reportés dans les récapitulatifs et les signalements d'événements transmis au cours du mois.
+Cas 1 : L'entreprise effectue la subrogation
+L'arrêt de travail peut être émis à la même échéance que la DSN mensuelle. Un récapitulatif de tous les signalements du mois doit effectivement être présent dans la mensuelle. Cependant, ce récapitulatif ne reprenant pas toutes les données des signalements, ils doivent systématiquement être transmis en parallèle de la DSN mensuelle (dès lors que l'absence est constatée).
+Cas 2 : L'entreprise n'effectue pas la subrogation
+Le signalement d'événement est très important pour une entreprise non subrogée étant donné que c'est à partir de ce signalement que la CPAM pourra instruire les droits du salarié concerné et lui verser les indemnités journalières. Cette information devra également être reportée dans la DSN mensuelle.
+Pour plus d'informations, consultez le cahier technique en 
+cliquant ici
+.
+ Date de cr�ation : 29/04/2013 02:14 PM 
+ Date de modification : 11/02/2022 03:17 PM 
+ N� de la fiche : 113

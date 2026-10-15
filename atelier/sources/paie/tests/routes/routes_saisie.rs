@@ -266,7 +266,8 @@ fn la_date_la_bienvenue_et_la_dsn_du_mois_d_avant() {
     assert_eq!(dsn["mois"], "2026-09");
     assert_eq!(dsn["cochable"], json!(false));
     assert_eq!(dsn["annee"], Value::Null);
-    assert!(dsn["detail"].as_str().unwrap().starts_with("Au plus tard le 15 septembre 2026."));
+    // Le mardi 15/09/2026 est ouvre : pas de report, a midi (cahier technique § 1.4.2).
+    assert!(dsn["detail"].as_str().unwrap().starts_with("Au plus tard le 15 septembre 2026 à midi. Elle part"), "{}", dsn["detail"]);
     let a_faire = |r: &Value| r["ce_mois"].as_array().unwrap().iter().filter(|x| x["etat"] == "a_faire" || x["etat"] == "en_retard").count();
     assert_eq!(r["a_faire"], json!(a_faire(&r)));
     // Passee l'echeance, elle est en retard ; septembre prend le relais, aout reste -- quand

@@ -1,0 +1,9 @@
+Date de modification : 09/06/2026 02:37 PM
+
+Comment gérer en DSN un congé parental d'éducation ou une invalidité catégorie 1 ?
+
+Si le salarié est en congé parental à temps plein, il convient de suspendre le contrat au niveau du bloc « Autre suspension de l’exécution du contrat - S21.G00.65 » en renseignant dans la rubrique « Motif de suspension - S21.G00.65.001 » le code "632 - Congé parental d'éducation". L’invalidité de catégorie 1 est uniquement à renseigner au niveau du bloc « Autre suspension de l’exécution du contrat - S21.G00.65 ». Les invalidités 2 et 3 peuvent également faire l’objet d’une suspension totale de l’exécution du contrat.
+
+Si le salarié est en congé parental d'éducation à temps partiel ou en invalidité de catégorie 2 ou 3 il doit être déclaré dans le bloc « Aménagement du temps de travail - S21.G00.75 » à partir de la version de norme 27V01. Il convient également de modifier la rubrique  « Quotité de travail du contrat - S21.G00.40.013 » ainsi que la rubrique « Modalité d'exercice du temps de travail - S21.G00.40.014 » et de tracer ce changement via le bloc « Changements Contrat – S21.G00.41 ».
+
+Date de création : 21/07/2015 10:10 AM N° de la fiche : 639

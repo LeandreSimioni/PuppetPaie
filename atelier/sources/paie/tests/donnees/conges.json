@@ -568,14 +568,7 @@
     "debut": "2025-04-01",
     "numero": "DO.25.01",
     "salaire_mensuel": 2111.11,
-    "quotite_contrat": 130,
-    "absences": [
-     {
-      "motif": "501",
-      "debut": "2025-08-25",
-      "fin": "2025-09-10"
-     }
-    ]
+    "quotite_contrat": 130
    },
    "attendu": {
     "lignes": [
@@ -584,22 +577,9 @@
       "quantite": 1.0,
       "taux": 2111.11,
       "heures": 130.0
-     },
-     {
-      "rubrique": "absence_non_remuneree",
-      "quantite": 78.0,
-      "taux": 16.24,
-      "motif_suspension": "501",
-      "debut": "2025-08-25",
-      "fin": "2025-09-10"
      }
     ],
-    "avertissements": [
-     [
-      false,
-      "DO.25.01 : la suspension 501 court jusqu'au 10/09/2025, au-dela de ce mois. Elle doit etre redeclaree ENTIERE (du 25/08/2025 au 10/09/2025) dans la DSN de chaque mois qu'elle traverse : recopier l'absence dans la saisie des mois suivants."
-     ]
-    ]
+    "avertissements": []
    }
   },
   {
@@ -611,16 +591,7 @@
     "debut": "2025-04-01",
     "numero": "DO.25.01",
     "salaire_mensuel": 2150.0,
-    "quotite_contrat": 151.67,
-    "absences": [
-     {
-      "motif": "632",
-      "debut": "2025-08-04",
-      "fin": "2025-08-08",
-      "heures": 12.5,
-      "maintien": 120.5
-     }
-    ]
+    "quotite_contrat": 151.67
    },
    "attendu": {
     "lignes": [
@@ -629,19 +600,6 @@
       "quantite": 1.0,
       "taux": 2150.0,
       "heures": 151.67
-     },
-     {
-      "rubrique": "absence_non_remuneree",
-      "quantite": 12.5,
-      "taux": 14.18,
-      "motif_suspension": "632",
-      "debut": "2025-08-04",
-      "fin": "2025-08-08"
-     },
-     {
-      "rubrique": "maintien_salaire",
-      "quantite": 12.5,
-      "taux": 9.64
      }
     ],
     "avertissements": []
@@ -657,13 +615,6 @@
     "numero": "NA.22.01",
     "salaire_mensuel": 2950.0,
     "quotite_contrat": 151.67,
-    "absences": [
-     {
-      "motif": "632",
-      "debut": "2026-09-20",
-      "fin": "2026-10-15"
-     }
-    ],
     "conges_pris": [
      {
       "debut": "2026-09-07",
@@ -688,14 +639,6 @@
       "rubrique": "indemnite_conges_payes",
       "quantite": 6.0,
       "taux": 120.24
-     },
-     {
-      "rubrique": "absence_non_remuneree",
-      "quantite": 128.34,
-      "taux": 19.45,
-      "motif_suspension": "632",
-      "debut": "2026-09-20",
-      "fin": "2026-10-15"
      }
     ],
     "avertissements": [
@@ -706,10 +649,6 @@
      [
       false,
       "Nadar : 20 jour(s) de conges acquis avant le 01/06/2025 n'ont pas ete pris au 31/05/2026. Ils ne sont PAS reportes une seconde fois : un conge non pris a la fin de la periode de prise est perdu, sauf accord de report ou empechement (maladie : L3141-19-1). Si c'est le cas, a reprendre a la main."
-     ],
-     [
-      false,
-      "NA.22.01 : la suspension 632 court jusqu'au 15/10/2026, au-dela de ce mois. Elle doit etre redeclaree ENTIERE (du 20/09/2026 au 15/10/2026) dans la DSN de chaque mois qu'elle traverse : recopier l'absence dans la saisie des mois suivants."
      ]
     ]
    }

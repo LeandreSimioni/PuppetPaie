@@ -1,0 +1,86 @@
+Transcription (texte de la page, sans les balises) de net-entreprises-compte-entreprise-dat-20260331.html
+URL : https://www.net-entreprises.fr/declaration/compte-entreprise-service-de-depot-de-pj/  (dateModified 2026-03-31T08:18:24+00:00, relevée le 15/10/2026)
+
+ Compte entreprise – Services de l’Assurance Maladie – Risques professionnels 
+ Le compte entreprise réunit, en un seul point d’entrée, tous les services en ligne de l’Assurance Maladie et de l’Assurance Maladie – Risques professionnels. Il permet d’effectuer vos démarches en lien avec les arrêts de travail, de déclarer les différentes périodes du congé paternité/accueil de l’enfant, de déclarer un accident du travail, de consulter ses taux de cotisation AT/MP notifiés, le détail de leur calcul de faire le point sur ses sinistres récemment reconnus, de demander une subvention de prévention&#8230; 
+ La pastille « Compte entreprise – Vos démarches maladie et risques professionnels » vous permet d’arriver sur la page d’accueil du compte. Vous disposez d’un menu avec deux rubriques : «  Vos salariés  » et «  Votre entreprise  ». 
+ La partie «  Vos salariés  » vous permet de : 
+ Déclarer un accident du travail ou de trajet, et émettre des réserves sur le caractère professionnel de l’accident ; 
+ Saisir une attestation de salaire en ligne ; 
+ Consulter les bordereaux d’indemnités journalières lorsque celles-ci ont été subrogées par l’employeur ; 
+ Transmettre, suivre et compléter les périodes de congé paternité (hors DSN) et les pièces justificatives nécessaires au traitement des indemnités journalières. 
+ La partie «   Votre entreprise   » vous permet de : 
+ Consulter vos taux de cotisation AT/MP notifiés avec le détail de leur calcul ; 
+ Télécharger la notification dématérialisée des décisions de taux de cotisation ; 
+ Voir les sinistres récemment reconnus impactant vos futurs taux ; 
+ Demander en ligne un taux fonctions supports de nature administrative ; 
+ Consulter un bilan individuel et télécharger l’attestation des indicateurs des risques professionnels, vous permettant de vous comparer avec les autres entreprises de mêmes taille et secteur ; 
+ Simuler l’impact d’une baisse de la sinistralité sur un taux de cotisation AT/MP ; 
+ Demander en ligne des Subventions Prévention, pour vous aider à financer des solutions de prévention des risques professionnels. 
+ Pour avoir accès au «  compte entreprise », vous devez être habilité à un ou plusieurs services du compte : 
+ DAT- déclaration d’accident du travail ou de trajet ; 
+ Att salaire IJ- Attestation de salaire pour le versement des indemnités journalières ; 
+ Consulter ses taux AT/MP et prévenir ses risques professionnels. 
+ Votre entreprise est soumise à l’obligation DSN ? 
+ Désormais, il suffit de produire vos signalements Arrêt de travail (et Reprise anticipée suite à arrêt de travail, uniquement si la reprise est plus tôt que prévu) via le système DSN. Ainsi, la Caisse primaire d’assurance maladie récupère directement toutes les informations nécessaires (sauf pour les cas spécifiques des temps partiels thérapeutiques et des congés pour deuil qui ne sont pas à ce jour couverts par la DSN). 
+ Il ne vous sera plus possible d’utiliser ce service en lieu et place de la DSN dans quelques temps : si ce n’est pas encore fait, adoptez le système des signalements en DSN – renseignez-vous auprès de votre éditeur de logiciel de paie. 
+ À noter ! Si vous transmettez la DSN et que vous pratiquez la subrogation, inscrivez-vous tout de même au service « Attestation de salaire » afin de pouvoir consulter le bordereau de paiement (BPIJ) en ligne. 
+ L’attestation de salaire pour le versement des Indemnités Journalières de la Sécurité Sociale (DSIJ) est obligatoire pour tout arrêt de travail, quel qu’en soit le motif : 
+ Maladie ; 
+ Maternité, adoption ; 
+ Paternité, accueil de l’enfant ; 
+ Femme enceinte dispensée de travail ; 
+ Accident du travail ; 
+ Maladie professionnelle ; 
+ Reprise à temps partiel pour motif thérapeutique ; 
+ Deuil d’enfant. 
+ Qui et quand déclarer ? 
+ L’attestation de salaire pour le versement des IJ (DSIJ) en ligne est proposée à tous les employeurs dont les salariés dépendent du Régime Général de l’Assurance Maladie et à leurs mandataires (experts-comptables, centres ou associations de gestion agréés) : 
+ Par saisie de formulaire à l’écran ; 
+ Par dépôt de fichier structuré issu de votre logiciel de paie (EDI) certifié. 
+ L’attestation de salaire pour le versement des Indemnités Journalières de la Sécurité Sociale (DSIJ) est obligatoire pour tout arrêt de travail, quel qu’en soit le motif. Les dates de transmission peuvent varier en fonction du motif de l’arrêt : 
+ Motif d’arrêt 
+ Date de transmission à l’assurance maladie 
+ Maladie, accident du travail, maladie professionnelle, femme enceinte dispensée de travail, deuil d’enfant 
+ Dès réception de l’avis d’arrêt de travail 
+ Maternité, adoption, paternité, accueil de l’enfant 
+ En début de congés 
+ À noter : Dans le cas d’un accident du travail, l’employeur ou son mandataire doivent effectuer préalablement la déclaration d’accident de travail ou de trajet (DAT), disponible également en ligne sur net-entreprises.fr. 
+ Pour utiliser ce service 
+
+--- section « La Déclaration d’Accident du Travail - DAT »
+ La déclaration d’accident du travail ou de trajet (DAT) en ligne associe toutes les garanties de sécurisation des échanges avec 3 accusés de réception mis à la disposition du déclarant : l’accusé de dépôt puis 2 accusés de réception transmis par courriel. L’employeur a la possibilité d’apporter toutes les informations qu’il souhaite communiquer à la Caisse primaire ou de joindre des documents complémentaires. 
+ L’exhaustivité des informations ainsi fournies permet de réduire les échanges ultérieurs nécessaires à la qualité et à la rapidité du traitement de la déclaration. 
+ Vous avez la possibilité de rattacher des réserves à une DAT non mortelle durant un délai règlementaire de 10 jours francs à partir de la date de dépôt initiale de la DAT. 
+ Qui et quand déclarer ? 
+ La déclaration d’accident du travail ou de trajet (DAT) est à effectuer auprès de la Caisse primaire d’assurance maladie (CPAM) dont dépend la victime au plus tard 48 heures après avoir eu connaissance de l’accident survenant à un ou plusieurs de vos salariés. 
+ La déclaration d’accident du travail ou de trajet en ligne est proposée à tous les employeurs dont les salariés dépendent du régime général de l’Assurance Maladie et à leurs mandataires (experts-comptables, centres ou associations de gestion agréés) : 
+ Par saisie de formulaire à l’écran ; 
+ Par dépôt de fichier structuré issu de votre logiciel de paie (EDI) 
+ Pour utiliser ce service 
+ Pas encore inscrit sur net-entreprises.fr ? 
+ Inscrit à net-entreprises.fr mais pas à ce service 
+ Vérifiez dans la mesure du possible au sein de votre entreprise si vos collègues sont déjà inscrits. 
+Une fois votre inscription finalisée, vous accéderez à la « Déclaration d’accident du travail ou de trajet – DAT » sous 48h jour après la fin de votre inscription. 
+ A partir de votre menu personnalisé, sélectionnez « La déclaration d’accident du travail ou de trajet – DAT ». Accédez à ce service sous 48h afin de transmettre votre DAT. 
+ Je m’inscris sur net-entreprises.fr 
+ Je me connecte sur mon compte 
+ Le Questionnaire Risques Professionnels (QRP) est une procédure officielle et règlementée . 
+ Dans le cadre de l’instruction d’un dossier d’accident du travail/trajet ou de maladie d’origine professionnelle, il permet de fournir à la caisse primaire d’Assurance maladie l’ensemble des éléments nécessaires à son étude. Sa création n’est pas systématique, sauf en cas de reconnaissance d’une maladie d’origine professionnelle désignée dans un tableau. 
+ Le questionnaire est complété par l’employeur, le salarié et d’éventuels témoins . Un courrier d’information est envoyé à toutes les personnes concernées, avec une invitation à répondre en ligne. 
+ La démarche pour l’employeur 
+ Pour renseigner un Questionnaire Risques Professionnels, l’employeur doit : 
+ Se connecter à son compte entreprise ; 
+ Répondre au questionnaire accessible depuis la rubrique « Vos salariés ». Tous les champs doivent obligatoirement être remplis. Il est possible d’arrêter et de reprendre la saisie à tout moment ; 
+ Si nécessaire, joindre des documents ; 
+ Si nécessaire, commenter les documents apportés par les autres parties prenantes au dossier : salarié, témoin(s)&#8230; 
+ Le téléchargement du questionnaire complété est possible après sa validation. 
+ Les délais à respecter sont précisés pour chaque questionnaire en ligne. 
+ Les salariés et témoins éventuels se connectent au site questionnaires-risquepro.ameli.fr pour répondre au questionnaire. 
+ La condition d’accès 
+ Pour pouvoir accéder aux questionnaires, l’employeur doit être habilité au service «  DAT : Déclaration d’accident de travail ou de trajet  ». 
+ L’habilitation est à demander dans la rubrique «  Gestion de votre compte ». L’accès est donné dans un délai maximum de deux jours. 
+ Le suivi des dossiers 
+ Le point de départ d’un questionnaire est l’envoi d’un courrier avec accusé de réception (pour les entreprises en taux mixte ou individuel) ou en lettre simple (pour les entreprises en taux collectif). 
+ Lors de la bascule du téléservice dans le compte entreprise, les dossiers en cours ont été automatiquement rapatriés, avec tous les documents ajoutés par les parties prenantes. Un dossier est consultable tout au long de la procédure. 
+ Les notifications de suivi de traitement de dossier sont visibles depuis le Compte entreprise à chaque nouvel évènement (attention néanmoins, aucun push-mail n’est envoyé). 

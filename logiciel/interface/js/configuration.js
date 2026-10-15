@@ -1459,6 +1459,9 @@ function enteteSalarie(fiche) {
         >Exporter ses documents</button>
     </div>
     <div class="cout-annee" data-cote="salaries" data-cle="${echapper(fiche.cle)}"></div>
+    <!-- SES IMPRÉVUS (15/10/2026) : ses arrêts et ses absences, passés et en
+         cours, ce qui en est parti, et la porte « Un imprévu… ». js/imprevus.js. -->
+    <div class="fiche-imprevus" id="fiche-imprevus"></div>
     ${d.fiche_recue && fiche.anomalies.some((a) => a.gravite === "erreur")
       ? `<div class="encart">${echapper(d.fiche_recue)}</div>` : ""}`;
   }

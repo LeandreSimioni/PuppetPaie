@@ -52,9 +52,9 @@
  "_releve_le": "2026-10-15",
  "articles": {
   "D1221-23": {
-   "id": "LEGIARTI000018537878",
    "debut": "2008-05-01",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000018537878"
   },
   "D1221-24": {
    "debut": "2018-01-01",
@@ -72,9 +72,9 @@
    "id": "LEGIARTI000019225871"
   },
   "D1226-3": {
-   "id": "LEGIARTI000019225874",
    "debut": "2008-07-20",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000019225874"
   },
   "D1226-4": {
    "debut": "2008-05-01",
@@ -131,6 +131,11 @@
    "en_vigueur": true,
    "id": "LEGIARTI000020080277"
   },
+  "D3142-1-1": {
+   "debut": "2020-10-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000042411489"
+  },
   "D6331-72": {
    "debut": "2022-01-01",
    "en_vigueur": true,
@@ -157,9 +162,9 @@
    "id": "LEGIARTI000019353569"
   },
   "L1221-13": {
-   "id": "LEGIARTI000033971569",
    "debut": "2017-01-29",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000033971569"
   },
   "L1221-25": {
    "debut": "2014-06-28",
@@ -171,10 +176,75 @@
    "en_vigueur": true,
    "id": "LEGIARTI000019071093"
   },
+  "L1225-47": {
+   "debut": "2023-03-11",
+   "en_vigueur": true,
+   "id": "LEGIARTI000047293352"
+  },
+  "L1225-48": {
+   "debut": "2014-08-06",
+   "en_vigueur": true,
+   "id": "LEGIARTI000029336639"
+  },
+  "L1225-49": {
+   "debut": "2008-05-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006900934"
+  },
+  "L1225-50": {
+   "debut": "2008-05-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006900935"
+  },
+  "L1225-51": {
+   "debut": "2008-05-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006900936"
+  },
+  "L1225-52": {
+   "debut": "2008-05-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006900937"
+  },
+  "L1225-53": {
+   "debut": "2008-05-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006900938"
+  },
+  "L1225-54": {
+   "debut": "2023-03-11",
+   "en_vigueur": true,
+   "id": "LEGIARTI000047293349"
+  },
+  "L1225-55": {
+   "debut": "2008-05-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006900940"
+  },
+  "L1225-56": {
+   "debut": "2019-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000037385637"
+  },
+  "L1225-57": {
+   "debut": "2014-08-06",
+   "en_vigueur": true,
+   "id": "LEGIARTI000029336723"
+  },
+  "L1225-58": {
+   "debut": "2008-05-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006900945"
+  },
+  "L1225-59": {
+   "debut": "2008-05-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006900946"
+  },
   "L1226-1": {
-   "id": "LEGIARTI000054331868",
    "debut": "2026-06-27",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000054331868"
   },
   "L1226-12": {
    "debut": "2017-01-01",
@@ -252,9 +322,9 @@
    "id": "LEGIARTI000006901174"
   },
   "L1237-10": {
-   "id": "LEGIARTI000006901184",
    "debut": "2008-05-01",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000006901184"
   },
   "L1237-11": {
    "debut": "2008-06-27",
@@ -297,9 +367,9 @@
    "id": "LEGIARTI000052437183"
   },
   "L1237-6": {
-   "id": "LEGIARTI000006901180",
    "debut": "2008-05-01",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000006901180"
   },
   "L1237-7": {
    "debut": "2023-09-01",
@@ -397,9 +467,9 @@
    "id": "LEGIARTI000033019991"
   },
   "L3123-21": {
-   "id": "LEGIARTI000033019988",
    "debut": "2016-08-10",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000033019988"
   },
   "L3123-28": {
    "debut": "2016-08-10",
@@ -462,9 +532,9 @@
    "id": "LEGIARTI000033020826"
   },
   "L3141-32": {
-   "id": "LEGIARTI000033008678",
    "debut": "2016-08-10",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000033008678"
   },
   "L3141-4": {
    "debut": "2016-08-10",
@@ -496,20 +566,100 @@
    "en_vigueur": true,
    "id": "LEGIARTI000045205234"
   },
+  "L3142-1-1": {
+   "debut": "2020-07-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000041976515"
+  },
+  "L3142-105": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033022292"
+  },
+  "L3142-106": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033022288"
+  },
+  "L3142-107": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033022281"
+  },
+  "L3142-108": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033021923"
+  },
+  "L3142-109": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033022279"
+  },
   "L3142-2": {
    "debut": "2020-07-01",
    "en_vigueur": true,
    "id": "LEGIARTI000041979670"
   },
-  "L3243-1": {
-   "id": "LEGIARTI000006902862",
+  "L3142-28": {
+   "debut": "2019-08-23",
+   "en_vigueur": true,
+   "id": "LEGIARTI000038952020"
+  },
+  "L3142-29": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033022115"
+  },
+  "L3142-30": {
+   "debut": "2017-12-22",
+   "en_vigueur": true,
+   "id": "LEGIARTI000036262899"
+  },
+  "L3142-31": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033022109"
+  },
+  "L3142-32": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033022105"
+  },
+  "L3142-33": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033022101"
+  },
+  "L3142-34": {
+   "debut": "2016-08-10",
+   "en_vigueur": true,
+   "id": "LEGIARTI000033022097"
+  },
+  "L3242-1": {
    "debut": "2008-05-01",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000006902858"
+  },
+  "L3242-2": {
+   "debut": "2008-05-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006902859"
+  },
+  "L3242-3": {
+   "debut": "2008-05-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006902860"
+  },
+  "L3243-1": {
+   "debut": "2008-05-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006902862"
   },
   "L3243-2": {
-   "id": "LEGIARTI000033024092",
    "debut": "2017-01-01",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000033024092"
   },
   "L3243-3": {
    "debut": "2008-06-19",
@@ -520,6 +670,11 @@
    "debut": "2009-05-14",
    "en_vigueur": true,
    "id": "LEGIARTI000020625846"
+  },
+  "L3251-1": {
+   "debut": "2008-05-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006902873"
   },
   "L3253-18": {
    "debut": "2008-05-01",
@@ -552,9 +707,9 @@
    "id": "LEGIARTI000037375133"
   },
   "L6241-1": {
-   "id": "LEGIARTI000053564455",
    "debut": "2026-02-21",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000053564455"
   },
   "L6241-1-1": {
    "debut": "2025-02-16",
@@ -562,14 +717,14 @@
    "id": "LEGIARTI000051227941"
   },
   "L6242-1": {
-   "id": "LEGIARTI000048839886",
    "debut": "2023-12-31",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000048839886"
   },
   "L6321-9": {
-   "id": "LEGIARTI000037385776",
    "debut": "2019-01-01",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000037385776"
   },
   "L6331-1": {
    "debut": "2022-01-01",
@@ -582,14 +737,14 @@
    "id": "LEGIARTI000038610054"
   },
   "L6331-3": {
-   "id": "LEGIARTI000044981918",
    "debut": "2022-01-01",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000044981918"
   },
   "L6331-55": {
-   "id": "LEGIARTI000043701729",
    "debut": "2022-01-01",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000043701729"
   },
   "L6331-6": {
    "debut": "2022-01-01",
@@ -612,9 +767,9 @@
    "id": "LEGIARTI000035644695"
   },
   "R3141-4": {
-   "id": "LEGIARTI000033453122",
    "debut": "2017-01-01",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000033453122"
   },
   "R3243-1": {
    "debut": "2024-01-01",

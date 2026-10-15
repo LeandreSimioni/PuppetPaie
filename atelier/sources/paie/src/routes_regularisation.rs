@@ -58,8 +58,8 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
     let Some(mois) = mois_v.as_str() else {
         return Err(erreur("TypeError", format!("'mois' : {}", crate::fichiers::attendu("un texte", nom_type(mois_v)))));
     };
-    let echeance = ctx.echeance_dsn()?;
-    let limite = crate::routes_mois::date_limite_dsn(mois, echeance)?;
+    let echeance = crate::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
+    let limite = echeance.jour;
     let passee = ctx.aujourdhui > limite;
     let deposee = vrai(&e);
     let drapeau = |k: &str| deposee && e.get(k).is_some_and(vrai);
@@ -69,6 +69,7 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
     out.insert("passee".into(), json!(drapeau("passee")));
     out.insert("refusee".into(), json!(drapeau("refusee")));
     out.insert("echeance".into(), json!(limite.iso()));
+    out.insert("echeance_depot".into(), echeance.en_json());
     out.insert("echeance_passee".into(), json!(passee));
     out.insert("mois_courant".into(), json!(ctx.aujourdhui.iso().chars().take(7).collect::<String>()));
     out.insert("regularisable".into(), json!(false));

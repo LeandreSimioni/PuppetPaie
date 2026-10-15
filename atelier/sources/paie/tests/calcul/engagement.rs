@@ -240,18 +240,18 @@ fn un_mois_incomplet_de_permanent_compte_ses_heures_une_fois() {
 }
 
 #[test]
-fn une_absence_retire_ses_heures_de_ce_que_la_dsn_declare() {
-    // 20 h d'arret maladie sur un mois plein de 151,67 h : 131,67 h de
-    // travail remunere, et 20 h d'absence, chacune comptee une fois.
-    let (eng, p) = mois_permanent(json!({
+fn une_absence_ne_se_saisit_plus_dans_le_mois() {
+    // Depuis le 15/10/2026, un arret ou une suspension est un imprevu du salarie (`imprevus`), saisi une fois : la saisie
+    // du mois qui porte encore des `absences` se refuse, plutot que de les taire ou de les compter deux fois. Le
+    // retrait des heures d'un arret se prouve dans `tests/calcul/imprevus.rs`.
+    let ctx = contexte(&fictive("fictive-1285-grande"));
+    let data = json!({"mois": "2026-03", "date_paiement": "2026-03-31", "engagements": [{
         "salarie": "Dorval", "nature": "cdi", "debut": "2025-04-01", "numero": "DO.25.01",
         "salaire_mensuel": 2200.0, "quotite_contrat": 151.67,
         "absences": [{"motif": "maladie", "debut": "2026-03-16", "fin": "2026-03-18", "heures": 20}]
-    }));
-    assert_eq!(eng.heures, Some(131.67), "{:?}", eng.lignes);
-    assert_eq!(p.heures_travaillees, crate::outils::dec("131.67"));
-    assert_eq!(p.heures_absence, crate::outils::dec("20"));
-    assert_eq!(activites_dsn(&p), vec![bloc("01", "131.67", "10"), bloc("02", "20.00", "10")]);
+    }]});
+    let refus = engagements(&ctx, &data, &paie::conges::lignes_du_mois).err().expect("des absences dans le mois");
+    assert!(refus.contains("absences") && refus.contains("imprevu"), "{}", refus);
 }
 
 // ------------------------------------------------- un numero, un salarie (#139)

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000042686351</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/42/68/63/LEGIARTI000042686351.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L441-4</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2020-12-16</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106050">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126892">Livre IV : Accidents du travail et maladies professionnelles (Dispositions propres et dispositions communes avec d'autres branches)</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141637">Titre IV : Procédures, révision, rechute, accidents survenus hors du territoire métropolitain</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006156135">Chapitre 1er : Déclarations et formalités</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006172666">Section 1 : Dispositions générales.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1985-12-21" etat="MODIFIE" fin="2020-12-16" id="LEGIARTI000006743087" num="L441-4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2020-12-16" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000042686351" num="L441-4" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<br/>  Code de la sécurité sociale L471-1 : sanction.<br/>
+<br/>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>L'employeur, dès lors qu'il remplit des conditions fixées par décret, peut, selon des modalités prévues par décret, remplacer la déclaration des accidents n'entraînant ni arrêt de travail, ni soins médicaux par une inscription sur un registre ouvert à cet effet. </p>
+<p>L'employeur est tenu d'en aviser le comité social et économique. </p>
+<p>Ce registre est tenu à la disposition des agents de contrôle des organismes chargés de la gestion des accidents du travail et des maladies professionnelles mentionnés à l'article L. 114-10 ainsi que des ingénieurs conseils et contrôleurs de sécurité dûment habilités auprès des caisses d'assurance retraite et de la santé au travail, de l'autorité compétente de l'Etat et du comité social et économique. </p>
+<p>Lorsqu'un accident ayant fait l'objet d'une simple inscription sur un registre entraîne ultérieurement un arrêt de travail ou des soins médicaux, l'employeur est tenu d'adresser à la caisse primaire dont relève la victime la déclaration prévue à l'article L. 441-2 dans un délai déterminé.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000866621" datesignatexte="1985-12-17" id="JORFTEXT000000866621" naturetexte="DECRET" nortexte="" num="" numtexte="85-1353" sens="source" typelien="CODIFICATION">Décret n° 85-1353 du 17 décembre 1985</LIEN>
+<LIEN cidtexte="JORFTEXT000042665307" datesignatexte="2020-12-14" id="LEGIARTI000042667348" naturetexte="LOI" nortexte="ECOX2023815L" num="100" numtexte="2020-1576" sens="cible" typelien="MODIFIE">LOI n°2020-1576 du 14 décembre 2020 - art. 100 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGITEXT000006073189" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CONCORDANCE">Code de la sécurité sociale L472 al. 6, al. 7, al. 8 ELEMENTS LEGISLATIFS, al. 9 ELEMENTS LEGISLATIFS</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000022073367" naturetexte="CODE" nortexte="" num="D441-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D441-1 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006736998" naturetexte="CODE" nortexte="" num="D441-1" numtexte="" sens="cible" typelien="TXT_SOURCE">Code de la sécurité sociale. - art. D441-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741025" naturetexte="CODE" nortexte="" num="L114-10" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L114-10</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006743085" naturetexte="CODE" nortexte="" num="L441-2" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L441-2</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000033714673" naturetexte="CODE" nortexte="" num="L471-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L471-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006744179" naturetexte="CODE" nortexte="" num="L754-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L754-1 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000038423393" naturetexte="CODE" nortexte="" num="R441-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R441-1 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750408" naturetexte="CODE" nortexte="" num="R441-5" numtexte="" sens="cible" typelien="TXT_SOURCE">Code de la sécurité sociale. - art. R441-5 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750408" naturetexte="CODE" nortexte="" num="R441-5" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R441-5 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750445" naturetexte="CODE" nortexte="" num="R442-14" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R442-14 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750491" naturetexte="CODE" nortexte="" num="R471-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R471-3 (V)</LIEN>
+</LIENS>
+</ARTICLE>

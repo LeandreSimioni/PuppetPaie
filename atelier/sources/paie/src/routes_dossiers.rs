@@ -137,14 +137,21 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
                 continue;
             }
             let (debut, fin) = crate::routes_contrats::bornes_brutes(&e)?;
-            if debut.is_empty() || fin.is_empty() || !(debut.as_str() <= jour && jour <= fin.as_str()) {
+            // Un contrat paye au mois sans fin ecrite (un CDI qui court) couvre tout jour depuis son debut : c'est sur lui
+            // qu'un arret ou une suspension se pose. Le mois le plus recent qui le saisit fait foi (une fin ecrite plus
+            // tard l'emporte) : il est retenu, couvrant ou non, avant les mois plus anciens.
+            let mensuel = crate::contrats::nature(e.get("nature").and_then(Value::as_str)).map(|n| n.mensuelle()).unwrap_or(false);
+            let numero = e.get("numero").cloned().unwrap_or(Value::Null);
+            if debut.is_empty() || (fin.is_empty() && !mensuel) {
                 continue;
             }
-            let numero = e.get("numero").cloned().unwrap_or(Value::Null);
             if vus.contient(&[json!(c), json!(debut), numero.clone()])? {
                 continue;
             }
             vus.poser(vec![json!(c), json!(debut), numero.clone()], ())?;
+            if !(debut.as_str() <= jour && (fin.is_empty() || jour <= fin.as_str())) {
+                continue;
+            }
             let s = salarie(ctx, cle)?;
             let champ = |k: &str| -> R<Value> { s.get(k).cloned().ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k))) };
             let prenom = match s.get("prenom_affichage").filter(|x| vrai(x)) {
@@ -161,6 +168,9 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
             o.insert("fin".into(), json!(fin));
             o.insert("mois".into(), json!(m));
             o.insert("spectacle".into(), brut(&ou_vide("spectacle")));
+            // Paye au mois (`Nature::mensuelle`) : son mois de paie se tire du moteur, et un arret y appelle le maintien de
+            // salaire (L1226-1 : pas pour un intermittent).
+            o.insert("mensuel".into(), json!(mensuel));
             sorties.push((debut, Value::Object(o)));
         }
     }

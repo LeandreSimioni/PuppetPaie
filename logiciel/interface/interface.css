@@ -699,7 +699,6 @@ details.historique-fiche[open] > summary { margin-bottom: 8px; }
 .fait input, .fait select { display: block; padding: .3rem .4rem; }
 .fait input[type="number"] { width: 7rem; }
 .fait .f-rubrique { width: 10rem; }
-.fait .f-maintien-bloc[hidden] { display: none; }
 .fait .retirer-fait { align-self: center; }
 
 /* LA FIN DU CONTRAT, quand elle se signale (nature 07). Cachee sur un CDDU
@@ -843,6 +842,7 @@ details.historique-fiche[open] > summary { margin-bottom: 8px; }
 .changement-prix { font-size: 12px; color: var(--texte); }
 
 .champ-boite { display: block; margin: 10px 0 0; }
+.champ-boite[hidden] { display: none; }
 .champ-boite input { margin-top: 3px; }
 
 /* ------------------------------------------------ ce qui part du mois
@@ -1334,7 +1334,6 @@ section.bloc > .encart { margin-bottom: 10px; }
 .etape-corps > button { width: 100%; margin-top: 4px; }
 .etape-envois { margin-top: 8px; font-size: 12px; }
 .etape-envois > summary { cursor: pointer; color: var(--discret); }
-#titre-arrets[hidden] { display: none; }
 .reprise { margin-top: 14px; font-size: 12px; }
 .reprise > summary { cursor: pointer; color: var(--discret); padding: 6px 0;
                      border-top: 1px solid var(--bord); }
@@ -1469,3 +1468,65 @@ button.signaler.sur-voile:hover { color: #fff; background: rgba(0,0,0,.55); }
 .sg-messages li.nouveau { border-left: 3px solid var(--action); padding-left: 8px; }
 .sg-reponse { margin: 6px 0 0; padding: 8px 10px; border-radius: 4px; white-space: pre-line;
               background: rgba(46, 106, 87, .08); }
+
+/* LES IMPRÉVUS (15/10/2026) — js/imprevus.js. Discrets : ils sont rares.
+   La porte (« Un imprévu… », « … ») ouvre un petit menu ; sous la carte, une
+   ligne par imprévu ; dans la colonne, une ligne par chose due ; dans le
+   dossier du salarié, son histoire. */
+.e-pied .e-imprevu-btn[hidden] { display: none; }
+.carte-modifier { display: flex; align-items: center; gap: 6px; }
+.carte-imprevu { font-size: 18px; line-height: 1; padding: 0 6px; color: var(--discret);
+                 text-decoration: none; letter-spacing: 1px; }
+.carte-imprevu:hover { color: var(--action); }
+.menu-imprevu { position: absolute; z-index: 30; min-width: 16rem; padding: 4px;
+                background: var(--carte); border: 1px solid var(--bord); border-radius: 6px;
+                box-shadow: 0 6px 20px rgba(0,0,0,.15); display: flex; flex-direction: column; }
+.menu-imprevu button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+                       padding: 7px 10px; border: 0; border-radius: 4px; background: none;
+                       color: var(--texte); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.menu-imprevu button:hover, .menu-imprevu button:focus-visible { background: var(--fond); outline: none; }
+.menu-imprevu .discret { font-size: 11px; }
+/* La carte validée ne montre que son résumé ET ses imprévus. */
+.engagement.validee > .e-imprevus:not(:empty) { display: block; }
+.e-imprevus:empty { display: none; }
+.e-imprevus { margin-top: 8px; }
+.engagement.validee > .e-imprevus { margin: 0; padding: 0 16px 10px; }
+.imprevu { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px;
+           padding: 6px 10px; margin-top: 4px; font-size: 12px;
+           background: var(--fond); border-left: 3px solid var(--bord); border-radius: 3px; }
+.imprevu-quoi { flex: 1 1 16rem; min-width: 0; }
+.imprevu-quoi .discret { margin-left: 6px; }
+.imprevu-gestes { display: flex; gap: 12px; }
+.imprevu-gestes .lien, .imprevu-jours .lien { font-size: 12px; }
+.imprevu-jours, .imprevu-parti { flex-basis: 100%; color: var(--texte); }
+.imprevu-jours { color: var(--alerte); }
+.imprevu-jours .lien { margin-left: 2px; }
+.imprevu-parti .pastille { font-size: 10px; }
+/* Ce qui est dû, dans la colonne du mois. */
+#dus:empty { display: none; }
+.du { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0;
+      border-bottom: 1px solid var(--bord); font-size: 13px; }
+.du .pastille { margin-top: 1px; flex: none; }
+.du-corps { flex: 1; min-width: 0; }
+.du-quoi .discret { display: block; font-size: 12px; }
+.du-bas { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 4px; }
+.du-butoir { font-size: 12px; color: var(--discret); }
+.du-gestes { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.du-manque { margin-top: 4px; }
+.du-manque > summary { color: var(--alerte); }
+details.pourquoi { flex-basis: 100%; font-size: 12px; color: var(--discret); }
+details.pourquoi > summary { cursor: pointer; display: inline; list-style: none; text-decoration: underline dotted; }
+details.pourquoi > summary::-webkit-details-marker { display: none; }
+details.pourquoi[open] { padding: 4px 0 2px; }
+details.pourquoi p, details.pourquoi ul { margin: 4px 0; }
+/* Les boîtes des imprévus : deux champs côte à côte, oui ou non. */
+.champs-deux { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.champs-deux[hidden] { display: none; }
+.oui-non { display: flex; gap: 18px; margin-top: 4px; }
+.liste-jours { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+/* Le dossier du salarié. */
+.fiche-imprevus:empty { display: none; }
+.fiche-imprevus { margin: 6px 0 14px; }
+.fiche-imprevus-tete { display: flex; align-items: baseline; gap: 14px; }
+.fiche-imprevus-tete h3 { margin: 0; font-size: 14px; }
+.fiche-imprevus-tete .lien { font-size: 12px; color: var(--discret); }

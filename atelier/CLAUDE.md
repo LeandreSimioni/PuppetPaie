@@ -62,6 +62,11 @@ du journal, `prive/journal/` se lit `journal/` du privé.
 la fenêtre Tauri (`atelier/sources/fenetre/`) ne fait que l'afficher. **Toute décision vit dans le moteur** (règle 2) : une page
 affiche et saisit, elle ne calcule ni ne refuse d'elle-même. On compile hors du dépôt (`CARGO_TARGET_DIR`), chaîne
 `stable-x86_64-pc-windows-gnu` sur le poste ; l'exe de la fenêtre compilé se copie dans `logiciel/`.
+**Rien de remplissable s'il n'y a pas à le remplir** (Léandre, 15/10/2026 : « simple pour les gens qui ont besoin de simple,
+compliqué pour les gens qui ont besoin de compliqué ») : un champ n'apparaît que parce qu'un fait l'exige (un motif qui
+appelle une date, un arrêt qui appelle le maintien), jamais « au cas où » ; le chemin simple ne montre que les faits, le
+chemin compliqué s'ouvre de lui-même quand un fait l'appelle. On prévoit tous les cas dans le moteur, et l'écran n'en
+montre que celui qui a lieu.
 
 ## Les sous-agents : Opus pour coder, Sonnet ou Haiku pour lire
 
@@ -70,8 +75,10 @@ affiche et saisit, elle ne calcule ni ne refuse d'elle-même. On compile hors du
   preuve : il se vérifie avant de s'affirmer.
 - **L'orchestrateur organise, puis vérifie après coup** : il donne à l'Opus le but, les règles, la passation attendue, et le
   laisse faire ; il ne dit pas *comment* faire ce qu'il n'a pas lu dans le code. Puis il vérifie (commits, diff, tests).
-- **Plusieurs Opus à la fois** : des lots disjoints, chacun dans son worktree et sa cible Cargo (`CARGO_TARGET_DIR` seul, un
-  seul profil) ; une passation vérifiée à la fois.
+- **Plusieurs Opus à la fois, quatre au plus, et deux Sonnet au plus** (Léandre, 15/10/2026 ; la limite est le disque du
+  conteneur : une cible Cargo pèse 2 à 6 Go) : des lots disjoints, chacun dans son worktree et sa cible Cargo
+  (`CARGO_TARGET_DIR` seul, un seul profil) ; une passation vérifiée à la fois ; **la cible et le worktree d'un lot fusionné
+  s'effacent aussitôt**.
 - Ne se délègue pas : une décision de conception, un acte qui engage (dépôt réel, envoi, signature), tout ce qui toucherait au
   coffre. Un Opus **ne réécrit jamais l'historique** (`--amend`, `rebase`, `reset`) et **ne laisse aucune tâche de fond**.
 - **Aucun repli Python** : ce qui s'écrit s'écrit en Rust, dans `paie/` ; ce qui ne se porte pas proprement remonte à Léandre.
@@ -223,7 +230,7 @@ On publie depuis GitHub (`journal/finitions/PUBLIER.md` du privé) : à la fin d
 `main` (Léandre fusionne ; le flux pose la date du jour dans `logiciel/VERSION`, une version par jour). Léandre lance
 « Publier » (`.github/workflows/publier.yml`) avec `notes`, et `calcul` **seulement** si la version change un calcul de paie
 (la seule phrase qu'une compagnie verra ; un taux qui change n'en est pas une), `exigee` plus rarement encore. **Léandre
-approuve** (environnement `publication`) ; le moteur signe avec la clé de GitHub et une Release porte l'archive, `derniere.json`
+approuve** (environnement `publication`) ; le moteur signe avec la clé de GitHub et une Release porte les archives (une par système publié et une tout-système ; le choix se fait au lancement), `derniere.json`
 et l'installeur, que toute installation lit (`paie maj`, `paie/src/maj.rs`), la sienne comprise. Une version qui change un
 calcul attend la DSN des mois saisis avant de s'appliquer (`--malgre-calcul` pour passer outre). Jamais pendant que l'interface
 tourne ; jamais republier un numéro. La clé du poste (`maj-cle-privee.bin`, `paie maj --publier`) reste acceptée. On est en

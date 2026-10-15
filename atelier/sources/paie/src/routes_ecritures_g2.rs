@@ -3,7 +3,8 @@
 //! `regularisation-ecrire`, `regularisation-annuler`, `arret-enregistrer`, `arret-reprise`,
 //! `arret-oublier`, `echeance-faite` ; et `couts`, qui ne fait que lire.
 //!
-//! Memes fichiers ecrits, aux memes octets (`regularisations/AAAA-MM.json`, `arrets/AAAA-MM.json`,
+//! Memes fichiers ecrits, aux memes octets (`regularisations/AAAA-MM.json`, `imprevus/AAAA-MM.json` (le magasin des
+//! imprevus, `imprevus`),
 //! `config/echeancier.json`), memes reponses que le Python. Un refus garde sa phrase quand elle est
 //! utile a la page ; la classe de l'exception peut differer (`ContratIntrouvable`,
 //! `ArretIntrouvable`, `MoisNonRegularisable` sont des `ErreurOperation` ; `SignalementImpossible`
@@ -12,7 +13,8 @@
 //! - Une correction (`regularisation-ecrire`, `-annuler`) arme ou desarme la prochaine DSN d'un
 //!   mois deja declare : le mot de passe du logiciel, s'il est pose, vient dans le corps
 //!   (`motdepasse`) et se confronte au coffre (`filet::exiger_mot_de_passe`).
-//! - Un arret se saisit, se reprend, s'oublie sans mot de passe : rien ne part. Les controles de la
+//! - Un arret se saisit, se reprend, s'oublie sans mot de passe : rien ne part ; il vit dans le magasin des imprevus
+//!   (`imprevus`), qui en tire la ligne de paie d'un permanent et le bloc 60 de chaque DSN. Les controles de la
 //!   norme sont ceux de `signalement::verifier`, les memes que ceux du signalement.
 //! - `couts` : le cout de l'annee d'un spectacle et d'un salarie, lu dans le livre de paie
 //!   (`fiche_recapitulative::Recapitulatifs::couts_de_l_annee`).
@@ -28,9 +30,9 @@ use crate::ecriture::ecrire_json;
 use crate::etats::{eq_py, erreur, py_str, R};
 use crate::fichiers::vrai;
 use crate::retours::Echec;
-use crate::routes_dossiers::{brut, contrats_au, salarie};
+use crate::routes_dossiers::{brut, salarie};
 use crate::routes_ecrites::{etat_correction, lire_corrections, marquer_echeance};
-use crate::routes_listes::{lire_arrets, nomenclatures, resume_arret};
+use crate::routes_listes::nomenclatures;
 use crate::signalement::{self, ARRET};
 
 /// Les routes que ce module sert.
@@ -285,20 +287,10 @@ fn regularisation_annuler(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------------------------ arrets
 
-/// `Arret` -> son fichier : `{"_origine", "mois", "arrets": [asdict(a)]}`.
-pub(crate) fn ecrire_arrets(ctx: &Contexte, mois: &str, arrets: Vec<Value>) -> R<()> {
-    let chemin = ctx.racine.join("arrets").join(format!("{}.json", mois));
-    ecrire_fichier(
-        &chemin,
-        json!({
-            "_origine": format!(
-                "Les arrets de travail commences en {}. Chacun part deux fois : en signalement d'evenement (nature 04, dans les cinq jours), puis reporte par chaque DSN mensuelle dont le mois croise l'arret.",
-                mois
-            ),
-            "mois": mois,
-            "arrets": arrets,
-        }),
-    )
+/// Ecrit le fichier d'un mois du magasin des imprevus (`imprevus/AAAA-MM.json`) : les arrets ET les suspensions qu'il
+/// range, tels que la liste les donne.
+pub(crate) fn ecrire_arrets(ctx: &Contexte, mois: &str, imprevus: Vec<Value>) -> R<()> {
+    crate::routes_imprevus::ecrire(ctx, mois, imprevus)
 }
 
 /// `signalement.verifier(arret, ARRET)` : ce que la norme refuse (`SignalementImpossible`, une
@@ -316,20 +308,12 @@ fn cle_du_salarie(ctx: &Contexte, nom: &Value) -> R<Value> {
     salarie(ctx, nom)?.get("_cle").cloned().ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))
 }
 
-/// Les `n` premiers caracteres du texte de `v` (`str(v)[:n]`).
-fn debut_du_texte(v: &Value, n: usize) -> String {
-    py_str(v).chars().take(n).collect()
-}
-
-/// `operations_arrets._trouver` : (l'indice de l'arret, la liste de son mois).
+/// L'arret de ce salarie a ce dernier jour travaille : (son indice, le fichier de son mois, tous imprevus compris).
 pub(crate) fn trouver(ctx: &Contexte, nom: &Value, dernier_jour: &Value) -> R<(usize, Vec<Value>)> {
-    let mois = debut_du_texte(dernier_jour, 7);
-    let liste = lire_arrets(ctx, &mois)?;
     let cle = cle_du_salarie(ctx, nom)?;
-    let texte = py_str(dernier_jour);
-    for (i, a) in liste.iter().enumerate() {
-        if eq_py(&a["salarie"], &cle) && eq_py(&a["dernier_jour_travaille"], &json!(texte)) {
-            return Ok((i, liste));
+    if vrai(dernier_jour) {
+        if let Some(t) = crate::routes_imprevus::trouver(ctx, crate::imprevus::ARRET, &py_str(&cle), &jour(dernier_jour)?)? {
+            return Ok(t);
         }
     }
     let quand = if vrai(dernier_jour) { jj_mm_aaaa(dernier_jour)? } else { "?".to_string() };
@@ -340,58 +324,25 @@ pub(crate) fn trouver(ctx: &Contexte, nom: &Value, dernier_jour: &Value) -> R<(u
     )))
 }
 
-/// `operations_arrets.resume`, rendu tel que `web.py` le met dans sa reponse.
+/// `{"arret": resume}` : l'arret tel que la page le lit (`routes_imprevus::resume`, avec les cachets qui tombent dedans).
 fn reponse_arret(ctx: &Contexte, arret: &Value) -> R<Value> {
     let n = nomenclatures(ctx)?;
-    Ok(json!({"arret": resume_arret(&n, arret)?}))
+    Ok(json!({"arret": crate::routes_imprevus::resume(ctx, &n, arret)?}))
 }
 
-/// `operations_arrets.enregistrer_arret(..., qui="interface")`.
+/// `arret-enregistrer` : `{salarie, dernier_jour, fin, motif, subrogation?, subrogation_debut?, subrogation_fin?,
+/// date_accident?, jours_deja_indemnises?, contrat?, note?}` -> `{"arret": resume}`. Les controles de la norme sont ceux
+/// du signalement (`signalement::verifier`, nature 04), avant toute ecriture ; un arret ne chevauche pas un autre imprevu
+/// du meme contrat (`routes_imprevus::sans_chevauchement`).
 fn arret_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let nom = exiger(charge, "salarie")?;
     let dernier_jour = exiger(charge, "dernier_jour")?;
     let fin = exiger(charge, "fin")?;
     let motif = exiger(charge, "motif")?;
-    let contrat_numero = ou_rien(optionnel(charge, "contrat"));
-
     let cle = cle_du_salarie(ctx, nom)?;
     let dernier = jour(dernier_jour)?;
-    let candidats = contrats_au(ctx, &cle, &dernier.iso())?;
-    let texte_de = |c: &Value, k: &str| py_str(&c[k]);
-    let choisi: Value = if vrai(&contrat_numero) {
-        match candidats.iter().find(|c| eq_py(&c["numero"], &contrat_numero)) {
-            Some(c) => c.clone(),
-            None => {
-                let liste: Vec<String> = candidats.iter().map(|c| texte_de(c, "numero")).collect();
-                return Err(refus(format!(
-                    "Contrat {} introuvable parmi ceux de {} qui couvrent le {} : {}",
-                    py_str(&contrat_numero),
-                    py_str(&cle),
-                    jj_mm_aaaa(dernier_jour)?,
-                    if liste.is_empty() { "aucun".to_string() } else { liste.join(", ") }
-                )));
-            }
-        }
-    } else if candidats.len() == 1 {
-        candidats[0].clone()
-    } else if candidats.is_empty() {
-        return Err(refus(format!(
-            "Aucun contrat de {} ne couvre le {}. Un signalement d'arret designe le contrat suspendu par son numero et sa date de debut (S21.G00.40.009 et .001) : sans contrat declare, il n'y a rien a suspendre. Verifier la date, ou saisir le contrat.",
-            py_str(&cle),
-            jj_mm_aaaa(dernier_jour)?
-        )));
-    } else {
-        let liste: Vec<String> =
-            candidats.iter().map(|c| format!("{} du {} au {}", texte_de(c, "numero"), texte_de(c, "debut"), texte_de(c, "fin"))).collect();
-        return Err(refus(format!(
-            "Deux contrats de {} couvrent le {} ({}). Le cahier technique laisse le choix au declarant : dire lequel.",
-            py_str(&cle),
-            jj_mm_aaaa(dernier_jour)?,
-            liste.join(", ")
-        )));
-    };
+    let choisi = crate::routes_imprevus::contrat_suspendu(ctx, &py_str(&cle), &dernier, &ou_rien(optionnel(charge, "contrat")))?;
 
-    let subrogation = optionnel(charge, "subrogation").clone();
     let jour_ou_rien = |k: &str| -> R<Value> {
         let v = optionnel(charge, k);
         if vrai(v) {
@@ -408,19 +359,34 @@ fn arret_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
             json!("")
         }
     };
+    // Les jours deja indemnises (D1226-4) ne se disent que pour un arret qu'un maintien de salaire peut suivre : un contrat
+    // paye au mois, et un motif de maladie ou d'accident (L1226-1 ; `maintien_legal` dans arrets-base.json).
+    let deja = crate::routes_imprevus::jours_ou_rien(optionnel(charge, "jours_deja_indemnises"), "Jours deja indemnises")?;
+    if !deja.is_null() {
+        let m = crate::imprevus::motif_d_arret(&py_str(motif)).map_err(crate::routes_listes::refus_magasin)?.unwrap_or(Value::Null);
+        if choisi["mensuel"] != json!(true) || !m.get("maintien_legal").is_some_and(vrai) {
+            return Err(refus(
+                "Les jours deja indemnises (D1226-4) ne servent qu'au maintien de salaire d'un permanent arrete pour maladie \
+ou accident (L1226-1) : cet arret n'en appelle pas. Rien n'est ecrit.",
+            ));
+        }
+    }
     let mut a = Map::new();
+    a.insert("genre".into(), json!(crate::imprevus::ARRET));
     a.insert("salarie".into(), cle.clone());
     a.insert("contrat_debut".into(), choisi["debut"].clone());
     a.insert("contrat_numero".into(), choisi["numero"].clone());
     a.insert("motif".into(), json!(py_str(motif)));
     a.insert("dernier_jour_travaille".into(), json!(dernier.iso()));
     a.insert("fin_previsionnelle".into(), json!(jour(fin)?.iso()));
-    a.insert("subrogation".into(), subrogation);
+    a.insert("subrogation".into(), optionnel(charge, "subrogation").clone());
     a.insert("subrogation_debut".into(), jour_ou_rien("subrogation_debut")?);
     a.insert("subrogation_fin".into(), jour_ou_rien("subrogation_fin")?);
     a.insert("reprise".into(), Value::Null);
     a.insert("reprise_motif".into(), Value::Null);
     a.insert("date_accident".into(), jour_ou_rien("date_accident")?);
+    a.insert("jours_deja_indemnises".into(), deja);
+    a.insert("maintien".into(), json!({}));
     a.insert("saisi_le".into(), json!(maintenant()));
     a.insert("qui".into(), json!(qui_de(charge)));
     a.insert("note".into(), note);
@@ -429,21 +395,22 @@ fn arret_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     // On verifie AVANT d'ecrire, avec les regles de la nature 04 -- celles qui partiront.
     verifier(&arret)?;
 
-    let mois: String = arret["dernier_jour_travaille"].as_str().unwrap_or("").chars().take(7).collect();
-    let mut liste = lire_arrets(ctx, &mois)?;
-    if liste.iter().any(|x| eq_py(&x["salarie"], &arret["salarie"]) && eq_py(&x["dernier_jour_travaille"], &arret["dernier_jour_travaille"])) {
+    let mois = dernier.mois_iso();
+    if crate::routes_imprevus::trouver(ctx, crate::imprevus::ARRET, &py_str(&cle), &dernier)?.is_some() {
         return Err(refus(format!(
             "Un arret de {} au {} est deja enregistre. Le modifier plutot que d'en saisir un second : deux arrets au meme dernier jour travaille, ce sont deux declarations qui se contredisent.",
             py_str(&cle),
-            jj_mm_aaaa(&arret["dernier_jour_travaille"])?
+            dernier.jj_mm_aaaa()
         )));
     }
+    crate::routes_imprevus::sans_chevauchement(ctx, &arret, None)?;
+    let mut liste = crate::imprevus::du_fichier(&ctx.racine, &mois).map_err(crate::routes_listes::refus_magasin)?;
     liste.push(arret.clone());
     ecrire_arrets(ctx, &mois, liste)?;
     reponse_arret(ctx, &arret)
 }
 
-/// `operations_arrets.modifier_arret(ctx, salarie, dernier_jour, reprise=..., reprise_motif=...)`.
+/// `arret-reprise` : `{salarie, dernier_jour, reprise, motif_reprise?}` -> `{"arret": resume}` ; une reprise vide l'efface.
 fn arret_reprise(ctx: &Contexte, charge: &Value) -> R<Value> {
     let nom = exiger(charge, "salarie")?;
     let dernier_jour = exiger(charge, "dernier_jour")?;
@@ -451,7 +418,7 @@ fn arret_reprise(ctx: &Contexte, charge: &Value) -> R<Value> {
     let motif = ou_rien(optionnel(charge, "motif_reprise"));
     let (i, mut liste) = trouver(ctx, nom, dernier_jour)?;
     if let Value::Object(a) = &mut liste[i] {
-        a.insert("reprise".into(), reprise);
+        a.insert("reprise".into(), if vrai(&reprise) { json!(jour(&reprise)?.iso()) } else { reprise });
         a.insert("reprise_motif".into(), motif);
     }
     let arret = liste[i].clone();
@@ -461,7 +428,7 @@ fn arret_reprise(ctx: &Contexte, charge: &Value) -> R<Value> {
     reponse_arret(ctx, &arret)
 }
 
-/// `operations_arrets.supprimer_arret` : un arret deja declare ne se retire pas.
+/// `arret-oublier` : `{salarie, dernier_jour}` -> `{"arret": resume}`. Un arret deja declare ne se retire pas.
 fn arret_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let nom = exiger(charge, "salarie")?;
     let dernier_jour = exiger(charge, "dernier_jour")?;

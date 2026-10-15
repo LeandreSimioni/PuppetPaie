@@ -913,13 +913,10 @@ fn textes_des_avenants(racine: &Path, salarie: &str, debut: &str, numero: Option
     textes_des_avenants_de(&avenants, false)
 }
 
-/// `operations_socle.mois_hors_delai` : la date limite de la DSN du mois est-elle depassee ?
-/// Un mois ferme ne se reproche plus rien : ce qui est declare est declare.
+/// `operations_socle.mois_hors_delai` : la date limite de la DSN du mois (`echeance_dsn`, reportee au jour ouvre) est-elle
+/// depassee ? Un mois ferme ne se reproche plus rien : ce qui est declare est declare.
 fn mois_hors_delai(ctx: &Contexte, mois: &str) -> Resultat<bool> {
-    let (an, mo) = (an_de(mois)?, mois_de(mois)? as u32);
-    let (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };
-    let limite = Jour::nouveau(an, mo, ctx.echeance_dsn()?).ok_or("date limite impossible")?;
-    Ok(ctx.aujourdhui > limite)
+    Ok(ctx.aujourdhui > crate::echeance_dsn::de_la_compagnie(ctx, mois)?.jour)
 }
 
 /// `contexte.GABARITS` : le dossier `gabarits/` du poste (les donnees du processus).

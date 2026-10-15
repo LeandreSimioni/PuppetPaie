@@ -188,25 +188,15 @@
       <h2>Les étapes</h2>
       <div id="actions-mois"></div>
 
-      <!-- LES ARRÊTS DE TRAVAIL (18/09/2026). Un intermittent tombe malade
-           pendant ses dates : le contrat est signé, il est suspendu. Deux
-           déclarations le disent, et l'écran montre les deux — le
-           signalement d'arrêt, dû dans les cinq jours, et le report dans la
-           DSN du mois, qui se fait tout seul. Ici, dans la colonne du mois,
-           parce qu'un arrêt suspend un contrat de ce mois-là. -->
-      <h2 id="titre-arrets">Arrêts de travail</h2>
-      <div id="arrets"></div>
-
-      <!-- LA FIN D'UN CONTRAT QUI SE SIGNALE (19/09/2026). Le signalement
-           de fin de contrat (nature 07) est dû dans les CINQ JOURS OUVRÉS :
-           c'est le délai le plus court du logiciel, et le seul qui court
-           depuis un événement au lieu d'une fin de mois qu'on voit venir.
-           Un CDD d'usage du spectacle arrivé à son terme n'y figure pas — sa
-           fin part dans la DSN mensuelle, par le circuit dérogatoire ; rompu
-           avant son terme, il y figure (fiche 2062). Vide la plupart du
-           temps, et c'est la règle : un bloc qui dirait « rien à faire »
-           tous les mois finirait par ne plus se lire. -->
-      <div id="fins-de-contrat"></div>
+      <!-- CE QUI EST DÛ (15/10/2026) : une ligne par obligation à faire ou en
+           retard — le signalement d'un arrêt, la déclaration d'un accident,
+           le signalement d'une reprise anticipée ou d'une fin de contrat —,
+           sa date butoir, son état, et le bouton qui fait l'acte. Vide quand
+           il n'y a rien, titre compris : les imprévus sont rares, et un bloc
+           qui dirait « aucun arrêt » tous les mois finirait par ne plus se
+           lire. Les imprévus eux-mêmes se saisissent sur la carte du
+           salarié (« Un imprévu… »). js/imprevus.js. -->
+      <div id="dus"></div>
 
       <!-- Ce que les retours attestent et que le journal ignore encore.
            Vide quand il n'y a rien a reprendre, et c'est la regle : un bloc
@@ -361,7 +351,8 @@
 <script src="/js/boites.js?v={{EMPREINTE}}"></script>
 <script src="/js/fictives.js?v={{EMPREINTE}}"></script>
 <script src="/js/actes.js?v={{EMPREINTE}}"></script>
-<script src="/js/arrets-fins.js?v={{EMPREINTE}}"></script>
+<script src="/js/reprise-journal.js?v={{EMPREINTE}}"></script>
+<script src="/js/imprevus.js?v={{EMPREINTE}}"></script>
 <script src="/js/etats-paies.js?v={{EMPREINTE}}"></script>
 <script src="/js/configuration.js?v={{EMPREINTE}}"></script>
 <script src="/js/fiche.js?v={{EMPREINTE}}"></script>

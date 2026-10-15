@@ -1,4 +1,4 @@
-//! La DSN mensuelle (`moteur/dsn.py`), dans la version de la norme NEODeS que son mois principal declare appelle
+//! L    let orphelins: Vec<&&Arret> = arrets_du_mois.iter().filter(|a| !paies.iter().any(|p| a.du_contrat(p))).collect(); DSN mensuelle (`moteur/dsn.py`), dans la version de la norme NEODeS que son mois principal declare appelle
 //! (`norme::de_la_mensuelle`, `logiciel/donnees/norme-dsn-base.json`).
 //!
 //! Le fichier est une suite de lignes `RUBRIQUE,'valeur'` separees par CRLF,
@@ -314,8 +314,10 @@ impl Arret {
         Ok(jour(g(&self.v, "dernier_jour_travaille"))? <= *fin && dernier_jour_d_arret >= *debut)
     }
 
+    /// L'arret suspend-il le contrat de cette paie ? La regle des imprevus (`imprevus::du_contrat`) : le meme salarie, la
+    /// meme date de debut du contrat, le meme numero quand l'un et l'autre en ont un.
     fn du_contrat(&self, p: &Paie) -> bool {
-        self.s("salarie") == cle_salarie(p) && Some(self.s("contrat_numero")) == p.engagement.numero
+        crate::imprevus::du_contrat(&self.v, &cle_salarie(p), p.engagement.numero.as_deref(), &p.engagement.debut).unwrap_or(false)
     }
 }
 
@@ -989,6 +991,20 @@ fn affiliations_du_permanent(p: &Paie, ent: &Value) -> Resultat<Option<Affiliati
     // salarie n'est pas rattache au contrat de sante -- 70.014/.015 decrivent la dispense comme ce qui ouvre ou ferme
     // l'affiliation (cahier technique 2026.1, p. 287).
     let dispense = vrai(g(&p.salarie, "sante_dispense"));
+    // Un mois entierement suspendu sans indemnisation, garanties suspendues (`calcul::sante_de_la_suspension` : 3090,
+    // accord sante du 19/07/2024, art. 4.2 et 15) : pas de cotisation, et pas de rattachement a la sante ce mois-la --
+    // comme une dispense. INFERENCE NOMMEE : aucune fiche DSN deposee ne dit comment declarer une affiliation sante
+    // suspendue (pas de bloc 70 ? un bloc 70 avec une fin de rattachement ? une base 31 a zero ?) ; le moteur n'ecrit ni
+    // bloc 70 ni base 31 de sante pour ce mois (`atelier/reference/sources/suspension-non-remuneree/RAPPORT-20261015.md`,
+    // point 2 et « Ce qui reste ouvert », 3).
+    let suspendue = vrai(g(&p.salarie, crate::calcul::SANTE_SUSPENDUE));
+    if suspendue && p.lignes.iter().any(|l| l.id == "mutuelle") {
+        return Err(format!(
+            "{} : sa sante est suspendue ce mois-ci ({}) et le bulletin cotise a la mutuelle. Rien n'est declare.",
+            qui_contrat(p),
+            txt(g(&p.salarie, crate::calcul::SANTE_SUSPENDUE))
+        ));
+    }
     if dispense && p.lignes.iter().any(|l| l.id == "mutuelle") {
         return Err(format!(
             "{} : la fiche porte une dispense de complementaire sante (`sante_dispense` : « {} ») et le bulletin cotise a \
@@ -1000,7 +1016,7 @@ declare.",
             txt(g(ent, "idcc"))
         ));
     }
-    Ok(Some(AffiliationsDuPermanent { prevoyance, sante: !dispense }))
+    Ok(Some(AffiliationsDuPermanent { prevoyance, sante: !dispense && !suspendue }))
 }
 
 /// Les places (`Affiliation::place`) des adhesions de sa nature auxquelles le salarie n'est pas affilie ce mois-la.
@@ -1689,10 +1705,10 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
 
 /// Bloc S21.G00.65 en norme 2027 : « absence a temps plein du salarie sans maintien de sa remuneration normale par son
 /// employeur » (la regle `bloc_65_sans_maintien_de_remuneration` de la version, texte dans `norme-dsn-base.json`). Le
-/// moteur n'ecrit de suspension que pour une ligne d'absence non remuneree (`conges::suspensions_du_mois`) ; un motif
-/// que `permanents-base.json` dit remunere (637, conge pour evenement familial : C. trav. L. 3142-2) y contredit la
-/// ligne, et la norme 2027 en fait une suspension qui ne se declare pas : refus, plutot que de choisir entre le motif
-/// et la ligne. Ni le bloc 75 (liste p. 297) ni un autre ne recoit un conge paye : il est dans la remuneration du mois.
+/// moteur tire le bloc d'une suspension saisie comme imprevu (`imprevus::suspensions_du_mois`) ; un motif que
+/// `permanents-base.json` dit remunere (637, conge pour evenement familial : C. trav. L. 3142-2) ne retire rien du salaire,
+/// et la norme 2027 en fait une suspension qui ne se declare pas : refus, plutot que de taire un imprevu saisi. Ni le bloc 75
+/// (liste p. 297) ni un autre ne recoit un conge paye : il est dans la remuneration du mois.
 fn suspension_sans_maintien(f: &Fichier, p: &Paie, s: &Value) -> Resultat<()> {
     let Some(texte) = f.norme()?.regle("bloc_65_sans_maintien_de_remuneration")? else { return Ok(()) };
     let motif = txt(req(s, "motif")?);
@@ -1700,10 +1716,10 @@ fn suspension_sans_maintien(f: &Fichier, p: &Paie, s: &Value) -> Resultat<()> {
     let m = liste(&regles["suspensions"]["motifs"]).into_iter().find(|m| txt(g(m, "code")) == motif);
     let Some(m) = m.filter(|m| vrai(g(m, "remunere"))) else { return Ok(()) };
     Err(format!(
-        "{} : suspension au motif {} ({}), du {} au {}, saisie comme une absence non remuneree. Ce motif est un conge remunere \
+        "{} : suspension au motif {} ({}), du {} au {}, saisie comme imprevu. Ce motif est un conge remunere \
 (logiciel/donnees/permanents-base.json : {}). En norme {}, le bloc S21.G00.65 ne declare qu'une << absence a temps plein du \
-salarie sans maintien de sa remuneration normale par son employeur >> : {} Un conge pour evenement familial se paie (pas \
-de ligne d'absence non remuneree) et ne se declare pas en suspension ; s'il n'est vraiment pas paye, le motif est a revoir. \
+salarie sans maintien de sa remuneration normale par son employeur >> : {} Un conge pour evenement familial se paie (le moteur \
+ne retire rien du salaire) et ne se declare pas en suspension : retirer l'imprevu ; s'il n'est vraiment pas paye, le motif est a revoir. \
 Rien n'est ecrit.",
         qui_contrat(p),
         motif,
@@ -4114,11 +4130,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
             arrets_du_mois.push(a);
         }
     }
-    let declares: HashSet<(String, Option<String>)> = paies.iter().map(|p| (cle_salarie(p), p.engagement.numero.clone())).collect();
-    let orphelins: Vec<&&Arret> = arrets_du_mois
-        .iter()
-        .filter(|a| !declares.contains(&(a.s("salarie"), Some(a.s("contrat_numero")))))
-        .collect();
+    let orphelins: Vec<&&Arret> = arrets_du_mois.iter().filter(|a| !paies.iter().any(|p| a.du_contrat(p))).collect();
     if !orphelins.is_empty() {
         let liste_o: Vec<String> = orphelins
             .iter()
@@ -4148,6 +4160,43 @@ journalieres, et il se construit depuis l'arret, pas depuis la ligne. Saisir l'a
 saisir`), ou retirer la ligne. Rien n'est ecrit.",
             mois,
             manquants.join(", ")
+        ));
+    }
+    // LA SUSPENSION D'UN CONTRAT QUE CE MOIS NE DECLARE PAS (15/10/2026) : le bloc 65 se declare SOUS le contrat suspendu,
+    // dans chaque DSN dont le mois croise la suspension (bloc S21.G00.65, cahier technique DSN 2026.1, p. 281,
+    // `atelier/reference/norme-dsn/texte/bloc-S21.G00.65.txt`) ; il se tire du magasin des imprevus pour le contrat de
+    // chaque paie (`imprevus::suspensions_du_mois`). Une suspension de cet etablissement dont le contrat manque ne serait
+    // declaree nulle part : refus, comme pour l'arret.
+    let mut suspendus_absents = Vec::new();
+    for imp in crate::imprevus::du_mois(&ctx.racine, mois, Some(crate::imprevus::SUSPENSION))? {
+        let fiche = ctx.salarie(&txt(g(&imp, "salarie")))?;
+        if bareme::etablissement_du_salarie(&ent0, &fiche)? != nic {
+            continue;
+        }
+        let mut declare = false;
+        for p in paies {
+            if crate::imprevus::du_contrat(&imp, &cle_salarie(p), p.engagement.numero.as_deref(), &p.engagement.debut)? {
+                declare = true;
+            }
+        }
+        if !declare {
+            suspendus_absents.push(format!(
+                "{} contrat {} (suspension {} du {} au {})",
+                txt(g(&imp, "salarie")),
+                txt(g(&imp, "contrat_numero")),
+                txt(g(&imp, "motif")),
+                txt(g(&imp, "debut")),
+                txt(g(&imp, "fin"))
+            ));
+        }
+    }
+    if !suspendus_absents.is_empty() {
+        return Err(format!(
+            "Suspension a declarer dans la DSN de {}, mais son contrat n'est pas declare ce mois-ci : {}. Le bloc « Autre \
+suspension de l'execution du contrat - S21.G00.65 » se declare SOUS le contrat suspendu, dans chaque mois qu'elle \
+traverse. Reprendre le contrat dans la saisie du mois, ou corriger les dates de la suspension. Rien n'est ecrit.",
+            mois,
+            suspendus_absents.join(", ")
         ));
     }
     let sans_individu = paies.is_empty() && regs.is_empty();

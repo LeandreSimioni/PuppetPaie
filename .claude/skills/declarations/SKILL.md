@@ -30,8 +30,9 @@ Ce qui reste à faire : `paie rappels`, `paie echeancier`. Ce qui est parti : `p
 
 ## DSN mensuelle
 
-- **Quand** : le 15 du mois suivant ; le 5 à partir de cinquante salariés (déduit de l'effectif des retours). Due
-  aussi les mois sans paie (envoi néant).
+- **Quand** : le 15 du mois suivant ; le 5 à partir de cinquante salariés (déduit de l'effectif des retours), **à midi** ;
+  un samedi, un dimanche ou un jour férié reporte au jour ouvré suivant (R. 133-14, I ; `paie/src/echeance_dsn.rs`, que
+  l'échéancier et les rappels disent). Due aussi les mois sans paie (envoi néant).
 - **Fichier** : `sorties/<mois>/DSN_<Mois><Année>.dsn`, écrit par `paie mois`.
 - `paie depot-dsn <fichier> --apercu` : ce qui partirait, sans réseau ni écriture. Puis `--test`, lire le bilan.
 - Le montant URSSAF (`S21.G00.20`) est **calculé** par le moteur : rien à saisir.
@@ -40,7 +41,21 @@ Ce qui reste à faire : `paie rappels`, `paie echeancier`. Ce qui est parti : `p
 
 ## Arrêt de travail (signalement, nature 04)
 
-Dû dans les **cinq jours** suivant la connaissance de l'arrêt ; la DSN mensuelle le reporte en plus, d'elle-même.
+Dû dans les **cinq jours ouvrés** suivant la connaissance de l'arrêt, ou avec la DSN du mois si la compagnie est subrogée
+(CSS R. 133-14, II ; arrêté du 2 juillet 2013) ; la DSN mensuelle le reporte en plus, d'elle-même. `paie arret` dit, sous chaque
+arrêt, chaque obligation, sa date butoir et où on en est (le moteur la calcule : `obligations.rs`) ; `paie arret connu CLE
+--dernier-jour … --le … [--heure HH:MM] [--de accident]` dit quand la compagnie l'a su, si ce n'est pas le premier jour d'arrêt
+(ou le jour de l'accident).
+
+**Accident du travail ou de trajet (motifs 04 et 06) : une déclaration d'accident en plus, HORS DSN**, à la CPAM de la victime,
+dans les **48 heures, dimanches et jours fériés non compris**, après que la compagnie l'a su (CSS L. 441-2, R. 441-3) : en ligne
+sur net-entreprises (service DAT, s'y habiliter d'avance) ou par le cerfa 14463*03 en recommandé. Le logiciel ne la fait pas ;
+il la rappelle, et la retient faite quand on le lui dit : `paie arret declare CLE --dernier-jour … --le … --ou
+net-entreprises|courrier [--reference …]` (`--retirer` l'efface). Une maladie professionnelle (05) se déclare par le salarié.
+
+**Deuil d'enfant (motif 19) : pas de signalement, mais l'attestation de salaire (DSIJ) HORS DSN**, sur net-entreprises (service
+« Attestation de salaire », écran ou EDI), dès réception de l'avis d'arrêt — la DSN ne couvre pas le deuil ; la dire faite :
+`paie arret declare CLE --dernier-jour … --le … --ou net-entreprises-ecran|net-entreprises-edi --attestation`.
 
 ```
 paie arret contrats BRIOCHE --le 2026-12-14

@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::str::FromStr;
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use crate::calcul::Paie;
 use crate::catalogue::rubrique;
@@ -24,10 +24,7 @@ use crate::engagement::{charger, Avis};
 use crate::feries;
 use crate::fichiers::{repr, vrai};
 use crate::num::{add, dec, dec_f64, dec_py, div, eur2, mul, zero2, Decimal, Resultat};
-use crate::permanents::{
-    anciennete_mois, arrondir_jours, droit_au_maintien, indemnite_conges, jours_acquis, maintien_de_salaire,
-    periode_de_reference, plafonner, OptionsMaintien,
-};
+use crate::permanents::{arrondir_jours, indemnite_conges, jours_acquis, periode_de_reference, plafonner};
 
 // ------------------------------------------------------------ les aides
 
@@ -66,7 +63,7 @@ pub(crate) fn dec_ou(v: Option<&Value>, defaut: Decimal) -> Resultat<Decimal> {
 }
 
 /// `int(x)` d'une valeur JSON.
-fn entier(v: &Value) -> Resultat<i64> {
+pub(crate) fn entier(v: &Value) -> Resultat<i64> {
     match v {
         Value::Number(n) => n
             .as_i64()
@@ -79,10 +76,6 @@ fn entier(v: &Value) -> Resultat<i64> {
         Value::Bool(b) => Ok(*b as i64),
         autre => Err(crate::fichiers::attendu("un nombre entier", crate::etats::nom_type(autre))),
     }
-}
-
-fn fiche_de(ctx: &Contexte, nom: &str) -> Resultat<Value> {
-    ctx.salarie(nom)
 }
 
 pub(crate) fn nature_de(v: Option<&Value>) -> Resultat<std::sync::Arc<Nature>> {
@@ -98,15 +91,41 @@ pub(crate) fn nature_de(v: Option<&Value>) -> Resultat<std::sync::Arc<Nature>> {
 /// Le nombre de jours ouvrables entre deux dates, bornes incluses : du lundi
 /// au samedi, moins les feries que l'entreprise chome.
 pub fn jours_ouvrables(debut: &Jour, fin: &Jour, entreprise: Option<&Value>) -> Resultat<i64> {
+    jours_de_semaine(debut, fin, entreprise, 6)
+}
+
+/// LES JOURS OEUVRES entre deux dates, bornes incluses : du lundi au vendredi, moins les feries que l'entreprise chome
+/// -- les jours ou un salarie a temps plein « doit travailler » dans la modalite classique (cinq jours de sept heures
+/// pour 35 h). Fiche DSN 2640 (`atelier/reference/sources/suspension-non-remuneree/net-entreprises-fiche2640-volumes-
+/// activite-s21g00-53-20260929.txt`, « Le decompte et calcul des absences au reel ») : quand le planning du salarie n'est
+/// pas connu du logiciel, « Nombre d'heures d'absence = Nb d'heures travaillees/jours oeuvres x Nb de jours
+/// theoriquement oeuvres sur la periode », sur « une ou plusieurs hypotheses de modalites classiques de travail » ;
+/// fiche 2693, exemple 10 : un mois de septembre 2026 entier, « 154 heures (22 x 7 heures) ». INFERENCE NOMMEE : la
+/// saisie ne dit pas les jours de la semaine d'un permanent, et le moteur prend l'hypothese classique, du lundi au
+/// vendredi (la mesure des absences, `imprevus::lignes_du_mois`).
+pub fn jours_oeuvres(debut: &Jour, fin: &Jour, entreprise: Option<&Value>) -> Resultat<i64> {
+    jours_de_semaine(debut, fin, entreprise, 5)
+}
+
+/// Les jours de `debut` a `fin` dont le rang dans la semaine (lundi = 0) est sous `jusqu_a`, moins les feries chomes.
+fn jours_de_semaine(debut: &Jour, fin: &Jour, entreprise: Option<&Value>, jusqu_a: u32) -> Resultat<i64> {
     let chomes = feries::chomes_entre(debut, fin, entreprise)?;
     let (mut n, mut jour) = (0, *debut);
     while jour <= *fin {
-        if jour.jour_de_la_semaine() < 6 && !chomes.iter().any(|(j, _)| *j == jour) {
+        if jour.jour_de_la_semaine() < jusqu_a && !chomes.iter().any(|(j, _)| *j == jour) {
             n += 1;
         }
         jour = jour.plus_jours(1)?;
     }
     Ok(n)
+}
+
+/// LES HEURES D'UN JOUR OEUVRE d'un contrat paye au mois de quotite `quotite` (heures par mois) : la duree hebdomadaire
+/// (quotite x 12 / 52, au centieme : 151,67 h font 35,00 h) sur cinq jours (`jours_oeuvres`) -- 7 h pour un temps plein.
+/// Fiche DSN 2640, « Nb d'heures travaillees/jours oeuvres » ; l'hypothese des cinq jours est l'inference de
+/// `jours_oeuvres`.
+pub fn heures_par_jour_oeuvre(quotite: Decimal) -> Decimal {
+    div(eur2(div(mul(quotite, Decimal::from(12)), Decimal::from(52))), Decimal::from(5))
 }
 
 pub(crate) fn jours_ouvrables_de(c: &Value, ent: &Value) -> Resultat<i64> {
@@ -292,18 +311,19 @@ fn periode(
             if p_fin < p_debut {
                 continue;
             }
-            acquis = add(acquis, jours_acquis(&p_debut, &p_fin)?);
+            // La presence, moins les suspensions qui n'acquierent pas (`imprevus::jours_de_conges_non_acquis`).
+            let non_acquis = non_acquis_du_contrat(ctx, e, &p_debut, &p_fin)?;
+            acquis = add(acquis, sub(jours_acquis(&p_debut, &p_fin)?, non_acquis).max(Decimal::ZERO));
             // Les jours pris se comptent comme la retenue du bulletin.
             for c in e.get("conges_pris").and_then(|c| c.as_array()).map_or(&[][..], |a| &a[..]) {
                 pris += Decimal::from(jours_ouvrables_de(c, ent)?);
             }
-            if e.get("absences").is_some_and(vrai) {
+            if crate::imprevus::du_contrat_dans_le_mois(ctx, e, &mois)?.iter().any(crate::imprevus::est_un_arret) {
                 avert.push(avertir(format!(
-                    "{} : une suspension en {}. Le compteur de conges compte \
-                     le TEMPS DE PRESENCE ; les periodes assimilees a du \
-                     travail effectif (L3141-4 et L3141-5) ne sont pas \
-                     relevees, et certaines suspensions acquierent quand \
-                     meme des conges. A verifier a la main.",
+                    "{} : un arret de travail en {}. Le compteur de conges compte \
+                     le TEMPS DE PRESENCE d'un arret ; les periodes assimilees a \
+                     du travail effectif pendant un arret (L3141-5) ne sont pas \
+                     appliquees. A verifier a la main.",
                     cle_salarie, mois
                 )));
             }
@@ -314,6 +334,14 @@ fn periode(
         }
     }
     Ok((plafonner(acquis)?, pris, brut, avert))
+}
+
+/// `imprevus::jours_de_conges_non_acquis` du contrat d'un engagement de saisie (sa fiche, son numero, sa date de debut).
+fn non_acquis_du_contrat(ctx: &Contexte, e: &Value, debut: &Jour, fin: &Jour) -> Resultat<Decimal> {
+    let Some(contrat_debut) = e.get("debut").filter(|x| vrai(x)).map(d).transpose()? else { return Ok(Decimal::ZERO) };
+    let cle = cle_de_fiche(ctx, &en_texte(requis(e, "salarie")?));
+    let numero = e.get("numero").filter(|x| vrai(x)).map(en_texte);
+    crate::imprevus::jours_de_conges_non_acquis(&ctx.racine, &cle, numero.as_deref(), &contrat_debut, debut, fin)
 }
 
 fn compteur(
@@ -731,7 +759,10 @@ pub fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> Resultat
     let p_debut = eng.debut_periode()?.max(debut);
     let p_fin = eng.fin_periode()?.min(fin);
     if p_fin >= p_debut {
-        cpt.acquis = plafonner(add(cpt.acquis, jours_acquis(&p_debut, &p_fin)?))?;
+        let cle_fiche = cle_de_fiche(ctx, cle);
+        let non_acquis =
+            crate::imprevus::jours_de_conges_non_acquis(&ctx.racine, &cle_fiche, eng.numero.as_deref(), &eng.debut, &p_debut, &p_fin)?;
+        cpt.acquis = plafonner(add(cpt.acquis, sub(jours_acquis(&p_debut, &p_fin)?, non_acquis).max(Decimal::ZERO)))?;
     }
     cpt.pris += conges_pris_de_la_paie(&ctx.racine, paie)?;
     Ok(cpt)
@@ -759,9 +790,30 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
     if !nat.mensuelle() {
         return Err(format!("{} n'est pas un contrat paye au mois : ses lignes se saisissent.", nat.libelle));
     }
-    // Une saisie qui ecrit ses lignes les garde.
+    // LES ABSENCES NE SE SAISISSENT PLUS DANS LE MOIS (15/10/2026) : un arret de travail ou une suspension est un
+    // imprevu, saisi une fois sur le salarie (`imprevus`), dont le moteur tire la ligne de chaque mois qu'il traverse.
+    if e.get("absences").is_some() {
+        return Err(format!(
+            "Contrat {} : la saisie du mois porte des `absences`. Un arret de travail ou une suspension (conge parental, \
+             sabbatique, sans solde...) se saisit une fois, comme un imprevu du salarie, et le moteur en tire la ligne de \
+             chaque mois qu'il traverse. Saisir l'imprevu, puis enregistrer ce mois sans ses absences.",
+            numero(e)
+        ));
+    }
+    // Une saisie qui ecrit ses lignes les garde : un imprevu du contrat n'y retire rien, et cela se dit.
     if let Some(l) = e.get("lignes").filter(|l| !l.is_null()) {
-        return Ok((l.as_array().ok_or("lignes")?.clone(), vec![]));
+        let mut dit = Vec::new();
+        for imp in crate::imprevus::du_contrat_dans_le_mois(ctx, e, mois)? {
+            dit.push(avertir(format!(
+                "{} : ses lignes sont ecrites a la main, et l'imprevu ({}) du {} au {} n'en retire rien. Le retirer des \
+                 lignes, ou laisser le moteur les tirer de la saisie.",
+                numero(e),
+                crate::imprevus::genre(&imp),
+                crate::imprevus::premier_jour(&imp)?.jj_mm_aaaa(),
+                crate::imprevus::dernier_jour(&imp)?.jj_mm_aaaa()
+            )));
+        }
+        return Ok((l.as_array().ok_or("lignes")?.clone(), dit));
     }
     let salaire = match e.get("salaire_mensuel").filter(|s| !s.is_null()) {
         Some(s) => s,
@@ -807,12 +859,16 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
         "heures": flot(eur2(quotite)),
     })];
 
-    let taux_horaire = if quotite != Decimal::ZERO { eur2(div(salaire, quotite)) } else { zero2() };
+    // Le salaire du mois tel que la ligne « mois » le paie (`calcul::lignes_brut` : le montant arrondi ligne par ligne).
+    let salaire_du_mois = crate::num::eur(mul(dec(requis(&lignes[0], "taux")?)?, dec(requis(&lignes[0], "quantite")?)?));
     // L'entreprise dit quels jours feries elle chome.
     let ent = &ctx.entreprise;
     let ouvrables = Decimal::from(jours_ouvrables(&debut, &fin, Some(ent))?);
     let ouvrables_du_mois = if ouvrables != Decimal::ZERO { ouvrables } else { Decimal::ONE };
     let taux_jour_ouvrable = eur2(div(mul(salaire, fraction), ouvrables_du_mois));
+    // Les heures de travail du mois, au reel (la mesure des absences : `imprevus::lignes_du_mois`).
+    let heures_par_jour = heures_par_jour_oeuvre(quotite);
+    let heures_du_mois = eur2(mul(heures_par_jour, Decimal::from(jours_oeuvres(&debut, &fin, Some(ent))?)));
 
     // --- les conges pris : une retenue, et une indemnite qui la couvre
     let mut pris = Decimal::ZERO;
@@ -855,52 +911,15 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
         avert.extend(avertir_feries(ctx, e, &debut, &fin)?);
     }
 
-    // --- les absences non remunerees, et les arrets de travail
-    for a in e.get("absences").and_then(|a| a.as_array()).map_or(&[][..], |a| &a[..]) {
-        let mut heures = dec_ou(a.get("heures"), Decimal::ZERO)?;
-        if heures == Decimal::ZERO {
-            let (da, fa) = (d(requis(a, "debut")?)?, d(requis(a, "fin")?)?);
-            let ouvres = Decimal::from(jours_ouvrables(&da, &fa, Some(ent))?);
-            heures = eur2(div(mul(quotite, ouvres), ouvrables_du_mois));
-        }
-        let maladie = a.get("motif").and_then(|m| m.as_str()) == Some("maladie");
-        let rub = if maladie { "absence_maladie" } else { "absence_non_remuneree" };
-        let mut ligne = Map::new();
-        ligne.insert("rubrique".into(), json!(rub));
-        ligne.insert("quantite".into(), json!(flot(heures)));
-        ligne.insert("taux".into(), json!(flot(taux_horaire)));
-        if !maladie {
-            // La ligne porte sa suspension entiere : son motif et ses deux dates.
-            ligne.insert("motif_suspension".into(), a.get("motif").cloned().unwrap_or(Value::Null));
-            ligne.insert("debut".into(), json!(en_texte(requis(a, "debut")?)));
-            ligne.insert("fin".into(), json!(en_texte(requis(a, "fin")?)));
-        }
-        lignes.push(Value::Object(ligne));
-        // Une suspension qui deborde du mois se redeclare le mois suivant, entiere.
-        if !maladie && d(requis(a, "fin")?)? > fin_mois {
-            avert.push(avertir(format!(
-                "{} : la suspension {} court jusqu'au {}, au-dela de ce \
-                 mois. Elle doit etre redeclaree ENTIERE (du {} au {}) dans \
-                 la DSN de chaque mois qu'elle traverse : recopier l'absence \
-                 dans la saisie des mois suivants.",
-                numero(e),
-                a.get("motif").map_or("None".to_string(), en_texte),
-                d(&a["fin"])?.jj_mm_aaaa(),
-                d(&a["debut"])?.jj_mm_aaaa(),
-                d(&a["fin"])?.jj_mm_aaaa()
-            )));
-        }
-        // Le maintien de salaire : dit par la loi, ecrit seulement s'il est saisi.
-        if maladie {
-            avert.extend(maintien_possible(ctx, e, a, taux_jour_ouvrable)?);
-        }
-        if let Some(m) = a.get("maintien").filter(|m| vrai(m)) {
-            lignes.push(json!({
-                "rubrique": "maintien_salaire", "quantite": flot(heures),
-                "taux": flot(eur2(div(dec_py(m)?, heures))),
-            }));
-        }
-    }
+    // --- les imprevus : un arret de travail, une suspension, saisis une fois sur le salarie (`imprevus`)
+    let (l, a) = crate::imprevus::lignes_du_mois(
+        ctx,
+        e,
+        mois,
+        &crate::imprevus::MoisDuContrat { debut, fin, salaire_du_mois, heures_par_jour, heures_du_mois, taux_jour_ouvrable },
+    )?;
+    lignes.extend(l);
+    avert.extend(a);
 
     // --- les primes
     for pr in e.get("primes").and_then(|p| p.as_array()).map_or(&[][..], |a| &a[..]) {
@@ -912,7 +931,19 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
     }
 
     // --- la prime d'anciennete de l'annexe I de la 3090
-    let fiche = ctx.salarie(&en_texte(requis(e, "salarie")?)).unwrap_or_else(|_| json!({}));
+    let mut fiche = ctx.salarie(&en_texte(requis(e, "salarie")?)).unwrap_or_else(|_| json!({}));
+    // Les annees de presence que les suspensions laissent (L1225-54 : `imprevus::anciennete_depuis`).
+    let mut sur_l_anciennete = Vec::new();
+    if let Some(depuis) = fiche.get("date_anciennete").filter(|x| vrai(x)).or_else(|| e.get("debut").filter(|x| vrai(x))).map(d).transpose()? {
+        let cle = fiche.get("_cle").map(en_texte).unwrap_or_default();
+        let (retenu, dit) = crate::imprevus::anciennete_depuis(&ctx.racine, &cle, &depuis, &fin_mois)?;
+        if retenu != depuis {
+            if let Some(o) = fiche.as_object_mut() {
+                o.insert("date_anciennete".into(), Value::String(retenu.iso()));
+            }
+            sur_l_anciennete = dit;
+        }
+    }
     let null = Value::Null;
     let pa = clauses::prime_anciennete(
         ctx.entreprise.get("idcc").unwrap_or(&null),
@@ -948,6 +979,8 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
             montant,
             en_texte(&pa["article"])
         )));
+        // Ce que les suspensions ont retire des annees de presence se dit avec la prime.
+        avert.extend(sur_l_anciennete);
     }
 
     // --- le solde de tout compte, le mois ou le contrat se termine
@@ -960,80 +993,6 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
         }
     }
     Ok((lignes, avert))
-}
-
-/// Ce que la loi donne pour cet arret-la, dit sans etre applique.
-fn maintien_possible(ctx: &Contexte, e: &Value, absence: &Value, remuneration_journaliere: Decimal) -> Resultat<Vec<Avis>> {
-    let numero = numero(e);
-    let nat = nature_de(e.get("nature"))?;
-    let debut_absence = d(requis(absence, "debut")?)?;
-    let fiche = fiche_de(ctx, &en_texte(requis(e, "salarie")?))?;
-    let depuis = d(match fiche.get("date_anciennete").filter(|x| vrai(x)) {
-        Some(v) => v,
-        None => requis(e, "debut")?,
-    })?;
-    let anciennete = anciennete_mois(&depuis, &debut_absence);
-    if let Some(refus) = droit_au_maintien(Some(&nat), anciennete)? {
-        return Ok(vec![avertir(format!("{} : pas de maintien de salaire pour cet arret -- {}", numero, refus))]);
-    }
-    let jours = d(requis(absence, "fin")?)?.moins(&debut_absence) + 1;
-    let at = absence.get("accident_du_travail").is_some_and(vrai);
-    let deja = match absence.get("jours_deja_indemnises").filter(|x| vrai(x)) {
-        Some(v) => entier(v)?,
-        None => 0,
-    };
-    let m = maintien_de_salaire(
-        anciennete,
-        jours,
-        remuneration_journaliere,
-        &OptionsMaintien {
-            deja_indemnises: deja,
-            accident_du_travail: at,
-            accident_de_trajet: absence.get("accident_de_trajet").is_some_and(vrai),
-        },
-    )?;
-    let texte = |k: &str| en_texte(&m[k]);
-    let tranches: Vec<String> = m["tranches"]
-        .as_array()
-        .map_or(&[][..], |a| &a[..])
-        .iter()
-        .map(|x| format!("{} jour(s) a {} %", en_texte(&x["jours"]), en_texte(&x["taux"])))
-        .collect();
-    let tranches = if tranches.is_empty() { "aucun jour".to_string() } else { tranches.join(", ") };
-    let carence = entier(&m["carence"])?;
-    let mut dit = vec![info(format!(
-        "{} : arret de {} jour(s). La loi donne {} apres {} jour(s) de \
-         carence ({}) -- soit {} EUR bruts AVANT deduction des indemnites \
-         journalieres (L1226-1, D1226-1 a D1226-3).",
-        numero,
-        jours,
-        tranches,
-        carence,
-        if carence == 0 { "aucune, accident du travail" } else { "D1226-3" },
-        texte("brut_avant_deduction")
-    ))];
-    let au_dela = entier(&m["jours_au_dela_du_droit"])?;
-    if au_dela != 0 {
-        dit.push(avertir(format!(
-            "{} : {} jour(s) de cet arret depassent la duree d'indemnisation \
-             a laquelle l'anciennete donne droit (D1226-2).",
-            numero, au_dela
-        )));
-    }
-    // Ce que la convention garantit, a cote.
-    if let Some(conv) = clauses::maintien(ctx.entreprise.get("idcc").unwrap_or(&Value::Null), anciennete, at)? {
-        dit.push(avertir(format!("{} : {}", numero, conv)));
-    }
-    if !absence.get("maintien").is_some_and(vrai) {
-        dit.push(avertir(format!(
-            "{} : le maintien de salaire n'est pas saisi, donc rien n'est \
-             verse a ce titre. Le complement du est le brut ci-dessus moins \
-             les indemnites journalieres et la prevoyance, que la caisse \
-             communique : le porter dans l'absence, case « maintien ».",
-            numero
-        )));
-    }
-    Ok(dit)
 }
 
 /// Ce que le moteur a retire du decompte des jours ouvrables, et ce qu'il n'a
@@ -1071,72 +1030,6 @@ fn avertir_feries(ctx: &Contexte, e: &Value, debut: &Jour, fin: &Jour) -> Result
             numero,
             liste(&restants).iter().map(|(j, n)| format!("{} ({})", n, j)).collect::<Vec<_>>().join(", ")
         )));
-    }
-    Ok(out)
-}
-
-// ------------------------------------------------------- les suspensions
-
-/// Les blocs S21.G00.65 d'une paie : une suspension par LIGNE qui suspend
-/// (le catalogue le dit), avec son motif et ses deux dates. `mois` est celui
-/// que la DSN declare.
-pub fn suspensions_du_mois(ctx: &Contexte, paie: &Paie, mois: &str) -> Resultat<Vec<Value>> {
-    let regles = crate::permanents::regles()?;
-    let susp = requis(&regles, "suspensions")?;
-    let motifs = requis(susp, "motifs")?.as_array().ok_or("motifs")?;
-    let (debut_mois, fin_mois) = (premier_du_mois(mois)?, fin_mois_de(mois)?);
-    let numero = paie.engagement.numero.clone().filter(|n| !n.is_empty()).unwrap_or_else(|| "?".into());
-    let mut out = Vec::new();
-    for l in &paie.engagement.lignes {
-        if !rubrique(&ctx.racine, &en_texte(requis(l, "rubrique")?))?.suspension {
-            continue;
-        }
-        let code = l.get("motif_suspension").filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
-        let Some(m) = motifs.iter().find(|m| m.get("code").and_then(|c| c.as_str()) == Some(code.as_str())) else {
-            return Err(format!(
-                "Contrat {} : motif de suspension {}. Les motifs connus sont \
-                 dans donnees/permanents-base.json (section `suspensions`) ; \
-                 un motif que le moteur ne connait pas ne se declare pas.",
-                numero,
-                if code.is_empty() { "absent".to_string() } else { format!("inconnu ({})", repr(&code)) }
-            ));
-        };
-        let libelle = en_texte(requis(m, "libelle")?);
-        if m.get("_ne_pas_declarer").is_some_and(vrai) {
-            return Err(format!(
-                "Motif de suspension {} ({}) : {}",
-                code,
-                libelle,
-                en_texte(requis(susp, "_conges_payes_ne_sont_pas_une_suspension")?)
-            ));
-        }
-        let (Some(debut), Some(fin)) =
-            (l.get("debut").filter(|x| vrai(x)), l.get("fin").filter(|x| vrai(x)))
-        else {
-            return Err(format!(
-                "Contrat {} : une suspension ({} - {}) ne dit pas ses dates. \
-                 Le bloc S21.G00.65 les exige toutes les deux (65.002 et \
-                 65.003) : une suspension sans dates ne se declare pas.",
-                numero, code, libelle
-            ));
-        };
-        let (debut, fin) = (d(debut)?, d(fin)?);
-        if fin < debut {
-            return Err(format!(
-                "Contrat {} : suspension {} ({}) du {} au {} -- elle finit \
-                 avant de commencer.",
-                numero, code, libelle, debut.jj_mm_aaaa(), fin.jj_mm_aaaa()
-            ));
-        }
-        if fin < debut_mois || debut > fin_mois {
-            return Err(format!(
-                "Contrat {} : suspension {} ({}) du {} au {}, et la DSN \
-                 declare {} -- aucun jour en commun. Une suspension ne se \
-                 declare que dans les mois qu'elle traverse.",
-                numero, code, libelle, debut.jj_mm_aaaa(), fin.jj_mm_aaaa(), mois
-            ));
-        }
-        out.push(json!({"motif": code, "debut": debut.iso(), "fin": fin.iso()}));
     }
     Ok(out)
 }

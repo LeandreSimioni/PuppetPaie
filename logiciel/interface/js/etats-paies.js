@@ -486,9 +486,13 @@ function fermerEdition(div, ferme) {
     if (c.classList.contains("v-basculer") || c.classList.contains("retirer-paie")) return;
     if (c.classList.contains("verrou")) return;    // un contrat en cours
     if (c.closest(".e-resume")) return;            // la ligne de la paie validée
+    if (c.closest(".e-imprevus")) return;          // ses imprévus : la reprise, le maintien se disent après la paie
     if (c.classList.contains("chevron-pluri")) return;  // le chevron du contrat sur plusieurs mois (#127)
     c.disabled = ferme;
   });
+  // Ses imprévus se redisent : sur une paie validée, un jour payé pendant
+  // l'arrêt ne se retire plus d'un clic (js/imprevus.js).
+  peindreImprevusDesCartes();
 }
 
 /* RETIRER UNE PAIE : un vrai bouton, en bas à droite, à côté de « Valider »

@@ -973,7 +973,8 @@ pub fn fiche_de_l_engagement(ctx: &Contexte, eng: &Engagement) -> Resultat<Value
         // sante se lit sur ces memes bornes (`dispense_de_la_periode`, lot R7).
         let (debut, fin) = *crate::periodes::bornes(ctx, eng)?.last().ok_or("aucune periode de paie")?;
         let du_mois = crate::emplois::emploi_du_mois(&fiche, brute, &debut.iso(), &fin.iso(), &tqa)?;
-        dispense_de_la_periode(emploi_de(&du_mois, None, &emploi, &tqa)?, &debut, &fin)
+        let fiche = dispense_de_la_periode(emploi_de(&du_mois, None, &emploi, &tqa)?, &debut, &fin)?;
+        sante_de_la_suspension(ctx, eng, fiche)
     } else {
         emploi_de(&fiche, Some(&eng.debut.iso()), &emploi, &tqa)
     }
@@ -1068,6 +1069,99 @@ jusqu'au »), si l'organisme et la convention le permettent ; sinon c'est a tran
         ));
     }
     Ok(fiche)
+}
+
+/// La marque que la fiche lue par la paie porte quand les garanties de sante sont suspendues tout le mois
+/// (`sante_de_la_suspension`) : le bareme pose alors la paie sans mutuelle (`bareme::bareme_sante`), et la DSN ne
+/// rattache pas le salarie a l'adhesion sante ce mois-la (`dsn::affiliations_du_permanent`), comme pour une dispense.
+pub const SANTE_SUSPENDUE: &str = "_sante_suspendue";
+
+/// Le champ de la fiche entreprise qui dit ce que le contrat de sante de la compagnie fait d'un mois entierement suspendu
+/// sans indemnisation, hors de la 3090 (`logiciel/donnees/champs-base.json`, `atelier/docs/ARCHITECTURE.md`) : « suspendue » (les
+/// garanties sont suspendues, rien sur la paie), « maintenue » (garanties et cotisations maintenues sur la paie).
+pub const SANTE_SUSPENSION: &str = "sante_suspension_non_indemnisee";
+pub const SANTE_SUSPENSION_SUSPENDUE: &str = "suspendue";
+pub const SANTE_SUSPENSION_MAINTENUE: &str = "maintenue";
+
+/// LA COMPLEMENTAIRE SANTE D'UN MOIS ENTIEREMENT SUSPENDU SANS INDEMNISATION (15/10/2026). Un permanent dont toute la
+/// periode payee est couverte par des suspensions non remunerees (conge parental 632, sabbatique 639, sans solde 501... :
+/// `imprevus::suspendu_sans_remuneration` ; un arret de travail n'en est pas une) :
+///
+/// - **3090** : « Le benefice des garanties [...] est suspendu pour les salaries permanents dont le contrat de travail est
+///   suspendu et ne donne lieu a aucune indemnisation » ; le salarie qui veut rester affilie paie « integralement » les
+///   deux parts, que « l'organisme assureur preleve [...] directement aupres du salarie » (accord du 19/07/2024, etendu,
+///   art. 4.2 et 15, `atelier/reference/sources/kali-3090-accord-sante-permanents-20240719-20261011.md`). Ni cotisation ni
+///   part patronale sur la paie de ce mois, donc rien a reintegrer au net fiscal : la fiche porte `SANTE_SUSPENDUE`.
+/// - **toute autre convention** (1285 : l'accord du 30/01/2026 ne parle que de la suspension « indemnisee » ; un contrat
+///   d'entreprise) : AUCUN TEXTE DEPOSE ne dit ce que devient la sante ; le droit commun laisse le maintien facultatif
+///   (instruction DSS/3C/5B/2021/127, II.B, `atelier/reference/sources/suspension-non-remuneree/dss-instruction-3c5b-2021-
+///   127-suspension-contrat-prevoyance-20210617.txt`) et c'est le contrat d'adhesion de la compagnie qui tranche. La fiche
+///   entreprise le dit (`SANTE_SUSPENSION`) : « suspendue », comme la 3090 ; « maintenue », la paie cotise comme un mois
+///   ordinaire (la part patronale se reintegre alors au net fiscal, CGI 83, 1° quater, et le montant soumis au PAS reste a
+///   0.00 : `pas::du_versement`). Sans reponse, refus (regle 1).
+///
+/// La prevoyance n'a rien a suspendre ici : 3090 et 1285 l'assoient sur la remuneration (tranche A, tranche 1 ;
+/// `legifrance-3090-prevoyance-titre12-20260919.md`, `legifrance-1285-prevoyance-titre12-20260919.md`), nulle ce
+/// mois-la -- inference : aucun texte depose ne traite de la suspension non indemnisee pour la prevoyance.
+fn sante_de_la_suspension(ctx: &Contexte, eng: &Engagement, mut fiche: Value) -> Resultat<Value> {
+    if fiche.get("sante_dispense").is_some_and(vrai) {
+        return Ok(fiche);
+    }
+    let cle = fiche.get("_cle").map(en_texte).unwrap_or_default();
+    let (debut, fin) = (eng.debut_periode()?, eng.fin_periode()?);
+    let suspensions = crate::imprevus::suspendu_sans_remuneration(&ctx.racine, &cle, eng.numero.as_deref(), &eng.debut, &debut, &fin)?;
+    let Some(premiere) = suspensions.first() else { return Ok(fiche) };
+    let motifs: Vec<String> = suspensions.iter().map(|s| s.get("motif").map(en_texte).unwrap_or_default()).collect();
+    let bar = ctx.bareme(&fin)?;
+    let ent = crate::dsn::entreprise_du(&bar, &ctx.entreprise);
+    let idcc = ent.get("idcc").map(en_texte).unwrap_or_default();
+    let pourquoi = if idcc == "3090" {
+        format!(
+            "contrat suspendu sans indemnisation tout le mois (motif {}) : les garanties de sante sont suspendues (CCN 3090, \
+accord sante du 19/07/2024, art. 4.2 et 15)",
+            motifs.join(", ")
+        )
+    } else {
+        match ent.get(SANTE_SUSPENSION).map(en_texte).unwrap_or_default().trim() {
+            SANTE_SUSPENSION_SUSPENDUE => format!(
+                "contrat suspendu sans indemnisation tout le mois (motif {}) : les garanties de sante sont suspendues (fiche \
+entreprise, « {} »)",
+                motifs.join(", "),
+                SANTE_SUSPENSION_SUSPENDUE
+            ),
+            SANTE_SUSPENSION_MAINTENUE => return Ok(fiche),
+            autre => {
+                let qui = [fiche.get("prenom"), fiche.get("nom")].into_iter().flatten().filter(|v| vrai(v)).map(en_texte).collect::<Vec<_>>().join(" ");
+                return Err(format!(
+                    "{} : son contrat est suspendu sans indemnisation sur toute la periode payee (du {} au {} ; suspension {} \
+depuis le {}). Que devient sa complementaire sante ce mois-la ? Sous la convention {}, aucun texte ne le dit : c'est le \
+contrat de sante de la compagnie qui tranche (le maintien est facultatif, instruction DSS du 17/06/2021, II.B). {}A dire \
+une fois pour toutes : Configuration › Entreprise, « Santé d'un permanent suspendu sans indemnisation » (`{}`) -- « {} » \
+si le contrat suspend les garanties (rien sur la paie), « {} » s'il les maintient avec les cotisations. Rien n'est calcule.",
+                    if qui.is_empty() { cle.clone() } else { qui },
+                    debut.jj_mm_aaaa(),
+                    fin.jj_mm_aaaa(),
+                    motifs.join(", "),
+                    premiere.get("debut").and_then(|d| Jour::lire(&en_texte(d)).ok()).map(|d| d.jj_mm_aaaa()).unwrap_or_default(),
+                    if idcc.is_empty() { "de la compagnie".to_string() } else { idcc.clone() },
+                    if autre.is_empty() { String::new() } else { format!("La fiche dit « {} », qui n'est pas une reponse. ", autre) },
+                    SANTE_SUSPENSION,
+                    SANTE_SUSPENSION_SUSPENDUE,
+                    SANTE_SUSPENSION_MAINTENUE
+                ));
+            }
+        }
+    };
+    if let Some(o) = fiche.as_object_mut() {
+        o.insert(SANTE_SUSPENDUE.into(), Value::String(pourquoi));
+    }
+    Ok(fiche)
+}
+
+/// La garantie sante est-elle sans objet ce mois-la pour la fiche `sal` que la paie lit : une dispense
+/// (`sante_dispense`), ou un mois entierement suspendu sans indemnisation (`SANTE_SUSPENDUE`).
+pub fn sans_sante(sal: &Value) -> bool {
+    sal.get("sante_dispense").is_some_and(vrai) || sal.get(SANTE_SUSPENDUE).is_some_and(vrai)
 }
 
 /// La paie d'un engagement sur sa periode (la periode de paie, ou une periode elementaire), dans l'ordre du §7.
@@ -1217,6 +1311,17 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     // L'assiette des Conges Spectacles : les rubriques que le catalogue y met, d'un contrat que l'employeur declare a la
     // caisse -- et d'aucun autre (un CDI, un contrat de douze mois ou plus : `caisse_conges::affilie`).
     let mut par_rubrique: Vec<Assiettes> = soumises.iter().map(|l| assiettes(l.montant, l.conges_spectacles && caisse)).collect();
+    // UN MOIS SANS SALAIRE OU LA PART PATRONALE RESTE DUE (une sante maintenue pendant une suspension non indemnisee :
+    // `sante_de_la_suspension`, « maintenue »). Les contributions de l'employeur aux garanties collectives entrent dans
+    // l'assiette de la CSG (CSS L136-1-1, I, « toutes les sommes [...] dues [...] a l'occasion d'un travail », dont le III, 2°,
+    // n'exclut pas les contributions aux garanties collectives : `atelier/reference/sources/suspension-non-remuneree/legi-extrait-code-de-la-
+    // securite-sociale-20261015.md`) ; elles se repartissent au prorata du brut de chaque rubrique, et un brut nul ne les
+    // repartit nulle part : elles vont entieres a la premiere rubrique soumise, plutot que de sortir de l'assiette.
+    if brut.is_zero() && !tranches_prev.is_zero() {
+        if let Some(premiere) = par_rubrique.first_mut() {
+            premiere.csg = eur(add(premiere.csg, tranches_prev));
+        }
+    }
     let zero = Decimal::new(0, 2);
     let base_csg = par_rubrique.iter().fold(zero, |a, b| a + b.csg);
 
@@ -1467,6 +1572,11 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         (brut, brut, brut)
     } else {
         let base_51 = lb.iter().filter(|l| l.salaire_de_base).fold(zero, |a, l| a + l.montant);
+        // S21.G00.51.011 = 003, « Salaire rétabli – reconstitué », qui « doit toujours être déclaré pour la période de paie
+        // courante dans la DSN mensuelle » (cahier technique 2026.1, bloc S21.G00.51, Type :
+        // `atelier/reference/norme-dsn/texte/bloc-S21.G00.51.txt`) : le salaire RECONSTITUE, le brut sans les absences qui
+        // l'ont reduit (les rubriques `retabli`). Un mois entierement suspendu declare donc 001 a 0.00 et 003 au salaire du
+        // mois.
         let retabli = brut - lb.iter().filter(|l| l.retabli).fold(zero, |a, l| a + l.montant);
         let chomage = brut - lb.iter().filter(|l| l.dsn_bloc52.is_some() && l.soumis).fold(zero, |a, l| a + l.montant);
         (base_51, retabli, chomage)

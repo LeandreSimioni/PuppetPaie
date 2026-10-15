@@ -544,6 +544,32 @@ quatre 51, 53 à 0 jour, 58, et par affiliation prévoyance une base 78 « 31 »
 avec sa cotisation 81 « 059 », tous à `0.00` ; ni 54, ni autre base. Pas de
 bulletin. Établi par trois dépôts de test le 15/09/2026 (ETAT.md §26.9).
 
+### L'échéance de dépôt : le 5 ou le 15, reportée au jour ouvré, à midi
+
+Depuis le 15/10/2026, **un seul endroit** la donne : `paie/src/echeance_dsn.rs` (`du_mois`, `de_la_compagnie`).
+Le jour est celui de R. 243-6, II (le 5 du mois suivant à partir de cinquante salariés quand la paie est faite dans le
+mois, le 15 sinon ; `Contexte::echeance_dsn` choisit selon l'effectif) ; R. 133-14, I le **reporte** : « Si le délai
+imparti pour effectuer la déclaration sociale nominative expire un jour férié ou non ouvré, il est prorogé jusqu'au jour
+ouvrable suivant » ; l'heure limite est **midi** (cahier technique 2026.1, § 1.4.2), et l'annule-et-remplace intégral
+s'arrête la veille à minuit (`Echeance::veille`). Les textes et le raisonnement :
+`atelier/reference/sources/echeances-dsn/` (`RAPPORT-20261015.md`, le calendrier de net-entreprises : samedi
+05/12/2026 → lundi 07/12, dimanche 15/11/2026 → lundi 16/11).
+
+Trois **inférences**, écrites dans le module et rendues dans le champ `inference` des réponses : « non ouvré » se lit
+sur le calendrier du point de dépôt (samedi, dimanche, les onze fêtes légales de `feries::feries`), jamais sur les
+fériés chômés de la compagnie (`feries::chomes`) ; « jour ouvrable suivant » se lit « premier jour ouvré » (un vendredi
+férié reporte au lundi, aucune pièce officielle ne montre ce cas) ; la veille de l'annule-et-remplace est celle de
+l'échéance reportée.
+
+Tout ce qui parle de la date limite de dépôt passe par lui : l'état du mois et l'annule-et-remplace
+(`Moteur::limite`), les régularisations, le bilan des mois, l'échéancier, les rappels, les réveils du filet, le mois
+hors délai, l'horloge des compagnies fictives, et la date butoir d'un **signalement d'arrêt subrogé** (R. 133-14, II :
+avec la DSN du mois de l'événement, donc avec son report). Les routes rendent, sans toucher à leurs champs existants,
+`echeance_depot` (`echeance_dsn` sur une obligation) : `jour`, `heure` (`12:00`), `nominale`, `reportee`, `pourquoi`,
+`phrase`, `veille_annule_et_remplace`, `textes`, `inference`. **Une seule date n'en dépend pas** : la date de paiement
+du bloc 20 (`S21.G00.20.011`, `dsn.rs`, `echeance_mois_suivant`) reste le 5 ou le 15 de R. 243-6, qui ne prévoit
+aucun report, et aucun texte déposé ne dit qu'un prélèvement se reporte.
+
 ### Un individu s'identifie par son NIR **ou** par son NTT
 
 `S21.G00.30.001` (le NIR) est **conditionnelle**, et c'est ce qui permet de
@@ -1009,8 +1035,31 @@ décident. Les articles sont relevés et datés dans
   que le 007 et le posait sur **toute** fin de CDI — une rupture
   conventionnelle serait partie avec, et CCH-24 l'aurait fait rejeter ;
 - **suspensions** (bloc S21.G00.65) : congé sans solde, parental, sabbatique…
-  Un **congé payé n'en est pas une** — il est payé, le contrat n'est pas
+  Saisies une fois comme **imprévus** du salarié (`paie/src/imprevus.rs`) : chaque mois
+  traversé en tire sa ligne et son bloc 65, entier, sans recopie. Un **congé payé n'en est pas une** — il est payé, le contrat n'est pas
   suspendu, et le moteur refuse d'écrire le motif « 200 - COP ».
+
+  **Un mois entier sans rémunération** (15/10/2026 ; textes et rapport :
+  `atelier/reference/sources/suspension-non-remuneree/`) :
+  - la **retenue** d'une absence (arrêt comme suspension) se calcule **au réel du mois** : le salaire du mois
+    fois les heures d'absence sur les heures de travail du mois (Cass. soc. 11/02/1982), au taux exact,
+    jamais arrondi avant de multiplier ; les heures se comptent au réel, jours ouvrés (lundi à vendredi,
+    moins les fériés chômés) fois la durée hebdomadaire sur cinq (fiche DSN 2640 : l'hypothèse « classique »
+    quand le planning n'est pas connu ; fiche 2693 : septembre 2026 entier = 22 × 7 = 154 h). Un mois
+    entier retire le salaire entier : le brut est 0,00, l'activité rémunérée (53 type 01) 0.00, l'absence
+    (53 type 02) les heures réelles ;
+  - la **complémentaire santé** : en 3090 les garanties sont suspendues (accord du 19/07/2024, art. 4.2) —
+    pas de mutuelle sur le bulletin, pas de rattachement santé dans la DSN ce mois-là (inférence pour la DSN :
+    aucune fiche ne le dit) ; ailleurs, la fiche entreprise dit ce que fait le contrat de santé,
+    `sante_suspension_non_indemnisee` = « suspendue » ou « maintenue », et sans réponse le mois refuse
+    (`calcul::sante_de_la_suspension`) ;
+  - un **net fiscal négatif** (une part patronale de santé maintenue et réintégrée) se déclare tel quel en
+    50.002, et le montant soumis au PAS (50.013) comme le PAS (50.009) à 0.00 (fiche DSN 1810,
+    `pas::du_versement`) ; le net social négatif s'affiche (BOSS, FAQ Q37) ;
+  - les **congés payés** ne s'acquièrent pas sur les jours d'une suspension qui n'acquiert pas
+    (`acquiert_conges`, L3141-5 ; `imprevus::jours_de_conges_non_acquis`) ; l'**ancienneté** compte pour moitié
+    le congé parental (L1225-54) et ne compte pas, en l'avertissant, une autre suspension non rémunérée
+    (`imprevus::anciennete_depuis`).
 
 - **jours fériés** : les onze fêtes légales de L3133-1, dont trois qui
   dépendent de Pâques — le seul calcul du logiciel qui remplace un relevé,
@@ -1196,8 +1245,13 @@ fils du bloc 40, il n'aurait rien où s'accrocher.
 
 ### Le magasin, et la trace des envois
 
-`arrets/AAAA-MM.json` sous les données, au mois où l'arrêt **commence**
-(même forme que `regularisations/`). Chaque arrêt garde ses `envois` : les
+`imprevus/AAAA-MM.json` sous les données (depuis le 15/10/2026, `paie/src/imprevus.rs`) :
+le magasin des **imprévus** d'un salarié, arrêts de travail (`"genre": "arret"`, au mois du
+dernier jour travaillé) et suspensions du bloc 65 (`"genre": "suspension"`, au mois de leur
+premier jour). Un imprévu se saisit une fois ; le moteur en tire la ligne de paie d'un
+permanent (`imprevus::lignes_du_mois`, le seul endroit qui la tire), le bloc 60 ou 65 de chaque
+DSN dont le mois le croise, et nomme les cachets d'un intermittent datés pendant l'imprévu.
+L'ancien dossier `arrets/` n'est plus lu : sa présence refuse. Chaque arrêt garde ses `envois` : les
 signalements déposés pour de vrai (nature, type, numéro d'ordre, identifiant
 rendu par le point de dépôt) et les DSN mensuelles qui l'ont reporté. C'est
 cette liste qui donne son rang au prochain annule-et-remplace — le cahier
@@ -1338,19 +1392,37 @@ de faire tourner un ou deux mois en parallèle et de comparer.
 (porté de `moteur/maj.py`). **Une mise à jour par installation** (lot U1,
 14/10/2026) : tout se passe dans `<installation>/maj/`, à côté de `logiciel/`,
 et l'installation de l'éditeur reçoit comme les autres. Un dépôt est une
-adresse qui sert `derniere.json` et l'archive de `logiciel/`.
+adresse qui sert `derniere.json` et les archives de `logiciel/`.
+
+**Quatre archives par version** (Léandre, 15/10/2026) : une par système
+(`windows`, `linux`, `mac` : les fichiers communs et les programmes de ce
+système) et une pour tous (`tout-systeme`). Dans `logiciel/`, les programmes de
+Windows sont à la racine (`puppetpaie.exe`, `WebView2Loader.dll`), ceux de Linux
+et de Mac dans `linux/` et `mac/` (`puppetpaie`, `paie`), posés par le flux
+seulement (`maj::dossier_programmes_de`, `maj::systeme_du_fichier`).
+`derniere.json` porte `version`, `notes`, `calcul`, `exigee`, et sous `archives`
+une entrée par système publié (`archive`, `sha256`, `signature` ; celle de tous
+dit en plus les systèmes qu'elle porte, `systemes`). « Publier » choisit ce qu'il
+fabrique (Windows seul, Windows et Linux, ou les trois) ; une installation dont
+le système n'est pas publié ne télécharge rien et garde sa version.
 
 - `verifier` — au lancement, en fond : lit `derniere.json`, prend une version
-  plus récente, vérifie son condensat et la **signature** de l'éditeur
-  (Ed25519), la déballe dans `maj/<version>/`, la **contrôle** (son programme,
+  plus récente, télécharge l'archive de son système (`maj::SYSTEME`), ou celle
+  de tous (si elle le porte) quand la sienne n'est pas nommée ou ne se
+  télécharge pas, vérifie son
+  condensat et sa **signature** de l'éditeur (Ed25519 ; une archive qui ne
+  passe pas est refusée, sans repli), la déballe dans `maj/<version>/` (les
+  programmes Unix redeviennent exécutables), la **contrôle** (son programme,
   `puppetpaie route`, lit la configuration de chaque compagnie de
   l'installation) et pose `maj/prete.json`.
 - `appliquer` — au démarrage suivant, par un relais lancé avant toute
   fenêtre : `logiciel/` → `logiciel/.avant/`, la version prête prend sa
   place ; si ça casse en route, tout revient.
 - `revenir` — `.avant/` reprend la place (`paie maj --revenir`).
-- `publier` — par le flux « Publier » du dépôt public, qui signe et pose
-  l'archive, `derniere.json` et l'installeur dans une Release (la clé du
+- `publier` — par le flux « Publier » du dépôt public, qui compile les
+  systèmes choisis (le Mac sur `macos-latest`), signe et pose leurs archives et
+  celle de tous,
+  `derniere.json` et l'installeur dans une Release (la clé du
   poste, `paie maj --publier`, reste acceptée) ; jamais republier un numéro.
 
 
@@ -1367,8 +1439,9 @@ bilan) jusqu'au mois d'avant aujourd'hui ; sans aucune DSN au journal, le
 seul mois d'avant. Chaque rappel porte l'état du mois — `a_saisir` (pas de
 fichier de paie : la DSN « néant » passe par l'écriture d'un mois vide),
 `a_produire` (saisi, jamais écrit), `a_deposer` (le fichier DSN, choisi par
-`fichiers_deposables`), `a_corriger` (bilan KO) — et `en_retard` passé le 15
-du mois suivant. Puis, quand l'année d'avant n'est pas close et a des mois :
+`fichiers_deposables`), `a_corriger` (bilan KO) — et `en_retard` passé
+l'échéance de dépôt (`paie/src/echeance_dsn.rs` : le 5 ou le 15 du mois suivant,
+reporté au jour ouvré, à midi ; le rappel la rend dans `echeance_depot`). Puis, quand l'année d'avant n'est pas close et a des mois :
 la clôture (seulement si la DSN de décembre est au journal — sinon c'est son
 rappel qui parle), l'export compta (absent, ou plus vieux que la dernière
 saisie de l'année), et au premier trimestre la revue des spectacles : lesquels

@@ -182,3 +182,38 @@ Relevés depuis l'entrepôt LEGI (`relever_les_codes.py`, `assujettissement_fisc
 **Où le moteur s'en sert** : `logiciel/donnees/baremes/2025.json` et `2026.json`, `seuils_effectif.valeurs[formation]`
 (`source`, `sous_le_seuil`) ; `contexte::controler_effectif` refuse une surcouche qui porte la formation à une autre valeur que
 0,55 % tant que le seuil n'est pas franchi (`Effectif::atteint`). Test : `tests/calcul/seuils_effectif.rs`.
+
+## Le maintien de salaire d'un arrêt, et le congé payé suspendu : L1226-1, D1226-1 à D1226-5, L3142-2 (imprévus, 15/10/2026)
+
+Rien de neuf relevé : les articles sont ceux de `articles-20261015.md` (L1226-1, D1226-1 à D1226-8) et de
+`articles-20261010.md` (L3142-2). Ce qui change, c'est où le moteur s'en sert depuis qu'un arrêt de travail ou une suspension
+est un **imprévu** saisi une fois sur le salarié (`paie/src/imprevus.rs`) :
+- **L1226-1** (« incapacité résultant de maladie ou d'accident », pas pour les « salariés intermittents ») : le drapeau
+  `maintien_legal` des motifs 01, 04, 05, 06 de `logiciel/donnees/arrets-base.json` (une inférence, écrite comme telle) ;
+  `imprevus::maintien_possible` ne dit le maintien de la loi que pour eux, et la route `arret-maintien` refuse un maintien sur un
+  contrat qui n'est pas payé au mois ;
+- **D1226-3** (pas de carence pour un accident du travail ou une maladie professionnelle, « à l'exclusion des accidents de
+  trajet ») : le champ `origine` des motifs 04 (`trajet`), 05 et 06 (`at_mp`), lu par `imprevus::origine` — plus de case à
+  remplir ;
+- **D1226-4** (les jours déjà indemnisés dans les douze mois) : le champ `jours_deja_indemnises` de l'arrêt ;
+- **L3142-2** (les congés de L3142-1 « n'entraînent pas de réduction de la rémunération ») : une suspension au motif 637 ne
+  retire rien du salaire (`imprevus::lignes_du_mois`).
+Tests : `tests/calcul/imprevus.rs`, `tests/routes/routes_imprevus.rs`.
+
+## Le congé de deuil d'un enfant : L3142-1-1, D3142-1-1 (relevé LEGI du 15/10/2026, lot « le deuil »)
+
+`articles-20261015.md`, section « Le conge de deuil d'un enfant » (`xml/L3142-1-1.xml`, `LEGIARTI000041976515`, depuis le
+01/07/2020 ; `xml/D3142-1-1.xml`, `LEGIARTI000042411489`, depuis le 10/10/2020) ; domaine `conge_de_deuil` de
+`paie/src/releve_codes/textes.rs`.
+
+- **L3142-1-1** : « en cas de décès de son enfant âgé de moins de vingt-cinq ans ou d'une personne âgée de moins de vingt-cinq
+  ans à sa charge effective et permanente, le salarié a droit, sur justification, à un congé de deuil de huit jours qui peuvent
+  être fractionnés […]. **Le salarié informe l'employeur vingt-quatre heures au moins avant le début de chaque période
+  d'absence.** Le congé de deuil peut être pris dans un délai d'un an à compter du décès de l'enfant. » C'est le motif d'arrêt
+  « 19 - Deuil d'enfant » de la DSN (S21.G00.60.001) ; ses indemnités journalières sont celles de CSS L. 331-9
+  (`../code-de-la-securite-sociale/`).
+- **D3142-1-1** : deux périodes au plus, d'au moins une journée chacune.
+
+**Où le moteur s'en sert** : `logiciel/donnees/obligations-base.json`, obligation `attestation_salaire` (ses `textes`, la
+`connaissance_presumee` qui rappelle que le salarié prévient vingt-quatre heures avant, `a_avoir`) ; le calcul est dans
+`atelier/sources/paie/src/obligations.rs` (`de_l_arret`). Tests : `tests/routes/routes_obligations.rs`.

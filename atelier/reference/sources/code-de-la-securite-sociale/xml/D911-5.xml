@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000031808532</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/31/80/85/LEGIARTI000031808532.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>D911-5</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2016-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106031">Partie réglementaire - Décrets simples</TITRE_TM>
+<TM>
+<TITRE_TM debut="2004-01-01" fin="2999-01-01" id="LEGISCTA000006126877">Livre IX : Dispositions relatives à la protection sociale complémentaire des salariés et aux institutions à caractère paritaire</TITRE_TM>
+<TM>
+<TITRE_TM debut="2004-01-01" fin="2999-01-01" id="LEGISCTA000029436132">Titre I : Dispositions générales relatives à la protection sociale complémentaire des salariés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2014-09-11" fin="2999-01-01" id="LEGISCTA000029436177">Chapitre Ier : Détermination des garanties complémentaires des salariés</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2016-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000031808532" num="D911-5" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<div align="left">Les demandes de dispense mentionnées au III de l'article L. 911-7 doivent être formulées au moment de l'embauche ou, si elles sont postérieures, à la date de mise en place des garanties ou la date à laquelle prennent effet les couvertures mentionnées aux 1° et 3° de l'article D. 911-2.<br/>
+</div>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000031740777" datesignatexte="2015-12-30" id="LEGIARTI000031800941" naturetexte="DECRET" nortexte="AFSS1532054D" num="2" numtexte="2015-1883" sens="cible" typelien="CREE">Décret n°2015-1883 du 30 décembre 2015 - art. 2</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000029436181" naturetexte="CODE" nortexte="" num="D911-2" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. D911-2</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000027549125" naturetexte="CODE" nortexte="" num="L911-7" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L911-7</LIEN>
+
+
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>

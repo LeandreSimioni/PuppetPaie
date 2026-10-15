@@ -2,17 +2,35 @@
 # jour automatiquement »). Sur le depot public seulement, depuis `main` seulement, lance a la main (onglet Actions,
 # « Publier », « Run workflow » ; le navigateur du telephone suffit).
 #
-#   1. fabriquer  compile la fenetre et le moteur Windows (atelier/installeur/construire.sh, MinGW sur Linux), pose la
-#                 fenetre neuve dans `logiciel/`, fabrique l'installeur, et le moteur Linux qui signera. Aucun secret.
-#   2. publier    ATTEND L'APPROBATION DE LEANDRE (environnement `publication` : approbateur Leandre, `main` seule),
-#                 puis seulement voit le secret PUPPETPAIE_CLE_SIGNATURE (la graine de la cle de GitHub). Le moteur
-#                 lui-meme signe (`paie maj --publier-github`, paie/src/maj.rs) : l'archive de `logiciel/`, verifiee
-#                 contre CLE_PUBLIQUE_GITHUB, et `derniere.json` ; il refuse une version qui n'est pas plus recente que
-#                 la derniere Release. Puis une Release GitHub `v<version>` porte l'archive, `derniere.json` et
-#                 l'installeur : toutes les installations la lisent (maj.rs, DEPOT_PAR_DEFAUT,
-#                 `releases/latest/download`).
+# QUATRE ARCHIVES PAR VERSION (Leandre, 15/10/2026 : « Il y a les quatre : une par systeme et une tout-systeme,
+# ensemble ») : Windows, Linux, Mac, et une qui porte les trois (un dossier portable pour plusieurs machines, et le repli).
+# Chaque installation prend celle de son systeme (paie/src/maj.rs). Dans `logiciel/`, les programmes de Windows sont a la
+# racine (`puppetpaie.exe`, `WebView2Loader.dll`, les seuls suivis par Git) ; ceux de Linux et de Mac dans `logiciel/linux/`
+# et `logiciel/mac/` (`puppetpaie`, la fenetre ; `paie`, le moteur), poses ici seulement.
+#
+# AU LANCEMENT, ON CHOISIT CE QU'ON PUBLIE (`systemes`, Leandre, 15/10/2026) : `tous` (les trois, par defaut),
+# `windows-linux`, ou `windows`. Seules les archives fabriquees sont publiees et nommees dans `derniere.json` ; celle de
+# tous les systemes porte ce qui a ete fabrique et le dit (`systemes`) ; une installation dont le systeme n'est pas publie
+# ne telecharge rien, garde sa version et le dit.
+#
+#   1. fabriquer      (Linux) compile la fenetre et le moteur Windows (atelier/installeur/construire.sh, MinGW), pose la
+#                     fenetre neuve dans `logiciel/`, fabrique l'installeur Windows (il ne pose que les fichiers suivis :
+#                     rien de `linux/` ni de `mac/`) ; puis le moteur Linux, qui signera (toujours), et, si Linux est
+#                     choisi, la fenetre Linux : les deux dans `logiciel/linux/`. Aucun secret, hors l'application Google.
+#   2. fabriquer-mac  (macOS, seulement si `tous`) compile la fenetre et le moteur Mac pour Intel et pour Apple, et en
+#                     fait un seul programme de chaque, universel (`lipo`, comme l'ancien flux « Moteur Rust ») :
+#                     `logiciel/mac/`. Aucun secret.
+#   3. publier        ATTEND L'APPROBATION DE LEANDRE (environnement `publication` : approbateur Leandre, `main` seule),
+#                     puis seulement voit le secret PUPPETPAIE_CLE_SIGNATURE (la graine de la cle de GitHub). Il rassemble
+#                     `logiciel/` (les systemes choisis), et le moteur lui-meme signe (`paie maj --publier-github`,
+#                     paie/src/maj.rs) : une archive par systeme fabrique et celle de tous, chacune verifiee contre
+#                     CLE_PUBLIQUE_GITHUB, et `derniere.json` qui les nomme ; il refuse une version qui n'est pas plus
+#                     recente que la derniere Release. Puis une Release GitHub `v<version>` porte ces archives,
+#                     `derniere.json` et l'installeur : toutes les installations la lisent (maj.rs, DEPOT_PAR_DEFAUT,
+#                     `releases/latest/download`).
 #
 # Le numero de version est la date du jour (AAAA.MM.JJ, lue JJ.MM.AAAA), posee par le flux ; `.2`, `.3`... le meme jour.
+# Les programmes Mac ne sont pas signes par Apple (aucun texte depose ici ne dit ce que macOS en exige).
 # Aucun agent n'approuve un deploiement (atelier/CLAUDE.md). Sources : atelier/reference/sources/github/.
 
 name: Publier
@@ -32,6 +50,15 @@ on:
         description: "SEULEMENT si la version est exigee avant tout depot reel (sinon laisser vide)"
         required: false
         default: ""
+      systemes:
+        description: "Les systemes publies : Windows seul, Windows et Linux, ou les trois (et toujours l'archive de tous ceux-la)"
+        type: choice
+        required: true
+        default: tous
+        options:
+          - tous
+          - windows-linux
+          - windows
 
 permissions:
   contents: read
@@ -70,8 +97,9 @@ jobs:
           echo "Version $V"
           echo "version=$V" >> "$GITHUB_OUTPUT"
 
-      - name: Les outils (MinGW, NSIS)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq gcc-mingw-w64-x86-64 nsis
+      # MinGW et NSIS pour Windows ; WebKitGTK, libsoup et librsvg pour la fenetre Tauri sous Linux.
+      - name: Les outils (MinGW, NSIS, WebKitGTK)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq gcc-mingw-w64-x86-64 nsis libwebkit2gtk-4.1-dev libsoup-3.0-dev librsvg2-dev
 
       # L'application Google du logiciel (`logiciel/donnees/google-application.json`, client_id et client_secret, le meme
       # pour toutes les compagnies : la fenetre « PuppetPaie veut acceder a votre Drive ») n'est pas dans le code public ;
@@ -88,21 +116,40 @@ jobs:
       - name: La fenetre et le moteur Windows, l'installeur
         run: bash atelier/installeur/construire.sh
 
-      - name: Le moteur Linux, qui signera
-        run: cargo build --profile essais --locked --manifest-path atelier/sources/paie/Cargo.toml --bin paie
+      # Le moteur Linux : il signe (toujours), et il ouvre la page dans le navigateur sur un Linux sans WebKitGTK.
+      - name: Le moteur Linux
+        run: |
+          cargo build --release --locked --manifest-path atelier/sources/paie/Cargo.toml --bin paie
+          "$CARGO_TARGET_DIR/release/paie" version
 
-      # Le logiciel tel que la mise a jour le publie (maj::archiver) : les fichiers suivis de `logiciel/`, la fenetre
-      # neuve a la place de `logiciel/puppetpaie.exe`.
+      # La fenetre Linux (Tauri, WebKitGTK), si Linux est publie.
+      - name: La fenetre Linux
+        if: inputs.systemes != 'windows'
+        run: |
+          cargo build --release --locked --manifest-path atelier/sources/fenetre/Cargo.toml
+          "$CARGO_TARGET_DIR/release/puppetpaie" --peut-ouvrir || echo "La fenetre Linux ne s'ouvre pas sur ce runner (pas d'ecran) : attendu."
+
+      # Le logiciel tel que la mise a jour le publie (maj::archiver), moins le Mac (fabriquer-mac) : les fichiers suivis de
+      # `logiciel/`, la fenetre Windows neuve a la place de `logiciel/puppetpaie.exe`, et, si Linux est publie, les deux
+      # programmes Linux dans `logiciel/linux/`. Une archive tar garde les bits d'execution, qu'un artefact perdrait.
       - name: Rassembler
+        env:
+          SYSTEMES: ${{ inputs.systemes }}
         run: |
           V="${{ steps.version.outputs.version }}"
           L="${V:8:2}.${V:5:2}.${V:0:4}"; [ "${#V}" -gt 10 ] && L="$L-${V:11}"
           cp "$CARGO_TARGET_DIR/x86_64-pc-windows-gnu/release/puppetpaie.exe" logiciel/puppetpaie.exe
+          if [ "$SYSTEMES" != windows ]; then
+            mkdir -p logiciel/linux
+            cp "$CARGO_TARGET_DIR/release/puppetpaie" "$CARGO_TARGET_DIR/release/paie" logiciel/linux/
+            chmod +x logiciel/linux/puppetpaie logiciel/linux/paie
+            ls -l logiciel/linux
+          fi
           mkdir -p publication
           cp "atelier/depot/installeur/PuppetPaie-$L-installeur.exe" publication/
-          cp "$CARGO_TARGET_DIR/essais/paie" publication/paie
+          cp "$CARGO_TARGET_DIR/release/paie" publication/paie
           tar -cf publication.tar logiciel publication
-          ls -l publication
+          ls -l publication logiciel/puppetpaie.exe
 
       - uses: actions/upload-artifact@v4
         with:
@@ -111,8 +158,58 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+  # LE MAC, seulement si les trois systemes sont publies : la fenetre et le moteur, chacun en un seul programme pour les
+  # deux sortes de Mac (Intel et Apple : l'ancien flux « Moteur Rust », retire le 15/10/2026, faisait ainsi le moteur).
+  # Ni secret ni version : le numero est dans `logiciel/VERSION`, que `fabriquer` ecrit et que `publier` rassemble.
+  fabriquer-mac:
+    if: github.repository == 'LeandreSimioni/PuppetPaie' && github.ref == 'refs/heads/main' && inputs.systemes == 'tous'
+    runs-on: macos-latest
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/../cible
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Chaine Rust et cibles Mac (Intel et Apple)
+        run: |
+          rustup toolchain install stable --profile minimal && rustup default stable
+          rustup target add x86_64-apple-darwin aarch64-apple-darwin
+
+      - name: Le moteur et la fenetre Mac
+        run: |
+          for CIBLE in x86_64-apple-darwin aarch64-apple-darwin; do
+            cargo build --release --locked --target "$CIBLE" --manifest-path atelier/sources/paie/Cargo.toml --bin paie
+            cargo build --release --locked --target "$CIBLE" --manifest-path atelier/sources/fenetre/Cargo.toml
+          done
+
+      # Un seul fichier pour les deux sortes de Mac : l'installation n'a pas a savoir quel processeur a le sien.
+      - name: Universels, dans logiciel/mac/
+        run: |
+          mkdir -p logiciel/mac
+          for P in paie puppetpaie; do
+            lipo -create -output "logiciel/mac/$P" \
+              "$CARGO_TARGET_DIR/x86_64-apple-darwin/release/$P" \
+              "$CARGO_TARGET_DIR/aarch64-apple-darwin/release/$P"
+            lipo -info "logiciel/mac/$P"
+          done
+          chmod +x logiciel/mac/paie logiciel/mac/puppetpaie
+          logiciel/mac/paie version
+          tar -cf mac.tar logiciel/mac
+          ls -l logiciel/mac
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: mac.tar
+          retention-days: 7
+          if-no-files-found: error
+
+  # Le Mac saute quand il n'est pas choisi : `publier` attend alors `fabriquer` seul (sans cette condition, un travail
+  # dont un prealable a saute saute aussi).
   publier:
-    needs: fabriquer
+    needs: [fabriquer, fabriquer-mac]
+    if: >-
+      !cancelled() && needs.fabriquer.result == 'success' &&
+      (needs.fabriquer-mac.result == 'success' || (inputs.systemes != 'tous' && needs.fabriquer-mac.result == 'skipped'))
     runs-on: ubuntu-latest
     environment: publication
     permissions:
@@ -122,8 +219,21 @@ jobs:
         with:
           name: publication
 
-      - name: Deballer
-        run: tar -xf publication.tar && chmod +x publication/paie
+      - uses: actions/download-artifact@v4
+        if: inputs.systemes == 'tous'
+        with:
+          name: mac
+
+      # `logiciel/` (commun, Windows, et Linux s'il est choisi) et `publication/` (l'installeur, le moteur qui signe), puis
+      # `logiciel/mac/` s'il est choisi.
+      - name: Rassembler les systemes choisis
+        env:
+          SYSTEMES: ${{ inputs.systemes }}
+        run: |
+          tar -xf publication.tar
+          if [ "$SYSTEMES" = tous ]; then tar -xf mac.tar; fi
+          chmod +x publication/paie
+          ls -lR logiciel/puppetpaie.exe logiciel/WebView2Loader.dll $(ls -d logiciel/linux logiciel/mac 2>/dev/null)
 
       # Le `derniere.json` de la derniere Release, a cote de ce qu'on signe : le moteur refuse une version qui n'est
       # pas plus recente (maj::publier_signe).
@@ -144,14 +254,34 @@ jobs:
           EXIGEE: ${{ inputs.exigee }}
         run: ./publication/paie maj --publier-github --logiciel logiciel --sortie sortie --notes "$NOTES" --calcul "$CALCUL" --exigee "$EXIGEE"
 
+      # Exactement les archives choisies, ou rien : le moteur fait l'archive d'un systeme quand sa fenetre est dans
+      # `logiciel/`, et celle de tous dit sous `systemes` ce qu'elle porte.
       - name: La Release
         env:
           GH_TOKEN: ${{ github.token }}
           NOTES: ${{ inputs.notes }}
+          SYSTEMES: ${{ inputs.systemes }}
         run: |
           V="$(jq -r .version sortie/derniere.json)"
           test "$V" = "${{ needs.fabriquer.outputs.version }}"
+          case "$SYSTEMES" in
+            windows) CHOISIS="windows" ;;
+            windows-linux) CHOISIS="windows linux" ;;
+            tous) CHOISIS="windows linux mac" ;;
+            *) echo "::error::systemes inconnu : $SYSTEMES"; exit 1 ;;
+          esac
+          PORTES="$(jq -r '.archives["tout-systeme"].systemes // [] | join(" ")' sortie/derniere.json)"
+          NOMMES="$(jq -r '.archives | keys_unsorted | join(" ")' sortie/derniere.json)"
+          [ "$PORTES" = "$CHOISIS" ] || { echo "::error::L'archive de tous porte « $PORTES », choisi « $CHOISIS »."; exit 1; }
+          [ "$(tr ' ' '\n' <<< "$NOMMES" | sort | xargs)" = "$(tr ' ' '\n' <<< "$CHOISIS tout-systeme" | sort | xargs)" ] \
+            || { echo "::error::derniere.json nomme « $NOMMES », choisi « $CHOISIS »."; exit 1; }
+          ARCHIVES=()
+          for S in $CHOISIS tout-systeme; do
+            A="$(jq -r --arg s "$S" '.archives[$s].archive // ""' sortie/derniere.json)"
+            [ "$A" = "puppetpaie-$V-$S.zip" ] && [ -f "sortie/$A" ] || { echo "::error::L'archive $S manque ($A)."; exit 1; }
+            ARCHIVES+=("sortie/$A")
+          done
           L="${V:8:2}.${V:5:2}.${V:0:4}"; [ "${#V}" -gt 10 ] && L="$L-${V:11}"
           gh release create "v$V" -R "$DEPOT" --target "${{ github.sha }}" --latest \
             --title "PuppetPaie ${L/-/ (}$([ "${#V}" -gt 10 ] && echo ")")" --notes "${NOTES:-PuppetPaie $L}" \
-            "sortie/puppetpaie-$V.zip" sortie/derniere.json "publication/PuppetPaie-$L-installeur.exe"
+            "${ARCHIVES[@]}" sortie/derniere.json "publication/PuppetPaie-$L-installeur.exe"

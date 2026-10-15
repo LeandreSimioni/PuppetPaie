@@ -193,13 +193,6 @@ fn libelle(mois: &str) -> String {
     format!("{} {}", MOIS_FR[n.clamp(1, 12) - 1], &mois[..4])
 }
 
-/// `date_limite_dsn` : le jour d'echeance du mois suivant.
-pub(crate) fn date_limite_dsn(mois: &str, echeance: u32) -> R<Jour> {
-    let (an, mo): (i32, u32) = (mois[..4].parse().unwrap_or(0), mois[5..7].parse().unwrap_or(1));
-    let (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };
-    Jour::nouveau(an, mo, echeance).ok_or_else(|| crate::date::date_impossible(an, mo, echeance).into())
-}
-
 fn mois_de(j: &Jour) -> String {
     format!("{:04}-{:02}", j.an, j.mois)
 }
@@ -222,11 +215,6 @@ const EXPORT_COMPTA: &str = "export-compta";
 const REVUE_SPECTACLES: &str = "revue-spectacles";
 const FIN_CONTRAT: &str = "fin-contrat";
 const DPAE: &str = "dpae";
-
-/// Le signalement de fin de contrat est du << dans les cinq jours ouvres qui
-/// suivent la survenance de la fin du contrat de travail >> (cahier technique
-/// 2026.1, p. 107). Passe ce delai, le rappel le dit en retard.
-const JOURS_OUVRES_FCTU: i64 = 5;
 
 /// Ou en est le mois dont on rappelle la DSN : un mois sans saisie se cree, un
 /// mois saisi se produit, un mois produit se depose, une DSN refusee se corrige.
@@ -260,6 +248,8 @@ struct Rappel {
     salarie: Option<String>,
     jour: Option<String>,
     a_saisir: Vec<String>,
+    /// Le rappel d'une DSN : son echeance de depot (`echeance_dsn::Echeance::en_json`) ; `null` pour les autres.
+    echeance_depot: Option<Value>,
 }
 
 impl Rappel {
@@ -281,6 +271,7 @@ impl Rappel {
             salarie: None,
             jour: None,
             a_saisir: Vec::new(),
+            echeance_depot: None,
         }
     }
 
@@ -294,6 +285,7 @@ impl Rappel {
             "paies": self.paies, "validees": self.validees,
             "spectacles": self.spectacles.iter().map(brut_valeur).collect::<Vec<_>>(),
             "salarie": opt(&self.salarie), "jour": opt(&self.jour), "a_saisir": self.a_saisir,
+            "echeance_depot": self.echeance_depot,
         })
     }
 }
@@ -641,10 +633,12 @@ fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
         format!("Avez-vous bien fini les paies de {} ?", lib),
     );
     r.mois = Some(mois.to_string());
-    // L'echeance : `Contexte.echeance_dsn`, deduite de l'effectif (le 15 du mois
-    // suivant sous 50 salaries). Passee, ce n'est plus un rappel, c'est un
-    // retard -- et on le dit.
-    r.en_retard = st.aujourdhui > date_limite_dsn(mois, st.ctx.echeance_dsn()?)?;
+    // L'echeance : `echeance_dsn`, le 5 ou le 15 du mois suivant selon l'effectif, reporte au jour ouvre suivant un
+    // samedi, un dimanche ou un jour ferie (R. 133-14, I), a midi. Passee, ce n'est plus un rappel, c'est un retard --
+    // et on le dit.
+    let echeance = crate::echeance_dsn::de_la_compagnie(st.ctx, mois)?;
+    r.en_retard = st.aujourdhui > echeance.jour;
+    r.echeance_depot = Some(echeance.en_json());
 
     let saisie = st.racine().join("paies").join(format!("{}.json", mois));
     if !saisie.exists() {
@@ -708,19 +702,6 @@ fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
 
 // ------------------------------------------------------ les fins de contrat
 
-/// Du lundi au vendredi : le delai d'un signalement se compte en jours OUVRES,
-/// pas en jours ouvrables (le samedi n'en est pas).
-fn jours_ouvres_depuis(debut: Jour, fin: Jour) -> i64 {
-    let (mut n, mut jour) = (0, debut);
-    while jour < fin {
-        jour = jour.plus_jours(1).unwrap_or(fin);
-        if jour.jour_de_la_semaine() < 5 {
-            n += 1;
-        }
-    }
-    n
-}
-
 struct Fin {
     salarie: String,
     numero: Option<Value>,
@@ -774,27 +755,26 @@ fn ce_qui_manque_au_signalement(ctx: &Contexte, e: &Value) -> R<Vec<String>> {
 }
 
 /// Les signalements de fin de contrat qui n'ont pas encore ete deposes. Ils se
-/// taisent des que le depot est note au journal -- comme tous les rappels
+/// taisent des que le depot REEL de CE signalement est note au journal -- comme tous les rappels
 /// d'ici, et pour la meme raison : aucun ne se tait parce qu'on a clique << plus
 /// tard >>. Un CDD d'usage du spectacle arrive a son terme (031) n'en fait pas partie.
+/// Le delai, la date butoir et l'etat sont ceux de `obligations::de_la_fin` (15/10/2026) : un seul endroit les calcule,
+/// la liste des fins de contrat (`routes_listes`) les rend aussi.
 fn rappels_fin_de_contrat(st: &Etat) -> R<Vec<Rappel>> {
-    let mut deposes = BTreeSet::new();
-    for l in lire_journal(&st.journal, DSN, true)? {
-        deposes.insert(texte(l.get("mois")));
-    }
     let mut out = Vec::new();
     let mois = mois_de(&st.aujourdhui);
     for m in [mois_precedent(&mois), mois.clone()] {
         for f in fins_a_signaler(st.ctx, &m)? {
-            if deposes.contains(&f.fin) {
-                continue;
-            }
             let fin = Jour::lire(&f.fin)?;
             if fin > st.aujourdhui {
                 continue; // il n'a pas encore pris fin
             }
-            let ouvres = jours_ouvres_depuis(fin, st.aujourdhui);
-            let reste = JOURS_OUVRES_FCTU - ouvres;
+            let cle = st.ctx.salarie(&f.salarie).ok().and_then(|x| x.get("_cle").map(en_texte));
+            let o = crate::obligations::de_la_fin(st.ctx, cle.as_deref(), fin, &st.journal, st.aujourdhui)?;
+            let etat = o.get("etat").and_then(Value::as_str).unwrap_or("");
+            if etat == crate::obligations::FAIT {
+                continue;
+            }
             let mut r = Rappel::nouveau(
                 FIN_CONTRAT,
                 format!("fin-contrat:{}:{}", f.salarie, f.fin),
@@ -805,19 +785,19 @@ fn rappels_fin_de_contrat(st: &Etat) -> R<Vec<Rappel>> {
             r.salarie = Some(f.salarie.clone());
             r.jour = Some(f.fin.clone());
             r.a_saisir = f.a_saisir.clone();
-            r.en_retard = reste < 0;
+            r.en_retard = etat == crate::obligations::EN_RETARD;
             r.etat = if f.a_saisir.is_empty() { A_PRODUIRE } else { A_SAISIR }.into();
-            let delai = if reste < 0 {
-                format!("EN RETARD de {} jour(s) ouvré(s)", -reste)
-            } else {
-                format!("il reste {} jour(s) ouvré(s)", reste)
-            };
             let suite = if f.a_saisir.is_empty() {
                 format!("paie fin-contrat signaler {} {}", m, f.salarie)
             } else {
                 format!("À saisir d'abord : {}", f.a_saisir.join(" "))
             };
-            r.detail = format!("Il est dû dans les cinq jours ouvrés (cahier technique p. 107) : {}. {}", delai, suite);
+            r.detail = format!(
+                "Il est dû {} (CSS R. 133-14, II ; arrêté du 2 juillet 2013). {} {}",
+                o.get("delai").and_then(Value::as_str).unwrap_or(""),
+                o.get("phrase").and_then(Value::as_str).unwrap_or(""),
+                suite
+            );
             out.push(r);
         }
     }

@@ -202,7 +202,13 @@ pub fn ecrire_json(chemin: &Path, donnees: &Value, indent: usize) -> Resultat<()
     }
     let mut texte = json_py(donnees, indent);
     texte.push('\n');
-    std::fs::write(chemin, texte).map_err(|e| format!("{} : {}", chemin.display(), e))
+    // ATOMIQUE (15/10/2026) : le fichier s'ecrit a cote puis prend sa place d'un coup. `std::fs::write` tronquait d'abord,
+    // puis ecrivait : un lecteur arrive entre les deux (l'etat du mois se refait dans un processus a part, `etat_garde::
+    // apres_ecriture`, pendant que la fenetre ou un test relit `journal/depots.json`) lisait un fichier vide, « EOF while
+    // parsing a value ». Un journal JSON ne se voit jamais a moitie ecrit.
+    let provisoire = chemin.with_extension(format!("{}.provisoire", chemin.extension().and_then(|e| e.to_str()).unwrap_or("json")));
+    std::fs::write(&provisoire, texte).map_err(|e| format!("{} : {}", provisoire.display(), e))?;
+    std::fs::rename(&provisoire, chemin).map_err(|e| format!("{} : {}", chemin.display(), e))
 }
 
 /// `paie ecrire-json` : `{"chemin", "donnees", "indent"?}` (2 par defaut).

@@ -626,11 +626,13 @@ function ligneEngagement(e = {}) {
     <button class="ajouter-rubrique discret">+ une ligne de paie</button>
     <!-- UN PERMANENT NE SE SAISIT PAS EN LIGNES DE PAIE, ET C'EST TOUT
          L'INTÉRÊT. Ce qu'on tape, ce sont des FAITS — un salaire au mois,
-         des congés pris, une absence, une prime — et c'est
+         des congés pris, une prime — et c'est
          operations_permanents.lignes_du_mois qui en fait des lignes : le
          prorata d'un mois incomplet, les deux calculs de l'indemnité de
-         congés, la retenue et l'indemnité qui la couvre, le bloc 65 d'une
-         suspension. Taper les lignes à la main, ce serait refaire à la main
+         congés, la retenue et l'indemnité qui la couvre. Un arrêt ou une
+         suspension n'est pas un fait du mois : c'est un IMPRÉVU, saisi une
+         fois depuis la carte (« Un imprévu… », js/imprevus.js), dont le moteur tire la ligne de
+         chaque mois qu'il traverse. Taper les lignes à la main, ce serait refaire à la main
          ce que la loi impose de calculer. -->
     <div class="e-permanent" hidden>
       <div class="e-mois-paye">
@@ -653,12 +655,6 @@ function ligneEngagement(e = {}) {
             <span class="discret">— en jours ouvrables, le compteur suit</span></div>
           <div class="e-conges"></div>
           <button class="ajouter-fait discret" data-quoi="conges">+ des congés</button>
-        </div>
-        <div class="e-fait-groupe">
-          <div class="e-fait-tete">Absences
-            <span class="discret">— ce qui suspend ou réduit le salaire</span></div>
-          <div class="e-absences"></div>
-          <button class="ajouter-fait discret" data-quoi="absences">+ une absence</button>
         </div>
         <div class="e-fait-groupe">
           <div class="e-fait-tete">Primes</div>
@@ -703,6 +699,10 @@ function ligneEngagement(e = {}) {
       <span class="e-suite"></span>
       <button type="button" class="lien e-viser-btn">Viser un montant</button>
       <button type="button" class="lien e-options-btn">Plus d'options</button>
+      <!-- LA PORTE DES IMPRÉVUS (15/10/2026) : un arrêt de travail, une
+           absence, une rupture avant terme, pour le salarié de cette carte.
+           Discrète : les imprévus sont rares. js/imprevus.js. -->
+      <button type="button" class="lien e-imprevu-btn" hidden>Un imprévu…</button>
     </div>
     <div class="e-chiffres" hidden>
       <label title="ce que le salarié touche sur son compte">Net salarié
@@ -830,6 +830,10 @@ function ligneEngagement(e = {}) {
     <!-- LA PAIE VALIDÉE, EN UNE LIGNE (23/09/2026) : quand, qui, pour
          quoi, ce qui reste à faire, le net. Voir peindreCarte(). -->
     <div class="e-resume"></div>
+    <!-- SES IMPRÉVUS DU MOIS (15/10/2026) : une ligne par arrêt ou absence
+         qui touche ce contrat, avec ses gestes et les jours payés pendant
+         l'imprévu. Vide le plus souvent. Visible aussi sur une paie validée. -->
+    <div class="e-imprevus"></div>
     <div class="avis"></div>
     <div class="etats"></div>`;
 
@@ -955,6 +959,11 @@ function ligneEngagement(e = {}) {
     const c = div.querySelector(".e-chiffres");
     c.hidden = !c.hidden;
   };
+  div.querySelector(".e-imprevu-btn").onclick = (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    menuImprevu(ev.currentTarget, { div });
+  };
   div.querySelector(".e-options-btn").onclick = (ev) => {
     ev.preventDefault();
     const o = div.querySelector(".e-options");
@@ -1007,7 +1016,7 @@ function majNature(div) {
   div.querySelector(".e-contrat-note").textContent = bornes
     ? "Un contrat payé au mois n'a pas de jour coché : ses bornes se disent ici."
       + " La date de fin d'un CDD est celle qui déclenche le signalement de"
-      + " fin de contrat (nature 07), dû dans les cinq jours ouvrés."
+      + " fin de contrat (nature 07) : son délai et sa date butoir se lisent sous « Fin de contrat »."
     : "Le contrat va du premier au dernier jour coché — planning compris,"
       + " quand on a coché des jours dans les mois suivants depuis le"
       + " calendrier d'une ligne. Ses cachets suivants se paient dans le mois"
@@ -1087,7 +1096,7 @@ function majRupture(div) {
   }
 }
 
-/* LES FAITS D'UN MOIS DE PERMANENT — congés, absences, primes. Trois listes
+/* LES FAITS D'UN MOIS DE PERMANENT — congés, primes. Deux listes
    de la même famille : une ligne se remplit, un « + » en ajoute une, une
    croix la retire. Ce qu'elles écrivent, ce sont les faits du mois, jamais
    des lignes de paie : le calcul appartient au moteur. */
@@ -1099,35 +1108,6 @@ function ligneFait(quoi, v = {}) {
       <label>du <input type="date" class="f-debut" value="${echapper(v.debut || "")}"></label>
       <label>au <input type="date" class="f-fin" value="${echapper(v.fin || "")}"></label>
       <button class="retirer-fait lien" title="retirer">&#x2715;</button>`;
-  } else if (quoi === "absences") {
-    // Le motif décide de tout : « maladie » fait une absence maladie (bloc
-    // 60 et son signalement, plus le maintien de salaire que la loi donne) ;
-    // les autres font une suspension déclarée au bloc 65, qui EXIGE ses deux
-    // dates. Un motif que le moteur ne connaît pas ne se déclare pas.
-    div.innerHTML = `
-      <label>du <input type="date" class="f-debut" value="${echapper(v.debut || "")}"></label>
-      <label>au <input type="date" class="f-fin" value="${echapper(v.fin || "")}"></label>
-      <label>motif <select class="f-motif">
-        <option value="maladie">maladie — arrêt de travail</option>
-        ${(ETAT.motifs_absence || []).map((m) =>
-          `<option value="${echapper(m.code)}">${echapper(m.code)} — ${echapper(m.libelle)}</option>`).join("")}
-      </select></label>
-      <label title="laissé vide : au prorata des jours ouvrables du mois">heures
-        <input type="number" step="0.01" min="0" class="f-heures" value="${echapper(v.heures ?? "")}"></label>
-      <label class="f-maintien-bloc" title="le complément versé APRÈS déduction des indemnités journalières (D1226-5) — il ne se devine pas">maintien
-        <input type="number" step="0.01" min="0" class="f-maintien" value="${echapper(v.maintien ?? "")}"></label>
-      <!-- CE QUE LE MAINTIEN DE SALAIRE DEMANDE (30/09/2026) : l'origine de
-           l'arrêt — pas de carence pour un accident du travail, mais un
-           accident de trajet garde la sienne (D1226-3) — et les jours déjà
-           indemnisés dans les douze mois (D1226-4). Seulement pour un arrêt. -->
-      <label class="f-maintien-bloc">origine <select class="f-origine">
-        <option value="">maladie</option>
-        <option value="at">accident du travail ou maladie professionnelle</option>
-        <option value="trajet">accident de trajet</option>
-      </select></label>
-      <label class="f-maintien-bloc" title="jours d'arrêt déjà indemnisés par l'employeur dans les douze mois précédents (D1226-4)">déjà indemnisés
-        <input type="number" step="1" min="0" class="f-deja" value="${echapper(v.jours_deja_indemnises ?? "")}"></label>
-      <button class="retirer-fait lien" title="retirer">&#x2715;</button>`;
   } else {
     div.innerHTML = `
       <label>rubrique <input type="text" class="f-rubrique"
@@ -1135,18 +1115,6 @@ function ligneFait(quoi, v = {}) {
       <label>montant <input type="number" step="0.01" class="f-montant"
         value="${echapper(v.montant ?? "")}"></label>
       <button class="retirer-fait lien" title="retirer">&#x2715;</button>`;
-  }
-  if (quoi === "absences") {
-    const motif = div.querySelector(".f-motif");
-    motif.value = v.motif || "maladie";
-    div.querySelector(".f-origine").value = v.accident_de_trajet ? "trajet"
-      : v.accident_du_travail ? "at" : "";
-    div.querySelector(".f-origine").onchange = rafraichirApercu;
-    const majMotif = () => {
-      div.querySelectorAll(".f-maintien-bloc").forEach((b) => { b.hidden = motif.value !== "maladie"; });
-    };
-    motif.onchange = () => { majMotif(); rafraichirApercu(); };
-    majMotif();
   }
   div.querySelector(".retirer-fait").onclick = (ev) => {
     ev.preventDefault();
@@ -1157,11 +1125,10 @@ function ligneFait(quoi, v = {}) {
   return div;
 }
 
-const FAITS = { conges: ".e-conges", absences: ".e-absences", primes: ".e-primes" };
+const FAITS = { conges: ".e-conges", primes: ".e-primes" };
 
 function remplirFaits(div, e) {
   (e.conges_pris || []).forEach((c) => div.querySelector(FAITS.conges).appendChild(ligneFait("conges", c)));
-  (e.absences || []).forEach((a) => div.querySelector(FAITS.absences).appendChild(ligneFait("absences", a)));
   (e.primes || []).forEach((p) => div.querySelector(FAITS.primes).appendChild(ligneFait("primes", p)));
 }
 
@@ -1178,27 +1145,12 @@ function faitsDuBloc(div) {
   const conges = [...div.querySelectorAll(".fait-conges")]
     .map((f) => ({ debut: val(f, ".f-debut"), fin: val(f, ".f-fin") }))
     .filter((c) => c.debut || c.fin);
-  const absences = [...div.querySelectorAll(".fait-absences")].map((f) => {
-    const a = { debut: val(f, ".f-debut"), fin: val(f, ".f-fin"),
-                motif: val(f, ".f-motif") };
-    if (val(f, ".f-heures")) a.heures = +val(f, ".f-heures");
-    if (a.motif === "maladie" && val(f, ".f-maintien")) a.maintien = +val(f, ".f-maintien");
-    if (a.motif === "maladie") {
-      // L'accident de trajet est un accident du travail qui garde sa carence :
-      // le moteur lit les deux cases (`permanents.jours_de_carence`).
-      const origine = val(f, ".f-origine");
-      if (origine) a.accident_du_travail = true;
-      if (origine === "trajet") a.accident_de_trajet = true;
-      if (val(f, ".f-deja")) a.jours_deja_indemnises = +val(f, ".f-deja");
-    }
-    return a;
-  }).filter((a) => a.debut || a.fin);
   const primes = [...div.querySelectorAll(".fait-primes")].map((f) => {
     const p = { montant: +val(f, ".f-montant") };
     if (val(f, ".f-rubrique")) p.rubrique = val(f, ".f-rubrique");
     return p;
   }).filter((p) => p.montant);
-  return { conges, absences, primes };
+  return { conges, primes };
 }
 
 /** La ligne repliée du contrat : ses bornes, son numéro, et ce qu'il fait
@@ -1292,6 +1244,8 @@ function majQui(div) {
     .map((c) => c.parentNode.textContent.replace(/\s+/g, " ").trim());
   resume.textContent = noms.length ? noms.join(" + ") : "— cocher —";
   resume.classList.toggle("vide", !noms.length);
+  // Un imprévu se dit d'UN salarié : la porte ne s'ouvre que sur une carte qui n'en porte qu'un.
+  majPorteImprevu(div);
 }
 
 /** Une liste ouverte se referme quand on clique ailleurs — un <details> ne

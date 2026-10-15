@@ -1,0 +1,206 @@
+{
+  "_quoi": "Les obligations qu'un arrêt de travail et une fin de contrat font naître chez l'employeur : ce qu'il faut faire, où, dans quel délai, à compter de quoi, et le texte qui le dit. Livré avec le LOGICIEL : ce sont des règles de droit, pas des choix d'une compagnie. Le calcul (point de départ, date butoir, état) est dans `atelier/sources/paie/src/obligations.rs`, et nulle part ailleurs.",
+  "_pourquoi_ici": "Règle du 17/09/2026 : aucune valeur réglementaire n'est écrite dans le code. Un délai sans texte déposé ne s'écrit pas ici ; ce qui est une inférence le dit (`inferences`).",
+  "_textes": "Chaque `textes[].fichier` est une copie déposée dans le dépôt public, relue le 15/10/2026 : `atelier/reference/sources/code-de-la-securite-sociale/`, `code-du-travail/` et `arrete-2013-delai-evenements-dsn/` (relevés LEGI, `paie releve-codes`), `atelier/reference/norme-dsn/texte/` (cahier technique DSN 2026.1), `atelier/reference/sources/net-entreprises-base-connaissances/` et `accident-du-travail/` (leur LISEZ-MOI dit l'URL et la date).",
+  "jours_ouvres": {
+    "_regle": "Un jour ouvré : du lundi au vendredi, hors fêtes légales chômées par la compagnie (fiche Entreprise, `jours_feries_chomes` ; à défaut le 1er mai seul, `feries.rs`). Le jour de départ ne compte pas : le délai court à partir du lendemain.",
+    "_inference": "« Cinq jours ouvrés » n'est défini ni par R. 133-14 ni par l'arrêté du 2 juillet 2013 : le moteur prend la lecture usuelle (jours habituellement travaillés dans l'entreprise, le jour de l'événement exclu). C'est une inférence."
+  },
+  "obligations": {
+    "signalement_arret": {
+      "libelle": "Signalement d'arrêt de travail",
+      "nait_de": "un arrêt de travail saisi, sauf ceux que la DSN ne couvre pas (`sauf_motifs`)",
+      "qui": "employeur",
+      "ou": "En DSN, sur net-entreprises : le fichier « signalement d'arrêt » (nature 04) que le logiciel écrit, déposé comme une DSN.",
+      "sauf_motifs": {
+        "codes": ["15", "16", "17", "18", "19"],
+        "pourquoi": "Le congé de deuil (motif 19) et le temps partiel thérapeutique (15 à 18) ne sont « pas à ce jour couverts par la DSN » : l'Assurance Maladie ne tire pas l'attestation de salaire de leur signalement. Pour le deuil, l'obligation qui naît est l'attestation de salaire hors DSN (`attestation_salaire`) ; les motifs 15 à 18 ne se saisissent pas (`arrets-base.json`). La norme, elle, admet le motif 19 dans un signalement (S21.G00.60.001, aucune règle CCH ne l'en exclut) : le moteur ne le refuse pas, il avertit.",
+        "avertissement": "Motif 19 (deuil d'enfant) : la norme admet ce signalement, mais l'Assurance Maladie ne le traite pas — les congés pour deuil ne sont « pas à ce jour couverts par la DSN » (net-entreprises). L'attestation de salaire pour les indemnités journalières (DSIJ) se fait sur net-entreprises, service « Attestation de salaire », par saisie à l'écran ou par fichier EDI, dès réception de l'avis d'arrêt ; une fois faite, la dire faite (route `attestation-declare`, `paie arret declare --attestation`). La DSN mensuelle porte l'arrêt comme les autres.",
+        "texte": {"reference": "net-entreprises, compte entreprise (31/03/2026)", "fichier": "atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt", "dit": "« il suffit de produire vos signalements Arrêt de travail […] via le système DSN. Ainsi, la Caisse primaire d'assurance maladie récupère directement toutes les informations nécessaires (sauf pour les cas spécifiques des temps partiels thérapeutiques et des congés pour deuil qui ne sont pas à ce jour couverts par la DSN). »"}
+      },
+      "destinataire": "L'Assurance Maladie (indemnités journalières) et les organismes de prévoyance.",
+      "delai_sans_subrogation": {
+        "jours_ouvres": 5,
+        "depart": "connaissance_arret",
+        "dit": "dans les cinq jours ouvrés qui suivent le jour où la compagnie a connaissance de l'arrêt"
+      },
+      "delai_avec_subrogation": {
+        "avec_la_mensuelle": true,
+        "dit": "au plus tard avec la DSN mensuelle du mois où l'arrêt commence"
+      },
+      "connaissance_presumee": "le premier jour de l'arrêt (le lendemain du dernier jour travaillé) : le plus tôt où la compagnie a pu le savoir. Si elle l'a su plus tard, saisir ce jour-là.",
+      "exceptions": [
+        "R. 133-14, II, 1° : quand aucune retenue n'a été faite pour l'arrêt sur le salaire du mois où il commence (salaire maintenu), le signalement peut partir avec la DSN mensuelle de ce mois. Le moteur ne le présume pas : il compte cinq jours ouvrés tant que la compagnie ne pratique pas la subrogation.",
+        "Fiche 673 : un signalement d'arrêt émis le mois de l'embauche fait échouer la reconstitution de l'attestation de salaire ; attendre le dépôt de la DSN mensuelle, ou transmettre l'attestation par un autre canal."
+      ],
+      "textes": [
+        {"reference": "Code de la sécurité sociale, art. R. 133-14, II", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/R133-14.xml", "dit": "« sont déclarés dans un délai fixé par arrêté […], qui ne peut excéder cinq jours ouvrés, la fin du contrat de travail ainsi que, lorsque l'employeur n'est pas subrogé dans les droits de l'assuré aux indemnités journalières, le début et la fin de l'arrêt de travail […] » ; les autres événements, « au plus tard en même temps que la déclaration sociale nominative relative au mois au cours duquel cet événement est survenu »."},
+        {"reference": "Arrêté du 2 juillet 2013, art. 1er", "fichier": "atelier/reference/sources/arrete-2013-delai-evenements-dsn/xml/1.xml", "dit": "Le délai prévu par le II de l'article R. 133-14 est fixé à cinq jours ouvrés."},
+        {"reference": "Cahier technique DSN 2026.1, § 5.3, p. 107", "fichier": "atelier/reference/norme-dsn/texte/chapitre-5-modeles.txt", "dit": "« Le signalement d'évènement doit être transmis dans les 5 jours après la prise de connaissance de l'évènement par l'employeur, sauf dans un cas de subrogation ou de décalage sur le mois suivant de la prise en compte en paie où l'émission du message peut être concomitante à l'envoi de la DSN mensuelle »."},
+        {"reference": "net-entreprises, fiche 673 (13/05/2025)", "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche673-rappel-signalements-arret-reprise-fin-de-contrat-20250513.txt", "dit": "« doivent être envoyés dans les 5 jours ouvrés à connaissance de l'évènement » ; « En cas de subrogation, les signalements d'événement « Arrêt de travail » peuvent être émis à la même échéance que la DSN mensuelle. »"}
+      ]
+    },
+    "signalement_reprise": {
+      "libelle": "Signalement de reprise anticipée",
+      "nait_de": "une reprise saisie AVANT la fin prévisionnelle de l'arrêt (une reprise à la date prévue n'en appelle aucun : la DSN mensuelle la porte), sauf pour un arrêt que la DSN ne couvre pas (`sauf_motifs`)",
+      "qui": "employeur",
+      "ou": "En DSN, sur net-entreprises : le fichier « signalement de reprise » (nature 05) que le logiciel écrit.",
+      "sauf_motifs": {
+        "codes": ["15", "16", "17", "18", "19"],
+        "pourquoi": "La même page met le signalement de reprise anticipée avec celui d'arrêt (« vos signalements Arrêt de travail (et Reprise anticipée suite à arrêt de travail […]) ») et en excepte de même le deuil et le temps partiel thérapeutique. Que la reprise d'un congé de deuil ne fasse donc naître aucun signalement est une INFÉRENCE de cette phrase : la page ne dit pas comment l'Assurance Maladie apprend une reprise anticipée de deuil.",
+        "avertissement": "Motif 19 (deuil d'enfant) : la norme admet ce signalement de reprise, mais l'Assurance Maladie ne traite pas les congés pour deuil en DSN (net-entreprises). C'est l'attestation de salaire hors DSN, sur net-entreprises, qui la renseigne.",
+        "texte": {"reference": "net-entreprises, compte entreprise (31/03/2026)", "fichier": "atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt", "dit": "« il suffit de produire vos signalements Arrêt de travail (et Reprise anticipée suite à arrêt de travail, uniquement si la reprise est plus tôt que prévu) via le système DSN […] (sauf pour les cas spécifiques des temps partiels thérapeutiques et des congés pour deuil qui ne sont pas à ce jour couverts par la DSN). »"}
+      },
+      "destinataire": "L'Assurance Maladie et les organismes de prévoyance.",
+      "delai_sans_subrogation": {
+        "jours_ouvres": 5,
+        "depart": "reprise",
+        "dit": "dans les cinq jours ouvrés qui suivent la reprise"
+      },
+      "delai_avec_subrogation": {
+        "avec_la_mensuelle": true,
+        "dit": "au plus tard avec la DSN mensuelle du mois de la reprise"
+      },
+      "exceptions": [
+        "Le cahier technique (§ 5.4) dit « cinq jours ouvrables » ; R. 133-14 et l'arrêté du 2 juillet 2013 disent « jours ouvrés » : le moteur prend les jours ouvrés, la lecture la plus courte."
+      ],
+      "textes": [
+        {"reference": "Code de la sécurité sociale, art. R. 133-14, II", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/R133-14.xml", "dit": "le début ET la fin de l'arrêt, quand l'employeur n'est pas subrogé : cinq jours ouvrés au plus."},
+        {"reference": "Arrêté du 2 juillet 2013, art. 1er", "fichier": "atelier/reference/sources/arrete-2013-delai-evenements-dsn/xml/1.xml", "dit": "Le délai prévu par le II de l'article R. 133-14 est fixé à cinq jours ouvrés."},
+        {"reference": "Cahier technique DSN 2026.1, § 5.4, p. 108", "fichier": "atelier/reference/norme-dsn/texte/chapitre-5-modeles.txt", "dit": "« Le signalement d'évènement n'est à émettre qu'en cas de reprise anticipée par rapport à la date prévisionnelle de l'arrêt et doit alors être transmis au plus tard dans les cinq jours ouvrables qui suivent la reprise du travail. »"}
+      ]
+    },
+    "signalement_fin_contrat": {
+      "libelle": "Signalement de fin de contrat",
+      "nait_de": "un contrat dont la fin se signale (CDI, CDD ordinaire, CDD d'usage rompu avant son terme : `Nature::signalement_fctu`) et qui finit dans le mois",
+      "qui": "employeur",
+      "ou": "En DSN, sur net-entreprises : le fichier « signalement de fin de contrat de travail unique » (nature 07) que le logiciel écrit.",
+      "destinataire": "France Travail (l'attestation employeur du salarié), les organismes de prévoyance.",
+      "delai": {
+        "jours_ouvres": 5,
+        "depart": "fin_contrat",
+        "dit": "dans les cinq jours ouvrés qui suivent la fin du contrat"
+      },
+      "exceptions": [
+        "R. 133-14, II, 2° : la fin d'un CDD d'usage (3° de L. 1242-2 du code du travail) arrivé à son terme suit le circuit dérogatoire, avec la DSN mensuelle, sauf si le salarié demande le délai de cinq jours (fiches 1902 et 2062) : ces fins-là ne sont pas dans la liste."
+      ],
+      "textes": [
+        {"reference": "Code de la sécurité sociale, art. R. 133-14, II", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/R133-14.xml", "dit": "« sont déclarés dans un délai fixé par arrêté […], qui ne peut excéder cinq jours ouvrés, la fin du contrat de travail […] »."},
+        {"reference": "Arrêté du 2 juillet 2013, art. 1er", "fichier": "atelier/reference/sources/arrete-2013-delai-evenements-dsn/xml/1.xml", "dit": "Le délai prévu par le II de l'article R. 133-14 est fixé à cinq jours ouvrés."},
+        {"reference": "Cahier technique DSN 2026.1, § 5.2, p. 107", "fichier": "atelier/reference/norme-dsn/texte/chapitre-5-modeles.txt", "dit": "« Le signalement d'évènement doit être transmis dans les cinq jours ouvrés qui suivent la survenance de la fin du contrat de travail sauf dans le cadre des dérogations existantes »."}
+      ]
+    },
+    "declaration_accident": {
+      "libelle": "Déclaration d'accident du travail ou de trajet",
+      "nait_de": "un arrêt dont le motif est un accident du travail ou de trajet (`motifs`) : hors DSN, en plus du signalement d'arrêt",
+      "motifs": ["04", "06"],
+      "qui": "employeur",
+      "destinataire": "La caisse primaire d'assurance maladie dont relève la victime.",
+      "delai": {
+        "heures": 48,
+        "sans_dimanches": true,
+        "sans_feries": true,
+        "depart": "connaissance_accident",
+        "dit": "dans les quarante-huit heures, dimanches et jours fériés non compris, à compter du moment où la compagnie a connaissance de l'accident"
+      },
+      "connaissance_presumee": "le jour de l'accident (la date saisie sur l'arrêt), dès minuit : la lecture la plus exigeante. La victime doit en informer l'employeur dans la journée, ou au plus tard dans les vingt-quatre heures (R. 441-2). Saisir le jour et l'heure où la compagnie l'a su.",
+      "ou": [
+        {"code": "net-entreprises", "court": "en ligne, sur net-entreprises", "libelle": "En ligne, sur net-entreprises.fr : « DAT - Déclaration d'accident du travail ou de trajet », dans le compte entreprise (Assurance Maladie - Risques professionnels). Trois accusés de réception. L'habilitation au service n'ouvre qu'après l'inscription : s'inscrire avant d'en avoir besoin.", "texte": "atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt"},
+        {"code": "courrier", "court": "par courrier recommandé, cerfa 14463*03", "libelle": "Sur papier : le cerfa 14463*03 (S6200), rempli en 4 exemplaires ; 3 partent en recommandé avec accusé de réception à la CPAM de la victime, le 4e se garde 5 ans.", "texte": "atelier/reference/sources/accident-du-travail/service-public-r14587-declarer-accident-travail-20260417.txt"}
+      ],
+      "a_avoir": [
+        "la date et l'heure de l'accident, et le jour et l'heure où la compagnie l'a su (constaté par elle, par ses préposés, ou décrit par la victime)",
+        "le lieu de l'accident (nom et adresse, ou ceux du lieu de représentation ou du chantier), et s'il est survenu sur le lieu de travail habituel ou occasionnel, au cours du trajet ou d'un déplacement pour l'employeur",
+        "l'activité de la victime au moment de l'accident, ce qui s'est passé (la nature de l'accident) et l'objet dont le contact l'a blessée",
+        "le siège des lésions (l'endroit du corps, droite ou gauche) et leur nature",
+        "l'horaire de travail de la victime ce jour-là, où elle a été transportée, s'il y a d'autres victimes, et les conséquences (sans arrêt, avec arrêt, décès)",
+        "le témoin, ou à défaut la première personne avisée (nom, prénom, adresse)",
+        "le tiers, s'il en est un (nom, adresse, sa société d'assurance), et s'il y a eu un rapport de police",
+        "les réserves motivées de la compagnie, s'il y en a (sur les circonstances de temps et de lieu, ou une cause étrangère au travail)"
+      ],
+      "_a_avoir_source": "Les rubriques et la notice du cerfa 14463*03 (notice 50261#04), `atelier/reference/sources/accident-du-travail/cnam-cerfa-14463-03-declaration-accident-travail-20170907.txt`.",
+      "suites": {
+        "reserves": {
+          "libelle": "Réserves motivées, si la compagnie en a",
+          "jours_francs": 10,
+          "depuis": "la déclaration",
+          "texte": {"reference": "Code de la sécurité sociale, art. R. 441-6", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/R441-6.xml", "dit": "« Lorsque la déclaration de l'accident émane de l'employeur, celui-ci dispose d'un délai de dix jours francs à compter de la date à laquelle il l'a effectuée pour émettre […] des réserves motivées auprès de la caisse primaire d'assurance maladie. »"},
+          "inference": "Le moteur retient le dixième jour qui suit la déclaration, sans prolonger : la lecture la plus prudente des « jours francs »."
+        },
+        "feuille_accident": {
+          "libelle": "Remettre la feuille d'accident au salarié",
+          "texte": {"reference": "Code de la sécurité sociale, art. L. 441-5", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/L441-5.xml", "dit": "« L'employeur est tenu de délivrer une feuille d'accident nécessaire à l'indemnisation au titre du présent livre. »"}
+        }
+      },
+      "textes": [
+        {"reference": "Code de la sécurité sociale, art. L. 441-2", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/L441-2.xml", "dit": "« L'employeur ou l'un de ses préposés doit déclarer tout accident dont il a eu connaissance à la caisse primaire d'assurance maladie dont relève la victime selon des modalités et dans un délai déterminés. »"},
+        {"reference": "Code de la sécurité sociale, art. R. 441-3", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/R441-3.xml", "dit": "« La déclaration de l'employeur […] doit être faite, par tout moyen conférant date certaine à sa réception, dans les quarante-huit heures non compris les dimanches et jours fériés. »"},
+        {"reference": "Code de la sécurité sociale, art. R. 441-2", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/R441-2.xml", "dit": "La victime informe l'employeur « dans la journée où l'accident s'est produit ou au plus tard dans les vingt-quatre heures »."},
+        {"reference": "Code de la sécurité sociale, art. L. 411-2", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/L411-2.xml", "dit": "L'accident de trajet « est également considéré comme accident du travail »."},
+        {"reference": "net-entreprises, compte entreprise, section DAT (31/03/2026)", "fichier": "atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt", "dit": "« au plus tard 48 heures après avoir eu connaissance de l'accident » ; réserves « durant un délai règlementaire de 10 jours francs à partir de la date de dépôt initiale de la DAT »."}
+      ],
+      "inferences": [
+        "Les quarante-huit heures courent depuis l'heure où la compagnie a connaissance de l'accident (L. 441-2 : « dont il a eu connaissance » ; net-entreprises et le cerfa : « après avoir eu connaissance ») ; un dimanche ou un jour férié ne compte pas du tout, et les jours fériés sont les onze fêtes légales (L. 3133-1 du code du travail, `feries-base.json`), chômées ou non dans la compagnie.",
+        "Sans l'heure de connaissance, le moteur compte depuis le début de la journée : la date butoir est alors la plus exigeante."
+      ]
+    },
+    "declaration_maladie_professionnelle": {
+      "libelle": "Déclaration de maladie professionnelle (par le salarié)",
+      "nait_de": "un arrêt pour maladie professionnelle (`motifs`) : la déclaration n'est pas celle de l'employeur",
+      "motifs": ["05"],
+      "qui": "salarie",
+      "destinataire": "La caisse primaire d'assurance maladie.",
+      "delai": {
+        "jours": 15,
+        "depart": "debut_arret",
+        "dit": "dans les quinze jours qui suivent la cessation du travail"
+      },
+      "textes": [
+        {"reference": "Code de la sécurité sociale, art. L. 461-5", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/L461-5.xml", "dit": "« Toute maladie professionnelle dont la réparation est demandée […] doit être, par les soins de la victime, déclarée à la caisse primaire dans un délai déterminé »."},
+        {"reference": "Code de la sécurité sociale, art. R. 461-5", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/R461-5.xml", "dit": "« Le délai prévu au premier alinéa de l'article L. 461-5 est de quinze jours à compter de la cessation du travail. »"}
+      ],
+      "inferences": [
+        "La cessation du travail est prise au premier jour de l'arrêt (le lendemain du dernier jour travaillé)."
+      ]
+    },
+    "attestation_salaire": {
+      "libelle": "Attestation de salaire pour les indemnités journalières (DSIJ), hors DSN",
+      "nait_de": "un arrêt dont le motif n'est pas couvert par la DSN (`motifs` : le deuil d'enfant) : à la place du signalement d'arrêt, que l'Assurance Maladie ne traite pas pour lui (`signalement_arret.sauf_motifs`)",
+      "motifs": ["19"],
+      "qui": "employeur",
+      "destinataire": "La caisse primaire d'assurance maladie du salarié : les indemnités journalières du congé de deuil (CSS L. 331-9).",
+      "delai": {
+        "jours": 0,
+        "depart": "connaissance_arret",
+        "dit": "dès réception de l'avis d'arrêt de travail"
+      },
+      "connaissance_presumee": "le premier jour de l'arrêt (le lendemain du dernier jour travaillé). Le salarié prévient la compagnie vingt-quatre heures au moins avant chaque période du congé (C. trav. L. 3142-1-1) : si elle l'a su un autre jour, saisir ce jour-là.",
+      "ou": [
+        {"code": "net-entreprises-ecran", "court": "en ligne, sur net-entreprises (saisie à l'écran)", "libelle": "En ligne, sur net-entreprises.fr : le service « Att salaire IJ - Attestation de salaire pour le versement des indemnités journalières », dans le compte entreprise (rubrique « Vos salariés »), par saisie du formulaire à l'écran. L'habilitation au service vient après l'inscription : s'inscrire avant d'en avoir besoin.", "texte": "atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt"},
+        {"code": "net-entreprises-edi", "court": "sur net-entreprises, par fichier EDI", "libelle": "Sur net-entreprises.fr, par dépôt d'un fichier structuré issu d'un logiciel de paie certifié (EDI). Ce logiciel n'écrit pas ce fichier.", "texte": "atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt"}
+      ],
+      "a_avoir": [
+        "les paies de la période de référence : pour chacune, la période, le nombre de journées et d'heures de travail, le montant et la date de paiement, et la retenue faite au titre des assurances sociales (les bulletins)",
+        "le numéro sous lequel la compagnie verse ses cotisations de sécurité sociale (son SIRET), et l'organisme qui les reçoit (l'Urssaf)",
+        "les dates du congé de deuil (il peut se prendre en deux périodes d'au moins une journée, dans l'année du décès), et si la compagnie maintient le salaire : elle est alors subrogée de plein droit dans les indemnités journalières (L. 331-9)"
+      ],
+      "_a_avoir_source": "CSS R. 323-10 (`atelier/reference/sources/code-de-la-securite-sociale/xml/R323-10.xml`) pour ce que l'attestation porte ; C. trav. L. 3142-1-1 et D. 3142-1-1 (`atelier/reference/sources/code-du-travail/xml/`) pour les périodes ; CSS L. 331-9 pour la subrogation.",
+      "exceptions": [
+        "La DSN mensuelle porte l'arrêt comme les autres : le bloc « Arrêt de travail » (S21.G00.60) admet le motif « 19 - Deuil d'enfant » (cahier technique 2026.1). Seul le signalement d'événement ne sert pas l'Assurance Maladie pour lui.",
+        "Le temps partiel thérapeutique (motifs 15 à 18) est dans le même cas selon la même page, mais ces motifs ne se saisissent pas dans ce logiciel (`arrets-base.json`) : ils n'ont pas d'obligation ici."
+      ],
+      "textes": [
+        {"reference": "net-entreprises, compte entreprise (31/03/2026)", "fichier": "atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt", "dit": "« L'attestation de salaire pour le versement des Indemnités Journalières de la Sécurité Sociale (DSIJ) est obligatoire pour tout arrêt de travail, quel qu'en soit le motif : […] Deuil d'enfant » ; « Maladie, accident du travail, maladie professionnelle, femme enceinte dispensée de travail, deuil d'enfant : Dès réception de l'avis d'arrêt de travail » ; « Par saisie de formulaire à l'écran ; Par dépôt de fichier structuré issu de votre logiciel de paie (EDI) certifié » ; les signalements DSN suffisent « sauf pour les cas spécifiques des temps partiels thérapeutiques et des congés pour deuil qui ne sont pas à ce jour couverts par la DSN »."},
+        {"reference": "Code de la sécurité sociale, art. L. 331-9", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/L331-9.xml", "dit": "« Lorsqu'il exerce son droit au congé prévu à l'article L. 3142-1-1 du code du travail, l'assuré perçoit, pendant la durée du congé et selon les mêmes conditions de liquidation et de service, l'indemnité journalière mentionnée à l'article L. 331-3 […] » ; « L'employeur qui a maintenu le salaire de l'assuré en application de l'article L. 3142-2 du code du travail est subrogé de plein droit dans les droits de son salarié à l'indemnité journalière. »"},
+        {"reference": "Code du travail, art. L. 3142-1-1", "fichier": "atelier/reference/sources/code-du-travail/xml/L3142-1-1.xml", "dit": "« en cas de décès de son enfant âgé de moins de vingt-cinq ans […], le salarié a droit, sur justification, à un congé de deuil de huit jours qui peuvent être fractionnés […]. Le salarié informe l'employeur vingt-quatre heures au moins avant le début de chaque période d'absence. Le congé de deuil peut être pris dans un délai d'un an à compter du décès de l'enfant. »"},
+        {"reference": "Code de la sécurité sociale, art. R. 323-10", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/R323-10.xml", "dit": "« En vue de la détermination du montant de l'indemnité journalière, l'employeur ou les employeurs successifs doivent établir une attestation se rapportant aux payes effectuées pendant les périodes de référence […]. Cette attestation […] est adressée à la caisse : 1° Sous forme électronique, par l'employeur […] »."},
+        {"reference": "Code de la sécurité sociale, art. R. 133-14, IV", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/R133-14.xml", "dit": "« La transmission de la déclaration sociale nominative permet aux employeurs de satisfaire les obligations suivantes : 1° L'attestation mentionnée aux articles R. 323-10 et R. 441-4 […] » : d'ordinaire, la DSN tient lieu de l'attestation ; pas pour ce qu'elle ne couvre pas."},
+        {"reference": "Cahier technique DSN 2026.1, S21.G00.60.001", "fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt", "dit": "Le motif de l'arrêt « 19 - Deuil d'enfant »."}
+      ],
+      "inferences": [
+        "« Dès réception de l'avis d'arrêt de travail » n'est pas un délai chiffré : le moteur prend pour date butoir le jour même où la compagnie a connaissance de l'arrêt (saisi par `arret-connaissance`, sinon présumé au premier jour de l'arrêt). C'est la lecture la plus exigeante, et c'est une inférence.",
+        "R. 323-10 est écrit pour l'indemnité journalière de maladie ; L. 331-9 sert celle du deuil « selon les mêmes conditions de liquidation et de service » que celle de L. 331-3. Que l'attestation de salaire serve aussi le deuil, c'est la page de net-entreprises qui le dit (« Deuil d'enfant »), pas le code en toutes lettres."
+      ]
+    }
+  }
+}

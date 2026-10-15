@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000038423322</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/38/42/33/LEGIARTI000038423322.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>R441-6</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2019-12-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1961-01-12" fin="2999-01-01" id="LEGISCTA000006106085">Partie réglementaire - Décrets en Conseil d'Etat</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126960">Livre IV : Accidents du travail et maladies professionnelles (Dispositions propres et dispositions communes avec d'autres branches)</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141911">Titre IV : Procédures - Révision - Rechute - Accidents survenus hors du territoire métropolitain</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006156663">Chapitre 1er : Déclarations et formalités</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2019-12-01" id="LEGISCTA000006173459">Section 2 : Dispositions relatives à la procédure de reconnaissance du caractère professionnel de l'accident ou de la maladie par les caisses.</TITRE_TM>
+<TITRE_TM debut="2019-12-01" fin="2999-01-01" id="LEGISCTA000038423381">Section 2 : Procédure de reconnaissance du caractère professionnel de l'accident</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1985-12-21" etat="MODIFIE" fin="2019-12-01" id="LEGIARTI000006750409" num="R441-6" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2019-12-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000038423322" num="R441-6" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Lorsque la déclaration de l'accident émane de l'employeur, celui-ci dispose d'un délai de dix jours francs à compter de la date à laquelle il l'a effectuée pour émettre, par tout moyen conférant date certaine à leur réception, des réserves motivées auprès de la caisse primaire d'assurance maladie.<br/>
+<br/>
+ Lorsque la déclaration de l'accident émane de la victime ou de ses représentants, un double de cette déclaration est envoyé par la caisse à l'employeur à qui la décision est susceptible de faire grief par tout moyen conférant date certaine à sa réception. L'employeur dispose alors d'un délai de dix jours francs à compter de la date à laquelle il a reçu ce double pour émettre auprès de la caisse, par tout moyen conférant date certaine à leur réception, des réserves motivées. La caisse adresse également un double de cette déclaration au médecin du travail.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000495266" datesignatexte="1946-12-31" id="JORFTEXT000000495266" naturetexte="DECRET" nortexte="" num="" numtexte="46-2959" sens="source" typelien="CONCORDANCE">Décret 46-2959 1946-12-31 art. 67</LIEN>
+<LIEN cidtexte="JORFTEXT000000495266" datesignatexte="1946-12-31" id="LEGIARTI000006760160" naturetexte="DECRET" nortexte="" num="67" numtexte="46-2959" sens="cible" typelien="CONCORDE">Décret n°46-2959 du 31 décembre 1946 - art. 67 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000000866621" datesignatexte="1985-12-17" id="JORFTEXT000000866621" naturetexte="DECRET" nortexte="" num="" numtexte="85-1353" sens="source" typelien="CODIFICATION">Décret n° 85-1353 du 17 décembre 1985</LIEN>
+<LIEN cidtexte="JORFTEXT000021491314" datesignatexte="2009-12-16" id="LEGIARTI000038423465" naturetexte="DECRET" nortexte="MTSS0908730D" num="8" numtexte="2009-1576" sens="cible" typelien="CITATION">Décret n°2009-1576
+ du 16 décembre 2009 - art. 8 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000038409795" datesignatexte="2019-04-23" id="LEGIARTI000038413950" naturetexte="DECRET" nortexte="SSAS1828778D" num="1" numtexte="2019-356" sens="cible" typelien="MODIFIE">Décret n°2019-356 du 23 avril 2019 - art. 1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006736869" naturetexte="CODE" nortexte="" num="D413-10" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D413-10 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000038423488" naturetexte="CODE" nortexte="" num="D413-6" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D413-6 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000038423316" naturetexte="CODE" nortexte="" num="R441-9" numtexte="" sens="source" typelien="CONCORDE">Code de la sécurité sociale. - art. R441-9 (VD)</LIEN>
+</LIENS>
+</ARTICLE>

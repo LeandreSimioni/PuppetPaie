@@ -62,7 +62,7 @@ fn l_etat_rend_tout_ce_que_la_page_lit_en_s_ouvrant() {
     assert_eq!(
         cles,
         [
-            "configuration", "conventions", "emplois", "emplois_autres", "familles_emplois", "historique", "motifs_absence", "nature_defaut",
+            "configuration", "conventions", "emplois", "emplois_autres", "familles_emplois", "historique", "nature_defaut",
             "natures", "niveaux_sante", "organismes_urssaf", "pays", "pays_naissance", "rubriques", "salaries", "simulation", "spectacles", "transaction", "types_preavis",
             "urssaf_deduit"
         ]
@@ -113,7 +113,6 @@ fn l_etat_rend_tout_ce_que_la_page_lit_en_s_ouvrant() {
     assert_eq!(e["familles_emplois"][0], "Artistes");
     assert!(e["transaction"].as_array().unwrap().len() >= 2);
     assert!(e["types_preavis"].as_array().unwrap().iter().all(|t| t["saisissable"] == true));
-    assert!(e["motifs_absence"].as_array().unwrap().iter().all(|m| m["code"].is_string() && m["libelle"].is_string()));
     assert!(e["conventions"].as_array().unwrap().iter().any(|v| v["idcc"] == "3090" && v["applicable"] == true));
     // Le catalogue qui paie : les cachets d'abord, la plus utilisee en tete.
     let rubriques = e["rubriques"].as_array().unwrap();

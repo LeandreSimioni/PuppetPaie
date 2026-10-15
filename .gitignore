@@ -64,6 +64,12 @@ atelier/prive-dev/config/.jeton-interface
 /cle-poste.bin
 # Le cache du navigateur de la fenetre, pose a cote d'elle en portable (WebView2, 14/10/2026) : refait seul.
 /logiciel/puppetpaie.exe.WebView2/
+# LES PROGRAMMES LINUX ET MAC DE `logiciel/` (15/10/2026, paie/src/maj.rs, `dossier_programmes_de`) : le flux « Publier »
+# les compile et les pose dans `logiciel/linux/` et `logiciel/mac/`, pour les archives de ces systemes et celle de tous ;
+# une compilation locale copiee la ne se commite pas. Le depot ne suit que les programmes de Windows (`puppetpaie.exe`,
+# `WebView2Loader.dll`, a la racine de `logiciel/`), et l'installeur Windows ne pose que ce qui est suivi.
+/logiciel/linux/
+/logiciel/mac/
 /ouverture-gardee.bin
 
 # Le mode developpeur de CE poste (moteur/compagnies.py).

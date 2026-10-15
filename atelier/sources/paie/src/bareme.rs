@@ -608,7 +608,7 @@ fn sante_conventionnelle(bar: &Value, sal: &Value, fin: Option<&Jour>) -> Result
     if !vrai(sante) {
         return Ok(None);
     }
-    if vrai(g(sal, "sante_dispense")) {
+    if crate::calcul::sans_sante(sal) {
         return Ok(Some(Mutuelle::Sans));
     }
     let jour = jour_texte(fin);
@@ -737,7 +737,7 @@ seul) et part employeur. Rien n'est calcule.",
                 idcc
             ));
         }
-        if vrai(g(sal, "sante_dispense")) {
+        if crate::calcul::sans_sante(sal) {
             return sans_mutuelle(bar);
         }
         let total = dec(&choix["taux_contrat"])?;
@@ -761,8 +761,9 @@ la Securite sociale), et pas plus de 100.",
     // « sous reserve des cas de dispenses facultatives visees a l'article 9.2.1 et des cas de dispenses de droit visees
     // a l'article 9.2.2 » ; le salarie dispense n'adhere pas au contrat collectif : pas de mutuelle, et la DSN ne le
     // rattache pas a la sante (`dsn::affiliations_du_permanent`). Ses bornes sont deja lues
-    // (`calcul::dispense_de_la_periode`).
-    if vrai(g(sal, "sante_dispense")) {
+    // (`calcul::dispense_de_la_periode`). Un mois entierement suspendu sans indemnisation suspend les garanties (art. 4.2 :
+    // `calcul::sante_de_la_suspension`) : pas de mutuelle non plus (`calcul::sans_sante`).
+    if crate::calcul::sans_sante(sal) {
         return sans_mutuelle(bar);
     }
     let sec = match &nat.and_then(|n| n.bareme.clone()) {

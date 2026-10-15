@@ -133,6 +133,12 @@ pub static TEXTES: &[Texte] = &[
             // et en 2027 le bloc S21.G00.65 ne declare plus qu'une absence << sans
             // maintien de sa remuneration normale >>.
             Domaine { cle: "evenements_familiaux", titre: "Les conges pour evenements familiaux", numeros: &["L3142-1", "L3142-2"] },
+            // LE CONGE DE DEUIL D'UN ENFANT (15/10/2026, lot << le deuil >>). L3142-1-1 : huit jours, fractionnables
+            // (D3142-1-1 : deux periodes d'au moins une journee), pris dans l'annee du deces ; le salarie << informe
+            // l'employeur vingt-quatre heures au moins avant le debut de chaque periode d'absence >>. C'est le motif d'arret
+            // 19 de la DSN ; ses indemnites journalieres sont celles de L331-9 du code de la securite sociale (plus bas).
+            // `paie/src/obligations.rs` (l'attestation de salaire hors DSN, `obligations-base.json`).
+            Domaine { cle: "conge_de_deuil", titre: "Le conge de deuil d'un enfant", numeros: &["L3142-1-1", "D3142-1-1"] },
             // LE REGISTRE UNIQUE DU PERSONNEL (11/10/2026, reste R1 #147) : ses
             // mentions (D1221-23 : la nationalite, 1°) sont ce que
             // `etats_personnel::registre_du_personnel` ecrit ; il citait les
@@ -157,6 +163,16 @@ pub static TEXTES: &[Texte] = &[
             // majeure d'un CDI (L1234-12, L1234-13), la periode d'essai
             // (L1221-25, L1221-26 : un delai de prevenance, pas un preavis).
             Domaine { cle: "preavis_non_effectue", titre: "Le preavis non effectue : ce que chaque fin de contrat en fait", numeros: &["L1237-1", "L1237-2", "L1226-4", "L1226-12", "L1226-14", "L1234-12", "L1234-13", "L1221-25", "L1221-26"] },
+            // UN MOIS ENTIER DE SUSPENSION NON REMUNEREE (15/10/2026) : lus dans l'entrepot par la recherche du jour
+            // (`atelier/reference/sources/suspension-non-remuneree/legi-extrait-code-du-travail-20261015.md`), suivis
+            // depuis. Le conge parental d'education (L1225-54 : sa duree compte pour moitie dans l'anciennete,
+            // `imprevus::anciennete_depuis`), le conge sabbatique et le conge pour creation d'entreprise (rien sur
+            // l'anciennete ; L3142-33, le report des conges payes), la mensualisation (L3242-1 : la remuneration mensuelle
+            // est « independante, pour un horaire de travail effectif determine », du nombre de jours du mois ; la retenue
+            // d'une absence au reel du mois, `imprevus::lignes_du_mois`), et L3251-1 (les retenues sur salaire).
+            Domaine { cle: "conge_parental", titre: "Le conge parental d'education", numeros: &["L1225-47", "L1225-48", "L1225-49", "L1225-50", "L1225-51", "L1225-52", "L1225-53", "L1225-54", "L1225-55", "L1225-56", "L1225-57", "L1225-58", "L1225-59"] },
+            Domaine { cle: "conge_sabbatique", titre: "Le conge sabbatique et le conge pour creation d'entreprise", numeros: &["L3142-28", "L3142-29", "L3142-30", "L3142-31", "L3142-32", "L3142-33", "L3142-34", "L3142-105", "L3142-106", "L3142-107", "L3142-108", "L3142-109"] },
+            Domaine { cle: "mensualisation", titre: "La mensualisation et les retenues sur salaire", numeros: &["L3242-1", "L3242-2", "L3242-3", "L3251-1"] },
         ],
     },
     // ------------------------------------------------------------------
@@ -231,6 +247,13 @@ pub static TEXTES: &[Texte] = &[
             // qui dit qu'un forfait de sante ne baisse pas avec le temps de
             // travail (`calcul::plafond_de_la_sante`).
             Domaine { cle: "sante_dispenses", titre: "Les dispenses d'adhesion aux garanties collectives de sante", numeros: &["R242-1-6"] },
+            // LA PROTECTION SOCIALE COMPLEMENTAIRE PENDANT UNE SUSPENSION (15/10/2026 ;
+            // `atelier/reference/sources/suspension-non-remuneree/legi-extrait-code-de-la-securite-sociale-20261015.md`) :
+            // le caractere collectif et obligatoire qui exclut les contributions patronales de l'assiette (R242-1-1 a
+            // R242-1-5), la couverture sante obligatoire des salaries (L911-1, L911-2, L911-7, L911-8, D911-1 a D911-8),
+            // et l'assiette de la CRDS (L136-2). Le maintien de la sante d'un mois suspendu sans indemnisation :
+            // `calcul::sante_de_la_suspension`.
+            Domaine { cle: "protection_complementaire", titre: "Les garanties collectives de protection sociale complementaire", numeros: &["R242-1-1", "R242-1-2", "R242-1-3", "R242-1-4", "R242-1-5", "L911-1", "L911-2", "L911-7", "L911-8", "D911-1", "D911-2", "D911-3", "D911-4", "D911-5", "D911-6", "D911-7", "D911-8", "L136-2"] },
             // LES MAJORATIONS DES EMPLOYEURS AFFILIES A UNE CAISSE DE CONGES
             // (10/10/2026, lot V1n) : le FNAL, le versement mobilite et les
             // contributions de formation se paient par une majoration de
@@ -241,6 +264,29 @@ pub static TEXTES: &[Texte] = &[
             // L130-1 ne le dit plus (le guide Urssaf de la DSN le cite encore) ;
             // il est dans L133-10, qui compte la fraction egale a 0,50 pour 1.
             Domaine { cle: "arrondi", titre: "L'arrondi a l'euro des cotisations et de leurs assiettes declarees", numeros: &["L133-10"] },
+            // LES SIGNALEMENTS D'EVENEMENT ET LEUR DELAI (15/10/2026, lot << les obligations d'un arret >>). R133-13 dit
+            // quels evenements la DSN declare (le debut et la fin d'un arret, la fin du contrat) ; R133-14, II, quand :
+            // avec la mensuelle du mois, sauf la fin du contrat et -- quand l'employeur n'est PAS subroge -- le debut et la
+            // fin de l'arret, << dans un delai fixe par arrete [...] qui ne peut exceder cinq jours ouvres >> (l'arrete du
+            // 2 juillet 2013, plus bas) ; ses exceptions : aucune retenue sur le salaire du mois (1°), les fins de CDD
+            // d'usage du 3° de L1242-2 (2°). `paie/src/obligations.rs`.
+            Domaine { cle: "signalements", titre: "Les signalements d'evenement de la DSN et leur delai", numeros: &["R133-13", "R133-14"] },
+            // LA DECLARATION D'ACCIDENT DU TRAVAIL (15/10/2026). Hors DSN : L441-2 la met a la charge de l'employeur << de
+            // tout accident dont il a eu connaissance >>, R441-3 en fixe le delai (quarante-huit heures, non compris les
+            // dimanches et jours feries), R441-2 celui de la victime envers l'employeur (vingt-quatre heures), R441-6 les
+            // reserves motivees (dix jours francs). L411-1 et L411-2 disent que l'accident de trajet en est un ; L441-5 la
+            // feuille d'accident ; R441-4 l'attestation de salaire que la DSN remplit (R133-14, IV). `paie/src/obligations.rs`.
+            Domaine { cle: "accident_du_travail", titre: "La declaration d'un accident du travail ou de trajet", numeros: &["L411-1", "L411-2", "L441-1", "L441-2", "L441-4", "L441-5", "R441-1", "R441-2", "R441-3", "R441-4", "R441-6", "R441-7"] },
+            // LA MALADIE PROFESSIONNELLE N'EST PAS DECLAREE PAR L'EMPLOYEUR : L461-5 la met << par les soins de la
+            // victime >>, R461-5 lui donne quinze jours. Le motif d'arret 05 n'appelle donc pas de declaration d'accident.
+            Domaine { cle: "maladie_professionnelle", titre: "La declaration d'une maladie professionnelle (par la victime)", numeros: &["L461-5", "R461-5"] },
+            // LE CONGE DE DEUIL ET SES INDEMNITES JOURNALIERES (15/10/2026, lot << le deuil >>). L331-9 : pendant le conge
+            // de L3142-1-1 du code du travail, l'assure percoit l'indemnite journaliere de L331-3 ; l'employeur qui maintient
+            // le salaire (L3142-2) est subroge de plein droit. D331-7 : l'indemnisation se fractionne comme le conge.
+            // R323-10 : l'attestation de salaire que l'employeur adresse a la caisse pour les indemnites journalieres, et que
+            // la DSN remplit d'ordinaire (R133-14, IV) -- pas pour le deuil, que la DSN ne couvre pas (la page de
+            // net-entreprises, `accident-du-travail/`). `paie/src/obligations.rs`, l'obligation `attestation_salaire`.
+            Domaine { cle: "conge_de_deuil", titre: "Le conge de deuil d'un enfant : ses indemnites journalieres et l'attestation de salaire", numeros: &["L331-9", "D331-7", "R323-10"] },
         ],
     },
     // ------------------------------------------------------------------
@@ -285,6 +331,22 @@ pub static TEXTES: &[Texte] = &[
         titre: "Arrete du 24 janvier 1975 (artistes du spectacle) -- le plafond",
         domaines: &[
             Domaine { cle: "artistes", titre: "Les cotisations et le plafond des artistes du spectacle", numeros: &["1", "2", "3", "3 bis"] },
+        ],
+    },
+    // ------------------------------------------------------------------
+    // LE DELAI DES SIGNALEMENTS D'EVENEMENT (15/10/2026). R133-14, II, du code de la securite sociale renvoie le delai de
+    // la fin du contrat et de l'arret non subroge a << un arrete conjoint du ministre charge de la securite sociale et du
+    // ministre charge de l'emploi, qui ne peut exceder cinq jours ouvres >>. C'est celui-ci (Legifrance, JORFTEXT000027683422) :
+    // son article 1er fixe ce delai a cinq jours ouvres. Un arrete, pas un code, range sous son JORFTEXT comme celui de 1975.
+    // `paie/src/obligations.rs`, et `logiciel/donnees/obligations-base.json`.
+    Texte {
+        cle: "evenements-dsn-2013",
+        legitext: "JORFTEXT000027683422",
+        nom: "Arrete du 2 juillet 2013 fixant le delai de transmission des evenements dans le cadre de la declaration sociale nominative",
+        dossier: "arrete-2013-delai-evenements-dsn",
+        titre: "Arrete du 2 juillet 2013 (DSN) -- le delai des signalements d'evenement",
+        domaines: &[
+            Domaine { cle: "delai", titre: "Le delai de transmission des evenements", numeros: &["1"] },
         ],
     },
     // ------------------------------------------------------------------
@@ -397,6 +459,12 @@ pub static TEXTES: &[Texte] = &[
             // deuxieme mois suivant sa transmission » ; ce qui a ete
             // retenu ne se recalcule pas (`pas::des_paies`).
             Domaine { cle: "pas", titre: "La retenue a la source : quand, et a quel taux", numeros: &["1671"] },
+            // L'ASSIETTE DU PRELEVEMENT A LA SOURCE ET LA SANTE PATRONALE REINTEGREE (15/10/2026 ;
+            // `atelier/reference/sources/suspension-non-remuneree/legi-extrait-code-general-des-impots-20261015.md`) : 83,
+            // 1° quater (la part patronale « frais de sante » n'est pas deductible : elle se reintegre au net fiscal), et
+            // 204 A a 204 H (la retenue a la source, son assiette « montant net imposable », son taux). Une remuneration
+            // nette fiscale negative : 50.013 a 0.00 (`pas::du_versement`, fiche DSN 1810).
+            Domaine { cle: "assiette_pas", titre: "L'assiette de la retenue a la source, et la sante patronale reintegree", numeros: &["83", "204 A", "204 B", "204 E", "204 F", "204 H"] },
         ],
     },
 ];

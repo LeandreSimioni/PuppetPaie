@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TEXTE_JURI_JUDI>
+<META>
+<META_COMMUN>
+<ID>JURITEXT000007018764</ID>
+<ANCIEN_ID>CXCXAX1987X05X05X00316X000</ANCIEN_ID>
+<ORIGINE>JURI</ORIGINE>
+<URL>texte/juri/judi/JURI/TEXT/00/00/07/01/87/JURITEXT000007018764.xml</URL>
+<NATURE>ARRET</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_JURI>
+<TITRE>Cour de Cassation, Chambre sociale, du 14 mai 1987, 84-43.854, Publié au bulletin</TITRE>
+<DATE_DEC>1987-05-14</DATE_DEC>
+<JURIDICTION>Cour de cassation</JURIDICTION>
+<NUMERO/>
+<SOLUTION>Rejet .</SOLUTION>
+</META_JURI>
+<META_JURI_JUDI>
+<NUMEROS_AFFAIRES>
+<NUMERO_AFFAIRE>84-43854</NUMERO_AFFAIRE>
+</NUMEROS_AFFAIRES>
+<PUBLI_BULL publie="oui">Bulletin 1987 V N° 316 p. 201</PUBLI_BULL>
+<FORMATION>CHAMBRE_SOCIALE</FORMATION>
+
+<FORM_DEC_ATT>Conseil de prud'Hommes de Cholet, 1984-05-29</FORM_DEC_ATT>
+<DATE_DEC_ATT>1984-05-29</DATE_DEC_ATT>
+<SIEGE_APPEL/>
+<JURI_PREM/>
+<LIEU_PREM/>
+<DEMANDEUR/>
+<DEFENDEUR/>
+<PRESIDENT>Président :M. Jonquères</PRESIDENT>
+<AVOCAT_GL>Avocat général :M. Ecoutin</AVOCAT_GL>
+<AVOCATS/>
+<RAPPORTEUR>Rapporteur :M. Goudet</RAPPORTEUR>
+</META_JURI_JUDI>
+</META_SPEC>
+</META>
+<TEXTE>
+<BLOC_TEXTUEL>
+<CONTENU>
+<br/>   Sur le moyen unique :  <br/>
+<br/>
+<br/>   Attendu, selon le jugement attaqué (conseil de prud'hommes de Cholet, 29 mai 1984), que Mme X... a été engagée, à compter du 9 février 1982 en qualité de vendeuse par la société de Diffusion de prêt-à-porter (SDPP) ; <br/>
+<br/>   Attendu que la SDPP fait grief au jugement de l'avoir condamnée à verser à Mme X... un complément de salaire pour la période du 9 au 28 février 1982 aux motifs, selon le pourvoi, que la salariée, payée au mois, avait été absente de l'entreprise du 1er au 8 février et que la retenue par heure d'absence était égale au quotient du salaire mensuel par le nombre d'heures de travail dans l'entreprise pour le mois considéré, alors qu'antérieurement à sa prise de fonction, Mme X... ne pouvait être tenue pour absente de l'entreprise, qu'ainsi le conseil de prud'hommes a violé l'accord national interprofessionnel du 10 décembre 1977 sur la mensualisation annexé à la loi du 19 janvier 1978 ; <br/>
+<br/>   Mais attendu que le conseil de prud'hommes, ayant relevé qu'en février 1982, l'horaire de travail dans l'entreprise avait été de 156 heures, en a exactement déduit que le salaire horaire de Mme X..., dont la rémunération mensuelle s'élevait à 3 146 francs, était de 20,17 francs et que les 117 heures de travail effectuées par elle durant le mois devaient être payées à ce taux ; que par ce seul motif, les juges du fond ont justifié leur décision ; <br/>
+<br/>         PAR CES MOTIFS : <br/>
+<br/>   REJETTE le pourvoi<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<SOMMAIRE>
+<SCT ID="8A" TYPE="PRINCIPAL">CONTRAT DE TRAVAIL, EXECUTION - Salaire - Mensualisation - Accord du 10 décembre 1977 - Retenue par heures d'absence - Méthode de calcul
+
+</SCT>
+<ANA ID="8A">A justifié sa décision le conseil de prud'hommes qui, pour condamner un employeur à verser un complément de rémunération, a relevé que le salaire d'un employé devait être déterminé en retenant un taux horaire calculé en fonction du salaire mensuel et du nombre d'heures effectuées chaque mois dans l'entreprise et en multipliant ce taux ainsi défini par le nombre d'heures réellement accomplies .
+
+</ANA>
+</SOMMAIRE>
+
+<CITATION_JP>
+<CONTENU>A RAPPROCHER :
+ Chambre sociale, 1982-02-11 Bulletin 1982, V, n° 90, p. 65 (cassation).&lt;br/&gt;</CONTENU>
+</CITATION_JP>
+</TEXTE>
+<LIENS>
+<LIEN cidtexte="" datesignatexte="" id="" naturetexte="" nortexte="" num="" numtexte="" sens="source" typelien="CITATION">Accord national interprofessionnel 1977-12-10</LIEN>
+</LIENS>
+</TEXTE_JURI_JUDI>

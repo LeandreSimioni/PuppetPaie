@@ -113,11 +113,23 @@ rend les fichiers. La compétence `paie` décrit exactement ce qu'il fait.
 racine du dossier sous Windows, dans `atelier/` sous Mac et Linux) : une
 fenêtre s'ouvre, et c'est tout le logiciel.
 
-| système | raccourci | ce qu'il lance |
-|---|---|---|
-| Windows | `PuppetPaie.cmd`, à la racine | `logiciel/puppetpaie.exe` (avec `WebView2Loader.dll`, `donnees/` et `interface/` à côté) |
-| Mac | `atelier/PuppetPaie.command` (clic droit › Ouvrir la première fois) | `atelier/PuppetPaie.sh` |
-| Linux | `atelier/PuppetPaie.sh` (clic droit › Lancer comme un programme, ou `./PuppetPaie.sh`) | le programme du système dans `atelier/sources/paie/bin/linux/` (`bin/mac/` sur un Mac) |
+| système | ses programmes dans `logiciel/` | son archive publiée | raccourci | ce qu'il lance |
+|---|---|---|---|---|
+| Windows | `puppetpaie.exe` et `WebView2Loader.dll`, à la racine (suivis par Git ; l'installeur Windows ne pose qu'eux) | `puppetpaie-<version>-windows.zip` | `PuppetPaie.cmd`, à la racine | `logiciel/puppetpaie.exe` (avec `WebView2Loader.dll`, `donnees/` et `interface/` à côté) |
+| Linux | `linux/puppetpaie` (la fenêtre) et `linux/paie` (le moteur) | `puppetpaie-<version>-linux.zip` | `logiciel/linux/puppetpaie` directement, ou `atelier/PuppetPaie.sh` (clic droit › Lancer comme un programme, ou `./PuppetPaie.sh`) | `logiciel/linux/puppetpaie` (la fenêtre), sinon `logiciel/linux/paie interface` ; dans un dépôt de travail, le programme de `atelier/sources/paie/bin/linux/` |
+| Mac | `mac/puppetpaie` et `mac/paie`, universels (Intel et Apple) | `puppetpaie-<version>-mac.zip` | `atelier/PuppetPaie.command` (clic droit › Ouvrir la première fois) | `atelier/PuppetPaie.sh` : `logiciel/mac/puppetpaie`, sinon `logiciel/mac/paie interface` ; dans un dépôt de travail, `atelier/sources/paie/bin/mac/` |
+| tous | les systèmes publiés à la fois | `puppetpaie-<version>-tout-systeme.zip` | celui du système où l'on est | un dossier portable qui passe d'une machine à l'autre ; le repli d'une installation dont le système n'a pas son archive |
+
+Le flux « Publier » compile les programmes des trois systèmes (Linux et Mac ne
+sont posés dans `logiciel/linux/` et `logiciel/mac/` que par lui : jamais
+suivis par Git) et publie les quatre archives ensemble (Léandre, 15/10/2026 :
+« Il y a les quatre : une par système et une tout-système, ensemble ») ;
+chaque installation prend celle de son système (`paie/src/maj.rs`). Au
+lancement de « Publier », on choisit ce qu'on publie (`systemes` : `tous`,
+`windows-linux`, `windows`) : seules les archives fabriquées sont publiées,
+celle de tous porte ce qui a été fabriqué (et le dit, `systemes` dans
+`derniere.json`), et une installation dont le système n'est pas publié garde
+sa version et le dit, sans rien télécharger.
 
 Plus de Python (lot J5) : la fenêtre est le programme `puppetpaie`, une
 fenêtre Tauri (WebView2 sous Windows, WebKit sous Mac et Linux) qui tient le
@@ -711,8 +723,13 @@ paie arret signaler Celi --dernier-jour 2026-10-07
 paie depot-dsn sorties/2026-10/SignalementArret_Celi_20261007.dsn --test
 ```
 
-`saisir` **n'envoie rien** : l'arrêt est écrit dans `arrets/AAAA-MM.json`, au
-mois où il commence. `signaler` **écrit un fichier**, et c'est `depot-dsn` qui
+`saisir` **n'envoie rien** : l'arrêt est écrit dans le magasin des **imprévus**
+(`imprevus/AAAA-MM.json`), au mois de son dernier jour travaillé. C'est un fait
+saisi **une fois** : la production de chaque mois qu'il traverse en tire le bloc
+60 de la DSN et, pour un permanent, la ligne qui retire le salaire des jours
+d'absence (et le maintien de salaire saisi sur l'arrêt, `paie arret maintien
+Celi --dernier-jour 2026-10-07 --mois 2026-10 --montant 300`) ; les cachets
+d'un intermittent datés pendant l'arrêt sont nommés, jamais retirés d'office. `signaler` **écrit un fichier**, et c'est `depot-dsn` qui
 le dépose — même point de dépôt, même mot de passe du logiciel, même journal
 qu'une DSN mensuelle. Comme pour une DSN : **le dépôt de test d'abord**.
 
@@ -734,6 +751,24 @@ Ce que le moteur refuse plutôt que de le deviner :
 - une DSN mensuelle qui **laisserait tomber** un arrêt dont le contrat n'est
   pas déclaré ce mois-là : le bloc `S21.G00.60` se déclare sous le contrat
   suspendu, et un arrêt qui disparaît en silence est un arrêt non déclaré.
+
+**Ce que chaque arrêt fait naître, et pour quand** : la route `arrets` le rend
+sous chaque arrêt (`paie/src/obligations.rs`, règles dans
+`logiciel/donnees/obligations-base.json`, chacune avec son texte déposé) — le
+signalement et son délai, la déclaration d'accident du travail (hors DSN,
+quarante-huit heures), et pour un **deuil d'enfant** (motif 19), à la place du
+signalement, l'**attestation de salaire** sur net-entreprises (hors DSN, dès
+réception de l'avis d'arrêt) : la DSN ne couvre pas les congés pour deuil.
+Le signalement d'un deuil s'écrit quand même si on le demande (la norme
+l'admet), avec un avertissement. La compagnie dit le jour où elle a su
+l'arrêt, et ce qu'elle a fait hors DSN :
+
+```bash
+paie arret connu Celi --dernier-jour 2026-10-07 --le 2026-10-08
+paie arret declare Celi --dernier-jour 2026-10-07 --le 2026-10-08 --ou net-entreprises --reference 123
+paie arret declare Celi --dernier-jour 2026-10-07 --le 2026-10-08 --ou net-entreprises-ecran --attestation
+paie arret declare Celi --dernier-jour 2026-10-07 --retirer [--attestation]
+```
 
 Un signalement déjà parti ne se corrige pas en en renvoyant un autre : il faut
 un **annule-et-remplace** (type 03), qui vise l'identifiant rendu par le point
@@ -1029,15 +1064,17 @@ mois**, avec les mêmes `debut` et `numero`.
 
 **Une saisie de permanent dit des FAITS, pas des lignes.** Depuis le
 18/09/2026, `charger` en déduit les lignes du bulletin — salaire de base et
-son prorata, congés pris et l'indemnité qui les couvre, absences, primes,
-solde de tout compte le dernier mois :
+son prorata, congés pris et l'indemnité qui les couvre, primes, solde de
+tout compte le dernier mois. Un arrêt de travail ou une suspension (congé
+parental, sabbatique, sans solde…) n'est **pas** un fait du mois : c'est un
+**imprévu**, saisi une fois sur le salarié (`paie arret saisir`, `paie
+suspension saisir`), dont le moteur tire la ligne de chaque mois qu'il traverse
+(une saisie qui porte encore des `absences` est refusée) :
 
 ```json
 { "salarie": "Camille", "nature": "cdi", "debut": "2026-01-05",
   "numero": "AD1.26.1", "salaire_mensuel": 2200.00, "quotite_contrat": 151.67,
   "conges_pris": [ { "debut": "2026-07-13", "fin": "2026-07-17" } ],
-  "absences":    [ { "motif": "maladie", "debut": "2026-05-04",
-                     "fin": "2026-05-15", "maintien": 900.00 } ],
   "primes":      [ { "libelle": "Prime de tournée", "montant": 200 } ] }
 ```
 
@@ -1549,8 +1586,10 @@ n'est pas une compagnie qui se met à jour, c'est le logiciel. Au lancement, il
 ouverte, au dépôt que dit le réglage de l'installation (`maj/reglage.json`, à
 côté de `logiciel/`, clé `depot` : un dossier ou une adresse web ; en repli,
 `prive/config/maj.json` ; sinon l'adresse par défaut du code). Si elle existe,
-elle est téléchargée dans le fil de fond, vérifiée (condensat, puis **signature
-de l'éditeur** — Ed25519, la clé publique est dans `paie/src/maj.rs`,
+l'archive de son système (`derniere.json` en nomme quatre : `windows`, `linux`,
+`mac`, et `tout-systeme`, prise si la sienne manque) est téléchargée dans le
+fil de fond, vérifiée (condensat, puis **signature de l'éditeur**, une par
+archive — Ed25519, la clé publique est dans `paie/src/maj.rs`,
 `CLE_PUBLIQUE` : un dépôt compromis ne peut pas glisser une version qui n'est
 pas la nôtre), déballée dans `maj/`, à côté de `logiciel/`, et **contrôlée** :
 son programme doit lire la configuration de chaque compagnie de l'installation.
@@ -1600,7 +1639,8 @@ paie maj --cle                      # une fois : la clé qui signe
 paie maj --publier --notes "..." [--calcul "..."] [--exigee "..."]
 ```
 
-pose l'archive **signée** et `derniere.json` dans le dépôt, et refuse de
+pose les archives **signées** (une par système dont la fenêtre est dans
+`logiciel/`, et celle de tous) et `derniere.json` dans le dépôt, et refuse de
 republier un numéro déjà pris : augmenter `VERSION` d'abord. La clé privée
 vit dans `prive/config/maj-cle-privee.bin`, scellée par la clé maîtresse
 du coffre (14/10/2026) : elle s'ouvre où le coffre s'ouvre, par la clé du
@@ -1683,7 +1723,9 @@ PuppetPaie.cmd            le lanceur (Windows)
 logiciel/                 exactement ce qu'une compagnie reçoit, et ce que publie
                           la mise à jour : puppetpaie.exe, WebView2Loader.dll,
                           VERSION (une date), donnees/ (barèmes, bases, modèles,
-                          sources.json), interface/ (la page)
+                          sources.json), interface/ (la page) ; et, posés par le
+                          flux « Publier » seulement, linux/ et mac/ (puppetpaie,
+                          paie) : une archive par système, et une pour tous
 fictives/                 les compagnies fictives, livrées aussi
 maj/                      la mise à jour de l'installation (jamais dans Git)
 prive/                    les données de la compagnie du poste
@@ -1721,8 +1763,9 @@ prive/                    les données de la compagnie
   config/                 entreprise, salariés, spectacles, barèmes, compteurs,
                           effectifs (écrit par le moteur)
   paies/                  fichiers de saisie, un par mois
-  arrets/                 les arrêts de travail, au mois où ils commencent
-                          (créé au premier arrêt)
+  imprevus/               les imprévus des salariés (arrêts de travail,
+                          suspensions), au mois où ils commencent (créé au
+                          premier) ; l'ancien dossier arrets/ n'est plus lu
   exports/                les états pour le comptable et les organismes
   historique/             les contrats et les paies attestés avant ce logiciel
                           (l'import), et les copies de ce qu'il a repris

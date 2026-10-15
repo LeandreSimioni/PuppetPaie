@@ -109,7 +109,12 @@ fn un_mois_sans_saisie_n_a_pas_de_paie_et_le_bilan_n_a_rien_a_dire() {
     assert_eq!(b["dpae"], rien);
     assert_eq!(b["contrat-signature"], rien);
     assert_eq!(b["documents"], rien);
-    assert_eq!(b["dsn"], json!({"couleur": "", "phrase": "DSN pas encore déposée"}));
+    // L'etape DSN dit aussi son echeance de depot (`echeance_dsn`) : le samedi 15/02/2031 se reporte au lundi 17/02/2031,
+    // a midi (CSS R. 133-14, I, `atelier/reference/sources/code-de-la-securite-sociale/xml/R133-14.xml`).
+    let mut dsn = b["dsn"].clone();
+    let echeance = dsn.as_object_mut().unwrap().remove("echeance_depot").unwrap();
+    assert_eq!((echeance["jour"].as_str(), echeance["heure"].as_str()), (Some("2031-02-17"), Some("12:00")), "{}", echeance);
+    assert_eq!(dsn, json!({"couleur": "", "phrase": "DSN pas encore déposée"}));
 }
 
 #[test]
@@ -191,7 +196,10 @@ fn une_dsn_reelle_ferme_le_mois_et_une_paie_modifiee_la_rouvre_tant_que_la_norme
     // Une DSN refusee n'ouvre rien.
     journal(c, &[dsn_reelle(MOIS, Some("KO"), json!({"type": "01", "ordre": "1"}))]);
     let b = rendu(c, "bilan-du-mois", json!({"mois": MOIS}), "2026-09-10");
-    assert_eq!(b["dsn"], json!({"couleur": "refus", "phrase": "DSN REFUSÉE — B1-208-10"}));
+    // (L'echeance de depot du mois, `echeance_depot`, se dit toujours : elle n'ouvre rien.)
+    let mut dsn = b["dsn"].clone();
+    assert!(dsn.as_object_mut().unwrap().remove("echeance_depot").is_some());
+    assert_eq!(dsn, json!({"couleur": "refus", "phrase": "DSN REFUSÉE — B1-208-10"}));
 }
 
 fn modifier_saisie(c: &Path, f: impl FnOnce(&mut Value)) {
