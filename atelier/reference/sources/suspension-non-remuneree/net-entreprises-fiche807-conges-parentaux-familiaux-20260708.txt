@@ -1,0 +1,179 @@
+Date de modification : 08/07/2026 11:18 AM
+
+Comment déclarer les différents congés parentaux et familiaux ?
+
+Le Contexte
+
+Les différents types de congés parentaux à renseigner en DSN au niveau du bloc " Autre suspension de l'exécution du contrat - S21.G00.65 " sont les suivants :
+
+Le congé de présence parentale, à renseigner avec la valeur " 607 " au niveau de la rubrique " Motif de suspension - S21.G00.65.001 "
+
+Le congé de présence parentale permet à l’individu d'obtenir des jours de congé afin de s'occuper d'un enfant à charge atteint d'une maladie, d'un handicap ou qui est victime d'un accident d'une particulière gravité rendant indispensable une présence soutenue et des soins contraignants.
+
+Il s'agit d'un congé indemnisé qui peut être pris de manière continue, fractionnée ou à temps partiel.
+
+Le congé de présence parentale peut être pris à temps plein ou de manière fractionnée : Dans cette situation, le congé doit être déclaré en DSN via le bloc « Autre suspension de l'exécution du contrat - S21.G00.65 » avec le motif « 607 - Congé de présence parentale » en rubrique « Motif de suspension - S21.G00.65.001 ».
+
+Le congé de présence parentale peut être pris à temps partiel : Dans cette situation, le congé est à déclarer en DSN via le bloc « Aménagement du temps de travail - S21.G00.75 » à partir de la version de norme P27V01 avec le motif « 607 - Congé de présence parentale » en rubrique « Motif de l'aménagement - S21.G00.75.001 ». Avant l’entrée en vigueur de la version de norme P27V01, les déclarations se font via le bloc « Autre suspension de l'exécution du contrat - S21.G00.65 ».
+
+Le congé de solidarité familiale, à renseigner avec la valeur " 627 " au niveau de la rubrique " Motif de suspension - S21.G00.65.001 "
+
+Le congé de solidarité familiale permet à l’individu d'assister, sous conditions, un proche en fin de vie.
+
+Il s'agit d'un congé indemnisé qui peut être pris de manière continue, fractionnée ou à temps partiel.
+
+Si le congé de solidarité familiale est pris à temps plein ou de manière fractionnée, il est à déclarer en DSN via le bloc « Autre suspension de l'exécution du contrat - S21.G00.65 » avec le motif « 627 - Congé de solidarité familiale » en rubrique « Motif de suspension - S21.G00.65.001 ».
+
+Si le congé de solidarité familiale est pris à temps partiel : Dans cette situation, le congé est à déclarer en DSN via le bloc « Aménagement du temps de travail - S21.G00.75 » à partir de la version de norme P27V01. Ce motif d’aménagement du temps de travail fait l’objet d’un code spécifique « 627 - Congé de solidarité familiale » en rubrique « Motif de l'aménagement - S21.G00.75.001 ». Avant l’entrée en vigueur de la version de norme P27V01, les déclarations se font via le bloc « Autre suspension de l'exécution du contrat - S21.G00.65 ».
+
+Le congé parental d'éducation, à renseigner avec la valeur "632" au niveau de la rubrique "Motif de suspension - S21.G00.65.001"
+
+A l'occasion de la naissance ou de l'arrivée au foyer d'un enfant, l’individu peut arrêter de travailler pour s'occuper de son enfant. Dans ce cas, il peut bénéficier d'un congé parental d'éducation, sous conditions d'ancienneté. La durée du congé varie en fonction du nombre d’enfants nés ou adoptés simultanément.
+
+Le congé parental d’éducation peut être pris à temps plein : Dans cette situation, le congé est déclaré en DSN via le bloc « Autre suspension de l'exécution du contrat - S21.G00.65 » avec le motif « 632 - Congé parental d'éducation ».
+
+Le congé parental d’éducation peut être pris à temps partiel : Dans cette situation, il est à déclarer en DSN via le bloc « Aménagement du temps de travail - S21.G00.75 » à partir de la version de norme P27V01. Ce motif d’aménagement du temps de travail fait l’objet d’un code spécifique « 632 - Congé parental d'éducation » en rubrique « Motif de l'aménagement - S21.G00.75.001 ». Avant l’entrée en vigueur de la version de norme P27V01, les déclarations se font via le bloc « Autre suspension de l'exécution du contrat - S21.G00.65 ».
+
+Le congé pour enfant malade, à renseigner avec la valeur "636" au niveau de la rubrique "Motif de suspension - S21.G00.65.001"
+
+Le congé pour enfant malade permet de bénéficier de jours de congés en tant que salarié si son enfant est malade ou accidenté. L’enfant du salarié doit avoir moins de 16 ans. Le salarié doit en assumer la charge.
+
+Le salarié n’est pas rémunéré durant les jours de congé pour enfant malade. Ce congé doit être à déclarer en DSN via le bloc « Autre suspension de l'exécution du contrat - S21.G00.65 ». Ce motif de suspension de l’exécution du contrat fait l’objet d’un code spécifique « 636 - Congé pour enfant malade » en rubrique « Motif de suspension - S21.G00.65.001 ».
+
+Toutefois, des dispositions conventionnelles plus favorables peuvent prévoir une rémunération durant le congé. Dans ces circonstances, ce congé est considéré comme un congé payé et il n’est pas attendu de le déclarer en DSN via le bloc « Autre suspension de l'exécution du contrat - S21.G00.65 ».
+
+Le congé pour évènement familial, à renseigner avec la valeur "637" au niveau de la rubrique "Motif de suspension - S21.G00.65.001"
+
+Le congé pour évènement familial permet à l’individu de bénéficier de jours d'absence, dont le nombre varie en fonction des évènements concernés (Mariage, PACS, décès, naissance ou adoption, ...etc.).
+
+Ce congé doit être à déclarer en DSN via le bloc « Autre suspension de l'exécution du contrat - S21.G00.65 ». Ce motif de suspension de l’exécution du contrat fait l’objet d’un code spécifique « 637 - Congé pour évènement familial » en rubrique « Motif de suspension - S21.G00.65.001 ».
+
+Le congé de proche aidant
+
+Le congé de proche aidant permet à un individu de s'occuper d'une personne handicapée ou invalide ou en perte d'autonomie ou âgée ou avec laquelle il réside ou entretient des liens étroits et stables.
+
+Il s'agit d'un congé indemnisé qui peut être pris de manière continue, fractionnée ou à temps partiel.
+
+Le congé de proche aidant peut être pris à temps plein ou de manière fractionnée : Dans cette situation, le congé doit être déclaré en DSN via le bloc « Autre suspension de l'exécution du contrat - S21.G00.65 » avec le motif « 650 - Congé proche aidant » en rubrique « Motif de suspension - S21.G00.65.001 ».
+
+Le congé de proche aidant peut être pris à temps partiel : Dans cette situation, le congé est à déclarer en DSN via le bloc « Aménagement du temps de travail - S21.G00.75 » à partir de la version de norme P27V01 avec le motif « 650 - Congé proche aidant » en rubrique « Motif de l'aménagement - S21.G00.75.001 ». Avant l’entrée en vigueur de la version de norme P27V01, les déclarations se font via le bloc « Autre suspension de l'exécution du contrat - S21.G00.65 ».
+
+Les congés de type parental ou familial autres que ceux définis ci-dessus sont à déclarer en DSN via le bloc « Autre suspension de l'exécution du contrat - S21.G00.65 ». Le motif de suspension de l’exécution du contrat à renseigner au niveau de la rubrique « Motif de suspension - S21.G00.65.001 » est la valeur « 501 - Congé divers non rémunéré ».
+
+Déclarer les différents congé parentaux et familiaux
+
+Les modalités de déclaration d’une suspension temporaire du contrat de travail sont explicitées sur la fiche consigne « 3272 - La suspension temporaire du contrat de travail en DSN ».
+
+Les modalités de déclaration d’un aménagement du temps de travail sont explicitées sur la fiche consigne « 3372 - Déclarer un aménagement du temps de travail ».
+
+Les modalités de déclaration d’un congé de présence parentale sont explicitées sur la fiche consigne « 2420 – Congé de présence parentale ».
+
+Les modalités de déclaration d’un congé de proche aidant sont explicitées sur la fiche consigne « 2402 – Congé de proche aidant ».
+
+La réglementation (Textes de lois, BOSS, etc.)
+
+Congé de présence parentale :
+
+Secteur privé :
+
+Articles L1225-62 à L1225-65 du Code du travail
+
+Articles R1225-14 à D1225-17 du Code du travail
+
+Articles D544-1 à D544-10 du Code de la sécurité sociale
+
+Fonction publique :
+
+Articles L632-1 à L632-4 du Code général de la fonction publique
+
+Décret n°2006-536 du 11 mai 2006 pour la FPE
+
+Décret n°2006-1022 du 21 août 2006 pour la FPT
+
+Décret n°2006-1535 du 5 décembre 2006 pour la FPH
+
+Congé de solidarité familiale :
+
+Secteur privé :
+
+Articles L3142-6 à L3142-13 du Code du travail
+
+Article L3142-14 du Code du travail
+
+Article L3142-15 du Code du travail
+
+Article L161-9-3 du Code de la sécurité sociale
+
+Articles D3142-2 à D3142-4 du Code du travail
+
+Articles D3142-5 à D3142-6 du Code du travail
+
+Articles L168-1 à L168-7 du Code de la sécurité sociale
+
+Articles D168-1 à D168-10 du Code de la sécurité sociale
+
+Fonction publique :
+
+Articles L633-1 à L633-4 du Code général de la fonction publique
+
+Article R327-31 du Code général de la fonction publique
+
+Articles L168-1 à L168-7 du Code de la sécurité sociale
+
+Article L161-9-3 du Code de la sécurité sociale
+
+Congé parental d'éducation :
+
+Secteur privé :
+
+Articles L1225-47 à L1225-59 du Code du travail
+
+Articles R1225-12 à R1225-13 du Code du travail
+
+Articles L311-1 à L311-11 du Code de la sécurité sociale
+
+Fonction publique :
+
+Articles L515-1 à L515-12 du Code général de la fonction publique
+
+Congé pour enfant malade :
+
+Secteur privé :
+
+Article L1225-61 du Code du travail
+
+Articles L1226-23 à L1226-24 du Code du travail
+
+Fonction publique :
+
+Article L622-1 du Code général de la fonction publique
+
+Article D3142-1-2 du Code du travail
+
+Congé pour évènement familial :
+
+Articles L3142-1 et L3142-5 du Code du travail
+
+Congé de proche aidant :
+
+Secteur privé :
+
+Articles L3142-16 à L3142-25-1 du Code du travail
+
+Article L3142-26 du Code du travail
+
+Article L3142-27 du Code du travail
+
+Articles D3142-7 à D3142-13 du Code du travail
+
+Article L381-1 du Code de la sécurité sociale
+
+Articles L168-8 à L168-16 du Code de la sécurité sociale
+
+Articles D168-10 à D168-18 du Code de la sécurité sociale
+
+Fonction publique :
+
+Articles L634-1 à L634-4 du Code général de la fonction publique
+
+Date de création : 20/05/2016 10:26 AM N° de la fiche : 807

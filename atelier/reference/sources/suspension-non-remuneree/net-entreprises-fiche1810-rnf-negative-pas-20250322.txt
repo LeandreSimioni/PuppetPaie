@@ -1,0 +1,111 @@
+Date de modification : 22/03/2025 04:00 PM
+
+Quelles sont les modalités déclaratives du prélèvement à la source (PAS) dans le cas d’une rémunération nette fiscale (RNF) négative ?
+
+Le contexte
+
+Pour un cas standard, le montant de rémunération nette fiscale (RNF) est strictement positif, dans la mesure où le cumul des cotisations et du prélèvement à la source (PAS) sur un mois ne peut jamais aboutir à un montant net négatif.
+
+Cependant, certaines situations (par exemple dans le cas de régularisations de trop-versé, ou de maintien de cotisations sociales pendant une période de détachement ou de suspension de contrat) peuvent aboutir au versement d'un montant de RNF négatif.
+
+Déclarer une RNF négative
+
+Pour déclarer en DSN ou PASRAU les cas de régularisations de trop-versé, le collecteur renseigne un ou plusieurs bloc(s) régularisation(s) portant sur le ou les mois de trop-versé. Pour plus de précisions, veuillez consulter les fiches consignes relatives aux régularisations.
+
+La rubrique « Montant soumis au PAS - S21.G00.50.013 » ne peut pas être renseignée avec une valeur négative. Il convient alors de renseigner la rubrique « Montant soumis au PAS - S21.G00.50.013 » à 0.00 (zéro).
+
+Exemple
+
+|
+
+S21.G00.50 - Versement individu
+
+|
+
+S21.G00.50.001
+
+|
+
+Date de versement
+
+|
+
+JJMMAAA
+
+|
+
+S21.G00.50.002
+
+|
+
+Rémunération nette fiscale
+
+|
+
+-180.00
+
+|
+
+S21.G00.50.004
+
+|
+
+Montant net versé
+
+|
+
+A renseigner
+
+|
+
+S21.G00.50.006
+
+|
+
+Taux de prélèvement à la source
+
+|
+
+5.00
+
+|
+
+S21.G00.50.007
+
+|
+
+Type du taux de prélèvement à la source
+
+|
+
+01 - Taux transmis par la DGFIP
+
+|
+
+S21.G00.50.008
+
+|
+
+Identifiant du taux de prélèvement à la source
+
+|
+
+9271402520
+
+|
+
+S21.G00.50.009
+
+|
+
+Montant de prélèvement à la source
+
+|
+
+0.00 (= Montant soumis au PAS x Taux de PAS)
+
+| S21.G00.50.013
+| Montant soumis au PAS
+| 0.00 (-180.00 x 5.00% = -9.00)
+
+Date de création : 30/01/2018 09:48 AM N° de la fiche : 1810

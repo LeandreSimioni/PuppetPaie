@@ -1,0 +1,3138 @@
+Date de modification : 29/09/2026 12:06 PM
+
+Exemples illustrant les consignes de l’activité en DSN
+
+Le contexte
+
+Vous trouverez dans cette fiche les exemples illustrant les consignes opérationnelles pour la déclaration en DSN des volumes d’activité rémunérée et d’absence partiellement ou non rémunérée au niveau du bloc « Activité - S21.G00.53 ».
+
+Exemples déclaratifs
+
+1. Déclaration du travail rémunéré en lissé
+
+Exemple 1 : Un individu ayant un contrat à temps plein fixé à 35 heures est présent tout le mois de janvier 2024. L’activité déclarée en lissé pour cet individu sur le mois de janvier 2024 est donc de 151,67 heures.
+
+|
+
+S21.G00.40 – Contrat
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.40.011
+
+|
+
+Unité de mesure de la quotité de travail
+
+|
+
+10 - heure
+
+|
+
+S21.G00.40.012
+
+|
+
+Quotité de travail de référence de l'entreprise pour la catégorie de salarié
+
+|
+
+151.67
+
+|
+
+S21.G00.40.013
+
+|
+
+Quotité de travail du contrat
+
+|
+
+151.67
+
+S21.G00.50 – Versement individu
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+01012024
+
+[1er janvier 2024]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+31012024
+
+[31 janvier 2024]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+002 - Salaire brut servant aux calculs des droits de l’Assurance chômage
+
+Pour rappel, les blocs « Rémunération - S21.G00.51 » de type « 001 - Rémunération brute non plafonnée », « 003 - Salaire rétabli – reconstitué » et « 010 - Salaire de base » sont également obligatoires.
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 - Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+151.67
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+Exemple 2 : Un individu ayant une modalité contractuelle de temps de travail de 218 jours par an (forfait jour) est présent tout le mois de janvier 2024. L’activité déclarée en lissé pour cet individu sur le mois de janvier 2024 est donc de 21,67 jours.
+
+|
+
+S21.G00.40 – Contrat
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.40.011
+
+|
+
+Unité de mesure de la quotité de travail
+
+|
+
+20 - forfait jour
+
+|
+
+S21.G00.40.012
+
+|
+
+Quotité de travail de référence de l'entreprise pour la catégorie de salarié
+
+|
+
+21.67
+
+|
+
+S21.G00.40.013
+
+|
+
+Quotité de travail du contrat
+
+|
+
+21.67
+
+S21.G00.50 – Versement individu
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+01012024
+
+[1er janvier 2024]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+31012024
+
+[31 janvier 2024]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+002 - Salaire brut servant aux calculs des droits de l’Assurance chômage
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 - Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+21.67
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+12 - journée
+
+Exemple 3 : Un individu ayant un contrat à temps partiel fixé à 28 heures est présent tout le mois de mars 2024. L’activité déclarée en lissé pour cet individu sur le mois de mars 2024 est donc de 121,33 heures (28 heures x 52 semaines / 12 mois).
+
+|
+
+S21.G00.40 – Contrat
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.40.011
+
+|
+
+Unité de mesure de la quotité de travail
+
+|
+
+10 - heure
+
+|
+
+S21.G00.40.012
+
+|
+
+Quotité de travail de référence de l'entreprise pour la catégorie de salarié
+
+|
+
+151.67
+
+|
+
+S21.G00.40.013
+
+|
+
+Quotité de travail du contrat
+
+|
+
+121.33
+
+S21.G00.50 – Versement individu
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+01032024
+
+[1er mars 2024]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+31032024
+
+[31 mars 2024]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+002 - Salaire brut servant aux calculs des droits de l’Assurance chômage
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 - Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+121.33
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+2. Déclaration du travail rémunéré au réel
+
+Exemple 4 : Un individu ayant un contrat à temps plein fixé à 35 heures est présent tout le mois de janvier 2024. La mesure d’activité au réel correspond au nombre de jours ouvrés du mois principal déclaré ramené à 7 heures par jour, soit 161 heures (23 jours × 7 heures).
+
+|
+
+S21.G00.40 – Contrat
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.40.011
+
+|
+
+Unité de mesure de la quotité de travail
+
+|
+
+10 - heure
+
+|
+
+S21.G00.40.012
+
+|
+
+Quotité de travail de référence de l'entreprise pour la catégorie de salarié
+
+|
+
+151.67
+
+|
+
+S21.G00.40.013
+
+|
+
+Quotité de travail du contrat
+
+|
+
+151.67
+
+S21.G00.50 – Versement individu
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+01012024
+
+[1er janvier 2024]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+31012024
+
+[31 janvier 2024]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+002 - Salaire brut servant aux calculs des droits de l’Assurance chômage
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 - Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+161.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+Exemple 5 : Un individu ayant une modalité contractuelle de temps de travail de 218 jours par an (forfait jour) est présent tout le mois de janvier 2024. La mesure de son activité au réel correspond dans ce cas au nombre de jours ouvrés du mois principal déclaré, soit 23 jours.
+
+|
+
+S21.G00.40 – Contrat
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.40.011
+
+|
+
+Unité de mesure de la quotité de travail
+
+|
+
+20 - forfait jour
+
+|
+
+S21.G00.40.012
+
+|
+
+Quotité de travail de référence de l'entreprise pour la catégorie de salarié
+
+|
+
+21.67
+
+|
+
+S21.G00.40.013
+
+|
+
+Quotité de travail du contrat
+
+|
+
+21.67
+
+S21.G00.50 – Versement individu
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+01012024
+
+[1er janvier 2024]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+31012024
+
+[31 janvier 2024]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+002 - Salaire brut servant aux calculs des droits de l’Assurance chômage
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 - Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+23.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+12 - journée
+
+3. Déclaration de l'absence partiellement ou pas du tout rémunérée
+
+Exemple 6 : Un individu ayant une modalité contractuelle de temps de travail de 35 heures est absent sans rémunération sur tout le mois de juillet 2026 (congés payés indemnisés par une caisse de congés payés). Quel que soit le mode habituel de déclaration de l’activité par le déclarant (au réel ou au lissé), le volume attendu en type « 01 - Travail rémunéré » correspond à 0 heure et la durée d’absence non rémunérée doit être déclarée au réel, soit 154 heures (22 x 7 heures).
+
+|
+
+S21.G00.40 – Contrat
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.40.011
+
+|
+
+Unité de mesure de la quotité de travail
+
+|
+
+10 - heure
+
+|
+
+S21.G00.40.012
+
+|
+
+Quotité de travail de référence de l'entreprise pour la catégorie de salarié
+
+|
+
+151.67
+
+|
+
+S21.G00.40.013
+
+|
+
+Quotité de travail du contrat
+
+|
+
+151.67
+
+S21.G00.50 – Versement individu
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+01072026
+
+[1er juillet 2026]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+31072026
+
+[31 juillet 2026]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+002 - Salaire brut servant aux calculs des droits de l’Assurance chômage
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 - Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+0.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+02 - Durée d'absence partiellement ou pas rémunérée
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+154.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+Pour rappel, il convient de déclarer les journées de congés payés par la caisse de congés payés dans un bloc « Autre suspension de l'exécution du contrat - S21.G00.65 » avec le motif de suspension « 200 - COP (Congés payés indemnisés par une caisse de congés payés) ».
+
+Exemple 7 : Un individu à temps plein ayant un contrat de 35 heures est en arrêt maladie du lundi 14 au mercredi 23 septembre 2026 inclus. Le salarié travaille habituellement 8 heures du lundi au jeudi et 3 heures le vendredi.
+
+Cas 1 : L’employeur dispose du planning exact du temps d’activité de son salarié. Ainsi le nombre d’heures réelles d’absence à déclarer est de 59 heures, correspondant à :
+
+35 heures d’absence du lundi 14 au vendredi 18 septembre 2026
+
+24 heures d’absence (3 jours x 8h) du lundi 21 au mercredi 23 septembre 2026
+
+Le travail rémunéré étant habituellement déclaré au réel, le nombre d’heures réelles de travail rémunéré à déclarer pour l’individu est de 97 heures, correspondant à :
+
+11 jours de 8 heures travaillés
+
+3 vendredis de 3 heures travaillés
+
+S21.G00.50 – Versement individu
+
+S21.G00.51 – Rémunération
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 - Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+97.00
+
+[(11 x 8.00) + (3 x 3.00)]
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+02 - Durée d'absence partiellement ou pas du tout rémunérée
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+59.00
+
+[35.00 + (3 x 8.00)]
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+NB : Si le déclarant déclare habituellement l’activité en lissé, l’activité de type « 01 - Travail rémunéré » à déclarer serait alors de 92,67 heures (151,67 heures de travail rémunéré - 59,00 heures d’absence non rémunérées) pour cet exemple.
+
+Cas 2 : Le déclarant ne disposant pas du planning du salarié, la modalité classique de travail pris en compte est de 7 heures correspondant à sa durée moyenne de travail par jour. Ainsi, le nombre d’heures d’absence à déclarer est de 56 heures (8 jours œuvrés x 7h).
+
+S21.G00.50 – Versement individu
+
+S21.G00.51 – Rémunération
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 - Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+59.00
+
+[151.67 - 56.00]
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+02 - Durée d'absence non rémunérée
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+56.00
+
+[8 x 7.00]
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+NB : Si le déclarant déclare habituellement l’activité au réel, l’activité de type « 01 - Travail rémunéré » à déclarer serait alors de 98 heures (154,00 heures pour 22 jours de travail rémunéré - 56,00 heures d’absence non rémunérées) pour cet exemple.
+
+Exemple 8 : Un individu ayant un contrat à temps plein fixé à 35 heures est en arrêt maladie du vendredi 5 au lundi 15 juin 2026 inclus et son activité est habituellement déclarée au lissé. Le volume réel d’absence de 49 heures (7 heures x 7 jours ouvrés) est à déclarer en type « 02 - Durée d’absence partiellement ou pas du tout rémunérée » et à déduire de la quotité de travail déclarée au niveau du bloc « Contrat - S21.G00.40 ».
+
+|
+
+S21.G00.40 – Contrat
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.40.011
+
+|
+
+Unité de mesure de la quotité de travail
+
+|
+
+10 - heure
+
+|
+
+S21.G00.40.012
+
+|
+
+Quotité de travail de référence de l'entreprise pour la catégorie de salarié
+
+|
+
+151.67
+
+|
+
+S21.G00.40.013
+
+|
+
+Quotité de travail du contrat
+
+|
+
+151.67
+
+S21.G00.50 – Versement individu
+
+S21.G00.51 – Rémunération
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 - Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+102.67
+
+[151.67 - 49.00]
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+02 - Durée d'absence partiellement ou pas du tout rémunérée
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+49.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+NB : Si le déclarant déclare habituellement l’activité au réel, l’activité de type « 01 – Travail rémunéré » à déclarer serait alors de 105 heures (15 journées de 7 heures) pour cet exemple.
+
+Exemple 9 : un individu au forfait jour (218 jours) est en arrêt maladie du vendredi 5 au lundi 15 juin 2026 inclus. Le volume réel d’absence est de 7 jours et son volume d’activité au réel sur le mois de juin est de 15 jours (22 jours ouvrés - 7 jours ouvrés).
+
+|
+
+S21.G00.40 – Contrat
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.40.011
+
+|
+
+Unité de mesure de la quotité de travail
+
+|
+
+20 - forfait jour
+
+|
+
+S21.G00.40.012
+
+|
+
+Quotité de travail de référence de l'entreprise pour la catégorie de salarié
+
+|
+
+21.67
+
+|
+
+S21.G00.40.013
+
+|
+
+Quotité de travail du contrat
+
+|
+
+21.67
+
+S21.G00.50 – Versement individu
+
+S21.G00.51 – Rémunération
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 - Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+15.00
+
+[22.00 - 7.00]
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+12 - journée
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+02 - Durée d'absence partiellement ou pas du tout rémunérée
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+7.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+12 - journée
+
+NB : Dans le cas où le déclarant déclare habituellement l’activité au lissé, l’activité de type « 01 - Travail rémunéré » serait alors de 14,67 jours (21,67 – 7 jours).
+
+Exemple 10 : un individu, ayant un contrat à temps plein fixé à 35 heures par semaine, est absent sans rémunération du 1er au 30 septembre 2026.
+
+Le volume de travail rémunéré pour le mois de septembre est égal à 0, quel que soit le mode de déclaration habituelle par le déclarant et doit être déclaré dans un bloc « Activité - S21.G00.53 » de type « 01 - Travail rémunéré » valorisé à 0. Le volume réel d’absence non rémunérée pour cette période est de 154 heures (22 x 7 heures).
+
+|
+
+S21.G00.40 – Contrat
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.40.011
+
+|
+
+Unité de mesure de la quotité de travail
+
+|
+
+10 - heure
+
+|
+
+S21.G00.40.012
+
+|
+
+Quotité de travail de référence de l'entreprise pour la catégorie de salarié
+
+|
+
+151.67
+
+|
+
+S21.G00.40.013
+
+|
+
+Quotité de travail du contrat
+
+|
+
+151.67
+
+S21.G00.50 – Versement individu
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+01092026
+
+[1er septembre 2026]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+30092026
+
+[30 septembre 2026]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+002 - Salaire brut servant aux calculs des droits de l’Assurance chômage
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 - Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+0.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+02 - Durée d'absence partiellement ou pas du tout rémunérée
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+154.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+Exemple 11 : un individu ayant un contrat à temps plein fixé à 35 heures par semaine est en arrêt de travail du 2 au 31 juillet 2026. Le volume réel d’absence est donc de 154,00 heures (22 x 7 heures). Le déclarant déclare habituellement l’activité au lissé. Selon cette méthode, l’activité de type « 01 - Travail rémunéré » serait donc de -2,33 heures (151,67 - 154,00).
+
+Pour rappel, dans cette situation, il convient de déclarer un volume d’activité de type « 01 - Travail rémunéré » valorisé à 0 et non en négatif.
+
+|
+
+S21.G00.40 – Contrat
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.40.011
+
+|
+
+Unité de mesure de la quotité de travail
+
+|
+
+10 - heure
+
+|
+
+S21.G00.40.012
+
+|
+
+Quotité de travail de référence de l'entreprise pour la catégorie de salarié
+
+|
+
+151.67
+
+|
+
+S21.G00.40.013
+
+|
+
+Quotité de travail du contrat
+
+|
+
+151.67
+
+S21.G00.50 – Versement individu
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+01072026
+
+[1er juillet 2026]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+31072026
+
+[31 juillet 2026]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+002 - Salaire brut servant aux calculs des droits de l’Assurance chômage
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 - Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+0.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+02 – Durée d'absence partiellement ou pas du tout rémunérée
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+154.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+Exemple 12 : Un individu en forfait jour avec un temps de travail effectif moyen de 21.67 jours sur le mois, effectue le mardi 14 avril 2026 deux heures de grève. Ces heures de grève sont considérées comme une absence non rémunérée d’une durée inférieure à une demi-journée sur le mois d’avril. Ce volume d’absence non rémunérée doit être déclaré au prorata d’une journée théoriquement œuvrée ce qui correspond à 0.29 jours (sur la base de 7 heures théoriquement œuvrées par jour).
+
+S21.G00.50 – Versement individu
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+01042026
+
+[1er avril 2026]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+30042026
+
+[30 avril 2026]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+002 - Salaire brut servant aux calculs des droits de l’Assurance chômage
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 -Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+21.38
+
+[21.67 - 0.29]
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+12 - journée
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+02 - Durée d'absence partiellement ou pas du tout rémunérée
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+0.29
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+12 - journée
+
+4. Corrections et rappels de salaire
+
+Exemple 13 : Correction d’éléments précédemment déclarés
+
+Un individu ayant un contrat à temps plein fixé à 35 heures a travaillé pour la période de janvier à février 2026 151 heures chaque mois. En avril de la même année, son employeur se rend compte qu’il a été absent 3 jours, soit 21 heures en février (absence non rémunérée). La DSN de février a déjà été transmise et ne tenait pas compte de cette absence.
+
+Le déclarant doit faire une correction relative au mois de février avec la reprise des blocs « Rémunération - S21.G00.51 » et « Activité - S21.G00.53 ».
+
+L’exemple est présenté ici avec une approche différentielle mais aurait très bien pu être fait avec une approche en annule et remplace :
+
+DSN d’avril 2026 portant la correction du mois de février 2026 :
+
+S21.G00.50 – Versement individu
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+01022026
+
+[1er février 2026]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+28022026
+
+[28 février 2026]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+002 - Salaire brut servant aux calculs des droits de l’Assurance chômage
+
+| S21.G00.51.013
+| Montant
+| XXXX.XX
+
+[Montant négatif portant la correction]
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 – Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+- 21.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+02 - Durée d'absence partiellement ou pas du tout rémunérée
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+21.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+Cas particuliers
+
+Entrée ou sortie sur le mois
+
+Les périodes sur le mois non incluses dans les bornes du contrat doivent être décomptées du « 01 - Travail rémunéré » au réel. Pour rappel, ces périodes hors contrat ne doivent pas être déclarées ni en type « 01 - Travail rémunéré » ni en type « 02 - Durée d’absence partiellement ou pas du tout rémunérée ».
+
+Exemple 14 : Un individu au forfait jour (218 jours) débute son contrat le 15 janvier 2024 et n’a pas d’absence sur le mois. L’employeur déclarant habituellement l’activité au réel, l’activité de type « 01 – Travail rémunéré » comprend donc uniquement les 15 jours de présence de l’individu.
+
+|
+
+S21.G00.40 – Contrat
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.40.001
+
+|
+
+Date de début du contrat
+
+|
+
+15012024
+
+[15 janvier 2024]
+
+| S21.G00.40.011
+| Unité de mesure de la quotité de travail
+| 20 - forfait jour
+
+|
+
+S21.G00.40.012
+
+|
+
+Quotité de travail de référence de l'entreprise pour la catégorie de salarié
+
+|
+
+21.67
+
+|
+
+S21.G00.40.013
+
+|
+
+Quotité de travail du contrat
+
+|
+
+21.67
+
+S21.G00.50 – Versement individu
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+15012024
+
+[15 janvier 2024]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+31012024
+
+[31 janvier 2024]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+002 - Salaire brut servant aux calculs des droits de l’Assurance chômage
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 – Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+15.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+12 - journée
+
+Exemple 15 : Un individu ayant un contrat à temps plein fixé à 35 heures quitte son entreprise le 19 juin 2024 (fin du contrat de travail). Cet individu n’a pas été en absence non rémunérée sur ce mois. Le déclarant déclare habituellement l’activité au lissé. Les 49 heures correspondantes aux 7 journées après le départ de l’individu doivent être déduites de l’activité de type « 01 - Travail rémunéré » pour le mois de juin 2024. Comme ces 7 journées ne sont pas couvertes par le contrat de travail, elles ne constituent pas des absences non rémunérées.
+
+S21.G00.50 – Versement individu
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+01062024
+
+[1er juin 2024]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+19062024
+
+[19 juin 2024]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+002 - Salaire brut servant aux calculs des droits de l’Assurance chômage
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 - Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+102.67
+
+[151.67 – 49.00]
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+NB : Dans le cas où le déclarant déclare habituellement l’activité au réel, l’activité de type « 01 - Travail rémunéré » serait alors de 91 heures (13 journées de 7 heures travaillées).
+
+Heures supplémentaires
+
+Pour les individus ayant un contrat en heures ou au forfait heure, les heures supplémentaires ou complémentaires réalisées sur le mois sont à ajouter au volume déclaré en type « 01 - Travail rémunéré » en valeur réelle.
+
+Exemple 16 : Un individu ayant un contrat à temps plein fixé à 35 heures effectue 5 heures supplémentaires sur le mois de janvier 2024. Son volume de travail rémunéré (type « 01 - Travail rémunéré ») calculé entièrement en valeur réelle correspond à 166 heures (161 heures + 5 heures supplémentaires).
+
+S21.G00.50 – Versement individu
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+01012024
+
+[1er janvier 2024]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+31012024
+
+[31 janvier 2024]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+002 - Salaire brut servant aux calculs des droits de l’Assurance chômage
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+01012024
+
+[1er janvier 2024]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+31012024
+
+[31 janvier 2024]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+017 - Heures supplémentaires ou complémentaires aléatoires
+
+| S21.G00.40.012
+| Nombre d'heures
+| 5.00
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 - Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+166.00
+
+[161.00 + 5.00]
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+NB : Dans le cas où le déclarant déclare habituellement l’activité au lissé, l’activité de type « 01 - Travail rémunéré » serait alors de 156,67 heures (151,67 + 5 heures).
+
+Maladie
+
+Pour un individu en arrêt maladie, la durée totale de l’absence (y compris le délai de carence) est à renseigner avec le type « 02 - Durée d’absence partiellement ou pas du tout rémunérée » qu’il y ait subrogation ou non, maintien de salaire ou non, garantie au net ou non.
+
+Exemple 17 : Un individu ayant un contrat à temps plein fixé à 35 heures fait l’objet d’un arrêt de travail pour maladie du 2 au 6 février 2026. Son absence correspond à 35 heures qui auraient dû être travaillées en temps normal sur une période de 5 jours. Le délai de carence de l’arrêt maladie de 3 jours doit être inclus dans la durée d’absence partiellement ou pas du tout rémunérée.
+
+Il a donc réellement travaillé 105 heures (7 heures x 15 jours) sur le mois de février 2026. Le déclarant déclare habituellement l’activité au réel.
+
+Pour rappel, au niveau du bloc « Base assujettie - S21.G00.78 », la part de rémunération maintenue reste soumise à contributions d’Assurance chômage.
+
+En plus des blocs précédemment visés, la période d’absence doit être déclarée en renseignant le bloc « Arrêt de travail - S21.G00.60 » (cf. fiche consigne 244 disponible sur net-entreprises.fr).
+
+|
+
+S21.G00.40 – Contrat
+
+|
+
+S21.G00.60 - Arrêt de travail
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.60.001
+
+| Motif de l'arrêt
+|
+
+01 - Maladie
+
+|
+
+S21.G00.60.002
+
+|
+
+Date du dernier jour travaillé
+
+|
+
+30012026
+
+[30 janvier 2026]
+
+|
+
+S21.G00.60.003
+
+|
+
+Date de fin prévisionnelle
+
+|
+
+06022026
+
+[6 février 2026]
+
+|
+
+S21.G00.60.004
+
+|
+
+Subrogation
+
+|
+
+01 - oui
+
+ou
+
+02 - non
+
+Pour mémoire, ce bloc « Arrêt de travail - S21.G00.60 » doit être déclaré dans un signalement « Arrêt de travail ».
+
+S21.G00.50 – Versement individu
+
+|
+
+S21.G00.51 – Rémunération
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.51.001
+
+|
+
+Date de début de période de paie
+
+|
+
+01022026
+
+[1er février 2026]
+
+|
+
+S21.G00.51.002
+
+|
+
+Date de fin de période de paie
+
+|
+
+28022026
+
+[28 février 2026]
+
+|
+
+S21.G00.51.011
+
+|
+
+Type
+
+|
+
+002 - Salaire brut servant aux calculs des droits de l’Assurance chômage
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+01 – Travail rémunéré
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+105.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+|
+
+S21.G00.53 – Activité
+
+|
+
+Code
+
+|
+
+Rubrique
+
+|
+
+Valorisation
+
+|
+
+S21.G00.53.001
+
+|
+
+Type
+
+|
+
+02 - Durée d'absence partiellement ou pas du tout rémunérée
+
+|
+
+S21.G00.53.002
+
+|
+
+Mesure
+
+|
+
+35.00
+
+|
+
+S21.G00.53.003
+
+|
+
+Unité de mesure
+
+|
+
+10 - heure
+
+NB : Dans le cas où le déclarant déclare habituellement l’activité au lissé, l’activité de type « 01 - Travail rémunéré » serait alors de 121,67 heures (151,67 - 35 heures).
+
+Date de création : 17/10/2024 06:02 PM N° de la fiche : 2693

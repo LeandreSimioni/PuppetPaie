@@ -1,0 +1,45 @@
+DIRECCTE LIMOUSIN – Pôle Travail            QUESTIONS / REPONSES 2015/01/01 -ASS-MAT                                                Version Janvier 2015
+
+
+                                                QUESTIONS / REPONSES 2015/01/01
+
+                                                           Assistants maternels.
+
+SALAIRE / ABSENCES
+
+3-2 Mode de calcul pour des retenues pour             Le mode de calcul proposé par la publication Ursaaf/pajeemploi, bien que simple à mettre en œuvre
+absence ?                                         revêt un caractère forfaitaire. Il fait partie des modes de calcul préconisés par le Ministère du travail
+                                                  dans une réponse qui date de 1982.
+                                                  Cependant, la Cour de Cassation récuse le recours à des éléments forfaitaires pour calculer les
+                                                  retenues sur salaire dues à des absences. Le juge considère que pour le calcul de l’absence, il faut
+                                                  rétablir le salaire horaire réel pour le mois considéré. Celui-ci sert au décompte de la retenue.
+
+                                                  Année complète ou incomplète
+
+                                                  Application de la règle de la Cour de Cassation : le juge considère que pour le calcul de l’absence, il
+                                                  faut rétablir le salaire horaire réel pour le mois considéré.
+
+                                                  Exemple :
+                                                  salaire mensualisé
+                                                  ----------------------------------- = taux horaire différent du taux horaire habituel(x)
+                                                  nombre d’heures d’accueil
+                                                  programmées sur le mois qui aurait été réellement travaillées si le salarié n’avait pas été absent
+
+                                                  Taux horaire (x) X nombre d’heures d’absence = montant de l’absence
+
+                                                  salaire dû : salaire mensualisé - montant de l’absence
+
+                                                  Si on reprend l’exemple de pajeemploi en se plaçant en septembre 2012, le calcul est le suivant :
+                                                  Rétablissement du salaire horaire réel pour septembre 2012 soit : 32 heures x 4 semaines = 128 heures
+                                                  qui auraient dû être réellement travaillées.
+                                                  Salaire horaire (x) : 416 € : 128 = 3.25€ de l’heure.
+                                                  La déduction pour absence est donc de 8 jours x 8 heures = 64 heures x 3.25€ = 208€
+                                                  Ce mode de calcul, préconisé par la Cour de Cassation, doit donc être privilégié afin d’éviter tout
+DIRECCTE LIMOUSIN – Pôle Travail   QUESTIONS / REPONSES 2015/01/01 -ASS-MAT                                           Version Janvier 2015
+
+                                         contentieux, et ce même si dans l’hypothèse choisie (septembre 2012), il s’avère moins favorable pour
+                                         le salarié.
+                                         Les références jurisprudentielles sont les suivantes :
+                                         (Cour de Cassation en chambre sociale du 11 février 1982 n° 80-40.359)
+                                         (Cour de Cassation en chambre sociale du 20 janvier 1999 n° 96-45.042).
+
