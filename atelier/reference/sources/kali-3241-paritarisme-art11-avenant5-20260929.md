@@ -1,6 +1,6 @@
 # CCN télédiffusion du 2 juillet 2021 — art. 11 (paritarisme) et avenant n° 5 du 4 novembre 2022
 
-- Origine : base KALI (DILA), relevée dans l'entrepôt local `prive/reference/sources/kali-entrepot` (outils/relever_les_conventions.py)
+- Origine : base KALI (DILA), relevée dans l'entrepôt local `atelier/reference/sources/kali-entrepot` (outils/relever_les_conventions.py)
 - IDCC : 3241
 - Identifiants : KALIARTI000047057609 ; KALITEXT000047046214 ; KALITEXT000044226308
 - URL : https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000047057609

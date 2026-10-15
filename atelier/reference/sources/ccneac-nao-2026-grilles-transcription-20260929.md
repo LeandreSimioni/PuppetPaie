@@ -2,7 +2,7 @@
 
 - IDCC : 1285 (CCNEAC)
 - Identifiants KALI : AUCUN (texte absent de la base KALI locale au 2026-09-29 ; dernier accord de salaires présent : KALITEXT000049949387, 02/05/2024)
-- Source : `prive/reference/sources/ccneac-accord-nao-2026-signe.pdf` (texte signé, Docusign C0F4144D-437A-8D1C-82D5-82DFB38D6FB4, « Fait à Paris, le 01/07/2026 », 13 pages), relu au texte extrait (pymupdf) le 2026-09-29
+- Source : `atelier/reference/sources/ccneac-accord-nao-2026-signe.pdf` (texte signé, Docusign C0F4144D-437A-8D1C-82D5-82DFB38D6FB4, « Fait à Paris, le 01/07/2026 », 13 pages), relu au texte extrait (pymupdf) le 2026-09-29
 - Application (art. 5, LU) : minima salaires à compter du 01/08/2026 ; indemnités et primes à compter du 01/09/2026 ; « Les syndicats signataires demandent l'extension du présent accord, conformément à l'article L2261-15 du code du travail. »
 - Signataires employeurs (LU) : FNAR, FSICPA, LES FORCES MUSICALES, SCÈNE ENSEMBLE, SMA, SYNDEAC
 - Extension : NON VÉRIFIÉE sur source primaire. Une source secondaire (Tripalio, presse.tripalio.fr, « Arrêté d'extension d'un accord de salaires dans la CCN des entreprises artistiques et culturelles », consultée le 2026-09-29) indique : arrêté du 7 septembre 2026, publié au JO le 19 septembre 2026, étendant l'accord du 1er juillet 2026 (IDCC 1285), sous la réserve « à travail égal, salaire égal » (même réserve que pour l'accord de 2024). À CONFIRMER sur Légifrance/JORF (numéro d'arrêté, date d'effet). Absent du KALI local (dernier changement de version relevé antérieur).

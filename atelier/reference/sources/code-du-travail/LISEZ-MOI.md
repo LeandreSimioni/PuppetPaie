@@ -30,7 +30,7 @@ sujet, ce qu'on en lit et où le moteur s'en sert.
 son terme : aucun préavis, cite L1243-5) ; `atelier/sources/paie/src/permanents.rs` (`preavis_mois`, `raison_sans_preavis`) ;
 les phrases de `routes_listes.rs` et `routes_ouverture.rs` (`ce_qui_manque`, « La loi ne donne aucun preavis pour ce motif »)
 et `solde.rs` (un préavis déclaré non effectué sur un motif sans préavis). Le bloc S21.G00.63 d'un signalement de fin de CDD se
-déclare avec le type « 90 - pas de clause de préavis applicable » (norme DSN, `prive/reference/norme-dsn/texte/bloc-S21.G00.63.txt`).
+déclare avec le type « 90 - pas de clause de préavis applicable » (norme DSN, `atelier/reference/norme-dsn/texte/bloc-S21.G00.63.txt`).
 Test : `tests/routes/routes_listes.rs`, `un_cdd_arrive_a_son_terme_n_a_aucun_preavis`.
 
 **Inférence** : la lecture de « motif de rupture 031 » comme « CDD arrivé à son terme » est celle de la norme DSN

@@ -1,6 +1,6 @@
 # CCN des entreprises au service de la création et de l'événement du 27 juin 2024 — art. 8.4.1 et 8.4.2 (frais de santé)
 
-- Origine : base KALI (DILA), relevée dans l'entrepôt local `prive/reference/sources/kali-entrepot` (outils/relever_les_conventions.py)
+- Origine : base KALI (DILA), relevée dans l'entrepôt local `atelier/reference/sources/kali-entrepot` (outils/relever_les_conventions.py)
 - IDCC : 3252
 - Identifiants : KALITEXT000050299244 (CCN, étendue arrêté 13/03/2025, JORF 18/03/2025) ; KALIARTI000051948405 (art. 8.4.2) ; KALIARTI000054174983 / KALIARTI000050299472 (art. 8.4.1)
 - URL : https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000051948405

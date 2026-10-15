@@ -11,7 +11,7 @@ contient deux archives « R139 - maj 23 juillet 2026 » et « R140 maj 23 juille
 | fichier | ce que c'est |
 |---|---|
 | `fpoc-specification-r1.4.0-20260721.pdf` (+ `.txt`) | « Fiche de paramétrage DSN - Organismes Complémentaires », version **1.4.0** (onglets Règles, Versions, Données, Schéma), 15 p., datée du 21/07/2026 |
-| `fpoc-specification-r1.3.9-20260721.pdf` (+ `.txt`) | la même en version **1.3.9** (celle des fiches reçues aujourd'hui : `prive/reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml`), 14 p. |
+| `fpoc-specification-r1.3.9-20260721.pdf` (+ `.txt`) | la même en version **1.3.9** (celle des fiches reçues aujourd'hui : `atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml`), 14 p. |
 | `fpoc-r1.4.0.xsd`, `fpoc-r1.3.9.xsd` | les schémas XML |
 | `fpoc-presentation-versions-139-140-20260720.pptx` (+ `.txt`) | « Fiches de paramétrage V139 - V140, mise à jour du 20 juillet 2026 » : calendrier, conditions tarifaires, delta 139 → 140 |
 

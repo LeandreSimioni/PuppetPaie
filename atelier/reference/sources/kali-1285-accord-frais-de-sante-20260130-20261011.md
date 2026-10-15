@@ -1,5 +1,5 @@
 SOURCE : base KALI de la DILA, open data (https://echanges.dila.gouv.fr/OPENDATA/KALI/), par l'entrepot local
-  prive/reference/sources/kali-entrepot/ (outils/relever_les_conventions.py), etat des livraisons : voir etat.json
+  atelier/reference/sources/kali-entrepot/ (outils/relever_les_conventions.py), etat des livraisons : voir etat.json
 CONTENEUR : KALICONT000005635964 (CCN des entreprises artistiques et culturelles, IDCC 1285)
 TEXTE : KALITEXT000054370607 -- Accord du 30 janvier 2026 relatif au remboursement de frais de santé
 RELEVE LE : 2026-10-11

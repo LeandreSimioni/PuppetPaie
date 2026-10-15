@@ -9,13 +9,13 @@
   SHA-256 : `62e55d5b40421ae624f6c083fc24e330e2a9a831caa03a57d5258403c7f0d68a` (celle de `sources.json`, inchangée).
 - **Sa transcription** : `Audiens-Parametres-2026.txt`, `pdftotext -layout` du même fichier (11/10/2026), pour la
   lecture et la recherche ; c'est le PDF qui fait foi.
-- **Déplacé le 11/10/2026** (lot R6, reste #177) depuis `prive/reference/fiches-parametrage/`, où il était rangé sans
+- **Déplacé le 11/10/2026** (lot R6, reste #177) depuis `atelier/reference/fiches-parametrage/`, où il était rangé sans
   `LISEZ-MOI.md` à lui : `git mv`, le fichier n'a pas changé d'un octet. `sources.json` (`fichier`), les notes
   `_source` des barèmes 2025 et 2026 et leur relevé de test (`atelier/sources/paie/tests/donnees/contexte.json`),
-  `prive/reference/fiches-parametrage/LISEZ-MOI.md` et `prive/reference/veille-taux.md` suivent. Les journaux et les
+  `atelier/reference/fiches-parametrage/LISEZ-MOI.md` et `reference-privee/veille-taux.md (relevé sur une compagnie réelle, pièce hors du dépôt public : dépôt privé)` suivent. Les journaux et les
   archives gardent l'ancien chemin : ce sont des récits datés.
 
-Le millésime 2025 (« Paramètres Audiens 2025 », même gabarit) reste dans `prive/reference/fiches-parametrage/`,
+Le millésime 2025 (« Paramètres Audiens 2025 », même gabarit) reste dans `atelier/reference/fiches-parametrage/`,
 décrit dans le `LISEZ-MOI.md` de ce dossier.
 
 ## Ce qu'on en lit
@@ -69,7 +69,7 @@ Pages du PDF (le pied de page numérote 2 à 4 ; la page 1 n'a pas de numéro) :
   `par_statut.technicien`, `par_categorie.cadre`, `par_nature.permanent`) ont ces valeurs (p. 3), retraite et CEG
   réunies sur une ligne : 5,30 / 5,74 = 4,44 + 0,86 / 4,45 + 1,29 pour un artiste ; 4,79 / 5,23 pour un technicien et
   pour la T1 journalière d'un cadre ; 4,01 / 6,01 et 9,72 / 14,57 (T2) pour un permanent ;
-  `prive/reference/sources/agirc-arrco/LISEZ-MOI.md` dit ce que le cahier technique Agirc-Arrco y ajoute.
+  `atelier/reference/sources/agirc-arrco/LISEZ-MOI.md` dit ce que le cahier technique Agirc-Arrco y ajoute.
 - La prévoyance des intermittents et le Fonds santé (p. 4) sont aussi dans `accord-interbranche-prevoyance-
   intermittents/` (l'accord lui-même), que la note `_source` de la ligne `prevoyance` du barème cite.
 
@@ -77,3 +77,9 @@ Pages du PDF (le pied de page numérote 2 à 4 ; la page 1 n'a pas de numéro) :
 Le renvoi de bas de page de la p. 3 (« peuvent être différents en application […] de Conventions collectives,
 d'accords de retraite ou de conditions particulières ») est ce qui fait vivre, à côté du socle, les couches de
 convention et de compagnie du barème (`atelier/docs/ARCHITECTURE.md`, « Le barème a trois étages »).
+
+## Dans le dépôt public (15/10/2026)
+
+Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'un organisme privé, n'y sont pas : seule leur transcription y est (`pdftotext -layout` pour un PDF, une feuille de calcul en CSV, feuille par feuille, le texte d'une page HTML), et c'est elle que citent les renvois. Les condensats donnés plus haut sont ceux des originaux, gardés dans le dépôt privé (`reference-privee/sources/audiens-parametres-2026/`).
+
+- `Audiens-Parametres-2026.pdf` : transcription `Audiens-Parametres-2026.txt`

@@ -1,6 +1,6 @@
 # DSN, cahier technique 2026.1 : ce qui concerne l'OETH
 
-Extrait le 25/09/2026 de `reference/norme-dsn/dsn-cahier-technique-2026.1.pdf` : bloc S21.G00.13 (Complément OETH) et codes 060 à 073 du bloc S21.G00.82 (contrôles CCH-21, -22, -24).
+Extrait le 25/09/2026 de `atelier/reference/norme-dsn/dsn-cahier-technique-2026.1.pdf` : bloc S21.G00.13 (Complément OETH) et codes 060 à 073 du bloc S21.G00.82 (contrôles CCH-21, -22, -24).
 
 ```
 [15,34] 

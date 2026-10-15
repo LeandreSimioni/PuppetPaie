@@ -108,3 +108,10 @@ sociale, texte `artistes-1975`), et déposés à côté.
   **inférence depuis le renvoi**, qu'aucun texte Unédic ne contredit. En pratique, pour un temps partiel sous 4 plafonds,
   la question ne change aucun montant.
 
+## Dans le dépôt public (15/10/2026)
+
+Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'un organisme privé, n'y sont pas : seule leur transcription y est (`pdftotext -layout` pour un PDF, une feuille de calcul en CSV, feuille par feuille, le texte d'une page HTML), et c'est elle que citent les renvois. Les condensats donnés plus haut sont ceux des originaux, gardés dans le dépôt privé (`reference-privee/sources/plafond-intermittents/`).
+
+- `unedic-circulaire-2025-05-contributions-20250501.pdf` : transcription `unedic-circulaire-2025-05-contributions-20250501.txt`
+- `unedic-fiche-assiette-des-contributions-20260922.pdf` : transcription `unedic-fiche-assiette-des-contributions-20260922.txt`
+- `unedic-fiche-assiette-des-contributions-20261010.html` : transcription `unedic-fiche-assiette-des-contributions-20261010.txt`

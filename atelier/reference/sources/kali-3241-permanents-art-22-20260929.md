@@ -5,7 +5,7 @@
 - Texte(s) parent(s) (KALITEXT) : KALITEXT000044226308 (CCN) ; KALITEXT000054880861 (accord du 11/05/2026)
 - Version en vigueur : VIGUEUR_ETEN : art. 22 depuis 2022-04-14 (arrêté du 30/11/2023 art. 1 : montants de la grille étendus sous réserve du SMIC) ; accord 2026 depuis 2026-06-01
 - Date du relevé : 2026-09-29
-- Source : entrepôt local `prive/reference/sources/kali-entrepot/articles.jsonl.gz` (base KALI/DILA)
+- Source : entrepôt local `atelier/reference/sources/kali-entrepot/articles.jsonl.gz` (base KALI/DILA)
 - Règle de lecture : les blocs ```text sont la transcription LITTÉRALE du champ `contenu` de la base (mise en page aplatie par la base) ; les tableaux Markdown sont une remise en forme par le releveur ; les mentions « [DÉDUIT] » ou « [INFÉRÉ] » sont des déductions du releveur, pas du texte.
 
 

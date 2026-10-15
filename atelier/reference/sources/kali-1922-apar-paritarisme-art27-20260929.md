@@ -1,6 +1,6 @@
 # CCN radiodiffusion du 11 avril 1996 — art. 2.7 (financement du paritarisme, APAR) et avenant n° 2 du 11/12/1998
 
-- Origine : base KALI (DILA), relevée dans l'entrepôt local `prive/reference/sources/kali-entrepot` (outils/relever_les_conventions.py)
+- Origine : base KALI (DILA), relevée dans l'entrepôt local `atelier/reference/sources/kali-entrepot` (outils/relever_les_conventions.py)
 - IDCC : 1922
 - Identifiants : KALIARTI000042597582 (art. 2.7 en vigueur) ; KALITEXT000005668049 (CCN) ; KALITEXT000039071136 (avenant du 19/03/2019)
 - URL : https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000042597582

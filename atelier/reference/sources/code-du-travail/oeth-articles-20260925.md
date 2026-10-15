@@ -1,6 +1,6 @@
 # Obligation d'emploi des travailleurs handicapés : articles L5212, R5212 et D5212 du code du travail
 
-Extraits le 25/09/2026 de l'entrepôt local des textes de la DILA (`reference/sources/legi-entrepot/`), versions en vigueur. Source de la déclaration OETH à écrire (`moteur/oeth.py`, journal §143).
+Extraits le 25/09/2026 de l'entrepôt local des textes de la DILA (`atelier/reference/sources/legi-entrepot/`), versions en vigueur. Source de la déclaration OETH à écrire (`moteur/oeth.py`, journal §143).
 
 
 ## D5212-1 2021-07-12

@@ -4,7 +4,7 @@ Déposé le 14/10/2026 par le lot O1 (l'ordre des signalements, la plate-forme f
 
 ## D'où ça vient
 
-Le **brut** est déjà déposé : `prive/reference/norme-dsn/dsn-guide-implementation-API-v6.8.zip` (relevé le 03/09/2026,
+Le **brut** est déjà déposé : `atelier/reference/norme-dsn/dsn-guide-implementation-API-v6.8.zip` (relevé le 03/09/2026,
 SHA-256 `36e54492b89f2740dfeeddeeb8c8f3b0d4477715ca4577fd2c874672be690ecb`, voir `norme-dsn/LISEZMOI.md`). Ce dossier
 n'en garde que les **transcriptions**, parce que le PDF et le DOCX ne se lisent pas tels quels :
 
@@ -35,8 +35,7 @@ n'en garde que les **transcriptions**, parce que le PDF et le DOCX ne se lisent 
 (rang, nature S20.G00.05.001, type .002, fraction .003, ordre .004, mois .005, id_annulation .006, SIREN, NIC du siège,
 NIC d'affectation) et son bilan (état, nombre de salariés et de contrats, conformité, compteurs). Les éléments `contrat`
 (depuis `v01r09`) et la liste des salariés de `declaration_bilan` (`v02r01`) existent dans les versions récentes du
-schéma ; **les bilans que la plate-forme nous a rendus sont en `v01r08`** et ne les portent pas (certificat
-`prive/retours/20260924-153226_nature11_WSWMPaUMfP6rJqHVlOn21VO.xml`). Une anomalie peut porter l'environnement d'un
+schéma ; **les bilans que la plate-forme nous a rendus sont en `v01r08`** et ne les portent pas (un certificat de nature 11 reçu le 24/09/2026 par une compagnie réelle ; pièce hors du dépôt public : dépôt privé). Une anomalie peut porter l'environnement d'un
 salarié (NIR, nom…) quand elle s'y rattache.
 
 ## Où le moteur s'en sert

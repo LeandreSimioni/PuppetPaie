@@ -16,3 +16,14 @@ l'installeur NSIS), décrits dans `prive/journal/finitions/PASSATION-I1.md`.
 La documentation de nsis.sourceforge.io a répondu 403 au conteneur : non lue, à redéposer depuis le poste si l'on en a
 besoin. Les décisions prises sans texte (dossier par défaut `%LOCALAPPDATA%\PuppetPaie`, `EDITION.json` toujours démo,
 désinstalleur à la racine) sont des choix, nommés comme tels dans la passation, à valider par Léandre.
+
+## Dans le dépôt public (15/10/2026)
+
+Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'un organisme privé, n'y sont pas : seule leur transcription y est (`pdftotext -layout` pour un PDF, une feuille de calcul en CSV, feuille par feuille, le texte d'une page HTML), et c'est elle que citent les renvois. Les condensats donnés plus haut sont ceux des originaux, gardés dans le dépôt privé (`reference-privee/sources/installeur-windows/`).
+
+- `microsoft-msi-uninstall-registry-key-20261014.html` : transcription `microsoft-msi-uninstall-registry-key-20261014.txt`
+- `microsoft-webview2-distribution-20261014.html` : transcription `microsoft-webview2-distribution-20261014.txt`
+- `microsoft-webview2-telechargement-20261014.html` : transcription `microsoft-webview2-telechargement-20261014.txt`
+- `nsis-exemple-example2-20261014.nsi` : transcription `nsis-exemple-example2-20261014.txt`
+- `nsis-exemple-install-per-user-20261014.nsi` : transcription `nsis-exemple-install-per-user-20261014.txt`
+- `tauri-windows-installer-20261014.html` : transcription `tauri-windows-installer-20261014.txt`

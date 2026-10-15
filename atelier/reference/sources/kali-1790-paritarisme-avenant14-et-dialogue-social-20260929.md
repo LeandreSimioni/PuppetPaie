@@ -1,6 +1,6 @@
 # CCN espaces de loisirs, d'attractions et culturels — financement du paritarisme (avenant n° 14 du 27/04/2001) et avenants dialogue social n° 57/58/65
 
-- Origine : base KALI (DILA), relevée dans l'entrepôt local `prive/reference/sources/kali-entrepot` (outils/relever_les_conventions.py)
+- Origine : base KALI (DILA), relevée dans l'entrepôt local `atelier/reference/sources/kali-entrepot` (outils/relever_les_conventions.py)
 - IDCC : 1790
 - Identifiants : KALITEXT000005660387 (avenant 14) ; KALITEXT000037323644, KALITEXT000039332811, KALITEXT000042111096 (avenants 57, 58, 65)
 - URL : https://www.legifrance.gouv.fr/conv_coll/id/KALITEXT000005660387

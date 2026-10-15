@@ -1,0 +1,630 @@
+2026 : Quelles évolutions
+règlementaires en paie
+
+
+Mardi 27 janvier 2026
+
+
+
+                            WEB CONFERENCE
+
+
+
+
+                                             1
+1. SMIC et incidences sur quelques calculs
+2. Plafond de la Sécurité sociale et calculs
+3. Taux des cotisations sociales
+4. Zoom sur Thalie santé et la DSN
+5. Taux des cotisations conventionnelles
+6. Frais pro, DFS et …
+
+
+
+
+                                               2
+SMIC et incidences sur quelques calculs
+
+
+Valeur au 1er janvier 2026                                    Incidences du SMIC en paie
+
+                                                        2025                                           2026
+                                                    3 dispositifs                                 1 seul dispositif
+       SMIC horaire
+
+         12,02 €                   1                                               •
+
+                                       Cotisation Assurance maladie                    Cotisation Assurance maladie
+                                                 Réduction de 6 points                           Réduction de 6 points
+      SMIC mensuel                              si salaire < 2,25 SMIC*                         si salaire < 2,25 SMIC*
+
+
+        1 823,03 €                 2                                               •
+
+                                       Cotisation Allocations Familiales               Cotisation Allocations Familiales
+                                               Réduction de 1,8 points                         Réduction de 1,8 points
+                                                si salaire < 3,3 SMIC*                          si salaire < 3,3 SMIC*
+
+
+
+                                   3                                              ○
+
+                                       Réduction générale des cotisations              Réduction générale dégressive
+                                       Patronales                                      unique
+                                       Réduction dégressive jusqu’à 1,6 SMIC*           Réduction dégressive jusqu’à 3 SMIC*
+
+
+
+
+                                        *Le SMIC à prendre en compte est le SMIC annuel
+                                                                                                                               3
+RGDU ?
+Réduction Générale Dégressive Unique
+
+
+             Origine : 2004                                                             2026
+
+
+
+  Réduction Générale des Cotisations                                    Réduction Générale Dégressive
+              Patronales                                                           Unique
+          « réduction Fillon »
+
+ Réduction dégressive des cotisations                                Réduction dégressive des cotisations
+ patronales                                                          patronales
+
+ Salaire -------→ 1,6 SMIC                                           Salaire -------------------------→ 3 SMIC
+                                 SMIC 2026 = 12,02 €                                                             SMIC 2026 = 12,02 €
+                                 Limite de la réduction :                                                        Limite de la réduction :
+                                 35 002,24 €                                                                     65 629,20 €
+                                 (pour un tps complet sur l’année)                                               (pour un tps complet sur l’année)
+                                                                           Quid de la
+                                                                            PPV ?
+
+
+
+
+                                                                                    https://www.urssaf.fr/accueil/employeur/beneficier-
+                                                                                    exonerations/reduction-generale-cotisation.html
+                                                                                                                                                4
+  RGDU
+  Illustration
+                               Salarié permanent                                                                                                 Artiste du spectacle                                                                                       Technicien du spectacle
+                                                 BULLETIN DE PAIE                                                                                                     BULLETIN DE PAIE                                                                                                  BULLETIN DE PAIE
+
+                                                                Période travaillée :  1 au 31 janvier 2026                                                                         Période / jours travaillés :    10 janvier 2026                                                                    Période / jours travaillés : 10 janvier 2026
+                                                                                                                                                                                   Date de paiement du salaire :   10 janvier 2026                                                                    Date de paiement du salaire : 31 janvier 2026
+                                                                Date de paiement du salaire : 31 janv 2026
+                                                                                                                          coordonnées de l'employeur                                            coordonnées du salarié                       coordonnées de l'employeur                                            coordonnées du salarié
+       coordonnées de l'employeur                                           coordonnées du salarié
+                                                                                                                   nom,                                                            nom, prénom                                        nom,                                                            nom, prénom
+nom,                                                            nom, prénom                                        adresse,                                                        adresse                                            adresse,                                                        adresse
+adresse,                                                        adresse                                            n° de SIRET / code NAF                                          N° de ss                                           n° de SIRET / code NAF                                          N° de ss
+n° de SIRET / code NAF                                          N° de ss                                           n° URSSAF                                                       emploi :artiste dramatique                         n° URSSAF                                                       emploi :Régisseur son
+n° URSSAF                                                       emploi :Comptable                                                                                                  catégorie : non cadre                                                                                              catégorie : non cadre
+                                                                catégorie : non cadre                              convention collective : Entreprise artistique et culturelle                                                        convention collective : Entreprise artistique et culturelle
+convention collective : à indiquer                                                                                 Numéro d'objet :                                                                                                   Numéro d'objet :
+
+                                                                                                                                      intitulé                    base de calcul    taux    part salariale   taux    part patronale                      intitulé                    base de calcul    taux    part salariale   taux    part patronale
+                   intitulé                    base de calcul    taux    part salariale   taux    part patronale
+                                                                                                                   Cachet                                               1                                                             Nombre de jours                                      1
+Nombre d'heures                                   151,67
+                                                                                                                   Brut                                                400                                                            Nombre d'heures                                      7
+BRUT                                                    2000                                                       Abattement 18%                                       0
+URSSAF                                                                                                                                                                                                                                BRUT                                                     400
+                                                                                                                   Brut abattu                                              400                                                       URSSAF
+  CSG (déductible fiscalement)                       2005,05       6,8      136,34                                 URSSAF                                                                                                               CSG (déductible fiscalement)                        393,75       6,8       26,77
+  assurance maladie, maternité                       2000,00                                 13     260,00           CSG (déductible fiscalement)                        395,44       6,8       26,89
+                                                                                                                                                                                                                                        assurance maladie, maternité                        400,00                                 13      52,00
+  assurance vieillesse                               2000,00       0,4       8,00          2,11     42,20            assurance maladie, maternité                        400,00                                9,1      36,40
+                                                                                                                                                                                                                                        assurance vieillesse                                400,00       0,4       1,60          2,11       8,44
+  allocations familiales                             2000,00                               5,25     105,00           assurance vieillesse                                400,00      0,28       1,12          1,48      5,92
+                                                                                                                                                                                                                                        allocations familliales                             400,00                               5,25      21,00
+  contribution au dialogue social                    2000,00                              0,016      0,32            allocations familliales                             400,00                               3,68      14,72
+                                                                                                                                                                                                                                        contribution au dialogue social                     400,00                              0,016       0,06
+  assurance vieillesse TA                            2000,00       6,9     138,00          8,55     171,00           contribution au dialogue social                     400,00                              0,016      0,06
+                                                                                                                                                                                                                                        assurance vieillesse TA                             129,19       6,9      8,91           8,55      11,05
+                                                                                                                     assurance vieillesse TA                             360,00      4,83     17,39           5,99      21,56
+  aide au logement TA                                2000,00                               0,10      2,00                                                                                                                               aide au logement TA                                 144,05                                0,1       0,14
+                                                                                                                     aide au logement TA                                 401,40                               0,07      0,28
+  accident du travail                                2000,00                                1,5     30,00                                                                                                                               accident du travail                                 400,00                                1,5       6,00
+                                                                                                                     accident du travail                                 400,00                               0,91      3,64
+  contribution solidarité autonomie                  2000,00                               0,30      6,00                                                                                                                               contribution solidarité autonomie                   400,00                               0,30       1,20
+                                                                                                                     contribution solidarité autonomie                   400,00                               0,30      1,20
+                                                                                                                                                                                                                                      France Travail spectacle
+                                                                                                                   France Travail spectacle
+France Travail                                                                                                                                                                                                                          AC                                                  400,00       2,4      9,60              9      36,00
+                                                                                                                     AC                                                  400,00       2,4      9,60              9      36,00
+                                                                                                                                                                                                                                        Majoration AC                                       400,00                                0,5       2,00
+  AC                                                 2000,00                                  4      80,00           Majoration AC                                       400,00                                0,5      2,00
+                                                                                                                                                                                                                                        FNGS                                                400,00                               0,25       1,00
+  FNGS                                               2000,00                               0,25       5,00           FNGS                                                400,00                               0,25      1,00
+                                                                                                                   Groupe Audiens                                                                                                     Groupe Audiens
+                                                                                                                     retraite complémentaire T1                          400,00      4,44     17,76           4,45      17,80           retraite complémentaire T1                          400,00      3,93      15,72          3,94      15,76
+Groupe Audiens                                                                                                                                                                                                                          CEG T1                                              400,00      0,86       3,44          1,29       5,16
+                                                                                                                     CEG T1                                              400,00      0,86      3,44           1,29      5,16
+  retraite complémentaire T1                         2000,00      3,15      63,00          4,72      94,40                                                                                                                              prévoyance intermittents                            220,00      0,12       0,26          0,34       0,75
+                                                                                                                     Prévoyance intemrittent                             220,00      0,12      0,26           0,34      0,75
+  CEG T1                                             2000,00      0,86      17,20          1,29      25,80           complémentaire santé intermittent                   220,00                               0,77      1,69            complémentaire santé intermittent                   220,00                               0,77       1,69
+  retraite complémentaire T2                            0,00      8,64       0,00         12,95       0,00           Congés spectacles                                   400,00                               15,5      62,00           Congés spectacles                                   400,00                               15,5      62,00
+  CEG T2                                                0,00      1,08       0,00          1,62       0,00         FNAS                                                  400,00                               1,45      5,80          FNAS                                                  400,00                               1,45       5,80
+  CET                                                             0,14       0,00          0,21       0,00         FCAP                                                  400,00                               0,25      1,00          FCAP                                                  400,00                               0,25       1,00
+  complémentaire santé                               4005,00         1      40,05             1      40,05         Thalie santé                                          400,00                               0,42      1,68          Thalie santé                                          400,00                               0,42       1,68
+                                                                                                                   Formation professionnelle                             400,00                                2,1      8,40          Formation professionnelle                             400,00                                2,1       8,40
+Formation professionnelle                            2000,00                               0,55      11,00
+                                                                                                                                                         Totaux                               76,46                     227,07                                              Totaux                                66,31                    241,14
+                                      Totaux                               402,59                     872,77
+                                                                                                                                                 Net imposable                                  323,54                                                              Net imposable                                  333,69
+                              Net imposable                                1 637,46
+
+CSG et CRDS (non déductible fiscalement)             2005,05       2,9      58,15                                  CSG et CRDS (non déductible fiscalement)              395,44       2,9     11,47                                   CSG et CRDS (non déductible fiscalement)              393,75       2,9      11,42
+
+                 Net à payer avant impôt sur le revenu                     1 539,26                                               Net à payer avant impôt sur le revenu                        312,07                                                Net à payer avant impôt sur le revenu                        322,27
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                         5
+1. SMIC et incidences sur quelques calculs
+2. Plafond de la Sécurité sociale et calculs
+3. Taux des cotisations sociales
+4. Zoom sur Thalie santé et la DSN
+5. Taux des cotisations conventionnelles
+6. Frais pro, DFS et …
+
+
+
+
+                                               6
+Plafond de la Sécurité sociale
+Valeur 2026
+                                                              Calcul du plafond Urssaf pour les artistes du
+                                                                  spectacle recrutés sur des périodes
+                 Valeurs 2026
+                                                              d’engagement continues inférieures à 5 jours
+                                                                              consécutifs
+
+         •    Horaire : 30 €
+         •    Journalier : 220 €                                                                      Nb : Concerne
+         •    Mensuel : 4 005 €                              12 x plafond horaire x nbre de jours     que le plafond
+                                                             → 12 x 30 x nbre de jours                des cotisations
+         •    Annuel : 48 060 €                                                                       Urssaf
+
+
+
+
+                    Plafond Audiens en retraite complémentaire pour les intermittents du spectacle
+
+             intermittents non-cadres                                          intermittents cadres
+
+
+
+                                                               • Tranche 2 journalière : Entre 220 (x nbre de jours) et
+                                                               8 fois ce plafond
+               Tranche 2 : De 48 060 à 384 480 €
+
+                                                               • Tranche 1 journalière : Entre 0 et 220 € (x nbre de
+                                                               jours) Nb : limite mensuelle T1 : 4 005 €
+                Tranche 1 : De 0 à 48 060 €
+
+
+                                                                                                                          7
+Paramètres Audiens 2026
+
+
+
+
+https://www.audiens.org/files/live/sites/siteAudiens/files/03_documents/entreprise/Fiches-techniques/Parametres-et-taux-2026.pdf
+
+
+
+
+                                                                                                                                   8
+1. SMIC et incidences sur quelques calculs
+2. Plafond de la Sécurité sociale et calculs
+3. Taux des cotisations sociales
+4. Zoom sur Thalie santé et la DSN
+5. Taux des cotisations conventionnelles
+6. Frais pro, DFS et …
+
+
+
+
+                                               9
+      Cotisations sociales
+      Taux au 1er janvier 2026
+
+
+
+
+                                        Retraite : taux identiques à 2025                                  Intermittents du
+Augmentation du         AC et AGS :                                               Taux identiques             spectacle :
+taux Assurance         Taux inchangés   Prévoyance                                    à 2025              Augmentation du
+    vieillesse                          • Intermittents : Augmentation des taux                           taux : 0,35% HT
+ déplafonnée :                          • Permanents : Cf contrat souscrit par         recouvrement
+                                                                                      par Urssaf pour          Cotisation avec
+ 2,11 % (1,48%                          l’entreprise                                  la part légale de         TVA : 0,42%
+pour les artistes)                                                                        la CUFPA                  TTC
+
+
+     Taux AT propre
+                                        Congés Spectacles : Taux identique à
+      à la structure                    2025 (15,50%)
+
+
+
+
+                                                                                                                                 10
+Cotisations sociales
+Taux au 1er janvier 2026
+
+
+                                      Intermittents du spectacle
+
+
+                                                              Non cadres              Cadres
+                                      Interbranche 2026       PS     PP            PS      PP
+                                      Prévoyance TA            0,12    0,34         0,12     0,88
+                                                    TB         -       -            -        -
+                                      Fds collectif TA         -       0,77         -        0,81
+                                                    TB         -       -            -        -
+                                      Total TA                 0,12    1,11         0,12     1,69
+
+
+
+                           Interbranche 2026                        Non cadres          Cadres
+                           Entreprises Artistiques et Culturelles   PS     PP        PS      PP
+                           Prévoyance TA                             0,12   0,34     0,12 1,33
+                                         TB                          -      -         -      0,95
+                           Fds collectif TA                          -      0,77      -      0,81
+                                         TB                          -      -         -       -
+                           Total TA                                  0,12   1,11     0,12 2,14
+                           Total TB                                                          0,95
+
+
+
+
+                                                                                                    11
+       Paies 2026 : Quelques exemples
+       Artiste du spectacle : 1 journée ; 400 € brut                                                  BULLETIN DE PAIE
+
+                                                                                                                    Période / jours travaillés :     10 janvier 2026
+                                                                                                                    Date de paiement du salaire :    10 janvier 2026
+                                                             coordonnées de l'employeur                                           coordonnées du salarié
+   •   Paiement au cachet                           nom,                                                            nom, prénom
+                                                    adresse,                                                        adresse
+   •   Taux Urssaf réduits                          n° de SIRET / code NAF                                          N° de ss
+                                                    n° URSSAF                                                       emploi :artiste dramatique
+                                                                                                                    catégorie : non cadre
+                                                    convention collective : Spectacle vivant privé
+                                                    Numéro d'objet :                                                                                                      Dans cet exemple
+                                                                        intitulé                     base de calcul taux     part salariale   taux    part patronale
+                                                                                                                                                                          CCN svp
+                                                    Cachet                                                 1
+                                                    BRUT                                                       400
+Assiette cotisation Assurance vieillesse TA         URSSAF
+                                                      CSG (déductible fiscalement)                         395,44      6,8       26,89
+360 = 30 x 12 x 1                                     assurance maladie, maternité                         400,00                               9,1      36,40
+                                                      assurance vieillesse                                 400,00     0,28       1,12          1,48      5,92
+                                                      allocations familliales                              400,00                              3,68      14,72
+                                                      contribution au dialogue social                      400,00                             0,016      0,06
+                                                      assurance vieillesse TA                              360,00     4,83      17,39          5,99      21,56
+                                                      aide au logement TA                                  401,40                              0,07      0,28
+                                                      accident du travail                                  400,00                              1,19      4,76
+                                                      contribution solidarité autonomie                    400,00                              0,30      1,20
+                                                    France Travail spectacle
+                                                      AC                                                   400,00      2,4      9,60           9,05      36,20
+                                                      Majoration AC                                        400,00                               0,5      2,00
+                                                      FNGS                                                 400,00                              0,25      1,00          Taux CASC
+Assiette cotisation Prévoyance et fonds collectif   Audiens
+                                                      retraite complémentaire T1                           400,00     4,44      17,76          4,45      17,80
+                                                                                                                                                                       0,50%
+220 = plafond journalier                              CEG T1
+                                                      prévoyance et fds collectif
+                                                                                                           400,00
+                                                                                                           220,00
+                                                                                                                      0,86
+                                                                                                                      0,12
+                                                                                                                                3,44
+                                                                                                                                0,26
+                                                                                                                                               1,29
+                                                                                                                                               1,11
+                                                                                                                                                         5,16
+                                                                                                                                                         2,44
+                                                      Congés Spectacles                                    400,00                              15,5      62,00
+                                                      CASC svp                                             400,00                               0,5      2,00          Taux Thalie santé
+                                                      FCAP svp
+                                                    Thalie santé
+                                                                                                           400,00
+                                                                                                           400,00
+                                                                                                                                                0,1
+                                                                                                                                               0,42
+                                                                                                                                                         0,40
+                                                                                                                                                         1,68
+                                                                                                                                                                       0,35% + TVA = 0,42%
+                                                    Formation professionnelle                              400,00                               2,1      8,40
+
+                                                                                            Totaux                              76,46                    223,99
+
+                                                                                    Net imposable                                 323,54
+
+                                                    CSG et CRDS (non déductible fiscalement)               395,44      2,9      11,47
+
+                                                                   Net à payer avant impôt sur le revenu                        312,07
+                                                                                                                                                                                        12
+1. SMIC et incidences sur quelques calculs
+2. Plafond de la Sécurité sociale et calculs
+3. Taux des cotisations sociales
+4. Zoom sur Thalie santé et la DSN
+5. Taux des cotisations conventionnelles
+6. Frais pro, DFS et …
+
+
+
+
+                                               13
+  Cotisation Thalie santé
+  Passage en DSN
+
+
+
+          Déclaration                                Taux                         Plancher        Assiette
+
+
+
+
+                                  • Intermittents du spectacle : 0,35% HT
+• Salaires 2026
+                                  → TVA ajoutée au taux : 0,42% TTC
+Déclaration de la cotisation en
+                                                                              Supprimé
+DSN dès les paies de janvier
+                                  • Journalistes pigistes : 0,32% HT
+2026
+                                  → TVA ajoutée au taux : 0,384 % TTC                        Inchangée : Base
+                                                                                             identique à celle de
+                                                                                             la retraite
+                                                                                             complémentaire
+• Salaires 2025
+→Déclaration sur le SI AGEPRO
+→Paiement de la cotisation        Taux inchangés
+                                                                              50 € HT
+décalé à fin mars 2026            (0,32% HT pour intermittents et pigistes)
+
+
+
+
+                                                                                                                14
+Cotisation Thalie santé
+Passage en DSN
+Fiche de paramétrage→ Disponible sur https://www.net-entreprises.fr/ ou https://www.audiens.org/accueil.html
+
+
+
+
+                                                              Cotisations de Thalie Santé
+
+                                                                                                               15
+Thalie Santé - 2026
+→ Recouvrement de la cotisation TTC
+
+
+
+
+ Ou récupérer la
+    facture ?
+
+
+
+
+  Espace Client
+ Entreprise du site
+      internet
+ www.audiens.org
+
+
+
+
+                                      16
+1. SMIC et incidences sur quelques calculs
+2. Plafond de la Sécurité sociale et calculs
+3. Taux des cotisations sociales
+4. Zoom sur Thalie santé et la DSN
+5. Taux des cotisations conventionnelles
+6. Frais pro, DFS et …
+
+
+
+
+                                               17
+Cotisations et contributions conventionnelles
+Taux au 1er janvier 2026 – Spectacle vivant
+
+
+        Entreprises du                  Entreprises du
+         secteur privé                   secteur privé                  Entreprises                  Entreprises
+         du spectacle                    du spectacle                  Artistiques et               Artistiques et
+            vivant                          vivant                      Culturelles                  Culturelles
+
+          FCAP SVP                          CASC                          FCAP                          FNAS
+
+
+     0,10% plafonné à T1             0,50% plafonné à T1                                         1,45% sur salaire brut
+                                                                                              Nb : Si CSEC* :
+         Agirc-Arrco                     Agirc Arrco              0,25% sur salaire brut
+                                                                                              - permanents = 0,825% ;
+                                                                                              - intermittents = 1,325%
+
+  Plancher de cotisation : 80 €
+                                   Plancher / plafond : aucun
+  Plafond de cotisation : 300 €
+                                                                 Plancher / plafond : aucun   Plancher / plafond : aucun
+
+
+
+ Déclarations et                  Cotisation en DSN             Cotisation en DSN             Cotisation en DSN
+ paiement sur                     depuis janvier 2025           depuis avril 2024             depuis juillet 2025
+ https://servicespro.audie
+ ns.org/agepro/login/Logi
+ n.html
+
+                                                                                                     *Comité Social et Economique
+                                                                                                                         conventionnel
+                                                                                                       (cf art. III.2 de la CCN 1285)
+                                                                                                                                         18
+Cotisations et contributions conventionnelles
+Taux au 1er janvier 2026
+
+
+
+                                                                                              Télédiffusion
+                                                                       Audiovisuel
+            Prod                                                       (hors radios
+                                      Audiovisuel                                              AG-FCAP-
+        audiovisuelle                                                   privées et
+                                    (radio privées)                                           Télédiffusion
+                                                                      télédiffusion)
+           APPAV                                                                                (dont la
+                                       CPNEF*                                                  cotisation
+                                                                        CPNEF*
+                                                                                                CPNEF)
+
+    0,06% plafonné à T1          0,006% plafonné à T2             0,004% plafonné à T2    0,03% plafonné à T2
+        Agirc-Arrco                   Agirc-Arrco                      Agirc-Arrco            Agirc-Arrco
+
+                                                                     Plancher : 15 €
+  Plancher / plafond : aucun    Plancher / plafond : aucun                                   Plancher : 50 €
+                                                                    Plafond : 2 000 €
+
+
+
+  Cotisation en DSN             Déclaration et paiement                                  Déclarations et
+  depuis juillet 2024           Sur le site de l’Afdas                                   paiement
+                                                                                         https://servicespro.au
+                                                                                         diens.org/agepro/login
+                                                                                         /Login.html
+
+
+
+
+                               * Commission Paritaire Nationale Emploi Formation                                  19
+Cotisations et contributions conventionnelles
+Taux au 1er janvier 2026
+
+
+
+                                                                                                       Edition
+                                       Prod cinéma                 Prod cinéma
+      Prod cinéma                                                                                     phonogra-
+                                                                   d’animation
+                                                                                                       phique
+        CCHSCT                         Paritarisme
+                                                                    AGEPPFA
+                                                                                                        APEP
+
+
+ 0,04% sur salaires bruts        0,045% sur salaires bruts    0,04% sur salaires bruts          0,07% sur salaires bruts
+plafonné à T2 Agirc-Arrco        plafonné à T2 Agirc-Arrco   plafonné à T2 Agirc-Arrco         plafonné à T2 Agirc-Arrco
+
+
+
+                Plancher / plafond : aucun                   Plancher / plafond : aucun       Plancher / plafond : aucun
+
+
+
+
+Cotisation en DSN dès janvier 2026
+                                                             Déclarations et paiement
+
+                                                             https://servicespro.audiens.org/agepro/login/Login.html
+
+
+
+
+                                                                                                                           20
+Cotisations et contributions conventionnelles
+Taux au 1er janvier 2026
+
+
+
+                                                                                 Entreprises au
+                                                                                  service de la
+                  Radiodiffusion                 Espaces de
+                                                                                 création et de
+                                                   loisirs
+                                                                                  l’évènement
+                      APAR
+                                                  APELAC
+                                                                                  AGPETSCE
+
+
+              0,05% sur salaires bruts    0,07% sur salaires bruts            0,09% plafonné à T2
+             plafonné à T2 Agirc-Arrco    plafonné à T2 Agirc-Arrco               Agirc-Arrco
+
+
+
+            Plancher / plafond : aucun    Plancher / plafond : aucun        Plancher / plafond : aucun
+
+
+
+
+            Déclaration et                Déclarations et paiement
+            paiement
+            Sur le site de l’Afdas        https://servicespro.audiens.org/agepro/login/Login.html
+
+
+
+
+                                                                                                         21
+1. SMIC et incidences sur quelques calculs
+2. Plafond de la Sécurité sociale et calculs
+3. Taux des cotisations sociales
+4. Zoom sur Thalie santé et la DSN
+5. Taux des cotisations conventionnelles
+6. Frais pro, DFS et …
+
+
+
+
+                                               22
+Evolutions diverses
+
+
+
+                        Frais professionnels                              Déduction Forfaitaire Spécifique
+
+                                                               Années         Abattement : 20%        Abattement : 25%
+     Remboursement au                Versement d’allocations
+           réel                           forfaitaires          2024                 19 %                    23 %
+
+                                                                2025                 18 %                    21 %
+                                    Repas             Nuitée
+     Remboursement des                                          2026                 16 %                    18 %
+     frais sur présentation
+          de justificatif                         76,60 € ou    2027                 14 %                    15 %
+                                   21,40 €
+                                                   56,80 €
+                                                                2028                 12 %                    12 %
+
+                                                                2029                 9%                      9%
+
+                                                                2030                 6%                      6%
+          Indemnités de mise à la retraite ou de rupture
+                        conventionnelle                         2031                 3%                      3%
+                    Contribution patronale                      2032                   Abattement non applicable
+
+                 2025                          2026
+
+
+                                                                       Suspension de la réforme des retraites
+                 30%                           40%
+
+
+                                                                                                 Mardi 17 février 10h00
+
+                                                                                                                          23
+             Le support présenté                                     Le replay
+
+ https://www.audiens.org/solutions/webconferences.    https://www.youtube.com/c/Audiens/videos
+  html?univers=e---parole-dexperts
+

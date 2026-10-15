@@ -5,7 +5,7 @@
 - Texte(s) parent(s) (KALITEXT) : KALITEXT000049949387 (Accord du 2 mai 2024, étendu par arrêté du 23 juillet 2024)
 - Version en vigueur : VIGUEUR_ETEN depuis 2024-06-01 (fin 2999-01-01) pour ces articles
 - Date du relevé : 2026-09-29
-- Source : entrepôt local `prive/reference/sources/kali-entrepot/articles.jsonl.gz` (base KALI/DILA)
+- Source : entrepôt local `atelier/reference/sources/kali-entrepot/articles.jsonl.gz` (base KALI/DILA)
 - Règle de lecture : les blocs ```text sont la transcription LITTÉRALE du champ `contenu` de la base (mise en page aplatie par la base) ; les tableaux Markdown sont une remise en forme par le releveur ; les mentions « [DÉDUIT] » ou « [INFÉRÉ] » sont des déductions du releveur, pas du texte.
 
 

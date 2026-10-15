@@ -70,6 +70,10 @@ pub fn etats(installation: &Path, manifeste: &Value, aujourdhui: &Jour) -> R<Vec
         let attendu = exiger(ident, s, "sha256")?;
         let p = d.join(fichier);
         let presente = p.is_file();
+        // L'original d'un organisme prive n'est pas dans le depot public : seule sa transcription y est (`transcription`,
+        // chemin relatif au meme dossier). Elle ne se confronte a aucun condensat : c'est l'original qui fait foi.
+        let transcription = s.get("transcription").and_then(Value::as_str);
+        let transcription_presente = transcription.map(|t| d.join(t).is_file());
         let conforme = if presente { json!(std::fs::read(&p).map(|o| sha256(&o) == attendu).unwrap_or(false)) } else { Value::Null };
         let releve = s.get("releve_le").and_then(Value::as_str).filter(|r| !r.is_empty());
         let age = match releve {
@@ -92,6 +96,7 @@ pub fn etats(installation: &Path, manifeste: &Value, aujourdhui: &Jour) -> R<Vec
             "contenu": exiger(ident, s, "contenu")?, "version": s.get("version").cloned().unwrap_or(Value::Null),
             "releve_le": releve, "verification": exiger(ident, s, "verification")?,
             "nourrit": nourrit, "fichier": fichier, "copie_presente": presente, "copie_conforme": conforme,
+            "transcription": transcription, "transcription_presente": transcription_presente,
             "en_ligne": null, "detail": "", "page_de_veille": s.get("page_de_veille").cloned().unwrap_or(Value::Null),
             "age_jours": age, "extra": extra, "kali": s.get("kali").cloned().unwrap_or(Value::Null), "evenements": [],
         }));

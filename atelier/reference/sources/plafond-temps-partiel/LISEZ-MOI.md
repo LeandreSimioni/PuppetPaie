@@ -1,7 +1,7 @@
 # Le plafond de la Sécurité sociale d'un salarié à temps partiel, et S21.G00.40.084
 
 Déposé le 10/10/2026, lot V4b (`prive/journal/norme/corrections/PASSATION-V4b.md`). Ce dossier ne porte pas de texte
-brut : les textes lus sont relevés ailleurs dans `prive/reference/`, et ce qui suit dit où, ce qu'on en lit, et où le
+brut : les textes lus sont relevés ailleurs dans `atelier/reference/`, et ce qui suit dit où, ce qu'on en lit, et où le
 moteur s'en sert.
 
 ## Relu le 13/10/2026 (lot D1) : la santé ne suit pas la correction du temps partiel, la prévoyance la suit

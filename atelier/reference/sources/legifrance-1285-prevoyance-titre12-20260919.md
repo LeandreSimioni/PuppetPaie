@@ -56,7 +56,7 @@ et un taux perime ressemble a un taux juste.
 UN ECART QUI, LUI, EST ETABLI : LES INTERMITTENTS CADRES
 ----------------------------------------------
 Audiens, web-conference << Nouveautes reglementaires 2026 >> du 27/01/2026, page 11
-(copie dans reference/fiches-parametrage/Audiens-Webconf-Nouveautes-2026.pdf),
+(copie dans atelier/reference/fiches-parametrage/Audiens-Webconf-Nouveautes-2026.txt),
 tableau << Interbranche 2026 -- Entreprises Artistiques et Culturelles >> :
 
   non cadres  : 0,12 salariale / 1,11 patronale en TA  -- identique a l'interbranche

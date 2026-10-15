@@ -1,6 +1,6 @@
 # APEP (édition phonographique) — protocole du 18/10/2012 consolidé, avenant n° 2 du 2 avril 2025, accord du 12/04/2024 art. 2.2
 
-- Origine : base KALI (DILA), relevée dans l'entrepôt local `prive/reference/sources/kali-entrepot` (outils/relever_les_conventions.py)
+- Origine : base KALI (DILA), relevée dans l'entrepôt local `atelier/reference/sources/kali-entrepot` (outils/relever_les_conventions.py)
 - IDCC : 2121 (ex-2770)
 - Identifiants : KALITEXT000052483087 (avenant n° 2) ; KALIARTI000052483105 (annexe = protocole consolidé) ; KALITEXT000049869758 (accord du 12/04/2024) ; BOCC 2025/39, NOR ASET2550808M ; brochure 3103
 - URL : https://www.legifrance.gouv.fr/conv_coll/id/KALITEXT000052483087

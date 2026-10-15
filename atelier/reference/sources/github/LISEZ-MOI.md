@@ -32,3 +32,13 @@ Inférence : « latest » ne désigne ni un brouillon ni une pré-version (le fl
 Où le moteur s'en sert : `paie/src/maj.rs`, `DEPOT_PAR_DEFAUT` (`https://github.com/LeandreSimioni/PuppetPaie/releases/latest/download`),
 lu par `lire_depot`, qui suit les redirections (ureq 3, dix au plus) ; le flux `.github/workflows/publier.yml`. Preuve :
 `tests/fichiers/mise_a_jour.rs`, `deux_cles_acceptees_une_troisieme_refusee_par_un_depot_qui_redirige_comme_github`.
+
+## Dans le dépôt public (15/10/2026)
+
+Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'un organisme privé, n'y sont pas : seule leur transcription y est (`pdftotext -layout` pour un PDF, une feuille de calcul en CSV, feuille par feuille, le texte d'une page HTML), et c'est elle que citent les renvois. Les condensats donnés plus haut sont ceux des originaux, gardés dans le dépôt privé (`reference-privee/sources/github/`).
+
+- `github-blog-approbation-sur-mobile-20210401.html` : transcription `github-blog-approbation-sur-mobile-20210401.txt`
+- `github-docs-approuver-un-deploiement-20261014.html` : transcription `github-docs-approuver-un-deploiement-20261014.txt`
+- `github-docs-deploiements-et-environnements-20261014.html` : transcription `github-docs-deploiements-et-environnements-20261014.txt`
+- `github-docs-environnements-20261014.html` : transcription `github-docs-environnements-20261014.txt`
+- `github-docs-lien-vers-la-derniere-release-20261014.html` : transcription `github-docs-lien-vers-la-derniere-release-20261014.txt`

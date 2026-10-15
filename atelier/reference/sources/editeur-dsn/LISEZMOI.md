@@ -113,7 +113,7 @@ saut de page dans le `.txt`).
 Où le moteur s'en sert : `atelier/sources/paie/src/dsn.rs`,
 `parts_patronales_agirc_arrco` et `sans_la_cet` (appelées par `cotisations`) ;
 la norme elle-même (142 et 146 dans la modalité Urssaf de 81.001, SIG-18) est
-dans `prive/reference/norme-dsn/texte/bloc-S21.G00.81.txt`. **Inférences du
+dans `atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt`. **Inférences du
 moteur**, que le guide ne nomme pas : le 142/146 sous le bloc 78 du 131 qu'il
 détaille (base 23, admise par la modalité Urssaf de 78.001, norme p. 293) ; la
 CET fondue dans les lignes de tranche d'un cadre intermittent séparée par

@@ -216,3 +216,10 @@ CDD de technicien ou un CDD de douze mois. Preuve : `tests/dsn/cpf_cdd.rs`,
 - L'arrondi : chaque contribution au centime sur le bulletin (`calcul::somme_pct`, comme les autres lignes) ; l'assiette
   majorée au centime par rubrique de salaire (`eur(montant × 1,115)`), comme celles du FNAL et de la taxe d'apprentissage.
 - Sous déduction forfaitaire spécifique : sans objet ici, un contrat au mois la refuse (`calcul::dfs_applicable`).
+
+## Dans le dépôt public (15/10/2026)
+
+Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'un organisme privé, n'y sont pas : seule leur transcription y est (`pdftotext -layout` pour un PDF, une feuille de calcul en CSV, feuille par feuille, le texte d'une page HTML), et c'est elle que citent les renvois. Les condensats donnés plus haut sont ceux des originaux, gardés dans le dépôt privé (`reference-privee/sources/majoration-caisses-conges/`).
+
+- `audiens-fiche-pratique-conges-spectacles-202302.pdf` : transcription `audiens-fiche-pratique-conges-spectacles-202302.txt`
+- `tissot-fnal-vt-majoration-11-5-20170711.mht` : transcription `tissot-fnal-vt-majoration-11-5-20170711.txt`

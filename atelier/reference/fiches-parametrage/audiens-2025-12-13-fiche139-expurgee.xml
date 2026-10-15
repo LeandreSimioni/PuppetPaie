@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- TRANSCRIPTION EXPURGEE de la fiche de parametrage OC (FPOC) version 139 d'Audiens du 13/12/2025, adressee a une compagnie reelle. Retires (remplaces par EXPURGE) : l'identifiant de la fiche, la raison sociale, le SIREN et le NIC de l'entreprise, les contacts Audiens (nom, courriel, telephone, fax). Le reste (groupes, contrats, options, periodes de validite, taux, assiettes) est tel que servi, seulement reindente. Original : depot prive, reference-privee/fiches-parametrage/audiens-2025-12-13-fiche139.xml. -->
+<FICHE DateHeureCreation="2025-12-13T04:41:06.661+01:00" IdentifiantFiche="EXPURGE" Version="139">
+  <Entreprise NIC="EXPURGE" RaisonSociale="EXPURGE" SIREN="EXPURGE" />
+  <ProducteurFiche CodeProducteur="P0983" RaisonSocialeProducteur="AUDIENS-PREVOYANCE" />
+  <ContactTechniqueFiche Fax="EXPURGE" Mail="EXPURGE" Nom="EXPURGE" Tel="EXPURGE" TelComp="EXPURGE" />
+  <ContactGestionnaireFiche Fax="EXPURGE" Mail="EXPURGE" Nom="EXPURGE" Tel="EXPURGE" TelComp="EXPURGE" />
+  <GROUPE LibelleGrp="CADRE ET ASSIMILES PREVOYANCE" NumeroGrp="00001">
+    <ParametresContrats Changement="01" DateDebutValidite="01012025" DateFinValidite="31122025" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="PREVOYANCE INTERBRANCHE INTERMITTENTS" ReferenceContrat="INTERBRANCHE" />
+      <ElementsDeCalculAttendus>
+        <TAPrev>
+          <Taux>1.7400</Taux>
+        </TAPrev>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+    <ParametresContrats Changement="01" DateDebutValidite="01012026" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="PREVOYANCE INTERBRANCHE INTERMITTENTS" ReferenceContrat="INTERBRANCHE" />
+      <ElementsDeCalculAttendus>
+        <TAPrev>
+          <Taux>1.8100</Taux>
+        </TAPrev>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+  </GROUPE>
+  <GROUPE LibelleGrp="ETAM PREVOYANCE" NumeroGrp="00002">
+    <ParametresContrats Changement="01" DateDebutValidite="01012025" DateFinValidite="31122025" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="PREVOYANCE INTERBRANCHE INTERMITTENTS" ReferenceContrat="INTERBRANCHE" />
+      <ElementsDeCalculAttendus>
+        <TAPrev>
+          <Taux>1.1600</Taux>
+        </TAPrev>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+    <ParametresContrats Changement="01" DateDebutValidite="01012026" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="PREVOYANCE INTERBRANCHE INTERMITTENTS" ReferenceContrat="INTERBRANCHE" />
+      <ElementsDeCalculAttendus>
+        <TAPrev>
+          <Taux>1.2300</Taux>
+        </TAPrev>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+  </GROUPE>
+  <GROUPE LibelleGrp="ENSEMBLE DU PERS. PERMANENT SVP SANTE NIV1 (ISOLE) REG GAL" NumeroGrp="00003">
+    <ParametresContrats Changement="03" DateDebutValidite="01012025" DateFinValidite="31122025" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="SVP NIVEAU 1 ISOLE" ReferenceContrat="FM SPECT VIVANT PRIV" />
+      <Option CodeOption="NIV1/I/GE" LibelleOption="Niveau 1 / Isolé / Régime Général" />
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique LibelleCodeNature="ISOLE PSS" ValeurCodeNature="18">
+          <Taux>1.2900</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+    <ParametresContrats Changement="01" DateDebutValidite="01012026" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="SVP NIVEAU 1 ISOLE" ReferenceContrat="FM SPECT VIVANT PRIV" />
+      <Option CodeOption="NIV1/I/GE" LibelleOption="Niveau 1 / Isolé / Régime Général" />
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique LibelleCodeNature="ISOLE PSS" ValeurCodeNature="18">
+          <Taux>1.4400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+  </GROUPE>
+  <GROUPE LibelleGrp="ENSEMBLE DU PERS. PERMANENT SVP SANTE NIV1 (ADU/ENF) REG G" NumeroGrp="00004">
+    <ParametresContrats Changement="03" DateDebutValidite="01012025" DateFinValidite="31122025" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="SVP NIVEAU 1 FAMILLE" ReferenceContrat="FM SPECT VIVANT PRIV" />
+      <Option CodeOption="NIV1F/ICE/GE" LibelleOption="Niveau 1 Famille/Iso Conjoint Enfant / Régime Général" />
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique LibelleCodeNature="ENFANT PSS" ValeurCodeNature="18">
+          <Taux>0.7400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+        <BaseMontantSpecifique LibelleCodeNature="CONJOINT PSS" ValeurCodeNature="18">
+          <Taux>1.2900</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+        <BaseMontantSpecifique LibelleCodeNature="ASSURE PSS" ValeurCodeNature="18">
+          <Taux>1.2900</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+    <ParametresContrats Changement="01" DateDebutValidite="01012026" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="SVP NIVEAU 1 FAMILLE" ReferenceContrat="FM SPECT VIVANT PRIV" />
+      <Option CodeOption="NIV1F/ICE/GE" LibelleOption="Niveau 1 Famille/Iso Conjoint Enfant / Régime Général" />
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique LibelleCodeNature="ENFANT PSS" ValeurCodeNature="18">
+          <Taux>0.8200</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+        <BaseMontantSpecifique LibelleCodeNature="CONJOINT PSS" ValeurCodeNature="18">
+          <Taux>1.4400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+        <BaseMontantSpecifique LibelleCodeNature="ASSURE PSS" ValeurCodeNature="18">
+          <Taux>1.4400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+  </GROUPE>
+  <GROUPE LibelleGrp="ENSEMBLE DU PERS. PERMANENT SVP SANTE NIV2 (ISOLE) REG GAL" NumeroGrp="00005">
+    <ParametresContrats Changement="03" DateDebutValidite="01012025" DateFinValidite="31122025" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="SVP NIVEAU 2 ISOLE" ReferenceContrat="FM SPECT VIVANT PRIV" />
+      <Option CodeOption="NIV2/I/GE" LibelleOption="Niveau 2 / Isolé / Régime Général" />
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique LibelleCodeNature="ISOLE PSS" ValeurCodeNature="18">
+          <Taux>1.7400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+    <ParametresContrats Changement="01" DateDebutValidite="01012026" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="SVP NIVEAU 2 ISOLE" ReferenceContrat="FM SPECT VIVANT PRIV" />
+      <Option CodeOption="NIV2/I/GE" LibelleOption="Niveau 2 / Isolé / Régime Général" />
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique LibelleCodeNature="ISOLE PSS" ValeurCodeNature="18">
+          <Taux>1.8400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+  </GROUPE>
+  <GROUPE LibelleGrp="ENSEMBLE DU PERS. PERMANENT SVP SANTE NIV2 (ADU/ENF) REG G" NumeroGrp="00006">
+    <ParametresContrats Changement="03" DateDebutValidite="01012025" DateFinValidite="31122025" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="SVP NIVEAU 2 FAMILLE" ReferenceContrat="FM SPECT VIVANT PRIV" />
+      <Option CodeOption="NIV2F/IACE/GE" LibelleOption="Niveau 2 Famille / Iso Assuré Conjoint Enf / Rég Gén" />
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique LibelleCodeNature="ENFANT PSS" ValeurCodeNature="18">
+          <Taux>1.0000</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+        <BaseMontantSpecifique LibelleCodeNature="CONJOINT PSS" ValeurCodeNature="18">
+          <Taux>1.7400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+        <BaseMontantSpecifique LibelleCodeNature="ASSURE PSS" ValeurCodeNature="18">
+          <Taux>1.7400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+    <ParametresContrats Changement="01" DateDebutValidite="01012026" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="SVP NIVEAU 2 FAMILLE" ReferenceContrat="FM SPECT VIVANT PRIV" />
+      <Option CodeOption="NIV2F/IACE/GE" LibelleOption="Niveau 2 Famille / Iso Assuré Conjoint Enf / Rég Gén" />
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique LibelleCodeNature="ENFANT PSS" ValeurCodeNature="18">
+          <Taux>1.0500</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+        <BaseMontantSpecifique LibelleCodeNature="CONJOINT PSS" ValeurCodeNature="18">
+          <Taux>1.8400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+        <BaseMontantSpecifique LibelleCodeNature="ASSURE PSS" ValeurCodeNature="18">
+          <Taux>1.8400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+  </GROUPE>
+  <GROUPE LibelleGrp="ENSEMBLE DU PERS. PERMANENT SVP SANTE NIV3 (ISOLE) REG GAL" NumeroGrp="00007">
+    <ParametresContrats Changement="03" DateDebutValidite="01012025" DateFinValidite="31122025" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="SVP NIVEAU 3 ISOLE" ReferenceContrat="FM SPECT VIVANT PRIV" />
+      <Option CodeOption="NIV3/I/GE" LibelleOption="Niveau 3 / Isolé / Régime Général" />
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique LibelleCodeNature="ISOLE PSS" ValeurCodeNature="18">
+          <Taux>2.0400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+    <ParametresContrats Changement="01" DateDebutValidite="01012026" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="SVP NIVEAU 3 ISOLE" ReferenceContrat="FM SPECT VIVANT PRIV" />
+      <Option CodeOption="NIV3/I/GE" LibelleOption="Niveau 3 / Isolé / Régime Général" />
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique LibelleCodeNature="ISOLE PSS" ValeurCodeNature="18">
+          <Taux>2.0400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+  </GROUPE>
+  <GROUPE LibelleGrp="ENSEMBLE DU PERS. PERMANENT SVP SANTE NIV3 (ADU/ENF) REG G" NumeroGrp="00008">
+    <ParametresContrats Changement="03" DateDebutValidite="01012025" DateFinValidite="31122025" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="SVP NIVEAU 3 FAMILLE" ReferenceContrat="FM SPECT VIVANT PRIV" />
+      <Option CodeOption="NIV3F/IACE/GE" LibelleOption="Niveau 3 Famille/Iso Assuré Conjoint Enf/Rég Gén" />
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique LibelleCodeNature="ENFANT PSS" ValeurCodeNature="18">
+          <Taux>1.1600</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+        <BaseMontantSpecifique LibelleCodeNature="CONJOINT PSS" ValeurCodeNature="18">
+          <Taux>2.0400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+        <BaseMontantSpecifique LibelleCodeNature="ASSURE PSS" ValeurCodeNature="18">
+          <Taux>2.0400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+    <ParametresContrats Changement="01" DateDebutValidite="01012026" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="SVP NIVEAU 3 FAMILLE" ReferenceContrat="FM SPECT VIVANT PRIV" />
+      <Option CodeOption="NIV3F/IACE/GE" LibelleOption="Niveau 3 Famille/Iso Assuré Conjoint Enf/Rég Gén" />
+      <ElementsDeCalculAttendus>
+        <BaseMontantSpecifique LibelleCodeNature="ENFANT PSS" ValeurCodeNature="18">
+          <Taux>1.1600</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+        <BaseMontantSpecifique LibelleCodeNature="CONJOINT PSS" ValeurCodeNature="18">
+          <Taux>2.0400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+        <BaseMontantSpecifique LibelleCodeNature="ASSURE PSS" ValeurCodeNature="18">
+          <Taux>2.0400</Taux>
+          <Coef>1.00</Coef>
+          <Assiette>PMSS</Assiette>
+        </BaseMontantSpecifique>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+  </GROUPE>
+  <GROUPE LibelleGrp="CADRE ET ASSIMILES CASC SVP" NumeroGrp="00009">
+    <ParametresContrats Changement="03" DateDebutValidite="01012025" DateFinValidite="31122025" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="COMITE D'ACTION SOCIALE ET CULTURELLE DU SVP" ReferenceContrat="CASCSVP" />
+      <ElementsDeCalculAttendus>
+        <TAPrev>
+          <Taux>0.4000</Taux>
+        </TAPrev>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+    <ParametresContrats Changement="01" DateDebutValidite="01012026" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="COMITE D'ACTION SOCIALE ET CULTURELLE DU SVP" ReferenceContrat="CASCSVP" />
+      <ElementsDeCalculAttendus>
+        <TAPrev>
+          <Taux>0.5000</Taux>
+        </TAPrev>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+  </GROUPE>
+  <GROUPE LibelleGrp="ETAM CASC SVP" NumeroGrp="00010">
+    <ParametresContrats Changement="03" DateDebutValidite="01012025" DateFinValidite="31122025" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="COMITE D'ACTION SOCIALE ET CULTURELLE DU SVP" ReferenceContrat="CASCSVP" />
+      <ElementsDeCalculAttendus>
+        <TAPrev>
+          <Taux>0.4000</Taux>
+        </TAPrev>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+    <ParametresContrats Changement="01" DateDebutValidite="01012026" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="COMITE D'ACTION SOCIALE ET CULTURELLE DU SVP" ReferenceContrat="CASCSVP" />
+      <ElementsDeCalculAttendus>
+        <TAPrev>
+          <Taux>0.5000</Taux>
+        </TAPrev>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+  </GROUPE>
+  <GROUPE LibelleGrp="ENSEMBLE PERS. INTERMITTENT THALIE SANTE" NumeroGrp="00011">
+    <ParametresContrats Changement="03" DateDebutValidite="01012026" Periodicite="Mensuel">
+      <Organisme CodeOC="P0983" />
+      <Contrat LibelleContrat="THALIE SANTE INTERMITTENTS" ReferenceContrat="TSINTERMITTENTS" />
+      <ElementsDeCalculAttendus>
+        <TBPrev>
+          <Taux>0.4200</Taux>
+        </TBPrev>
+        <TAPrev>
+          <Taux>0.4200</Taux>
+        </TAPrev>
+      </ElementsDeCalculAttendus>
+    </ParametresContrats>
+  </GROUPE>
+</FICHE>

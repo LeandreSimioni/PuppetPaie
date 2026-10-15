@@ -5,7 +5,7 @@
 - Textes parents (KALITEXT) : KALITEXT000005662413 (CCN pour les entreprises artistiques et culturelles du 1er janvier 1984, étendue) ; KALITEXT000046265849 (avenant du 5 avril 2022)
 - Version en vigueur : VIGUEUR_ETEN depuis 2022-06-15 (fin 2999-01-01)
 - Date du relevé : 2026-10-10 (entrepôt construit le 2026-09-25, dernière livraison KALI lue : 20260924-214040)
-- Source : entrepôt local `prive/reference/sources/kali-entrepot/articles.jsonl.gz` (base KALI/DILA, https://echanges.dila.gouv.fr/OPENDATA/KALI/)
+- Source : entrepôt local `atelier/reference/sources/kali-entrepot/articles.jsonl.gz` (base KALI/DILA, https://echanges.dila.gouv.fr/OPENDATA/KALI/)
 - Règle de lecture : les blocs ```text sont la transcription LITTÉRALE du champ `contenu` de la base.
 
 ### KALIARTI000046279857 — art. IX.1 — état VIGUEUR_ETEN — en vigueur du 2022-06-15 au 2999-01-01

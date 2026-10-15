@@ -45,7 +45,7 @@ d'activités.
 codes sans point, comme la fiche entreprise les porte ; aucun code commun aux deux nomenclatures, l'outil le vérifie) :
 
 ```
-python3 atelier/outils/extraire_naf.py prive/reference/sources/insee-naf-2025/insee-naf-2025-structure-20241004.xlsx prive/reference/sources/insee-naf-2025/insee-naf-2025-correspondances-naf-rev2-vers-naf-2025-20260107.xlsx logiciel/donnees/naf-base.json
+python3 atelier/outils/extraire_naf.py atelier/reference/sources/insee-naf-2025/insee-naf-2025-structure-20241004.xlsx atelier/reference/sources/insee-naf-2025/insee-naf-2025-correspondances-naf-rev2-vers-naf-2025-20260107.xlsx logiciel/donnees/naf-base.json
 ```
 
 `atelier/sources/paie/src/naf.rs` s'en sert : à la saisie (`champs.rs`, `verifier_champ`), un code APE de l'une ou l'autre

@@ -1,6 +1,6 @@
 # CCN télédiffusion du 2 juillet 2021 — Annexe 6 : régime de prévoyance (avenant du 30 septembre 2022), art. 1er, 4.1, 5, 6
 
-- Origine : base KALI (DILA), relevée dans l'entrepôt local `prive/reference/sources/kali-entrepot` (outils/relever_les_conventions.py)
+- Origine : base KALI (DILA), relevée dans l'entrepôt local `atelier/reference/sources/kali-entrepot` (outils/relever_les_conventions.py)
 - IDCC : 3241
 - Identifiants : KALITEXT000046956325 ; art. 4.1 = KALIARTI000046956341
 - URL : https://www.legifrance.gouv.fr/conv_coll/id/KALITEXT000046956325

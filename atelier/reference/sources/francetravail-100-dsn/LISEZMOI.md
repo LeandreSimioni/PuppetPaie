@@ -84,3 +84,17 @@ autres motifs de rupture » ; l'exclusion « AEM » (fiche 2062, § 5.2 du
 cahier) suit 40.025, vide depuis le courriel du 28/05/2026 (inférence
 écrite). Le moteur écrit donc 02 et range cette fin parmi celles qui se
 signalent (`contrats-base.json`, `cddu_spectacle.fin_de_contrat.circuit_derogatoire`).
+
+## Dans le dépôt public (15/10/2026)
+
+Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'un organisme privé, n'y sont pas : seule leur transcription y est (`pdftotext -layout` pour un PDF, une feuille de calcul en CSV, feuille par feuille, le texte d'une page HTML), et c'est elle que citent les renvois. Les condensats donnés plus haut sont ceux des originaux, gardés dans le dépôt privé (`reference-privee/sources/francetravail-100-dsn/`).
+
+- `comenolo-aer-cs.html` : transcription `comenolo-aer-cs.txt`
+- `mescachets-aem-aer-cs-20260903.html` : transcription `mescachets-aem-aer-cs-20260903.txt`
+- `movinmotion-fin-des-aem-20260601.html` : transcription `movinmotion-fin-des-aem-20260601.txt`
+- `towr-fin-aem-20260607.html` : transcription `towr-fin-aem-20260607.txt`
+
+Restent hors du dépôt public, dans le dépôt privé (`reference-privee/sources/francetravail-100-dsn/`) :
+
+- `francetravail-courriel-fin-phase-pilote-100-dsn-20260528.pdf` : relevé sur une compagnie réelle
+- `francetravail-courriel-fin-phase-pilote-100-dsn-20260528.txt` : relevé sur une compagnie réelle

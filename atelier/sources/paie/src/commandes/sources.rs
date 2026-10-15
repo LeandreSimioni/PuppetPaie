@@ -75,6 +75,8 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
             "copie conforme".to_string()
         } else if e["copie_presente"] == json!(true) {
             "COPIE DIFFERENTE du manifeste".to_string()
+        } else if e["transcription_presente"] == json!(true) {
+            format!("original hors du depot public, transcription : {}/{}", crate::sources::COPIES, s(e, "transcription"))
         } else {
             format!("copie absente ({}/{})", crate::sources::COPIES, s(e, "fichier"))
         };

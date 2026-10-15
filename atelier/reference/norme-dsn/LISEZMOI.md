@@ -116,8 +116,8 @@ Le CT 2027.1.2 n'est pas servi en PDF : les deux outils de l'atelier lisent dés
 `Regexp`). Commandes :
 
 ```
-python3 atelier/outils/extraire_usages.py prive/reference/norme-dsn/dsn-tableau-des-usages-2027.1.2-20251224.xlsx logiciel/donnees/usages-dsn-p27v01-base.json
-python3 atelier/outils/extraire_formats.py prive/reference/norme-dsn/dsn-tableaux-categories-controles-datatypes-usages-2027.1.2-20251224.xlsx logiciel/donnees/formats-dsn-p27v01-base.json
+python3 atelier/outils/extraire_usages.py atelier/reference/norme-dsn/dsn-tableau-des-usages-2027.1.2-20251224.xlsx logiciel/donnees/usages-dsn-p27v01-base.json
+python3 atelier/outils/extraire_formats.py atelier/reference/norme-dsn/dsn-tableaux-categories-controles-datatypes-usages-2027.1.2-20251224.xlsx logiciel/donnees/formats-dsn-p27v01-base.json
 ```
 
 **Ce qui a bougé entre le relevé 2027.1.1 (PDF) et le 2027.1.2 (classeurs)**, et rien d'autre :

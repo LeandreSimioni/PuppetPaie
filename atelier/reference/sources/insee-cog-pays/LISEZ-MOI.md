@@ -33,7 +33,7 @@ forme de champ « pays »), `routes_fiches.rs` (`deriver` : la nationalité DSN 
 ## Les inférences
 
 - **La table « Pays » de la DSN** (cahier technique 2026.1, p. 173 : « Le Code pays de naissance est à déterminer
-  dans la table "Codes Pays" ISO 3166-1-A2 » ; `prive/reference/norme-dsn/texte/bloc-S21.G00.30.txt`, l. 297-303)
+  dans la table "Codes Pays" ISO 3166-1-A2 » ; `atelier/reference/norme-dsn/texte/bloc-S21.G00.30.txt`, l. 297-303)
   n'est pas déposée (elle se publie sur net-entreprises, que le conteneur ne consulte pas). Lire les codes ISO du COG
   comme ceux de cette table est une **inférence** : les deux renvoient à ISO 3166. Un code que la DSN refuserait se
   verrait au premier dépôt de test.

@@ -490,18 +490,22 @@ fn sources_refusee_hors_du_poste_de_l_editeur() {
 /// releve au jour du poste. Une copie posee dans la compagnie n'est pas lue.
 #[test]
 fn sources_confronte_chaque_copie_au_condensat_du_manifeste() {
+    let mut transcrite = source("https://exemple.invalid/d", "d.pdf", b"original", "manuelle");
+    transcrite["transcription"] = json!("d.txt");
     let (cie, code) = poste_de_l_editeur(
         "sources-copies",
         json!({
             "a-conforme": source("https://exemple.invalid/a", "a.pdf", b"texte lu", "telechargement"),
             "b-differente": source("https://exemple.invalid/b", "sous/b.csv", b"texte lu", "telechargement"),
             "c-absente": source("https://exemple.invalid/c", "c.md", b"texte lu", "manuelle"),
+            "d-transcrite": transcrite,
         }),
     );
     let inst = code.parent().unwrap().parent().unwrap().to_path_buf();
     ecrire(&inst, "atelier/reference/sources/a.pdf", "texte lu");
     ecrire(&inst, "atelier/reference/sources/sous/b.csv", "texte retouche a la main");
     ecrire(&cie, "reference/sources/c.md", "texte lu");
+    ecrire(&inst, "atelier/reference/sources/d.txt", "transcription de l'original");
     let r = sources(&cie, &code, &["--json"]);
     assert_eq!(r.code, 0, "{}", r.err);
     let j = r.json();
@@ -512,13 +516,17 @@ fn sources_confronte_chaque_copie_au_condensat_du_manifeste() {
         [
             (json!("a-conforme"), json!(true), json!(true)),
             (json!("b-differente"), json!(true), json!(false)),
-            (json!("c-absente"), json!(false), Value::Null)
+            (json!("c-absente"), json!(false), Value::Null),
+            (json!("d-transcrite"), json!(false), Value::Null)
         ]
     );
+    // L'original d'un organisme prive reste hors du depot : sa transcription est dite, sans condensat a confronter.
+    assert_eq!((l[2]["transcription_presente"].clone(), l[3]["transcription_presente"].clone()), (Value::Null, json!(true)));
     assert_eq!(l[0]["age_jours"], json!(30), "releve le 2026-09-08, le poste est au {}", AUJOURDHUI);
     assert!(l.iter().all(|e| e["en_ligne"].is_null()), "sans --verifier, rien n'est retourne voir");
     let texte = sources(&cie, &code, &[]);
-    assert!(texte.out.contains("copie conforme") && texte.out.contains("COPIE DIFFERENTE") && texte.out.contains("copie absente (atelier/reference/sources/c.md)"), "{}", texte.out);
+    assert!(texte.out.contains("copie conforme") && texte.out.contains("COPIE DIFFERENTE") && texte.out.contains("copie absente (atelier/reference/sources/c.md)")
+            && texte.out.contains("original hors du depot public, transcription : atelier/reference/sources/d.txt"), "{}", texte.out);
     // Un manifeste a qui il manque un champ : un refus qui le nomme, pas une valeur devinee.
     std::fs::write(code.join("sources.json"), json!({"sources": {"x": {"titre": "x"}}}).to_string()).unwrap();
     let r = sources(&cie, &code, &[]);

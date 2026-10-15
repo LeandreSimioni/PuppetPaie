@@ -5,7 +5,7 @@
 - Texte(s) parent(s) (KALITEXT) : KALITEXT000054871990 (avenant n° 76) ; KALITEXT000025980919 (avenant n° 41 du 23/01/2012)
 - Version en vigueur : VIGUEUR_ETEN depuis 2026-04-01 (avenant n° 76) ; 2012-03-01 (avenant n° 41). Entrée en vigueur de l'avenant 76 (art. 3, LU) : « soumis à l'absence d'opposition des organisations syndicales non-signataires majoritaires en nombre dans un délai de 15 jours à compter de sa notification » ; extension demandée (art. 4) — statut d'extension non relevé ici (la table du dépôt indique etendu=true).
 - Date du relevé : 2026-09-29
-- Source : entrepôt local `prive/reference/sources/kali-entrepot/articles.jsonl.gz` (base KALI/DILA)
+- Source : entrepôt local `atelier/reference/sources/kali-entrepot/articles.jsonl.gz` (base KALI/DILA)
 - Règle de lecture : les blocs ```text sont la transcription LITTÉRALE du champ `contenu` de la base (mise en page aplatie par la base) ; les tableaux Markdown sont une remise en forme par le releveur ; les mentions « [DÉDUIT] » ou « [INFÉRÉ] » sont des déductions du releveur, pas du texte.
 
 

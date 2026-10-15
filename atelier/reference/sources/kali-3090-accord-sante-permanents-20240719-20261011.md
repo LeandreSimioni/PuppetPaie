@@ -1,5 +1,5 @@
 SOURCE : base KALI de la DILA, open data (https://echanges.dila.gouv.fr/OPENDATA/KALI/), par l'entrepot local
-  prive/reference/sources/kali-entrepot/ (outils/relever_les_conventions.py), etat des livraisons : voir etat.json
+  atelier/reference/sources/kali-entrepot/ (outils/relever_les_conventions.py), etat des livraisons : voir etat.json
 CONTENEUR : KALICONT000028157262 (CCN des entreprises du secteur prive du spectacle vivant, IDCC 3090)
 TEXTE : KALITEXT000050394834 -- Accord du 19 juillet 2024 relatif au regime obligatoire de frais de sante des salaries
   hors salaries intermittents du spectacle (page Legifrance donnee par Leandre le 11/10/2026 :

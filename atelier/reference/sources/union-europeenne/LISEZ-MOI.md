@@ -20,7 +20,7 @@ Relevé le 10/10/2026 sur EUR-Lex (le serveur répond depuis le conteneur), pour
   est partie **aujourd'hui** à l'accord EEE, que le texte de 1994 ne dit pas.
 
 Le moteur s'en sert dans `atelier/sources/paie/src/codification_ue.rs` (`UNION`, `EEE_HORS_UNION`, `code_du_pays`),
-avec la norme (cahier technique DSN 2026.1, p. 173 : `prive/reference/norme-dsn/texte/bloc-S21.G00.30.txt`, l. 267-277).
+avec la norme (cahier technique DSN 2026.1, p. 173 : `atelier/reference/norme-dsn/texte/bloc-S21.G00.30.txt`, l. 267-277).
 Les codes ISO à deux lettres des pays (ceux de `S21.G00.30.015`) ne viennent pas d'un texte déposé ici : depuis la vague 1k,
 ils se lisent dans le Code officiel géographique de l'INSEE (`../insee-cog-pays/LISEZ-MOI.md`).
 

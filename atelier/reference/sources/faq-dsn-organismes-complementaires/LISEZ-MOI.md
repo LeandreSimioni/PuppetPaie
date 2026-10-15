@@ -60,3 +60,8 @@ seulement la lecture d'une fiche de paramétrage Audiens (p. 4) :
   une seule retenue » : **une ligne de fiche = une retenue** (Q14 : le socle et l'option sont deux lignes, donc deux
   cotisations, inférence depuis une consigne d'éditeur).
 
+## Dans le dépôt public (15/10/2026)
+
+Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'un organisme privé, n'y sont pas : seule leur transcription y est (`pdftotext -layout` pour un PDF, une feuille de calcul en CSV, feuille par feuille, le texte d'une page HTML), et c'est elle que citent les renvois. Les condensats donnés plus haut sont ceux des originaux, gardés dans le dépôt privé (`reference-privee/sources/faq-dsn-organismes-complementaires/`).
+
+- `ghs-spaiectacle-fiche-technique-controle-parametrage-oc-20191014.pdf` : transcription `ghs-spaiectacle-fiche-technique-controle-parametrage-oc-20191014.txt`

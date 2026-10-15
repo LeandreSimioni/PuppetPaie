@@ -300,3 +300,9 @@ texte n'interdit pas d'en dire plus). La CSG et la CRDS non déductibles restent
   (`le_complet_imprime_la_meme_paie_que_le_simplifie_*`, `la_caisse_des_conges_spectacles_est_une_autre_charge_due_par_l_employeur`),
   `tests/routes/routes_bulletin_modele.rs` ; oracle `tests/donnees/bulletin.json` réécrit (seule la ligne des autres
   charges absorbe la caisse).
+
+## Dans le dépôt public (15/10/2026)
+
+Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'un organisme privé, n'y sont pas : seule leur transcription y est (`pdftotext -layout` pour un PDF, une feuille de calcul en CSV, feuille par feuille, le texte d'une page HTML), et c'est elle que citent les renvois. Les condensats donnés plus haut sont ceux des originaux, gardés dans le dépôt privé (`reference-privee/sources/montant-net-social/`).
+
+- `sage-bulletin-clarifie-2023-net-social-faq-boss.pdf` : transcription `sage-bulletin-clarifie-2023-net-social-faq-boss.txt`

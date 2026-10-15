@@ -31,7 +31,7 @@ premiers caractères) : `b8af8df7372e4f89`. Transcription : `pdftotext -layout`,
 ## Où le moteur s'en sert
 
 `logiciel/donnees/baremes/2026.json` (T1/T2, CEG, CET : les notes `_source` citent Audiens « Paramètres 2026 »,
-`prive/reference/sources/audiens-parametres-2026/`, et la
+`atelier/reference/sources/audiens-parametres-2026/`, et la
 fiche « taux et répartition ») ; `paie/src/norme.rs` ou équivalent (`cotisation_cet_patronale`).
 
 **Lot R5a (11/10/2026), le plafond d'un temps partiel (D11)** : le cahier CT2026 (l. 3325-3343) fait proratiser la
@@ -111,3 +111,19 @@ les autres) de chaque période. Les cotisations 131/132 de chaque période suive
 cadre). Tests : `atelier/sources/paie/tests/periodes.rs`. **Inférence** (aucun texte déposé) : la réduction générale
 garde un coefficient pour le mois, appliqué au brut de chaque période. Les chiffres de la FAQ (2025, PSS 3 925) ne sont
 pas rejoués à l'euro : le moteur calcule sur le barème de l'année du mois payé.
+
+## Dans le dépôt public (15/10/2026)
+
+Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'un organisme privé, n'y sont pas : seule leur transcription y est (`pdftotext -layout` pour un PDF, une feuille de calcul en CSV, feuille par feuille, le texte d'une page HTML), et c'est elle que citent les renvois. Les condensats donnés plus haut sont ceux des originaux, gardés dans le dépôt privé (`reference-privee/sources/agirc-arrco/`).
+
+- `agirc-arrco-aide-codification-dsn-ct2025-v1.3-20250301.pdf` : transcription `agirc-arrco-aide-codification-dsn-ct2025-v1.3-20250301.txt`
+- `agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.pdf` : transcription `agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.txt`
+- `agirc-arrco-circulaire-2018-09-dc-ani-20171117-20181219.pdf` : transcription `agirc-arrco-circulaire-2018-09-dc-ani-20171117-20181219.txt`
+- `agirc-arrco-faq-bloc-changement-de-contrat-201707.pdf` : transcription `agirc-arrco-faq-bloc-changement-de-contrat-201707.txt`
+- `agirc-arrco-faq-changement-de-situation-en-cours-de-mois-v2-2025.pdf` : transcription `agirc-arrco-faq-changement-de-situation-en-cours-de-mois-v2-2025.txt`
+- `agirc-arrco-faq-changement-de-situation-retroactif-v2-20250331.pdf` : transcription `agirc-arrco-faq-changement-de-situation-retroactif-v2-20250331.txt`
+- `agirc-arrco-faq-exonerations-v2026-20250301.pdf` : transcription `agirc-arrco-faq-exonerations-v2026-20250301.txt`
+- `agirc-arrco-faq-reduction-generale-2026.pdf` : transcription `agirc-arrco-faq-reduction-generale-2026.txt`
+- `agirc-arrco-faq-sommes-versees-apres-depart-v2-202506.pdf` : transcription `agirc-arrco-faq-sommes-versees-apres-depart-v2-202506.txt`
+- `agirc-arrco-faq-temps-partiel-cotisant-temps-plein-201910.pdf` : transcription `agirc-arrco-faq-temps-partiel-cotisant-temps-plein-201910.txt`
+- `agirc-arrco-page-documentation-technique-dsn-20261011.html` : transcription `agirc-arrco-page-documentation-technique-dsn-20261011.txt`

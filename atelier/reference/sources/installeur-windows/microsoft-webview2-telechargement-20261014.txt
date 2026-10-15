@@ -1,0 +1,91 @@
+Skip to main content
+
+[Microsoft]
+
+-   Microsoft Edge Developer
+
+-   Documentation
+
+-   Web Platform
+
+-   Tools
+
+-   Support
+
+Show translation
+
+Search
+
+Download Edge
+
+intro
+
+[]
+
+Microsoft Edge WebView2
+
+Embed web content (HTML, CSS, and JavaScript) in your native applications with Microsoft Edge WebView2.
+
+DownloadDocumentationProvide feedback
+
+attributes
+
+[]
+
+Best of the Web
+
+Use the modern Microsoft Edge (Chromium) platform to bring web experiences into your native app.
+
+[]
+
+Power of native
+
+Build powerful and secure applications by allowing WebView2 controlled access to native capabilities.
+
+[]
+
+Evergreen or fixed version
+
+By default, WebView2 is evergreen and receives automatic updates to stay on the latest and most secure platform.
+
+A fixed version variant is available for applications with strict compatibility requirements.
+
+download
+
+Download the WebView2 Runtime
+
+When distributing your application, there are a few ways you can ensure the WebView2 Runtime is on client machines. Learn more about those options. For installation issues and error codes see our troubleshooting guide.
+
+Evergreen Bootstrapper
+
+The Bootstrapper is a tiny installer that downloads the Evergreen Runtime matching device architecture and installs it locally. There is also a Link that allows you to programmatically download the Bootstrapper.
+
+Get the Link
+
+Download
+
+Evergreen Standalone Installer
+
+A full-blown installer that can install the Evergreen Runtime in offline environment. Available for x86/x64/ARM64.
+
+x86
+
+x64
+
+ARM64
+
+Fixed Version
+
+Select and package a specific version of the WebView2 Runtime with your application.
+
+Select Version
+
+155.0.4283.45
+
+Select Architecture
+
+arm64
+
+Download
+
+-   * Feature availability and functionality may vary by device type, market, and browser version.

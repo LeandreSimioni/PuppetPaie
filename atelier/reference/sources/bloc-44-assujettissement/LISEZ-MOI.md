@@ -39,7 +39,7 @@ avant les individus (30) ; les tests : `atelier/sources/paie/tests/bloc_44.rs`.
 
 ## La forme, vue chez l'ancien logiciel
 
-`prive/export-coolpaie/DSN/Decembre_CCoU_*_MENSUELLE.dsn` (2020 à 2025) : six blocs dans chaque DSN de décembre, `001`,
+Les DSN de décembre exportées de CoolPaie par une compagnie réelle (2020 à 2025 ; pièces hors du dépôt public : dépôt privé) : six blocs dans chaque DSN de décembre, `001`,
 `004`, `006`, `007`, `010`, `013`, chacun avec son millésime, un `44.002` à `0.00` sur 001, 007 et 013. Lu pour la
 forme, pas pour les valeurs. Le moteur n'écrit pas de montant là où la norme n'en demande pas, et déclare `014` pour une
 compagnie qui n'emploie que des intermittents (L. 6331-55), là où CoolPaie écrivait `013`.

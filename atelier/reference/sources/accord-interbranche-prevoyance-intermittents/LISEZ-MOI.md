@@ -44,3 +44,9 @@ cette cotisation : au sens de BOI-RSA-BASE-30-10-20 § 200 et § 230 (`sources/b
 son net imposable, à la différence de la part patronale `mutuelle` des permanents. C'est une lecture de la doctrine
 sur un cas qu'elle ne nomme pas (inférence, forte ; même pratique chez les éditeurs de paie du secteur). Décidé le
 10/10/2026 (corrections DSN, vague 1b).
+
+## Dans le dépôt public (15/10/2026)
+
+Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'un organisme privé, n'y sont pas : seule leur transcription y est (`pdftotext -layout` pour un PDF, une feuille de calcul en CSV, feuille par feuille, le texte d'une page HTML), et c'est elle que citent les renvois. Les condensats donnés plus haut sont ceux des originaux, gardés dans le dépôt privé (`reference-privee/sources/accord-interbranche-prevoyance-intermittents/`).
+
+- `audiens-essentiel-regime-intermittents-20220425.pdf` : transcription `audiens-essentiel-regime-intermittents-20220425.txt`

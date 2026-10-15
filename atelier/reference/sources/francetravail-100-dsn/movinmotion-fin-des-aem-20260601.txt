@@ -1,0 +1,467 @@
+Aller au contenu
+
+[Logo Movinmotion]Movinmotion
+
+[Menu]
+
+-   Employeur
+    -   Social
+        -   Gestion des contrats
+        -   Édition de la paie
+        -   Accompagnement
+        -   Offres complémentaires
+        -   Tarifs
+        -   Parrainage
+        -   Nos clients témoignent
+    -   Comptabilité
+        -   Expertise comptable
+        -   Tarifs
+    -   Talents
+        -   Annuaire de professionnel·le·s
+        -   Offres d’emploi
+    -   Offres par secteur
+        -   Festival
+        -   Audiovisuel
+        -   Spectacle vivant
+-   Intermittent
+-   Ressources
+    -   Simulateur de bulletins intermittents
+    -   Guide de la création d’une compagnie
+    -   Comptabilité de votre structure culturelle : la checklist ultime
+    -   Kit de l’intermittent
+-   Blog
+-   Manifeste
+    -   Notre histoire
+    -   Nos coulisses
+    -   Nous rejoindre
+    -   Notre équipe
+
+-   Se connecter
+-   Demander un devis
+
+Fermer le menu []
+
+-   Employeur
+    Afficher le sous-menu[]
+
+    -   Social
+        Afficher le sous-menu[]
+
+        -   Gestion des contrats
+
+        -   Édition de la paie
+
+        -   Accompagnement
+
+        -   Offres complémentaires
+
+        -   Tarifs
+
+        -   Parrainage
+
+        -   Nos clients témoignent
+
+    -   Comptabilité
+        Afficher le sous-menu[]
+
+        -   Expertise comptable
+
+        -   Services proposés
+
+        -   Tarifs
+
+    -   Talents
+        Afficher le sous-menu[]
+
+        -   Annuaire de professionnel·le·s
+
+        -   Offres d’emploi
+
+    -   Offres par secteur
+        Afficher le sous-menu[]
+
+        -   Audiovisuel
+
+        -   Spectacle vivant
+
+        -   Festivals
+
+-   Intermittent
+
+-   Ressources
+    Afficher le sous-menu[]
+
+    -   Simulateur de bulletins intermittents
+
+    -   Guide de la création d’une compagnie
+
+    -   Comptabilité de votre structure culturelle : la checklist ultime
+
+    -   Kit de l’intermittent
+
+-   Blog
+
+-   Se connecter
+
+-   Demander un devis
+
+-   LinkedIn[]
+-   Facebook[]
+-   YouTube[]
+
+Movinmotion - Blog - Intermittents - Intermittent·e du spectacle : la fin des AEM
+
+Catégories
+
+Intermittents
+
+Intermittent·e du spectacle : la fin des AEM
+
+Auteur de l’article []
+
+Cyriane, Chargée de l'assistance aux intermittents du spectacle
+
+1 juin 2026 | 79
+
+79
+
+[Partager]
+
+-   
+-   
+-   
+-   
+
+France Travail fait évoluer les modalités de déclaration des activités des intermittent·es du spectacle vers une disparition progressive de l’AEM. L’objectif de cette réforme est de simplifier leurs démarches administratives. Elle sera effective pour tous les employeurs du secteur culturel au début de l’année 2027.
+
+Qu’est-ce qui change ? 
+
+Jusqu’à présent, les employeurs réalisaient deux actions dans le cadre des embauches : 
+
+-   Une Déclaration Sociale Nominative (DSN) permettant de payer les cotisations sociales et d’assurer la protection sociale.
+-   L’édition d’une Attestation Employeur Mensuelle (AEM) permettant à France Travail de calculer l’indemnisation au régime spécifique d’assurance chômage des intermittent·es. 
+
+France Travail souhaite désormais simplifier ce fonctionnement en utilisant la DSN comme justificatif unique des périodes d’activité et des montants de salaire des intermittent·es.
+
+  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  La Déclarations Sociale Nominatives (DSN)
+  La DSN est une déclaration en ligne réalisée tous les mois à partir des données liées à la paie. Elle permet à l’employeur de payer les cotisations sociales et de transmettre de manière sécurisée aux organismes sociaux (Urssaf, CPAM, France Travail, etc.) les informations nécessaires à la gestion de la protection sociale des salariés. Un logiciel de paie compatible avec la DSN est nécessaire. En savoir plus. 
+
+  ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Les employeurs n’éditeront plus les AEM pour les transmettre chaque mois aux intermittent·es et à France Travail. C’est France Travail qui éditera un document justificatif des activités de l’intermittent·e : l’AER (Attestation Employeur Rematérialisée) spécifique Cinéma Spectacle, communément appelée AER CS (Attestation Employeur Rematérialisée Cinéma Spectacle) ou “AE CS”. Cette attestation sera produite par France travail, sur la base des éléments déclarés dans la DSN. Ce document sera transmis aux employeurs, qui le transmettront ensuite à l’intermittent·e.
+
+Contrats courts et contrats longs
+
+  -------------------------------------------------------------------------------------------------------- ---------------------------------------------------------------------------------------------------------------------------------
+  Avant la réforme                                                                                         Après la réforme
+
+  Contrats courts                                                                                          
+
+  1 AEM éditée par contrat                                                                                 1 AE CS éditée par employeurs par mois
+  (Un·e intermittent·e pouvait ainsi disposer de plusieurs AEM pour un même employeur sur le même mois.)   (Un·e intermittent·e qui a travaillé plusieurs fois dans le mois au même poste avec un même employeur ne recevra qu’une AE CS.)
+
+  Contrats longs (courants sur plusieurs mois)                                                             
+
+  1 AEM éditée à la fin de chaque mois concerné par le contrat                                             1 AE CS éditée à la fin du dernier mois concerné par le contrat
+  -------------------------------------------------------------------------------------------------------- ---------------------------------------------------------------------------------------------------------------------------------
+
+À quelle échéance ?
+
+Certaines entreprises ont été “embarquées” dans une phase pilote par France Travail. Chez Movinmotion nous travaillons avec France Travail sur la mise en place de ce nouveau dispositif qui concerne déjà plusieurs de nos client·es. Certaines paies des intermittent·es peuvent ainsi déjà être concernées. L’ensemble des employeurs et employeuses du secteur culturel vont transitionner progressivement vers ce nouveau dispositif pour une mise en place définitive au mois de janvier 2027.
+
+Comment s’actualiser en tant que salarié·e ?
+
+En tant que salarié·e, l’actualisation a évolué il y a deux ans environ. Les périodes d’activités y sont notamment pré-remplies lorsqu’elles sont connues de France Travail : 
+
+-   L’actualisation pour les intermittents du spectacle : conseils et modalités pratiques 
+
+Quatre éléments sont nécessaires pour s’actualiser : 
+
+-   Le nom de la structure qui emploie
+-   Le nombre d’heures ou de cachets effectués
+-   La rémunération brute
+-   La période travaillée
+
+L’ensemble de ces éléments figurent sur les bulletins de paie, qui continueront à être édités dans les mêmes délais par les employeurs. Il en est de même pour les bordereaux de congés spectacles. 
+
+Comment gérer les situations exceptionnelles ?
+
+En cas de situation exceptionnelle nécessitant d’obtenir des AE CS rapidement (par exemple dans le cadre d’une ouverture ou de réexamen de droits France Travail), les intermittent·es doivent faire une demande de manière anticipée à leur employeurs. Ce point ne change pas.
+
+[]
+
+«Aujourd’hui, c’est jour de paie !»
+
+Dans le cadre de notre offre réglementaire, nous sommes à même d’accompagner nos clients sur ce sujet !
+
+N’hésitez pas à contacter Hugo, notre commercial pour une démo de nos services !
+
+Découvrir l’offre movinmotion social
+
+79
+
+[Partager]
+
+-   
+-   
+-   
+-   
+
+À lire aussi
+
+[]
+
+-   Social
+
+- 20 Juil 2026
+
+Compte certifié France Travail : ce qui change pour les employeurs à partir du 21 juillet 2026
+
+À partir du 21 juillet 2026, France Travail fait évoluer son espace employeur afin de renforcer la sécurité des données et de répondre aux exigences du Règlement Général sur la Protection des [...]
+
+[congé supplémentaire de naissance]
+
+-   Social
+
+- 7 Juil 2026
+
+Le congé supplémentaire de naissance : quelles conditions ?
+
+À compter du 1er juillet 2026, les salarié·es pourront bénéficier d’un congé supplémentaire de naissance, prévu par la loi de financement de la Sécurité sociale pour 2026. Qu’est-ce que [...]
+
+[les différents contrats dans l'intermittence]
+
+-   Social
+
+- 25 Juin 2026
+
+Webinaire sur les contrats dans l’intermittence
+
+En juin 2026, Pascal et Hajar ont animé un webinaire autour des différents contrats dans l’intermittence. Si vous aussi, vous souhaitez faire le tour sur ces questions, le replay est disponible. [...]
+
+Vous voulez recevoir nos mots doux ?
+
+Une fois par mois, pas plus. Pas de spam inutile, si l’on décide de vous parler, c’est que l’on a quelque chose d’important à vous dire. En vous inscrivant à notre newsletter vous recevrez des actualités en rapport avec Movinmotion et ses produits, mais aussi des actualités sociales, comptable, juridiques et tout ce qui pourrait vous aider (et si on arrive à vous décrocher un sourire en plus on aura tout gagné)
+
+Company
+
+Ce champ n’est utilisé qu’à des fins de validation et devrait rester inchangé.
+
+Prénom(Nécessaire)
+
+Nom(Nécessaire)
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Votre entreprise(Nécessaire)
+
+Votre e-mail professionnel(Nécessaire)
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Téléphone(Nécessaire)
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Combien de bulletins intermittents éditez-vous par an ?(Nécessaire)
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Votre secteur(Nécessaire)
+
+AutreCabaretCasinoDoublageEdition PhonographiqueEdition RadiophoniqueEspace de loisirEvénementielPressePrestation Technique AudiovisuellePrestation Technique Spectacle vivantProduction AudiovisuelleProduction CinématographiqueProduction de film documentaireProduction de film publicitaireProduction de films d'animationProduction jeux vidéoSpectacle vivantSyntec
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Description de votre besoin
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Comment avez-vous entendu parler de Movinmotion ?
+
+Par téléphonePar emailLors d'un événement ou d'un webinarVia une recherche internetVia une publicité InternetVia les réseaux sociauxEn lisant la presseSur recommandation d’AudiensSur recommandation d’un autre organisme institutionnelSur recommandation d’un cabinet comptableSur recommandation d’un de ses salariésSur recommandation d’un autre employeurAutre
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Votre SIRET
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+OLD Votre fonction
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Votre fonction
+
+Administrateur.triceAssistant.e / Chargé.e de productionDirecteur.trice de productionProducteur.triceGérant.eDirecteur.trice financierRHComptableEquipe PaieAutre
+
+La protection de vos données nous tient à cœur. Movinmotion traite les données recueillies dans ce formulaire pour vous transmettre par email le contenu demandé, ainsi que des informations sur son secteur et sur ses produits. Elles ne sont communiquées à aucun autre destinataire en dehors de notre outil d’emailing. Vous pouvez vous désinscrire de ce type de communications à tout moment.
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+champs MQL
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Souhaitez-vous vous abonner à la newsletter Movinmotion ?
+
+Oui
+
+Non
+
+Environ une fois par mois, recevez les dernières informations liées à la gestion d’une structure dans le secteur culturel. Désinscription possible à tout moment.
+
+Êtes vous…
+
+Administrateur·iceAssistant·eChargé·e de productionDirecteur·ice de productionProducteur·iceGérant·eDirecteur·ice financier·eRHComptableEquipe PaieTechnicien·neArtisteAutre
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Êtes-vous déjà client Movinmotion Social ?
+
+Oui
+
+Non
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Combien de notes de droits d'auteur pensez-vous éditer par an ?
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Avez-vous déjà édité des notes de droits d'auteur cette année ?
+
+NonOui, en interneOui, avec MovinmotionOui, avec un autre prestataire
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Quel volume de justificatifs d’achats et de ventes estimez-vous produire sur un an ?
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+utm_source
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+utm_content
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+utm_campaign
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+utm_medium
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+utm_term
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Gclid
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Query_url
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Produit
+
+Gestion sociale
+
+Comptabilité
+
+Comptalitik
+
+Notes de droits d’auteur
+
+Talents
+
+Salarié
+
+Générique
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Nature de l'opportunité
+
+Entrant SQL
+
+Entrant MQL
+
+Cross sell
+
+Prospecté
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Source
+
+Form_MQL : MMS Inscription NL
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+type de lead
+
+MQL
+
+SQL
+
+Ce champ est masqué lorsque l‘on voit le formulaire.
+
+Ciblage
+
+CAPTCHA
+
+Envoyer
+
+[]
+
+[]
+
+Contact
+
+Adresse : Movinmotion
+18 Avenue de Messine
+75008 Paris
+
+Mail : [email protected]
+
+Devis : Cliquez ici pour faire une demande
+
+Plateforme
+
+-   Social
+-   Comptabilité
+-   Talents
+-   Salarié
+
+Entreprise
+
+-   Recrutement
+-   Partenaires
+
+Ressources
+
+-   FAQ
+-   Blog
+-   Simulateur de bulletins intermittents
+-   Guide de la création d’une compagnie
+-   Comptabilité de votre structure culturelle : la checklist ultime
+-   Kit de l’intermittent
+-   Presse
+
+© 2026 Copyright Movinmotion
+
+Mentions légales
+
+Plan du site
+
+-   LinkedIn[]
+-   Facebook[]
+-   YouTube[]
+
+×

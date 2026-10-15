@@ -1,6 +1,6 @@
 # CCN espaces de loisirs — contribution conventionnelle de formation (avenants n° 52 du 23/11/2015 et n° 63 du 21/11/2019)
 
-- Origine : base KALI (DILA), relevée dans l'entrepôt local `prive/reference/sources/kali-entrepot` (outils/relever_les_conventions.py)
+- Origine : base KALI (DILA), relevée dans l'entrepôt local `atelier/reference/sources/kali-entrepot` (outils/relever_les_conventions.py)
 - IDCC : 1790
 - Identifiants : KALITEXT000042085930 (avenant 63) ; KALITEXT000032093966 (avenant 52) ; art. 1er 63 = KALIARTI000042085934 ; art. 1er 52 (en vigueur) = KALIARTI000042091482
 - URL : https://www.legifrance.gouv.fr/conv_coll/id/KALITEXT000042085930
