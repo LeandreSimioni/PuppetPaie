@@ -66,6 +66,8 @@ fn main() -> std::process::ExitCode {
         // La fenetre, dans le navigateur du poste (lot J3) : `paie interface`.
         // La mise a jour (lot J4) : verifier, appliquer, revenir ; publier et la cle, chez l'editeur.
         Some("maj") => return std::process::ExitCode::from(paie::maj::commande(&args[1..]).clamp(0, 255) as u8),
+        // La compagnie d'essai (lot E1) : un vrai depot de TEST sans `prive/`, l'identite lue dans `PUPPETPAIE_COMPAGNIE`.
+        Some("essai") => return std::process::ExitCode::from(paie::essai::commande(&args[1..]).clamp(0, 255) as u8),
         Some("interface") => return std::process::ExitCode::from(paie::interface::commande(&args[1..]).clamp(0, 255) as u8),
         // Les commandes que le Python appelle avec du JSON : `paie interne NOM`.
         Some("interne") => return interne(&args[1..]),

@@ -1594,6 +1594,18 @@ conserve rien : les DSN produites ici sont conformes au tableau des usages et
 aux formats de la norme, **et à rien d'autre**, tant qu'elles n'y sont pas
 passées.
 
+### La compagnie d'essai : le dépôt de test sans `prive/`
+
+Une fictive ne va jamais au réseau (ses dépôts sont joués). Pour un **vrai**
+dépôt de test depuis une machine qui n'a pas les données de la compagnie (une
+séance dans le nuage, le poste d'un autre développeur) : `paie essai monter`
+copie une fictive hors du dépôt et lui donne l'identité d'une vraie compagnie,
+lue dans **une** variable d'environnement, `PUPPETPAIE_COMPAGNIE` (un objet
+JSON sur une ligne : SIREN, NIC, en-tête, déclarant, contact, compte DPAE).
+Ses dépôts de test partent sur net-entreprises et à l'Urssaf ; tout dépôt réel
+y est refusé. Les clés, la suite des commandes et ce qui reste à confirmer :
+`docs/COMPAGNIE-D-ESSAI.md`.
+
 ## Ce que le moteur ne fait pas
 
 - **Régularisations annuelles** (bloc DSN `S21.G00.82`, vu en avril 2026).

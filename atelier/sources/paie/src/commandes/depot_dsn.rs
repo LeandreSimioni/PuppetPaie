@@ -1,5 +1,5 @@
 //! `paie depot-dsn FICHIER (--test | --reel | --apercu) [--confirmer-mois AAAA-MM] [--force] [--sans-repetition MOTIF]
-//! [--environnement production|editeur] [--fenetre]` : deposer une DSN sur net-entreprises (`moteur/commandes_dsn.py`,
+//! [--environnement production|editeur] [--ordre N] [--fenetre]` : deposer une DSN sur net-entreprises (`moteur/commandes_dsn.py`,
 //! `cmd_depot_dsn`). La seule commande qui declare quelque chose avec `deposer-dpae`.
 //!
 //! LE DEPOT LUI-MEME EST `depot_acte::deposer_dsn_dans` : la commande lit, affiche, puis appelle -- et affiche ce qui est revenu.
@@ -14,6 +14,12 @@
 //! - dans `paie-atelier`, tout depot reel est refuse par `verifier_preuve` (`ActeReelRefuse`) ;
 //! - un depot REEL n'est possible que sur `production` : la plate-forme `editeur` est un service d'essai, et le journal y
 //!   noterait comme declaree une DSN qui ne l'est pas (voir `depot_acte::deposer_dsn_dans`).
+//!
+//! - `--ordre N` (lot E1) : seulement avec `--test`, sur une mensuelle -- l'essai part en annule-et-remplace a l'ordre N au
+//!   moins, quand la base d'essai a deja retenu des essais de ce SIRET pour ce mois que le journal de ce dossier ignore (un
+//!   autre poste, une compagnie d'essai). C'est le moteur qui refuse ailleurs (`depot_acte::deposer_dsn_dans`).
+//! - dans une COMPAGNIE D'ESSAI (`essai.rs`), l'aperçu ne montre pas le SIREN : c'est celui d'une vraie compagnie, venu de
+//!   `PUPPETPAIE_COMPAGNIE`, qui ne s'affiche pas.
 //!
 //! `qui` = `ligne de commande`, comme le Python. Pas de `--json` (le Python n'en a pas ici).
 //!
@@ -39,6 +45,7 @@ pub static SPEC: Spec = Spec {
         Opt::drapeau("force"),
         Opt::valeur("sans-repetition"),
         Opt::choix("environnement", &["production", "editeur"], Some("production")),
+        Opt::valeur("ordre"),
         Opt::drapeau("fenetre"),
     ],
 };
@@ -55,7 +62,7 @@ pub(crate) fn quand_a(v: &Value) -> String {
     crate::etats::quand_lisible(v).replace(" à ", " a ")
 }
 
-fn afficher_apercu(chemin: &str, a: &Apercu) {
+fn afficher_apercu(chemin: &str, a: &Apercu, essai: bool) {
     dire!("Fichier   : {}", chemin);
     // Un SIGNALEMENT n'a pas de mois principal declare : ce qui le date, c'est son evenement.
     if a.est_signalement() {
@@ -71,7 +78,11 @@ fn afficher_apercu(chemin: &str, a: &Apercu) {
     if !a.champ("remplace").is_empty() {
         dire!("Remplace  : declaration {}", a.champ("remplace"));
     }
-    dire!("Logiciel  : {}   SIREN {}", a.champ("logiciel"), a.champ("siren"));
+    if essai {
+        dire!("Logiciel  : {}   SIREN de la compagnie d'essai (ne s'affiche pas)", a.champ("logiciel"));
+    } else {
+        dire!("Logiciel  : {}   SIREN {}", a.champ("logiciel"), a.champ("siren"));
+    }
     dire!("Contenu   : {} salarie(s), {} lignes", a.salaries, a.lignes);
     if !a.versements.is_empty() {
         let v: Vec<String> = a.versements.iter().map(|x| format!("{} EUR", x)).collect();
@@ -129,11 +140,22 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         }
     };
     let apercu = depot::lire(&octets);
+    let essai = crate::essai::est_essai(&cadre.racine);
+    let ordre = match args.texte("ordre").filter(|t| !t.is_empty()) {
+        None => None,
+        Some(t) => match t.trim().parse::<i64>() {
+            Ok(n) if n >= 1 && test => Some(n),
+            _ => {
+                dire!("--ordre N : un entier positif, et seulement avec --test (le depot de test d'une DSN mensuelle).");
+                return Ok(2);
+            }
+        },
+    };
 
     if apercu_seul {
         // Ni reseau ni mot de passe : la relecture avant decision.
         dire!("{}\nCE QUI PARTIRAIT - rien n'est envoye\n{}", "-".repeat(62), "-".repeat(62));
-        afficher_apercu(&chemin, &apercu);
+        afficher_apercu(&chemin, &apercu, essai);
         dire!("{}", "-".repeat(62));
         dire!("Le fichier est code {} : sans --test, un depot {}.", apercu.champ("nature_envoi"), if apercu.reel() { "DECLARERAIT" } else { "ne declarerait rien" });
         return Ok(0);
@@ -146,7 +168,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     }
 
     dire!("{}\n{}\n{}", "-".repeat(62), if reel { "DEPOT REEL - LA DECLARATION PART" } else { "DEPOT DE TEST - rien ne sera conserve" }, "-".repeat(62));
-    afficher_apercu(&chemin, &apercu);
+    afficher_apercu(&chemin, &apercu, essai);
     dire!("{}", "-".repeat(62));
 
     if reel {
@@ -177,6 +199,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         environnement,
         args.drapeau("force"),
         contournement,
+        ordre,
     );
     let fait = match resultat {
         Ok(f) => f,
