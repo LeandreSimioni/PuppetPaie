@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "fenetre",
+  "description": "Ticket #195 : la page de la fenetre (servie par le moteur sur 127.0.0.1) tient lieu de barre de titre (src/cadre.js) : tirer, reduire, agrandir, fermer. Rien d'autre.",
+  "windows": ["principale"],
+  "remote": { "urls": ["http://127.0.0.1:*"] },
+  "permissions": [
+    "core:window:allow-start-dragging",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-is-maximized",
+    "core:window:allow-close"
+  ]
+}

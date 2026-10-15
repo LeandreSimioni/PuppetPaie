@@ -91,9 +91,16 @@ body {
 .sous-onglets-installation button { font-size: 13px; }
 .etat { margin-left: auto; font-size: 12px; color: var(--discret); text-align: right; }
 
-/* La fenetre PuppetPaie (pywebview, sans bordure) : le bandeau sert de barre
-   de titre. Rien de ceci n'existe dans un navigateur (`body.fenetre` absent). */
-.fenetre-boutons, .fenetre-poignee, .retour-accueil { display: none; }
+/* La fenetre PuppetPaie (sans bordure systeme, ticket #195) : le bandeau sert
+   de barre de titre ; il se tire, et son texte ne se selectionne pas en le
+   tirant. Les bords de la fenetre se tirent pour la redimensionner. Rien de
+   ceci n'existe dans un navigateur (`body.fenetre` absent). */
+.fenetre-boutons, .retour-accueil { display: none; }
+/* Les trois boutons prennent de la place : le bandeau se resserre, et ce
+   sont les compteurs qui passent a la ligne, pas les etiquettes. */
+body.fenetre .bandeau { user-select: none; gap: 16px; }
+body.fenetre .bandeau .copie-dev, body.fenetre .bandeau .signaler,
+body.fenetre .bandeau .retour-accueil { white-space: nowrap; }
 /* Le chemin vers l'accueil des compagnies (ticket #113) : discret comme
    « Un problème, une idée ? », a cote. Seulement si le lanceur sait y
    revenir (`body.accueil-possible`, voir fenetreNative). */
@@ -116,11 +123,6 @@ body.fenetre .fenetre-boutons { display: flex; gap: 2px; margin-left: 8px; align
 }
 .fenetre-boutons button:hover { background: var(--fond); color: var(--texte); }
 .fenetre-boutons button.fermer:hover { background: var(--action); color: var(--blanc); }
-body.fenetre .fenetre-poignee {
-  display: block; position: fixed; right: 0; bottom: 0; width: 16px; height: 16px;
-  cursor: nwse-resize; z-index: 50;
-  background: linear-gradient(135deg, transparent 50%, var(--bord) 50%, var(--bord) 60%, transparent 60%, transparent 75%, var(--bord) 75%, var(--bord) 85%, transparent 85%);
-}
 .etat b { color: var(--texte); }
 
 /* ------------------------------------------------------------- la veille */

@@ -400,12 +400,3 @@ async function dessinerCompteGoogle(cible, preuve, ok, raté) {
     } catch (e) { raté(e); }
   };
 }
-
-/* ------------------------------------------------- la fenêtre PuppetPaie */
-/* Quand la page tourne dans la fenêtre pywebview (lanceur_interface.pyw),
- * `window.pywebview.api` existe et porte reduire / agrandir / fermer /
- * redimensionner. Le bandeau devient la barre de titre : les éléments
- * marqués `pywebview-drag-region` se tirent (c'est pywebview qui déplace la
- * fenêtre), un double-clic agrandit, et la poignée en bas à droite
- * redimensionne — une fenêtre sans bordure n'a pas de bord à tirer. Dans un
- * navigateur, rien de ceci ne s'active. */

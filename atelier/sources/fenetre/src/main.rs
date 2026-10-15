@@ -12,6 +12,26 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 static APPLICATION: OnceLock<tauri::AppHandle> = OnceLock::new();
 
+/// La barre de titre que la page n'a pas (ticket #195) : pose dans chaque page de la fenetre, avant ses scripts.
+/// Ce qu'il peut demander a la fenetre est borne par `capabilities/fenetre.json`.
+const CADRE: &str = include_str!("cadre.js");
+
+const LARGEUR_MIN: f64 = 700.0;
+const HAUTEUR_MIN: f64 = 500.0;
+/// La taille d'ouverture qu'on vise : de quoi voir un mois et ses tableaux sans prendre tout l'ecran.
+const LARGEUR_VISEE: f64 = 1360.0;
+const HAUTEUR_VISEE: f64 = 900.0;
+
+/// La taille d'ouverture, en points : celle qu'on vise, sans depasser neuf dixiemes de la zone de travail de l'ecran
+/// (l'ecran moins la barre des taches), ni descendre sous le minimum. Sans ecran connu, celle qu'on vise.
+fn taille_d_ouverture(ecran: Option<tauri::Monitor>) -> (f64, f64) {
+    let Some(m) = ecran else { return (LARGEUR_VISEE, HAUTEUR_VISEE) };
+    let echelle = if m.scale_factor() > 0.0 { m.scale_factor() } else { 1.0 };
+    let zone = m.work_area().size;
+    let borne = |vise: f64, dispo: u32, min: f64| vise.min(dispo as f64 / echelle * 0.9).max(min);
+    (borne(LARGEUR_VISEE, zone.width, LARGEUR_MIN), borne(HAUTEUR_VISEE, zone.height, HAUTEUR_MIN))
+}
+
 /// La fenetre revient devant (un second lancement).
 fn devant() {
     if let Some(w) = APPLICATION.get().and_then(|a| a.get_webview_window("principale")) {
@@ -78,12 +98,18 @@ fn main() -> std::process::ExitCode {
             let _ = APPLICATION.set(app.handle().clone());
             *pour_fermer.lock().unwrap_or_else(|e| e.into_inner()) = Some(app.handle().clone());
             let url = adresse.parse().map_err(|e| format!("adresse illisible : {}", e))?;
+            // UNE FENETRE SANS BARRE NOIRE, OUVERTE UNE FOIS (ticket #195). Pas de bordure systeme : le haut de la
+            // fenetre est le bandeau de la page, et `cadre.js` en fait la barre de titre (tirer, double-clic, les trois
+            // boutons). Elle s'ouvre a sa taille, centree, et n'en change plus : l'ancienne s'ouvrait en 1200 x 800
+            // puis s'agrandissait aussitot, « ca a l'air de le faire et apres ca le fait plus ».
+            let (largeur, hauteur) = taille_d_ouverture(app.primary_monitor().ok().flatten());
             WebviewWindowBuilder::new(app, "principale", WebviewUrl::External(url))
                 .title("PuppetPaie")
-                .inner_size(1200.0, 800.0)
-                .min_inner_size(700.0, 500.0)
+                .decorations(false)
+                .inner_size(largeur, hauteur)
+                .min_inner_size(LARGEUR_MIN, HAUTEUR_MIN)
                 .center()
-                .maximized(true)
+                .initialization_script(CADRE)
                 .build()?;
             Ok(())
         })

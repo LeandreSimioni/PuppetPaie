@@ -49,19 +49,19 @@
        manque un bouton pour revenir à l'accueil des cies ». C'est le lanceur
        qui tient l'accueil : le bouton ne se montre que dans la fenetre
        PuppetPaie dont le lanceur sait y revenir (`fenetreNative`). -->
-  <!-- LES BOUTONS DE LA FENETRE (16/09/2026). Dans la fenetre PuppetPaie
-       (pywebview, sans bordure systeme : « juste une fenetre totale, sans la
-       barre noire ») le bandeau EST la barre de titre : on le tire pour
-       deplacer, double-clic pour agrandir, et ces trois boutons parlent au
-       lanceur (`pywebview.api`). Dans un navigateur, `body` n'a pas la classe
-       `fenetre` et rien de tout ca ne s'affiche. -->
+  <!-- LES BOUTONS DE LA FENETRE (16/09/2026 ; ticket #195, 15/10/2026). La
+       fenetre PuppetPaie n'a pas de bordure systeme (« pas de barre noire,
+       mais de la meme couleur que le logiciel en haut ») : le bandeau EST la
+       barre de titre. On le tire pour deplacer, double-clic pour agrandir, et
+       ces trois boutons parlent a la fenetre (`fenetreNative`, js/demarrage.js).
+       Dans un navigateur, `body` n'a pas la classe `fenetre` et rien de tout
+       ca ne s'affiche. -->
   <div class="fenetre-boutons" aria-hidden="true">
     <button id="fenetre-reduire" title="Réduire">&#x2014;</button>
     <button id="fenetre-agrandir" title="Agrandir / restaurer">&#x25A1;</button>
     <button id="fenetre-fermer" class="fermer" title="Fermer PuppetPaie">&#x2715;</button>
   </div>
 </header>
-<div class="fenetre-poignee" id="fenetre-poignee" title="Redimensionner"></div>
 
 <!-- Ce que le logiciel fait tout seul pendant qu'on travaille : la sauvegarde
      du dossier prive dans le Drive, et le releve des retours. On l'affiche

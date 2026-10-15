@@ -70,54 +70,42 @@ demarrer().catch((e) => {
   dire("Démarrage impossible : " + e.message, "erreur");
 });
 
+/* LA FENETRE PUPPETPAIE, SANS BARRE NOIRE (ticket #195, 15/10/2026). La
+   fenetre n'a pas de bordure systeme : le bandeau EST sa barre de titre. Son
+   cadre (`fenetre/src/cadre.js`, pose par la fenetre dans chaque page) donne
+   `window.fenetrePuppetPaie` : les trois boutons lui parlent, le bandeau se
+   tire (`fenetre-tire`) et un double-clic agrandit. Dans un navigateur, il
+   n'existe pas : `body` n'a pas la classe `fenetre` et rien ne s'affiche. */
 function fenetreNative() {
   const api = window.pywebview && window.pywebview.api;
-  if (!api || document.body.classList.contains("fenetre") || document.body.classList.contains("accueil-possible")) return;
-  // La fenetre Rust (lot J3) a sa propre barre de titre : elle ne porte que le retour aux compagnies.
-  if (!api.reduire) {
-    if (typeof api.accueil === "function") boutonAccueil(api);
-    return;
+  // L'ACCUEIL DES COMPAGNIES (ticket #113) : le serveur de la fenetre le
+  // propose (`pywebview.api.accueil`, la cale du moteur), dans la fenetre
+  // comme dans le navigateur.
+  if (api && typeof api.accueil === "function" && !document.body.classList.contains("accueil-possible")) {
+    boutonAccueil(api);
   }
+  const f = window.fenetrePuppetPaie;
+  if (!f || document.body.classList.contains("fenetre")) return;
   document.body.classList.add("fenetre");
-  document.getElementById("fenetre-reduire").onclick = () => api.reduire();
-  document.getElementById("fenetre-agrandir").onclick = () => api.agrandir();
-  document.getElementById("fenetre-fermer").onclick = () => api.fermer();
-  // L'ACCUEIL DES COMPAGNIES (ticket #113). Un lanceur d'avant ce bouton
-  // (une mise à jour s'applique au lanceur au démarrage suivant) n'a pas
-  // `accueil` : le bouton ne se montre pas. Ce qui est à l'écran
-  // s'enregistre d'abord, comme quand on change de mois ; le serveur de
-  // la compagnie s'arrête ensuite, côté lanceur.
-  if (typeof api.accueil === "function") boutonAccueil(api);
-  // Tout le bandeau se tire (pywebview remonte du point cliqué jusqu'à
-  // l'élément marqué) ; ses boutons arrêtent le mousedown avant qu'il
-  // n'atteigne le corps, où pywebview l'écoute, et restent des boutons.
-  const bandeau = document.querySelector(".bandeau");
-  bandeau.classList.add("pywebview-drag-region");
-  for (const el of bandeau.querySelectorAll("button, a, input")) {
-    el.addEventListener("mousedown", (e) => e.stopPropagation());
-  }
-  bandeau.addEventListener("dblclick", (e) => {
-    if (e.target.closest("button, a, input")) return;
-    api.agrandir();
-  });
-  const poignee = document.getElementById("fenetre-poignee");
-  poignee.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-    const x0 = e.screenX, y0 = e.screenY, w0 = window.innerWidth, h0 = window.innerHeight;
-    let attente = false;
-    const bouger = (ev) => {
-      if (attente) return;
-      attente = true;
-      api.redimensionner(Math.max(700, w0 + ev.screenX - x0), Math.max(500, h0 + ev.screenY - y0))
-        .finally(() => { attente = false; });
-    };
-    const lacher = () => {
-      window.removeEventListener("mousemove", bouger);
-      window.removeEventListener("mouseup", lacher);
-    };
-    window.addEventListener("mousemove", bouger);
-    window.addEventListener("mouseup", lacher);
-  });
+  document.querySelector(".bandeau").classList.add("fenetre-tire");
+  document.getElementById("fenetre-reduire").onclick = () => f.reduire();
+  document.getElementById("fenetre-agrandir").onclick = () => f.agrandir();
+  // Fermer enregistre d'abord ce qui attend encore (la saisie s'enregistre
+  // une seconde apres la derniere frappe), puis ferme.
+  document.getElementById("fenetre-fermer").onclick = async () => {
+    clearTimeout(MINUTEUR_SAISIE);
+    await enregistrerSaisie(false).catch(() => false);
+    f.fermer();
+  };
+  // Agrandie, le bouton du milieu restaure : il le montre.
+  const milieu = document.getElementById("fenetre-agrandir");
+  const suivre = async () => {
+    const agrandie = await f.agrandie();
+    milieu.innerHTML = agrandie ? "&#x2750;" : "&#x25A1;";
+    milieu.title = agrandie ? "Restaurer" : "Agrandir";
+  };
+  window.addEventListener("resize", suivre);
+  suivre();
 }
 function boutonAccueil(api) {
   document.body.classList.add("accueil-possible");
