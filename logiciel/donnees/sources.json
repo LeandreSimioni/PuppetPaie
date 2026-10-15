@@ -606,7 +606,7 @@
       "fichier": "insee-naf-2025/insee-naf-2025-structure-20241004.xlsx",
       "sha256": "6bbb9b9affc7d547f7b2b4a790043d6c942362d743bf38377d5e32bd7ceba2d7",
       "verification": "manuelle",
-      "verification_comment": "Transmis par Leandre depuis la page INSEE (le conteneur n'a pas l'adresse directe du fichier) : ouvrir la page de veille, retelecharger, comparer le condensat ; s'il a bouge, relancer atelier/outils/extraire_naf.py et lire ce qui change.",
+      "verification_comment": "Transmis par Leandre depuis la page INSEE (le conteneur n'a pas l'adresse directe du fichier) : ouvrir la page de veille, retelecharger, comparer le condensat ; s'il a bouge, relancer `paie extraire naf <structure.xlsx> <correspondances.xlsx> logiciel/donnees/naf-base.json --remplacer` et lire ce qui change.",
       "nourrit": [
         "naf-base.json"
       ]
@@ -623,7 +623,7 @@
       "fichier": "insee-naf-2025/insee-naf-2025-correspondances-naf-rev2-vers-naf-2025-20260107.xlsx",
       "sha256": "8746ed6b5ec70dca426a158a9b43b91e97fd71cf34bc0d8094b982b7260397ab",
       "verification": "manuelle",
-      "verification_comment": "Transmis par Leandre depuis la page INSEE : ouvrir la page de veille, retelecharger, comparer le condensat ; s'il a bouge, relancer atelier/outils/extraire_naf.py et lire ce qui change (une correspondance qui se precise change la phrase du refus, jamais le code d'une compagnie).",
+      "verification_comment": "Transmis par Leandre depuis la page INSEE : ouvrir la page de veille, retelecharger, comparer le condensat ; s'il a bouge, relancer `paie extraire naf <structure.xlsx> <correspondances.xlsx> logiciel/donnees/naf-base.json --remplacer` et lire ce qui change (une correspondance qui se precise change la phrase du refus, jamais le code d'une compagnie).",
       "nourrit": [
         "naf-base.json"
       ]

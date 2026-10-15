@@ -418,7 +418,7 @@ celles de la version que le fichier porte (`S10.G00.00.006`), et le fichier en
 fabrication décide par elles des rubriques qu'une version a retirées (`06.003`,
 `11.002` en P27V01) ou ajoutées (`Fichier::norme`, `Norme::admet`). Les
 tables P27V01 sont relevées des classeurs 2027.1.2 de net-entreprises (fiches
-3357 et 3358) par `atelier/outils/extraire_usages.py` et `extraire_formats.py`.
+3357 et 3358) par `paie extraire usages` et `paie extraire formats` (`paie/src/extraire/`).
 La part patronale de la CET se déclare en `146` en P26V01 et en `148` en P27V01,
 sous la base 78 du `131` (type 23), à l'Urssaf (fiche net-entreprises 2556 ;
 `cotisation_cet_patronale` de la donnée). Le code APE de la fiche entreprise se

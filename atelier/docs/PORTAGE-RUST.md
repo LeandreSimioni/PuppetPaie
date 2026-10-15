@@ -1774,7 +1774,8 @@ congés, précarité, préavis, les quatre ruptures), `clauses`, `minima`,
 >   `outils/compagnies_demo.py`, doit continuer de marcher : il passe par `paie …`, il ne se retire pas ;
 >   l'horloge qui la fait vivre est au lot I. **Les outils de l'atelier qui importent le moteur Python**
 >   passent par `paie …` ou se retirent : `compagnies_fictives.py` (le crash-test), `exporter.py`,
->   `extraire_usages.py`, `extraire_formats.py` (la fabrique Python),
+>   `extraire_usages.py`, `extraire_formats.py` (la fabrique Python ; portés en Rust le 15/10/2026 avec
+>   `extraire_naf.py`, `extraire_urssaf.py`, `lire_xlsx.py` et `lire_pdf.py` : `paie extraire`, `src/extraire/`),
 >   `auditer_le_catalogue.py`, `essai_contrat_plurimensuel.py` ; **les tests Python** (1 211) qui
 >   testent le moteur Python se réécrivent dans `paie/tests/` ou se retirent (chantier « vider
 >   l'atelier » d'`ETAT.md`).

@@ -110,15 +110,25 @@ pour ce que les lots V4a et V4b ont codé sur le 2027.1.1 :
 
 ### Les tables P27V01 refaites sur les classeurs 2027.1.2 (lot R5b, 11/10/2026)
 
-Le CT 2027.1.2 n'est pas servi en PDF : les deux outils de l'atelier lisent désormais aussi un classeur
-(`atelier/outils/lire_xlsx.py`, bibliothèque standard ; `extraire_usages.py` lit la feuille « 1 - Tableau des usages »,
-`extraire_formats.py` les feuilles « Fields » et « Data Types » : longueur = `Lg Min`/`Lg Max` du type, `csl` = sa
-`Regexp`). Commandes :
+Le CT 2027.1.2 n'est pas servi en PDF : les deux relevés de l'atelier lisent désormais aussi un classeur
+(`paie/src/lecture_xlsx.rs` ; `paie extraire usages` lit la feuille « 1 - Tableau des usages », `paie extraire formats`
+les feuilles « Fields » et « Data Types » : longueur = `Lg Min`/`Lg Max` du type, `csl` = sa `Regexp`). Un PDF du cahier
+(`dsn-cahier-technique-<version>.pdf`) se relève par les mêmes commandes, lu par la fabrique de PDF. Portés en Rust le
+15/10/2026 (`paie/src/extraire/`, l'ancien `atelier/outils/extraire_*.py`) ; `tests/fichiers/extraction.rs` rejoue les
+relevés sur ces fichiers et compare aux tables livrées. Commandes (la sortie se nomme toujours ; `--remplacer` pour
+écraser la table livrée) :
 
 ```
-python3 atelier/outils/extraire_usages.py atelier/reference/norme-dsn/dsn-tableau-des-usages-2027.1.2-20251224.xlsx logiciel/donnees/usages-dsn-p27v01-base.json
-python3 atelier/outils/extraire_formats.py atelier/reference/norme-dsn/dsn-tableaux-categories-controles-datatypes-usages-2027.1.2-20251224.xlsx logiciel/donnees/formats-dsn-p27v01-base.json
+paie extraire usages atelier/reference/norme-dsn/dsn-tableau-des-usages-2027.1.2-20251224.xlsx logiciel/donnees/usages-dsn-p27v01-base.json --remplacer
+paie extraire formats atelier/reference/norme-dsn/dsn-tableaux-categories-controles-datatypes-usages-2027.1.2-20251224.xlsx logiciel/donnees/formats-dsn-p27v01-base.json --remplacer
+paie extraire usages atelier/reference/norme-dsn/dsn-cahier-technique-2026.1.pdf logiciel/donnees/usages-dsn-base.json --remplacer
+paie extraire formats atelier/reference/norme-dsn/dsn-cahier-technique-2026.1.pdf logiciel/donnees/formats-dsn-base.json --remplacer
 ```
+
+Le tableau des usages par rubrique du cahier 2026.1 occupe les p. 363-371 ; les p. 372-382 portent le tableau des
+usages des contrôles (« Oui »/« Non » par contrôle CCH/SIG), que le relevé ne prend pas. Le `_source` de
+`usages-dsn-base.json` disait « p. 363-380 » (relevé du 19/09/2026) : il dit désormais « p. 363-371 », les pages où une
+rubrique a été lue ; le contenu de la table n'a pas changé.
 
 **Ce qui a bougé entre le relevé 2027.1.1 (PDF) et le 2027.1.2 (classeurs)**, et rien d'autre :
 - usages : `S21.G00.40.084` en mensuelle, O → C (journal de maintenance, évolution 21, l. 433-452) ; mêmes 591 rubriques,

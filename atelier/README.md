@@ -944,6 +944,23 @@ minute, une fois. L'ouverture hebdomadaire du Python la refaisait toute
 seule ; en Rust, l'ouverture accepte l'option et ne vérifie rien
 (`paie/src/ouverture.rs`) : c'est l'éditeur qui la lance.
 
+Quand une source a changé, le référentiel qu'elle nourrit se **relève** par
+**`paie extraire`** (`paie/src/extraire/`, porté en Rust le 15/10/2026 depuis
+les `atelier/outils/extraire_*.py`) : `naf` (les deux classeurs INSEE →
+`naf-base.json`), `usages` et `formats` (le classeur de net-entreprises ou le
+cahier technique en PDF → `usages-dsn-*.json`, `formats-dsn-*.json`), `urssaf`
+(la Table des Urssaf, la liste des sites, le COG 2015 →
+`urssaf-dpae-base.json`). Les sources, puis la sortie, se nomment toujours ;
+une sortie qui existe ne se remplace qu'avec `--remplacer`, et rien ne s'écrit
+avant que le relevé soit fait. Le `_source` du JSON nomme la commande, les
+fichiers déposés et le jour du relevé. Par exemple :
+`paie extraire naf <structure.xlsx> <correspondances.xlsx> logiciel/donnees/naf-base.json --remplacer`
+(les commandes de chaque table sont dans `atelier/reference/norme-dsn/LISEZMOI.md`
+et `atelier/reference/sources/insee-naf-2025/LISEZ-MOI.md`). Puis
+`git diff logiciel/donnees/` dit ce qui a bougé, et
+`tests/fichiers/extraction.rs` vérifie que chaque table livrée est bien ce que
+ses textes déposés donnent.
+
 ### La nature du contrat, et les salariés permanents
 
 *Chantier en cours depuis le 18/09/2026. Ce qui suit marche ; ce qui manque
@@ -1661,9 +1678,9 @@ atelier/                  ← ce dossier : tout le reste
                           (le dernier bilan du crash-test, 21/09/2026)
   outils/                 les outils d'atelier, encore en Python :
                           convertir_saisies.py, verifier_avant_commit.py
-                          (garde-fou du dépôt public, en sommeil), les
-                          extracteurs de la norme (extraire_*.py), le relevé
-                          des codes (relever_les_codes.py)…
+                          (garde-fou du dépôt public, en sommeil), le relevé
+                          des codes (relever_les_codes.py)… (les relevés des
+                          référentiels sont en Rust : `paie extraire`)
   PuppetPaie.sh, PuppetPaie.command   les lanceurs Linux et Mac
   prive-dev/, depot/ (versions publiées), site/, maquettes/
                           (le serveur du filet : dépôt du site de l'éditeur, infra/filet/)
