@@ -2723,6 +2723,7 @@ dependencies = [
  "fabrique-pdf",
  "flate2",
  "getrandom 0.3.4",
+ "icu_normalizer",
  "imap-proto",
  "lettre",
  "mailparse",

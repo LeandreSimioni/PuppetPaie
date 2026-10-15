@@ -42,4 +42,5 @@ mod retours;
 mod sauvegarde;
 mod tables_generees;
 mod transport;
+mod verrous_cargo;
 mod verifier_avant_commit;
