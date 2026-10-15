@@ -97,6 +97,33 @@ FICTIVES = {
 }
 
 
+# Les textes de reference (`atelier/reference/`, 15/10/2026) sont des copies,
+# octet pour octet, de ce que d'autres ont publie (leur empreinte se verifie,
+# `paie sources`) : un numero qui y a la forme d'un NIR, d'un IBAN ou d'un BIC
+# est celui de l'emetteur -- l'exemple d'une documentation officielle, ou un
+# nombre qui n'en est pas un. Chacun est nomme ici, fichier par fichier, avec
+# ce qu'il est ; seuls les motifs GENERIQUES s'y taisent, jamais les vraies
+# valeurs lues dans `prive/config/`. Le verrou de la suite tient sa propre
+# liste, pour son propre detecteur (`donnees_reelles.rs`, EXEMPLES_DES_TEXTES).
+_REF = "atelier/reference/sources/"
+EXEMPLES_DES_TEXTES = {
+    _REF + "agirc-arrco/agirc-arrco-aide-codification-dsn-ct2025-v1.3-20250301.txt":
+        "l'IBAN d'exemple (FR99 1234...) de l'aide a la codification Agirc-Arrco",
+    _REF + "agirc-arrco/agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.txt":
+        "l'IBAN d'exemple (FR99 1234...) de l'aide a la codification Agirc-Arrco",
+    _REF + "bofip/BOI-RSA-BASE-30-10-20-20260810.html":
+        "un identifiant de requete EUR-Lex (qid) dans une adresse de la page du BOFiP",
+    _REF + "gip-mds-api-dsn/gip-mds-guide-implementation-api-dsn-v6.8-20260706.txt":
+        "les exemples de flux et de reponses du guide de l'API DSN (GIP-MDS)",
+    _REF + "net-entreprises-base-connaissances/net-entreprises-fiche2956-bloc-41-changement-modalites-contrat-20250429.html":
+        "le salarie d'exemple de la fiche net-entreprises 2956",
+    _REF + "net-entreprises-base-connaissances/net-entreprises-fiche2956-bloc-41-changement-modalites-contrat-20250429.txt":
+        "le salarie d'exemple de la fiche net-entreprises 2956",
+}
+# Les motifs generiques (une forme), par opposition aux valeurs reelles lues.
+GENERIQUES = ("NIR", "IBAN", "BIC")
+
+
 def _secrets_a_proteger() -> list:
     """Les valeurs a ne jamais publier, lues hors du depot.
 
@@ -202,8 +229,10 @@ def verifier(indexes: bool = False) -> list:
             texte = f.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
+        exemple = f.relative_to(CODE).as_posix() in EXEMPLES_DES_TEXTES
+        siens = [(m, q) for m, q in motifs if not (exemple and q in GENERIQUES)]
         for n, ligne in enumerate(texte.splitlines(), 1):
-            for motif, quoi in motifs:
+            for motif, quoi in siens:
                 m = next((m for m in motif.finditer(ligne)
                           if not _invente(m.group(0), quoi)), None)
                 if m:

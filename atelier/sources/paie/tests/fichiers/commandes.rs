@@ -482,11 +482,12 @@ fn sources_refusee_hors_du_poste_de_l_editeur() {
     let r = sources(&fictive, &code, &[]);
     assert_eq!(r.code, 1, "une copie ne verifie rien : {}", r.out);
     assert!(r.err.contains("Copie de developpement"), "{}", r.err);
-    assert!(!cie.join("reference").exists() && !fictive.join("reference").exists());
+    assert!(!inst.join("atelier/reference").exists() && !cie.join("reference").exists() && !fictive.join("reference").exists());
 }
 
-/// Sans reseau : la copie de `reference/sources/` confrontee au condensat du manifeste -- conforme, differente, absente --
-/// et l'age du releve au jour du poste.
+/// Sans reseau : la copie d'`atelier/reference/sources/` de l'installation (le depot, chez l'editeur : les textes du
+/// logiciel, pas ceux d'une compagnie) confrontee au condensat du manifeste -- conforme, differente, absente -- et l'age du
+/// releve au jour du poste. Une copie posee dans la compagnie n'est pas lue.
 #[test]
 fn sources_confronte_chaque_copie_au_condensat_du_manifeste() {
     let (cie, code) = poste_de_l_editeur(
@@ -497,8 +498,10 @@ fn sources_confronte_chaque_copie_au_condensat_du_manifeste() {
             "c-absente": source("https://exemple.invalid/c", "c.md", b"texte lu", "manuelle"),
         }),
     );
-    ecrire(&cie, "reference/sources/a.pdf", "texte lu");
-    ecrire(&cie, "reference/sources/sous/b.csv", "texte retouche a la main");
+    let inst = code.parent().unwrap().parent().unwrap().to_path_buf();
+    ecrire(&inst, "atelier/reference/sources/a.pdf", "texte lu");
+    ecrire(&inst, "atelier/reference/sources/sous/b.csv", "texte retouche a la main");
+    ecrire(&cie, "reference/sources/c.md", "texte lu");
     let r = sources(&cie, &code, &["--json"]);
     assert_eq!(r.code, 0, "{}", r.err);
     let j = r.json();
@@ -515,7 +518,7 @@ fn sources_confronte_chaque_copie_au_condensat_du_manifeste() {
     assert_eq!(l[0]["age_jours"], json!(30), "releve le 2026-09-08, le poste est au {}", AUJOURDHUI);
     assert!(l.iter().all(|e| e["en_ligne"].is_null()), "sans --verifier, rien n'est retourne voir");
     let texte = sources(&cie, &code, &[]);
-    assert!(texte.out.contains("copie conforme") && texte.out.contains("COPIE DIFFERENTE") && texte.out.contains("copie absente (reference/sources/c.md)"), "{}", texte.out);
+    assert!(texte.out.contains("copie conforme") && texte.out.contains("COPIE DIFFERENTE") && texte.out.contains("copie absente (atelier/reference/sources/c.md)"), "{}", texte.out);
     // Un manifeste a qui il manque un champ : un refus qui le nomme, pas une valeur devinee.
     std::fs::write(code.join("sources.json"), json!({"sources": {"x": {"titre": "x"}}}).to_string()).unwrap();
     let r = sources(&cie, &code, &[]);
@@ -539,7 +542,8 @@ fn sources_verifier_compare_en_ligne_et_relever_pose_a_cote() {
             "d": source("https://exemple.invalid/d", "d.md", b"texte lu", "manuelle"),
         }),
     );
-    ecrire(&cie, "reference/sources/sous/b.csv", "texte lu");
+    let inst = code.parent().unwrap().parent().unwrap().to_path_buf();
+    ecrire(&inst, "atelier/reference/sources/sous/b.csv", "texte lu");
     let r = sources(&cie, &code, &["--relever", "--json"]);
     assert_eq!(r.code, 0, "{}", r.err);
     let j = r.json();
@@ -547,9 +551,11 @@ fn sources_verifier_compare_en_ligne_et_relever_pose_a_cote() {
     assert_eq!(etat, [json!("inchangee"), json!("changee"), json!("injoignable"), json!("manuelle")]);
     let b = &j["resultat"]["sources"][1];
     assert!(b["detail"].as_str().unwrap().contains("donnee-fictive.json") && b["detail"].as_str().unwrap().contains("b.2026-10-08.csv"), "{}", b["detail"]);
-    assert_eq!(std::fs::read(cie.join("reference/sources/sous/b.csv")).unwrap(), b"texte lu", "la copie lue ne bouge pas");
-    assert_eq!(std::fs::read(cie.join("reference/sources/sous/b.2026-10-08.csv")).unwrap(), b"texte neuf");
-    assert!(!cie.join("reference/sources/a.2026-10-08.pdf").exists(), "une source inchangee ne se releve pas");
+    let copies = inst.join("atelier/reference/sources");
+    assert_eq!(std::fs::read(copies.join("sous/b.csv")).unwrap(), b"texte lu", "la copie lue ne bouge pas");
+    assert_eq!(std::fs::read(copies.join("sous/b.2026-10-08.csv")).unwrap(), b"texte neuf");
+    assert!(!copies.join("a.2026-10-08.pdf").exists(), "une source inchangee ne se releve pas");
+    assert!(!cie.join("reference").exists(), "rien ne s'ecrit dans la compagnie");
     assert_eq!(recu.lock().unwrap().iter().filter(|q| q.entetes.iter().any(|(k, v)| k == "user-agent" && v.starts_with("PuppetPaie"))).count(), 2);
     // Le texte : la marque de chaque etat, et la page a ouvrir pour ce qui se relit a la main.
     let t = sources(&cie, &code, &["--verifier"]);

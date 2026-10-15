@@ -1,8 +1,8 @@
 """Le texte complet des conventions collectives suivies, tenu a jour en local.
 
-    python3 outils/relever_les_conventions.py mettre-a-jour <dossier des sources> [--reconstruire]
-    python3 outils/relever_les_conventions.py article <dossier des sources> <IDCC> <numero> [...]
-    python3 outils/relever_les_conventions.py chercher <dossier des sources> <IDCC> <mot>
+    python3 atelier/outils/relever_les_conventions.py mettre-a-jour atelier/reference/sources [--reconstruire]
+    python3 atelier/outils/relever_les_conventions.py article atelier/reference/sources <IDCC> <numero> [...]
+    python3 atelier/outils/relever_les_conventions.py chercher atelier/reference/sources <IDCC> <mot>
 
 POURQUOI (24/09/2026, journal §122). La veille des conventions
 (`moteur/kali.py`) est incrementale, mais elle ne garde que la LISTE des
@@ -17,7 +17,7 @@ livraisons nouvelles.
 
 Un article se rend avec son identifiant KALI, son etat (VIGUEUR_ETEN,
 VIGUEUR_NON_ETEN, ABROGE...), ses dates et le texte auquel il appartient :
-c'est ce qu'une transcription dans `prive/reference/sources/` recopie.
+c'est ce qu'une transcription dans `atelier/reference/sources/` recopie.
 
 La base entiere ne se relit que pour construire l'entrepot, ou avec
 `--reconstruire` (une convention nouvelle a suivre, par exemple).
@@ -192,7 +192,7 @@ def articles(ent: Entrepot, idcc: str, num: str = None, en_vigueur: bool = True)
 
 
 def transcrire(a: dict) -> str:
-    """Un article comme les transcriptions de `prive/reference/sources/` le
+    """Un article comme les transcriptions de `atelier/reference/sources/` le
     recopient."""
     return ("=" * 78 + "\n%s -- article %s\n%s -- %s du %s au %s\ntexte : %s (%s)\n%s\n%s\n"
             % (a["chemin"][:120], a["num"] or "(chapeau)", a["id"], a["etat"], a["debut"],
