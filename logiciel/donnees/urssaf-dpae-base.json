@@ -1,6 +1,6 @@
 {
   "_quoi": "Les organismes de recouvrement et leur code a trois chiffres, tel que la DPAE l'attend en C_URSSAF (positions 133-136, annexe II.1 de la norme), et le departement dont chacun releve.",
-  "_source": "Trois sources relevees et datees -- `paie sources` : urssaf-table-des-urssaf (les codes), urssaf-liste-des-sites (region -> code), insee-cog-2015-departements (departement -> ancienne region). Extrait par outils/extraire_urssaf.py ; ne pas editer a la main.",
+  "_source": "Trois sources relevees et datees -- `paie sources` : urssaf-table-des-urssaf (les codes, urssaf-table-des-urssaf-20260618.csv), urssaf-liste-des-sites (region -> code, urssaf-liste-des-sites-et-des-activites.csv), insee-cog-2015-departements (departement -> ancienne region, insee-cog-2015-departements.zip), deposees dans atelier/reference/sources/. Extrait par `paie extraire urssaf` le 15/10/2026 ; ne pas editer a la main.",
   "_par_departement_est_une_suggestion": "Le rattachement d'une entreprise a une Urssaf est un fait ADMINISTRATIF, pas une consequence de son adresse : versement en lieu unique, pole grandes entreprises, GUSO. Cette table dit l'organisme du territoire, ce qui est le cas ordinaire ; l'ecran la propose, il ne l'impose pas, et la valeur de la fiche gagne toujours.",
   "_defaut": "117 -- Urssaf Ile-de-France, la valeur du gabarit quand ni la fiche ni le departement ne disent rien.",
   "organismes": [
