@@ -71,7 +71,7 @@ aujourd'hui, à sa date, et seulement ce qui n'a pas été fait :
 | quand | ce qui se joue |
 |---|---|
 | le 1er du mois | le mois s'écrit (contrats, bulletins, DSN), ses DPAE partent, les contrats reviennent signés |
-| à l'échéance de la DSN (le 15 du mois suivant) | la DSN part, puis les documents aux salariés |
+| à l'échéance de la DSN (le 15 du mois suivant, reporté au jour ouvré) | la DSN part, puis les documents aux salariés |
 | fin janvier | l'année passée se clôt, s'exporte pour la comptabilité, ses numéros d'objet s'archivent |
 | fin de fenêtre | les échéances qu'on coche (taux AT/MP, FCAP-SVP) se cochent |
 

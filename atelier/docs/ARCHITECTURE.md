@@ -544,6 +544,32 @@ quatre 51, 53 à 0 jour, 58, et par affiliation prévoyance une base 78 « 31 »
 avec sa cotisation 81 « 059 », tous à `0.00` ; ni 54, ni autre base. Pas de
 bulletin. Établi par trois dépôts de test le 15/09/2026 (ETAT.md §26.9).
 
+### L'échéance de dépôt : le 5 ou le 15, reportée au jour ouvré, à midi
+
+Depuis le 15/10/2026, **un seul endroit** la donne : `paie/src/echeance_dsn.rs` (`du_mois`, `de_la_compagnie`).
+Le jour est celui de R. 243-6, II (le 5 du mois suivant à partir de cinquante salariés quand la paie est faite dans le
+mois, le 15 sinon ; `Contexte::echeance_dsn` choisit selon l'effectif) ; R. 133-14, I le **reporte** : « Si le délai
+imparti pour effectuer la déclaration sociale nominative expire un jour férié ou non ouvré, il est prorogé jusqu'au jour
+ouvrable suivant » ; l'heure limite est **midi** (cahier technique 2026.1, § 1.4.2), et l'annule-et-remplace intégral
+s'arrête la veille à minuit (`Echeance::veille`). Les textes et le raisonnement :
+`atelier/reference/sources/echeances-dsn/` (`RAPPORT-20261015.md`, le calendrier de net-entreprises : samedi
+05/12/2026 → lundi 07/12, dimanche 15/11/2026 → lundi 16/11).
+
+Trois **inférences**, écrites dans le module et rendues dans le champ `inference` des réponses : « non ouvré » se lit
+sur le calendrier du point de dépôt (samedi, dimanche, les onze fêtes légales de `feries::feries`), jamais sur les
+fériés chômés de la compagnie (`feries::chomes`) ; « jour ouvrable suivant » se lit « premier jour ouvré » (un vendredi
+férié reporte au lundi, aucune pièce officielle ne montre ce cas) ; la veille de l'annule-et-remplace est celle de
+l'échéance reportée.
+
+Tout ce qui parle de la date limite de dépôt passe par lui : l'état du mois et l'annule-et-remplace
+(`Moteur::limite`), les régularisations, le bilan des mois, l'échéancier, les rappels, les réveils du filet, le mois
+hors délai, l'horloge des compagnies fictives, et la date butoir d'un **signalement d'arrêt subrogé** (R. 133-14, II :
+avec la DSN du mois de l'événement, donc avec son report). Les routes rendent, sans toucher à leurs champs existants,
+`echeance_depot` (`echeance_dsn` sur une obligation) : `jour`, `heure` (`12:00`), `nominale`, `reportee`, `pourquoi`,
+`phrase`, `veille_annule_et_remplace`, `textes`, `inference`. **Une seule date n'en dépend pas** : la date de paiement
+du bloc 20 (`S21.G00.20.011`, `dsn.rs`, `echeance_mois_suivant`) reste le 5 ou le 15 de R. 243-6, qui ne prévoit
+aucun report, et aucun texte déposé ne dit qu'un prélèvement se reporte.
+
 ### Un individu s'identifie par son NIR **ou** par son NTT
 
 `S21.G00.30.001` (le NIR) est **conditionnelle**, et c'est ce qui permet de
@@ -1373,8 +1399,9 @@ bilan) jusqu'au mois d'avant aujourd'hui ; sans aucune DSN au journal, le
 seul mois d'avant. Chaque rappel porte l'état du mois — `a_saisir` (pas de
 fichier de paie : la DSN « néant » passe par l'écriture d'un mois vide),
 `a_produire` (saisi, jamais écrit), `a_deposer` (le fichier DSN, choisi par
-`fichiers_deposables`), `a_corriger` (bilan KO) — et `en_retard` passé le 15
-du mois suivant. Puis, quand l'année d'avant n'est pas close et a des mois :
+`fichiers_deposables`), `a_corriger` (bilan KO) — et `en_retard` passé
+l'échéance de dépôt (`paie/src/echeance_dsn.rs` : le 5 ou le 15 du mois suivant,
+reporté au jour ouvré, à midi ; le rappel la rend dans `echeance_depot`). Puis, quand l'année d'avant n'est pas close et a des mois :
 la clôture (seulement si la DSN de décembre est au journal — sinon c'est son
 rappel qui parle), l'export compta (absent, ou plus vieux que la dernière
 saisie de l'année), et au premier trimestre la revue des spectacles : lesquels

@@ -59,7 +59,7 @@ les chemins `paies/…` et `sorties/…` se lisent depuis elle, et un mois nu (`
 ## Après la production
 
 1. **DSN** : `paie depot-dsn sorties/2026-12/DSN_Decembre2026.dsn --test` (sans aval), lire le bilan. Le dépôt
-   réel est à l'utilisateur. Échéance : le 15 du mois suivant (le 5 à partir de 50 salariés).
+   réel est à l'utilisateur. Échéance : le 15 du mois suivant (le 5 à partir de 50 salariés), à midi, reportée au jour ouvré suivant un week-end ou un férié.
 2. **Certificats Congés Spectacles** : dus **au salarié**, rien à déposer. Leurs N° CE forment une suite continue :
    ne pas reproduire un mois pour rien.
 3. **Envoi aux salariés** : `paie envoi 2026-12` montre ce qui partirait ; l'envoi demande le mot de passe du

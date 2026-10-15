@@ -79,22 +79,9 @@ pub(crate) fn lire_saisie(chemin: &Path) -> R<Value> {
 
 // ============================================================ la saisie
 
-/// `date_limite_dsn(mois, echeance)` : le jour d'echeance du mois suivant.
-fn date_limite_dsn(mois: &str, echeance: u32) -> R<Jour> {
-    let (an, mo) = (entier(&tranche(mois, 0, 4))?, entier(&tranche(mois, 5, 7))?);
-    let (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };
-    if !(1..=12).contains(&mo) {
-        return Err(erreur("ValueError", crate::date::mois_impossible(mo)));
-    }
-    if !(1..=9999).contains(&an) {
-        return Err(erreur("ValueError", crate::date::annee_impossible(an)));
-    }
-    Jour::nouveau(an, mo as u32, echeance).ok_or_else(|| erreur("ValueError", crate::date::jour_impossible(an, mo as i64, echeance)))
-}
-
-/// `operations_socle.mois_hors_delai` : la date limite depassee, ou `None`.
+/// `operations_socle.mois_hors_delai` : la date limite de depot depassee (`echeance_dsn`, reportee), ou `None`.
 pub(crate) fn mois_hors_delai(ctx: &Contexte, mois: &str) -> R<Option<Jour>> {
-    let limite = date_limite_dsn(mois, ctx.echeance_dsn()?)?;
+    let limite = crate::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?.jour;
     Ok(if ctx.aujourdhui > limite { Some(limite) } else { None })
 }
 
@@ -451,6 +438,8 @@ struct Echeance {
     date: Option<String>,
     cochable: bool,
     annee: Option<String>,
+    /// La DSN seule : `echeance_dsn::Echeance::en_json` (le jour, midi, la date nominale, le report et ses textes).
+    echeance_depot: Option<Value>,
 }
 
 impl Echeance {
@@ -459,6 +448,7 @@ impl Echeance {
         json!({
             "cle": self.cle, "quoi": self.quoi, "mois": self.mois, "titre": self.titre, "detail": self.detail,
             "source": self.source, "etat": self.etat, "date": self.date, "cochable": self.cochable, "annee": self.annee,
+            "echeance_depot": self.echeance_depot,
         })
     }
 }
@@ -520,9 +510,10 @@ fn date_en_clair(j: &Jour) -> String {
     format!("{} {} {} {}", JOURS[j.jour_de_la_semaine() as usize], j.jour, MOIS[(j.mois - 1) as usize], j.an)
 }
 
-/// La DSN de `mois`, due dans le mois suivant.
+/// La DSN de `mois`, due dans le mois suivant, a midi, le jour que dit `echeance_dsn` (reporte au jour ouvre).
 fn dsn(st: &Etat, jour_dsn: u32, mois: &str, modele: &Value, aujourdhui: &Jour) -> R<Echeance> {
-    let limite = date_limite_dsn(mois, jour_dsn)?;
+    let echeance = crate::echeance_dsn::du_mois(mois, jour_dsn).map_err(|m| erreur("ValueError", m))?;
+    let limite = echeance.jour;
     let e = st.etat_dsn(mois).map_err(en_echec)?;
     let etat = if vrai(&e) && !vrai_opt(e.get("refusee")) {
         FAIT
@@ -538,12 +529,16 @@ fn dsn(st: &Etat, jour_dsn: u32, mois: &str, modele: &Value, aujourdhui: &Jour) 
         quoi: "dsn".into(),
         mois: suivant.clone(),
         titre: formater(champ("titre")?, &[("de_mois", de(mois)?)])?,
-        detail: formater(champ("detail")?, &[("jour", limite.jour.to_string()), ("mois_suivant", libelle(&suivant)?)])?,
+        detail: formater(
+            champ("detail")?,
+            &[("jour", limite.jour.to_string()), ("mois_suivant", libelle(&limite.mois_iso())?), ("report", echeance.pourquoi().map(|p| format!(" {}", p)).unwrap_or_default())],
+        )?,
         source: champ("source")?.to_string(),
         etat,
         date: Some(limite.iso()),
         cochable: false,
         annee: None,
+        echeance_depot: Some(echeance.en_json()),
     })
 }
 
@@ -638,6 +633,8 @@ fn annuelle(
             return Ok(None);
         }
     }
+    // `{jour_dsn}` : le jour de janvier ou la DSN de decembre de l'annee d'avant est due, reporte (`echeance_dsn`).
+    let jour_dsn = crate::echeance_dsn::du_mois(&format!("{:04}-12", annee - 1), jour_dsn).map_err(|m| erreur("ValueError", m))?.jour.jour;
     let valeurs = [("annee", annee.to_string()), ("annee_precedente", (annee - 1).to_string()), ("jour_dsn", jour_dsn.to_string())];
     let mois = format!("{}-{:02}", annee, mois_de_l_echeance(e, Some(0))?);
     let courant = format!("{:04}-{:02}", aujourdhui.an, aujourdhui.mois);
@@ -668,6 +665,7 @@ fn annuelle(
         date: None,
         cochable: comment == Some("coche"),
         annee: Some(annee.to_string()),
+        echeance_depot: None,
     }))
 }
 

@@ -185,13 +185,15 @@ fn le_signalement_d_arret_sans_subrogation_court_cinq_jours_ouvres() {
 }
 
 /// R. 133-14, II : subroge, l'arret part au plus tard avec la DSN du mois ou il commence -- le 15 du mois suivant pour une
-/// compagnie de moins de cinquante salaries (R. 243-6, `Contexte::echeance_dsn`).
+/// compagnie de moins de cinquante salaries (R. 243-6, `Contexte::echeance_dsn`), reporte comme elle (R. 133-14, I,
+/// `atelier/reference/sources/code-de-la-securite-sociale/xml/R133-14.xml`) : le samedi 15/08/2026, Assomption, devient le
+/// lundi 17/08/2026, a midi (cahier technique § 1.4.2, `atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt`).
 #[test]
 fn le_signalement_d_arret_subroge_part_avec_la_mensuelle() {
     let c = &compagnie("subroge");
     arret(c, "2026-07-09", "01", "01", None, None, "2026-07-31");
     let s = la(&obligations(c, "2026-07-13"), "signalement_arret").clone();
-    assert_eq!((s["subrogation"].as_bool(), s["butoir"].as_str()), (Some(true), Some("2026-08-15")), "{}", s);
+    assert_eq!((s["subrogation"].as_bool(), s["butoir"].as_str(), s["butoir_heure"].as_str()), (Some(true), Some("2026-08-17"), Some("12:00")), "{}", s);
     // Une subrogation qui n'est pas dite : le delai ne se devine pas.
     arret(c, "2026-07-09", "01", "", None, None, "2026-07-31");
     let s = la(&obligations(c, "2026-07-13"), "signalement_arret").clone();

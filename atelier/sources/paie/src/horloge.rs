@@ -134,13 +134,6 @@ fn options(racine: &Path) -> HashMap<String, String> {
     HashMap::from([("racine".to_string(), racine.to_string_lossy().into_owned())])
 }
 
-/// `_mois_suivant`.
-fn mois_suivant(mois: &str) -> String {
-    let a: i32 = mois.get(..4).and_then(|t| t.parse().ok()).unwrap_or(0);
-    let m: u32 = mois.get(5..).and_then(|t| t.parse().ok()).unwrap_or(0);
-    format!("{:04}-{:02}", a + i32::from(m == 12), m % 12 + 1)
-}
-
 /// `_mois_fr` : « octobre 2026 ».
 fn mois_fr(mois: &str) -> String {
     let m: usize = mois.get(5..).and_then(|t| t.parse().ok()).unwrap_or(1);
@@ -333,9 +326,10 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
             continue;
         }
         fait.extend(le_premier_du_mois(&d, &o, mois, &mut saisies, jour)?);
+        // Le jour ou la DSN est due (`echeance_dsn`, reporte au jour ouvre) : elle part ce matin-la, avant midi.
         let echeance = {
             let ctx = d.contexte()?;
-            Jour::lire(&format!("{}-{:02}", mois_suivant(mois), ctx.echeance_dsn().map_err(Echec::from)?)).map_err(Echec::from)?
+            crate::echeance_dsn::de_la_compagnie(&ctx, mois).map_err(Echec::from)?.jour
         };
         if jour >= echeance {
             fait.extend(a_l_echeance(&d, &o, mois, echeance));
@@ -891,8 +885,6 @@ mod tests {
 
     #[test]
     fn les_petits_outils_des_phrases() {
-        assert_eq!(mois_suivant("2026-09"), "2026-10");
-        assert_eq!(mois_suivant("2026-12"), "2027-01");
         assert_eq!(mois_fr("2026-10"), "octobre 2026");
         assert_eq!(mois_fr("2026-12"), "décembre 2026");
         assert_eq!(le("2026-10-13T07:00:00"), "13/10/2026");

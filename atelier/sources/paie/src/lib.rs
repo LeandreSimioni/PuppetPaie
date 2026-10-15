@@ -52,6 +52,7 @@ pub mod demarrage;
 pub mod dpae;
 pub mod drive;
 pub mod dsn;
+pub mod echeance_dsn;
 pub mod ecriture;
 pub mod editeur;
 pub mod emplois;
