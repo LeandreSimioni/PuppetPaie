@@ -27,7 +27,14 @@ exemplaire du cerfa n'ont pas pu être relevés.
   48h » après l'inscription — il faut donc s'inscrire **avant** d'en avoir besoin. Plus haut, la même page : « Votre entreprise
   est soumise à l'obligation DSN ? Désormais, il suffit de produire vos signalements Arrêt de travail […] » (l'attestation de
   salaire passe par le signalement), sauf « les cas spécifiques des temps partiels thérapeutiques et des congés pour deuil qui ne
-  sont pas à ce jour couverts par la DSN ».
+  sont pas à ce jour couverts par la DSN ». Et, pour l'attestation de salaire : « L'attestation de salaire pour le versement des
+  Indemnités Journalières de la Sécurité Sociale (DSIJ) est obligatoire pour tout arrêt de travail, quel qu'en soit le motif »,
+  « Deuil d'enfant » compris ; « Maladie, accident du travail, maladie professionnelle, femme enceinte dispensée de travail, deuil
+  d'enfant : **Dès réception de l'avis d'arrêt de travail** » ; elle se transmet « Par saisie de formulaire à l'écran » ou « Par
+  dépôt de fichier structuré issu de votre logiciel de paie (EDI) certifié », par le service « Att salaire IJ - Attestation de
+  salaire pour le versement des indemnités journalières » du compte entreprise. **Pour un deuil d'enfant, c'est donc
+  l'attestation hors DSN qui est due, pas le signalement** ; « dès réception » n'est pas un délai chiffré (le moteur prend le
+  jour même de la connaissance de l'arrêt, et dit que c'est une inférence).
 - **Service Public, R14587** : « À remplir en 4 exemplaires. L'employeur doit en envoyer 3 exemplaires, par lettre recommandée
   avec accusé de réception, à la caisse primaire dont dépend le salarié victime de l'accident, dans les 48 heures après eu
   connaissance de l'accident. Il doit conserver le 4e exemplaire pendant 5 ans. » ; « Réalisable aussi en ligne ».
@@ -49,3 +56,13 @@ courrier), `a_avoir` (ce qu'il faut avoir sous la main, tiré des rubriques du c
 `atelier/sources/paie/src/obligations.rs` (`de_l_arret`, `Calendrier::heures_apres`) ; les routes `arrets`,
 `arret-obligations`, `arret-connaissance` et `accident-declare` le rendent. **Le logiciel ne fait pas la déclaration** : il la
 rappelle, avec sa date butoir, et retient qu'elle est faite quand la compagnie le dit.
+
+**Le deuil d'enfant (motif d'arrêt 19, depuis le 15/10/2026)** : la même page (le paragraphe « Votre entreprise est soumise à
+l'obligation DSN ? » et ce qui suit sur la DSIJ) fonde, dans `obligations-base.json`, les `sauf_motifs` de `signalement_arret`
+et de `signalement_reprise` (pas de signalement pour un motif que la DSN ne couvre pas ; le texte de l'avertissement que
+`signalement::verifier` ajoute à `arret-signaler` quand on en écrit un quand même, la norme l'admettant) et l'obligation
+`attestation_salaire` (`ou` : `net-entreprises-ecran`, `net-entreprises-edi` ; `delai` : « dès réception de l'avis d'arrêt
+de travail », inférence dite). Calcul : `obligations.rs` (`de_l_arret`) ; dite faite par la route `attestation-declare`
+(`paie arret declare --attestation`), gardée dans `imprevus/obligations.json`. Le droit du congé de deuil et de ses
+indemnités journalières est relevé depuis LEGI : C. trav. L. 3142-1-1, D. 3142-1-1 (`../code-du-travail/`), CSS L. 331-9,
+D. 331-7, R. 323-10 (`../code-de-la-securite-sociale/`).

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000053279206</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/53/27/92/LEGIARTI000053279206.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L331-9</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2025-12-31</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106050">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126889">Livre III : Dispositions relatives aux assurances sociales et à diverses catégories de personnes rattachées au régime général</TITRE_TM>
+<TM>
+<TITRE_TM debut="2001-12-26" fin="2012-12-19" id="LEGISCTA000006141618">Titre 3 : Assurance maternité et congé de paternité</TITRE_TM>
+<TITRE_TM debut="2012-12-19" fin="2025-12-31" id="LEGISCTA000026799968">Titre III : Assurance maternité et congé de paternité et d'accueil de l'enfant</TITRE_TM>
+<TITRE_TM debut="2025-12-31" fin="2999-01-01" id="LEGISCTA000053279193">Titre III : Assurance maternité, congé de paternité et d'accueil de l'enfant et congé supplémentaire de naissance</TITRE_TM>
+<TM>
+<TITRE_TM debut="2001-12-26" fin="2012-12-19" id="LEGISCTA000006156088">Chapitre 1er : Dispositions propres à l'assurance maternité et au congé de paternité</TITRE_TM>
+<TITRE_TM debut="2012-12-19" fin="2025-12-31" id="LEGISCTA000026799966">Chapitre 1er : Dispositions propres à l'assurance maternité et au congé de paternité et d'accueil de l'enfant</TITRE_TM>
+<TITRE_TM debut="2025-12-31" fin="2999-01-01" id="LEGISCTA000053279203">Chapitre 1er : Dispositions propres à l'assurance maternité, au congé de paternité et d'accueil de l'enfant et au congé supplémentaire de naissance</TITRE_TM>
+<TM>
+<TITRE_TM debut="2020-07-01" fin="2999-01-01" id="LEGISCTA000041976575">Section 5 : Dispositions relatives à l'indemnisation du congé de deuil en cas de décès d'un enfant</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2020-07-01" etat="MODIFIE" fin="2025-12-31" id="LEGIARTI000041976579" num="L331-9" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2025-12-31" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000053279206" num="L331-9" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément à la formule exécutoire de la loi n° 2025-1403 du 30 décembre 2025, ces dispositions, dans leur rédaction résultant de la loi précitée, entrent en vigueur immédiatement.</p>
+<p>Conformément au X de l'article 99 de la loi n° 2025-1403 du 30 décembre 2025, ces dispositions, dans leur rédaction résultant de l'article précité, sont applicables pour les enfants nés ou adoptés à compter du 1<sup>er</sup> janvier 2026 ainsi que pour les enfants nés avant cette date dont la naissance était censée intervenir à compter de cette date.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Lorsqu'il exerce son droit au congé prévu à l'article L. 3142-1-1 du code du travail, l'assuré perçoit, pendant la durée du congé et selon les mêmes conditions de liquidation et de service, l'indemnité journalière mentionnée à l'article L. 331-3 du présent code, sous réserve de cesser toute activité salariée ou assimilée.</p>
+<p>L'indemnité journalière n'est pas cumulable avec :</p>
+<p>1° L'indemnisation des congés maladie ;</p>
+<p>2° L'indemnisation des congés de maternité, de paternité et d'accueil de l'enfant, d'adoption ou du congé supplémentaire de naissance ;</p>
+<p>3° Les indemnités journalières versées en cas d'accident du travail et de maladies professionnelles ;</p>
+<p>4° Les indemnités servies aux demandeurs d'emploi par l'assurance chômage ou le régime de solidarité.</p>
+<p>L'employeur qui a maintenu le salaire de l'assuré en application de l'article L. 3142-2 du code du travail est subrogé de plein droit dans les droits de son salarié à l'indemnité journalière.</p>
+<p>Pour les personnes bénéficiant des dispositions des articles L. 161-8 et L. 311-5 du présent code, la durée de l'indemnisation prévue au premier alinéa du présent article est portée à quinze jours, qui peuvent être fractionnés dans des conditions fixées par décret.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000053226384" datesignatexte="2025-12-30" id="LEGIARTI000053265444" naturetexte="LOI" nortexte="CPPX2521641L" num="99" numtexte="2025-1403" sens="cible" typelien="MODIFIE">LOI n°2025-1403 du 30 décembre 2025 - art. 99 (V)</LIEN>
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000041976470" naturetexte="CODE" nortexte="" num="L3142-1-1" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3142-1-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000041979670" naturetexte="CODE" nortexte="" num="L3142-2" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L3142-2 (V)</LIEN>
+</LIENS>
+</ARTICLE>
