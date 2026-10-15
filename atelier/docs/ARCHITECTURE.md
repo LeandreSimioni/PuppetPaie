@@ -1009,7 +1009,8 @@ décident. Les articles sont relevés et datés dans
   que le 007 et le posait sur **toute** fin de CDI — une rupture
   conventionnelle serait partie avec, et CCH-24 l'aurait fait rejeter ;
 - **suspensions** (bloc S21.G00.65) : congé sans solde, parental, sabbatique…
-  Un **congé payé n'en est pas une** — il est payé, le contrat n'est pas
+  Saisies une fois comme **imprévus** du salarié (`paie/src/imprevus.rs`) : chaque mois
+  traversé en tire sa ligne et son bloc 65, entier, sans recopie. Un **congé payé n'en est pas une** — il est payé, le contrat n'est pas
   suspendu, et le moteur refuse d'écrire le motif « 200 - COP ».
 
 - **jours fériés** : les onze fêtes légales de L3133-1, dont trois qui
@@ -1196,8 +1197,13 @@ fils du bloc 40, il n'aurait rien où s'accrocher.
 
 ### Le magasin, et la trace des envois
 
-`arrets/AAAA-MM.json` sous les données, au mois où l'arrêt **commence**
-(même forme que `regularisations/`). Chaque arrêt garde ses `envois` : les
+`imprevus/AAAA-MM.json` sous les données (depuis le 15/10/2026, `paie/src/imprevus.rs`) :
+le magasin des **imprévus** d'un salarié, arrêts de travail (`"genre": "arret"`, au mois du
+dernier jour travaillé) et suspensions du bloc 65 (`"genre": "suspension"`, au mois de leur
+premier jour). Un imprévu se saisit une fois ; le moteur en tire la ligne de paie d'un
+permanent (`imprevus::lignes_du_mois`, le seul endroit qui la tire), le bloc 60 ou 65 de chaque
+DSN dont le mois le croise, et nomme les cachets d'un intermittent datés pendant l'imprévu.
+L'ancien dossier `arrets/` n'est plus lu : sa présence refuse. Chaque arrêt garde ses `envois` : les
 signalements déposés pour de vrai (nature, type, numéro d'ordre, identifiant
 rendu par le point de dépôt) et les DSN mensuelles qui l'ont reporté. C'est
 cette liste qui donne son rang au prochain annule-et-remplace — le cahier

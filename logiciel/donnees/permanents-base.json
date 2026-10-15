@@ -364,7 +364,7 @@
   "suspensions": {
     "_quoi": "Le bloc « Autre suspension de l'exécution du contrat - S21.G00.65 » : un contrat qui continue d'exister alors que le salarié ne travaille pas, et qui n'est pas un arrêt de travail (celui-là a son bloc 60 et son signalement — voir arrets-base.json).",
     "_rubrique": "S21.G00.65.001",
-    "_supra_mensuel": "Cahier technique, bloc 65 : « En cas de suspension supra-mensuelle, la suspension doit être déclarée dans toutes les DSN mensuelles dont le mois principal déclaré présente une période commune avec la suspension concernée. » Même règle que le bloc 60.",
+    "_supra_mensuel": "Cahier technique, bloc 65 : « En cas de suspension supra-mensuelle, la suspension doit être déclarée dans toutes les DSN mensuelles dont le mois principal déclaré présente une période commune avec la suspension concernée. » Même règle que le bloc 60 (cahier technique DSN 2026.1, bloc S21.G00.65 p. 281 : atelier/reference/norme-dsn/texte/bloc-S21.G00.65.txt). Depuis le 15/10/2026 une suspension est un IMPRÉVU saisi une fois sur le salarié (imprevus/AAAA-MM.json) : le moteur en tire le bloc 65 de chaque mois traversé et, pour un motif non rémunéré, la ligne `absence_non_remuneree` d'un permanent (`imprevus.rs`). Plus de recopie.",
     "motifs": [
       {"code": "501", "libelle": "Congé divers non rémunéré", "remunere": false, "acquiert_conges": false},
       {"code": "632", "libelle": "Congé parental d'éducation", "remunere": false, "acquiert_conges": false},

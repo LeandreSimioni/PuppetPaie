@@ -1400,11 +1400,13 @@ pub fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
         paies.push(p);
     }
     un_numero_un_salarie(&paies, &mois)?;
-    // Ce que la deduction des lignes d'un permanent a eu a dire, puis ses
-    // suspensions (bloc 65), deduites des lignes une fois qu'elles existent.
-    for (p, dit) in paies.iter_mut().zip(dits) {
+    // Ce que la deduction des lignes d'un permanent a eu a dire, ses suspensions (bloc 65), tirees du magasin des
+    // imprevus pour le contrat de chaque paie, et les jours payes pendant un imprevu (`imprevus`).
+    let jours_payes = crate::imprevus::avertir_les_jours_payes(ctx, data)?;
+    for ((p, dit), payes) in paies.iter_mut().zip(dits).zip(jours_payes) {
         p.avertissements.extend(dit);
-        p.engagement.suspensions = crate::conges::suspensions_du_mois(ctx, p, &mois)?;
+        p.avertissements.extend(payes);
+        p.engagement.suspensions = crate::imprevus::suspensions_du_mois(ctx, p, &mois)?;
     }
     // Les minima conventionnels, puis le SMIC : des avertissements, jamais un refus.
     if crate::minima::actif() {

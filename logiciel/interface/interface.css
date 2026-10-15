@@ -699,7 +699,6 @@ details.historique-fiche[open] > summary { margin-bottom: 8px; }
 .fait input, .fait select { display: block; padding: .3rem .4rem; }
 .fait input[type="number"] { width: 7rem; }
 .fait .f-rubrique { width: 10rem; }
-.fait .f-maintien-bloc[hidden] { display: none; }
 .fait .retirer-fait { align-self: center; }
 
 /* LA FIN DU CONTRAT, quand elle se signale (nature 07). Cachee sur un CDDU

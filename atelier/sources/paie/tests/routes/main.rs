@@ -21,6 +21,7 @@ mod routes_accueil;
 mod routes_actes;
 mod routes_apercus;
 mod routes_arrets;
+mod routes_imprevus;
 mod routes_bulletin_modele;
 mod routes_cloture_compta;
 mod routes_coffre;

@@ -265,10 +265,7 @@
       "sens": "-",
       "saisie": [
         "quantite",
-        "taux",
-        "motif_suspension",
-        "debut",
-        "fin"
+        "taux"
       ],
       "heures_forfait": null,
       "plafond": null,
@@ -279,7 +276,7 @@
       "soumis": true,
       "imposable": true,
       "conges_spectacles": true,
-      "source": "Une absence qui n'est pas payee : conge sans solde, conge sabbatique, conge parental. Elle retire du brut ce qu'une presence aurait apporte, et elle se declare deux fois — en heures d'absence (S21.G00.53, type 02 « Duree d'absence partiellement ou pas du tout remuneree ») et, quand elle suspend le contrat, en bloc « Autre suspension - S21.G00.65 » avec son motif (moteur/permanents-base.json, section `suspensions`). `retabli` : son montant se rajoute au brut pour reconstituer le SALAIRE RETABLI (S21.G00.51.011 = 003), « ce que le salarie aurait percu s'il avait continue a travailler ». Dans l'assiette Conges Spectacles comme le salaire qu'elle retire (`mois`), pour un contrat declare a la caisse (lot V2f)."
+      "source": "Une absence qui n'est pas payee : conge sans solde, conge sabbatique, conge parental. Elle retire du brut ce qu'une presence aurait apporte, et elle se declare deux fois — en heures d'absence (S21.G00.53, type 02 « Duree d'absence partiellement ou pas du tout remuneree ») et, quand elle suspend le contrat, en bloc « Autre suspension - S21.G00.65 » avec son motif (permanents-base.json, section `suspensions`). Pour un permanent, le moteur la tire d'une SUSPENSION saisie une fois comme imprévu du salarié (imprevus.rs) : la ligne de chaque mois traversé, et le bloc 65 que la DSN de chacun de ces mois déclare ; elle ne se saisit plus à la main dans le mois. `retabli` : son montant se rajoute au brut pour reconstituer le SALAIRE RETABLI (S21.G00.51.011 = 003), « ce que le salarie aurait percu s'il avait continue a travailler ». Dans l'assiette Conges Spectacles comme le salaire qu'elle retire (`mois`), pour un contrat declare a la caisse (lot V2f)."
     },
     "absence_maladie": {
       "libelle": "Absence maladie",
@@ -299,7 +296,7 @@
       "soumis": true,
       "imposable": true,
       "conges_spectacles": false,
-      "source": "L'absence pour arret de travail : elle retire le salaire des heures non travaillees. La SUSPENSION, elle, ne se declare pas ici mais dans le bloc « Arret de travail - S21.G00.60 » (moteur/signalement.py, magasin des arrets) — un arret a son signalement et son report mensuel, et une ligne de paie ne les remplace pas. `arret_de_travail` dit au moteur de verifier qu'un arret est bien saisi en face : une absence maladie sans arret declare est une prestation que le salarie ne touchera pas."
+      "source": "L'absence pour arret de travail : elle retire le salaire des heures non travaillees. La SUSPENSION, elle, ne se declare pas ici mais dans le bloc « Arret de travail - S21.G00.60 » (signalement.rs, et le magasin des imprevus) — un arret a son signalement et son report mensuel, et une ligne de paie ne les remplace pas. Pour un permanent, le moteur TIRE cette ligne de l'arret saisi une fois (imprevus.rs : les jours d'absence du mois, quel que soit le motif de l'arret) ; elle ne se saisit plus dans le mois. `arret_de_travail` dit au moteur de verifier qu'un arret est bien saisi en face d'une ligne ecrite a la main : une absence sans arret declare est une prestation que le salarie ne touchera pas."
     },
     "maintien_salaire": {
       "libelle": "Maintien de salaire",

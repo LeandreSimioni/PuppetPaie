@@ -453,10 +453,21 @@ fn la_correction_d_un_montant_net_social_de_2027_se_date_au_versement_d_origine(
 
 // ------------------------------------------------------------------ S21.G00.65
 
-/// Une absence non remuneree de deux jours (12 et 13 du mois) au motif `motif`.
-fn absence(mois: &str, motif: &str) -> Value {
-    json!({"rubrique": "absence_non_remuneree", "quantite": 14, "taux": 15.23, "motif_suspension": motif,
-           "debut": format!("{}-12", mois), "fin": format!("{}-13", mois)})
+/// Une suspension de deux jours (12 et 13 du mois) au motif `motif`, saisie comme imprevu du contrat `NT.<mois>` de
+/// Nicolet (le magasin des imprevus, `imprevus/AAAA-MM.json`) : c'est elle qui fait le bloc 65 (`imprevus::suspensions_du_mois`).
+fn suspension(racine: &Path, mois: &str, motif: &str) {
+    ecrire(
+        racine,
+        &format!("imprevus/{}.json", mois),
+        &json!({"mois": mois, "imprevus": [{
+            "genre": "suspension", "salarie": "NICOLET", "contrat_debut": format!("{}-01", mois), "contrat_numero": format!("NT.{}", mois),
+            "motif": motif, "debut": format!("{}-12", mois), "fin": format!("{}-13", mois)}]}),
+    );
+}
+
+/// La ligne d'une absence non remuneree de ces deux jours, ecrite a la main dans la saisie de Nicolet.
+fn absence() -> Value {
+    json!({"rubrique": "absence_non_remuneree", "quantite": 14, "taux": 15.23})
 }
 
 #[test]
@@ -464,18 +475,22 @@ fn un_conge_pour_evenement_familial_ne_se_declare_plus_en_suspension_en_2027() {
     // 2027 p. 285 : le bloc 65 declare « une suspension "totale" de l'execution du contrat : absence a temps plein du
     // salarie sans maintien de sa remuneration normale par son employeur ». Le conge pour evenement familial
     // « n'entraine pas de reduction de la remuneration » (C. trav. L. 3142-2) : `permanents-base.json` le dit remunere.
-    // Le moteur n'ecrit de bloc 65 que pour une absence non remuneree : un 637 y est une contradiction, que 2027 rend
-    // decisive -- refus. Un 501 (conge non remunere) se declare toujours.
+    // Saisi comme imprevu, un 637 ne retire rien du salaire, et 2027 ne le declare plus : refus, plutot que de taire
+    // l'imprevu. Un 501 (conge non remunere) se declare toujours.
     let racine = copie("65", json!({}));
     let ctx = contexte(&racine);
-    let paies = mois(&ctx, "2027-01", vec![nicolet("2027-01", 151.67, 2310.0, vec![absence("2027-01", "637")])]).unwrap();
+    suspension(&racine, "2027-01", "637");
+    let paies = mois(&ctx, "2027-01", vec![nicolet("2027-01", 151.67, 2310.0, vec![])]).unwrap();
     let e = dsn(&ctx, &paies, "2027-01").unwrap_err();
     assert!(e.contains("637") && e.contains("sans maintien de sa remuneration normale") && e.contains("L. 3142-2"), "{}", e);
-    let paies = mois(&ctx, "2027-01", vec![nicolet("2027-01", 151.67, 2310.0, vec![absence("2027-01", "501")])]).unwrap();
+    suspension(&racine, "2027-01", "501");
+    let paies = mois(&ctx, "2027-01", vec![nicolet("2027-01", 151.67, 2310.0, vec![absence()])]).unwrap();
     let texte = dsn(&ctx, &paies, "2027-01").unwrap();
     assert_eq!(valeur(&texte, "S21.G00.65.001").as_deref(), Some("501"));
     // Decembre 2026 : la definition de 2026 ne parlait pas de remuneration ; le 637 se declare comme avant.
-    let paies = mois(&ctx, "2026-12", vec![nicolet("2026-12", 151.67, 2310.0, vec![absence("2026-12", "637")])]).unwrap();
+    std::fs::remove_file(racine.join("imprevus/2027-01.json")).unwrap();
+    suspension(&racine, "2026-12", "637");
+    let paies = mois(&ctx, "2026-12", vec![nicolet("2026-12", 151.67, 2310.0, vec![])]).unwrap();
     let texte = dsn(&ctx, &paies, "2026-12").unwrap();
     assert_eq!(valeur(&texte, "S21.G00.65.001").as_deref(), Some("637"));
 }

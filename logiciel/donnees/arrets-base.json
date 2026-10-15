@@ -14,7 +14,8 @@
       {
         "code": "01",
         "libelle": "maladie",
-        "saisissable": true
+        "saisissable": true,
+        "maintien_legal": true
       },
       {
         "code": "02",
@@ -30,19 +31,25 @@
         "code": "04",
         "libelle": "congé suite à un accident de trajet",
         "saisissable": true,
-        "date_accident": true
+        "date_accident": true,
+        "maintien_legal": true,
+        "origine": "trajet"
       },
       {
         "code": "05",
         "libelle": "congé suite à maladie professionnelle",
         "saisissable": true,
-        "date_accident": true
+        "date_accident": true,
+        "maintien_legal": true,
+        "origine": "at_mp"
       },
       {
         "code": "06",
         "libelle": "congé suite à accident de travail ou de service",
         "saisissable": true,
-        "date_accident": true
+        "date_accident": true,
+        "maintien_legal": true,
+        "origine": "at_mp"
       },
       {
         "code": "07",
@@ -152,6 +159,8 @@
       }
     ],
     "_date_accident": "S21.G00.60.012, CCH-11 : obligatoire si et seulement si le motif est 04, 05 ou 06. D'où le drapeau `date_accident`.",
+    "_maintien_legal": "C. trav. L1226-1 : le maintien de salaire (l'indemnité complémentaire) est dû « en cas d'absence au travail justifiée par l'incapacité résultant de maladie ou d'accident » (atelier/reference/sources/code-du-travail/articles-20261015.md, relevé LEGI). Le drapeau `maintien_legal` marque les motifs de la norme qui sont une maladie ou un accident (01, 04, 05, 06) — une INFÉRENCE de ce texte : maternité, paternité, adoption, deuil d'enfant ne sont pas une incapacité. Le moteur ne dit le maintien de la loi (`imprevus::maintien_possible`) et ne demande les jours déjà indemnisés (D1226-4) que pour eux ; un complément versé par la convention se saisit sur tout arrêt d'un contrat payé au mois.",
+    "_origine": "D1226-3 (même relevé) : « les durées d'indemnisation courent à compter du premier jour d'absence si celle-ci est consécutive à un accident du travail ou à une maladie professionnelle, à l'exclusion des accidents de trajet » ; sept jours de carence dans les autres cas. `origine` le lit sur le motif : `at_mp` (05, 06), sans carence ; `trajet` (04), un accident qui garde la sienne. Plus de case « origine » à remplir : le motif la dit.",
     "_temps_partiel_therapeutique": "CCH-14 : les motifs 15 à 18 sont interdits hors DSN mensuelle et signalement FCTU, et SIG-13 impose alors un bloc « Temps partiel Thérapeutique - S21.G00.66 » que le moteur n'écrit pas. D'où `saisissable: false` tant que le bloc 66 n'existe pas.",
     "_annulation": "CCH-12 : le motif 99 est interdit hors DSN mensuelle et signalement FCTU. Un signalement d'arrêt se rattrape donc par un annule-et-remplace (type 03), pas par un motif 99."
   },

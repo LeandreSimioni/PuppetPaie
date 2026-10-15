@@ -54,7 +54,7 @@ function serveurPerdu() {
  * Toute autre route peut écrire : ce qui a été lu part alors, avant ET après
  * elle — on n'affiche jamais un état qu'on aurait pu changer soi-même. */
 const LECTURES_DU_MOIS = new Set(["saisie", "contrats-en-cours", "etat-du-mois",
-  "embauches-a-declarer", "fins-de-contrat", "etat-par-paie"]);
+  "embauches-a-declarer", "fins-de-contrat", "etat-par-paie", "imprevus"]);
 // Elles ne dépendent pas du mois : n'importe quelle lecture `mois` les porte.
 const LECTURES_DE_LA_COMPAGNIE = new Set(["arrets", "journal-reprise"]);
 // Des lectures que la page fait souvent, sans rien changer : elles ne vident pas ce qui a été lu.

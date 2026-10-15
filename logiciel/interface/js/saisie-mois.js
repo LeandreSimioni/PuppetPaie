@@ -11,7 +11,9 @@
  *     recopierait la valeur du premier sur le second.
  * Un champ que l'écran apprend à écrire s'ajoute ICI : absent de la liste, il
  * serait à la fois repris de l'ancien fichier et écrit par l'écran, et les
- * salariés d'un bloc se le partageraient. */
+ * salariés d'un bloc se le partageraient. `absences` y reste sans que l'écran
+ * l'écrive (15/10/2026) : une saisie d'avant les imprévus qui en porte la
+ * perd à l'enregistrement, et le moteur la refuse tant qu'elle est là. */
 const CHAMPS_DU_BLOC = [
   "spectacle", "nature", "debut", "fin", "numero", "lignes", "metier", "cadre",
   "motif_recours", "salaire_mensuel", "quotite_contrat", "date_modification",
@@ -157,7 +159,6 @@ function engagementsDuBloc(div, mois) {
       if (quotite !== "") e.quotite_contrat = +quotite;
       if (dateModification) e.date_modification = dateModification;
       if (faits.conges.length) e.conges_pris = faits.conges;
-      if (faits.absences.length) e.absences = faits.absences;
       if (faits.primes.length) e.primes = faits.primes;
       ruptureDuBloc(div, nat, fin, e);
     } else {
@@ -759,6 +760,7 @@ async function chargerMois(mois) {
     dessinerEmbauches(mois),
     dessinerReprise(),
     dessinerArrets(mois),
+    dessinerImprevus(mois),
     dessinerFins(mois),
     // Ou en est CHAQUE paie. Se lit apres le chargement des blocs : les etats
     // se posent sur eux, et un bloc absent n'aurait rien ou se poser.

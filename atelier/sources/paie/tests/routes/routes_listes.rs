@@ -26,7 +26,7 @@ fn ecrire_texte(c: &Path, rel: &str, t: &str) {
 
 fn un_arret(motif: &str, envois: Value) -> Value {
     json!({
-        "salarie": "BRIOCHE", "contrat_debut": "2026-08-19", "contrat_numero": "BR1.26.04", "motif": motif,
+        "genre": "arret", "salarie": "BRIOCHE", "contrat_debut": "2026-08-19", "contrat_numero": "BR1.26.04", "motif": motif,
         "dernier_jour_travaille": "2026-08-20", "fin_previsionnelle": "2026-08-30", "envois": envois,
     })
 }
@@ -52,8 +52,8 @@ fn un_arret_se_resume_signale_ou_non() {
     let signale = json!([{"nature": "04", "type": "01", "ordre": 1}]);
     let reporte = json!([{"nature": "01", "mois": "2026-09"}]);
     ecrire(c, 
-        "arrets/2026-08.json",
-        &json!({"mois": "2026-08", "arrets": [un_arret(&code, json!([])), un_arret(&code, signale.clone()), un_arret("ZZ", reporte.clone())]}),
+        "imprevus/2026-08.json",
+        &json!({"mois": "2026-08", "imprevus": [un_arret(&code, json!([])), un_arret(&code, signale.clone()), un_arret("ZZ", reporte.clone())]}),
     );
     let r = liste(c, "arrets", json!({}), "2026-10-03");
     let tous = r["arrets"].as_array().unwrap();
@@ -78,20 +78,20 @@ fn un_fichier_d_arrets_abime_refuse() {
     let mut inconnu = un_arret("01", json!([]));
     inconnu["zzz"] = json!(1);
     let envoi_texte = un_arret("01", json!([{"nature": "01"}, "oops"]));
-    for f in [json!({"arrets": [{"salarie": "BRIOCHE"}]}), json!({"arrets": [inconnu]}), json!({"arrets": ["x"]}), json!([1]), json!({"arrets": [envoi_texte]})] {
-        ecrire(c, "arrets/2026-08.json", &f);
+    for f in [json!({"imprevus": [{"salarie": "BRIOCHE"}]}), json!({"imprevus": [inconnu]}), json!({"imprevus": ["x"]}), json!([1]), json!({"imprevus": [envoi_texte]})] {
+        ecrire(c, "imprevus/2026-08.json", &f);
         refus(c, "arrets", json!({}));
     }
-    ecrire_texte(c, "arrets/2026-08.json", "{");
+    ecrire_texte(c, "imprevus/2026-08.json", "{");
     refus(c, "arrets", json!({}));
 }
 
 #[test]
 fn seuls_les_fichiers_nommes_comme_un_mois_sont_lus() {
     let c = &compagnie("arrets-noms");
-    ecrire(c, "arrets/2026-08.json", &json!({"arrets": [un_arret("01", json!([]))]}));
-    ecrire(c, "arrets/2026-08.calcul.json", &json!({"arrets": [{"x": 1}]}));
-    ecrire(c, "arrets/notes.json", &json!("rien"));
+    ecrire(c, "imprevus/2026-08.json", &json!({"imprevus": [un_arret("01", json!([]))]}));
+    ecrire(c, "imprevus/2026-08.calcul.json", &json!({"imprevus": [{"x": 1}]}));
+    ecrire(c, "imprevus/notes.json", &json!("rien"));
     let r = liste(c, "arrets", json!({}), "2026-10-03");
     assert_eq!(r["arrets"].as_array().unwrap().len(), 1);
 }
