@@ -83,7 +83,7 @@ jobs:
         run: |
           [ -n "$APPLICATION" ] || { echo "::error::Le secret PUPPETPAIE_GOOGLE_APPLICATION manque (Settings, Secrets and variables, Actions)."; exit 1; }
           printf '%s' "$APPLICATION" > logiciel/donnees/google-application.json
-          python3 -c "import json;d=json.load(open('logiciel/donnees/google-application.json'));assert d" || { echo "::error::PUPPETPAIE_GOOGLE_APPLICATION n'est pas un JSON lisible."; exit 1; }
+          jq -e 'length > 0' logiciel/donnees/google-application.json >/dev/null || { echo "::error::PUPPETPAIE_GOOGLE_APPLICATION n'est pas un JSON lisible."; exit 1; }
 
       - name: La fenetre et le moteur Windows, l'installeur
         run: bash atelier/installeur/construire.sh
