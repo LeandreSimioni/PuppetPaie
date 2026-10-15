@@ -27,7 +27,8 @@ de fond (0 à 11) ne bougent pas : le code les cite.**
 
 - **Un ticket** : lire ce qu'il dit, le reproduire (dans la fenêtre, sur une compagnie fictive, ou par `paie route`), corriger
   dans le public, prouver (un test quand c'est le moteur ; la fenêtre, à l'écran, quand c'est l'interface), puis **commenter le
-  ticket** (ce qui est fait, où, comment le voir) et le **fermer** quand c'est vrai dans le logiciel livré. Ce qu'un ticket
+  ticket** (ce qui est fait, où, comment le voir) et le **fermer** : corrigé sur la branche, c'est fermé, avec la phrase « ce sera
+  réglé dans la nouvelle version » (Léandre, 15/10) ; on n'attend pas la version publiée. Ce qu'un ticket
   demande se fait entier ; ce qu'il ne demande pas ne se fait pas sans le dire.
 - **La branche** : chaque séance part de `main` du public sur sa branche ; PR en brouillon tant que ce n'est pas fini ;
   Léandre fusionne. Le privé reçoit, sur la même branche, ce qui s'adresse à Léandre (`journal/`).

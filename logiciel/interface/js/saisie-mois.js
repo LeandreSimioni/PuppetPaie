@@ -263,17 +263,15 @@ async function calculerApercu(lu) {
       }
       // Un mois du contrat sans cachet n'a pas de bulletin : on le dit à la
       // place du numéro, et le brut à zéro suit.
-      // UN CONTRAT SUR PLUSIEURS MOIS (ticket #127) : la pastille, au pied
-      // du bloc en saisie et dans le résumé, d'après ce que le moteur rend.
-      const pluri = p ? marquePlurimensuel(p.contrat, p.debut, p.fin) : "";
-      const suite = div.querySelector(".e-suite");
-      if (suite) suite.innerHTML = pluri;
+      // UN CONTRAT SUR PLUSIEURS MOIS (ticket #127) : le chevron au bord de
+      // la case, d'après ce que le moteur rend (`poserChevrons`).
+      if (p) poserChevrons(div, p.contrat, p.debut, p.fin);
       div.querySelector(".resolu").innerHTML = p
-        ? `${pluri ? pluri + " " : ""}${p.contrat && p.contrat.sans_paie
+        ? `${p.contrat && p.contrat.sans_paie
              ? `<b>aucun cachet ce mois-ci</b> — pas de bulletin, la DSN porte le contrat`
              : `bulletin <b>${echapper(p.numero_bulletin)}</b>`} · contrat ${echapper(p.numero_contrat)}
            · ${echapper(jjmmaaaa(p.debut))} → ${echapper(jjmmaaaa(p.fin))}${
-             pluri
+             p.contrat && p.contrat.a_cheval
                ? ` <span class="discret">(paie du ${echapper(jjmmaaaa(p.contrat.periode.debut))} au ${echapper(jjmmaaaa(p.contrat.periode.fin))})</span>`
                : ""}
            · ${echapper(designation(p))}${p.emploi && p.emploi.libelle
@@ -380,7 +378,7 @@ function peindreCarte(div) {
   // POUR QUOI. Le spectacle, puis ce qui est payé en mots.
   const paye = p ? designation(p).toLowerCase() : "";
   // Un contrat sur plusieurs mois porte sa pastille à côté du nom (#127).
-  const pluri = marquePlurimensuel(ligne.contrat, ligne.debut, ligne.fin);
+  poserChevrons(div, ligne.contrat, ligne.debut, ligne.fin);
   const net = ps.length
     ? euros(ps.reduce((t, x) => t + Number(x.net_a_payer || 0), 0))
     : "";
@@ -392,7 +390,7 @@ function peindreCarte(div) {
       <b class="${jours.includes(" · ") ? "epars" : ""}">${echapper(jours)}</b><span>${echapper(moisCourt)}</span>
     </div>
     <div class="carte-qui" title="${echapper(detail)}">
-      <span class="carte-nom"><b>${echapper(ligne.nom)}</b>${pluri}</span>
+      <span class="carte-nom"><b>${echapper(ligne.nom)}</b></span>
       <span class="discret">${echapper(pourQuoi(ligne))}${paye ? " · " + echapper(paye) : ""}</span>
     </div>
     <div class="carte-actes">${bandeauEtats(ligne)}</div>

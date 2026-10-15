@@ -1027,16 +1027,28 @@ pre.reponse {
 .e-net b { font-size: 16px; }
 .e-net .e-cout { margin-left: 22px; color: var(--discret); }
 .e-net .e-cout b { color: var(--texte); font-size: 15px; }
-/* Un contrat sur plusieurs mois : un fait, pas une alerte (26/09/2026). Sa
-   pastille (ticket #127, marquePlurimensuel) : ses mois, et une flèche du
-   côté où il déborde du mois ; ni rouge ni orange ni vert, ce n'est pas un
-   état. */
+/* Un contrat sur plusieurs mois : un fait, pas une alerte (26/09/2026). Un
+   chevron au bord de la case FERMÉE -- la carte de la paie validée -- (ticket
+   #127, Léandre 15/10 : « juste un petit v tourné, à côté de la case », « sur
+   la case fermée »), à gauche s'il a commencé avant, à droite s'il se
+   poursuit ; cliquer mène au mois voisin. La case ouverte, en saisie, n'en
+   porte pas. Ni rouge ni orange ni vert, ce n'est pas un état. */
 .e-suite:empty { display: none; }
-.pastille.pluri {
-  background: var(--veille-fond); color: var(--texte); border: 1px solid var(--bord);
-  font-weight: bold; white-space: nowrap; margin-top: 0; vertical-align: 1px;
+.engagement { position: relative; }
+.chevron-pluri {
+  display: none;
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 1;
+  width: 18px; height: 30px; padding: 0; border: 0; background: none;
+  color: var(--discret); font-size: 24px; line-height: 1; cursor: pointer;
+  align-items: center; justify-content: center;
 }
-.pastille.pluri .fleche { font-weight: bold; margin: 0 3px; }
+.chevron-pluri.avant { left: -20px; }
+.chevron-pluri.apres { right: -20px; }
+.chevron-pluri:hover, .chevron-pluri:focus-visible { color: var(--action); outline: none; }
+/* La case validée ne montre que son résumé -- et ses chevrons (la règle
+   `.validee > :not(.e-resume)` cache le reste). */
+.engagement.validee > button.chevron-pluri { display: flex; }
+#engagements.lecture-seule .chevron-pluri { pointer-events: auto; }
 .carte-nom { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .carte-nom b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .e-pied .e-viser-btn { margin-left: auto; }

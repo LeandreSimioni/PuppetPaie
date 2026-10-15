@@ -1465,19 +1465,46 @@ function pourQuoi(ligne) {
  * `jusqu_a`), avec le début et la fin du contrat : la page ne compare aucune
  * date. Un contrat sans terme (un CDI) n'en porte pas : il dure, il n'est
  * pas « sur plusieurs mois ». */
+/* UN CONTRAT SUR PLUSIEURS MOIS (ticket #127, Léandre, 15/10/2026) : « juste
+ * un petit v tourné, à côté de la case, et qu'on puisse cliquer dessus et ça
+ * amène au mois précédent ». Un chevron au bord de la case de l'engagement,
+ * à gauche quand le contrat a commencé avant ce mois, à droite quand il se
+ * poursuit après (un permanent en CDI aussi) ; cliquer va au mois voisin.
+ * Tout vient du moteur (`contrat.premier_mois`, `dernier_mois`, `depuis`,
+ * `jusqu_a`) : la page ne compare aucune date. */
 function marquePlurimensuel(contrat, debut, fin) {
-  if (!contrat || !fin || (contrat.premier_mois && contrat.dernier_mois)) return "";
+  if (!contrat || typeof contrat.premier_mois !== "boolean" || typeof contrat.dernier_mois !== "boolean") return "";
   const avant = !contrat.premier_mois, apres = !contrat.dernier_mois;
-  const annees = (contrat.depuis || "").slice(0, 4) !== (contrat.jusqu_a || "").slice(0, 4);
-  const court = (m) => (MOIS_COURTS[Number((m || "").slice(5, 7)) - 1] || m || "")
-    + (annees ? " " + (m || "").slice(0, 4) : "");
-  const titre = [`Contrat du ${jjmmaaaa(debut)} au ${jjmmaaaa(fin)}`,
-    avant ? `commencé en ${moisEnClair(contrat.depuis)}` : "",
-    apres ? `se poursuit jusqu'en ${moisEnClair(contrat.jusqu_a)}` : ""].filter(Boolean).join(" — ");
-  return `<span class="pastille pluri" title="${echapper(titre)}">${
-    avant ? `<span class="fleche" aria-hidden="true">&#x27F5;</span>` : ""}${
-    echapper(court(contrat.depuis))} – ${echapper(court(contrat.jusqu_a))}${
-    apres ? `<span class="fleche" aria-hidden="true">&#x27F6;</span>` : ""}</span>`;
+  if (!avant && !apres) return "";
+  const x = moisLu(document.getElementById("mois").value);
+  const voisin = (pas) => {
+    if (!x) return "";
+    const d = new Date(x[0], x[1] - 1 + pas, 1);
+    return moisEnTexte(d.getFullYear(), d.getMonth() + 1);
+  };
+  const bornes = `Contrat du ${jjmmaaaa(debut)}${fin ? ` au ${jjmmaaaa(fin)}` : ", sans date de fin"}`;
+  const un = (sens, texte, pas) => {
+    const m = voisin(pas);
+    const titre = `${bornes} — ${texte}${m ? ` · voir ${moisEnClair(m)}` : ""}`;
+    return `<button type="button" class="chevron-pluri ${sens}" data-mois="${echapper(m)}"
+      title="${echapper(titre)}" aria-label="${echapper(titre)}">${sens === "avant" ? "&#x2039;" : "&#x203A;"}</button>`;
+  };
+  return (avant ? un("avant", `commencé en ${moisEnClair(contrat.depuis)}`, -1) : "")
+    + (apres ? un("apres", fin && contrat.jusqu_a ? `se poursuit jusqu'en ${moisEnClair(contrat.jusqu_a)}` : "se poursuit", 1) : "");
 }
+
+/** Pose (ou remplace) les chevrons d'un contrat sur plusieurs mois au bord de la case `div`. */
+function poserChevrons(div, contrat, debut, fin) {
+  div.querySelectorAll(":scope > .chevron-pluri").forEach((c) => c.remove());
+  div.insertAdjacentHTML("beforeend", marquePlurimensuel(contrat, debut, fin));
+}
+
+// Le chevron mène au mois voisin, dans l'un ou l'autre état de la case.
+document.addEventListener("click", (e) => {
+  const c = e.target.closest && e.target.closest(".chevron-pluri[data-mois]");
+  if (!c || !c.dataset.mois || typeof allerAuMois !== "function") return;
+  e.preventDefault();
+  allerAuMois(c.dataset.mois, 30);
+});
 
 
