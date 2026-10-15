@@ -944,6 +944,28 @@ minute, une fois. L'ouverture hebdomadaire du Python la refaisait toute
 seule ; en Rust, l'ouverture accepte l'option et ne vérifie rien
 (`paie/src/ouverture.rs`) : c'est l'éditeur qui la lance.
 
+**Les textes eux-mêmes**, articles de loi et de convention, se relèvent dans les
+bases LEGI et KALI de la DILA et se gardent dans deux entrepôts du dépôt
+(`atelier/reference/sources/legi-entrepot/` et `kali-entrepot/` : tous les
+articles des textes suivis, et la liste des livraisons déjà appliquées ;
+`paie/src/entrepot_dila.rs`). Deux commandes de l'atelier, qui prennent le
+dossier des sources :
+
+```
+paie releve-codes moissonner atelier/reference/sources     # les livraisons LEGI nouvelles, puis releve.json et xml/ de chaque texte
+paie releve-codes rapport atelier/reference/sources [code]  # articles-<date>.md, le document lisible
+paie releve-codes comparer atelier/reference/sources       # chaque article changé, relu contre sa version d'avant (archive globale, 1,1 Go en flux)
+paie releve-conventions mettre-a-jour atelier/reference/sources
+paie releve-conventions article atelier/reference/sources 3090 7.6
+paie releve-conventions chercher atelier/reference/sources 3090 licenciement
+```
+
+Les textes suivis sont dans `paie/src/releve_codes/textes.rs` (un article
+ajouté y est déjà dans l'entrepôt : `moissonner` l'écrit sans rien télécharger)
+et, pour les conventions, ceux que cite `sources.json`. `--reconstruire` refait
+défiler l'archive globale (1,1 Go pour LEGI, 180 Mo pour KALI) : on ne le
+lance pas sans raison.
+
 ### La nature du contrat, et les salariés permanents
 
 *Chantier en cours depuis le 18/09/2026. Ce qui suit marche ; ce qui manque
@@ -1662,8 +1684,9 @@ atelier/                  ← ce dossier : tout le reste
   outils/                 les outils d'atelier, encore en Python :
                           convertir_saisies.py, verifier_avant_commit.py
                           (garde-fou du dépôt public, en sommeil), les
-                          extracteurs de la norme (extraire_*.py), le relevé
-                          des codes (relever_les_codes.py)…
+                          extracteurs de la norme (extraire_*.py)… ; le relevé
+                          des codes et des conventions est en Rust
+                          (`paie releve-codes`, `paie releve-conventions`)
   PuppetPaie.sh, PuppetPaie.command   les lanceurs Linux et Mac
   prive-dev/, depot/ (versions publiées), site/, maquettes/
                           (le serveur du filet : dépôt du site de l'éditeur, infra/filet/)

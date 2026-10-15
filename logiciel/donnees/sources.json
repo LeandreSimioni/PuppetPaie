@@ -630,7 +630,7 @@
     }
   },
   "conventions_a_relever": {
-    "_quoi": "Les conventions collectives qui emploient des intermittents (celles des listes de l'annexe 8, notice France Travail du 03/12/2025, et de l'annexe 10) que le moteur ne porte pas encore. Aucune donnee du logiciel n'en derive : elles sont ici pour que l'entrepot local des textes KALI (outils/relever_les_conventions.py) en garde les articles, a relire avant d'ecrire une couche. IDCC et conteneurs lus dans la base KALI de la DILA (Freemium_kali_global_20250713) le 25/09/2026. Mission posee par l'editeur le 24/09/2026 (journal §129 et §130).",
+    "_quoi": "Les conventions collectives qui emploient des intermittents (celles des listes de l'annexe 8, notice France Travail du 03/12/2025, et de l'annexe 10) que le moteur ne porte pas encore. Aucune donnee du logiciel n'en derive : elles sont ici pour que l'entrepot local des textes KALI (`paie releve-conventions`) en garde les articles, a relire avant d'ecrire une couche. IDCC et conteneurs lus dans la base KALI de la DILA (Freemium_kali_global_20250713) le 25/09/2026. Mission posee par l'editeur le 24/09/2026 (journal §129 et §130).",
     "2642": {"titre": "Production audiovisuelle (13/12/2006)", "conteneur": "KALICONT000018828041"},
     "3097": {"titre": "Production cinematographique (19/01/2012)", "conteneur": "KALICONT000028059838"},
     "2412": {"titre": "Production de films d'animation (06/07/2004)", "conteneur": "KALICONT000005635129"},
