@@ -38,6 +38,7 @@
     "nom_affichage": "Lecouvreur"
   },
   "declarant_dsn": {
+    "civilite": "02",
     "nom_prenom": "LECOUVREUR ADRIENNE",
     "tel": "0100000091",
     "email": "DIRECTION@DEMO-3090-GRANDE.INVALID",
@@ -95,5 +96,9 @@
   "etablissements": null,
   "secteur_2121": "",
   "prevoyance_permanents": null,
-  "sante_permanents": null
+  "sante_permanents": null,
+  "taxe_sur_les_salaires": {
+    "assujettie": false,
+    "_note": "Compagnie fictive : assujettie a la TVA, elle ne doit pas la taxe sur les salaires (CGI art. 231). La DSN de decembre le declare (S21.G00.44, code 010) ; lot V3b."
+  }
 }

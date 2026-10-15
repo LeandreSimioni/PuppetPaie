@@ -1,106 +1,69 @@
 ---
 name: paie
-description: Fabrique les paies du spectacle vivant avec PuppetPaie - bulletins, contrats, DPAE, certificats Congés Spectacles et DSN mensuelle, pour les intermittents comme pour les permanents. Déclencher dès que l'utilisateur demande une ou plusieurs paies, un bulletin, un cachet, une DSN, une DPAE/DUE, ou parle d'engager quelqu'un sur un spectacle à des dates données. Exemples : « fais 2 paies pour Celi et Marin les 2 et 3 octobre pour Aaah Zerbinette », « la DSN d'octobre », « il faut déclarer Célimène sur 3 cachets ».
+description: Fabrique les paies du spectacle vivant avec PuppetPaie - bulletins, certificats Congés Spectacles et DSN mensuelle, avec la DPAE et le contrat qui les précèdent, pour les intermittents comme pour les permanents. Déclencher dès que l'utilisateur demande une ou plusieurs paies, un bulletin, un cachet, une DSN, une DPAE/DUE, ou parle d'engager quelqu'un sur un spectacle à des dates données. Exemples : « fais 2 paies pour Fanchon et Valentin les 14 et 15 décembre pour Les Pupazzi », « la DSN d'octobre », « il faut déclarer Nicole sur 3 cachets ».
 ---
 
 # Faire une paie avec PuppetPaie
 
-Les exemples ci-dessous sont ceux du banc d'essai ;
-la marche est la même pour toute compagnie.
+Le calcul est fait par le moteur `paie`, jamais par toi. Ton rôle : comprendre la demande, écrire le fichier de saisie,
+lancer la commande, relire la sortie. Ne calcule jamais une cotisation ni un net de tête, même pour vérifier.
 
-Le calcul est fait par `moteur/`, pas par toi. Ton rôle : comprendre la
-demande, écrire le fichier de saisie, lancer la commande, relire la sortie.
-Ne calcule jamais une cotisation ni un net à la main, même pour vérifier —
-le moteur est calé au centime sur les bulletins réels, pas toi.
+`paie` : `atelier/sources/paie/bin/windows/paie.exe` sous Windows (`bin/linux/paie`, `bin/mac/paie`), lancé depuis la
+racine du dossier PuppetPaie. La compagnie est `prive/` à côté de `logiciel/` (ou le dossier de `PUPPETPAIE_DONNEES`) ;
+les chemins `paies/…` et `sorties/…` se lisent depuis elle, et un mois nu (`2026-12`) désigne sa saisie.
 
 ## Marche à suivre
 
-1. **Comprendre.** Il faut : qui, quelles dates jouées, quel spectacle. Le reste
-   a des valeurs par défaut (130 € le cachet, un cachet par date, contrat du
-   premier au dernier jour joué).
-
-2. **Écrire `paies/AAAA-MM.json`.**
+1. **Comprendre** : qui, quelles dates jouées, quel spectacle, quel cachet.
+2. **Créer la saisie** : `paie nouveau 2026-12` écrit `paies/2026-12.json` (`--reprendre` y reporte les contrats en
+   cours des mois d'avant, bornes et numéro). Puis l'éditer :
 
 ```json
 {
-  "mois": "2026-10",
-  "spectacle": "aaah zerbinette",
-  "taux_cachet": 130.0,
-  "date_paiement": "2026-10-31",
+  "mois": "2026-12",
+  "taux_cachet": 150.0,
+  "date_paiement": "2026-12-31",
   "engagements": [
-    { "salarie": "Celi",     "dates": ["2026-10-02", "2026-10-03"] },
-    { "salarie": "Marin", "dates": ["2026-10-02", "2026-10-03"] }
+    { "salarie": "Brioche", "spectacle": "pupazzi",
+      "lignes": [ { "rubrique": "cachet", "quantite": 2, "taux": 150, "lieu": "Thiers",
+                    "dates": ["2026-12-14", "2026-12-15"] } ] }
   ]
 }
 ```
 
-   Les noms sont résolus de façon tolérante (« Celi », « Mairn », « zerbinette »).
-   Champs facultatifs par engagement : `cachets` si le nombre diffère du nombre
-   de dates, `taux_cachet`, `debut`/`fin` si le contrat déborde des dates
-   jouées, `heures` si la personne est payée à l'heure, `lieu`, `numero`.
+   Tout passe par `lignes` : `dates`, `cachets`, `heures` posés sur l'engagement sont refusés. Un contrat mixte = une
+   ligne `cachet` et une ligne `heure`, chacune à son taux. Par engagement, au besoin : `debut`/`fin` (contrat qui
+   déborde des dates jouées), `numero` (dès le 2e mois d'un contrat sur plusieurs mois), `lieu`, `date_paiement`,
+   `metier` (code emploi, `paie emplois --chercher …`). Un permanent : `"nature": "cdi"` ou `"cdd"`, sans spectacle,
+   avec `salaire_mensuel` et `quotite_contrat`. Les noms sont tolérants (« Brioch », « Valentin », « pupazzi »).
+3. **Montrer les chiffres avant tout acte** (brut, net, coût, sans rien écrire) :
+   `echo '{"route":"apercu","charge":{"saisie": <contenu du fichier>}}' | paie route --racine prive`
+   (un `paie` livré veut aussi `PUPPETPAIE_CODE` = le dossier `logiciel/donnees`).
+4. **Avant le premier jour** : la DPAE (`paie dpae 2026-12`, voir la compétence `declarations`) et le contrat envoyé
+   à la signature (compétence `contrat`). Ce sont deux actes réels : c'est l'utilisateur qui les fait partir.
+5. **Fermer le mois** : `paie mois 2026-12`. Il écrit dans `sorties/2026-12/` les bulletins, les certificats Congés
+   Spectacles et la DSN, et les pièces de chaque salarié dans `sorties/2026-12/envoi/`.
+6. **Rendre compte** : le tableau affiché (brut, net, coût par personne), où sont les fichiers, ce qui reste à faire.
 
-   Un mois peut contenir plusieurs contrats pour la même personne : un
-   engagement par contrat, chacun avec ses dates.
+## Les refus à attendre (ne pas les contourner)
 
-3. **Lancer** `python -m moteur mois paies/AAAA-MM.json` depuis `logiciel/`.
+- `Le mois … ne peut pas encore se fermer` : DPAE pas déposée, ou contrat pas envoyé à la signature. Le dire.
+- `Salarie inconnu` : la fiche manque. La faire créer dans la fenêtre (Configuration › Salariés) : NIR et clé,
+  naissance, adresse, courriel, emploi. Ne jamais inventer un NIR.
+- `Spectacle inconnu` : il faut son **numéro d'objet France Travail** (Configuration › Spectacles,
+  ou `config/spectacles.json`). Ne jamais en inventer un.
+- `Pas de bareme pour <année>` : le socle (`logiciel/donnees/baremes/`) vient avec une version du logiciel ; la
+  compagnie n'a que sa surcouche (`config/baremes/<année>.json`, son taux AT/MP). Ne pas recopier un barème.
+- Le cachet n'est pas celui de la saisie habituelle : le demander, ne pas le supposer.
 
-4. **Relire et rendre compte.** Reprends le tableau affiché (brut, net, coût
-   employeur par personne), dis où sont les fichiers et rappelle ce qui reste
-   à faire (ci-dessous). Ne recopie pas le détail des cotisations : c'est dans le PDF.
+## Après la production
 
-## Ce qu'il faut demander avant de lancer
+1. **DSN** : `paie depot-dsn sorties/2026-12/DSN_Decembre2026.dsn --test` (sans aval), lire le bilan. Le dépôt
+   réel est à l'utilisateur. Échéance : le 15 du mois suivant (le 5 à partir de 50 salariés).
+2. **Certificats Congés Spectacles** : dus **au salarié**, rien à déposer. Leurs N° CE forment une suite continue :
+   ne pas reproduire un mois pour rien.
+3. **Envoi aux salariés** : `paie envoi 2026-12` montre ce qui partirait ; l'envoi demande le mot de passe du
+   logiciel, tapé par l'utilisateur.
 
-- Le spectacle est inconnu du catalogue → demander son **numéro d'objet
-  France Travail** et l'ajouter à `config/spectacles.json`. Ne jamais inventer
-  un numéro d'objet. France Travail en attribue un par spectacle ou
-  production (net-entreprises, fiche 3344), qui sert tant que le spectacle se
-  joue.
-- La personne est inconnue → demander nom, prénom, NIR + clé, date et lieu de
-  naissance, adresse, e-mail, et l'ajouter à `config/salaries.json`.
-- Le taux du cachet n'est pas 130 € → le demander plutôt que le supposer.
-
-## Après la génération
-
-Rappelle l'ordre des dépôts, il compte :
-
-1. **DPAE** — **avant** le premier jour de travail, par l'API Urssaf
-   (`deposer-dpae`, ou `Depot DPAE.cmd`). Si le contrat a déjà commencé,
-   dis-le clairement : la DPAE est en retard.
-2. **Contrat** signé.
-3. **DSN** — la **déposer en test** (`depot-dsn --test`) et lire le bilan
-   **avant** le dépôt réel. Plus d'AEM à déposer depuis le 01/06/2026 (100 %
-   DSN) : France Travail édite l'attestation depuis la DSN et la renvoie dans
-   les retours (nature 46) ; il reste à la remettre au salarié.
-4. **Certificats Congés Spectacles** — `CertificatsCS_<Mois><Année>.pdf` :
-   **rien à déposer nulle part**, ils sont dus AU SALARIÉ, avec son bulletin.
-   Les N° CE sont une séquence continue de l'employeur : ils sont consommés
-   dès que le mois est produit, ne les rejoue pas pour rien.
-
-Le montant du télépaiement **URSSAF** (bloc `S21.G00.20`) se **calcule** depuis
-le 29/09/2026 (`paie/src/bordereau.rs`) : rien à demander à l'utilisateur.
-`python -m moteur mois` **ferme le mois**, et refuse (`MoisPasPret`) tant que la
-DPAE et le contrat de chaque embauche du mois ne sont pas partis.
-
-Échéance DSN : le 15 du mois suivant, le 5 à partir de cinquante salariés
-(le 15, ou le 5 à partir de 50 salariés : déduit de l'effectif).
-
-## Limites à signaler plutôt qu'à contourner
-
-- Contrat mêlant cachets et heures : il faut `heures` **et** `taux_horaire`
-  dans la saisie (le taux du cachet ne s'applique pas aux heures). Sans le taux
-  horaire, le moteur refuse le contrat plutôt que de deviner.
-- Un arrêt de travail (`arret`), un mois déjà déposé à corriger (`corriger`),
-  la fin d'un contrat de permanent (`fin-contrat`) ont leurs commandes : voir
-  le README. La régularisation annuelle (bloc `S21.G00.82`) reste hors moteur.
-- Année sans barème : le **socle** vit dans `moteur/baremes/<année>.json`,
-  livré avec le logiciel (c'est une version à publier, pas une saisie) ; la
-  compagnie n'a que sa **surcouche** dans `config/baremes/<année>.json` (son
-  taux AT/MP). Le moteur s'arrête avec un message explicite : ne pas recopier
-  un barème complet à la main.
-
-## En cas de doute sur un chiffre
-
-Le calcul est celui du moteur Rust (`paie/`) : `cargo test --release` dans
-`paie/` rejoue ses attendus, la suite Python vérifie ce qui en sort (DSN,
-bulletins, documents). C'est la réponse à « est-ce que ça calcule juste ? » —
-pas une vérification mentale.
+Un arrêt de travail (`paie arret`), un mois déjà déposé à corriger (`paie corriger`), la fin d'un permanent
+(`paie fin-contrat`) : compétence `declarations`. Ne jamais reproduire un mois déjà déposé pour le corriger.

@@ -38,6 +38,7 @@
     "nom_affichage": "Viardot"
   },
   "declarant_dsn": {
+    "civilite": "02",
     "nom_prenom": "VIARDOT PAULINE",
     "tel": "0100000093",
     "email": "DIRECTION@DEMO-1285-GRANDE.INVALID",
@@ -49,5 +50,9 @@
     "_note": "IBAN fabrique (cle 85 juste). Ne designe aucun compte."
   },
   "historique": [],
-  "jours_feries_chomes": "tous"
+  "jours_feries_chomes": "tous",
+  "taxe_sur_les_salaires": {
+    "assujettie": false,
+    "_note": "Compagnie fictive : assujettie a la TVA, elle ne doit pas la taxe sur les salaires (CGI art. 231). La DSN de decembre le declare (S21.G00.44, code 010) ; lot V3b."
+  }
 }

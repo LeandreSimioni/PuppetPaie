@@ -5,88 +5,71 @@ description: Ouvrir PuppetPaie au début d'une session — sauvegarder le dossie
 
 # Ouvrir PuppetPaie
 
+`paie` : `atelier/sources/paie/bin/windows/paie.exe` sous Windows (`bin/linux/paie`, `bin/mac/paie`), depuis la racine
+du dossier PuppetPaie. La compagnie est `prive/` à côté de `logiciel/` (ou le dossier de `PUPPETPAIE_DONNEES`).
+
 ## Au début d'une session
 
-```bash
-cd logiciel && python -m moteur ouverture     # depuis la racine du dépôt
+```
+paie ouverture        # sauvegarde Drive, retours DSN et DPAE, signatures ; --pas-avant 20 : rien si moins de 20 min
+paie rappels          # ce qui attend : DPAE en retard, DSN du mois d'avant, clôture
+paie echeancier       # la date, ce qui est à faire ce mois-ci, l'année qui vient
 ```
 
-Si le coffre ne s'ouvre pas avec la clé du poste, ouvrir d'abord **la
-séance** (voir « Le coffre ») : sinon la première commande qui en a besoin
-la demandera elle-même.
+L'ouverture **n'échoue jamais** : sans réseau, sans compte Google, sans secret posé, elle le dit et rend la main.
+`--json` partout pour une sortie lisible par un programme. Puis, au besoin :
 
-Elle sauvegarde le dossier privé dans le Drive (par différences) et relève les
-retours des organismes. Elle **n'échoue jamais** : sans réseau, sans compte
-Google ou sans secret posé, elle le dit et rend la main. Compter une dizaine de
-secondes quand rien n'a bougé.
-
-`--json` pour une sortie exploitable. `--pas-avant 20` pour ne rien refaire si
-l'ouverture a moins de vingt minutes.
-
-Puis lire ce qui est arrivé :
-
-```bash
-python -m moteur retours          # le détail, et les taux de PAS
-python -m moteur pas              # l'état courant des taux
+```
+paie retours          # le détail des retours DSN (paie retours --dpae : ceux des DPAE)
+paie pas              # les taux de prélèvement à la source, et ceux à demander
+paie incidents        # ce que le logiciel n'a pas su faire : plantages, refus, rejets
+paie journal          # les dépôts faits
+paie sauvegarder --point   # où en est la dernière sauvegarde, sans réseau
 ```
 
-Reprendre l'historique (une compagnie qui arrive avec ce que son ancien logiciel a laissé) : tout va dans le dossier
-`import/` de la compagnie, sans nommer de logiciel ; `paie importer` en rend l'aperçu en JSON (rien n'est écrit ; `tri`
-dit le sort de chaque fichier), `paie importer --ecrire` le reprend ; à l'écran, Configuration ›
-Reprendre l'historique. Le message à l'éditeur sur les fichiers non repris ne part que de l'écran, au clic de la
-personne : jamais d'un agent.
+Une compagnie qui arrive : `paie arrivee` dit ce qui manque (rien n'est écrit). Son historique va dans `import/` ;
+`paie importer` en rend l'aperçu, `paie importer --ecrire` le reprend.
 
-## Ce qui est permis, et ce qui ne l'est pas
+## Ce qui est permis
 
 | | condition |
 |---|---|
 | lire, calculer, produire un mois, sauvegarder, relever les retours | aucune |
+| déposer en test (`depot-dsn --test`, `deposer-dpae --test`) | aucune, **sans demander d'aval** |
 | **déposer une DSN ou une DPAE en réel, envoyer, faire signer** | **le mot de passe du logiciel, tapé par un humain au moment de l'acte** |
 
-**Deux mots de passe, deux chemins** (l'utilisateur, 23/09/2026) :
+**Deux mots de passe, deux chemins** :
 
-- **Ouvrir le coffre = la séance** : `python -m moteur coffre seance --fenetre`,
-  une boîte, une fois, pour 12 h. Elle sert aux dépôts de **test** et aux
-  relevés. Elle n'est **jamais** une preuve pour un acte réel.
+- **Ouvrir le coffre = la séance** : `paie coffre seance --fenetre`, une boîte, une fois, 12 h ; la lancer avant la
+  première commande qui touche au coffre si la clé du poste ne l'ouvre pas (sinon la commande la demande elle-même).
+  Elle sert aux relevés et aux tests ; elle n'est **jamais** une preuve pour un acte réel.
 - **Un acte réel = le mot de passe retapé, à chaque fois**, par un humain.
 
-Un agent **peut déposer en test** (`depot-dsn --test`, `deposer-dpae --test`)
-sans demander d'aval (décision du 29/09/2026, qui lève le « oui » du
-23/09 ; voir `CLAUDE.md`). Il ne dépose jamais en réel.
-
-Dépôt réel demandé : **dire que c'est à l'utilisateur de le lancer** (la fenêtre
-PuppetPaie, `Depot DSN.cmd`, ou la commande dans son terminal), ne pas
-contourner — ni en posant `PUPPETPAIE_MOTDEPASSE` ou
-`NET_ENTREPRISES_MOTDEPASSE` à sa place, ni autrement. Un dépôt engage la
-compagnie, ordres de télépaiement compris.
+Dépôt réel demandé : **dire que c'est à l'utilisateur de le lancer** (la fenêtre PuppetPaie, ou la commande `--reel`
+dans son terminal). Ne pas contourner : ne pas taper le mot de passe à sa place, ne pas poser
+`PUPPETPAIE_MOTDEPASSE` ni `NET_ENTREPRISES_MOTDEPASSE`, ne pas ouvrir le coffre dans un script. Un dépôt réel
+engage la compagnie, ordres de télépaiement compris.
 
 ## Le coffre
 
-```bash
-python -m moteur coffre                          # ce qui est posé, jamais les valeurs
-python -m moteur coffre poser net-entreprises    # (à l'utilisateur de le taper)
-python -m moteur coffre poser urssaf
-python -m moteur coffre ouverture                # le mot de passe du logiciel
-python -m moteur coffre seance --fenetre         # ouvrir le coffre pour 12 h
-python -m moteur coffre seance fermer            # le refermer
+```
+paie coffre                          # ce qui est posé, depuis quand, pour quoi : jamais une valeur
+paie coffre verifier                 # une tentative de connexion par compte, pas plus
+paie coffre poser net-entreprises    # à taper par l'utilisateur (DSN)
+paie coffre poser urssaf             # à taper par l'utilisateur (DPAE)
+paie coffre poser courriel --compte <adresse>
+paie coffre ouverture                # le mot de passe du logiciel
+paie coffre seance fermer            # refermer la séance
 ```
 
-**Ne jamais lire `prive/config/coffre.bin`, `google-jeton.bin` ni
-`maj-cle-privee.bin`.**
-`python -m moteur coffre` répond à toutes les questions légitimes sans afficher
-un seul secret.
+**Ne jamais lire, afficher ni copier `prive/config/coffre.bin`, `google-jeton.bin` ni `maj-cle-privee.bin`.**
+`paie coffre` répond à toutes les questions légitimes sans montrer un secret. Le Drive : `paie google`
+(`paie google autoriser` pour le relier).
 
-## Deux pièges à ne pas rejouer
+## Deux pièges
 
-1. **Ne jamais régénérer une déclaration déjà déposée.** Les numéros de contrat
-   se renumérotent dès que les compteurs avancent : un annule-et-remplace aux
-   numéros changés ne remplace plus rien de reconnaissable. Vérifier un fichier
-   se fait avec `python -m moteur depot-dsn <fichier> --apercu`, qui ne touche
-   ni au réseau ni au disque.
-2. **La base de test a une mémoire**, séparée de la base réelle : une seconde
-   DSN « normale » du même mois y est refusée (`B1-208-10`), et un
-   annule-et-remplace doit y porter un ordre supérieur au dernier accepté
-   (`B1-208-11`). Depuis le 23/09/2026 le moteur **force** le type et l'ordre
-   d'un essai en mémoire (`dsn_api`), sans toucher au fichier : on dépose
-   donc toujours en test **avant** le réel, et les vraies DSN ne gênent pas
-   un test.
+1. **Ne jamais régénérer une déclaration déjà déposée** : les numéros de contrat se renumérotent dès que les
+   compteurs avancent. Pour regarder un fichier : `paie depot-dsn <fichier> --apercu` (ni réseau, ni disque).
+2. **Le test d'abord, toujours.** Le réel est refusé tant que ce contenu-là n'a pas réussi en test ; le moteur bascule
+   lui-même l'envoi en test, en mémoire, sans toucher au fichier. La base de test a sa propre mémoire : un refus de
+   test qui parle d'un essai antérieur se lit dans la phrase du moteur, il ne se contourne pas.
