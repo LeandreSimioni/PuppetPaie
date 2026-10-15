@@ -1,0 +1,19 @@
+{
+ "_source": "https://echanges.dila.gouv.fr/OPENDATA/LEGI/",
+ "_global": "Freemium_legi_global_20250713-140000.tar.gz",
+ "_texte": "Arrete du 2 juillet 2013 fixant le delai de transmission des evenements dans le cadre de la declaration sociale nominative",
+ "_legitext": "JORFTEXT000027683422",
+ "_livraisons_lues": 461,
+ "_livraisons_totales": 461,
+ "_complet": true,
+ "_derniere_livraison": "20261015-122925",
+ "_changes_depuis_le_global": [],
+ "_releve_le": "2026-10-15",
+ "articles": {
+  "1": {
+   "id": "LEGIARTI000027684779",
+   "debut": "2013-07-11",
+   "en_vigueur": true
+  }
+ }
+}

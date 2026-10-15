@@ -192,7 +192,7 @@ motifs »). Ce que le texte ne dit pas : si une compagnie de spectacle dépose l
 - `atelier/sources/paie/src/fctu.rs` (le signalement, nature 07, l. 354 : refus pour une nature sans FCTU), qui n'écrit pas
   40.025 : la rubrique est conditionnelle (C) en nature 07 dans `usages-dsn-base.json` l. 1702-1710 (`arrets-base.json` l. 330 la range
   « CII ») ;
-- `atelier/sources/paie/src/routes_ouverture.rs` `fins_a_signaler` (l. 733) et `rappels_fin_de_contrat` (les 5 jours ouvrés),
+- `atelier/sources/paie/src/routes_ouverture.rs` `fins_a_signaler` (l. 733) et `rappels_fin_de_contrat` (les 5 jours ouvrés, calculés depuis le 15/10/2026 par `obligations.rs`, `de_la_fin`, avec `logiciel/donnees/obligations-base.json`),
   `routes_listes.rs` l. 434.
 
 **Ce que le texte contredit ou ne couvre pas** : le moteur tient « un CDDU du spectacle ne fait PAS l'objet d'un FCTU » pour
@@ -211,7 +211,7 @@ salarié, le CDDU non infra-DSN) : `contrats-base.json`, `circuit_derogatoire._r
 
 ### Fiche 119 — Quelles informations renseigner concernant le préavis pour un signalement fin de contrat ?
 
-URL https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/119/ ; modifiée le 12/05/2025. « La fin de contrat de travail d'un salarié doit **toujours** faire l'objet de la transmission d'un signalement […] "Fin du contrat - S21.G00.62" pour avertir France Travail » ; les informations sont reprises dans la DSN mensuelle ; le signalement est émis « dans les cinq jours après la survenance de l'événement » ; le bloc 63 « doit être renseigné dans le signalement […] mais n'a pas d'utilité dans la DSN mensuelle suivante ». Moteur : `fctu.rs` (bloc 63 obligatoire, l. 253), `routes_ouverture.rs` (`JOURS_OUVRES_FCTU`, l. 229).
+URL https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/119/ ; modifiée le 12/05/2025. « La fin de contrat de travail d'un salarié doit **toujours** faire l'objet de la transmission d'un signalement […] "Fin du contrat - S21.G00.62" pour avertir France Travail » ; les informations sont reprises dans la DSN mensuelle ; le signalement est émis « dans les cinq jours après la survenance de l'événement » ; le bloc 63 « doit être renseigné dans le signalement […] mais n'a pas d'utilité dans la DSN mensuelle suivante ». Moteur : `fctu.rs` (bloc 63 obligatoire, l. 253), `obligations.rs` (`de_la_fin`) et `logiciel/donnees/obligations-base.json` (`signalement_fin_contrat`, 15/10/2026).
 
 ### Fiche 3037 — Qu'est-ce que l'Attestation Employeur Destinée à France Travail – AED ?
 
@@ -302,7 +302,7 @@ de travail unique » « doivent être envoyés dans les **5 jours ouvrés** à c
 d'usage, il est possible que l'employeur, avec l'accord du salarié, ait recours au dispositif dérogatoire » : transmission « exclusivement
 à France Travail via la DSN mensuelle (sans transmission de signalement) » ; les fins de mission des intérimaires de même (renvoi à la
 fiche 2062). Il est **interdit de doubler** un signalement DSN par une AE par l'ancienne modalité. Toute information d'une fin de
-contrat doit être reportée dans la DSN mensuelle consécutive. Moteur : `routes_ouverture.rs` (`JOURS_OUVRES_FCTU = 5`, l. 229).
+contrat doit être reportée dans la DSN mensuelle consécutive. Moteur : `obligations.rs` et `logiciel/donnees/obligations-base.json` (le signalement d'arrêt, de reprise et de fin de contrat, cinq jours ouvrés, ou avec la mensuelle si l'employeur est subrogé ; 15/10/2026).
 
 ### Fiche 1722 — annuler une fin de contrat transmise à tort (bloc 62, motif 099)
 
