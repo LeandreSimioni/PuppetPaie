@@ -1,10 +1,12 @@
-//! `paie arret [liste|motifs|contrats|saisir|reprise|maintien|signaler|oublier] [SALARIE] [options] [--json]` : les arrets de travail, de la
+//! `paie arret [liste|motifs|contrats|saisir|reprise|maintien|signaler|oublier|connu|declare] [SALARIE] [options] [--json]` : les arrets de travail, de la
 //! saisie au signalement (`moteur/commandes_arrets.py`). RIEN NE PART D'ICI : `signaler` ECRIT un fichier, c'est `paie depot-dsn`
 //! qui le depose.
 //!
 //! Chaque verbe passe par une route du moteur : `arrets` (la liste), `arret-contrats`, `arret-enregistrer` (`saisir`),
 //! `arret-reprise`, `arret-maintien` (`maintien` : le complement de salaire d'un mois, les jours deja indemnises), `arret-signaler`,
-//! `arret-oublier`. Les arrets vivent dans le magasin des imprevus (`imprevus`). Les motifs et le « oui/non » de la subrogation se lisent dans
+//! `arret-oublier`. Les arrets vivent dans le magasin des imprevus (`imprevus`). `connu` et `declare` (15/10/2026) : `arret-connaissance`
+//! (le jour ou la compagnie a su l'arret ou l'accident) et `accident-declare` (la declaration d'accident du travail faite, hors DSN) ; les
+//! obligations de chaque arret, leur delai et leur etat, sont celles que la route `arrets` rend (`obligations.rs`). Les motifs et le « oui/non » de la subrogation se lisent dans
 //! `arrets-base.json`.
 //!
 //! `saisir` et `reprise` inscrivent `qui = "ligne de commande"` (la charge de la route le porte), comme le Python.
@@ -25,7 +27,7 @@ use crate::retours::Echec;
 pub static SPEC: Spec = Spec {
     commande: "arret",
     positionnels: &[
-        Pos::parmi("quoi", &["liste", "motifs", "contrats", "saisir", "reprise", "maintien", "signaler", "oublier"], Some("liste")),
+        Pos::parmi("quoi", &["liste", "motifs", "contrats", "saisir", "reprise", "maintien", "signaler", "oublier", "connu", "declare"], Some("liste")),
         Pos::facultatif("salarie", None),
     ],
     options: &[
@@ -48,6 +50,11 @@ pub static SPEC: Spec = Spec {
         Opt::entier("ordre"),
         Opt::drapeau("test"),
         Opt::drapeau("json"),
+        Opt::valeur("de"),
+        Opt::valeur("heure"),
+        Opt::valeur("ou"),
+        Opt::valeur("reference"),
+        Opt::drapeau("retirer"),
     ],
 };
 
@@ -132,7 +139,7 @@ fn lignes_arret(r: &Value) {
     dire!("             {}", detail.join(", "));
     let signalements: Vec<Value> = r.get("signalements").and_then(Value::as_array).cloned().unwrap_or_default();
     if signalements.is_empty() {
-        dire!("             PAS ENCORE SIGNALE -- du dans les cinq jours");
+        dire!("             PAS ENCORE SIGNALE");
     } else {
         for e in &signalements {
             let quand = if e.get("quand").is_some() { champ(e, "quand") } else { "?".to_string() };
@@ -151,6 +158,21 @@ fn lignes_arret(r: &Value) {
         let dates: Vec<String> = c.get("dates").and_then(Value::as_array).map_or_else(Vec::new, |a| a.iter().map(|d| jj_mm_aaaa(&texte(d))).collect());
         dire!("             ! {} paye(s) pendant l'arret ({}) : {}", champ(c, "libelle"), champ(c, "mois"), dates.join(", "));
     }
+    // Les obligations, leur delai et ou on en est : ce que le moteur rend (`obligations.rs`), tel quel.
+    for o in r.get("obligations").and_then(Value::as_array).into_iter().flatten() {
+        dire!("             {} : {}", champ(o, "libelle"), champ(o, "phrase"));
+    }
+}
+
+/// Les obligations d'un arret, telles que `arret-connaissance` et `accident-declare` les rendent.
+fn obligations_rendues(r: &Value, json: bool) -> i32 {
+    if json {
+        return rendre_json(r);
+    }
+    for o in r.get("obligations").and_then(Value::as_array).into_iter().flatten() {
+        dire!("  {} : {}", champ(o, "libelle"), champ(o, "phrase"));
+    }
+    0
 }
 
 /// La reponse `--json` : `sortie_json.enveloppe("arret", brut(resultat))`.
@@ -337,6 +359,37 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         return Ok(0);
     }
 
+    if quoi == "connu" {
+        let salarie = exiger(args, "connu", &["dernier-jour", "le"])?;
+        let de = opt(args, "de").unwrap_or("arret");
+        let mut charge = json!({"salarie": salarie, "dernier_jour": date(args, "dernier-jour")?, "de": de, "jour": date(args, "le")?});
+        if let Some(h) = opt(args, "heure") {
+            charge["heure"] = json!(h);
+        }
+        let r = cadre.route("arret-connaissance", charge)?;
+        return Ok(obligations_rendues(&r, json));
+    }
+
+    if quoi == "declare" {
+        let salarie = exiger(args, "declare", &["dernier-jour"])?;
+        let mut charge = json!({"salarie": salarie, "dernier_jour": date(args, "dernier-jour")?});
+        if args.drapeau("retirer") {
+            charge["le"] = json!("");
+        } else {
+            let le = date(args, "le")?.ok_or_else(|| refus("Il manque --le (le jour de la declaration) et --ou (net-entreprises ou courrier) pour `paie arret declare`."))?;
+            charge["le"] = json!(le);
+            charge["depot"] = json!(opt(args, "ou").unwrap_or_default());
+            if let Some(r) = opt(args, "reference") {
+                charge["reference"] = json!(r);
+            }
+            if let Some(h) = opt(args, "heure") {
+                charge["heure"] = json!(h);
+            }
+        }
+        let r = cadre.route("accident-declare", charge)?;
+        return Ok(obligations_rendues(&r, json));
+    }
+
     if quoi == "oublier" {
         let salarie = exiger(args, "oublier", &["dernier-jour"])?;
         let r = cadre.route("arret-oublier", json!({"salarie": salarie, "dernier_jour": date(args, "dernier-jour")?}))?;
@@ -366,7 +419,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         lignes_arret(r);
     }
     if !attente.is_empty() {
-        dire!("\n{} arret(s) attendent leur signalement (cinq jours apres la prise de connaissance).", attente.len());
+        dire!("\n{} arret(s) attendent leur signalement : son delai est dit sous chacun.", attente.len());
     }
     Ok(0)
 }

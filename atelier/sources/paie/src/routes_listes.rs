@@ -256,10 +256,13 @@ pub(crate) fn resume_arret(n: &Value, a: &Value) -> R<Value> {
 fn arrets(ctx: &Contexte) -> R<Value> {
     let tous = tous_les_arrets(ctx)?;
     let n = nomenclatures(ctx)?;
+    // LES OBLIGATIONS de chaque arret (`obligations::de_l_arret`, 15/10/2026) : un champ de plus a son resume.
+    let suivi = crate::obligations::Suivi::lire(ctx)?;
     let mut resumes = Vec::new();
     let mut a_signaler = Vec::new();
     for a in &tous {
-        let r = crate::routes_imprevus::resume(ctx, &n, a)?;
+        let mut r = crate::routes_imprevus::resume(ctx, &n, a)?;
+        r["obligations"] = Value::Array(crate::obligations::de_l_arret(ctx, a, &suivi, ctx.aujourdhui)?);
         if !r["signale"].as_bool().unwrap_or(false) {
             a_signaler.push(r.clone());
         }
@@ -385,6 +388,7 @@ fn fins_a_signaler(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     let engagements = getd(&saisie, "engagements", &Value::Null)?;
     let liste = if vrai(engagements) { items(engagements)? } else { Vec::new() };
     let mut out = Vec::new();
+    let journal = crate::etats::charger(&ctx.racine)?;
     for e in liste {
         let e: &Value = &e;
         let nat = nature_de(get(e, "nature")?)?;
@@ -399,6 +403,8 @@ fn fins_a_signaler(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
             continue;
         }
         let salarie = e.get("salarie").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("salarie")))?;
+        // La cle de la fiche : celle que porte le nom du fichier du signalement (`fin-contrat-signaler`).
+        let cle = ctx.salarie(&py_str(salarie)).ok().and_then(|f| f.get("_cle").map(py_str));
         out.push(json!({
             "salarie": salarie,
             "numero": get(e, "numero")?,
@@ -407,6 +413,8 @@ fn fins_a_signaler(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
             "motif_rupture": get(e, "motif_rupture")?,
             "preavis": get(e, "preavis")?,
             "a_saisir": ce_qui_manque(ctx, e)?,
+            // LE DELAI ET OU ON EN EST (`obligations::de_la_fin`, 15/10/2026) : un champ de plus.
+            "obligation": crate::obligations::de_la_fin(ctx, cle.as_deref(), fin, &journal, ctx.aujourdhui)?,
         }));
     }
     Ok(out)

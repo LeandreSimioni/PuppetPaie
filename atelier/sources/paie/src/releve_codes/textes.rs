@@ -241,6 +241,22 @@ pub static TEXTES: &[Texte] = &[
             // L130-1 ne le dit plus (le guide Urssaf de la DSN le cite encore) ;
             // il est dans L133-10, qui compte la fraction egale a 0,50 pour 1.
             Domaine { cle: "arrondi", titre: "L'arrondi a l'euro des cotisations et de leurs assiettes declarees", numeros: &["L133-10"] },
+            // LES SIGNALEMENTS D'EVENEMENT ET LEUR DELAI (15/10/2026, lot << les obligations d'un arret >>). R133-13 dit
+            // quels evenements la DSN declare (le debut et la fin d'un arret, la fin du contrat) ; R133-14, II, quand :
+            // avec la mensuelle du mois, sauf la fin du contrat et -- quand l'employeur n'est PAS subroge -- le debut et la
+            // fin de l'arret, << dans un delai fixe par arrete [...] qui ne peut exceder cinq jours ouvres >> (l'arrete du
+            // 2 juillet 2013, plus bas) ; ses exceptions : aucune retenue sur le salaire du mois (1°), les fins de CDD
+            // d'usage du 3° de L1242-2 (2°). `paie/src/obligations.rs`.
+            Domaine { cle: "signalements", titre: "Les signalements d'evenement de la DSN et leur delai", numeros: &["R133-13", "R133-14"] },
+            // LA DECLARATION D'ACCIDENT DU TRAVAIL (15/10/2026). Hors DSN : L441-2 la met a la charge de l'employeur << de
+            // tout accident dont il a eu connaissance >>, R441-3 en fixe le delai (quarante-huit heures, non compris les
+            // dimanches et jours feries), R441-2 celui de la victime envers l'employeur (vingt-quatre heures), R441-6 les
+            // reserves motivees (dix jours francs). L411-1 et L411-2 disent que l'accident de trajet en est un ; L441-5 la
+            // feuille d'accident ; R441-4 l'attestation de salaire que la DSN remplit (R133-14, IV). `paie/src/obligations.rs`.
+            Domaine { cle: "accident_du_travail", titre: "La declaration d'un accident du travail ou de trajet", numeros: &["L411-1", "L411-2", "L441-1", "L441-2", "L441-4", "L441-5", "R441-1", "R441-2", "R441-3", "R441-4", "R441-6", "R441-7"] },
+            // LA MALADIE PROFESSIONNELLE N'EST PAS DECLAREE PAR L'EMPLOYEUR : L461-5 la met << par les soins de la
+            // victime >>, R461-5 lui donne quinze jours. Le motif d'arret 05 n'appelle donc pas de declaration d'accident.
+            Domaine { cle: "maladie_professionnelle", titre: "La declaration d'une maladie professionnelle (par la victime)", numeros: &["L461-5", "R461-5"] },
         ],
     },
     // ------------------------------------------------------------------
@@ -285,6 +301,22 @@ pub static TEXTES: &[Texte] = &[
         titre: "Arrete du 24 janvier 1975 (artistes du spectacle) -- le plafond",
         domaines: &[
             Domaine { cle: "artistes", titre: "Les cotisations et le plafond des artistes du spectacle", numeros: &["1", "2", "3", "3 bis"] },
+        ],
+    },
+    // ------------------------------------------------------------------
+    // LE DELAI DES SIGNALEMENTS D'EVENEMENT (15/10/2026). R133-14, II, du code de la securite sociale renvoie le delai de
+    // la fin du contrat et de l'arret non subroge a << un arrete conjoint du ministre charge de la securite sociale et du
+    // ministre charge de l'emploi, qui ne peut exceder cinq jours ouvres >>. C'est celui-ci (Legifrance, JORFTEXT000027683422) :
+    // son article 1er fixe ce delai a cinq jours ouvres. Un arrete, pas un code, range sous son JORFTEXT comme celui de 1975.
+    // `paie/src/obligations.rs`, et `logiciel/donnees/obligations-base.json`.
+    Texte {
+        cle: "evenements-dsn-2013",
+        legitext: "JORFTEXT000027683422",
+        nom: "Arrete du 2 juillet 2013 fixant le delai de transmission des evenements dans le cadre de la declaration sociale nominative",
+        dossier: "arrete-2013-delai-evenements-dsn",
+        titre: "Arrete du 2 juillet 2013 (DSN) -- le delai des signalements d'evenement",
+        domaines: &[
+            Domaine { cle: "delai", titre: "Le delai de transmission des evenements", numeros: &["1"] },
         ],
     },
     // ------------------------------------------------------------------

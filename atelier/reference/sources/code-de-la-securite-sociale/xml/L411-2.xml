@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000006743008</ID>
+<ANCIEN_ID>SSAXXXXXXXX1X411L02AXXAB</ANCIEN_ID>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/06/74/30/LEGIARTI000006743008.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L411-2</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2001-07-18</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106050">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126892">Livre IV : Accidents du travail et maladies professionnelles (Dispositions propres et dispositions communes avec d'autres branches)</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141633">Titre I : Généralités - Dispositions propres à certains bénéficiaires</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006156122">Chapitre 1er : Définitions : accident du travail et accident du trajet.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1985-12-21" etat="MODIFIE" fin="2001-07-18" id="LEGIARTI000006743007" num="L411-2" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2001-07-18" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000006743008" num="L411-2" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<br/>   Est également considéré comme accident du travail, lorsque la victime ou ses ayants droit apportent la preuve que l'ensemble des conditions ci-après sont remplies ou lorsque l'enquête permet à la caisse de disposer sur ce point de présomptions suffisantes, l'accident survenu à un travailleur mentionné par le présent livre, pendant le trajet d'aller et de retour, entre : <br/>
+<br/>   1°) la résidence principale, une résidence secondaire présentant un caractère de stabilité ou tout autre lieu où le travailleur se rend de façon habituelle pour des motifs d'ordre familial et le lieu du travail. Ce trajet peut ne pas être le plus direct lorsque le détour effectué est rendu nécessaire dans le cadre d'un covoiturage régulier ;<br/>
+<br/>   2°) le lieu du travail et le restaurant, la cantine ou, d'une manière plus générale, le lieu où le travailleur prend habituellement ses repas, et dans la mesure où le parcours n'a pas été interrompu ou détourné pour un motif dicté par l'intérêt personnel et étranger aux nécessités essentielles de la vie courante ou indépendant de l'emploi. <br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000665288" datesignatexte="1977-09-16" id="LEGIARTI000006781943" naturetexte="ARRETE" nortexte="" num="18" numtexte="" sens="cible" typelien="CITATION">Arrêté du 16 septembre 1977 - art. 18 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000000866621" datesignatexte="1985-12-17" id="JORFTEXT000000866621" naturetexte="DECRET" nortexte="" num="" numtexte="85-1353" sens="source" typelien="CODIFICATION">Décret 85-1353 1985-12-17</LIEN>
+<LIEN cidtexte="JORFTEXT000000321867" datesignatexte="1989-01-13" id="LEGIARTI000006756508" naturetexte="LOI" nortexte="SPSX8800135L" num="21" numtexte="89-18" sens="cible" typelien="CITATION">Loi n°89-18 du 13 janvier 1989 - art. 21 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000000757800" datesignatexte="2001-07-17" id="LEGIARTI000006758356" naturetexte="LOI" nortexte="MESX0100056L" num="27" numtexte="2001-624" sens="source" typelien="MODIFICATION">Loi n°2001-624 du 17 juillet 2001 - art. 27 () JORF 18 juillet 2001</LIEN>
+<LIEN cidtexte="JORFTEXT000023233628" datesignatexte="2010-12-09" id="LEGIARTI000023234165" naturetexte="ARRETE" nortexte="ETSS1031394A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 9 décembre 2010 - art. (V)</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000047956728" datesignatexte="2023-08-10" id="LEGIARTI000047959469" naturetexte="DECRET" nortexte="SPRS2316999D" num="3" numtexte="2023-760" sens="cible" typelien="CITATION">Décret n°2023-760 du 10 août 2023 - art. 3</LIEN>
+
+
+
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGITEXT000006073189" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CONCORDANCE">Code de la sécurité sociale L415-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000041969396" naturetexte="CODE" nortexte="" num="D241-2-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D241-2-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000034197508" naturetexte="CODE" nortexte="" num="D242-32" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-32 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006735880" naturetexte="CODE" nortexte="" num="D242-6-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-6-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000054980977" naturetexte="CODE" nortexte="" num="D242-6-4" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-6-4 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000051831612" naturetexte="CODE" nortexte="" num="D412-37" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D412-37 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000051831440" naturetexte="CODE" nortexte="" num="D412-73" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D412-73 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006742334" naturetexte="CODE" nortexte="" num="L241-5-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L241-5-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006743121" naturetexte="CODE" nortexte="" num="L455-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L455-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006752139" naturetexte="CODE" nortexte="" num="R743-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R743-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006752552" naturetexte="CODE" nortexte="" num="R743-6" numtexte="" sens="cible" typelien="TXT_SOURCE">Code de la sécurité sociale. - art. R743-6 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006752552" naturetexte="CODE" nortexte="" num="R743-6" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R743-6 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000038673148" naturetexte="CODE" nortexte="" num="R762-31" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R762-31 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000036406457" naturetexte="CODE" nortexte="" num="D4162-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D4162-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000051777197" naturetexte="CODE" nortexte="" num="D6123-26-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D6123-26-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000006586025" naturetexte="CODE" nortexte="" num="L761-18" numtexte="" sens="cible" typelien="CITATION">Code rural - art. L761-18 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000006597913" naturetexte="CODE" nortexte="" num="R751-70" numtexte="" sens="cible" typelien="CITATION">Code rural - art. R751-70 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071366" datesignatexte="2999-01-01" id="LEGIARTI000006581382" naturetexte="CODE" nortexte="" num="1251" numtexte="" sens="cible" typelien="CITATION">Code rural ancien - art. 1251 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000036243493" naturetexte="CODE" nortexte="" num="L761-16" numtexte="" sens="cible" typelien="CITATION">Code rural et de la pêche maritime - art. L761-16 (V)</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>

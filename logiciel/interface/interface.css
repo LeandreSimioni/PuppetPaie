@@ -1468,3 +1468,11 @@ button.signaler.sur-voile:hover { color: #fff; background: rgba(0,0,0,.55); }
 .sg-messages li.nouveau { border-left: 3px solid var(--action); padding-left: 8px; }
 .sg-reponse { margin: 6px 0 0; padding: 8px 10px; border-radius: 4px; white-space: pre-line;
               background: rgba(46, 106, 87, .08); }
+
+/* Les obligations d'un arrêt ou d'une fin de contrat (15/10/2026) : sous la
+   ligne, une par une, telles que le moteur les rend (état, phrase, texte). */
+.rang > .obligations { flex-basis: 100%; font-size: 12px; }
+.obligations .obligation { margin-top: 4px; }
+.obligations .obligation .discret { margin-left: 4px; }
+#ar-obligations { margin-top: 10px; font-size: 12px; }
+.obligations .obligation .lien { margin-left: 10px; }
