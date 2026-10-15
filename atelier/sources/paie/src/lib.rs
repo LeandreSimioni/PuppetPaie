@@ -56,6 +56,7 @@ pub mod ecriture;
 pub mod editeur;
 pub mod emplois;
 pub mod engagement;
+pub mod essai;
 pub mod envoi;
 pub mod envois_signature;
 pub mod etat_garde;

@@ -31,6 +31,7 @@ mod drive;
 mod ecriture;
 mod envoi;
 mod envoi_mime;
+mod essai;
 mod importation_tri;
 mod incidents_filet;
 mod mise_a_jour;

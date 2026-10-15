@@ -420,9 +420,9 @@ fn libelle_dsn_deposee(mois: &str, e: &Value) -> String {
     format!("DSN de {} deposee le {} -- retour pas encore arrive : on attend, on ne renvoie pas", mois, quand)
 }
 
-/// `ordre_d_essai` : l'ordre auquel un essai part : le calcule, jamais plus bas que celui que le fichier porte
+/// `ordre_d_essai_du_fichier` : l'ordre auquel un essai part : le calcule, jamais plus bas que celui que le fichier porte
 /// deja (journal §115). `None` reste `None`.
-fn ordre_d_essai(calcule: Option<i64>, chemin: &Path) -> R<Option<i64>> {
+fn ordre_d_essai_du_fichier(calcule: Option<i64>, chemin: &Path) -> R<Option<i64>> {
     let Some(c) = calcule else { return Ok(None) };
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     Ok(Some(rang_dans_le_fichier(&octets).map_or(c, |m| c.max(m))))
@@ -552,12 +552,18 @@ pub fn deposer_dsn(
     forcer: bool,
     contournement: &str,
 ) -> R<DepotFait> {
-    deposer_dsn_dans(o, ctx, fichier, reel, preuve, qui, "production", forcer, contournement)
+    deposer_dsn_dans(o, ctx, fichier, reel, preuve, qui, "production", forcer, contournement, None)
 }
 
 /// `deposer_dsn` avec l'ENVIRONNEMENT du point de depot (`production` ou `editeur`, comme `Client(ctx, environnement)` du Python). La
 /// plate-forme de l'editeur est une plate-forme d'ESSAI : un depot REEL n'y a pas de sens et reste refuse ici, car le journal le
 /// noterait comme une declaration partie.
+///
+/// `ordre_d_essai` (`paie depot-dsn --test --ordre N`, lot E1) : l'ordre au-dessous duquel un ESSAI de mensuelle ne part pas,
+/// donne par qui sait ce que la base d'essai a deja retenu pour ce SIRET et ce mois (un autre poste, une compagnie d'essai, le
+/// « dernier ordre accepte » d'un B1-208-11). L'essai part alors en annule-et-remplace a cet ordre, ou plus haut si le journal
+/// en sait davantage. Refuse pour un depot reel et pour un signalement (leur ordre est celui du fichier, lu sur la
+/// plate-forme a son ecriture : `ordre_signalements`).
 #[allow(clippy::too_many_arguments)]
 pub fn deposer_dsn_dans(
     o: &HashMap<String, String>,
@@ -569,6 +575,7 @@ pub fn deposer_dsn_dans(
     environnement: &str,
     forcer: bool,
     contournement: &str,
+    ordre_d_essai: Option<i64>,
 ) -> R<DepotFait> {
     if reel && environnement != "production" {
         return Err(erreur(
@@ -582,6 +589,22 @@ pub fn deposer_dsn_dans(
     // 2. le mode contre le fichier ; `presence_prouvee` : c'est ICI qu'on la prouve, jamais le transport.
     depot::verifier(&apercu, reel, None, true)?;
     let mois = apercu.mois_lisible();
+    if let Some(n) = ordre_d_essai {
+        if reel || apercu.est_signalement() || n < 1 {
+            return Err(erreur(
+                "ErreurOperation",
+                "Un ordre d'essai (--ordre) ne vaut que pour le depot de TEST d'une DSN mensuelle, et c'est un entier positif : un depot reel part a l'ordre du fichier, un signalement a celui que la plate-forme a donne a son ecriture. Rien n'est parti.",
+            ));
+        }
+    }
+    // UNE COMPAGNIE D'ESSAI ne depose que ce qu'elle a ecrit sous SON identite : les DSN copiees de la fictive portent le
+    // SIREN de la fictive, que le compte net-entreprises ne declare pas. Le refus ne cite aucun des deux numeros.
+    if crate::essai::est_essai(&ctx.racine) && apercu.champ("siren") != py_str(ctx.entreprise.get("siren").unwrap_or(&Value::Null)) {
+        return Err(erreur(
+            "ErreurOperation",
+            "Compagnie d'essai : ce fichier ne porte pas le SIREN de la compagnie (il a ete ecrit sous une autre identite : celle de la compagnie fictive, avant le montage, ou une identite d'avant). Produire le mois ici (`paie mois`), puis deposer la DSN ecrite. Rien n'est parti.",
+        ));
+    }
     let nic: Value = if apercu.champ("etablissement").is_empty() { Value::Null } else { json!(apercu.champ("etablissement")) };
     let principal = etats::nic_principal(&ctx.entreprise);
     let lignes = etats::charger(&ctx.racine)?;
@@ -660,7 +683,8 @@ pub fn deposer_dsn_dans(
     // UN ESSAI DE PLUS SUR UN MOIS DEJA ESSAYE part en annule-et-remplace, a l'ordre suivant : la base de test
     // garde les essais. JAMAIS PLUS BAS QUE L'ORDRE DU FICHIER (journal §115).
     let ordre_test = if reel || apercu.est_signalement() { None } else { prochain_ordre_de_test(ctx, &mois, &nic)? };
-    let ordre_test = ordre_d_essai(ordre_test, &chemin)?;
+    let ordre_test = ordre_test.max(ordre_d_essai);
+    let ordre_test = ordre_d_essai_du_fichier(ordre_test, &chemin)?;
 
     let envoi = || -> R<String> {
         if joue {
