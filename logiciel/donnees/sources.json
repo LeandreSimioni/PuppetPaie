@@ -262,9 +262,9 @@
       "version": "version lue : 2016-01-01 -> 2023-10-01",
       "releve_le": "2026-09-19",
       "fichier": "legifrance-1285-prevoyance-titre12-20260919.md",
-      "sha256": "d05be1eb02c8812f2f753d4fbc7fd5f92eddf0cf0c5ca1a617fc5761ec06ce2c",
+      "sha256": "a4c603d44222ea0964a6e1e79830453ce3042f776756e18f449de8fd3057d75f",
       "verification": "manuelle",
-      "verification_comment": "Legifrance refuse les telechargements automatiques (403). Cette source est en ATTENTE : ce qu'il faut faire est ecrit en toutes lettres dans la copie -- ouvrir l'article, bouton << Voir les versions >>, lire la version en vigueur de XII.2.1.2 et XII.2.1.5, trancher l'assiette de la tranche 2, chercher une condition d'anciennete. Ensuite `applicable: true`. La veille KALI (bloc `kali`) dit si la convention bouge entre-temps.",
+      "verification_comment": "Legifrance refuse les telechargements automatiques (403). Cette source est en ATTENTE : ce qu'il faut faire est ecrit en toutes lettres dans la copie -- ouvrir l'article, bouton << Voir les versions >>, lire la version en vigueur de XII.2.1.2 et XII.2.1.5, trancher l'assiette de la tranche 2, chercher une condition d'anciennete. Ensuite `applicable: true`. La veille KALI (bloc `kali`) dit si la convention bouge entre-temps. Le 15/10/2026, le renvoi de notre note vers la webconference Audiens cite sa transcription (l'original reste hors du depot public) : le condensat est celui de la copie publiee.",
       "nourrit": [
         "prevoyance-conventionnelle-base.json"
       ],
