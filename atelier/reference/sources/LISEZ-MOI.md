@@ -17,3 +17,5 @@ Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'u
 - `spiac-cgt-pav-minima-20260101.xlsx` : transcription `spiac-cgt-pav-minima-20260101.csv`
 - `syndeac-ccneac-artistes-dramatiques-nao-2026.xlsx` : transcription `syndeac-ccneac-artistes-dramatiques-nao-2026.csv`
 - `unedic-circulaire-2016-25-annexes-8-10.pdf` : transcription `unedic-circulaire-2016-25-annexes-8-10.txt`
+- `unicode/unicode-norme-18.0.0-chapitre-3-20261015.html` : transcription (extraits) `unicode/unicode-norme-18.0.0-chapitre-3-extraits-20261015.md`
+- `unicode/unicode-politique-de-stabilite-20261015.html` : transcription (extraits) `unicode/unicode-politique-de-stabilite-extraits-20261015.md`
