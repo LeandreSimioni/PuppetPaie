@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000006215982</ID>
+<ANCIEN_ID>SSICH7XXXXX009AXXXXXXXAA</ANCIEN_ID>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/06/21/59/LEGIARTI000006215982.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>9</NUM>
+
+<ETAT>MODIFIE</ETAT>
+
+<DATE_DEBUT>2002-12-27</DATE_DEBUT>
+<DATE_FIN>2005-08-06</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="JORFTEXT000000782916" date_publi="2002-12-27" date_signature="2002-12-20" ministere="MINISTERE DE LA SANTE, DE LA FAMILLE ET DES PERSONNES HANDICAPEES" nature="ARRETE" nor="SANS0224282A" num="" num_parution_jo="0301">
+<TITRE_TXT c_titre_court="Arrêté du 20 décembre 2002" debut="2999-01-01" fin="2999-01-01" id_txt="JORFTEXT000000782916">Arrêté du 20 décembre 2002 relatif aux frais professionnels déductibles pour le calcul des cotisations de sécurité sociale</TITRE_TXT>
+<TITRE_TXT c_titre_court="Arrêté du 20 décembre 2002" debut="2002-12-27" fin="2025-09-07" id_txt="LEGITEXT000005633729">Arrêté du 20 décembre 2002 relatif aux frais professionnels déductibles pour le calcul des cotisations de sécurité sociale</TITRE_TXT>
+</TEXTE>
+</CONTEXTE>
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2002-12-27" etat="MODIFIE" fin="2005-08-06" id="LEGIARTI000006215982" num="9" origine="LEGI"/>
+</VERSION>
+<VERSION etat="ABROGE">
+<LIEN_ART debut="2005-08-06" etat="ABROGE" fin="2025-09-07" id="LEGIARTI000006215983" num="9" origine="LEGI"/>
+</VERSION>
+<VERSION etat="">
+<LIEN_ART debut="2999-01-01" etat="" fin="2999-01-01" id="JORFARTI000001654779" num="9" origine="JORF"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<br/>   Les professions, prévues à l'article 5 de l'annexe IV du code général des impôts dans sa rédaction en vigueur au 31 décembre 2000, qui comportent des frais dont le montant est notoirement supérieur à celui résultant du dispositif prévu aux articles précédents peuvent bénéficier d'une déduction forfaitaire spécifique. Cette déduction est, dans la limite de 7 600 Euros par année civile, calculée selon les taux prévus à l'article 5 de l'annexe IV du code précité.<br/>
+<br/>   Sauf dans le cas où le ou les travailleurs salariés et assimilés ou leurs représentants, préalablement consultés, refusent expressément, l'employeur peut user de cette faculté. L'assiette des cotisations est alors constituée, à moins qu'il n'en ait été disposé autrement en matière fiscale avant le 1er janvier 2001, par le montant global des rémunérations, indemnités, primes, gratifications ou autres acquises aux intéressés, y compris, le cas échéant, les indemnités versées au travailleur salarié ou assimilé à titre de remboursement des frais professionnels.<br/>
+<br/>   L'application de ces dispositions s'entend sans préjudice des dispositions du sixième alinéa de l'article R. 242-1 du code de la sécurité sociale.<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="" datesignatexte="" id="" naturetexte="" nortexte="" num="" numtexte="" sens="source" typelien="CITATION">CGIAN4 5</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006749046" naturetexte="CODE" nortexte="" num="R242-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. R242-1 (M)</LIEN>
+</LIENS>
+</ARTICLE>

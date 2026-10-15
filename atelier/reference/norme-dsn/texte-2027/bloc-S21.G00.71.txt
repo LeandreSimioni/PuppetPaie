@@ -1,0 +1,60 @@
+# Bloc S21.G00.71
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 293-293
+
+--- p. 293 ---
+  S21.G00.71  2026-06-10
+
+S21.G00.71
+
+Retraite complémentaire  S21.G00.71
+Code régime Retraite Complémentaire  S21.G00.71.002
+
+Code régime Retraite Complémentaire  S21.G00.71.002
+RetraiteComplementaire.CodeRetraiteComplementaire
+  Indiquer le code de l’organisme ou le code du régime de retraite complémentaire ou du régime spécial
+  auquel est affilié l'individu.
+  CCH-12 : La présence d’un bloc "Retraite complémentaire - S21.G00.71" dont le code est renseigné avec la valeur
+  "90000 : pas de régime complémentaire" interdit la présence d’un autre bloc "Retraite complémentaire - S21.G00.71"
+  pour le même "Contrat - S21.G00.40".
+
+  CCH-13 : Si la rubrique "Code régime Retraite Complémentaire - S21.G00.71.002" est renseignée avec la valeur
+  "RETC", alors le "Code statut catégoriel Retraite Complémentaire obligatoire - S21.G00.40.003" doit être renseigné
+  avec la valeur :
+  • "01 - cadre (article 4 et 4bis)"
+  • ou "02 - extension cadre pour retraite
+  • ou "04 - non cadre " si la rubrique Statut du salarié (conventionnel) - S21.G00.40.002" est égale à "04 - autres cadres
+  au sens de la convention collective (ou du statut pour les régimes spéciaux)".
+
+  SIG-11 : La valeur "CRPCEN : Clercs et employés de notaire" est interdite si la rubrique "Complément de base au
+  régime obligatoire - S21.G00.40.016" est différente de "01 - régime local Alsace Moselle".
+
+  SIG-14 : Si la rubrique "Code régime de base risque vieillesse - S21.G00.40.020" est renseignée avec la valeur "140 -
+  clercs et employés de notaires (CRPCEN)", la rubrique "Code régime Retraite Complémentaire - S21.G00.71.002" doit
+  être renseignée avec la valeur "90000 : pas de régime complémentaire".
+
+  X  [4,8]
+
+  RETA - Retraite complémentaire ARRCO
+  RETC - Retraite complémentaire ARRCO et AGIRC
+  RUAA - Régime unifié AGIRC-ARRCO
+  CAVEC - Caisse d'assurance vieillesse des experts-comptables et des commissaires aux comptes
+  CNBF - Caisse nationale des Barreaux Français
+  CRPCEN - Clercs et employés de notaire
+  CRPNPAC - Caisse de Retraite du Personnel Navigant Professionnel de l'Aéronautique Civile
+  IRCANTEC - Institution de retraite complémentaire des agents non titulaires de l’État et des collectivités publiques
+  90000 - pas de régime complémentaire
+
+S21.G00.72
+
+Affiliation à tort à un régime de retraite  S21.G00.72
+complémentaire
+  Ce bloc est à déclarer en cas de correction d'un Code régime Retraite Complémentaire déclaré de manière erronée au
+  cours d'une période antérieure.
+
+Code régime Retraite Complémentaire déclaré à tort  S21.G00.72.001
+
+Code régime Retraite Complémentaire déclaré à tort  S21.G00.72.001
+AffiliationATortRetraiteComplementaire.CodeRetraiteComplementair
+e
+
+  293 / 370

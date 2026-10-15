@@ -1,0 +1,701 @@
+Date de modification : 09/06/2026 04:20 PM
+ Réduction générale et absence : Quels sont les grands principes pour proratiser le SMIC ? 
+ Le contexte 
+  Cette fiche vise à expliquer les valeurs attendues pour la proratisation de la valeur du SMIC utilisée dans le calcul de la Réduction Générale Dégressive Unique de sécurité sociale, de retraite complémentaire et d’assurance chômage (RGDU) en Bloc « Rémunération - S21.G00.51 », à savoir : 
+ La rémunération perçue hors éléments non affectés par l’absence 
+ La rémunération habituelle mois complet hors éléments non affectés par l’absence 
+  Ces 2 valeurs permettent de déterminer la valeur mensuelle du SMIC utilisée dans le calcul de la RGDU.  La datation des éléments concernés pour le calcul du SMIC RGDU  suit  les règles du fait générateur opposable s  au 1 er  janvier 2027 après une phase transitoire sur l’année 2026. 
+ Déclarer la valeur de proratisation du SMIC dans le calcul de la réduction générale en cas d'absence ou de mois incomplet 
+ Au niveau du bloc "Rémunération - S21.G00.51" :  
+ Rubrique "Type - S21.G00.51.011" : "028 - Rémunération perçue hors éléments non affectés par l'absence " 
+ Il s'agit du numérateur. Elle concerne la rémunération due par l'employeur avant déduction forfaite spécifique (DFS) au titre de ce mois moins les Eléments Non Affectés par l'absence (ENA). 
+ Rubrique " Type - S21.G00.51.011" : "029 - Rémunération habituelle mois complet hors éléments non affectés par l'absence" 
+ Il s'agit du dénominateur. Elle concerne la rémunération que le salarié aurait perçu s'il avait été présent tout le mois, hors ENA et avant déduction forfaitaire spécifique (DFS). 
+ Ces rubriques sont à déclarer en cas d’absence  et/ou de mois incomplet. 
+ Point d’attention :   Les modalités de  proratisation du SMIC  détaillées dans la présente fiche consigne  sont  également  valables  aux salariés  pour lesquels  il est appliqué   une exonération LODEOM ou Aide à domicile, dans les mêmes conditions que pour la RGDU. 
+       Exemple de déclaration 
+   Exemple avec prime annuelle 
+ Un salarié a une absence avec maintien partiel de rémunération en décembre 2026 
+ - salaire de base mensuel = 2000 euros 
+ - absence du mois : 50% = - 1000 euros 
+ Une prime annuelle de 4000 € est versée le dernier mois. Elle est donc réduite uniquement pour tenir compte de l’absence du dernier mois : 4000 € x (11.5(mois)/12 pour tenir compte de l’absence lors du mois de prise en compte en paie) = 3833,33 €. Par ailleurs si l’absence avait eu lieu avant le mois du mois de prise en compte en paie (mais toujours dans l’année de référence pour la prime) elle aurait également eu pour effet de réduire la prime annuelle. 
+ Compte tenu que l’accord d’entreprise prévoit que la prime soit proratisée en fonction du travail effectif (en tenant compte des absences légalement assimilées à du temps de travail effectif), elle est réduite à hauteur de l’absence enregistrée au moment du versement. 
+ Bulletins du mois 
+ Salaire de base = 2000 € 
+ Absence = - 1000 €  
+ Prime annuelle = 3833,33 € 
+ Salaire brut soumis = 4833.33 (rubrique S21.G00.51.011 de type « 001 – Rémunération brute non plafonnée ») 
+ Le Smic du mois de décembre est ainsi déterminé : 
+ Les valeurs suivantes sont attendues en DSN pour décembre 2026 : 
+ « 028 –  Rémunération perçue hors ENA  » : 1000 
+ « 029 – Rémunération habituelle mois complet hors ENA »  :  2000 
+ Smic = 1766.92 x 1000 /2000 = 883.46€ (avec 1766.92 = 11.65 x 35 x 52 / 12) 
+  Pour rappel, ce montant obtenu pour décembre est à ajouter aux montants de smic déclarés précédemment pour obtenir le smic annuel à retenir pour la formule de détermination du coefficient de réduction générale pour le contrat.  
+  La prime versée n’est pas un élément de rémunération affecté par l’absence de manière strictement proportionnelle sur le mois car son montant n’est pas directement fonction de l’absence intervenue en décembre mais fonction de la présence de toute l’année, elle n’est pas prise en compte dans le rapport de rémunération permettant de déterminer le SMIC du mois.   
+ Exemple avec prime d’ancienneté 
+ Un salarié est en arrêt maladie 5 jours en juin 2026 avec maintien partiel de rémunération et une prime d’ancienneté versée chaque mois de 200€. L’employeur valorise l'absence selon la méthode de l'horaire réel du mois (soit 35h sur un total de 140h pour juin 2026 qui comporte 20 jours ouvrés).   
+ Selon que la prime d’ancienneté est maintenue ou réduite en cas d'absence du salarié (selon les dispositions conventionnelles ou l’usage de l’entreprise), le calcul du smic sera différent : 
+ Cas 1 : Si la prime d’ancienneté n’est pas réduite en cas d’absence, le SMIC de juin est ainsi déterminé : (la prime ne figure ni au numérateur ni au dénominateur du rapport). 
+ Bulletins du mois 
+  Rubriques     
+ | 
+ Base     
+ | 
+ Taux     
+ | 
+ Montant     
+ | 
+ Salaire mensuel     
+ | 
+ 151.67     
+ | 
+ 13.1865     
+ | 
+ 2000     
+ | 
+ Absence     
+ | 
+ -35     
+ | 
+ 14.2857 (2000 / 140)     
+ | 
+ -500     
+ | 
+ Maintien de salaire    
+ | 
+ | 
+ | 
+ 350    
+ | 
+ Prime d’ancienneté     
+ | 
+ | 
+ | 
+ 200    
+ | 
+ TOTAL SALAIRE BRUT     
+ | 
+ | 
+ | 
+ 2050    
+ | 
+ Les valeurs suivantes sont attendues en DSN : 
+ « 028 –  Rémunération perçue hors ENA » : 1850 (2050-200) 
+ « 029 – Rémunération habituelle mois complet hors ENA »  : 2000 
+ Smic = 1766.92 x 1850 € / 2000 = 1634.40 
+ Cas 2 : Si la prime d’ancienneté est réduite de façon strictement proportionnelle (car incluse dans le taux de l’absence ou réduite directement dans la rubrique de paie), alors le smic serait calculé ainsi :     
+ Bulletins du mois      
+  Rubriques     
+ | 
+ Base     
+ | 
+ Taux     
+ | 
+ Montant     
+ | 
+ Salaire mensuel     
+ | 
+ 151.67     
+ | 
+ 13.1865     
+ | 
+ 2000     
+ | 
+ Absence     
+ | 
+ -35     
+ | 
+ 14.2857 (2000 / 140)     
+ | 
+ -500     
+ | 
+ Maintien de salaire    
+ | 
+ | 
+ | 
+ 350    
+ | 
+ Prime d’ancienneté     
+ | 
+ | 
+ | 
+ 200    
+ | 
+ Prime d'ancienneté que le salariéi aurait eu s'il n'avait pas été absent (absente du total salaire brut) | 
+ | 
+ | 
+ (266,67) | 
+ TOTAL SALAIRE BRUT     
+ | 
+ | 
+ | 
+ 2050    
+ | 
+ Rémunération perçue hors ENA : 2050 
+ «029 - Rémunération habituelle mois complet hors ENA » : 2266.67 (2000 + 266,67) 
+ Smic = 1766,92 x 2050 / 2266,67 = 1598,02 
+ Cas 2 bis : Prise en compte de la prime d'ancienneté (réduite de façon strictement proportionnelle) dans le tarif de l'absence - changement de présentation du bulletin de salaire 
+ Bulletins du mois 
+  Rubriques     
+ | 
+ Base     
+ | 
+ Taux     
+ | 
+ Montant     
+ | 
+ Salaire mensuel     
+ | 
+ 151.67     
+ | 
+ 13.1865     
+ | 
+ 2000     
+ | 
+ Absence     
+ | 
+ -35     
+ | 
+ 16.1976 (2266.67/140)     
+ | 
+ -566.67     
+ | 
+ Maintien de salaire    
+ | 
+ | 
+ | 
+ 350    
+ | 
+ Prime d’ancienneté     
+ | 
+ | 
+ | 
+ 266.67    
+ | 
+ TOTAL SALAIRE BRUT     
+ | 
+ | 
+ | 
+ 2050    
+ | 
+ Rémunération perçue hors ENA : 2050 
+ «029 - Rémunération habituelle mois complet hors ENA » : 2266.67 (2000 + 266,67) 
+ Smic = 1766,92 x 2050 / 2266,67 = 1598,02 
+ Exemple avec heures supplémentaires 
+ Les heures supplémentaires structurelles sont considérées comme affectées par l’absence mais pas les HS aléatoires. 
+ Soit un salarié à 39h (169h/mois) qui effectue en sus de son horaire habituel 10 HS aléatoires en juin 2026 et absent 2 semaines (soit 78 h). Sa rémunération habituelle, hors HS structurelles, est de 2000 euros.  Les heures supplémentaires sont déclarées pour la période d’emploi de juin  mais par tolérance, il est possible de les dater de la période de prise en compte en paie. 
+ Il touche 2000/151,67h x 125% soit 16,48 € par h sup : il perçoit donc habituellement (pour un mois complet) 16,48 x 17,33h= 285.65€ pour les HS structurelles. 
+ L’employeur n’est pas subrogé et ne verse pas d’IJ complémentaire et calcule l'absence selon l'horaire mensualisé. 
+ Bulletin du mois 
+   Rubriques    
+ | 
+ Base    
+ | 
+ Taux    
+ | 
+ Montant    
+ | 
+ Salaire mensuel    
+ | 
+ 151.67    
+ | 
+ 13.1865    
+ | 
+ 2000    
+ | 
+ HS structurelles 25 %     
+ | 
+ 17.33    
+ | 
+   16.4831    
+ | 
+ 285.65    
+ | 
+ Sous-total salaire de base    
+ | 
+ | 
+ | 
+ 2285.65    
+ | 
+ Absence    
+ | 
+ -78    
+ | 
+ 13.5246 (2285.65 / 169)    
+ | 
+ -1054.92    
+ | 
+ HS aléatoires 25 %    
+ | 
+ 10    
+ | 
+ 16.4831    
+ | 
+ 164.83    
+ | 
+ TOTAL SALAIRE BRUT    
+ | 
+ | 
+ | 
+ 1395.56    
+ | 
+ Le smic sera calculé ainsi : 1766,92 € (11,65 € x 35 x 52 / 12) x (1230.73 / 2285.65) + 19,33HS (10 + (17,33 x 1230.73 / 2285.65)) x 11,65 € = 1176.63 € 
+ « 028 - Rémunération perçue hors ENA » : 1230.73 (1395.56 - 164.83) 
+ « 029 - Rémunération habituelle mois complet hors ENA » : 2285.65 
+ Smic = 1766,92 x (1230.73 / 2285.65) + 19,33 HS x 11,65 = 1176.63 
+ Avec 19.33 HS = 10 h sup aléatoires + (17,33 h sup structurelles x 1230.73 / 2285.65) 
+ Exemple avec déduction forfaitaire spécifique 
+ Soit un salarié à 39h (169h/mois) qui a effectué en sus de son horaire habituel 10 heures sup en juin 2026 et a été absent 2 semaines pour congés payés (indemnité versée par une caisse de congés payés).    
+ Sa rémunération habituelle, h ors HS structurelles, est de 2000 euros.   Les heures supplémentaires sont déclarées pour la période d’emploi de juin mais par tolérance, il est possible de les dater de la période de prise en compte en paie.     
+ Il touche 2000 / 151,67h x 125% soit 16,48 € par h sup : il perçoit donc habituellement (pour un mois complet) 16,48 x 17,33h = 285.65€ pour les HS structurelles.  
+ L’employeur lui rémunère sur le mois donné : 
+ 12 indemnités de repas sur chantier à 14 € 
+ 10 heures supplémentaires aléatoires 
+  Ce salarié bénéficie de la déduction forfaitaire spécifique au taux de 10 %. 
+ L’employeur valorise la retenue pour absence selon l’horaire réel du mois conformément aux dispositions de la CCN du bâtiment (4 semaines x 39 heures = 156 heures pour le mois de juin 24). 
+   Bulletin du mois 
+ Rubriques    
+ | 
+ Base    
+ | 
+ Taux    
+ | 
+ Montant    
+ | 
+ Salaire mensuel    
+ | 
+ 151.67    
+ | 
+ 13.1865    
+ | 
+ 2000    
+ | 
+ HS structurelles 25 %     
+ | 
+ 17.33    
+ | 
+ 16.4831    
+ | 
+ 285.65    
+ | 
+ Sous-total salaire de base    
+ | 
+ | 
+ | 
+ 2285.65    
+ | 
+ Absence    
+ | 
+ -78    
+ | 
+ 13.5246 
+ (2285.65 / 156)    
+ | 
+ -1142.83    
+ | 
+ HS aléatoires 25 %    
+ | 
+ 10    
+ | 
+ 16.4831    
+ | 
+ 164.83    
+ | 
+ Ind . de repas limite exo.    
+ | 
+ 12    
+ | 
+ 10.10    
+ | 
+ 121.20    
+ | 
+ Ind de repas > limite exo.    
+ | 
+ 12    
+ | 
+ 3.90    
+ | 
+ 46.80    
+ | 
+ TOTAL SALAIRE BRUT avant DFS    
+ | 
+ | 
+ | 
+ 1475.65    
+ | 
+ DFS    
+ | 
+ 1475.65    
+ | 
+ 10%    
+ | 
+ -147.57    
+ | 
+ SALAIRE BRUT après DFS    
+ | 
+ | 
+ | 
+ 1328.08    
+ | 
+ • « 028 - Rémunération perçue hors ENA » = 1142.82 (1475.65 - 164.83 - 121.20 - 46.80) 
+ • « 029 - Rémunération habituelle mois complet hors ENA » = 2285.65 
+ Le smic sera calculé ainsi pour juin 2026 : 
+ 1766,92 € x (1142.82 / 2285.65) + 18.66 HS x 11,65 € = 1100.90 € 
+ Avec 18.66 HS = 10 HS aléatoires + (17,33 HS structurelles x (1142.82 / 2285.65) 
+ Exemple avec IJSS et IJ complémentaires 
+ Un salarié à 39h (169h/mois) est absent 2 semaines soit 78h en mars 2026. 
+ L’employeur valorise l’absence sur la méthode de l’horaire réel du mois (163 heures selon sa répartition horaire). 
+ Il bénéficie en cas de maladie des dispositions de la loi de mensualisation soit un maintien de salaire égale à 90 % après un délai de carence de 7 jours sous déduction des IJSS (donc seuls 7 jours sur les 14 sont maintenus). 
+ Le montant de l’IJSS brute journalière est de 37.57 €. 
+ Rubriques    
+ | 
+ Base    
+ | 
+ Taux    
+ | 
+ Montant    
+ | 
+ Salaire mensuel    
+ | 
+ 151.67    
+ | 
+ 13.1865    
+ | 
+ 2000    
+ | 
+ HS structurelles 25 %     
+ | 
+ 17.33    
+ | 
+ 16.4831    
+ | 
+ 285.65    
+ | 
+ Sous-total salaire de base    
+ | 
+ | 
+ | 
+ 2285.65    
+ | 
+ Absence    
+ | 
+ -78    
+ | 
+ 14.0224 
+ (2285.65 / 163)    
+ | 
+ -1093.75    
+ | 
+ Maintien de salaire 90%    
+ | 
+ | 
+ (1093.75 x 7 / 14) x 90%    
+ | 
+ 492.19    
+ | 
+ IJSS    
+ | 
+ 7    
+ | 
+ 37.57    
+ | 
+ -262.99    
+ | 
+ TOTAL SALAIRE BRUT    
+ | 
+ | 
+ | 
+ 1391.10    
+ | 
+ • « 028 - Rémunération perçue hors ENA » = 1391.10 
+ •  «  029 - Rémunération habituelle mois complet hors ENA » = 2285.65 
+   Le smic sera calculé ainsi : (11,65 € x 35 x 52 / 12) x (1391.10 / 2285.65) + (17,33 x 1391.10 / 2285.65) x 11,65 € = 1198.27 €. 
+ Exemple avec Prime d’ancienneté et maladie 
+  Un salarié à temps complet est absent pour maladie du 05 au 18/02 soit 70h (ou 14 jours d’absence) 
+ La déduction de l’absence se fait selon la méthode de l’horaire mensualisé. 
+ Le maintien de salaire est garanti selon les dispositions conventionnelles : 3 jours de carence puis maintien à 90% sous déduction des IJSS. 
+ Le montant de l’IJSS brute journalière est de 35.34 € 
+ L’entreprise pratique le maintien du salaire et de la prime d’ancienneté pendant le délai de carence.         
+     Bulletin de paie de janvier 2026 
+ Rubriques   
+ | 
+ Base   
+ | 
+ Taux   
+ | 
+ Montant   
+ | 
+ Salaire mensuel   
+ | 
+ 151,67   
+ | 
+ 13,5 €   
+ | 
+ 2 047,55   
+ | 
+ Prime d'ancienneté   
+ | 
+ 2 047,55   
+ | 
+ 5%   
+ | 
+ 102,38   
+ | 
+ SALAIRE BRUT   
+ | 
+ | 
+ | 
+ 2 149,92   
+ | 
+ | 
+    Bulletin de paie de février 2026 
+ Rubriques   
+ | 
+ Base   
+ | 
+ Taux   
+ | 
+ Montant   
+ | 
+ Salaire mensuel   
+ | 
+ 151,67   
+ | 
+ 13,5 €   
+ | 
+ 2 047,55   
+ | 
+ Prime d'ancienneté   
+ | 
+ 1 386,05   
+ | 
+ 5%   
+ | 
+ 69.30   
+ | 
+ Absence maladie délai de carence   
+ | 
+ 21 h   
+ | 
+ -13,5   
+ | 
+ -283,50   
+ | 
+ Maintien de salaire délai de carence   
+ | 
+ | 
+ | 
+ 283,50   
+ | 
+ Absence maladie ( maintenue à 90 % )   
+ | 
+ 49 h   
+ | 
+ -13,5   
+ | 
+ -661,50   
+ | 
+ Maintien de salaire à 90 %   
+ | 
+ | 
+ | 
+ 625.12   
+ | 
+ IJSS brutes   
+ | 
+ 11 j   
+ | 
+ - 35,34   
+ | 
+ -388,74   
+ | 
+ SALAIRE BRUT   
+ | 
+ | 
+ | 
+ 1  691.73   
+ | 
+ La prime d’ancienneté est donc maintenue pendant les 3 premiers jours d’arrêt, puis est réduite pour tenir compte de l’absence   
+ Le maintien de salaire à 90 % tient compte de l’absence (661.50) + la prime d’ancienneté partiellement maintenue (soit 661.50 % x 5 % = 33.075). Ainsi 625.12 = 0.9 *(661.5 + 33.075).   
+ IJSS brutes = 11 jours (période de maintien de salaire de l’employeur) x -35.34 € = -388.74€   
+ Salaire soumis à cotisations hors ENA = 1 691.73 
+ Salaire mois complet hors ENA = 2 149.92 € soit 2 047.55 € + 102.38 € (montant de la prime d’ancienneté reconstitué sans absence)  
+ Détermination du SMIC  : 
+ Proratisation du SMIC avec absence partiellement rémunérée : 1766.92 x 1 691.73€ / 2149.92 € = 1390.35€  
+ Exemple avec salarié à temps partiel, IJSS et Indemnités de panier 
+ Un salarié travaille à temps partiel 20h/semaine.  Ce salarié est absent pour maladie du 5 au 18/02 soit 40h (ou 14 jours d'absence) 
+ L’entreprise pratique la déduction de l'absence selon la méthode de l'horaire réel (temps de travail = 80h sur le mois de février 2026). 
+ Le maintien de salaire en cas d’absence répond aux dispositions de la loi de mensualisation, soit 7 jours de carence et maintien à 90 % pendant 7 jours sous déduction des IJSS brutes. 
+ Le montant de l’IJSS brute journalière est de 19,81 € 
+  Bulletin de février 
+ Rubriques   
+ | 
+ Base   
+ | 
+ Taux   
+ | 
+ Montant   
+ | 
+ Salaire mensuel   
+ | 
+ 86,67   
+ | 
+ 13,5   
+ | 
+ 1 170,05   
+ | 
+ Prime d'ancienneté   
+ | 
+ 1 170,05   
+ | 
+ 3%   
+ | 
+ 35,10   
+ | 
+ Absence maladie   
+ | 
+ 40   
+ | 
+ -15,0643   
+ | 
+ -602,57   
+ | 
+ Maintien de salaire   
+ | 
+ | 
+ | 
+ 271.16   
+ | 
+ IJSS brutes   
+ | 
+ | 
+ | 
+ - 138,67   
+ | 
+ Ind . de paniers > limites   
+ | 
+ 3   
+ | 
+ 0,55   
+ | 
+ 1,65   
+ | 
+ SALAIRE BRUT   
+ | 
+ | 
+ | 
+ 736.72   
+ | 
+ Le taux horaire de l’absence est de (1170.05 + 35.10) / 80 h = 15.0643 € 
+ Le maintien de salaire est de 602.57 (montant de l’absence) x (14 jours calendaires d’absence – 7 jours de carence) / 14 jours calendaires d’absence  x 90 % = 271.16 € 
+ Les IJSS brutes sont de 7 jours (période de maintien de salaire de l’employeur) x 19.81 € = 138.67 € 
+ Les éléments non affectés par l’absence sont les indemnités de paniers c’est-à-dire 1.65 €.  
+ Explication   : 
+ La prime d’ancienneté est réduite proportionnellement à l’absence. 
+ A contrario, les indemnités de paniers sont des frais professionnels et sont liés à une situation de déplacement et non à l’absence. 
+ Salaire soumis à cotisations hors ENA = 736.72 € - 1.65 € = 735.07 € 
+ Salaire mois complet hors ENA = 1 170.05 € + 35.10 € = 1 205.15 €  
+ Détermination du SMIC  : 
+ Proratisation temps partiel : 1766.92 x 86.67 / 151.67 = 1 009.69 € 
+ Proratisation SMIC absence partiellement rémunérée : 1009.69 x 735.07 € / 1 205.15 € = 615.85 €   
+ Exemple salarié temps complet, maladie et garantie sur le net 
+ Un salarié travaille à temps complet. 
+ Il est absent pour maladie du 5 au 18/02 soit 70h (ou 14 jours d'absence). 
+ L’entreprise pratique la déduction de l'absence selon la méthode de l'horaire mensualisé. 
+ Le maintien de salaire est défini selon les dispositions de la loi de mensualisation soit 7 jours de carence et maintien à 90 % pendant 7 jours sous déduction des IJSS brutes. 
+ Le montant IJSS brute journalière est de 29.92 €. 
+ Bulletin de février : 
+ Rubriques   
+ | 
+ Base   
+ | 
+ Taux   
+ | 
+ Montant   
+ | 
+ Salaire mensuel   
+ | 
+ 151.67   
+ | 
+ 12 €   
+ | 
+ 1820.04   
+ | 
+ Absence maladie   
+ | 
+ - 70   
+ | 
+ 12 €   
+ | 
+ -840   
+ | 
+ Maintien de salaire   
+ | 
+ | 
+ | 
+ 378   
+ | 
+ IJSS brutes   
+ | 
+ | 
+ | 
+ -209.43   
+ | 
+ Garantie sur le net   
+ | 
+ | 
+ | 
+ -44.34   
+ | 
+ SALAIRE BRUT   
+ | 
+ | 
+ | 
+ 1104.27€   
+ | 
+ Le maintien de salaire se définit = 420*0.9 = 378 € 
+ Sachant que 420 € = 840 * (7 jours indemnisés / 14) 
+ La garantie sur le net a pour but de limiter le maintien de salaire de l’employeur (90 % sous déduction des IJSS) à 100 % du salaire. 
+ Les éléments non affectés par l’absence (ENA) sont ici de 0 €. 
+ Le maintien de salaire, les IJSS et la garantie sur le net sont liés à l’absence. 
+ Salaire soumis à cotisations hors ENA = 1 104.27€ 
+ Salaire mois complet hors ENA = 1 820.04 € 
+ Détermination du SMIC  : 
+ Proratisation SMIC absence partiellement rémunérée : 1766.92 x 1 104.27 € / 1 820.04 € = 1072.04 € 
+ La réglementation 
+ Allègements généraux – Boss.gouv.fr     : §710, §750 et suivant s 
+ Formule de calcul de la réduction générale  
+ Le coefficient de réduction permettant de calculer le montant de la réduction générale est déterminé selon la formule suivante : 
+ Tmin  +  (  Tdelta  × [ (1/2) × (3 × ( SMIC calculé pour un an + (SMIC horaire × nombre d’heures supplémentaires ou complémentaires) ) / rémunération annuelle brute – 1) ]  P )   
+ Pour l'application de cette formule : 
+ La valeur maximale du coefficient est égale à la somme des valeurs  «  Tmin  »  et  «  Tdelta  »  ;   
+ Moins de 50 salariés :  Tmin  = 0,0200 et  Tdelta  = 0,3781   
+ A partir de 50 salariés :  Tmin  = 0,0200 et  Tdelta  = 0,3821   
+ La rémunération annuelle brute correspond au montant des revenus d'activité tels qu'ils sont pris en compte pour la détermination de l'assiette des cotisations définie à l'article L. 242 - 1 du code de la sécurité sociale; 
+ Le SMIC est pris en compte pour sa valeur en vigueur durant la période d'emploi au titre de laquelle la réduction est calculée et est ajusté, le cas échéant, lorsque le salarié n'a pas été rémunéré à temps plein sur l'intégralité de cette période; 
+ Les heures supplémentaires ou complémentaires sont prises en compte 
+ La valeur P est fixée à 1,75. 
+ Pour les salariés absents sans maintien ou avec maintien partiel de la rémunération par l'employeur 
+ L'article D 241-7 du Code de la Sécurité Sociale indique que pour les salariés dans le champ de la mensualisation qui ne sont pas présents toute l'année ou dont le contrat de travail est suspendu sans paiement de la rémunération ou avec paiement partiel de celle-ci par l'employeur, le SMIC du mois de l'absence est corrigé selon le rapport entre les revenus d'activité dus soumis à cotisations et ceux qui auraient été dus si le salarié avait été présent tout le mois, hors éléments de rémunération qui ne sont pas affectés par l'absence.  
+ Le BOSS précise également au  §850  : la valeur du SMIC retenue pour les périodes au cours desquelles a lieu une absence est corrigée du rapport entre la rémunération due par l'employeur au titre de ce mpois et celle qui aurait été due si le salarié n'avait pas été absent, après déduction, pour la détermination de ces deux éléments, des éléments de rémunération dont le montant n'est pas proratisé pour tenir compte de l'absence, notamment les primes forfaitaires.  
+ Les indemnités journalières de sécurité sociale versées par l'employeur et non soumises à cotisations ne sont pas prises en compte dans ce rapport. Les indemnités journalières complémentaires sont prises en compte dans ce rapport si elles sont financées en partie ou en totalité par celui-ci, même si elles sont versées par un organisme complémentaire. 
+ Eléménts non affectés par l'absence  
+ Doivent être déduits tant du numérateur que du dénominateur les éléments de rémunération dont le montant n'est pas totalement proratisé en fonction de l'absence sur le mois considéré . 
+ Il s'agit des éléments non affectés de manière strictement proportionnelle par l'absence.  
+ Exemple : prime forfaitaire (non proratisée strictement en fonction de l'absence), frais professionnels, indemnité de rupture ... 
+ Les modalités de calcul des primes et indemnités versées par l'employeur peuvent être différentes en fonction des dispositions conventionnelles ou de vos usages d'entreprise (ce peut être une prime d'ancienneté, une prime de 13e mois, une prime de vacances,etc.). En effet, il n'existe pas de liste des éléments non affectés par l'absence. Notamment, la prime mensuelle d'ancienneté est parfois proratisée pour tenir compte de l'absence du mois, parfois non. Néanmoins, on peut retenir les éléments suivants en cohérence avec l'analyse ci-dessus :  
+ ICCP, indemnité de fins de mission : leur montant n'étant pas directement fonction de l'absence intervenue au cours du mois où le contrat prend fin et qui donne lieu à la proratisation du SMIC mais de l'ensemble de la rémunération versée au cours du contrat ou de la période de référence (calcul supra mensuel), ce ne sont pas des éléments affectés par l'absence.  
+ Prime de 13ème mois : forcément en partie impactée par l'absence qui intervient lors du mois de versement mais son montant n'est pas directement fonction de l'absence intervenue au cours du mois (calcul supra mensuel). Elle doit donc être considérée comme non affectée par l'absence du mois.  
+ Les heures supplémentaires : les HS structurelles sont considérées comme affectées par l'absence mais pas les HS aléatoires  
+ Cependant vous trouverez ci dessous un arbre de décision pour pouvoir les qualifier. 
+ A noter : 
+ Si par exemple un déclarant a oublié de verser une prime d'ancienneté affectée par l'absence, il devra rattacher à chaque bonne période la prime versée en vertu du principe du fait générateur et recalculer le SMIC mois par mois avec les nouveaux éléments (Blocs 51 et Bloc 78, 79, 81) 
+ Dans le cas d'une prime de 13ème mois, non rattachée à un mois précis (dans le bloc 52), il faudra la rattacher par défaut au mois de versement (prime supra mensuelle) 
+  Délai de mise en application 
+ Cette disposition s’appliquera à compter de janvier 2026 , afin de permettre à l’ensemble des éditeurs de faire évoluer leur outil ainsi qu’aux déclarants de pouvoir intégrer cette nouvelle modalité.   
+ Il est conseillé de faire évoluer les outils déclaratifs afin de permettre à l’ensemble de la chaine de valeur de se mettre en conformité  dès début 2025 dans le cadre du chantier de recalcul et de la fiabilisation de la RGDU. 
+ Fait générateur  :   
+ Les consignes visant le rattachement des éléments de rémunération nécessaires au calcul des cotisations et contributions sont alignées sur les règles énoncées par la Direction de la Sécurité Sociale pour l’interprétation du fait générateur en conformité avec la mise à jour du BOSS publiée en juin 2025. Les règles seront opposables à partir du 1er janvier 2027 après une phase transitoire sur l’année 2026.   
+ Point d’attention : la datation des éléments de rémunération relatifs au IJSS subrogées et au maintien de salaire associé n’ont pas encore été arbitrés dans la règlementation relative aux nouvelles règles du fait générateur. 
+ Date de création : 18/07/2024 11:15 AM 
+ N° de la fiche : 2681

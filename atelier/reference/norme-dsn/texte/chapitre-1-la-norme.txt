@@ -1,0 +1,456 @@
+# Chapitre 1
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 9-17
+
+--- p. 9 ---
+  2025-12-24
+  1 NEODeS : la norme d’échanges pour la DSN
+
+1 NEODeS : la norme d’échanges pour la DSN
+
+1.1 Objet de la norme
+
+NEODeS, en tant que norme d’échanges, est destinée à permettre les échanges
+dématérialisés de données sociales. Elle définit ainsi les éléments suivants :
+  • Les points de dépôt des messages à destination de la sphère sociale (au sens large
+  incluant les formalités à destination d’administrations de la Fonction publique)
+  • Les formats informatiques des valeurs échangées
+  • Les structures des messages
+  • Les modalités de valorisation de chaque rubrique
+  • Les contrôles appliqués aux messages et aux valeurs qu’ils contiennent
+La norme définit par ailleurs les articulations entre certains messages lorsqu’un événement
+de la vie professionnelle d’un individu doit être relaté dans plusieurs messages.
+En revanche, certains aspects ne sont pas traités par la norme, notamment les aspects
+cinématiques.
+Ces aspects sont présentés sur le site net-entreprises.fr.
+
+1.2 Contrôles et consignes
+
+Le système de contrôles de cohérence portant sur la déclaration a été allégé afin d’éviter de
+bloquer des DSN alors même que la situation n’empêche pas le traitement des finalités
+premières, et ceci du fait du constat opéré dans le cadre des opérations pilotes de l’actuelle
+faible normalisation de la paie. Il convient toutefois de prendre la mesure collective de
+l’allégement porté à la norme NEODeS, certains contrôles de cohérence bloquants (de type
+CCH) ayant notamment été substitués par des consignes de remplissage (contrôles non
+bloquants de type SIG, cf. 4.4.6). En effet, pour la bonne exploitation des données par les
+organismes de protection sociale, les déclarations transmises doivent être rigoureusement
+conformes aux deux niveaux (CCH et SIG).
+Concrètement une DSN qui passe la barrière des contrôles bloquants mais contient des
+écarts avec les consignes engage la responsabilité du déclarant, entrainant une charge
+d’ajustement bilatéral post déclaration. Pour les données communautaires, l’ajustement aura
+nécessairement des impacts en DSN par la retransmission des informations rectifiées afin
+que l’ensemble des organismes en soient destinataire.
+Aussi, afin de tirer avantage des gains de productivité induits par la DSN (entre autres
+réduction des coûts administratifs et de gestion et réallocation des ressources sur des tâches
+à valeur ajoutée) une attention particulière est attendue du déclarant quant à la qualité des
+déclarations transmises à la sphère sociale, déclarations qui sont également transmises à la
+sphère fiscale notamment dans le cadre du Prélèvement à la source. Il appartient à ce
+dernier de s’assurer de la mise en œuvre des moyens nécessaires, notamment dans le SI de
+paie, à la bonne application de l’ensemble des consignes portées par le cahier technique. »
+
+1.3 Le support métier de la DSN
+
+La mise en commun de certaines données via la DSN mensuelle demande de définir des
+procédures de gestion liées à ces dernières. La DSN ne vient pas se substituer à la relation
+Employeurs - Organismes de protection sociale et services de l’Etat dans le traitement des
+signalements d’événements métier, mais elle induit une modification de celle-ci puisque les
+
+  9 / 361
+
+--- p. 10 ---
+  2025-12-24
+  1 NEODeS : la norme d’échanges pour la DSN
+
+recueils s’appuient désormais sur une procédure unique et donc les règles sont par nature
+partagées.
+Le décret en Conseil d’Etat1 portant sur la DSN précise les circuits mis en place.
+Concernant la DSN mensuelle et toute question générale sur le fonctionnement de la DSN, il
+convient :
+  • De consulter le site net-entreprises.fr et le cas d’échéant de soumettre les questions
+  non documentées par ce canal
+  • D’appeler le numéro unique 0811 DSN DSN (0811 376 376)
+Concernant les signalements d’événements, si les éléments généraux ne permettent pas de
+répondre car il s’agit de questions relatives aux différentes réglementations, les
+interlocuteurs sont ceux des organismes concernés. Les coordonnées sont précisées ci-
+dessous :
+
+Correspondants  Sites internet  Adresses de messagerie
+
+France Travail  aedemat@francetravail.fr
+  (attestation employeur)
+  http://www.francetravail.fr/
+France Travail Services  pesods.00310@francetravail.fr
+  (recouvrement des intermittents
+  du spectacle et expatriés)
+Institutions de Prévoyance  dsn@ctip.asso.fr
+  http://www.net-entreprises.fr/
+Mutuelles  svp.dadsu.dsn@mutualite.fr
+  http://www.net-entreprises.fr/
+Sociétés d’assurances ou leurs  support@dsn-assurance.fr
+  http://www.net-entreprises.fr/
+courtiers délégataires
+
+Organismes complémentaires non
+  les coordonnées des interlocuteurs seront obtenues par l’employeur en
+fédérés par un membre du
+  contactant directement l’organisme dont il dépend.
+GIPMDS (CTIP, FFA, FNMF)
+
+MSA  http://www.msa.fr/  dsn_msa.grprec@ccmsa.msa.fr
+CNAMTS  http://www.ameli.fr/  support-dsn.cnam@assurance-
+  maladie.fr
+
+1.4 La réception de données par le système DSN
+1.4.1  Les points de dépôt et portails d’accès
+
+Le système DSN met en œuvre deux points de dépôt des messages hébergés l’un par le
+régime général et l’autre par le régime agricole.
+Deux portails d’accès aux points de dépôt sont disponibles, le portail msa.fr uniquement pour
+les entreprises du régime agricole et le portail net-entreprises.fr pour l’ensemble des
+entreprises et administrations.
+Pour les organismes relevant de la sphère publique, les dépôts sont effectués sur net-
+entreprises.fr ou sur le portail msa.fr pour la déclaration des assurés affiliés à la MSA
+(Chambre d'agriculture, lycées professionnels agricoles…).
+
+1
+  Décret n° 2013-266 du 28 mars 2013 relatif à la DSN
+
+  10 / 361
+
+--- p. 11 ---
+  2025-12-24
+  1 NEODeS : la norme d’échanges pour la DSN
+
+1.4.1.1 Populations acceptées par les points de dépôt
+Le portail msa.fr est dédié au dépôt des messages concernant les salariés du régime
+agricole. Ainsi le dépôt sur le portail msa.fr d’un message relatif à un ou plusieurs salariés du
+régime général entraînera le rejet du message.
+Le portail net-entreprises.fr permet le dépôt des messages concernant l’ensemble des
+salariés, quel que soit le régime dont ils relèvent. Deux services distincts sont disponibles sur
+le portail :
+  -  Le service DSN Régime agricole qui accepte les messages concernant
+  exclusivement des salariés affiliés au régime agricole
+  -  Le service DSN régime général qui accepte les messages concernant tous les autres
+  salariés, à l’exclusion stricte de tout salarié relevant du régime agricole
+Ce contrôle est basé sur le régime d’assurance maladie obligatoire (Rubrique
+S21.G00.40.018 – Code régime de base risque maladie) renseigné pour chaque contrat de
+chaque salarié.
+Il ne sera pas accepté sur le service DSN Régime général tout message concernant au
+moins un salarié relevant du régime agricole. De même, il ne sera pas accepté sur le point
+de dépôt Régime Agricole tout message concernant au moins un individu non affilié au
+régime agricole.
+Ainsi, les employeurs comme les concentrateurs doivent adresser les messages DSN à l’un
+ou l’autre des points de dépôt, selon leur choix et compte tenu des catégories de salariés
+concernés.
+
+1.4.1.2 Cas des entreprises mixtes dont certains salariés relèvent du régime agricole
+Une entreprise mixte emploie des salariés affiliés pour certains à un régime de sécurité
+sociale et pour les autres à d’autres régimes.
+Si un établissement d’une entreprise mixte emploie au moins un salarié affilié au régime
+agricole et d’autres salariés affiliés à un autre régime, cet établissement établira deux DSN
+visant pour l’une uniquement les salariés affiliés au régime agricole et pour l’autre le reste
+des salariés. Ces deux DSN sont fractionnables selon les règles du fractionnement.
+La DSN relative aux salariés relevant du régime agricole présentera les spécificités
+suivantes :
+  - La rubrique S20.G00.05.008 – Champ de la déclaration sera renseignée de la
+valeur « Déclaration partielle régime agricole »
+  - La DSN sera déposée sur le point de dépôt spécifique au régime agricole
+  - La DSN ne concernera que des salariés affiliés au régime agricole au titre de la
+maladie
+
+La DSN relative aux salariés ne relevant pas du régime agricole présentera les spécificités
+suivantes :
+  - La rubrique S20.G00.05.008 – Champ de la déclaration sera renseignée de la
+valeur « Déclaration partielle régime général »
+  - La DSN sera déposée sur le point de dépôt spécifique aux régimes de sécurité
+sociale hors régime agricole
+
+  11 / 361
+
+--- p. 12 ---
+  2025-12-24
+  1 NEODeS : la norme d’échanges pour la DSN
+
+  - La DSN ne concernera que des salariés non affiliés au régime agricole au titre de la
+maladie
+
+1.4.1.3 Les expatriés, détachés, frontaliers, non résidents
+En phase 3, pour les entreprises relevant du secteur privé, les notions d’expatriés, détachés,
+frontaliers, non résidents sont exprimées via deux rubriques selon la source juridique :
+  - « Travailleur à l’étranger au sens du code de la Sécurité Sociale » (S21.G00.40.024)
+  permettant d’identifier les salariés détachés, expatriés et frontaliers.
+  - « Statut à l'étranger au sens fiscal » (S21.G00.30.22) permettant d’identifier les
+  résidents et non résidents.
+Par ailleurs, une troisième rubrique porte le choix de l’établissement (Salaire réel ou Salaire
+de comparaison) sur le montant déclaré :
+  - « Type de rémunération soumise à contributions Assurance chômage pour
+  expatriés »  (S21.G00.11.009)  au  sein  du  bloc  « Etablissement »
+  Ce choix peut correspondre à la rémunération réellement versée ou à une
+  équivalence déterminée par l'employeur en vue d'ajuster les cotisations et
+  indemnisations au salaire que l'intéressé aurait perçu s'il avait travaillé en France,
+  sachant que le choix de l’établissement est applicable à l'ensemble de ses salariés
+  expatriés. La valeur déclarée au titre du salaire brut servant aux calculs des droits de
+  l'Assurance chômage (bloc S21.G00.51) devra être conforme au choix de
+  l’établissement porté par la rubrique S21.G00.11.009.
+
+1.4.1.4 Les exclusions
+Il existe quatre natures d'exclusion dans la DSN:
+- L'exclusion portée par le motif d'exclusion en rubrique "Motif d'exclusion DSN -
+S21.G00.40.025" qui interdit l'usage de procédures de l'assurance chômage pour ces
+populations.
+- L'exclusion du périmètre DADSU des populations relevant de régimes spéciaux ou
+particuliers qui ne sont pas dans le périmètre DSN et qui sont repérés par les codes régimes
+de base maladie et vieillesse ("Code délégataire du risque maladie - S21.G00.40.035" et
+"Code régime de base risque vieillesse - S21.G00.40.020".
+- A l’exception des salariés expatriés en affiliation obligatoire au régime d’assurance
+chômage (pour lesquels il est possible d’émettre des signalements FCTU), les formalités de
+l'assurance chômage des expatriés (au sens de la sécurité sociale identifiés par la rubrique
+"Travailleur à l'étranger au sens du code de la Sécurité Sociale - S21.G00.40.024") et des
+artistes du spectacle ou d’ouvriers et techniciens de l’édition d’enregistrement sonore, de la
+production cinématographique et audiovisuelle, de la radio, de la diffusion et du spectacle, du
+recouvrement de la CCVRP (identifié par la rubrique "Code complément PCS-ESE -
+S21.G00.40.005") et de manière générale de toutes les formalités de recouvrement des
+régimes particuliers et spéciaux, non mentionnés par le décret instaurant la phase de
+généralisation de la DSN.
+- L’exclusion de fait de certains contrats des Organismes Complémentaires, qui n’étaient
+antérieurement pas dématérialisés et qui ne peuvent d’emblée être tous portés dans la DSN.
+Seuls les Organismes Complémentaires ayant livré des données de paramétrage permettent
+de couvrir les procédures pour les populations relevant de ces contrats.
+Si une entreprise démarre la DSN et emploie des salariés dont toutes les procédures ne
+relèvent pas du périmètre de ladite phase, les données relatives à ces salariés sont
+véhiculées dans les DSN mensuelles et ils doivent être identifiés de manière spécifique via la
+rubrique « Motif d’exclusion DSN » (S21.G00.40.025), sachant que les procédures « de droit
+commun » seront toutefois gérées en DSN pour ces populations.
+
+  12 / 361
+
+--- p. 13 ---
+  2025-12-24
+  1 NEODeS : la norme d’échanges pour la DSN
+
+En cas de fin de contrat de travail ou d’arrêt de travail de ces salariés spécifiquement exclus,
+l’employeur doit appliquer les formalités en vigueur hors DSN (DSIJ, Attestation
+Employeur).
+
+En ce qui concerne les déclarations de cotisations aux institutions de prévoyance, aux
+mutuelles, sociétés d’assurances ou aux organismes complémentaires non fédérés par un
+membre du GIP-MDS (CTIP, FFA, FNMF), il importe que tous les salariés affiliés à un
+contrat collectif de prévoyance, santé complémentaire ou retraite supplémentaire soient
+présents et renseignés dans la déclaration, qu’ils soient ou non identifiés par « Motif
+d’exclusion DSN » (S21.G00.40.025).
+Par suite de l’impossibilité, pour un établissement donné, à déclarer les cotisations de
+sécurité sociale via DSN d’une part et via DUCS pour les populations exclues d’autre part, la
+DSN doit porter les éléments de cotisations pour l’ensemble des personnes rémunérées du
+SIRET concerné, dont les revenus versés donnent lieu à cotisation recouvrée par les Urssaf.
+
+1.4.1.5 Certificat de conformité
+En retour de la transmission dématérialisée des déclarations, un certificat de conformité est
+délivré au déclarant pour chaque déclaration transmise en précisant que celle-ci est
+conforme à la norme d’échange. A défaut, l’employeur est informé des anomalies ou
+données manquantes dans la déclaration transmise. Le compte rendu issu du certificat ne
+préjuge pas des demandes effectuées auprès de l’employeur par les organismes, les
+administrations ou les salariés, de rectifier ou mettre à jour les données inexactes ou
+incomplètes dans la déclaration sociale nominative du ou des mois suivants.
+
+1.4.2 Les dates d’exigibilité des DSN mensuelles
+L’envoi de la DSN mensuelle est soumis au respect d’une échéance d’exigibilité où la
+réception de la DSN est attendue par les points de dépôt. Selon les établissements,
+l’échéance d’exigibilité est positionnée au 5ème ou au 15ème jour du mois suivant le mois
+principal déclaré. L'heure limite du dépôt de la DSN le jour d'échéance est 12h (midi) en
+France métropolitaine. A noter que le dépôt initial de la DSN « normale » peut être émis
+jusqu’à 1 mois à l’avance et 3 mois en retard. Il convient toutefois de veiller aux
+conséquences au niveau de la prise en compte des données par les divers destinataires et
+en termes de pénalités pour l’entreprise.
+Les déclarations « annule et remplace intégral » pour DSN mensuelles ne sont plus admises
+jusqu’à la date butoir de la DSN (5 ou 15) à midi (heure de paris) retenue pour l’entreprise.
+Leur échéance est désormais située au plus tard la veille à minuit (heure de Paris).
+Pour les DSN initiales, le dépôt jusqu’au jour de l’échéance à midi demeure en place. Au-
+delà de cette date, les rectifications sont à opérer dans les paies des mois suivants et donc
+figureront dans une DSN ultérieure (cf. paragraphe traitant des « annule et remplace intégral
+»).
+Dans le cas d’établissements multi-échéances (cf. partie 1.4.3.5), les différentes fractions
+suivent chacune des règles relatives à leur propre échéance.
+
+1.4.3  Les modalités déclaratives
+
+1.4.3.1 Envoi en mode test
+Une possibilité de test des DSN avant envoi est proposée sur le service de la DSN.
+Il est très important, pour l’entreprise émettrice de déclarations de données sociales, de bien
+préciser si l’envoi est destiné à une procédure de test (code envoi S10.G00.00.005 = 01) ou
+s’il s’agit d’un envoi réel (code envoi S10.G00.00.005 = 02).
+
+  13 / 361
+
+--- p. 14 ---
+  2025-12-24
+  1 NEODeS : la norme d’échanges pour la DSN
+
+S’il s’agit d’un envoi pour test, le bilan des contrôles effectués sera mis à sa disposition quel
+que soit le résultat obtenu (KO/OK). Les données seront transmises à l’Urssaf CN, la MSA,
+l'AGIRC-ARRCO, la CNIEG, la CAMIEG, la CRPNPAC, la CRPCEN et les OC pour analyse
+mais aucune ne sera conservée. Le nombre d’envois pour test n’est pas limité.
+S’il s’agit d’un envoi réel et que le bilan de contrôle de forme et de cohérence est KO, alors il
+faudra corriger les anomalies et effectuer un autre envoi.
+S’il s’agit d’un envoi réel et que le bilan de contrôle est OK, alors les déclarations seront
+transmises automatiquement à chaque organisme récepteur.
+Dans le cas de test sur les déclarations évènementielles, seules les informations portées par
+l’évènement seront contrôlées. La reconstitution de l’historique lié à cette déclaration
+évènementielle ne sera pas mise en œuvre et les contrôles ne seront pas activés.
+Attention : un envoi transmis pour test, mais codé comme réel est traité comme réel et
+transmis automatiquement aux récepteurs s’il est considéré OK par les procédures de
+contrôle.
+
+1.4.3.2 Déclarations en double
+Quand une déclaration mensuelle de type "normal" a été acceptée pour un mois principal
+déclaré, un SIRET employeur et une fraction donnée, il n'est pas possible d'émettre une
+deuxième déclaration de type "normal" pour le même mois principal déclaré, la même
+fraction et le même SIRET employeur.
+Quand un signalement d’évènement de type « normal » a été accepté pour un SIRET
+employeur et un numéro d’ordre de la déclaration donné, il n’est pas possible d’émettre un
+deuxième signalement d’évènement de type normal avec le même SIRET employeur et le
+même numéro d’ordre de la déclaration.
+En revanche, il est possible d'émettre un signalement " Annule et remplace intégral".
+Si l’émetteur se trouve dans l’obligation d’apporter des corrections à sa déclaration ou
+signalement initial, il lui appartient d’établir une déclaration ou signalement de type « annule
+et remplace intégral » dans les conditions fixées dans les parties 1.4.3.3 et 1.4.3.4 ou de
+prendre en compte les corrections dans une DSN ultérieure.
+Les signalements « Arrêt de travail » et « Reprise suite à arrêt de travail » ne peuvent pas
+faire l’objet d’un signalement de type « annule ». Le signalement « Fin de contrat de travail
+unique » peut faire l’objet d’un signalement de type « Annule ».
+
+1.4.3.3 Annulation et remplacement d’une DSN mensuelle
+La DSN mensuelle doit être à l’image des données utilisées pour réaliser le traitement de
+paie.
+Au plus tard à minuit la veille de la date d’exigibilité de la déclaration, une erreur ou anomalie
+qui serait détectée entre la paie, telle que constatée à la date de versement, et la DSN
+mensuelle transmise au point de dépôt doit être corrigée par l’envoi d’une DSN de type «
+annule et remplace intégral ».
+Tout évènement connu entre la date de clôture de la paie et la date d’exigibilité de la DSN
+correspondante ne peut pas être déclaré au sein de la DSN mensuelle qui correspond au
+versement.
+L’évènement sera donc déclaré par une DSN ultérieure (DSN M+1, M+n selon la date de
+connaissance de l’évènement).
+Il est donc possible d'annuler et remplacer une déclaration mensuelle en un seul message et
+non en deux messages dissociés, l’un annulant et l’autre portant une nouvelle déclaration.
+L’opération d’annulation simple n’est pas envisageable pour une déclaration mensuelle.
+
+  14 / 361
+
+--- p. 15 ---
+  2025-12-24
+  1 NEODeS : la norme d’échanges pour la DSN
+
+Il est possible d’émettre autant de déclarations mensuelles « annule et remplace intégral »
+que nécessaire dans la limite du délai d’envoi (à minuit heure de Paris, la veille de la date
+d’exigibilité de la déclaration - une limitation en nombre sera le cas échéant précisée
+ultérieurement). Au-delà de cette date limite d’envoi, les rectifications seront à porter dans
+les paies suivantes et donc les DSN mensuelles suivantes.
+Chaque déclaration doit être numérotée (S20.G00.05.004) dans une séquence. Il ne sera
+pas possible d’intégrer une « annule et remplace intégral » de rang inférieur à la dernière
+déclaration intégrée.
+L’attention des émetteurs est attirée sur la nécessaire bonne gestion du numéro d’ordre des
+signalements à leur niveau puisque ce numéro permettra de repérer les déclarations
+annulées et remplacées.
+Enfin, il sera porté une attention particulière aux données de cotisations destinées aux
+organismes de recouvrement : lorsque la dernière DSN mensuelle transmise pour une date
+d’exigibilité donnée est de type « Annule et remplace intégral », elle doit porter les éléments
+de cotisations destinés aux organismes de recouvrement, même si ces éléments ont déjà
+été transmis dans une DSN mensuelle relative à la même date d’exigibilité.
+L’absence d’éléments de cotisations destinés aux organismes de recouvrement dans la
+dernière DSN mensuelle transmise pour une date d’exigibilité donnée sera considérée
+comme une absence de déclaration de cotisations aux organismes de recouvrement.
+
+1.4.3.4 Annulation et remplacement de signalements
+Dans le cas où la déclaration de signalement événementiel de type « normal » contiendrait
+des anomalies ou des erreurs, l’employeur peut remettre en cause les données déjà
+transmises par le renvoi d'une déclaration permettant soit d’annuler la déclaration (dans le
+cas d’un signalement de Fin de contrat de travail Unique ou d'un signalement d'Amorçage
+des données variables uniquement), soit d’écraser la déclaration précédente en la
+remplaçant par une autre.
+Un signalement de type annule et remplace n’est soumis à aucune date butoir. Il doit être
+opéré au plus près de la connaissance de l’erreur.
+Le signalement d’évènement « annule et remplace intégral » ou « annule » doit viser le
+même salarié et le même contrat (NIR ou NIA identique – S21.G00.30.001 si présent ou NTT
+identique - S21.G00.30.020) que celui figurant dans le signalement à annuler.
+Il est possible :
+  -  D'annuler un signalement Fin de contrat de travail Unique déjà émis, à l’initiative
+  de l’employeur ; au besoin l’employeur peut alors réémettre un nouveau signalement
+  mais dans ce cas de figure si tous les éléments sont connus au moment de
+  l’annulation il convient de procéder prioritairement par « annule et remplace ».
+  -  D'annuler et remplacer un signalement événementiel en un seul message et non
+  en deux messages dissociés, l’un annulant et l’autre portant une nouvelle déclaration
+Le signalement « Annule » comme le signalement « Annule et remplace intégral » font
+référence à l’identifiant du dernier envoi validé par le point de dépôt (cf. rubrique
+S20.G00.05.006), relative au même fait générateur (événement pour un signalement).
+Par ailleurs, le signalement d’évènement de type « annule et remplace intégral » ou « annule
+» doit porter sur le même salarié (NIR ou NIA identique – S21.G00.30.001 si présent ou NTT
+identique - S21.G00.30.020), le même contrat et le même SIRET que ceux figurant dans le
+signalement annulé.
+Un message d'annulation de signalement porte les mêmes informations que le signalement à
+
+  15 / 361
+
+--- p. 16 ---
+  2025-12-24
+  1 NEODeS : la norme d’échanges pour la DSN
+
+annuler, à l'exception du type de déclaration (S20.G00.05.002) qui doit alors porter la valeur
+« 04 - déclaration annule » et l'identifiant de la déclaration annulée ou remplacée
+(S20.G00.05.006) qui porte l'identifiant unique du signalement à annuler.
+Ainsi, les informations relatives à l'entreprise, à l'établissement, au salarié, au contrat de
+travail, à l'évènement signalé (arrêt de travail ou fin de contrat) et à la prévoyance, portées
+par le signalement à annuler doivent également figurer dans le message d'annulation.
+Contrairement à la déclaration mensuelle, il n’y a pas de date limite à son envoi (envoi de la
+déclaration « annule et remplace intégral » ou de la déclaration « annule » dès connaissance
+de la modification ou de l’erreur).
+Chaque envoi d’un signalement doit être numéroté dans une séquence. Il ne sera pas
+possible d’intégrer une « annule et remplace intégral » de rang inférieur au précédent envoi.
+L’attention des émetteurs est attirée sur la nécessaire bonne gestion du numéro d’ordre des
+déclarations et envois de signalement à leur niveau puisque ce numéro permettra de repérer
+les déclarations et signalements d’évènements annulés.
+Lorsqu’une modification est apportée entre les données portées par un signalement Fin de
+contrat de travail Unique et celles déclarées dans la DSN mensuelle qui suit, alors un
+signalement d’évènement de type « Annule et remplace intégral » doit être émis. A défaut,
+les informations valides ne sont pas transmises à France Travail.
+Outre le numéro d’ordre, il convient d'apporter une attention particulière à l'identifiant du
+dernier envoi validé par le point de dépôt (rubrique S21.G00.05.006).
+
+1.4.3.5 Fractionnement de déclarations
+Les fractions sont admises par le système DSN quand une entreprise a volontairement
+plusieurs systèmes de paie ou des organisations de paie distinctes pour des salariés d’un
+même établissement ou lorsque l’entreprise gère plusieurs catégories de populations pour
+lesquelles les dates d’exigibilité de la DSN diffèrent.
+On entend donc par « fractions » de DSN les seuls cas où une entreprise ne gère pas, pour
+tous les établissements qu’elle déclare en une seule paie, la paie de tous ses salariés mais
+les gère dans plusieurs systèmes (deux en général) ou à plusieurs rythmes. La DSN étant un
+sous-produit du logiciel de paie, il y a dans ce cas deux ou plusieurs DSN qui sont alors des
+« fractions » de DSN, qui couvrent l’intégralité des salariés de l’entreprise.
+Dans chaque fraction, il est nécessaire d’indiquer le numéro de la fraction et le nombre total
+de fractions. Le fractionnement n’est valable que si toutes les fractions ont été reçues. Cette
+valeur correspond à la rubrique Numéro de fraction.
+Un salarié ne peut être déclaré que dans une seule et unique fraction au titre d'un mois
+principal déclaré. Par exception, un salarié peut être admis dans plusieurs fractions de DSN
+relatives au même mois principal déclaré lorsqu'une évolution de sa situation professionnelle
+survenue en cours de mois justifie la production de plusieurs paies, chacune sur des
+systèmes différents. Cette modalité de déclaration ne peut être reproduite, pour un salarié
+donné, dans plusieurs déclarations mensuelles successives d'un même établissement, sauf
+lorsqu'il s'agit du cas d'intermittents du spectacle ou d'expatriés dont la gestion peut
+nécessiter la déclaration d'un même individu dans des fractions différentes de la DSN d'un
+établissement dans plusieurs déclarations successives.
+La mise en œuvre de cette disposition impose que les périodes de rémunérations présentes
+dans chacune des deux fractions soient consécutives et sans chevauchement.
+Le dispositif de fractionnement n’est pas destiné à répartir les salariés en plusieurs envois
+selon leur régime de protection sociale (général ou agricole). Pour le traitement de ce cas
+relatif aux entreprises mixtes, seront mises en œuvre les dispositions précisées au
+paragraphe sur les entreprises mixtes.
+
+  16 / 361
+
+--- p. 17 ---
+  2025-12-24
+  1 NEODeS : la norme d’échanges pour la DSN
+
+La rubrique « Numéro de fraction de déclaration - S20.G00.05.003 » ne permettant de
+déclarer que deux caractères, le nombre de fractions pouvant être déclarées par DSN est
+limité à 9.
+
+  17 / 361

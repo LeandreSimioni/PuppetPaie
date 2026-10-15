@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000045014411</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/45/01/44/LEGIARTI000045014411.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>4</NUM>
+
+<ETAT>MODIFIE</ETAT>
+
+<DATE_DEBUT>2022-01-01</DATE_DEBUT>
+<DATE_FIN>2023-02-08</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="JORFTEXT000032106923" date_publi="2016-02-26" date_signature="2016-02-25" ministere="Ministère des finances et des comptes publics" nature="ARRETE" nor="FCPS1604433A" num="" num_parution_jo="0048">
+<TITRE_TXT c_titre_court="Arrêté du 25 février 2016" debut="2999-01-01" fin="2999-01-01" id_txt="JORFTEXT000032106923">Arrêté du 25 février 2016 fixant les libellés, l'ordre et le regroupement des informations figurant sur le bulletin de paie mentionnées à l'article R. 3243-2 du code du travail</TITRE_TXT>
+<TITRE_TXT c_titre_court="Arrêté du 25 février 2016" debut="2016-02-27" fin="2999-01-01" id_txt="LEGITEXT000036902113">Arrêté du 25 février 2016 fixant les libellés, l'ordre et le regroupement des informations figurant sur le bulletin de paie mentionnées à l'article R. 3243-2 du code du travail</TITRE_TXT>
+</TEXTE>
+</CONTEXTE>
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2016-02-27" etat="MODIFIE" fin="2022-01-01" id="LEGIARTI000036902121" num="4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2022-01-01" etat="MODIFIE" fin="2023-02-08" id="LEGIARTI000045014411" num="4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2023-02-08" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000047098456" num="4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="">
+<LIEN_ART debut="2999-01-01" etat="" fin="2999-01-01" id="JORFARTI000032106932" num="4" origine="JORF"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément à l'article 2 de l'arrêté du 23 décembre 2021 (NOR : SSAS2123528A), ces dispositions sont applicables aux rémunérations versées à compter du 1er janvier 2022.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Le montant total mentionné au 13° de l'article R. 3243-1 du code du travail s'entend comme la somme des exonérations applicables parmi les exonérations mentionnées aux articles L. 241-13, L. 241-6, L. 241-6-1, L. 242-11, L. 131-4-2, L. 131-4-3, L. 752-3-1 et L. 752-3-2 du code de la sécurité sociale, ainsi qu'aux articles 15 et 16 de la loi n° 2005-157 du 23 février 2005 relative au développement des territoires ruraux, aux articles 12, 12-1 et 13 modifiés de la loi n° 96-987 du 14 novembre 1996 relative à la mise en œuvre du pacte de relance pour la ville, à l'article 130-VII de la loi n° 2006-1771 du 30 décembre 2006 de finances rectificative pour 2006 et au VI de l'article 34 de la loi n° 2008-1443 du 30 décembre 2008 de finances rectificative pour 2008.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000196404" datesignatexte="1996-11-14" id="LEGIARTI000006340231" naturetexte="LOI" nortexte="AVIX9600044L" num="12" numtexte="96-987" sens="source" typelien="CITATION">Loi n°96-987 du 14 novembre 1996 - art. 12</LIEN>
+<LIEN cidtexte="JORFTEXT000000196404" datesignatexte="1996-11-14" id="LEGIARTI000006340243" naturetexte="LOI" nortexte="AVIX9600044L" num="12-1" numtexte="96-987" sens="source" typelien="CITATION">Loi n°96-987 du 14 novembre 1996 - art. 12-1</LIEN>
+<LIEN cidtexte="JORFTEXT000000196404" datesignatexte="1996-11-14" id="LEGIARTI000006340247" naturetexte="LOI" nortexte="AVIX9600044L" num="13" numtexte="96-987" sens="source" typelien="CITATION">Loi n°96-987 du 14 novembre 1996 - art. 13</LIEN>
+<LIEN cidtexte="JORFTEXT000000257340" datesignatexte="2005-02-23" id="LEGIARTI000006600951" naturetexte="LOI" nortexte="AGRX0300111L" num="15" numtexte="2005-157" sens="source" typelien="CITATION">LOI n° 2005-157 du 23 février 2005 - art. 15</LIEN>
+<LIEN cidtexte="JORFTEXT000000257340" datesignatexte="2005-02-23" id="LEGIARTI000006600953" naturetexte="LOI" nortexte="AGRX0300111L" num="16" numtexte="2005-157" sens="source" typelien="CITATION">LOI n° 2005-157 du 23 février 2005 - art. 16</LIEN>
+<LIEN cidtexte="JORFTEXT000020014790" datesignatexte="2008-12-30" id="JORFARTI000020014973" naturetexte="LOI" nortexte="BCFX0826279L" num="34" numtexte="2008-1443" sens="source" typelien="CITATION">LOI n°2008-1443 du 30 décembre 2008 - art. 34</LIEN>
+<LIEN cidtexte="JORFTEXT000044615964" datesignatexte="2021-12-23" id="LEGIARTI000045012859" naturetexte="ARRETE" nortexte="SSAS2123528A" num="1" numtexte="" sens="cible" typelien="MODIFIE">Arrêté du 23 décembre 2021 - art. 1</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018487282" naturetexte="CODE" nortexte="" num="R3243-1" numtexte="" sens="source" typelien="CITATION">Code du travail - art. R3243-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741069" naturetexte="CODE" nortexte="" num="L131-4-2" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L131-4-2</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000017732575" naturetexte="CODE" nortexte="" num="L131-4-3" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L131-4-3</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006742355" naturetexte="CODE" nortexte="" num="L241-13" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L241-13</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741909" naturetexte="CODE" nortexte="" num="L241-6" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L241-6</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006742335" naturetexte="CODE" nortexte="" num="L241-6-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L241-6-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741999" naturetexte="CODE" nortexte="" num="L242-11" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L242-11</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006744153" naturetexte="CODE" nortexte="" num="L752-3-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L752-3-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000020032839" naturetexte="CODE" nortexte="" num="L752-3-2" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L752-3-2</LIEN>
+<LIEN cidtexte="" datesignatexte="" id="" naturetexte="" nortexte="" num="" numtexte="" sens="source" typelien="CITATION">article 130-VII de la loi n° 2006-1771 du 30 décembre 2006</LIEN>
+</LIENS>
+</ARTICLE>

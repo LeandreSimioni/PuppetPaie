@@ -1,0 +1,78 @@
+SOURCE : https://www.insee.fr/fr/metadonnees/pcsese2017/rubriqueRegroupee/637c
+
+
+NomenclatureFicheController
+1766151120002
+pcsese2017
+categorieSocioprofessionnelleAgregee
+categorieSocioprofessionnelle
+rubriqueRegroupee
+637c
+">Accueil
+Définitions, méthodes et qualité
+Nomenclatures
+Nomenclatures des professions et catégories socioprofessionnelles
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Consulter la nomenclature de la PCS-ESE 2017
+Consulter la nomenclature de la PCS-ESE 2017
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Pour les emplois salariés des employeurs privés et publics, la PCS-ESE 2017 est une ventilation plus détaillée de la PCS.
+Les trois premiers caractères de ces deux nomenclatures sont communs, sauf pour les agriculteurs, artisans et commerçants salariés de leur exploitation ou de leur entreprise.
+Nomenclatures
+Date de publication :
+                        19/12/2025
+Recherche nomenclature
+Menu nomenclature
+Rechercher dans la nomenclature
+Tous les niveaux
+catégorie socioprofessionnelle agrégée
+catégorie socioprofessionnelle
+rubrique
+2025-12-19T14:31:59.978+01:00
+Catégorie socioprofessionnelle agrégée 6 : Ouvriers
+Catégorie socioprofessionnelle 63 : Ouvriers qualifiés de type artisanal
+Rubrique 637c : Ouvriers et techniciens des spectacles vivants et audiovisuels
+Professionnels exerçant des métiers à qualification technique, spécifiques de la production des spectacles vivants et audiovisuels, mais pouvant mettre en oeuvre également des compétences relevant d'autres secteurs. D'une manière générale, les activités exercées se rapportent directement à la préparation et à l'élaboration de ces spectacles, ainsi qu'à la surveillance technique de leur bon déroulement.
+Le travail exécuté par les professionnels concernés est généralement  tenu pour un travail de haute qualité dans leurs domaines d'activités respectifs. Toutefois, il ne leur est pas reconnu une activité de création et ils n'assument pas un rôle d'encadrement.
+La rubrique inclut les personnels exerçant leur spécialité au sein d'entreprises de prestations de services.
+Nomenclatures
+Dernière mise à jour le
+ : 19/12/2025
+Professions les plus typiques
+Accessoiriste (théâtre, audiovisuel, spectacles)
+Coiffeur posticheur (théâtre, audiovisuel, spectacles)
+Costumier (théâtre, audiovisuel, spectacles)
+Couturière (théâtre, audiovisuel, spectacles)
+Electricien (théâtre, audiovisuel, spectacles)
+Habilleuse (théâtre, audiovisuel, spectacles)
+Machiniste (théâtre, audiovisuel, spectacles)
+Maquilleuse (théâtre, audiovisuel, spectacles)
+Menuisier (théâtre, audiovisuel, spectacles)
+Monteur de cirque (cirque)
+Peintre (théâtre, audiovisuel, spectacles)
+Perruquier (théâtre, audiovisuel, spectacles)
+Serrurier (théâtre, audiovisuel, spectacles)
+Tapissier (théâtre, audiovisuel, spectacles)
+Professions assimilées
+Armurier (théâtre, audiovisuel, spectacles)
+Bottier (théâtre, audiovisuel, spectacles)
+Câbliste (théâtre, spectacles)
+Employé de spectacle, music-hall (sai, sauf caissière, ouvreuse, vestiaire, ...)
+Laveuse repasseuse (théâtre, audiovisuel, spectacles)
+Lingère raccommodeuse (théâtre, audiovisuel, spectacles)
+Modiste (théâtre, audiovisuel, spectacles)
+Opérateur projectionniste (salle de cinéma, salle de spectacles)
+Technicien de plateau (cinéma, audiovisuel, spectacles)
+Travelling-man (cinéma, audiovisuel, spectacles)
+Professions exclues
+Caissier (ère) (spectacles) (voir 552a)
+Chef accessoiriste (spectacles) (voir 465b si non cadre)
+Chef costumier (spectacles) (voir 353c si cadre)
+Chef éclairagiste (spectacles) (voir 465b)
+Chef électricien (spectacles) (voir 465b)
+Chef habilleuse (spectacles) (voir 465b)
+Chef machiniste (spectacles) (voir 465b si non cadre)
+Chef maquilleuse (spectacles) (voir 353c si cadre)
+Chef technicien de plateau (cinéma, audiovisuel, spectacles) (voir 465b)
+Gardien (ne) de vestiaire (spectacles) (voir 564b)
+Ouvreur (se) (spectacles) (voir 564b)

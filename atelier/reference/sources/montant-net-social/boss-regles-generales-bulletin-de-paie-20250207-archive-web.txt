@@ -1,0 +1,252 @@
+
+Règles générales relatives au bulletin de paie - Boss.gouv.fr
+ Vous utilisez un navigateur trop ancien.
+Pour profiter pleinement de ce site, nous vous recommandons de 
+mettre à jour votre navigateur
+.
+Aller au contenu
+Aller à la recherche
+Aller au menu principal
+Accueil
+Bulletin de paie
+Règles d'assujettissement
+Exonérations
+Autres éléments de rémunération
+Mesures exceptionnelles
+Actualités
+Accéder à la règlementation du recouvrement
+Accueil
+Bulletin de paie
+ Règles générales relatives au bulletin de paie
+Partager par Courriel
+Partager sur Twitter
+Partager sur LinkedIn
+Choix de la version
+ Version en vigueur au 01/10/2024
+ Version du 01/07/2023 au 01/10/2024
+Version du 07/01/2003 au 22/01/2019
+ -->
+Afficher les différences avec la version précédente
+Afficher les différences avec la version précédente
+Recherche
+Réinitialiser la recherche
+Accès direct paragraphe
+Sommaire
+I. Mentions obligatoires et interdites sur le bulletin de paie
+1.
+1. En dehors des mentions indiquées dans le modèle du bulletin de paie, quelles mentions sont obligatoires ?
+1.
+2. Quelles mentions sont strictement interdites sur le bulletin de paie ?
+1.
+3. Les bulletins de paie doivent-ils comporter la mention du portail www.mesdroitssociaux.gouv.fr ?
+1.
+4. Le modèle provisoire de bulletin de paie applicable du 1er juillet 2023 au 31 décembre 2025 doit-il être strictement appliqué ? 
+1.
+5. Le modèle provisoire de juillet 2023 au 31 décembre 2025 conserve les lignes « dont évolution de la rémunération liée à la suppression des cotisations chômage et maladie » et « allègement de cotisations employeur » : est-il possible de supprimer ces lignes ? 
+1.
+6. Quel modèle appliquer pour des bulletins de paie portant sur des périodes antérieures à juillet 2023 ?
+1.
+6 bis. Quel modèle de bulletin de paie appliquer ? 
+II. Règles relatives aux libellés, à l'ordre et au regroupement des informations sur le bulletin de paie
+2.
+7. Est-il possible de modifier l’ordre des rubriques ?
+2.
+8. Est-il possible de modifier le libellé de certaines lignes ou rubriques ?
+2.
+9. Est-il possible d’afficher moins de détails ou de supprimer des lignes par rapport au modèle qui fixe l’ordre et le regroupement des informations figurant sur le bulletin de paie ?
+2.
+10. Est-il possible d’indiquer plus de détails au sein des rubriques que ne le prévoit le modèle prévu par l’arrêté ?
+2.
+11. Est-il possible d’afficher des lignes supplémentaires pour certaines contributions propres à un secteur d’activité et/ou à certains salariés (ex : BTP, particulier-employeur, etc.) ?
+2.
+12. Comment afficher les autres contributions conventionnelles ou statutaires ?
+2.
+13. Est-il possible d’afficher les cumuls fiscaux (net imposable, net heures supplémentaires, et PAS) ailleurs que dans le cadre fixé par l’arrêté ?
+2.
+14. Est-il possible de distinguer la contribution d’équilibre général (CEG) et la contribution d’équilibre technique (CET) de la retraite complémentaire ?
+2.
+15. L’affichage de certaines lignes dans la rubrique fiscale est-il obligatoire lorsque les montants sont nuls ? (PAS, montant net des heures compl/suppl exonérées)
+2.
+16. Est-il possible de maintenir la mention du taux personnalisé/non personnalisé pour l’application du prélèvement à la source ?
+III. Précisions sur la définition et sur les modalités de renseignement de certaines lignes et rubriques 
+3.
+17. Quels sont les montants devant être renseignés dans la ligne CSG-CRDS sur les revenus non imposables ?
+3.
+18. Comment identifier les cotisations et contributions sociales obligatoires de celles facultatives ?
+IV. Règles d’affichage relatives aux exonérations, allègements, réductions et écrêtements de cotisations
+4.
+19. Comment renseigner la rubrique « Exonérations et allègements de cotisations » ?
+4.
+20. Comment afficher les exonérations, allègements, réductions et écrêtements de cotisations ?
+4.
+21. En cas d’activité partielle, l’écrêtement des cotisations et contributions sociales doit-t-il être systématiquement affiché ?
+4.
+22. Comment renseigner le montant des rémunérations des heures supplémentaires nettes en cas de dépassement du plafond d’exonération en cours de mois ?
+Table alphabétique
+A
+B
+C
+D
+E
+F
+G
+H
+I
+J
+K
+L
+M
+N
+O
+P
+Q
+R
+S
+T
+U
+V
+W
+X
+Y
+Z
+Règles générales relatives au bulletin de paie
+Voir le détail de la mise à jour 
+L’employeur transmet le bulletin de paie « papier » à son salarié au moment du paiement du salaire, quel que soit le montant, la nature de la rémunération ou la forme du contrat. Il peut procéder à une transmission dématérialisée, mais doit indiquer au salarié les conditions dans lesquelles ce dernier peut accéder à son bulletin de paie.
+L’employeur garantit l’intégrité, la disponibilité, la confidentialité du document et doit en conserver un double (sous forme papier ou électronique) pendant une durée de 5 ans.
+Le salarié peut s’opposer, à tout moment, à la transmission dématérialisée à condition de signaler son refus à son employeur par tout moyen lui conférant une date certaine.
+Afin d'améliorer la lisibilité du bulletin de paie, le décret n° 2016-190 du 25 février 2016 prévoit la construction d'un référentiel des données obligatoires et des intitulés de paie.
+Les évolutions sont applicables à toutes les paies réalisées à compter du 1er juillet 2023. Toutefois, il est possible d’appliquer le nouveau modèle par anticipation avant cette date.
+Les dispositions de l’article R. 3243-1 du code du travail et l’arrêté ne s’appliquent pas directement aux employeurs publics. Toutefois, les employeurs publics devront également adapter leurs bulletins de paie pour afficher le « montant net social » de leurs agents, susceptibles de percevoir des prestations sociales, et ce quel que soit leur statut : fonctionnaires, stagiaires, apprentis, agents contractuels de droit public, agents contractuels de droit privé.
+I. Mentions obligatoires et interdites sur le bulletin de paie
+Les mentions obligatoires sont fixées à l’article R. 3243-1 du code du travail et s'appliquent à tous les employeurs soumis à l’obligation de délivrance d’un document justificatif au moment du versement de la rémunération des personnes mentionnées à l'article L. 3243-1 du code du travail.
+1. En dehors des mentions indiquées dans le modèle du bulletin de paie, quelles mentions sont obligatoires ?
+Les mentions obligatoires sont définies à l’article R. 3243-1 du code du travail :
+Le nom, l’adresse de l’employeur et éventuellement la désignation de l’établissement dont dépend le salarié ;
+Le numéro de la nomenclature d'activité française (NAF ou APE) et le numéro du système d'identification du répertoire des établissements (SIRET) d’emploi du salarié ;
+S'il y a lieu, la convention collective de branche applicable au salarié ou la référence au code du travail concernant la durée des congés payés et des délais de préavis en cas de cessation de la relation de travail ;
+Le nom, l’emploi du salarié et sa position dans la classification conventionnelle. Ces trois mentions sont facultatives pour les salariés à domicile et assistants maternels lorsqu’ils sont employés directement par un particulier (article R. 3243-6 du code du travail, article D. 423-15 code de l'action sociale et des familles) ;
+La période et le nombre d’heures de travail, en distinguant les heures au taux normal, les heures supplémentaires (avec la mention des taux appliqués aux heures correspondantes) et, en cas d'activité partielle, le nombre d'heures indemnisées ainsi que le taux appliqué pour le calcul de l'indemnité ;
+La nature et le volume du forfait auquel se rapporte le salaire des salariés au forfait (forfait hebdomadaire ou mensuel en heures, ou forfait annuel en heures ou en jours) ;
+La nature de la base de calcul du salaire lorsque, par exception, cette base de calcul n’est pas la durée du travail ;
+La nature et le montant des accessoires de salaire soumis aux cotisations salariales et patronales ;
+La rémunération brute, correspondant à la somme à partir de laquelle est calculé le montant net à payer par l’employeur au salarié, après déduction des prélèvements sociaux et fiscaux obligatoires auxquels sont appliqués les éventuelles exonérations et exemptions. Cette mention est facultative pour les salariés à domicile et assistants maternels lorsqu’ils sont employés directement par un particulier (article R. 3243-6 du code du travail, article D. 423-15 code de l'action sociale et des familles) ;
+Les montants et assiettes des cotisations et contributions d'origine légale et conventionnelle à la charge de l'employeur et du salarié avant déduction des exonérations et exemptions. La mention de la nature et du montant des cotisations à la charge de l'employeur est facultative pour les salariés à domicile et assistants maternels lorsqu’ils sont employés directement par un particulier (article R. 3243-6 du code du travail, article D. 423-15 code de l'action sociale et des familles) ;
+Les taux des cotisations et contributions sociales à la charge du salarié avant déduction des exonérations et exemptions ;
+La nature et le montant des autres versements et retenues (notamment prise en charge des frais de transport domicile-travail) ;
+L'assiette, le taux et le montant de la retenue à la source prévue au 1° du 2 de l'article 204 A du code général des impôts ainsi que la somme qui aurait été versée au salarié en l'absence de retenue à la source ;
+Le montant net social (voir la rubrique 
+Montant net social
+); 
+Le montant effectivement payé au salarié ;
+La date de paiement du salaire ;
+Les dates de congés et le montant de l’indemnité de congés payés correspondant lorsqu'une période de congé annuel est comprise dans la période de paie considérée ;
+Le montant total des exonérations et exemptions de cotisations et contributions sociales applicables ;
+Le montant total versé par l'employeur comprenant la rémunération brute versée au salarié, les cotisations et contributions à la charge de l'employeur, déduction faite des exonérations et allégements de charges sociales ;
+La mention de la rubrique dédiée au bulletin de paie sur le portail www.service-public.fr ;
+En cas d’activité partielle : le nombre d’heures indemnisées, le taux appliqué et les sommes versées au salarié au titre de la période considérée ;
+La mention incitant le salarié à conserver le bulletin de paie sans limitation de durée.
+2. Quelles mentions sont strictement interdites sur le bulletin de paie ?
+Il est interdit d’indiquer une mention relative à l’exercice du droit de grève ou de l’activité de représentation des salariés.
+3. Les bulletins de paie doivent-ils comporter la mention du portail www.mesdroitssociaux.gouv.fr ?
+Cette mention n’est pas obligatoire. Toutefois, un renvoi vers le site ou l’ajout d’une mention précisant les fonctionnalités du portail est recommandé.
+4. Le modèle provisoire de bulletin de paie applicable du 1er juillet 2023 au 31 décembre 2025 doit-il être strictement appliqué ? 
+Le modèle provisoire de bulletin de paie, applicable jusqu’à la fin de l’année 2025, ajoute une ligne relative au montant net social afin d’en faciliter la mise en œuvre. Seul l’ajout de cette ligne est attendu en juillet 2023.
+5. Le modèle provisoire de juillet 2023 au 31 décembre 2025 conserve les lignes « dont évolution de la rémunération liée à la suppression des cotisations chômage et maladie » et « allègement de cotisations employeur » : est-il possible de supprimer ces lignes ? 
+Oui, les modalités de calcul de ces lignes ont été supprimées par l’arrêté du 31 janvier 2023. Leur mention n’est donc plus obligatoire.
+6. Quel modèle appliquer pour des bulletins de paie portant sur des périodes antérieures à juillet 2023 ?
+Le nouveau modèle est applicable à tous les bulletins de paie édités à compter du 1er juillet 2023.
+6 bis. Quel modèle de bulletin de paie appliquer ? 
+Le modèle de bulletin de paie applicable est celui prévu à l’article 1er de l’arrêté du 25 février 2016 modifié fixant les libellés, l’ordre et le regroupement des informations figurant sur le bulletin de paie mentionnées à l’article R. 3143-2 du code du travail.
+Toutefois, l’utilisation du modèle provisoire du bulletin de paie prévu à l’article 2 de l’arrêté du 31 janvier 2023 modifiant l’arrêté du 25 février 2016 précité, applicable initialement du 1er juillet au 31 décembre 2024 est prolongé jusqu’au 1er janvier 2026, conformément à l’arrêté du 25 juin 2024 modifiant l'arrêté du 31 janvier 2023 fixant les libellés, l'ordre et le regroupement des informations figurant sur le bulletin de paie mentionnées à l'article R. 3243-2 du code du travail.
+Deux modèles de bulletin de paie sont donc applicables concomitamment.
+II. Règles relatives aux libellés, à l'ordre et au regroupement des informations sur le bulletin de paie
+L’arrêté du 31 janvier 2023 modifiant l'arrêté du 25 février 2016 fixe le modèle de bulletin de paie applicable à partir du 1er juillet 2023.
+7. Est-il possible de modifier l’ordre des rubriques ?
+L’ordre des rubriques, fixé réglementairement, doit être respecté. Il permet la comparabilité des différents bulletins entre différents employeurs d’un même salarié.
+8. Est-il possible de modifier le libellé de certaines lignes ou rubriques ?
+La modification des libellés n’est possible que lorsqu’elle est nécessaire pour un gain de place et exclusivement sous la forme d’un raccourcissement ou d’une troncature.
+9. Est-il possible d’afficher moins de détails ou de supprimer des lignes par rapport au modèle qui fixe l’ordre et le regroupement des informations figurant sur le bulletin de paie ?
+Uniquement pour des salariés non concernés par certaines cotisations, il est possible de n’afficher que les lignes donnant lieu au calcul et à la déclaration de cotisations auprès des organismes de recouvrement.
+10. Est-il possible d’indiquer plus de détails au sein des rubriques que ne le prévoit le modèle prévu par l’arrêté ?
+L’article R. 3243-2 du code du travail prévoit que certaines informations du bulletin de paie sont regroupées conformément au modèle défini par arrêté.
+Il n’est pas possible d’indiquer plus de détails pour la rubrique « Cotisations et contributions sociales obligatoires ». Cette dernière étant commune à tous les salariés, son uniformisation permet d’assurer la lisibilité entre les bulletins des différents employeurs dans une norme prévue par les textes. Pour les lignes qui agrègent plusieurs cotisations et contributions sociales, par exemple l’ensemble des cotisations affectées à l’AGIRC-ARRCO (cotisation créatrice de droits, CET, CEG) et dont il ne serait pas possible de distinguer le détail des assiettes et des taux applicables, seul le montant global à la charge du salarié d’une part et de l’employeur de l'autre doit être indiqué, et ce dans chacune des tranches pour les cotisations affectées à l’AGIRC-ARRCO. En revanche, il est autorisé de fournir le détail de certaines rubriques (cotisations statutaires, autres charges dues, complémentaire garantie frais de santé obligatoire, etc.) au verso du bulletin de paie ou bien sur un document annexe. Les rubriques « Cotisations et contributions sociales facultatives » et « Remboursements et déductions diverses » peuvent quant à elles fournir plus de détails, notamment en cas d’application de différentes tranches ou de différents taux pour la couverture de ces risques.
+11. Est-il possible d’afficher des lignes supplémentaires pour certaines contributions propres à un secteur d’activité et/ou à certains salariés (ex : BTP, particulier-employeur, etc.) ?
+Non, il convient de regrouper certaines contributions particulières dans les rubriques « autres » prévues à cet effet et dont le détail pourra être indiqué au verso du bulletin de paie ou sur un document annexe.
+12. Comment afficher les autres contributions conventionnelles ou statutaires ?
+Il convient de totaliser les contributions légales à la charge exclusive de l’employeur dans la rubrique « Autres charges dues par l'employeur ».
+Pour les contributions ne finançant pas une protection sociale complémentaire, il convient de totaliser les montants dans la rubrique « Cotisations statutaires ou prévues par la convention collective ».
+Enfin, pour les cotisations finançant des régimes de prévoyance complémentaire ou de retraite supplémentaire complétant les prestations servies par les régimes légaux obligatoires, il convient de compléter la rubrique « Cotisations et contributions sociales facultatives » qui pourra utilement dissocier les différentes lignes d’assiettes ou de taux applicables.
+13. Est-il possible d’afficher les cumuls fiscaux (net imposable, net heures supplémentaires, et PAS) ailleurs que dans le cadre fixé par l’arrêté ?
+La mention de ces rubriques fiscales sur le bulletin de paie est obligatoire, mais leur emplacement est libre.
+14. Est-il possible de distinguer la contribution d’équilibre général (CEG) et la contribution d’équilibre technique (CET) de la retraite complémentaire ?
+Le bulletin de paie agrège l’ensemble des cotisations finançant le régime de retraite complémentaire, y compris la CET ou la CEG pour chacune des tranches existantes.
+En cas de régularisation de la CET sur une période de paie ne permettant plus de distinguer au sein d’une même ligne le détail des assiettes et des taux applicables, seul le montant global à la charge du salarié et de l’employeur doit être indiqué.
+15. L’affichage de certaines lignes dans la rubrique fiscale est-il obligatoire lorsque les montants sont nuls ? (PAS, montant net des heures compl/suppl exonérées)
+Oui, les modèles visent à assurer pour un même salarié la comparabilité des différents bulletins entre ses différents employeurs.
+16. Est-il possible de maintenir la mention du taux personnalisé/non personnalisé pour l’application du prélèvement à la source ?
+Oui, bien que le modèle ne prévoit plus cette mention, héritée de la mise en œuvre du prélèvement à la source de l’impôt, son affichage reste possible.
+III. Précisions sur la définition et sur les modalités de renseignement de certaines lignes et rubriques 
+17. Quels sont les montants devant être renseignés dans la ligne CSG-CRDS sur les revenus non imposables ?
+Cette ligne correspond à la CSG/CRDS relative aux heures supplémentaires ou complémentaires exonérées et dont le montant est intégralement non-déductible du revenu imposable, cette rémunération étant simultanément exonérée d’impôt sur le revenu et de cotisations salariales.
+Les autres montants de CSG et CRDS, quel que soit leur taux ou leur assiette, doivent être globalisés suivant leur traitement vis-à-vis de l’impôt dans l’une deux lignes prévues à cette effet : « CSG déductible de l'impôt sur le revenu » et « CSG/CRDS non déductible de l'impôt sur le revenu »
+18. Comment identifier les cotisations et contributions sociales obligatoires de celles facultatives ?
+Les « cotisations et contributions sociales obligatoires » sont celles rendues obligatoires par la loi pour tout employeur ou salarié (quel que soit leur secteur d’activité ou leur statut).
+Ainsi, les cotisations relatives à la l’assurance chômage (article L.5422-9 du code du travail), à la retraite complémentaire (article L. 921-1 et suivants du code de la sécurité sociale) et aux frais de santé (article L. 911-7 du code de la sécurité sociale) ont été rendues obligatoires par la loi et doivent donc être renseignées dans la rubrique « Cotisations et contributions sociales obligatoires », même si leur niveau est fixé par la négociation collective.
+Les cotisations et contributions sociales facultatives à la charge des salariés et des employeurs complètent les garanties servies par les régimes légaux obligatoires. Elles sont facultatives dans la mesure où aucune disposition légale ne les impose, et résultent de la négociation collective.
+Ainsi, les sommes correspondant à une contribution qui n’est pas rendue obligatoire par la loi, même si elle est rendue obligatoire pour l’employeur ou le salarié par un accord de branche, une convention collective ou une décision unilatérale, doivent être renseignées dans la rubrique « Cotisations et contributions sociales facultatives ».
+IV. Règles d’affichage relatives aux exonérations, allègements, réductions et écrêtements de cotisations
+19. Comment renseigner la rubrique « Exonérations et allègements de cotisations » ?
+Les exonérations et allégements, figurant à l’article 4 de l’arrêté du 25 février 2016 fixant les libellés, l'ordre et le regroupement des informations figurant sur le bulletin de paie, à mentionner sur le bulletin de paie et mentionnées à l’article R. 3243-2 du code du travail sont les suivants :
+Pour la part patronale :
+L’exonération « aide à la création ou à la reprise d’une entreprise » (L. 131-6-4 CSS) ;
+La réduction de 6 points du taux de cotisation d’assurance maladie (L. 241-2-1 CSS) lorsque le taux affiché est de 13 % ;
+La réduction de 1,8 point du taux de cotisation d’allocations familiales (L. 241-6-1 CSS) lorsque le taux affiché est de 5,25 % ;
+L’exonération « aides à domicile » (L. 241-10 CSS) ;
+L’exonération « structures de réinsertion » (L. 241-12 CSS) ;
+La réduction générale des charges patronales (L. 241-13 CSS) ;
+La déduction forfaitaire patronale des heures supplémentaires pour les entreprises de moins de 20 salariés (L. 241-18 et L. 241-18-1 CSS) et des jours de RTT en application de l’article 5 de la loi n° 2022-1157 du 16 août 2022 de finances rectificative pour 2022 et celle pour les entreprises de 20 à 250 salariés (article 2 de la loi n° 2022-1158 du 16 août 2022 portant mesures d’urgence pour la protection du pouvoir d’achat) ;
+L’exonération « zones de revitalisation rurale » dans la limite de 50 salariés (L. 241-19 du CSS) ;
+L’exonération « zones de revitalisation rurale » des organismes d’intérêt généraux (L. 241-20 CSS) ;
+L’exonération « LOPOM » Saint-Pierre-et-Miquelon (L. 752-3-1 CSS) ;
+L’exonération « LODEOM » Guadeloupe, Guyane, Martinique et La Réunion (L. 752-3-2 CSS) ;
+L’exonération « LODEOM » Saint Martin, Saint Barthélemy (L. 752-3-3 CSS) ;
+L’exonération « zones de revitalisation rurale » applicable aux contrats conclus avant le 1er novembre 2007 (articles 15 et 16 de la loi n° 2005-157 du 23 février 2005) ;
+L’exonération « zones franches urbaines » (articles 12, 12-1 et 13 modifiés de la loi n° 96-987 du 14 novembre 1996 relative à la mise en œuvre du pacte de relance pour la ville) ;
+L’exonération « bassins d’emplois à redynamiser » (article 130-VII de la loi n° 2006-1771 du 30 décembre 2006 de finances rectificative pour 2006) ;
+L’exonération « zones de restructuration de la défense » (au VI de l’article 34 de la loi n° 2008-1443 du 30 décembre 2008 de finances rectificative pour 2008) ;
+L’exonération « jeune entreprise innovante » (article 131 loi n° 2003-1311 du 30 décembre 2003 de finances pour 2004) ;
+L’exonération « contrat d’accompagnement dans l’emploi » (L. 5134-31 du CT) ;
+L’exonération « contrat d’apprentissage » (L. 6227-8-1 du CT).
+Pour la part salariale :
+L’exonération « aide à la création ou à la reprise d’une entreprise » (L. 131-6-4 CSS) ;
+L’exonération des heures supplémentaires (L. 241-17 CSS) et des jours de RTT en application de l’article 5 de la loi n° 2022-1157 du 16 août 2022 de finances rectificative pour 2022) ;
+L’écrêtement sur la cotisation maladie due sur les revenus de remplacement (6e alinéa du L. 131-2 CSS) ;
+L’écrêtement de la CSG due sur les revenus de remplacement (4° du II du L. 136-1-2 CSS) ;
+L’exonération « contrat d’apprentissage » (L. 6243-2 du CT).
+20. Comment afficher les exonérations, allègements, réductions et écrêtements de cotisations ?
+Deux formes d’affichage sont admises :
+Soit le bulletin de paie indique les assiettes, taux et cotisations nominaux sur chaque ligne avant application de tous les exonérations, allègements, écrêtements et réductions.
+En conséquence, la rubrique « Exonérations et allègements de cotisations » totalise le montant de l’ensemble des déductions applicables.
+Soit le bulletin de paie indique les assiettes, taux et cotisations effectifs sur chaque ligne après application des exonérations, allègements, écrêtements et réductions.
+En conséquence, la rubrique « Exonérations et allègements de cotisations » ne mentionne pas le montant des déductions déjà appliquées.
+21. En cas d’activité partielle, l’écrêtement des cotisations et contributions sociales doit-t-il être systématiquement affiché ?
+Oui, dès lors qu’il y a application d’un écrêtement de cotisations salariales impactant le calcul du montant net à payer et le calcul du montant net social, celui-ci doit être indiqué sur le bulletin de paie et totalisé dans la rubrique « Exonérations et allègements de cotisations ».
+22. Comment renseigner le montant des rémunérations des heures supplémentaires nettes en cas de dépassement du plafond d’exonération en cours de mois ?
+Pour le cas de personnel rémunéré bénéficiant sur le même mois d’heures supplémentaires et/ou complémentaires exonérées et non exonérées, il convient de ventiler sur le bulletin de paie chacune des parts dans les rubriques « montant net imposable » pour le montant des heures non exonérées et « montant net des HC/HS/RTT exonérées » pour la seule part du montant des heures exonérées.
+ Mis à jour le 25/09/2024
+Retour en haut
+www.securite-sociale.fr
+bofip.impots.gouv.fr
+www.data.gouv.fr
+www.legifrance.gouv.fr
+www.service-public.fr
+www.gouvernement.fr
+www.france.fr
+www.oups.gouv.fr
+Accessibilité : partiellement conforme
+Mentions légales
+Plan du site
+Flux RSS
+Aide utilisateurs
+A propos
+Contact

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000053282399</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/53/28/23/LEGIARTI000053282399.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L137-12</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2025-12-31</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106050">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126885">Livre I : Généralités - Dispositions communes à tout ou partie des régimes de base</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141602">Titre III : Dispositions communes relatives au financement</TITRE_TM>
+<TM>
+<TITRE_TM debut="2001-12-26" fin="2999-01-01" id="LEGISCTA000006156016">Chapitre 7 : Recettes diverses</TITRE_TM>
+<TM>
+<TITRE_TM debut="2007-12-22" fin="2023-09-01" id="LEGISCTA000017841776">Section 6 : Contribution sur les indemnités de mise à la retraite</TITRE_TM>
+<TITRE_TM debut="2023-09-01" fin="2999-01-01" id="LEGISCTA000047452706">Section 6 : Contributions sur les indemnités versées à l'occasion de la rupture conventionnelle et de la mise à la retraite</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2007-12-22" etat="MODIFIE" fin="2011-12-23" id="LEGIARTI000017841772" num="L137-12" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2011-12-23" etat="MODIFIE" fin="2018-06-14" id="LEGIARTI000025009577" num="L137-12" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2018-06-14" etat="MODIFIE" fin="2023-09-01" id="LEGIARTI000037064371" num="L137-12" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2023-09-01" etat="MODIFIE" fin="2025-12-31" id="LEGIARTI000047452702" num="L137-12" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2025-12-31" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000053282399" num="L137-12" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément à la formule exécutoire de la loi n° 2025-1403 du 30 décembre 2025, ces dispositions, dans leur rédaction résultant de la loi précitée, entrent en vigueur immédiatement.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<br/>
+<p>Est instituée, à la charge de l'employeur et au profit de la Caisse nationale d'assurance vieillesse, une contribution assise sur les indemnités versées à l'occasion de :<br/>
+<br/>
+1° La mise à la retraite d'un salarié à l'initiative de l'employeur mentionnée à l'article L. 1237-5 du code du travail, pour la part exclue de l'assiette des cotisations de sécurité sociale en application du 7° du II de l'article L. 242-1 du présent code ;<br/>
+<br/>
+2° La rupture conventionnelle mentionnée aux articles L. 1237-11 à L. 1237-15 du code du travail, pour leur part exclue de l'assiette des cotisations de sécurité sociale en application du 7° du II de l'article L. 242-1 du présent code.<br/>
+<br/>
+Le taux de cette contribution est fixé à 40 %.</p>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+
+
+
+<LIEN cidtexte="JORFTEXT000052430940" datesignatexte="2025-10-24" id="LEGIARTI000052432351" naturetexte="LOI" nortexte="TRST2508279L" num="4" numtexte="2025-989" sens="cible" typelien="CITATION">LOI n°2025-989 du 24 octobre 2025 - art. 4 (V)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000053226384" datesignatexte="2025-12-30" id="LEGIARTI000053265276" naturetexte="LOI" nortexte="CPPX2521641L" num="15" numtexte="2025-1403" sens="cible" typelien="MODIFIE">LOI n°2025-1403 du 30 décembre 2025 - art. 15 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000042683622" naturetexte="CODE" nortexte="" num="L241-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L241-3 (V)</LIEN>
+
+
+
+
+</LIENS>
+</ARTICLE>

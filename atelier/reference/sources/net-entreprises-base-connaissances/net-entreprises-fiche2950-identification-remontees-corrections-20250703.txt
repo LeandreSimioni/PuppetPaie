@@ -1,0 +1,126 @@
+Date de modification : 03/07/2025 03:00 PM
+
+ Comment vérifier les identifications des individus en DSN et apporter les corrections ? 
+
+ Le contexte
+
+L'identification des individus en DSN est liée à leur immatriculation, qui consiste à leur attribuer un numéro d'identification unique. La bonne identifications des individus en DSN est essentielle : des écarts d’identification (mauvais NIR déclaré, mauvais nom de famille, etc.) peuvent conduire à une mauvaise association de l’individu à l’ensemble des informations déclarées pour lui en DSN. Ces écarts peuvent entraîner une mauvaise reconstitution de sa carrière et de ses ressources et fausser en conséquence l’alimentation de ses droits en matière de protection sociale. 
+
+Dans cet objectif, les numéros sont répertoriés, notamment dans le Système National de Gestion des Identifiants (SNGI), qui contient le NIR (Numéro d'Inscription au Répertoire (NIR) des personnes nées en France et des personnes nées à l'étranger qui viennent travailler en France. 
+
+Pour vérifier l'identification des individus, des contrôles sont faits sur l'ensemble des individus remontés dans une DSN (mensuelle et signalement) afin de vérifier que leurs données d’identification sont en conformité avec celles référencées au sein du SNGI. 
+
+En cas de non-conformité entre les données individuelles véhiculées et les données présentes au SNGI, deux types de remontées peuvent être effectuées vers le déclarant pour l'informer des écarts et lui permettant le cas échéant de réaliser des corrections dans la DSN suivante. : 
+
+ Un Bilan d'Identification des Salariés (BIS) 
+
+ Un CRM Identité 
+
+Ces deux types de retours sont décrits dans des fiches consignes dédiées. 
+
+Différences entre CRM Identité et bilan d'identification des salariés (BIS)
+
+Les écarts présentés dans le CRM Identité doivent être traités en priorité, car le Bilan d’Identification des Salariés (BIS) a vocation à être remplacé à terme par le CRM Identité. 
+
+Le format du CRM Identité (celui de la norme NEOReS, dédiée aux retours des destinataires de la DSN) doit permettre aux éditeurs de logiciels de proposer des solutions ergonomiques facilitant la prise en compte et l’analyse des écarts sur les données des DSN mensuelles transmises par les déclarants 
+
+ Synthèse des données d’identité contrôlées entre le BIS et le CRM Identité : 
+
+ | 
+ | NR
+ | Nom de famille
+ | Date de naissance
+ | Prénoms
+ | Nom d'usage
+
+ ex : nom marital
+ | Sexe 
+ | Lieu de naissance
+
+ | BIS
+ | Contrôlé
+ | Contrôlé
+ | Contrôlée
+ | Contrôlés
+ | Contrôlé
+ | Contrôlé
+ | Contrôlé
+
+ | CRM Identité
+ | Contrôlé
+ | Contrôlé
+ | Contrôlée
+ | 
+ Remontés
+
+ à titre informatif
+
+ | Non-contrôlé
+ | Non-contrôlé
+ | Non contrôlé
+
+Si le CRM Identité est un retour sur les données d'une DSN mensuelle, le BIS peut, lui, être par ailleurs fait sur les signalements.
+
+Il est à noter que certains individus (nouveaux bénéficiaires de prestations sociales tels que des individus de nationalité étrangère initiant un premier contrat sur le territoire français) peuvent disposer individus d'un NIA (Numéro d'Identification d'Attente), dans l'attente d'une immatriculation définitive. Pour rappel, l'usage du NIA en DSN n'est pas limité dans le temps. 
+
+A défaut de NIR ou de NIA, l’employeur doit identifier l’individu par un NTT (Numéro Technique Temporaire, voir fiche consigne dédiée). 
+
+Réaliser les corrections en cas d’erreur d’identification
+
+ Correction des données déclarées en DSN : 
+
+En cas d’erreur d’identification, l'employeur doit, à l'appui du BIS et/ou du CRM Identité, s'assurer que les éléments officiels qu'il détient de la part de l’individu sont bien ceux qu'il a entrés en paie. 
+
+A défaut, il corrige les erreurs faites en amont de la DSN du mois suivant (attention : l'éditeur du logiciel de paie doit dans ces cas générer les blocs changement adaptés s'il y a lieu.). 
+
+La correction doit être faite au plus tôt afin d'éviter une remontée d'anomalie chaque mois. Cliquez ici pour plus de précisions en ce qui concerne les modifications.
+
+ Corrections relevant d’une action de l’individu et non du déclarant : 
+
+Certaines anomalies nécessitent pour l’individu d’engager des démarches de rectification de son immatriculation. C’est le cas quand l’erreur d’identification remontée par le CRM Identité ou le BIS est due à : 
+
+ Une modification de l'état civil de l'individu (changement de nom, prénom, NIR) :
+
+L'employeur devra dans cette situation expliquer à l’individu que ce dernier doit faire une demande de modification de son immatriculation (NIR et données d'état civil) auprès de son organisme de protection sociale (CPAM). 
+
+ Absence de NIR et une absence de connaissance de l’individu par le SNGI : 
+
+L'employeur devra dans cette situation demander à l’individu de faire une demande d'immatriculation. Pour l’individu qui relève du régime général, l'immatriculation est sollicitée auprès de la Caisse Primaire d'Assurance Maladie (CPAM) du département dans lequel il exerce ou réside. 
+
+Particularités d’immatriculation 
+
+ Pour les individus étrangers embauchés dans une entreprise implantée en Ile-de-France, l'immatriculation se fait auprès de la CPAM de Paris. 
+
+ Pour les individus relevant du régime agricole et exploitants agricoles, les demandes d'immatriculation doivent être formulées aux caisses locales de la mutualité sociale agricole (MSA) du département dans lequel les individus exercent ou résident.
+
+ Zoom – Le cas particulier de l’impatriation: 
+
+L'impatriation consiste pour une entreprise à faire venir des collaborateurs étrangers en France pour répondre à un besoin de compétence et de main-d'œuvre, et très souvent à une recherche de maîtrise des coûts. Un impatrié est alors un salarié étranger en France. 
+
+Pour les employeurs étrangers sans établissement en France, envoyant en France des salariés qui acceptent de cotiser au régime de sécurité sociale français : 
+
+ L'employeur doit s'immatriculer à la CNFE pour obtention d'un SIRET. 
+
+ Les salariés impatriés peuvent demander une immatriculation en CPAM pour obtention d'un NIR. 
+
+Pour les employeurs étrangers sans établissement en France, envoyant en France des salariés qui préfèrent conserver le système social de leur pays d'origine (possible si impatriation de moins de 24 mois) : 
+
+ Le salarié impatrié n'est pas immatriculé au SNGI : il sera donc déclaré via un NTT tout le temps de son impatriation en France. 
+
+ Ses rémunérations sont soumises au Prélèvement à la Source depuis 2019 : il est possible de les déclarer au sein du véhicule technique (S89) de la DSN d'un autre établissement français du groupe. 
+
+Pour l’obtention de corrections, les pièces à nécessairement présenter par les individus sont les suivantes : 
+
+ Une pièce d'état civil (copie ou extrait d'acte de naissance ou une pièce établie par un consulat) 
+
+ Une pièce d'identité (carte d'identité, passeport ou titre de séjour). 
+
+ Date de création : 06/03/2025 06:22 PM 
+
+ N° de la fiche : 2950 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

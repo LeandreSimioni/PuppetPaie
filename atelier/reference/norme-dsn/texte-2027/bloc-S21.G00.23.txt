@@ -1,0 +1,166 @@
+# Bloc S21.G00.23
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 168-170
+
+--- p. 168 ---
+  S21.G00.23  2026-06-10
+
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - SRE : non concerné
+  - CNBF : non concerné
+  CCH-11 : Si la rubrique "Identifiant Organisme de Protection Sociale - S21.G00.22.001" est renseignée avec le SIRET
+  d’une caisse Urssaf, alors la déclaration d'un montant négatif est interdite si la date de fin de période de rattachement
+  du bordereau (S21.G00.22.004) est supérieure ou égale à la plus récente date de versement (S21.G00.50.001) de la
+  déclaration, sauf si la rubrique « Type de la déclaration – S20.G00.05.002 » est renseignée avec les valeurs « 02 -
+  déclaration normale sans individu » ou « 05 - annule et remplace sans individu ».
+
+  N  [4,18]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Identifiant du CRM à l'origine de la régularisation  S21.G00.22.006
+CotisationBordereau.IdentifiantCRM
+  Il s'agit de l'identifiant du CRM (compte rendu métier) transmis par l'organisme demandeur de la
+  régularisation ou de la correction.
+  CCH-11 : La rubrique "Identifiant du CRM à l'origine de la régularisation - S21.G00.22.006" ne peut être renseignée
+  que pour une période de rattachement (S21.G00.22.003 et S21.G00.22.004) inférieure au mois principal déclaré
+  (S20.G00.05.005) de la déclaration. Dans le cas contraire cette rubrique est interdite. Ce contrôle vise à ce qu'il soit
+  possible de renseigner l'identifiant du CRM à l'origine de la régularisation que pour des régularisations ou des
+  corrections.
+
+  X  [1,18]
+
+S21.G00.23
+
+Cotisation agrégée  S21.G00.23
+  La cotisation agrégée est une cotisation ou un total de cotisations dont l'établissement est redevable pour ses propres
+  salariés (somme de cotisations individuelles) ou pour son propre compte (cotisations de strate établissement).
+  Une cotisation agrégée est toujours associée à un bordereau.
+  Ce bloc est utilisé exclusivement par les Urssaf.
+
+Code de cotisation  S21.G00.23.001
+Qualifiant d'assiette  S21.G00.23.002
+Taux de cotisation  S21.G00.23.003
+Montant d'assiette  S21.G00.23.004
+Montant de cotisation  S21.G00.23.005
+Code INSEE commune  S21.G00.23.006
+Identifiant du CRM à l'origine de la régularisation  S21.G00.23.007
+
+Code de cotisation  S21.G00.23.001
+CotisationAgregee.Identifiant
+  Se référer au paragraphe 2.2.1.5.Bloc "Cotisation agrégée" (S21.G00.23) de la partie introductive.
+
+  X  [3,3]  Table des Codes Type de Personnel
+
+Qualifiant d'assiette  S21.G00.23.002
+CotisationAgregee.QualifiantAssiette
+
+  168 / 370
+
+--- p. 169 ---
+  S21.G00.23  2026-06-10
+
+  Se référer au paragraphe 2.2.1.5.Bloc "Cotisation agrégée" (S21.G00.23) de la partie introductive.
+
+  X  [3,3]
+
+  920 - Autre assiette
+  921 - Assiette plafonnée
+
+Taux de cotisation  S21.G00.23.003
+CotisationAgregee.Taux
+  Se référer au paragraphe 2.2.1.5.Bloc "Cotisation agrégée" (S21.G00.23) de la partie introductive.
+
+  N  [4,6]  CSL 00 : [0]?([0-9]{1,2}\.[0-9]{2}|100\.00)
+
+Montant d'assiette  S21.G00.23.004
+CotisationAgregee.MontantAssiette
+  Se référer au paragraphe 2.2.1.5.Bloc "Cotisation agrégée" (S21.G00.23) de la partie introductive.
+
+  N  [4,18]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant de cotisation  S21.G00.23.005
+CotisationAgregee.MontantCotisation
+  Se référer au paragraphe 2.2.1.5.Bloc "Cotisation agrégée" (S21.G00.23) de la partie introductive.
+
+  N  [4,18]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Code INSEE commune  S21.G00.23.006
+CotisationAgregee.CodeINSEEcommune
+  Se référer au paragraphe 2.2.1.5.Bloc "Cotisation agrégée" (S21.G00.23) de la partie introductive.
+
+  CCH-11 : La rubrique « Code INSEE commune - S21.G00.23.006 » doit obligatoirement être renseignée si la rubrique
+  « Code de cotisation - S21.G00.23.001 » est valorisée avec la valeur « 820 », « 822 », « 900 », « 901 », « 911 », « 917
+  », « 921 » ou « 927 ». Ce contrôle vise à renseigner obligatoirement un code INSEE commune dans le cadre du
+  versement mobilité.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table INSEE - Code INSEE de la commune
+
+Identifiant du CRM à l'origine de la régularisation  S21.G00.23.007
+CotisationAgregee.IdentifiantCRM
+  Il s'agit de l'identifiant du CRM (compte rendu métier) transmis par l'organisme demandeur de la
+  régularisation ou de la correction.
+  CCH-11 : La rubrique "Identifiant du CRM à l'origine de la régularisation - S21.G00.23.007" ne peut être renseignée
+  que pour une période de rattachement (S21.G00.22.003 et S21.G00.22.004) inférieure au mois principal déclaré
+  (S20.G00.05.005) de la déclaration. Dans le cas contraire cette rubrique est interdite. Ce contrôle vise à ce qu'il soit
+  possible de renseigner l'identifiant du CRM à l'origine de la régularisation que pour des régularisations ou des
+  corrections.
+
+  169 / 370
+
+--- p. 170 ---
+  S21.G00.30  2026-06-10
+
+  X  [1,18]
+
+S21.G00.30
+
+Individu  S21.G00.30
+  Personne physique (salarié, stagiaire sous convention, mandataire social)
+
+Numéro d'inscription au répertoire  S21.G00.30.001
+Nom de famille  S21.G00.30.002
+Nom d'usage  S21.G00.30.003
+Prénoms  S21.G00.30.004
+Sexe  S21.G00.30.005
+Date de naissance  S21.G00.30.006
+Lieu de naissance  S21.G00.30.007
+Numéro, extension, nature et libellé de la voie  S21.G00.30.008
+Code postal  S21.G00.30.009
+Localité  S21.G00.30.010
+Code pays  S21.G00.30.011
+Code de distribution à l'étranger  S21.G00.30.012
+Codification UE  S21.G00.30.013
+Code département de naissance  S21.G00.30.014
+Code pays de naissance  S21.G00.30.015
+Complément de la localisation de la construction  S21.G00.30.016
+Service de distribution, complément de localisation de la voie  S21.G00.30.017
+Adresse mél  S21.G00.30.018
+Matricule de l'individu dans l'entreprise  S21.G00.30.019
+Numéro technique temporaire  S21.G00.30.020
+Statut à l'étranger au sens fiscal  S21.G00.30.022
+Cumul emploi retraite  S21.G00.30.023
+Niveau de formation le plus élevé obtenu par l'individu  S21.G00.30.024
+Niveau de diplôme préparé par l'individu  S21.G00.30.025
+Libellé du pays de naissance  S21.G00.30.029
+Identifiant du Service de Prévention et de Santé au Travail (SPST)  S21.G00.30.030
+
+Numéro d'inscription au répertoire  S21.G00.30.001
+Individu.Identifiant
+  Le numéro d'inscription au répertoire (NIR) est l'identifiant unique et invariable des individus inscrits au
+  répertoire national d'identification des personnes physiques (RNIPP). Ce numéro correspond au numéro de
+  sécurité sociale.
+  Ce numéro est composé de 13 chiffres et d'une clé de 2 chiffres. La clé n'est pas à déclarer dans cette
+  rubrique.
+  Cette rubrique permet la déclaration du NIA (numéro d'immatriculation d'attente attribué par les
+  organismes de protection sociale) en l'absence de NIR. Le NIA est constitué comme un NIR dans l'attente
+  d'être certifié (circulaire DSS/sd4c N° 2012-213 du 1er juin 2012).
+  Le Nir doit avoir la forme SAAMMDDCCCNNN avec :
+  S = sexe de la personne physique doit être égal à 1 ou 2
+  AA = année de naissance de la personne physique doit être comprise entre 00 et 99
+  MM = mois de naissance de la personne physique doit être compris entre 01 et 12 ou entre 30 et 42 ou entre
+  50 et 99 ou égal à 20
+
+  170 / 370

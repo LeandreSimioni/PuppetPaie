@@ -1,0 +1,591 @@
+Date de modification : 10/06/2026 11:39 AM
+
+ Quand doit-on déclarer une suspension temporaire du contrat de travail ?
+
+ Le contexte
+
+La suspension de l’exécution du contrat est l’absence totale du salarié sans maintien de sa rémunération normale par son employeur (exemple : congé divers non rémunéré). Cette suspension ne modifie pas les conditions d’exécution du contrat mais les obligations contractuelles ne s’exercent plus du tout.
+
+La suspension totale du contrat est à distinguer de l’aménagement du temps de travail, dispositif qui vise à réduire le temps de travail pour une durée établie et modifieant ainsi les caractéristiques du contrat de manière temporaire. Les consignes déclaratives de l’aménagement du temps de travail font l’objet d’une fiche dédiée.
+
+ Déclarer une suspension temporaire du contrat de travail en DSN
+
+Une suspension du contrat totale doit être déclarée dans le bloc « Autre suspension de l’exécution du contrat - S21.G00.65 » dès lors qu’elle impacte la rémunération de l’individu. Elle doit également être décomptée au niveau du bloc « Activité - S21.G00.53 » pour laquelle les consignes déclaratives font l’objet de fiches dédiées (FC 2640 - Volumes d’activité (S21.G00.53) et FC 2693 - Déclarer les volumes d’activité (S21.G00.53) - Exemples liés.
+
+Pour information, certains motifs de suspensions font l’objet de consignes dédiées dont la liste est présentée à la fin de la présente fiche.
+
+Point d’attention : la suspension totale du contrat portée dans le bloc « Autre suspension de l’exécution du contrat - S21.G00.65 » n’entraîne aucun impact sur les quotités de travail renseignées au niveau du bloc « Contrat - S21.G00.40 » contrairement aux aménagements du temps de travail.
+
+La suspension du contrat est à déclarer dans le bloc « Autre suspension de l’exécution du contrat - S21.G00.65 » dans toutes les DSN mensuelles des périodes concernées.
+
+La « Date de début de la suspension - S21.G00.65.002 » doit obligatoirement être renseignée avec la date réelle de début de la suspension (rubrique obligatoire). En cas de suspension d’une durée supérieure à un mois, chaque bloc « Autre suspension de l’exécution du contrat - S21.G00.65 » émis en DSN mensuelle doit indiquer la même « Date de début de la suspension - S21.G00.65 ».
+
+La rubrique « Date de la fin de la suspension - S21.G00.65.003 » est optionnelle, la date précise de fin d’une période de suspension n’étant pas toujours connue par le déclarant dès le premier mois.
+
+ Si la date de fin est connue par le déclarant : elle doit être renseignée dans la rubrique « Date de la fin de la suspension - S21.G00.65.003 », même si elle est postérieure au MPD ;
+
+ Si la date de fin n’est pas connue par le déclarant : le dernier jour du MPD doit être déclaré dans la rubrique « Date de la fin de la suspension - S21.G00.65.003 », ou celle-ci doit être laissée vide.
+
+NB : tant que la période de suspension fait l’objet d’une nouvelle déclaration, sans interruption, dans les mois suivants sa première déclaration en DSN, la date de fin déclarée n’a qu’une valeur théorique.
+
+Point d’attention : A l’exception du congé proche aidant et du congé de présence parentale, il est à noter que les absences d’une durée inférieure à la journée ne donnent pas lieu à la déclaration d’un bloc « Autre suspension de l’exécution du contrat - S21.G00.65 ». Pour rappel, en cas d’absence non rémunérée d’une durée inférieure à une journée, aucun jour ne sera décompté du plafond mensuel de Sécurité sociale (PMSS) de l’individu.
+
+Exemple 1
+
+Un salarié est en congé divers non rémunéré du 5 au 10 avril, soit 35 heures
+
+DSN avril 2027
+
+ | 
+
+ S21.G00.65 – Autre suspension de l’exécution du contrat
+
+ | 
+
+ S21.G00.65.001
+
+ | 
+
+ Motif de suspension
+
+ | 
+
+ 501 - Congé divers non rémunéré
+
+ | 
+
+ S21.G00.65.002
+
+ | 
+
+ Date de début de la suspension 
+
+ | 
+
+ 05042027 
+
+ [05 avril 2027] 
+
+ | 
+
+ S21.G00.65.003 
+
+ | 
+
+ Date de fin de la suspension 
+
+ | 
+
+ 10042027 
+
+ [10 avril 2027] 
+
+ | 
+
+ S21.G00.53 – Activité
+
+ | 
+
+ S21.G00.53.001
+
+ | 
+
+ Type
+
+ | 
+
+ 02 - Durée d'absence partiellement ou pas du tout rémunérée 
+
+ | 
+
+ S21.G00.53.002
+
+ | 
+
+ Mesure 
+
+ | 
+
+ 35.00 
+
+ | 
+
+ S21.G00.53.003 
+
+ | 
+
+ Unité de mesure 
+
+ | 
+
+ 10 - heure 
+
+Exemple 2
+
+Une salariée est en congé pour inaptitude temporaire liée à la grossesse à partir du 3 février. La fin de sa suspension n’est pas connue par son employeur avant le mois de juillet. La suspension est déclarée sans date de fin entre février et juillet. 
+
+DSN de février 2027 
+
+ | 
+
+ S21.G00.65 – Autre suspension de l’exécution du contrat 
+
+ | 
+
+ S21.G00.65.001 
+
+ | 
+
+ Motif de suspension 
+
+ | 
+
+ 652 - Inaptitude temporaire liée à la grossesse 
+
+ | 
+
+ S21.G00.65.002 
+
+ | 
+
+ Date de début de la suspension 
+
+ | 
+
+ 03022027 
+
+ [3 février 2027] 
+
+La suspension est déclarée ainsi tous les mois. 
+
+DSN de juillet 2027 
+
+ | 
+
+ S21.G00.65 – Autre suspension de l’exécution du contrat 
+
+ | 
+
+ S21.G00.65.001 
+
+ | 
+
+ Motif de suspension 
+
+ | 
+
+ 652 - Inaptitude temporaire liée à la grossesse 
+
+ | 
+
+ S21.G00.65.002 
+
+ | 
+
+ Date de début de la suspension 
+
+ | 
+
+ 03022027 
+
+ [3 février 2027] 
+
+ | 
+
+ S21.G00.65.003 
+
+ | 
+
+ Date de fin de la suspension 
+
+ | 
+
+ 10082027 
+
+ [10 août 2027] 
+
+DSN d’août 2027 
+
+ | 
+
+ S21.G00.65 – Autre suspension de l’exécution du contrat 
+
+ | 
+
+ S21.G00.65.001 
+
+ | 
+
+ Motif de suspension 
+
+ | 
+
+ 652 - Inaptitude temporaire liée à la grossesse 
+
+ | 
+
+ S21.G00.65.002 
+
+ | 
+
+ Date de début de la suspension 
+
+ | 
+
+ 03022027 
+
+ [3 février 2027] 
+
+ | 
+
+ S21.G00.65.003 
+
+ | 
+
+ Date de fin de la suspension 
+
+ | 
+
+ 10082027 
+
+ [10 août 2027] 
+
+Déclarer une suspension pour un individu qui dispose de plusieurs contrats dans le même établissement 
+
+Lorsque le salarié fait l’objet de plusieurs contrats avec le même employeur dans le même établissement, il est nécessaire de renseigner la suspension de l’exécution des contrats pour tous les contrats si et seulement si la suspension concerne les mêmes périodes des dits contrats. Les périodes de rattachement devront être strictement compris sur les dates de début et de fin des contrats pour chacun des blocs « Autre suspension de l’exécution du contrat – S21.G00.65 » déclarés. 
+
+Exemple 3
+
+Un salarié dispose de deux contrats consécutifs dans le même établissement au mois de février 2027. Le premier contrat s’achève au 14 février, le second contrat démarre au 15 février. Il prend un congé de solidarité familiale du 10 janvier au 28 février. 
+
+DSN de février 2027
+
+1er contrat 
+
+ | 
+
+ S21.G00.40 – Contrat 
+
+ | 
+
+ S21.G00.40.001 
+
+ | 
+
+ Date de début du contrat 
+
+ | 
+
+ 12122026 
+
+ [12 décembre 2026] 
+
+ | 
+
+ S21.G00.65 – Autre suspension de l’exécution du contrat 
+
+ | 
+
+ S21.G00.65.001 
+
+ | 
+
+ Motif de suspension 
+
+ | 
+
+ 627 - Congé de solidarité familiale 
+
+ | 
+
+ S21.G00.65.002 
+
+ | 
+
+ Date de début de la suspension 
+
+ | 
+
+ 10012027 
+
+ [10 janvier 2027] 
+
+ | 
+
+ S21.G00.65.003 
+
+ | 
+
+ Date de fin de la suspension 
+
+ | 
+
+ 14022027 
+
+ [14 février 2027] 
+
+ | 
+
+ S21.G00.62 – Fin du contrat 
+
+ | 
+
+ S21.G00.62.001 
+
+ | 
+
+ Date de débutfin du contrat 
+
+ | 
+
+ 14022027 
+
+ [14 février 2027] 
+
+2eme contrat 
+
+ | 
+
+ S21.G00.40 – Contrat 
+
+ | 
+
+ S21.G00.40.001 
+
+ | 
+
+ Date de début du contrat 
+
+ | 
+
+ 15022027 
+
+ [15 février 2027] 
+
+ | 
+
+ S21.G00.65 – Autre suspension de l’exécution du contrat 
+
+ | 
+
+ S21.G00.65.001 
+
+ | 
+
+ Motif de suspension 
+
+ | 
+
+ 627 - Congé de solidarité familiale 
+
+ | 
+
+ S21.G00.65.002 
+
+ | 
+
+ Date de début de la suspension 
+
+ | 
+
+ 15022027 
+
+ [15 février 2027] 
+
+ | 
+
+ S21.G00.65.003 
+
+ | 
+
+ Date de fin de la suspension 
+
+ | 
+
+ 28022027 
+
+ [28 février 2027] 
+
+Corriger une suspension temporaire du contrat de travail en DSN 
+
+Dans le cas d’une erreur de datation et ou du motif utilisé : il convient de déclarer un bloc « Autre suspension de l’exécution du contrat - S21.G00.65 », avec la date de début de suspension initialement déclarée, et si initialement renseignée, la date de fin de suspension initialement déclarée. La rubrique « Motif de suspension - S21.G00.65.001 » doit être alimentée avec le code « 998 - Annulation ». 
+
+Puis, un nouveau bloc « Autre suspension de l’exécution du contrat - S21.G00.65 » doit être déclarée avec les informations correctes. 
+
+Exemple 4
+
+Un salarié est en congé pour enfant malade. Il est initialement déclaré 10 au 12 octobre 2027. Toutefois, la suspension relève finalement d’un congé de proche aidant du 10 octobre au 30 novembre 2027. 
+
+DSN d’octobre 2027 
+
+ | 
+
+ S21.G00.65 – Autre suspension de l’exécution du contrat 
+
+ | 
+
+ S21.G00.65.001 
+
+ | 
+
+ Motif de suspension 
+
+ | 
+
+ 636 - Congé pour enfant malade 
+
+ | 
+
+ S21.G00.65.002 
+
+ | 
+
+ Date de début de la suspension 
+
+ | 
+
+ 10102027 
+
+ [10 octobre 2027] 
+
+ | 
+
+ S21.G00.65.003 
+
+ | 
+
+ Date de fin de la suspension 
+
+ | 
+
+ 12102027 
+
+ [12 octobre 2027] 
+
+DSN de novembre 2027 
+
+ | 
+
+ S21.G00.65 – Autre suspension de l’exécution du contrat 
+
+ | 
+
+ S21.G00.65.001 
+
+ | 
+
+ Motif de suspension 
+
+ | 
+
+ 998 - Annulation 
+
+ | 
+
+ S21.G00.65.002 
+
+ | 
+
+ Date de début de la suspension 
+
+ | 
+
+ 10102027 
+
+ [10 octobre 2027] 
+
+ | 
+
+ S21.G00.65.003 
+
+ | 
+
+ Date de fin de la suspension 
+
+ | 
+
+ 12102027 
+
+ [12 octobre 2027] 
+
+ | 
+
+ S21.G00.65 – Autre suspension de l’exécution du contrat 
+
+ | 
+
+ S21.G00.65.001 
+
+ | 
+
+ Motif de suspension 
+
+ | 
+
+ 650 - Congé de proche aidant 
+
+ | 
+
+ S21.G00.65.002 
+
+ | 
+
+ Date de début de la suspension 
+
+ | 
+
+ 10102027 
+
+ [10 octobre 2027] 
+
+ | 
+
+ S21.G00.65.003 
+
+ | 
+
+ Date de fin de la suspension 
+
+ | 
+
+ 30112027 
+
+ [30 novembre 2027] 
+
+Dans le cas d’une correction au niveau des rubriques « [FP] Position de détachement - S21.G00.65.004 » ou « Nombre de jours ouvrés de suspension S21.G00.65.005 » :
+
+ Lorsqu’elles ont été renseignées à tort : il est nécessaire de déclarer le bloc « Autre suspension de l’exécution du contrat - S21.G00.65 » avec les mêmes rubriques « Motif de suspension - S21.G00.65.001 » et « Date de début de la suspension - S21.G00.65.002 » et sans la (les) rubrique(s) déclarées à tort. 
+
+ Lorsque les informations qu’elles portent sont à corriger : il est nécessaire de déclarer le bloc « Autre suspension de l’exécution du contrat - S21.G00.65 » avec les mêmes rubriques « Motif de suspension - S21.G00.65.001 » et « Date de début de la suspension - S21.G00.65.002 » en intégrant directement les informations correctes qui auraient dû être renseignées pour la rubrique « [FP] Position de détachement - S21.G00.65.004 » ou « Nombre de jours ouvrés de suspension S21.G00.65.005 ». 
+
+ Lorsqu’elles sont absentes à tort, il est nécessaire de déclarer le bloc « Autre suspension de l’exécution du contrat - S21.G00.65 » avec les mêmes rubriques « Motif de suspension - S21.G00.65.001 » et « Date de début de la suspension - S21.G00.65.002 » ainsi que la rubrique « [FP] Position de détachement - S21.G00.65.004 » ou « Nombre de jours ouvrés de suspension S21.G00.65.005 » qui aurait dû être initialement déclarée. 
+
+ Fiches spécifiques dédiées aux modalités déclaratives de suspensions totales du contrat particulières
+
+Congés familiaux 
+
+FC 2402 : Congé de proche aidant : Quelles données doivent être renseignées dans le bloc « Autre suspension de l’exécution du contrat - S21.G00.65 » 
+
+FC 2650 : Congé d’adoption en DSN
+
+FC 807 : Le congé parental
+
+FC 2420 : Congé de présence parentale
+
+FC 639 : Déclarer un congé parental d’éducation ou une invalidité catégorie 1 en DSN
+
+Spécificités pour la Fonction publique 
+
+FC 2055 : Fonctionnaire détaché dans son établissement d’origine et son établissement d’accueil
+
+FC 2500 : Détachement des praticiens hospitaliers
+
+ Date de création : 23/03/2025 03:20 PM 
+
+ N° de la fiche : 3272 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

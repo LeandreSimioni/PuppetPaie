@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000033020790</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/33/02/07/LEGIARTI000033020790.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L3141-10</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2016-08-10</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132332">Troisième partie : Durée du travail, salaire, intéressement, participation et épargne salariale    </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145403">Livre Ier : Durée du travail, repos et congés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160756">Titre IV : Congés payés et autres congés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006178009">Chapitre Ier : Congés payés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2016-08-10" id="LEGISCTA000006189648">Section 2 : Durée du congé.</TITRE_TM>
+<TITRE_TM debut="2016-08-10" fin="2999-01-01" id="LEGISCTA000033020831">Section 2 : Durée du congé</TITRE_TM>
+<TM>
+<TITRE_TM debut="2016-08-10" fin="2999-01-01" id="LEGISCTA000033008382">Sous-section 2 : Champ de la négociation collective.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-05-01" etat="MODIFIE" fin="2016-08-10" id="LEGIARTI000006902647" num="L3141-10" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2016-08-10" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000033020790" num="L3141-10" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<br/>
+<br/>
+<br/>
+<p>
+<br clear="none"/>
+</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Sous réserve de modalités particulières fixées en application de l'article L. 3141-32, un accord d'entreprise ou d'établissement ou, à défaut, une convention ou un accord de branche peut :</p>
+<p>1° Fixer le début de la période de référence pour l'acquisition des congés ;</p>
+<p>2° Majorer la durée du congé en raison de l'âge, de l'ancienneté ou du handicap.</p>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000465978" datesignatexte="2007-03-12" id="JORFTEXT000000465978" naturetexte="ORDONNANCE" nortexte="SOCX0700017R" num="" numtexte="2007-329" sens="source" typelien="CODIFICATION">Ordonnance n°2007-329 du 12 mars 2007</LIEN>
+<LIEN cidtexte="JORFTEXT000032983213" datesignatexte="2016-08-08" id="LEGIARTI000033001006" naturetexte="LOI" nortexte="ETSX1604461L" num="8" numtexte="2016-1088" sens="cible" typelien="MODIFIE">LOI n°2016-1088 du 8 août 2016 - art. 8 (V)</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000049453263" datesignatexte="2024-04-22" id="LEGIARTI000049454318" naturetexte="LOI" nortexte="ECOM2328155L" num="37" numtexte="2024-364" sens="cible" typelien="CITATION">LOI n°2024-364 du 22 avril 2024 - art. 37 (V)</LIEN>
+
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000039222466" naturetexte="CODE" nortexte="" num="R242-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R242-2 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006647497" naturetexte="CODE" nortexte="" num="L223-6" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L223-6 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006647496" naturetexte="CODE" nortexte="" num="L223-6" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail - art. L223-6 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033020780" naturetexte="CODE" nortexte="" num="L3141-11" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L3141-11 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033008672" naturetexte="CODE" nortexte="" num="L3141-32" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3141-32 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000049459068" naturetexte="CODE" nortexte="" num="L3141-5-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L3141-5-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033453122" naturetexte="CODE" nortexte="" num="R3141-4" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R3141-4 (VD)</LIEN>
+
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>

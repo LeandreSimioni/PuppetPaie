@@ -1,0 +1,146 @@
+                               Bloc changement Contrat
+
+
+
+Rappel :
+Le bloc changement permet de tracer la situation du salarié au sein de son entreprise, et ainsi de garantir ses
+droits, quel que soit l’organisme.
+
+Le bloc changement concerne tous les organismes destinataires de la DSN.
+
+
+
+
+Le bloc changement est utilisé pour :
+
+    donner une information relative à l’individu (bloc changements Individu S21.G00.31)
+    donner une information relative au contrat de travail de l’individu (bloc changements Contrat
+       S21.G00.41)
+
+
+
+
+   Deux cas d’utilisation du bloc changement sont possibles :
+        pour donner une information concernant le changement de situation du salarié, en début ou en
+           cours de mois (exemple 1)
+        pour corriger une information donnée dans une DSN précédente (exemple 2)
+
+
+
+
+                Les blocs « changement » ne peuvent pas être utilisés pour modifier ou corriger une base assujettie ou
+                une cotisation individuelle.
+
+       Pour ce faire, il convient de se reporter à la fiche Changement de situation à effet rétroactif,
+
+
+
+
+© Agirc-Arrco                                                                                               juillet 2017
+                                     Bloc changement Contrat
+
+
+Exemple 1
+
+Information d’un changement dans le contrat de travail
+
+
+Salarié Cadre à temps plein en janvier 2017, cotisant à temps partiel à partir du 1er juillet 2017.
+
+
+
+
+                          Codification DSN attendue pour le mois déclaré de juillet 2017
+
+                Rubrique                          Code rubrique                             Valeur rubrique
+   Date du mois principal déclaré                  S20.G00.00.005                01072017
+
+                                                                                 04 - autres cadres au sens de la
+   Statut du salarié (conventionnel)               S21.G00.40.002                convention collective (ou du statut pour
+                                                                                 les régimes spéciaux)
+   Code statut catégoriel Retraite
+                                                   S21.G00.40.003                01 - cadre (article 4 et 4bis)
+   Complémentaire obligatoire
+   Modalité d’exercice du temps de
+                                                   S21.G00.40.014                20 – temps partiel
+   travail
+
+   Date de la modification                         S21.G00.41.001                01072017
+
+   Ancienne modalité d’exercice du
+                                                   S21.G00.41.008                10 – temps plein
+   temps de travail
+
+   Profondeur de recalcul de la paie               S21.G00.41.028                01072017
+
+   Code régime Retraite                            S21.G00.71.002                RETC - Retraite complémentaire ARRCO
+   Complémentaire                                                                et AGIRC
+
+
+
+
+© Agirc-Arrco                                                                                                       juillet 2017
+                                     Bloc changement Contrat
+
+Exemple 2
+
+Correction d’une information erronée déclarée dans une DSN précédente
+
+
+Apprenti ayant été déclaré à tort comme un salarié non cadre depuis le 1er janvier 2017, information corrigée dans la
+DSN de juillet 2017.
+
+       au niveau du bloc Contrat, pour le mois principal déclaré, il doit être déclaré la valeur '64 – contrat
+        d'apprentissage' en rubrique S21.G00.40.008 - Dispositif de politique publique et conventionnel
+
+       la correction des mois précédents s’effectue en utilisant le bloc changement de contrat, avec :
+        - 41.001 – Date de la modification = 1er jour du mois principal déclaré
+        - 41.005 – Ancien dispositif de politique publique et conventionnel = 64
+        - 41.028 – Profondeur de recalcul de la paie = 01012017
+
+        Cette codification signifiant littéralement : du 01/01/2017 au 1er jour du mois principal déclaré, la
+        valeur du Dispositif de politique publique et conventionnel était '64 – contrat d'apprentissage'.
+
+
+
+                           Codification DSN attendue pour le mois déclaré de juillet 2017
+    Rubrique                                     Code rubrique                          Valeur rubrique
+    Date du mois principal déclaré                S20.G00.00.005             01072017
+                                                                             05 - profession intermédiaire (technicien,
+                                                                             contremaître, agent de maîtrise, clergé)
+                                                                                                      ou
+                                                                             06 - employé administratif d'entreprise, de
+    Statut du salarié (conventionnel)             S21.G00.40.002
+                                                                             commerce, agent de service
+                                                                                                      ou
+                                                                             07 - ouvriers qualifiés et non qualifiés y compris
+                                                                             ouvriers agricole
+    Code statut catégoriel Retraite
+                                                  S21.G00.40.003             04 - non cadre
+    Complémentaire obligatoire
+                                                                             01 - Contrat de travail à durée indéterminée de
+                                                                             droit privé
+                                                                                                     ou
+    Nature du contrat                             S21.G00.40.007             02 - Contrat de travail à durée déterminée de
+                                                                             droit privé
+                                                                                                     ou
+                                                                             08 - Contrat à durée indéterminée intérimaire
+                                                                             64 - Contrat d'apprentissage entreprises
+    Dispositif de politique publique et
+                                                  S21.G00.40.008             artisanales ou de moins de 11 salariés (loi du 3
+    conventionnel
+                                                                             janvier 1979)
+    Date de la modification                       S21.G00.41.001             01072017
+                                                                             64 - Contrat d'apprentissage entreprises
+    Ancien dispositif de politique publique et
+                                                  S21.G00.41.005             artisanales ou de moins de 11 salariés (loi du 3
+    conventionnel
+                                                                             janvier 1979)
+    Profondeur de recalcul de la paie             S21.G00.41.028             01012017
+    Code régime Retraite Complémentaire           S21.G00.71.002             RETA - Retraite complémentaire ARRCO
+
+
+
+
+© Agirc-Arrco                                                                                                    juillet 2017
+

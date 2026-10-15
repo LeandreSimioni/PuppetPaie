@@ -1,0 +1,74 @@
+SOURCE : https://www.insee.fr/fr/metadonnees/pcsese2017/rubriqueRegroupee/354b
+
+
+NomenclatureFicheController
+1766151120002
+pcsese2017
+categorieSocioprofessionnelleAgregee
+categorieSocioprofessionnelle
+rubriqueRegroupee
+354b
+">Accueil
+Définitions, méthodes et qualité
+Nomenclatures
+Nomenclatures des professions et catégories socioprofessionnelles
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Consulter la nomenclature de la PCS-ESE 2017
+Consulter la nomenclature de la PCS-ESE 2017
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Pour les emplois salariés des employeurs privés et publics, la PCS-ESE 2017 est une ventilation plus détaillée de la PCS.
+Les trois premiers caractères de ces deux nomenclatures sont communs, sauf pour les agriculteurs, artisans et commerçants salariés de leur exploitation ou de leur entreprise.
+Nomenclatures
+Date de publication :
+                        19/12/2025
+Recherche nomenclature
+Menu nomenclature
+Rechercher dans la nomenclature
+Tous les niveaux
+catégorie socioprofessionnelle agrégée
+catégorie socioprofessionnelle
+rubrique
+2025-12-19T14:31:59.978+01:00
+Catégorie socioprofessionnelle agrégée 3 : Cadres et professions intellectuelles supérieures
+Catégorie socioprofessionnelle 35 : Professions de l'information, des arts et des spectacles
+Rubrique 354b : Artistes de la musique et du chant
+Artistes  composant, dirigeant ou interprétant à l'aide de leur voix ou d'un instrument des oeuvres relevant de tout genre musical, dans le cadre d'un spectacle vivant ou audiovisuel. La rubrique peut inclure aussi bien des interprètes jouant seuls que des artistes appartenant à une formation ou dirigeant cette dernière. Elle inclut également les activités de direction musicale et de conseil artistique dans le domaine musical, excepté dans le cas où ces activités sont exercées de manière accessoire, en complément d'une activité de direction générale ou de conduite d'entreprise.
+Nomenclatures
+Dernière mise à jour le
+ : 19/12/2025
+Professions les plus typiques
+Artiste lyrique
+Chanteur de variétés
+Chanteur soliste
+Chef d'orchestre
+Chef des choeurs
+Choriste
+Compositeur (musique, chant
+Musicien choriste d'orchestre
+Musicien de variétés
+Musicien du rang
+Musicien soliste concertiste
+Musicien soliste d'orchestre
+Professions assimilées
+Accompagnateur (musique, chant)
+Accordeur
+Arrangeur (musique, chant)
+Assistant musical
+Assistant (musique, chant)
+Auteur-compositeur (-interprète)
+Chanteur compositeur/parolier
+Chanteur s.a.i
+Conseiller musical (artiste)
+Directeur artistique (musique, chant, artiste)
+Directeur musical (artiste)
+Garçon d'orchestre
+Intermittent du spectacle (musique, chant)
+Musicien
+Musicien copiste
+Répétiteur (musique, chant)
+Professions exclues
+Chansonnier (music hall, cabaret) (voir 354f)
+Chercheur (recherche publique) (art musical) (voir 342f, 342g, 342h)
+Professeur de musique (établissement d'enseignement secondaire et supérieur) (voir 341a, 342b à 342d)
+Professeur de musique (hors établissements scolaires) (voir 354g)
+Scénographe (théâtre lyrique) (voir 353c)

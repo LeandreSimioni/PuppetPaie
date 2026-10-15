@@ -1,0 +1,61 @@
+# Bloc S21.G00.44
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 240-240
+
+--- p. 240 ---
+  S21.G00.44  2025-12-24
+
+  N  [1,3]  CSL 00 : [9][9][0-9]|[1-8][0-9]?[0-9]?|[9][0-8]?[0-9]?
+
+Ancien FINESS géographique  S21.G00.41.065
+ChangementsContrat.AncienFinessGeo
+  Le numéro FINESS géographique assure l’immatriculation des établissements géographiques rattachés à
+  une même entité juridique.
+  Les modalités de sélection d'un numéro FINESS géographique lorsque plusieurs numéros sont applicables
+  pour un même contrat ont été définies par la DREES par voie de consigne.
+  Pour signaler que dans une DSN précédente la rubrique « FINESS géographique - S21.G00.40.081 » avait
+  été déclarée par erreur pour ce contrat (il n’y avait pas lieu de renseigner la rubrique pour ce contrat), cette
+  rubrique doit être renseignée avec le code ‘999999999’. Cette valeur a été créée pour permettre d’annuler
+  un numéro FINESS géographique précédemment déclaré à tort.
+
+  X  [9,9]
+
+S21.G00.44
+
+Assujettissement fiscal  S21.G00.44
+  Le renseignement de ce bloc permet la déclaration des assujettissements ou non-assujettissement à la taxe sur les
+  salaires et aux taxes annexes.
+
+  Si une entreprise n'est pas assujettie à une taxe, le motif correspondant à celle-ci comme pour exemple le code "010 -
+  Non assujettissement à la taxe sur les salaires" pour la taxe sur les salaires doit être renseigné dans la rubrique "Code
+  taxe - S21.G00.44.001".
+
+  Si une entreprise est assujettie à une taxe, au moins un bloc "Assujettissement fiscal - S21.G00.44" doit être présent
+  avec la rubrique "Code taxe - S21.G00.44.001" renseignée avec un motif correspondant à celle-ci comme pour
+  exemple le motif "009 - Assujettissement à la taxe sur les salaires" pour la taxe sur les salaires et la rubrique "Montant
+  - S21.G00.44.002" renseignée avec le montant de l'assiette de la taxe sur les salaires au taux normal pour l'ensemble
+  des salariés de l'entreprise.
+
+  Si l'entreprise présente une assiette soumise à taux majoré, doivent être présent autant de blocs "Assujettissement fiscal
+  - S21.G00.44" que nécessaire en y portant le motif correspondant au taux majore d'assujettissement et le montant
+  d'assiette correspondant.
+
+Code taxe  S21.G00.44.001
+Montant  S21.G00.44.002
+Millésime de rattachement  S21.G00.44.003
+Motif de non assujettissement à la taxe d'apprentissage  S21.G00.44.004
+
+Code taxe  S21.G00.44.001
+AssujettissementFiscal.CodeTaxe
+  CCH-11 : Si la rubrique "Code taxe - S21.G00.44.001" est renseignée avec la valeur "005 - Assujettissement à la
+  participation des employeurs à l'effort de construction (PEEC)", "009 - Assujettissement à la taxe sur les salaires",
+  "015 - Assiette de la taxe sur les salaires au premier taux" ou "016 - Assiette de la taxe sur les salaires au deuxième
+  taux", alors la rubrique "Montant - S21.G00.44.002" est obligatoire.
+
+  CCH-12 : Si la rubrique "Code taxe - S21.G00.44.001" est renseignée avec la valeur "002 - Non assujettissement à la
+  taxe à l'apprentissage", "004 - Non assujettissement à la contribution supplémentaire à l’apprentissage", "006 - Non
+  assujettissement à la participation des employeurs à l'effort de construction (PEEC)", "008 - Non assujettissement à la
+  contribution à la formation professionnelle (CFP)", "010 - Non assujettissement à la taxe sur les salaires" ou "014 -
+  Non assujettissement à la contribution dédiée au financement du Compte Personnel de Formation pour les titulaires de
+  CDD (CPF-CDD)", alors la rubrique "Montant - S21.G00.44.002" est interdite.
+
+  240 / 361

@@ -1,0 +1,62 @@
+SOURCE : https://www.insee.fr/fr/metadonnees/pcsese2017/rubriqueRegroupee/353b
+
+
+NomenclatureFicheController
+1766151120002
+pcsese2017
+categorieSocioprofessionnelleAgregee
+categorieSocioprofessionnelle
+rubriqueRegroupee
+353b
+">Accueil
+Définitions, méthodes et qualité
+Nomenclatures
+Nomenclatures des professions et catégories socioprofessionnelles
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Consulter la nomenclature de la PCS-ESE 2017
+Consulter la nomenclature de la PCS-ESE 2017
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Pour les emplois salariés des employeurs privés et publics, la PCS-ESE 2017 est une ventilation plus détaillée de la PCS.
+Les trois premiers caractères de ces deux nomenclatures sont communs, sauf pour les agriculteurs, artisans et commerçants salariés de leur exploitation ou de leur entreprise.
+Nomenclatures
+Date de publication :
+                        19/12/2025
+Recherche nomenclature
+Menu nomenclature
+Rechercher dans la nomenclature
+Tous les niveaux
+catégorie socioprofessionnelle agrégée
+catégorie socioprofessionnelle
+rubrique
+2025-12-19T14:31:59.978+01:00
+Catégorie socioprofessionnelle agrégée 3 : Cadres et professions intellectuelles supérieures
+Catégorie socioprofessionnelle 35 : Professions de l'information, des arts et des spectacles
+Rubrique 353b : Directeurs, responsables de programmation et de production de l'audiovisuel et des
+         spectacles
+Professionnels dont la tâche est
+de définir et de conduire, dans les domaines cités, l'achat ou la réalisation de produits destinés à être présentés au public,
+d'établir le budget des actions engagées,
+d'en faire assurer l'exécution ou la programmation,
+d'en assumer, plus généralement, la responsabilité technique et financière.
+L'activité exercée est donc essentiellement une activité de direction générale ou correspond à des domaines d'intervention voisins, notamment en matière de programmation.
+Nomenclatures
+Dernière mise à jour le
+ : 19/12/2025
+Professions les plus typiques
+Administrateur d'entreprise de spectacles
+Administrateur de production (audiovisuel, spectacles)
+Administrateur de théâtre
+Directeur d'entreprise de spectacles
+Directeur de production (audiovisuel, spectacles)
+Directeur de salle de concert
+Directeur de théâtre, cadre
+Gérant de théâtre
+Producteur réalisateur (cinéma, audiovisuel)
+Producteur (cinéma, audiovisuel)
+Professions assimilées
+Chef d'unité de production (audiovisuel) cadre
+Gérant (production de films ou d'éditions audiovisuelles)
+Producteur délégué (cinéma, audiovisuel)
+Producteur exécutif (cinéma, audiovisuel)
+Professions exclues
+Réalisateur (cinéma, audiovisuel) (voir 353c)

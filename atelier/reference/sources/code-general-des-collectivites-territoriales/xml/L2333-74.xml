@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000043343010</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/43/34/30/LEGIARTI000043343010.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L2333-74</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2022-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006070633" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code général des collectivités territoriales" debut="1996-02-24" fin="2999-01-01" id_txt="LEGITEXT000006070633">Code général des collectivités territoriales</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006088000">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006116628">DEUXIÈME PARTIE : LA COMMUNE</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006135493">LIVRE III : FINANCES COMMUNALES</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006149245">TITRE III : RECETTES</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006164579">CHAPITRE III : Taxes, redevances ou versements non prévus par le code général des impôts</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2014-01-29" id="LEGISCTA000006181011">Section 8 : Versement destiné aux transports en commun</TITRE_TM>
+<TITRE_TM debut="2014-01-29" fin="2019-12-27" id="LEGISCTA000028534273">Section 8 : Versement destiné aux transports</TITRE_TM>
+<TITRE_TM debut="2019-12-27" fin="2999-01-01" id="LEGISCTA000039802388">Section 8 : Versement destiné au financement des services de mobilité</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1996-02-24" etat="MODIFIE" fin="2010-01-01" id="LEGIARTI000006390706" num="L2333-74" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2010-01-01" etat="MODIFIE" fin="2014-11-08" id="LEGIARTI000021664614" num="L2333-74" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2014-11-08" etat="MODIFIE" fin="2015-01-01" id="LEGIARTI000029736994" num="L2333-74" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE_MORT_NE">
+<LIEN_ART debut="2015-01-01" etat="MODIFIE_MORT_NE" fin="2014-12-30" id="LEGIARTI000029336328" num="L2333-74" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2015-01-01" etat="MODIFIE" fin="2015-08-09" id="LEGIARTI000030023833" num="L2333-74" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2015-08-09" etat="MODIFIE" fin="2022-01-01" id="LEGIARTI000031104832" num="L2333-74" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2022-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000043343010" num="L2333-74" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément aux dispositions prévues par l'article 12 de l'ordonnance n° 2021-408 du 8 avril 2021 relative à l'autorité organisatrice des mobilités des territoires lyonnais, ces dispositions entrent en vigueur le 1er janvier 2022, qui est la date de création de l'autorité organisatrice des mobilités des territoires lyonnais, à l'exception des articles 10 et 11, qui entrent en vigueur le lendemain de la date de publication de l'ordonnance.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>La commune ou l'établissement public est habilité à effectuer tout contrôle nécessaire à l'application des articles L. 2333-69, au I de l'article L. 2333-70 et L. 2333-71. 
+</p>
+<p>La métropole de Lyon ou, le cas échéant, l'autorité organisatrice des mobilités des territoires lyonnais est également habilitée à exercer, dans son périmètre, des contrôles de même nature.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000334814" datesignatexte="1973-07-11" id="LEGIARTI000006399848" naturetexte="LOI" nortexte="" num="6" numtexte="73-640" sens="source" typelien="CONCORDANCE">Loi n°73-640 du 11 juillet 1973 - art. 6 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000043339522" datesignatexte="2021-04-08" id="LEGIARTI000043340594" naturetexte="ORDONNANCE" nortexte="TRAT2035106R" num="3" numtexte="2021-408" sens="cible" typelien="MODIFIE">Ordonnance n°2021-408 du 8 avril 2021 - art. 3</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000052040642" naturetexte="CODE" nortexte="" num="D2333-90" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. D2333-90 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000006390701" naturetexte="CODE" nortexte="" num="L2333-69" numtexte="" sens="source" typelien="CITATION">Code général des collectivités territoriales - art. L2333-69</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000006390702" naturetexte="CODE" nortexte="" num="L2333-70" numtexte="" sens="source" typelien="CITATION">Code général des collectivités territoriales - art. L2333-70</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000017873433" naturetexte="CODE" nortexte="" num="L5722-7-1" numtexte="" sens="source" typelien="CITATION">Code général des collectivités territoriales - art. L5722-7-1</LIEN>
+</LIENS>
+</ARTICLE>

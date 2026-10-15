@@ -1,0 +1,54 @@
+# Bloc S21.G00.12
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 148-148
+
+--- p. 148 ---
+  S21.G00.12  2025-12-24
+
+Opérateur de compétences (OPCO)  S21.G00.11.023
+Etablissement.OperateurCompetences
+  Les opérateurs de compétences (OPCO) ont pour missions notamment de financer les dispositifs en
+  alternance, d’aider les branches à construire les certifications professionnelles et d’accompagner les PME
+  pour définir leurs besoins en formation.
+  Chaque établissement est rattaché à un OPCO, soit via sa convention collective, soit, en son absence, via
+  une adhésion à l’OPCO dont le champ professionnel correspond à son activité. Des règles spécifiques sont
+  prévues pour l’Outre-Mer.
+  CRE-11 : Valeurs autorisées
+
+  X  [2,2]  Table OPCO - Opérateur de compétences
+
+Demande de sortie de la DSN  S21.G00.11.024
+Etablissement.DemandeSortieDSN
+  Lorsqu'un établissement souhaite sortir du dispositif DSN, il est possible d'en faire la demande aux
+  organismes de Sécurité sociale (MSA, Urssaf CN) en renseignant cette rubrique avec la valeur « 01 -
+  Demande de sortie de la DSN ».
+  CCH-11 : La rubrique « Demande de sortie de la DSN - S21.G00.11.024 » n'est autorisée que si la rubrique « Type -
+  S20.G00.05.002 » est renseignée avec la valeur « 02 - déclaration normale sans individu » ou « 05 - annule et remplace
+  sans individu ». Dans le cas contraire cette rubrique est interdite.
+  Ce contrôle vise à ce qu'une demande de sortie de la DSN ne soit pas déclarée dans des DSN contenant des individus.
+
+  X  [2,2]
+
+  01 - Demande de sortie de la DSN
+
+Identifiant du Service de Prévention et de Santé au Travail (SPST)  S21.G00.11.025
+Etablissement.IdentifiantServicePreventionSanteTravail
+  Cette rubrique doit être renseignée par l'identifiant du service de prévention et de santé au travail (SPST).
+  La définition de cet identifiant est précisée dans la fiche consigne dédiée.
+
+  X  [1,14]
+
+S21.G00.12
+
+Coordonnées bancaires spécifiques  S21.G00.12
+  Ce bloc permet à l’établissement de déclarer les coordonnées bancaires du compte sur lequel les organismes de
+  protection sociale doivent effectuer les virements des aides attribuées dans le cadre de divers dispositifs.
+
+Type d'usage  S21.G00.12.001
+BIC  S21.G00.12.002
+IBAN  S21.G00.12.003
+
+Type d'usage  S21.G00.12.001
+PaiementAide.TypeUsage
+  Définit les modalités d’utilisation des coordonnées bancaires.
+
+  148 / 361

@@ -1,0 +1,1705 @@
+Guide Urssaf : comment déclarer et régulariser les cotisations Urssaf en DSN
+                                               Version 5.1
+                    (Mise à jour du 04/06/2026 par rapport à la version 5.0 du 24/02/2026
+
+
+
+  Important :
+  A partir de la période d’emploi de janvier 2022, la DSN pour l’Urssaf doit être complétée dans une
+  logique d’équivalence entre la maille agrégée (bloc 23) et individuelle (Blocs 78,79 et 81) : Ce guide
+  détaille les rubriques à compléter dans la DSN à l’aide d’un tableur accessible via ce document.
+  La nouvelle version comporte :
+      •   Dans le tableur DIDA, l’ajout :
+             o Des CTP 713 / 875 / 840 / 678 (CNMSS),
+             o Des CTP 461 et 361 (temps partiel RATP),
+             o Des CTP Mayotte LODEOM et taux réduits (327, 082, 083, 679 , 295, 387,
+                     192 et 059),
+                o  Des modifications pour les CTP Apprentis fonction publique 803, 805 et 930 (code
+                   de cotisation individuelle 003 attendue aussi sous la base assujettie plafonnée.
+             o D’autres modifications sont consultables en sélectionnant la version la plus récente
+                   du tableur.
+      •   Dans le présent guide,
+                o    Des modalités déclaratives attendues sont détaillées uniquement dans le tableur
+                     DIDA à partir de la version 5.0. (page 8),
+                o    A compter de la prochaine version du présent guide (5.2), le tableur DIDA
+                     sans bloc 82 sera décommissionné,
+                o    A compter de 2027, seul le tableur DIDA sur open.urssaf sera accessible.
+
+ Cette version est en adéquation avec le cahier technique 2026.1.0 et les versions ultérieures.
+
+
+
+
+                                                       1
+Table des matières
+1. DECLARER SES COTISATIONS URSSAF EN DSN ......................................................................................................................... 4
+      1.1. PRINCIPES ASSOCIES AUX DECLARATIONS DES COTISATIONS AUX URSSAF EN DSN .................................................................. 4
+      1.2. COMMENT LIRE LA DESCRIPTION DES DONNEES A PORTER EN DSN, PAR CTP : ..................................................................... 7
+      1.3. UTILISER LES DIFFERENTS FORMATS DES CTP : ............................................................................................................... 9
+      1.4. DECLARATION DU TAUX ACCIDENT DE TRAVAIL (AVEC UN SEUL ET PLUSIEURS TAUX) : ........................................................... 10
+      CTP 100 RG, cas général (avec un seul taux AT) ....................................................................................................... 11
+      CTP 100 RG, cas général avec taux AT multiples ...................................................................................................... 13
+      1.5. ALIMENTATION DES RUBRIQUES LIEES AUX EFFECTIFS ..................................................................................................... 15
+      1.6. GESTION DES ARRONDIS POUR LES DECLARATIONS DE COTISATIONS .................................................................................. 15
+
+2. PRINCIPES LIES A L’USAGE DES CTP CLOTURES ...................................................................................................................... 16
+
+      2.1. PRINCIPES ASSOCIES A LA DECLARATION DE CTP CLOTURES EN DSN ................................................................................. 16
+      2.2. LISTE RECAPITULATIVE DES CTP CLOTURES .................................................................................................................. 16
+
+3. PRINCIPES DE REGULARISATION DES COTISATIONS SOCIALES EN DSN .................................................................................. 17
+
+      3.1. CADRE JURIDIQUE ET DEFINITION ............................................................................................................................... 17
+      3.2. DECLARATION DES REGULARISATIONS SUIVANT LES PRINCIPES DE LA DSN .......................................................................... 18
+      3.3. CONSIGNES PRATIQUES DE DECLARATION DES REGULARISATIONS DE COTISATIONS SOCIALES EN DSN....................................... 18
+      3.3.1. Déclaration des régularisations à maille agrégée et nominative .................................................................... 18
+      3.3.2. Illustration dans le fichier DSN ....................................................................................................................... 20
+      3.3.3. Cas d’une DSN comportant un élément de rémunération brut négatif .......................................................... 21
+      3.4. REGULARISATION EN CAS DE CHANGEMENT DE SITUATION .............................................................................................. 23
+      3.5. FOCUS SUR LES CAS DE REGULARISATIONS DE TAUX ....................................................................................................... 23
+      3.6. CONSIGNE D’IMPUTATION DES DEDUCTIONS BASEES SUR LE CUMUL ANNUEL DES REMUNERATIONS ......................................... 23
+
+4. FOCUS SUR LES RAPPELS DE PAIE POUR LES SALARIES MUTES ET LES TRANSFERTS D’ETABLISSEMENT ................................. 24
+
+5. CONSIGNES POUR LES DECLARATIONS DE TYPE SANS INDIVIDU (NEANT) ............................................................................. 25
+
+6. CONSIGNES SUR LE PAIEMENT DES COTISATIONS EN DSN .................................................................................................... 26
+
+      6.1. QUELQUES RAPPELS POUR UNE BONNE GESTION DU PAIEMENT........................................................................................ 26
+      6.2. COMMENT ALIMENTER LES DONNEES DE PAIEMENT EN DSN ........................................................................................... 26
+      6.3. LE SERVICE DE TELEPAIEMENT ................................................................................................................................... 26
+      6.4. LA REPRISE DE CREDIT ............................................................................................................................................. 27
+
+7. ZOOM SUR LA RUBRIQUE « ENTITE D’AFFECTATION » .......................................................................................................... 29
+
+8. LA FIABILISATION DES DONNEES DE LA DSN ......................................................................................................................... 30
+
+      8.1. LES CONTROLES DECLARATIFS ................................................................................................................................... 30
+      8.2. LA FIABILISATION DE LA REDUCTION GENERALE DEGRESSIVE UNIQUE (RGDU) DES COTISATIONS SOCIALES ................................ 33
+      8.3. LA FIABILISATION DU MONTANT NET SOCIAL ................................................................................................................ 36
+
+9. LES SERVICES COMPLEMENTAIRES DE L’URSSAF ................................................................................................................... 39
+
+10. ÉTABLIR UNE DSN POUR DES CLIENTS ADHERANT AU TESE, AU CEA OU AU TFE ................................................................. 40
+
+      10.1. LE CONTEXTE....................................................................................................................................................... 40
+      10.2. LES POINTS D’ATTENTION....................................................................................................................................... 40
+      10.3. CONTACTS .......................................................................................................................................................... 41
+
+
+
+
+                                                                                              2
+Introduction - Objectif du document
+Le présent guide, complémentaire au cahier technique de la norme NeoDes, a notamment pour objet de vous
+accompagner dans l’établissement des déclarations que vous réalisez, via la déclaration sociale nominative, à
+destination de votre Urssaf.
+Il traite notamment dans ce cadre :
+    -   Des modalités de déclaration des données individuelles et agrégées associées aux codes types de personnels
+        (CTP)
+    -   Des principes et modalités de régularisation
+Le guide en version 3.XX décrit les modalités déclaratives attendues dans une DSN de norme 2021 et ultérieure. Pour
+une DSN de norme 2020, le guide en version 2.XX est le document de référence.
+Pour les situations dans lesquelles il n’y aurait que des données agrégées à déclarer, il est possible de se référer aux
+outils documentaires habituels tels que le site urssaf.fr ou dsn-info.fr.
+Il documente également les modalités de paiement associées à l’utilisation du télépaiement et récapitule les offres à
+votre disposition pour consulter les données de votre compte.
+Axé principalement sur les seules pratiques déclaratives, il n’a en revanche pas vocation à aborder les aspects
+règlementaires et législatifs, qui restent à votre disposition via les moyens habituels et notamment par la
+consultation des informations du site urssaf.fr.
+
+
+
+
+                                                           3
+1. Declarer ses cotisations Urssaf en DSN
+1.1. Principes associés aux déclarations des cotisations aux Urssaf en DSN
+
+La déclaration des cotisations aux Urssaf en DSN comprend une partie « agrégée » et une partie nominative :
+
+Au niveau agrégé, la déclaration des cotisations Urssaf est opérée par Code Type de Personnel.
+Les cotisations agrégées sont regroupées par bordereau de cotisation (matérialisé par les données du bloc « Bordereau
+de cotisation due - S21.G00.22 »), lequel ne peut porter que les cotisations et réductions d’un mois civil.
+Le bloc « Cotisation agrégée - S21.G00.23 » est le bloc de référence pour déclarer chaque type de cotisation Urssaf.
+La cotisation agrégée est une cotisation ou un total de cotisations dont l’établissement est redevable.
+Il existe 6 rubriques attachées à ce bloc :
+
+    •   S21.G00.23.001 : code de cotisation, qui identifie la cotisation ou la réduction.
+               Le code de cotisation correspond à la notion de code type de personnel (CTP), dont la table est
+               consultable sur le site urssaf.fr via le lien suivant :ici
+               Cette table présente pour chaque code type son libellé, son format, ses taux et spécificités, sous deux
+               types de fichier distincts, l’un de type CSV, l’autre de type XML.
+
+    •   S21.G00.23.002 : qualifiant assiette.
+               Associé obligatoirement au code de cotisation, il permet de distinguer les assiettes plafonnées (valeur
+               « 921 » de la donnée) des autres assiettes (valeur « 920 » de la donnée).
+
+    •   S21.G00.23.003 : taux de cotisation.
+               Seuls les taux de cotisation « Accident du travail », « Versement mobilité » et « Bonus malus » doivent
+               être déclarés.
+               Pour savoir si un taux AT doit être déclaré pour un salarié, vous devez vous référer à la réglementation
+               en vigueur que vous trouverez sur le lien suivant :ici
+                Aucun autre taux qu’AT et VM ne doit être déclaré.
+
+    •   S21.G00.23.004 : montant d’assiette.
+               Il correspond au total des sommes assujetties à la cotisation.
+
+    •   S21.G00.23.005 : montant de cotisation.
+               La donnée est renseignée du montant total de la réduction.
+
+    •   S21.G00.23.006 : code INSEE Commune.
+               Cette donnée, à ne pas confondre avec le code postal, permet de valoriser l’assujettissement au
+               versement mobilité.
+               Ce code est à renseigner de façon obligatoire dès lors que l’entreprise est assujettie au versement
+               mobilité, et pour chaque commune au titre de laquelle le versement mobilité est dû, y compris en cas
+               de similarité de taux.
+               Il est à noter qu’en cas de rejet d’une ligne de cotisation associée au CTP 900 en raison d’une absence
+               de code commune INSEE, une régularisation du déclarant est attendue dans la DSN du mois suivant.
+
+
+
+                                                          4
+Au niveau nominatif, il est prévu que soient déclarés pour chaque versement :
+   •   Certains éléments de revenu brut (remboursement de frais professionnels, valorisation des avantages en
+       nature, etc.) ;
+       Dans une déclaration mensuelle, pour un contrat (S21.G00.40) et un versement individu (S21.G00.50) donnés,
+       les rémunérations de type « 001 - Rémunération brute non plafonnée », « 002 - Salaire brut soumis à
+       contributions d’Assurance chômage », « 003 - Salaire rétabli reconstitué » et « 010 - Salaire de base » sont
+       requises dans la rubrique « Type - S21.G00.51.011 ». En cas de rémunération nulle ou d’absence de
+       rémunération, le montant à inscrire dans chacune de ces rubriques est « 0.00 ».
+
+   •   Les bases assujetties (somme des montants assujettis de manière homogène à une ou plusieurs cotisations) -
+       bloc « Base assujettie - S21.G00.78 » ;
+
+
+           o   Attention : les dates de début et de fin de période de rattachement (rubriques S21.G00.78.002 et
+               S21.G00.78.003) sont à mentionner systématiquement. En période courante (hors régularisation),
+               elles sont, sauf exception, à valoriser respectivement du 1er et dernier jour du mois civil de la période
+               d’emploi.
+
+
+                   ▪   Cependant, des exceptions à cette consigne justifient une datation infra mensuelle, dont la
+                       liste disponible sur dsn-info.fr :ici
+
+
+   •   Les composants de base assujettie constituant des parties de bases assujetties autres que des éléments de
+       revenu brut (par exemple, le montant du SMIC retenu pour le calcul de la réduction générale des cotisations
+       patronales) - bloc « Composant de base assujettie - S21.G00.79 » ;
+
+
+   •   Les cotisations individuelles (bloc S21.G00.81) : Chaque cotisation individuelle est rattachée à la base
+       assujettie juridique correspondante. Le taux de cotisation (S21.G00.81.007) est indiqué pour chaque code de
+       cotisation : Les cotisations sont complétées par le schéma : assiette x taux de cotisation.
+       Aucun taux n’est attendu pour les réductions et les exonérations et les cotisations forfaitaires.
+       La liste des codes de cotisation est consultable dans le cahier technique de la norme.
+       Les cotisations individuelles du bloc S21.G00.81 assises sur une base forfaitaire doivent être rattachées
+       uniquement à la base assujettie forfaitaire de type « 11 - Base forfaitaire soumise aux cotisations de Sécurité
+       sociale » en lieu et place des bases assujetties plafonnées (02) et déplafonnées (03).
+       Lorsqu’une base assujettie est dédiée à une cotisation/contribution, par exemple de type « 04 - Assiette de la
+       contribution sociale généralisée » ou « 57 - Assiette du versement mobilité », son usage doit perdurer même
+       en cas de base forfaitaire.
+
+
+
+
+                                                          5
+         Exemple de l’attendu pour l’assiette brute déplafonnée du CTP 100 :
+    Les rubriques « Code de cotisation - S21.G00.81.001 » contenant les valeurs 045, 068, 074,075 et 076* sont
+    rattachées à un bloc « Base assujettie - S21.G00.78 » de type « 03 - Assiette brute déplafonnée ».
+    •    Rubrique « Code de cotisation » (S21.G00.81.001) : 045, 068, 074, 075 et 076
+    •    Rubrique « Identifiant organisme de protection sociale » (S21.G00.81.002) : Siret de l’Urssaf
+    •    Rubrique « Montant d’assiette » (S21.G00.81.003) : XXXX.XX €
+    •    Rubrique « Montant de cotisation » (S21.G00.81.004) : XXXX.XX €
+    •    Rubrique « Code INSEE commune » (S21.G00.81.005) : non renseigné
+    •    Rubrique « Identifiant du CRM à l'origine de la régularisation » (S21.G00.81.006) : non renseigné
+    •    Rubrique « Taux de cotisation » (S21.G00.81.007) : XX.XXX
+*Ces valeurs correspondent aux cotisations :
+    •    045 : cotisation accident du travail
+    •    068 : contribution solidarité autonomie
+    •    074 : cotisation allocation familiale - taux normal
+    •    075 : cotisation assurance maladie
+    •    076 : cotisation assurance vieillesse
+
+
+
+         1.1.1. Principe d’équivalence entre la maille agrégée et nominative
+
+
+Depuis le commencement de la DSN, pour l’Urssaf, le principe de cohérence est appliqué entre le niveau nominatif et
+agrégé : A partir de la norme 2021, la complétude des bocs 78,79 et 81 évolue vers une logique d’équivalence par
+rapport aux blocs 23 :
+
+
+
+
+                                                               6
+Exemple avec le CTP 100 :
+
+
+
+                               Blocs 78 avec
+                                  la base
+                                                              Blocs 81 avec le code de cotisation :
+                                 assujettie
+                                                              « 076 – Cotisation assurance vieillesse »
+                                plafonnée
+                                 (code 02)
+  Blocs 23 avec
+       les
+   qualifiants
+   921 et 920
+                                                              Blocs 81 avec les codes de cotisation :
+                                                              « 045 – Cotisation accident du travail »
+                               Blocs 78 avec la               « 068 – Contribution solidarité
+                               base assujettie                autonomie »
+                                déplafonnée                   « 074 – Cotisation allocation familiale -
+                                  (code 03)                   taux normal »
+                                                              « 075 – Cotisation assurance maladie »
+                                                              « 076 – Cotisation assurance vieillesse »
+
+
+
+
+Ce principe d’équivalence est détaillé dans un tableur pour chaque code type dans le paragraphe qui suit.
+
+1.2. Comment lire la description des données à porter en DSN, par CTP :
+
+Les modalités de déclaration des cotisations sociales destinées aux Urssaf sont décrites pour la très grande majorité
+des CTP. Pour chaque CTP, sont précisées :
+
+   •    Les règles de complétude de la DSN au niveau du bloc « Cotisation agrégée - S21.G00.23 » ;
+
+   •    Les règles de complétude de la DSN au niveau du bloc « Base assujettie - S21.G00.78 » et, le cas échéant, du
+        bloc « Composant de base assujettie - S21.G00.79 » et/ou « Cotisation individuelle - S21.G00.81 » ;
+   •    Les règles de complétude au niveau de certaines rubriques portées par d’autres blocs dans le cas où le type de
+        CTP utilisé implique que soient déclarés des éléments particuliers au niveau nominatif (exemple : contrat de
+        travail).
+
+A partir de la période d’emploi Janvier 2021, les CTP sont à alimenter dans la DSN à l’aide du tableur nommé
+« Guide_Urssaf_equivalenceDIDA » qui détaille les informations suivantes :
+
+    -   Le code du CTP
+    -   Le libellé du CTP
+    -   Le format du CTP (cf paragraphe 1.3)
+    -   La date d’effet de complétude : Cette date correspond au premier jour de la période d’emploi à laquelle
+        s’applique la complétude des modalités déclaratives décrites.
+    -   La rubrique « code de base assujettie » S21.G00.78.001 du bloc « base assujettie »
+    -   La rubrique « type de composant de base assujettie » S21.G00.79.001 du bloc « composant de base
+        assujettie »
+    -   Les rubriques du bloc « cotisation individuelle » (bloc 81)
+    -   Les rubriques du bloc « cotisation agrégée » (bloc 23)
+
+                                                          7
+    -   Des précisions sur la complétude
+    -   Version du tableau d’équivalence
+    -   A compter de janvier 2026, le tableur DIDA intégrera le bloc S21.G00.82 « Cotisation établissement (durant le
+        4ème trimestre 2025 deux versions du tableur sont proposées, avec et sans la complétude du bloc 82). Une
+        version de ce tableur est également disponible sur le site open.urssaf.fr
+
+
+Cliquez sur le lien ci-après pour consulter le tableur :
+
+
+
+
+Cliquez sur le lien ci-après pour consulter la version 2026 du tableur qui contient le bloc 82 :
+
+
+
+
+Cliquez sur le lien ci-après pour consulter le tableur sur open.urssaf.fr :
+
+
+
+
+Ces modalités déclaratives s’appliquent sur une DSN (y compris fractionnée) de norme 2022 et ultérieures.
+
+Pour rappel, en 2021, ces modalités déclaratives sont facultatives hormis les thèmes relatifs à la réduction générale
+des cotisations patronales, au versement mobilité, à l’assurance chômage et à la contribution sociale généralisée.
+
+Pour certains CTP, une fiche complète les modalités déclaratives décrites. L’existence d’une fiche est référencée dans
+la colonne « précisions sur la complétude ».
+
+Les fiches des CTP clôturés avant le 1er janvier 2021 sont conservées et décrivent l’alimentation attendue dans la DSN.
+Une fiche détaille pour chaque rubrique concernée :
+
+    •   Les spécificités associées au CTP sont indiquées en rouge ;
+        Exemple : Rubrique « Qualifiant d’assiette » (S21.G00.23.002) : 920
+    •   Les données associées à des variables sont indiquées en noir ;
+        Exemple : Rubrique « Montant d’assiette » (S21.G00.23.004) : XXXX.XX €
+    •   Les rubriques qui ne doivent pas apparaître sont indiquées en « non renseigné ».
+        Exemple : Rubrique « Code INSEE commune » (S21.G00.23.006) : non renseigné
+
+
+
+Les CTP sont classés en deux catégories : d’une part les CTP du socle de base, communs à tous les déclarants, et d’autre
+part les CTP correspondant à des situations particulières (mention figurant à côté du numéro de fiche). Enfin, les deux
+dernières parties précisent la définition de l’effectif fin de période de la rubrique « Alimentation des rubriques liées
+aux effectifs » et la « Gestion des arrondis pour les déclarations de cotisations ».
+
+
+                                                             8
+Pour aller plus loin dans la compréhension du contexte juridique et de l’utilisation d’un CTP, vous pouvez vous rendre
+ici.
+
+Le présent Guide n’a pas de valeur réglementaire, les éléments mis à disposition du déclarant le sont à titre indicatif :
+pour connaître les taux en vigueur pour les CTP ainsi que la manière de les déclarer il convient de se référer à la
+table des codes types accessible ici .
+
+
+
+1.3. Utiliser les différents formats des CTP :
+
+Les codes types de personnel sont différenciés selon leur format. Ce dernier est donné au CTP en fonction des taux
+applicables au CTP, au format de la cotisation ou aux particularités relatives à une population spécifique.
+En fonction du format du CTP que vous souhaitez déclarer, vous pouvez vous rapporter à un CTP de même format
+présent dans le guide et en déduire la manière de le déclarer.
+Le tableau ci-dessous décrit les différents formats de CTP (renseignés dans la table de référence en format.xlm) ainsi
+que leurs principales particularités :
+
+
+
+     Format                         Particularités                                           Exemples
+
+
+                                                                      A : CTP 100
+
+    A, D et K    Taux AT à renseigner                                 D : CTP 464 Exonération colporteurs de presse
+
+                                                                      K : CTP 628 / 629 (Journalistes)
+
+
+        E        Pas de taux AT à renseigner                          CTP 669 Régularisation de réduction générale étendue
+
+                 Format utilisé pour déclarer une déduction de
+                                                                      CTP 668 Réduction générale étendue
+                 cotisation
+        F
+                 Les CTP de format F ont la particularité de porter
+                 un signe négatif
+                 Format propre à la déclaration d’une réduction de
+                                                                      CTP 005
+                 cotisations sur heures supplémentaires
+        R
+                 Les CTP de format R ont la particularité de porter
+                 un signe négatif
+
+        Y        Ce format s’applique uniquement pour le CTP 901      CTP 901 Versement Mobilité Additionnel
+
+                 Ce format s’applique notamment pour les lignes       CTP 900 Versement Mobilité
+        Z
+                 mobilité (hors VMRR)
+
+                                                                      CTP 725 Bonus Malus Assurance Chômage
+        V        Taux à renseigner hors taux AT
+                                                                      CTP 820 VMRR
+
+
+NB : Il est à noter que l’exploitation du format du code type de personnel permet de savoir si c’est le montant d’assiette
+ou le montant de cotisation qui doit être complété en DSN.
+
+
+                                                               9
+Ainsi, le montant associé au code type devra systématiquement être porté dans la rubrique 23.004 (montant
+d’assiette), sauf si le CTP possède l'une des caractéristiques suivantes, auquel cas le montant associé au CTP devra
+être porté dans la rubrique 23.005 (montant de cotisation) :
+   •   Le CTP est de format "R" ou "F" dans la table des CTP de type CSV ;
+       Le CTP possède un format "fmtco" égal à "DED" dans la table des CTP de type XML.
+
+
+
+1.4. Déclaration du taux accident de travail (avec un seul et plusieurs taux) :
+
+
+
+
+                                                        10
+           CTP 100 RG, cas général (avec un seul taux AT)                                                                      A
+FICHE 1    CTP du socle de base, communs à tous les déclarants
+
+
+                                     CTP 100 RG, cas général (avec un seul taux AT)
+
+
+          Dans le cas présent, un seul taux AT est associé au code type de personnel 100.
+          Cette fiche complète les modalités déclaratives décrites dans le tableur (paragraphe 1.2)
+
+          Au niveau agrégé :
+          Deux Blocs « Cotisation agrégée - S21.G00.23 » sont à compléter, l’un avec un qualifiant d’assiette «
+          autre » (code 920), l’autre avec un qualifiant d’assiette « plafonnée » (code 921).
+          Le taux AT est porté par le bloc ayant un qualifiant d’assiette « autre ».
+          Bloc « Versement organisme de protection sociale - S21.G00.20 »
+
+          Bloc « Bordereau de cotisation due - S21.G00.22 »
+
+          Bloc « Cotisation agrégée - S21.G00.23 »
+          •     Code de cotisation (S21.G00.23.001) : 100
+          •     Qualifiant d’assiette (S21.G00.23.002) : 920
+          •     Taux de cotisation (S21.G00.23.003) : taux AT (1)
+          •     Montant d’assiette (S21.G00.23.004) : XXXX.XX €
+          •     Montant de cotisation (S21.G00.23.005) : non renseigné
+          •     Code INSEE commune (S21.G00.23.006) : non renseigné
+          Bloc « Cotisation agrégée - S21.G00.23 »
+          •      Code de cotisation (S21.G00.23.001) : 100
+          •      Qualifiant d’assiette (S21.G00.23.002) : 921
+          •      Taux de cotisation (S21.G00.23.003) : non renseigné
+          •      Montant d’assiette (S21.G00.23.004) : XXXX.XX €
+          •      Montant de cotisation (S21.G00.23.005) : non renseigné
+          •      Code INSEE commune (S21.G00.23.006) : non renseigné
+
+          (1) Le taux AT à utiliser est fixé par la CARSAT. Vous devez en conséquence vous référer à la notification que
+          celle-ci vous a adressée. Vous pouvez également en retrouver la teneur en adhérant à l’offre de service disponible
+          sur net-entreprises via l’adresse suivante : http://www.net-entreprises.fr/vos-declarations-en-ligne/compte-
+          atmp/#lessentiel.
+
+              Attention : pour les cas particuliers d’application des taux Accident du travail, il convient de se
+              référer à urssaf.fr ou à votre CARSAT
+
+
+          Au niveau nominatif :
+          L’alimentation des rubriques des blocs 78,79 et 81 est détaillée dans le tableur intégré dans le
+          paragraphe 1.2.
+          Il est précisé que :
+
+                -   La rubrique « Type de Composant de base assujettie - S21.G00.79.001 » est à alimenter de la
+                    valeur « 01 - Montant du SMIC retenu pour le calcul de la Réduction générale des cotisations
+                    patronales de Sécurité sociale, de retraite complémentaire, d'assurance chômage et de la
+
+
+                                                                 11
+           CTP 100 RG, cas général (avec un seul taux AT)                                                              A
+FICHE 1    CTP du socle de base, communs à tous les déclarants
+
+                  réduction de cotisation Allocations familiales » lorsque la rémunération du salarié est éligible
+                  au taux réduit d’allocation familiale, et/ou au taux réduit de cotisation maladie.
+              -   Le montant d’assiette du bloc « Cotisation agrégée - S21.G00.23 » portant le qualifiant
+                  d’assiette 921 est égal à la somme des montants de base assujettie du bloc « Base assujettie -
+                  S21.G00.78 » portant les codes bases assujetties « 02 - assiette brute plafonnée » ou, le cas
+                  échéant, « 11 - base forfaitaire ».
+              -   Le montant d’assiette du bloc « Cotisation agrégée - S21.G00.23 » portant le qualifiant
+                  d’assiette 920 est égal à la somme des montants de base assujettie blocs « Base assujettie -
+                  S21.G00.78 » portant les codes bases assujetties code « 03 - Assiette brute déplafonnée » ou,
+                  le cas échéant, « 11 - base forfaitaire ».
+              -   Ce dispositif d’assiette forfaitaire permet de calculer les cotisations sociales, non pas sur le
+                  salaire réel, mais sur une base réduite.
+
+          Remarque :
+          En cas de contrats aidés, dans le bloc » Base assujettie - S21.G00.78 », les codes « 02 - Base plafonnée »
+          et « 03 - Base déplafonnée » intègrent l’assiette plafonnée et déplafonnée des contrats aidés (pour la
+          part exonérée et la part éventuelle non exonérée).
+          La somme des montants de base assujettie du bloc « Base assujettie - S21.G00.78 » est donc dans ce
+          cas égale au montant d’assiette plafonnée et déplafonnée du CTP 100 et du CTP correspondant au
+          contrat aidé. (Ex : CTP 726).
+
+          Attention : ni le CTP 101 ni le CTP 100 ne sont utilisables pour des régularisations sur des périodes
+          antérieures à janvier 2019 pour les établissements à Mayotte.
+
+
+
+
+                                                             12
+           CTP 100 RG, cas général (avec taux AT multiples)                                                          A
+FICHE 2    CTP du socle de base, communs à tous les déclarants
+
+
+                                  CTP 100 RG, cas général avec taux AT multiples
+
+
+          Dans ce cas, au moins deux taux AT différents sont associés au code type 100.
+          Cette fiche complète les modalités déclaratives décrites dans le tableur (paragraphe 1.2)
+
+          Au niveau agrégé :
+          Pour chacun des taux AT, deux Blocs « Cotisation agrégée - S21.G00.23 » sont à compléter, l’un avec
+          un qualifiant d’assiette « autre » (code 920), l’autre avec un qualifiant d’assiette « plafonnée » (code
+          921). Il est à noter que les Blocs « Cotisation agrégée - S21.G00.23 » portant les assiettes plafonnées
+          ne doivent pas être cumulés en un seul bloc, cette modalité pouvant conduire à un rejet des lignes
+          concernées en cas de régularisation :
+          Bloc « Versement organisme de protection sociale - S21.G00.20 »
+
+          Bloc « Bordereau de cotisation due - S21.G00.22 »
+
+          Bloc « Cotisation agrégée - S21.G00.23 »
+          •   Code de cotisation (S21.G00.23.001) : 100
+          •   Qualifiant d’assiette (S21.G00.23.002) : 920
+          •   Taux de cotisation (S21.G00.23.003) : taux AT n°1 (1)
+          •   Montant d’assiette (S21.G00.23.004) : XXXX.XX €
+          •   Montant de cotisation (S21.G00.23.005) : non renseigné
+          •   Code INSEE commune (S21.G00.23.006) : non renseigné
+          Bloc « Cotisation agrégée - S21.G00.23 »
+          •   Code de cotisation (S21.G00.23.001) : 100
+          •   Qualifiant d’assiette (S21.G00.23.002) : 921
+          •   Taux de cotisation (S21.G00.23.003) : non renseigné
+          •   Montant d’assiette (S21.G00.23.004) : XXXX.XX €
+          •   Montant de cotisation (S21.G00.23.005) : non renseigné
+          •   Code INSEE commune (S21.G00.23.006) : non renseigné
+          Bloc « Cotisation agrégée - S21.G00.23 »
+          •   Code de cotisation (S21.G00.23.001) : 100
+          •   Qualifiant d’assiette (S21.G00.23.002) : 920
+          •   Taux de cotisation (S21.G00.23.003) : taux AT n°2 (1)
+          •   Montant d’assiette (S21.G00.23.004) : XXXX.XX €
+          •   Montant de cotisation (S21.G00.23.005) : non renseigné
+          •   Code INSEE commune (S21.G00.23.006) : non renseigné
+          Bloc « Cotisation agrégée - S21.G00.23 »
+          •   Code de cotisation (S21.G00.23.001) : 100
+          •   Qualifiant d’assiette (S21.G00.23.002) : 921
+          •   Taux de cotisation (S21.G00.23.003) : non renseigné
+          •   Montant d’assiette (S21.G00.23.004) : XXXX.XX €
+          •   Montant de cotisation (S21.G00.23.005) : non renseigné
+          •   Code INSEE commune (S21.G00.23.006) : non renseigné
+
+
+                                                            13
+           CTP 100 RG, cas général (avec taux AT multiples)                                                                    A
+FICHE 2    CTP du socle de base, communs à tous les déclarants
+
+          (1) Le taux AT à utiliser est fixé par la CARSAT. Vous devez en conséquence vous référer à la notification que
+          celle-ci vous a adressée. Vous pouvez également en retrouver la teneur en adhérant à l’offre de service disponible
+          sur net-entreprises via l’adresse suivante :ici
+
+
+          Au niveau nominatif :
+          La complétude des blocs est la même qu’en cas de taux AT unique (cf. fiche n°1).
+
+
+
+
+                                                                 14
+1.5. Alimentation des rubriques liées aux effectifs
+
+
+Alimentation des rubriques S21.G00.11.008 - Effectif de fin de période déclarée de l’établissement
+et S21.G00.06.009 « Effectif moyen de l’entreprise au 31 décembre.
+
+
+Depuis la fin du déploiement de la DSN, l’Urssaf procède pour tous les employeurs au calcul des
+effectifs grâce aux données individuelles collectées dans la DSN.
+Ainsi, ces deux rubriques ne sont plus attendues.
+
+
+
+1.6. Gestion des arrondis pour les déclarations de cotisations
+
+
+Les arrondis sont effectués selon la règle de l'article L130-1 du Code de la Sécurité sociale, c'est à dire
+à l'euro le plus proche : la règle en DSN est donc identique à celle déjà appliquée en Ducs.
+Seules les données agrégées se voient appliquer un arrondi, selon la règle de l'article L130-1 précité.
+En revanche les données nominatives ne sont pas concernées par la règle d’arrondi et sont transposées
+dans la DSN en l'état (blocs « Base assujettie - S21.G00.78 » / « Composant de base assujettie -
+S21.G00.79 » / « Cotisation individuelle - S21.G00.81 »).
+Tous les montants des blocs « Cotisation agrégée - S21.G00.23 doivent être arrondis à l'euro le plus
+proche, qu’il s’agisse de montants d’assiette ou de montants de cotisations ;
+Les montants de cotisations des blocs « Versement organisme de protection sociale - S21.G00.20 » et
+« Bordereau de cotisation due - S21.G00.22 », supportent également la même règle d'arrondi.
+Sur un plan purement fonctionnel, ces sommes arrondies figurent dans la norme avec deux décimales
+après le point : ".00"
+Les sommes figurant dans la partie nominative de la DSN (blocs « Base assujettie - S21.G00.78 » / «
+Composant de base assujettie - S21.G00.79 » / « Cotisation individuelle - S21.G00.81 ») et qui sont
+arrondies dès le calcul de la paie (le plafond par exemple, ou certaines bases forfaitaires) sont
+transposées en l'état dans la DSN.
+
+
+Concernant les populations spécifiques qui font l’objet d’un abattement de cotisations (artistes,
+journalistes…), le taux d’accident de travail à deux décimales doit être abattu et arrondi à la décimale
+la plus proche.
+
+
+
+
+                                                    15
+2. Principes lies a l’usage des CTP
+clotures
+2.1. Principes associés à la déclaration de CTP clôturés en DSN
+
+La déclaration d’un CTP clôturé pour une période d’emploi postérieure à sa clôture est interdite. Pour
+obtenir la liste des CTP en vigueur, il convient de se référer à la table des CTP disponible sur urssaf.fr :ici
+
+En cas de déclaration, par erreur, d’un CTP clôturé pour une période d’emploi postérieure à sa clôture,
+il convient de régulariser sa situation le mois suivant. Les modalités déclaratives liées aux
+régularisations sont détaillées au sein du « Chapitre 3 - Principes de régularisation des cotisations
+sociales en DSN ».
+
+L’utilisation d’un CTP clôturé reste toutefois possible en cas de régularisation d’un montant d’assiette
+ou d’un CTP portant sur une période d’emploi antérieure à sa clôture.
+
+
+2.2. Liste récapitulative des CTP clôturés
+
+Cette liste a pour vocation de référencer les différents CTP clôturés. Il est disponible sur le site urssaf.fr
+à l’adresse suivante : ici
+
+
+
+
+                                                      16
+3. Principes de regularisation des
+cotisations sociales en DSN
+En DSN, les corrections d’erreur de cotisations sociales doivent être déclarées d’une période
+déclarative sur l’autre, au plus proche de la survenance de l’erreur. ;.
+De même, des rappels de salaire peuvent être versés, destinés à corriger une erreur relative au calcul
+de la rémunération due au titre d’une période d’activité antérieure, ce qui génère des corrections dans
+les déclarations de cotisations et contributions sociales.
+
+L’objectif de ce chapitre est de rappeler les principes associés à ces différentes corrections d’erreur de
+cotisations sociales (cadre juridique, périmètre associé) puis d’en décrire le mécanisme en DSN au mois
+le mois au travers d’exemples concrets. Le cas des régularisations associées à des corrections de taux
+fait l’objet d’une partie spécifique.
+
+
+3.1. Cadre juridique et définition
+En cas d’erreur constatée dans leurs déclarations portant sur une ou plusieurs cotisations ou
+contributions sociales (crédit ou débit envers l’organisme de recouvrement), les employeurs doivent
+procéder à une régularisation afin de réconcilier les montants déclarés avec le montant des cotisations
+sociales réellement dû à l’Urssaf.
+ En cas de correction d’une erreur relative au calcul de la rémunération due au titre d’une période
+d’activité antérieure (rappels de salaire), les cotisations et contributions sociales sont celles en vigueur
+au cours de la période au titre de laquelle ces rémunérations se rapportent. Lorsqu’un élément de
+rémunération est versé pour corriger une erreur relative à la paie d’une période antérieure, cette
+correction est ainsi rattachée à la période d‘emploi à laquelle elle se rapporte.
+
+Ce principe s’applique également si le rappel de salaire est versé en conséquence d’une décision de
+justice : les sommes sont rattachées à la période de travail donnant lieu aux rappels ordonnés par la
+décision de justice.
+
+Il est à noter qu’une correction est attendue dès lors qu’un élément de paie dû au salarié et devant
+donner lieu au versement de cotisations sociales n’a pas été déclaré ou a été incorrectement déclaré
+en paie.
+
+Exemple :
+Un employeur applique dans sa DSN de juin un taux de versement mobilité (VM) de 1,95%. Début
+juillet, il s’aperçoit que le taux applicable est en réalité de 2,5%, ce qui génère un débit de VM.
+Il est attendu une correction de cette erreur lors de l’échéance déclarative la plus proche, soit la DSN
+de juillet, dans laquelle on devra retrouver les éléments de correction soit en annule et remplace, soit
+en différentiel (voir ci-dessous). Sur la maille agrégée, seul le mode annule et remplace s’applique pour
+une correction de taux.
+Si un employeur verse en juillet un élément de rémunération due au titre du mois d’avril, alors cet
+élément de rémunération est rattaché au mois d’avril. Il est donc appliqué les taux et plafonds du mois
+d’avril.
+Il est attendu un bloc de correction d’avril dans la DSN du mois principal déclaré de juillet.
+
+                                                    17
+Pour rappel :
+    •   La période de rattachement est le mois civil de la période d’emploi
+    •   Le mois principal déclaré correspond au mois civil au cours duquel se termine la période de
+        paie,
+    •   Le fait générateur devant donner lieu à la déclaration de cotisations est la période d’emploi ;
+        les taux et plafonds applicables sont ceux de la période d’emploi.
+
+Exemple : Si la période d’emploi est avril et que l’élément de rémunération est versé en juillet, alors le
+fait générateur des cotisations et la période de rattachement sont avril. Il est attendu un bloc de
+régularisation d’avril dans la DSN de mois principal déclaré de juillet.
+
+
+3.2. Déclaration des régularisations suivant les principes de la DSN
+
+
+Une régularisation de cotisations sociales consiste à déclarer un montant assujetti à cotisations
+sociales pour une période donnée, dans le respect des principes fondamentaux de la DSN suivants :
+    •   Dès lors que des éléments sont à déclarer à la maille nominative, il faut qu’ils soient cohérents
+        avec les éléments agrégés. En effet les cotisations agrégées doivent porter l’ensemble des
+        éléments déclarés à maille individuelle ;
+    •   Les régularisations de cotisations sociales sont à affecter à chaque mois de survenance de
+        l’erreur ;
+    •   Tant que la date d’exigibilité n’est pas atteinte pour la déclaration courante, il est toujours
+        possible d’opérer une déclaration « Annule et Remplace » pour corriger une information
+        erronée, qu’elle soit portée par la déclaration courante ou par un bloc de régularisation
+        éventuellement associé.
+
+
+3.3. Consignes pratiques de déclaration des régularisations de cotisations sociales en
+DSN
+
+   3.3.1. Déclaration des régularisations à maille agrégée et nominative
+Une régularisation de cotisations sociales pour un mois M se déclare comme suit :
+
+À maille agrégée :
+        • Déclaration d’un bloc « Bordereau de cotisation due - S21.G00.22 » pour une période de
+            rattachement couvrant le mois M de survenance de l’erreur à régulariser ;
+        • Déclaration d’autant de Blocs « Cotisation agrégée - S21.G00.23 » qu’il y a de lignes de
+            cotisation à régulariser pour le mois M de rattachement du bordereau.
+
+À maille nominative :
+        • Déclaration d’autant de blocs « Base assujettie - S21.G00.78 », éventuellement de blocs «
+           Composant de base assujettie - S21.G00.79 » et blocs « Cotisation individuelle -
+           S21.G00.81 » qu’il y a de lignes de cotisation à régulariser pour le mois M de
+           rattachement du bordereau.
+
+
+                                                   18
+Il convient de noter que :
+        •   Seront déclarés autant de blocs « Bordereau de cotisation due - S21.G00.22 » qu’il y a de
+            mois de survenance d’erreurs à régulariser ;
+        •   Le bloc « Versement organisme de protection sociale - S21.G00.20 » est impacté par les
+            opérations de régularisation puisqu’il doit faire référence au détail des périodes affectées.
+            Un montant négatif est interdit en bloc « Versement organisme de protection sociale -
+            S21.G00.20 ».
+        •   La régularisation d’un CTP s’opère selon la nature de l’erreur :
+                o Si l’erreur porte sur une assiette, la régularisation s’opère en différentiel
+                o Si le CTP est incorrect alors il faut annuler le CTP tel que déclaré et redéclarer avec
+                    le bon CTP.
+                         ▪ Par exemple si vous avez utilisé le CTP A (assiette de 1000 et montant de
+                             cotisation de 50) alors que vous deviez utiliser le CTP B, il convient
+                             d’indiquer dans votre régularisation :
+                                 • Pour le CTP A : -1000 pour l’assiette et -50 pour le montant de
+                                      cotisation.
+                                 • Pour le CTP B : 1000 pour l’assiette et 50 pour le montant de
+                                      cotisation.
+                o Si le CTP est incorrect et qu’une erreur porte sur l’assiette alors il faut annuler le
+                    CTP tel que déclaré et redéclarer avec le bon CTP et inclure l’assiette
+                    complémentaire
+                         ▪ Par exemple si vous avez utilisé le CTP A (assiette de 1000 et montant de
+                             cotisation de 50) alors que vous deviez utiliser le CTP B et que vous avez
+                             indiqué une assiette de 1000 alors que vous deviez indiquer 1200, il
+                             convient d’indiquer dans votre régularisation :
+                                 • Pour le CTP A : -1000 pour l’assiette et -50 pour le montant de
+                                      cotisation
+                                 • Pour le CTP B : « 1200 » pour l'assiette ainsi que le montant de
+                                      cotisation correspondant 2.3.2 Datation des régularisations au
+                                      travers des périodes de rattachement
+
+Les régularisations de cotisations sociales doivent être datées du mois de survenance de l’erreur. La
+datation s’opère au travers de périodes de rattachement « Date de début / fin de période de
+rattachement » couvrant un mois unique.
+
+À maille agrégée :
+        • Datation en bloc « Bordereau de cotisation due - S21.G00.22 » des rubriques « Date de
+            début de période de rattachement - S21.G00.22.003 » et « Date de fin de période de
+            rattachement - S21.G00.22.004 » du mois de survenance de l’erreur à régulariser.
+
+À maille nominative :
+        • Datation en bloc « Base assujettie - S21.G00.78 » des rubriques « Date de début de période
+           de rattachement - S21.G00.78.002 » et « Date de fin de période de rattachement -
+           S21.G00.78.003 » du mois à de survenance de l’erreur à régulariser.
+
+
+
+
+                                                  19
+    3.3.2. Illustration dans le fichier DSN
+« J’oublie de verser la prime d’intéressement en mai et je la régularise sur la paie d’octobre. »
+
+À maille agrégée :
+Bloc « Versement organisme de protection sociale - S21.G00.20 » : période courante : octobre 2021
+•   Date de début de période de rattachement S21.G00.20.006 : 01102021
+•   Date de fin de période de rattachement S21.G00.20.007 : 31102021
+Mois M : bloc « Bordereau de cotisation due - S21.G00.22 » : période courante : octobre 2021
+•   Identifiant Organisme de Protection Sociale (S21.G00.22.001)
+•   Entité d'affectation des opérations (S21.G00.22.002)
+•   Date de début de période de rattachement (S21.G00.22.003) : 01102021
+•   Date de fin de période de rattachement (S21.G00.22.004) : 31102021
+•   Montant total de cotisations (S21.G00.22.005)
+    Mois M : bloc « Cotisation agrégée - S21.G00.23 »
+    •   Code de cotisation (S21.G00.23.001)
+    •   Qualifiant d'assiette (S21.G00.23.002)
+    •   Taux de cotisation (S21.G00.23.003) : pour déclaration du taux AT ou VM
+    •   Montant d'assiette (S21.G00.23.004)
+    •   Montant de cotisation (S21.G00.23.005)
+
+
+Bloc « Versement organisme de protection sociale - S21.G00.20 » : régularisation M-5
+•   Date de début de période de rattachement S21.G00.20.006 : 01052021
+•   Date de fin de période de rattachement S21.G00.20.007 : 31052021
+Mois M-5 : bloc « Bordereau de cotisation due - S21.G00.22 » : régularisation M-5
+•   Identifiant Organisme de Protection Sociale (S21.G00.22.001)
+•   Entité d'affectation des opérations (S21.G00.22.002)
+•   Date de début de période de rattachement (S21.G00.22.003) : 01052021
+•   Date de fin de période de rattachement (S21.G00.22.004) : 31052021
+•   Montant total de cotisations (S21.G00.22.005) : à déclarer en approche différentielle
+    Mois M-5 : bloc « Cotisation agrégée - S21.G00.23 » : autant de Blocs « Cotisation agrégée -
+    S21.G00.23 » qu’il y a de lignes de cotisation à régulariser pour le mois de rattachement du
+    bordereau.
+    •   Code de cotisation (S21.G00.23.001)
+    •   Qualifiant d'assiette (S21.G00.23.002)
+    •   Taux de cotisation (S21.G00.23.003) : pour déclaration du taux AT ou VM
+    •   Montant d'assiette (S21.G00.23.004)
+    •   Montant de cotisation (S21.G00.23.005)
+
+À maille nominative :
+Mois M : bloc « Versement individu - S21.G00.50 » période courante : octobre 2021
+•   Date de versement S21.G00.50.001 : 25102021
+•   Numéro de versement S21.G00.50.003
+
+                                                   20
+•   Montant net versé S21.G00.50.004
+    Mois M : bloc « Base assujettie - S21.G00.78 » période courante : octobre 2021
+    •   Code de base assujettie (S21.G00.78.001)
+    •   Date de début de période de rattachement (S21.G00.78.002) : 01102021
+    •   Date de fin de période de rattachement (S21.G00.78.003) : 31102021
+    •   Montant de base assujettie
+
+
+    Mois M-4 : bloc « Base assujettie - S21.G00.78 » régularisation M-5
+    •   Code de base assujettie (S21.G00.78.001)
+    •   Date de début de période de rattachement (S21.G00.78.002) : 01052021
+    •   Date de fin de période de rattachement (S21.G00.78.003) : 31052021
+    •   Montant de base assujettie
+
+Selon les cas de régularisation, il peut s’avérer nécessaire de créer des blocs « Composant de base
+assujettie – S21.G00.79 » et « Cotisation individuelle – S21.G00.81 ».
+Selon les cas de régularisation, il est nécessaire de créer des blocs « Composant de base assujettie -
+S21.G00.79 » et « Cotisation individuelle - S21.G00.81 ».
+
+    3.3.3. Cas d’une DSN comportant un élément de rémunération brut négatif
+Dans le cas d’un trop-versé au salarié pour une période antérieure à la période courante, l’assiette
+négative doit être rattachée à cette période antérieure.
+Le fait générateur devant donner lieu à la déclaration de cotisations est le versement de l’élément de
+rémunération ; les taux et plafonds applicables sont ceux du mois de versement de la rémunération
+trop perçue.
+Exemple : régularisation en octobre d’un trop versé à un salarié en janvier
+
+À maille agrégée :
+Bloc « Versement organisme de protection sociale - S21.G00.20 » : période courante : octobre 2021
+•   Date de début de période de rattachement (S21.G00.20.006) : 01102021
+•   Date de fin de période de rattachement (S21.G00.20.007) : 31102021
+Mois M : bloc « Bordereau de cotisation due - S21.G00.22 » : période courante : octobre 2021
+•   Identifiant Organisme de Protection Sociale (S21.G00.22.001)
+•   Entité d'affectation des opérations (S21.G00.22.002)
+•   Date de début de période de rattachement (S21.G00.22.003) : 01102021
+•   Date de fin de période de rattachement (S21.G00.22.004) : 31102021
+•   Montant total de cotisations (S21.G00.22.005)
+    Mois M : bloc « Cotisation agrégée - S21.G00.23 »
+    •   Code de cotisation (S21.G00.23.001)
+    •   Qualifiant d'assiette (S21.G00.23.002)
+    •   Taux de cotisation (S21.G00.23.003) : pour déclaration du taux AT ou VM
+    •   Montant d'assiette (S21.G00.23.004)
+    •   Montant de cotisation (S21.G00.23.005)
+
+
+                                                  21
+    Mois M-9 : bloc « Bordereau de cotisation due - S21.G00.22 » : régularisation M-9
+    •   Identifiant Organisme de Protection Sociale (S21.G00.22.001)
+    •   Entité d'affectation des opérations (S21.G00.22.002)
+    •   Date de début de période de rattachement (S21.G00.22.003) : 01012021
+    •   Date de fin de période de rattachement (S21.G00.22.004) : 31012021
+    •   Montant total de cotisations (S21.G00.22.005) : à déclarer en approche différentielle
+    Mois M-9 : bloc « Cotisation agrégée - S21.G00.23 » : autant de Blocs « Cotisation agrégée -
+    S21.G00.23 » qu’il y a de lignes de cotisation à régulariser pour le mois de rattachement du
+    bordereau.
+    •   Code de cotisation (S21.G00.23.001)
+    •   Qualifiant d'assiette (S21.G00.23.002)
+    •   Taux de cotisation (S21.G00.23.003) : pour déclaration du taux AT ou VM
+    •   Montant d'assiette (S21.G00.23.004)
+    •   Montant de cotisation (S21.G00.23.005)
+
+À maille nominative :
+Mois M : bloc « Versement individu - S21.G00.50 » période courante : octobre 2021
+•   Date de versement S21.G00.50.001 : 25102021
+•   Numéro de versement S21.G00.50.003
+•   Montant net versé S21.G00.50.004
+    Mois M : bloc « Base assujettie - S21.G00.78 » période courante : octobre 2021
+    •   Code de base assujettie (S21.G00.78.001)
+    •   Date de début de période de rattachement (S21.G00.78.002) : 01102021
+    •   Date de fin de période de rattachement (S21.G00.78.003) : 31102021
+    •   Montant de base assujettie : (S21.G00.78.004)
+    Mois M-9 : bloc « Base assujettie - S21.G00.78 » régularisation M-9
+    •   Code de base assujettie (S21.G00.78.001)
+    •   Date de début de période de rattachement (S21.G00.78.002) : 01012021
+    •   Date de fin de période de rattachement (S21.G00.78.003) : 31012021
+    •   Montant de base assujettie (S21.G00.78.004)
+Selon les cas de régularisation, il peut s’avérer nécessaire de créer des blocs « Composant de base
+assujettie - S21.G00.79 » et « Cotisation individuelle - S21.G00.81 ».
+            Mois M-9 : bloc « Composant de base assujettie - S21.G00.79 » régularisation M-9
+             •   Type de complément de base assujettie (S21.G00.79.00)
+             •   Montant de complément de base assujettie (S21.G00.79.004)
+            Mois M-9 : bloc « Cotisation individuelle – S21.G00.81 » régularisation M-9
+             •   Code de cotisation (S21.G00.81.001)
+             •   Identifiant Organisme de Protection Sociale (S21.G00.81.002)
+             •   Montant d'assiette (S21.G00.81.003)
+             •   Montant de cotisation (S21.G00.81.004)
+             •   Code INSEE commune (S21.G00.81.005)
+             •   Taux de cotisation (S21.G00.81.007)
+
+
+
+                                                 22
+3.4. Régularisation en cas de changement de situation
+En cas de changement de situation, le principe est que la régularisation, que ce soit en cas d’erreur de
+calcul d’assiette ou d’un trop versé au salarié, doit être assurée par ou au titre de l’établissement qui
+avait versé la rémunération.
+Les modalités opérationnelles sont en cours d’étude et seront précisées ultérieurement.
+
+3.5. Focus sur les cas de régularisations de taux
+Pour la maille nominative, une régularisation concernant la correction d’une erreur de taux devra être
+effectuée, soit en mode annule et remplace complet (assiette, taux de cotisation et montant de
+cotisation), soit en mode différentiel pour le montant d’assiette et la cotisation avec déclaration du
+taux applicable à la période correspondante. L’Urssaf préconise le mode « annule et remplace » pour
+faciliter la prise en compte des régularisations.
+Pour la maille agrégée, une régularisation d’erreur de taux consiste à annuler le montant initialement
+déclaré et à effectuer une nouvelle déclaration avec le nouveau montant.
+Il convient de réaliser cette régularisation en tenant compte du principe d’équivalence entre la maille
+agrégée et nominative.
+
+3.6. Consigne d’imputation des déductions basées sur le cumul annuel des
+rémunérations
+Pour toutes les déductions qui se basent sur le montant annuel de la rémunération, les employeurs
+sont fondés à régulariser de manière progressive sur la période courante.
+Idéalement, le déclarant peut imputer sur chaque période. Ainsi, en cas de montant de déduction
+supérieur au montant de cotisations sur la période courante, il convient donc de remonter sur les
+périodes antérieures jusqu’à imputation totale de la déduction (dans la limite du mois de janvier de
+l'année en cours).
+Mais il est aussi autorisé de le faire sur la période courante, dès lors la gestion du cas décrit ci-dessus
+est prise en charge par l'Urssaf.
+L’annualisation des rémunérations concerne les dispositifs suivants :
+
+                     Dispositif                                     CTP de déduction
+
+                Réduction générale                                         671
+
+         Réduction générale étendue (AC)                                   668
+
+                   Réduction AF                                            437
+
+                Réduction maladie                                          637
+
+                       Acre                                                401
+
+                     Lodeom                                           462/463/473
+
+       Réduction Sapeur-Pompier volontaire                                 676
+
+
+
+                                                    23
+4. Focus sur les rappels de paie pour les
+salaries mutes et les transferts
+d’etablissement
+Contexte pour les salariés mutés : Un salarié muté au 01/07/2022 d’un SIRET A vers un SIRET B fait
+l’objet dans le mois de paie de septembre 2022 d’un rappel de salaire dont le fait générateur est établi
+à la période d’emploi de juin 2022.
+Le taux AT et le code commune INSEE diffèrent entre le SIRET A et le SIRET B.
+Ce rappel négatif, assujetti à la cotisation AT et au VM serait donc imputable au SIRET A mais sera
+parfois nécessairement déclaré par le SIRET B, si en exemple le SIRET A n’est plus employeur ou s’il n’a
+plus en charge la paie de l’individu.
+
+
+Consigne déclarative :
+Dans le cas où la régularisation est portée par l’établissement d’accueil et qu’elle est rattachée à une
+période d’emploi dont l’activité de l’individu était couverte par l’établissement d’origine, une prise de
+contact avec l’Urssaf est à privilégier afin d’identifier l’établissement d’origine, notamment si les
+données agrégées contiennent des CTP, codes commune ou taux AT qui sont inconnus de
+l’établissement d’accueil pour la période considérée. (la fiche-consigne 2955 traitant des mutations
+de salariés vous servira de complément d’informations).
+
+
+Contexte pour les transferts d’établissement :
+Le changement d’adresse d’un établissement, appelé transfert d’établissement donne lieu à une
+modification du NIC (numéro interne de classement correspondant aux cinq derniers chiffres du
+numéro de SIRET).
+
+
+Consigne déclarative :
+Le mois du transfert, en aucun cas la DSN ne doit être déposée à la fois sur l’ancien et le nouveau SIRET.
+Si cette situation venait à se produire après l’exigibilité, étant donnée l’impossibilité d’annuler la DSN
+émise sur le ‘’mauvais’’ SIRET (non actif ou non reconnu), il convient alors d’annuler en période
+d’origine tous les montants et périodes déclarées sur la déclaration initiale du SIRET non actif, afin
+que l’ensemble des destinataires puissent recevoir l’information. Les organismes ayant rejetés les
+données lors du dépôt initial le feront également pour ce nouveau dépôt.
+
+
+
+
+                                                   24
+5. Consignes pour les declarations de
+type sans individu (Neant)
+En cas de transmission d’une DSN « sans individu », il convient d’alimenter la DSN d’un bloc
+« Bordereau de cotisation due - S21.G00.22 » avec un montant total de cotisations égal à ‘0.00’ à
+l’Urssaf dans les cas suivants :
+   •   Si l’état du compte Urssaf du Siret destinataire du bloc « Bordereau de cotisation due -
+       S21.G00.22 » nécessite la transmission d’une déclaration Néant à son Urssaf.
+            o Cas particulier : si vous êtes une entreprise de travail temporaire, une société de
+                production cinématographique ou une entreprise employant des mannequins vous
+                devez également indiquer en rubrique « Entité d’affectation des opérations -
+                S21.G00.22.002 » le pseudo Siret. Cette indication est essentielle pour que votre
+                déclaration soit traitée par votre Urssaf.
+       Si le déclarant doit produire des blocs de régularisations (il est alors attendu comme pour une
+       DSN normale un bloc S21.G00.22 rattaché au mois principal déclaré ainsi qu’autant de blocs
+       S21.G00.22 que de mois régularisés.
+   •   Les modalités de transmission d’une DSN sans individu sont décrites dans la partie « 2.4
+       Déclaration de type sans individu » du cahier technique.
+
+
+
+
+                                                 25
+6. Consignes sur le paiement des
+cotisations en DSN
+6.1. Quelques rappels pour une bonne gestion du paiement
+
+Pour une bonne gestion de votre compte, il est indispensable d’établir autant de paiements que de
+périodes pour lesquelles vous avez déclaré des cotisations.
+
+Quelle que soit la date à laquelle vous ordonnancez votre paiement, il faut qu’il soit réparti sur
+chaque mois du trimestre concerné.
+Pour les entreprises de moins de 11 salariés dont l’option de paiement est trimestrielle, le
+télépaiement peut être ordonnancé au mois le mois ou une fois par trimestre en le répartissant bien
+sur chaque mois.
+
+Vous pouvez modifier le montant du paiement après avoir ordonnancé le télépaiement jusqu'à la date
+limite d’exigibilité de la dernière déclaration qui coïncide avec l’exigibilité des paiements ordonnancés.
+
+Pour en savoir plus, nous vous invitons à consulter la fiche dédiée à ce sujet : ici
+
+6.2. Comment alimenter les données de paiement en DSN
+Le bloc « Versement organisme de protection sociale - S21.G00.20 » n’est attendu par l’Urssaf que si
+le cotisant effectue un prélèvement SEPA et dans ce cas le code « 05 - prélèvement SEPA » doit être
+déclaré en rubrique « Mode de paiement - S21.G00.20.010 ».
+Le versement des cotisations et contribution par virement se réalise hors DSN. A ce titre, les déclarants
+qui sont dans l’obligation de payer par virement ou souhaitant payer par virement ne doivent pas
+renseigner de bloc « Versement organisme de protection sociale - S21.G00.20 ».
+Bloc « Versement organisme de protection sociale - S21.G00.20 »
+•   Identifiant Organisme de Protection Sociale (S21.G00.20.001) : Siret de l'Urssaf
+•   Entité d’affectation des opérations (S21.G00.20.002) : Siret du compte employeur ou pseudo Siret
+•   BIC (S21.G00.20.003) : À renseigner
+•   IBAN (S21.G00.20.004) : À renseigner
+•   Montant du versement (S21.G00.20.005) : XXXX.XX €
+•   Date de début de période de rattachement (S21.G00.20.006) : À renseigner
+•   Date de fin de période de rattachement (S21.G00.20.007) : À renseigner
+•   Code délégataire de gestion (S21.G00.20.008) : non renseigné
+•   Mode de paiement (S21.G00.20.010) : 05
+•   Date de paiement (S21.G00.20.011) : non renseigné
+•   Siret payeur (S21.G00.20.012) : non renseigné
+
+6.3. Le service de télépaiement
+Ce service est accessible depuis net-entreprises via les services complémentaires Urssaf de la DSN ou
+via vos services en ligne d’Urssaf.fr.
+Ce service vous permet de consulter, de modifier, d’ajouter ou d’initier un télépaiement à une DSN ou
+à une Ducs et d’accéder, le cas échéant, au télépaiement des dettes.
+
+                                                    26
+Il est constitué de 4 rubriques :
+    1. « Payer les déclarations »
+
+Ce service permet de décorréler l’acte déclaratif et l’acte de paiement qui peuvent être réalisés par
+deux acteurs différents.
+
+    2. « Paiement en instance »
+
+Vous pouvez ajouter un télépaiement à une déclaration pour laquelle aucun télépaiement n’a été
+enregistré.
+    Exemple : votre expert-comptable transmet une DSN mais vous souhaitez effectuer le paiement.
+    Vous pouvez ajouter un télépaiement à la déclaration via la rubrique « paiement en instance ».
+Vous pouvez également modifier un télépaiement préalablement ordonnancé non encore exécuté.
+    3. « Initier un paiement »
+
+Vous avez la possibilité d’initier un télépaiement, y compris en l’absence de déclaration.
+    Exemple : si vous recevez une notification Urssaf nécessitant un paiement sans association de
+    déclaration (une régularisation du taux AT), vous pouvez initier un télépaiement sur la période
+    considérée via la rubrique « initier un paiement ».
+    4. « Payer les dettes »
+
+Cette rubrique renvoie vers le service de télépaiement des procédures de recouvrement.
+Il est important d’utiliser ce service afin que votre télépaiement soit rattaché à votre dette en cours.
+
+Pour en savoir plus sur ce service de télépaiement, nous vous invitons à consulter la fiche de
+présentation sur dsn-info :ici
+
+6.4. La reprise de crédit
+Se reprendre d’un crédit implique que vous ayez produit une déclaration rectificative minorant un
+montant préalablement déclaré au titre d’une période antérieure. Lors du paiement de votre
+déclaration courante, vous pouvez déduire du montant dû, celui de votre trop versé dans la rubrique
+« Montant du versement - S21.G00.20.005 ». Cette déduction pourra s’effectuer dans la limite du
+montant du bloc S21.G00.22 courant.
+Il est conseillé dans ce cas, notamment si vous vous reprenez d’un montant important, de contacter
+votre Urssaf via le service en ligne « échange avec mon Urssaf » pour expliquer votre situation. En
+aucun cas cette rubrique ne doit porter de montant négatif pour le versement Urssaf.
+Exemple :
+Si en plus d’une DSN de février de 2000 €, vous avez une régularisation en janvier avec un montant
+négatif de 400 € :
+Vous devez déclarer en bloc « Bordereau de cotisation due - S21.G00.22 » :
+•   S21.G00.22.003 : 01012021
+•   S21.G00.22.005 : -400.00
+
+
+
+
+                                                   27
+Et
+•    S21.G00.22.003 : 01022021
+•    S21.G00.22.005 : 2000.00
+
+Et vous devez déclarer en bloc « Versement organisme de protection social - S21.G00.20 » :
+•    S21.G00.20.005 : 1600.00 (2000-400)
+•    S21.G00.20.006 : 01022021
+
+
+
+
+                                                28
+7. Zoom sur la rubrique « Entite
+d’affectation »
+Cette rubrique est à utiliser exclusivement pour les Entreprises de Travail Temporaire, les Agences de
+mannequins, les Producteurs de film et les VLU dont le paiement se fait par télépaiement. Dès lors, le
+bloc « Versement organisme de protection sociale - S21.G00.20 » est complété pour l’ensemble des
+établissements avec des montants de versement spécifiques mais des informations identiques au
+niveau de l’identifiant organisme de protection sociale (Siret de l’Urssaf de liaison) et entité
+d’affectation des opérations (Siret de l’établissement qui centralise le paiement).
+Pour ces secteurs d’activité, cette rubrique vous permet de traiter les situations où un seul
+établissement dispose de plusieurs comptes cotisants gérés par une même Urssaf.
+Elle vous permet de déclarer et payer vos cotisations au titre de chaque catégorie de salariés que
+gèrent ces comptes spécifiques.
+Aussi, et uniquement pour les agences de mannequins et les producteurs de films, le pseudo Siret
+doit figurer à la rubrique Entité d’affectation des opérations au bloc « Bordereau de cotisation due -
+S21.G00.22 ».
+Pour aller plus loin, une fiche sur le partitionnement est disponible sur DSN-info en cliquant sur le lien
+suivant :
+http://www.net-entreprises.fr/media/documentation/dsn-note-partitionnement.pdf
+L’utilisation du partitionnement va de pair avec la pratique du fractionnement. Vous avez accès aux
+consignes sur le fractionnement sur DSN-info en cliquant sur les liens suivants : Gestion des Entreprises
+et Etablissements en DSN - Les généralités
+
+
+
+
+                                                   29
+   8. La fiabilisation des donnees de la DSN
+   8.1. Les contrôles déclaratifs
+
+
+   L’Urssaf est fortement engagée dans une démarche de fiabilisation des données de la DSN : Dans ce
+   cadre et après la Certification de Conformité reçue immédiatement après le dépôt de la déclaration,
+   l’Urssaf procède à une vérification de la qualité des données de la DSN et met à disposition des
+   comptes rendus métier sur le tableau de bord de la DSN et en mode API pour signaler les atypies.
+   Les comptes rendus métier sont de 3 types :
+
+              •   Les comptes rendus métier sur la déclaration de cotisations et de paiement (CRM 61),
+              •   Les comptes rendus métier avec un accompagnement à la résolution d’anomalie
+                  (CRM 119 et 120).
+              •   Le CRM de rappel annuel (CRM 124)
+
+
+
+   Il est indispensable que vous consultiez systématiquement ces comptes rendus : cela vous permet
+   en effet de corriger les anomalies éventuelles et d’améliorer ainsi la qualité des éléments déclarés.
+
+   Vous avez en outre la possibilité de déposer votre DSN en mode test avant la date d’exigibilité. Ce
+   dépôt anticipé vous donne accès à un compte rendu similaire. Vous pouvez ainsi intervenir si
+   nécessaire avant même que vos déclarations ne soient transmises aux organismes de protection
+   sociale.
+
+- Pour les comptes rendus métier sur la déclaration de cotisations et de paiement (CRM 61), voici les
+  principaux motifs d’anomalie et les éléments qui permettent d’éviter de les retrouver dans vos
+  prochaines déclarations :
+
+       1. BA-201-01 : « Nous ne pouvons pas traiter la déclaration et/ou le télépaiement que vous
+          avez transmis pour l’établissement dont le Siret est xxxx car il n'est pas identifié en tant
+          qu'employeur auprès de nos services. Afin de régulariser votre situation, la déclaration a
+          été transmise à votre Urssaf. Du fait du rejet du télépaiement, vous devez procéder au plus
+          vite au versement de vos cotisations par le biais d’un autre moyen de paiement. Si
+          nécessaire, veuillez-vous rapprocher au plus vite de votre Urssaf. »
+              ➢ Nous vous rappelons que, malgré le rejet BA-201-01, votre déclaration est bien
+                transmise à votre URSSAF et les données agrégées seront traitées manuellement,
+                comme indiqué dans le compte rendu. Les données individuelles sont intégrées
+                comme habituellement.
+              ➢ Si vous aviez fait un télépaiement via la DSN rejetée, il a également été invalidé : vous
+                devez donc au plus tôt émettre un nouveau paiement.
+              ➢ Pour prévenir cette anomalie, nous vous rappelons que vous pouvez, préalablement
+                au dépôt de votre DSN, contrôler vos SIRET.
+              ➢ Si à la suite de ce contrôle, votre SIRET n’est pas reconnu, il convient de suivre le mode
+                opératoire jusqu'au bout afin de produire une demande "DSN-mise à jour des Siret".
+                Ainsi, votre Urssaf pourra effectuer la mise à jour nécessaire.
+
+
+
+                                                    30
+      2. BA-209-09 : « La déclaration que vous avez transmise comporte un montant global de (...)
+         alors que nous avons calculé (...). Cette différence peut être due à l’utilisation de taux
+         erronés pour la période considérée. Nous vous invitons à consulter le référentiel des codes
+         types disponible sur Urssaf.fr et à modifier si nécessaire le paramétrage de votre logiciel. »
+             ➢ L’anomalie BA-209-09 indique un écart entre le montant de cotisations déclaré en DSN
+               et le montant de cotisation calculé par l’Urssaf. Cette situation peut se produire
+               lorsque le montant de cotisation ventilé sur CTP est rejeté pour différents motifs
+               d’anomalie :
+
+                   •   CTP clôturé ;
+                   •   CTP dont les informations sont manquantes ou erronées (ex : code mobilité
+                       dans code commune INSEE, etc.).
+
+             ➢ Il convient donc de vérifier que les CTP utilisés dans votre fichier au niveau du bloc «
+               Cotisation agrégée - S21.G00.23 » sont en adéquation avec les consignes
+               communiquées dans ce guide et également avec le fichier de référence des CTP
+               disponible sur le site de l’Urssaf : ici
+
+             ➢ Si à la lecture du guide, vous ne trouvez pas l’origine de cette différence, nous vous
+               invitons à vous rapprocher de votre Urssaf de rattachement.
+
+
+      3. BA-201-07 : « Nous ne pouvons pas traiter votre déclaration et/ou vos télépaiements pour
+         le compte lié au Siret XXX et au titre du mois de rattachement mm car l’exigibilité associée
+         doit être identique pour l’ensemble des déclarations Urssaf comprises dans votre DSN. »
+             ➢ Si un agrégat fait référence à un compte d’affectation différent de la déclaration
+               « courante » et ayant une autre exigibilité, le message d’anomalie BA-201-07 est
+               produit, entraînant la non prise en compte de cet agrégat. Il convient alors de
+               redéposer une DSN en vérifiant que les blocs « Versement organisme de protection
+               sociale - S21.G00.20 » et « Bordereau de cotisation due - S21.G00.22 » sont tous deux
+               renseignés avec le bon Siret en rubrique « Entité d’affectation des opérations -
+               S21.G00.20.002 » et « Entité d’affectation des opérations - S21.G00.22.002 ».
+
+
+ A noter que le contrôles ci-après est restitué uniquement dans le service Suivi DSN d’Urssaf.fr.
+
+               Code                                       Objectif                                    Restitution
+
+
+
+                                                                                                        • SUIVI DSN
+  UR_ANO_CTP_DA103                Ce contrôle vérifie la compatibilité de certains CTP au sein d’un
+                                  même bordereau de cotisations
+
+
+
+
+- Les CRM normalisés de type CRM 119 sont restitués sur le tableau de bord de la DSN de net-entreprises
+  et en mode API au plus proche du dépôt et de manière générale dans un délai de quatre heures. Les
+  dépôts effectués en TEST font également l’objet d’une restitution de ces CRM à H+4.
+- Les CRM normalisés de type CRM 120 sont restitués de manière consolidée au plus tard à J+5 de
+  l’exigibilité.
+
+
+                                                     31
+En cas de DSN tardive déposée après exigibilité :
+    -   Seul le CRM 120 est restitué (pas de CRM 119),
+    -   La restitution du CRM 120 interviendra au plus tard 15 jours maximum à compter de la date
+        de dépôt de la DSN tardive.
+
+Ces comptes rendus sont consultables aussi dans le service « SUIVI DSN » décrit en point 9 du présent
+guide.
+Les contrôles normalisés et la norme sur laquelle ils s’appuient sont consultables sur net-entreprises :
+ici
+- Le CRM 124 : À la fin du mois de février de l’année N, un CRM de rappel annuel est mis à disposition
+de chaque déclarant si des anomalies constatées sur des périodes d’emploi de l’exercice N-1 sont non
+corrigées. A partir de ce récapitulatif annuel, il convient de corriger ces anomalies dans les plus brefs
+délais.
+Ce CRM de rappel annuel sera disponible sur votre tableau de bord DSN de net-entreprises et dans
+votre logiciel de paie environ 8 jours après les exigibilités des 05 at 15 mars.
+Le service Suivi DSN d'Urssaf en ligne permet la consultation des anomalies non corrigés : Le CRM de
+rappel annuel n’est donc pas mis à disposition en tant que tel sur ce service.
+Le lien ci-dessous vous servira de complément d’information :
+DSN : un nouveau compte-rendu métier de rappel annuel - Urssaf.fr
+
+
+
+
+                                                    32
+  8.2. La fiabilisation de la réduction générale dégressive unique (RGDU) des cotisations
+  sociales
+  Zoom sur la fiabilisation de la réduction générale
+
+
+  Cas général (Hors régimes spéciaux et Mayotte)
+
+  Pour la réduction générale, il est important de veiller à la cohérence entre les données agrégées déclarées via les
+  CTP 668, 669, 671, 801 et les données individuelles relatives aux salariés déclarés en bloc 81 code 018.
+
+  En parallèle, lorsqu’un salarié cotise à la retraite complémentaire Agirc Arrco les cotisations individuelles doivent
+  être rempli en bloc 81 code 018 (part Urssaf) et en bloc 81 code 106 (part Agirc-Arrco).
+
+  Tableau récapitulatif des éléments à déclarer et à fiabiliser :
+
+
+
+
+                                                Déclaration de la réduction générale dégressive
+
+
+
+                                                     CTP 668 : réduction générale étendue                       La somme des données
+                                             CTP 669 : régularisation de réduction générale étendue             individuelles
+                    au niveau                                                                                   (S21.G00.81.004 : code
+                    agrégé*                                                                                     018) doit être égale aux
+                                 * Faire porter uniquement la réduction générale sur les cotisations patronales données agrégées
+                                           de sécurité sociale (régime général et assurance chômage)            (S21.G00.23.005)
+     cas 1 :                                  S21.G00.81.001 valorisée avec les codes de cotisation :
+ Déclaration cas                 018 : réduction générale des cotisations patronales de sécurité sociale (régime
+   général                                                général + assurance chômage)
+                                         106 : réduction générale des cotisations patronales Agirc-Arrco
+                     au niveau
+                    individuel
+                                  S21.G00.79.001 valorisée avec le code : 01 : montant du SMIC retenu pour le
+                                 calcul de la Réduction générale des cotisations patronales de sécurité sociale de
+                                                retraite complémentaire et d’assurance chômage
+                                     S21.G00.79.004 : indiquer le montant de composant de base assujettie
+                                                           CTP 671 : réduction générale                            La somme des données
+                                                   CTP 801 : régularisation réduction générale                     individuelles
+                    au niveau                                                                                      (S21.G00.81.004 : code
+                    agrégé*                                                                                        018) doit être égale aux
+                                 * Faire porter uniquement la réduction générale sur les cotisations patronales données agrégées
+                                                      de sécurité sociale (régime général)                      (S21.G00.23.005)
+                                              S21.G00.81.001 valorisée avec les codes de cotisation :
+                                 018 : réduction générale des cotisations patronales de sécurité sociale (régime
+cas 2 : Déclaration                                                 général)
+  pour les salariés                      106 : réduction générale des cotisations patronales Agirc-Arrco
+  pour lesquels la
+    contribution                S21.G00.79.001 valorisée avec le code : 01 : montant du SMIC retenu pour le
+    d’assurance                calcul de la Réduction générale des cotisations patronales de sécurité sociale de
+   chômage n’est                              retraite complémentaire et d’ assurance chômage
+pas recouvrée par au niveau         S21.G00.79.004   : indiquer le montant de composant de base assujettie
+ les Urssaf/CGSS    individuel
+
+
+
+
+                                                                       33
+Schéma de l’attendu déclaratif
+
+                                 Partie agrégée (B23)                                Partie individuelle (B81)
+                               (qualifiant = 921 assiette
+                                     déplafonnée)
+                              Montant          Montant de                     Montant                   Montant de
+                             d’assiette          cotisation                   d’assiette                cotisation Code
+                                                (réduction)                                             018 (réduction)
+  Ctp 668/671:                   -                  XX                              + XXXX                    - XX
+
+  Ctp 669/801:                    XX                          -                     + XXXX                      + XX
+
+              •    Rappel : Au niveau agrégé, le CTP porte le signe. Au niveau individuel, le montant de réduction doit être signé.
+              •    Les blocs B81 doivent être rattachés à une base (B78) de type 03 assiette déplafonnée.
+              •   Attention, le montant agrégé contient uniquement les montants Urssaf et assurance chômage, il est à
+              comparer avec le code 018 du bloc B81.
+
+
+
+
+                                 1. Les CTP sont à porter en rubrique : S21.G00.23.001, 002 et 004 ou 005.
+                                 ATTENTION : les montants ne doivent pas comporter de signe ; les CTP comprennent les
+                                 signes nécessaires
+
+
+                                 2. Le bloc 81 doit être alimenté via les rubriques S21.G00.81.001, 002, 003 et 004 pour le
+                                 code 018, et via les rubriques S21.G00.81.001, 003 et 004 pour le code 106 (lorsque le
+                                 salarié cotise à la retraite complémentaire Agirc Arrco).
+                                 ATTENTION : La réduction doit être signée avec le signe '-', sa régularisation ne doit pas être
+                                 signée.
+                                 L’OPS doit être renseigné pour le code 018 (siret Urssaf) mais pas pour le 106.
+
+                                 En cumul annuel le montant des réductions en 018 et 106 doit être nul ou négatif.
+
+                                 En cas de déclaration simultanée de RGD et Aide à Domicile, le S21.GOO.81.003 doit porter
+                                 en 018 la part de la rémunération donnant lieu à RGD et en 013 la part de rémunération liée à
+                                 l’exonération aide à domicile… et non l’assiette totale déplafonnée.
+
+                                 À compter de la version de norme P25V01, le montant des cotisations parts patronales de
+                                 retraite complémentaire Agirc Arrco (tranche 1) et de CEG (Tranche 1) ainsi que le taux sont à
+                                 déclarer en bloc S21.G00.81 sous le code « 142 - Cotisation régime unifié Agirc-Arrco (part
+                                 patronale tranche T1) ».
+
+                                 À compter de la version de la norme P26V01, le montant des cotisations parts patronales de
+                                 retraite complémentaire Agirc-Arrco (Tranche 2 de CEG (Tranche 2) et de CET (tranches 1 et
+                                 2) ainsi que le taux sont à déclarer en bloc S21.G00.81 sous le code « 146 - Cotisation régime
+                                 unifié Agirc-Arrco (part patronale tranche T2) ».
+                                 Cf : fiche consigne Cotisations de retraite complémentaire AGIRC ARRCO dues à partir du
+                                 01/01/2023.
+
+
+                                 3. Le bloc 79 doit être alimenté via les rubriques S21.G00.79.001, 004.
+                                                                     34
+A noter
+La réforme les allègements généraux de cotisations patronales de sécurité sociale à compter du
+1er janvier 2026 (article 18 de la loi n°2025-199 de financement de la sécurité sociale pour 2025
+du 28 février 2025) va entrainer :
+            • La suppression des taux réduits des cotisations d’assurance maladie et
+            d’allocations familiales, à l’exception des bénéficiaires d’exonérations spécifiques
+            dégressives ;
+            • La réforme de la réduction générale dégressive.
+
+Ainsi, à compter de la période d’emploi de janvier 2026 l’employeur éligible à la Réduction
+Générale doit nécessairement et quelle que soit la rémunération, utiliser les CTP 635 (complément
+maladie – équivalence DI bloc 81 code 907) et 430 (complément AF – équivalence DI bloc 81 code 102).
+Il ne peut plus utiliser les CTP 637 (maladie) et 437 (AF) de déduction de taux réduits.
+
+
+Si l’employeur n’est pas éligible à la Réduction Générale, il n’y a pas de changement : il doit
+nécessairement utiliser les CTP de complément de taux. Il ne peut pas utiliser les CTP de déduction
+de taux réduits. Il n’y a pas de changement ni à maille individuelle ni à maille agrégée.
+
+
+Si l’employeur applique une mesure de réduction dégressive autre que la RGD (exemple : aide à
+domicile, Lodeom ... ) : il doit utiliser le CTP de complément de taux si la rémunération dépasse le
+seuil d’application et les CTP de déduction de complément de taux si la rémunération passe sous le
+seuil en cours d’année. Sans changement ni à maille individuelle ni à maille agrégée.
+
+
+
+
+                                                35
+8.3. La fiabilisation du montant net social
+
+Contexte
+Depuis la période d’emploi de janvier 2024, le montant net social (MNS) de chaque salarié est déclaré
+via la DSN. Ce montant est prérempli dans les déclarations trimestrielles de ressources des allocataires
+CAF.
+Le MNS prérempli permet de simplifier les démarches des allocataires, de limiter les erreurs de
+déclaration ainsi que les risques de fraude ou de non-accès au RSA et à la prime d’activité.
+Il s’agit d’une étape primordiale dans le développement de « la solidarité à la source ».
+Afin de sécuriser la généralisation et l’automatisation de l’utilisation du MNS, l’objectif fixé par
+les pouvoirs publics est de recalculer le MNS pour en assurer la fiabilisation complète.
+Le « montant net social » est constitué de l’ensemble des sommes brutes correspondant aux
+rémunérations et revenus de remplacement versés par les employeurs à leurs salariés (salaires,
+primes, rémunération des heures supplémentaires, avantages en nature, indemnités de rupture, etc.),
+diminuées des cotisations et contributions sociales qui leur sont applicables.
+Toutes les informations utiles sur le mode de calcul du montant net social sont accessibles sur le
+portail Montant net social - Boss.gouv.fr.
+
+Tableau récapitulatif du recalcul du MNS à partir des éléments à déclarer :
+                                                                                                     En l’absence d’une assiette forfaitaire
+                                                                                                     différente de 0 (S21.G00.78 de type 11)
+                                                                                                     + Résultat de la rubrique
+                                                         •          001-Rémunération brute non       S21.G00.51.001 pour le type 001
+                                                         plafonnée (S21.G00.51)
+                                                                                                     En présence d’une assiette forfaitaire
+                                                         •         07-Assiette des contributions     différente de 0 (S21.G00.78 de type 11)
+                                                         d’assurance chômage (S21.G00.78)
+                                                                                                     + Résultat de la rubrique
+REVENUS BRUTS
+                                                         •           10-Déduction forfaitaire        S21.G00.78.004 pour le type 07
+                                                         spécifique (S21.G00.54)
+                                                         •         35-Parts des frais professionnels En présence d’un montant de DFS différent
+                                                         non exonérés (S21.G00.54)                   de 0 (S21.G00.54 de type 10)
+                                                                                                     + Résultat de la rubrique
+                                                                                                     S21.G00.54.002 pour le type 10
+                                                                                                     - Résultat de la rubrique
+                                                                                                     S21.G00.54.002 pour le type 35
+COTISATIONS ET CONTRIBUTIONS SOCIALES SALARIALES
+
+
+
+[Santé] Sécurité Sociale - Maladie Maternité             •          115-Cotisation Assurance
+Invalidité Décès                                         Maladie pour le Régime Local Alsace         - Résultat de la rubrique S21.G00.81.004
+                                                         Moselle (S21.G00.81)
+
+
+                                                         •           059-Cotisation individuelle
+[Santé] Complémentaire santé                             Prévoyance-Assurance-Mutuelle pour la
+                                                         période et l'affiliation concernées         - (Résultat de la rubrique
+[Santé] Complémentaire Incapacité Invalidité             (S21.G00.81)                                 S21.G00.81.004 pour le type 059
+Décès                                                                                                 - Résultat de la rubrique S21.G00.54.002
+                                                         •           92-Cotisation patronale frais de pour le type 92
+                                                         santé (S21.G00.54)
+                                                                                                      - Résultat de la rubrique S21.G00.54.002
+[Retraite] Retraite supplémentaire                       •           93-Cotisation prévoyance et      pour le type 93)
+                                                         retraite supplémentaire (S21.G00.54)
+
+Accidents du travail & maladies
+                                               Exclu du périmètre du contrôle MNS006 pour l’année 2026
+professionnelles
+[Retraite] Sécurité Sociale plafonnée                                                                - Résultat de la rubrique S21.G00.81.003
+                                                                                                     pour le type 076 * taux salarial
+                                                                                                     Le taux salarial est défini selon le taux de
+                                                         •           076-Cotisation Assurance        cotisation déclaré dans la
+[Retraite] Sécurité Sociale déplafonnée                  Vieillesse (S21.G00.81)                     rubrique S21.G00.81.007 (exemple : si
+                                                                                                     81.007 = 15,45% alors taux salarial =
+                                                                                                     6,90%)
+                                                         •          131-Cotisation régime unifié
+                                                                                                     - (Résultat de la rubrique
+                                                         Agirc-Arrco (S21.G00.81)
+                                                                                                     S21.G00.81.004 pour le type 131
+[Retraite] Complémentaire Tranche 1
+                                                         •          142-Cotisation régime unifié     - Résultat de la rubrique
+                                                         Agirc-Arrco (part patronale tranche T1)     S21.G00.81.004 pour le type 142)
+                                                         (S21.G00.81)
+[Retraite] Complémentaire Tranche 2            Exclu du périmètre du contrôle MNS006 pour l’année 2026
+
+
+
+                                                                      36
+Famille                                      Exclu du périmètre du contrôle MNS006 pour l’année 2026
+
+Assurance chômage                            Exclu du périmètre du contrôle MNS006 pour l’année 2026
+
+
+
+
+                                                                                                  - (Résultat de la rubrique S21.G00.81.004 /
+Apec                                                   •         132-Cotisation Apec              0.024% taux global APEC
+                                                       (S21.G00.81)                               * 0.06% taux salarial APEC)
+
+
+
+
+Autres charges dues par l'employeur          Exclu du périmètre du contrôle MNS006 pour l’année 2026
+
+
+
+Cotisations statutaires ou prévues par la
+                                             Exclu du périmètre du contrôle MNS006 pour l’année 2026
+convention collective
+
+
+
+                                                       •          072-Contribution sociale
+CSG déductible de l'impôt sur le revenu                généralisée / salaires partiellement
+                                                       déductibles (S21.G00.81)
+                                                       •         073-CSG/CRDS sur participation - Résultat de la rubrique S21.G00.81.004
+                                                       intéressement épargne salariale
+CSG/CRDS non déductible de l'impôt sur le              (S21.G00.81)
+revenu
+                                                       •          079-Remboursement de la dette
+                                                       sociale (S21.G00.81)
+
+                                                       •         114-Montant de réduction des
+Exonérations et allègements de cotisations             heures supplémentaires / complémentaires - Résultat de la rubrique S21.G00.81.004
+                                                       (S21.G00.81)
+
+TOTAL DES COTISATIONS ET CONTRIBUTIONS SOCIALES SALARIALES
+
+
+                                                       •         10-IJSS Subrogées                + Résultat de la rubrique S21.G00.58.004
+                                                       (S21.G00.58)
+
+
+
+
+                                                       •          905-PPV exonérée socialement + Résultat de la rubrique S21.G00.52.002
+                                                       et imposable (S21.G00.52)
+
+
+
+AUTRES ELEMENTS A PRENDRE EN                           •          37-Participation et intéressement
+COMPTE                                                 versés directement par l’employeur           + Résultat de la rubrique S21.G00.54.002
+                                                       (S21.G00.54)
+
+
+
+                                                       •          025-Heures chômage              + Résultat de la rubrique S21.G00.51.013
+                                                       intempéries (S21.G00.51)
+
+
+
+
+                                                       •         019-Heures activité partielle    + Résultat de la rubrique S21.G00.51.013
+                                                       (S21.G00.51)
+
+
+= MONTANT NET SOCIAL
+
+
+
+
+     A compter de la version de la norme P25V01, le montant des cotisations parts patronales de
+retraite complémentaire Agirc-Arrco (Tranche 1) et de CEG (Tranche 1), ainsi que le taux, sont à
+déclarer en bloc S21.G00.81 sous le code « 142 – Cotisation régime unifié Agirc-Arrco (part patronale
+tranche T1) » (cf fiche consigne Cotisations de retraite complémentaire AGIRC ARRCO dues à partir
+du 01/01/2023).
+
+
+
+                                                                    37
+     A compter de la version de la norme P26V01, le montant des cotisations parts patronales de
+retraite complémentaire Agirc-Arrco (Tranche 2), de CEG (Tranche 2) et de CET (tranches 1 et 2) ainsi
+que le taux, sont à déclarer en bloc S21.G00.81 sous le code « 146 - Cotisation régime unifié Agirc-
+Arrco (part patronale tranche T2) » (cf fiche consigne Cotisations de retraite complémentaire AGIRC
+ARRCO dues à partir du 01/01/2023).
+
+Pour les déclarants qui ne sont pas en mesure d'effectuer la déclaration de ce montant dans un unique
+bloc « S21.G00.81 - Cotisation      individuelle »,    il   est     toléré     de      multiplier   les
+blocs « S21.G00.81 - Cotisation individuelle » avec le code cotisation « 146 - Cotisation régime unifié
+Agirc-Arrco (part patronale tranche T2) » pour déclarer séparément chacun des éléments sous ce
+même code.
+
+Une tolérance est accordée en 2026 sur le contenu déclaratif des cotisations associées au
+code « 146 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T2) » mais une mise en
+conformité est attendue dès le 1er janvier 2027 (instruction en cours).
+
+
+
+
+                                                  38
+9. Les services complementaires de
+l’Urssaf
+L’adhésion aux services en ligne Urssaf (http://www.contact.urssaf.fr/adhenligne/) permet
+d’accéder à de nombreuses fonctionnalités permettant de consulter la situation des comptes
+cotisant et de gérer les opérations courantes.
+Les services complémentaires de l’Urssaf sont accessibles à partir du tableau de bord du service DSN
+de net-entreprises et par le service Urssaf en ligne d’urssaf.fr.
+Le déclarant a la possibilité de consulter :
+
+
+    1. La situation du compte
+          •    Les données administratives et de gestion de l’établissement et le tableau de bord des
+               messages, attestations et notifications contentieuses,
+          •    Les effectifs,
+          •    Les contrats d’exonération enregistrés à l'Urssaf,
+          •    Les soldes créditeurs,
+          •    Les relevés des dettes,
+          •    Un service de télépaiement sur procédures de recouvrement avec possibilité d’initier un
+               télépaiement pour régulariser sa situation,
+          •    Les délais de paiement confirmés par l’organisme,
+          •    Les déclarations retenues par l’Urssaf quel que soit le vecteur déclaratif,
+          •    L’historique des taux AT : le déclarant consulte les taux AT enregistrés dans l’organisme,
+          •    Les versements : consultation des paiements quel que soit le mode de paiement.
+
+
+    2. Un service de paiement décrit en 6.3
+
+
+    3. Un service aide et contact
+          •    « Echanger avec l’Urssaf » : ce service permet d’effectuer des demandes auprès de son
+               organisme comme des demandes de remise, de délai etc…
+          •    « Accéder aux derniers échanges » : suivi et consultation des réponses à des demandes,
+               consultation des notifications automatiques des anomalies déclaratives etc.
+
+
+    4. Des documents
+          •    Attestation de vigilance,
+          •    Mandat de prélèvement SEPA.
+
+
+
+
+                                                   39
+    5. Suivi DSN
+Tous les employeurs du secteur privé peuvent désormais bénéficier de Suivi DSN. Ce nouveau service
+vous permet d’être informé en cas d’anomalie détectée sur votre déclaration sociale nominative (DSN),
+concernant les données individuelles et de cohérence avec les données agrégées.
+Avec Suivi DSN, l’Urssaf vous indique l’origine et le détail de l’anomalie, les modalités de correction et
+les conseils pour ne pas les reproduire.
+Ce nouveau service est accessible à partir du menu supérieur de votre espace en ligne.
+Le lien ci-dessous vous servira de complément d’informations.
+Suivi DSN : un nouveau service pour fiabiliser vos déclarations - Urssaf.fr
+
+
+
+
+10. Etablir une DSN pour des clients
+adherant au Tese, au Cea ou au TFE
+10.1. Le contexte
+
+Au 1er janvier 2026 et comme le prévoit la loi de financement de la Sécurité sociale pour l’année 2022,
+les entreprises et les associations peuvent déclarer :
+
+→ une partie de leurs salariés via un tiers déclarant,
+→ et une partie via le Tese (Titre emploi service entreprise), le Cea (Chèque emploi associatif)
+ou le TFE (Titre firmes étrangères).
+
+Afin de garantir la bonne transmission des DSN, quelques règles sont à respecter.
+
+
+10.2. Les points d’attention
+
+Dès lors que votre client vous a informé de son choix d’utiliser le Tese, le Cea ou le TFE pour une partie
+de ses salariés, réalisez chaque mois systématiquement une DSN fractionnée.
+Ce fractionnement est identifié à la rubrique « Numéro de fraction de déclaration – S20.G00.05.003 »
+de la DSN.
+Utilisez un code fraction ayant le dénominateur 9 (n’utilisez pas le dénominateur 1).
+Utilisez un code fraction différent de ceux utilisés par l’Urssaf. L’Urssaf utilisera les codes 7/9 et 8/9.
+Nous vous demandons d’utiliser les codes 1/9 à 6/9. À défaut, les DSN seraient bloquées.
+Si, pour un mois donné, vous n’avez aucun salarié à déclarer depuis votre logiciel de paie, vous devez
+toutefois déposer une fraction DSN à néant.
+Si votre client souhaite déclarer exclusivement l’ensemble de ses salariés via l’un de ces services,
+contactez votre Urssaf afin de fermer le compte employeur Urssaf de votre client. Seul le compte Tese,
+Cea ou TFE restera ouvert.
+
+
+                                                    40
+10.3. Contacts
+
+En cas de difficulté, vous pouvez contacter les centres Tese, Cea ou TFE :
+Vos contacts pour le service Tese - Urssaf.fr
+Vos contacts pour le service Cea - Urssaf.fr
+Vos contacts pour le service Titre firmes étrangères - Urssaf.fr
+
+Le respect de ces consignes garantit les droits sociaux des salariés.
+
+
+
+
+                                                   41
+

@@ -1,0 +1,145 @@
+# Chapitre 7
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 113-115
+
+--- p. 113 ---
+  7 Principes de constitution des messages  2026-06-10
+
+7 Données portées par le véhicule technique
+  (structure S89)
+
+Certaines données figurant dans le Cahier technique ne relèvent pas du champ de la norme
+NEODeS mais sont issues de la DADS-U. Il appartient à chaque établissement de choisir s’il
+souhaite déclarer ces données via la DSN, en complément des données sociales ou via une
+autre formalité.
+
+Ces blocs et rubriques sont regroupés au sein de la structure S89 du cahier technique.
+Certaines de ces données à finalité fiscale peuvent avoir également une finalité sociale.
+
+7.1 Données à caractère ponctuel
+
+Le 2e de l’article 39 de l’annexe III du Code général des impôts (CGI) prévoit les modalités
+de transmission des obligations déclaratives des entreprises qui accordent des actions
+gratuites, des options sur titres (stock options) et des bons de souscription de parts de
+créateur d’entreprise (BSPCE) à leurs salariés ou dirigeants ou à ceux d’une société liée.
+L’information de l’administration fiscale est assurée par l’entreprise au moyen de la
+déclaration annuelle des salaires ce qui permet une dématérialisation des échanges.
+
+L'actionnariat salarié se compose des rubriques suivantes :
+
+- S89.G00.87 - Actions gratuites
+
+Au titre de l’année d’acquisition définitive des actions gratuites définies à l’article 80
+quaterdecies du CGI, doivent être déclarées :
+➢ le nombre d’actions acquises,
+➢ la valeur unitaire de l’action à la date d’acquisition définitive,
+➢ la fraction du gain d’acquisition de source française,
+➢ la date d’attribution des actions,
+➢ la date d’acquisition définitive des actions
+
+- S89.G00.88 - Options sur titres (stock options)
+
+Au titre de l’année de levée des options définies à l’article 80 bis du CGI doivent être
+déclarées :
+➢ le nombre d’actions acquises,
+➢ leur valeur unitaire à la date de la levée des options,
+➢ le prix de souscription
+➢ la fraction du gain de levée d’options de source française,
+➢ la date d’attribution des options
+➢ la date de levée des options
+
+-S89.G00.89 - Bons de souscription de parts de créateur d'entreprise (BSPCE)
+
+  113 / 370
+
+--- p. 114 ---
+  7 Principes de constitution des messages  2026-06-10
+
+Au titre de l’année de souscription des titres définis à l’article 163 bis G du CGI, doivent être
+déclarées :
+➢ le nombre de titres,
+➢ le prix d’acquisition des titres,
+➢ la valeur unitaire des titres au jour de l'exercice des bons
+➢ la date d’acquisition des titres,
+➢ la fraction du gain constaté lors de l’exercice des bons de source française,
+➢ la durée d’exercice de l’activité du bénéficiaire dans la société.
+
+Rappel :
+
+En matière d'action gratuite, le fait générateur occasionnant l'obligation déclarative est
+constitué par l’acquisition des actions, Pour toute précision complémentaire, il convient de se
+référer notamment au (BOI-RSA-ES-20-10-20-60),
+
+En matière d'options sur titres, le fait générateur occasionnant l'obligation déclarative est
+constitué par la levée d'option, Pour toute précision complémentaire, il convient de se référer
+notamment au (BOI-RSA-ES-20-10-20-60)
+
+Pour les Titres de bons de souscription, il convient de se référer notamment au (BOI-RSA-
+ES-20-40)
+
+La réglementation de l'AGIRC et de l'ARRCO prévoit également la transmission
+d'informations pour des salariés dont le contrat de travail est rompu, mais qui suite à un
+accord d’entreprise, continuent de cotiser à la retraite complémentaire :
+
+- S89.G00.91 - Individu non salarié
+
+Au titre de la période concernée (et identifiée en S89.G00.92), doivent y être déclarées:
+- Les informations liées à l'individu
+- Le code statut catégoriel régime de retraite complémentaire dont il bénéficie
+
+S89.G00.92 - Bases spécifiques individu non salarié
+
+Pour l'individu déclaré en S89.G00.91, doivent y être déclarées;
+- Les montants assujettis
+- La période de rattachement
+
+7.2 Données annuelles
+- Les honoraires
+
+"Les entreprises ont la possibilité de regrouper avec leur envoi DSN leurs déclarations
+d'honoraires. Les modalités de ce dispositifs sont décrites ci-après".
+Les articles 240 et 241 du code général des impôts (CGI) font obligation aux personnes
+physiques et aux personnes morales de déclarer annuellement, dans les conditions
+prévues par les articles 87, 87A et 89 du même code, les commissions, courtages,
+ristournes, vacations, honoraires, gratifications et autres rémunérations de même nature
+
+  114 / 370
+
+--- p. 115 ---
+  7 Principes de constitution des messages  2026-06-10
+
+versés à des tiers.
+
+En conséquence, si l’entreprise choisit de déclarer ces informations via la DSN, les rubriques
+suivantes devront être complétées :
+
+S89.G00.43 - Rémunérations
+
+  •  Code type de la rémunération (voir les valeurs dans le tableau des descriptions des
+  données)
+  •  Montant de la rémunération
+
+S89.G00.32 - Bénéficiaire des honoraires
+
+  •  Profession ou qualité du bénéficiaire
+  •  Nom du bénéficiaire des honoraires
+  •  Prénom du bénéficiaire des honoraires
+  •  SIREN du bénéficiaire des honoraires
+  •  Nic du bénéficiaire des honoraires
+  •  Raison sociale du bénéficiaire des honoraires
+  •  Code INSEE de la commune
+  •  Code taux réduit ou dispense de retenue à la source
+  •  Montant TVA droits d’auteur
+  •  Adresse du bénéficiaire des honoraires
+  •  Millésime de rattachement
+
+S89.G00.33 - Avantages en nature
+
+  •  Code type avantage en nature
+  •  Montant avantage en nature
+
+S89.G00.35 - Prise en charge des indemnités
+
+  •  Code modalité de prise en charge des indemnités
+  •  Montant de l’indemnité
+
+  115 / 370

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000029956107</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/29/95/61/LEGIARTI000029956107.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L133-10</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2015-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106050">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126885">Livre I : Généralités - Dispositions communes à tout ou partie des régimes de base</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141602">Titre III : Dispositions communes relatives au financement</TITRE_TM>
+<TM>
+<TITRE_TM debut="2001-12-26" fin="2013-01-01" id="LEGISCTA000006156013">Chapitre 3 bis : Modernisation et simplification du recouvrement des cotisations de sécurité sociale</TITRE_TM>
+<TITRE_TM debut="2013-01-01" fin="2999-01-01" id="LEGISCTA000025559998">Chapitre 3 bis : Modernisation et simplification des déclarations sociales ainsi que du recouvrement des cotisations et contributions sociales</TITRE_TM>
+<TM>
+<TITRE_TM debut="2015-01-01" fin="2999-01-01" id="LEGISCTA000029956103">Section 6 : Règles d'arrondis</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2015-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000029956107" num="L133-10" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Le montant des cotisations et contributions sociales et de leurs assiettes déclarées aux organismes de sécurité sociale en application du présent code, du code de l'action sociale et des familles ou du code rural et de la pêche maritime est arrondi à l'euro le plus proche. La fraction d'euro égale à 0,50 est comptée pour 1.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000483996" datesignatexte="1949-04-22" id="LEGIARTI000054168167" naturetexte="DECRET" nortexte="" num="2" numtexte="49-580" sens="cible" typelien="CITATION">Décret n°49-580 du 22 avril 1949 - art. 2 (VD)</LIEN>
+<LIEN cidtexte="JORFTEXT000029953502" datesignatexte="2014-12-22" id="LEGIARTI000029954669" naturetexte="LOI" nortexte="FCPX1422901L" num="7" numtexte="2014-1554" sens="cible" typelien="CREE">LOI n°2014-1554 du 22 décembre 2014 - art. 7</LIEN>
+<LIEN cidtexte="JORFTEXT000038829574" datesignatexte="2019-07-26" id="LEGIARTI000038869346" naturetexte="DECRET" nortexte="MTRD1919111D" num="53" numtexte="2019-797" sens="cible" typelien="CITATION">Décret n°2019-797 du 26 juillet 2019 - art. 53 (V)</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000050797861" datesignatexte="2024-12-19" id="LEGIARTI000050865588" naturetexte="ARRETE" nortexte="PRMX2433664A" num="41" numtexte="" sens="cible" typelien="CITATION">Arrêté du 19 décembre 2024 - art. 41</LIEN>
+<LIEN cidtexte="JORFTEXT000050797861" datesignatexte="2024-12-19" id="LEGIARTI000050837554" naturetexte="ARRETE" nortexte="PRMX2433664A" num="53" numtexte="" sens="cible" typelien="CITATION">Arrêté du 19 décembre 2024 - art. 53</LIEN>
+<LIEN cidtexte="JORFTEXT000050797861" datesignatexte="2024-12-19" id="LEGIARTI000050839349" naturetexte="ARRETE" nortexte="PRMX2433664A" num="53" numtexte="" sens="cible" typelien="CITATION">Arrêté du 19 décembre 2024 - art. 53</LIEN>
+<LIEN cidtexte="JORFTEXT000050797861" datesignatexte="2024-12-19" id="LEGIARTI000050840275" naturetexte="ARRETE" nortexte="PRMX2433664A" num="53" numtexte="" sens="cible" typelien="CITATION">Arrêté du 19 décembre 2024 - art. 53</LIEN>
+<LIEN cidtexte="JORFTEXT000050797861" datesignatexte="2024-12-19" id="LEGIARTI000050845778" naturetexte="ARRETE" nortexte="PRMX2433664A" num="53" numtexte="" sens="cible" typelien="CITATION">Arrêté du 19 décembre 2024 - art. 53</LIEN>
+<LIEN cidtexte="JORFTEXT000050797861" datesignatexte="2024-12-19" id="LEGIARTI000050847821" naturetexte="ARRETE" nortexte="PRMX2433664A" num="53" numtexte="" sens="cible" typelien="CITATION">Arrêté du 19 décembre 2024 - art. 53</LIEN>
+
+
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000051227941" naturetexte="CODE" nortexte="" num="L6241-1-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L6241-1-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000043701705" naturetexte="CODE" nortexte="" num="L6241-2" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L6241-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000048839886" naturetexte="CODE" nortexte="" num="L6242-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L6242-1 (V)</LIEN>
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>

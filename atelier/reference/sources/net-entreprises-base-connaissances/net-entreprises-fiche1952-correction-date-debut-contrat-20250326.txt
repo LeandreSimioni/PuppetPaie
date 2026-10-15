@@ -1,0 +1,56 @@
+Date de modification : 26/03/2025 05:06 PM
+
+ Comment corriger la date de début de contrat ?
+
+ Le contexte
+
+La correction est appliquée après la date d'exigibilité de la déclaration (au 5 ou au 15).
+
+Cette donnée peut être corrigée via un bloc " Changements Contrat - S21.G00.41 " en remplissant les rubriques " Date de la modification - S21.G00.41.001 " et " Ancienne date de début du contrat - S21.G00.41.021 ".
+
+La nouvelle valeur est renseignée au niveau du bloc " Contrat - S21.G00.40 ".
+
+Exemple de la correction
+
+Suite à une embauche, une erreur de saisie de la date de début du contrat a été commise par le gestionnaire de paie. Cette erreur, portée en DSN de mois principal déclaré janvier 2018, n'a pas été détectée avant la transmission de la DSN. La date d'exigibilité est dépassée et le gestionnaire opère la correction dans la DSN du mois suivant.
+
+Il a déclaré une date de début de contrat au 21 janvier 2018 alors qu'il aurait dû renseigner le 12 janvier 2018. Cette erreur a été corrigée en paie le 7 février 2018.
+
+Déclaration erronée (DSN de janvier 2018) :
+
+ Bloc « Contrat (contrat de travail, convention, mandat) - S21.G00.40 »
+
+ | 
+ Date de début du contrat - S21.G00.40.001 : 21012018
+
+Déclaration corrigée (DSN de février 2018) :
+
+ Bloc « Contrat (contrat de travail, convention, mandat) - S21.G00.40 »
+
+ | Date de début du contrat - S21.G00.40.001 : 12012018
+
+ Bloc « Changements Contrat - S21.G00.41»
+
+ | Date de la modification - S21.G00.41.001 : 07022018
+
+ | Ancienne Date de début du contrat - S21.G00.41.021: 21012018
+
+Points d'attention :
+
+Un bloc " Changements Contrat - S21.G00.41 " qui n'est renseigné qu'avec la rubrique " Date de la modification - S21.G00.41.001 " est interdit.
+
+La " Date de la modification - S21.G00.41.001 " doit obligatoirement être inférieure ou égale au dernier jour du mois principal déclaré. Il n'est pas possible de déclarer des changements par anticipation.
+
+La rubrique " Ancienne Date de début du contrat - S21.G00.41.021 " est une donnée " identifiant " le contrat. De ce fait, cette rubrique peut être déclarée dans un même bloc avec les rubriques " SIRET ancien établissement d'affectation - S21.G00.41.012 " et/ou " Ancien Numéro du contrat - S21.G00.41.014 ". Il n'est pas possible de la déclarer avec la rubrique " Profondeur de recalcule de la paie - S21.G00.41.028 " ou avec les autres données du même bloc qui visent des changements de modalité du contrat.
+
+[ATTENTION] : Les exemples présentés au niveau des fiches de consignes ne reflètent pas l'exhaustivité des cas possibles.
+
+ Date de création : 30/08/2018 03:43 PM 
+
+ N° de la fiche : 1952 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

@@ -1,0 +1,119 @@
+# Bloc S21.G00.15
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 151-152
+
+--- p. 151 ---
+  S21.G00.15  2025-12-24
+
+  OETH - S21.G00.13.001" ou "Type BOETH externe - S21.G00.13.002".
+
+  N  [4,4]  CSL 00 : 2([0-9]{3})
+
+S21.G00.15
+
+Adhésion Prévoyance  S21.G00.15
+  Adhésion à un contrat collectif de Prévoyance, Complémentaire Santé ou Retraite Supplémentaire souscrit auprès
+  d'une institution de prévoyance, mutuelle, société d'assurance ou organisme complémentaire non fédéré par un membre
+  du GIP-MDS (CTIP, FFA, FNMF).
+  Ce bloc est utilisé exclusivement par les organismes complémentaires.
+
+Référence du contrat de Prévoyance  S21.G00.15.001
+Code organisme de Prévoyance  S21.G00.15.002
+Code délégataire de gestion  S21.G00.15.003
+Personnel couvert  S21.G00.15.004
+Identifiant technique Adhésion  S21.G00.15.005
+
+Référence du contrat de Prévoyance  S21.G00.15.001
+PrevoyanceAdhesion.Reference
+  Référence permettant d'identifier le contrat Prévoyance, complémentaire Santé ou Retraite supplémentaire.
+
+  CCH-11 : Plusieurs blocs "Adhésion Prévoyance - S21.G00.15" peuvent être présents dans une déclaration, mais ils ne
+  peuvent pas être renseignés avec les mêmes valeurs dans les rubriques "Référence du contrat de Prévoyance -
+  S21.G00.15.001" et "Code organisme de Prévoyance - S21.G00.15.002".
+
+  CCH-13 : Une "Adhésion Prévoyance" avec personnel couvert (S21.G00.15.004 = "01 - Oui, concerne au moins un
+  salarié de l'établissement d'affectation") doit être référencée dans au moins un bloc "Affiliation Prévoyance -
+  S21.G00.70" de la déclaration. Ce contrôle ne s’applique pas si le « Code APET - S21.G00.11.002 » de
+  l'établissement d'affectation est renseigné avec la valeur « 7820Z - Activités des agences de travail temporaire ».
+
+  CCH-14 : Une "Adhésion Prévoyance" sans personnel couvert (S21.G00.15.004 = "02 - Non, ne concerne aucun
+  salarié de l'établissement d'affectation") ne doit faire l'objet d'aucune Affiliation Prévoyance (S21.G00.70) dans la
+  déclaration. Ce contrôle ne s’applique pas si le « Code APET - S21.G00.11.002 » de l'établissement d'affectation est
+  renseigné avec la valeur « 7820Z - Activités des agences de travail temporaire ».
+
+  X  [1,30]
+
+Code organisme de Prévoyance  S21.G00.15.002
+PrevoyanceAdhesion.Organisme
+  Code de l'institution de prévoyance (sur 5 caractères sous la forme Pnnnn), de la mutuelle (sur 9 caractères
+  numériques), de la société d'assurances (sur 6 caractères sous la forme Axxxxx) ou de l'organisme
+  complémentaire non fédéré par un membre du GIP-MDS (CTIP, FFA, FNMF) (sur 9 caractères
+  alphanumériques dont un au moins est une lettre ), concerné par le contrat référencé.
+  CRE-11 : valeurs autorisées
+
+  Tables PREV - Code institution de prévoyance, MUT - Code
+  X  [5,9]  mutuelle , ASSU - Code société d’assurance, OCI - Code
+  organisme OC isolé
+
+Code délégataire de gestion  S21.G00.15.003
+PrevoyanceAdhesion.Delegataire
+
+  151 / 361
+
+--- p. 152 ---
+  S21.G00.15  2025-12-24
+
+  Organisme tiers à qui l'organisme de Prévoyance a délégué tout ou partie de la gestion du contrat.
+  Cette rubrique peut être alimentée, en complément du code organisme, uniquement sur instruction
+  spécifique de l'institution de prévoyance, de la mutuelle, de la société d'assurances ou de l'organisme
+  complémentaire non fédéré par un membre du GIP-MDS (CTIP, FFA, FNMF) qui fournira les valeurs à
+  utiliser.
+  CCH-11 : Contrôle sur valeurs autorisées dans la table des délégataires des sociétés d'assurance, si la rubrique "Code
+  délégataire de gestion - S21.G00.15.003" est présente et si la rubrique "Code organisme de Prévoyance -
+  S21.G00.15.002" correspond à une société d’assurance (code organisme sur 6 positions, préfixé par le caractère "A").
+
+  CCH-12 : Contrôle sur valeurs autorisées dans la table des délégataires des institutions de prévoyance, si la rubrique
+  "Code délégataire de gestion - S21.G00.15.003" est présente et si la rubrique "Code organisme de Prévoyance -
+  S21.G00.15.002" correspond à une institution de prévoyance (code organisme sur 5 positions, préfixé par le caractère
+  "P").
+
+  CCH-13 : Contrôle sur valeurs autorisées dans la table des délégataires des mutuelles, si la rubrique "Code délégataire
+  de gestion - S21.G00.15.003" est présente et si la rubrique "Code organisme de Prévoyance - S21.G00.15.002"
+  correspond à une mutuelle (code organisme sur 9 positions numériques).
+
+  CCH-14 : Contrôle sur valeurs autorisées dans la table des délégataires des organismes complémentaires non fédérés
+  par un membre du GIP-MDS (CTIP, FFA, FNMF), si la rubrique "Code délégataire de gestion - S21.G00.15.003" est
+  présente et si la rubrique "Code organisme de Prévoyance - S21.G00.15.002" correspond à un organisme
+  complémentaire non fédéré par un membre du GIP-MDS (CTIP, FFA, FNMF) (code organisme sur 9 caractères
+  alphanumériques dont un au moins est une lettre).
+
+  Tables DLGPREV - Code délégataire de gestion
+  prévoyance, DLGMUT - Code délégataire de gestion
+  X  [6,6]  mutuelle, DLGASSU - Code délégataire de gestion
+  d'assurance, DLGOCI - Code délégataire de gestion OC
+  isolé
+
+Personnel couvert  S21.G00.15.004
+PrevoyanceAdhesion.PersonnelCouvert
+  Dans une déclaration mensuelle, précise s'il existe ou non au moins un salarié couvert par ce contrat de
+  Prévoyance, pour la période et l'établissement d'affectation déclarés.
+
+  Cette rubrique est renseignée à "01" si un salarié au moins est couvert par le contrat référencé en
+  S21.G00.15.001 pour l’établissement d’affectation et le mois déclaré ou à "02" s’il n’existe pas ou plus de
+  salarié couvert dans l’établissement.
+
+  L’alimentation du bloc 15 permet d’assurer que la DSN soit adressée à l’organisme de Prévoyance en
+  l’absence de personnel couvert.
+
+  X  [2,2]
+
+  01 - Oui, concerne au moins un salarié de l'établissement d'affectation
+  02 - Non, ne concerne aucun salarié de l'établissement d'affectation
+
+Identifiant technique Adhésion  S21.G00.15.005
+PrevoyanceAdhesion.IdentifiantTechniqueAdhesion
+  Cet identifiant est interne au message DSN et doit être unique pour chaque adhésion.
+  Dans une DSN mensuelle, il permet de faire le lien :
+  - avec les affiliations prévoyance ("Identifiant technique Adhésion - S21.G00.70.013")
+  - avec les cotisations établissement ("Référence réglementaire ou contractuelle - S21.G00.82.005")
+
+  152 / 361

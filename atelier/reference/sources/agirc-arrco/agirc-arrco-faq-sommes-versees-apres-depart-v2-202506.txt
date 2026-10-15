@@ -1,0 +1,289 @@
+                                 Sommes versées postérieurement au départ du salarié
+
+
+Circulaire Agirc-Arrco 2017-9-DRJ du 27 octobre 2017
+
+À compter du 1er janvier 2018, en application des décrets n° 2016-1567 du 21 novembre 2016 relatif à la généralisation de la Déclaration Sociale Nominative, et n° 2017-858
+du 9 mai 2017 relatif aux modalités de décompte et de déclaration des effectifs, au recouvrement et au calcul des cotisations et contributions sociales,
+
+    -   pour les sommes versées après la rupture du contrat de travail, les taux et plafonds applicables sont ceux de la dernière période de travail
+    -   pour toutes sommes versées en application d’une décision de justice, postérieurement ou non à la rupture du contrat de travail, les taux et plafonds applicables sont
+        ceux en vigueur lors des périodes de travail donnant lieux à ces versements
+
+En conséquence, ces sommes versées à déclarer en rémunération – S21.G00.51, et les sommes soumises à cotisation déclarées en bases assujetties - S21.G00.78 doivent
+être rattachées à la période d’emploi génératrice.
+Le paiement des cotisations (en bloc S21.G00.20) afférentes à ces sommes doit également être rattaché à la dernière période de travail.
+
+
+L’objectif de la présente fiche est d’illustrer l’attendu déclaratif DSN par la Retraite complémentaire au travers de différents exemples :
+
+
+
+                                     1. Sommes versées au salarié dans l’année de son départ de l’entreprise
+
+
+                                     2. Sommes versées au salarié postérieurement à l’année de son départ de l’entreprise
+
+
+
+
+© Agirc-Arrco                                                                                                                                                      juin 2025
+                                      Sommes versées postérieurement au départ du salarié
+
+1.     SOMMES VERSEES AU SALARIE DANS L’ANNEE DE SON DEPART DE L’ENTREPRISE
+           SALARIE CADRE DONT LE CONTRAT DE TRAVAIL EST ROMPU LE 30 AVRIL 2024
+
+         Le salarié, dont le contrat de travail est rompu le 30 avril, perçoit son solde de tout compte lors de son départ. Il perçoit un complément de solde de tout compte en juin, et un
+         nouveau complément en novembre.
+
+         Salaire total perçu du 1er janvier au 30/04/2024 = 14 000 euros                          ➔ Cotisations du 1er janvier au 30 avril 2024
+
+         Tranche 1 retenue du 01/01/ au 30/04/2024         = 14 000                                            Cotisations Agirc-Arrco (131) sur Tranche 1    = 1 402,80
+               (Plafond sécurité sociale pour la période = 15 456 euros)                                       Cotisations APEC (132)                         =     8,40
+         Tranche 2 retenue du 01/01/ au 30/04/2024         =      0
+
+
+         Somme perçue en juin 2024                         = 20 000 euros                         ➔ Cotisations à rattacher à Avril 2024
+                                                                                                              * Cotisations Agirc-Arrco (131) sur Tranche 1
+                   Tranche 1 rattachée à avril 2024        = 1 456                                                           = (14 000 + 1 456) x 0,35% + 1 456 x 10,02% = 199,99
+                                                                                                             ** Cotisations Agirc-Arrco (131) sur Tranche 2
+                   Tranche 2 rattachée à avril 2024        = 18 544                                                          = 18 544 x 24,64%                           = 4 569,24
+                                                                                                            *** Cotisations APEC (132)                                   =    12,00
+
+
+                                                          Codification DSN attendue Juin 2024
+                           Rubrique                          Code rubrique                                        Valeur rubrique
+         Montant du versement                                    S21.G00.20.005             4781.23
+         Date de début de période de rattachement                S21.G00.20.006             01042024
+         Date de fin de période de rattachement                  S21.G00.20.007             30042024
+         Date du versement                                       S21.G00.50.001             25062024
+         Date du début de période de paie                        S21.G00.51.001             01042024
+         Date du début de période de paie                        S21.G00.51.002             30042024
+         Type                                                    S21.G00.51.011             001
+         Montant                                                 S21.G00.51.013             20000.00
+         Date de fin de contrat                                  S21.G00.62.001             30042024
+         Code de base assujettie                                 S21.G00.78.001             02 - Assiette brute plafonnée
+         Date de début de période de rattachement                S21.G00.78.002             01042024
+         Date de fin de période de rattachement                  S21.G00.78.003             30042024
+         Montant de base assujettie                              S21.G00.78.004             1456.00
+
+
+
+© Agirc-Arrco                                                                                                                                                                   juin 2025
+                                      Sommes versées postérieurement au départ du salarié
+
+         Code de cotisation individuelle                    S21.G00.81.001       131 – Cotisation régime unifié Agirc-Arrco
+
+         Montant de cotisation individuelle                 S21.G00.81.004       199.99*
+         Code de base assujettie                            S21.G00.78.001       03 - Assiette brute déplafonnée
+         Date de début de période de rattachement           S21.G00.78.002       01042024
+         Date de fin de période de rattachement             S21.G00.78.003       30042024
+         Montant de base assujettie                         S21.G00.78.004       20000.00
+         Code de cotisation individuelle                    S21.G00.81.001       131 - Cotisation régime unifié Agirc-Arrco
+         Montant de cotisation individuelle                 S21.G00.81.004       4569.24**
+         Code de cotisation individuelle                    S21.G00.81.001       132 - Cotisation Apec
+         Montant de cotisation individuelle                 S21.G00.81.004       12.00***
+
+
+
+         Somme perçue en Novembre 2024                 = 7 000 euros                    ➔ Cotisations à rattacher à Avril 2024
+
+         Tranche 1 rattachée à avril 2024              =    0                                         Cotisations Agirc-Arrco (131) sur Tranche 1   =     0
+                                                                                                    * Cotisations Agirc-Arrco (131) sur Tranche 2   = 1 724,80
+         Tranche 2 rattachée à avril 2024              = 7 000                                     ** Cotisations Apec (132)                        =     4,20
+
+
+                                                    Codification DSN attendue Novembre 2024
+                           Rubrique                        Code rubrique                                 Valeur rubrique
+        Montant du versement                               S21.G00.20.005        1729.00
+        Date de début de période de rattachement           S21.G00.20.006        01042024
+        Date de fin de période de rattachement             S21.G00.20.007        30042024
+        Date du versement                                  S21.G00.50.001        25112024
+        Date du début de période de paie                   S21.G00.51.001        01042024
+        Date du début de période de paie                   S21.G00.51.002        30042024
+        Type                                               S21.G00.51.011        001
+        Montant                                            S21.G00.51.013        7000.00
+        Date de fin de contrat                             S21.G00.62.001        30042024
+        Code de base assujettie                            S21.G00.78.001        02 - Assiette brute plafonnée
+        Date de début de période de rattachement           S21.G00.78.002        01042024
+        Date de fin de période de rattachement             S21.G00.78.003        30042024
+        Montant de base assujettie                         S21.G00.78.004        0.00
+
+© Agirc-Arrco                                                                                                                                                    juin 2025
+                                     Sommes versées postérieurement au départ du salarié
+
+        Code de base assujettie                      S21.G00.78.001   03 - Assiette brute déplafonnée
+        Date de début de période de rattachement     S21.G00.78.002   01042024
+        Date de fin de période de rattachement       S21.G00.78.003   30042024
+        Montant de base assujettie                   S21.G00.78.004   7000.00
+        Code de cotisation individuelle              S21.G00.81.001   131 - Cotisation régime unifié Agirc-Arrco
+        Montant de cotisation individuelle           S21.G00.81.004   1724.80 *
+        Code de cotisation individuelle              S21.G00.81.001   132 - Cotisation Apec
+        Montant de cotisation individuelle           S21.G00.81.004   4.20 *
+
+
+
+
+© Agirc-Arrco                                                                                                      juin 2025
+                                      Sommes versées postérieurement au départ du salarié
+
+           SALARIE NON CADRE DONT LE CONTRAT DE TRAVAIL EST ROMPU LE 30 AVRIL 2024
+         Le salarié dont le contrat de travail est rompu le 30 avril, perçoit son solde de tout compte lors de son départ. Il perçoit un complément de solde de tout compte en juin.
+
+
+       Salaire total perçu du 1er janvier au 30/04/2024      = 14 000 euros                         ➔ Cotisations du 1er janvier au 30 avril 2024
+
+       Tranche 1 retenue du 01/01/ au 30/04/2024             = 14 000                                            Cotisations Agirc-Arrco (131) sur Tranche 1                = 1 402,80
+          (Plafond sécurité sociale pour la période = 15 456 euros)
+       Tranche 2 retenue du 01/01/ au 30/04/2024             =      0
+
+
+        Somme perçue en juin 2024                            = 20 000 euros                         ➔Cotisations à rattacher à Avril 2024
+                                                                                                               * Cotisations Agirc-Arrco (131) sur Tranche 1
+       Tranche 1 rattachée à avril 2024                      = 1 456                                                          = (14 000 + 1 456) x 0,35% + 1 456 x 10,02% = 199,99
+       Tranche 2 rattachée à avril 2024                      = 18 544                                         ** Cotisations Agirc-Arrco (131) sur Tranche 2
+                                                                                                                              = 18 544 x 24,64%                           = 4 569,24
+
+
+                                                                    Codification DSN attendue Juin 2024
+
+                                  Rubrique                                       Code rubrique                                           Valeur rubrique
+        Montant du versement                                                   S21.G00.20.005                       4769.23
+        Date de début de période de rattachement                               S21.G00.20.006                       01042024
+        Date de fin de période de rattachement                                 S21.G00.20.007                       30042024
+        Date du versement                                                      S21.G00.50.001                       25062024
+        Date du début de période de paie                                       S21.G00.51.001                       01042024
+        Date du début de période de paie                                       S21.G00.51.002                       30042024
+        Type                                                                   S21.G00.51.011                       001
+        Montant                                                                S21.G00.51.013                       20000.00
+        Date de fin de contrat                                                 S21.G00.62.001                       30042024
+        Code de base assujettie                                                S21.G00.78.001                       02 - Assiette brute plafonnée
+        Date de début de période de rattachement                               S21.G00.78.002                       01042024
+        Date de fin de période de rattachement                                 S21.G00.78.003                       30042024
+        Montant de base assujettie                                             S21.G00.78.004                       1456.00
+
+        Code de cotisation individuelle                                        S21.G00.81.001                       131 - Cotisation régime unifié Agirc-Arrco
+
+        Montant de cotisation individuelle                                     S21.G00.81.004                       199.99*
+
+© Agirc-Arrco                                                                                                                                                                          juin 2025
+                                      Sommes versées postérieurement au départ du salarié
+
+        Code de base assujettie                             S21.G00.78.001      03 - Assiette brute déplafonnée
+        Date de début de période de rattachement            S21.G00.78.002      01042024
+        Date de fin de période de rattachement              S21.G00.78.003      30042024
+        Montant de base assujettie                          S21.G00.78.004      20000.00
+        Code de cotisation individuelle                     S21.G00.81.001      131 - Cotisation régime unifié Agirc-Arrco
+        Montant de cotisation individuelle                  S21.G00.81.004      4569.24**
+
+
+
+
+© Agirc-Arrco                                                                                                                juin 2025
+                                       Sommes versées postérieurement au départ du salarié
+
+2.      SOMMES VERSEES AU SALARIE POSTERIEUREMENT A L’ANNEE DE SON DEPART DE L’ENTREPRISE
+            SALARIE CADRE DONT LE CONTRAT DE TRAVAIL EST ROMPU LE 31 DECEMBRE 2024
+     Le salarié dont le contrat de travail est rompu le 31 décembre, perçoit son solde de tout compte lors de son départ. Il perçoit un complément de solde de tout compte en février de l’année
+     suivante.
+
+        Salaire total perçu du 1er janvier au 31/12/2024      = 52 000 euros                        ➔ Cotisations du 1er janvier au 31 décembre 2024
+
+        Tranche 1 retenue sur l’exercice 2024                 = 46 368                                          Cotisations Agirc-Arrco (131) sur Tranche 1       = 4 808,36
+                (Plafond sécurité sociale pour la période = 46 368 euros)                                       Cotisations Agirc-Arrco (131) sur Tranche 2       = 1 387,72
+        Tranche 2 retenue sur l’exercice 2024                 = 5 632                                           Cotisations Apec (132)                            =    31,20
+
+
+        Somme perçue en février 2025                         = 20 000 euros                         ➔Cotisations à rattacher à Décembre 2024
+
+        Tranche 1 rattachée à 2024                           =      0                                           * Cotisations Agirc-Arrco (131) sur Tranche 1     =     0
+        Tranche 2 rattachée à 2024                           = 20 000                                          ** Cotisations Agirc-Arrco (131) sur Tranche 2     = 4 928,00
+                                                                                                              *** Cotisations Apec (132)                          =    12,00
+
+
+                                                                    Codification DSN attendue Février 2025
+                              Rubrique                                     Code rubrique                                                 Valeur rubrique
+          Montant du versement                                              S21.G00.20.005                    4940.00
+          Date de début de période de rattachement                          S21.G00.20.006                    01122024
+          Date de fin de période de rattachement                            S21.G00.20.007                    31122024
+          Date du versement                                                 S21.G00.50.001                    25022025
+          Date du début de période de paie                                  S21.G00.51.001                    01122024
+          Date du début de période de paie                                  S21.G00.51.002                    31122024
+          Type                                                              S21.G00.51.011                    001
+          Montant                                                           S21.G00.51.013                    20000.00
+          Date de fin de contrat                                            S21.G00.62.001                    31122024
+          Code de base assujettie                                           S21.G00.78.001                    02 - Assiette brute plafonnée
+          Date de début de période de rattachement                          S21.G00.78.002                    01122024
+          Date de fin de période de rattachement                            S21.G00.78.003                    31122024
+          Montant de base assujettie                                        S21.G00.78.004                    0.00
+          Code de base assujettie                                           S21.G00.78.001                    03 - Assiette brute déplafonnée
+          Date de début de période de rattachement                          S21.G00.78.002                    01122024
+
+© Agirc-Arrco                                                                                                                                                                        juin 2025
+                                      Sommes versées postérieurement au départ du salarié
+
+         Date de fin de période de rattachement                            S21.G00.78.003                    31122024
+         Montant de base assujettie                                        S21.G00.78.004                    20000.00
+         Code de cotisation individuelle                                   S21.G00.81.001                    131 – Cotisations régime unifié Agirc-Arrco
+         Montant de cotisation individuelle                                S21.G00.81.004                    4928.00 **
+         Code de cotisation individuelle                                   S21.G00.81.001                    132 – Cotisations Apec
+         Montant de cotisation individuelle                                S21.G00.81.004                    12.00 ***
+
+
+
+
+           SALARIE NON CADRE DONT LE CONTRAT DE TRAVAIL EST ROMPU LE 31 DECEMBRE 2024
+    Le salarié dont le contrat de travail est rompu le 31 décembre, perçoit son solde de tout compte lors de son départ. Il perçoit un complément de solde de tout compte en février de l’année
+    suivante.
+
+       Salaire total perçu du 1er janvier au 31/12/2014     = 40 000 euros                         ➔ Cotisations du 1er janvier au 31 décembre 2024
+
+       Tranche 1 retenue du 01/01 au 31/12/2024             = 40 000                                        Cotisations Agirc-Arrco (131) sur Tranche 1          = 4 008,00
+          (Plafond sécurité sociale pour la période = 46 368 euros)
+       Tranche 2 retenue du 01/01 au 31/12/2024             =       0
+
+       Somme perçue en février 2025                         = 20 000 euros                         ➔Cotisations à rattacher à Décembre 2024
+
+       Tranche 1 rattachée à 2024                           = 6 368                                          * Cotisations Agirc-Arrco (131) sur Tranche 1
+                                                                                                                      = (40 000 + 6 368) x 0,35% + 6 368 x 10,02%        = 800,36
+       Tranche 2 rattachée à 2024                           = 13 632                                        ** Cotisations Agirc-Arrco (131) sur Tranche 2
+                                                                                                                      = 13 632 x 24,64%                                  = 3 358,92
+
+
+                                                                  Codification DSN attendue Février 2025
+
+                                 Rubrique                                       Code rubrique                                           Valeur rubrique
+        Montant du versement                                                  S21.G00.20.005                       4159.28
+        Date de début de période de rattachement                              S21.G00.20.006                       01122024
+        Date de fin de période de rattachement                                S21.G00.20.007                       31122024
+        Date du versement                                                     S21.G00.50.001                       25022025
+        Date du début de période de paie                                      S21.G00.51.001                       01122024
+        Date du début de période de paie                                      S21.G00.51.002                       31122024
+        Type                                                                  S21.G00.51.011                       001
+
+
+© Agirc-Arrco                                                                                                                                                                       juin 2025
+                                      Sommes versées postérieurement au départ du salarié
+
+        Montant                                             S21.G00.51.013      20000.00
+        Date de fin de contrat                              S21.G00.62.001      31122024
+        Code de base assujettie                             S21.G00.78.001      02 - Assiette brute plafonnée
+        Date de début de période de rattachement            S21.G00.78.002      01122024
+        Date de fin de période de rattachement              S21.G00.78.003      31122024
+        Montant de base assujettie                          S21.G00.78.004      6368.00
+
+        Code de cotisation individuelle                     S21.G00.81.001      131 – Cotisations régime unifié Agirc-Arrco
+
+        Montant de cotisation individuelle                  S21.G00.81.004      800.36*
+        Code de base assujettie                             S21.G00.78.001      03 - Assiette brute déplafonnée
+        Date de début de période de rattachement            S21.G00.78.002      01122024
+        Date de fin de période de rattachement              S21.G00.78.003      31122024
+        Montant de base assujettie                          S21.G00.78.004      20000.00
+        Code de cotisation individuelle                     S21.G00.81.001      131 – Cotisations régime unifié Agirc-Arrco
+        Montant de cotisation individuelle                  S21.G00.81.004      3358.92*
+
+
+
+
+© Agirc-Arrco                                                                                                                 juin 2025
+

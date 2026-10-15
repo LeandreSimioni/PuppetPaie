@@ -1,0 +1,127 @@
+Date de modification : 29/04/2025 05:05 PM
+Contribution à la formation professionnelle
+Comment déclarer la contribution à la formation professionnelle ?
+Le contexte
+Depuis le 1er janvier 2022, le recouvrement des contributions CPF-CDD, de la contribution à la formation professionnelle, de la contribution supplémentaire à l’apprentissage, et de la taxe d’apprentissage , est réalisé par le réseau des Urssaf et des caisses de MSA (hors cotisations conventionnelles de formation).
+Les employeurs participent au développement de la formation professionnelle notamment via le versement d’une contribution à la formation professionnelle (CFP).
+Les fonds ainsi collectés par les Urssaf sont fléchés et répartis par France Compétences auprès de différents bénéficiaires, dont les Opérateurs de compétences (Opco).
+Pour assurer sa mission de répartition auprès des Opco, France Compétences doit pouvoir identifier la branche professionnelle de l’entreprise et disposer de données par établissement et par Identifiant De Convention Collective (IDCC).
+/!\ C’est pourquoi, l’employeur, doit renseigner, pour chacun de ses établissements, l’IDCC dans la rubrique S21.G00.11.022 « Code convention collective principale ».
+Tous les employeurs relevant du Régime de protection sociale français sont concernés.
+Les assiettes et taux
+L’assiette de la Contribution à la Formation Professionnelle est établie sur le revenu d'activité retenu pour le calcul des cotisations sociales.
+Les taux de contribution applicables à la CFP sont les suivants :
+- 0,55 % de la masse salariale brute pour les employeurs de moins de 11 salariés, y compris les Entreprises de Travail Temporaires de moins de 11 salariés ;
+1 % de la masse salariale brute pour les employeurs de 11 salariés et plus, y compris les Entreprises de Travail Temporaires de 11 salariés et plus ;
+2 % de la masse salariale brute pour les employeurs employant des personnels intermittents du spectacle.
+Depuis janvier 2022, la TVA n’est plus due sur la Contribution à la Formation Professionnelle (CFP).
+Les exclusions
+Ne sont pas concernés par cette contribution, les employeurs suivants :
+Les services de l’Etat,
+Les établissements publics de santé, sociaux et médico-sociaux relevant de la fonction publique hospitalière,
+Les groupements de coopération sanitaire, les groupements de coopération sociale et médico-sociale,
+Les collectivités locales, les établissements publics à caractère administratif (EPA), les ambassades, les consulats,
+Les organismes chargés de l’organisation en France d’une compétition sportive internationale et, le cas échéant, les filiales de ces organismes,
+Et les Employeurs dont l’entreprise ne comporte pas d’établissement en France.
+Ne sont pas concernées par cette contribution, les rémunérations suivantes :
+Pour les entreprises de moins de 11 salariés, les rémunérations versées aux apprentis sont exclues de l’assiette de cette contribution pour les entreprises de moins de 11 salariés.
+A partir de 2022, la rémunération des salariés expatriés, non comptabilisés dans l'effectif de l'entreprise et non affiliés au régime français de sécurité sociale, n’entre pas dans l’assiette des contributions de formation professionnelle et de la taxe d'apprentissage (CFPTA) nouvellement recouvrées par les Urssaf.
+Rémunérations exonérées de la taxe sur les salaires
+Depuis janvier 2022, les rémunérations exonérées de la taxe sur les salaires ne seront plus exonérées de la CFP. Il s’agit de salaires versés :
+par les organismes et œuvres mentionnés aux a et b du 1° du 7 de l'article 261
+par les organismes permanents à caractère social des collectivités locales et des entreprises, aux personnes recrutées à l'occasion et pour la durée des manifestations de bienfaisance ou de soutien exonérées de taxe sur la valeur ajoutée.
+Entreprises du BTP
+Depuis 2022, les Urssaf collectent la totalité de la CFP des entreprises de 11 salariés et plus du BTP, au taux de 1%, sans que lui soit soustrait le montant de la cotisation au Comité de Concertation et de Coordination de l’Apprentissage du BTP (CCCA BTP). Les ressources de Pro BTP, correspondant au montant de la cotisation spécifique, sont préservées. Les employeurs du BTP de moins de 11 salariés doivent continuer à verser la cotisation CCCA-BTP auprès de l’organisme Pro-BTP dans les mêmes modalités qu’actuellement. En revanche, les Urssaf collectent depuis 2022 la totalité de la CFP des entreprises du BTP de moins de 11 salariés (au taux de 0,55%).
+Entreprises dont les congés payés sont indemnisés par des caisses de CP
+Pour les entreprises de BTP, de transport et de docker dont les congés payés, sont indemnisés par des caisses de congés payés, les salaires à déclarer sont ceux effectivement payés par l’entreprise, majorés d’un taux forfaitaire de 11,5% au titre des indemnités de congés.
+Ports autonomes
+Lorsqu’un port autonome ne procède à aucune distinction lors de l’établissement de sa déclaration sociale entre la masse salariale des effectifs attachés aux missions à caractère administratif et celle des effectifs engagés dans des activités de nature industrielle et commerciale, il applique un abattement forfaitaire de 50 % de l’assiette de ses contributions.
+Intermittents du spectacle
+Pour les employeurs de personnels intermittents du spectacle, la contribution est due à compter du premier salarié intermittent.
+Déclarer la Contribution à la formation professionnelle
+La CFP est déclarée mensuellement par chaque établissement de l’entreprise.
+Le bloc « Cotisation individuelle- S21.G00.81 » portant la valeur « 128 - Contribution à la formation professionnelle (CFP) » doit être déclaré sous un bloc « Base assujettie - S21.G00.78 » de valeur « 03 - Assiette brute déplafonnée ».
+A la maille agrégée à l’attention de l’Urssaf, la contribution à la formation professionnelle doit également être déclarée au travers d’un CTP au bloc « Cotisation agrégée – S21.G00.23 » - voir le Guide Urssaf Caisse nationale.
+Exemple de déclaration
+Il convient de renseigner les blocs « Base assujettie - S21.G00.78 » et « Cotisation individuelle - S21.G00.81 », comme suit :
+S21.G00.78 - Base assujettie
+Code
+|
+Rubrique
+|
+Valorisation
+S21.G00.78.001
+|
+Code de base assujettie
+|
+03 - Assiette brute déplafonnée
+S21.G00.78.002
+|
+Date de début de période de rattachement
+|
+01012024
+(exemple)
+S21.G00.78.003
+|
+Date de fin de période de rattachement
+|
+31012024
+(exemple)
+S21.G00.78.004
+|
+Montant de base assujettie
+|
+3000.00
+(exemple)
+|
+|
+S21.G00.81 - Cotisation individuelle
+Code
+|
+Rubrique
+|
+Valorisation
+S21.G00.81.001
+|
+Code de cotisation
+|
+128
+(code à renseigner pour les employeurs :
+- de moins de 11 salariés, y compris les Entreprises de Travail Temporaires,
+- ou de 11 salariés et plus y compris les Entreprises de Travail Temporaires,
+- ou de personnels intermittents du spectacle)
+S21.G00.81.002
+|
+Identifiant organisme de protection
+|
+SIRET URSSAF ou code caisse MSA
+S21.G00.81.003
+|
+Montant d'assiette
+|
+3000.00
+(exemple)
+Pour les salariés affiliés à une caisse de congés payés du BTP, du transport ou des dockers, le montant d’assiette est majoré de 11,5%
+S21.G00.81.004
+|
+Montant de cotisation
+|
+30.00
+(exemple)
+S21.G00.81.007
+|
+Taux de cotisation
+|
+1.00
+(exemple pour un employeur de 11 salariés et plus)
+Les cas particuliers
+À la MSA :
+Depuis janvier 2022, il convient de ne plus utiliser en rubrique « Code de cotisation – S21.G00.81.001 », les codes « 053 - Cotisation Formation professionnelle additionnelle FAFSEA » et « 056 - Cotisation Formation professionnelle FAFSEA » (hormis pour les cas de régularisations concernant les périodes antérieures à 2022).
+À Pro BTP
+PROBTP en tant que délégataire de gestion pour les différents organismes continue d’être chargé de la collecte des différentes contributions au titre des périodes antérieures à 2022.
+Il convient de se référer au guide de la formation continue disponible à la page suivante : Taux de cotisations pour la formation professionnelle (probtp.com).
+La réglementation
+Le transfert auprès du réseau des Urssaf et des caisses de MSA a été mis en œuvre le 1er janvier 2022 en application de la loi n°2018-771 du 5 septembre 2018 pour la liberté de choisir son avenir professionnel, de l’article 18 de la loi n° 2019-1446 du 24 décembre 2019 de financement de la sécurité sociale pour 2020 et de l’article 190 de la loi n°2019-1479 du 28 décembre 2019 de finances pour 2020.
+Définition d’une filiale : voir Article L233-1-1 du code de commerce
+Effectif pris en compte pour le calcul de la contribution CFP : voir Article L6331-1 ; article L. 6331-3 et L. 6331-55 du code du travail
+Assiette de la CFP : voir articles L. 6331-1 et L. 6331-3 du code du travail, article L. 242-1 du code de la sécurité sociale et article L. 741-10 du code rural et de la pêche maritime

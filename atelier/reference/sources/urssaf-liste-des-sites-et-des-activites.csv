@@ -1,0 +1,153 @@
+﻿libelle_organisme;code_site_v2;code_organisme_ur_regionale;identifiant_site_rioss;libelle_site;type_implantation;siege_social;adresse;code_postal;ville;pays;latitude_du_site;longitude_du_site;services;activites_de_gestion_interne;code_ancienne_region;ancienne_region;code_nouvelle_region;nouvelle_region
+Urssaf CORSE;200;200;R20U201;Site d'Ajaccio;Mixte : Accueil et Administratif;1;Boulevard Abbé Recco;20701;AJACCIO;France;41.9376;8.73873;;;94;Corse;94;CORSE
+Urssaf MIDI PYRENEES;810;;R31S810;Site d'Albi;Administratif;0;2 Rue Gustave Eiffel Puygouzon;81026;ALBI;France;43.8927;2.16554;;;73;Midi-Pyrénées;76;OCCITANIE
+Urssaf AQUITAINE;641;;R33S642;Site de Bayonne;Mixte : Accueil et Administratif;0;6 Avenue Belle Marion;64600;ANGLET;France;43.496;-1.5157;;;72;Aquitaine;75;NOUVELLE AQUITAINE
+Urssaf NORD PAS DE CALAIS;621;;R59S621;Site de Arras;Mixte : Accueil et Administratif;0;Boulevard Allende;62017;ARRAS;France;50.2909;2.75922;Chèque emploi associatif;;31;Nord-Pas-de-Calais;32;HAUTS DE FRANCE
+Urssaf BRETAGNE;562;;;Site d'Auray;Mixte : Accueil et Administratif;0;3 Place René Cassin;56400;AURAY;France;47.6721752;-2.9782237;Gestion des travailleurs indépendants;;53;Bretagne;53;BRETAGNE
+Urssaf AUVERGNE;150;;O15S001;Site d'Aurillac;Administratif;0;15 Rue Pierre Marty;15002;AURILLAC;France;44.924;2.44618;;;83;Auvergne;84;AUVERGNE RHONE ALPES
+Cgss GUADELOUPE;;;;Site de Baie-Mahault;;0;Rue Ferdinand Forest;97122;BAIE MAHAULT;France;16.240412;-61.565333;;;1;Guadeloupe;1;GUADELOUPE
+Urssaf CENTRE;410;;O41S001;Site de Blois;Mixte : Accueil et Administratif;0;6 Rue Louis Armand;41015;BLOIS;France;47.5987;1.30341;;;24;Centre;24;CENTRE VAL DE LOIRE
+Urssaf BRETAGNE;291;;292COPR;Site de Brest;Administratif;0;8 Square Marc Sangnier;29200;BREST;France;48.388;-4.4916;Gestion des Praticiens et Auxiliaires Médicaux;;53;Bretagne;53;BRETAGNE
+Urssaf CAISSE NATIONALE;;;R75A006;Site de Caen;Centre informatique;0;18 Rue Alfred Kastler;14063;CAEN;France;49.2012;-.3944;;;25;Normandie;28;NORMANDIE
+Cgss GUYANE;973;;;Site de Cayenne;;1;C.S, Route de Raban Espace, 37 015 Rue Turenne Radamonthe, Cayenne;97307;CAYENNE;France;4.9357188;-52.31549039999999;Gestion de la PUMA - Protection Universelle Maladie;;3;Guyane;3;GUYANE
+Urssaf CHAMPAGNE ARDENNE;80;;R51S081;Site de Charleville-Mézières;Mixte : Accueil et Administratif;0;34 Bis Rue ferroul;08012;CHARLEVILLE-MEZIERES;France;49.7439;4.7214;Gestion des Praticiens et Auxiliaires Médicaux;Plateforme téléphonique d'entraide;21;Champagne-Ardenne;44;GRAND EST
+Urssaf PAYS DE LA LOIRE;492;;R44S491;Site de Cholet;Administratif;0;44 Rue du Paradis;49321;CHOLET;France;47.0624;-.8721;;;52;Pays de la Loire;52;PAYS DE LA LOIRE
+Urssaf NORD PAS DE CALAIS;591;;R59S592;Site de Douai;Mixte : Accueil et Administratif;0;56 Rue Pierre Dubois;59500;DOUAI;France;50.374;3.08654;;Plateforme téléphonique d'entraide;31;Nord-Pas-de-Calais;32;HAUTS DE FRANCE
+Urssaf FRANCHE COMTE;251;437;O25S001;Site de Besançon;Mixte : Accueil et Administratif;1;3 Route de Chatillon;25480;ECOLE-VALENTIN;France;47.277823;5.9938574;;;43;Franche-Comté;27;BOURGOGNE FRANCHE COMTE
+Urssaf NORMANDIE;270;287;R76S271;Site d'Evreux;Mixte : Accueil et Administratif;0;Rue Henri Becquerel Parc d'activités de la Forêt;27000;EVREUX;France;48.9981;1.14945;;;23;Normandie;28;NORMANDIE
+Urssaf ILE DE FRANCE;910;;R75S911;Site d'Evry;Administratif;0;1 Allée Clos de la Cathédrale;91000;EVRY;France;48.62;2.44978;;;11;Ile-de-France;11;ILE DE FRANCE
+Urssaf MIDI PYRENEES;90;;R31S090;Site de Foix;Administratif;0;4 Rue Victor Hugo Peysales;09002;FOIX;France;42.9667;1.6072;;;73;Midi-Pyrénées;76;OCCITANIE
+Urssaf RHONE ALPES;380;;R69S381;Site de Grenoble;Administratif;0;1 Rue des Alliés;38046;GRENOBLE;France;45.1694;5.73051;;Flux entrants non dématérialisés;82;Rhône-Alpes;84;AUVERGNE RHONE ALPES
+Urssaf ILE DE FRANCE;780;;R75S781;Site de Guyancourt;Administratif;0;13 Rue Emile et Charles Pathé Immeuble le Proxima;78045;GUYANCOURT;France;48.7875;2.05206;;;11;Ile-de-France;11;ILE DE FRANCE
+Urssaf NORMANDIE;762;287;O76S001;Site du Havre;Mixte : Accueil et Administratif;0;222 Boulevard de Strasbourg;76600;LE HAVRE;France;49.4921;.12238;;;23;Normandie;28;NORMANDIE
+Urssaf PAYS DE LA LOIRE;720;;O72S001;Site du Mans;Administratif;0;178 Avenue Bollée;72048;LE MANS;France;47.9968;.22037;Gestion des Praticiens et Auxiliaires Médicaux;;52;Pays de la Loire;52;PAYS DE LA LOIRE
+Urssaf ILE DE FRANCE;771;;;Site de Corbeil;Mixte : Accueil et Administratif;0;30 Points de Vue;77127;LIEUSAINT;France;48.6146629;2.5376356;;;11;Ile-de-France;11;ILE DE FRANCE
+Urssaf LIMOUSIN;870;747;R87S001;Site de Limoges;Mixte : Accueil et Administratif;1;11 Rue Camille Pelletan;87000;LIMOGES;France;45.8364;1.27191;;;74;Limousin;75;NOUVELLE AQUITAINE
+Urssaf ILE DE FRANCE;;;;Site de Maisons-Alfort;Accueil;0;36 cours des Juilliottes;94700;MAISONS-ALFORT;France;48.802452087402344;2.442803144454956;;;11;Ile-de-France;11;ILE DE FRANCE
+Urssaf PACA;130;937;R13S131;Site de Marseille;Mixte : Accueil et Administratif;1;20 Avenue Viton;13289;MARSEILLE;France;43.2593;5.40749;;;93;Provence-Alpes-Côte d'Azur;93;PROVENCE ALPES COTE D AZUR
+Urssaf FRANCHE COMTE;252;;O25S002;Site de Montbéliard;Administratif;0;3 Rue Léon Blum;25200;MONTBELIARD;France;47.4997;6.80179;Gestion des frontaliers suisses;;43;Franche-Comté;27;BOURGOGNE FRANCHE COMTE
+Urssaf CAISSE NATIONALE;;;R75A009;Site de Montpellier;Centre informatique;0;1300 Avenue Albert Einstein;34000;MONTPELLIER;France;43.61;3.91278;;;91;Languedoc-Roussillon;76;OCCITANIE
+Urssaf CAISSE NATIONALE;;;R75A001;Site de Montreuil-Valmy;Administratif;1;36 Rue de Valmy;93108;MONTREUIL;France;48.8507;2.4173;;;11;Ile-de-France;11;ILE DE FRANCE
+Urssaf CAISSE NATIONALE;;;;Site de Montreuil-République;Administratif;0;38 rue de la République;93100;MONTREUIL;France;48.8528159;2.4193052;;;11;Ile-de-France;11;ILE DE FRANCE
+Urssaf ILE DE FRANCE;930;117;R75S001;Site de Montreuil-Lagny;Mixte : Accueil et Administratif;1;22 Rue de Lagny;93100;MONTREUIL;France;48.8489;2.42778;Gestion des VRP;"Centre national de Validation; Flux entrants non dématérialisés; Flux entrants non dématérialisés Praticiens et auxiliaires médicaux";11;Ile-de-France;11;ILE DE FRANCE
+Urssaf PAYS DE LA LOIRE;441;;;Site de Nantes-Millerand;;0;11 Bis Boulevard Alexandre Millerrand;44200;NANTES;France;47.2079122;-1.5296819;;;52;Pays de la Loire;52;PAYS DE LA LOIRE
+Urssaf PACA;61;;R13S061;Site de Nice;Administratif;0;152 Avenue de la Californie;6200;NICE;France;43.6844;7.23419;;;93;Provence-Alpes-Côte d'Azur;93;PROVENCE ALPES COTE D AZUR
+Urssaf CENTRE;450;247;O45S001;Site d'Orléans;Mixte : Accueil et Administratif;1;258 Boulevard Duhamel du Monceau;45160;OLIVET;France;47.8467287;1.9266177;;Centre national paie;24;Centre;24;CENTRE VAL DE LOIRE
+Urssaf POITOU CHARENTES;860;547;R86S001;Site de Poitiers;Mixte : Accueil et Administratif;1;3 Avenue de la Révolution;86046;POITIERS;France;46.5863;.38073;;;54;Poitou-Charentes;75;NOUVELLE AQUITAINE
+Urssaf RHONE ALPES;421;;R69S422;Site de Roanne;Administratif;0;22 Rue de la Berge Immeuble Grand Angle;42328;ROANNE;France;46.033;4.07154;;;82;Rhône-Alpes;84;AUVERGNE RHONE ALPES
+Cgss REUNION;974;;;Site de Saint-Denis;Mixte : Accueil et Administratif;1;4 Boulevard Doret;97400;SAINT DENIS;France;-20.8890221;55.4610292;Gestion de la PUMA - Protection Universelle Maladie;;4;La Réunion;4;LA REUNION
+Cgss REUNION;;;;Site de Saint-Pierre;Mixte : Accueil et Administratif;0;80 Rue du Presbytère, 97410, St Pierre, La Réunion;97410;SAINT-PIERRE;France;-21.334724;55.4732933;;;4;La Réunion;4;LA REUNION
+Urssaf PICARDIE;21;;R80S022;Site de Saint-Quentin;Administratif;0;31 Boulevard Roosevelt;02100;SAINT-QUENTIN;France;49.8531;3.28946;;;22;Picardie;32;HAUTS DE FRANCE
+Urssaf ALSACE;670;427;R67S001;Site de Strasbourg;Mixte : Accueil et Administratif;1;16 Rue Contades;67300;SCHILTIGHEIM;France;48.6025;7.75412;"Gestion des firmes étrangères;  Centre national d’appui au recouvrement des créances à l’étranger";;42;Alsace;44;GRAND EST
+Urssaf NORD PAS DE CALAIS;592;;R59S591;Site de Tourcoing;Mixte : Accueil et Administratif;0;28 Avenue de la Marne;59200;TOURCOING;France;50.7098;3.15143;;;31;Nord-Pas-de-Calais;32;HAUTS DE FRANCE
+Urssaf CAISSE NATIONALE;;;;Site de Valbonne;Centre informatique;0;480 Route des Dolines;06560;VALBONNE;France;43.6210957;7.0376623;;;93;Provence-Alpes-Côte d'Azur;93;PROVENCE ALPES COTE D AZUR
+Urssaf RHONE ALPES;691;827;R69S691;Site de Lyon;Mixte : Accueil et Administratif;1;6 Rue du 19 mars 1962;69691;VENISSIEUX;France;45.7006;4.86375;Gestion des laboratoires pharmaceutiques;"Flux entrants non dématérialisés; Centre national paie";82;Rhône-Alpes;84;AUVERGNE RHONE ALPES
+Urssaf CAISSE NATIONALE;;;R75A003;Site de Lille;Centre informatique;0;13 Rue Papin Zone d'activités - Parc Club des Pris;59658;VILLENEUVE-D'ASCQ;France;50.6482;3.12664;;;31;Nord-Pas-de-Calais;32;HAUTS DE FRANCE
+Urssaf NORMANDIE;763;237;R76S761;Site de Rouen;Mixte : Accueil et Administratif;1;61 Rue Pierre Renaudel;76100;ROUEN;France;49.4282;1.08918;;;23;Normandie;28;NORMANDIE
+Urssaf NORMANDIE;270;;R76S271;Site d'Evreux;Mixte : Accueil et Administratif;0;Rue Henri Becquerel Parc d'activités de la Forêt;27000;EVREUX;France;48.9981;1.14945;;;23;Normandie;28;NORMANDIE
+Urssaf NORMANDIE;762;;O76S001;Site du Havre;Mixte : Accueil et Administratif;0;222 Boulevard de Strasbourg;76600;LE HAVRE;France;49.4921;.12238;;;23;Normandie;28;NORMANDIE
+Urssaf NORMANDIE;140;257;R14S001;Site de Caen-Isigny;Mixte : Accueil et Administratif;0;22 Rue d'Isigny;14045;CAEN;France;49.1903;-.4009;;;25;Normandie;28;NORMANDIE
+Urssaf AQUITAINE;470;;R33S471;Site de Agen;Mixte : Accueil et Administratif;0;16 Rue des Colonels Lacuée;47917;AGEN;France;44.202;.61619;;;72;Aquitaine;75;NOUVELLE AQUITAINE
+Urssaf PICARDIE;800;227;R80S001;Site d'Amiens;Mixte : Accueil et Administratif;1;1 Avenue du Danemark;80029;AMIENS;France;49.8692;2.28369;Gestion des Praticiens et Auxiliaires Médicaux;;22;Picardie;32;HAUTS DE FRANCE
+Urssaf MIDI PYRENEES;320;;321COPR;Site d'Auch;Administratif;0;11 Rue de Châteaudun;32012;AUCH;France;43.6501;.58807;;;73;Midi-Pyrénées;76;OCCITANIE
+Urssaf BOURGOGNE;890;;O89S001;Site d'Auxerre;Mixte : Accueil et Administratif;0;3 Rue du Moulin;89024;AUXERRE;France;47.7897;3.56891;;;26;Bourgogne;27;BOURGOGNE FRANCHE COMTE
+Urssaf POITOU CHARENTES;170;;;Site de La Rochelle;Mixte : Accueil et Administratif;0;12 rue Newton;17440;AYTRE;France;46.1357;-1.1145;Gestion des marins;;54;Poitou-Charentes;75;NOUVELLE AQUITAINE
+Urssaf FRANCHE COMTE;900;;O90S001;Site de Belfort;Administratif;0;12 Rue Général Strolz;90021;BELFORT;France;47.6396;6.85581;Gestion de la PUMA - Protection Universelle Maladie;;43;Franche-Comté;27;BOURGOGNE FRANCHE COMTE
+Urssaf CAISSE NATIONALE;;;;Site de Biot;Centre informatique;0;700 avenue de Romanille;06904;SOPHIA-ANTIPOLIS;France;43.62723;7.09645;;;93;Provence-Alpes-Côte d'Azur;93;PROVENCE ALPES COTE D AZUR
+Urssaf LANGUEDOC ROUSSILLON;110;;R34S112;Site de Carcassonne;Mixte : Accueil et Administratif;0;20 Rue Saint Michel;11876;CARCASSONNE;France;43.224;2.33381;Gestion de la PUMA - Protection Universelle Maladie;;91;Languedoc-Roussillon;76;OCCITANIE
+Urssaf CENTRE;280;;R45S281;Site de Chartres;Mixte : Accueil et Administratif;0;8 Bis Rue Charles Victor Garola;28036;CHARTRES;France;48.4453;1.48003;;;24;Centre;24;CENTRE VAL DE LOIRE
+Urssaf AUVERGNE;630;837;R63S001;Site de Clermont-Ferrand;Mixte : Accueil et Administratif;1;4 Rue Patrick Depailler;63054;CLERMONT-FERRAND;France;45.7613;3.13345;;Centre national de Validation;83;Auvergne;84;AUVERGNE RHONE ALPES
+Urssaf PACA;40;;R13S042;Site de Digne-les-Bains;Administratif;0;4 Ter Avenue Maréchal Leclerc;04009;DIGNE-LES-BAINS;France;44.0983;6.2344;;;93;Provence-Alpes-Côte d'Azur;93;PROVENCE ALPES COTE D AZUR
+Urssaf BOURGOGNE;;;;Site de Dijon;Mixte : Accueil et Administratif;0;12 boulevard du Docteur Jean Veillet;21000;DIJON;France;47.353947012384396;5.049424015474244;;;26;Bourgogne;27;BOURGOGNE FRANCHE COMTE
+Urssaf LORRAINE;880;;R57S881;Site de Epinal;Administratif;0;6 Avenue Pierre Blanck;88000;EPINAL;France;48.1997;6.46012;;;41;Lorraine;44;GRAND EST
+Urssaf LIMOUSIN;230;;O23S001;Site de Gueret;Administratif;0;Rue Marcel Brunet;23000;GUERET;France;46.1768;1.87116;Gestion des Artistes Auteurs Diffuseurs;;74;Limousin;75;NOUVELLE AQUITAINE
+Urssaf PAYS DE LA LOIRE;850;;R44S851;Site de la Roche sur yon;Administratif;0;11 Benjamin Franklin;85930;LA ROCHE-SUR-YON;France;46.6874;-1.4281;Gestion de la PUMA - Protection Universelle Maladie;;52;Pays de la Loire;52;PAYS DE LA LOIRE
+Cgss MARTINIQUE;;;;Site du Lamentin;;0;Immeuble Naccarat, Place d'armes Rue Case Negre;97232;LE LAMENTIN;France;14.6226818;-60.9898053;;;2;Martinique;2;MARTINIQUE
+Urssaf AUVERGNE;;;;Site du Puy-en-Velay;Mixte : Accueil et Administratif;0;16 Avenue Jeanne d'Arc;43750;VALS PRES LE PUY;France;45.02722599312068;3.879816012401051;"Gestion de la PUMA - Protection Universelle Maladie; Pajemploi";Téléphonie Cesu / Pajemploi;83;Auvergne;84;AUVERGNE RHONE ALPES
+Urssaf POITOU CHARENTES;160;;R86S161;Site de Angoulème;Mixte : Accueil et Administratif;0;Rue Victor Hugo;16340;L'ISLE-D'ESPAGNAC;France;45.67;.18526;;;54;Poitou-Charentes;75;NOUVELLE AQUITAINE
+Urssaf BOURGOGNE;710;;F71A001;Site de Macon;Mixte : Accueil et Administratif;0;177 Rue de Paris;71000;MACON;France;46.3122;4.83539;;Flux entrants non dématérialisés;26;Bourgogne;27;BOURGOGNE FRANCHE COMTE
+Ccss LOZERE;480;;;Site de Mende;Mixte : Accueil et Administratif;0;Quartier des Carmes;48000;MENDE;France;44.5187678;3.4954518;;;91;Languedoc-Roussillon;76;OCCITANIE
+Urssaf MIDI PYRENEES;820;;R31S823;Site de Montauban;Mixte : Accueil et Administratif;0;300 Avenue du Danemark Zone Albasud;82000;MONTAUBAN;France;43.9873;1.32733;;;73;Midi-Pyrénées;76;OCCITANIE
+Urssaf AQUITAINE;400;;R33S401;Site de Mont-de-Marsan;Administratif;0;6 Allée Claude Mora;40015;MONT-DE-MARSAN;France;43.8907;-.4779;;;72;Aquitaine;75;NOUVELLE AQUITAINE
+Urssaf AUVERGNE;30;;O03S002;Site de Moulins;Administratif;0;9 Rue Achille-Roche;3000;MOULINS;France;46.5623;3.32937;;;83;Auvergne;84;AUVERGNE RHONE ALPES
+Urssaf ALSACE;680;;O68S001;Site de Mulhouse;Mixte : Accueil et Administratif;0;26 Avenue Robert Schuman;68100;MULHOUSE;France;47.7517;7.34248;;;42;Alsace;44;GRAND EST
+Urssaf ILE DE FRANCE;;;;Site de Nanterre;Accueil;0;130 Rue du 8 mai 1945;92014;NANTERRE;France;48.89209747314453;2.2053260803222656;;;11;Ile-de-France;11;ILE DE FRANCE
+Urssaf LANGUEDOC ROUSSILLON;300;;R34S662;Site de Nîmes;Mixte : Accueil et Administratif;0;77 Chemin Bas du mas de Boudan Parc Georges Besse;30000;NIMES;France;43.8272;4.36437;Guichet taurin;;91;Languedoc-Roussillon;76;OCCITANIE
+Urssaf POITOU CHARENTES;790;;;Site de Niort;Mixte : Accueil et Administratif;0;477 avenue de Limoges;79000;NIORT;France;46.317078;-0.388891;;;54;Poitou-Charentes;75;NOUVELLE AQUITAINE
+Urssaf ILE DE FRANCE;;;;Site de Paris;Mixte : Accueil et Administratif;0;11 Rue de Cambrai;75019;PARIS;France;48.896015;2.379743;;;11;Ile-de-France;11;ILE DE FRANCE
+Urssaf AQUITAINE;240;;O24S001;Site de Périgueux;Mixte : Accueil et Administratif;0;50 Rue Claude Bernard;24000;PERIGUEUX;France;45.1808;.70884;;;72;Aquitaine;75;NOUVELLE AQUITAINE
+Urssaf BRETAGNE;220;;R35S564;Site de Saint Brieuc;Administratif;0;4 Rue Villiers de l'Isle Adam;22197;PLERIN;France;48.5291;-2.7656;Gestion des Praticiens et Auxiliaires Médicaux;;53;Bretagne;53;BRETAGNE
+Cgss GUADELOUPE;971;;;Site de Pointe-à-Pitre;Mixte : Accueil et Administratif;1;Parc d'activité La Providence Espace Amédée Fengarol, ZAC de Dothémare, Les Abymes;97139;POINTE-A-PITRE;France;16.277129;-61.510621;;Gestion de la trésorerie Martinique;1;Guadeloupe;1;GUADELOUPE
+Urssaf CHAMPAGNE ARDENNE;510;217;O51S001;Site de Reims;Mixte : Accueil et Administratif;1;202 Rue des Capucins;51089;REIMS;France;49.245;4.03643;;;21;Champagne-Ardenne;44;GRAND EST
+Urssaf CHAMPAGNE ARDENNE;;;;Site de Reims;Mixte : Accueil et Administratif;0;11, rue Pingat;51100;REIMS;France;49.2591929991074;4.022068979228891;;;21;Champagne-Ardenne;44;GRAND EST
+Urssaf NORMANDIE;763;287;R76S761;Site de Rouen;Mixte : Accueil et Administratif;1;61 Rue Pierre Renaudel;76100;ROUEN;France;49.4282;1.08918;;;23;Normandie;28;NORMANDIE
+Cgss REUNION;;;;Site de Saint-André;Mixte : Accueil et Administratif;0;Domaine de la Vanille 470 Rue de la Gare;97440;SAINT-ANDRE;France;-20.9616344;55.6565996;;;4;La Réunion;4;LA REUNION
+Urssaf RHONE ALPES;422;;R69S429;Site de Saint-Etienne;Administratif;0;63 Rue de la Montat ZAC de Chateaucreux;42100;SAINT-ETIENNE;France;45.4412;4.40448;CESU;;82;Rhône-Alpes;84;AUVERGNE RHONE ALPES
+Urssaf RHONE ALPES;;;;Site de Saint-Etienne;Mixte : Accueil et Administratif;0;Allée Daniel Greysolon Duluth;42000;SAINT-ETIENNE;France;45.44173488635507;4.404698860464548;;;82;Rhône-Alpes;84;AUVERGNE RHONE ALPES
+Cgss REUNION;;;;Site de Saint-Paul;Mixte : Accueil et Administratif;0;6 Rue Marius et Ary Leblond;97460;SAINT-PAUL;France;-20.976298061045412;55.406054445301805;;;4;La Réunion;4;LA REUNION
+Urssaf MIDI PYRENEES;650;;R31S650;Site de Tarbes;Administratif;0;15 Rue Latil;65000;TARBES;France;43.2294;.07937;;;73;Midi-Pyrénées;76;OCCITANIE
+Urssaf PACA;830;;O83S001;Site de Toulon;Administratif;0;42 Rue Emile Ollivier ZUP de La Rode;83000;TOULON;France;43.1199;5.9437;;;93;Provence-Alpes-Côte d'Azur;93;PROVENCE ALPES COTE D AZUR
+Urssaf CAISSE NATIONALE;;;R75A007;Site de Toulouse;Centre informatique;0;Avenue d'Atlanta;31020;TOULOUSE;France;43.6291;1.4765;;;73;Midi-Pyrénées;76;OCCITANIE
+Urssaf CHAMPAGNE ARDENNE;100;;R51S101;Site de Troyes;Mixte : Accueil et Administratif;0;26 Rue Courtalon;10000;TROYES;France;48.2928;4.06469;Gestion Economie Collaborative;;21;Champagne-Ardenne;44;GRAND EST
+Urssaf RHONE ALPES;260;;R69S261;Site de Valence;Administratif;0;1 Place de Dunkerque;26031;VALENCE;France;44.9377;4.89878;;;82;Rhône-Alpes;84;AUVERGNE RHONE ALPES
+Urssaf NORD PAS DE CALAIS;593;;R59S593;Site de Valenciennes;Mixte : Accueil et Administratif;0;31 Place de la République;59530;VALENCIENNES;France;50.3629;3.52024;;;31;Nord-Pas-de-Calais;32;HAUTS DE FRANCE
+Urssaf NORMANDIE;610;287;R14S611;Site de Alençon;Administratif;0;Rue François Arago ZA Ecouves;61250;VALFRAMBERT;France;48.4518;.0986;Gestion des Praticiens et Auxiliaires Médicaux;;25;Normandie;28;NORMANDIE
+Urssaf BRETAGNE;560;537;R35S561;Site de Vannes;Administratif;0;2 Anita Conti Parc d'activité de Laroiseau;56018;VANNES;France;47.6676;-2.7833;;;53;Bretagne;53;BRETAGNE
+Urssaf LORRAINE;540;;R57S541;Site de Nancy;Administratif;0;230 Avenue André Malraux;54604;VILLERS-LES-NANCY;France;48.6718;6.1516;;;41;Lorraine;44;GRAND EST
+Urssaf NORMANDIE;761;;R76S763;Site de Dieppe;Administratif;0;5 Quai du Tonkin;76200;DIEPPE;France;49.9228;1.0833;;;23;Normandie;28;NORMANDIE
+Urssaf NORMANDIE;610;;R14S611;Site de Alençon;Administratif;0;Rue François Arago ZA Ecouves;61250;VALFRAMBERT;France;48.4518;.0986;Gestion des Praticiens et Auxiliaires Médicaux;;25;Normandie;28;NORMANDIE
+Urssaf BRETAGNE;560;;R35S561;Site de Vannes;Administratif;0;2 Anita Conti Parc d'activité de Laroiseau;56018;VANNES;France;47.6676;-2.7833;;;53;Bretagne;53;BRETAGNE
+Urssaf PAYS DE LA LOIRE;491;;R44S493;Site d'Angers;Administratif;0;4 Rue Landemaure;49100;ANGERS;France;47.4477;-.5491;;;52;Pays de la Loire;52;PAYS DE LA LOIRE
+Urssaf RHONE ALPES;740;;R69S741;Site d'Annecy;Administratif;0;2 Rue Honoré Balzac Seynod;74990;ANNECY;France;45.8845;6.1041;"Gestion des frontaliers suisses; Guichet unique des spectacles occasionnels - GUSO";;82;Rhône-Alpes;84;AUVERGNE RHONE ALPES
+Urssaf PACA;840;;R13S132;Site d'Avignon;Mixte : Accueil et Administratif;0;385 Rue Jean Dausset;84140;AVIGNON;France;43.9159217;4.8953871;;;93;Provence-Alpes-Côte d'Azur;93;PROVENCE ALPES COTE D AZUR
+Urssaf LORRAINE;550;;R57S551;Site de Bar-le-Duc;Administratif;0;1 Rue de Popey;55012;BAR-LE-DUC;France;48.7694;5.17368;Gestion des Praticiens et Auxiliaires Médicaux;;41;Lorraine;44;GRAND EST
+Urssaf PICARDIE;602;;R80S601;Site de Beauvais;Mixte : Accueil et Administratif;0;11 Rue Ambroise Paré;60015;BEAUVAIS;France;49.4139;2.1139;Gestion des Praticiens et Auxiliaires Médicaux;;22;Picardie;32;HAUTS DE FRANCE
+Urssaf LANGUEDOC ROUSSILLON;341;;R34S341;Site de Béziers;Mixte : Accueil et Administratif;0;Boulevard Jules Cadenat;34508;BEZIERS;France;43.3343;3.26088;;;91;Languedoc-Roussillon;76;OCCITANIE
+Urssaf AQUITAINE;642;;R33S641;Site de Pau;Administratif;0;10 Rue Antoine de Bourbon;64145;BILLERE;France;43.3014;-.3866;;;72;Aquitaine;75;NOUVELLE AQUITAINE
+Urssaf RHONE ALPES;;;;Site de Bourg-en-Bresse;Administratif;0;467 avenue de San Sévéro;01000;BOURG-EN-BRESSE;France;46.21804498891254;5.250274029211255;;Centre national paie;82;Rhône-Alpes;84;AUVERGNE RHONE ALPES
+Urssaf CENTRE;180;;R45S181;Site de Bourges;Mixte : Accueil et Administratif;0;4 Esplanade du Prado;18000;BOURGES;France;47.0821;2.38683;Gestion des Praticiens et Auxiliaires Médicaux;;24;Centre;24;CENTRE VAL DE LOIRE
+Urssaf AQUITAINE;330;727;R33S001;Site de Bordeaux;Mixte : Accueil et Administratif;1;3 Rue Théodore Blanc;33084;BRUGES;France;44.8602;-.6275;Titre Emploi Service Entreprise - TESE;Centre national de Validation;72;Aquitaine;75;NOUVELLE AQUITAINE
+Urssaf NORMANDIE;140;287;R14S001;Site de Caen-Isigny;Mixte : Accueil et Administratif;0;22 Rue d'Isigny;14045;CAEN;France;49.1903;-.4009;;;25;Normandie;28;NORMANDIE
+Urssaf MIDI PYRENEES;460;;462COPR;Site de Cahors;Administratif;0;238 Rue Hautesserre;46015;CAHORS;France;44.4426;1.4393;;;73;Midi-Pyrénées;76;OCCITANIE
+Urssaf NORD PAS DE CALAIS;622;;R59S622;Site de Calais;Mixte : Accueil et Administratif;0;95 Rue de Vic;62907;CALAIS;France;50.9496815;1.8605323;;Plateforme téléphonique d'entraide;31;Nord-Pas-de-Calais;32;HAUTS DE FRANCE
+Cgss GUYANE;;;;Site de Cayenne;;0;699 route Baduel;97308;CAYENNE;France;4.9348325;-52.3117274;Gestion de la PUMA - Protection Universelle Maladie;;3;Guyane;3;GUYANE
+Urssaf ILE DE FRANCE;950;;;Site de Cergy;;0;Immeuble Ilot du Verger, 3 place de la gare;95000;CERGY;France;49.0380552;2.0814271;Gestion des laboratoires pharmaceutiques;;11;Ile-de-France;11;ILE DE FRANCE
+Urssaf ILE DE FRANCE;772;;;Site de Champs-sur-Marne;;0;5 bis Rue Nelson Mandela;77420;CHAMPS-SUR-MARNE;France;48.84480869999999;2.5835379;Titre Emploi Service Entreprise - TESE;;11;Ile-de-France;11;ILE DE FRANCE
+Urssaf CENTRE;360;;R45S453;Site de Châteauroux;Mixte : Accueil et Administratif;0;156 Avenue de la Châtre;36000;CHATEAUROUX;France;46.8067;1.70897;Gestion de la PUMA - Protection Universelle Maladie;;24;Centre;24;CENTRE VAL DE LOIRE
+Urssaf CHAMPAGNE ARDENNE;520;;R51S521;Site de Chaumont;Administratif;0;4 Place Aristide Briand;52000;CHAUMONT;France;48.1162;5.14202;Gestion des Praticiens et Auxiliaires Médicaux;;21;Champagne-Ardenne;44;GRAND EST
+Urssaf ILE DE FRANCE;773;;;Site de Melun;Mixte : Accueil et Administratif;0;58 Rue de la Fosse aux Anglais Quai Voltaire;77190;DAMMARIE-LES-LYS;France;48.5316972;2.6413379;;;11;Ile-de-France;11;ILE DE FRANCE
+Urssaf NORMANDIE;761;287;R76S763;Site de Dieppe;Administratif;0;5 Quai du Tonkin;76200;DIEPPE;France;49.9228;1.0833;;;23;Normandie;28;NORMANDIE
+Urssaf BOURGOGNE;210;267;O21S001;Site de Dijon;Administratif;1;8 Boulevard Clémenceau;21037;DIJON;France;47.3273;5.0477;;Flux entrants non dématérialisés;26;Bourgogne;27;BOURGOGNE FRANCHE COMTE
+Urssaf CAISSE NATIONALE;;;R75A014;Site de Lyon;Centre informatique;0;Rue Jacques Monod Le Chateau île;69320;FEYZIN;France;45.6743;4.84998;;;82;Rhône-Alpes;84;AUVERGNE RHONE ALPES
+Cgss MARTINIQUE;972;;;Site de Fort-de-France;;1;Place d'armes Rue Case Negre, Le Lamentin;97232;FORT DE FRANCE;France;14.623022;-60.98944599999999;Gestion de la PUMA - Protection Universelle Maladie;Gestion de la téléphonie;2;Martinique;2;MARTINIQUE
+Urssaf PACA;50;;O05S001;Site de Gap;Administratif;0;10 Boulevard Georges Pompidou;05012;GAP;France;44.5594;6.08313;Gestion de la PUMA - Protection Universelle Maladie;;93;Provence-Alpes-Côte d'Azur;93;PROVENCE ALPES COTE D AZUR
+Urssaf RHONE ALPES;730;;R69S731;Site de Chambéry;Administratif;0;10 Rue des Champagnes;73290;LA MOTTE-SERVOLEX;France;45.5892;5.88281;;;82;Rhône-Alpes;84;AUVERGNE RHONE ALPES
+Urssaf MIDI PYRENEES;310;737;R31S001;Site de Toulouse;Mixte : Accueil et Administratif;1;166 Rue Pierre et Marie Curie;31069;LABEGE;France;43.5439;1.51323;;Centre national paie;73;Midi-Pyrénées;76;OCCITANIE
+Urssaf PAYS DE LA LOIRE;530;;R44S530;Site de Laval;Administratif;0;14 Allée de la Chartrie;53000;LAVAL;France;48.0686;-.7746;Gestion des Praticiens et Auxiliaires Médicaux;;52;Pays de la Loire;52;PAYS DE LA LOIRE
+Urssaf NORD PAS DE CALAIS;594;317;R59S001;Site de Lille;Mixte : Accueil et Administratif;1;293 Avenue du Président Hoover;59032;LILLE;France;50.6282;3.07762;;;31;Nord-Pas-de-Calais;32;HAUTS DE FRANCE
+Urssaf FRANCHE COMTE;390;;R25S391;Site de Lons-le-Saunier;Mixte : Accueil et Administratif;0;15 Rue François Bussenet CS10488;39032;LONS-LE-SAUNIER;France;46.6747;5.56241;;;43;Franche-Comté;27;BOURGOGNE FRANCHE COMTE
+Urssaf RHONE ALPES;694;;;Site de Lyon;;0;55 Avenue du Maréchal Foch;69006;LYON;France;45.7700026;4.8437849;;;82;Rhône-Alpes;84;AUVERGNE RHONE ALPES
+Urssaf CAISSE NATIONALE;;;R75A005;Site de Marseille;Centre informatique;0;20 Avenue Viton;13274;MARSEILLE;France;43.2593;5.40749;;;93;Provence-Alpes-Côte d'Azur;93;PROVENCE ALPES COTE D AZUR
+Cssm MAYOTTE;976;;;Site de Mayotte;Mixte : Accueil et Administratif;1;Centre KINGA BP 84 Route Nationale 1 Kawéni;97600;MAYOTTE;France;-12.8160717;45.19791920000001;;;6;Mayotte;6;MAYOTTE
+Urssaf LORRAINE;570;417;R57S001;Site de Metz;Mixte : Accueil et Administratif;1;4 Rue Pasteur;57032;METZ;France;49.1098;6.17365;;;41;Lorraine;44;GRAND EST
+Urssaf LANGUEDOC ROUSSILLON;343;917;;Site de Montpellier-Délos;Mixte : Accueil et Administratif;1;23 Allée de Délos;34000;MONTPELLIER;France;43.6080013;3.8928083;;;91;Languedoc-Roussillon;76;OCCITANIE
+Urssaf ILE DE FRANCE;;;R75S952;Site de Montreuil-Rousseau;Mixte : Accueil et Administratif;0;21 Rue Jean-Jacques Rousseau;93100;MONTREUIL;France;48.850619;2.427688;;;11;Ile-de-France;11;ILE DE FRANCE
+Urssaf CAISSE NATIONALE;;;R75A008;Site de Nantes;Centre informatique;0;2 Rue de Coulongé;44319;NANTES;France;47.2431;-1.5403;;;52;Pays de la Loire;52;PAYS DE LA LOIRE
+Urssaf PAYS DE LA LOIRE;440;527;R44S001;Site de Nantes-Rondeau;Mixte : Accueil et Administratif;1;3 Rue Gaetan Rondeau;44933;NANTES;France;47.2076;-1.5309;;;52;Pays de la Loire;52;PAYS DE LA LOIRE
+Urssaf BOURGOGNE;580;;O58S001;Site de Nevers;Mixte : Accueil et Administratif;0;83 Rue des Chauvelles;58019;NEVERS;France;46.9989;3.15693;;;26;Bourgogne;27;BOURGOGNE FRANCHE COMTE
+Urssaf LANGUEDOC ROUSSILLON;660;;661COPR;Site de Perpignan;Mixte : Accueil et Administratif;0;26 Rue Petite la Monnaie;66013;PERPIGNAN;France;42.6964;2.89457;;;91;Languedoc-Roussillon;76;OCCITANIE
+Urssaf RHONE ALPES;71;;R69S071;Site de Privas;Administratif;0;La Chaumette;07005;PRIVAS;France;44.737;4.60434;;;82;Rhône-Alpes;84;AUVERGNE RHONE ALPES
+Urssaf BRETAGNE;292;;291COPR;Site de Quimper;;0;18 Rue de la République;29192;QUIMPER;France;48.0032;-4.0879;;;53;Bretagne;53;BRETAGNE
+Urssaf BRETAGNE;351;;;Site de Rennes;Mixte : Accueil et Administratif;1;1 Rue André et Yvonne Meynier;35000;RENNES;France;48.1272573;-1.7089585;;;53;Bretagne;53;BRETAGNE
+Urssaf MIDI PYRENEES;120;;R31S120;Site de Rodez;Administratif;0;9 Avenue de Bourran;12031;RODEZ;France;44.3602;2.55619;;;73;Midi-Pyrénées;76;OCCITANIE
+Urssaf NORMANDIE;500;;R14S501;Site de Saint-Lo;Administratif;0;1 Rue de la Laitière Normande;50000;SAINT-LO;France;49.1163;-1.09;;;25;Normandie;28;NORMANDIE
+Cgss GUADELOUPE;;;;Site de Saint-Martin;Mixte : Accueil et Administratif;0;Rue de Spring Concordia;97150;SAINT-MARTIN;France;18.0691938;-63.0771881;;;1;Guadeloupe;1;GUADELOUPE
+Urssaf ILE DE FRANCE;931;;;Site de Saint-Ouen;Mixte : Accueil et Administratif;0;1 Rue Paulin Talabot;93400;SAINT-OUEN;France;48.9144562;2.3302911;;;11;Ile-de-France;11;ILE DE FRANCE
+Urssaf CAISSE NATIONALE;;;R75A004;Site de Lyon;Centre informatique;0;Cours du 3ème Millénaire;69800;SAINT-PRIEST;France;45.7105;4.93765;;;82;Rhône-Alpes;84;AUVERGNE RHONE ALPES
+Urssaf CENTRE;370;;O37S001;Site de Tours;Mixte : Accueil et Administratif;0;36 Rue Edouard Vaillant Champ Girault;37035;TOURS;France;47.3886;.69683;;;24;Centre;24;CENTRE VAL DE LOIRE
+Urssaf LIMOUSIN;190;;R87S191;Site de Tulle;Administratif;0;38 Quai de Rigny;19018;TULLE;France;45.2629;1.76015;"Gestion des Artistes Auteurs Diffuseurs; Gestion de la PUMA - Protection Universelle Maladie";;74;Limousin;75;NOUVELLE AQUITAINE
+Urssaf PACA;;;;Site de Valbonne;Administratif;0;480 Route des Dolines;06560;VALBONNE;France;43.6210957;7.0376623;;Recouvrement C3S - radiation des comptes et fiabilisation des travailleurs indépendants;93;Provence-Alpes-Côte d'Azur;93;PROVENCE ALPES COTE D AZUR
+Urssaf CAISSE NATIONALE;;;R75A002;Site de Nancy;Centre informatique;0;12 Rue du Bois de la Champelle Parc d'activités de Brabois;54500;VANDOEUVRE-LES-NANCY;France;48.651;6.1348;;;41;Lorraine;44;GRAND EST
+Urssaf FRANCHE COMTE;700;;O70S001;Site de Vesoul;Administratif;0;9 Boulevard des Alliés;70000;VESOUL;France;47.6173;6.15591;;;43;Franche-Comté;27;BOURGOGNE FRANCHE COMTE
+Urssaf RHONE ALPES;381;;R69S382;Site de Vienne;Administratif;0;59 Quai Claude Bernard;38209;VIENNE;France;45.5381;4.86616;;;82;Rhône-Alpes;84;AUVERGNE RHONE ALPES
+Urssaf RHONE ALPES;692;;R69S692;Site de Villefranche-sur-Saône;Administratif;0;85 Rue G. Meunier;69400;VILLEFRANCHE-SUR-SAONE;France;45.9911;4.73839;;;82;Rhône-Alpes;84;AUVERGNE RHONE ALPES

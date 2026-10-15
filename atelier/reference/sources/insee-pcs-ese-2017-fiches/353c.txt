@@ -1,0 +1,83 @@
+SOURCE : https://www.insee.fr/fr/metadonnees/pcsese2017/rubriqueRegroupee/353c
+
+
+NomenclatureFicheController
+1766151120002
+pcsese2017
+categorieSocioprofessionnelleAgregee
+categorieSocioprofessionnelle
+rubriqueRegroupee
+353c
+">Accueil
+Définitions, méthodes et qualité
+Nomenclatures
+Nomenclatures des professions et catégories socioprofessionnelles
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Consulter la nomenclature de la PCS-ESE 2017
+Consulter la nomenclature de la PCS-ESE 2017
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Pour les emplois salariés des employeurs privés et publics, la PCS-ESE 2017 est une ventilation plus détaillée de la PCS.
+Les trois premiers caractères de ces deux nomenclatures sont communs, sauf pour les agriculteurs, artisans et commerçants salariés de leur exploitation ou de leur entreprise.
+Nomenclatures
+Date de publication :
+                        19/12/2025
+Recherche nomenclature
+Menu nomenclature
+Rechercher dans la nomenclature
+Tous les niveaux
+catégorie socioprofessionnelle agrégée
+catégorie socioprofessionnelle
+rubrique
+2025-12-19T14:31:59.978+01:00
+Catégorie socioprofessionnelle agrégée 3 : Cadres et professions intellectuelles supérieures
+Catégorie socioprofessionnelle 35 : Professions de l'information, des arts et des spectacles
+Rubrique 353c : Cadres artistiques et technico-artistiques de la réalisation de l'audiovisuel et des
+         spectacles
+Professionnels, généralement salariés, exerçant des responsabilités d'encadrement ou présentant une qualification technique confirmée, intervenant dans la réalisation des spectacles vivants ou audiovisuels, sans exercer pour autant une activité de direction d'ensemble quant à cette réalisation. Les professionnels concernés peuvent exercer pleinement une responsabilité artistique (cas des réalisateurs), mais ils travaillent le plus souvent en fonction de directives données par des directeurs artistiques, même si leur production ou leur activité sont susceptibles d'exercer une grande influence sur la qualité finale du produit présenté.
+Nomenclatures
+Dernière mise à jour le
+ : 19/12/2025
+Professions les plus typiques
+Cadre artistique (sai, spectacles, audiovisuel), cadre
+Chef décorateur (spectacles), cadre
+Chef monteur (cinéma, audiovisuel), cadre
+Chef opérateur (son, image), cadre
+Concepteur lumière (spectacles, audiovisuel)
+Créateur de costumes (spectacles, audiovisuel)
+Décorateur scénographe (audiovisuel)
+Directeur de la photographie (cinéma, audiovisuel), cadre
+Directeur technique, régie (cinéma, audiovisuel), cadre
+Ingénieur du son (audiovisuel), cadre
+Réalisateur (cinéma, audiovisuel)
+Régisseur général (spectacles, audiovisuel), cadre
+Scénographe (spectacles, audiovisuel), cadre
+Professions assimilées
+Animateur de dessin animé cadre
+Architecte-décorateur chef (spectacles, audiovisuel) cadre
+Assistant réalisateur (spectacles, audiovisuel) cadre
+Cadreur (sauf télévision) cadre
+Chargé de production (spectacles) cadre
+Chef accessoiriste (spectacles, audiovisuel) cadre
+Chef costumier (spectacles, audiovisuel) cadre
+Chef d'atelier de construction de décor (spectacles, audiovisuel) cadre
+Chef de production (spectacles) cadre
+Chef machiniste (spectacles, audiovisuel) cadre
+Chef maquilleur (spectacles, audiovisuel) cadre
+Conseiller artistique (sai, spectacles, audiovisuel) cadre
+Créateur de costume (spectacles, audiovisuel) cadre
+Décorateur (cinéma, théâtre, audiovisuel) cadre
+Directeur artistique (sai, spectacles, audiovisuel) cadre
+Directeur du son (spectacles, audiovisuel) cadre
+Gérant de spectacles cadre
+Metteur en onde (audiovisuel) cadre
+Mixeur (son) cadre
+Organisateur de concerts (non chef d'entreprise) cadre
+Programmateur (audiovisuel) cadre
+Régisseur lumière (spectacles) cadre
+Régisseur spécialisé (spectacles) cadre
+Responsable atelier décor (spectacles, audiovisuel) cadre
+Scripte (cinéma, audiovisuel) cadre
+Professions exclues
+Assistant régisseur image, son (spectacles, audiovisuel) (voir 465b)
+Chef de plateau (cinéma, audiovisuel) (voir 465b)
+Monteur (non cadre, sai) (cinéma, télévision) (voir 465b)

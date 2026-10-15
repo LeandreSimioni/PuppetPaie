@@ -1,0 +1,591 @@
+Date de modification : 18/08/2025 11:47 AM
+
+ Comment déclarer une mutation ou un transfert de contrat ?
+
+ Le contexte 
+
+La DSN permet d’historiser les éléments principaux déclarés pour un individu dans le temps. Au fil du temps, les données relatives au contrat de travail de l’individu peuvent changer. 
+
+Afin de conserver la traçabilité des éléments du bloc “S21.G00.40 - Contrat”, le bloc “S21.G00.41 - Changements contrats” doit être utilisé pour matérialiser toute évolution ou corriger toute donnée déclarée à tort liées aux liens contractuels. 
+
+Un individu est ainsi susceptible au cours de son contrat de travail, de faire l’objet d’une mutation (sans rupture du contrat de travail) : 
+
+ Mutation Intra SIREN : d’un établissement A vers un établissement B, au sein d’une même entreprise, 
+
+ Mutation Inter SIREN : d’un établissement A vers un établissement B au sein d’un même groupe ou d’un établissement A vers un établissement B d’un groupe différent pour les secteurs d’activité particuliers comme le Ménage, le Gardiennage et la Restauration. 
+
+Ces cas de mutation ne constituant pas une fin de contrat de travail (le contrat conserve les mêmes références de date de début et de numéro), aucun signalement d'événement fin de contrat de travail ne doit être transmis. 
+
+Dans le cas de la mutation d'un individu en cours de mois, chacun des établissements devra déclarer l’individu sur chacune des périodes d’emploi respectives. 
+
+Mutation INTRA SIREN d'un individu sans rupture de contrat
+
+Les modalités déclaratives pour l'établissement d'origine 
+
+ | 
+ L'établissement « d’origine » n’a rien à déclarer dans sa DSN concernant l’individu muté, ce dernier disparaîtra de la DSN si la mutation a eu lieu en fin de mois. 
+
+Les modalités déclaratives pour l'établissement d'accueil
+
+ | 
+ Pour l’établissement d’accueil, un bloc « Changements contrat – S21.G00.41 » sera à renseigner en précisant le SIRET de l’établissement d’origine de l’individu via une rubrique « SIRET ancien établissement d'affectation – S21.G00.41.012 » avec la date de mutation. 
+
+ Le renseignement de ce bloc permettra aux organismes récepteurs des données d’assurer le chainage d’informations pour cet individu. 
+
+ S21.G00.41 - Changements Contrat 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.41.001 
+ | Date de la modification 
+ | Date d'effet de la mutation [Date d'arrivée de l'individu dans l'entreprise d'accueil] 
+
+ | S21.G00.41.012 
+ | SIRET ancien établissement d'affectation 
+ | SIRET A
+
+Corriger l'affectation erronée d'un individu à un établissement 
+
+ | 
+ La correction est appliquée après la date d’exigibilité de la déclaration 
+
+ Exemple : 
+
+ Un individu est déclaré à tort pour l’intégralité du mois de janvier 2024 dans la déclaration d’un établissement A alors qu’il a fait l’objet d’une mutation vers un établissement B le 15 janvier 2024. 
+
+ Compte tenu de la déclaration erronée, la correction sera à porter au sein des DSN respectives de février des établissements A et B.
+
+ En janvier : 
+
+ Déclaration erronée de l’établissement A 
+
+ S21.G00.06 - Entreprise 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.06.001 
+ | SIREN 
+ | 123456789
+
+ S21.G00.11 - Etablissement 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.11.001 
+ | NIC 
+ | 123456789
+
+ SS21.G00.30 - Individu (pour déclarer M. Dupont) 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.30.001 
+ | Numéro d'inscription au répertoire
+ | 1579864351679 
+
+ | S21.G00.30.002 
+ | Nom de famille 
+ | Dupont 
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ S21.G00.40 - Contrat 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.40.001 
+ | Date de début du contrat 
+ | 14072000 
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ | [S21.G00.40.009 
+ | Numéro de contrat 
+ | 1234567X 
+
+ | [...]
+ | [...]
+ | [...]
+
+ Déclaration erronée de l’établissement B 
+
+ S21.G00.06 - Entreprise 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.06.001 
+ | SIREN 
+ | 123456789
+
+ S21.G00.11 - Etablissement 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.11.001 
+ | NIC 
+ | 00002 
+
+ S21.G00.30 - Individu (pour déclarer M. Dupont) 
+
+ | [Ce bloc et les blocs "enfants" (« Contrat - S21.G00.40 », « Versement individu - S21.G00.50 », « Rémunération - S21.G00.51 », ... etc.) n'ont pas été déclarés]
+
+ En février : 
+
+ Déclaration de l’établissement A portant la correction 
+
+ S21.G00.06 - Entreprise 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.06.001 
+ | SIREN 
+ | 123456789
+
+ S21.G00.11 - Etablissement 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.11.001 
+ | NIC 
+ | 00001 
+
+ S21.G00.30 - Individu (pour déclarer M. Dupont) 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.30.001 
+ | Numéro d'inscription au répertoire
+ | 1579864351679 
+
+ | S21.G00.30.002 
+ | Nom de famille 
+ | Dupont 
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ S21.G00.40 - Contrat 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.40.001 
+ | Date de début du contrat 
+ | 14072000 
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ | [S21.G00.40.009 
+ | Numéro de contrat 
+ | 1234567X 
+
+ | [...]
+ | [...]
+ | [...]
+
+ Déclaration de l’établissement B portant la correction 
+
+ 21.G00.06 - Entreprise 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.06.001 
+ | SIREN 
+ | 123456789
+
+ S21.G00.11 - Etablissement 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.11.001 
+ | NIC 
+ | 00002 
+
+ S21.G00.30 - Individu (pour déclarer M. Dupont) 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.30.001 
+ | Numéro d'inscription au répertoire
+ | 1579864351679 
+
+ | S21.G00.30.002 
+ | Nom de famille 
+ | Dupont 
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ S21.G00.40 - Contrat 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.40.001 
+ | Date de début du contrat 
+ | 14072000 
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ | [S21.G00.40.009 
+ | Numéro de contrat 
+ | 1234567X 
+
+ | [...]
+ | [...]
+
+ S21.G00.41 - Changement de contrat 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.41.001 
+ | Date de début du contrat 
+ | 15012024 
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ | S21.G00.41.012 
+ | SIRET ancien établissement d'affectation 
+ | 12345678900001 (Il s'agit de renseigner ici le SIREN et NIC de l'établissement A d'origine) 
+
+ La rubrique « Profondeur de recalcul de la paie – S21.G00.41.028 » n’est pas à renseigner au niveau du bloc « Changements Contrat – S21.G00.41 » dans le cas de la déclaration de la rubrique « SIRET ancien établissement d’affectation – S21.G00.41.012 » car il s’agit d’une donnée identifiante et non d’une modalité du contrat. 
+
+Corriger un rappel de salaire traité par l'établissement d'origine : par exemple à la suite d'une décision de justice 
+
+ | 
+ Si, après cette mutation, l’établissement d’origine verse un élément de rémunération à l’individu muté alors il corrigera la DSN en datant ce versement en période d’origine (uniquement sur des périodes de rattachement antérieures au mois principal déclaré, avec les règles de calcul et les taux qui étaient en vigueur sur cette période). 
+
+ Exemple : 
+
+ Un individu est muté d’un établissement A vers un établissement B le 31 janvier 2024. Courant juin 2024, l’établissement d’origine est tenu de verser à l’individu muté 200 euros de rémunération au titre de la période de décembre 2018, à la suite d’une décision de justice. Cette correction est prise en compte dans la DSN de mois principal déclaré juin 2024. 
+
+ S21.G00.50 - Versement individu 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.50.001 
+ | Date de versement 
+ | 29062024 
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ S21.G00.51 - Rémunération 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.51.001 
+ | Date de début de période de paie 
+ | 01122018 [1er décembre 2018] 
+
+ | S21.G00.51.002 
+ | Date de fin de période de paie
+ | 31122018 [31 décembre 2018] 
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ | S21.G00.51.011 
+ | Type 
+ | 001 - Rémunération brute non plafonnée 
+
+ | S21.G00.51.012 
+ | Nombre d'heures
+ | [Non renseignée] 
+
+ | S21.G00.51.013 
+ | Montant
+ | 200.00 
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ S21.G00.78 - Base assujettie 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.78.001 
+ | Code de base assujettie 
+ | 03 - Assiette brute déplafonnée 
+
+ | S21.G00.78.002 
+ | Date de début de période de rattachement 
+ | 01122018 [01 décembre 2018] 
+
+ | S21.G00.78.003 
+ | Date de fin de période de rattachement 
+ | 31122018 [31 décembre 2018] 
+
+ | S21.G00.78.004 
+ | Montant
+ | 200.00
+
+ | [...]
+ | [...]
+ | [...] 
+
+ Le bloc « Bordereau de cotisation due – S21.G00.22 » à destination de l’Urssaf est rattaché à décembre 2018 : 
+
+ S21.G00.22 - Bordereau de cotisation due 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ | S21.G00.22.003 
+ | Date de début de rattachement 
+ | 01122018 [1er décembre 2018] 
+
+ | S21.G00.22.004 
+ | Date de fin de période de rattachement
+ | 31122018 [31 décembre 2018]
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+Mutation INTER SIREN : transfert de contrats dans certains secteurs
+
+Modalités déclaratives pour l'établissement d'origine
+
+ | 
+ Bien que cette mutation ne constitue pas une fin de contrat de travail, l’établissement d’origine devra obligatoirement déclarer un bloc « Fin de contrat – S21.G00.62 » dont la rubrique « Motif de fin de contrat – S21.G00.62.002 » sera à renseigner avec le code « 100 – Mutation au sein du même groupe sans rupture de contrat ». 
+
+ Il n’est pas nécessaire de produire un signalement Fin de contrat Unique pour une mutation. 
+
+ S21.G00.62 - Fin de contrat 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.62.001 
+ | Date de fin de contrat 
+ | Date de départ de l'individu de l'entreprise d'origine 
+
+ | S21.G00.62.002 
+ | Motif de la rupture 
+ | 100 - Mutation au sein du même groupe sans rupture du contrat
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+Modalités déclaratives pour l'établissement d'accueil
+
+ | 
+ L’établissement doit compléter un bloc « Changements contrat – S21.G00.41 », précisant le SIRET de l’établissement d’origine de l’individu en renseignant une rubrique « SIRET ancien établissement d'affectation – S21.G00.41.012 ». 
+
+ S21.G00.41 - Changements Contrat 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.41.001 
+ | Date de la modification 
+ | Date d'effet de la mutation [Date d'arrivée de l'individu dans l'entreprise d'accueil]
+
+ | S21.G00.41.012 
+ | SIRET ancien établissement d'affectation
+ | SIRET A 
+
+Corriger un rappel de salaire traité par l'établissement d'origine par exemple à la suite d'une décision de justice
+
+ | 
+ Si, après cette mutation, l’établissement d’origine verse un élément de rémunération à l’individu muté alors il corrigera la DSN en datant ce versement en période d’origine (uniquement sur des périodes de rattachement antérieures au mois principal déclaré, avec les règles de calcul et les taux qui étaient en vigueur sur cette période). 
+
+ Il devra renseigner un bloc « Fin de contrat de travail – S21.G00.62 » dont les caractéristiques seront identiques à celles déclarées initialement. 
+
+ Exemple : 
+
+ Un individu est muté d’un établissement A vers un établissement B le 31 janvier 2024. Courant juin 2024, l’établissement d’origine est tenu de verser à l’individu muté 200 euros de rémunération au titre de la période de décembre 2018, à la suite d’une décision de justice. Cette correction est prise en compte dans la DSN de mois principal déclaré juin 2024. 
+
+ | 
+
+ S21.G00.50 - Versement individu 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.50.001 
+ | Date de versement 
+ | 29062024
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ S21.G00.51 - Rémunération 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.51.001 
+ | Date de début de période de paie 
+ | 01122018 [1er décembre 2018]
+
+ | S21.G00.51.002 
+ | Date de fin de période de paie
+ | 31122018 [31 décembre 2018]
+
+ | [...] 
+ | [...] 
+ | [...
+
+ | S21.G00.51.011 
+ | Type 
+ | 001 - rémunération brute non plafonnée
+
+ | S21.G00.51.012 
+ | Nombre d'heures 
+ | [Non renseignée]
+
+ | S21.G00.51.013 
+ | Montant 
+ | 200.00 
+
+ | [...]
+ | [...]
+ | [...]
+
+ S21.G00.78 - Base assujettie 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.78.001 
+ | Code de base assujettie
+ | 03 - Assiette brute non déplafonnée
+
+ | S21.G00.78.002 
+ | Date de début de période de rattachemen
+ | 01122018 [1er décembre 2018] 
+
+ | S21.G00.78.003 
+ | Date de fin de période de rattachement
+ | 31122018 [31 décembre 2018] 
+
+ | S21.G00.78.004 
+ | Montant 
+ | 200.00
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ Le bloc « Bordereau de cotisation due – S21.G00.22 » à destination de l’Urssaf est rattaché à décembre 2018 : 
+
+ S21.G00.22 - Bordereau de cotisation due 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ | S21.G00.22.003 
+ | Date de début de période de rattachement 
+ | 01122018 [1er décembre 2018] 
+
+ | S21.G00.22.004 
+ | Date de fin de période de rattachement 
+ | 31122018 [31 décembre 2018] 
+
+ | [...] 
+ | [...] 
+ | [...] 
+
+ S21.G00.62 - Fin de contrat de travail 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.62.001 
+ | Date de fin de contrat 
+ | 30012020 [31 janvier 2020, date de départ de l'individu]
+
+ | S21.G00.62.002 
+ | Motif de la rupture du contrat 
+ | 100 - Mutation au sein du même groupe sans rupture du contrat 
+
+ | [...] 
+ | [...] 
+ | [...
+
+Déclarer le transfert d'un contrat en cours de mois 
+
+Un transfert de contrat de travail ne relève pas des mêmes règles en droit que la mutation. En DSN, lorsque le transfert a lieu en cours de mois, c’est à l’établissement d’accueil de prendre en charge la déclaration du nouveau salarié. 
+
+Les données identifiantes du contrat qu’il devra déclarer tels que la “Date du début du contrat – S21.G00.40.001” et le “Numéro du contrat – S21.G00.40.009” devront être celles initialement portées dans la DSN de l’établissement d’origine pour l’individu concernée. 
+
+ Date de création : 06/03/2025 06:26 PM 
+
+ N° de la fiche : 2955 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

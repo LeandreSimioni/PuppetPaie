@@ -1,0 +1,133 @@
+Date de modification : 04/08/2025 10:25 AM
+
+ Comment déclarer en DSN les cotisations dues à la caisse de congés spectacles AUDIENS au titre de périodes d'arrêt maladie non-professionnelle? 
+
+ Le contexte :
+
+Afin d'associer les bonnes périodes cotisées aux bonnes périodes d'activité ou d'arrêt et restituer les informations détaillées et justes aux bénéficiaires, une distinction doit impérativement être faite entre le calcule des : 
+
+ - Indemnités de congés payés (ICP) relatives aux arrêts maladies non-professionnelles (calculés sur la base de 4 semaines),
+
+ - ICP relatifs aux périodes d'activité (calculés sur la base de 5 semaines).
+
+Le calcul des cotisations ne donnant pas forcément lieu à une rupture en paie en cas de période d'arrêt maladie non-professionnelle, les sytèmes de paie ne génèrent pas automatiquement deux assiettes d'assujettissement pour les cas suivants : 
+
+ | Période concernée
+ | Taux de reversement ICP soumis au salaire
+
+ | Période travaillée
+ | 10%
+
+ | Période d'arrêt de travail, maternité, accident du travail ou maladies professionnelles (AT/MP)
+ | 10%
+
+ | Période d'arrêt pour un motif autre
+ | 8%
+
+ Déclarer les cotisations à Audiens : 
+
+La base assujettie est déclarée en bloc "S21.G00.78 - Base assujettie", en rubrique "S21.G00.78.004 - Montant" après application de la minoration de 80% sur la période d'arrêt de travail non-professionnelle obtenue comme suit : 
+
+ | 
+ | 
+
+ | Calcul de la part de la base assujettie correspondant à l'arrêt de travail (a)
+ | Période d'arrêt/période totale contrat sur le mois * rémunération * 0,8
+
+ | Calcul de la part de la base assujettie correspondant à la période travaillée (b)
+ | Période de travail/période totale contrat sur le mois * rémunération
+
+ | Calcul de la base totale assujettie (c)
+ | (a) + (b)
+
+Le montant total de la cotisation en rubrique "Montant de cotisation - S21.G00.81.004" est obtenu comme suit : 
+
+1) Calcul du montant de la cotisation associée à la période globale incluant périodes travaillées et d'arrêt de travail : 1
+
+(c) *15,5% (le taux d'appel de cotisation pour 2025 est 15,5%)
+
+ Exemple de déclaration du cas nominal : 
+
+Déclarer les cotisations CCS en cas de période d'arrêt maladie non-professionnelle
+
+ - Contrat de travail initial du 14/04/2025 au 22/04/2025 base brute 800 €, pour 8 jours
+
+ - Arrêt maladie du 16/04/2024 au 17/04/2024 
+
+ - 6 jours effectivement travaillés pour 600 €
+
+ - 2 jours d'arrêt maladie 200 €
+
+L'assiette est de 160 € (2/8 * 800€ * 80%) pendant la période d'arrêt et de 760 €(600€ + 160€) sur la durée totale du contrat. Le montant total des cotisations CSS à déclarer est de 117,80€ (760€* 15,5%)
+
+ | S21.G00.40 - Contrat
+
+ | S21.G00.40.001
+ | Date de début du contrat
+ | 14042025
+
+ | S21.G00.62 - Fin du contrat
+
+ | S21.G00.62.001
+ | Date de fin du contrat
+ | 22042025
+
+ | S21.G00.60 - Arrêt de travail
+
+ | S21.G00.60.001
+ | Motif de l'arrêt
+ | 01- maladie
+
+ | S21.G00.60.002
+ | Date du dernier jour travaillé
+ | 15042025
+
+ | S21.G00.60.010
+ | Date de la reprise
+ | 18042025
+
+ | S21.G00.78 - Base assujettie
+
+ | S21.G00.78.001
+ | Code de base assujettie
+ | 27 - Assiette Caisse de congés spectacles
+
+ | S21.G00.78.002
+ | Date de début de période de rattachement
+ | 14042025
+
+ | S21.G00.78.003
+ | Date de fin de période de rattachement
+ | 22042025
+
+ | S21.G00.78.004
+ | Montant
+ | 760
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 066 - Cotisation caisse de congés spectacles
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Non concerné pour AUDIENS
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 117.80
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | 15.5%
+
+ Date de création : 04/08/2025 10:23 AM 
+
+ N° de la fiche : 3327 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

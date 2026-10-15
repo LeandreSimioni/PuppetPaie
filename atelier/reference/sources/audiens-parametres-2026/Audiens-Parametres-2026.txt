@@ -1,0 +1,236 @@
+P     aramètres 2026
+        Les chiffres pour établir vos déclarations retraite, prévoyance et Congés spectacles
+ Alliance professionnelle Retraite Agirc-Arrco – Audiens Santé Prévoyance – Congés spectacles
+
+
+Sommaire
+Les plafonds des régimes                                                                 page 1
+Les modalités de calcul en retraite complémentaire                                       page 2
+Les modalités en prévoyance et santé                                                     page 4
+Les modalités pour les Congés Spectacles des artistes et techniciens intermittents       page 4
+
+
+
+
+1. Les plafonds des régimes
+
+
+                                                                                     Intermittents du spectacle
+                                                           Permanents
+                                                                                      Cadres       Non-Cadres
+
+Tranches de salaires                                  Année            Mois           Journée         Année
+
+T1
+
+Fraction du salaire du premier euro                    48 060          4 005            220           48 060
+au plafond de la Sécurité sociale
+
+T2
+
+Fraction du salaire entre le plafond de la            336 420          28 035           1 540         336 420
+Sécurité sociale et 8 fois ce plafond (7 x T1)
+
+
+
+
+A noter
+
+Retraite complémentaire :
+     ○ Intermittents du spectacle non-cadres : les plafonds applicables sont les plafonds annuels.
+     ○ Intermittents du spectacle cadres : les plafonds applicables sont les plafonds journaliers - dans la limite
+     du plafond mensuel
+
+
+Prévoyance des intermittents du spectacle (cadres ou non-cadres)
+    o le plafond applicable est le plafond journalier - dans la limite du plafond mensuel
+
+
+Cotisation Apec pour les cadres : le plafond applicable est 4 fois le plafond de la Sécurité sociale.
+2. Les modalités de calcul en retraite complémentaire
+
+La rémunération soumise à cotisation
+
+La cotisation retraite complémentaire et la contribution d’équilibre générale sont calculées :
+
+ Pour les permanents
+     D’une part, sur la fraction de salaire limitée au plafond de la Sécurité sociale, dite tranche 1, déterminée prorata
+     temporis.
+
+     D’autre part, sur la fraction du salaire comprise entre le plafond de la Sécurité sociale et huit fois ce plafond, dite
+     tranche 2, déterminée prorata temporis.
+
+
+ Pour les intermittents du spectacle
+
+     ➢ Non-cadres
+     Pour déterminer les tranches (T1 et T2), ce sont les plafonds annuels qui doivent être retenus, quelle que soit
+     la durée du travail, soit pour 2026 :
+     Plafond T1 = 48 060 €          Ce qui correspond à un salaire brut d’au moins 384 480 €
+     Plafond T2 = 336 420 €
+
+         Exemple 1 :       4 jours de travail rémunérés :     800 €          ➔    T1 = 800 €         et   T2 = 0 €
+         Exemple 2 :     100 jours de travail rémunérés :     50 000 €       ➔    T1 = 48 060 €      et   T2 = 1 940 €
+         Exemple 3 :     100 jours de travail rémunérés :     200 000 €      ➔    T1 = 48 060 €      et   T2 = 151 940 €
+
+     ➢ Cadres
+     Pour déterminer la tranche T1, c’est le plafond journalier qui doit être retenu, soit pour 2026 :
+     Plafond T1 = 220 €
+                                 Ce qui correspond à un salaire brut d’au moins 1 760 €
+     Plafond T2 = 1 540 €
+
+         Exemple :          4 jours de travail rémunérés :    1 000 €        ➔     T1 = 880 € (220 x 4)   et   T2 = 120 €
+
+
+ Pour les journalistes pigistes
+     Sur la totalité du salaire brut, sans application de plafond.
+
+
+
+Cas particulier : la CET
+
+Si le salaire dépasse le plafond de la Sécurité sociale (PSS), la contribution d’équilibre technique (CET) est due sur la
+totalité du salaire dans la limite de la T1 + T2 (soit huit fois le PSS).
+
+Exemple 1 : salarié permanent avec 3 800 € brut de salaire mensuel tout au long de l’année ➔ CET non due
+
+Exemple 2 : salarié permanent avec 3 800 € brut de salaire mensuel de janvier à décembre plus une prime de 5 000 €
+              en décembre
+                   Pas de CET sur les bulletins de janvier à novembre (car le PSS n’est pas atteint)
+                   Puis, CET due dès lors que le salaire atteint le PSS ➔ la CET sera calculée sur la base de 50 600 €
+                      sur le bulletin de décembre.
+
+Exemple 3 : salarié intermittent du spectacle non-cadre : 35 000 € de salaire brut sur l’année ➔ CET non due
+
+Exemple 4 : salarié intermittent du spectacle non-cadre : 50 000 € de salaire brut sur l’année ➔ CET due
+
+
+
+
+                                               Paramètres Audiens 2026                                                      2
+Taux de cotisation
+
+Les taux obligatoires sont les suivants :
+
+     Salariés permanents
+
+               Cotisations et contributions                              Tranches           Part salariale     Part patronale
+
+                                                                             T1                   3,15 %              4,72 %
+ Retraite complémentaire*
+                                                                             T2                   8,64 %             12,95 %
+                                                                             T1                   0,86 %              1,29 %
+ Contribution d’équilibre général
+                                                                             T2                   1,08 %              1,62 %
+ Contribution d’équilibre technique (due si salaire > T1)                 T1 + T2                 0,14 %              0,21 %
+
+ Association pour l’emploi des cadres (si cadre)                           T1 x 4                0,024 %             0,036 %
+
+
+     Salariés artistes intermittents du spectacle non-cadres
+
+               Cotisations et contributions                              Tranches           Part salariale     Part patronale
+                                                                         T1 annuelle              4,44 %              4,45 %
+ Retraite complémentaire*
+                                                                         T2 annuelle             10,79 %             10,80 %
+                                                                         T1 annuelle              0,86 %              1,29 %
+ Contribution d’équilibre général
+                                                                         T2 annuelle              1,08 %              1,62 %
+ Contribution d’équilibre technique (due si salaire > T1)            T1 + T2 annuelles            0,14 %              0,21 %
+
+
+     Salariés techniciens intermittents du spectacle non-cadres
+ Cotisations et contributions                                            Tranches           Part salariale     Part patronale
+                                                                         T1 annuelle              3,93 %            3,94 %
+ Retraite complémentaire*
+                                                                         T2 annuelle             10,79 %           10,80 %
+                                                                         T1 annuelle              0,86 %            1,29 %
+ Contribution d’équilibre général
+                                                                         T2 annuelle              1,08 %            1,62 %
+ Contribution d’équilibre technique (due si salaire > T1)            T1 + T2 annuelles            0,14 %            0,21 %
+
+
+     Salariés artistes & techniciens intermittents du spectacle cadres
+
+ Cotisations et contributions                                            Tranches           Part salariale     Part patronale
+                                                                       T1 journalière             3,93 %            3,94 %
+ Retraite complémentaire*
+                                                                       T2 journalière             8,64 %           12,95 %
+                                                                       T1 journalière             0,86 %            1,29 %
+ Contribution d’équilibre général
+                                                                       T2 journalière             1,08 %            1,62 %
+ Contribution d’équilibre technique                                       T1 + T2
+                                                                                                  0,14 %            0,21 %
+ (due si salaire > T1)                                                  journalières
+                                                                        T1 journalière
+ Association pour l’emploi des cadres                                                            0,024 %           0,036 %
+                                                                            x4
+
+* Le taux sur T1 et la répartition sur T1 et T2 peuvent être différents en application d’obligations résultant de Conventions
+collectives, d’accords de retraite ou de conditions particulières adoptées au sein de l’entreprise.
+ Les taux et leur répartition sont visibles sur l’Espace Client Entreprise (onglet Piloter vos cotisations / Taux des cotisations)
+
+     Salariés journalistes pigistes
+
+ Cotisations et contributions                                            Tranches           Part salariale      Part patronale
+
+ Retraite complémentaire                                             Totalité du salaire        5,08 %               7,62 %
+ Contribution d’équilibre général                                    Totalité du salaire        0,86 %               1,29 %
+
+
+                                               Paramètres Audiens 2026                                                            3
+Association pour l’emploi des cadres (APEC)
+
+Concerne les salariés cadres tels que définis par les conventions collectives.
+
+La cotisation est calculée sur le salaire brut dans la limite de 4 fois le plafond de la Sécurité sociale.
+Le taux est de 0,06 %, réparti entre l’employeur pour 0,036 % et le salarié pour 0,024 %.
+
+
+
+3. Les modalités en prévoyance et santé
+
+     Artistes et techniciens intermittents du spectacle
+
+Les artistes et les techniciens intermittents du spectacle bénéficient de garanties prévoyance / santé instaurées par un accord
+collectif national interbranches.
+La base de calcul de ces cotisations est le salaire brut dans la limite de la tranche A journalière.
+
+
+                                                          Fonds collectif du spectacle
+                             Prévoyance                                                                      TOTAL
+                                                                pour la santé
+
+                 Part salariale      Part patronale        Part patronale uniquement        Part salariale     Part patronale
+Non cadres           0,12%               0,34%                       0,77%                      0,12%                1,11%
+Cadres               0,12%               0,88%                       0,81%                      0,12%                1,69%
+
+NB : la CCN des entreprises artistiques et culturelles prévoit un taux spécifique en prévoyance pour les intermittents cadres
+
+
+     Journalistes pigistes
+Paramétrage DSN : Vous devez vous référer aux fiches de paramétrage mises à disposition à partir de votre compte net-
+entreprises ou sur votre espace Entreprise Audiens.
+
+
+
+
+4. Les modalités pour les Congés Spectacles des artistes et techniciens
+   intermittents du spectacle
+
+Assiette des cotisations
+
+La cotisation est calculée sur le salaire brut avant tout abattement pour frais professionnel, hors application de plafond
+spécifique que peuvent appliquer certains employeurs selon la convention collective dont ils relèvent .
+
+
+
+Taux de cotisation
+
+     ▪   Pour la période du 1er janvier 2026 au 31 mars 2027 : 15,50%
+
+
+
+
+                                                 Paramètres Audiens 2026                                                        4
+

@@ -1,0 +1,25 @@
+Date de modification : 22/03/2025 01:00 PM
+ Comment déclarer les avantages en nature (autres éléments du revenu brut) ?
+ Le contexte 
+ Les avantages en nature sont constitués par la mise à disposition ou la fourniture par l'employeur à ses salariés d'un bien ou d'un service à titre gratuit ou à un prix inférieur à leur valeur réelle.
+ Ils permettent aux salariés de faire l'économie de frais qu'ils auraient dû normalement supporter. Ils sont dès lors soumis à cotisations et imposables à l'impôt sur le revenu au même titre que la rémunération versée en espèces.
+L'avantage en nature doit figurer sur le bulletin de paie. Il sera indiqué au niveau du salaire brut pour être soumis à cotisations. Après détermination du salaire net imposable, il sera déduit du salaire net à verser au salarié.
+Les différents types d'avantages en nature sont la fourniture de repas, de logement, de véhicule, d'outils issus des nouvelles technologies de l'information et de la communication (NTIC - téléphone mobile, micro-ordinateur, etc.) ou de tout autre avantage.
+ Ils sont en principe évalués en fonction de leur valeur réelle. Ils peuvent cependant être évalués forfaitairement pour la fourniture de repas (cf. BOI-BAREME-000014), le logement (cf. BOI-BAREME-000002) et l'usage privé d'un véhicule (cf. BOI-ANNX-000056). Les barèmes relatifs aux valeurs forfaitaires des avantages en nature  sont également disponibles sur le site urssaf.fr.
+Pour en savoir plus : Pour plus de précisions, il convient de se reporter à la documentation fiscale BOFIP référencée BOI-RSA-BASE-20-20, ainsi qu'à la documentation sociale disponible sur urssaf.fr ou en cliquant ici. 
+ Traitement dans la norme NEODeS 
+ Les avantages en nature sont déclarés spécifiquement dans le bloc "Autre élément de revenu brut - S21.G00.54". Le type d'avantage en nature est renseigné à la rubrique "21.G00.54.001", au moyen des codes :
+ 02 - Avantage en nature : repas
+ 03 - Avantage en nature : logement
+ 04 - Avantage en nature : véhicule
+ 05 - Avantage en nature : NTIC
+ 06 - Avantage en nature : autres
+ Le montant devant figurer dans la rubrique "S21.G00.54.002" est le montant brut de l'avantage en nature, tel qu'il figure dans le bulletin de salaire avant déduction des cotisations sociales, évalué selon les dispositions réglementaires en vigueur.
+ Si le salarié bénéficie de la déduction forfaitaire spécifique pour frais professionnels, le montant de l'avantage en nature à reporter en bloc "Autre élément de revenu brut - S21.G00.54" ne tient pas compte de cette déduction.
+ Dès lors que l'avantage en nature est présent sur le bulletin de salaire, il doit être déclaré en DSN, pour le montant porté au bulletin de salaire.
+ Points d'attention
+ La valeur de l'avantage en nature est un élément de la base assujettie, qui doit donc être déclarée en bloc "Base assujettie - S21.G00.78" selon les règles d'assujettissement et de cotisations appliquées par les organismes destinataires.
+ Par ailleurs, lorsque le salarié a fait l'objet d'une retenue sur salaire ou participe financièrement à l'acquisition du bien ou du service, le montant de l'avantage imposable est réduit de ce montant.
+ Pour les NTIC, les dons, par les employeurs à leurs salariés, de matériels informatiques et de logiciels nécessaires à leur utilisation, entièrement amortis et pouvant permettre l'accès à des services de communications électroniques et de communication au public en ligne, sont exonérés d'impôt sur le revenu et exclus de l'assiette des cotisations et contributions sociales dans la limite d'un prix de revient global des matériels et logiciels de 2 000 € par salarié et par an (31° bis de l'article 81 du code général des impôts).
+ Date de création : 01/06/2016 12:37 PM 
+ N° de la fiche : 827

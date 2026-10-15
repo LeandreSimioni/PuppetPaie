@@ -1,0 +1,60 @@
+# Bloc S21.G00.34
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 179-179
+
+--- p. 179 ---
+  S21.G00.34  2025-12-24
+
+  CCH-12 : L'année de l' "Ancienne date de naissance - S21.G00.31.011" doit être inférieure ou égale à l'année en cours
+  et supérieure à l'année en cours moins 120 (années).
+
+  CSL-11 : [(respect des contraintes calendaires)] aux exceptions près acceptées sur le mois ou le jour à 00 ou 99
+
+  CSL 00 : (0[0-9]|[1-2][0-9]|3[0-1]|99)(0[0-9]|1[0-
+  X  [8,8]
+  2]|99)(18|19|20)[0-9]{2}
+
+S21.G00.34
+
+Compte Professionnel de Prévention (Ex-Pénibilité)  S21.G00.34
+  Ce bloc permet de renseigner l'exposition de chaque individu à certains facteurs de risques professionnels.
+
+Facteur d'exposition  S21.G00.34.001
+Numéro du contrat  S21.G00.34.002
+Année de rattachement  S21.G00.34.003
+
+Facteur d'exposition  S21.G00.34.001
+Penibilite.FacteurExposition
+  CCH-11 : Pour un même individu, la déclaration d'un bloc "Compte Professionnel de Prévention (Ex-Pénibilité) -
+  S21.G00.34" n’est autorisée que si le "Numéro du contrat - S21.G00.34.002" qu'il porte correspond à un numéro de
+  contrat (S21.G00.40.009) déclaré dans un bloc "Contrat (contrat de travail, convention, mandat) - S21.G00.40" portant
+  un "Code régime de base risque vieillesse - S21.G00.40.020" égal à "157 - régime de retraite des avocats (CNBF)",
+  "200 - régime général (CNAV)", "300 - régime agricole (MSA)" ou "905 - Régime général pour la déclaration des
+  individus de Mayotte affiliés à la CSSM".
+
+  X  [2,2]
+
+  05 - les activités exercées en milieu hyperbare
+  06 - les températures extrêmes
+  07 - le bruit
+  08 - le travail de nuit
+  09 - le travail en équipes successives alternantes
+  10 - le travail répétitif (répétition d'un même geste, à une cadence contrainte avec un temps de cycle défini)
+  99 - annulation
+
+Numéro du contrat  S21.G00.34.002
+Penibilite.NumeroContrat
+  Identifiant unique du contrat de travail auquel sont rattachés le ou les facteurs de risques professionnels.
+
+  CCH-11 : La valeur renseignée dans cette rubrique doit être identique à la valeur renseignée dans une rubrique
+  "Numéro du contrat - S21.G00.40.009"
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des numéros de contrat.
+
+  X  [5,20]
+
+Année de rattachement  S21.G00.34.003
+Penibilite.AnneeRattachement
+  Année au titre de laquelle le bloc "Compte Professionnel de Prévention (Ex-Pénibilité) - S21.G00.34" est
+  souscrit.
+
+  179 / 361

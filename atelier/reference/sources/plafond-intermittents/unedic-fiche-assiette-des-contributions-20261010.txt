@@ -1,0 +1,65 @@
+Unédic, fiche thématique « Assiette des contributions », https://www.unedic.org/la-reglementation/fiches-thematiques/assiette-des-contributions, relevée le 10/10/2026 (transcription du HTML voisin, balises retirées).
+
+href="/la-reglementation"
+>
+La réglementation
+href="/la-reglementation/fiches-thematiques"
+>
+Fiches thématiques
+Assiette des contributions
+Contributions
+>
+Assiette des contributions
+Dans la majorit&eacute; des cas, les contributions g&eacute;n&eacute;rales d&rsquo;assurance ch&ocirc;mage sont assises sur les m&ecirc;mes r&eacute;mun&eacute;rations brutes que les cotisations de s&eacute;curit&eacute; sociale. Pour certaines professions aux revenus irr&eacute;guliers (annexe VII au r&egrave;glement d&rsquo;assurance ch&ocirc;mage), les cotisations de s&eacute;curit&eacute; sociale sont assises sur un forfait, alors que les contributions du r&eacute;gime d&rsquo;assurance ch&ocirc;mage le sont sur les salaires vers&eacute;s. D&rsquo;autres professions font aussi exception ; des assiettes de contributions sp&eacute;cifiques sont alors d&eacute;finies.
+Dernière mise à jour le 5 octobre 2026
+title="Télécharger au format pdf le document  : Assiette des contributions">
+aria-hidden="true">Télécharger
+title="Index"
+>
+L’assiette des contributions : règles générales
+href="#chapter_1">L’assiette des contributions : règles générales
+href="#chapter_2">L’assiette des contributions définie pour les salariés relevant de l’annexe VII
+href="#chapter_3">L’assiette des contributions définie pour les journalistes
+href="#chapter_4">Autres assiettes des contributions spécifiques à certaines professions
+L’assiette des contributions : règles générales
+Comme l’indiquent l’article L. 5422-9 du code du travail et l’article 
+L. 242-1
+  du code de la sécurité sociale, l’assiette des contributions d’assurance chômage est 
+identique à celle des cotisations de sécurité sociale
+. Il s’agit de l’ensemble des rémunérations brutes.
+Ce principe d’identité d’assiette s’applique aux cotisations AGS (Association pour la gestion du régime de garantie des créances des salariés.)
+L’assiette des contributions ne peut dépasser 
+4 fois le plafond mensuel de la sécurité sociale
+, soit 16 020 € au 1er janvier 2026.
+L’assiette des contributions définie pour les salariés relevant de l’annexe VII
+Pour les salariés exerçant une profession bénéficiant d’une base forfaitaire au regard de la sécurité sociale (voir liste indicative des professions concernées ci-dessous), les contributions d’assurance chômage 
+ne sont pas assises sur la même assiette que celle des cotisations de sécurité sociale
+.
+Pour ces 
+professions aux revenus irréguliers
+: l’
+assiette des cotisations
+de sécurité sociale est 
+forfaitaire
+, alors que l’assiette des contributions d’assurance chômage est assise sur l’ensemble des rémunérations brutes, avec le même plafond que pour les autres salariés.
+S’ils perdent leur emploi, ces salariés perçoivent ainsi une allocation qui tient compte de leur salaire réel.
+Parmi ces professions, on peut citer notamment :
+les animateurs et directeurs d’accueil collectif, séjour de vacances  ;
+les formateurs occasionnels ;
+les vendeurs à domicile ;
+les vendeurs, colporteurs et porteurs de presse ;
+les salariés qui travaillent pour le compte d'une personne morale à objet sportif ou pour une association de jeunesse ou d'éducation populaire visée par l'arrêté du 27 juillet 1994 ;
+les salariés rémunérés au pourboire du secteur hôtellerie, café, restaurant (HCR).
+L’assiette des contributions définie pour les journalistes
+Contrairement aux cotisations de sécurité sociale, calculées après avoir déduit 30 % de frais professionnels, les contributions d’assurance chômage des journalistes ne bénéficient d’aucun abattement. Il en va de même pour les cotisations AGS.
+Autres assiettes des contributions spécifiques à certaines professions
+Parce que l’exercice de certains métiers est spécifique, leur assiette de contributions d’assurance chômage l’est aussi.
+Marins pêcheurs
+Les contributions des marins pêcheurs sont assises sur un salaire forfaitaire correspondant à leur catégorie et qui sert de base aux cotisations sociales de l’
+Etablissement national des invalides de la marine
+(ENIM).
+Intermittents du spectacle et VRP multicartes
+Le plafond est appliqué employeur par employeur.
+Salariés travaillant à Monaco
+Leur assiette est la même que celle des contributions d’assurance chômage françaises dans la limite de 4 fois le plafond de la sécurité́ sociale français, soit 16 020 € au 1er janvier 2026.
+>

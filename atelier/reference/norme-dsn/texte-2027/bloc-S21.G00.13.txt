@@ -1,0 +1,116 @@
+# Bloc S21.G00.13
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 150-151
+
+--- p. 150 ---
+  S21.G00.13  2026-06-10
+
+  Il s'agit des coordonnées bancaires au format IBAN du compte sur lequel doit être versé le montant des
+  aides émises par un organisme de protection sociale. Cette rubrique s'appuie sur la norme ISO 13616:2007.
+  CSL-11 : [(vérification de la clé IBAN)]
+
+  CSL-12 : [(vérification de la clé BBAN)]
+
+  X  [15,34]  CSL 00 : [A-Z0-9]+
+
+S21.G00.13
+
+Complément OETH  S21.G00.13
+  Ce bloc est à renseigner dans le cas où l’entreprise est concernée par un accord agréé au titre de l’obligation d’emploi
+  des travailleurs handicapés et/ou par la déclaration de bénéficiaires de l’obligation d’emploi des travailleurs handicapés
+  (BOETH) mis à disposition de l’entreprise.
+  Il peut également être renseigné dans le cas où la déclaration des stagiaires BOETH accueillis dans l'entreprise n'a pas
+  pu être effectuée au préalable dans les DSN mensuelles de l'année concernée. Si les stagiaires BOETH ont déjà été
+  déclarés à maille nominative dans les déclarations précédentes, ils ne doivent pas être déclarés dans ce bloc.
+
+Accord agréé OETH  S21.G00.13.001
+Type BOETH externe  S21.G00.13.002
+Nombre BOETH externe  S21.G00.13.003
+Millésime de rattachement  S21.G00.13.004
+
+Accord agréé OETH  S21.G00.13.001
+Oeth.Accord
+  Cette rubrique est à renseigner dans le cas où l’entreprise est concernée par un accord agréé au titre de
+  l’obligation d’emploi des travailleurs handicapés pour l’année de rattachement à laquelle le bloc
+  "Complément OETH - S21.G00.13" est souscrit.
+  CRE-11 : Valeurs autorisées
+
+  Table AAETH - Codes des accords agréés pour l’emploi des
+  X  [12,12]
+  travailleurs handicapés
+
+Type BOETH externe  S21.G00.13.002
+Oeth.Type
+  Cette rubrique permet de renseigner le type de Bénéficiaires de l’Obligation d’Emploi des Travailleurs
+  Handicapés (BOETH) mis à disposition de l’entreprise pour l’année de rattachement à laquelle le bloc
+  "Complément OETH - S21.G00.13" est souscrit.
+  Cette rubrique permet également de déclarer les stagiaires BOETH accueillis dans l'entreprise n'ayant pas
+  pu être déclarés au préalable dans les DSN mensuelles de l'année concernée. Si les stagiaires BOETH ont
+  déjà été déclarés à maille nominative dans les déclarations précédentes, ils ne doivent pas être déclarés
+  dans cette rubrique.
+
+  X  [2,2]
+
+  01 - BOETH intérimaires
+  02 - BOETH salariés d'un groupement d'employeurs mis à disposition
+  03 - BOETH stagiaires n’ayant pas fait l’objet d’une déclaration nominative au préalable
+  04 - BOETH salariés d’une association intermédiaire mis à disposition
+  05 - BOETH salariés d’une agence de mannequin mis à disposition
+  06 - BOETH salariés d’une entreprise de travail à temps partagé (ETTP) mis à disposition
+
+  150 / 370
+
+--- p. 151 ---
+  S21.G00.15  2026-06-10
+
+Nombre BOETH externe  S21.G00.13.003
+Oeth.Nombre
+  Cette rubrique permet de renseigner le nombre associé au type de Bénéficiaires de l’Obligation d’Emploi
+  des Travailleurs Handicapés (BOETH) mis à disposition de l’entreprise pour l’année de rattachement à
+  laquelle le bloc "Complément OETH - S21.G00.13" est souscrit. Cette rubrique permet également de
+  déclarer le nombre de stagiaires BOETH accueillis dans l'entreprise n'ayant pas pu être déclarés au
+  préalable dans les DSN mensuelles de l'année concernée. Si les stagiaires BOETH ont déjà été déclarés à
+  maille nominative dans les déclarations précédentes, cette rubrique ne doit pas être renseignée.
+  CCH-11 : Si la rubrique "Type BOETH - S21.G00.13.002" est renseignée alors la rubrique "Nombre BOETH externe -
+  S21.G00.13.003" est obligatoire, et, inversement : si la rubrique "Nombre BOETH externe - S21.G00.13.003" est
+  renseignée alors la rubrique "Type BOETH - S21.G00.13.002" est obligatoire.
+  Si l'une de ces deux rubriques est absente, alors l'autre est interdite.
+
+  N  [4,8]  CSL 00 : \d{1,5}\.\d{2}
+
+Millésime de rattachement  S21.G00.13.004
+Oeth.Rattachement
+  Année au titre de laquelle le bloc "Complément OETH - S21.G00.13" est souscrit.
+
+  CCH-11 : Le "Millésime de rattachement - S21.G00.13.004" doit obligatoirement être inférieur ou égal aux quatre
+  derniers caractères (Année) du mois principal déclaré au niveau de la rubrique "Date du mois principal déclaré –
+  S20.G00.05.005".
+
+  CCH-12 : Un bloc "Complément OETH - S21.G00.13" ne peut pas être déclaré avec la seule présence d'une rubrique
+  "Millésime de rattachement - S21.G00.13.004". Il doit obligatoirement être renseigné une rubrique "Accord agréé
+  OETH - S21.G00.13.001" ou "Type BOETH externe - S21.G00.13.002".
+
+  N  [4,4]  CSL 00 : 2([0-9]{3})
+
+S21.G00.15
+
+Adhésion Prévoyance  S21.G00.15
+  Adhésion à un contrat collectif de Prévoyance, Complémentaire Santé ou Retraite Supplémentaire souscrit auprès
+  d'une institution de prévoyance, mutuelle, société d'assurance ou organisme complémentaire non fédéré par un membre
+  du GIP-MDS (CTIP, FFA, FNMF).
+  Ce bloc est utilisé exclusivement par les organismes complémentaires.
+
+Référence du contrat de Prévoyance  S21.G00.15.001
+Code organisme de Prévoyance  S21.G00.15.002
+Code délégataire de gestion  S21.G00.15.003
+Personnel couvert  S21.G00.15.004
+Identifiant technique Adhésion  S21.G00.15.005
+
+Référence du contrat de Prévoyance  S21.G00.15.001
+PrevoyanceAdhesion.Reference
+  Référence permettant d'identifier le contrat Prévoyance, complémentaire Santé ou Retraite supplémentaire.
+
+  CCH-11 : Plusieurs blocs "Adhésion Prévoyance - S21.G00.15" peuvent être présents dans une déclaration, mais ils ne
+  peuvent pas être renseignés avec les mêmes valeurs dans les rubriques "Référence du contrat de Prévoyance -
+  S21.G00.15.001" et "Code organisme de Prévoyance - S21.G00.15.002".
+
+  151 / 370

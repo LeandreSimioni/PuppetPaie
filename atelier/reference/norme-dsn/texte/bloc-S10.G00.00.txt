@@ -1,0 +1,49 @@
+# Bloc S10.G00.00
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 128-128
+
+--- p. 128 ---
+  S10.G00.00  2025-12-24
+
+  Structure
+
+S10.G00.00
+  S10 Entête
+Envoi  S10.G00.00
+Nom du logiciel utilisé  S10.G00.00.001
+Nom de l'éditeur  S10.G00.00.002
+Numéro de version du logiciel utilisé  S10.G00.00.003
+Code de conformité en pré-contrôle  S10.G00.00.004
+Code envoi du fichier d'essai ou réel  S10.G00.00.005
+Numéro de version de la norme utilisée  S10.G00.00.006
+Point de dépôt  S10.G00.00.007
+Type de l'envoi  S10.G00.00.008
+
+Nom du logiciel utilisé  S10.G00.00.001
+Envoi.NomLogiciel
+  Logiciel utilisé pour établir les déclarations.
+  L'alimentation systématique de cette rubrique est obligatoire pour faciliter le dialogue avec les éditeurs et
+  les émetteurs en cas d'anomalie détectée par les récepteurs.
+  Mettre 'Logiciel maison' dans le cas où l'émetteur utilise un logiciel de constitution de la DSN non acheté
+  mais développé en interne.
+
+  X  [1,20]
+
+Nom de l'éditeur  S10.G00.00.002
+Envoi.EditeurLogiciel
+  Nom de l'éditeur du logiciel de paie utilisé.
+  Mettre 'Logiciel maison' dans le cas où l'émetteur utilise un logiciel de constitution de la DSN non acheté
+  mais développé en interne.
+
+  X  [1,20]
+
+Numéro de version du logiciel utilisé  S10.G00.00.003
+Envoi.VersionLogiciel
+  Numéro de la version du logiciel de paie utilisé, s'il existe.
+
+  X  [1,10]
+
+Code de conformité en pré-contrôle  S10.G00.00.004
+Envoi.CodeConformite
+  Sera précisé suite à finalisation de l’outil de validation de messages proposé aux éditeurs et déclarants.
+
+  128 / 361

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000049459068</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/49/45/90/LEGIARTI000049459068.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L3141-5-1</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2024-04-24</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132332">Troisième partie : Durée du travail, salaire, intéressement, participation et épargne salariale    </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145403">Livre Ier : Durée du travail, repos et congés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160756">Titre IV : Congés payés et autres congés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006178009">Chapitre Ier : Congés payés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2016-08-10" id="LEGISCTA000006189648">Section 2 : Durée du congé.</TITRE_TM>
+<TITRE_TM debut="2016-08-10" fin="2999-01-01" id="LEGISCTA000033020831">Section 2 : Durée du congé</TITRE_TM>
+<TM>
+<TITRE_TM debut="2016-08-10" fin="2999-01-01" id="LEGISCTA000033008311">Sous-section 1 : Ordre public.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2024-04-24" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000049459068" num="L3141-5-1" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément au II de l'article 37 de la loi n° 2024-364 du 22 avril 2024, sous réserve des décisions de justice passées en force de chose jugée ou de stipulations conventionnelles plus favorables en vigueur à la date d'acquisition des droits à congés, les dispositions du présent article sont applicables pour la période courant du 1er décembre 2009 à la date d'entrée en vigueur de ladite loi.</p>
+<p>Toutefois, pour la même période, les congés supplémentaires acquis en application des dispositions mentionnées au premier alinéa ne peuvent, pour chaque période de référence mentionnée à l'article L. 3141-10 du code du travail, excéder le nombre de jours permettant au salarié de bénéficier de vingt-quatre jours ouvrables de congé, après prise en compte des jours déjà acquis, pour la même période, en application des dispositions du même code dans leur rédaction antérieure à ladite loi.</p>
+<p>Toute action en exécution du contrat de travail ayant pour objet l'octroi de jours de congé en application dudit II doit être introduite, à peine de forclusion, dans un délai de deux ans à compter de l'entrée en vigueur de ladite loi.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p align="left">Par dérogation au premier alinéa de l'article L. 3141-3, la durée du congé auquel le salarié a droit au titre des périodes mentionnées au 7° de l'article L. 3141-5 est de deux jours ouvrables par mois, dans la limite d'une attribution, à ce titre, de vingt-quatre jours ouvrables par période de référence mentionnée à l'article L. 3141-10.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000049453263" datesignatexte="2024-04-22" id="LEGIARTI000049454318" naturetexte="LOI" nortexte="ECOM2328155L" num="37" numtexte="2024-364" sens="cible" typelien="CREE">LOI n°2024-364 du 22 avril 2024 - art. 37 (V)</LIEN>
+
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006902647" naturetexte="CODE" nortexte="" num="L3141-10" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3141-10 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006902640" naturetexte="CODE" nortexte="" num="L3141-3" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3141-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006902642" naturetexte="CODE" nortexte="" num="L3141-5" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3141-5 (V)</LIEN>
+
+
+</LIENS>
+</ARTICLE>

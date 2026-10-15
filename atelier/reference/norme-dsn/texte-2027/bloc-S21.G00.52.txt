@@ -1,0 +1,373 @@
+# Bloc S21.G00.52
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 253-258
+
+--- p. 253 ---
+  S21.G00.52  2026-06-10
+
+Taux de rémunération cotisée  S21.G00.51.019
+Remuneration.TauxRemunerationCotisee
+  Cette rubrique est à renseigner pour les salariés des IEG et elle doit contenir le pourcentage par rapport à
+  une rémunération temps plein sur lequel la cotisation est assise.
+  Exemple : indiquer 80.00 pour une cotisation assise sur 80% d’une rémunération temps plein.
+  NB : Ce taux peut être différent du taux d’activité au contrat.
+
+  N  [4,6]  CSL 00 : [0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Taux de majoration ex-apprenti/ex-élève  S21.G00.51.020
+Remuneration.TauxMajorationExapprenti
+  Pour les individus affiliés à la CPRPF, une majoration salariale exceptionnelle de traitement est attribuée
+  aux agents du cadre permanent, ex-apprentis et ex-élèves.
+
+  N  [4,5]  CSL 00 : [0-9]{1,2}\.[0-9]{2}
+
+S21.G00.52
+
+Prime, gratification et indemnité  S21.G00.52
+  Les Primes, gratifications et indemnités à mentionner dans ce bloc sont de périodicités non mensuelles.
+  Ce bloc concerne aussi les indemnités liées à la rupture d'un contrat de travail.
+  Concernant les primes exceptionnelles, lorsque cela fait sens, il convient d’indiquer la période de rattachement au titre
+  de laquelle la prime a été attribuée.
+  Concernant les primes versées à périodicité fixe, il convient d'indiquer lorsque cela fait sens, leur période de
+  rattachement.
+
+  ATTENTION : Les primes et indemnités ajoutées pour la Fonction publique (préfixées [FP]) dans ce bloc ne sont pas
+  intégrées dans le Salaire brut servant aux calculs des droits de l'Assurance chômage (code 002 en rubrique Type -
+  S21.G00.51.011).
+  Pour la Fonction publique, les primes et indemnités renseignées dans ce bloc peuvent être de nature mensuelle.
+
+Type  S21.G00.52.001
+Montant  S21.G00.52.002
+Date de début de la période de rattachement  S21.G00.52.003
+Date de fin de la période de rattachement  S21.G00.52.004
+Numéro du contrat  S21.G00.52.006
+Date de versement d'origine  S21.G00.52.007
+
+Type  S21.G00.52.001
+Prime.Type
+  Motif définissant le type de la prime, gratification, supplément ou indemnité.
+  Parmi les valeurs de cette rubrique, certaines relèvent du champ fiscal : Indemnité d’expatriation, Indemnité
+  d’impatriation.
+  CCH-11 : Un code type d'indemnité de fin de contrat (codes allant de 001 à 025) ne peut être présent qu'une seule fois
+  pour un même contrat de travail et un même versement.
+
+  CCH-20 : Pour un même contrat de travail, les codes types "009 - Indemnité légale spéciale de licenciement" et "010 -
+  Indemnité légale spécifique de licenciement" ne peuvent être présents simultanément.
+
+  CCH-21 : Si le bloc "Fin du contrat - S21.G00.62" est présent, alors le code indemnité "001 - Indemnité spécifique de
+  rupture conventionnelle", n’est autorisé que si le motif de la rupture contrat de travail est renseigné à "043 - rupture
+  conventionnelle", "110 - Rupture conventionnelle collective" ou " 099 - Annulation".
+
+  253 / 370
+
+--- p. 254 ---
+  S21.G00.52  2026-06-10
+
+CCH-22 : Si le bloc "Fin du contrat - S21.G00.62" est présent, alors les codes type "003 - Indemnité légale de mise à la
+retraite par l'employeur" et "004 - Indemnité conventionnelle de mise à la retraite par l'employeur" sont interdits si le
+motif de la rupture contrat de travail est différent de "038 - mise à la retraite par l'employeur" ou " 099 - Annulation".
+
+CCH-23 : Si le bloc « Fin du contrat - S21.G00.62 » est présent, alors le code type d’indemnités « 005 - Indemnité
+légale de départ à la retraite du salarié » et « 006 - Indemnité conventionnelle de départ à la retraite du salarié » sont
+interdits si le motif de la rupture contrat de travail est différent de « 039 - départ à la retraite à l'initiative du salarié », «
+059 - démission » ou « 099 - Annulation ».
+
+CCH-24 : Si le bloc « Fin du contrat - S21.G00.62 » est présent et si le code type d’indemnités (S21.G00.52.001) est
+renseigné à « 007 - Indemnité légale de licenciement », « 008 - Indemnité légale supplémentaire de licenciement », «
+009 - Indemnité légale spéciale de licenciement » ou « 010 - Indemnité légale spécifique de licenciement », alors il est
+interdit de déclarer un motif de la rupture du contrat (S21.G00.62.002) différent de « 011 - licenciement suite à
+liquidation judiciaire ou à redressement judiciaire », « 012 - licenciement suite à fermeture définitive de l'établissement
+», « 014 - licenciement pour motif économique », « 015 - licenciement pour fin de chantier », « 020 - licenciement
+pour autre motif », « 025 - autre fin de contrat pour motif économique », « 026 - rupture pour motif économique suite à
+l'acceptation d'un contrat de sécurisation professionnelle CSP », « 082 - résiliation judiciaire du contrat de travail », «
+086 - licenciement convention CATS », « 087 - licenciement pour faute grave », « 089 - licenciement pour force
+majeure », « 091 - licenciement pour inaptitude physique d'origine non professionnelle », « 092 - licenciement pour
+inaptitude physique d'origine professionnelle », « 093 - licenciement suite à décision d'une autorité administrative », «
+098 - retrait d'enfant », « 099 - Annulation », « 111 - Rupture amiable dans le cadre d’un congé de mobilité », « 112 -
+Rupture dans le cadre d’un accord de performance collective », « 113 - licenciement pour motif spécifique », « 114 -
+rupture d’un commun accord pour entrée en PAP », « 115 - Licenciement au titre des articles 18 et 19 de la loi n°
+2017-1339 du 15 septembre 2017 » ou « 117 - licenciement pour motif économique suite au refus d’un contrat de
+sécurisation professionnelle ».
+
+CCH-27 : Si le bloc "Fin du contrat - S21.G00.62" est présent et si le code type d’indemnités (S21.G00.52.001) est
+renseigné à "016 - Indemnité légale versée à l'apprenti", alors il est interdit de déclarer un motif de la rupture du contrat
+(S21.G00.62.002) différent de "081 - fin de contrat d'apprentissage", "084 - rupture d'un commun accord du CDD,
+d’un contrat de professionnalisation, du contrat d'apprentissage ou d’un contrat de mission", "097 - rupture anticipée
+d’un contrat de travail ou d’un contrat de mission suite à fermeture de l'établissement" ou "099 - Annulation".
+
+CCH-29 : Si le bloc "Fin du contrat - S21.G00.62" est présent et si le code type d’indemnités (S21.G00.52.001) est
+renseigné à "032 - Indemnité compensatrice de préavis pour inaptitude suite AT ou Maladie Professionnelle", alors il
+est interdit de déclarer un motif de la rupture du contrat (S21.G00.62.002) différent de "033 - rupture anticipée d’un
+CDD ou d’un contrat de mission en cas d’inaptitude physique constatée par le médecin du travail", "091 - licenciement
+pour inaptitude physique d'origine non professionnelle", "092 - licenciement pour inaptitude physique d'origine
+professionnelle"ou "099 - Annulation".
+
+CCH-31 : Si le bloc « Fin du contrat - S21.G00.62 » est présent, alors le code « Type - S21.G00.52.001 » : « 033 -
+Indemnité forfaitaire de conciliation prud’homale » n'est autorisé que si le « Motif de la rupture du contrat -
+S21.G00.62.002 » est égal à « 011 - licenciement suite à liquidation judiciaire ou à redressement judiciaire », « 012 -
+licenciement suite à fermeture définitive de l'établissement », « 014 - licenciement pour motif économique », « 015 -
+licenciement pour fin de chantier », « 020 - licenciement pour autre motif », « 025 - autre fin de contrat pour motif
+économique », « 026 - rupture pour motif économique suite à l'acceptation d’un contrat de sécurisation professionnelle
+CSP », « 065 - décès de l'employeur ou internement / conduit à un licenciement autre motif », « 082 - résiliation
+judiciaire du contrat de travail », « 086 - licenciement convention CATS », « 087 - licenciement pour faute grave »,
+« 088 - licenciement pour faute lourde », « 089 - licenciement pour force majeure », « 091 - licenciement pour
+inaptitude physique d'origine non professionnelle », « 092 - licenciement pour inaptitude physique d'origine
+professionnelle », « 093 - licenciement suite à décision d'une autorité administrative », « 098 - retrait d'enfant », « 099
+- Annulation », « 113 - licenciement pour motif spécifique », « 114 - rupture d’un commun accord pour entrée en
+PAP », « 115 - Licenciement au titre des articles 18 et 19 de la loi n° 2017-1339 du 15 septembre 2017 » ou « 117 -
+licenciement pour motif économique suite au refus d’un contrat de sécurisation professionnelle ».
+
+CCH-32 : Le Type de prime (S21.G00.52.001) « 039 - Complément de rémunération à la charge de l'Etat » est interdit
+si la rubrique « Nature du contrat - S21.G00.40.007 » est renseignée avec la valeur « 01 - Contrat de travail à durée
+indéterminée de droit privé », « 02 - Contrat de travail à durée déterminée de droit privé », « 03 - Contrat de mission
+(contrat de travail temporaire) », « 07 - Contrat à durée indéterminée intermittent », « 08 - Contrat à durée
+indéterminée intérimaire », « 53 - Contrat d'emploi pénitentiaire », « 54 - Contrat d'apprentissage détenu », « 60 -
+
+  254 / 370
+
+--- p. 255 ---
+  S21.G00.52  2026-06-10
+
+Contrat d'engagement éducatif », « 82 - Contrat de travail à durée indéterminée de Chantier ou d'opération », « 91 -
+Contrat d'engagement maritime à durée indéterminée » ou « 92 - Contrat d'engagement maritime à durée déterminée ».
+
+CCH-33 : Si la rubrique "Type - S21.G00.52.001" est renseignée avec la valeur "045 - Dommages et intérêts à la non
+remise du contrat de mission" alors la rubrique "Nature de contrat - S21.G00.40.007" doit obligatoirement être
+renseignée avec la valeur "03 - Contrat de mission (contrat de travail temporaire)".
+
+CCH-34 : Si la rubrique « Type - S21.G00.52.001 » est renseignée avec la valeur « 052 - Supplément de rémunération
+des agents classe 4 niveau 2 position de rémunération 19 », « 053 - Supplément de rémunération des agents classe 1 à 3
+et 5 à 8 » ou « 054 - Supplément de rémunération agents et ex-agents de conduite », la période renseignée au niveau
+des rubriques « Date de début de la période de rattachement - S21.G00.52.003 » et « Date de fin de la période de
+rattachement - S21.G00.52.004 » doit obligatoirement être antérieure au 1er janvier 2027.
+Ce contrôle vise à interdire la déclaration de ces primes au niveau du bloc « Prime, gratification et indemnité -
+S21.G00.52 » à compter de la version de norme P27V01, à partir de laquelle elles sont à renseigner obligatoirement au
+niveau du bloc « Elément de revenu associé à des droits spécifiques - S21.G00.59 » si elles sont rattachées à une
+période supérieure à 2026.
+
+  X  [3,3]
+
+001 - Indemnité spécifique de rupture conventionnelle
+002 - Indemnité versée à l'occasion de la cessation forcée des fonctions des mandataires sociaux
+003 - Indemnité légale de mise à la retraite par l'employeur
+004 - Indemnité conventionnelle de mise à la retraite par l'employeur
+005 - Indemnité légale de départ à la retraite du salarié
+006 - Indemnité conventionnelle de départ à la retraite du salarié
+007 - Indemnité légale de licenciement
+008 - Indemnité légale supplémentaire de licenciement
+009 - Indemnité légale spéciale de licenciement
+010 - Indemnité légale spécifique de licenciement
+011 - Indemnité légale de fin de CDD
+012 - Indemnité légale de fin de mission
+013 - Indemnité légale due aux journalistes
+014 - Indemnité légale de clientèle
+015 - Indemnité légale due au personnel naviguant de l'aviation civile
+016 - Indemnité légale versée à l'apprenti
+017 - Dommages et intérêts dus à la non remise du contrat ou dus à un CDD ou à une rupture de période d’essai (délai
+de prévenance)
+018 - Indemnité due en raison d'un sinistre
+019 - Indemnité suite à clause de non concurrence
+020 - Indemnité compensatrice de congés payés
+021 - Indemnité conventionnelle (supplémentaire aux indemnités légales)
+022 - Indemnité transactionnelle
+023 - Indemnité compensatrice de préavis payé non effectué
+025 - Indemnité compensatrice des droits acquis dans le cadre d’un compte épargne temps
+026 - Prime exceptionnelle liée à l'activité avec période de rattachement spécifique
+027 - Prime liée à l'activité avec période de rattachement spécifique
+028 - Prime non liée à l'activité
+029 - Prime liée au repos compensateur ou au rachat des jours de RTT avec période de rattachement spécifique
+030 - Prime rachat CET
+032 - Indemnité compensatrice de préavis pour inaptitude suite AT ou Maladie Professionnelle
+033 - Indemnité forfaitaire de conciliation prud’homale
+034 - Indemnité de congés payés (art. D. 3141-32 et D. 3141-33 du Code du travail)
+039 - Complément de rémunération à la charge de l'Etat
+040 - [FP] Indemnité mensuelle de technicité
+041 - [FP] Indemnité de sujétions spéciales
+042 - [FP] Indemnité de risque
+
+  255 / 370
+
+--- p. 256 ---
+  S21.G00.52  2026-06-10
+
+  043 - [FP] Prime de sujétions spéciales
+  044 - [FP] Indemnité de sujétion spécifique
+  045 - Dommages et intérêts à la non remise du contrat de mission
+  046 - Indemnité de congés payés (art. L. 3141-24 du Code du travail)
+  047 - [FP] GIPA - Garantie individuelle du pouvoir d'achat
+  048 - Indemnité de résidence
+  049 - [FP] Supplément familial de traitement
+  050 - [FP] RIFSEEP IFSE
+  051 - [FP] RIFSEEP CIA
+  052 - Supplément de rémunération des agents classe 4 niveau 2 position de rémunération 19
+  053 - Supplément de rémunération des agents classe 1 à 3 et 5 à 8
+  054 - Supplément de rémunération agents et ex-agents de conduite
+  055 - Indemnité transactionnelle exonérée fiscalement
+  900 - Indemnité d'expatriation
+  901 - Indemnité d'impatriation
+  902 - Potentiel nouveau type de prime exceptionnelle de pouvoir d'achat (PEPA)
+  903 - Autre prime exonérée de cotisation, contribution sociale et impôt sur le revenu
+  904 - Prime de partage de la valeur exonérée socialement et non imposable
+  905 - Prime de partage de la valeur exonérée socialement et imposable
+  906 - Prime de partage de la valeur soumise à la CSG-CRDS et exonérée socialement et non imposable
+  907 - Potentiel nouveau type de prime B
+  908 - Potentiel nouveau type de prime C
+  909 - Potentiel nouveau type de prime D
+  910 - Potentiel nouveau type de prime E
+  911 - Potentiel nouveau type de prime A
+
+Montant  S21.G00.52.002
+Prime.Montant
+  Somme versée correspondant à la prime, à la gratification ou à l'indemnité.
+
+  N  [4,12]  CSL 00 : -?[0]*([1-9][0-9]*\.[0-9]{2}|0\.(0[1-9]|[1-9][0-9]))
+
+Date de début de la période de rattachement  S21.G00.52.003
+Prime.RattachementDateDebut
+  Date correspondant au début de la période à laquelle la prime, la gratification ou l'indemnité versée est
+  rattachée.
+  CCH-12 : Cette rubrique est obligatoire si le code type de prime, gratification et indemnité est « 026 - Prime
+  exceptionnelle liée à l'activité avec période de rattachement spécifique », « 027 - Prime liée à l'activité avec période de
+  rattachement spécifique », « 029 - Prime liée au rachat des jours de RTT avec période de rattachement spécifique », «
+  052 - Supplément de rémunération des agents classe 4 niveau 2 position de rémunération 19 », « 053 - Supplément de
+  rémunération des agents classe 1 à 3 et 5 à 8 », « 054 - Supplément de rémunération agents et ex-agents de conduite »
+  ou « 902 - Potentiel nouveau type de prime exceptionnelle de pouvoir d'achat (PEPA) ».
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de la période de rattachement  S21.G00.52.004
+Prime.RattachementDateFin
+  Date correspondant à la fin de la période à laquelle la prime, la gratification ou l'indemnité versée est
+  rattachée.
+
+  256 / 370
+
+--- p. 257 ---
+  S21.G00.52  2026-06-10
+
+  CCH-11 : La Date de fin de la période de rattachement doit être supérieure ou égale à la Date de début de la période de
+  rattachement.
+
+  CCH-13 : Cette rubrique est obligatoire si le code type de prime, gratification et indemnité est « 026 - Prime
+  exceptionnelle liée à l'activité avec période de rattachement spécifique », « 027 - Prime liée à l'activité avec période de
+  rattachement spécifique », « 029 - Prime liée au rachat des jours de RTT avec période de rattachement spécifique », «
+  052 - Supplément de rémunération des agents classe 4 niveau 2 position de rémunération 19 », « 053 - Supplément de
+  rémunération des agents classe 1 à 3 et 5 à 8 » ou « 054 - Supplément de rémunération agents et ex-agents de conduite
+  ».
+
+  CCH-14 : Si la rubrique « Type - S21.G00.52.001 » est renseignée avec la valeur « 902 - Potentiel nouveau type de
+  prime exceptionnelle de pouvoir d'achat (PEPA) », la rubrique « Date de fin de la période de rattachement -
+  S21.G00.52.004 » doit être obligatoirement déclarée et être renseignée avec une date inférieure ou égale au 31 mars
+  2022.
+  Il ne peut pas s'agir d'une prime exceptionnelle de pouvoir d'achat (PEPA) défiscalisée si cette dernière a été versée
+  après le 31 mars 2022. La déclaration du type « 902 - Potentiel nouveau type de prime exceptionnelle de pouvoir
+  d'achat (PEPA) » n'est possible que pour des corrections d'erreurs déclaratives portant sur des primes PEPA versées
+  avant le 31 mars 2022.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Numéro du contrat  S21.G00.52.006
+Prime.ContratNumero
+  Identifiant unique du contrat de travail.
+
+  CCH-11 : Si la rubrique « Nature de la déclaration - S20.G00.05.001 » est renseignée avec la valeur « 01 - DSN
+  Mensuelle », alors cette valeur doit être identique à la valeur renseignée dans une rubrique « Numéro du contrat -
+  S21.G00.40.009 ». Ce contrôle vise à s'assurer qu'une prime, gratification, indemnité est toujours valorisée pour un
+  contrat existant donné.
+
+  CCH-12 : Si la rubrique « Nature de la déclaration - S20.G00.05.001 » est renseignée avec la valeur « 07 - Signalement
+  Fin du contrat de travail Unique », alors la rubrique « Numéro du contrat - S21.G00.52.006 » doit être renseignée avec
+  la même valeur que celle renseignée dans au moins une des deux rubriques « Numéro du contrat - S21.G00.40.009 »
+  ou « Numéro du contrat déclaré précédemment - S21.G00.45.002 ».
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des numéros de contrat.
+
+  X  [5,20]
+
+Date de versement d'origine  S21.G00.52.007
+Prime.ContratNumero.DateVersementOrigine
+  Date de versement d’origine des primes et indemnités. A renseigner uniquement en cas de rappel.
+
+  CCH-13 : Si la rubrique « Type - S21.G00.52.001 » est renseignée avec la valeur « 902 - Potentiel nouveau type de
+  prime exceptionnelle de pouvoir d'achat (PEPA) » et si les rubriques « Date de fin de la période de rattachement -
+  S21.G00.52.004 » et « Date de versement d'origine - S21.G00.52.007 » sont présentes, la « Date de versement
+  d'origine - S21.G00.52.007 » doit être inférieure ou égale à la « Date de fin de la période de rattachement -
+  S21.G00.52.004 ».
+
+  SIG-11 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  SIG-12 : Se reporter au paragraphe 4.4.13 de l’introduction traitant de la datation dans une DSN événementielle
+
+  D  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  a
+  [8,8]
+  9]{2}
+
+  257 / 370
+
+--- p. 258 ---
+  S21.G00.53  2026-06-10
+
+  t
+  e
+
+S21.G00.53
+
+Activité  S21.G00.53
+  Temps alloué par le salarié à un type d'activité.
+  Il est valorisé par période de paie et est rattaché à un et un seul contrat d'une part et à une et une seule rémunération de
+  type « 002 - Salaire brut servant aux calculs des droits de l'Assurance chômage ».
+  Concernant le nombre de jours calendaires de la période d’emploi pris en compte dans le calcul du plafond de Sécurité
+  sociale, sa déclaration doit être rattachée à une rémunération de type « 001 - Rémunération brute non plafonnée ».
+
+Type  S21.G00.53.001
+Mesure  S21.G00.53.002
+Unité de mesure  S21.G00.53.003
+
+Type  S21.G00.53.001
+Activite.Type
+  Type d'activité ou d'inactivité.
+  La durée non travaillée partiellement rémunérée est déclarée en « 02 - Durée d'absence partiellement ou
+  pas du tout rémunérée ».
+  CCH-11 : Un bloc « Activité - S21.G00.53 » déclaré avec une unité de mesure (S21.G00.53.003) différente de « 40 -
+  jours calendaires de la période d’emploi pris en compte dans le calcul du plafond de Sécurité Sociale » ne peut être
+  présent que si la rubrique « Type - S21.G00.51.011 » est renseignée avec la valeur « 002 - Salaire brut servant aux
+  calculs des droits de l'Assurance chômage » au niveau du bloc « Rémunération - S21.G00.51 » parent.
+
+  CCH-12 : Un bloc « Activité - S21.G00.53 » déclaré avec la valeur « 40 - jours calendaires de la période d’emploi pris
+  en compte dans le calcul du plafond de Sécurité Sociale » ne peut être présent que si la rubrique « Type -
+  S21.G00.51.011 » du bloc parent est renseignée avec la valeur « 001 - Rémunération brute non plafonnée » au niveau
+  du bloc « Rémunération - S21.G00.51 ».
+
+  X  [2,2]
+
+  01 - Travail rémunéré
+  02 - Durée d'absence partiellement ou pas du tout rémunérée
+
+Mesure  S21.G00.53.002
+Activite.Mesure
+  Volume d'activité ou d'inactivité.
+
+  CCH-11 : Si la rubrique "Unité de mesure - S21.G00.53.003" est absente et si la rubrique "Unité de mesure de la
+  quotité de travail - S21.G00.40.011" est renseignée avec la valeur "10 - heure" ou "21 - forfait heure" alors la rubrique
+  "Mesure - S21.G00.53.002" doit être inférieure ou égale à « 3250.00 ».
+
+  CCH-12 : Si la rubrique "Unité de mesure - S21.G00.53.003" est absente et si la rubrique "Unité de mesure de la
+  quotité de travail - S21.G00.40.011" est renseignée avec la valeur "12 - journée" ou "20 - forfait jour" alors la rubrique
+  "Mesure - S21.G00.53.002" doit être inférieure ou égale à « 403.00 ».
+
+  N  [4,8]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Unité de mesure  S21.G00.53.003
+Activite.UniteMesure
+
+  258 / 370

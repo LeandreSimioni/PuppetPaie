@@ -68,3 +68,10 @@ atelier/sources/paie/tests/donnees/** -text
 # Windows lit ces fichiers : CRLF, et Git n'y touche pas.
 *.cmd -text
 *.bat -text
+
+# LES TEXTES DE REFERENCE (`atelier/reference/`, 15/10/2026) : des copies de ce
+# qui a ete lu, telles que servies -- lois, conventions, norme DSN, BOFiP, BOSS.
+# `sources.json` en verifie l'empreinte (`paie sources`), la norme est a largeur
+# fixe par endroits : Git n'y convertit RIEN, `.md` compris (cette ligne vient
+# apres les autres et l'emporte sur elles).
+atelier/reference/** -text

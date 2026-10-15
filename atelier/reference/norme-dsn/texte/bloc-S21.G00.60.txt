@@ -1,0 +1,305 @@
+# Bloc S21.G00.60
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 265-269
+
+--- p. 265 ---
+  S21.G00.60  2025-12-24
+
+Type  S21.G00.58.003
+ElmtRevenuCalculeNet.Type
+  Type d'éléments de revenu calculés en net.
+  - Les heures supplémentaires exonérées correspondent aux heures exonérées dans le cadre de l'application
+  de la loi n°2018-1213 dite loi MUES du 24 décembre 2018 et aux journées de RTT monétisées. Pour ce type
+  d'éléments de revenu calculés en net, la date de début (S21.G00.58.001) et la date de fin (S21.G00.58.002)
+  de période de rattachement sont à renseigner en période de versement.
+  - Le montant net social, conformément à la définition modifiant l’arrêté du 25 février 2016 fixant les libellés,
+  l’ordre et le regroupement des informations figurant sur le bulletin de paie mentionnés à l’article R. 3243-2
+  du Code du travail, est une base de ressources de référence pour la sphère sociale. Pour ce type de revenus,
+  la date de début (S21.G00.58.001) et la date de fin (S21.G00.58.002) de période de rattachement sont à
+  renseigner en période de versement.
+
+  X  [2,2]
+
+  01 - Heure(s) complémentaire(s) ou supplémentaire(s) exonérée(s) fiscalement (y compris journées de RTT
+  monétisées)
+  03 - Montant net social
+  04 - Potentiel nouveau type d'élément de revenu calculé en net A
+  05 - Potentiel nouveau type d'élément de revenu calculé en net B
+  06 - Potentiel nouveau type d'élément de revenu calculé en net C
+  07 - Potentiel nouveau type d'élément de revenu calculé en net D
+  08 - Potentiel nouveau type d'élément de revenu calculé en net E
+  10 - IJSS subrogées prises en compte dans le calcul du MNS
+
+Montant  S21.G00.58.004
+ElmtRevenuCalculeNet.Montant
+  Montant du revenu calculé en net.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+S21.G00.60
+
+Arrêt de travail  S21.G00.60
+  Un arrêt de travail est une suspension temporaire pour cause de maladie, maternité ou paternité durant laquelle le
+  salarié ne peut exercer son activité.
+  La transmission d'une annule et remplace doit s'accompagner de la transmission de la "date du dernier jour travaillé" et
+  de la "date de fin prévisionnelle" de l'arrêt à annuler.
+  En cas de suspension supra-mensuelle, la suspension doit être déclarée dans toutes les DSN mensuelles dont le Mois
+  Principal déclaré présente une période commune avec la suspension concernée.
+
+Motif de l'arrêt  S21.G00.60.001
+Date du dernier jour travaillé  S21.G00.60.002
+Date de fin prévisionnelle  S21.G00.60.003
+Subrogation  S21.G00.60.004
+Date de début de subrogation  S21.G00.60.005
+Date de fin de subrogation  S21.G00.60.006
+IBAN  S21.G00.60.007
+BIC  S21.G00.60.008
+Date de la reprise  S21.G00.60.010
+
+  265 / 361
+
+--- p. 266 ---
+  S21.G00.60  2025-12-24
+
+Motif de la reprise  S21.G00.60.011
+Date de l'accident ou de la première constatation  S21.G00.60.012
+SIRET Centralisateur  S21.G00.60.600
+
+Motif de l'arrêt  S21.G00.60.001
+TravailArret.Motif
+  Motif permettant d'identifier le type d'arrêt de travail.
+
+  La valeur " 13 - [FP] Congé de longue maladie " est aussi applicable pour les salariés des IEG.
+  CCH-12 : La valeur "99 - annulation" est interdite pour une "Nature de la déclaration - S20.G00.05.001" différente de
+  "01 - DSN Mensuelle" et "07 - Signalement Fin du contrat de travail Unique".
+
+  CCH-14 : Les valeurs « 15 - temps partiel thérapeutique (risque maladie) », « 16 - temps partiel thérapeutique (risque
+  accident de travail) », « 17 - temps partiel thérapeutique (risque accident de trajet) » et « 18 - temps partiel
+  thérapeutique (risque maladie professionnelle) » sont interdites pour une « Nature de la déclaration - S20.G00.05.001 »
+  différente de « 01 - DSN Mensuelle » ou « 07 - Signalement Fin du contrat de travail Unique ».
+
+  SIG-13 : Si le motif "15 - temps partiel thérapeutique (risque maladie)", "16 - temps partiel thérapeutique (risque
+  accident de travail)", "17 - temps partiel thérapeutique (risque accident de trajet)" ou "18 - temps partiel thérapeutique
+  (risque maladie professionnelle)" est renseigné dans la rubrique "Motif de l'arrêt - S21.G00.60.001", alors un bloc
+  "Temps partiel Thérapeutique - S21.G00.66" doit obligatoirement être renseigné.
+
+  X  [2,2]
+
+  01 - maladie
+  02 - maternité
+  03 - paternité / accueil de l’enfant
+  04 - congé suite à un accident de trajet
+  05 - congé suite à maladie professionnelle
+  06 - congé suite à accident de travail ou de service
+  07 - femme enceinte dispensée de travail
+  09 - adoption
+  10 - [FP] Congé suite à une maladie imputable au service
+  11 - [FP] Congé de maladie des victimes ou réformés de guerre (art 41)
+  12 - [FP] Congé de longue durée
+  13 - [FP] Congé de longue maladie
+  14 - [FP] Congé pour invalidité temporaire imputable au service
+  15 - temps partiel thérapeutique (risque maladie)
+  16 - temps partiel thérapeutique (risque accident de travail)
+  17 - temps partiel thérapeutique (risque accident de trajet)
+  18 - temps partiel thérapeutique (risque maladie professionnelle)
+  19 - Deuil d'enfant
+  20 - Congé supplémentaire de naissance
+  21 - Potentiel nouveau motif d’arrêt B
+  22 - Potentiel nouveau motif d’arrêt C
+  23 - Potentiel nouveau motif d’arrêt D
+  24 - Potentiel nouveau motif d’arrêt E
+  99 - annulation
+
+Date du dernier jour travaillé  S21.G00.60.002
+TravailArret.DernierJour
+  Il s'agit de la veille de la date de début de la prescription de l'arrêt de travail, sauf pour les cas suivants :
+  - arrêt prescrit lors d'un jour travaillé : le dernier jour travaillé correspond alors à la date de l'arrêt ;
+
+  266 / 361
+
+--- p. 267 ---
+  S21.G00.60  2025-12-24
+
+  - autres cas particuliers précisés par voie de consignes.
+  CCH-12 : La date du dernier jour travaillé doit être inférieure ou égale à la date de fin prévisionnelle de l’arrêt
+
+  CCH-13 : Pour une nature de la déclaration (S20.G00.05.001) « 01 - DSN Mensuelle » ou « 07 - Signalement Fin du
+  contrat de travail Unique », si la rubrique « Motif de l’arrêt - S21.G00.60.001 » est renseignée avec une valeur
+  différente de « 99 - annulation », « 15 - temps partiel thérapeutique (risque maladie) », « 16 - temps partiel
+  thérapeutique (risque accident de travail) », « 17 - temps partiel thérapeutique (risque accident de trajet) » et « 18 -
+  temps partiel thérapeutique (risque maladie professionnelle) » ou si la rubrique « Motif de la reprise - S21.G00.60.011
+  » est renseignée avec une valeur différente de « 02 - reprise temps partiel thérapeutique », alors la « Date du dernier
+  jour travaillé - S21.G00.60.002 » doit être supérieure ou égale à la « Date de début du contrat - S21.G00.40.001 » si la
+  rubrique « Nature du contrat - S21.G00.40.007 » est renseignée avec une valeur différente de « 50 - Nomination dans
+  la Fonction publique (par arrêté, par décision, …) ». Ce contrôle ne s’applique donc pas pour le contrat d’un
+  fonctionnaire ou lorsqu’ un bloc « Arrêt de travail - S21.G00.60 » est renseigné avec un motif de type annulation ou
+  temps partiel thérapeutique. Il ne s’applique pas non plus pour un bloc « Arrêt de travail - S21.G00.60 » renseigné avec
+  un motif de la reprise de type temps partiel thérapeutique.
+
+  CCH-16 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle.
+
+  CCH-17 : Si la rubrique « Motif de l'arrêt - S21.G00.60.001 » est renseignée avec un type différent de « 99 -
+  Annulation », la « Date du dernier jour travaillé - S21.G00.60.002 » doit être inférieure ou égale à la « Date de fin du
+  contrat - S21.G00.62.001 » si cette dernière est renseignée et que le « Motif de la rupture - S21.G00.62.002 » est
+  différent de « 099 - Annulation ».
+
+  CCH-18 : Pour une « Nature de la déclaration - S20.G00.05.001 » différente de « 01 - DSN Mensuelle » et « 07 -
+  Signalement Fin du contrat de travail Unique », la « Date du dernier jour travaillé - S21.G00.60.002 » doit être
+  supérieure ou égale à la « Date de début du contrat - S21.G00.40.001 ».
+  Ce contrôle vise à s'assurer que le dernier jour travaillé, déclaré dans un signalement d'arrêt de travail ou de reprise
+  suite à arrêt de travail, n'est pas antérieur à la date de début du contrat.
+
+  SIG-14 : Se reporter au paragraphe 4.4.13 de l’introduction traitant de la datation dans une DSN événementielle.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin prévisionnelle  S21.G00.60.003
+TravailArret.DateFinPrevisionnelle
+  Date de fin d'arrêt de travail prévisionnelle prescrit par le médecin.
+  La rubrique doit être renseignée, même en cas de non reprise du travail.
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Subrogation  S21.G00.60.004
+TravailArret.Subrogation
+  La subrogation de l'employeur est le fait qu’en cas d’absence d'un salarié pour maladie, maternité ou
+  paternité ce dernier peut autoriser l'employeur à percevoir pour son compte les indemnités de maladie
+  versées par l'assurance maladie. En contrepartie, l'employeur doit maintenir le salaire à hauteur des
+  indemnités reçues.
+  A noter que la subrogation peut également s'appliquer aux indemnités journalières versées dans le cadre
+  d'un temps partiel thérapeutique.
+
+  X  [2,2]
+
+  267 / 361
+
+--- p. 268 ---
+  S21.G00.60  2025-12-24
+
+  01 - oui
+  02 - non
+
+Date de début de subrogation  S21.G00.60.005
+TravailArret.SubrogationDateDebut
+  Date du début de la période durant laquelle l'employeur demande la subrogation.
+
+  CCH-11 : Cette rubrique est obligatoire si et seulement si la rubrique "Subrogation - S21.G00.60.004" est renseignée
+  avec la valeur "01 - oui". Dans le cas contraire, elle est interdite.
+  Règle de prévalence : en cas d'incohérence entre les rubriques "Date de début de subrogation - S21.G00.60.005" et
+  "Subrogation - S21.G00.60.004", la valeur retenue par l'OPS sera celle de la rubrique "Subrogation - S21.G00.60.004".
+
+  SIG-12 : Se reporter au paragraphe 4.4.13 de l’introduction traitant de la datation dans une DSN événementielle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de subrogation  S21.G00.60.006
+TravailArret.SubrogationDateFin
+  Date de fin de la période durant laquelle l'employeur demande la subrogation.
+  La durée maximale du maintien est définie par la convention collective ou l'accord de branche du salarié.
+  CCH-11 : Cette rubrique est obligatoire si et seulement si la rubrique "Subrogation - S21.G00.60.004" est renseignée
+  avec la valeur "01 - oui". Dans le cas contraire, elle est interdite.
+  Règle de prévalence : en cas d'incohérence entre les rubriques "Date de fin de subrogation - S21.G00.60.006" et
+  "Subrogation - S21.G00.60.004", la valeur retenue par l'OPS sera celle de la rubrique "Subrogation - S21.G00.60.004".
+
+  CCH-12 : La date de fin de subrogation doit être supérieure ou égale à la date de début de subrogation.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+IBAN  S21.G00.60.007
+TravailArret.Iban
+  Il s'agit du code IBAN de l'employeur.
+  Le Code IBAN : International Bank Account Number (ce qui signifie Numéro de Compte Bancaire
+  International), correspond à la représentation internationale du compte bancaire de chaque pays.
+  L'IBAN permet de trouver l'identité des titulaires de comptes bancaires quelque soit son origine, l'endroit où
+  il est tenu.
+  CCH-11 : La rubrique est obligatoire si la rubrique "Subrogation - S21.G00.60.004" est renseignée avec la valeur "01 -
+  oui".
+  Règle de prévalence : en cas d'incohérence entre les rubriques "IBAN - S21.G00.60.007" et "Subrogation -
+  S21.G00.60.004", la valeur retenue par l'OPS sera celle de la rubrique "Subrogation - S21.G00.60.004".
+
+  X  [15,34]
+
+BIC  S21.G00.60.008
+TravailArret.Bic
+  Il s'agit du code BIC de l'employeur.
+  Bank Identifier Code. (code international d'identification de la banque).
+  C'est l'identifiant international désignant des institutions financières (banques).
+
+  268 / 361
+
+--- p. 269 ---
+  S21.G00.60  2025-12-24
+
+  Utilisé conjointement avec le code IBAN, le code BIC permet d'effectuer des transferts financiers
+  transfrontaliers.
+  CCH-11 : La rubrique est obligatoire si la rubrique "Subrogation - S21.G00.60.004" est renseignée avec la valeur "01 -
+  oui".
+  Règle de prévalence : en cas d'incohérence entre les rubriques "BIC - S21.G00.60.008" et "Subrogation -
+  S21.G00.60.004", la valeur retenue par l'OPS sera celle de la rubrique "Subrogation - S21.G00.60.004".
+
+  X  [8,11]
+
+Date de la reprise  S21.G00.60.010
+TravailArret.RepriseDate
+  Date à laquelle le salarié est considéré, par le corps médical, apte à exercer à nouveau une activité
+  professionnelle (premier jour travaillé et payé suite à l'arrêt de travail). Il s’agit bien de la date de reprise
+  réelle et non de la date de reprise prévisionnelle à alimenter en rubrique "Date de fin prévisionnelle -
+  S21.G00.60.003". Cette rubrique doit être renseignée dans les situations suivantes :
+  - A l’occasion de l’émission d'un signalement Arrêt de travail ou Reprise suite à arrêt de travail s’il s’agit
+  d’une reprise anticipée uniquement. Si cette date est connue au moment de l’émission du signalement mais
+  qu’elle n’intervient pas avant la date de fin prévisionnelle, elle ne doit pas être valorisée ;
+  - A l’occasion de l’émission d'un signalement FCTU si cette date est connue au moment de l'émission de ce
+  signalement ;
+  - Au moment de la constitution de la DSN mensuelle consécutive à la prise de connaissance de la reprise de
+  travail par le gestionnaire de paie.
+  CCH-11 : La Date de la reprise (S21.G00.60.010) doit être supérieure ou égale à la Date de début du contrat
+  (S21.G00.40.001) et à la Date du dernier jour travaillé (S21.G00.60.002).
+
+  SIG-12 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  SIG-13 : Se reporter au paragraphe 4.4.13 de l’introduction traitant de la datation dans une DSN événementielle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Motif de la reprise  S21.G00.60.011
+TravailArret.RepriseMotif
+  Description codifiée de la modalité d'exercice du temps de travail suite à la reprise.
+  Cette rubrique doit être renseignée si elle est connue au moment de l’émission du signalement ou au moment
+  de la constitution de la DSN mensuelle consécutive à la prise de connaissance de l’arrêt de travail par le
+  gestionnaire de paie.
+  CCH-12 : La valeur « 02 - reprise temps partiel thérapeutique » est interdite pour une « Nature de la déclaration -
+  S20.G00.05.001 » différente de « 01 - DSN Mensuelle » ou « 07 - Signalement Fin du contrat de travail Unique ».
+
+  X  [2,2]
+
+  01 - reprise normale
+  02 - reprise temps partiel thérapeutique
+  03 - reprise temps partiel raison personnelle
+
+Date de l'accident ou de la première constatation  S21.G00.60.012
+TravailArret.DateAccident
+
+  269 / 361

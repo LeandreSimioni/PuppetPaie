@@ -1,0 +1,2922 @@
+                    Guide
+              des contributions
+                de formation
+              Professionnelle
+             et d’apprentissage
+               des employeurs
+
+                        2026
+
+>   Connaître les contributions
+>   Déclarer en DSN
+
+
+
+    Version du 12 mars 2026
+
+                                  1
+Contexte et enjeux
+
+04   La réforme du financement de la formation professionnelle
+06   La réforme du financement de l’apprentissage
+11   Reversement et répartition des contributions des employeurs
+
+ Contribution à la formation professionnelle
+
+14   L'assujettissement
+16   Les effectifs
+22   Le calcul de la contribution
+24   Modalités déclaratives
+
+ Contribution au CPF-CDD
+
+30   L'assujettissement
+31   Le calcul de la contribution
+34   Modalités déclaratives
+
+ Part principale de la taxe d’apprentissage
+
+37   L'assujettissement
+41   Le calcul de la contribution
+47   Modalités déclaratives
+
+ Solde de la taxe d’apprentissage
+
+54   L'assujettissement
+55   Le calcul de la contribution
+60   Modalités déclaratives
+
+ Contribution supplémentaire à l’apprentissage
+
+64   L'assujettissement
+65   Les effectifs
+69   Le calcul de la contribution
+72   Les modalités déclaratives
+                                                                   2
+Conformément à l'article L. 6131-1 du        Cette évolution comporte depuis 2022
+code du travail, tout employeur doit         plusieurs    avantages        pour les
+concourir au développement de la             entreprises et en particulier :
+formation professionnelle et de
+                                             - Une plus grande simplicité et lisibilité
+l’apprentissage, par le versement des
+                                               dans le dépôt de la déclaration par
+contributions suivantes :
+                                               l’utilisation d’un vecteur déclaratif
+>   La contribution unique à la                unique, la DSN ;
+    formation professionnelle et à
+                                             - Un interlocuteur unique pour le
+    l’alternance : celle-ci est composée
+                                               recouvrement des contributions et le
+    de la contribution légale à la
+                                               traitement des demandes : l’Urssaf.
+    formation professionnelle (CFP) et
+    de la taxe d’apprentissage (TA –         Ce guide vous accompagne dans
+    elle-même composée de deux               vos démarches auprès de l’Urssaf1.
+    parts : une part principale et un
+                                             Bonne lecture !
+    solde) ;
+>   La contribution dédiée au
+    financement du compte personnel
+    de formation pour les titulaires de
+    CDD (CPF-CDD) ;
+>   La contribution supplémentaire à
+    l’apprentissage (CSA).
+
+
+La loi n°2018-771 pour la liberté de
+choisir son avenir professionnel (JO du
+6 septembre 2018) a réformé le finan-
+cement de la formation professionnelle
+et a mis en œuvre un transfert au 1er
+janvier 2022 de la collecte des contribu-
+tions légales de formation profession-
+nelle et d’apprentissage au réseau des
+Urssaf.
+
+
+
+
+1
+  Ce guide n’est pas destiné à accompagner   d’informations
+les travailleurs indépendants : pour plus
+                                                                                          3
+Contexte
+et enjeu
+
+
+
+
+           3
+LA REFORME
+ Contexte     DU
+          et enjeux
+
+La réforme du financement de la formation
+professionnelle
+Depuis sa création par la loi n° 71-575 du 16 juillet 1971 issue de
+l’accord national interprofessionnel du 9 juillet 1970 portant sur la
+formation et le perfectionnement professionnel, le système de
+formation professionnelle est fondé sur trois piliers :
+   > Une obligation de financement de la formation professionnelle par les
+     entreprises ;
+   > Une gestion paritaire de la collecte ;
+   > La recherche d’un équilibre entre les besoins des entreprises à travers leur
+     plan de formation et les besoins des salariés avec la création du congé
+     individuel de formation, auquel a succédé le projet de transition
+     professionnelle. Dès l’origine, l’enjeu était d’assurer un financement pérenne
+     et suffisant du système de formation pour garantir l’égal accès des adultes à
+     la formation professionnelle.
+
+
+La loi n° 2018-771 pour la liberté de choisir son avenir professionnel (JO du 6
+septembre 2018) et l’ordonnance n°2021-797 du 23 juin 2021 réforment le
+financement de la formation professionnelle, par :
+   > Le transfert aux Urssaf de la collecte des contributions légales de formation
+     professionnelle depuis le 1er janvier 2022. Les versements volontaires de
+     formation professionnelle ne sont pas concernés par le transfert aux Urssaf :
+     ils continuent à être collectés par les Opco ;
+   > La mensualisation des contributions légales de formation professionnelle dont
+     la première collecte par les Urssaf est intervenue au titre du mois de janvier
+     2022 (exigible le 5 ou 15 février 2022) ;
+   > L’intégration de la déclaration des contributions en DSN.
+
+
+
+
+                                                                                      4
+            Bon à savoir
+                        Dispositions transverses
+    Aucune TVA n’est due auprès de l’Urssaf sur les contributions légales de
+    formation professionnelle (CFP, CPF-CDD), la taxe d’apprentissage (part
+    principale et solde) et la CSA.
+    À compter de 2022, les Urssaf ont la charge du recouvrement des
+    contributions légales de formation professionnelle, les Opco conservant le
+    recouvrement des contributions conventionnelles. Toutefois, le recouvrement
+    des contributions conventionnelles de formation professionnelle et de
+    dialogue social pourra être transféré à compter du 1er janvier 2026 aux Urssaf,
+    sur option des branches professionnelles concernées.
+    Les versements volontaires de formation professionnelle ne sont pas
+    concernés par le transfert aux Urssaf : ils continuent à être collectés par les
+    Opco.
+
+
+
+Deux contributions de formation professionnelle ont été transférées aux Urssaf à
+la date du 1er janvier 2022
+
+
+
+La contribution à la formation professionnelle (CFP)
+Le taux de la contribution légale à la formation professionnelle appliquée à la
+masse salariale est variable selon les effectifs salariés des entreprises et, le cas
+échéant, selon l’activité de celles-ci ou le statut des personnes embauchées :
+
+                                                           Taux de contribution
+ Statut et effectifs salariés des entreprises
+                                                           de la CFP
+
+ Entreprises de moins de 11 salariés (article L.
+                                                           0,55 %
+ 6331-1 du code du travail)
+
+ Entreprises de 11 salariés et plus (article L. 6331-
+                                                           1%
+ 3 du code du travail)
+
+ Employeurs de personnels intermittents du
+                                                           2%
+ spectacle (L. 6331-55 du code du travail).
+
+
+
+                                                                                       5
+La contribution dédiée au financement du compte
+personnel de formation des titulaires de contrats à durée
+déterminée (CPF-CDD)
+La contribution financement du CPF-CDD est due au titre des emplois de salariés
+à durée déterminée, à hauteur de 1 % de la masse salariale des CDD (article L.
+6331-6 du code du travail).
+
+
+
+
+  Les modalités de collecte …
+ Les exercices postérieurs au 1er janvier 2022 sont gérés par les Urssaf. Les
+ contributions légales de formation professionnelle seront collectées
+ mensuellement par les Urssaf : la première collecte interviendra au titre de la
+ période d’emploi de janvier 2022, exigible les 5 ou 15 février 2022.
+ NB : à compter de 2022, les Urssaf collectent la totalité de la CFP des entreprises de 11
+ salariés et plus du BTP, au taux de 1%, sans que lui soit soustrait le montant de la
+ cotisation au Comité de Concertation et de Coordination de l’Apprentissage du BTP
+ (CCCA BTP). Les ressources du CCCA-BTP, correspondant au montant de la cotisation
+ spécifique, seront préservées : en effet, au lieu que les entreprises de 11 salariés et plus
+ cotisent directement auprès de Pro-BTP et déduisent le montant de cette cotisation de
+ leur CFP légale due, France Compétences flèchera vers Pro-BTP la part de CFP
+ correspondant à la cotisation spécifique, en application des règles fixées par les
+ branches.
+
+ Les employeurs du BTP de moins de 11 salariés doivent continuer à verser la cotisation
+ CCCA-BTP auprès de l’organisme Pro-BTP dans les mêmes modalités qu’actuellement.
+ Les Urssaf collecteront à compter de 2022 la totalité de la CFP des entreprises du BTP
+ de moins de 11 salariés (au taux de 0,55%).
+
+
+
+
+La réforme du financement de l'apprentissage
+Instituée en 1925 pour financer la formation des apprentis, la taxe d'apprentissage
+(TA) est un prélèvement auquel la plupart des entreprises françaises du secteur
+privé sont soumises.
+La contribution supplémentaire à l’apprentissage (CSA) est la plus récente des
+contributions pour le développement de l’apprentissage : elle a été instituée en
+2009, puis réformée en juillet 2011.
+La loi n° 2018-771 pour la liberté de choisir son avenir professionnel (JO du 6
+septembre 2018) réforme le financement de l’apprentissage, par :
+                                                                                                6
+   > Le transfert aux Urssaf de la collecte de la taxe d’apprentissage et de la
+     contribution supplémentaire à l’apprentissage au 1er janvier 2022 ;
+   > La mensualisation de la part principale de la taxe d’apprentissage. La
+     première collecte des Urssaf est intervenue au titre de la période d’emploi de
+     janvier 2022, exigible le 5 ou 15 février 2022.
+   > Le maintien d’un recouvrement annuel en exercice décalé du solde de la taxe
+     d’apprentissage et de la contribution supplémentaire à l’apprentissage. La
+     première collecte des Urssaf est intervenue au titre de l’exercice 2022 sur la
+     DSN de mars 2023 exigible le 5 ou 15 avril 2023 pour la CSA, et sur la DSN
+     d’avril 2023 exigible le 5 ou 15 mai 2023 pour le solde de la TA ;
+   > L’intégration de la déclaration de ces contributions en DSN.
+
+
+
+  Les modalités de collecte …
+Les exercices postérieurs au 1er janvier 2022 sont gérés par les Urssaf :
+     La part principale de la taxe d’apprentissage en France (hors Alsace-
+     Moselle) et DOM est collectée mensuellement au taux de 0,59% : la
+     première collecte des Urssaf intervient au titre du mois de janvier 2022,
+     exigible les 5 ou 15 février 2022 ;
+     La taxe d’apprentissage en Alsace-Moselle est collectée mensuellement
+     au taux de 0,44% : la première collecte des Urssaf interviendra au titre du
+     mois de janvier 2022, exigible les 5 ou 15 février 2022.
+Au titre de la masse salariale 2022, la première collecte des Urssaf intervient en
+2023 pour ce qui concerne la CSA et le solde de la TA :
+     Le 5 avril 2023, concernant la contribution supplémentaire à l’apprentissage
+     au titre de la DSN de mars 2023 ;
+     Le 5 ou 15 mai 2023, concernant le solde de la taxe d’apprentissage, sur la
+     DSN d’avril 2023.
+
+
+
+
+                                                                                      7
+La part principale de la taxe d’apprentissage
+En Métropole (hors Alsace-Moselle) et dans les DOM y compris Mayotte et Saint-
+Martin, la part principale de la taxe d’apprentissage assure le financement de
+l’apprentissage, au taux de 0,59% de la masse salariale.
+Concernant les établissements des départements du Haut-Rhin, du Bas-Rhin et
+de la Moselle, un taux unique de la taxe d’apprentissage de 0,44% est applicable.
+Le solde de la taxe d’apprentissage n’est pas dû dans ces départements.
+
+
+
+
+Le solde de la taxe d’apprentissage
+Les sommes dues au titre du solde de la taxe d’apprentissage doivent être
+consacrées à :
+   > Financer le développement des formations initiales technologiques et
+     professionnelles, hors apprentissage, et l'insertion professionnelle, dont les
+     frais de premier équipement, de renouvellement de matériel existant et
+     d'équipement complémentaire. Ces formations technologiques et
+     professionnelles sont celles qui, dispensées dans le cadre de la formation
+     initiale, conduisent à des diplômes ou titres enregistrés au répertoire national
+     des certifications professionnelles et classés dans la nomenclature
+     interministérielle des niveaux de formation.
+   > Financer, par des versements en nature, les centres de formation d’apprentis
+     sous la forme d’équipements et de matériels conformes aux besoins des
+     formations dispensées.
+
+Conformément à l’article 190 de loi n°2019-1479 du 28 décembre 2019 de
+finances pour 2020, le champ du transfert de recouvrement de la taxe
+d’apprentissage par les Urssaf a été étendu au solde de la taxe d’apprentissage,
+dit « versement libératoire » directement versé, jusqu’à présent, par les
+employeurs aux établissements scolaires du second degré ou d’enseignement
+supérieur.
+
+Il est assuré un recouvrement annuel en exercice décalé du solde de la taxe
+d’apprentissage. La première collecte des Urssaf est intervenue au titre de la DSN
+d’avril 2023, exigible le 5 ou 15 mai 2023 ; au titre de la masse salariale 2022.
+
+Pour permettre une gestion plus simple pour les redevables de ces versements
+et maximiser la collecte au profit des établissements, tout en conservant le lien
+entre le redevable et le bénéficiaire, il est choisi d’organiser la collecte des
+sommes dues par les employeurs par les Urssaf, déduction faite des versements
+                                                                                        8
+en nature, et de laisser le choix aux employeurs de l’affectation de cette fraction.
+
+Les fonds ainsi collectés par les Urssaf seront versés à la Caisse des dépôts et
+consignations qui sera chargée de les verser aux établissements répondant aux
+critères définis à l’article L6241-5 du Code du Travail sur choix et décision de
+l’employeur via une plateforme dématérialisée.
+
+
+
+
+         Bon à savoir
+
+
+  Sous certaines conditions (liste des établissements éligibles prévu à l’article
+  L. 6241-5 et ensuite qu’il soit inscrit sur une des listes prévue au 13° du L.
+  6241-5, au R. 6241-21 ou au R. 6241-22) seront notamment habilités à
+  percevoir le solde de la taxe d'apprentissage les établissements publics ou
+  privés d'enseignement du second degré, les établissements publics
+  d'enseignement supérieur, les établissements gérés par une chambre
+  consulaire et les établissements d'enseignement supérieur consulaires, les
+  écoles de la deuxième chance etc.
+
+
+
+
+La contribution supplémentaire à l’apprentissage (CSA)
+La contribution supplémentaire à l’apprentissage (CSA) est destinée à inciter les
+embauches de contrats favorisant l’insertion professionnelle (CFIP). Une
+modulation du taux de la CSA permet de prendre en compte l’effort de l’entreprise.
+Les contrats favorisant l’insertion professionnelle sont les suivants :
+   > Contrats de professionnalisation ;
+   > Contrats d’apprentissage ;
+   > Conventions industrielles de formation par la recherche en entreprise
+     (CIFRE).
+
+Sont également pris en compte dans l'effectif alternant, les salariés maintenus
+dans l’entreprise en CDI pendant l’année suivant la date de fin du contrat de
+professionnalisation ou d’apprentissage.
+Sont assujetties à la contribution supplémentaire à l’apprentissage les entreprises
+qui :
+
+                                                                                       9
+   > Sont redevables de la taxe d’apprentissage ;
+   > Ont un effectif annuel moyen d’au moins 250 salariés ;
+   > Et dont l’effectif annuel moyen de salariés en contrat favorisant l’insertion
+     professionnelle est inférieur à un seuil fixé à 5% de l’effectif annuel moyen de
+     l’entreprise.
+Il est assuré un recouvrement annuel en exercice décalé de la CSA. La première
+collecte des Urssaf est intervenue au titre de la DSN de mars 2023, exigible le 5
+ou 15 avril 2023 ; au titre de la masse salariale 2022.
+
+
+
+         Bon à savoir
+
+   La loi de finances n°2019-1479 du 28 décembre 2019 de finances pour 2020
+   a mis en œuvre les dispositions suivantes concernant la CSA :
+       Les volontaires internationaux en entreprise (VIE) sont retirés du
+       numérateur pour le calcul du ratio d’alternants de la CSA ;
+       Seule l’exonération au titre de la progression d’effectif d’alternants et
+       de CIFRE dans l’entreprise (+10%) est maintenue. L’exonération au
+       titre de la progression des effectifs d’alternants dans la branche est
+       supprimée ;
+       Le franchissement du seuil de 250 et de 2000 salariés est aligné sur
+       les règles du code de la sécurité sociale (neutralisation sur cinq
+       années consécutives en cas de premier franchissement).
+
+
+
+
+Reversement et répartition des contributions des
+employeurs collectées par les Urssaf
+France compétences répartit la collecte auprès des attributaires finaux en charge
+de différents dispositifs :
+   > Pour la formation des demandeurs d’emploi : à l’État ;
+   > Pour le financement de l’apprentissage : aux Opérateurs de compétences
+     (Opco), aux Régions et au Centre national de la fonction publique territoriale
+     (CNFPT) ;
+   > Pour le financement du reste de l’alternance (contrat de professionnalisation
+
+                                                                                        10
+     et pro A) : aux Opco ;
+   > Pour le plan de développement des compétences des entreprises de moins
+     de 50 salariés : aux Opco ;
+   > Pour le compte personnel de formation (CPF) mobilisés par les salariés, les
+     travailleurs indépendants ainsi que leurs conjoints collaborateurs ou les
+     demandeurs d’emploi : à la Caisse des dépôts et consignations (CDC) ;
+   > Pour les projets de transitions professionnelles (PTP) : aux Associations
+     Transitions Pro ;
+   > Pour le conseil en évolution professionnelle des actifs occupés : aux
+     opérateurs sélectionnés par marché public ;
+   > Pour le financement de l’aide au permis de conduire des apprentis : à
+     l’Agence de services et de paiement.
+
+La Caisse des dépôts et consignations affecte les fonds du solde de la taxe
+d’apprentissage en fonction des choix exprimés par les employeurs en matière de
+financement des formations technologiques et initiales.
+
+Cette affectation se fait à travers SOLTéA, une plateforme accessible en ligne
+mise à disposition par la Caisse des dépôts et consignations.
+
+
+
+
+                                                                                   11
+Schéma de répartition des contributions de formation professionnelle et taxe d’apprentissage
+
+
+
+
+                                                                                               12
+  Contribution
+ à la formation
+professionnelle
+
+
+
+
+                  13
+  L’assujettissement
+
+
+Quels établissements et entreprises sont redevables
+de la Contribution à la Formation Professionnelle (CFP)?
+Tout employeur doit concourir au développement de la formation professionnelle
+en participant au financement des actions de formation.
+Outre les employeurs du secteur privé, sont redevables de ces contributions :
+   > Les établissements publics à caractère industriel ou commercial (Epic) ;
+   > Les entreprises semi-publiques ;
+   > Les sociétés d'économie mixte ;
+   > Les régies départementales ou communales dotées de la personnalité
+     morale si elles exercent une activité industrielle ou commerciale ;
+   > Les établissements d’enseignement privé.
+
+Peu importe :
+   > Qu'ils soient ou non passibles de l'impôt sur le revenu, de l'impôt sur les
+     sociétés ou de la taxe sur les salaires ;
+   > Le régime d'imposition (régime de la micro-entreprise, bénéfice réel etc.) ;
+   > Les résultats (bénéficiaires, déficitaires etc.).
+
+Cette obligation est indépendante :
+   > De l'activité exercée (agriculture, commerce, industrie, artisanat, prestations
+     de services, centres de gestion agréés etc.) ;
+   > De la forme juridique de l'exploitation (entreprises individuelles, personnes
+     morales dont, les associations loi 1901, les sociétés commerciales, les
+     groupements d’intérêts économiques etc.) ;
+   > De la situation fiscale de l'employeur.
+
+
+
+
+                                                                                       14
+Quels organismes ne sont pas redevables de la CFP ?
+
+Employeurs dont l’entreprise ne comporte pas
+d’établissement en France
+Les employeurs dont l’entreprise ne comporte pas d’établissement en France
+mentionnés à l’article L. 243-1-2 du code de la sécurité sociale, ne sont pas
+redevables de la contribution à la formation professionnelle.
+
+En conséquence, la CFP n’est pas due par les entreprises sans établissement
+en France immatriculées auprès du Centre national Titre Firmes Étrangères
+(TFE) géré par l’Urssaf d’Alsace.
+
+Services de l’État
+L’État, les établissements publics de santé, sociaux et médico-sociaux relevant
+de la fonction publique hospitalière, les groupements de coopération sanitaire,
+les groupements de coopération sociale et médico-sociale et les collectivités
+territoriales (régions, départements, communes) sont dispensés de l'obligation
+de participer à la formation professionnelle. Les services de ces collectivités
+bénéficient de la même dispense dès lors qu'ils n'ont pas la personnalité morale,
+même s'ils sont dotés de l'autonomie financière ou comptable sous la forme de
+budgets annexes.
+
+Établissements publics administratifs
+Les établissements publics sont des institutions généralement placées sous la
+tutelle de l'État ou d'une collectivité locale. Ils sont dotés d'une personnalité juri-
+dique propre et de l'autonomie financière. Ils ne sont pas redevables de la CFP.
+
+Ambassades et consulats étrangers
+Les représentants diplomatiques et consulaires en France ne sont pas soumis à
+la contribution de formation professionnelle en application des usages
+internationaux.
+
+Organismes chargés de l’organisation en France
+d’une compétition sportive internationale
+Conformément au c) du 2° du I de l’article 1655 septies du code général des
+impôts, les organismes chargés de l'organisation en France d'une compétition
+sportive internationale et, le cas échéant, les filiales de ces organismes, au sens
+de l'article L. 233-1 du code de commerce, ne sont pas redevables, à raison des
+
+                                                                                          15
+rémunérations versées à leurs salariés, lorsque les fonctions exercées par ces
+salariés sont directement liées à l'organisation de la compétition sportive
+internationale, des contributions mentionnées aux 2° et 3° du I de l'article L. 6131-
+1. Ces exonérations s’appliquent aux compétitions pour lesquelles la décision
+d'attribution à la France est intervenue avant le 31 décembre 2017.
+
+
+
+  Les effectifs
+
+
+Comment les effectifs sont-ils décomptés pour la CFP ?
+L'effectif salarié annuel de l'employeur déterminé au 1er janvier (effectif moyen
+annuel de l'année N) correspond à la moyenne des effectifs de chaque mois de
+l'année civile précédente. Pour le calcul de cette moyenne, il n'y a pas lieu de
+tenir compte des mois où aucun salarié n'est employé.
+
+L’effectif est calculé au niveau de l'entreprise, tous établissements confondus. Il
+est tronqué au centième (2 chiffres après la virgule).
+Les articles 11 et 12 de la loi n° 2019-486 relative à la croissance et la
+transformation des entreprises harmonisent le mode de décompte des effectifs
+des entreprises par un alignement des différentes dispositions existantes sur
+celles applicables à l’article L. 130-1 du code de la sécurité sociale.
+
+En application de l’article L6331-1 A du code du travail, l'effectif salarié et le
+franchissement d'un seuil d'effectif salarié sont déterminés selon les modalités
+prévues à l'article L. 130-1 du code de la sécurité sociale.
+
+L'Effectif Moyen Annuel (EMA) correspond à la somme des effectifs moyens
+mensuels (EMM) divisée par le nombre de mois au cours desquels des salariés
+ont été employés. Il est calculé au prorata du temps de travail et du temps de
+présence du salarié. Les effectifs calculés sur l’année N-1 sont retenus pour la
+définition de la redevabilité ou non.
+Les modalités de calcul des EMM sont les suivantes :
+   > Tout d’abord, les contrats sont valorisés en fonction de leurs caractéristiques,
+     seuls les contrats actifs sur le mois considérés sont pris en compte ;
+   > Puis, pour chaque individu sont valorisés ses contrats actifs sur le mois
+     considéré (un individu ne compte pas plus de 1 dans un établissement
+     donné) ;
+
+                                                                                        16
+   > Enfin pour chaque établissement, est sommée la valorisation de chacun des
+     individus de l’établissement sur le mois considéré.
+Certains contrats sont exclus dans le calcul de l'EMM.
+
+Les effectifs moyens mensuels et annuels sont mis à disposition des déclarants
+sur le service Urssaf en ligne.
+
+
+
+
+           Pour aller plus loin…
+
+
+   Calcul de l’effectif annuel
+
+       •    Salariés pris en compte pour la détermination de l’effectif moyen
+       •    Salariés exclus pour la détermination de l’effectif moyen
+       •    Situations particulières
+       •    Neutralisation des franchissements de seuils d’effectifs
+
+
+
+
+                                                                                 17
+Comment les règles de neutralisation du franchissement
+du seuil de 11 salaries s’appliquent-elles pour la CFP ?
+
+Mesures applicables aux franchissements de seuils d'effectifs à
+compter de 2020
+En application de l’article L. 6331-1 A du code du travail, l'effectif salarié et le
+franchissement d'un seuil d'effectif salarié sont déterminés selon les modalités
+prévues à l'article L. 130-1 du code de la sécurité sociale.
+Les employeurs qui dépassent le seuil de 11 salariés en 2020 ou au titre d’une
+année ultérieure bénéficient d’une neutralisation sur cinq années consécutives
+du franchissement de seuil. Ils se voient maintenir le taux de la contribution à la
+formation professionnelle prévue à l'article L. 6331-1 du code du travail, soit le
+taux de 0,55%.
+
+Le franchissement à la baisse d’un seuil d’effectif sur une année civile a pour
+effet de faire à nouveau courir la règle énoncée, soit le déclenchement d’un
+nouveau délai de 5 ans.
+
+
+
+      Exemple
+   Ainsi, si l’employeur dépasse pour la première fois le seuil de 11 salariés en
+   2020, le franchissement de seuil est constaté avec le calcul de l’Effectif
+   Moyen Annuel (EMA) 2020, c’est-à-dire après le dépôt de la DSN de
+   décembre 2019, le 15 janvier 2020.
+   Il faut compter 5 années civiles consécutives de franchissement de seuil :
+   2020, 2021, 2022, 2023 et 2024. L’employeur sera pour la première fois
+   redevable de la CFP à 1 % à partir de 2025 (période d’emploi de janvier
+   2025, déclarée le 15 février 2025) à partir de l’EMA calculé pour 2025 au
+   moyen des données DSN 2024.
+
+
+
+
+                                                                                       18
+Schéma focus sur les franchissements de seuil
+
+
+
+
+                                                19
+Mesures applicables aux franchissements de seuils d’effectifs
+des exercices 2019 et antérieurs
+Conformément à l’article 159 de la loi n°2020-1721 du 29 décembre 2020 de
+finances pour 2021, les employeurs qui en raison de l'accroissement de leur
+effectif ont atteint en 2018 ou 2019, pour la première fois, l'effectif de 11 salariés,
+restent soumis, pour cette année et les quatre années suivantes, au taux de la
+cotisation prévue à l'article L. 6331-1 du code du travail soit au taux de 0,55 %.
+Pour en savoir plus sur les règles de comptabilisation des effectifs (création
+d’entreprise, fusion, absorption, etc.) vous pouvez consulter le Bulletin officiel de
+la Sécurité Sociale (BOSS).
+Tableau d’application des règles de franchissement de seuil
+
+
+
+
+                                                                                          20
+  Le calcul de la contribution
+
+
+Comment l'assiette de la CFP est-elle déterminée ?
+Conformément aux articles L. 6331-1 et L. 6331-3 du code du travail, l’assiette
+de la CFP est établie sur le revenu d'activité retenu pour le calcul des cotisations
+sociales mentionnées à l'article L. 242-1 du code de la sécurité sociale et à
+l'article L. 741-10 du code rural et de la pêche maritime.
+
+Toutefois, conformément à l’article L. 6331-1 du code du travail, les
+rémunérations versées aux apprentis sont exonérées de cette contribution pour
+les entreprises de moins de 11 salariés.
+Conformément à l’article 190 de la loi n°2019-1479 du 28 décembre 2019 de
+finances pour 2020, les rémunérations exonérées de la taxe sur les salaires en
+application de l’article 231 bis L du code général des impôts ne sont plus
+exonérées de CFP à compter du 1er janvier 2022.
+
+
+
+            Bon à savoir
+                             Disposition transverse
+   Aucune TVA n’est due auprès de l’Urssaf sur la contribution à la formation
+   professionnelle (CFP).
+                  Disposition concernant les ports autonomes
+   (Article 121- loi n° 2021-1900 du 30 décembre 2021 de finances pour 2022)
+   Lorsqu’un port autonome ne procède à aucune distinction lors de
+   l’établissement de sa déclaration sociale entre la masse salariale des
+   effectifs attachés aux missions à caractère administratif et celle des effectifs
+   engagés dans des activités de nature industrielle et commerciale, il
+   applique un abattement forfaitaire de 50 % de l’assiette de ses
+   contributions.
+         Dispositions concernant le BTP, le Transport et les Dockers
+   Conformément aux articles L. 243-1-3 et D. 243-0-2 du code de la sécurité
+   sociale, s’agissant des entreprises de BTP, de transport ou des dockers,
+   dont les congés payés sont réglés par des caisses, les salaires à déclarer
+   sont ceux effectivement payés par l'entreprise, majorés d'un coefficient
+   forfaitaire de 1,1150 au titre des indemnités de congés (soit une majoration
+   de 11,50 % de la masse salariale). Néanmoins, l’entreprise conserve la
+   possibilité de majorer au réel les congés payés des salariés concernés.
+                                                                                       21
+       Exemple
+
+ Soit le cas d’une entreprise du BTP, du Transport ou des Dockers dont les
+ congés payés sont réglés par une caisse et dont la masse salariale assujettie
+ est de 100 000 euros. Cette entreprise devra majorer sa masse salariale de
+ 11,5% soit : (100 000 x 1,115) = 111 500, soit une assiette de 111 500 euros.
+
+
+
+Quels sont les taux de contribution applicables
+à la CFP?
+
+Droit commun
+                                                              Taux de
+  Statut et effectifs salariés des entreprises
+                                                              contributions
+
+  Entreprises de moins de 11 salariés
+                                                              0,55 %
+  (article L. 6331-1 du code du travail)
+
+  Entreprises de 11 salariés et plus
+                                                              1%
+  (article L. 6331-3 du code du travail)
+
+
+
+Employeurs de personnels intermittents du spectacle
+Conformément à l’article L. 6331-55 du code du travail, lorsque des employeurs
+occupent un ou plusieurs salariés intermittents du spectacle qui relèvent des
+secteurs d'activités du spectacle vivant et du spectacle enregistré, pour lesquels
+il est d'usage constant de ne pas recourir au contrat à durée indéterminée en
+raison de la nature de l'activité exercée et du caractère par nature temporaire de
+ces emplois, une convention ou un accord professionnel national étendu peut
+prévoir, pour ce ou ces salariés intermittents, une participation unique au
+développement de la formation professionnelle, quel que soit le nombre de
+salariés occupés. Cette contribution est due à compter du premier salarié
+intermittent.
+En tant que participation unique, cette contribution se substitue donc à la CFP
+légale et à la contribution au CPF-CDD. Le pourcentage de la contribution légale
+est de 2 % des rémunérations entendues au sens de l'article L. 242-1 du code
+de la Sécurité sociale.
+
+                                                                                     22
+De plus, c’est la caisse de congés payés Audiens qui déclare et règle auprès de
+l’Urssaf la CFP des intermittents sur la fraction de masse salariale retenue pour
+le calcul des congés payés.
+
+
+
+
+             Bon à savoir
+
+
+              Cas des entreprises appartenant aux professions
+                  du bâtiment et des travaux publics (BTP)
+    Le réseau des Urssaf collecte la CFP des entreprises du BTP au taux
+    légal : 0,55% pour les employeurs de moins de 11 salariés, 1% pour les
+    employeurs de 11 salariés et plus.
+    Conformément à l’article L. 6331-41 du code du travail, les Urssaf
+    collecteront à compter de 2022 la totalité de la CFP des entreprises du
+    BTP de 11 salariés et plus, sans que lui soit soustrait le montant de la
+    cotisation au comité de concertation et de coordination de l’apprentissage
+    du BTP (cotisation CCCA -BTP).
+    Les ressources du CCCA-BTP, correspondant au montant de la cotisation
+    spécifique, seront préservées. France Compétences flèchera aux
+    organismes concernés la part correspondant à la cotisation spécifique, en
+    application des règles fixées par les branches.
+    Cela présente comme avantage de simplifier les déclarations des
+    entreprises.
+    En revanche, les employeurs du BTP de moins de 11 salariés doivent
+    continuer à verser la cotisation CCCA-BTP auprès de l’organisme Pro-
+    BTP selon les modalités habituelles.
+
+
+
+
+                                                                                    23
+ Modalités déclaratives de la CFP en DSN
+
+Entreprises
+Depuis la période d’emploi de janvier 2022 (déclarée en DSN les 5 et 15 février
+2022), la CFP est déclarée mensuellement.
+
+La cotisation individuelle est portée en rubrique « 128 - Contribution à la
+formation professionnelle (CFP) » au bloc S21.G00.81.001 « Cotisation
+individuelle ».
+
+La masse salariale assujettie à la contribution à la formation professionnelle est
+déclarée au bloc « Cotisation agrégée – S21.G00.23 », par :
+   > Le CTP 959 pour les entreprises de moins de 11 salariés, correspondant au
+     taux de contribution de 0,55 % ;
+   > Le CTP 971 pour les entreprises de 11 salariés et plus ayant franchi ce seuil
+     d’effectif depuis plus de 5 ans, au taux de contribution de 1,00 %
+
+
+
+Employeurs de personnels intermittents du spectacle
+Depuis la période d’emploi de janvier 2022 (déclarée en DSN les 7 et 15 février
+2022), la CFP des employeurs de personnels intermittents du spectacle est
+déclarée mensuellement.
+La cotisation individuelle est portée en rubrique « 128 - Contribution à la
+formation professionnelle (CFP) » au bloc S21.G00.81.001 « Cotisation
+individuelle ».
+La masse salariale assujettie à la contribution à la formation professionnelle due
+par les employeurs de personnels intermittents du spectacle est déclarée au bloc
+« Cotisation agrégée – S21.G00.23» par le CTP 983 au taux de 2%.
+
+
+
+
+                                                                                     24
+                 Tableau de synthèse DSN
+
+                        Fiches consignes N°2503 :
+  Modalités déclaratives de la contribution à la formation professionnelle
+
+
+
+                     S21.G000.78 – Base assujettie
+
+    Code                     Rubrique                      Valorisation
+
+                                                         03 - Assiette brute
+S21.G00.78.001       Code de base assujettie
+                                                               déplafonnée
+
+                    Date de début de période                 À renseigner
+S21.G00.78.002
+                        de rattachement                 Exemple : 01012022
+
+                      Date de fin de période                 À renseigner
+S21.G00.78.003
+                        de rattachement                 Exemple : 31012022
+
+S21.G00.78.004      Montant de base assujettie       À renseigner en euros
+
+
+
+
+                  S21.G00.81 – Cotisation individuelle
+
+    Code                     Rubrique                      Valorisation
+
+S21.G00.81.001     Code de cotisation                                     128
+
+                   Identifiant organisme de
+S21.G00.81.002                                                   Siret Urssaf
+                   protection
+
+                                                     À renseigner en euros
+                                                     Pour les salariés affiliés
+S21.G00.81.003     Montant d'assiette
+                                                     à une caisse de congés
+                                                           payés du BTP, du
+
+                                                                                  25
+                                                Transport et des
+                                            Dockers, le montant
+                                          d’assiette doit intégrer
+                                         la majoration de 11,5%
+
+S21.G00.81.004   Montant de cotisation   À renseigner en euros
+
+
+S21.G00.81.005   Code INSEE commune              Non renseigné
+
+S21.G00.81.007   Taux de cotisation                À renseigner
+
+
+
+
+                                                                     26
+ Modalités déclaratives de l’IDCC
+ et de l’OPCO par établissement
+
+
+Les fonds collectés par les Urssaf au titre des contributions de formation
+professionnelle et d’apprentissage sont fléchés et répartis par France
+Compétences auprès des différents attributaires (Opco, Caisse des dépôts et
+consignations, opérateurs du conseil en évolution professionnelle, …)
+France Compétences, pour assurer sa mission de répartition auprès des Opco
+doit être en mesure d’identifier la branche professionnelle concernée et disposer
+pour ce faire de données par établissement et par identifiant de convention
+collective (IDCC).
+
+Les entreprises doivent renseigner pour chacun de leurs établissements
+l’identifiant de convention collective (IDCC) dans la rubrique S21.G00.11.022
+« Code convention collective principale ».
+Le rattachement d’une entreprise à une convention collective s’opère en fonction
+de l’activité principale de l’entreprise.
+En cas d’activités multiples, pour déterminer la convention collective applicable
+à une entreprise, il convient de déterminer quelle est l’activité principale en
+fonction notamment de l’affectation réelle des salariés :
+   > En cas de pluralité d’activités industrielles, l’activité principale est celle qui
+     compte le plus de salariés,
+   > En cas d’activités commerciales, l’activité principale sera celle à laquelle
+     correspond le chiffre d’affaires le plus élevé,
+   > En cas d’activités mixtes, industrielles ou commerciales, l’activité est
+     principalement industrielle si le chiffre d’affaires relatif à la partie industrielle
+     est supérieur ou égal à 25% du chiffre d’affaires total.
+La répartition du temps de travail selon les activités peut également déterminer
+l’activité principale.
+
+Si l’entreprise a plusieurs activités séparées et non complémentaires, exercées
+dans des établissements distincts et autonomes, des conventions collectives
+différentes peuvent s’appliquer aux différents établissements.
+
+
+
+
+                                                                                             27
+Il existe toutefois des valeurs d’identifiant dites d’échappement :
+   > 5501 (Convention d'entreprise indépendante ou texte assimilé non précisé)
+   > 5100 (statut divers ou inconnu)
+   > 9998 (Convention non encore en vigueur)
+   > 9999 (en l’absence de convention collective)
+En application des dispositions du 2° du II de l’article L. 6332-1-1 du code du
+travail, les entreprises ne relevant pas d’une convention collective nationale ou
+d’un accord national de branche sur la formation, relèvent d’un Opco dont le
+champ d’intervention contient l’activité principale de ces entreprises, selon une
+notion de cohérence et de pertinence économique.
+Pour les établissements ne relevant d’aucun IDCC, l’employeur doit en
+conséquence renseigner l’Opco de rattachement en rubrique S21.G00.11.023
+« Opérateur de compétences (Opco) ».
+Pour aider au renseignement de l’Opco, un moteur de recherche est à disposition
+afin de permettre à tout déclarant d’identifier son OPCO de rattachement.
+
+
+
+
+           Bon à savoir
+
+                      Portée de l’IDCC ou de l’Opco déclaré
+    L’IDCC ou l’Opco déclaré fait l’objet d’un contrôle de cohérence par France
+    compétences, notamment au regard de l’activité principale des
+    établissements de l’entreprise et du périmètre d’intervention des Opco. En
+    cas d’anomalies, un signalement sera effectué par France compétences
+    auprès du ou des Opco concernés pour conduire des échanges avec
+    l’entreprise. Un avis pourra être sollicité auprès de la DGEFP.
+    L’IDCC applicable déclaré au niveau de l’établissement pourra être différent
+    de l’IDCC appliqué et déclaré en DSN au niveau des contrats de travail, qui
+    demeure inchangé.
+
+
+
+
+                                                                                    28
+Contribution
+au CPF-CDD
+
+
+
+
+               29
+ L’assujettissement
+
+Quels établissements et entreprises sont redevables
+de la contribution au CPF-CDD ?
+Tous les employeurs redevables de la contribution à la formation professionnelle
+(CFP) sont redevables pour leurs salariés en CDD de la contribution dédiée au
+financement du Compte Personnel de Formation pour les titulaires de CDD (CPF-
+CDD).
+
+
+
+
+         Bon à savoir
+
+   Aucune TVA n’est due auprès de l’Urssaf sur la contribution au Compte
+   Personnel de Formation pour les titulaires de CDD (CPF-CDD).
+                   Disposition concernant les ports autonomes
+   (Article 121 - loi n° 2021-1900 du 30 décembre 2021 de finances pour 2022)
+   Lorsqu’un port autonome ne procède à aucune distinction lors de
+   l’établissement de sa déclaration sociale entre la masse salariale des
+   effectifs attachés aux missions à caractère administratif et celle des effectifs
+   engagés dans des activités de nature industrielle et commerciale, il applique
+   un abattement forfaitaire de 50 % de l’assiette de ses contributions.
+   Les organismes chargés de l'organisation en France d'une compétition
+   sportive internationale et, le cas échéant, les filiales de ces organismes, au
+   sens de l'article L. 233-1 du code de commerce, sont redevables de la
+   contribution dédiée au financement du Compte Personnel de Formation
+   pour les titulaires de CDD (CPF-CDD), alors même qu’ils ne sont pas
+   redevables de la CFP.
+
+
+
+
+                                                                                      30
+ Le calcul de la contribution au CPF-CDD
+
+Comment l'assiette est-elle déterminée ?
+
+Contrats visés par le décret n°2018-1233 du 24 décembre 2018
+Conformément à l’article L. 6331-6 du code du travail, l’assiette de la contribution
+dédiée au financement du Compte personnel de formation des titulaires de
+Contrats à durée déterminée (CPF-CDD) est constituée du revenu d’activité
+retenu pour le calcul des cotisations, au sens de l’article L. 242-1 du Code de la
+sécurité sociale, des titulaires de contrats à durée déterminée (CDD).
+
+
+
+
+          Bon à savoir
+
+
+    Conformément aux articles L. 243-1-3 et D. 243-0-2 du code de la sécurité
+    sociale, s’agissant des entreprises de BTP, du Transport et des Dockers,
+    dont les congés payés sont réglés par des caisses, les salaires à déclarer
+    sont ceux effectivement payés par l'entreprise, majorés d'un coefficient
+    forfaitaire de 1,1150 au titre des indemnités de congés (soit une majoration
+    de 11,50 % de la masse salariale). Néanmoins, l’entreprise conserve la
+    possibilité de majorer au réel les congés payés des salariés concernés.
+
+
+
+
+        Exemple
+
+  Soit le cas d’une entreprise du BTP, du transport ou des dockers dont
+  les congés payés sont réglés par une caisse et dont la masse
+  salariale assujettie est de 100 000euros. Cette entreprise devra
+  majorer sa masse salariale de 11,5% soit : (100 000 x 1,115) =
+  111 500, soit une assiette de 111 500 euros.
+
+                                                                                  31
+Exclusions de l’assiette
+Conformément à l’article L. 6331-6 du code du travail, les contrats des salariés
+occupant un emploi à caractère saisonnier défini au 3° de l'article L. 1242-2 et
+ceux listés par le décret n°2018-1233 du 24 décembre 2018 ainsi que les contrats
+de mission intérimaires définis à l’article L. 1251-11 du code du travail ne donnent
+pas lieu au versement de cette contribution Les contrats exclus de l’assiette, et
+listés par le décret n°2018-1233 du 24 décembre 2018 sont :
+   > contrats d’accompagnement dans l’emploi ;
+   > contrats d’apprentissage ;
+   > contrats de professionnalisation ;
+   > CDD des salariés intermittents du spectacle (article L. 6331-55 du code du
+     travail) ;
+   > contrats mentionnés à l’article L. 6321-9 du code du travail.
+   > Conformément à l’article L. 6321-9 du code du travail, lorsque l'employeur
+     s'engage à reconduire le contrat d'un salarié occupant un emploi à caractère
+     saisonnier défini au 3° de l'article L. 1242-2 pour la saison suivante, un
+     contrat de travail à durée déterminée peut être conclu pour permettre au
+     salarié de participer à une action de formation prévue au plan de
+     développement des compétences de l'entreprise. La durée du contrat est
+     égale à la durée prévue de l'action de formation.
+
+
+Les CDD des sportifs et entraîneurs professionnels (article L. 222-4 du code du
+sport) sont également exclus du versement de la contribution au CPF-CDD. En
+effet, le versement prévu à l'article L. 6331-6 du code du travail n'est pas dû en
+cas de contrat à durée déterminée conclu en application de l'article L. 222-2-3 du
+code du sport. Conformément aux dispositions du I de l'article 9 de l'ordonnance
+n° 2019-861 du 21 août 2019, ces dispositions s'appliquent depuis le 1er janvier
+2020.
+Enfin, conformément à l’article L. 6331-55 du code du travail, la contribution au
+CPF-CDD n’est pas due au titre des salariés intermittents du spectacle qui
+relèvent des secteurs d'activités du spectacle vivant et du spectacle enregistré.
+
+
+
+
+                                                                                  32
+           Bon à savoir
+              Assujettissement des CDD qui se poursuivent en CDI
+               (Article 1 - Décret n° 2021-1917 du 30 décembre 2021)
+      À compter du 1er janvier 2022 et de la mensualisation du recouvrement de
+      cette contribution, les contrats de travail à durée déterminée qui se
+      poursuivent par des contrats à durée indéterminée ne sont plus exonérés
+      de la contribution au CPF-CDD.
+      De même, les contrats conclus avec des jeunes au cours de leur cursus
+      scolaire ou universitaire ne sont plus exonérés de la contribution au CPF-
+      CDD.
+
+
+
+
+Quel est le taux de contribution au CPF-CDD ?
+Conformément à l’article L. 6331-6 du code du travail, les employeurs s'acquittent
+d'une contribution dédiée au financement du compte personnel de formation
+égale à 1 % du revenu d'activité retenu pour le calcul des cotisations sociales
+des titulaires d'un contrat à durée déterminée mentionnées à l'article L. 242-1 du
+code de la sécurité sociale et à l'article L. 741-10 du code rural et de la pêche
+maritime.
+
+
+
+
+ Modalités déclaratives du CPF-CDD en DSN
+
+Modalités
+Depuis la période d’emploi de janvier 2022 (déclarée en DSN les 5 et 15 février
+2022), la contribution dédiée au financement du Compte personnel de Formation
+pour les titulaires de CDD (CPF-CDD) est déclarée mensuellement.
+
+La cotisation individuelle est portée en rubrique « 129- Contribution dédiée au
+financement du Compte Personnel de Formation pour les titulaires de CDD (CPF-
+CDD) » au bloc S21.G00.81.001 « Cotisation individuelle ».
+
+La masse salariale assujettie à la contribution au CPF-CDD est déclarée par le
+CTP 987 au taux de 1,00 % au bloc « Cotisation agrégée – S21.G00.23 ».
+
+                                                                                33
+                 Tableau de synthèse DSN
+
+
+                       Fiches consignes N°2502 :
+     Modalités déclaratives de la contribution dédiée au financement
+    du compte personnel de formation (CPF) pour les titulaires de CDD
+
+
+
+S21.G000.78 – Base assujettie
+
+
+    Code                    Rubrique                    Valorisation
+
+
+                                                      03 - Assiette brute
+S21.G00.78.001    Code de base assujettie
+                                                            déplafonnée
+
+
+
+                  Date de début de période de               À renseigner
+S21.G00.78.002
+                  rattachement                       Exemple : 01012022
+
+
+
+                  Date de fin de période de                 À renseigner
+S21.G00.78.003
+                  rattachement                       Exemple : 31012022
+
+
+S21.G00.78.004    Montant de base assujettie      À renseigner en euros
+
+
+
+
+                                                                        34
+S21.G00.81 – Cotisation individuelle
+
+
+     Code                   Rubrique              Valorisation
+
+
+                                                129 - contribution
+                                                        dédiée au
+                                                  financement du
+S21.G00.81.001    Code de cotisation         Compte Personnel de
+                                               Formation pour les
+                                                         titulaires
+                                               de CDD (CPF-CDD)
+
+
+                  Identifiant organisme de
+S21.G00.81.002                                         Siret Urssaf
+                  protection
+
+
+S21.G00.81.003    Montant d'assiette         À renseigner en euros
+
+
+S21.G00.81.004    Montant de cotisation      À renseigner en euros
+
+
+S21.G00.81.005    Code INSEE                        Non renseigné
+
+
+S21.G00.81.007    Taux de cotisation                  À renseigner
+
+
+
+
+                                                                  35
+ Part principale
+   de la taxe
+d’apprentissage
+
+
+
+
+                   36
+ L’assujettissement
+
+
+
+
+Quels employeurs sont redevables
+de la taxe d'apprentissage ?
+Conformément à l’article L. 6241-1 du code du travail :
+   > La taxe d’apprentissage favorise l'égal accès à l'apprentissage et contribue
+     au financement d'actions visant au développement de l'apprentissage dans
+     les conditions prévues à l'article L. 6241-2 du code du travail ;
+   > La taxe d’apprentissage est due par les employeurs mentionnés aux articles
+     L. 6331-1 et L. 6331-3 et passibles de l’impôt sur les sociétés mentionnées
+     à l’article 205 du code général des impôts, de plein droit ou sur option, ainsi
+     que par les personnes physiques et par les sociétés ayant opté pour le
+     régime fiscal des sociétés de personnes, lorsque ces personnes et sociétés
+     exercent une activité mentionnée aux articles 34 et 35 du code général des
+     impôts ;
+   > À compter de la période d'emploi de mars 2026, conformément au XIII de
+     l’article 135 de la loi n° 2026-103 du 19 février 2026 de finances pour
+     2026 modifiant l’article L6241-1 du code du travail, la taxe d’apprentissage
+     est également due par les associations, organismes, fondations, fonds de
+     dotation, congrégations et syndicats à activités non lucratives mentionnés au
+     1 bis de l’article 206 et au 5°, 5° bis et 11° de l’article 207 du code général
+     des impôts sont assujettis à la déclaration et au paiement de la taxe
+     d’apprentissage auprès de l’Urssaf. Cet assujettissement s’applique à
+     l’ensemble de ces structures, qu’elles soient redevables ou non de l’impôt
+     sur les sociétés.
+
+
+
+
+                                                                                 37
+En pratique, la taxe d'apprentissage est due par :
+   > Tout employeur soumis à l’impôt sur les sociétés, quel que soit son statut :
+     entreprise individuelle ou société, entreprise commerciale, industrielle ou
+     artisanale, entrepreneur individuel, association, ou groupement d'intérêt
+     économique (GIE). Les structures non assujetties à la taxe d’apprentissage
+     sont listées par l’article L. 6241-1 du code du travail.
+   > Tout employeur soumis à l’impôt sur le revenu dans la catégorie des BIC.
+     Les sociétés de personnes dont les activités relèvent des bénéfices non
+     commerciaux (BNC) sont exonérées de taxe d’apprentissage ;
+   > À compter de la période d’emploi de mars 2026, les associations,
+     organismes, fondations, fonds de dotation, congrégations et syndicats à
+     activités non lucratives mentionnés au 1 bis de l’article 206 et au 5°, 5° bis et
+     11° de l’article 207 du code général des impôts qu’elles soient redevables ou
+     non de l’impôt sur les sociétés.
+
+
+
+
+         Bon à savoir
+                             Dispositions transverses
+  Aucune TVA n’est due auprès de l’Urssaf sur la Taxe d’apprentissage.
+  La DGFiP reste compétente pour la taxe d’apprentissage au titre des
+  rémunérations du mois de décembre 2021 y compris si elles sont versées en
+  janvier 2022. Le transfert au réseau des Urssaf intervient au titre des
+  rémunérations à compter de janvier 2022.
+
+
+
+
+                                                                                   38
+        Bon à savoir
+
+                  Disposition concernant les ports autonomes
+   (Article 121- loi n° 2021-1900 du 30 décembre 2021 de finances pour 2022)
+  Lorsqu’un port autonome ne procède à aucune distinction lors de
+  l’établissement de sa déclaration sociale entre la masse salariale des effectifs
+  attachés aux missions à caractère administratif et celle des effectifs engagés
+  dans des activités de nature industrielle et commerciale, il applique un
+  abattement forfaitaire de 50% de l’assiette de ses contributions.
+
+
+
+
+Quels employeurs ne sont pas redevables
+de la taxe d'apprentissage ?
+
+Employeurs dont l’entreprise ne comporte pas
+d’établissement en France
+Les employeurs dont l’entreprise ne comporte pas d’établissement en France
+mentionnés à l’article L. 243-1-2 du code de la sécurité sociale, ne seront pas
+redevables de la taxe d’apprentissage. En conséquence, la taxe d’apprentissage
+n’est pas due par les entreprises sans établissement en France immatriculées
+auprès du Centre national Titre Firmes Etrangères (TFE) géré par l’Urssaf
+d’Alsace.
+
+Non redevabilité au titre de l’article L. 6241-1 du code du travail
+Conformément au III de l’article L. 6241-1 du code du travail, ne sont pas
+redevables de la taxe d’apprentissage :
+1° les sociétés et personnes morales ayant pour objet exclusif les enseignements
+maternel, primaire, secondaire, supérieur, technique agricole, industriel et
+commercial, technologique ainsi que l’ensemble des disciplines médicales et
+paramédicales placé sous l’autorité du ministère en charge de la santé ;
+
+2° les groupements d’employeurs agricoles mentionnés à l’article L. 1253-1 ;
+
+3° les sociétés coopératives agricoles d'approvisionnement et d'achat ainsi que
+les unions de sociétés coopératives agricoles d'approvisionnement et d'achat ;
+                                                                               39
+4° les sociétés coopératives de production, de transformation, conservation et
+vente de produits agricoles ainsi que les unions de sociétés coopératives de
+production, transformation, conservation et vente de produits agricoles
+mentionnées au 3° du 1 de l’article 207 du code général des impôts ;
+
+5° les coopératives et unions artisanales, maritimes, de transport fluvial et
+d’entreprises de transport mentionnées au 3° bis de l’article 207 du code général
+des impôts ;
+
+6° les organismes d'habitations à loyer modéré mentionnés à l'article L. 411-2 du
+code de la construction et de l'habitation, les sociétés anonymes de crédit
+immobilier qui exercent uniquement les activités prévues au I et au II de l'article
+L. 422-4 du même code ainsi que les unions d'économie sociale ;
+7° les sociétés coopératives de construction désignées à l'article L. 432-2 du
+code de la construction et de l'habitation.
+
+La réalisation d’activités commerciales accessoires par les employeurs non
+redevables de cette taxe ne remet pas en cause le bénéfice de l’exonération.
+
+
+
+
+         Bon à savoir
+                Organismes chargés de l’organisation en France
+                   d’une compétition sportive internationale
+
+  Conformément à l’article 1655 septies du code général des impôts, les
+  organismes chargés de l'organisation en France d'une compétition sportive
+  internationale et, le cas échéant, les filiales de ces organismes, au sens de
+  l'article L. 233-1 du code de commerce, ne sont pas redevables de la Taxe
+  d’apprentissage, à raison des rémunérations versées à leurs salariés, lorsque
+  les fonctions exercées par ces salariés sont directement liées à l'organisation
+  de la compétition sportive internationale, des contributions mentionnées aux 2°
+  et 3° du I de l'article L. 6131-1.
+
+
+
+
+                                                                                 40
+  Le calcul de la part principale
+   de la taxe d’apprentissage
+
+
+Comment l'assiette de la TA est-elle déterminée ?
+
+Droit commun
+Conformément à l’article L. 6241-1-1 du code du travail :
+   > La taxe d’apprentissage mentionnée à l’article L. 6241-1 est assise sur les
+     revenus d’activités mentionnés au I de l'article L. 242-1 du code de la sécurité
+     sociale et à l'article L. 741-10 du code rural et de la pêche maritime.
+   > Toutefois, les rémunérations dues aux apprentis par les employeurs dont
+     l’effectif est de moins de onze salariés, déterminé selon les modalités
+     prévues au I de l’article L. 130-1 du code de la sécurité sociale, sont
+     exonérées de la taxe d'apprentissage.
+Les rémunérations exonérées de la taxe sur les salaires en application de l’article
+231 bis L du code général des impôts ne sont plus exonérées de taxe
+d’apprentissage à compter du 1er janvier 2022.
+
+
+
+Dispositions spécifiques
+
+Bâtiment et travaux publics, Transport et Dockers
+
+Conformément aux articles L. 243-1-3 et D. 243-0-2 du code de la sécurité
+sociale, s’agissant des entreprises de BTP, de transport et de dockers dont les
+congés payés sont réglés par des caisses, les salaires à déclarer sont ceux
+effectivement payés par l'entreprise, majorés d'un coefficient forfaitaire de 1,1150
+au titre des indemnités de congés (soit une majoration de 11,50 % de la masse
+salariale). Néanmoins, l’entreprise conserve la possibilité de majorer au réel les
+congés payés des salariés concernés.
+
+
+
+Intermittents du spectacle
+Pour le calcul de la taxe d'apprentissage, il convient de prendre en compte la
+base brute Sécurité sociale qui inclut les rémunérations des intermittents du
+
+                                                                                  41
+spectacle, à laquelle il convient d'ajouter 10%. Ces 10% correspondent au
+versement effectué à la caisse des congés spectacle.
+
+
+Contrats d’accompagnement dans l’emploi et contrats « aidés »
+En application de l’article L. 5134-31 du code du travail, les rémunérations
+versées à des salariés employés en contrat d’accompagnement dans l’emploi
+sont exonérées de taxe d’apprentissage, pendant la durée du CDD ou de la
+période « aidée » s’il s’agit d’un CDI (peu importe que le contrat ait été conclu
+dans le cadre du contrat unique d’insertion ou des emplois d’avenir)
+De même, en application de l’article 20 – IV de la Loi n° 2013-1203 du 23
+décembre 2013 de financement de la sécurité sociale pour 2014, les embauches
+réalisées en contrat à durée déterminée en application de l'article L. 5132-15-1
+du code du travail et ouvrant droit au versement de l'aide mentionnée à l'article
+L. 5132-2 du même code donnent lieu, sur la part de la rémunération inférieure
+ou égale au salaire minimum de croissance, pendant la durée d'attribution de
+cette aide, à une exonération :
+
+1° Des cotisations à la charge de l'employeur au titre des assurances sociales et
+des allocations familiales ;
+2° De la taxe sur les salaires ;
+
+3° De la taxe d'apprentissage ;
+
+4° Des participations dues par les employeurs au titre de l'effort de construction.
+
+
+
+Quelles exonérations sont applicables
+à la taxe d'apprentissage ?
+
+L’exonération liée aux employeurs occupant
+un ou plusieurs apprentis
+
+Conformément à l’article L. 6241-1 du code du travail, sont exonérés
+mensuellement de la taxe d’apprentissage les employeurs :
+   > Occupant, au cours de la période antérieure à la période d’emploi au titre de
+     laquelle les rémunérations sont dues, un ou plusieurs apprentis avec
+     lesquels ils ont conclu un contrat d’apprentissage dans les conditions
+
+                                                                                 42
+     prévues aux articles L. 6221-1 à L. 6225-8 du code du travail ;
+   > Lorsque les rémunérations mensuellement dues par ces employeurs, telles
+     qu’elles sont prises en compte pour la détermination de l'assiette des
+     cotisations définie à l'article L. 242-1 du code de la sécurité sociale,
+     n’excèdent pas six fois le montant du salaire minimum de croissance
+     mensuel en vigueur au cours de la période antérieure à la période d’emploi
+     au titre de laquelle les rémunérations sont dues.
+Ces conditions sont cumulatives et l’appréciation de l’exonération se fait sur le
+mois précédent, c’est-à-dire le mois M-1, de la période d’emploi considérée pour
+la déclaration (Article D. 6241-8 rétabli par l’article 1 du Décret n° 2021-1917 du
+30 décembre 2021).
+
+Par exemple, pour la période d’emploi de mars 2022, l’exonération est appréciée
+au regard de la présence d’apprentis et d’une masse salariale inférieure à 6
+SMIC, telles qu’elles sont prises en compte pour la détermination de l'assiette
+des cotisations définie à l'article L. 242-1 du code de la sécurité sociale, sur la
+période d’emploi de février 2022.
+
+
+        Exemple
+  Soit une entreprise assujettie à la taxe d’apprentissage en mars 2022.
+  Son effectif est composé en février 2022 de 3 salariés en CDI à temps plein
+  et d’un apprenti âgé de 17 ans. Les 3 salariés en CDI perçoivent une
+  rémunération mensuelle de 2 000 euros brut chacun.
+  L’apprenti perçoit une rémunération à hauteur de 27% du Smic : soit 1 554,58
+  euros x 0,27% = 419,74 (Smic en vigueur au 1er janvier 2021)
+  La masse salariale brute mensuelle est de (3 x 2 000) + 419,74 = 6419,74
+  euros
+   Il apparaît que la masse salariale brute de cette entreprise n’excède pas 6
+  fois le Smic mensuel (9 327,48 euros). Bien qu’assujettie à la taxe
+  d’apprentissage, cette entreprise est exonérée de la taxe d’apprentissage
+  pour le mois de mars 2022 car le total de ces rémunérations pour le mois
+  concerné est inférieur à 6 Smic.
+
+
+
+
+                                                                                 43
+Part principale de la taxe d’apprentissage
+
+
+La part principale de la taxe d’apprentissage est déclarée au taux de 0,59 %. Elle
+est à déclarer mensuellement, depuis de la période d’emploi de janvier 2022 (7
+ou 15 février 2022).
+Conformément à l’article L. 6241-1-1 du code du travail, ce taux est fixé à 0,44%
+pour les établissements situés dans les départements du Bas-Rhin, du Haut-Rhin
+et de la Moselle, quel que soit le lieu du siège du principal établissement de
+l'entreprise.
+
+C’est donc le lieu d’implantation de l’établissement – et non le lieu de travail ou
+de domicile des salariés – qui détermine le taux applicable de la taxe
+d’apprentissage.
+
+Ainsi, il n’est pas possible de déclarer la masse salariale de la part principale de
+la taxe d’apprentissage sur :
+   > les CTP 992 et 993 simultanément au titre d’un même établissement.
+   > le CTP 992 pour un établissement situé dans les départements du Bas-Rhin,
+     du Haut-Rhin et de la Moselle.
+   > le CTP 993 pour un établissement situé en dehors des départements du Bas-
+     Rhin, du Haut-Rhin et de la Moselle.
+
+
+
+Les déductions relatives aux CFA d'entreprise
+et/ou de financement des offres nouvelles de formation
+par apprentissage
+Conformément à l’article L. 6241-2 du code du travail, une entreprise qui dispose
+d’un service de formation dûment identifié, accueillant ses apprentis, peut déduire
+de la part principale de la taxe d’apprentissage le montant des dépenses relatives
+aux formations délivrées par ce service.
+L’entreprise peut aussi déduire de cette même part les versements destinés à
+financer le développement d’offres nouvelles de formations par apprentissage,
+lorsque ces dernières servent à former un ou plusieurs apprentis de cette même
+entreprise.
+
+
+
+                                                                                  44
+Le décret n° 2019-1438 du 23 décembre 2019 relatif aux modalités de
+déductions de la taxe d’apprentissage et au niveau d’activité des organismes
+agissant au plan national pour la promotion de la formation technologique et
+professionnelle initiale et des métiers habilités à percevoir le solde de la taxe
+d’apprentissage, vient préciser les modalités d’application de ces déductions.
+Ainsi, conformément à l’article. D. 6241-32 du code du travail, le montant total
+des dépenses pouvant être déduites ne peut excéder 10% de la part principale
+de la taxe d’apprentissage sur la base des dépenses réelles effectuées par
+l’entreprise au titre de l’année précédant leur déduction.
+La déduction de taxe d’apprentissage est déclarée mensuellement à partir de la
+définition du plafond annuel de 10% de la part principale de la taxe
+d’apprentissage déclarée au titre de l’exercice précédent.
+
+
+
+Point de vigilance pour la déclaration en DSN
+En cas de corrections des déclarations en DSN de l’année en cours ou de l’année
+précédente, le déclarant doit veiller à maintenir la cohérence des montants de
+déductions à appliquer à la part principale à la taxe d’apprentissage. De plus, il
+doit systématiquement veiller au fait que le montant déclaré de la part principale
+de la déduction pour le ou les mois concernés ne dépasse pas le montant de la
+contribution pour le ou les mois concernés.
+
+Lien vers la fiche consigne DSN : Modalités déclaratives de la part principale de
+la taxe d’apprentissage (TA)
+
+
+Conformément à l’article D.6241-29 du code du travail, les dépenses déductibles
+de la part principale de la taxe d’apprentissage sont celles qui remplissent les
+conditions suivantes :
+   > Les dépenses des investissements destinés au financement des
+     équipements et matériels nécessaires à la réalisation de la formation d’un ou
+     plusieurs apprentis de l’entreprise au sein du centre de formation d’apprentis
+     dont celle-ci dispose ;
+   > Les versements concourant aux investissements destinés au financement
+     des équipements et matériels nécessaires à la mise en place par le centre
+     de formation d’apprentis d’une offre nouvelle de formation par apprentissage,
+     lorsque celle-ci sert à former un ou plusieurs apprentis de l’entreprise.
+
+                                                                                45
+(*) Le centre de formation d’apprentis doit être un centre de formation d’apprentis qui remplit l’une
+des conditions suivantes :
+
+    > Être interne à l’entreprise ;
+    > Dont l’entreprise détient plus de la moitié du capital ou plus de la moitié des
+      voix au sein de l’organe de gouvernance du centre de formation d’apprentis ;
+    > Être constitué par un groupe au sens du deuxième alinéa de l’article L. 1233-
+      4 du code du travail ;
+    > Être constitué par plusieurs entreprises partageant des perspectives
+      communes d’évolution des métiers ou qui interviennent dans des secteurs
+      d’activité complémentaires.
+
+
+
+
+              Bon à savoir
+
+      Après dépôt de la DSN de décembre 2021, l’entreprise doit calculer le
+      montant de déduction plafonné, défini par rapport au montant de la part
+      principale de la taxe d’apprentissage de l'exercice 2021.
+      L’entreprise doit procéder à l’affectation mensuelle de la déduction sur la
+      part principale de la taxe d’apprentissage de 2022 de l'établissement avec
+      un plafond annuel défini par rapport à 2021.
+
+
+
+
+                                                                                                   46
+     Exemple
+Un employeur qui a déclaré un montant annuel de 1000€ pour la part principale
+de la taxe d’apprentissage en N-1, pourra déclarer un maximum de déduction à
+la part principale à la taxe d’apprentissage de l’année N de 100 €. (1000 € x 10%
+= 100 €)
+Si le cotisant est redevable en janvier de l’année N d’une part principale de la taxe
+d’apprentissage de 80 €.
+Il peut appliquer en janvier de l’année N une déduction maximum de 80 €.
+Le montant de la contribution à la part principale de la taxe d’apprentissage pour
+le mois de janvier de l’année N sera de : 80 € (de contribution) - 80 € (de
+déduction) = 0 €. Il restera donc au cotisant la possibilité de déduire encore 20 €
+de ses prochaines contributions à la part principale de la taxe d’apprentissage
+(100 €- 80 €= 20 €).
+Si le cotisant est redevable en février de l’année N d’une part principale de la taxe
+d’apprentissage d’un montant 75 €.
+Il peut appliquer en février de l’année N une déduction maximum de 20 €.
+Le montant de la contribution à la TA pour le mois de février de l’année N sera de
+75 € (de contribution) - 20 € (de déduction) = 55 €.
+Le montant de déduction à la part principale de la taxe d’apprentissage pour
+l’année N est épuisé : 100 € (de déduction au titre de l’année N) – [80 € (de
+déduction pour le mois de janvier) + 20 € (de déduction pour le mois de février)]
+= 0 € (de déduction restante).
+
+
+
+
+                                                                               47
+ Les modalités déclaratives de la
+ part principale de la TA en DSN
+
+
+Comment faire sa déclaration annuelle de non-
+assujettissement à la taxe d’apprentissage ?
+Conformément à l'article 39 de l'Annexe III du Code Général des Impôts, chaque
+établissement doit déclarer annuellement son statut vis-à-vis de la taxe
+d’apprentissage, au plus tard le 31 janvier de l'année N+1 au titre de l'année N,
+ou dans les 60 jours en cas de cessation.
+L’assujettissement à la taxe d’apprentissage est à déclarer en bloc «
+Assujettissement fiscal – S21.G00.44 », ainsi, l’employeur doit renseigner l’un
+des 2 codes suivants en rubrique « Code taxe S21.G00.44.001 » selon sa
+situation :
+   > « 001 - Assujettissement à la taxe à l'apprentissage »,
+   > « 002 - Non-assujettissement à la taxe à l'apprentissage ».
+
+
+En cas de non-assujettissement, l’entreprise doit déclarer la rubrique « Motif de
+non-assujettissement à la taxe d'apprentissage - S21.G00.44.004 » afin de
+transmettre le motif justifiant l’absence de cotisation.
+
+Ce motif est à choisir parmi les motifs de la table des Motifs de non-
+assujettissement à la taxe d'apprentissage disponible via la rubrique Tables de
+référence de la norme DSN – P22V01 - net-entreprises.fr.
+
+Aucun montant est à renseigner de la contribution à la taxe d’apprentissage à
+travers le bloc S21.G00.44.
+
+
+
+
+                                                                               48
+La déclaration de la part principale de la taxe
+d'apprentissage
+
+La déclaration de la part principale de la taxe d’apprentissage en
+France (hors établissements des départements du Bas-Rhin, du
+Haut-Rhin et de la Moselle) et dans les DOM
+La part principale de la taxe d’apprentissage est déclarée mensuellement, depuis
+la période d’emploi de janvier 2022 (exigible le 5 ou 15 février 2022).
+Le taux déclaré de la part principale de la taxe d’apprentissage est de 0,59 %.
+Elle est déclarée :
+   > En rubrique « Cotisation individuelle – S21.G00.81 », en valeur « 130 – Part
+     principale de la taxe d'apprentissage » ;
+   > En bloc « Cotisation agrégée - S21.G00.23 » ; la masse salariale assujettie
+     est déclarée par le CTP 992, à 0,59%.
+
+
+
+
+La déclaration de la taxe d’apprentissage au titre des
+établissements des départements du Bas-Rhin, du Haut-Rhin et
+de la Moselle
+
+La taxe d’apprentissage due au titre des établissements du Bas-Rhin, du Haut-
+Rhin et de la Moselle est déclarée mensuellement, à compter de la période
+d’emploi de janvier 2022 (exigible le 5 ou 15 février 2022).
+
+Le taux déclaré de la taxe d’apprentissage est de 0,44 %.
+Elle est déclarée :
+   > En rubrique « Cotisation individuelle – S21.G00.81 », en valeur « 130 – Part
+     principale de la taxe d'apprentissage » ;
+   > En bloc « Cotisation agrégée - S21.G00.23 » ; la masse salariale assujettie
+     est déclarée par le CTP 993, à 0,44%
+
+
+
+
+                                                                                  49
+                 Tableau de synthèse DSN
+
+
+                         Fiches consignes N°2504 :
+ Modalités déclaratives de la part principale de la taxe d’apprentissage (TA)
+
+
+
+                      S21.G000.78 – Base assujettie
+
+
+     Code                     Rubrique                     Valorisation
+
+
+                                                          03 - Assiette brute
+S21.G00.78.001      Code de base assujettie
+                                                                déplafonnée
+
+
+                    Date de début de période de                 À renseigner
+S21.G00.78.002
+                    rattachement                         Exemple : 01012022
+
+
+                    Date de fin de période de                   À renseigner
+S21.G00.78.003
+                    rattachement                         Exemple : 31012022
+
+
+S21.G00.78.004      Montant de base assujettie        À renseigner en euros
+
+
+
+
+                                                                                50
+                     S21.G00.81 – Cotisation individuelle
+
+
+       Code                    Rubrique                     Valorisation
+
+
+                                                      130 - Part principale de
+ S21.G00.81.001       Code de cotisation
+                                                      la taxe d'apprentissage
+
+
+                      Identifiant organisme
+ S21.G00.81.002                                                 SIRET Urssaf
+                      de protection
+
+
+ S21.G00.81.003       Montant d'assiette               À renseigner en euros
+
+
+ S21.G00.81.004       Montant de cotisation            À renseigner en euros
+
+
+ S21.G00.81.005       Code INSEE Commune                       Non renseigné
+
+
+ S21.G00.81.007       Taux de cotisation                         À renseigner
+
+
+
+
+L’exonération mensuelle des employeurs occupant un ou
+plusieurs apprentis
+L’exonération des employeurs occupant un ou plusieurs apprentis et dont la
+masse salariale est inférieure à 6 Smic, doit être déclarée dans un bloc «
+Cotisation établissement - S21.G00.82 » portant le code de cotisation « 074 -
+Exonération Taxe d’apprentissage pour un employeur d’apprenti(s), dont la
+masse salariale renseignée est inférieure à 6 Smic » en rubrique « Code de
+cotisation - S21.G00.82.002 ».
+La période d’appréciation de la présence d’apprentis et du plafond de masse
+salariale est celle du mois précédent la déclaration. C’est-à-dire, que ces deux
+conditions doivent être remplies en M-1 afin de bénéficier de l’exonération pour
+le mois M.
+
+                                                                              51
+En cas d’exonération de la part principale de la taxe d’apprentissage, les
+cotisations en valeur 130 du bloc 81 ne doivent pas être renseignées. Les
+masses salariales correspondant à la rubrique « Montant d’assiette »
+(S21.G00.23.004) des CTP 992 ou CTP 993 ne doivent pas non plus être
+renseignées.
+
+
+
+
+                   Tableau de synthèse DSN
+                           Fiches consignes N°2504 :
+   Modalités déclaratives de la part principale de la taxe d’apprentissage (TA)
+
+
+
+                   S21.G100.82 – Cotisation établissement
+
+       Code              Rubrique                      Valorisation
+
+ S21.G00.82.001       Valeur                                               0.00
+
+                                                                        074 -
+                                          Exonération Taxe d'apprentissage
+                      Code de
+ S21.G00.82.002                            pour un employeur d'apprenti(s),
+                      cotisation
+                                                    dont la masse salariale
+                                          renseignée est inférieure à 6 smic
+
+                      Date de début
+                                                                À renseigner
+ S21.G00.82.003       de période de
+                                                           Exemple : 01012022
+                      rattachement
+
+                      Date de fin de
+                                                                À renseigner
+ S21.G00.82.004       période
+                                                           Exemple : 31012022
+                      rattachement
+
+                      Référence
+ S21.G00.82.005       réglementaire                              SIRET Urssaf
+                      ou contractuelle
+
+
+                                                                                  52
+Les déductions relatives aux CFA d’entreprise et/ou au
+financement des offres nouvelles de formation par apprentissage
+(Art. L6241-2 code du travail)
+La déduction à la part principale de la taxe d’apprentissage est déclarée
+mensuellement, depuis la période d’emploi de janvier 2022 (7 ou 15 février 2022).
+Elle se rapporte aux déductions relatives aux CFA d'entreprise et/ou au
+financement des offres nouvelles de formation par apprentissage (Art. L. 6241-2
+code du travail).
+Après dépôt de la DSN de décembre 2021, l’entreprise doit calculer pour 2022 le
+montant de déduction plafonné, défini par rapport au montant de la part principale
+de la taxe d’apprentissage de l'exercice 2021. Le montant total des dépenses
+pouvant être déduites ne peut excéder 10 % de la part principale de la taxe
+d’apprentissage sur la base des dépenses réelles effectuées par l’entreprise au
+titre de l’année précédant leur déduction.
+Il devra être procédé à l’affectation mensuelle de la déduction N sur la part
+principale de la taxe d’apprentissage de 2022.
+
+Elle est calculée au niveau de l’entreprise (SIREN) mais déclarée par
+établissement mensuellement, à compter de la période d’emploi de janvier 2022
+(7 ou 15 février 2022). Cette déduction est limitée au montant de la part principale
+de la taxe d’apprentissage. Si le montant de déduction est supérieur au montant
+de la part principale de la taxe d’apprentissage mensuelle, alors le montant de
+réduction restant sera à appliquer jusqu’à épuisement sur le/les mois suivants. Il
+n’est pas nécessaire de lisser cette déduction sur l’ensemble de l’année.
+
+
+La déduction de la part principale de la taxe d’apprentissage sera déclarée :
+   > En rubrique et « Cotisation établissement – S21.G00.82 », en valeur « 075 –
+     Déductions relatives aux CFA d'entreprise et/ou au financement des offres
+     nouvelles de formation par apprentissage (Art. L6241-2 code du travail) » ;
+   > En bloc « Cotisation agrégée - S21.G00.23 » ; en montant de déduction
+     exprimée en euros sur le CTP 994.
+
+
+
+
+                                                                                  53
+                 Tableau de synthèse DSN
+
+
+                         Fiches consignes N°2504 :
+ Modalités déclaratives de la part principale de la taxe d’apprentissage (TA)
+
+
+
+
+                 S21.G00.82 – Cotisation d’établissement
+
+     Code                Rubrique                      Valorisation
+
+S21.G00.82.001      Valeur                                      À renseigner
+
+                                                    075 - Déduction relatives
+                                                  aux CFA d'entreprise et/ou
+                                                   au financement des offres
+S21.G00.82.002      Code de cotisation
+                                                                 nouvelles de
+                                              formation par apprentissage
+                                            (art. L6241 - 2 du code du travail)
+
+                    Date de début de
+                                                              À renseigner
+S21.G00.82.003      période de
+                                                         Exemple : 01012022
+                    rattachement
+
+                    Date de fin de
+                                                              À renseigner
+S21.G00.82.004      période
+                                                         Exemple : 31012022
+                    rattachement
+
+                    Référence
+S21.G00.82.005      réglementaire ou                           SIRET Urssaf
+                    contractuelle
+
+
+
+
+                                                                                54
+Solde de la taxe
+d’apprentissage
+
+
+
+
+                   55
+  L’assujettissement
+
+Quels sont les employeurs redevables du solde
+de la taxe d'apprentissage ?
+Conformément à l’article L. 6241-4 du Code du travail, le solde de la taxe
+d’apprentissage finance le développement des formations initiales
+technologiques et professionnelles, hors apprentissage, et l'insertion
+professionnelle, dont les frais de premier équipement, de renouvellement de
+matériel existant et d'équipement complémentaire.
+Les formations technologiques et professionnelles sont celles qui, dispensées
+dans le cadre de la formation initiale, conduisent à des diplômes ou titres
+enregistrés au répertoire national des certifications professionnelles et classés
+dans la nomenclature interministérielle des niveaux de formation. Ces formations
+sont dispensées, à temps complet et de manière continue ou selon un rythme
+approprié, dans le cadre de l'article L. 813-9 du code rural et de la pêche
+maritime.
+
+Seuls les établissements éligibles au sens de l’article L. 6241-5 du code du travail
+et figurant sur les listes préfectorales (R. 6241-21 et R. 6241-22 du code du
+travail) ou la liste nationale (13° du L. 6241-5 du code du travail) peuvent
+bénéficier des versements au titre du 1° du L. 6241-4.
+
+Les centres de formation d’apprentis n’ont pas besoin d’être inscrits sur une liste
+pour bénéficier des versements en nature prévus au 2° du L. 6241-4 du code du
+travail.
+
+
+
+
+          Bon à savoir
+                         Disposition transverse
+   Aucune TVA n’est due auprès de l’Urssaf sur la Taxe d’apprentissage.
+
+
+
+
+                                                                                  56
+ Le calcul de la contribution
+
+
+Quel est le taux du solde de la taxe d'apprentissage
+Le solde de la taxe d’apprentissage, qui était jusqu’à présent directement versé
+par les employeurs aux établissements et/ou formations éligibles à percevoir le
+solde, doit désormais être déclaré et versé annuellement auprès de l’Urssaf.
+Le solde de la taxe d’apprentissage est déclaré annuellement par chaque
+établissement depuis la DSN d’avril 2023 (exigible le 5 ou 15 mai 2023), au titre
+de la masse salariale de l’année 2022.
+La masse salariale 2022 est déclarée au taux de 0,09 %.
+
+
+
+Quelles sont les déductions possibles ?
+
+Déduction des subventions versées en nature aux CFA sous
+forme d’équipements et de matériels conformes aux besoins des
+formations dispensées
+Pour satisfaire aux dispositions du II de l'article L. 6241-2, les employeurs
+peuvent déduire du solde de la taxe d'apprentissage les subventions versées au
+centre de formation d'apprentis sous forme d'équipements et de matériels
+conformes aux besoins des formations dispensées. Le décret n° 2019-1491 du
+27 décembre 2019 relatif au solde de la taxe d’apprentissage précise les
+modalités de gestion du solde de la taxe d’apprentissage (dit versement
+libératoire) prévue au II de l’article L. 6241-2 du code du travail à compter de
+l’année 2020.
+
+L'employeur peut déduire à hauteur du montant correspondant au solde de la
+taxe d’apprentissage les subventions versées au centre de formation d'apprentis
+sous forme d'équipements et de matériels conformes aux besoins des formations
+dispensées : les subventions prises en compte pour l’année au titre de laquelle
+le solde de la taxe d’apprentissage est dû sont celles versées aux centres de
+formation d’apprentis l’année précédant la déclaration. Par exemple, les
+déductions à prendre en compte, pour la déclaration en 2023 du solde de la TA
+au titre de l'année 2022 correspondent aux subventions versées en 2022. Les
+centres de formation d’apprentis établissent un reçu destiné à l’entreprise daté
+du jour de livraison des matériels et équipements et indiquant l’intérêt
+                                                                               57
+pédagogique de ces biens ainsi que la valeur comptable justifiée par l’entreprise
+selon des modalités fixées par arrêté du ministre chargé de la formation
+professionnelle.
+
+
+
+Déduction de la créance « alternant »
+Les entreprises de 250 salariés et plus qui dépassent, au titre d'une année, le
+seuil d'effectif de 5% de salariés sous contrat favorisant l’insertion professionnelle
+(CFIP) bénéficient d'une créance égale au pourcentage de l'effectif qui dépasse
+ledit seuil, retenu dans la limite de deux points, multiplié par l'effectif annuel
+moyen de l'entreprise au 31 décembre de l’année puis multiplié par un montant
+forfaitaire, compris entre 2,50 euros et 5,00 euros, défini par arrêté des ministres
+chargés du budget et de la formation professionnelle.
+À noter : le solde de la taxe d’apprentissage n’étant pas dû pour les
+établissements situés en Alsace-Moselle, un employeur dont tous ses
+établissements sont situés en Alsace-Moselle ne peut pas bénéficier de la
+« créance alternant ».
+
+      Exemple
+  Soit une entreprise de 300 salariés employant 6 % de salariés sous contrat
+  favorisant l’insertion professionnelle (CFIP) : contrat d’apprentissage et de
+  professionnalisation, CIFRE. Le montant forfaitaire fixé par l’arrêté est de 4
+  euros.
+  Elle bénéficiera d’une créance imputable sur le solde de la taxe
+  d’apprentissage égale au résultat du calcul suivant :
+  300 l’effectif annuel moyen au 31 décembre. 4 euros le montant forfaitaire.
+
+  (6 % - 5 %) = 1, soit le différentiel de taux dans la limite de 2 points.
+
+  Le montant de la créance est égal à 1 200 euros ; soit 1 x 300 x 4,00 euros
+  = 1 200 euros.
+
+  La somme de 1 200 euros viendra en déduction sur le solde de la taxe
+  d’apprentissage pour cette entreprise.
+
+  Rappel : le montant cumulé des déductions au solde de la taxe
+  d’apprentissage ne peut dépasser le montant dudit solde. Le surplus
+  éventuel ne peut donner lieu ni à report ni à restitution.
+
+
+                                                                                    58
+Comment la répartition est-elle gérée ?
+Conformément à l’article 190 de la loi de finances pour 2020, le champ du
+transfert de recouvrement de la taxe d’apprentissage par les organismes de
+sécurité sociale a été étendu au solde de la taxe d’apprentissage directement
+versé, jusqu’à présent, par les employeurs aux établissements scolaires du
+second degré ou d’enseignement supérieur.
+
+Pour permettre une gestion plus simple pour les redevables de ces versements
+et maximiser la collecte au profit des établissements, tout en conservant le lien
+entre le redevable et le bénéficiaire, la collecte des sommes dues par les
+employeurs au titre du solde de la taxe d’apprentissage sera assurée par les
+Urssaf, le choix étant laissé aux employeurs de l’affectation de ce solde.
+Il convient de noter que les équipements ou matériels versés aux centres de
+formation d’apprentis au titre du 2° du L. 6241-4 du code du travail sont déduits
+de la collecte effectuée par les Urssaf.
+Les fonds ainsi collectés par les Urssaf sont reversés à la Caisse des dépôts et
+consignations qui sera chargée de les affecter aux établissements sur choix et
+décision de l’employeur via la plateforme dématérialisée SOLTéA .
+Conformément à la procédure en vigueur, deux conditions doivent être remplies
+par les organismes pour bénéficier d’un versement au titre du solde de la taxe
+d’apprentissage :
+   > Que l’organisme soit un des organismes éligibles prévus au L. 6241-5 du
+     code du travail
+   > Que la formation qu’il propose soit inscrite sur les listes préfectorales ou la
+     liste nationale, le cas échéant qu’il soit inscrit sur ces listes.
+
+
+Ainsi, selon l’article L. 6241-5 du code du travail, sont habilités à percevoir le
+solde de la taxe d'apprentissage au titre des dépenses mentionnées au 1°
+premier alinéa de l'article L. 6241-4 :
+
+
+
+                                                                                 59
+Les établissements publics d'enseignement du second degré ;
+   > Les établissements d'enseignement privés du second degré gérés par des
+     organismes à but non lucratif et qui remplissent l'une des conditions
+     suivantes :
+        - Être lié à l'État par l'un des contrats d'association mentionnés à
+        l'article L. 442-5 du code de l'éducation ou à l'article L. 813-1 du code
+        rural et de la pêche maritime ;
+        - Être habilité à recevoir des boursiers nationaux conformément aux
+        procédures prévues à l'article L. 531-4 du code de l'éducation ;
+        - Être reconnu conformément à la procédure prévue à l'article L. 443-2
+        du même code.
+   > Les établissements publics d'enseignement supérieur ou leurs groupements
+     agissant pour leur compte ;
+   > Les établissements gérés par une chambre consulaire et les établissements
+     d'enseignement supérieur consulaire mentionnés à l'article L. 711-17 du
+     code de commerce ;
+   > Les établissements privés relevant de l'enseignement supérieur gérés par
+     des organismes à but non lucratif ou leurs groupements agissant pour leur
+     compte ;
+   > Les établissements publics ou privés dispensant des formations conduisant
+     aux diplômes professionnels délivrés par les ministères chargés de la santé,
+     des affaires sociales, de la jeunesse et des sports ;
+   > Les écoles de la deuxième chance, mentionnées à l'article L. 214-14 du code
+     de l'éducation, les centres de formation gérés et administrés par
+     l'établissement public d'insertion de la défense, mentionnés à l'article L. 130-
+     1 du code du service national, et les établissements à but non lucratif
+     concourant, par des actions de formation professionnelle, à offrir aux jeunes
+     sans qualification une nouvelle chance d'accès à la qualification ;
+   > Les établissements ou services d'enseignement qui assurent, à titre
+     principal, une éducation adaptée et un accompagnement social ou médico-
+     social aux mineurs ou jeunes adultes handicapés ou présentant des
+     difficultés d'adaptation, mentionnés au 2° du I de l'article L. 312-1 du code
+     de l'action sociale et des familles, ainsi que les établissements délivrant
+     l'enseignement adapté prévu au premier alinéa de l'article L. 332-4 du code
+     de l'éducation ;
+
+                                                                                  60
+   > Les établissements ou services mentionnés au 5° du I de l'article L. 312-1 du
+     code de l'action sociale et des familles ;
+   > Les établissements ou services à caractère expérimental accueillant des
+     jeunes handicapés ou présentant des difficultés d'adaptation, mentionnés au
+     12° du I du même article L. 312-1 ;
+   > Les organismes participant au service public de l'orientation tout au long de
+     la vie, dont la liste est établie par décision du président du conseil régional ;
+   > Les écoles de production mentionnées à l'article L. 443-6 du code de
+     l'éducation ;
+   > Les organismes figurant sur une liste établie par arrêté des ministres chargés
+     de l'éducation nationale et de la formation professionnelle, agissant au plan
+     national pour la promotion de la formation technologique et professionnelle
+     initiale et des métiers. Cette liste est établie pour trois ans et les organismes
+     y figurant justifient d'un niveau d'activité suffisant, déterminé par décret, pour
+     prétendre continuer à y être inscrits. Le montant versé par les entreprises à
+     ces organismes au titre du solde de la taxe d'apprentissage ne peut dépasser
+     30 % du montant dû.
+Il convient de noter qu’en sus de cette habilitation, les formations proposées par
+ces établissements ou ces établissements le cas échéant, doivent être inscrits
+soit sur une des listes préfectorales (R6241-21 ou R6241-22) ou sur la liste
+nationale (13° du L6241-5) pour pouvoir bénéficier des versements prévus au 1°
+du L. 6241-4.
+
+          Bon à savoir
+                            La Plateforme SOLTéA
+   Depuis le 12 janvier 2023, une première version de la plateforme SOLTéA
+   est mise en ligne avec les informations utiles à connaître.
+   À compter de la fin du 1er semestre 2023, une fonctionnalité de répartition
+   sera mise à disposition et permettra aux employeurs de :
+   - choisir les établissements bénéficiaires, leurs composantes ou les
+     formations auxquels les employeurs souhaitent affecter le solde de la taxe
+     d’apprentissage ;
+   - suivre les virements qui seront effectués par la Caisse des dépôts et
+     Consignations à l’attention des établissements bénéficiaires.
+
+   L’Urssaf ne peut pas vous renseigner sur la démarche de répartition sur
+   SOLTéA : nous vous invitons à vous référer aux informations mises à
+   disposition sur le site.                                              61
+  Les modalités déclaratives du
+ solde de la taxe d’apprentissage
+
+
+La déclaration du solde de la taxe d'apprentissage
+Le solde de la taxe d’apprentissage est déclaré annuellement sur la DSN d’avril
+de l’année N+1 (exigible le 5 ou 15 mai de l’année N+1), au titre de la masse
+salariale de l’année N.
+Le solde de la taxe d’apprentissage est déclaré sur chacun des
+établissements de l’entreprise :
+   > En rubrique « 076 – Solde de la taxe d’apprentissage versé en numéraire »
+     au bloc « Cotisation établissement – S21.G00.82 », Le montant déclaré
+     correspond au montant brut, avant calcul des déductions ;
+   > En bloc « Cotisation agrégée - S21.G00.23 », en rubrique « Montant
+     d’assiette» (S21.G00.23.004), la masse salariale annuelle 2022 est déclarée
+     par le CTP 995 à 0,09%.
+
+
+
+
+La déclaration des déductions au solde de la taxe
+d'apprentissage
+Les déductions au solde de la taxe d’apprentissage sont déclarées annuellement
+sur la DSN d’avril de l’année N+1 (exigible le 5 ou 15 mai de l’année N+1), au
+titre de l’exercice de l’année N.
+
+La déduction correspondant aux subventions versées en nature aux CFA sous
+forme d’équipements et de matériels conformes aux besoins des formations
+dispensés (article L6241-4 du code du travail) est déclarée :
+   > en bloc « Code de cotisation – S21.G00.82.002 » en valeur « 077 –
+     Réduction du solde de la taxe d’apprentissage liés à des subventions aux
+     CFA (article L6241-4 du code du travail) » ;
+   > en bloc « Cotisation agrégée - S21.G00.23 » via le CTP 996 en montant
+     de déduction exprimée en euros.
+
+                                                                             62
+La déduction de la créance « alternant », réservée aux entreprises de
+250 salariés et plus qui dépassent, au titre d'une année, le seuil d'effectif de 5 %
+de contrats favorisant l’insertion professionnelle (CFIP) est déclarée :
+   > en bloc « Code de cotisation – S21.G00.82.002 » en valeur « 078 –
+     Réduction du solde de la taxe d’apprentissage liés à des créances alternants
+     (article L6241-4 du code du travail) » ;
+   > en bloc « Cotisation agrégée - S21.G00.23 » via le CTP 997 en montant
+     de déduction exprimée en euros.
+
+
+
+
+           Bon à savoir
+              Les déductions peuvent être déclarées sur tout établissement
+     déclarant le solde de la taxe d'apprentissage, à condition que le montant
+     des déductions ne dépasse pas le montant du solde déclaré pour
+     l’établissement. L’entreprise peut répartir les déductions sur le ou les
+     établissements de son choix en respectant la condition précédemment
+     citée.
+
+
+
+
+                                                                                  63
+                        Fiches consignes N°2537 :
+      Modalités déclaratives du solde de la taxe d’apprentissage (TA)
+
+      Bloc                 Rubrique                      Donnée
+
+
+                    CTP Solde de la taxe          CTP 995 Solde de la taxe
+S21.G00.23.001
+                    d’apprentissage                       d’apprentissage
+
+
+                    CTP Déduction Solde
+                    de la taxe                 CTP 996 Réduction du solde
+S21.G00.23.001      d’apprentissage           de la taxe d’apprentissage liés
+                    (Versement                  à des subventions aux CFA
+                    libératoire)
+                    CTP Déduction Solde
+                    de la taxe                 CTP 997 Réduction du solde
+S21.G00.23.001      d’apprentissage           de la taxe d’apprentissage liés
+                    (Versement                     à des créances alternants
+                    libératoire)
+
+                                                      076 – Solde de la taxe
+                    Solde de la taxe
+S21.G00.82.002                                     d’apprentissage versé en
+                    d’apprentissage
+                                                                 numéraire
+
+                    Réduction du solde       077 - Réduction du solde de la
+                    de la taxe                  taxe d’apprentissage liée à
+S21.G00.82.002      d’apprentissage liés à   des subventions aux CFA (Art.
+                    des subventions aux         L6241-4 du code du travail)
+                    CFA                                    versé en nature
+                    Réduction du solde
+                                                078 – Réduction du solde de
+                    de la taxe
+                                               la taxe d’apprentissage liée à
+S21.G00.82.002      d’apprentissage liés à
+                                                des créances alternants (Art.
+                    des créances
+                                                 L6241-4 du code du travail)
+                    alternants
+
+
+
+
+                                                                           64
+   Contribution
+ supplementaire
+à l’apprentissage
+
+
+
+
+                    65
+  L’assujettissement
+
+Quels sont les employeurs redevables de la CSA ?
+Sont assujetties à la contribution supplémentaire à l’apprentissage les
+employeurs qui :
+   > Sont redevables de la taxe d’apprentissage ;
+   > Ont un effectif annuel moyen d’au moins 250 salariés ;
+   > Et qui ont employé au cours de l’année précédente dans leur effectif moins
+     de 5 % de salariés sous contrat favorisant l’insertion professionnelle (CFIP)
+     appartenant à l’une des catégories suivantes :
+         -    Les salariés sous contrat de professionnalisation ou
+              d'apprentissage et, pendant l'année suivant la date de fin du contrat
+              de professionnalisation ou d'apprentissage, les salariés embauchés
+              en contrat à durée indéterminée par l'entreprise à l'issue dudit
+              contrat ;
+         -    Les personnes bénéficiant d'une convention industrielle de
+              formation par la recherche (CIFRE)
+
+L’identification des redevables obéit donc aux mêmes règles d’assujettissement
+que la taxe d’apprentissage pour les entreprises de 250 salariés et plus.
+À noter : les employeurs qui cessent leur activité en cours d’année ne sont pas
+redevables de la CSA pour l’année de cessation d’activité. Par exemple, un
+employeur qui cesse son activité en mars 2024 n'est pas redevable de la CSA
+au titre des premiers mois de l’année 2024 mais reste redevable de l’entièreté de
+la CSA au titre de l’année 2023. Pour rappel, la déclaration et le paiement des
+contributions, en cas de cessation d’activité doivent être réalisés dans les 60
+jours qui suivent la cessation d’activité.
+
+
+
+
+                                                                                66
+ La cinématique déclarative
+
+La cinématique de gestion de la CSA est la suivante :
+   > À partir des données déclarées par les employeurs en DSN au titre de
+     l’exercice de l’année N, c’est-à-dire au dépôt de la DSN de décembre de
+     l’année N (exigible le 5 ou 15 de l’année N), les Urssaf calculent et notifient
+     les effectifs nécessaires au calcul de la CSA : Contrats favorisant l’insertion
+     professionnelle (CFIP)de l’entreprise et effectifs moyens annuels ;
+   > Les employeurs calculent leur contribution à partir du ratio d’emploi
+     d’alternants et déclarent leur contribution CSA sur la DSN de mars de
+     l’année N+1 (exigible le 5 ou 15 avril de l’année N+1).
+
+
+
+  Quels sont les effectifs considérés ?
+
+Employeurs (hors entreprises de travail temporaire)
+Pour le calcul de l’effectif d’assujettissement (assujettissement à partir de 250
+salariés et seuil de 2000 salariés) et du ratio d’emploi d’alternants, en application
+de l’Article L. 6331-1 A du code du travail, l'effectif salarié et le franchissement
+d'un seuil d'effectif salarié sont déterminés selon les modalités prévues à l'article
+L. 130-1 du code de la sécurité sociale.
+
+Conformément à l’article L. 130-1 du code de la sécurité sociale, les alternants
+intérimaires mis à disposition par une ETT ne sont pas valorisés dans le calcul
+des effectifs d’alternants de l’entreprise utilisatrice : seuls les salariés de
+l’entreprise, déclarés sur la DSN des établissements de l’entreprise, sont
+valorisés dans le calcul.
+
+La période à retenir pour apprécier le nombre de salariés est l'année au titre de
+laquelle la contribution est due. Ainsi, c’est l’effectif des périodes d’emploi de
+l’année N qui est apprécié pour calculer la redevabilité de la CSA due sur la DSN
+de mars N+1.
+En cas de franchissement pour la première année du seuil de 250 salariés, les
+employeurs concernés sont exonérés de la contribution supplémentaire à
+l’apprentissage durant 5 années consécutives.
+
+
+                                                                                   67
+        Bon à savoir
+
+              Le ratio d’emploi des alternants des employeurs
+                   sera le rapport des effectifs suivants :
+
+   - l'EMA CSA correspondant à l'effectif moyen annuel de l’entreprise,
+     permettant le calcul du taux de contrats favorisant l’insertion
+     professionnelle (CFIP) employés (dénominateur de ce taux) ;
+   - l'EMA CFIP correspondant à l'effectif moyen annuel des CFIP de
+     l’entreprise (numérateur de ce taux).
+
+
+
+
+Entreprises de travail temporaire
+
+Calcul de l’effectif d’assujettissement de l’ETT
+Pour vérifier si l’entreprise de travail temporaire est assujettie à la contribution
+supplémentaire à l’apprentissage (seuil de 250 ou 2000 salariés), tous les
+salariés, permanents ou non permanents (donc y compris les salariés
+intérimaires de l’ETT mis à disposition dans des entreprises utilisatrices), sont
+intégrés dans l’effectif de l’entreprise de travail temporaire.
+
+Calcul du ratio d’emploi d’alternants de l’ETT
+Le calcul du ratio d’emploi d’alternants des entreprises de travail temporaire est
+apprécié sur les seuls salariés permanents, sans tenir compte des salariés
+temporaires mis à disposition des entreprises utilisatrices.
+
+
+
+
+                                                                                  68
+          Bon à savoir
+                 Le ratio d’emploi d’alternants des entreprises
+                          de travail temporaire sera donc
+                         le rapport des effectifs suivants :
+    -    Salariés permanents sous contrat de professionnalisation ou
+         d'apprentissage et, pendant l'année suivant la date de fin du contrat
+         de professionnalisation ou d'apprentissage, les salariés permanents
+         embauchés en contrat à durée indéterminée par l'entreprise à l'issue
+         dudit contrat + les personnes bénéficiant d'une convention industrielle
+         de formation par la recherche
+    -    Effectif moyen annuel des salariés permanents de l’entreprise de
+         travail temporaire
+
+
+
+
+Les Urssaf notifient aux entreprises de travail temporaire 2 effectifs différents :
+   > Un effectif sera calculé intégrant les salariés intérimaires pour vérifier si
+     l’entreprise de travail temporaire est assujettie à la CSA. Il s’agit du même
+     effectif que celui pris en compte pour les déclarations de cotisations de
+     sécurité sociale ;
+   > Un deuxième effectif spécifique aux entreprises de travail temporaire sera
+     calculé en tenant compte uniquement des permanents, donc hors
+     intérimaires, pour calculer le ratio d’alternants de l’ETT.
+
+
+
+
+                                                                                      69
+Identification des effectifs favorisant l’insertion
+professionnelle
+Les contrats favorisant l’insertion professionnelle sont les suivants :
+   > Contrats de professionnalisation et contrats d’apprentissage ;
+   > CDI anciennement contrats de professionnalisation ou d’apprentissage
+     (embauche pendant l’année suivant la date de fin du contrat) ;
+   > Conventions industrielles de formation par la recherche en entreprise
+     (CIFRE).
+
+
+
+Contrats de professionnalisation et d’apprentissage
+L’identification des contrats de professionnalisation et d’apprentissage est
+possible par la rubrique « Dispositif de politique publique et conventionnel -
+S21.G00.40.008 » comportant les valeurs :
+> Contrats de professionnalisation : « 61 - Contrat de Professionnalisation » ;
+> Contrats d’apprentissage : « 64 - Contrat d'apprentissage entreprises
+  artisanales ou de moins de 11 salariés (loi du 3 janvier 1979) », « 65 - Contrat
+  d’apprentissage entreprises non inscrites au répertoire des métiers d’au moins
+  11 salariés (loi de 1987) » et « 81 - Contrat d'apprentissage secteur public (Loi
+  de 1992) ».
+
+
+
+CIFRE
+À partir de 2022, la norme DSN a été adaptée afin d’identifier les CIFRE, qui sont
+déclarés en « Dispositif de politique publique et conventionnel -
+S21.G00.40.008», et « Ancien dispositif de politique publique et conventionnel -
+S21.G00.41.005 » avec une nouvelle valeur : « 66 – Convention industrielle de
+formation par la recherche en entreprise ».
+
+
+
+
+Identification des CDI anciennement contrat de
+                                                                                70
+professionnalisation ou d’apprentissage
+Les Urssaf réaliseront un contrôle adéquat de l’historique des salariés en CDI
+afin d’identifier les anciens contrats de professionnalisation et d’apprentissage
+dans le calcul des effectifs.
+
+
+
+   Le calcul de la contribution
+
+
+Comment l’assiette est-elle déterminée ?
+
+Employeurs hors ETT
+La contribution supplémentaire à l'apprentissage est assise sur les
+rémunérations retenues pour l'assiette de la taxe d'apprentissage en application
+de l'article L.6241-1 du code du travail.
+
+Entreprises de travail temporaire
+Pour les entreprises de travail temporaire, la contribution est assise sur les seules
+rémunérations versées aux salariés permanents. Elle n'est donc pas due sur les
+rémunérations versées aux salariés temporaires mis à disposition.
+
+
+
+Quels sont les taux de contribution applicables ?
+En Métropole (hors Alsace-Moselle) et dans les DOM y compris Mayotte et Saint-
+Martin, le taux appliqué à l’assiette de la CSA est le suivant :
+
+    Quota de contrats              Entreprises                  Entreprises
+  favorisant l’insertion         de 250 à moins               de 2000 salariés
+     professionnelle             de 2000 salariés                 et plus
+
+        Taux < 1 %                     0,4 %                        0,6 %
+       1% ≥ taux < 2%                                 0,2%
+       2% ≥ taux < 3%                                 0,1%
+      3 % ≥ taux < 5 %                               0,05 %
+
+Concernant les établissements des départements du Haut-Rhin, du Bas-
+Rhin et de la Moselle, le taux appliqué à l’assiette de la CSA est réduit à 52 %
+
+                                                                                   71
+de son montant :
+
+
+    Quota de contrats          Entreprises                 Entreprises
+  favorisant l’insertion     de 250 à moins              de 2000 salariés
+     professionnelle         de 2000 salariés                et plus
+
+
+       Taux < 1 %                 0,208 %                     0,312 %
+       1% ≥ taux < 2%                             0,104 %
+       2% ≥ taux < 3%                             0,052 %
+      3 % ≥ taux < 5 %                            0,026 %
+
+
+Les employeurs qui franchissent pour la première année le seuil de 2000 salariés
+se voient appliquer les taux des entreprises de 250 salariés à moins de 2000
+salariés pour 5 années consécutives.
+
+
+
+Quelle est l’exonération applicable en cas de progression
+d’effectifs d’alternants d’une année à l’autre ?
+
+Les employeurs dont l’effectif annuel moyen des salariés sous contrat
+d’apprentissage, de professionnalisation et Cifre est supérieur ou égal à 3% de
+l’effectif annuel moyen de l’entreprise peuvent être exonérées de la contribution
+supplémentaire à l’apprentissage au titre d’une année considérée si l’entreprise
+justifie d’une progression de l’effectif annuel moyen des salariés sous contrat
+d’apprentissage, de professionnalisation et Cifre d’au moins 10% par rapport à
+l’année précédente.
+
+Le respect de cette condition s’apprécie en prenant en compte l’effectif annuel
+moyen des salariés sous contrat d’apprentissage ou de professionnalisation, et
+Cifre. La comparaison s’effectue entre deux années civiles.
+
+
+
+
+                                                                               72
+     Exemple
+ Un employeur dont le seuil d’alternants est compris entre 3 et 4% en 2023 et
+ qui a employé, en 2022, 15,25 salariés en contrats d’apprentissage ou de
+ professionnalisation peut être exonérée de la contribution due en 2024 si elle a
+ employé en 2023 au moins 16,78 salariés en contrats d’apprentissage ou de
+ professionnalisation (15,25 x 110% = 16,775 arrondis à 16,78).
+
+
+    Exemple
+ Un employeur de 480 salariés a embauché au cours de l’année 2022 15 salariés
+ en contrats d’apprentissage ou de professionnalisation (soit un ratio d’alternants
+ de 3,125%). En 2023, cette entreprise a embauché 17 salariés en contrats
+ d’apprentissage ou de professionnalisation (soit un ratio d’alternants de
+ 3,542%).
+
+ La progression des effectifs d’alternants entre 2022 et 2023 est de 13,33%
+ (soit [(17-15) x 100] / 15 = 13,33 %). En 2024, cette entreprise est exonérée de
+ la contribution supplémentaire à l’apprentissage car elle cumule les deux
+ conditions ci-dessous :
+      Un ratio d’alternant compris entre 3 et 5%
+      Une progression de l’effectif d’alternants d’au moins 10%
+
+
+
+
+   Les modalités déclaratives
+
+Déclaration annuelle de la contribution supplémentaire
+à l’apprentissage
+La contribution supplémentaire à l’apprentissage, est déclarée annuellement sur
+la DSN de mars 2023 (exigible le 5 ou 15 avril 2023), au titre de l’exercice 2022.
+
+La contribution supplémentaire à l’apprentissage est déclarée sur un seul
+établissement de l’entreprise :
+   > En rubrique et « Cotisation établissement – S21.G00.82 », en valeur
+     « 079 – Contribution supplémentaire à l’apprentissage (CSA) ».
+     - Le montant déclaré correspond au montant dû par l’entreprise pour
+       l’ensemble de ses établissements ;
+                                                                                 73
+   > Sur le CTP 998, en bloc « Cotisation agrégée - S21.G00.23.004 ». En
+     agrégé, le montant déclaré correspondra au montant dû par l’entreprise pour
+     l’ensemble de ses établissements.
+La déclaration de la CSA est une déclaration en montant. Le CTP 998 a un taux
+à 100%, c’est ce montant qui sera retenu pour le recouvrement de la contribution
+et qui sera reporté dans le montant total des cotisations dues auprès de l’Urssaf.
+L’exonération des employeurs à la contribution supplémentaire à l’apprentissage
+doit être déclarée dans un bloc « Cotisation établissement - S21.G00.82 » portant
+le code de cotisation « 080 - Exonération de la contribution supplémentaire à
+l’apprentissage » avec une valeur mentionnée à zéro.
+
+
+
+Déclaration des contrats favorisant l’insertion
+professionnelle
+Les contrats favorisant l’insertion professionnelle sont les suivants :
+> Contrats de professionnalisation et contrats d’apprentissage,
+> CDI anciennement contrats de professionnalisation ou d’apprentissage
+  (embauche pendant l’année suivant la date de fin du contrat),
+> Conventions industrielles de formation par la recherche en entreprise (CIFRE).
+
+
+L’identification des contrats de professionnalisation et d’apprentissage est
+possible par la rubrique « Dispositif de politique publique et conventionnel
+- S21.G00.40.008 » comportant les valeurs :
+> Contrats de professionnalisation : « 61 - Contrat de Professionnalisation »,
+> Contrats d’apprentissage : « 64 - Contrat d'apprentissage entreprises
+  artisanales ou de moins de 11 salariés (loi du 3 janvier 1979) », « 65 - Contrat
+  d’apprentissage entreprises non inscrites au répertoire des métiers d’au moins
+  11 salariés (loi de 1987) » et « 81 - Contrat d'apprentissage secteur public (Loi
+  de 1992) ».
+
+
+
+
+La norme DSN a été adaptée en 2022 afin d’identifier les CIFRE, qui sont
+déclarés en « Dispositif de politique publique et conventionnel -
+S21.G00.40.008 », et « Ancien dispositif de politique publique et conventionnel -
+
+                                                                                74
+S21.G00.41.005 » avec une nouvelle valeur : « 66 – Convention industrielle de
+formation par la recherche en entreprise ».
+
+
+
+
+                          Fiches consignes N°2588 :
+Modalités déclaratives de la contribution supplémentaire à l’apprentissage (CSA)
+
+
+
+
+      Bloc              Rubrique           Donnée
+
+                                                    CTP 998 correspondant à la
+ S21.G00.23.004     Cotisation agrégée              déclaration du montant de la
+                                                                contribution CSA
+
+                                                  Convention industrielle de
+                                               formation par la recherche en
+                       Dispositif de
+                                                          entreprise (CIFRE)
+ S21.G00.40.008      politique publique
+                                                66 - Convention industrielle de
+                     et conventionnel
+                                                 formation par la recherche en
+                                                           entreprise (CIFRE)
+
+                                                  Convention industrielle de
+                                               formation par la recherche en
+                    Ancien dispositif de
+                                                          entreprise (CIFRE)
+ S21.G00.41.005      politique publique
+                                                66 - Convention industrielle de
+                     et conventionnel
+                                                 formation par la recherche en
+                                                           entreprise (CIFRE)
+
+                        Cotisation
+   S21.G00.82                                À renseigner en montant euros
+                      établissement
+
+
+
+
+                                                                              75
+En savoir plus…
+
+
+
+
+                  76
+  Le rôle de l'Urssaf
+
+
+Une mission de conseil dans les obligations
+déclaratives
+Les contributions de formation professionnelle et d’apprentissage sont
+recouvrées et contrôlées par l’Urssaf selon les règles et sous les garanties et
+sanctions applicables au recouvrement des cotisations du régime général de la
+sécurité sociale.
+
+Les Urssaf sont en charge du recouvrement des contributions légales de
+formation professionnelle, et des contributions conventionnelles sur option des
+branches professionnelles concernées. Les versements volontaires de formation
+professionnelle ne sont pas concernés par le transfert aux Urssaf : ils continuent
+à être collectés par les Opco.
+
+Le réseau des Urssaf accompagne et conseille les employeurs dans la réalisation
+de leurs obligations déclaratives et contributives : questions générales relatives
+à l'assujettissement, à la déclaration, aux contributions et aux déductions
+assistance DSN, questions relatives au paiement…
+
+
+ Les Urssaf en charge des sujets suivants :
+   > Assujettissement et redevabilité des entreprises ;
+   > Enregistrement de la déclaration des contributions ;
+   > Enregistrement de la déclaration des déductions ;
+   > Recouvrement des contributions et affectation du paiement ;
+   > Contrôle de l’application de la législation (contrôle sur pièces et sur place).
+
+
+Les services de l’Urssaf :
+   > www.urssaf.fr
+   > Tél. 3957 > du lundi au vendredi, de 9h00 à 17h00
+
+
+
+
+                                                                                  77
+ Le rôle de France Compétences
+
+Une autorité nationale de financement et de régulation de la formation
+professionnelle et de l’apprentissage
+La loi n° 2018-771 pour la liberté de choisir son avenir professionnel (JO du 6
+septembre 2018) a créé France Compétences, en charge du pilotage de la
+formation professionnelle, à effet du 1er janvier 2019. Constituée sous la forme
+d’un établissement national, il s’agit d’une institution nationale publique
+administrative composée de représentants de l’État, des régions, des
+organisations syndicales de salariés, des organisations professionnelles
+d’employeur ainsi que de personnes qualifiées.
+
+France Compétences a pour missions :
+   > D’assurer la répartition de la collecte des contributions légales à la formation
+     professionnelle des employeurs et des travailleurs indépendants auprès des
+     attributaires finaux en charge de différents dispositifs :
+   > D’organiser et financer le conseil en évolution professionnelle des actifs
+     occupés ;
+   > De contribuer au suivi et à l’évaluation de la qualité des actions de formations
+     et d’émettre un avis sur le référentiel national visé ;
+   > D’établir le répertoire national des certifications professionnelles et le
+     répertoire spécifique.
+
+
+Au titre de la répartition de la collecte des contributions à la formation
+professionnelle, les attributaires sont :
+   > Pour l’alternance : aux Opérateurs de compétences (Opco), aux Régions, à
+     l’Agence de services et de paiement et au Centre national de la fonction
+     publique territoriale (CNFPT) ;
+   > Pour le plan de développement des compétences (entreprises de moins de
+     50 salariés) : aux Opco ;
+   > Pour le compte personnel de formation (CPF) mobilisés par les salariés, les
+     travailleurs indépendants, leurs conjoints collaborateurs ou les demandeurs
+     d’emploi : à la Caisse des dépôts et consignations (CDC) ;
+   > Pour les projets de transitions professionnelles (PTP) : aux associations
+
+                                                                                  78
+     Transitions Pro ;
+   > Pour la formation des travailleurs indépendants et de leurs conjoints
+     collaborateurs : aux fonds d’assurance formation de non-salariés et des
+     Opco agréés pour ces publics ;
+   > Pour la formation des demandeurs d’emploi : à l’État.
+
+
+Les fonds collectés par les organismes de sécurité sociale (Urssaf) au titre des
+contributions légales de formation professionnelle et d’apprentissage seront
+fléchés et répartis par France Compétences auprès des différents
+attributaires selon les modalités fixées par les décrets n° 2018-1331 du 28
+décembre 2018 relatif à l'organisation et au fonctionnement de France
+compétences et n° 2020-1739 du 29 décembre 2020 relatif au recouvrement et
+à la répartition des contributions dédiées au financement de l'apprentissage et
+de la formation professionnelle.
+
+
+
+
+                                                                              79
+ Les opérateurs de compétences (OPCO)
+
+Les OPCO ont notamment pour missions :
+
+
+  > De collecter les contributions légales des employeurs au titre du financement
+    de la formation professionnelle et de l’alternance jusqu’au 1er mars 2022
+    (masse salariale 2021) ;
+  > De collecter les contributions conventionnelles ou volontaires (les modalités
+    seront précisées par l’ordonnance) ;
+  > D’assurer le financement des contrats d’alternance (contrat d’apprentissage,
+    contrat de professionnalisation, la reconversion ou promotion par
+    alternance), selon les niveaux de prise en charge fixés par les branches
+    professionnelles ;
+  > D’apporter un appui technique aux branches professionnelles pour :
+   - Établir la gestion prévisionnelle de l’emploi et des compétences (GPEC) ;
+
+   - Déterminer les niveaux de prise en charge des contrats d’apprentissage
+     et des contrats de professionnalisation ;
+   - Les accompagner dans leur mission de certification (construction des
+     référentiels de certification qui décrivent précisément les capacités,
+     compétences et savoirs exigés pour l’obtention de la certification visée) ;
+  > D’assurer un service de proximité au bénéfice des TPE et PME,
+    permettant d’améliorer l’information et l’accès des salariés de ces
+    entreprises à la formation professionnelle et d’accompagner ces entreprises
+    dans l’analyse et la définition de leurs besoins en matière de formation
+    professionnelle, notamment au regard des mutations économiques et
+    techniques de leur secteur d’activité ;
+  > De promouvoir les modalités de réalisation des actions de formation en tout
+    ou partie à distance et en situation de travail auprès des entreprises ;
+  > De contrôler la qualité des actions de formation qu’ils financent.
+
+
+
+
+                                                                              80
+La loi pour la liberté de choisir son avenir professionnel a organisé la
+transformation au 1er avril 2019 des Opca, qui étaient en charge de la collecte
+des contributions de formation professionnelle, en Opco (opérateurs de
+compétences).
+
+          Bon à savoir
+
+          11 OPCO ont été agréés par arrêtés ministériels au 1er avril 2019,
+          selon une logique de branches professionnelles :
+       Ocapiat : agriculture et agroalimentaire (anciennement Fafsea et
+       Opcalim) ;
+       Constructys : OPCO de la construction, BTP, négoce de matériaux de
+       construction ;
+       Opco Mobilités : transports et services de l’automobile (anciennement
+       Opca-TS et Anfa) ;
+       Opcommerce : commerce (Anciennement Forco) ;
+       Atlas : services financiers et conseil (anciennement Opcabaia et Fafiec) ;
+       Afdas : culture, industries créatives, médias, communication,
+       télécommunication, tourisme, sport, loisir, divertissement ;
+       Opco Santé : santé, médico-social, social (anciennement Unifaf) ;
+       Uniformation : accompagnement social et éducatif, jeunesse, loisirs -
+       Intervention sociale et familiale, aide à domicile - Habitat social - Emploi
+       et insertion - Protection sociale ;
+       AKTO : (anciennement FAF.TT, FAFIH, INTERGROS et OPCALIA et la
+       branche propreté) réunit 27 branches professionnelles des secteurs :
+       hôtellerie et restaurations, commerce de gros BtoB, travail temporaire,
+       propreté et services, prévention sécurité, transport aérien et manutention
+       aéroportuaire, entretien et location textile, enseignement privé, activités
+       du déchet, services de l’eau …
+       Opco Entreprises de Proximité : artisanat, professions libérales
+       (anciennement Agefos-PME et Actalians) ;
+       OPCO 2i : Inter industriel : Industrie, métallurgie, textile (anciennement
+       Opcaim, Opca Defi, Opca 3+).
+
+
+
+
+                                                                                    81
+ Le rôle de la Caisse des dépôts
+
+
+Affectation des versements relatifs au solde de la taxe
+d’apprentissage
+Depuis 2023, les employeurs déclarent annuellement sur la DSN d’avril (exigible
+le 5 ou 15 mai) le solde de la taxe d’apprentissage, au taux de 0,09% au titre de
+la masse salariale assujettie de l’année précédant la déclaration.
+
+Les données déclaratives du solde de la taxe d’apprentissage (montant déclaré
+net des déductions) sont transmises par l’Urssaf à la Caisse des dépôts et
+consignations.
+En application des articles L. 6131-4 et L. 6242-1 du code du travail dans leur
+rédaction issue de l’Ordonnance n° 2021-797 du 23 juin 2021, l’Etat confie à la
+Caisse des dépôts et consignations la gestion - pour son compte - du
+reversement du solde de la taxe d'apprentissage au moyen d’un service
+dématérialisé dédié dénommé SOLTéA.
+La Caisse des dépôts et consignations se voit ainsi confier une double mission :
+   > Mettre en place une plateforme numérique destinée à recueillir les choix
+     d’affectation des employeurs pour les versements ;
+   > Sur la base de ces choix, verser les fonds collectés aux établissements
+     désignés. Pour ce faire, la Caisse des dépôts et consignations gérera un
+     fonds dédié.
+
+Ainsi les employeurs déclarent via la plateforme dématérialisée SOLTéA
+l’affectation souhaitée du solde de la taxe d’apprentissage vers les structures
+habilitées à le recevoir.
+
+
+
+
+                                                                               82
+ Référentiels et annexes règlementaires
+
+
+Réglementation commune
+Loi n°2018-771 pour la liberté de choisir son avenir professionnel
+(JO du 6 septembre 2018)
+
+Loi n°2019-486 du 22 mai 2019 relative à la croissance et la transformation des
+entreprises, notamment ses articles 11 et 155 (JO du 23 mai 2019)
+Loi n° 2019-1446 du 24 décembre 2019 de financement de la sécurité sociale
+pour 2020
+Loi de finances n°2019-1479 du 28 décembre 2019 de finances pour 2020
+Décret n°2018-1209 du 21 décembre 2018 relatif à l’agrément et au
+fonctionnement des opérateurs de compétences, des fonds d’assurance
+formation des non-salariés et au contrôle de la formation professionnelle
+(JO du 23 décembre 2018)
+
+Décret n°2018-1331 du 28 décembre 2018 relatif à l’organisation et au
+fonctionnement de France Compétences (JO du 30 décembre 2018)
+Décret n°2019-204 du 18 mars 2019 relatif à la gestion des contributions de la
+formation professionnelle en Guadeloupe, en Guyane, en Martinique, à Mayotte,
+à La Réunion, à Saint-Barthélemy et à Saint-Martin (JO du 20 mars 2019)
+
+Décret n°2019-1326 du 10 décembre 2019 relatif à France compétences et aux
+opérateurs de compétences (JO du 11 décembre 2019)
+
+Décret n°2019-1586 du 31 décembre 2019 relatif aux seuils d’effectif
+(JO du 1er janvier 2020)
+Ordonnance n° 2021-797 du 23 juin 2021 relative au recouvrement, à l’affectation
+et au contrôle des contributions des employeurs au titre du financement de la
+formation professionnelle et de l’apprentissage.
+Décret n° 2021-1916 du 30 décembre 2021 relatif au recouvrement, à l'affectation
+et au contrôle des contributions des employeurs au titre du financement de la
+formation professionnelle et de l'apprentissage.
+Décret n° 2021-1917 du 30 décembre 2021 relatif au recouvrement et à la
+répartition des contributions des employeurs dédiées au financement de la
+formation professionnelle et de l'apprentissage.
+
+                                                                              83
+Loi n° 2021-1900 du 30 décembre 2021 de finances pour 2022.
+
+Loi n° 2023-1250 du 26 décembre 2023 de financement de la sécurité sociale
+pour 2024
+
+
+
+Réglementation applicable à la CFP et à la CPF-CDD
+Décret n°2018-1337 du 28 décembre 2018 portant extension et adaptation de la
+partie réglementaire du code du travail, et de diverses dispositions relatives au
+travail, à l’emploi et à la formation professionnelle à Mayotte (JO du 30 décembre
+2018)
+
+Décret n°2018-1343 du 28 décembre 2018 portant extension et adaptation de la
+partie réglementaire du code du travail, et de diverses dispositions relatives au
+travail, à l’emploi et à la formation professionnelle à Mayotte (JO du 30 décembre
+2018)
+Décret n°2018-1344 du 28 décembre 2018 relatif aux contributions versées par
+certaines catégories d’employeurs (JO du 30 décembre 2018)
+
+Décret n°2018-1233 du 24 décembre 2018 relatif aux contrats à durée
+déterminée ne donnant pas lieu au versement de la contribution spécifique assise
+sur le revenu d’activité pour les cotisations sociales des titulaires d’un contrat à
+durée déterminée (JO du 26 décembre 2018)
+
+
+
+Réglementation applicable à la taxe d’apprentissage
+Loi n°2018-1317 du 28 décembre 2018 - art. 136 (V)
+
+Décret n° 2019-1438 du 23 décembre 2019 relatif aux modalités de déductions
+de la taxe d’apprentissage et au niveau d’activité des organismes agissant au
+plan national pour la promotion de la formation technologique et professionnelle
+initiale et des métiers habilités à percevoir le solde de la taxe d’apprentissage
+(JO du 26 décembre 2019)
+Décret n° 2019-1491 du 27 décembre 2019 relatif au solde de la taxe
+d’apprentissage (JO du 29 décembre 2019)
+
+Arrêté du 30 décembre 2019 fixant la liste nationale des organismes habilités à
+percevoir le solde de la taxe d’apprentissage (JO du 5 janvier 2020)
+Arrêté du 3 janvier 2020 fixant le montant forfaitaire de la créance définie à
+l'article L. 6241-4 du code du travail imputable sur le solde de la taxe
+                                                                             84
+d'apprentissage (JO du 8 janvier 2020)
+
+Arrêté du 13 février 2020 modifiant l’arrêté du 30 décembre 2019 fixant la liste
+nationale des organismes habilités à percevoir le solde de la taxe
+d’apprentissage (JO du 27 mars 2020)
+
+Art. 125 de la loi n° 2025-127 du 14 février 2025 de finances pour 2025
+
+XIII de l’article 135 de la loi n° 2026-103 du 19 février 2026 de finances pour 2026
+
+
+
+Réglementation applicable à la CSA
+Loi n°2018-1317 du 28 décembre 2018 - art. 136 (V)
+
+
+
+
+                                                                                  85
+ Toutes les informations sur la réforme
+ des contributions de formation
+ professionnelle et d'apprentissage
+
+
+
+Sur internet
+  > www.urssaf.fr
+  > SOLTéA, plateforme du solde de la taxe d'apprentissage
+
+
+
+Par téléphone
+  > 3957 > du lundi au vendredi de 9h00 à 17h00
+
+
+
+
+                                                             86
+ Toutes les informations
+ sur la déclaration en DSN
+
+
+Sur internet
+  > www.urssaf.fr
+  > Guide Urssaf : comment déclarer et régulariser les cotisations Urssaf en DSN
+  > Fiches consignes DSN sur www.net-entreprises.fr
+  > Modalités déclaratives de la contribution à la formation professionnelle
+  > Modalités déclaratives de la contribution dédiée au financement du compte
+    personnel de formation (CPF) pour les titulaires de CDD
+  > Modalités déclaratives de la part principale de la taxe d'apprentissage (TA)
+  > Modalités déclaratives du solde de la taxe d'apprentissage (TA)
+  > Modalités déclaratives de la contribution supplémentaire à l’apprentissage
+    (CSA)
+
+
+
+
+Par téléphone
+  > 3957 > du lundi au vendredi de 9h00 à 17h00.
+
+
+
+
+                                                                               87
+  Glossaire
+
+CFP : Contribution à la formation professionnelle - Contribution pour le
+financement de la formation continue.
+CPF-CDD : Contribution dédiée au financement du Compte Personnel de
+Formation pour les titulaires de CDD.
+CSA : Contribution supplémentaire à l’apprentissage - Contribution visant à
+inciter les employeurs de 250 salariés et plus à recourir davantage aux contrats
+favorisant l’insertion professionnelle.
+DSN : Déclaration sociale nominative.
+IDCC : Identifiant de convention collective.
+
+OPCO : Opérateur de compétences - Organisme agréé par l'État chargé
+d’accompagner la formation professionnelle.
+
+TA : Taxe d’apprentissage - Contribution versée par les employeurs pour le
+financement de l’apprentissage.
+Urssaf : Union pour le recouvrement des cotisations de sécurité sociale et
+d’allocations familiales - Organisme ayant pour mission principale la collecte et
+le recouvrement et la redistribution aux autres organismes des cotisations et
+contributions, dont les contributions de formation professionnelle et
+d’apprentissage.
+
+
+
+
+                                                                                    88
+

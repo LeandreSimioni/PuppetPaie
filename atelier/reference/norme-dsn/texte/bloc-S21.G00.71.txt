@@ -1,0 +1,65 @@
+# Bloc S21.G00.71
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 287-287
+
+--- p. 287 ---
+  S21.G00.71  2025-12-24
+
+PrevoyanceAffiliation.DateDebut
+  La rubrique "Date de début de l'affiliation" est conditionnelle et doit seulement être renseignée dans
+  certains cas très précis, lorsque la date de début d'affiliation au contrat OC ne correspond pas à la date de
+  début du contrat de travail : nouvelle affiliation liée à un changement d'établissement ou à un changement
+  de statut catégoriel, fin d'une dispense d'affiliation, etc. La liste complète des cas d’utilisation de cette
+  rubrique est disponible sur le site net-entreprises.fr.
+  SIG-11 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de l’affiliation  S21.G00.70.015
+PrevoyanceAffiliation.DateFin
+  La rubrique "Date de fin de l'affiliation" est conditionnelle et doit seulement être renseignée dans certains
+  cas très précis, lorsque la demande de radiation du contrat OC ne découle pas d'une fin du contrat de
+  travail, mais d'un événement tel qu'un changement d'établissement, un changement de statut catégoriel, une
+  dispense d'afffiliation, etc. La liste complète des cas d’utilisation de cette rubrique est disponible sur le site
+  net-entreprises.fr.
+  CCH-11 : La "Date de fin de l’affiliation - S21.G00.70.015" doit être supérieure ou égale à la "Date de début de
+  l’affiliation - S21.G00.70.014"
+
+  SIG-12 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+S21.G00.71
+
+Retraite complémentaire  S21.G00.71
+Code régime Retraite Complémentaire  S21.G00.71.002
+
+Code régime Retraite Complémentaire  S21.G00.71.002
+RetraiteComplementaire.CodeRetraiteComplementaire
+  Indiquer le code de l’organisme ou le code du régime de retraite complémentaire ou du régime spécial
+  auquel est affilié l'individu.
+  CCH-12 : La présence d’un bloc "Retraite complémentaire - S21.G00.71" dont le code est renseigné avec la valeur
+  "90000 : pas de régime complémentaire" interdit la présence d’un autre bloc "Retraite complémentaire - S21.G00.71"
+  pour le même "Contrat - S21.G00.40".
+
+  CCH-13 : Si la rubrique "Code régime Retraite Complémentaire - S21.G00.71.002" est renseignée avec la valeur
+  "RETC", alors le "Code statut catégoriel Retraite Complémentaire obligatoire - S21.G00.40.003" doit être renseigné
+  avec la valeur :
+  • "01 - cadre (article 4 et 4bis)"
+  • ou "02 - extension cadre pour retraite
+  • ou "04 - non cadre " si la rubrique Statut du salarié (conventionnel) - S21.G00.40.002" est égale à "04 - autres cadres
+  au sens de la convention collective (ou du statut pour les régimes spéciaux)".
+
+  SIG-11 : La valeur "CRPCEN : Clercs et employés de notaire" est interdite si la rubrique "Complément de base au
+  régime obligatoire - S21.G00.40.016" est différente de "01 - régime local Alsace Moselle".
+
+  287 / 361

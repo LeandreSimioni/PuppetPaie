@@ -1,0 +1,1047 @@
+
+Code officiel géographique au 1er janvier 2026 | Insee
+false
+Aller au contenu
+Aide
+Thèmes
+Recherche
+English
+Presse
+Menu
+Menu
+Blog
+Presse
+Aide
+English
+Lancer la recherche sur le site
+Thèmes
+Statistiques et études
+Cherchez vos statistiques par&hellip;
+Thèmes
+Économie - conjoncture - comptes nationaux
+Démographie
+Entreprises
+Plus de thèmes&hellip;
+Niveaux géographiques
+France
+Toutes les régions ou tous les départements
+Toutes les communes
+Plus de niveaux géographiques&hellip;
+Catégories
+Données
+Publications
+Plus de catégories&hellip;
+Collections
+Insee Première
+Notes et points de conjoncture
+Plus de collections&hellip;
+Définitions, méthodes et qualité
+Définitions
+Sources statistiques et indicateurs
+Liste des sources statistiques
+Liste des indicateurs
+Documentation complémentaire sur le recensement
+La qualité dans le Service statistique public (SSP)
+Le cadre de référence
+La gouvernance
+La politique et la stratégie qualité du SSP
+Les engagements européens
+Nomenclatures
+Nomenclature d’activités française
+Nomenclature agrégée - NA, 2008
+Classification des produits française
+Classification des fonctions de consommation des ménages
+Catégories juridiques
+Nomenclatures des professions et catégories socioprofessionnelles
+Géographie administrative et d'étude
+Recherche sur une zone géographique
+Téléchargement de fichiers
+Historique des communes
+Modèles, méthodes et outils statistiques
+Les modèles statistiques
+Les outils statistiques
+Méthodologie statistique
+Courrier des statistiques
+Offre de données ouvertes
+Le catalogue des données de l'Insee
+Le catalogue des API de l'Insee
+L'offre de données au travers de nos produits de diffusion
+Les formats de mise à disposition des données
+Nos données disponibles sur d'autres plateformes
+Services
+Réviser une pension, un loyer, bail ou contrat
+Réviser une pension alimentaire
+Réviser un loyer d'habitation
+Réviser un bail commercial ou professionnel
+Indexer un contrat
+Convertisseur franc-euro : pouvoir d'achat de l'euro et du franc
+Consulter les indices et séries chronologiques
+Actualités des indices et séries chronologiques
+Accès des séries et indices chronologiques par thème
+Recherche par identifiant ou par mot-clé
+Service web SDMX
+Tables de passage
+Sirene
+Obtenir un avis de situation au répertoire Sirene
+Demander la modification de son statut de diffusion
+Demander la modification du code APE
+Immatriculation, cessation ou modification des données au répertoire Sirene 
+Obtenir sa catégorie d'entreprise
+Consulter et télécharger la base Sirene
+Identifiant unique des intervenants sur les marchés financiers (LEI)
+Réponses à vos questions sur le répertoire Sirene
+Découvrir, apprendre, enseigner
+Pour commencer...
+Visualiser les données
+La Compétition européenne de statistiques
+Pour approfondir...
+Répondre à une enquête de l'Insee
+Enquêtes auprès des particuliers
+Enquêtes auprès des entreprises
+Vrai ou faux enquêteur de l’Insee, fraude, malveillance : comment vérifier ?
+S’informer sur l’actualité de notre diffusion
+Agenda de diffusion des indicateurs économiques 
+Dernières publications de l’Insee
+Dernières publications des Services statistiques ministériels
+Évènements annoncés à la Une du site
+Thèmes d'actualité
+Gérer les répertoires des personnes physiques
+Recueil des données d'état civil
+Le Répertoire électoral unique
+Dématérialisation des échanges de données
+Nombre de décès quotidiens par département
+Fichiers des personnes décédées depuis 1970
+Bibliothèque de l’Insee Alain Desrosières
+Portail documentaire et catalogue
+La Bibliothèque numérique de la statistique publique
+Commander une prestation, acheter une publication
+Diffusion sur mesure
+Acheter nos publications
+Nous suivre
+Lettres d'information
+Abonnements aux lettres d'information et aux avis de parution
+Abonnement aux flux RSS
+L'Insee sur les médias sociaux
+Insee Mobile
+Aide et contacts
+Réponses à vos questions
+Obtenir des informations par téléphone
+Espace presse
+Événements presse
+Calendrier des publications
+Communiqués de presse nationaux
+Communiqués de presse régionaux
+Nominations
+L'Insee et la statistique publique
+L'Insee
+Connaître l'Insee
+L’Insee en toute confiance
+Travailler à l'Insee
+Événements et colloques
+Un peu d'histoire
+Rapports d'activité
+Les activités de l'Insee
+Suivre l’économie française
+Connaître les entreprises
+Observer l'évolution de la société
+Réaliser le recensement de la population
+Décrire et analyser les régions et les territoires
+Gérer des grands répertoires
+Diffuser et valoriser ses productions
+Perfectionner ses méthodes et évaluer la qualité
+Contribuer à la construction de la statistique européenne et internationale
+La statistique publique
+Cadre juridique et institutionnel
+Le service statistique public
+Secret statistique
+Protection des données personnelles
+Règles de diffusion du SSP
+Accès aux documents administratifs
+La construction de la statistique européenne
+Les producteurs de statistiques européennes en France
+Textes juridiques de la gouvernance statistique européenne
+Les règlements cadres et sectoriels
+Mesure de la qualité de service
+Les indicateurs de qualité du programme Transparence
+Résultats des enquêtes de satisfaction
+Services Publics+ : un service public plus proche, plus simple, plus efficace
+Accueil
+Définitions, méthodes et qualité
+Géographie administrative et d'étude
+Téléchargement de fichiers
+Géographie administrative
+Code officiel géographique (COG)
+Code officiel géographique au 1
+er
+ janvier 2026
+Code officiel géographique au 1
+er
+ janvier 2026
+Téléchargement des fichiers
+Géographie
+Dernière mise à jour
+ le :
+24/02/2026
+Imprimer
+Ensemble des fichiers 2026 (CSV)
+(
+ zip, 1 Mo
+ )
+Ensemble des fichiers 2026 (dBase)
+(
+ zip, 2 Mo
+ )
+Entre le 2 janvier 2025 et le 1
+er
+ janvier 2026, aucune commune nouvelle n’a vu le jour en raison de la tenue des élections
+ municipales en mars 2026. En effet, la loi n
+o
+ 2019-1269 du 2 décembre 2019 visant à clarifier diverses dispositions du droit électoral
+ précise que le périmètre des circonscriptions ne peut être modifié dans l’année précédant
+ le premier tour d’un scrutin.
+Par ailleurs, 19 communes ont changé de nom et 40 communes déléguées ou associées
+ ont été supprimées.
+Également, la collectivité territoriale de Mayotte, régie par l’article 73 de la Constitution,
+ prend le nom de Département-Région de Mayotte et le code 976R au 1ᵉʳ janvier 2026.
+Les fichiers aux formats csv et dbf sont encodés en UTF-8.
+Communes
+Liste des communes, arrondissements municipaux, communes déléguées et communes associées,
+ avec le code des niveaux supérieurs (canton ou pseudo-canton, département, région)
+Liste des communes
+(dbase, 6 Mo)
+(csv, 3 Mo)
+tableau
+– 
+Dessin du fichier « Communes existantes » et liste des variables
+Dessin du fichier « Communes existantes » et liste des variables
+Nom de la variable
+Longueur de la variable
+Désignation et modalités de la variable
+TYPECOM
+4
+Type de commune
+COM
+5
+Code commune
+REG
+2
+Code région
+DEP
+3
+Code département
+CTCD
+4
+Code de la collectivité territoriale ayant les compétences départementales
+ARR
+4
+Code arrondissement
+TNCC
+1
+Type de nom en clair
+NCC
+200
+Nom en clair (majuscules)
+NCCENR
+200
+Nom en clair (typographie riche)
+LIBELLE
+200
+Nom en clair (typographie riche) avec article 
+CAN
+5
+Code canton. Pour les communes « multi-cantonales », code décliné de 99 à 90 (pseudo-canton)
+ ou de 89 à 80 (communes nouvelles)
+COMPARENT
+5
+Code de la commune parente pour les arrondissements municipaux et les communes associées
+ ou déléguées.
+Cantons (et pseudos-cantons)
+Liste des cantons et des pseudo-cantons (canton fictif reprenant le contour de la
+ commune entière quand celle-ci est partagée entre plusieurs cantons)
+Liste des cantons
+(dbase, 340 Ko)
+(csv, 183 Ko)
+tableau
+– 
+Dessin du fichier « Cantons » et liste des variables
+Dessin du fichier « Cantons » et liste des variables
+Nom de la variable 
+Longueur de la variable
+Désignation et modalités de la variable
+CAN
+5
+Code canton. Pour les communes « multi-cantonales », code décliné de 99 à 90 (pseudo-canton)
+ ou de 89 à 80 (communes nouvelles)
+DEP
+3
+Code département
+REG
+2
+Code région
+COMPCT
+1
+Composition communale du canton
+BURCENTRAL
+5
+Code de la commune bureau centralisateur du canton
+TNCC
+1
+Type de nom en clair
+NCC
+200
+Nom en clair (majuscules)
+NCCENR
+200
+Nom en clair (typographie riche)
+LIBELLE
+200
+Nom en clair (typographie riche) avec article
+TYPECT
+1
+Type de canton
+Arrondissements
+Liste des arrondissements
+(dbase, 32 Ko)
+(csv, 21 Ko)
+tableau
+– 
+Dessin du fichier « Arrondissements » et liste des variables
+Dessin du fichier « Arrondissements » et liste des variables
+Nom de la variable
+Longueur de la variable
+Désignation et modalités de la variable
+ARR
+4
+Code arrondissement
+DEP
+3
+Code département
+REG
+2
+Code région
+CHEFLIEU
+5
+Code de la commune chef-lieu de l'arrondissement
+TNCC
+1
+Type de nom en clair
+NCC
+200
+Nom en clair (majuscules)
+NCCENR
+200
+Nom en clair (typographie riche)
+LIBELLE
+200
+Nom en clair (typographie riche) avec article
+Départements
+Liste des départements
+(dbase, 8 Ko)
+(csv, 5 Ko)
+tableau
+– 
+Dessin du fichier « Départements » et liste des variables
+Dessin du fichier « Départements » et liste des variables
+Nom de la variable
+Longueur de la variable
+Désignation et modalités de la variable
+DEP
+3
+Code département
+REG
+2
+Code région
+CHEFLIEU
+5
+Code de la commune chef-lieu
+TNCC
+1
+Type de nom en clair
+NCC
+200
+Nom en clair (majuscules)
+NCCENR
+200
+Nom en clair (typographie riche)
+LIBELLE
+200
+Nom en clair (typographie riche) avec article
+Régions
+Liste des régions
+(dbase, 1 Ko)
+(csv, 1 Ko)
+tableau
+– 
+Dessin du fichier « Régions » et liste des variables
+Dessin du fichier « Régions » et liste des variables
+Nom de la variable
+Longueur de la variable
+Désignation et modalités de la variable
+REG
+2
+Code région
+CHEFLIEU
+5
+Code de la commune chef-lieu
+TNCC
+1
+Type de nom en clair
+NCC
+200
+Nom en clair (majuscules)
+NCCENR
+200
+Nom en clair (typographie riche)
+LIBELLE
+200
+Nom en clair (typographie riche) avec article
+Collectivités territoriales ayant les compétences départementales
+Les informations spécifiques concernant les collectivités territoriales à compétences
+ départementales avec un statut particulier sont consultables sur cette 
+page
+.
+Liste des collectivités territoriales ayant les compétences départementales (conseils
+ départementaux et collectivités territoriales à statut particuler) 
+(dbase, 16 Ko)
+(csv, 13 Ko)
+tableau
+– 
+Dessin du fichier « Collectivités territoriales ayant les compétences départementales
+ » et liste des variables
+Dessin du fichier « Collectivités territoriales ayant les compétences départementales
+ » et liste des variables
+Nom de la variable
+Longueur de la variable
+Désignation et modalités de la variable
+CTCD
+4
+Code de la collectivité
+REG
+2
+Code de la région
+CHEFLIEU
+5
+Code officiel de la commune chef-lieu
+TNCC
+1
+Type de nom en clair
+NCC
+200
+Nom en clair (majuscules)
+NCCENR
+200
+Nom en clair (typographie riche)
+LIBELLE
+200
+Nom en clair (typographie riche) avec article
+Pays et territoires étrangers
+La diffusion des pays et territoires étrangers a connu un profond remaniement pour
+ le millésime 2024 du COG. Les principaux changements sont détaillés sur cette 
+page
+.
+Les noms officiels de pays et territoires étrangers mentionnés au Code officiel géographique
+ suivent les règles de toponymie régissant la terminologie des noms d’États et de capitales,
+ décrites dans l’arrêté du 4 novembre 1993 paru au J.O. du 25 janvier 1994. La mention
+ d’une entité géographique dans la présente base de données n’emporte pas de reconnaissance
+ diplomatique par la République française. 
+Pour plus d’information à ce sujet, merci de vous reporter aux informations publiées
+ par le 
+Ouvrir dans un nouvel onglet
+ministère de l’Europe et des Affaires étrangères
+.
+Liste des pays et territoires étrangers
+(dbase, 48 Ko)
+(csv, 17 Ko)
+tableau
+– 
+Dessin du fichier « Pays et territoires étrangers » et liste des variables
+Dessin du fichier « Pays et territoires étrangers » et liste des variables
+Nom de la variable
+Longueur de la variable
+Désignation et modalités de la variable
+COG
+5
+Code du pays ou territoire
+ACTUAL
+1
+Code actualité du pays ou territoire étranger
+CRPAY
+5
+Code officiel géographique de l’actuel pays de rattachement
+ANI
+4
+Année d’apparition du code au COG
+LIBCOG
+70
+Libellé utilisé dans le COG
+LIBENR
+200
+Nom officiel du pays, ou composition détaillée du territoire
+CODEISO2
+2
+Code du pays sur 2 caractères conforme à la norme internationale ISO 3166 de représentation
+ des noms de pays
+CODEISO3
+3
+Code du pays sur 3 caractères conforme à la norme internationale ISO 3166 de représentation
+ des noms de pays
+CODENUM3
+3
+Code du pays à 3 chiffres conforme à la norme internationale ISO 3166 de représentation
+ des noms de pays
+Pays et territoires étrangers depuis 1943
+Liste de tous les couples code - libellé de pays ou territoire étranger ayant existé
+ depuis 1943 avec la période durant laquelle le code correspondait au libellé.
+Liste des couples code - libellé de pays ou territoire étranger depuis 1943
+(dbase, 132 Ko)
+(csv, 41 Ko)
+tableau
+– 
+Dessin du fichier « Pays et territoires étrangers depuis 1943 » et liste des variables
+Dessin du fichier « Pays et territoires étrangers depuis 1943 » et liste des variables
+Nom de la variable
+Longueur de la variable
+Désignation et modalités de la variable
+COG
+5
+Code du pays ou territoire
+CRPAY
+5
+Code officiel géographique de l’actuel pays de rattachement
+LIBCOG
+70
+Libellé utilisé dans le COG
+LIBENR
+200
+Nom officiel du pays, ou composition détaillée du territoire
+DATE_DEBUT
+10
+Date de début du couple code - pays ou territoire (AAAA-MM-JJ)
+DATE_FIN
+10
+Date de fin du couple code - pays ou territoire (AAAA-MM-JJ). Lorsque cette date est
+ vide, cela signifie que le couple est toujours actif
+Codes extension et territoire de rattachement
+Une utilisation des codes des communes, pays et territoires étrangers est l’inscription
+ des personnes au sein du Répertoire national d’identification des personnes physiques
+ (RNIPP) : pour les besoins de gestion de cette base, des codes extension ont été créés
+ pour enregistrer plus de 1 000 naissances sur un mois dans un territoire donné. Ce
+ fichier donne la liste complète de ces codes extension et de leur territoire de rattachement.
+Liste des codes extension et de leur territoire de rattachement
+(dbase, 36 Ko)
+(csv, 15 Ko)
+tableau
+– 
+Dessin du fichier « Codes extension et territoire de rattachement » et liste des variables
+Dessin du fichier « Codes extension et territoire de rattachement » et liste des variables
+Nom de la variable
+Longueur de la variable
+Désignation et modalités de la variable
+CODE_EXT
+5
+Code extension
+CODE_GEO
+5
+Code officiel géographique du territoire associé
+LIBGEO
+70
+Libellé du territoire associé
+Évènements sur les communes
+Liste des évènements survenus aux communes, arrondissements municipaux, communes associées
+ et communes déléguées depuis 1943
+Liste des évènements sur les communes
+(dbase, 4 Mo)
+(csv, 1 Mo)
+tableau
+– 
+Dessin du fichier « Liste des évènements survenus aux communes, arrondissements municipaux,
+ communes associées et communes déléguées depuis 1943 » et liste des variables
+Dessin du fichier « Liste des évènements survenus aux communes, arrondissements municipaux,
+ communes associées et communes déléguées depuis 1943 » et liste des variables
+Nom de la variable
+Longueur de la variable
+Désignation et modalités de la variable
+MOD
+2
+Type d'évènement de communes
+DATE_EFF
+10
+Date d'effet (AAAA-MM-JJ)
+TYPECOM_AV
+4
+Type de la commune avant évènement
+COM_AV
+5
+Code de la commune avant évènement
+TNCC_AV
+1
+Type de nom en clair 
+NCC_AV
+200
+Nom en clair (majuscules)
+NCCENR_AV
+200
+Nom en clair (typographie riche)
+LIBELLE_AV
+200
+Nom en clair (typographie riche) avec article
+TYPECOM_AP
+4
+Type de commune après l'évènement
+COM_AP
+5
+Code de la commune après l'évènement
+TNCC_AP
+1
+Type de nom en clair 
+NCC_AP
+200
+Nom en clair (majuscules)
+NCCENR_AP
+200
+Nom en clair (typographie riche)
+LIBELLE_AP
+200
+Nom en clair (typographie riche) avec article
+Cette liste est une table de passage : à la date « date_eff », la commune « avant »
+ devient la commune « après ». « Commune » est à prendre dans un sens extensif comprenant
+ aussi les arrondissements municipaux, communes associées et communes déléguées. 
+On peut avoir plusieurs lignes pour la transformation d’une même commune. 
+tableau
+– 
+Par exemple la fusion-association de Belmont avec Luthézieu donne : 
+Par exemple la fusion-association de Belmont avec Luthézieu donne : 
+MOD
+DATE_EFF
+TYPECOM_AV
+COM_AV
+NCCENR_AV
+TYPECOM_AP
+COM_AP
+NCCENR_AP
+33
+1974-11-01
+COM
+01036
+Belmont
+COM
+01036
+Belmont-Luthézieu
+33
+1974-11-01
+COM
+01226
+Luthézieu
+COM
+01036
+Belmont-Luthézieu
+33
+1974-11-01
+COM
+01226
+Luthézieu
+COMA
+01226
+Luthézieu
+Soit :
+« le 1
+er
+ novembre 1974, le territoire de la commune de Belmont dont le code est 01036 se retrouve
+ dans le territoire de la commune de Belmont-Luthézieu dont le code est aussi 01036
+ dans le cadre d’une fusion-association (mod=33). Il s’agit donc de la commune pôle
+ de la fusion-association. » 
+« le 1
+er
+ novembre 1974, la commune de Luthézieu dont le code est 01226 devient la commune
+ associée de Luthézieu dont le code est aussi 01226, et le territoire de cette commune
+ se retrouve dans celui de la commune de Belmont-Luthézieu dont le code est 01036 dans
+ le cadre d’une fusion-association (mod=33). »
+tableau
+– 
+Autre exemple, la création de la commune nouvelle d’Arboys-en-Bugey donne :
+Autre exemple, la création de la commune nouvelle d’Arboys-en-Bugey donne :
+MOD
+DATE_EFF
+TYPECOM_AV
+COM_AV
+NCCENR_AV
+TYPECOM_AP
+COM_AP
+NCCENR_AP
+32
+2016-01-01
+COM
+01015
+Arbignieu
+COM
+01015
+Arboys en Bugey
+32
+2016-01-01
+COM
+01015
+Arbignieu
+COMD
+01015
+Arbignieu
+32
+2016-01-01
+COM
+01340
+Saint-Bois
+COM
+01015
+Arboys en Bugey
+32
+2016-01-01
+COM
+01340
+Saint-Bois
+COMD
+01340
+Saint-Bois
+Soit :
+« le 1
+er
+ janvier 2016, la commune d’Arbignieu dont le code et 01015 devient commune déléguée
+ avec le même code au sein de la commune nouvelle (mod=32) d’Arboys en Bugey dont le
+ code est également 01015 (ce qui indique que le chef lieu de la commune nouvelle se
+ situe à Arbignieu). »
+« le 1
+er
+ janvier 2016, la commune de Saint-Bois dont le code est 01340 devient commune déléguée
+ avec le même code au sein de la commune nouvelle (mod=32) d’Arboys en Bugey dont le
+ code est 01015. »
+Communes depuis 1943
+Liste de tous les couples code-libellé de commune ou d’arrondissement municipal ayant
+ existé depuis 1943 avec la période durant laquelle le code correspondait au libellé.
+Le fichier a pour champ la France métropolitaine et les départements et régions d'outre-mer.
+ Pour Mayotte, la liste des communes commence au 31/03/2011, date de la départementalisation
+ de la collectivité.
+Liste des couples couples code-libellé de commune ou d’arrondissement municipal depuis
+ 1943
+(dbase, 7 Mo)
+(csv, 3 Mo)
+tableau
+– 
+Dessin du fichier « Communes depuis 1943 » et liste des variables
+Dessin du fichier « Communes depuis 1943 » et liste des variables
+Nom de la variable
+Longueur de la variable
+Désignation et modalités de la variable
+TYPECOM
+4
+Type de commune
+COM
+5
+Code commune
+TNCC
+1
+Type de nom en clair
+NCC
+200
+Nom en clair (majuscules)
+NCCENR
+200
+Nom en clair (typographie riche)
+LIBELLE
+200
+Nom en clair (typographie riche) avec article
+DATE_DEBUT
+10
+Date de début du couple code-libellé de commune (AAAA-MM-JJ)
+DATE_FIN
+10
+Date de fin du couple code-libellé de commune (AAAA-MM-JJ). 
+ Lorsque cette colonne est vide, cela signifie que la commune est toujours active.
+tableau
+– 
+Exemple 1 : changement de nom d’une commune
+Exemple 1 : changement de nom d’une commune
+com
+tncc
+ncc
+nccenr
+libelle
+date_debut
+date_fin
+01004
+0
+AMBERIEU EN BUGEY
+Ambérieu-en-Bugey
+Ambérieu-en-Bugey
+1955-03-31
+01004
+0
+AMBERIEU
+Ambérieu
+Ambérieu
+1943-01-01
+1955-03-31
+La commune 01004 a eu pour libellé Ambérieu jusqu’au 31/03/1955 et Ambérieu-en-Bugey
+ à partir du 31/03/1955.
+tableau
+– 
+Exemple 2 : commune perdant son statut de commune suite à une fusion-association
+Exemple 2 : commune perdant son statut de commune suite à une fusion-association
+com
+tncc
+ncc
+nccenr
+libelle
+date_debut
+date_fin
+14463
+0
+NEUILLY LE MALHERBE
+Neuilly-le-Malherbe
+Neuilly-le-Malherbe
+1943-01-01
+1972-04-01
+La commune 14463 Neuilly-le-Malherbe perd son statut de commune au 01/04/1972 suite
+ à son rattachement 
+ à la commune de Vacognes (14721) dans le cadre d’une fusion association.
+tableau
+– 
+Exemple 3 : changement de nom d’une commune puis création d’une commune nouvelle
+Exemple 3 : changement de nom d’une commune puis création d’une commune nouvelle
+com
+tncc
+ncc
+nccenr
+libelle
+date_debut
+date_fin
+01033
+0
+BELLEGARDE
+Bellegarde
+Bellegarde
+1943-01-01
+1956-10-19
+01033
+0
+BELLEGARDE SUR VALSERINE
+Bellegarde-sur-Valserine
+Bellegarde-sur-Valserine
+1956-10-19
+2019-01-01
+01033
+0
+VALSERHONE
+Valserhône
+Valserhône
+2019-01-01
+La commune 01033 de Bellegarde a changé de nom à partir du 19/10/1956 pour devenir
+ Bellegarde-sur-Valserine. 
+ Son code et son libellé restent identiques jusqu’au 01/01/2019. Au 01/01/2019 :
+ création de la commune nouvelle 
+ de Valserhône (01033) en lieu et place des communes de Bellegarde-sur-Valserine
+ (01033), de Châtillon-en-Michaille (01091) 
+ et de Lancrans (01205).
+Collectivités et territoires français d’outre-mer
+Liste des collectivités et territoires français d’outre-mer. Des informations spécifiques
+ sur leur codification sont consultables sur cette 
+page
+.
+Liste des collectivités et territoires français d’outre-mer
+(dbase, 1 Ko)
+(csv, 785 octets)
+tableau
+– 
+Dessin du fichier « Collectivités et territoires français d’outre-mer » et liste des
+ variables
+Dessin du fichier « Collectivités et territoires français d’outre-mer » et liste des
+ variables
+Nom de la variable
+Longueur de la variable
+Désignation et modalités de la variable
+COMER
+3
+Code collectivité d’outre-mer
+TNCC
+1
+Type de nom en clair
+NCC
+200
+Nom en clair (majuscules)
+NCCENR
+200
+Nom en clair (typographie riche)
+LIBELLE
+200
+Nom en clair (typographie riche) avec article
+Collectivités et territoires français d’outre-mer depuis 1943
+Liste de tous les couples code-libellé de collectivité ou de territoire français d’outre-mer
+ ayant existé depuis 1943 avec la période durant laquelle le code correspondait au
+ libellé.
+Collectivités et territoires français d’outre-mer depuis 1943
+(dbase, 9 Ko)
+(csv, 5 Ko)
+tableau
+– 
+Dessin du fichier « Collectivités et territoires français d’outre-mer depuis 1943
+ » et liste des variables
+Dessin du fichier « Collectivités et territoires français d’outre-mer depuis 1943
+ » et liste des variables
+Nom de la variable
+Longueur de la variable
+Désignation et modalités de la variable
+COMER
+5
+Code de la collectivité ou du territoire d’outre-mer
+TNCC
+1
+Type de nom en clair
+NCC
+200
+Nom en clair (majuscules)
+NCCENR
+200
+Nom en clair (typographie riche)
+LIBELLE
+200
+Nom en clair (typographie riche) avec article
+DATE_DEBUT
+10
+Date de début du couple code-libellé de collectivité ou de territoire (AAAA-MM-JJ)
+DATE_FIN
+10
+Date de fin du couple code-libellé de collectivité ou de territoire (AAAA-MM-JJ)
+Lorsque cette variable est vide, cela signifie que le couple est toujours actif.
+Communes des collectivités et territoires français d’outre-mer
+Liste des communes des collectivités et territoires français d’outre-mer. Pour Wallis-et-Futuna,
+ les Terres australes et antarctiques françaises, l’île de La Passion-Clipperton et
+ l’Île des Faisans non découpées en commune sont respectivement listés : les circonscriptions
+ territoriales, les districts et les codes à 5 chiffres de l’île de La Passion-Clipperton
+ et du condominium de l’Île des Faisans.
+Liste des communes des collectivités et territoires français d’outre-mer
+(dbase, 16 Ko)
+(csv, 7 Ko)
+tableau
+– 
+Dessin du fichier « Communes des collectivités et territoires français d’outre-mer
+ » et liste des variables
+Dessin du fichier « Communes des collectivités et territoires français d’outre-mer
+ » et liste des variables
+Nom de la variable
+Longueur de la variable
+Désignation et modalités de la variable
+COM_COMER
+5
+Code du zonage
+TNCC
+1
+Type de nom en clair
+NCC
+200
+Libellé en lettres majuscules sans accents
+NCCENR
+200
+Libellé en caractères majuscules, minuscules et accentués.
+LIBELLE
+200
+Libellé en caractères majuscules, minuscules et accentués avec article
+NATURE_ZONAGE
+3
+Code Nature Zonage
+COMER
+3
+Code de la collectivité d’outre-mer
+LIBELLE_COMER
+200
+Libellé de la collectivité d’outre-mer
+Communes des collectivités et territoires français d’outre-mer depuis 1943
+Liste de tous les couples code-libellé de commune ayant existé depuis 1943 avec la
+ période durant laquelle le code correspondait au libellé.
+Le fichier a pour champ les collectivités et territoires français d’outre-mer ayant
+ existé depuis 1943, ainsi que les anciens départements d’Algérie et les protectorats
+ du Maroc et de Tunisie.
+Communes des collectivités et territoires français d’outre-mer depuis 1943
+(dbase, 142 Ko)
+(csv, 69 Ko)
+tableau
+– 
+Dessin du fichier « Collectivités et territoires français d’outre-mer depuis 1943
+ » et liste des variables
+Dessin du fichier « Collectivités et territoires français d’outre-mer depuis 1943
+ » et liste des variables
+Nom de la variable
+Longueur de la variable
+Désignation et modalités de la variable
+NATURE_ZONAGE
+3
+Code nature zonage
+COM_COMER
+5
+Code commune (ou autre zonage pour les collectivités et territoires non découpés en
+ communes, voir variable NATURE_ZONAGE)
+TNCC
+1
+Type de nom en clair
+NCC
+200
+Nom en clair (majuscules)
+NCCENR
+200
+Nom en clair (typographie riche)
+LIBELLE
+200
+Nom en clair (typographie riche) avec article)
+DATE_DEBUT
+10
+Date de début du couple code-libellé de commune (AAAA-MM-JJ)
+DATE_FIN
+10
+Date de fin du couple code-libellé de commune (AAAA-MM-JJ)
+Lorsque cette variable est vide, cela signifie que le couple est toujours actif.
+Pour en savoir plus
+Liste des modalités des fichiers du COG du millésime 2026
+Téléchargement des fichiers du COG des autres millésimes
+Nos sites partenaires
+Système Statistique Européen
+Réseau Quetelet
+Centre d'Accès Sécurisé Distant aux données (CASD)
+site data.gouv
+Services Publics +
+Abonnez-vous
+Avis de parution
+Nous suivre
+Contact
+Aide et contact
+Statistiques et études
+Définitions, méthodes et qualité
+Définitions
+Sources statistiques et indicateurs
+La qualité dans le Service statistique public (SSP)
+Nomenclatures
+Géographie administrative et d'étude
+Modèles, méthodes et outils statistiques
+Courrier des statistiques
+Offre de données ouvertes
+Services
+Réviser une pension, un loyer, bail ou contrat
+Consulter les indices et séries chronologiques
+Sirene
+Découvrir, apprendre, enseigner
+Répondre à une enquête de l'Insee
+S’informer sur l’actualité de notre diffusion
+Gérer les répertoires des personnes physiques
+Bibliothèque de l’Insee Alain Desrosières
+Commander une prestation, acheter une publication
+Nous suivre
+Aide et contacts
+Espace presse
+L'Insee et la statistique publique
+L'Insee
+Les activités de l'Insee
+La statistique publique
+La construction de la statistique européenne
+Mesure de la qualité de service
+Services Publics+ : un service public plus proche, plus simple, plus efficace
+Mentions légales et crédits
+Accessibilité : partiellement conforme
+Accès sourds et malentendants
+Sécurité
+Plan du site
+Haut de page

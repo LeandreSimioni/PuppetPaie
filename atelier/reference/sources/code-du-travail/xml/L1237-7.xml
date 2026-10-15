@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000047453558</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/47/45/35/LEGIARTI000047453558.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L1237-7</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2023-09-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132321">Première partie : Les relations individuelles de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145393">Livre II : Le contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160710">Titre III : Rupture du contrat de travail à durée indéterminée</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006177863">Chapitre VII : Autres cas de rupture</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006189451">Section 2 : Retraite</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006195637">Sous-section 2 : Mise à la retraite.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-05-01" etat="MODIFIE" fin="2023-09-01" id="LEGIARTI000006901181" num="L1237-7" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2023-09-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000047453558" num="L1237-7" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément au XII de l’article 26 de la loi n° 2023-270 du 14 avril 2023, ces dispositions entrent en vigueur le 1er septembre 2023.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>La mise à la retraite d'un salarié lui ouvre droit à une indemnité de mise à la retraite au moins égale à l'indemnité de licenciement prévue à l'article L. 1234-9.</p>
+<p>Chaque salarié ne peut bénéficier que d'une seule indemnité de départ ou de mise à la retraite. L'indemnité est attribuée lors de la première liquidation complète de la retraite.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000465978" datesignatexte="2007-03-12" id="JORFTEXT000000465978" naturetexte="ORDONNANCE" nortexte="SOCX0700017R" num="" numtexte="2007-329" sens="source" typelien="CODIFICATION">Ordonnance n°2007-329 du 12 mars 2007</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000044806724" datesignatexte="2021-12-31" id="LEGIARTI000044995906" naturetexte="DECRET" nortexte="MTRS2134464D" num="3" numtexte="2021-1949" sens="cible" typelien="CITATION">Décret n°2021-1949 du 31 décembre 2021 - art. 3</LIEN>
+<LIEN cidtexte="JORFTEXT000047445077" datesignatexte="2023-04-14" id="LEGIARTI000047447844" naturetexte="LOI" nortexte="ECOX2300575L" num="26" numtexte="2023-270" sens="cible" typelien="MODIFIE">LOI n°2023-270 du 14 avril 2023 - art. 26 (V)</LIEN>
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000052430940" datesignatexte="2025-10-24" id="LEGIARTI000052432351" naturetexte="LOI" nortexte="TRST2508279L" num="4" numtexte="2025-989" sens="cible" typelien="CITATION">LOI n°2025-989 du 24 octobre 2025 - art. 4 (V)</LIEN>
+
+
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006645991" naturetexte="CODE" nortexte="" num="L122-14-13" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L122-14-13 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901122" naturetexte="CODE" nortexte="" num="L1234-9" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L1234-9</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGITEXT000006072050" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail L122-14-13 alinéa 2</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>

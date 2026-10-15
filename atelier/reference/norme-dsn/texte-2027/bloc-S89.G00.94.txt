@@ -1,0 +1,90 @@
+# Bloc S89.G00.94
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 366-367
+
+--- p. 366 ---
+  S89.G00.94  2026-06-10
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Régularisation du montant de la part non imposable du revenu  S89.G00.93.008
+VTRegulPAS.RegulPartNonImposableRevenu
+  Cette rubrique doit être renseignée avec l’écart constaté entre le "Montant de la part non imposable du
+  revenu - S89.G00.92.012" indiqué le mois M et celui qui aurait dû être indiqué. Elle peut également être
+  renseignée du résultat du calcul du trop versé de revenu non imposable ne pouvant être compensé dans le
+  mois courant.
+  CCH-11 : Si la rubrique "Régularisation du montant de la part non imposable du revenu - S89.G00.93.008" est
+  renseignée, alors les rubriques "Régularisation du montant net fiscal du revenu versé - S89.G00.93.003" et
+  "Régularisation du montant soumis au PAS - S89.G00.93.009" sont obligatoires.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Régularisation du montant soumis au PAS  S89.G00.93.009
+VTRegulPAS.RegulMontantSoumisPAS
+  Cette rubrique doit être renseignée avec l’écart entre le "Montant soumis au PAS - S89.G00.92.013" indiqué
+  le mois M et celui qui aurait dû être déclaré.
+  CCH-11 : Si la rubrique "Régularisation du montant soumis au PAS - S89.G00.93.009" est renseignée, alors la
+  rubrique "Régularisation du montant net fiscal du revenu versé - S89.G00.93.003" est obligatoire.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Régularisation du montant de l’abattement sur la base fiscale (non  S89.G00.93.010
+déduit du montant net fiscal du revenu versé)
+VTRegulPAS.RegulMontantAbattementBaseFiscaleNonDeduitRNF
+  Cette rubrique doit être renseignée avec l’écart entre le "Montant de l’abattement sur la base fiscale (non
+  déduit du montant net fiscal du revenu versé) - S89.G00.92.014" indiqué le mois M et celui qui aurait dû
+  être déclaré.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant soumis au prélèvement à la source déclaré le mois de  S89.G00.93.013
+l'erreur
+VTRegulPAS.MontantSoumisPASMoisErreur
+  Reprise du montant soumis au prélèvement à la source du mois de l’erreur de taux (02).
+
+  N  [4,12]  CSL 00 : [0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+S89.G00.94
+
+Cotisation Individu non salarié  S89.G00.94
+Code de cotisation  S89.G00.94.001
+Montant de cotisation  S89.G00.94.002
+
+Code de cotisation  S89.G00.94.001
+CotisationIndividuNonSalarie.CodeCotisation
+
+  366 / 370
+
+--- p. 367 ---
+  S89.G00.94  2026-06-10
+
+  Code permettant d'identifier le montant des cotisations dues au régime Unifié Agirc-Arrco dans le cadre du
+  versement de l'allocation de chômage pour les entreprises en auto-assurance chômage, de l'allocation de
+  cessation anticipée d'activité Amiante, de l'allocation de pré-retraite suite à rupture du contrat ou du
+  versement de sommes à un tiers.
+  CCH-11 : Le bloc "Cotisation individu non salarié - S89.G00.94" est obligatoire si la rubrique "Type -
+  S89.G00.92.001" est renseignée avec la valeur "01 - Allocation de chômage pour les entreprises en auto-assurance
+  chômage", "02 - Allocation de cessation anticipée d'activité Amiante" ou "03 - Allocation de pré-retraite suite à rupture
+  du contrat" et si la rubrique "Code statut catégoriel Retraite Complémentaire obligatoire - S89.G00.91.018" est
+  renseignée avec une valeur différente de "10 - sans statut catégoriel".
+
+  CCH-12 : Un bloc « Cotisation individu non salarié - S89.G00.94 » est obligatoire si la rubrique « Code statut
+  catégoriel Retraite Complémentaire obligatoire - S89.G00.91.018 » est renseignée avec une valeur différente de « 10 -
+  sans statut catégoriel » et si la rubrique « Type - S89.G00.92.001 » est renseignée avec la valeur « 05 - Somme versée à
+  un tiers» et si la rubrique « Code de base spécifique - S89.G00.92.002 » est renseignée avec la valeur « 50 - Assiette
+  brute déplafonnée ».
+  Ce contrôle vise à obliger la déclaration d'une cotisation sous l'assiette brute déplafonnée pour une somme versée à un
+  tiers ayant un statut catégoriel de retraite complémentaire.
+
+  X  [3,3]
+
+  001 - Montant de cotisation Régime Unifié Agirc-Arrco
+
+Montant de cotisation  S89.G00.94.002
+CotisationIndividuNonSalarie.MontantCotisation
+  Montant des cotisations dues au régime Unifié Agirc-Arrco dans le cadre du versement de l'allocation de
+  chômage pour les entreprises en auto-assurance chômage, de l'allocation de cessation anticipée d'activité
+  Amiante, de l'allocation de pré-retraite suite à rupture du contrat ou du versement de sommes à un tiers.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+  367 / 370

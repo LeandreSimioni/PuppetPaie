@@ -1,0 +1,2548 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+
+<html lang="fr" moznomarginboxes mozdisallowselectionprint>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<head>
+    
+
+
+
+
+
+
+    <script>
+        var _mtm = window._mtm || [];
+        var _paq = window._paq || [];
+        _mtm.push({ 'mtm.startTime': (new Date().getTime()), event: 'mtm.Start' });
+        _paq.push(['setCustomDimension', 1, 'WEB4G']);
+        _paq.push(['HeatmapSessionRecording::disable']);
+        (function() {
+            var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+            g.async=true; g.src='https://cdn.matomo.cloud/insee.matomo.cloud/container_j86K86K5.js'; s.parentNode.insertBefore(g,s);
+        })();
+    </script>
+
+
+    
+        
+            
+            
+            
+                <title>Code officiel géographique au 1er janvier 2026 | Insee</title>
+            
+        
+    
+
+    
+
+    
+        
+            
+            
+                <meta name="description" content="Téléchargement des fichiers " />
+            
+        
+    
+
+    
+    <link rel="stylesheet" type="text/css" href="/static/css/application.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/featherlight/featherlight.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/swiper/swiper.min.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/dateTimePicker/jquery.datetimepicker.css">
+    <script type="text/javascript">
+        var contextPath="";
+        var langue="fr";
+        var numOnglet="2";
+    </script>
+
+    <script type="text/javascript" charset="UTF-8" defer="defer" src="
+
+
+/static/js/svg/graphsvg.js
+"></script>
+    <script type="text/javascript" charset="UTF-8" defer="defer" src="
+
+
+/static/js/application-lib.min.js
+"></script>
+    <script src="/static/build/highcharts.js"></script>
+    <script src="/static/build/highcharts-insee.js"></script>
+    <script charset="UTF-8" defer="defer" src="
+
+
+/static/build/application.js
+"></script>
+    <script>
+        var contextPath="";
+        var langue="fr";
+        var numOnglet="2";
+    </script>
+    <!--[if lte IE 8]>
+        <script type="text/javascript" charset="UTF-8" defer="defer" src="
+
+
+/static/js/polyfills/css3-mediaqueries.min.js
+"></script>
+        <![endif]-->
+    <script type="text/javascript">
+var inseeConfig = {
+
+        
+    };
+</script>
+
+    <script type="text/javascript">
+var features = {
+'rmesSource': 'true',
+};
+</script>
+
+
+
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes" />
+    <link rel="icon" type="image/png" href="
+
+
+/static/img/favicon-96x96.png
+" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="
+
+
+/static/img/favicon.svg
+" />
+    <link rel="shortcut icon" href="
+
+
+/static/img/favicon.ico
+" />
+    <link rel="apple-touch-icon" sizes="180x180" href="
+
+
+/static/img/apple-touch-icon.png
+" />
+
+    <script async src="/static/build/htmx.min.js"></script>
+</head>
+
+<body>
+<!-- Lightbox -->
+<span id="isLightbox" class="hide">false</span>
+
+<span class="controller-param hidden" id="urlAlternative" aria-hidden="true"></span>
+<span class="controller-param hidden" id="urlCible" aria-hidden="true"></span>
+<span class="controller-param hidden" id="urlCibleAlternative" aria-hidden="true"></span>
+
+
+
+
+
+
+<div id="wait" class="wait-off"><img src="
+
+
+/static/img/preloader.gif
+" alt="Veuillez-patienter..."/>
+</div>
+<div id="fond-transparent-body" class="fond-transparent-off"></div>
+
+<header class="header" role="banner">
+    <span style="height: 0;display: inline-block;">&nbsp;</span>
+    <a class="evitement" href="#contenu" data-i18n="header.evitement.contenu">Aller au contenu</a>
+    
+        
+        
+            
+
+
+
+
+
+<div id="banniere" class="banniere">
+	<div class="bandeau">
+		<div class="liens-aide-responsive">
+			<a id="lien-aide-responsive" data-i18n="header.recherche.aide-du-haut-court" href="
+
+
+/fr/information/2411108
+">Aide</a>
+			
+				<a id="lien-acceo-responsive" href="
+
+
+/fr/information/5894637
+" title="Accès sourds et malentendants" ><img id="picto-acceo-responsive" alt="Accès sourds et malentendants" src="/static/img/pictooreille.svg" height="20px"/></a>
+			
+		</div>
+		<div class="liens-themes-responsive">
+			
+				
+				
+					<a href="
+
+
+/fr/information/8491408
+" data-i18n="header.recherche.themes" class="liens-themes-responsive">Thèmes</a>
+				
+			
+		</div>
+		<div class="loupe" tabindex="-1">
+			<a href="#" id="afficher-recherche" tabindex="-1">
+				<span class="loupe-span">
+					<br/>
+					<span data-i18n="header.responsive.recherche-loupe" class="style">Recherche</span>
+				</span>
+			</a>
+		</div>
+		
+		
+
+
+
+
+
+
+
+
+	
+	
+		<a  href="
+
+
+/fr/accueil
+" id="logo" >
+			<img class="logo logo-accueil lien-logo" src="/static/img/logoInseeFr.svg" height="75px" data-i18n="[alt]header.logo.alt" alt="Insee - Institut national de la statistique et des études économiques - Mesurer pour comprendre - Accueil" />
+			<img class="logo logo-accueil lien-logo-responsive" src="/static/img/logoInseeFr.svg" height="75px" data-i18n="[alt]header.logo.alt" alt="Insee - Institut national de la statistique et des études économiques - Mesurer pour comprendre - Accueil" />
+		</a>
+	
+
+
+		<div class="langue-responsive">
+			
+				
+				
+					<a id="lien-changement-langue-responsive" href="/langue/en" lang="en">English</a>
+				
+			
+		</div>
+		<div class="presse-responsive">
+			<a id="lien-presse-responsive" data-i18n="header.recherche.espace-presse" href="
+
+
+/fr/information/2008400
+">Presse</a>
+		</div>
+		<div class="hamburger">
+			<a href="#" id="afficher-menu" tabindex="-1">
+				<span class="hamburger-menu">
+					<br/>
+					<span data-i18n="header.responsive.menu-hamburger" class="style">Menu</span>
+				</span>
+			</a>
+		</div>
+	
+		
+		<div id="recherche-header" class="recherche-header recherche">
+			<div id="liens-acces">
+				<ul class="liste-lien-acces">
+					
+						<li class="lien-evitement"><a data-i18n="header.recherche.menu" href="#menu">Menu</a></li>
+						<li><a href="https://blog.insee.fr/" target="_blank" target="_blank" rel="noopener noreferrer">Blog</a></li>
+						<li><a data-i18n="header.recherche.espace-presse" href="
+
+
+/fr/information/2008400
+">Presse</a></li>
+						<li><a data-i18n="header.recherche.aide-du-haut" href="
+
+
+/fr/information/2411108
+">Aide</a></li>
+						
+							<li><a href="
+
+
+/fr/information/5894637
+" title="Accès sourds et malentendants" ><img id="picto-acceo" alt="Accès sourds et malentendants" src="/static/img/pictooreille.svg" height="20px"/></a></li>
+ 						
+ 						
+							
+							
+								<li><a id="lien-changement-langue" href="/langue/en" lang="en">English</a></li>
+							
+						
+				</ul>
+			</div>
+			<div id="searchbar-header" class="searchbar-header" role="search">
+				<span id="search-waiting" class="waiting-off"><img alt="Veuillez-patienter..." src="/static/img/preloader.gif"></span>
+				<input data-i18n="[placeholder]header.recherche.barre-recherche-placeholder;[title]header.recherche.barre-recherche-title" type="search" class="ui-autocomplete-input"
+					id="barre-recherche" autocomplete="off" tabindex="0" title="Rechercher sur le site" placeholder="Rechercher" />
+				<button data-i18n="[title]header.recherche.loupe-title" id="bouton-recherche" class="searchbar-icon" tabindex="0" title="rechercher">
+					<span class="hidden-accessibilite" data-i18n="[title]header.recherche.loupe-title-icon">Lancer la recherche sur le site</span>
+				</button>
+				
+					
+					
+						<a href="
+
+
+/fr/information/8491408
+" data-i18n="header.recherche.themes" class="searchbar-theme" tabindex="0">Thèmes</a>
+					
+				
+				<span id="start-terms" class="hidden"></span>
+			</div>
+		</div>
+	
+</div>
+	<!-- Attention : les commentaires en fin de ligne ont un rôle important ! -->
+	<nav id="menu" role="navigation" aria-hidden="false" >
+		<ul class="menu">
+			<li><a class="lien maison" href="
+
+
+/fr/accueil
+" title="accueil" ></a></li><!--
+			--><li><a data-i18n="[html]menu.statistiques.titre" class="lien" href="
+
+
+/fr/statistiques
+" >Statistiques et études</a>
+				<div class="menu-deroulant">
+					<div data-i18n="[html]menu.statistiques.en-tete" class="menu-deroulant-en-tete">
+						Cherchez vos statistiques par&hellip;
+					</div>
+					<ul>
+						<li>
+							<a class="deroulement" href="#"></a><a data-i18n="menu.statistiques.themes" class="lien titre-categorie" href="
+
+
+/fr/statistiques?idfacette=1
+">Thèmes</a>
+							<ul>
+								<li><a data-i18n="menu.statistiques.economie" class="lien" href="
+
+
+/fr/statistiques?theme=27
+">Économie - conjoncture - comptes nationaux</a></li>
+								<li><a data-i18n="menu.statistiques.demographie" class="lien" href="
+
+
+/fr/statistiques?theme=0
+">Démographie</a></li>
+								<li><a data-i18n="menu.statistiques.entreprises" class="lien" href="
+
+
+/fr/statistiques?theme=37
+">Entreprises</a></li>
+								<li><a data-i18n="[html]menu.statistiques.plus-de-themes" class="lien plusDe" href="
+
+
+/fr/statistiques?idfacette=1
+">Plus de thèmes&hellip;</a></li>
+							</ul>
+						</li>
+						<li>
+							<a class="deroulement" href="#"></a><a data-i18n="menu.statistiques.niveau-geographique" class="lien titre-categorie" href="
+
+
+/fr/statistiques?idfacette=3
+">Niveaux géographiques</a>
+							<ul>
+								<li><a class="lien" href="
+
+
+/fr/statistiques?debut=0&geo=FRANCE-1&idfacette=3
+">France</a></li>
+								<li><a data-i18n="menu.statistiques.comparaisons-reg-dep" class="lien" href="
+
+
+/fr/statistiques?debut=0&geo=COMPRD-1&idfacette=3
+">Toutes les régions ou tous les départements</a></li>
+								<li><a data-i18n="menu.statistiques.toutes-communes" class="lien" href="
+
+
+/fr/statistiques?debut=0&geo=TOUTES_COMMUNE-1
+">Toutes les communes</a></li>
+								<li><a data-i18n="[html]menu.statistiques.plus-de-niveau-geographique" class="lien plusDe" href="
+
+
+/fr/statistiques?idfacette=3
+">Plus de niveaux géographiques&hellip;</a></li>
+							</ul>
+						</li>
+						<li>
+							<a class="deroulement" href="#"></a><a data-i18n="menu.statistiques.categorie-produit" class="lien titre-categorie" href="
+
+
+/fr/statistiques?idfacette=4
+">Catégories</a>
+							<ul>
+								<li><a data-i18n="menu.statistiques.donnees" class="lien" href="
+
+
+/fr/statistiques?categorie=1
+">Données</a></li>
+								<li><a data-i18n="menu.statistiques.publications" class="lien" href="
+
+
+/fr/statistiques?categorie=2
+">Publications</a></li>
+								<li><a data-i18n="[html]menu.statistiques.plus-de-categories" class="lien plusDe" href="
+
+
+/fr/statistiques?idfacette=4
+">Plus de catégories&hellip;</a></li>
+							</ul>
+						</li>
+						<li>
+							<a class="deroulement" href="#"></a><a data-i18n="menu.statistiques.collections" class="lien titre-categorie" href="
+
+
+/fr/statistiques?idfacette=5
+">Collections</a>
+							<ul>
+								<li><a class="lien" href="
+
+
+/fr/statistiques?collection=116
+">Insee Première</a></li>
+								<li><a class="lien" href="
+
+
+/fr/statistiques?collection=119
+">Notes et points de conjoncture</a></li>
+								<li><a data-i18n="[html]menu.statistiques.plus-de-collections" class="lien plusDe" href="
+
+
+/fr/statistiques?idfacette=5
+">Plus de collections&hellip;</a></li>
+							</ul>
+						</li>
+					</ul>
+				</div>
+			</li><!--
+			--><li><a class="deroulement" href="#"></a><a class="lien" href="/fr/information/2016815">Définitions, méthodes et qualité</a><div class="menu-deroulant"><ul><li><a class="lien titre-categorie" href="/fr/metadonnees/definitions">Définitions</a><ul></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/2407637">Sources statistiques et indicateurs</a><ul><li><a class="lien" href="/fr/metadonnees/sources">Liste des sources statistiques</a></li><li><a class="lien" href="/fr/metadonnees/indicateurs">Liste des indicateurs</a></li><li><a class="lien" href="/fr/information/2383410">Documentation complémentaire sur le recensement</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/4138839">La qualité dans le Service statistique public (SSP)</a><ul><li><a class="lien" href="/fr/information/4137822">Le cadre de référence</a></li><li><a class="lien" href="/fr/information/4137865">La gouvernance</a></li><li><a class="lien" href="/fr/information/6688640">La politique et la stratégie qualité du SSP</a></li><li><a class="lien" href="/fr/information/4138814">Les engagements européens</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/2016811">Nomenclatures</a><ul><li><a class="lien" href="/fr/information/2406147">Nomenclature d’activités française</a></li><li><a class="lien" href="/fr/information/2493969">Nomenclature agrégée - NA, 2008</a></li><li><a class="lien" href="/fr/information/2493496">Classification des produits française</a></li><li><a class="lien" href="/fr/information/2493507">Classification des fonctions de consommation des ménages</a></li><li><a class="lien" href="/fr/information/2028129">Catégories juridiques</a></li><li><a class="lien" href="/fr/information/2406153">Nomenclatures des professions et catégories socioprofessionnelles</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/8391822">Géographie administrative et d'étude</a><ul><li><a class="lien" href="/fr/recherche/recherche-geographique">Recherche sur une zone géographique</a></li><li><a class="lien" href="/fr/information/7672015">Téléchargement de fichiers</a></li><li><a class="lien" href="/fr/metadonnees/historique-commune">Historique des communes</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/2022002">Modèles, méthodes et outils statistiques</a><ul><li><a class="lien" href="/fr/information/2021959">Les modèles statistiques</a></li><li><a class="lien" href="/fr/information/2021908">Les outils statistiques</a></li><li><a class="lien" href="/fr/information/2414816">Méthodologie statistique</a></li></ul></li><li><a class="lien titre-categorie" href="/fr/information/3622502">Courrier des statistiques</a><ul></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/2410988">Offre de données ouvertes</a><ul><li><a class="lien" href="/fr/information/8184173">Le catalogue des données de l'Insee</a></li><li><a class="lien" href="/fr/information/8184146">Le catalogue des API de l'Insee</a></li><li><a class="lien" href="/fr/information/8184150">L'offre de données au travers de nos produits de diffusion</a></li><li><a class="lien" href="/fr/information/2410909">Les formats de mise à disposition des données</a></li><li><a class="lien" href="/fr/information/8184148">Nos données disponibles sur d'autres plateformes</a></li></ul></li></ul></div></li><li><a class="deroulement" href="#"></a><a class="lien" href="/fr/information/1302181">Services</a><div class="menu-deroulant"><ul><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/1302157">Réviser une pension, un loyer, bail ou contrat</a><ul><li><a class="lien" href="/fr/information/1300608">Réviser une pension alimentaire</a></li><li><a class="lien" href="/fr/information/1300612">Réviser un loyer d'habitation</a></li><li><a class="lien" href="/fr/information/1300602">Réviser un bail commercial ou professionnel</a></li><li><a class="lien" href="/fr/information/1300606">Indexer un contrat</a></li><li><a class="lien" href="/fr/information/2417794">Convertisseur franc-euro : pouvoir d'achat de l'euro et du franc</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/2411675">Consulter les indices et séries chronologiques</a><ul><li><a class="lien" href="/fr/information/2862832">Actualités des indices et séries chronologiques</a></li><li><a class="lien" href="/fr/information/2860802">Accès des séries et indices chronologiques par thème</a></li><li><a class="lien" href="/fr/information/3128533">Recherche par identifiant ou par mot-clé</a></li><li><a class="lien" href="/fr/information/2862759">Service web SDMX</a></li><li><a class="lien" href="/fr/information/2862863">Tables de passage</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/6675111">Sirene</a><ul><li><a class="lien" href="https://avis-situation-sirene.insee.fr/">Obtenir un avis de situation au répertoire Sirene</a></li><li><a class="lien" href="/fr/information/7456564">Demander la modification de son statut de diffusion</a></li><li><a class="lien" href="/fr/information/7614104">Demander la modification du code APE</a></li><li><a class="lien" href="/fr/information/1401387">Immatriculation, cessation ou modification des données au répertoire Sirene </a></li><li><a class="lien" href="/fr/information/1730869">Obtenir sa catégorie d'entreprise</a></li><li><a class="lien" href="/fr/information/3591226">Consulter et télécharger la base  Sirene</a></li><li><a class="lien" href="/fr/information/1730867">Identifiant unique des intervenants sur les marchés financiers (LEI)</a></li><li><a class="lien" href="/fr/information/6790269">Réponses à vos questions sur le répertoire Sirene</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/2021852">Découvrir, apprendre, enseigner</a><ul><li><a class="lien" href="/fr/information/7745315">Pour commencer...</a></li><li><a class="lien" href="/fr/information/7743494">Visualiser les données</a></li><li><a class="lien" href="/fr/information/4495976">La Compétition européenne de statistiques</a></li><li><a class="lien" href="/fr/information/7747175">Pour approfondir...</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/1302175">Répondre à une enquête de l'Insee</a><ul><li><a class="lien" href="/fr/information/2387311">Enquêtes auprès des particuliers</a></li><li><a class="lien" href="/fr/information/1401986">Enquêtes auprès des entreprises</a></li><li><a class="lien" href="/fr/information/2008477">Vrai ou faux enquêteur de l’Insee, fraude, malveillance : comment vérifier ?</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/1302152">S’informer sur l’actualité de notre diffusion</a><ul><li><a class="lien" href="/fr/information/1405540">Agenda de diffusion des indicateurs économiques </a></li><li><a class="lien" href="/fr/information/2416834">Dernières publications de l’Insee</a></li><li><a class="lien" href="/fr/information/7752988">Dernières publications des Services statistiques ministériels</a></li><li><a class="lien" href="/fr/information/2544197">Évènements annoncés à la Une du site</a></li><li><a class="lien" href="/fr/information/7702293">Thèmes d'actualité</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/1302179">Gérer les répertoires des personnes physiques</a><ul><li><a class="lien" href="/fr/information/1303477">Recueil des données d'état civil</a></li><li><a class="lien" href="/fr/information/3539086">Le Répertoire électoral unique</a></li><li><a class="lien" href="/fr/information/1303515">Dématérialisation des échanges de données</a></li><li><a class="lien" href="/fr/information/4470857">Nombre de décès quotidiens par département</a></li><li><a class="lien" href="/fr/information/4190491">Fichiers des personnes décédées depuis 1970</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/1302154">Bibliothèque de l’Insee Alain Desrosières</a><ul><li><a class="lien" href="/fr/information/1303573">Portail documentaire et catalogue</a></li><li><a class="lien" href="/fr/information/1303569">La Bibliothèque numérique de la statistique publique</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/1302171">Commander une prestation, acheter une publication</a><ul><li><a class="lien" href="/fr/information/1303438">Diffusion sur mesure</a></li><li><a class="lien" href="/fr/information/2537715">Acheter nos publications</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/1302177">Nous suivre</a><ul><li><a class="lien" href="/fr/information/1405553">Lettres d'information</a></li><li><a class="lien" href="/fr/information/1405555">Abonnements aux lettres d'information et aux avis de parution</a></li><li><a class="lien" href="/fr/information/2381941">Abonnement aux flux RSS</a></li><li><a class="lien" href="/fr/information/3127332">L'Insee sur les médias sociaux</a></li><li><a class="lien" href="/fr/information/5407494">Insee Mobile</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/2411108">Aide et contacts</a><ul><li><a class="lien" href="/fr/information/1302169">Réponses à vos questions</a></li><li><a class="lien" href="/fr/information/8390985">Obtenir des informations par téléphone</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/2008400">Espace presse</a><ul><li><a class="lien" href="/fr/information/5234985">Événements presse</a></li><li><a class="lien" href="/fr/information/5235017">Calendrier des publications</a></li><li><a class="lien" href="/fr/information/2117832?debut=0&amp;region=FRANCE1&amp;familleId=1010&amp;facetteReg=false">Communiqués de presse nationaux</a></li><li><a class="lien" href="/fr/information/2117832?debut=0&amp;region=REG84+REG27+REG53+REG24+REG94+REG44+REG01+REG32+REG11+REG03+REG76+REG52+REG75+REG93+REG06+REG28+REG02+REG04">Communiqués de presse régionaux</a></li><li><a class="lien" href="/fr/information/8618264">Nominations</a></li></ul></li></ul></div></li><li><a class="deroulement" href="#"></a><a class="lien" href="/fr/information/1302230">L'Insee et la statistique publique</a><div class="menu-deroulant"><ul><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/1302198">L'Insee</a><ul><li><a class="lien" href="/fr/information/1300620">Connaître l'Insee</a></li><li><a class="lien" href="/fr/information/9010344">L’Insee en toute confiance</a></li><li><a class="lien" href="/fr/information/1300628">Travailler à l'Insee</a></li><li><a class="lien" href="/fr/information/1892983">Événements et colloques</a></li><li><a class="lien" href="/fr/information/1300622">Un peu d'histoire</a></li><li><a class="lien" href="/fr/information/4130132">Rapports d'activité</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/1302194">Les activités de l'Insee</a><ul><li><a class="lien" href="/fr/information/1303532">Suivre l’économie française</a></li><li><a class="lien" href="/fr/information/1303536">Connaître les entreprises</a></li><li><a class="lien" href="/fr/information/1303538">Observer l'évolution de la société</a></li><li><a class="lien" href="/fr/information/1303540">Réaliser le recensement de la population</a></li><li><a class="lien" href="/fr/information/1303542">Décrire et analyser les régions et les territoires</a></li><li><a class="lien" href="/fr/information/1303544">Gérer des grands répertoires</a></li><li><a class="lien" href="/fr/information/1303546">Diffuser et valoriser ses productions</a></li><li><a class="lien" href="/fr/information/1303548">Perfectionner ses méthodes et évaluer la qualité</a></li><li><a class="lien" href="/fr/information/4246608">Contribuer à la construction de la statistique européenne et internationale</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/1302208">La statistique publique</a><ul><li><a class="lien" href="/fr/information/1300616">Cadre juridique et institutionnel</a></li><li><a class="lien" href="/fr/information/1302192">Le service statistique public</a></li><li><a class="lien" href="/fr/information/1300624">Secret statistique</a></li><li><a class="lien" href="/fr/information/3719162">Protection des données personnelles</a></li><li><a class="lien" href="/fr/information/1300614">Règles de diffusion du SSP</a></li><li><a class="lien" href="/fr/information/5209792">Accès aux documents administratifs</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/1302196">La construction de la statistique européenne</a><ul><li><a class="lien" href="/fr/information/4246567">Les producteurs de statistiques européennes en France</a></li><li><a class="lien" href="/fr/information/2046339">Textes juridiques de la gouvernance statistique européenne</a></li><li><a class="lien" href="/fr/information/4246551">Les règlements cadres et sectoriels</a></li></ul></li><li><a class="deroulement" href="#"></a><a class="lien titre-categorie" href="/fr/information/4248413">Mesure de la qualité de service</a><ul><li><a class="lien" href="/fr/information/4248405">Les indicateurs de qualité du programme Transparence</a></li><li><a class="lien" href="/fr/information/2129030">Résultats des enquêtes de satisfaction</a></li></ul></li><li><a class="lien titre-categorie" href="/fr/information/5413276">Services Publics+ : un service public plus proche, plus simple, plus efficace</a><ul></ul></li></ul></div></li>
+		</ul>
+	</nav>
+</div>
+<div class="clear"></div>
+        
+    
+</header>
+
+<main id="contenu" class="main" role="main">
+    
+    
+<nav class="breadcrum">
+   <div class="container">
+      <ol class="fil-ariane">
+         <li><a data-i18n="breadcrum.accueil" href="/fr/accueil">Accueil</a></li>
+         <li><a href="/fr/information/2016815">Définitions, méthodes et&nbsp;qualité</a></li>
+         <li><a href="/fr/information/8391822">Géographie administrative et d'étude</a></li>
+         <li><a href="/fr/information/7672015">Téléchargement de fichiers</a></li>
+         <li><a href="/fr/information/8064273">Géographie administrative</a></li>
+         <li><a href="/fr/information/2560452">Code officiel géographique (COG)</a></li>
+         <li>Code officiel géographique au&nbsp;1<sup>er</sup>&nbsp;janvier 2026</li>
+      </ol>
+   </div>
+</nav><section>
+   <div class="titre-page publication   ">
+      <div class="titre">
+         <h1 class="titre-principal                                  "><span class="titre-titre">Code officiel géographique au&nbsp;1<sup>er</sup>&nbsp;janvier 2026</span><span class="no-print">&nbsp;</span><span class="sous-titre div-in-h test">Téléchargement des fichiers</span></h1>
+         <p class="auteurs hidden-template-impression"></p>
+         <div class="chapeau"></div>
+      </div>
+      <div class="details hidden-template-impression">
+         <div>
+            <div class="categorie">Géographie</div>
+            <div class="famille-numero"></div>
+            <div class="date-diffusion hidden-impression-information-rapide"><span id="libelle-details"><span data-i18n="[html]produit.bandeau-bleu.derniere-maj">Dernière mise à jour
+                     le&nbsp;:
+                     </span></span>24/02/2026</div>
+            <div class="lien-details"><a data-i18n="produit.bandeau-bleu.imprimer" href="#" class="bouton-imprimante">Imprimer</a></div>
+         </div>
+         <div class="donnees-telechargeables"><a href="/fr/statistiques/fichier/8740222/cog_ensemble_2026_csv.zip">
+               <div class="donnee-telechargeable donnees-tableau">
+                  <div class="libelle-taille">
+                     <div class="libelle">Ensemble des fichiers 2026 (CSV)</div>
+                     <div class="taille">(
+                        zip, 1 Mo
+                        )
+                        </div>
+                  </div>
+                  <div class="bouton-telecharger bouton-telecharger-zip bouton-telecharger-court"></div>
+               </div></a><a href="/fr/statistiques/fichier/8740222/cog_ensemble_2026_dbf.zip">
+               <div class="donnee-telechargeable donnees-tableau">
+                  <div class="libelle-taille">
+                     <div class="libelle">Ensemble des fichiers 2026 (dBase)</div>
+                     <div class="taille">(
+                        zip, 2 Mo
+                        )
+                        </div>
+                  </div>
+                  <div class="bouton-telecharger bouton-telecharger-zip bouton-telecharger-court"></div>
+               </div></a></div>
+      </div>
+      <div class="auteurs hidden-impression-information-rapide impression-seulement"></div>
+      <div class="date-diffusion hidden-impression-information-rapide impression-seulement"></div>
+   </div>
+   <div class="contenu" id="contenu">
+      <div id="consulter" class="information" tabindex="0">
+         <div class="corps-publication">
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Entre le 2 janvier 2025 et le 1<sup>er</sup>&nbsp; janvier 2026, aucune commune nouvelle n’a vu le jour en raison de la tenue des élections
+                  municipales en mars 2026. En effet, la loi n<sup>o</sup>&nbsp;2019-1269 du 2 décembre 2019 visant à clarifier diverses dispositions du droit électoral
+                  précise que le périmètre des circonscriptions ne peut être modifié dans l’année précédant
+                  le premier tour d’un scrutin.
+                  				<br>Par ailleurs, 19 communes ont changé de nom et 40 communes déléguées ou associées
+                  ont été supprimées.
+                  				<br>Également, la collectivité territoriale de Mayotte, régie par l’article 73 de la Constitution,
+                  prend le nom de Département-Région de Mayotte et le code 976R au 1ᵉʳ janvier 2026.
+                  				</p>
+            </div>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Les fichiers aux formats csv et dbf sont encodés en UTF-8.</p>
+            </div>
+            <h3 class="bloc  " id="titre-bloc-3">Communes</h3>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Liste des communes, arrondissements municipaux, communes déléguées et communes associées,
+                  avec le code des niveaux supérieurs (canton ou pseudo-canton, département, région)</p>
+            </div>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Liste des communes</span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_commune_2026.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 6 Mo)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_commune_2026.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 3 Mo)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="liste-com" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-liste-com"></span><div role="tabpanel" id="tableau-liste-com" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-liste-com">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-liste-com"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier «&nbsp;Communes existantes » et liste des variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-liste-com" class="tableau-produit" style="">
+                           <caption>Dessin du fichier «&nbsp;Communes existantes » et liste des variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable</th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#typecom" class="renvoi">TYPECOM</a>
+                                    							</td>
+                                 <td class="texte ">4</td>
+                                 <td class="texte ">Type de commune</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">COM</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code commune</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">REG</td>
+                                 <td class="texte ">2</td>
+                                 <td class="texte ">Code région</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">DEP</td>
+                                 <td class="texte ">3</td>
+                                 <td class="texte ">Code département</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">CTCD</td>
+                                 <td class="texte ">4</td>
+                                 <td class="texte ">Code de la collectivité territoriale ayant les compétences départementales</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">ARR</td>
+                                 <td class="texte ">4</td>
+                                 <td class="texte ">Code arrondissement</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#tncc" class="renvoi">TNCC</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Type de nom en clair</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCC</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (majuscules)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCCENR</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBELLE</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche) avec article </td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">CAN</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code canton. Pour les communes « multi-cantonales », code décliné de 99 à 90 (pseudo-canton)
+                                    ou de 89 à 80 (communes nouvelles)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">COMPARENT</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code de la commune parente pour les arrondissements municipaux et les communes associées
+                                    ou déléguées.</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <h3 class="bloc  " id="titre-bloc-7">Cantons (et pseudos-cantons)</h3>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Liste des cantons et des pseudo-cantons (canton fictif reprenant le contour de la
+                  commune entière quand celle-ci est partagée entre plusieurs cantons)</p>
+            </div>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Liste des cantons</span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_canton_2026.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 340 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_canton_2026.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 183 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="liste-canton" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-liste-canton"></span><div role="tabpanel" id="tableau-liste-canton" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-liste-canton">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-liste-canton"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier « Cantons » et liste des variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-liste-canton" class="tableau-produit" style="">
+                           <caption>Dessin du fichier « Cantons » et liste des variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable </th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">CAN</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code canton. Pour les communes «&nbsp;multi-cantonales&nbsp;», code décliné de 99 à 90 (pseudo-canton)
+                                    ou de 89 à 80 (communes nouvelles)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">DEP</td>
+                                 <td class="texte ">3</td>
+                                 <td class="texte ">Code département</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">REG</td>
+                                 <td class="texte ">2</td>
+                                 <td class="texte ">Code région</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#compct" class="renvoi">COMPCT</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Composition communale du canton</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">BURCENTRAL</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code de la commune bureau centralisateur du canton</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#tncc" class="renvoi">TNCC</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Type de nom en clair</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCC</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (majuscules)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCCENR</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBELLE</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche) avec article</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#typect" class="renvoi">TYPECT</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Type de canton</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <h3 class="bloc  " id="titre-bloc-11">Arrondissements</h3>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Liste des arrondissements</span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_arrondissement_2026.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 32 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_arrondissement_2026.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 21 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="liste-arrond" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-liste-arrond"></span><div role="tabpanel" id="tableau-liste-arrond" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-liste-arrond">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-liste-arrond"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier « Arrondissements » et liste des variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-liste-arrond" class="tableau-produit" style="">
+                           <caption>Dessin du fichier « Arrondissements » et liste des variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable</th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">ARR</td>
+                                 <td class="texte ">4</td>
+                                 <td class="texte ">Code arrondissement</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">DEP</td>
+                                 <td class="texte ">3</td>
+                                 <td class="texte ">Code département</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">REG</td>
+                                 <td class="texte ">2</td>
+                                 <td class="texte ">Code région</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">CHEFLIEU</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code de la commune chef-lieu de l'arrondissement</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#tncc" class="renvoi">TNCC</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Type de nom en clair</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCC</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (majuscules)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCCENR</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBELLE</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche) avec article</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <h3 class="bloc  " id="titre-bloc-14">Départements</h3>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Liste des départements</span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_departement_2026.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 8 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_departement_2026.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 5 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="liste-depts" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-liste-depts"></span><div role="tabpanel" id="tableau-liste-depts" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-liste-depts">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-liste-depts"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier « Départements » et liste des variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-liste-depts" class="tableau-produit" style="">
+                           <caption>Dessin du fichier « Départements » et liste des variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable</th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">DEP</td>
+                                 <td class="texte ">3</td>
+                                 <td class="texte ">Code département</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">REG</td>
+                                 <td class="texte ">2</td>
+                                 <td class="texte ">Code région</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">CHEFLIEU</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code de la commune chef-lieu</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#tncc" class="renvoi">TNCC</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Type de nom en clair</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCC</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (majuscules)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCCENR</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBELLE</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche) avec article</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <h3 class="bloc  " id="titre-bloc-17">Régions</h3>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Liste des régions</span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_region_2026.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 1 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_region_2026.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 1 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="liste-reg" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-liste-reg"></span><div role="tabpanel" id="tableau-liste-reg" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-liste-reg">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-liste-reg"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier « Régions » et liste des variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-liste-reg" class="tableau-produit" style="">
+                           <caption>Dessin du fichier « Régions » et liste des variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable</th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">REG</td>
+                                 <td class="texte ">2</td>
+                                 <td class="texte ">Code région</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">CHEFLIEU</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code de la commune chef-lieu</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#tncc" class="renvoi">TNCC</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Type de nom en clair</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCC</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (majuscules)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCCENR</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBELLE</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche) avec article</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <h3 class="bloc  " id="titre-bloc-20">Collectivités territoriales ayant les compétences départementales</h3>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Les informations spécifiques concernant les collectivités territoriales à compétences
+                  départementales avec un statut particulier sont consultables sur cette <a class="renvoi" href="/fr/information/7929497">page</a>.</p>
+            </div>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Liste des collectivités territoriales ayant les compétences départementales (conseils
+                        départementaux et collectivités territoriales à statut particuler) </span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_ctcd_2026.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 16 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_ctcd_2026.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 13 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="liste-ctcd" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-liste-ctcd"></span><div role="tabpanel" id="tableau-liste-ctcd" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-liste-ctcd">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-liste-ctcd"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier « Collectivités territoriales ayant les compétences départementales
+                        » et liste des variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-liste-ctcd" class="tableau-produit" style="">
+                           <caption>Dessin du fichier « Collectivités territoriales ayant les compétences départementales
+                              » et liste des variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable</th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">CTCD</td>
+                                 <td class="texte ">4</td>
+                                 <td class="texte ">Code de la collectivité</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">REG</td>
+                                 <td class="texte ">2</td>
+                                 <td class="texte ">Code de la région</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">CHEFLIEU</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code officiel de la commune chef-lieu</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#tncc" class="renvoi">TNCC</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Type de nom en clair</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCC</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (majuscules)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCCENR</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBELLE</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche) avec article</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <h3 class="bloc  " id="titre-bloc-24">Pays et territoires étrangers</h3>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">La diffusion des pays et territoires étrangers a connu un profond remaniement pour
+                  le millésime 2024 du COG. Les principaux changements sont détaillés  sur cette <a class="renvoi" href="/fr/information/7766238">page</a>.</p>
+            </div>
+            <div class="bloc avertissement"><img class="image-avertissement" src="/static/img/attention.svg" alt=""><div class="contenu-avertissement">
+                  <div class="bloc paragraphes ">
+                     <p class="paragraphe   ">Les noms officiels de pays et territoires étrangers mentionnés au Code officiel géographique
+                        suivent les règles de toponymie régissant la terminologie des noms d’États et de capitales,
+                        décrites dans l’arrêté du 4 novembre 1993 paru au J.O. du 25 janvier 1994. La mention
+                        d’une entité géographique dans la présente base de données n’emporte pas de reconnaissance
+                        diplomatique par la République française. <strong>Pour plus d’information à ce sujet, merci de vous reporter aux informations publiées
+                           par le </strong>
+                        							<a href="https://www.diplomatie.gouv.fr/fr/" target="_blank" class="renvoi lien-externe"><span class="screen-reader-text" data-i18n="produit.contenu.lien-externe-title">Ouvrir dans un nouvel onglet</span>ministère de l’Europe et des Affaires étrangères</a>.</p>
+                  </div>
+               </div>
+            </div>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Liste des pays et territoires étrangers</span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_pays_territoire_2026.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 48 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_pays_territoire_2026.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 17 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="liste-pays" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-liste-pays"></span><div role="tabpanel" id="tableau-liste-pays" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-liste-pays">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-liste-pays"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier « Pays et territoires étrangers » et liste des variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-liste-pays" class="tableau-produit" style="">
+                           <caption>Dessin du fichier « Pays et territoires étrangers » et liste des variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable</th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">COG</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code du pays ou territoire</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#actual" class="renvoi">ACTUAL</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Code actualité du pays ou territoire étranger</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">CRPAY</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code officiel géographique de l’actuel pays de rattachement</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">ANI</td>
+                                 <td class="texte ">4</td>
+                                 <td class="texte ">Année d’apparition du code au COG</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBCOG</td>
+                                 <td class="texte ">70</td>
+                                 <td class="texte ">Libellé utilisé dans le COG</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBENR</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom officiel du pays, ou composition détaillée du territoire</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">CODEISO2</td>
+                                 <td class="texte ">2</td>
+                                 <td class="texte ">Code du pays sur 2 caractères conforme à la norme internationale ISO 3166 de représentation
+                                    des noms de pays</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">CODEISO3</td>
+                                 <td class="texte ">3</td>
+                                 <td class="texte ">Code du pays sur 3 caractères conforme à la norme internationale ISO 3166 de représentation
+                                    des noms de pays</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">CODENUM3</td>
+                                 <td class="texte ">3</td>
+                                 <td class="texte ">Code du pays à 3 chiffres conforme à la norme internationale ISO 3166 de représentation
+                                    des noms de pays</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <h3 class="bloc  " id="titre-bloc-29">Pays et territoires étrangers depuis 1943</h3>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Liste de tous les couples code - libellé de pays ou territoire étranger ayant existé
+                  depuis 1943 avec la période durant laquelle le code correspondait au libellé.</p>
+            </div>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Liste des couples code - libellé de pays ou territoire étranger depuis 1943</span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_pays_et_territoire_depuis_1943.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 132 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_pays_et_territoire_depuis_1943.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 41 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="liste-pays-1943" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-liste-pays-1943"></span><div role="tabpanel" id="tableau-liste-pays-1943" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-liste-pays-1943">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-liste-pays-1943"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier « Pays et territoires étrangers depuis 1943 » et liste des variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-liste-pays-1943" class="tableau-produit" style="">
+                           <caption>Dessin du fichier « Pays et territoires étrangers depuis 1943 » et liste des variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable</th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">COG</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code du pays ou territoire</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">CRPAY</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code officiel géographique de l’actuel pays de rattachement</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBCOG</td>
+                                 <td class="texte ">70</td>
+                                 <td class="texte ">Libellé utilisé dans le COG</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBENR</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom officiel du pays, ou composition détaillée du territoire</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">DATE_DEBUT</td>
+                                 <td class="texte ">10</td>
+                                 <td class="texte ">Date de début du couple code - pays ou territoire (AAAA-MM-JJ)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">DATE_FIN</td>
+                                 <td class="texte ">10</td>
+                                 <td class="texte ">Date de fin du couple code - pays ou territoire (AAAA-MM-JJ). Lorsque cette date est
+                                    vide, cela signifie que le couple est toujours actif</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <h3 class="bloc  " id="titre-bloc-33">Codes extension et territoire de rattachement</h3>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Une utilisation des codes des communes, pays et territoires étrangers est l’inscription
+                  des personnes au sein du Répertoire national d’identification des personnes physiques
+                  (RNIPP)&nbsp;: pour les besoins de gestion de cette base, des codes extension ont été créés
+                  pour enregistrer plus de 1 000 naissances sur un mois dans un territoire donné. Ce
+                  fichier donne la liste complète de ces codes extension et de leur territoire de rattachement.</p>
+            </div>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Liste des codes extension et de leur territoire de rattachement</span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_codes_extension_2026.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 36 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_codes_extension_2026.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 15 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="codes-extension" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-codes-extension"></span><div role="tabpanel" id="tableau-codes-extension" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-codes-extension">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-codes-extension"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier « Codes extension et territoire de rattachement » et liste des variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-codes-extension" class="tableau-produit" style="">
+                           <caption>Dessin du fichier « Codes extension et territoire de rattachement » et liste des variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable</th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">CODE_EXT</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code extension</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">CODE_GEO</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code officiel géographique du territoire associé</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBGEO</td>
+                                 <td class="texte ">70</td>
+                                 <td class="texte ">Libellé du territoire associé</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <h3 class="bloc  " id="titre-bloc-37">Évènements sur les communes</h3>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Liste des évènements survenus aux communes, arrondissements municipaux, communes associées
+                  et communes déléguées depuis 1943</p>
+            </div>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Liste des évènements sur les communes</span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_mvt_commune_2026.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 4 Mo)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_mvt_commune_2026.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 1 Mo)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="evenements-commune" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-evenements-commune"></span><div role="tabpanel" id="tableau-evenements-commune" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-evenements-commune">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-evenements-commune"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier «&nbsp;Liste des évènements survenus aux communes, arrondissements municipaux,
+                        communes associées et communes déléguées depuis&nbsp;1943&nbsp;» et liste des variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-evenements-commune" class="tableau-produit" style="">
+                           <caption>Dessin du fichier «&nbsp;Liste des évènements survenus aux communes, arrondissements municipaux,
+                              communes associées et communes déléguées depuis&nbsp;1943&nbsp;» et liste des variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable</th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#mod" class="renvoi">MOD</a>
+                                    							</td>
+                                 <td class="texte ">2</td>
+                                 <td class="texte ">Type d'évènement de communes</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">DATE_EFF</td>
+                                 <td class="texte ">10</td>
+                                 <td class="texte ">Date d'effet (AAAA-MM-JJ)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#typecom" class="renvoi">TYPECOM_AV</a>
+                                    							</td>
+                                 <td class="texte ">4</td>
+                                 <td class="texte ">Type de la commune avant évènement</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">COM_AV</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code de la commune avant évènement</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#tncc" class="renvoi">TNCC_AV</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Type de nom en clair </td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCC_AV</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (majuscules)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCCENR_AV</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBELLE_AV</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche) avec article</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#type de commune" class="renvoi">TYPECOM_AP</a>
+                                    							</td>
+                                 <td class="texte ">4</td>
+                                 <td class="texte ">Type de commune après l'évènement</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">COM_AP</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code de la commune après l'évènement</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#tncc" class="renvoi">TNCC_AP</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Type de nom en clair </td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCC_AP</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (majuscules)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCCENR_AP</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBELLE_AP</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche) avec article</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Cette liste est une table de passage&nbsp;: à la date «&nbsp;date_eff&nbsp;», la commune «&nbsp;avant&nbsp;»
+                  devient la commune «&nbsp;après&nbsp;». «&nbsp;Commune&nbsp;» est à prendre dans un sens extensif comprenant
+                  aussi les arrondissements municipaux, communes associées et communes déléguées. </p>
+               <p class="paragraphe   ">On peut avoir plusieurs lignes pour la transformation d’une même commune. </p>
+            </div>
+            <div id="fusion-association" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-fusion-association"></span><div role="tabpanel" id="tableau-fusion-association" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-fusion-association">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-fusion-association"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Par exemple la fusion-association de Belmont avec Luthézieu donne&nbsp;: </h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-fusion-association" class="tableau-produit" style="">
+                           <caption>Par exemple la fusion-association de Belmont avec Luthézieu donne&nbsp;: </caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">MOD</th>
+                                 <th class="" scope="col">DATE_EFF</th>
+                                 <th class="" scope="col">TYPECOM_AV</th>
+                                 <th class="" scope="col">COM_AV</th>
+                                 <th class="" scope="col">NCCENR_AV</th>
+                                 <th class="" scope="col">TYPECOM_AP</th>
+                                 <th class="" scope="col">COM_AP</th>
+                                 <th class="" scope="col">NCCENR_AP</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">33</td>
+                                 <td class="texte ">1974-11-01</td>
+                                 <td class="texte ">COM</td>
+                                 <td class="texte ">01036</td>
+                                 <td class="texte ">Belmont</td>
+                                 <td class="texte ">COM</td>
+                                 <td class="texte ">01036</td>
+                                 <td class="texte ">Belmont-Luthézieu</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">33</td>
+                                 <td class="texte ">1974-11-01</td>
+                                 <td class="texte ">COM</td>
+                                 <td class="texte ">01226</td>
+                                 <td class="texte ">Luthézieu</td>
+                                 <td class="texte ">COM</td>
+                                 <td class="texte ">01036</td>
+                                 <td class="texte ">Belmont-Luthézieu</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">33</td>
+                                 <td class="texte ">1974-11-01</td>
+                                 <td class="texte ">COM</td>
+                                 <td class="texte ">01226</td>
+                                 <td class="texte ">Luthézieu</td>
+                                 <td class="texte ">COMA</td>
+                                 <td class="texte ">01226</td>
+                                 <td class="texte ">Luthézieu</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Soit&nbsp;:<br>
+                  					«&nbsp;le 1<sup>er</sup>&nbsp;novembre 1974, le territoire de la commune de Belmont dont le code est 01036 se retrouve
+                  dans le territoire de la commune de Belmont-Luthézieu dont le code est aussi 01036
+                  dans le cadre d’une fusion-association (mod=33). Il s’agit donc de la commune pôle
+                  de la fusion-association. » <br>
+                  					«&nbsp;le 1<sup>er</sup>&nbsp;novembre 1974, la commune de Luthézieu dont le code est 01226 devient la commune
+                  associée de Luthézieu dont le code est aussi 01226, et le territoire de cette commune
+                  se retrouve dans celui de la commune de Belmont-Luthézieu dont le code est 01036 dans
+                  le cadre d’une fusion-association (mod=33).&nbsp;»<br>
+                  				</p>
+            </div>
+            <div id="communenouv" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-communenouv"></span><div role="tabpanel" id="tableau-communenouv" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-communenouv">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-communenouv"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Autre exemple, la création de la commune nouvelle d’Arboys-en-Bugey donne&nbsp;:</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-communenouv" class="tableau-produit" style="">
+                           <caption>Autre exemple, la création de la commune nouvelle d’Arboys-en-Bugey donne&nbsp;:</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">MOD</th>
+                                 <th class="" scope="col">DATE_EFF</th>
+                                 <th class="" scope="col">TYPECOM_AV</th>
+                                 <th class="" scope="col">COM_AV</th>
+                                 <th class="" scope="col">NCCENR_AV</th>
+                                 <th class="" scope="col">TYPECOM_AP</th>
+                                 <th class="" scope="col">COM_AP</th>
+                                 <th class="" scope="col">NCCENR_AP</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">32</td>
+                                 <td class="texte ">2016-01-01</td>
+                                 <td class="texte ">COM</td>
+                                 <td class="texte ">01015</td>
+                                 <td class="texte ">Arbignieu</td>
+                                 <td class="texte ">COM</td>
+                                 <td class="texte ">01015</td>
+                                 <td class="texte ">Arboys en Bugey</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">32</td>
+                                 <td class="texte ">2016-01-01</td>
+                                 <td class="texte ">COM</td>
+                                 <td class="texte ">01015</td>
+                                 <td class="texte ">Arbignieu</td>
+                                 <td class="texte ">COMD</td>
+                                 <td class="texte ">01015</td>
+                                 <td class="texte ">Arbignieu</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">32</td>
+                                 <td class="texte ">2016-01-01</td>
+                                 <td class="texte ">COM</td>
+                                 <td class="texte ">01340</td>
+                                 <td class="texte ">Saint-Bois</td>
+                                 <td class="texte ">COM</td>
+                                 <td class="texte ">01015</td>
+                                 <td class="texte ">Arboys en Bugey</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">32</td>
+                                 <td class="texte ">2016-01-01</td>
+                                 <td class="texte ">COM</td>
+                                 <td class="texte ">01340</td>
+                                 <td class="texte ">Saint-Bois</td>
+                                 <td class="texte ">COMD</td>
+                                 <td class="texte ">01340</td>
+                                 <td class="texte ">Saint-Bois</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Soit&nbsp;:<br>
+                  					«&nbsp;le 1<sup>er</sup>&nbsp;janvier 2016, la commune d’Arbignieu dont le code et 01015 devient commune déléguée
+                  avec le même code au sein de la commune nouvelle (mod=32) d’Arboys en Bugey dont le
+                  code est également 01015 (ce qui indique que le chef lieu de la commune nouvelle se
+                  situe à Arbignieu).&nbsp;»<br>
+                  					«&nbsp;le 1<sup>er</sup>&nbsp;janvier 2016, la commune de Saint-Bois dont le code est 01340 devient commune déléguée
+                  avec le même code au sein de la commune nouvelle (mod=32) d’Arboys en Bugey dont le
+                  code est 01015.&nbsp;»<br>
+                  				</p>
+            </div>
+            <h3 class="bloc  " id="communes_1943">Communes depuis 1943</h3>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Liste de tous les couples code-libellé de commune ou d’arrondissement municipal ayant
+                  existé depuis 1943 avec la période durant laquelle le code correspondait au libellé.</p>
+               <p class="paragraphe   ">Le fichier a pour champ la France métropolitaine et les départements et régions d'outre-mer.
+                  Pour Mayotte, la liste des communes commence au 31/03/2011, date de la départementalisation
+                  de la collectivité.</p>
+            </div>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Liste des couples couples code-libellé de commune ou d’arrondissement municipal depuis
+                        1943</span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_commune_depuis_1943.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 7 Mo)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_commune_depuis_1943.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 3 Mo)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="communes_depuis_1943" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-communes_depuis_1943"></span><div role="tabpanel" id="tableau-communes_depuis_1943" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-communes_depuis_1943">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-communes_depuis_1943"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier «&nbsp;Communes depuis 1943&nbsp;» et liste des variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-communes_depuis_1943" class="tableau-produit" style="">
+                           <caption>Dessin du fichier «&nbsp;Communes depuis 1943&nbsp;» et liste des variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable</th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#typecom" class="renvoi">TYPECOM</a>
+                                    							</td>
+                                 <td class="texte ">4</td>
+                                 <td class="texte ">Type de commune</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">COM</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code commune</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#tncc" class="renvoi">TNCC</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Type de nom en clair</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCC</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (majuscules)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCCENR</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBELLE</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche) avec article</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">DATE_DEBUT</td>
+                                 <td class="texte ">10</td>
+                                 <td class="texte ">Date de début du couple code-libellé de commune (AAAA-MM-JJ)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">DATE_FIN</td>
+                                 <td class="texte ">10</td>
+                                 <td class="texte ">Date de fin du couple code-libellé de commune (AAAA-MM-JJ). 
+                                    							Lorsque cette colonne est vide, cela signifie que la commune est toujours active.</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <div id="chgnt_nom_commune" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-chgnt_nom_commune"></span><div role="tabpanel" id="tableau-chgnt_nom_commune" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-chgnt_nom_commune">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-chgnt_nom_commune"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Exemple 1&nbsp;: changement de nom d’une commune</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-chgnt_nom_commune" class="tableau-produit" style="">
+                           <caption>Exemple 1&nbsp;: changement de nom d’une commune</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">com</th>
+                                 <th class="" scope="col">tncc</th>
+                                 <th class="" scope="col">ncc</th>
+                                 <th class="" scope="col">nccenr</th>
+                                 <th class="" scope="col">libelle</th>
+                                 <th class="" scope="col">date_debut</th>
+                                 <th class="" scope="col">date_fin</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">01004</td>
+                                 <td class="texte ">0</td>
+                                 <td class="texte ">AMBERIEU EN BUGEY</td>
+                                 <td class="texte ">Ambérieu-en-Bugey</td>
+                                 <td class="texte ">Ambérieu-en-Bugey</td>
+                                 <td class="texte ">1955-03-31</td>
+                                 <td class="texte "></td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">01004</td>
+                                 <td class="texte ">0</td>
+                                 <td class="texte ">AMBERIEU</td>
+                                 <td class="texte ">Ambérieu</td>
+                                 <td class="texte ">Ambérieu</td>
+                                 <td class="texte ">1943-01-01</td>
+                                 <td class="texte ">1955-03-31</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">La commune 01004 a eu pour libellé Ambérieu jusqu’au 31/03/1955 et Ambérieu-en-Bugey
+                  à partir du 31/03/1955.</p>
+            </div>
+            <div id="fusion-association2" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-fusion-association2"></span><div role="tabpanel" id="tableau-fusion-association2" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-fusion-association2">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-fusion-association2"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Exemple 2&nbsp;: commune perdant son statut de commune suite à une fusion-association</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-fusion-association2" class="tableau-produit" style="">
+                           <caption>Exemple 2&nbsp;: commune perdant son statut de commune suite à une fusion-association</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">com</th>
+                                 <th class="" scope="col">tncc</th>
+                                 <th class="" scope="col">ncc</th>
+                                 <th class="" scope="col">nccenr</th>
+                                 <th class="" scope="col">libelle</th>
+                                 <th class="" scope="col">date_debut</th>
+                                 <th class="" scope="col">date_fin</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">14463</td>
+                                 <td class="texte ">0</td>
+                                 <td class="texte ">NEUILLY LE MALHERBE</td>
+                                 <td class="texte ">Neuilly-le-Malherbe</td>
+                                 <td class="texte ">Neuilly-le-Malherbe</td>
+                                 <td class="texte ">1943-01-01</td>
+                                 <td class="texte ">1972-04-01</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">La commune 14463 Neuilly-le-Malherbe perd son statut de commune au 01/04/1972 suite
+                  à son rattachement 
+                  		à la commune de Vacognes (14721) dans le cadre d’une fusion association.</p>
+            </div>
+            <div id="chgnt-creation" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-chgnt-creation"></span><div role="tabpanel" id="tableau-chgnt-creation" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-chgnt-creation">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-chgnt-creation"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Exemple 3&nbsp;: changement de nom d’une commune puis création d’une commune nouvelle</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-chgnt-creation" class="tableau-produit" style="">
+                           <caption>Exemple 3&nbsp;: changement de nom d’une commune puis création d’une commune nouvelle</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">com</th>
+                                 <th class="" scope="col">tncc</th>
+                                 <th class="" scope="col">ncc</th>
+                                 <th class="" scope="col">nccenr</th>
+                                 <th class="" scope="col">libelle</th>
+                                 <th class="" scope="col">date_debut</th>
+                                 <th class="" scope="col">date_fin</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">01033</td>
+                                 <td class="texte ">0</td>
+                                 <td class="texte ">BELLEGARDE</td>
+                                 <td class="texte ">Bellegarde</td>
+                                 <td class="texte ">Bellegarde</td>
+                                 <td class="texte ">1943-01-01</td>
+                                 <td class="texte ">1956-10-19</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">01033</td>
+                                 <td class="texte ">0</td>
+                                 <td class="texte ">BELLEGARDE SUR VALSERINE</td>
+                                 <td class="texte ">Bellegarde-sur-Valserine</td>
+                                 <td class="texte ">Bellegarde-sur-Valserine</td>
+                                 <td class="texte ">1956-10-19</td>
+                                 <td class="texte ">2019-01-01</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">01033</td>
+                                 <td class="texte ">0</td>
+                                 <td class="texte ">VALSERHONE</td>
+                                 <td class="texte ">Valserhône</td>
+                                 <td class="texte ">Valserhône</td>
+                                 <td class="texte ">2019-01-01</td>
+                                 <td class="texte "></td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">La commune 01033 de Bellegarde a changé de nom à partir du 19/10/1956 pour devenir
+                  Bellegarde-sur-Valserine. 
+                  				Son code et son libellé restent identiques jusqu’au 01/01/2019. Au 01/01/2019&nbsp;:
+                  création de la commune nouvelle 
+                  				de Valserhône (01033) en lieu et place des communes de Bellegarde-sur-Valserine
+                  (01033), de Châtillon-en-Michaille (01091) 
+                  				et de Lancrans (01205).</p>
+            </div>
+            <h3 class="bloc  " id="coll-outre-mer">Collectivités et territoires français d’outre-mer</h3>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Liste des collectivités et territoires français d’outre-mer. Des informations spécifiques
+                  sur leur codification sont consultables sur cette <a class="renvoi" href="/fr/information/7929495">page</a>.</p>
+            </div>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Liste des collectivités et territoires français d’outre-mer</span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_comer_2026.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 1 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_comer_2026.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 785 octets)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="liste_coll-outre-mer" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-liste_coll-outre-mer"></span><div role="tabpanel" id="tableau-liste_coll-outre-mer" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-liste_coll-outre-mer">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-liste_coll-outre-mer"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier «&nbsp;Collectivités et territoires français d’outre-mer » et liste des
+                        variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-liste_coll-outre-mer" class="tableau-produit" style="">
+                           <caption>Dessin du fichier «&nbsp;Collectivités et territoires français d’outre-mer » et liste des
+                              variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable</th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">COMER</td>
+                                 <td class="texte ">3</td>
+                                 <td class="texte ">Code collectivité d’outre-mer</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#tncc" class="renvoi">TNCC</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Type de nom en clair</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCC</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (majuscules)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCCENR</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBELLE</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche) avec article</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <h3 class="bloc  " id="coll-outre-mer_depuis_1943">Collectivités et territoires français d’outre-mer depuis 1943</h3>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Liste de tous les couples code-libellé de collectivité ou de territoire français d’outre-mer
+                  ayant existé depuis 1943 avec la période durant laquelle le code correspondait au
+                  libellé.</p>
+            </div>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Collectivités et territoires français d’outre-mer depuis 1943</span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_tom_depuis_1943.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 9 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_tom_depuis_1943.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 5 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="liste_coll-outre-mer_depuis_1943" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-liste_coll-outre-mer_depuis_1943"></span><div role="tabpanel" id="tableau-liste_coll-outre-mer_depuis_1943" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-liste_coll-outre-mer_depuis_1943">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-liste_coll-outre-mer_depuis_1943"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier « Collectivités et territoires français d’outre-mer depuis 1943
+                        » et liste des variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-liste_coll-outre-mer_depuis_1943" class="tableau-produit" style="">
+                           <caption>Dessin du fichier « Collectivités et territoires français d’outre-mer depuis 1943
+                              » et liste des variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable</th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">COMER</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code de la collectivité ou du territoire d’outre-mer</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218" class="renvoi">TNCC</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Type de nom en clair</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCC</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (majuscules)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCCENR</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBELLE</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche) avec article</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">DATE_DEBUT</td>
+                                 <td class="texte ">10</td>
+                                 <td class="texte ">Date de début du couple code-libellé de collectivité ou de territoire (AAAA-MM-JJ)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">DATE_FIN</td>
+                                 <td class="texte ">10</td>
+                                 <td class="texte ">Date de fin du couple code-libellé de collectivité ou de territoire (AAAA-MM-JJ)
+                                    							<br>
+                                    							Lorsque cette variable est vide, cela signifie que le couple est toujours actif.</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <h3 class="bloc  " id="communes_COM">Communes des collectivités et territoires français d’outre-mer</h3>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Liste des communes des collectivités et territoires français d’outre-mer. Pour Wallis-et-Futuna,
+                  les Terres australes et antarctiques françaises, l’île de La Passion-Clipperton et
+                  l’Île des Faisans non découpées en commune sont respectivement listés&nbsp;: les circonscriptions
+                  territoriales, les districts et les codes à 5 chiffres de l’île de La Passion-Clipperton
+                  et du condominium de l’Île des Faisans.</p>
+            </div>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Liste des communes des collectivités et territoires français d’outre-mer</span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_commune_comer_2026.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 16 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_commune_comer_2026.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 7 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="liste_communes_COM" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-liste_communes_COM"></span><div role="tabpanel" id="tableau-liste_communes_COM" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-liste_communes_COM">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-liste_communes_COM"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier « Communes des&nbsp;collectivités et territoires français d’outre-mer
+                        » et liste des variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-liste_communes_COM" class="tableau-produit" style="">
+                           <caption>Dessin du fichier « Communes des&nbsp;collectivités et territoires français d’outre-mer
+                              » et liste des variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable</th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">COM_COMER</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code du zonage</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#tncc" class="renvoi">TNCC</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Type de nom en clair</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCC</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Libellé en lettres majuscules sans accents</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCCENR</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Libellé en caractères majuscules, minuscules et accentués.</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBELLE</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Libellé en caractères majuscules, minuscules et accentués avec article</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#nat_zonage" class="renvoi">NATURE_ZONAGE</a>
+                                    							</td>
+                                 <td class="texte ">3</td>
+                                 <td class="texte ">Code Nature Zonage</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">COMER</td>
+                                 <td class="texte ">3</td>
+                                 <td class="texte ">Code de la collectivité d’outre-mer</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBELLE_COMER</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Libellé de la collectivité d’outre-mer</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+            <h3 class="bloc  " id="communes_COM_depuis_1943">Communes des collectivités et territoires français d’outre-mer depuis 1943</h3>
+            <div class="bloc paragraphes ">
+               <p class="paragraphe   ">Liste de tous les couples code-libellé de commune ayant existé depuis 1943 avec la
+                  période durant laquelle le code correspondait au libellé.</p>
+               <p class="paragraphe   ">Le fichier a pour champ les collectivités et territoires français d’outre-mer ayant
+                  existé depuis 1943, ainsi que les anciens départements d’Algérie et les protectorats
+                  du Maroc et de Tunisie.</p>
+            </div>
+            <div class="bloc fichiers">
+               <div class="bloc-gauche">
+                  <div class="nom-titre"><span class="nom-fichier"></span><span class="titre-fichier">Communes des collectivités et territoires français d’outre-mer depuis 1943</span></div>
+               </div><a class="fichier" href="/fr/statistiques/fichier/8740222/v_commune_outremer_depuis_1943.dbf">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(dbase, 142 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-dbase bouton-telecharger-court"></div>
+                  </div></a><a class="fichier" href="/fr/statistiques/fichier/8740222/v_commune_outremer_depuis_1943.csv">
+                  <div class="contenu-fichier">
+                     <div class="fichier-format">(csv, 69 Ko)
+                        </div>
+                     <div class="bouton-telecharger bouton-telecharger-csv bouton-telecharger-court"></div>
+                  </div></a></div>
+            <div id="liste_ccommunes_COM_depuis_1943" class="bloc figure" data-id-graph-parent="">
+               <div class="onglets-clear"></div><span class="ancre sans-onglet" id="ancre-liste_ccommunes_COM_depuis_1943"></span><div role="tabpanel" id="tableau-liste_ccommunes_COM_depuis_1943" tabindex="0" class="panneau courant panneau-v2">
+                  <figure role="group" aria-labelledby="figcaption-tableau-liste_ccommunes_COM_depuis_1943">
+                     <h3 class="titre-figure titreGraphiqueImpression" id="titre-tableau-liste_ccommunes_COM_depuis_1943"><span class="hidden">tableau</span><span class="hidden-impression-information-rapide"> – </span>Dessin du fichier « Collectivités et territoires français d’outre-mer depuis 1943
+                        » et liste des variables</h3>
+                     <div class="tableau ">
+                        <table id="produit-tableau-liste_ccommunes_COM_depuis_1943" class="tableau-produit" style="">
+                           <caption>Dessin du fichier « Collectivités et territoires français d’outre-mer depuis 1943
+                              » et liste des variables</caption>
+                           <thead>
+                              <tr class="">
+                                 <th class="" scope="col">Nom de la variable</th>
+                                 <th class="" scope="col">Longueur de la variable</th>
+                                 <th class="" scope="col">Désignation et modalités de la variable</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#nat_zonage" class="renvoi">NATURE_ZONAGE</a>
+                                    							</td>
+                                 <td class="texte ">3</td>
+                                 <td class="texte ">Code nature zonage</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">COM_COMER</td>
+                                 <td class="texte ">5</td>
+                                 <td class="texte ">Code commune (ou autre zonage pour les collectivités et territoires non découpés en
+                                    communes, voir variable NATURE_ZONAGE)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">
+                                    								<a href="/fr/information/8740218#tncc" class="renvoi">TNCC</a>
+                                    							</td>
+                                 <td class="texte ">1</td>
+                                 <td class="texte ">Type de nom en clair</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCC</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (majuscules)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">NCCENR</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">LIBELLE</td>
+                                 <td class="texte ">200</td>
+                                 <td class="texte ">Nom en clair (typographie riche) avec article)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">DATE_DEBUT</td>
+                                 <td class="texte ">10</td>
+                                 <td class="texte ">Date de début du couple code-libellé de commune (AAAA-MM-JJ)</td>
+                              </tr>
+                              <tr class="">
+                                 <td class="texte ">DATE_FIN</td>
+                                 <td class="texte ">10</td>
+                                 <td class="texte ">Date de fin du couple code-libellé de commune (AAAA-MM-JJ)
+                                    							<br>
+                                    							Lorsque cette variable est vide, cela signifie que le couple est toujours actif.</td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </figure>
+               </div>
+            </div>
+         </div>
+      </div>
+      <div id="documentation" class="panneau publication "></div>
+   </div>
+</section><section>
+   <div class="module-transverse pour-en-savoir-plus   ">
+      <div class="module-transverse-container">
+         <h2 class="module-transverse-titre" data-i18n="produit.pour-en-savoir-plus.titre">Pour en savoir plus</h2>
+         <div class="module-transverse-contenu">
+            <p class="paragraphe   ">
+               			<a class="renvoi" data-i18n="" href="/fr/information/8740218">Liste des modalités des fichiers du COG du&nbsp;millésime&nbsp;2026</a>
+               		</p>
+            <p class="paragraphe   ">
+               			<a class="renvoi" data-i18n="" href="/fr/information/2560452">Téléchargement des fichiers du COG des&nbsp;autres&nbsp;millésimes</a>
+               		</p>
+         </div>
+      </div>
+   </div>
+</section>
+
+</main>
+
+<footer role="contentinfo">
+    
+        
+        
+            
+
+
+
+<div class="footer-mobile">
+	<div class="liens-reseaux-sociaux-mobile">
+		<a href="https://bsky.app/profile/insee.fr" target="_blank" rel="noopener" data-i18n="[title]reseaux-sociaux.footer.lien-bluesky" title="Bluesky"><span class="icone-bluesky"><span data-i18n="reseaux-sociaux.footer.lien-bluesky" class="hidden-accessibilite"></span></span></a>
+		<a href="https://www.instagram.com/insee_fr/" target="_blank" rel="noopener" data-i18n="[title]reseaux-sociaux.footer.lien-instagram" title="Instagram"><span class="icone-instagram"><span data-i18n="reseaux-sociaux.footer.lien-instagram" class="hidden-accessibilite"></span></span></a>
+		<a href="https://www.linkedin.com/company/insee" target="_blank" rel="noopener" data-i18n="[title]reseaux-sociaux.footer.lien-linkedin" title="LinkedIn"><span class="icone-linkedin"><span data-i18n="reseaux-sociaux.footer.lien-linkedin" class="hidden-accessibilite"></span></span></a>
+		
+			
+			
+				<a href="https://x.com/InseeFr" target="_blank" rel="noopener" data-i18n="[title]reseaux-sociaux.footer.lien-twitter" title="X"><span class="icone-twitter"><span data-i18n="reseaux-sociaux.footer.lien-twitter" class="hidden-accessibilite"></span></span></a>
+			
+		
+		<a href="https://www.youtube.com/@Insee_Fr" target="_blank" rel="noopener" data-i18n="[title]reseaux-sociaux.footer.lien-youtube" title="Youtube"><span class="icone-youtube"><span data-i18n="reseaux-sociaux.footer.lien-youtube" class="hidden-accessibilite"></span></span></a>
+		<a href="https://blog.insee.fr/" target="_blank" rel="noopener" data-i18n="[title]reseaux-sociaux.footer.lien-blog" title="Blog"><span class="icone-blog"><span data-i18n="reseaux-sociaux.footer.lien-blog" class="hidden-accessibilite"></span></span></a>
+		<a href="
+
+
+/fr/information/2381941
+" data-i18n="[title]reseaux-sociaux.footer.lien-rss" title="Rss"><span class="icone-rss"><span data-i18n="reseaux-sociaux.footer.lien-rss" class="hidden-accessibilite"></span></span></a>
+	</div>
+	<div class="liens-partenaires-mobile">
+		<ul class="menu-liens-partenaires-mobile" role="menu">
+			
+				
+				
+					<li class="lien"><span data-i18n="footer.menu-footer.partenaires">Nos sites partenaires</span></li>
+					<ul class="menu-deroulant-partenaires-mobile" role="menu">
+						<li role="menuitem">
+							<a class="lien" href="http://ec.europa.eu/eurostat/web/european-statistical-system/overview?locale=fr" target="_blank" data-i18n="[title]footer.images.sse">Système Statistique Européen</a>
+						</li>
+						<li role="menuitem">
+							<a class="lien" href="http://www.reseau-quetelet.cnrs.fr/spip/" target="_blank" data-i18n="[title]footer.images.quetelet">Réseau Quetelet</a>
+						</li>
+						<li role="menuitem">
+							<a class="lien" href="https://casd.eu/" target="_blank" data-i18n="[title]footer.images.casd">Centre d'Accès Sécurisé Distant aux données (CASD)</a>
+						</li>
+						<li role="menuitem">
+							<a class="lien" href="http://www.data.gouv.fr/fr/" target="_blank" data-i18n="[title]footer.images.data">site data.gouv</a>
+						</li>
+						<li role="menuitem">
+							<a class="lien" href="https://www.plus.transformation.gouv.fr/" target="_blank" data-i18n="[title]footer.images.services">Services Publics +</a>
+						</li>
+					
+				
+			</ul>
+		</ul>
+	</div>
+</div>
+<div class="footer">
+	<div class="container-bloc-1">
+		<nav class="bloc-1" aria-label="bloc-1">
+			<div class="abonnement">
+				<h2 class="titre-footer" data-i18n="footer.abonnez-vous">Abonnez-vous</h2>
+				<div class="contenu-abonnement">
+					<div class="lettre"></div>
+					<a href="
+
+
+/fr/information/1405555
+" class="lien-footer avis-parution" data-i18n="footer.avis-parution">Avis de parution</a>
+				</div>
+			</div>
+			<div class="reseaux-sociaux">
+				<h2 class="titre-footer" data-i18n="footer.reseaux-sociaux">Nous suivre</h2>
+				<div class="contenu-reseaux-sociaux">
+					<a href="https://bsky.app/profile/insee.fr" target="_blank" rel="noopener" data-i18n="[title]reseaux-sociaux.footer.lien-bluesky" title="Bluesky"><img class="cercle-bluesky" alt="" src="
+
+
+/static/img/logo-bluesky.svg
+"/><span data-i18n="reseaux-sociaux.footer.lien-bluesky" class="hidden-accessibilite"></span></a>
+					<a href="https://www.instagram.com/insee_fr/" target="_blank" rel="noopener" data-i18n="[title]reseaux-sociaux.footer.lien-instagram" title="Instagram"><img class="cercle-instagram" alt="" src="
+
+
+/static/img/logo-instagram-small.png
+"/><span data-i18n="reseaux-sociaux.footer.lien-instagram" class="hidden-accessibilite"></span></a>
+					<div class="cercle-linkedin">
+						<a href="https://www.linkedin.com/company/insee" target="_blank" rel="noopener" data-i18n="[title]reseaux-sociaux.footer.lien-linkedin" title="LinkedIn"><span class="icone-linkedin"><span data-i18n="reseaux-sociaux.footer.lien-linkedin" class="hidden-accessibilite"></span></span></a>
+					</div>
+					<div class="cercle-twitter">
+						
+							
+							
+								<a href="https://x.com/InseeFr" target="_blank" rel="noopener" data-i18n="[title]reseaux-sociaux.footer.lien-twitter" title="X"><span class="icone-twitter"><span data-i18n="reseaux-sociaux.footer.lien-twitter" class="hidden-accessibilite"></span></span></a>
+							
+						
+					</div>
+					<div class="cercle-youtube">
+						<a href="https://www.youtube.com/@Insee_Fr" target="_blank" rel="noopener" data-i18n="[title]reseaux-sociaux.footer.lien-youtube" title="Youtube"><span class="icone-youtube"><span data-i18n="reseaux-sociaux.footer.lien-youtube" class="hidden-accessibilite"></span></span></a>
+					</div>
+					<div class="cercle-blog">
+						<a href="https://blog.insee.fr/" target="_blank" rel="noopener" data-i18n="[title]reseaux-sociaux.footer.lien-blog" title="Blog"><span class="icone-blog"><span data-i18n="reseaux-sociaux.footer.lien-blog" class="hidden-accessibilite"></span></span></a>
+					</div>
+					<div class="cercle-rss">
+						<a href="
+
+
+/fr/information/2381941
+" data-i18n="[title]reseaux-sociaux.footer.lien-rss" title="Rss"><span class="icone-rss"><span data-i18n="reseaux-sociaux.footer.lien-rss" class="hidden-accessibilite"></span></span></a>
+					</div>
+				</div>
+			</div>
+			<div class="contact-aide">
+				<h2 class="titre-footer" data-i18n="footer.contact">Contact</h2>
+				<div class="contenu-contact-aide">
+					<a href="
+
+
+/fr/information/2411108
+" class="lien-footer" data-i18n="footer.aide">Aide et contact</a>
+				</div>
+			</div>
+			
+		</nav>
+	</div>
+	<div class="container-bloc-2">
+		<div class="bloc-2"><ul>
+   <div class="colonne-1">
+      <li class="liste-niveau-1">
+         <div class="titre-liste-niveau-1"><a class="lien" href="/fr/statistiques" data-i18n="menu.statistiques.titre">Statistiques et études</a></div>
+      </li>
+      <li class="liste-niveau-1">
+         <div class="titre-liste-niveau-1"><a class="lien" href="/fr/information/2016815">Définitions, méthodes et qualité</a></div>
+         <ul>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/metadonnees/definitions">Définitions</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/2407637">Sources statistiques et indicateurs</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/4138839">La qualité dans le Service statistique public (SSP)</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/2016811">Nomenclatures</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/8391822">Géographie administrative et d'étude</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/2022002">Modèles, méthodes et outils statistiques</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/3622502">Courrier des statistiques</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/2410988">Offre de données ouvertes</a></div>
+            </li>
+         </ul>
+      </li>
+   </div>
+   <div class="colonne-2">
+      <li class="liste-niveau-1">
+         <div class="titre-liste-niveau-1"><a class="lien" href="/fr/information/1302181">Services</a></div>
+         <ul>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/1302157">Réviser une pension, un loyer, bail ou contrat</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/2411675">Consulter les indices et séries chronologiques</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/6675111">Sirene</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/2021852">Découvrir, apprendre, enseigner</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/1302175">Répondre à une enquête de l'Insee</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/1302152">S’informer sur l’actualité de notre diffusion</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/1302179">Gérer les répertoires des personnes physiques</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/1302154">Bibliothèque de l’Insee Alain Desrosières</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/1302171">Commander une prestation, acheter une publication</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/1302177">Nous suivre</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/2411108">Aide et contacts</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/2008400">Espace presse</a></div>
+            </li>
+         </ul>
+      </li>
+      <li class="liste-niveau-1">
+         <div class="titre-liste-niveau-1"><a class="lien" href="/fr/information/1302230">L'Insee et la statistique publique</a></div>
+         <ul>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/1302198">L'Insee</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/1302194">Les activités de l'Insee</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/1302208">La statistique publique</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/1302196">La construction de la statistique européenne</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/4248413">Mesure de la qualité de service</a></div>
+            </li>
+            <li class="liste-niveau-2">
+               <div class="titre-liste-niveau-2"><a class="lien titre-categorie" href="/fr/information/5413276">Services Publics+ : un service public plus proche, plus simple, plus efficace</a></div>
+            </li>
+         </ul>
+      </li>
+   </div>
+</ul></div>
+	</div>
+	<nav class="container-bloc-3" aria-label="container-bloc-3">
+		<div class="bloc-3">
+			<ul class="images-footer">
+				
+					
+					
+						<li class="image-footer">
+							<a class="lien-footer-image" href="http://ec.europa.eu/eurostat/web/european-statistical-system/overview?locale=fr" target="_blank" data-i18n="[title]footer.images.sse">
+								<img src="
+
+
+/static/img/footer/sse.png
+" alt="Système Statistique Européen" title="Système Statistique Européen" />
+							</a>
+						</li>
+						<li class="image-footer">
+							<a class="lien-footer-image" href="http://www.reseau-quetelet.cnrs.fr/spip/" target="_blank" data-i18n="[title]footer.images.quetelet">
+								<img src="
+
+
+/static/img/footer/Reseau_quetelet.png
+" alt="Réseau Quetelet" title="Réseau Quetelet" />
+							</a>
+						</li>
+						<li class="image-footer">
+							<a class="lien-footer-image" href="https://casd.eu/" target="_blank" data-i18n="[title]footer.images.casd">
+								<img src="
+
+
+/static/img/footer/CASD.png
+" alt="Centre d'Accès Sécurisé Distant aux données (CASD)" title="Centre d'Accès Sécurisé Distant aux données (CASD)" />
+							</a>
+						</li>
+						<li class="image-footer">
+							<a class="lien-footer-image" href="http://www.data.gouv.fr/fr/" target="_blank" data-i18n="[title]footer.images.data">
+								<img src="
+
+
+/static/img/footer/data.gouv.png
+" alt="site data.gouv" title="site data.gouv" />
+							</a>
+						</li>
+						<li class="image-footer">
+							<a class="lien-footer-image" href="https://www.plus.transformation.gouv.fr/" target="_blank" data-i18n="[title]footer.images.services">
+								<img src="
+
+
+/static/img/footer/Service_public.png
+" alt="Services Publics +" title="Services Publics +" />
+							</a>
+						</li>
+					
+				
+			</ul>
+		</div>
+	</nav>
+	<nav class="container-bloc-4" aria-label="container-bloc-4">
+		<div class="bloc-4">
+			<ul class="liens-footer">
+				
+					
+					
+						<li class="lien-footer">
+							<a href="
+
+
+/fr/information/2008466
+" data-i18n="footer.liens.mentions">Mentions légales et crédits</a>
+						</li>
+						<li class="lien-footer">
+							<a href="
+
+
+/fr/information/2386135
+" data-i18n="footer.liens.accessibilite">Accessibilité : partiellement conforme</a>
+						</li>
+						<li class="lien-footer ">
+							<a href="
+
+
+/fr/information/5894637
+">Accès sourds et malentendants</a>
+						</li>
+						<li class="lien-footer">
+							<a href="
+
+
+/fr/information/2381939
+" data-i18n="footer.liens.securite">Sécurité</a>
+						</li>
+						<li class="lien-footer">
+							<a href="
+
+
+/fr/plan-du-site
+" data-i18n="footer.liens.plan">Plan du site</a>
+						</li>
+					
+				
+			</ul>
+		</div>
+	</nav>
+</div>
+
+        
+    
+</footer>
+
+<a href="#" class="sticky-top"><span data-i18n="footer.sticky-top.texte" class="sticky-text">Haut de page</span></a>
+
+
+<script>
+    window.addEventListener("load", async function () {
+        const isFrench = document.documentElement.lang !== "en";
+        Highcharts.setOptions({
+            lang: {
+                thousandsSep: "\u00A0",
+                numericSymbols: undefined, // disable 100k, 1M, etc
+                decimalPoint: isFrench ? "," : ".",
+            },
+        });
+
+        const bimester = isFrench
+            ? { label: "bimestre", abbr: "bim." }
+            : { label: "bimester", abbr: "bim." };
+        const quarter = isFrench
+            ? { label: "trimestre", abbr: "trim." }
+            : { label: "quarter", abbr: "qtr." };
+
+        const getBimester = (date) => {
+            return Math.floor(date.getUTCMonth() / 2) + 1;
+        };
+        const getQuarter = (date) => {
+            return Math.floor(date.getUTCMonth() / 3) + 1;
+        };
+
+        const addSuffix = function (pos) {
+            switch (pos) {
+                case 1:
+                    return pos + (isFrench ? "er " : "st ");
+                case 2:
+                    return pos + (isFrench ? "e " : "nd ");
+                case 3:
+                    return pos + (isFrench ? "e " : "rd ");
+                default:
+                    return pos + (isFrench ? "e " : "th ");
+            }
+        };
+
+        Highcharts.dateFormats.clib = function (timestamp) {
+            const date = new Date(timestamp);
+            return addSuffix(getBimester(date)) + bimester.abbr;
+        };
+        Highcharts.dateFormats.Clib = function (timestamp) {
+            const date = new Date(timestamp);
+            return addSuffix(getBimester(date)) + bimester.label;
+        };
+        Highcharts.dateFormats.t = function (timestamp) {
+            const date = new Date(timestamp);
+            return getQuarter(date) + "";
+        };
+        Highcharts.dateFormats.qlib = function (timestamp) {
+            const date = new Date(timestamp);
+            return addSuffix(getQuarter(date)) + quarter.abbr;
+        };
+        Highcharts.dateFormats.Qlib = function (timestamp) {
+            const date = new Date(timestamp);
+            return addSuffix(getQuarter(date)) + quarter.label;
+        };
+
+        const graphs = document.querySelectorAll("[id^='highchart']");
+        for (const graph of graphs) {
+            const response = await fetch(graph.getAttribute("data-graphique"));
+            const xml = await response.text();
+            const options = await generateChartOptions(xml);
+
+            if (options?.chart.type === 'map') {
+                Highcharts.mapChart(graph.getAttribute("id"), options);
+            } else {
+                Highcharts.chart(graph.getAttribute("id"), options);
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
+

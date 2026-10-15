@@ -1,0 +1,203 @@
+                   Bulletin clarifié 2023 – Net social
+
+Actualité BOSS du 07/02/2023 : Le montant net social pour les salariés
+« Le montant net social est le revenu net après déduction de l’ensemble des prélèvements sociaux
+obligatoires et constitue à ce titre une référence commune à tous les salariés quel que soit leur statut, leur
+branche ou leur entreprise.
+
+L’affichage de ce montant sur les bulletins de paie dès juillet 2023 va ainsi simplifier les démarches des
+allocataires qui n’auront plus aucun calcul à effectuer. Il leur suffira de déclarer le cumul des montants nets
+sociaux qui leur auront été transmis.
+
+A compter de 2024, les employeurs devront déclarer le « montant net social » de leurs salariés aux
+administrations, comme c’est déjà le cas pour le « montant net imposable ».
+
+Calendrier
+En juillet 2023, le montant net social devra être affiché sur les bulletins de paie des salariés. Aussi, les
+allocataires auront la possibilité de reporter dans leur déclaration trimestrielle de ressources (DTR) le
+montant net social transmis par leur employeur.
+
+En 2024, ce montant sera directement communiqué aux CAF pour chaque revenu versé par les employeurs et
+les organismes sociaux. Les allocataires pourront de ce fait se rendre sur mesdroitssociaux.fr pour consulter
+le montant total de leurs revenus nets sociaux. »
+
+
+             Dans la question 1.20 de la FAQ du ministère il est stipulé qu’il est possible d’appliquer
+             le nouveau modèle par anticipation avant la date du 1 er juillet 2023.
+             Dans l’actualité Net-entreprises du 8 février 2023, il est indiqué qu’il est possible de
+             déclarer en DSN dès 2023 le montant net social (l’obligation est pour janvier 2024).
+             Nous vous conseillons l’utilisation du nouveau bulletin clarifié 2023 au plus tôt afin de
+             vérifier le bon calcul du montant net social.
+
+Définition
+A la suite de la publication de la FAQ, les éléments de calcul du net social ont été définis :
+
+Q.2.2 : Comment le « montant net social » est-il calculé ?
+Le « montant net social » est constitué, de l’ensemble des sommes brutes correspondant aux
+rémunérations et revenus de remplacement versés par les employeurs à leurs salariés (salaires,
+primes, rémunération des heures supplémentaires, avantages en nature, indemnités de rupture,
+etc.), diminuées des cotisations et contributions sociales qui leur sont applicables.
+
+Q.2.11 : Quels éléments sont pris en compte dans le montant net social ?
+L’ensemble de la rémunération brute du salarié est pris en compte, indépendamment des exonérations,
+déductions, abattements ou franchises applicables et de l’assujettissement fiscal ou social.
+
+Q.2.12 : Quels éléments n’entrent pas dans le montant net social ?
+Les éléments qui n’entrent pas en ligne de compte sont soit des données de paie qui ne sont pas des
+revenus soit, par exception, certains éléments de revenus qui restent totalement non pris en
+compte. Ainsi, n’entrent pas dans le calcul du montant net social :
+• Les remboursements de frais professionnels dans la limite de chacun de leurs plafonds d’exonération
+• Les avantages en nature exemptés socialement et fiscalement liés aux activités sociales
+• La part patronale pour le financement des garanties collectives à la complémentaire santé obligatoire
+• L’intéressement et la participation placés sur des plans d’épargne
+• Les abondements de l’employeur aux plans d’épargne
+• Les indemnités journalières de sécurité sociale (IJSS), y compris pour les cas de subrogation de
+    l’employeur
+
+
+                                                  BULLETIN CLARIFIÉ 2023 – NET SOCIAL                     Page 1 sur 5
+Q.2.14 : Quelles cotisations et contributions d’origine légale ou conventionnelles sont à déduire ?
+L’ensemble des cotisations et contributions sociales obligatoires d’origine légale ou
+conventionnelles à la charge du salarié, ainsi que les cotisations salariales à la complémentaire
+santé sont déduites.
+Les cotisations et contributions salariales de prévoyance et de retraite supplémentaire ne sont
+pas déduites du montant de la rémunération.
+
+Q.2.15 : Quelles cotisations de protection sociale complémentaire sont à déduire du montant net social ?
+Seules les cotisations salariales finançant des garanties visant à la prise en charge de frais occasionnés par
+une maladie, une maternité ou un accident dits « frais de santé » doivent être déduites.
+
+
+
+
+             Retrouvez l’intégralité des questions/réponses et le détail des réponses dans la FAQ du
+             ministère.
+
+
+
+Les documentations disponibles
+        ➢   Communiqué de presse
+        ➢   Actualité Net-entreprise
+        ➢   Arrêté
+        ➢   FAQ
+        ➢   Fiche consigne
+
+
+
+                                                BULLETIN CLARIFIÉ 2023 – NET SOCIAL                  Page 2 sur 5
+Mise en place dans votre société
+Dans la version 5.20 de Sage 100 & Paie & RH, la constante prédéfinie S_NETSOCAL « Net social (Bulletin) » a
+été créée dans le Plan de Paie Sage.
+
+Elle est récupérée automatiquement dans les bases de paie et elle se paramètre dans les rubriques, onglet «
+Associations \ Cumuls de paie 2 ».
+
+Cette constante permet de reprendre le montant salarial des rubriques paramétrée.
+
+En mise à jour de société (de version 5.00 à 5.20), cette constante est pré paramétrée :
+• Reprend le signe (+ / Non / -) de la constante BRUT pour les rubriques de type brut
+• Reprend le signe inverse (+ / Non / -) de la constante COTISAL pour les rubriques de type cotisations
+
+La Q.2.11 listant de manière non exhaustive les éléments à prendre en compte indique qu’il s’agit de
+l’ensemble de la rémunération brute du salarié. Il ne doit pas être tenu compte si l’élément est soumis à
+cotisation.
+Exemples : primes de toutes natures (y compris celles versées en cas d’impatriation ou d’expatriation, ou
+celles exonérées comme la prime de partage de la valeur). Les revenus de remplacement versés directement
+par l’employeur (par exemple les indemnités légales d’activité partielle, les indemnités versées dans le cadre
+d’un congé de reclassement…)
+
+
+            Ainsi, les rubriques n’entrant pas dans la constante BRUT ne sont pas prises en compte dans
+            le calcul du net social. Ce paramètre doit être modifié.
+            Les rubriques de type brut ne devant pas être modifiées sont celles référencées dans la Q.2.12 avec
+            toutefois une spécificité pour les IJ qu’il faut déduire car c’est la CPAM qui va les déclarer.
+
+
+Exemple de rubriques du Plan de Paie Sage à modifier :
+    •   Rubrique PPV exonérée : Remplacer Non par (+)
+
+
+
+
+    •   Rubrique Indemnité légale d’activité partielle : Remplacer Non par (+)
+
+
+
+
+                                                BULLETIN CLARIFIÉ 2023 – NET SOCIAL                 Page 3 sur 5
+La Q.2.12 indique : la part patronale pour le financement des garanties collectives à la complémentaire santé
+obligatoire (couverture des frais occasionnés par une maladie, une maternité ou un accident dits « frais de
+santé ») ainsi que le versement santé n’entrent pas dans le montant net social.
+
+La Q.2.14 indique : l’ensemble des cotisations et contributions sociales obligatoires d’origine légale ou
+conventionnelles à la charge du salarié, ainsi que les cotisations salariales à la complémentaire santé sont
+déduites. Les cotisations et contributions salariales de prévoyance et de retraite supplémentaire ne sont
+pas déduites du montant de la rémunération.
+
+
+                      La constante RETPREVFAC (proposée dans la documentation des nouveautés du Plan de Paie
+                      Sage version 5.20) doit être adaptée.
+
+
+•        Création de la constante de type rubrique RETPREVFAC « Cotisat° facultatives prev/ret »
+        Champs                                  Informations à saisir
+      Code                                    RETPREVFAC
+      Intitulé                                Cotisat° facultatives prev/ret
+      Période                                 Cumul IMTA
+      Rubriques (*)                           (+) 50000 Prévoyances employés TA                         Montant salarial   Intermédiaire
+                                              (+) 50000 Prévoyances employés TA                         Montant patronal   Intermédiaire
+                                              (+) 50500 Prévoyances Cadres TA                           Montant salarial   Intermédiaire
+                                              (+) 50500 Prévoyances Cadres TA                           Montant patronal   Intermédiaire
+                                              (+) 50550 Prévoyances Cadres TB                           Montant salarial   Intermédiaire
+                                              (+) 50550 Prévoyances Cadres TB                           Montant patronal   Intermédiaire
+                                              (+) 50560 Prévoyances Cadres TC                           Montant salarial   Intermédiaire
+                                              (+) 50560 Prévoyances Cadres TC                           Montant patronal   Intermédiaire
+                                              (+) 51000 Prévoyance accident du travail                  Montant salarial   Intermédiaire
+                                              (+) 51000 Prévoyance accident du travail                  Montant patronal   Intermédiaire
+(*)
+      les rubriques indiquées sont des exemples. Elles permettent de visualiser le paramétrage à mettre en place.
+
+
+Les rubriques à activer sont toutes les rubriques de retraite supplémentaire (part salariale et patronale)
+ainsi que toutes les rubriques de prévoyance (part salariale et patronale).
+
+Les seules rubriques à ne pas activer sont les rubriques de mutuelle et de frais de santé qui sont des
+cotisations obligatoires au sens de la loi.
+
+
+                      Ces paramétrages seront proposés dans la prochaine version du Plan de Paie Sage
+                      disponible avec la prochaine version de Sage 100 Paie & RH version 6.00 (disponible
+                      courant juin 2023).
+
+Déclaration en DSN
+
+
+
+
+    • Variable DSN_MONTANT_REMUNERATION « Montant rémunération »
+La constante S_ NETSOCAL doit être ajoutée en (+) et rattachée à l’énuméré 027
+
+
+
+
+                                                                       BULLETIN CLARIFIÉ 2023 – NET SOCIAL                                 Page 4 sur 5
+Exemple de bulletin
+Méthode appliquée dans Sage 100 Paie & RH
+
+
+
+
+Net social = Total brut (2725,45) – Total des charges salariales (481,23) + Total des cotisations salariales et
+patronales de prévoyance et de retraite supplémentaire (51 ,76) soit : 2295,98
+
+Autre méthode possible
+
+
+
+
+Net social = Total brut – Cotisations salariales obligatoires + Cotisations patronales de prévoyance et
+retraite supplémentaire = 2725,45 – (85,00 + 119,06+6,90+69,19+122,82+52,38) + 25,88 = 2295,98
+
+
+                                                 BULLETIN CLARIFIÉ 2023 – NET SOCIAL                   Page 5 sur 5
+

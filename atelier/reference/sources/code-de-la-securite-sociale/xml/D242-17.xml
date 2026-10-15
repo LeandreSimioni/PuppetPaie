@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000043870904</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/43/87/09/LEGIARTI000043870904.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>D242-17</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2021-07-30</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106031">Partie réglementaire - Décrets simples</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126849">Livre II : Organisation du régime général - Action sanitaire et sociale des caisses</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141518">Titre IV : Ressources</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006155797">Chapitre 2 : Assiette, taux et calcul des cotisations</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006172366">Section 7 : Procédure de fixation du plafond des cotisations.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1985-12-21" etat="MODIFIE" fin="1990-01-03" id="LEGIARTI000006736124" num="D242-17" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1990-01-03" etat="MODIFIE" fin="1996-12-29" id="LEGIARTI000006736125" num="D242-17" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1996-12-29" etat="MODIFIE" fin="2002-11-23" id="LEGIARTI000006736126" num="D242-17" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2002-11-23" etat="MODIFIE" fin="2012-01-01" id="LEGIARTI000006736127" num="D242-17" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2012-01-01" etat="MODIFIE" fin="2017-01-01" id="LEGIARTI000025103315" num="D242-17" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2017-01-01" etat="MODIFIE" fin="2021-07-30" id="LEGIARTI000033516182" num="D242-17" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2021-07-30" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000043870904" num="D242-17" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>I.-La valeur mensuelle du plafond mentionné à l'article L. 241-3 est fixée, pour chaque année civile, à partir du plafond applicable au cours de l'année de référence, correspondant à l'année antérieure. Elle tient compte : <br/>
+<br/>1° De l'évolution moyenne estimée des salaires de cette année de référence prévue par le dernier rapport sur la situation et les perspectives économiques, sociales et financières de la nation annexé au projet de loi de finances de l'année ; <br/>
+<br/>2° Le cas échéant, de la correction de l'estimation de l'évolution moyenne des salaires de l'année précédant l'année de référence figurant dans le dernier rapport sur la situation et les perspectives économiques, sociales et financières de la nation annexé au projet de loi de finances de l'année. <br/>
+<br/>II.-Lorsque le résultat du calcul prévu au I est inférieur à la valeur du plafond en vigueur au cours de l'année de référence, cette dernière est reconduite pour l'année civile. <br/>
+<br/>III.-En cas de reconduction de la valeur du plafond selon les modalités prévues au II, la valeur du plafond pour l'année civile suivante est déterminée en tenant compte de l'évolution moyenne estimée des salaires de l'année précédente, des évolutions moyennes des salaires des années qui n'ont pas été prises en compte en application du II ainsi que, le cas échéant, de la correction de la dernière évolution moyenne des salaires ayant permis une revalorisation de la valeur du plafond. <br/>
+<br/>Lorsque la valeur du plafond de l'année civile suivante déterminée en application de l'alinéa précédent est inférieure à la valeur du plafond en vigueur au cours de l'année, cette dernière est reconduite pour l'année civile suivante. <br/>
+<br/>IV.-La valeur journalière du plafond est égale à la valeur mensuelle multipliée par douze et divisée par le nombre de jours travaillés dans l'année fixé au 3° du I de l'article L. 3121-64 du code du travail.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000883415" datesignatexte="1982-06-29" id="LEGIARTI000006762982" naturetexte="DECRET" nortexte="" num="2" numtexte="82-542" sens="source" typelien="CONCORDANCE">Décret n°82-542 du 29 juin 1982 - art. 2 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000000883415" datesignatexte="1982-06-29" id="LEGIARTI000006762982" naturetexte="DECRET" nortexte="" num="2" numtexte="82-542" sens="cible" typelien="CONCORDE">Décret n°82-542 du 29 juin 1982 - art. 2 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000000507924" datesignatexte="1985-12-17" id="JORFTEXT000000507924" naturetexte="DECRET" nortexte="" num="" numtexte="85-1354" sens="source" typelien="CODIFICATION">Décret n°85-1354 du 17 décembre 1985</LIEN>
+<LIEN cidtexte="JORFTEXT000000380632" datesignatexte="1996-12-27" id="LEGIARTI000006771592" naturetexte="DECRET" nortexte="TASS9624451D" num="4" numtexte="96-1169" sens="cible" typelien="CITATION">Décret n°96-1169 du 27 décembre 1996 - art. 4 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000651144" datesignatexte="2007-10-30" id="LEGIARTI000006269521" naturetexte="ARRETE" nortexte="BCFS0769748A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 30 octobre 2007 - art. 1 (V)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000021334833" datesignatexte="2009-11-18" id="LEGIARTI000021336227" naturetexte="ARRETE" nortexte="BCFS0927486A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 18 novembre 2009 - art. 1 (V)</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000023140577" datesignatexte="2010-11-26" id="LEGIARTI000023141526" naturetexte="ARRETE" nortexte="BCRS1030162A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 26 novembre 2010 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000025060928" datesignatexte="2011-12-30" id="LEGIARTI000025097569" naturetexte="ARRETE" nortexte="BCRS1134416A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 30 décembre 2011 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000025706092" datesignatexte="2012-04-16" id="LEGIARTI000025707443" naturetexte="DECRET" nortexte="ETSS1208062D" num="3" numtexte="2012-503" sens="cible" typelien="CITATION">Décret n°2012-503
+ du 16 avril 2012 - art. 3 (V)</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000029862934" datesignatexte="2014-11-26" id="LEGIARTI000029878049" naturetexte="ARRETE" nortexte="AFSS1428039A" num="1" numtexte="" sens="cible" typelien="CITATION">ARRÊTÉ du 26 novembre 2014 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000031680291" datesignatexte="2015-12-17" id="LEGIARTI000031729850" naturetexte="ARRETE" nortexte="AFSS1530064A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 17 décembre 2015 - art. 1 (V)</LIEN>
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000043868444" datesignatexte="2021-07-27" id="LEGIARTI000043869088" naturetexte="DECRET" nortexte="SSAS2117131D" num="1" numtexte="2021-989" sens="cible" typelien="MODIFIE">Décret n°2021-989 du 27 juillet 2021 - art. 1</LIEN>
+
+
+
+<LIEN cidtexte="JORFTEXT000049739565" datesignatexte="2024-06-17" id="LEGITEXT000049740825" naturetexte="DECRET" nortexte="TFPF2406525D" num="" numtexte="2024-555" sens="cible" typelien="CITATION">Décret n°2024-555 du 17 juin 2024 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000049739565" datesignatexte="2024-06-17" id="LEGIARTI000049740902" naturetexte="DECRET" nortexte="TFPF2406525D" num="10" numtexte="2024-555" sens="cible" typelien="CITATION">Décret n°2024-555 du 17 juin 2024 - art. 10 (V)</LIEN>
+
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033003342" naturetexte="CODE" nortexte="" num="L3121-64" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3121-64</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000025103307" naturetexte="CODE" nortexte="" num="D242-16" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-16 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000025103320" naturetexte="CODE" nortexte="" num="D242-19" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-19 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741897" naturetexte="CODE" nortexte="" num="L241-3" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L241-3</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000031814337" naturetexte="CODE" nortexte="" num="D1254-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D1254-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000035737463" naturetexte="CODE" nortexte="" num="D731-56" numtexte="" sens="cible" typelien="CITATION">Code rural et de la pêche maritime - art. D731-56 (V)</LIEN>
+
+</LIENS>
+</ARTICLE>

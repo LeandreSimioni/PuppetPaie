@@ -1,0 +1,336 @@
+Date de modification : 09/02/2026 05:05 PM
+
+ Comment déclarer un CDD ?
+
+ Le contexte
+
+Par contrainte légale et/ou réglementaire, certains contrats doivent porter une date de fin prévisionnelle, en règle générale le dernier jour d’applicabilité prévisionnelle de fin du contrat, généralement indiquée sur celui-ci, rubrique S21.G00.40.010- Contrat Date Fin Previsionnelle. 
+
+Déclarer ou prolonger un CDD (contrat à durée déterminée)
+
+ | 
+ Un contrat à durée déterminée CDD) doit être déclaré : 
+
+ En rubrique “S21.G00.40.007 - Nature du contrat” 
+
+ Avec une date de début ou de fin prévisionnelle en rubrique “S21.G00.40.010 - Date de fin prévisionnelle du contrat “, la durée du contrat n'étant pas explicitement mentionnée puisqu'elle se déduit à partir de ces deux bornes. La date de fin prévisionnelle sera par la suite considérée comme la date de fin réelle sauf si une nouvelle date de fin antérieure vient se substituer à celle-ci. 
+
+ Lors du renouvellement d'un CDD par un employeur, la rubrique “S21.G00.40.010 - Date de fin prévisionnelle du contrat de travail “ doit être renseignée avec la nouvelle date de fin sans nécessité de générer un bloc changement. 
+
+Déclarer un refus de proposition de CDI suite à un CDD 
+
+ | 
+ Le refus d’un salarié d’une proposition de CDI suite à un CDD ou un contrat de mission doit être portée en DSN. L’employeur ou l’entreprise utilisatrice devra compléter les informations communiquées à France Travail via le portail dédié. 
+
+ En norme P25V01, l'employeur doit renseigner dans le signalement fin de contrat de travail unique (FCTU), la rubrique « Refus de la proposition d'un CDI suite à CDD ou contrat de mission - S21.G00.62.021 », en la valorisant à “01 - Proposition refusée”, seulement s’il a proposé un CDI à un salarié, dans les formes et conditions prévues légalement, et que celui-ci a refusé. 
+
+ L’information doit être reportée dans la DSN mensuelle correspondant au mois M du signalement FCTU. 
+
+ Pour les contrats de mission ou les CDD d’usage en circuit dérogatoire, cette rubrique doit être renseignée directement dans la DSN mensuelle. 
+
+ Point d'attention :
+
+ Les contrats d’apprentissage à durée déterminée ne sont pas concernés par la mesure. 
+
+ Pour les trois versants de la Fonction publique, sont concernés par cette mesure : 
+
+ Les agents contractuels de droit privé en CDD, y compris : 
+
+ Les agents en contrat aidés, 
+
+ Les agents en contrat d’insertion. 
+
+ Sont exclus de cette mesure :
+
+ Les agents contractuels de droit public en CDD, 
+
+ Les agents contractuels de droit privé en contrat d’apprentissage. 
+
+ Les salariés ouvriers et techniciens de l'édition d'enregistrement sonore, de la production cinématographique et audiovisuelle, de la diffusion et d’artistes du spectacle sont concernés par cette mesure. 
+
+Déclarer ou mettre fin à un CDD d'usage (Circuit dérogatoire) 
+
+ | 
+ Le Contrat à durée déterminée d’usage est prévu uniquement pour les secteurs d’activités dans lesquels les employeurs peuvent avoir des besoins récurrents et spécifiques de main-d'œuvre temporaire, par exemple : l’hôtellerie-restauration, les métiers de la mode, le secteur médical, l’audiovisuel ou le spectacle. 
+
+ Le CDD d’usage peut être renouvelé à plusieurs reprises mais reste généralement limité à la nature du poste. Il n’a pas de durée précise au départ et peut être renouvelé dans le respect des usages prévu par convention collective, accord de branche ou décret. 
+
+ Par dérogation, les fins de contrat pour un CDDU infra-mensuel ne sont pas à déclarer dans un Signalement Fin de Contrat de Travail Unique. 
+
+ Cette modalité de déclaration est optionnelle. Elle permet de procéder à une déclaration de fin de contrat d'usage en DSN à fin de mois, et non dans les 5 jours suivants la survenance de l'évènement, sauf demande expresse du salarié. 
+
+Modalités déclaratives du CDDUD dérogatoire infra DSN et critères d'exigibilité 
+
+ | 
+ Le déclarant souhaitant ou non utiliser le circuit dérogatoire lors de la déclaration d'une fin de contrat de travail, devra renseigner la rubrique " Modalité de la déclaration de la fin du contrat d'usage - S21.G00.62.017 ". 
+
+ Cette information est obligatoire dans le cas d'une déclaration de fin de CDD d'usage et peut prendre deux valeurs : 
+
+ " 01 - Application du circuit dérogatoire " : à renseigner s’il s’agit d’une fin de contrat infra DSN, permettant la transmission des éléments de fin de contrat à France Travail : 
+
+ La “Nature du contrat – S21G00.40.007” = 02 – Contrat de travail à durée déterminée de droit privé OU 10 – Contrat de travail à durée déterminée de droit public. 
+
+ Le “Motif de retour – S21.G00.40.021” = 05 – Contrat d’usage 
+
+ Le “Motif de la rupture du contrat – S21.G00.62.002” = 031 – fin de contrat à durée déterminée ou fin d’accueil occasionnel OU 099 – annulation 
+
+ " 02 - Non-application du circuit dérogatoire " : s’il est possible de faire un Signalement FCTU dont les dates de début et de fin du CDDU sont sur deux DSN mensuelles. 
+
+ Pour utiliser le circuit dérogatoire, il est impératif que l'intégralité du contrat d'usage (début et fin) soit portée dans la DSN mensuelle en cours. 
+
+Déclarer un CDD à caractère saisonnier, de vendanges ou d'usage à cheval sur deux mois consécutifs
+
+ | 
+ Les employeurs ont la possibilité d’établir un seul bulletin de paie pour les individus en CDD dont la durée du contrat de travail est inférieure à un mois et répondant à l’un des critères suivants : 
+
+ Emplois à caractère saisonnier dont les tâches sont appelées à se répéter chaque année selon une périodicité à peu près fixe, en fonction du rythme des saisons ou des modes de vie collectifs ; 
+
+ Emplois pour lesquels, dans certains secteurs d'activité définis, il est d'usage constant de ne pas recourir au CDI en raison de la nature de l'activité exercée et du caractère temporaire de ces emplois. 
+
+ Ce dispositif concerne les régimes général et agricole. 
+
+ Les CDD concernés sont ceux dont la rubrique « Motif de recours - S21.G00.40.021 » est valorisée avec une des valeurs suivantes : 
+
+ 03 – Emplois à caractère saisonnier 
+
+ 04 – Contrats vendanges 
+
+ 05 – Contrat d’usage 
+
+ L’employeur a la possibilité de déclarer ces contrats d’une durée inférieure à un mois dans une seule DSN mensuelle même si le contrat est à cheval sur deux mois. L’information est portée en DSN correspondant au mois de sortie du salarié: 
+
+ La DSN contient l’ensemble des éléments relatifs au contrat. 
+
+ Un bloc « Versement individu – S21.G00.50 » est déclaré portant l’ensemble de la paie du contrat. 
+
+ Deux blocs « Rémunération – S21.G00.51 » de chaque type sont déclarés, découpés en fonction des mois civils et des dates de début et de fin du contrat. Les rémunérations sont déclarées en fonction de l’activité de chaque période déclarée. 
+
+ Un bloc « Activité – S21.G00.53 » est déclaré par période. 
+
+ Deux blocs « Base assujettie – S21.G00.78 » de chaque type sont déclarés, découpés en fonction des mois civils. 
+
+ Exemple : Contrat de travail saisonnier du 25 septembre 2024 au 10 octobre 2024. 
+
+ DSN d’octobre 
+
+ S21.G00.40 - Contrat
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.40.001
+ | Date de début du contrat
+ | 25092024 
+
+ | S21.G00.40.007 
+ | Nature du contrat 
+ | 02 – Contrat de travail à durée déterminée de droit privé 
+
+ | S21.G00.40.009 
+ | Numéro du contrat 
+ | 00001 
+
+ | S21.G00.40.021 
+ | Motif de recours 
+ | 03 – Emplois à caractère saisonnier 
+
+ S21.G00.62 – Fin du contrat 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.62.001 
+ | Date de fin du contrat 
+ | 10102024 
+
+ S21.G00.50 – Versement individu 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.50.001 
+ | Date de versement 
+ | 10102024 
+
+ | S21.G00.50.002 
+ | Rémunération nette fiscale 
+ | 700.00 
+
+ | S21.G00.50.004 
+ | Montant net versé 
+ | 700.00 
+
+ | S21.G00.50.006 
+ | Taux de prélèvement à la source 
+ | À renseigner
+
+ | S21.G00.50.007 
+ | Type du taux de prélèvement à la source 
+ | À renseigner 
+
+ | S21.G00.50.009 
+ | Montant de prélèvement à la source 
+ | À renseigner 
+
+ | S21.G00.50.012 
+ | Montant de l’abattement sur la base fiscale (non déduit de la rémunération nette fiscale) 
+ | À renseigner 
+
+ | S21.G00.50.013 
+ | Montant soumis au PAS 
+ | 700.00 
+
+ L’ensemble des blocs « Rémunération – S21.G00.51 » portant les différents types de rémunération doit être déclaré pour chacune des deux périodes déclarées 
+
+ S21.G00.51 – Rémunération 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.51.001 
+ | Date de début de période de paie 
+ | 25092024 
+
+ | S21.G00.51.002 
+ | Date de fin de période de paie 
+ | 30092024 
+
+ | S21.G00.51.010 
+ | Numéro du contrat 
+ | 00001 
+
+ | S21.G00.51.011 
+ | Type 
+ | 002 – Salaire brut soumis à contribution d’Assurance chômage 
+
+ | S21.G00.51.013 
+ | Montant 
+ | 266.67 
+
+ S21.G00.53 – Activité 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.53.001 
+ | Type 
+ | 01 - Travail rémunéré 
+
+ | S21.G00.53.002 
+ | Mesure 
+ | 25.00 
+
+ | S21.G00.53.003 
+ | Unité de mesure 
+ | 10 - heure 
+
+ S21.G00.51 – Rémunération 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.51.001 
+ | Date de début de période de paie 
+ | 01102024 
+
+ | S21.G00.51.002 
+ | Date de fin de période de paie 
+ | 10102024 
+
+ | S21.G00.51.010 
+ | Numéro du contrat 
+ | 00001 
+
+ | S21.G00.51.011 
+ | Type 
+ | 002 – Salaire brut soumis à contribution d’Assurance chômage 
+
+ | S21.G00.51.013 
+ | Montant 
+ | 544.30 
+
+ S21.G00.53 – Activité 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.53.001 
+ | Type 
+ | 01 - Travail rémunéré 
+
+ | S21.G00.53.002 
+ | Mesure 
+ | 51.00 
+
+ | S21.G00.53.003 
+ | Unité de mesure 
+ | 10 - heure 
+
+ S21.G00.78 – Base assujettie 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.78.001 
+ | Code de base assujettie 
+ | 02 – Assiette brute plafonnée 
+
+ | S21.G00.78.002 
+ | Date de début de période de rattachement 
+ | 25092024
+
+ | S21.G00.78.003 
+ | Date de fin de période de rattachement 
+ | 30092024 
+
+ | S21.G00.78.004 
+ | Montant 
+ | 266.67 
+
+ S21.G00.78 – Base assujettie 
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.78.001 
+ | Code de base assujettie 
+ | 03 – Assiette brute déplafonnée 
+
+ | S21.G00.78.002 
+ | Date de début de période de rattachement 
+ | 01102024
+
+ | S21.G00.78.003 
+ | Date de fin de période de rattachement 
+ | 10102024 
+
+ | S21.G00.78.004 
+ | Montant 
+ | 544.30 
+
+ Attention : cet exemple a pour objectif d’illustrer la cinématique de déclaration et n’est pas exhaustif quant aux données obligatoires (se référer au cahier technique), ex : tous les types de blocs « Rémunération – S21.G00.51 » attendus ne sont pas reproduits.
+
+La réglementation
+
+Article 18 de la loi n° 2018-727 du 10 août 2018 apportant une modification à l’article L 1242-2 du code du travail 
+
+La loi de plein emploi du 18 décembre 2023 et le décret n° 2023-1307 du 28 décembre 2023 relatif au refus par un salarié d'une proposition de CDI à l'issue d'un CDD. 
+
+ Date de création : 06/03/2025 06:28 PM 
+
+ N° de la fiche : 2958 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

@@ -1,0 +1,51 @@
+Date de modification : 01/07/2025 12:05 PM
+ Faut-il appliquer l'abattement sur les frais professionnels dans la rémunération brute non plafonnée et le salaire brut soumis à contributions Assurance Chômage ?
+ Le contexte 
+ Le montant renseigné dans le bloc « Rémunération - S21.G00.51 » avec le type (rubrique « Type - S21.G00.51.011 ») renseigné à « 001 - Rémunération brute non plafonnée » doit prendre en compte l'abattement pour frais professionnels. 
+Dans le cas général, le montant renseigné dans le bloc « Rémunération - S21.G00.51 » avec le type (rubrique « Type - S21.G00.51.011 ») renseigné à « 002 - Salaire brut soumis à contributions d'Assurance chômage » doit prendre en compte l'abattement pour frais professionnels. 
+Toutefois, il existe deux exceptions à ce principe pour l’Assurance chômage : 
+ Pour les journalistes professionnels et les professions assimilées, le montant renseigné dans le bloc « Rémunération - S21.G00.51 » avec le type (rubrique « Type - S21.G00.51.011 ») renseigné à « 002 - Salaire brut soumis à contributions d'Assurance chômage »  est celui avant application de l’abattement de 30%; 
+ Pour les activités relevant des critères des intermittents du spectacle au sens de l’Assurance-chômage, les rémunérations versées depuis le 1er juillet 2017 sont prises en compte avant application de l’abattement pour les professions admises au bénéfice de la déduction pour frais professionnels de 20% ou de 25%, selon les cas. 
+ Pour ces deux exceptions, ce sont donc les salaires avant abattement qui sont pris en compte dans la détermination du salaire de référence, conformément à l’article 11§1er du Règlement Général de l’Assurance-chômage (pour les journalistes professionnels et assimilés) et à l’article 21§1er pour les ouvriers et techniciens de l'édition d'enregistrement sonore, de la production cinématographique et audiovisuelle, de la radio, de la diffusion et du spectacle et les artistes du spectacle  
+Pour rappel, les consignes pour l’alimentation du taux de déduction forfaitaire spécifique pour frais professionnels sont documentées dans les fiches 1336 : « Comment déclarer la rubrique " Taux de déduction forfaitaire spécifique pour frais professionnels - S21.G00.40.023 "? » et 2336 : « Comment renseigner le taux de déduction forfaitaire spécifique pour frais professionnels pour un salarié d'une entreprise adhérente à une caisse CIBTP ? »..
+Les primes et indemnités de fin de contrat de travail (renseignées en bloc « Prime, gratification et indemnité - S21.G00.52) doivent être transmises sous leur forme brute non abattue. 
+ L'abatement des frais professionnels pour l'Assurance chomage d'un salarié bénéficiant d'un abattement  
+ Un salarié dont la catégorie professionnelle bénéficie d’un abattement de 25 % a 4500 euros de revenu et 500 euros de frais professionnels. Sa
+ L’employeur opte pour la déduction forfaitaire spécifique. Le salaire brut soumis à contributions d'Assurance chômage est de 3750 € obtenus comme suit : 
+ 4500 + 500= 5000 
+ 5000 - 25 % = 3750 
+ Le montant de l’abattement pour ce salarié est de : 5000 - 3750 = 1250 €. 
+ Rémunération S21.G00.51 | 
+ S21.G00.51.011 | 
+ Type  | 
+ 001 - Rémunération brute non plafonnée | 
+ S21.G00.51.013 | 
+ Montant | 
+ 3750 | 
+ Rémunération S21.G00.51 | 
+ S21.G00.51.011 | 
+ Type  | 
+ 002 - Salaire brut soumis à contributions d'Assurance chômage | 
+ S21.G00.51.013 | 
+ Montant | 
+ 3750.00 | 
+ | 
+ Déclarer l'abattement pour un journaliste ou un intermitent 
+ Dans le cas d’un journaliste ou d’un intermittent du spectacle, le montant renseigné dans le « salaire brut soumis à contributions Assurance Chômage » (S21.G00.51.011 de type 002) ne doit pas prendre en compte l'abattement pour frais professionnels.
+ Rémunération S21.G00.51 | 
+ S21.G00.51.011 | 
+ Type  | 
+ 001 - Rémunération brute non plafonnée | 
+ S21.G00.51.013 | 
+ Montant | 
+ 3750.00 | 
+ Rémunération S21.G00.51 | 
+ S21.G00.51.011 | 
+ Type  | 
+ 002 - Salaire brut soumis à contributions d'Assurance chômage | 
+ S21.G00.51.013 | 
+ Montant | 
+ 5000.00 | 
+ | 
+ Date de création : 13/04/2015 02:50 PM 
+ N° de la fiche : 484

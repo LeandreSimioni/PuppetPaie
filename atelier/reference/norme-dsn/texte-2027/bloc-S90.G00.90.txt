@@ -1,0 +1,71 @@
+# Bloc S90.G00.90
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 368-370
+
+--- p. 368 ---
+  S90.G00.90  2026-06-10
+
+  Structure
+
+S90.G00.90
+  S90 Totaux
+Total de l'envoi  S90.G00.90
+Nombre total de rubriques  S90.G00.90.001
+Nombre de DSN  S90.G00.90.002
+
+Nombre total de rubriques  S90.G00.90.001
+TotalEnvoi.nbTotal
+  Totalisation de toutes les rubriques et sous-rubriques de toutes les structures y compris celles de la structure
+  S90.
+  CST-11 : [(nombre total des rubriques et sous-rubriques de toutes les structures composant cet envoi)] (y compris les
+  rubriques de la structure S90)
+
+  N  [1,12]  CSL 00 : [0]*[1-9][0-9]*
+
+Nombre de DSN  S90.G00.90.002
+TotalEnvoi.nbDSN
+  Dénombrement des structures S20 c'est à dire nombre de déclarations sociales nominatives y compris les
+  doublons éventuels.
+  CST-11 : [(nombre de structures S20)]
+
+  N  [1,5]  CSL 00 : [0]*[1-9][0-9]*
+
+  368 / 370
+
+--- p. 369 ---
+Tableaux des usages  2026-06-10
+
+  369 / 370
+
+--- p. 370 ---
+  Tableaux des usages  2026-06-10
+
+Tableaux des usages
+  Tableau d’usages par modèle de déclaration et par rubrique : explications
+
+Le tableau ci-après décrit dans le détail les usages par rubrique dans les différents modèles de déclaration possibles.
+Chaque case du tableau, qui croise donc une rubrique et un modèle de déclaration, a une couleur et une lettre
+descriptive signifiante :
+  • Les cases en vert, notées « O » correspondent aux situations où la rubrique est obligatoire dans le modèle de
+  déclaration
+  • Les cases en noir, notées « N » correspondent aux situations où le bloc auquel la rubrique appartient n’est
+  pas présent dans le modèle de déclaration
+  • Les cases en rouge, notées « I » correspondent aux situations où la rubrique est interdite dans le modèle de
+  déclaration, alors que son bloc est autorisé
+  • Les cases en orange, notées « C » correspondent aux situations où la rubrique est conditionnelle dans le
+  modèle de déclaration
+  • Les cases en blanc, notées « F » correspondent aux situations où la rubrique est facultative dans le modèle de
+  déclaration
+
+Concrètement, seules les cases en rouge et en vert requièrent la réalisation d’un contrôle : « présence obligatoire si »
+(cases en vert), « présence interdite si » (cases en rouge). Elles ont une signification bien précise : elles interdisent
+une configuration (de présence, d’absence).
+
+Ainsi, si la case correspondant à la rubrique X et au message M est en rouge, cela signifie que la rubrique X est
+interdite pour le message M. Si la case correspondant à la rubrique Y et au message M est en vert, cela signifie que la
+rubrique Y est obligatoire pour le message M.
+
+Par exemple, la rubrique « Codification UE » du bloc « Salarié » est en vert pour le message « DSN Mensuelle » et
+en rouge pour tous les signalements. Cela signifie que la rubrique en question est obligatoire pour le message DSN
+Mensuelle et qu’elle est interdite pour les autres messages.
+
+  370 / 370

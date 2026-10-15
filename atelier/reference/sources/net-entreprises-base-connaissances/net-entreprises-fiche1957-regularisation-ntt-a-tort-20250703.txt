@@ -1,0 +1,101 @@
+Date de modification : 03/07/2025 03:04 PM
+
+Régularisation suite à l’utilisation à tort du NTT à la place du NIR
+
+ Comment effectuer une régularisation en raison de l'utilisation d'un NTT à la place du NIR ?
+
+ Le contexte
+
+Le renseignement du NIR est appliqué en DSN dès son attribution communiquée par l'individu. Pour assurer le bon chaînage des informations relatives à l'individu, il convient de renseigner dans la DSN qui suit la prise de connaissance des nouvelles informations : à la fois le NIR et le NTT.
+
+Le non-respect des consignes présentes dans cette fiche ne permettra pas le chaînage des informations et l'individu sera susceptible d'être lésé dans ses droits. 
+
+Correction de l'utilisation d'un NTT à la place d'un NIR
+
+En janvier, le gestionnaire de paie a attribué un NTT à un individu car celui-ci n'avait pas encore reçu de NIR.
+
+En février, l'employeur demande à l'individu si ses démarches d'obtention de NIR ont abouti.
+
+L'individu lui communique alors son NIR.
+
+Le gestionnaire intègre immédiatement en paie cette information de sorte qu'elle soit reportée le plus rapidement possible en DSN, en respectant la cinématique décrite plus bas afin que le chainage des informations soit bien opéré et que l'individu ne soit pas lésé dans ses droits.
+
+Déclaration transmise avec le NTT (DSN de janvier 2021)
+
+Dans la DSN de janvier 2021, l'individu n'ayant pas de NIR est déclaré avec un NTT.
+
+ | S21.G00.30 - Individu
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.30.001
+ | Numéro d'inscription au répertoire
+ | [Non renseigné]
+
+ | S21.G00.30.020
+ | Numéro technique temporaire
+ | 1333333333123456789
+
+ | [...]
+ | 
+ | 
+
+Déclaration de février 2021 donnant connaissance de l'attribution du NIR :
+
+ | S21.G00.30 - Individu
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.30.001
+ | Numéro d'inscription au répertoire
+ | 1770475012999
+
+ | S21.G00.30.020
+ | Numéro technique temporaire
+ | 1333333333123456789
+
+ | [...]
+ | 
+ | 
+
+Déclaration de mars 2021 après déclaration du NIR obtenu en février 2021 :
+
+ | S21.G00.30 - Individu
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.30.001
+ | Numéro d'inscription au répertoire
+ | 1770475012999
+
+ | S21.G00.30.020
+ | Numéro technique temporaire
+ | [Non renseigné]
+
+ | [...]
+ | 
+ | 
+
+ Informations
+
+Dans la DSN du mois où est portée la connaissance du NIR, ce dernier ainsi que le NTT utilisé jusqu'à présent doivent figurer tous deux dans le même bloc " Individu - S21.G00.30 " et dans la même déclaration.
+
+Les rubriques " Numéro d'inscription au répertoire - S21.G00.30.001 et Numéro technique temporaire - S21.G00.30.020 " sont obligatoirement renseignées pour assurer le bon chaînage des informations propres à l'individu.
+
+[ATTENTION] : Les exemples présentés au niveau des fiches de consignes ne reflètent pas l'exhaustivité des cas possibles.
+
+ Date de création : 30/08/2018 04:49 PM 
+
+ N° de la fiche : 1957 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

@@ -1,0 +1,1083 @@
+# Chapitre 4
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 83-103
+
+--- p. 83 ---
+  4 Principes de constitution des messages  2026-06-10
+
+4 Contrôles
+
+4.1 Typologie des contrôles
+Précisons d’abord que tous les contrôles ne figurent pas dans le cahier technique :
+-  Il existe ainsi des pré-contrôles qui permettent de vérifier que le fichier transmis est
+  exploitable. Ils sont à réaliser par la plate-forme de dépôt du régime général ou du
+  régime agricole et à ce titre ne figurent pas dans le cahier technique et feront l’objet de
+  précisions associées à l’émission du cahier technique. Tout rejet du message déclaratif
+  est immédiat en cas d’échec à cette étape. Ce type de contrôle, s’il est levé, est bloquant
+  et entraîne le rejet de l’ensemble du fichier.
+-  Les éventuels contrôles de cohérence de données d’un mois sur l’autre ne sont pas
+  décrits ici.
+-  Il n’y a pas non plus de contrôles de cohérence entre déclaration mensuelle et
+  signalement d’évènement.
+Les contrôles à effectuer, tels que décrits dans le cahier technique, sont des contrôles
+intrinsèques à la déclaration, plus des contrôles liés à la gestion des envois de déclarations
+(annule et remplace intégral, notamment).
+Les contrôles sont de plusieurs types :
+  -  Les contrôles de structure permettent de vérifier que l’enchaînement des
+  rubriques et la structure du message sont conformes à l’enchaînement défini
+  dans le cahier technique de la norme, pour une version de la norme et un
+  message donnés. En décrivant les modèles de déclaration (cf. partie 5), le
+  cahier technique décrit les contrôles à effectuer : ils ne sont donc pas nommés
+  en tant que tels. Dès lors qu'un contrôle de ce type n'est pas conforme, il est
+  bloquant pour l'ensemble du fichier (i.e. de la déclaration) et entraîne le rejet
+  complet de ce fichier.
+  -  Les contrôles de syntaxe liés à la rubrique sont appelés « CSL ». Ce sont
+  des contrôles unitaires : ils s‘appliquent isolément à chaque rubrique
+  indépendamment du contenu des rubriques précédentes ou suivantes. Ils
+  peuvent ainsi être appliqués à la saisie de la donnée. Ils éviteront des rejets
+  dus à des erreurs dans la nature des données saisies. Dès lors qu'un contrôle
+  de ce type n'est pas conforme, il est bloquant pour l'ensemble du fichier (i.e.
+  de la déclaration) et entraîne le rejet complet de ce fichier.
+  -  Les contrôles de cohérence sont appelés « CCH ». Ils permettent de vérifier
+  la cohérence de la présence et/ou du contenu de certaines rubriques et/ou de
+  certains blocs. Ils peuvent ainsi mettre en jeu plusieurs rubriques. Dès lors
+  qu'un contrôle de ce type n'est pas conforme, il est bloquant pour l'ensemble
+  du fichier (i.e. de la déclaration) et entraîne le rejet complet de ce fichier.
+  -  Les contrôles sur des référentiels externes au cahier technique de la
+  norme sont appelés « CRE ». Ils sont mis en œuvre en allant consulter des
+  référentiels publics. Ils consistent à vérifier que la valeur prise appartient bien
+  à la liste fournie par le référentiel. Dès lors qu'un contrôle de ce type n'est pas
+  conforme, il est bloquant pour l'ensemble du fichier (i.e. de la déclaration) et
+  entraîne le rejet complet de ce fichier.
+
+  -  Les contrôles d’existence d’un SIREN ou SIRET dans le répertoire SIRENE
+
+  83 / 370
+
+--- p. 84 ---
+  4 Principes de constitution des messages  2026-06-10
+
+  sont notés « CME ». Dès lors qu'un contrôle de ce type n'est pas conforme, il
+  est bloquant pour l'ensemble du fichier (i.e. de la déclaration) et entraîne le
+  rejet complet de ce fichier.
+Pour faciliter la compréhension du lecteur, les contrôles sont décrits en clair à l’exception des
+contrôles CSL, décrits sous forme d’expressions régulières.
+Les contrôles spécifiques applicables à telle ou telle rubrique sont décrits en liste détaillée
+des rubriques. Les contrôles génériques sont décrits dans l’introduction.
+Pour une rubrique, les traitements tiennent d’abord compte des contrôles génériques puis
+des contrôles spécifiques.
+  -  Les contrôles inter-déclarations sont appelés « CID ». Ils permettent de vérifier la
+  cohérence de l’enchaînement des déclarations déposées au cours du temps par
+  un déclarant. Par exemple, une déclaration annule et remplace doit annuler une
+  déclaration précédemment reçue. Dès lors qu'un contrôle de ce type n'est pas
+  conforme, il est bloquant pour l'ensemble du fichier (i.e. de la déclaration) et
+  entraîne le rejet complet de ce fichier.
+
+4.2 Application des règles de contrôle
+La production d’une déclaration impose à son émetteur le strict respect de la forme, c'est-à-
+dire la conformité du message aux règles de présentation fixées et le respect de la
+cohérence de certaines rubriques entre elles.
+Il n’est pas accepté d’anomalie de forme dans la structure en-tête de l'envoi S10 et dans la
+structure 90. Dans ce cas c’est la totalité de l’envoi, et de toutes les déclarations qu’il
+contient, qui est rejetée.
+Les anomalies détectées sur les autres structures entraînent le rejet de la déclaration
+concernée.
+C’est seulement après avoir satisfait à l’ensemble des contrôles (contrôles SIRET, données
+bancaires, cinématique), qu’une déclaration sera acceptée.
+A l’issue des contrôles, en cas d’absence d’anomalie, le système DSN adresse un certificat
+garantissant la conformité du message (ce certificat ne vaut pas conformité des procédures
+de tous les organismes – il conviendra de se référer au CRM par chacun).
+
+4.3 Logique d’ensemble des contrôles
+Le cahier technique décrit les contrôles à effectuer. Dans ces contrôles, certains sont
+parfaitement génériques et ne sont donc pas explicitement nommés : c’est le cas de tous les
+contrôles de structure, de la plupart des contrôles de syntaxe liée à la rubrique, et de la
+plupart des contrôles sur référentiels externes.
+Les autres sont identifiés (typés, numérotés) en tant que tels avec leur type dans le cahier
+technique : CSL, CCH, CRE, CME, CID.
+Les contrôles à effectuer sont donc d’une part des contrôles génériques, d’autre part des
+contrôles explicitement identifiés, associés à une rubrique.
+Un tableau des usages de contrôles liste au regard de chaque règle de contrôle les modèles
+de déclaration pour lesquels il est appliqué.
+L'applicabilité de la règle de contrôle a été vérifiée au regard de l'usage des rubriques
+invoquées pour son exécution.
+Ce tableau se trouve en fin de cahier technique.
+
+  84 / 370
+
+--- p. 85 ---
+  4 Principes de constitution des messages  2026-06-10
+
+4.4 Les contrôles de structure
+Tous les messages font l’objet des contrôles de structure suivants :
+  -  Contrôle de la présence et de l’ordre des blocs attendus dans le modèle de
+  déclaration
+  -  Respect de la cardinalité des blocs,
+  -  Respect de la présence des rubriques obligatoires,
+  -  Respect de l’ordre des rubriques indiqué au début de chaque bloc,
+  -  Les rubriques vides ou à blanc ne sont pas autorisées (ex: S10.G00.00.001,’’ ).
+  -  Un déclassement des structures composant un message peut entraîner l’abandon
+  du contrôle de la déclaration et provoquer son rejet pour ce seul fait.
+  -  La cardinalité indique si un bloc est obligatoire ou facultatif :
+  -  La règle de cardinalité ne s’applique que si le bloc parent est présent.
+  -  Un bloc est toujours interdit si son parent est absent.
+  -  Les cardinalités possibles sont les suivantes :
+  o  {1,*} : Structure Obligatoire au moins 1 fois et au plus N fois
+  o  {0,1} : Structure Conditionnelle non répétable
+  o  {0,*} : Structure Conditionnelle répétable N fois
+  o  {1,1} : Structure Obligatoire non répétable
+
+  -  Une rubrique d’usage Obligatoire doit être présente si le groupe ou le bloc auquel
+  elle appartient est présent.
+  -  Une rubrique d’usage Conditionnel doit être présente si la condition associée à sa
+  présence est remplie, sinon elle doit être absente.
+Afin d’éviter de multiplier les contrôles de présence (obligation, interdiction) d’une rubrique
+en fonction du message, qui alourdissent le cahier technique, le principe adopté a été de
+spécifier ces caractéristiques pour chaque rubrique en fonction de chaque message, au sein
+d’un tableau. Ce tableau figure en fin de cahier technique, et décrit donc explicitement des
+contrôles à effectuer.
+Ce tableau impose des règles supplémentaires :
+  -  Pour un modèle de déclaration donné, une rubrique notée en Obligatoire dans ce
+  modèle selon le tableau doit être présente si le groupe ou le bloc auquel elle
+  appartient est présent.
+  -  Pour un modèle de déclaration donné, une rubrique notée en Conditionnel dans ce
+  modèle selon le tableau doit être présente si la condition associée à sa présence est
+  remplie, sinon elle doit être absente.
+  -  Pour un modèle de déclaration donné, une rubrique notée en Interdit dans ce modèle
+  selon le tableau doit être absente.
+
+  85 / 370
+
+--- p. 86 ---
+  4 Principes de constitution des messages  2026-06-10
+
+4.4.1  Les contrôles de syntaxe liés à la rubrique (CSL)
+
+Ce sont des contrôles relatifs au format de la rubrique elle-même.
+Une rubrique déclarée doit respecter sa définition :
+  -  respect de sa longueur (minimum et maximum)
+  -  respect de sa nature (X, N, D)
+Une rubrique de nature alphanumérique (X) ne peut contenir que les caractères autorisés
+(cf. table 3.5) sauf restrictions indiquées aux paragraphes identités, adresses et adresses e-
+mail.
+Une rubrique de nature date (D) respecte le format JJMMAAAA, et les contraintes
+calendaires qui en découlent.
+Une rubrique assortie d’une liste de valeurs ne peut contenir qu’une des valeurs indiquées
+dans cette liste. Cette liste est donnée dans le présent cahier technique.
+Les caractères ‘blanc’ ne peuvent précéder ou suivre dans une même rubrique la chaîne de
+caractères alphabétiques.
+Tous les contrôles évoqués ci-dessus sont génériques, et n’ont donc pas à être décrits pour
+chaque rubrique.
+Il existe cependant quelques contrôles CSL explicites. Parmi eux, les CSL numérotés « CSL
+00 », qui décrivent l’ « expression régulière » que la rubrique doit respecter. Dans un souci
+de lisibilité, par exemple lorsque ces expressions régulières sont complexes, on écrit un CSL
+en clair, qui exprime exactement la même chose.
+Cf. la partie 3.8 pour une explication des expressions régulières.
+
+4.4.2 Les contrôles de cohérence (CCH)
+Les contrôles de cohérence vérifient la cohérence de la présence et/ou du contenu de
+certaines rubriques et / ou de certains blocs.
+Ces contrôles inter-rubriques sont le plus souvent documentés sur la dernière rubrique
+concernée.
+
+4.4.3 Les contrôles sur des référentiels externes (CRE)
+Ces contrôles vérifient que les valeurs utilisées appartiennent bien aux nomenclatures
+utilisées par le cahier technique, lorsqu’il s’agit de nomenclatures externes (i.e. qui existent
+indépendamment du cahier technique). Ils sont génériques.
+Lorsqu’une rubrique se réfère à une nomenclature externe, ceci est précisé un icône décrit
+en 5.
+Dans ce cas de figure, la liste des valeurs qui la constitue n’est pas présentée dans le cahier
+technique. Il est alors demandé aux émetteurs de se référer au site net.entreprises.fr qui
+porte les nomenclatures nécessaires à la constitution de la DSN.
+Un CRE est toujours décrit sous la rubrique associée. Il peut être enrichi :
+  -  par une extension de la nomenclature externe, par exemple ajout d'une valeur
+  d’échappement, ou d'une autre valeur. Ces ajouts au référentiel sont notés par
+  un OU (symbole |);
+  -  par un filtre d’interdiction de certaines valeurs.
+Les contrôles de type CRE en rubriques « Code profession et catégorie socioprofessionnelle
+
+  86 / 370
+
+--- p. 87 ---
+  4 Principes de constitution des messages  2026-06-10
+
+(PCS-ESE) - S21.G00.40.004 » et « Ancien code profession et catégorie
+socioprofessionnelle (PCS-ESE) - S21.G00.41.019 » sont les seuls à supporter la casse
+(majuscules/minuscules).
+
+4.4.4 Les contrôles métier (CME)
+Les contrôles métier sont les contrôles que chaque organisme récepteur va pratiquer sur les
+éléments déclaratifs dont il a besoin pour assurer sa mission.
+Les signalements nécessitant des corrections sont à traiter en relation bilatérale entre les
+organismes de protection sociale et services de l'Etat et le déclarant ou idéalement par
+rappels dans une déclaration mensuelle ultérieure en faisant référence à la période
+nécessitant une correction.
+Les contrôles métier seront précisés dans un guide utilisateur et donnent lieu à affichage
+dans le bilan d’ensemble de suivi de la déclaration proposé par le système DSN.
+
+4.4.5 Les contrôles inter-déclaration (CID)
+Les contrôles inter-déclarations, appelés aussi contrôles de cinématique, permettent de
+vérifier la cohérence de l’enchaînement des déclarations déposées au cours du temps par
+un déclarant.
+Certains de ces contrôles sont documentés dans le cahier technique, d’autres sont
+présentés sur le site net-entreprises.fr.
+
+4.4.6 Les contrôles de signalement (SIG)
+Ils permettent de vérifier la cohérence et/ou le contenu de certaines rubriques et/ou de
+certains blocs. Ils peuvent ainsi mettre en jeu plusieurs rubriques. A la différence des
+contrôles de cohérence (CCH), la non conformité́ d'un contrôle de ce type n'entraine pas le
+blocage et le rejet de l'ensemble du fichier (i.e. de la déclaration).
+Il est demandé aux éditeurs d’implémenter ces contrôles dans les logiciels de paie mis à
+disposition en vue de limiter la charge éventuelle d'ajustement bilatéral post-déclaration.
+
+4.4.7 Les contrôles appliqués aux rubriques numériques (nature N)
+Cette partie décrit des principes de contrôle sur les rubriques numériques, pour en faire
+comprendre la logique. Mais il faut souligner que pour chaque rubrique, l’expression
+régulière associée permet de décrire sans ambiguïté le contrôle à effectuer.
+Se référer à la partie sur les expressions régulières en 3.8.
+
+4.4.7.1 Les contrôles appliqués aux nombres exprimant des montants
+Tous les montants doivent être signés par le signe « – » s’ils sont négatifs.
+Tous les montants sont exprimés avec deux décimales obligatoires et un séparateur de
+décimales qui est le point « . ». L’opposabilité de cette approche pour toutes les procédures
+fondées sur la DSN sera précisée dans les décrets à paraître.
+Il n’y a pas de séparateur de milliers.
+La longueur maximum de la zone montant est de 12 pour les montants individuels et de 18
+pour les totaux.
+Par ailleurs, différents types de montant sont autorisés :
+
+  87 / 370
+
+--- p. 88 ---
+  4 Principes de constitution des messages  2026-06-10
+
+  -  Montant pouvant ou non prendre la valeur zéro
+  -  Montant signés ou non signés (ne pouvant prendre une valeur négative)
+
+Exemples de montants ne pouvant pas prendre la valeur zéro :
+
+  Accepté  Non accepté
+
+  1.10  1,1
+
+  0.01  0.00
+
+  -1.11  1
+
+  0000.54  .54
+
+  01.11  +1.11
+
+Exemples de montants pouvant prendre la valeur zéro :
+
+  Accepté  Non accepté
+
+  1.10  1,10
+
+  0.01  1.1
+
+  0.00  0
+
+  000.00  .00
+
+  -01.11  1
+
+Les règles suivantes s’appliquent lors du contrôle des montants :
+  -  Caractère espace interdit dans la rubrique (au début, au milieu ou à la fin)
+  -  Signe positif (+) interdit.
+
+Expression des rubriques montant : attention
+Dans la DSN Phase 3, tous les montants doivent être exprimés en euros et en centimes
+d’euros (à l’exception de cas de déclaration limités exprimés en Francs Pacifique).
+
+  88 / 370
+
+--- p. 89 ---
+  4 Principes de constitution des messages  2026-06-10
+
+4.4.7.2 Les contrôles appliqués aux nombres exprimant des taux
+Tous les taux sont positifs. Les taux sont exprimés en pourcentage.
+Le nombre de décimales ne peut être égal qu’à 2. Le séparateur de décimales est le point
+« . ».
+Exemple de taux avec deux décimales :
+
+  Accepté  Non accepté
+
+  1.10  1.1
+
+  0023.45  123456.8
+
+  0.00  0
+
+  0.54  1.114
+
+  0.99  -0.99
+
+4.4.7.3 Les contrôles appliqués aux nombres exprimant des quantités
+Les quantités peuvent être signées, notamment dans le cas de données acceptant des
+corrections en diminution (« rappels négatifs ») de valeurs précédemment déclarées. Le
+cumul de la valeur initialement déclarée et des éventuels rappels ne saurait conduire à un
+résultat négatif qui n’aurait alors aucun sens. L’acceptation de valeurs négatives est définie
+par l’expression régulière des rubriques concernées.
+Le nombre de décimales ne peut être égal qu’à 0 ou 2.
+Il n’y a pas de séparateur de milliers.
+Les types de donnée pour les quantités sont :
+  -  Quantité en entier
+  -  Quantité avec deux chiffres après le point
+Exemple de quantités en entier
+
+  Accepté  Non accepté
+
+  123  1.1
+
+  0010  1,11
+
+  500
+
+  -123
+
+  89 / 370
+
+--- p. 90 ---
+  4 Principes de constitution des messages  2026-06-10
+
+Exemple de quantités avec deux décimales
+
+  Accepté  Non accepté
+
+  1.23  1.2345
+
+  0001.00  1,00
+
+  0.23  .23
+
+  1.20  1.2
+
+  111.99
+
+  -111.99
+
+4.4.8 Les contrôles appliqués aux identités
+On entend par rubriques identité les rubriques suivantes :
+
+S10.G00.02.002 – Nom et prénom de la personne à contacter
+S20.G00.07.001 – Nom et prénom du contact
+S21.G00.30.002 – Nom de famille
+S21.G00.30.003 – Nom d'usage
+S21.G00.30.004 – Prénoms
+S21.G00.31.009 – Ancien nom de famille
+S21.G00.31.010 – Anciens prénoms
+S89.G00.91.002 – Nom de famille
+S89.G00.91.003 – Nom d'usage
+S89.G00.91.004 – Prénoms
+
+Rappel des règles d'état-civil
+Une circulaire du premier ministre n°5575 du 21 février 2012 prohibe dans les formulaires et
+correspondances des administrations les termes "mademoiselle", "nom de jeune fille", "nom
+patronymique", "nom d'épouse" et "nom d'époux".
+En effet, "mademoiselle", "nom de jeune fille" correspondent à une mention du statut
+matrimonial des femmes qui n'a plus lieu d'être.
+La notion de nom patronymique est remplacée depuis la loi du 4 mars 2002 par celle de nom
+de famille, qui tient compte de la possibilité par exemple pour un homme marié de prendre le
+nom de son épouse comme nom d'usage.
+Selon le même texte la notion de nom d'usage doit être préférée à celle de nom d'époux ou
+
+  90 / 370
+
+--- p. 91 ---
+  4 Principes de constitution des messages  2026-06-10
+
+d'épouse, en raison par exemple de la possibilité pour une personne veuve ou divorcée de
+conserver le nom de son conjoint.
+La loi du 4 Mars 2002 complétée d’un décret du 29 Octobre 2004, avait défini de nouvelles
+règles de composition du nom de famille pour les enfants nés à partir du 1er Janvier 2005 et,
+sous certaines conditions, pour les enfants de moins de treize ans nés avant cette date.
+Cette loi permettait notamment aux parents de choisir pour leurs enfants un nom de famille
+correspondant aux noms du père et de la mère accolés dans l’ordre de leur choix. Ce nom
+de famille est dit « double nom ».
+Une circulaire CIV/18/04 N°NOR : JUS CO4209555C du ministère de la Justice avait défini
+les modalités permettant de distinguer ces doubles noms des noms composés. Elle
+prévoyait l’utilisation d’un double trait d’union comme séparateur entre le nom issu de la
+branche paternelle et celui issu de la ligne maternelle afin de distinguer les doubles noms
+des noms composés dont les deux vocables sont séparés par un trait d’union simple.
+Mais une circulaire du ministre de la Justice (NOR : JUSC1028448C) du 25 octobre 2011
+relative à la modification des modalités d’indication des « doubles noms » issues de la loi
+n°2002-304 du 4 mars 2002 dans les actes de l’état civil supprime le double tiret.
+Par une décision rendue le 4 décembre 2009, le Conseil d’Etat a en effet considéré qu’il ne
+pouvait être imposé aux parents qui ont fait le choix du double nom pour leur enfant de voir
+leurs noms séparés par un double tiret sur le seul fondement d’une circulaire.
+Dans l’attente de la mise en place du dispositif pérenne, la dépêche du 12 janvier 2010
+relative aux conséquences de la décision du 4 décembre 2009 donnait les instructions
+suivantes aux officiers de l’état civil :
+« - dans la mesure où le Conseil d’Etat a uniquement censuré le caractère obligatoire du
+double tiret, les officiers de l’état civil peuvent donc continuer à proposer aux parents ce
+séparateur. Si les parents l’acceptent ou le sollicitent, notamment en présence d’aînés ayant
+déjà bénéficié de ce système, le double nom sera enregistré à l’état civil comme auparavant,
+avec un double tiret entre le nom de chacun des parents.
+- En revanche, si les parents refusent le double tiret, l’officier de l’état civil doit en prendre
+acte et enregistrer la déclaration de choix de nom sans ce séparateur. Les deux vocables
+formant le double nom seront enregistrés sur l’acte de naissance avec un simple espace. »
+La circulaire du 25 octobre 2011 remplace le mécanisme du double tiret par les
+préconisations qui suivent, car il est indispensable que la simple lecture des actes de l’état
+civil permette de différencier, en présence de noms de famille constitués de plusieurs
+vocables, les noms composés indivisibles, des doubles noms issus de la réforme du nom,
+les modalités de transmission de ces noms étant différentes.
+Pour ce faire, dans les actes de l’état civil, la rubrique « nom de famille » devra être
+complétée, en présence d’un double nom formé de plusieurs vocables de la manière
+suivante, afin de faire apparaître les deux parties de ce double nom :
+Nom de famille : DURAND DUPOND suivant déclaration conjointe en date du…
+(1ère partie : DURAND 2nde partie : DUPOND)
+La première ligne détermine le nom de famille et les deux parties qui le forment doivent être
+séparées par un simple espace, à la place du séparateur « -- ». La seconde n’est renseignée
+que pour identifier, à la lecture de l’acte, qu’il s’agit d’un double nom transmissible selon les
+conditions fixées par l’article 311-21 du code civil.
+Attention : cette règle de présentation ne concerne que les actes d'état civil et non les
+champs d'une déclaration. Elle n'est rappelée ici que pour situer dans l'état actuel du droit
+l'emploi éventuel du double tiret dans un des champs identité d'une déclaration.
+Le présent cahier technique applique les dispositions rappelées supra et complète comme
+suit les règles de contrôle appliquées aux identités.
+
+  91 / 370
+
+--- p. 92 ---
+  4 Principes de constitution des messages  2026-06-10
+
+En plus du respect des restrictions relatives à la table des caractères autorisés on
+contrôlera :
+  -  que le premier caractère d’une rubrique est différent du trait d’union ou de l’espace.
+  -  que le dernier caractère d’une rubrique est différent du trait d’union, de l’apostrophe
+  ou de l’espace.
+  -  que chacun des caractères blanc, trait d’union et apostrophe est toujours utilisé de
+  manière isolée, sans être précédé ou suivi d’un autre quelconque de ces caractères
+  (en dehors des conditions fixées ci-après relatives à l’utilisation du double trait
+  d’union dans les noms de famille, et à l’acceptation d’une apostrophe en début de
+  nom).
+  -  que le code civilité (MONSIEUR espace, M espace, MADAME espace, MME espace)
+  n’est pas présent en majuscules ou minuscules aux identités des personnes
+  physiques (exemple : le nom de famille S21.G00.30.002,'MR MARTIN' est une
+  anomalie car le sexe est inclus dans la rubrique réservée au nom). Cette règle ne
+  s'applique pas à S10.G00.02.002 – Nom et prénom de la personne à contacter.
+
+On entend par rubriques nom parmi les rubriques identité les rubriques suivantes :
+  -  S21.G00.30.002 – Nom de famille
+  -  S21.G00.31.009 – Ancien nom de famille
+  -  S89.G00.91.002 – Nom de famille
+
+On entend par rubriques prénom parmi les rubriques identité les rubriques suivantes :
+S21.G00.30.004 – Prénoms
+S21.G00.31.010 – Anciens prénoms
+S89.G00.91.004 – Prénoms
+
+La mention ‘sans nom’ (SN ou sn) peut figurer dans la rubrique « Nom de famille ».
+La mention ‘sans prénom’ (SP ou sp) peut figurer dans la rubrique « Prénoms ».
+La rubrique nom de famille et la rubrique prénom ne peuvent pas contenir simultanément les
+mentions SN (ou sn) et SP (ou sp) pour identifier une même personne physique.
+La présence d’un double nom est acceptée dans toutes les rubriques nom.
+
+Les contrôles appliqués sur les rubriques nom s’assurent :
+  -  que la chaîne de caractères double trait d’union '--' n’est présente qu’une seule
+  fois entre le premier et le second nom.
+  -  que la chaîne de caractères double trait d’union '--' n’est pas précédée des
+  caractères blanc, simple trait d’union ou apostrophe.
+  -  que la chaîne de caractères double trait d’union '--' n’est pas suivie des caractères
+  blanc ou simple trait d’union.
+Exemples : (nom de famille)
+S21.G00.30.002,'MARTIN-DUPONT'
+
+  92 / 370
+
+--- p. 93 ---
+  4 Principes de constitution des messages  2026-06-10
+
+S21.G00.30.002,'DUBOIS DE LACIME DES NOUES--BEAUREGARD DE SAINT HAON'
+Le symbole apostrophe doit être accepté en premier caractère dans tous les cas sur les
+rubriques identité.
+Rappel : les prénoms doivent être présentés dans l’ordre de l’état civil du salarié.
+
+4.4.9 Les contrôles appliqués aux adresses
+La norme ‘adresse’ appliquée dans la DSN est un sous-ensemble de la norme AFNOR XPZ
+10-011, adresse géopostale du service national de l’adresse (SNA). Elle ne prend
+notamment pas en compte le code Cedex et le libellé du Cedex qui ne sont pas admis dans
+les déclarations. Les organismes récepteurs attendent une adresse géographique.
+Les caractères apostrophe, espace, trait d’union et point ne peuvent être utilisés en début ou
+en fin de rubrique. Ils doivent être utilisés de manière isolée, sans être précédés ou suivis
+d’un autre quelconque de ces caractères. Le cas particulier du caractère (point) suivi de
+(espace) est cependant autorisé.
+Il est important que l’adresse soit :
+  -  exhaustive (tous les éléments d’adresse doivent figurer)
+  -  structurée (à chaque élément sa ligne d’adresse).
+  Numéro, extension, nature et libellé de la
+S10.G00.01.004  C  1  50
+  voie
+
+S10.G00.01.005 Code postal  C  5  5
+
+S10.G00.01.006 Localité  C  1  50
+S10.G00.01.007 Code pays  C  2  2
+
+S10.G00.01.008 Code de distribution à l'étranger  C  1  50
+
+  Complément de la localisation de la
+S10.G00.01.009  C  1  50
+  construction
+
+  Service de distribution, complément de la
+S10.G00.01.010  C  1  50
+  localisation de la voie
+
+  Numéro, extension, nature et libellé de la
+S21.G00.06.004  C  1  50
+  voie
+S21.G00.06.005 Code postal  C  5  5
+
+S21.G00.06.006 Localité  C  1  50
+
+  Complément de la localisation de la
+S21.G00.06.007  C  1  50
+  construction
+
+  Service de distribution, complément de la
+S21.G00.06.008  C  1  50
+  localisation de la voie
+
+  Numéro, extension, nature et libellé de la
+S21.G00.11.003  C  1  50
+  voie
+
+S21.G00.11.004 Code postal  C  5  5
+S21.G00.11.005 Localité  C  1  50
+
+  93 / 370
+
+--- p. 94 ---
+  4 Principes de constitution des messages  2026-06-10
+
+  Complément de la localisation de la
+S21.G00.11.006  C  1  50
+  construction
+
+  Service de distribution, complément de la
+S21.G00.11.007  C  1  50
+  localisation de la voie
+
+  Numéro, extension, nature et libellé de la
+S21.G00.30.008  C  1  50
+  voie
+S21.G00.30.009 Code postal  C  5  5
+
+S21.G00.30.010 Localité  C  1  50
+
+S21.G00.30.011 Code pays  C  2  2
+
+S21.G00.30.012 Code de distribution à l'étranger  C  1  50
+
+  Complément de la localisation de la
+S21.G00.30.016  C  1  50
+  construction
+
+  Service de distribution, complément de la
+S21.G00.30.017  C  1  50
+  localisation de la voie
+
+  Numéro, extension, nature et libellé de la
+S21.G00.85.003  C  1  50
+  voie
+
+S21.G00.85.004 Code postal  C  5  5
+S21.G00.85.005 Localité  C  1  50
+
+S21.G00.85.006 Code pays  C  2  2
+
+S21.G00.85.007 Code de distribution à l'étranger  C  1  50
+
+  Complément de la localisation de la
+S21.G00.85.008  C  1  50
+  construction
+
+  Service de distribution, complément de la
+S21.G00.85.009  C  1  50
+  localisation de la voie
+
+  Complément de la localisation de la
+S89.G00.32.007  C  1  50
+  construction
+
+  Numéro, extension, nature et libellé de la
+S89.G00.32.008  C  1  50
+  voie
+
+  Service de distribution, complément de la
+S89.G00.32.010  C  1  50
+  localisation de la voie
+
+S89.G00.32.011 Code postal  C  5  5
+
+S89.G00.32.012 Localité  C  1  50
+
+S89.G00.32.013 Code pays  C  2  2
+
+S89.G00.32.014 Code de distribution à l'étranger  C  1  50
+
+  Numéro, extension, nature et libellé de la
+S89.G00.91.008  C  1  50
+  voie
+
+  94 / 370
+
+--- p. 95 ---
+  4 Principes de constitution des messages  2026-06-10
+
+S89.G00.91.009 Code postal  C  5  5
+
+S89.G00.91.010 Localité  C  1  50
+
+S89.G00.91.011 Code Pays  C  2  2
+
+S89.G00.91.012 Code de distribution à l'étranger  C  1  50
+
+  Complément de la localisation de la
+S89.G00.91.013  C  1  50
+  construction
+
+  Service de distribution, complément de la
+S89.G00.91.014  C  1  50
+  localisation de la voie
+
+Le contrôle des codes postaux est effectué par rapport aux référentiels Hexaposte publiés au
+cours de l’année précédant le dépôt de la déclaration.
+
+- Numéro, extension, nature et libellé de la voie
+Ligne dite de distribution, elle est composée du N°, d’un espace et du libellé de la voie. Le
+numéro dans la voie se compose :
+  -  soit de 5 caractères maximum (4 caractères numériques maximum plus
+  éventuellement un caractère alphabétique) :
+  -  soit de 0 à 4 caractères numériques
+  -  soit de 1 à 3 caractères numériques suivis d’un espace et d’un caractère
+  alphabétique correspondant à l’abréviation de BIS (B), TER (T), et QUATER (Q) ou à
+  A, B, C, D... lorsque ces caractères complètent le numéro de rue.
+  -  Dans le cas où le numéro dans la voie se compose d’une série de numéros, il est
+  demandé de ne conserver que le premier numéro (ex : 15 pour 15/17 ou17 pour 17 à
+  19).
+  -  Le libellé de la voie compte 32 caractères maximum.
+
+  CSL 01 : [(table des caractères autorisés pour les adresses)]
+
+- Code postal
+Le code postal est obligatoire pour une adresse relevant du système postal français. Le code
+postal doit être présent dans la nomenclature HEXAPOSTE, base de référence de ‘La
+Poste’. Le fichier HEXAPOSTE fournit le libellé standardisé de la localité.
+En règle générale les codes CEDEX ne sont pas admis.
+  CRE 01 : [(nomenclature Hexaposte)]
+  CCH 01 : Les codes CEDEX sont prohibés.
+
+- Localité
+La localité est obligatoire pour une adresse relevant du système postal français. Le fichier
+HEXAPOSTE fournit le libellé standardisé de la localité. La présence de deux espaces
+consécutifs est interdite.
+
+  95 / 370
+
+--- p. 96 ---
+  4 Principes de constitution des messages  2026-06-10
+
+  CSL 01 : [(A-Z a-z 0-9 et espace)]
+
+- Code pays
+Le code pays ne doit pas être renseigné pour les adresses relevant du système postal
+français. Il doit être renseigné pour une adresse ne relevant pas du système postal français.
+Le code du pays est à déterminer dans la table ISO 3166-1-A2, à l'exclusion des codes
+correspondants aux territoires suivants, constituant le domaine d'application du système
+postal français :
+FR : France métropolitaine
+GP : Guadeloupe
+BL : Saint Barthélémy
+MF : Saint Martin
+MQ : Martinique
+GF : Guyane Française
+RE : Ile de la Réunion
+PM : Saint Pierre et Miquelon
+YT : Mayotte
+WF : Wallis et Futuna
+PF : Polynésie Française
+NC : Nouvelle Calédonie
+MC : Monaco
+
+  CRE-11 : valeurs autorisées
+
+- Code de distribution à l'étranger
+Le code distribution à l’étranger est obligatoire pour une adresse ne relevant pas du système
+postal français (code pays renseigné) et interdit pour une adresse relevant du système
+postal français (code pays absent).
+A noter que si les adresses ne sont pas à ce jour normées dans la base de données de
+votre logiciel de paie, vous devrez décider en lien avec votre éditeur de l'usage des lignes de
+la DSN à partir de votre propre structuration. Les dispositions retenues devront toutefois
+respecter les contraintes de la norme, notamment pour les données Code postal, Localité,
+Pays, Code de distribution à l'étranger.
+Une adresse relevant du système postal français doit être déclarée de la manière suivante :
+  -  n°, extension, nature et libellé de la voie (obligatoire)
+  -  Complément de localisation de la construction dans la voie (facultatif)
+  -  Service de distribution, complément de localisation de la voie (facultatif)
+  -  Code Postal (obligatoire)
+  -  Localité (obligatoire)
+
+  96 / 370
+
+--- p. 97 ---
+  4 Principes de constitution des messages  2026-06-10
+
+Les données Code Pays et Code de distribution à l'étranger sont strictement interdites pour
+les adresses relevant du système postal français.
+Une adresse ne relevant pas du système postal français doit être déclarée de la manière
+suivante :
+  -  n°, extension, nature et libellé de la voie (obligatoire)
+  -  Complément de localisation de la construction dans la voie (facultatif)
+  -  Service de distribution, complément de localisation de la voie (facultatif)
+  -  Localité (facultatif)
+  -  Code pays (obligatoire)
+  -  Code distribution à l'étranger (obligatoire)
+La donnée Code Postal est strictement interdite pour les adresses ne relevant pas du
+système postal français.
+
+4.4.10 Les contrôles appliqués aux adresses mél
+Les adresses mél font l’objet de contrôles de forme spécifique.
+Les caractères présents doivent appartenir à la liste des caractères suivants [A-Z], [a-z], [0-
+9], . (point), - (trait d’union), _ (underscore), @ (arobase).
+L’adresse mél renseignée au niveau des rubriques « Adresse mél du contact émetteur -
+S10.G00.02.004 » et « Adresse mél du contact - S20.G00.07.003 » ne peut contenir un
+enchaînement de deux caractères (point), (trait d’union) ou (underscore) consécutifs.
+L’adresse mél renseignée au niveau des rubriques « Adresse mél - S21.G00.30.018 » et «
+Adresse mél - S89.G00.91.015 » ne peut contenir un enchaînement de deux caractères
+(point) consécutifs.
+L’adresse mél doit contenir un et un seul caractère @ (arobase), mais ce dernier ne peut être
+utilisé en première ou dernière position.
+Les chaînes de caractères précédant et suivant le caractère @ (arobase) ne peuvent
+commencer ou se terminer par un caractère . (point), - (trait d’union), _ (underscore).
+La chaîne de caractères suivant le caractère @ (arobase) doit contenir au moins un point (.).
+Ce point doit être précédé d’au moins un caractère [A-Z], [a-z], [0-9], et suivi d’au moins un
+caractère [A-Z], [a-z], [0-9].
+La chaîne de caractères suivant le caractère @ (arobase) ne peut contenir le caractère _
+(underscore).
+
+4.4.11 Les contrôles appliqués aux numéros de contrat
+Les numéros de contrat font l’objet de contrôles de forme spécifique.
+Les caractères déclarés doivent appartenir à la liste de caractères suivante :
+
+  •  [a-z] (lettres minuscules)
+  •  [A-Z] (lettres majuscules)
+  •  [0-9] (chiffres)
+  •  (trait d’union)
+  •  (espace)
+  •  . (point)
+  •  @ (arobase)
+
+  97 / 370
+
+--- p. 98 ---
+  4 Principes de constitution des messages  2026-06-10
+
+  •  / (slash)
+  •  _ (underscore)
+  •  caractères accentués usuels suivants : à ; é ; è ; ê ; ë ; ï ; ô ainsi que la cédille (ç)
+La chaîne de caractères déclarée ne peut débuter ou se terminer par un espace.
+
+4.4.12 Les contrôles appliqués aux rubriques de datation de la DSN mensuelle et de la
+  DSN de substitution
+Le rattachement à une date est nécessaire pour de nombreux éléments déclarés dans le
+cadre de la DSN mensuelle ou de la DSN de substitution. Pour certains d’entre eux,
+l’événement déclaré (par exemple une naissance, une date de début de contrat) est
+exclusivement factuel, c'est-à-dire déjà survenu au moment où cette information est
+communiquée à l’employeur et de facto lorsque celle-ci est saisie dans la DSN. Par principe,
+des événements dont la survenance est connue au moment de la production de la paye ne
+peuvent être rattachés que sur une période antérieure ou égale à celle de l’exercice mensuel
+déclaré en DSN, et non sur une période postérieure.
+Le contrôle « Cette date doit être inférieure ou égale au dernier jour civil du mois principal
+déclaré (S20.G00.05.005) » s’appliquera en DSN mensuelle et en DSN de substitution aux
+rubriques de datation relatives aux évènements dont la survenance est avérée au moment
+de la constitution de la DSN. Il veillera à ce que la déclaration ne soit pas positionnée dans le
+futur, c'est-à-dire après le dernier jour du mois principal déclaré (MPD). Il porte un caractère
+non bloquant.
+L’intégration d’un contrôle visant à interdire le rattachement d’un événement factuel sur une
+période prédictive, ou anticipée, n’élève pas le niveau de contrainte de la norme car il répond
+à une exigence déjà respectée dans le cadre de l’établissement de la paye.
+Le tableau ci-dessous recense l’ensemble des rubriques pour lesquelles le contrôle
+susmentionné s’applique.
+
+  Date inférieure ou égale au dernier jour civil du mois principal
+  déclaré – S20.G00.05.005
+
+  Code rubrique  Libellé rubrique
+
+ S21.G00.16.001  Date de la modification
+
+ S21.G00.31.001  Date de la modification
+
+ S21.G00.40.001  Date de début du contrat
+
+ S21.G00.40.030  Date d'adhésion
+
+ S21.G00.41.001  Date de la modification
+
+ S21.G00.41.021  Ancienne Date de début du contrat
+
+ S21.G00.51.002  Date de fin de période de paye
+
+ S21.G00.52.007  Date de versement d'origine
+
+ S21.G00.54.004  Date de fin de période de rattachement
+ S21.G00.59.005  Date de fin de période de rattachement
+
+  98 / 370
+
+--- p. 99 ---
+  4 Principes de constitution des messages  2026-06-10
+
+ S21.G00.60.002  Date du dernier jour travaillé
+
+ S21.G00.60.010  Date de la reprise
+
+ S21.G00.62.001  Date de fin du contrat
+
+ S21.G00.65.002  Date de début de la suspension
+
+ S21.G00.70.014  Date de début de l’affiliation
+
+ S21.G00.70.015  Date de fin de l’affiliation
+
+ S21.G00.73.004  Date de début de rattachement à l'ouvrant-droit
+
+ S21.G00.75.002  Date de début de l'aménagement
+
+ S89.G00.87.005  Date d'attribution
+
+ S89.G00.87.006  Date d'acquisition définitive
+ S89.G00.88.006  Date d'attribution
+
+ S89.G00.88.007  Date de levée de l'option
+ S89.G00.89.005  Date d'acquisition des titres
+
+ S89.G00.92.005  Date de fin de période de rattachement
+
+4.4.13 Les contrôles appliqués aux rubriques de datation d’une DSN événementielle
+  (fin de contrat, arrêt de travail, reprise suite à arrêt de travail)
+Le rattachement à une date est nécessaire pour de nombreux éléments déclarés dans le
+cadre de la DSN événementielle. Pour certains d’entre eux, l’événement déclaré (par
+exemple le dernier jour travaillé, la date de reprise), est exclusivement factuel, c'est-à-dire
+déjà survenu au moment où cette information est communiquée à l’employeur et de facto
+lorsque celle-ci est saisie dans le signalement d’événement. Par principe, des événements
+dont la survenance est connue au moment de la constitution du signalement ne peuvent être
+rattachés que sur une période antérieure ou égale à la date de constitution de celui-ci et non
+sur une période postérieure.
+Le contrôle « Cette date doit être inférieure ou égale à la date de constitution du fichier
+(S20.G00.05.007) »s’appliquera en DSN évènementielle aux rubriques de datation de toutes
+les données dont la survenance est avérée au moment de la constitution de la DSN. Il
+veillera à ce que la déclaration ne soit pas positionnée dans le futur, c'est-à-dire après la
+date de constitution du fichier. Il porte un caractère non bloquant.
+L’intégration d’un contrôle visant à interdire le rattachement d’un événement factuel sur une
+période prédictive, ou anticipée, n’élève pas le niveau de contrainte de la norme car il répond
+à une exigence déjà respectée dans le cadre de l’établissement de la paye.
+Le tableau ci-dessous recense l’ensemble des rubriques pour lesquelles le contrôle
+susmentionné s’applique.
+
+  99 / 370
+
+--- p. 100 ---
+  4 Principes de constitution des messages  2026-06-10
+
+  Date inférieure ou égale à la date de constitution du fichier –
+  S20.G00.05.007
+  Code rubrique  Libellé rubrique
+  S21.G00.40.031  Date de dénonciation
+  S21.G00.52.007  Date de versement d'origine
+  S21.G00.60.002  Date du dernier jour travaillé
+  S21.G00.60.005  Date de début de subrogation
+  S21.G00.60.010  Date de la reprise
+  S21.G00.60.012  Date de l'accident ou de la première constatation
+
+4.4.14 Contrôles appliqués aux changements du contrat
+La cinématique de changement des modalités du bloc « Contrat - S21.G00.40 » est
+véhiculée en norme par plusieurs contrôles existants dans les rubriques « Date de la
+modification - S21.G00.41.001 » et « Profondeur de recalcul de la paie - S21.G00.41.028 ».
+
+4.4.14.1 Les types de données dans le bloc « Changements contrat – S21.G00.41 »
+Au sein du bloc « Changements contrat - S21.G00.41 », il existe trois types de rubriques :
+• Les rubriques de cinématique de changement (portant les contrôles décrits plus bas)
+• Les rubriques de type identifiante
+• Les rubriques de type modalité
+Voici les types associés à chaque rubrique du bloc « Changements contrat – S21.G00.41 »
+permettant l’application des contrôles décrits plus bas.
+Code  Libellé  Type
+
+S21.G00.41.001  Date de la modification  Cinématique
+
+S21.G00.41.002  Ancien statut du salarié (conventionnel)  Modalité
+
+S21.G00.41.003  Ancien code statut catégoriel Retraite Complémentaire obligatoire  Modalité
+
+S21.G00.41.004  Ancienne nature du contrat  Modalité
+
+S21.G00.41.005  Ancien dispositif de politique publique et conventionnel  Modalité
+
+S21.G00.41.006  Ancienne unité de mesure de la quotité de travail  Modalité
+
+S21.G00.41.007  Ancienne quotité de travail du contrat  Modalité
+
+S21.G00.41.008  Ancienne modalité d'exercice du temps de travail  Modalité
+
+S21.G00.41.010  Ancien complément de base au régime obligatoire  Modalité
+
+S21.G00.41.011  Ancien code convention collective applicable  Modalité
+
+S21.G00.41.012  SIRET ancien établissement d'affectation  Identifiant
+
+S21.G00.41.013  Ancien identifiant du lieu de travail  Modalité
+
+S21.G00.41.014  Ancien numéro du contrat  Identifiant
+
+S21.G00.41.016  Ancien motif de recours  Modalité
+
+S21.G00.41.017  Ancien taux de déduction forfaitaire spécifique pour frais professionnels  Modalité
+
+  100 / 370
+
+--- p. 101 ---
+  4 Principes de constitution des messages  2026-06-10
+
+S21.G00.41.018  Ancien travailleur à l'étranger au sens du code de la Sécurité Sociale  Modalité
+
+S21.G00.41.019  Ancien code profession et catégorie socioprofessionnelle (PCS-ESE)  Modalité
+
+S21.G00.41.020  Ancien code complément PCS-ESE  Modalité
+
+S21.G00.41.021  Ancienne date de début du contrat  Identifiant
+
+S21.G00.41.022  Ancienne quotité de travail de référence de l'entreprise pour la catégorie de salarié  Modalité
+
+S21.G00.41.023  Ancien code caisse professionnelle de congés payés  Modalité
+
+S21.G00.41.024  Ancien code risque accident du travail  Modalité
+
+S21.G00.41.025  Ancien code statut catégoriel APECITA  Modalité
+
+S21.G00.41.027  Ancien salarié à temps partiel cotisant à temps plein  Modalité
+
+S21.G00.41.028  Profondeur de recalcul de la paie  Cinématique
+
+S21.G00.41.029  [FP] Ancien code complément PCS-ESE pour la fonction publique d'Etat (NNE)  Modalité
+
+S21.G00.41.030  [FP] Ancienne nature du poste  Modalité
+
+  [FP] Ancienne quotité de travail de référence de l'entreprise pour la catégorie de
+S21.G00.41.031  Modalité
+  salarié dans l’hypothèse d’un Poste à temps complet
+
+S21.G00.41.032  Ancien taux de travail à temps partiel  Modalité
+
+S21.G00.41.033  Ancien code catégorie de service  Modalité
+
+S21.G00.41.034  [FP] Ancien indice brut  Modalité
+
+S21.G00.41.035  [FP] Ancien indice majoré  Modalité
+
+S21.G00.41.036  [FP] Ancienne nouvelle bonification indiciaire (NBI)  Modalité
+
+S21.G00.41.037  [FP] Ancien indice brut d'origine  Modalité
+
+S21.G00.41.038  [FP] Ancien indice brut de cotisation dans un emploi supérieur (article 15)  Modalité
+
+S21.G00.41.039  [FP] Ancien ancien employeur public  Modalité
+
+S21.G00.41.040  [FP] Ancien indice brut d’origine ancien salarié employeur public  Modalité
+
+S21.G00.41.041  [FP] Ancien indice brut d’origine sapeur-pompier professionnel (SPP)  Modalité
+
+S21.G00.41.042  [FP] Ancien maintien du traitement d'origine d'un contractuel titulaire  Modalité
+
+S21.G00.41.043  Ancien taux de service actif  Modalité
+
+S21.G00.41.044  Ancien niveau de rémunération  Modalité
+
+S21.G00.41.045  Ancien échelon  Modalité
+
+S21.G00.41.046  Ancien coefficient hiérarchique  Modalité
+
+S21.G00.41.047  Ancien genre de navigation  Modalité
+
+S21.G00.41.048  Ancien statut BOETH  Modalité
+
+S21.G00.41.049  Ancien complément de dispositif de politique publique  Modalité
+
+S21.G00.41.050  Ancien cas de mise à disposition externe d'un individu de l'établissement  Modalité
+
+S21.G00.41.051  Ancienne catégorie de classement finale  Modalité
+
+  101 / 370
+
+--- p. 102 ---
+  4 Principes de constitution des messages  2026-06-10
+
+S21.G00.41.052  Ancien code régime de base risque maladie  Modalité
+
+S21.G00.41.053  Ancien code régime de base risque vieillesse  Modalité
+
+S21.G00.41.054  Ancien identifiant du contrat d'engagement maritime  Identifiant
+
+S21.G00.41.055  Ancien collège (CNIEG)  Modalité
+
+  Ancienne forme d'aménagement du temps de travail dans le cadre de l'activité
+S21.G00.41.056  Modalité
+  partielle
+
+S21.G00.41.057  [FP] Ancien type de détachement  Modalité
+
+S21.G00.41.058  Ancien positionnement dans la convention collective  Modalité
+
+S21.G00.41.059  Ancien code régime de base risque accident du travail  Modalité
+
+S21.G00.41.060  Ancien statut d'emploi du salarié  Modalité
+
+S21.G00.41.061  Ancien code emplois multiples  Modalité
+
+S21.G00.41.062  Ancien code employeurs multiples  Modalité
+
+S21.G00.41.063  Ancien grade  Modalité
+
+S21.G00.41.064  [FP] Ancien indice complément de traitement indiciaire (CTI)  Modalité
+
+S21.G00.41.065  Ancien FINESS géographique  Modalité
+
+  Ancienne application de la proratisation du Plafond de Sécurité Sociale à hauteur de
+S21.G00.41.066  Modalité
+  la quotité de travail
+
+  Ancien choix du salarié en forfait jour réduit indiquant que la proratisation du
+S21.G00.41.067  plafond de Sécurité sociale ne s’applique pas au calcul de ses cotisations pour la  Modalité
+  vieillesse régime de base et la retraite complémentaire
+
+S21.G00.41.068  Ancienne adhésion à une caisse de congés payés à titre obligatoire  Modalité
+
+4.4.14.2 Les contrôles
+a. Obligation de déclarer un bloc Changement par changement de modalité
+Les rubriques de type modalité du contrat ne peuvent être déclarées simultanément au sein
+d’un même bloc « Changements Contrat - S21.G00.41 ».
+b. Interdiction de déclarer dans un même bloc le changement d’une donnée identifiante et le
+changement d’une modalité
+La déclaration d'un bloc « Changements contrat - S21.G00.41 » avec des données
+identifiantes et des données de modalités de contrat est interdite.
+c. Obligation ou interdiction de déclarer la date de profondeur de recalcul de la paie pour le
+changement d’une modalité
+La rubrique « Profondeur de recalcul de la paie - S21.G00.41.028 » est obligatoire pour le
+bloc « Changements Contrat - S21.G00.41 » présentant la « Date de la modification -
+S21.G00.41.001 » la plus ancienne, pour un même contrat (S21.G00.40) et une même
+modalité du contrat. Dans les autres cas, la rubrique « Profondeur de recalcul de la paie -
+S21.G00.41.028 » est interdite.
+
+  102 / 370
+
+--- p. 103 ---
+  4 Principes de constitution des messages  2026-06-10
+
+d. Interdiction de déclarer la profondeur de recalcul de la paie pour le changement d’une
+donnée identifiante
+La rubrique "Profondeur de recalcul de la paie - S21.G00.41.028" est interdite pour tout bloc
+"Changements Contrat - S21.G00.41" comportant une rubrique identifiante du contrat.
+
+  103 / 370

@@ -1,0 +1,64 @@
+# Bloc S21.G00.83
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 316-316
+
+--- p. 316 ---
+  S21.G00.83  2025-12-24
+
+S21.G00.83
+
+Période d'affiliation à tort à un régime de retraite  S21.G00.83
+complémentaire
+Date de début de période déclarée à tort  S21.G00.83.001
+Date de fin de période déclarée à tort  S21.G00.83.002
+
+Date de début de période déclarée à tort  S21.G00.83.001
+RegularisationAffiliationRetraiteComplementaire.DateDebutPeriodeD
+eclareeTort
+  Date de début de période de rattachement du code régime retraite complémentaire qui avait été déclaré à
+  tort.
+  CCH-11 : Si un bloc "Affiliation à tort à un régime de retraite complémentaire - S21.G00.72" est présent alors un bloc
+  "Période d'affiliation à tort à un régime de retraite complémentaire - S21.G00.83" doit être obligatoirement renseigné.
+  Dans le cas contraire la déclaration de ce bloc est interdite.
+  Ce contrôle vise à déclarer un bloc "Période d'affiliation à tort à un régime de retraite complémentaire - S21.G00.83"
+  pour chaque bloc "Affiliation à tort à un régime de retraite complémentaire - S21.G00.72" déclaré.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de période déclarée à tort  S21.G00.83.002
+RegularisationAffiliationRetraiteComplementaire.DateFinPeriodeDecl
+areeTort
+  Date de fin de période de rattachement du code régime retraite complémentaire qui avait été déclaré à tort.
+
+  CCH-11 : La "Date de fin de période déclarée à tort - S21.G00.83.002" doit être supérieure ou égale à la "Date de
+  début de période déclarée à tort - S21.G00.83.001".
+
+  CCH-12 : La "Date de fin de période déclarée à tort - S21.G00.83.002" doit être inférieure au premier jour du mois
+  principal déclaré.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+S21.G00.84
+
+Base assujettie déclarée à tort pour un régime de  S21.G00.84
+retraite complémentaire
+Code de base assujettie déclarée à tort  S21.G00.84.001
+Date de début de période de rattachement de la base déclarée à tort  S21.G00.84.002
+Date de fin de période de rattachement de la base déclarée à tort  S21.G00.84.003
+Montant déclaré à tort  S21.G00.84.004
+Numéro du contrat rattaché à la base assujettie déclarée à tort  S21.G00.84.005
+
+Code de base assujettie déclarée à tort  S21.G00.84.001
+AncienneBaseAssujettieDeclareeorganismeRetraiteComplementaire
+DeclareeTort.CodeBaseAssujettie
+
+  316 / 361

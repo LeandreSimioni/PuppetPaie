@@ -1,0 +1,163 @@
+# Bloc S10.G00.01
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 129-131
+
+--- p. 129 ---
+  S10.G00.01  2025-12-24
+
+  X  [1,50]
+
+Code envoi du fichier d'essai ou réel  S10.G00.00.005
+Envoi.EssaiReel
+  Les fichiers d'essai sont recommandés lors des premiers échanges avec un des services DSN proposés.
+
+  X  [2,2]
+
+  01 - envoi fichier test
+  02 - envoi fichier réel
+
+Numéro de version de la norme utilisée  S10.G00.00.006
+Envoi.VersionNorme
+
+  X  [6,6]
+
+  P26V01 - Année 2026 Version 1
+
+Point de dépôt  S10.G00.00.007
+Envoi.Depot
+  CCH-11 : Le point de dépôt (S10.G00.00.007) « 02 - MSA » est interdit si la rubrique « Nature de la déclaration -
+  S20.G00.05.001 » est renseignée avec la valeur « 10 - Signalement Déclaration préalable à l'embauche ».
+
+  X  [2,2]
+
+  01 - Net-entreprises
+  02 - MSA
+
+Type de l'envoi  S10.G00.00.008
+Envoi.Type
+  Cette rubrique permet de définir s'il s'agit d'un envoi normal, ou d'un envoi contenant uniquement des
+  déclarations mensuelles "sans individu".
+  CCH-11 : Cette rubrique doit être renseignée à "02 - envoi néant" , si et seulement si toutes les déclarations sont de
+  nature "01 - DSN Mensuelle" (S20.G00.05.001), et soit de type "02 - déclaration normale sans individu" soit de type
+  "05 - annule et remplace sans individu" (S20.G00.05.002).
+  Ce contrôle vise à interdire cette valeur dans un signalement car cette nature de déclaration est propre à un individu. Il
+  ne peut donc pas exister de signalement en l'absence d'individu.
+
+  X  [2,2]
+
+  01 - envoi normal
+  02 - envoi néant
+
+S10.G00.01
+
+Emetteur  S10.G00.01
+
+  129 / 361
+
+--- p. 130 ---
+  S10.G00.01  2025-12-24
+
+Siren de l'émetteur de l'envoi  S10.G00.01.001
+Nic de l'émetteur de l'envoi  S10.G00.01.002
+Nom ou raison sociale de l'émetteur  S10.G00.01.003
+Numéro, extension, nature et libellé de la voie  S10.G00.01.004
+Code postal  S10.G00.01.005
+Localité  S10.G00.01.006
+Code pays  S10.G00.01.007
+Code de distribution à l'étranger  S10.G00.01.008
+Complément de la localisation de la construction  S10.G00.01.009
+Service de distribution, complément de localisation de la voie  S10.G00.01.010
+
+Siren de l'émetteur de l'envoi  S10.G00.01.001
+Emetteur.Siren
+  Identifiant de l'entreprise ayant élaboré le présent envoi.
+  Dans le cas d'un tiers déclarant ou d'un concentrateur, c'est l'identifiant SIREN de ce tiers qui doit figurer
+  ici.
+  Attention : cette mention n'est pas exploitée vis-à-vis de l'autorisation de déposer une DSN ; pour ce dépôt il
+  convient que l'acteur déposant la DSN sur le site de net entreprises (http://www.net-entreprises.fr/) ou de la
+  MSA (http://www.msa.fr) soit inscrit comme administrateur sur le site et ait validé la charte
+  Pour les réceptions de DSN en machine to machine une enveloppe gérant sera à associer au message et ne
+  figure pas à ce stade dans le cahier technique.
+  CSL-11 : [(vérification de la clé)]
+
+  X  [9,9]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Nic de l'émetteur de l'envoi  S10.G00.01.002
+Emetteur.Nic
+  Identifiant établissement (Numéro Interne de Classement).
+  Un identifiant à zéro n'est pas admis.
+  CCH-11 : [(vérification de la clé)]
+
+  CRE-11 : Si la déclaration est de nature « 09 - DSN de substitution » (S20.G00.05.001), alors le SIRET Emetteur
+  (concatenation des rubriques « SIREN de l'émetteur de l'envoi - S10.G00.01.001 » et « S10.G00.01.002 - Nic de
+  l'émetteur de l'envoi ») doit être présent dans la table « OES ». Pour les autres natures de déclaration le SIRET
+  émetteur peut ne pas être présent dans cette table. Ce contrôle ne s'applique que pour les DSN de substitution.
+
+  CSL 00 : [0-9]*[1-9][0-9]*
+  X  [5,5]  Table OES - Organismes Emetteurs d'une DSN de
+  Substitution
+
+Nom ou raison sociale de l'émetteur  S10.G00.01.003
+Emetteur.Nom
+
+  X  [1,60]
+
+Numéro, extension, nature et libellé de la voie  S10.G00.01.004
+Emetteur.Voie
+  Numéro : Il précise l’adresse dans la voie. Sa valeur est différente de 0 et ne doit pas dépasser 4 chiffres. En
+  cas de numéro multiple, seul le premier doit être indiqué (pour exemple indiquer 4 pour 4/14)
+
+  130 / 361
+
+--- p. 131 ---
+  S10.G00.01  2025-12-24
+
+  Extension : Lettre accolée au numéro si celui-ci ne présente pas une précision suffisante (par exemple B
+  pour BIS, T pour TER, etc…)
+  Nature de la voie : information facultative décrivant la nature de la voie (rue, avenue, etc…)
+  Libellé de la voie : Appellation officielle de la voie
+
+  X  [1,50]
+
+Code postal  S10.G00.01.005
+Emetteur.CodePostal
+  Donnée d'organisation de la distribution postale, à utiliser telle que définie dans le fichier Hexaposte
+
+  CCH-12 : Si le code postal est présent alors le code pays et le code de distribution à l'étranger sont absents et
+  réciproquement.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table HEX - Code postal
+
+Localité  S10.G00.01.006
+Emetteur.Localite
+  La localité est un élément géographique et administratif. C’est le premier élément d’identification associé
+  au code postal. Le libellé est la plupart du temps le nom officiel de la localité enregistrée à l’INSEE et au
+  Journal Officiel.
+  CCH-11 : La localité est obligatoire si le code postal de l'émetteur est renseigné.
+
+  X  [1,50]  CSL 00 : [A-Za-z0-9\s]+
+
+Code pays  S10.G00.01.007
+Emetteur.Pays
+  Nom du pays (territoire d’un état) exprimé sous la forme d’un code.
+
+  CRE-11 : valeurs autorisées
+
+  X  [2,2]  Table PAY - Code pays hors système postal français
+
+Code de distribution à l'étranger  S10.G00.01.008
+Emetteur.CodeDistribution
+  Mention complémentaire pour les adresses ne relevant du système postal français
+
+  X  [1,50]
+
+Complément de la localisation de la construction  S10.G00.01.009
+Emetteur.ComplementConstruction
+  Les compléments d’adresse permettent d’indiquer le point de remise exact du courrier. Ils donnent des
+  informations précises et déterminantes dans la phase finale de distribution du courrier, tel que le bâtiment,
+  la boîte aux lettres, le numéro d’appartement.
+
+  X  [1,50]
+
+  131 / 361

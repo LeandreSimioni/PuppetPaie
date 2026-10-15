@@ -1,0 +1,117 @@
+# Bloc S21.G00.86
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 321-322
+
+--- p. 321 ---
+  S21.G00.86  2025-12-24
+
+  la boîte aux lettres, le numéro d’appartement.
+
+  X  [1,50]
+
+Service de distribution, complément de localisation de la voie  S21.G00.85.009
+TravailLieu.ComplementVoie
+  Il s’agit de services de distribution du courrier spécifiques proposés ou mis en place par La Poste.
+
+  X  [1,50]
+
+Nature juridique  S21.G00.85.010
+TravailLieu.Nature
+  Indicateur permettant de préciser la nature juridique du lieu de travail ou de l'établissement utilisateur :
+  - Le type 01 « Etablissement » est strictement réservé à un lieu géographique SIRETisé, quel que soit le
+  territoire (politique comme géographique) où se situe le lieu en question, que ce soit en France ou à
+  l'étranger.
+  - Le type 02 « Autre » doit être utilisé dans les autres cas.
+  - Le type 03 « A domicile » permet d'indiquer que le travail est réalisé à domicile, conformément aux
+  articles L7412-1 à L7412-3 du Code du travail.
+
+  X  [2,2]
+
+  01 - Etablissement
+  02 - Autre
+  03 - A domicile
+
+Code INSEE commune  S21.G00.85.011
+TravailLieu.CodeINSEEcommune
+  CCH-11 : La rubrique "Code INSEE commune - S21.G00.85.011" est obligatoire si la rubrique « Code pays –
+  S21.G00.85.006 » est absente.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table INSEE - Code INSEE de la commune
+
+S21.G00.86
+
+Ancienneté  S21.G00.86
+  Pour les salariés affiliés à un contrat de Prévoyance, certaines conventions collectives ou certains contrats prévoient
+  que le salarié ne peut en bénéficier qu'à partir d'un certain délai d'ancienneté. Ce bloc permet de renseigner l’ancienneté
+  dans l'entreprise ou le groupe, dans la branche professionnelle ou le secteur d'activité, dans le collège ou la catégorie
+  professionnelle, ou dans le poste.
+
+Type  S21.G00.86.001
+Unité de mesure  S21.G00.86.002
+Valeur  S21.G00.86.003
+Numéro du contrat  S21.G00.86.005
+
+Type  S21.G00.86.001
+Anciennete.Type
+
+  321 / 361
+
+--- p. 322 ---
+  S21.G00.86  2025-12-24
+
+  L'ancienneté est qualifiée par un type.
+
+  CCH-12 : Si la "Nature de la déclaration - S20.G00.05.001" est "01 - DSN Mensuelle", "07 - Signalement Fin du
+  contrat de travail Unique" ou "08 - Signalement Amorçage des données variables" et si l'individu est concerné par au
+  moins une "Affiliation Prévoyance - S21.G00.70", et si au moins l'un des contrats de travail de l'individu est d'une
+  nature (S21.G00.40.007) différente de "03 - Contrat de mission (contrat de travail temporaire)", alors au moins une
+  rubrique "Type - S21.G00.86.001" doit être renseignée avec la valeur "06 - Ancienneté dans le groupe" ou "07 -
+  Ancienneté dans l'entreprise".
+
+  CCH-13 : Pour un individu et un même contrat, deux blocs "Ancienneté - S21.G00.86" ne peuvent avoir le même
+  "Type - S21.G00.86.001".
+
+  CCH-14 : Dans une DSN mensuelle, si la "Nature du contrat- S21.G00.40.007" est valorisée avec la valeur "01 -
+  Contrat de travail à durée indéterminée de droit privé" , "02 - Contrat de travail à durée déterminée de droit privé", "03
+  - Contrat de mission (contrat de travail temporaire) ", "07 - Contrat à durée indéterminée intermittent", "08 - Contrat à
+  durée indéterminée intérimaire", "82 - Contrat de travail à durée indéterminée de Chantier ou d'opération", "91 -
+  Contrat d'engagement maritime à durée indéterminée" ou "92 - Contrat d'engagement maritime à durée déterminée",
+  alors au moins un bloc " Ancienneté-S21.G00.86 " doit être déclaré avec la rubrique "Type - S21.G00.86.001"
+  renseignée avec la valeur "07 - Ancienneté dans l'entreprise".
+
+  X  [2,2]
+
+  02 - Ancienneté dans la branche professionnelle ou le secteur d'activité
+  03 - Ancienneté dans le collège ou la catégorie professionnelle
+  04 - Ancienneté dans le poste
+  06 - Ancienneté dans le groupe
+  07 - Ancienneté dans l'entreprise
+
+Unité de mesure  S21.G00.86.002
+Anciennete.UniteMesure
+  L'ancienneté peut être exprimée en jours, mois ou années. Pour un type d'ancienneté de 01 à 04, l'unité
+  choisie doit permettre de renseigner une ancienneté différente de zéro.
+
+  X  [2,2]
+
+  01 - Jours
+  02 - Mois
+  03 - Années
+
+Valeur  S21.G00.86.003
+Anciennete.Valeur
+  Ancienneté connue à la fin de la période mensuelle déclarée. La valeur retenue pour le code type
+  d'expression de l'ancienneté doit permettre d'exprimer une ancienneté non nulle. Les salariés pour lesquels
+  l’ancienneté est supérieure à 98 ans doivent déclarer la valeur maximum de 98 ans.
+  CCH-11 : La valeur de cette rubrique doit être inférieure à 99 si l'ancienneté est exprimée en année ("Unité de mesure -
+  S21.G00.86.002" = "03 - Années") ou inférieure à 99 X 12 = 1188 si l'ancienneté est exprimée en mois ("Unité de
+  mesure - S21.G00.86.002" = "02 - Mois"), ou inférieure à 99 X 366 = 36234 si l'ancienneté est exprimée en jours
+  ("Unité de mesure - S21.G00.86.002" = "01 - Jours").
+
+  CCH-12 : Si la rubrique "Type - S21.G00.86.001" est renseignée avec la valeur "02 - Ancienneté dans la branche
+  professionnelle ou le secteur d'activité", "03 - Ancienneté dans le collège ou la catégorie professionnelle", "04 -
+  Ancienneté dans le poste", "06 - Ancienneté dans le groupe" ou "07 - Ancienneté dans l'entreprise", la valeur zéro est
+  interdite.
+
+  322 / 361

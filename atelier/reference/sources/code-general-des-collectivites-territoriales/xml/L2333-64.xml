@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000042913444</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/42/91/34/LEGIARTI000042913444.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L2333-64</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2020-12-31</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006070633" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code général des collectivités territoriales" debut="1996-02-24" fin="2999-01-01" id_txt="LEGITEXT000006070633">Code général des collectivités territoriales</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006088000">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006116628">DEUXIÈME PARTIE : LA COMMUNE</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006135493">LIVRE III : FINANCES COMMUNALES</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006149245">TITRE III : RECETTES</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006164579">CHAPITRE III : Taxes, redevances ou versements non prévus par le code général des impôts</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2014-01-29" id="LEGISCTA000006181011">Section 8 : Versement destiné aux transports en commun</TITRE_TM>
+<TITRE_TM debut="2014-01-29" fin="2019-12-27" id="LEGISCTA000028534273">Section 8 : Versement destiné aux transports</TITRE_TM>
+<TITRE_TM debut="2019-12-27" fin="2999-01-01" id="LEGISCTA000039802388">Section 8 : Versement destiné au financement des services de mobilité</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1996-02-24" etat="MODIFIE" fin="1996-04-13" id="LEGIARTI000006390685" num="L2333-64" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1996-05-01" etat="MODIFIE" fin="2000-12-14" id="LEGIARTI000006390686" num="L2333-64" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2000-12-14" etat="MODIFIE" fin="2005-08-03" id="LEGIARTI000006390687" num="L2333-64" origine="LEGI"/>
+</VERSION>
+<VERSION etat="ANNULE">
+<LIEN_ART debut="2005-08-03" etat="ANNULE" fin="2007-07-06" id="LEGIARTI000006390688" num="L2333-64" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2000-12-14" etat="MODIFIE" fin="2008-08-06" id="LEGIARTI000006390689" num="L2333-64" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-08-06" etat="MODIFIE" fin="2010-07-14" id="LEGIARTI000019289575" num="L2333-64" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2010-07-14" etat="MODIFIE" fin="2014-11-08" id="LEGIARTI000022494209" num="L2333-64" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2014-11-08" etat="MODIFIE" fin="2015-01-01" id="LEGIARTI000029737018" num="L2333-64" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE_MORT_NE">
+<LIEN_ART debut="2015-01-01" etat="MODIFIE_MORT_NE" fin="2014-12-30" id="LEGIARTI000029355284" num="L2333-64" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2015-01-01" etat="MODIFIE" fin="2015-08-09" id="LEGIARTI000030067887" num="L2333-64" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2015-08-09" etat="MODIFIE" fin="2016-01-01" id="LEGIARTI000031104866" num="L2333-64" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2016-01-01" etat="MODIFIE" fin="2020-01-01" id="LEGIARTI000031843605" num="L2333-64" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE_MORT_NE">
+<LIEN_ART debut="2020-01-01" etat="MODIFIE_MORT_NE" fin="2019-12-27" id="LEGIARTI000038610181" num="L2333-64" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2020-01-01" etat="MODIFIE" fin="2020-12-31" id="LEGIARTI000039802375" num="L2333-64" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2020-12-31" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000042913444" num="L2333-64" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément au XII de l’article 11 de la loi n° 2019-486 du 22 mai 2019, le dernier alinéa du I, dans sa rédaction antérieure à la présente loi, continue à s'appliquer aux entreprises bénéficiaires de ces dispositions au 31 décembre 2019.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>I. – En dehors de la région d'Ile-de-France, les personnes physiques ou morales, publiques ou privées, à l'exception des fondations et associations reconnues d'utilité publique à but non lucratif dont l'activité est de caractère social et des associations intermédiaires, peuvent être assujetties à un versement destiné au financement des services de mobilité lorsqu'elles emploient au moins onze salariés :</p>
+<p>1° Dans une commune ou une communauté urbaine dont la population est supérieure à 10 000 habitants ou, dans les deux cas, lorsque la population est inférieure à 10 000 habitants et que le territoire comprend une ou plusieurs communes classées communes touristiques au sens de l'article L. 133-11 du code du tourisme ;</p>
+<p>2° Dans le ressort d'un établissement public de coopération intercommunale compétent pour l'organisation de la mobilité, lorsque la population de l'ensemble des communes membres de l'établissement atteint le seuil indiqué ;</p>
+<p>3° Dans le ressort d'une métropole ou de la métropole de Lyon, sous réserve des dispositions prévues à l'article L. 5722-7-1.</p>
+<p>Pour l'application du présent I, l'effectif salarié employé dans chacune des zones où est institué le versement destiné au financement des services de mobilité et le franchissement du seuil de onze salariés sont décomptés selon les modalités prévues à l'article L. 130-1 du code de la sécurité sociale.</p>
+<p>II à IV. – (Abrogés).</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000396397" datesignatexte="1999-07-12" id="LEGIARTI000027572107" naturetexte="LOI" nortexte="INTX9800135L" num="57" numtexte="99-586" sens="cible" typelien="CITATION">Loi n° 99-586 du 12 juillet 1999 - art. 57 (VD)</LIEN>
+<LIEN cidtexte="JORFTEXT000000226154" datesignatexte="2002-03-07" id="LEGIARTI000006276088" naturetexte="ORDONNANCE" nortexte="INTX0100168R" num="6" numtexte="2002-327" sens="cible" typelien="CITATION">Ordonnance n°2002-327 du 7 mars 2002 - art. 6 (P)</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000026785322" datesignatexte="2012-12-17" id="LEGIARTI000026787325" naturetexte="LOI" nortexte="EFIX1235628L" num="40" numtexte="2012-1404" sens="cible" typelien="CITATION">LOI n°2012-1404
+ du 17 décembre 2012 - art. 40 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000026857857" datesignatexte="2012-12-29" id="LEGIARTI000026888028" naturetexte="LOI" nortexte="EFIX1238817L" num="50" numtexte="2012-1510" sens="cible" typelien="CITATION">LOI n°2012-1510
+ du 29 décembre 2012 - art. 50 (V)</LIEN>
+
+
+
+
+<LIEN cidtexte="JORFTEXT000031732865" datesignatexte="2015-12-29" id="LEGIARTI000051200976" naturetexte="LOI" nortexte="FCPX1519907L" num="15" numtexte="2015-1785" sens="cible" typelien="MODIFIE">LOI n°2015-1785 du 29 décembre 2015 - art. 15 (M)</LIEN>
+
+
+
+<LIEN cidtexte="JORFTEXT000038496102" datesignatexte="2019-05-22" id="LEGIARTI000042914309" naturetexte="LOI" nortexte="ECOT1810669L" num="11" numtexte="2019-486" sens="cible" typelien="MODIFIE">LOI n°2019-486 du 22 mai 2019 - art. 11 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000038496102" datesignatexte="2019-05-22" id="LEGIARTI000042914309" naturetexte="LOI" nortexte="ECOT1810669L" num="11" numtexte="2019-486" sens="cible" typelien="CITATION">LOI n°2019-486 du 22 mai 2019 - art. 11 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000039666574" datesignatexte="2019-12-24" id="LEGIARTI000039668651" naturetexte="LOI" nortexte="TRET1821032L" num="13" numtexte="2019-1428" sens="cible" typelien="CONCORDE">LOI n°2019-1428 du 24 décembre 2019 - art. 13</LIEN>
+<LIEN cidtexte="JORFTEXT000041763348" datesignatexte="2020-03-28" id="LEGIARTI000041768024" naturetexte="ARRETE" nortexte="SSAZ2008730A" num="5" numtexte="" sens="cible" typelien="CITATION">Arrêté du 28 mars 2020 - art. 5 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000042753580" datesignatexte="2020-12-29" id="LEGIARTI000042778621" naturetexte="LOI" nortexte="ECOX2023814L" num="125" numtexte="2020-1721" sens="cible" typelien="MODIFIE">LOI n°2020-1721 du 29 décembre 2020 - art. 125</LIEN>
+<LIEN cidtexte="JORFTEXT000043943773" datesignatexte="2021-08-17" id="LEGIARTI000044995599" naturetexte="ARRETE" nortexte="SSAS2125133A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 17 août 2021 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000044637640" datesignatexte="2021-12-30" id="LEGIARTI000053542657" naturetexte="LOI" nortexte="ECOX2126830L" num="5" numtexte="2021-1900" sens="cible" typelien="CITATION">LOI n°2021-1900 du 30 décembre 2021 - art. 5 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000045124505" datesignatexte="2022-02-05" id="LEGIARTI000045127769" naturetexte="DECRET" nortexte="SSAS2137748D" num="1" numtexte="2022-136" sens="cible" typelien="CITATION">Décret n°2022-136 du 5 février 2022 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000048734759" datesignatexte="2023-12-29" id="LEGIARTI000048846407" naturetexte="DECRET" nortexte="ECOS2330412D" num="1" numtexte="2023-1384" sens="cible" typelien="CITATION">Décret n°2023-1384 du 29 décembre 2023 - art. 1</LIEN>
+
+<LIEN cidtexte="JORFTEXT000051886359" datesignatexte="2025-05-28" id="LEGITEXT000051888573" naturetexte="ARRETE" nortexte="ECOS2512675A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 28 mai 2025 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000052542638" datesignatexte="2025-11-07" id="LEGITEXT000052544216" naturetexte="DECRET" nortexte="TRAT2518435D" num="" numtexte="2025-1072" sens="cible" typelien="CITATION">Décret n°2025-1072 du 7 novembre 2025 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000054448211" datesignatexte="2026-06-25" id="LEGITEXT000054448562" naturetexte="ARRETE" nortexte="CPPS2619383A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 25 juin 2026 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070162" datesignatexte="2999-01-01" id="LEGIARTI000006346097" naturetexte="CODE" nortexte="" num="L233-58" numtexte="" sens="source" typelien="CONCORDANCE">CODE DES COMMUNES. - art. L233-58 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000046021908" naturetexte="CODE" nortexte="" num="D311-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D311-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000038952315" naturetexte="CODE" nortexte="" num="L136-1-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L136-1-1 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000044220618" naturetexte="CODE" nortexte="" num="L243-1-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L243-1-3 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000023086525" datesignatexte="2999-01-01" id="LEGIARTI000039802596" naturetexte="CODE" nortexte="" num="L1221-13" numtexte="" sens="cible" typelien="CITATION">Code des transports - art. L1221-13 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000023086525" datesignatexte="2999-01-01" id="LEGIARTI000043341104" naturetexte="CODE" nortexte="" num="L1243-19" numtexte="" sens="cible" typelien="CITATION">Code des transports - art. L1243-19 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000028498742" naturetexte="CODE" nortexte="" num="L6243-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L6243-3 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000052040696" naturetexte="CODE" nortexte="" num="D2333-84" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. D2333-84 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000052040687" naturetexte="CODE" nortexte="" num="D2333-85" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. D2333-85 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000052040662" naturetexte="CODE" nortexte="" num="D2333-87" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. D2333-87 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000042063598" naturetexte="CODE" nortexte="" num="D2333-91" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. D2333-91 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000039802327" naturetexte="CODE" nortexte="" num="L2333-65" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. L2333-65 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000030062413" naturetexte="CODE" nortexte="" num="L2333-69" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. L2333-69 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000006390707" naturetexte="CODE" nortexte="" num="L2333-75" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. L2333-75 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000006391162" naturetexte="CODE" nortexte="" num="L2531-1" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. L2531-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000031104796" naturetexte="CODE" nortexte="" num="L5214-23" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. L5214-23 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000029355303" naturetexte="CODE" nortexte="" num="L5215-32" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. L5215-32 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000006393252" naturetexte="CODE" nortexte="" num="L5216-25" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. L5216-25 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000029355292" naturetexte="CODE" nortexte="" num="L5216-8" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. L5216-8 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000031104759" naturetexte="CODE" nortexte="" num="L5722-7" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. L5722-7 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000029737022" naturetexte="CODE" nortexte="" num="L5722-7-1" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. L5722-7-1 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000045133696" naturetexte="CODE" nortexte="" num="R2333-104-1" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. R2333-104-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006074073" datesignatexte="2999-01-01" id="LEGIARTI000006812594" naturetexte="CODE" nortexte="" num="L133-11" numtexte="" sens="source" typelien="CITATION">Code du tourisme. - art. L133-11</LIEN>
+</LIENS>
+</ARTICLE>

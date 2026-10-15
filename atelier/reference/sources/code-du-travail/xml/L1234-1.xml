@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000006901112</ID>
+<ANCIEN_ID>WXXXXXXXXXX1234L0010XX0A</ANCIEN_ID>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/06/90/11/LEGIARTI000006901112.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L1234-1</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2008-05-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132321">Première partie : Les relations individuelles de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145393">Livre II : Le contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160710">Titre III : Rupture du contrat de travail à durée indéterminée</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006177860">Chapitre IV : Conséquences du licenciement</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006189443">Section 1 : Préavis et indemnité de licenciement</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006195622">Sous-section 1 : Préavis et indemnité compensatrice de préavis.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2008-05-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000006901112" num="L1234-1" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<br/>
+<br/>
+<br/>
+<p>
+<br clear="none"/>
+</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Lorsque le licenciement n'est pas motivé par une faute grave, le salarié a droit :</p>
+<p>1° S'il justifie chez le même employeur d'une ancienneté de services continus inférieure à six mois, à un préavis dont la durée est déterminée par la loi, la convention ou l'accord collectif de travail ou, à défaut, par les usages pratiqués dans la localité et la profession ;</p>
+<p>2° S'il justifie chez le même employeur d'une ancienneté de services continus comprise entre six mois et moins de deux ans, à un préavis d'un mois ;</p>
+<p>3° S'il justifie chez le même employeur d'une ancienneté de services continus d'au moins deux ans, à un préavis de deux mois.</p>
+<p>Toutefois, les dispositions des 2° et 3° ne sont applicables que si la loi, la convention ou l'accord collectif de travail, le contrat de travail ou les usages ne prévoient pas un préavis ou une condition d'ancienneté de services plus favorable pour le salarié.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000339242" datesignatexte="1978-07-19" id="LEGIARTI000029321325" naturetexte="LOI" nortexte="" num="17" numtexte="78-763" sens="cible" typelien="CITATION">Loi n°78-763 du 19 juillet 1978 - art. 17 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000465978" datesignatexte="2007-03-12" id="JORFTEXT000000465978" naturetexte="ORDONNANCE" nortexte="SOCX0700017R" num="" numtexte="2007-329" sens="source" typelien="CODIFICATION">Ordonnance 2007-329 2007-03-12 JORF 13 mars 2007</LIEN>
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000024691298" datesignatexte="2011-10-06" id="LEGIARTI000049821442" naturetexte="ARRETE" nortexte="ETSD1127236A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 6 octobre 2011 - art. (VD)</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000030513552" datesignatexte="2015-04-16" id="LEGIARTI000030515081" naturetexte="ARRETE" nortexte="ETSD1508229A" num="15 à 18" numtexte="" sens="cible" typelien="CITATION">ARRÊTÉ du 16 avril 2015 - art. (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000030513552" datesignatexte="2015-04-16" id="LEGIARTI000030515101" naturetexte="ARRETE" nortexte="ETSD1508229A" num="31" numtexte="" sens="cible" typelien="CITATION">ARRÊTÉ du 16 avril 2015 - art. (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000030513552" datesignatexte="2015-04-16" id="LEGIARTI000049821379" naturetexte="ARRETE" nortexte="ETSD1508229A" num="21 à 24" numtexte="" sens="cible" typelien="CITATION">ARRÊTÉ du 16 avril 2015 - art. 21 à 24 (VD)</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000035567974" datesignatexte="2017-09-15" id="LEGIARTI000035569432" naturetexte="LOI" nortexte="JUSC1715753L" num="19" numtexte="2017-1339" sens="cible" typelien="CITATION">LOI n° 2017-1339 du 15 septembre 2017 - art. 19 (V)</LIEN>
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000041814625" datesignatexte="2020-04-21" id="LEGIARTI000041815146" naturetexte="DECRET" nortexte="MTRD2007127D" num="3" numtexte="2020-461" sens="cible" typelien="CITATION">Décret n°2020-461 du 21 avril 2020 - art. 3</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000049723984" datesignatexte="2024-06-03" id="LEGIARTI000049729455" naturetexte="ARRETE" nortexte="TSST2413775A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 3 juin 2024 - art. (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000049723984" datesignatexte="2024-06-03" id="LEGIARTI000049729559" naturetexte="ARRETE" nortexte="TSST2413775A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 3 juin 2024 - art. (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000049723984" datesignatexte="2024-06-03" id="LEGIARTI000049729625" naturetexte="ARRETE" nortexte="TSST2413775A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 3 juin 2024 - art. (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000049723984" datesignatexte="2024-06-03" id="LEGIARTI000049729713" naturetexte="ARRETE" nortexte="TSST2413775A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 3 juin 2024 - art. (V)</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033737901" naturetexte="CODE" nortexte="" num="D2254-12" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D2254-12 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033737917" naturetexte="CODE" nortexte="" num="D2254-18" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D2254-18 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006646848" naturetexte="CODE" nortexte="" num="L122-6" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail - art. L122-6 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006646852" naturetexte="CODE" nortexte="" num="L122-6" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L122-6 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901130" naturetexte="CODE" nortexte="" num="L1234-14" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1234-14 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901134" naturetexte="CODE" nortexte="" num="L1234-18" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1234-18 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901113" naturetexte="CODE" nortexte="" num="L1234-2" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1234-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000053153317" naturetexte="CODE" nortexte="" num="L1234-8" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1234-8 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901184" naturetexte="CODE" nortexte="" num="L1237-10" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1237-10 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901180" naturetexte="CODE" nortexte="" num="L1237-6" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1237-6 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000037385300" naturetexte="CODE" nortexte="" num="L2254-2" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L2254-2 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000053152418" naturetexte="CODE" nortexte="" num="L3142-88" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L3142-88 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903650" naturetexte="CODE" nortexte="" num="L5134-104" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5134-104 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903540" naturetexte="CODE" nortexte="" num="L5134-15" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5134-15 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903707" naturetexte="CODE" nortexte="" num="L5213-9" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5213-9 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018764983" naturetexte="CODE" nortexte="" num="L7112-2" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L7112-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018521017" naturetexte="CODE" nortexte="" num="R7413-4" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R7413-4 (VD)</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>

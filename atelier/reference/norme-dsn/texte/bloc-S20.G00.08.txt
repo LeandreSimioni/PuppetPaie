@@ -1,0 +1,47 @@
+# Bloc S20.G00.08
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 140-140
+
+--- p. 140 ---
+  S20.G00.08  2025-12-24
+
+S20.G00.08
+
+Identifiant de l’organisme destinataire de la  S20.G00.08
+déclaration « Absence de rattachement pour le mois
+principal déclaré »
+Code caisse  S20.G00.08.001
+
+Code caisse  S20.G00.08.001
+IdentifiantOrganismeDestinataireAbsenceRattachement.CodeCaisse
+  Code identifiant un organisme qui était précédemment destinataire de la DSN (l'établissement employait des
+  individus rattachés à cet organisme) et qui n'a plus d'individu rattaché pour le mois principal déclaré. Cette
+  rubrique doit être renseignée uniquement dans le cas où l'établissement n'a plus de population à déclarer à
+  un organisme.
+  Numéro de la caisse destinataire de la DSN sans salarié affilié.
+  Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : code de la caisse concernée,
+  d'après la table ODRT
+  AGIRC ARRCO : 88
+  MSA : code caisse MSA
+  CCVRP : non concerné
+  CNIEG : 91
+  CAMIEG : 92
+  FRANCE TRAVAIL : 93
+  CRPCEN : 94
+  Organisme complémentaire : non concerné
+  CRPNPAC : 96
+  Caisse de congés spectacles : 97
+  CNRACL : non concerné
+  SRE : non concerné
+  RAFP : non concerné
+  FSPOEIE : non concerné
+  RAEP : 99
+  CNBF : 98
+  CRP RATP : 70
+  CAVEC : 71
+  CRE-11 : valeurs autorisées
+
+  Table ODRT - Identifiant Organisme de Protection Sociale -
+  X  [2,6]
+  Déclaration absence de rattachement
+
+  140 / 361

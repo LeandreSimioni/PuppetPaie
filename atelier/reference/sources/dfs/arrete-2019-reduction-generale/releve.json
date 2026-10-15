@@ -1,0 +1,24 @@
+{
+ "_source": "https://echanges.dila.gouv.fr/OPENDATA/LEGI/",
+ "_global": "Freemium_legi_global_20250713-140000.tar.gz",
+ "_texte": "Arrete du 4 decembre 2019 relatif au benefice de la reduction prevue a l'article L. 241-13 du code de la securite sociale pour les employeurs appliquant la deduction forfaitaire specifique",
+ "_legitext": "JORFTEXT000039626366",
+ "_livraisons_lues": 459,
+ "_livraisons_totales": 459,
+ "_complet": true,
+ "_derniere_livraison": "20261013-212750",
+ "_changes_depuis_le_global": [],
+ "_releve_le": "2026-10-13",
+ "articles": {
+  "1": {
+   "debut": "2025-09-07",
+   "en_vigueur": true,
+   "id": "LEGIARTI000052209695"
+  },
+  "2": {
+   "debut": "2019-12-18",
+   "en_vigueur": true,
+   "id": "LEGIARTI000052206611"
+  }
+ }
+}

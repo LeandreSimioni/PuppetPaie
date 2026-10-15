@@ -1,0 +1,360 @@
+# Bloc S21.G00.51
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 248-253
+
+--- p. 248 ---
+  S21.G00.51  2026-06-10
+
+Montant de l’abattement sur la base fiscale (non déduit de la  S21.G00.50.012
+rémunération nette fiscale)
+VersementIndividu.MontantAbattementBaseFiscaleNonDeduitRNF
+  Il s’agit du montant des abattements fiscaux auxquels sont éligibles les assistants maternels et les assistants
+  familiaux. Cette information n’est à remplir que par le centre PAJEmploi pour les assistants maternels et les
+  conseils départementaux ou associations rémunérant les assistants familiaux. Ce montant est intégré à la
+  rémunération nette fiscale renseignée en rubrique "Rémunération nette fiscale - S21.G00.50.002"
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant soumis au PAS  S21.G00.50.013
+VersementIndividu.MontantSoumisPAS
+  Le montant soumis au PAS (effectivement pris en compte dans le calcul du prélèvement à la source) et
+  l’assiette déclarée en rubrique « Rémunération nette fiscale - S21.G00.50.002 » peuvent différer. La
+  rubrique est alimentée dans tous les cas, même si elle est égale à la Rémunération nette fiscale :
+  - Dans le cas d’une avance faite par un employeur en cas de subrogation des indemnités journalières : le
+  montant de l’avance s’ajoute à la RNF pour constituer l’assiette du PAS.
+  - Dans le cas d’un abattement d’un demi-SMIC de l’assiette pour les contrats à durée déterminée n’excédant
+  pas deux mois ou à terme imprécis et pour lesquels aucun taux personnalisé n'a été transmis : le montant de
+  l'abattement est déduit de la RNF pour constituer l’assiette du PAS.
+
+  N  [4,12]  CSL 00 : [0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Mois de la DSN mensuelle de rattachement des éléments déclarés  S21.G00.50.020
+dans le FCTU
+VersementIndividu.MoisDsnRattchmtFctu
+  Cette rubrique permet d’indiquer pour chaque bloc « Versement Individu - S21.G00.50 » dans le
+  signalement FCTU s’il est relatif au mois M déclaré dans la rubrique « Mois de la DSN mensuelle portant
+  les derniers éléments déclarés dans le FCTU - S21.G00.62.020 » ou au mois M-1.
+
+  X  [2,2]
+
+  01 - Eléments de la DSN mensuelle portant les derniers éléments déclarés dans le FCTU
+  02 - Eléments de la déclaration précédant la DSN mensuelle portant les derniers éléments déclarés dans le FCTU
+
+S21.G00.51
+
+Rémunération  S21.G00.51
+  Contrepartie de l'activité de l'individu dans le cadre du contrat. Dans certains cas, cette contrepartie est exprimée sous
+  la forme de base d'indemnisation. Elle peut également être caractérisée par un taux de rémunération, variant au cours
+  du mois.
+
+Date de début de période de paie  S21.G00.51.001
+Date de fin de période de paie  S21.G00.51.002
+Numéro du contrat  S21.G00.51.010
+Type  S21.G00.51.011
+Nombre d'heures  S21.G00.51.012
+Montant  S21.G00.51.013
+[FP] Taux de rémunération de la situation administrative  S21.G00.51.014
+
+  248 / 370
+
+--- p. 249 ---
+  S21.G00.51  2026-06-10
+
+Taux de conduite centrale nucléaire  S21.G00.51.015
+Taux de majoration  S21.G00.51.016
+Taux de rémunération cotisée  S21.G00.51.019
+Taux de majoration ex-apprenti/ex-élève  S21.G00.51.020
+
+Date de début de période de paie  S21.G00.51.001
+Remuneration.DateDebut
+  Date de début de période à laquelle la rémunération est rattachée.
+
+  CCH-11 : Si la rubrique « Type - S21.G00.51.011 » est renseignée avec la valeur « 002 - Salaire brut servant aux
+  calculs des droits de l'Assurance chômage », et, si la rubrique « Montant - S21.G00.51.013 » est différente de « 0.00 »,
+  la Date début de période doit être supérieure ou égale à l'avant veille de la Date de début du contrat.
+  Ce contrôle ne s'applique qu'aux dates de début de période incluses dans le mois principal déclaré.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de période de paie  S21.G00.51.002
+Remuneration.DateFin
+  Date de fin de période à laquelle la rémunération est rattachée.
+
+  CCH-11 : La Date de fin de période de paie doit être supérieure ou égale à la Date début de période de paie.
+
+  CCH-13 : Si la rubrique « Type - S21.G00.51.011 » est renseignée avec la valeur « 002 - Salaire brut servant aux
+  calculs des droits de l'Assurance chômage », et, si la rubrique « Montant - S21.G00.51.013 » est différente de « 0.00 »,
+  et, si la Date de fin du contrat est renseignée dans un bloc « Fin du contrat - S21.G00.62 » avec une valeur renseignée
+  différente de « 099 – annulation » au niveau de la rubrique « Motif de la rupture du contrat – S21.G00.62.002 », la date
+  de fin de période doit être inférieure ou égale au surlendemain de la date de fin de contrat.
+  Ce contrôle ne s'applique qu'aux dates de fin de période incluses dans le mois principal déclaré, et, il ne s'applique pas
+  lorsqu'une annulation de fin de contrat est déclarée.
+
+  SIG-14 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle. Ce
+  contrôle s'applique uniquement si la valeur renseignée dans la rubrique « Type - S21.G00.51.011 » est « 001 -
+  Rémunération brute non plafonnée » ; « 002 - Salaire brut servant aux calculs des droits de l'Assurance chômage » ; «
+  003 - Salaire rétabli – reconstitué » ; « 010 - Salaire de base » ; « 012 - Heures d’équivalence » ; « 013 - Heures
+  d’habillage, déshabillage, pause » ; « 016 - [FP] Heures affectées à un travail d’aide à domicile » ; « 017 - Heures
+  supplémentaires ou complémentaires aléatoires » ; « 018 - Heures supplémentaires structurelles » ; « 019 - Heures
+  d'activité partielle » ; « 020 - Heures affectées à un travail d’aide à domicile de publics fragiles » ; « 021 - [FP] Taux de
+  rémunération de la situation administrative » ; « 022 - [FP] Complément de traitement indiciaire (CTI) » ; « 025 -
+  Heures correspondant à du chômage intempéries ».
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Numéro du contrat  S21.G00.51.010
+Remuneration.NumeroContrat
+  Identifiant unique du contrat de travail.
+
+  CCH-11 : Si la rubrique « Nature de la déclaration - S20.G00.05.001 » est renseignée avec la valeur « 01 - DSN
+  Mensuelle » ou « 09 - DSN de Substitution », alors la valeur renseignée dans cette rubrique doit être identique à la
+  valeur renseignée dans une rubrique « Numéro du contrat - S21.G00.40.009 ». Ce contrôle vise à s'assurer qu'une
+  rémunération est toujours valorisée pour un contrat existant donné.
+
+  249 / 370
+
+--- p. 250 ---
+  S21.G00.51  2026-06-10
+
+  CCH-12 : Si la rubrique « Nature de la déclaration - S20.G00.05.001 » est renseignée avec la valeur « 07 - Signalement
+  Fin du contrat de travail Unique », alors la rubrique « Numéro du contrat - S21.G00.51.010 » doit être renseignée avec
+  la même valeur que celle renseignée dans au moins une des deux rubriques « Numéro du contrat - S21.G00.40.009 »
+  ou « Numéro du contrat déclaré précédemment - S21.G00.45.002 ».
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des numéros de contrat.
+
+  X  [5,20]
+
+Type  S21.G00.51.011
+Remuneration.Type
+  Type d'élément de rémunération et dans certains cas une base d'indemnisation.
+  Le salaire brut servant aux calculs des droits de l'Assurance chômage doit contenir uniquement les éléments
+  de salaire. Il ne doit pas inclure les primes et indemnités relatives à la rupture du contrat de travail
+  déclarées dans le bloc « Prime, gratification et indemnité - S21.G00.52 ».
+  Le salaire rétabli doit toujours être déclaré pour la période de paie courante dans la DSN mensuelle. Ceci
+  permet d'en disposer autant que de besoin pour les traitements futurs.
+  Le salaire de base (type 010) correspond à la rémunération brute habituelle du salarié, à l'exclusion des
+  compléments de salaire qu'ils soient légaux, conventionnels ou attribués à l’initiative de l’employeur, et
+  notamment la prime d'ancienneté, la prime de vacance, le 13ème mois, les primes allouées à raison de la
+  situation familiale, les avantages en espèces et en nature, les gratifications, les pourboires, les
+  rémunérations des heures complémentaires ou supplémentaires aléatoires. Il correspond généralement à la
+  première ligne du bulletin de salaire.
+  CCH-11 : Dans une déclaration de nature mensuelle ou de nature DSN de substitution (S20.G00.05.001), pour un
+  contrat (S21.G00.40) avec une nature (S21.G00.40.007) différente de « 93 – ligne de service » et un versement
+  individu (S21.G00.50) donnés, les rémunérations de type « 001 - Rémunération brute non plafonnée », « 002 - Salaire
+  brut servant aux calculs des droits de l'Assurance chômage », « 003 - Salaire rétabli reconstitué » et « 010 - Salaire de
+  base » sont requises.
+
+  CCH-12 : En DSN Mensuelle ou en DSN de substitution (S20.G00.05.001), si un bloc « Contrat - S21.G00.40 » de
+  nature (S21.G00.40.007) « 93 – ligne de service » correspond (« Identifiant du contrat d'engagement maritime -
+  S21.G00.40.076 » du bloc « Contrat - S21.G00.40 » de nature « 93 – ligne de service » égal au « Numéro du contrat -
+  S21.G00.40.009 » du bloc « Contrat - S21.G00.40 » de nature « 91 - Contrat d'engagement maritime à durée
+  indéterminée » ou « 92 - Contrat d'engagement maritime à durée déterminée ») à un bloc « Contrat - S21.G00.40 » de
+  nature « 91 - Contrat d'engagement maritime à durée indéterminée » ou « 92 - Contrat d'engagement maritime à durée
+  déterminée » pour lequel un bloc « Rémunération - S21.G00.51 » de type « 002 - Salaire brut servant aux calculs des
+  droits de l'Assurance chômage » a été renseigné avec un montant (S21.G00.51.013) différent de zéro alors la
+  rémunération de type « 002 - Salaire brut servant aux calculs des droits de l'Assurance chômage » est requise.
+
+  Ce contrôle vise à limiter la déclaration du salaire brut servant aux calculs des droits de l'Assurance chômage lorsque la
+  rémunération brute non plafonnée, le salaire brut servant aux calculs des droits de l'Assurance chômage, le salaire
+  rétabli reconstitué et le salaire de base ont été valorisés avec un montant différent de zéro au niveau de la rémunération
+  rattachée au contrat d'engagement maritime auquel renvoie la ligne de service.
+
+  CCH-13 : En DSN Mensuelle ou en DSN de substitution (S20.G00.05.001), si un bloc « Contrat - S21.G00.40 » de
+  nature (S21.G00.40.007) « 93 – ligne de service » correspond (« Identifiant du contrat d'engagement maritime -
+  S21.G00.40.076 » du bloc « Contrat - S21.G00.40 » de nature « 93 – ligne de service » égal au « Numéro du contrat -
+  S21.G00.40.009 » du bloc « Contrat - S21.G00.40 » de nature « 91 - Contrat d'engagement maritime à durée
+  indéterminée » ou « 92 - Contrat d'engagement maritime à durée déterminée ») à un bloc « Contrat - S21.G00.40 » de
+  nature « 91 - Contrat d'engagement maritime à durée indéterminée » ou « 92 - Contrat d'engagement maritime à durée
+  déterminée » pour lequel un bloc « Rémunération - S21.G00.51 » de type « 002 - Salaire brut servant aux calculs des
+  droits de l'Assurance chômage » a été renseigné avec un montant (S21.G00.51.013) égal à zéro alors les rémunérations
+  de type « 001 - Rémunération brute non plafonnée », « 002 - Salaire brut servant aux calculs des droits de l'Assurance
+  chômage », « 003 - Salaire rétabli reconstitué » et « 010 - Salaire de base » sont requises.
+
+  Ce contrôle vise à déclarer la rémunération brute non plafonnée, le salaire brut servant aux calculs des droits de
+
+  250 / 370
+
+--- p. 251 ---
+  S21.G00.51  2026-06-10
+
+  l'Assurance chômage, le salaire rétabli reconstitué et le salaire de base pour chaque ligne de service lorsque ces
+  rémunérations ont été valorisées avec un montant égal à zéro au niveau de la rémunération rattachée au contrat
+  d'engagement maritime auquel renvoie la ligne de service.
+
+  CCH-15 : Si la « Nature de la déclaration - S20.G00.05.001 » est « 07 - Signalement Fin du contrat de travail Unique »
+  alors, pour un même bloc « Versement individu - S21.G00.50 », au moins trois blocs « Rémunération - S21.G00.51 »
+  enfants sont requis : un de type (S21.G00.51.011) « 001 - Rémunération brute non plafonnée », un de type « 002 -
+  Salaire brut servant aux calculs des droits de l'Assurance chômage » et un de type « 010 - Salaire de base ».
+
+  CCH-16 : Si la rubrique « Nature de la déclaration - S20.G00.05.001 » est renseignée avec la valeur « 01 - DSN
+  Mensuelle » et si un bloc « Rémunération - S21.G00.51 » de type « 001 - Rémunération brute non plafonnée » est
+  renseigné avec un montant (S21.G00.51.013) différent de « 0.00 » et dont la date de début de période de paie
+  (S21.G00.51.001) et la date de fin de période de paie (S21.G00.51.002) sont incluses dans le mois principal déclaré
+  (S20.G00.05.005), alors sous le même bloc « Versement individu - S21.G00.50 » parent doit être déclaré au moins un
+  bloc « Base assujettie - S21.G00.78 » de code « 03 - Assiette brute déplafonnée », « 11 - Base forfaitaire soumise aux
+  cotisations de Sécurité Sociale », « 22 - Base brute spécifique » ou « 23 - Base exceptionnelle (Agirc Arrco) » dont la
+  date de début de période rattachement (S21.G00.78.002) et la date de fin de période de rattachement (S21.G00.78.003)
+  sont incluses dans le mois principal déclaré (S20.G00.05.005). Ce contrôle vise à vérifier la présence d'une base
+  assujettie brute déplafonnée sur le mois principal déclaré lorsqu'une rémunération brute non plafonnée non nulle est
+  déclarée.
+
+  X  [3,3]
+
+  001 - Rémunération brute non plafonnée
+  002 - Salaire brut servant aux calculs des droits de l'Assurance chômage
+  003 - Salaire rétabli – reconstitué
+  010 - Salaire de base
+  012 - Heures d’équivalence
+  013 - Heures d’habillage, déshabillage, pause
+  016 - [FP] Heures affectées à un travail d’aide à domicile
+  017 - Heures supplémentaires ou complémentaires aléatoires
+  018 - Heures supplémentaires structurelles
+  019 - Heures d'activité partielle
+  020 - Heures affectées à un travail d’aide à domicile de publics fragiles
+  021 - [FP] Taux de rémunération de la situation administrative
+  022 - [FP] Complément de traitement indiciaire (CTI)
+  023 - Jours de RTT monétisés
+  025 - Heures correspondant à du chômage intempéries
+  028 - Rémunération perçue hors éléments non affectés par l’absence
+  029 - Rémunération habituelle mois complet hors éléments non affectés par l’absence
+  030 - Potentiel nouveau type de rémunération A
+  031 - Potentiel nouveau type de rémunération D
+  032 - Potentiel nouveau type de rémunération E
+  034 - Potentiel nouveau type de rémunération B
+  035 - Potentiel nouveau type de rémunération C
+  036 - Heures supplémentaires ou complémentaires aléatoires à exclure du calcul d'un dispositif de réduction ou
+  d'exonération de cotisations de Sécurité sociale
+
+Nombre d'heures  S21.G00.51.012
+Remuneration.NombreHeures
+  Volume horaire dédié aux heures supplémentaires ou complémentaires, d'équivalence, d'habillage et de
+  déshabillage.
+  CCH-12 : Une valeur renseignée à zéro est interdite si le Type de rémunération (S21.G00.51.011) est renseigné avec la
+  valeur « 001 - Rémunération brute non plafonnée », « 002 - Salaire brut servant aux calculs des droits de l'Assurance
+
+  251 / 370
+
+--- p. 252 ---
+  S21.G00.51  2026-06-10
+
+  chômage », « 003 - Salaire rétabli – reconstitué », « 010 - Salaire de base ».
+
+  SIG-11 : Cette rubrique est obligatoire si le « Type - S21.G00.51.011 » renseigné est « 012 - Heures d’équivalence », «
+  013 - Heures d’habillage, déshabillage, pause », « 016 - [FP] Heures affectées à un travail d'aide à domicile », « 017 -
+  Heures supplémentaires ou complémentaires aléatoires », « 018 - Heures supplémentaires structurelles », « 019 -
+  Heures d'activité partielle », « 020 - Heures affectées à un travail d’aide à domicile de publics fragiles », « 025 -
+  Heures correspondant à du chômage intempéries » ou « 036 - Heures supplémentaires ou complémentaires aléatoires à
+  exclure du calcul d'un dispositif de réduction ou d'exonération de cotisations de Sécurité sociale ».
+
+  SIG-13 : Cette rubrique est interdite si le « Type - S21.G00.51.011 » renseigné est « 001 - Rémunération brute non
+  plafonnée », « 002 - Salaire brut servant aux calculs des droits de l'Assurance chômage », « 003 - Salaire rétabli –
+  reconstitué » ou « 010 - Salaire de base ».
+
+  N  [4,7]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant  S21.G00.51.013
+Remuneration.Montant
+  Montant associé à un type d'élément de rémunération.
+
+  SIG-11 : Pour un versement individu (S21.G00.50), s’il existe au moins un bloc « Rémunération - S21.G00.51 » de
+  type (S21.G00.51.011) « 001 - Rémunération brute non plafonnée » dont le montant (S21.G00.51.013) est non nul,
+  alors il doit être renseigné au moins une rubrique « Code de base assujettie - S21.G00.78.001 » avec la valeur "03 -
+  Assiette brute déplafonnée".
+
+  N  [4,11]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+[FP] Taux de rémunération de la situation administrative  S21.G00.51.014
+Remuneration.FPTauxRemunerationdelapositionstatutaire
+  Cette rubrique est propre à la fonction publique et s'applique dans les cas d'arrêt de travail, de formation ou
+  de suspensions diverses.
+  CCH-11 : La déclaration de la rubrique "[FP] Taux de rémunération - S21.G00.51.014" est interdite si la rubrique
+  "Statut d'emploi du salarié - S21.G00.40.026" est renseignée avec "99 – Non concerné"
+
+  N  [4,6]  CSL 00 : [0-9]{1,2}\.[0-9]{2}|100\.00
+
+Taux de conduite centrale nucléaire  S21.G00.51.015
+Remuneration.TauxConduiteCentraleNucleaire
+  Pour les salariés des IEG, cette rubrique est à renseigner uniquement pour les individus travaillant en
+  centrale nucléaire. Ce taux, compris entre 0 et 10%, majore la rémunération brute de l’individu.
+
+  N  [4,5]  CSL 00 : ([0-9]{1}\.[0-9]{2})|(10\.00)
+
+Taux de majoration  S21.G00.51.016
+Remuneration.TauxMajoration
+  Cette rubrique est à renseigner pour les salariés des entreprises IEG et pour les individus affiliés à la
+  CPRPF.
+  Pour les entreprises IEG, il s'agit du taux de majoration résidentielle, ce taux majore la rémunération brute
+  de l’individu et est défini selon le lieu de travail.
+  Pour la CPRPF ce taux majore le salaire après l'âge d'ouverture des droits à la retraite.
+
+  N  [4,5]  CSL 00 : [0-9]{1,2}\.[0-9]{2}
+
+  252 / 370
+
+--- p. 253 ---
+  S21.G00.52  2026-06-10
+
+Taux de rémunération cotisée  S21.G00.51.019
+Remuneration.TauxRemunerationCotisee
+  Cette rubrique est à renseigner pour les salariés des IEG et elle doit contenir le pourcentage par rapport à
+  une rémunération temps plein sur lequel la cotisation est assise.
+  Exemple : indiquer 80.00 pour une cotisation assise sur 80% d’une rémunération temps plein.
+  NB : Ce taux peut être différent du taux d’activité au contrat.
+
+  N  [4,6]  CSL 00 : [0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Taux de majoration ex-apprenti/ex-élève  S21.G00.51.020
+Remuneration.TauxMajorationExapprenti
+  Pour les individus affiliés à la CPRPF, une majoration salariale exceptionnelle de traitement est attribuée
+  aux agents du cadre permanent, ex-apprentis et ex-élèves.
+
+  N  [4,5]  CSL 00 : [0-9]{1,2}\.[0-9]{2}
+
+S21.G00.52
+
+Prime, gratification et indemnité  S21.G00.52
+  Les Primes, gratifications et indemnités à mentionner dans ce bloc sont de périodicités non mensuelles.
+  Ce bloc concerne aussi les indemnités liées à la rupture d'un contrat de travail.
+  Concernant les primes exceptionnelles, lorsque cela fait sens, il convient d’indiquer la période de rattachement au titre
+  de laquelle la prime a été attribuée.
+  Concernant les primes versées à périodicité fixe, il convient d'indiquer lorsque cela fait sens, leur période de
+  rattachement.
+
+  ATTENTION : Les primes et indemnités ajoutées pour la Fonction publique (préfixées [FP]) dans ce bloc ne sont pas
+  intégrées dans le Salaire brut servant aux calculs des droits de l'Assurance chômage (code 002 en rubrique Type -
+  S21.G00.51.011).
+  Pour la Fonction publique, les primes et indemnités renseignées dans ce bloc peuvent être de nature mensuelle.
+
+Type  S21.G00.52.001
+Montant  S21.G00.52.002
+Date de début de la période de rattachement  S21.G00.52.003
+Date de fin de la période de rattachement  S21.G00.52.004
+Numéro du contrat  S21.G00.52.006
+Date de versement d'origine  S21.G00.52.007
+
+Type  S21.G00.52.001
+Prime.Type
+  Motif définissant le type de la prime, gratification, supplément ou indemnité.
+  Parmi les valeurs de cette rubrique, certaines relèvent du champ fiscal : Indemnité d’expatriation, Indemnité
+  d’impatriation.
+  CCH-11 : Un code type d'indemnité de fin de contrat (codes allant de 001 à 025) ne peut être présent qu'une seule fois
+  pour un même contrat de travail et un même versement.
+
+  CCH-20 : Pour un même contrat de travail, les codes types "009 - Indemnité légale spéciale de licenciement" et "010 -
+  Indemnité légale spécifique de licenciement" ne peuvent être présents simultanément.
+
+  CCH-21 : Si le bloc "Fin du contrat - S21.G00.62" est présent, alors le code indemnité "001 - Indemnité spécifique de
+  rupture conventionnelle", n’est autorisé que si le motif de la rupture contrat de travail est renseigné à "043 - rupture
+  conventionnelle", "110 - Rupture conventionnelle collective" ou " 099 - Annulation".
+
+  253 / 370

@@ -1,0 +1,448 @@
+# Bloc S21.G00.30
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 169-176
+
+--- p. 169 ---
+  S21.G00.30  2025-12-24
+
+  N  [4,18]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Code INSEE commune  S21.G00.23.006
+CotisationAgregee.CodeINSEEcommune
+  Se référer au paragraphe 2.2.1.5.Bloc "Cotisation agrégée" (S21.G00.23) de la partie introductive.
+
+  CCH-11 : La rubrique « Code INSEE commune - S21.G00.23.006 » doit obligatoirement être renseignée si la rubrique
+  « Code de cotisation - S21.G00.23.001 » est valorisée avec la valeur « 900 », « 901 », « 911 », « 917 », « 921 » ou «
+  927 ». Ce contrôle vise à renseigner obligatoirement un code INSEE commune dans le cadre du versement mobilité.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table INSEE - Code INSEE de la commune
+
+Identifiant du CRM à l'origine de la régularisation  S21.G00.23.007
+CotisationAgregee.IdentifiantCRM
+  Il s'agit de l'identifiant du CRM (compte rendu métier) transmis par l'organisme demandeur de la
+  régularisation ou de la correction.
+  CCH-11 : La rubrique "Identifiant du CRM à l'origine de la régularisation - S21.G00.23.007" ne peut être renseignée
+  que pour une période de rattachement (S21.G00.22.003 et S21.G00.22.004) inférieure au mois principal déclaré
+  (S20.G00.05.005) de la déclaration. Dans le cas contraire cette rubrique est interdite. Ce contrôle vise à ce qu'il soit
+  possible de renseigner l'identifiant du CRM à l'origine de la régularisation que pour des régularisations ou des
+  corrections.
+
+  X  [1,18]
+
+S21.G00.30
+
+Individu  S21.G00.30
+  Personne physique (salarié, stagiaire sous convention, mandataire social)
+
+Numéro d'inscription au répertoire  S21.G00.30.001
+Nom de famille  S21.G00.30.002
+Nom d'usage  S21.G00.30.003
+Prénoms  S21.G00.30.004
+Sexe  S21.G00.30.005
+Date de naissance  S21.G00.30.006
+Lieu de naissance  S21.G00.30.007
+Numéro, extension, nature et libellé de la voie  S21.G00.30.008
+Code postal  S21.G00.30.009
+Localité  S21.G00.30.010
+Code pays  S21.G00.30.011
+Code de distribution à l'étranger  S21.G00.30.012
+Codification UE  S21.G00.30.013
+Code département de naissance  S21.G00.30.014
+Code pays de naissance  S21.G00.30.015
+Complément de la localisation de la construction  S21.G00.30.016
+Service de distribution, complément de localisation de la voie  S21.G00.30.017
+Adresse mél  S21.G00.30.018
+
+  169 / 361
+
+--- p. 170 ---
+  S21.G00.30  2025-12-24
+
+Matricule de l'individu dans l'entreprise  S21.G00.30.019
+Numéro technique temporaire  S21.G00.30.020
+Statut à l'étranger au sens fiscal  S21.G00.30.022
+Cumul emploi retraite  S21.G00.30.023
+Niveau de formation le plus élevé obtenu par l'individu  S21.G00.30.024
+Niveau de diplôme préparé par l'individu  S21.G00.30.025
+Libellé du pays de naissance  S21.G00.30.029
+Identifiant du Service de Prévention et de Santé au Travail (SPST)  S21.G00.30.030
+
+Numéro d'inscription au répertoire  S21.G00.30.001
+Individu.Identifiant
+  Le numéro d'inscription au répertoire (NIR) est l'identifiant unique et invariable des individus inscrits au
+  répertoire national d'identification des personnes physiques (RNIPP). Ce numéro correspond au numéro de
+  sécurité sociale.
+  Ce numéro est composé de 13 chiffres et d'une clé de 2 chiffres. La clé n'est pas à déclarer dans cette
+  rubrique.
+  Cette rubrique permet la déclaration du NIA (numéro d'immatriculation d'attente attribué par les
+  organismes de protection sociale) en l'absence de NIR. Le NIA est constitué comme un NIR dans l'attente
+  d'être certifié (circulaire DSS/sd4c N° 2012-213 du 1er juin 2012).
+  Le Nir doit avoir la forme SAAMMDDCCCNNN avec :
+  S = sexe de la personne physique doit être égal à 1 ou 2
+  AA = année de naissance de la personne physique doit être comprise entre 00 et 99
+  MM = mois de naissance de la personne physique doit être compris entre 01 et 12 ou entre 30 et 42 ou entre
+  50 et 99 ou égal à 20
+  DD = département de naissance de la personne physique doit être compris entre 01 et 99 ou être égal à 2A
+  ou 2B
+  CCC = commune de naissance de la personne physique doit être comprise entre 001 et 999
+  NNN = numéro d'inscription la personne physique au registre d'état civil doit être compris entre 001 et 999
+
+  ATTENTION : Un NIR ne peut être présent qu'une seule fois dans la déclaration, il doit être unique pour
+  permettre la traçabilité et l'identification de l'individu.
+
+  Si l'immatriculation est provisoire, ne pas utiliser les numéros provisoires reconnaissables par leur premier
+  caractère égal à 7 ou 8, mais utiliser le NIA qui a été notifié.
+  En l'absence de NIR ou de NIA, il est obligatoire de remplir la rubrique Numéro technique temporaire
+  (S21.G00.30.020).
+  CCH-11 : Pour un NIR sur 13 caractères, DD = département de naissance de la personne physique
+  - ne peut être égal à 2A ou 2B si année de naissance inférieure à 1976
+  - ne peut être égal à 20 si année de naissance supérieure ou égale à 1976
+  - ne peut être égal à 96 si année de naissance supérieure ou égale à 1968
+  L'année utilisée doit être extraite de la rubrique date de naissance.
+
+  CCH-13 : Il n'est pas admis qu'un "Numéro d'inscription au répertoire - S21.G00.30.001" soit renseigné avec la valeur
+  "1999999999999" ou "2999999999999".
+
+  CCH-14 : Il est interdit de déclarer plusieurs blocs « Individu - S21.G00.30 » avec un même « Numéro d'inscription au
+  répertoire – S21.G00.30.001 ». Ce contrôle vise à permettre la bonne traçabilité et l'identification de l'individu.
+
+  CCH-15 : Si la rubrique "Nature de la déclaration - S20.G00.05.001" est renseignée avec la valeur "08 - Signalement
+  Amorçage des données variables" et si la rubrique "Numéro d'inscription au répertoire - S21.G00.30.001" est présente,
+  alors le bloc "Individu non salarié - S89.G00.91" est interdit. Ce contrôle s'applique uniquement pour le Signalement
+  Amorçage des données variables.
+
+  170 / 361
+
+--- p. 171 ---
+  S21.G00.30  2025-12-24
+
+  CCH-16 : Il n'est pas admis qu'un « Numéro d'inscription au répertoire - S21.G00.30.001 » soit renseigné avec plus de
+  cinq caractères « 9 » à la suite en fin de chaîne.
+
+  CSL 00 : [1-2][0-9]{2}(0[1-9]|1[0-2]|20|3[0-9]|4[0-2]|[5-
+  9][0-9])(0[1-9]|[1-9][0-9]|2A|2B)([0]{2}[1-9]|0[1-9][0-9]|[1-
+  X  [13,13]
+  9][0-9]{2})([0]{2}[1-9]|0[1-9][0-9]|[1-9][0-9]{2})|([1-
+  2][9]{12})
+
+Nom de famille  S21.G00.30.002
+Individu.NomFamille
+  Le nom de famille est le nom défini pour chaque individu dans les jours qui suivent sa naissance. Il est
+  usuellement défini sur la base de la filiation avec l’un ou l’autre parent, voire les deux. Il peut être défini
+  par disposition administrative ou judiciaire.
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,80]
+
+Nom d'usage  S21.G00.30.003
+Individu.NomUsage
+  Il s’agit de la possibilité pour une personne de porter un nom qu’elle n’a pas acquis selon les règles
+  d’acquisition du nom de famille.
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,80]
+
+Prénoms  S21.G00.30.004
+Individu.Prenoms
+  Elément d'identification joint au nom de famille qui permet de distinguer les personnes d'une même famille.
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,80]
+
+Sexe  S21.G00.30.005
+Individu.Sexe
+  Le sexe décrit la qualité d'homme ou la qualité de femme.
+  Il est à renseigner si différent du sexe porté par le NIR ou si le NIR est absent en cas d'identification par un
+  NTT
+
+  X  [2,2]
+
+  01 - masculin
+  02 - féminin
+
+Date de naissance  S21.G00.30.006
+Individu.DateNaissance
+  Instant où une personne naît, tel qu'enregistré à l'état civil.
+  Renseigner la date de naissance du salarié sous la forme JJMMAAAA.
+
+  171 / 361
+
+--- p. 172 ---
+  S21.G00.30  2025-12-24
+
+  - L'année de naissance est obligatoire :
+  - Jour de naissance inconnu : 00MMAAAA ou 99MMAAAA,
+  - Mois de naissance inconnu : JJ00AAAA ou JJ99AAAA,
+  - Si jour et mois inconnus : 0000AAAA ou 9999AAAA.
+  CCH-11 : L'année du "Numéro d'inscription au répertoire - S21.G00.30.001" doit être égale à l'année de la "Date de
+  naissance - S21.G00.30.006".
+
+  CCH-12 : L'année de la "Date de naissance - S21.G00.30.006" doit être inférieure ou égale à l'année en cours et
+  supérieure à l'année en cours moins 120 (années).
+
+  CSL-11 : [(respect des contraintes calendaires)] aux exceptions près acceptées sur le mois ou le jour à 00 ou 99
+
+  CSL 00 : (0[0-9]|[1-2][0-9]|3[0-1]|99)(0[0-9]|1[0-
+  X  [8,8]
+  2]|99)(18|19|20)[0-9]{2}
+
+Lieu de naissance  S21.G00.30.007
+Individu.LieuNaissance
+  Il s’agit du nom de la localité de naissance, tel qu’enregistré à l’état civil.
+  Libellé en toutes lettres. Obligatoire pour les salariés nés en France métropolitaine, dans les DOM et dans
+  les TOM.
+  CCH-11 : Cette rubrique doit obligatoirement être renseignée si la rubrique « Code département de naissance -
+  S21.G00.30.014 » est renseignée avec une valeur différente de « 99 ».
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des adresses.
+
+  X  [1,30]
+
+Numéro, extension, nature et libellé de la voie  S21.G00.30.008
+Individu.Voie
+  Numéro : Il précise l’adresse dans la voie. Sa valeur est différente de 0 et ne doit pas dépasser 4 chiffres. En
+  cas de numéro multiple, seul le premier doit être indiqué (pour exemple indiquer 4 pour 4/14)
+  Extension : Lettre accolée au numéro si celui-ci ne présente pas une précision suffisante (par exemple B
+  pour BIS, T pour TER, etc…)
+  Nature de la voie : information facultative décrivant la nature de la voie (rue, avenue, etc…)
+  Libellé de la voie : Appellation officielle de la voie
+
+  X  [1,50]
+
+Code postal  S21.G00.30.009
+Individu.CodePostal
+  Il s’agit de données d’organisation postale qui doivent être utilisées en l’état. Le code postal est composé de
+  5 chiffres. Les codes CEDEX ne sont pas admis.
+  CCH-12 : Si le code postal est présent alors le code pays et le code de distribution à l'étranger sont absents et
+  réciproquement.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table HEX - Code postal
+
+Localité  S21.G00.30.010
+
+  172 / 361
+
+--- p. 173 ---
+  S21.G00.30  2025-12-24
+
+Individu.Localite
+  La localité est un élément géographique et administratif. C’est le premier élément d’identification associé
+  au code postal. Le libellé est la plupart du temps le nom officiel de la localité enregistrée à l’INSEE et au
+  Journal Officiel.
+  CCH-11 : La localité est obligatoire si le code postal est renseigné.
+
+  X  [1,50]  CSL 00 : [A-Za-z0-9\s]+
+
+Code pays  S21.G00.30.011
+Individu.CodePays
+  Nom du pays (territoire d’un état) de résidence du salarié exprimé sous la forme d’un code.
+  Le code pays ne doit pas être renseigné pour les adresses relevant du système postal français.
+  Le domaine d'application du système postal français est constitué des territoires suivants :
+  FR : France métropolitaine
+  GP : Guadeloupe
+  BL : Saint Barthélémy
+  MF : Saint Martin
+  MQ : Martinique
+  GF : Guyane Française
+  RE : Ile de la Réunion
+  PM : Saint Pierre et Miquelon
+  YT : Mayotte
+  WF : Wallis et Futuna
+  PF : Polynésie Française
+  NC : Nouvelle Calédonie
+  MC : Monaco
+  CRE-11 : valeurs autorisées
+
+  X  [2,2]  Table PAY - Code pays hors système postal français
+
+Code de distribution à l'étranger  S21.G00.30.012
+Individu.CodeDistribution
+
+  X  [1,50]
+
+Codification UE  S21.G00.30.013
+Individu.CodificationUE
+  Classification de l’origine du salarié au vu des frontières françaises et des limites de l’Union Européenne.
+  Il faut renseigner dans cette rubrique le code le plus précis applicable à l'individu.
+
+  X  [2,2]
+
+  01 - France
+  02 - UE
+  03 - EEE
+  04 - Reste du Monde
+
+Code département de naissance  S21.G00.30.014
+
+  173 / 361
+
+--- p. 174 ---
+  S21.G00.30  2025-12-24
+
+Individu.DepartementNaissance
+  Pour les salariés nés en France : code 01 à 97 ou 2A ou 2B
+  Pour les salariés nés dans les TOM : code 98
+  Pour les personnes nées à l'étranger, renseigner 99
+  CCH-11 : - Les valeurs 2A et 2B ne sont acceptées que pour les personnes nées à partir de 1976.
+  - La valeur 20 n'est acceptée que pour les personnes nées avant 1976
+  - La valeur 96 n'est acceptée que pour les personnes nées avant 1968
+  L'année utilisée doit être extraite de la rubrique date de naissance.
+
+  X  [2,2]  CSL 00 : (0[1-9]|[1-9][0-9])|2A|2B
+
+Code pays de naissance  S21.G00.30.015
+Individu.PaysNaissance
+  Le Code pays de naissance est à déterminer dans la table "Codes Pays" ISO 3166-1-A2.
+
+  CRE-11 : valeurs autorisées
+
+  X  [2,2]  Table Pays - Code pays de naissance
+
+Complément de la localisation de la construction  S21.G00.30.016
+Individu.ComplementConstruction
+  Les compléments d’adresse permettent d’indiquer le point de remise exact du courrier. Ils donnent des
+  informations précises et déterminantes dans la phase finale de distribution du courrier, tel que le bâtiment,
+  la boîte aux lettres, le numéro d’appartement.
+
+  X  [1,50]
+
+Service de distribution, complément de localisation de la voie  S21.G00.30.017
+Individu.ComplementVoie
+  Il s’agit de services de distribution du courrier spécifiques proposés ou mis en place par La Poste.
+
+  X  [1,50]
+
+Adresse mél  S21.G00.30.018
+Individu.Mel
+  Adresse mél personnelle ou professionnelle de l'individu. Le renseignement de cette rubrique est conditionné
+  à l'accord explicite de ce dernier.
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant de l'adresse mél.
+
+  X  [6,100]
+
+Matricule de l'individu dans l'entreprise  S21.G00.30.019
+Individu.Matricule
+  Le choix de la valeur que prend le matricule revient à l’employeur.
+
+  X  [1,30]
+
+  174 / 361
+
+--- p. 175 ---
+  S21.G00.30  2025-12-24
+
+Numéro technique temporaire  S21.G00.30.020
+Individu.NTT
+  Le NTT est un identifiant technique unique et invariant permettant à l'employeur de déclarer, dans un temps
+  limité, un individu pour lequel il n'aurait pas connaissance du Numéro d'Inscription au Répertoire ou du
+  Numéro d'Identification d'Attente au moment de l'émission d'une DSN.
+  Il est composé du code sexe de la personne physique qui doit être égal à 1 ou 2, suivi du SIREN de
+  l'entreprise et d'un identifiant unique et pérenne de l'individu dans l'entreprise, comme le Matricule du
+  salarié dans l'entreprise par exemple. Il ne peut pas contenir de caractères "espace". Il s'agit d'une donnée
+  technique destinée au système d'information DSN uniquement. Le NTT n'est pas une donnée de gestion et ne
+  permet pas l'ouverture des droits de l'individu auprès des organismes de protection sociale.
+  Le NTT doit désigner un individu et un seul pour l'ensemble de ses contrats dans l'entreprise. En cas
+  d'obtention de plusieurs NTT, l'employeur doit utiliser pour ses déclarations le NTT le plus ancien en cours
+  de validité.
+  En l'absence de NIR ou de NIA, il est obligatoire de remplir la rubrique Numéro technique temporaire
+  (S21.G00.30.020).
+  Le NTT doit être renseigné sur la première DSN où le NIR est attribué. Ceci permettra de faire le lien entre
+  les deux identités déclarées par l'employeur.
+  CCH-12 : Si le "Numéro d'inscription au répertoire - S21.G00.30.001" n'est pas renseigné, le "Numéro technique
+  temporaire - S21.G00.30.020" doit obligatoirement être renseigné.
+
+  CCH-13 : Le « Numéro technique temporaire - S21.G00.30.020 » est composé de la valeur déclarée dans la rubrique «
+  SIREN - S21.G00.06.001 » de la 2ème à la 10ème position.
+
+  CCH-14 : Le Numéro technique temporaire doit être unique pour une même déclaration. Ce contrôle vise à permettre
+  la traçabilité et l'identification de l'individu.
+
+  CCH-15 : Si la rubrique "Nature de la déclaration - S20.G00.05.001" est renseignée avec la valeur "08 - Signalement
+  Amorçage des données variables" et si la rubrique "Numéro technique temporaire - S21.G00.30.020" est présente,
+  alors le bloc "Individu non salarié - S89.G00.91" est interdit. Ce contrôle s'applique uniquement pour le Signalement
+  Amorçage des données variables.
+
+  CSL-11 : Le "Numéro technique temporaire - S21.G00.30.020" doit obligatoirement commencer par "1" ou "2".
+
+  CSL-12 : Le caractère « espace » est interdit dans la composition du numéro technique temporaire.
+
+  X  [11,40]
+
+Statut à l'étranger au sens fiscal  S21.G00.30.022
+Individu.StatutEtranger
+  Le travailleur frontalier est une personne qui exerce une activité dans une zone frontalière au sens des
+  conventions fiscales.
+
+  X  [2,2]
+
+  01 - travail frontalier
+  02 - travail à l’étranger
+
+Cumul emploi retraite  S21.G00.30.023
+Individu.CumulEmploiRetraite
+  Rubrique à renseigner dans chaque DSN mensuelle pour un salarié en situation de
+  cumul emploi retraite. Le cas contraire (non cumul emploi retraite), cette rubrique peut :
+  - soit être déclarée chaque mois et alimentée de la valeur "01 - Non"
+
+  175 / 361
+
+--- p. 176 ---
+  S21.G00.30  2025-12-24
+
+  - soit ne pas être déclarée
+
+  X  [2,2]
+
+  01 - Non
+  03 - Oui
+
+Niveau de formation le plus élevé obtenu par l'individu  S21.G00.30.024
+Individu.NiveauFormationPlusEleveIndividu
+  Le niveau de formation le plus élevé obtenu par l'individu doit être renseigné dans le cadre du bénéfice des
+  aides au poste en entreprise adaptée ou en structure d'insertion par l'activité économique. Le niveau de
+  formation est défini par le décret n° 2019-14 du 8 janvier 2019 relatif au cadre national des certifications
+  professionnelles.
+
+  X  [2,2]
+
+  01 - Formation n'allant pas au-delà de la scolarité obligatoire (16 ans)
+  02 - Formation d'une durée maximale d'un an après le collège
+  03 - Niveau de formation équivalent au CAP (certificat d'aptitude professionnelle) ou au BEP (brevet d'études
+  professionnelles)
+  04 - Formation de niveau du bac (général, technologique ou professionnel), du brevet de technicien (BT) ou du brevet
+  professionnel
+  05 - Formation de niveau bac+2 : licence 2, BTS (brevet de technicien supérieur), DUT (diplôme universitaire de
+  technologie), etc.
+  06 - Formation de niveau bac+3 et bac+4 : licence 3, licence professionnelle, master 1, etc.
+  07 - Formation de niveau bac+5 : master 2, diplôme d'études approfondies, diplôme d'études supérieures spécialisées,
+  diplôme d'ingénieur, etc.
+  08 - Formation de niveau bac+8 : doctorat, habilitation à diriger des recherches, etc.
+
+Niveau de diplôme préparé par l'individu  S21.G00.30.025
+Individu.NiveauDiplomePrepare
+  Niveau de diplôme suivi par l'individu en contrat d'apprentissage tel que défini par le décret n° 2019-14 du
+  8 janvier 2019 relatif au cadre national des certifications professionnelles.
+  CCH-11 : La rubrique "Niveau de diplôme préparé par l'individu - S21.G00.30.025" doit obligatoirement être
+  renseignée si la rubrique "Dispositif de politique publique et conventionnel - S21.G00.40.008" est renseignée avec la
+  valeur "64 - Contrat d'apprentissage entreprises artisanales ou de moins de 11 salariés (loi du 3 janvier 1979)", "65 -
+  Contrat d’apprentissage entreprises non inscrites au répertoire des métiers d’au moins 11 salariés (loi de 1987)" ou "81
+  - Contrat d'apprentissage secteur public (Loi de 1992)".
+
+  X  [2,2]
+
+  03 - Niveau de formation équivalent au CAP (certificat d'aptitude professionnelle) ou au BEP (brevet d'études
+  professionnelles)
+  04 - Formation de niveau du bac (général, technologique ou professionnel), du brevet de technicien (BT) ou du brevet
+  professionnel
+  05 - Formation de niveau bac+2 : licence 2, BTS (brevet de technicien supérieur), DUT (diplôme universitaire de
+  technologie), etc.
+  06 - Formation de niveau bac+3 et bac+4 : licence 3, licence professionnelle, master 1, etc.
+  07 - Formation de niveau bac+5 : master 2, diplôme d'études approfondies, diplôme d'études supérieures spécialisées,
+  diplôme d'ingénieur, etc.
+  08 - Formation de niveau bac+8 : doctorat, habilitation à diriger des recherches, etc.
+
+  176 / 361

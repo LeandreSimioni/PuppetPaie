@@ -1,0 +1,535 @@
+# Bloc S21.G00.81
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 301-309
+
+--- p. 301 ---
+  S21.G00.81  2025-12-24
+
+BaseComposant.Montant
+  Le montant porte la valeur telle que prise en compte pour l'établissement des bases assujetties constituées
+  pour partie par un composant de base assujettie.
+  Modalité de valorisation :
+  - AGIRC-ARRCO : montant
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : non concerné
+  - CCVRP : non concerné
+  - CNIEG : non concerné
+  - Congés spectacles (AUDIENS) : non concerné
+  - CRPCEN : montant (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : montant
+  - Organisme complémentaire : montant du Composant de base assujettie participant au calcul de la
+  cotisation individuelle renseignée dans le bloc "Cotisation individuelle - S21.G00.81", pour la période
+  définie dans le bloc "Base assujettie - S21.G00.78"
+  - DGFiP : montant
+  - IRCANTEC : non concerné
+  - MSA : montant du composant de base assujettie participant au calcul de la cotisation individuelle
+  - France Travail : montant
+  - Urssaf : montant
+  - CNRACL : non concerné
+  - FSPOEIE : non concerné
+  - RAFP : non concerné
+  - SRE : non concerné
+  - RAEP : non concerné
+  - CNBF : non concerné
+
+  N  [4,14]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Identifiant du CRM à l'origine de la régularisation  S21.G00.79.005
+BaseComposant.IdentifiantCRMRegul
+  Il s'agit de l'identifiant du CRM (compte rendu métier) transmis par l'organisme demandeur de la
+  régularisation ou de la correction.
+  CCH-11 : La rubrique "Identifiant du CRM à l'origine de la régularisation - S21.G00.79.005" ne peut être renseignée
+  que pour une période de rattachement (S21.G00.78.002 et S21.G00.78.003) inférieure au mois principal déclaré
+  (S20.G00.05.005) de la déclaration. Dans le cas contraire cette rubrique est interdite. Ce contrôle vise à ce qu'il soit
+  possible de renseigner l'identifiant du CRM à l'origine de la régularisation que pour des régularisations ou des
+  corrections.
+
+  X  [1,18]
+
+S21.G00.81
+
+Cotisation individuelle  S21.G00.81
+  Une cotisation individuelle est un dispositif de contribution à la protection sociale dont le montant est fixé soit
+  proportionnellement à la base assujettie, soit de manière forfaitaire.
+  Lorsqu'il s'agit d'une cotisation proportionnelle, cette règle s'exprime usuellement par un taux de cotisation appliqué à
+  une assiette constituée de tout ou partie de la base assujettie.
+  L'assiette est déterminée par application de plafonnements et/ou d'abattements sur la base assujettie.
+  La cotisation individuelle est toujours rattachée à une base assujettie. Ainsi, la cotisation individuelle est toujours
+  valorisée au titre de la période de rattachement de la base assujettie.
+  Lorsqu'il s'agit d'une cotisation forfaitaire, son montant est établi de manière fixe.
+
+  301 / 361
+
+--- p. 302 ---
+  S21.G00.81  2025-12-24
+
+  Le bloc s'applique également aux exonérations et réductions de cotisations individuelles.
+
+Code de cotisation  S21.G00.81.001
+Identifiant Organisme de Protection Sociale  S21.G00.81.002
+Montant d'assiette  S21.G00.81.003
+Montant de cotisation  S21.G00.81.004
+Code INSEE commune  S21.G00.81.005
+Identifiant du CRM à l'origine de la régularisation  S21.G00.81.006
+Taux de cotisation  S21.G00.81.007
+
+Code de cotisation  S21.G00.81.001
+CotisationIndividuelle.CodeCotisation
+  Code identifiant la nature de la donnée attendue par l'organisme au titre de la période de rattachement
+  concernée.
+  Modalité de valorisation :
+  - AGIRC-ARRCO : "105" (pour régularisation des périodes antérieures à 2025), "106", "109", "110",
+  "111", "112", "113", "131", "132", "915"
+  - Caisses de congés payés (CIBTP) : "110", "112", "113"
+  - CAMIEG : "030","031", "032" (pour régularisation des périodes antérieures à 2020 pour le régime
+  général et antérieures à 2021 pour le régime agricole)
+  - CAVEC : "144", "145"
+  - CCVRP : non concerné
+  - CNIEG : "029", "033", "034", "035", "036", "037", "038", "039" (pour régularisation des périodes
+  antérieures à 2022)
+  - Congés spectacles (AUDIENS) : "066"
+  - CRPCEN : "001", "002", "003", "006", "008", "015", "018", "021", "022", "065", "114", "907" (pour
+  corriger des périodes antérieures à 2023)
+  - CRPNPAC : "096", "097", "098", "106", "110", "112"
+  - Organisme complémentaire : "059"
+  - DGFiP : "077", "901"
+  - IRCANTEC : "060", "061"
+  - MSA : "001", "002", "003", "004", "006", "008", "009", "010", "011", "013", "014", "015", "016", "017",
+  "018", "019", "020", "021", "022", "023", "025", "027", "028", "029", "030", "031", "032", "033", "034",
+  "035", "036", "037", "038", "039", "040", "041", "042", "043", "044", "045", "046", "047", "048", "049",
+  "051", "053", "054", "056", "057", "058", "059", "068", "069", "070", "071", "072", "073", "074", "075",
+  "076", "078", "079", "081", "082", "088", "089", "090", "091", "092", "093", "094", "099", "100", "101",
+  "102", "103", "104", "105", "106", "109", "111", "114", "115", "116", "128", "129", "130", "131", "132",
+  "140", "141", "142", "143", "146", "903", "904", "905", "906", "907", "908", "909", "910", "911", "912",
+  "913", "914", "916", "918", "919"
+  - France Travail : "001", "002", "003", "012", "018", "040", "041", "042", "043", "044", "048", "908",
+  "910", "914"
+  - Urssaf : "001", "002", "003"," 004", "006", "008", "009", "010", "011", "012", "013", "014", "015", "016",
+  "017" ,"018", "019", "020" ,"021", "022", "023", "025", "029", "030", "031", "032", "033", "034", "035",
+  "036", "037", "038", "039", "040", "041", "042", "043","044", "045", "048", "049", "065", "068", "069",
+  "070", "071", "072", "073", "074", "075", "076", "079", "081", "082", "088", "093", "099", "100", "102",
+  "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115", "128", "129",
+  "130", "133", "140", "141", "142", "143", "146", "902", "907", "908", "909", "910", "912", "913", "914",
+  "916", "918", "919"
+  - CNRACL : "114", "300", "301", "302", "303", "304", "305", "306", "307", "308", "309", "310", "322",
+  "325", "326", "327"
+
+  302 / 361
+
+--- p. 303 ---
+  S21.G00.81  2025-12-24
+
+- FSPOEIE : "114", "300", "301"
+- RAFP : "311", "312"
+- SRE : "300", "301", "303", "304", "305", "313", "314", "315", "316", "317", "318", "319", "320", "321"
+- RAEP : "323", "324"
+- CNBF : "011, "015", "330", "331", "332"
+CCH-11 : Si la rubrique "Code de base assujettie - S21.G00.78.001" est renseignée avec la valeur "28 – Base
+IRCANTEC cotisée", au moins un bloc "Cotisation individuelle - S21.G00.81" est obligatoire avec la valeur « 060 –
+Cotisation IRCANTEC Tranche A » ou la valeur « 061 – Cotisation IRCANTEC Tranche B » dans la rubrique « Code
+de cotisation – S21.G00.81.001 »
+
+CCH-13 : La valeur "059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation
+concernées" est interdite si la rubrique "Code de base assujettie - S21.G00.78.001" n'est pas renseignée avec la valeur
+"31 - Eléments de cotisation Prévoyance, Santé, retraite supplémentaire".
+
+CCH-15 : Si la rubrique "Code de base assujettie - S21.G00.78.001" est renseignée avec la valeur "31 - Eléments de
+cotisation Prévoyance, Santé, retraite supplémentaire", un et un seul bloc "Cotisation individuelle - S21.G00.81" doit
+être renseigné avec un "Code de cotisation - S21.G00.81.001" égal à "059 - Cotisation individuelle Prévoyance-
+Assurance-Mutuelle pour la période et l'affiliation concernées".
+
+CCH-16 : Si la rubrique "Code de cotisation - S21.G00.81.001" est renseignée avec la valeur "018 - Réduction
+générale des cotisations patronales et d'assurance chômage" ou "106 - Réduction générale des cotisations patronales de
+retraite complémentaire", alors les rubriques "Montant d'assiette - S21.G00.81.003" et "Montant de cotisation -
+S21.G00.81.004" doivent être renseignées.
+
+CCH-17 : Si la rubrique "Code de cotisation - S21.G00.81.001" est renseignée avec la valeur "018 - Réduction
+générale des cotisations patronales et d'assurance chômage" ou "106 - Réduction générale des cotisations patronales de
+retraite complémentaire", alors un bloc "Composant de base assujettie - S21.G00.79" de type "01 - Montant du SMIC
+retenu pour le calcul de la Réduction générale des cotisations patronales de sécurité sociale, de retraite
+complémentaire, d'assurance chômage et de la réduction de cotisation Allocations familiales" doit obligatoirement être
+rattaché au même bloc "Base assujettie - S21.G00.78" parent portant la rubrique "Code de base assujettie -
+S21.G00.78.001" renseignée avec la valeur "03 - Assiette brute déplafonnée".
+Ce contrôle vise à ce qu'une réduction générale des cotisations patronales ou une réduction générale des cotisations
+patronales de retraite complémentaire et le montant du SMIC retenu pour le calcul de la Réduction générale des
+cotisations patronales de sécurité sociale, de retraite complémentaire, d'assurance chômage et de la réduction de
+cotisation Allocations familiales soient déclarés sous un même bloc parent "Base assujettie - S21.G00.78" de type "03 -
+Assiette brute déplafonnée".
+
+SIG-18 : Si un bloc « Cotisation individuelle - S21.G00.81 » de type « 131 – Cotisation régime unifié Agirc-Arrco »
+(S21.G00.81.001) est renseigné sous un bloc « Base assujettie - S21.G00.78 » parent qui présente une « Date de début
+de période de rattachement - S21.G00.78.002 » et une « Date de fin de période de rattachement - S21.G00.78.003 »
+incluses dans le mois principal déclaré, alors au moins un bloc « Cotisation individuelle - S21.G00.81 » de type « 142 -
+Cotisation régime unifié Agirc-Arrco (part patronale tranche T1) » doit être renseigné sous le même bloc « Versement
+individu - S21.G00.50 ».
+
+  X  [3,3]
+
+001 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1979)
+002 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1987)
+003 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1992)
+004 - Exonération de cotisations au titre de l'emploi d'un salarié en contrat d'accès à l'emploi
+006 - Exonération de cotisations au titre de l'emploi d'un salarié en contrat d'accompagnement dans l'emploi
+008 - Exonération de cotisations au titre de l'emploi d'un salarié en contrat de professionnalisation
+009 - Exonération de cotisations applicable aux associations intermédiaires
+010 - Exonération de cotisations applicable aux entreprises des bassins d'emploi à redynamiser
+011 - Exonération de cotisations applicable au créateur ou repreneur d'entreprise
+012 - Exonération de cotisations applicable dans les DOM
+
+  303 / 361
+
+--- p. 304 ---
+  S21.G00.81  2025-12-24
+
+013 - Exonération de cotisations applicable aux entreprises et associations d'aide à domicile
+014 - Exonérations de cotisations applicable aux entreprises innovantes, universitaires ou de croissance
+015 - Exonération de cotisations applicable aux entreprises en zones franches urbaines
+016 - Exonération de cotisations applicable aux organismes d'intérêt général en zones de revitalisation rurale
+017 - Exonération de cotisations applicable aux structures agréées de l'aide sociale
+018 - Réduction générale des cotisations patronales de sécurité sociale et d'assurance chômage
+019 - Réduction de cotisations applicable aux entreprises des zones de restructuration de la défense
+020 - Réduction de cotisations au titre de l'embauche du 1er au 50ème salarié en zones de revitalisation rurale
+021 - Déduction patronale au titre des heures supplémentaires
+022 - Exonération de cotisations applicable à une gratification de stage
+023 - Exonération de cotisation des sommes provenant d'un CET et réaffectées à un plan d'épargne retraite (PERCO,
+PERECO, PEREO) ou à un régime de retraite supplémentaire
+025 - Exonération de cotisations au titre de l’emploi d’un salarié en chantier et atelier d'insertion
+027 - Exonération Personnel technique CUMA, hors ateliers
+028 - Réduction Travailleur Occasionnel
+029 - Réduction employeurs petit pool IEG
+030 - Cotisation employeurs régime spécial maladie IEG Complémentaire
+031 - Cotisation salariés régime spécial maladie IEG Complémentaire
+032 - Cotisation salariés régime maladie IEG spécial Solidarité
+033 - Cotisation employeurs complément d'invalidité IEG
+034 - Cotisation employeurs régime de droit commun IEG (population adossée)
+035 - Cotisation employeurs régime spécial IEG (population adossée)
+036 - Cotisation employeurs régime spécial IEG (population non adossée)
+037 - Cotisation salariés régime de droit commun IEG (population adossée)
+038 - Cotisation salariés régime spécial IEG (population non adossée)
+039 - Cotisations employeurs petit pool IEG
+040 - Cotisation AC : assurance chômage sur rémunérations brutes après déduction
+041 - Cotisation AC majorée 1 : application d’une majoration AC + 0,5% sur les contrats d’usage inférieurs ou égaux à
+3 mois
+042 - Cotisation AC majorée 2 : application d’une majoration AC + 3% sur les contrats d’accroissement temporaire
+d’activité inférieurs ou égaux à 1 mois
+043 - Cotisation AC majorée 3 : application d’une majoration AC + 1,5% sur les contrats d’accroissement temporaire
+d’activité supérieurs à 1 mois mais inférieurs ou égaux à 3 mois
+044 - Exonération de cotisation chômage pour les moins de 26 ans
+045 - Cotisation Accident du travail
+046 - Cotisation AEF Bourse de l'emploi
+047 - Cotisation AEF CESA
+048 - Cotisation AGS : assurance garantie des salaires sur rémunérations brutes après déduction
+049 - Cotisation Allocation de logement (FNAL)
+051 - Cotisation Formation professionnelle ADEFA
+053 - Cotisation Formation professionnelle additionnelle FAFSEA
+054 - Cotisation Formation professionnelle AREFA
+056 - Cotisation Formation professionnelle FAFSEA
+057 - Cotisation Formation professionnelle FAFSEA CDD
+058 - Cotisation Formation professionnelle FAFSEA des communes forestières
+059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+060 - Cotisation IRCANTEC Tranche A
+061 - Cotisation IRCANTEC Tranche B
+065 - Cotisation CRPCEN
+066 - Cotisation caisse de congés spectacles
+068 - Contribution solidarité autonomie
+069 - Contribution sur avantage de pré-retraite entreprise à dater du 11/10/2007 (CAPE)
+070 - Contribution sur avantage de pré-retraite entreprise aux taux normal (CAPE)
+071 - Contribution forfait social
+072 - Contribution sociale généralisée/salaires partiellement déductibles
+073 - CSG/CRDS sur participation intéressement épargne salariale
+
+  304 / 361
+
+--- p. 305 ---
+  S21.G00.81  2025-12-24
+
+074 - Cotisation Allocation familiale - taux normal
+075 - Cotisation Assurance Maladie
+076 - Cotisation Assurance Vieillesse
+077 - Montant de la retenue à la source effectuée sur les salaires versés aux personnes domiciliées hors de France
+078 - Pénalité de 1% emploi sénior
+079 - Remboursement de la dette sociale
+081 - Versement mobilité
+082 - Versement mobilité additionnel
+088 - Exonération versement mobilité
+089 - Exonération Contrat Initiative Emploi
+090 - Exonération accueillants familiaux
+091 - Cotisation Service de santé au travail
+092 - Cotisation Association pour l'emploi des cadres ingénieurs et techniciens de l'agriculture (APECITA)
+093 - Contribution sur indemnités de mise à la retraite ou de rupture conventionnelle individuelle
+094 - Exonération cotisations Allocations familiales (SICAE)
+096 - Cotisation CRPNPAC au fonds de retraite
+097 - Cotisation CRPNPAC au fonds d'assurance
+098 - Cotisation CRPNPAC au fonds de majoration
+099 - Contribution stock options
+100 - Contribution au financement du dialogue social
+101 - Association Mutualisation du Coût Inaptitude
+102 - Complément de cotisation Allocation Familiale
+103 - Contribution actions gratuites
+104 - Pénibilité Cotisation de base
+105 - Montant de cotisation Régime Unifié Agirc-Arrco, y compris Apec
+106 - Réduction générale des cotisations patronales de retraite complémentaire
+107 - Forfait marin
+108 - Demi-rôle marin
+109 - Exonération de cotisations salariales de retraite complémentaire au titre de l'emploi d'un apprenti
+110 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC
+130% à 220%
+111 - Exonération de cotisations de retraite complémentaire applicable aux entreprises et associations d'aide à domicile
+112 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC
+170% à 270%
+113 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC
+170% à 350%
+114 - Montant de réduction des heures supplémentaires/complémentaires
+115 - Cotisation Assurance Maladie pour le Régime Local Alsace Moselle
+116 - Cotisation absente de la norme en cas de régularisation prud'homale
+128 - Contribution à la formation professionnelle (CFP)
+129 - Contribution dédiée au financement du Compte Personnel de Formation pour les titulaires de CDD (CPF-CDD)
+130 - Part principale de la taxe d'apprentissage
+131 - Cotisation régime unifié Agirc-Arrco
+132 - Cotisation Apec
+133 - Contribution maladie spécifique Mayotte
+140 - Contribution conventionnelle au financement du dialogue social
+141 - Contribution conventionnelle à la formation professionnelle
+142 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T1)
+143 - Contribution au compte professionnel de prévention (C2P)
+144 - Cotisation CAVEC - classe C
+145 - Cotisation CAVEC - classe D
+146 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T2)
+300 - [FP] Cotisations normales (part salariale)
+301 - [FP] Cotisations normales (part patronale)
+302 - [FP] Surcotisation huit trimestres (part salariale)
+303 - [FP] Validation de services (part salariale)
+
+  305 / 361
+
+--- p. 306 ---
+  S21.G00.81  2025-12-24
+
+  304 - [FP] Cotisations Nouvelle Bonification Indiciaire (part salariale)
+  305 - [FP] Cotisations Nouvelle Bonification Indiciaire (part patronale)
+  306 - [FP] Cotisations sur indemnité de feu (part salariale)
+  307 - [FP] Cotisations sur indemnité de feu (part patronale)
+  308 - [FP] Cotisation sur bonification sapeur pompier (part salariale)
+  309 - [FP] Cotisation sur prime sur sujetion des aides soignantes (part salariale)
+  310 - [FP] Cotisation sur prime sur sujetion des aides soignantes (part patronale)
+  311 - [FP] Cotisation RAFP (part salariale)
+  312 - [FP] Cotisation RAFP (part patronale)
+  313 - [FP] Cotisations pour pension sur ISS ou PSS (part salariale)
+  314 - [FP] Cotisations pour pension sur ISS ou PSS (part patronale)
+  315 - [FP] Cotisations pour pension sur IR (part salariale)
+  316 - [FP] Cotisations pour pension sur IR (part patronale)
+  317 - [FP] Cotisations pour pension sur IMT (part salariale)
+  318 - [FP] Cotisations pour pension sur IMT (part patronale)
+  319 - [FP] Cotisations pour l'allocation temporaire d'invalidité (part patronale)
+  320 - [FP] Surcotisation (part salariale)
+  321 - [FP] Rachat des années d'études (part salariale)
+  322 - [FP] Exonération de cotisation pour heures d’aide à domicile (part patronale)
+  323 - [FP] Cotisation RAEP (part patronale)
+  324 - [FP] Cotisation RAEP (part salariale)
+  325 - [FP] Validation de services (part patronale)
+  326 - [FP] Régularisation de service (part salariale)
+  327 - [FP] Régularisation de service (part patronale)
+  330 - Régime de base forfaitaire CNBF
+  331 - Régime de base proportionnelle CNBF
+  332 - Régime complémentaire CNBF
+  333 - Cotisation contrat d’emploi pénitentiaire 1
+  334 - Cotisation contrat d’emploi pénitentiaire 2
+  901 - Cotisation épargne retraite
+  902 - Contribution à la formation professionnelle des Artisans assimilés salariés
+  903 - Cotisation AFNCA
+  904 - Cotisation ANEFA
+  905 - Cotisation ASCPA
+  906 - Cotisation PROVEA
+  907 - Complément de cotisation Assurance Maladie
+  908 - Taxe forfaitaire CDDU Assurance Chômage
+  909 - Cotisation au titre du financement des régimes de retraites supplémentaires à prestation définies
+  910 - Exonération de cotisations patronales pour les entreprises affectées par la crise sanitaire
+  911 - Réduction de cotisations patronales pour les entreprises du secteur de la vigne affectées par la crise sanitaire
+  912 - Exonération du forfait social à 10%
+  913 - Indemnité inflation
+  914 - Réduction sapeurs-pompiers volontaires sur les contributions recouvrées par la MSA, l’Urssaf ou France Travail
+  915 - Réduction sapeurs-pompiers volontaires sur les cotisations et contributions recouvrées par l’Agirc-Arrco
+  916 - Exonération de cotisations applicable en Zones France Ruralités Revitalisation (ZFRR)
+  917 - Potentielle nouvelle cotisation D
+  918 - Versement mobilité régional et rural
+  919 - Exonération de contribution patronale sur les indemnités de mise à la retraite d’un salarié en contrat de
+  valorisation de l’expérience (CVE)
+  920 - Potentielle nouvelle cotisation B
+  921 - Potentielle nouvelle cotisation C
+
+Identifiant Organisme de Protection Sociale  S21.G00.81.002
+CotisationIndividuelle.IdentifiantOPS
+
+  306 / 361
+
+--- p. 307 ---
+  S21.G00.81  2025-12-24
+
+  Code identifiant de l'organisme de protection sociale auprès duquel l'établissement est redevable de
+  cotisations sociales associées au bordereau.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : non concerné
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : SIRET de la CAMIEG (pour régularisation des périodes antérieures à 2020 pour le régime
+  général et antérieures à 2021 pour le régime agricole)
+  - CAVEC : SIRET de la CAVEC
+  - CCVRP : non concerné
+  - CNIEG : SIRET de la CNIEG (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : non concerné
+  - CRPCEN : SIRET de la CRPCEN (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : SIRET de la CRPNPAC
+  - Organisme complémentaire : non concerné
+  - DGFiP : non concerné
+  - IRCANTEC : SIRET de l'IRCANTEC
+  - MSA : code caisse MSA
+  - France Travail : SIRET de France Travail (uniquement pour les employeurs d'ouvriers, de techniciens de
+  l'édition d'enregistrement sonore, de la production cinématographique et audiovisuelle, de la diffusion,
+  d'artistes du spectacle et d'expatriés)
+  - Urssaf : SIRET de l'Urssaf
+  - SRE : non concerné
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - CNBF : non concerné
+  CCH-11 : Si la rubrique "Code de cotisation - S21.G00.81.001" est renseignée avec la valeur "059 - Cotisation
+  individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées", la rubrique "Identifiant
+  Organisme de Protection Sociale - S21.G00.81.002" ne doit pas être renseignée.
+
+  CRE-11 : valeurs autorisées
+
+  Table ICI - Identifiant Organisme de Protection Sociale -
+  X  [2,14]
+  Cotisations individuelles
+
+Montant d'assiette  S21.G00.81.003
+CotisationIndividuelle.MontantAssiette
+  Montant total des sommes éligibles à cotisation individuelle, exonération ou réduction de cotisation
+  individuelle.
+  Modalité de valorisation :
+  - AGIRC-ARRCO : à renseigner pour une réduction, exonération
+  - Caisses de congés payés (CIBTP) : à renseigner pour une exonération
+  - CAMIEG : à renseigner pour une cotisation (pour régularisation des périodes antérieures à 2020 pour le
+  régime général et antérieures à 2021 pour le régime agricole)
+  - CAVEC : non concerné
+  - CCVRP : non concerné
+  - CNIEG : à renseigner pour une cotisation, réduction (pour régularisation des périodes antérieures à
+  2022)
+  - Congés spectacles (AUDIENS) : non concerné
+
+  307 / 361
+
+--- p. 308 ---
+  S21.G00.81  2025-12-24
+
+  - CRPCEN : à renseigner pour une cotisation, exonération, réduction (pour corriger des périodes
+  antérieures à 2023)
+  - CRPNPAC : à renseigner pour une cotisation, réduction
+  - Organisme complémentaire : non concerné
+  - DGFiP : non concerné
+  - IRCANTEC : à renseigner pour une cotisation
+  - MSA : à renseigner pour une cotisation, exonération, réduction
+  - France Travail : à renseigner pour une cotisation, exonération, réduction
+  - Urssaf : à renseigner pour une cotisation, exonération, réduction
+  - SRE : à renseigner pour une cotisation
+  - CNRACL : à renseigner pour une cotisation, réduction
+  - FSPOEIE : à renseigner pour une cotisation, réduction
+  - RAFP : à renseigner pour une cotisation
+  - RAEP : à renseigner pour une cotisation
+  - CNBF : à renseigner pour une cotisation, exonération
+  CCH-11 : Si la rubrique "Code de cotisation - S21.G00.81.001" est renseignée avec la valeur "060 - Cotisation
+  IRCANTEC Tranche A" ou "061 - Cotisation IRCANTEC Tranche B", la rubrique "Montant d'assiette -
+  S21.G00.81.003" doit être renseignée.
+
+  CCH-12 : Si la rubrique "Code de cotisation - S21.G00.81.001" est renseignée avec la valeur "059 - Cotisation
+  individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées", la rubrique "Montant
+  d'assiette - S21.G00.81.003" ne doit pas être renseignée.
+
+  N  [4,14]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant de cotisation  S21.G00.81.004
+CotisationIndividuelle.MontantRéductionExonération
+  Montant de la cotisation individuelle, réduction de cotisation individuelle ou exonération de cotisation
+  individuelle pour la période de rattachement.
+  Modalité de valorisation :
+  - AGIRC-ARRCO : à renseigner pour une cotisation, réduction
+  - Caisses de congés payés (CIBTP) : à renseigner pour une exonération
+  - CAMIEG : à renseigner pour une cotisation (pour régularisation des périodes antérieures à 2020 pour le
+  régime général et antérieures à 2021 pour le régime agricole)
+  - CAVEC : à renseigner pour une cotisation
+  - CCVRP : non concerné
+  - CNIEG : à renseigner pour une cotisation, réduction (pour régularisation des périodes antérieures à
+  2022)
+  - Congés spectacles (AUDIENS) : à renseigner pour une cotisation
+  - CRPCEN : à renseigner pour une cotisation ou une réduction pour la période de rattachement (pour
+  corriger des périodes antérieures à 2023)
+  - CRPNPAC : à renseigner pour une cotisation, réduction
+  - Organisme complémentaire : Montant total de la cotisation pour le salarié, au titre de la période de
+  rattachement et de l'affiliation Prévoyance renseignées dans le bloc S21.G00.78
+  - DGFiP : à renseigner quelque soit la valeur renseignée en S21.G00.81.001
+  - IRCANTEC : à renseigner pour une cotisation
+  - MSA : à renseigner pour une cotisation déduction faite des exonérations, réduction ou déduction
+  - France Travail : à renseigner pour une cotisation, exonération, réduction
+  - Urssaf : à renseigner pour une cotisation, réduction
+  - SRE : à renseigner pour une cotisation
+  - CNRACL : à renseigner pour une cotisation, exonération, réduction
+
+  308 / 361
+
+--- p. 309 ---
+  S21.G00.81  2025-12-24
+
+  - FSPOEIE : à renseigner pour une cotisation, exonération, réduction
+  - RAFP : à renseigner pour une cotisation
+  - RAEP : à renseigner pour une cotisation
+  - CNBF : à renseigner pour une cotisation, exonération
+  CCH-11 : Si la rubrique "Code de cotisation - S21.G00.81.001" est renseignée avec la valeur "059 - Cotisation
+  individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées", la rubrique "Montant de
+  cotisation - S21.G00.81.004" doit être renseignée.
+
+  CCH-12 : Si la rubrique "Code de cotisation - S21.G00.81.001" est renseignée avec la valeur "105 - Montant de
+  cotisation Régime Unifié Agirc-Arrco, y compris Apec", "131 - Cotisation régime unifié Agirc-Arrco" ou "132 -
+  Cotisations Apec", alors la rubrique "Montant de cotisation - S21.G00.81.004" doit être renseignée.
+
+  CCH-13 : Si la rubrique "Code de cotisation - S21.G00.81.001" est renseignée avec la valeur "060 - Cotisation
+  IRCANTEC Tranche A" ou "061 - Cotisation IRCANTEC Tranche B", la rubrique "Montant de cotisation -
+  S21.G00.81.004" doit être renseignée.
+
+  N  [4,14]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Code INSEE commune  S21.G00.81.005
+CotisationIndividuelle.CodeINSEECommune
+  Nomenclature INSEE des communes de France telle qu'elle figure dans le fichier Hexaposte. Cet identifiant
+  permet de valoriser l'assujettissement au Versement transport.
+  Modalité de valorisation :
+  - AGIRC-ARRCO : non concerné
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : non concerné
+  - CAVEC : non concerné
+  - CCVRP : non concerné
+  - CNIEG : non concerné
+  - Congés spectacles (AUDIENS) : non concerné
+  - CRPCEN : non concerné
+  - CRPNPAC : non concerné
+  - Organisme complémentaire : non concerné
+  - DGFiP : non concerné
+  - IRCANTEC : non concerné
+  - MSA : code INSEE commune à renseigner en cas de versement mobilité
+  - France Travail : non concerné
+  - Urssaf : code INSEE commune à renseigner en cas de versement mobilité
+  - CNRACL : non concerné
+  - FSPOEIE : non concerné
+  - RAFP : non concerné
+  - SRE : non concerné
+  - RAEP : non concerné
+  - CNBF : non concerné
+  CCH-11 : Si la rubrique "Code de cotisation - S21.G00.81.001" est renseignée avec la valeur "059 - Cotisation
+  individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées", la rubrique "Code INSEE
+  commune - S21.G00.81.005" ne doit pas être renseignée.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table INSEE - Code INSEE de la commune
+
+  309 / 361

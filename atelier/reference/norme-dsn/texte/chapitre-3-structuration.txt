@@ -1,0 +1,544 @@
+# Chapitre 3
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 73-83
+
+--- p. 73 ---
+  2025-12-24
+  3 Structuration de la DSN
+
+3 Structuration de la DSN
+
+3.1 Envoi et déclarations
+Envoi
+C’est le fichier produit par l’entreprise ou le tiers déclarant. Il débute par une structure de
+description de l’envoi (S10) : on y caractérise notamment l'envoi, l’émetteur, le contact chez
+l’émetteur, et le destinataire du compte-rendu d’exploitation. Il contient ensuite une ou
+plusieurs déclarations, chacune d’entre elles pouvant être d’une nature différente. Il s’achève
+par une structure de comptage (S90).
+
+A noter que dans le cas du Machine to Machine, un envoi (S10) ne pourra contenir qu’une et
+une seule déclaration (S20).
+
+Modèle de déclaration
+
+C'est la référence à suivre pour la composition d’une déclaration.
+
+Code
+  Périodicité  Modèles de déclarations  Partenaires  Point de dépôt
+nature
+
+  Urssaf CN, CNAMTS, MSA, CNAV,
+  AGIRC ARRCO, DARES, Institutions
+  de prévoyance, Mutuelles, Sociétés
+  d'assurance et délégataires de
+  gestion, Organismes
+  complémentaires non fédérés par un
+  membre du GIP-MDS (CTIP, FFA,  Point de dépôt
+
+  01  Mensuelle  DSN Mensuelle  FNMF), France Travail, CAMIEG,  régime général ou
+  CNIEG, CRPCEN, DGFiP, CCVRP,
+  caisses de congés payés (CIBTP,  régime agricole
+  Transport et Manutention portuaire),
+  IRCANTEC, CNAF, CRPNPAC, ASP,
+  INSEE, CPRPF, Congés spectacles,
+  CPF, RAFP, CNRACL, FSPOEIE,
+  RAEP, DAM, ENIM, CRP RATP,
+  CAVEC
+
+  CNAMTS, MSA, Institutions de
+  prévoyance, Mutuelles, Sociétés  Point de dépôt
+  Signalement  Signalement Arrêt de  d’assurance, délégataires de gestion
+  04  régime général ou
+  d’évènement  travail  et Organismes complémentaires non
+  fédérés par un membre du GIP-MDS  régime agricole
+  (CTIP, FFA, FNMF)
+
+  CNAMTS, MSA, Institutions de
+  prévoyance, Mutuelles, Sociétés
+  Point de dépôt
+  d'assurance, délégataires de
+  Signalement  Signalement Reprise suite
+  05  gestion et Organismes  régime général ou
+  d’évènement  à arrêt de travail
+  complémentaires non fédérés par un
+  régime agricole
+  membre du GIP-MDS (CTIP, FFA,
+  FNMF)
+
+  73 / 361
+
+--- p. 74 ---
+  2025-12-24
+  3 Structuration de la DSN
+
+  France Travail, MSA, Institutions de
+  prévoyance, Mutuelles, Sociétés  Point de dépôt
+  Signalement  Signalement Fin du contrat  d'assurance, délégataires de gestion
+  07  régime général ou
+  d’évènement  de travail unique  et Organismes complémentaires non
+  fédérés par un membre du GIP-MDS  régime agricole
+  (CTIP, FFA, FNMF), DARES
+
+  DGFIP, Institutions de prévoyance,
+  Mutuelles, Sociétés d'assurance,
+  délégataires de gestion et  Point de dépôt
+  Signalement  Signalement d'Amorçage
+  08  Organismes complémentaires non  régime général ou
+  d’évènement  des données variables
+  fédérés par un membre du GIP-MDS  régime agricole
+  (CTIP, FFA, FNMF), DGEFP, ASP,
+  DARES, France Travail
+
+  DSN de  Point de dépôt
+  09  DSN de substitution  Urssaf CN, MSA, CNAV, Agirc-Arrco  régime général ou
+  substitution
+  régime agricole
+
+  Signalement  Signalement Déclaration  Point de dépôt
+  10  Urssaf CN
+  d’évènement  préalable à l’embauche  régime général
+
+Un modèle de déclaration est une arborescence de blocs d’informations, pour laquelle on
+décrit les cardinalités attendues. Tous les modèles de déclarations dont les signalements
+sont définis à partir d'une arborescence hiérarchique unique dénommée message DSN : ce
+sont donc des sous-arborescences d’une arborescence « maître ».
+Les rubriques qui identifient un modèle de déclaration sociale nominative ou signalement
+entre S10 et S90 sont les suivantes :
+  • Nature de la déclaration S20.G00.05.001
+  • Type de la déclaration S20.G00.05.002
+
+Déclaration
+
+Une déclaration est l’instanciation d’un modèle de déclaration, donc d’un des modèles listés
+ci-dessus. Ceci s’applique donc aussi pour les signalements d’évènements.
+
+3.2 Structuration en blocs et rubriques
+Le cahier technique décrit l’ensemble des informations qui peuvent figurer dans une
+déclaration, appelées rubriques.
+Les rubriques sont réparties en blocs (équivaut à la notion de "sous-groupes" en N4DS).
+Chaque rubrique appartient à un bloc et un seul. Un bloc contient au moins une rubrique ; il
+peut arriver qu’il n’en contienne qu’une seule.
+Le principe est que chaque bloc possède une certaine homogénéité sur le plan du sens. Le
+nom du bloc a donc une importance, et il correspond la plupart du temps à un « objet
+métier » (entreprise, individu, contrat, versement individu …), les rubriques étant des «
+attributs » de cet objet.
+
+  74 / 361
+
+--- p. 75 ---
+  2025-12-24
+  3 Structuration de la DSN
+
+Chaque bloc est caractérisé par un identifiant (par exemple, S21.G00.30), un nom (dans cet
+exemple, individu), une description éventuelle, et la liste des rubriques qu’il contient. L’ordre
+des rubriques est également une caractéristique du bloc fournie au début de chaque bloc.
+
+Règles de nommage
+
+Pour donner un identifiant aux blocs et aux rubriques, le principe adopté est de rester en
+cohérence avec le nommage qui prévaut dans la N4DS, et ce tant que la N4DS existe : le
+nommage des données reprend donc la logique de hiérarchisation en structure, groupe,
+bloc, rubrique.
+
+Par exemple :
+Structure (exemple : S21)
+--Groupe (exemple : S21.G00)
+----Bloc (exemple : S21.G00.11)
+------Rubrique (exemple : S21.G00.11.001)
+Ainsi, pendant toute la durée du projet DSN, la règle de nommage des données en sortie de
+logiciel de paie correspond à l’expression concaténée. Pour reprendre l’exemple précédent :
+S21.G00.11.001 comme identifiant de rubrique, ou S21.G00.11 comme identifiant de bloc.
+Pour faciliter la lecture, le présent cahier technique met en évidence l’identifiant officiel de
+chaque rubrique (en vert), l’identifiant "raccourci" (en gras), et à gauche, l’identifiant
+sémantique (sous forme objet. attribut) :
+
+L’identifiant sémantique et l’identifiant futur sont donnés ici pour information uniquement.
+Seul l’identifiant « officiel » compte.
+
+Ordonnancement des blocs et rubriques dans le message
+
+Lors du lancement de la DSN, deux engagements ont été pris au titre de l’identification des
+blocs et rubriques définis par la norme :
+  • L’identifiant d’un bloc ou d’une rubrique n’est jamais modifié, une fois que cet
+  identifiant a fait l’objet d’une communication aux éditeurs et déclarants
+  • L’identifiant d’un bloc ou d’une rubrique disparu à l’occasion d’une nouvelle version
+  de la norme ne peut pas être réutilisé pour identifier un nouveau bloc ou une nouvelle
+  rubrique
+
+  75 / 361
+
+--- p. 76 ---
+  2025-12-24
+  3 Structuration de la DSN
+
+Ces deux engagements ont pour conséquence directe que l’ordre des blocs et rubriques
+dans un message ne peut plus être assis sur l’ordre croissant des identifiants de blocs et de
+rubriques.
+En effet, considérons le cas de deux blocs numérotés S21.G00.68 et S21.G00.69 dans une
+version de la norme. Pour la version suivante, il est estimé nécessaire d’ajouter un bloc
+enfant du bloc 68. Pour mémoire un bloc enfant unique est positionné dans le message à la
+suite immédiate de son parent. Le respect de l’ordre des identifiants dans la constitution du
+message amènerait à identifier ce nouveau bloc par le code S21.G00.69. Cet identifiant
+étant déjà affecté, le respect de l’ordre des identifiants dans la constitution des messages
+amènerait à transgresser l’ensemble des engagements susmentionnés, en remodifiant dans
+un premier temps le bloc initialement identifié par S21.G00.69 puis, en réutilisant ensuite le
+code S21.G00.69 ainsi libéré pour identifier le nouveau bloc.
+Considérons ensuite le cas d’un bloc constitué de trois rubriques. Pour la version suivante il
+est nécessaire d’insérer une rubrique supplémentaire entre des rubriques numérotées
+consécutivement. Ainsi on veut insérer une rubrique « Type » à la suite de « Nom et prénom
+du contact ». Or nous avons la séquence :
+  • Nom et prénom du contact - S20.G00.07.001
+  • Adresse téléphonique - S20.G00.07.002
+  • Adresse mél du contact - S20.G00.07.003
+
+L’insertion de la nouvelle rubrique « Type - S20.G00.07.004 » fera alors naître la séquence
+suivante :
+  • Nom et prénom du contact - S20.G00.07.001
+  • Adresse téléphonique - S20.G00.07.002
+  • Adresse mél du contact - S20.G00.07.003
+  • Type - S20.G00.07.004
+Ainsi, le respect des engagements sur l’identification des blocs et rubriques nous mène à
+abandonner l’ordre lexicographique dans les messages.
+L’ordonnancement des blocs dans un message ne doit donc plus répondre :
+  • Pour les blocs, qu’aux contraintes fixées par les arborescences de messages définies
+  au point 5.5 du présent document.
+  • Pour les rubriques, à leur séquence dans le bloc telle que déclarée en liste détaillée
+  des rubriques.
+Précisions : toutes les rubriques d’un même bloc doivent être déclarées consécutivement.
+On ne peut donc trouver dans le message un enchainement mêlant des rubriques issues de
+blocs différents comme celui-ci :
+  • S21.G00.60.001,’01’
+  • S21.G00.65.001,’01012013’
+  • S21.G00.60.002,’15102013’
+Par ailleurs, un bloc enfant se rapporte toujours au bloc parent qui le précède, directement
+ou indirectement dans le message.
+Ainsi, considérons l’extrait de message suivant (ici seuls les blocs sont représentés alors que
+dans un message réel, on trouverait les rubriques de ces blocs).
+  • S21.G00.30 (Individu1)
+  • S21.G00.40 (Contrat1)
+  • S21.G00.40 (Contrat 2)
+  • S21.G00.30 (Individu2)
+  • S21.G00.40 (Contrat 3)
+Les contrats 1 et 2 concernent l’individu 1 car dans l’arborescence de message (cf point 5.5),
+le bloc individu est parent du bloc contrat et que le dernier individu trouvé dans le message
+lu de bas en haut avant les contrats 1 et 2 est l’individu 1. Le contrat 3 concerne l’individu 2
+par application du même raisonnement.
+
+  76 / 361
+
+--- p. 77 ---
+  2025-12-24
+  3 Structuration de la DSN
+
+3.3 Attributs des rubriques
+Chaque rubrique, on l’a vu, est dotée d’un identifiant qui lui est propre. L’identifiant d’une
+rubrique supprimée n’est jamais réutilisé.
+Outre son identifiant, chaque rubrique possède un nom (par exemple, « identifiant du lieu de
+travail»), une éventuelle définition (commentaire qui figure au début de la rubrique), un
+ensemble de caractéristiques (usage, nature, longueur minimum, longueur maximum), une
+liste de valeurs (uniquement s’il s’agit d’une énumération), et des contrôles qui lui sont
+appliqués (0, 1 ou plusieurs).
+
+Nature
+
+  •  X : alpha-numérique
+  •  N : numérique
+  •  D : Date (JJMMAAAA)
+  •  Enumération
+  •  Référentiel externe
+
+Longueur
+
+  •  Longueur minimum
+  •  Longueur maximum
+
+Usage
+Les règles d’usage précises, par rubrique et par modèle de déclaration, sont fournies dans
+un tableau à la fin du cahier technique, en cohérence avec les usages décrits pour chaque
+rubrique. Cf. les explications au début de ce tableau.
+Dans la définition des usages des rubriques, on veille aux points suivants :
+  • Une rubrique Conditionnelle ne peut jamais être à zéro ou à blanc, sauf spécification
+  contraire
+  • La première rubrique de chaque bloc doit, sauf exception, être une rubrique
+  obligatoire
+  • Un bloc contient toujours au moins une rubrique d’usage obligatoire
+
+3.4 Schéma physique du fichier
+Un fichier DSN est du type "séquentiel en ligne" (Ligne Sequential File en Cobol)
+connu aussi sous le nom de "fichier texte délimité".
+Il est constitué d’enregistrements de longueur variable avec un maximum de 256 caractères
+ASCII. Chaque enregistrement se termine par un retour chariot et un saut de ligne (CR-LF :
+Carriage Return et Line Feed), ou un saut de ligne (LF) seul. Le format de la ligne avant le
+retour chariot est [Sxx.Gyy.zz.aaa(.bbb) ?,’value’]
+Ce ou ces octets "0A" ou "0D0A" (zéroDzéroA en hexadécimal) sont utilisés comme
+délimiteur d’enregistrement.
+La virgule ("2C" en hexadécimal) est utilisée comme séparateur de champ.
+La valeur de la rubrique est incluse entre deux apostrophes ou deux quotes ' ("27" en
+hexadécimal).
+Exemple : S21.G00.06.001,'332975200'
+Le numéro SIREN de l’entreprise dans le bloc Entreprise (S21.G00.06) est 332975200
+La table de caractères utilisable pour l'encodage du fichier est la suivante :
+'iso/iec 8859-1 (E) alphabet 'Latin1'
+
+  77 / 361
+
+--- p. 78 ---
+  2025-12-24
+  3 Structuration de la DSN
+
+3.5 Tables des caractères autorisés
+La table des caractères autorisés pour la valorisation des rubriques est un sous-ensemble de
+la table référencée ISO/IEC 8859-1. Les caractères interdits apparaissent sur fond grisé.
+
+ISO/CEI 8859-1
+
+  x0  x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF
+0x
+  caractères de contrôle et divers non imprimables
+1x
+2x  !  "  #  $ % & '  (  )  *  + ,  -  .  /
+3x 0  1 2  3  4 5  6 7 8 9 :  ;  <  =  > ?
+4x @  A B C D E F G H I  J  K L  M N O
+5x P  Q R S T U V W X Y Z [  \  ]  ^  _
+6x `  a b  c  d e  f  g h i  j  k  l  m n  o
+7x p  q r  s  t  u  v w x y z  {  |  }  ~
+8x
+  caractères de contrôle et divers non imprimables
+9x
+Ax  ¡  ¢  £  ¤ ¥  ¦  § ¨  © ª  «  ¬  ® ¯
+Bx °  ± ²  ³  ´  µ ¶ ·  ¸  ¹  º  »  ¼ ½ ¾ ¿
+Cx À  Á Â Ã Ä Å Æ Ç È É Ê Ë Ì  Í  Î  Ï
+Dx Ð  Ñ Ò Ó Ô Õ Ö × Ø Ù Ú Û Ü Ý Þ ß
+Ex à  á â  ã  ä å  æ ç è é ê  ë  ì  í  î  ï
+Fx ð  ñ ò  ó  ô õ  ö ÷ ø ù ú  û  ü  ý  þ  ÿ
+
+  78 / 361
+
+--- p. 79 ---
+  2025-12-24
+  3 Structuration de la DSN
+
+La présence des seuls caractères cités ci-après (cellules en bleu du tableau) dans une
+même rubrique provoque le rejet de l’ensemble de la déclaration :
+
+ISO/CEI 8859-1
+
+  x0  x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF
+0x
+  caractères de contrôle et divers non imprimables
+1x
+2x  !  "  # $ % & '  (  )  *  + ,  -  .  /
+3x 0  1 2 3 4 5  6 7 8 9 :  ;  <  =  > ?
+4x @  A B C D E F G H I  J  K L  M N O
+5x P  Q R S T U V W X Y Z [  \  ]  ^  _
+6x `  a b c d e  f  g h i  j  k  l  m n  o
+7x p  q r  s t  u  v w x y z  {  |  }  ~
+8x
+  caractères de contrôle et divers non imprimables
+9x
+Ax  ¡  ¢ £ ¤ ¥  ¦  § ¨  © ª  «  ¬  ® ¯
+Bx °  ± ²  ³  ´  µ ¶ ·  ¸  ¹  º  »  ¼ ½ ¾ ¿
+Cx À  Á Â Ã Ä Å Æ Ç È É Ê Ë Ì  Í  Î  Ï
+Dx Ð  Ñ Ò Ó Ô Õ Ö × Ø Ù Ú Û Ü Ý Þ ß
+Ex à  á â ã ä å  æ ç è é ê  ë  ì  í  î  ï
+Fx ð  ñ ò ó ô õ  ö ÷ ø ù ú  û  ü  ý  þ  ÿ
+
+3.6 Restrictions pour les identités
+
+  79 / 361
+
+--- p. 80 ---
+  2025-12-24
+  3 Structuration de la DSN
+
+En règle particulière, TOUTES les rubriques relatives à l’identification des personnes
+physiques ne peuvent contenir que les caractères figurant dans la liste indiquée ci-après.
+Cette restriction concerne les rubriques :
+S10.G00.02.002 : Nom et prénom de la personne à contacter
+S20.G00.07.001 : Nom et prénom du contact
+S21.G00.30.002 : Nom de famille
+S21.G00.30.003 : Nom d'usage
+S21.G00.30.004 : Prénoms
+S21.G00.31.009 : Ancien nom de famille
+S21.G00.31.010 : Anciens prénoms
+S89.G00.91.002 : Nom de famille
+S89.G00.91.003 : Nom d'usage
+S89.G00.91.004 : Prénoms
+
+ISO/CEI 8859-1
+
+  x0  x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF
+0x
+  caractères de contrôle et divers non imprimables
+1x
+2x  !  "  # $ % & '  (  )  *  + ,  -  .  /
+3x 0  1 2 3 4 5  6 7 8 9 :  ;  <  =  > ?
+4x @  A B C D E F G H I  J  K L  M N O
+5x P  Q R S T U V W X Y Z [  \  ]  ^  _
+6x `  a b c d e  f  g h i  j  k  l  M n  o
+7x p  q r  s t  u  v w x y z  {  |  }  ~
+8x
+  caractères de contrôle et divers non imprimables
+9x
+Ax  ¡  ¢ £ ¤ ¥  ¦  § ¨  © ª  «  ¬  ® ¯
+Bx °  ± ²  ³  ´  µ ¶ ·  ¸  ¹  º  »  ¼ ½ ¾ ¿
+Cx À  Á Â Ã Ä Å Æ Ç È É Ê Ë Ì  Í  Î  Ï
+Dx Ð  Ñ Ò Ó Ô Õ Ö × Ø Ù Ú Û Ü Ý Þ ß
+Ex à  á â ã ä å  æ ç è é ê  ë  ì  Í  î  ï
+Fx ð  ñ ò ó ô õ  ö ÷ ø ù ú  û  ü  Ý þ  ÿ
+
+3.7 Restriction pour toutes les adresses
+
+  80 / 361
+
+--- p. 81 ---
+  2025-12-24
+  3 Structuration de la DSN
+
+TOUTES les rubriques relatives aux adresses ne peuvent contenir que les caractères
+figurant dans la liste ci-dessous.
+
+ISO/CEI 8859-1
+
+  x0  x1 x2 x3 x4 x5 x6 x7 x8 X9 xA xB xC xD xE xF
+0x
+  caractères de contrôle et divers non imprimables
+1x
+2x  !  "  # $ % & '  (  )  *  + ,  -  .  /
+3x 0  1 2 3 4 5  6 7 8 9  :  ;  <  =  > ?
+4x @  A B C D E F G H I  J  K L  M N O
+5x P  Q R S T U V W X Y Z [  \  ]  ^  _
+6x `  a b c d e  f  g h i  j  k  l  m n  o
+7x p  q r  s t  u  v w x y  z  {  |  }  ~
+8x
+  caractères de contrôle et divers non imprimables
+9x
+Ax  ¡  ¢ £ ¤ ¥  ¦  § ¨  © ª  «  ¬  ® ¯
+Bx °  ± ²  ³  ´  µ ¶ ·  ¸  ¹  º  »  ¼ ½ ¾ ¿
+Cx À  Á Â Ã Ä Å Æ Ç È É Ê Ë Ì  Í  Î  Ï
+Dx Ð  Ñ Ò Ó Ô Õ Ö × Ø Ù Ú Û Ü Ý Þ ß
+Ex à  á â ã ä å  æ ç è é  ê  ë  ì  í  î  ï
+Fx ð  ñ ò ó ô õ  ö ÷ ø ù  ú  û  ü  ý  þ  ÿ
+
+3.8 Expressions régulières
+
+  81 / 361
+
+--- p. 82 ---
+  2025-12-24
+  3 Structuration de la DSN
+
+La majorité des expressions régulières présentées ici ont été progressivement introduites
+dans les cahiers techniques depuis plusieurs années. L’emploi d’expressions régulières
+répond aux objectifs suivants :
+  • Lever toute ambiguïté sur un contrôle
+  • Permettre la mise à jour automatique des programmes de contrôle des émetteurs et
+  des récepteurs
+Les expressions sont implantées selon la syntaxe XMLSchema (XML Schema DataTypes -
+annex F regular expressions accessible sous http://www.w3.org/TR/2004/REC-xmlschema-
+2-20041028/ )
+
+  Expression  Signification
+ [0-9]  Le caractère est numérique
+ [A-Z]  Le caractère est alphabétique majuscule, non accentué
+ [a-z]  Le caractère est alphabétique minuscule, non accentué
+ +  Le caractère ‘+’ est un qualifiant qui précise que ce qui précède
+  est applicable de 1 à N fois
+ *  Le caractère ‘*’ est un qualifiant qui précise que ce qui précède
+  est applicable de 0 à N fois
+ ?  Le caractère ‘?’ est un qualifiant qui précise que ce qui précède
+  est applicable de 0 à 1 fois
+ |  Cette barre verticale indique une alternative
+ \  Ce caractère ne sert que pour précéder les caractères
+  particuliers, (comme par exemple ? * . + [ ] ), si l’on veut que la
+  chaîne de caractères contienne précisément ce caractère-là. En
+  pratique, dans le cahier technique, il est utilisé pour précéder le
+  point.
+ \s  Cette combinaison permet d’indiquer un caractère espace, une
+  tabulation, un retour à la ligne.
+ [0-9][A-Z]*  Le premier caractère de la chaîne est numérique, les caractères
+  suivants, s’ils sont présents, sont alphabétiques majuscules
+ [A-Z][0-9]{6}  Le premier caractère de la chaîne est une majuscule non
+  accentuée, suivi obligatoirement de six caractères numériques
+ [01|12|37]+  Cette chaîne de caractères ne peut contenir que les valeurs 01,
+  12 ou 37
+ A?[0-9]+  Cette chaîne de caractères est constituée soit d’un A majuscule
+  suivi de caractères numériques, soit de caractères numériques
+  uniquement
+ [0]+  Cette chaîne de caractères ne peut contenir que des zéros
+ [^0]+  Cette chaîne de caractères ne peut contenir aucun zéro
+ &#x27;  Désigne le caractère apostrophe
+ \p{IsBasicLatin}  Désigne tout caractère se situant entre le code hexa #x0000 et
+  #x007F
+ \p{IsLatin-1Supplement}  Désigne tout caractère se situant entre le code hexa #x0080 et
+  #x00FF
+ ^  Métacaractère traduisant l’exclusion
+ [1-9][0-9]*\.[0-9]{2}  Le nombre (montant, quantité ou taux) ne contient que des
+  chiffres, le séparateur décimal ‘.’ et deux décimales.
+
+  A gauche du séparateur décimal, le premier chiffre est différent
+  de 0.
+ -?[1-9][0-9]*\.[0-9]{2}  Le nombre (montant, quantité ou taux) ne contient que des
+  chiffres, le séparateur décimal ‘.’ et deux décimales.
+
+  Il contient éventuellement le caractère ‘-‘ si le nombre peut être
+
+  82 / 361
+
+--- p. 83 ---
+  2025-12-24
+  3 Structuration de la DSN
+
+Expression  Signification
+  négatif
+
+  A gauche du séparateur décimal, le premier chiffre est différent
+  de 0.
+(0|[1-9][0-9]*)\.[0-9]{2}  Le nombre (montant, quantité ou taux) ne contient que des
+  chiffres, le séparateur décimal ‘.’ et deux décimales.
+
+  Il peut être à zéro sous la forme 0.00
+
+  Les zéros non significatifs devant ce nombre ne sont pas admis.
+-?(0|[1-9][0-9]*)\.[0-9]{2}  Le nombre (montant, quantité ou taux) ne contient que des
+  chiffres, le séparateur décimal ‘.’ et deux décimales.
+
+  Il contient éventuellement le caractère ‘-‘ si le montant / quantité
+  / taux peut être négatif
+
+  Il peut être à zéro sous la forme 0.00
+
+  Les zéros non significatifs devant ce nombre ne sont pas admis.
+[0]*([1-9][0-9]*)\.[0-9]{2}  Le nombre (montant, quantité ou taux) ne contient que des
+  chiffres, le séparateur décimal ‘.’ et deux décimales.
+
+  Les zéros non significatifs devant ce nombre sont admis.
+- ?[0]*([1-9][0-9]*)\.[0-9]{2}  Le nombre (montant, quantité ou taux) ne contient que des
+  chiffres, le séparateur décimal ‘.’ et deux décimales.
+
+  Il contient éventuellement le caractère ‘-‘ si ce nombre peut être
+  négatif
+
+  Les zéros non significatifs devant ce nombre sont admis.
+[0]*(0|[1-9][0-9]*)\.[0-9]{2}  Le nombre (montant, quantité ou taux) ne contient que des
+  chiffres, le séparateur décimal ‘.’ et deux décimales.
+
+  Il peut être à zéro sous la forme 0.00
+
+  Les zéros non significatifs devant ce nombre sont admis.
+-?[0]*(0|[1-9][0-9]*)\.[0-9]{2}  Le nombre (montant, quantité ou taux) ne contient que des
+  chiffres, le séparateur décimal ‘.’ et deux décimales.
+
+  Il contient éventuellement le caractère ‘-‘ si ce nombre peut être
+  négatif
+
+  Il peut être à zéro sous la forme 0.00
+
+  Les zéros non significatifs devant ce nombre sont admis.
+[(table des caractères acceptés)]  Cette chaîne de caractères ne peut contenir que les caractères
+  autorisés pour la norme
+[1-9][0-9]*\.[0-9]{2}  Montant / quantité / taux avec deux décimales
+[1-9][0-9]*\.[0-9]{4}  Montant / quantité / taux avec quatre décimales
+[1-9][0-9]*  Nombre entier non nul
+[1-9][0-9]*|0  Nombre entier, éventuellement à zéro
+
+  83 / 361

@@ -1,0 +1,226 @@
+# Bloc S89.G00.93
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 363-366
+
+--- p. 363 ---
+  S89.G00.93  2026-06-10
+
+Montant net social  S89.G00.92.017
+BasesSpecifiquesIndividuNonSalarie.MontantNetSocial
+  Le montant net social, conformément à la définition modifiant l’arrêté du 25 février 2016 fixant les libellés,
+  l’ordre et le regroupement des informations figurant sur le bulletin de paie mentionnés à l’article R. 3243-2
+  du Code du travail, est une base de ressources de référence pour la sphère sociale. Le montant net social
+  s'applique également aux revenus de remplacement pour établir une base de ressources de référence. Il est
+  renseigné en date de versement.
+  CCH-11 : Si la rubrique « Code de base spécifique - S89.G00.92.002 » est valorisée avec la valeur « 50 - Assiette brute
+  déplafonnée » et si la rubrique « Montant de la retenue à la source sur les revenus versés aux non-résidents fiscaux -
+  S89.G00.92.018 » n’est pas renseignée, alors la rubrique « Montant net social - S89.G00.92.017 » est obligatoire.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant de la retenue à la source sur les revenus versés aux non-  S89.G00.92.018
+résidents fiscaux
+BasesSpecifiquesIndividuNonSalarie.MontantRetenuSourceResNonF
+iscaux
+  Il s’agit du montant de la retenue à la source effectuée sur les revenus imposables versés aux individus non-
+  salariés domiciliés hors de France.
+  CCH-11 : La rubrique « Montant de la retenue à la source sur les revenus versés aux non-résidents fiscaux -
+  S89.G00.92.018 » est obligatoire si et seulement si la rubrique « Code de base spécifique - S89.G00.92.002 » est
+  valorisée avec la valeur « 50 - Assiette brute déplafonnée » et si la rubrique « Montant de prélèvement à la source -
+  S89.G00.92.010 » est absente. Dans le cas contraire, elle est interdite.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+S89.G00.93
+
+Régularisation de prélèvement à la source  S89.G00.93
+Mois de l’erreur  S89.G00.93.001
+Type d’erreur  S89.G00.93.002
+Régularisation du montant net fiscal du revenu versé  S89.G00.93.003
+Montant net fiscal du revenu versé le mois de l’erreur  S89.G00.93.004
+Régularisation du taux de prélèvement à la source  S89.G00.93.005
+Taux déclaré le mois de l’erreur  S89.G00.93.006
+Montant de la régularisation du prélèvement à la source  S89.G00.93.007
+Régularisation du montant de la part non imposable du revenu  S89.G00.93.008
+Régularisation du montant soumis au PAS  S89.G00.93.009
+Régularisation du montant de l’abattement sur la base fiscale (non déduit du montant net fiscal du  S89.G00.93.010
+revenu versé)
+Montant soumis au prélèvement à la source déclaré le mois de l'erreur  S89.G00.93.013
+
+Mois de l’erreur  S89.G00.93.001
+VTRegulPAS.MoisErreur
+  Il s’agit du mois sur lequel l’erreur s’est produite. En cas de reconduction de l’erreur sur plusieurs mois
+  chaque mois doit figurer. Cette date est à renseigner sous la forme MMAAAA.
+  CCH-11 : Un bloc "Régularisation de prélèvement à la source - S89.G00.93" ne peut être présent que si la rubrique
+  "Code de base spécifique - S89.G00.92.002" est renseignée avec la valeur "50 - Assiette brute déplafonnée" au niveau
+
+  363 / 370
+
+--- p. 364 ---
+  S89.G00.93  2026-06-10
+
+  du bloc "Bases spécifiques individu non salarié - S89.G00.92" parent. Dans le cas contraire il est interdit.
+
+  CCH-12 : La rubrique « Mois de l’erreur - S89.G00.93.001 » doit obligatoirement être renseignée avec une date (mois
+  et année) antérieure ou égale à la date (mois et année) déclarée au niveau de la rubrique « Date du mois principal
+  déclaré – S20.G00.05.005 ».
+  Ce contrôle vise à interdire la déclaration de régularisations de prélèvement à la source dans le futur.
+
+  X  [6,6]  CSL 00 : (0[1-9]|1[0-2])(19|20)[0-9]{2}
+
+Type d’erreur  S89.G00.93.002
+VTRegulPAS.TypeErreur
+  Indique le type d’erreur à rectifier.
+
+  CCH-11 : Si la rubrique « Type d’erreur – S89.G00.93.002 » est renseignée avec la valeur « 01 - Rectification sur
+  montant net fiscal du revenu versé » alors les rubriques « Régularisation du montant net fiscal du revenu versé -
+  S89.G00.93.003 », « Taux déclaré le mois de l’erreur – S89.G00.93.006 » et « Régularisation du montant soumis au
+  PAS - S89.G00.93.009 » sont obligatoires.
+
+  CCH-12 : Si la rubrique « Type d’erreur – S89.G00.93.002 » est renseignée avec la valeur « 02 - Rectification sur taux
+  », alors les rubriques « Régularisation du taux de prélèvement à la source - S89.G00.93.005 » et « Montant soumis au
+  prélèvement à la source déclaré le mois de l'erreur - S89.G00.93.013 » sont obligatoires.
+
+  CCH-13 : Si la rubrique « Type d’erreur – S89.G00.93.002 » est renseignée avec la valeur « 03 – cas d’indu avec
+  montant net fiscal du mois courant négatif », alors les rubriques « Régularisation du montant net fiscal du revenu versé
+  - S89.G00.93.003 », « Taux déclaré le mois de l’erreur – S89.G00.93.006 » et « Régularisation du montant soumis au
+  PAS - S89.G00.93.009 » sont obligatoires.
+
+  CCH-14 : Si la rubrique « Type d’erreur – S89.G00.93.002 » est renseignée avec la valeur « 03 – cas d’indu avec
+  montant net fiscal du mois courant négatif », alors les rubriques « Régularisation du montant net fiscal du revenu versé
+  - S89.G00.93.003 » et « Régularisation du montant soumis au PAS - S89.G00.93.009 » sont négatives ou nulles.
+
+  CCH-16 : Si la rubrique "Type d’erreur - S89.G00.93.002" est renseignée avec la valeur "01 - Rectification sur
+  montant net fiscal du revenu versé" ou "02 - Rectification sur taux" et si la rubrique "Date du mois principal déclaré -
+  S20.G00.05.005" est renseignée avec une valeur différente de "janvier" (mois 01), alors la rubrique "Mois de l’erreur -
+  S89.G00.93.001" ne peut pas être renseignée avec une date dont l'année est antérieure à celle du mois principal déclaré
+  (S20.G00.05.005). Ce contrôle vise à interdire la déclaration d'une régularisation de montant net fiscal du revenu versé
+  ou de montant de prélèvement à la source correspondant à l'exercice fiscal antérieur. Il est néanmoins toléré de
+  procéder à ce type de régularisation en janvier de l'année N pour une régularisation portant sur l'année N-1.
+
+  CCH-17 : Si la rubrique "Type d’erreur - S89.G00.93.002" est renseignée avec la valeur "01 - Rectification sur
+  montant net fiscal du revenu versé" ou "02 - Rectification sur taux" et si la rubrique "Date du mois principal déclaré -
+  S20.G00.05.005" est renseignée avec une valeur correspondant au mois de janvier alors la rubrique "Mois de l’erreur -
+  S89.G00.93.001" ne peut être renseignée qu’avec une date dont l’année correspond à l’année N-1 du mois principal
+  déclaré (S20.G00.05.005). Ce contrôle vise à n’autoriser en janvier que les régularisations de montant net fiscal du
+  revenu versé ou de montant de prélèvement à la source pour l’année N-1.
+
+  CCH-18 : Si la rubrique "Type d’erreur - S89.G00.93.002" est renseignée avec la valeur "01 - Rectification sur
+  montant net fiscal du revenu versé", la valeur "03 - Cas d’indu avec montant net fiscal du mois courant négatif" ou la
+  valeur "04 - Rectification sur montant net fiscal du revenu versé sans PAS", alors les rubriques "Montant net fiscal du
+  revenu versé le mois de l’erreur - S89.G00.93.004", "Régularisation du taux de prélèvement à la source -
+  S89.G00.93.005" et "Montant soumis au prélèvement à la source déclaré le mois de l'erreur - S89.G00.93.013" sont
+  interdites.
+
+  CCH-19 : Si la rubrique "Type d’erreur - S89.G00.93.002" est renseignée avec la valeur "02 - Rectification sur taux"
+  alors les rubriques "Régularisation du montant net fiscal du revenu versé - S89.G00.93.003", "Taux déclaré le mois de
+  l’erreur - S89.G00.93.006", "Régularisation du montant de la part non imposable du revenu - S89.G00.93.008",
+  "Régularisation du Montant de l’abattement sur la base fiscale (non déduit du montant net fiscal du revenu versé) -
+  S89.G00.93.010" et "Régularisation du montant soumis au PAS - S89.G00.93.009" sont interdites.
+
+  364 / 370
+
+--- p. 365 ---
+  S89.G00.93  2026-06-10
+
+  CCH-20 : Si la rubrique « Type d’erreur – S89.G00.93.002 » est renseignée avec la valeur « 04 - Rectification sur
+  montant net fiscal du revenu versé sans PAS » alors les rubriques « Régularisation du montant net fiscal du revenu
+  versé - S89.G00.93.003 » et « Régularisation du montant soumis au PAS - S89.G00.93.009 » sont obligatoires.
+
+  CCH-21 : Si la rubrique « Type d’erreur – S89.G00.93.002 » est renseignée à « 04 - Rectification sur montant net
+  fiscal du revenu versé sans PAS », alors la rubrique « Montant de la régularisation du prélèvement à la source -
+  S89.G00.93.007 » doit obligatoirement être renseignée à « 0.00 ».
+
+  X  [2,2]
+
+  01 - Rectification sur montant net fiscal du revenu versé
+  02 - Rectification sur taux
+  03 - Cas d’indu avec montant net fiscal du mois courant négatif
+  04 - Rectification sur montant net fiscal du revenu versé sans PAS
+
+Régularisation du montant net fiscal du revenu versé  S89.G00.93.003
+VTRegulPAS.RegulMontantNetFiscalRevenuVerse
+  Cette valeur doit être renseignée de l’écart entre le montant net fiscal déclaré le mois M et celle qui aurait
+  dû être indiquée ou du résultat du calcul du trop versé ne pouvant être compensé dans le mois courant.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant net fiscal du revenu versé le mois de l’erreur  S89.G00.93.004
+VTRegulPAS.MontantNetFiscalRevenuVerseMoisErreur
+  Reprise du montant net fiscal du mois de l’erreur de taux (02).
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Régularisation du taux de prélèvement à la source  S89.G00.93.005
+VTRegulPAS.RegulTauxPAS
+  Cette rubrique prend la valeur de l’écart entre le taux qui aurait dû être appliqué et celui réellement
+  appliqué le mois de l’erreur.
+  La valeur déclarée dans cette rubrique ne peut être que positive ou négative. Une valeur nulle est interdite.
+  CSL 00 : -?(([0-9]{1,2}\.[1-9][0-9])|([0-9]{1,2}\.[0-9][1-
+  N  [4,6]  9])|([0-9][1-9]\.[0-9]{2})|([1-9][0-9]\.[0-9]{2})|([0-9]\.[1-
+  9][0-9])|([0-9]\.[0-9][1-9])|([1-9]\.[0-9]{2}))
+
+Taux déclaré le mois de l’erreur  S89.G00.93.006
+VTRegulPAS.TauxDeclare
+  Il s’agit du taux appliqué le mois de l’erreur ou de l’indu.
+
+  N  [4,5]  CSL 00 : [0-9]{1,2}\.[0-9]{2}
+
+Montant de la régularisation du prélèvement à la source  S89.G00.93.007
+VTRegulPAS.MontantRegulPAS
+  Il s’agit du produit entre soit le montant soumis au PAS du mois de l’erreur et le taux rectifié ou le montant
+  soumis au PAS rectifié et le taux du mois.
+
+  365 / 370
+
+--- p. 366 ---
+  S89.G00.94  2026-06-10
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Régularisation du montant de la part non imposable du revenu  S89.G00.93.008
+VTRegulPAS.RegulPartNonImposableRevenu
+  Cette rubrique doit être renseignée avec l’écart constaté entre le "Montant de la part non imposable du
+  revenu - S89.G00.92.012" indiqué le mois M et celui qui aurait dû être indiqué. Elle peut également être
+  renseignée du résultat du calcul du trop versé de revenu non imposable ne pouvant être compensé dans le
+  mois courant.
+  CCH-11 : Si la rubrique "Régularisation du montant de la part non imposable du revenu - S89.G00.93.008" est
+  renseignée, alors les rubriques "Régularisation du montant net fiscal du revenu versé - S89.G00.93.003" et
+  "Régularisation du montant soumis au PAS - S89.G00.93.009" sont obligatoires.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Régularisation du montant soumis au PAS  S89.G00.93.009
+VTRegulPAS.RegulMontantSoumisPAS
+  Cette rubrique doit être renseignée avec l’écart entre le "Montant soumis au PAS - S89.G00.92.013" indiqué
+  le mois M et celui qui aurait dû être déclaré.
+  CCH-11 : Si la rubrique "Régularisation du montant soumis au PAS - S89.G00.93.009" est renseignée, alors la
+  rubrique "Régularisation du montant net fiscal du revenu versé - S89.G00.93.003" est obligatoire.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Régularisation du montant de l’abattement sur la base fiscale (non  S89.G00.93.010
+déduit du montant net fiscal du revenu versé)
+VTRegulPAS.RegulMontantAbattementBaseFiscaleNonDeduitRNF
+  Cette rubrique doit être renseignée avec l’écart entre le "Montant de l’abattement sur la base fiscale (non
+  déduit du montant net fiscal du revenu versé) - S89.G00.92.014" indiqué le mois M et celui qui aurait dû
+  être déclaré.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant soumis au prélèvement à la source déclaré le mois de  S89.G00.93.013
+l'erreur
+VTRegulPAS.MontantSoumisPASMoisErreur
+  Reprise du montant soumis au prélèvement à la source du mois de l’erreur de taux (02).
+
+  N  [4,12]  CSL 00 : [0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+S89.G00.94
+
+Cotisation Individu non salarié  S89.G00.94
+Code de cotisation  S89.G00.94.001
+Montant de cotisation  S89.G00.94.002
+
+Code de cotisation  S89.G00.94.001
+CotisationIndividuNonSalarie.CodeCotisation
+
+  366 / 370

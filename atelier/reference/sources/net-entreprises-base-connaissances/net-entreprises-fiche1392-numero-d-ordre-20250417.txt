@@ -1,0 +1,31 @@
+Date de modification : 17/04/2025 11:40 AM
+
+ Comment faut-il renseigner la rubrique " S20.G00.05.004 " du numéro d'ordre de la déclaration ?
+
+ Le fonctionnement du numéro d'ordre est le suivant :
+
+ Il s'agit d'un numéro défini par le collecteur dans son système d'information.
+
+ Il est contrôlé par le dispositif dans le cadre des contrôles de cinématique, en cas de déclarations " annule et remplace " : quand une déclaration normale et une déclaration annule et remplace (ou deux déclarations annule et remplace) sont déposées pour le même mois déclaré, le même numéro de fraction, le même type d'envoi (test ou réel) et le même SIRET déclaré, c'est le numéro d'ordre qui permet au dispositif de déterminer quelle est la déclaration à conserver et quelle est la déclaration à remplacer.
+
+Le numéro d'ordre peut par ailleurs être remis à 0 dans le SI des collecteurs à chaque début de mois civil, comme cela est indiqué dans la description de la rubrique (S20.G00.05.004) dans le Cahier technique.
+
+Pour prendre en compte ce paramètre, le contrôle de cinématique sur les annule et remplace porté par le dispositif examine les critères suivants : si le couple " mois de constitution / numéro d'ordre " de la déclaration en cours de traitement n'est pas supérieur à celui de la déclaration qu'elle annule et remplace, alors la déclaration ne respecte pas les critères de remplacement. 
+
+En d'autres termes, la déclaration respecte les critères de remplacement si :
+
+ Le mois de constitution du fichier (rubrique S20.G00.05.007) est supérieur à celui de la déclaration annulée et remplacée (que le numéro d'ordre - S20.G00.05.004 - soit inférieur, égal ou supérieur au numéro d'ordre de la déclaration annulée et remplacée).
+
+Ou
+
+ La date de constitution du fichier (rubrique S20.G00.05.007) est égale à celle de la déclaration annulée et remplacée et le numéro d'ordre - S20.G00.05.004 est supérieur au numéro d'ordre de la déclaration annulée et remplacée.
+
+ Date de création : 05/05/2017 03:38 PM 
+
+ N° de la fiche : 1392 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

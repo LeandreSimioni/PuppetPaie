@@ -1,0 +1,642 @@
+v5.3_FormatDPAE_EMAIL.xls / Titre
+v5.3 (13/06/2013)
+Transmission de la DPAE par EDI : Format 120. Dessin d'enregistrement
+imprimé le : 13/06/2013 12:03
+1 / 10
+
+v5.3_FormatDPAE_EMAIL.xls / Présentation
+v5.3 (13/06/2013)
+embauche@due.fr
+Caractéristiques du fichier rattaché
+Adresse de la boîte aux lettres du recouvrement
+Adresse de réception des messages électroniques pour les envois réels cryptés en production
+Ce document décrit les caractéristiques techniques des fichiers Dpae par Edi :
+- l'adresse d'envoi
+- le mode d'envoi
+- le format du fichier
+- son mode de remplissage
+Messages DPAE
+imprimé le : 13/06/2013 12:03
+2 / 10
+
+v5.3_FormatDPAE_EMAIL.xls / Présentation
+v5.3 (13/06/2013)
+Il est important de surveiller les codes retour de chaque déclaration. Un recyclage des anomalies est à prévoir.
+Traitement des rejets
+En cas d'anomalie de traitement par lots comme en cas d'anomalie d'intégration dans la base DUE, la déclaration est rejetée par 
+le système. (cf onglet : codes retour ) 
+Observations d’ordre général 
+La longueur de chaque enregistrement doit être fixe. Elle doit correspondre à 990 en incluant le saut de ligne.
+Les champs sont cadrés à gauche, complétés par des blancs.
+Les enregistrements se terminent par un saut de ligne (LF, chr(10), \n, 0A).
+Les champs obligatoires doivent être en majuscules.
+Le fichier joint au message électronique doit être :
+- reconnu comme pièce jointe et non intégré au corps du message
+- de taille inférieure à 10 Mo.
+Le message électronique doit être en format MIME, codage base 64.
+imprimé le : 13/06/2013 12:03
+3 / 10
+
+v5.3_FormatDPAE_EMAIL.xls / Version
+v5.3 (13/06/2013)
+Version
+Modifications
+Date
+Modification du champ C_VERSION (position 73)
+Suppression du champ C_NAF de la partie DPAE (position 184)
+Ajout du champ C_NAF_NN en position 661 sur 5 positions dans la partie EMPLOYEUR
+Fusion d'URSSAF (340 et 490)
+Suppression des types de contrat 4 (CNE)
+Prise en compte des types de contrat:CDD-OD (CDD à objet défini, type de contrat : 5)
+4.4.5
+Fusion d'URSSAF (761+762+763=760;381+382=388;691+692=690;421+422=420;622+ 629=629) (voir 
+Codes Urssaf)
+janv-09
+4.4.6
+Fusion d'URSSAF (592+593+594=590) (voir Code Urssaf)
+janv-10
+5
+Décret : 
+Nouveaux champs obligatoires : C_SEXE_SAL (position 731), C_MT_DCL (position 938)
+Suppression des champs : C_ORG_DEST (position 19), I_AR_PAR_LOT (position 22),
+N_FAX_AR_LOT (position 23), C_SUPP_AR_LOT (position 34), C_TYPE_DECL (position 151),
+L_PAYS_SAL (position 393), L_ACTIVITE (position 432), C_FORME_JUR (position 502),
+C_QUALITE (position 506), L_ADR_CRESP_1 (position 564),
+L_ADR_CRESP_2 (position 628), C_POST_CRESP (position 628),
+L_BUR_DIST_CRESP (position 633), PASSWD (position 683), C_CVLT_SAL (position 693),
+N_NUM_ENREG_DUE (position 694), L_ADR_SAL_1 (position 732), L_ADR_SAL_2 (position 764),
+C_POST_SAL (position 796), L_BUR_DIST_SAL (position 801), L_NATION_SAL (position 830),
+C_FORMATION (position 862), C_EMPLOI (position 863), C_QUALIF (position 864),
+D_NON_EMBAUCHE (position 874), N_HH_HEBDO (position 882), N_SALAIRE_MM (position 888),
+L_NOM_RESP (position 894), N_TEL_RESP (position 926), C_AV_EMBAUCHE (position 937),
+N_HH_TRAVAIL (position 948), N_EFFECTIF_ETAB (position 953), 
+N_EFFECTIF_ENTR (position 958), I_NATIONALITE (position 963), I_AGENT_TITU (position 964),
+C_UNITE_HH (position 965), C_DEV_SALAIRE_MM (position 966),
+I_PREMIERE_EMB (position 969), I_CHOM (position 973)
+Nouvelles valeurs pour : C_VERSION (TST et 120), C_TYPE_CONTRAT (1 CDD, 2 CDI, 3 CTT)
+janv-11
+5.1
+Suppression des onglets Codes URSSAF et Codes Service Santé. 
+févr-12
+5.2
+Régionalisation 2013 (MAJ du document liste_SST_EDI.pdf)
+janv-13
+5.3
+Ajout du code erreur version dans C_RET_AR_LOT (cf onglet Codes retour)
+Remplacement de DUE par DPAE 
+juin-13
+4.4.3
+janv-08
+4.4.4
+nov-08
+imprimé le : 13/06/2013 12:03
+4 / 10
+
+v5.3_FormatDPAE_EMAIL.xls / Format enreg
+v5.3 (13/06/2013)
+Libellé
+Déb
+Fin
+Lg
+Description
+O Type
+Observations
+L_IDENT_EMT
+1
+14
+14
+Identifiant de l'émetteur de l’enregistrement. 
+Ne doit pas commencer par « UP ».
+O
+AN
+Identification de l’émetteur : Cette zone est votre référence 
+de lot, sa gestion vous appartient, elle sera rappelée dans la 
+zone V/REF de la télécopie d’accusé réception de lecture du 
+lot. Nous vous conseillons le nom de votre entreprise (nom 
+significatif) sans blanc intercalaires (seuls sont acceptés les 
+lettres majuscules et les chiffres).
+ ATTENTION : L’ identification de l’émetteur ne pourra 
+commencer par UP. Ces deux caractères sont réservés.
+ Dans le cas où il y aurait plusieurs sites d’envoi des fichiers, il 
+est  nécessaire de différencier l’identifiant de l’émetteur pour 
+chacun des sites.
+ Ce champ doit contenir au moins un caractère alphabétique 
+non accentué [a-z][A-Z]
+C_APPLICATION
+15
+18
+4
+Code de l’application à lancer
+O
+AN
+Code de l’application à lancer :
+doit être rempli avec la valeur « DUE + 1 blanc »
+Réservé
+19
+34
+16
+16 blancs
+C_ADR_RET_AR
+35
+64
+30
+Adresse de retour des AR vers l’employeur.
+AN
+N_LG_MESS
+65
+72
+8
+Longueur de l’enregistrement
+(hors entête) en nombre de caractères.
+O
+AN
+Taille du message HORS L’ENTETE de 77 caractères :
+Doit être renseigné à 912 si tous les champs sont renseignés 
+ou si le message est complété par des blancs 
+C_VERSION
+73
+75
+3
+Version du message
+(« TST » pour un message de test,
+« 120 » pour un message d’exploitation).
+O
+AN
+C_RET_AR_LOT
+76
+77
+2
+Code erreur traitement du lot
+AN
+Sera renseigné par le système.
+00 indique un traitement nominal
+cf : Onglet codes retour
+LIBRE
+78
+92
+15
+AN
+La  zone « Libre » n'est pas contrôlée, elle peut être utilisée 
+par le déclarant pour sa gestion interne.
+LIBRE
+93
+107
+15
+AN
+La  zone « Libre » n'est pas contrôlée, elle peut être utilisée 
+par le déclarant pour sa gestion interne.
+LIBRE
+108
+121
+14
+AN
+La  zone « Libre » n'est pas contrôlée, elle peut être utilisée 
+par le déclarant comme objet du mail des AR
+D_CREATION
+122
+129
+8
+Date de création de l’enregistrement 
+(format JJMMAAAA).
+O
+N
+H_CREATION
+130
+133
+4
+Heure de création de l’enregistrement
+(format HHMM).
+O
+N
+C_URSSAF
+134
+136
+3
+Code de l’URSSAF réceptrice des données.
+O
+N
+Voir document contenant la liste des Codes URSSAF
+Catégorie I : ENTETE 
+La date et l’heure réelles de réception de la déclaration seront 
+données par le Fournisseur d’accès du Recouvrement
+Catégorie II : DPAE 
+imprimé le : 13/06/2013 12:03
+5 / 10
+
+v5.3_FormatDPAE_EMAIL.xls / Format enreg
+v5.3 (13/06/2013)
+Libellé
+Déb
+Fin
+Lg
+Description
+O Type
+Observations
+N_SIRET
+137
+150
+14
+SIRET de l’employeur
+O
+AN
+N° SIRET de l'établissement. Si ce n° est inconnu de la base, il 
+sera créé au moment de la lecture de l’enregistrement
+Réservé
+151
+151
+1
+1 blanc
+L_RAISON_SOC_1
+152
+183
+32
+Nom ou raison sociale (ligne 1)
+O
+AN
+Caractères autorisés : A …Z, 0 …9, espace, moins (-) et &
+Réservé
+184
+187
+4
+4 blancs
+L_ADR_EMP_1
+188
+219
+32
+Adresse de l’établissement (1ere ligne).
+O
+AN
+Caractères autorisés : A …Z, 0 …9, espace, moins (-), &, point 
+(.), virgule (,) et apostrophe (‘)
+L_ADR_EMP_2
+220
+251
+32
+Adresse de l’établissement (2nde ligne).
+AN
+C_POSTAL_EMP
+252
+256
+5
+Code postal de l'établissement
+O
+N
+L_BUR_DIST_EMP
+257
+283
+27
+Commune de l’établissement
+O
+AN
+Caractères autorisés : A …Z, 0 …9, espace, moins (-), &, point 
+(.), virgule (,) et apostrophe (‘)
+L_NOM_PATRO_SAL
+284
+315
+32
+Nom du salarié.
+O
+A
+Caractères autorisés : A …Z, espace, moins (-), & et point (.)
+L_PRENOMS_SAL
+316
+347
+32
+Prénom du salarié.
+O
+A
+Caractères autorisés : A …Z, espace, moins (-), & et point (.)
+N_SECU_SOC
+348
+360
+13
+Numéro de sécurité sociale.
+R
+AN
+D_NAISSANCE_SAL
+361
+368
+8
+Date de naissance (format JJMMAAAA).
+O
+N
+L_LIEU_NAISS_SAL
+369
+392
+24
+Lieu de naissance du salarié
+(commune ou pays).
+O
+AN
+Caractères autorisés : A …Z, 0 … 9, espace, moins (-), virgule 
+(,), apostrophe (‘) et point (.)
+Réservé
+393
+412
+20
+20 blancs
+D_EMBAUCHE
+413
+420
+8
+Date d’embauche (format JJMMAAAA).
+O
+N
+H_EMBAUCHE
+421
+424
+4
+Heure d’embauche (format HHMM).
+O
+N
+R_DOSSIER
+425
+429
+5
+Référence du dossier.
+AN
+référence sous laquelle est enregistrée la DPAE
+C_RETOUR_AR
+430
+431
+2
+Code retour accusé de réception.
+AN
+00' DPAE enregistrée
+'98' DPAE déjà existante
+Pour tout autre code voir liste des codes retour de traitement 
+dans l'onglet Codes retour
+Réservé
+432
+509
+78
+78 blancs
+L_RAISON_SOC_2
+510
+541
+32
+Nom ou raison sociale (ligne 2).
+AN
+N_TEL_EMP
+542
+552
+11
+Numéro de téléphone.
+AN
+Réservé
+553
+659
+107 107 blancs
+C_ORIG_SAISIE
+660
+660
+1
+constante "I" (i majuscule)
+O
+A
+C_NAF_NN
+661
+665
+5
+Code NAF Nouvelle Nomenclature 2008
+O
+AN
+Réservé
+666
+698
+33
+33 blancs
+L_NOM_EPX_SAL
+699
+730
+32
+Nom d’époux.
+A
+C_SEXE_SAL
+731
+731
+1
+Sexe du salarié (M ou F).
+O
+A
+Réservé
+732
+827
+96
+96 blancs
+C_DEPT_NAISS_SAL
+828
+829
+2
+Code du département de naissance.
+O
+AN
+Réservé
+830
+864
+35
+35 blancs
+Catégorie V : CONTRAT
+Catégorie IV : SALARIE
+ Catégorie III : EMPLOYEUR
+imprimé le : 13/06/2013 12:03
+6 / 10
+
+v5.3_FormatDPAE_EMAIL.xls / Format enreg
+v5.3 (13/06/2013)
+Libellé
+Déb
+Fin
+Lg
+Description
+O Type
+Observations
+C_TYPE_CONTRAT
+865
+865
+1
+Code type de contrat (1, 2, 3) 
+pour CDD, CDI, CTT
+O
+A
+D_FIN_CDD
+866
+873
+8
+Date de fin de CDD (format JJMMAAAA).
+AN
+Obligatoire pour les contrats de type CDD.
+Réservé
+874
+884
+11
+11 blancs
+N_JJ_ESSAI
+885
+887
+3
+Durée de la période d’essai (en jours).
+AN
+Réservé
+888
+937
+50
+50 blancs
+C_MT_DCL
+938
+947
+10
+Code centre de médecine du travail
+AN
+Ce champ est obligatoire sauf pour un contrat CTT
+Les codes médecine du travail sont dans le document 
+contenant les Codes Service santé.
+Il est attendu ici un code du type MT+ 3 positions numériques. 
+Ex: MT542 désignant le code de votre médecine du travail
+Si vous disposez d’un centre de médecine interne à 
+l’établissement, renseignez MT999
+Réservé
+948
+970
+23
+23 blancs
+I_CERTIF
+971
+971
+1
+A
+Positionné par le système
+Réservé
+972
+973
+2
+2 blancs
+I_IMMA
+974
+974
+1
+A
+Positionné par le système
+I_MT
+975
+975
+1
+A
+Positionné par le système
+I_PMF5
+976
+976
+1
+A
+Positionné par le système
+Réservé
+977
+989
+13
+13 blancs 
+Total (en caractères)
+989 945
+Catégorie VI : FORMALITES
+imprimé le : 13/06/2013 12:03
+7 / 10
+
+v5.3_FormatDPAE_EMAIL.xls / Formalités
+v5.3 (13/06/2013)
+Formalités
+Libellé
+Partenaires
+CERTIF 
+Données utiles au pré-établissement de la D.A.D.S (Déclaration annuelle des données sociales)
+CRAM
+IMMA
+Demande d’immatriculation d’un salarié dépourvu de numéro de sécurité sociale  
+CPAM
+MT
+Information du service de médecine du travail 
+MT
+PMF5
+Première embauche dans un établissement
+CFE-URSSAF
+Liste des formalités pouvant être créées lors de l'enregistrement de la DPAE, et transmises à nos partenaires
+imprimé le : 13/06/2013 12:03
+8 / 10
+
+v5.3_FormatDPAE_EMAIL.xls / Codes retour
+v5.3 (13/06/2013)
+Code
+0
+11
+15
+Code
+0
+1
+2
+3
+5
+6
+7
+8
+Une DPAE correctement enregistrée renvoie obligatoirement une référence dossier dans le champs R_DOSSIER.
+La date/heure de réception de la déclaration, est la date/heure système de réception du mail par notre fournisseur d'accès.
+Adresse invalide - non renseignée
+Code postal invalide - ne comportant pas 5 caractères numériques
+Libellé
+Correct
+C_RETOUR_AR  :
+SIRET invalide - syntaxiquement incorrect
+Code URSSAF invalide - n’appartenant pas à la liste des Codes Urssaf
+Code APE invalide - n’appartenant pas à la liste des codes APE(NAF)
+Exploitation des codes retours
+Deux types de code retour sont à exploiter :
+C_RET_AR_LOT  : contient les codes anomalie de traitement du message reçu 
+C_RETOUR_AR : Les codes anomalie de traitement des données de l'enregistrement DPAE
+C_RET_AR_LOT  :
+Correct
+Libellé
+Code version incorrect
+Longueur du message incorrecte
+Commune invalide - non renseignée
+Nom ou raison sociale invalide – non renseignée ou caractères interdits
+imprimé le : 13/06/2013 12:03
+9 / 10
+
+v5.3_FormatDPAE_EMAIL.xls / Codes retour
+v5.3 (13/06/2013)
+11
+12
+31
+32
+33
+34
+35
+38
+39
+40
+43
+44
+45
+46
+47
+50
+98
+99
+DPAE déjà existante (nom, prénom, date naissance, heure & date embauche et siret)
+Code médecine du travail invalide - non renseigné
+Code NAF invalide pour le type de contrat CTT
+Autre erreur (erreur concernant des données facultatives)
+Numéro de sécurité sociale invalide - invraisemblable, département inexistant,... (1)
+Date de déclaration invalide - invraisemblable ou non renseignée
+Heure de déclaration invalide - invraisemblable ou non renseignée
+Lieu de naissance invalide - non renseigné
+Date et/ou Heure d’embauche invalide - invraisemblable ou non renseignée
+Code origine saisie invalide - non renseigné
+Prénom salarié invalide - non renseigné
+Date de naissance salarié invalide - invraisemblable ou non renseignée
+Département de naissance invalide - non renseigné
+Date de fin de CDD obligatoire pour un contrat CDD ou invalide (par ex. antérieure à la date d'embauche)
+Sexe du salarié Invalide -différent de M ou F - non renseigné
+Type de contrat Invalide – différent de 1,2 ou 3 - non renseigné
+Code origine application incorrect 
+Nom salarié invalide - non renseigné
+imprimé le : 13/06/2013 12:03
+10 / 10

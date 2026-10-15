@@ -1,0 +1,238 @@
+Date de modification : 26/03/2025 04:48 PM
+ Annulation d’une fin de contrat transmise à tort 
+ Comment annuler une fin de contrat déclarée à tort via l'émission d'un bloc " Fin du contrat - S21.G00.62 " de code motif " 099 - Annulation " ?
+ Le contexte 
+ La DSN est une déclaration mensuelle à laquelle s'applique le principe de correction au mois le mois. Si le déclarant constate que le fichier déposé comporte des erreurs dans les données déclarées, il peut transmettre une DSN mensuelle de type " Annule et Remplace " jusqu'à la veille, minuit, de la date d'exigibilité. Passé cette date,  il convient de corriger les informations erronées dans la DSN du mois suivant.
+ Pour répondre au besoin d'annuler une fin de contrat déclarée à tort dans une DSN mensuelle, le code " 099 - Annulation " a été créé en rubrique " Motif de la rupture de contrat - S21.G00.62.002 ". Il permet la mise en place d'une cinématique d'annulation propre aux DSN mensuelles, une fois la date d'échéance de dépôt de la DSN mensuelle passée. 
+ Une cinématique d'annulation propre aux signalements de fin de contrat de travail étant déjà en place, ce nouveau code motif est interdit au sein de cette nature de déclaration (rubrique " Nature de la déclaration - S20.G00.05.001 " valorisée à "07 - Signalement Fin du contrat de travail Unique" . 
+ Il est à noter que ce motif permet d'annuler la déclaration à tort d'une fin de contrat, et non de corriger une fin de contrat (une correction de fin de contrat s'opère par l'émission d'un bloc " Fin du contrat - S21.G00.62 " dans la DSN mensuelle suivante portant les informations correctes qui écraseront celles précédemment déclarées). 
+ En pratique, l'annulation d'un bloc " Fin de contrat - S21.G00.62 " transmise à tort dans une précédente DSN mensuelle s'obtiendra en renseignant dans la DSN mensuelle suivante, un bloc " Fin du contrat - S21.G00.62 " d e code motif " 099 - Annulation " et par ailleurs identique au bloc " Fin du contrat " à annuler. Cette modalité déclarative induira que toutes les données transmises le mois précédent (mois de l'erreur) au sein du bloc " Fin du contrat " sont annulées. 
+ Déclarer une annulation d’une fin de contrat transmise à tort 
+ Pour annuler une fin de contrat déclarée à tort au sein d'une DSN mensuelle après la date d'exigibilité, cette fin de contrat n'ayant par ailleurs pas fait l'objet d'un signalement Fin de contrat de travail (exemple : CDD d'usage dérogatoire, intérimaires, etc.) : 
+ Il convient de renseigner, dans la DSN mensuelle du mois suivant, un bloc " Fin de contrat - S21.G00.62 " avec le code " 099 - Annulation ", et par ailleurs identique au bloc " Fin de contrat - S21.G00.62 " à annuler. 
+ Il est à noter qu'un seul bloc " Fin de contrat - S21.G00.62 " sera renseigné dans la DSN portant l'annulation. 
+ Les différents OPS destinataires de la DSN mensuelle seront ainsi informés de l'annulation de la fin de contrat, et l'historique du salarié sera mis à jour. 
+Pour annuler une fin de contrat déclarée via un signalement Fin de contrat de travail unique dont les informations ont été reportées au sein de la DSN mensuelle (et la date d'exigibilité étant passée) : 
+ Il convient de transmettre un signalement Fin de contrat de travail unique de type " 04 - annule ", selon la cinématique d'annulation déjà en place pour les signalements. 
+ Dans la DSN mensuelle suivante sera déclaré un bloc " Fin de contrat - S21.G00.62 " de code motif " 099 - Annulation " et reprenant les différentes données de la fin de contrat annulée. 
+ Les OPS non destinataires du signalement Fin de contrat de travail unique seront ainsi informés de l'annulation de la fin de contrat, et l'historique du salarié sera mis à jour. 
+ Les exemples 
+ Exemple n°1 : 
+ La fin d'un contrat de mission est déclarée au sein de la DSN mensuelle de mois principal déclaré mars 2018. Elle n'a fait l'objet d'aucun signalement de fin de contrat de travail unique . 
+ Passé la date d'exigibilité, le gestionnaire DSN se rend compte d'une erreur : le salarié intérimaire n'est pas sorti, son contrat a été prolongé. 
+ Le bloc " Fin du contrat - S21.G00.62 " déclaré à tort dans la DSN de mars 2018  doit être annulé dans la DSN d'avril 2018 . 
+ Modalités déclaratives : 
+   | 
+ DSN mensuelle mois M (mois de l'erreur mars 2018 ) 
+ | 
+ DSN mensuelle mois M+1 (mois de l'annulation avril 2018 ) 
+ | 
+  Date de fin du contrat - S21.G00.62.001 
+ | 
+ 02032018 
+ | 
+ 02032018 
+ | 
+ Motif de la rupture du contrat - S21.G00.62.002 
+ | 
+ 031 - fin
+ de contrat à durée déterminée ou fin d'accueil occasionnel 
+ | 
+ 099 - annulation 
+ | 
+ Dernier jour travaillé et payé au salaire habituel - S21.G00.62.006 
+ | 
+ 20022018 
+ | 
+ 20022018 
+ | 
+ Maintien de l'affiliation du salarié au contrat collectif - S21.G00.62.016 
+ | 
+ 01 - oui 
+ | 
+ 01 - oui 
+ | 
+   | 
+ Exemple n°2 :
+ La fin d'un contrat de travail est déclarée via l'émission d'un signalement Fin de contrat de travail unique . Les informations relatives à cette sortie sont reprises dans la DSN mensuelle du mois de la fin du contrat (mars 2018 ).
+ Passé la date d'exigibilité, le gestionnaire DSN se rend compte d'une erreur : le salarié n'est pas sorti, son contrat a été prolongé.
+ La fin de contrat doit donc être annulée via l'émission d'un signalement Fin de contrat de travail unique de type " 04 - annule ". Cette annulation sera reprise dans la DSN mensuelle d'avril 2018 .
+ Modalités déclaratives : 
+   | 
+ Signalement Fin de contrat de travail unique initial 
+ | 
+ DSN mensuelle mois M (mois de l'erreur mars 2018 ) 
+ | 
+ Nature de la déclaration - S20.G00.05.001 
+ | 
+ 07 - Signalement Fin du contrat de travail Unique  
+ | 
+ 01 - DSN Mensuelle 
+ | 
+ Type de la déclaration - S20.G00.05.002 
+ | 
+ 01 - déclaration normale 
+ | 
+ 01 - déclaration normale 
+ | 
+  Date de fin du contrat - S21.G00.62.001 
+ | 
+ 25032018 
+ | 
+ 25032018 
+ | 
+  Motif de la rupture du contrat - S21.G00.62.002 
+ | 
+ 087 - licenciement pour faute grave 
+ | 
+ 087 - licenciement pour faute grave 
+ | 
+ Dernier jour travaillé et payé au salaire habituel - S21.G00.62.006 
+ | 
+ 25032018 
+ | 
+ Non renseignée 
+ | 
+ Transaction en cours - S21.G00.62.008 
+ | 
+ 02 - non 
+ | 
+ Non renseignée 
+ | 
+   | 
+ Signalement Fin de contrat de travail unique supprimé 
+ | 
+ DSN mensuelle mois M+1 (mois de l'annulation avril 2018 ) 
+ | 
+ Nature de la déclaration - S20.G00.05.001 
+ | 
+ 07 - Signalement Fin du contrat de travail Unique 
+ | 
+ 01 - DSN Mensuelle 
+ | 
+ Type de la déclaration - S20.G00.05.002 
+ | 
+ 04 - déclaration annule 
+ | 
+ 01 - déclaration normale 
+ | 
+  Date de fin du contrat - S21.G00.62.001 
+ | 
+ 25032018 
+ | 
+ 25032018 
+ | 
+ Motif de la rupture du contrat - S21.G00.62.002 
+ | 
+ 087 - licenciement pour faute grave 
+ | 
+ 099 - annulation 
+ | 
+  Dernier jour travaillé et payé au salaire habituel - S21.G00.62.006 
+ | 
+ 25032018 
+ | 
+ 25032018 
+ | 
+ Transaction en cours - S21.G00.62.008 
+ | 
+ 02 - non 
+ | 
+ Non renseignée 
+ | 
+ Cette cinématique d'annulation, propre à la DSN mensuelle, permet la correcte mise à jour de l'historique du salarié concerné par la déclaration de fin de contrat erronée, et donc la garantie de ses droits. 
+ Exemple n°3 : 
+ La fin d'un contrat de mission est déclarée au sein de la DSN mensuelle de mois principal déclaré mars 2018 . Elle n'a fait l'objet d'aucun signalement de fin de contrat de travail unique . 
+ Passé la date d'exigibilité, le gestionnaire DSN se rend compte d'une erreur au niveau de la donnée " dernier jour travaillé et payé au salaire habituel " qu'il souhaite corriger 
+ Modalités déclaratives : 
+   | 
+ DSN mensuelle mois M (mois de l'erreur mars 2018 ) 
+ | 
+ DSN mensuelle mois M+1 (mois de l'annulation avril 2018 ) 
+ | 
+ S21.G00.62.001 Date de fin du contrat 
+ | 
+ 02032018 
+ | 
+ 02032018 
+ | 
+ S21.G00.62.002 Motif de la rupture du contrat 
+ | 
+ 031 - fin
+ de contrat à durée déterminée ou fin d'accueil occasionnel 
+ | 
+ 031 - fin
+ de contrat à durée déterminée ou fin d'accueil occasionnel 
+ | 
+ S21.G00.62.006 Dernier jour travaillé et payé au salaire habituel 
+ | 
+ 20022018 
+ | 
+ 02032018 
+ | 
+ Exemple n°4 : 
+ La fin d'un contrat de travail est déclarée via l'émission d'un signalement Fin de contrat de travail unique . Les informations relatives à cette sortie sont reprises dans la DSN mensuelle du mois de la fin du contrat (mars 2018 ). 
+ Passé la date d'exigibilité, le gestionnaire DSN se rend compte d'une erreur au niveau de la date de fin du contrat qu'il souhaite corriger. 
+ La date de fin de contrat sera corrigée via l'émission d'un signalement Fin de contrat de travail unique de type " 03 - déclaration annule et remplace intégral ". Cette correction sera reprise dans la DSN mensuelle d'avril 2018 . 
+ Modalités déclaratives : 
+   | 
+ Signalement Fin de contrat de travail unique initial 
+ | 
+ DSN mensuelle mois M (mois de l'erreur mars 2018 ) 
+ | 
+ Nature de la déclaration S20.G00.05.001 
+ | 
+ 07 - Signalement Fin du contrat de travail Unique 
+ | 
+ 01 - DSN Mensuelle 
+ | 
+ Type de la déclaration S20.G00.05.002 
+ | 
+ 01 - déclaration normale 
+ | 
+ 01 - déclaration normale 
+ | 
+ Date de fin du contrat S21.G00.62.001 
+ | 
+ 25032018 
+ | 
+ 25032018 
+ | 
+ Motif de la rupture du contrat S21.G00.62.002 
+ | 
+ 087 - licenciement pour faute grave 
+ | 
+ 087 - licenciement pour faute grave 
+ | 
+   | 
+ Signalement Fin de contrat de travail unique corrigé 
+ | 
+ DSN mensuelle mois M+1 (mois de la correction avril 2018 ) 
+ | 
+ Nature de la déclaration S20.G00.05.001 
+ | 
+ 07 - Signalement Fin du contrat de travail Unique 
+ | 
+ 01 - DSN Mensuelle 
+ | 
+ Type de la déclaration S20.G00.05.002 
+ | 
+ 03 - déclaration annule et remplace intégral 
+ | 
+ 01 - déclaration normale 
+ | 
+ Date de fin du contrat S21.G00.62.001 
+ | 
+ 27032018 
+ | 
+ 27032018 
+ | 
+ Motif de la rupture du contrat S21.G00.62.002 
+ | 
+ 087 - licenciement pour faute grave 
+ | 
+ 087 - licenciement pour faute grave 
+ | 
+ | 
+ Date de création : 20/10/2017 09:54 AM 
+ N° de la fiche : 1722

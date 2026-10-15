@@ -1,0 +1,177 @@
+# Bloc S21.G00.31
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 177-179
+
+--- p. 177 ---
+  S21.G00.31  2026-06-10
+
+  technologie), etc.
+  06 - Formation de niveau bac+3 et bac+4 : licence 3, licence professionnelle, master 1, etc.
+  07 - Formation de niveau bac+5 : master 2, diplôme d'études approfondies, diplôme d'études supérieures spécialisées,
+  diplôme d'ingénieur, etc.
+  08 - Formation de niveau bac+8 : doctorat, habilitation à diriger des recherches, etc.
+
+Niveau de diplôme préparé par l'individu  S21.G00.30.025
+Individu.NiveauDiplomePrepare
+  Niveau de diplôme suivi par l'individu en contrat d'apprentissage tel que défini par le décret n° 2019-14 du
+  8 janvier 2019 relatif au cadre national des certifications professionnelles.
+  CCH-11 : La rubrique "Niveau de diplôme préparé par l'individu - S21.G00.30.025" doit obligatoirement être
+  renseignée si la rubrique "Dispositif de politique publique et conventionnel - S21.G00.40.008" est renseignée avec la
+  valeur "64 - Contrat d'apprentissage entreprises artisanales ou de moins de 11 salariés (loi du 3 janvier 1979)", "65 -
+  Contrat d’apprentissage entreprises non inscrites au répertoire des métiers d’au moins 11 salariés (loi de 1987)" ou "81
+  - Contrat d'apprentissage secteur public (Loi de 1992)".
+
+  X  [2,2]
+
+  03 - Niveau de formation équivalent au CAP (certificat d'aptitude professionnelle) ou au BEP (brevet d'études
+  professionnelles)
+  04 - Formation de niveau du bac (général, technologique ou professionnel), du brevet de technicien (BT) ou du brevet
+  professionnel
+  05 - Formation de niveau bac+2 : licence 2, BTS (brevet de technicien supérieur), DUT (diplôme universitaire de
+  technologie), etc.
+  06 - Formation de niveau bac+3 et bac+4 : licence 3, licence professionnelle, master 1, etc.
+  07 - Formation de niveau bac+5 : master 2, diplôme d'études approfondies, diplôme d'études supérieures spécialisées,
+  diplôme d'ingénieur, etc.
+  08 - Formation de niveau bac+8 : doctorat, habilitation à diriger des recherches, etc.
+
+Libellé du pays de naissance  S21.G00.30.029
+Individu.LibellePaysNaiss
+  Cette rubrique est à renseigner avec le libellé du pays de naissance pour un individu né à l’étranger.
+
+  CCH-11 : Si la rubrique « Code département de naissance - S21.G00.30.014 » est renseignée avec la valeur « 99 » et si
+  la rubrique « Lieu de naissance - S21.G00.30.007 » n'est pas renseignée, alors la rubrique « Libellé du pays de
+  naissance - S21.G00.30.029 » doit obligatoirement être renseignée.
+
+  X  [1,30]
+
+Identifiant du Service de Prévention et de Santé au Travail (SPST)  S21.G00.30.030
+Individu.IdentServicePreventSanteTravail
+  Cette rubrique doit être renseignée par l'identifiant du service de prévention et de santé au travail (SPST).
+  La définition de cet identifiant est précisée dans la fiche consigne dédiée.
+
+  X  [1,14]
+
+S21.G00.31
+
+Changements Individu  S21.G00.31
+  Les rubriques de ce bloc sont à renseigner en cas de modification d’une des caractéristiques suivantes d'un individu
+  (par exemple, changement état civil).
+  Plusieurs caractéristiques d'un individu peuvent être modifiées à la même date.
+
+  177 / 370
+
+--- p. 178 ---
+  S21.G00.31  2026-06-10
+
+  Dans ce cas, l’ensemble de ces modifications sera porté par une seule occurrence du bloc.
+  Si plusieurs modifications surviennent pendant le mois à des dates différentes, il sera nécessaire de les déclarer dans
+  autant de blocs qu’il y a de dates différentes de modifications.
+  Les rubriques doivent être renseignées avec la valeur avant changement.
+
+Date de la modification  S21.G00.31.001
+Ancien NIR  S21.G00.31.008
+Ancien nom de famille  S21.G00.31.009
+Anciens prénoms  S21.G00.31.010
+Ancienne date de naissance  S21.G00.31.011
+
+Date de la modification  S21.G00.31.001
+ChangementsIndividu.DateModification
+  La date de modification correspond à la date de survenance du changement de caractéristique du salarié.
+
+  CCH-12 : Un bloc "Changements Individu - S21.G00.31" qui n'est renseigné qu'avec la rubrique "Date de la
+  modification - S21.G00.31.001" est interdit.
+
+  SIG-11 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(19|20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Ancien NIR  S21.G00.31.008
+ChangementsIndividu.Identifiant
+  Le numéro d'inscription au répertoire (NIR) est l'identifiant unique et invariable des individus inscrits au
+  répertoire national d'identification des personnes physiques (RNIPP). Ce numéro correspond au numéro de
+  sécurité sociale.
+  Ce numéro est composé de 13 chiffres et d'une clé de 2 chiffres. La clé n'est pas à déclarer dans cette
+  rubrique.
+  Cette rubrique permet la déclaration du NIA (numéro d'immatriculation d'attente attribué par les
+  organismes de protection sociale). Le NIA est constitué comme un NIR dans l'attente d'être certifié
+  (circulaire DSS/sd4c N° 2012-213 du 1er juin 2012).
+  Le Nir doit avoir la forme SAAMMDDCCCNNN avec :
+  S = sexe de la personne physique doit être égal à 1 ou 2
+  AA = année de naissance de la personne physique doit être comprise entre 00 et 99
+  MM = mois de naissance de la personne physique doit être compris entre 01 et 12 ou entre 30 et 42 ou entre
+  50 et 99 ou égal à 20
+  DD = département de naissance de la personne physique doit être compris entre 01 et 99 ou être égal à 2A
+  ou 2B
+  CCC = commune de naissance de la personne physique doit être comprise entre 001 et 999
+  NNN = numéro d'inscription la personne physique au registre d'état civil doit être compris entre 001 et 999
+  Si l'immatriculation est provisoire, ne pas utiliser les numéros provisoires reconnaissables par leur premier
+  caractère égal à 7 ou 8, mais utiliser le NIA qui a été notifié.
+  En l'absence de NIR ou de NIA, il est obligatoire de remplir la rubrique Numéro technique temporaire
+  (S21.G00.30.020).
+  CSL 00 : [1-2][0-9]{2}(0[1-9]|1[0-2]|20|3[0-9]|4[0-2]|[5-
+  9][0-9])(0[1-9]|[1-9][0-9]|2A|2B)([0]{2}[1-9]|0[1-9][0-9]|[1-
+  X  [13,13]
+  9][0-9]{2})([0]{2}[1-9]|0[1-9][0-9]|[1-9][0-9]{2})|([1-
+  2][9]{12})
+
+  178 / 370
+
+--- p. 179 ---
+  S21.G00.34  2026-06-10
+
+Ancien nom de famille  S21.G00.31.009
+ChangementsIndividu.NomFamille
+  Le nom de famille est le nom défini pour chaque individu dans les jours qui suivent sa naissance. Il est
+  usuellement défini sur la base de la filiation avec l’un ou l’autre parent, voire les deux. Il peut être défini
+  par disposition administrative ou judiciaire.
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,80]
+
+Anciens prénoms  S21.G00.31.010
+ChangementsIndividu.Prenoms
+  Elément d'identification joint au nom de famille qui permet de distinguer les personnes d'une même famille.
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,80]
+
+Ancienne date de naissance  S21.G00.31.011
+ChangementsIndividu.DateNaissance
+  Instant où une personne naît, tel qu'enregistré à l'état civil.
+  Renseigner la date de naissance du salarié sous la forme JJMMAAAA.
+  - L'année de naissance est obligatoire :
+  - Jour de naissance inconnu : 00MMAAAA ou 99MMAAAA,
+  - Mois de naissance inconnu : JJ00AAAA ou JJ99AAAA,
+  - Si jour et mois inconnus : 0000AAAA ou 9999AAAA.
+  CCH-12 : L'année de l' "Ancienne date de naissance - S21.G00.31.011" doit être inférieure ou égale à l'année en cours
+  et supérieure à l'année en cours moins 120 (années).
+
+  CSL-11 : [(respect des contraintes calendaires)] aux exceptions près acceptées sur le mois ou le jour à 00 ou 99
+
+  CSL 00 : (0[0-9]|[1-2][0-9]|3[0-1]|99)(0[0-9]|1[0-
+  X  [8,8]
+  2]|99)(19|20)[0-9]{2}
+
+S21.G00.34
+
+Compte Professionnel de Prévention (Ex-Pénibilité)  S21.G00.34
+  Ce bloc permet de renseigner l'exposition de chaque individu à certains facteurs de risques professionnels.
+
+Facteur d'exposition  S21.G00.34.001
+Numéro du contrat  S21.G00.34.002
+Année de rattachement  S21.G00.34.003
+
+Facteur d'exposition  S21.G00.34.001
+Penibilite.FacteurExposition
+  CCH-11 : Pour un même individu, la déclaration d'un bloc "Compte Professionnel de Prévention (Ex-Pénibilité) -
+  S21.G00.34" n’est autorisée que si le "Numéro du contrat - S21.G00.34.002" qu'il porte correspond à un numéro de
+  contrat (S21.G00.40.009) déclaré dans un bloc "Contrat (contrat de travail, convention, mandat) - S21.G00.40" portant
+  un "Code régime de base risque vieillesse - S21.G00.40.020" égal à "157 - régime de retraite des avocats (CNBF)",
+  "200 - régime général (CNAV)", "300 - régime agricole (MSA)" ou "905 - Régime général pour la déclaration des
+
+  179 / 370

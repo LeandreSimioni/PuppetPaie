@@ -1,0 +1,54 @@
+Date de modification : 05/09/2025 10:33 AM
+ Quels sont les cas de dérogation à la déclaration des fins de contrat par signalement ?
+ Le contexte 
+ En DSN, l'attestation employeur est obtenue suite à la transmission d’un signalement FCTU dans les 5 jours suivant la survenance de la fin de contrat de travail. Pour les cas de populations exclues de la DSN ou d’un périmètre non couvert par la DSN, cette attestation est produite hors DSN, en privilégiant les canaux de transmission dématérialisée (AE Web sur le site de France Travail par exemple). 
+ En DSN, certains cas de dérogation au délai de 5 jours ont été accordés sous conditions et sauf demande expresse du salarié. Ces dérogations concernent les fins de contrats de travail de CDD d’usage et les fins de contrats de mission. Les conditions de dérogation sont ci-dessous exposées.
+ Dérogation pour les fins de contrats de travail CDDU 
+ Les fins de contrats de travail CDDU-D, c'est-à-dire, les Contrats à Durée Déterminée d'Usage pour lesquels l’employeur choisit, en accord avec son salarié, l'application du circuit Dérogatoire et sauf demande expresse du salarié, sont déclarées uniquement dans la DSN mensuelle sous condition qu'ils respectent les critères suivants :
+ a) La nature de contrat (S21.G00.40.007) renseignée par la valeur " 02 - Contrat de travail à durée déterminée de droit privé " ou " 10 - Contrat de travail à durée déterminée de droit public "
+ b) Le motif de recours (S21.G00.40.021) renseigné par la valeur " 05 - Contrat d'usage "
+ c) La modalité de déclaration de la fin du contrat d'usage (S21.G00.62.017) renseignée par la valeur "01 - Application du circuit dérogatoire "
+ d) Le motif de rupture (S21.G00.62.002) renseigné à « 031 fin de contrat à durée déterminée ».
+ Tous les autres motifs de rupture doivent être déclarés par l’émission d’un signalement FCTU.
+ Attention : la dérogation n’est applicable en DSN que pour les contrats CDDU infra-DSN.
+ Aucun signalement de type FCTU n'est attendu quand la dérogation est appliquée, sauf demande expresse du salarié.
+ Pour la cinématique de dépôt des fins de contrats pour ce type de contrat de travail, se référer à la fiche consigne n°1902 .
+ Dérogation pour les fins de contrats de mission pour les salariés intérimaires 
+ Les fins de contrat de mission répondant aux critères ci-dessous doivent être uniquement déclarées via la DSN mensuelle, sauf demande expresse du salarié.
+ a) La nature de contrat (S21.G00.40.007) renseignée par la valeur « 03 - Contrat de mission (contrat de travail temporaire) 
+ b) Le motif de rupture (S21.G00.62.002) renseigné avec l’une des valeurs suivantes :
+ « 032 - fin de mission d’intérim »
+ « 036 - rupture anticipée d'un CDD, d'un contrat d'apprentissage ou d’un contrat de mission à l'initiative de l'employeur »
+ « 037 - rupture anticipée d'un CDD, d'un contrat d'apprentissage ou d’un contrat de mission à l'initiative du salarié »
+ « 084 - rupture d'un commun accord du CDD, du contrat d'apprentissage ou d’un contrat de mission »
+ Tous les autres motifs de rupture autorisés pour les fins de contrats de mission doivent être déclarés par l’émission d’un signalement FCTU.
+ Exclusion des attestations employeurs en DSN pour les valeurs en rubrique « Nature du contrat – S21.G00.40.007 »
+ Les signalements FCTU ne doivent pas être utilisés pour les valeurs suivantes :
+ 20 - [FP] Détachement d'un agent d'une Fonction Publique donnant lieu à pension (ECP)
+ 21 - [FP] Détachement d'un agent d'une Fonction Publique ne donnant pas lieu à pension (ENCP)
+ 29 - Convention de stage (hors formation professionnelle)
+ 50 - Nomination dans la fonction publique (par arrêté, par décision...)
+ 70 - Contrat de soutien et d’aide par le travail
+ 80 - Mandat social
+ 81 - Mandat d'élu
+ 89 - Volontariat de service civique
+ 90 - Autre nature de contrat, convention, mandat
+ 91 – Contrat d’engagement maritime à durée déterminée
+ 92 – Contrat d’engagement maritime à durée indéterminée
+ 93 - Ligne de service
+ Exclusion de population 
+ Les attestations employeurs destinées à France Travail ne sont pas remplacées par la DSN pour les contrats de travail visés par un motif d’exclusion (S21.G00.40.025) au moment de la rupture. Il ne doit donc pas être réalisé de signalements Fin de Contrat de Travail (FCTU) en DSN pour les contrats concernés par un motif d’exclusion (S21.G00.40.025) :
+ Fonctionnaires de l’une des trois fonctions publiques (Etat, Territoriale, Hospitalière) sauf admission spécifique
+ Personnels navigants de la marine marchande
+ Marins-pêcheurs
+ Contrat de travail faisant l'objet d’une attestation employeur mensuelle (AEM) pour un ouvrier ou technicien de l'édition d'enregistrement sonore, de la production cinématographique et audiovisuelle, de la radio, de la diffusion et du spectacle
+ Contrat de travail faisant l'objet d'une attestation employeur mensuelle (AEM) pour un artiste du spectacle
+ Dockers carte G
+ Si un déclarant (ou tiers déclarant) transmet, par erreur, un signalement FCTU pour un contrat pour lequel la rubrique " Motif d'exclusion DSN - S21.G00.40.025 " est renseignée, alors :
+ L'Attestation employeur rematérialisée (AER) n'est pas générée dans le tableau de bord du déclarant (ou tiers déclarant).
+ Un compte-rendu métier (CRM) informe de cette anomalie dans le tableau de bord.
+ Aucune information ne parvient à France Travail. La déclaration doit être opérée en dehors de la DSN.
+ La réglementation :  
+ Conformément à l'article R.1234-9 du code du travail, toute fin de contrat de travail, quels qu'en soient le motif et l'origine, doit donner lieu à  la remise par l'employeur d'une Attestation Employeur à son salarié et à la transmission des informations à France Travail.
+ Date de création : 20/12/2018 03:07 PM 
+ N° de la fiche : 2062

@@ -1,0 +1,180 @@
+# Bloc S89.G00.87
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 333-335
+
+--- p. 333 ---
+  S89.G00.87  2025-12-24
+
+  N  [4,11]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Pourcentage de droit supplémentaire acquis  S89.G00.67.004
+DroitSupRegimeRSP.PourcentageDroitSupplementaireAcquis
+  Cette rubrique permet de déclarer le pourcentage de droit supplémentaire acquis annuellement.
+
+  N  [4,5]  CSL 00 : [0-9]{1,2}\.[0-9]{2}
+
+Millésime de rattachement  S89.G00.67.005
+DroitSupRegimeRSP.MillesimeRattachement
+  Année de rattachement des éléments déclarés au sein du présent bloc.
+
+  CCH-11 : L'année déclarée doit être inférieure ou égale aux quatre derniers caractères (Année) du mois principal
+  déclaré (S20.G00.05.005).
+
+  N  [4,4]  CSL 00 : 2([0-9]{3})
+
+S89.G00.87
+
+Actions gratuites  S89.G00.87
+Code contexte  S89.G00.87.001
+Nombre d'actions  S89.G00.87.002
+Valeur unitaire de l'action  S89.G00.87.003
+Fraction du gain d'acquisition de source française  S89.G00.87.004
+Date d'attribution  S89.G00.87.005
+Date d'acquisition définitive  S89.G00.87.006
+Numéro d'inscription au répertoire  S89.G00.87.007
+Numéro technique temporaire  S89.G00.87.008
+
+Code contexte  S89.G00.87.001
+ActionsGratuites.CodeContexte
+  Renseigner "01- oui" si le bloc décrit une attribution
+  Renseigner "02- non" si le bloc décrit une acquisition. Des données supplémentaires sont alors attendues.
+
+  X  [2,2]
+
+  01 - oui
+  02 - non
+
+Nombre d'actions  S89.G00.87.002
+ActionsGratuites.NombreActions
+  [NB : sans décimale, zéros non significatifs tolérés.]
+
+  N  [1,8]  CSL 00 : -?[0]*(0|[1-9][0-9]*)
+
+Valeur unitaire de l'action  S89.G00.87.003
+ActionsGratuites.ValeurUnitaireAction
+
+  333 / 361
+
+--- p. 334 ---
+  S89.G00.87  2025-12-24
+
+  La valeur indiquée comprend deux chiffres après la virgule. A titre d'exemple, une valeur unitaire d'un
+  montant de 0,385 euro sera indiquée à "0.38".
+  Une valeur unitaire d'un montant de 0,386 euro sera indiquée à "0.39".
+  Une valeur unitaire de 23€,70 sera indiquée à "23.70".
+
+  [NB : avec décimale, non signé, valeur zéro interdite, zéros non significatifs tolérés.]
+
+  N  [4,12]  CSL 00 : [0]*([1-9][0-9]*\.[0-9]{2}|0\.(0[1-9]|[1-9][0-9]))
+
+Fraction du gain d'acquisition de source française  S89.G00.87.004
+ActionsGratuites.FractionGainAcquisitionFr
+  Cette valeur doit être exprimée en pourcentage avec caractère séparateur (deux décimales).
+  Exemple : "23.70"
+
+  [NB : avec décimale, non signé, valeur zéro autorisée, zéros non significatifs tolérés.]
+  CCH-11 : La "Fraction du gain d'acquisition de source française - S89.G00.87.004" doit être présente si la rubrique
+  "Code contexte - S89.G00.87.001" est renseignée avec la valeur "02 - non" (dans ce cas, le contexte d'utilisation est
+  celui d'une acquisition).
+
+  N  [4,6]  CSL 00 : [0]*([1-9][0-9]*\.[0-9]{2}|0\.[0-9]{2})
+
+Date d'attribution  S89.G00.87.005
+ActionsGratuites.DateAttribution
+  [NB : Date au format JJMMAAAA avec AAAA = 19nn ou 20nn]
+
+  CCH-11 : La "Date d'attribution - S89.G00.87.005" doit être présente si et seulement si la rubrique "Code contexte -
+  S89.G00.87.001" est renseignée avec la valeur "02 - non" (dans ce cas, le contexte d'utilisation est celui d'une
+  acquisition).
+  Dans le cas contraire, la rubrique "Date d'attribution - S89.G00.87.005" est interdite.
+
+  CSL-12 : [(respect des contraintes calendaires)]
+
+  SIG-12 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(19|20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date d'acquisition définitive  S89.G00.87.006
+ActionsGratuites.DateAcquisitionDefinitive
+  [NB : Date au format JJMMAAAA avec AAAA = 20nn]
+
+  CCH-11 : La "Date d'acquisition définitive - S89.G00.87.006" doit être présente si et seulement si la rubrique "Code
+  contexte - S89.G00.87.001" est renseignée avec la valeur "02 - non" (dans ce cas, le contexte d'utilisation est celui
+  d'une acquisition).
+  Dans le cas contraire, la rubrique "Date d'acquisition définitive - S89.G00.87.006" est interdite.
+
+  CSL-12 : [(respect des contraintes calendaires)]
+
+  SIG-12 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  a  [8,8]
+  t  9]{2}
+
+  334 / 361
+
+--- p. 335 ---
+  S89.G00.87  2025-12-24
+
+  e
+
+Numéro d'inscription au répertoire  S89.G00.87.007
+ActionsGratuites.Identifiant
+  Le numéro d'inscription au répertoire (NIR) est l'identifiant unique et invariable des individus inscrits au
+  répertoire national d'identification des personnes physiques (RNIPP). Ce numéro correspond au numéro de
+  sécurité sociale.
+  Ce numéro est composé de 13 chiffres et d'une clé de 2 chiffres. La clé n'est pas à déclarer dans cette
+  rubrique.
+  Cette rubrique permet la déclaration du NIA (numéro d'immatriculation d'attente attribué par les
+  organismes de protection sociale) en l'absence de NIR. Le NIA est constitué comme un NIR dans l'attente
+  d'être certifié (circulaire DSS/sd4c N° 2012-213 du 1er juin 2012).
+  Le Nir doit avoir la forme SAAMMDDCCCNNN avec :
+  S = sexe de la personne physique doit être égal à 1 ou 2
+  AA = année de naissance de la personne physique doit être comprise entre 00 et 99
+  MM = mois de naissance de la personne physique doit être compris entre 01 et 12 ou entre 30 et 42 ou entre
+  50 et 99 ou égal à 20
+  DD = département de naissance de la personne physique doit être compris entre 01 et 99 ou être égal à 2A
+  ou 2B
+  CCC = commune de naissance de la personne physique doit être comprise entre 001 et 999
+  NNN = numéro d'inscription la personne physique au registre d'état civil doit être compris entre 001 et 999
+  Si l'immatriculation est provisoire, ne pas utiliser les numéros provisoires reconnaissables par leur premier
+  caractère égal à 7 ou 8, mais utiliser le NIA qui a été notifié.
+  En l'absence de NIR ou de NIA, il est obligatoire de remplir la rubrique Numéro technique temporaire
+  (S89.G00.87.008).
+  CCH-11 : Pour un NIR sur 13 caractères, DD = département de naissance de la personne physique
+  - ne peut être égal à 2A ou 2B si année de naissance inférieure à 1976
+  - ne peut être égal à 20 si année de naissance supérieure ou égale à 1976
+  - ne peut être égal à 96 si année de naissance supérieure ou égale à 1968
+  L'année utilisée doit être extraite de la rubrique date de naissance.
+
+  CCH-12 : Il n'est pas admis qu'un "Numéro d'inscription au répertoire - S89.G00.87.007" soit renseigné avec la valeur
+  "1999999999999" ou "2999999999999".
+
+  CCH-13 : Si le "Numéro d'inscription au répertoire - S89.G00.87.007" est renseigné, il doit être identique à celui
+  déclaré dans la rubrique "Numéro d'inscription au répertoire - S21.G00.30.001".
+
+  CCH-14 : Si le "Numéro d'inscription au répertoire - S89.G00.87.007" n'est pas renseigné, le "Numéro technique
+  temporaire - S89.G00.87.008" doit obligatoirement être renseigné.
+
+  CCH-15 : Il n'est pas admis qu'un « Numéro d'inscription au répertoire - S89.G00.87.007 » soit renseigné avec plus de
+  cinq caractères « 9 » à la suite en fin de chaîne.
+
+  CSL 00 : [1-2][0-9]{2}(0[1-9]|1[0-2]|20|3[0-9]|4[0-2]|[5-
+  9][0-9])(0[1-9]|[1-9][0-9]|2A|2B)([0]{2}[1-9]|0[1-9][0-9]|[1-
+  X  [13,13]
+  9][0-9]{2})([0]{2}[1-9]|0[1-9][0-9]|[1-9][0-9]{2})|([1-
+  2][9]{12})
+
+Numéro technique temporaire  S89.G00.87.008
+ActionsGratuites.NTT
+  Le NTT est un identifiant technique unique et invariant permettant à l'employeur de déclarer, dans un temps
+  limité, un individu pour lequel il n'aurait pas connaissance du Numéro d'Inscription au Répertoire ou du
+  Numéro d'Identification d'Attente au moment de l'émission d'une DSN.
+  Il est composé du code sexe de la personne physique qui doit être égal à 1 ou 2, suivi du SIREN de
+
+  335 / 361

@@ -1,0 +1,135 @@
+Date de modification : 08/07/2026 11:29 AM
+
+Base assujettie et cotisations individuelles : renseigner les blocs 78, 79 et 81
+
+ Comment procéder à la déclaration des cotisations au niveau de la maille nominative ?
+
+ Le contexte
+
+Dans les messages DSN, le bloc « Base assujettie - S21.G00.78 » est parent des blocs « Composant de base assujettie - S21.G00.79 » et « Cotisation individuelle - S21.G00.81 ».
+
+Les règles de rattachement d’un bloc « Composant de base assujettie - S21.G00.79 » ou d’un bloc « Cotisation individuelle - S21.G00.81 » sous un bloc « Base assujettie - S21.G00.78 » ont, dans la majorité des cas, une justification métier. Ceci signifie que le calcul de la cotisation individuelle repose sur une base assujettie spécifique.
+
+De même, la déclaration d’un composant de base assujettie est liée à la présence d’une base assujettie et/ou d’une cotisation individuelle.
+
+ Version de Norme P27V01
+
+ Organismes de Protection Sociale concernés
+
+Ce document recense les combinaisons possibles des blocs « Composant de base assujettie - S21.G00.79 », « Cotisation individuelle - S21.G00.81 » et « Base assujettie - S21.G00.78 » pour la version de norme P27V01, telles qu’attendues par les organismes suivants, en charge du recouvrement des cotisations sociales : 
+
+ AGIRC-ARRCO 
+
+ Caisse de Congés Payés (CIBTP)
+
+ CAMIEG 
+
+ CAVEC
+
+ CNBF 
+
+ CNIEG 
+
+ CNRACL (FP) 
+
+ Caisse des congés spectacle (AUDIENS) 
+
+ CRPCEN 
+
+ CRPNPAC 
+
+ DGFIP 
+
+ FRANCE TRAVAIL
+
+ FSPOEIE (FP) 
+
+ IRCANTEC 
+
+ MSA 
+
+ Organismes Complémentaires (OC) 
+
+ RAFP (FP) 
+
+ RAEP (FP) 
+
+ Urssaf CN 
+
+Les combinaisons présentées sont harmonisées entre les différents organismes : il ne peut être demandé de rattacher une même cotisation ou composant de base assujettie, à des bases assujetties de natures différentes selon le destinataire. 
+
+Aussi, il convient de noter : 
+
+ Sur le périmètre de cotisations commun à l’Urssaf CN et la MSA, les combinaisons pour les blocs « Composant de base assujettie - S21.G00.79 », « Cotisation individuelle - S21.G00.81 » et « Base assujettie - S21.G00.78 » sont identiques. 
+
+ Concernant les cotisations de retraite complémentaire recouvrées par la MSA et l’AGIRC-ARRCO, il convient de noter que les combinaisons pour ces trois blocs sont strictement identiques. L’attendu de l’AGIRC-ARRCO s’imposant à la MSA. 
+
+ Concernant les cotisations de retraite complémentaire recouvrées par la MSA et l’AGIRC-ARRCO, de nouvelles modalités sont autorisées depuis le 1er janvier 2023, à savoir l’utilisation des codes 131/132. 
+
+Si un type de cotisation est à destination de plusieurs organismes il convient de ne le déclarer qu’une seule fois au moyen d’un seul bloc « Cotisation individuelle – S21.G00.81 ». Les règles de filtrage mises en place dans le SI DSN permettent de distribuer la cotisation à tous les organismes destinataires de cette cotisation.
+
+A défaut, si la même cotisation est déclarée au moyen de plusieurs occurrences de blocs « Cotisation individuelle – S21.G00.81 », la cotisation sera prise en compte par l’organisme destinataire autant de fois qu’elle aura été déclarée et sera exigible en conséquence. 
+
+Pour connaître le rattachement des blocs « Composant de base assujettie - S21.G00.79 », « Cotisation individuelle - S21.G00.81 » et « Base assujettie - S21.G00.78 » pour l’ensemble des organismes, nous vous invitons à consulter le tableau complet pour la version de norme P27V01 disponible ici
+
+Vous pouvez consulter ici le tableau pour la version de norme P26V01 actuellement en production
+
+ Illustrations : Aide à la lecture du tableau Excel
+
+Exemple 1 : Réduction Générale des cotisations
+
+En cas de déclaration d’une « Réduction générale des cotisations patronales de sécurité sociale », la MSA, l’Urssaf CN et l'Agirc-Arrco attendent la déclaration des éléments suivants en DSN :
+
+ Un bloc « Base assujettie - S21.G00.78 » dont la rubrique « Code de base assujettie - S21.G00.78.001 » est valorisée à « 03 - Assiette brute déplafonnée ».
+
+ Un bloc « Composant de base assujettie - S21.G00.79 » dont la rubrique « Type de composant de base assujettie - S21.G00.79.001 » est renseignée à « 01 - Montant du SMIC retenu pour le calcul de la Réduction générale des cotisations patronales de la sécurité sociale ».
+
+ Deux blocs « Cotisation individuelle - S21.G00.81 » dont la rubrique « Code de cotisation - S21.G00.81.001 » est valorisée à « 018 - Réduction générale des cotisations patronales de sécurité sociale » et à « 106 - Réduction générale des cotisations patronales de retraite complémentaire ».
+
+Exemple 2 : Exonération de cotisations au titre de l'emploi d'un individu en contrat d'accès à l'emploi
+
+La déclaration de cette exonération, à destination de l’Urssaf CN ou de la MSA est à opérer de la manière suivante :
+
+ Un bloc « Base assujettie - S21.G00.78 » dont la rubrique « Code de base assujettie - S21.G00.78.001 » est valorisée avec à « 03 - Assiette brute déplafonnée ».
+
+ Un bloc « Cotisation individuelle - S21.G00.81 » dont la rubrique « Code de cotisation - S21.G00.81.001 » est valorisée à « 004 - Exonération de cotisations au titre de l’emploi d’un salarié en contrat d’accès à l’emploi ».
+
+Exemple 3 : Cotisations de retraite complémentaire à destination de l'Agirc-Arrco
+
+ Un bloc « Base assujettie - S21.G00.78 » dont la rubrique « Code de base assujettie - S21.G00.78.001 » est valorisée à « 02 - Assiette brute plafonnée » et un autre à « 03 - Assiette brute déplafonnée ». 
+
+ Pour un individu ne cotisant que sur la tranche 1 : 
+
+- Un seul bloc « Cotisation individuelle - S21.G00.81 » rattaché à la base assujettie « 02 - Assiette brute plafonnée » portant un code de cotisation « 131 - Cotisation régime unifié Agirc-Arrco » 
+
+ Pour un individu cotisant en tranche 1 et en tranche 2 : 
+
+- Un bloc « Cotisation individuelle - S21.G00.81 » rattaché à la base assujettie « 02 - Assiette brute plafonnée » portant un code de cotisation « 131 - Cotisation régime unifié Agirc-Arrco » pour les cotisations sur tranche 1 
+
+- Un bloc « Cotisation individuelle - S21.G00.81 » rattaché à la base assujettie « 03 - Assiette brute déplafonnée » portant un code de cotisation « 131 - Cotisation régime unifié Agirc-Arrco » pour les cotisations sur tranche 2 
+
+ Pour un individu au statut cadre, il est attendu en complément : 
+
+- Un seul bloc « Cotisation individuelle - S21.G00.81 » rattaché à la base assujettie « 03 - Assiette brute déplafonnée » portant un code de cotisation « 132 - Cotisation Apec » 
+
+Les rubriques « Identifiant Organisme de Protection Sociale – S21.G00.81.002 », « Montant d’assiette – S21.G00.81.003 » et « Taux de cotisation – S21.G00.81.007 » ne sont pas à renseigner et la rubrique « Montant de cotisation – S21.G00.81.004 » est à renseigner ».
+
+A noter que le code « 105 - Montant de cotisation Régime Unifié Agirc-Arrco, y compris Apec » a été supprimé en version de norme P27V01.
+
+Se référer au Cahier d’aide à la codification pour la retraite complémentaire Agirc-Arrco pour consulter les différentes préconisations de rattachement du bloc « Cotisation individuelle – S21.G00.81 »
+
+ Point d'attention
+
+La déclaration des organismes de retraite supplémentaire et des organismes de retraite complémentaire est différente. En effet, les organismes de retraite supplémentaire doivent être déclarés comme les Organismes Complémentaires.
+
+[ATTENTION] : Les exemples présentés au niveau des fiches de consignes ne reflètent pas l'exhaustivité des cas possibles.
+
+ Date de création : 26/01/2017 09:40 AM 
+
+ N° de la fiche : 1265 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

@@ -1,0 +1,398 @@
+Date de modification : 09/10/2026 12:34 PM
+
+ Comment déclarer le montant net social ?
+
+ Le contexte
+
+Le montant net social (MNS) correspond au revenu net, calculé à partir des revenus bruts de toutes natures (salaires, primes, rémunération des heures supplémentaires, avantages en nature, indemnités de rupture, allocations, prestations…) dont sont déduites toutes les cotisations et contributions sociales légales obligatoires ou conventionnelles à la charge du salarié. A partir de janvier 2027, le montant net social doit inclure le montant de la part patronale des cotisations à la complémentaire santé, prévoyance et retraite supplémentaire.
+
+Le montant net social correspond aux revenus que les bénéficiaires du RSA ou de la prime d’activité doivent déclarer pour que soit calculé le montant de prestations auquel ils ont droit. Il deviendra à terme, le montant de référence pour le calcul de différentes prestations sociales.
+
+Le MNS est transmis par les employeurs aux organismes via la DSN et communiqué aux salariés sur leurs bulletins de paie (accessible également sur le portail mesdroitssociaux.fr depuis 2024) 
+
+Déclarer le montant net social - MNS 
+
+La valorisation du net social en DSN est obligatoire depuis janvier 2024, en bloc « Élément de revenu calculé en net - S21.G00.58 », type « 03 - Montant net social - 58.003 ».   
+
+Un Montant Net Social (MNS) doit obligatoirement être renseigné pour tout versement réalisé au sein du Mois Principal Déclaré. 
+
+Sur le mois courant, le MNS est classiquement rattaché à la date de versement du salaire.
+
+Pour les versements déclarés tardivement, c’est-à-dire figurant dans une DSN d’un mois de paie M avec une date de versement M-x, le montant net social correspondant est bien associé à cette date de versement M-x. . En revanche, si des rappels interviennent et sont versés sur le mois courant, le MNS correspondant suivra la date de versement de la paie du mois courant. 
+
+Le bloc « Élément de revenu calculé en net - S21.G00.58 » héritant de la datation du bloc « Versement individu - S21.G00.50 » (parent par défaut), les rubriques de datation « Date de début de période de rattachement - S21.G00.58.001 » et « Date de fin de période de rattachement - S21.G00.58.002 » ne sont pas obligatoires. 
+
+En revanche, en cas d’erreur ou d’écart sur un mois précédent concernant seulement le MNS et pas le versement (MNS absent, incomplet, erroné…), il convient de déclarer le MNS ou le complément de MNS avec la date du mois du versement auquel ce MNS était associé, au niveau des rubriques  « Date de début de période de rattachement - S21.G00.58.001 » et « Date de fin de période de rattachement - S21.G00.58.002 ».
+
+Exemple de déclaration du cas nominal
+
+ | 
+
+ Un individu perçoit en mars 2027 une rémunération nette fiscale de 2000 € et le montant net social calculé pour lui est de 1400 €. La déclaration de ces deux montants doit se faire comme suit :   
+
+ DSN du mois principal déclaré en mars (déposée au plus tard aux échéances de d'avril 2027)  
+
+ S21.G00.50 - Versement individu
+
+ | S21.G00.50.001
+ | Date de versement
+ | 24032027
+
+ | S21.G00.50.002
+ | Rémunération nette fiscale
+ | 2000.00
+
+ | S21.G00.50.004
+ | Montant net versé
+ | A renseigner
+
+ | S21.G00.50.006
+ | Taux de PAS
+ | 10.00
+
+ | S21.G00.50.007
+ | Type du taux de PAS
+ | 01 (taux transmis par la DGFIP)
+
+ | S21.G00.50.008
+ | Identifiant du taux de PAS
+ | A renseigner
+
+ | S21.G00.50.009
+ | Montant de prélèvement à la source
+ | 200.00
+
+ | S21.G00.50.013
+ | Montant soumis au PAS
+ | 2000.00
+
+ S21.G00.58 - Elément de revenu calculé en net
+
+ | S21.G00.58.001
+ | Date de début de période de rattachement
+ | Non renseignée
+
+ | S21.G00.58.002
+ | Date de fin de période de rattachement
+ | Non renseignée
+
+ | S21.G00.58.003
+ | Type
+ | 03 - Montant net social
+
+ | S21.G00.58.004
+ | Montant
+ | 1400.00
+
+ Correction du cas nomin al 
+
+ Si le montant qui a été versé au salarié était erroné, la correction se fera au moment du versement suivant (cf. Exemple1).
+
+ En revanche, si le montant qui a été versé au salarié était correct mais que sa déclaration en DSN était fausse (cf. Exemples 2 et 3), alors il convient de corriger le MNS erroné en le rattachant au mois du versement déclaré en erreur, au sein d'un bloc  « Elément de revenu calculé en net - S21.G00.58 » dédié.
+
+ La correction peut se faire en annule et remplace ou en différentiel, dès lors que le rattachement correspond à la bonne période de versement.
+
+ Les montants portant la correction peuvent être positifs ou négatifs.
+
+ Exemple : Pour un versement effectué le 26 mars :
+
+ Les dates du mois de mars correspondent au mois de versement :
+
+ | 
+ S21.G00.58.001
+
+ | Date de début de période de rattachement
+ | 01032027
+
+ | S21.G00.58.002
+ | Date de fin de période de rattachement
+ | 31032027
+
+ La date du 26032027 correspond à la date de versement :
+
+ | S21.G00.58.001
+ | Date de début de période de rattachement
+ | 26032027
+
+ | S21.G00.58.002
+ | Date de fin de période de rattachement
+ | 26032027
+
+Correction suite à une erreur de versement (Méthode différentielle) 
+
+ | 
+
+ Un individu perçoit une rémunération nette fiscale (RNF) de 2000€ en mars 2027 par erreur, en lieu et place de 1800€. Le montant net social est lui aussi erroné.
+
+ Ainsi, en avril 2027, le déclarant procède à une compensation sur la RNF et le MNS d'avril.
+
+ DSN du mois principal déclaré de mars (déposée au plus tard aux échéances de d'avril 2027)
+
+ S21.G00.50 - Versement individu
+
+ | S21.G00.50.001
+ | Date de versement
+ | 24032027
+
+ | S21.G00.50.002
+ | Rémunération nette fiscale
+ | 2000.00
+
+ | S21.G00.50.004
+ | Montant net versé
+ | A renseigner
+
+ | S21.G00.50.006
+ | Taux de PAS
+ | 10.0
+
+ | S21.G00.50.007
+ | Type du taux de PAS
+ | 01 - Taux transmis par la DGFIP
+
+ | S21.G00.50.008
+ | Identifiant du taux de PAS
+ | A renseigner
+
+ | S21.G00.50.009
+ | Montant de prélèvement à la source
+ | 200.00
+
+ | S21.G00.50.013
+ | Montant soumis au PAS
+ | 2000.00
+
+ S21.G00.58 - Elément de revenu calculé en net
+
+ | S21.G00.58.001
+ | Date de début de période de rattachement
+ | Non renseignée
+
+ | S21.G00.58.002
+ | Date de fin de période de rattachement
+ | Non renseignée
+
+ | S21.G00.58.003
+ | Type
+ | 03 - Montant net social
+
+ | S21.G00.58.004
+ | Montant
+ | 1000.00
+
+ DSN du mois principal déclaré d’avril (déposée au plus tard aux échéances de mai 2027)
+
+ S21.G00.50 - Versement individu
+
+ | S21.G00.50.001
+ | Date de versement
+ | 24042027
+
+ | S21.G00.50.002
+ | Rémunération nette fiscale
+ | 1600.00
+
+ | S21.G00.50.004
+ | Montant net versé
+ | A renseigner
+
+ | S21.G00.50.006
+ | Taux de PAS
+ | 10.0
+
+ | S21.G00.50.007
+ | Type du taux de PAS
+ | 01 - Taux transmis par la DGFIP
+
+ | S21.G00.50.008
+ | Identifiant du taux de PAS
+ | A renseigner
+
+ | S21.G00.50.009
+ | Montant de prélèvement à la source
+ | 160.00
+
+ | S21.G00.50.013
+ | Montant soumis au PAS
+ | 1600.00
+
+ S21.G00.58 - Elément de revenu calculé en net
+
+ | S21.G00.58.001
+ | Date de début de période de rattachement
+ | Non renseignée
+
+ | S21.G00.58.002
+ | Date de fin de période de rattachement
+ | Non renseignée
+
+ | S21.G00.58.003
+ | Type
+ | 03 - Montant net social
+
+ | S21.G00.58.004
+ | Montant
+ | 800.00
+
+Correction d'une erreur portant uniquement sur le calcul du montant net social 
+
+ | 
+
+ En avril 2027, le déclarant constate une erreur dans son calcul du montant net social (MNS) déclaré le mois précédent par la prise en compte d’un élément de revenu qui n’entre pas dans la base du montant net social (MNS). 
+
+ Une correction relative au MNS versé en mars 2027 doit être opérée (ici dans la DSN du mois d’Avril) 
+
+ NB : Si aucune autre erreur n’a été détectée au sein du bloc « Versement individu - S21.G00.50 » de mars 2027, le bloc « Élément de revenu calculé en net - S21.G00.58 » portant la correction du MNS de mars 2027 peut être déclarée sous le bloc « Versement individu - S21.G00.50 » du MPD courant (d’avril 2027).
+
+ DSN du mois principal déclaré d'avril (déposée au plus tard aux échéances de mai 2027) portant la correction :
+
+ S21.G00.50 - Versement individu
+
+ | S21.G00.50.001
+ | Date de versement
+ | 24042027
+
+ | S21.G00.50.002
+ | Rémunération nette fiscale
+ | 2000.00
+
+ | S21.G00.50.004
+ | Montant net versé
+ | A renseigner
+
+ | S21.G00.50.006
+ | Taux de PAS
+ | 10.0
+
+ | S21.G00.50.007
+ | Type du taux de PAS
+ | 01 - Taux transmis par la DGFIP
+
+ | S21.G00.50.008
+ | Identifiant du taux de PAS
+ | A renseigner
+
+ | S21.G00.50.009
+ | Montant de prélèvement à la source
+ | 200.00
+
+ | S21.G00.50.013
+ | Montant soumis au PAS
+ | 2000.00
+
+ S21.G00.58 - Elément de revenu calculé en net
+
+ | S21.G00.58.001
+ | Date de début de période de rattachement
+ | Non renseignée
+
+ | S21.G00.58.002
+ | Date de fin de période de rattachement
+ | Non renseignée
+
+ | S21.G00.58.003
+ | Type
+ | 03 - Montant net social
+
+ | S21.G00.58.004
+ | Montant
+ | 1200.0
+
+ S21.G00.58 - Elément de revenu calculé en net
+
+ | S21.G00.58.001
+ | Date de début de période de rattachement
+ | 24032027
+
+ | S21.G00.58.002
+ | Date de fin de période de rattachement
+ | 24032027
+
+ | S21.G00.58.003
+ | Type
+ | 03 - Montant net social
+
+ | S21.G00.58.004
+ | Montant
+ | -100.0
+
+Déclarer le montant net social en cas de décalage de paie 
+
+ | 
+ Un individu perçoit en mars 2027 une rémunération nette fiscale de 2000€ et le montant net social calculé pour lui est de 1900€. 
+
+ DSN du mois principal déclaré de mars (déclarée au plus tard aux échéances d’avril) :
+
+ S21.G00.50 - Versement individu
+
+ | S21.G00.50.001
+ | Date de versement
+ | 05042027
+
+ | S21.G00.50.002
+ | Rémunération nette fiscale
+ | 2000.00
+
+ | S21.G00.50.004
+ | Montant net versé
+ | A renseigner
+
+ | S21.G00.50.006
+ | Taux de PAS
+ | 10.0
+
+ | S21.G00.50.007
+ | Type du taux de PAS
+ | 01 - Taux transmis par la DGFIP
+
+ | S21.G00.50.008
+ | Identifiant du taux de PAS
+ | A renseigner
+
+ | S21.G00.50.009
+ | Montant de prélèvement à la source
+ | 200.00
+
+ | S21.G00.50.013
+ | Montant soumis au PAS
+ | 2000.00
+
+ S21.G00.58 - Elément de revenu calculé en net
+
+ | S21.G00.58.001
+ | Date de début de période de rattachement
+ | Non renseignée
+
+ | S21.G00.58.002
+ | Date de fin de période de rattachement
+ | Non renseignée
+
+ | S21.G00.58.003
+ | Type
+ | 03 - Montant net social
+
+ | S21.G00.58.004
+ | Montant
+ | 1900.00
+
+Cas particulier des allocations retraites 
+
+ | 
+
+ Les allocations de préretraite ne doivent pas être intégrées dans le montant net social déclaré au niveau du bloc « Élément de revenu calculé en net - S21.G00.58 ».
+
+ Comme indiqué dans la Fiche consigne 2974, l’allocation de préretraite versée par l’employeur est à déclarer en « Véhicule technique - S89 » : l'individu doit être déclaré dans un bloc « Individu non salarié - S89.G00.91 » et les allocations de préretraite versées dans un unique bloc « Bases spécifiques individu non salarié - S89.G00.92 »
+
+La réglementation
+
+Le Montant Net Social (MNS) est défini par l’arrêté du 31 janvier 2023 modifiant l'arrêté du 25 février 2016 fixant les libellés, l'ordre et le regroupement des informations figurant sur le bulletin de paie mentionnées à l'article R. 3243-2 du code du travail. *
+
+ Date de création : 06/03/2025 06:56 PM 
+
+ N° de la fiche : 2983 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

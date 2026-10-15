@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000018767219</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/18/76/72/LEGIARTI000018767219.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L3253-18</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2008-05-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132332">Troisième partie : Durée du travail, salaire, intéressement, participation et épargne salariale    </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145404">Livre II : Salaire et avantages divers</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160764">Titre V : Protection du salaire</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006178033">Chapitre III : Privilèges et assurance</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006189672">Section 2 : Privilèges et assurance en cas de procédure de sauvegarde, de redressement ou de liquidation judiciaire</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006195812">Sous-section 2 : Assurance contre le risque de non-paiement</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006198618">Paragraphe 4 : Financement.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-05-01" etat="MODIFIE" fin="2008-05-01" id="LEGIARTI000006902917" num="L3253-18" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2008-05-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000018767219" num="L3253-18" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Loi n° 2008-126 du 13 février 2008 art. 17 : Le code du travail, dans sa rédaction issue de l'ordonnance n° 2007-329 du 12 mars 2007 précitée, est modifié à compter de la date prévue au premier alinéa du III de l'article 5 de la présente loi et au plus tôt à compter de l'entrée en vigueur de cette ordonnance. </p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>L'assurance est financée par des cotisations des employeurs assises sur les rémunérations servant de base au calcul des contributions au régime d'assurance-chômage. </p>
+<p>Le recouvrement, le contrôle de ces cotisations et leur contentieux suivent les règles prévues à l'article L. 5422-16.</p>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000018117826" datesignatexte="2008-02-13" id="LEGIARTI000018118744" naturetexte="LOI" nortexte="ECEX0770283L" num="17" numtexte="2008-126" sens="cible" typelien="MODIFIE">LOI n°2008-126
+ du 13 février 2008 - art. 17</LIEN>
+<LIEN cidtexte="JORFTEXT000021528998" datesignatexte="2009-12-24" id="LEGIARTI000021530865" naturetexte="LOI" nortexte="BCFX0922820L" num="24" numtexte="2009-1646" sens="cible" typelien="CITATION">LOI n°2009-1646
+ du 24 décembre 2009 - art. 24 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000021569864" datesignatexte="2009-12-30" id="LEGIARTI000024479416" naturetexte="DECRET" nortexte="ECED0928731D" num="1" numtexte="2009-1708" sens="cible" typelien="CITATION">Décret n°2009-1708
+ du 30 décembre 2009 - art. 1 (V)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000022664660" datesignatexte="2010-08-02" id="LEGIARTI000022666951" naturetexte="DECRET" nortexte="BCRS1018097D" num="1" numtexte="2010-907" sens="cible" typelien="CITATION">Décret n°2010-907
+ du 2 août 2010 - art. 1 (V)</LIEN>
+
+
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000051288452" naturetexte="CODE" nortexte="" num="L142-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L142-1 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000048714561" naturetexte="CODE" nortexte="" num="L213-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L213-1 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006647166" naturetexte="CODE" nortexte="" num="L143-11-6" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L143-11-6 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006647161" naturetexte="CODE" nortexte="" num="L143-11-6" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail - art. L143-11-6 (T)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018767187" naturetexte="CODE" nortexte="" num="L3253-14" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L3253-14 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903838" naturetexte="CODE" nortexte="" num="L5422-16" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L5422-16 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000025075950" naturetexte="CODE" nortexte="" num="L741-15-1" numtexte="" sens="cible" typelien="CITATION">Code rural et de la pêche maritime - art. L741-15-1 (Ab)</LIEN>
+</LIENS>
+</ARTICLE>

@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000037388454</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/37/38/84/LEGIARTI000037388454.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L5422-20</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2019-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132343">Cinquième partie : L'emploi</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145418">Livre IV : Le demandeur d'emploi </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2019-01-01" id="LEGISCTA000006160812">Titre II : Indemnisation des travailleurs involontairement privés d'emploi  </TITRE_TM>
+<TITRE_TM debut="2019-01-01" fin="2999-01-01" id="LEGISCTA000037388216">Titre II : Indemnisation des travailleurs privés d'emploi</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006178164">Chapitre II : Régime d'assurance</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006189825">Section 5 : Accords relatifs à l'assurance chômage.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-05-01" etat="MODIFIE" fin="2011-01-01" id="LEGIARTI000006903842" num="L5422-20" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2011-01-01" etat="MODIFIE" fin="2014-12-31" id="LEGIARTI000018767233" num="L5422-20" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2014-12-31" etat="MODIFIE" fin="2019-01-01" id="LEGIARTI000030033624" num="L5422-20" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2019-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000037388454" num="L5422-20" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Les mesures d'application des dispositions du présent chapitre, à l'exception des articles de la présente section, du 5° de l'article L. 5422-9, des articles L. 5422-10, L. 5422-14 à L. 5422-16 et de l'article L. 5422-25, font l'objet d'accords conclus entre les organisations représentatives d'employeurs et de salariés. </p>
+<p>Ces accords sont agréés dans les conditions définies par la présente section. </p>
+<p>En l'absence d'accord ou d'agrément de celui-ci, les mesures d'application sont déterminées par décret en Conseil d'Etat.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000785367" datesignatexte="2003-06-27" id="LEGIARTI000048290913" naturetexte="DECRET" nortexte="DOMB0300011D" num="13" numtexte="2003-576" sens="cible" typelien="CITATION">Décret n°2003-576 du 27 juin 2003 - art. 13 (V)</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000020466929" datesignatexte="2009-03-30" id="LEGITEXT000028037002" naturetexte="ARRETE" nortexte="ECED0907050A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 30 mars 2009 (V)</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000027068336" datesignatexte="2013-02-14" id="LEGIARTI000037585357" naturetexte="DECRET" nortexte="AFSS1243536D" num="4" numtexte="2013-140" sens="cible" typelien="CITATION">Décret n°2013-140
+ du 14 février 2013 - art. 4 (V)</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000032796199" datesignatexte="2016-06-29" id="LEGIARTI000032821414" naturetexte="DECRET" nortexte="ETSD1616845D" num="3" numtexte="2016-869" sens="cible" typelien="CITATION">Décret n°2016-869 du 29 juin 2016 - art. 3 (VT)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000033623758" datesignatexte="2016-12-16" id="LEGIARTI000033852186" naturetexte="DECRET" nortexte="ETSD1630118D" num="1" numtexte="2016-1749" sens="cible" typelien="CITATION">Décret n°2016-1749 du 16 décembre 2016 - art. 1 (V)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000034539849" datesignatexte="2017-05-02" id="LEGIARTI000034541281" naturetexte="DECRET" nortexte="ETSD1711546D" num="2" numtexte="2017-692" sens="cible" typelien="CITATION">Décret n°2017-692 du 2 mai 2017 - art. 2 (V)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000036249890" datesignatexte="2017-12-22" id="LEGIARTI000041816196" naturetexte="DECRET" nortexte="MTRD1733087D" num="10" numtexte="2017-1733" sens="cible" typelien="CITATION">Décret n°2017-1733 du 22 décembre 2017 - art. 10 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000036249890" datesignatexte="2017-12-22" id="LEGIARTI000041816202" naturetexte="DECRET" nortexte="MTRD1733087D" num="11" numtexte="2017-1733" sens="cible" typelien="CITATION">Décret n°2017-1733 du 22 décembre 2017 - art. 11 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000036249890" datesignatexte="2017-12-22" id="LEGIARTI000041816219" naturetexte="DECRET" nortexte="MTRD1733087D" num="16" numtexte="2017-1733" sens="cible" typelien="CITATION">Décret n°2017-1733 du 22 décembre 2017 - art. 16 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000036249890" datesignatexte="2017-12-22" id="LEGIARTI000041816413" naturetexte="DECRET" nortexte="MTRD1733087D" num="9" numtexte="2017-1733" sens="cible" typelien="CITATION">Décret n°2017-1733 du 22 décembre 2017 - art. 9 (V)</LIEN>
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000037367660" datesignatexte="2018-09-05" id="LEGIARTI000037368570" naturetexte="LOI" nortexte="MTRX1808061L" num="56" numtexte="2018-771" sens="cible" typelien="MODIFIE">LOI n°2018-771 du 5 septembre 2018 - art. 56</LIEN>
+<LIEN cidtexte="JORFTEXT000037367660" datesignatexte="2018-09-05" id="LEGIARTI000037368576" naturetexte="LOI" nortexte="MTRX1808061L" num="57" numtexte="2018-771" sens="cible" typelien="CITATION">LOI n°2018-771 du 5 septembre 2018 - art. 57 (V)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000037884031" datesignatexte="2018-12-28" id="LEGIARTI000038012855" naturetexte="DECRET" nortexte="MTRD1830927D" num="12" numtexte="2018-1337" sens="cible" typelien="CITATION">Décret n°2018-1337 du 28 décembre 2018 - art. 12</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000038829574" datesignatexte="2019-07-26" id="LEGIARTI000038869444" naturetexte="DECRET" nortexte="MTRD1919111D" num="1" numtexte="2019-797" sens="cible" typelien="CITATION">Décret n°2019-797 du 26 juillet 2019 - art. 1 (VD)</LIEN>
+<LIEN cidtexte="JORFTEXT000038829574" datesignatexte="2019-07-26" id="LEGIARTI000050410753" naturetexte="DECRET" nortexte="MTRD1919111D" num="6" numtexte="2019-797" sens="cible" typelien="CITATION">Décret n°2019-797 du 26 juillet 2019 - art. 6 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000042007392" datesignatexte="2020-06-16" id="LEGIARTI000042009428" naturetexte="DECRET" nortexte="CPAF1930769D" num="1" numtexte="2020-741" sens="cible" typelien="CITATION">Décret n°2020-741 du 16 juin 2020 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000043459827" datesignatexte="2021-04-26" id="LEGIARTI000043461922" naturetexte="ARRETE" nortexte="LOGL1934009A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 26 avril 2021 - art. 1 (V)</LIEN>
+
+
+<LIEN cidtexte="LEGITEXT000045476241" datesignatexte="2999-01-01" id="LEGIARTI000046454122" naturetexte="CODE" nortexte="" num="L324-12" numtexte="" sens="cible" typelien="CITATION">Code pénitentiaire - art. L324-12 (VD)</LIEN>
+
+
+
+<LIEN cidtexte="JORFTEXT000047061815" datesignatexte="2023-01-26" id="LEGIARTI000047062675" naturetexte="DECRET" nortexte="MTRD2235569D" num="1" numtexte="2023-33" sens="cible" typelien="CITATION">Décret n°2023-33 du 26 janvier 2023 - art. 1</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000048430836" datesignatexte="2023-11-20" id="LEGIARTI000048437884" naturetexte="DECRET" nortexte="MTRS2322655D" num="1" numtexte="2023-1064" sens="cible" typelien="CITATION">Décret n°2023-1064 du 20 novembre 2023 - art. 1</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000050797861" datesignatexte="2024-12-19" id="LEGITEXT000050799729" naturetexte="ARRETE" nortexte="PRMX2433664A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 19 décembre 2024 (V)</LIEN>
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000053509770" datesignatexte="2026-02-18" id="LEGITEXT000053510815" naturetexte="ARRETE" nortexte="PRMD2600684A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 18 février 2026 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000053728131" datesignatexte="2026-03-28" id="LEGITEXT000053730353" naturetexte="ARRETE" nortexte="TRSD2604366A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 28 mars 2026 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000054297458" datesignatexte="2026-06-19" id="LEGITEXT000054299073" naturetexte="ARRETE" nortexte="TRSD2614637A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 19 juin 2026 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006074069" datesignatexte="2999-01-01" id="LEGIARTI000046774725" naturetexte="CODE" nortexte="" num="L444-2" numtexte="" sens="cible" typelien="CITATION">Code de l'action sociale et des familles - art. L444-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006074096" datesignatexte="2999-01-01" id="LEGIARTI000034643993" naturetexte="CODE" nortexte="" num="R351-14" numtexte="" sens="cible" typelien="CITATION">Code de la construction et de l'habitation. - art. R351-14 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006074096" datesignatexte="2999-01-01" id="LEGIARTI000041419346" naturetexte="CODE" nortexte="" num="R822-15" numtexte="" sens="cible" typelien="CITATION">Code de la construction et de l'habitation. - art. R822-15 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071307" datesignatexte="2999-01-01" id="LEGIARTI000023458477" naturetexte="CODE" nortexte="" num="R4123-30" numtexte="" sens="cible" typelien="CITATION">Code de la défense. - art. R4123-30 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000041419439" naturetexte="CODE" nortexte="" num="R532-7" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R532-7 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033737901" naturetexte="CODE" nortexte="" num="D2254-12" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D2254-12 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033737905" naturetexte="CODE" nortexte="" num="D2254-13" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D2254-13 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033737907" naturetexte="CODE" nortexte="" num="D2254-14" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D2254-14 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033737911" naturetexte="CODE" nortexte="" num="D2254-15" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D2254-15 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033737931" naturetexte="CODE" nortexte="" num="D2254-24" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D2254-24 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033737883" naturetexte="CODE" nortexte="" num="D2254-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D2254-3 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033737891" naturetexte="CODE" nortexte="" num="D2254-7" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D2254-7 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000047869146" naturetexte="CODE" nortexte="" num="D5422-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D5422-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000049816584" naturetexte="CODE" nortexte="" num="D5424-66" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D5424-66 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018767003" naturetexte="CODE" nortexte="" num="L1233-68" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1233-68 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000037385300" naturetexte="CODE" nortexte="" num="L2254-2" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L2254-2 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901809" naturetexte="CODE" nortexte="" num="L2261-31" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L2261-31 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000048600734" naturetexte="CODE" nortexte="" num="L2271-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L2271-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006648886" naturetexte="CODE" nortexte="" num="L351-8" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L351-8 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000024421551" naturetexte="CODE" nortexte="" num="L5112-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5112-1 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000027559154" naturetexte="CODE" nortexte="" num="L5125-6" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5125-6 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000048600654" naturetexte="CODE" nortexte="" num="L5312-10" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5312-10 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000048600750" naturetexte="CODE" nortexte="" num="L5312-7" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5312-7 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000048590547" naturetexte="CODE" nortexte="" num="L5422-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5422-1 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903832" naturetexte="CODE" nortexte="" num="L5422-10" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L5422-10 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000027565786" naturetexte="CODE" nortexte="" num="L5422-12" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5422-12 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903836" naturetexte="CODE" nortexte="" num="L5422-14" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L5422-14 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000027550383" naturetexte="CODE" nortexte="" num="L5422-2-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5422-2-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000037376124" naturetexte="CODE" nortexte="" num="L5422-20-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5422-20-1 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000037388448" naturetexte="CODE" nortexte="" num="L5422-22" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5422-22 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000037388444" naturetexte="CODE" nortexte="" num="L5422-23" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5422-23 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000048600595" naturetexte="CODE" nortexte="" num="L5422-24" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5422-24 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000037388440" naturetexte="CODE" nortexte="" num="L5422-25" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5422-25 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903828" naturetexte="CODE" nortexte="" num="L5422-6" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5422-6 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903830" naturetexte="CODE" nortexte="" num="L5422-8" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5422-8 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000038951969" naturetexte="CODE" nortexte="" num="L5422-9" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5422-9 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903850" naturetexte="CODE" nortexte="" num="L5423-4" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5423-4 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000037388345" naturetexte="CODE" nortexte="" num="L5424-20" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5424-20 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000037388435" naturetexte="CODE" nortexte="" num="L5424-22" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5424-22 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000045178306" naturetexte="CODE" nortexte="" num="L5424-27" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5424-27 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000037388288" naturetexte="CODE" nortexte="" num="L5425-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5425-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000054318769" naturetexte="CODE" nortexte="" num="L5425-1-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5425-1-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000048601965" naturetexte="CODE" nortexte="" num="L5426-1-2" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5426-1-2 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000054468622" naturetexte="CODE" nortexte="" num="L5427-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5427-1 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000037388518" naturetexte="CODE" nortexte="" num="L5524-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5524-3 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033613464" naturetexte="CODE" nortexte="" num="L6123-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L6123-1 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018527294" naturetexte="CODE" nortexte="" num="R5112-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R5112-1 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000019646797" naturetexte="CODE" nortexte="" num="R5411-15" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R5411-15 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000038893018" naturetexte="CODE" nortexte="" num="R5422-2" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R5422-2 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018525119" naturetexte="CODE" nortexte="" num="R5422-7" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R5422-7 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000039159719" naturetexte="CODE" nortexte="" num="R7122-15" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R7122-15 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018521681" naturetexte="CODE" nortexte="" num="R7122-30" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R7122-30 (T)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGITEXT000006072050" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail L351-8 V1</LIEN>
+<LIEN cidtexte="LEGITEXT000006072052" datesignatexte="2999-01-01" id="LEGIARTI000025953270" naturetexte="CODE" nortexte="" num="L327-19" numtexte="" sens="cible" typelien="CITATION">Code du travail applicable à Mayotte. - art. L327-19 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000053151332" naturetexte="CODE" nortexte="" num="L2333-55-3" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. L2333-55-3 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000045629267" naturetexte="CODE" nortexte="" num="D514-12" numtexte="" sens="cible" typelien="CITATION">Code rural et de la pêche maritime - art. D514-12 (V)</LIEN>
+</LIENS>
+</ARTICLE>

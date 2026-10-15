@@ -1,0 +1,17 @@
+Transcription du fichier XML voisin (base LEGI de la DILA, open data), balises retirees.
+Arrêté du 4 septembre 2025 relatif aux frais professionnels déductibles pour le calcul des cotisations de sécurité sociale des salariés affiliés au régime général et des salariés affiliés au régime agricole -- article (sans numero), LEGIARTI000052206431 (legi-arrete-20250904-frais-professionnels-annexe2-frais-hors-assiette-20250907.xml), etat VIGUEUR, en vigueur du 2025-09-07 au 2999-01-01.
+
+ANNEXE 2
+ALLOCATIONS ET INDEMNITÉS VERSÉES AU TITRE DES REMBOURSEMENTS DE FRAIS PROFESSIONNELS ADMIS À ÊTRE EXCLUS DE L'ASSIETTE DE COTISATIONS EN CAS DE DÉDUCTION FORFAITAIRE SPÉCIFIQUE AUTORISÉE AUX PROFESSIONS PRÉVUES À L'ARTICLE 5 DE L'ANNEXE IV DU CODE GÉNÉRAL DES IMPÔTS DANS SA RÉDACTION EN VIGUEUR AU 31 DÉCEMBRE 2000
+I. - Allocations et indemnités versées à certaines professions bénéficiant d'une déduction forfaitaire spécifique dont le montant est notoirement inférieur à la réalité des frais professionnels exposés par le travailleur salarié ou assimilé :
+1° Les indemnités de grands déplacements allouées aux ouvriers du bâtiment dans les conditions fixées à l'article 5 du présent arrêté, y compris les frais de transport exposés à l'occasion des voyages de début et fin de chantier ainsi que les voyages de détente prévus par les conventions collectives du bâtiment et des travaux publics ;
+2° Les indemnités journalières de « défraiement » versées aux artistes dramatiques, lyriques, chorégraphiques ainsi qu'aux régisseurs de théâtre, qui participent à des tournées théâtrales ;
+3° Les indemnités pour frais de mécanisation des ouvriers forestiers ;
+4° Les allocations de « saison », allouées aux artistes, musiciens, chefs d'orchestre et autres travailleurs du spectacle qui sont engagés par les casinos, les théâtres municipaux ou les théâtres bénéficiant de subventions des collectivités territoriales pendant la durée de la saison ainsi que, le cas échéant, les remboursements de leurs frais de déplacement. Il en est de même pour les répétitions effectuées dans le cadre de la saison ;
+5° Les allocations et remboursements de frais perçus par les chefs d'orchestre, musiciens et choristes à l'occasion de leurs déplacements professionnels en France et à l'étranger. Il en est de même pour les répétitions effectuées dans le cadre de ces déplacements ;
+6° Les allocations et remboursements de frais professionnels des journalistes professionnels au sens de l'article L. 7111-3 du code du travail, mentionnés dans l'instruction fiscale du 5 mars 2002 ;
+7° Les indemnités pour frais de mécanisation des ouvriers forestiers.
+II. - Allocations et indemnités versées au titre d'avantages résultant de contraintes professionnelles particulièrement lourdes :
+1° La prise en charge obligatoire de 50 % du coût des titres de transport des salariés ou la prime de transport de 4 euros ;
+2° La part contributive de l'employeur dans les titres-restaurant dans les limites prévues au 19° de l'article 81 du code général des impôts ;
+3° La mise à disposition par l'employeur d'un véhicule de transport en commun à destination des salariés pour les conduire sur le lieu de travail.

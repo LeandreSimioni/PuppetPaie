@@ -1,0 +1,38 @@
+Date de modification : 07/07/2025 02:49 PM
+ Qu'est qu'un contrat infra DSN mensuelle ?
+ Le contexte 
+ Un contrat infra DSN mensuelle est un contrat dont la date de début de contrat et la date de fin de contrat se situent entre deux processus de traitement de la paie pour deux mois principaux déclarés successifs. Autrement dit, le contrat n'a encore fait l'objet d'aucune déclaration mensuelle à la date de survenance de la fin du contrat. Il n'est donc pas encore connu du système DSN.
+ La notion de contrat infra DSN mensuelle ne se définit donc ni en terme de durée du contrat, ni au sens calendaire. Il s'agit d'un contrat déclaré en intégralité dans une seule DSN mensuelle.
+ Le contrat infra DSN mensuelle   
+ Date de début de contrat : 28 mars
+ Date de fin de contrat : 20 avril
+ Date de clôture de paie : 25 de chaque mois
+ Au moment de la survenance de la fin du contrat, celui-ci n'a encore été déclaré dans aucune DSN mensuelle. Il sera intégralement déclaré au sein de la DSN mensuelle du mois d'avril, mois de la fin du contrat.
+ | 
+ Le contrat non infra DSN mensuelle 
+ Date de début de contrat : 20 mars
+ Date de fin de contrat : 20 avril
+ Date de clôture de paie : 25 de chaque mois
+ Au moment de la survenance de la fin du contrat, celui-ci a déjà été déclaré dans la DSN mensuelle du mois de mars. Lors de la survenance de la fin du contrat, ce dernier est donc déjà connu du système DSN.
+ | 
+ Le contrat infra mensuel au sens calendaire de la DSN mensuelle 
+ Date de début de contrat : 01 avril
+ Date de fin de contrat : 20 avril
+ Date de clôture de paie : 25 de chaque mois
+ Au moment de la survenance de la fin du contrat, celui-ci n'a encore été déclaré dans aucune DSN mensuelle. Il sera intégralement déclaré au sein de la DSN mensuelle du mois d'avril, mois du début et de la fin du contrat.
+ | 
+ Le contrat infra-mensuel au sens calendaire mais non infra DSN mensuelle 
+ Date de début de contrat : 01 avril
+ Date de fin de contrat : 28 avril
+ Date de clôture de paie : 25 de chaque mois
+ Au moment de la survenance de la fin du contrat, celui-ci est déjà connu du système DSN car déjà déclaré dans la DSN mensuelle du mois d'avril.
+ ATTENTION : si la DSN mensuelle fait l'objet d'une déclaration annule et remplace SANS recalcule de la paie, alors la date de clôture de paie permet d'identifier les contrats infra DSN mensuelle. A l'inverse, si une déclaration de type annule et remplace est générée suite à un recalcule de la paie, cette correction peut venir annuler le caractère infra DSN mensuelle du contrat.
+ | 
+ Le contrat infra DSN mensuelle et DSN annule et remplace 
+ Date de début de contrat : 28 mars
+ Date de fin de contrat : 20 avril
+ Date de clôture de paie : 25 de chaque mois
+ Au moment de la survenance de la fin du contrat, celui-ci n'a encore été déclaré dans aucune DSN mensuelle. Il sera intégralement déclaré au sein de la DSN mensuelle du mois d'avril, et ce bien qu'une DSN mensuelle annule et remplace ait été envoyée après la date de début du contrat.
+ | 
+ Date de création : 30/11/2017 02:02 PM 
+ N° de la fiche : 1741

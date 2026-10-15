@@ -1,0 +1,99 @@
+Transcription du fichier XML voisin (base LEGI de la DILA, open data), balises retirees.
+Arrêté du 4 septembre 2025 relatif aux frais professionnels déductibles pour le calcul des cotisations de sécurité sociale des salariés affiliés au régime général et des salariés affiliés au régime agricole -- article (sans numero), LEGIARTI000052206429 (legi-arrete-20250904-frais-professionnels-annexe1-professions-20250907.xml), etat VIGUEUR, en vigueur du 2025-09-07 au 2999-01-01.
+
+ANNEXES
+ANNEXE 1
+PRINCIPALES PROFESSIONS CONCERNÉES PAR LA DFS ET TAUX D'ABATTEMENT APPLICABLE
+Artistes
+Musiciens, choristes, chefs d'orchestre, régisseurs de théâtre
+20 %
+Personnel de création de l'industrie cinématographique
+20 %
+Artistes dramatiques, lyriques, cinématographiques ou chorégraphiques
+25 %
+Assurances, secteur 
+    bancaire et immobilier
+Inspecteurs d'assurances des branches vie - capitalisation et épargne
+30 %
+Démarcheurs, négociateurs salariés des cabinets immobiliers, démarcheurs de banque et démarcheurs salariés d'une compagnie d'assurances
+30 %
+Négociateur immobilier exerçant son activité dans les conditions de l'article L. 7313-1 du code du travail et qui effectue les démarchages pour trouver des vendeurs, acquéreurs, loueurs ou locataires de biens immobiliers
+30 %
+Aviation marchande
+Personnel navigant comprenant : pilotes, radios, mécaniciens navigants des compagnies de transports aériens
+30 %
+Pilotes et mécaniciens employés par les maisons de construction d'avions et de moteurs
+30 %
+Pilotes moniteurs d'aéroclubs et des écoles civiles
+30 %
+Bâtiment
+Apprentis du bâtiment, agents de maîtrise ou cadres travaillant sur les chantiers
+10 %
+Ouvriers visés à l'article 1er du décret du 17 novembre 1936, à l'exclusion de ceux qui travaillent en usine ou en atelier, et ouvriers embauchés par un particulier, ainsi que les ouvriers occupés dans les locaux de l'entreprise lorsque leur service les appelle d'une façon régulière sur les chantiers
+10 %
+Entreprises de propreté
+8 %
+Casinos et cercles
+Citoyens français employés des jeux dans les casinos de Monaco
+20 %
+Personnel supportant des frais de double résidence
+12 %
+Personnel supportant les frais de représentation et de veillée
+8 %
+Personnel supportant simultanément des frais de double résidence et des frais de représentation et de veillée
+20 %
+Commerce
+Visiteur médical, délégué médical, représentant en spécialités pharmaceutiques chargé de la vente directe des spécialités aux pharmaciens et aux grossistes lorsqu'ils exercent leur activité dans les conditions prévues à l'article L. 7313-1 du code du travail
+30 %
+Ingénieur commercial dont les fonctions consistent à visiter la clientèle de son employeur, à susciter et à recueillir leurs commandes et dont la rémunération est composée d'un salaire fixe et d'un pourcentage du chiffre d'affaires réalisé avec ses clients
+30 %
+Chef du service des ventes de voitures automobiles lorsqu'il dirige et accompagne les voyageurs et représentants
+30 %
+Voyageurs, représentants et placiers de commerce ou d'industrie
+30 %
+Finances
+Commis des prestataires de services d'investissement qui étaient agréés au 31 décembre 1995 en tant que sociétés de bourse (place de Paris). Sur les émoluments variables de toute nature
+20 %
+Journalistes, secteur de la presse et de la publicité
+Journalistes
+30 %
+Journalistes employés par le centre de formation et de perfectionnement des journalistes
+30 %
+Rédacteurs, photographes, directeurs de journaux, critiques dramatiques et musicaux
+30 %
+Speakers de la radio et de la télévision française (statut de 1961 et de 1954 ORTF)
+20 %
+Ouvriers d'imprimerie de journaux travaillant la nuit
+5 %
+Ouvriers travaillant dans une entreprise d'affichage
+10 %
+Représentant en publicité
+30 %
+Mannequins
+Mannequins des grandes maisons parisiennes de couture, maisons de confection et de couture de gros de Paris dont l'activité est exclusivement consacrée à la présentation de modèles
+10 %
+Autres mannequins
+25 %
+Modélistes des grandes maisons parisiennes de couture et des maisons de confection et de couture de gros de Paris
+20 %
+Ouvriers
+Ouvriers bijoutiers et joailliers propriétaires de leur outillage
+5 %
+Ouvriers des entreprises de forage, sondage et prospection géophysique
+10 %
+Ouvriers scaphandriers
+10 %
+Ouvriers travaillant dans les galeries ou chantiers souterrains
+10 %
+Ouvriers des entreprises électriques
+10 %
+Transport
+Chauffeurs et convoyeurs de transports rapides routiers
+20 %
+Chauffeurs des entreprises de déménagement
+20 %
+Conducteurs-démonstrateurs et conducteurs-convoyeurs des entreprises de construction d'automobile
+20 %
+Travaux publics
+Conducteurs d'engins et de camions d'entreprises
+10 %

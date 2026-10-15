@@ -1,0 +1,101 @@
+# Bloc S10.G00.00
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 128-129
+
+--- p. 128 ---
+  S10.G00.00  2026-06-10
+
+  Structure
+
+S10.G00.00
+  S10 Entête
+Envoi  S10.G00.00
+Nom du logiciel utilisé  S10.G00.00.001
+Nom de l'éditeur  S10.G00.00.002
+Numéro de version du logiciel utilisé  S10.G00.00.003
+Code de conformité en pré-contrôle  S10.G00.00.004
+Code envoi du fichier d'essai ou réel  S10.G00.00.005
+Numéro de version de la norme utilisée  S10.G00.00.006
+Point de dépôt  S10.G00.00.007
+Type de l'envoi  S10.G00.00.008
+
+Nom du logiciel utilisé  S10.G00.00.001
+Envoi.NomLogiciel
+  Logiciel utilisé pour établir les déclarations.
+  L'alimentation systématique de cette rubrique est obligatoire pour faciliter le dialogue avec les éditeurs et
+  les émetteurs en cas d'anomalie détectée par les récepteurs.
+  Mettre 'Logiciel maison' dans le cas où l'émetteur utilise un logiciel de constitution de la DSN non acheté
+  mais développé en interne.
+
+  X  [1,20]
+
+Nom de l'éditeur  S10.G00.00.002
+Envoi.EditeurLogiciel
+  Nom de l'éditeur du logiciel de paie utilisé.
+  Mettre 'Logiciel maison' dans le cas où l'émetteur utilise un logiciel de constitution de la DSN non acheté
+  mais développé en interne.
+
+  X  [1,20]
+
+Numéro de version du logiciel utilisé  S10.G00.00.003
+Envoi.VersionLogiciel
+  Numéro de la version du logiciel de paie utilisé, s'il existe.
+
+  X  [1,10]
+
+Code de conformité en pré-contrôle  S10.G00.00.004
+Envoi.CodeConformite
+  Sera précisé suite à finalisation de l’outil de validation de messages proposé aux éditeurs et déclarants.
+
+  128 / 370
+
+--- p. 129 ---
+  S10.G00.01  2026-06-10
+
+  X  [1,50]
+
+Code envoi du fichier d'essai ou réel  S10.G00.00.005
+Envoi.EssaiReel
+  Les fichiers d'essai sont recommandés lors des premiers échanges avec un des services DSN proposés.
+
+  X  [2,2]
+
+  01 - envoi fichier test
+  02 - envoi fichier réel
+
+Numéro de version de la norme utilisée  S10.G00.00.006
+Envoi.VersionNorme
+
+  X  [6,6]
+
+  P27V01 - Année 2027 Version 1
+
+Point de dépôt  S10.G00.00.007
+Envoi.Depot
+  CCH-11 : Le point de dépôt (S10.G00.00.007) « 02 - MSA » est interdit si la rubrique « Nature de la déclaration -
+  S20.G00.05.001 » est renseignée avec la valeur « 10 - Signalement Déclaration préalable à l'embauche ».
+
+  X  [2,2]
+
+  01 - Net-entreprises
+  02 - MSA
+
+Type de l'envoi  S10.G00.00.008
+Envoi.Type
+  Cette rubrique permet de définir s'il s'agit d'un envoi normal, ou d'un envoi contenant uniquement des
+  déclarations mensuelles "sans individu".
+  CCH-11 : Cette rubrique doit être renseignée à "02 - envoi néant" , si et seulement si toutes les déclarations sont de
+  nature "01 - DSN Mensuelle" (S20.G00.05.001), et soit de type "02 - déclaration normale sans individu" soit de type
+  "05 - annule et remplace sans individu" (S20.G00.05.002).
+  Ce contrôle vise à interdire cette valeur dans un signalement car cette nature de déclaration est propre à un individu. Il
+  ne peut donc pas exister de signalement en l'absence d'individu.
+
+  X  [2,2]
+
+  01 - envoi normal
+  02 - envoi néant
+
+S10.G00.01
+
+Emetteur  S10.G00.01
+
+  129 / 370

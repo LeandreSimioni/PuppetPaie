@@ -1,0 +1,407 @@
+# Bloc S89.G00.92
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 357-363
+
+--- p. 357 ---
+  S89.G00.92  2026-06-10
+
+  l'entreprise et d'un identifiant unique et pérenne de l'individu dans l'entreprise, comme le Matricule du
+  salarié dans l'entreprise par exemple. Il ne peut pas contenir de caractères "espace".
+  Il s'agit d'une donnée technique destinée au système d'information DSN uniquement. Le NTT n'est pas une
+  donnée de gestion et ne permet pas l'ouverture des droits de l'individu auprès des organismes de protection
+  sociale. Le NTT doit désigner un individu et un seul pour l'ensemble de ses contrats dans l'entreprise. En cas
+  d'obtention de plusieurs NTT, l'employeur doit utiliser pour ses déclarations le NTT le plus ancien en cours
+  de validité. En l'absence de NIR ou de NIA, il est obligatoire de remplir la rubrique Numéro technique
+  temporaire (S89.G00.91.021).
+  Le NTT doit être renseigné sur la première DSN où le NIR est attribué. Ceci permettra de faire le lien entre
+  les deux identités déclarées par l'employeur.
+  CCH-12 : Si le "Numéro d'inscription au répertoire - S89.G00.91.001" n'est pas renseigné, le "Numéro technique
+  temporaire - S89.G00.91.021" doit obligatoirement être renseigné.
+
+  CCH-13 : Le "Numéro technique temporaire - S89.G00.91.021" est composé de la valeur déclarée dans la rubrique
+  "SIREN - S21.G00.06.001" de la 2ème à la 10ème position.
+
+  CCH-14 : Le Numéro technique temporaire doit être unique pour une même déclaration. Ce contrôle vise à permettre
+  la traçabilité et l'identification de l'individu.
+
+  CCH-15 : Si la rubrique "Nature de la déclaration - S20.G00.05.001" est renseignée avec la valeur "08 - Signalement
+  Amorçage des données variables" et si la rubrique "Numéro technique temporaire - S89.G00.91.021" est présente,
+  alors le bloc "Individu - S21.G00.30" est interdit. Ce contrôle s'applique uniquement pour le Signalement Amorçage
+  des données variables.
+
+  CSL-11 : Le "Numéro technique temporaire - S89.G00.91.021" doit obligatoirement commencer par "1" ou "2".
+
+  CSL-15 : Le caractère « espace » est interdit dans la composition du numéro technique temporaire.
+
+  X  [11,40]
+
+S89.G00.92
+
+Bases spécifiques individu non salarié  S89.G00.92
+  Il peut s'agir de montants assujettis de manière homogène à une ou plusieurs cotisations sociales.
+  Les montants assujettis peuvent être :
+  - allocation de chômage pour les entreprises en auto-assurance chômage
+  - allocation de cessation anticipée d'activité Amiante
+  - allocation de pré-retraite suite à rupture du contrat
+  - allocation préretraite sans rupture de contrat
+  - somme versée à un tiers
+  - montant versé à un bénéficiaire ne relevant pas des règles de sécurité sociale en France mais qui est imposable
+  - montant de retraite versée par l'employeur
+  - pension d'invalidité
+
+Type  S89.G00.92.001
+Code de base spécifique  S89.G00.92.002
+Montant  S89.G00.92.003
+Date de début de période de rattachement  S89.G00.92.004
+Date de fin de période de rattachement  S89.G00.92.005
+Montant net fiscal du revenu versé  S89.G00.92.006
+Taux de prélèvement à la source  S89.G00.92.007
+Type du taux de prélèvement à la source  S89.G00.92.008
+Identifiant du taux de prélèvement à la source  S89.G00.92.009
+Montant de prélèvement à la source  S89.G00.92.010
+
+  357 / 370
+
+--- p. 358 ---
+  S89.G00.92  2026-06-10
+
+Date de versement  S89.G00.92.011
+Montant de la part non imposable du revenu  S89.G00.92.012
+Montant soumis au PAS  S89.G00.92.013
+Montant de l’abattement sur la base fiscale (non déduit du montant net fiscal du revenu versé)  S89.G00.92.014
+Identifiant du CRM à l'origine de la régularisation  S89.G00.92.015
+Montant net versé  S89.G00.92.016
+Montant net social  S89.G00.92.017
+Montant de la retenue à la source sur les revenus versés aux non-résidents fiscaux  S89.G00.92.018
+
+Type  S89.G00.92.001
+BasesSpecifiquesIndividuNonSalarie.Type
+  Type de montants assujettis.
+
+  CCH-11 : Si la rubrique « Type - S89.G00.92.001 » est renseignée avec la valeur « 01 », « 02 », « 03 » ou « 05 » alors
+  les rubriques « Statut du salarié (conventionnel) - S89.G00.91.017 » et « Code statut catégoriel Retraite -
+  S89.G00.91.018 » sont obligatoires.
+
+  CCH-12 : Si la rubrique "Type - S89.G00.92.001" est renseignée avec la valeur "01 - Allocation de chômage pour les
+  entreprises en auto-assurance chômage", "02 - Allocation de cessation anticipée d'activité Amiante" ou "03 -
+  Allocation de pré-retraite suite à rupture du contrat" et si la rubrique "Code statut catégoriel Retraite Complémentaire
+  obligatoire - S89.G00.91.018" est renseignée avec une valeur différente de "10 - sans statut catégoriel", doivent être
+  déclarés un bloc "Bases spécifiques individu non salarié - S89.G00.92" portant une base spécifique (S89.G00.92.002)
+  "23 - Base exceptionnelle Agirc Arrco" et un autre bloc portant une base spécifique (S89.G00.92.002) "43 - Base
+  plafonnée exceptionnelle Agirc Arrco".
+
+  CCH-13 : Si la rubrique "Type - S89.G00.92.001" est renseignée avec la valeur "05 - Somme versée à un tiers" et si la
+  rubrique "Code statut catégoriel Retraite Complémentaire obligatoire - S89.G00.91.018" est renseignée avec une
+  valeur différente de "10 - sans statut catégoriel", doivent être obligatoirement déclarés un bloc "Bases spécifiques
+  individu non salarié - S89.G00.92" portant une base spécifique (S89.G00.92.002) "51 - Assiette brute plafonnée", un
+  bloc portant une base spécifique (S89.G00.92.002) "52 - Assiette de la contribution libératoire" et un autre bloc portant
+  une base spécifique (S89.G00.92.002) "53 - Assiette de la contribution sociale généralisée".
+
+  CCH-14 : Si la rubrique "Type - S89.G00.92.001" est renseignée avec une valeur différente de '01', '02', '03' et '05'
+  alors la rubrique "Code de base spécifique - S89.G00.92.002" ne peut pas être renseignée avec une valeur différente de
+  "50 - Assiette brute déplafonnée".
+
+  CCH-15 : Au moins un bloc "Bases spécifiques individu non salarié - S89.G00.92" portant la valeur "50 - Assiette
+  brute déplafonnée" au niveau de la rubrique "Code de base spécifique - S89.G00.92.002" doit être déclaré pour un
+  même type de code de base spécifique (S89.G00.92.001) déclaré, une même date de début de période de rattachement
+  (S89.G00.92.004), une même date de fin de période de rattachement (S89.G00.92.005), une même date de versement
+  (S89.G00.92.011) et un même individu non salarié (S89.G00.91).
+
+  X  [2,2]
+
+  01 - Allocation de chômage pour les entreprises en auto-assurance chômage
+  02 - Allocation de cessation anticipée d'activité Amiante
+  03 - Allocation de pré-retraite suite à rupture du contrat
+  05 - Somme versée à un tiers
+  06 - Montant versé à un bénéficiaire ne relevant pas des règles de sécurité sociale en France mais qui est imposable
+  07 - Allocation de pré-retraite sans rupture de contrat
+  08 - Montant de retraite versée par l'employeur
+  09 - Pensions d'invalidité
+
+Code de base spécifique  S89.G00.92.002
+BasesSpecifiquesIndividuNonSalarie.CodeBaseSpecifique
+
+  358 / 370
+
+--- p. 359 ---
+  S89.G00.92  2026-06-10
+
+  Identifie la règle d'assujettissement par référence aux textes législatifs, réglementaires, conventionnels ou
+  contractuels. Pour tout "Type - S89.G00.92.001", au moins un bloc "Bases spécifiques individu non salarié -
+  S89.G00.92" portant la valeur "50 - Assiette brute déplafonnée" au niveau de la rubrique "Code de base
+  spécifique - S89.G00.92.002" doit obligatoirement être déclaré. Les valeurs "51 - Assiette brute plafonnée",
+  "52 - Assiette de la contribution libératoire" ou "53 - Assiette de la contribution sociale généralisée" sont à
+  renseigner si la valeur "05 - Somme versée à un tiers" est renseignée au niveau de la rubrique "Type -
+  S89.G00.92.001".
+
+  X  [2,2]
+
+  23 - Base exceptionnelle Agirc Arrco
+  43 - Base plafonnée exceptionnelle Agirc Arrco
+  50 - Assiette brute déplafonnée
+  51 - Assiette brute plafonnée
+  52 - Assiette de la contribution libératoire
+  53 - Assiette de la contribution sociale généralisée
+
+Montant  S89.G00.92.003
+BasesSpecifiquesIndividuNonSalarie.Montant
+  Montant de base assujettie pouvant être positif, négatif ou nul.
+
+  N  [4,11]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Date de début de période de rattachement  S89.G00.92.004
+BasesSpecifiquesIndividuNonSalarie.DateDebutPeriodeRattachemen
+t
+  La période de rattachement de la base assujettie est la période pour laquelle est valorisée cette base. La
+  définition de cette période découle de l'application des dispositions réglementaires, conventionnelles ou
+  contractuelles des organismes de protection sociale.
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de période de rattachement  S89.G00.92.005
+BasesSpecifiquesIndividuNonSalarie.DateFinPeriodeRattachement
+  La période de rattachement de la base assujettie est la période pour laquelle est valorisée cette base. La
+  définition de cette période découle de l'application des dispositions réglementaires, conventionnelles ou
+  contractuelles des organismes de protection sociale.
+  CCH-11 : La date de fin de rattachement doit être supérieure ou égale à la date de début de période de rattachement.
+
+  SIG-12 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Montant net fiscal du revenu versé  S89.G00.92.006
+BasesSpecifiquesIndividuNonSalarie.NetFiscalVerse
+  Montant net fiscal calculé (net des cotisations prélevées Agirc-Arrco s’il s’agit d’une des 3 allocations–les
+
+  359 / 370
+
+--- p. 360 ---
+  S89.G00.92  2026-06-10
+
+  autres cotisations n’étant pas véhiculées dans la DSN).
+  CCH-12 : Si la rubrique "Code de base spécifique - S89.G00.92.002" est valorisée avec la valeur "50 - Assiette brute
+  déplafonnée", alors la rubrique "Montant net fiscal du revenu versé - S89.G00.92.006" est obligatoire. Dans le cas
+  contraire, elle est interdite.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Taux de prélèvement à la source  S89.G00.92.007
+BasesSpecifiquesIndividuNonSalarie.TauxPAS
+  Taux appliqué sur le mois de versement
+
+  CCH-11 : Si la rubrique « Code de base spécifique - S89.G00.92.002 » est valorisée avec la valeur « 50 - Assiette brute
+  déplafonnée » et si la rubrique « Montant de la retenue à la source sur les revenus versés aux non-résidents fiscaux -
+  S89.G00.92.018 » n’est pas renseignée, alors la rubrique « Taux de prélèvement à la source - S89.G00.92.007 » est
+  obligatoire. Dans le cas contraire, elle est interdite.
+
+  N  [4,5]  CSL 00 : [0-9]{1,2}\.[0-9]{2}
+
+Type du taux de prélèvement à la source  S89.G00.92.008
+BasesSpecifiquesIndividuNonSalarie.TypeTauxPAS
+  Il s’agit de la nature du taux appliqué
+
+  CCH-11 : Si la rubrique « Type du taux de prélèvement à la source – S89.G00.92.008 » est renseignée avec la valeur «
+  99 - Indu relatif à un exercice antérieur – pas de taux de PAS » alors les rubriques « Taux de prélèvement à la source –
+  S89.G00.92.007 » et « Montant de prélèvement à la source – S89.G00.92.010 » doivent être nulles.
+
+  CCH-12 : Si la rubrique « Code de base spécifique - S89.G00.92.002 » est valorisée avec la valeur « 50 - Assiette brute
+  déplafonnée » et si la rubrique « Montant de la retenue à la source sur les revenus versés aux non-résidents fiscaux -
+  S89.G00.92.018 » n’est pas renseignée, alors la rubrique « Type du taux de prélèvement à la source -
+  S89.G00.92.008 » est obligatoire. Dans le cas contraire, elle est interdite.
+
+  X  [2,2]
+
+  01 - Taux transmis par la DGFIP
+  13 - Barème mensuel métropole
+  17 - Barème mathématique sur base mensuelle métropole
+  23 - Barème mensuel Guadeloupe, Réunion et Martinique
+  27 - Barème mathématique sur base mensuelle Guadeloupe, Réunion et Martinique
+  33 - Barème mensuel Guyane et Mayotte
+  37 - Barème mathématique sur base mensuelle Guyane et Mayotte
+  99 - Indu relatif à un exercice antérieur – pas de taux de PAS
+
+Identifiant du taux de prélèvement à la source  S89.G00.92.009
+BasesSpecifiquesIndividuNonSalarie.IdTauxPAS
+  Identifiant du taux porté par le CRM PAS (compte rendu métier du prélèvement à la source) transmis par la
+  DGFIP.
+  CCH-11 : Cette rubrique est obligatoire si le « Type du taux de prélèvement à la source – S89.G00.92.008 » est égal à
+  « 01 – Taux transmis par la DGFIP », dans le cas contraire elle est interdite.
+
+  N  [1,18]  CSL 00 : -1|0|[1-9][0-9]{0,17}
+
+  360 / 370
+
+--- p. 361 ---
+  S89.G00.92  2026-06-10
+
+Montant de prélèvement à la source  S89.G00.92.010
+BasesSpecifiquesIndividuNonSalarie.MontantPAS
+  Montant précompté, calculé à partir du montant de la base fiscale et du taux à lui appliquer. Il prend en
+  compte la règle de l’arrondi sur les deux décimales après la virgule, en application du f) du 3° de l'article
+  39 C de l'annexe III au Code général des impôts.
+  Exemple : Si le montant de PAS calculé s’élève à 120,5678 €, la somme à renseigner dans cette rubrique
+  sera 120,57 €.
+  CCH-11 : Le montant déclaré dans cette rubrique doit être égal au montant présent dans la rubrique «Montant soumis
+  au PAS - S89.G00.92.013 » multiplié par le taux du prélèvement à la source en pourcentage présent dans la rubrique «
+  Taux de prélèvement à la source - S89.G00.92.007 » avec une tolérance de plus ou moins 1 euro.
+
+  CCH-12 : Si la rubrique « Code de base spécifique - S89.G00.92.002 » est valorisée avec la valeur « 50 - Assiette brute
+  déplafonnée » et si la rubrique « Montant de la retenue à la source sur les revenus versés aux non-résidents fiscaux -
+  S89.G00.92.018 » n’est pas renseignée, alors la rubrique « Montant de prélèvement à la source - S89.G00.92.010 » est
+  obligatoire. Dans le cas contraire, elle est interdite.
+
+  N  [4,12]  CSL 00 : [0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Date de versement  S89.G00.92.011
+BasesSpecifiquesIndividuNonSalarie.VersementDate
+  Date à laquelle le débiteur effectue le versement. Cette date peut différer de la date à laquelle l’individu
+  non-salarié perçoit effectivement le versement. Cette date permet à la DGFIP de déterminer le millésime sur
+  lequel le versement est imposable.
+  CCH-12 : La "Date de versement - S89.G00.92.011" doit être inférieure ou égale à la date du dernier jour du mois
+  suivant le mois principal déclaré.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Montant de la part non imposable du revenu  S89.G00.92.012
+BasesSpecifiquesIndividuNonSalarie.MontantPartNonImposableRev
+enu
+  Le montant de la part non imposable du revenu désigne la partie du revenu qui n’est pas imposée.
+  (A savoir le montant du revenu en-deçà du seuil d’exonération annuel pour les apprentis et stagiaires).
+  Lorsque le revenu est intégralement non imposable, l’intégralité du montant est à renseigner dans cette
+  rubrique.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant soumis au PAS  S89.G00.92.013
+BasesSpecifiquesIndividuNonSalarie.MontantSoumisPAS
+  Le montant soumis au PAS (effectivement pris en compte dans le calcul du prélèvement à la source) et
+  l’assiette déclarée en rubrique « Montant net fiscal du revenu versé - S89.G00.92.006 » peuvent différer. La
+  rubrique est alimentée dans tous les cas, même si elle est égale au montant net fiscal du revenu versé :
+  - Dans le cas d’une avance faite par un employeur en cas de subrogation des indemnités journalières : le
+  montant de l’avance s’ajoute au montant net fiscal du revenu versé pour constituer l’assiette du PAS.
+  - Dans le cas d’un abattement d’un demi-SMIC de l’assiette pour les contrats à durée déterminée n’excédant
+  pas deux mois ou à terme imprécis et pour lesquels aucun taux personnalisé n'a été transmis : le montant de
+
+  361 / 370
+
+--- p. 362 ---
+  S89.G00.92  2026-06-10
+
+  l'abattement est déduit du montant net fiscal du revenu versé pour constituer l’assiette du PAS.
+  CCH-11 : Si la rubrique « Code de base spécifique - S89.G00.92.002 » est valorisée avec la valeur « 50 - Assiette brute
+  déplafonnée » et si la rubrique « Montant de la retenue à la source sur les revenus versés aux non-résidents fiscaux -
+  S89.G00.92.018 » n’est pas renseignée, alors la rubrique « Montant soumis au PAS - S89.G00.92.013 » est obligatoire.
+  Dans le cas contraire, elle est interdite.
+
+  N  [4,12]  CSL 00 : [0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant de l’abattement sur la base fiscale (non déduit du montant  S89.G00.92.014
+net fiscal du revenu versé)
+BasesSpecifiquesIndividuNonSalarie.MontantAbattementBaseFiscal
+eNonDeduitRNF
+  Il s’agit du montant de l’abattement sur la base fiscale non déduit du montant net fiscal du revenu versé
+  dont certaines populations d’individus bénéficient dans le cadre du calcul de l’impôt sur le revenu :
+  assistants maternels et assistants familiaux.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Identifiant du CRM à l'origine de la régularisation  S89.G00.92.015
+BasesSpecifiquesIndividuNonSalarie.IdentifiantCRMOrigineRegul
+  Il s'agit de l'identifiant du CRM (compte rendu métier) transmis par l'organisme demandeur de la
+  régularisation ou de la correction.
+  CCH-11 : La rubrique "Identifiant du CRM à l'origine de la régularisation - S89.G00.92.015" ne peut être renseignée
+  que pour une période de rattachement (S89.G00.92.004 et S89.G00.92.005) inférieure au mois principal déclaré
+  (S20.G00.05.005) de la déclaration. Dans le cas contraire cette rubrique est interdite. Ce contrôle vise à ce qu'il soit
+  possible de renseigner l'identifiant du CRM à l'origine de la régularisation que pour des régularisations ou des
+  corrections.
+
+  X  [1,18]
+
+Montant net versé  S89.G00.92.016
+BasesSpecifiquesIndividuNonSalarie.MontantNetVerse
+  Le montant net versé correspond au montant net fiscal du revenu versé (S89.G00.92.006), duquel sont
+  déduits le montant de la CSG non déductible, le montant de la CRDS, le montant de la CASA applicable aux
+  revenus de remplacement et le montant des contributions des employeurs destinées à financer des garanties
+  « frais de santé ».
+
+  Le montant du prélèvement à la source n'est pas à déduire.
+
+  Si le revenu déclaré dans le bloc « Bases spécifiques individu non salarié - S89.G00.92 » est non imposable,
+  le montant net versé doit correspondre au montant brut déclaré sous la valeur « 50 - Assiette brute
+  déplafonnée » de la rubrique « Code de base spécifique - S89.G00.92.002 », duquel sont déduits les
+  montants déductibles ou non déductibles des éventuelles cotisations et des prélèvements sociaux
+  obligatoires.
+  CCH-11 : Si la rubrique « Code de base spécifique - S89.G00.92.002 » est valorisée avec la valeur « 50 - Assiette brute
+  déplafonnée » et si la rubrique « Montant de la retenue à la source sur les revenus versés aux non-résidents fiscaux -
+  S89.G00.92.018 » n’est pas renseignée, alors la rubrique « Montant net versé - S89.G00.92.016 » est obligatoire.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+  362 / 370
+
+--- p. 363 ---
+  S89.G00.93  2026-06-10
+
+Montant net social  S89.G00.92.017
+BasesSpecifiquesIndividuNonSalarie.MontantNetSocial
+  Le montant net social, conformément à la définition modifiant l’arrêté du 25 février 2016 fixant les libellés,
+  l’ordre et le regroupement des informations figurant sur le bulletin de paie mentionnés à l’article R. 3243-2
+  du Code du travail, est une base de ressources de référence pour la sphère sociale. Le montant net social
+  s'applique également aux revenus de remplacement pour établir une base de ressources de référence. Il est
+  renseigné en date de versement.
+  CCH-11 : Si la rubrique « Code de base spécifique - S89.G00.92.002 » est valorisée avec la valeur « 50 - Assiette brute
+  déplafonnée » et si la rubrique « Montant de la retenue à la source sur les revenus versés aux non-résidents fiscaux -
+  S89.G00.92.018 » n’est pas renseignée, alors la rubrique « Montant net social - S89.G00.92.017 » est obligatoire.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant de la retenue à la source sur les revenus versés aux non-  S89.G00.92.018
+résidents fiscaux
+BasesSpecifiquesIndividuNonSalarie.MontantRetenuSourceResNonF
+iscaux
+  Il s’agit du montant de la retenue à la source effectuée sur les revenus imposables versés aux individus non-
+  salariés domiciliés hors de France.
+  CCH-11 : La rubrique « Montant de la retenue à la source sur les revenus versés aux non-résidents fiscaux -
+  S89.G00.92.018 » est obligatoire si et seulement si la rubrique « Code de base spécifique - S89.G00.92.002 » est
+  valorisée avec la valeur « 50 - Assiette brute déplafonnée » et si la rubrique « Montant de prélèvement à la source -
+  S89.G00.92.010 » est absente. Dans le cas contraire, elle est interdite.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+S89.G00.93
+
+Régularisation de prélèvement à la source  S89.G00.93
+Mois de l’erreur  S89.G00.93.001
+Type d’erreur  S89.G00.93.002
+Régularisation du montant net fiscal du revenu versé  S89.G00.93.003
+Montant net fiscal du revenu versé le mois de l’erreur  S89.G00.93.004
+Régularisation du taux de prélèvement à la source  S89.G00.93.005
+Taux déclaré le mois de l’erreur  S89.G00.93.006
+Montant de la régularisation du prélèvement à la source  S89.G00.93.007
+Régularisation du montant de la part non imposable du revenu  S89.G00.93.008
+Régularisation du montant soumis au PAS  S89.G00.93.009
+Régularisation du montant de l’abattement sur la base fiscale (non déduit du montant net fiscal du  S89.G00.93.010
+revenu versé)
+Montant soumis au prélèvement à la source déclaré le mois de l'erreur  S89.G00.93.013
+
+Mois de l’erreur  S89.G00.93.001
+VTRegulPAS.MoisErreur
+  Il s’agit du mois sur lequel l’erreur s’est produite. En cas de reconduction de l’erreur sur plusieurs mois
+  chaque mois doit figurer. Cette date est à renseigner sous la forme MMAAAA.
+  CCH-11 : Un bloc "Régularisation de prélèvement à la source - S89.G00.93" ne peut être présent que si la rubrique
+  "Code de base spécifique - S89.G00.92.002" est renseignée avec la valeur "50 - Assiette brute déplafonnée" au niveau
+
+  363 / 370

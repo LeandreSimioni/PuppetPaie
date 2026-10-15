@@ -1,0 +1,235 @@
+# Bloc S21.G00.70
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 289-292
+
+--- p. 289 ---
+  S21.G00.70  2026-06-10
+
+Date de début  S21.G00.66.001
+Date de fin  S21.G00.66.002
+Montant  S21.G00.66.003
+
+Date de début  S21.G00.66.001
+TempsPartielTherapeutique.DateDebut
+  Date de début de la période de temps partiel thérapeutique sur le mois déclaré.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(19|20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin  S21.G00.66.002
+TempsPartielTherapeutique.DateFin
+  Date de fin de la période de temps partiel thérapeutique sur le mois déclaré.
+
+  SIG-11 : La "Date de fin - S21.G00.66.002" doit être supérieure ou égale à la "Date de début - S21.G00.66.001".
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(19|20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Montant  S21.G00.66.003
+TempsPartielTherapeutique.Montant
+  Il s'agit du montant de la perte de salaire associée au temps partiel thérapeutique. Ce montant peut être
+  positif, négatif ou nul.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+S21.G00.70
+
+Affiliation Prévoyance  S21.G00.70
+  Rattachement d’un individu à un contrat collectif de Prévoyance, Complémentaire Santé ou Retraite Supplémentaire
+  souscrit par son employeur auprès d’une institution de prévoyance, mutuelle ou société d’assurance.
+  Ce bloc est relié à une "Adhésion Prévoyance" S21.G00.15 par l'identifiant technique adhésion S21.G00.70.013. Ce
+  bloc est lui-même identifié techniquement par la rubrique S21.G00.70.012.
+
+Code option retenue par le salarié  S21.G00.70.004
+Code population de rattachement  S21.G00.70.005
+Nombre d’enfants à charge  S21.G00.70.007
+Nombre d'ayants-droit conjoint / concubin  S21.G00.70.008
+Nombre d'ayants-droit attachés au salarié pour le contrat Prévoyance mentionné  S21.G00.70.009
+Nombre d'ayants-droit autres (ascendants, collatéraux...)  S21.G00.70.010
+Nombre d'enfants ayants-droit  S21.G00.70.011
+Identifiant technique Affiliation  S21.G00.70.012
+Identifiant technique Adhésion  S21.G00.70.013
+Date de début de l’affiliation  S21.G00.70.014
+Date de fin de l’affiliation  S21.G00.70.015
+Affiliation prévoyance applicable à plusieurs contrats  S21.G00.70.016
+
+Code option retenue par le salarié  S21.G00.70.004
+
+  289 / 370
+
+--- p. 290 ---
+  S21.G00.70  2026-06-10
+
+PrevoyanceAffiliation.Option
+  Option définie dans le contrat, que le salarié peut choisir individuellement. Les valeurs de code sont
+  fournies par l'organisme de prévoyance et sont à renseigner seulement sur sa demande.
+
+  X  [1,30]
+
+Code population de rattachement  S21.G00.70.005
+PrevoyanceAffiliation.Population
+  Population définie dans le contrat auquel le salarié est rattaché. Les valeurs de code sont fournies par
+  l'organisme de prévoyance et sont à renseigner seulement sur sa demande.
+
+  X  [1,30]
+
+Nombre d’enfants à charge  S21.G00.70.007
+PrevoyanceAffiliation.NombreEnfantsCharge
+  Il s'agit du nombre d'enfants à charge enregistré dans le logiciel de paie / ressources humaines.
+
+  N  [1,2]  CSL 00 : [0]*(0|[1-9][0-9]*)
+
+Nombre d'ayants-droit conjoint / concubin  S21.G00.70.008
+PrevoyanceAffiliation.NombreAyantsDroitAdultes
+  Nombre d'ayants droit conjoint / concubin attachés au salarié pour le contrat mentionné. Cette donnée doit
+  être renseignée si elle intervient dans le calcul de la cotisation du contrat Prévoyance concerné.
+
+  N  [1,2]  CSL 00 : [0]*(0|[1-9][0-9]*)
+
+Nombre d'ayants-droit attachés au salarié pour le contrat  S21.G00.70.009
+Prévoyance mentionné
+PrevoyanceAffiliation.NombreAyantsDroit
+  Nombre d'ayants-droit attachés au salarié pour le contrat Prévoyance mentionné. Cette donnée doit être
+  renseignée si elle intervient dans le calcul de la cotisation du contrat Prévoyance concerné.
+  Le nombre d’ayants-droit renseigné dans cette rubrique ne correspond pas nécessairement au total des
+  autres compteurs (« Nombre d’ayants-droit conjoint / concubin - S21.G00.70.008 », « Nombre d'ayants-
+  droit autres (ascendants, collatéraux...) - S21.G00.70.010 » et « Nombre d'enfants ayants-droit -
+  S21.G00.70.011 ») car selon la typologie du contrat Prévoyance, la déclaration de l’ensemble de ces
+  rubriques n’est pas toujours attendue. En revanche, si ces rubriques sont toutes les trois valorisées, alors le
+  nombre d’ayants-droit déclaré à la rubrique « Nombre d'ayants-droit attachés au salarié pour le contrat
+  Prévoyance mentionné - S21.G00.70.009 » doit toujours correspondre à la somme des trois autres
+  compteurs.
+
+  N  [1,2]  CSL 00 : [0]*(0|[1-9][0-9]*)
+
+Nombre d'ayants-droit autres (ascendants, collatéraux...)  S21.G00.70.010
+PrevoyanceAffiliation.NombreAyantsDroitAutres
+  Nombre d'ayants droit autres (ascendants, collatéraux) attachés au salarié pour le contrat mentionnés.
+  Cette donnée doit être renseignée si elle intervient dans le calcul de la cotisation du contrat Prévoyance
+  concerné.
+
+  290 / 370
+
+--- p. 291 ---
+  S21.G00.70  2026-06-10
+
+  N  [1,2]  CSL 00 : [0]*(0|[1-9][0-9]*)
+
+Nombre d'enfants ayants-droit  S21.G00.70.011
+PrevoyanceAffiliation.NombreAyantsDroitEnfants
+  Nombre d'enfants ayants droit attachés au salarié pour le contrat prévoyance mentionné. Cette donnée doit
+  être renseignée si elle intervient dans le calcul de la cotisation du contrat Prévoyance concerné.
+
+  N  [1,2]  CSL 00 : [0]*(0|[1-9][0-9]*)
+
+Identifiant technique Affiliation  S21.G00.70.012
+PrevoyanceAffiliation.IdentifiantTechniqueAffiliation
+  Identifiant de l'affiliation au contrat de Prévoyance. Cet identifiant technique est interne au message et doit
+  être unique pour chacune des affiliations du salarié concerné.
+  Dans une déclaration mensuelle, il permet de faire le lien avec la ou les bases assujetties déclarées, via la
+  rubrique "Identifiant technique Affiliation - S21.G00.78.005".
+  CCH-11 : Dans une DSN mensuelle ou une fraction de DSN mensuelle, pour un salarié donné (S21.G00.30), cet
+  identifiant doit référencer de manière unique chacune des « Affiliations Prévoyance » (S21.G00.70) déclarées pour un
+  salarié donné, sauf si les conditions suivantes sont simultanément réunies, auquel cas il sera autorisé le renseignement
+  de plusieurs affiliations (S21.G00.70) portant le même identifiant d’affiliation (S21.G00.70.012) :
+  • Les contrats (S21.G00.40) auxquels sont rattachés ces affiliations (S21.G00.70) sont exclusivement des contrats de
+  mission (valeur 03 au niveau de la rubrique « Nature du contrat - S21.G00.40.007 ») ou sont exclusivement des
+  contrats ayant un code profession et catégorie socioprofessionnelle (S21.G00.40.004) égal à « 352a », « 353b », « 353c
+  », « 354b », « 354c », « 354e », « 354f », « 465b » ou « 637c ».
+  • Ces affiliations (S21.G00.70) sont toutes rattachées à la même adhésion (S21.G00.15) par le même identifiant
+  adhésion (S21.G00.70.013)
+  • Ces affiliations (S21.G00.70) présentent les mêmes codes option (S21.G00.70.004) et population (S21.G00.70.005)
+  • Les contrats de travail (S21.G00.40) auxquels sont rattachés ces affiliations (S21.G00.70) dans le message présentent
+  un statut conventionnel identique (S21.G00.40.002), un statut catégoriel identique (S21.G00.40.003), un dispositif de
+  politique publique identique (S21.G00.40.008), une convention collective identique (S21.G00.40.017).
+
+  X  [1,3]  CSL 00 : [1-9][0-9]*
+
+Identifiant technique Adhésion  S21.G00.70.013
+PrevoyanceAffiliation.IdentifiantTechniqueAdhesion
+  Identifiant de l'adhésion au contrat de Prévoyance, Santé, Retraite supplémentaire. Cet identifiant doit
+  correspondre à la valeur de la rubrique "S21.G00.15.005" déclarée dans un bloc "Adhésion Prévoyance,
+  Santé, Retraite supplémentaire" S21.G00.15. Il permet de faire le lien avec les blocs décrivant les données
+  de gestion du contrat Prévoyance, Santé, Retraite supplémentaire dans le message.
+  CCH-11 : Cet identifiant doit correspondre à la valeur de la rubrique "Identifiant technique Adhésion-
+  S21.G00.15.005" déclarée dans un bloc "Adhésion Prévoyance - S21.G00.15".
+
+  CCH-12 : Pour un même "Contrat - S21.G00.40", deux blocs "Affiliation Prévoyance - S21.G00.70" ne peuvent être
+  renseignés avec le même triplet "Code option retenue par le salarié - S21.G00.70.004", "Code population de
+  rattachement - S21.G00.70.005" et "Identifiant technique Adhésion - S21.G00.70.013".
+
+  X  [1,3]  CSL 00 : [1-9][0-9]*
+
+Date de début de l’affiliation  S21.G00.70.014
+PrevoyanceAffiliation.DateDebut
+  La rubrique "Date de début de l'affiliation" est conditionnelle et doit seulement être renseignée dans
+
+  291 / 370
+
+--- p. 292 ---
+  S21.G00.70  2026-06-10
+
+  certains cas très précis, lorsque la date de début d'affiliation au contrat OC ne correspond pas à la date de
+  début du contrat de travail : nouvelle affiliation liée à un changement d'établissement ou à un changement
+  de statut catégoriel, fin d'une dispense d'affiliation, etc. La liste complète des cas d’utilisation de cette
+  rubrique est disponible sur le site net-entreprises.fr.
+  SIG-11 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de l’affiliation  S21.G00.70.015
+PrevoyanceAffiliation.DateFin
+  La rubrique "Date de fin de l'affiliation" est conditionnelle et doit seulement être renseignée dans certains
+  cas très précis, lorsque la demande de radiation du contrat OC ne découle pas d'une fin du contrat de
+  travail, mais d'un événement tel qu'un changement d'établissement, un changement de statut catégoriel, une
+  dispense d'afffiliation, etc. La liste complète des cas d’utilisation de cette rubrique est disponible sur le site
+  net-entreprises.fr.
+  CCH-11 : La "Date de fin de l’affiliation - S21.G00.70.015" doit être supérieure ou égale à la "Date de début de
+  l’affiliation - S21.G00.70.014"
+
+  SIG-12 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Affiliation prévoyance applicable à plusieurs contrats  S21.G00.70.016
+PrevoyanceAffiliation.PrevoyanceMultContrats
+  Cette rubrique est à renseigner lorsqu’une même affiliation s’applique à plusieurs contrats de travail
+  déclarés dans une même DSN pour un même individu.
+  Elle est à déclarer uniquement pour un intérimaire en contrat de mission, un intermittent ou un pigiste (pour
+  lequel le code profession et catégorie socioprofessionnelle (S21.G00.40.004) présent au niveau du contrat
+  correspond à une des valeurs suivantes : « 352a », « 353b », « 353c », « 354b », « 354c », « 354e », « 354f
+  », « 465b » ou « 637c » et pour lequel le code convention collective applicable à ce contrat
+  (S21.G00.40.017) correspond à une des valeurs suivantes : « 0892 », « 1480 », « 1922 », « 2412 », « 2642
+  », « 2770 » ou « 3241 ») qui a exécuté plusieurs contrats au cours du même mois. Dans le cas contraire, la
+  rubrique est interdite. Elle n'est pas à renseigner lorsqu'un individu n'a qu'un seul contrat, et elle n'est pas à
+  renseigner pour les autres populations.
+  CCH-11 : La rubrique « Affiliation prévoyance applicable à plusieurs contrats - S21.G00.70.016 » n’est autorisée que
+  si au moins deux contrats de travail sont renseignés pour un même individu avec une nature du contrat
+  (S21.G00.40.007) égale à « 03 - Contrat de mission (contrat de travail temporaire) », ou, si au moins deux contrats de
+  travail sont renseignés pour un même individu avec un code profession et catégorie socioprofessionnelle
+  (S21.G00.40.004) égal à « 352a », « 353b », « 353c », « 354b », « 354c », « 354e », « 354f », « 465b » ou « 637c » et
+  un code convention collective applicable à ce contrat (S21.G00.40.017) égal à « 0892 », « 1480 », « 1922 », « 2412 »,
+  « 2642 », « 2770 » ou « 3241 ».
+
+  X  [2,2]
+
+  01 - Affiliation prévoyance applicable à plusieurs contrats de travail
+
+  292 / 370

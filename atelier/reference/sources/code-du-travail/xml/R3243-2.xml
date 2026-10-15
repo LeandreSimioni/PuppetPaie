@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000048841713</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/48/84/17/LEGIARTI000048841713.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>R3243-2</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2024-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018464861">Partie réglementaire  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018534660">Troisième partie : Durée du travail, salaire, intéressement, participation et épargne salariale </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018533916">Livre II : Salaire et avantages divers </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018533818">Titre IV : Paiement du salaire 
+</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018533808">Chapitre III : Bulletin de paie</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-05-01" etat="MODIFIE" fin="2016-02-27" id="LEGIARTI000018533804" num="R3243-2" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2016-02-27" etat="MODIFIE" fin="2018-01-01" id="LEGIARTI000032109269" num="R3243-2" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2018-01-01" etat="MODIFIE" fin="2024-01-01" id="LEGIARTI000034668809" num="R3243-2" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2024-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000048841713" num="R3243-2" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément au I de l’article 4 du décret n° 2023-1378 du 28 décembre 2023, ces dispositions entrent en vigueur le 1er janvier 2024.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Les informations mentionnées aux7°, 8°, 9°, 9° bis, 10° 13° et 14° de l'article R. 3243-1 sont libellées et ordonnées ainsi que, pour les éléments à la charge de l'employeur, regroupées conformément à un modèle défini par arrêté des ministres chargés de la sécurité sociale et du travail.</p>
+<p>La contribution mentionnée à l'article L. 136-3 du code de la sécurité sociale et la contribution prévue à l'article 14 de l'ordonnance n° 96-50 du 24 janvier 1996 relative au remboursement de la dette sociale sont agrégées. Les contributions autres que les contributions sociales mentionnées au a du 8° sont également agrégées dans une seule rubrique, qui donne le montant total de cette contribution.</p>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000190291" datesignatexte="1996-01-24" id="LEGIARTI000006759735" naturetexte="ORDONNANCE" nortexte="TASX9500194R" num="14" numtexte="96-50" sens="source" typelien="CITATION">Ordonnance n° 96-50 du 24 janvier 1996 - art. 14</LIEN>
+
+<LIEN cidtexte="JORFTEXT000032106923" datesignatexte="2016-02-25" id="LEGIARTI000036902830" naturetexte="ARRETE" nortexte="FCPS1604433A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 25 février 2016 - art. 1 (VD)</LIEN>
+<LIEN cidtexte="JORFTEXT000032106923" datesignatexte="2016-02-25" id="LEGIARTI000036902865" naturetexte="ARRETE" nortexte="FCPS1604433A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 25 février 2016 - art. 2 (VD)</LIEN>
+<LIEN cidtexte="JORFTEXT000036896997" datesignatexte="2018-05-09" id="LEGITEXT000036902059" naturetexte="ARRETE" nortexte="CPAS1812606A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 9 mai 2018 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000044615964" datesignatexte="2021-12-23" id="LEGITEXT000045012856" naturetexte="ARRETE" nortexte="SSAS2123528A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 23 décembre 2021 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000044615964" datesignatexte="2021-12-23" id="LEGIARTI000045012859" naturetexte="ARRETE" nortexte="SSAS2123528A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 23 décembre 2021 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000047096915" datesignatexte="2023-01-31" id="LEGITEXT000047097661" naturetexte="ARRETE" nortexte="SPRS2219968A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 31 janvier 2023 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000048730782" datesignatexte="2023-12-28" id="LEGIARTI000048798934" naturetexte="DECRET" nortexte="FAMA2331871D" num="3" numtexte="2023-1378" sens="cible" typelien="MODIFIE">Décret n°2023-1378 du 28 décembre 2023 - art. 3</LIEN>
+<LIEN cidtexte="JORFTEXT000049831771" datesignatexte="2024-06-25" id="LEGITEXT000049853900" naturetexte="ARRETE" nortexte="ECOS2417548A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 25 juin 2024 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000052097236" datesignatexte="2025-08-11" id="LEGITEXT000052098253" naturetexte="ARRETE" nortexte="ECOS2521547A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 11 août 2025 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018505050" naturetexte="CODE" nortexte="" num="R143-2" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail - art. R143-2 al 12 et 13 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000048841718" naturetexte="CODE" nortexte="" num="R3243-1" numtexte="" sens="source" typelien="CITATION">Code du travail - art. R3243-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018533802" naturetexte="CODE" nortexte="" num="R3243-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R3243-3 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000037560766" naturetexte="CODE" nortexte="" num="R3423-10-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R3423-10-1 (V)</LIEN>
+
+
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006740254" naturetexte="CODE" nortexte="" num="L136-3" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L136-3</LIEN>
+</LIENS>
+</ARTICLE>

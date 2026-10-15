@@ -1,0 +1,677 @@
+Date de modification : 27/06/2025 10:38 AM
+ Comment déclarer un VRP multicarte en DSN (incluant les nouvelles formalités URSSAF applicables à partir de janvier 2019) ?
+ Le contexte 
+ Le VRP multicarte est un salarié travaillant simultanément pour plusieurs employeurs et est rémunéré par ses employeurs sur la base de commissions versées trimestriellement ou mensuellement.
+ La DSN impose la déclaration du contrat du salarié tous les mois jusqu'à la rupture de ce dernier.
+ Par conséquent, les mois où le VRP ne perçoit pas de commissions, son contrat doit toujours être porté en DSN.
+ L'employeur doit donc réaliser une paie à zéro afin de signifier que le VRP est toujours en activité mais sans perception de commissions.
+ Exemple sur les mois de janvier, février et mars avec une rémunération brute de 4 000 € :
+ Dans la DSN de janvier 
+ S21.G00.50 - Versement individu | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.50.001  | 
+ Date de versement | 
+ 25012020 | 
+ S21.G00.50.002 | 
+ Rémunération nette fiscale | 
+ 0.00 | 
+ S21.G00.50.004 | 
+ Montant net versé | 
+ 0.00 | 
+ S21.G00.51 - Rémunération | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.51.001  | 
+ Date de début de période de paie | 
+ 01012020 | 
+ S21.G00.51.002 | 
+ Date de fin de période de paie | 
+ 31012020 | 
+ S21.G00.51.011 | 
+ Type | 
+ XXX | 
+ S21.G00.51.013 | 
+ Montant | 
+ 0.00 | 
+ S21.G00.78 - Base assujettie | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.78.001  | 
+ Code | 
+ XX | 
+ S21.G00.78.002 | 
+ Date de début de la période de rattachement | 
+ 01012020 | 
+ S21.G00.78.003 | 
+ Date de fin de la période de rattachement | 
+ 31012020 | 
+ S21.G00.78.004 | 
+ Montant | 
+ 0.00 | 
+ Dans la DSN de février 
+ S21.G00.50 - Versement individu | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.50.001  | 
+ Date de versement | 
+ 25022020 | 
+ S21.G00.50.002 | 
+ Rémunération nette fiscale | 
+ 0.00 | 
+ S21.G00.50.004 | 
+ Montant net versé | 
+ 0.00 | 
+ S21.G00.51 - Rémunération | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.51.001  | 
+ Date de début de période de paie | 
+ 01022020 | 
+ S21.G00.51.002 | 
+ Date de fin de période de paie | 
+ 29022020 | 
+ S21.G00.51.011 | 
+ Type | 
+ XXX | 
+ S21.G00.51.013 | 
+ Montant | 
+ 0.00 | 
+ S21.G00.78 - Base assujettie | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.78.001  | 
+ Code | 
+ XX | 
+ S21.G00.78.002 | 
+ Date de début de la période de rattachement | 
+ 01022020 | 
+ S21.G00.78.003 | 
+ Date de fin de la période de rattachement | 
+ 29022020 | 
+ S21.G00.78.004 | 
+ Montant | 
+ 0.00 | 
+ Dans la DSN de mars 
+ S21.G00.50 - Versement individu | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.50.001  | 
+ Date de versement | 
+ 25032020 | 
+ S21.G00.50.002 | 
+ Rémunération nette fiscale | 
+ 3150.00 | 
+ S21.G00.50.004 | 
+ Montant net versé | 
+ A renseigner | 
+ S21.G00.50.006 | 
+ Taux de prélèvement à la source | 
+ 10.00 | 
+ S21.G00.50.007 | 
+ Type du t aux de prélèvement à la source | 
+ 01 - Taux transmis par la DGFIP | 
+ S21.G00.50.008 | 
+ Identifiant du t aux de prélèvement à la source | 
+ 123456789123456789 | 
+ S21.G00.50.009 | 
+ Montant de prélèvement à la source | 
+ 315.00 | 
+ S21.G00.50.013 | 
+ Montant soumis au PAS | 
+ 3150.0 0 | 
+ S21.G00.51 - Rémunération | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.51.001  | 
+ Date de début de période de paie | 
+ 01032020 | 
+ S21.G00.51.002 | 
+ Date de fin de période de paie | 
+ 31032020 | 
+ S21.G00.51.011 | 
+ Type | 
+ XXX | 
+ S21.G00.51.013 | 
+ Montant | 
+ 4000.00 | 
+ S21.G00.78 - Base assujettie | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.78.001  | 
+ Code | 
+ XX | 
+ S21.G00.78.002 | 
+ Date de début de la période de rattachement | 
+ 01032020 | 
+ S21.G00.78.003 | 
+ Date de fin de la période de rattachement | 
+ 31032020 | 
+ S21.G00.78.004 | 
+ Montant | 
+ XXXX (suivant le code de base assujettie) | 
+ Modalités déclaratives des VRP multicartes : 
+ employeurs doivent déclarer les cotisations de Sécurité sociale via le "CTP 300
+ Les VRP multicartes étant soumis au droit commun en termes d'obligation de cotisations et contributions sociales, il est attendu une équivalence entre les CTP utilisés et les blocs de cotisations individuelles. 
+ DSN seront transmises à l'Urssaf du lieu de l'établissement de rattachement du  VRP  multicarte.
+ Les régularisations sur les périodes antérieures se font uniquement en DSN : il n’est plus possible d'utiliser les anciennes  déclarations  CCVRP après le dépôt de la  déclaration  annuelle 2018
+ n'y a aucune modification concernant le remplissage de la partie nominative de la DSN.
+ IMPORTANT : Fiabilisation des DSN des VRP multicartes : 
+ Le correct remplissage pour les VRP qui bénéficient de la Déduction Forfaitaire Spécifique :
+ Exemple sur les mois de janvier, février et mars pour un salarié dont la rémunération brute est de 20 000€ et qui bénéficie de la DFS :
+ S21.G00.40 - Contrat (contrat de travail, convention, mandat) | 
+ S21.G00.40.005  | 
+ Code complément PCS-ESE (pour la fonction publique : référentiels NEH, NET et grade de la NNE)
+ | 
+ 07 | 
+ S21.G00.40.011 | 
+ Unité de mesure de la quotité de travail | 
+ 99 | 
+ S21.G00.40.017 | 
+ Code convention collective applicable | 
+ 804 ou autre selon clause conventionnelle ou secteur d’activité | 
+ S21.G00.40.020 | 
+ Code régime de base risque vieillesse | 
+ 200 si régime général | 
+ S21.G00.40.023* | 
+ Taux de déduction forfaitaire spécifique pour frais professionnels | 
+ 30.00 | 
+ S21.G00.40.043** | 
+ Taux de cotisation accident du travail | 
+   | 
+ *Le taux de déduction forfaitaire spécifique sert au calcul du montant du remboursement de la contribution CSG/CRDS à destination des VRP multicartes. En cas d’erreur du taux de DFS, il convient de mobiliser un bloc changement.
+ Dans la DSN de janvier 
+ S21.G00.54 - Autre élément de revenu brut | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.54.001  | 
+ Type | 
+ 10 | 
+ S21.G00. 54 .002 | 
+ Montant | 
+ 0.00 | 
+ S21.G00. 54 .003 | 
+ Date de début de la période de rattachement | 
+ 01012020 | 
+ S21.G00. 54 .004 | 
+ Date de fin de la période de rattachement | 
+ 31012020 | 
+ S21.G00.78 - Base assujettie | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.78.001  | 
+ Code | 
+ 02 | 
+ S21.G00.78.002 | 
+ Date de début de la période de rattachement | 
+ 01012020 | 
+ S21.G00.78.003 | 
+ Date de fin de la période de rattachement | 
+ 31012020 | 
+ S21.G00.78.004 | 
+ Montant | 
+ 0.00 | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 076 - Cotisation Assurance Vieillesse | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.78 - Base assujettie | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.78.001  | 
+ Code | 
+ 03 | 
+ S21.G00.78.002 | 
+ Date de début de la période de rattachement | 
+ 01/01/2020 | 
+ S21.G00.78.003 | 
+ Date de fin de la période de rattachement | 
+ 31/01/2020 | 
+ S21.G00.78.004 | 
+ Montant | 
+ 0.00 | 
+ Dans le cas de l’exemple, le salarié n’est pas concerné par la réduction générale, la complétude du bloc « Composant de base assujettie - S21.G00.79 » n’est pas attendue. Néanmoins, si la rémunération du salarié ne dépasse pas le seuil de l’éligibilité de la réduction générale, le bloc « Composant de base assujettie - S21.G00.79 » est à compléter par le montant du SMIC (Cf. Guide Acoss) | 
+ S21.G00.79 - Base assujettie | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.79.001  | 
+ Type de composant de base assujettie | 
+ 01 | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 045 -  Cotisation Accident du travail | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 068 - Contribution solidarité autonomie | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 074 - Cotisation Allocation familiale - taux normal | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 075 -  Cotisation Assurance Maladie | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 076 - Cotisation Assurance Vieillesse | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ Dans la DSN de février 
+ S21.G00.54 - Autre élément de revenu brut | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.54.001  | 
+ Type | 
+ 10 | 
+ S21.G00. 54 .002 | 
+ Montant | 
+ 0.00 | 
+ S21.G00. 54 .003 | 
+ Date de début de la période de rattachement | 
+ 01022020 | 
+ S21.G00. 54 .004 | 
+ Date de fin de la période de rattachement | 
+ 29022020 | 
+ S21.G00.78 - Base assujettie | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.78.001  | 
+ Code | 
+ 02 | 
+ S21.G00.78.002 | 
+ Date de début de la période de rattachement | 
+ 01022020 | 
+ S21.G00.78.003 | 
+ Date de fin de la période de rattachement | 
+ 29022020 | 
+ S21.G00.78.004 | 
+ Montant | 
+ 0.00 | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 076 - Cotisation Assurance Vieillesse | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.78 - Base assujettie | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.78.001  | 
+ Code | 
+ 03 | 
+ S21.G00.78.002 | 
+ Date de début de la période de rattachement | 
+ 01022020 | 
+ S21.G00.78.003 | 
+ Date de fin de la période de rattachement | 
+ 29022020 | 
+ S21.G00.78.004 | 
+ Montant | 
+ 0.00 | 
+ Dans le cas de l’exemple, le salarié n’est pas concerné par la réduction générale, la complétude du bloc « Composant de base assujettie - S21.G00.79 » n’est pas attendue. Néanmoins, si la rémunération du salarié ne dépasse pas le seuil de l’éligibilité de la réduction générale, le bloc « Composant de base assujettie - S21.G00.79 » est à compléter par le montant du SMIC (Cf. Guide Acoss) | 
+ S21.G00.79 - Base assujettie | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.79.001  | 
+ Type de composant de base assujettie | 
+ 01 | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 045 -  Cotisation Accident du travail | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 068 - Contribution solidarité autonomie | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 074 - Cotisation Allocation familiale - taux normal | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 075 -  Cotisation Assurance Maladie | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 076 - Cotisation Assurance Vieillesse | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ Dans la DSN de mars 
+ S21.G00.54 - Autre élément de revenu brut | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.54.001  | 
+ Type | 
+ 10 | 
+ S21.G00. 54 .002 | 
+ Montant | 
+ 6 000.00 | 
+ S21.G00. 54 .003 | 
+ Date de début de la période de rattachement | 
+ 01032020 | 
+ S21.G00. 54 .004 | 
+ Date de fin de la période de rattachement | 
+ 31032020 | 
+ S21.G00.78 - Base assujettie | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.78.001  | 
+ Code | 
+ 02 | 
+ S21.G00.78.002 | 
+ Date de début de la période de rattachement | 
+ 01032020 | 
+ S21.G00.78.003 | 
+ Date de fin de la période de rattachement | 
+ 31032020 | 
+ S21.G00.78.004 | 
+ Montant | 
+ 10284.00 (3 x 3428.00) | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 076 - Cotisation Assurance Vieillesse | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.78 - Base assujettie | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.78.001  | 
+ Code | 
+ 03 | 
+ S21.G00.78.002 | 
+ Date de début de la période de rattachement | 
+ 01032020 | 
+ S21.G00.78.003 | 
+ Date de fin de la période de rattachement | 
+ 31032020 | 
+ S21.G00.78.004 | 
+ Montant | 
+ 14000.00 | 
+ Dans le cas de l’exemple, le salarié n’est pas concerné par la réduction générale, la complétude du bloc « Composant de base assujettie - S21.G00.79 » n’est pas attendue. Néanmoins, si la rémunération du salarié ne dépasse pas le seuil de l’éligibilité de la réduction générale, le bloc « Composant de base assujettie - S21.G00.79 » est à compléter par le montant du SMIC (Cf. Guide Acoss) | 
+ S21.G00.79 - Base assujettie | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.79.001  | 
+ Type de composant de base assujettie | 
+ 01 | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 045 -  Cotisation Accident du travail | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 068 - Contribution solidarité autonomie | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 074 - Cotisation Allocation familiale - taux normal | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 075 -  Cotisation Assurance Maladie | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ S21.G00.81 - Cotisation individuelle | 
+ Code | 
+ Rubrique | 
+ Valorisation | 
+ S21.G00.81.001  | 
+ Code de cotisation individuelle | 
+ 076 - Cotisation Assurance Vieillesse | 
+ S21.G00.81.002 | 
+ Identification OPS | 
+ / 
+ | 
+ S21.G00.81.003 | 
+ Montant d'assiette | 
+ / | 
+ S21.G00.81.004 | 
+ Montant de cotisation | 
+ / | 
+ L’impact du dispositif DFS sur l’assiette de la CSG/CRDS est décrit sur cette page Urssaf.fr .
+ Les points de vigilance pour réussir à fiabiliser la DSN :
+ Il convient de veiller au bon remplissage des données relatives aux bases assujetties au sein du bloc « Base assujettie - S21.G00.78 » : bases plafonnées et déplafonnées.
+ Une attention particulière est à porter sur la déclaration des données liées à la DFS au sein des DSN des VRP multicartes.
+ En cas d’absence ou d’incohérence des données relatives à la DFS, il conviendra de mobiliser un bloc changement. En effet, le taux de DFS notamment sert au calcul du montant du remboursement de la contribution CSG/CRDS à destination des VRP multicartes.
+ Le montant de la DFS (S21.G00.54.002) ne doit pas être précédé d’un signe négatif.
+ Il est essentiel de bien déclarer et de fiabiliser vos données en DSN pour sécuriser le respect de vos obligations et assurer pleinement les droits des VRP multicartes.
+ Date de création : 12/09/2018 10:32 AM 
+ N° de la fiche : 1970

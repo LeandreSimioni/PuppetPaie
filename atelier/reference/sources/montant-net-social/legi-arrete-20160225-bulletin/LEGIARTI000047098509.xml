@@ -1,0 +1,761 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000047098509</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/47/09/85/LEGIARTI000047098509.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>1</NUM>
+
+<ETAT>MODIFIE</ETAT>
+
+<DATE_DEBUT>2023-02-08</DATE_DEBUT>
+<DATE_FIN>2024-06-30</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="JORFTEXT000032106923" date_publi="2016-02-26" date_signature="2016-02-25" ministere="Ministère des finances et des comptes publics" nature="ARRETE" nor="FCPS1604433A" num="" num_parution_jo="0048">
+<TITRE_TXT c_titre_court="Arrêté du 25 février 2016" debut="2999-01-01" fin="2999-01-01" id_txt="JORFTEXT000032106923">Arrêté du 25 février 2016 fixant les libellés, l'ordre et le regroupement des informations figurant sur le bulletin de paie mentionnées à l'article R. 3243-2 du code du travail</TITRE_TXT>
+<TITRE_TXT c_titre_court="Arrêté du 25 février 2016" debut="2016-02-27" fin="2999-01-01" id_txt="LEGITEXT000036902113">Arrêté du 25 février 2016 fixant les libellés, l'ordre et le regroupement des informations figurant sur le bulletin de paie mentionnées à l'article R. 3243-2 du code du travail</TITRE_TXT>
+</TEXTE>
+</CONTEXTE>
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2016-02-27" etat="MODIFIE" fin="2018-05-13" id="LEGIARTI000036902115" num="1" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2018-05-13" etat="MODIFIE" fin="2018-10-01" id="LEGIARTI000036902798" num="1" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2018-10-01" etat="MODIFIE" fin="2019-01-01" id="LEGIARTI000036902830" num="1" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2019-01-01" etat="MODIFIE" fin="2022-01-01" id="LEGIARTI000036902887" num="1" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2022-01-01" etat="MODIFIE" fin="2023-02-08" id="LEGIARTI000045014445" num="1" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2023-02-08" etat="MODIFIE" fin="2024-06-30" id="LEGIARTI000047098509" num="1" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2024-06-30" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000049854119" num="1" origine="LEGI"/>
+</VERSION>
+<VERSION etat="">
+<LIEN_ART debut="2999-01-01" etat="" fin="2999-01-01" id="JORFARTI000032106925" num="1" origine="JORF"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément à l’article 3 de l’arrêté du 31 janvier 2023 (NOR : SPRS2219968A), ces dispositions sont applicables aux rémunérations versées à compter du 1er juillet 2023.<br clear="none"/>
+<br clear="none"/>
+Se reporter aux conditions d’application prévues à l’article 2 dudit arrêté.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<br/>
+<p>I.-Les informations mentionnées à l'article R. 3243-1 du code du travail sont présentées selon le modèle suivant :</p>
+<br/>
+
+<table border="1">
+<tbody>
+<tr>
+<th>
+<br/>
+			MONTANT BRUT</th>
+<th colspan="5">
+<br/>
+			Valeur</th>
+</tr>
+<tr>
+<td align="left" colspan="4"/>
+<td align="left"/>
+<td align="left"/>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES</td>
+<td align="center">
+<br/>
+			Base</td>
+<td align="center">
+<br/>
+			Taux</td>
+<td align="center">
+<br/>
+			Salarié</td>
+<td align="left"/>
+<td align="center">
+<br/>
+			Employeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Santé</td>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Sécurité Sociale Maladie Maternité Invalidité Décès</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Complémentaire garanties frais de santé obligatoire</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Accidents du travail &amp; maladies professionnelles</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			-</td>
+<td align="center">
+<br/>
+			-</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Retraite</td>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Sécurité Sociale Vieillesse plafonnée</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Sécurité Sociale Vieillesse déplafonnée</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Retraite complémentaire, CEG et CET T1</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Retraite complémentaire, CEG et CET T2</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Famille</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			-</td>
+<td align="center">
+<br/>
+			-</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Assurance chômage</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Apec</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Autres charges dues par l'employeur</td>
+<td align="center">
+<br/>
+			-</td>
+<td align="center">
+<br/>
+			-</td>
+<td align="center">
+<br/>
+			-</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Cotisations statutaires ou prévues par la convention collective</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			CSG déductible de l'impôt sur le revenu</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="center">
+<br/>
+			-</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			CSG/ CRDS non déductible de l'impôt sur le revenu</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="center">
+<br/>
+			-</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			CSG/ CRDS sur les revenus non imposables</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="center">
+<br/>
+			-</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			TOTAL DES COTISATIONS ET CONTRIBUTIONS OBLIGATOIRES</td>
+<td align="left" colspan="2"/>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			EXONÉRATIONS ET ALLÈGEMENTS DE COTISATIONS</td>
+<td align="left" colspan="2"/>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES</td>
+<td align="center">
+<br/>
+			Base</td>
+<td align="center">
+<br/>
+			Taux</td>
+<td align="center">
+<br/>
+			Salarié</td>
+<td align="left"/>
+<td align="center">
+<br/>
+			Employeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Prévoyance, Incapacité, Invalidité, Décès, Autres</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Retraite supplémentaire</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			MONTANT NET SOCIAL</td>
+<td align="left"/>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="left"/>
+</tr>
+<tr>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			REMBOURSEMENTS ET DÉDUCTIONS DIVERSES</td>
+<td align="center">
+<br/>
+			Base</td>
+<td align="center">
+<br/>
+			Taux</td>
+<td align="center">
+<br/>
+			Salarié</td>
+<td align="left"/>
+<td align="center">
+<br/>
+			Employeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Frais de transports</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Titres-restaurant</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Chèques vacances</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Autres</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			MONTANT NET A PAYER AVANT IMPOT SUR LE REVENU</td>
+<td align="left" colspan="2"/>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="left"/>
+</tr>
+<tr>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			IMPOT SUR LE REVENU</td>
+<td align="center">
+<br/>
+			Base</td>
+<td align="center">
+<br/>
+			Taux</td>
+<td align="center">
+<br/>
+			Salarié</td>
+<td align="center" colspan="2">
+<br/>
+			Cumul annuel</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Montant net imposable</td>
+<td align="left"/>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="right" colspan="2">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			Montant net des HC/ HS/ RTT exonérées</td>
+<td align="left"/>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="right" colspan="2">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="center">
+<br/>
+			Valeur</td>
+<td align="right">
+<br/>
+			Valeur</td>
+<td align="right" colspan="2">
+<br/>
+			Valeur</td>
+</tr>
+<tr>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			MONTANT NET A PAYER (en Euros)</td>
+<td align="right" colspan="3">
+<br/>
+			Valeur</td>
+<td align="left"/>
+<td align="left"/>
+</tr>
+<tr>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+</tr>
+<tr>
+<td align="left">
+<br/>
+			TOTAL VERSÉ PAR L'EMPLOYEUR</td>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="left"/>
+<td align="right">
+<br/>
+			Valeur<br/>
+</td>
+</tr>
+</tbody>
+</table>
+
+<br/>
+<p>
+<br/>
+ II.-La valeur associée à la mention “ Montant net social ” est égale à la différence entre :<br/>
+<br/>
+ 1° D'une part, la totalité des montants correspondant aux sommes, ainsi qu'aux avantages et accessoires en nature ou en argent qui y sont associés, dus en contrepartie ou à l'occasion d'un travail, d'une activité ou de l'exercice d'un mandat ou d'une fonction élective, ainsi qu'aux sommes destinées à compenser la perte de revenu d'activité, versées sous quelque forme que ce soit et quelle qu'en soit la dénomination, à l'exception des indemnités prévues à l'article L. 313-1 du code de la sécurité sociale lorsque l'employeur est subrogé de plein droit à l'assuré dans les conditions prévues au R. 323-11 du même code, ainsi que du financement prévu au III de l'article L. 911-7 et du versement mentionné au I de l'article L. 911-7-1 du même code ;<br/>
+<br/>
+ 2° D'autre part, le montant total des cotisations et contributions sociales d'origine légale ou conventionnelle à la charge du salarié.<br/>
+<br/>
+ III.-La valeur associée à la mention “ Montant net imposable ” correspond au montant visé au 7° de l'article R. 3243-1 du code du travail duquel sont déduits les sommes payées et avantages en argent ou en nature mentionnés à l'article 83 du code général des impôts ainsi que la contribution mentionnée à l'article 154 quinquies du code général des impôts pour sa part admise en déduction de l'impôt sur le revenu et auquel sont ajoutées, le cas échéant, la part imposable des contributions des employeurs destinées au financement des prestations de protection sociale complémentaire entrant dans le champ des articles L. 911-1 et L. 911-2 du code de la sécurité sociale.<br/>
+<br/>
+ IV.-La valeur associée à la mention “ Montant net des heures compl/ suppl. exonérées ” est égale à la valeur brute des éléments de rémunération mentionnés aux I et III de l'article L. 241-17 du code de la sécurité sociale réduite de la contribution mentionnée à l'article 154 quinquies du code général des impôts pour sa part admise en déduction de l'impôt sur le revenu.<br/>
+<br/>
+ V.-Les valeurs associées à la mention “ Impôt sur le revenu prélevé à la source ” correspondent à la retenue à la source mentionnée au 9° de l'article R. 3243-1 du code du travail.<br/>
+<br/>
+ Les valeurs associées à la mention “ cumul annuel ” correspondent à la somme des valeurs mentionnées au III, IV et V figurant sur les bulletins de paie déjà émis par l'employeur au titre des périodes comprises entre le 1er janvier et le 31 décembre de l'année à laquelle ils se rapportent.<br/>
+<br/>
+ VI.-Les mentions “ Montant Brut ” et “ Montant net à payer ” ainsi que les montants associés apparaissent d'une manière qui en facilite la lisibilité par rapport aux autres lignes.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000047096915" datesignatexte="2023-01-31" id="LEGIARTI000047097664" naturetexte="ARRETE" nortexte="SPRS2219968A" num="1" numtexte="" sens="cible" typelien="MODIFIE">Arrêté du 31 janvier 2023 - art. 1</LIEN>
+</LIENS>
+</ARTICLE>

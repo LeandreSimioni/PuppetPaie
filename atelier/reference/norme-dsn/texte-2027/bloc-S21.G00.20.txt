@@ -1,0 +1,645 @@
+# Bloc S21.G00.20
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 154-164
+
+--- p. 154 ---
+  S21.G00.20  2026-06-10
+
+Ancien Code organisme de Prévoyance  S21.G00.16.002
+ChangementsDestinataireAdhesionPrevoyance.Organisme
+  Code de l'institution de prévoyance (sur 5 caractères sous la forme Pnnnn), de la mutuelle (sur 9 caractères
+  numériques), de la société d'assurances (sur 6 caractères sous la forme Axxxxx) ou de l'organisme
+  complémentaire non fédéré par un membre du GIP-MDS (CTIP, FFA, FNMF) (sur 9 caractères
+  alphanumériques dont un au moins est une lettre) concerné par le contrat référencé.
+  CRE-11 : valeurs autorisées
+
+  Tables PREV - Code institution de prévoyance, MUT - Code
+  X  [5,9]  mutuelle , ASSU - Code société d’assurance, OCI - Code
+  organisme OC isolé
+
+Ancien Code délégataire de gestion  S21.G00.16.003
+ChangementsDestinataireAdhesionPrevoyance.Delegataire
+  Ancien Organisme tiers à qui l'organisme de Prévoyance a délégué tout ou partie de la gestion du contrat
+  référencé en S21.G00.15.001.
+  Tables DLGPREV - Code délégataire de gestion
+  prévoyance, DLGMUT - Code délégataire de gestion
+  X  [6,6]  mutuelle, DLGASSU - Code délégataire de gestion
+  d'assurance, DLGOCI - Code délégataire de gestion OC
+  isolé
+
+S21.G00.20
+
+Versement organisme de protection sociale  S21.G00.20
+  Le bloc Versement permet à l'établissement de déclarer les informations relatives au paiement de ses cotisations. Si les
+  versements sont pris en charge par un autre établissement de l'entreprise, l'établissement peut ne réaliser aucun
+  versement aux organismes de protection sociale.
+
+Identifiant Organisme de Protection Sociale  S21.G00.20.001
+Entité d'affectation des opérations  S21.G00.20.002
+BIC  S21.G00.20.003
+IBAN  S21.G00.20.004
+Montant du versement  S21.G00.20.005
+Date de début de période de rattachement  S21.G00.20.006
+Date de fin de période de rattachement  S21.G00.20.007
+Code délégataire de gestion  S21.G00.20.008
+Mode de paiement  S21.G00.20.010
+Date de paiement  S21.G00.20.011
+SIRET Payeur  S21.G00.20.012
+Identifiant du CRM à l'origine de la régularisation  S21.G00.20.013
+Identifiant du versement  S21.G00.20.014
+
+Identifiant Organisme de Protection Sociale  S21.G00.20.001
+VersementOPS.IdentifiantOPS
+  Code identifiant de l'organisme de protection sociale destinataire du versement de cotisations sociales émis
+  par l'établissement payeur.
+
+  Modalité de valorisation :
+
+  154 / 370
+
+--- p. 155 ---
+  S21.G00.20  2026-06-10
+
+  - AGIRC-ARRCO : SIRET du GPS auquel est rattachée l'Institution de retraite concernée
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : SIRET de la CAMIEG (pour régularisation des périodes antérieures à 2020 pour le régime
+  général et antérieures à 2021 pour le régime agricole)
+  - CAVEC : SIRET de la CAVEC
+  - CCVRP : non concerné
+  - CNIEG : SIRET de la CNIEG (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : SIRET de la Caisse CS
+  - CRPCEN : SIRET de la CRPCEN (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : SIRET de la CRPNPAC
+  - Organisme complémentaire : code de l’institution de prévoyance, de la mutuelle, de la société d’assurance
+  ou de l'organisme complémentaire non fédéré par un membre du GIP-MDS (CTIP, FFA, FNMF) pour le
+  compte de laquelle s’effectue le versement (Tables PREV - Code institution de prévoyance, MUT - Code
+  mutuelle, ASSU - Code société d’assurance, OCI - Code organisme OC isolé, proposées sur le site
+  http://www.netentreprises.fr)
+  - DGFiP : DGFIP
+  - IRCANTEC : SIRET de l'Ircantec
+  - MSA : code caisse MSA
+  - France Travail : SIRET de France Travail
+  - Urssaf : SIRET de l'Urssaf (Table proposée sur le site http://www.net-entreprises.fr)
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - SRE : non concerné
+  - CNBF : SIRET de la CNBF
+  CCH-12 : Si la valeur de cette rubrique S21.G00.20.001 identifie un organisme de Prévoyance, et, si le montant du
+  versement S21.G00.20.005 est non nul ou si la rubrique « SIRET payeur - S21.G00.20.012 » est absente ou renseignée
+  avec le SIRET d’affectation (S21.G00.06.001+S21.G00.11.001), alors au moins un bloc "Composant de Versement -
+  S21.G00.55" doit être attaché à ce bloc "Versement organisme de protection sociale - S21.G00.20".
+
+  CCH-13 : Si la valeur renseignée dans la rubrique "Identifiant Organisme de Protection Sociale - S21.G00.20.001"
+  correspond à un organisme de Prévoyance et si aucun bloc « Composant de versement – S21.G00.55 » n’est présent
+  dans ce bloc « Versement organisme de protection sociale - S21.G00.20 », alors le couple "Identifiant Organisme de
+  Protection Sociale - S21.G00.20.001" / "Code délégataire de gestion - S21.G00.20.008" doit être présent dans au moins
+  une "Adhésion Prévoyance - S21.G00.15", dans les rubriques "Code organisme de Prévoyance S21.G00.15.002" /
+  "Code délégataire de gestion - S21.G00.15.003". (les couples à comparer pouvant comprendre une valeur nulle pour le
+  code délégataire de gestion).
+
+  CRE-11 : valeurs autorisées
+
+  Table IVO - Identifiant Organisme de Protection Sociale -
+  X  [2,14]
+  versement organisme
+
+Entité d'affectation des opérations  S21.G00.20.002
+VersementOPS.EntiteAffectation
+  Identifiant de l'établissement, de la population de salariés ou de tout axe de regroupement pour lequel est
+  réalisé le paiement de cotisations sociales ou de prélèvement à la source.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : SIRET
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+
+  155 / 370
+
+--- p. 156 ---
+  S21.G00.20  2026-06-10
+
+  - CAMIEG : groupe de cotisations (CAMIEG_COT_SOL, CAMIEG_COT_CPL) (pour régularisation des
+  périodes antérieures à 2020 pour le régime général et antérieures à 2021 pour le régime agricole)
+  - CAVEC : non concerné
+  - CCVRP : non concerné
+  - CNIEG : groupe de cotisations (CNIEG_COT_RS, CNIEG_COT_POOL, CNIEG_COT_RDC) (pour
+  régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : SIRET attribué pour les films par l'INSEE
+  - CRPCEN : numéro d'étude CRPCEN (6 chiffres) (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : non concerné
+  - Organisme complémentaire : Référence permettant d'identifier certains périmètres de paiement
+  particuliers. A renseigner sur demande explicite de l'organisme de Prévoyance, qui fournira la valeur à
+  utiliser
+  - DGFiP : « DGFIP_PAS » ou « DGFIP_SATD »
+  - IRCANTEC : non concerné
+  - MSA : non concerné
+  - France Travail : concernant les employeurs d’expatriés, d'ouvriers et techniciens de l'édition
+  d'enregistrement sonore, de la production cinématographique et audiovisuelle, de la diffusion et d’artistes
+  du spectacle, il s'agit d'un identifiant attribué par le centre de recouvrement Spectacle (CS suivi de 8
+  caractères numériques) et Expatriés (EX suivi de 8 caractères numériques) de France Travail
+  - Urssaf : PSEUDO-SIRET (dans le cas d'une population de salariés) ou SIRET du compte employeur pour
+  le versement en lieu unique
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - SRE : non concerné
+  - CNBF : non concerné
+  CCH-11 : Si la rubrique « Identifiant Organisme de Protection Sociale - S21.G00.20.001 » est renseignée avec la
+  valeur « DGFIP », alors la rubrique « Entité d'affectation des opérations - S21.G00.20.002 » doit obligatoirement être
+  renseignée avec la valeur « DGFIP_PAS » ou « DGFIP_SATD ».
+
+  CCH-12 : La valeur "CNIEG_COT_RS", "CNIEG_COT_POOL" ou "CNIEG_COT_RDC" n'est autorisée que si au
+  moins une rubrique "Code régime de base risque vieillesse - S21.G00.40.020" est renseignée avec la valeur "147 -
+  Régime spécial des industries électriques et gazières (CNIEG)".
+
+  X  [2,14]
+
+BIC  S21.G00.20.003
+VersementOPS.BIC
+  Il s'agit des coordonnées bancaires au format BIC du compte sur lequel doit être prélevé le montant de
+  l'ordre de règlement. Cette rubrique s'appuie sur la norme ISO 9362.
+  CCH-12 : Cette rubrique n'est pas à alimenter si le SIRET payeur (S21.G00.20.012) est renseigné et différent du
+  SIRET de l'établissement.
+
+  CSL 00 : ([A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-
+  X  [8,11]
+  9]{3}))|([A-Z]{4}[A-Z]{2}[A-Z0-9]{2})
+
+IBAN  S21.G00.20.004
+VersementOPS.IBAN
+  Il s'agit des coordonnées bancaires au format IBAN du compte sur lequel doit être prélevé le montant de
+  l'ordre de règlement. Cette rubrique s'appuie sur la norme ISO 13616:2007.
+
+  156 / 370
+
+--- p. 157 ---
+  S21.G00.20  2026-06-10
+
+  CCH-12 : Cette rubrique n'est pas à alimenter si le SIRET payeur (S21.G00.20.012) est renseigné et différent du
+  SIRET de l'établissement.
+
+  CCH-13 : Vérifier que le compte est bien domicilié en France (FR) [Code pays] sauf si l'organisme renseigné dans la
+  rubrique "Identifiant Organisme de Protection Sociale - S21.G00.20.001" correspond à celui d'un Organisme de
+  Prévoyance, de la DGFIP, d’une Urssaf, d’un SIRET d’une institution de retraite complémentaire Agirc-Arrco ou de la
+  Caisse des Congés spectacles.
+
+  CSL-11 : [(vérification de la clé IBAN)]
+
+  CSL-13 : [(vérification de la clé BBAN)]
+
+  X  [15,34]  CSL 00 : [A-Z0-9]+
+
+Montant du versement  S21.G00.20.005
+VersementOPS.Montant
+  Montant du versement correspondant au montant des cotisations réglées.
+  Avec décimale, non signé, valeur zéro autorisée, zéros non significatifs tolérés.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : montant
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : montant (pour régularisation des périodes antérieures à 2020 pour le régime général et
+  antérieures à 2021 pour le régime agricole)
+  - CAVEC : montant
+  - CCVRP : non concerné
+  - CNIEG : montant (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : montant
+  - CRPCEN : montant (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : montant
+  - Organisme complémentaire : montant du versement correspondant au montant des cotisations réglées,
+  qu’il s’agisse de cotisations nominatives ou établissement, d’un paiement total ou partiel, incluant ou non
+  d’éventuelles régularisations. Ce montant peut intégrer tant les cotisations de l'établissement d'affectation
+  que celles d'un ou plusieurs autres établissements, pour tout ou partie de leurs contrats.
+  Ce montant doit correspondre au total des montants déclarés dans les blocs "Composant de versement"
+  attachés au présent bloc sauf si cette somme fait ressortir un montant négatif. Auquel cas un montant nul
+  doit être renseigné.
+  - DGFiP : montant, arrondi à l'entier le plus proche (les deux décimales étant valorisées à zéro). Cette
+  rubrique doit être valorisée à « 0.00 » si délégation de paiement à un autre SIRET payeur (mode de
+  paiement 06). Pour une déclaration de type « annule et remplace » sans paiement de Prélèvement à la
+  source et déposée en substitution d'une déclaration pourvue d'un bloc Versement (S21.G00.20) pour le
+  Prélèvement à la source, il est obligatoire de déclarer un bloc de Versement avec la rubrique « Montant du
+  versement - S21.G00.20.005 » renseignée à zéro.
+  - IRCANTEC : montant arrondi à l’euro le plus proche selon la règle suivante : jusqu’à 49 centimes, à
+  l’euro inférieur et à partir de 50 centimes à l’euro supérieur.
+  - MSA : montant
+  - France Travail : montant
+  - Urssaf : montant, arrondi à l'entier le plus proche (les deux décimales étant valorisées à zéro)
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+
+  157 / 370
+
+--- p. 158 ---
+  S21.G00.20  2026-06-10
+
+  - RAEP : non concerné
+  - SRE : non concerné
+  - CNBF : montant
+  CCH-12 : Si le versement concerne un organisme de prévoyance, ce montant doit être égal à la somme des montants
+  renseignés dans la rubrique "Montant versé - S21.G00.55.001" dans les Composants de versement qui en dépendent,
+  sauf si cette somme fait ressortir un montant négatif. Auquel cas un montant nul doit être renseigné.
+
+  CCH-13 : Si la rubrique « Identifiant organisme de Protection Sociale – S21.G00.20.001 » est renseignée à « DGFIP »,
+  le montant véhiculé en rubrique « Montant du versement – S21.G00.20.005 » doit être inférieur ou égal à
+  999999999.00.
+
+  N  [4,18]  CSL 00 : [0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Date de début de période de rattachement  S21.G00.20.006
+VersementOPS.RattachementDateDebut
+  Début de la période au titre de laquelle ont été établies les cotisations dont l'établissement s'acquitte. Cette
+  période peut être définie selon les règles applicables aux différents dispositifs de cotisation. Ce peut être par
+  mois civil (par exemple, Sécurité sociale), par trimestre, par année (par exemple, contribution à un
+  organisme professionnel), par période discrétionnaire, selon ce qui fait sens.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : date
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : date (pour régularisation des périodes antérieures à 2020 pour le régime général et
+  antérieures à 2021 pour le régime agricole)
+  - CAVEC : date
+  - CCVRP : non concerné
+  - CNIEG : date (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : date
+  - CRPCEN : date (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : date
+  - Organisme complémentaire : donnée non exploitée par les Organismes de Prévoyance, à renseigner au
+  01012000
+  - DGFiP : Cette date correspond au premier jour du mois principal déclaré.
+  - IRCANTEC : date
+  - MSA : date (période de rattachement, usuellement le mois associée à la DSN concernée par le versement)
+  - France Travail : date
+  - Urssaf : date (période de rattachement, usuellement le mois associée à la DSN concernée par le
+  versement)
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - SRE : non concerné
+  - CNBF : date
+  CCH-11 : Si la rubrique "Identifiant Organisme de Protection Sociale - S21.G00.20.001" est renseignée
+  avec le SIRET d'une caisse Urssaf, la "Date de début de période de rattachement - S21.G00.20.006" et la "Date de fin
+  de période de rattachement - S21.G00.20.007" doivent être incluses dans le même mois civil.
+
+  CCH-12 : Si l'Identifiant Organisme de Protection Sociale (S21.G00.20.001) est un organisme de retraite
+  complémentaire AGIRC-ARRCO, l'année de la "Date de début de période de rattachement - S21.G00.20.006" doit être
+  incluse dans le même exercice civil que celui de la "Date de fin de période de rattachement - S21.G00.20.007".
+
+  158 / 370
+
+--- p. 159 ---
+  S21.G00.20  2026-06-10
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de période de rattachement  S21.G00.20.007
+VersementOPS.RattachementDateFin
+  Fin de la période au titre de laquelle ont été établies les cotisations dont l'établissement s'acquitte. Cette
+  période peut être définie selon les règles applicables aux différents dispositifs de cotisation. Ce peut être par
+  mois civil (par exemple, Sécurité sociale), par trimestre, par année (par exemple, contribution à un
+  organisme professionnel), par période discrétionnaire, selon ce qui fait sens.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : date
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : date (pour régularisation des périodes antérieures à 2020 pour le régime général et
+  antérieures à 2021 pour le régime agricole)
+  - CAVEC : date
+  - CCVRP : non concerné
+  - CNIEG : date (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : date
+  - CRPCEN : date (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : date
+  - Organisme complémentaire : donnée non exploitée par les Organismes de Prévoyance, à renseigner au
+  01012000
+  - DGFiP : Cette date correspond au dernier jour du mois principal déclaré.
+  - IRCANTEC : date
+  - MSA : date (période de rattachement, usuellement le mois associée à la DSN concernée par le versement)
+  - France Travail : date
+  - Urssaf : date (période de rattachement, usuellement le mois associée à la DSN concernée par le
+  versement)
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - SRE : non concerné
+  - CNBF : date
+  CCH-11 : La "Date de fin de période de rattachement - S21.G00.20.007" doit être supérieure ou égale à la "Date de
+  début de période de rattachement - S21.G00.20.006".
+
+  CCH-12 : Si l'Identifiant Organisme de Protection Sociale (S21.G00.20.001) est un organisme de retraite
+  complémentaire AGIRC-ARRCO, l'année de la date de fin de période de rattachement doit être incluse dans le même
+  exercice civil que celui de la date de début de période de rattachement.
+
+  CCH-13 : Cette date doit être inférieure ou égale au dernier jour civil du mois principal déclaré
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Code délégataire de gestion  S21.G00.20.008
+
+  159 / 370
+
+--- p. 160 ---
+  S21.G00.20  2026-06-10
+
+VersementOPS.CodeDelegataireGestion
+  Code identifiant l'organisme tiers à qui l'organisme de Prévoyance renseigné en S21.G00.20.001 a délégué
+  la gestion des cotisations et qui à ce titre est destinataire du paiement.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : non concerné
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : non concerné
+  - CAVEC : non concerné
+  - CCVRP : non concerné
+  - CNIEG : non concerné
+  - Congés spectacles (AUDIENS) : non concerné
+  - CRPCEN : non concerné
+  - CRPNPAC : non concerné
+  - Organisme complémentaire : code d'identification
+  - DGFiP : non concerné
+  - IRCANTEC : non concerné
+  - MSA : non concerné
+  - France Travail : non concerné
+  - Urssaf : non concerné
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - SRE : non concerné
+  - CNBF : non concerné
+  CCH-11 : Contrôle sur valeurs autorisées dans la table des délégataires des institutions de Prévoyance, si la rubrique
+  "Code délégataire de gestion - S21.G00.20.008" est présente et si la rubrique "Identifiant Organisme de Protection
+  Sociale - S21.G00.20.001" correspond à une institution de Prévoyance (code organisme sur 5 positions, préfixé par le
+  caractère "P").
+
+  CCH-12 : Contrôle sur valeurs autorisées dans la table des délégataires des sociétés d'assurances, si la rubrique "Code
+  délégataire de gestion - S21.G00.20.008" est présente et si la rubrique "Identifiant Organisme de Protection Sociale -
+  S21.G00.20.001" correspond à une société d'assurance (code organisme sur 6 positions, préfixé par le caractère "A").
+
+  CCH-13 : Contrôle sur valeurs autorisées dans la table des délégataires des mutuelles, si la rubrique "Code délégataire
+  de gestion - S21.G00.20.008" est présente et si la rubrique "Identifiant Organisme de Protection Sociale -
+  S21.G00.20.001" correspond à une mutuelle (code organisme sur 9 positions numériques).
+
+  CCH-14 : Contrôle sur valeurs autorisées dans les tables des délégataires des organismes complémentaires non fédérés
+  par un membre du GIP-MDS (CTIP, FFA, FNMF), si la rubrique "Code délégataire de gestion - S21.G00.20.008" est
+  présente et si la rubrique "Identifiant Organisme de Protection Sociale - S21.G00.20.001" correspond à un organisme
+  complémentaire non fédéré par un membre du GIP-MDS (CTIP, FFA, FNMF) (code organisme sur 9 caractères
+  alphanumériques dont un au moins est une lettre).
+
+  CCH-15 : Un code délégataire de gestion (S21.G00.20.008) est autorisé seulement lorsque l'identifiant organisme de
+  protection sociale (S21.G00.20.001) du versement correspond à un organisme de Prévoyance.
+
+  Tables DLGPREV - Code délégataire de gestion
+  prévoyance, DLGMUT - Code délégataire de gestion
+  X  [6,6]  mutuelle, DLGASSU - Code délégataire de gestion
+  d'assurance, DLGOCI - Code délégataire de gestion OC
+  isolé
+
+  160 / 370
+
+--- p. 161 ---
+  S21.G00.20  2026-06-10
+
+Mode de paiement  S21.G00.20.010
+VersementOPS.ModePaiement
+  Mode de paiement utilisé pour le règlement (Virement, Prélèvement SEPA…).
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : « 05 », « 06 »
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : « 02 », « 06 » (pour régularisation des périodes antérieures à 2020 pour le régime général et
+  antérieures à 2021 pour le régime agricole)
+  - CAVEC : « 05 »
+  - CCVRP : non concerné
+  - CNIEG : « 02 », « 06 » (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : « 05 », « 06 »
+  - CRPCEN : « 02 » (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : « 01 », « 02 », « 05 », « 06 »
+  - Organisme complémentaire : « 01 », « 02 », « 04 », « 05 » selon organisme concerné, ou « 06 »
+  - DGFiP : « 05 », « 06 »
+  - IRCANTEC : « 05 »
+  - MSA : « 02 », « 05 », « 06 »
+  - France Travail : « 01 », « 02 », « 05 », « 06 »
+  - Urssaf : « 05 »
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - SRE : non concerné
+  - RAEP : non concerné
+  - CNBF : « 01 », « 02 », « 05 », « 06 »
+  CCH-12 : Si la rubrique "Mode de paiement - S21.G00.20.010" est renseignée avec la valeur "05 - prélèvement
+  SEPA", alors la rubrique "IBAN - S21.G00.20.004" est obligatoire.
+
+  CCH-14 : Si la rubrique « Identifiant Organisme de Protection Sociale - S21.G00.20.001 » est renseignée avec la
+  valeur « DGFIP », la rubrique « Mode de paiement - S21.G00.20.010 » doit être renseignée avec la valeur « 05 -
+  prélèvement SEPA » ou « 06 - versement réalisé par un autre établissement ».
+
+  SIG-13 : Si la rubrique "Mode de paiement - S21.G00.20.010" est renseignée avec la valeur "05 - prélèvement SEPA",
+  alors la rubrique "BIC - S21.G00.20.003" doit être renseignée.
+
+  SIG-14 : Si la rubrique « SIRET payeur – S21.G00.20.012 » est présente et renseignée avec une valeur différente de
+  celle de l'établissement d'affectation (S21.G00.06.001+S21.G00.11.001), la rubrique « Mode de paiement –
+  S21.G00.20.010 » doit être renseignée avec la valeur « 06 – versement réalisé par un autre établissement ».
+
+  X  [2,2]
+
+  01 - chèque
+  02 - virement
+  04 - titre inter-bancaire de paiement
+  05 - prélèvement SEPA
+  06 - versement réalisé par un autre établissement
+
+Date de paiement  S21.G00.20.011
+
+  161 / 370
+
+--- p. 162 ---
+  S21.G00.20  2026-06-10
+
+VersementOPS.DatePaiement
+  Date prévisionnelle dans le cas d'un paiement par chèque ou par virement.
+  Date à prendre en compte par l'organisme dans le cas d'un prélèvement SEPA.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : non concerné
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : date (pour régularisation des périodes antérieures à 2020 pour le régime général et
+  antérieures à 2021 pour le régime agricole)
+  - CAVEC : date
+  - CCVRP : non concerné
+  - CNIEG : date (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : non concerné
+  - CRPCEN : date (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : date
+  - Organisme complémentaire : date au plus tôt à prendre en compte par l'organisme dans le cas d'un ordre
+  de prélèvement SEPA. Date prévisionnelle dans le cas d'un paiement par virement ou chèque.
+  - DGFiP : non concerné
+  - IRCANTEC : date
+  - MSA : date
+  - France Travail : date
+  - Urssaf : non concerné
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - SRE : non concerné
+  - CNBF : date
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+SIRET Payeur  S21.G00.20.012
+VersementOPS.SiretPayeur
+  Permet d’identifier le cas où un établissement délègue le paiement de ses cotisations à un autre
+  établissement.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : SIRET de l’établissement payeur
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : SIRET de l'établissement payeur (pour régularisation des périodes antérieures à 2020 pour le
+  régime général et antérieures à 2021 pour le régime agricole)
+  - CAVEC : non concerné
+  - CCVRP : non concerné
+  - CNBF : SIRET de l'établissement payeur
+  - CNIEG : SIRET de l'établissement payeur (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : SIRET de l'établissement payeur
+  - CRPCEN : non concerné
+
+  162 / 370
+
+--- p. 163 ---
+  S21.G00.20  2026-06-10
+
+  - CRPNPAC : SIRET de l'établissement payeur
+  - Organisme complémentaire : SIRET de l’établissement payeur
+  - DGFiP : SIRET de l’établissement payeur
+  - IRCANTEC : SIRET de l’établissement payeur
+  - MSA : Siret de l’établissement payeur
+  - France Travail : SIRET de l’établissement payeur
+  - Urssaf : non concerné
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - SRE : non concerné
+  CCH-11 : Pour un versement relatif à un organisme de Prévoyance ou à la DGFIP, un SIRET payeur différent de
+  l'établissement d'affectation (S21.G00.06.001+S21.G00.11.001) est autorisé seulement pour un "montant de versement
+  - S21.G00.20.005" à zéro.
+
+  CCH-12 : Si le « Mode de paiement - S21.G00.20.010 » est renseigné avec la valeur « 06 – versement réalisé par un
+  autre établissement », la rubrique « SIRET payeur – S21.G00.20.012 » doit être présente et renseignée avec une valeur
+  différente de celle de l'établissement d'affectation (S21.G00.06.001+S21.G00.11.001).
+
+  CCH-13 : Si la rubrique « Identifiant Organisme de Protection Sociale - S21.G00.20.001 » est renseignée avec la
+  valeur « DGFiP », et si la rubrique « Mode de paiement - S21.G00.20.010 » est renseignée avec la valeur « 05 -
+  prélèvement SEPA », alors le renseignement de la rubrique « SIRET payeur - S21.G00.20.012 » est interdit.
+
+  CCH-14 : Si la rubrique "Identifiant Organisme de Protection Sociale - S21.G00.20.001" est renseignée avec la valeur
+  "DGFiP" et si la rubrique "SIRET payeur - S21.G00.20.012" est renseignée, alors ce SIRET doit avoir la même racine
+  SIREN que le SIRET de l'établissement redevable (établissement déclaré).
+
+  X  [14,14]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Identifiant du CRM à l'origine de la régularisation  S21.G00.20.013
+VersementOPS.IdentifiantCRM
+  Il s'agit de l'identifiant du CRM (compte rendu métier) transmis par l'organisme demandeur de la
+  régularisation ou de la correction.
+  CCH-11 : La rubrique "Identifiant du CRM à l'origine de la régularisation - S21.G00.20.013" ne peut être renseignée
+  que pour une période de rattachement (S21.G00.20.006 et S21.G00.20.007) inférieure au mois principal déclaré
+  (S20.G00.05.005) de la déclaration. Dans le cas contraire cette rubrique est interdite. Ce contrôle vise à ce qu'il soit
+  possible de renseigner l'identifiant du CRM à l'origine de la régularisation que pour des régularisations ou des
+  corrections.
+
+  X  [1,18]
+
+Identifiant du versement  S21.G00.20.014
+VersementOPS.IdentifiantVersement
+  Identifiant permettant d'apporter des précisions sur le versement.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : non concerné
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : non concerné
+  - CAVEC : non concerné
+
+  163 / 370
+
+--- p. 164 ---
+  S21.G00.22  2026-06-10
+
+  - CCVRP : non concerné
+  - CNIEG : non concerné
+  - Congés spectacles (AUDIENS) : non concerné
+  - CRPCEN : non concerné
+  - CRPNPAC : non concerné
+  - Organisme complémentaire : non concerné
+  - DGFiP : Identifiant de la SATD permettant de rattacher le versement avec la saisie concernée
+  - IRCANTEC : non concerné
+  - MSA : non concerné
+  - France Travail : non concerné
+  - Urssaf : non concerné
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - SRE : non concerné
+  - CNBF : non concerné
+  CCH-11 : Si la rubrique « Entité d'affectation des opérations - S21.G00.20.002 » est renseignée avec la valeur «
+  DGFIP_SATD », alors la rubrique « Identifiant du versement - S21.G00.20.014 » doit obligatoirement être renseignée.
+
+  X  [1,40]
+
+S21.G00.22
+
+Bordereau de cotisation due  S21.G00.22
+  Il établit la dette de cotisation sociale de l'établissement employeur, pour ses propres salariés ou pour son propre
+  compte, vis-à-vis d'un organisme de protection sociale.
+  Le bordereau définit ainsi :
+  - auprès de quel organisme l'établissement est redevable de cotisations
+  - la période de rattachement des cotisations déclarées
+
+Identifiant Organisme de Protection Sociale  S21.G00.22.001
+Entité d'affectation des opérations  S21.G00.22.002
+Date de début de période de rattachement  S21.G00.22.003
+Date de fin de période de rattachement  S21.G00.22.004
+Montant total de cotisations  S21.G00.22.005
+Identifiant du CRM à l'origine de la régularisation  S21.G00.22.006
+
+Identifiant Organisme de Protection Sociale  S21.G00.22.001
+CotisationBordereau.IdentifiantOPS
+  Code identifiant de l'organisme de protection sociale auprès duquel l'établissement est redevable de
+  cotisations sociales associées au bordereau.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : non concerné
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : SIRET de la CAMIEG (pour régularisation des périodes antérieures à 2020 pour le régime
+  général et antérieures à 2021 pour le régime agricole)
+  - CCVRP : non concerné
+  - CNIEG : SIRET de la CNIEG (pour régularisation des périodes antérieures à 2022)
+
+  164 / 370

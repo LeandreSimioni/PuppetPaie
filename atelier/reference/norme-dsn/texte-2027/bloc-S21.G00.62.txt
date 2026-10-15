@@ -1,0 +1,550 @@
+# Bloc S21.G00.62
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 275-283
+
+--- p. 275 ---
+  S21.G00.62  2026-06-10
+
+  X  [14,14]  CSL 00 : [0-9]*[1-9][0-9]*
+
+S21.G00.62
+
+Fin du contrat  S21.G00.62
+  Evénement de fin du contrat de travail signifiant la fin des relations de travail entre l'employeur et le salarié.
+
+Date de fin du contrat  S21.G00.62.001
+Motif de la rupture du contrat  S21.G00.62.002
+Date de notification de la rupture de contrat  S21.G00.62.003
+Date de signature de la convention de rupture  S21.G00.62.004
+Date d'engagement de la procédure de licenciement  S21.G00.62.005
+Dernier jour travaillé et payé au salaire habituel  S21.G00.62.006
+Transaction en cours  S21.G00.62.008
+Nombre de mois de préavis utilisés dans le cadre du calcul CSP  S21.G00.62.011
+Montant de l'indemnité de préavis qui aurait été versée  S21.G00.62.013
+Statut particulier du salarié  S21.G00.62.014
+Maintien de l’affiliation du salarié au contrat collectif  S21.G00.62.016
+Modalité de déclaration de la fin du contrat d'usage  S21.G00.62.017
+Nombre de mois de préavis utilisés dans le cadre du calcul PAP  S21.G00.62.018
+Solde de congés acquis et non pris (ENIM)  S21.G00.62.019
+Mois de la DSN mensuelle portant les derniers éléments déclarés dans le FCTU  S21.G00.62.020
+Refus de la proposition d'un CDI suite à CDD ou contrat de mission  S21.G00.62.021
+
+Date de fin du contrat  S21.G00.62.001
+ContratFin.DateFin
+  Date à laquelle les relations de travail entre l'employeur et le salarié prennent fin. Il s'agit du dernier jour
+  d'appartenance à l'entreprise.
+  Pour les Entreprises de Travail Temporaire et les contrats de mission, car les CDI intérimaires ne rentrent
+  pas dans cette consigne, seuls sont concernés les salariés en mission d'intérim.
+  CCH-11 : La date de fin du contrat doit être supérieure à la Date de signature de la convention de rupture si cette
+  dernière est renseignée.
+
+  SIG-13 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Motif de la rupture du contrat  S21.G00.62.002
+ContratFin.Motif
+  Motif qualifiant la rupture du contrat de travail, selon sa nature.
+  Attention :
+  - Le motif 116 permet la déclaration d'une fin de période de ligne de service en DSN. Cette valeur est
+  spécifique aux salariés affiliés à l'ENIM.
+  - Les motifs 116, 998 et 999 ne donnent pas lieu à transmission de données à France Travail et ne donnent
+  pas lieu à reconstitution d’Attestation Employeur.
+  - Le motif 100 permet de déclarer la mutation au sein du même groupe ou extérieure au groupe pour les
+  secteurs d’activité autorisés (gardiennage, ménage, restauration, etc.) sans rupture du contrat. Ce motif ne
+
+  275 / 370
+
+--- p. 276 ---
+  S21.G00.62  2026-06-10
+
+doit pas être utilisé pour un signalement fin du contrat de travail unique.
+- Le motif 099 permet d'annuler la déclaration à tort d'une fin de contrat, et non de corriger une fin de
+contrat.
+CCH-11 : Les codes motif suivants sont autorisés selon le code nature du contrat :
+011 - licenciement suite à liquidation judiciaire ou à redressement judiciaire autorisé pour le code nature de contrat de
+travail '01', '07', '08', '09', '82', '91'
+012 - licenciement suite à fermeture définitive de l'établissement autorisé pour le code nature de contrat de travail '01',
+'07', '08', '09', '82', '91'
+014 - licenciement pour motif économique autorisé pour le code nature de contrat de travail '01', '07', '08', '09', '50', '53',
+'54', '91'
+015 - licenciement pour fin de chantier ou d'opération autorisé pour le code nature de contrat de travail '01', '07', '08',
+'09', '82'
+020 - licenciement pour autre motif autorisé pour le code nature de contrat de travail '01', '07', '08', '09', '10', '50', '53',
+'54', '82', '91'
+025 - autre fin de contrat pour motif économique autorisé pour le code nature de contrat de travail '01', '07', '08', '09',
+'91'
+026 - rupture pour motif économique suite à l'acceptation d'un contrat de sécurisation professionnelle CSP économique
+autorisé pour le code nature de contrat de travail '01', '09', '91'
+031 - fin de contrat à durée déterminée ou fin d'accueil occasionnel autorisé pour le code nature de contrat de travail
+'02', '10', '53', '54', ‘60', '92'
+033 – rupture anticipée d’un CDD ou d’un contrat de mission en cas d’inaptitude physique constatée par le médecin du
+travail autorisé pour le code nature de contrat de travail '02', '03', '10', '53', '54', '92'
+034 - fin de période d'essai à l'initiative de l'employeur autorisé pour le code nature de contrat de travail '01', '02', '03',
+'07', '08', '09', '10', '50', '53', '54', '82', '91', '92'
+035 - fin de période d'essai à l'initiative du salarié autorisé pour le code nature de contrat de travail '01', '02', '03', '07',
+'08', '09', '10', '50', '53', '54', '82', '91', '92'
+036 - rupture anticipée d'un CDD, d’un contrat de professionnalisation, d'un contrat d'apprentissage ou d’un contrat de
+mission à l'initiative de l'employeur autorisé pour les natures de contrat :
+- '01' si la rubrique « Dispositif de politique publique et conventionnel » (S21.G00.40.008) est renseignée à '61', '64' ou
+'65'
+- '02'
+- '03'
+- '08' si la rubrique « Dispositif de politique publique et conventionnel » (S21.G00.40.008) est renseignée à '64' ou '65'
+- '10'
+- '53'
+- '54'
+- '60'
+- '91' si la rubrique « Dispositif de politique publique et conventionnel » (S21.G00.40.008) est renseignée à '61', '64' ou
+'65'
+- '92'
+037 - rupture anticipée d'un CDD, d’un contrat de professionnalisation, d'un contrat d'apprentissage ou d’un contrat de
+mission à l'initiative du salarié autorisé pour les natures de contrat :
+- '01' si la rubrique « Dispositif de politique publique et conventionnel » (S21.G00.40.008) est renseignée à '61', '64' ou
+'65'
+- '02'
+- '03'
+- '08' si la rubrique « Dispositif de politique publique et conventionnel » (S21.G00.40.008) est renseignée à '64' ou '65'
+- '10'
+- '53'
+- '54'
+- '60'
+- '91' si la rubrique « Dispositif de politique publique et conventionnel » (S21.G00.40.008) est renseignée à '61', '64' ou
+'65'
+- '92'
+038 - mise à la retraite par l'employeur autorisé pour le code nature de contrat de travail '01', '07', '08', '09', '50' '82', '91'
+039 - départ à la retraite à l'initiative du salarié autorisé pour le code nature de contrat de travail '01', '07', '08', '09', '50',
+'53', '54', '82', '91'
+043 - Rupture conventionnelle autorisée pour le code nature de contrat de travail '01', '07', '08', '09', '50', '53', '54', '82',
+'91'
+
+  276 / 370
+
+--- p. 277 ---
+  S21.G00.62  2026-06-10
+
+058 - prise d'acte de la rupture de contrat de travail autorisé pour le code nature de contrat de travail '01', '07', '08', '09',
+'82', '91'
+059 - démission autorisé pour le code nature de contrat de travail '01', '03', '07', '08', '09', '50', '53', '54', '82', '91'
+065 - décès de l'employeur ou internement / conduit à un licenciement autre motif autorisé pour les codes S21.G00.62
+nature de contrat de travail '01', '02', '08', '09', '10', '82', '91', '92'
+081 - fin de contrat d'apprentissage autorisé pour les natures de contrat :
+- '01', '03', '08', '91' si un « Dispositif de politique publique et conventionnel - S21.G00.40.008 » est renseigné avec «
+64 - Contrat d'apprentissage entreprises artisanales ou de moins de 11 salariés (loi du 3 janvier 1979) » ou « 65 -
+Contrat d’apprentissage entreprises non inscrites au répertoire des métiers d’au moins 11 salariés (loi de 1987) »
+- '02', '92' si la rubrique « Dispositif de politique publique et conventionnel - S21.G00.40.008 » est renseigné avec « 64
+- Contrat d'apprentissage entreprises artisanales ou de moins de 11 salariés (loi du 3 janvier 1979) », « 65 - Contrat
+d’apprentissage entreprises non inscrites au répertoire des métiers d’au moins 11 salariés (loi de 1987) » ou « 81 -
+Contrat d'apprentissage secteur public (Loi de 1992) »
+- '53', '54'
+083 - rupture de contrat de travail ou d’un contrat de mission pour force majeure ou fait du prince autorisé pour le code
+nature de contrat de travail '01', '02', '03', '09', '10', '91', '92', '53', '54'
+084 - rupture d'un commun accord du CDD, d’un contrat de professionnalisation, du contrat d'apprentissage ou d’un
+contrat de mission autorisé pour les natures de contrat :
+- '01' si la rubrique « Dispositif de politique publique et conventionnel » (S21.G00.40.008) est renseignée à '61', '64' ou
+'65'
+- '02'
+- '03'
+- '08' si la rubrique « Dispositif de politique publique et conventionnel » (S21.G00.40.008) est renseignée à '64' ou '65'
+- '10'
+- '53'
+- '54'
+- '60'
+- '91' si la rubrique « Dispositif de politique publique et conventionnel » (S21.G00.40.008) est renseignée à '61', '64' ou
+'65'
+- '92'
+086 - licenciement convention CATS autorisé pour le code nature de contrat de travail '01', '07', '08', '09', '82', '91'
+087 - licenciement pour faute grave autorisé pour le code nature de contrat de travail '01', '07', '08', '09', '50', '82', '91'
+088 - licenciement pour faute lourde autorisé pour le code nature de contrat de travail '01', '07', '08', '09', '50', '82', '91'
+089 - licenciement pour force majeure autorisé pour le code nature de contrat de travail '01', '07', '08', '09', '53', '54',
+'82', '91'
+091 - licenciement pour inaptitude physique d'origine non professionnelle autorisé pour le code nature de contrat de
+travail '01', '07', '08', '09', '50', '53', '54', '82', '91'
+092 - licenciement pour inaptitude physique d'origine professionnelle autorisé pour le code nature de contrat de travail
+'01', '07', '08', '09', '50', '53', '54', '82', '91'
+095 - rupture anticipée du contrat de travail ou d’un contrat de mission pour faute grave autorisé pour le code nature de
+contrat de travail '02', '03', '10', '92'
+096 - rupture anticipée du contrat de travail ou d’un contrat de mission pour faute lourde autorisée pour le code nature
+de contrat de travail '02', '03', '10', '92'
+097 - rupture anticipée d’un contrat de travail ou d’un contrat de mission suite à fermeture de l'établissement autorisé
+pour le code nature de contrat de travail '02', '03', '10', '92'
+098 - retrait d'enfant autorisé pour le code nature de contrat de travail '01', '02', '09', '10', '91', '92'
+110 - Rupture conventionnelle collective autorisée pour le code nature de contrat de travail '01', '07', '08', '09', '50', '82',
+'91'
+111 - Rupture amiable dans le cadre d'un congé de mobilité autorisé pour le code nature de contrat de travail '01', '07',
+'08', ‘09', '82', '91'
+112 - Rupture dans le cadre d'un accord de performance collective autorisé pour le code nature de contrat de travail
+'01', '07', '08', '09', '82', '91'
+113 - Licenciement pour motif spécifique (Article L. 2254-2 du Code du Travail) autorisé pour le code nature de
+contrat de travail '01', '07', '08', '09', '91'
+114 - Rupture d’un commun accord pour entrée en PAP autorisé pour le code nature de contrat de travail '01', '07', '08',
+'09', '91'
+115 - Licenciement au titre des articles 18 et 19 de la loi n° 2017-1339 du 15 septembre 2017 autorisé pour le code
+nature de contrat de travail '01', '09', '91'
+117 - licenciement pour motif économique suite au refus d’un contrat de sécurisation professionnelle pour le
+code nature de contrat de travail '01', '09', '91'
+
+  277 / 370
+
+--- p. 278 ---
+  S21.G00.62  2026-06-10
+
+118 - fin de contrat d’appui au projet d’entreprise pour le code nature de contrat de travail '32'
+119 - Fin d’affection autorisé pour le code nature de contrat de travail '53', '54'
+998 - transfert du contrat de travail sans rupture du contrat vers un autre établissement pas rentré dans la DSN autorisé
+pour le code nature de contrat de travail '01', 02', '03', '07', '08' , '09', '10', '91', '92'
+999 - fin de relation avec l’employeur (autres que contrat de travail, convention ou mandat) autorisé pour le code
+nature '20', '21', '29', '32', '50', '51', '52', '70', '80', '81', '89', '90'
+
+CCH-12 : Les motifs de la rupture du contrat « 100 - Mutation au sein du même groupe ou extérieure au groupe pour
+les secteurs d’activité autorisés (gardiennage, ménage, restauration, etc.) sans rupture du contrat », « 116 - Fin de ligne
+de service », « 998 - transfert du contrat de travail sans rupture du contrat vers un autre établissement pas rentré dans la
+DSN » et « 999 - fin de relation avec l’employeur (autres que contrat de travail, convention ou mandat) » sont interdits
+si la « Nature de la déclaration - S20.G00.05.001 » est renseignée avec la valeur « 07 - Signalement Fin du contrat de
+travail unique ».
+
+CCH-13 : Le motif de la rupture de contrat « 099 - Annulation » est interdit si la « Nature de la déclaration –
+S20.G00.05.001 » est renseignée avec une valeur différente de « 01 - DSN Mensuelle ».
+
+CCH-14 : Si la rubrique "Code régime de base risque vieillesse - S21.G00.40.020" est renseignée avec une valeur
+différente de "136 - établissement des invalides de la marine (ENIM)", alors il est interdit de renseigner le code "116 -
+Fin de ligne de service".
+
+  X  [3,3]
+
+011 - licenciement suite à liquidation judiciaire ou à redressement judiciaire
+012 - licenciement suite à fermeture définitive de l'établissement
+014 - licenciement pour motif économique
+015 - licenciement pour fin de chantier ou d'opération
+020 - licenciement pour autre motif
+025 - autre fin de contrat pour motif économique
+026 - rupture pour motif économique suite à l'acceptation d’un contrat de sécurisation professionnelle
+031 - fin de contrat à durée déterminée ou fin d'accueil occasionnel
+032 - fin de mission d'intérim
+033 - rupture anticipée d’un CDD ou d’un contrat de mission en cas d’inaptitude physique constatée par le médecin du
+travail
+034 - fin de période d'essai à l'initiative de l'employeur
+035 - fin de période d'essai à l'initiative du salarié
+036 - rupture anticipée d'un CDD, d’un contrat de professionnalisation, d'un contrat d'apprentissage ou d’un contrat de
+mission à l'initiative de l'employeur
+037 - rupture anticipée d'un CDD, d’un contrat de professionnalisation, d'un contrat d'apprentissage ou d’un contrat de
+mission à l'initiative du salarié
+038 - mise à la retraite par l'employeur
+039 - départ à la retraite à l'initiative du salarié
+043 - rupture conventionnelle
+058 - prise d'acte de la rupture de contrat de travail
+059 - démission
+065 - décès de l'employeur ou internement / conduit à un licenciement autre motif
+066 - décès de l’individu
+070 - [FP] Révocation suite à abandon de poste
+071 - [FP] Révocation suite à sanction pénale
+072 - [FP] Révocation suite à sanction disciplinaire
+081 - fin de contrat d'apprentissage
+082 - résiliation judiciaire du contrat de travail
+083 - rupture de contrat de travail ou d’un contrat de mission pour force majeure ou fait du prince
+084 - rupture d'un commun accord du CDD, d’un contrat de professionnalisation, du contrat d'apprentissage ou d’un
+contrat de mission
+
+  278 / 370
+
+--- p. 279 ---
+  S21.G00.62  2026-06-10
+
+  085 - fin de mandat
+  086 - licenciement convention CATS
+  087 - licenciement pour faute grave
+  088 - licenciement pour faute lourde
+  089 - licenciement pour force majeure
+  091 - licenciement pour inaptitude physique d'origine non professionnelle
+  092 - licenciement pour inaptitude physique d'origine professionnelle
+  093 - licenciement suite à décision d'une autorité administrative
+  094 - rupture anticipée du contrat de travail pour arrêt de tournage
+  095 - rupture anticipée du contrat de travail ou d’un contrat de mission pour faute grave
+  096 - rupture anticipée du contrat de travail ou d’un contrat de mission pour faute lourde
+  097 - rupture anticipée d’un contrat de travail ou d’un contrat de mission suite à fermeture de l'établissement
+  098 - retrait d'enfant
+  099 - Annulation
+  100 - Mutation au sein du même groupe ou extérieure au groupe pour les secteurs d’activité autorisés (gardiennage,
+  ménage, restauration, etc.) sans rupture du contrat
+  110 - Rupture conventionnelle collective
+  111 - Rupture amiable dans le cadre d’un congé de mobilité
+  112 - Rupture dans le cadre d'un accord de performance collective
+  113 - Licenciement pour motif spécifique (Article L. 2254-2 du Code du Travail)
+  114 - Rupture d’un commun accord pour entrée en PAP
+  115 - Licenciement au titre des articles 18 et 19 de la loi n° 2017-1339 du 15 septembre 2017
+  116 - Fin de ligne de service
+  117 - licenciement pour motif économique suite au refus d’un contrat de sécurisation professionnelle
+  118 - Fin de contrat d’appui au projet d’entreprise
+  119 - Fin d'affectation
+  998 - transfert du contrat de travail sans rupture du contrat vers un autre établissement pas rentré dans la DSN
+  999 - fin de relation avec l’employeur (autres que contrat de travail, convention ou mandat)
+
+Date de notification de la rupture de contrat  S21.G00.62.003
+ContratFin.DateNotificationRupture
+  Il peut s'agir de :
+  Date d'envoi en recommandé avec accusé de réception de la lettre de licenciement,
+  Date d'envoi ou de remise en mains propres de la lettre de démission par le salarié,
+  Date de notification de la fin de la période d'essai par l'employeur ou le salarié.
+
+  La date de notification de la rupture de contrat doit également être renseignée pour les démissions. En cas
+  de remise en main propre du courrier de démission, la date de début de préavis sera le même jour que la
+  notification (et non le lendemain).
+  CCH-11 : La date de notification de la rupture de contrat doit être supérieure ou égale à la date de début de contrat de
+  travail et inférieure ou égale à la date de fin de contrat de travail.
+
+  CCH-12 : La rubrique est obligatoire si le "Motif de la rupture du contrat - S21.G00.62.002" est "011", "012", "014",
+  "015", "020", "025", "034", "035", "036", "037", "058", "059", "082", "083", "087", "088", "089", "095", "096",
+  "097","111", "112", "113", "115" ou "117".
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de signature de la convention de rupture  S21.G00.62.004
+ContratFin.DateConvention
+  Date de signature par l'employeur et le salarié de la convention de rupture, qui après un délai de
+  rétractation de 15 jours, fait démarrer la demande d'homologation auprès de la Direccte.
+
+  279 / 370
+
+--- p. 280 ---
+  S21.G00.62  2026-06-10
+
+  CCH-11 : La rubrique est obligatoire si le "Motif de la rupture du contrat - S21.G00.62.002" est "043", "110" ou "111".
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date d'engagement de la procédure de licenciement  S21.G00.62.005
+ContratFin.DateLicenciement
+  Date de l'entretien préalable au licenciement ou date de la première réunion du comité d'entreprise ou des
+  délégués du personnel en cas de licenciement économique de 10 salariés et plus dans une période de 30
+  jours.
+  Conditionné aux motifs de fin de contrat de travail : licenciement individuel, économique ou inhérent à la
+  personne du salarié, licenciement collectif pour motif économique.
+  CCH-11 : La "Date d'engagement de la procédure de licenciement - S21.G00.62.005" doit être inférieure ou égale à la
+  "Date de fin du contrat - S21.G00.62.001".
+
+  CCH-12 : La rubrique est obligatoire si le "Motif de la rupture du contrat - S21.G00.62.002" est "011", "012", "014",
+  "015", "020", "026", "086", "087", "088", "089", "091", "092", 093", "111", "112", "113", "114", "115" ou "117".
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Dernier jour travaillé et payé au salaire habituel  S21.G00.62.006
+ContratFin.Djtp
+  Dernier jour travaillé payé selon le salaire défini par le contrat de travail ou la convention collective.
+
+  CCH-12 : Si le "Type réalisation et paiement du préavis - S21.G00.63.001" est "02 - préavis non effectué et payé", "03
+  - préavis non effectué et non payé", "10 - préavis non effectué non payé dans le cadre d’un contrat de sécurisation
+  professionnelle (CSP)", "50 - préavis non effectué et payé dans le cadre d’un congé de reclassement", "51 - préavis non
+  effectué et payé dans le cadre d’un congé de mobilité" ou "61 - préavis non effectué et non payé dans le cadre du
+  parcours d’accompagnement personnalisé (PAP)", la date du "Dernier jour travaillé et payé au salaire habituel -
+  S21.G00.62.006" doit être inférieure à la "Date de début de préavis - S21.G00.63.002".
+
+  CCH-14 : Si le bloc "Fin de contrat - S21.G00.62" est présent et si la rubrique "Nature du contrat - S21.G00.40.007"
+  est renseignée avec la valeur "03 - Contrat de mission (contrat de travail temporaire)", alors la rubrique "Dernier jour
+  travaillé et payé au salaire habituel - S21.G00.62.006" est obligatoire.
+
+  CCH-15 : Le "Dernier jour travaillé et payé au salaire habituel - S21.G00.62.006" doit être supérieur ou égal à la "Date
+  de début du contrat - S21.G00.40.001" et inférieur ou égal à la "Date de fin du contrat - S21.G00.62.001" si ce dernier
+  est renseigné dans un bloc "Fin de contrat - S21.G00.62" avec une rubrique "Motif de la rupture du contrat -
+  S21.G00.62.002" renseignée d'une valeur différente de "099 - Annulation". Ce contrôle n'est pas effectué sur la date de
+  fin de contrat lorsqu'il s'agit d'une annulation de fin de contrat.
+
+  CCH-16 : Si le bloc "Fin du contrat - S21.G00.62" est présent avec la rubrique "Motif de la rupture du contrat -
+  S21.G00.62.002" renseignée avec une valeur différente de "099 - Annulation" et si la rubrique "Motif de recours -
+  S21.G00.40.021" est égale à "05 - Contrat d’usage", alors la présente rubrique "Dernier jour travaillé et payé au salaire
+  habituel - S21.G00.62.006" est obligatoire.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Transaction en cours  S21.G00.62.008
+
+  280 / 370
+
+--- p. 281 ---
+  S21.G00.62  2026-06-10
+
+ContratFin.Transaction
+  Contrat par lequel les parties terminent une contestation née ou préviennent une contestation à naître.
+
+  X  [2,2]
+
+  01 - oui
+  02 - non
+
+Nombre de mois de préavis utilisés dans le cadre du calcul CSP  S21.G00.62.011
+ContratFin.DureePreavis
+  Nombre de mois correspondant au préavis légalement dû et pour laquelle une indemnité aurait été versée.
+
+  CCH-11 : Le « Nombre de mois de préavis utilisés dans le cadre du calcul CSP - S21.G00.62.011 » est obligatoire si et
+  seulement si le « Motif de la rupture du contrat - S21.G00.62.002 » est « 026 - rupture pour motif économique suite à
+  l'acceptation d’un contrat de sécurisation professionnelle CSP ». Dans le cas contraire, cette rubrique est interdite.
+
+  N  [4,4]  CSL 00 : [0-9]{1}\.[0-9]{2}
+
+Montant de l'indemnité de préavis qui aurait été versée  S21.G00.62.013
+ContratFin.MontantIndemnite
+  Somme correspondant à l'indemnité de préavis qui aurait été versée.
+
+  CCH-11 : Le « Montant de l'indemnité de préavis qui aurait été versée - S21.G00.62.013 » est obligatoire si le « Motif
+  de la rupture du contrat - S21.G00.62.002 » est « 026 - rupture pour motif économique suite à l'acceptation d’un
+  contrat de sécurisation professionnelle CSP » ou « 114 - Rupture d’un commun accord pour entrée en PAP ».
+
+  N  [4,12]  CSL 00 : [0]*([1-9][0-9]*\.[0-9]{2}|0\.(0[0-9]|[1-9][0-9]))
+
+Statut particulier du salarié  S21.G00.62.014
+ContratFin.StatutParticulier
+  Correspond au statut du salarié, au sein d'une entreprise ou d'une association.
+
+  X  [2,2]
+
+  01 - Gérant ou collège de gérance
+  02 - Administrateur
+  03 - Directeur Général
+  04 - Président Directeur Général
+  05 - Membre du Directoire
+  06 - Président du Directoire
+  07 - Membre du Conseil de surveillance
+  08 - Président, administrateur, secrétaire ou trésorier d'une association
+  09 - Contrôleur de gestion, membre ou administrateur membre d'un GIE
+  10 - Associé, actionnaire
+  11 - Salarié en portage salarial
+
+Maintien de l’affiliation du salarié au contrat collectif  S21.G00.62.016
+ContratFin.MaintienAffiliationCC
+
+  281 / 370
+
+--- p. 282 ---
+  S21.G00.62  2026-06-10
+
+  Cette rubrique est utilisée par les organismes complémentaires pour identifier un salarié bénéficiant d'une
+  continuité de son affiliation dans le contrat collectif. Elle est conditionnelle et doit seulement être renseignée
+  dans certains cas particuliers : fin de contrat de travail en fin de mois avec nouveau contrat en continuité
+  sur le mois suivant, changement de statut catégoriel en fin de mois, etc. La liste complète des cas
+  d’utilisation de cette rubrique est disponible sur le site net-entreprises.fr.
+
+  X  [2,2]
+
+  01 - oui
+
+Modalité de déclaration de la fin du contrat d'usage  S21.G00.62.017
+ContratFin.ModeFinCDDU
+  Cette rubrique vise à qualifier la modalité de déclaration de la fin du contrat d'usage. Elle permet
+  d'exprimer le souhait d'utiliser ou non le circuit dérogatoire lors de la fin d'un contrat d'usage.
+
+  Pour le déclarant, la dérogation consiste à pouvoir déclarer à fin de mois les fins de contrat d'usage sans
+  application de pénalités.
+  Le circuit dérogatoire ne peut être utilisé que pour un contrat d'usage qui n'a pas encore fait l'objet d'une
+  déclaration dans une précédente DSN mensuelle validée.
+  CCH-11 : Cette rubrique est obligatoire si la rubrique « Nature du contrat - S21.G00.40.007 » est égale à « 02 - Contrat
+  de travail à durée déterminée de droit privé » ou « 10 - Contrat de travail à durée déterminée de droit public » et si la
+  rubrique « Motif de recours - S21.G00.40.021 » est égale à « 05 - Contrat d’usage » et si la rubrique « Date de fin du
+  contrat – S21.G00.62.001 » est renseignée dans un bloc "Fin du contrat - S21.G00.62" avec une valeur renseignée
+  différente de « 099 – annulation » au niveau de la rubrique « Motif de la rupture du contrat – S21.G00.62.002 ».
+
+  CCH-12 : La valeur « 01- Application du circuit dérogatoire » est autorisée uniquement si la rubrique « Nature du
+  contrat - S21.G00.40.007 » est égale à « 02 - Contrat de travail à durée déterminée de droit privé » ou « 10 - Contrat de
+  travail à durée déterminée de droit public » et si la rubrique « Motif de recours - S21.G00.40.021 » est renseignée à «
+  05 - Contrat d’usage » et si la rubrique « Motif de la rupture du contrat – S21.G00.62.002 » est renseignée à « 031 - fin
+  de contrat à durée déterminée ou fin d'accueil occasionnel » ou « 099 - Annulation » et si la rubrique « Dernier jour
+  travaillé et payé au salaire habituel – S21.G00.62.006 » est renseignée.
+
+  X  [2,2]
+
+  01 - Application du circuit dérogatoire
+  02 - Non application du circuit dérogatoire
+
+Nombre de mois de préavis utilisés dans le cadre du calcul PAP  S21.G00.62.018
+ContratFin.NombreMoisPréavisPAP
+  Nombre de mois correspondant au préavis légalement dû et pour lequel une indemnité aurait été versée.
+
+  CCH-11 : Si et seulement si la rubrique "Motif de la rupture du contrat - S21.G00.62.002" est renseignée avec la valeur
+  "114 - Rupture d’un commun accord pour entrée en PAP", alors la rubrique "Nombre de mois de préavis utilisés dans
+  le cadre du calcul PAP - S21.G00.62.018" est obligatoire. Dans le cas contraire, elle est interdite.
+
+  N  [4,5]  CSL 00 : [0-9]{1,2}\.[0-9]{2}
+
+Solde de congés acquis et non pris (ENIM)  S21.G00.62.019
+ContratFin.SoldeCongésAcquisNonPrisENIM
+
+  282 / 370
+
+--- p. 283 ---
+  S21.G00.63  2026-06-10
+
+  Cette rubrique est réservée aux individus affiliés à l'ENIM.
+  Elle permet d'identifier le nombre de jours de congés acquis et utilisés dans les règles de calcul des retraites
+  des individus affiliés à l'ENIM.
+  Ce nombre de jours est pris en compte dans la détermination du nombre d’annuités retenues pour
+  l’ouverture du droit et le calcul du montant de la pension.
+  CCH-12 : Si la rubrique "Code régime de base risque vieillesse - S21.G00.40.020" est renseignée avec une valeur
+  différente de "136 - établissement des invalides de la marine (ENIM)", alors la rubrique "Solde de congés acquis et non
+  pris (ENIM) - S21.G00.62.019" est interdite.
+
+  CSL 00 : [0-9]{1,3}\.[0-9]{2}
+  N  [4,6]
+
+Mois de la DSN mensuelle portant les derniers éléments déclarés  S21.G00.62.020
+dans le FCTU
+ContratFin.DateMoisSoldeToutCompte
+  Date à laquelle le solde de tout compte sera porté en paie. Cette date est automatiquement déterminée par le
+  logiciel de paie.
+  Cette date doit être renseignée au premier jour du mois (sous la forme 01mmaaaa).
+  D
+  a
+  t
+  [8,8]  CSL 00 : (01)(0[1-9]|1[0-2])(20)[0-9]{2}
+  e
+
+Refus de la proposition d'un CDI suite à CDD ou contrat de mission  S21.G00.62.021
+ContratFin.RefusPropositionCDIsuiteCDDouMission
+  Cette rubrique permet d'indiquer à l'Assurance Chômage que le salarié a refusé la proposition d'un CDI
+  équivalent au CDD ou, suite à proposition de l’entreprise utilisatrice, au contrat de travail temporaire
+  (contrat de mission) qui vient de s'achever.
+  CCH-11 : La rubrique « Refus de la proposition d'un CDI suite à CDD ou contrat de mission - S21.G00.62.021 » est
+  interdite si la rubrique « Nature du contrat - S21.G00.40.007 » est renseignée avec la valeur « 01 - Contrat de travail à
+  durée indéterminée de droit privé », « 07 - Contrat à durée indéterminée intermittent », « 08 - Contrat à durée
+  indéterminée intérimaire », « 09 - Contrat de travail à durée indéterminée de droit public », « 10 - Contrat de travail à
+  durée déterminée de droit public », « 20 - [FP] Détachement d’un agent d’une Fonction Publique donnant lieu à
+  pension (ECP) », « 21 - [FP] Détachement d’un agent d’une Fonction Publique ne donnant pas lieu à pension (ENCP)
+  », « 29 - Convention de stage (hors formation professionnelle) », « 32 - Contrat d’appui au projet d’entreprise », « 50 -
+  Nomination dans la fonction publique (par arrêté, par décision,…) », « 51 - Contrat de mission d’un collaborateur
+  occasionnel du service public (COSP) ou assimilé », « 52 - [FP] Cumul d’activité à titre accessoire », « 53 - Contrat
+  d'emploi pénitentiaire », « 54 - Contrat d'emploi pénitentiaire en apprentissage », « 60 - Contrat d'engagement éducatif
+  », « 70 - Contrat de soutien et d'aide par le travail », « 80 - Mandat social », « 81 - Mandat d'élu », « 82 - Contrat de
+  travail à durée indéterminée de Chantier ou d'opération », « 89 - Volontariat de service civique », « 90 - Autre nature
+  de contrat, convention, mandat (hors mandat social) », « 91 - Contrat d'engagement maritime à durée indéterminée », «
+  92 - Contrat d'engagement maritime à durée déterminée » ou « 93 - Ligne de service ».
+
+  X  [2,2]
+
+  01 - Proposition refusée
+
+S21.G00.63
+
+Préavis de fin de contrat  S21.G00.63
+
+  283 / 370

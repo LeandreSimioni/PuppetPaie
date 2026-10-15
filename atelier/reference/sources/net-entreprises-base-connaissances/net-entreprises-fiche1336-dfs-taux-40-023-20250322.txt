@@ -1,0 +1,76 @@
+Déclaration de la rubrique « Taux de déduction forfaitaire spécifique pour frais professionnels -
+S21.G00.40.023 »
+
+ Comment déclarer la rubrique " Taux de déduction forfaitaire spécifique pour frais professionnels -
+ S21.G00.40.023 " ?
+
+ Le contexte
+
+
+
+
+ Pour certaines catégories de salariés (ouvriers du bâtiment, artistes, VRP…), les employeurs sont autorisés à appliquer à la base de calcul des cotisatio
+ de Sécurité sociale et des contributions d'assurance chômage et d'AGS une déduction forfaitaire spécifique pour frais professionnels.
+
+ En cas d'application par l'employeur de la déduction forfaitaire spécifique, la base de calcul des cotisations est constituée par le montant global d
+ rémunérations, indemnités, primes, et le cas échéant des indemnités versées à titre de remboursement de frais professionnels à laquelle on applique
+ déduction pour frais professionnels correspondante à la catégorie professionnelle du salarié.
+
+
+ Déclaration de la rubrique « Taux de déduction forfaitaire spécifique pour frais professionnels - S21.G00.40.023 »
+
+
+
+ Dans la rubrique " Taux de déduction forfaitaire spécifique pour frais professionnels - S21.G00.40.023 ", il convient d'indiquer systématiquement
+ taux de l'abattement appliqué ou applicable et non la rémunération du salarié.
+
+
+         Points d'attention
+
+
+
+ Le bénéfice de la déduction forfaitaire spécifique est lié à l'activité professionnelle du salarié et non à l'activité générale de l'entreprise.
+
+ De plus, l'employeur mettant en œuvre une déduction forfaitaire spécifique doit :
+
+         respecter le champ des professions concernées,
+         limiter le montant de la déduction à 7 600 € par année civile et par salarié,
+         justifier de l'absence de refus exprès du salarié ou de ses représentants,
+         s'assurer de l'application de la règle du non-cumul de cette déduction avec l'exclusion de l'assiette des cotisations des sommes versées à titre
+         de remboursement de frais professionnels sauf cas particuliers.
+
+
+         Exemples
+
+
+
+ Un salarié présent toute l'année perçoit une rémunération de 45 000 € ainsi que des indemnités forfaitaires pour frais professionnels d'un montant d
+ 000 € et sa catégorie professionnelle bénéficie d'un abattement de 25 %.
+
+ Traitement dans la norme DSN
+
+  S21.G00.40 - Contrat
+
+
+                         Taux de déduction
+                         forfaitaire
+  S21.G00.40.023                                25% (sur l'ensemble de l'année)
+                         spécifique pour
+                         frais professionnels
+
+
+
+ Réglementation
+
+
+
+ Le Code Général des Impôts (CGI) (article 5 de l'annexe IV) détermine une liste de professions pouvant profiter du régime de l'abattement sur le sala
+ brut.
+
+
+
+
+ Date de cr�ation : 03/03/2017 09:29 AM
+ Date de modification : 22/03/2025 03:30 PM
+ N� de la fiche : 1336
+

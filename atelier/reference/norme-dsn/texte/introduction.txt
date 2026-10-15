@@ -1,0 +1,95 @@
+# Chapitre 0
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 7-8
+
+--- p. 7 ---
+  2025-12-24
+
+Introduction
+La loi de simplification du 22 mars 2012 a instauré la Déclaration Sociale Nominative, qui
+remplace la plupart des déclarations sociales à la charge des employeurs. La DSN se traduit
+par la mise en œuvre d’un système d’information DSN alimenté par des flux de données
+communiquées par les employeurs. A ce titre, la norme NEODeS (Norme d’Echanges
+Optimisée des Données Sociales) issue des travaux sur la DSN traduit la simplification des
+formalités sociales par :
+  •  Le regroupement au sein d’un même message des données couvrant plusieurs
+  déclarations sociales
+  •  La suppression de près de trois quarts des données sur la base du cumul de ce
+  qui était demandé dans les formalités remplacées
+La norme NEODeS, décrite par le présent document, définit l’ensemble des règles de
+constitution et d’alimentation des différents messages prévus entre les employeurs, la sphère
+sociale et les administrations dans le cadre du système DSN.
+Les autres aspects du système DSN (description du périmètre, procédures de traitement,
+modalités de stockage, modalités de restitution, etc.) sont décrits dans la note de description
+fonctionnelle du système DSN complétée de fiches questions/réponses. L’ensemble de ces
+informations est disponible sur le site net-entreprises.fr.
+Ce cahier technique porte, vis-à-vis de la version de généralisation, les éléments
+nécessaires à la prise en compte des spécificités de la Fonction Publique en DSN, la
+description du FCTU et l’activation du Prélèvement à la source (selon des conditions restant
+à définir).
+
+Avant-propos
+La norme NEODeS résulte de travaux de simplification et de rationalisation des déclarations
+sociales que remplace la DSN.
+A noter cependant que certaines données contenues dans ce cahier technique ne sont pas
+dans le périmètre DSN au sens strict.
+  1. Soit ces données sont utilisées pour des formalités appartenant au champ social
+  mais ne sont pas issues de la paie ou des systèmes RH (1) ;
+
+  2. Soit ces données sont véhiculées pour d’autres formalités n’appartenant pas au
+  champ social et ne sont également pas issues de la paie ou des systèmes RH mais
+  sont expressément visées par la loi de simplification (2).
+
+La norme NEODeS par nature ne doit contenir que des données issues de la paie et des
+systèmes RH.
+Toutefois, afin de permettre le remplacement complet de certaines déclarations dans un
+souci de simplification pour les entreprises, les pouvoirs publics ont convenu d’admettre, de
+façon provisoire et temporaire, la transmission de ces données via le système DSN et
+d’en porter les modalités déclaratives dans la norme NEODeS.
+Concernant la catégorie (1), les organismes qui demandent ces données auront donc à
+mener d’ici la fin du projet DSN les travaux de simplification et de rationalisation qui
+s’imposent pour parvenir : soit à l’abandon de la donnée dans leur réglementation, soit à la
+mise en œuvre d’une collecte de la donnée plus « naturelle » pour l’entreprise.
+
+  7 / 361
+
+--- p. 8 ---
+  2025-12-24
+
+Concernant la catégorie (2), la déclaration de ces données via DSN ne constitue en rien une
+obligation mais une possibilité qui est offerte au déclarant. Ce dernier reste libre d’utiliser une
+autre modalité déclarative pour ces données. En effet, aucune analyse de normalisation n’a
+été menée sur ces données, elles sont directement issues de la forme actuelle de
+collecte via la DADS-U ou procédure d’origine (DAS2). Par commodité, ces données
+sont regroupées dans la structure « S89 –Véhicule technique ».
+Par ailleurs, il est également apparu que certaines données décrivent des situations de
+calcul de la paie ou des situations de travail identiques à travers des modalités déclaratives
+différentes. Il en est ainsi notamment de la codification des cotisations, des exonérations et
+réductions de cotisations sociales ou encore de la codification des métiers et activités des
+salariés. Ces données ont vocation à faire l’objet de travaux de simplification.
+Les données actuellement identifiées comme devant faire l’objet d’une simplification
+ultérieure sont listées, non limitativement, au point 6. Pistes de simplification des données
+sociales du présent document. Elles doivent faire l’objet de travaux de normalisation en vue
+de parvenir à des référentiels structurés de manière homogène et non par compilation de
+modalités diverses.
+Ainsi, ce cahier technique ne saurait constituer un aboutissement des travaux de
+rationalisation et de simplification des données sociales.
+La norme NEODeS n’est qu’une norme technique permettant la collecte simplifiée et
+automatisée de données administratives, transmises ensuite via le dispositif DSN.
+Cette collecte automatisée de données ne constitue pas une source de droit et n’exonère
+pas de l’obligation de vérification et/ou de validation individuelle mise à la charge des
+déclarants, par la législation.
+Le respect de la norme NEODeS et son application n’entraînent ni ne garantissent, pour les
+entreprises ou les assurés sociaux, l’assujettissement à de nouvelles obligations, le respect
+d’obligations existantes ou l’acquisition éventuelle de nouveaux droits.
+Par ailleurs, la norme est désormais en place depuis l’année 2013. Le vocabulaire qui est
+utilisé résulte des travaux menés sur le champ du secteur privé. Dans le cadre de
+l’intégration des spécificités de la Fonction publique, la DSN étant un « modèle » et non le
+strict reflet du vocabulaire législatif exact, il a été admis de conserver les appellations telles
+qu’elles sont déjà portées en norme. Néanmoins, une « traduction » de ces termes est
+opérée dans le cadre de son usage au niveau du secteur public. Pour exemple, on ne parle
+pas de « salarié » mais d’« agent », pas de « contrat de travail » mais de « relation
+employeur ». Ces éléments seront indiqués en amont de chaque objet concerné mais non
+reportés sur l’ensemble des rubriques et libellés d’objets. Le lecteur du secteur public devra
+donc  «  interpréter  »  ces  éléments  à  l’aune  de  ces  particularités.
+
+  8 / 361

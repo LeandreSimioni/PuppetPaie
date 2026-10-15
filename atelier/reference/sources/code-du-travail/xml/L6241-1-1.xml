@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000051227941</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/51/22/79/LEGIARTI000051227941.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L6241-1-1</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2025-02-16</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132349">Sixième partie : La formation professionnelle tout au long de la vie </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145421">Livre II : L'apprentissage</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160821">Titre IV : Financement de l'apprentissage </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006178193">Chapitre Ier : Taxe d'apprentissage</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006189870">Section 1 : Principes.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE_MORT_NE">
+<LIEN_ART debut="2022-01-01" etat="MODIFIE_MORT_NE" fin="2021-12-31" id="LEGIARTI000042837182" num="L6241-1-1" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2022-01-01" etat="MODIFIE" fin="2025-02-16" id="LEGIARTI000044981935" num="L6241-1-1" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2025-02-16" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000051227941" num="L6241-1-1" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<br/>
+<p>I.-La taxe d'apprentissage mentionnée à l'article L. 6241-1 est assise sur les revenus d'activités retenus pour le calcul de l'assiette des cotisations sociales mentionnée à l'article L. 242-1 du code de la sécurité sociale et à l'article L. 741-10 du code rural et de la pêche maritime. </p>
+<p>Toutefois, les rémunérations dues aux apprentis par les employeurs de moins de onze salariés, selon les modalités prévues au I de l'article L. 130-1 du code de la sécurité sociale, sont exonérées de la taxe d'apprentissage. </p>
+<p>Sont également exonérées de la taxe d'apprentissage les rémunérations dues aux apprentis par les mutuelles régies par les livres Ier et III du code de la mutualité. </p>
+<p>II.-Le taux de la taxe d'apprentissage est fixé à 0,68 %. </p>
+<p>Toutefois, ce taux est fixé à 0,44 % pour les établissements situés dans les départements du Bas-Rhin, du Haut-Rhin et de la Moselle, quel que soit le lieu du siège du principal établissement de l'entreprise. La taxe est versée dans les conditions fixées à l'article L. 6261-2. </p>
+<p>III.-Pour le calcul de la taxe, le montant de la contribution et l'assiette déclarée sont arrondis conformément aux dispositions de l'article L. 133-10 du code de la sécurité sociale.</p>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000051168007" datesignatexte="2025-02-14" id="LEGIARTI000053563909" naturetexte="LOI" nortexte="ECOX2423405L" num="125" numtexte="2025-127" sens="cible" typelien="MODIFIE">LOI n°2025-127 du 14 février 2025 - art. 125 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000006585682" naturetexte="CODE" nortexte="" num="L741-10" numtexte="" sens="source" typelien="CITATION">Code rural et de la pêche maritime - art. L741-10</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006904089" naturetexte="CODE" nortexte="" num="L6241-1" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L6241-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000048839886" naturetexte="CODE" nortexte="" num="L6242-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L6242-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006904126" naturetexte="CODE" nortexte="" num="L6261-2" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L6261-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000044969984" naturetexte="CODE" nortexte="" num="R6261-13" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R6261-13 (V)</LIEN>
+
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000038498675" naturetexte="CODE" nortexte="" num="L130-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L130-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000029955158" naturetexte="CODE" nortexte="" num="L133-10" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L133-10</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741953" naturetexte="CODE" nortexte="" num="L242-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L242-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006074067" datesignatexte="2999-01-01" id="LEGITEXT000006074067" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CITATION">Code de la mutualité</LIEN>
+</LIENS>
+</ARTICLE>

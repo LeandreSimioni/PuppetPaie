@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000018537760</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/18/53/77/LEGIARTI000018537760.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>D1226-6</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2008-05-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018464861">Partie réglementaire  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018538094">Première partie : Les relations individuelles de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537950">Livre II : Le contrat de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537944">Titre II : Formation et exécution du contrat de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537774">Chapitre VI : Maladie, accident et inaptitude médicale</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537772">Section 1 : Absences pour maladie ou accident</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2008-05-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000018537760" num="D1226-6" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>
+<br/>Lorsque les indemnités de la sécurité sociale sont réduites du fait, notamment, de l'hospitalisation ou d'une sanction par la caisse du non respect de son règlement intérieur, elles sont réputées servies intégralement pour le calcul de l'indemnité complémentaire.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000704804" datesignatexte="1978-01-19" id="LEGIARTI000006273226" naturetexte="LOI" nortexte="" num="1" numtexte="78-49" sens="source" typelien="CONCORDANCE">Loi n°78-49 du 19 janvier 1978 - art. 1 al 10 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000018442415" datesignatexte="2008-03-07" id="LEGIARTI000018456736" naturetexte="DECRET" nortexte="MTST0804938D" num="Annexe" numtexte="2008-244" sens="cible" typelien="CREE">Décret n°2008-244 du 7 mars 2008 - art. (V)</LIEN>
+</LIENS>
+</ARTICLE>

@@ -1,0 +1,55 @@
+# Bloc S89.G00.33
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 329-329
+
+--- p. 329 ---
+  S89.G00.33  2025-12-24
+
+  CCH-11 : La localité est obligatoire si le code postal est renseigné.
+
+  X  [1,50]  CSL 00 : [A-Za-z0-9\s]+
+
+Code pays  S89.G00.32.013
+BeneficiaireHonoraires.CodePays
+  Nom du pays (territoire d’un état) exprimé sous la forme d’un code.
+
+  CRE-11 : valeurs autorisées
+
+  X  [2,2]  Table PAY - Code pays hors système postal français
+
+Code de distribution à l'étranger  S89.G00.32.014
+BeneficiaireHonoraires.CodeDistributionEtranger
+  Mention complémentaire pour les adresses ne relevant du système postal français.
+
+  X  [1,50]
+
+Code taux réduit ou dispense de retenue à la source  S89.G00.32.015
+BeneficiaireHonoraires.CodeTauxReduitDispense
+
+  X  [1,1]
+
+  D - dispense de retenue à la source
+  R - taux réduit de retenue à la source
+
+Montant TVA droits d'auteurs  S89.G00.32.016
+BeneficiaireHonoraires.MontantTva
+
+  N  [4,12]  CSL 00 : -?[0]*([1-9][0-9]*\.[0-9]{2}|0\.(0[1-9]|[1-9][0-9]))
+
+Millésime de rattachement  S89.G00.32.017
+BeneficiaireHonoraires.Millésimederattachement
+  Année de rattachement des éléments déclarés au sein du présent bloc.
+
+  CCH-11 : L'année déclarée doit être inférieure ou égale aux quatre derniers caractères (Année) du mois principal
+  déclaré – S20.G00.05.005
+
+  N  [4,4]  CSL 00 : 2([0-9]{3})
+
+S89.G00.33
+
+Avantages en nature  S89.G00.33
+Code type avantage en nature  S89.G00.33.001
+Montant avantage en nature  S89.G00.33.002
+
+Code type avantage en nature  S89.G00.33.001
+
+  329 / 361

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000033021383</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/33/02/13/LEGIARTI000033021383.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L242-8</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2016-08-10</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106050">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126888">Livre II : Organisation du régime général, action de prévention, action sanitaire et sociale des caisses</TITRE_TM>
+<TM>
+<TITRE_TM debut="1988-01-06" fin="2999-01-01" id="LEGISCTA000006141614">Titre IV : Ressources</TITRE_TM>
+<TM>
+<TITRE_TM debut="1988-01-06" fin="2999-01-01" id="LEGISCTA000006156071">Chapitre 2 : Assiette, taux et calcul des cotisations</TITRE_TM>
+<TM>
+<TITRE_TM debut="1988-01-06" fin="2999-01-01" id="LEGISCTA000006172925">Section 3 : Cotisations assises sur les rémunérations des salariés à temps partiel.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1985-12-21" etat="MODIFIE" fin="1986-07-17" id="LEGIARTI000006741990" num="L242-8" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1986-07-17" etat="MODIFIE" fin="1988-01-06" id="LEGIARTI000006741991" num="L242-8" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1988-01-06" etat="MODIFIE" fin="1991-01-01" id="LEGIARTI000006741992" num="L242-8" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1991-01-01" etat="MODIFIE" fin="2016-08-10" id="LEGIARTI000006741993" num="L242-8" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2016-08-10" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000033021383" num="L242-8" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Pour le calcul des cotisations de sécurité sociale dues au titre des salariés employés à temps partiel, au sens de l'article L. 3123-1 du code du travail, et qui sont déterminées compte tenu du plafond prévu à l'article L. 241-3, il est opéré un abattement d'assiette destiné à compenser la différence entre le montant des cotisations dues au titre de chacun de ces salariés et le montant des cotisations qui seraient dues pour une durée de travail identique dans le cas où chacun d'eux travaillerait à temps complet.</p>
+<br/>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000705482" datesignatexte="1981-01-28" id="JORFTEXT000000705482" naturetexte="LOI" nortexte="" num="" numtexte="81-64" sens="source" typelien="CONCORDANCE">Loi 81-64 1981-01-28 art. 5 al. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000000705482" datesignatexte="1981-01-28" id="JORFARTI000001117194" naturetexte="LOI" nortexte="" num="5" numtexte="81-64" sens="source" typelien="CONCORDANCE">Loi n°81-64 du 28 janvier 1981 - art. 5, v. init.</LIEN>
+<LIEN cidtexte="JORFTEXT000000866621" datesignatexte="1985-12-17" id="JORFTEXT000000866621" naturetexte="DECRET" nortexte="" num="" numtexte="85-1353" sens="source" typelien="CODIFICATION">Décret n° 85-1353 du 17 décembre 1985</LIEN>
+<LIEN cidtexte="JORFTEXT000032983213" datesignatexte="2016-08-08" id="LEGIARTI000033001006" naturetexte="LOI" nortexte="ETSX1604461L" num="8" numtexte="2016-1088" sens="cible" typelien="MODIFIE">LOI n°2016-1088 du 8 août 2016 - art. 8 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006902541" naturetexte="CODE" nortexte="" num="L3123-1" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3123-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741897" naturetexte="CODE" nortexte="" num="L241-3" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L241-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000031685873" naturetexte="CODE" nortexte="" num="L242-10" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L242-10 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000033021353" naturetexte="CODE" nortexte="" num="L242-9" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L242-9 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000037456539" naturetexte="CODE" nortexte="" num="R241-0-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R241-0-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000021763302" naturetexte="CODE" nortexte="" num="L741-12" numtexte="" sens="cible" typelien="CITATION">Code rural - art. L741-12 (V)</LIEN>
+</LIENS>
+</ARTICLE>

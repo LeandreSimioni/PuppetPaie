@@ -1,0 +1,60 @@
+# Bloc S89.G00.33
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 338-338
+
+--- p. 338 ---
+  S89.G00.33  2026-06-10
+
+  - Mois de naissance inconnu : JJ00AAAA ou JJ99AAAA,
+  - Si jour et mois inconnus : 0000AAAA ou 9999AAAA.
+  Obligatoire pour une personne physique domiciliée hors de France dans un Etat membre de l’UE qui
+  perçoit de rémunérations de type « 06 - droits d’auteur » et/ou « 07 - droit d’inventeur ».
+  CCH-11 : L'année de la « Date de naissance - S89.G00.32.018 » doit être inférieure ou égale à l'année en cours et
+  supérieure à l'année en cours moins 120 (années).
+
+  CSL-11 : [(respect des contraintes calendaires)] aux exceptions près acceptées sur le mois ou le jour à 00 ou 99
+
+  SIG-12 : La rubrique « Date de naissance - S89.G00.32.018 » doit obligatoirement être renseignée si et seulement si les
+  rubriques « Nom du bénéficiaire des honoraires - S89.G00.32.002 » et « Prénom du bénéficiaire des honoraires -
+  S89.G00.32.003 » sont présentes et si la rubrique « Code pays - S89.G00.32.013 » est renseignée avec une valeur égale
+  à « AT », « BE », « BG », « CY », « CZ », « DE », « DK », « EE », « ES », « FI », « GR », « HR », « HU », « IE », «
+  IT », « LT », « LU », « LV », « MT », « NL », « PL », « PT », « RO », « SE », « SI » ou « SK » et s'il existe un bloc
+  enfant « Rémunérations - S89.G00.43 » comportant une rubrique « Code type de la rémunération - S89.G00.43.001 »
+  renseignée avec une valeur égale à « 06 - droits d'auteur » ou « 07 - droits d'inventeur ». Dans le cas contraire, elle est
+  interdite.
+
+  CSL 00 : (0[0-9]|[1-2][0-9]|3[0-1]|99)(0[0-9]|1[0-
+  X  [8,8]
+  2]|99)(19|20)[0-9]{2}
+
+S89.G00.33
+
+Avantages en nature  S89.G00.33
+Code type avantage en nature  S89.G00.33.001
+Montant avantage en nature  S89.G00.33.002
+
+Code type avantage en nature  S89.G00.33.001
+AvantagesNature.CodeTypeAvantage
+
+  X  [2,2]
+
+  01 - nourriture
+  02 - logement
+  03 - voiture
+  04 - nouvelles technologies de l'Informatique et de la Communication
+  09 - autre avantage
+
+Montant avantage en nature  S89.G00.33.002
+AvantagesNature.MontantAvantage
+  [NB : avec décimale, signé, valeur zéro interdite, zéros non significatifs tolérés.]
+
+  N  [4,12]  CSL 00 : -?[0]*([1-9][0-9]*\.[0-9]{2}|0\.(0[1-9]|[1-9][0-9]))
+
+S89.G00.35
+
+Prise en charge des indemnités  S89.G00.35
+Code modalité de prise en charge des indemnités  S89.G00.35.001
+Montant de l'indemnité  S89.G00.35.002
+
+Code modalité de prise en charge des indemnités  S89.G00.35.001
+
+  338 / 370

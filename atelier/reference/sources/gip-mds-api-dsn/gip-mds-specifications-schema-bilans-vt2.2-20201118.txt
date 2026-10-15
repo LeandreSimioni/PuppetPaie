@@ -1,0 +1,322 @@
+146050274320
+Spécifications du Schéma des bilans Organismes de Base 
+Nom
+Date
+Statut
+Rédigé par
+GIP-MDS / AEP / MRO
+29/08/14
+En cours de rédaction
+Approuvé par
+Groupe architecture DSN
+A approuver
+Date de publication
+Diffusion
+Auteur(s)
+Version
+Objet(s) de l’évolution
+29/08/2014
+MRO
+1.6
+Description du schéma dsn_bilans_v01r06.xsd
+02/12/2014
+MRO
+1.6.1
+Mise à jour du schéma dsn_bilans_v01r06.xsd
+11/10/2016
+YKI
+1.7
+Mise à jour du schéma dsn_bilans_v01r07.xsd
+21/09/2017
+BDA
+1.8
+Mise à jour du schéma dsn_bilans_v01r08.xsdPrécision quant à la valorisation de l’attribut type
+20/12/2019
+BDA
+1.9
+Mise à jour du schéma : dsn_bilans_v01r09.xsdAjout de la nature du contrat à l’élément contratAjout du contrat à l’élément déclaration Ajout du taux_AT à l’élément déclarationAjout de la raison sociale à l’élément envoiAjout de la section anomalie nominative
+20/02/2020
+BDA
+2.0
+Mise à jour du schéma : dsn_bilans_v02r01.xsdAjout du mois principal déclaré à l’élément declaration_bilanAjout de la future imposition PAS aux éléments salarie et individu_non_salarieMise à jour de l’élément contrat
+26/06/2020
+BDA
+2.1
+Mise à jour du schéma : dsn_bilans_v02r02.xsd§2.6 : Ajout d’un élément communication générique pour les remontées d’information comme pour le taux BM contribution chômage ou le taux AT
+18/11/2020
+BDA
+2.2
+§2.6 Communication : Précision sur le type, date de calcul et la phase.
+Modèle conceptuel
+Ci-dessous, le modèle conceptuel applicable à l’ensemble des bilans issus des organismes de base:
+Un rapport peut être défini comme étant :
+un Accusé d’Enregistrement Electronique
+un Certificat de Conformité
+un Avis de Rejet
+un Bilan d’Anomalies
+un Bilan d’Identification Salarié
+un Bilan de Contrôle Inter-Déclarations
+un Bilan de reconstitution des AED
+un Bilan de reconstitution des DSIJ
+un Bilan de traitement des DSIJ
+un Compte Rendu Métier Paiement ou Nominatif
+Un rapport concerne soit un envoi constitué d’un ensemble de déclaration (0 à n), soit une liste de déclarations (0 à n) regroupées à travers un bordereau. Le rapport peut également contenir un bloc communication (0 à 1) pour la remontée d’information.
+Un envoi peut être concerné par un ensemble (0 à n) d’anomalies. 
+Une déclaration peut être concernée par un ensemble (0 à n) d’anomalies.
+Schéma
+Rapport
+L’attribut id permet à l’organisme émetteur du rapport d’affecter un identifiant à celui-ci.
+L’attribut type permet de distinguer les différents types de rapport. Le type doit permettre d’identifier le type du CRM conformément au guide de l’API DSN (cf. code retour des CRM). 
+L’attribut profil correspond au profil DSN.
+L’attribut version permet de faire référence à la version du schéma utilisé (ex : v01r04).
+L’attribut message permet de spécifier une information à afficher en en-tête du rapport.
+Bordereau
+Un bordereau correspond à un bilan récapitulatif (ex : liste des déclarations conformes, liste des déclarations rejetées, …).
+L’élément bordereau permet de définir les critères de regroupement de la liste des déclarations concernées par le rapport.
+Un bordereau se caractérise par les données suivantes :
+Groupe
+Type
+Donnée
+Description
+Identification
+Donnée déclarative
+point_de_depot
+S10.G00.00.007
+Donnée déclarative
+essai_reel
+01 (essai) ou 02 (reel), en S10.G00.00.005
+Donnée déclarative
+nature
+S20.G00.05.001
+Donnée déclarative
+mois
+S20.G00.05.005
+Donnée déclarative
+emetteur_siret
+SIRET de l'emetteur, S10.G00.01.001, S10.G00.01.002
+Envoi
+Un envoi se caractérise par les données suivantes :
+Groupe
+Type
+Donnée
+Description
+Identification
+Donnée de suivi
+declarant
+SIRET, nom et prénom d e l’utilisateur identifié et associé à l’envoi.
+Donnée de suivi
+idflux
+Identification du flux par le point de dépôt, uniquement requis dans le retour fait au déclarant
+Donnée de suivi
+identifiant_archive
+nom de l'archive qui contenait le fichier physique
+Donnée de suivi
+identifiant
+nom du fichier physique pour le traitement générant ce bilan (peut différer du nom en sortie du système de l'émetteur)
+Donnée déclarative
+version_norme
+S10.G00.00.006
+Donnée déclarative
+point_de_depot
+S10.G00.00.007
+Donnée déclarative
+type_envoi
+S10.G00.00.008
+Donnée déclarative
+essai_reel
+01 (essai) ou 02 (réel), en S10.G00.00.005
+Donnée déclarative
+emetteur_siret
+SIRET de l'émetteur, S10.G00.01.001, S10.G00.01.002
+Donnée déclarative
+raison_sociale
+S10.G00.01.003
+Donnée déclarative
+nom_logiciel
+S10.G00.00.001
+Donnée déclarative
+editeur_logiciel
+S10.G00.00.002
+Donnée déclarative
+version_logiciel
+S10.G00.00.003
+Donnée déclarative
+code_conformité
+sceau de precontrole en S10.G00.00.004
+Donnée de suivi
+date_reception
+date de réception du fichier sur le point de dépôt de la DSN (bloc 1)
+Donnée de suivi
+heure_reception
+heure date de réception du fichier sur le point de dépôt de la DSN (bloc 1)
+Donnée de suivi
+date_enregistrement
+date d'enregistrement électronique
+Donnée de suivi
+heure_enregistrement
+heure d'enregistrement électronique
+Bilan
+Donnée de suivi
+envoi_etat
+OK, KO ou ANO
+Donnée de suivi
+envoi_contenu
+Nombre de déclarations et de salaries dans l'envoi
+Donnée de suivi
+envoi_compteurs
+Nombre d'anomalies par catégorie, nombre supérieur à zéro seulement
+L’élément envoi_bilan correspondant au groupe de données bilan est de type envoi_resultat_type :
+Déclaration
+Une déclaration se caractérise par les données suivantes :
+Groupe
+Type
+Donnée
+Description
+Identification
+Donnée de suivi
+Rang
+Rang de la déclaration dans le fichier
+Donnée déclarative
+Nature
+S20.G00.05.001
+Donnée déclarative
+Type
+S20.G00.05.002
+Donnée déclarative
+fraction
+S20.G00.05.003
+Donnée déclarative
+Ordre
+S20.G00.05.004
+Donnée déclarative
+Mois
+S20.G00.05.005
+Donnée déclarative
+id_annulation
+S20.G00.05.006
+Donnée déclarative
+identifant_metier
+S20.G00.05.009
+Donnée déclarative
+SIREN
+S21.G00.06.001
+Donnée déclarative
+nic_siege
+S21.G00.06.002
+Donnée déclarative
+nic_affectation
+S21.G00.11.001
+Bilan
+Donnée de suivi
+declaration_etat
+Donnée de suivi
+declaration_contenu
+Nombre de salariés et d’individus par déclaration
+Donnée de suivi
+niveau_conformite
+Etat et certificat de conformité.
+Donnée de suivi
+declaration_reconstituee
+Donnée de suivi
+declaration_compteurs
+Données déclaratives
+salarie
+Données déclaratives
+contrat
+Date de début, numéro, nature, statut conventionnel, libellé emploi et code régime maladie
+Données déclaratives
+taux_AT
+Code CTN, Section, Code risque, Témoin bureau, Taux, Date effet, Date calcul. A terme ces informations seront remontées dans le bloc communication
+Données déclaratives
+Mois
+S20.G00.05.005 - Date du mois principal déclaré
+L’élément declaration_bilan correspondant au groupe de données bilan est de type declaration_resultat_type :
+L’élément declaration_contenu contient également individus_non_salaries et contrats : 
+Dans le cadre du PAS, la liste des salariés associés à une déclaration sont regroupés sous l’élément declaration_bilan. Cette liste permet notamment de transmettre au déclarant les taux d’imposition applicables à chaque individu.
+Anomalie
+En termes de conception, une anomalie s’appuie sur une anomalie de base, spécialisée en fonction de l’élément auquel elle se rapporte (envoi, déclaration).
+Une anomalie de base se caractérise par les données suivantes:
+Groupe
+Type
+Donnée
+Description
+Description
+Donnée de suivi
+Code
+Sous la forme Sxx.Gyy.aa.bb.ccc-CXX22 par exemple
+Donnée de suivi
+categorie
+Contenu a définir ultérieurement, a priori un niveau de gravite
+Donnée de suivi
+message
+Message d'erreur
+Donnée de suivi
+numero_ligne
+Numéro de ligne dans le fichier d'entrée (texte, et non XML)
+Donnée de suivi
+nombre
+Nombre d'anomalies identiques dans le fichier (pour cet ID de contrôle au sens code = rubrique/regle)
+Valeurs
+Donnée de suivi
+rubrique_declenchante
+Donnée de suivi
+rubrique_associee
+Une anomalie liée à une déclaration pourra préciser les éléments de contexte auxquels elle se rapporte (salarié, contrat).
+Groupe
+Type
+Donnée
+Description
+Environnement
+Données déclaratives
+salarie
+NIR, NTT, nom de famille, nom d’usage, prénoms, sexe, date de naissance, lieu de naissance, code pays, matricule, rang au sein de la déclaration, taux d’imposition dans le cadre du PAS + future imposition PAS si disponible
+L’attribut origine permet de distinguer les données déclaratives des données issues du SNGI.
+Environnement
+Données déclaratives
+Individu non salarié
+NIR, NTT, nom de famille, nom d’usage, prénoms, sexe, date de naissance, lieu de naissance, code pays, matricule, rang au sein de la déclaration et taux d’imposition dans le cadre du PAS + future imposition PAS si disponible 
+L’attribut origine permet de distinguer les données déclaratives des données issues du SNGI.
+Environnement
+Données déclaratives
+contrat
+Date de début, numéro, nature, statut conventionnel, libellé emploi et code régime maladie
+Communication
+Une déclaration contient un ou plusieurs bloc information_collective
+Groupe
+Type
+Donnée
+Description
+Information collective
+Donnée informative
+type
+Valeurs du type :
+atmp : accident du travail et maladie professionnelle
+bmcc : bonus-malus contribution chômage
+Donnée informative
+date_calcul
+Date de calcul de la communication
+Donnée informative
+phase
+Valeurs de la phase :
+10 = diffusion annuelle du taux de contribution à l’assurance chômage
+20 = le cas échéant, régularisation automatique annuelle à effet rétroactif si les corrections des données déclarées ont amené à une augmentation du taux par rapport à celui communiqué précédemment 
+30 = régularisation unitaire suite à contestation de l’employeur
+40 = information intermédiaire sur le nombre de séparations identifiées par Pôle emploi pour le SIREN concerné
+Groupe
+Type
+Donnée
+Description
+Information
+Donnée informative
+donnees_clefs
+Eléments clefs de l’information
+Donnée informative
+donnees_paie
+Eléments nécessaires au calcul de la paie
+Donnée informative
+donnees_declaration
+Eléments nécessaires à la déclaration, remontés si nécessaire
+Donnée informative
+donnees_complement
+Informations complémentaires, remontés si nécessaire
+L’élément rubriques permet de renseigner plusieurs balises typées et génériques pour remonter des informations aidant à la compréhension sans nécessiter une évolution du format harmonisé.

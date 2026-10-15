@@ -1,0 +1,84 @@
+{
+ "_source": "https://echanges.dila.gouv.fr/OPENDATA/LEGI/",
+ "_global": "Freemium_legi_global_20250713-140000.tar.gz",
+ "_texte": "Code general des collectivites territoriales",
+ "_legitext": "LEGITEXT000006070633",
+ "_livraisons_lues": 459,
+ "_livraisons_totales": 459,
+ "_complet": true,
+ "_derniere_livraison": "20261013-212750",
+ "_changes_depuis_le_global": [],
+ "_releve_le": "2026-10-13",
+ "articles": {
+  "L2333-64": {
+   "debut": "2020-12-31",
+   "en_vigueur": true,
+   "id": "LEGIARTI000042913444"
+  },
+  "L2333-66": {
+   "debut": "2025-02-16",
+   "en_vigueur": true,
+   "id": "LEGIARTI000051219847"
+  },
+  "L2333-67": {
+   "debut": "2022-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000043343028"
+  },
+  "L2333-68": {
+   "debut": "2019-12-27",
+   "en_vigueur": true,
+   "id": "LEGIARTI000039802347"
+  },
+  "L2333-70": {
+   "debut": "2019-12-27",
+   "en_vigueur": true,
+   "id": "LEGIARTI000039802339"
+  },
+  "L2333-71": {
+   "debut": "2015-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000030023837"
+  },
+  "L2333-72": {
+   "debut": "1996-02-24",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006390704"
+  },
+  "L2333-73": {
+   "debut": "2019-12-27",
+   "en_vigueur": true,
+   "id": "LEGIARTI000039802320"
+  },
+  "L2333-74": {
+   "debut": "2022-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000043343010"
+  },
+  "L2333-75": {
+   "debut": "1996-02-24",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006390707"
+  },
+  "L2531-2": {
+   "debut": "2020-12-31",
+   "en_vigueur": true,
+   "id": "LEGIARTI000042913437"
+  },
+  "L2531-3": {
+   "debut": "2019-12-27",
+   "en_vigueur": true,
+   "id": "LEGIARTI000039802417"
+  },
+  "L2531-4": {
+   "debut": "2023-12-31",
+   "en_vigueur": true,
+   "id": "LEGIARTI000048837031"
+  },
+  "L2531-6": {
+   "debut": "2019-12-27",
+   "en_vigueur": true,
+   "id": "LEGIARTI000039802331"
+  }
+ }
+}

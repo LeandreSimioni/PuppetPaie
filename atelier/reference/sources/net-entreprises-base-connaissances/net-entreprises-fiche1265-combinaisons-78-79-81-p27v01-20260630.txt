@@ -1,0 +1,325 @@
+Tableau des combinaisons bases assujetties (78) / composants (79) / cotisations individuelles (81), P27V01, finalisé le 30/06/2026
+Feuilles transcrites (celles qui concernent une compagnie de spectacle) : URSSAF CN, AGIRC-ARRCO, CONGES SPECT, FRANCE TRAVAIL, OC, Caisse Congés Payés, DGFiP, Historique MAJ
+Non transcrites : CAMIEG, CAVEC, CNBF, CNIEG, CNRACL, CRPCEN, CRPNPAC, FSPOEIE, IRCANTEC, MSA, RAEP, RAFP.
+
+======================================================================
+[URSSAF CN]
+ ; Liste des combinaisons de Bases assujetties, Composants de base assujettie et Cotisations individuelles attendues par l'URSSAF CN  pour la version de norme P27V01
+ ; Base assujettie - S21.G00.78 ; Composant de base assujettie - S21.G00.79 ; Cotisation individuelle - S21.G00.81 ; Commentaires et points d'attentions
+ ; Code de base assujettie - S21.G00.78.001 ; Type de composant de base assujettie - S21.G00.79.001 ; Code de cotisation - S21.G00.81.001
+ ; 02 - Assiette brute plafonnée
+ ; 02 - Assiette brute plafonnée ;  ; 001 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1979)
+ ; 02 - Assiette brute plafonnée ;  ; 002 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1987)
+ ; 02 - Assiette brute plafonnée ;  ; 003 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1992)
+ ; 02 - Assiette brute plafonnée ;  ; 004 - Exonération de cotisations au titre de l'emploi d'un salarié en contrat d'accès à l'emploi
+ ; 02 - Assiette brute plafonnée ;  ; 006 - Exonération de cotisations au titre de l'emploi d'un salarié en contrat d'accompagnement dans l'emploi
+ ; 02 - Assiette brute plafonnée ;  ; 010 - Exonération de cotisations applicable aux entreprises des bassins d'emploi à redynamiser
+ ; 02 - Assiette brute plafonnée ;  ; 013 - Exonération de cotisations applicable aux entreprises et associations d'aide à domicile
+ ; 02 - Assiette brute plafonnée ;  ; 014 - Exonérations de cotisations applicable aux entreprises innovantes, universitaires ou de croissance
+ ; 02 - Assiette brute plafonnée ;  ; 017 - Exonération de cotisations applicable aux structures agréées de l'aide sociale
+ ; 02 - Assiette brute plafonnée ;  ; 025 - Exonération de cotisations au titre de l’emploi d’un salarié en chantier et atelier d'insertion
+ ; 02 - Assiette brute plafonnée ;  ; 045 - Cotisation Accident du travail ; Combinaison pour les entreprises Mahoraises
+ ; 02 - Assiette brute plafonnée ;  ; 049 - Cotisation Allocation de logement (FNAL)
+ ; 02 - Assiette brute plafonnée ;  ; 074 - Cotisation Allocation familiale - taux normal ; Combinaison pour les entreprises Mahoraises
+ ; 02 - Assiette brute plafonnée ;  ; 075 - Cotisation Assurance Maladie ; Combinaison pour les entreprises Mahoraises
+ ; 02 - Assiette brute plafonnée ;  ; 076 - Cotisation Assurance Vieillesse
+ ; 02 - Assiette brute plafonnée ;  ; 102 - Complément de cotisation Allocation Familiale ; Combinaison pour les entreprises Mahoraises
+ ; 02 - Assiette brute plafonnée ;  ; 109 - Exonération de cotisations salariales de retraite complémentaire au titre de l'emploi d'un apprenti
+ ; 02 - Assiette brute plafonnée ;  ; 142 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T1)
+ ; 03 - Assiette brute déplafonnée
+ ; 03 - Assiette brute déplafonnée ; 03 - Contributions patronales à des régimes complémentaires de retraite
+ ; 03 - Assiette brute déplafonnée ; 06 - Plafond calculé pour salarié poly-employeurs
+ ; 03 - Assiette brute déplafonnée ;  ; 001 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1979)
+ ; 03 - Assiette brute déplafonnée ;  ; 002 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1987)
+ ; 03 - Assiette brute déplafonnée ;  ; 003 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1992)
+ ; 03 - Assiette brute déplafonnée ;  ; 004 - Exonération de cotisations au titre de l'emploi d'un salarié en contrat d'accès à l'emploi
+ ; 03 - Assiette brute déplafonnée ;  ; 006 - Exonération de cotisations au titre de l'emploi d'un salarié en contrat d'accompagnement dans l'emploi
+ ; 03 - Assiette brute déplafonnée ;  ; 010 - Exonération de cotisations applicable aux entreprises des bassins d'emploi à redynamiser
+ ; 03 - Assiette brute déplafonnée ;  ; 011 - Exonération de cotisations applicable au créateur ou repreneur d'entreprise
+ ; 03 - Assiette brute déplafonnée ;  ; 012 - Exonération de cotisations applicable dans les DOM
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 012 - Exonération de cotisations applicable dans les DOM
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 013 - Exonération de cotisations applicable aux entreprises et associations d'aide à domicile
+ ; 03 - Assiette brute déplafonnée ;  ; 014 - Exonérations de cotisations applicable aux entreprises innovantes, universitaires ou de croissance
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 015 - Exonération de cotisations applicable aux entreprises en zones franches urbaines
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 016 - Exonération de cotisations applicable aux organismes d'intérêt général en zones de revitalisation rurale
+ ; 03 - Assiette brute déplafonnée ;  ; 017 - Exonération de cotisations applicable aux structures agréées de l'aide sociale
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 018 - Réduction générale dégressive unique des cotisations patronales de sécurité sociale et d'assurance chômage
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 019 - Réduction de cotisations applicable aux entreprises des zones de restructuration de la défense
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 020 - Réduction de cotisations au titre de l'embauche du 1er au 50ème salarié en zones de revitalisation rurale
+ ; 03 - Assiette brute déplafonnée ;  ; 021 - Déduction patronale au titre des heures supplémentaires
+ ; 03 - Assiette brute déplafonnée ;  ; 022 - Exonération de cotisations applicable à une gratification de stage
+ ; 03 - Assiette brute déplafonnée ;  ; 023 - Exonération de cotisation des sommes provenant d'un CET et réaffectées à un plan d'épargne retraite (PERCO, PERECO, PEREO) ou à un régime de retraite supplémentaire
+ ; 03 - Assiette brute déplafonnée ;  ; 025 - Exonération de cotisations au titre de l’emploi d’un salarié en chantier et atelier d'insertion
+ ; 03 - Assiette brute déplafonnée ;  ; 030 - Cotisation employeurs régime spécial maladie IEG Complémentaire
+ ; 03 - Assiette brute déplafonnée ;  ; 031 - Cotisation salariés régime spécial maladie IEG Complémentaire
+ ; 03 - Assiette brute déplafonnée ;  ; 032 - Cotisation salariés régime maladie IEG spécial Solidarité
+ ; 03 - Assiette brute déplafonnée ;  ; 044 - Exonération de cotisation chômage pour les moins de 26 ans
+ ; 03 - Assiette brute déplafonnée ;  ; 045 - Cotisation Accident du travail
+ ; 03 - Assiette brute déplafonnée ;  ; 049 - Cotisation Allocation de logement (FNAL)
+ ; 03 - Assiette brute déplafonnée ;  ; 065 - Cotisation CRPCEN
+ ; 03 - Assiette brute déplafonnée ;  ; 068 - Contribution solidarité autonomie
+ ; 03 - Assiette brute déplafonnée ;  ; 074 - Cotisation Allocation familiale - taux normal
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 074 - Cotisation Allocation familiale - taux normal
+ ; 03 - Assiette brute déplafonnée ;  ; 075 - Cotisation Assurance Maladie
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 075 - Cotisation Assurance Maladie
+ ; 03 - Assiette brute déplafonnée ;  ; 076 - Cotisation Assurance Vieillesse
+ ; 03 - Assiette brute déplafonnée ;  ; 093 - Contribution sur indemnités de mise à la retraite ou de rupture conventionnelle individuelle
+ ; 03 - Assiette brute déplafonnée ;  ; 099 - Contribution stock options
+ ; 03 - Assiette brute déplafonnée ;  ; 100 - Contribution au financement du dialogue social
+ ; 03 - Assiette brute déplafonnée ;  ; 102 - Complément de cotisation Allocation Familiale
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 102 - Complément de cotisation Allocation Familiale
+ ; 03 - Assiette brute déplafonnée ;  ; 103 - Contribution actions gratuites
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 106 - Réduction générale dégressive unique des cotisations patronales de retraite complémentaire
+ ; 03 - Assiette brute déplafonnée ;  ; 109 - Exonération de cotisations salariales de retraite complémentaire au titre de l'emploi d'un apprenti
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 110 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 130% à 220%
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 111 - Exonération de cotisations de retraite complémentaire applicable aux entreprises et associations d'aide à domicile
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 112 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 170% à 270%
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 113 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 170% à 350%
+ ; 03 - Assiette brute déplafonnée ;  ; 114 - Montant de réduction des heures supplémentaires/complémentaires
+ ; 03 - Assiette brute déplafonnée ;  ; 115 - Cotisation Assurance Maladie pour le Régime Local Alsace Moselle
+ ; 03 - Assiette brute déplafonnée ;  ; 128 - Contribution à la formation professionnelle (CFP)
+ ; 03 - Assiette brute déplafonnée ;  ; 129 - Contribution dédiée au financement du Compte Personnel de Formation pour les titulaires de CDD (CPF-CDD)
+ ; 03 - Assiette brute déplafonnée ;  ; 130 - Part principale de la taxe d'apprentissage
+ ; 03 - Assiette brute déplafonnée ;  ; 133 - Contribution maladie spécifique Mayotte ; Combinaison pour les entreprises Mahoraises
+ ; 03 - Assiette brute déplafonnée ;  ; 140 - Contribution conventionnelle au financement du dialogue social
+ ; 03 - Assiette brute déplafonnée ;  ; 141 - Contribution conventionnelle à la formation professionnelle
+ ; 03 - Assiette brute déplafonnée ;  ; 143 - Contribution au compte professionnel de prévention (C2P)
+ ; 03 - Assiette brute déplafonnée ;  ; 146 - Cotisation régime unifié Agirc-Arrco (part patronale T2) et CEG (part patronale T2), hors CET
+ ; 03 - Assiette brute déplafonnée ;  ; 148 - Contribution d'équilibre technique (CET) part patronale
+ ; 03 - Assiette brute déplafonnée ;  ; 907 - Complément de cotisation Assurance Maladie
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 907 - Complément de cotisation Assurance Maladie
+ ; 03 - Assiette brute déplafonnée ;  ; 909 - Cotisation au titre du financement des régimes de retraites supplémentaires à prestation définies
+ ; 03 - Assiette brute déplafonnée ;  ; 910 - Exonération de cotisations patronales pour les entreprises affectées par la crise sanitaire
+ ; 03 - Assiette brute déplafonnée ;  ; 913 - Indemnité inflation
+ ; 03 - Assiette brute déplafonnée ; 03 - Contributions patronales à des régimes complémentaires de retraite
+ ; 03 - Assiette brute déplafonnée ; 04 - Contributions patronales destinées au financement des prestations de prévoyance complémentaire
+ ; 03 - Assiette brute déplafonnée ; 05 - Contributions patronales destinées au financement des prestations de retraite supplémentaire
+ ; 03 - Assiette brute déplafonnée ;  ; 914 - Réduction sapeurs-pompiers volontaires sur les contributions recouvrées par la MSA, l’Urssaf ou France Travail
+ ; 03 - Assiette brute déplafonnée ;  ; 916 - Exonération de cotisations applicable en Zones France Ruralités Revitalisation (ZFRR)
+ ; 03 - Assiette brute déplafonnée ;  ; 919 - Exonération de contribution patronale sur les indemnités de mise à la retraite d’un salarié en contrat de valorisation de l’expérience (CVE)
+ ; 04 - Assiette de la contribution sociale généralisée
+ ; 04 - Assiette de la contribution sociale généralisée ;  ; 072 - Contribution sociale généralisée/salaires partiellement déductibles
+ ; 04 - Assiette de la contribution sociale généralisée ;  ; 073 - CSG/CRDS sur participation intéressement épargne salariale
+ ; 04 - Assiette de la contribution sociale généralisée ;  ; 079 - Remboursement de la dette sociale
+ ; 04 - Assiette de la contribution sociale généralisée ;  ; 147 - Contribution vieillesse due au titre d'un plan de partage de la valorisation de l'entreprise (PPVE)
+ ; 05 - Assiette du forfait social
+ ; 05 - Assiette du forfait social ;  ; 071 - Contribution forfait social
+ ; 05 - Assiette du forfait social ;  ; 912 - Exonération du forfait social à 10%
+ ; 07 - Assiette des contributions d'Assurance Chômage
+ ; 07 - Assiette des contributions d'Assurance Chômage ;  ; 040 - Cotisation AC : assurance chômage sur rémunérations brutes après déduction
+ ; 07 - Assiette des contributions d'Assurance Chômage ;  ; 041 - Cotisation AC majorée 1 : application d’une majoration AC + 0,5% sur les contrats d’usage inférieurs ou égaux à 3 mois
+ ; 07 - Assiette des contributions d'Assurance Chômage ;  ; 048 - Cotisation AGS : assurance garantie des salaires sur rémunérations brutes après déduction
+ ; 08 - Assiette retraite CPRPF
+ ; 09 - Assiette de compensation bilatérale maladie CPRPF
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 012 - Exonération de cotisations applicable dans les DOM
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 017 - Exonération de cotisations applicable aux structures agréées de l'aide sociale
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 045 - Cotisation Accident du travail
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 049 - Cotisation Allocation de logement (FNAL)
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 068 - Contribution solidarité autonomie
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 074 - Cotisation Allocation familiale - taux normal
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 075 - Cotisation Assurance Maladie
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 076 - Cotisation Assurance Vieillesse
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 100 - Contribution au financement du dialogue social
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 102 - Complément de cotisation Allocation Familiale
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 107 - Forfait marin
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 108 - Demi-rôle marin
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 115 - Cotisation Assurance Maladie pour le Régime Local Alsace Moselle
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 128 - Contribution à la formation professionnelle (CFP)
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 129 - Contribution dédiée au financement du Compte Personnel de Formation pour les titulaires de CDD (CPF-CDD)
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 130 - Part principale de la taxe d'apprentissage
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 907 - Complément de cotisation Assurance Maladie
+ ; 12 - Assiette du crédit d'impôt compétitivité-emploi ; 02 - Montant du SMIC retenu pour le calcul du crédit d'impôt compétitivité-emploi ;  ; Combinaison pour les entreprises Mahoraises
+ ; 13 - Assiette du forfait social à 8% ;  ;  ; Cette combinaison ne doit être utilisée que pour corriger ou régulariser des éléments déclarées sur des périodes antérieures au 1er janvier 2023
+ ; 13 - Assiette du forfait social à 8% ;  ; 071 - Contribution forfait social ; Cette combinaison ne doit être utilisée que pour corriger ou régulariser des éléments déclarées sur des périodes antérieures au 1er janvier 2023
+ ; 14 - Assiette du forfait social à 20% ;  ;  ; Cette combinaison ne doit être utilisée que pour corriger ou régulariser des éléments déclarées sur des périodes antérieures au 1er janvier 2023
+ ; 14 - Assiette du forfait social à 20% ;  ; 071 - Contribution forfait social ; Cette combinaison ne doit être utilisée que pour corriger ou régulariser des éléments déclarées sur des périodes antérieures au 1er janvier 2023
+ ; 15 - Assiette brute du régime spécial IEG ;  ; 034 - Cotisation employeurs régime de droit commun IEG (population adossée)
+ ; 15 - Assiette brute du régime spécial IEG ;  ; 035 - Cotisation employeurs autres risques IEG
+ ; 15 - Assiette brute du régime spécial IEG ;  ; 036 - Cotisation employeurs régime spécial IEG (population non adossée)
+ ; 15 - Assiette brute du régime spécial IEG ;  ; 037 - Cotisation salariés régime de droit commun IEG (population adossée)
+ ; 15 - Assiette brute du régime spécial IEG ;  ; 038 - Cotisation salariés régime spécial IEG (population non adossée)
+ ; 15 - Assiette brute du régime spécial IEG ;  ; 076 - Cotisation Assurance Vieillesse
+ ; 16 - Assiette brute du complément invalidité IEG ;  ; 033 - Cotisation employeurs complément d'invalidité IEG
+ ; 17 - Assiette brute du petit pool IEG ;  ; 029 - Réduction employeurs petit pool IEG
+ ; 17 - Assiette brute du petit pool IEG ;  ; 039 - Cotisations employeurs petit pool IEG
+ ; 18 - Assiette brute plafonnée régime maladie IEG ;  ; 030 - Cotisation employeurs régime spécial maladie IEG Complémentaire
+ ; 18 - Assiette brute plafonnée régime maladie IEG ;  ; 031 - Cotisation salariés régime spécial maladie IEG Complémentaire
+ ; 18 - Assiette brute plafonnée régime maladie IEG ;  ; 032 - Cotisation salariés régime maladie IEG spécial Solidarité
+ ; 22 - Base brute spécifique ;  ; 076 - Cotisation Assurance Vieillesse
+ ; 22 - Base brute spécifique ;  ; 146 - Cotisation régime unifié Agirc-Arrco (part patronale T2) et CEG (part patronale T2), hors CET
+ ; 22 - Base brute spécifique ;  ; 148 - Contribution d'équilibre technique (CET) part patronale
+ ; 23 - Base exceptionnelle (Agirc Arrco) ;  ; 146 - Cotisation régime unifié Agirc-Arrco (part patronale T2) et CEG (part patronale T2), hors CET
+ ; 23 - Base exceptionnelle (Agirc Arrco) ;  ; 148 - Contribution d'équilibre technique (CET) part patronale
+ ; 24 - Base plafonnée spécifique
+ ; 24 - Base plafonnée spécifique ;  ; 076 - Cotisation Assurance Vieillesse
+ ; 24 - Base plafonnée spécifique ;  ; 142 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T1)
+ ; 33 - Assiette Contribution sur les avantages de préretraite entreprise
+ ; 33 - Assiette Contribution sur les avantages de préretraite entreprise ;  ; 069 - Contribution sur avantage de pré-retraite entreprise à dater du 11/10/2007 (CAPE)
+ ; 33 - Assiette Contribution sur les avantages de préretraite entreprise ;  ; 070 - Contribution sur avantage de pré-retraite entreprise aux taux normal (CAPE)
+ ; 43 - Base plafonnée exceptionnelle Agirc Arrco
+ ; 43 - Base plafonnée exceptionnelle Agirc Arrco ;  ; 142 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T1)
+ ; 44 - Assiette du forfait social à 16% ;  ;  ; Cette combinaison ne doit être utilisée que pour corriger ou régulariser des éléments déclarées sur des périodes antérieures au 1er janvier 2023
+ ; 44 - Assiette du forfait social à 16% ;  ; 071 - Contribution forfait social ; Cette combinaison ne doit être utilisée que pour corriger ou régulariser des éléments déclarées sur des périodes antérieures au 1er janvier 2023
+ ; 52 - Assiette spécifique Tranche 2 régime spécial RATP ;  ; 076 - Cotisation Assurance Vieillesse ; Cette combinaison est utilisée afin de déclarer les cotisations retraites des individus affiliés au régime spécial de retraite de la RATP (agents RATP et salariés transférés dans le cadre de l'ouverture à la concurrence).
+ ; 53 - Assiette spécifique régime spécial RATP ;  ; 076 - Cotisation Assurance Vieillesse ; Cette combinaison est utilisée afin de déclarer les cotisations retraites des individus affiliés au régime spécial de retraite de la RATP (agents RATP et salariés transférés dans le cadre de l'ouverture à la concurrence).
+ ; 54 - Assiette du forfait social à 10% ;  ;  ; Cette combinaison ne doit être utilisée que pour corriger ou régulariser des éléments déclarées sur des périodes antérieures au 1er janvier 2023
+ ; 54 - Assiette du forfait social à 10% ;  ; 071 - Contribution forfait social ; Cette combinaison ne doit être utilisée que pour corriger ou régulariser des éléments déclarées sur des périodes antérieures au 1er janvier 2023
+ ; 54 - Assiette du forfait social à 10% ;  ; 912 - Exonération du forfait social à 10% ; Cette combinaison ne doit être utilisée que pour corriger ou régulariser des éléments déclarées sur des périodes antérieures au 1er janvier 2023
+ ; 57 - Assiette du versement mobilité ;  ; 011 - Exonération de cotisations applicable au créateur ou repreneur d'entreprise
+ ; 57 - Assiette du versement mobilité ;  ; 015 - Exonération de cotisations applicable aux entreprises en zones franches urbaines
+ ; 57 - Assiette du versement mobilité ;  ; 016 - Exonération de cotisations applicable aux organismes d'intérêt général en zones de revitalisation rurale
+ ; 57 - Assiette du versement mobilité ;  ; 081 - Versement mobilité
+ ; 57 - Assiette du versement mobilité ;  ; 082 - Versement mobilité additionnel
+ ; 57 - Assiette du versement mobilité ;  ; 088 - Exonération versement mobilité
+ ; 57 - Assiette du versement mobilité ;  ; 918 - Versement mobilité régional et rural
+ ; Mise à jour le :  16/06/2026
+
+======================================================================
+[AGIRC-ARRCO]
+ ; Liste des combinaisons de Bases assujetties, Composants de base assujettie et Cotisations individuelles attendues par l'AGIRC-ARRCO pour la version de norme P27V01
+ ; Base assujettie - S21.G00.78 ; Composant de base assujettie - S21.G00.79 ; Cotisation individuelle - S21.G00.81 ; Commentaires et points d'attentions
+ ; Code de base assujettie - S21.G00.78.001 ; Type de composant de base assujettie - S21.G00.79.001 ; Code de cotisation - S21.G00.81.001
+ ; 02 - Assiette brute plafonnée ;  ; 131 - Cotisation régime unifié Agirc-Arrco
+ ; 02 - Assiette brute plafonnée ;  ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 109 - Exonération de cotisations salariales de retraite complémentaire au titre de l'emploi d'un apprenti
+ ; 03 - Assiette brute déplafonnée ;  ; 131 - Cotisation régime unifié Agirc-Arrco
+ ; 03 - Assiette brute déplafonnée ;  ; 131 - Cotisation régime unifié Agirc-Arrco /                                     et / 132 - Cotisation Apec
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 106 - Réduction générale dégressive unique des cotisations patronales de retraite complémentaire
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 915 - Réduction sapeurs-pompiers volontaires sur les cotisations et contributions recouvrées par l’Agirc-Arrco
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 106 - Réduction générale dégressive unique des cotisations patronales de retraite complémentaire /                                                    et / 915 - Réduction sapeurs-pompiers volontaires sur les cotisations et contributions recouvrées par l’Agirc-Arrco
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 132 - Cotisation Apec /                                                    et / 106 - Réduction générale dégressive unique des cotisations patronales de retraite complémentaire
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 132 - Cotisation Apec /                                                    et / 106 - Réduction générale dégressive unique des cotisations patronales de retraite complémentaire /                                                    et / 915 - Réduction sapeurs-pompiers volontaires sur les cotisations et contributions recouvrées par l’Agirc-Arrco
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 132 - Cotisation Apec /                                                    et / 915 - Réduction sapeurs-pompiers volontaires sur les cotisations et contributions recouvrées par l’Agirc-Arrco
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 111 - Exonération de cotisations de retraite complémentaire applicable aux entreprises et associations d'aide à domicile
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 132 - Cotisation Apec /                                                    et / 111 - Exonération de cotisations de retraite complémentaire applicable aux entreprises et associations d'aide à domicile
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 110 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 130% à 220%
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 132 - Cotisation Apec /                                                    et / 110 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 130% à 220%
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 112 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 170% à 270%
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 132 - Cotisation Apec /                                                    et / 112 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 170% à 270%
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 113 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 170% à 350%
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 132 - Cotisation Apec /                                                    et / 113 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 170% à 350%
+ ; 03 - Assiette brute déplafonnée ; 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco
+ ; 03 - Assiette brute déplafonnée ; 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                     et / 132 - Cotisation Apec
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage /                                                   ET    / 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                    et / 106 - Réduction générale dégressive unique des cotisations patronales de retraite complémentaire
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage /                                                   ET    / 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                    et / 915 - Réduction sapeurs-pompiers volontaires sur les cotisations et contributions recouvrées par l’Agirc-Arrco
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage /                                                   ET    / 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                    et / 106 - Réduction générale dégressive unique des cotisations patronales de retraite complémentaire /                                    et / 915 - Réduction sapeurs-pompiers volontaires sur les cotisations et contributions recouvrées par l’Agirc-Arrco
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage /                                                   ET    / 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                     et / 132 - Cotisation Apec /                                     et / 106 - Réduction générale dégressive unique des cotisations patronales de retraite complémentaire
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage /                                                   ET    / 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                     et / 132 - Cotisation Apec /                                     et / 915 - Réduction sapeurs-pompiers volontaires sur les cotisations et contributions recouvrées par l’Agirc-Arrco
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage /                                                   ET    / 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                     et / 132 - Cotisation Apec /                                     et / 106 - Réduction générale dégressive unique des cotisations patronales de retraite complémentaire /                                      et / 915 - Réduction sapeurs-pompiers volontaires sur les cotisations et contributions recouvrées par l’Agirc-Arrco
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage /                                                   ET    / 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 110 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 130% à 220%
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage /                                                   ET    / 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 132 - Cotisation Apec /                                                    et / 110 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 130% à 220%
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage /                                                   ET    / 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 111 - Exonération de cotisations de retraite complémentaire applicable aux entreprises et associations d'aide à domicile
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage /       ET    / 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 132 - Cotisation Apec /                                                    et / 111 - Exonération de cotisations de retraite complémentaire applicable aux entreprises et associations d'aide à domicile
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage /                                                   ET    / 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 112 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 170% à 270%
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage /                                                   ET    / 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 132 - Cotisation Apec /                                                    et / 112 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 170% à 270%
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage /                                                   ET    / 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 113 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 170% à 350%
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage /                                                   ET    / 03 - Contributions patronales à des régimes complémentaires de retraite /  / L'utilisation de cette valeur du composant de base assujettie étant conditionnelle, se référer au cahier d'aide à la codification AGIRC-ARRCO pour prendre connaissance de ses conditions d'application ; 131 - Cotisation régime unifié Agirc-Arrco /                                                    et / 132 - Cotisation Apec /                                                    et / 113 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 170% à 350%
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 131 - Cotisation régime unifié Agirc-Arrco
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale ;  ; 131 - Cotisation régime unifié Agirc-Arrco /                                     et / 132 - Cotisation Apec
+ ; 22 - Base brute spécifique ;  ; 131 - Cotisation régime unifié Agirc-Arrco
+ ; 22 - Base brute spécifique ;  ; 131 - Cotisation régime unifié Agirc-Arrco /                                     et / 132 - Cotisation Apec
+ ; 23 - Base exceptionnelle (Agirc Arrco) ;  ; 131 - Cotisation régime unifié Agirc-Arrco
+ ; 23 - Base exceptionnelle (Agirc Arrco) ;  ; 131 - Cotisation régime unifié Agirc-Arrco /                                     et / 132 - Cotisation Apec
+ ; 24 - Base plafonnée spécifique ;  ; 131 - Cotisation régime unifié Agirc-Arrco
+ ; 24 - Base plafonnée spécifique ;  ; 131 - Cotisation régime unifié Agirc-Arrco /                                     et / 132 - Cotisation Apec
+ ; 25 - Assiette de contribution libératoire ;  ; 131 - Cotisation régime unifié Agirc-Arrco
+ ; 25 - Assiette de contribution libératoire ;  ; 131 - Cotisation régime unifié Agirc-Arrco /                                     et / 132 - Cotisation Apec
+ ; 43 - Base plafonnée exceptionnelle Agirc Arrco ;  ; 131 - Cotisation régime unifié Agirc-Arrco
+ ; 43 - Base plafonnée exceptionnelle Agirc Arrco ;  ; 131 - Cotisation régime unifié Agirc-Arrco /                                     et / 132 - Cotisation Apec
+ ; 45 - Base plafonnée ICP Agirc-Arrco ;  ; 131 - Cotisation régime unifié Agirc-Arrco
+ ; 45 - Base plafonnée ICP Agirc-Arrco ;  ; 131 - Cotisation régime unifié Agirc-Arrco /                                     et / 132 - Cotisation Apec
+ ; Pensez à consulter le cahier d'aide à la codification AGIRC-ARRCO sur https://www.agirc-arrco.fr/entreprises/mon-entreprise/calculer-et-declarer/documentation-technique-dsn/
+ ; Mise à jour le : 08/06/2026
+
+======================================================================
+[CONGES SPECT]
+ ; Liste des combinaisons de Bases assujetties, Composants de base assujettie et Cotisations individuelles attendues par Congés spectacles - AUDIENS pour la version de norme P27V01
+ ; Base assujettie - S21.G00.78 ; Composant de base assujettie - S21.G00.79 ; Cotisation individuelle - S21.G00.81
+ ; Code de base assujettie - S21.G00.78.001 ; Type de composant de base assujettie - S21.G00.79.001 ; Code de cotisation - S21.G00.81.001
+ ; 02 - Assiette brute plafonnée
+ ; 03 - Assiette brute déplafonnée
+ ; 27 - Assiette Caisse de congés spectacles ;  ; 066 - Cotisation caisse de congés spectacles
+ ; Mise à jour le : 08/06/2026
+
+======================================================================
+[FRANCE TRAVAIL]
+ ; Liste des combinaisons de Bases assujetties, Composants de base assujettie et Cotisations individuelles attendues par France Travail  pour la version de norme P27V01
+ ; Base assujettie - S21.G00.78 ; Composant de base assujettie - S21.G00.79 ; Cotisation individuelle - S21.G00.81 ; Commentaires et points d'attentions
+ ; Code de base assujettie - S21.G00.78.001 ; Type de composant de base assujettie - S21.G00.79.001 ; Code de cotisation - S21.G00.81.001
+ ; 02 - Assiette brute plafonnée ;  ; 001 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1979)
+ ; 02 - Assiette brute plafonnée ;  ; 002 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1987)
+ ; 02 - Assiette brute plafonnée ;  ; 003 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1992)
+ ; 03 - Assiette brute déplafonnée ;  ; 001 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1979)
+ ; 03 - Assiette brute déplafonnée ;  ; 002 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1987)
+ ; 03 - Assiette brute déplafonnée ;  ; 003 - Exonération de cotisations au titre de l'emploi d'un apprenti (loi de 1992)
+ ; 03 - Assiette brute déplafonnée ;  ; 012 - Exonération de cotisations applicable dans les DOM
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 012 - Exonération de cotisations applicable dans les DOM
+ ; 03 - Assiette brute déplafonnée ; 01 - Montant du SMIC retenu pour le calcul de la réduction générale dégressive unique des cotisations patronales de sécurité sociale, de retraite complémentaire et d'assurance chômage ; 018 - Réduction générale dégressive unique des cotisations patronales de sécurité sociale et d'assurance chômage
+ ; 03 - Assiette brute déplafonnée ;  ; 044 - Exonération de cotisation chômage pour les moins de 26 ans
+ ; 03 - Assiette brute déplafonnée ;  ; 910 - Exonération de cotisations patronales pour les entreprises affectées par la crise sanitaire
+ ; 03 - Assiette brute déplafonnée ;  ; 914 - Réduction sapeurs-pompiers volontaires sur les contributions recouvrées par la MSA, l’Urssaf ou France Travail
+ ; 07 - Assiette des contributions d'Assurance Chômage ;  ; 040 - Cotisation AC : assurance chômage sur rémunérations brutes après déduction
+ ; 07 - Assiette des contributions d'Assurance Chômage ;  ; 041 - Cotisation AC majorée 1 : application d’une majoration AC + 0,5% sur les contrats d’usage inférieurs ou égaux à 3 mois
+ ; 07 - Assiette des contributions d'Assurance Chômage ;  ; 048 - Cotisation AGS : assurance garantie des salaires sur rémunérations brutes après déduction
+ ; Mise à jour le : 24/06/2026
+
+======================================================================
+[OC]
+ ; Liste des combinaisons de Bases assujetties, Composants de base assujettie et Cotisations individuelles attendues par les Organismes Complémentaires pour la version de norme P27V01
+ ; Base assujettie - S21.G00.78 ; Composant de base assujettie - S21.G00.79 ; Cotisation individuelle - S21.G00.81
+ ; Code de base assujettie - S21.G00.78.001 ; Type de composant de base assujettie - S21.G00.79.001 ; Code de cotisation - S21.G00.81.001
+ ; 31 - éléments de prévoyance ; 10 - Salaire brut Prévoyance ; 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+ ; 31 - éléments de prévoyance ; 11 - Tranche A Prévoyance ; 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+ ; 31 - éléments de prévoyance ; 12 - Tranche 2 Prévoyance ; 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+ ; 31 - éléments de prévoyance ; 13 - Tranche B Prévoyance ; 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+ ; 31 - éléments de prévoyance ; 14 - Tranche C Prévoyance ; 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+ ; 31 - éléments de prévoyance ; 15 - Tranche D Prévoyance ; 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+ ; 31 - éléments de prévoyance ; 16 - Tranche D1 Prévoyance ; 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+ ; 31 - éléments de prévoyance ; 17 - Base spécifique Prévoyance ; 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+ ; 31 - éléments de prévoyance ; 18 - Base forfaitaire Prévoyance ; 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+ ; 31 - éléments de prévoyance ; 19 - Base fictive Prévoyance reconstituée ; 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+ ; 31 - éléments de prévoyance ; 20 - Montant forfaitaire Prévoyance ; 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+ ; 31 - éléments de prévoyance ; 21 - Montant Prévoyance libre ou exceptionnel ; 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+ ; 31 - éléments de prévoyance ; 23 - Sans composant de base assujettie en paie ; 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+ ; 31 - éléments de prévoyance ; 24 - Tranche 2 Unifiée Prévoyance ; 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées
+ ; Mise à jour le : 08/06/2026
+
+======================================================================
+[Caisse Congés Payés]
+ ; Liste des combinaisons de Bases assujetties, Composants de base assujettie et Cotisations individuelles attendues par la CIBTP pour la version de norme P27V01
+ ; Base assujettie - S21.G00.78 ; Composant de base assujettie - S21.G00.79 ; Cotisation individuelle - S21.G00.81 ; Commentaires et points d'attentions
+ ; Code de base assujettie - S21.G00.78.001 ; Type de composant de base assujettie - S21.G00.79.001 ; Code de cotisation - S21.G00.81.001
+ ; 02 - Assiette brute plafonnée
+ ; 03 - Assiette brute déplafonnée
+ ; 03 - Assiette brute déplafonnée ;  ; 110 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 130% à 220%
+ ; 03 - Assiette brute déplafonnée ;  ; 112 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 170% à 270%
+ ; 03 - Assiette brute déplafonnée ;  ; 113 - Exonération de cotisations patronales de retraite complémentaire applicable dans les DOM (LODEOM) SMIC 170% à 350%
+ ; 11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale
+ ; 20 - Caisses de congés payés (CIBTP, Transport, Manutention portuaire) - Base brute de cotisations congés payés
+ ; 21 - CIBTP - Base brute de cotisations OPPBTP permanents
+ ; 34 - CIBTP - Base plafonnée de cotisations intempéries gros oeuvre travaux publics
+ ; 35 - CIBTP - Base plafonnée de cotisations intempéries second œuvre
+ ; 36 - CIBTP - Base de cotisations dérogatoire Bâtiment
+ ; 39 - CIBTP - Base de cotisations dérogatoire Travaux Publics
+ ; 40 - CIBTP - Base de cotisations dérogatoire Partenaires Bâtiment
+ ; 55 - Assiette de pénibilité conventionnelle de la Manutention portuaire
+ ; Mise à jour le : 08/06/2025
+
+======================================================================
+[DGFiP]
+ ; Liste des combinaisons de Bases assujetties, Composants de base assujettie et Cotisations individuelles attendues par la DGFIP pour la version de norme P27V01
+ ; Base assujettie - S21.G00.78 ; Composant de base assujettie - S21.G00.79 ; Cotisation individuelle - S21.G00.81
+ ; Code de base assujettie - S21.G00.78.001 ; Type de composant de base assujettie - S21.G00.79.001 ; Code de cotisation - S21.G00.81.001
+ ; 02 - Assiette brute plafonnée
+ ; 03 - Assiette brute déplafonnée ;  ; 077 - Montant de la retenue à la source effectuée sur les salaires versés aux personnes domiciliées hors de France
+ ; 03 - Assiette brute déplafonnée ; 90 - Retenue sur salaire
+ ; 03 - Assiette brute déplafonnée ;  ; 901 - Cotisation épargne retraite
+ ; 03 - Assiette brute déplafonnée ; 91 - Base de taxe sur les salaires au taux normal
+ ; Mise à jour le : 08/06/2026
+
+======================================================================
+[Historique MAJ]
+Historique des mises à jour - Tableau des rattachements Blocs 78/79/81
+Date ; Contenu de la mise à jour
+2026-06-05 00:00:00 ; Initialisation du tableau des rattachements pour la version de norme P27V01
+2026-06-30 00:00:00 ; Finalisation du tableau
