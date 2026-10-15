@@ -31,7 +31,7 @@ use crate::num::Resultat;
 use crate::usages::strip;
 
 // Ce que `unicodedata.normalize("NFKD", c).encode("ascii", "ignore")` laisse
-// de chaque caractere (genere par `outils/generer_nfkd_ascii.py`).
+// de chaque caractere (ecrit par `paie generer-tables`, `generer_tables.rs`, depuis la base Unicode deposee).
 #[path = "nfkd_ascii.rs"]
 mod nfkd_ascii;
 

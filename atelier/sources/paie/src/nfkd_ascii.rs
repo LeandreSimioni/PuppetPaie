@@ -1,4 +1,6 @@
-//! GENERE par `outils/generer_nfkd_ascii.py` (Unicode 14.0.0 de Python) : ne pas editer.
+//! GENERE par `paie generer-tables` : ne pas editer. Unicode 18.0.0.
+//! Lu dans `atelier/reference/sources/unicode/unicode-ucd-18.0.0-unicodedata-20261015.txt`.
+//! Lu dans `atelier/reference/sources/unicode/unicode-ucd-18.0.0-derivednumerictype-20261015.txt`.
 //!
 //! Ce que `unicodedata.normalize("NFKD", c).encode("ascii", "ignore")` laisse
 //! de chaque caractere non ASCII. `(debut, fin, texte, avance)` : de `debut` a `fin`,
@@ -562,6 +564,8 @@ pub const TABLE: &[(u32, u32, &str, bool)] = &[
     (0x2096, 0x2099, "k", true),
     (0x209A, 0x209A, "p", false),
     (0x209B, 0x209C, "s", true),
+    (0x209D, 0x209D, "w", false),
+    (0x209E, 0x209F, "y", true),
     (0x20A8, 0x20A8, "Rs", false),
     (0x2100, 0x2100, "a/c", false),
     (0x2101, 0x2101, "a/s", false),
@@ -985,6 +989,7 @@ pub const TABLE: &[(u32, u32, &str, bool)] = &[
     (0x33FD, 0x33FD, "30", false),
     (0x33FE, 0x33FE, "31", false),
     (0x33FF, 0x33FF, "gal", false),
+    (0xA7F1, 0xA7F1, "S", false),
     (0xA7F2, 0xA7F2, "C", false),
     (0xA7F3, 0xA7F3, "F", false),
     (0xA7F4, 0xA7F4, "Q", false),
@@ -1043,6 +1048,8 @@ pub const TABLE: &[(u32, u32, &str, bool)] = &[
     (0xFF01, 0xFF5E, "!", true),
     (0xFFE3, 0xFFE3, " ", false),
     (0x107A5, 0x107A5, "q", false),
+    (0x1CCD6, 0x1CCEF, "A", true),
+    (0x1CCF0, 0x1CCF9, "0", true),
     (0x1D400, 0x1D419, "A", true),
     (0x1D41A, 0x1D433, "a", true),
     (0x1D434, 0x1D44D, "A", true),
@@ -1146,7 +1153,7 @@ pub const TABLE: &[(u32, u32, &str, bool)] = &[
     (0x1FBF0, 0x1FBF9, "0", true),
 ];
 
-/// Les intervalles de points de code ou `str.isdigit()` est vrai (Unicode 14.0.0).
+/// Les intervalles de points de code ou `str.isdigit()` est vrai (Unicode 18.0.0).
 pub const CHIFFRES: &[(u32, u32)] = &[
     (0x30, 0x39),
     (0xB2, 0xB3),
@@ -1203,6 +1210,7 @@ pub const CHIFFRES: &[(u32, u32)] = &[
     (0x104A0, 0x104A9),
     (0x10A40, 0x10A43),
     (0x10D30, 0x10D39),
+    (0x10D40, 0x10D49),
     (0x10E60, 0x10E68),
     (0x11052, 0x1105A),
     (0x11066, 0x1106F),
@@ -1214,18 +1222,27 @@ pub const CHIFFRES: &[(u32, u32)] = &[
     (0x114D0, 0x114D9),
     (0x11650, 0x11659),
     (0x116C0, 0x116C9),
+    (0x116D0, 0x116E3),
     (0x11730, 0x11739),
     (0x118E0, 0x118E9),
     (0x11950, 0x11959),
+    (0x11BF0, 0x11BF9),
     (0x11C50, 0x11C59),
     (0x11D50, 0x11D59),
     (0x11DA0, 0x11DA9),
+    (0x11DE0, 0x11DE9),
+    (0x11F50, 0x11F59),
+    (0x16130, 0x16139),
     (0x16A60, 0x16A69),
     (0x16AC0, 0x16AC9),
     (0x16B50, 0x16B59),
+    (0x16D70, 0x16D79),
+    (0x1CCF0, 0x1CCF9),
     (0x1D7CE, 0x1D7FF),
     (0x1E140, 0x1E149),
     (0x1E2F0, 0x1E2F9),
+    (0x1E4F0, 0x1E4F9),
+    (0x1E5F1, 0x1E5FA),
     (0x1E950, 0x1E959),
     (0x1F100, 0x1F10A),
     (0x1FBF0, 0x1FBF9),

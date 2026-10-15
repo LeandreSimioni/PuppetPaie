@@ -8,7 +8,8 @@ fn usage() -> ! {
          \x20       paie interne NOM ...   (les commandes que le Python appelle avec du JSON : paie interne --aide)\n\
          \x20       paie oracle ... | paie fabrique DESCRIPTION.json SORTIE.pdf   (outils d'atelier)\n\
          \x20       paie guet [--seuil N] [--commits] [--transcript F]   (outil d'atelier : la veille du contexte d'un sous-agent)\n\
-         \x20       paie verifier-avant-commit [--indexes]   (le garde avant commit : rien de reel dans ce que git emporterait)"
+         \x20       paie verifier-avant-commit [--indexes]   (le garde avant commit : rien de reel dans ce que git emporterait)\n\
+         \x20       paie generer-tables SOURCES SRC   (les tables Unicode du moteur, depuis atelier/reference/sources)"
     );
     std::process::exit(2)
 }
@@ -73,6 +74,7 @@ fn main() -> std::process::ExitCode {
         Some("interface") => return std::process::ExitCode::from(paie::interface::commande(&args[1..]).clamp(0, 255) as u8),
         // Les commandes que le Python appelle avec du JSON : `paie interne NOM`.
         Some("interne") => return interne(&args[1..]),
+        Some("generer-tables") => return std::process::ExitCode::from(paie::generer_tables::commande(&args[1..]).clamp(0, 255) as u8),
         Some("oracle") => match paie::oracle::commande(&args[1..]) {
             Some(code) => std::process::exit(code),
             None => usage(),

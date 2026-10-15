@@ -38,5 +38,6 @@ mod mise_a_jour;
 mod restauration;
 mod retours;
 mod sauvegarde;
+mod tables_generees;
 mod transport;
 mod verifier_avant_commit;

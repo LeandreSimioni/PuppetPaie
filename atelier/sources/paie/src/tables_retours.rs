@@ -1,4 +1,9 @@
-//! GENERE par `outils/generer_tables_retours.py` (Unicode 14.0.0 de Python) : ne pas editer.
+//! GENERE par `paie generer-tables` : ne pas editer. Unicode 18.0.0.
+//! Lu dans `atelier/reference/sources/unicode/unicode-ucd-18.0.0-unicodedata-20261015.txt`.
+//! Lu dans `atelier/reference/sources/unicode/unicode-mappings-microsoft-cp437-20261015.txt`.
+//! Lu dans `atelier/reference/sources/unicode/unicode-mappings-microsoft-cp1252-20261015.txt`.
+//! Lu dans `atelier/reference/sources/python/python-releve-codecs-pyexpat-3.11.17-20261015.txt`.
+//! Lu dans `atelier/reference/sources/w3c/w3c-xml-1.0-quatrieme-edition-20060816.html`.
 
 /// Les intervalles de points de code ou `str.isdecimal()` est vrai (le `\d` de `re`).
 pub const DECIMAUX: &[(u32, u32)] = &[
@@ -41,6 +46,7 @@ pub const DECIMAUX: &[(u32, u32)] = &[
     (0xFF10, 0xFF19),
     (0x104A0, 0x104A9),
     (0x10D30, 0x10D39),
+    (0x10D40, 0x10D49),
     (0x11066, 0x1106F),
     (0x110F0, 0x110F9),
     (0x11136, 0x1113F),
@@ -50,18 +56,27 @@ pub const DECIMAUX: &[(u32, u32)] = &[
     (0x114D0, 0x114D9),
     (0x11650, 0x11659),
     (0x116C0, 0x116C9),
+    (0x116D0, 0x116E3),
     (0x11730, 0x11739),
     (0x118E0, 0x118E9),
     (0x11950, 0x11959),
+    (0x11BF0, 0x11BF9),
     (0x11C50, 0x11C59),
     (0x11D50, 0x11D59),
     (0x11DA0, 0x11DA9),
+    (0x11DE0, 0x11DE9),
+    (0x11F50, 0x11F59),
+    (0x16130, 0x16139),
     (0x16A60, 0x16A69),
     (0x16AC0, 0x16AC9),
     (0x16B50, 0x16B59),
+    (0x16D70, 0x16D79),
+    (0x1CCF0, 0x1CCF9),
     (0x1D7CE, 0x1D7FF),
     (0x1E140, 0x1E149),
     (0x1E2F0, 0x1E2F9),
+    (0x1E4F0, 0x1E4F9),
+    (0x1E5F1, 0x1E5FA),
     (0x1E950, 0x1E959),
     (0x1FBF0, 0x1FBF9),
 ];
@@ -759,9 +774,6 @@ pub const NOM_DEBUT: &[(u32, u32)] = &[
 
 /// Les intervalles de points de code qui peuvent suivre la premiere lettre d'un nom (hors deux-points).
 pub const NOM_SUITE: &[(u32, u32)] = &[
-    (0x9, 0xA),
-    (0xD, 0xD),
-    (0x20, 0x20),
     (0x2D, 0x2E),
     (0x30, 0x39),
     (0x41, 0x5A),
