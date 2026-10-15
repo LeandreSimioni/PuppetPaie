@@ -396,14 +396,21 @@ function peindreCarte(div) {
     </div>
     <div class="carte-actes">${bandeauEtats(ligne)}</div>
     <div class="carte-net" title="net à payer, avant impôt">${echapper(net)}</div>
-    <button class="secondaire carte-modifier">Voir le détail</button>`;
+    <span class="carte-modifier">
+      <button class="secondaire carte-detail">Voir le détail</button>
+      <button class="lien carte-imprevu" title="Un imprévu : un arrêt de travail, une absence…"
+        aria-label="Un imprévu">&hellip;</button></span>`;
   // VOIR SANS MODIFIER (l'utilisateur, 29/09/2026) : relire les heures d'un
   // service de répétition ne doit pas demander de rouvrir la paie.
   // « Modifier » est dans la boîte du détail.
-  cible.querySelector(".carte-modifier").onclick = (ev) => {
+  cible.querySelector(".carte-detail").onclick = (ev) => {
     ev.preventDefault();
     boiteDetail(ligne, ps);
   };
+  // LA PORTE DES IMPRÉVUS sur une paie validée (15/10/2026) : un arrêt ou
+  // une absence arrive souvent après la paie. js/imprevus.js.
+  const porte = cible.querySelector(".carte-imprevu");
+  porte.onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); menuImprevu(porte, { div }); };
   brancherRecu(cible);
 }
 
@@ -759,9 +766,9 @@ async function chargerMois(mois) {
     dessinerActions(mois),
     dessinerEmbauches(mois),
     dessinerReprise(),
-    dessinerArrets(mois),
+    // Les imprévus et les fins de contrat : ce qui est dû, et la ligne de
+    // chaque imprévu sous sa carte (js/imprevus.js).
     dessinerImprevus(mois),
-    dessinerFins(mois),
     // Ou en est CHAQUE paie. Se lit apres le chargement des blocs : les etats
     // se posent sur eux, et un bloc absent n'aurait rien ou se poser.
     dessinerEtatsDesPaies(mois).finally(montrer),
@@ -1020,8 +1027,9 @@ async function enregistrerSaisie(silencieux) {
     await rafraichirActions();
     // La fin d'un contrat se lit sur la saisie ENREGISTRÉE : tant qu'elle
     // n'était pas relue ici, on tapait le motif de rupture et le bloc
-    // continuait d'annoncer qu'il manquait.
-    await dessinerFins(s.mois);
+    // continuait d'annoncer qu'il manquait. Les jours payés pendant un
+    // imprévu aussi : un jour retiré de la ligne doit cesser d'être nommé.
+    await dessinerImprevus(s.mois);
     return true;
   } catch (e) {
     // Une paie dont on n'a pas encore choisi les jours n'est pas une faute :

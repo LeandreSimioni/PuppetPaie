@@ -245,8 +245,8 @@ fn motifs_de_suspension() -> R<Vec<Value>> {
 
 // ------------------------------------------------------------------ imprevus
 
-/// La route `imprevus` : `{salarie?, mois?}` -> les imprevus (d'un salarie, qui croisent un mois), resumes, et les
-/// nomenclatures pour en saisir.
+/// La route `imprevus` : `{salarie?, mois?}` -> les imprevus (d'un salarie, qui croisent un mois), resumes -- un arret
+/// avec ses `obligations` --, et les nomenclatures pour en saisir.
 fn imprevus(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = match charge.get("salarie").filter(|v| vrai(v)) {
         Some(nom) => Some(cle_du_salarie(ctx, nom)?),
@@ -261,6 +261,7 @@ fn imprevus(ctx: &Contexte, charge: &Value) -> R<Value> {
         None => None,
     };
     let n = crate::routes_listes::nomenclatures(ctx)?;
+    let suivi = crate::obligations::Suivi::lire(ctx)?;
     let mut out = Vec::new();
     for imp in magasin(imprevus::tous(&ctx.racine))? {
         if cle.as_deref().is_some_and(|c| py_str(&imp["salarie"]) != c) {
@@ -271,7 +272,14 @@ fn imprevus(ctx: &Contexte, charge: &Value) -> R<Value> {
                 continue;
             }
         }
-        out.push(resume(ctx, &n, &imp)?);
+        let mut r = resume(ctx, &n, &imp)?;
+        // CE QU'UN ARRET FAIT NAITRE, SUR L'ARRET LUI-MEME (15/10/2026) : la page des imprevus (la carte d'un salarie, la
+        // colonne du mois, son dossier) lit une seule liste, et chaque arret y porte ses obligations, calculees au meme
+        // endroit que pour la route `arrets` (`obligations::de_l_arret`).
+        if imprevus::est_un_arret(&imp) {
+            r["obligations"] = Value::Array(crate::obligations::de_l_arret(ctx, &imp, &suivi, ctx.aujourdhui)?);
+        }
+        out.push(r);
     }
     Ok(json!({
         "imprevus": out,

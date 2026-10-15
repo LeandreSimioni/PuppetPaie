@@ -3,7 +3,7 @@
 //!
 //! `paies/AAAA-MM.etat.json` porte TOUT ce que l'ecran d'un mois lit : l'etat de chaque paie (`etat-par-paie`), celui du
 //! mois (`etat-du-mois`), et les lectures que la page faisait une a une (`LECTURES` : la saisie, les contrats en cours,
-//! les embauches, les fins, les arrets, la reprise du journal, l'apercu de la saisie enregistree). Il est ECRIT apres
+//! les embauches, les fins, les imprevus, la reprise du journal, l'apercu de la saisie enregistree). Il est ECRIT apres
 //! chaque ecriture qui touche le mois (`apres_ecriture`, en arriere-plan : l'acte n'attend pas) et a l'ouverture d'une
 //! compagnie (`prechauffer`), puis LU tel quel : la fenetre le sert elle-meme, sans lancer de processus
 //! (`servir_si_juste`, route `mois` de `interface/api.rs`).
@@ -37,12 +37,12 @@ pub const ROUTES: [&str; 3] = ["etat-par-paie", "etat-du-mois", "mois"];
 /// Les lectures de l'ecran d'un mois qui ne sont pas les deux etats : la route, et si sa charge est `{"mois"}` (sinon
 /// `{}`). La page les demandait une a une, chacune dans un processus ; elles sont faites ici, une fois, avec les memes
 /// routes, et rendues telles quelles (resultat ou refus).
-const LECTURES: [(&str, bool); 7] = [
+/// Les arrets n'y sont plus (15/10/2026) : la page lit les imprevus du mois, chaque arret avec ses obligations.
+const LECTURES: [(&str, bool); 6] = [
     ("saisie", true),
     ("contrats-en-cours", true),
     ("embauches-a-declarer", true),
     ("fins-de-contrat", true),
-    ("arrets", false),
     ("imprevus", true),
     ("journal-reprise", false),
 ];

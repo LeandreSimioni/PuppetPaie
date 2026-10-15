@@ -44,7 +44,7 @@ function serveurPerdu() {
 
 /* L'ÉCRAN D'UN MOIS SE LIT D'UN COUP (Leandre, 09/10/2026 : « juste de la
  * lecture » ; PLAN-MOIS-INSTANTANE.md). Les lectures d'un mois (la saisie, les
- * contrats en cours, les états, les embauches, les fins, les arrêts, la
+ * contrats en cours, les états, les embauches, les fins, les imprévus, la
  * reprise du journal, l'aperçu) ne partent plus une à une au moteur : une
  * seule demande `mois` les rend toutes, lues dans `paies/AAAA-MM.etat.json`
  * par la fenêtre elle-même, sans calcul. Le calcul s'est fait avant, quand
@@ -56,10 +56,12 @@ function serveurPerdu() {
 const LECTURES_DU_MOIS = new Set(["saisie", "contrats-en-cours", "etat-du-mois",
   "embauches-a-declarer", "fins-de-contrat", "etat-par-paie", "imprevus"]);
 // Elles ne dépendent pas du mois : n'importe quelle lecture `mois` les porte.
-const LECTURES_DE_LA_COMPAGNIE = new Set(["arrets", "journal-reprise"]);
+const LECTURES_DE_LA_COMPAGNIE = new Set(["journal-reprise"]);
 // Des lectures que la page fait souvent, sans rien changer : elles ne vident pas ce qui a été lu.
 const ROUTES_SANS_EFFET = new Set(["veille", "rappels", "pour-demarrer", "organismes-contrats", "incident-navigateur", "diagnostic-etat",
-  "verifier-fiche", "emploi", "signalements", "apercu", "importation-incident", "importation-tri", "arret-obligations"]);
+  "verifier-fiche", "emploi", "signalements", "apercu", "importation-incident", "importation-tri", "arret-obligations",
+  // Les imprévus d'un salarié (son dossier), les contrats qu'un imprévu suspendrait : des lectures.
+  "imprevus", "arret-contrats"]);
 let LU = null;            // { mois, lectures } : la dernière lecture `mois`
 let LU_EN_COURS = null;   // { mois, promesse } : celle qui est en route
 let LU_GENERATION = 0;
