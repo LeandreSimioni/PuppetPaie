@@ -164,5 +164,6 @@ pub mod tables_journal;
 pub mod tables_nfkc;
 pub mod tables_retours;
 pub mod usages;
+pub mod verifier_avant_commit;
 pub mod transport;
 pub mod verrou;

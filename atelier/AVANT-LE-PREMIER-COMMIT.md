@@ -113,14 +113,12 @@ ne pas l'être :
 
 ```bash
 git config core.hooksPath atelier/.githooks     # refuse le commit fautif
-python atelier/outils/verifier_avant_commit.py  # à la demande, sur ce qui part
+paie verifier-avant-commit                       # à la demande, sur ce qui part
 ```
 
-Il ne tourne plus dans la suite de tests depuis le 20/09/2026, et le hook
-n'est pas posé : un garde-fou qui refuserait chaque commit d'un dépôt privé
-plein de données réelles ne serait plus un garde-fou. À reposer le jour de la
-publication — et le texte du hook, qui dit encore « le dépôt est public »,
-sera à reprendre ce jour-là.
+Le dépôt de travail est public depuis le 14/10/2026 : le crochet se pose sur chaque
+poste qui commite (la commande ci-dessus, une fois), et `tests/fichiers/donnees_reelles.rs`
+double le garde dans la suite, sans lire `prive/`.
 
 Deux pièges rencontrés en l'écrivant, corrigés, à ne pas réapprendre :
 

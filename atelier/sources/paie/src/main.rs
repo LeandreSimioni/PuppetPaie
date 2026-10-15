@@ -7,7 +7,8 @@ fn usage() -> ! {
          \x20       paie pdf ...   (la ligne de commande de la fabrique : paie pdf --aide)\n\
          \x20       paie interne NOM ...   (les commandes que le Python appelle avec du JSON : paie interne --aide)\n\
          \x20       paie oracle ... | paie fabrique DESCRIPTION.json SORTIE.pdf   (outils d'atelier)\n\
-         \x20       paie guet [--seuil N] [--commits] [--transcript F]   (outil d'atelier : la veille du contexte d'un sous-agent)"
+         \x20       paie guet [--seuil N] [--commits] [--transcript F]   (outil d'atelier : la veille du contexte d'un sous-agent)\n\
+         \x20       paie verifier-avant-commit [--indexes]   (le garde avant commit : rien de reel dans ce que git emporterait)"
     );
     std::process::exit(2)
 }
@@ -78,6 +79,8 @@ fn main() -> std::process::ExitCode {
         },
         // Outil d'atelier : la veille du contexte d'un sous-agent (`guet.rs`).
         Some("guet") => return std::process::ExitCode::from(paie::guet::commande(&args[1..]).clamp(0, 255) as u8),
+        // Le garde avant commit (le crochet `atelier/.githooks/pre-commit`) : les donnees reelles dans ce que git emporterait.
+        Some("verifier-avant-commit") => return std::process::ExitCode::from(paie::verifier_avant_commit::commande(&args[1..]).clamp(0, 255) as u8),
         // Outil d'atelier : une description JSON -> un PDF, par la bibliotheque.
         Some("fabrique") if args.len() == 3 => {
             let r = std::fs::read_to_string(&args[1])
