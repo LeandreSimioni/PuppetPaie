@@ -91,9 +91,16 @@ body {
 .sous-onglets-installation button { font-size: 13px; }
 .etat { margin-left: auto; font-size: 12px; color: var(--discret); text-align: right; }
 
-/* La fenetre PuppetPaie (pywebview, sans bordure) : le bandeau sert de barre
-   de titre. Rien de ceci n'existe dans un navigateur (`body.fenetre` absent). */
-.fenetre-boutons, .fenetre-poignee, .retour-accueil { display: none; }
+/* La fenetre PuppetPaie (sans bordure systeme, ticket #195) : le bandeau sert
+   de barre de titre ; il se tire, et son texte ne se selectionne pas en le
+   tirant. Les bords de la fenetre se tirent pour la redimensionner. Rien de
+   ceci n'existe dans un navigateur (`body.fenetre` absent). */
+.fenetre-boutons, .retour-accueil { display: none; }
+/* Les trois boutons prennent de la place : le bandeau se resserre, et ce
+   sont les compteurs qui passent a la ligne, pas les etiquettes. */
+body.fenetre .bandeau { user-select: none; gap: 16px; }
+body.fenetre .bandeau .copie-dev, body.fenetre .bandeau .signaler,
+body.fenetre .bandeau .retour-accueil { white-space: nowrap; }
 /* Le chemin vers l'accueil des compagnies (ticket #113) : discret comme
    « Un problème, une idée ? », a cote. Seulement si le lanceur sait y
    revenir (`body.accueil-possible`, voir fenetreNative). */
@@ -116,11 +123,6 @@ body.fenetre .fenetre-boutons { display: flex; gap: 2px; margin-left: 8px; align
 }
 .fenetre-boutons button:hover { background: var(--fond); color: var(--texte); }
 .fenetre-boutons button.fermer:hover { background: var(--action); color: var(--blanc); }
-body.fenetre .fenetre-poignee {
-  display: block; position: fixed; right: 0; bottom: 0; width: 16px; height: 16px;
-  cursor: nwse-resize; z-index: 50;
-  background: linear-gradient(135deg, transparent 50%, var(--bord) 50%, var(--bord) 60%, transparent 60%, transparent 75%, var(--bord) 75%, var(--bord) 85%, transparent 85%);
-}
 .etat b { color: var(--texte); }
 
 /* ------------------------------------------------------------- la veille */
@@ -1025,9 +1027,30 @@ pre.reponse {
 .e-net b { font-size: 16px; }
 .e-net .e-cout { margin-left: 22px; color: var(--discret); }
 .e-net .e-cout b { color: var(--texte); font-size: 15px; }
-/* Un contrat sur plusieurs mois : un fait, pas une alerte (26/09/2026). */
-.e-suite { font-size: 12px; color: var(--discret); }
+/* Un contrat sur plusieurs mois : un fait, pas une alerte (26/09/2026). Un
+   chevron au bord de la case FERMÉE -- la carte de la paie validée -- (ticket
+   #127, Léandre 15/10 : « juste un petit v tourné, à côté de la case », « sur
+   la case fermée »), à gauche s'il a commencé avant, à droite s'il se
+   poursuit ; cliquer mène au mois voisin. La case ouverte, en saisie, n'en
+   porte pas. Ni rouge ni orange ni vert, ce n'est pas un état. */
 .e-suite:empty { display: none; }
+.engagement { position: relative; }
+.chevron-pluri {
+  display: none;
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 1;
+  width: 18px; height: 30px; padding: 0; border: 0; background: none;
+  color: var(--discret); font-size: 24px; line-height: 1; cursor: pointer;
+  align-items: center; justify-content: center;
+}
+.chevron-pluri.avant { left: -20px; }
+.chevron-pluri.apres { right: -20px; }
+.chevron-pluri:hover, .chevron-pluri:focus-visible { color: var(--action); outline: none; }
+/* La case validée ne montre que son résumé -- et ses chevrons (la règle
+   `.validee > :not(.e-resume)` cache le reste). */
+.engagement.validee > button.chevron-pluri { display: flex; }
+#engagements.lecture-seule .chevron-pluri { pointer-events: auto; }
+.carte-nom { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.carte-nom b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .e-pied .e-viser-btn { margin-left: auto; }
 .e-pied .lien { font-size: 12px; color: var(--discret); }
 .e-chiffres[hidden], .e-options[hidden] { display: none; }

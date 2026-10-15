@@ -1219,11 +1219,6 @@ function majContrat(div) {
   const enCours = !!(debut && mois && debut.slice(0, 7) < mois);
   const sePoursuit = !!(fin && mois && fin.slice(0, 7) > mois);
   d.classList.toggle("a-cheval", enCours || sePoursuit);
-  // Un contrat sur plusieurs mois se voit sans ouvrir « Plus d'options ».
-  const suite = div.querySelector(".e-suite");
-  if (suite) suite.textContent = enCours
-    ? `contrat en cours depuis ${moisEnClair(debut.slice(0, 7))}`
-    : sePoursuit ? `le contrat se poursuit en ${moisEnClair(moisSuivant(mois))}` : "";
   // UN CONTRAT SANS TERME (un CDI) n'a pas de dernier jour joué : il se
   // dit par son début (26/09/2026 — la phrase des cachets s'y affichait).
   if (debut && !fin && natureDe(div.querySelector(".e-nature")?.value).mensuelle) {
@@ -1459,5 +1454,57 @@ async function poserContratsEnCours(mois) {
 function pourQuoi(ligne) {
   return ligne.spectacle || ligne.nature || "";
 }
+
+/* UN CONTRAT SUR PLUSIEURS MOIS SE VOIT (ticket #127, 15/10/2026) : « c'est
+ * un contrat sur plusieurs mois, on pourrait faire un signe de ça, par
+ * exemple 3 petits points ou une flèche ». Une pastille : les mois du
+ * contrat, et une flèche du côté où il déborde du mois affiché — à gauche
+ * s'il a commencé avant, à droite s'il se poursuit après ; ses dates en
+ * infobulle. Tout vient du moteur, `contrat` d'une paie de l'aperçu ou d'une
+ * ligne des états du mois (`premier_mois`, `dernier_mois`, `depuis`,
+ * `jusqu_a`), avec le début et la fin du contrat : la page ne compare aucune
+ * date. Un contrat sans terme (un CDI) n'en porte pas : il dure, il n'est
+ * pas « sur plusieurs mois ». */
+/* UN CONTRAT SUR PLUSIEURS MOIS (ticket #127, Léandre, 15/10/2026) : « juste
+ * un petit v tourné, à côté de la case, et qu'on puisse cliquer dessus et ça
+ * amène au mois précédent ». Un chevron au bord de la case de l'engagement,
+ * à gauche quand le contrat a commencé avant ce mois, à droite quand il se
+ * poursuit après (un permanent en CDI aussi) ; cliquer va au mois voisin.
+ * Tout vient du moteur (`contrat.premier_mois`, `dernier_mois`, `depuis`,
+ * `jusqu_a`) : la page ne compare aucune date. */
+function marquePlurimensuel(contrat, debut, fin) {
+  if (!contrat || typeof contrat.premier_mois !== "boolean" || typeof contrat.dernier_mois !== "boolean") return "";
+  const avant = !contrat.premier_mois, apres = !contrat.dernier_mois;
+  if (!avant && !apres) return "";
+  const x = moisLu(document.getElementById("mois").value);
+  const voisin = (pas) => {
+    if (!x) return "";
+    const d = new Date(x[0], x[1] - 1 + pas, 1);
+    return moisEnTexte(d.getFullYear(), d.getMonth() + 1);
+  };
+  const bornes = `Contrat du ${jjmmaaaa(debut)}${fin ? ` au ${jjmmaaaa(fin)}` : ", sans date de fin"}`;
+  const un = (sens, texte, pas) => {
+    const m = voisin(pas);
+    const titre = `${bornes} — ${texte}${m ? ` · voir ${moisEnClair(m)}` : ""}`;
+    return `<button type="button" class="chevron-pluri ${sens}" data-mois="${echapper(m)}"
+      title="${echapper(titre)}" aria-label="${echapper(titre)}">${sens === "avant" ? "&#x2039;" : "&#x203A;"}</button>`;
+  };
+  return (avant ? un("avant", `commencé en ${moisEnClair(contrat.depuis)}`, -1) : "")
+    + (apres ? un("apres", fin && contrat.jusqu_a ? `se poursuit jusqu'en ${moisEnClair(contrat.jusqu_a)}` : "se poursuit", 1) : "");
+}
+
+/** Pose (ou remplace) les chevrons d'un contrat sur plusieurs mois au bord de la case `div`. */
+function poserChevrons(div, contrat, debut, fin) {
+  div.querySelectorAll(":scope > .chevron-pluri").forEach((c) => c.remove());
+  div.insertAdjacentHTML("beforeend", marquePlurimensuel(contrat, debut, fin));
+}
+
+// Le chevron mène au mois voisin, dans l'un ou l'autre état de la case.
+document.addEventListener("click", (e) => {
+  const c = e.target.closest && e.target.closest(".chevron-pluri[data-mois]");
+  if (!c || !c.dataset.mois || typeof allerAuMois !== "function") return;
+  e.preventDefault();
+  allerAuMois(c.dataset.mois, 30);
+});
 
 

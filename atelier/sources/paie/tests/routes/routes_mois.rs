@@ -387,6 +387,19 @@ fn une_saisie_en_cours_garde_son_nom_et_un_journal_abime_refuse() {
     // Le bilan et les embauches voient la meme saisie : l'un refuse, l'autre passe son mois.
     assert_eq!(route(c, "bilan-du-mois", json!({"mois": MOIS}), "2026-10-03")["classe"], "SaisieIncomplete");
     assert_eq!(rendu(c, "embauches-a-declarer", json!({"mois": MOIS}), "2026-10-03"), json!({"embauches": []}));
+    // Une ligne qui doit dire ses heures et les tait (#125) : une saisie en cours elle aussi, que la route ne calcule pas.
+    let c = &compagnie("sans-heures");
+    modifier_saisie(c, |v| {
+        v["engagements"][0]["lignes"] = json!([{"rubrique": "repetition", "quantite": 4, "taux": 120.0,
+                                                 "dates": ["2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22"]}]);
+    });
+    let avant = std::fs::read(saisie(c, MOIS)).unwrap();
+    for nom in ["etat-par-paie", "bilan-du-mois"] {
+        let r = route(c, nom, json!({"mois": MOIS}), "2026-10-03");
+        assert_eq!(r["classe"], "SaisieIncomplete", "{}", r);
+        assert!(r["erreur"].as_str().unwrap().starts_with("L'engagement 1 de 2026-08 : sa ligne 1 "), "{}", r);
+    }
+    assert_eq!(std::fs::read(saisie(c, MOIS)).unwrap(), avant);
     let c = &compagnie("journal-abime");
     std::fs::write(c.join("journal/depots.json"), "[1, 2]").unwrap();
     assert_eq!(route(c, "etat-du-mois", json!({"mois": MOIS}), "2026-10-03")["ok"], false);

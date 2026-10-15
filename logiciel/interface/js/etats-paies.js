@@ -377,11 +377,7 @@ function peindreEtats() {
     }
     if (lignes.length === 1) {
       const ligne = lignes[0];
-      const contrat = ligne.contrat && !ligne.contrat.premier_mois
-        ? ` <span class="discret">· contrat en cours depuis ${echapper(moisEnClair(ligne.contrat.depuis))}</span>`
-        : ligne.contrat && !ligne.contrat.dernier_mois
-          ? ` <span class="discret">· se poursuit jusqu'en ${echapper(moisEnClair(ligne.contrat.jusqu_a))}</span>`
-          : "";
+      // Un contrat sur plusieurs mois : son chevron est au bord de la case (#127, `poserChevrons`).
       div._ligne = ligne;
       const dp = ligne.etats.dpae || {};
       if (dp.fait && !dp.refusee) {
@@ -389,7 +385,7 @@ function peindreEtats() {
                            nom: ligne.nom, quand: dp.fait };
       }
       cible.innerHTML = `<span class="etats-qui">${echapper(ligne.nom)}
-          <span class="discret">— ${echapper(pourQuoi(ligne))}</span>${contrat}</span>`
+          <span class="discret">— ${echapper(pourQuoi(ligne))}</span></span>`
         + bandeauEtats(ligne) + bandeauValidation(ligne);
       brancherValidation(div, ligne);
       brancherRecu(div);
@@ -490,6 +486,7 @@ function fermerEdition(div, ferme) {
     if (c.classList.contains("v-basculer") || c.classList.contains("retirer-paie")) return;
     if (c.classList.contains("verrou")) return;    // un contrat en cours
     if (c.closest(".e-resume")) return;            // la ligne de la paie validée
+    if (c.classList.contains("chevron-pluri")) return;  // le chevron du contrat sur plusieurs mois (#127)
     c.disabled = ferme;
   });
 }

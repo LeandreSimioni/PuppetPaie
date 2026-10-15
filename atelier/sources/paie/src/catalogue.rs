@@ -216,9 +216,22 @@ impl Rubrique {
         None
     }
 
+    /// Une ligne de cette rubrique doit dire ses heures : `heures` est dans
+    /// sa `saisie` et aucun forfait n'en tient lieu (le service de repetition,
+    /// la journee, la semaine, le mois, l'absence a la journee). Le catalogue
+    /// le dit (`_heures` de `rubriques-base.json`) : « partout ailleurs les
+    /// heures sont saisies, parce qu'elles sont un fait elles aussi ». Une
+    /// ligne qui les tait se refuse (`engagement::engagements`, ticket #125) :
+    /// sans elle, [`Rubrique::heures`] compterait zero en silence.
+    pub fn heures_a_saisir(&self) -> bool {
+        self.heures_forfait.is_none() && self.saisie.iter().any(|s| s == "heures")
+    }
+
     /// Les heures que cette ligne fait compter, au total : le forfait
     /// l'emporte, sinon les heures saisies, sinon la quantite si l'unite est
-    /// l'heure.
+    /// l'heure. Zero pour une rubrique qui demande ses heures et ne les a pas
+    /// recues : la saisie qui la porte a deja ete refusee
+    /// ([`Rubrique::heures_a_saisir`]).
     ///
     /// UNE convention : le `heures` d'une ligne de paie, comme
     /// `heures_forfait`, compte les heures PAR UNITE, et la quantite les

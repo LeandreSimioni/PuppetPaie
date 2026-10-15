@@ -1094,21 +1094,20 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
 
 // ============================================================== l'apercu
 
-/// Les deux seuls refus de la saisie que Python levait comme `SaisieIncomplete`
-/// (`operations_paies._saisie_lue`) : un spectacle pas encore choisi, des jours
-/// pas encore coches. La page les dit sobrement ; l'ecran enregistre a chaque
-/// frappe, donc ce ne sont pas des defauts du logiciel.
-fn saisie_incomplete(message: &str) -> bool {
-    message.contains("ne dit pas quel spectacle il joue") || message.contains("ne dit aucun jour joue")
-}
-
 /// Le refus du calcul d'une saisie : le moteur refuse avec sa phrase, mais
-/// quand la saisie elle-meme est encore incomplete c'est cette phrase-la, sous
-/// son nom (`SaisieIncomplete`), qui monte (`operations_paies.charger`).
+/// quand la saisie elle-meme est encore incomplete (un spectacle pas encore
+/// choisi, des jours ou des heures pas encore saisis :
+/// `engagement::saisie_incomplete`) c'est cette phrase-la, sous son nom
+/// (`SaisieIncomplete`), qui monte (`operations_paies.charger`). La page les
+/// dit sobrement ; l'ecran enregistre a chaque frappe, donc ce ne sont pas des
+/// defauts du logiciel.
 pub(crate) fn refus_du_calcul(ctx: &Contexte, data: &Value, message: String) -> Refus {
+    if engagement::saisie_incomplete(&message) {
+        return avec_classe("SaisieIncomplete", message);
+    }
     let vide: crate::engagement::LignesPermanent = &|_, _, _| Ok((Vec::new(), Vec::new()));
     if let Err(m) = engagement::engagements(ctx, data, vide) {
-        if saisie_incomplete(&m) {
+        if engagement::saisie_incomplete(&m) {
             return avec_classe("SaisieIncomplete", m);
         }
     }

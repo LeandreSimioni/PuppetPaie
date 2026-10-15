@@ -263,6 +263,9 @@ async function calculerApercu(lu) {
       }
       // Un mois du contrat sans cachet n'a pas de bulletin : on le dit à la
       // place du numéro, et le brut à zéro suit.
+      // UN CONTRAT SUR PLUSIEURS MOIS (ticket #127) : le chevron au bord de
+      // la case, d'après ce que le moteur rend (`poserChevrons`).
+      if (p) poserChevrons(div, p.contrat, p.debut, p.fin);
       div.querySelector(".resolu").innerHTML = p
         ? `${p.contrat && p.contrat.sans_paie
              ? `<b>aucun cachet ce mois-ci</b> — pas de bulletin, la DSN porte le contrat`
@@ -374,8 +377,8 @@ function peindreCarte(div) {
   const moisCourt = MOIS_COURTS[parseInt(mois.slice(5, 7), 10) - 1] || "";
   // POUR QUOI. Le spectacle, puis ce qui est payé en mots.
   const paye = p ? designation(p).toLowerCase() : "";
-  const suite = ligne.contrat && !ligne.contrat.dernier_mois
-    ? ` · contrat jusqu'en ${moisEnClair(ligne.contrat.jusqu_a)}` : "";
+  // Un contrat sur plusieurs mois porte sa pastille à côté du nom (#127).
+  poserChevrons(div, ligne.contrat, ligne.debut, ligne.fin);
   const net = ps.length
     ? euros(ps.reduce((t, x) => t + Number(x.net_a_payer || 0), 0))
     : "";
@@ -387,8 +390,8 @@ function peindreCarte(div) {
       <b class="${jours.includes(" · ") ? "epars" : ""}">${echapper(jours)}</b><span>${echapper(moisCourt)}</span>
     </div>
     <div class="carte-qui" title="${echapper(detail)}">
-      <b>${echapper(ligne.nom)}</b>
-      <span class="discret">${echapper(pourQuoi(ligne))}${paye ? " · " + echapper(paye) : ""}${echapper(suite)}</span>
+      <span class="carte-nom"><b>${echapper(ligne.nom)}</b></span>
+      <span class="discret">${echapper(pourQuoi(ligne))}${paye ? " · " + echapper(paye) : ""}</span>
     </div>
     <div class="carte-actes">${bandeauEtats(ligne)}</div>
     <div class="carte-net" title="net à payer, avant impôt">${echapper(net)}</div>

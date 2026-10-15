@@ -392,6 +392,12 @@ function dessinerFormulaire(fiche) {
         — marqué${err > 1 ? "s" : ""} ci-dessous.</div>` : ""}
       ${sections ? champs : `<div class="champs">${champs}</div>`}
       <div class="actions">
+        <!-- ANNULER (ticket #124, 15/10/2026) : « quand je crée un salarié je
+             peux pas annuler, j'ai juste enregistrer ». Voir annulerFiche. -->
+        <button class="secondaire" id="config-annuler"${FICHE_ACTIVE === "entreprise" ? " hidden" : ""}
+          title="${FICHE_ACTIVE === "entreprise" ? "Reprendre ce qui est enregistré"
+            : fiche.cle ? "Laisser la fiche telle qu'elle est enregistrée et revenir à la liste"
+            : "Ne pas créer cette fiche et revenir à la liste"}">Annuler</button>
         <button class="primaire" id="config-enregistrer">Enregistrer</button>
         <span class="note" id="config-modifie" hidden>modifications non enregistrées</span>
       </div>
@@ -412,6 +418,7 @@ function dessinerFormulaire(fiche) {
       clearTimeout(verifierFormulaire._t);
       verifierFormulaire._t = setTimeout(verifierFormulaire, 400); }; });
   document.getElementById("config-enregistrer").onclick = () => enregistrerFiche(fiche);
+  document.getElementById("config-annuler").onclick = annulerFiche;
   const choixMetier = document.getElementById("config-metier-choix");
   if (choixMetier) {
     choixMetier.value = (fiche.donnees || {}).code_emploi_ft || "";
@@ -1154,15 +1161,37 @@ function ficheIdentique() {
 }
 
 function marquerModifie() {
+  const annuler = document.getElementById("config-annuler");
   if (ficheIdentique()) {
     FICHE_MODIFIEE = false;
     const t = document.getElementById("config-modifie");
     if (t) t.hidden = true;
+    if (annuler && FICHE_ACTIVE === "entreprise") annuler.hidden = true;
     return;
   }
   FICHE_MODIFIEE = true;
   const t = document.getElementById("config-modifie");
   if (t) { t.hidden = false; t.textContent = "modifications non enregistrées"; }
+  if (annuler) annuler.hidden = false;
+}
+
+/* ANNULER (ticket #124, 15/10/2026), le pendant d'« Enregistrer » : ce
+ * qu'on a tapé ne s'écrit pas. Enregistrer referme la fiche et revient à la
+ * liste (ecrireFiche) ; Annuler aussi, sans rien écrire : une fiche neuve
+ * n'est pas créée, une fiche existante reste telle qu'elle est enregistrée.
+ * La fiche Entreprise n'a pas de liste où revenir : Annuler y reprend ce
+ * qui est enregistré, et ne se montre que si l'on a changé quelque chose.
+ * C'est le « Abandonner les modifications » de `quitterLaFiche`, demandé
+ * d'un geste : il ne redemande pas. */
+function annulerFiche() {
+  FICHE_MODIFIEE = false;
+  if (FICHE_ACTIVE === "entreprise") {
+    dessinerFormulaire(FICHE_COURANTE);
+    return;
+  }
+  CLE_ACTIVE = null;
+  FICHE_NEUVE = false;
+  dessinerConfig();
 }
 
 /** Appelee avant de quitter la fiche en cours. Rend `true` si on peut

@@ -661,9 +661,24 @@ fn systeme() -> String {
         .ok()
         .map(|o| String::from_utf8_lossy(&o.stdout).to_string())
         .unwrap_or_default();
-    let version = sortie.split("Version ").nth(1).and_then(|r| r.split(']').next()).unwrap_or("").trim().to_string();
-    let build: u32 = version.split('.').nth(2).and_then(|b| b.parse().ok()).unwrap_or(0);
-    format!("Windows {} ({})", if build >= 22000 { "11" } else { "10" }, version)
+    windows_de_ver(&sortie)
+}
+
+/// Ce que `cmd /C ver` dit du systeme, en « Windows 11 (10.0.22631.4317) ». Le numero est entre crochets, et le mot qui
+/// le precede depend de la langue : « [Version 10.0.22631.4317] » en anglais, « [version 10.0.19045.5011] » en
+/// francais (#200 : le moteur coupait sur « Version », et un Windows en francais remontait « Windows 10 () »). On prend
+/// donc le nombre pointe entre les crochets, sans lire le mot. Windows 11 garde le « 10.0 » de Windows 10 : c'est le build
+/// (le troisieme nombre) qui les distingue, 22000 et plus pour Windows 11. Sans numero lisible, « Windows » seul : le
+/// moteur ne devine pas lequel (regle 1).
+#[cfg_attr(unix, allow(dead_code))]
+fn windows_de_ver(sortie: &str) -> String {
+    let entre = sortie.split_once('[').and_then(|(_, r)| r.split_once(']')).map_or("", |(v, _)| v);
+    let numero = |m: &&str| m.contains('.') && m.chars().all(|c| c.is_ascii_digit() || c == '.');
+    let Some(version) = entre.split_whitespace().find(numero) else { return "Windows".to_string() };
+    match version.split('.').nth(2).and_then(|b| b.parse::<u32>().ok()) {
+        Some(build) => format!("Windows {} ({})", if build >= 22000 { "11" } else { "10" }, version),
+        None => format!("Windows ({})", version),
+    }
 }
 
 /// `compagnies.edition()` : le bridage du poste, `bride` ou `debloque` (`bridage::etat`).
@@ -937,3 +952,17 @@ pub fn envoyer(racine: &Path) -> Value {
     bilan.json()
 }
 
+#[cfg(test)]
+mod tests {
+    use super::windows_de_ver;
+
+    /// #200 : la ligne de `cmd /C ver` se lit en francais comme en anglais, et le build dit Windows 10 ou 11.
+    #[test]
+    fn la_version_de_windows_se_lit_dans_toutes_les_langues() {
+        assert_eq!(windows_de_ver("\r\nMicrosoft Windows [version 10.0.19045.5011]\r\n"), "Windows 10 (10.0.19045.5011)");
+        assert_eq!(windows_de_ver("\r\nMicrosoft Windows [Version 10.0.22631.4317]\r\n"), "Windows 11 (10.0.22631.4317)");
+        assert_eq!(windows_de_ver("Microsoft Windows [versão 10.0.26100.2033]"), "Windows 11 (10.0.26100.2033)");
+        assert_eq!(windows_de_ver(""), "Windows");
+        assert_eq!(windows_de_ver("Microsoft Windows [version inconnue]"), "Windows");
+    }
+}
