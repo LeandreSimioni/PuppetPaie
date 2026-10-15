@@ -34,7 +34,8 @@ de fond (0 à 11) ne bougent pas : le code les cite.**
   Léandre fusionne. Le privé reçoit, sur la même branche, ce qui s'adresse à Léandre (`journal/`).
 - **La fin de séance, c'est Léandre qui la dit** : la passe de tests ne se lance pas avant. Puis : le récit dans
   `journal/archives/<mois>.md`, une ligne dans `INDEX.md`, et `ETAT.md` **remplacé** (jamais empilé ; une page).
-- Le contexte se surveille (`atelier/guet.py` en arrière-plan) ; c'est Léandre qui décide quand il sonne.
+- Le contexte se surveille (`paie guet` en arrière-plan, `--commits` pour sortir au prochain commit ; `paie/src/guet.rs`) ;
+  c'est Léandre qui décide quand il sonne.
 
 ## Où sont les choses
 

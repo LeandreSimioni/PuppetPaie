@@ -5,15 +5,12 @@
 > est le terrain.
 >
 > **FAIT LE 14/10/2026 (Léandre : « on met tout sur le dépôt public »)** : le dépôt
-> `LeandreSimioni/PuppetPaie` (créé le 04/10, vide, **encore privé** : c'est Léandre
-> qui le rend public, après relecture) reçoit son premier commit, écrit par
-> `atelier/outils/exporter_depot_public.sh` depuis le dépôt de travail : tout ce que
-> Git suit ici, sauf `prive/`, `atelier/prive-dev/`, `import/`, les deux fichiers
+> `LeandreSimioni/PuppetPaie` (créé le 04/10, vide) reçoit son premier commit :
+> tout ce que Git suivait dans le dépôt de travail, sauf `prive/`, `atelier/prive-dev/`, `import/`, les deux fichiers
 > scellés du bac à sable, `logiciel/donnees/google-application.json` (le
-> `client_secret`, §3 : retiré tant que Léandre n'a pas tranché, une ligne du script
-> le rend) et `atelier/PUPPETPAIE-TEL-QU-IL-EST.md` (le récit du banc d'essai). Le
-> dépôt de travail reste privé, garde `prive/` et reçoit les tickets ; le script se
-> relance à chaque fois qu'il faut rejouer l'export. **La licence est posée** :
+> `client_secret`, §3 : un secret GitHub) et `atelier/PUPPETPAIE-TEL-QU-IL-EST.md` (le
+> récit du banc d'essai). **Depuis le 15/10/2026, le public est le dépôt de travail** ;
+> le privé ne garde que `journal/`, `reference-privee/` et les tickets. **La licence est posée** :
 > `LICENCE` (texte français) et `LICENCE-EN` (texte anglais) de l'EUPL v. 1.2, relevés
 > le 14/10/2026 sur `joinup.ec.europa.eu` (`.../inline-files/EUPL v1_2 FR.txt` et
 > `.../custom-page/attachment/2020-03/EUPL-1.2 EN.txt`), BOM et CRLF retirés, texte
@@ -67,8 +64,8 @@ authentification de chaque membre, une option pour couper l'envoi des
 incidents à l'éditeur.
 
 **Restent à Léandre** : le `client_secret` Google (`donnees/google-application.json`,
-section 3 ; exclu de l'export par défaut) ; le nom du dépôt est `PuppetPaie`, créé
-le 04/10/2026. **Et ce que l'export laisse derrière, à décider** : les textes déposés
+section 3 ; un secret GitHub) ; le nom du dépôt est `PuppetPaie`, créé
+le 04/10/2026. **Et ce que le public laisse derrière, à décider** : les textes déposés
 (`atelier/reference/`, que les `_source` du code citent) sont dans le dépôt public
 depuis le 15/10/2026, sauf l'original d'un organisme privé (seule sa transcription y
 est), les exemples réels et ce qui porte une donnée de la compagnie ; `atelier/site/` nomme l'éditeur (mentions légales) ; les démos
@@ -145,21 +142,3 @@ raison. C'est pour cela que ces deux corrections comptent.
   qu'il porte, c'est notre quota et le plafond de 100 comptes — publié, il
   s'use plus vite. Décision à prendre en connaissance de cause, pas par défaut.
 - **Le nom du dépôt** : `puppetpaie`, sans doute.
-
-## 4. Le jour du premier commit
-
-L'historique d'un dépôt est définitif : une donnée poussée puis effacée reste
-consultable. Donc, dans cet ordre :
-
-```bash
-python atelier/outils/verifier_avant_commit.py   # DANS le dépôt de travail : il lit prive/config/
-cd <le dossier neuf du dépôt public>   # ce qui part (tout, hors de prive/) ; JAMAIS le dépôt de travail : son histoire porte les données
-git init
-git config core.hooksPath atelier/.githooks
-git add .
-git status                  # relire la liste AVANT de commiter
-git commit -m "PuppetPaie"
-```
-
-`git status` avant le premier commit n'est pas une formalité : c'est le
-dernier moment où la liste de ce qui part se lit en entier.

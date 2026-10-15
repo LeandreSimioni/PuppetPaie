@@ -85,9 +85,9 @@ Ce que ça impose au moteur :
   la DSN, le plafond et `cumul` les lisent toujours), `taux_cachet` est le
   taux de la première ligne `cachet`, `taux_horaire` n'existe plus. Un
   engagement portant `dates`, `cachets`, `heures` ou `taux_horaire` est
-  refusé par `charger`, qui nomme `outils/convertir_saisies.py`. La preuve
-  de la conversion : août 2026 produit dans deux copies jetables, fichier tel
-  quel / converti, **douze documents identiques**.
+  refusé par `charger`, qui dit ce qu'il a vu et ce qu'une saisie porte.
+  Plus aucune saisie n'est à l'ancienne écriture : l'outil de conversion
+  (Python) est retiré le 15/10/2026.
 - `util.d()` accepte `{"jour": …, "lieu": …}` en plus des quatre formats de
   date : une date détaillée est une date, tout ce qui parcourt des jours
   continue de marcher sans le savoir.
@@ -98,8 +98,8 @@ Ce que ça impose au moteur :
 - **L'ancienne écriture n'est plus lue** (`dates`, `cachets`, `heures` ou
   `taux_horaire` sur l'engagement). On l'avait voulue lue sans
   conversion le 13/09/2026 ; la règle d'une seule écriture l'a remplacée le
-  soir même. Le moteur refuse un tel engagement et nomme
-  `atelier/outils/convertir_saisies.py` (`paie/src/engagement.rs`, à la
+  soir même. Le moteur refuse un tel engagement et dit ce qu'une
+  saisie porte (`paie/src/engagement.rs`, à la
   lecture d'un engagement sans `lignes` et à la lecture du mois). Ce qui reste
   lu tel quel, ce sont les dates d'une ligne écrites sans lieu (une chaîne) à
   côté des dates détaillées.
