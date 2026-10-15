@@ -133,6 +133,12 @@ pub static TEXTES: &[Texte] = &[
             // et en 2027 le bloc S21.G00.65 ne declare plus qu'une absence << sans
             // maintien de sa remuneration normale >>.
             Domaine { cle: "evenements_familiaux", titre: "Les conges pour evenements familiaux", numeros: &["L3142-1", "L3142-2"] },
+            // LE CONGE DE DEUIL D'UN ENFANT (15/10/2026, lot << le deuil >>). L3142-1-1 : huit jours, fractionnables
+            // (D3142-1-1 : deux periodes d'au moins une journee), pris dans l'annee du deces ; le salarie << informe
+            // l'employeur vingt-quatre heures au moins avant le debut de chaque periode d'absence >>. C'est le motif d'arret
+            // 19 de la DSN ; ses indemnites journalieres sont celles de L331-9 du code de la securite sociale (plus bas).
+            // `paie/src/obligations.rs` (l'attestation de salaire hors DSN, `obligations-base.json`).
+            Domaine { cle: "conge_de_deuil", titre: "Le conge de deuil d'un enfant", numeros: &["L3142-1-1", "D3142-1-1"] },
             // LE REGISTRE UNIQUE DU PERSONNEL (11/10/2026, reste R1 #147) : ses
             // mentions (D1221-23 : la nationalite, 1°) sont ce que
             // `etats_personnel::registre_du_personnel` ecrit ; il citait les
@@ -257,6 +263,13 @@ pub static TEXTES: &[Texte] = &[
             // LA MALADIE PROFESSIONNELLE N'EST PAS DECLAREE PAR L'EMPLOYEUR : L461-5 la met << par les soins de la
             // victime >>, R461-5 lui donne quinze jours. Le motif d'arret 05 n'appelle donc pas de declaration d'accident.
             Domaine { cle: "maladie_professionnelle", titre: "La declaration d'une maladie professionnelle (par la victime)", numeros: &["L461-5", "R461-5"] },
+            // LE CONGE DE DEUIL ET SES INDEMNITES JOURNALIERES (15/10/2026, lot << le deuil >>). L331-9 : pendant le conge
+            // de L3142-1-1 du code du travail, l'assure percoit l'indemnite journaliere de L331-3 ; l'employeur qui maintient
+            // le salaire (L3142-2) est subroge de plein droit. D331-7 : l'indemnisation se fractionne comme le conge.
+            // R323-10 : l'attestation de salaire que l'employeur adresse a la caisse pour les indemnites journalieres, et que
+            // la DSN remplit d'ordinaire (R133-14, IV) -- pas pour le deuil, que la DSN ne couvre pas (la page de
+            // net-entreprises, `accident-du-travail/`). `paie/src/obligations.rs`, l'obligation `attestation_salaire`.
+            Domaine { cle: "conge_de_deuil", titre: "Le conge de deuil d'un enfant : ses indemnites journalieres et l'attestation de salaire", numeros: &["L331-9", "D331-7", "R323-10"] },
         ],
     },
     // ------------------------------------------------------------------

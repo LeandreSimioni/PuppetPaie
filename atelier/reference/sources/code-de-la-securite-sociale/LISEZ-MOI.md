@@ -50,3 +50,24 @@ professionnelle (par la victime) ».
 **Où le moteur s'en sert** : `atelier/sources/paie/src/obligations.rs` (`de_l_arret`) et `logiciel/donnees/obligations-base.json`
 (`declaration_accident`, `declaration_maladie_professionnelle`). Ce que disent le service et le formulaire :
 `../accident-du-travail/`.
+
+## Le congé de deuil : ses indemnités journalières et l'attestation de salaire (relevé du 15/10/2026, lot « le deuil »)
+
+`articles-20261015.md`, section « Le conge de deuil d'un enfant : ses indemnites journalieres et l'attestation de salaire »
+(`xml/L331-9.xml`, `xml/D331-7.xml`, `xml/R323-10.xml`) ; domaine `conge_de_deuil` de `paie/src/releve_codes/textes.rs`.
+
+- **L. 331-9** (version du 31/12/2025, loi n° 2025-1403) : « Lorsqu'il exerce son droit au congé prévu à l'article L. 3142-1-1
+  du code du travail, l'assuré perçoit, pendant la durée du congé et selon les mêmes conditions de liquidation et de service,
+  l'indemnité journalière mentionnée à l'article L. 331-3 » ; « L'employeur qui a maintenu le salaire de l'assuré en application
+  de l'article L. 3142-2 du code du travail est **subrogé de plein droit** dans les droits de son salarié à l'indemnité
+  journalière. »
+- **D. 331-7** : l'indemnisation se fractionne comme le congé (D. 3142-1-1 du code du travail).
+- **R. 323-10** : l'employeur établit « une attestation se rapportant aux payes effectuées pendant les périodes de référence »,
+  adressée à la caisse « sous forme électronique, par l'employeur » ; elle porte, pour chaque paye, la période, les journées et
+  heures, le montant et la date, la retenue d'assurances sociales, le numéro de cotisant et l'organisme. R. 133-14, IV dit que la
+  DSN en tient lieu — **pas pour le deuil**, que la DSN « ne couvre pas à ce jour » (la page de net-entreprises,
+  `../accident-du-travail/`). Que R. 323-10, écrit pour la maladie, serve le deuil est ce que dit cette page (« Deuil
+  d'enfant ») : une **inférence** du côté du code, dite dans `obligations-base.json`.
+
+**Où le moteur s'en sert** : `logiciel/donnees/obligations-base.json`, obligation `attestation_salaire` (`textes`, `a_avoir`,
+`inferences`) ; `atelier/sources/paie/src/obligations.rs` (`de_l_arret`, route `attestation-declare`).

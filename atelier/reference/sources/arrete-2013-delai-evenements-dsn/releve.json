@@ -11,9 +11,9 @@
  "_releve_le": "2026-10-15",
  "articles": {
   "1": {
-   "id": "LEGIARTI000027684779",
    "debut": "2013-07-11",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000027684779"
   }
  }
 }

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000042411489</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/42/41/14/LEGIARTI000042411489.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>D3142-1-1</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2020-10-10</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018464861">Partie réglementaire  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018534660">Troisième partie : Durée du travail, salaire, intéressement, participation et épargne salariale </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018534658">Livre Ier : Durée du travail, repos et congés </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018534321">Titre IV : Congés payés et autres congés </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018534225">Chapitre II : Autres congés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2017-01-01" id="LEGISCTA000018534223">Section 1 : Congés rémunérés</TITRE_TM>
+<TITRE_TM debut="2017-01-01" fin="2999-01-01" id="LEGISCTA000033509526">Section 1 : Congés d'articulation entre la vie professionnelle et la vie personnelle et familiale</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2010-03-20" id="LEGISCTA000018534221">Sous-section unique : Congés de formation économique et sociale  et de formation syndicale</TITRE_TM>
+<TITRE_TM debut="2010-03-20" fin="2017-01-01" id="LEGISCTA000021994551">Sous-section 1 : Congés de formation économique et sociale  et de formation syndicale</TITRE_TM>
+<TITRE_TM debut="2017-01-01" fin="2999-01-01" id="LEGISCTA000033509523">Sous-section 1 : Congés pour événements familiaux</TITRE_TM>
+<TM>
+<TITRE_TM debut="2017-01-01" fin="2999-01-01" id="LEGISCTA000033442241">Paragraphe 1 : Ordre public</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2020-10-10" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000042411489" num="D3142-1-1" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Le congé de deuil prévu à l'article L. 3142-1-1 peut être fractionné en deux périodes. Chaque période est d'une durée au moins égale à une journée.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000042410315" datesignatexte="2020-10-08" id="LEGIARTI000042411424" naturetexte="DECRET" nortexte="SSAS2019842D" num="1" numtexte="2020-1233" sens="cible" typelien="CREE">Décret n°2020-1233 du 8 octobre 2020 - art. 1</LIEN>
+
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000041976470" naturetexte="CODE" nortexte="" num="L3142-1-1" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3142-1-1 (V)</LIEN>
+
+</LIENS>
+</ARTICLE>

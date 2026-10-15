@@ -199,3 +199,21 @@ est un **imprévu** saisi une fois sur le salarié (`paie/src/imprevus.rs`) :
 - **L3142-2** (les congés de L3142-1 « n'entraînent pas de réduction de la rémunération ») : une suspension au motif 637 ne
   retire rien du salaire (`imprevus::lignes_du_mois`).
 Tests : `tests/calcul/imprevus.rs`, `tests/routes/routes_imprevus.rs`.
+
+## Le congé de deuil d'un enfant : L3142-1-1, D3142-1-1 (relevé LEGI du 15/10/2026, lot « le deuil »)
+
+`articles-20261015.md`, section « Le conge de deuil d'un enfant » (`xml/L3142-1-1.xml`, `LEGIARTI000041976515`, depuis le
+01/07/2020 ; `xml/D3142-1-1.xml`, `LEGIARTI000042411489`, depuis le 10/10/2020) ; domaine `conge_de_deuil` de
+`paie/src/releve_codes/textes.rs`.
+
+- **L3142-1-1** : « en cas de décès de son enfant âgé de moins de vingt-cinq ans ou d'une personne âgée de moins de vingt-cinq
+  ans à sa charge effective et permanente, le salarié a droit, sur justification, à un congé de deuil de huit jours qui peuvent
+  être fractionnés […]. **Le salarié informe l'employeur vingt-quatre heures au moins avant le début de chaque période
+  d'absence.** Le congé de deuil peut être pris dans un délai d'un an à compter du décès de l'enfant. » C'est le motif d'arrêt
+  « 19 - Deuil d'enfant » de la DSN (S21.G00.60.001) ; ses indemnités journalières sont celles de CSS L. 331-9
+  (`../code-de-la-securite-sociale/`).
+- **D3142-1-1** : deux périodes au plus, d'au moins une journée chacune.
+
+**Où le moteur s'en sert** : `logiciel/donnees/obligations-base.json`, obligation `attestation_salaire` (ses `textes`, la
+`connaissance_presumee` qui rappelle que le salarié prévient vingt-quatre heures avant, `a_avoir`) ; le calcul est dans
+`atelier/sources/paie/src/obligations.rs` (`de_l_arret`). Tests : `tests/routes/routes_obligations.rs`.
