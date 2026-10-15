@@ -1,0 +1,1433 @@
+# Bloc S21.G00.41
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 215-239
+
+--- p. 215 ---
+  S21.G00.41  2025-12-24
+
+Nombre de jours de période d’essai  S21.G00.40.082
+Contrat.NbJrsPeriodeEssai
+  La rubrique doit être renseignée du nombre de jours de la période d’essai initiale.
+
+  CCH-11 : Si la rubrique « Nature du contrat - S21.G00.40.007 » est renseignée avec la valeur « 01 - Contrat de travail
+  à durée indéterminée de droit privé » ou « 09 - Contrat de travail à durée indéterminée de droit public », alors la
+  rubrique « Nombre de jours de période d'essai - S21.G00.40.082 » doit être obligatoirement renseignée. Dans le cas
+  contraire, elle est conditionnelle. Ce contrôle ne s'applique qu'en signalement Déclaration préalable à l'embauche.
+
+  CCH-12 : Si la rubrique « Nature du contrat - S21.G00.40.007 » est renseignée avec la valeur « 02 - Contrat de travail
+  à durée déterminée de droit privé » ou « 10 - Contrat de travail à durée déterminée de droit public » et si la période
+  comprise entre la date prévisionnelle d'embauche (renseignée dans la rubrique Date de début du contrat que -
+  S21.G00.40.001) et la date de fin prévisionnelle du contrat (S21.G00.40.010) est supérieure à 6 mois, alors la rubrique
+  « Nombre de jours de période d'essai - S21.G00.40.082 » est obligatoire. Ce contrôle vise à rendre obligatoire le
+  renseignement de la période d'essai pour un CDD de plus de 6 mois. S'il s'agit d'un CDD de moins de 6 mois, la
+  rubrique est optionnelle.
+
+  N  [1,3]  CSL 00 : [0-9]{1,3}
+
+Heure prévisible d'embauche  S21.G00.40.083
+Contrat.HeurePrevEmbauche
+  Cette rubrique doit être renseignée avec l'heure à laquelle il est prévu que l'individu débute son contrat. Les
+  deux premiers caractères correspondent à l'heure et les deux suivants aux minutes.
+
+  N  [4,4]  CSL 00 : (?:[01][0-9]|2[0-3])[0-5][0-9]
+
+S21.G00.41
+
+Changements Contrat  S21.G00.41
+  Les rubriques de ce bloc sont à renseigner en cas de modification d’une caractéristique du contrat (par exemple,
+  changement du statut du salarié). Les rubriques doivent être renseignées avec la valeur avant changement.
+
+Date de la modification  S21.G00.41.001
+Ancien statut du salarié (conventionnel)  S21.G00.41.002
+Ancien code statut catégoriel Retraite Complémentaire obligatoire  S21.G00.41.003
+Ancienne nature du contrat  S21.G00.41.004
+Ancien dispositif de politique publique et conventionnel  S21.G00.41.005
+Ancienne unité de mesure de la quotité de travail  S21.G00.41.006
+Ancienne quotité de travail du contrat  S21.G00.41.007
+Ancienne modalité d'exercice du temps de travail  S21.G00.41.008
+Ancien complément de base au régime obligatoire  S21.G00.41.010
+Ancien code convention collective applicable  S21.G00.41.011
+SIRET ancien établissement d'affectation  S21.G00.41.012
+Ancien identifiant du lieu de travail  S21.G00.41.013
+Ancien numéro du contrat  S21.G00.41.014
+Ancien motif de recours  S21.G00.41.016
+Ancien taux de déduction forfaitaire spécifique pour frais professionnels  S21.G00.41.017
+Ancien travailleur à l'étranger au sens du code de la Sécurité Sociale  S21.G00.41.018
+Ancien code profession et catégorie socioprofessionnelle (PCS-ESE)  S21.G00.41.019
+Ancien code complément PCS-ESE (pour la fonction publique : référentiels NEH, NET et grade de  S21.G00.41.020
+la NNE)
+Ancienne date de début du contrat  S21.G00.41.021
+
+  215 / 361
+
+--- p. 216 ---
+  S21.G00.41  2025-12-24
+
+Ancienne quotité de travail de référence de l'entreprise pour la catégorie de salarié  S21.G00.41.022
+Ancien code caisse professionnelle de congés payés  S21.G00.41.023
+Ancien code risque accident du travail  S21.G00.41.024
+Ancien code statut catégoriel APECITA  S21.G00.41.025
+Ancien salarié à temps partiel cotisant à temps plein  S21.G00.41.027
+Profondeur de recalcul de la paie  S21.G00.41.028
+[FP] Ancien code complément PCS-ESE pour la fonction publique d'Etat (emploi de la NNE)  S21.G00.41.029
+Ancienne nature du poste  S21.G00.41.030
+[FP] Ancienne quotité de travail de référence de l'entreprise pour la catégorie de salarié dans  S21.G00.41.031
+l’hypothèse d’un poste à temps complet
+Ancien taux de travail à temps partiel  S21.G00.41.032
+Ancien code catégorie de service  S21.G00.41.033
+[FP] Ancien indice brut  S21.G00.41.034
+[FP] Ancien indice majoré  S21.G00.41.035
+[FP] Ancienne nouvelle bonification indiciaire (NBI)  S21.G00.41.036
+[FP] Ancien indice brut d'origine  S21.G00.41.037
+[FP] Ancien indice brut de cotisation dans un emploi supérieur (article 15)  S21.G00.41.038
+[FP] Ancien ancien employeur public  S21.G00.41.039
+[FP] Ancien indice brut d’origine ancien salarié employeur public  S21.G00.41.040
+[FP] Ancien indice brut d’origine sapeur-pompier professionnel (SPP)  S21.G00.41.041
+[FP] Ancien maintien du traitement d'origine d'un contractuel titulaire  S21.G00.41.042
+Ancien taux de service actif  S21.G00.41.043
+Ancien niveau de rémunération  S21.G00.41.044
+Ancien échelon  S21.G00.41.045
+Ancien coefficient hiérarchique  S21.G00.41.046
+Ancien genre de navigation  S21.G00.41.047
+Ancien statut BOETH  S21.G00.41.048
+Ancien complément de dispositif de politique publique  S21.G00.41.049
+Ancien cas de mise à disposition externe d'un individu de l'établissement  S21.G00.41.050
+Ancienne catégorie de classement finale  S21.G00.41.051
+Ancien code régime de base risque maladie  S21.G00.41.052
+Ancien code régime de base risque vieillesse  S21.G00.41.053
+Ancien identifiant du contrat d'engagement maritime  S21.G00.41.054
+Ancien collège (CNIEG)  S21.G00.41.055
+Ancienne forme d'aménagement du temps de travail dans le cadre de l'activité partielle  S21.G00.41.056
+[FP] Ancien type de détachement  S21.G00.41.057
+Ancien positionnement dans la convention collective  S21.G00.41.058
+Ancien code régime de base risque accident du travail  S21.G00.41.059
+Ancien statut d'emploi du salarié  S21.G00.41.060
+Ancien code emplois multiples  S21.G00.41.061
+Ancien code employeurs multiples  S21.G00.41.062
+Ancien grade  S21.G00.41.063
+[FP] Ancien indice complément de traitement indiciaire (CTI)  S21.G00.41.064
+Ancien FINESS géographique  S21.G00.41.065
+
+Date de la modification  S21.G00.41.001
+ChangementsContrat.DateModification
+  La date de modification correspond à la date de survenance du changement de caractéristique du Contrat.
+
+  CCH-12 : Un bloc "Changements Contrat - S21.G00.41" qui n'est renseigné qu'avec la rubrique "Date de la
+  modification - S21.G00.41.001" est interdit.
+
+  216 / 361
+
+--- p. 217 ---
+  S21.G00.41  2025-12-24
+
+  CCH-13 : Se référer au principe (a) du paragraphe 4.4.14.2 : « Obligation de déclarer un bloc Changement par
+  changement de modalité ».
+
+  CCH-14 : Un bloc "Changements Contrat - S21.G00.41" qui n'est renseigné qu'avec les rubriques "Date de la
+  modification - S21.G00.41.001" et "Profondeur de recalcul de la paie - S21.G00.41.028" est interdit.
+
+  CCH-15 : La "Date de la modification - S21.G00.41.001" doit obligatoirement être inférieure ou égale au dernier jour
+  du mois principal déclaré.
+
+  CCH-16 : Se référer au principe (b) du paragraphe 4.4.14.2 : « Interdiction de déclarer dans un même bloc le
+  changement d’une donnée identifiante et le changement d’une modalité ».
+
+  SIG-11 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Ancien statut du salarié (conventionnel)  S21.G00.41.002
+ChangementsContrat.StatutConventionnel
+  Le statut détermine les conditions d’emploi et de travail d’un ou plusieurs salariés d’une entreprise. Le
+  classement s’entend au sens de la convention collective applicable dans l’entreprise. Il correspond aux
+  grandes catégories socio-professionnelles auxquelles chaque salarié appartient.
+
+  X  [2,2]
+
+  01 - agriculteur salarié de son exploitation
+  02 - artisan ou commerçant salarié de son entreprise
+  03 - cadre dirigeant (votant au collège employeur des élections prud'homales)
+  04 - autres cadres au sens de la convention collective (ou du statut pour les régimes spéciaux)
+  05 - profession intermédiaire (technicien, contremaître, agent de maîtrise, clergé)
+  06 - employé administratif d'entreprise, de commerce, agent de service
+  07 - ouvriers qualifiés et non qualifiés y compris ouvriers agricoles
+  08 - agent de la fonction publique d'Etat
+  09 - agent de la fonction publique hospitalière
+  10 - agent de la fonction publique territoriale
+
+Ancien code statut catégoriel Retraite Complémentaire obligatoire  S21.G00.41.003
+ChangementsContrat.StatutRC
+  Le statut catégoriel Retraite complémentaire définit le positionnement du salarié au vu des réglementations
+  des régimes de retraite complémentaires des salariés et des ingénieurs et cadres.
+
+  X  [2,2]
+
+  01 - cadre (article 4 et 4bis)
+  02 - extension cadre pour retraite complémentaire
+  04 - non cadre
+  98 - retraite complémentaire ne définissant pas de statut cadre ou non-cadre
+  99 - pas de retraite complémentaire
+
+Ancienne nature du contrat  S21.G00.41.004
+ChangementsContrat.Nature
+
+  217 / 361
+
+--- p. 218 ---
+  S21.G00.41  2025-12-24
+
+  Nature du lien entre l’employeur et l’individu.
+  Le terme « contrat » est à comprendre de manière large car il recouvre des concepts plus étendus que le
+  seul contrat de travail (conventions, mandat…).
+
+  X  [2,2]
+
+  01 - Contrat de travail à durée indéterminée de droit privé
+  02 - Contrat de travail à durée déterminée de droit privé
+  03 - Contrat de mission (contrat de travail temporaire)
+  07 - Contrat à durée indéterminée intermittent
+  08 - Contrat à durée indéterminée intérimaire
+  09 - Contrat de travail à durée indéterminée de droit public
+  10 - Contrat de travail à durée déterminée de droit public
+  20 - [FP] Détachement d’un agent d’une Fonction Publique donnant lieu à pension (ECP)
+  21 - [FP] Détachement d’un agent d’une Fonction Publique ne donnant pas lieu à pension (ENCP)
+  29 - Convention de stage (hors formation professionnelle)
+  32 - Contrat d’appui au projet d’entreprise
+  50 - Nomination dans la fonction publique (par arrêté, par décision,…)
+  51 - Contrat de mission d’un collaborateur occasionnel du service public (COSP) ou assimilé
+  52 - [FP] Cumul d’activité à titre accessoire
+  53 - Contrat d'emploi pénitentiaire
+  54 - Contrat d'emploi pénitentiaire en apprentissage
+  60 - Contrat d'engagement éducatif
+  70 - Contrat de soutien et d'aide par le travail
+  80 - Mandat social
+  81 - Mandat d'élu
+  82 - Contrat de travail à durée indéterminée de Chantier ou d'opération
+  89 - Volontariat de service civique
+  90 - Autre nature de contrat, convention, mandat (hors mandat social)
+  91 - Contrat d'engagement maritime à durée indéterminée
+  92 - Contrat d'engagement maritime à durée déterminée
+  93 - Ligne de service
+
+Ancien dispositif de politique publique et conventionnel  S21.G00.41.005
+ChangementsContrat.DispositifPolitique
+  Dispositif d’aide, d’incitation ou de politique publique d’emploi ou de formation professionnelle visant à
+  instaurer des formes particulières de contrat. Ces dispositifs se rapportent obligatoirement à une nature de
+  contrat.
+
+  NB : pour les contrats « Emploi d’avenir secteur non marchand » et « Emploi d’avenir secteur marchand »,
+  les valeurs « CUI-CIE » ou « CUI-CAE » ne sont pas appropriées. Même si les contrats « Emploi d’avenir »
+  sont conclus dans le cadre d’un CUI-CIE ou d’un CUI-CAE, c’est bien la valeur « Emploi d’avenir » qui
+  doit être renseignée.
+
+  X  [2,2]
+
+  21 - CUI - Contrat Initiative Emploi
+  41 - Parcours Emploi Compétences / CUI - CAE
+  42 - CUI - Contrat d'accès à l'emploi - DOM
+  61 - Contrat de Professionnalisation
+  64 - Contrat d'apprentissage entreprises artisanales ou de moins de 11 salariés (loi du 3 janvier 1979)
+  65 - Contrat d’apprentissage entreprises non inscrites au répertoire des métiers d’au moins 11 salariés (loi de 1987)
+
+  218 / 361
+
+--- p. 219 ---
+  S21.G00.41  2025-12-24
+
+  66 - Convention industrielle de formation par la recherche en entreprise (CIFRE)
+  70 - Contrat à durée déterminée pour les séniors
+  71 - Contrat à durée déterminée d’insertion
+  80 - Contrat de génération
+  81 - Contrat d'apprentissage secteur public (Loi de 1992)
+  83 - Contrat de valorisation de l’expérience
+  92 - Stage de la formation professionnelle
+  93 - Période de mise en situation en milieu professionnel
+  94 - Contrat adulte relais
+  99 - Non concerné
+
+Ancienne unité de mesure de la quotité de travail  S21.G00.41.006
+ChangementsContrat.UniteMesure
+  Unité d'expression du volume de l'activité ou de l'inactivité dans le contrat
+
+  X  [2,2]
+
+  10 - heure
+  12 - journée
+  20 - forfait jour
+  21 - forfait heure
+  31 - à la pige
+  32 - à la vacation
+  33 - à la tâche
+  34 - au SMIC
+  35 - à la part
+  99 - salarié non concerné
+
+Ancienne quotité de travail du contrat  S21.G00.41.007
+ChangementsContrat.QuotiteSalarie
+  Valeur exprimant la durée contractuelle de travail applicable au salarié.
+
+  N  [4,7]  CSL 00 : [0]*([1-9][0-9]*\.[0-9]{2}|0\.[0-9]{2})
+
+Ancienne modalité d'exercice du temps de travail  S21.G00.41.008
+ChangementsContrat.ModaliteTemps
+  Valeur exprimant le fait que le salarié travaille à temps plein ou partiel.
+
+  La valeur "42 - Temps partiel de droit pour enfant" est applicable pour les agents de la fonction publique,
+  de la SNCF et les salariés des IEG.
+  Les valeurs "40 - CPA 2004" et "41 - Temps partiel de droit" ne sont applicables qu'aux agents de la
+  fonction publique et de la SNCF.
+
+  X  [2,2]
+
+  10 - Temps plein
+  20 - Temps partiel
+  30 - Temps alterné - personnel navigant de l'aéronautique civile
+  40 - CPA 2004
+  41 - Temps partiel de droit
+
+  219 / 361
+
+--- p. 220 ---
+  S21.G00.41  2025-12-24
+
+  42 - Temps partiel de droit pour enfant
+  99 - Salarié non concerné
+
+Ancien complément de base au régime obligatoire  S21.G00.41.010
+ChangementsContrat.ComplementBase
+  Code indiquant si le contrat est concerné par l’ensemble des dispositions légales et réglementaires qui
+  structurent et organisent le système de sécurité sociale en Alsace Moselle.
+
+  X  [2,2]
+
+  01 - régime local Alsace Moselle
+  02 - complémentaire CAMIEG
+  03 - régime Alsace-Moselle et Complémentaire CAMIEG
+  99 - non applicable
+
+Ancien code convention collective applicable  S21.G00.41.011
+ChangementsContrat.Ccn
+  Convention conclue entre un employeur ou un groupement d'employeurs et un ou plusieurs syndicats
+  représentatifs de salariés en vue de déterminer les conditions de travail et de rémunération qui s'imposeront
+  aux employeurs adhérant au groupement, envers le personnel.
+  Toutes les entreprises sont désormais tenues d'utiliser ce nouvel Identifiant Des Conventions Collectives
+  (IDCC) pour tous les types de DSN admis.
+  Ce code, géré par le Ministère chargé du travail, peut être obtenu sur son site. Si un salarié n'est couvert
+  par aucune convention ou statut, il convient de l'indiquer par le code 9999 'sans convention collective'.
+  Les adresses des sites sont indiquées dans l'introduction du présent cahier technique (titre tables externes de
+  référence).
+  CRE-11 : valeurs autorisées
+
+  X  [4,4]  Table IDCC - Code convention collective
+
+SIRET ancien établissement d'affectation  S21.G00.41.012
+ChangementsContrat.AncienEmplSiret
+  Le numéro SIRET est un identifiant numérique de 14 chiffres composé du SIREN (9 chiffres) et d'un numéro
+  interne de classement de 5 chiffres (NIC) caractérisant l'établissement d'une entreprise en tant qu'unité
+  géographiquement localisée.
+  Cette donnée permet notamment de tracer la prolongation des contrats de travail dans le cadre de l'article
+  L.1224-1 du code du travail. Elle rappelle le SIRET de l'ancien établissement d'affectation.
+  CSL-11 : [(vérification de la clé SIREN)]
+
+  CSL-12 : [(vérification de la clé SIRET)]
+
+  X  [14,14]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Ancien identifiant du lieu de travail  S21.G00.41.013
+ChangementsContrat.ChangementSiret
+  Code renseignant le lieu de travail effectif de l'individu.
+  Renseigné par SIRET si le lieu de travail est un établissement immatriculé par un SIRET ou renseigné par
+  une codification libre si le lieu de travail n'est pas un établissement SIRETisé.
+
+  220 / 361
+
+--- p. 221 ---
+  S21.G00.41  2025-12-24
+
+  X  [2,14]
+
+Ancien numéro du contrat  S21.G00.41.014
+ChangementsContratTravail.Numero
+  Le numéro de contrat est un des identifiants du contrat.
+  Pour tout changement de numéro de contrat, la non déclaration de l'ancien numéro du contrat dans cette
+  rubrique empêchera la reconstitution des déclarations substituées.
+  Le numéro d'un contrat de mission doit rester le même que celui déclaré via les DMM/RMM.
+
+  X  [5,20]
+
+Ancien motif de recours  S21.G00.41.016
+ChangementsContrat.MotifRecours
+  Motif pour lequel a été conclu le Contrat à durée déterminée ou Contrat de mission.
+  Comme stipulé par l’article L1221-2 du Code du travail, « le contrat de travail à durée indéterminée est la
+  forme normale et générale de la relation de travail ». Dès lors, le recours au CDD ou au Contrat de mission
+  est encadré par une liste de cas limitativement énumérés définis à l'article L1242-2, L. 1242-3 (pour les
+  CDD) et à l'article L1251-6, L. 1251-7 (pour les Contrats de mission) du Code du travail.
+
+  X  [2,2]
+
+  01 - Remplacement d'un salarié
+  02 - Accroissement temporaire de l'activité de l'entreprise
+  03 - Emplois à caractère saisonnier
+  04 - Contrat vendanges
+  05 - Contrat d’usage
+  06 - Contrat à durée déterminée à objet défini
+  07 - Remplacement d'un chef d'entreprise (« artisanale, industrielle ou commerciale, d'une personne exerçant une
+  profession libérale, de son conjoint participant effectivement à l'activité de l'entreprise à titre professionnel et habituel
+  ou d'un associé non salarié d'une société civile professionnelle, d'une société civile de moyens ou d'une société
+  d'exercice libéral »)
+  08 - Remplacement du chef d'une exploitation agricole (« ou d'une entreprise mentionnée aux 1° à 4° de l'article L.
+  722-1 du code rural et de la pêche maritime, d'un aide familial, d'un associé d'exploitation, ou de leur conjoint
+  mentionné à l'article L. 722-10 du même code dès lors qu'il participe effectivement à l'activité de l'exploitation agricole
+  ou de l'entreprise »)
+  09 - Recrutement de personnes sans emploi rencontrant des difficultés sociales et professionnelles particulières
+  10 - Complément de formation professionnelle au salarié
+  11 - Formation professionnelle au salarié par la voie de l'apprentissage, en vue de l'obtention d'une qualification
+  professionnelle sanctionnée par un diplôme ou un titre à finalité professionnelle enregistré au répertoire national des
+  certifications professionnelles
+  12 - Remplacement d’un salarié passé provisoirement à temps partiel
+  13 - Attente de la suppression définitive du poste du salarié ayant quitté définitivement l’entreprise
+  14 - Contrat de voyage
+  15 - Recrutement d'un intérimaire en sa qualité de BOETH
+  99 - Non concerné
+
+Ancien taux de déduction forfaitaire spécifique pour frais  S21.G00.41.017
+professionnels
+ChangementsContrat.TauxFraisProfessionnels
+  Abattement pour frais professionnels appliqué à la part de rémunération afférente à l’activité ouvrant droit
+  à la déduction.
+
+  221 / 361
+
+--- p. 222 ---
+  S21.G00.41  2025-12-24
+
+  Le Code Général des Impôts (CGI) (article 5 de l'annexe IV) détermine une liste de professions pouvant
+  profiter du régime de l'abattement sur le salaire brut.
+
+  N  [4,6]  CSL 00 : [0-9]{1,3}\.[0-9]{2}
+
+Ancien travailleur à l'étranger au sens du code de la Sécurité Sociale  S21.G00.41.018
+
+ChangementsContrat.TravailleurEtranger
+  Identifiant des salariés détachés, expatriés et frontaliers.
+
+  X  [2,2]
+
+  01 - Détaché
+  02 - Expatrié
+  03 - Frontalier
+  99 - Non concerné
+
+Ancien code profession et catégorie socioprofessionnelle (PCS-ESE)  S21.G00.41.019
+
+ChangementsContrat.PcsEse
+  La PCS-ESE définit la liste des postes (intitulés et professions concernées).
+  Le code est composé de 3 chiffres :
+  - les groupes socioprofessionnels
+  - les catégories socioprofessionnelles
+  - les professions
+  Attention : pour certaines catégories professionnelles (aéronautique civile, journalistes, intermittents du
+  spectacle et autres), il est nécessaire d'apporter une précision sur la profession du salarié en utilisant les
+  codes complémentaires indiqués dans la rubrique complément PCS-ESE ci-après.
+  CRE-11 : valeurs autorisées
+
+  Table PCSESE - Code profession et catégorie
+  X  [4,4]
+  socioprofessionnelle PCS-ESE
+
+Ancien code complément PCS-ESE (pour la fonction publique :  S21.G00.41.020
+référentiels NEH, NET et grade de la NNE)
+ChangementsContrat.ComplementPcsEse
+  Ce code permet d’apporter une précision nécessaire sur la profession de salariés de certaines catégories
+  professionnelles (aéronautique civile, journalistes...).
+  Attributs métier complémentaires non détaillés dans la PCS-ESE.
+
+  Pour le salarié relevant de la Caisse de Retraite du Personnel Navigant Professionnel de l'Aéronautique
+  Civile il est nécessaire de préciser pour la catégorie des officiers, navigants techniques et cadres navigants
+  commerciaux de l'aéronautique civile (Code PCS-ESE = 389b), les codes compléments PCS-ESE suivants :
+  - C389M pour les cadres navigants commerciaux cotisant à un taux majoré
+  - C389N pour les cadres navigants commerciaux cotisant à un taux normal
+  - T389M pour les navigants techniques cotisant à un taux majoré
+  - T389N pour les navigants techniques cotisant à un taux normal
+  Pour les hôtesses et stewards, (Code PCS-ESE = 546d) alors il convient de renseigner les valeurs suivantes
+  en code complément PCS-ESE :
+  - 546dM pour les hôtesses ou stewards cotisant à un taux majoré
+
+  222 / 361
+
+--- p. 223 ---
+  S21.G00.41  2025-12-24
+
+- 546dN pour les hôtesses ou stewards cotisant à un taux normal
+
+Pour les journalistes (Code PCS-ESE = 352a) il est nécessaire de distinguer avec un code complément
+PCS-ESE les journalistes professionnels (avec carte de presse) code complément PCS-ESE = P352, des
+journalistes non professionnels (sans carte de presse) avec un code complément PCS-ESE= NP352.
+
+Les représentants exclusifs ou multicartes, cadets de golf doivent être signalés dans cette rubrique.
+
+Pour les chauffeurs livreurs, coursiers il est nécessaire de préciser le code PCS-ESE par C643 pour les
+coursiers ou L643 pour les chauffeurs livreurs.
+Pour les individus affiliés à la CPRPF, il est nécessaire de renseigner un emploi-type faisant partie d'une
+des valeurs de la liste extraite du référentiel des emplois commun à toutes les entreprises de l'UTP (Union
+des Transports Publics et ferroviaires) et intégrée dans la table CCP - Code Complément PCS-ESE.
+
+La table NEH détermine la structure hiérarchique des emplois relevant de la fonction publique hospitalière.
+Les établissements sanitaires, sociaux et médico-sociaux publics relevant de l'IRCANTEC doivent utiliser
+les codes de la table NEH pour définir le statut d'emploi de leur personnel médical hospitalier. Cette table
+est disponible sur le site http://www.net-entreprises.fr.
+
+Dans cette rubrique, la table NNE permet de déterminer le grade des fonctionnaires de l’Etat ou des agents
+occupant au sein de l’Etat un emploi fonctionnel. Aucun code présent dans cette table n’est à renseigner
+pour les autres agents de la Fonction publique (exemple : agents contractuels).
+
+Pour l'ensemble des professions du spectacle, il est nécessaire de compléter le code complément PCS-ESE
+par le code détaillé des professions du spectacle. La table de nomenclature des emplois du spectacle est
+disponible sur le site http://www.net-entreprises.fr.
+
+Rappel énumération
+
+06 - représentant exclusif
+07 - représentant multicarte
+08 - autre représentant
+09 - Vendeur à domicile indépendant (VDI)
+37 - cadet de golf
+38 - agent immobilier rémunéré à la commission
+39 - maîtres et documentalistes de l'enseignement privé
+40 - colporteurs de presse
+49 - dockers avec carte G
+50 - mannequin
+51 - artiste de corrida
+52 - chauffeur de taxi locataire de son véhicule
+53 - interprète de conférence
+C643 - coursier
+L643 - chauffeurs livreurs
+NP352 - journaliste non professionnel (sans carte de presse)
+P352 - journaliste professionnel (avec carte de presse)
+C389M - cadres navigants commerciaux taux majoré
+C389N - cadres navigants commerciaux taux normal
+T389M - navigants techniques taux majoré
+T389N - navigants techniques taux normal
+546dM - hôtesses ou stewards taux majoré
+
+  223 / 361
+
+--- p. 224 ---
+  S21.G00.41  2025-12-24
+
+  546dN - hôtesses ou stewards taux normal
+  S001 - Sportif professionnel dont le contrat de travail relève des articles L. 222-2-3 et suivants du code du
+  sport
+  999999 - Non concerné
+  AGTCDT - Agent de conduite
+
+  Pour les agents relevant de la Fonction publique de l’Etat, la nomenclature NNE répertorie les grades et
+  emplois ; tous les emplois n’ont pas nécessairement de code NNE correspondant. Renseigner ici les six
+  premiers caractères (Corps-Grade) de la nomenclature NNE.
+
+  La table CMET est utilisée pour les individus relevant d'une caisse de congés payés CIBTP.
+  Pour signaler que dans une DSN précédente la rubrique « Code complément PCS-ESE (pour la fonction
+  publique : référentiels NEH, NET et grade de la NNE) - S21.G00.40.005 » avait été déclarée par erreur
+  pour ce contrat (il n’y avait pas lieu de renseigner la rubrique pour ce contrat), cette rubrique doit être
+  renseignée avec le code ‘999999’. Cette valeur a été créée pour permettre d’annuler le code complément
+  PCS-ESE précédemment déclaré à tort.
+  CRE-11 : valeurs autorisées
+
+  Tables CCP - Code Complément PCS-ESE, NEHMED -
+  Code emploi statutaire de la fonction publique hospitalière
+  (NEH) - emplois médicaux (complément PCS-ESE),
+  NEHNMED - Code emploi statutaire de la fonction publique
+  X  [2,6]
+  hospitalière (NEH) - emplois non-médicaux (complément
+  PCS-ESE), ART - Code détaillé des professions du spectacle
+  (complément PCS-ESE), NET, NNE et FESAIEG - Familles
+  d’Emploi Services Actifs IEG, CMET - Code Métier BTP.
+
+Ancienne date de début du contrat  S21.G00.41.021
+ChangementsContrat.DateDebut
+  Représente la date du premier jour d’applicabilité du contrat.
+  Il s'agit d'une donnée identifiante du contrat de travail.
+  Pour tout changement de date de début de contrat, la non déclaration de l'ancienne date de début du contrat
+  dans cette rubrique empêchera la reconstitution des déclarations substituées.
+  SIG-11 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(19|20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Ancienne quotité de travail de référence de l'entreprise pour la  S21.G00.41.022
+catégorie de salarié
+ChangementsContrat.QuotiteCategorie
+  Valeur exprimant la durée de travail applicable pour la catégorie de salariés dans l’entreprise. Cette valeur
+  doit être définie selon les règles applicables à la catégorie de salarié.
+  Pour les salariés en contrat de mission, il convient de renseigner la valeur déclarée dans la rubrique
+  "Quotité de travail du contrat" (S21.G00.40.013).
+
+  N  [4,7]  CSL 00 : [0]*([1-9][0-9]*\.[0-9]{2}|0\.[0-9]{2})
+
+Ancien code caisse professionnelle de congés payés  S21.G00.41.023
+ChangementsContrat.CodeCaisseCongesPayes
+
+  224 / 361
+
+--- p. 225 ---
+  S21.G00.41  2025-12-24
+
+  Numéro de la caisse de congés payés dans le cas où les indemnités ne sont pas versées par l'employeur.
+  Indiquer "97", le numéro d'affiliation et la clé, dans le cas de la Caisse de congés spectacles.
+
+  Pour les entreprises adhérentes à une caisse CIBTP, une caisse du Transport ou de la Manutention
+  portuaire, indiquer l'un des codes de la table CPCP - Code caisse professionnelle de congés payés.
+  Pour signaler que dans une DSN précédente la rubrique « Code caisse professionnelle de congés payés -
+  S21.G00.40.022 » avait été déclarée par erreur pour ce contrat (il n’y avait pas lieu de renseigner la
+  rubrique pour ce contrat), cette rubrique doit être renseignée avec le code ‘99’. Cette valeur a été créée
+  pour permettre d’annuler le code caisse professionnelle de congés payés précédemment déclaré à tort.
+  CRE-11 : Les deux premiers caractères de la présente rubrique (S21.G00.41.023) doivent correspondre à l’une des
+  valeurs présentes dans la table des codes des caisses professionnelles de congés payés.
+
+  X  [2,20]
+
+Ancien code risque accident du travail  S21.G00.41.024
+ChangementsContrat.CodeRisqueAccidentTravail
+  Code indiquant l'activité principale exercée par le salarié et définissant ainsi le risque professionnel
+  spécifique pour lequel il doit être assuré.
+  Pour le renseigner, il convient de se reporter à la notification que vous recevez des Caisses d'Assurance
+  Retraite et de la Santé Au Travail (CARSAT) ou de la MSA : le code risque y est indiqué. Veuillez remplir
+  cette rubrique de la DSN en indiquant également, s'il est mentionné dans la notification, le "taux bureau"
+  (matérialisé par un "B").
+  Si vous venez de créer votre établissement et que vous n'avez pas encore reçu de notification vous indiquant
+  un code risque à appliquer à vos salariés, veuillez indiquer "999ZZ".
+  Exemples : vous avez une notification présentant le code risque "602MD" et le taux bureau "B", indiquez ici
+  : "602MDB".
+  Si dans votre notification il n'y a que le code risque sans indication de taux bureau, indiquez simplement
+  "602MD".
+  Si vous n'avez pas encore reçu de première notification, indiquez "999ZZ".
+  CRE-11 : valeurs autorisées
+
+  X  [5,6]  Table RAT - Codes risque ATMP
+
+Ancien code statut catégoriel APECITA  S21.G00.41.025
+ChangementsContrat.CodeStatutCategorielAPECITA
+  Cette rubrique définit le positionnement du salarié au vu de l'APECITA (Association Pour l’Emploi des
+  Cadres Ingénieurs et Techniciens de l’Agriculture et l’Agroalimentaire).
+
+  X  [2,2]
+
+  01 - salarié cadre
+  02 - salarié non cadre
+  99 - Non concerné
+
+Ancien salarié à temps partiel cotisant à temps plein  S21.G00.41.027
+ChangementsContrat.SalarieTempsPartielCotisantTempsPlein
+  Option prise par le salarié à temps partiel de cotiser sur la base d'un temps plein.
+
+  225 / 361
+
+--- p. 226 ---
+  S21.G00.41  2025-12-24
+
+  X  [2,2]
+
+  01 - pour la vieillesse régime de base
+  02 - pour la vieillesse régime de base et la retraite complémentaire
+  03 - temps plein ou temps partiel ne cotisant pas sur la base d’un temps plein
+
+Profondeur de recalcul de la paie  S21.G00.41.028
+ChangementsContrat.ProfondeurRecalculPaie
+  CCH-11 : Se référer au principe (c) du paragraphe 4.4.14.2 : « Obligation ou interdiction de déclarer la date de
+  profondeur de recalcul de la paie pour le changement d’une modalité ».
+  Ce contrôle vise à vérifier la présence obligatoire de la rubrique "Profondeur de recalcul de la paie - S21.G00.41.028"
+  au sein du bloc "Changements Contrat - S21.G00.41" présentant la "Date de la modification - S21.G00.41.001" la plus
+  ancienne, pour un même contrat (S21.G00.40) et une même modalité (liste des modalités décrite dans le paragraphe
+  4.4.14.1 Les types de données dans le bloc « Changements contrat – S21.G00.41 »).
+  Il vise également à interdire :
+  - la déclaration de cette rubrique "Profondeur de recalcul de la paie - S21.G00.41.028" au sein des éventuels autres
+  blocs "Changements Contrat - S21.G00.41" présentant une "Date de la modification - S21.G00.41.001" différente de la
+  plus ancienne retenue pour un même contrat (S21.G00.40) et une même modalité.
+  - la déclaration de cette rubrique "Profondeur de recalcul de la paie - S21.G00.41.028" au sein de plusieurs blocs
+  "Changements Contrat - S21.G00.41" présentant une même "Date de la modification - S21.G00.41.001" la plus
+  ancienne pour un même contrat (S21.G00.40) et une même modalité.
+
+  CCH-12 : Se référer au principe (d) du paragraphe 4.4.14.2 : « Interdiction de déclarer la profondeur de recalcul de la
+  paie pour le changement d’une donnée identifiante ».
+
+  CCH-13 : La "Profondeur de recalcul de la paie - S21.G00.41.028" doit obligatoirement être renseignée au premier
+  jour d’un mois civil ou avec la date de début du contrat.
+
+  CCH-14 : La "Profondeur de recalcul de la paie - S21.G00.41.028" doit obligatoirement être supérieure ou égale à la
+  "Date de début du contrat - S21.G00.40.001".
+
+  CCH-15 : La "Profondeur de recalcul de la paie - S21.G00.41.028" doit obligatoirement être inférieure ou égale à la
+  "Date de la modification - S21.G00.41.001".
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(19|20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+[FP] Ancien code complément PCS-ESE pour la fonction publique  S21.G00.41.029
+d'Etat (emploi de la NNE)
+ChangementsContrat.FPCodeComplementPCS-ES
+  Cette rubrique est à renseigner pour les fonctionnaires de l’Etat ou les agents occupant au sein de l’Etat un
+  emploi fonctionnel. Elle ne doit pas être déclarée pour les autres agents de la Fonction publique d’Etat
+  (exemple : agents contractuels). La nomenclature NNE détermine la structure hiérarchique des emplois
+  relevant de la fonction publique de l'Etat. Il n’existe pas de codes NNE pour tous les fonctionnaires de
+  l'Etat et les militaires.
+  Pour les agents relevant de la Fonction publique de l’Etat, la nomenclature NNE répertorie les grades et
+  emplois ; codée sur dix caractères, les six premiers caractères de la table NNE correspondent au corps et au
+  grade et les quatre derniers à un complément relatif à l’emploi ou à la fonction. Dans cette rubrique,
+  doivent être renseignés les 4 derniers caractères du code NNE déterminant l’emploi ou la fonction.
+  En l'absence de code emploi, cette rubrique doit être renseignée du code "0000".
+  CRE-11 : valeurs autorisées (les 4 derniers caractères de la table NNE)
+
+  226 / 361
+
+--- p. 227 ---
+  S21.G00.41  2025-12-24
+
+  X  [4,4]  Table NNE
+
+Ancienne nature du poste  S21.G00.41.030
+ChangementsContrat.FPNaturePoste
+  Pour la fonction publique, il s’agit de renseigner si le poste est à temps complet ou à temps non complet.
+  L’agent à temps non complet effectue une durée hebdomadaire inférieure à la durée de référence.
+  Pour les individus affiliés à la CPRPF, il s'agit de renseigner si le poste dépend du régime VSDL (week-
+  endiste).
+
+  X  [2,2]
+
+  01 - [FP] Temps complet
+  02 - [FP] Temps non complet
+  03 - Régime VSDL (Week-endiste)
+  99 - Non concerné
+
+[FP] Ancienne quotité de travail de référence de l'entreprise pour la  S21.G00.41.031
+catégorie de salarié dans l’hypothèse d’un poste à temps complet
+ChangementsContrat.FPQuotiteTravailTempsComplet
+  Pour la fonction publique, il s’agit de la durée hebdomadaire de l’emploi occupé ou du grade détenu par
+  l’agent dans l’établissement qui l’emploie, correspondant à l’obligation hebdomadaire de service fixée pour
+  une activité à temps complet. Il s’agit en général de la durée hebdomadaire légale.
+  Cette rubrique est à renseigner uniquement quand la durée hebdomadaire ne correspond pas à un temps
+  complet.
+  Pour signaler que dans une DSN précédente la rubrique « Quotité de travail de référence de l'entreprise
+  pour la catégorie de salarié dans l’hypothèse d’un poste à temps complet - S21.G00.40.054 » avait été
+  déclarée par erreur pour ce contrat (il n’y avait pas lieu de renseigner la rubrique pour ce contrat), cette
+  rubrique doit être renseignée avec le code ‘0.00’. Cette valeur a été créée pour permettre d’annuler la
+  quotité de travail de référence de l'entreprise pour la catégorie de salarié dans l’hypothèse d’un poste à
+  temps complet précédemment déclarée à tort.
+  CSL 00 : ([0]*([1-9][0-9]*\.[0-9]{2}|0\.(0[1-9]|[1-9][0-
+  N  [4,5]
+  9])))|[0][.][0][0]
+
+Ancien taux de travail à temps partiel  S21.G00.41.032
+ChangementsContrat.TauxTravailTempsPartiel
+  Pour la fonction publique, le taux de travail à temps partiel correspond au pourcentage de la durée
+  hebdomadaire de service pour les mêmes fonctions exercées à temps plein. Une situation de temps partiel
+  thérapeutique n’impacte pas cette rubrique.
+  Pour signaler que dans une DSN précédente la rubrique « Taux de travail à temps partiel - S21.G00.40.055
+  » avait été déclarée par erreur pour ce contrat (il n’y avait pas lieu de renseigner la rubrique pour ce
+  contrat), cette rubrique doit être renseignée avec le code ‘0.00’. Cette valeur a été créée pour permettre
+  d’annuler le taux de travail à temps partiel précédemment déclaré à tort.
+  CSL 00 : ([0]*([1-9][0-9]*\.[0-9]{2}|0\.(0[1-9]|[1-9][0-
+  N  [4,5]
+  9])))|[0][.][0][0]
+
+Ancien code catégorie de service  S21.G00.41.033
+ChangementsContrat.CodeCategorieService
+  Dans la fonction publique, la catégorie de service permet de distinguer les emplois présentant un risque
+  particulier ou des fatigues exceptionnelles des autres emplois.
+
+  227 / 361
+
+--- p. 228 ---
+  S21.G00.41  2025-12-24
+
+Cette notion ne concerne pas les personnels sous statut militaire.
+Les emplois de la fonction publique sont classés en trois catégories :
+• catégorie sédentaire (A) code 01 : ce sont tous les emplois qui ne sont pas classés en catégorie active
+• catégorie active (B) code 02 : ce sont des emplois qui présentent un risque particulier ou des fatigues
+exceptionnelles justifiant un départ anticipé à la retraite.
+• catégorie insalubre (C) codes 03, 04, 05, 06, 07, 08 ce sont des emplois qui correspondent aux agents des
+réseaux souterrains des égouts et aux agents du corps des identificateurs de l’institut médico-légal de la
+préfecture de police de Paris.
+
+Les valeurs "10" à "49" et "80" à "82" désignent les fonctions du marin occupées lors d'une période de ligne
+de service.
+
+Pour les industries électriques et gazières (IEG), la catégorie de service permet de distinguer les différentes
+associations de type et motif de service actif.
+Pour la CPRPF, la catégorie de service permet de renseigner l'indicateur de pénibilité.
+
+  X  [2,2]
+
+01 - [FP] Emploi service sédentaire
+02 - [FP] Emploi service actif
+03 - [FP] Emploi à plus de 800 heures annuelles dans les réseaux souterrains et les ouvrages annexes homologués
+04 - [FP] Emploi dans le corps des identificateurs de la Préfecture de Police de Paris
+05 - [FP] Emploi entre 400 et 529 heures annuelles dans les réseaux souterrains et les ouvrages annexes homologués
+06 - [FP] Emploi entre 530 et 799 heures annuelles dans les réseaux souterrains et les ouvrages annexes homologués
+07 - [FP] Emploi entre 400 et 529 heures annuelles en réseaux souterrains ou ouvrages annexes homologués et
+complément en service actif
+08 - [FP] Emploi entre 530 et 799 heures annuelles en réseaux souterrains ou ouvrages annexes homologués et
+complément en service actif
+10 - Fonction Capitaine
+11 - Fonction Second capitaine
+12 - Fonction Chef mécanicien
+13 - Fonction Second mécanicien
+14 - Fonction Officier chargé du quart à la passerelle
+15 - Fonction Officier chargé du quart à la machine
+16 - Fonction Officier électrotechnicien / électricien
+17 - Marin qualifié Pont
+18 - Fonction Matelot dans une équipe de quart
+19 - Fonction Matelot sans tâche spécialisée
+20 - Marin qualifié Machine
+21 - Fonction Mécanicien dans une équipe de quart
+22 - Fonction Mécanicien sans tâche spécialisée
+23 - Fonction Matelot électrotechnicien / électricien
+24 - Fonction Opérateur des radiocommunications à bord d’un navire exploité dans le cadre du Système Mondial de
+Détresse et de Sécurité en Mer (SMDSM)
+25 - Fonction Cuisinier de navire
+26 - Fonction élève machine
+27 - Fonction élève pont
+28 - Fonction Personnel de préparation ou service des repas pour les gens de mer
+29 - Fonction Personnel d’hôtellerie
+30 - Fonction Personnel de propreté
+31 - Fonction Personnel de restauration
+32 - Fonction Personnel de vente
+33 - Fonction Personnel pour l’accueil des passagers
+34 - Fonction Écrivain de bord
+
+  228 / 361
+
+--- p. 229 ---
+  S21.G00.41  2025-12-24
+
+  35 - Fonction Médecin
+  36 - Fonction Infirmier
+  37 - Fonction Hydrographe
+  38 - Fonction Pilote maritime
+  39 - Fonction Capitaine Polyvalent
+  40 - Fonction Second Polyvalent
+  41 - Fonction Officier Polyvalent
+  42 - Fonction Marin qualifié Polyvalent
+  43 - Fonction Matelot Polyvalent
+  44 - Fonction Commissaire
+  45 - Fonction Officier électronicien
+  46 - Fonction élève autre
+  47 - Fonction élève polyvalent
+  48 - Fonction Navigant cultures marines
+  49 - Fonction Personnel usine navire pêche
+  50 - Travaux actifs à 100% [Actifs à 100%]
+  51 - Travaux mixtes non cadre [Actifs Mixtes non cadre]
+  52 - Travaux actifs en partie cadre [Actifs Mixtes cadre]
+  53 - Travaux actifs intermittents non cadre [Actifs Intermittents non cadre]
+  54 - CSS fonction politique (si actif précédemment) [Actifs à 100%]
+  55 - CSS fonction politique (si actif précédemment) [Actifs Mixtes non cadre]
+  56 - CSS fonction politique (si actif précédemment) [Actifs Mixtes cadre]
+  57 - CSS fonction politique (si actif précédemment) [Actifs Intermittents non cadre]
+  58 - CSS fonction syndicale (si actif précédemment) [Actifs à 100%]
+  59 - CSS fonction syndicale (si actif précédemment) [Actifs Mixtes non cadre]
+  60 - CSS fonction syndicale (si actif précédemment) [Actifs Mixtes cadre]
+  61 - CSS fonction syndicale (si actif précédemment) [Actifs Intermittents non cadre]
+  62 - Elu CAS SLV (si actif précédemment) [Actifs à 100%]
+  63 - Elu CAS SLV (si actif précédemment) [Actifs Mixtes non cadre]
+  64 - Elu CAS SLV (si actif précédemment) [Actifs Mixtes cadre]
+  65 - Elu CAS SLV (si actif précédemment) [Actifs Intermittents non cadre]
+  66 - Sédentaire (si actif avant A.T.) [Actifs à 100%]
+  67 - Sédentaire (si actif avant A.T.) [Actifs Mixtes non cadre]
+  68 - Sédentaire (si actif avant A.T.) [Actifs Mixtes cadre]
+  69 - Sédentaire (si actif avant A.T.) [Actifs Intermittents non cadre]
+  70 - A disposition CCAS encadrement [Actifs à 100%]
+  71 - A disposition CCAS encadrement [Actifs Mixtes non cadre]
+  72 - A disposition CCAS encadrement [Actifs Mixtes cadre]
+  73 - A disposition CCAS encadrement [Actifs Intermittents non cadre]
+  74 - Services actifs accord 2010 [Actifs sans Prépondérance]
+  75 - Sédentaire (si actif avant A.T.) accord 2010 [Actifs à 100%]
+  76 - Sédentaire (si actif avant A.T.) accord 2010 [Actifs Mixtes non cadre]
+  77 - Sédentaire (si actif avant A.T.) accord 2010 [Actifs Mixtes cadre]
+  78 - Sédentaire (si actif avant A.T.) accord 2010 [Actifs Intermittents non cadre]
+  79 - Sédentaire (si actif avant A.T.) accord 2010 [Actifs sans Prépondérance]
+  80 - Fonction Lamanage
+  81 - Fonction Pêcheur à pied
+  82 - Fonction Autre navigant
+  83 - Pénibilité P0
+  84 - Pénibilité P1
+  85 - Pénibilité P2
+  86 - Pénibilité P3
+  99 - Pas de catégorie de service
+
+[FP] Ancien indice brut  S21.G00.41.034
+
+  229 / 361
+
+--- p. 230 ---
+  S21.G00.41  2025-12-24
+
+ChangementsContrat.FPIndiceBrut
+  L’indice brut est l’indice de carrière. Il détermine la position de l'agent public sur un échelon correspondant
+  à son grade. Pour chaque grade, les indices bruts correspondant à chaque échelon sont fixés par décret.
+  Pour signaler que dans une DSN précédente la rubrique « [FP] Indice brut - S21.G00.40.057 » avait été
+  déclarée par erreur pour ce contrat (il n’y avait pas lieu de renseigner la rubrique pour ce contrat), cette
+  rubrique doit être renseignée avec le code ‘ZZ9‘. Cette valeur a été créée pour permettre d’annuler l’indice
+  brut précédemment déclaré à tort.
+  CSL 00 : 1[0-9]{3}|0?1[0-9]{2,2}|2(([0-4][0-
+  X  [2,4]  9]{2})|(5(0){2}))|0?2([0-9]{2})|0?[3-9][0-9]{2}|[A-Za-
+  z]{1,2}[0-9]
+
+[FP] Ancien indice majoré  S21.G00.41.035
+ChangementsContrat.FPIndiceMajore
+  A chaque indice brut (indice classement) correspond un indice majoré (indice traitement) dont la valeur
+  évolue à chaque revalorisation des traitements. L’indice majoré permet le calcul de la rémunération d’un
+  agent public.
+  Pour un contractuel, le montant est librement déterminé par l'administration.
+  Pour signaler que dans une DSN précédente la rubrique « [FP] Indice majoré - S21.G00.40.058 » avait été
+  déclarée par erreur pour ce contrat (il n’y avait pas lieu de renseigner la rubrique pour ce contrat), cette
+  rubrique doit être renseignée avec le code ‘000’. Cette valeur a été créée pour permettre d’annuler l’indice
+  majoré précédemment déclaré à tort.
+  CSL 00 : 1[0-9]{3}|2[0-4][0-9]{2}|25[0]{2}|[1-9][0-
+  N  [3,4]
+  9]{2}|[0]{1,3}
+
+[FP] Ancienne nouvelle bonification indiciaire (NBI)  S21.G00.41.036
+ChangementsContrat.FPNBI
+  La nouvelle bonification indiciaire est un nombre de points d'indice majorés attribués, à titre dérogatoire, à
+  certains fonctionnaires appartenant à un corps ou un grade donné occupant un certain type d'emploi, le cas
+  échéant sous condition d'âge. La NBI complète le traitement principal.
+  Pour signaler que dans une DSN précédente la rubrique « [FP] Nouvelle bonification indiciaire (NBI) -
+  S21.G00.40.059 » avait été déclarée par erreur pour ce contrat (il n’y avait pas lieu de renseigner la
+  rubrique pour ce contrat), cette rubrique doit être renseignée avec le code ‘0.00’. Cette valeur a été créée
+  pour permettre d’annuler la nouvelle bonification indiciaire précédemment déclarée à tort.
+  CSL 00 : (^(0\.(([1-9][0-9])|([0-9][1-9])|[1-9])|[1-
+  N  [1,6]  9]\d?(?:\.[0-9]{1,2})?|[1-7]\d\d(?:\.[0-
+  9]{1,2})?|800(?:\.0{1,2})?)$)|[0][\.][0][0]
+
+[FP] Ancien indice brut d'origine  S21.G00.41.037
+ChangementsContrat.FPIndiceBrutOrigine
+  L'indice brut d'origine est l'indice correspondant à l'indice de classement, dans sa carrière d'origine, du
+  fonctionnaire détaché sur emploi ne conduisant pas à pension servant de base au calcul des cotisations pour
+  pension.
+  Pour signaler que dans une DSN précédente la rubrique « [FP] Indice brut d'origine - S21.G00.40.060 »
+  avait été déclarée par erreur pour ce contrat (il n’y avait pas lieu de renseigner la rubrique pour ce
+  contrat), cette rubrique doit être renseignée avec le code ‘ZZ9’. Cette valeur a été créée pour permettre
+  d’annuler l’indice brut d'origine précédemment déclaré à tort.
+  CSL 00 : 1[0-9]{3}|0?1[0-9]{2,2}|2(([0-4][0-
+  X  [2,4]  9]{2})|(5(0){2}))|0?2([0-9]{2})|0?[3-9][0-9]{2}|[A-Za-
+  z]{1,2}[0-9]
+
+  230 / 361
+
+--- p. 231 ---
+  S21.G00.41  2025-12-24
+
+[FP] Ancien indice brut de cotisation dans un emploi supérieur  S21.G00.41.038
+(article 15)
+ChangementsContrat.FPIndiceBrutCotisationEmploiSuperieur
+  L'indice brut de cotisation dans un emploi supérieur est l'indice de classement précédemment détenu dans
+  un emploi supérieur servant de base au calcul des cotisations pour pension sur option du fonctionnaire.
+  Pour signaler que dans une DSN précédente la rubrique « [FP] Indice brut de cotisation dans un emploi
+  supérieur (article 15) - S21.G00.40.061 » avait été déclarée par erreur pour ce contrat (il n’y avait pas lieu
+  de renseigner la rubrique pour ce contrat), cette rubrique doit être renseignée avec le code ‘ZZ9’. Cette
+  valeur a été créée pour permettre d’annuler l’indice brut de cotisation dans un emploi supérieur
+  précédemment déclaré à tort.
+  CSL 00 : 1[0-9]{3}|0?1[0-9]{2,2}|2(([0-4][0-
+  X  [2,4]  9]{2})|(5(0){2}))|0?2([0-9]{2})|0?[3-9][0-9]{2}|[A-Za-
+  z]{1,2}[0-9]
+
+[FP] Ancien ancien employeur public  S21.G00.41.039
+ChangementsContrat.FPAncienEmployeurPublic
+  Cette donnée se rapporte à l'ancien employeur public de l'individu.
+
+  X  [2,2]
+
+  01 - Orange
+  02 - La poste
+  99 - Pas d'ancien employeur public
+
+[FP] Ancien indice brut d’origine ancien salarié employeur public  S21.G00.41.040
+ChangementsContrat.FPIndiceBrutOrigineAncienEmployeurPublic
+  L’ancien indice brut d’origine ancien salarié est l’ancien indice sur lequel les anciens salariés chez un
+  employeur public, intégrés dans la Fonction Publique Territoriale, ont choisi de cotiser.
+  Pour signaler que dans une DSN précédente la rubrique « [FP] Indice brut d’origine ancien salarié
+  employeur public - S21.G00.40.063 » avait été déclarée par erreur pour ce contrat (il n’y avait pas lieu de
+  renseigner la rubrique pour ce contrat), cette rubrique doit être renseignée avec le code ‘ZZ9’. Cette valeur
+  a été créée pour permettre d’annuler l’indice brut d’origine ancien salarié employeur public précédemment
+  déclaré à tort.
+  CSL 00 : 1[0-9]{3}|0?1[0-9]{2,2}|2(([0-4][0-
+  X  [2,4]  9]{2})|(5(0){2}))|0?2([0-9]{2})|0?[3-9][0-9]{2}|[A-Za-
+  z]{1,2}[0-9]
+
+[FP] Ancien indice brut d’origine sapeur-pompier professionnel  S21.G00.41.041
+(SPP)
+ChangementsContrat.FPIndiceBrutOrigineSPP
+  L’indice brut d’origine sapeur-pompier professionnel est l'indice brut avant intégration de l'indemnité de
+  feu. Il est obligatoire pour les sapeurs-pompiers professionnels en situation de sur cotisation.
+  Pour signaler que dans une DSN précédente la rubrique « [FP] Indice brut d’origine sapeur-pompier
+  professionnel (SPP) - S21.G00.40.064 » avait été déclarée par erreur pour ce contrat (il n’y avait pas lieu
+  de renseigner la rubrique pour ce contrat), cette rubrique doit être renseignée avec le code ‘ZZ9’. Cette
+  valeur a été créée pour permettre d’annuler l’indice brut d’origine sapeur-pompier professionnel
+  précédemment déclaré à tort.
+
+  231 / 361
+
+--- p. 232 ---
+  S21.G00.41  2025-12-24
+
+  CSL 00 : 1[0-9]{3}|0?1[0-9]{2,2}|2(([0-4][0-
+  X  [2,4]  9]{2})|(5(0){2}))|0?2([0-9]{2})|0?[3-9][0-9]{2}|[A-Za-
+  z]{1,2}[0-9]
+
+[FP] Ancien maintien du traitement d'origine d'un contractuel titulaire  S21.G00.41.042
+
+ChangementsContrat.FPMaintienTraitementOrigineContractuelTitulai
+re
+  L’indice brut d’origine du « maintien du traitement d’origine d’un contractuel titulaire » est l’indice des
+  agents contractuels devenus fonctionnaires qui conservent à titre personnel le bénéfice de leur traitement
+  antérieur.
+  Pour signaler que dans une DSN précédente la rubrique « [FP] Maintien du traitement d'origine d'un
+  contractuel titulaire - S21.G00.40.065 » avait été déclarée par erreur pour ce contrat (il n’y avait pas lieu
+  de renseigner la rubrique pour ce contrat), cette rubrique doit être renseignée avec le code ‘ZZ9’. Cette
+  valeur a été créée pour permettre d’annuler le maintien du traitement d'origine d'un contractuel titulaire
+  précédemment déclaré à tort.
+  CSL 00 : 1[0-9]{3}|0?1[0-9]{2,2}|2(([0-4][0-
+  X  [2,4]  9]{2})|(5(0){2}))|0?2([0-9]{2})|0?[3-9][0-9]{2}|[A-Za-
+  z]{1,2}[0-9]
+
+Ancien taux de service actif  S21.G00.41.043
+ChangementsContrat.AncienTauxServiceActif
+  Cette rubrique est à renseigner du pourcentage de l’individu en service actif lorsque ce dernier relève des
+  IEG.
+
+  N  [4,6]  CSL 00 : [0]*([1-9][0-9]*\.[0-9]{2}|0\.[0-9]{2})
+
+Ancien niveau de rémunération  S21.G00.41.044
+ChangementsContrat.AncienNiveauRX
+  Pour les salariés des industries électriques et gazières (IEG), cette rubrique est à alimenter avec l'élément
+  correspondant de la grille de rémunération de la Branche Professionnelle des IEG.
+  Pour signaler que dans une DSN précédente la rubrique « Niveau de rémunération - S21.G00.40.069 » avait
+  été déclarée par erreur pour ce contrat (il n’y avait pas lieu de renseigner la rubrique pour ce contrat), cette
+  rubrique doit être renseignée avec le code ‘ZZZ’. Cette valeur a été créée pour permettre d’annuler le
+  niveau de rémunération précédemment déclaré à tort.
+  Pour les individus affiliés à la CPRPF, cette rubrique est à alimenter avec le code prime. Ce code, issu des
+  barèmes SNCF, permet de calculer la Valeur Mensuelle Théorique (VMT) de la prime de travail des agents
+  sédentaires. Le code prime correspond à la filière de l’agent.
+
+  X  [2,3]
+
+Ancien échelon  S21.G00.41.045
+ChangementsContrat.AncienEchelon
+  Pour les salariés des industries électriques et gazières (IEG), cette rubrique est à alimenter avec l'élément
+  correspondant de la grille de rémunération de la Branche Professionnelle des IEG.
+  Pour signaler que dans une DSN précédente la rubrique « Echelon - S21.G00.40.070 » avait été déclarée
+  par erreur pour ce contrat (il n’y avait pas lieu de renseigner la rubrique pour ce contrat), cette rubrique
+  doit être renseignée avec le code ‘00’. Cette valeur a été créée pour permettre d’annuler l'échelon
+  précédemment déclaré à tort.
+  Pour les individus affiliés à la CPRPF, à chacun des échelons correspond une majoration de la
+
+  232 / 361
+
+--- p. 233 ---
+  S21.G00.41  2025-12-24
+
+  rémunération calculée en fonction du coefficient hiérarchique, de la position de rémunération ou de la
+  classe sur laquelle est placé l’individu.
+
+  X  [2,2]  CSL 00 : (0[0-9])|(1[0-2])
+
+Ancien coefficient hiérarchique  S21.G00.41.046
+ChangementsContrat.AncienCoefficientHierarchique
+  Pour les salariés des industries électriques et gazières (IEG), cette rubrique est à alimenter avec l'élément
+  correspondant de la grille de rémunération de la Branche Professionnelle des IEG.
+  Pour signaler que dans une DSN précédente la rubrique « Coefficient hiérarchique - S21.G00.40.071 »
+  avait été déclarée par erreur pour ce contrat (il n’y avait pas lieu de renseigner la rubrique pour ce
+  contrat), cette rubrique doit être renseignée avec le code ‘000’. Cette valeur a été créée pour permettre
+  d’annuler le coefficient hiérarchique précédemment déclaré à tort.
+  Pour les individus affiliés à la CPRPF, le coefficient hiérarchique est un des éléments composant la
+  situation hiérarchique de l'individu.
+  Pour les agents de la RATP affiliés à la CRP RATP, cette rubrique est à alimenter avec le coefficient
+  retraite.
+  CSL 00 : ([0-9]{1,3})|(([0-9]|[a-z]|[A-Z]){1,5}\.([0-9]|[a-
+  X  [1,8]
+  z]|[A-Z]){2})
+
+Ancien genre de navigation  S21.G00.41.047
+ChangementsContrat.AncienGenreNavigation
+  Pour les salariés des entreprises affiliées à l'ENIM, cette rubrique présente les codes de genre de navigation
+  nécessaires dans la détermination des cotisations appliquées.
+
+  X  [2,2]
+
+  01 - Cabotage international
+  02 - Cabotage national
+  03 - Conchyliculture petite pêche
+  04 - Culture marine
+  05 - Culture marine petite pêche
+  06 - Grande pêche
+  07 - Lamanage navigation côtière
+  08 - Long cours
+  09 - Navigation côtière
+  10 - Pêche au large
+  11 - Pêche côtière
+  12 - Petite pêche
+  13 - Pilotage
+  14 - Remorquage cabotage international
+  15 - Remorquage cabotage national
+  16 - Remorquage long cours
+  17 - Remorquage navigation côtière
+  18 - Yachting cabotage international
+  19 - Yachting cabotage national
+  20 - Yachting long cours
+  21 - Yachting navigation côtière
+  99 - Non concerné
+
+Ancien statut BOETH  S21.G00.41.048
+
+  233 / 361
+
+--- p. 234 ---
+  S21.G00.41  2025-12-24
+
+ChangementsContrat.StatutBOETH
+  Cette rubrique est à renseigner en cas de changement de statut d’un individu bénéficiaire de l’obligation
+  d’emploi des travailleurs handicapés (BOETH) précédemment déclaré (changement prévu ou correction
+  rétroactive).
+
+  X  [2,2]
+
+  01 - Travailleur reconnu handicapé par la commission des droits et de l'autonomie des personnes handicapées
+  02 - Victime d'accident du travail ou de maladie professionnelle ayant entraîné une incapacité permanente au moins
+  égale à 10 % et titulaire d'une rente
+  03 - Titulaire d'une pension d'invalidité à condition que l'invalidité réduise au moins des deux tiers sa capacité de
+  travail
+  04 - Bénéficiaire mentionné à l'article L.241-2 du Code des pensions militaires d'invalidité et des victimes de la guerre
+  05 - Bénéficiaire mentionné aux articles L.241-3 et L.241-4 du Code des pensions militaires d'invalidité et des victimes
+  de la guerre
+  06 - Titulaire d'une allocation ou d'une rente d'invalidité dans les conditions définies par la Loi n°91-1389 du 31
+  décembre 1991
+  07 - Titulaire de la carte "mobilité inclusion" portant la mention "invalidité" (L. 241-3 du Code de l'action sociale et
+  des familles)
+  08 - Titulaire de l'allocation aux adultes handicapés
+  09 - Bénéficiaire mentionné aux articles L.241-5 et L.241-6 du Code des pensions militaires d'invalidité et des victimes
+  de guerre
+  10 - Agent public reclassé (3ème alinéa de l'article L.323-5 du Code du travail)
+  11 - Agent public bénéficiaire d'une allocation temporaire d'invalidité (4ème alinéa de l'article L.323-5 du Code du
+  travail)
+  12 - Ayant droit à la prestation de compensation du handicap, à l'allocation compensatrice pour tierce personne ou à
+  l'allocation d'éducation de l'enfant handicapé bénéficiant d'un stage (L.5212-7 du Code du travail)
+  99 - Absence de statut BOETH
+
+Ancien complément de dispositif de politique publique  S21.G00.41.049
+ChangementsContrat.ComplementDispositifPublic
+  Cette rubrique est à renseigner pour un individu concerné par une aide au poste en entreprise adaptée ou
+  structure d'insertion par l'activité économique.
+
+  X  [2,2]
+
+  01 - Poste éligible à l'aide en entreprise adaptée
+  02 - Poste éligible à l'aide en structure d’IAE : ACI (ACI_DC)
+  03 - Poste éligible à l'aide en structure d’IAE : AI (AI_DC)
+  04 - Poste éligible à l'aide en structure d’IAE : EI (EI_DC)
+  05 - Poste éligible à l'aide en structure d’IAE : ETTI (ETTI_DC)
+  99 - Non concerné
+
+Ancien cas de mise à disposition externe d'un individu de  S21.G00.41.050
+l'établissement
+ChangementsContrat.CasMiseDispositionExterneIndividuEtablissem
+ent
+  Nature de la mise à disposition externe du salarié.
+  Le portage salarial est une relation contractuelle tripartite dans laquelle un salarié porté ayant un contrat
+  de travail avec une entreprise de portage salarial effectue une prestation pour le compte d'entreprises
+  clientes.
+  Les groupements d'employeurs sont des groupements de personnes entrant dans le champ d'application
+
+  234 / 361
+
+--- p. 235 ---
+  S21.G00.41  2025-12-24
+
+  d'une même convention collective. Ils peuvent être constitués dans le but de mettre à la disposition de leurs
+  membres des salariés liés à ces groupements par un contrat de travail.
+  Les entreprises adaptées permettent à des travailleurs handicapés d'exercer une activité professionnelle
+  dans des conditions adaptées à leurs possibilités. La valeur "03 - Individu d'une entreprise adaptée mis à
+  disposition" est à renseigner lorsque le travailleur handicapé est mis à disposition dans une autre entreprise
+  (SIREN différent).
+
+  X  [2,2]
+
+  01 - Individu en portage salarial
+  02 - Individu mis à disposition dans un établissement adhérent du groupement d'employeurs
+  03 - Individu d'une entreprise adaptée mis à disposition
+  04 - Individu d’une agence de mannequin mis à disposition
+  05 - Individu d’une entreprise de travail à temps partagé (ETTP ou ETT) mis à disposition en CDI employabilité
+  06 - Individu d’une association intermédiaire mis à disposition
+  07 - Individu d'une entreprise de travail à temps partagé (ETTP) mis à disposition hors CDI employabilité
+  99 - Non concerné
+
+Ancienne catégorie de classement finale  S21.G00.41.051
+ChangementsContrat.CategorieClassementFinale
+  La catégorie de classement finale est une donnée nécessaire au calcul des cotisations et des prestations
+  servies par l’ENIM. La catégorie doit être associée à une période afin d’établir le salaire forfaitaire
+  applicable. Ces catégories sont définies dans l'Article 1 du Décret n° 52-540 du 07/05/1952 modifié.
+  Pour signaler que dans une DSN précédente la rubrique « Catégorie de classement finale - S21.G00.40.075
+  » avait été déclarée par erreur pour ce contrat (il n’y avait pas lieu de renseigner la rubrique pour ce
+  contrat), cette rubrique doit être renseignée avec le code ‘00’. Cette valeur a été créée pour permettre
+  d’annuler la catégorie de classement finale précédemment déclarée à tort.
+
+  N  [2,2]  CSL 00 : 0[0-9]|1[0-9]|20
+
+Ancien code régime de base risque maladie  S21.G00.41.052
+ChangementsContrat.RegimeMaladie
+  Identifiant du régime de base d'assurance maladie auquel est affilié le salarié.
+
+  X  [3,3]
+
+  134 - régime spécial de la SNCF
+  135 - régime spécial de la RATP
+  136 - établissement des invalides de la marine (ENIM)
+  137 - mineurs ou assimilés (CANSSM)
+  138 - militaires de carrière (CNMSS)
+  140 - clercs et employés de notaires (CRPCEN)
+  141 - chambre de commerce et d'industrie de Paris
+  144 - Assemblée Nationale
+  145 - Sénat
+  146 - port autonome de Bordeaux
+  147 - régime spécial des industries électriques et gazières (CAMIEG)
+  149 - régimes des cultes (CAVIMAC)
+  200 - régime général (CNAM)
+  300 - régime agricole (MSA)
+  400 - régime spécial Banque de France
+
+  235 / 361
+
+--- p. 236 ---
+  S21.G00.41  2025-12-24
+
+  900 - autre régime (réservé Polynésie Française, Nouvelle Calédonie)
+  909 - travailleur étranger non assujetti à un régime de base risque maladie en France
+  999 - sans régime obligatoire
+
+Ancien code régime de base risque vieillesse  S21.G00.41.053
+ChangementsContrat.RegimeVieillesse
+  Identifiant du régime de base d'assurance vieillesse auquel est affilié le salarié.
+
+  X  [3,3]
+
+  120 - retraite des agents des collectivités locales (CNRACL)
+  121 - pensions des ouvriers des établissements industriels de l'Etat (FSPOEIE)
+  122 - pensions civiles et militaires de retraite de l'Etat (SRE)
+  134 - régime spécial de la branche ferroviaire
+  135 - régime spécial de la RATP
+  136 - établissement des invalides de la marine (ENIM)
+  137 - mineurs ou assimilés (fonds Caisse des Dépôts)
+  139 - Banque de France
+  140 - clercs et employés de notaires (CRPCEN)
+  141 - chambre de commerce et d'industrie de Paris
+  144 - Assemblée Nationale
+  145 - Sénat
+  147 - régime spécial des industries électriques et gazières (CNIEG)
+  149 - régime des cultes (CAVIMAC)
+  157 - régime de retraite des avocats (CNBF)
+  158 - SEITA
+  159 - Comédie Française
+  160 - Opéra de Paris
+  200 - régime général (CNAV)
+  300 - régime agricole (MSA)
+  900 - autre régime (réservé Polynésie Française, Nouvelle Calédonie)
+  904 - principauté de Monaco
+  905 - Régime général pour la déclaration des individus de Mayotte affiliés à la CSSM
+  909 - travailleur non assujetti à un régime de base risque vieillesse en France
+  994 - absence d'affiliation pour le personnel médical hospitalier universitaire
+  995 - absence d’affiliation pour un fonctionnaire en cumul d’activité à titre accessoire
+  996 - absence d’affiliation pour un expatrié
+  997 - absence d’affiliation pour un stagiaire hors formation professionnelle
+  998 - absence d’affiliation pour un élu
+
+Ancien identifiant du contrat d'engagement maritime  S21.G00.41.054
+ChangementsContrat.IdentifiantContratEngagementMaritime
+  Pour les individus affiliés à l'ENIM, cette rubrique doit être alimentée du numéro du contrat marin associé à
+  la ligne de service.
+
+  X  [5,20]
+
+Ancien collège (CNIEG)  S21.G00.41.055
+ChangementsContrat.CollegeCNIEG
+  En cas de changement du positionnement du salarié dans la grille de rémunération de la branche
+  professionnelle des IEG, cette rubrique est à alimenter avec l'ancienne valeur du positionnement du salarié.
+
+  236 / 361
+
+--- p. 237 ---
+  S21.G00.41  2025-12-24
+
+  X  [2,2]
+
+  01 - Collège Exécution
+  02 - Collège Maîtrise
+  03 - Collège Cadre
+  99 - Pas de collège
+
+Ancienne forme d'aménagement du temps de travail dans le cadre de  S21.G00.41.056
+l'activité partielle
+ChangementsContrat.FormeAmenagementTempsTravailActiviteParti
+elle
+  Cette rubrique doit être renseignée pour tous les individus placés en activité partielle.
+
+  X  [2,2]
+
+  01 - Forfait hebdomadaire
+  02 - Autre temps de travail hebdomadaire
+  03 - Equivalent à 35h - 39h (Mayotte)
+  04 - Forfait mensuel
+  05 - Forfait annuel en jour
+  06 - Forfait annuel en heures
+  07 - Cycle
+  08 - Modulation
+  09 - Aménagement du temps de travail (Loi du 20 août 2008)
+  10 - Personnel navigant ou autres
+  99 - Non concerné
+
+[FP] Ancien type de détachement  S21.G00.41.057
+ChangementsContrat.Détachement
+  Le type de détachement est à déclarer par l'établissement d'accueil d'un fonctionnaire détaché.
+
+  X  [2,2]
+
+  01 - [FP] Détachement auprès d'un parlementaire
+  02 - [FP] Détachement sur un emploi de collaborateur cabinet
+  03 - [FP] Détachement au titre de la coopération technique
+  05 - [FP] Détachement sur un emploi fonctionnel
+  06 - [FP] Détachement pour fonction élective ou mandat syndical
+  07 - [FP] Détachement pour exercer un mandat de député
+  08 - [FP] Détachement pour exercer un mandat de sénateur
+  09 - [FP] Détachement (reclassement) pour difficultés opérationnelles
+  10 - [FP] Détachement (reclassement) pour raison opérationnelle
+  11 - [FP] Détachement auprès d'un organisme de droit privé, d'un EPIC ou d'un GIP
+  12 - [FP] Détachement auprès d'un établissement public national
+  13 - [FP] Détachement auprès d'une collectivité ou d’un établissement public territorial ou hospitalier
+  15 - [FP] Détachement auprès de l’Etat
+  16 - [FP] Absence de détachement
+  99 - Non concerné
+
+Ancien positionnement dans la convention collective  S21.G00.41.058
+
+  237 / 361
+
+--- p. 238 ---
+  S21.G00.41  2025-12-24
+
+ChangementsContrat.PositionnementConventionCollective
+  Pour les salariés des entreprises adhérentes à une caisse CIBTP, cette rubrique représente le code
+  classification BTP tel que référencé dans les nomenclatures des conventions collectives du BTP (table CCLA
+  disponible sur le site http://www.net-entreprises.fr) et dont les consignes de remplissage sont précisées sur
+  le site www.cibtp.fr .
+
+  Pour les clercs et les salariés de notaires il conviendra d'indiquer le code classification de la convention
+  collective nationale du notariat du 8 juin 2001 (site http://legifrance.gouv.fr/).
+
+  Pour les salariés des autres entreprises, cette rubrique représente l'échelon et le coefficient dans la
+  convention collective. Pour l'AGIRC-ARRCO, elle permet de définir la classification « extension article 36 »
+  et concerne l'ensemble des secteurs d'activité.
+
+  Pour signaler que dans une DSN précédente la rubrique « Positionnement dans la convention collective -
+  S21.G00.40.041 » avait été déclarée par erreur pour ce contrat (il n’y avait pas lieu de renseigner la
+  rubrique pour ce contrat), cette rubrique doit être renseignée avec le code ‘ZZZ’. Cette valeur a été créée
+  pour permettre d’annuler le positionnement dans la convention collective précédemment déclaré à tort.
+
+  Pour les salariés affiliés à la CPRPF, il conviendra de renseigner la classe de l'agent.
+
+  X  [1,100]
+
+Ancien code régime de base risque accident du travail  S21.G00.41.059
+ChangementsContrat.CodeRegimeBaseAT
+  Code indiquant le régime de couverture des risques professionnels auquel est affilié le salarié et permettant
+  de l'indemniser en cas d'accident du travail, d'accident du trajet ou de maladie professionnelle.
+
+  X  [3,3]
+
+  134 - régime spécial de la SNCF
+  135 - régime spécial de la RATP
+  136 - établissement des invalides de la marine (ENIM)
+  137 - mineurs ou assimilés (CANSSM)
+  147 - régime spécial des industries électriques et gazières
+  200 - régime général (CNAM)
+  300 - régime agricole (CCMSA ou C3A)
+  401 - risque AT/MP pris en charge totalement par l'employeur (hors périmètre Etat)
+  402 - risque AT/MP pris en charge partiellement par l'employeur (hors périmètre Etat)
+  900 - autre régime
+  999 - sans régime obligatoire (fonctionnaire des trois fonctions publiques et contractuels dont le risque AT est couvert
+  par l'Etat)
+
+Ancien statut d'emploi du salarié  S21.G00.41.060
+ChangementsContrat.StatutEmploi
+
+  X  [2,2]
+
+  01 - [FP] Fonctionnaire
+  02 - [FP] Contractuel de la Fonction publique
+  03 - Statutaire
+  04 - Non statutaire
+
+  238 / 361
+
+--- p. 239 ---
+  S21.G00.41  2025-12-24
+
+  06 - Personnel médical hospitalier
+  07 - Médecin sans statut hospitalier
+  08 - [FP] Fonctionnaire stagiaire
+  09 - [FP] Ouvrier d'Etat
+  10 - [FP] Militaire
+  11 - [FP] Parcours d'accès aux carrières (Pacte)
+  12 - [FP] Militaire de réserve
+  99 - Non concerné
+
+Ancien code emplois multiples  S21.G00.41.061
+ChangementsContrat.AncienCodeEmploisMultiples
+  Cette rubrique précise si le salarié a plusieurs emplois chez un même employeur au cours d'une même
+  période de paie.
+
+  X  [2,2]
+
+  01 - emploi unique
+  02 - emplois multiples
+  03 - situation non connue
+
+Ancien code employeurs multiples  S21.G00.41.062
+ChangementsContrat.AncienCodeEmployeursMultiples
+  Cette rubrique précise si le salarié a plusieurs employeurs au cours de la même période de paie.
+
+  X  [2,2]
+
+  01 - employeur unique
+  02 - employeurs multiples
+  03 - situation non connue
+
+Ancien grade  S21.G00.41.063
+ChangementsContrat.AncienGrade
+  Cette donnée véhicule le grade de l’individu.
+
+  Pour signaler que dans une DSN précédente la rubrique « Grade - S21.G00.40.079 » avait été déclarée par
+  erreur pour ce contrat (il n’y avait pas lieu de renseigner la rubrique pour ce contrat), cette rubrique doit
+  être renseignée avec le code ‘99999’. Cette valeur a été créée pour permettre d’annuler le grade
+  précédemment déclaré à tort.
+
+  X  [1,5]
+
+[FP] Ancien indice complément de traitement indiciaire (CTI)  S21.G00.41.064
+ChangementsContrat.AncienIndiceCTI
+  Le complément de traitement indiciaire (CTI) est un nombre de points d’indice, se comportant comme un
+  indice majoré, accordé à certains fonctionnaires, en sus du traitement de base.
+  Pour signaler que dans une DSN précédente la rubrique « [FP] Indice complément de traitement indiciaire
+  (CTI) - S21.G00.40.080 » avait été déclarée par erreur pour ce contrat (il n’y avait pas lieu de renseigner la
+  rubrique pour ce contrat), cette rubrique doit être renseignée avec le code ‘999’. Cette valeur a été créée
+  pour permettre d’annuler un indice complément de traitement indiciaire précédemment déclaré à tort.
+
+  239 / 361

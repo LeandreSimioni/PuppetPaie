@@ -1,0 +1,58 @@
+# Bloc S21.G00.45
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 244-244
+
+--- p. 244 ---
+  S21.G00.45  2026-06-10
+
+AssujettissementFiscal.Millesime
+  Année au titre de laquelle le bloc "Assujettissement fiscal - S21.G00.44" est souscrit.
+
+  CCH-11 : L'année déclarée doit être inférieure ou égale aux quatre derniers caractères (Année) du mois principal
+  déclaré au sein de la rubrique « Date du mois principal déclaré – S20.G00.05.005 ».
+
+  N  [4,4]  CSL 00 : 2([0-9]{3})
+
+Motif de non assujettissement à la taxe d'apprentissage  S21.G00.44.004
+AssujettissementFiscal.MotifNonAssujettis
+  CCH-11 : La rubrique "Motif de non assujettissement à la taxe d'apprentissage - S21.G00.44.004" est obligatoire si la
+  rubrique "Code taxe - S21.G00.44.001" est renseignée avec la valeur "002 - Non assujettissement à la taxe à
+  l'apprentissage". Dans le cas contraire, elle est interdite.
+
+  CRE-11 : valeurs autorisées
+
+  Table MNATA – Motif de non assujettissement à la taxe
+  X  [3,3]
+  d’apprentissage
+
+S21.G00.45
+
+Données précédemment déclarées  S21.G00.45
+  Ce bloc est à renseigner lorsque le contrat a été déclaré dans la dernière DSN mensuelle sous un autre SIRET
+  employeur ou avec un numéro de contrat différent, alors que le signalement FCTU est transmis avant que la
+  modification/mutation n'ait été déclarée en DSN mensuelle.
+
+SIRET déclarant le contrat précédemment  S21.G00.45.001
+Numéro du contrat déclaré précédemment  S21.G00.45.002
+
+SIRET déclarant le contrat précédemment  S21.G00.45.001
+DonneesPrecedemmentDeclaree.SiretDeclarantContratPrec
+  Le numéro SIRET est un identifiant numérique de 14 chiffres composé du SIREN (9 chiffres) et d'un numéro
+  interne de classement de 5 chiffres (NIC) caractérisant l'établissement d'une entreprise en tant qu'unité
+  géographiquement localisée.
+  CSL-11 : [(vérification de la clé SIREN)]
+
+  CSL-12 : [(vérification de la clé SIRET)]
+
+  X  [14,14]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Numéro du contrat déclaré précédemment  S21.G00.45.002
+DonneesPrecedemmentDeclaree.NumeroContratDeclarePrec
+  Le numéro de contrat est un des identifiants du contrat.
+
+  X  [5,20]
+
+S21.G00.50
+
+Versement individu  S21.G00.50
+
+  244 / 370

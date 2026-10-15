@@ -1,0 +1,73 @@
+# Bloc S10.G00.02
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 132-133
+
+--- p. 132 ---
+  S10.G00.02  2025-12-24
+
+Service de distribution, complément de localisation de la voie  S10.G00.01.010
+Emetteur.ComplementVoie
+  Il s’agit de services de distribution du courrier spécifiques proposés ou mis en place par La Poste
+
+  X  [1,50]
+
+S10.G00.02
+
+Contact Emetteur  S10.G00.02
+  Acteur à contacter, chez le déclarant, dès lors qu’un problème est détecté suite à l’émission et le dépôt du fichier DSN.
+
+  Il s’agit d’un point d’entrée unique chargé d’instruire les demandes transmises et de les re-router, si besoin, aux acteurs
+  concernés, notamment dans le cas ou le déclaré n’est pas l’émetteur final du fichier (passage par un concentrateur ou
+  un Tiers déclarant). Il peut s'agir :
+  1. Du déclaré lui-même
+  2. Du tiers déclarant, dans le cas où la production des données déclaratives et la transmission du ficher sur le point de
+  dépôt sont externalisées (recours à Expert comptable)
+  3. Du concentrateur, en charge pour le compte du déclarant, de la concaténation et de la transmission des fichiers sur le
+  point de dépôt
+
+Code civilité  S10.G00.02.001
+Nom et prénom de la personne à contacter  S10.G00.02.002
+Adresse mél du contact émetteur  S10.G00.02.004
+Adresse téléphonique  S10.G00.02.005
+Adresse fax  S10.G00.02.006
+
+Code civilité  S10.G00.02.001
+Contact.Civilite
+
+  X  [2,2]
+
+  01 - monsieur
+  02 - madame
+
+Nom et prénom de la personne à contacter  S10.G00.02.002
+Contact.Nom
+  Nom, prénom de l'agent de l'émetteur pouvant donner des précisions sur cet envoi.
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,80]
+
+Adresse mél du contact émetteur  S10.G00.02.004
+Contact.Mel
+  Cette adresse sera utilisée dans le cadre des contacts en lien avec vos déclarations actuelles et à venir.
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant de l'adresse mél.
+
+  X  [6,100]
+
+  132 / 361
+
+--- p. 133 ---
+  S10.G00.02  2025-12-24
+
+Adresse téléphonique  S10.G00.02.005
+Contact.Tel
+
+  X  [10,20]
+
+Adresse fax  S10.G00.02.006
+Contact.fax
+  Si souhaité par le contact.
+
+  X  [10,20]
+
+  133 / 361

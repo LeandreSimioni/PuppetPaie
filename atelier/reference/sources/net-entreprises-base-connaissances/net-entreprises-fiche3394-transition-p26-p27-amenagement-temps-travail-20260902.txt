@@ -1,0 +1,1113 @@
+Date de modification : 02/09/2026 02:12 PM
+
+ Comment gérer la période de transition entre P26 et P27 pour la déclaration des aménagements du temps de travail en DSN ? 
+
+ Le contexte 
+
+Un bloc « Aménagement du temps de travail - S21.G00.75 » a été créé en norme P27 afin de déclarer en DSN l’application d’un dispositif visant à réduire le temps de travail d’un individu pour une durée établie, modifiant ainsi de manière temporaire les caractéristiques du contrat de travail.
+
+Ces aménagements du temps de travail étaient, avant la norme P27, déclarés dans le bloc « Autre suspension de l’exécution du contrat - S21.G00.65 ». Ils doivent cependant être distingués d’une suspension de contrat, qui correspond à une situation où un individu cesse de travailler pendant une période donnée.
+
+Cette fiche consigne présente donc les consignes applicables dans les situations où un aménagement du temps de travail serait déclaré à cheval entre les normes P26 et P27, afin de permettre une gestion correcte de ces situations sans perte d’information. Les consignes applicables à partir du 1er janvier 2027 sont quant à elles décrites dans la fiche consigne 3372 « Comment déclarer un aménagement du temps de travail en DSN ? ».
+
+Cas relatifs à la déclaration d’une période d’aménagement du temps de travail
+
+Cas 1 : La période d’aménagement s’est terminée avant le 1er janvier 2027
+
+Dans le cas où la période d’aménagement s’est terminée avant le 1er janvier 2027, le principe de non-rétroactivité s’applique : la période d’aménagement ne doit pas faire l’objet d’une déclaration en DSN en 2027. 
+
+En conséquence, seules les modifications de la « Quotité de travail du contrat - S21.G00.40.013 » et de la « Modalité d'exercice du temps de travail - S21.G00.40.014 » sont attendues en 2026 en cas d’aménagement du temps de travail, ainsi qu’un bloc « Autre suspension de l’exécution du contrat - S21.G00.65 » si le déclarant en déclarait habituellement pour les situations d’aménagement du temps de travail.
+
+Exemple 1 : un individu pose un congé de présence parentale à temps partiel (80%) du 12 au 21 décembre 2026
+
+ | 
+
+ DSN de décembre 2026
+
+ | 
+
+ S21.G00.40 - Contrat
+
+ | 
+
+ S21.G00.40.011 
+
+ | 
+
+ Unité de mesure de la quotité de travail 
+
+ | 
+
+ 10 - heure
+
+ | 
+
+ S21.G00.40.012 
+
+ | 
+
+ Quotité de travail de référence de l’entreprise pour la catégorie de salarié 
+
+ | 
+
+ 151.61
+
+ | 
+
+ S21.G00.40.013 
+
+ | 
+
+ Quotité de travail du contrat 
+
+ | 
+
+ 151.67
+
+ | 
+
+ S21.G00.40.014 
+
+ | 
+
+ Modalité d’exercice du temps de travail 
+
+ | 
+
+ 10 - Temps plein
+
+ | 
+
+ S21.G00.41 - Changements Contrat
+
+ | 
+
+ S21.G00.41.001
+
+ | 
+
+ Date de la modification
+
+ | 
+
+ 21122026
+
+ | 
+
+ S21.G00.41.007
+
+ | 
+
+ Ancienne quotité de travail du contrat
+
+ | 
+
+ 121.33
+
+ | 
+
+ S21.G00.41 - Changements Contrat
+
+ | 
+
+ S21.G00.41.001
+
+ | 
+
+ Date de la modification
+
+ | 
+
+ 21122026
+
+ | 
+
+ S21.G00.41.008
+
+ | 
+
+ Ancienne modalité d’exercice du temps de travail
+
+ | 
+
+ 20 - Temps partiel
+
+ | 
+
+ S21.G00.41 - Changements Contrat
+
+ | 
+
+ S21.G00.41.001
+
+ | 
+
+ Date de la modification
+
+ | 
+
+ 12122026
+
+ | 
+
+ S21.G00.41.007
+
+ | 
+
+ Ancienne quotité de travail du contrat
+
+ | 
+
+ 151.67
+
+ | 
+
+ S21.G00.41.028
+
+ | 
+
+ Profondeur de recalcul de la paie
+
+ | 
+
+ 01122026
+
+ | 
+
+ S21.G00.41 - Changements Contrat
+
+ | 
+
+ S21.G00.41.001
+
+ | 
+
+ Date de la modification
+
+ | 
+
+ 12122026
+
+ | 
+
+ S21.G00.41.008
+
+ | 
+
+ Ancienne modalité d’exercice du temps de travail
+
+ | 
+
+ 10 - Temps plein
+
+ | 
+
+ S21.G00.41.028
+
+ | 
+
+ Profondeur de recalcul de la paie
+
+ | 
+
+ 01122026
+
+ | 
+
+ S21.G00.65 - Autre suspension de l’exécution du contrat
+
+ | 
+
+ S21.G00.65.001
+
+ | 
+
+ Motif de la suspension 
+
+ | 
+
+ 607 - Congé de présence parentale
+
+ | 
+
+ S21.G00.65.002
+
+ | 
+
+ Date de début de la suspension
+
+ | 
+
+ 12122026
+
+ | 
+
+ S21.G00.65.003
+
+ | 
+
+ Date de fin de la suspension 
+
+ | 
+
+ 21122026
+
+ Note : Aucune déclaration n'est attendue dans la DSN du mois de janvier 2027.
+
+Cas 2 : La période d’aménagement se prolonge ou débute en 2027
+
+Dans le cas où la période d’aménagement du temps de travail se prolonge ou débute en 2027, il est attendu :
+
+Concernant le bloc « Contrat – S21.G00.40 » et « Changements contrat – S21.G00.41 » :
+
+En cas de mise en place initiale de l’aménagement en 2027 : il convient de renseigner la « Quotité de travail du contrat - S21.G00.40.013 » ainsi que la « Modalité d’exercice du temps de travail - S21.G00.40.014 ». Cette déclaration entraîne la création des blocs « Changements Contrat - S21.G00.41 » dès la DSN du premier mois d’application de l’aménagement.
+
+En cas de prolongation d’un aménagement initié en 2026 : les informations relatives à la « Quotité de travail du contrat - S21.G00.40.013 » et à la « Modalité d’exercice du temps de travail - S21.G00.40.014 » ayant déjà été déclarées en 2026, et ayant généré les blocs « Changements Contrat - S21.G00.41 », elles ne doivent pas être redéclarées en 2027.
+
+Si le déclarant a déclaré un bloc « Autre suspension de l’exécution du contrat - S21.G00.65 » jusqu’au mois principal déclaré (MPD) de décembre 2026 (selon sa pratique habituelle), ce bloc devra être terminé au 31 décembre 2026, avec le renseignement de la rubrique « Date de fin de la suspension - S21.G00.65.003 » ;
+
+Si la rubrique « Date de fin de la suspension - S21.G00.65.003 » n’a pas été renseignée avec la date du 31 décembre 2026 dans la DSN de décembre, il convient d’annuler le bloc « Autre suspension de l’exécution du contrat - S21.G00.65 » précédemment renseigné pour en déclarer un nouveau, avec une date de fin au 31 décembre 2026, dans la DSN de janvier 2027.
+
+La déclaration d’un bloc « Aménagement du temps de travail - S21.G00.75 » daté du 1e janvier 2027 (en rubrique « Date de début de l'aménagement - S21.G00.75.002 ») à partir de la DSN de janvier 2027, et répété tous les mois suivants jusqu’à la fin de l’aménagement.
+
+Exemple 2 : un individu pose un congé parental d’éducation à temps partiel (50%) du 7 décembre 2026 au 12 février 2027. Jusqu’en décembre 2026, son employeur déclare cette période d’aménagement en modifiant la « Quotité de travail du contrat - S21.G00.40.013 » de l’individu et en déclarant un bloc « Autre suspension de l’exécution du contrat - S21.G00.65 ».
+
+ | 
+
+ DSN de décembre 2026
+
+ | 
+
+ S21.G00.40 - Contrat 
+
+ | 
+
+ S21.G00.40.011
+
+ | 
+
+ Unité de mesure de la quotité de travail
+
+ | 
+
+ 10 - heure
+
+ | 
+
+ S21.G00.40.012 
+
+ | 
+
+ Quotité de travail de référence de l’entreprise pour la catégorie de salarié
+
+ | 
+
+ 151.67
+
+ | 
+
+ S21.G00.40.013 
+
+ | 
+
+ Quotité de travail du contrat
+
+ | 
+
+ 75.83
+
+ | 
+
+ S21.G00.40.014 
+
+ | 
+
+ Modalité d’exercice du temps de travail
+
+ | 
+
+ 20 - temps partiel
+
+ | 
+
+ S21.G00.41 - Changements Contrat
+
+ | 
+
+ S21.G00.41.001
+
+ | 
+
+ Date de la modification
+
+ | 
+
+ 07122026
+
+ | 
+
+ S21.G00.41.007
+
+ | 
+
+ Ancienne quotité de travail du contrat
+
+ | 
+
+ 151.61
+
+ | 
+
+ S21.G00.41.028
+
+ | 
+
+ Profondeur de recalcul de la paie
+
+ | 
+
+ 01122026
+
+ | 
+
+ S21.G00.41 - Changements Contrat
+
+ | 
+
+ S21.G00.41.001
+
+ | 
+
+ Date de la modification
+
+ | 
+
+ 07122026
+
+ | 
+
+ S21.G00.41.008
+
+ | 
+
+ Ancienne modalité d’exercice du temps de travail
+
+ | 
+
+ 10 - Temps plein
+
+ | 
+
+ S21.G00.41.028
+
+ | 
+
+ Profondeur de recalcul de la paie
+
+ | 
+
+ 01122026
+
+ | 
+
+ S21.G00.65 - Autre suspension de l’exécution du contrat
+
+ | 
+
+ S21.G00.65.001
+
+ | 
+
+ Motif de la suspension
+
+ | 
+
+ 632 - Congé parental d’éducation
+
+ | 
+
+ S21.G00.65.002
+
+ | 
+
+ Date de début de la suspension
+
+ | 
+
+ 07122026
+
+ | 
+
+ S21.G00.65.003
+
+ | 
+
+ Date de fin de la suspension
+
+ | 
+
+ 12022027
+
+ DSN de janvier 2027
+
+ | 
+
+ S21.G00.40 - Contrat
+
+ | 
+
+ S21.G00.40.011 
+
+ | 
+
+ Unité de mesure de la quotité de travail
+
+ | 
+
+ 10 - heure
+
+ | 
+
+ S21.G00.40.012
+
+ | 
+
+ Quotité de travail de référence de l’entreprise pour la catégorie de salarié
+
+ | 
+
+ 151.67
+
+ | 
+
+ S21.G00.40.013
+
+ | 
+
+ Quotité de travail du contrat
+
+ | 
+
+ 75.83
+
+ | 
+
+ S21.G00.40.014
+
+ | 
+
+ Modalité d’exercice du temps de travail
+
+ | 
+
+ 20 - temps partiel 
+
+ | 
+
+ S21.G00.65 - Autre suspension de l’exécution du contrat
+
+ | 
+
+ S21.G00.65.001
+
+ | 
+
+ Motif de la suspension
+
+ | 
+
+ 998 - Annulation 
+
+ | 
+
+ S21.G00.65.002
+
+ | 
+
+ Date de début de la suspension
+
+ | 
+
+ 07122026 
+
+ | 
+
+ S21.G00.65.003
+
+ | 
+
+ Date de fin de la suspension
+
+ | 
+
+ 12022027 
+
+ | 
+
+ S21.G00.65 - Autre suspension de l’exécution du contrat
+
+ | 
+
+ S21.G00.65.001
+
+ | 
+
+ Motif de la suspension
+
+ | 
+
+ 632 - Congé parental d’éducation 
+
+ | 
+
+ S21.G00.65.002
+
+ | 
+
+ Date de début de la suspension
+
+ | 
+
+ 07122026 
+
+ | 
+
+ S21.G00.65.003
+
+ | 
+
+ Date de fin de la suspension
+
+ | 
+
+ 31122026 
+
+ | 
+
+ S21.G00.75 - Aménagement du temps de travail
+
+ | 
+
+ S21.G00.75.001
+
+ | 
+
+ Motif de l’aménagement
+
+ | 
+
+ 632 - Congé parental d’éducation 
+
+ | 
+
+ S21.G00.75.002
+
+ | 
+
+ Date de début de l’aménagement
+
+ | 
+
+ 01012027 
+
+ | 
+
+ S21.G00.75.003
+
+ | 
+
+ Date de fin de l’aménagement
+
+ | 
+
+ 12022027 
+
+ Note : La date de fin peut aussi être modifiée sans annulation explicite du bloc initialement déclaré, en répétant le même bloc « Autre suspension de l’exécution du contrat - S21.G00.65 », avec les mêmes motif et date de début de la suspension, mais avec une date de fin différente de celle précédemment renseignée.
+
+ DSN de février 2027
+
+ | 
+
+ S21.G00.40 - Contrat 
+
+ | 
+
+ S21.G00.40.011
+
+ | 
+
+ Unité de mesure de la quotité de travail
+
+ | 
+
+ 10 - heure 
+
+ | 
+
+ S21.G00.40.012
+
+ | 
+
+ Quotité de travail de référence de l’entreprise pour la catégorie de salarié
+
+ | 
+
+ 151.67 
+
+ | 
+
+ S21.G00.40.013
+
+ | 
+
+ Quotité de travail du contrat
+
+ | 
+
+ 151.67 
+
+ | 
+
+ S21.G00.40.014
+
+ | 
+
+ Modalité d’exercice du temps de travail
+
+ | 
+
+ 10 - temps plein 
+
+ | 
+
+ S21.G00.41 - Changements Contrat
+
+ | 
+
+ S21.G00.41.001
+
+ | 
+
+ Date de la modification
+
+ | 
+
+ 13022027 
+
+ | 
+
+ S21.G00.41.007
+
+ | 
+
+ Ancienne quotité de travail du contrat
+
+ | 
+
+ 75.83 
+
+ | 
+
+ S21.G00.41.028
+
+ | 
+
+ Profondeur de recalcul de la paie
+
+ | 
+
+ 01022027 
+
+ | 
+
+ S21.G00.41 - Changements Contrat
+
+ | 
+
+ S21.G00.41.001
+
+ | 
+
+ Date de la modification
+
+ | 
+
+ 13022027 
+
+ | 
+
+ S21.G00.41.008
+
+ | 
+
+ Ancienne modalité d’exercice du temps de travail
+
+ | 
+
+ 20 - temps partiel 
+
+ | 
+
+ S21.G00.41.028
+
+ | 
+
+ Profondeur de recalcul de la paie
+
+ | 
+
+ 01022027 
+
+ | 
+
+ S21.G00.75 - Aménagement du temps de travail
+
+ | 
+
+ S21.G00.75.001
+
+ | 
+
+ Motif de l’aménagement 
+
+ | 
+
+ 632 - Congé parental d’éducation 
+
+ | 
+
+ S21.G00.75.002
+
+ | 
+
+ Date de début de l’aménagement
+
+ | 
+
+ 01012027 
+
+ | 
+
+ S21.G00.75.003
+
+ | 
+
+ Date de fin de l’aménagement
+
+ | 
+
+ 12022027 
+
+ Note : le bloc « Autre suspension de l’exécution du contrat - S21.G00.65 » dans la DSN de décembre 2026 n’est déclaré que si le déclarant en déclare habituellement dans des situations d’aménagement du temps de travail.
+
+Cas particulier : découpage de la période d’aménagement
+
+Par exception, en cas de déclaration de plusieurs blocs « Autre suspension de l’exécution du contrat - S21.G00.65 » ponctuels sur une période resserrée sans modification de la « Quotité de travail du contrat - S21.G00.40.013 » avant le 1er janvier 2027, pour une période d’aménagement se prolongeant en 2027, il est attendu :
+
+La modification de la « Quotité de travail du contrat - S21.G00.40.013 » et de la « Modalité d'exercice du temps de travail - S21.G00.40.014 » à partir de la DSN de janvier 2027
+
+La déclaration d’un bloc « Aménagement du temps de travail - S21.G00.75 » daté du 1er janvier 2027 (en rubrique « Date de début de l'aménagement - S21.G00.75.002 ») à partir de la DSN de janvier 2027, et répété tous les mois suivants jusqu’à la fin de l’aménagement
+
+Dans cette situation, la période antérieure au 1er janvier 2027 n’est pas considérée en DSN comme une période d’aménagement du temps de travail.
+
+Exemple 3 : un individu pose un congé parental d’éducation à temps partiel (60% ou 3 jours par semaine) du 14 décembre 2026 au 12 février 2027. Son employeur déclare cette période d’aménagement sans modifier la « Quotité de travail du contrat - S21.G00.40.013 » de l’individu sur 2026, en déclarant plusieurs blocs « Autre suspension de l’exécution du contrat - S21.G00.65 » de deux jours sur le mois de décembre 2026. Le salarié et l'employeur conviennent de signer un avenant au contrat dès le 1er janvier 2027.
+
+ | 
+
+ DSN de décembre 2026
+
+ | 
+
+ S21.G00.40 - Contrat
+
+ | 
+
+ S21.G00.40.011
+
+ | 
+
+ Unité de mesure de la quotité de travail
+
+ | 
+
+ 10 - heure 
+
+ | 
+
+ S21.G00.40.012
+
+ | 
+
+ Quotité de travail de référence de l’entreprise pour la catégorie de salarié
+
+ | 
+
+ 151.67 
+
+ | 
+
+ S21.G00.40.013
+
+ | 
+
+ Quotité de travail du contrat
+
+ | 
+
+ 151.67 
+
+ | 
+
+ S21.G00.40.014
+
+ | 
+
+ Modalité d’exercice du temps de travail
+
+ | 
+
+ 10 - temps plein 
+
+ | 
+
+ S21.G00.65 - Autre suspension de l’exécution du contrat
+
+ | 
+
+ S21.G00.65.001
+
+ | 
+
+ Motif de la suspension
+
+ | 
+
+ 632 - Congé parental d’éducation 
+
+ | 
+
+ S21.G00.65.002
+
+ | 
+
+ Date de début de la suspension
+
+ | 
+
+ 14122026 
+
+ | 
+
+ S21.G00.65.003
+
+ | 
+
+ Date de fin de la suspension
+
+ | 
+
+ 15122026 
+
+ | 
+
+ S21.G00.65 - Autre suspension de l’exécution du contrat
+
+ | 
+
+ S21.G00.65.001
+
+ | 
+
+ Motif de la suspension
+
+ | 
+
+ 632 - Congé parental d’éducation 
+
+ | 
+
+ S21.G00.65.002
+
+ | 
+
+ Date de début de la suspension
+
+ | 
+
+ 21122026 
+
+ | 
+
+ S21.G00.65.003
+
+ | 
+
+ Date de fin de la suspension
+
+ | 
+
+ 22122026 
+
+ | 
+
+ S21.G00.65 - Autre suspension de l’exécution du contrat
+
+ | 
+
+ S21.G00.65.001
+
+ | 
+
+ Motif de la suspension
+
+ | 
+
+ 632 - Congé parental d’éducation 
+
+ | 
+
+ S21.G00.65.002
+
+ | 
+
+ Date de début de la suspension
+
+ | 
+
+ 28122026 
+
+ | 
+
+ S21.G00.65.003
+
+ | 
+
+ Date de fin de la suspension
+
+ | 
+
+ 29122026 
+
+ DSN de janvier 2027
+
+ | 
+
+ S21.G00.40 - Contrat
+
+ | 
+
+ S21.G00.40.011
+
+ | 
+
+ Unité de mesure de la quotité de travail
+
+ | 
+
+ 10 - heure 
+
+ | 
+
+ S21.G00.40.012
+
+ | 
+
+ Quotité de travail de référence de l’entreprise pour la catégorie de salarié
+
+ | 
+
+ 151.67 
+
+ | 
+
+ S21.G00.40.013
+
+ | 
+
+ Quotité de travail du contrat
+
+ | 
+
+ 91 
+
+ | 
+
+ S21.G00.40.014
+
+ | 
+
+ Modalité d’exercice du temps de travail
+
+ | 
+
+ 20 - temps partiel 
+
+ | 
+
+ S21.G00.75 - Aménagement du temps de travail
+
+ | 
+
+ S21.G00.75.001
+
+ | 
+
+ Motif de l’aménagement
+
+ | 
+
+ 632 - Congé parental d’éducation 
+
+ | 
+
+ S21.G00.75.002
+
+ | 
+
+ Date de début de l’aménagement
+
+ | 
+
+ 01012027 
+
+ | 
+
+ S21.G00.75.003
+
+ | 
+
+ Date de fin de l’aménagement
+
+ | 
+
+ 12022027 
+
+Suite des cas et des exemples sur la FC 3397 (clic ici)
+
+Cas relatifs à la correction d’une période d’aménagement du temps de travail
+
+Cas 3 : Correction d'une période d'aménagement qui s'est terminée avant le 1er janvier 2027
+
+Exemple 4 : un individu pose un congé de présence parentale à temps partiel (80%) du 12 au 21 décembre 2026. Son employeur commet une erreur et déclare un congé de présence parentale à temps partiel (80%) du 16 au 21 décembre. Il corrige son erreur dans la DSN de janvier.
+
+Exemple 5 : un individu pose un congé de présence parentale à temps partiel (80%) du 12 au 21 décembre 2026. Son employeur commet une erreur et déclare un congé de proche aidant à temps partiel (80%) à la place, il corrige son erreur dans la DSN de janvier.
+
+Cas 4 : Correction d’une période d’aménagement qui débute après le 31 décembre 2026
+
+Cas 5 : Correction d’une période d’aménagement qui se prolonge en 2027
+
+Exemple 6 : un individu pose un congé parental d’éducation à temps partiel (50%) du 12 décembre 2026 au 3 mars 2027. Son employeur commet une erreur et déclare un congé parental d’éducation à 25% dans la DSN de décembre. Il corrige son erreur dans la DSN de janvier.
+
+Exemple 7 : un individu pose un congé parental d’éducation à temps partiel (50%) du 12 décembre 2026 au 3 mars 2027. Son employeur commet une erreur et déclare un congé de présence parentale (50%). Il corrige son erreur dans la DSN de janvier.
+
+Exemple 8 : un marin voit son temps de travail réduit à 60% à compter du 21 décembre 2026. Son employeur commet une erreur et déclare une période d’aménagement pour congé de présence parentale, sans modifier la quotité de travail du contrat de l’individu. Il corrige son erreur dans la DSN de janvier.
+
+ Date de création : 26/08/2026 12:45 PM 
+
+ N° de la fiche : 3394 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

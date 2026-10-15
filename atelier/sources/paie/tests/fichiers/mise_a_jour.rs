@@ -238,7 +238,7 @@ fn release(base: &Path, version: &str, graine: &[u8; 32]) -> PathBuf {
 
 /// Un faux GitHub : `/releases/latest/download/<f>` redirige (302) vers `/releases/download/<etiquette>/<f>`, qui
 /// redirige vers `/stockage/<etiquette>/<f>`, servi depuis `<base>/releases/<etiquette>/` (le releve du 14/10/2026 :
-/// `prive/reference/sources/github/LISEZ-MOI.md`, « La derniere Release »). `derniere` dit l'etiquette de la derniere.
+/// `atelier/reference/sources/github/LISEZ-MOI.md`, « La derniere Release »). `derniere` dit l'etiquette de la derniere.
 fn faux_github(base: &Path, derniere: Arc<Mutex<String>>) -> (String, crate::outils::Recu) {
     let releases = base.join("releases");
     crate::outils::serveur(move |q| {

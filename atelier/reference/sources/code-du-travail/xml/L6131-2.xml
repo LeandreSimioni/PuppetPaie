@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000037375133</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/37/37/51/LEGIARTI000037375133.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L6131-2</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2019-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132349">Sixième partie : La formation professionnelle tout au long de la vie </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2015-01-01" id="LEGISCTA000006145420">LIVRE Ier : PRINCIPES GÉNÉRAUX ET ORGANISATION INSTITUTIONNELLE DE LA FORMATION PROFESSIONNELLE</TITRE_TM>
+<TITRE_TM debut="2015-01-01" fin="2999-01-01" id="LEGISCTA000028698915">Livre Ier : Principes généraux et organisation institutionnelle de la formation et de l'orientation professionnelles </TITRE_TM>
+<TM>
+<TITRE_TM debut="2019-01-01" fin="2999-01-01" id="LEGISCTA000037375127"> Titre III : Financement de la formation professionnelle&#13;
+</TITRE_TM>
+<TM>
+<TITRE_TM debut="2019-01-01" fin="2999-01-01" id="LEGISCTA000037375129">Chapitre unique : Financement de la formation professionnelle&#13;
+</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2019-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000037375133" num="L6131-2" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>La contribution unique à la formation professionnelle et à l'alternance mentionnée au 2° de l'article L. 6131-1 est composée : </p>
+<p>1° De la taxe d'apprentissage mentionnée à l'article L. 6241-1 ; </p>
+<p>2° De la contribution à la formation professionnelle mentionnée aux articles L. 6331-1et 
+L. 6331-3.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000037367660" datesignatexte="2018-09-05" id="LEGIARTI000041472518" naturetexte="LOI" nortexte="MTRX1808061L" num="37" numtexte="2018-771" sens="cible" typelien="CREE">LOI n°2018-771 du 5 septembre 2018 - art. 37 (V)</LIEN>
+
+
+
+<LIEN cidtexte="JORFTEXT000051168007" datesignatexte="2025-02-14" id="LEGIARTI000053563909" naturetexte="LOI" nortexte="ECOX2423405L" num="125" numtexte="2025-127" sens="cible" typelien="CITATION">LOI n°2025-127 du 14 février 2025 - art. 125 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000043701866" naturetexte="CODE" nortexte="" num="L243-1-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L243-1-3 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000047851974" naturetexte="CODE" nortexte="" num="D6241-25-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D6241-25-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000044981953" naturetexte="CODE" nortexte="" num="L6131-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L6131-1 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006904089" naturetexte="CODE" nortexte="" num="L6241-1" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L6241-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000044981927" naturetexte="CODE" nortexte="" num="L6331-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L6331-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000044981918" naturetexte="CODE" nortexte="" num="L6331-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L6331-3 (V)</LIEN>
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>

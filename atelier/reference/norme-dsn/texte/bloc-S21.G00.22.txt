@@ -1,0 +1,290 @@
+# Bloc S21.G00.22
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 163-167
+
+--- p. 163 ---
+  S21.G00.22  2025-12-24
+
+  X  [14,14]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Identifiant du CRM à l'origine de la régularisation  S21.G00.20.013
+VersementOPS.IdentifiantCRM
+  Il s'agit de l'identifiant du CRM (compte rendu métier) transmis par l'organisme demandeur de la
+  régularisation ou de la correction.
+  CCH-11 : La rubrique "Identifiant du CRM à l'origine de la régularisation - S21.G00.20.013" ne peut être renseignée
+  que pour une période de rattachement (S21.G00.20.006 et S21.G00.20.007) inférieure au mois principal déclaré
+  (S20.G00.05.005) de la déclaration. Dans le cas contraire cette rubrique est interdite. Ce contrôle vise à ce qu'il soit
+  possible de renseigner l'identifiant du CRM à l'origine de la régularisation que pour des régularisations ou des
+  corrections.
+
+  X  [1,18]
+
+Identifiant du versement  S21.G00.20.014
+VersementOPS.IdentifiantVersement
+  Identifiant permettant d'apporter des précisions sur le versement.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : non concerné
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : non concerné
+  - CAVEC : non concerné
+  - CCVRP : non concerné
+  - CNIEG : non concerné
+  - Congés spectacles (AUDIENS) : non concerné
+  - CRPCEN : non concerné
+  - CRPNPAC : non concerné
+  - Organisme complémentaire : non concerné
+  - DGFiP : Identifiant de la SATD permettant de rattacher le versement avec la saisie concernée
+  - IRCANTEC : non concerné
+  - MSA : non concerné
+  - France Travail : non concerné
+  - Urssaf : non concerné
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - SRE : non concerné
+  - CNBF : non concerné
+  CCH-11 : Si la rubrique « Entité d'affectation des opérations - S21.G00.20.002 » est renseignée avec la valeur «
+  DGFIP_SATD », alors la rubrique « Identifiant du versement - S21.G00.20.014 » doit obligatoirement être renseignée.
+
+  X  [1,40]
+
+S21.G00.22
+
+Bordereau de cotisation due  S21.G00.22
+
+  163 / 361
+
+--- p. 164 ---
+  S21.G00.22  2025-12-24
+
+  Il établit la dette de cotisation sociale de l'établissement employeur, pour ses propres salariés ou pour son propre
+  compte, vis-à-vis d'un organisme de protection sociale.
+  Le bordereau définit ainsi :
+  - auprès de quel organisme l'établissement est redevable de cotisations
+  - la période de rattachement des cotisations déclarées
+
+Identifiant Organisme de Protection Sociale  S21.G00.22.001
+Entité d'affectation des opérations  S21.G00.22.002
+Date de début de période de rattachement  S21.G00.22.003
+Date de fin de période de rattachement  S21.G00.22.004
+Montant total de cotisations  S21.G00.22.005
+Identifiant du CRM à l'origine de la régularisation  S21.G00.22.006
+
+Identifiant Organisme de Protection Sociale  S21.G00.22.001
+CotisationBordereau.IdentifiantOPS
+  Code identifiant de l'organisme de protection sociale auprès duquel l'établissement est redevable de
+  cotisations sociales associées au bordereau.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : non concerné
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : SIRET de la CAMIEG (pour régularisation des périodes antérieures à 2020 pour le régime
+  général et antérieures à 2021 pour le régime agricole)
+  - CCVRP : non concerné
+  - CNIEG : SIRET de la CNIEG (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : non concerné
+  - CRPCEN : SIRET de la CRPCEN (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : SIRET de la CRPNPAC
+  - Organisme complémentaire : non concerné
+  - DGFiP : non concerné
+  - IRCANTEC : non concerné
+  - MSA : non concerné
+  - France Travail : non concerné
+  - Urssaf : SIRET de l'Urssaf (Table proposée sur le site http://www.net-entreprises.fr)
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - SRE : non concerné
+  - CNBF : non concerné
+  CRE-11 : valeurs autorisées
+
+  Table IBC - Identifiant Organisme de Protection Sociale -
+  X  [5,14]
+  Bordereau de cotisation
+
+Entité d'affectation des opérations  S21.G00.22.002
+CotisationBordereau.EntiteAffectation
+  Identifiant de l'établissement, de la population de salariés ou de tout axe de regroupement pour lequel un
+  montant de cotisations sociales est dû.
+
+  164 / 361
+
+--- p. 165 ---
+  S21.G00.22  2025-12-24
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : non concerné
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : groupe de cotisations (CAMIEG_COT_SOL, CAMIEG_COT_CPL) (pour régularisation des
+  périodes antérieures à 2020 pour le régime général et antérieures à 2021 pour le régime agricole)
+  - CCVRP : non concerné
+  - CNIEG : groupe de cotisations (CNIEG_COT_RS, CNIEG_COT_POOL, CNIEG_COT_RDC) (pour
+  régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : non concerné
+  - CRPCEN : numéro d’étude CRPCEN (6 chiffres) (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : non concerné
+  - Organisme complémentaire : non concerné
+  - DGFiP : non concerné
+  - IRCANTEC : non concerné
+  - MSA : non concerné
+  - France Travail : non concerné
+  - Urssaf : PSEUDO-SIRET (dans le cas d'une population de salariés)
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - SRE : non concerné
+  - CNBF : non concerné
+  CCH-13 : La valeur "CNIEG_COT_RS", "CNIEG_COT_POOL" ou "CNIEG_COT_RDC" n'est autorisée que si au
+  moins une rubrique "Code régime de base risque vieillesse - S21.G00.40.020" est renseignée avec la valeur "147 -
+  Régime spécial des industries électriques et gazières (CNIEG)".
+
+  X  [2,14]
+
+Date de début de période de rattachement  S21.G00.22.003
+CotisationBordereau.RattachementDateDebut
+  Début de la période au titre de laquelle ont été établies les cotisations dont l'établissement est redevable.
+  Cette période peut être définie selon les règles applicables aux différents dispositifs de cotisation. Ce peut
+  être par mois civil (par exemple sécurité sociale), par trimestre, par année (par exemple contribution à un
+  organisme professionnel), par période discrétionnaire, selon ce qui fait sens.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : non concerné
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : date (pour régularisation des périodes antérieures à 2020 pour le régime général et
+  antérieures à 2021 pour le régime agricole)
+  - CCVRP : non concerné
+  - CNIEG : date (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : non concerné
+  - CRPCEN : date (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : date
+  - Organisme complémentaire : non concerné
+  - DGFiP : non concerné
+  - IRCANTEC : non concerné
+
+  165 / 361
+
+--- p. 166 ---
+  S21.G00.22  2025-12-24
+
+  - MSA : non concerné
+  - France Travail : non concerné
+  - Urssaf : date
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - SRE : non concerné
+  - CNBF : non concerné
+  CCH-11 : Si la rubrique "Identifiant Organisme de Protection Sociale - S21.G00.22.001" est renseignée avec le SIRET
+  d’une caisse Urssaf, la "Date de début de période de rattachement - S21.G00.22.003" et la "Date de fin de période de
+  rattachement - S21.G00.22.004" doivent être incluses dans le même mois civil.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de période de rattachement  S21.G00.22.004
+CotisationBordereau.RattachementDateFin
+  Fin de la période au titre de laquelle ont été établies les cotisations dont l'établissement est redevable.
+  Cette période peut être définie selon les règles applicables aux différents dispositifs de cotisation. Ce peut
+  être par mois civil (exemple : Sécurité Sociale), par trimestre, par année (exemple : contribution à un
+  organisme professionnel), par période discrétionnaire selon ce qui fait sens.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : non concerné
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : date (pour régularisation des périodes antérieures à 2020 pour le régime général et
+  antérieures à 2021 pour le régime agricole)
+  - CCVRP : non concerné
+  - CNIEG : date (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : non concerné
+  - CRPCEN : date (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : date
+  - Organisme complémentaire : non concerné
+  - DGFiP : non concerné
+  - IRCANTEC : non concerné
+  - MSA : non concerné
+  - France Travail : non concerné
+  - Urssaf : date
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - SRE : non concerné
+  - CNBF : non concerné
+  CCH-11 : La date de fin de période de rattachement doit être supérieure ou égale à la date de début de période de
+  rattachement.
+
+  CCH-12 : Cette date doit être inférieure ou égale au dernier jour civil du mois principal déclaré
+
+  166 / 361
+
+--- p. 167 ---
+  S21.G00.22  2025-12-24
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Montant total de cotisations  S21.G00.22.005
+CotisationBordereau.Montant
+  Montant total de toutes les cotisations dues à un organisme de protection sociale.
+
+  Modalité de valorisation :
+
+  - AGIRC-ARRCO : non concerné
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : montant (pour régularisation des périodes antérieures à 2020 pour le régime général et
+  antérieures à 2021 pour le régime agricole)
+  - CCVRP : non concerné
+  - CNIEG : montant (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : non concerné
+  - CRPCEN : montant (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : montant
+  - Organisme complémentaire : non concerné
+  - DGFiP : non concerné
+  - IRCANTEC : non concerné
+  - MSA : non concerné
+  - France Travail : non concerné
+  - Urssaf : montant, arrondi à l'entier le plus proche (les deux décimales étant valorisées à zéro)
+  - CNRACL : non concerné
+  - RAFP : non concerné
+  - FSPOEIE : non concerné
+  - RAEP : non concerné
+  - SRE : non concerné
+  - CNBF : non concerné
+  CCH-11 : Si la rubrique "Identifiant Organisme de Protection Sociale - S21.G00.22.001" est renseignée avec le SIRET
+  d’une caisse Urssaf, alors la déclaration d'un montant négatif est interdite si la date de fin de période de rattachement
+  du bordereau (S21.G00.22.004) est supérieure ou égale à la plus récente date de versement (S21.G00.50.001) de la
+  déclaration, sauf si la rubrique « Type de la déclaration – S20.G00.05.002 » est renseignée avec les valeurs « 02 -
+  déclaration normale sans individu » ou « 05 - annule et remplace sans individu ».
+
+  N  [4,18]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Identifiant du CRM à l'origine de la régularisation  S21.G00.22.006
+CotisationBordereau.IdentifiantCRM
+  Il s'agit de l'identifiant du CRM (compte rendu métier) transmis par l'organisme demandeur de la
+  régularisation ou de la correction.
+  CCH-11 : La rubrique "Identifiant du CRM à l'origine de la régularisation - S21.G00.22.006" ne peut être renseignée
+  que pour une période de rattachement (S21.G00.22.003 et S21.G00.22.004) inférieure au mois principal déclaré
+  (S20.G00.05.005) de la déclaration. Dans le cas contraire cette rubrique est interdite. Ce contrôle vise à ce qu'il soit
+  possible de renseigner l'identifiant du CRM à l'origine de la régularisation que pour des régularisations ou des
+  corrections.
+
+  X  [1,18]
+
+  167 / 361

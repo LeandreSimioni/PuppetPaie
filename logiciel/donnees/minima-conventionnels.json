@@ -1,5 +1,5 @@
 {
- "_quoi": "Les minima conventionnels que le logiciel sait comparer a une ligne de paie : cachets d'artistes par grille, cachet ou service de repetition, taux horaire des techniciens par niveau. Ce n'est PAS le texte entier des grilles (voir la copie dans reference/sources/) : c'est ce qui suffit a dire << ce cachet est sous le minimum >>. L'avertissement est NON BLOQUANT : le minimum depend de choses que le moteur ne sait pas toujours (jauge, role, nombre de representations sur trois mois), il dit lequel il a pris.",
+ "_quoi": "Les minima conventionnels que le logiciel sait comparer a une ligne de paie : cachets d'artistes par grille, cachet ou service de repetition, taux horaire des techniciens par niveau. Ce n'est PAS le texte entier des grilles (voir la copie dans atelier/reference/sources/) : c'est ce qui suffit a dire << ce cachet est sous le minimum >>. L'avertissement est NON BLOQUANT : le minimum depend de choses que le moteur ne sait pas toujours (jauge, role, nombre de representations sur trois mois), il dit lequel il a pris.",
  "_sources": [
   "legifrance-3090-avenant-salaires-20250721",
   "legifrance-1285-accord-salaires-20240502",
@@ -952,7 +952,7 @@
     "SMA",
     "SYNDEAC"
    ],
-   "_signataires": "Les six organisations d'employeurs de la page de signature de l'accord (Fait a Paris le 01/07/2026, enveloppe Docusign C0F4144D-437A-8D1C-82D5-82DFB38D6FB4), relue le 25/09/2026 sur le texte signe publie par le SYNAVI (synavi.org/wp-content/uploads/2026/07/accord-nao-2026.pdf, copie dans reference/sources/ccneac-accord-nao-2026-signe.pdf). Tant que l'accord n'est pas etendu, sa grille ne s'impose qu'a leurs adherents : une compagnie dont la fiche dit `organisation_patronale` = l'une d'elles est comparee a la NAO 2026 pour un travail a partir du 01/08/2026 ; les autres, a la grille etendue de 2024 (`minima._plancher_cachet_1285`).",
+   "_signataires": "Les six organisations d'employeurs de la page de signature de l'accord (Fait a Paris le 01/07/2026, enveloppe Docusign C0F4144D-437A-8D1C-82D5-82DFB38D6FB4), relue le 25/09/2026 sur le texte signe publie par le SYNAVI (synavi.org/wp-content/uploads/2026/07/accord-nao-2026.pdf, copie dans atelier/reference/sources/ccneac-accord-nao-2026-signe.pdf). Tant que l'accord n'est pas etendu, sa grille ne s'impose qu'a leurs adherents : une compagnie dont la fiche dit `organisation_patronale` = l'une d'elles est comparee a la NAO 2026 pour un travail a partir du 01/08/2026 ; les autres, a la grille etendue de 2024 (`minima._plancher_cachet_1285`).",
    "cachets": {
     "dramatique": [
      {

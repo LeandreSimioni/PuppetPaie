@@ -1,0 +1,233 @@
+Date de modification : 29/04/2025 11:52 AM
+
+ Comment déclarer le changement des modalités du contrat - S21.G00.41 ?
+
+ Le contexte
+
+Certaines caractéristiques du Contrat de travail sont susceptibles d’évoluer au fil du temps. 
+
+Toute modification survenant dans une ou plusieurs rubriques du bloc "Contrat de travail, convention, mandat - S21.G00.40" doit être portée en bloc “Changements Contrat - S21.G00.41”, qu’il s’agisse d’une information erronée et/ou déclarée à tort ou d’un changement de situation de l’individu. 
+
+Ce bloc contient des données identifiantes (assurant le chaînage de la DSN) et des données non-identifiantes appelées “les modalités”. 
+
+ Il convient de déclarer uniquement la ou les rubriques concernées par les changements des modalités contractuelles*. Tout changement doit être déclaré en DSN du mois où l’information est connue, même s'il a eu lieu antérieurement. 
+
+La date de survenance de cette modification (rubrique “Date de la modification - S21.G00.41.001”) doit systématiquement être renseignée. 
+
+Si plusieurs modifications surviennent au cours du même mois, il est nécessaire de les déclarer dans autant de blocs “Changements Contrat – S21.G00.41” qu'il y a de dates différentes de modifications
+
+Dans le cas où les informations relatives au statut de l’individu salarié ou non salarié sont erronées, les corrections doivent être respectivement portées en DSN 
+
+ | 
+ " Statut du salarié (conventionnel) - S21.G00.40.002 " : cette donnée peut être corrigée via un bloc " Changements Contrat -S21.G00.41 " en remplissant les rubriques " Date de la modification -S21.G00.41.001 ", " Ancien Statut du salarié (conventionnel) -S21.G00.41.002 " et " Profondeur de recalcul de la paie - S21.G00.41.028 ". La nouvelle valeur est renseignée au niveau du bloc " Contrat - S21.G00.40 ". 
+
+ Exemple 
+
+ En janvier 2024, un salarié est déclaré à tort en rubrique " Code statut catégoriel Retraite Complémentaire obligatoire - S21.G00.40.003 " avec un statut relatif à la retraite complémentaire " 02 - extension cadre pour retraite complémentaire " au lieu du statut “non-cadre”. La modification du statut catégoriel est portée sur la DSN du mois suivant (février 2024). 
+
+ DSN de janvier 2024 :
+
+ Bloc " Contrat (contrat de travail, convention, mandat) - S21.G00.40 " mentionnant " Code statut catégoriel Retraite Complémentaire obligatoire - S21.G00.40.003 " : 02 - extension cadre pour retraite complémentaire 
+
+ Bloc " Retraite complémentaire - S21.G00.71 " mentionnant " Code régime Retraite Complémentaire - S21.G00.71.002" : RUAA - Régime unifié ARRCO et AGIRC 
+
+ Bloc " Cotisation individuelle S21.G00.81 " mentionnant " Code de cotisation - S21.G00.81.001 " : 105 - Montant de cotisation Régime Unifié Agirc-Arrco, compris APEC 
+
+ DSN de février 2024 :
+
+ Bloc " Contrat (contrat de travail, convention, mandat) - S21.G00.40 " mentionnant " Code statut catégoriel Retraite Complémentaire obligatoire - S21.G00.40.003 " : 04 - non-cadre 
+
+ Bloc " S21.G00.41 - Changements Contrat" mentionnant " Date de la modification - S21.G00.41.001 " : 01012024 
+
+ " Ancien Code statut catégoriel Retraite Complémentaire obligatoire S21.G00.41.003 " : 04 - non cadre 
+
+ " Profondeur de recalcul de la paie - S21.G00.41.028 " : 01012024 
+
+ Bloc " Retraite complémentaire - S21.G00.71 "mentionnant " Code régime Retraite Complémentaire - S21.G00.71.002 " : RUAA - Régime Unifié AGIRC ARRCO 
+
+ Bloc " Cotisation individuelle - S21.G00.81 " mentionnant " Code de cotisation - S21.G00.81.001 " : 105 - Montant de cotisation Régime Unifié Agirc-Arrco, y compris Apec
+
+ Des cotisations ayant pu être déclarées et prélevées à tort pour le mois de janvier 2024, une régularisation pourra être nécessaire pour rétablir la situation du salarié dans la DSN de février 2024. 
+
+ NB: Pour tout changement intervenant en cours de mois, il convient de ventiler les bases assujetties par périodes afin de permettre un calcul correspondant à la situation exacte du salarié. 
+
+ DSN erronée de janvier 2024 :
+
+ S21.G00.40 - Contrat
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.40.001
+ | Date de début du contrat
+ | 23012012
+
+ | S21.G00.40.002
+ | Statut du salarié (conventionnel)
+ | 06 - employé administratif d'entreprise, de commerce, agent de service
+
+ DSN corrigée de Février 2024 :
+
+ S21.G00.40 - Contrat
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.40.001
+ | Date de début du contrat
+ | 23012012
+
+ | S21.G00.40.002
+ | Statut du salarié (conventionnel)
+ | 03 - cadre dirigeant (votant au collège employeur des élections prud'hommales)
+
+ S21.G00.41 - Changements Contrat
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S21.G00.40.001
+ | Date de début du contrat
+ | 01012024 
+
+ | S21.G00.41.002
+ | Ancien Statut du salarié (conventionnel)
+ | 03 - cadre dirigeant (votant au collège employeur des élections prud'hommales) 
+
+ | S21.G00.41.028
+ | Profondeur de recalcul de la paie
+ | 01012024
+
+Statut du salarié (conventionnel) - S89.G00.91.017 " 
+
+ | 
+ il convient de redéclarer un bloc " Individu non salarié - S89.G00.91 " contenant la donnée à corriger avec la donnée correcte, et, de déclarer un bloc " Bases spécifiques individu non salarié - S89.G00.92 " faisant référence à la période à régulariser. 
+
+ Si aucune correction n'est à apporter au niveau des montants de base, ceux-ci devront être déclarés à " 0.00 " 
+
+ Exemple : 
+
+ En janvier 2024, le statut individu non salarié (" 06 - employé administratif d'entreprise, de commerce, agent de service " est déclaré à tort au lieu de " 03 - cadre dirigeant (votant au collège employeur des élections prud'hommales) ". 
+
+ La correction intervenant après la date d’exigibilité de la DSN, elle sera portée dans la déclaration du mois suivant. 
+
+ DSN erronée de janvier 2024 
+
+ S89.G00.91 - Individu non salarié
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S89.G00.91.001
+ | Numéro d'inscription au répertoire
+ | 1891113055130 
+
+ | […] 
+ | […] 
+ | […] 
+
+ | S89.G00.91.017 
+ | Statut du salarié (conventionnel) 
+ | 06 - employé administratif d'entreprise, de commerce, agent de service 
+
+ S89.G00.92 - Bases spécifiques individu non salarié
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S89.G00.92.001
+ | Type
+ | 01 - Allocation de chômage pour les entreprises en auto-assurance chômage 
+
+ | S89.G00.92.002
+ | Code de base spécifique
+ | 23 - Base exceptionnelle Agirc Arrco 
+
+ | S89.G00.92.003 
+ | Montant
+ | 
+ 1500.00 
+
+ | S89.G00.92.004
+ | Date de début de période de rattachement
+ | 01012024
+
+ | S89.G00.92.005
+ | Date de fin de période de rattachement
+ | 31012024
+
+ DSN corrigée de février 2024 
+
+ S89.G00.91 - Individu non salarié
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S89.G00.91.001
+ | Numéro d'inscription au répertoire
+ | 1891113055130 
+
+ | […] 
+ | […] 
+ | […] 
+
+ | S89.G00.91.017 
+ | Statut du salarié (conventionnel) 
+ | 03 - cadre dirigeant (votant au collège employeur des élections prud'hommales) 
+
+ S89.G00.92 - Bases spécifiques individu non salarié
+
+ Rubrique
+ Libellé
+ A renseigner
+
+ | S89.G00.92.001
+ | Type
+ | 01 - Allocation de chômage pour les entreprises en auto-assurance chômage 
+
+ | S89.G00.92.002
+ | Code de base spécifique
+ | 23 - Base exceptionnelle Agirc Arrco 
+
+ | S89.G00.92.003 
+ | Montant
+ | 0.00
+
+ | S89.G00.92.004
+ | Date de début de période de rattachement
+ | 01012024 
+
+ | S89.G00.92.005
+ | Date de fin de période de rattachement
+ | 31012024
+
+ La rubrique " Statut du salarié (conventionnel) - S21.G00.40.002 " étant obligatoire lors de la déclaration d'un bloc " Contrat (contrat de travail, convention, mandat) - S21.G00.40 ", elle ne peut être absente à tort d'une déclaration ou déclarée à tort indépendamment du bloc " Contrat (contrat de travail, convention, mandat) S21.G00.40 " dont elle dépend. 
+
+ L'usage de la rubrique " Profondeur de recalcul de la paie - S21.G00.41.028 " est obligatoire si un seul bloc " changements Contrat - S21.G00.41 " est déclaré. 
+
+ Si plusieurs blocs " Changements Contrat -S21.G00.41 " sont présents pour une même modalité contractuelle, la rubrique " Profondeur de recalcul de la paie - S21.G00.41.028 " est obligatoire uniquement sur le bloc ayant la date de modification (" S21.G00.41.001 ") la plus ancienne. 
+
+Déclarer un changement de statut en cours de mois
+
+ | 
+ Un salarié ne peut être déclaré que dans une seule et unique fraction au titre d'un mois principal déclaré. 
+
+ Lorsqu’un salarié change de statut en cours de mois et que sa situation professionnelle évolue, il est admis par exception, qu’il soit déclaré sur un même établissement sur 2 fractions distinctes de DSN relatives au même mois principal déclaré. 
+
+ Cette modalité de déclaration ne peut être reproduite, pour un salarié donné, dans plusieurs déclarations mensuelles successives d'un même établissement. 
+
+ Date de création : 06/03/2025 06:27 PM 
+
+ N° de la fiche : 2956 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

@@ -1,0 +1,13 @@
+### feuille « Feuil1 »
+Les 3 lignes du haut de la feuille sont à supprimer avant d'enregistrer le fichier au format .CSV (séparateur point-virgule) pour télétransmission.;;;;;;;;;;;;;;;;;;;;;;;;;;Salariés autre qu'Intermittents;;;;Salariés Intermittents;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;Nombre d'heures;;;;"""A"" si artiste
+""T"" si technicien";Techniciens;;Artistes;;;
+"mention
+""CASC-SVP""";N°Siret;VIDE;VIDE;Année de déclaration concernée;Date de constitution du Fichier;Nom de naissance;"Nom d'artiste
+Nom Marital";Prénom;Date de Naissance;Numéro de Sécurité Sociale avec Clé;n° App ou Bal / couloir / escalier;Entrée / bâtiment / immeuble / résidence;Numéro et libellé de la voie;Lieu dit ou boîte postale;Code Postal  en France;Libellé Commune;Code postal si hors France;Pays;Adresse mail personnelle;Adresse mail professionnelle;Libellé de l'Emploi;Date de début d' emploi;Date de fin d'emploi;Salaire de la période;"""I"" si intermittent
+""P"" si permanent";VIDE;;VIDE;VIDE;;NbJ;NbH;NbC;NbH;"Si P : 
+totalisation des salaires ligne à ligne ex: (ligne1 =salaire1, ligne2=salaire 1+ salaire2, ligne 3=salaire1+2+3.....)";"Si I : 
+totalisation des salaires ligne à ligne ex: (ligne1 =salaire1, ligne2=salaire 1+ salaire2, ligne 3=salaire1+2+3.....)"
+"remplir avec mention""CASC-SVP"" sur toutes les lignes";14 caractères format nombre sans espaces;NE PAS REMPLIR;NE PAS REMPLIR;format AAAA;format JJ/MM/AAAA;30 Car alpha maximum;31 Car alpha maximum ;32 Car alpha maximum ;format JJ/MM/AAAA;15 caractères format nombre sans espaces;34 caractères maximum;32 caractères maximum;32 caractères maximum;32 caractères maximum;5 caractères maximum;26 caractères maximum;10 caractères maximum;32 caractères maximum;;"""OUI"" ou ""O"" si mail professionnel en colonne T";34 caractères maximum;format JJ/MM/AAAA;format JJ/MM/AAAA;6 caractères sans décimales;"1 caractère : ""I"" ou ""P""";NE PAS REMPLIR;"Nb Heures de l'année 
+4 caractères sans décimales";NE PAS REMPLIR;NE PAS REMPLIR;"1 caractère : ""A"" ou ""T""";"4 caractères
+sans décimales";4 caractères sans décimales;4 caractères sans décimales;4 caractères sans décimales;6 caractères sans décimales;6 caractères sans décimales

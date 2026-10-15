@@ -1,0 +1,172 @@
+# Bloc S21.G00.44
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 242-244
+
+--- p. 242 ---
+  S21.G00.44  2026-06-10
+
+Ancienne application de la proratisation du Plafond de Sécurité  S21.G00.41.066
+Sociale à hauteur de la quotité de travail
+ChangementsContrat.AncienneProratisation
+  Pour un salarié à temps partiel, cette rubrique doit être renseignée avec le choix de l’employeur de
+  proratiser le plafond de Sécurité sociale en fonction de la quotité de travail du contrat.
+  Pour un salarié en forfait jour réduit, cette rubrique doit être renseignée avec le choix du salarié de
+  proratiser le plafond de Sécurité sociale en fonction de la quotité de travail de son contrat.
+
+  X  [2,2]
+
+  01 - Oui
+  02 - Non
+
+Ancien choix du salarié en forfait jour réduit indiquant que la  S21.G00.41.067
+proratisation du plafond de Sécurité sociale ne s’applique pas au
+calcul de ses cotisations pour la vieillesse régime de base et la
+retraite complémentaire
+ChangementsContrat.AncienChoixCotisationTempsTravail
+
+  X  [2,2]
+
+  01 - pour la vieillesse régime de base
+  02 - pour la vieillesse régime de base et la retraite complémentaire
+  03 - pour la retraite complémentaire
+  04 - non concerné
+
+Ancienne adhésion à une caisse de congés payés à titre obligatoire  S21.G00.41.068
+ChangementsContrat.AncienneAdhesionCaisseCongePayesOblig
+  Cette rubrique doit être renseignée lorsque l'employeur relève d'une adhésion à une caisse de congés payés
+  à titre obligatoire.
+
+  X  [2,2]
+
+  01 - Oui
+  99 - Non concerné
+
+S21.G00.44
+
+Assujettissement fiscal  S21.G00.44
+  Le renseignement de ce bloc permet la déclaration des assujettissements ou non-assujettissement à la taxe sur les
+  salaires et aux taxes annexes.
+
+  Si une entreprise n'est pas assujettie à une taxe, le motif correspondant à celle-ci comme pour exemple le code "010 -
+  Non assujettissement à la taxe sur les salaires" pour la taxe sur les salaires doit être renseigné dans la rubrique "Code
+  taxe - S21.G00.44.001".
+
+  Si une entreprise est assujettie à une taxe, au moins un bloc "Assujettissement fiscal - S21.G00.44" doit être présent
+  avec la rubrique "Code taxe - S21.G00.44.001" renseignée avec un motif correspondant à celle-ci comme pour
+  exemple le motif "009 - Assujettissement à la taxe sur les salaires" pour la taxe sur les salaires et la rubrique "Montant
+
+  242 / 370
+
+--- p. 243 ---
+  S21.G00.44  2026-06-10
+
+  - S21.G00.44.002" renseignée avec le montant de l'assiette de la taxe sur les salaires au taux normal pour l'ensemble
+  des salariés de l'entreprise.
+
+  Si l'entreprise présente une assiette soumise à taux majoré, doivent être présent autant de blocs "Assujettissement fiscal
+  - S21.G00.44" que nécessaire en y portant le motif correspondant au taux majore d'assujettissement et le montant
+  d'assiette correspondant.
+
+Code taxe  S21.G00.44.001
+Montant  S21.G00.44.002
+Millésime de rattachement  S21.G00.44.003
+Motif de non assujettissement à la taxe d'apprentissage  S21.G00.44.004
+
+Code taxe  S21.G00.44.001
+AssujettissementFiscal.CodeTaxe
+  CCH-11 : Si la rubrique "Code taxe - S21.G00.44.001" est renseignée avec la valeur "005 - Assujettissement à la
+  participation des employeurs à l'effort de construction (PEEC)", "009 - Assujettissement à la taxe sur les salaires",
+  "015 - Assiette de la taxe sur les salaires au premier taux" ou "016 - Assiette de la taxe sur les salaires au deuxième
+  taux", alors la rubrique "Montant - S21.G00.44.002" est obligatoire.
+
+  CCH-12 : Si la rubrique "Code taxe - S21.G00.44.001" est renseignée avec la valeur "002 - Non assujettissement à la
+  taxe à l'apprentissage", "004 - Non assujettissement à la contribution supplémentaire à l’apprentissage", "006 - Non
+  assujettissement à la participation des employeurs à l'effort de construction (PEEC)", "008 - Non assujettissement à la
+  contribution à la formation professionnelle (CFP)", "010 - Non assujettissement à la taxe sur les salaires" ou "014 -
+  Non assujettissement à la contribution dédiée au financement du Compte Personnel de Formation pour les titulaires de
+  CDD (CPF-CDD)", alors la rubrique "Montant - S21.G00.44.002" est interdite.
+
+  X  [3,3]
+
+  001 - Assujettissement à la taxe à l'apprentissage
+  002 - Non assujettissement à la taxe à l'apprentissage
+  003 - Assujettissement à la contribution supplémentaire à l’apprentissage
+  004 - Non assujettissement à la contribution supplémentaire à l’apprentissage
+  005 - Assujettissement à la participation des employeurs à l'effort de construction (PEEC)
+  006 - Non assujettissement à la participation des employeurs à l'effort de construction (PEEC)
+  007 - Assujettissement à la contribution à la formation professionnelle (CFP)
+  008 - Non assujettissement à la contribution à la formation professionnelle (CFP)
+  009 - Assujettissement à la taxe sur les salaires
+  010 - Non assujettissement à la taxe sur les salaires
+  013 - Assujettissement à la contribution dédiée au financement du Compte Personnel de Formation pour les titulaires
+  de CDD (CPF-CDD)
+  014 - Non assujettissement à la contribution dédiée au financement du Compte Personnel de Formation pour les
+  titulaires de CDD (CPF-CDD)
+  015 - Assiette de la taxe sur les salaires au premier taux
+  016 - Assiette de la taxe sur les salaires au deuxième taux
+
+Montant  S21.G00.44.002
+AssujettissementFiscal.Montant
+  Ce montant permet d'établir l'assiette de certaines taxes fiscales qui relèvent de la responsabilité du
+  redevable (auto-liquidation).
+
+  N  [4,16]  CSL 00 : -?(([0-9]){1,12})\.[0-9]{2}
+
+Millésime de rattachement  S21.G00.44.003
+
+  243 / 370
+
+--- p. 244 ---
+  S21.G00.45  2026-06-10
+
+AssujettissementFiscal.Millesime
+  Année au titre de laquelle le bloc "Assujettissement fiscal - S21.G00.44" est souscrit.
+
+  CCH-11 : L'année déclarée doit être inférieure ou égale aux quatre derniers caractères (Année) du mois principal
+  déclaré au sein de la rubrique « Date du mois principal déclaré – S20.G00.05.005 ».
+
+  N  [4,4]  CSL 00 : 2([0-9]{3})
+
+Motif de non assujettissement à la taxe d'apprentissage  S21.G00.44.004
+AssujettissementFiscal.MotifNonAssujettis
+  CCH-11 : La rubrique "Motif de non assujettissement à la taxe d'apprentissage - S21.G00.44.004" est obligatoire si la
+  rubrique "Code taxe - S21.G00.44.001" est renseignée avec la valeur "002 - Non assujettissement à la taxe à
+  l'apprentissage". Dans le cas contraire, elle est interdite.
+
+  CRE-11 : valeurs autorisées
+
+  Table MNATA – Motif de non assujettissement à la taxe
+  X  [3,3]
+  d’apprentissage
+
+S21.G00.45
+
+Données précédemment déclarées  S21.G00.45
+  Ce bloc est à renseigner lorsque le contrat a été déclaré dans la dernière DSN mensuelle sous un autre SIRET
+  employeur ou avec un numéro de contrat différent, alors que le signalement FCTU est transmis avant que la
+  modification/mutation n'ait été déclarée en DSN mensuelle.
+
+SIRET déclarant le contrat précédemment  S21.G00.45.001
+Numéro du contrat déclaré précédemment  S21.G00.45.002
+
+SIRET déclarant le contrat précédemment  S21.G00.45.001
+DonneesPrecedemmentDeclaree.SiretDeclarantContratPrec
+  Le numéro SIRET est un identifiant numérique de 14 chiffres composé du SIREN (9 chiffres) et d'un numéro
+  interne de classement de 5 chiffres (NIC) caractérisant l'établissement d'une entreprise en tant qu'unité
+  géographiquement localisée.
+  CSL-11 : [(vérification de la clé SIREN)]
+
+  CSL-12 : [(vérification de la clé SIRET)]
+
+  X  [14,14]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Numéro du contrat déclaré précédemment  S21.G00.45.002
+DonneesPrecedemmentDeclaree.NumeroContratDeclarePrec
+  Le numéro de contrat est un des identifiants du contrat.
+
+  X  [5,20]
+
+S21.G00.50
+
+Versement individu  S21.G00.50
+
+  244 / 370

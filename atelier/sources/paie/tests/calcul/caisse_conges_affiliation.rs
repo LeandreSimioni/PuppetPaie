@@ -1,6 +1,6 @@
 //! Qui l'employeur declare a la caisse des Conges Spectacles, et ce que la declaration change au bulletin et a la DSN.
 //!
-//! Textes (prive/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md) : code du travail D. 7121-40 (« le personnel
+//! Textes (atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md) : code du travail D. 7121-40 (« le personnel
 //! artistique et technique ») et D. 7121-41 (« qu'ils n'ont pas employe de facon continue pendant les douze mois
 //! precedant la demande de conge ») ; fiche Audiens (« quelle que soit [...] la nature du contrat de travail (CDD de
 //! droit commun, CDD d'usage, etc) », la cotisation « sur chaque bulletin de paie d'artiste ou de technicien embauche

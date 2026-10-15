@@ -1,0 +1,185 @@
+# Bloc S21.G00.63
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 283-285
+
+--- p. 283 ---
+  S21.G00.63  2026-06-10
+
+  Cette rubrique est réservée aux individus affiliés à l'ENIM.
+  Elle permet d'identifier le nombre de jours de congés acquis et utilisés dans les règles de calcul des retraites
+  des individus affiliés à l'ENIM.
+  Ce nombre de jours est pris en compte dans la détermination du nombre d’annuités retenues pour
+  l’ouverture du droit et le calcul du montant de la pension.
+  CCH-12 : Si la rubrique "Code régime de base risque vieillesse - S21.G00.40.020" est renseignée avec une valeur
+  différente de "136 - établissement des invalides de la marine (ENIM)", alors la rubrique "Solde de congés acquis et non
+  pris (ENIM) - S21.G00.62.019" est interdite.
+
+  CSL 00 : [0-9]{1,3}\.[0-9]{2}
+  N  [4,6]
+
+Mois de la DSN mensuelle portant les derniers éléments déclarés  S21.G00.62.020
+dans le FCTU
+ContratFin.DateMoisSoldeToutCompte
+  Date à laquelle le solde de tout compte sera porté en paie. Cette date est automatiquement déterminée par le
+  logiciel de paie.
+  Cette date doit être renseignée au premier jour du mois (sous la forme 01mmaaaa).
+  D
+  a
+  t
+  [8,8]  CSL 00 : (01)(0[1-9]|1[0-2])(20)[0-9]{2}
+  e
+
+Refus de la proposition d'un CDI suite à CDD ou contrat de mission  S21.G00.62.021
+ContratFin.RefusPropositionCDIsuiteCDDouMission
+  Cette rubrique permet d'indiquer à l'Assurance Chômage que le salarié a refusé la proposition d'un CDI
+  équivalent au CDD ou, suite à proposition de l’entreprise utilisatrice, au contrat de travail temporaire
+  (contrat de mission) qui vient de s'achever.
+  CCH-11 : La rubrique « Refus de la proposition d'un CDI suite à CDD ou contrat de mission - S21.G00.62.021 » est
+  interdite si la rubrique « Nature du contrat - S21.G00.40.007 » est renseignée avec la valeur « 01 - Contrat de travail à
+  durée indéterminée de droit privé », « 07 - Contrat à durée indéterminée intermittent », « 08 - Contrat à durée
+  indéterminée intérimaire », « 09 - Contrat de travail à durée indéterminée de droit public », « 10 - Contrat de travail à
+  durée déterminée de droit public », « 20 - [FP] Détachement d’un agent d’une Fonction Publique donnant lieu à
+  pension (ECP) », « 21 - [FP] Détachement d’un agent d’une Fonction Publique ne donnant pas lieu à pension (ENCP)
+  », « 29 - Convention de stage (hors formation professionnelle) », « 32 - Contrat d’appui au projet d’entreprise », « 50 -
+  Nomination dans la fonction publique (par arrêté, par décision,…) », « 51 - Contrat de mission d’un collaborateur
+  occasionnel du service public (COSP) ou assimilé », « 52 - [FP] Cumul d’activité à titre accessoire », « 53 - Contrat
+  d'emploi pénitentiaire », « 54 - Contrat d'emploi pénitentiaire en apprentissage », « 60 - Contrat d'engagement éducatif
+  », « 70 - Contrat de soutien et d'aide par le travail », « 80 - Mandat social », « 81 - Mandat d'élu », « 82 - Contrat de
+  travail à durée indéterminée de Chantier ou d'opération », « 89 - Volontariat de service civique », « 90 - Autre nature
+  de contrat, convention, mandat (hors mandat social) », « 91 - Contrat d'engagement maritime à durée indéterminée », «
+  92 - Contrat d'engagement maritime à durée déterminée » ou « 93 - Ligne de service ».
+
+  X  [2,2]
+
+  01 - Proposition refusée
+
+S21.G00.63
+
+Préavis de fin de contrat  S21.G00.63
+
+  283 / 370
+
+--- p. 284 ---
+  S21.G00.63  2026-06-10
+
+  Délai de prévenance que doit respecter celui qui prend l'initiative de rompre le contrat de travail.
+
+Type réalisation et paiement du préavis  S21.G00.63.001
+Date de début de préavis  S21.G00.63.002
+Date de fin de préavis  S21.G00.63.003
+
+Type réalisation et paiement du préavis  S21.G00.63.001
+Preavis.Type
+  Indique ici si le préavis est : effectué, non effectué, payé, non payé.
+
+  CCH-11 : Si le "Motif de la rupture du contrat - S21.G00.62.002" est "034 - fin de période d'essai à l'initiative de
+  l'employeur" ou "035 - fin de période d'essai à l'initiative du salarié", seules les valeurs "60 (délai de prévenance)" et
+  "90 - pas de clause de préavis applicable" sont autorisées.
+  Ce contrôle vise à établir qu'une fin de période d'essais n'est pas soumise à la réalisation d'un préavis.
+
+  CCH-12 : Si le "Motif de la rupture du contrat - S21.G00.62.002" est "043 - rupture conventionnelle" ou "110 -
+  Rupture conventionnelle collective", seule la valeur "90 - pas de clause de préavis applicable" est autorisée.
+  Ce contrôle vise à établir qu'une rupture conventionnelle de contrat n'est pas soumise à la réalisation d'un préavis.
+
+  CCH-13 : Si le « Motif de la rupture du contrat - S21.G00.62.002 » est « 026 - rupture pour motif économique suite à
+  l'acceptation d’un contrat de sécurisation professionnelle CSP », la rubrique doit être renseignée avec la valeur « 10 -
+  préavis non effectué non payé dans le cadre d’un contrat de sécurisation professionnelle (CSP) » ou « 90 - pas de
+  clause de préavis applicable ».
+
+  CCH-14 : Si le préavis dû (Date de début de préavis S21.G00.63.002 / Date de fin de préavis - S21.G00.63.003) est
+  inférieur ou égal à 3 mois et si la rubrique "Motif de la rupture du contrat - S21.G00.62.002" est renseignée avec la
+  valeur "114 - Rupture d’un commun accord pour entrée en PAP"alors la rubrique "Type réalisation et paiement du
+  préavis - S21.G00.63.001" doit obligatoirement être renseignée avec la valeur "61 - Préavis non effectué non payé dans
+  le cadre du PAP". Si le préavis dû est supérieur à 3 mois pour une rupture d’un commun accord pour entrée en PAP ou
+  si le motif est différent de celui-ci alors la valeur "61 - Préavis non effectué non payé dans le cadre du PAP" en
+  rubrique "Type réalisation et paiement du préavis - S21.G00.63.001" est interdite.
+
+  X  [2,2]
+
+  01 - préavis effectué et payé
+  02 - préavis non effectué et payé
+  03 - préavis non effectué et non payé
+  10 - préavis non effectué non payé dans le cadre d’un contrat de sécurisation professionnelle (CSP)
+  50 - préavis non effectué et payé dans le cadre d’un congé de reclassement
+  51 - préavis non effectué et payé dans le cadre d’un congé de mobilité
+  60 - Délai de prévenance
+  61 - préavis non effectué et non payé dans le cadre du parcours d’accompagnement personnalisé (PAP)
+  90 - pas de clause de préavis applicable
+
+Date de début de préavis  S21.G00.63.002
+Preavis.DateDebut
+  En cas de licenciement elle correspond à la date de présentation de la lettre recommandée. En cas de
+  démission, elle correspond en principe à la date où l'employeur est présumé en prendre connaissance.
+  CCH-11 : Cette rubrique doit être présente si et seulement si la rubrique "Type réalisation et paiement du préavis -
+  S21.G00.63.001" est renseignée avec la valeur "01 - préavis effectué et payé", "02 - préavis non effectué et payé", "03
+  - préavis non effectué et non payé", "10 - préavis non effectué non payé dans le cadre d’un contrat de sécurisation
+  professionnelle (CSP)", "50 - préavis non effectué et payé dans le cadre d’un congé de reclassement", "51 - préavis non
+  effectué et payé dans le cadre d’un congé de mobilité", "60 - Délai de prévenance" et "61 - préavis non effectué et non
+
+  284 / 370
+
+--- p. 285 ---
+  S21.G00.65  2026-06-10
+
+  payé dans le cadre du parcours d’accompagnement personnalisé (PAP)". Dans le cas contraire, elle est interdite.
+
+  CCH-13 : La date de début de préavis doit être supérieure ou égale à la "Date de notification de la rupture de contrat -
+  S21.G00.62.003" sauf si le "Type réalisation et paiement du préavis - S21.G00.63.001" est renseigné avec la valeur "90
+  - pas de clause de préavis applicable".
+
+  CCH-14 : La date de début de préavis doit être supérieure à la "Date d'engagement de la procédure de licenciement -
+  S21.G00.62.005" sauf si le "Type réalisation et paiement du préavis - S21.G00.63.001" est renseigné avec la valeur "90
+  - pas de clause de préavis applicable".
+
+  CCH-15 : Si plusieurs rubriques "Type réalisation et paiement du préavis - S21.G00.63.001" existent, les périodes
+  doivent être strictement contigües et sans chevauchement.
+
+  CCH-16 : La "Date de début de préavis - S21.G00.63.002" doit être supérieure ou égale à la "Date de début du contrat
+  - S21.G00.40.001".
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de préavis  S21.G00.63.003
+Preavis.DateFin
+  Dernier jour du contrat de travail en cas de préavis, effectué ou non.
+
+  CCH-13 : La date de fin du préavis doit être supérieure ou égale à la date de début du préavis.
+
+  CCH-14 : Cette rubrique doit être présente si et seulement si la rubrique "Type réalisation et paiement du préavis -
+  S21.G00.63.001" est renseignée avec la valeur "01 - préavis effectué et payé", "02 - préavis non effectué et payé", "03
+  - préavis non effectué et non payé", "10 - préavis non effectué non payé dans le cadre d’un contrat de sécurisation
+  professionnelle (CSP)", "50 - préavis non effectué et payé dans le cadre d’un congé de reclassement", "51 - préavis non
+  effectué et payé dans le cadre d’un congé de mobilité", "60 - Délai de prévenance" et "61 - préavis non effectué non
+  payé dans le cadre du parcours d’accompagnement personnalisé (PAP)" . Dans le cas contraire, elle est interdite.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+S21.G00.65
+
+Autre suspension de l'exécution du contrat  S21.G00.65
+  Il permet à l'établissement de déclarer les informations relatives à une suspension « totale » de l’exécution du contrat :
+  absence à temps plein du salarié sans maintien de sa rémunération normale par son employeur. Cette suspension ne
+  modifie pas les conditions d’exécution du contrat. Cependant, les obligations contractuelles ne s’exercent plus de
+  manière temporaire.
+  En cas de suspension supra-mensuelle, la suspension doit être déclarée dans toutes les DSN mensuelles dont le mois
+  principal déclaré présente une période commune avec la suspension concernée.
+
+Motif de suspension  S21.G00.65.001
+Date de début de la suspension  S21.G00.65.002
+Date de fin de la suspension  S21.G00.65.003
+[FP] Position de détachement  S21.G00.65.004
+Nombre de jours ouvrés de suspension  S21.G00.65.005
+
+Motif de suspension  S21.G00.65.001
+ContratSuspensionAutre.Motif
+
+  285 / 370

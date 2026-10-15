@@ -1,0 +1,129 @@
+Come Nolo / Gaffer, lighting designer
+
+[]
+
+[]
+
+-   GAFFER WORK
+    []
+    -   NARRATIVE
+    -   MUSIC VIDEO
+    -   COMMERCIAL
+    -   BREAKDOWNS
+
+-   OUTILS
+    []
+    -   Cinecyclop
+    -   Intermittor
+
+-   ARTICLES
+
+-   ABOUT ME
+
+-   CONTACT
+
+-   -   []Instagram
+
+AER CS : qu’est-ce que l’attestation employeur rematérialisée (cinéma spectacle) ?
+
+L’AER CS, c’est le document qui va remplacer l’AEM des intermittents du spectacle. Son nom complet : attestation employeur rematérialisée cinéma spectacle. La différence avec l’AEM ? Ce n’est plus votre employeur qui la rédige, mais France Travail, à partir de la DSN que l’employeur déclare déjà.
+
+L’AER CS, en clair
+
+Jusqu’ici, après chaque tournage, votre employeur produisait une AEM (attestation employeur mensuelle) pour déclarer vos heures à France Travail. Avec la réforme, il n’envoie plus que sa DSN (déclaration sociale nominative), et c’est France Travail qui génère l’attestation à partir de ces données. Ce document s’appelle l’AER CS, parfois écrit « AE CS » (attestation employeur cinéma spectacle).
+
+Qui la produit, et quand vous la recevez
+
+C’est France Travail qui édite l’AER CS, à partir de la DSN de l’employeur. Vous la recevez par employeur et par mois, comme l’AEM. Pour un contrat qui court sur plusieurs mois, une seule AER CS est éditée à la fin.
+
+Ce qu’elle contient
+
+Les mêmes informations que l’AEM, et que votre bulletin de paie :
+
+-   le nom de la structure qui vous emploie ;
+-   le nombre d’heures ou de cachets ;
+-   la rémunération brute ;
+-   la période travaillée.
+
+À vérifier à chaque fois : ces éléments doivent correspondre à votre feuille d’heures signée et à votre paie. Comme la source est désormais la DSN, une erreur de déclaration de l’employeur se répercute directement sur vos droits.
+
+AER CS ou AEM : qu’est-ce qui change vraiment
+
+-   Qui la rédige : l’AEM venait de l’employeur ; l’AER CS vient de France Travail.
+-   À partir de quoi : l’AER CS est générée depuis la DSN, déclaration unique qui remplace le doublon DSN + AEM.
+-   Pour vos 507 heures : rien ne change sur le fond, il vous faut toujours 507 heures sur 12 mois. Seule la source du justificatif change.
+
+Et concrètement, pour vous
+
+Le déploiement est progressif : expérimentation depuis 2025, transition en 2026, généralisation visée vers début 2027. Selon votre employeur, vous recevez donc encore des AEM, ou déjà des attestations issues de la DSN (parfois marquées « specimen » pendant la phase pilote). Pour le calendrier complet, l’impact sur le compteur 507 h et les pièges de la transition, voir le guide : Fin de l’AEM : la réforme DSN / AER CS.
+
+Côté outil : Intermittor importe aujourd’hui le PDF de l’AEM pour tenir à jour votre compteur 507 h, et sera mis à jour pour lire l’AER CS dès que le format sera en circulation. Vous importez le document que vous recevez, qu’il s’appelle AEM ou AER CS, et le suivi continue sans rien changer à vos habitudes.
+
+Questions fréquentes
+
+AER CS ou AE CS, quelle différence ?
+
+Aucune : c’est le même document, désigné par deux sigles. « AER CS » signifie attestation employeur rematérialisée cinéma spectacle ; on voit aussi « AE CS » (attestation employeur cinéma spectacle). Dans les deux cas, il s’agit de l’attestation produite par France Travail à partir de la DSN, qui remplace l’AEM.
+
+Qui produit l’AER CS ?
+
+France Travail, à partir de la DSN déclarée par votre employeur. C’est la grande différence avec l’AEM, qui était rédigée et transmise par l’employeur lui-même. Vous recevez une AER CS par employeur et par mois.
+
+L’AER CS remplace-t-elle l’AEM ?
+
+Oui, progressivement. Le déploiement se fait par vagues, employeur par employeur : expérimentation depuis 2025, transition en 2026, généralisation visée vers début 2027. Tant que votre employeur n’est pas passé à la DSN, vous continuez de recevoir vos AEM habituelles.
+
+Que vérifier sur une AER CS ?
+
+Le nom de la structure qui vous emploie, le nombre d’heures ou de cachets, la rémunération brute et la période travaillée. Recoupez avec votre feuille d’heures signée et votre bulletin de paie. Comme l’information vient de la DSN, une erreur de déclaration de l’employeur impacte directement vos droits : si une période manque, contactez l’employeur pour qu’il corrige sa déclaration.
+
+À retenir
+
+-   AER CS = AE CS : attestation produite par France Travail à partir de la DSN, qui remplace l’AEM.
+-   Même contenu qu’une AEM (employeur, heures ou cachets, brut, période), à vérifier de la même façon.
+-   Vos 507 heures ne changent pas ; seule la source du justificatif change.
+
+Sources
+
+-   France Travail : L’attestation employeur (AEM et bascule DSN)
+-   net-entreprises (DSN) : Déclaration des intermittents du spectacle
+-   Movinmotion : Intermittent du spectacle, la fin des AEM
+
+------------------------------------------------------------------------
+
+Article rédigé par Come Nolo, gaffer / chef-électricien sur tournages cinéma, clip et pub. Information à vérifier auprès de France Travail, susceptible d’évoluer.
+
+------------------------------------------------------------------------
+
+Guides liés
+
+-   Fin de l’AEM : la réforme DSN / AER CS (guide complet)
+-   Lire et utiliser son AEM
+-   Calculer son compteur 507h
+
+Suivez vos heures et vos attestations (AEM puis AER CS) automatiquement avec Intermittor : compteur 507h, feuilles d’heures, import des attestations et suivi France Travail.
+
+Pour aller plus loin, le guide de l’intermittence d’Intermittor détaille ce sujet avec les règles à jour et des cas chiffrés : Contrat, bulletin, AEM, certificat : vos documents. Sommaire complet : le guide de l’intermittence.
+
+------------------------------------------------------------------------
+
+Contact
+
+nolo.come [at] gmail [dot] com
+Instagram · @come.nolo
+
+Portfolio
+
+Music video · Commercial · Narrative
+Breakdowns · Articles · About me
+
+Come Nolo
+
+Gaffer · Chef-électricien
+Lighting designer
+
+Mentions légales · Legal notice
+
+RessourcesCinecyclopIntermittorFin AEM et AER CSAttestation AER CSDebuter intermittentAnnexe 8 vs annexe 10Liste materiel lumiereGenerer des framelinesLargeur fond cycloCompteur 507hAEM intermittentCinecyclop vs CamlistCinecyclop vs CrewmateIntermittor vs sPAIEctacleIntermittor vs IntermittentIntermittor vs itsiMeilleure app intermittentSupport CinecyclopSupport IntermittorAdidasArtisan ParfumeurFruitzVisaBreakdown mauvais sortJennysBreakdown RATP bureauDecathlonRestos du CoeurMake Up For EverOakleyOpera OmniaValentinoArchive articlesArchive breakdownsArchive commercialArchive clipsArchive fiction
+
+LangueRead in EnglishEnglish pages

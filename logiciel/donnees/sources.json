@@ -1,7 +1,7 @@
 {
   "_quoi": "Les sources officielles dont derivent les donnees livrees avec le logiciel (nomenclature des emplois, catalogue des metiers, minima conventionnels). Chaque entree dit CE QUE contient la source, de QUAND elle date, QUAND on l'a relevee, et le condensat de la copie gardee sur disque. `paie sources` relit ce fichier, sur le poste de l'editeur seulement (config/maj.json, `editeur`: true ; atelier/sources/paie/src/sources.rs) ; `--verifier` retelecharge chaque source et compare son condensat, et lit les livraisons KALI de la DILA pour les sources qui portent un bloc `kali` ; `--relever` pose la nouvelle version a cote de l'ancienne. A lancer avant chaque publication.",
-  "_regle": "Une donnee du logiciel ne se recopie pas d'un editeur ni d'un blog : elle se lit dans le texte qui fait foi, la copie est gardee dans reference/sources/ (hors depot public), et sa date est ecrite ici. Quand la source en ligne change, le condensat ne colle plus : c'est le signal de RELIRE, pas de recopier le nouveau fichier a l'aveugle. Les sources Legifrance portent un bloc `kali` (IDCC, conteneur, texte) : `--verifier` lit alors les livraisons open data KALI de la DILA depuis le releve, et dit si la convention ou le texte ont bouge.",
-  "_dossier": "reference/sources/ sous la racine des donnees (prive/). Les copies ne sont pas versionnees : ce sont des documents publics, retelechargeables.",
+  "_regle": "Une donnee du logiciel ne se recopie pas d'un editeur ni d'un blog : elle se lit dans le texte qui fait foi, la copie est gardee dans atelier/reference/sources/ (dans le depot public : elle rend le logiciel verifiable), et sa date est ecrite ici. Quand la source en ligne change, le condensat ne colle plus : c'est le signal de RELIRE, pas de recopier le nouveau fichier a l'aveugle. Les sources Legifrance portent un bloc `kali` (IDCC, conteneur, texte) : `--verifier` lit alors les livraisons open data KALI de la DILA depuis le releve, et dit si la convention ou le texte ont bouge.",
+  "_dossier": "atelier/reference/sources/ du depot, a cote de logiciel/ (Leandre, 15/10/2026). Les copies y sont versionnees, octet pour octet. Le document original d'un organisme prive (Audiens, Afdas, CASC-SVP, un syndicat...) n'y entre pas, seulement sa transcription : sa copie est alors absente, et la source se relit a son URL ; la cle << transcription >> nomme la transcription publiee (pdftotext, CSV par feuille, texte du HTML, ou une version expurgee), que les renvois citent.",
   "sources": {
     "francetravail-annexe8-notice": {
       "titre": "Annexe 8 - Techniciens du spectacle. Liste des emplois et des secteurs d'activites",
@@ -123,6 +123,7 @@
       "releve_le": "2026-09-25",
       "fichier": "audiens-fp-taux-repartition-retraite-2026.pdf",
       "sha256": "c87526fa332b71649eebd03209768c05da9e567f3373674163b3d4b81ffd4303",
+      "transcription": "audiens-fp-taux-repartition-retraite-2026.txt",
       "verification": "telechargement",
       "nourrit": [
         "baremes/2025.json",
@@ -157,6 +158,7 @@
       "releve_le": "2026-09-13",
       "fichier": "syndeac-ccneac-artistes-dramatiques-nao-2026.xlsx",
       "sha256": "f303b5f3f3c914573abf9dc4b22e539ee86cefa23eff363fbd56b5ac4591a3ec",
+      "transcription": "syndeac-ccneac-artistes-dramatiques-nao-2026.csv",
       "verification": "telechargement",
       "nourrit": [
         "minima-conventionnels.json"
@@ -171,6 +173,7 @@
       "releve_le": "2026-09-13",
       "fichier": "ghs-annexe10-artistes-categories-20211227.pdf",
       "sha256": "8a25d2b8498e4d9f173bd556a53172c680784bf0cf711d536b51b21b2a2bb66e",
+      "transcription": "ghs-annexe10-artistes-categories-20211227.txt",
       "verification": "telechargement",
       "nourrit": []
     },
@@ -219,9 +222,9 @@
       "en_vigueur": "2013-07-01",
       "releve_le": "2026-09-19",
       "fichier": "legifrance-3090-prevoyance-titre12-20260919.md",
-      "sha256": "7a1ba92cef8f44953847db70530aa35b04140b76a646fe6fa41f7a179fe3dd3b",
+      "sha256": "e30769d72b578f28588f138e57b281852c59fad9a803e365933ff4d900d4de98",
       "verification": "manuelle",
-      "verification_comment": "Legifrance refuse les telechargements automatiques (403 Cloudflare, revu le 19/09/2026) : la copie ne se reverifie pas en ligne, et elle est une TRANSCRIPTION de la page, pas le fichier servi. Les livraisons open data KALI de la DILA (bloc `kali`) disent si la convention a bouge : un texte attache plus recent touchant la prevoyance -- il y a eu un accord du 12/05/2025 sur le degre eleve de solidarite, etendu par arrete du 21/05/2026 -- veut dire RELIRE l'article 12.6 avant de payer un permanent.",
+      "verification_comment": "Legifrance refuse les telechargements automatiques (403 Cloudflare, revu le 19/09/2026) : la copie ne se reverifie pas en ligne, et elle est une TRANSCRIPTION de la page, pas le fichier servi. Le 15/10/2026, une phrase de NOTRE note de lecture (pas du texte de la convention) qui nommait une compagnie reelle en est retiree : le condensat est celui de la copie publiee. Les livraisons open data KALI de la DILA (bloc `kali`) disent si la convention a bouge : un texte attache plus recent touchant la prevoyance -- il y a eu un accord du 12/05/2025 sur le degre eleve de solidarite, etendu par arrete du 21/05/2026 -- veut dire RELIRE l'article 12.6 avant de payer un permanent.",
       "nourrit": [
         "prevoyance-conventionnelle-base.json"
       ],
@@ -242,6 +245,7 @@
       "releve_le": "2026-09-19",
       "fichier": "audiens-3090-prevoyance-sante-fiche-produit-2021.pdf",
       "sha256": "abfce35b21dbcf7fe371ab3c46cc4077d451087def4eb93eec152a467e66a951",
+      "transcription": "audiens-3090-prevoyance-sante-fiche-produit-2021.txt",
       "verification": "telechargement",
       "verification_comment": "C'est une fiche COMMERCIALE, pas un texte qui fait foi : elle se lit a cote de l'article 12.6, jamais a sa place. Elle date de 2021 et Audiens n'en publie pas de plus recente au 19/09/2026 ; le taux conventionnel, lui, n'a pas bouge. Ce qu'elle apporte et que la convention n'a pas : les options (1,50 % T1 cadres, extensions T2) et les conditions d'ouverture.",
       "nourrit": [
@@ -258,9 +262,9 @@
       "version": "version lue : 2016-01-01 -> 2023-10-01",
       "releve_le": "2026-09-19",
       "fichier": "legifrance-1285-prevoyance-titre12-20260919.md",
-      "sha256": "d05be1eb02c8812f2f753d4fbc7fd5f92eddf0cf0c5ca1a617fc5761ec06ce2c",
+      "sha256": "a4c603d44222ea0964a6e1e79830453ce3042f776756e18f449de8fd3057d75f",
       "verification": "manuelle",
-      "verification_comment": "Legifrance refuse les telechargements automatiques (403). Cette source est en ATTENTE : ce qu'il faut faire est ecrit en toutes lettres dans la copie -- ouvrir l'article, bouton << Voir les versions >>, lire la version en vigueur de XII.2.1.2 et XII.2.1.5, trancher l'assiette de la tranche 2, chercher une condition d'anciennete. Ensuite `applicable: true`. La veille KALI (bloc `kali`) dit si la convention bouge entre-temps.",
+      "verification_comment": "Legifrance refuse les telechargements automatiques (403). Cette source est en ATTENTE : ce qu'il faut faire est ecrit en toutes lettres dans la copie -- ouvrir l'article, bouton << Voir les versions >>, lire la version en vigueur de XII.2.1.2 et XII.2.1.5, trancher l'assiette de la tranche 2, chercher une condition d'anciennete. Ensuite `applicable: true`. La veille KALI (bloc `kali`) dit si la convention bouge entre-temps. Le 15/10/2026, le renvoi de notre note vers la webconference Audiens cite sa transcription (l'original reste hors du depot public) : le condensat est celui de la copie publiee.",
       "nourrit": [
         "prevoyance-conventionnelle-base.json"
       ],
@@ -372,6 +376,7 @@
       "releve_le": "2026-09-22",
       "fichier": "casc-svp-fiche-codification-dsn-202606.pdf",
       "sha256": "ae1977a23600fc4cb2d65ccc5c1187a475e189463ad274263e7a8be2733614a3",
+      "transcription": "casc-svp-fiche-codification-dsn-202606.txt",
       "verification": "telechargement",
       "nourrit": [
         "casc-svp-base.json"
@@ -388,6 +393,7 @@
       "releve_le": "2026-09-22",
       "fichier": "casc-svp-modele-liste-nominative.xlsx",
       "sha256": "d608d902da922a2dc7f5ed49d15298183d04e1c4f9145cae4b931d0cd4ca3d97",
+      "transcription": "casc-svp-modele-liste-nominative.csv",
       "verification": "telechargement",
       "nourrit": [
         "operations_casc.py"
@@ -421,7 +427,7 @@
       "editeur": "BOSS (Bulletin officiel de la securite sociale)",
       "url": "https://boss.gouv.fr/portail/files/Table%20des%20param%C3%A8tres/202601_Table%20param%C3%A8tres.csv",
       "page_de_veille": "https://boss.gouv.fr/portail/accueil/table-des-parametres/donnees-generales.html",
-      "contenu": "128 parametres et 771 lignes d'historique (4 ans) : plafond de la securite sociale, SMIC horaire, seuils, parametres de la reduction generale. Separateur point-virgule, latin-1, decimales a la virgule. C'est la source de tete du socle pour ce qui est reglementaire (reference/veille-taux.md, section 1). PIEGE : chaque fichier est un instantane -- celui de janvier donne le SMIC a 12,02 sans date de fin et ignore la revalorisation du 01/06/2026 (12,31) ; toujours prendre le mois le plus recent. L'URL suit le gabarit AAAAMM que la veille documente ; la copie est celle de janvier 2026.",
+      "contenu": "128 parametres et 771 lignes d'historique (4 ans) : plafond de la securite sociale, SMIC horaire, seuils, parametres de la reduction generale. Separateur point-virgule, latin-1, decimales a la virgule. C'est la source de tete du socle pour ce qui est reglementaire (reference-privee/veille-taux.md (releve sur une compagnie reelle, piece hors du depot public : depot prive), section 1). PIEGE : chaque fichier est un instantane -- celui de janvier donne le SMIC a 12,02 sans date de fin et ignore la revalorisation du 01/06/2026 (12,31) ; toujours prendre le mois le plus recent. L'URL suit le gabarit AAAAMM que la veille documente ; la copie est celle de janvier 2026.",
       "version": "2026-01",
       "version_lue_dans": "le nom du fichier telecharge (gabarit AAAAMM_Table parametres.csv)",
       "releve_le": "2026-09-18",
@@ -443,6 +449,7 @@
       "releve_le": "2026-09-12",
       "fichier": "audiens-parametres-2026/Audiens-Parametres-2026.pdf",
       "sha256": "62e55d5b40421ae624f6c083fc24e330e2a9a831caa03a57d5258403c7f0d68a",
+      "transcription": "audiens-parametres-2026/Audiens-Parametres-2026.txt",
       "verification": "telechargement",
       "nourrit": [
         "baremes/2026.json"
@@ -459,8 +466,9 @@
       "releve_le": "2026-09-18",
       "fichier": "../fiches-parametrage/Audiens-Webconf-Nouveautes-2026.pdf",
       "sha256": "2a1786bf96d35739dd36b534935e758418e4aa0eb6eee34c67b9ae407414dc3d",
+      "transcription": "../fiches-parametrage/Audiens-Webconf-Nouveautes-2026.txt",
       "verification": "manuelle",
-      "verification_comment": "Le support n'a pas d'adresse stable relevee : il se cherche chaque janvier sur audiens.org (reference/veille-taux.md). Le nom de la copie ne dit pas l'adresse d'ou elle vient. `releve_le` est la date ou la copie est entree au depot : le telechargement lui-meme n'a pas ete date, il est anterieur ou egal.",
+      "verification_comment": "Le support n'a pas d'adresse stable relevee : il se cherche chaque janvier sur audiens.org (reference-privee/veille-taux.md (releve sur une compagnie reelle, piece hors du depot public : depot prive)). Le nom de la copie ne dit pas l'adresse d'ou elle vient. `releve_le` est la date ou la copie est entree au depot : le telechargement lui-meme n'a pas ete date, il est anterieur ou egal.",
       "nourrit": [
         "baremes/2026.json"
       ]
@@ -476,6 +484,7 @@
       "releve_le": "2026-09-18",
       "fichier": "../fiches-parametrage/audiens-2025-12-13-fiche139.xml",
       "sha256": "441c91253687fc6f2420641d987685f033d475fd22cf69ac82608430273d522c",
+      "transcription": "../fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml",
       "verification": "manuelle",
       "verification_comment": "Elle ne se telecharge pas d'une adresse publique : elle arrive dans les retours de l'entreprise (API net-entreprises), ou s'exporte de l'espace employeur Audiens. `releve_le` est la date ou la copie est entree au depot : le telechargement lui-meme n'a pas ete date, il est anterieur ou egal.",
       "nourrit": [
@@ -492,6 +501,7 @@
       "releve_le": "2026-09-25",
       "fichier": "afdas-contributions-2026-audiovisuel.pdf",
       "sha256": "cd0e04fcee2aa58a9eff8d1414ac9c7a07c254e5ce7aa6dca469b4219ad95f26",
+      "transcription": "afdas-2026-plaquette-audiovisuel-dialogue-social-20260929.md",
       "verification": "telechargement",
       "nourrit": [
         "baremes/2026.json"
@@ -508,6 +518,7 @@
       "releve_le": "2026-09-25",
       "fichier": "spiac-cgt-pav-minima-20260101.xlsx",
       "sha256": "1727fe26ec4aacfefa920b52167bc9e38dd2767d0a51f7cb23e2f354856f427e",
+      "transcription": "spiac-cgt-pav-minima-20260101.csv",
       "verification": "telechargement",
       "verification_comment": "PAS le texte qui fait foi : une consolidation syndicale. Elle est RECALCULEE depuis le texte (grille KALI de l'avenant n° 4 de 2012 et les pourcentages des avenants 7 a 20) : moins d'un demi-centime d'ecart sur chaque emploi essaye (journal §132). Un nouvel avenant salaires de la 2642 veut dire : relire, recalculer, puis seulement recopier -- l'entrepot KALI suit la 2642 (`conventions_a_relever`) et note ce qui change (`etat.json`, `changes`).",
       "nourrit": [
@@ -542,6 +553,7 @@
       "releve_le": "2026-09-29",
       "fichier": "unedic-circulaire-2016-25-annexes-8-10.pdf",
       "sha256": "a9726db8b2ab643a7336f559f60b202fe517705fc9f287f30651deb141567439",
+      "transcription": "unedic-circulaire-2016-25-annexes-8-10.txt",
       "verification": "manuelle",
       "verification_comment": "Copie d'un tiers, pas du site de l'Unedic : elle se lit avec le code du travail, L. 7121-2, 10° (LEGIARTI000032859810, entrepot LEGI), qui fait du realisateur un artiste du spectacle. La nomenclature des emplois du 12/12/2016 porte encore ces codes en annexe 8 : emplois-base.json garde cette annexe dans `annexe_nomenclature`.",
       "nourrit": [

@@ -1,0 +1,180 @@
+# Bloc S21.G00.59
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 268-270
+
+--- p. 268 ---
+  S21.G00.59  2026-06-10
+
+  du Code du travail, est une base de ressources de référence pour la sphère sociale. Pour ce type de revenus,
+  la date de début (S21.G00.58.001) et la date de fin (S21.G00.58.002) de période de rattachement sont à
+  renseigner en date de versement. La même règle de datation s'applique aux revenus déclarés pour les types
+  10, 13, 14 et 15 au sein de cette rubrique.
+  - Pour la fraction représentative des frais d'emploi (FRFE), la date de début (S21.G00.58.001) et la date de
+  fin (S21.G00.58.002) de période de rattachement sont à renseigner en date de versement.
+  - Il n'est pas attendu en version de norme P27V01 la déclaration du défraiement des frais de mandat.
+
+  X  [2,2]
+
+  01 - Heure(s) complémentaire(s) ou supplémentaire(s) exonérée(s) fiscalement (y compris journées de RTT
+  monétisées)
+  03 - Montant net social
+  04 - Potentiel nouveau type d'élément de revenu calculé en net A
+  05 - Potentiel nouveau type d'élément de revenu calculé en net B
+  06 - Potentiel nouveau type d'élément de revenu calculé en net C
+  07 - Potentiel nouveau type d'élément de revenu calculé en net D
+  08 - Potentiel nouveau type d'élément de revenu calculé en net E
+  10 - IJSS subrogées prises en compte dans le calcul du MNS
+  11 - Fraction représentative des frais d'emploi (FRFE)
+  12 - Défraiement des frais de mandat du parlementaire (à ne pas renseigner en version de norme P27V01)
+  13 - Part exonérée de cotisations sociales des indemnités de rupture
+  14 - Indemnité journalière complémentaire de prévoyance subrogée exonérée de cotisations sociales
+  15 - Part exonérée de la participation employeurs aux chèques vacances et au financement des services à la personne
+
+Montant  S21.G00.58.004
+ElmtRevenuCalculeNet.Montant
+  Montant du revenu calculé en net.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+S21.G00.59
+
+Elément de revenu associé à des droits spécifiques  S21.G00.59
+  Ce bloc détaille les éléments de revenus dont le versement conduit à l'ouverture de droits majorés, appréciés tout au
+  long de la carrière d'un individu.
+  Ces éléments de revenu ne sont pas obligatoirement rattachés à un seul et unique contrat.
+  Le versement de ces éléments de revenus peut dépendre d’un statut particulier de l’individu notamment pour les
+  individus affiliés à un régime spécial.
+  - Pour la CRP RATP, les éléments renseignés dans ce bloc permettent d’identifier les primes spécifiques aux individus
+  relevant du régime spécial de retraite de la RATP telles que les primes collectives de pénibilité, les primes de nuit pour
+  octroi de points retraite et les primes exonérées de cotisation sous réserve du non-dépassement d’un plafond.
+  - Pour la CPRPF, les éléments renseignés correspondent aux suppléments de rémunération versés selon le statut de
+  l’individu ainsi qu’aux primes de traction.
+
+Type  S21.G00.59.001
+Montant  S21.G00.59.002
+Nombre d'heures  S21.G00.59.003
+Date de début de période de rattachement  S21.G00.59.004
+Date de fin de période de rattachement  S21.G00.59.005
+Numéro de contrat  S21.G00.59.006
+
+  268 / 370
+
+--- p. 269 ---
+  S21.G00.59  2026-06-10
+
+Type  S21.G00.59.001
+ElementRevenuDroitSpec.Type
+  Type d’élément de revenu dont le versement permet à un individu de bénéficier de droits spécifiques.
+
+  CRE-11 : Valeurs autorisées
+
+  Table ERADS - Elément de revenu associé à des droits
+  X  [3,3]
+  spécifiques
+
+Montant  S21.G00.59.002
+ElementRevenuDroitSpec.Montant
+  Il s'agit du montant de l’élément de revenu associé à des droits spécifiques.
+  Pour la CRP RATP et pour la CPRPF, le montant renseigné doit être celui avant toute déduction éventuelle
+  de cotisations sociales.
+
+  N  [4,12]  CSL 00 : -?[0]*([1-9][0-9]*\.[0-9]{2}|0\.(0[1-9]|[1-9][0-9]))
+
+Nombre d'heures  S21.G00.59.003
+ElementRevenuDroitSpec.NombreHeures
+  Pour la CRP RATP, il s'agit du volume horaire associé à l'élément de revenu versé pour une activité de nuit.
+
+  N  [4,7]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Date de début de période de rattachement  S21.G00.59.004
+ElementRevenuDroitSpec.DateDebutRattachement
+  Date correspondant au début de période à laquelle l’élément de revenu versé est rattaché.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de période de rattachement  S21.G00.59.005
+ElementRevenuDroitSpec.DateFinRattachement
+  Date correspondant à la fin de période à laquelle l’élément de revenu versé est rattaché.
+
+  CCH-11 : La « Date de fin de période de rattachement - S21.G00.59.005 » doit être supérieure ou égale à la « Date de
+  début de période de rattachement - S21.G00.59.004 ».
+
+  SIG-12 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Numéro de contrat  S21.G00.59.006
+ElementRevenuDroitSpec.NumeroContrat
+  Identifiant unique du contrat de travail lorsque le versement d’élément de revenu associé à des droits
+  spécifiques n'est rattaché qu'à un seul contrat.
+
+  269 / 370
+
+--- p. 270 ---
+  S21.G00.60  2026-06-10
+
+  CCH-11 : Dans une DSN mensuelle (S20.G00.05.001 = 01), si la rubrique « Numéro de contrat - S21.G00.59.006 » est
+  présente, elle doit obligatoirement être renseignée avec un numéro de contrat présent en bloc « Contrat - S21.G00.40 »
+  enfant du même bloc « Individu - S21.G00.30 ».
+
+  CCH-12 : Dans un signalement FCTU (S20.G00.05.001 = 07), si la rubrique « Numéro de contrat - S21.G00.59.006 »
+  est présente, elle doit obligatoirement être renseignée avec un numéro de contrat présent en bloc « Contrat -
+  S21.G00.40 » ou en bloc « Données précédemment déclarées - S21.G00.45 ».
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des numéros de contrat.
+
+  X  [5,20]
+
+S21.G00.60
+
+Arrêt de travail  S21.G00.60
+  Un arrêt de travail est une suspension temporaire pour cause de maladie, maternité ou paternité durant laquelle le
+  salarié ne peut exercer son activité.
+  La transmission d'une annule et remplace doit s'accompagner de la transmission de la "date du dernier jour travaillé" et
+  de la "date de fin prévisionnelle" de l'arrêt à annuler.
+  En cas de suspension supra-mensuelle, la suspension doit être déclarée dans toutes les DSN mensuelles dont le Mois
+  Principal déclaré présente une période commune avec la suspension concernée.
+
+Motif de l'arrêt  S21.G00.60.001
+Date du dernier jour travaillé  S21.G00.60.002
+Date de fin prévisionnelle  S21.G00.60.003
+Subrogation  S21.G00.60.004
+Date de début de subrogation  S21.G00.60.005
+Date de fin de subrogation  S21.G00.60.006
+IBAN  S21.G00.60.007
+BIC  S21.G00.60.008
+Date de la reprise  S21.G00.60.010
+Motif de la reprise  S21.G00.60.011
+Date de l'accident ou de la première constatation  S21.G00.60.012
+SIRET Centralisateur  S21.G00.60.600
+
+Motif de l'arrêt  S21.G00.60.001
+TravailArret.Motif
+  Motif permettant d'identifier le type d'arrêt de travail.
+
+  La valeur " 13 - [FP] Congé de longue maladie " est aussi applicable pour les salariés des IEG.
+  CCH-12 : La valeur "99 - annulation" est interdite pour une "Nature de la déclaration - S20.G00.05.001" différente de
+  "01 - DSN Mensuelle" et "07 - Signalement Fin du contrat de travail Unique".
+
+  CCH-14 : Les valeurs « 15 - temps partiel thérapeutique (risque maladie) », « 16 - temps partiel thérapeutique (risque
+  accident de travail) », « 17 - temps partiel thérapeutique (risque accident de trajet) » et « 18 - temps partiel
+  thérapeutique (risque maladie professionnelle) » sont interdites pour une « Nature de la déclaration - S20.G00.05.001 »
+  différente de « 01 - DSN Mensuelle » ou « 07 - Signalement Fin du contrat de travail Unique ».
+
+  SIG-13 : Si le motif "15 - temps partiel thérapeutique (risque maladie)", "16 - temps partiel thérapeutique (risque
+  accident de travail)", "17 - temps partiel thérapeutique (risque accident de trajet)" ou "18 - temps partiel thérapeutique
+  (risque maladie professionnelle)" est renseigné dans la rubrique "Motif de l'arrêt - S21.G00.60.001", alors un bloc
+  "Temps partiel Thérapeutique - S21.G00.66" doit obligatoirement être renseigné.
+
+  X  [2,2]
+
+  270 / 370

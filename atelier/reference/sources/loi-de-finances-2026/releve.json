@@ -1,0 +1,19 @@
+{
+ "_source": "https://echanges.dila.gouv.fr/OPENDATA/LEGI/",
+ "_global": "Freemium_legi_global_20250713-140000.tar.gz",
+ "_texte": "Loi n° 2026-103 du 19 fevrier 2026 de finances pour 2026",
+ "_legitext": "JORFTEXT000053508155",
+ "_livraisons_lues": 459,
+ "_livraisons_totales": 459,
+ "_complet": true,
+ "_derniere_livraison": "20261013-212750",
+ "_changes_depuis_le_global": [],
+ "_releve_le": "2026-10-13",
+ "articles": {
+  "135": {
+   "debut": "2026-02-21",
+   "en_vigueur": true,
+   "id": "LEGIARTI000053511577"
+  }
+ }
+}

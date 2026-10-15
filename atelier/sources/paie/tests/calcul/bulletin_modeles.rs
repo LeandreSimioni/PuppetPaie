@@ -1,5 +1,5 @@
 //! Le bulletin suit le modele de l'arrete du 25/02/2016, art. 1, I (redaction du 25/06/2024, seul modele depuis le
-//! 01/01/2026 ; prive/reference/sources/montant-net-social/legi-arrete-20160225-bulletin/LEGIARTI000049854119.xml) : ses
+//! 01/01/2026 ; atelier/reference/sources/montant-net-social/legi-arrete-20160225-bulletin/LEGIARTI000049854119.xml) : ses
 //! colonnes, ses rubriques dans l'ordre, les « Autres charges dues par l'employeur » agregees (C. trav. R. 3243-2, al. 2 ;
 //! arrete, art. 3, LEGIARTI000047098507.xml), les exonerations non deduites de chaque cotisation (art. 4,
 //! LEGIARTI000047098456.xml), la ligne du prelevement a la source ; ses sommes refont la paie ; un permanent et un
@@ -8,7 +8,7 @@
 //! Deux modeles, *simplifie* et *complet* (PLAN-CONTRATS, C, points 9 et 11) : le complet imprime le meme bulletin, a
 //! l'octet pres, suivi d'une page annexe qui detaille chaque cotisation (FAQ du BOSS sur le bulletin, Q 10 : pas plus de
 //! detail dans la rubrique des obligatoires ; le detail « au verso du bulletin de paie ou bien sur un document annexe » ;
-//! prive/reference/sources/montant-net-social/boss-regles-generales-bulletin-de-paie-20250207-archive-web.txt,
+//! atelier/reference/sources/montant-net-social/boss-regles-generales-bulletin-de-paie-20250207-archive-web.txt,
 //! l. 170-172) ; la compagnie choisit pour tous, la case du salarie l'emporte. La caisse des Conges Spectacles se range
 //! dans « Autres charges dues par l'employeur » (Q 11 et 12, l. 173-178).
 //!

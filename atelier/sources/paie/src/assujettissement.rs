@@ -1,7 +1,7 @@
 //! Le bloc S21.G00.44 « Assujettissement fiscal » de la DSN de decembre (corrections DSN, lot V3b ; point 11 de
 //! `prive/journal/RELECTURE-NORME-DSN.md`, fiche N8 de `prive/journal/norme/fiches-N8.md`).
 //!
-//! LA NORME (cahier technique DSN 2026.1, `prive/reference/norme-dsn/texte/`) :
+//! LA NORME (cahier technique DSN 2026.1, `atelier/reference/norme-dsn/texte/`) :
 //! - § 2.3.1, p. 58 (`chapitre-2-principes-de-constitution.txt`, lignes 1954-1967 ; taxe par taxe, p. 58-59, lignes
 //!   1971-2059) : « L'assujettissement des entreprises est déclaré en DSN une fois par an, soit en fin d'exercice,
 //!   soit en cours d'exercice pour les cas de cessation d'activité. Conformément au code général des impôts, cet
@@ -17,7 +17,7 @@
 //!   (livree depuis le lot R2 : `logiciel/donnees/mnata-base.json`).
 //!
 //! CE QUI SE DEDUIT ET CE QUI SE SAISIT (regle 1 : rien ne se devine ; ce que le moteur sait deja ne se saisit pas une
-//! seconde fois). Les textes sont deposes sous `prive/reference/sources/` (LISEZ-MOI de `bloc-44-assujettissement/`) :
+//! seconde fois). Les textes sont deposes sous `atelier/reference/sources/` (LISEZ-MOI de `bloc-44-assujettissement/`) :
 //! - taxe d'apprentissage (001/002) et CFP (007/008) : elles se paient a l'Urssaf, au bordereau de chaque mois, et c'est
 //!   le moteur qui les y met (CTP 992, ou 993 en Alsace-Moselle ; CTP 983, 959 ou 971 de `config/organismes.json`,
 //!   compose depuis `donnees/organismes-base.json`). Le bloc 44 dit ce que le bordereau paie : 001 si le CTP 992 ou 993
@@ -25,7 +25,7 @@
 //!   de la table MNATA (44.004) que la fiche entreprise dit (`taxe_apprentissage_motif_non_assujettissement`), sinon
 //!   refus (lot R2). Le motif 007 « Associations sans but lucratif » ne vaut que jusqu'au millesime 2025 : L. 6241-1,
 //!   dans sa redaction du 21/02/2026, rend redevables « les associations [...] a activites non lucratives » ; celle du
-//!   16/02/2025 ne les nommait pas (les deux deposees, `prive/reference/sources/code-du-travail/`).
+//!   16/02/2025 ne les nommait pas (les deux deposees, `atelier/reference/sources/code-du-travail/`).
 //! - contribution supplementaire a l'apprentissage (003/004) : code du travail L. 6242-1 (entreprises d'au moins 250
 //!   salaries redevables de la taxe, effectif de l'annee meme, regle des cinq ans de L. 130-1 CSS). Sous 250 : 004.
 //!   A 250 et plus, le quotient des contrats d'alternance ne se calcule pas ici : la fiche le dit
@@ -86,13 +86,13 @@ const MNATA_ASSOCIATIONS: &str = "007";
 /// Le premier millesime ou une association a activites non lucratives est redevable de la taxe d'apprentissage : C. trav.
 /// L. 6241-1, I, redaction en vigueur depuis le 21/02/2026 (loi n° 2026-103 de finances pour 2026, art. 135, XIII) :
 /// « En sont également redevables les associations [...] à activités non lucratives » (deposee :
-/// `prive/reference/sources/code-du-travail/xml/L6241-1.xml`). La redaction precedente (16/02/2025 - 21/02/2026,
+/// `atelier/reference/sources/code-du-travail/xml/L6241-1.xml`). La redaction precedente (16/02/2025 - 21/02/2026,
 /// `code-du-travail/xml-anterieur/L6241-1-v20250216.xml`) ne les nommait pas. Le millesime 2026 couvre des salaires d'avant
 /// le 21/02/2026 : l'association y est redevable pour le reste de l'annee, elle declare 001 (INFERENCE).
 const MILLESIME_ASSOCIATIONS_REDEVABLES: i32 = 2026;
 /// La premiere periode d'emploi ou une association a activites non lucratives paie la taxe d'apprentissage : mars 2026.
 /// Guide Urssaf des contributions de formation et d'apprentissage, version du 12/03/2026
-/// (`prive/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt`,
+/// (`atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt`,
 /// l. 1166-1176 et 1192-1196) : « À compter de la période d'emploi de mars 2026, conformément au XIII de l'article 135
 /// de la loi n° 2026-103 du 19 février 2026 de finances pour 2026 modifiant l'article L6241-1 du code du travail, la taxe
 /// d'apprentissage est également due par les associations [...] à activités non lucratives » (lot D1). Les salaires de

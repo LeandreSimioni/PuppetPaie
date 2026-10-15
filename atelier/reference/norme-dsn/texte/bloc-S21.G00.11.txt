@@ -1,0 +1,223 @@
+# Bloc S21.G00.11
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 144-147
+
+--- p. 144 ---
+  S21.G00.11  2025-12-24
+
+Code convention collective applicable  S21.G00.06.015
+Entreprise.CodeConventionCollectiveApplicable
+  Convention conclue entre une entreprise et un ou plusieurs syndicats représentatifs de salariés en vue de
+  déterminer les conditions de travail et de rémunération qui s'imposeront à l'entreprise. Le code de
+  convention collective, géré par le Ministère chargé du travail, peut être obtenu sur le site http://www.net-
+  entreprises.fr.
+  CRE-11 : Valeurs autorisées
+
+  X  [4,4]  Table IDCC - Code convention collective
+
+S21.G00.11
+
+Etablissement  S21.G00.11
+  Unité de production localisée géographiquement, individualisée mais dépendant juridiquement d'une entreprise
+
+NIC  S21.G00.11.001
+Code APET  S21.G00.11.002
+Numéro, extension, nature et libellé de la voie  S21.G00.11.003
+Code postal  S21.G00.11.004
+Localité  S21.G00.11.005
+Complément de la localisation de la construction  S21.G00.11.006
+Service de distribution, complément de localisation de la voie  S21.G00.11.007
+Type de rémunération soumise à contributions d'Assurance chômage pour expatriés  S21.G00.11.009
+Code pays  S21.G00.11.015
+Code de distribution à l'étranger  S21.G00.11.016
+Nature juridique de l'employeur  S21.G00.11.017
+Date d'effet de l'adhésion au dispositif TESE/CEA  S21.G00.11.019
+Date d'effet de la sortie du dispositif TESE/CEA  S21.G00.11.020
+Code convention collective principale  S21.G00.11.022
+Opérateur de compétences (OPCO)  S21.G00.11.023
+Demande de sortie de la DSN  S21.G00.11.024
+Identifiant du Service de Prévention et de Santé au Travail (SPST)  S21.G00.11.025
+
+NIC  S21.G00.11.001
+Etablissement.Nic
+  L'établissement est une unité de production localisée géographiquement, individualisée mais dépendant
+  juridiquement d'une entreprise.
+  Dans le cadre d'un contrat de travail, il s'agit de l'établissement de rattachement administratif du salarié.
+  Le Numéro interne de classement (NIC) est composé de 5 chiffres ajoutés au SIREN de l'entreprise pour
+  identifier un établissement.
+  CME-11 : Etablissement à l'état actif ou radié au répertoire SIRENE de l'INSEE au cours du mois principal
+  déclaré de la déclaration.
+
+  CSL-12 : [(vérification de la clé)]
+
+  X  [5,5]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Code APET  S21.G00.11.002
+
+  144 / 361
+
+--- p. 145 ---
+  S21.G00.11  2025-12-24
+
+Etablissement.Apet
+  Le code APE est attribué par l’INSEE à toute entreprise et chacun de ses établissements lors de son
+  inscription au répertoire SIRENE. Ce code caractérise son activité principale par référence à la
+  nomenclature d'activités française (NAF rév. 2).
+  Il est nommé APEN dans le cas d'une entreprise, et APET pour un établissement.
+  CRE-11 : valeurs autorisées
+
+  Table NAF - Code NAF de l’entreprise (APEN) ou de
+  X  [5,5]
+  l’établissement (APET)
+
+Numéro, extension, nature et libellé de la voie  S21.G00.11.003
+Etablissement.Voie
+  Numéro : Il précise l’adresse dans la voie. Sa valeur est différente de 0 et ne doit pas dépasser 4 chiffres. En
+  cas de numéro multiple, seul le premier doit être indiqué (pour exemple indiquer 4 pour 4/14)
+  Extension : Lettre accolée au numéro si celui-ci ne présente pas une précision suffisante (par exemple B
+  pour BIS, T pour TER, etc…)
+  Nature de la voie : information facultative décrivant la nature de la voie (rue, avenue, etc…)
+  Libellé de la voie : Appellation officielle de la voie
+
+  X  [1,50]
+
+Code postal  S21.G00.11.004
+Etablissement.CodePostal
+  Il s’agit de données d’organisation postale qui doivent être utilisées en l’état. Le code postal est composé de
+  5 chiffres. Les codes CEDEX ne sont pas admis.
+  CCH-11 : Si le code postal est présent alors le code pays et le code de distribution à l'étranger sont absents et
+  réciproquement.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table HEX - Code postal
+
+Localité  S21.G00.11.005
+Etablissement.Localite
+  La localité est un élément géographique et administratif. C’est le premier élément d’identification associé
+  au code postal. Le libellé est la plupart du temps le nom officiel de la localité enregistrée à l’INSEE et au
+  Journal Officiel.
+  CCH-11 : La localité est obligatoire si le code postal de l'établissement est renseigné.
+
+  X  [1,50]  CSL 00 : [A-Za-z0-9\s]+
+
+Complément de la localisation de la construction  S21.G00.11.006
+Etablissement.ComplementConstruction
+  Les compléments d’adresse permettent d’indiquer le point de remise exact du courrier. Ils donnent des
+  informations précises et déterminantes dans la phase finale de distribution du courrier, tel que le bâtiment,
+  la boîte aux lettres, le numéro d’appartement.
+
+  X  [1,50]
+
+  145 / 361
+
+--- p. 146 ---
+  S21.G00.11  2025-12-24
+
+Service de distribution, complément de localisation de la voie  S21.G00.11.007
+Etablissement.ComplementVoie
+  Il s’agit de services de distribution du courrier spécifiques proposés ou mis en place par La Poste
+
+  X  [1,50]
+
+Type de rémunération soumise à contributions d'Assurance  S21.G00.11.009
+chômage pour expatriés
+Etablissement.RemunerationExpatries
+  Porte le choix de l’établissement (salaire réel ou salaire de comparaison) sur le montant déclaré. Celui-ci
+  peut correspondre à la rémunération réellement versée ou à une équivalence déterminée par l'employeur en
+  vue d'ajuster les cotisations et indemnisations Assurance chômage au salaire que l'intéressé aurait perçue
+  s'il avait travaillé en France.
+
+  X  [2,2]
+
+  01 - Salaire réel
+  02 - Salaire de comparaison
+
+Code pays  S21.G00.11.015
+Etablissement.CodePays
+  Nom du pays (territoire d’un état) où est localisé l'établissement, exprimé sous la forme d’un code.
+  Le code pays ne doit pas être renseigné pour les adresses relevant du système postal français.
+  Le domaine d'application du système postal français est constitué des territoires suivants :
+  FR : France métropolitaine
+  GP : Guadeloupe
+  BL : Saint Barthélémy
+  MF : Saint Martin
+  MQ : Martinique
+  GF : Guyane Française
+  RE : Ile de la Réunion
+  PM : Saint Pierre et Miquelon
+  YT : Mayotte
+  WF : Wallis et Futuna
+  PF : Polynésie Française
+  NC : Nouvelle Calédonie
+  MC : Monaco
+  CRE-11 : valeurs autorisées
+
+  X  [2,2]  Table PAY - Code pays hors système postal français
+
+Code de distribution à l'étranger  S21.G00.11.016
+Etablissement.CodeDistribution
+
+  X  [1,50]
+
+Nature juridique de l'employeur  S21.G00.11.017
+
+  146 / 361
+
+--- p. 147 ---
+  S21.G00.11  2025-12-24
+
+Etablissement.NatureJuridiqueEmployeur
+  La nature juridique de l’employeur constitue ce qui définit en droit un employeur. Elle précise s’il est de
+  nature privée ou publique. L’employeur est une personne physique ou morale qui a conclu un contrat de
+  travail avec un salarié. Il exerce des pouvoirs de direction, de contrôle et de sanction. Il assume envers le
+  salarié et à l’égard des administrations fiscale et sociale les obligations liées au contrat de travail.
+  Nature du droit applicable à l'employeur.
+  CCH-11 : Cette rubrique est obligatoire si le Type de gestion de l'Assurance chômage (S21.G00.40.029) d'au moins un
+  contrat de travail est renseigné de la valeur "03 - employeur ayant adhéré au régime d'Assurance chômage (adhésion
+  révocable)" ou "04 - employeur ayant adhéré au régime d'Assurance chômage (adhésion non révocable)".
+
+  X  [2,2]
+
+  01 - Privée
+  02 - Publique
+  03 - Etablissement privé à capitaux majoritaires publics
+
+Date d'effet de l'adhésion au dispositif TESE/CEA  S21.G00.11.019
+Etablissement.DateEffetAdhesionTESECEA
+  Cette rubrique est exclusivement alimentée par les centres TESE de l’Urssaf CN dans le cadre du dispositif
+  TESE/CEA. Elle ne doit en conséquence pas être développée par les éditeurs de logiciels et ne doit pas être
+  renseignée par les déclarants autres que l’Urssaf CN.
+  SIG-11 : Si la rubrique « Nom de l'éditeur – S10.G00.00.002 » est renseignée avec la valeur « TESE » ou « CEA » et
+  si la rubrique « Nature de la déclaration S20.G00.05.001 » est renseignée avec la valeur « 01 - DSN Mensuelle », dans
+  ce cas la présente rubrique est obligatoire.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(19|20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date d'effet de la sortie du dispositif TESE/CEA  S21.G00.11.020
+Etablissement.DateSortieTESECEA
+  Cette rubrique est exclusivement alimentée par les centres TESE de l’Urssaf CN dans le cadre du dispositif
+  TESE/CEA. Elle ne doit en conséquence pas être développée par les éditeurs de logiciels et ne doit pas être
+  renseignée par les déclarants autres que l’Urssaf CN.
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(19|20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Code convention collective principale  S21.G00.11.022
+Etablissement.CodeConventionCollective
+  Convention collective principale, conclue entre l'établissement et un ou plusieurs syndicats représentatifs de
+  salariés en vue de déterminer les conditions de travail et de rémunération qui s'imposeront à l'établissement.
+  Le code de convention collective, géré par le Ministère chargé du travail, peut être obtenu sur le site
+  http://www.net-entreprises.fr.
+  CRE-11 : Valeurs autorisées
+
+  X  [4,4]  Table IDCC - Code convention collective
+
+  147 / 361

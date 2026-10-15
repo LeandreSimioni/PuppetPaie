@@ -1,0 +1,169 @@
+                     Réduction générale des cotisations
+
+     Pour les périodes d’activité à partir du 1er janvier 2026, une nouvelle formule de calcul
+     s’applique pour la Réduction Générale Dégressive Unique (RGDU).
+
+     L’utilisation du « Type de composant de base assujettie – S21.G00.79.001 » = « 01 – Montant
+     du SMIC retenu pour le calcul de la Réduction générale des cotisations patronales de sécurité
+     sociale, de retraite complémentaire et d'assurance chômage » est requise dans le contexte du
+     dispositif de la réduction générale de cotisations pouvant s’appliquer à tout salarié dont la
+     rémunération lissée depuis le 1er janvier de l’année est inférieure à 3 SMIC et relevant à titre
+     obligatoire du régime d’assurance chômage ou dont l’emploi ouvre droit à l’allocation
+     d’assurance chômage.
+
+     Dans ce contexte, la part patronale des cotisations de retraite complémentaire est exonérée
+     pour les salariés dont les revenus bruts sont compris entre 1 SMIC et 3 SMIC : exonération
+     dégressive (maximale à 1 SMIC et 2% à 3 SMIC). Le décret N°2025-1446 prévoit un taux
+     maximal d’exonération de 39,73% pour les employeurs de moins de 50 salariés et de 40,13%
+     pour les employeurs de 50 salariés ou plus.
+
+     Appliquée à la retraite complémentaire AGIRC-ARRCO, la réduction générale porte sur :
+     - la part patronale du taux minimum obligatoire (limitée à 60%) sur Tranche 1
+     - la part patronale de la contribution d’équilibre général (CEG) sur Tranche 1
+     - la part patronale du taux supplémentaire (limitée à 60%) sur Tranche 1 sous condition que la
+     part patronale sur le taux obligatoire soit inférieure à 60%
+
+     Pour les parts patronales du taux minimum obligatoire et du taux supplémentaire, les taux
+     retenus s’entendent après application du taux d’appel de 127%, soit pour une entreprise
+     appliquant une part patronale standard de 60% sur le taux obligatoire de 6,20% en Tranche 1
+     un taux de 4,72% (= 6,20% x 127% x 60%).
+
+     Les répartitions dérogatoires de cotisations prévues par conventions ou accords de branche
+     sont capées au taux réellement pris en charge par l’employeur s’il est inférieur à 60%.
+
+
+     Exemples de taux retenus
+
+                                                                 Part         Taux entrant dans le champ de la
+                        Taux de cotisation
+                                                               patronale                 réduction
+     6,20% de taux obligatoire, appelé à 7,87%                     60%
+                                                                           (7,87 x 0,6) + (2,15 x 0,6) = 6,01%
+     Taux CEG 2,15%                                                60%
+
+     6,20% de taux obligatoire, appelé à 7,87%                     50%
+                                                                           (7,87 x 0,5) + (2,15 x 0,6) = 5,23%
+     Taux CEG 2,15%                                                60%
+     6,20% de taux obligatoire, appelé à 7,87%                     60%
+     1,80% de taux supplémentaire, appelé à 2,29%                  60%     (7,87 x 0,6)1 + (2,15 x 0,6) = 6,01%
+     Taux CEG 2,15%                                                60%
+
+     6,20% de taux obligatoire, appelé à 7,87%                     70%     (7,87 x 0,6*) + (2,15 x 0,6) = 6,01%
+     Taux CEG 2,15%                                                60%
+                                                                           * part patronale limitée à 60%
+
+
+
+
+© Agirc-Arrco                                       Page 1 sur 3                                                  avril 2026
+                            Réduction générale des cotisations
+
+
+        6,20% de taux obligatoire + 0,9% de taux supplémentaire,
+        appelés à 9,02%                                                                   50%            (9,02 x 0,5)2 + (2,15 x 0,6) = 5,80%
+        Taux CEG 2,15%                                                                    60%
+        6,20% de taux obligatoire, appelé à 7,87%                                         60%
+        0,9% de taux supplémentaire, appelé à 1,14%                                       50%            (7,87 x 0,6)1 + (2,15 x 0,6) = 6,01%
+        Taux CEG 2,15%                                                                    60%
+1 Lorsque la part patronale sur le taux obligatoire est supérieure ou égale à 60%, l’éventuel taux supplémentaire n’entre pas dans le champ de la réduction
+2 Lorsque la part patronale sur le taux obligatoire est inférieure à 60%, l’éventuel taux supplémentaire entre dans le champ de la réduction
+
+
+
+
+        La règle générale détermine le coefficient de réduction en application de la formule unique
+        suivante :
+
+                                                                                                                                           𝑃
+                                        1         𝑆𝑚𝑖𝑐 calculé pour un an + (𝑆𝑚𝑖𝑐 ℎ𝑜𝑟𝑎𝑖𝑟𝑒 × 𝐻𝑆𝐶)
+                    Tmin + (𝑇𝑑𝑒𝑙𝑡𝑎 × [ ( ) × (3 ×                                                − 1) ] )
+                                        2                  𝑅é𝑚𝑢𝑛é𝑟𝑎𝑡𝑖𝑜𝑛 𝑎𝑛𝑛𝑢𝑒𝑙𝑙𝑒 𝑏𝑟𝑢𝑡𝑒
+
+
+
+        Dans cette formule, le coefficient « Tmin » représente le seuil minimal d’exonération (2%).
+        La valeur maximale d’exonération est déterminée selon le nombre de salariés
+        employés (précisé ci-dessous) et le « Tdelta » est le différentiel entre la valeur maximale et
+        Tmin.
+        La formule de calcul du coefficient est par ailleurs élevée à une puissance « P », dont la valeur
+        est fixée à 1,75.
+        L’exonération est nulle pour une rémunération supérieure à 3 SMIC.
+
+        A compter du 1er janvier 2026, les valeurs maximales du coefficient sont fixées respectivement
+        à 39,73% pour les employeurs soumis à un taux de contribution au FNAL de 0,1% et 40,13%
+        pour les employeurs soumis à un taux de contribution au FNAL de 0,5%, avec un taux
+        maximum de 6,01% pour la retraite complémentaire.
+
+        En résumé
+
+                                                    Valeurs T pour 2025                                 Valeurs T pour 2026
+        Employeurs < 50 salariés                          0,3193                        Coeff max = 0,3973
+                                                                                        Dont Tmin = 0,0200 et donc Tdelta 0,3773
+        Employeurs ≥ 50 salariés                             0,3233                     Coeff max = 0,4013
+                                                                                        Dont Tmin = 0,0200 et donc Tdelta 0,3813
+
+
+        Toutes les précisions sur les modalités de calcul et d'application de la réduction générale sont
+        publiées sur le bulletin officiel de la sécurité sociale et disponible à l’adresse :
+        https://boss.gouv.fr/portail/accueil/actualites-boss-et-rescrits/actualites-
+        boss/2025/septembre/reforme-des-allegements-generaux.html
+
+        Le montant de la réduction à imputer sur les cotisations de retraite complémentaire Agirc-
+        Arrco, et dans la limite des cotisations annuelles dues, est obtenu en application de la
+        répartition suivante :
+
+
+
+
+© Agirc-Arrco                                                           Page 2 sur 3                                                                avril 2026
+                      Réduction générale des cotisations
+
+         •    Montant de la réduction imputée à l’Urssaf =
+              Montant global de réduction générale x (∑ taux Urssaf / ∑ taux)
+         •    Montant de la réduction imputée à l’Agirc-Arrco =
+              Montant global de réduction générale – Montant de la réduction imputée à l’Urssaf
+
+
+
+     Au niveau du déclaratif dans la DSN
+
+     -       Le « Type de composant de base assujettie - S21.G00.79.001 » = « 01 (Montant du SMIC
+             retenu pour le calcul de la Réduction générale des cotisations patronales de sécurité sociale
+             et de retraite complémentaire et de la réduction de cotisation Allocations familiales) » est à
+             rattacher à l’assiette brute déplafonnée « Code de base assujettie - S21.G00.78.001 » = « 03
+             - Assiette brute déplafonnée ».
+
+     -       Le montant de la réduction générale des cotisations patronales Agirc-Arrco est à renseigner
+             en bloc « Cotisation individuelle - S21.G00.81 » de « Code de cotisation - S21.G00.81.001 »
+             = « 106 – Réduction générale des cotisations patronales Agirc-Arrco »
+
+     -       Le montant total de la cotisation due (avant application de la réduction générale) est
+             toujours à renseigner en bloc « Cotisation individuelle - S21.G00.81 » avec le « Code de
+             cotisation - S21.G00.81.001 » = « 131 – Cotisation régime unifié Agirc-Arrco ».
+
+             NB : Le montant de la réduction doit OBLIGATOIREMENT comporter un SIGNE NEGATIF
+             lorsque l’entreprise s’allège de cotisations. En cas d’absence de signe négatif, ce montant
+             sera considéré comme une régularisation d’un « trop allégé » précédemment déclaré.
+
+
+     Exemple
+     Pour un salarié rémunéré au Smic à temps plein sans heures supplémentaires, travaillant dans
+     une entreprise de 35 salariés
+
+                                                                       1,75
+                                                  1       21 622
+                             0,0200 + ( 0,3773 × [ × (3 ×        ) − 1] )
+                                                  2       21 622
+
+     Coefficient =
+           = 0,0200 + (0,3773 x ([0,5) x (3 x 1 -1)]1,75)
+           = 0,0200 + (0,3773×[ (0,5)×(2) ]1,75 )
+           = 0,0200 + (0,3773 x [1] 1,75)
+           = 0,0200 + (0,3773 x [1])
+           = 0,3973
+
+
+
+
+© Agirc-Arrco                                       Page 3 sur 3                                       avril 2026
+

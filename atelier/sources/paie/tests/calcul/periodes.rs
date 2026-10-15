@@ -3,7 +3,7 @@
 //! (51) et les bases (78, 79, 81) de chacune, datees de ses bornes, avec le bloc 41 date du jour du changement.
 //!
 //! Textes : FAQ Agirc-Arrco « Changement de situation en cours de mois » (v2, exemples 1 et 2,
-//! `prive/reference/sources/agirc-arrco/`) ; fiche net-entreprises 1265, l. 52 ; norme DSN 2026.1, § 2.1.3.2 a 2.1.3.5,
+//! `atelier/reference/sources/agirc-arrco/`) ; fiche net-entreprises 1265, l. 52 ; norme DSN 2026.1, § 2.1.3.2 a 2.1.3.5,
 //! p. 28-29, et § 2.1.2.5, p. 22-23 ; CSS R. 242-2, I ; BOSS, assiette generale, § 700-770.
 //!
 //! Sur la copie figee de `fictive-1285-grande` (`tests/donnees/fictives/`, compagnie inventee : deux CDI, NADAR depuis 2022,

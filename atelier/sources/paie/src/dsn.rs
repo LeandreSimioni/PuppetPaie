@@ -33,7 +33,7 @@ pub struct Fichier {
     norme: Option<crate::norme::Norme>,
     /// L'individu en cours d'ecriture n'a qu'UN bloc « Contrat - S21.G00.40 » dans la declaration : S21.G00.78.006 ne
     /// s'ecrit pas. « Dans le cas de la declaration d'un contrat unique, cette rubrique n'est pas a renseigner. »
-    /// (cahier technique 2026.1, p. 298, `prive/reference/norme-dsn/texte/bloc-S21.G00.79.txt` l. 9-14 ; reste R1 #26).
+    /// (cahier technique 2026.1, p. 298, `atelier/reference/norme-dsn/texte/bloc-S21.G00.79.txt` l. 9-14 ; reste R1 #26).
     /// Pose par `generer` individu par individu ; faux ailleurs (la rubrique s'ecrit comme avant).
     pub(crate) contrat_unique: bool,
 }
@@ -277,7 +277,7 @@ fn fiche_de(fiche: &Value, nic: &str) -> Resultat<Value> {
 /// que dit SA fiche (`etablissement`, sinon le principal ; un NIC que la fiche entreprise ne porte pas refuse).
 ///
 /// « Dans le cadre d'un contrat de travail, il s'agit de l'etablissement de rattachement administratif du salarie »
-/// (S21.G00.11.001, cahier technique DSN 2026.1, p. 144, `prive/reference/norme-dsn/texte/bloc-S21.G00.11.txt`). Le
+/// (S21.G00.11.001, cahier technique DSN 2026.1, p. 144, `atelier/reference/norme-dsn/texte/bloc-S21.G00.11.txt`). Le
 /// NIC est une donnee identifiante : un signalement porte « les memes valeurs que celles portees dans la derniere DSN
 /// mensuelle deposee » (§ 2.1.1, p. 18 ; § 2.5.1, p. 67, `chapitre-2-principes-de-constitution.txt`). La mensuelle
 /// (une DSN par etablissement, qui refuse un salarie d'un autre, `generer`) et les signalements (arret, reprise, FCTU,
@@ -332,7 +332,7 @@ fn nomenclature_subrogation(libelle: &str) -> Resultat<String> {
 /// Le bloc « Arret de travail - S21.G00.60 » (`signalement.bloc_60`).
 ///
 /// Ce que chaque nature admet du bloc se lit dans le tableau des usages (cahier technique 2026.1, p. 363-382,
-/// `prive/reference/norme-dsn/texte/tableaux-des-usages.txt`, bloc S21.G00.60) : la subrogation (60.004 a 60.008) est
+/// `atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, bloc S21.G00.60) : la subrogation (60.004 a 60.008) est
 /// C en 01, O ou C en 04, I en 05 et en 07 ; la date de l'accident (60.012), I en 01 et en 07. `nature` est celle du
 /// fichier, jamais une autre (reste R1 #42 : le FCTU passait « 01 »).
 pub fn bloc_60(f: &mut Fichier, a: &Arret, nature: &str, banque: &Value) -> Resultat<()> {
@@ -527,13 +527,13 @@ fn base<'a>(bases: &'a HashMap<String, Decimal>, cle: &Value) -> Resultat<Decima
 }
 
 /// Les bases assujetties que la deduction forfaitaire specifique abat (lot R9, 11/10/2026 ;
-/// `prive/reference/sources/dfs/LISEZ-MOI.md`, « La DSN ») : 02 et 03, l'assiette des cotisations de securite sociale
+/// `atelier/reference/sources/dfs/LISEZ-MOI.md`, « La DSN ») : 02 et 03, l'assiette des cotisations de securite sociale
 /// (CSS R. 242-1, al. 3 ; arrete du 4 septembre 2025 relatif aux frais professionnels, art. 1er et 9), et 23 et 43,
 /// celles d'Agirc-Arrco (cahier d'aide a la codification Agirc-Arrco CT2026, l. 3490-3498 : « La solution ainsi retenue
 /// pour le regime general de la Securite sociale s'applique en principe au regime AGIRC-ARRCO »). Que la base 78 porte
 /// l'assiette abattue, et pas seulement son 81.003 : le meme cahier declare la « Base VRP multicartes apres abattement
 /// pour frais professionnels » en 02 et 03 (l. 6230-6236), et la norme 2026.1, chapitre 2 (p. 60-61,
-/// `prive/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt` l. 2116-2160), part du « montant brut [...]
+/// `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt` l. 2116-2160), part du « montant brut [...]
 /// servant de base au calcul des cotisations de securite sociale » et y AJOUTE « le montant de l'abattement forfaitaire
 /// d'assiette pour frais professionnels » : ce brut-la est abattu. INFERENCE, ecrite comme telle : aucun texte depose ne
 /// le dit d'un artiste en toutes lettres (la fiche net-entreprises 1336 ne dit rien des bases). Ne sont pas abattues :
@@ -556,7 +556,7 @@ pub fn cle_abattue(p: &Paie, bloc78: &str, cle: &str) -> Resultat<String> {
     }
     Err(format!(
         "{} : la deduction forfaitaire specifique abat la base {}, mais le calcul n'a pas de forme abattue de << {} >> \
-(prive/reference/sources/dfs/LISEZ-MOI.md). Rien n'est ecrit.",
+(atelier/reference/sources/dfs/LISEZ-MOI.md). Rien n'est ecrit.",
         qui_contrat(p),
         bloc78,
         cle
@@ -565,9 +565,9 @@ pub fn cle_abattue(p: &Paie, bloc78: &str, cle: &str) -> Resultat<String> {
 
 /// Le brut que la paie declare en 51 de type 001 : sous deduction forfaitaire specifique, le brut abattu. Guide Urssaf
 /// « Comment declarer et regulariser les cotisations Urssaf en DSN » du 04/06/2026, p. 36
-/// (`prive/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt`, l. 1440-1459) : les revenus bruts du montant
+/// (`atelier/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt`, l. 1440-1459) : les revenus bruts du montant
 /// net social se recomposent par « 51 de type 001 + 54 de type 10 - 54 de type 35 » ; le BOSS (montant net social, Q 26,
-/// `prive/reference/sources/montant-net-social/`, l. 387-393) veut le brut entier, « independamment des abattements » :
+/// `atelier/reference/sources/montant-net-social/`, l. 387-393) veut le brut entier, « independamment des abattements » :
 /// le 51 de type 001 est donc le brut moins la deduction que porte le 54 de type 10 (`autre_revenu`).
 pub fn brut_du_51(p: &Paie) -> Decimal {
     match (&p.deduction_forfaitaire, p.bases.get("brut_dfs")) {
@@ -758,7 +758,7 @@ fn composant_79(p: &Paie, pile: &Value, lignes: &Value) -> Option<(String, Decim
 }
 
 /// « 131 - Cotisation regime unifie Agirc-Arrco » : modalite Agirc-Arrco, parts salariale et patronale confondues
-/// (cahier technique 2026.1, p. 302 lignes 80-81 et p. 305 ligne 287, `prive/reference/norme-dsn/texte/bloc-S21.G00.81.txt`).
+/// (cahier technique 2026.1, p. 302 lignes 80-81 et p. 305 ligne 287, `atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt`).
 pub const AGIRC_ARRCO_UNIFIE: &str = "131";
 /// « 142 - Cotisation regime unifie Agirc-Arrco (part patronale tranche T1) » et « 146 - [...] (part patronale tranche
 /// T2) » : deux codes de la modalite URSSAF de 81.001 (p. 302, lignes 106-112 ; libelles p. 305, lignes 292 et 296), pas
@@ -803,7 +803,7 @@ ses taux : la part de la CET (146 en 2026, 148 en 2027) ne s'en separe pas sans 
 
 /// Les parts patronales Agirc-Arrco que l'Urssaf attend a cote d'un 131, sous la meme base 78. Guide Urssaf « Comment
 /// declarer et regulariser les cotisations Urssaf en DSN », version du 04/06/2026
-/// (`prive/reference/sources/editeur-dsn/guide-urssaf-regularisation.pdf`, transcription `.txt` a cote), p. 34 et
+/// (`atelier/reference/sources/editeur-dsn/guide-urssaf-regularisation.pdf`, transcription `.txt` a cote), p. 34 et
 /// p. 37-38 : « le montant des cotisations parts patronales de retraite complementaire Agirc Arrco (tranche 1) et de CEG
 /// (Tranche 1) ainsi que le taux sont a declarer [...] sous le code 142 » ; « le montant des cotisations parts patronales
 /// de retraite complementaire Agirc-Arrco (Tranche 2), de CEG (Tranche 2) et de CET (tranches 1 et 2) ainsi que le taux
@@ -1020,7 +1020,7 @@ fn places_non_affiliees(p: &Paie, ent: &Value) -> Resultat<Vec<usize>> {
 /// Les affiliations que le contrat declare (bloc S21.G00.70), parmi les references `refs` de sa nature
 /// (`affiliations`) : celles du salarie ce mois-la, avec ce que l'organisme demande de chacune.
 ///
-/// Cahier technique DSN 2026.1 (`prive/reference/norme-dsn/texte/bloc-S21.G00.70.txt`, p. 285-286 ;
+/// Cahier technique DSN 2026.1 (`atelier/reference/norme-dsn/texte/bloc-S21.G00.70.txt`, p. 285-286 ;
 /// `bloc-S21.G00.71.txt`, p. 287) : 70.004 « fournies par l'organisme de prévoyance et [...] à renseigner seulement sur
 /// sa demande » ; 70.008 et 70.011 « si elle intervient dans le calcul de la cotisation » ; 70.014 « lorsque la date de
 /// début d'affiliation au contrat OC ne correspond pas à la date de début du contrat de travail : [...] fin d'une
@@ -1415,7 +1415,7 @@ p. 322). Corriger la date sur la fiche : le jour ou la personne est entree dans 
 }
 
 /// `S21.G00.40.002` (statut conventionnel) et `S21.G00.40.003` (statut categoriel retraite complementaire) d'un
-/// contrat. Cahier technique DSN 2026.1, p. 182-183 (`prive/reference/norme-dsn/texte/bloc-S21.G00.40.txt`, l. 133-198).
+/// contrat. Cahier technique DSN 2026.1, p. 182-183 (`atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt`, l. 133-198).
 ///
 /// Ils se LISENT, jamais ne se devinent (regle 1) : d'abord la fiche telle que l'engagement l'a faite (`emploi_de` :
 /// le metier choisi sur la ligne les a resolus, sinon la fiche les porte) ; a defaut, le metier de la fiche s'il est
@@ -1615,7 +1615,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     // La deduction forfaitaire specifique que la fiche exerce (`calcul::deduction_forfaitaire`) : « Taux de deduction
     // forfaitaire specifique pour frais professionnels - S21.G00.40.023 », « Abattement pour frais professionnels applique
     // a la part de remuneration afferente a l'activite ouvrant droit a la deduction » (cahier technique 2026.1, p. 195,
-    // `prive/reference/norme-dsn/texte/bloc-S21.G00.40.txt` lignes 936-943 ; N [4,6], deux decimales).
+    // `atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt` lignes 936-943 ; N [4,6], deux decimales).
     if let Some(d) = &p.deduction_forfaitaire {
         si_admise(f, nature_dsn, "S21.G00.40.023", Some(fmt_f(d.taux, 2)))?;
     }
@@ -1642,7 +1642,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     proratisation_du_plafond(f, p, ent, nature_dsn)?;
     // S21.G00.40.086 (« Adhesion a une caisse de conges payes a titre obligatoire ») ne s'ecrit pas : « A ne pas
     // renseigner pour la version de norme P27V01 » (journal de maintenance 2027.1.2, evolution 17,
-    // `prive/reference/norme-dsn/dsn-journal-maintenance-2027.1.2-20260615.txt` l. 368-381), absente de P26V01. Le lot
+    // `atelier/reference/norme-dsn/dsn-journal-maintenance-2027.1.2-20260615.txt` l. 368-381), absente de P26V01. Le lot
     // V4b l'ecrivait sur le cahier 2027.1.1 ; `norme::verifier_les_valeurs` la refuse (`rubriques_a_ne_pas_renseigner`).
     for a in arrets {
         bloc_60(f, a, nature_dsn, g(ent, "banque"))?;
@@ -1743,7 +1743,7 @@ declare {} h ; ses quatre heures sont des heures supplementaires, payees comme t
 
 /// S21.G00.40.084, « Application de la proratisation du Plafond de Securite Sociale a hauteur de la quotite de
 /// travail ». Norme 2027.1.2 (note differentielle CT 2026.1.2 -> 2027.1.2, § 4.5,
-/// `prive/reference/norme-dsn/dsn-note-differentielle-ct-2026.1.2-vers-2027.1.2-20251224.txt` l. 1737-1790) : « Pour un
+/// `atelier/reference/norme-dsn/dsn-note-differentielle-ct-2026.1.2-vers-2027.1.2-20251224.txt` l. 1737-1790) : « Pour un
 /// salarie a temps partiel, cette rubrique doit etre renseignee avec le choix de l'employeur de proratiser le plafond
 /// [...]. Pour un salarie en forfait jour reduit, [...] avec le choix du salarie » ; le journal de maintenance 2027.1.2
 /// (`dsn-journal-maintenance-2027.1.2-20260615.txt`) la rend CONDITIONNELLE en DSN mensuelle (evolution 21, l. 433-452 :
@@ -1952,7 +1952,7 @@ fn dates_du_58(f: &Fichier, debut: &Jour, fin: &Jour, versement: &Jour) -> Resul
 
 /// Les dates (58.001, 58.002) du 58 d'un versement du mois (la paie, ou le mois sans paie), ou `None` quand elles ne
 /// s'ecrivent pas. Norme 2026.1 (p. 265) : la periode de versement, ecrite. Norme 2027 : la fiche net-entreprises 2983
-/// (modifiee le 09/10/2026, `prive/reference/sources/net-entreprises-base-connaissances/
+/// (modifiee le 09/10/2026, `atelier/reference/sources/net-entreprises-base-connaissances/
 /// net-entreprises-fiche2983-montant-net-social-20261009.txt`, l. 23-25 et l. 69-77) : « Le bloc S21.G00.58 heritant de la
 /// datation du bloc Versement individu - S21.G00.50 (parent par defaut), les rubriques de datation [58.001 et 58.002]
 /// ne sont pas obligatoires » ; elles servent « en cas d'erreur ou d'ecart sur un mois precedent » ; l'exemple du cas
@@ -2079,7 +2079,7 @@ pub fn bases_et_cotisations(
 /// S21.G00.50.003, le numero de versement : « Numéro valorisé par le débiteur permettant de distinguer deux versements au
 /// même salarié » ; CCH-11 : « Pour un même bloc "Individu - S21.G00.30", il est interdit de déclarer plusieurs blocs
 /// « Versement individu - S21.G00.50 » avec un même "Numéro de versement" » ; N [2,2], CSL 00 `[0]*[1-9][0-9]*` (norme
-/// DSN 2026.1, bloc 50, p. 243-244 : `prive/reference/norme-dsn/texte/bloc-S21.G00.50.txt`, lignes 111-126). La norme ne
+/// DSN 2026.1, bloc 50, p. 243-244 : `atelier/reference/norme-dsn/texte/bloc-S21.G00.50.txt`, lignes 111-126). La norme ne
 /// dit rien de l'ordre : `n` est le rang du versement sous l'individu dans ce fichier, les versements du mois d'abord, puis
 /// ses regularisations (`generer`). Ce n'est pas le rang du contrat, qui numerote les affiliations (70.012, 78.005) : une
 /// regularisation d'un contrat aussi paye ce mois a le rang de ce contrat, et un numero de versement a elle.
@@ -2223,9 +2223,9 @@ rattacher. Rien n'est ecrit.",
 }
 
 /// Les blocs 58 de type 03 (montant net social) du versement d'une correction. Norme DSN 2026.1, S21.G00.58.003
-/// (`prive/reference/norme-dsn/texte/bloc-S21.G00.60.txt`, l. 14-18, p. 265) : pour le montant net social, « la date de
+/// (`atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`, l. 14-18, p. 265) : pour le montant net social, « la date de
 /// debut (S21.G00.58.001) et la date de fin (S21.G00.58.002) de periode de rattachement sont a renseigner en periode
-/// de versement ». BOSS, montant net social, Q 35 et Q 41 (`prive/reference/sources/montant-net-social/
+/// de versement ». BOSS, montant net social, Q 35 et Q 41 (`atelier/reference/sources/montant-net-social/
 /// boss-montant-net-social-20261001.txt`, l. 476-492 et 552-571) : un rappel ou une reprise se prend dans le montant net
 /// social « du mois lors duquel ce rappel ou ce versement est effectue » ; si seul le montant net social declare etait
 /// faux, la correction se rattache a la periode d'emploi concernee, « en precisant quel etait le montant net social
@@ -2555,7 +2555,7 @@ impl Lecture {
     /// intermittent la declare chez France Travail, hors de ces lignes. C'est ce que le bordereau porte : « La somme des
     /// donnees individuelles (S21.G00.81.004 : code 018) doit etre egale aux donnees agregees (S21.G00.23.005) », « le
     /// montant agrege contient uniquement les montants Urssaf et assurance chomage » (guide declaratif Urssaf, § 8.2 ;
-    /// prive/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt, lignes 1289-1290, 1300-1311 et 1355-1356).
+    /// atelier/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt, lignes 1289-1290, 1300-1311 et 1355-1356).
     /// Les lignes n'ont donc pas a dire quelle part est laquelle. Sans ligne, rien n'a ete declare (`cotisations`
     /// n'ecrit pas une part nulle) ; une cotisation que le bareme declare sous le meme code et le meme organisme ne
     /// s'en separe pas : refus.
@@ -2677,7 +2677,7 @@ fn sert_a_un_versement(orgs: &Value, code: &str) -> bool {
 
 /// « 105 - Montant de cotisation Regime Unifie Agirc-Arrco, y compris Apec » : la modalite Agirc-Arrco de la norme
 /// 2026.1 ne le garde que « pour regularisation des periodes anterieures a 2025 » (cahier technique 2026.1, p. 302 ;
-/// `prive/reference/norme-dsn/texte/bloc-S21.G00.81.txt`, lignes 79-81).
+/// `atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt`, lignes 79-81).
 pub const AGIRC_ARRCO_AVANT_2025: &str = "105";
 /// Ce que la meme modalite attend a sa place : « 131 - Cotisation regime unifie Agirc-Arrco » et « 132 - Cotisation
 /// Apec » (p. 302 et 305 ; CCH-12 de 81.004, p. 309).
@@ -2856,7 +2856,7 @@ fn assiettes_ctp(paies: &[&Paie], bar: &Value) -> Resultat<HashMap<String, Decim
     out.insert("t1_permanent".into(), somme(&perm, &|i| paies[i].bases.get("t1_mensuelle").copied().unwrap_or(zero())));
     // Le chomage et l'AGS des permanents (CTP 772 et 937, qualifiant 920) : la somme des bases 07 que leur nominatif
     // declare (`base_07`). Le tableau d'equivalence de l'Urssaf rattache ces deux CTP a la base 07 (040 et 048) sous le
-    // qualifiant 920 (prive/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, lignes 1640 et
+    // qualifiant 920 (atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, lignes 1640 et
     // 280) ; depuis le lot V2e (bareme 2026) et le lot R8 (bareme 2025), c'est le brut dans la limite de quatre plafonds
     // de la periode.
     let mut chomage = zero();
@@ -2876,7 +2876,7 @@ fn assiettes_ctp(paies: &[&Paie], bar: &Value) -> Resultat<HashMap<String, Decim
     // La contribution a la formation professionnelle des permanents (CTP 959 ou 971, qualifiant 920) : la somme des
     // 81.003 de leur cotisation 128, l'assiette majoree de 11,5 % d'un contrat declare a la caisse des Conges Spectacles
     // (guide Urssaf des contributions de formation, 12/03/2026 ; fiche net-entreprises 2503 :
-    // prive/reference/sources/majoration-caisses-conges/LISEZ-MOI.md).
+    // atelier/reference/sources/majoration-caisses-conges/LISEZ-MOI.md).
     let mut cfp = zero();
     for i in (0..paies.len()).filter(|i| perm(*i)) {
         for c in cotisations(paies[i], bar)?.into_iter().filter(|c| c.code81 == CODE81_CFP) {
@@ -2970,7 +2970,7 @@ fn cle_ctp(ctp: &Value) -> Resultat<(String, bool)> {
 }
 
 /// Les CTP du chomage et de l'AGS d'un permanent, que le tableau d'equivalence de l'Urssaf rattache a la base 07
-/// (prive/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv : 772 -> 07/040, 937 -> 07/048,
+/// (atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv : 772 -> 07/040, 937 -> 07/048,
 /// qualifiant 920).
 const CTP_CHOMAGE_PERMANENT: [&str; 2] = ["772", "937"];
 
@@ -3011,8 +3011,8 @@ lit l'assiette « {} », qui n'a pas de forme plafonnee. Rien n'est ecrit.",
 
 /// Les complements maladie et allocations familiales au taux abattu de 30 % (« COMPLT MALADIE 30% », « COMPLT AF
 /// ABATT.30 % ») : des CTP d'ARTISTES (tableau DIDA de l'Urssaf, « Ce CTP artistes »,
-/// prive/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 838, 1410 et 1450 ; « Les
-/// techniciens ne sont pas concernes », prive/reference/sources/urssaf-taux-reduits-artistes/, l. 24 du .txt).
+/// atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 838, 1410 et 1450 ; « Les
+/// techniciens ne sont pas concernes », atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 24 du .txt).
 const CTP_ABATTUS: [&str; 2] = ["636", "432"];
 
 /// La contribution CPF-CDD au bordereau (table des CTP de l'Urssaf : « CONTRIBUTION CPF CDD », 1 %).
@@ -3121,7 +3121,7 @@ impl Seuils {
 /// Le FNAL des artistes : CTP 334 « FNAL ARTISTES PLAFONNE » sous cinquante salaries, 316 « FNAL ARTISTES TOTALITE » a
 /// partir de cinquante (Urssaf, « Les taux reduits cas particuliers », 15/07/2026 : « Effectif de moins de 50 salaries :
 /// 0,07 % dans la limite du plafond ; Effectif 50 salaries et plus : 0,35 % » ; « CTP 316 : FNAL artistes totalite ;
-/// CTP 334 : FNAL artistes plafonne » ; prive/reference/sources/urssaf-taux-reduits-artistes/, l. 89-92 et 148-149 du
+/// CTP 334 : FNAL artistes plafonne » ; atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 89-92 et 148-149 du
 /// .txt). Un fichier des organismes compose avant le 11/10/2026 n'a pas le 316 : a cinquante salaries, il declarerait le
 /// FNAL de l'artiste sous le CTP plafonne. On refuse, et on dit comment recomposer (comme pour 772 et 937).
 fn fnal_des_artistes(ctps: &[Value], somme: &HashMap<String, Decimal>, effectif: &Seuils, mois: &str) -> Resultat<()> {
@@ -3198,7 +3198,7 @@ determinee de moins de douze mois d'un artiste) : son FNAL se paie sur la tranch
     if let Some(vm) = bareme::versement_mobilite(bar)? {
         // L'assiette majoree de l'intermittent (CSS L. 243-1-3 ; `bareme::bareme_vm`), le brut du permanent : celle du
         // bloc 81 de chacun. « Pour le versement de transport, le CTP 900 » (Tissot, 2017 ;
-        // prive/reference/sources/majoration-caisses-conges/).
+        // atelier/reference/sources/majoration-caisses-conges/).
         let (mut artistes, mut autres) = (zero(), zero());
         for p in paies {
             let a = bases(p, bar)?["brut_x115"];
@@ -3314,7 +3314,7 @@ fn lignes_regularisees(
             // et sans signe, et non le CTP de la reduction en montant negatif. Guide declaratif Urssaf 5.1, § 8.2,
             // « Schema de l'attendu declaratif » : « Ctp 668/671 : […] Montant de cotisation (reduction) XX ; Ctp
             // 669/801 : Montant d'assiette XX », « les montants ne doivent pas comporter de signe ; les CTP comprennent
-            // les signes necessaires » (prive/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt, lignes
+            // les signes necessaires » (atelier/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt, lignes
             // 1341-1362). La table des CTP valorise 669 et 801 (format E) a 100 % : le montant du bordereau est celui
             // qu'aurait deduit le montant negatif.
             let qualifiant = en_texte(req(ctp, "qualifiant")?);
@@ -3391,7 +3391,7 @@ fn montant_versement(v: &Value, totaux: &[(String, Decimal)], brut_mois: Decimal
 
 // ------------------------------------ le versement a un organisme complementaire
 //
-// Les composants d'un versement de prevoyance (bloc S21.G00.55, norme 2026.1, `prive/reference/norme-dsn/texte/
+// Les composants d'un versement de prevoyance (bloc S21.G00.55, norme 2026.1, `atelier/reference/norme-dsn/texte/
 // bloc-S21.G00.55.txt`) se LISENT dans ce que le fichier declare, une fois les individus ecrits : chaque cotisation
 // d'une base rattachee a une affiliation (78.005) va au contrat que cette affiliation reference (70.012 -> 70.013 ->
 // 15.005), et le code d'affectation est la reference de ce contrat (« Le contrat mentionne doit faire l'objet d'un bloc
@@ -3575,7 +3575,7 @@ fn versement_complementaire(
 // ------------------------------------------------- le versement a la DGFiP
 //
 // Le prelevement a la source retenu se reverse par la DSN, dans un bloc 20 a part (norme 2026.1, bloc S21.G00.20,
-// `prive/reference/norme-dsn/texte/bloc-S21.G00.20.txt`) : 20.001 = « DGFIP » (p. 154, ligne 47), 20.002 =
+// `atelier/reference/norme-dsn/texte/bloc-S21.G00.20.txt`) : 20.001 = « DGFIP » (p. 154, ligne 47), 20.002 =
 // « DGFIP_PAS » (p. 155, ligne 104 ; CCH-11 p. 156, lignes 125-127), 20.005 « arrondi a l'entier le plus proche »
 // (p. 157, lignes 194-199), 20.006 et 20.007 le premier et le dernier jour du mois principal declare (p. 158 ligne
 // 248, p. 159 ligne 301), 20.010 « 05 » (CCH-14 p. 161, lignes 428-430), 20.011 « non concerne » (p. 161, ligne 466),
@@ -3642,7 +3642,7 @@ partie des corrections sur une DSN suivante, ou voir avec le service des impots 
     // « arrondi a l'entier le plus proche (les deux decimales etant valorisees a zero) » (p. 157, ligne 194) ; le demi
     // va a l'euro superieur (`bordereau::euro`) : CGI art. 1724, « La liquidation de toutes sommes a recevoir [...] est
     // arrondie a l'euro le plus proche. La fraction d'euro egale a 0,50 est comptee pour 1 »
-    // (`prive/reference/sources/code-general-des-impots/articles-20261013.md`). INFERENCE : la norme ne dit pas le demi,
+    // (`atelier/reference/sources/code-general-des-impots/articles-20261013.md`). INFERENCE : la norme ne dit pas le demi,
     // et L. 133-10 CSS ne vise pas la DGFiP ; le versement du prelevement a la source est une somme a recevoir du fisc.
     let mut montant = bordereau::euro(du);
     montant.rescale(2);
@@ -4919,7 +4919,7 @@ mod tests {
     #[test]
     fn la_reduction_que_l_urssaf_recouvre_se_relit_sans_departager_les_018_d_un_permanent() {
         // Vague 3a. Le CTP 668 « reduction generale etendue » porte la somme des 018 de l'Urssaf (guide declaratif Urssaf,
-        // § 8.2, prive/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt, lignes 1289-1290 et 1300-1311) :
+        // § 8.2, atelier/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt, lignes 1289-1290 et 1300-1311) :
         // la part securite sociale et, pour un permanent, la part chomage. Avant, le bordereau ne prenait que la premiere,
         // et la relecture d'une DSN deposee refusait de departager les deux lignes.
         let bar = fictive_1285().bareme(&d(&json!("2026-09-13")).unwrap()).unwrap();

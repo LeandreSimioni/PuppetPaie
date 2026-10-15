@@ -1,0 +1,117 @@
+# Bloc S89.G00.67
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 331-332
+
+--- p. 331 ---
+  S89.G00.67  2025-12-24
+
+  01 - honoraires, vacations
+  02 - commissions
+  03 - courtages
+  04 - ristournes
+  05 - jetons de présence
+  06 - droits d'auteur
+  07 - droits d'inventeur
+  08 - autres rémunérations
+  11 - retenue impôt sur le revenu
+
+Montant de la rémunération  S89.G00.43.002
+Remunerations.Montant
+  [NB : avec décimale, signé, valeur zéro interdite, zéros non significatifs tolérés.]
+
+  N  [4,12]  CSL 00 : -?[0]*([1-9][0-9]*\.[0-9]{2}|0\.(0[1-9]|[1-9][0-9]))
+
+S89.G00.67
+
+Droit supplémentaire acquis au titre des régimes de  S89.G00.67
+retraite supplémentaire à prestations définies
+  Ce bloc est à renseigner pour tout individu ayant acquis de nouveaux droits dans le cadre du régime de retraite
+  supplémentaire à prestation définies.
+
+NIR  S89.G00.67.001
+Numéro technique temporaire  S89.G00.67.002
+Montant de droit supplémentaire acquis  S89.G00.67.003
+Pourcentage de droit supplémentaire acquis  S89.G00.67.004
+Millésime de rattachement  S89.G00.67.005
+
+NIR  S89.G00.67.001
+DroitSupRegimeRSP.Identifiant
+  Le numéro d'inscription au répertoire (NIR) est l'identifiant unique et invariable des individus inscrits au
+  répertoire national d'identification des personnes physiques (RNIPP). Ce numéro correspond au numéro de
+  sécurité sociale. Ce numéro est composé de 13 chiffres et d'une clé de 2 chiffres. La clé n'est pas à déclarer
+  dans cette rubrique. Cette rubrique permet la déclaration du NIA (numéro d'immatriculation d'attente
+  attribué par les organismes de protection sociale) en l'absence de NIR. Le NIA est constitué comme un NIR
+  dans l'attente d'être certifié (circulaire DSS/sd4c N° 2012-213 du 1er juin 2012). Le NIR doit avoir la forme
+  SAAMMDDCCCNNN avec :
+  S = sexe de la personne physique doit être égal à 1 ou 2
+  AA = année de naissance de la personne physique doit être comprise entre 00 et 99
+  MM = mois de naissance de la personne physique doit être compris entre 01 et 12 ou entre 30 et 42 ou entre
+  50 et 99 ou égal à 20
+  DD = département de naissance de la personne physique doit être compris entre 01 et 99 ou être égal à 2A
+  ou 2B
+  CCC = commune de naissance de la personne physique doit être comprise entre 001 et 999
+  NNN = numéro d'inscription la personne physique au registre d'état civil doit être compris entre 001 et 999.
+  Si l'immatriculation est provisoire, ne pas utiliser les numéros provisoires reconnaissables par leur premier
+  caractère égal à 7 ou 8, mais utiliser le NIA qui a été notifié. En l'absence de NIR ou de NIA, il est
+  obligatoire de remplir la rubrique Numéro technique temporaire (S89.G00.67.002).
+
+  331 / 361
+
+--- p. 332 ---
+  S89.G00.67  2025-12-24
+
+  CCH-11 : Pour un NIR sur 13 caractères, DD = département de naissance de la personne physique
+  - ne peut être égal à 2A ou 2B si année de naissance inférieure à 1976
+  - ne peut être égal à 20 si année de naissance supérieure ou égale à 1976
+  - ne peut être égal à 96 si année de naissance supérieure ou égale à 1968
+  L'année utilisée doit être extraite de la rubrique date de naissance.
+
+  CCH-12 : Il n'est pas admis qu'un "NIR - S89.G00.67.001" soit renseigné avec la valeur "1999999999999" ou
+  "2999999999999".
+
+  CCH-13 : Si le "Numéro d'inscription au répertoire - S89.G00.67.001" est renseigné, il doit être identique à celui
+  déclaré dans la rubrique "Numéro d'inscription au répertoire - S21.G00.30.001".
+
+  CCH-14 : Si le « Numéro d'inscription au répertoire - S89.G00.67.001 » n'est pas renseigné, le « Numéro technique
+  temporaire - S89.G00.67.002 » doit obligatoirement être renseigné.
+
+  CCH-15 : Il n'est pas admis qu'un « NIR - S89.G00.67.001 » soit renseigné avec plus de cinq caractères « 9 » à la suite
+  en fin de chaîne.
+
+  CSL 00 : [1-2][0-9]{2}(0[1-9]|1[0-2]|20|3[0-9]|4[0-2]|[5-
+  9][0-9])(0[1-9]|[1-9][0-9]|2A|2B)([0]{2}[1-9]|0[1-9][0-9]|[1-
+  X  [13,13]
+  9][0-9]{2})([0]{2}[1-9]|0[1-9][0-9]|[1-9][0-9]{2})|([1-
+  2][9]{12})
+
+Numéro technique temporaire  S89.G00.67.002
+DroitSupRegimeRSP.NTT
+  Le NTT est un identifiant technique unique et invariant permettant à l'employeur de déclarer, dans un temps
+  limité, un individu pour lequel il n'aurait pas connaissance du Numéro d'Inscription au Répertoire ou du
+  Numéro d'Identification d'Attente au moment de l'émission d'une DSN. Il est composé du code sexe de la
+  personne physique qui doit être égal à 1 ou 2, suivi du SIREN de l'entreprise et d'un identifiant unique et
+  pérenne de l'individu dans l'entreprise, comme le Matricule du salarié dans l'entreprise par exemple. Il ne
+  peut pas contenir de caractères "espace". Il s'agit d'une donnée technique destinée au système d'information
+  DSN uniquement. Le NTT n'est pas une donnée de gestion et ne permet pas l'ouverture des droits de
+  l'individu auprès des organismes de protection sociale. Le NTT doit désigner un individu et un seul pour
+  l'ensemble de ses contrats dans l'entreprise. En cas d'obtention de plusieurs NTT, l'employeur doit utiliser
+  pour ses déclarations le NTT le plus ancien en cours de validité. En l'absence de NIR ou de NIA, il est
+  obligatoire de remplir la rubrique Numéro technique temporaire (S89.G00.67.002). Le NTT doit être
+  renseigné dans la première DSN où le NIR est attribué. Ceci permettra de faire le lien entre les deux
+  identités déclarées par l'employeur.
+  CCH-11 : Le "Numéro technique temporaire - S89.G00.67.002" est composé de la valeur déclarée dans la rubrique
+  "SIREN - S21.G00.06.001" de la 2ème à la 10ème position.
+
+  CCH-12 : Si le "Numéro technique temporaire - S89.G00.67.002" est renseigné, il doit être identique à celui déclaré
+  dans la rubrique "Numéro technique temporaire - S21.G00.30.020".
+
+  CSL-11 : Le "Numéro technique temporaire - S89.G00.67.002" doit obligatoirement commencer par "1" ou "2".
+
+  CSL-12 : Le caractère « espace » est interdit dans la composition du numéro technique temporaire.
+
+  X  [11,40]
+
+Montant de droit supplémentaire acquis  S89.G00.67.003
+DroitSupRegimeRSP.MontantDroitSupplementaireAcquis
+  Cette rubrique permet de renseigner le montant de droit supplémentaire acquis.
+
+  332 / 361

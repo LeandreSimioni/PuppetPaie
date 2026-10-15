@@ -81,7 +81,7 @@ pub fn identifiant_de(m: &ParsedMail) -> String {
 /// `_date_de` : la date du message, en heure locale (Paris), ISO a la seconde -- le format du journal. Sans en-tete
 /// `Date` lisible, l'heure de la releve (`maintenant`, deja en ISO).
 ///
-/// `-0000` est une heure UT, comme `+0000` : la RFC 5322, § 3.3 (`prive/reference/sources/ietf/LISEZ-MOI.md`), ne lui
+/// `-0000` est une heure UT, comme `+0000` : la RFC 5322, § 3.3 (`atelier/reference/sources/ietf/LISEZ-MOI.md`), ne lui
 /// retire que l'information sur le fuseau LOCAL de l'expediteur ; un nom de fuseau inconnu (`CEST`) et une zone
 /// militaire valent `-0000` (§ 4.3). Un en-tete sans fuseau se lit comme une heure de Paris : une INFERENCE du moteur,
 /// pas un texte. La RFC exige la zone (`time = time-of-day zone`, l. 808 ; `obs-zone`, l. 1838) et laisse a
@@ -207,7 +207,7 @@ fn parsedate_tz(donnees: &str) -> Option<(i64, i64, i64, i64, i64, i64, Option<i
     // Un nom de fuseau que cette table ne connait pas (« CEST »), ou une zone militaire d'une lettre : RFC 5322, § 4.3,
     // « SHOULD be considered equivalent to "-0000" » -- une heure UT (§ 3.3). Sans fuseau, ou avec un commentaire seul
     // (« (CEST) »), `None` : l'heure de Paris, une inference du moteur que la RFC laisse a l'implementation (§ 4,
-    // l. 1711-1718 ; `prive/reference/sources/ietf/LISEZ-MOI.md`).
+    // l. 1711-1718 ; `atelier/reference/sources/ietf/LISEZ-MOI.md`).
     let decalage: Option<i64> = match nommes.iter().find(|(n, _)| *n == tz) {
         Some((_, v)) => Some(*v),
         None if !tz.is_empty() && tz.bytes().all(|b| b.is_ascii_alphabetic()) => Some(0),

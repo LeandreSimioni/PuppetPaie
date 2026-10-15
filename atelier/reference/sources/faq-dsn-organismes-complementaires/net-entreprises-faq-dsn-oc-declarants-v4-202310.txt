@@ -1,0 +1,2734 @@
+                                                          DSN
+
+
+
+
+                         FAQ
+         DSN Organismes Complémentaires
+         (prévoyance, complémentaire santé,
+              retraite supplémentaire)
+
+
+                                                       Réf. : DSN OC - FAQ Déclarants - 2023 10 - v4
+
+                                                         Date de dernière mise à jour : octobre 2023
+
+                                                                            Type de document : FAQ
+
+                                                                                Etat : Version diffusée
+
+                                                                                         Version : 4.0
+
+
+
+Trace des évolutions :
+Version 4.0 : ajustements suite aux évolutions de la norme, ajout d’entrée relative à l’outil DSN-FPOC,
+mise à jour des liens Net-entreprises et ajout de questions sur la déclaration des contrats de retraite
+supplémentaire [détails en §13]
+Version 3.0 : ajustements suite aux évolutions de la norme, modification et ajouts d’entrées
+Version 2.0 : suppression des entrées liées à la norme phase 2, ajout de l’entrée 4.5.1 relative à la
+norme P3.2018
+                                                   FAQ DSN Organismes Complémentaires
+
+
+
+
+                                                             Table des matières
+
+
+
+
+1      Introduction ..................................................................................................................................... 3
+2.     Qu’est-ce qu’un organisme complémentaire ? ............................................................................... 4
+3      La fiche de paramétrage organisme complémentaire (FPOC) ....................................................... 5
+4      Les données générales de la déclaration DSN ............................................................................ 11
+     4.2       Echéance déclarative mensuelle ......................................................................................... 12
+5      Les données d’adhésion et d’affiliation Prévoyance..................................................................... 13
+     5.1       Codification des contrats ...................................................................................................... 13
+     5.2       Bordereau de radiation......................................................................................................... 19
+     5.3       Bulletin d’affiliation ............................................................................................................... 20
+     5.4       Déclaration des ayants-droit ................................................................................................ 22
+     5.5       Gestion des mouvements de personnel .............................................................................. 24
+6      Les données du contrat de travail................................................................................................. 27
+     6.1       Arrêt et reprise de l’activité................................................................................................... 27
+7      Les données de cotisations individuelles ..................................................................................... 28
+     7.1       Rattachement des cotisations individuelles ......................................................................... 28
+     7.2       Régulariser une année incomplète en DSN......................................................................... 39
+     7.3       Régulariser une cotisation après l’absorption d’un organisme complémentaire ................. 39
+     7.4       Ayants-droit .......................................................................................................................... 40
+8      Les données de cotisations établissement ................................................................................... 42
+9      Les données d’ancienneté ............................................................................................................ 46
+10     Les données de paiement ............................................................................................................ 47
+11     La retraite supplémentaire en DSN .............................................................................................. 55
+12     Les comptes rendus métier (CRM) ............................................................................................... 57
+13     Historique des modifications ......................................................................................................... 58
+
+
+
+
+ Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                                                            Page 2 / 58
+                                     FAQ DSN Organismes Complémentaires
+
+
+
+
+   1 Introduction
+
+L’objectif de ce document au format « questions-réponses » est de fournir une aide à l’élaboration des
+DSN relatives aux contrats de prévoyance, complémentaire santé et retraite supplémentaire.
+
+Il est réalisé par les représentants des organismes complémentaires, membres du CTIP, de la FFA et
+de la FNMF afin de faciliter l’établissement des déclarations destinées aux porteurs de risques et
+délégataires de gestion.
+
+Il est constitué à partir des questions qui nous sont parvenues de la part d’organismes complémentaires
+qui souhaitaient informer leurs clients et éditeurs de solutions de paie. Il continuera à s’enrichir des
+futurs échanges que nous continuerons d’avoir avec nos interlocuteurs.
+
+Des cas particuliers peuvent concerner soit une institution de prévoyance, une société d’assurance ou
+une mutuelle, et ses particularités apparaitront lorsqu’il sera nécessaire de les mentionner.
+
+Cette FAQ fait partie intégrante de la documentation DSN relative aux organismes complémentaires
+disponible à cette adresse : https://www.net-entreprises.fr/media/documentation/faq-dsn-oc-
+declarants.pdf .
+
+
+
+
+ Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                              Page 3 / 58
+                                     FAQ DSN Organismes Complémentaires
+
+
+
+
+   2. Qu’est-ce qu’un organisme complémentaire ?
+
+
+Un organisme complémentaire assure la gestion de contrats collectifs concernant la complémentaire
+santé, la prévoyance et la retraite supplémentaire.
+En DSN, ces organismes sont dénommés « Organismes de Prévoyance ».
+
+Il existe trois types d’organismes complémentaires :
+       les institutions de prévoyance : organismes régis par le code de la Sécurité sociale ;
+       les mutuelles : organismes régis par le code de la Mutualité ;
+       les sociétés d’assurance : organismes régis par le code des Assurances.
+
+A ce titre, les organismes complémentaires sont susceptibles de verser, parmi d’autres, les prestations
+suivantes :
+       tout ou partie des frais de santé, en complément ou en supplément des prestations de
+        l’assurance maladie obligatoire
+       indemnités journalières
+       maintien de salaire
+       pension d'invalidité
+       indemnités de fin de carrière
+       congés de fin d'activité
+       retraite supplémentaire
+       rentes dépendance
+       rentes d'éducation
+       rentes de conjoint
+       ...
+
+
+
+
+ Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                  Page 4 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+    3 La   fiche   de    paramétrage                                               organisme
+      complémentaire (FPOC)
+
+
+Question                                                                           MAJ : 02/10/2023
+A quoi sert la fiche de paramétrage ?
+La fiche de paramétrage contient les données nécessaires au déclarant pour :
+   affilier correctement les salariés de l’entreprise sur les contrats complémentaires dans son
+    système de paie
+   calculer correctement les cotisations liées aux contrats complémentaires de chaque salarié et de
+    son ou ses établissements (le cas échéant)
+   produire des DSN comportant toutes les données requises pour leur traitement par les OC, et
+    éventuellement contrôler leur contenu.
+
+Vous pouvez consulter la notice explicative complète de la fiche de paramétrage sur le site Net-
+entreprises, à l’adresse suivante :
+https://www.net-entreprises.fr/media/documentation/fiche-parametrage-oc.pdf
+Vous pouvez accéder à l'ensemble de la documentation fonctionnelle et technique, relative aux fiches
+de paramétrage, en téléchargeant le fichier zip accessible sur Net-entreprises à l’adresse suivante :
+https://www.net-entreprises.fr/declaration/fiches-de-parametrages-oc/ onglet « La documentation
+technique »
+
+
+
+
+Question                                                                      MAJ : 03/06/2020
+Quelles informations puis-je trouver dans la fiche de paramétrage ?
+La fiche de paramétrage permet d’obtenir les éléments nécessaires et suffisants pour le paramétrage
+du logiciel de paie. Plus son contenu est exploité, plus la déclaration est fiable et aisément prise en
+compte par l’organisme complémentaire et assure l’application des droits des salariés couverts par
+des contrats collectifs.
+Les données de paramétrage toujours présentes sont les :
+   Données d’identifiant, de version, date de création, Siren, raison sociale, éventuellement le NIC,
+    information sur le producteur de la fiche, contact technique, contact gestionnaire (Socle).
+   Données d’identification des contrats et affiliations : code organisme, code délégataire (le cas
+    échéant), référence contrat, et le cas échéant : code option, code population (niveau 1).
+   Données utiles au calcul des cotisations nominatives : tranches de rémunération et/ou bases
+    spécifiques, complétées des taux de cotisation et des montants prévus au contrat (niveau 2A).
+   Données utiles au calcul des cotisations établissement (cotisations non nominatives) si
+    nécessaire : codes cotisations, taux et montants associés (niveau 2A).
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                               Page 5 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Les données de paramétrage peuvent aussi comprendre :
+   la périodicité de paiement des cotisations ;
+   la définition des conditions d’affiliation des salariés sur chaque contrat (selon différents critères
+    tels que le code statut catégoriel, l’établissement, le code convention collective, la date
+    d’affiliation, l’ancienneté dans l’entreprise …) (niveau 2B) ;
+   les informations de compatibilité relatives aux liens ou exclusions entre contrats (niveau 2C).
+
+
+
+
+Question
+                                                                                     MAJ : 08/10/2015
+Pourquoi existe-t-il une version au format PDF et une version au format
+XML de la fiche de paramétrage ?
+La fiche de paramétrage au format XML est destinée au logiciel de paie du déclarant. Elle a pour
+vocation d’être intégrée automatiquement dans le logiciel de paie et d’éviter une saisie manuelle des
+données de paramétrage. Ce mode de chargement automatique permet un gain de productivité pour
+le déclarant, en limitant le risque d’erreur de saisie des paramètres nécessaires.
+La prise en compte de la fiche de paramétrage au format XML dans le logiciel de paie suppose que
+l’éditeur de la solution ait développé le dispositif technique permettant d’intégrer automatiquement les
+éléments contenus dans la fiche pour paramétrer la solution.
+En l’absence du dispositif permettant d’intégrer automatiquement la fiche de paramétrage au format
+XML, le déclarant peut télécharger la fiche au format PDF pour paramétrer manuellement son logiciel
+de paie.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                 Page 6 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question                                                                           MAJ : 02/10/2023
+Quand les fiches de paramétrage sont-elles émises ?
+Les organismes complémentaires doivent produire une nouvelle fiche de paramétrage dès lors que
+des éléments contractuels changent (renumérotation du contrat, changement de taux ou de montant,
+modification de la périodicité de paiement, etc.). Ainsi, de nombreuses fiches de paramétrage sont
+produites en fin d’année civile, du fait des changements d’organisme complémentaire, de garantie,
+de taux ou autres éléments de paramétrage, mais pas uniquement.
+Plus de détails sur les événements déclencheurs des renouvellements de fiches de paramétrage,
+dans la fiche consigne dédiée sur Net-entreprises :
+https://net-entreprises.custhelp.com/app/answers/detail/a_id/1917
+
+
+
+
+Question
+                                                                                   MAJ : 03/06/2020
+Comment les nouvelles fiches de paramétrage se substituent-elles aux
+anciennes ?
+Une nouvelle fiche de paramétrage, émise par le même producteur pour la même entreprise ou le
+même établissement, annule et remplace intégralement l’ancienne. Aussi la nouvelle fiche de
+paramétrage doit contenir l’intégralité des paramètres contrats applicables à l’entreprise ou
+l’établissement concerné.
+La nouvelle fiche de paramétrage sera téléchargeable à partir du portail Net-entreprises ou MSA.fr
+en remplacement de l’ancienne qui ne le sera plus.
+
+
+
+
+Question
+                                                                                   MAJ : 12/09/2016
+Comment puis-je m’assurer que j’ai bien téléchargé la dernière fiche de
+paramétrage émise par l’organisme complémentaire ?
+Afin de faciliter l’identification de la dernière fiche de paramétrage émise par l’organisme
+complémentaire, il est possible de consulter les données de datations renseignées :
+   à la racine de la fiche, l’attribut obligatoire nommé « DateHeureCreation » contient la date-heure
+    de création de la fiche par l’organisme émetteur,
+   au niveau de chaque paramètre contrat de la fiche de paramétrage, 3 attributs existent :
+        o « DateDebutValidite » est un attribut obligatoire qui indique la date de début de validité
+            du paramètre contrat ;
+        o « DateFinValidite » est un attribut facultatif qui indique la date de fin de validité du
+            paramètre contrat. Souvent cet attribut est renseigné à la date de fin de l’année civile en
+            cours ;
+        o « Changement » est un attribut facultatif indiquant le type de changement opéré sur un
+            paramètre contrat, au regard de la version précédente de fiche de paramétrage.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                               Page 7 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+                                                                                    MAJ : 03/06/2020
+Comment l’organisme complémentaire décrit-il dans la fiche de
+paramétrage, les mises à jour qui s’appliqueront au contrat ?
+Lorsque de nouvelles conditions s’appliquent à un contrat, l’organisme complémentaire émetteur de
+la fiche de paramétrage peut choisir parmi plusieurs modalités de mise à jour.
+
+Exemple 1 :
+   l’organisme complémentaire émet au cours du dernier trimestre 2019 une nouvelle fiche
+    mentionnant seulement un paramètre contrat pour le Contrat1, avec une date de début de validité
+    au 01/01/2020 (et éventuellement aussi une date de fin de validité au 31/12/2020)
+   l’organisme complémentaire ne rappelant pas les paramètres qui prévalent encore jusqu’au
+    31/12/2019, il appartient à l’entreprise de veiller à ce que les nouveaux paramètres ne soient pris
+    en compte qu’à partir du 01/01/2020 et pas avant.
+
+Exemple 2 :
+   l’organisme complémentaire émet au cours du dernier trimestre 2019 une nouvelle fiche
+    mentionnant DEUX paramètres contrat pour le Contrat1,
+         o un 1er paramètre pour le Contrat1 rappelant les paramètres en cours, avec une date de
+             début de validité au 01/01/2019 et une date de fin de validité au 31/12/2019
+         o un 2nd paramètre pour le Contrat1 mentionnant les nouveaux paramètres à prendre en
+             compte en 2020, avec une date de début de validité au 01/01/2020 (et éventuellement
+             une date de fin de validité au 31/12/2020)
+   l’entreprise déclarante dispose dans ce cas, dans la nouvelle fiche de paramétrage reçue au
+    cours du dernier trimestre 2019 des paramètres en cours et des paramètres à venir. Il lui
+    appartient toutefois d’exploiter correctement les dates de début et de fin de validité présentes sur
+    chaque paramètre contrat, et de ne pas considérer comme des doublons 2 paramètres contrat
+    distincts relatifs à la même référence contrat.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                Page 8 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+Dans la fiche de paramétrage OC, sur quelle base sont exprimés les                    MAJ : 03/06/2020
+montants qui y figurent (base mensuelle, trimestrielle, semestrielle,
+annuelle) ?
+Il faut distinguer le cas des montants figurant dans les éléments de calcul individuels (cotisations
+nominatives figurant sur le bulletin de paie), et ceux figurant dans les cotisations établissement
+(cotisations non nominatives).
+
+Concernant les montants se rapportant à des cotisations individuelles (montant forfaitaire
+Prévoyance, code type 79.001 de valeur 20), ils sont exprimés en valeur mensuelle, quelle que soit
+l'échéance de paiement des cotisations correspondantes.
+
+Concernant les montants se rapportant à des cotisations établissement (montants faisant l'objet de
+blocs 82), ils sont exprimés sur la base de la périodicité de déclaration de la cotisation établissement ;
+cette périodicité de déclaration étant mentionnée dans la fiche :
+- montant mensuel pour une cotisation à déclarer chaque mois,
+- montant trimestriel pour une cotisation à déclarer chaque trimestre.
+
+Remarque : la périodicité de déclaration de la cotisation établissement sera toujours inscrite dans la
+périodicité de paiement du paramètre contrat (sauf dans le cas particulier d’une périodicité de
+paiement libre). Si la périodicité de déclaration est semestrielle, la périodicité de paiement pourra être
+semestrielle ou annuelle, mais elle ne pourra pas être trimestrielle ou mensuelle.
+
+
+
+
+Question
+Comment contrôler avant envoi la conformité de ma DSN au regard des                   02/10/2023
+données présentes dans les fiches de paramétrage ?
+Avant d’envoyer votre DSN, vous pouvez utiliser le logiciel DSN-FPOC pour contrôler la validité de
+votre/vos déclarations au regard des données présentes dans la ou les fiches de paramétrage au
+format « xml » applicables.
+
+Simple d’utilisation DSN-FPOC est gratuit et disponible à l’adresse : https://dsn-fpoc.fr/
+
+Il vous permet de confronter les données OC de vos DSN au contenu de la ou des fiches de
+paramétrage que vous aurez préalablement téléchargées en format « xml ».
+
+Le rapprochement entre les DSN et les fiches de paramétrage est automatique grâce au Siren / Siret
+déclaré.
+Le bilan des anomalies produit par DSN-FPOC aide à leur compréhension et facilite leur résolution.
+
+L’application peut alors :
+   vérifier l’exactitude des références contrat de Prévoyance, des codes option et des codes
+    population
+   examiner la cohérence des périodes de validité des paramètres contrat
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                  Page 9 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+   s’assurer de la complétude des données déclarées pour les cotisations (blocs 78-79-81) et pour
+    les paiements (blocs 20-55)
+   contrôler les données spécifiques OC au regard des contraintes figurant dans la norme NEODES
+    (cahier technique DSN)
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                         Page 10 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+    4 Les données générales de la déclaration DSN
+
+Question
+                                                                                   MAJ : 02/10/2023
+Où trouver la liste des codes des organismes de Prévoyance à
+renseigner en S21.G00.15.002, en S21.G00.15.002 et S21.G00.20.001 ?
+Les codes relatifs aux organismes complémentaires font l’objet de plusieurs listes :
+    celle référençant les codes des mutuelles membres de la FNMF
+    celle référençant les codes des sociétés d’assurance membres de la FFA
+    celle référençant les codes des Institutions de prévoyance membres du CTIP
+ celles des organismes complémentaires non fédérés/indépendants
+Ces listes sont toutes publiées dans la nomenclature DSN : https://www.net-
+entreprises.fr/nomenclatures-dsn-pXXv01/ (XX correspondant à la version de norme DSN, exemple :
+23 pour 2023)
+
+Des listes plus détaillées sont proposées sur le site www.dsn-info.fr par le CTIP, la FNMF et la FFA.
+Ces listes contiennent notamment des informations de contact propres à chaque organisme :
+    institutions de prévoyance adhérant au CTIP :
+     https://www.net-entreprises.fr/media/documentation/codes-dsn-institutions-de-prevoyance.pdf
+    mutuelles adhérant à la FNMF :
+     https://www.net-entreprises.fr/media/documentation/liste-mutuelles-dsn.pdf
+    sociétés d’assurance adhérant à la FFA :
+     https://www.net-entreprises.fr/media/documentation/liste-dsn-societes-assurances.pdf
+
+
+
+
+Question
+Je souhaite obtenir des précisions concernant les blocs 15 et 70 dédiés à
+la « Prévoyance ». Le cahier technique indique qu’ils concernent le                MAJ : 08/10/2015
+« contrat collectif de prévoyance, complémentaire santé ou retraite
+supplémentaire ». Pourquoi est-il fait mention de la retraite alors que nous
+sommes dans le cadre d’un contrat de prévoyance ?
+Des solutions de retraite supplémentaire, à ne pas confondre avec la retraite de base ou la retraite
+complémentaire, sont proposées par les organismes complémentaires (regroupés sous le terme OC
+ou « Organismes de Prévoyance » en DSN) et font pleinement partie de leur périmètre d'activité.
+
+Ces structures prennent en compte aussi bien la prévoyance « risques lourds » (incapacité, invalidité,
+indemnités journalières, décès) que la complémentaire santé et la retraite supplémentaire.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                             Page 11 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+                                                                                      MAJ : 08/10/2015
+Pouvez-vous apporter des précisions sur la notion de rubriques
+obligatoires au sein d'un bloc facultatif ou conditionnel ?
+Comme l'indique le cahier technique, une rubrique mentionnée comme obligatoire ne l'est réellement
+que si le bloc qui la contient est présent.
+Il faut donc analyser en premier lieu la cardinalité du bloc concerné. Si celle-ci est de (0,1) ou (0,*),
+le bloc est conditionnel ou facultatif. Lorsqu'un bloc conditionnel ou facultatif est absent, le caractère
+obligatoire ou non de chacune de ses rubriques n'intervient plus en rien.
+
+
+
+
+Question
+                                                                                      MAJ : 21/12/2016
+Où puis je trouver le SIRET et/ou le code Groupe de mon organisme
+complémentaire, à renseigner dans mon logiciel de paie ?
+
+Les organismes complémentaires (institutions de prévoyance, mutuelles,                          sociétés
+d’assurance) ne sont jamais identifiés par un SIRET ni par un code Groupe.
+
+La réponse déjà apportée sur la question 3.1.1 mentionne les liens permettant d’accéder aux listes
+de codes des organismes complémentaires.
+
+L’identification d’un organisme complémentaire est toujours unique, qu’elle soit portée dans une
+Adhésion Prévoyance (bloc 15) ou dans un Versement (bloc 20) :
+   Une institution de prévoyance relevant du CTIP est identifiée par un code de la forme P9999 (P
+    suivi de 4 chiffres)
+   Une société d’assurance relevant de la FFA est identifiée par un code de la forme Axxxxx (A suivi
+    de 5 caractères alphanumériques)
+   Une mutuelle relevant de la FNMF est identifiée par un code de la forme 999999999 (9 caractères
+    numériques)
+   Un délégataire de gestion opérant pour le compte des organismes précités est identifié par un
+    code de la forme Dxxxxx ou Gxxxxx (D ou G suivi de 5 caractères alphanumériques).
+
+
+
+
+    4.2 Echéance déclarative mensuelle
+
+Question
+                                                                                      MAJ : 02/10/2023
+Quels sont les critères objectifs pour déterminer l’échéance déclarative
+mensuelle (au 5 ou au 15) ?
+La date limite d’envoi de la DSN mensuelle dépend des caractéristiques de l’entreprise déclarée ;
+elle est déterminée par le Code de la sécurité sociale (article R243-6 modifié par le décret n°2017-
+858 du 9 mai 2017) pour le régime général et pour le régime agricole (cf. fiche consigne dédiée sur
+la        base         de       connaissance          de          Net-entreprises :       https://net-
+entreprises.custhelp.com/app/answers/detail_dsn/a_id/33).
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                 Page 12 / 58
+                                          FAQ DSN Organismes Complémentaires
+
+
+
+
+    5 Les données                                    d’adhésion                et   d’affiliation
+      Prévoyance
+
+    5.1 Codification des contrats
+
+Question
+                                                                                      MAJ : 03/06/2020
+Comment renseigner un contrat complémentaire pour lequel aucun
+salarié n’est déclaré pour le mois en cours ?
+Un contrat doit être déclaré "sans personnel couvert" s'il n'existe aucun bloc affiliation (S21.G00.70)
+pour ce contrat dans la déclaration (déclaration pouvant correspondre à un sous-ensemble de
+l'établissement s'il s'agit d'une fraction).
+
+Aussi, pour renseigner un contrat complémentaire sans personnel couvert, la rubrique « personnel
+couvert » (S21.G00.15.004) contiendra la valeur « 02 » (non - ne concerne aucun salarié de
+l’établissement d’affectation). Dans ce cas, aucun bloc « affiliation Prévoyance » (S21.G00.70) ne
+doit apparaître pour le contrat concerné.
+
+Cf. question suivante sur le contrat avec personnel couvert
+
+
+
+
+Question
+                                                                                      MAJ : 08/10/2015
+Dans quels cas un contrat doit-il être déclaré « avec personnel
+couvert » ?
+Un contrat doit être déclaré "avec personnel couvert" s'il existe au moins un bloc 70 pour ce contrat
+dans la déclaration (le bloc 70 pouvant éventuellement s'appliquer à une autre période que celle du
+mois déclaré, en cas de rappel / régularisation).
+
+La règle à appliquer est purement "technique", aucune règle fonctionnelle complexe n’est à prendre
+en compte. Pour un contrat donné :
+    aucun bloc 70 n'est présent dans la déclaration (ou la fraction), quelles que soient les déclarations
+     déjà émises ou restant à émettre ==> bloc 15 SANS personnel couvert ;
+    un ou plusieurs blocs 70 sont présents dans la déclaration (ou la fraction) ==> bloc 15 AVEC
+     personnel couvert.
+
+
+
+
+Question                                                                              MAJ : 03/06/2020
+Y a-t‘il un contrôle d’unicité de la référence du contrat complémentaire ?
+Plusieurs blocs 15 (adhésion Prévoyance) peuvent être renseignés, mais il est impossible que deux
+blocs 15 soient renseignés avec le même couple « Référence contrat » (S21.G00.15.001) et « Code
+organisme de Prévoyance ». Ce cas de figure ferait l’objet d’un rejet au contrôle de forme (contrôle
+CCH-11 de « Référence du contrat de Prévoyance » - rubrique S21.G00.15.001).
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                 Page 13 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question                                                                               MAJ : 08/10/2015
+Quand un salarié est dispensé d’affiliation, les données du bloc
+S21.G00.70 doivent-elles être absentes, ou présentes et renseignées à 0 ?
+Certains contrats peuvent exclure certaines catégories de salariés (ex : bénéficiaire de la CMU,
+apprenti, salarié à temps partiel, salarié en CDD dont le contrat est d’une durée inférieure à 12
+mois…).
+Pour un salarié ne faisant pas l’objet d’une affiliation sur un contrat, aucun bloc S21.G00.70 n’est à
+renseigner pour ce salarié et ce contrat (puisque le salarié n'est pas « couvert » par le contrat).
+L’organisme complémentaire destinataire ne reçoit que les données des salariés pour lesquels un
+bloc S21.G00.70 a été renseigné.
+
+
+
+
+Question                                                                               MAJ : 03/06/2020
+Lorsque s’applique un délai de carence, les données du bloc S21.G00.70
+doivent-elles être absentes ou présentes ?
+Le délai de carence correspond à la période qui suit la souscription du contrat et pendant laquelle
+l’assuré cotise auprès d’un organisme complémentaire sans bénéficier des prestations, pour tout ou
+partie des risques couverts. Il s’agit d’un laps de temps entre la signature du contrat et la prise d’effet
+des garanties, sans effet rétroactif.
+Le renseignement des blocs S21.G00.70, 78, 79 et 81 liés au contrat complémentaire, permettant de
+déclarer les cotisations du salarié, est attendu.
+
+
+
+
+Question
+L’application d’un délai de franchise a-t’elle des conséquences sur la                 MAJ : 03/06/2020
+déclaration des données relatives à l’affiliation du salarié au contrat
+complémentaire et à ses cotisations ?
+Le délai de franchise correspond à la période qui suit la survenance de l’événement assuré (sinistre)
+et à l’issue de laquelle interviendra la prise en charge. Pendant le délai de franchise, les indemnités
+ne sont pas versées mais le risque est garanti et reconnu par l’organisme complémentaire.
+Le renseignement des blocs S21.G00.70, 78, 79 et 81 liés au contrat complémentaire, permettant de
+déclarer les cotisations du salarié, est attendu.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                  Page 14 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+                                                                                     MAJ : 03/06/2020
+Quelles sont les informations obligatoires de l’affiliation Prévoyance
+(bloc 70) ?
+La déclaration d’une affiliation Prévoyance s’effectue pour un salarié et un contrat de travail, et se
+compose des informations obligatoires suivantes :
+   identifiant technique Adhésion Prévoyance S21.G00.70.013 : donnée permettant de
+    référencer le contrat complémentaire concerné, précédemment déclaré en bloc 15,
+   identifiant technique Affiliation Prévoyance S21.G00.70.012 : donnée permettant de faire le
+    lien avec la ou les cotisations déclarées en blocs S21.G00.78 (base assujettie) pour le salarié et
+    le contrat de travail concernés.
+Et de manière conditionnelle, selon les paramètres de calcul de la cotisation et les informations
+portées par l’organisme complémentaire dans sa fiche de paramétrage, les données suivantes :
+   code Option S21.G00.70.004 (option pouvant être choisie par le salarié individuellement)
+   code Population S21.G00.70.005 (population de rattachement du salarié),
+   nombre d’ayants-droit S21.G00.70.008 à 011 (enfants, adultes, …) : données à renseigner si
+    elles interviennent dans le calcul de la cotisation.
+
+
+
+
+Question                                                                             MAJ : 08/10/2015
+Le code option retenue par le salarié (S21.G00.70.004) est-il obligatoire ?
+Existe-t-il une liste de valeurs autorisées pour ce code ?
+Les contrats collectifs à adhésion obligatoire s'imposent au salarié, mais permettent parfois à ce
+dernier de moduler le niveau des garanties dont il souhaite disposer. C'est notamment le cas de
+certains contrats frais de santé, proposant une couverture de base obligatoire, et une ou plusieurs
+options complémentaires facultatives (options librement choisies par le salarié lors de son affiliation,
+entraînant bien sûr une hausse de la cotisation). Seules les options dont les cotisations sont
+précomptées sur salaire doivent être renseignées en DSN.
+
+Compte tenu de la variété des contrats et options proposées par les institutions de prévoyance, les
+mutuelles et les sociétés d’assurance, il n'existe pas de liste de codes pour cette rubrique. Les valeurs
+de code sont fournies, le cas échéant, par vos organismes complémentaires pour certains contrats,
+dans les fiches de paramétrage qu’ils vous adressent.
+
+
+
+
+Question
+                                                                                     MAJ : 08/10/2015
+Le code population de rattachement du salarié (S21.G00.70.005) est-il
+obligatoire ? Existe-t-il une liste de valeurs autorisées pour ce code ?
+Le « code population de rattachement » se rapporte généralement à des distinctions du type
+« cadre / non cadre » ou « employé / agent de maîtrise » prévues dans certains contrats.
+
+Cette donnée ne concerne que certains contrats, et n'est donc pas toujours nécessaire. Elle doit
+seulement être renseignée sur consigne explicite de l’organisme complémentaire porteur du contrat,
+portée par la fiche de paramétrage.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                Page 15 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+Concernant les rubriques S21.G00.70.004 « code option retenue par le                MAJ : 08/10/2015
+salarié » et S21.G00.70.005 « code population de rattachement »,
+pourriez-vous nous communiquer un exemple de codification ?
+Les modalités d'alimentation de ces deux rubriques ne sont pas régies par une règle générale, mais
+par des règles particulières définies par chaque organisme complémentaire, le cas échéant pour
+chaque contrat.
+Comme l'indique le cahier technique, "les valeurs de code sont fournies par l’organisme de
+Prévoyance, et sont à renseigner seulement sur sa demande".
+
+
+
+
+Question
+Comment avertir via la DSN d’un changement de code option ou de code                MAJ : 03/06/2020
+population d’un salarié affilié à un contrat complémentaire en cours de
+mois ?
+Il n’existe pas en DSN de structure permettant de notifier les changements de code option ou de code
+population pour un salarié affilié à un contrat complémentaire. Si le changement de code option a lieu
+le 6 février, la DSN portant sur le mois de février portera ce changement en indiquant pour le salarié
+concerné le nouveau code option.
+En résumé :
+   la DSN portant sur le mois de janvier mentionnera pour le salarié affilié l’ancien code option,
+   la DSN portant sur le mois de février mentionnera le nouveau code option.
+
+A travers le compte-rendu métier du traitement de la DSN (CRM) ou un autre canal, l’organisme
+complémentaire pourra constater ce changement de code et sera en droit, si nécessaire, de
+demander au déclarant la date de cette modification.
+
+
+
+Question
+                                                                                    MAJ : 03/06/2020
+Comment traduire en DSN le cas d’un salarié restant affilié mais sans
+cotisation sur le mois déclaré ?
+L'affiliation doit être présente dans ce cas (bloc 70), mais une cotisation nulle (0.00) doit aussi
+apparaître (si l’affiliation n’était pas présente, l’organisme complémentaire ne recevrait pas les
+données du salarié et serait fondé à engager une procédure de radiation).
+
+Il faut renseigner dans ce cas :
+   un bloc 78, dont la rubrique Code de base assujettie (S21.G00.78.001) sera renseignée avec la
+    valeur 31
+   le ou les blocs 79 Composant de base assujettie, tels que déclarés pour les autres salariés, selon
+    les consignes figurant dans la fiche de paramétrage,
+   un bloc 81 contenant un Montant de cotisation individuelle (S21.G00.81.004) renseigné à 0.00.
+
+Pour exemple, dans le cas d’une formule de cotisation de type (x% x TA + y% x TB), la fiche de
+paramétrage demandera des blocs 79 de code type 79.001 renseignés à 11 (TA) et à 12 (TB).
+Dans le cas d’une rémunération nulle, il conviendra simplement de renseigner un bloc 79 de code
+type 79.001 valorisé à 11 et de montant 79.004 nul, et un bloc 79.001 de code type 79.001 valorisé
+à 12 et de montant 79.004 nul.
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                              Page 16 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Dans le cas d’une cotisation nulle « non calculée » (notamment en l’absence de bulletin de paie sur
+le mois déclaré), certains logiciels de paie ne permettent pas de générer le ou les blocs 79
+correspondant à la formule de cotisation, tels que demandés dans la fiche de paramétrage.
+Il est accepté dans ce cas de renseigner un et un seul composant de base assujettie 79 de code type
+79.001 à 23 (« Sans composant de base assujettie en paie »), valeur incompatible avec tout autre
+code type, utilisable seulement pour un montant de bloc 79 à 0 et un montant de bloc 81 à 0.
+Par exception, il est toléré que soit renseigné par convention un salaire brut Prévoyance à 0 (bloc 79
+de code type 79.001 = 10 et de montant 79.004 = 0.00), ou bien un montant forfaitaire à 0 (bloc 79
+de code type 79.001 = 20 et de montant 79.004 = 0.00) avec une cotisation à 0.00 en 81.004.
+
+
+
+
+Question
+Le bloc « changement destinataire adhésion Prévoyance » (S21.G00.16)                  MAJ : 03/06/2020
+doit-il être renseigné dans le cas d’un changement d’organisme
+complémentaire (résiliation des contrats auprès d’un ancien organisme
+et adhésion à un nouvel organisme) ?
+Non. L'utilisation du bloc 16 a seulement pour objet de signaler une erreur de code organisme ou
+code délégataire de gestion dans la ou les déclarations précédentes.
+
+
+
+
+Question
+                                                                                      MAJ : 11/12/2015
+Comment gérer la résiliation d’un contrat auprès d’un organisme : on ne
+transmet plus rien pour le contrat résilié ?
+Oui, s'il s'agit bien d'un contrat résilié, et non d'un contrat en sommeil, vous n'avez effectivement plus
+rien à transmettre à l'organisme concerné, pour ce contrat (absence de blocs 15, 70, 78/79/81, 82)
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                 Page 17 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+                                                                                             MAJ : 08/10/2015
+A quoi servent les identifiants techniques adhésion et affiliation que l’on
+retrouve dans les blocs 15, 70, 78, 82 ?
+En DSN phase 3, la cohérence de plusieurs données majeures n’est pas assurée uniquement par la
+hiérarchie des blocs (arborescence du message DSN), mais également par des « identifiants
+techniques » qui constituent des pointeurs internes à la déclaration :
+   le lien entre le Contrat de travail (bloc 40) et les Rémunérations (51), les Primes (52) ou les
+    Anciennetés (86), est assuré par le « numéro de contrat (de travail) »
+         o S21.G00.40.009, S21.G00.51.010, S21.G00.52.006, S21.G00.86.005
+   le lien entre l’Adhésion Prévoyance (15) et l’Affiliation Prévoyance (70) ou les Cotisations
+    établissement (82), est assuré par l’ « identifiant technique de l’adhésion Prévoyance »
+         o S21.G00.15.005, S21.G00.70.013 (Identifiant technique Adhésion)
+         o S21.G00.82.005 (Référence réglementaire ou contractuelle)
+   le lien entre l’Affiliation Prévoyance (70) et les Bases assujetties (78), est assuré par un
+    « identifiant technique de l’affiliation Prévoyance »
+         o S21.G00.70.012, S21.G00.78.005 (Identifiant technique Affiliation)
+
+Ci-après, une modélisation des liens entre les différents blocs précités assurés par les pointeurs
+techniques :
+
+
+                                                     15.005 – id technique adhésion
+
+                                                                     82.005
+
+
+
+
+                                                                       40.009 – n° contrat de travail
+
+
+
+
+                                                                     70.013
+                                                     70.012 – id technique affiliation
+
+
+                                                  51.010
+
+                                                        52.006
+
+
+
+
+                                                                       86.005
+
+
+
+
+Les identifiants techniques adhésion et affiliation sont « locaux » et internes à une déclaration :
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                          Page 18 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+   pour un contrat donné, il n’est pas imposé que l’identifiant adhésion reste inchangé de mois en
+    mois,
+   pour l’affiliation d’un salarié sur un contrat, il n’est pas imposé que l’identifiant affiliation reste
+    inchangé de mois en mois.
+
+
+
+
+Question
+                                                                                       MAJ : 03/06/2020
+Le code population à renseigner en bloc 70 Affiliation est-il lié au statut
+professionnel ou catégoriel renseigné en bloc 40 Contrat de travail ?
+Oui, très fréquemment pour certains organismes. C’est particulièrement le cas lorsque les
+populations mentionnées dans le contrat complémentaire dépendent de la convention collective
+applicable.
+
+Dans ce cas, les informations renseignées dans les rubriques « Statut du salarié (conventionnel) »
+(S21.G00.40.002), « Code statut catégoriel Retraite Complémentaire (S21.G00.40.003) » et « Code
+population de rattachement » S21.G00.70.005 permettent aux organismes complémentaires, par
+rapprochement, de vérifier la cohérence des affiliations déclarées (ventilation des salariés par code
+population et éventuellement contrat complémentaire).
+
+Par exemple, un individu de statut conventionnel « 04 - autres cadres au sens de la convention
+collective » ne pourra pas être rattaché à un code population de type « non-cadre ».
+
+Si une incohérence est détectée, l’organisme complémentaire ne pourra exploiter les données qu’une
+fois ces dernières redressées (en DSN ou directement avec l’organisme complémentaire le cas
+échéant).
+
+Il existe d’autres cas ou le découpage des populations du contrat de Prévoyance peut être différent.
+
+
+
+
+    5.2 Bordereau de radiation
+
+Question
+A partir du moment où j’adresse des DSN à mes organismes                               MAJ : 02/10/2023
+complémentaires, est-ce que je dois envoyer pour chaque salarié quittant
+l’entreprise un bordereau de radiation ?
+Les organismes complémentaires reçoivent les informations liées aux fins de contrat de travail (bloc
+S21.G00.62), permettant de substituer les formulaires de radiation.
+
+Pour que cette substitution soit effective, il convient non seulement d’adresser chaque mois une DSN
+mensuelle (nature S20.G00.05.001=01), mais aussi un signalement fin de contrat de travail unique
+(FCTU nature S20.G00.05.001=07) lors de la rupture du contrat de travail.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                  Page 19 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+    5.3 Bulletin d’affiliation
+
+Question
+Pour une nouvelle embauche, est-il toujours nécessaire de communiquer                  MAJ : 08/10/2015
+le bulletin d’affiliation à son organisme complémentaire alors que
+l’information existe dans la DSN ?
+La DSN ne fournit pas nécessairement l’ensemble des données permettant de supprimer le
+bordereau d’affiliation :
+   déclaration de bénéficiaires (dans le cas du versement d’un capital décès),
+   accord du salarié pour la réception par l’organisme de données communiquées par l’Assurance
+    Maladie obligatoire (Noémie),
+   données détaillées concernant les ayants-droit (si ces données ne sont pas renseignées dans
+    les blocs 73 « Ayants-droit » de la DSN),
+   coordonnées bancaires du salarié pour le versement des prestations,
+ etc.
+Il appartient à chaque entreprise de s’accorder avec son organisme complémentaire, selon la
+complétude des données DSN renseignées, sur l’allègement possible de la procédure d’affiliation.
+
+
+
+
+Question
+                                                                                       MAJ : 03/06/2020
+Quels événements peuvent justifier l’envoi d’un signalement
+d’événement Amorçage des Données Variables (ADV) ?
+Les organismes complémentaires préconisent fortement aux employeurs de transmettre un
+signalement ADV à leur(s) organisme(s)complémentaire(s) dans les cas suivants :
+- embauche effective d’un individu,
+- embauche de l'individu suite à une mutation,
+- informer les OC d’une fin de dispense d’affiliation,
+- informer les OC de changements de paramètres du contrat collectif prévoyance, santé
+complémentaire, retraite supplémentaire,
+- informer les OC qu’un individu fait partie d’une population à affilier à un nouveau contrat.
+
+
+
+
+Question                                                                               MAJ : 03/06/2020
+Quel intérêt présente l’envoi d’un tel signalement ?
+Il permet soit l’anticipation de l’affiliation de l’individu, soit un ajustement de la gestion du contrat au
+fil de l’eau, au plus près des droits des salariés.
+La transmission du signalement d’amorçage des données variables permet d’initier, dès son
+embauche, le processus d’affiliation de l’individu et permet à l’organisme complémentaire de
+contacter l’individu pour qu’il complète les éléments le concernant (situation familiale, situation
+administrative, RIB, déclaration de bénéficiaires, …) selon les modalités de communication de
+chaque OC (courrier, mail, etc.). Cela permettra une optimisation du service rendu à l’individu :
+connaissance de son existence par l’OC, gestion des droits accélérée quelles que soient les
+garanties, délivrance au plus tôt de la carte de tiers-payant, accès facilité à certaines prestations ou
+services proposés par les complémentaires.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                  Page 20 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Le signalement d’amorçage a également vocation à transmettre au fil de l’eau des informations
+concernant les changements de situation de l’individu ayant un impact sur le(s) contrat(s) collectif(s)
+dont il bénéficie : changement de catégorie professionnelle, changement de situation familiale,
+changement d’adresse, évolution des informations relatives aux ayant-droits, etc. Il ne sera plus
+nécessaire d’attendre la DSN mensuelle suivante. L’obtention de ces informations permettra un
+ajustement au plus près des garanties de l’assuré.
+
+
+
+
+Question
+La cinématique déclarative et les destinataires du signalement sont différents     MAJ : 02/10/2023
+en fonction de l’évènement déclencheur. Quelles sont, en détail, les consignes
+de déclaration de ce signalement ?
+Sept natures d’événements déclencheurs de ce signalement ont été déterminés, en rubrique
+S20.G00.05.011 - Nature de l’évènement déclencheur du signalement :
+
+       01 Embauche effective de l'individu
+       02 Embauche de l'individu suite à une mutation
+       03 Fin de dispense d’affiliation
+       04 Changement des paramètres du contrat collectif prévoyance, santé complémentaire,
+        retraite supplémentaire
+       05 Transmission de l’ensemble d’une population à affilier à un nouveau contrat (individu
+        faisant partie d’une population à affilier à un nouveau contrat)
+       06 Appel de taux de PAS pour un individu non salarié (non transmis aux OC)
+       07 Changement de tiers déclarant ou changement de logiciel déclaratif (non transmis aux
+        OC)
+
+Les organismes complémentaires ne peuvent être destinataires que des cinq premiers, sous réserve
+d’y être paramétrés dans le bloc S21.G00.15.
+Une fiche consigne sur la base de connaissances Net-entreprises est dédiée au sujet à cette
+adresse : https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/2117 .
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                              Page 21 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+   5.4 Déclaration des ayants-droit
+
+Question
+                                                                                       MAJ : 03/06/2020
+Pourquoi et dans quel cas doit-on déclarer les nombres d’ayants-
+droit (rubriques S21.G00.70.008 à 70.011) ?
+Les données relatives aux nombres d’ayants-droit du salarié sont conditionnelles.
+Elles doivent être valorisées, y compris à 0, si elles participent au calcul de la cotisation déclarée pour
+le salarié (cf. question 6.3.1 dans le chapitre traitant des cotisations). Dans ce cas, ces données vous
+sont connues puisqu’elles entrent en jeu dans le calcul de la paie
+En pratique, les nombres d'ayants-droit n'interviennent que dans certains contrats de complémentaire
+santé "au forfait", dans lesquels le montant du forfait peut être différencié pour le salarié, son conjoint
+et ses enfants.
+
+Par exemple, une complémentaire santé peut prévoir un forfait mensuel de 30 euros par mois pour
+le salarié, 20 euros pour son conjoint et 10 euros pour chacun de ses enfants. La cotisation sera alors
+de 30 euros pour un salarié célibataire (exemple 1), ou de 70 euros pour un salarié marié avec deux
+enfants (exemple 2) :
+ pour un tel contrat, il sera nécessaire de renseigner le nombre d’adultes ayants-droit
+     (S21.G00.70.007), et le nombre d’enfants ayants-droit (S21.G00.70.011).
+Exemple 1 : Célibataire  bloc affiliation Prévoyance (S21.G00.70)
+S21.G00.70.008         Nombre d’adultes ayants-droit          0
+S21.G00.70.011         Nombre d’enfants ayants-droit          0
+
+Exemple 2 : Marié avec 2 enfants  bloc affiliation Prévoyance (S21.G00.70)
+S21.G00.70.008        Nombre d’adultes ayants-droit           1
+S21.G00.70.011        Nombre d’enfants ayants-droit           2
+
+Une complémentaire santé peut aussi prévoir un forfait mensuel de 30 euros par mois pour le salarié,
+et 15 euros pour chaque ayant-droit, qu'il s'agisse d'un conjoint ou d'un enfant. La cotisation sera
+alors de 30 euros pour un salarié célibataire (exemple 3), et de 75 euros pour un salarié marié avec
+deux enfants (exemple 4) :
+ pour un tel contrat, il sera nécessaire de renseigner le nombre d’ayants-droit (S21.G00.70.009).
+Exemple 3 : Célibataire  bloc affiliation prévoyance (S21.G00.70)
+S21.G00.70.009         Nombre d’ayants-droit                  0
+
+Exemple 4 : Marié avec 2 enfants  bloc affiliation Prévoyance (S21.G00.70)
+S21.G00.70.009        Nombre d’ayants-droit                   3
+
+Une complémentaire santé peut aussi prévoir un forfait mensuel de 50 euros par mois pour le salarié,
+tous les ayants-droit étant couverts sans cotisation supplémentaire, quel que soit leur type (conjoint
+ou enfant) et leur nombre :
+ pour un tel contrat, aucune donnée de type nombre d’ayants-droit ne sera nécessaire.
+
+La présence et les nombres d’ayants-droit rattachés à un salarié peuvent varier selon le contrat
+concerné. Par exemple, pour un salarié bénéficiant de deux contrats : un contrat de prévoyance et
+un contrat complémentaire santé, le bloc 70 affiliation prévoyance pourra ne contenir aucune rubrique
+Nombre d’ayants-droit, alors que le bloc 70 affiliation santé sera renseigné avec des rubriques
+Nombre d’ayants-droit.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                  Page 22 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question                                                                         MAJ : 08/10/2015
+Comment codifie-t-on les changements de situation familiale ?
+Contrairement à ce que proposait la N4DS, il n’existe pas en DSN de bloc ou de signalement
+permettant de déclarer un changement de situation familiale.
+Si des données de situation familiale sont présentes dans la DSN (cf. question 4.4.1 relative aux
+ayants-droit), vous devez simplement répercuter au plus tôt les changements dans votre DSN.
+L’organisme destinataire détectera le changement par analyse différentielle de la DSN du mois M et
+de la DSN du mois M+1.
+
+
+
+
+Question
+Y a-t-il une relation entre les blocs S21.G00.70 (dans lesquels peuvent être     MAJ : 08/10/2015
+déclarés les nombres d’ayants-droit) et S21.G00.73 (ayants-droit) ?
+Y a-t-il risque de rejet si les données déclarées dans les deux blocs ne
+sont pas en cohérence ?
+Il n'y a pas nécessairement de corrélation entre le nombre d'ayants-droit renseigné en S21.G00.70
+et les ayants-droit renseignés en S21.G00.73 :
+   l'absence d'une description détaillée des ayants-droit (bloc S21.G00.73), ne sera jamais source
+    de rejets, ces rubriques et bloc étant facultatifs.
+   en revanche les données Nombre d’ayants-droit (rubriques S21.G00.70.008 à 011) peuvent être
+    nécessaires pour le calcul de cotisations pour certains contrats (cf. questions 4.4.1 et 6.3.1).
+
+
+
+
+Question
+L’absence du bloc « Ayant-droit » S21.G00.73 pour un salarié n’entraîne          MAJ : 08/10/2015
+pas de rejet au contrôle de forme et de cohérence. Si des ayants-droit
+sont réellement liés au salarié, que se passe-t-il au niveau du contrôle
+métier ?
+Les rubriques ayants-droit du bloc 73 permettent aux entreprises de fournir ces données, si elles
+leurs sont connues, mais il n'est pas envisagé de les rendre obligatoires. De ce fait, les contrôles
+métier ne peuvent qu'entériner cette situation.
+L’organisme complémentaire demandera alors directement au salarié, par un autre canal, les
+informations éventuellement nécessaires pour l’affiliation des ayants-droit et la gestion de leurs
+prestations.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                           Page 23 / 58
+                                       FAQ DSN Organismes Complémentaires
+
+
+
+
+    5.5 Gestion des mouvements de personnel
+
+Question
+Quelles sont les consignes d’alimentation des rubriques OC                                    MAJ : 02/10/2023
+S21.G00.70.014, S21.G00.70.015 et S21.G00.62.016 ? Concernant la date
+d’affiliation S21.G00.70.014 notamment, doit-elle toujours être
+renseignée ?
+Trois rubriques OC permettent de répondre à des cas particuliers de gestion qui auparavant
+nécessitaient un échange bilatéral entre l’organisme complémentaire et l’entreprise (cas de gestion
+dans lesquels un organisme complémentaire peut voir « apparaître » ou « disparaître » un individu
+dans la DSN sans être en mesure de déterminer le motif de cette apparition ou disparition) :
+   Maintien de l’affiliation du salarié au contrat collectif S21.G00.62.016
+   Date de début d’affiliation S21.G00.70.014
+ Date de fin d’affiliation S21.G00.70.015
+Le tableau ci-dessous présente les cas particuliers de gestion concernés, les caractéristiques de ces
+cas de gestion en DSN et les consignes déclaratives à suivre par le déclarant pour permettre aux
+organismes complémentaires de prendre en compte correctement tous les cas de mouvements de
+personnel.
+Ces rubriques sont conditionnelles et non obligatoires. Elles doivent être renseignées
+seulement dans les cas particuliers de gestion détaillés ci-après, et doivent donc être absentes
+dans les autres cas.
+
+
+         Cas particuliers de gestion       Caractéristiques de ces cas      Consignes déclaratives à appliquer
+                                                   particuliers
+
+     Contrat CDD se terminant en fin
+     de mois M, avec information de
+     rupture du contrat de travail en
+1
+     bloc 62, mais nouveau contrat
+     CDD en continuité le mois
+     suivant.                              Rupture du contrat de
+     Contrat CDD se terminant en fin       travail mais continuité de
+     de mois M, avec information de        l’affiliation Prévoyance.     Déclaration de la rubrique « Maintien
+     rupture du contrat de travail en                                    de l’affiliation du salarié au
+2
+     bloc 62, mais embauche en CDI         A défaut d’information        contrat collectif S21.G00.62.016» en
+     au premier jour du mois suivant       spécifique, l’OC recevant     DSN événementielle de fin de contrat
+     (en continuité).                      la déclaration du mois M      et en DSN mensuelle du mois M.
+     Changement de statut catégoriel       procèdera à tort à une
+     en fin de mois M (par exemple         radiation de l’assuré.
+     passage de non cadre à cadre)
+3    avec rupture du contrat de travail
+     déclaré en bloc 62, et nouveau
+     contrat de travail dès le début du
+     mois suivant (en continuité).
+                                           Transfert conventionnel du    L’établissement d’origine du salarié ne
+                                           contrat de travail et         doit déclarer en DSN ni une fin de
+                                           continuité de l’affiliation   contrat de travail, ni une fin de
+     Transfert conventionnel du            Prévoyance.                   l’affiliation Prévoyance du salarié.
+     contrat de travail au titre de
+4
+     l’article L.1224-1 du code du
+     travail.                              A défaut d’information        L’établissement d’arrivée doit déclarer
+                                           spécifique, l’OC recevant     en DSN mensuelle pour le salarié
+                                           les déclarations ne pourra    concerné un bloc « Changements de
+                                           faire le chainage et          contrat S21.G00.41 » portant la
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                       Page 24 / 58
+                                       FAQ DSN Organismes Complémentaires
+
+
+
+
+         Cas particuliers de gestion       Caractéristiques de ces cas      Consignes déclaratives à appliquer
+                                                   particuliers
+                                           comprendre le transfert        rubrique « SIRET ancien établissement
+                                           effectué.                      d'affectation S21.G00.41.012 ».
+
+
+                                           Individu quittant le contrat
+                                           collectif mais continuité du
+                                           contrat de travail.
+     Individu quittant le contrat OC,
+     sans rupture du contrat de travail                                   Déclaration de la rubrique « Date de fin
+5                                          A défaut d’information
+     (cas de dispense, temps très                                         de l’affiliation S21.G00.70.015 »
+     partiel …)                            spécifique, l’OC recevant
+                                           les déclarations ne pourra
+                                           expliquer la disparition de
+                                           l’individu.
+                                                                          Dans les données destinées à l’OC de
+                                                                          départ, déclaration de la rubrique
+                                                                          « Date de fin de l’affiliation
+                                                                          S21.G00.70.015 ».
+
+
+     Changement de statut catégoriel                                      Dans les données destinées à l’OC
+     du salarié, impliquant un                                            d’arrivée, dans la DSN mensuelle,
+                                           Changement de statut           déclaration de la rubrique « Date de
+     changement de contrat collectif
+                                           catégoriel avec salarié        début de l’affiliation S21.G00.70.014 »
+     et d’OC destinataire (dans le cas,
+6                                          changeant de contrat           Emission d’un signalement
+     par exemple, de non-cadres
+                                           collectif et d’OC sans fin     d’événement dont la nature
+     couverts en prévoyance auprès
+                                           du contrat de travail          d’événement déclencheur
+     de OC1, et de cadres couverts
+     en prévoyance auprès de OC2)                                         S20.G00.05.011- devra être
+                                                                          renseignée avec la valeur : « 04
+                                                                          Changement des paramètres du
+                                                                          contrat collectif prévoyance, santé
+                                                                          complémentaire, retraite
+                                                                          supplémentaire ».
+
+
+                                                                          Dans la DSN de l’établissement
+                                                                          d’origine, déclaration de la rubrique
+                                                                          « Date de fin de l’affiliation
+                                                                          S21.G00.70.015 ».
+                                                                          Dans la DSN mensuelle de
+                                                                          l’établissement d’arrivée, déclaration
+                                           Mutation du salarié d’un       de la rubrique « Date de début de
+                                           établissement à un autre,      l’affiliation S21.G00.70.014 ».
+     Mutation du salarié dans un autre     sans continuité de             L’établissement d’arrivée doit
+     établissement, sans rupture du        l’affiliation Prévoyance.      également déclarer en DSN pour le
+     contrat de travail, impliquant un
+                                                                          salarié concerné un bloc «
+     changement de contrat collectif
+7                                          A défaut d’informations        Changements de contrat S21.G00.41 »
+     voire d’OC destinataire (cas de
+                                           spécifiques, le ou les OC      portant la rubrique « SIRET ancien
+     contrats OC distincts pour
+                                           concernés ne pourront          établissement d'affectation
+     différents établissements de
+                                           expliquer la disparition /     S21.G00.41.012 ».
+     l’entreprise).
+                                           apparition du salarié dans
+                                           les données reçues.            Emission d’un signalement
+                                                                          d’événement dont la nature
+                                                                          d’événement déclencheur
+                                                                          S20.G00.05.011- devra être
+                                                                          renseignée avec la valeur : « 02
+                                                                          Embauche de l'individu suite à une
+                                                                          mutation »
+
+8    Individu rejoignant le contrat        Individu rejoignant le         Emission d’un signalement
+     collectif OC à une date               contrat collectif, mais        d’événement dont la nature
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                         Page 25 / 58
+                                       FAQ DSN Organismes Complémentaires
+
+
+
+
+         Cas particuliers de gestion       Caractéristiques de ces cas      Consignes déclaratives à appliquer
+                                                   particuliers
+     postérieure à celle du début du       continuité du contrat de      d’événement déclencheur
+     contrat de travail (cas de            travail.                      S20.G00.05.011- devra être
+     disparition d’un motif de dispense                                  renseignée avec la valeur : «03 Fin de
+     d’affiliation)                                                      dispense d’affiliation »
+                                           A défaut d’information
+                                           spécifique, l’OC recevant     Déclaration dans la DSN mensuelle de
+                                           les déclarations ne pourra    la rubrique « Date de début de
+                                           expliquer l’apparition de     l’affiliation S21.G00.70.014 »
+                                           l’individu.
+
+
+
+                                           Mutation du salarié avec      Déclaration dans la DSN mensuelle de
+                                           continuité de l’affiliation   l’établissement d’arrivée de la rubrique
+                                           Prévoyance.                   « Date de début de l’affiliation
+     Mutation d’un salarié au sein d’un                                  S21.G00.70.014 » pour le salarié
+     autre établissement (avec                                           concerné.
+     changement de SIRET                   A défaut d’informations
+9                                          spécifiques, l’OC             L’établissement d’arrivée doit aussi
+     employeur) sans rupture du
+     contrat de travail et sans            procèdera à tort à une        déclarer en DSN pour le salarié
+     changement de contrat collectif.      radiation du salarié et ne    concerné un bloc « Changements de
+                                           pourra pas faire le           contrat S21.G00.41 » portant la
+                                           chaînage concernant la        rubrique « SIRET ancien établissement
+                                           mutation.                     d'affectation S21.G00.41.012 ».
+
+
+
+
+                                           Mutation du fonctionnaire
+                                           avec continuité de            Déclaration dans la DSN de
+                                           l’affiliation Prévoyance.     l’établissement de sortie de la rubrique
+     Mutation du fonctionnaire au sein                                   « Maintien de l’affiliation du salarié au
+     d’un autre établissement (avec                                      contrat collectif » S21.G00.62.016
+     changement de SIRET                   A défaut d’informations       dans le bloc « Fin du contrat –
+     employeur) sans changement de         spécifiques, l’OC             S21.G00.62 ».
+10
+     contrat collectif, mais impliquant    procèdera à tort à une
+     la déclaration d’un bloc « Fin du                                   Déclaration dans la DSN mensuelle de
+                                           radiation du fonctionnaire
+     contrat – S21.G00.62 » dans la                                      l’établissement d’arrivée de la rubrique
+                                           et ne pourra pas faire le
+     DSN de l’établissement de sortie.                                   « Date de début de l’affiliation
+                                           chaînage concernant la
+                                                                         S21.G00.70.014 » pour le fonctionnaire
+                                           mutation.
+                                                                         concerné.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                        Page 26 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+  6 Les données du contrat de travail
+
+   6.1 Arrêt et reprise de l’activité
+
+Question
+Le site Net-entreprises indique que les signalements arrêt et reprise de
+travail peuvent s’appliquer aux accidents du travail et aux maladies               MAJ : 02/10/2023
+professionnelles.
+Les organismes complémentaires peuvent-ils exploiter ces
+informations ?
+Toutes ces données sont utiles aux organismes complémentaires, qu’il s’agisse ou non d’un arrêt ou
+d’une reprise liée à un accident du travail ou à une maladie professionnelle (AT/MP).
+La réception de ces signalements permet aux organismes complémentaires d’initier au plus vite les
+traitements de calcul des montants de prévoyance à verser. A défaut, il leur faut attendre la réception
+de la DSN mensuelle qui ne leur parviendra qu’aux échéances du 5 ou du 15 suivant, induisant un
+délai supplémentaire pouvant aller jusqu’à 45 jours.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                              Page 27 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+    7 Les données de cotisations individuelles
+
+    7.1 Rattachement des cotisations individuelles
+
+Question
+Le montant total des cotisations du salarié en rubrique S21.G00.81.004             MAJ : 08/10/2015
+correspond-il à la part salariale, à la part patronale ou à la somme des
+deux ?
+Le montant à déclarer dans cette rubrique correspond au total des cotisations versées par l'entreprise
+à l’organisme complémentaire, pour le compte du salarié concerné et au titre de son affiliation au
+contrat complémentaire référencé (S21.G00.78.005). Il s'agit donc bien du total des cotisations
+patronales et salariales.
+
+
+
+
+Question
+Comment déclarer les cotisations individuelles pour un contrat de                  MAJ : 08/10/2015
+Prévoyance, lorsque la rémunération a été versée début février pour une
+période d’activité correspondant au mois de janvier (cas de décalage de
+paie) ?
+Pour les organismes complémentaires, les cotisations doivent être déclarées sur le mois de
+rattachement, donc datées du mois principal déclaré de la DSN, sans tenir compte de la date de
+versement.
+
+Dans la déclaration déposée en février portant sur le mois principal déclaré de janvier, vous devez
+donc renseigner une ou des bases assujetties Prévoyance (blocs 78 de code S21.G00.78.001
+renseigné à 31) dont les dates de début et de fin de période de rattachement (S21.G00.78.002 et
+003) seront incluses dans le mois principal déclaré de la DSN, à savoir janvier, correspondant à la
+période d'emploi du salarié.
+
+En synthèse, les deux règles à retenir sont les suivantes :
+    qu’il y ait décalage de paie ou non, les cotisations individuelles dues au titre d’un contrat de
+     Prévoyance et de la paie du mois M doivent être rattachées au mois M dans la DSN du mois
+     déclaré M
+    en cas de régularisation, les cotisations individuelles dues au titre d’un contrat de Prévoyance
+     doivent être rattachées à la période d’origine.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                             Page 28 / 58
+                                     FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+                                                                                  MAJ : 03/06/2020
+Comment s’effectue la déclaration de cotisation individuelle d’un
+salarié affilié à un contrat complémentaire ?
+Elle s’effectue en renseignant :
+   une base assujettie (bloc 78) contenant obligatoirement :
+       o un Code de base assujettie S21.G00.78.001 renseigné à 31 (éléments de cotisation
+           prévoyance, santé, retraite supplémentaire)
+       o une période de rattachement (dates de début et de fin période de rattachement
+           S21.G00.78.002 et 003, correspondant le plus souvent aux dates de début et de fin du
+           mois déclaré)
+       o un Identifiant technique Affiliation S21.G00.78.005 permettant le rattachement des
+           données de cotisation à l’Affiliation Prévoyance (70) ainsi qu’au Contrat de travail (40),
+       o un Montant S21.G00.78.004 imposé à zéro pour les Organismes de Prévoyance (car
+           les données utiles aux OC sont renseignées dans les blocs 79 et 81 dépendant du bloc
+           78)
+   le ou les paramètres de calcul de la cotisation dans des Composants de base assujettie (blocs
+    79) contenant :
+        o le Type de composant, renseigné en S21.G00.79.001
+              10 - Salaire brut Prévoyance         17 - Base spécifique Prévoyance
+              11 - Tranche A Prévoyance            18 - Base forfaitaire Prévoyance
+              12 - Tranche 2 Prévoyance            19 - Base fictive Prévoyance reconstituée
+              13 - Tranche B Prévoyance            20 - Montant forfaitaire Prévoyance
+              14 - Tranche C Prévoyance            21 - Montant Prévoyance libre ou exceptionnel
+              15 - Tranche D Prévoyance
+              16 - Tranche D1 Prévoyance
+              24 - Tranche T2U Prévoyance
+
+        o    le montant correspondant, renseigné en S21.G00.79.004
+   la cotisation individuelle (bloc 81) contenant :
+        o un Code de cotisation S21.G00.81.001 obligatoirement renseigné à 059 (cotisation
+             individuelle Prévoyance)
+        o le montant total de la cotisation individuelle relative à au salarié et à l’affiliation concernés,
+             pour la période de rattachement mentionnée, renseigné en S21.G00.81.004 (contribution
+             patronale + cotisation salariale)
+Une représentation de l’architecture des blocs utiles à la déclaration de la cotisation est proposée ci-
+après :
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                     Page 29 / 58
+                                     FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+                                                                                          MAJ : 03/06/2020
+Qu’entendez-vous par « type de composant de base assujettie »
+(S21.G00.79.001) ?
+Dans les contrats complémentaires, un type de composant de base assujettie correspond à un
+montant intervenant dans le calcul de la cotisation. Il peut s’agir d’une « assiette » ou « base » sur
+laquelle s’appliquera le plus souvent un taux. Il peut aussi s’agir d’un montant forfaitaire.
+         o Le type de composant de base assujettie peut correspondre à une tranche de
+             rémunération en référence au plafond SS (codes 10 à 16 et 24), à une base forfaitaire
+             ou spécifique (codes 17 à 19) ou à un montant (codes 20 et 21).
+              10 - Salaire brut Prévoyance         17 - Base spécifique Prévoyance
+              11 - Tranche A Prévoyance            18 - Base forfaitaire Prévoyance
+              12 - Tranche 2 Prévoyance            19 - Base fictive Prévoyance reconstituée
+              13 - Tranche B Prévoyance            20 - Montant forfaitaire Prévoyance
+              14 - Tranche C Prévoyance            21 - Montant Prévoyance libre ou exceptionnel
+              15 - Tranche D Prévoyance
+              16 - Tranche D1 Prévoyance
+              24 - Tranche T2U Prévoyance
+
+
+
+
+Question
+Le nouveau régime Agirc Arrco instaure une assiette de cotisation ne                      MAJ : 03/06/2020
+comportant plus que 2 tranches de salaire. Cela a-t-il un impact sur les assiettes
+de cotisations utilisées par les organismes complémentaires ?
+Pour la détermination des cotisations du nouveau régime, l'assiette de cotisation est effectivement
+constituée comme suit :
+- la tranche 1 des rémunérations (dite T1) est constituée de l'ensemble des éléments de l'assiette
+dont le montant n'excède pas le plafond fixé en application de l'article L.241-3 du code de la sécurité
+sociale ;
+- la tranche 2 des rémunérations (dite T2) est constituée de l'ensemble des éléments de l'assiette
+dont le montant est compris entre le plafond fixé en application de l'article L.241-3 du code de la
+sécurité sociale et le montant égal à huit fois ce même plafond.
+Notons que la tranche 2 du nouveau régime AGIRC-ARRCO porte le même nom que celle de l'ancien
+régime ARRCO, soit T2.
+
+Dans certains organismes complémentaires, certains contrats utilisent comme élément d'assiette la
+T2 (ARRCO) avec une valeur comprise entre 1 et 3 plafonds fixé en application de l'article L.241-3
+du code de la sécurité sociale.
+Ces organismes pourront continuer à l'utiliser au-delà du 1er janvier 2019.
+
+Pour ce faire, a été créée dans la norme NEODES, ainsi que dans la fiche de paramétrage OC, une
+codification d'assiette correspondant à la nouvelle tranche 2 appelée T2U afin de pouvoir la distinguer
+dans la DSN de la T2 (ARRCO).
+
+Quant aux autres éléments d'assiettes de cotisations existants aujourd'hui (T1, T2 ARRCO, TA, TB,
+TC, TD, TD1) ils restent inchangés dans leurs expressions et leurs règles de calcul pour les
+organismes complémentaires, qu'il s'agisse d'un contrat santé complémentaire, prévoyance ou
+retraite supplémentaire.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                     Page 30 / 58
+                                        FAQ DSN Organismes Complémentaires
+
+
+
+
+    Les codes utilisables pour déclarer dans la DSN les types de composant de base assujettie aux
+    organismes complémentaires (rubrique « S21.G00.79.001 ») en lien avec les tranches de salaire sont
+    les suivants :
+
+    - Salaire brut Prévoyance = 10
+    - Tranche A Prévoyance (TA) = 11
+    - Tranche 2 Prévoyance (T2) = 12
+    - Tranche B Prévoyance (TB) = 13
+    - Tranche 2 Unifiée Prévoyance (T2U) = 24
+    - Tranche C Prévoyance (TC) = 14
+    - Tranche D Prévoyance (TD) = 15
+    - Tranche D1 Prévoyance (TD1) = 16
+
+    Pour votre déclaration concernant les OC, nous vous engageons dans tous les cas à déclarer les
+    tranches mentionnées sur votre fiche de paramétrage.
+
+
+
+.
+
+
+
+
+    Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                         Page 31 / 58
+                                       FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+Comment effectuer la déclaration, lorsque la cotisation pour un contrat                          MAJ : 08/10/2015
+complémentaire donné est fonction de plusieurs « assiettes » qui sont
+toutes différentes ?
+Pour un salarié affilié à ce contrat complémentaire, le déclarant devra renseigner :
+     un bloc 78 (Base assujettie) de Code de base assujettie S21.G00.78.001 renseigné à 31
+      (éléments de cotisation prévoyance, santé, retraite supplémentaire), et d’Identifiant technique
+      Affiliation S21.G00.78.005 correspondant à celui du contrat concerné
+     autant de blocs 79 (Composants de base assujettie) que d’assiettes entrant dans le calcul de la
+      cotisation
+     un seul bloc 81 (Cotisation individuelle) renseigné avec le Montant de cotisation en
+      S21.G00.81.004
+
+Exemple :
+Pour un contrat complémentaire donné, la cotisation est calculée comme la somme des éléments
+suivants :
+     2.5% de la tranche A
+     3 % de la tranche B
+     un montant forfaitaire de 10 €
+
+
+    S21.G00. 50 - Versement individu
+               S21.G00. 51 - Rémunération
+               S21.G00. 51 - Rémunération
+              S21.G00. 78 - Base assujettie
+                            S21.G00.78.001 : 31 - Eléments de cotisation Prév, Santé, ret.sup.
+                            S21.G00.78.002 / 003 : 01/01/2016 – 31/01/2016
+                            S21.G00.78.004 : 0.00
+                            S21.G00.78.005 : 1
+
+                            S21.G00.79 - Composant de base assujettie
+                                   S21.G00.79.001 : 11 – Tranche A
+                                   S21.G00.79.004 : 3218.00
+
+                            S21.G00.79 - Composant de base assujettie
+                                    S21.G00.79.001 : 13 – Tranche B
+                                    S21.G00.79.004 : 900.00
+
+                            S21.G00.79 - Composant de base assujettie
+                                    S21.G00.79.001 : 20 – Montant forfaitaire Prévoyance
+                                    S21.G00.79.004 : 10.00
+
+                            S21.G00.81 - Cotisation Individuelle
+                                    S21.G00.81.001 : 059 –cotisation individuelle Prévoyance
+                                    S21.G00.81.004 : 117.45
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                           Page 32 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+Est-il possible pour un salarié et pour une même période de cotisation de          MAJ : 08/10/2015
+renseigner plusieurs blocs S21.G00.79 (Composant de base assujettie) de
+même code nature ?
+Aucun contrôle ne proscrit la déclaration successive de deux types de composant de base assujettie
+(S21.G00.79.001) de même code nature, ni même de même montant (S21.G00.79.004).
+Si les formules de cotisation prévoyance font souvent intervenir plusieurs types de composant de
+base assujettie (assiettes de cotisations) différentes telles que tranche A, tranche B, montant
+forfaitaire…, il est en revanche très rare qu’elles fassent intervenir la même assiette quand celle-ci
+correspond aux tranches de rémunération standard en référence au plafond SS (codes 10 à 16).
+
+Il est cependant possible, notamment pour un contrat complémentaire santé, que le calcul de la
+cotisation s’appuie sur deux forfaits distincts, de même code type mais de montants différents.
+
+Exemple :
+   forfait salarié à 100 € (S21.G00.79.001 = 20)
+   forfait ayant-droit à 40 € (S21.G00.79.001 = 20)
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                             Page 33 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+Si, pour un même contrat, nous avons deux montants forfaitaires
+différents, est-il possible de ne renseigner qu'une seule fois le type de          MAJ : 08/10/2015
+composant de base assujettie (S21.G00.79.001) avec un code 20 (montant
+forfaitaire Prévoyance), et un montant correspondant au cumul des deux
+forfaits ?
+Par exception, cette solution est tolérée (cumul des forfaits sur un seul bloc S21.G00.79 de code 20),
+mais il est vivement recommandé de renseigner deux sous-groupes S21.G00.79 de code 20.
+
+Par exemple, dans le cas d'un contrat frais de santé à 50 euros par mois + 10 euros par ayant-droit,
+pour un salarié couvrant deux ayants-droit, la première solution sera tolérée, mais la deuxième sera
+préférable :
+
+1ere Solution (déconseillée)
+
+
+
+
+2nde Solution (recommandée)
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                             Page 34 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+Pour un salarié ayant perçu une prime exceptionnelle et dépassant le
+plafond de la tranche D, quelles seront les assiettes de cotisations à             MAJ : 08/10/2015
+renseigner dans la déclaration : tranche D ou tranche D1 (via le bloc
+S21.G00.79) ?
+
+La réponse dépend de la formule de cotisation mentionnée dans le contrat complémentaire souscrit
+par l'entreprise.
+Une cotisation peut être prévue seulement sur la tranche D, auquel cas des salariés rémunérés au-
+delà de cette tranche ne cotiseront pas sur l'intégralité de leur salaire, ou bien aussi sur la tranche
+D1 auquel cas ils cotiseront sur l'intégralité de leur salaire.
+
+
+
+
+Question
+Faut-il arrondir ou tronquer les montants renseignés dans les blocs                MAJ : 08/10/2015
+Versement, Composant de versement, Composant de base assujettie,
+Cotisation individuelle et Cotisation établissement ?
+NON.
+Comme indiqué dans le cahier technique, « tous les montants doivent être exprimés en euros et en
+centimes d’euros ». De fait, cette règle s’applique à toutes les données Prévoyance de type montant
+(dans les blocs 20, 55, 79, 81, 82). Elles ne sont soumises à aucun arrondi ou troncature, et doivent
+comprendre le détail des centimes.
+
+
+
+Question                                                                           MAJ : 03/06/2020
+Quand une tranche de rémunération est à 0, est-il nécessaire de la déclarer
+dans un Composant de base assujettie (bloc 79) ?
+Le ou les éléments de calcul de la cotisation individuelle que vous devez renseigner dans les
+Composants de base assujettie (blocs 79) sont mentionnés dans la fiche de paramétrage.
+Par exemple, pour une formule de cotisation de type (x% de TA + y% de TB), il vous sera demandé
+de renseigner :
+       Un bloc 79 de type 79.001 = 11 contenant en 79.004 le montant de la tranche A
+       Un bloc 79 de type 79.001 = 13 contenant en 79.004 le montant de la tranche B
+Dans cet exemple, lorsque la tranche B est nulle, il est vivement souhaitable de le déclarer
+explicitement, en renseignant le bloc 79 correspondant, avec un montant 79.004 à 0 (ceci permettant
+d’éviter toute ambiguïté, car une tranche A inférieure au plafond n’implique pas nécessairement une
+tranche B nulle, celle-ci pouvant être négative par effet de régularisation progressive).
+Certains logiciels étant en difficulté pour respecter cette règle, par exception, il est toléré qu’une
+tranche de rémunération à 0 ne fasse pas l’objet d’un bloc 79 explicite, bien que la tranche concernée
+entre dans la formule de cotisation et soit demandée dans la fiche de paramétrage. Cette tolérance
+concerne exclusivement les tranches de rémunération nulles, et ne s’applique pas aux valeurs
+positives ou négatives.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                              Page 35 / 58
+                                     FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+Comment déclarer la cotisation OC, et son rattachement, dans les cas                      MAJ : 02/10/2023
+particuliers suivants : cotisation nulle, cotisation due au titre d’une
+période antérieure au mois déclaré, pour un salarié encore présent ou pour
+un salarié ayant quitté l’entreprise ?
+Ces différents cas de figure se déclinent comme suit.
+
+1. Cotisation due au titre du mois déclaré, pour un salarié encore présent et affilié sur le mois
+   ou sur une partie du mois
+
+1.1. Cotisation OC non nulle
+Il s’agit du cas général, le bloc Affiliation 70 est requis, les blocs 78 (type 31) / 79 / 81 (type 059)
+correspondant à l’identifiant affiliation du bloc 70 sont requis.
+La période de rattachement du bloc 78 doit correspondre au mois déclaré si le salarié était toujours
+présent et affilié en fin de mois déclaré. Si le salarié a quitté l’entreprise en cours de mois, la date de
+fin de période de rattachement de la cotisation, S21.G00.78.003, doit correspondre à la date de départ
+du salarié.
+La période de rattachement du bloc 78 ne peut jamais s’étendre au-delà du départ du salarié, cette
+règle générale devant toujours être respectée.
+
+1.2. Cotisation OC nulle (quelle qu’en soit la raison, ce cas de figure incluant l’absence de ligne de
+     cotisation sur le bulletin ou l’absence même de bulletin)
+Le bloc 70 est requis, car son absence conduira l’OC à radier (à tort) le salarié dès le début du
+mois déclaré. En conséquence, les blocs 78/79/81 sont requis.
+Il convient de déclarer les mêmes Composants de base assujettie 79 que pour une cotisation non
+nulle. Par exemple, dans le cas d’une cotisation se calculant comme (x% de TA + y% de TB), deux
+blocs 79 sont attendus, l'un pour la Tranche A avec un montant à 0, l'autre pour la Tranche B avec
+un montant à 0.
+Lorsque le logiciel n'est pas en mesure de générer les composants attendus, une nouvelle valeur de
+code type 79.001 (23 – Sans composant de base assujettie en paie) permettra à partir de janvier
+2017 de l'indiquer explicitement (valeur incompatible avec tout autre code type, utilisable seulement
+pour un montant de bloc 79 à 0 et un montant de bloc 81 à 0).
+
+
+2. Régularisation sur période antérieure au mois déclaré
+Le salarié était affilié sur la période à régulariser, il l'est ou ne l'est plus sur la période courante.
+
+2.1. La régularisation touche notamment la cotisation OC
+Le bloc Affiliation 70 est requis, car nécessaire pour autoriser la déclaration des blocs 78/79/81.
+La période de rattachement du bloc 78 (début et fin 78.002 et 78.003) doit correspondre à la période
+régularisée (antérieure à la période courante).
+En effet, si le rattachement est effectué à tort sur le mois courant, et que le salarié a quitté
+l'entreprise, l'organisme récepteur sera conduit à engager, à tort, une procédure d'affiliation.
+En cas de difficulté pour respecter cette consigne, lorsque le salarié a déjà quitté l’entreprise, il sera
+toléré que les dates de début et fin 78.002 et 78.003 soient toutes deux renseignées au dernier jour
+de présence du salarié.
+
+2.2. La régularisation ne génère aucune cotisation OC
+Ce cas peut se produire, par exemple, lors du versement annuel d'une prime d'intéressement non
+soumise à cotisation prévoyance.
+Deux modalités déclaratives sont acceptées dans cette situation : absence ou présence de bloc 70.
+
+Régularisation sans aucune cotisation OC induite – toutes les affiliations 70 absentes :
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                     Page 36 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+   Dans ce cas de figure, les blocs 78/79/81 ne sont évidemment pas requis.
+   L'OC concerné ne recevra aucune donnée, ce qui ne gêne en rien puisqu'il n'est pas concerné
+    par cette régularisation.
+
+Régularisation sans cotisation OC induite – toutes les affiliations 70 présentes :
+   Dans ce cas de figure, les blocs 78/79/81 sont requis puisque les blocs 70 sont présents.
+   Comme déjà indiqué ci-dessus en 2.1, la période de rattachement du bloc 78 (début et fin 78.002
+    et 78.003) doit correspondre à la période régularisée (antérieure à la période courante).
+   Concernant les blocs 79 attendus, ce cas de figure est similaire à celui déjà décrit ci-dessus en
+    1.2.
+
+2.3. La régularisation génère des cotisations OC sur une partie des affiliations
+Ce cas peut se produire quand il y a une régularisation sur des cotisations proportionnelles (ex :
+prévoyance sur TA et TB) et pas de changement sur la cotisation forfaitaire de la complémentaire
+santé.
+   Dans ce cas, l’ensemble des affiliations doivent être déclarées ainsi que les blocs 78/79/81 qui
+    porteront la régularisation des cotisations de l’affiliation prévoyance.
+   Pour l’affiliation de la complémentaire santé, la régularisation contiendra la déduction du forfait et
+    l’ajout de ce même forfait en « Annule et remplace » (à privilégier) ou des montants à zéro en
+    mode « Différentiel ».
+
+
+
+
+Question
+Pour mon contrat de prévoyance, ma fiche de paramétrage mentionne un
+taux de cotisation global sur la tranche A, et un autre taux global sur la            MAJ : 31/03/2017
+tranche B. Ce contrat couvrant 3 risques différents (incapacité, invalidité
+et décès), dois-je renseigner des blocs 79 (Composant de base assujettie)
+pour chaque risque couvert, ou dois-je renseigner seulement des blocs 79
+correspondant à la cotisation globale prévoyance ?
+
+La déclaration des blocs 79 (Composants de base assujettie) doit rester conforme à ce qui vous est
+demandé dans la fiche de paramétrage. Si la fiche de paramétrage ne détaille pas les différents
+risques couverts dans le cadre d’un contrat de prévoyance, il ne faut donc pas détailler en DSN les
+cotisations afférentes à chaque risque.
+Dans l’exemple que vous proposez, il vous faudra donc seulement renseigner ce qui suit :
+Bloc 78 de type 78.001 = 31 et d’identifiant affiliation 78.004 correspondant au contrat prévoyance
+    S21.G00.79.001,’11’      (Type de composant TA prévoyance)
+    S21.G00.79.004,’xxx.xx’ (Montant de la Tranche A prévoyance)
+    S21.G00.79.001,’13’      (Type de composant TB prévoyance)
+    S21.G00.79.004,’yyy.yy’ (Montant de la Tranche B Prévoyance)
+    S21.G00.81.001,’059’
+    S21.G00.81.004,’zzz.zz’ (Montant global de la cotisation prévoyance, déterminé à partir des
+                              montants TA / TB déclarés en blocs 79, et des taux figurant dans la fiche
+                              de paramétrage)
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                 Page 37 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+Certains salariés de mon entreprise souhaitent alimenter leur contrat de             MAJ : 31/01/2017
+retraite supplémentaire (art.83) avec un rachat de jours de leur CET.
+Comment dois-je procéder pour la déclaration des cotisations ?
+La distinction de la provenance (CET ou autres revenus) des sommes versées en retraite
+supplémentaire n’est pas utile aux OC, et ne les concerne pas.
+L’existence d’un contrat de retraite supplémentaire (art. 83) doit donner lieu à la déclaration de
+données destinées à l'organisme complémentaire concerné par ce contrat, selon les informations
+figurant dans la fiche de paramétrage :
+
+Bloc 15 (adhésion au contrat de retraite supplémentaire : code OC, référence contrat …)
+Blocs 20-55 (versement OC, selon échéance de paiement)
+Bloc 30 (salarié)
+ Bloc 70 (affiliation sur le contrat de retraite supplémentaire)
+ Bloc 78 de type 31 (pointant sur l’affiliation 70 renseignée au titre du contrat de retraite
+  supplémentaire et précisant la période de rattachement des sommes versées)
+   1 à n blocs 79 (précisant le détail des assiettes et / ou montants attendus, selon la fiche de
+     paramétrage)
+   Bloc 81 de type 059 (contenant le montant de la cotisation individuelle résultant des éléments
+     de calcul renseignés en bloc(s) 79)
+A noter que le versement de cotisations sur un contrat de retraite supplémentaire peut donner lieu, le
+cas échéant, à la déclaration de données sociales destinées à l'URSSAF ou de données fiscales
+destinées à la DGFIP. Ces données ne concernant pas les organismes complémentaires, il convient
+à leur sujet de consulter le cahier technique, la documentation consigne présente sur DSN-INFO ou
+les organismes concernés.
+
+
+
+
+Question
+
+Nous constatons de plus en plus souvent que les fiches de paramétrage des            MAJ : 03/06/2020
+contrats de retraite supplémentaire adressées par les organismes
+complémentaires demandent que soit déclaré un montant libre. Quelle en est la
+raison ?
+Pour les contrats de retraite supplémentaire, de plus en plus de clients et leurs OC choisissent
+dorénavant de ne plus utiliser un taux appliqué à une assiette, mais un montant libre. Avec l’utilisation
+de la nature de base 21 (Montant Prévoyance libre ou exceptionnel), le montant est calculé par
+l’entreprise qui décide ainsi de ce qu’elle est en mesure de déclarer et verser.
+Les contrôles sont allégés, et l’OC peut réaliser plus rapidement les placements, dès la réception du
+montant versé par l’entreprise, sur les supports d’investissement prévus.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                Page 38 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+   7.2 Régulariser une année incomplète en DSN
+
+Question
+Certaines entreprises peuvent produire leurs premières DSN phase 3 en           MAJ : 03/06/2020
+cours d’année.
+Comment régularisent-elles une année qui ne sera pas complètement
+déclarée en DSN, pour les organismes complémentaires ?
+Si une entreprise produit sa première DSN en cours d’année, elle devra déclarer les périodes
+antérieures de cette même année via des écritures de régularisations dans la DSN. Une fois entrée
+en DSN, elle ne doit plus utiliser les procédures antérieures (DADS-U ou procédures spécifiques).
+.
+
+
+
+
+   7.3 Régulariser une cotisation après l’absorption d’un
+       organisme complémentaire
+
+Question
+Un déclarant souhaite régulariser des cotisations initialement déclarées
+auprès d’un organisme complémentaire 1 qui a depuis été absorbé par             MAJ : 05/12/2016
+un autre organisme complémentaire 2.
+Quel est le code organisme complémentaire à renseigner dans la DSN
+qui porte la régularisation ? l’organisme complémentaire 1 (pré-
+absorption) ou l’organisme complémentaire 2 (post-absorption) ?
+Dans le cas d'une absorption, et d'une régularisation émise après l'absorption mais portant sur une
+période précédant cette absorption, il est nécessaire de renseigner le code organisme du nouvel OC
+(post-absorption).
+Ce code organisme étant un code de routage, seule l'utilisation du nouveau code permettra de
+garantir que la déclaration soit bien adressée à l'organisme absorbant.
+A noter toutefois que, dans ce type de situation, il est toujours prévu une période transitoire de
+maintien de l'ancien code organisme, avec un routage vers le nouvel organisme.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                          Page 39 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+7.4 Ayants-droit
+
+Question
+                                                                                    MAJ : 08/10/2015
+En quoi la déclaration des nombres d’ayants-droit peut être utile au
+calcul des cotisations OC ?
+La déclaration des nombres d’ayants-droit peut être nécessaire au calcul de certaines cotisations
+concernant les contrats pour lesquels le nombre et éventuellement le type d’ayant-droit est
+déterminant (par exemple, le montant du forfait applicable sur une couverture complémentaire peut
+être différencié pour le salarié, son conjoint et ses enfants).
+
+Exemples :
+
+1/ Une complémentaire santé A prévoit un forfait mensuel de 30 € par mois pour le salarié, 20 € pour
+son conjoint et 10 € pour chacun de ses enfants. La cotisation sera alors de 30 € pour un salarié
+célibataire (cas A1), et de 70 € pour un salarié marié avec deux enfants (cas A2).
+Dans ces différents cas de figure, les données du bloc S21.G00.70 doivent être renseignées comme
+suit :
+Cas A1 – Célibataire  bloc affiliation Prévoyance (S21.G00.70)
+S21.G00.70.008           Nombre d’adultes ayants-droit          0
+S21.G00.70.011           Nombre d’enfants ayants-droit          0
+
+Cas A2 - Marié avec 2 enfants  bloc affiliation Prévoyance (S21.G00.70)
+S21.G00.70.008        Nombre d’adultes ayants-droit           1
+S21.G00.70.011        Nombre d’enfants ayants-droit           2
+
+
+
+2/ Une complémentaire santé B prévoit un forfait mensuel de 30 euros par mois pour le salarié, et 15
+€ pour chaque ayant-droit, qu'il s'agisse d'un adulte ou d'un enfant. La cotisation sera alors de 30€
+pour un salarié célibataire (cas B1), et de 60 € pour un salarié marié avec un enfant (cas B2).
+Dans ces différents cas de figure, les données du bloc S21.G00.70 doivent être renseignées comme
+suit :
+Cas B1 – Célibataire  bloc affiliation Prévoyance (S21.G00.70)
+S21.G00.70.009           Nombre d’ayants-droit                    0
+
+Cas B2 - Marié avec 1 enfant  bloc affiliation Prévoyance (S21.G00.70)
+S21.G00.70.009        Nombre d’ayants-droit                   2
+
+
+
+3/ Une complémentaire santé C prévoit un forfait mensuel de 30 € par mois pour le salarié, de 25 €
+par mois pour le conjoint, et un forfait enfant variable selon l’âge : gratuit pour les enfants de 0 à 3
+ans, 15 € pour les enfants entre 4 et 12 ans et 25 € pour les enfants de plus de 12 ans.
+La cotisation sera alors de 95 € pour un salarié marié avec un enfant de 10 ans et un enfant de 13
+ans.
+
+Dans ce cas de figure, les données du bloc S21.G00.70 seront renseignées comme suit :
+S21.G00.70.008          Nombre d’adultes ayants-droit         1
+S21.G00.70.011          Nombre d’enfants ayants-droit         2
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                               Page 40 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+et les données des blocs S21.G00.73 peuvent être renseignées comme suit :
+S21.G00.73.003         Type                          01 – adulte
+S21.G00.73.005         Date de naissance             celle du conjoint
+S21.G00.73.006         Nom de famille                celui du conjoint
+S21.G00.73.009         Prénom s                      ceux du conjoint
+S21.G00.73.007         NIR                           celui du conjoint
+
+S21.G00.73.003            Type                             02 – enfant
+S21.G00.73.005            Date de naissance                celle de l’enfant de 13 ans
+S21.G00.73.006            Nom de famille                   celui de l’enfant de 13 ans
+S21.G00.73.009            Prénom s                         ceux de l’enfant de 13 ans
+
+S21.G00.73.003            Type                             02 – enfant
+S21.G00.73.005            Date de naissance                celle de l’enfant de 10 ans
+S21.G00.73.006            Nom de famille                   celui de l’enfant de 10 ans
+S21.G00.73.009            Prénom s                         ceux de l’enfant de 10 ans
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                           Page 41 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+  8 Les données de cotisations établissement
+
+Question
+                                                                                     MAJ : 08/10/2015
+Comment déclarer des cotisations attachées à l’établissement et non aux
+salariés ?
+En renseignant les données du bloc « Cotisation établissement » (S21.G00.82).
+Il s’agit alors de cotisations non nominatives. Il ne s’agit pas de cotisations nominatives agrégées.
+
+
+
+
+Question
+Les cotisations établissement déclarées dans le bloc S21.G00.82                      MAJ : 03/06/2020
+correspondent-elles au total des cotisations individuelles (déclarées en
+S21.G00.81 pour chaque salarié) pour un contrat complémentaire donné ?
+NON.
+Les montants de cotisation établissement éventuellement renseignés en S21.G00.82.001 ne se
+rapportent en rien aux montants nominatifs de cotisation renseignés en S21.G00.81.004 pour chaque
+salarié affilié à un contrat complémentaire donné (cf. cahier technique § 2.2.2.4 et définition du bloc
+S21.G00.82 : « Renseigne d'éventuelles cotisations imputables à l'établissement (par exemple :
+fonds de formation). Il ne s'agit pas d'un récapitulatif ou total de cotisations versées pour un ensemble
+de salariés attachés au contrat ou à l'établissement »).
+Les « Cotisations établissement » renseignées dans le bloc S21.G00.82 ne sont nécessaires que
+pour quelques contrats complémentaires particuliers, qui prévoient une cotisation attachée
+directement à l'établissement (cotisation sans rapport avec les cotisations « individuelles » déclarées
+nominativement à travers les blocs S21.G00.81).
+Cela peut concerner par exemple des cotisations de type « fonds de formation » prévues sur certains
+contrats proposés par certains organismes complémentaires (il s'agit de cotisations calculées sur la
+masse salariale de l'établissement, et non de cotisations attachées individuellement à chaque
+salarié).
+Les cotisations établissement sont aussi utilisées pour le financement des :
+ Indemnité de fin de carrière (IFC)
+ Financement de la pré-retraite.
+
+
+
+Question
+                                                                                     MAJ : 03/06/2020
+A quelle fréquence est-il recommandé de déclarer les cotisations
+établissement (S21.G00.82) ?
+La déclaration des « cotisations établissement » doit se faire en conformité avec le contrat souscrit
+par l’entreprise auprès de son organisme complémentaire.
+Un changement éventuel de périodicité déclarative ne peut relever d’un choix unilatéral de
+l’employeur, mais doit résulter d’un accord entre l’entreprise et son organisme complémentaire.
+La périodicité de paiement des cotisations de niveau établissement est notamment mentionnée dans
+la fiche de paramétrage transmise par l’organisme complémentaire.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                Page 42 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question                                                                         MAJ : 08/10/2015
+Comment déclarer une cotisation établissement pour la Prévoyance ?
+La déclaration d’une cotisation établissement pour la Prévoyance se fait en renseignant un bloc
+« Cotisation établissement » (82) comportant :
+   le Code de cotisation en S21.G00.82.002 (nature de la cotisation, de code 001 à 020, 036 à 039,
+    ou 090 pour les organismes complémentaires),
+   la période de rattachement de la cotisation (dates de début et de fin S21.G00.82.003 et 004),
+   le montant de la cotisation en S21.G00.82.001,
+   la Référence règlementaire ou contractuelle en S21.G00.82.005.
+
+La Référence règlementaire ou contractuelle S21.G00.82.005 correspond dans ce cas à l’identifiant
+technique de l’adhésion Prévoyance et permet le rattachement de ces données au contrat déclaré
+dans l’Adhésion Prévoyance (bloc 15).
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                           Page 43 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+Pour une cotisation établissement à échéance trimestrielle, semestrielle          MAJ : 03/06/2020
+ou annuelle, à terme échu ou terme à échoir, quelles sont les règles
+d'alimentation des blocs 82 "Cotisation établissement" et 20 "Versement
+OPS" ?
+Règles d’alimentation des blocs 82 « Cotisation établissement » :
+
+Dans le cas des cotisations établissement, à défaut d’information spécifique communiquée par
+l’organisme, le bloc 82 est attendu seulement dans la DSN correspondant à l'échéance de paiement
+de la cotisation.
+
+Par exemple :
+   Dans le cas d'une cotisation établissement de périodicité de paiement annuelle à terme à échoir,
+    le montant dû pour l'année N sera déclaré en bloc 82 dans la DSN du mois déclaré de décembre
+    N-1.
+   Dans le cas d'une cotisation établissement de périodicité de paiement trimestrielle à terme échu,
+    le montant dû pour le premier trimestre de l'année N sera déclaré en bloc 82 dans la DSN du
+    mois déclaré de mars de l'année N.
+
+Par défaut, dans le cas de cotisations établissement à échéance de paiement supra-mensuelle
+(trimestrielle, semestrielle, annuelle), il n'est donc pas demandé de renseigner les données de
+cotisation (82) ni en conséquence de versement (20) dans chaque DSN mensuelle.
+
+Toutefois, certains organismes complémentaires peuvent demander que le bloc 82 soit renseigné
+avec une périodicité déclarative différente de la périodicité de paiement.
+Par exemple :
+       un organisme complémentaire peut demander que le bloc 82 soit renseigné avec une
+        périodicité déclarative mensuelle, donc dans chaque DSN, avec un montant correspondant
+        à celui du mois déclaré, alors que l’échéance de paiement des cotisations reste
+        trimestrielle (c’est notamment le cas de certains fonds de formation dont le montant
+        dépend de la masse salariale).
+Dans ces cas particuliers, il appartient aux organismes concernés d’informer directement leurs
+déclarants de ces modalités.
+Ces organismes peuvent communiquer cette information via l’attribut « Périodicité de Déclaration de
+la Cotisation Etablissement » présent sur les fiches de paramétrage.
+
+
+
+Règles d’alimentation des blocs 20 « Versement OPS » :
+
+Dans le cas des cotisations établissement, le bloc 20 est attendu seulement dans la DSN
+correspondant à l'échéance de paiement de la cotisation.
+Par exemple :
+   Dans le cas d'une cotisation établissement de périodicité de paiement annuelle à terme à échoir,
+    le montant dû pour l'année N sera déclaré en bloc 20 dans la DSN du mois déclaré de décembre
+    N-1.
+   Dans le cas d'une cotisation établissement de périodicité de paiement trimestrielle à terme échu,
+    le montant dû pour le premier trimestre de l'année N sera déclaré en bloc 20 dans la DSN du
+    mois déclaré de mars de l'année N.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                            Page 44 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+L’échéance de paiement de la cotisation est rappelée via l’attribut « Périodicité de Paiement du
+Paramètre Contrat » présent sur les fiches de paramétrage
+
+
+
+
+Question
+                                                                                    MAJ : 03/06/2020
+Quels sont les cas où les cotisations des contrats de retraite supplémentaire ne
+sont pas nominatives mais sont des cotisations établissement ?
+En retraite supplémentaire, les entreprises et leurs OC utilisent les cotisations établissement dès lors
+qu’il s’agit de cotisations non nominatives.
+C’est le cas pour les contrats permettant de financer les indemnités de fin de carrière (IFC) ou, le cas
+échéant, la pré-retraite.
+Auparavant, c’était aussi le cas pour les contrats Art.39 lorsque le bénéficiaire n’était pas nommé ; et
+s’il quittait l’entreprise avant son départ à la retraite, perdait ses droits à prestations.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                               Page 45 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+    9 Les données d’ancienneté
+
+Question
+Une ancienneté de type "06 - Ancienneté dans le groupe" ou "07 -                MAJ : 03/06/2020
+Ancienneté dans l'entreprise" doit-elle être systématiquement renseignée
+en S21.G00.86.001 pour un salarié concerné par au moins une affiliation
+à un contrat complémentaire ?
+L’ancienneté dans l’entreprise ou le groupe (S21.G00.86.001 valorisé à 06 ou 07) doit toujours être
+renseignée pour un salarié affilié à un contrat complémentaire.
+Elle permet notamment de :
+   calculer la durée de portabilité si nécessaire ;
+   déterminer une éventuelle période de carence précédant l’affiliation effective du salarié, dans
+    certains contrats.
+
+D’autres types d’ancienneté peuvent éventuellement être demandés pour certains contrats
+complémentaires (en fonction par exemple, d’accords de branche -type 02-).
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                          Page 46 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+    10 Les données de paiement
+
+Question
+La déclaration des données de versement des cotisations Organismes               MAJ : 03/06/2020
+Complémentaires a-t-elle des conséquences sur les modalités de
+paiement (périodicité / mode de paiement) ?
+Les conditions contractuelles arrêtées entre l’entreprise et l’organisme complémentaire ne sont pas
+remises en cause par la DSN.
+Le passage en DSN n’implique aucune modification des échéances de paiement, et n’impose aucun
+mode de paiement particulier. La DSN pourra néanmoins faciliter l’utilisation d’un mode de paiement
+dématérialisé (passage du chèque au prélèvement SEPA).
+
+Par exemple, une entreprise dont l’échéance de paiement des cotisations Prévoyance est trimestrielle
+à terme échu doit procéder comme suit :
+   dans chaque DSN mensuelle, l’entreprise déclare les cotisations dues par salarié pour le mois
+    déclaré, en alimentant les blocs «Base assujettie » (S21.G00.78), «Composant de base
+    assujettie » (S21.G00.79) et « Cotisation individuelle » (S21.G00.81),
+   dans la DSN mensuelle correspondant au dernier mois du trimestre civil, en complément des
+    cotisations déclarées, l’entreprise doit alimenter le ou les blocs « Versement organisme de
+    protection sociale » (S21.G00.20) et « Composant de versement » (S21.G00.55) pour le montant
+    des cotisations dues du trimestre qui se termine avec le mois de la DSN générée. La somme des
+    blocs « composants de versement » devra être égale à la somme déclarée dans le bloc
+    « Versement organisme de protection sociale » correspondant,
+   dans le ou les blocs « Versement » (20), l’entreprise doit notamment renseigner un mode de
+    paiement et, si nécessaire, une date de paiement (au plus tard, habituellement, au dernier jour
+    du mois suivant la fin du trimestre échu).
+
+Important : les modalités de paiement (mode de paiement, périodicité, date de paiement) sont des
+informations qui ne doivent pas être modifiées unilatéralement.
+En cas de changement des modalités de paiement initiales fixées au moment de la souscription du
+contrat complémentaire, le souscripteur et l’organisme complémentaire doivent s’accorder sur ces
+nouvelles modalités et sur la date de leur mise en application.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                           Page 47 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+                                                                                   MAJ : 03/06/2020
+Comment déclarer en DSN le bloc versement concernant une cotisation à
+échéance trimestrielle ?
+Le déclarant a 2 manières de renseigner en DSN le bloc versement concernant sa cotisation à
+échéance trimestrielle :
+
+ Bloc versement renseigné seulement en fin de trimestre (solution préférée)
+DSN Mois 1 : pas de bloc 20 ni de bloc 55
+DSN Mois 2 : Pas de bloc 20 ni de bloc 55
+DSN Mois 3 : 1 bloc 20 avec S21.G00.20.005 = montant trimestriel
+             1 bloc 55 avec S21.G00.55.001 = montant trimestriel
+                             S21.G00.55.004 = AAAATnn
+
+  Bloc versement renseigné chaque mois (le bloc versement est renseigné chaque mois mais ce
+   n’est pas un paiement mensuel)
+DSN Mois 1 : 1 bloc 20 avec S21.G00.20.005 = montant mensuel mois 1
+               1 bloc 55 avec S21.G00.55.001 = montant mensuel mois 1
+                              S21.G00.55.004 = AAAATnn (et non AAAAMnn) par ex : 2019T04
+
+DSN Mois 2 :     1 bloc 20 avec S21.G00.20.005 = montant mensuel mois 2
+                 1 bloc 55 avec S21.G00.55.001 = montant mensuel mois 2
+                                S21.G00.55.004 = AAAATnn (et non AAAAMnn) par ex : 2019T04
+
+DSN Mois 3 :     1 bloc 20 avec S21.G00.20.005 = montant mensuel mois 3
+                 1 bloc 55 avec S21.G00.55.001 = montant mensuel mois 3
+                                S21.G00.55.004 = AAAATnn (et non AAAAMnn) par ex : 2019T04
+
+La période d’affectation S21.G00.55.004 doit être renseignée avec la période de cotisation au titre de
+laquelle est effectué le versement (mensuel, trimestriel, semestriel ou annuel). Elle ne découle pas
+du mois déclaré mais de la périodicité de paiement des cotisations, telle que définie au contrat. Dans
+le cas d’une échéance trimestrielle et d’un bloc versement renseigné chaque mois, les OC
+consolident les déclarations mensuelles et prennent en compte les données de paiement en fin de
+trimestre (avec déclenchement du prélèvement à la date d’échéance s’il y a lieu).
+Dans le cas d’une cotisation à échéance de paiement trimestrielle, payée par prélèvement, la
+déclaration erronée dans la DSN de janvier d’une période d’affectation à 2020M01 au lieu de 2019T04
+pourrait conduire l’organisme à déclencher à tort le prélèvement fin février au lieu de fin avril 2020.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                              Page 48 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+                                                                                   MAJ : 03/06/2020
+Quel lien existe entre les informations « Versement organisme de
+protection sociale » (bloc 20) et « Composant de versement » (bloc 55) ?
+Le ou les blocs Composants de versement (55) viennent obligatoirement préciser la ventilation du
+montant versé, par période d’affectation, par référence contrat et si nécessaire par code population.
+Les montants renseignés correspondent aux montants effectivement payés, et pas nécessairement
+aux montants dus (cas de paiements partiels). Il ne s’agit donc pas nécessairement de montants de
+cotisations agrégés.
+Le montant global d’un Versement (bloc 20) doit toujours correspondre à la somme des montants
+renseignés dans les Composants de versement (blocs 55)
+
+Des exemples sont proposés ci-dessous :
+    Un versement pour           Deux versements          Un versement unique        Un versement séparé
+        un contrat               pour un contrat          pour deux contrats        pour chaque contrat
+  Versement (20)             Versement 1 (20)          Versement (20)             Versement 1(20)
+     Montant 500 €             Montant 300 €            Montant 800 €             Montant 300 €
+     Réf. Bancaire             Réf. Bancaire 1          Réf. Bancaire             Réf. Bancaire 1
+    Composant (55)             Composant (55)            Composant (55)             Composant(55)
+     Contrat PREV              Contrat PREV             Contrat PREV              Contrat PREV
+     Période 2020T01           Période 2020T01          Période 2020T01           Période 2020T01
+     Montant 500 €             Montant 300 €            Montant 300 €             Montant 300 €
+                                                         Composant (55)
+                             Versement 2 (20)                                     Versement 2(20)
+                                                          Contrat SANTE
+                                Montant 200 €                                       Montant 500 €
+                                                          Période 2020T01
+                                Réf. Bancaire 2                                     Réf. Bancaire 2
+                                                          Montant 500 €
+                               Composant (55)                                       Composant(55)
+                                Contrat PREV                                        Contrat SANTE
+                                Période 2020T01                                     Période 2020T01
+                                Montant 200 €                                       Montant 500 €
+
+    Paiement partiel au                                  Versements au titre de
+                                                             populations et         Versement au titre de
+    titre du seul contrat      Versements au titre
+                                                         d’échéances distinctes         l’échéance et
+           SANTE                  d’échéances
+                                                                                     régularisation d’une
+                                    distinctes         Versement (20)
+  Versement (20)                                                                    échéance précédente
+     Montant 500 €                                       Montant 900 €
+                             Versement (20)                                       Versement (20)
+     Réf. Bancaire                                       Réf. Bancaire
+                                Montant 800 €                                       Montant 800 €
+    Composant (55)                                       Composant (55)
+                                Réf. Bancaire                                       Réf. Bancaire
+     Contrat PREV                                        Contrat PREV
+                               Composant (55)                                       Composant (55)
+     Période 2020T01                                     Pop CADRES
+                                Contrat PREV                                        Contrat SANTE
+     Montant 0 €                                         Période 2020T01
+                                Période 2019T04                                     Période 2020T01
+    Composant (55)                                        Montant 100 €
+                                Montant 700 €                                       Montant 700 €
+     Contrat SANTE                                      Composant (55)
+                               Composant (55)                                       Composant (55)
+     Période 2020T01                                     Contrat PREV
+                                Contrat PREV                                        Contrat SANTE
+     Montant 500 €                                       Pop ETAM
+                                Période 2020A00                                     Période 2019T04
+                                                          Période 2020T01
+                                Montant 100 €                                       Montant 100 €
+                                                          Montant 200 €
+                                                         Composant (55)
+                                                          Contrat PREV
+                                                          Pop OUVRIERS
+                                                          Période 2020M03
+                                                          Montant 600 €
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                               Page 49 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+Est-il nécessaire de renseigner systématiquement la rubrique Type de               MAJ : 29/02/2016
+population (S21.G00.55.02) dans le bloc « Composant de versement »
+lorsque la fiche de paramétrage, adressée par l’organisme
+complémentaire, fait référence à un code population ?
+Il faut bien distinguer Code population (S21.G00.70.005) et Type de population (S21.G00.55.002).
+
+Un contrat prévoit ou ne prévoit pas de codes population. S'il en prévoit, il s'agit nécessairement de
+codes au pluriel, permettant de distinguer des catégories de salariés :
+   soumises à des règles distinctes en matière de calcul des cotisations,
+ et/ou soumises à des règles distinctes en matière de droits à prestations.
+Le code population de chaque salarié est demandé, pour les contrats qui le nécessitent, dans le bloc
+70 "Affiliation" de la DSN. Les codes population sont fournis, si nécessaires, dans la fiche de
+paramétrage OC.
+
+Le cas du type de population (S21.G00.55.02) dans les composants de versements d'un bloc 20
+répond à une autre nécessité, exprimée comme suit dans le cahier technique :"Population concernée
+par le composant de versement pour le contrat de Prévoyance renseigné en S21.G00.55.003. Le
+type de population est à renseigner seulement si le composant de versement ne concerne pas
+l'ensemble des populations définies au contrat. Les valeurs de code sont fournies par l'organisme
+de Prévoyance dans une fiche de paramétrage DSN et sont à renseigner seulement sur sa demande"
+
+Dans la grande majorité des cas lorsque le paiement est global et qu'il n'est pas "découpé"
+selon les populations de salariés, cette donnée ne sera donc pas requise dans le bloc 55 (alors
+que les codes population seront bien requis en blocs 70 pour le calcul et le contrôle des
+cotisations individuelles).
+Dans l’hypothèse où il est nécessaire de déclarer des composants de versement (55) distincts pour
+des populations de salariés distinctes, il faut renseigner cette donnée. Cependant la codification de
+cette donnée peut alors être différente de la codification du "Code population" S21.G00.70.005
+(raison pour laquelle la rubrique S21.G00.55.002 a été libellée "Type de population" et non "Code
+population").
+
+Deux exemples concrets théoriques – bien que certainement rarissimes – sont proposés ci-après :
+Dans le premier exemple :
+   3 codes population Pop1, Pop2, et Pop3 sont prévus au contrat, annoncés dans la fiche de
+    paramétrage, et demandés en bloc 70
+ les périodicités de versement des cotisations sont différentes pour ces 3 populations (mensuelle
+  pour la population Pop1, trimestrielle pour la population Pop2, semestrielle pour la population
+  Pop 3)
+ Dans ce cas, Il faut alors renseigner dans chaque DSN mensuelle un bloc 55 de type de
+  population Pop1, seulement dans chaque DSN de fin de trimestre un bloc 55 de type de
+  population Pop2, et seulement dans chaque DSN de fin de semestre un bloc 55 de type de
+  population Pop3 ; Chaque DSN pourra donc comporter, selon le mois, 1 à 3 blocs 55 sous un
+  bloc 20 versement pour l’organisme concerné.
+
+Dans un second exemple :
+   4 codes population Pop1, Pop2, Pop3 et Pop4 sont prévus au contrat, annoncés dans la fiche de
+    paramétrage, et demandés en bloc 70
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                             Page 50 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+   les périodicités de versement des cotisations sont différentes pour d'une part l'ensemble
+    Pop1+Pop2, et d'autre part l'ensemble Pop3+Pop4 (mensuelle pour les populations Pop1 et
+    Pop2, trimestrielle pour les populations Pop3 et Pop4)
+ pour le bloc 55, l'OC propose un type de population Cadre valant Pop1+Pop2, et un type de
+  population Non cadre valant Pop3+Pop4 ; il ne s'agit pas alors de codes population, mais de
+  types de population correspondant à des ensembles de populations, non fournis dans la fiche de
+  paramétrage, mais convenus directement entre l'entreprise et l'OC.
+ Dans ce cas, Il faut alors renseigner dans chaque DSN mensuelle un bloc 55 de type de
+  population Cadre, et seulement dans chaque DSN de fin de trimestre un bloc 55 de type de
+  population Non cadre.
+
+
+
+
+Question
+                                                                               MAJ : 29/02/2016
+Quand faut-il renseigner le bloc « Versement organisme de protection
+sociale » (S21.G00.20) ?
+Les organismes complémentaires attendent un bloc « Versement organisme de protection sociale »
+(S21.G00.20) uniquement et seulement au moment du versement.
+Pour les contrats dont l’échéance de paiement des cotisations est trimestrielle, il est impossible
+d’accepter un bloc « Versement organisme de protection sociale » (S21.G00.20) sur chaque
+déclaration mensuelle.
+
+Par exemple, dans le cas d’une entreprise ayant souscrit :
+   auprès d’un 1er organisme complémentaire, un contrat prévoyance à échéance de paiement
+    trimestrielle,
+ auprès d’un 2nd organisme complémentaire, un contrat santé à échéance de paiement
+  mensuelle
+ l’entreprise devra renseigner :
+   dans les DSN de mars, juin, septembre et décembre, un bloc versement organisme de protection
+    sociale (S21.G00.20) à destination du 1er organisme complémentaire pour le contrat prévoyance,
+   dans chaque DSN mensuelle, un bloc versement organisme de protection sociale (S21.G00.20)
+    à destination du 2nd organisme complémentaire pour le contrat santé.
+
+
+
+
+Question
+Comment l’entreprise doit-elle renseigner la date de paiement déclarée         MAJ : 29/02/2016
+dans la rubrique S21.G00.20.011 ? S’agit-il d’une date prévisionnelle de
+paiement ?
+La Date de paiement S21.G00.20.011 du bloc Versement OPS est conditionnée au Mode de
+paiement renseigné dans la rubrique S21.G00.20.010.
+Si le Mode de paiement renseigné est de type chèque ou virement, la rubrique Date de paiement
+S21.G00.20.011 porte une date prévisionnelle / indicative à laquelle l’entreprise va effectuer le
+paiement.
+En revanche, lorsque le Mode de paiement renseigné par l’entreprise est de type Prélèvement, la
+date de paiement est la date au plus tôt à prendre en compte par l’organisme complémentaire pour
+l’exécution du paiement.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                         Page 51 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+                                                                                       MAJ : 08/10/2015
+Comment préciser l’établissement en charge du paiement des cotisations
+pour le compte d’un ou de plusieurs autres établissements ?
+En renseignant le SIRET payeur via la rubrique S21.G00.20.012 du bloc « Versement organisme de
+protection sociale ».
+Le SIRET payeur :
+   ne doit pas être renseigné lorsque l’établissement ne paye que pour lui-même,
+   doit être présent et renseigné avec le SIRET de l’établissement d’affectation déclaré
+    (S21.G00.06.001 + S21.G00.11.001) si le versement concerne non seulement cet établissement,
+    mais aussi un ou plusieurs autres établissements de l’entreprise,
+   doit être présent et renseigné avec le SIRET d’un autre établissement de l’entreprise si cet autre
+    établissement assure le versement des cotisations de l’établissement déclaré. Dans ce cas, le
+    montant du versement doit être renseigné à zéro
+
+Des exemples sont proposés ci-dessous :
+
+
+
+
+                                                                       Entreprise composée de 2
+                                                                       établissements et chaque
+                                                                   établissement paye pour lui même
+
+
+                                                                     SIRET payeur non renseigné
+
+
+
+
+                                                                                                 Entreprise
+                                                                                              composée de 3
+                                                                                              établissements
+                                                                                              avec paiement
+                                                                                                     par
+                                                                                              l’établissement
+                                                                                                   siège
+
+
+                                                                                             Le SIRET payeur
+                                                                                                est celui du
+                                                                                                   siège
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                    Page 52 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+Dans la DSN d’un établissement payeur, comment déclarer le                  MAJ : 03/06/2020
+versement de cotisations dues au titre d’un contrat complémentaire
+concernant seulement des salariés déclarés dans d’autres
+établissements de l’entreprise ?
+Sous le bloc 20 (Versement) de l’établissement payeur, vous devez déclarer un bloc 55 (Composant
+de versement) pour le contrat complémentaire concerné, et renseigner la référence du contrat en
+S21.G00.55.003 (Code d’affectation).
+Un contrôle appliqué au bloc 55 impose que le contrat complémentaire pour lequel s'effectue le
+versement fasse l'objet d'un bloc 15 (Adhésion Prévoyance).
+Dans la DSN de l’établissement payeur, il vous faut donc renseigner un bloc 15 pour ce contrat, en
+veillant à renseigner la rubrique S21.G00.15.004 (Personnel couvert) avec la valeur 02 (non) puisque
+le contrat ne concerne aucun des salariés de l’établissement.
+Un exemple est proposé ci-dessous :
+   dans la DSN de l’établissement payeur ne comprenant aucun salarié affilié au contrat, le bloc 15
+    est renseigné avec une rubrique S21.G00.15.004 (Personnel couvert) valorisée à 02 (non)
+   dans les DSN des deux autres établissements comprenant des salariés affiliés au contrat, le bloc
+    15 est renseigné avec une rubrique S21.G00.15.004 (Personnel couvert) valorisée à 01 (oui).
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                           Page 53 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+Si l’entreprise choisit de payer ses cotisations OC par chèque ou                     MAJ : 02/10/2023
+virement, doit-elle indiquer une référence pour faire le lien avec la DSN
+qui contient la déclaration de versement organisme de protection sociale
+(blocs S21.G00.20 et S21.G00.55)
+Lorsqu’une entreprise déclare un paiement, elle le fait en renseignant dans la DSN le bloc
+S21.G00.20 « versement organisme de protection sociale » et les blocs S21.G00.55 détaillant la
+répartition du montant à payer par contrat.
+
+Dans le cas d’un paiement par chèque ou virement, le déclarant doit indiquer, au dos du chèque ou
+dans la zone commentaire destinée au bénéficiaire du virement, une référence associée au paiement
+OC.
+
+Cette référence indispensable permet à l’organisme récepteur d’effectuer un rapprochement entre le
+paiement reçu et la ou les DSN correspondantes.
+
+Une référence standard a été définie par les 3 familles d’organismes complémentaires (CTIP, FFA et
+FNMF). Dans le cas le plus courant, son contenu se limite aux informations suivantes :
+   SIRET payeur
+   Séparateur « - » (tiret)
+   Echéance, sous la même forme (AAAAPNN) que la période d’affectation S21.G00.55.004 de la
+    DSN
+
+Exemple de référence : 99999999911111-2020T01
+
+Dans certains cas particuliers, cette référence doit être complétée par des attributs tels que la fraction
+DSN, le contrat ou la population concernée par le paiement.
+
+Des informations plus détaillées sont mises à disposition dans le document « Paiement des
+cotisations aux Organismes Complémentaires en phase 3 » (pages 10 et 11), disponible à l’adresse
+suivante :
+   https://www.net-entreprises.fr/media/documentation/dsn-paiement-cotisations-oc-p3.pdf
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                 Page 54 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+    11 La retraite supplémentaire en DSN
+
+
+Question
+                                                                                      MAJ : 03/06/2020
+Quelles sont les conséquences, sur les contrats de retraite
+supplémentaire, de l’entrée en vigueur de la loi PACTE depuis octobre
+2019 ?
+La loi PACTE dont l’objectif est la croissance et la transformation des entreprises permet, entre
+autres, de réorienter les placements financiers vers le financement des entreprises. Elle a ainsi de
+multiples conséquences sur les contrats de retraite supplémentaire. De façon générale :
+    Les nouveaux contrats PERCOL (Plan épargne retraite d'entreprise collectif), PERO (Plan
+     épargne retraite d'entreprise obligatoire) sont les successeurs du plan d’épargne retraite collectif
+     et du contrat article 83.
+    Le contrat article 39 parfois appelé « retraite chapeau » était un régime à prestations définies.
+     Dans le cadre de la loi PACTE, il est dorénavant interdit d'instaurer un aléa lié au départ de
+     l'entreprise et par conséquent de conditionner le versement des droits à rente à la présence du
+     bénéficiaire dans l’entreprise au moment de son départ à la retraite.
+    Les changements concernent la fiscalité de ses contrats, les typologies de sorties (rente / capital)
+     offertes aux bénéficiaires, …
+Dans le cadre de la DSN, seuls les éléments de paramétrage contenus dans la fiche adressée par
+l’OC sont à considérer pour paramétrer des contrats dans les SI RH ou paie.
+
+
+
+Question
+
+L’utilisation des codes option est-elle justifiée pour déclarer des montants MAJ : 02/10/2023
+à verser sur les contrats de retraite supplémentaire ? N’est-elle pas
+réservée à la déclaration des cotisations des garanties couvrant les frais
+de santé ou la prévoyance ?
+Depuis la publication des textes concernant l'application de la loi "Pacte", il a été demandé aux
+gestionnaires des contrats de retraite supplémentaire de classer les versements effectués dans des
+catégories distinctes en identifiant leur provenance (Versement obligatoire, Transfert de jours CET,
+Transfert de jours CET au-delà du plafond, intéressement, participation) et cette provenance doit
+pouvoir être justifiée car elle a des incidences sociales et fiscales. Elle doit aussi faire l’objet d’une
+communication aux assurés concernés.
+
+
+Afin d’identifier la provenance des versements il a été choisi (en 2020) d’utiliser la rubrique « code
+option ». Pour la norme Néodes, la définition du code option est : « Option définie dans le contrat,
+que le salarié peut choisir individuellement. Les valeurs de code sont fournies par l'organisme de
+prévoyance et sont à renseigner seulement sur sa demande ». Dans la mesure où sa définition ne
+limite pas son exploitation au domaine de la santé complémentaire, l’utilisation du code option pour
+la retraite supplémentaire est pertinente.
+
+
+Dans tous les cas, les codes options demandés sont transmis via la fiche de paramétrage de
+l’organisme complémentaire ou de son délégataire de gestion.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                 Page 55 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+Question
+
+Pour de nombreux contrats de retraite supplémentaire il est précisé que              MAJ : 02/10/2023
+certains versements sont trimestriels voire annuels. Pour ces cas, suis-je
+obligé d’affilier, au contrat de retraite supplémentaire, les salariés
+lorsqu’un versement est à déclarer puis les désaffilier ensuite ?
+ Afin d‘éviter aux déclarants et aux tiers déclarants de procéder à l’affiliation uniquement pour le mois
+pour lequel il y a un versement à déclarer en DSN ; puis de désaffilier pour les mois suivants qui
+seront sans versement, il est proposé d’affilier une fois pour toutes l’assuré concerné au(x)
+contrat(s) souscrit(s) par l’entreprise.
+Ainsi chaque mois le déclarant transmet l'ensemble des affiliations.
+
+   Lorsqu‘un versement est à déclarer :
+    - Renseigner le type de composant de base assujetti S21.G00.79.001 avec la valeur prévue
+        par la fiche de paramétrage (par ex : « 21 – Montant Prévoyance libre ou exceptionnel »).
+        Ce composant de base assujettie est celui généralement utilisé pour les versements de
+        type participation, intéressement ou transfert de jour de CET.
+    - Renseigner dans la rubrique S21.G00.79.004 – Montant du composant de base assujettie,
+        le montant qui doit être versé.
+    - Renseigner dans la rubrique S21.G00.81.004 – Montant de la cotisation, le montant qui doit
+        être versé (le même).
+
+   En cas d’absence de versement :
+    - Renseigner le type de composant de base assujetti S21.G00.79.001 avec la valeur « 23 –
+        Sans composant de base assujettie en paie ».
+    - Renseigner dans la rubrique S21.G00.79.004 – Montant du composant de base assujettie,
+        un montant à zéro.
+    - Renseigner dans la rubrique S21.G00.81.004 – Montant de la cotisation, un montant à
+        zéro.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                                Page 56 / 58
+                                    FAQ DSN Organismes Complémentaires
+
+
+
+
+  12 Les comptes rendus métier (CRM)
+
+Question
+                                                                                   MAJ : 02/10/2023
+Quels sont les différents comptes rendus retournés par les organismes
+complémentaires ?
+Les organismes complémentaires produisent des comptes rendus métier dits « CRM OC », dont le
+contenu est décrit dans la documentation disponible sur Net-entreprises (https://net-
+entreprises.custhelp.com/app/answers/detail_dsn/a_id/692).
+
+Le contenu du CRM est variable selon le contexte.
+
+Un CRM de type 2 résulte d’une analyse métier de la déclaration, et propose un bilan « global » du
+traitement effectué par l’organisme (déclaration entièrement acceptée, partiellement acceptée,
+refusée …), assorti si nécessaire d’un message explicatif.
+
+Un CRM de type 3 résulte d’une analyse métier de la déclaration, et propose un bilan plus détaillé du
+traitement effectué par l’organisme, permettant de rapporter chacune des anomalies (bloquantes ou
+non) rencontrées dans la déclaration, avec leurs informations de contexte (salarié concerné, contrat
+de travail concerné, contrat complémentaire concerné).
+
+Un CRM de type 3 est produit seulement si nécessaire, quand il importe de détailler plusieurs
+anomalies distinctes ou pour communiquer des informations sur les données prises en compte par
+l’organisme complémentaire.
+
+Un CRM de type 3 retourne :
+1) Un code erreur « EXXXnn », comme « EVER12 » sur le bloc versement.
+Un libellé décrivant l’erreur retournée, comme « IBAN absent »
+OU
+Un code information « IXXXnn », comme « IVER01 » sur le bloc versement
+Un libellé précisant l’information transmise, comme « Information de paiement prise en compte (en
+attente de réalisation du paiement) »
+2) Des données de contextes présentes dans la DSN transmise permettant de situer l’endroit exact
+de l’anomalie ou de l’information transmise.
+Exemple : « S21.G00.20.001 » (identifiant OPS), « S21.G00.20.008 » (code délégataire) ou
+« S21.G00.20.005 » (montant versement).
+
+Un CRM de type 2 est produit dans de nombreuses situations simples, lorsque l’information portée
+dans le bilan global est suffisante et ne nécessite pas de lignes détail (par exemple dans le cas d’une
+déclaration « OK » entièrement acceptée, sans qu’il soit nécessaire d’en dire plus, ou d’une
+déclaration « KO » pour une entreprise inconnue de l’organisme complémentaire).
+
+Un organisme peut émettre plusieurs CRM pour une déclaration (par exemple un premier CRM de
+type 1, suivi d’un deuxième CRM de type 3). Pour une DSN et un OC donné, un CRM vient toujours
+remplacer le précédent CRM éventuellement déjà émis.
+
+
+
+
+Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                              Page 57 / 58
+                                     FAQ DSN Organismes Complémentaires
+
+
+
+
+   13 Historique des modifications
+
+Version 4.0 : mise à jour des liens anciennement sur DSN-info basculés sur Net-entreprises,
+ajout Q.3.1.9 relative à DSN-FPOC, ajout Q.11.1.2 et Q.11.1.3 relatives à la retraite
+supplémentaire et suppression des références au signalement FCT
+Version 3.0 : ajouts § 2, Q.5.1.5, Q.5.1.6, Q.5.3.2, Q.5.3.3, Q.5.3.4, Q.7.1.5, Q.7.2.2, Q.8.1.6, Q.11.1.1
+Version 2.0 : ajout Q.4.5.1 et suppression des références à la DSN Phase 2
+Version 1.11 : correction de Q.6.1.12
+Version 1.10 : ajustement sur Q.7.1.5
+Version 1.9 : ajout Q.6.1.12 et Q.6.1.13
+Version 1.8 : ajout Q.3.1.4, Q.4.1.14 et Q.10.1.1
+Version 1.7 : mise à jour Q.2.1.1, ajouts Q.2.1.8 et Q.7.1.5
+Version 1.6 : mises à jour Q.4.1.10, Q.6.1.10 et Q.6.1.11, ajouts Q.6.3.1, Q.9.1.2 et Q.9.1.9
+
+
+
+
+ Réf. : DSN OC - FAQ Déclarants_V4_2023_10.docx                                               Page 58 / 58
+

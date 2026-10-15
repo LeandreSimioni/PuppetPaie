@@ -8,9 +8,9 @@ conventions collectives : une archive globale et une livraison par soir. Le
 relevé devient donc RE-VERIFIABLE automatiquement, comme la table des
 parametres du BOSS et celle des CTP de l'Urssaf.
 
-    python3 outils/relever_les_codes.py moissonner <dossier des sources>
-    python3 outils/relever_les_codes.py rapport <dossier des sources> [code]
-    python3 outils/relever_les_codes.py comparer <dossier des sources>
+    python3 atelier/outils/relever_les_codes.py moissonner atelier/reference/sources
+    python3 atelier/outils/relever_les_codes.py rapport atelier/reference/sources [code]
+    python3 atelier/outils/relever_les_codes.py comparer atelier/reference/sources
 
 TROIS CODES, UN SEUL PASSAGE (19/09/2026). Le code du travail dit ce qu'une
 indemnite de rupture VAUT ; le code de la securite sociale dit ce qu'elle
@@ -437,7 +437,7 @@ TEXTES = {
         # Les deux annexes (les professions et leurs taux ; les frais qui
         # restent hors assiette) n'ont pas de <NUM> dans la base : ce
         # moissonneur, qui range par numero, ne les garde pas. Elles sont
-        # deposees brutes a cote (prive/reference/sources/dfs/LISEZ-MOI.md).
+        # deposees brutes a cote (atelier/reference/sources/dfs/LISEZ-MOI.md).
         "voulus": {"frais": ["1", "2", "9"]},
         "titres": {"frais": ("Les frais professionnels et la deduction "
                              "forfaitaire specifique")},

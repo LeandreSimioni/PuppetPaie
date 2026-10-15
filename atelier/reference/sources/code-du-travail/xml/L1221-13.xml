@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000033971569</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/33/97/15/LEGIARTI000033971569.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L1221-13</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2017-01-29</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132321">Première partie : Les relations individuelles de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145393">Livre II : Le contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160709">Titre II : Formation et exécution du contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006177850">Chapitre Ier : Formation du contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006189416">Section 3 : Formalités à l'embauche et à l'emploi</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006195588">Sous-section 2 : Registre unique du personnel.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-05-01" etat="MODIFIE" fin="2011-07-30" id="LEGIARTI000006900852" num="L1221-13" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2011-07-30" etat="MODIFIE" fin="2014-07-12" id="LEGIARTI000024422181" num="L1221-13" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2014-07-12" etat="MODIFIE" fin="2017-01-29" id="LEGIARTI000029236218" num="L1221-13" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2017-01-29" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000033971569" num="L1221-13" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<br/>
+<br/>
+<br/>
+<p>
+<br clear="none"/>
+</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Un registre unique du personnel est tenu dans tout établissement où sont employés des salariés.</p>
+<p>Les noms et prénoms de tous les salariés sont inscrits dans l'ordre des embauches. Ces mentions sont portées sur le registre au moment de l'embauche et de façon indélébile. </p>
+<p>Les nom et prénoms des stagiaires et des personnes volontaires en service civique au sens de l'article L. 120-1 du code du service national accueillis dans l'établissement sont inscrits dans l'ordre d'arrivée, dans une partie spécifique du registre unique du personnel. </p>
+<p>Les indications complémentaires à mentionner sur ce registre, soit pour l'ensemble des salariés, soit pour certaines catégories seulement, soit pour les stagiaires et les personnes volontaires en service civique mentionnés au troisième alinéa, sont définies par voie réglementaire.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000320194" datesignatexte="1983-07-12" id="LEGIARTI000023711105" naturetexte="LOI" nortexte="" num="33-8" numtexte="83-629" sens="cible" typelien="CITATION">Loi n° 83-629 du 12 juillet 1983 - art. 33-8 (VT)</LIEN>
+<LIEN cidtexte="JORFTEXT000000465978" datesignatexte="2007-03-12" id="JORFTEXT000000465978" naturetexte="ORDONNANCE" nortexte="SOCX0700017R" num="" numtexte="2007-329" sens="source" typelien="CODIFICATION">Ordonnance n°2007-329 du 12 mars 2007</LIEN>
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000029813186" datesignatexte="2014-11-27" id="LEGITEXT000029813973" naturetexte="DECRET" nortexte="MENS1422390D" num="" numtexte="2014-1420" sens="cible" typelien="CITATION">DÉCRET n°2014-1420 du 27 novembre 2014 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000032282279" datesignatexte="2016-03-22" id="LEGIARTI000032283864" naturetexte="LOI" nortexte="INTX1524877L" num="3" numtexte="2016-339" sens="cible" typelien="CITATION">LOI n°2016-339 du 22 mars 2016 - art. 3</LIEN>
+<LIEN cidtexte="JORFTEXT000033934948" datesignatexte="2017-01-27" id="LEGIARTI000033938359" naturetexte="LOI" nortexte="LHAL1528110L" num="20" numtexte="2017-86" sens="cible" typelien="MODIFIE">LOI n°2017-86 du 27 janvier 2017 - art. 20</LIEN>
+
+
+<LIEN cidtexte="LEGITEXT000006071335" datesignatexte="2999-01-01" id="LEGIARTI000021956514" naturetexte="CODE" nortexte="" num="L120-1" numtexte="" sens="source" typelien="CITATION">Code du service national - art. L120-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000025503132" datesignatexte="2999-01-01" id="LEGIARTI000029183431" naturetexte="CODE" nortexte="" num="L611-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité intérieure - art. L611-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000025503132" datesignatexte="2999-01-01" id="LEGIARTI000025506343" naturetexte="CODE" nortexte="" num="L616-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité intérieure - art. L616-1 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000025503132" datesignatexte="2999-01-01" id="LEGIARTI000045453753" naturetexte="CODE" nortexte="" num="L623-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité intérieure - art. L623-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000025503132" datesignatexte="2999-01-01" id="LEGIARTI000045453617" naturetexte="CODE" nortexte="" num="L634-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité intérieure - art. L634-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000025503132" datesignatexte="2999-01-01" id="LEGIARTI000031688767" naturetexte="CODE" nortexte="" num="L642-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité intérieure - art. L642-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000025503132" datesignatexte="2999-01-01" id="LEGIARTI000054725867" naturetexte="CODE" nortexte="" num="L645-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité intérieure - art. L645-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000025503132" datesignatexte="2999-01-01" id="LEGIARTI000054725834" naturetexte="CODE" nortexte="" num="L646-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité intérieure - art. L646-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000025503132" datesignatexte="2999-01-01" id="LEGIARTI000054725793" naturetexte="CODE" nortexte="" num="L647-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité intérieure - art. L647-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000034668382" naturetexte="CODE" nortexte="" num="R130-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R130-2 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000023086525" datesignatexte="2999-01-01" id="LEGIARTI000039785756" naturetexte="CODE" nortexte="" num="L2251-6" numtexte="" sens="cible" typelien="CITATION">Code des transports - art. L2251-6 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018537878" naturetexte="CODE" nortexte="" num="D1221-23" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D1221-23 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000029814209" naturetexte="CODE" nortexte="" num="D1221-23-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D1221-23-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033021155" naturetexte="CODE" nortexte="" num="L1272-4" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1272-4 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006650409" naturetexte="CODE" nortexte="" num="L620-3" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L620-3 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000030422217" naturetexte="CODE" nortexte="" num="R1227-7" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R1227-7 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGITEXT000006072050" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail L620-3 alinéas 1 et 2</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000035917371" naturetexte="CODE" nortexte="" num="R712-5" numtexte="" sens="cible" typelien="CITATION">Code rural et de la pêche maritime - art. R712-5 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000051573463" naturetexte="CODE" nortexte="" num="R712-8" numtexte="" sens="cible" typelien="CITATION">Code rural et de la pêche maritime - art. R712-8 (V)</LIEN>
+
+
+</LIENS>
+</ARTICLE>

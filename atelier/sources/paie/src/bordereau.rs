@@ -226,7 +226,7 @@ fn ligne_de_table<'a>(t: &'a Table, code: &str, jour: &Jour) -> Option<&'a Ligne
 }
 
 /// L'arrondi a l'euro des montants et des assiettes declares aux organismes de securite sociale (CSS L. 133-10,
-/// `prive/reference/sources/code-de-la-securite-sociale/articles-20261013.md` : « arrondi a l'euro le plus proche. La
+/// `atelier/reference/sources/code-de-la-securite-sociale/articles-20261013.md` : « arrondi a l'euro le plus proche. La
 /// fraction d'euro egale a 0,50 est comptee pour 1 ») : la moitie vers le haut. Le seul endroit qui arrondit a l'euro, pour
 /// les lignes 23 du bordereau comme pour les versements 20 et les corrections de la DSN.
 pub fn euro(x: Decimal) -> Decimal {

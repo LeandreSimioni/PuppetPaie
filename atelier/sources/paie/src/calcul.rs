@@ -252,7 +252,7 @@ impl ReductionGenerale {
 }
 
 /// La deduction forfaitaire specifique (DFS) appliquee a un contrat : arrete du 4 septembre 2025
-/// relatif aux frais professionnels, art. 9 (`prive/reference/sources/dfs/LISEZ-MOI.md`).
+/// relatif aux frais professionnels, art. 9 (`atelier/reference/sources/dfs/LISEZ-MOI.md`).
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeductionForfaitaire {
     /// « 20 » ou « 25 » : le taux de l'article 5 de l'annexe IV du CGI (redaction du 31/12/2000) que la profession porte.
@@ -513,7 +513,7 @@ pub(crate) fn ligne_de_reduction(rg: &ReductionGenerale, brut: Decimal) -> Ligne
 /// La reduction generale d'une paie sous deduction forfaitaire specifique. CSS L. 241-13, III : elle << ne tient compte
 /// des deductions au titre de frais professionnels calculees forfaitairement en pourcentage de cette remuneration que
 /// dans des limites et conditions fixees par arrete >> ; arrete du 4 decembre 2019, art. 1er (redaction de l'arrete du
-/// 4 septembre 2025, art. 11 ; `prive/reference/sources/dfs/arrete-2019-reduction-generale/`) : << Le montant de la
+/// 4 septembre 2025, art. 11 ; `atelier/reference/sources/dfs/arrete-2019-reduction-generale/`) : << Le montant de la
 /// reduction generale [...] calcule pour les remunerations apres application de l'abattement forfaitaire [...] ne peut
 /// exceder, pour ces remunerations, 130 % du montant la reduction calcule sans application du meme abattement. >> La
 /// reduction se calcule donc sur le brut abattu (`abattu`), dans la limite de 130 % de celle du brut entier.
@@ -550,7 +550,7 @@ pub fn au_dela_du_seuil(bar: &Value, brut: Decimal, heures: Decimal, seuil_smic:
 }
 
 /// Les bases de l'option de l'employeur (fiche entreprise, `deduction_forfaitaire_option`) : arrete du 4 septembre 2025
-/// relatif aux frais professionnels, art. 9, I, al. 2 et 3 (`prive/reference/sources/dfs/`). « L'employeur peut opter
+/// relatif aux frais professionnels, art. 9, I, al. 2 et 3 (`atelier/reference/sources/dfs/`). « L'employeur peut opter
 /// pour la deduction forfaitaire specifique lorsqu'une convention ou un accord collectif l'a explicitement prevu ou
 /// lorsque le comite d'entreprise, le comite social et economique ou les delegues du personnel ont donne leur accord. A
 /// defaut, il appartient a chaque salarie d'accepter ou non cette option. »
@@ -583,7 +583,7 @@ pub struct OptionDfs {
     /// La tolerance du BOSS, Frais professionnels, § 2320 (bareme, `frais_cumulables`) : pour les huit secteurs, dont le
     /// spectacle vivant et le spectacle enregistre, << l'ensemble des remboursements de frais professionnels definis par
     /// l'arrete du 4 septembre 2025 peut faire l'objet d'un cumul avec la deduction forfaitaire specifique >>
-    /// (`prive/reference/sources/boss/boss-frais-professionnels-20261013.txt`, l. 2917-2921).
+    /// (`atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt`, l. 2917-2921).
     pub frais_cumulables: bool,
 }
 
@@ -606,8 +606,8 @@ fn texte_de(v: &Value, cle: &str) -> String {
 /// La DFS que la fiche exerce, ou `None`. La decision vit ici (regle 2) : la profession de la fiche salarie
 /// (`deduction_forfaitaire`), l'option de l'employeur (fiche entreprise, `deduction_forfaitaire_option`) et, quand
 /// l'option repose sur chaque salarie, son accord (`deduction_forfaitaire_accord`). Arrete du 4 septembre 2025, art. 9
-/// (`prive/reference/sources/dfs/arrete-2025-frais-professionnels/`) ; les professions, l'article 5 de l'annexe IV du
-/// CGI dans sa redaction en vigueur au 31/12/2000 (`prive/reference/sources/dfs/cgi-annexe4-art5/`) et l'annexe 1 de
+/// (`atelier/reference/sources/dfs/arrete-2025-frais-professionnels/`) ; les professions, l'article 5 de l'annexe IV du
+/// CGI dans sa redaction en vigueur au 31/12/2000 (`atelier/reference/sources/dfs/cgi-annexe4-art5/`) et l'annexe 1 de
 /// l'arrete ; leur taux de l'annee, le bareme (art. 9, II et III). Une section du bareme non marquee verifiee refuse.
 pub fn deduction_forfaitaire(bar: &Value, sal: &Value, ent: &Value) -> Resultat<Option<OptionDfs>> {
     let profession = texte_de(sal, "deduction_forfaitaire");
@@ -715,7 +715,7 @@ section verifiee.",
 ///   la tolerance du BOSS (`frais_cumulables`) : l'article 9 (I, al. 4) le reintegre << y compris, le cas echeant, les
 ///   indemnites versees [...] a titre de remboursement des frais professionnels >>, et ce que la reintegration fait a
 ///   l'assiette chomage et a la DSN (type 35) n'est pas porte. Avec la tolerance (BOSS, Frais professionnels, § 2320,
-///   `prive/reference/sources/boss/boss-frais-professionnels-20261013.txt`, l. 2917-2921 : << l'ensemble des
+///   `atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt`, l. 2917-2921 : << l'ensemble des
 ///   remboursements de frais professionnels definis par l'arrete du 4 septembre 2025 peut faire l'objet d'un cumul avec
 ///   la deduction forfaitaire specifique >>), tout remboursement de frais reste hors de l'assiette abattue.
 /// Une ligne hors assiette se classe par ce qu'elle est, la nature de sa rubrique (`Rubrique::hors_assiette`), pas par
@@ -735,14 +735,14 @@ fn dfs_applicable(
             "{} : une deduction forfaitaire specifique sur un contrat paye au mois ({}). Le logiciel ne la porte que sur \
 un contrat d'usage : pour un salarie au mois, l'assiette du chomage (reglement general d'assurance chomage, art. 49), sa \
 prevoyance conventionnelle, ses tranches de retraite et son assiette minimum ne sont pas encore calculees sous deduction \
-(prive/reference/sources/dfs/LISEZ-MOI.md, << Ce qui manque >>). Rien n'est calcule.",
+(atelier/reference/sources/dfs/LISEZ-MOI.md, << Ce qui manque >>). Rien n'est calcule.",
             qui, nat.libelle
         ));
     }
     if let Some(r) = rubriques_bulletin.iter().find(|r| r.get("id").and_then(Value::as_str).map_or(false, |i| i.starts_with("apec"))) {
         return Err(format!(
             "{} : une deduction forfaitaire specifique sur la paie d'un cadre (ligne << {} >>). L'assiette de l'Apec sous \
-deduction n'est dans aucun texte depose (prive/reference/sources/dfs/LISEZ-MOI.md, << Ce qui manque >>) : le logiciel \
+deduction n'est dans aucun texte depose (atelier/reference/sources/dfs/LISEZ-MOI.md, << Ce qui manque >>) : le logiciel \
 ne la devine pas. Rien n'est calcule.",
             qui,
             r.get("libelle").map_or_else(String::new, en_texte)
@@ -887,7 +887,7 @@ struct Assiettes {
     dfs: Option<Decimal>,
     /// Les assiettes majorees apres la deduction forfaitaire specifique : la majoration s'applique au brut abattu
     /// (lettre circulaire Acoss 2013-019, annexe 1, R6 ; fiche Audiens « Les Conges Spectacles », 2023 : 334,50 =
-    /// 300 x 1,115 ; prive/reference/sources/majoration-caisses-conges/).
+    /// 300 x 1,115 ; atelier/reference/sources/majoration-caisses-conges/).
     x115_dfs: Option<Decimal>,
     x110_dfs: Option<Decimal>,
 }
@@ -1029,7 +1029,7 @@ fn date_de_la_fiche(fiche: &Value, cle: &str) -> Resultat<Option<Jour>> {
 /// LA DISPENSE DE SANTE A DES BORNES (Q13, tranchee par Leandre le 11/10/2026). Les accords de branche deposes en
 /// donnent : la dispense de l'assure individuel « ne peut jouer que jusqu'a l'echeance du contrat individuel », celle
 /// d'une couverture collective se justifie chaque annee, et le salarie « cessant de justifier » de son cas adhere
-/// (CCN 3090, art. 9.2 et 9.2.2 b et d, `prive/reference/sources/kali-3090-accord-sante-permanents-20240719-20261011.md` ;
+/// (CCN 3090, art. 9.2 et 9.2.2 b et d, `atelier/reference/sources/kali-3090-accord-sante-permanents-20240719-20261011.md` ;
 /// CCNEAC XII.2.1.8.1 b, `kali-1285-accord-frais-de-sante-20260130-20261011.md` l. 78). La fiche porte le motif (`sante_dispense`) et, s'il y a lieu, `sante_dispense_depuis` et
 /// `sante_dispense_jusqu_au` ; hors de ces bornes, le salarie est affilie : la fiche que la paie lit perd le motif, et
 /// le bareme (`bareme_sante`) comme la DSN (`dsn::affiliations_du_permanent`) le traitent en affilie.
@@ -1288,7 +1288,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         // L. 5422-9), « fixe a quatre fois le plafond mentionne a l'article L. 241-3 du code de la securite sociale »
         // (reglement general annexe a la convention du 15/11/2024, art. 49, al. 2) ; l'AGS suit la meme assiette
         // (L. 3253-18). Le plafond est celui de la periode de paie, reduit au prorata des jours d'emploi quand le contrat
-        // ne couvre pas le mois (CSS R. 242-2, al. 3) : `pss`. Textes : prive/reference/sources/chomage-permanents/.
+        // ne couvre pas le mois (CSS R. 242-2, al. 3) : `pss`. Textes : atelier/reference/sources/chomage-permanents/.
         let quatre_plafonds = brut.min(Decimal::from(4) * pss);
         bases.insert("apec_mensuelle".into(), quatre_plafonds);
         bases.insert("brut_chomage".into(), quatre_plafonds);
@@ -1297,7 +1297,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         bases.insert("t1_t2_mensuelle".into(), brut.min(Decimal::from(8) * pss));
     } else {
         // Le plafond d'un intermittent : celui que le bas du bulletin imprime (`plafond_de_l_engagement`), et la seule
-        // source. Textes : prive/reference/sources/plafond-intermittents/LISEZ-MOI.md. La vieillesse plafonnee et le
+        // source. Textes : atelier/reference/sources/plafond-intermittents/LISEZ-MOI.md. La vieillesse plafonnee et le
         // FNAL s'assoient « dans la limite » du plafond de L. 241-3 CSS ; le chomage des annexes VIII et X « dans la
         // limite d'un plafond fixe a quatre fois le plafond mentionne a l'article L. 241-3 » (annexes VIII et X du
         // 15/11/2024, art. 49). Sous le plafond, rien ne bouge : les bases sont le brut, et le brut majore tel qu'il
@@ -1308,7 +1308,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         bases.insert("brut_plafonne".into(), brut.min(plafond_ss));
         // La majoration de 11,5 % (CSS L. 243-1-3, D. 243-0-2) s'applique a l'assiette plafonnee : au-dela du plafond,
         // c'est le plafond qu'elle majore (lettre circulaire Acoss 2013-019, annexe 1, R2 ;
-        // prive/reference/sources/majoration-caisses-conges/LISEZ-MOI.md).
+        // atelier/reference/sources/majoration-caisses-conges/LISEZ-MOI.md).
         bases.insert("brut_x115_plafonne".into(), if brut <= plafond_ss { x115 } else { eur(mul(plafond_ss, maj115)) });
         bases.insert("brut_chomage".into(), brut.min(Decimal::from(4) * plafond_ss));
     }
@@ -1447,7 +1447,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     let hors_assiette_imposable = lb.iter().filter(|l| !l.soumis && l.imposable).fold(zero, |a, l| a + l.montant);
     // Le montant net social (S21.G00.58.004, type 03). C. trav. R. 3243-1, 9° bis, qui renvoie au CSS R. 844-1, II
     // (redaction du decret n° 2023-1378, que le decret n° 2026-535 n'a pas touchee) ; page du BOSS « Montant net
-    // social » du 01/10/2026, II.A.1 et Q 20, 27 (textes : prive/reference/sources/montant-net-social/LISEZ-MOI.md). La
+    // social » du 01/10/2026, II.A.1 et Q 20, 27 (textes : atelier/reference/sources/montant-net-social/LISEZ-MOI.md). La
     // totalite des sommes versees en contrepartie ou a l'occasion du travail, exonerees ou non, moins les cotisations et
     // contributions sociales du salarie (`tot_sal`, parts salariales de sante et de prevoyance comprises). Le
     // financement patronal des garanties collectives (sante, prevoyance, Fonds sante des intermittents) n'y entre pas :
@@ -1496,8 +1496,8 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
 /// celui sur lequel s'assoient la vieillesse plafonnee, le FNAL et le chomage d'un intermittent (`calculer`, 7.6).
 /// `sal` : la fiche du salarie telle que la paie la lit (`emploi_de`), pour son statut : l'arrete du 24/01/1975 ne
 /// vise que les artistes ; un technicien, comme un artiste engage cinq jours ou plus, a le plafond proratise sur les
-/// jours remuneres de la paie (BOSS, assiette generale, § 1090, `prive/reference/sources/boss/`). Textes :
-/// prive/reference/sources/plafond-intermittents/LISEZ-MOI.md.
+/// jours remuneres de la paie (BOSS, assiette generale, § 1090, `atelier/reference/sources/boss/`). Textes :
+/// atelier/reference/sources/plafond-intermittents/LISEZ-MOI.md.
 pub fn plafond_de_l_engagement(ctx: &Contexte, e: &Engagement, sal: &Value) -> Resultat<Decimal> {
     let nat = e.nat()?;
     let statut = sal.get("statut").filter(|s| vrai(s)).map(en_texte).unwrap_or_else(|| "artiste".into());
@@ -1538,7 +1538,7 @@ pub fn plafond_de_l_engagement(ctx: &Contexte, e: &Engagement, sal: &Value) -> R
 ///
 /// LES TEXTES. Les accords de sante fixent une cotisation « au titre de la couverture du seul salarie » en pourcentage
 /// du « plafond mensuel de la securite sociale » (IDCC 1285, accord du 30/01/2026, art. 6 ; IDCC 3090, accord du
-/// 19/07/2024, art. 13 : `prive/reference/sources/kali-1285-accord-frais-de-sante-20260130-20261011.md`,
+/// 19/07/2024, art. 13 : `atelier/reference/sources/kali-1285-accord-frais-de-sante-20260130-20261011.md`,
 /// `kali-3090-accord-sante-permanents-20240719-20261011.md`) : c'est la valeur mensuelle que l'arrete fixe chaque annee
 /// (CSS L. 241-3, D. 242-17, D. 242-18). La correction du temps partiel est autre chose : R. 242-2, I, dernier alinea,
 /// corrige « le plafond » retenu pour le calcul des cotisations plafonnees du salarie, a la duree de son contrat ; un
@@ -1549,7 +1549,7 @@ pub fn plafond_de_l_engagement(ctx: &Contexte, e: &Engagement, sal: &Value) -> R
 /// de ces textes ne tranche. La prevoyance, elle, porte sur des tranches : « la tranche 1 porte sur la remuneration egale
 /// au plafond de la securite sociale vise a l'article L. 241-3 » (IDCC 1285, titre XII, `kali-1285-titres-ii-iii-x-xi-
 /// xii-20260923.md`, l. 73), le plafond que R. 242-2 corrige ; elle suit le plafond corrige, comme la retraite
-/// complementaire (`plafond_de_l_engagement`). Textes : `prive/reference/sources/plafond-temps-partiel/LISEZ-MOI.md`.
+/// complementaire (`plafond_de_l_engagement`). Textes : `atelier/reference/sources/plafond-temps-partiel/LISEZ-MOI.md`.
 pub fn plafond_de_la_sante(ctx: &Contexte, e: &Engagement) -> Resultat<Decimal> {
     plafond_permanent(tuple(&e.debut_periode()?), tuple(&e.fin_periode()?), None, &pss_du_contexte(ctx))
 }
@@ -1567,7 +1567,7 @@ pub fn plafond_de_la_sante(ctx: &Contexte, e: &Engagement) -> Resultat<Decimal> 
 /// - L. 242-10, 1° : L. 242-8 « n'est pas applicable » aux salaries dont l'emploi donne lieu a des taux, assiettes ou
 ///   montants specifiques ; BOSS § 1090 : ils « ne sont pas eligibles a la reduction du plafond », et « sont notamment
 ///   vises les artistes du spectacle ».
-/// Textes : `prive/reference/sources/plafond-temps-partiel/LISEZ-MOI.md`.
+/// Textes : `atelier/reference/sources/plafond-temps-partiel/LISEZ-MOI.md`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlafondTempsPartiel {
     /// Un intermittent (contrat d'usage, sans duree du travail : 40.014 = 99), ou un temps plein : la question ne se

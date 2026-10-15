@@ -1,0 +1,95 @@
+Date de modification : 03/07/2025 03:00 PM
+
+ Comment déclarer le lieu de naissance (département de naissance, libellé, pays de naissance...) ?
+
+ Le contexte
+
+Depuis la norme P24V01, seule la commune de naissance est à renseigner en rubrique « Lieu de naissance - S21.G00.30.007 ».aussi bien pour les personnes nées en France que celle nées à l’étranger. Le pays de naissance ne doit pas plus être déclaré dans la rubrique « Lieu de naissance - S21.G00.30.007 ». 
+
+La déclaration de cette rubrique est facultative pour les individus nés à l’étranger (rubrique « Code département de naissance - S21.G00.30.014 » renseignée avec une valeur « 99 – personne née à l’étranger »). mais reste toutefois obligatoire pour les individus nés en France (« Code département de naissance - S21.G00.30.014 » avec une valeur différente de « 99 – personne née à l’étranger »). 
+
+Déclarer le lieu de naissence d'un individu
+
+La rubrique « Libellé du pays de naissance - S21.G00.30.029 » créée en version de norme P24V01 permet donc de renseigner le libellé du pays de naissance d'un individu né à l'étranger, information obligatoirement fournie par l’assuré à son employeur avant l’embauche.
+
+Pour un individu né à l’étranger, au moins l'une de ces deux rubriques doit être renseignée( « Code département de naissance - S21.G00.30.014 » valorisé à « 99 »). Si l'employeur n'a connaissance que du libellé du pays de naissance, la rubrique « Libellé du pays de naissance - S21.G00.30.029 » doit être renseignée contrairement à la rubrique « Lieu de naissance - S21.G00.30.007 », et inversement s'il ne connaît que la commune de naissance. 
+
+ NB :
+
+ La valeur « SLN – Sans lieu de naissance » sera toujours acceptée en version de norme P24V01 pour alimenter la rubrique « Lieu de naissance - S21.G00.30.007 ». S’agissant d’un champ libre, aucun contrôle par rapport à un référentiel n'est réalisé. Il faudra toutefois veiller à ce que le NIR et le nom de l’individu soient correctement renseignés afin d'éviter une confusion d'identité au niveau de la consultation au SNGI. Il s’agit en effet d’une valeur importante de ciblage lors de l’identification des individus et pour qu’elle soit exploitable par la CNAV, une valorisation à « SLN », bien que non bloquante, serait à éviter (l’absence de déclaration de cette information est préférable à la déclaration d’une donnée erronée). 
+
+ L’information renseignée dans la rubrique « Libellé du pays de naissance - S21.G00.30.029 », doit rester cohérente avec ce qui est renseigné en rubrique « Code pays de naissance - S21.G00.30.015 ». 
+
+Déclarer un individu né à l'étranger
+
+ S21.G00.30 - Individu
+
+ Code
+ Rubrique
+ Valorisation
+
+ | S21.G00.30.007
+ | Lieu de naissance
+ | A renseigner de la commune de naissance, si connue. Sinon, ne pas renseigner. 
+
+ | [...]
+ | 
+ | 
+
+ | S21.G00.30.014
+ | Code département de naissance
+ | 99 
+
+ | S21.G00.50.015
+ | Code pays de naissance
+ | PT (il s’agit d’une valeur d’exemple ; cette rubrique doit être renseignée avec une valeur différente de FR, GP, BL, MF, MQ, GF, RE, PM, YT, WF, PF, NC, MC) 
+
+ | [...]
+ | 
+ | 
+
+ | S21.G00.50.029
+ | Libellé du pays de naissance
+ | A renseigner du libellé du pays de naissance 
+
+Déclarer un individu né en France
+
+ S21.G00.30 - Individu
+
+ Code
+ Rubrique
+ Valorisation
+
+ | S21.G00.30.007
+ | Lieu de naissance
+ | A renseigner de la commune de naissance, si connue. Sinon, ne pas renseigner. 
+
+ | [...]
+ | 
+ | 
+
+ | S21.G00.30.014
+ | Code département de naissance
+ | <>99 
+
+ | S21.G00.50.015
+ | Code pays de naissance
+ | FR 
+
+ | [...]
+ | 
+ | 
+
+ | S21.G00.50.029
+ | Libellé du pays de naissance
+ | Néant
+
+ Date de création : 06/03/2025 06:23 PM 
+
+ N° de la fiche : 2951 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

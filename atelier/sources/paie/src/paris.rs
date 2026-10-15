@@ -4,7 +4,7 @@
 //! `datetime.fromtimestamp(mtime)` rend l'heure de Paris. Le moteur n'a pas de
 //! fuseau : il applique la regle de l'heure d'ete de l'Union europeenne
 //! (directive 2000/84/CE, art. 2 et 3, en vigueur a compter de 2002 ;
-//! `prive/reference/sources/union-europeenne/eurlex-directive-2000-84-ce-heure-d-ete-20010202.txt`) :
+//! `atelier/reference/sources/union-europeenne/eurlex-directive-2000-84-ce-heure-d-ete-20010202.txt`) :
 //! UTC+2 du dernier dimanche de mars (1 h UTC) au dernier dimanche d'octobre
 //! (1 h UTC), UTC+1 le reste de l'annee. Avant 2002, d'autres directives
 //! reglaient la periode ; aucune date de fichier du logiciel n'y remonte.

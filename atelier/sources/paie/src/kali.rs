@@ -16,7 +16,7 @@
 //! La liste des textes d'une convention ne vient que de sa fiche : a la premiere veille on remonte l'index a rebours
 //! jusqu'a la trouver (une fois), pour savoir ensuite rattacher un texte modifie a sa convention.
 //!
-//! La lecture est incrementale : chaque livraison lue est resumee une fois dans `reference/sources/veille-kali.json` (ce
+//! La lecture est incrementale : chaque livraison lue est resumee une fois dans `atelier/reference/sources/veille-kali.json` (ce
 //! qui touche NOS conventions, rien d'autre), et n'est jamais retelechargee. Le rapport est recalcule a chaque fois
 //! depuis la date de releve de la source : un signal vu hier ne disparait pas parce qu'on a relance la commande. Le
 //! fichier est celui qu'ecrivait le Python (memes cles) : la veille reprend ou il s'etait arrete.

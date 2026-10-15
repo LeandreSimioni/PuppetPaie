@@ -1,0 +1,202 @@
+Date de modification : 03/07/2026 03:11 PM
+
+Comment déclarer en DSN la part exonérée de cotisations sociales des indemnités de rupture ?
+
+ Le contexte
+
+À la suite d’une rupture du contrat de travail, une ou plusieurs indemnités de rupture (indemnités de licenciement, indemnités de rupture conventionnelle individuelle ou collective, etc.) peuvent être versées à l’individu. Le montant des indemnités de rupture varie selon :
+
+ Le type de rupture ;
+
+ L’ancienneté ;
+
+ La rémunération du salarié dont le contrat de travail a été rompu ;
+
+ Parfois la convention collective.
+
+La convention fixe le montant de l’indemnité de rupture qui ne peut pas être inférieur à celui de l’indemnité légale de licenciement. 
+
+Ces indemnités suivent des règles fiscales spécifiques selon leur nature, la part de l’indemnité de licenciement dépassant sa fraction exonérée étant imposable. 
+
+Dans le cas général, la fraction exonérée est déterminée en retenant le plafond le plus élevé entre :  
+
+ La somme des indemnités légales et conventionnelles de licenciement ;
+
+ 50 % du total des indemnités perçues ;
+
+ Le double de la rémunération brute perçue au cours de l’année civile précédant la rupture du contrat de travail.
+
+Si le montant de l’indemnité de rupture dépasse le seuil d’exonération ou 2 fois le Plafond Annuel de la Sécurité Sociale (PASS) et est inférieur à 10 fois le PASS, la part excédentaire est soumise à cotisations sociales. 
+
+Si le montant de l’indemnité de rupture dépasse 10 fois le PASS (ou 5 fois le PASS en cas de cumul avec des indemnités de rupture du mandat social), elle est alors intégralement soumise à cotisations sociales (cotisations sociales dues dès le premier euro), sans application de l'abattement forfaitaire pour frais professionnels. 
+
+Pour les CSG-CRDS, l’exonération s’applique à hauteur du plus faible des deux seuils suivants : 
+
+ L’indemnité légale ou conventionnelle de licenciement ; 
+
+ La part de l’indemnité versée exonérée de cotisations (cf fiche consigne 2698 Déclarer la part exonérée des indemnités transactionnelles en bloc « Prime, gratification et indemnité – S21.G00.52 » en norme DSN P25V01). 
+
+La part de l'indemnité de rupture qui dépasse ces seuils est soumise à CSG-CRDS, sans application de l'abattement forfaitaire pour frais professionnels. 
+
+Quand le montant de l’indemnité de rupture est supérieur à 10 fois le PASS, les cotisations sociales et les CSG-CRDS sont dues dès le premier euro. 
+
+ Déclarer en DSN la part exonérée des indemnités de rupture 
+
+Rappel : Le montant total des indemnités de rupture est à déclarer dans le bloc « Prime, gratification et indemnité - S21.G00.52 » à la rubrique « Type - S21.G00.52.001 » (FC 2698 : « Déclarer la part exonérée des indemnités transactionnelles en bloc « Prime, gratification et indemnité – S21.G00.52 ») en utilisant des types spécifiques à la nature de la rupture, notamment :
+
+ 002 - Indemnité versée à l'occasion de la cessation forcée des fonctions des mandataires sociaux ; 
+
+ 003 – Indemnité légale de mise à la retraite par l’employeur ; 
+
+ 004 - Indemnité conventionnelle de mise à la retraite par l'employeur ;
+
+ 017 - Dommages et intérêts dus à la non remise du contrat ou dus à un CDD ou à une rupture de période d’essai (délai de prévenance) ; 
+
+ 033 - Indemnité forfaitaire de conciliation prud’homale. 
+
+Dans le cadre des travaux de fiabilisation du MNS (Montant Net Social), un type spécifique a été créé pour contenir la partie exonérée de cotisations sociales des indemnités de rupture. Son montant est à renseigner à partir de 2027 dans le bloc « Élément de revenu calculé en net - S21.G00.58 » avec le type « 13 - Part exonérée de cotisations sociales des indemnités de rupture ». 
+
+ Exemple de déclaration du cas nominal
+
+Déclarer la part des indemnités de rupture exonérée de cotisations sociales 
+
+Exemple : Un individu percevant un salaire annuel brut de 36 000 € (3 000 € par mois) touche lors de son licenciement après 30 ans d’ancienneté dans l’entreprise, une indemnité de rupture conventionnelle individuelle de 77 500 € composée :  
+
+ D’une indemnité légale de 7 500 € ;
+
+ D’une indemnité légale supplémentaire de 20 000 € ;
+
+ D’une indemnité conventionnelle de 10 000 € ;
+
+ D’une indemnité transactionnelle de 40 000 €.  
+
+Détermination du plafond d’exonération, applicable à l’ensemble des indemnités versées dans le cadre du licenciement et de la part exonérée de l’indemnité transactionnelle :  
+
+ Montant de l’indemnité légale et conventionnelle : 37 500 € (7500 + 20000 + 10000) 
+
+ 50% du total de l’indemnité : 38 750 € (77500 / 2) 
+
+ Double du revenu annuel brut : 72 000 € (36000 * 2) 
+
+Le plafond d’exonération correspond au plus élevé de ces trois revenus, c’est-à-dire 72 000 €.   
+
+La part exonérée de CSG-CRDS est de 37 500 € (car ici l’indemnité légale et conventionnelle est inférieure à la part totale de l’indemnité exonérée de cotisations sociales). La part soumise à CSG-CRDS est donc de 40 000 € (77 500 – 37 500).
+
+ | 
+ S21.G00.58 - Élément de revenu calculé en net
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.58.003  
+ | Type
+ | 13 - Part exonérée de cotisations sociales des indemnités de rupture
+
+ | S21.G00.58.004
+ | Montant
+ | 72000.00
+
+Remarque : dans le cas d'une indemnité de départ exonérée à 100% (notamment dans le cadre d'un PSE où elle est assimilée à une indemnité de licenciement), la totalité de l'indemnité sera à reporter sous le type 13. 
+
+Correction du cas nominal 
+
+En reprenant le même exemple, un gestionnaire de paie s’aperçoit en décembre 2027 d’une erreur déclarative du montant net social déclaré concernant un ancien salarié ayant perçu ses indemnités de rupture à la suite de son départ de l’entreprise en novembre 2027 (71 880 € au lieu de 72 000 € après abattement de la CSG-CRDS). 
+
+ Déclaration initiale dans la DSN mensuelle de novembre 2027 :
+
+ | S21.G00.58 - Élément de revenu calculé en net
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.58.003  
+ | Type
+ | 13 - Part exonérée de cotisations sociales des indemnités de rupture
+
+ | S21.G00.58.004
+ | Montant
+ | 71880.00
+
+ La correction est réalisée dans la DSN mensuelle de décembre 2027 : 
+
+ | 
+
+ S21.G00.58 - Élément de revenu calculé en net  
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.58.001  
+
+ | 
+
+ Date de début de période de rattachement  
+
+ | 
+
+ 01112027 
+
+ | 
+
+ S21.G00.58.002  
+
+ | 
+
+ Date de fin de période de rattachement  
+
+ | 
+
+ 30112027 
+
+ | 
+
+ S21.G00.58.003  
+
+ | 
+
+ Type  
+
+ | 
+
+ 13 - Part exonérée de cotisations sociales des indemnités de rupture  
+
+ | 
+
+ S21.G00.58.004  
+
+ | 
+
+ Montant  
+
+ | 
+
+ 120.00 
+
+ [ 72000 - 71880 ] 
+
+ La réglementation (Textes de lois, BOSS, etc.)
+
+Bulletin officiel de la Sécurité Sociale / Indemnités de rupture 
+
+ Date de création : 03/07/2026 02:48 PM 
+
+ N° de la fiche : 3386 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

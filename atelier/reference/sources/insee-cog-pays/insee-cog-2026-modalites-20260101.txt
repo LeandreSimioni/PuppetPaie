@@ -1,0 +1,365 @@
+
+Liste de modalités des fichiers téléchargeables du COG | Insee
+er
+ janvier 2026 " />
+false
+Aller au contenu
+Aide
+Thèmes
+Recherche
+English
+Presse
+Menu
+Menu
+Blog
+Presse
+Aide
+English
+Lancer la recherche sur le site
+Thèmes
+Statistiques et études
+Cherchez vos statistiques par&hellip;
+Thèmes
+Économie - conjoncture - comptes nationaux
+Démographie
+Entreprises
+Plus de thèmes&hellip;
+Niveaux géographiques
+France
+Toutes les régions ou tous les départements
+Toutes les communes
+Plus de niveaux géographiques&hellip;
+Catégories
+Données
+Publications
+Plus de catégories&hellip;
+Collections
+Insee Première
+Notes et points de conjoncture
+Plus de collections&hellip;
+Définitions, méthodes et qualité
+Définitions
+Sources statistiques et indicateurs
+Liste des sources statistiques
+Liste des indicateurs
+Documentation complémentaire sur le recensement
+La qualité dans le Service statistique public (SSP)
+Le cadre de référence
+La gouvernance
+La politique et la stratégie qualité du SSP
+Les engagements européens
+Nomenclatures
+Nomenclature d’activités française
+Nomenclature agrégée - NA, 2008
+Classification des produits française
+Classification des fonctions de consommation des ménages
+Catégories juridiques
+Nomenclatures des professions et catégories socioprofessionnelles
+Géographie administrative et d'étude
+Recherche sur une zone géographique
+Téléchargement de fichiers
+Historique des communes
+Modèles, méthodes et outils statistiques
+Les modèles statistiques
+Les outils statistiques
+Méthodologie statistique
+Courrier des statistiques
+Offre de données ouvertes
+Le catalogue des données de l'Insee
+Le catalogue des API de l'Insee
+L'offre de données au travers de nos produits de diffusion
+Les formats de mise à disposition des données
+Nos données disponibles sur d'autres plateformes
+Services
+Réviser une pension, un loyer, bail ou contrat
+Réviser une pension alimentaire
+Réviser un loyer d'habitation
+Réviser un bail commercial ou professionnel
+Indexer un contrat
+Convertisseur franc-euro : pouvoir d'achat de l'euro et du franc
+Consulter les indices et séries chronologiques
+Actualités des indices et séries chronologiques
+Accès des séries et indices chronologiques par thème
+Recherche par identifiant ou par mot-clé
+Service web SDMX
+Tables de passage
+Sirene
+Obtenir un avis de situation au répertoire Sirene
+Demander la modification de son statut de diffusion
+Demander la modification du code APE
+Immatriculation, cessation ou modification des données au répertoire Sirene 
+Obtenir sa catégorie d'entreprise
+Consulter et télécharger la base Sirene
+Identifiant unique des intervenants sur les marchés financiers (LEI)
+Réponses à vos questions sur le répertoire Sirene
+Découvrir, apprendre, enseigner
+Pour commencer...
+Visualiser les données
+La Compétition européenne de statistiques
+Pour approfondir...
+Répondre à une enquête de l'Insee
+Enquêtes auprès des particuliers
+Enquêtes auprès des entreprises
+Vrai ou faux enquêteur de l’Insee, fraude, malveillance : comment vérifier ?
+S’informer sur l’actualité de notre diffusion
+Agenda de diffusion des indicateurs économiques 
+Dernières publications de l’Insee
+Dernières publications des Services statistiques ministériels
+Évènements annoncés à la Une du site
+Thèmes d'actualité
+Gérer les répertoires des personnes physiques
+Recueil des données d'état civil
+Le Répertoire électoral unique
+Dématérialisation des échanges de données
+Nombre de décès quotidiens par département
+Fichiers des personnes décédées depuis 1970
+Bibliothèque de l’Insee Alain Desrosières
+Portail documentaire et catalogue
+La Bibliothèque numérique de la statistique publique
+Commander une prestation, acheter une publication
+Diffusion sur mesure
+Acheter nos publications
+Nous suivre
+Lettres d'information
+Abonnements aux lettres d'information et aux avis de parution
+Abonnement aux flux RSS
+L'Insee sur les médias sociaux
+Insee Mobile
+Aide et contacts
+Réponses à vos questions
+Obtenir des informations par téléphone
+Espace presse
+Événements presse
+Calendrier des publications
+Communiqués de presse nationaux
+Communiqués de presse régionaux
+Nominations
+L'Insee et la statistique publique
+L'Insee
+Connaître l'Insee
+L’Insee en toute confiance
+Travailler à l'Insee
+Événements et colloques
+Un peu d'histoire
+Rapports d'activité
+Les activités de l'Insee
+Suivre l’économie française
+Connaître les entreprises
+Observer l'évolution de la société
+Réaliser le recensement de la population
+Décrire et analyser les régions et les territoires
+Gérer des grands répertoires
+Diffuser et valoriser ses productions
+Perfectionner ses méthodes et évaluer la qualité
+Contribuer à la construction de la statistique européenne et internationale
+La statistique publique
+Cadre juridique et institutionnel
+Le service statistique public
+Secret statistique
+Protection des données personnelles
+Règles de diffusion du SSP
+Accès aux documents administratifs
+La construction de la statistique européenne
+Les producteurs de statistiques européennes en France
+Textes juridiques de la gouvernance statistique européenne
+Les règlements cadres et sectoriels
+Mesure de la qualité de service
+Les indicateurs de qualité du programme Transparence
+Résultats des enquêtes de satisfaction
+Services Publics+ : un service public plus proche, plus simple, plus efficace
+Accueil
+Définitions, méthodes et qualité
+Géographie administrative et d'étude
+Téléchargement de fichiers
+Géographie administrative
+Code officiel géographique (COG)
+Liste de modalités des fichiers téléchargeables du COG
+Liste de modalités des fichiers téléchargeables du COG
+Code officiel géographique au 1
+er
+ janvier 2026
+Géographie
+Dernière mise à jour
+ le :
+24/02/2026
+Imprimer
+Ensemble des modalités
+(
+ xlsx, 13 Ko
+ )
+Type de commune (dans les fichiers « communes » et « événements sur les communes »
+ et « communes depuis 1943 »)
+tableau
+– 
+Modalités pour le type de commune
+Modalités pour le type de commune
+COM
+Commune 
+COMA
+Commune associée
+COMD
+Commune déléguée
+ARM
+Arrondissement municipal
+Le type de commune remplace l’ancien code « actual » mais s’en différencie par le
+ fait qu’il ne représente pas différents états d’une même commune mais différentes
+ communes. Ainsi peuvent coexister une commune et une commune déléguée avec le même
+ code. 
+Type de nom en clair
+tableau
+– 
+Modalités pour le type de nom en clair
+Modalités pour le type de nom en clair
+0
+Pas d'article et le nom commence par une consonne sauf H muet
+charnière = DE
+1
+Pas d'article et le nom commence par une voyelle ou un H muet
+charnière = D'
+2
+Article = LE
+charnière = DU
+3
+Article = LA
+charnière = DE LA
+4
+Article = LES
+charnière = DES
+5
+Article = L'
+charnière = DE L'
+6
+Article = AUX
+charnière = DES
+7
+Article = LAS
+charnière = DE LAS
+8
+Article = LOS
+charnière = DE LOS
+Type d'événement sur les communes (dans le fichier « événements sur les communes »)
+tableau
+– 
+Modalités pour le type d’événement
+Modalités pour le type d’événement
+Type de modification
+Code
+Changement de nom
+10
+Création
+20
+Rétablissement
+21
+Suppression
+30
+Fusion simple
+31
+Création de commune nouvelle
+32
+Fusion association
+33
+Transformation de fusion association en fusion simple
+34
+Suppression de commune déléguée
+35
+Changement de code dû à un changement de département
+41
+Changement de code dû à un transfert de chef-lieu
+50
+Transformation de commune associée en commune déléguée
+70
+Rétablissement de commune déléguée
+71
+Création de commune déléguée
+72
+Composition communale du canton (dans le fichier « canton »)
+tableau
+– 
+Codes pour la variable COMPCT
+Codes pour la variable COMPCT
+1
+Canton composé de commune(s) entière(s)
+2
+Canton composé d'une fraction d'une commune et de commune(s) entière(s)
+3
+Canton composé de fractions de plusieurs communes et de commune(s) entière(s)
+4
+Canton composé d'une fraction de commune
+5
+Canton composé de fractions de plusieurs communes
+Type de canton (dans le fichier « canton »)
+C
+Canton
+V
+Canton-Ville (ou pseudo-canton)
+N
+Canton « fictif » pour communes nouvelles
+Code actualité du pays ou du territoire étranger (dans le fichier « pays et territoires
+ étrangers »)
+1
+Actuel
+4
+Territoire ayant son propre code officiel géographique
+Nature zonage (dans les fichiers « Communes des collectivités et territoires français
+ d’outre-mer » et « Communes des collectivités et territoires français d’outre-mer
+ depuis 1943 »)
+COM
+Commune
+DIS
+District
+CIR
+Circonscription territoriale
+CPT
+Code à 5 chiffres de La Passion-Clipperton
+CDM
+Code à 5 chiffres du condominium de l’Île des Faisans
+Pour en savoir plus
+Téléchargement des fichiers du COG du millésime 2026
+Liste des modalités des fichiers du COG des autres millésimes
+Nos sites partenaires
+Système Statistique Européen
+Réseau Quetelet
+Centre d'Accès Sécurisé Distant aux données (CASD)
+site data.gouv
+Services Publics +
+Abonnez-vous
+Avis de parution
+Nous suivre
+Contact
+Aide et contact
+Statistiques et études
+Définitions, méthodes et qualité
+Définitions
+Sources statistiques et indicateurs
+La qualité dans le Service statistique public (SSP)
+Nomenclatures
+Géographie administrative et d'étude
+Modèles, méthodes et outils statistiques
+Courrier des statistiques
+Offre de données ouvertes
+Services
+Réviser une pension, un loyer, bail ou contrat
+Consulter les indices et séries chronologiques
+Sirene
+Découvrir, apprendre, enseigner
+Répondre à une enquête de l'Insee
+S’informer sur l’actualité de notre diffusion
+Gérer les répertoires des personnes physiques
+Bibliothèque de l’Insee Alain Desrosières
+Commander une prestation, acheter une publication
+Nous suivre
+Aide et contacts
+Espace presse
+L'Insee et la statistique publique
+L'Insee
+Les activités de l'Insee
+La statistique publique
+La construction de la statistique européenne
+Mesure de la qualité de service
+Services Publics+ : un service public plus proche, plus simple, plus efficace
+Mentions légales et crédits
+Accessibilité : partiellement conforme
+Accès sourds et malentendants
+Sécurité
+Plan du site
+Haut de page

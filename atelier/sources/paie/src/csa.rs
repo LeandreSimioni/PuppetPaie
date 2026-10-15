@@ -2,7 +2,7 @@
 //! porte, sur l'etablissement principal, au titre de l'annee N.
 //!
 //! LES TEXTES (deposes ; les lignes citees sont celles des fichiers) :
-//! - C. trav. L. 6242-1 (`prive/reference/sources/code-du-travail/articles-20261013.md`) : due par les entreprises d'au
+//! - C. trav. L. 6242-1 (`atelier/reference/sources/code-du-travail/articles-20261013.md`) : due par les entreprises d'au
 //!   moins 250 salaries redevables de la taxe d'apprentissage dont le quotient « de l'effectif annuel salarie » des
 //!   alternants (apprentissage, professionnalisation, CDI a leur suite, CIFRE) « par l'effectif total » est inferieur a
 //!   5 % (I) ; exoneree si ce quotient atteint 3 % et que cet effectif « a progressé d'au moins 10 % par rapport à
@@ -12,11 +12,11 @@
 //!   franchissement de son II comprise (V) ; 52 % de ces taux pour les etablissements d'Alsace-Moselle (VI) ; le montant
 //!   et l'assiette arrondis selon L. 133-10 CSS (VII) ; un « versement unique » avec les cotisations de la periode de
 //!   mars de l'annee suivante (VIII).
-//! - Fiche net-entreprises 2588 et 2963 (`prive/reference/sources/net-entreprises-base-connaissances/`) : la DSN de mars
+//! - Fiche net-entreprises 2588 et 2963 (`atelier/reference/sources/net-entreprises-base-connaissances/`) : la DSN de mars
 //!   N+1, « sur un seul établissement », un bloc S21.G00.82 de code 079 (montant ; 82.003 et 82.004 du 01/01 au 31/12 de
 //!   N ; 82.005 le SIRET de l'Urssaf) et le CTP au bloc 23 ; l'exoneration, un bloc 82 de code 080 a 0.00.
 //! - Guide Urssaf des contributions de formation et d'apprentissage du 12/03/2026
-//!   (`prive/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt`,
+//!   (`atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt`,
 //!   l. 2441-2463) : « Le montant déclaré correspond au montant dû par l'entreprise pour l'ensemble de ses
 //!   établissements » ; « Sur le CTP 998, en bloc « Cotisation agrégée - S21.G00.23.004 » » ; « Le CTP 998 a un taux à
 //!   100% » (la table des CTP livree le dit aussi : `logiciel/donnees/urssaf-codes-types-personnel.csv`).

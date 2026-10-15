@@ -27,8 +27,8 @@
 //!    ecart n'est pas une erreur d'affichage : c'est un renseignement inexact au
 //!    sens de l'article L. 5429-1, et il vaut refus.
 //!
-//! Le cas qui a fait ecrire ce module : aout 2026, contrats FA1.26.15 et
-//! MA2.26.15, un cachet plus douze heures de masterclass. Les douze heures ne
+//! Le cas qui a fait ecrire ce module : aout 2026, deux contrats d'une compagnie
+//! reelle, un cachet plus douze heures de masterclass. Les douze heures ne
 //! sont pas parties dans la DSN ; l'attestation les affiche a blanc. Signer
 //! aurait certifie exact un document amputant chaque salarie de douze heures
 //! sur les 507 des annexes 8 et 10.

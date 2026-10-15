@@ -1,0 +1,11 @@
+Date de modification : 03/06/2025 10:08 AM
+ Quels sont les retours effectués par France Travail sur le tableau de bord suite à un dépôt de DSN mensuelle contenant des fins de contrats CDDU-D ?
+ Le contexte 
+ Pour chaque DSN mensuelle portant au moins un CDD d'usage en circuit dérogatoire ( pour une présentation du circuit dérogatoire consulter la fiche 2958 ), les données relatives aux CDD d'usage en circuit dérogatoire sont transmises à France Travail. Pour chaque  DSN mensuelle reçue, France Travail met à disposition du déclarant (en mode tableau de bord ou machine to machine)  sous 48h  :
+ une archive, si au moins un CDD d'usage en circuit dérogatoire n'est pas en anomalie au regard des contrôles de France Travail (voir fiche consigne sur les contrôles CDDU-D). Cette archive contient  les Attestations Employeur Rematérialisées (AER CDDU) pour chaque individu. Une AER CDDU regroupe les CDDU infra DSN mensuelle ayant pris fin pour un même individu et un même emploi (libellé identique  en rubrique " S21.G00.40.006 - Libellé de l'emploi "). Ainsi, pour un individu ayant occupé des emplois différents en CDDU infra DSN, seront produites autant d'AER CDDU que d'emplois différents occupés dans l'établissement. Remarque : Une AER supplémentaire sera générée systématiquement si les lignes du modèle sont entièrement utilisées (12 lignes maximum)
+ un compte rendu métier (CRM) si au moins un CDD d'usage en circuit dérogatoire est en anomalie au regard des contrôles de France Travail (voir fiche consigne présentant les contrôles liés au CDDU-D).
+ Chaque contrat reçu via le mode dérogatoire fera l'objet d'une reconstitution sur l'AER ou d'un rejet et sera mentionné à ce titre sur le CRM.
+ Ainsi, au titre d'une même DSN mensuelle, le déclarant pourra trouver un CRM et/ou une archive contenant une ou plusieurs AER CDDU-D infra DSN mensuelle.
+ Rappel : Chaque contrat doit être déclaré en DSN, ce qui doit se traduire par la présence d'un bloc 40 par contrat effectivement contracté avec chaque salarié. Il est formellement proscrit de ne déclarer qu'un seul contrat en DSN regroupant l'ensemble des contrats du mois du salarié.
+ Date de création : 09/05/2018 03:26 PM 
+ N° de la fiche : 1903

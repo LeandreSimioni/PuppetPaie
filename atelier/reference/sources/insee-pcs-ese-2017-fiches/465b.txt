@@ -1,0 +1,83 @@
+SOURCE : https://www.insee.fr/fr/metadonnees/pcsese2017/rubriqueRegroupee/465b
+
+
+NomenclatureFicheController
+1766151120002
+pcsese2017
+categorieSocioprofessionnelleAgregee
+categorieSocioprofessionnelle
+rubriqueRegroupee
+465b
+">Accueil
+Définitions, méthodes et qualité
+Nomenclatures
+Nomenclatures des professions et catégories socioprofessionnelles
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Consulter la nomenclature de la PCS-ESE 2017
+Consulter la nomenclature de la PCS-ESE 2017
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Pour les emplois salariés des employeurs privés et publics, la PCS-ESE 2017 est une ventilation plus détaillée de la PCS.
+Les trois premiers caractères de ces deux nomenclatures sont communs, sauf pour les agriculteurs, artisans et commerçants salariés de leur exploitation ou de leur entreprise.
+Nomenclatures
+Date de publication :
+                        19/12/2025
+Recherche nomenclature
+Menu nomenclature
+Rechercher dans la nomenclature
+Tous les niveaux
+catégorie socioprofessionnelle agrégée
+catégorie socioprofessionnelle
+rubrique
+2025-12-19T14:31:59.978+01:00
+Catégorie socioprofessionnelle agrégée 4 : Professions intermédiaires
+Catégorie socioprofessionnelle 46 : Professions intermédiaires administratives et commerciales des entreprises
+Rubrique 465b : Assistants techniques de la réalisation des spectacles vivants et audiovisuels
+Professionnels, exerçant une activité d'ordre technique à caractère spécialisé dans la production de spectacles vivants ou audiovisuels. Ils opèrent généralement selon des directives données par un directeur ou cadre artistique, ou celles d'un professionnel de rang cadre exerçant dans leur propre spécialité. La rubrique comprend également les personnels techniques exerçant des fonctions d'encadrement dans la production de spectacles vivants ou audiovisuels ; les compétences techniques propres à cette seconde catégorie de professionnels peuvent ne pas être exclusivement spécifiques au secteur et revêtir une signification plus générale (tâches technico-administratives par exemple). Il peut s'agir de personnes établies à leur compte, engagées pour une courte durée par l'entreprise de spectacles, ou recrutées par des entreprises spécialisées dans la délivrance de prestations au profit de ces entreprise de spectacles.
+Nomenclatures
+Dernière mise à jour le
+ : 19/12/2025
+Professions les plus typiques
+Assistant décorateur (cinéma, théâtre, audiovisuel), non cadre
+Assistant monteur (cinéma, théâtre, audiovisuel), non cadre
+Assistant opérateur de prise de vue (cinéma, audiovisuel), non cadre
+Assistant opérateur du son (cinéma, audiovisuel), non cadre
+Assistant régisseur (cinéma, théâtre, audiovisuel), non cadre
+Assistant technique décor (cinéma, théâtre, audiovisuel), non cadre
+Monteur de film (cinéma, audiovisuel), non cadre
+Opérateur de prise de vue (cinéma, audiovisuel), non cadre
+Opérateur du son (cinéma, audiovisuel), non cadre
+Professions assimilées
+Bruiteur, non cadre
+Cadreur (cinéma, audiovisuel), non cadre
+Chef accessoiriste (spectacles), non cadre
+Chef coiffeur perruquier (cinéma, théâtre, audiovisuel), non cadre
+Chef constructeur (cinéma, théâtre, audiovisuel), non cadre
+Chef couturier (cinéma, théâtre, audiovisuel), non cadre
+Chef de plateau (cinéma, audiovisuel)
+Chef éclairagiste (cinéma, audiovisuel), non cadre
+Chef électricien (spectacles), non cadre
+Chef habilleuse (cinéma, théâtre, audiovisuel), non cadre
+Chef machiniste (spectacles), non cadre
+Chef magasinier (cinéma, théâtre, audiovisuel), non cadre
+Chef maquilleur (cinéma, théâtre, audiovisuel), non cadre
+Chef serrurier (cinéma, théâtre, audiovisuel), non cadre
+Duplicateur de cassette, non cadre
+Etalonneur (cinéma), non cadre
+Graveur report disque, non cadre
+Monteur adjoint (cinéma, télévision), non cadre
+Monteur de film (imprimerie), technicien
+Perchiste (cinéma, télévision), non cadre
+Recorder, non cadre
+Régisseur (spectacles), non cadre
+Sculpteur (cinéma, théâtre, audiovisuel), non cadre
+Technicien banc-titre, non cadre
+Technicien d'effets spéciaux (cinéma, théâtre, audiovisuel), non cadre
+Technicien d'exploitation vidéo, non cadre
+Technicien de bureau d'étude décor (cinéma, théâtre, audiovisuel), non cadre
+Technicien de plateau, non cadre
+Technicien film, non cadre
+Technicien lumière (cinéma, théâtre, audiovisuel), non cadre
+Technicien son (cinéma, théâtre, audiovisuel)
+Technicien vidéo
+Professions exclues
+Monteur de film (imprimerie) (voir 476a si technicien)

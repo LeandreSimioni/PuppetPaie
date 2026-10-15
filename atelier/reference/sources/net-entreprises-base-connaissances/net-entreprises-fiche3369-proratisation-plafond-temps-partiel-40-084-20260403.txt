@@ -1,0 +1,420 @@
+   (/app/answers/list-search/p/2131)
+   → Information générale et usage (/app/answers/list-
+   search/p/2132)
+   → Les retours d'informations (/app/answers/list-
+   search/p/2133)
+
+Date de modification : 03/04/2026 12:44 PM
+
+
+
+  Comment déclarer les situations de proratisation du plafond de Sécurité sociale pour les salariés à temps
+  partiel et les salariés en forfait jour réduit en fonction de la quotité de travail du contrat ?
+
+  Le contexte
+
+
+  Cette fiche consigne détaille les modalités déclaratives pour les cas de proratisation du plafond de Sécurité sociale pour les salariés à tem
+  partiel ainsi que pour les salariés en forfait jours réduit.
+  Point d’attention :
+
+
+  Les règles de proratisation du plafond de Sécurité sociale au regard des absences sur le mois du salarié ne sont pas traitées dans la présente fic
+  et font l’objet de modalités déclaratives détaillées dans la FC Rubrique « Unité de mesure – S21.G00.53.003 - Valeur 40 » (2713).
+       1 - Salarié à temps partiel
+
+
+  La modalité d'exercice du temps de travail à temps partiel se traduit par une quotité du temps de travail contractuelle inférieure à :
+         la durée légale du temp de travail hebdomadaire ou
+         la durée du travail fixée conventionnement pour la branche ou l'entreprise ou l'établissement.
+
+  Par défaut, le salarié à temps partiel cotise uniquement à hauteur de la quotité de travail de son contrat.
+  L'employeur peut choisir de ne pas proratiser le plafond de Sécurité sociale pour tous les salariés à temps partiel de son établissement.
+       2 - Salarié en forfait jour réduit
+
+
+  Par convention, accord de branche ou accord collectif d’entreprise ou d’établissement, la quotité du temps de travail du contrat peut égalem
+  être exprimée en forfait annualisé de jours (forfait jour). Le salarié en forfait jour travaille sur une durée maximale annuelle de 218 jours.
+  Il peut bénéficier dans son contrat d’une réduction du nombre de jours travaillé par an : on parle ainsi de forfait jour réduit.
+  Point d’attention :  Toutefois, la modalité d’exercice du temps de travail du salarié en forfait jour réduit demeure à temps plein car la notion
+  forfait jour traduit la modalité d’organisation du temps de travail. Contrairement au temps partiel, il ne repose pas sur un décompte hora
+  hebdomadaire précis.
+
+
+  1. Salarié à temps partiel
+
+
+
+  Déclarer un temps partiel dont l’employeur a choisi de proratiser le plafond de Sécurité sociale
+
+
+
+
+  Si l’employeur proratise le plafond de Sécurité sociale pour les salariés à temps partiel de l’établissement, à partir de la version de norme P27V0
+  doit renseigner la rubrique « Application de la proratisation du plafond de Sécurité sociale à hauteur de la quotité de travail – S21.G00.40.08
+  avec la valeur « 01 – Oui ». Les modalités déclaratives pour les blocs « Base assujettie – S21.G00.78 » et enfants sont attendues telles que présen
+  dans la fiche pour la version de norme P26V01.
+  Exemple :
+
+
+  Description du cas :
+          Un salarié à temps partiel exerce à 80% pour une rémunération brute à 4100 euros en janvier 2026.
+          Il est présent tout le mois et n’a effectué aucune heure complémentaire sur cette période d’emploi.
+          Son employeur proratise le plafond de Sécurité sociale pour ses salariés à temps partiel.
+
+
+
+     S21.G00.40 - Contrat
+
+
+
+     S21.G00.40.011                             Unité de mesure de la quotité de travail                                                           10 - heure
+
+                                                Quotité de travail de référence de l'entreprise pour la
+     S21.G00.40.012                                                                                                                                    151.67
+                                                catégorie de salarié
+
+     S21.G00.40.013                             Quotité de travail du contrat                                                                          121.34
+
+     S21.G00.40.014                             Modalité d’exercice du temps de travail                                                    20 - Temps partiel
+
+                                                Application de la proratisation du plafond de Sécurité
+     S21.G00.40.084                                                                                                                                  01 - Oui
+                                                sociale à hauteur de la quotité de travail
+
+
+
+           S21.G00.51 – Rémunération
+
+
+
+                                  Date de début de période
+           S21.G00.51.001                                                        01012026
+                                  de paie
+                              Date de fin de période de
+        S21.G00.51.002                                                        31012026
+                              paie
+
+
+                                                                   001 - Rémunération
+        S21.G00.51.011        Type
+                                                                  brute non plafonnée
+
+
+        S21.G00.51.013        Montant                                          4100.00
+
+
+
+
+       S21.G00.78 – Base assujettie
+
+
+
+       S21.G00.78.001                          Code de base assujettie                                                 02 - Assiette brute plafonnée
+
+       S21.G00.78.002                          Date de début de période de rattachement                                                       01012026
+
+       S21.G00.78.003                          Date de fin de période de rattachement                                                         31012026
+
+                                                                                                                                               3204.00
+       S21.G00.78.004                          Montant
+                                                                                                                            [Montant d’assiette proratisé]
+
+
+
+
+       S21.G00.78 – Base assujettie
+
+
+
+       S21.G00.78.001                          Code de base assujettie                                               03 - Assiette brute déplafonnée
+
+       S21.G00.78.002                          Date de début de période de rattachement                                                       01012026
+
+       S21.G00.78.003                          Date de fin de période de rattachement                                                         31012026
+
+       S21.G00.78.004                          Montant                                                                                          4100.00
+
+
+
+
+Déclarer un temps partiel dont l’employeur a choisi de ne pas proratiser le plafond de Sécurité sociale
+
+
+A partir de la version de norme P27V01, il est nécessaire de renseigner la rubrique « Application de la proratisation du plafond de Sécurité social
+hauteur de la quotité de travail – S21.G00.40.084 » avec la valeur « 02 – Non » pour déclarer que l’employeur a choisi de ne pas proratiser le plafo
+de Sécurité sociale pour ses salariés à temps partiel. Les modalités déclaratives pour les blocs « Base assujettie – S21.G00.78 » et enfants s
+attendues telles que présentée dans la fiche pour la version de norme P26V01.
+Exemple
+
+
+Description du cas :
+        Un salarié à temps partiel exerce à 80% pour une rémunération brute à 4100 euros en janvier 2026.
+       Il est présent tout le mois et n’a effectué aucune heure complémentaire sur cette période d’emploi.
+
+       Son employeur ne proratise pas le plafond de Sécurité sociale pour ses salariés à temps partiel.
+
+
+   S21.G00.40 – Contrat
+
+
+
+
+   S21.G00.40.011                            Unité de mesure de la quotité de travail                                                        10 - heure
+
+                                             Quotité de travail de référence de l'entreprise pour la
+   S21.G00.40.012                                                                                                                                  151.67
+                                             catégorie de salarié
+
+   S21.G00.40.013                            Quotité de travail du contrat                                                                         121.34
+
+   S21.G00.40.014                            Modalité d’exercice du temps de travail                                               20 - Temps partiel
+
+                                             Application de la proratisation du plafond de Sécurité
+   S21.G00.40.084                                                                                                                             02 – Non
+                                             sociale à hauteur de la quotité de travail
+
+
+
+        S21.G00.51 – Rémunération
+
+
+
+
+        S21.G00.51.001                        Date de début de période de paie                                                                01012026
+
+        S21.G00.51.002                        Date de fin de période de paie                                                                  31012026
+
+        S21.G00.51.011                        Type                                                           001 - Rémunération brute non plafonnée
+
+        S21.G00.51.013                        Montant                                                                                          4100.00
+
+
+
+
+        S21.G00.78 – Base assujettie
+        S21.G00.78.001                           Code de base assujettie                                                    02 - Assiette brute plafonnée
+
+
+        S21.G00.78.002                           Date de début de période de rattachement                                                          01012026
+
+
+        S21.G00.78.003                           Date de fin de période de rattachement                                                            31012026
+
+
+                                                                                                                                                    4005.00
+        S21.G00.78.004                           Montant
+                                                                                                                             [Montant d’assiette non proratisé]
+
+
+
+
+        S21.G00.78 – Base assujettie
+
+
+
+
+        S21.G00.78.001                         Code de base assujettie                                              03 - Assiette brute déplafonnée
+
+        S21.G00.78.002                         Date de début de période de rattachement                                                     01012026
+
+        S21.G00.78.003                         Date de fin de période de rattachement                                                       31012026
+
+        S21.G00.78.004                         Montant                                                                                        4100.00
+
+
+
+
+2 - Salarié en forfait jour réduit
+
+
+Déclarer un salarié en forfait jour réduit sans application de la proratisation du plafond de sécurité sociale
+
+
+En DSN, un salarié sous convention de forfait en jours réduit doit être déclaré avec une « Modalité d’exercice du temps de travail – S21.G00.40.0
+valorisée à « 10 – Temps plein ». A partir de la version de norme P27V01, la rubrique « Application de la proratisation du plafond de Sécurité soci
+à hauteur de la quotité de travail - S21.G00.40.084 » est renseignée à « 02 – Non ». Les modalités déclaratives pour les blocs « Base assujetti
+S21.G00.78 » et enfants sont attendues telles que présentée dans la fiche pour la version de norme P26V01.
+
+Exemple
+
+
+Description du cas :
+
+        Un salarié en forfait jours réduits à 100 jours annuels pour une rémunération brute à 2000 euros en janvier 2026
+
+
+   S21.G00.40 - Contrat
+
+
+
+
+   S21.G00.40.011                              Unité de mesure de la quotité de travail                                                     20 – forfait jour
+
+                                               Quotité de travail de référence de l'entreprise pour la
+   S21.G00.40.012                                                                                                                                       21.67
+                                               catégorie de salarié
+
+   S21.G00.40.013                              Quotité de travail du contrat                                                                             9.94
+
+   S21.G00.40.014                              Modalité d’exercice du temps de travail                                                    10 - Temps plein
+
+
+
+
+                                               Application de la proratisation du plafond de Sécurité
+   S21.G00.40.084                                                                                                                                  02 – Non
+                                               sociale à hauteur de la quotité de travail
+
+
+
+         S21.G00.51 – Rémunération
+
+
+
+
+         S21.G00.51.001                        Date de début de période de paie                                                                    01012026
+
+         S21.G00.51.002                        Date de fin de période de paie                                                                      31012026
+
+         S21.G00.51.011                        Type                                                              001 - Rémunération brute non plafonnée
+
+         S21.G00.51.013                        Montant                                                                                             2000.00
+
+
+
+
+        S21.G00.78 – Base assujettie
+
+
+
+
+        S21.G00.78.001                           Code de base assujettie                                                    02 - Assiette brute plafonnée
+
+        S21.G00.78.002                           Date de début de période de rattachement                                                          01012026
+
+        S21.G00.78.003                           Date de fin de période de rattachement                                                            31012026
+
+                                                                                                                                                    2000.00
+        S21.G00.78.004                           Montant
+                                                                                                                                                [Plafond plein]
+
+
+
+
+        S21.G00.78 – Base assujettie
+        S21.G00.78.001                            Code de base assujettie                                                  03 - Assiette brute déplafonnée
+
+
+        S21.G00.78.002                            Date de début de période de rattachement                                                              01012026
+
+        S21.G00.78.003                            Date de fin de période de rattachement                                                                31012026
+
+
+        S21.G00.78.004                            Montant                                                                                                2000.00
+
+
+
+
+Déclarer un salarié en forfait jour réduit avec application de la proratisation du plafond de Sécurité sociale
+
+
+Si l’employeur proratise le plafond de Sécurité sociale, il est impératif de renseigner à partir de la version de norme P27V01 la rubriq
+« Application de la proratisation du plafond de Sécurité sociale à hauteur de la quotité de travail – S21.G00.40.084 » avec la valeur « 01 – Oui ».
+modalités déclaratives pour les blocs « Base assujettie – S21.G00.78 » et enfants sont attendues telles que présentée dans la fiche pour la vers
+de norme P26V01.
+
+Exemple
+
+
+Description du cas :
+
+         Un salarié en forfait jours réduits à 100 jours annuels pour une rémunération brute à 2000 euros en janvier 2026. Son employeur prorat
+    le plafond de Sécurité sociale
+
+
+   S21.G00.40 - Contrat
+
+
+
+
+   S21.G00.40.011                              Unité de mesure de la quotité de travail                                                         20 – forfait jour
+
+                                               Quotité de travail de référence de l'entreprise pour la
+   S21.G00.40.012                                                                                                                                            21.67
+                                               catégorie de salarié
+
+   S21.G00.40.013                              Quotité de travail du contrat                                                                                  9.94
+
+   S21.G00.40.014                              Modalité d’exercice du temps de travail                                                         10 - Temps plein
+
+                                               Application de la proratisation du plafond de Sécurité
+   S21.G00.40.084                                                                                                                                         01 – Oui
+                                               sociale à hauteur de la quotité de travail
+
+
+
+         S21.G00.51 – Rémunération
+
+
+
+
+         S21.G00.51.001                          Date de début de période de paie                                                                       01012026
+
+         S21.G00.51.002                          Date de fin de période de paie                                                                         31012026
+
+         S21.G00.51.011                          Type                                                            001 - Rémunération brute non plafonnée
+
+         S21.G00.51.013                          Montant                                                                                                2000.00
+
+
+
+
+        S21.G00.78 – Base assujettie
+
+
+
+
+        S21.G00.78.001                            Code de base assujettie                                                     02 - Assiette brute plafonnée
+
+        S21.G00.78.002                            Date de début de période de rattachement                                                              01012026
+
+        S21.G00.78.003                            Date de fin de période de rattachement                                                                31012026
+
+                                                                                                                                                           1837.16
+
+        S21.G00.78.004                            Montant                                                   [Plafond proratisé au regard de la quotité de travail du
+                                                                                                                   contrat pour les cotisations de Sécurité sociale]
+
+
+
+
+        S21.G00.78 – Base assujettie
+
+
+
+        S21.G00.78.001                            Code de base assujettie                                                  03 - Assiette brute déplafonnée
+
+        S21.G00.78.002                            Date de début de période de rattachement                                                              01012026
+
+        S21.G00.78.003                            Date de fin de période de rattachement                                                                31012026
+
+        S21.G00.78.004                            Montant                                                                                                2000.00
+
+
+
+
+La réglementation (Textes de lois, BOSS, etc.)
+
+
+Le statut du salarié à temps partiel est prévu par l’article L 3123-1 du Code du travail.
+La Cour de cassation a confirmé à plusieurs reprises que « le salarié au forfait en jours ne peut pas être considéré comme travaillant à tem
+partiel, le décompte du travail ne se faisant pas en heures » [Cass. soc., 12 mars 2014, n° 12-29.141].
+
+BOSS Assiette générale §830
+
+
+
+Date de création : 10/03/2026 04:59 PM
+N° de la fiche : 3369
+

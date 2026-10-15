@@ -1,7 +1,7 @@
 # PuppetPaie — ce qu'un agent doit savoir avant de toucher à quoi que ce soit
 
 Allégé le 04/10/2026 : les règles sont toutes là, leur récit (dates, incidents
-qui les ont fait écrire) est dans `prive/journal/archives/2026-10-04-claude-md-avant.md`.
+qui les ont fait écrire) est dans `journal/archives/2026-10-04-claude-md-avant.md`.
 Les numéros des règles de fond (0 à 11) ne bougent pas : le code les cite.
 
 ## Deux règles de travail (Léandre, 14/10/2026) — elles passent avant le reste
@@ -25,17 +25,20 @@ voit que ce que les gens reçoivent, et l'atelier en plus :
 | `logiciel/` | **exactement ce qu'une compagnie reçoit** : `puppetpaie.exe`, `WebView2Loader.dll`, `VERSION`, `donnees/` (barèmes, bases, modèles), `interface/` (la page). Les deux dossiers restent des fichiers visibles et se changent sans changer le moteur (décidé). C'est aussi ce que publie la mise à jour. |
 | `fictives/` | les compagnies fictives, livrées aussi (`demo/` avant le 14/10/2026 ; le logiciel renomme l'ancien dossier au lancement) |
 | `maj/` | la mise à jour de l'installation, à côté de `logiciel/` : son réglage, la version prête, son journal (jamais dans Git) |
-| `prive/` | la compagnie du poste (chez une autre compagnie : la sienne) |
-| `atelier/` | tout le reste : `sources/` (paie, fenetre, fabrique-pdf ; `paie.exe` et les exe Linux/Mac dans `sources/paie/bin/`), `outils/`, `docs/`, `prive-dev/`, `depot/` (versions publiées), plans, maquettes, site. **Le serveur du filet n'est plus ici** (13/10/2026) : il vit dans le dépôt du site de l'éditeur, sous `infra/filet/` |
+| `prive/` | la compagnie du poste (chez une autre compagnie : la sienne) ; dans aucun dépôt (15/10/2026) |
+| `atelier/` | tout le reste : `sources/` (paie, fenetre, fabrique-pdf ; `paie.exe` et les exe Linux/Mac dans `sources/paie/bin/`), `reference/` (les textes qui fondent les règles), `outils/`, `docs/`, `prive-dev/`, `depot/` (versions publiées), plans, maquettes, site. **Le serveur du filet n'est plus ici** (13/10/2026) : il vit dans le dépôt du site de l'éditeur, sous `infra/filet/` |
 
 **Deux dépôts, le code n'est que dans le public (Léandre, 14/10/2026 : « on écrit direct sur le public, sinon on perd
 un temps fou en aller-retour »).** Le dépôt `PuppetPaie` (public) est **le seul dépôt du code** : on y crée sa branche, on
 y code, on y teste, on y ouvre la PR ; il construit (« Moteur Rust », les exe Windows, Linux, Mac, minutes gratuites) et
-publie. Le dépôt `puppetpaieprivate` (privé) ne garde que **ce qui est réel** : `prive/` (la compagnie du poste, le journal,
-`ETAT.md`) et les **tickets** du filet. Plus d'export du privé vers le public : `exporter_depot_public.sh` ne sert plus.
-Une séance ouvre toujours les deux : le public pour le code, le privé pour lire `ETAT.md`, les tickets, et écrire ce qui
-s'adresse à Léandre (topo, marche à suivre, passation, journal) sous `prive/journal/`. Rien de réel n'entre jamais dans le
-public : le garde-fou (`python3 atelier/outils/verifier_avant_commit.py`) et `donnees_reelles` passent avant chaque commit.
+publie ; il porte aussi les textes de référence (`atelier/reference/`, 15/10/2026 : « c'est ça qui rend le logiciel
+crédible, solide et vérifiable »). Le dépôt `puppetpaieprivate` (privé) ne garde que **le journal** (`journal/` :
+`ETAT.md`, passations, topos, archives), `reference-privee/` (les pièces qu'on ne republie pas) et les **tickets** du
+filet (ses issues). **Les données de la compagnie ne sont dans aucun dépôt** (15/10/2026) : le poste, la clé USB, le
+Drive. Une séance ouvre toujours les deux : le public pour le code, le privé pour lire `ETAT.md`, les tickets, et écrire ce
+qui s'adresse à Léandre (topo, marche à suivre, passation, journal) sous `journal/`. Dans les
+anciens textes du journal, `prive/journal/` se lit `journal/` du dépôt privé. Rien de réel n'entre jamais dans le public : le
+garde-fou (`python3 atelier/outils/verifier_avant_commit.py`) et `donnees_reelles` passent avant chaque commit.
 
 On compile hors du dépôt, sans espace dans le chemin :
 `CARGO_TARGET_DIR` dans `%LOCALAPPDATA%\puppetpaie-compilation` du poste, chaîne
@@ -44,9 +47,9 @@ la fenêtre compilé se copie dans `logiciel/`.
 
 ## Par quoi on commence
 
-Un seul document se lit d'office : `prive/journal/ETAT.md` (si les données sont
+Un seul document se lit d'office : `journal/ETAT.md` du dépôt privé (s'il est
 là), son **point de reprise**. Les archives ne se lisent pas d'office : on cherche
-dans `prive/journal/archives/INDEX.md` par `grep` (il pèse plus de 70 Ko), puis on
+dans `journal/archives/INDEX.md` par `grep` (il pèse plus de 70 Ko), puis on
 n'ouvre **que** la section que le chantier du jour concerne.
 
 Les autres s'ouvrent quand on en a besoin, pas avant (ils pèsent plus de 200 Ko,
@@ -69,7 +72,7 @@ pas en laissant ouvert ce qui peut se finir.
 **C'est l'utilisateur qui dit quand la séance est finie** (04/10/2026) : la passe
 de tests de fin ne se lance pas avant qu'il l'ait dit.
 
-En fin de séance : le récit dans `prive/journal/archives/<fichier du mois>`, une
+En fin de séance : le récit dans `journal/archives/<fichier du mois>`, une
 ligne dans `INDEX.md`, et dans `ETAT.md` le point de reprise **remplacé**.
 
 ## GitHub Actions : à la fin seulement (l'utilisateur, 01-02/10/2026)
@@ -118,7 +121,7 @@ alors qu'il venait d'être mesuré, un lot élargi sans demander.
   compte rendu se vérifie : « ne sert d'oracle à aucun test » était faux, `grep` le
   dit en une ligne.
 - Pour le portage, les règles des consignes sont dans `ETAT.md`, les consignes d'un
-  lot dans `prive/journal/<lot>/consignes-*.md` (un Opus par lot entier ; `cargo test` seulement, **aucune suite Python** ; commit sans pousser).
+  lot dans `journal/<lot>/consignes-*.md` (un Opus par lot entier ; `cargo test` seulement, **aucune suite Python** ; commit sans pousser).
 - **Aucun repli Python** (l'utilisateur, 04/10/2026 : « on fait un logiciel totalement
   en Rust, je ne veux plus de Python »). Une route se porte entière ; ce qui ne se
   porte pas proprement s'arrête et remonte à l'utilisateur, il ne reste pas en Python.
@@ -131,7 +134,7 @@ alors qu'il venait d'être mesuré, un lot élargi sans demander.
 ## Les sources : tout texte qu'on lit se dépose (Léandre, 10/10/2026)
 
 **Toute règle vient d'un texte, et tout texte qu'on a lu pour décider est dans
-`prive/reference/sources/`, avant que la décision soit écrite dans le code.** Pas d'exception
+`atelier/reference/sources/` du dépôt public, avant que la décision soit écrite dans le code.** Pas d'exception
 pour « ce qu'on sait », ni pour une page lue en passant, ni pour un sous-agent : ce qu'il lit, il le
 dépose, ou il le nomme pour que l'orchestrateur le dépose. Une règle dont le texte n'est pas dans le
 dépôt n'est pas une règle, c'est un souvenir.
@@ -149,7 +152,12 @@ Comment on dépose :
   version) ; le BOSS se dépose depuis sa page quand elle répond, sinon on dépose ce qu'on a lu en disant
   d'où ça vient, et on note qu'il reste à redéposer ;
 - la note `_source` d'un barème, le commentaire d'une fonction, la passation d'un Opus **citent le fichier
-  déposé**, pas une URL seule.
+  déposé**, pas une URL seule ;
+- **ce qui ne se republie pas** (Léandre, 15/10/2026) : un document d'organisme privé (Audiens, Afdas, CASC-SVP,
+  Agirc-Arrco…) entre par sa **transcription** et son URL, l'original va dans `reference-privee/` du dépôt privé ; une
+  pièce réelle (bulletin, courrier adressé à une compagnie, relevé sur nos DSN) ne va **que** dans `reference-privee/`,
+  et le public n'en garde que l'attendu, sans nom ni NIR (règle 9 a). `atelier/reference/` ne se convertit jamais
+  (`-text` dans `.gitattributes`) : des empreintes le vérifient.
 
 ## Les fichiers qu'on ne lit pas
 
@@ -266,7 +274,7 @@ CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target}-atelier" cargo nextest run --cargo
   prouve, elle, que `paie` ne contient pas la redirection (`tests/atelier.rs`, module `livre`).
 - **Le profil `essais`** (10/10/2026, `paie/Cargo.toml`) : le code optimisé sans le LTO de l'exe livré, qui se
   repayait pour chacun des binaires de `tests/`. Dans le nuage, la suite se compile d'avance dès l'ouverture
-  (`.claude/hooks/session-start.sh`). Les doutes sur l'utilité de certains tests : `prive/journal/tests/DOUTES-TESTS.md`.
+  (`.claude/hooks/session-start.sh`). Les doutes sur l'utilité de certains tests : `journal/tests/DOUTES-TESTS.md`.
 - **Quatre binaires par domaine** (11/10/2026, §226) : `tests/calcul/`, `tests/dsn/`, `tests/routes/`, `tests/fichiers/`,
   un `main.rs` qui déclare un module par fichier. Un fichier seul :
   `cargo nextest run --cargo-profile essais -E 'binary(calcul) & test(/^clauses::/)'`. Un fichier qui pose ou retire
@@ -358,25 +366,21 @@ CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target}-atelier" cargo nextest run --cargo
    quel. Le taux AT/MP ne s'écrit **qu'une fois** (`calcul.bareme_atmp`, les
    rubriques portent leur facteur). Le détail (seuils d'effectif, compagnie neuve
    ou ancienne, établissements) : `docs/ARCHITECTURE.md`, « Le barème a trois étages ».
-9. **Deux dossiers, deux destinations — et un dépôt de travail privé.**
+9. **Trois destinations, et les données de la compagnie dans aucun dépôt (Léandre, 15/10/2026).**
 
    | | ce que c'est | où ça va |
    |---|---|---|
-   | `logiciel/` et `atelier/sources/` | le programme livré et son code, et les taux que la loi et les conventions fixent pour tout le monde | un **dépôt public**, le jour où l'utilisateur le décidera |
-   | `prive/` | les données de la compagnie : config, barème, paies, sorties, retours, journal | **dans le dépôt privé, à chaque commit** — jamais dans un dépôt public |
+   | `logiciel/`, `fictives/`, `atelier/` (dont `atelier/reference/`) | le programme livré, son code, les taux que la loi et les conventions fixent pour tout le monde, et les textes qui les fondent | le **dépôt public** |
+   | `journal/` et `reference-privee/` | le journal de l'atelier ; les pièces lues qu'on ne republie pas (originaux d'organismes, exemples réels) | le **dépôt privé**, avec les tickets du filet |
+   | `prive/` | les données de la compagnie : config, barème, paies, sorties, retours | **aucun dépôt** : le poste, la clé USB, le Drive, comme chez toute compagnie (`/prive/` est dans le `.gitignore` du public) |
 
-   **TANT QUE LE DÉPÔT EST PRIVÉ, TOUT Y VA, À CHAQUE COMMIT (l'utilisateur,
-   25/09/2026).** Un commit fait sur le poste de l'utilisateur commence par
-   `git add -A` depuis `claude/`, données du poste comprises, et se pousse ; seuls
-   les fichiers du `.gitignore` restent dehors. Ne jamais choisir les fichiers un
-   par un. Un conflit sur un journal JSON (`depots.json`, `retours/journal.json`)
-   se résout enregistrement par enregistrement, sans rien perdre d'un côté ni de
-   l'autre.
+   Un conflit sur un journal JSON se résout enregistrement par enregistrement, sans
+   rien perdre d'un côté ni de l'autre.
 
    a) **Les tests.** La suite tourne sur des compagnies fictives et sur la copie
       figée des fictives livrées, et ne lit rien de `prive/` :
-      `paie/tests/fichiers/donnees_reelles.rs` refuse, dans `logiciel/`, `fictives/` et
-      `atelier/sources/`, un NIR non inventé, le SIREN et le nom de la compagnie du
+      `paie/tests/fichiers/donnees_reelles.rs` refuse, dans `logiciel/`, `fictives/`,
+      `atelier/sources/` et `atelier/reference/`, un NIR non inventé, le SIREN et le nom de la compagnie du
       poste, et un chemin vers `prive/` construit par un test (la racine par défaut du
       moteur, `prive/` voisine du code, est celle du poste par conception : un test
       nomme toujours sa compagnie). Les preuves sur le réel (`prive/tests/`) sont retirées (décision C,
@@ -426,7 +430,7 @@ cherchée au lancement et appliquée au lancement suivant (`paie maj`, `paie/src
 version diffusée portera toutes les conventions visées ; ne pas signaler qu'aucune
 version n'a été publiée depuis longtemps.
 
-**Depuis le 14/10/2026 (lot P1), on publie depuis GitHub** (`prive/journal/finitions/PUBLIER.md`) :
+**Depuis le 14/10/2026 (lot P1), on publie depuis GitHub** (`journal/finitions/PUBLIER.md`) :
 
 1. **À la fin de chaque séance de code**, suite verte, la PR du dépôt public sur sa `main` (Léandre la fusionne). Le numéro de version
    n'est plus à augmenter : le flux pose la date du jour dans `logiciel/VERSION` (une version par jour).

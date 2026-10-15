@@ -1,0 +1,134 @@
+FICHE PRATIQUE
+
+
+
+
+   Les Congés Spectacles
+
+         Présentation
+   Les salariés permanents ont droit à un temps de congés payés d’au moins 2,5 jours par mois de
+   travail durant lequel ils touchent normalement leur salaire.
+
+   Les artistes et techniciens intermittents du spectacle étant, par définition, liés à plusieurs
+   employeurs, la gestion de leurs congés payés ne peut suivre le même schéma. En raison de la nature
+   de leur activité et de leur pluralité d’employeurs, des textes particuliers ont dû fixer les modalités de
+   leur régime de congés payés. Ce sont les articles D. 7121-28 et suivants du Code du travail.
+
+   Association d’employeurs du spectacle vivant et enregistré, agréée par le Ministère du travail, la
+   Caisse des Congés Spectacles a été créée en 1939 pour assurer le service des congés payés aux
+   artistes et techniciens qui n’ont pas été employés de manière continue chez un même employeur
+   pendant les douze mois précédant leur demande de congé et ce, quelle que soit la nationalité du
+   salarié ou la nature du contrat de travail (CDD de droit commun, CDD d’usage, etc).
+
+   Depuis février 2014, Audiens assure, pour le compte de la Caisse des Congés Spectacles, la gestion
+   des congés payés des artistes et techniciens intermittents du spectacle.
+
+
+
+         Fonctionnement
+   • Une cotisation congés est calculée sur chaque bulletin de paie d’artiste ou de technicien
+     embauché sous contrat à durée déterminée de moins de 12 mois. Un certificat d’emploi doit être
+     remis au salarié par son employeur à l’issue de chacun de ses contrats de travail. Un exemplaire
+     est transmis aux Congés Spectacles via la DSN.
+   • La cotisation, uniquement à la charge de l’employeur, est recouvrée par Audiens.
+   • Chaque année, les salariés concernés doivent demander le paiement de leurs congés au titre
+     des activités qu’ils ont exercées du 1er avril de l’année n au 31 mars de l’année n+1.
+   • Les Congés Spectacles leur versent, à compter du 1er mai de l’année n+1, leurs congés en
+     établissant une attestation de paiement.
+
+
+         Exemple (hors application de plafond spécifique prévue par accord ou convention
+         collective)
+
+    1 L’employeur établit le bulletin de salaire de l’artiste qu’il a embauché. Sur ce bulletin la cotisation
+        Congés Spectacles est calculée.
+        Pour la période du 1er avril 2022 au 31 mars 2023, le taux est de 15,40% Il permet de financer
+        l’indemnité de congés qui sera versée :
+        •       Le brut
+        •       La part patronale des cotisations sociales
+        •       Les frais de gestion
+
+              Groupe Audiens • 74 rue Jean Bleuzen • 92177 Vanves Cedex • 0 173 173 000 • www.audiens.org
+                                                             BULLETIN DE PAIE
+                                                                        Période / jours travaillés :    15 janvier 2023
+                                                                        Date de paiement du salaire :   15 janvier 2023
+                   coordonnées de l'employeur                                        coordonnées du salarié
+          nom,                                                          nom, prénom
+          adresse,                                                      adresse
+          n° de SIRET / code NAF                                        N° de ss
+          n° URSSAF                                                     emploi :artiste dramatique
+                                                                        catégorie : non cadre
+          convention collective : Spectacle vivant privé
+          Numéro d'objet :
+
+                              intitulé                     base de calcul   taux    part salariale   taux    part patronale
+          Cachet                                                 1
+          BRUT                                                       400
+          Abattement                                                25%
+          BRUT abattu                                                300
+          URSSAF
+            CSG (déductible fiscalement)                          395,10      6,8      26,87
+            assurance maladie, maternité                          300,00                               4,9      14,70
+            complément assurance maladie                          300,00                               4,2      12,60
+            assurance vieillesse                                  300,00     0,28       0,84          1,33       3,99
+            allocations familliales                               300,00                              2,42       7,25
+            complément allocations familiales                     300,00                              1,26       3,78
+            contribution au dialogue social                       300,00                             0,016       0,05
+            assurance vieillesse TA                               300,00     4,83      14,49          5,99      17,97
+            aide au logement TA                                   334,50                              0,07       0,23
+            accident du travail                                   300,00                              1,19       3,57
+            contribution solidarité autonomie                     300,00                              0,30       0,90
+          Pôle emploi spectacle
+            AC                                                    400,00      2,4      9,60           9,05      36,20
+            Majoration AC                                         400,00                               0,5       2,00
+            FNGS                                                  400,00                              0,15       0,60
+          Groupe Audiens
+            retraite complémentaire T1                            300,00     4,44      13,32          4,45      13,35
+            CEG T1                                                300,00     0,86      2,58           1,29       3,87
+            prévoyance & fds collectif                            202,00     0,12      0,24           1,04       2,10
+            Congés spectacles                                     400,00                              15,4      61,60
+            CASC                                                  300,00                              0,25       0,75
+            FCAP svp                                              400,00                               0,1       0,40
+          Thalie santé                                            300,00                              0,32       0,96
+          Formation professionnelle                               300,00                               2,1       6,30
+
+                                                  Totaux                              67,94                     193,17
+
+                                           Net imposable                                332,06
+
+          CSG et CRDS (non déductible fiscalement)                395,10      2,9      11,46
+
+                             Net à payer avant impôt sur le revenu                     320,60
+
+
+
+
+2 L’artiste fait sa demande de congés à la caisse pour percevoir ses droits.
+
+ 3 Les Congés Spectacles procèdent au virement sur le compte du salarié de son indemnité de congé
+payé et lui délivrent une attestation de paiement.
+
+•      61,60 € ont été versés par l’employeur.
+•      L’indemnité de congés payés est de 10% du salaire de référence (10 % de 400 = 40 €).
+•      La base brute de l’indemnité sera de 40 €.
+•      Il reste 21,60 € pour la part patronale et les frais de gestion.
+
+
+
+
+            Groupe Audiens • 74 rue Jean Bleuzen • 92177 Vanves Cedex • 0 173 173 000 • www.audiens.org
+    L’attestation de paiement Congés Spectacles
+•   Exemple d’une attestation de paiement de juillet 2022 pour un technicien cadre.
+•   Les activités ouvrant droit à indemnité au titre de la période de référence sont de 28 339 €
+•   Le montant brut de ses congés payés est de 2 833,90 €
+
+
+
+
+                                                                                                     FP – Congés spectacles – février 2023
+
+
+
+
+       Groupe Audiens • 74 rue Jean Bleuzen • 92177 Vanves Cedex • 0 173 173 000 • www.audiens.org
+

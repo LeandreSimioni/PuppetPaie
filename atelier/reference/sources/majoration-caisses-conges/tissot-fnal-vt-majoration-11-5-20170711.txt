@@ -1,0 +1,70 @@
+FNAL et versement de transport sur les indemnités de congés payés : comment appliquer la majoration de 11,5 % ?
+
+FNAL et versement de transport sur les indemnités de congés payés : comment appliquer la majoration de 11,5 % ?
+Publié le 17/04/2013 à 00:00 · Modifié le 11/07/2017 à 18:24
+· Dans Rémunération BTP
+· Temps de lecture : 5 min
+
+Congés payés bâtiment Cotisations sociales BTP Salaire BTP Paie BTP
+
+Nous ajouter à vos sources préférées
+Attention
+La réglementation a pu évoluer depuis la publication de cet article. Pensez à vérifier les textes en vigueur.
+
+Les employeurs du Bâtiment doivent acquitter depuis le 1er janvier 2013 la cotisation FNAL et le versement de transport sur les indemnités de congés versées par la Caisse, sous forme d’une majoration de 11,5 % de ces cotisations. Comment appliquer ce prélèvement et régulariser les cotisations ? Quelle est son assiette ? Explications.
+Quelles sont les rémunérations concernées ?
+
+Depuis le 1er janvier 2013, les employeurs du Bâtiment doivent acquitter directement auprès de leur URSSAF , les cotisations FNAL et le versement de transport dus sur les indemnités de congés payés versées par la Caisse. Ce règlement intervient sous forme d’une majoration de 11,5 % de ces cotisations, appliquée uniquement sur les rémunérations des salariés que l’employeur est tenu de déclarer à la Caisse.
+
+Cette majoration ne concerne donc pas les rémunérations des salariés en CDD d’une durée au moins égale à un an, en contrat d’apprentissage ou de professionnalisation , que vous n’avez le cas échéant pas déclaré à la Caisse avec leur accord, et pour lesquels vous assurez vous-même le paiement des indemnités de congés.
+
+Dans le cas général, elle doit toutefois être appliquée aux salaires des apprentis. L’assiette forfaitaire servant de base au calcul des contributions au FNAL et au versement de transport (VT) devant être majorée de 11,5 %.
+
+Notez-le
+
+La majoration doit s’appliquer sur la base forfaitaire des cotisations, quelle que soit la rémunération réelle de l’apprenti.
+
+Comment calculer la majoration ?
+
+Le versement des cotisations FNAL et du VT dus sur les indemnités de congés s’effectue par le biais d’une majoration de l’assiette habituelle de ces contributions.
+
+En cas d’option pour l’abattement de 10 %, ces prélèvements, dont la base est alignée sur celle des cotisations de Sécurité sociale , sont assis sur le brut abattu. L’application de la déduction forfaitaire ne pouvant toutefois permettre de ramener la rémunération soumise à charges en deçà de l’assiette minimum*. Dans un tel cas, les cotisations doivent être calculées sur cette dernière. Dans ce cadre, la majoration de 11,5 % doit donc être également appliquée sur l’assiette minimum des cotisations.
+
+Si la rémunération perçue par le salarié excède le plafond de la Sécurité sociale , seul le montant plafonné du salaire est concerné par la majoration de 11,5 %, pour le calcul de la cotisation FNAL et de la fraction du FNAL supplémentaire (0,40 %). Dans le cas contraire, l’intégralité du salaire doit donner lieu à majoration, sans plafonnement.
+
+Notez-le
+
+Si au cours d’un mois de l’année 2013, l’assiette des cotisations sociales d’un salarié est de 3.000 euros, la base de calcul de la cotisation FNAL plafonnée à 0,10 % sera ainsi de 3.345 euros (3.000 € x 11.5 %), et non, de 3.086 euros (montant correspondant au PMSS applicable à la période). En revanche, si au cours du mois suivant l’assiette des cotisations du salarié est de 3.900 euros, la majoration de 11,5 % sera appliquée sur une assiette plafonnée de 3.441 euros (3.086 € x 11,5 %).
+
+Quelles modalités de régularisation ?
+
+Vous devez majorer de 11,5 % l’assiette plafonnée retenue pour le calcul des cotisations sociales, au titre la régularisation annuelle ou progressive des cotisations.
+
+Nous vous proposons de télécharger des exemples illustrant ce mécanisme de régularisation :
+
+Majoration du FNAL et du versement de transport pour les employeurs affiliés aux Caisses de congés payés – Illustrations de régularisation (pdf | 1 p. | 90 Ko)
+
+Télécharger gratuitement
+
+Ce dispositif ne remet en cause ni la règle de réduction du plafond qui permet dans le BTP de neutraliser les périodes d’absence pour congés indemnisées par la Caisse, ni les règles habituelles de calcul du plafond.
+
+Notez-le
+
+Aucun remboursement de cotisations ne pourra vous être accordé sur la base de la régularisation de l’assiette de calcul du FNAL et du VT, s’il ressort que leur montant après application de la majoration de 11,5 %, n’est pas équivalent à celui qui résulterait de l’application des taux de droit commun aux indemnités de congés payés versées par la Caisse.
+
+Quelles modalités de déclaration ?
+
+La majoration de 11,5 % de l’assiette afférente aux cotisations FNAL et de celle du VT ne donne pas lieu à des modalités déclaratives particulières. Elle doit s’effectuer au moyen des codes types de personnel (CTP) habituellement utilisés pour ces cotisations :
+
+pour le FNAL, le CTP 332, pour les employeurs de moins de 20 salariés et le CTP 236, pour ceux de 20 salariés et plus ;
+
+pour le versement de transport, le CTP 900.
+
+La même règle s’applique à l’assiette forfaitaire des apprentis qui doit être majorée de 11,5 % via les codes suivants :
+
+pour l’ensemble du territoire, hors Alsace-Moselle, le CTP 701 pour les employeurs de moins de 20 salariés et le CTP 703 pour ceux de 20 salariés et plus ;
+
+en Alsace-Moselle, respectivement le CTP 705 et le CTP 707.
+
+Pour toutes vos questions relatives aux indemnités de congés payés, les Editions Tissot vous conseillent leur documentation « Gestion pratique du personnel et des rémunérations du BTP ».
+

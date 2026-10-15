@@ -1,0 +1,117 @@
+ 
+ Windows Installer Properties for the Uninstall Registry Key - Win32 apps | Microsoft Learn 
+ Skip to main content
+ Skip to Ask Learn chat experience
+ This browser is no longer supported. 
+ Upgrade to Microsoft Edge to take advantage of the latest features, security updates, and technical support.
+ Download Microsoft Edge
+ More info about Internet Explorer and Microsoft Edge
+ Table of contents 
+ Exit editor mode 
+ Ask Learn 
+ Ask Learn 
+ Reading mode 
+ Table of contents 
+ Read in English 
+ Add 
+ Add to Plans 
+ Edit 
+ Copy Markdown 
+ Print 
+ Note 
+ Access to this page requires authorization. You can try signing in or changing directories .
+ Access to this page requires authorization. You can try changing directories .
+ Windows Installer Properties for the Uninstall Registry Key 
+ Feedback 
+ Summarize this article for me
+ In this article
+ The following installer properties give the values written under the registry key: 
+ HKEY_LOCAL_MACHINE \ Software \ Microsoft \ Windows \ CurrentVersion \ Uninstall 
+ The values are stored in a subkey identified by the application's product code GUID. 
+ Value 
+ Windows Installer property 
+ DisplayName 
+ ProductName property 
+ DisplayVersion 
+ Derived from ProductVersion property 
+ Publisher 
+ Manufacturer property 
+ VersionMinor 
+ Derived from ProductVersion property 
+ VersionMajor 
+ Derived from ProductVersion property 
+ Version 
+ Derived from ProductVersion property 
+ HelpLink 
+ ARPHELPLINK property 
+ HelpTelephone 
+ ARPHELPTELEPHONE property 
+ InstallDate 
+ The last time this product received service. The value of this property is replaced each time a patch is applied or removed from the product or the /v Command-Line Option is used to repair the product. If the product has received no repairs or patches this property contains the time this product was installed on this computer. 
+ InstallLocation 
+ ARPINSTALLLOCATION property 
+ InstallSource 
+ SourceDir property 
+ URLInfoAbout 
+ ARPURLINFOABOUT property 
+ URLUpdateInfo 
+ ARPURLUPDATEINFO property 
+ AuthorizedCDFPrefix 
+ ARPAUTHORIZEDCDFPREFIX property 
+ Comments 
+ ARPCOMMENTS property Comments provided to the Add or Remove Programs control panel. 
+ Contact 
+ ARPCONTACT property Contact provided to the Add or Remove Programs control panel. 
+ EstimatedSize 
+ Determined and set by the Windows Installer. 
+ Language 
+ ProductLanguage property 
+ ModifyPath 
+ Determined and set by the Windows Installer. 
+ Readme 
+ ARPREADME property Readme provided to the Add or Remove Programs control panel. 
+ UninstallString 
+ Determined and set by Windows Installer. 
+ SettingsIdentifier 
+ MSIARPSETTINGSIDENTIFIER property 
+ Related topics 
+ About Properties 
+ Configuring Add/Remove Programs with Windows Installer 
+ Property Reference 
+ Using Properties 
+ Feedback 
+ Was this page helpful?
+ Yes 
+ No 
+ No 
+ Need help with this topic?
+ Want to try using Ask Learn to clarify or guide you through this topic?
+ Ask Learn 
+ Ask Learn 
+ Suggest a fix? 
+ Additional resources
+ Last updated on 
+ 2021-03-30
+ In this article 
+ Was this page helpful?
+ Need help with this topic?
+ Want to try using Ask Learn to clarify or guide you through this topic?
+ Ask Learn 
+ Ask Learn 
+ Suggest a fix? 
+ en-us 
+ Your Privacy Choices 
+ Theme 
+ Light 
+ Dark 
+ High contrast 
+ AI Disclaimer 
+ Previous Versions 
+ Blog 
+ Contribute 
+ Privacy 
+ Consumer Health Privacy 
+ Terms of Use 
+ Trademarks 
+ © Microsoft 2026 
+ 

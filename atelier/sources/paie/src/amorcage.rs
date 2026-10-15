@@ -30,7 +30,7 @@ pub const ANNULE: &str = "04";
 /// Les types qu'un amorcage admet. Pas de « 03 - annule et remplace integral » : « CCH-15 : Le type de declaration "03 -
 /// declaration annule et remplace integral" est interdit pour une nature de declaration (S20.G00.05.001) "08 -
 /// Signalement amorcage des donnees variables". » (cahier technique 2026.1, p. 135,
-/// `prive/reference/norme-dsn/texte/bloc-S20.G00.05.txt`). Un amorcage se corrige en l'annulant, puis en en deposant
+/// `atelier/reference/norme-dsn/texte/bloc-S20.G00.05.txt`). Un amorcage se corrige en l'annulant, puis en en deposant
 /// un nouveau (§ 1.4.3.4, p. 15). Reste R1 #52.
 const TYPES: [(&str, &str); 2] = [(NORMALE, "normale"), (ANNULE, "annule")];
 

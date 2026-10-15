@@ -11,7 +11,7 @@
 //!     plafond = eur( PSS mensuel x jours de la periode de paie couverts par le contrat / jours du mois )
 //! ```
 //!
-//! Textes (`prive/reference/sources/`) :
+//! Textes (`atelier/reference/sources/`) :
 //! - arrete du 24/01/1975, art. 3, al. 2 (`arrete-1975-artistes-du-spectacle/articles-20261010.md`) : « Pour les
 //!   periodes d'engagement continu inferieures a cinq jours, le plafond [...] applicable a chaque journee de travail
 //!   accomplie par un artiste du spectacle pour un meme employeur est egal a douze fois le plafond horaire, quels que
@@ -220,7 +220,7 @@ pub fn plafond_urssaf(debut: Jour, fin: Jour, artiste: bool, pss: Pss, dates: &[
 /// assiette generale, § 760-770, `boss/boss-assiette-generale-20260801.txt` l. 1033-1072 : « valeur mens. du plafond x
 /// (duree contractuelle + heures complementaires) / duree legale du travail », et l'exemple « Plafond mensuel x
 /// (121,33 h / 151,67 h) x (12 jours / 31 jours) »). `temps_partiel` : (duree du contrat, duree de reference), `None`
-/// sans correction. Le rapport ne depasse jamais 1. Textes : `prive/reference/sources/plafond-temps-partiel/`.
+/// sans correction. Le rapport ne depasse jamais 1. Textes : `atelier/reference/sources/plafond-temps-partiel/`.
 pub fn plafond_permanent(debut_periode: Jour, fin_periode: Jour, temps_partiel: Option<(Decimal, Decimal)>, pss: Pss) -> Resultat<Decimal> {
     let prorata = prorata_calendaire(debut_periode, fin_periode, pss)?;
     match temps_partiel {

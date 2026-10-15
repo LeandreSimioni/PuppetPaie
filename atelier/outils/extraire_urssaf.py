@@ -58,9 +58,10 @@ import sys
 from pathlib import Path
 
 RACINE = Path(__file__).resolve().parent.parent
-# La copie de la source vit avec les donnees (hors depot public), comme les
-# autres : `donnees/sources.json` dit ou et sous quel nom.
-DONNEES = RACINE.parent / "prive" / "reference" / "sources"
+# La copie de la source vit avec les autres textes de reference, dans le depot
+# (`atelier/reference/sources/`, 15/10/2026) : `donnees/sources.json` dit sous
+# quel nom.
+DONNEES = RACINE / "reference" / "sources"
 CIBLE = RACINE.parent / "logiciel" / "donnees" / "urssaf-dpae-base.json"
 
 

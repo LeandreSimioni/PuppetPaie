@@ -1,0 +1,605 @@
+http://boss.gouv.fr/portail/sites/siteboss/accueil/bulletin-de-paie/montant-net-social.html (10/10/2026)
+
+
+
+
+      Accueil > Bulletin de paie > Montant net social
+
+
+
+
+           Version en vigueur au 01/10/2026
+
+            Afficher les différences avec la version précédente
+
+
+
+
+            Montant net social
+
+               Voir le détail de la mise à jour
+
+
+
+            Le 9 bis de l’article R. 3243-1 du code du travail prévoit la définition juridique d’un nouvel agrégat : « le montant net social » (MNS). Le
+            montant net social correspond aux revenus que les bénéficiaires du revenu de solidarité active (RSA) ou de la prime d’activité doivent
+            déclarer pour calculer leurs prestations lors de leur déclaration trimestrielle de ressources. L’objectif poursuivi en affichant le montant
+            net social clairement dans les documents remis aux salariés, aux bénéficiaires de revenus de remplacement ou de tous types de
+            prestations est de simplifier les démarches des bénéficiaires et de faciliter le remplissage des déclarations de ressources.
+            L’information est à la fois transmise par les employeurs aux organismes via la déclaration sociale nominative (DSN) et sera
+            également communiquée aux salariés via leurs bulletins de paie.
+
+            Le « montant net social » est constitué de l’ensemble des sommes brutes correspondant aux rémunérations et revenus de
+            remplacement versés par les employeurs à leurs salariés (salaires, primes, rémunération des heures supplémentaires, avantages en
+            nature, indemnités de rupture, etc.), diminuées des cotisations et contributions sociales qui leur sont applicables.
+
+            Les salariés peuvent trouver toutes les informations utiles sur le mode de calcul du montant net social et son usage sur le portail
+            mesdroitssociaux.gouv.fr               et sur service-public.fr   .
+
+            Le montant net social est l’une des mentions obligatoires devant figurer sur le bulletin de paie (voir rubrique Règles générales
+            relatives au bulletin de paie               ).
+
+
+
+
+                                              I. Modalités d’application de l’arrêté relatif au montant net social
+
+            1. A partir de quelle date le montant net social doit-il figurer sur les bulletins de paie ?
+
+            Les évolutions prévues par l’arrêté sont applicables à toutes les paies réalisées à compter du 1er juillet 2023. Toutefois, il est possible
+            d’appliquer le nouveau modèle de bulletin de paie par anticipation avant cette date.
+
+
+
+            2. Quel modèle appliquer pour des bulletins de paie portant sur des périodes antérieures à juillet 2023 ?
+
+            Le nouveau modèle sera applicable à tous les bulletins de paie édités à compter du 1er juillet 2023. Les bulletins portant sur des
+            périodes d’emploi antérieures devront également indiquer la mention et la valeur du montant net social correspondant à la période de
+            versement.
+
+
+
+            3. Pour les employeurs gérant des situations de décalage de paie ou de paies mixtes avec et sans décalage de
+            paie, à quelle date l’affichage du montant net social est-il obligatoire ?
+
+            En cas d’impossibilité d’afficher le montant net social sur les bulletins de paie liés à l’activité du mois de juin 2023 (versements
+            réalisés en juillet 2023), les employeurs pratiquant le décalage de paie pourront l’afficher à partir des bulletins de paie relatifs à la
+            période d’emploi de juillet 2023 (et donc aux versements réalisés en août 2023).
+4. Le montant net social doit-il être calculé pour tous les salariés ?
+
+Tous les salariés sont concernés par l’affichage du montant net social sur le bulletin de paie. Le montant net social doit être calculé
+par l’employeur pour tous les salariés qu’il emploie et qu’il rémunère. Les salariés expatriés sont donc également concernés par
+l’affichage du montant net social sur leur bulletin de paie.
+
+
+
+5. Les dispositions relatives au bulletin de paie et à l’affichage du montant net social s’appliquent-elles aux
+employeurs publics ?
+
+Les dispositions de l’article R. 3243-1 du code du travail et l’arrêté ne s’appliquent pas directement aux employeurs publics.
+
+Toutefois, les employeurs publics devront également adapter leurs bulletins de paie pour afficher le montant net social de leurs
+agents, susceptibles de percevoir des prestations sociales, et ce quel que soit leur statut : fonctionnaires, stagiaires, apprentis, agents
+contractuels de droit public, agents contractuels de droit privé.
+
+
+
+6. Faut-il calculer un montant net social pour les collaborateurs occasionnels du service public (COSP) ?
+
+Pour les COSP n’ayant pas exercé leur droit d’option au rattachement des sommes tirées de la mission de service public à leurs
+revenus tirés d’activité non salariée (article D. 311-4 du code de la sécurité sociale), deux cas sont à distinguer selon que l’exercice de
+la mission est effectué :
+   dans le prolongement d’une activité salariée principale et en cas d’accord de l'organisme pour le compte duquel est effectuée la
+   mission de service public, auquel cas le calcul, l’affichage des indemnités sur le bulletin de paie et la déclaration du montant net
+   social incombent à leur employeur habituel ;
+   pour le compte d’une entité tierce, auquel cas le calcul, l’affichage des indemnités sur le bulletin de paie et la déclaration du
+   montant net social incombent à ce tiers.
+
+Lorsque la mission de service public n’est pas de nature à créer un lien de subordination, l’édition d’un bulletin de paie est facultative.
+Toutefois l'organisme pour le compte duquel est effectuée la mission de service public doit fournir une attestation de rémunération
+qui mentionne le revenu brut, le détail des cotisations précomptées et le montant de la rémunération nette versée. L’affichage du
+montant net social sur ce document n’est pas obligatoire mais recommandé.
+
+
+
+7. Les rémunérations des artistes-auteurs doivent-elles donner lieu à l’édition d’un bulletin de paie et à l’affichage
+du montant net social ?
+
+Les dispositions de l’article R. 3243-1 du code du travail et l’arrêté ne s’appliquent pas aux artistes-auteurs.
+
+Lorsque la rémunération de l’artiste-auteur fait l’objet d’un précompte des cotisations par le diffuseur ou l’organisme de gestion
+collective, celui-ci délivre un certificat de précompte (article R. 382-27 du code de la sécurité sociale). L’affichage du montant net
+social sur ce document n’est pas obligatoire mais recommandé.
+
+
+
+8. Les rémunérations versées dans le cadre d’un dispositif spécifique de préretraite d’entreprise doivent-elles
+donner lieu à l’édition d’un bulletin de paie et à l’affichage du montant net social ?
+
+Dans le cas d'une préretraite sans rupture du contrat, l’employeur doit délivrer un bulletin de paie conforme au modèle fixé par l’arrêté
+et déclarer le montant net social.
+
+En cas de rupture du contrat de travail, l’édition d’un bulletin de paie est facultative. L’employeur a l’obligation de remettre un
+document synthétisant l’ensemble des sommes et cotisations versées pour ces anciens salariés. L’affichage du montant net social
+sur ce document n’est pas obligatoire mais recommandé.
+
+
+
+9. Les règles sur le montant net social s’appliquent-elles sur le territoire métropolitain et en outre-mer ?
+
+Le montant net social doit être calculé et affiché sur les bulletins de paie à la fois sur le territoire métropolitain et dans les territoires
+d’outre-mer où le code du travail est applicable soit dans les territoires suivants : Guadeloupe, Guyane, Martinique, Mayotte, La
+Réunion, Saint-Barthélemy, Saint-Martin et Saint-Pierre-et-Miquelon.
+
+En revanche, le montant net social ne doit pas être calculé et affiché en Polynésie française, à Wallis-et-Futuna, dans les Terres
+australes et antarctiques françaises et en Nouvelle-Calédonie. De même, le montant net social ne doit pas être calculé et affiché pour
+les salariés employés dans les principautés de Monaco et d’Andorre.
+                                                 II. Calcul du montant net social
+
+A. Principes généraux
+
+Le montant net social n’est ni défini en fonction de l’assiette fiscale, ni de l’assiette sociale. L’ensemble des ressources du salarié est
+ainsi pris en compte, quel que soit leur traitement social ou fiscal.
+
+1. Définition du montant brut
+
+L’ensemble de la rémunération brute du salarié est pris en compte, indépendamment des exonérations, déductions, abattements ou
+franchises applicables et de l’assujettissement fiscal ou social.
+
+Les éléments qui n’entrent pas en ligne de compte sont soit des données de paie qui ne sont pas des revenus soit, par exception,
+certains éléments de revenu qui restent totalement non pris en compte.
+
+De manière non exhaustive, les éléments les plus courants à prendre en compte et à ne pas prendre en compte sont les suivants :
+
+
+ Eléments pris en compte dans le MNS                                           Eléments non pris en compte dans le MNS
+     Le montant brut des revenus d’activité (salaire de base,                 Les remboursements de frais professionnels (au réel
+     gratifications, primes de toute nature) ;                                ou forfaitaires) dans la limite de chacun de leurs
+     Le montant brut de la rémunération des apprentis et contrat              plafonds d’exonération (ex : nourriture, grand
+     d’accompagnement dans l’emploi ;                                         déplacement, trajet domicile-travail, indemnité
+     Les gratifications versées à l’occasion de stages en entreprise          forfaitaire de télétravail, les indemnités d’entretien des
+     (pour leur intégralité) ;                                                assistants maternels, etc.). Les remboursements qui
+     Les primes de toute nature (y compris celles versées en cas              ne respectent pas les conditions pour être regardés
+     d’impatriation ou d’expatriation, ou celles exonérées comme la           comme tels sont, en effet, des éléments de revenu ;
+     prime de partage de la valeur) ;                                         Les avantages en nature ou en espèces exemptés
+     La totalité des avantages en nature ou en espèces assujettis,            socialement et fiscalement liés aux activités sociales
+     évalués sur une base réelle ou forfaitaire ;                             (nourriture, avantages tarifaires, activités sociales et
+     La participation des employeurs aux chèques-vacances et au               culturelles des CSE) ;
+     financement des services à la personne (y compris la part                L’intéressement et la participation ainsi que les
+     exemptée socialement) ;                                                  primes de partage de la valeur (PPV) placés sur des
+     La part patronale pour le financement des garanties collectives à la     plans d’épargne (y compris la CSG/CRDS calculée sur
+     complémentaire santé obligatoire (couverture des frais                   ces sommes ;
+     occasionnés par une maladie, une maternité ou un accident dits           Les abondements de l’employeur aux plans
+     « frais de santé ») prévue au III de l’article L. 911-7 du code de la    d’épargne ;
+     sécurité sociale et des options individuelles rattachées à ces           Les sommes issues d’un compte épargne temps
+     garanties, ainsi que pour le financement des garanties collectives       (CET) ou de jours de repos non pris transférés sur un
+     mentionnées à l’article L.911-1 du code de la sécurité sociale, et le    plan d’épargne pour la retraite collectif (PERCO).
+     versement santé prévu à l’article L. 911-7-1 du code de la sécurité
+     sociale ;
+     Les montants bruts versés au titre du maintien de salaire, des
+     allocations complémentaires aux indemnités journalières de
+     sécurité sociale, des indemnités complémentaires d’activité
+     partielle ;
+     La rémunération perçue en contrepartie des périodes de congés ou
+     de repos non prises et issues du compte épargne temps ;
+     Le montant brut des heures supplémentaires, complémentaires et
+     JRTT monétisés ;
+     Les indemnités de congés payés versées par l’employeur qui
+     figurent sur le bulletin de paie (pour information le montant net
+     social relatif aux indemnités versées directement par les caisses de
+     congés payés aux salariés sera notifié et déclaré par ces caisses) ;
+     Les avantages de pré-retraite et de cessation anticipée de certains
+     travailleurs salariés (Cats) ;
+     La participation et l’intéressement et les primes de partage de la
+     valeur (PPV), uniquement lorsque les sommes sont directement
+     versées par l’employeur au salarié (pour information le montant net
+     social relatif à la participation ou à l’intéressement qui n’est pas
+     versé par l’employeur mais par un organisme externe à l’entreprise
+     sera notifié et déclaré directement par cet organisme) ;
+     Les jetons de présence ;
+     Les indemnités de rupture de toute nature ;
+     Les revenus de remplacement versés directement par l'employeur,
+     notamment les indemnités journalières de sécurité sociale en cas
+     de subrogation par l'employeur (par exemple les indemnités légales
+     d’activité partielle, les indemnités versées dans le cadre d’un congé
+     de reclassement, les avantages de pré-retraite, les allocations de
+     chômage intempérie, les indemnités de cessation d’activité versées
+     aux salariés exposés à l’amiante, etc.) ;
+     Supplément familial de traitement, y compris dans le cas où il est
+     reversé en partie ou en totalité au parent ex-conjoint de l’agent ;
+     Les indemnités de dédit de formation ;
+     L’aide à la reprise ou à la création d’entreprise (ARCE).
+
+
+
+L’ensemble des revenus mentionnés sont pris en compte même en cas de saisies sur salaire et créances de pension alimentaire. Il en
+va de même du supplément familial de traitement, qui est pris en compte y compris dans le cas où il est reversé en partie ou en
+totalité au parent ex-conjoint de l’agent.
+
+2. Déductions (voir point 18 de la rubrique « Bulletin de paie »)
+L’ensemble des cotisations et contributions sociales obligatoires d’origine légale ou conventionnelle à la charge du salarié rendues
+obligatoires par la loi, c’est-à-dire applicables quel que soit le secteur d’activité ou leur statut, les cotisations salariales à la
+complémentaire santé prévue à l’article L. 911-7 du CSS (frais occasionnés par une maladie, une maternité ou un accident dits « frais
+de santé », dont les options individuelles rattachées à des garanties collectives) ainsi que les contributions à la charge du salarié pour
+le financement des garanties collectives mentionnées à l’article L.911-1 du code de la sécurité sociale sont déduites.
+
+Les contributions et cotisations salariales à déduire sont celles effectivement acquittées (« payées ») par le salarié.
+
+Pour rappel, font partie des contributions et cotisations sociales à déduire car prévues ou rendues obligatoires par la loi :
+   L’ensemble des cotisations et contributions sociales d’origine légale ou conventionnelle à la charge du salarié ;
+   La contribution sociale généralisée (CSG) après application de l’abattement de 1,75 % pour frais professionnels ;
+   La contribution sociale spécifique mahoraise ;
+   La contribution au remboursement de la dette sociale (CRDS) après application de l’abattement de 1,75 % pour frais
+   professionnels ;
+   Les cotisations de sécurité sociale aux régimes de base et complémentaires à la charge du salarié ;
+   La cotisation d'assurance maladie, maternité, invalidité et décès prévue à l’article L. 131-2 du code de la sécurité sociale ;
+   La cotisation d’assurance maladie (COTAM) prévue à l’article L. 131-9 du code de la sécurité sociale ;
+   La cotisation au régime local d'assurance maladie complémentaire obligatoire des départements du Haut-Rhin, du Bas-Rhin et de
+   la Moselle prévue à l’article L. 242-13 du code de la sécurité sociale.
+
+Par ailleurs, doivent être déduites les contributions sociales à la charge du salarié pour le financement des garanties collectives
+mentionnées à l’article L.911-1 du code de la sécurité sociale (prévoyance et retraite supplémentaire).
+
+10. Pour obtenir le montant net social, l’arrêté prévoit la déduction du montant total des cotisations sociales d’origine légale et
+conventionnelle à la charge du salarié : à quoi correspondent les « cotisations conventionnelles » ?
+
+L’arrêté vise le montant total des cotisations et contributions sociales d'origine légale ou conventionnelle à la charge du salarié pour
+déterminer le montant net social.
+
+Les cotisations et contributions « conventionnelles » mentionnées dans l’arrêté sont les cotisations et contributions dont le principe a
+été prévu par des conventions collectives mais qui ont été rendues obligatoires par la loi (ce qui comprend les cotisations salariales à
+la retraite complémentaire Association générale des institutions de retraite des cadres - Association pour le régime de retraite
+complémentaire des salariés AGIRC-ARRCO, cotisations salariales à l’assurance chômage et les cotisations à la complémentaire
+santé).
+
+
+Sont également déduites les cotisations et contributions conventionnelles finançant des garanties collectives mentionnées à l’article
+L.911-1 du code de la sécurité sociale
+
+10 bis. A quoi correspond le champ des garanties de prévoyance ?
+
+Sont concernés les risques de décès, d'incapacité de travail ou d'invalidité, d'inaptitude, de chômage et de dépendance ou de perte
+d’autonomie.
+
+
+
+B. Précisions sur les éléments à prendre en compte et à ne pas prendre en compte dans le montant brut
+
+11. Les gratifications de stage doivent-elles donner lieu systématiquement à l’édition d’un bulletin de paie et doivent-elles être
+prises en compte dans le calcul du montant net social ?
+
+Les gratifications des stagiaires sont des rémunérations. Elles doivent donc être prises en compte. Lorsque la rémunération est
+inférieure au seuil de franchise de cotisations en deçà duquel la remise d’un bulletin de salaire n’est pas obligatoire, comme prévu par
+l’article D. 124-9 du code de l’éducation, l’organisme d’accueil doit fournir une attestation qui mentionne la durée du stage et le
+montant total de la gratification. L’affichage du montant net social sur ce document n’est pas obligatoire mais recommandé pour
+faciliter les démarches des stagiaires.
+
+12. Les indemnités spécifiques versées par la SNCF (suppléments de rémunération) à ses salariés doivent-elles être prises en
+compte dans le montant net social ?
+
+Les suppléments de rémunération propres à la SNCF sont à intégrer dans le montant net social.
+
+13. La part des contributions des employeurs à la prévoyance ou à la retraite supplémentaire qui dépasse les limites
+d’exonération prévues à l’article D. 242-1 du code de la sécurité sociale est-elle prise en compte dans le montant net social ?
+
+L’ensemble des contributions des employeurs finançant la couverture de garanties collectives en matière de prévoyance ou de
+retraite supplémentaire doivent être prises en compte dans le montant net social, qu’elles soient inférieures aux limites d’exonération
+ou qu’elles dépassent ces limites. Les cotisations salariales, en revanche, sont déduites du montant net social.
+
+13 bis. Les indemnités journalières de sécurité sociale, y compris dans les cas de subrogation de l’employeur, doivent-elles être
+prises en compte dans le montant net social figurant sur le bulletin de paie ?
+
+Oui, cependant deux situations sont à distinguer.
+En cas de subrogation par l’employeur, les indemnités journalières de sécurité sociale sont intégrées dans le montant net social,
+déclaré et pris en compte dans le montant net social pour leur montant net des prélèvements sociaux applicables (CSG/CRDS
+notamment).
+
+
+Dans le cas où les indemnités journalières de sécurité sociale sont versées directement au salarié par les organismes d’assurance
+maladie, elles sont intégrées dans le montant net social qui est affiché et déclaré par ces derniers.
+
+14. Le versement santé doit-il être pris en compte dans le montant net social ?
+
+Le versement santé est bien à prendre en compte dans le montant net social au même titre que la part patronale pour le financement
+des garanties collectives à la complémentaire santé obligatoire (couverture des frais occasionnés par une maladie, une maternité ou
+un accident dits « frais de santé ») prévue au III de l’article L. 911-7 du code de la sécurité sociale.
+
+15. Les indemnités complémentaires aux indemnités journalières de sécurité sociale versées dans le cadre d’un contrat de
+prévoyance doivent-elles être prises en compte dans le montant net social lorsqu’elles ne sont pas soumises à cotisations
+sociales ?
+
+Les indemnités complémentaires aux indemnités journalières de sécurité sociale versées dans le cadre d’un contrat de prévoyance
+doivent être intégrées dans le montant net social indépendamment des exonérations, déductions, abattements ou franchises
+applicables et de l’assujettissement fiscal ou social. Ainsi, les indemnités complémentaires aux indemnités journalières de sécurité
+sociale qui ne sont pas soumises à cotisations sociales doivent être intégrées dans le montant net social.
+
+16. La « monétisation du compte épargne temps (CET) » est-elle prise en compte dans le montant net social?
+
+Oui, la « monétisation du CET », qui correspond à la rémunération perçue en contrepartie des périodes de congés ou de repos non
+prises et issues du compte épargne temps, est bien prise en compte dans le montant net social.
+
+17. Les sommes issues d’un compte épargne temps (CET) ou de jours de repos non pris transférés sur un plan d’épargne pour la
+retraite collectif (PERCO) doivent-elles être prises en compte dans le montant net social ?
+
+Non, les sommes issues d’un CET ou de jours de repos non pris placés sur un PERCO ne doivent pas être pris en compte dans le
+montant net social puisqu’aucun versement au salarié n’est établi.
+
+18. L’intéressement et la participation versés directement au salarié ne figurent pas sur le bulletin de paie mais doivent-ils être
+pris en compte dans le montant net social ?
+
+Oui, ils doivent bien être pris en compte dans le montant net social. Ce montant doit être affiché sur le bordereau de versement
+distinct du bulletin de paie, lorsque ces sommes sont versées directement et ne sont pas placées.
+
+19. L’employeur doit-il calculer un montant net social pour la participation et l’intéressement des salariés ayant quitté l’entreprise
+placés auprès de teneurs de comptes ?
+
+Comme précisé à la question 1, l’intéressement et la participation placés sur des plans d’épargne ne doivent pas être pris en compte
+dans le montant net social puisqu’aucun versement n’est établi et qu’aucun bulletin de paie ne le mentionne. Cette règle concerne
+tous les salariés.
+
+20. Les indemnités de rupture conventionnelle, qui sont exonérées de cotisations sociales sous plafond, doivent-elles être prises
+en compte dans le montant net social ?
+
+Les indemnités de rupture conventionnelle doivent bien être intégrées dans le montant net social.
+
+21. Les indemnités de conciliation prud’homale et les intérêts moratoires à la suite d’une décision de justice doivent-ils être pris
+en compte dans le montant net social ?
+
+Les indemnités de conciliation prud’homale sont des indemnités de rupture du contrat de travail et doivent donc être prises en
+compte dans le montant net social.
+
+Les intérêts moratoires versés à la suite d’une décision de justice, les dommages et intérêts quel que soit le préjudice subi ainsi que
+l’ensemble des sommes visées à l’article 700 du code de procédure civile ne sont pas des indemnités de rupture du contrat de travail
+et ne doivent donc pas être pris en compte dans le montant net social.
+
+22. Les dommages et intérêts versés suite à un jugement prud’homal sont-ils pris en compte dans le montant net social ?
+
+Les dommages et intérêts versés suite à un jugement prud’homal ne doivent pas être pris en compte dans le montant net social, ils
+ne constituent pas des indemnités de rupture du contrat de travail.
+
+23. La participation patronale au financement des titres restaurant est-elle à inclure dans le montant net social, comme la
+participation patronale aux chèques vacances ?
+
+Lorsque la part patronale des titres restaurants respecte les conditions d’exonération, elle ne doit pas être prise en compte dans le
+montant net social (elle n’est pas déduite et elle n’est pas ajoutée au montant brut du montant net social), tout comme ne l’est pas la
+participation d’un employeur à un restaurant d’entreprise. Toutefois, lorsqu’une fraction de la part patronale des titres restaurant est
+assujettie à cotisations sociales et apparaît sur le bulletin de paie : cette fraction correspond à un avantage en nature qui est assujetti
+à cotisations sociales. Elle doit être prise en compte dans le montant brut du montant net social (elle est ajoutée à la rémunération
+versée au salarié).
+Enfin, s’agissant de la participation salariale au financement des titres restaurant dans le calcul du montant net social, elle n’est pas
+déduite du montant net social.
+
+24. La participation de l’employeur au financement des frais de garde d’enfants doit-elle être prise en compte dans le montant net
+social ?
+
+Les participations de l’employeur aux frais de crèche, comme le chèque emploi-service universel (CESU), doivent être intégrées dans
+le montant net social. Elles sont à ce titre visées dans le tableau du A du 1 de la partie II.
+
+25. Les primes versées à l’occasion de l’attribution de médailles d’honneur du travail sont-elles prises en compte dans le net
+social ?
+
+Non, la prime versée par le comité social et économique (CSE) ou par l’employeur, à l’occasion de (ou concomitamment à) l’attribution
+d’une médaille d’honneur du travail ou d’une médaille s’y substituant ne doit pas être intégrée dans le montant net social, dans la
+mesure où elle constitue un avantage en espèces qui est exempté socialement. Toutefois, lorsque le montant de la prime versée
+excède le salaire mensuel de base du bénéficiaire et est assujetti à cotisations sociales, la prime constitue un avantage en espèces
+assujetti et est ainsi intégrée dans le montant net social.
+
+26. Pour les salariés bénéficiant de la déduction forfaitaire spécifique pour frais professionnels (DFS), faut-il déduire le montant
+de l’abattement dans le calcul du montant net social ?
+
+Comme précisé dans le tableau du A du 1 de la partie II, l’ensemble de la rémunération brute du salarié est pris en compte,
+indépendamment des abattements applicables. Seules les cotisations et contributions sociales à la charge du salarié sont à déduire
+du montant net social. Le montant net social ne doit donc pas être diminué du montant de l’abattement pour les salariés bénéficiant
+de la déduction forfaitaire spécifique (DFS).
+
+27. Les remboursements de frais professionnels soumis à cotisations dans le cadre de l’application de la déduction forfaitaire
+spécifique pour frais professionnels (DFS) doivent-ils être pris en compte dans le montant net social ?
+
+Comme précisé dans le tableau du A du 1 de la partie II, les remboursements de frais professionnels ne sont pas à inclure dans le
+montant net social. De même, les remboursements de frais professionnels soumis à cotisations du fait de l’application de la DFS ne
+sont pas à inclure dans le montant net social.
+
+
+
+C. Précisions sur les déductions à opérer à partir du montant brut
+
+28. Les exonérations et allègements de cotisations sociales sont-elles à déduire du montant net social?
+
+Les contributions et cotisations salariales à déduire sont celles effectivement acquittées (« payées ») par le salarié.
+
+Pour la prise en compte des exonérations et allègements, le calcul dépend de l’affichage sur le bulletin de paie du montant des
+exonérations et allègements :
+   Si le montant est en valeur négative, on soustrait le montant des exonérations et allègements de cotisations aux contributions et
+   cotisations salariales à déduire ;
+   Si le montant est en valeur positive, on ajoute le montant des exonérations et allègements de cotisations aux contributions et
+   cotisations salariales à déduire.
+
+29. S’agissant de la protection sociale complémentaire, quelles contributions doivent-être déduites ?
+
+Les cotisations salariales à la complémentaire santé prévue à l’article L. 911-7 du code de la sécurité sociale (frais occasionnés par
+une maladie, une maternité ou un accident dits « frais de santé ») ainsi que les cotisations et contributions à la charge du salarié pour
+le financement de garanties collectives visant à couvrir les risques relatifs à la prévoyance et à financer des prestations de retraite
+supplémentaire sont déduites.
+
+Ainsi, plus précisément :
+   La contribution patronale à la complémentaire santé prévue à l’article L. 911-7 du code de la sécurité sociale (frais occasionnés
+   par une maladie, une maternité ou un accident dits « frais de santé ») doit être intégrée au montant net social ;
+   La part salariale obligatoire à la complémentaire santé prévue à l’article L. 911-7 du code de la sécurité sociale (frais occasionnés
+   par une maladie, une maternité ou un accident dits « frais de santé ») doit être déduite du montant net social ;
+   La contribution patronale du financement des garanties collectives, mentionnées à l’article L.911-1 du code de la sécurité sociale,
+   doit être intégrée au montant net social ;
+   La part salariale du financement des garanties collectives mentionnées à l’article L. 911-1 du code de la sécurité sociale doit être
+   déduite du montant net social ;
+
+30. Dans le cas où le comité social et économique (CSE) prend en charge une partie de la cotisation salariale obligatoire due pour
+le financement des garanties de frais de santé (mutuelle), doit-on prendre en compte cette participation du CSE dans le montant
+net social ?
+
+Les avantages en nature ou en espèces exemptés socialement et fiscalement liés aux activités sociales (nourriture, avantages
+tarifaires, activités sociales et culturelles des CSE) dont bénéficient les salariés ne sont pas pris en compte dans le montant net
+social. Ainsi, dans le cas où le CSE prend en charge une partie de la cotisation salariale obligatoire due pour le financement des
+garanties de frais de santé (mutuelle du salarié), cette participation ne doit pas être prise en compte dans le montant net social.
+31. Dans le cas des salariés qui surcotisent à la retraite complémentaire (taux de cotisations de l’entreprise supérieurs aux taux
+légaux ou conventionnels), quelle déduction opérer ?
+
+Comme précisé dans l’arrêté du 31 janvier 2023, la totalité des cotisations salariales de retraite complémentaire doivent être déduites
+quel que soit le taux appliqué. Par conséquent, la part excédentaire des cotisations salariales doit être déduite de la rémunération
+brute.
+
+32. Dans le cas des salariés à temps partiel qui surcotisent car les cotisations appliquées sur leur rémunération sont
+équivalentes à un temps plein (surcotisation), quelle déduction opérer ?
+
+L’ensemble des cotisations et contributions sociales appliquées sur la rémunération versée au salarié doivent être déduites, y
+compris en cas de surcotisation du salarié.
+
+33. La cotisation d’assurance maladie (COTAM) à la charge des salariés non-résidents doit-elle être prise en compte dans le
+calcul du montant net social ?
+
+Non, cette cotisation salariale doit être déduite dans le calcul du montant net social. C’est une cotisation prévue par la loi.
+
+34. Dans le cas des salariés expatriés, les cotisations salariales et/ou patronales à la Caisse des Français de l’Etranger (CFE) et
+les cotisations salariales et/ou patronales de retraite complémentaire doivent-elles être déduites du montant net social ?
+
+S’agissant des cotisations à la Caisse des Français de l’Etranger (CFE), à la charge du salarié, elles ne doivent pas être déduites de la
+rémunération brute pour établir le montant net social dans la mesure où elles ne sont pas des prélèvements rendus obligatoires par la
+loi (cf. A du 1 de la présente partie II.). Si les cotisations à la CFE sont prises en charge par l’employeur, elles doivent être ajoutées au
+montant brut lors du calcul du montant net social, compte tenu du fait qu’elles sont des cotisations facultatives.
+
+S’agissant des cotisations de retraite complémentaire, dans la mesure où ces cotisations sont également facultatives :
+   lorsqu’elles sont à la charge du salarié, elles ne doivent pas être déduites de la rémunération brute pour établir le montant net
+   social du salarié ;
+   lorsqu’elles sont à la charge de l’employeur, elles doivent être ajoutées au montant brut lors du calcul du montant net social.
+
+
+D. Modalités de calcul spécifiques
+
+35. Comment les rappels de salaire et les régularisations de cotisations doivent-ils être pris en compte dans le montant net
+social ?
+
+Les rappels de salaire et régularisations de cotisations, y compris lorsqu’ils portent sur une période d’emploi antérieure à la période de
+paie, doivent être pris en compte dans le montant net social du mois lors duquel ce rappel ou cette régularisation est effectué. Le
+montant net social est donc, à l’instar du net fiscal, toujours rattaché à la période de versement.
+   Si seul le calcul du montant net social affiché et déclaré est erroné, mais que le montant effectivement versé au salarié était
+   correct, il convient de corriger l’information qui a été déclarée et fournie au salarié. Il est probable, dans ce cas, que d’autres
+   informations du bulletin et de la déclaration étaient également erronées. Il convient donc de produire un nouveau bulletin de paie
+   pour la période concernée, ou de procéder à ces régularisations sur le bulletin d’une période suivante, et de corriger la déclaration,
+   en rattachant la correction à la période d’emploi concernée ;
+   Si, en revanche, l’erreur porte sur le montant des éléments de rémunération effectivement versés au salarié et que le montant net
+   social déclaré et affiché sur le bulletin de paie correspondait au montant versé, il n’y a pas lieu de corriger le montant net social du
+   mois auquel se rattache l’erreur. Dans ce cas, la correction est réalisée et rattachée à la période d’emploi antérieure concernée,
+   sans modification du montant net social de cette période. En revanche, le montant net social de la période lors de laquelle ces
+   erreurs sont corrigées (versement supplémentaire ou récupération de sommes auprès du salarié) tiendra compte de ces
+   corrections.
+
+Si le rappel conduit à un montant net social négatif, il devra être indiqué comme tel sur le bulletin de paie.
+
+36. « Le maintien de garantie sur le net » ou « l’ajustement au net » doivent-ils être pris en compte dans le montant net social ?
+
+Le mécanisme de garantie sur le net permet à l’employeur, en cas de maintien de salaire, d’ajuster le montant brut de la rémunération
+habituelle du salarié afin de tenir compte de l’absence de cotisations salariales et de l’application du taux de CSG de remplacement de
+6,2 % sur les indemnités journalières de sécurité sociale (IJSS) afin d’empêcher que le salaire net versé ne soit supérieur au salaire
+habituel. Il convient donc de prendre en compte cet ajustement dans le montant net social (déduction du salaire brut habituel).
+
+
+
+
+                                III. Affichage du montant net social sur le bulletin de paie
+
+37. Que doit-on indiquer sur le bulletin de paie lorsque les calculs aboutissent à un montant net social négatif ?
+
+Si le calcul conduit à un montant net social négatif, il convient d’afficher ce MNS négatif sur le bulletin de paie, même si le net à payer
+est affiché à zéro.
+De même, en cas de trop versé, le montant net social devra être indiqué avec une valeur négative, à condition que l’employeur
+demande le remboursement au salarié.
+
+Exemple :
+
+  Un salarié est absent tout le mois et n’est pas rémunéré pendant cette période. Il continue de verser sa cotisation due pour le
+  financement des garanties de frais de santé (mutuelle). Dans ce cas, le salaire net à payer indiqué sur son bulletin de paie sera
+  de zéro, mais le montant net social sera négatif puisque sa cotisation doit être déduite.
+
+
+
+
+38. Doit-on afficher un cumul du montant net social ?
+
+Aucun cumul des montants nets sociaux au cours de l’année ou sur l’ensemble d’une autre période ne doit être affiché sur le bulletin
+de paie.
+
+
+
+39. Où afficher les compléments de rémunération non soumis à cotisations et n’entrant pas dans le montant net
+social (indemnités journalières de sécurité sociale nettes, participation placée, etc.) ?
+
+La rubrique « remboursement et déductions diverses » est prévue à cet effet et son affichage est libre. Ainsi, peuvent y être
+directement indiquées les différentes natures de compléments de rémunération. Ceux-ci peuvent également être regroupés dans la
+rubrique « autres » dont le détail pourra être fourni au verso du bulletin de paie ou sur un document annexe.
+
+
+
+40. Les revenus de remplacement (indemnités journalières complémentaires) versés directement au salarié par un
+organisme de prévoyance doivent-ils être affichés dans le montant net social calculé par l’employeur au moment
+de la paie ?
+
+Seuls les revenus de remplacement ou assimilés versés directement par l’employeur sont affichés et déclarés en DSN par
+l’employeur.
+
+Si ces revenus sont versés directement au salarié par l’organisme de prévoyance, alors le montant net social correspondant sera
+déclaré et indiqué sur le relevé de prestations délivré par cet organisme.
+
+
+
+41. Comment le montant net social doit-il être corrigé en cas d’erreur ?
+
+Le montant net social mentionné est celui correspondant aux salaires versés lors de cette échéance de paie. A l’instar du net fiscal,
+en cas de modification, une correction entraînant un versement ou un rappel doit être pris en compte dans le montant net social du
+mois lors duquel ce rappel ou ce versement est effectué. Le montant net social est donc toujours rattaché à la période de versement.
+
+Ainsi, si la paie est erronée, notamment si les assiettes et taux de cotisations sont affectés d’erreurs mais que le calcul du montant
+net social déclaré et affiché sur le bulletin de paie était cohérent avec les rémunérations versées, il n’y a pas lieu de corriger le
+« montant net social » du mois auquel se rattachent ces erreurs. Dans ce cas, la correction de ces erreurs est réalisée et rattachée à
+la période d’emploi antérieure concernée, mais sans modification du montant net social de cette période. En revanche, le « montant
+net social » correspondant à la période lors de laquelle ces erreurs sont corrigées (et qui conduisent à un versement supplémentaire
+ou à la récupération de sommes auprès du salarié) tiendra compte de ces corrections. Il convient par ailleurs de corriger directement
+le bulletin de paie erroné ou de régulariser la situation sur le bulletin de paie de la période courante.
+
+En revanche, si seul le montant net social est erroné alors que l’ensemble des éléments de la paie, notamment les assiettes et taux de
+cotisations, sont corrects, et que le montant effectivement versé au salarié était donc bien celui devant être versé, l’information
+déclarée et fournie au salarié au titre de son « montant net social » pour ce même mois doit être corrigée. Il convient donc de produire
+un nouveau bulletin de paie pour la période concernée, ou de procéder à une régularisation sur le bulletin de paie de la période
+courante et de corriger la déclaration, en précisant quel était le montant net social effectivement versé au titre de cette période.
+
+
+
+42. Que faire si le logiciel de paie ne permet pas d’afficher et de déclarer le montant net social du salarié sur son
+bulletin de paie de juillet ?
+
+Une mise en conformité rapide du logiciel est nécessaire. A défaut, une sanction pourra être appliquée pour non-respect des
+obligations déclaratives.
+
+
+
+43. Puis-je afficher un montant net social égal à zéro si je suis en incapacité de le calculer en 2023 ?
+
+En cas d’impossibilité de calculer le montant net social, il ne faut en aucun cas afficher un montant net social égal à zéro, puisqu’il ne
+correspondrait pas à la réalité. En effet, cette mention induira les salariés en erreur et générera des risques pour le calcul des
+prestations. Dans ce cas-là, cette rubrique doit rester vide ou « non renseignée ».
+44. Que faire si le salarié est en désaccord avec le montant net social affiché sur son bulletin de paie de juillet ?
+
+Si le désaccord porte sur le calcul de la paie elle-même et a une conséquence sur le montant net à payer, il doit être traité comme tout
+désaccord portant sur la paie des salariés au sein de l’entreprise. Il en va de même si le salarié fait valoir que les règles pour calculer
+le montant net social n’ont pas été respectées
+
+Si le désaccord porte sur la nature des sommes prises en compte pour le calcul du montant net social, sans incidence avec les
+sommes payées et sans erreur de calcul, les employeurs sont invités à informer les salariés au moyen des supports d’information
+mis à disposition (« Montant net social et bulletins de paie : documents utiles     ») pour expliquer son calcul. Les employeurs ne sont
+pas responsables des règles retenues pour réaliser ce calcul.
+
+Par ailleurs, en cas de désaccord du salarié sur le montant du net social affiché sur son bulletin de paie ou transmis en DSN, celui-ci
+pourra exercer à compter de 2024 son droit à la rectification en effectuant un signalement sur le portail
+www.mesdroitssociaux.gouv.fr. Dans l’attente, toute anomalie doit directement être signalée auprès de son employeur.
+
+
+
+                                                                                                                         Mis à jour le 02/10/2026
+

@@ -1,0 +1,390 @@
+# Chapitre 8
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 116-127
+
+--- p. 116 ---
+  8 Principes de constitution des messages  2026-06-10
+
+8 Arborescences
+Dans les pages qui suivent, on présente les arborescences (blocs avec cardinalités) pour les
+modèles de déclaration :
+- DSN Mensuelle
+- Signalement Évènementiel Arrêt de travail
+- Signalement Évènementiel Reprise suite à arrêt de travail
+- Signalement Évènementiel Fin du contrat de travail Unique
+- Signalement Évènementiel Amorçage des données variables
+- DSN de substitution
+- Signalement Évènementiel Déclaration préalable à l'embauche
+
+  116 / 370
+
+--- p. 117 ---
+  DSN  2026-06-10
+
+DSN
+ DSN
+  S10.G00.00 - Envoi (1,1)
+  S10.G00.01 - Emetteur (1,1)
+  S10.G00.02 - Contact Emetteur (1,1)
+  S20.G00.05 - DSN Mensuelle
+  S20.G00.05 - DSN SIGNAL REPRISE TRAVAIL
+  S20.G00.05 - DSN SIGNAL ARRET TRAVAIL
+  S20.G00.05 - DSN SIGNAL FIN CONTRAT UNIQUE
+  S20.G00.05 - DSN SIGNAL AMORCAGE
+  S20.G00.05 - DSN SUBSTITUTION
+  S20.G00.05 - DSN SIGNAL DECLARATION PREALABLE EMBAUCHE
+  S90.G00.90 - Total de l'envoi (1,1)
+
+  117 / 370
+
+--- p. 118 ---
+  DSN  2026-06-10
+
+DSN Mensuelle
+ S20.G00.05-DSN Mensuelle
+
+  S20.G00.07 - Contact chez le déclaré (0,*)
+
+  S20.G00.08 - Identifiant de l’organisme destinataire de la déclaration « Absence de rattachement pour le mois principal déclaré » (0,*)
+
+  S21.G00.06 - Entreprise (1,1)
+
+  S21.G00.13 - Complément OETH(0,*)
+
+  S21.G00.11 - Etablissement(1,1)
+
+  S21.G00.12 - Coordonnées bancaires spécifiques(0,*)
+
+  S21.G00.15 - Adhésion Prévoyance(0,*)
+
+  S21.G00.16 - Changements destinataire Adhésion Prévoyance(0,*)
+
+  S21.G00.82 - Cotisation établissement(0,*)
+
+  S21.G00.20 - Versement organisme de protection sociale(0,*)
+
+  S21.G00.55 - Composant de versement(0,*)
+
+  S21.G00.22 - Bordereau de cotisation due(0,*)
+
+  S21.G00.23 - Cotisation agrégée(0,*)
+
+  S21.G00.44 - Assujettissement fiscal(0,*)
+
+  S21.G00.30 - Individu(0,*)
+
+  S21.G00.31 - Changements Individu(0,*)
+
+  S21.G00.34 - Compte Professionnel de Prévention (Ex-Pénibilité)(0,*)
+
+  S21.G00.40 - Contrat (contrat de travail, convention, mandat)(1,*)
+
+  S21.G00.41 - Changements Contrat(0,*)
+
+  S21.G00.60 - Arrêt de travail(0,*)
+
+  S21.G00.66 - Temps partiel Thérapeutique(0,*)
+
+  S21.G00.62 - Fin du contrat(0,1)
+
+  S21.G00.65 - Autre suspension de l'exécution du contrat(0,*)
+
+  S21.G00.75 - Aménagement du temps de travail(0,*)
+
+  S21.G00.70 - Affiliation Prévoyance(0,*)
+
+  S21.G00.73 - Ayant-droit(0,*)
+
+  S21.G00.71 - Retraite complémentaire(1,*)
+
+  S21.G00.72 - Affiliation à tort à un régime de retraite complémentaire(0,*)
+
+  S21.G00.50 - Versement individu(1,*)
+
+  S21.G00.51 - Rémunération(1,*)
+
+  S21.G00.53 - Activité(0,*)
+
+  S21.G00.52 - Prime, gratification et indemnité(0,*)
+
+  S21.G00.59 - Elément de revenu associé à des droits spécifiques(0,*)
+
+  S21.G00.54 - Autre élément de revenu brut(0,*)
+
+  S21.G00.56 - Régularisation de prélèvement à la source(0,*)
+
+  S21.G00.58 - Elément de revenu calculé en net(0,*)
+
+  S21.G00.78 - Base assujettie(0,*)
+
+  S21.G00.79 - Composant de base assujettie(0,*)
+
+  S21.G00.81 - Cotisation individuelle(0,*)
+
+  S21.G00.83 - Période d'affiliation à tort à un régime de retraite complémentaire(0,*)
+
+  118 / 370
+
+--- p. 119 ---
+  DSN  2026-06-10
+
+  S21.G00.84 - Base assujettie déclarée à tort pour un régime de retraite
+  complémentaire(0,*)
+
+  S21.G00.95 - Base assujettie déclarée à tort pour un régime de base risque maladie, AT/MP ou
+  vieillesse(0,*)
+
+  S21.G00.86 - Ancienneté(0,*)
+
+  S21.G00.98 - Saisie administrative à tiers détenteur(0,*)
+
+S21.G00.85 - Lieu de travail ou établissement utilisateur (0,*)
+
+S89.G00.32 - Bénéficiaire des honoraires (0,*)
+
+  S89.G00.33 - Avantages en nature(0,*)
+
+  S89.G00.35 - Prise en charge des indemnités(0,*)
+
+  S89.G00.43 - Rémunérations(0,*)
+
+S89.G00.67 - Droit supplémentaire acquis au titre des régimes de retraite supplémentaire à prestations définies (0,*)
+
+S89.G00.87 - Actions gratuites (0,*)
+
+S89.G00.88 - Options sur titres (stock options) (0,*)
+
+S89.G00.89 - Bons de souscription de parts de créateur d'entreprise (BSPCE) (0,*)
+
+S89.G00.91 - Individu non salarié (0,*)
+
+  S89.G00.92 - Bases spécifiques individu non salarié(1,*)
+
+  S89.G00.93 - Régularisation de prélèvement à la source(0,*)
+
+  S89.G00.94 - Cotisation Individu non salarié(0,*)
+
+  119 / 370
+
+--- p. 120 ---
+  DSN  2026-06-10
+
+DSN SIGNAL REPRISE TRAVAIL
+ S20.G00.05-DSN SIGNAL REPRISE TRAVAIL
+
+  S20.G00.07 - Contact chez le déclaré (1,2)
+
+  S21.G00.06 - Entreprise (1,1)
+
+  S21.G00.11 - Etablissement(1,1)
+
+  S21.G00.15 - Adhésion Prévoyance(0,*)
+
+  S21.G00.30 - Individu(1,1)
+
+  S21.G00.40 - Contrat (contrat de travail, convention, mandat)(1,1)
+
+  S21.G00.60 - Arrêt de travail(1,1)
+
+  120 / 370
+
+--- p. 121 ---
+  DSN  2026-06-10
+
+DSN SIGNAL ARRET TRAVAIL
+ S20.G00.05-DSN SIGNAL ARRET TRAVAIL
+
+  S20.G00.07 - Contact chez le déclaré (1,2)
+
+  S21.G00.06 - Entreprise (1,1)
+
+  S21.G00.11 - Etablissement(1,1)
+
+  S21.G00.15 - Adhésion Prévoyance(0,*)
+
+  S21.G00.30 - Individu(1,1)
+
+  S21.G00.40 - Contrat (contrat de travail, convention, mandat)(1,1)
+
+  S21.G00.60 - Arrêt de travail(1,1)
+
+  121 / 370
+
+--- p. 122 ---
+  DSN  2026-06-10
+
+DSN SIGNAL FIN CONTRAT UNIQUE
+ S20.G00.05-DSN SIGNAL FIN CONTRAT UNIQUE
+
+  S20.G00.07 - Contact chez le déclaré (0,*)
+
+  S21.G00.06 - Entreprise (1,1)
+
+  S21.G00.11 - Etablissement(1,1)
+
+  S21.G00.15 - Adhésion Prévoyance(0,*)
+
+  S21.G00.30 - Individu(1,1)
+
+  S21.G00.40 - Contrat (contrat de travail, convention, mandat)(1,1)
+
+  S21.G00.45 - Données précédemment déclarées(0,1)
+
+  S21.G00.60 - Arrêt de travail(0,*)
+
+  S21.G00.62 - Fin du contrat(1,1)
+
+  S21.G00.63 - Préavis de fin de contrat(1,*)
+
+  S21.G00.65 - Autre suspension de l'exécution du contrat(0,*)
+
+  S21.G00.75 - Aménagement du temps de travail(0,*)
+
+  S21.G00.70 - Affiliation Prévoyance(0,*)
+
+  S21.G00.73 - Ayant-droit(0,*)
+
+  S21.G00.71 - Retraite complémentaire(1,*)
+
+  S21.G00.50 - Versement individu(1,*)
+
+  S21.G00.51 - Rémunération(1,*)
+
+  S21.G00.53 - Activité(0,*)
+
+  S21.G00.52 - Prime, gratification et indemnité(0,*)
+
+  S21.G00.59 - Elément de revenu associé à des droits spécifiques(0,*)
+
+  S21.G00.54 - Autre élément de revenu brut(0,*)
+
+  S21.G00.78 - Base assujettie(0,*)
+
+  S21.G00.81 - Cotisation individuelle(0,*)
+
+  S21.G00.86 - Ancienneté(0,*)
+
+  S21.G00.85 - Lieu de travail ou établissement utilisateur (0,*)
+
+  122 / 370
+
+--- p. 123 ---
+  DSN  2026-06-10
+
+DSN SIGNAL AMORCAGE
+ S20.G00.05-DSN SIGNAL AMORCAGE
+
+  S20.G00.07 - Contact chez le déclaré (0,*)
+
+  S21.G00.06 - Entreprise (1,1)
+
+  S21.G00.11 - Etablissement(1,1)
+
+  S21.G00.12 - Coordonnées bancaires spécifiques(0,*)
+
+  S21.G00.15 - Adhésion Prévoyance(0,*)
+
+  S21.G00.30 - Individu(0,1)
+
+  S21.G00.40 - Contrat (contrat de travail, convention, mandat)(0,*)
+
+  S21.G00.65 - Autre suspension de l'exécution du contrat(0,1)
+
+  S21.G00.75 - Aménagement du temps de travail(0,*)
+
+  S21.G00.70 - Affiliation Prévoyance(0,*)
+
+  S21.G00.73 - Ayant-droit(0,*)
+
+  S21.G00.86 - Ancienneté(0,*)
+
+  S21.G00.85 - Lieu de travail ou établissement utilisateur (0,*)
+
+  S89.G00.91 - Individu non salarié (0,1)
+
+  123 / 370
+
+--- p. 124 ---
+  DSN  2026-06-10
+
+DSN SUBSTITUTION
+ S20.G00.05-DSN SUBSTITUTION
+
+  S21.G00.06 - Entreprise (1,1)
+
+  S21.G00.11 - Etablissement(1,1)
+
+  S21.G00.22 - Bordereau de cotisation due(0,*)
+
+  S21.G00.23 - Cotisation agrégée(0,*)
+
+  S21.G00.30 - Individu(0,*)
+
+  S21.G00.34 - Compte Professionnel de Prévention (Ex-Pénibilité)(0,*)
+
+  S21.G00.40 - Contrat (contrat de travail, convention, mandat)(1,*)
+
+  S21.G00.41 - Changements Contrat(0,*)
+
+  S21.G00.62 - Fin du contrat(0,1)
+
+  S21.G00.71 - Retraite complémentaire(1,*)
+
+  S21.G00.72 - Affiliation à tort à un régime de retraite complémentaire(0,*)
+
+  S21.G00.50 - Versement individu(1,*)
+
+  S21.G00.51 - Rémunération(1,*)
+
+  S21.G00.78 - Base assujettie(0,*)
+
+  S21.G00.79 - Composant de base assujettie(0,*)
+
+  S21.G00.81 - Cotisation individuelle(0,*)
+
+  S21.G00.83 - Période d'affiliation à tort à un régime de retraite complémentaire(0,*)
+
+  S21.G00.84 - Base assujettie déclarée à tort pour un régime de retraite
+  complémentaire(0,*)
+
+  S21.G00.95 - Base assujettie déclarée à tort pour un régime de base risque maladie, AT/MP ou
+  vieillesse(0,*)
+
+  S89.G00.91 - Individu non salarié (0,*)
+
+  S89.G00.92 - Bases spécifiques individu non salarié(1,*)
+
+  S89.G00.94 - Cotisation Individu non salarié(0,*)
+
+  124 / 370
+
+--- p. 125 ---
+  DSN  2026-06-10
+
+DSN SIGNAL DECLARATION PREALABLE EMBAUCHE
+ S20.G00.05-DSN SIGNAL DECLARATION PREALABLE EMBAUCHE
+
+  S20.G00.07 - Contact chez le déclaré (1,*)
+
+  S21.G00.06 - Entreprise (1,1)
+
+  S21.G00.11 - Etablissement(1,1)
+
+  S21.G00.30 - Individu(1,1)
+
+  S21.G00.40 - Contrat (contrat de travail, convention, mandat)(1,1)
+
+  125 / 370
+
+--- p. 126 ---
+DSN  2026-06-10
+
+  126 / 370
+
+--- p. 127 ---
+  Rubriques  2026-06-10
+
+Rubriques
+
+  Détail des rubriques par bloc
+
+  127 / 370

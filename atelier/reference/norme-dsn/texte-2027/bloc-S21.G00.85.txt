@@ -1,0 +1,225 @@
+# Bloc S21.G00.85
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 326-329
+
+--- p. 326 ---
+  S21.G00.85  2026-06-10
+
+Numéro du contrat rattaché à la base assujettie déclarée à tort  S21.G00.84.005
+AncienneBaseAssujettieDeclareeorganismeRetraiteComplementaire
+DeclareeTort.NumeroContratRattacheBaseAssujettie
+  Cette rubrique est à renseigner avec le "Numéro du contrat - S21.G00.40.009". Dans le cas de la
+  déclaration de plusieurs blocs "Contrat - S21.G00.40" impliquant un découpage des règles de calcul des
+  cotisations, cette rubrique permet d'identifier le contrat concerné pour chaque base assujettie. Dans le cas
+  de la déclaration d'un contrat unique, cette rubrique n'est pas à renseigner.
+
+  X  [5,20]
+
+S21.G00.85
+
+Lieu de travail ou établissement utilisateur  S21.G00.85
+  Unité géographiquement localisée dans laquelle l'individu exécute habituellement sa prestation de travail.
+  Ce bloc présente les références d'identification des lieux de travail où travaillent les individus de la présente
+  déclaration.
+  Créer un bloc pour chaque lieu de travail cité au moins une fois dans le contrat et qui n'est pas l'établissement
+  d'affectation.
+  Dans le cadre des entreprises de travail temporaire (ETT), ce bloc est à renseigner pour chaque établissement
+  utilisateur déclaré en rubrique « Identifiant de l’établissement utilisateur - S21.G00.40.046 ».
+
+Identifiant du lieu de travail ou de l'établissement utilisateur  S21.G00.85.001
+Code APET  S21.G00.85.002
+Numéro, extension, nature, libellé de voie  S21.G00.85.003
+Code postal  S21.G00.85.004
+Localité  S21.G00.85.005
+Code Pays  S21.G00.85.006
+Code de distribution à l'étranger  S21.G00.85.007
+Complément de la localisation de la construction  S21.G00.85.008
+Service de distribution, complément de localisation de la voie  S21.G00.85.009
+Nature juridique  S21.G00.85.010
+Code INSEE commune  S21.G00.85.011
+
+Identifiant du lieu de travail ou de l'établissement utilisateur  S21.G00.85.001
+TravailLieu.Identifiant
+  Identifiant du lieu de travail effectif de l'individu ou de l'établissement utilisateur dans le cadre des
+  entreprises de travail temporaire (ETT).
+  Renseigné par SIRET si le lieu de travail est un établissement immatriculé par un SIRET ou renseigné par
+  une codification libre si le lieu de travail n'est pas un établissement SIRETisé.
+  Un seuil d'acceptation sera fixé par voie de consigne aux éditeurs.
+  CCH-11 : Cette rubrique doit vérifier la clé SIREN si la rubrique Nature juridique (S21.G00.85.010) est égale à "01 -
+  Etablissement".
+
+  CCH-12 : Cette rubrique doit vérifier la clé SIRET si la rubrique Nature juridique (S21.G00.85.010) est égale à "01 -
+  Etablissement".
+
+  CCH-13 : Si la rubrique "Identifiant du lieu de travail ou de l'établissement utilisateur - S21.G00.85.001" vérifie la clé
+  SIRET alors la rubrique "Nature juridique - S21.G00.85.010" ne peut pas être renseignée avec la valeur "03 - A
+  domicile". La rubrique "Identifiant du lieu de travail ou de l'établissement utilisateur - S21.G00.85.001" ne peut pas
+  être renseignée avec un SIRET pour une nature juridique du lieu de travail de type "03 - A domicile".
+
+  CME-11 : Si la rubrique Nature juridique (S21.G00.85.010) est égale à « 01 - Etablissement » le SIRET renseigné doit
+
+  326 / 370
+
+--- p. 327 ---
+  S21.G00.85  2026-06-10
+
+  être à l'état actif au répertoire SIRENE de l'INSEE. Ce contrôle ne s’applique pas en cas de présence d'un contrat dont
+  la rubrique « Nature du contrat - S21.G00.40.007 » est de type « 03 - Contrat de mission (contrat de travail temporaire)
+  » ou « 08 - Contrat à durée indéterminée intérimaire ».
+
+  X  [2,14]
+
+Code APET  S21.G00.85.002
+TravailLieu.Apet
+  Le code APE est attribué par l’INSEE à toute entreprise et chacun de ses établissements lors de son
+  inscription au répertoire SIRENE. Ce code caractérise son activité principale par référence à la
+  nomenclature d'activités française. Il est nommé APEN dans le cas d'une entreprise, et APET pour un
+  établissement.
+  Il est à renseigner lorsque l’identifiant du lieu de travail (S21.G00.85.001) n'est pas renseigné avec un
+  SIRET (parce que non connu par le déclarant), en particulier dans le secteur du travail temporaire.
+  CRE-11 : Valeurs autorisées
+
+  Table NAF - Code NAF de l’entreprise (APEN) ou de
+  X  [5,5]
+  l’établissement (APET)
+
+Numéro, extension, nature, libellé de voie  S21.G00.85.003
+TravailLieu.Voie
+  Numéro : Il précise l’adresse dans la voie. Sa valeur est différente de 0 et ne doit pas dépasser 4 chiffres. En
+  cas de numéro multiple, seul le premier doit être indiqué (pour exemple indiquer 4 pour 4/14)
+  Extension : Lettre accolée au numéro si celui-ci ne présente pas une précision suffisante (par exemple B
+  pour BIS, T pour TER, etc…)
+  Nature de la voie : information facultative décrivant la nature de la voie (rue, avenue, etc…)
+  Libellé de la voie : Appellation officielle de la voie
+
+  X  [1,50]
+
+Code postal  S21.G00.85.004
+TravailLieu.CodePostal
+  Il s’agit de données d’organisation postale qui doivent être utilisées en l’état. Le code postal est composé
+  de 5 chiffres. Les codes CEDEX ne sont pas admis.
+  Il est également admis une tolérance pour les lieux ne disposant pas d’adresse géo-localisée (ex : La
+  Défense) de mentionner le code postal d’une commune de référence sur laquelle est implantée le lieu.
+  CCH-12 : Si le code postal est présent alors le code pays et le code de distribution à l'étranger sont absents et
+  réciproquement.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table HEX - Code postal
+
+Localité  S21.G00.85.005
+TravailLieu.Localite
+  La localité est un élément géographique et administratif. C’est le premier élément d’identification associé
+  au code postal. Le libellé est la plupart du temps le nom officiel de la localité enregistrée à l’INSEE et au
+  Journal Officiel.
+
+  327 / 370
+
+--- p. 328 ---
+  S21.G00.85  2026-06-10
+
+  CCH-11 : La localité est obligatoire si le code postal est renseigné.
+
+  X  [1,50]  CSL 00 : [A-Za-z0-9\s]+
+
+Code Pays  S21.G00.85.006
+TravailLieu.Pays
+  Nom du pays (territoire d'un état) d'implantation géographique de l'établissement du lieu de travail, exprimé
+  sous la forme d'un code.
+  Le code pays ne doit pas être renseigné pour les adresses relevant du système postal français. Le domaine
+  d'application du système postal français est constitué des territoires suivants :
+  FR - France métropolitaine
+  GP : Guadeloupe
+  BL : Saint Barthélémy
+  MF : Saint Martin
+  MQ : Martinique
+  GF : Guyane Française
+  RE : Ile de la Réunion
+  PM : Saint Pierre et Miquelon
+  YT : Mayotte
+  WF : Wallis et Futuna
+  PF : Polynésie Française
+  NC : Nouvelle Calédonie
+  MC : Monaco
+  Pour un salarié expatrié, cette rubrique est obligatoire.
+  CRE-11 : valeurs autorisées
+
+  X  [2,2]  Table PAY - Code pays hors système postal français
+
+Code de distribution à l'étranger  S21.G00.85.007
+TravailLieu.CodeDistribution
+  Mention complémentaire pour les adresses ne relevant pas du système postal français.
+
+  X  [1,50]
+
+Complément de la localisation de la construction  S21.G00.85.008
+TravailLieu.ComplementConstruction
+  Les compléments d’adresse permettent d’indiquer le point de remise exacte du courrier. Ils donnent des
+  informations précises et déterminantes dans la phase finale de distribution du courrier, tel que le bâtiment,
+  la boîte aux lettres, le numéro d’appartement.
+
+  X  [1,50]
+
+Service de distribution, complément de localisation de la voie  S21.G00.85.009
+TravailLieu.ComplementVoie
+  Il s’agit de services de distribution du courrier spécifiques proposés ou mis en place par La Poste.
+
+  X  [1,50]
+
+  328 / 370
+
+--- p. 329 ---
+  S21.G00.86  2026-06-10
+
+Nature juridique  S21.G00.85.010
+TravailLieu.Nature
+  Indicateur permettant de préciser la nature juridique du lieu de travail ou de l'établissement utilisateur :
+  - Le type 01 « Etablissement » est strictement réservé à un lieu géographique SIRETisé, quel que soit le
+  territoire (politique comme géographique) où se situe le lieu en question, que ce soit en France ou à
+  l'étranger.
+  - Le type 02 « Autre » doit être utilisé dans les autres cas.
+  - Le type 03 « A domicile » permet d'indiquer que le travail est réalisé à domicile, conformément aux
+  articles L7412-1 à L7412-3 du Code du travail.
+
+  X  [2,2]
+
+  01 - Etablissement
+  02 - Autre
+  03 - A domicile
+
+Code INSEE commune  S21.G00.85.011
+TravailLieu.CodeINSEEcommune
+  CCH-11 : La rubrique "Code INSEE commune - S21.G00.85.011" est obligatoire si la rubrique « Code pays –
+  S21.G00.85.006 » est absente.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table INSEE - Code INSEE de la commune
+
+S21.G00.86
+
+Ancienneté  S21.G00.86
+  Pour les salariés affiliés à un contrat de Prévoyance, certaines conventions collectives ou certains contrats prévoient
+  que le salarié ne peut en bénéficier qu'à partir d'un certain délai d'ancienneté. Ce bloc permet de renseigner l’ancienneté
+  dans l'entreprise ou le groupe, dans la branche professionnelle ou le secteur d'activité, dans le collège ou la catégorie
+  professionnelle, ou dans le poste.
+
+Type  S21.G00.86.001
+Unité de mesure  S21.G00.86.002
+Valeur  S21.G00.86.003
+Numéro du contrat  S21.G00.86.005
+
+Type  S21.G00.86.001
+Anciennete.Type
+  L'ancienneté est qualifiée par un type.
+
+  CCH-12 : Si la "Nature de la déclaration - S20.G00.05.001" est "01 - DSN Mensuelle", "07 - Signalement Fin du
+  contrat de travail Unique" ou "08 - Signalement Amorçage des données variables" et si l'individu est concerné par au
+  moins une "Affiliation Prévoyance - S21.G00.70", et si au moins l'un des contrats de travail de l'individu est d'une
+  nature (S21.G00.40.007) différente de "03 - Contrat de mission (contrat de travail temporaire)", alors au moins une
+  rubrique "Type - S21.G00.86.001" doit être renseignée avec la valeur "06 - Ancienneté dans le groupe" ou "07 -
+  Ancienneté dans l'entreprise".
+
+  CCH-13 : Pour un individu et un même contrat, deux blocs "Ancienneté - S21.G00.86" ne peuvent avoir le même
+  "Type - S21.G00.86.001".
+
+  329 / 370

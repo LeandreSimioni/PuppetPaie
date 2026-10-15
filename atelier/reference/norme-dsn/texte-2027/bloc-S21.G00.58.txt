@@ -1,0 +1,123 @@
+# Bloc S21.G00.58
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 267-268
+
+--- p. 267 ---
+  S21.G00.58  2026-06-10
+
+S21.G00.58
+
+Elément de revenu calculé en net  S21.G00.58
+  Les éléments de revenu calculés en net permettent notamment la bonne alimentation du revenu fiscal de référence,
+  mais aussi l'attribution d’aide(s) ou de prestation(s) sociale(s).
+  Ces éléments ne sont pas obligatoirement liés au prélèvement à la source et ils peuvent avoir une datation propre qui ne
+  suit pas systématiquement la date de versement.
+
+Date de début de période de rattachement  S21.G00.58.001
+Date de fin de période de rattachement  S21.G00.58.002
+Type  S21.G00.58.003
+Montant  S21.G00.58.004
+
+Date de début de période de rattachement  S21.G00.58.001
+ElmtRevenuCalculeNet.DDPR
+  Date de début de période à laquelle l'élément de revenu calculé en net est rattaché. Cette rubrique est à
+  renseigner dès lors que sa datation est différente de celle du « Versement individu - S21.G00.50 ».
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de période de rattachement  S21.G00.58.002
+ElmtRevenuCalculeNet.DFPR
+  Date de fin de période à laquelle l'élément de revenu calculé en net est rattaché. Cette rubrique est à
+  renseigner dès lors que sa datation est différente de celle du « Versement individu - S21.G00.50 ».
+  CCH-11 : La « Date de fin de période de rattachement - S21.G00.58.002 » doit être supérieure ou égale à la « Date de
+  début de période de rattachement - S21.G00.58.001 ».
+
+  CCH-12 : La « Date de fin de période de rattachement - S21.G00.58.002 » doit être inférieure ou égale au dernier jour
+  civil du mois suivant le mois principal déclaré.
+
+  CCH-13 : La « Date de fin de période de rattachement - S21.G00.58.002 » doit s’inscrire dans la même année
+  civile que la « Date de début de période de rattachement - S21.G00.58.001 ».
+
+  CCH-14 : Si la rubrique « Date de début de période de rattachement - S21.G00.58.001 » est renseignée alors la
+  rubrique « Date de fin de période de rattachement - S21.G00.58.002 » est obligatoire. Et inversement, si la rubrique «
+  Date de fin de période de rattachement - S21.G00.58.002 » est renseignée alors la rubrique « Date de début de période
+  de rattachement - S21.G00.58.001 » est obligatoire.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Type  S21.G00.58.003
+ElmtRevenuCalculeNet.Type
+  Type d'éléments de revenu calculés en net.
+  - Les heures supplémentaires exonérées correspondent aux heures exonérées dans le cadre de l'application
+  de la loi n°2018-1213 dite loi MUES du 24 décembre 2018 et aux journées de RTT monétisées. Pour ce type
+  d'éléments de revenu calculés en net, la date de début (S21.G00.58.001) et la date de fin (S21.G00.58.002)
+  de période de rattachement sont à renseigner en date de versement.
+  - Le montant net social, conformément à la définition modifiant l’arrêté du 25 février 2016 fixant les libellés,
+  l’ordre et le regroupement des informations figurant sur le bulletin de paie mentionnés à l’article R. 3243-2
+
+  267 / 370
+
+--- p. 268 ---
+  S21.G00.59  2026-06-10
+
+  du Code du travail, est une base de ressources de référence pour la sphère sociale. Pour ce type de revenus,
+  la date de début (S21.G00.58.001) et la date de fin (S21.G00.58.002) de période de rattachement sont à
+  renseigner en date de versement. La même règle de datation s'applique aux revenus déclarés pour les types
+  10, 13, 14 et 15 au sein de cette rubrique.
+  - Pour la fraction représentative des frais d'emploi (FRFE), la date de début (S21.G00.58.001) et la date de
+  fin (S21.G00.58.002) de période de rattachement sont à renseigner en date de versement.
+  - Il n'est pas attendu en version de norme P27V01 la déclaration du défraiement des frais de mandat.
+
+  X  [2,2]
+
+  01 - Heure(s) complémentaire(s) ou supplémentaire(s) exonérée(s) fiscalement (y compris journées de RTT
+  monétisées)
+  03 - Montant net social
+  04 - Potentiel nouveau type d'élément de revenu calculé en net A
+  05 - Potentiel nouveau type d'élément de revenu calculé en net B
+  06 - Potentiel nouveau type d'élément de revenu calculé en net C
+  07 - Potentiel nouveau type d'élément de revenu calculé en net D
+  08 - Potentiel nouveau type d'élément de revenu calculé en net E
+  10 - IJSS subrogées prises en compte dans le calcul du MNS
+  11 - Fraction représentative des frais d'emploi (FRFE)
+  12 - Défraiement des frais de mandat du parlementaire (à ne pas renseigner en version de norme P27V01)
+  13 - Part exonérée de cotisations sociales des indemnités de rupture
+  14 - Indemnité journalière complémentaire de prévoyance subrogée exonérée de cotisations sociales
+  15 - Part exonérée de la participation employeurs aux chèques vacances et au financement des services à la personne
+
+Montant  S21.G00.58.004
+ElmtRevenuCalculeNet.Montant
+  Montant du revenu calculé en net.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+S21.G00.59
+
+Elément de revenu associé à des droits spécifiques  S21.G00.59
+  Ce bloc détaille les éléments de revenus dont le versement conduit à l'ouverture de droits majorés, appréciés tout au
+  long de la carrière d'un individu.
+  Ces éléments de revenu ne sont pas obligatoirement rattachés à un seul et unique contrat.
+  Le versement de ces éléments de revenus peut dépendre d’un statut particulier de l’individu notamment pour les
+  individus affiliés à un régime spécial.
+  - Pour la CRP RATP, les éléments renseignés dans ce bloc permettent d’identifier les primes spécifiques aux individus
+  relevant du régime spécial de retraite de la RATP telles que les primes collectives de pénibilité, les primes de nuit pour
+  octroi de points retraite et les primes exonérées de cotisation sous réserve du non-dépassement d’un plafond.
+  - Pour la CPRPF, les éléments renseignés correspondent aux suppléments de rémunération versés selon le statut de
+  l’individu ainsi qu’aux primes de traction.
+
+Type  S21.G00.59.001
+Montant  S21.G00.59.002
+Nombre d'heures  S21.G00.59.003
+Date de début de période de rattachement  S21.G00.59.004
+Date de fin de période de rattachement  S21.G00.59.005
+Numéro de contrat  S21.G00.59.006
+
+  268 / 370

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000019225874</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/19/22/58/LEGIARTI000019225874.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>D1226-3</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2008-07-20</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018464861">Partie réglementaire  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018538094">Première partie : Les relations individuelles de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537950">Livre II : Le contrat de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537944">Titre II : Formation et exécution du contrat de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537774">Chapitre VI : Maladie, accident et inaptitude médicale</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537772">Section 1 : Absences pour maladie ou accident</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-05-01" etat="MODIFIE" fin="2008-07-20" id="LEGIARTI000018537766" num="D1226-3" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2008-07-20" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000019225874" num="D1226-3" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Lors de chaque arrêt de travail, les durées d'indemnisation courent à compter du premier jour d'absence si celle-ci est consécutive à un accident du travail ou à une maladie professionnelle, à l'exclusion des accidents de trajet.</p>
+<p>Toutefois, dans tous les autres cas, le délai d'indemnisation court au-delà de sept jours d'absence.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000704804" datesignatexte="1978-01-19" id="LEGIARTI000006273226" naturetexte="LOI" nortexte="" num="1" numtexte="78-49" sens="source" typelien="CONCORDE">Loi n°78-49 du 19 janvier 1978 - art. 1 al 8 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000019214809" datesignatexte="2008-07-18" id="LEGIARTI000019217159" naturetexte="DECRET" nortexte="MTST0812513D" num="2" numtexte="2008-716" sens="cible" typelien="MODIFIE">Décret n°2008-716
+ du 18 juillet 2008 - art. 2</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000041686873" datesignatexte="2020-03-04" id="LEGIARTI000041688513" naturetexte="DECRET" nortexte="MTRT2006255D" num="1" numtexte="2020-193" sens="cible" typelien="CITATION">Décret n°2020-193 du 4 mars 2020 - art. 1 (Ab)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000042895619" datesignatexte="2021-01-08" id="LEGIARTI000042984248" naturetexte="DECRET" nortexte="SSAS2036847D" num="2" numtexte="2021-13" sens="cible" typelien="CITATION">Décret n°2021-13 du 8 janvier 2021 - art. 2 (V)</LIEN>
+
+
+
+
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>

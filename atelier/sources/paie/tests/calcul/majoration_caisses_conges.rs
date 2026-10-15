@@ -1,7 +1,7 @@
 //! Les majorations des employeurs affilies a une caisse de conges payes, au bulletin et a la DSN.
 //!
-//! Textes (prive/reference/sources/majoration-caisses-conges/LISEZ-MOI.md, et le releve LEGI du 10/10/2026 dans
-//! prive/reference/sources/code-de-la-securite-sociale/ et code-du-travail/) : CSS L. 243-1-3, 1° -- l'employeur
+//! Textes (atelier/reference/sources/majoration-caisses-conges/LISEZ-MOI.md, et le releve LEGI du 10/10/2026 dans
+//! atelier/reference/sources/code-de-la-securite-sociale/ et code-du-travail/) : CSS L. 243-1-3, 1° -- l'employeur
 //! affilie a une caisse de conges s'acquitte du FNAL, du versement mobilite (CGCT L. 2333-64 et L. 2531-2) et des
 //! contributions de L. 6131-2, L. 6242-1 et L. 6331-6 du code du travail par des majorations proportionnelles ;
 //! D. 243-0-2 : 11,5 %, 10 % pour la taxe d'apprentissage d'un intermittent du spectacle. Lettre circulaire Acoss

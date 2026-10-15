@@ -1,0 +1,72 @@
+Date de modification : 23/03/2025 11:51 AM
+
+ Quelle est la différence entre un NIR, un NIA et un NTT ?
+
+ Le contexte
+
+La bonne identification de vos salariés est une donnée essentielle !
+
+Lorsqu’un salarié ne possède pas de NIR (Numéro d’Inscription au Répertoire ou Numéro de Sécurité Sociale) ou de NIA (Numéro d’Identification d’Attente) au moment de l’émission d’une DSN, l’employeur doit lui attribuer un NTT (Numéro Technique Temporaire) en rubrique « Numéro technique temporaire – S21.G00.30.020 ».
+
+Récapitulatif
+
+ Créé par
+ Durée
+ DSN
+
+ | NTT – Numéro Technique Temporaire 
+ | 
+
+ Créé par l’employeur 
+
+ Unique pour chaque salarié 
+
+ Constitué selon le format demandé 
+
+ | 
+
+ Temporaire
+
+ 3 mois maximum
+
+ | 
+
+ A renseigner dans l’attente d’un NIA ou d’un NIR
+
+ | NIA – Numéro d’Identification d’Attente 
+ | 
+
+ Créé par l’assurance maladie et transmis au salarié 
+
+ | 
+
+ Temporaire
+
+ Dans l’attente de la certification du NIR
+
+ | 
+
+ Une fois le NIA connu, vous devez chainer dans la DSN du mois principal déclaré de connaissance de cette information le NTT au NIA (à renseigner dans le champ de NIR).
+
+ | NIR – Numéro de sécurité Sociale 
+ | 
+
+ Créé par l’assurance maladie et transmis au salarié 
+
+ | 
+
+ Définitif 
+
+ | 
+
+ Une fois le NIR connu (si cela n’a pas été fait au moment de l’obtention du NIA), vous devez chainer dans la DSN du mois principal déclaré de connaissance de cette information le NTT au NIA (à renseigner dans le champ de NIR). 
+
+ Date de création : 06/03/2025 06:25 PM 
+
+ N° de la fiche : 2953 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

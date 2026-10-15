@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000039802417</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/39/80/24/LEGIARTI000039802417.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L2531-3</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2019-12-27</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006070633" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code général des collectivités territoriales" debut="1996-02-24" fin="2999-01-01" id_txt="LEGITEXT000006070633">Code général des collectivités territoriales</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006088000">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006116628">DEUXIÈME PARTIE : LA COMMUNE</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006135496">LIVRE V : DISPOSITIONS PARTICULIÈRES</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006149251">TITRE III : COMMUNES DE LA RÉGION D'ILE-DE-FRANCE</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006164594">CHAPITRE UNIQUE : Dispositions financières</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2014-01-29" id="LEGISCTA000006181041">Section 1 : Versement destiné aux transports en commun</TITRE_TM>
+<TITRE_TM debut="2014-01-29" fin="2019-12-27" id="LEGISCTA000028533996">Section 1 : Versement destiné aux transports</TITRE_TM>
+<TITRE_TM debut="2019-12-27" fin="2999-01-01" id="LEGISCTA000039802420">Section 1 : Versement destiné au financement des services de mobilité</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1996-02-24" etat="MODIFIE" fin="2018-09-01" id="LEGIARTI000006391168" num="L2531-3" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2018-09-01" etat="MODIFIE" fin="2019-12-27" id="LEGIARTI000037075078" num="L2531-3" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2019-12-27" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000039802417" num="L2531-3" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>L'assiette du versement destiné au financement des services de mobilité est constituée des revenus d'activité tels qu'ils sont pris en compte pour la détermination de l'assiette des cotisations d'assurance maladie mises à la charge des employeurs et affectées au financement des régimes de base de l'assurance maladie. Le versement est recouvré dans les mêmes conditions et sous les mêmes garanties que lesdites cotisations.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000559120" datesignatexte="1996-02-21" id="JORFTEXT000000559120" naturetexte="LOI" nortexte="INTX9400076L" num="" numtexte="96-142" sens="source" typelien="CODIFICATION">Loi n°96-142 du 21 février 1996</LIEN>
+<LIEN cidtexte="JORFTEXT000039666574" datesignatexte="2019-12-24" id="LEGIARTI000039668651" naturetexte="LOI" nortexte="TRET1821032L" num="13" numtexte="2019-1428" sens="cible" typelien="MODIFIE">LOI n°2019-1428 du 24 décembre 2019 - art. 13</LIEN>
+<LIEN cidtexte="LEGITEXT000006070162" datesignatexte="2999-01-01" id="LEGIARTI000006345963" naturetexte="CODE" nortexte="" num="L263-3" numtexte="" sens="source" typelien="CONCORDANCE">CODE DES COMMUNES. - art. L263-3 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070162" datesignatexte="2999-01-01" id="LEGIARTI000006345964" naturetexte="CODE" nortexte="" num="L263-3" numtexte="" sens="cible" typelien="CONCORDE">CODE DES COMMUNES. - art. L263-3 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000048837031" naturetexte="CODE" nortexte="" num="L2531-4" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. L2531-4 (V)</LIEN>
+</LIENS>
+</ARTICLE>

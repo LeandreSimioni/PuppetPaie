@@ -1,0 +1,85 @@
+# Chapitre 6
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 111-112
+
+--- p. 111 ---
+  6 Principes de constitution des messages  2026-06-10
+
+6 Pistes de simplification des données sociales
+
+Plusieurs données sociales sont admises dans la norme NEODeS pour la phase de
+généralisation, dans la forme décrite par le présent document, en vue de permettre le
+remplacement des déclarations sociales actuelles en janvier 2017.
+Ces données devront faire l’objet de travaux complémentaires de simplification et de
+rationalisation sous l’égide du Comité de Normalisation des Données Sociales et de leurs
+déclarations, en vue d’une mise en oeuvre après le 1er janvier 2017.
+Ces données et les pistes identifiées sont listées ci-dessous.
+
+6.1 Données sociales non issues des systèmes RH et Paie
+Ces données figurent dans cette version NEODeS, mais ne sont pas à renseigner.
+
+Ces données sont admises transitoirement dans la norme NEODeS. Il sera recherché, pour
+ces données, les moyens réglementaires de s’affranchir de leur collecte ou de déterminer
+une modalité de collecte en meilleure adéquation avec l’organisation des outils informatiques
+de l’entreprise, comme ce fut le cas du chiffre d'affaires de l'établissement, du nombre
+d'heures d'intérim ou du nombre d’enfants à charge pour l’ouverture de droits à congés
+supplémentaires dans le BTP.
+
+6.2 Données sociales issues des systèmes RH et Paie
+Ces données sont admises dans la norme NEODeS mais les modalités de cette intégration
+sont susceptibles de faire l'objet d'une normalisation plus poussée.
+
+- Identifiant Organisme de protection sociale
+Il sera recherché la construction d’une table unique d’identification de l’ensemble des
+organismes, basée sur une forme d’identifiant unique.
+
+- Code de cotisation (Cotisation agrégée)
+Il sera recherché la construction d’une table unique pour l’ensemble des organismes
+concernés, sans redondances entre les organismes dont certaines missions sont identiques.
+
+- Code PCS-ESE, Code complément PCS-ESE, Code métier
+Il sera recherché la convergence vers une unique nomenclature des activités réalisées par
+les salariés.
+
+- Caractéristiques de l’adhésion volontaire à l’Assurance chômage pour les employeurs du
+secteur public
+Il sera recherché l’abandon de la collecte de ces informations par voie déclarative
+
+  111 / 370
+
+--- p. 112 ---
+  6 Principes de constitution des messages  2026-06-10
+
+- Caractéristiques spécifiques de l’employeur d’artistes du spectacle ou d’ouvriers et
+techniciens de l’édition d’enregistrement sonore, de la production cinématographique et
+audiovisuelle, de la radio, de la diffusion et du spectacle
+Il sera recherché l’abandon de la collecte de ces informations par voie déclarative
+- Codes statut catégoriel (Retraite complémentaire obligatoire, APECITA)
+Il sera recherché la convergence des classifications en une seule nomenclature
+- Mesure de l’activité
+Il sera recherché l’harmonisation et la rationalisation des modalités de mesure de l’activité,
+de l’inactivité et de la durée d’emploi. Il sera notamment recherché l’unicité de l’unité de
+mesure pour un salarié donné lorsque son activité ne présente pas un obstacle majeur.
+- Motifs de suspension de l’exécution du contrat
+Il sera recherché la réduction de la nomenclature existante, notamment à travers l’étude de
+la nécessité à distinguer ces motifs au vu des seuls besoins des actes de gestion de la
+protection sociale. En outre, pour les suspensions faisant l’objet d’une prise en charge par un
+organisme de protection sociale, il sera recherché l’abandon de la collecte de l’information
+par voie déclarative.
+- Affiliation aux régimes de sécurité sociale et modalités de gestion de ces régimes
+Il sera recherché la possibilité de ne plus obtenir ces informations par voie déclarative.
+- Type de base assujettie
+Il sera recherché la rationalisation et la réduction de cette nomenclature via l’identification de
+modalités de reconstitution des bases par combinaison de l’assiette déplafonnée de sécurité
+sociale avec les éléments de revenu brut. Ces travaux seront menés en cohérence avec la
+simplification du bulletin de salaire.
+- Type de composant de base assujettie
+Il sera recherché la rationalisation et la réduction de cette nomenclature via l’identification de
+reconstitution par traitement de certains de ces composants, notamment les parts de
+cotisations à des dispositifs complémentaires assujetties à cotisation de sécurité sociale ou
+prélèvement fiscal.
+- Code de cotisation (cotisation individuelle)
+Il sera recherché la construction d’une table unique pour l’ensemble des organismes
+concernés, sans redondances entre les organismes dont certaines missions sont identiques.
+Ces travaux seront menés en cohérence avec la simplification du bulletin de salaire.
+
+  112 / 370

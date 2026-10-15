@@ -1,13 +1,13 @@
 //! Le seuil de onze salaries de la contribution a la formation professionnelle des permanents, dans les deux sens.
 //!
-//! Textes (releve LEGI, prive/reference/sources/code-du-travail/articles-20261013.md et
+//! Textes (releve LEGI, atelier/reference/sources/code-du-travail/articles-20261013.md et
 //! code-de-la-securite-sociale/articles-20261013.md) : C. trav. L. 6331-1 (« L'employeur de moins de onze salaries […]
 //! 0,55 % »), L. 6331-3 (« d'au moins onze salaries […] 1 % ») et L. 6331-1 A (« l'effectif salarie et le
 //! franchissement d'un seuil d'effectif salarie sont determines selon les modalites prevues a l'article L. 130-1 du code
 //! de la securite sociale ») ; CSS L. 130-1, II : le franchissement a la hausse compte apres cinq annees civiles
 //! consecutives, et « Le franchissement a la baisse d'un seuil d'effectif sur une annee civile a pour effet de faire a
 //! nouveau courir » ce delai. Le guide Urssaf des contributions de formation (12/03/2026,
-//! prive/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt,
+//! atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt,
 //! l. 568-586) le dit de la CFP : sous le seuil, le taux de L. 6331-1, 0,55 %.
 //!
 //! Sur une copie de la compagnie fictive figee `fictive-3090-grande` (compagnie inventee, cinq salaries chaque annee), dans le

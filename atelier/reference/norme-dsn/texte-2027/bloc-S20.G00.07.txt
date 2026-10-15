@@ -1,0 +1,111 @@
+# Bloc S20.G00.07
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 139-140
+
+--- p. 139 ---
+  S20.G00.07  2026-06-10
+
+  01 - Oui
+
+S20.G00.07
+
+Contact chez le déclaré  S20.G00.07
+  Acteur en charge, chez le déclaré, des échanges avec les organismes de Protection sociale, Administrations et services
+  de l'Etat, au titre des données transmises en DSN.
+
+Nom et prénom du contact  S20.G00.07.001
+Adresse téléphonique  S20.G00.07.002
+Adresse mél du contact  S20.G00.07.003
+Type  S20.G00.07.004
+
+Nom et prénom du contact  S20.G00.07.001
+ContactDeclare.Nom
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités
+
+  X  [1,80]
+
+Adresse téléphonique  S20.G00.07.002
+ContactDeclare.Tel
+
+  X  [10,20]
+
+Adresse mél du contact  S20.G00.07.003
+ContactDeclare.mel
+  Cette adresse mél est utilisée pour adresser le compte-rendu métier DSIJ ou pour les échanges entre le
+  service de médecine du travail interne à l’établissement pour la prévention et la santé au travail et
+  l'Assurance maladie.
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant de l'adresse mél.
+
+  X  [6,100]
+
+Type  S20.G00.07.004
+ContactDeclare.type
+  Pour les entreprises employant au moins 250 salariés, l'acteur à renseigner avec le type « 14 - Contact chez
+  le déclaré pour le suivi des travailleurs handicapés » doit correspondre au référent handicap qui est en
+  charge « d'orienter, d'informer et d'accompagner les personnes en situation de handicap » conformément à
+  l’article L5213-6-1 du Code du travail.
+  Pour les entreprises assurant elles-mêmes les missions de prévention et de santé au travail, l’acteur à
+  renseigner avec le type « 17 - Contact au sein du service de médecine du travail interne à l’établissement
+  pour la prévention et la santé au travail chez le déclaré » correspond au médecin du travail ou à un
+  interlocuteur placé sous sa responsabilité, pour la transmission des arrêts de travail dans les conditions
+  prévues par l’article L315-4 du Code de la sécurité sociale.
+  CCH-11 : Si et seulement si la déclaration contient un bloc « Etablissement - S21.G00.11 » avec la rubrique «
+  Identifiant du Service de Prévention et de Santé au Travail (SPST) - S21.G00.11.025 » renseignée avec la valeur «
+  MT01 - MEDECINE INTERNE ETABLISSEMENT » ou au moins un bloc « Individu - S21.G00.30 » avec la
+
+  139 / 370
+
+--- p. 140 ---
+  S20.G00.08  2026-06-10
+
+  rubrique « Identifiant du Service de Prévention et de Santé au Travail (SPST) - S21.G00.30.030 » renseignée avec la
+  valeur « MT01 - MEDECINE INTERNE ETABLISSEMENT », alors un bloc « Contact chez le déclaré - S20.G00.07
+  » de type « 17 - Contact au sein du service de médecine du travail interne à l’établissement pour la prévention et la
+  santé au travail chez le déclaré » doit obligatoirement être présent. Dans le cas contraire, il est interdit.
+
+  X  [2,2]
+
+  01 - Contact chez le déclaré pour les IJ
+  02 - Contact chez le déclaré pour les fins de contrats de travail (France Travail)
+  03 - Contact chez le déclaré pour les acteurs statistiques (DARES, INSEE, etc …)
+  04 - Contact chez le déclaré recouvrant, entre autres, des cotisations de Sécurité Sociale (Urssaf CN, MSA) et
+  contributions assurance chômage et cotisations AGS (France Travail)
+  05 - Contact chez le déclaré pour le recouvrement des cotisations (retraite complémentaire et autres)
+  06 - Contact sur l’identification des salariés (NIR)
+  07 - Contact sur l’identification de l’établissement (SIRET)
+  08 - Contextualisable à l’ensemble des organismes, hors typologies 1 à 7, et 9
+  09 - Contact chez l'établissement centralisateur pour les IJ
+  13 - Contact chez le déclaré pour les aides versées par l'ASP
+  14 - Contact chez le déclaré pour le suivi des travailleurs handicapés
+  15 - Contact pour les congés payés (CIBTP, Transport, Manutention portuaire)
+  16 - Contact chez le déclaré pour la formation professionnelle
+  17 - Contact au sein du service de médecine du travail interne à l’établissement pour la prévention et la santé au travail
+  chez le déclaré
+
+S20.G00.08
+
+Identifiant de l’organisme destinataire de la  S20.G00.08
+déclaration « Absence de rattachement pour le mois
+principal déclaré »
+Code caisse  S20.G00.08.001
+
+Code caisse  S20.G00.08.001
+IdentifiantOrganismeDestinataireAbsenceRattachement.CodeCaisse
+  Code identifiant un organisme qui était précédemment destinataire de la DSN (l'établissement employait des
+  individus rattachés à cet organisme) et qui n'a plus d'individu rattaché pour le mois principal déclaré. Cette
+  rubrique doit être renseignée uniquement dans le cas où l'établissement n'a plus de population à déclarer à
+  un organisme.
+  Numéro de la caisse destinataire de la DSN sans salarié affilié.
+  Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : code de la caisse concernée,
+  d'après la table ODRT
+  AGIRC ARRCO : 88
+  MSA : code caisse MSA
+  CCVRP : non concerné
+  CNIEG : 91
+  CAMIEG : 92
+  FRANCE TRAVAIL : 93
+  CRPCEN : 94
+  Organisme complémentaire : non concerné
+  CRPNPAC : 96
+  Caisse de congés spectacles : 97
+
+  140 / 370

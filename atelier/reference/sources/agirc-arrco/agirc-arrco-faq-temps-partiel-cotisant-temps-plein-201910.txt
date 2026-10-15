@@ -1,0 +1,171 @@
+                    Salarié à temps partiel cotisant temps plein
+
+Rappel
+Les salariés exerçant une activité à temps partiel peuvent choisir de continuer à cotiser sur la base du salaire qu’ils auraient
+perçus à temps plein (Cf Chapitre V de l’ANI du 17 novembre 2017)
+
+Cette décision doit faire l’objet d’un accord écrit entre le salarié et son employeur.
+
+Les cotisations Agirc-Arrco sont calculées en 2 temps :
+
+    •   Sur le salaire « réel » en contrepartie du travail à temps partiel
+    •   Sur le salaire « fictif » représentant la différence entre le salaire qui aurait été perçu à temps plein et le salaire
+        réellement perçu
+
+Détermination du Plafond de sécurité sociale à appliquer pour chaque fraction de salaire :
+
+                                                        Calcul du PSS
+                        PSS « réel »                                                      PSS « fictif »
+                 𝑑𝑢𝑟é𝑒 𝑐𝑜𝑛𝑡𝑟𝑎𝑐𝑡𝑢𝑒𝑙𝑙𝑒 + ℎ𝑒𝑢𝑟𝑒𝑠 𝑐𝑜𝑚𝑝𝑙.                              𝑑𝑢𝑟é𝑒 𝑐𝑜𝑛𝑡𝑟𝑎𝑐𝑡𝑢𝑒𝑙𝑙𝑒 + ℎ𝑒𝑢𝑟𝑒𝑠 𝑐𝑜𝑚𝑝𝑙.
+  A = 𝑃𝑆𝑆 ×            𝑑𝑢𝑟é𝑒 𝑙é𝑔𝑎𝑙𝑒 𝑑𝑢 𝑡𝑟𝑎𝑣𝑎𝑖𝑙
+                                                                B = 𝑃𝑆𝑆 × (1 −          𝑑𝑢𝑟é𝑒 𝑙é𝑔𝑎𝑙𝑒 𝑑𝑢 𝑡𝑟𝑎𝑣𝑎𝑖𝑙
+                                                                                                                     )
+
+                                                        Calcul de la T2
+                        T2 « réelle »                                                     T2 « fictive »
+
+                 Salaire réel temps partiel –   A                                    Salaire « fictif » –     B
+
+
+Attention, en cas de non proratisation du Plafond de sécurité sociale (assiette forfaitaire, salarié en forfait jour,
+salarié à employeurs multiples) :
+
+                                                        Calcul du PSS
+                        PSS « réel »                                                      PSS « fictif »
+
+          Si le Salaire réel > PSS de la période
+                                                                                   Pas de PSS « fictif »
+               C    = PSS de la période
+
+          Si le Salaire réel < PSS de la période
+                                                                              E    = PSS de la période –          D
+                   D   = Salaire perçu
+
+                                                        Calcul de la T2
+                        T2 « réelle »                                                     T2 « fictive »
+
+          Si le Salaire réel > PSS de la période
+                                                                                         Salaire « fictif »
+                        Salaire réel –   C
+          Si le Salaire réel < PSS de la période
+                                                                                     Salaire « fictif » –     E
+                    pas de T2 « réelle »
+
+
+
+
+ © Agirc-Arrco                                                                                                        octobre 2019
+                     Salarié à temps partiel cotisant temps plein
+
+Exemple 1
+
+Salarié avec quotité de temps de travail
+Salarié Cadre travaillant à temps partiel (80%) dans une entreprise appliquant la durée légale du travail.
+Le salarié cotise à temps plein
+Salaire réel : 2 720,00 (3 400,00 x 80%)
+Salaire reconstitué temps plein : 3 400,00
+Différence (salaire « fictif ») : 3 400,00 – 2 720,00 = 680,00
+
+PSS (2019) : 3 377,00
+
+
+                                                         Calcul du PSS
+                          PSS « réel »                                                  PSS « fictif »
+
+                                    121,33ℎ                                                       121,33ℎ
+          A      =     3 377,00 ∗
+                                    151,67ℎ
+                                            = 2 701,00               B     =   3 377,00 ∗ (1 −
+                                                                                                  151,67ℎ
+                                                                                                          ) = 676,00
+
+                                                         Calcul de la T2
+                          T2 « réelle »                                                 T2 « fictive »
+
+                     2 720,00 –     A    = 19,00                                  680,00 –    B     = 4,00
+
+
+
+
+                                                   Codification DSN attendue
+                     Rubrique                      Code rubrique                             Valeur rubrique
+       Salarié à temps partiel cotisant à                                      02 - pour la vieillesse régime de base et la
+                                                    S21.G00.40.044
+       temps plein                                                             retraite complémentaire
+       Code de base assujettie                      S21.G00.78.001             02 - Assiette brute plafonnée
+       Montant de base assujettie                   S21.G00.78.004             2 701,00
+       Code de base assujettie                      S21.G00.78.001             03 - Assiette brute déplafonnée
+       Montant de base assujettie                   S21.G00.78.004             2 720,00
+                                                                               105 - Montant de cotisation Agirc-Arrco, y
+       Code de cotisation individuelle               S21.G00.81.001
+                                                                               compris Apec
+       Montant de cotisation individuelle            S21.G00.81.004            286,41
+
+       Code de base assujettie                      S21.G00.78.001             24 - Base plafonnée spécifique
+       Montant de base assujettie                   S21.G00.78.004             676,00
+       Code de base assujettie                      S21.G00.78.001             22 - Base brute spécifique
+       Montant de base assujettie                   S21.G00.78.004             680,00
+                                                                               105 - Montant de cotisation Agirc-Arrco, y
+       Code de cotisation individuelle               S21.G00.81.001
+                                                                               compris Apec
+       Montant de cotisation individuelle            S21.G00.81.004            71,49
+
+
+
+
+ © Agirc-Arrco                                                                                                          octobre 2019
+                  Salarié à temps partiel cotisant temps plein
+
+Exemple 2
+
+Salarié au forfait jour : pas de proratisation du PSS
+Salarié Cadre travaillant à temps partiel (80%) dans une entreprise appliquant la durée légale du travail.
+Le salarié cotise à temps plein.
+Salaire réel : 2 720,00 (3 400,00 x 80%)
+Salaire reconstitué temps plein : 3 400,00
+Différence (salaire « fictif ») : 3 400,00 – 2 720,00 = 680,00
+
+PSS (2019) : 3 377,00
+
+
+                                                        Calcul du PSS
+                            PSS « réel »                                                PSS « fictif »
+
+                  Salaire réel < PSS de la période
+                                                                         E      = 3 377,00 –       D    = 657,00
+                        D     = 2 720,00
+
+                                                       Calcul de la T2
+                            T2 « réelle »                                               T2 « fictive »
+
+                  Salaire réel < PSS de la période
+                                                                                  680,00 –     E       = 23,00
+                        pas de T2 « réelle »
+
+
+
+                                               Codification DSN attendue
+                  Rubrique                     Code rubrique                               Valeur rubrique
+       Code de base assujettie                  S21.G00.78.001               02 - Assiette brute plafonnée
+       Montant de base assujettie               S21.G00.78.004               2 720,00
+       Code de base assujettie                  S21.G00.78.001               03 - Assiette brute déplafonnée
+       Montant de base assujettie               S21.G00.78.004               2 720,00
+                                                                             105 - Montant de cotisation Agirc-Arrco, y
+       Code de cotisation individuelle               S21.G00.81.001
+                                                                             compris Apec
+       Montant de cotisation individuelle            S21.G00.81.004          274,18
+
+       Code de base assujettie                  S21.G00.78.001               24 - Base plafonnée spécifique
+       Montant de base assujettie               S21.G00.78.004               657,00
+       Code de base assujettie                  S21.G00.78.001               22 - Base brute spécifique
+       Montant de base assujettie               S21.G00.78.004               680,00
+                                                                             105 - Montant de cotisation Agirc-Arrco, y
+       Code de cotisation individuelle               S21.G00.81.001
+                                                                             compris Apec
+       Montant de cotisation individuelle            S21.G00.81.004          74,21
+
+
+
+
+ © Agirc-Arrco                                                                                                       octobre 2019
+

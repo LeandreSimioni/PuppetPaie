@@ -1,0 +1,265 @@
+# Bloc S89.G00.32
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 334-338
+
+--- p. 334 ---
+  S89.G00.32  2026-06-10
+
+  Structure
+
+  S89 Véhicule
+S89.G00.32
+  technique
+Bénéficiaire des honoraires  S89.G00.32
+Profession ou qualité  S89.G00.32.001
+Nom du bénéficiaire des honoraires  S89.G00.32.002
+Prénom du bénéficiaire des honoraires  S89.G00.32.003
+Siren du bénéficiaire des honoraires  S89.G00.32.004
+Nic du bénéficiaire des honoraires  S89.G00.32.005
+Raison sociale du bénéficiaire des honoraires  S89.G00.32.006
+Complément de localisation de la construction  S89.G00.32.007
+Numéro, extension, nature et libellé de la voie  S89.G00.32.008
+Code INSEE de la commune  S89.G00.32.009
+Service de distribution, complément de localisation de la voie  S89.G00.32.010
+Code postal  S89.G00.32.011
+Localité  S89.G00.32.012
+Code pays  S89.G00.32.013
+Code de distribution à l'étranger  S89.G00.32.014
+Code taux réduit ou dispense de retenue à la source  S89.G00.32.015
+Montant TVA droits d'auteurs  S89.G00.32.016
+Millésime de rattachement  S89.G00.32.017
+Date de naissance  S89.G00.32.018
+
+Profession ou qualité  S89.G00.32.001
+BeneficiaireHonoraires.ProfessionQualite
+  CCH-12 : Pour chaque bloc "Bénéficiaire des honoraires - S89.G00.32", au moins l'un des trois blocs "Avantages en
+  nature - S89.G00.33", "Prise en charge des indemnités - S89.G00.35" ou "Rémunérations - S89.G00.43" doit être
+  présent et comporter un montant supérieur à "0".
+
+  X  [1,40]
+
+Nom du bénéficiaire des honoraires  S89.G00.32.002
+BeneficiaireHonoraires.Nom
+  Le nom et le prénom du bénéficiaire sont obligatoires si celui-ci est une personne physique (code général
+  des impôts, article 39 annexe III).
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  334 / 370
+
+--- p. 335 ---
+  S89.G00.32  2026-06-10
+
+  X  [1,80]
+
+Prénom du bénéficiaire des honoraires  S89.G00.32.003
+BeneficiaireHonoraires.Prenom
+  Le nom et le prénom du bénéficiaire sont obligatoires si celui-ci est une personne physique (code général
+  des impôts, article 39 annexe III).
+  CCH-11 : Les 2 rubriques, "Nom du bénéficiaire des honoraires - S89.G00.32.002" et "Prénom du bénéficiaire des
+  honoraires - S89.G00.32.003", doivent être simultanément présentes ou absentes.
+
+  CCH-12 : La présence d'un et d'un seul des deux ensembles "Nom du bénéficiaire des honoraires - S89.G00.32.002" /
+  "Prénom du bénéficiaire des honoraires - S89.G00.32.003" ou "Siren du bénéficiaire des honoraires S89.G00.32.004" /
+  "Nic du bénéficiaire des honoraires S89.G00.32.005" / "Raison sociale du bénéficiaire des honoraires S89.G00.32.006"
+  est obligatoire.
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,40]
+
+Siren du bénéficiaire des honoraires  S89.G00.32.004
+BeneficiaireHonoraires.Siren
+  Un identifiant à zéro n'est pas admis.
+
+  CSL-12 : [(vérification de la clé)]
+
+  X  [9,9]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Nic du bénéficiaire des honoraires  S89.G00.32.005
+BeneficiaireHonoraires.Nic
+  Un identifiant à zéro n'est pas admis.
+
+  CCH-11 : [(vérification de la clé)]
+
+  CME-11 : Le SIRET doit être à l'état actif ou radié au répertoire SIRENE de l'INSEE au cours de la période de
+  référence de la déclaration.
+
+  X  [5,5]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Raison sociale du bénéficiaire des honoraires  S89.G00.32.006
+BeneficiaireHonoraires.RaisonSocial
+  La raison sociale du bénéficiaire est obligatoire si celui-ci est une personne morale (code général des
+  impôts, article 39 annexe III).
+  La présence de la raison sociale exclut celle de l'ensemble nom et prénom.
+  La présence d'une raison sociale ou d'une identité est obligatoire.
+  CCH-11 : Les 3 rubriques, "Siren du bénéficiaire des honoraires S89.G00.32.004" / "Nic du bénéficiaire des honoraires
+  S89.G00.32.005" / "Raison sociale du bénéficiaire des honoraires S89.G00.32.006" doivent être simultanément
+  présentes ou absentes.
+
+  X  [1,60]
+
+  335 / 370
+
+--- p. 336 ---
+  S89.G00.32  2026-06-10
+
+Complément de localisation de la construction  S89.G00.32.007
+BeneficiaireHonoraires.ComplementLocalisation
+  Les compléments d’adresse permettent d’indiquer le point de remise exact du courrier. Ils donnent des
+  informations précises et déterminantes dans la phase finale de distribution du courrier, tel que le bâtiment,
+  la boîte aux lettres, le numéro d’appartement.
+
+  X  [1,50]
+
+Numéro, extension, nature et libellé de la voie  S89.G00.32.008
+BeneficiaireHonoraires.NumeroExtensionNatureLibelle
+  Numéro : Il précise l’adresse dans la voie. Sa valeur est différente de 0 et ne doit pas dépasser 4 chiffres.
+  En cas de numéro multiple, seul le premier doit être indiqué (pour exemple indiquer 4 pour 4/14)
+  Extension : Lettre accolée au numéro si celui-ci ne présente pas une précision suffisante (par exemple B
+  pour BIS, T pour TER, etc…)
+  Nature de la voie : information facultative décrivant la nature de la voie (rue, avenue, etc…)
+  Libellé de la voie : Appellation officielle de la voie
+
+  X  [1,50]
+
+Code INSEE de la commune  S89.G00.32.009
+BeneficiaireHonoraires.CodeInsee
+  Nomenclature INSEE des communes de France telle qu’elle figure dans le fichier Hexaposte.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table INSEE - Code INSEE de la commune
+
+Service de distribution, complément de localisation de la voie  S89.G00.32.010
+BeneficiaireHonoraires.ServiceDistribution
+  Il s’agit de services de distribution du courrier spécifiques proposés ou mis en place par La Poste.
+
+  X  [1,50]
+
+Code postal  S89.G00.32.011
+BeneficiaireHonoraires.CodePostal
+  Donnée d'organisation de la distribution postale, à utiliser telle que définie dans le fichier Hexaposte.
+
+  CCH-12 : Si le code postal est présent alors le code pays et le code de distribution à l'étranger sont absents et
+  réciproquement.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table HEX - Code postal
+
+Localité  S89.G00.32.012
+BeneficiaireHonoraires.Localite
+  La localité est un élément géographique et administratif. C’est le premier élément d’identification associé
+  au code postal. Le libellé est la plupart du temps le nom officiel de la localité enregistrée à l’INSEE et au
+
+  336 / 370
+
+--- p. 337 ---
+  S89.G00.32  2026-06-10
+
+  Journal Officiel.
+  CCH-11 : La localité est obligatoire si le code postal est renseigné.
+
+  X  [1,50]  CSL 00 : [A-Za-z0-9\s]+
+
+Code pays  S89.G00.32.013
+BeneficiaireHonoraires.CodePays
+  Nom du pays (territoire d’un état) exprimé sous la forme d’un code.
+
+  CRE-11 : valeurs autorisées
+
+  X  [2,2]  Table PAY - Code pays hors système postal français
+
+Code de distribution à l'étranger  S89.G00.32.014
+BeneficiaireHonoraires.CodeDistributionEtranger
+  Mention complémentaire pour les adresses ne relevant du système postal français.
+
+  X  [1,50]
+
+Code taux réduit ou dispense de retenue à la source  S89.G00.32.015
+BeneficiaireHonoraires.CodeTauxReduitDispense
+
+  X  [1,1]
+
+  D - dispense de retenue à la source
+  R - taux réduit de retenue à la source
+
+Montant TVA droits d'auteurs  S89.G00.32.016
+BeneficiaireHonoraires.MontantTva
+
+  N  [4,12]  CSL 00 : -?[0]*([1-9][0-9]*\.[0-9]{2}|0\.(0[1-9]|[1-9][0-9]))
+
+Millésime de rattachement  S89.G00.32.017
+BeneficiaireHonoraires.Millésimederattachement
+  Année de rattachement des éléments déclarés au sein du présent bloc.
+
+  CCH-11 : L'année déclarée doit être inférieure ou égale aux quatre derniers caractères (Année) du mois principal
+  déclaré – S20.G00.05.005
+
+  N  [4,4]  CSL 00 : 2([0-9]{3})
+
+Date de naissance  S89.G00.32.018
+BeneficiaireHonoraires.DateDeNaissance
+  Instant où une personne naît, tel qu'enregistré à l'état civil.
+  Renseigner la date de naissance du bénéficiaire des honoraires sous la forme JJMMAAAA.
+  - L'année de naissance est obligatoire,
+  - Jour de naissance inconnu : 00MMAAAA ou 99MMAAAA,
+
+  337 / 370
+
+--- p. 338 ---
+  S89.G00.33  2026-06-10
+
+  - Mois de naissance inconnu : JJ00AAAA ou JJ99AAAA,
+  - Si jour et mois inconnus : 0000AAAA ou 9999AAAA.
+  Obligatoire pour une personne physique domiciliée hors de France dans un Etat membre de l’UE qui
+  perçoit de rémunérations de type « 06 - droits d’auteur » et/ou « 07 - droit d’inventeur ».
+  CCH-11 : L'année de la « Date de naissance - S89.G00.32.018 » doit être inférieure ou égale à l'année en cours et
+  supérieure à l'année en cours moins 120 (années).
+
+  CSL-11 : [(respect des contraintes calendaires)] aux exceptions près acceptées sur le mois ou le jour à 00 ou 99
+
+  SIG-12 : La rubrique « Date de naissance - S89.G00.32.018 » doit obligatoirement être renseignée si et seulement si les
+  rubriques « Nom du bénéficiaire des honoraires - S89.G00.32.002 » et « Prénom du bénéficiaire des honoraires -
+  S89.G00.32.003 » sont présentes et si la rubrique « Code pays - S89.G00.32.013 » est renseignée avec une valeur égale
+  à « AT », « BE », « BG », « CY », « CZ », « DE », « DK », « EE », « ES », « FI », « GR », « HR », « HU », « IE », «
+  IT », « LT », « LU », « LV », « MT », « NL », « PL », « PT », « RO », « SE », « SI » ou « SK » et s'il existe un bloc
+  enfant « Rémunérations - S89.G00.43 » comportant une rubrique « Code type de la rémunération - S89.G00.43.001 »
+  renseignée avec une valeur égale à « 06 - droits d'auteur » ou « 07 - droits d'inventeur ». Dans le cas contraire, elle est
+  interdite.
+
+  CSL 00 : (0[0-9]|[1-2][0-9]|3[0-1]|99)(0[0-9]|1[0-
+  X  [8,8]
+  2]|99)(19|20)[0-9]{2}
+
+S89.G00.33
+
+Avantages en nature  S89.G00.33
+Code type avantage en nature  S89.G00.33.001
+Montant avantage en nature  S89.G00.33.002
+
+Code type avantage en nature  S89.G00.33.001
+AvantagesNature.CodeTypeAvantage
+
+  X  [2,2]
+
+  01 - nourriture
+  02 - logement
+  03 - voiture
+  04 - nouvelles technologies de l'Informatique et de la Communication
+  09 - autre avantage
+
+Montant avantage en nature  S89.G00.33.002
+AvantagesNature.MontantAvantage
+  [NB : avec décimale, signé, valeur zéro interdite, zéros non significatifs tolérés.]
+
+  N  [4,12]  CSL 00 : -?[0]*([1-9][0-9]*\.[0-9]{2}|0\.(0[1-9]|[1-9][0-9]))
+
+S89.G00.35
+
+Prise en charge des indemnités  S89.G00.35
+Code modalité de prise en charge des indemnités  S89.G00.35.001
+Montant de l'indemnité  S89.G00.35.002
+
+Code modalité de prise en charge des indemnités  S89.G00.35.001
+
+  338 / 370

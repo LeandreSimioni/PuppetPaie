@@ -1,0 +1,252 @@
+# Bloc S21.G00.65
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 285-288
+
+--- p. 285 ---
+  S21.G00.65  2026-06-10
+
+  payé dans le cadre du parcours d’accompagnement personnalisé (PAP)". Dans le cas contraire, elle est interdite.
+
+  CCH-13 : La date de début de préavis doit être supérieure ou égale à la "Date de notification de la rupture de contrat -
+  S21.G00.62.003" sauf si le "Type réalisation et paiement du préavis - S21.G00.63.001" est renseigné avec la valeur "90
+  - pas de clause de préavis applicable".
+
+  CCH-14 : La date de début de préavis doit être supérieure à la "Date d'engagement de la procédure de licenciement -
+  S21.G00.62.005" sauf si le "Type réalisation et paiement du préavis - S21.G00.63.001" est renseigné avec la valeur "90
+  - pas de clause de préavis applicable".
+
+  CCH-15 : Si plusieurs rubriques "Type réalisation et paiement du préavis - S21.G00.63.001" existent, les périodes
+  doivent être strictement contigües et sans chevauchement.
+
+  CCH-16 : La "Date de début de préavis - S21.G00.63.002" doit être supérieure ou égale à la "Date de début du contrat
+  - S21.G00.40.001".
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de préavis  S21.G00.63.003
+Preavis.DateFin
+  Dernier jour du contrat de travail en cas de préavis, effectué ou non.
+
+  CCH-13 : La date de fin du préavis doit être supérieure ou égale à la date de début du préavis.
+
+  CCH-14 : Cette rubrique doit être présente si et seulement si la rubrique "Type réalisation et paiement du préavis -
+  S21.G00.63.001" est renseignée avec la valeur "01 - préavis effectué et payé", "02 - préavis non effectué et payé", "03
+  - préavis non effectué et non payé", "10 - préavis non effectué non payé dans le cadre d’un contrat de sécurisation
+  professionnelle (CSP)", "50 - préavis non effectué et payé dans le cadre d’un congé de reclassement", "51 - préavis non
+  effectué et payé dans le cadre d’un congé de mobilité", "60 - Délai de prévenance" et "61 - préavis non effectué non
+  payé dans le cadre du parcours d’accompagnement personnalisé (PAP)" . Dans le cas contraire, elle est interdite.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+S21.G00.65
+
+Autre suspension de l'exécution du contrat  S21.G00.65
+  Il permet à l'établissement de déclarer les informations relatives à une suspension « totale » de l’exécution du contrat :
+  absence à temps plein du salarié sans maintien de sa rémunération normale par son employeur. Cette suspension ne
+  modifie pas les conditions d’exécution du contrat. Cependant, les obligations contractuelles ne s’exercent plus de
+  manière temporaire.
+  En cas de suspension supra-mensuelle, la suspension doit être déclarée dans toutes les DSN mensuelles dont le mois
+  principal déclaré présente une période commune avec la suspension concernée.
+
+Motif de suspension  S21.G00.65.001
+Date de début de la suspension  S21.G00.65.002
+Date de fin de la suspension  S21.G00.65.003
+[FP] Position de détachement  S21.G00.65.004
+Nombre de jours ouvrés de suspension  S21.G00.65.005
+
+Motif de suspension  S21.G00.65.001
+ContratSuspensionAutre.Motif
+
+  285 / 370
+
+--- p. 286 ---
+  S21.G00.65  2026-06-10
+
+Il s'agit d'une raison pour laquelle le contrat est suspendu.
+La transmission d'une annulation doit s'accompagner de la « date de début de la suspension » à annuler et
+de la « date de la fin de la suspension » à annuler.
+
+Les valeurs suivantes sont aussi applicables pour les salariés des IEG : « 656 - [FP] Congé pour cessation
+anticipée d’activité du fait d’une maladie professionnelle provoquée par l’amiante », « 677 - Disponibilité
+pour élever un enfant âgé de moins de 12 ans (de moins de 8 ans pour la RATP) ».
+CCH-12 : Les motifs « 605 - Congé statutaire », « 612 - Congé de candidat parlementaire ou élu à mandat local », «
+628 - Congé de solidarité internationale », « 630 - Congé d'enseignement ou de recherche », « 631 - Congé mutualiste
+de formation », « 633 - Congé pour acquisition de la nationalité », « 642 - Convention FNE d'aide au passage à temps
+partiel », « 645 - Préretraite progressive » et « 647 - Réduction temps d'emploi » sont autorisés si et seulement si la «
+Nature de la déclaration - S20.G00.05.001 » est égale à « 07 - Signalement Fin du contrat de travail Unique » et si la «
+Date de début de la suspension - S21.G00.65.002 » est antérieure au 1er janvier 2027. Dans le cas contraire, ils sont
+interdits.
+
+SIG-11 : Si la "Nature de la déclaration - S20.G00.05.001" est "01 - DSN Mensuelle" et s’il existe au moins une
+rubrique "Motif de suspension - S21.G00.65.001" renseignée avec la valeur "507 - chômage intempéries" ou "602 -
+chômage sans rupture de contrat", il doit exister au moins un bloc "Rémunération - S21.G00.51" dont la rubrique
+"Type - 21.G00.51.011" est valorisée à "019 - Heures d'activité partielle" ou "025 - Heures correspondant à du
+chômage intempéries".
+
+  X  [3,3]
+
+112 - Invalidité catégorie 1
+114 - Invalidité catégorie 2
+116 - Invalidité catégorie 3
+200 - COP (Congés payés indemnisés par une caisse de congés payés)
+301 - Congé de Formation Professionnelle
+501 - Congé divers non rémunéré
+507 - Chômage intempéries
+601 - Mobilité (volontaire sécurisée, internationale des alternants, …)
+602 - Chômage sans rupture de contrat
+603 - Détention provisoire
+605 - Congé statutaire
+606 - Détachement d'un salarié IEG
+607 - Congé de présence parentale
+608 - CASA-CATS (Cessation d'Activité des Travailleurs Salariés)
+610 - Projet de Transition Professionnelle (PTP) ou Congé de Reconversion Professionnelle (CRP)
+611 - Congé de bilan de compétences
+612 - Congé de candidat parlementaire ou élu à un mandat local
+615 - Congé de formation de cadres et d'animateurs pour la jeunesse
+617 - Congé de formation pour les salariés de moins de 25 ans
+618 - Congé de formation économique, sociale, environnementale et syndicale (CFESES)
+620 - Congé de mobilité
+621 - Congé de participation aux instances d'emploi ou de formation professionnelle
+625 - Congé de reclassement
+626 - Congé de représentation
+627 - Congé de solidarité familiale
+628 - Congé de solidarité internationale
+630 - Congé d'enseignement ou de recherche
+631 - Congé mutualiste de formation
+632 - Congé parental d'éducation
+633 - Congé pour acquisition de la nationalité
+634 - Congé pour catastrophe naturelle
+
+  286 / 370
+
+--- p. 287 ---
+  S21.G00.65  2026-06-10
+
+  635 - Congé pour création ou reprise d'entreprise
+  636 - Congé pour enfant malade
+  637 - Congé pour évènement familial
+  638 - Congé pour validation des acquis de l'expérience
+  639 - Congé sabbatique
+  642 - Convention FNE d'aide au passage à temps partiel
+  643 - Congé de conversion avec prise en charge par l'Etat
+  644 - Congé de conversion sans prise en charge par l'Etat
+  645 - Préretraite progressive
+  646 - Préretraite d'entreprise sans rupture de contrat de travail
+  647 - Réduction temps d'emploi
+  650 - Congé de proche aidant
+  651 - Congé pour mandat parlementaire
+  652 - Inaptitude temporaire liée à la grossesse
+  653 - Maintien de salaire – personnel navigant de l’aéronautique civile
+  654 - Inactivité temps alterné – personnel navigant de l’aéronautique civile
+  655 - [FP] Détachement conduisant à pension (ECP)
+  656 - [FP] Congé pour cessation anticipée d’activité du fait d’une maladie professionnelle provoquée par l’amiante
+  657 - [FP] Absence concertée de travail
+  658 - [FP] Congé spécial
+  659 - [FP] Période d'instruction militaire ou réserve opérationnelle
+  660 - [FP] Congé avec traitement période d'instruction militaire obligatoire
+  661 - [FP] Congé organisations de jeunesse
+  662 - [FP] Congé pour siéger auprès d’une association, d’une mutuelle, d’une instance de l’Etat ou d’une collectivité
+  territoriale
+  663 - Congé non rémunéré de 18 jours pour mandats municipaux ou départementaux ou régionaux
+  664 - [FP] Congé avec traitement pour période d'activité dans la réserve de sécurité civile
+  665 - [FP] Congé pour période d'activité dans la réserve sanitaire
+  666 - [FP] Congé pour recherches ou conversions thématiques
+  667 - [FP] Congé pour raisons opérationnelles et activités privées des sapeurs-pompiers professionnels
+  668 - [FP] Congé pour raisons opérationnelles cotisé des sapeurs-pompiers professionnels
+  669 - [FP] Congé pour difficultés opérationnelles des sapeurs-pompiers professionnels
+  670 - [FP] Congé pour période d'activité dans la réserve civile de la police
+  671 - [FP] Exclusion temporaire de fonctions
+  672 - [FP] Suspension
+  673 - [FP] Absences irrégulières (service non fait)
+  674 - [FP] Détachement ne conduisant pas à pension (ENCP)
+  675 - [FP] Disponibilité
+  676 - [FP] Disponibilité pour maladie
+  677 - Disponibilité pour élever un enfant âgé de moins de 12 ans (de moins de 8 ans pour la RATP)
+  678 - [FP] Position hors cadres
+  680 - Congé sans solde cotisé
+  683 - Potentiel nouveau motif de suspension A
+  684 - Potentiel nouveau motif de suspension B
+  685 - Potentiel nouveau motif de suspension C
+  686 - Contrat suspendu pour expatriation
+  687 - Potentiel nouveau motif de suspension D
+  688 - Potentiel nouveau motif de suspension E
+  998 - Annulation
+
+Date de début de la suspension  S21.G00.65.002
+ContratSuspensionAutre.DateDebut
+  Il s'agit du premier jour de la suspension de l'exécution du contrat.
+
+  287 / 370
+
+--- p. 288 ---
+  S21.G00.66  2026-06-10
+
+  CCH-11 : La Date de début de la suspension doit être supérieure ou égale à la date de début du contrat.
+
+  CCH-13 : La date de début de suspension (S21.G00.65.002) doit être inférieure ou égale à la date de fin du contrat
+  (S21.G00.62.001) renseignée dans un bloc « Fin du contrat - S21.G00.62 » de motif (S21.G00.62.002) différent de «
+  099 - annulation » sauf si la rubrique « Motif de suspension - S21.G00.65.001 » est renseignée avec la valeur « 998 -
+  Annulation ». Ce contrôle ne s'applique ni pour une annulation de fin de contrat ni pour une annulation de suspension.
+
+  SIG-12 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de la suspension  S21.G00.65.003
+ContratSuspensionAutre.DateFin
+  Il s'agit de la date de fin prévisionnelle de la suspension de l'exécution du contrat.
+  Dans le cas d'une suspension pour cause de chômage intempéries (S21.G00.65.001 = '507') ou de chômage
+  sans rupture du contrat de travail (S21.G00.65.001 = '602'), il s'agit de la date de fin réelle de la suspension
+  de l'exécution du contrat.
+  CCH-11 : La date de fin de la suspension doit être supérieure ou égale à la Date de début de la suspension.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+[FP] Position de détachement  S21.G00.65.004
+ContratSuspensionAutre.FPPositionDétachement
+  Situation du fonctionnaire civil ou militaire lorsqu'il est en détachement.
+
+  CCH-11 : La rubrique « [FP] Position de détachement – S21.G00.65.004 » est obligatoire si la rubrique « Motif de
+  suspension – S21.G00.65.001 » est renseignée avec la valeur « 655 – [FP] Détachement conduisant à pension (ECP) »
+  ou « 674 – [FP] Détachement ne conduisant pas à pension (ENCP) », dans le cas contraire elle est interdite. ».
+
+  CRE-11 : valeurs autorisées
+
+  X  [3,3]  DET Code détachement dans la Fonction Publique
+
+Nombre de jours ouvrés de suspension  S21.G00.65.005
+ContratSuspensionAutre.NombreJourOuvrésSuspension
+  Nombre de jours ouvrés de congé proche aidant du mois principal déclaré. Cette rubrique est seulement à
+  renseigner pour les cas de congé de proche aidant ou de congé de présence parentale. Ces suspensions
+  peuvent être fractionnées en demi-journées.
+
+  N  [4,5]  CSL 00 : (0\.50)|[1-9]\.(00|50)|[1-9][0-9]\.(00|50)
+
+S21.G00.66
+
+Temps partiel Thérapeutique  S21.G00.66
+  Il permet à l'établissement de déclarer les informations relatives au temps partiel thérapeutique : période concernée et
+  montant de la perte de salaire associé.
+  Ces informations sont nécessaires à l’Assurance Maladie qui indemnise la perte de revenus du salarié en versant des
+  indemnités journalières pour le temps non travaillé.
+
+  288 / 370

@@ -1,0 +1,137 @@
+Date de modification : 07/07/2026 12:04 PM
+
+ Comment déclarer les indemnités journalières de sécurité sociale subrogées prises en compte dans le calcul du montant net social (MNS) ? 
+
+ Le contexte 
+
+Un salarié peut s’absenter pour plusieurs raisons (maladie, maternité, accident du travail ou maladie professionnelle...). 
+
+Pendant la durée de son arrêt de travail, des indemnités journalières de Sécurité sociale (IJSS) et des indemnités journalières complémentaires (IJC) lui sont versées.
+
+Ces indemnités sont soumises à cotisations et contributions sociales selon des modalités différentes. En particulier, les cotisations sociales et la CSG-CRDS ne sont pas dues sur la part des indemnités journalières complémentaires financées par le salarié dans le cadre de son contrat de prévoyance collectif.
+
+Les indemnités journalières de la sécurité sociale (IJSS) ne sont pas soumises aux cotisations sociales salariales et patronales ; elles demeurent toutefois assujetties à la CSG et à la CRDS, en tant que revenus de remplacement. 
+
+La part financée par l’employeur des indemnités journalières complémentaires de prévoyance, qui remplacent le salaire en cas de subrogation (assimilées à du revenu d’activité) est incluse dans l’assiette des cotisations sociales. En revanche, la part financée par le salarié est exonérée de cotisations sociales et patronales.
+
+Ces indemnités sont incluses dans le calcul du montant net social (MNS), mais ne sont pas déclarées en DSN, et ne sont donc pas prises en compte dans la rémunération nette fiscale (RNF). 
+
+Cependant, pour la fiabilisation du montant net social (MNS) et garantir le bon calcul des droits à prestation RSA et/ou prime d’activité, il est nécessaire de déclarer le montant des IJSS subrogées et des indemnités complémentaires de prévoyance exonérées de cotisations pris en compte dans le calcul du montant net social (MNS).
+
+Rappel : Seules les indemnités journalières complémentaires de prévoyance versées par l’employeur au salarié sont déclarées par celui-ci en DSN. Lorsque les prestations sont versées directement au salarié par l’organisme de prévoyance, elles ne relèvent pas de la DSN de l’employeur ; le montant net social correspondant est alors déclaré par l’organisme verseur sur le relevé de prestations transmis au bénéficiaire.
+
+ Déclarer des indemnités journalières subrogées 
+
+Les indemnités journalières subrogées doivent être déclarées en date de versement dans le bloc « Élément de revenu calculé en net – S21.G00.58 » :  
+
+Soit avec la valeur « 10 - IJSS subrogées prises en compte dans le calcul du MNS » pour les indemnités journalières versées par la Sécurité Sociale, à partir de 2026
+
+Soit avec la valeur « 14 - Indemnité journalière complémentaire de prévoyance subrogée exonérée de cotisations sociales » pour les indemnités journalières versées par les organismes complémentaires (OC), à partir de 2027.
+
+ Exemple de déclaration du cas nominal
+
+Un salarié percevant 2000 € de rémunération brute par mois est absent 15 jours, en avril 2027. Il perçoit des indemnités journalières de sécurité sociale (IJSS) sur 12 jours (15 - 3 jours de carence) et des indemnités journalières complémentaire sur 8 jours (15 - 7 jours de carence) permettant d’atteindre 90% de son salaire journalier. Les indemnités journalières sont subrogées et versées par l’employeur le même mois et le contrat de prévoyance collectif est financé à 60% par l’employeur.
+
+Le montant brut d’IJSS est de 32,88 € par jour, ce qui revient à un total de 394,56 € bruts (12 jours * 32.88) au total, soit 368,12 € net (394,56 * (1 - 6,2% CSG + 0,5% CRDS) devant être déclarés dans la DSN d’avril 2027.
+
+Le montant brut d’IJ complémentaires est de 26,30 € par jour. La quote-part financée par les cotisations salariales de prévoyance (40%) de ce montant est de 10,52 € par jour soit un total de 84,16 € et celle-ci est exonérée de cotisations sociales et CSG-CRDS. 
+
+DSN du mois principal déclaré en avril (déposée au plus tard le 5 ou le 15 mai 2027)
+
+ | S21.G00.50 - Versement individu
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.50.001
+ | Date de versement
+ | 30042027 
+
+ | S21.G00.50.002
+ | Rémunération nette fiscale
+ | A renseigner
+
+ | S21.G00.50.006
+ | Taux de prélèvement à la source
+ | A renseigner
+
+ | S21.G00.50.007
+ | Type de taux de prélèvement à la source
+ | A renseigner
+
+ | S21.G00.50.009
+ | Montant de prélèvement à la source
+ | A renseigner
+
+ | S21.G00.50.013
+ | Montant soumis au PAS
+ | A renseigner
+
+ | S21.G00.58 - Elément de revenu calculé en net 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.58.003
+ | Type
+ | 10 - IJSS subrogées prises en compte dans le calcul du MNS
+
+ | S21.G00.58.004
+ | Montant 
+ | 
+
+ 368.12 
+
+ [Montant des IJSS après abattement de la CSG-CRDS] 
+
+ | S21.G00.58 - Elément de revenu calculé en net 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.58.003
+ | Type
+ | 14 - IJSS complémentaires de prévoyance subrogées exonérées de cotisations sociales
+
+ | S21.G00.58.004
+ | Montant 
+ | 
+
+ 84.16 
+
+ [Montant des IJSS complémentaire exonérées de cotisations sociales] 
+
+ | S21.G00.58 - Elément de revenu calculé en net 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.58.003
+ | Type
+ | 03 - Montant net social
+
+ | S21.G00.58.004
+ | Montant
+ | 
+
+ A renseigner 
+
+ La réglementation (Textes de loi, boss...)
+
+Bulletin officiel de la Sécurité Sociale / Bulletin de paie / Montant net social
+
+CSS art. R 242-1 ; Lettre-circ. ACOSS n° 73-18, 15 mars 1973 
+
+ Date de création : 22/07/2025 03:09 PM 
+
+ N° de la fiche : 3323 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

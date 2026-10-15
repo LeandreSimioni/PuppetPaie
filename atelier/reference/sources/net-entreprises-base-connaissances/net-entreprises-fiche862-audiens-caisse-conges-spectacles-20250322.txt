@@ -1,0 +1,275 @@
+Date de modification : 22/03/2025 02:30 PM
+
+ Comment déclarer les Congés Spectacles AUDIENS ?
+
+ Le contexte
+
+L'objectif de cette fiche est de préciser les consignes à respecter pour le remplissage de certaines rubriques de la DSN Mensuelle, afin de garantir la reconstitution du certificat d'emploi par les Congés spectacles et en conséquence le calcul des indemnités congés.
+
+La déclaration employeur des certificats d'emploi et cotisations pour les Congés spectacles Audiens est intégrée dans la DSN Mensuelle à compter de la phase 3. En conséquence, les autres canaux de déclaration ne devront plus être utilisés.
+
+A noter que l'exemplaire du certificat à remettre au salarié reste obligatoire.
+
+ | Modèle de déclaration
+ | 
+ 01 - DSN mensuelle
+
+ | 
+ 02 - Signalement Fin de contrat de travail
+
+ | 
+ 03 - Signalement arrêt de travail 
+
+ | 
+ 04 - Signalement Reprise suite à un arrêt de travail
+
+ | Attendu par les Congés Spectacles AUDIENS
+ | 
+ OUI
+
+ | 
+ NON
+
+ | 
+ NON
+
+ | 
+ NON 
+
+Les certificats d'emplois sont mis à disposition via les espaces sécurisés des congés spectacles (employeurs et salariés), après traitement des DSN. A noter que dans le cas de dépôt DSN via la guichet professionnel IZILIO, les certificats d'emploi sont mis à disposition sur le guichet après traitement des DSN.
+
+Declarer à la Caisse des congés spectacles - AUDIENS
+
+ " Versement organisme de protection sociale - S21.G00.20 "
+
+ | 
+ Entité d'affectation des opérations - S21.G00.20.002
+
+ | 
+ Spécificité pour la gestion des films : indiquez le pseudo-siret film attribué par l'URSSAF
+
+ " Contrat - S21.G00.40 " - Codification pour les intermittents
+
+1 - Les artistes :
+
+ | 
+ Code Statut catégoriel Retraite complémentaire
+
+ | 
+ Code profession et catégorie socioprofessionnelle
+
+ | 
+ Code complément PCS-ESE
+
+ | 
+ Nature du contrat*
+
+ | 
+ Motif de recours
+
+ | 
+ S21.G00.40.003
+
+ | 
+ S21.G00.40.004
+
+ | 
+ S21.G00.40.005
+
+ | 
+ S21.G00.40.007
+
+ | 
+ S21.G00.40.021
+
+ | 
+ '04 - non cadre'
+
+ | 
+ 354b ou 354c ou 354 e ou 354f
+
+ | 
+ Code correspondant de la liste des professions du spectacle relevant de l'annexe 10 de la convention assurance chômage
+
+ Voir table CCP - Code Complément PCS-ESE, ART - Code détaillé des professions du spectacle (complément PCS-ESE) comme indiqué dans le Cahier technique
+
+ | 
+ '02 - CDD de droit privé'
+
+ | 
+ '05 - Contrat d'usage'
+
+ 2 - Les techniciens :
+
+ | 
+ Code Statut catégoriel Retraite complémentaire
+
+ | 
+ Code profession et catégorie socioprofessionnelle
+
+ | 
+ Code complément PCS-ESE
+
+ | 
+ Nature du contrat*
+
+ | 
+ Motif de recours
+
+ | 
+ S21.G00.40.003
+
+ | 
+ S21.G00.40.004
+
+ | 
+ S21.G00.40.005
+
+ | 
+ S21.G00.40.007
+
+ | 
+ S21.G00.40.021
+
+ | 
+ '04 - non cadre'
+
+ | 
+ 354f ou 465b ou 637c
+
+ | 
+ Code correspondant de la liste des professions du spectacle relevant de l'annexe 8 de la convention assurance chômage
+
+ Voir table CCP - Code Complément PCS-ESE, ART - Code détaillé des professions du spectacle (complément PCS-ESE) comme indiqué dans le Cahier technique
+
+ | 
+ '02 - CDD de droit privé'
+
+ | 
+ '05 - Contrat d'usage'
+
+ 3 - Les cadres
+
+ | 
+ Code Statut catégoriel Retraite complémentaire
+
+ | 
+ Code profession et catégorie socioprofessionnelle
+
+ | 
+ Code complément PCS-ESE
+
+ | 
+ Nature du contrat*
+
+ | 
+ Motif de recours
+
+ | 
+ S21.G00.40.003
+
+ | 
+ S21.G00.40.004
+
+ | 
+ S21.G00.40.005
+
+ | 
+ S21.G00.40.007
+
+ | 
+ S21.G00.40.021
+
+ | 
+ '01 - cadre'
+
+ | 
+ 353b ou 353c ou 354b ou 354c ou 354 e
+
+ | 
+ Code correspondant de la liste des professions du spectacle relevant de l'annexe 8 ou 10 de la convention assurance chômage
+
+ Voir table CCP - Code Complément PCS-ESE, ART - Code détaillé des professions du spectacle (complément PCS-ESE) comme indiqué dans le Cahier technique
+
+ | 
+ '02 - CDD de droit privé'
+
+ | 
+ '05 - Contrat d'usage'
+
+ | 
+ (*) Le code nature du contrat « 07 - CDI intermittent » est à proscrire pour les intermittents du spectacle
+
+ | 
+ « Identifiant du lieu de travail - S21.G00.40.019 »
+
+ | 
+ Spécificité pour la gestion des films : indiquer le pseudo-siret attribué par l'URSSAF
+
+ | 
+ « Code caisse professionnelle de congés payés - S21.G00.40.022 »
+
+ | 
+ Le code Caisse Congés Spectacles est : 97
+
+ " Activité - S21.G00.53 "
+
+ | 
+ Type S21.G00.53.001
+
+ | 
+ '01 - Travail rémunéré'
+
+ | 
+ Mesure S21.G00.53.002
+
+ | 
+ Volume d'activité adapté à l'unité de mesure indiquée en rubrique « Unité de mesure - S21.G00.53.003 »
+
+ | 
+ Unité de mesure S21.G00.53.003
+
+ | 
+ '12 - journée'
+
+ ET
+
+ '36 - cachets groupés'
+
+ ou
+
+ '37- cachets isolés'
+
+ « Base assujettie - S21.G00.78 »
+
+ | 
+
+ Code de base assujettie S21.G00.78.001
+
+ | 
+ Le code de base assujettie pour les Congés Spectacles à indiquer est le :
+
+ '27 - Assiette Caisse de congés spectacles'
+
+ L'assiette des congés spectacles correspond à la rémunération brute acquise par le salarié durant la période de référence, avant toute déduction forfaitaire spécifique pour frais professionnels et toute retenue. (Voir fiche à télécharger « Plafonds Congés Spectacles » sur www.audiens.org).
+
+ Cotisation individuelle - S21.G00.81
+
+ | 
+
+ Code de cotisation S21.G00.81.001
+
+ | 
+ Le code de cotisation dédié au Congés Spectacles est le :
+
+ '066 - Cotisation caisse de congés spectacles'
+
+ Date de création : 13/07/2016 09:26 AM 
+
+ N° de la fiche : 862 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

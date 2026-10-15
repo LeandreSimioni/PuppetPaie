@@ -1,0 +1,39 @@
+Décret n° 2025-736 du 31 juillet 2025 portant approbation des nomenclatures d'activités et de produits françaises
+JORFTEXT000052019213, NOR ECOO2518623D, JORF n°0177 du 1er août 2025 ; page Légifrance capturée le 11/10/2026 (.mht à côté).
+Transcription : le corps du texte (visas, articles 1 à 7) extrait du HTML ; l'annexe (structure de la NAF 2025) n'est pas recopiée ici, elle est dans insee-naf-2025-structure-20241004.xlsx.
+
+Sur le rapport du ministre de l'économie, des finances et de la souveraineté industrielle et numérique,
+Vu le règlement délégué (UE) n° 2023/137 de la Commission du 10 octobre 2022 modifiant le règlement (CE) n° 1893/2006 du Parlement européen et du Conseil établissant la nomenclature statistique des activités économiques NACE Rév. 2 ;
+Vu la loi n° 78-17 du 6 janvier 1978 modifiée relative à l'informatique, aux fichiers et aux libertés ;
+Vu le décret n° 2007-1888 du 26 décembre 2007 portant approbation des nomenclatures d'activités et de produits françaises ;
+Vu le décret n° 2009-318 du 20 mars 2009 relatif au Conseil national de l'information statistique, au comité du secret statistique et au comité du label de la statistique publique, notamment le 6° de son article 1er ;
+Vu l'avis du Conseil national de l'information statistique en date du 4 juin 2025,
+Décrète :
+Article 1
+Version en vigueur depuis le 02/08/2025Version en vigueur depuis le 02 août 2025
+Est approuvée la nomenclature d'activités française (NAF 2025) figurant en annexe au présent décret. Elle est une adaptation de la nomenclature statistique des activités économiques dans la Communauté européenne (NACE Rév. 2.1).
+Article 2
+Version en vigueur depuis le 02/08/2025Version en vigueur depuis le 02 août 2025
+Cette nomenclature entre en vigueur le 1er janvier 2027 en métropole, dans les collectivités relevant de l'article 73 de la Constitution, à Saint-Martin, à Saint-Barthélemy et à Saint-Pierre-et-Miquelon. Elle s'applique aussi, à la même date, en Polynésie française, aux îles Wallis et Futuna, en Nouvelle-Calédonie et dans les Terres australes et antarctiques françaises, uniquement pour ce qui est de la compétence de l'Etat.
+Article 3
+Version en vigueur depuis le 02/08/2025Version en vigueur depuis le 02 août 2025
+La nomenclature de produits française est approuvée par un arrêté conjoint du ministre chargé de l'économie et du ministre chargé de l'outre-mer pris après avis du Conseil national de l'information statistique.
+Article 4
+Version en vigueur depuis le 02/08/2025Version en vigueur depuis le 02 août 2025
+I. - Ces nomenclatures constituent un cadre statistique d'intérêt général, dont il convient de promouvoir l'utilisation.
+II. - Ces nomenclatures peuvent donner lieu à des adaptations agrégées ou détaillées, sur un domaine partiel ou en vue d'applications spécifiques :
+1° Les classifications plus agrégées se définissent par des regroupements exacts de rubriques élémentaires ;
+2° Les classifications plus détaillées se définissent par des éclatements exactement emboîtés dans les rubriques élémentaires.
+III. - Ces nomenclatures et leurs adaptations visées dans cet article sont utilisées dans les textes officiels, décisions, documents, travaux et études ainsi que dans les systèmes informatiques des administrations et établissements publics et dans les travaux effectués par des organismes privés à la demande des administrations.
+Article 5
+Version en vigueur depuis le 02/08/2025Version en vigueur depuis le 02 août 2025
+L'attribution par l'Institut national de la statistique et des études économiques, à des fins statistiques, d'un code caractérisant l'activité principale exercée (code APE) en référence à la nomenclature d'activités ne saurait suffire à créer des droits ou des obligations en faveur ou à charge des unités concernées.
+Article 6
+Version en vigueur depuis le 02/08/2025Version en vigueur depuis le 02 août 2025
+Le décret du 26 décembre 2007 susvisé est abrogé à compter du 1er janvier 2027, en ce qui concerne la nomenclature d'activités.
+Les dispositions concernant la nomenclature de produits sont abrogées à la date d'entrée en vigueur des dispositions de l'arrêté mentionné à l'article 3.
+A abrogé les dispositions suivantes :
+- Décret n° 2007-1888 du 26 décembre 2007 Art. 1, Art. 2, Art. 3, Art. 4, Art. 5, Art. 6, Art. 7, Art. ANNEXE
+Article 7
+Version en vigueur depuis le 02/08/2025Version en vigueur depuis le 02 août 2025
+Le ministre d'État, ministre des outre-mer, et le ministre de l'économie, des finances et de la souveraineté industrielle et numérique sont chargés, chacun en ce qui le concerne, de l'exécution du présent décret, qui sera publié au Journal officiel de la République française.

@@ -444,9 +444,12 @@ fn lire_csv(texte: &str, delim: char) -> Vec<Vec<String>> {
     rangs
 }
 
-/// `_libelles_ctp` : code CTP -> libelle, lu dans la table de l'Urssaf quand elle a ete relevee.
+/// `_libelles_ctp` : code CTP -> libelle, lu dans la table de l'Urssaf livree avec le logiciel
+/// (`donnees/urssaf-codes-types-personnel.csv`, celle de `bordereau.rs`). Avant le 15/10/2026, on la cherchait dans
+/// `reference/sources/` de la compagnie, qui n'existait que chez l'editeur ; les textes de reference vivent desormais
+/// dans le depot (`atelier/reference/`), et la table livree en est la copie conforme (`sources.json`).
 fn libelles_ctp(ctx: &Contexte) -> R<Vec<(String, String)>> {
-    let p = ctx.racine.join("reference").join("sources").join("urssaf-codes-types-personnel.csv");
+    let p = ctx.code.join("urssaf-codes-types-personnel.csv");
     if !p.exists() {
         return Ok(Vec::new());
     }

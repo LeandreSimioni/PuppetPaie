@@ -1,0 +1,117 @@
+# Bloc S21.G00.73
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 289-290
+
+--- p. 289 ---
+  S21.G00.73  2025-12-24
+
+  Description des ayants droit attachés au salarié, pour l'Affiliation Prévoyance concernée.
+  Le renseignement de ce bloc est optionnel et vise à permettre aux entreprises gérant les ayant droits de prévoyance
+  dans leur système de paie, de continuer à en faire la déclaration par voie dématérialisée.
+
+Régime local Alsace-Moselle  S21.G00.73.001
+Code option  S21.G00.73.002
+Type  S21.G00.73.003
+Date de début de rattachement à l'ouvrant-droit  S21.G00.73.004
+Date de naissance  S21.G00.73.005
+Nom de famille  S21.G00.73.006
+Numéro d'inscription au répertoire  S21.G00.73.007
+NIR ouvrant-droit régime de base maladie  S21.G00.73.008
+Prénoms  S21.G00.73.009
+Code organisme d'affiliation à l'assurance maladie  S21.G00.73.010
+Date de fin de rattachement à l'ouvrant-droit  S21.G00.73.011
+
+Régime local Alsace-Moselle  S21.G00.73.001
+AyantDroit.RegimeAlsaceMoselle
+  Code indiquant si l'ayant-droit bénéficie du régime local Alsace Moselle en complément du régime de base.
+
+  X  [2,2]
+
+  01 - Oui
+
+Code option  S21.G00.73.002
+AyantDroit.CodeOption
+  Option définie dans le contrat de Prévoyance, choisie pour l'ayant-droit et pouvant être différente de celle
+  retenue pour le salarié. Les valeurs de ce code sont fournies par l'organisme de prévoyance et sont à
+  renseigner sur sa demande.
+
+  X  [1,30]
+
+Type  S21.G00.73.003
+AyantDroit.Type
+  Le type qualifie la nature de l'ayant-droit (adulte, enfant ou autre).
+
+  X  [2,2]
+
+  01 - adulte (conjoint, concubin, pacs)
+  02 - enfant
+  03 - autre (ascendant, collatéraux, …)
+
+Date de début de rattachement à l'ouvrant-droit  S21.G00.73.004
+AyantDroit.DateDebutRattachementOuvrantDroit
+  Date de début de rattachement de l'ayant-droit au salarié dans le cadre du contrat de Prévoyance concerné.
+
+  289 / 361
+
+--- p. 290 ---
+  S21.G00.73  2025-12-24
+
+  SIG-11 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(19|20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de naissance  S21.G00.73.005
+AyantDroit.DateNaissance
+  Date de naissance de l'ayant droit au format JJMMAAAA avec AAAA = 19nn ou 20nn.
+
+  CCH-11 : L'année de la "Date de naissance – S21.G00.73.005" doit être inférieure ou égale à l'année en cours et
+  supérieure à l'année en cours moins 120 (années).
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(19|20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Nom de famille  S21.G00.73.006
+AyantDroit.NomFamille
+  Nom de famille de l'ayant-droit, exprimé selon les mêmes contraintes que la donnée S21.G00.30.002 (Nom
+  de famille) du sous groupe "Individu".
+
+  X  [1,80]
+
+Numéro d'inscription au répertoire  S21.G00.73.007
+AyantDroit.Nir
+  NIR (numéro d'inscription au répertoire des personnes physiques de l'INSEE) de l'ayant droit.
+  Cette rubrique n'est pas exigée pour des enfants ne disposant pas d'un NIR propre.
+  Le Nir doit avoir la forme SAAMMDDCCCNNN avec :
+  S = sexe de la personne physique doit être égal à 1 ou 2
+  AA = année de naissance de la personne physique doit être comprise entre 00 et 99
+  MM = mois de naissance de la personne physique doit être compris entre 01 et 12 ou entre 30 et 42 ou entre
+  50 et 99 ou égal à 20
+  DD = département de naissance de la personne physique doit être compris entre 01 et 99 ou être égal à 2A
+  ou 2B
+  CCC = commune de naissance de la personne physique doit être comprise entre 001 et 999
+  NNN = numéro d'inscription la personne physique au registre d'état civil doit être compris entre 001 et 999
+  En l'absence de NIR ou du NIR complet (13 caractères) il est obligatoire de remplir la rubrique en indiquant
+  le code sexe 1 ou 2 puis en complétant les 12 autres caractères par des 9.
+  Ne pas utiliser les numéros provisoires reconnaissables par leur premier caractère égal à 7 ou 8.
+  CCH-11 : DD = département de naissance de la personne physique - ne peut être égal à 2A ou 2B si année de naissance
+  inférieure à 1976 - ne peut être égal à 20 si année de naissance supérieure ou égale à 1976 - ne peut être égal à 96 si
+  année de naissance supérieure ou égale à 1968.
+
+  CCH-12 : Il n'est pas admis qu'un « Numéro d'inscription au répertoire - S21.G00.73.007 » soit renseigné avec plus de
+  cinq caractères « 9 » à la suite en fin de chaîne.
+
+  CSL 00 : [1-2][0-9]{2}(0[1-9]|1[0-2]|20|3[0-9]|4[0-2]|[5-
+  9][0-9])(0[1-9]|[1-9][0-9]|2A|2B)([0]{2}[1-9]|0[1-9][0-9]|[1-
+  X  [13,13]
+  9][0-9]{2})([0]{2}[1-9]|0[1-9][0-9]|[1-9][0-9]{2})|([1-
+  2][9]{12})
+
+  290 / 361

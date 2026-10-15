@@ -7,8 +7,9 @@
 //! son condensat. Ce module le lit et sait retourner voir si la source en ligne a bouge.
 //!
 //! Le principe : une donnee ne se recopie pas d'un editeur, elle se lit dans le texte qui fait foi ; la copie est gardee
-//! sur disque (`reference/sources/` de la compagnie de l'editeur, hors depot public) pour qu'on puisse toujours montrer
-//! d'ou vient un nombre ; et quand le condensat en ligne ne colle plus, c'est le signal de RELIRE -- pas de remplacer le
+//! dans le depot public, a cote du code (`atelier/reference/sources/` de l'installation de l'editeur, qui est le depot :
+//! Leandre, 15/10/2026, les textes de reference rendent le logiciel verifiable) pour qu'on puisse toujours montrer d'ou
+//! vient un nombre ; et quand le condensat en ligne ne colle plus, c'est le signal de RELIRE -- pas de remplacer le
 //! fichier a l'aveugle, puisque les donnees derivees ont ete ecrites a la main depuis la lecture. `--relever` pose la
 //! nouvelle version A COTE de l'ancienne, suffixee de la date, jamais par-dessus.
 //!
@@ -44,9 +45,12 @@ pub fn manifeste(code: &Path) -> R<Value> {
     Ok(v)
 }
 
-/// Ou vivent les copies : `reference/sources/` sous la racine de la compagnie.
-pub fn dossier(racine: &Path) -> PathBuf {
-    racine.join("reference").join("sources")
+/// Ou vivent les copies : `atelier/reference/sources/` de l'installation (`maj::installation`), c'est-a-dire du depot
+/// sur le poste de l'editeur, a cote de `logiciel/`. Une compagnie n'y est pour rien : ce sont les textes du logiciel.
+pub const COPIES: &str = "atelier/reference/sources";
+
+pub fn dossier(installation: &Path) -> PathBuf {
+    installation.join(COPIES)
 }
 
 fn sha256(o: &[u8]) -> String {
@@ -58,14 +62,18 @@ fn exiger<'a>(ident: &str, s: &'a Value, cle: &str) -> R<&'a str> {
 }
 
 /// Ce que le manifeste dit, confronte au disque -- sans reseau. Un objet par source, dans l'ordre du manifeste.
-pub fn etats(racine: &Path, manifeste: &Value, aujourdhui: &Jour) -> R<Vec<Value>> {
-    let d = dossier(racine);
+pub fn etats(installation: &Path, manifeste: &Value, aujourdhui: &Jour) -> R<Vec<Value>> {
+    let d = dossier(installation);
     let mut out = Vec::new();
     for (ident, s) in manifeste["sources"].as_object().into_iter().flatten() {
         let fichier = exiger(ident, s, "fichier")?;
         let attendu = exiger(ident, s, "sha256")?;
         let p = d.join(fichier);
         let presente = p.is_file();
+        // L'original d'un organisme prive n'est pas dans le depot public : seule sa transcription y est (`transcription`,
+        // chemin relatif au meme dossier). Elle ne se confronte a aucun condensat : c'est l'original qui fait foi.
+        let transcription = s.get("transcription").and_then(Value::as_str);
+        let transcription_presente = transcription.map(|t| d.join(t).is_file());
         let conforme = if presente { json!(std::fs::read(&p).map(|o| sha256(&o) == attendu).unwrap_or(false)) } else { Value::Null };
         let releve = s.get("releve_le").and_then(Value::as_str).filter(|r| !r.is_empty());
         let age = match releve {
@@ -88,6 +96,7 @@ pub fn etats(racine: &Path, manifeste: &Value, aujourdhui: &Jour) -> R<Vec<Value
             "contenu": exiger(ident, s, "contenu")?, "version": s.get("version").cloned().unwrap_or(Value::Null),
             "releve_le": releve, "verification": exiger(ident, s, "verification")?,
             "nourrit": nourrit, "fichier": fichier, "copie_presente": presente, "copie_conforme": conforme,
+            "transcription": transcription, "transcription_presente": transcription_presente,
             "en_ligne": null, "detail": "", "page_de_veille": s.get("page_de_veille").cloned().unwrap_or(Value::Null),
             "age_jours": age, "extra": extra, "kali": s.get("kali").cloned().unwrap_or(Value::Null), "evenements": [],
         }));
@@ -120,7 +129,7 @@ pub fn telecharger(url: &str, secondes: u64) -> R<(Vec<u8>, Option<String>)> {
 /// bloc `kali`, on lit ce que la DILA a livre depuis le releve (`kali_telecharger`) : `inchangee` quand rien ne touche la
 /// convention ou que rien ne parle de salaires, `changee` quand un texte salaires (ou le texte cite) a bouge.
 pub fn verifier(
-    racine: &Path,
+    installation: &Path,
     manifeste: &Value,
     aujourdhui: &Jour,
     seulement: &[String],
@@ -128,9 +137,9 @@ pub fn verifier(
     telecharger: &mut Telecharger,
     kali_telecharger: &mut kali::Telecharger,
 ) -> R<Vec<Value>> {
-    let d = dossier(racine);
+    let d = dossier(installation);
     let mut liste: Vec<Value> =
-        etats(racine, manifeste, aujourdhui)?.into_iter().filter(|e| seulement.is_empty() || seulement.iter().any(|s| e["ident"] == json!(s))).collect();
+        etats(installation, manifeste, aujourdhui)?.into_iter().filter(|e| seulement.is_empty() || seulement.iter().any(|s| e["ident"] == json!(s))).collect();
     let rapport = veiller_kali(&d, &liste, relever, kali_telecharger);
     for e in liste.iter_mut() {
         if e["verification"] != json!("telechargement") {

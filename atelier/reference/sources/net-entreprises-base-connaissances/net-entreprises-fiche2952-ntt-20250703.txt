@@ -1,0 +1,81 @@
+Date de modification : 03/07/2025 02:59 PM
+
+ Qu'est-ce que le numéro technique temporaire - NTT ?
+
+ Le contexte
+
+Lorsqu'un salarié ne possède pas de NIR (Numéro d'Inscription au Répertoire ou Numéro de Sécurité Sociale) ou de NIA (Numéro d'Identification d'Attente) au moment de l'émission d'une DSN, il est obligatoire de l'identifier en déclarant un NTT (Numéro Technique Temporaire) en rubrique "Numéro technique temporaire - S21.G00.30.020". Il doit être accompagné de toutes les informations possibles sur les éléments de naissance du salarié dans les zones prévues à cet effet.
+
+Important : ll s'agit d'une solution transitoire le temps que le salarié dispose d'un NIR ou NIA reconnu par la Sécurité Sociale.
+
+Constitution et unicité du numéro technique temporaire - NTT
+
+En DSN le NTT doit être conforme à la longueur de champ prévue dans le cahier technique (entre 11 et 40 caractères). La règle de numérotation doit répondre aux contraintes énoncées ci-dessous et garantir l'unicité du numéro au niveau de l'employeur : 
+
+ Le NTT doit commencer par " 1 " ou " 2 " selon le sexe du salarié et être suivi du SIREN de l'entreprise et d'un identifiant unique et pérenne du salarié, qui sera donné par l'employeur.
+
+ Le NTT doit désigner un salarié et un seul dans l'entreprise
+
+ La valeur du NTT du salarié devra rester stable dans le temps : il doit être le même d'une DSN à l'autre afin de permettre le bon chaînage des individus.
+
+ Le salarié conservera ce NTT en cas de réaffectation dans un autre établissement de l'entreprise. L'entreprise sera chargée de faire suivre l'information dans le nouvel établissement d'affectation s'il y a lieu. En cas de réaffectation d'un salarié dans une autre entreprise d'un même groupe, le NTT doit être modifié en conséquence sous peine de déclenchement d'un CCH-13 pour la rubrique S21.G00.30.020 
+
+ En cas de multi-contrats au sein d'une même entreprise, l'employeur devra attribuer le même NTT pour déclarer l'ensemble des contrats du salarié, afin de faciliter les traitements d'identification et de rattachement des données au même individu.
+
+ En cas d'obtention de plusieurs NTT, l'employeur doit utiliser pour ses déclarations le NTT le plus ancien en cours de validité.
+
+Déclarer un individu avec un numéro technique temporaire - NTT
+
+Le NTT est une donnée identifiante et structurante destinée au système d'information DSN uniquement. Il ne s'agit pas d'une donnée de gestion et ne permet donc pas l'ouverture des droits de l'individu auprès des organismes de protection sociale.
+
+ Il est essentiel pour garantir la traçabilité des individus dans le système DSN entre deux déclarations d'un même employeur.
+
+ En conséquence, il doit également être renseigné sur la première DSN où le NIR est attribué pour faire le lien entre les deux identités déclarées par l'employeur.
+
+ La déclaration d'un NTT étant temporaire, celle-ci sera tolérée pendant une durée maximale de 3 mois.
+
+Afin de permettre le chaînage et l'identification de ce salarié :
+
+ Si vous avez un individu de type " salarié " à déclarer, il est obligatoire de renseigner, dans le bloc " Individu - S21.G00.30 " :
+
+ | Rubrique
+ | Code
+ | Valeur
+
+ | Sexe
+ | S21.G00.35.005
+ | 01 - Masculin ou 02 - Féminin
+
+ | Numéro Technique Temporaire
+ | S21.G00.30.020
+ | à renseigner (entre 11 et 40 caractères)
+
+Pour rappel, lorsque le salarié obtient son NIR définitif, il convient de déclarer simultanément, les rubriques " Numéro d'inscription au répertoire - S21.G00.30.001 " (avec le NIR définitif) et " Numéro technique temporaire - S21.G00.30.020 " (avec l'ancien NTT affecté au salarié).
+
+Un individu de type " non salarié " n'ayant pas de NIR, doit être déclaré au niveau du bloc " Individu non salarié - S89.G00.91 " selon les mêmes modalités que celles prévues au niveau du bloc " Individu-S21.G00.30 ", en renseignant obligatoirement les rubriques :
+
+ | Rubrique
+ | Code
+ | Valeur
+
+ | Sexe
+ | S89.G00.91.005
+ | 01 - Masculin ou 02 - Féminin
+
+ | Numéro Technique Temporaire
+ | S89.G00.91.021
+ | à renseigner (entre 11 et 40 caractères)
+
+IMPORTANT : En bloc " Individu - S21.G00.30 " comme en bloc " Individu non salarié - S89.G00.91 ", il est impératif que le NTT ne contienne pas d'espace. Un NTT contenant un ou plusieurs espace(s) n'est pas autorisé, ce caractère étant interdit. 
+
+Si le salarié ne communique pas son NIR ou son NIA à l'employeur, le salarié pourra toujours se rendre à la CNAV, muni de ses bulletins de salaires qui comportent en général le SIREN et son matricule ce qui permettra de rechercher ces périodes non affectées.
+
+ Date de création : 06/03/2025 06:24 PM 
+
+ N° de la fiche : 2952 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

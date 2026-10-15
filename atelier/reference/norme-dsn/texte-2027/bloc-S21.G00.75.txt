@@ -1,0 +1,186 @@
+# Bloc S21.G00.75
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 297-299
+
+--- p. 297 ---
+  S21.G00.75  2026-06-10
+
+AyantDroit.CodeOrganismeAffiliationAssuranceMaladie
+  Code de la Caisse Primaire d'Assurance Maladie pour l'ayant-droit concerné (ou autre code équivalent si
+  l'ayant-droit ne relève pas du régime général).
+
+  X  [1,30]
+
+Date de fin de rattachement à l'ouvrant-droit  S21.G00.73.011
+AyantDroit.DateFinRattachementOuvrantDroit
+  Date de fin du rattachement de l'ayant-droit au salarié dans le cadre du contrat de Prévoyance concerné.
+
+  CCH-11 : La "Date de fin de rattachement à l'ouvrant-droit - S21.G00.73.011", si elle est renseignée, doit être
+  supérieure ou égale à la "Date de début de rattachement à l'ouvrant-droit - S21.G00.73.004", si elle est renseignée.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+S21.G00.75
+
+Aménagement du temps de travail  S21.G00.75
+  Ce bloc doit être renseigné lorsqu'un aménagement du temps de travail modifie temporairement la durée contractuelle
+  de travail applicable à l’individu (déclarée dans la rubrique « Quotité de travail du contrat - S21.G00.40.013 »).
+  Cet aménagement doit être déclaré dans chaque DSN mensuelle dont le mois principal déclaré présente une période
+  commune avec l'aménagement concerné.
+
+Motif de l'aménagement  S21.G00.75.001
+Date de début de l'aménagement  S21.G00.75.002
+Date de fin de l'aménagement  S21.G00.75.003
+Ancien motif de l'aménagement  S21.G00.75.004
+
+Motif de l'aménagement  S21.G00.75.001
+AmenagementTempsTravail.Motif
+  Motif de l'aménagement du temps de travail.
+
+  X  [3,3]
+
+  114 - Invalidité catégorie 2
+  116 - Invalidité catégorie 3
+  607 - Congé de présence parentale
+  627 - Congé de solidarité familiale
+  630 - Congé d'enseignement ou de recherche
+  632 - Congé parental d'éducation
+  635 - Congé pour création ou reprise d'entreprise
+  642 - Convention FNE d'aide au passage à temps partiel
+  645 - Retraite progressive
+  646 - Préretraite d’entreprise sans rupture du contrat de travail
+  647 - Réduction temps d'emploi
+  650 - Congé de proche aidant
+  652 - Inaptitude temporaire liée à la grossesse
+  683 - Potentiel nouveau motif d'aménagement A
+  684 - Potentiel nouveau motif d'aménagement B
+  685 - Potentiel nouveau motif d'aménagement C
+
+  297 / 370
+
+--- p. 298 ---
+  S21.G00.75  2026-06-10
+
+  687 - Potentiel nouveau motif d'aménagement D
+  688 - Potentiel nouveau motif d'aménagement E
+  998 - Annulation
+
+Date de début de l'aménagement  S21.G00.75.002
+AmenagementTempsTravail.DateDebut
+  Date de début de la période sur laquelle la modalité d'exercice du contrat de travail est aménagée dans le
+  cadre de l'aménagement du temps de travail. Dans le cas d'un aménagement supra-mensuel, l'aménagement
+  doit être déclaré dans toutes les DSN mensuelles dont le mois principal déclaré présente une période
+  commune avec l'aménagement concerné. Elle doit rester la même dans cette rubrique sur toutes les DSN
+  mensuelles qui portent l'information.
+  CCH-11 : La Date de début de l'aménagement doit être supérieure ou égale à la date de début du contrat.
+
+  CCH-12 : Si la rubrique « Motif de l'aménagement - S21.G00.75.001 » est renseignée avec une valeur différente de «
+  998 - Annulation », la « Date de début de l'aménagement - S21.G00.75.002 » doit être inférieure ou égale à la « Date
+  de fin du contrat - S21.G00.62.001 » renseignée dans un bloc « Fin du contrat - S21.G00.62 » de motif
+  (S21.G00.62.002) différent de « 099 - annulation ». Ce contrôle ne s'applique ni pour une annulation de fin de contrat
+  ni pour une annulation d'aménagement du temps de travail.
+
+  SIG-13 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de l'aménagement  S21.G00.75.003
+AmenagementTempsTravail.DateFin
+  Date de fin de la période sur laquelle la modalité d'exercice du temps de travail du contrat est aménagée
+  dans le cadre de l'aménagement du temps de travail si elle est connue.
+  CCH-11 : La « Date de fin de l'aménagement - S21.G00.75.003 » doit être supérieure ou égale à la « Date de début de
+  l'aménagement - S21.G00.75.002 ».
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Ancien motif de l'aménagement  S21.G00.75.004
+AmenagementTempsTravail.AncienMotif
+  Ancien motif de l'aménagement du temps de travail pour le contrat. Cette rubrique n'est à renseigner qu'en
+  cas d'annulation ou de correction.
+
+  X  [3,3]
+
+  114 - Invalidité catégorie 2
+  116 - Invalidité catégorie 3
+  607 - Congé de présence parentale
+  627 - Congé de solidarité familiale
+  630 - Congé d'enseignement ou de recherche
+  632 - Congé parental d'éducation
+  635 - Congé pour création ou reprise d'entreprise
+  642 - Convention FNE d'aide au passage à temps partiel
+  645 - Retraite progressive
+
+  298 / 370
+
+--- p. 299 ---
+  S21.G00.78  2026-06-10
+
+  646 - Préretraite d’entreprise sans rupture du contrat de travail
+  647 - Réduction temps d'emploi
+  650 - Congé de proche aidant
+  652 - Inaptitude temporaire liée à la grossesse
+  683 - Potentiel nouveau motif d'aménagement A
+  684 - Potentiel nouveau motif d'aménagement B
+  685 - Potentiel nouveau motif d'aménagement C
+  687 - Potentiel nouveau motif d'aménagement D
+  688 - Potentiel nouveau motif d'aménagement E
+
+S21.G00.78
+
+Base assujettie  S21.G00.78
+  Somme des montants assujettis de manière homogène à une ou plusieurs cotisations sociales.
+  Les montants assujettis peuvent être :
+  - des éléments de revenu brut (ex : salaire de base, l'intéressement, etc…) donnant lieu à versement au salarié
+  - des composants de base assujettie ne donnant pas lieu à versement au salarié.
+  Certains des éléments assujettis peuvent être fixés de manière forfaitaire si les règles d'assujettissement et de cotisation
+  le prévoient.
+
+Code de base assujettie  S21.G00.78.001
+Date de début de période de rattachement  S21.G00.78.002
+Date de fin de période de rattachement  S21.G00.78.003
+Montant  S21.G00.78.004
+Identifiant technique Affiliation  S21.G00.78.005
+Numéro du contrat  S21.G00.78.006
+Identifiant du CRM à l'origine de la régularisation  S21.G00.78.007
+
+Code de base assujettie  S21.G00.78.001
+Base.Codedebaseassujettie
+  Identifie la règle d'assujettissement par référence aux textes législatifs, réglementaires, conventionnels ou
+  contractuels.
+  Pour plus de précisions sur les éléments de salaires à intégrer dans les bases de cotisations CIBTP se
+  référer au document de référence disponible sur www.cibtp.fr. Pour la base brute de cotisations OPPBTP
+  permanents, indiquez le montant brut sans application du coefficient de majoration.
+
+  Les valeurs « 36 - CIBTP - Base de cotisations dérogatoire Bâtiment », « 39 - CIBTP - Base de cotisations
+  dérogatoire Travaux Publics » et « 40 - CIBTP - Base de cotisations dérogatoire Partenaires Bâtiment »
+  renvoient aux cotisations pour lesquelles la caisse CIBTP et les organisations professionnelles du BTP ont
+  signé des conventions de mandat pour la perception des cotisations professionnelles. La définition de ces
+  bases est à apporter par les caisses CIBTP.
+
+  La base IRCANTEC cotisée sert au calcul de l’assiette IRCANTEC pour la période de cotisation et le
+  contrat déclarés. Pour les personnels médicaux hospitaliers relevant de l'IRCANTEC, la base est constitué
+  des émoluments et des indemnités soumis à cotisations IRCANTEC définis par la règlementation. Certaines
+  indemnités peuvent donc ne pas être soumises. Un taux est appliqué à cette base en fonction de l’emploi
+  statutaire du personnel médical hospitalier pour déterminer l’assiette de cotisation.
+  L'assiette caisse de congés spectacles correspond à la rémunération brute acquise par le salarié durant la
+  période de référence, avant toute déduction forfaitaire spécifique pour frais professionnels et toute retenue.
+  En application de l'article D7121-37 du code du travail, les partenaires sociaux d'une branche d'activité ou
+  d'une entreprise peuvent limiter ce montant à un plafond d'indemnité journalière.
+  Pour le régime des pensions civiles et militaires (SRE), la base assujettie est le traitement indiciaire brut
+  éventuellement augmenté de la NBI ou de prime et indemnité.
+
+  299 / 370

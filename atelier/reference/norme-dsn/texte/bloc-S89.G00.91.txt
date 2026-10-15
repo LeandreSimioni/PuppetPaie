@@ -1,0 +1,338 @@
+# Bloc S89.G00.91
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 342-347
+
+--- p. 342 ---
+  S89.G00.91  2025-12-24
+
+  sociale.
+  Le NTT doit désigner un individu et un seul pour l'ensemble de ses contrats dans l'entreprise. En cas
+  d'obtention de plusieurs NTT, l'employeur doit utiliser pour ses déclarations le NTT le plus ancien en cours
+  de validité.
+  En l'absence de NIR ou de NIA, il est obligatoire de remplir la rubrique Numéro technique temporaire
+  (S89.G00.89.008).
+  Le NTT doit être renseigné sur la première DSN où le NIR est attribué. Ceci permettra de faire le lien entre
+  les deux identités déclarées par l'employeur.
+  CCH-12 : Le "Numéro technique temporaire - S89.G00.89.008" est composé de la valeur déclarée dans la rubrique
+  "SIREN - S21.G00.06.001" de la 2ème à la 10ème position.
+
+  CCH-13 : Si le "Numéro technique temporaire - S89.G00.89.008" est renseigné, il doit être identique à celui déclaré
+  dans la rubrique "Numéro technique temporaire - S21.G00.30.020".
+
+  CSL-11 : Le "Numéro technique temporaire - S89.G00.89.008" doit obligatoirement commencer par "1" ou "2".
+
+  CSL-12 : Le caractère « espace » est interdit dans la composition du numéro technique temporaire.
+
+  X  [11,40]
+
+S89.G00.91
+
+Individu non salarié  S89.G00.91
+  Personne physique bénéficiant soit :
+
+  - d'une allocation de chômage pour les entreprises en auto-assurance chômage
+  - d'une allocation de cessation anticipée d'activité Amiante
+  - d'une allocation de pré-retraite suite à rupture du contrat
+  - du versement d'une somme versée à un tiers
+  - du versement d'une somme versée à un bénéficiaire ne relevant pas des règles de sécurité sociale en France mais qui
+  est imposable
+  - d'une allocation de pré-retraite sans rupture de contrat
+  - d'un montant de retraite versée par l'employeur
+  - d'une pension d'invalidité
+
+Numéro d'inscription au répertoire  S89.G00.91.001
+Nom de famille  S89.G00.91.002
+Nom d'usage  S89.G00.91.003
+Prénoms  S89.G00.91.004
+Sexe  S89.G00.91.005
+Date de naissance  S89.G00.91.006
+Lieu de naissance  S89.G00.91.007
+Numéro, extension, nature et libellé de la voie  S89.G00.91.008
+Code postal  S89.G00.91.009
+Localité  S89.G00.91.010
+Code Pays  S89.G00.91.011
+Code de distribution à l'étranger  S89.G00.91.012
+Complément de la localisation de la construction  S89.G00.91.013
+Service de distribution, complément de localisation de la voie  S89.G00.91.014
+Adresse mél  S89.G00.91.015
+Matricule de l'individu dans l'entreprise  S89.G00.91.016
+Statut du salarié (conventionnel)  S89.G00.91.017
+Code statut catégoriel Retraite Complémentaire obligatoire  S89.G00.91.018
+
+  342 / 361
+
+--- p. 343 ---
+  S89.G00.91  2025-12-24
+
+Code département de naissance  S89.G00.91.019
+Code pays de naissance  S89.G00.91.020
+Numéro technique temporaire  S89.G00.91.021
+
+Numéro d'inscription au répertoire  S89.G00.91.001
+IndividuNonSalarie.Identifiant
+  Le numéro d'inscription au répertoire (NIR) est l'identifiant unique et invariable des individus inscrits au
+  répertoire national d'identification des personnes physiques (RNIPP). Ce numéro correspond au numéro de
+  sécurité sociale.
+  Ce numéro est composé de 13 chiffres et d'une clé de 2 chiffres. La clé n'est pas à déclarer dans cette
+  rubrique.
+  Cette rubrique permet la déclaration du NIA (numéro d'immatriculation d'attente attribué par les
+  organismes de protection sociale) en l'absence de NIR. Le NIA est constitué comme un NIR dans l'attente
+  d'être certifié (circulaire DSS/sd4c N° 2012-213 du 1er juin 2012).
+  Le Nir doit avoir la forme SAAMMDDCCCNNN avec :
+  S = sexe de la personne physique doit être égal à 1 ou 2
+  AA = année de naissance de la personne physique doit être comprise entre 00 et 99
+  MM = mois de naissance de la personne physique doit être compris entre 01 et 12 ou entre 30 et 42 ou entre
+  50 et 99 ou égal à 20
+  DD = département de naissance de la personne physique doit être compris entre 01 et 99 ou être égal à 2A
+  ou 2B
+  CCC = commune de naissance de la personne physique doit être comprise entre 001 et 999
+  NNN = numéro d'inscription la personne physique au registre d'état civil doit être compris entre 001 et 999
+
+  ATTENTION : Un NIR ne peut être présent qu'une seule fois dans la déclaration, il doit être unique pour
+  permettre la traçabilité et l'identification de l'individu.
+  Si l'immatriculation est provisoire, ne pas utiliser les numéros provisoires reconnaissables par leur premier
+  caractère égal à 7 ou 8, mais utiliser le NIA qui a été notifié.
+  CCH-11 : Pour un NIR sur 13 caractères, DD = département de naissance de la personne physique
+  - ne peut être égal à 2A ou 2B si année de naissance inférieure à 1976
+  - ne peut être égal à 20 si année de naissance supérieure ou égale à 1976
+  - ne peut être égal à 96 si année de naissance supérieure ou égale à 1968
+  L'année utilisée doit être extraite de la rubrique date de naissance.
+
+  CCH-12 : Il n'est pas admis qu'un "Numéro d'inscription au répertoire - S89.G00.91.001" soit renseigné avec la valeur
+  "1999999999999" ou "2999999999999".
+
+  CCH-13 : Il est interdit de déclarer plusieurs blocs « Individu non salarié - S89.G00.91 » avec un même « Numéro
+  d'inscription au répertoire – S89.G00.91.001 ». Ce contrôle vise à permettre la bonne traçabilité et l'identification de
+  l'individu.
+
+  CCH-14 : Si la rubrique "Nature de la déclaration - S20.G00.05.001" est renseignée avec la valeur "08 - Signalement
+  Amorçage des données variables" et si la rubrique "Numéro d'inscription au répertoire - S89.G00.91.001" est présente,
+  alors le bloc "Individu - S21.G00.30" est interdit. Ce contrôle s'applique uniquement pour le Signalement Amorçage
+  des données variables.
+
+  CCH-15 : Il n'est pas admis qu'un « Numéro d'inscription au répertoire - S89.G00.91.001 » soit renseigné avec plus de
+  cinq caractères « 9 » à la suite en fin de chaîne.
+
+  CSL 00 : [1-2][0-9]{2}(0[1-9]|1[0-2]|20|3[0-9]|4[0-2]|[5-
+  X  [13,13]  9][0-9])(0[1-9]|[1-9][0-9]|2A|2B)([0]{2}[1-9]|0[1-9][0-9]|[1-
+  9][0-9]{2})([0]{2}[1-9]|0[1-9][0-9]|[1-9][0-9]{2})
+
+Nom de famille  S89.G00.91.002
+
+  343 / 361
+
+--- p. 344 ---
+  S89.G00.91  2025-12-24
+
+IndividuNonSalarie.NomFamille
+  Le nom de famille est le nom défini pour chaque individu dans les jours qui suivent sa naissance. Il est
+  usuellement défini sur la base de la filiation avec l’un ou l’autre parent, voire les deux. Il peut être défini
+  par disposition administrative ou judiciaire.
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,80]
+
+Nom d'usage  S89.G00.91.003
+IndividuNonSalarie.NomUsage
+  Il s’agit de la possibilité pour une personne de porter un nom qu’elle n’a pas acquis selon les règles
+  d’acquisition du nom de famille.
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,80]
+
+Prénoms  S89.G00.91.004
+IndividuNonSalarie.Prenoms
+  Elément d'identification joint au nom de famille qui permet de distinguer les personnes d'une même famille.
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,80]
+
+Sexe  S89.G00.91.005
+IndividuNonSalarie.Sexe
+  Le sexe décrit la qualité d'homme ou la qualité de femme.
+  Il est à renseigner si différent du sexe porté par le NIR ou si le NIR est absent en cas d'identification par un
+  NTT.
+
+  X  [2,2]
+
+  01 - masculin
+  02 - féminin
+
+Date de naissance  S89.G00.91.006
+IndividuNonSalarie.DateNaissance
+  Instant où une personne naît, tel qu'enregistré à l'état civil.
+  Renseigner la date de naissance du salarié sous la forme JJMMAAAA.
+  - L'année de naissance est obligatoire :
+  - Jour de naissance inconnu : 00MMAAAA ou 99MMAAAA,
+  - Mois de naissance inconnu : JJ00AAAA ou JJ99AAAA,
+  - Si jour et mois inconnus : 0000AAAA ou 9999AAAA.
+  CCH-11 : L'année du "Numéro d'inscription au répertoire - S89.G00.91.001" doit être égale à l'année de la "Date de
+  naissance - S89.G00.91.006".
+
+  CCH-12 : L'année de la "Date de naissance - S89.G00.91.006" doit être inférieure ou égale à l'année en cours et
+
+  344 / 361
+
+--- p. 345 ---
+  S89.G00.91  2025-12-24
+
+  supérieure à l'année en cours moins 120 (années).
+
+  CSL-11 : [(respect des contraintes calendaires)] aux exceptions près acceptées sur le mois ou le jour à 00 ou 99
+
+  CSL 00 : (0[0-9]|[1-2][0-9]|3[0-1]|99)(0[0-9]|1[0-
+  X  [8,8]
+  2]|99)(18|19|20)[0-9]{2}
+
+Lieu de naissance  S89.G00.91.007
+IndividuNonSalarie.LieuNaissance
+  Il s’agit du nom de la localité de naissance, tel qu’enregistré à l’état civil.
+  Libellé en toutes lettres. Obligatoire pour les salariés nés en France métropolitaine, dans les DOM et dans
+  les TOM. Il peut éventuellement s'agir d'un pays.
+
+  X  [1,30]
+
+Numéro, extension, nature et libellé de la voie  S89.G00.91.008
+IndividuNonSalarie.Voie
+  Numéro : Il précise l’adresse dans la voie. Sa valeur est différente de 0 et ne doit pas dépasser 4 chiffres.
+  En cas de numéro multiple, seul le premier doit être indiqué (pour exemple indiquer 4 pour 4/14)
+  Extension : Lettre accolée au numéro si celui-ci ne présente pas une précision suffisante (par exemple B
+  pour BIS, T pour TER, etc…)
+  Nature de la voie : information facultative décrivant la nature de la voie (rue, avenue, etc…)
+  Libellé de la voie : Appellation officielle de la voie
+
+  X  [1,50]
+
+Code postal  S89.G00.91.009
+IndividuNonSalarie.CodePostal
+  Il s’agit de données d’organisation postale qui doivent être utilisées en l’état. Le code postal est composé de
+  5 chiffres. Les codes CEDEX ne sont pas admis.
+  CCH-11 : Si le code postal est présent alors le code pays et le code de distribution à l'étranger sont absents et
+  réciproquement.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table HEX - Code postal
+
+Localité  S89.G00.91.010
+IndividuNonSalarie.Localite
+  La localité est un élément géographique et administratif. C’est le premier élément d’identification associé
+  au code postal. Le libellé est la plupart du temps le nom officiel de la localité enregistrée à l’INSEE et au
+  Journal Officiel.
+  CCH-11 : La localité est obligatoire si le code postal est renseigné.
+
+  X  [1,50]  CSL 00 : [A-Za-z0-9\s]+
+
+Code Pays  S89.G00.91.011
+IndividuNonSalarie.CodePays
+  Nom du pays (territoire d’un état) de résidence du salarié exprimé sous la forme d’un code.
+
+  345 / 361
+
+--- p. 346 ---
+  S89.G00.91  2025-12-24
+
+  Le code pays ne doit pas être renseigné pour les adresses relevant du système postal français.
+  Le domaine d'application du système postal français est constitué des territoires suivants :
+  FR : France métropolitaine
+  GP : Guadeloupe
+  BL : Saint Barthélémy
+  MF : Saint Martin
+  MQ : Martinique
+  GF : Guyane Française
+  RE : Ile de la Réunion
+  PM : Saint Pierre et Miquelon
+  YT : Mayotte
+  WF : Wallis et Futuna
+  PF : Polynésie Française
+  NC : Nouvelle Calédonie
+  MC : Monaco
+  CRE-11 : valeurs autorisées
+
+  X  [2,2]  Table PAY - Code pays hors système postal français
+
+Code de distribution à l'étranger  S89.G00.91.012
+IndividuNonSalarie.CodeDistribution
+  Mention complémentaire pour les adresses ne relevant du système postal français.
+
+  X  [1,50]
+
+Complément de la localisation de la construction  S89.G00.91.013
+IndividuNonSalarie.ComplementConstruction
+  Les compléments d’adresse permettent d’indiquer le point de remise exact du courrier. Ils donnent des
+  informations précises et déterminantes dans la phase finale de distribution du courrier, tel que le bâtiment,
+  la boîte aux lettres, le numéro d’appartement.
+
+  X  [1,50]
+
+Service de distribution, complément de localisation de la voie  S89.G00.91.014
+IndividuNonSalarie.ComplementVoie
+  Il s’agit de services de distribution du courrier spécifiques proposés ou mis en place par La Poste.
+
+  X  [1,50]
+
+Adresse mél  S89.G00.91.015
+IndividuNonSalarie.Mel
+  Adresse mél personnelle ou professionnelle de l'individu. Le renseignement de cette rubrique est conditionné
+  à l'accord explicite de ce dernier.
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant de l'adresse mél.
+
+  X  [6,100]
+
+  346 / 361
+
+--- p. 347 ---
+  S89.G00.91  2025-12-24
+
+Matricule de l'individu dans l'entreprise  S89.G00.91.016
+IndividuNonSalarie.Matricule
+  Le choix de la valeur que prend le matricule revient à l’employeur.
+
+  X  [1,30]
+
+Statut du salarié (conventionnel)  S89.G00.91.017
+IndividuNonSalarie.StatutConventionnel
+  Le statut détermine les conditions d’emploi et de travail d’un ou plusieurs salariés d’une entreprise. Le
+  classement s’entend au sens de la convention collective applicable dans l’entreprise. Il correspond aux
+  grandes catégories socio-professionnelles auxquelles chaque salarié appartient.
+
+  X  [2,2]
+
+  03 - cadre dirigeant (votant au collège employeur des élections prud'homales)
+  04 - autres cadres au sens de la convention collective (ou du statut pour les régimes spéciaux)
+  05 - profession intermédiaire (technicien, contremaître, agent de maîtrise, clergé)
+  06 - employé administratif d'entreprise, de commerce, agent de service
+  07 - ouvriers qualifiés et non qualifiés y compris ouvriers agricoles
+  08 - agent de la fonction publique d'Etat
+  99 - individu non concerné
+
+Code statut catégoriel Retraite Complémentaire obligatoire  S89.G00.91.018
+IndividuNonSalarie.StatutRetraiteComplementaire
+  Le statut catégoriel Retraite complémentaire définit le positionnement du salarié au vu des réglementations
+  des régimes de retraite complémentaires des salariés et des ingénieurs et cadres.
+  CCH-11 : Si la rubrique "Code statut catégoriel Retraite Complémentaire obligatoire - S89.G00.91.018" est renseignée
+  avec la valeur "01 - cadre (article 4 et 4bis)", la rubrique "Statut du salarié (conventionnel) - S89.G00.91.017" doit être
+  renseignée avec la valeur "03 - cadre dirigeant (votant au collège employeur des élections prud'homales)" ou "04 -
+  autres cadres au sens de la convention collective (ou du statut pour les régimes spéciaux)".
+
+  SIG-12 : Si la rubrique "Code statut catégoriel Retraite Complémentaire obligatoire - S89.G00.91.018" est renseignée
+  avec la valeur "02 - extension cadre pour retraite complémentaire", la rubrique "Statut du salarié (conventionnel) -
+  S89.G00.91.017" doit être renseignée avec la valeur "05 - profession intermédiaire (technicien, contremaître, agent de
+  maîtrise, clergé)".
+
+  X  [2,2]
+
+  01 - cadre (article 4 et 4bis)
+  02 - extension cadre pour retraite complémentaire
+  04 - non cadre
+  10 - sans statut catégoriel
+
+Code département de naissance  S89.G00.91.019
+IndividuNonSalarie.CodeDepartementNaissance
+  Pour les salariés nés en France : code 01 à 97 ou 2A ou 2B
+  Pour les salariés nés dans les TOM : code 98
+  Pour les personnes nées à l'étranger, renseigner 99
+  CCH-11 : Les valeurs 2A et 2B ne sont acceptées que pour les personnes nées à partir de 1976
+  - La valeur 20 n'est acceptée que pour les personnes nées avant 1976
+
+  347 / 361

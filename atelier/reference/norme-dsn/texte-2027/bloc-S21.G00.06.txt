@@ -1,0 +1,151 @@
+# Bloc S21.G00.06
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 142-144
+
+--- p. 142 ---
+  S21.G00.06  2026-06-10
+
+  Structure
+
+  S21 Données paie et
+S21.G00.06
+  RH
+Entreprise  S21.G00.06
+  L'entreprise est une unité économique, juridiquement autonome, organisée pour produire des biens ou des services
+  pour le marché.
+  Elle est composée d'un ou plusieurs établissements
+
+SIREN  S21.G00.06.001
+NIC du siège  S21.G00.06.002
+Numéro, extension, nature et libellé de la voie  S21.G00.06.004
+Code postal  S21.G00.06.005
+Localité  S21.G00.06.006
+Complément de la localisation de la construction  S21.G00.06.007
+Service de distribution, complément de localisation de la voie  S21.G00.06.008
+Code pays  S21.G00.06.010
+Code de distribution à l'étranger  S21.G00.06.011
+Implantation de l'entreprise  S21.G00.06.012
+Code convention collective applicable  S21.G00.06.015
+
+SIREN  S21.G00.06.001
+Entreprise.Siren
+  Le numéro SIREN est un identifiant de neuf chiffres attribué à chaque unité légale. Les huit premiers
+  chiffres n'ont aucune signification, excepté pour les organismes publics dont le numéro SIREN commence
+  obligatoirement par 1 ou 2. Le neuvième chiffre est un chiffre de contrôle de validité du numéro.
+  CME-11 : Le SIREN renseigné doit être à l'état actif au répertoire SIRENE de l'INSEE.
+
+  CSL-11 : [(vérification de la clé)]
+
+  X  [9,9]  CSL 00 : [0-9]*[1-9][0-9]*
+
+NIC du siège  S21.G00.06.002
+Entreprise.Nic
+  Il s'agit du NIC de l'établissement siège de l'entreprise, ou, pour les entreprises étrangères, du NIC du
+  premier établissement implanté en France.
+  Si le siège est SIRETisé, l’entreprise dispose donc d’un NIC, et alors le NIC doit être renseigné.
+  CSL-11 : [(vérification de la clé)]
+
+  142 / 370
+
+--- p. 143 ---
+  S21.G00.06  2026-06-10
+
+  X  [5,5]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Numéro, extension, nature et libellé de la voie  S21.G00.06.004
+Entreprise.Voie
+  Numéro : Il précise l’adresse dans la voie. Sa valeur est différente de 0 et ne doit pas dépasser 4 chiffres. En
+  cas de numéro multiple, seul le premier doit être indiqué (pour exemple indiquer 4 pour 4/14)
+  Extension : Lettre accolée au numéro si celui-ci ne présente pas une précision suffisante (par exemple B
+  pour BIS, T pour TER, etc…)
+  Nature de la voie : information facultative décrivant la nature de la voie (rue, avenue, etc…)
+  Libellé de la voie : Appellation officielle de la voie
+
+  X  [1,50]
+
+Code postal  S21.G00.06.005
+Entreprise.CodePostal
+  Il s’agit de données d’organisation postale qui doivent être utilisées en l’état. Le code postal est composé de
+  5 chiffres. Les codes CEDEX ne sont pas admis.
+  CCH-11 : Si le code postal est présent alors le code pays et le code de distribution à l'étranger sont absents et
+  réciproquement.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table HEX - Code postal
+
+Localité  S21.G00.06.006
+Entreprise.Localite
+  La localité est un élément géographique et administratif. C’est le premier élément d’identification associé
+  au code postal. Le libellé est la plupart du temps le nom officiel de la localité enregistrée à l’INSEE et au
+  Journal Officiel.
+  CCH-11 : La localité est obligatoire si le code postal est renseigné.
+
+  X  [1,50]  CSL 00 : [A-Za-z0-9\s]+
+
+Complément de la localisation de la construction  S21.G00.06.007
+Entreprise.ComplementConstruction
+  Les compléments d’adresse permettent d’indiquer le point de remise exact du courrier. Ils donnent des
+  informations précises et déterminantes dans la phase finale de distribution du courrier, tel que le bâtiment,
+  la boîte aux lettres, le numéro d’appartement.
+
+  X  [1,50]
+
+Service de distribution, complément de localisation de la voie  S21.G00.06.008
+Entreprise.ComplementVoie
+  Il s’agit de services de distribution du courrier spécifiques proposés ou mis en place par La Poste.
+
+  X  [1,50]
+
+  143 / 370
+
+--- p. 144 ---
+  S21.G00.06  2026-06-10
+
+Code pays  S21.G00.06.010
+Entreprise.CodePays
+  Nom du pays (territoire d’un état) où est localisée l'entreprise, exprimé sous la forme d’un code.
+  Le code pays ne doit pas être renseigné pour les adresses relevant du système postal français.
+  Le domaine d'application du système postal français est constitué des territoires suivants :
+  FR : France métropolitaine
+  GP : Guadeloupe
+  BL : Saint Barthélémy
+  MF : Saint Martin
+  MQ : Martinique
+  GF : Guyane Française
+  RE : Ile de la Réunion
+  PM : Saint Pierre et Miquelon
+  YT : Mayotte
+  WF : Wallis et Futuna
+  PF : Polynésie Française
+  NC : Nouvelle Calédonie
+  MC : Monaco
+  CRE-11 : valeurs autorisées
+
+  X  [2,2]  Table PAY - Code pays hors système postal français
+
+Code de distribution à l'étranger  S21.G00.06.011
+Entreprise.CodeDistribution
+
+  X  [1,50]
+
+Implantation de l'entreprise  S21.G00.06.012
+Entreprise.ImplantationEntreprise
+  SIG-11 : La rubrique doit être renseignée pour toute entreprise étrangère.
+
+  X  [2,2]
+
+  01 - Entreprise étrangère avec établissement en France
+  02 - Entreprise étrangère hors UE sans établissement en France
+  03 - Entreprise étrangère dans l’UE sans établissement en France
+
+Code convention collective applicable  S21.G00.06.015
+Entreprise.CodeConventionCollectiveApplicable
+  Convention conclue entre une entreprise et un ou plusieurs syndicats représentatifs de salariés en vue de
+  déterminer les conditions de travail et de rémunération qui s'imposeront à l'entreprise. Le code de
+  convention collective, géré par le Ministère chargé du travail, peut être obtenu sur le site http://www.net-
+  entreprises.fr.
+  CRE-11 : Valeurs autorisées
+
+  X  [4,4]  Table IDCC - Code convention collective
+
+  144 / 370

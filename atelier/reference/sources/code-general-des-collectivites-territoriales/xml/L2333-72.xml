@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000006390704</ID>
+<ANCIEN_ID>MTXXXXXXXXX1X2333L72AXAA</ANCIEN_ID>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/06/39/07/LEGIARTI000006390704.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L2333-72</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>1996-02-24</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006070633" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code général des collectivités territoriales" debut="1996-02-24" fin="2999-01-01" id_txt="LEGITEXT000006070633">Code général des collectivités territoriales</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006088000">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006116628">DEUXIÈME PARTIE : LA COMMUNE</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006135493">LIVRE III : FINANCES COMMUNALES</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006149245">TITRE III : RECETTES</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006164579">CHAPITRE III : Taxes, redevances ou versements non prévus par le code général des impôts</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2014-01-29" id="LEGISCTA000006181011">Section 8 : Versement destiné aux transports en commun</TITRE_TM>
+<TITRE_TM debut="2014-01-29" fin="2019-12-27" id="LEGISCTA000028534273">Section 8 : Versement destiné aux transports</TITRE_TM>
+<TITRE_TM debut="2019-12-27" fin="2999-01-01" id="LEGISCTA000039802388">Section 8 : Versement destiné au financement des services de mobilité</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="1996-02-24" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000006390704" num="L2333-72" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<br/>   Les contestations en matière de remboursement sont portées devant la juridiction administrative.<br/>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000334814" datesignatexte="1973-07-11" id="JORFTEXT000000334814" naturetexte="LOI" nortexte="" num="" numtexte="73-640" sens="source" typelien="CONCORDANCE">Loi 73-640 1973-07-11 art. 5 par. II al. 2</LIEN>
+<LIEN cidtexte="JORFTEXT000000559120" datesignatexte="1996-02-21" id="JORFTEXT000000559120" naturetexte="LOI" nortexte="INTX9400076L" num="" numtexte="96-142" sens="source" typelien="CODIFICATION">Loi 96-142 1996-02-21</LIEN>
+<LIEN cidtexte="JORFTEXT000000559120" datesignatexte="1996-02-21" id="JORFTEXT000000559120" naturetexte="LOI" nortexte="INTX9400076L" num="" numtexte="96-142" sens="source" typelien="CREATION">Loi 96-142 1996-02-21 jorf 24 février 1996</LIEN>
+</LIENS>
+</ARTICLE>

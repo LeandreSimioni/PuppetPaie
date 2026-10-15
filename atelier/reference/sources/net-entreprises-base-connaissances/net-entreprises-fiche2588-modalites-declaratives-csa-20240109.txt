@@ -1,0 +1,266 @@
+
+Modalités déclaratives de la Contribution Supplémentaire à l’Apprentissage (CSA)
+Modalités déclaratives de la Contribution Supplémentaire à l’Apprentissage (CSA)
+Passer la navigation
+Pour utiliser ce site, le langage de script doit être activé.
+BASE DE CONNAISSANCES NET-ENTREPRISES
+Votre espace base de connaissances
+ S'inscrire
+ / 
+Se connecter
+Comment pouvons nous vous aider?
+ Rechercher par mot-clé 
+Exemple de recherche: échéance DSN, jmn 2024, Compte entreprise assurance maladie
+Modalités déclaratives de la Contribution Supplémentaire à l’Apprentissage (CSA)
+A+
+A-
+→ Inscription, gestion du compte et connexion
+→ Informations générales sur Net-entreprises
+→ Inscription sur le site
+→ Informations générales
+→ Les modes opératoires
+→ Menu personnalisé et rôles acteurs
+→ Gestion de votre compte
+→ Informations générales
+→ Gestion mono/multi établissements
+→ Gestion tiers-déclarants
+→ Connexion et authentification
+→ Déclaration Sociale Nominative - DSN
+→ Informations générales, inscription et outils de contrôle ou suivi
+→ Le tableau de bord et les retours d'informations / CRM
+→ Information générale et usage
+→ Les retours d'informations
+→ Les comptes rendus métiers - CRM
+→ Entreprise et établissement
+→ L'identification des individus et embauche d'un salarié
+→ L'identification des individus
+→ L'embauche d'un salarié
+→ La gestion des contrats
+→ La déclaration des éléments d'activité (temps, heures, heures sup...)
+→ La gestion des rémunérations
+→ La gestion des assiettes et cotisations
+→ Les bases assujetties et assiettes
+→ Les cotisations (généralités et établissements)
+→ Les cotisations Urssaf
+→ Les cotisations Agirc Arrco
+→ Les cotisations des Organismes Complémentaires
+→ Les cotisations France Travail
+→ Les cotisations BTP
+→ Les Régimes spéciaux
+→ La Fonction publique
+→ Les cotisations MSA
+→ Le prélèvement à la source et la retenue à la source
+→ Les généralités
+→ Taux et CRM du prélèvement à la source
+→ Eléments impactant le calcul du PAS
+→ Les paiements du PAS
+→ Le Montant net social (MNS) et Le Montant net versé (MNV)
+→ La gestion d’un arrêt et reprise de travail
+→ La gestion d’une Fin de contrat de travail (FCTU)
+→ Le signalement d’amorçage des Données Variables - SADV
+→ Les situations particulières
+→ Les agents de la fonction publique
+→ Les apprentis et stagiaires
+→ Les travailleurs en situation de handicap (DOETH)
+→ Les marins
+→ Les intermittents du spectacle
+→ Le BTP
+→ Autres
+→ La documentation relative à la norme
+→ La norme DSN 2024
+→ La norme DSN 2025
+→ La norme DSN 2026
+→ La norme DSN 2027
+→ La norme NEORES
+→ Les grilles de remplissage
+→ Le véhicule technique
+→ Passage pour les revenus autres - PASRAU
+→ Information générale
+→ Identification de l'individu
+→ Construire et transmettre sa déclaration
+→ Le tableau de bord et retours d'informations
+→ L'assiette du PAS
+→ Le taux du PAS
+→ Annule et remplace, corrections et régularisations
+→ Les classes de revenus
+→ Modalités d'application du PAS
+→ La norme PASRAU
+→ Norme PASRAU 2025
+→ Norme PASRAU 2026
+→ Norme PASRAU 2027
+→ Autres déclarations et services
+→ Le compte entreprise et services Assurance maladie
+→ Embauche et fin de contrat
+→ Cotisations et contributions
+→ Services du BTP
+→ DADSU aux caisses de congés intempéries BTP - DADSU CI BTP
+→ Arrêt demande remboursement Net intempéries BTP
+→ Formation / Prévention
+→ La fonction publique
+→ Régime agricole
+Date de modification : 09/01/2024 11:00 AM
+Modalités déclaratives de la Contribution Supplémentaire à l’Apprentissage (CSA)
+Comment déclarer la Contribution supplémentaire à l’apprentissage ?
+Objectifs de la fiche :
+Rappel du contexte   
+La contribution supplémentaire à l’apprentissage (CSA) vise à encourager le développement de l’alternance à travers l'emploi de personnes en contrat favorisant l’insertion professionnelle (CFIP) dans les entreprises d’au moins 250 salariés. 
+Cette contribution est due par les entreprises d'au moins 250 salariés qui sont redevables de la taxe d'apprentissage et dont l’effectif moyen annuel de salariés en contrat favorisant l’insertion professionnelle (CFIP) est inférieur à 5% de l'effectif moyen annuel. 
+Les contrats favorisant l’insertion professionnelle (CFIP) sont : 
+- les contrats d'apprentissage,  
+- les contrats de professionnalisation, 
+- les bénéficiaires d'une convention industrielle de formation par la recherche en entreprise (CIFRE)
+- les contrats à durée indéterminée faisant suite à un contrat de professionnalisation ou d’apprentissage. 
+Les entreprises s’acquittent de la contribution annuellement le 5 ou 15 avril N au titre de la contribution supplémentaire à l’apprentissage due sur l’année N-1. 
+L’Urssaf et les MSA calculent et notifient les effectifs nécessaires au calcul de la CSA : effectifs d’alternants de l’entreprise et effectifs moyens annuels. 
+Les entreprises calculent leur contribution à partir du ratio d’emploi d’alternants. 
+Le montant de la contribution supplémentaire à l’apprentissage doit être déclaré 
+sur un seul établissement d’une entreprise redevable
+ sur la période d’emploi de mars N exigible le 5 ou 15 avril N, au titre de l’année N-1.  
+Ainsi, pour 2023, les entreprises assujetties devront déclarer la contribution supplémentaire à l’apprentissage due au titre de l’année 2022 le 5 ou 15 avril 2023 (DSN de mars 2023) 
+A noter
+ : les entreprises qui cessent leur activité en cours d’année ne sont pas redevables de la CSA pour l’année de cessation d’activité. Ainsi une entreprise qui cesse son activité en 2022 n'est pas redevable de la CSA en avril 2023. 
+Réglementation 
+- 
+Base assujettie de la CSA
+Entreprises (hors ETT)
+Conformément au II de l'article 1609 quinvicies du CGI, la contribution supplémentaire à l'apprentissage est assise sur les rémunérations retenues pour l'assiette de la taxe d'apprentissage en application de l'article L.6241-1 du code du travail. 
+Entreprises de travail temporaire
+Pour les entreprises de travail temporaire, la contribution est assise sur les seules rémunérations versées aux salariés permanents. Elle n'est donc pas due sur les rémunérations versées aux salariés temporaires mis à disposition. 
+- 
+Taux applicable
+En Métropole (hors Alsace-Moselle) et dans les DOM y compris Mayotte et Saint-Martin, le taux appliqué à l’assiette de la CSA est le suivant :
+Quota de contrats favorisant l’insertion professionnelle
+ | 
+Entreprises de 250 à moins de 2000 salariés 
+ | 
+Entreprises de 2000 salariés et plus
+ | 
+Taux < 1 %  | 
+0,4 % | 
+0,6 %  | 
+1% ≥ taux < 2%  | 
+0,2 % | 
+2% ≥ taux < 3%  | 
+0,1 % | 
+3 % ≥ taux < 5 %  | 
+0,05 % | 
+Concernant les établissements des départements du Haut-Rhin, du Bas-Rhin et de la Moselle, le taux appliqué à l’assiette de la CSA est réduit à 52 % de leur montant :
+Quota de contrats favorisant l’insertion professionnelle
+ | 
+Entreprises de 250 à moins de 2000 salariés 
+ | 
+Entreprises de 2000 salariés et plus
+ | 
+Taux < 1 %  | 
+0,208 % | 
+0,312 %  | 
+1% ≥ taux < 2%  | 
+0,104 % | 
+2% ≥ taux < 3%  | 
+0,052 % | 
+3 % ≥ taux < 5 %  | 
+0,026 % | 
+Traitement dans la norme DSN :
+La contribution supplémentaire à l’apprentissage sera déclarée annuellement à compter de la DSN de mars 2023 (exigible le 5 ou 15 avril 2023), au titre de l’exercice 2022.  
+La contribution supplémentaire à l’apprentissage doit être déclarée 
+sur un seul établissement de l’entreprise
+. 
+Déclaration 
+annuelle 
+de la contribution supplémentaire à l’apprentissage
+Doivent être déclarés 
+annuellement 
+: 
+- La rubrique « Cotisation établissement - S21.G00.82.002 » qui doit porter le Code de cotisation « 079 - Contribution supplémentaire à l’apprentissage (CSA) » 
+- La rubrique « Cotisation établissement - S21.G00.82.001 » qui doit recevoir le montant de cotisation ou valeur, dont la nature est renseignée dans la rubrique Code de cotisation S21.G00.82.002 
+Exemple : Déclaration annuelle de la contribution supplémentaire à l’apprentissage
+Un employeur a calculé en N un montant de contribution supplémentaire à l’apprentissage de 3000 € pour l’année N-1 
+S21.G00.82 - Cotisation établissement
+ | 
+Code | 
+Rubrique | 
+Valorisation | 
+S21.G00.82.001 | 
+Valeur | 
+3000.00
+ | 
+S21.G00.82.002 | 
+Code de cotisation | 
+079 - Contribution supplémentaire à l’apprentissage (CSA)
+ | 
+S21.G00.82.003 | 
+Date de début de période de rattachement | 
+0101[N-1]
+ | 
+S21.G00.82.004 | 
+Date de fin de période de rattachement | 
+3112[N-1]
+ | 
+S21.G00.82.005 | 
+Référence réglementaire ou contractuelle | 
+SIRET URSSAF ou Code Caisse MSA
+ | 
+Urssaf
+ :
+Concernant les DSN adressées aux Urssaf, la contribution supplémentaire à l’apprentissage doit également être déclarée 
+annuellement
+ au travers d’un CTP au bloc « Cotisation agrégée – S21.G00.23 » - voir le Guide Urssaf Caisse nationale. 
+MSA
+ : 
+Pour la MSA, le montant de la cotisation valorisé dans la rubrique « Valeur - S21.G00.82.001 » doit également être déclaré au niveau du bloc « Versement organisme de protection sociale - S21.G00.20 » en intégrant le montant de la contribution avec les autres cotisations à payer à destination de la MSA dans la rubrique « Montant du versement - S21.G00.20.005 ». 
+Le déclarant doit intégrer la contribution annuelle dans le montant des cotisations mensuelles du bloc « Versement organisme de protection sociale - S21.G00.20 » du mois principal déclaré et ne pas faire un bloc « Versement organisme de protection sociale - S21.G00.20 » en parallèle pour ces seules contributions. 
+Exemple : DSN de mars 2023 (paie de mars 2023) exigible le 05 avril 2023 - bloc « Cotisation établissement - S21.G00.82 » daté sur 2022, le montant de la contribution CSA du bloc « Cotisation établissement-  S21.G00.82 » doit intégrer le bloc « Versement organisme de protection sociale - S21.G00.20 » à destination de la MSA du MPD de mars 2023. 
+L’exonération des entreprises à la contribution supplémentaire à l’apprentissage
+Sont exonérées de la CSA, les entreprises dont l’effectif moyen annuel des salariés sous contrat d’apprentissage, de professionnalisation et Cifre est :
+- supérieur ou égal à 5% 
+ou
+- supérieur ou égal 3% si l’entreprise justifie d’une progression de l’effectif moyen annuel des salariés sous contrat d’apprentissage, de professionnalisation et Cifre d’au moins 10% par rapport à l’année précédente. La comparaison s’effectue entre deux années civiles. 
+L’exonération des entreprises à la contribution supplémentaire à l’apprentissage doit être déclarée dans un bloc « Cotisation établissement - S21.G00.82 » portant le code de cotisation « 080 - Exonération de la contribution supplémentaire à l’apprentissage ». 
+La rubrique « Valeur - S21.G00.82.001» sera alors alimentée avec un montant à « 0.00 ».  
+En conséquence si le montant déclaré pour le code de cotisation « 080 - Exonération de la contribution supplémentaire à l’apprentissage » est égal 0 .00 il ne pourra pas être déclaré un montant de cotisation supérieur à 0.00 pour le code de cotisation « 079 - Contribution supplémentaire à l’apprentissage (CSA) ». 
+Exemple : Déclaration annuelle de l’exonération des entreprises à la contribution supplémentaire à l’apprentissage
+S21.G00.82 - Cotisation établissement
+ | 
+Code | 
+Rubrique | 
+Valorisation | 
+S21.G00.82.001 | 
+Valeur | 
+0.00
+ | 
+S21.G00.82.002 | 
+Code de cotisation | 
+080 - Exonération de la contribution supplémentaire à l’apprentissage
+ | 
+S21.G00.82.003 | 
+Date de début de période de rattachement | 
+0101[N-1]
+ | 
+S21.G00.82.004 | 
+Date de fin de période de rattachement | 
+3112[N-1]
+ | 
+S21.G00.82.005 | 
+Référence réglementaire ou contractuelle | 
+SIRET URSSAF ou Code Caisse MSA
+ | 
+ Date de création : 11/07/2022 02:15 PM 
+ N° de la fiche : 2588 
+Etes-vous satisfait des informations données sur cette page ?
+Évaluation de réponse 1 sur 5
+Évaluation de réponse 2 sur 5
+Évaluation de réponse 3 sur 5
+Évaluation de réponse 4 sur 5
+Évaluation de réponse 5 sur 5
+@2024 GIP-MDS
+ | 
+Mentions légales
+ | 
+Informations CNIL
+ | 
+Plan du site
+ Nos sites : 
+net-entreprises.fr
+ - 
+gip-mds.fr
+ 

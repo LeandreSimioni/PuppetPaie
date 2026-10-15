@@ -1,6 +1,6 @@
 //! Qui l'employeur declare a la caisse des Conges Spectacles (lot V2f).
 //!
-//! Les textes (deposes ; `prive/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md` dit ou, et ce qu'on en lit) :
+//! Les textes (deposes ; `atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md` dit ou, et ce qu'on en lit) :
 //! - code du travail D. 7121-40 : les employeurs du spectacle « s'affilient, pour le personnel artistique et technique
 //!   qu'ils emploient, a la caisse de conges payes » ; D. 7121-41 : ils lui « declarent [...] le personnel artistique
 //!   et technique qu'ils n'ont pas employe de facon continue pendant les douze mois precedant la demande de conge »

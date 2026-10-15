@@ -1,0 +1,164 @@
+                  Changement de situation en cours de mois
+
+
+En cas de changement de situation professionnelle en cours de mois (contrat actif, suspendu, passage de non cadre à
+cadre, passage de temps plein à temps partiel et vice-versa, ……), le salarié concerné par ce changement doit faire
+l’objet d’un découpage de ses bases assujetties déclarées en DSN.
+
+
+
+Exemple 1
+
+Passage d’un statut « non cadre » à un statut « cadre » au 10 avril 2025
+
+Salaire brut mensuel non cadre : 3 900,00
+Salaire brut mensuel cadre : 4.200,00
+Plafond de sécurité sociale (2025) : 3.925,00
+Le salaire brut et le plafond de sécurité sociale doivent être proratisés selon la durée de chacune des
+périodes infra-mensuelles.
+
+Pour la période infra-mensuelle « non cadre » - du 1er au 9 avril
+PSS = 3.925,00 x 9/30 = 1 177,50
+Salaire brut non cadre = 3 900,00 x 9/30 = 1 170,00
+
+                                            Codification DSN attendue
+                  Rubrique                  Code rubrique                        Valeur rubrique
+       Code de base assujettie               S21.G00.78.001        02 - Assiette brute plafonnée
+       Date de début de période de
+                                             S21.G00.78.002        01042025
+       rattachement
+       Date de fin de période de
+                                             S21.G00.78.003        09042025
+       rattachement
+       Montant de base assujettie            S21.G00.78.004        1 170,00
+       Code de cotisation individuelle       S21.G00.81.001        131 - Cotisation régime unifié Agirc-Arrco
+       Montant de cotisation individuelle    S21.G00.81.004        117,23
+
+       Code de base assujettie               S21.G00.78.001        03 - Assiette brute déplafonnée
+       Date de début de période de
+                                             S21.G00.78.002        01042025
+       rattachement
+       Date de fin de période de
+                                             S21.G00.78.003        09042025
+       rattachement
+       Montant de base assujettie            S21.G00.78.004        1 170,00
+
+
+
+Pour la période infra-mensuelle « cadre » - du 10 au 30 avril
+PSS = 3.925,00 x 21/30 = 2.747,50
+Salaire brut = 4.200,00 x 21/30 = 2.940,00
+
+                                            Codification DSN attendue
+                  Rubrique                  Code rubrique                        Valeur rubrique
+       Code de base assujettie               S21.G00.78.001        02 - Assiette brute plafonnée
+       Date de début de période de
+                                             S21.G00.78.002        10042025
+       rattachement
+       Date de fin de période de
+                                             S21.G00.78.003        30042025
+       rattachement
+       Montant de base assujettie            S21.G00.78.004        2.747,50
+       Code de cotisation individuelle       S21.G00.81.001        131 - Cotisation régime unifié Agirc-Arrco
+       Montant de cotisation individuelle    S21.G00.81.004        284,92
+
+
+
+© Agirc-Arrco                                     1/3                                                           juin 202525
+                  Changement de situation en cours de mois
+
+
+       Code de base assujettie               S21.G00.78.001       03 - Assiette brute déplafonnée
+       Date de début de période de
+                                             S21.G00.78.002       10042025
+       rattachement
+       Date de fin de période de
+                                             S21.G00.78.003       30042025
+       rattachement
+       Montant de base assujettie            S21.G00.78.004       2 940,00
+       Code de cotisation individuelle        S21.G00.81.001      131 - Cotisation régime unifié Agirc-Arrco
+       Montant de cotisation individuelle     S21.G00.81.004      47,43
+       Code de cotisation individuelle        S21.G00.81.001      132 - Cotisation Apec
+       Montant de cotisation individuelle     S21.G00.81.004      1,76
+
+
+
+Exemple 2
+
+Passage d’un emploi temps plein à un emploi temps partiel au 16 avril 2025
+
+Le 16 avril, le salarié cadre passe d’un emploi temps plein de 151,67 heures à un emploi à temps partiel à
+70,00 heures. Le salarié n’effectue pas d’heures complémentaires. Le salaire brut et le plafond de sécurité
+sociale doivent être proratisés selon la durée de chacune des périodes infra-mensuelles.
+
+
+Pour la période infra-mensuelle « temps plein » - du 1er au 15 avril
+PSS = 3.925,00 x 15/30 = 1 962,50
+Salaire brut = 4.200,00 x 15/30 = 2.100,00
+
+                                            Codification DSN attendue
+                  Rubrique                  Code rubrique                       Valeur rubrique
+       Code de base assujettie               S21.G00.78.001       02 - Assiette brute plafonnée
+       Date de début de période de
+                                             S21.G00.78.002       01042025
+       rattachement
+       Date de fin de période de
+                                             S21.G00.78.003       15042025
+       rattachement
+       Montant de base assujettie            S21.G00.78.004       1 962,50
+       Code de cotisation individuelle       S21.G00.81.001       131 - Cotisation régime unifié Agirc-Arrco
+       Montant de cotisation individuelle    S21.G00.81.004       203,51
+
+       Code de base assujettie               S21.G00.78.001       03 - Assiette brute déplafonnée
+       Date de début de période de
+                                             S21.G00.78.002       01042025
+       rattachement
+       Date de fin de période de
+                                             S21.G00.78.003       15042025
+       rattachement
+       Montant de base assujettie            S21.G00.78.004       2 100,00
+       Code de cotisation individuelle       S21.G00.81.001       131 - Cotisation régime unifié Agirc-Arrco
+       Montant de cotisation individuelle    S21.G00.81.004       33,88
+       Code de cotisation individuelle       S21.G00.81.001       132 - Cotisation Apec
+       Montant de cotisation individuelle    S21.G00.81.004       1,26
+
+
+
+
+© Agirc-Arrco                                     2/3                                                          juin 202525
+                  Changement de situation en cours de mois
+
+Pour la période infra-mensuelle « temps partiel » - du 16 au 30 avril
+PSS = 3.925,00 x 15/30 x 70,00/151,67 = 905,75 (calculé au prorata temporis de la durée du travail)
+Salaire brut = 4.200,00 x 15/30 x 70,00/151,67 = 969,21 (calculé au prorata temporis de la durée du travail)
+
+                                              Codification DSN attendue
+                  Rubrique                     Code rubrique                          Valeur rubrique
+       Code de base assujettie                 S21.G00.78.001           02 - Assiette brute plafonnée
+       Date de début de période de
+                                               S21.G00.78.002           16042025
+       rattachement
+       Date de fin de période de
+                                               S21.G00.78.003           30042025
+       rattachement
+       Montant de base assujettie              S21.G00.78.004           905,75
+       Code de cotisation individuelle           S21.G00.81.001         131 - Cotisation régime unifié Agirc-Arrco
+       Montant de cotisation individuelle        S21.G00.81.004         93,93
+       Code de base assujettie                   S21.G00.78.001         03 - Assiette brute déplafonnée
+       Date de début de période de
+                                                 S21.G00.78.002         16042025
+       rattachement
+       Date de fin de période de
+                                                 S21.G00.78.003         30042025
+       rattachement
+       Montant de base assujettie                S21.G00.78.004         969,21
+       Code de cotisation individuelle           S21.G00.81.001         131 - Cotisation régime unifié Agirc-Arrco
+       Montant de cotisation individuelle        S21.G00.81.004         15,64
+       Code de cotisation individuelle           S21.G00.81.001         132 – Cotisation Apec
+       Montant de cotisation individuelle        S21.G00.81.004         0,58
+
+
+
+
+© Agirc-Arrco                                        3/3                                                             juin 202525
+

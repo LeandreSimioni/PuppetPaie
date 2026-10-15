@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000006791823</ID>
+<ANCIEN_ID>SSICK9XXXXXA00AXXXXXXXAA</ANCIEN_ID>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/06/79/18/LEGIARTI000006791823.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>ANNEXE</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2005-08-06</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="JORFTEXT000000449125" date_publi="2005-08-06" date_signature="2005-07-25" ministere="MINISTERE DE LA SANTE ET DES SOLIDARITES" nature="ARRETE" nor="SANS0522777A" num="" num_parution_jo="0182">
+<TITRE_TXT c_titre_court="Arrêté du 25 juillet 2005" debut="2999-01-01" fin="2999-01-01" id_txt="JORFTEXT000000449125">Arrêté du 25 juillet 2005 modifiant l'arrêté du 20 décembre 2002 relatif aux frais professionnels déductibles pour le calcul des cotisations de sécurité sociale</TITRE_TXT>
+<TITRE_TXT c_titre_court="Arrêté du 25 juillet 2005" debut="2005-08-06" fin="2999-01-01" id_txt="LEGITEXT000006052180">Arrêté du 25 juillet 2005 modifiant l'arrêté du 20 décembre 2002 relatif aux frais professionnels déductibles pour le calcul des cotisations de sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2005-08-06" fin="2999-01-01" id="LEGISCTA000006107959">Annexes</TITRE_TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2005-08-06" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000006791823" num="ANNEXE" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>ALLOCATIONS ET INDEMNITÉS VERSÉES AU TITRE DES REMBOURSEMENTS DE FRAIS PROFESSIONNELS ADMIS À ÊTRE DÉDUITS DE L'ASSIETTE DE COTISATIONS EN CAS DE DÉDUCTION FORFAITAIRE SPÉCIFIQUE AUTORISÉE AUX PROFESSIONS PRÉVUES À L'ARTICLE 5 DE L'ANNEXE IV DU CODE GÉNÉRAL DES IMPÔTS DANS SA RÉDACTION EN VIGUEUR AU 31 DÉCEMBRE 2000<br/>
+ I. - Allocations et indemnités versées à certaines professions bénéficiant d'une déduction forfaitaire spécifique dont le montant est notoirement inférieur à la réalité des frais professionnels exposés par le travailleur salarié ou assimilé<br/>
+<br/>      1° Les indemnités de grands déplacements allouées aux ouvriers du bâtiment dans les conditions fixées à l'article 5 de l'arrêté du 20 décembre 2002.<br/>
+<br/>   2° Les indemnités journalières de " défraiement " versées aux artistes dramatiques, lyriques, chorégraphiques ainsi qu'aux régisseurs de théâtre, qui participent à des tournées théâtrales.<br/>
+<br/>   3° Les indemnités pour frais de mécanisation des ouvriers forestiers.<br/>
+<br/>   4° Les allocations de " saison ", allouées aux artistes, musiciens, chefs d'orchestre et autres travailleurs du spectacle qui sont engagés par les casinos, les théâtres municipaux ou les théâtres bénéficiant de subventions des collectivités territoriales pendant la durée de la saison ainsi que, le cas échéant, les remboursements de leurs frais de déplacement. Il en est de même pour les répétitions effectuées dans le cadre de la saison.<br/>
+<br/>   5° Les allocations et remboursements de frais perçus par les chefs d'orchestre, musiciens et choristes à l'occasion de leurs déplacements professionnels en France et à l'étranger. Il en est de même pour les répétitions effectuées dans le cadre de ces déplacements.<br/>
+<br/>   6° Les allocations et remboursements de frais professionnels des journalistes professionnels au sens de l'article L. 761-2 du code de la sécurité sociale, mentionnés dans la lettre du 11 mars 1974 du ministère de l'économie et des finances, dans les conditions prévues par le dispositif.<br/>
+ II. - Allocations et indemnités versées au titre d'avantages résultant de contraintes professionnelles particulièrement lourdes<br/>
+<br/>      1° La prise en charge obligatoire du coût des titres de transport des salariés par les employeurs d'Ile-de-France instituée par la loi n° 82-684 du 4 août 1982 et par le décret n° 91-57 du 16 janvier 1991 et 50 % de la prise en charge totale ou partielle de l'abonnement mensuel par les employeurs de province instituée par l'article 109 de la loi n° 2000-1208 du 13 décembre 2000. De même, la prime de transport instituée par l'arrêté du 28 septembre 1948 applicable en région parisienne et en province peut être admise dans la limite de 4 euros.<br/>
+<br/>   2° La part contributive de l'employeur dans les titres-restaurant dans les limites prévues à l'article L. 131-4 du code de la sécurité sociale.<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="" datesignatexte="" id="" naturetexte="" nortexte="" num="" numtexte="" sens="source" typelien="CITATION">Arrêté 1948-09-28</LIEN>
+<LIEN cidtexte="" datesignatexte="" id="" naturetexte="" nortexte="" num="" numtexte="" sens="source" typelien="CITATION">Arrêté 2002-12-20 art. 5</LIEN>
+<LIEN cidtexte="JORFTEXT000000880224" datesignatexte="1982-08-04" id="JORFTEXT000000880224" naturetexte="LOI" nortexte="" num="" numtexte="82-684" sens="source" typelien="CITATION">Loi 82-684 1982-08-04</LIEN>
+<LIEN cidtexte="JORFTEXT000000708512" datesignatexte="1991-01-16" id="JORFTEXT000000708512" naturetexte="DECRET" nortexte="EQUT9000068D" num="" numtexte="91-57" sens="source" typelien="CITATION">Décret 91-57 1991-01-16</LIEN>
+<LIEN cidtexte="JORFTEXT000000207538" datesignatexte="2000-12-13" id="LEGIARTI000006821095" naturetexte="LOI" nortexte="EQUX9900145L" num="109" numtexte="2000-1208" sens="source" typelien="CITATION">Loi n°2000-1208 du 13 décembre 2000 - art. 109 ()</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741066" naturetexte="CODE" nortexte="" num="L131-4" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L131-4 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006744213" naturetexte="CODE" nortexte="" num="L761-2" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L761-2 (V)</LIEN>
+</LIENS>
+</ARTICLE>

@@ -1,0 +1,1278 @@
+Date de modification : 27/05/2026 06:24 PM
+
+Comment faire masse des cotisations de prévoyance, santé, retraite supplémentaire à destination des organismes complémentaires en cas de multi contrats de travail dans le mois ?
+
+ Le contexte
+
+Certains salariés ont plusieurs contrats de travail chez le même employeur au cours d’un même mois, comme les intermittents du spectacle, les pigistes ou les intérimaires en contrat de mission. S’ils bénéficient du même contrat de prévoyance avec des conditions d’affiliation identiques, l’employeur peut faire masse des rémunérations afin de calculer les cotisations de prévoyance. 
+
+A compter de la version de norme P27V01, il est possible de faire masse les cotisations de prévoyance, santé, retraite complémentaire pour ces populations. Cela permet de simplifier les démarches à destination des organismes complémentaires (OC) en rattachant les contrats à une même affiliation prévoyance et ainsi, de déclarer une cotisation unique aux OC. 
+
+Cette possibilité est offerte aux déclarants uniquement lorsqu’un intermittent, un pigiste ou un intérimaire en contrat de mission est déclaré pour au moins 2 contrats de travail sur le même mois avec un même contrat de prévoyance et des conditions d’affiliation identiques. 
+
+Point d’attention : Cette possibilité qui était limitée aux intérimaires en contrat de mission se trouve désormais étendue aux intermittents et pigistes relevant du secteur de l’audiovisuel. 
+
+ Déclarer en faisant masse des cotisations de prévoyance, santé, retraite supplémentaire à destination des organismes complémentaires
+
+1/ Lorsqu’un déclarant fait masse des cotisations de prévoyance, santé, retraite supplémentaire pour un intermittent, un pigiste ou un intérimaire en contrat de mission, ayant plusieurs contrats de travail sur le mois rattaché à un même contrat de prévoyance, il est attendu en DSN de renseigner la rubrique « Affiliation prévoyance applicable à plusieurs contrats - S21.G00.70.016 » avec la valeur « 01 - Affiliation prévoyance applicable à plusieurs contrats de travail ». 
+
+Cette rubrique permet d’indiquer que l’affiliation porte sur plusieurs contrats. Elle peut être déclarée uniquement si :
+
+ au moins deux contrats de travail sont des contrats de mission (S21.G00.40.007),
+
+ ou bien si au moins deux contrats de travail sont renseignés avec un code profession et catégorie socioprofessionnelle (S21.G00.40.004) et un code convention collective applicable (S21.G00.40.017) qui désignent un intermittent ou un pigiste relevant du secteur de l’audiovisuel (voir listes ci-dessous). 
+
+2/ Outre la déclaration de cette rubrique « Affiliation prévoyance applicable à plusieurs contrats - S21.G00.70.016 », le déclarant pourra renseigner plusieurs fois le même identifiant technique d’affiliation dans chacun des blocs « Affiliation Prévoyance - S21.G00.70 » déclarés si les conditions suivantes sont réunies :
+
+ Il s’agit exclusivement de contrats de mission (S21.G00.40.007) ou bien il s’agit exclusivement de contrats comportant un code profession et catégorie socioprofessionnelle (S21.G00.40.004) qui désigne un intermittent ou un pigiste relevant du secteur de l’audiovisuel (voir liste ci-dessous),
+
+ Les affiliations (S21.G00.70) sont toutes rattachées à la même adhésion (S21.G00.15) par le même identifiant adhésion (S21.G00.70.013) et présentent les mêmes codes option (S21.G00.70.004) et population (S21.G00.70.005).
+
+ Les contrats de travail présentent un statut conventionnel identique (S21.G00.40.002), un statut catégoriel identique (S21.G00.40.003), un dispositif de politique publique identique (S21.G00.40.008), une convention collective identique (S21.G00.40.017). 
+
+3/ Ensuite la cotisation individuelle à destination de l’organisme complémentaire pourra être rattachée à un unique bloc « Base assujettie – S21.G00.78 » de type « 31 - Eléments de cotisation Prévoyance, Santé, retraite supplémentaire » daté de l’ensemble de la période et pointant vers l’unique identifiant technique d’affiliation.
+
+Populations concernées :
+
+ Intérimaires en contrat de mission pour lequel la nature du contrat (S21.G00.40.007) est renseignée avec la valeur « 03 - Contrat de mission (contrat de travail temporaire) ».
+
+ Intermittents et pigistes de l’audiovisuel : ils sont identifiés grâce aux informations suivantes : 
+
+ Le code profession et catégorie socioprofessionnelle (PCS-ESE) (rubrique S21.G00.40.004) doit être déclaré avec l’une des valeurs suivantes :
+
+ 352a : Journalistes (y c. rédacteurs en chef)
+
+ 353b : Directeurs, responsables de programmation et de production de l'audiovisuel et des spectacles
+
+ 353c : Cadres artistiques et technico-artistiques de la réalisation de l'audiovisuel et des spectacles
+
+ 354b : Artistes de la musique et du chant
+
+ 354c : Artistes dramatiques
+
+ 354e : Artistes de la danse
+
+ 354f : Artistes du cirque et des spectacles divers
+
+ 465b : Assistants techniques de la réalisation des spectacles vivants et audiovisuels salariés
+
+ 637c : Ouvriers et techniciens des spectacles vivants et audiovisuels
+
+ Le code convention collective applicable (S21.G00.40.017) doit être déclaré avec l’une des valeurs suivantes :
+
+ 0892 : Convention collective nationale des cadres et agents de maîtrise de la distribution de films de l'industrie cinématographique
+
+ 1480 : Convention collective nationale de travail des journalistes
+
+ 1922 : Convention collective nationale de la radiodiffusion
+
+ 2412 : Convention collective nationale de la production de films d'animation
+
+ 2642 : Convention collective de la production audiovisuelle
+
+ 2770 : Convention collective nationale de l'édition phonographique (annexée à la convention collective nationale de l'édition 2121)
+
+ 3241 : Convention collective nationale de la Télédiffusion 
+
+Point d’attention : Dans le cas où plusieurs contrats successifs sur le mois sont déclarés pour un même individu mais que les garanties prévoyance sont différentes, la rubrique « Affiliation prévoyance applicable à plusieurs contrats - S21.G00.70.016 » ne doit pas être déclarée et ne permet pas de faire masse des cotisations de prévoyance, santé, retraite supplémentaire à destination des OC. 
+
+ Exemple de déclaration du cas nominal 
+
+Les exemples ne détaillent pas l’exhaustivité des rubriques attendues mais uniquement celles pour lesquelles il est demandé une attention particulière dans l’application des consignes détaillées dans cette fiche. 
+
+Exemple 1 : Un intermittent de l’audiovisuel signe 2 contrats de travail successifs au cours du mois de juillet 2027 dans lesquels il est rattaché à la même affiliation (Contrat de santé cadre) relevant du même organisme complémentaire : 
+
+ Contrat 1 : du lundi 5 au vendredi 9 juillet 2027 – Contrat de santé Cadre (réf : ContratCadre1) 
+
+ Contrat 2 : du lundi 19 au jeudi 22 juillet 2027 – Contrat de santé Cadre (réf : ContratCadre1) 
+
+Cet intermittent relève de la Convention collective de la production audiovisuelle (2642) et il est déclaré avec le code PCS-ESE « 353c » (Cadres artistiques et technico-artistiques de la réalisation de l'audiovisuel et des spectacles). 
+
+ | 
+
+ S21.G00.15 – Adhésion Prévoyance  
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.15.001  
+
+ | 
+
+ Référence du contrat de Prévoyance 
+
+ | 
+
+ ContratCadre1 
+
+ | 
+
+ S21.G00.15.002 
+
+ | 
+
+ Code organisme de Prévoyance 
+
+ | 
+
+ XXXXX 
+
+ | 
+
+ S21.G00.15.003 
+
+ | 
+
+ Code délégataire de gestion 
+
+ | 
+
+ XXXXX 
+
+ | 
+
+ S21.G00.15.004 
+
+ | 
+
+ Personnel couvert 
+
+ | 
+
+ 01 - Oui, concerne au moins un salarié de l'établissement d'affectation 
+
+ | 
+
+ S21.G00.15.005 
+
+ | 
+
+ Identifiant technique Adhésion 
+
+ | 
+
+ 100 
+ [Identifiant technique du Contrat Cadre1] 
+
+ | 
+
+ S21.G00.40 – Contrat (Contrat 1) 
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.40.001  
+
+ | 
+
+ Date de début de contrat 
+
+ | 
+
+ 05072027 
+ [5 juillet 2027] 
+
+ | 
+
+ S21.G00.40.004 
+
+ | 
+
+ Code profession et catégorie socioprofessionnelle (PCS-ESE) 
+
+ | 
+
+ 353c 
+ [Cadres artistiques et technico-artistiques de la réalisation de l'audiovisuel et des spectacles] 
+
+ | 
+
+ S21.G00.40.010 
+
+ | 
+
+ Date de fin prévisionnelle du contrat 
+
+ | 
+
+ 09072027 
+ [9 juillet 2027] 
+
+ | 
+
+ S21.G00.40.017 
+
+ | 
+
+ Code convention collective applicable 
+
+ | 
+
+ 2642 
+ [Convention collective de la production audiovisuelle] 
+
+ | 
+
+ […] 
+
+ | 
+
+ | 
+
+ | 
+
+ S21.G00.70 – Affiliation Prévoyance  
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.70.005 
+
+ | 
+
+ Code population de rattachement 
+
+ | 
+
+ CAD 
+
+ | 
+
+ S21.G00.70.012 
+
+ | 
+
+ Identifiant technique Affiliation 
+
+ | 
+
+ A 
+ [Identifiant technique Affiliation du Contrat Cadre1] 
+
+ | 
+
+ S21.G00.70.013 
+
+ | 
+
+ Identifiant technique Adhésion 
+
+ | 
+
+ 100 
+ [Identifiant technique Adhésion du Contrat Cadre1] 
+
+ | 
+
+ S21.G00.70.016 
+
+ | 
+
+ Affiliation prévoyance applicable à plusieurs contrats 
+
+ | 
+
+ 01 - Affiliation prévoyance applicable à plusieurs contrats de travail 
+
+ | 
+
+ S21.G00.40 – Contrat (Contrat 2) 
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.40.001  
+
+ | 
+
+ Date de début de contrat 
+
+ | 
+
+ 19072027 
+ [19 juillet 2027] 
+
+ | 
+
+ S21.G00.40.004 
+
+ | 
+
+ Code profession et catégorie socioprofessionnelle (PCS-ESE) 
+
+ | 
+
+ 353c 
+ [Cadres artistiques et technico-artistiques de la réalisation de l'audiovisuel et des spectacles] 
+
+ | 
+
+ S21.G00.40.010 
+
+ | 
+
+ Date de fin prévisionnelle du contrat 
+
+ | 
+
+ 22072027 
+ [22 juillet 2027] 
+
+ | 
+
+ S21.G00.40.017 
+
+ | 
+
+ Code convention collective applicable 
+
+ | 
+
+ 2642 
+ [Convention collective de la production audiovisuelle] 
+
+ | 
+
+ […] 
+
+ | 
+
+ | 
+
+ | 
+
+ S21.G00.70 – Affiliation Prévoyance  
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.70.005 
+
+ | 
+
+ Code population de rattachement 
+
+ | 
+
+ CAD 
+
+ | 
+
+ S21.G00.70.012 
+
+ | 
+
+ Identifiant technique Affiliation 
+
+ | 
+
+ A 
+ [Identifiant technique Affiliation du Contrat Cadre1] 
+
+ | 
+
+ S21.G00.70.013 
+
+ | 
+
+ Identifiant technique Adhésion 
+
+ | 
+
+ 100 
+ [Identifiant technique Adhésion du Contrat Cadre1] 
+
+ | 
+
+ S21.G00.70.016 
+
+ | 
+
+ Affiliation prévoyance applicable à plusieurs contrats 
+
+ | 
+
+ 01 - Affiliation prévoyance applicable à plusieurs contrats de travail 
+
+S21.G00.50 – Versement individu 
+
+ | 
+
+ S21.G00.78 – Base assujettie 
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.78.001  
+
+ | 
+
+ Code de base assujettie 
+
+ | 
+
+ 31 - Eléments de cotisation Prévoyance, Santé, retraite supplémentaire 
+
+ | 
+
+ S21.G00.78.002 
+
+ | 
+
+ Date de début de période de rattachement 
+
+ | 
+
+ 05072027 
+ [5 juillet 2027] 
+
+ | 
+
+ S21.G00.78.003 
+
+ | 
+
+ Date de fin de période de rattachement 
+
+ | 
+
+ 22072027 
+ [22 juillet 2027] 
+
+ | 
+
+ S21.G00.78.004 
+
+ | 
+
+ Montant 
+
+ | 
+
+ 0.00 
+
+ | 
+
+ S21.G00.78.005 
+
+ | 
+
+ Identifiant technique Affiliation 
+
+ | 
+
+ A 
+ [Identifiant technique Affiliation du Contrat Cadre1] 
+
+ | 
+
+ S21.G00.81 – Cotisation individuelle  
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.81.001  
+
+ | 
+
+ Code de cotisation 
+
+ | 
+
+ 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées 
+
+ | 
+
+ S21.G00.81.004 
+
+ | 
+
+ Montant de cotisation 
+
+ | 
+
+ XXXX.XX 
+ [Montant total des cotisations correspondant aux C1 et C2] 
+
+ | 
+
+ […] 
+
+ | 
+
+ | 
+
+ Autres exemples et corrections 
+
+Exemple 2 : Un intermittent signe 2 contrats de travail successifs au cours du mois de juin 2027 dans lesquels il est rattaché à 2 affiliations différentes relevant du même organisme complémentaire : 
+
+ Contrat 1 : du lundi 1er mars au mardi 9 mars 2027 – Affiliation santé Cadre (réf : ContratCadre1) 
+
+ Contrat 2 : du mardi 16 mars au jeudi 18 mars 2027 – Affiliation santé Non Cadre (réf : ContratNonCadre2) 
+
+Cet intermittent relève de la Convention collective de la production audiovisuelle (2642) et il est déclaré avec :
+
+ le code PCS-ESE « 353c » (Cadres artistiques et technico-artistiques de la réalisation de l'audiovisuel et des spectacles) pour le premier contrat
+
+ et le code « 465b » (Assistants techniques de la réalisation des spectacles vivants et audiovisuels salariés) pour le deuxième contrat. 
+
+Les garanties prévoyance étant différentes entre les affiliations, la rubrique « Affiliation prévoyance applicable à plusieurs contrats – S21.G00.70.017 » ne doit donc pas être déclarée et il n’est pas possible de faire masse des cotisations de prévoyance, santé, retraite supplémentaire à destination des organismes complémentaires dans un unique bloc « Base assujettie - S21.G00.78 ». 
+
+ | 
+
+ S21.G00.15 – Adhésion Prévoyance (Contrat cadre 1) 
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.15.001  
+
+ | 
+
+ Référence du contrat de Prévoyance 
+
+ | 
+
+ ContratCadre1 
+
+ | 
+
+ S21.G00.15.002 
+
+ | 
+
+ Code organisme de Prévoyance 
+
+ | 
+
+ XXXXX 
+
+ | 
+
+ S21.G00.15.003 
+
+ | 
+
+ Code délégataire de gestion 
+
+ | 
+
+ XXXXX 
+
+ | 
+
+ S21.G00.15.004 
+
+ | 
+
+ Personnel couvert 
+
+ | 
+
+ 01 - Oui, concerne au moins un salarié de l'établissement d'affectation 
+
+ | 
+
+ S21.G00.15.005 
+
+ | 
+
+ Identifiant technique Adhésion 
+
+ | 
+
+ 100 
+ [Identifiant technique du Contrat Cadre 1] 
+
+ | 
+
+ S21.G00.15 – Adhésion Prévoyance (Contrat Non cadre 2) 
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.15.001  
+
+ | 
+
+ Référence du contrat de Prévoyance 
+
+ | 
+
+ ContratNonCadre2 
+
+ | 
+
+ S21.G00.15.002 
+
+ | 
+
+ Code organisme de Prévoyance 
+
+ | 
+
+ XXXXX 
+
+ | 
+
+ S21.G00.15.003 
+
+ | 
+
+ Code délégataire de gestion 
+
+ | 
+
+ XXXXX 
+
+ | 
+
+ S21.G00.15.004 
+
+ | 
+
+ Personnel couvert 
+
+ | 
+
+ 01 - Oui, concerne au moins un salarié de l'établissement d'affectation 
+
+ | 
+
+ S21.G00.15.005 
+
+ | 
+
+ Identifiant technique Adhésion 
+
+ | 
+
+ 200 
+ [Identifiant technique du ContratNonCadre2] 
+
+ | 
+
+ S21.G00.40 – Contrat (Contrat 1) 
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.40.001  
+
+ | 
+
+ Date de début de contrat 
+
+ | 
+
+ 01032027 
+ [1er mars 2027] 
+
+ | 
+
+ S21.G00.40.004 
+
+ | 
+
+ Code profession et catégorie socioprofessionnelle (PCS-ESE) 
+
+ | 
+
+ 353c 
+ [Cadres artistiques et technico-artistiques de la réalisation de l'audiovisuel et des spectacles] 
+
+ | 
+
+ S21.G00.40.010 
+
+ | 
+
+ Date de fin prévisionnelle du contrat 
+
+ | 
+
+ 09032027 
+ [9 mars 2027] 
+
+ | 
+
+ S21.G00.40.017 
+
+ | 
+
+ Code convention collective applicable 
+
+ | 
+
+ 2642 
+ [Convention collective de la production audiovisuelle] 
+
+ | 
+
+ […] 
+
+ | 
+
+ | 
+
+ | 
+
+ S21.G00.70 – Affiliation Prévoyance  
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.70.001  
+
+ | 
+
+ Code population de rattachement 
+
+ | 
+
+ CAD 
+
+ | 
+
+ S21.G00.70.012 
+
+ | 
+
+ Identifiant technique Affiliation 
+
+ | 
+
+ A 
+ [Identifiant technique Affiliation du Contrat Cadre1] 
+
+ | 
+
+ S21.G00.70.013 
+
+ | 
+
+ Identifiant technique Adhésion 
+
+ | 
+
+ 100 
+ [Identifiant technique Adhésion du Contrat Cadre1] 
+
+ | 
+
+ S21.G00.40 – Contrat (Contrat 2) 
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.40.001  
+
+ | 
+
+ Date de début de contrat 
+
+ | 
+
+ 16032027 
+ [16 mars 2027] 
+
+ | 
+
+ S21.G00.40.004 
+
+ | 
+
+ Code profession et catégorie socioprofessionnelle (PCS-ESE) 
+
+ | 
+
+ 465b 
+ [Assistants techniques de la réalisation des spectacles vivants et audiovisuels salariés] 
+
+ | 
+
+ S21.G00.40.010 
+
+ | 
+
+ Date de fin prévisionnelle du contrat 
+
+ | 
+
+ 18032027 
+ [18 mars 2027] 
+
+ | 
+
+ S21.G00.40.017 
+
+ | 
+
+ Code convention collective applicable 
+
+ | 
+
+ 2642 
+ [Convention collective de la production audiovisuelle] 
+
+ | 
+
+ […] 
+
+ | 
+
+ | 
+
+ | 
+
+ S21.G00.70 – Affiliation Prévoyance  
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.70.001  
+
+ | 
+
+ Code population de rattachement 
+
+ | 
+
+ NCAD 
+
+ | 
+
+ S21.G00.70.012 
+
+ | 
+
+ Identifiant technique Affiliation 
+
+ | 
+
+ B 
+ [Identifiant technique Affiliation du Contrat Non Cadre2] 
+
+ | 
+
+ S21.G00.70.013 
+
+ | 
+
+ Identifiant technique Adhésion 
+
+ | 
+
+ 200 
+ [Identifiant technique Adhésion du Contrat Non Cadre 2] 
+
+S21.G00.50 – Versement individu 
+
+ | 
+
+ S21.G00.78 – Base assujettie (Contrat 1) 
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.78.001  
+
+ | 
+
+ Code de base assujettie 
+
+ | 
+
+ 31 - Eléments de cotisation Prévoyance, Santé, retraite supplémentaire 
+
+ | 
+
+ S21.G00.78.002 
+
+ | 
+
+ Date de début de période de rattachement 
+
+ | 
+
+ 01032027 
+ [1er mars 2027] 
+
+ | 
+
+ S21.G00.78.003 
+
+ | 
+
+ Date de fin de période de rattachement 
+
+ | 
+
+ 09032027 
+ [9 mars 2027] 
+
+ | 
+
+ S21.G00.78.004 
+
+ | 
+
+ Montant 
+
+ | 
+
+ 0.00 
+
+ | 
+
+ S21.G00.78.005 
+
+ | 
+
+ Identifiant technique Affiliation 
+
+ | 
+
+ A 
+ [Identifiant technique Affiliation du Contrat Cadre1] 
+
+ | 
+
+ S21.G00.81 – Cotisation individuelle  
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.81.001  
+
+ | 
+
+ Code de cotisation 
+
+ | 
+
+ 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées 
+
+ | 
+
+ S21.G00.81.004 
+
+ | 
+
+ Montant de cotisation 
+
+ | 
+
+ XXXX.XX 
+ [Montant de la cotisation correspondant au C1] 
+
+ | 
+
+ […] 
+
+ | 
+
+ | 
+
+ | 
+
+ S21.G00.78 – Base assujettie (Contrat 2) 
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.78.001  
+
+ | 
+
+ Code de base assujettie 
+
+ | 
+
+ 31 - Eléments de cotisation Prévoyance, Santé, retraite supplémentaire 
+
+ | 
+
+ S21.G00.78.002 
+
+ | 
+
+ Date de début de période de rattachement 
+
+ | 
+
+ 16032027 
+ [16 mars 2027] 
+
+ | 
+
+ S21.G00.78.003 
+
+ | 
+
+ Date de fin de période de rattachement 
+
+ | 
+
+ 18032027 
+ [18 mars 2027] 
+
+ | 
+
+ S21.G00.78.004 
+
+ | 
+
+ Montant 
+
+ | 
+
+ 0.00 
+
+ | 
+
+ S21.G00.78.005 
+
+ | 
+
+ Identifiant technique Affiliation 
+
+ | 
+
+ B 
+ [Identifiant technique Affiliation du Contrat Non Cadre 2] 
+
+ | 
+
+ S21.G00.81 – Cotisation individuelle  
+
+ | 
+
+ Code  
+
+ | 
+
+ Rubrique  
+
+ | 
+
+ Valorisation  
+
+ | 
+
+ S21.G00.81.001  
+
+ | 
+
+ Code de cotisation 
+
+ | 
+
+ 059 - Cotisation individuelle Prévoyance-Assurance-Mutuelle pour la période et l'affiliation concernées 
+
+ | 
+
+ S21.G00.81.004 
+
+ | 
+
+ Montant de cotisation 
+
+ | 
+
+ XXXX.XX 
+ [Montant de la cotisation correspondant au C2] 
+
+ | 
+
+ […] 
+
+ | 
+
+ | 
+
+ Date de création : 27/05/2026 05:50 PM 
+
+ N° de la fiche : 3377 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

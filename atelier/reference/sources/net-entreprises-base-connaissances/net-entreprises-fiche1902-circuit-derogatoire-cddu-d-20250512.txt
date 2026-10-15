@@ -1,0 +1,126 @@
+Date de modification : 12/05/2025 04:18 PM
+ Comment déclarer les fins de contrat de travail dans le circuit dérogatoire (CDDU-D) ?
+ Le contexte 
+ Lors du processus de paie portant la déclaration de rupture du contrat de travail dans une DSN mensuelle, le déclarant formalise le souhait d'utiliser le circuit dérogatoire. Dans la norme, cela se matérialise par le positionnement de la rubrique "Modalité de la déclaration de la fin du contrat d'usage - S21.G00.62.017 " valorisée à " 01 - Application du circuit dérogatoire ". Pour rappel, ce choix est effectué pour chaque infra-mensuel :
+ dont la nature de contrat (S21.G00.40.007) est « 02 – contrat de travail à durée déterminée de droit privé » ou « 10 - Contrat de travail à durée déterminée de droit public »   
+ et 
+ dont le motif de recours (S21.G00.40.021) est « 05 – contrat d’usage »   
+ et 
+ dont le motif de fin de contrat de travail (S21.G00.62.002) est « 031 – fin de contrat à durée déterminée ».
+ Les corrections d'un CDD d'usage dans le circuit dérogatoire 
+ Le déclarant peut transmettre une DSN mensuelle de type " Annule et Remplace ", dans les délais fixés en DSN (jusqu'à la veille, minuit, de la date d'exigibilité). Comme pour la déclaration initiale, cette DSN mensuelle donne lieu à une archive de l'ensemble des AER correspondant aux CDD d'usage en circuit dérogatoire et/ou un CRM.
+ Une fois la date d'exigibilité passée, aucune DSN mensuelle de type " Annule et Remplace " n'est possible. Ainsi, les corrections sont à apporter par le biais de l'émission d'un Signalement Fin de contrat de travail (FCTU).
+ L'employeur doit faire un Signalement d'événement FCTU initial pour chaque contrat erroné afin de corriger les anomalies. En application de la cinématique standard, une AER est produite pour chaque contrat ainsi corrigé.
+ Le signalement DSN FCTU et la déclaration DSN mensuelle restent indépendants. Le déclarant doit donc reporter dans la DSN du mois suivant les données transmises via ce signalement, en appliquant le choix du déclarant concernant la valeur 01 ou 02 dans la rubrique  "Modalité de la déclaration de la fin du contrat d'usage - S21.G00.62.017" précédemment transmis. L'émission du signalement DSN FCTU  ne remet pas en cause le choix d'utiliser le circuit dérogatoire pour ce contrat de travail (pas d'action du signalement sur la DSN mensuelle).
+ Attention, il n'y aura pas d'AER pour ce contrat d'usage en circuit dérogatoire corrigé dans l'archive des AER de la DSN mensuelle suivante (le contrat n’est plus infra-DSN) . .
+ France Travail gère la double réception  de la correction par signalement FCTU et par mensuelle suivante.
+ Exemple de correction après la date d'exigibilité :
+ Les données corrigées devront également être portées dans la DSN Mensuelle du mois suivant le FCTU.
+ Si les corrections concernent des éléments relatifs à la rémunération, il sera indispensable d'alimenter les blocs adéquats avec les écarts entre les valeurs déclarées dans la DSN mensuelle portant le contrat et les valeurs portées dans le FCTU
+ DSN de janvier : 
+ | 
+ S21.G00.51.011 
+ | 
+ Type 
+ | 
+ 002 - Salaire brut soumis à contribution AC 
+ | 
+ S21.G00.51.013 
+ | 
+ Montant 
+ | 
+ 1000 
+ | 
+ | 
+ | 
+ | 
+ | 
+ FCT : 
+ | 
+ S21.G00.51.011 
+ | 
+ Type 
+ | 
+ 002 - Salaire brut soumis à contribution AC 
+ | 
+ | 
+ S21.G00.51.013 
+ | 
+ Montant 
+ | 
+ 1500 
+ | 
+ | 
+ | 
+ | 
+ | 
+ DSN de février : 
+ | 
+ S21.G00.51.011 
+ | 
+ Type 
+ | 
+ 002 - Salaire brut soumis à contribution AC 
+ | 
+ S21.G00.51.013 
+ | 
+ Montant 
+ | 
+ 500 
+ | 
+  Annulation d'une fin de CDD d'usage en circuit dérogatoire 
+ L'annulation de la fin de contrat doit suivre les consignes de la fiche prévue à cet effet (référence  : n°1722 ) . Cette fonctionnalité est applicable depuis avril 2018.
+ Exemple d'annulation : 
+ Pour annuler une fin de contrat de CCDU-D déclarée à tort au sein d'une DSN mensuelle après la date d'exigibilité, il convient de renseigner, dans la DSN mensuelle du mois suivant :
+ Un bloc " Fin de contrat - S21.G00.62 " avec le code " 099 - Annulation ", et par ailleurs identique au bloc " Fin de contrat - S21.G00.62 " à annuler.
+ Un seul bloc " Fin de contrat - S21.G00.62 " ne peut être renseigné dans la DSN portant l'annulation
+ DSN de janvier : 
+ | 
+ S21.G00.62.001 
+ | 
+ Date de fin du contrat 
+ | 
+ 31012018 
+ | 
+ S21.G00.62.002 
+ | 
+ Motif de la rupture du contrat 
+ | 
+ 031 - Fin de contrat à durée déterminée ou fin d'accueil occasionnel 
+ | 
+ S21.G00.62.017 
+ | 
+ Modalité de déclaration de la fin du contrat d'usage 
+ | 
+ 01 - Application du circuit dérogatoire 
+ | 
+ | 
+ | 
+ | 
+ | 
+ DSN de février : 
+ | 
+ S21.G00.62.001 
+ | 
+ Date de fin du contrat 
+ | 
+ 31012018 
+ | 
+ S21.G00.62.002 
+ | 
+ Motif de la rupture du contrat 
+ | 
+ 099 - Annulation 
+ | 
+ S21.G00.62.017 
+ | 
+ Modalité de déclaration de la fin du contrat d'usage 
+ | 
+ 01 - Application du circuit dérogatoire 
+ | 
+ Demande du salarié d'obtenir l'AER au plus tôt 
+ Le salarié a le droit de refuser l'utilisation du circuit dérogatoire pour ses contrats. Il revient donc à l’employeur d’effectuer les signalements FCTU  dans les 5 jours suivants la fin du ou des contrats. Dans ce cas-là, le déclarant peut se retrouver dans deux situations :
+ Soit la déclaration DSN mensuelle est en cours de constitution ou est déjà constituée avec le choix du circuit dérogatoire, mais le délai de transmission et de réception des AER risque de dépasser les 5 jours. Le déclarant procède par un signalement DSN fctu sans intervenir sur la mensuelle déjà en cours. France Travail gèrera la réception des doublons. La fin de contrat fera alors l'objet de 2 AER, une AER régime général suite au dépôt du signalement DSN  FCTU , et une AER dérogatoire regroupant plusieurs CDD d'usage infra-mensuels déclarés en circuit dérogatoire.
+ Soit la déclaration DSN mensuelle n'est pas du tout en cours et donc le déclarant procède à une déclaration de signalement DSN FCTU  et indique son choix de ne pas recourir à la dérogation dans la DSN mensuelle.
+ Date de création : 09/05/2018 03:15 PM 
+ N° de la fiche : 1902

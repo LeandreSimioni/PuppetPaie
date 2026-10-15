@@ -1,0 +1,115 @@
+# Bloc S21.G00.16
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 153-154
+
+--- p. 153 ---
+  S21.G00.16  2026-06-10
+
+  d'assurance, DLGOCI - Code délégataire de gestion OC
+  isolé
+
+Personnel couvert  S21.G00.15.004
+PrevoyanceAdhesion.PersonnelCouvert
+  Dans une déclaration mensuelle, précise s'il existe ou non au moins un salarié couvert par ce contrat de
+  Prévoyance, pour la période et l'établissement d'affectation déclarés.
+
+  Cette rubrique est renseignée à "01" si un salarié au moins est couvert par le contrat référencé en
+  S21.G00.15.001 pour l’établissement d’affectation et le mois déclaré ou à "02" s’il n’existe pas ou plus de
+  salarié couvert dans l’établissement.
+
+  L’alimentation du bloc 15 permet d’assurer que la DSN soit adressée à l’organisme de Prévoyance en
+  l’absence de personnel couvert.
+
+  X  [2,2]
+
+  01 - Oui, concerne au moins un salarié de l'établissement d'affectation
+  02 - Non, ne concerne aucun salarié de l'établissement d'affectation
+
+Identifiant technique Adhésion  S21.G00.15.005
+PrevoyanceAdhesion.IdentifiantTechniqueAdhesion
+  Cet identifiant est interne au message DSN et doit être unique pour chaque adhésion.
+  Dans une DSN mensuelle, il permet de faire le lien :
+  - avec les affiliations prévoyance ("Identifiant technique Adhésion - S21.G00.70.013")
+  - avec les cotisations établissement ("Référence réglementaire ou contractuelle - S21.G00.82.005")
+  CCH-11 : Cet identifiant doit être unique dans la déclaration pour chaque bloc "Adhésion Prévoyance - S21.G00.15".
+
+  X  [1,3]  CSL 00 : [1-9][0-9]*
+
+S21.G00.16
+
+Changements destinataire Adhésion Prévoyance  S21.G00.16
+  Ce bloc se limite à signaler une correction apportée à l'identification de l'organisme Prévoyance destinataire, en cas
+  d'erreur sur la ou les déclarations précédentes.
+
+Date de la modification  S21.G00.16.001
+Ancien Code organisme de Prévoyance  S21.G00.16.002
+Ancien Code délégataire de gestion  S21.G00.16.003
+
+Date de la modification  S21.G00.16.001
+ChangementsDestinataireAdhesionPrevoyance.DateModification
+  La date de modification correspond à la date de survenance du changement de caractéristique de l'Adhésion
+  Prévoyance.
+  SIG-11 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+  153 / 370
+
+--- p. 154 ---
+  S21.G00.20  2026-06-10
+
+Ancien Code organisme de Prévoyance  S21.G00.16.002
+ChangementsDestinataireAdhesionPrevoyance.Organisme
+  Code de l'institution de prévoyance (sur 5 caractères sous la forme Pnnnn), de la mutuelle (sur 9 caractères
+  numériques), de la société d'assurances (sur 6 caractères sous la forme Axxxxx) ou de l'organisme
+  complémentaire non fédéré par un membre du GIP-MDS (CTIP, FFA, FNMF) (sur 9 caractères
+  alphanumériques dont un au moins est une lettre) concerné par le contrat référencé.
+  CRE-11 : valeurs autorisées
+
+  Tables PREV - Code institution de prévoyance, MUT - Code
+  X  [5,9]  mutuelle , ASSU - Code société d’assurance, OCI - Code
+  organisme OC isolé
+
+Ancien Code délégataire de gestion  S21.G00.16.003
+ChangementsDestinataireAdhesionPrevoyance.Delegataire
+  Ancien Organisme tiers à qui l'organisme de Prévoyance a délégué tout ou partie de la gestion du contrat
+  référencé en S21.G00.15.001.
+  Tables DLGPREV - Code délégataire de gestion
+  prévoyance, DLGMUT - Code délégataire de gestion
+  X  [6,6]  mutuelle, DLGASSU - Code délégataire de gestion
+  d'assurance, DLGOCI - Code délégataire de gestion OC
+  isolé
+
+S21.G00.20
+
+Versement organisme de protection sociale  S21.G00.20
+  Le bloc Versement permet à l'établissement de déclarer les informations relatives au paiement de ses cotisations. Si les
+  versements sont pris en charge par un autre établissement de l'entreprise, l'établissement peut ne réaliser aucun
+  versement aux organismes de protection sociale.
+
+Identifiant Organisme de Protection Sociale  S21.G00.20.001
+Entité d'affectation des opérations  S21.G00.20.002
+BIC  S21.G00.20.003
+IBAN  S21.G00.20.004
+Montant du versement  S21.G00.20.005
+Date de début de période de rattachement  S21.G00.20.006
+Date de fin de période de rattachement  S21.G00.20.007
+Code délégataire de gestion  S21.G00.20.008
+Mode de paiement  S21.G00.20.010
+Date de paiement  S21.G00.20.011
+SIRET Payeur  S21.G00.20.012
+Identifiant du CRM à l'origine de la régularisation  S21.G00.20.013
+Identifiant du versement  S21.G00.20.014
+
+Identifiant Organisme de Protection Sociale  S21.G00.20.001
+VersementOPS.IdentifiantOPS
+  Code identifiant de l'organisme de protection sociale destinataire du versement de cotisations sociales émis
+  par l'établissement payeur.
+
+  Modalité de valorisation :
+
+  154 / 370

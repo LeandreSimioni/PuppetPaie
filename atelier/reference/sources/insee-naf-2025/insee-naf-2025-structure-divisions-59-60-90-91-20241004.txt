@@ -1,0 +1,50 @@
+Structure NAF 2025 (onglet « NAF 2025 », maj 04/10/2024) — divisions 59, 60, 90 et 91, extraites telles quelles
+NACE Rev.2.1 ; NAF 2025 sous-classe ; intitulé
+59 ;  ; Production de films cinématographiques, de vidéos et de programmes de télévision ; enregistrement sonore et édition musicale
+59.1 ;  ; Activités cinématographiques, vidéo et de télévision
+59.11 ;  ; Production de films cinématographiques, de vidéos et de programmes de télévision
+ ; 59.11G ; Production de films et programmes audiovisuels
+ ; 59.11H ; Production de films institutionnels et publicitaires
+ ; 59.11J ; Production de films pour le cinéma
+ ; 59.11K ; Production de films et programmes d'animation
+59.12 ; 59.12Y ; Post-production de films cinématographiques, de vidéos et de programmes de télévision
+59.13 ; 59.13Y ; Distribution de films cinématographiques et de vidéos
+59.14 ; 59.14Y ; Projection de films cinématographiques
+59.2 ;  ; Enregistrement sonore et édition musicale
+59.20 ; 59.20Y ; Enregistrement sonore et édition musicale
+60 ;  ; Activités de programmation, de diffusion, d’agence de presse et autres activités de distribution de contenu
+60.1 ;  ; Radiodiffusion et activités de distribution de contenu audio
+60.10 ; 60.10Y ; Radiodiffusion et activités de distribution de contenu audio
+60.2 ;  ; Programmation et diffusion télévisuelle et activités de distribution de contenu vidéo
+60.20 ;  ; Programmation et diffusion télévisuelle et activités de distribution de contenu vidéo
+ ; 60.20G ; Programmation de télévision et télédiffusion
+ ; 60.20H ; Édition de services de médias à la demande
+60.3 ;  ; Activités d’agence de presse et autres activités de distribution de contenu
+60.31 ; 60.31Y ; Activités d’agence de presse
+60.39 ; 60.39Y ; Autres activités de distribution de contenu
+90 ;  ; Activités de création artistique et de spectacle
+90.1 ;  ; Activités de création artistique
+90.11 ; 90.11Y ; Activités de création littéraire et de composition musicale
+90.12 ; 90.12Y ; Activités de création en arts visuels
+90.13 ; 90.13Y ; Autres activités de création artistique
+90.2 ;  ; Activités de spectacle
+90.20 ; 90.20Y ; Activités de spectacle
+90.3 ;  ; Activités de soutien à la création artistique et aux spectacles
+90.31 ;  ; Gestion de lieux d’exposition artistique et de salles de spectacles
+ ; 90.31G ; Gestion d’installations et de lieux de production et de diffusion des arts visuels
+ ; 90.31H ; Gestion de salles de spectacle vivant
+90.39 ;  ; Autres activités de soutien à la création artistique et aux spectacles
+ ; 90.39G ; Activités de production et organisation d'évènements culturels
+ ; 90.39H ; Activités de soutien technique aux spectacles et aux événements culturels
+91 ;  ; Bibliothèques, archives, musées et autres activités culturelles
+91.1 ;  ; Activités des bibliothèques et centres d’archives
+91.11 ; 91.11Y ; Activités des bibliothèques
+91.12 ; 91.12Y ; Activités des centres d’archives
+91.2 ;  ; Activités des musées, collections, monuments et sites historiques
+91.21 ; 91.21Y ; Activités des musées et collections
+91.22 ; 91.22Y ; Activité des monuments et sites historiques
+91.3 ;  ; Conservation, restauration et autres activités de soutien pour la préservation du patrimoine culturel
+91.30 ; 91.30Y ; Conservation, restauration et autres activités de soutien pour la préservation du patrimoine culturel
+91.4 ;  ; Activités de gestion de jardins botaniques et zoologiques et de réserves naturelles
+91.41 ; 91.41Y ; Activités de gestion de jardins botaniques et zoologiques
+91.42 ; 91.42Y ; Activités de gestion de réserves naturelles

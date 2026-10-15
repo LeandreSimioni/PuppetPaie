@@ -1,0 +1,486 @@
+              Journal de Maintenance de la norme NEODeS
+          JMN relatif au Cahier technique 2027.1.1 publié le 10 juin 2026
+
+
+Ce document contient toutes les évolutions apportées au fur et à mesure par les partenaires
+de la norme au Cahier technique 2027.1.1 publié le 10/06/2026. Cette version du Cahier
+technique et son JMN constitueront la norme en fonctionnement en Janvier 2027.
+
+
+Pour plus de lisibilité, les évolutions à prendre en compte d’une version à l’autre de ce JMN et
+leur calendrier de prise d’effet en production sont inscrites ci-dessous.
+
+
+
+ Version du     Date de publication du        N° des évolutions      Date de prise d’effet en
+ document       document                      ajoutées / corrigées   production
+
+ V1             Semaine du 15 juin 2026       N°1 à 13               Janvier 2027
+                Semaine du 14 septembre
+ V2                                           N° 14 à 22             Janvier 2027
+                2026
+
+
+Ce document contient toutes les évolutions apportées au fur et à mesure par les partenaires
+de la norme DSN au Cahier technique 2027.1.0
+Légende
+
+   Elément supprimé en rouge                Elément ajouté en vert
+
+
+
+Cahier technique de référence : CT 2027.1.0 publié le 24 Décembre
+2025.
+
+
+
+
+                                                                                                1
+Sommaire
+
+Évolutions apportées dans la version 1 du JMN ............................................................... 3
+Évolutions apportées dans la version 2 du JMN ............................................................... 9
+
+
+
+
+                                                                                                             2
+      Évolutions apportées dans la version 1 du JMN
+
+           1. Page de garde : Version
+
+                      Avant                                                    Après
+Page de garde                                          Page de garde
+
+CT2027.1.0                                             CT2027.1.1
+
+
+      Justification :
+      Modification du numéro de version du Cahier technique pour la version de norme P27V01.
+
+           2. Fractionnement de déclarations - 1.4.3.5 : Partie introductive
+
+                      Avant                                                    Après
+[…]                                                    […]
+
+La première fraction de DSN déposée devra              Toute fraction de DSN déposée devra
+obligatoirement indiquer la pratique du                obligatoirement indiquer la pratique du
+fractionnement pour que le dépôt d'autres fractions,   fractionnement pour que le dépôt d'autres fractions,
+pour un même SIRET et un même mois principal           pour un même SIRET et un même mois principal
+déclaré, soit accepté. Dans le cas contraire, leur     déclaré, soit accepté. Dans le cas contraire, leur
+dépôt ne sera pas possible. L’indication de la         dépôt ne sera pas possible. L’indication de la
+pratique du fractionnement est à exprimer au niveau    pratique du fractionnement est à exprimer au niveau
+de la rubrique « Pratique du fractionnement -          de la rubrique « Pratique du fractionnement -
+S20.G00.05.014 ».                                      S20.G00.05.014 ».
+
+[…]                                                    […]
+
+Pour une entreprise qui ne pratique pas le Pour une entreprise qui ne pratique pas le
+fractionnement, la valeur attendue est 11. fractionnement, il est possible d’indiquer la valeur
+                                           11.
+
+
+      Justification :
+      Les modalités de fractionnement de la DSN mensuelle sont précisées afin de correspondre aux
+      contrôles qui seront pratiqués à leur dépôt.
+
+           3. Période de rattachement des cotisations - 2.2.2.2 : Partie introductive
+
+                       Avant                                        Après
+La période de rattachement des cotisations de Les modalités déclaratives concernant les périodes
+Sécurité Sociale est :                        de rattachement de chaque type de cotisation sont
+
+
+
+                                                                                                   3
+- soit la période courante lorsqu'il n'y a pas de précisées sur la base de connaissance net-
+régularisation                                           entreprises.fr.
+- soit la période d'origine lorsqu'il y a régularisation
+(cf. partie 2.2.2.5. Correction de déclaration de
+cotisations)
+La période de rattachement des autres cotisations
+est la période à laquelle se rapportent ces
+cotisations.
+
+       Justification :
+       La partie introductive du Cahier technique est mise en cohérence avec les évolutions
+       réglementaires du fait générateur, opposables à compter de janvier 2027 et visant à
+       harmoniser les pratiques déclaratives.
+
+           4. Numéro de fraction de déclaration - S20.G00.05.003 : Description
+
+                       Avant                                                  Après
+Description                                            Description
+
+Le numéro de fraction de la déclaration est exprimé    Le numéro de fraction de la déclaration est exprimé
+par 'n' qui correspond au numéro de la fraction. Le    par 'n' qui correspond au numéro de la fraction. Le
+numéro de fraction doit être compris entre 11 et 59.   numéro de fraction doit être compris entre 11 et 59.
+Pour une entreprise qui ne pratique pas le             Pour une entreprise qui ne pratique pas le
+fractionnement, la valeur attendue est 11.             fractionnement, il est possible d'indiquer la valeur
+                                                       11.
+
+       Justification :
+       Les modalités de fractionnement de la DSN mensuelle sont précisées afin de correspondre aux
+       contrôles qui seront pratiqués à leur dépôt.
+
+           5. Numéro de fraction de déclaration - S20.G00.05.003 : CSL-00
+
+                       Avant                                                   Après
+CSL 00 : [1-9]{2}                                      CSL 00 : (1[1-9])|([2-9][0-9])
+
+       Justification :
+       L'expression régulière est corrigée afin de permettre la déclaration de l'ensemble des valeurs
+       prévues par les nouvelles modalités de fractionnement de la DSN mensuelle.
+
+           6. Pratique du fractionnement - S20.G00.05.014 : Description
+
+                       Avant                                                  Après
+Description                                            Description
+
+La première fraction de DSN déposée devra Toute fraction                    de DSN déposée devra
+obligatoirement indiquer la pratique du obligatoirement                    indiquer la pratique du
+
+
+                                                                                                   4
+fractionnement pour que le dépôt d'autres fractions,     fractionnement pour que le dépôt d'autres fractions,
+pour un même SIRET et un même mois principal             pour un même SIRET et un même mois principal
+déclaré, soit accepté. Dans le cas contraire, leur       déclaré, soit accepté. Dans le cas contraire, leur
+dépôt ne sera pas possible.                              dépôt ne sera pas possible.
+La déclaration de cette rubrique n'est pas attendue      La déclaration de cette rubrique n'est pas attendue
+pour un établissement qui ne pratique pas le             pour un établissement qui ne pratique pas le
+fractionnement.                                          fractionnement.
+
+
+      Justification :
+      Les modalités de fractionnement de la DSN mensuelle sont précisées afin de correspondre aux
+      contrôles qui seront pratiqués à leur dépôt.
+
+           7. Type - S20.G00.07.004 : CCH-11
+
+                         Avant                                                    Après
+CCH-11 : Si et seulement si la déclaration contient un   CCH-11 : Si et seulement si la déclaration contient un
+bloc « Etablissement - S21.G00.11 » avec la rubrique     bloc « Etablissement - S21.G00.11 » avec la rubrique
+« Identifiant du Service de Prévention et de Santé au    « Identifiant du Service de Prévention et de Santé au
+Travail (SPST) - S21.G00.11.025 » renseignée avec la     Travail (SPST) - S21.G00.11.025 » renseignée avec la
+valeur      «    MT01      -   MEDECINE      INTERNE     valeur      «    MT01      -   MEDECINE      INTERNE
+ETABLISSEMENT » ou au moins un bloc « Individu -         ETABLISSEMENT » ou au moins un bloc « Individu -
+S21.G00.30 » avec la rubrique « Identifiant du           S21.G00.30 » avec la rubrique « Identifiant du
+Service de Prévention et de Santé au Travail (SPST) -    Service de Prévention et de Santé au Travail (SPST) -
+S21.G00.30.030 » renseignée avec la valeur « MT01        S21.G00.30.030 » renseignée avec la valeur « MT01
+- MEDECINE INTERNE ETABLISSEMENT », alors un             - MEDECINE INTERNE ETABLISSEMENT », alors un
+bloc « Contact chez le déclaré - S21.G00.07 » de type    bloc « Contact chez le déclaré - S20.G00.07 » de type
+« 17 - Contact au sein du service de médecine du         « 17 - Contact au sein du service de médecine du
+travail interne à l’établissement pour la prévention     travail interne à l’établissement pour la prévention
+et la santé au travail chez le déclaré » doit            et la santé au travail chez le déclaré » doit
+obligatoirement être présent. Dans le cas contraire,     obligatoirement être présent. Dans le cas contraire,
+il est interdit.                                         il est interdit.
+
+
+      Justification :
+      Le CCH-11 en rubrique « Type - S20.G00.07.004 » est modifié afin de corriger le libellé du
+      bloc « Contact chez le déclaré - S20.G00.07 » mentionné dont la structure est en erreur.
+
+           8. Ancien échelon - S21.G00.41.045 : CSL-00
+
+                        Avant                                                    Après
+CSL 00 : (0[1-9])|(1[0-2])                               CSL 00 : (0[0-9])|(1[0-2])
+
+
+      Justification :
+
+
+
+                                                                                                      5
+      Correction de l'expression régulière afin de rétablir la possibilité de renseigner la rubrique
+      avec la valeur « 00 ». Cette valeur permet d'annuler l'échelon précédemment déclaré à tort.
+
+          9. Type - S21.G00.58.003 : Description
+
+                        Avant                                                  Après
+Description                                            Description
+
+Le défraiement des frais de mandat (sous la forme Il n’est pas attendu en version de norme P27V01 la
+d'une prise en charge directe, d'un remboursement déclaration du défraiement des frais de mandat.
+sur présentation des justificatifs ou d’une avance)
+est exonéré d'impôt sur le revenu en application du
+1° de l'article 81 du Code général des impôts. Pour
+ce type d'éléments de revenu calculés en net, la
+date de début (S21.G00.58.001) et la date de fin
+(S21.G00.58.002) de période de rattachement sont
+à renseigner en date de versement.
+
+      Justification :
+      La déclaration du type « 12- Défraiement des frais de mandat du parlementaire » n'est plus
+      attendue en version de norme P27V01. En anticipation de sa suppression en version de norme
+      P28V01, une mention de non-usage est apportée dans le libellé.
+
+          10. Type - S21.G00.58.003 : Énumération
+
+                         Avant                                                 Après
+Énumération                                            Énumération
+
+12 - Défraiement des frais de mandat du 12 - Défraiement des frais de mandat du
+parlementaire                           parlementaire (à ne pas renseigner en version de
+                                        norme P27V01)
+
+      Justification :
+      La déclaration du type « 12- Défraiement des frais de mandat du parlementaire » n'est plus
+      attendue en version de norme P27V01. En anticipation de sa suppression en version de norme
+      P28V01, une mention de non-usage est apportée dans le libellé.
+
+          11. Montant - S21.G00.59.002 : CSL-00
+
+                         Avant                                                 Après
+CSL 00 : ^-?\d{1,8}\.\d{2}$                            CSL 00 : -?[0]*([1-9][0-9]*\.[0-9]{2}|0\.(0[1-9]|[1-
+                                                       9][0-9]))
+
+
+      Justification :
+
+
+
+
+                                                                                                       6
+      Afin de rendre cohérentes les valorisations de montant d'éléments de revenus associés à des
+      droits spécifiques, l'expression régulière de la rubrique « Montant - S21.G00.59.002 » est
+      remplacée par celle de la rubrique « Montant - S21.G00.52.002 » du bloc « Prime,
+      gratification et indemnité - S21.G00.52 ».
+
+           12. Code APET - S21.G00.85.002 : CCH-11 et CCH-12
+
+                        Avant                                                Après
+CCH-11 : Si la rubrique « Nature juridique -
+S21.G00.85.010 » est égale à « 01 - Etablissement »,
+alors la présente rubrique (S21.G00.85.002) est
+obligatoire.
+
+CCH-12 : Pour un Lieu de travail ou établissement
+utilisateur donné (S21.G00.85), si la rubrique «
+Identifiant du lieu de travail ou de l'établissement
+utilisateur - S21.G00.85.001 » est égale à une
+rubrique « Identifiant de l’établissement utilisateur
+- S21.G00.40.046 », alors la présente rubrique
+(S21.G00.85.002) est obligatoire.
+
+      Justification :
+      Dans le cadre des travaux liés aux évolutions sur le changement de nomenclature d'activités
+      française (NAF), la déclaration du code APET n'est plus attendue dès lors que l'Identifiant du
+      lieu de travail ou de l'établissement utilisateur est renseigné par un SIRET. En conséquence,
+      les contrôles de cohérence ne sont plus justifiés.
+
+
+           13. Évolutions du tableau des invocations
+
+Code APET - S21.G00.85.002 : CCH-11
+
+                         Avant                                               Après
+01 - DSN mensuelle : Oui
+04 - Signalement arrêt de travail : Non
+05 - Signalement reprise suite à arrêt de travail :
+Non
+07 - Signalement fin de contrat de travail unique :
+Oui
+08 - Signalement amorçage : Oui
+09 - DSN de substitution : Non
+10 - Signalement déclaration préalable à
+l’embauche : Non
+
+      Justification :
+
+
+
+                                                                                                    7
+      Dans le cadre des travaux liés aux évolutions sur le changement de nomenclature d'activités
+      française (NAF), la déclaration du code APET n'est plus attendue dès lors que l'Identifiant du
+      lieu de travail ou de l'établissement utilisateur est renseigné par un SIRET. En conséquence,
+      les contrôles de cohérence ne sont plus justifiés.
+
+Code APET - S21.G00.85.002 : CCH-12
+
+                         Avant                                               Après
+01 - DSN mensuelle : Oui
+04 - Signalement arrêt de travail : Non
+05 - Signalement reprise suite à arrêt de travail :
+Non
+07 - Signalement fin de contrat de travail unique :
+Oui
+08 - Signalement amorçage : Oui
+09 - DSN de substitution : Non
+10 - Signalement déclaration préalable à
+l’embauche : Non
+
+      Justification :
+      Dans le cadre des travaux liés aux évolutions sur le changement de nomenclature d'activités
+      française (NAF), la déclaration du code APET n'est plus attendue dès lors que l'Identifiant du
+      lieu de travail ou de l'établissement utilisateur est renseigné par un SIRET. En conséquence,
+      les contrôles de cohérence ne sont plus justifiés.
+
+
+
+
+                                                                                                   8
+       Évolutions apportées dans la version 2 du JMN
+
+           14. Page de garde : Version
+
+                        Avant                                                   Après
+Page de garde                                           Page de garde
+
+CT2027.1.1                                              CT2027.1.2
+
+
+       Justification :
+       Modification du numéro de version du Cahier technique pour la version de norme P27V01.
+
+           15. Echelon - S21.G00.40.070 : CSL-00
+
+                             Avant                                              Après
+CSL 00 : (0[1-9])|(1[0-2])                              CSL 00 : (0[1-9]|[1-9][0-9])
+
+       Justification :
+       Dans le cadre de l'accord sur la garantie de progression salariale annuelle (GPSA), de
+       nouveaux échelons intermédiaires complètent la grille des échelons d'ancienneté des agents
+       statutaires de la SNCF à compter de décembre 2026. Afin de permettre leur déclaration, la
+       plage de valeurs autorisées est étendue jusqu'à 99.
+
+           16. Application de la proratisation du Plafond de Sécurité Sociale à hauteur de la
+               quotité de travail - S21.G00.40.084 : CCH-12
+
+                          Avant                                                 Après
+CCH-12 : Si la rubrique « Application de la
+proratisation du Plafond de Sécurité Sociale à
+hauteur de la quotité de travail - S21.G00.40.084 »
+est renseignée avec « 02 - Non » alors la rubrique «
+Choix du salarié en forfait jour réduit indiquant que
+la proratisation du plafond de Sécurité sociale ne
+s’applique pas au calcul de ses cotisations pour la
+vieillesse régime de base et la retraite
+complémentaire - S21.G00.40.085 » est interdite.
+
+       Justification :
+       Ces évolutions, qui s'inscrivent dans la fiabilisation des situations de proratisation du plafond
+       de Sécurité sociale, permettent de déclarer si l'employeur a fait le choix d'appliquer ou non la
+       proratisation du plafond de Sécurité sociale pour ses salariés à temps partiel et/ou ses salariés
+       en forfait jour réduit.
+
+
+                                                                                                      9
+           17. Adhésion à une caisse de congés payés à titre obligatoire - S21.G00.40.086 :
+               Description
+
+                         Avant                                    Après
+Cette rubrique doit être renseignée lorsque A ne pas renseigner pour la version de norme
+l'employeur relève d'une adhésion à une caisse de P27V01.
+congés payés à titre obligatoire.
+
+       Justification :
+       La déclaration des rubriques « Adhésion à une caisse de congés payés à titre obligatoire -
+       S21.G00.40.086 » et « Ancienne adhésion à une caisse de congés payés à titre obligatoire -
+       S21.G00.41.068 » n'est plus attendue en version de norme P27V01. En anticipation de leur
+       suppression en version de norme P28V01, une mention de non-usage est apportée dans la
+       description.
+
+           18. Ancien échelon - S21.G00.41.045 : CSL-00
+
+                             Avant                                             Après
+CSL 00 : (0[0-9])|(1[0-2])                             CSL 00 : [0-9]{2}
+
+       Justification :
+       Dans le cadre de l'accord sur la garantie de progression salariale annuelle (GPSA), de
+       nouveaux échelons intermédiaires complètent la grille des échelons d'ancienneté des agents
+       statutaires de la SNCF à compter de décembre 2026. Afin de permettre leur déclaration, la
+       plage de valeurs autorisées est étendue jusqu'à 99.
+
+           19. Ancienne adhésion à une caisse de congés payés à titre obligatoire -
+               S21.G00.41.068 : Description
+
+                         Avant                                    Après
+Cette rubrique doit être renseignée lorsque A ne pas renseigner pour la version de norme
+l'employeur relève d'une adhésion à une caisse de P27V01.
+congés payés à titre obligatoire.
+
+       Justification :
+       La déclaration des rubriques « Adhésion à une caisse de congés payés à titre obligatoire -
+       S21.G00.40.086 » et « Ancienne adhésion à une caisse de congés payés à titre obligatoire -
+       S21.G00.41.068 » n'est plus attendue en version de norme P27V01. En anticipation de leur
+       suppression en version de norme P28V01, une mention de non-usage est apportée dans la
+       description.
+
+           20. Identifiant du lieu de travail ou de l'établissement utilisateur - S21.G00.85.001 :
+               CME-11
+
+                             Avant                                             Après
+
+
+                                                                                                     10
+CME-11 : Si la rubrique Nature juridique                CME-11 : Si la rubrique Nature juridique
+(S21.G00.85.010) est égale à « 01 - Etablissement »     (S21.G00.85.010) est égale à « 01 - Etablissement »
+le SIRET renseigné doit être à l'état actif au          le SIRET renseigné doit être à l'état actif au
+répertoire SIRENE de l'INSEE. Ce contrôle ne            répertoire SIRENE de l'INSEE. Ce contrôle ne
+s’applique pas en cas de présence d'un contrat dont     s’applique pas si le code APET est égal à « 7810Y »
+la rubrique « Nature du contrat - S21.G00.40.007 »      ou « 7820G ». Le code APET précité est relatif au
+est de type « 03 - Contrat de mission (contrat de       bloc « Etablissement - S21.G00.11 » et est
+travail temporaire) » ou « 08 - Contrat à durée         récupéré via le CME-11 de la rubrique « NIC -
+indéterminée intérimaire ».                             S21.G00.11.001 ».
+
+       Justification :
+       La nouvelle version de la nomenclature d'activités française (NAF 2025) entrera en vigueur à
+       compter de janvier 2027. Dans ce contexte, l'exclusion du contrôle CME-11 en rubrique «
+       Identifiant du lieu de travail ou de l'établissement utilisateur - S21.G00.85.001 » applicable
+       aux entreprises de travail temporaire ou aux agences de placement de main-d’œuvre s'appuie
+       désormais sur les données du code APET de la NAF 2025 issues du répertoire commun des
+       déclarants (RCD).
+
+           21. Evolution du tableau des usages
+
+Application de la proratisation du Plafond de Sécurité Sociale à hauteur de la quotité de travail -
+S21.G00.40.084
+
+                           Avant                                                Après
+01 - DSN mensuelle : O                                  01 - DSN mensuelle : C
+04 - Signalement arrêt de travail : I                   04 - Signalement arrêt de travail : I
+05 - Signalement reprise suite à arrêt de travail : I   05 - Signalement reprise suite à arrêt de travail : I
+07 - Signalement fin de contrat de travail unique : I   07 - Signalement fin de contrat de travail unique : I
+08 - Signalement amorçage : C                           08 - Signalement amorçage : C
+09 - DSN de substitution : C                            09 - DSN de substitution : C
+10 - Signalement Déclaration préalable à l'embauche     10 - Signalement Déclaration préalable à
+:C                                                      l'embauche : C
+
+       Justification :
+       Ces évolutions, qui s'inscrivent dans la fiabilisation des situations de proratisation du plafond
+       de Sécurité sociale, permettent de déclarer si l'employeur a fait le choix d'appliquer ou non la
+       proratisation du plafond de Sécurité sociale pour ses salariés à temps partiel et/ou ses salariés
+       en forfait jour réduit.
+
+           22. Evolution du tableau des invocations
+
+Application de la proratisation du Plafond de Sécurité Sociale à hauteur de la quotité de travail -
+S21.G00.40.084
+
+                           Avant                                                Après
+01 - DSN mensuelle : Oui
+
+
+
+                                                                                                     11
+04 - Signalement arrêt de travail : Non
+05 - Signalement reprise suite à arrêt de travail :
+Non
+07 - Signalement fin de contrat de travail unique :
+Non
+08 - Signalement amorçage : Oui
+09 - DSN de substitution : Oui
+10 - Signalement Déclaration préalable à
+l'embauche : Oui
+
+      Justification :
+      Ces évolutions, qui s'inscrivent dans la fiabilisation des situations de proratisation du plafond
+      de Sécurité sociale, permettent de déclarer si l'employeur a fait le choix d'appliquer ou non la
+      proratisation du plafond de Sécurité sociale pour ses salariés à temps partiel et/ou ses salariés
+      en forfait jour réduit.
+
+
+
+
+                                                                                                    12
+

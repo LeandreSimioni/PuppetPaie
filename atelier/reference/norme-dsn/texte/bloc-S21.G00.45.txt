@@ -1,0 +1,58 @@
+# Bloc S21.G00.45
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 241-241
+
+--- p. 241 ---
+  S21.G00.45  2025-12-24
+
+  X  [3,3]
+
+  001 - Assujettissement à la taxe à l'apprentissage
+  002 - Non assujettissement à la taxe à l'apprentissage
+  003 - Assujettissement à la contribution supplémentaire à l’apprentissage
+  004 - Non assujettissement à la contribution supplémentaire à l’apprentissage
+  005 - Assujettissement à la participation des employeurs à l'effort de construction (PEEC)
+  006 - Non assujettissement à la participation des employeurs à l'effort de construction (PEEC)
+  007 - Assujettissement à la contribution à la formation professionnelle (CFP)
+  008 - Non assujettissement à la contribution à la formation professionnelle (CFP)
+  009 - Assujettissement à la taxe sur les salaires
+  010 - Non assujettissement à la taxe sur les salaires
+  013 - Assujettissement à la contribution dédiée au financement du Compte Personnel de Formation pour les titulaires
+  de CDD (CPF-CDD)
+  014 - Non assujettissement à la contribution dédiée au financement du Compte Personnel de Formation pour les
+  titulaires de CDD (CPF-CDD)
+  015 - Assiette de la taxe sur les salaires au premier taux
+  016 - Assiette de la taxe sur les salaires au deuxième taux
+
+Montant  S21.G00.44.002
+AssujettissementFiscal.Montant
+  Ce montant permet d'établir l'assiette de certaines taxes fiscales qui relèvent de la responsabilité du
+  redevable (auto-liquidation).
+
+  N  [4,16]  CSL 00 : -?(([0-9]){1,12})\.[0-9]{2}
+
+Millésime de rattachement  S21.G00.44.003
+AssujettissementFiscal.Millesime
+  Année au titre de laquelle le bloc "Assujettissement fiscal - S21.G00.44" est souscrit.
+
+  CCH-11 : L'année déclarée doit être inférieure ou égale aux quatre derniers caractères (Année) du mois principal
+  déclaré au sein de la rubrique « Date du mois principal déclaré – S20.G00.05.005 ».
+
+  N  [4,4]  CSL 00 : 2([0-9]{3})
+
+Motif de non assujettissement à la taxe d'apprentissage  S21.G00.44.004
+AssujettissementFiscal.MotifNonAssujettis
+  CCH-11 : La rubrique "Motif de non assujettissement à la taxe d'apprentissage - S21.G00.44.004" est obligatoire si la
+  rubrique "Code taxe - S21.G00.44.001" est renseignée avec la valeur "002 - Non assujettissement à la taxe à
+  l'apprentissage". Dans le cas contraire, elle est interdite.
+
+  CRE-11 : valeurs autorisées
+
+  Table MNATA – Motif de non assujettissement à la taxe
+  X  [3,3]
+  d’apprentissage
+
+S21.G00.45
+
+Données précédemment déclarées  S21.G00.45
+
+  241 / 361

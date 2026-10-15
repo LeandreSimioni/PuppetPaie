@@ -176,7 +176,7 @@ cités ci-dessous.
 
 | fichier | ce qui a changé |
 |---|---|
-| `test_permanents_chaine` | le bac partait de la fiche réelle PUPPIS ; il part de BRIOCHE, un salarié fictif. 112 tests remis d'aplomb, dans ce fichier et chez ceux qui l'importent (`test_fctu`, `test_clauses_3090`, `test_feries`) |
+| `test_permanents_chaine` | le bac partait d'une fiche réelle ; il part de BRIOCHE, un salarié fictif. 112 tests remis d'aplomb, dans ce fichier et chez ceux qui l'importent (`test_fctu`, `test_clauses_3090`, `test_feries`) |
 | `test_bareme_2025` | la fictive reçoit le barème 2025 (`conftest.py`) |
 | `test_exports`, `test_etats`, `test_exercice` | la fictive est montée sur août 2026, le mois que leur bac recopie |
 | `test_casc`, `test_etats`, `test_questionnaire` | deux NIR réels (celui de Léandre et celui d'une salariée), le SIRET et l'identité de la compagnie du poste, remplacés par des valeurs inventées à clé juste |

@@ -1,0 +1,365 @@
+                                                     Contrôle du paramétrage OC
+
+
+                                DSN
+             Paramétrage Organismes Complémentaires
+            (prévoyance - santé - retraite supplémentaire)
+
+Afin d'affilier correctement les salariés de l'entreprise aux contrats prévoyance/santé/retraite supplémentaire les
+concernant, les organismes complémentaires (dont Audiens prévoyance), mettent à disposition des fiches de
+paramétrage. Les Fiches de Paramétrage des Organismes Complémentaires (FPOC) précisent la référence contrat et
+la base de cotisation à renseigner sur chaque retenue de prévoyance ou de mutuelle appelée par la caisse. Certains
+organismes précisent également pour chaque retenue, un code option et un code population.
+
+sPAIEctacle permet de contrôler que les références contrat envoyées en DSN sont bien celles attendues par votre
+caisse. Si ce contrôle n'est pas mis en place en amont, les incohérences entre les données envoyées en DSN et les
+fiches de paramétrage, génèrent des anomalies qui remontent dans le tableau de bord DSN.
+
+       Remarques :
+            Contrairement aux autres caisses, Audiens ne fait pas remonter ces anomalies, vous n'êtes donc pas alertés sur les éventuelles
+            incohérences avec leur fiche de paramétrage. D'où des DSN déclarées OK pouvant malgré tout présenter des anomalies.
+       → sPAIEctacle permet un contrôle automatique des références contrat, codes option et/ou population mais pas des bases de cotisations.
+
+
+
+
+Cette fiche technique vous guide pas à pas pour :
+
+→ télécharger les fiches de paramétrage
+
+→ lire les fiches de paramétrage mis à disposition par votre caisse
+
+→ paramétrer dans sPAIEctacle les organismes destinataires et retenues
+
+→ corriger les retenues en erreur
+
+
+
+
+Ces informations n’ont aucune valeur contractuelle. Elles n’engagent pas la responsabilité de GHS quant à leur utilisation et / ou leur interprétation. Elles ne sont prises
+en compte par le lecteur que sous sa seule responsabilité.
+Ces informations ont un caractère général et ne prétendent pas répondre de façon exhaustive à la question traitée. Pour plus d’informations, contactez les organismes
+sociaux et fiscaux concernés.
+
+EM 14.10.19		                                                                                                                                                         1/7
+                                                     Contrôle du paramétrage OC
+
+1.            Téléchargement des fiches de paramétrage
+
+
+1.1.          Téléchargement manuel au format pdf
+              pour le paramétrage des retenues
+
+
+
+
+                                                                                        Il convient tout d'abord de vous connecter à net-
+                                                                                        entreprises et d'accéder au service "DSN régime
+                                                                                        général".
+
+
+
+
+                                                                                        Complètement en bas du Tableau de bord de
+                                                                                        votre espace DSN, cliquer sur le lien "Organismes
+                                                                                        complémentaires : Accéder aux fiches de
+                                                                                        paramétrage".
+
+
+
+
+                                                                                        Un clic sur la loupe dans la colonne "PDF" permet de
+                                                                                        télécharger la fiche de paramétrage au format pdf.
+
+
+
+
+       Remarque pour les comptes net-entreprises tiers déclarants : les fiches de paramétrage sont propres à chaque société, les deux premières
+       colonnes vous permettent d'identifier la société concernée.
+
+
+
+
+Ces informations n’ont aucune valeur contractuelle. Elles n’engagent pas la responsabilité de GHS quant à leur utilisation et / ou leur interprétation. Elles ne sont prises
+en compte par le lecteur que sous sa seule responsabilité.
+Ces informations ont un caractère général et ne prétendent pas répondre de façon exhaustive à la question traitée. Pour plus d’informations, contactez les organismes
+sociaux et fiscaux concernés.
+
+EM 14.10.19		                                                                                                                                                         2/7
+                                                     Contrôle du paramétrage OC
+
+1.2.          Téléchargement automatique au format xml
+              pour le contrôle des retenues
+sPAIEctacle permet le téléchargement automatique, des fiches de paramétrage des organismes complémentaires.
+Le téléchargement de ces fiches permet :
+
+→ la vérification, au moment de générer la DSN, des références contrat renseignées dans votre fichier de données
+
+→ la création, dans le fichier DSN, de blocs d'adhésion néant pour les contrats ne concernant aucun salarié sur le
+  mois déclaré (blocs S1.G00.15)
+
+                                                                                        ● menu Fichier > Préférences
+
+                                                                                        ● cliquer sur les lunettes pour passer en modification
+
+                                                                                        ● cocher l'option "DSN - Téléchargement des FPOC"
+
+                                                                                        ● valider par OK
+
+
+
+
+Une fois l'option activée, sPAIEctacle vérifie chaque fois que vous générez un fichier DSN, si des fiches paramétrage
+(ou une version actualisée de fiches déjà téléchargées) sont disponibles sur net-entreprises.
+
+Si c'est le cas, sPAIEctacle télécharge automatiquement les nouvelles fiches au format xml et les place dans un
+dossier nommé Options > DSN > FPOC.
+
+
+
+
+En monoposte le dossier Options est au même emplacement que le fichier de données. En multipostes, le dossier
+Options est placé sur chaque poste client, dans le dossier Documents > sPAIEctacle.
+
+
+
+Si le paramétrage a déjà été mis en place, en l'absence d'anomalies, signalées par la caisse ou par le contrôle
+de cohérence effectué par sPAIEctacle, il n'y a donc rien d'autre à faire !...
+
+
+
+
+Ces informations n’ont aucune valeur contractuelle. Elles n’engagent pas la responsabilité de GHS quant à leur utilisation et / ou leur interprétation. Elles ne sont prises
+en compte par le lecteur que sous sa seule responsabilité.
+Ces informations ont un caractère général et ne prétendent pas répondre de façon exhaustive à la question traitée. Pour plus d’informations, contactez les organismes
+sociaux et fiscaux concernés.
+
+EM 14.10.19		                                                                                                                                                         3/7
+                                                     Contrôle du paramétrage OC
+
+2.            Lecture des fiches de paramétrage
+Les fiches de paramétrage ont la forme suivante (ici pour la caisse Audiens prévoyance) :
+
+
+
+
+Certains organismes (dont Audiens) affectent à chaque tableau, un entête "Groupe", qui permet d'identifier la catégorie
+de salariés concernée par les retenues décrites en-dessous.
+       Remarque : la mention ETAM, peu intuitive, correspond aux Non Cadres.
+
+
+Les colonnes "Code organisme" et la cas échéant "Code délégataire" indiquent les organismes destinataires.
+
+La colonne "Référence contrat" indique :
+→ la référence à indiquer pour chaque retenue (en gras sur les fiches Audiens)
+   soit dans l'exemple ci-contre : "INTERBRANCHE" pour les Cadres Intermittents
+                                     "PRV EAC" pour les Cadres permanents
+→ en dessous, un éventuel descriptif donné à titre indicatif, permet d'identifier la retenue concernée
+   (quand il n'est pas précisé "INTERMITTENTS", la ligne concerne les permanents)
+       Les "Code option" et "Code population" ne sont pas donnés par tous les organismes complémentaires. Si ces colonnes sont renseignées
+       dans votre fiche de paramétrage, les zones correspondantes de l'onglet Particularités des Retenues sont également à compléter des
+       informations fournies.
+
+
+La colonne "Type de base ou forfait" indique la base de cotisation de chaque retenue :
+→ 18 correspond à Base Forfaitaire > Plafond mensuel (prorata temporis pour Audiens)
+→ 20 correspond à Base Forfaitaire > Montant fixe
+→ les codes suivants peuvent également être utilisés, en particulier pour les retenues de prévoyance :
+     - 10 pour Salaire abattu (abattement plafonné) > Brut
+     - 11 pour Salaire abattu (abattement plafonné) > TA/T1U
+     - 12 pour Salaire abattu (abattement plafonné) > T2U
+     - 13 pour Salaire abattu (abattement plafonné) > TB
+     - 14 pour Salaire abattu (abattement plafonné) > TC
+
+
+Les 2 dernières colonnes du tableau permettent de préciser l'identification des retenues et leur paramétrage :
+→ "Montant et / ou Taux" indique le montant ou le taux global de la retenue
+   (part salariale + part employeur, sans précision sur la répartition)
+→ "Libellé de base ou du forfait" permet de préciser l'identification de la retenue concernée mais n'est utilisé ni pour
+   le calcul des paies ni pour la DSN, il n'est pas forcément à reprendre en libellé de retenue dans sPAIEctacle
+
+
+Ces informations n’ont aucune valeur contractuelle. Elles n’engagent pas la responsabilité de GHS quant à leur utilisation et / ou leur interprétation. Elles ne sont prises
+en compte par le lecteur que sous sa seule responsabilité.
+Ces informations ont un caractère général et ne prétendent pas répondre de façon exhaustive à la question traitée. Pour plus d’informations, contactez les organismes
+sociaux et fiscaux concernés.
+
+EM 14.10.19		                                                                                                                                                         4/7
+                                                     Contrôle du paramétrage OC
+
+3.            Paramétrage dans sPAIEctacle
+
+
+3.1.          Organismes destinataires
+
+       Les Utilisateurs dont la caisse est Audiens ne sont pas concernés par ce paragraphe.
+
+
+                                                                                        Code organisme
+
+                                                                                        ● Menu Paramètres > Paramétrage de la paie > Caisses
+
+                                                                                        ● Ouvrir la caisse concernée
+
+                                                                                        ● Vérifier ou renseigner le
+                                                                                          Code organisme Prév. / Santé / Retraite sup.
+
+                                                                                        Le code saisie doit être celui indiqué dans la colonne
+                                                                                        "Code organisme" de la fiche de paramétrage.
+
+                                                                                                Le code doit avoir la forme suivante :
+                                                                                                       - P+4 chiffres pour les institutions de prévoyance
+                                                                                                - A+ 5 caractères pour les sociétés d’assurance
+                                                                                                - 9 chiffres pour les mutuelles.
+
+
+
+
+                                                                                        Code délégataire
+
+                                                                                        Lorsque le contrat de prévoyance est négocié par
+                                                                                        l'intermédiaire d'un délégataire, il convient également de
+                                                                                        renseigner son identifiant.
+
+                                                                                        ● Menu Paramètres > Société - onglet Caisses
+
+                                                                                        ● Sélectionner le type retenue de votre organisme
+                                                                                          (Prévoyance, Santé ou Rétraite sup.)
+
+                                                                                        ● Vérifier ou renseigner le Code délégataire
+
+                                                                                        Le code saisie doit être celui indiqué dans la colonne
+                                                                                        "Code délégataire" de la fiche de paramétrage. Si aucun
+                                                                                        code délégataire n'est indiqué dans la fiche paramétrage,
+                                                                                        ce champ de la fiche Société doit être laissé vide.
+
+
+
+
+Ces informations n’ont aucune valeur contractuelle. Elles n’engagent pas la responsabilité de GHS quant à leur utilisation et / ou leur interprétation. Elles ne sont prises
+en compte par le lecteur que sous sa seule responsabilité.
+Ces informations ont un caractère général et ne prétendent pas répondre de façon exhaustive à la question traitée. Pour plus d’informations, contactez les organismes
+sociaux et fiscaux concernés.
+
+EM 14.10.19		                                                                                                                                                         5/7
+                                                     Contrôle du paramétrage OC
+
+3.2.          Retenues
+Pour chaque retenue, il convient d'identifier la ligne correspondante de la fiche de paramétrage. Chaque retenue doit
+correspondre à une et une seule ligne de la fiche paramétrage. En particulier, les options de mutuelle Audiens ne
+peuvent pas être regroupées avec le socle en une seule retenue sur montant fixe.
+
+                                                                                        ● Menu Paramètres > Paramétrage de la paie > Retenues
+
+                                                                                        ● Dans le menu déroulant à droite de l'imprimante,
+                                                                                          sélectionner le type retenue de votre organisme
+                                                                                          (Audiens, Prévoyance, Santé ou Retraite sup.)
+
+                                                                                        ● Ouvrir la première retenue concernée et activer
+                                                                                          l'onglet Particularités
+
+                                                                                        ● Vérifier ou compléter la Référence contrat
+
+                                                                                                Le cas échéant (retenue autre qu'Audiens) vérifiez également
+                                                                                                      les "Code population" et "Code option".
+
+
+
+
+       Si la référence contrat est la même pour toutes les retenues appelées par un organisme, elle peut être renseignée en numéro d'affiliation
+              du type retenue correspondant, sur l'onglet Caisses de la fiche Société.
+
+
+
+
+4.            Contrôle des DSN
+                                                                                                Attention, il est nécessaire ici d'avoir installé la version 7.2
+                                                                                                      de sPAIEctacle.
+
+
+
+                                                                                        Au moment de générer la DSN, sPAIEctacle vérifie la
+                                                                                        cohérence entre les références renseignées dans les
+                                                                                        fiches retenues et la fiche de paramétrage.
+
+                                                                                        Si une anomalie est détectée, celle-ci est signalée.
+
+                                                                                        → Un double-clic sur l'anomalie permet d'afficher la ou
+                                                                                          les retenues en erreur.
+                                                                                        → Un double-clic sur le descriptif en dessous permet
+                                                                                          d'ouvrir la fiche paramétrage au format pdf.
+
+
+
+
+Ces informations n’ont aucune valeur contractuelle. Elles n’engagent pas la responsabilité de GHS quant à leur utilisation et / ou leur interprétation. Elles ne sont prises
+en compte par le lecteur que sous sa seule responsabilité.
+Ces informations ont un caractère général et ne prétendent pas répondre de façon exhaustive à la question traitée. Pour plus d’informations, contactez les organismes
+sociaux et fiscaux concernés.
+
+EM 14.10.19		                                                                                                                                                         6/7
+                                                     Contrôle du paramétrage OC
+
+5.            Modification des retenues en erreur
+Pour chaque retenue, il convient d'identifier la ligne correspondante de la fiche de paramétrage. Chaque retenue doit
+correspondre à une et une seule ligne de la fiche paramétrage. En particulier, les options de mutuelle Audiens ne
+peuvent pas être regroupées avec le socle en une seule retenue sur montant fixe.
+
+       Il est possible d'imprimer la liste des retenues en cliquant sur l'icône Imprimer. L'impression de la liste des retenues indique la Référence
+               contrat renseignée pour chaque retenue, en dessous du type, dans la colonne Type retenue.
+
+       Si vous ne parvenez pas à rapprocher les retenues paramétrées dans sPAIEctacle et celles décrites dans la fiche paramétrage, vous pouvez
+              nous faire suivre par mail à l'adresse support@ghs.fr, votre fiche paramétrage et l'impression de la sélection de retenues (cliquer sur
+       l'icône d'imprimante et choisir "Impression de la liste").
+
+
+                                                                                        Ouvrez ensuite la retenue.
+
+                                                                                        → Sur l'onglet principal,
+                                                                                          vérifiez la Base paramétrée.
+
+                                                                                        → Sur l'onglet "Particularités",
+                                                                                          vérifiez la "Référence contrat" renseignée.
+
+                                                                                                Attention, ne prendre en compte que la référence contrat de
+                                                                                                       la fiche paramétrage et non son éventuel descriptif
+                                                                                                inscrit en dessous.
+
+                                                                                                Le cas échéant (retenue autre qu'Audiens) vérifiez également
+                                                                                                les "Code population" et "Code option".
+
+
+
+
+Si la Base doit être corrigée, il convient, pour les paies a venir, d'arréter la retenue et de la dupliquer pour créer une
+nouvelle retenue correctement paramétrée.
+       Le service Maintenance peut vous guider dans cette procédure. Attention, si vous souhaitez effectuer la correction de façon rétroactive, il
+             conviendra de produire des paies annulantes et rectificatives.
+
+
+
+
+Si la Référence contrat, le Code population ou le Code option doivent être corrigés, il est par contre possible de modifier
+directement la retenue existante. Les références contrat n'impactent en effet pas les calculs de paie.
+
+
+Une fois toutes les retenues vérifiées, le travail est terminé !
+
+
+Si l'anomalie vous a été signalée par sPAIEctacle au moment de générer la DSN, cliquer sur le bouton Valider les
+corrections (ou relancer la DSN si la fenêtre d'anomalies a été fermée). Si l'anomalie a été signalée par la caisse (par
+courrier ou via le tableau de bord DSN) il n'est pas nécessaire de générer une DSN annule et remplace, les corrections
+seront prises en compte pour vos prochaines déclarations.
+       Attention, si vous avez modifié par duplication la base d'une retenue, en fonction de la date choisie pour effectuer le changement, il peut
+              être nécessaire de recalculer les paies du mois en cours. Le service Maintenance peut vous guider dans cette procédure.
+
+
+
+
+Ces informations n’ont aucune valeur contractuelle. Elles n’engagent pas la responsabilité de GHS quant à leur utilisation et / ou leur interprétation. Elles ne sont prises
+en compte par le lecteur que sous sa seule responsabilité.
+Ces informations ont un caractère général et ne prétendent pas répondre de façon exhaustive à la question traitée. Pour plus d’informations, contactez les organismes
+sociaux et fiscaux concernés.
+
+EM 14.10.19		                                                                                                                                                         7/7
+

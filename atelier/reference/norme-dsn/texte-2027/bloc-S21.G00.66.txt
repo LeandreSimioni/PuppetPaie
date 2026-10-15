@@ -1,0 +1,129 @@
+# Bloc S21.G00.66
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 288-289
+
+--- p. 288 ---
+  S21.G00.66  2026-06-10
+
+  CCH-11 : La Date de début de la suspension doit être supérieure ou égale à la date de début du contrat.
+
+  CCH-13 : La date de début de suspension (S21.G00.65.002) doit être inférieure ou égale à la date de fin du contrat
+  (S21.G00.62.001) renseignée dans un bloc « Fin du contrat - S21.G00.62 » de motif (S21.G00.62.002) différent de «
+  099 - annulation » sauf si la rubrique « Motif de suspension - S21.G00.65.001 » est renseignée avec la valeur « 998 -
+  Annulation ». Ce contrôle ne s'applique ni pour une annulation de fin de contrat ni pour une annulation de suspension.
+
+  SIG-12 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de la suspension  S21.G00.65.003
+ContratSuspensionAutre.DateFin
+  Il s'agit de la date de fin prévisionnelle de la suspension de l'exécution du contrat.
+  Dans le cas d'une suspension pour cause de chômage intempéries (S21.G00.65.001 = '507') ou de chômage
+  sans rupture du contrat de travail (S21.G00.65.001 = '602'), il s'agit de la date de fin réelle de la suspension
+  de l'exécution du contrat.
+  CCH-11 : La date de fin de la suspension doit être supérieure ou égale à la Date de début de la suspension.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+[FP] Position de détachement  S21.G00.65.004
+ContratSuspensionAutre.FPPositionDétachement
+  Situation du fonctionnaire civil ou militaire lorsqu'il est en détachement.
+
+  CCH-11 : La rubrique « [FP] Position de détachement – S21.G00.65.004 » est obligatoire si la rubrique « Motif de
+  suspension – S21.G00.65.001 » est renseignée avec la valeur « 655 – [FP] Détachement conduisant à pension (ECP) »
+  ou « 674 – [FP] Détachement ne conduisant pas à pension (ENCP) », dans le cas contraire elle est interdite. ».
+
+  CRE-11 : valeurs autorisées
+
+  X  [3,3]  DET Code détachement dans la Fonction Publique
+
+Nombre de jours ouvrés de suspension  S21.G00.65.005
+ContratSuspensionAutre.NombreJourOuvrésSuspension
+  Nombre de jours ouvrés de congé proche aidant du mois principal déclaré. Cette rubrique est seulement à
+  renseigner pour les cas de congé de proche aidant ou de congé de présence parentale. Ces suspensions
+  peuvent être fractionnées en demi-journées.
+
+  N  [4,5]  CSL 00 : (0\.50)|[1-9]\.(00|50)|[1-9][0-9]\.(00|50)
+
+S21.G00.66
+
+Temps partiel Thérapeutique  S21.G00.66
+  Il permet à l'établissement de déclarer les informations relatives au temps partiel thérapeutique : période concernée et
+  montant de la perte de salaire associé.
+  Ces informations sont nécessaires à l’Assurance Maladie qui indemnise la perte de revenus du salarié en versant des
+  indemnités journalières pour le temps non travaillé.
+
+  288 / 370
+
+--- p. 289 ---
+  S21.G00.70  2026-06-10
+
+Date de début  S21.G00.66.001
+Date de fin  S21.G00.66.002
+Montant  S21.G00.66.003
+
+Date de début  S21.G00.66.001
+TempsPartielTherapeutique.DateDebut
+  Date de début de la période de temps partiel thérapeutique sur le mois déclaré.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(19|20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin  S21.G00.66.002
+TempsPartielTherapeutique.DateFin
+  Date de fin de la période de temps partiel thérapeutique sur le mois déclaré.
+
+  SIG-11 : La "Date de fin - S21.G00.66.002" doit être supérieure ou égale à la "Date de début - S21.G00.66.001".
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(19|20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Montant  S21.G00.66.003
+TempsPartielTherapeutique.Montant
+  Il s'agit du montant de la perte de salaire associée au temps partiel thérapeutique. Ce montant peut être
+  positif, négatif ou nul.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+S21.G00.70
+
+Affiliation Prévoyance  S21.G00.70
+  Rattachement d’un individu à un contrat collectif de Prévoyance, Complémentaire Santé ou Retraite Supplémentaire
+  souscrit par son employeur auprès d’une institution de prévoyance, mutuelle ou société d’assurance.
+  Ce bloc est relié à une "Adhésion Prévoyance" S21.G00.15 par l'identifiant technique adhésion S21.G00.70.013. Ce
+  bloc est lui-même identifié techniquement par la rubrique S21.G00.70.012.
+
+Code option retenue par le salarié  S21.G00.70.004
+Code population de rattachement  S21.G00.70.005
+Nombre d’enfants à charge  S21.G00.70.007
+Nombre d'ayants-droit conjoint / concubin  S21.G00.70.008
+Nombre d'ayants-droit attachés au salarié pour le contrat Prévoyance mentionné  S21.G00.70.009
+Nombre d'ayants-droit autres (ascendants, collatéraux...)  S21.G00.70.010
+Nombre d'enfants ayants-droit  S21.G00.70.011
+Identifiant technique Affiliation  S21.G00.70.012
+Identifiant technique Adhésion  S21.G00.70.013
+Date de début de l’affiliation  S21.G00.70.014
+Date de fin de l’affiliation  S21.G00.70.015
+Affiliation prévoyance applicable à plusieurs contrats  S21.G00.70.016
+
+Code option retenue par le salarié  S21.G00.70.004
+
+  289 / 370

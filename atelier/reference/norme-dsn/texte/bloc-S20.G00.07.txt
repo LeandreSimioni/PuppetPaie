@@ -1,0 +1,112 @@
+# Bloc S20.G00.07
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 138-139
+
+--- p. 138 ---
+  S20.G00.07  2025-12-24
+
+  travail ou établissement utilisateur - S21.G00.85" est interdite.
+  Ce contrôle vise à ce qu'aucun bloc "Adhésion Prévoyance - S21.G00.15" et "Lieu de travail ou établissement
+  utilisateur - S21.G00.85" ne soient déclarés pour un appel de taux de PAS pour un individu non salarié et pour un
+  changement de tiers déclarant ou changement de logiciel déclaratif.
+
+  CCH-14 : Si la rubrique "Nature de l’événement déclencheur du signalement - S20.G00.05.011" est renseignée avec la
+  valeur "07 - Changement de tiers déclarant ou changement de logiciel déclaratif" alors la déclaration de blocs "Contrat
+  - S21.G00.40" ou "Ancienneté - S21.G00.86" est interdite.
+
+  X  [2,2]
+
+  01 - Embauche effective de l'individu
+  02 - Mutation de l'individu sans rupture du contrat de travail
+  03 - Fin de dispense d’affiliation
+  04 - Changement des paramètres salarié du contrat collectif prévoyance, santé complémentaire, retraite supplémentaire
+  05 - Transmission de l’ensemble d’une population à affilier à un nouveau contrat (individu faisant partie d’une
+  population à affilier à un nouveau contrat)
+  06 - Appel de taux de PAS pour un individu non salarié
+  07 - Changement de tiers déclarant ou changement de logiciel déclaratif
+
+Dernier SIRET connu pour ancien numéro de contrat  S20.G00.05.012
+Declaration.DernierSIRETConnuAncienContrat
+  Cette rubrique permet la recherche de certaines données du contrat déclarées précédemment pour un
+  établissement et un individu donnés. Elle doit être renseignée avec le SIRET de l’établissement pour lequel
+  vous souhaitez la communication d'informations relatives au dernier contrat connu de l'individu.
+  Cette recherche est effectuée pour les cas d'embauche d'individus suite à une mutation et les cas de
+  changements de tiers déclarant ou de logiciel déclaratif.
+  CCH-11 : Si la rubrique "Nature de l’événement déclencheur du signalement - S20.G00.05.011" est renseignée avec la
+  valeur "02 - Mutation de l'individu sans rupture du contrat de travail" ou "07 - Changement de tiers déclarant ou
+  changement de logiciel déclaratif" alors la rubrique "Dernier SIRET connu pour ancien numéro de contrat -
+  S20.G00.05.012" doit obligatoirement être renseignée.
+
+  CSL-12 : [(vérification de la clé)]
+
+  X  [14,14]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Type de nature de la DSN de substitution  S20.G00.05.013
+Declaration.NatureDsnSubstitution
+  Cette rubrique permet d'identifier la situation ayant conduit à la production de la DSN de substitution.
+
+  X  [2,2]
+
+  01 - DSN de substitution suite à contrôle (comptable d’assiette)
+  02 - DSN de substitution suite à fiabilisation (CRM)
+  03 - DSN de substitution suite à redressement LCTI
+
+S20.G00.07
+
+Contact chez le déclaré  S20.G00.07
+  Acteur en charge, chez le déclaré, des échanges avec les organismes de Protection sociale, Administrations et services
+  de l'Etat, au titre des données transmises en DSN.
+
+  138 / 361
+
+--- p. 139 ---
+  S20.G00.07  2025-12-24
+
+Nom et prénom du contact  S20.G00.07.001
+Adresse téléphonique  S20.G00.07.002
+Adresse mél du contact  S20.G00.07.003
+Type  S20.G00.07.004
+
+Nom et prénom du contact  S20.G00.07.001
+ContactDeclare.Nom
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités
+
+  X  [1,80]
+
+Adresse téléphonique  S20.G00.07.002
+ContactDeclare.Tel
+
+  X  [10,20]
+
+Adresse mél du contact  S20.G00.07.003
+ContactDeclare.mel
+  Cette adresse mél est utilisée pour adresser le compte-rendu métier DSIJ.
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant de l'adresse mél.
+
+  X  [6,100]
+
+Type  S20.G00.07.004
+ContactDeclare.type
+  Pour les entreprises employant au moins 250 salariés, l'acteur à renseigner avec le type « 14 - Contact chez
+  le déclaré pour le suivi des travailleurs handicapés » doit correspondre au référent handicap qui est en
+  charge « d'orienter, d'informer et d'accompagner les personnes en situation de handicap » conformément à
+  l’article L5213-6-1 du Code du travail.
+
+  X  [2,2]
+
+  01 - Contact chez le déclaré pour les IJ
+  02 - Contact chez le déclaré pour les fins de contrats de travail (France Travail)
+  03 - Contact chez le déclaré pour les acteurs statistiques (DARES, INSEE, etc …)
+  04 - Contact chez le déclaré recouvrant, entre autres, des cotisations de Sécurité Sociale (Urssaf CN, MSA) et
+  contributions assurance chômage et cotisations AGS (France Travail)
+  05 - Contact chez le déclaré pour le recouvrement des cotisations (retraite complémentaire et autres)
+  06 - Contact sur l’identification des salariés (NIR)
+  07 - Contact sur l’identification de l’établissement (SIRET)
+  08 - Contextualisable à l’ensemble des organismes, hors typologies 1 à 7, et 9
+  09 - Contact chez l'établissement centralisateur pour les IJ
+  13 - Contact chez le déclaré pour les aides versées par l'ASP
+  14 - Contact chez le déclaré pour le suivi des travailleurs handicapés
+  15 - Contact pour les congés payés (CIBTP, Transport, Manutention portuaire)
+  16 - Contact chez le déclaré pour la formation professionnelle
+
+  139 / 361

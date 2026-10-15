@@ -5,7 +5,7 @@
 //!   fiche TELS QU'AU MOIS PAYE, plus tels qu'au premier jour du contrat : un passage cadre date sur la fiche atteint le
 //!   bareme et le bloc 40 du mois ou il prend effet. Un changement en cours de mois decoupe la paie en periodes
 //!   elementaires (lot R10, `tests/periodes.rs`).
-//! - Cahier technique DSN 2026.1 (`prive/reference/norme-dsn/texte/`) : le bloc 41 porte l'ANCIENNE valeur
+//! - Cahier technique DSN 2026.1 (`atelier/reference/norme-dsn/texte/`) : le bloc 41 porte l'ANCIENNE valeur
 //!   (`bloc-S21.G00.41.txt`, p. 215), datee en 41.001, une modalite par bloc (CCH-13, § 4.4.14.2 a, p. 103), jamais un
 //!   identifiant et une modalite ensemble (CCH-16, principe b), 41.028 sur le bloc le plus ancien d'une modalite
 //!   (principe c) et jamais pour un identifiant (principe d) ; « Le changement d'une des modalites visees doit

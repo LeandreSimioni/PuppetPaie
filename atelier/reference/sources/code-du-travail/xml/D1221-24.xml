@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000036483477</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/36/48/34/LEGIARTI000036483477.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>D1221-24</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2018-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018464861">Partie réglementaire  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018538094">Première partie : Les relations individuelles de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537950">Livre II : Le contrat de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537944">Titre II : Formation et exécution du contrat de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537942">Chapitre Ier : Formation du contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2011-08-01" id="LEGISCTA000018537880">Section 3 : Registre unique du personnel</TITRE_TM>
+<TITRE_TM debut="2011-08-01" fin="2999-01-01" id="LEGISCTA000024214278">Section 2 : Registre unique du personnel</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-05-01" etat="MODIFIE" fin="2015-05-01" id="LEGIARTI000018537876" num="D1221-24" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2015-05-01" etat="MODIFIE" fin="2018-01-01" id="LEGIARTI000030422231" num="D1221-24" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2018-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000036483477" num="D1221-24" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Une copie des titres autorisant l'exercice d'une activité salariée des travailleurs étrangers est annexée au registre unique du personnel et rendue accessible aux  membres de la délégation du personnel du comité social et économique et aux fonctionnaires et agents chargés de veiller à l'application du présent code et du code de la sécurité sociale. Elle est tenue à leur disposition soit dans l'établissement, soit sur chaque chantier ou lieu de travail distinct de l'établissement pour ceux des travailleurs étrangers qui y sont employés.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000036336033" datesignatexte="2017-12-29" id="LEGIARTI000036408286" naturetexte="DECRET" nortexte="MTRT1732438D" num="3" numtexte="2017-1819" sens="cible" typelien="MODIFIE">Décret n°2017-1819 du 29 décembre 2017 - art. 3</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018517060" naturetexte="CODE" nortexte="" num="D620-3" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail - art. D620-3 al 3 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018508076" naturetexte="CODE" nortexte="" num="R620-3" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail - art. R620-3 al 11 (Ab)</LIEN>
+</LIENS>
+</ARTICLE>

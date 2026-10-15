@@ -2,9 +2,9 @@
 //! par le circuit derogatoire (S21.G00.62.017 = 01) et ne se signale pas ; rompu avant son terme (036, 037, 084…), il
 //! ecrit 62.017 = 02 et sa fin se signale (nature 07). Textes : fiche net-entreprises 2062, critere d) et « Tous les
 //! autres motifs de rupture doivent etre declares par l'emission d'un signalement FCTU »
-//! (`prive/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2062-derogations-fin-de-contrat-fctu-20250905.txt`) ;
+//! (`atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2062-derogations-fin-de-contrat-fctu-20250905.txt`) ;
 //! CCH-12 de S21.G00.62.017, « 01 » autorise « uniquement si […] le motif de la rupture […] est renseigne a 031 […] ou
-//! 099 » (cahier technique DSN 2026.1, p. 277, `prive/reference/norme-dsn/texte/bloc-S21.G00.62.txt`) ; CCH-11 de
+//! 099 » (cahier technique DSN 2026.1, p. 277, `atelier/reference/norme-dsn/texte/bloc-S21.G00.62.txt`) ; CCH-11 de
 //! S21.G00.62.002, les motifs de la nature 02 (p. 270-273). Sur `fictive-3090-grande`, mai 2026 : les CDDU BI4.26.05
 //! (Biancolelli) et CL6.26.06 (Clairon), du 12 au 22 mai.
 
@@ -140,7 +140,7 @@ fn le_signalement_du_cddu_rompu_s_ecrit_sans_l_avis_de_la_derogation() {
     assert!(derogation(&avis), "{:?}", avis);
 }
 
-/// Fiche 1722 (`prive/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche1722-annulation-fin-de-contrat-transmise-a-tort-20250326.txt`) :
+/// Fiche 1722 (`atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche1722-annulation-fin-de-contrat-transmise-a-tort-20250326.txt`) :
 /// une fin declaree a tort s'annule par un bloc 62 de motif 099 dans la DSN mensuelle DU MOIS SUIVANT, « identique au
 /// bloc " Fin de contrat " a annuler », et le 099 est interdit en nature 07 (CCH-13 de 62.002). Le moteur ne sait pas
 /// ecrire ce bloc (il n'ecrit le 62 que le dernier mois du contrat) : il refuse un 099 saisi, plutot que de le poser au
@@ -192,7 +192,7 @@ fn un_salarie_sans_paie_ce_mois_la_se_dit_avec_son_nom_et_le_mois() {
     }
 }
 
-/// CCH-12 de S21.G00.62.003 (cahier technique DSN 2026.1, p. 275, `prive/reference/norme-dsn/texte/bloc-S21.G00.62.txt` ;
+/// CCH-12 de S21.G00.62.003 (cahier technique DSN 2026.1, p. 275, `atelier/reference/norme-dsn/texte/bloc-S21.G00.62.txt` ;
 /// la meme liste en 2027.1.1, `texte-2027/`) : la date de notification de la rupture est obligatoire pour les motifs
 /// 011, 012, 014, 015, 020, 025, 034, 035, 036, 037, 058, 059, 082, 083, 087, 088, 089, 095, 096, 097, 111, 112, 113, 115
 /// et 117. Un FCTU de 036 sans elle a ete refuse par le point de depot (certificat de conformite KO, 14/10/2026) ; la

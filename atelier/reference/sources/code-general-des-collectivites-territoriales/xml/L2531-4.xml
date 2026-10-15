@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000048837031</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/48/83/70/LEGIARTI000048837031.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L2531-4</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2023-12-31</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006070633" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code général des collectivités territoriales" debut="1996-02-24" fin="2999-01-01" id_txt="LEGITEXT000006070633">Code général des collectivités territoriales</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006088000">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006116628">DEUXIÈME PARTIE : LA COMMUNE</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006135496">LIVRE V : DISPOSITIONS PARTICULIÈRES</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006149251">TITRE III : COMMUNES DE LA RÉGION D'ILE-DE-FRANCE</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006164594">CHAPITRE UNIQUE : Dispositions financières</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2014-01-29" id="LEGISCTA000006181041">Section 1 : Versement destiné aux transports en commun</TITRE_TM>
+<TITRE_TM debut="2014-01-29" fin="2019-12-27" id="LEGISCTA000028533996">Section 1 : Versement destiné aux transports</TITRE_TM>
+<TITRE_TM debut="2019-12-27" fin="2999-01-01" id="LEGISCTA000039802420">Section 1 : Versement destiné au financement des services de mobilité</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1996-02-24" etat="MODIFIE" fin="2003-12-31" id="LEGIARTI000006391169" num="L2531-4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2003-12-31" etat="MODIFIE" fin="2005-01-01" id="LEGIARTI000006391170" num="L2531-4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2005-01-01" etat="MODIFIE" fin="2012-03-24" id="LEGIARTI000006391171" num="L2531-4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2012-03-24" etat="MODIFIE" fin="2012-04-08" id="LEGIARTI000025576702" num="L2531-4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2012-04-08" etat="MODIFIE" fin="2013-01-01" id="LEGIARTI000023372637" num="L2531-4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2013-01-01" etat="MODIFIE" fin="2014-12-30" id="LEGIARTI000026948471" num="L2531-4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2014-12-30" etat="MODIFIE" fin="2017-01-01" id="LEGIARTI000030062449" num="L2531-4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2017-01-01" etat="MODIFIE" fin="2018-01-01" id="LEGIARTI000033813901" num="L2531-4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2018-01-01" etat="MODIFIE" fin="2019-12-27" id="LEGIARTI000036432163" num="L2531-4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2019-12-27" etat="MODIFIE" fin="2023-12-31" id="LEGIARTI000042003618" num="L2531-4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2023-12-31" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000048837031" num="L2531-4" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Le taux de versement exprimé en pourcentage des salaires définis à l'article L. 2531-3 est fixé par Ile-de-France Mobilités dans les limites :</p>
+<p>1° De 3,20 % à Paris et dans les départements des Hauts-de-Seine, de la Seine-Saint-Denis et du Val-de-Marne ;</p>
+<p>1° bis (Abrogé) ;</p>
+<p>2° De 2,01 % dans les communes, autres que Paris et les communes des départements des Hauts-de-Seine, de la Seine-Saint-Denis et du Val-de-Marne, dont la liste est arrêtée par décret en Conseil d'Etat pris après avis d'Ile-de-France Mobilités, en tenant compte notamment du périmètre de l'unité urbaine de Paris telle que définie par l'Institut national de la statistique et des études économiques ;</p>
+<p>3° De 1,6 % dans les autres communes de la région d'Ile-de-France.</p>
+<p>Toute modification de taux entre en vigueur au 1er janvier ou au 1er juillet de chaque année ; la délibération fixant le nouveau taux est transmise par Ile-de-France Mobilités aux organismes de recouvrement avant, respectivement, le 1er novembre ou le 1er mai de chaque année. Les organismes de recouvrement communiquent le nouveau taux aux assujettis au plus tard un mois après ces dernières dates.</p>
+<p>Par dérogation à l'avant-dernier alinéa du présent article, les taux du versement destiné au financement des services de mobilité applicables en 2024 sont fixés par délibération du conseil d'administration d'Île-de-France Mobilités lors de sa séance suivant la publication de la loi n° 2023-1322 du 29 décembre 2023 de finances pour 2024, avec prise d'effet le premier jour du deuxième mois qui suit cette délibération.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000808811" datesignatexte="2005-06-10" id="LEGIARTI000006884737" naturetexte="DECRET" nortexte="EQUT0500955D" num="33" numtexte="2005-664" sens="cible" typelien="CITATION">Décret n°2005-664 du 10 juin 2005 - art. 33 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000023316044" datesignatexte="2010-12-29" id="LEGIARTI000026948475" naturetexte="LOI" nortexte="BCRX1028078L" num="32" numtexte="2010-1658" sens="cible" typelien="CITATION">LOI n° 2010-1658 du 29 décembre 2010 - art. 32 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000025641995" datesignatexte="2012-04-06" id="LEGITEXT000025642641" naturetexte="DECRET" nortexte="TRAT1203880D" num="" numtexte="2012-463" sens="cible" typelien="CITATION">Décret n°2012-463
+ du 6 avril 2012 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000029290917" datesignatexte="2014-07-23" id="LEGIARTI000045013748" naturetexte="ARRETE" nortexte="FCPS1410580A" num="1" numtexte="" sens="cible" typelien="CITATION">ARRÊTÉ du 23 juillet 2014 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000038252104" datesignatexte="2019-03-11" id="LEGIARTI000047653053" naturetexte="ARRETE" nortexte="SSAS1907478A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 11 mars 2019 - art. 1 (M)</LIEN>
+<LIEN cidtexte="JORFTEXT000044615984" datesignatexte="2021-12-23" id="LEGIARTI000045012838" naturetexte="ARRETE" nortexte="SSAS2137151A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 23 décembre 2021 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000044615984" datesignatexte="2021-12-23" id="LEGIARTI000045012840" naturetexte="ARRETE" nortexte="SSAS2137151A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 23 décembre 2021 - art. 2</LIEN>
+<LIEN cidtexte="JORFTEXT000045124505" datesignatexte="2022-02-05" id="LEGIARTI000045127769" naturetexte="DECRET" nortexte="SSAS2137748D" num="1" numtexte="2022-136" sens="cible" typelien="CITATION">Décret n°2022-136 du 5 février 2022 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000048727345" datesignatexte="2023-12-29" id="LEGIARTI000048769541" naturetexte="LOI" nortexte="ECOX2322957L" num="139" numtexte="2023-1322" sens="cible" typelien="MODIFIE">LOI n°2023-1322 du 29 décembre 2023 - art. 139</LIEN>
+<LIEN cidtexte="LEGITEXT000006070162" datesignatexte="2999-01-01" id="LEGIARTI000006346350" naturetexte="CODE" nortexte="" num="L263-4" numtexte="" sens="source" typelien="CONCORDANCE">CODE DES COMMUNES. - art. L263-4 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070162" datesignatexte="2999-01-01" id="LEGIARTI000006346354" naturetexte="CODE" nortexte="" num="L263-4" numtexte="" sens="cible" typelien="CONCORDE">CODE DES COMMUNES. - art. L263-4 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000045128193" naturetexte="CODE" nortexte="" num="R225-2-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R225-2-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000045128208" naturetexte="CODE" nortexte="" num="R225-2-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R225-2-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000006391168" naturetexte="CODE" nortexte="" num="L2531-3" numtexte="" sens="source" typelien="CITATION">Code général des collectivités territoriales - art. L2531-3</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000029295672" naturetexte="CODE" nortexte="" num="R2531-6" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. R2531-6 (V)</LIEN>
+</LIENS>
+</ARTICLE>

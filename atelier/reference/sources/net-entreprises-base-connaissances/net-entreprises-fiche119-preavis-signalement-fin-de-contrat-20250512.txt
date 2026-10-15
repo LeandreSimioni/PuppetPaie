@@ -1,0 +1,11 @@
+Date de modification : 12/05/2025 05:02 PM
+ Quelles informations renseigner concernant le préavis pour un signalement fin de contrat ? 
+ La fin de contrat de travail d’un salarié doit toujours faire l'objet de la transmission dun signalement d'évènements de type " Fin du contrat - S21.G00.62 " pour avertir France Travail de la fin du contrat du salarié. Les informations de ce signalement devront également impérativement être repris dans la DSN mensuelle (ces informations seront toutefois limitées les principales données ayant déjà été transmises dans le signalement). 
+ Nous attirons cependant votre attention sur le fait que la transmission du signalement d’événement impose par suite une fois le retour reçu de la part de France Travail, d’imprimer l’attestation employeur rematérialisée (AER) et de la transmettre au salarié quittant l’entreprise. 
+ Pour rappel : Le signalement fin de contrat de travail doit être émis dans les cinq jours après la survenance de l'événement. 
+Enfin, le sous-groupe " Préavis de fin de contrat - S21.G00.63 " doit être renseigné dans le signalement de "Fin de contrat de tavail", mais n'a pas d'utilité dans la DSN mensuelle suivante. 
+ S21.G00.63.001 - Type réalisation et paiement du préavis : Indique ici si le préavis est : effectué, non effectué, payé, non payé. 
+ S21.G00.63.002 - Date de début de préavis : En cas de licenciement elle correspond à la date de présentation de la lettre recommandée. En cas de démission, elle correspond en principe à la date où l'employeur est présumé en prendre connaissance. 
+ S21.G00.63.003 - Date de fin de préavis : Dernier jour du contrat de travail en cas de préavis, effectué ou non 
+ Date de création : 29/04/2013 02:26 PM 
+ N° de la fiche : 119

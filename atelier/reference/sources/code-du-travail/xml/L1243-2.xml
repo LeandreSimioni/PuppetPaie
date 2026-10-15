@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000031087476</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/31/08/74/LEGIARTI000031087476.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L1243-2</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2015-08-19</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132321">Première partie : Les relations individuelles de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145393">Livre II : Le contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160711">Titre IV : Contrat de travail à durée déterminée</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006177867">Chapitre III : Rupture anticipée, échéance du terme et renouvellement du contrat</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006189458">Section 1 : Rupture anticipée du contrat.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-05-01" etat="MODIFIE" fin="2015-08-19" id="LEGIARTI000006901213" num="L1243-2" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2015-08-19" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000031087476" num="L1243-2" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<br/>
+<p>Ces dispositions sont applicables aux contrats en cours.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<br/>Par dérogation aux dispositions de l'article L. 1243-1, le contrat de travail à durée déterminée peut être rompu avant l'échéance du terme à l'initiative du salarié, lorsque celui-ci justifie de la conclusion d'un contrat à durée indéterminée. <br/>
+<br/>Sauf accord des parties, le salarié est alors tenu de respecter un préavis dont la durée est calculée à raison d'un jour par semaine compte tenu : <br/>
+<br/>1° De la durée totale du contrat incluant, le cas échéant, son ou ses deux renouvellements, lorsque celui-ci comporte un terme précis ; <br/>
+<br/>2° De la durée effectuée lorsque le contrat ne comporte pas un terme précis. <br/>
+<br/>Le préavis ne peut excéder deux semaines.<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000465978" datesignatexte="2007-03-12" id="JORFTEXT000000465978" naturetexte="ORDONNANCE" nortexte="SOCX0700017R" num="" numtexte="2007-329" sens="source" typelien="CODIFICATION">Ordonnance n°2007-329 du 12 mars 2007</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000031046061" datesignatexte="2015-08-17" id="LEGIARTI000031057674" naturetexte="LOI" nortexte="ETSX1508596L" num="55" numtexte="2015-994" sens="cible" typelien="MODIFIE">LOI n°2015-994 du 17 août 2015 - art. 55</LIEN>
+<LIEN cidtexte="JORFTEXT000037367660" datesignatexte="2018-09-05" id="LEGIARTI000046873085" naturetexte="LOI" nortexte="MTRX1808061L" num="78" numtexte="2018-771" sens="cible" typelien="CITATION">LOI n°2018-771 du 5 septembre 2018 - art. 78 (V)</LIEN>
+
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018537430" naturetexte="CODE" nortexte="" num="D1243-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D1243-1 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006646742" naturetexte="CODE" nortexte="" num="L122-3-8" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L122-3-8 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901212" naturetexte="CODE" nortexte="" num="L1243-1" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L1243-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901214" naturetexte="CODE" nortexte="" num="L1243-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1243-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000042674145" naturetexte="CODE" nortexte="" num="L5132-11-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5132-11-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000042675144" naturetexte="CODE" nortexte="" num="L5132-15-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5132-15-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000042674165" naturetexte="CODE" nortexte="" num="L5132-5" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5132-5 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903650" naturetexte="CODE" nortexte="" num="L5134-104" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5134-104 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903653" naturetexte="CODE" nortexte="" num="L5134-107" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5134-107 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903543" naturetexte="CODE" nortexte="" num="L5134-18" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5134-18 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903556" naturetexte="CODE" nortexte="" num="L5134-28" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5134-28 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903580" naturetexte="CODE" nortexte="" num="L5134-48" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5134-48 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006903608" naturetexte="CODE" nortexte="" num="L5134-70" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5134-70 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000022391444" naturetexte="CODE" nortexte="" num="L5522-13-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5522-13-3 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGITEXT000006072050" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail L122-3-8 alinéa 2</LIEN>
+
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>

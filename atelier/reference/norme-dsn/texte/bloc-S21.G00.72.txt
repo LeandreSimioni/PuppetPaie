@@ -1,0 +1,60 @@
+# Bloc S21.G00.72
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 288-288
+
+--- p. 288 ---
+  S21.G00.72  2025-12-24
+
+  SIG-14 : Si la rubrique "Code régime de base risque vieillesse - S21.G00.40.020" est renseignée avec la valeur "140 -
+  clercs et employés de notaires (CRPCEN)", la rubrique "Code régime Retraite Complémentaire - S21.G00.71.002" doit
+  être renseignée avec la valeur "90000 : pas de régime complémentaire".
+
+  X  [4,8]
+
+  RETA - Retraite complémentaire ARRCO
+  RETC - Retraite complémentaire ARRCO et AGIRC
+  RUAA - Régime unifié AGIRC-ARRCO
+  CAVEC - Caisse d'assurance vieillesse des experts-comptables et des commissaires aux comptes
+  CNBF - Caisse nationale des Barreaux Français
+  CRPCEN - Clercs et employés de notaire
+  CRPNPAC - Caisse de Retraite du Personnel Navigant Professionnel de l'Aéronautique Civile
+  IRCANTEC - Institution de retraite complémentaire des agents non titulaires de l’État et des collectivités publiques
+  90000 - pas de régime complémentaire
+
+S21.G00.72
+
+Affiliation à tort à un régime de retraite  S21.G00.72
+complémentaire
+  Ce bloc est à déclarer en cas de correction d'un Code régime Retraite Complémentaire déclaré de manière erronée au
+  cours d'une période antérieure.
+
+Code régime Retraite Complémentaire déclaré à tort  S21.G00.72.001
+
+Code régime Retraite Complémentaire déclaré à tort  S21.G00.72.001
+AffiliationATortRetraiteComplementaire.CodeRetraiteComplementair
+e
+  La rubrique "Code régime Retraite Complémentaire déclaré à tort - S21.G00.72.001" permet de renseigner
+  le "Code régime Retraite Complémentaire - S21.G00.71.002" déclaré à tort pour une période antérieure
+  CCH-11 : Si la rubrique "Code régime retraite complémentaire - S21.G00.71.002" est différente de la valeur
+  "IRCANTEC", la rubrique "Code régime Retraite Complémentaire déclaré à tort - S21.G00.72.001" ne peut pas être
+  renseignée avec la même valeur que celle qui est présente au niveau de la rubrique "Code régime Retraite
+  Complémentaire - S21.G00.71.002" du bloc parent.
+  Ce contrôle vise à interdire la déclaration d'un bloc "Affiliation à tort à un régime de retraite complémentaire -
+  S21.G00.72" avec le même code organisme que celui présent en bloc "Retraite complémentaire - S21.G00.71".
+
+  X  [4,8]
+
+  RETA - Retraite complémentaire ARRCO
+  RETC - Retraite complémentaire ARRCO et AGIRC
+  RUAA - Régime unifié AGIRC-ARRCO
+  CAVEC - Caisse d'assurance vieillesse des experts-comptables et des commissaires aux comptes
+  CNBF - Caisse nationale des Barreaux Français
+  CRPCEN - Clercs et employés de notaire
+  CRPNPAC - Caisse de Retraite du Personnel Navigant Professionnel de l'Aéronautique Civile
+  IRCANTEC - Institution de retraite complémentaire des agents non titulaires de l’État et des collectivités publiques
+  90000 - pas de régime complémentaire
+
+S21.G00.73
+
+Ayant-droit  S21.G00.73
+
+  288 / 361

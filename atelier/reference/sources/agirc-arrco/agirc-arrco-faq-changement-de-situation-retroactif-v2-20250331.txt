@@ -1,0 +1,608 @@
+                 Changement de situation à effet rétroactif
+
+
+     Un changement de situation professionnelle de type changement de statut catégoriel avec effet
+     rétroactif peut remettre en cause les cotisations précédemment déclarées en DSN sur les mois
+     antérieurs à la connaissance dudit changement.
+
+     Il est nécessaire dans ce cas de régulariser les cotisations individuelles du salarié.
+
+
+     L’objectif de la présente fiche est d’illustrer l’attendu déclaratif DSN par la Retraite complémentaire
+     au travers des deux exemples suivants :
+
+
+        1. Passage d’un statut « non cadre » à un statut « cadre », déclaré dans la DSN d’avril 2025,
+           à effet rétroactif mars 2025, avec rappel de salaire
+
+        2. Passage d’un statut « non cadre » à un statut « cadre », déclaré dans la DSN de février
+           2025, à effet rétroactif 16 janvier 2025, avec rappel de salaire
+
+        3. Passage d’un statut « non cadre » à un statut « cadre », déclaré dans la DSN d’avril 2025,
+           à effet rétroactif janvier 2025, sans rappel de salaire
+
+
+
+
+     Rappel : Les régularisations de salaire sont à déclarer selon le mode opératoire émis par l’Acoss,
+     disponible sur :
+     https://net-
+     entreprises.custhelp.com/app/answers/detail_dsn/a_id/1737/kw/r%C3%A9gulariser%20une%20b
+     ase%20assujetr.
+     Les informations de régularisation de salaires seront communiquées à tous les organismes
+     destinataires de la donnée à régulariser.
+
+
+
+
+© Agirc-Arrco                                         1/10                                               juin 2025
+                  Changement de situation à effet rétroactif
+
+ Exemple 1
+
+ Passage d’un statut « non cadre » à un statut « cadre », déclaré dans la DSN d’avril 2025,
+ avec effet rétroactif mars 2025, avec rappel de salaire
+
+      Plafond de sécurité sociale (2025) :                                                     3.925,00
+
+      Salaire brut mensuel en mars 2025 :                                                      4.000,00
+
+      Salaire brut « cadre » du 1er au 30 avril 2025 :                                         4.300,00
+      Rappel de salaire « cadre » du 1er au 31 mars, versé le 25 avril 2025,
+      avec la paie du mois d’avril :                                                             300,00
+
+      Salaire total perçu en avril :                                                           4.600,00
+
+
+
+                        Codification DSN attendue pour le mois déclaré d’avril 2025
+                                                     Code
+                    Rubrique                                                     Valeur rubrique
+                                                   rubrique
+                                                                           04 - autres cadres au sens de
+           Statut du salarié                                               la convention collective (ou du
+                                                S21.G00.40.002
+           (conventionnel)                                                 statut pour les régimes
+                                                                           spéciaux)
+           Code statut catégoriel
+           Retraite Complémentaire              S21.G00.40.003             01 - cadre (article 4 et 4bis)
+           obligatoire
+           Date de la modification              S21.G00.41.001             01032025
+                                                                           05 - profession intermédiaire
+           Ancien Statut du salarié
+                                                S21.G00.41.002             (technicien, contremaître,
+           (conventionnel)
+                                                                           agent de maîtrise, clergé)
+           Profondeur de recalcul de
+                                                S21.G00.41.028             01032025
+           la paie
+
+           Date de la modification              S21.G00.41.001             01032025
+
+           Ancien Code statut
+           catégoriel Retraite
+                                                S21.G00.41.003             04 - non cadre
+           Complémentaire
+           obligatoire
+           Profondeur de recalcul de
+                                                S21.G00.41.028             01032025
+           la paie
+           Date de début de période
+                                                S21.G00.51.001             01042025
+           de paie
+           Date de fin de période de
+                                                S21.G00.51.002             30042025
+           paie
+                                                                           001 - Rémunération brute non
+           Type                                 S21.G00.51.011
+                                                                           plafonnée
+           Montant                              S21.G00.51.013             4300.00
+           Date de début de période
+                                                S21.G00.51.001             01032025
+           de paie
+           Date de fin de période de
+                                                S21.G00.51.002             31032025
+           paie
+
+© Agirc-Arrco                                           2/10                                                 juin 2025
+                  Changement de situation à effet rétroactif
+
+                                                        001 - Rémunération brute non
+           Type                        S21.G00.51.011
+                                                        plafonnée
+           Montant                     S21.G00.51.013   300.00
+
+           Code de base assujettie     S21.G00.78.001   02 - Assiette brute plafonnée
+           Date de début de période
+                                       S21.G00.78.002   01042025
+           de rattachement
+           Date de fin de période de
+                                       S21.G00.78.003   30042025
+           rattachement
+           Montant de base
+                                       S21.G00.78.004   3925.00
+           assujettie
+           Code de cotisation                           131 – Cotisation régime unifié
+                                       S21.G00.81.001
+           individuelle                                 Agirc-Arrco
+           Montant de cotisation
+                                       S21.G00.81.004   407.02*
+           individuelle
+                                                        03 - Assiette brute
+           Code de base assujettie     S21.G00.78.001
+                                                        déplafonnée
+           Date de début de période
+                                       S21.G00.78.002   01042017
+           de rattachement
+           Date de fin de période de
+                                       S21.G00.78.003   30042017
+           rattachement
+           Montant de base
+                                       S21.G00.78.004   4300.00
+           assujettie
+           Code de cotisation                           131 - Cotisation régime unifié
+                                       S21.G00.81.001
+           individuelle                                 Agirc-Arrco
+           Montant de cotisation
+                                       S21.G00.81.004   92.40
+           individuelle
+           Code de cotisation
+                                       S21.G00.81.001   132 - Cotisation Apec
+           individuelle
+           Montant de cotisation
+                                       S21.G00.81.004   2.58
+           individuelle
+
+
+           Code de base assujettie     S21.G00.78.001   02 - Assiette brute plafonnée
+           Date de début de période
+                                       S21.G00.78.002   01032025
+           de rattachement
+           Date de fin de période de
+                                       S21.G00.78.003   31032025
+           rattachement
+           Montant de base
+                                       S21.G00.78.004   0.00*
+           assujettie
+                                                        03 - Assiette brute
+           Code de base assujettie     S21.G00.78.001
+                                                        déplafonnée
+           Date de début de période
+                                       S21.G00.78.002   01032025
+           de rattachement
+           Date de fin de période de
+                                       S21.G00.78.003   31032025
+           rattachement
+           Montant de base
+                                       S21.G00.78.004   300.00**
+           assujettie
+
+
+
+© Agirc-Arrco                                 3/10                                       juin 2025
+                   Changement de situation à effet rétroactif
+
+            Code de cotisation                                                131 - Cotisation régime unifié
+                                                  S21.G00.81.001
+            individuelle                                                      Agirc-Arrco
+            Montant de cotisation
+                                                  S21.G00.81.004              73.92
+            individuelle
+            Code de cotisation
+                                                  S21.G00.81.001              132 - Cotisation Apec
+            individuelle
+            Montant de cotisation
+                                                  S21.G00.81.004              0.18
+            individuelle
+
+   Le rappel de salaire pour le mois de mars 2025, doit être rattaché à la période du 01 au 31 mars 2025.
+
+* Le plafond de la sécurité sociale a déjà été atteint pour le mois de mars 2025
+(le salaire de mars 2025, 4300,00 > 3925,00). Il n’y a donc pas de salaire à déclarer dans l’assiette brute plafonnée
+pour la période du 01/03 au 31/03/2025.
+
+** Les 300,00 de rappel de salaire sont à déclarer dans l’assiette brute déplafonnée rattachée à la période d’activité
+de mars 2025.
+
+
+
+
+ © Agirc-Arrco                                             4/10                                                  juin 2025
+                 Changement de situation à effet rétroactif
+
+ Exemple 2
+
+ Passage d’un statut « non cadre » à un statut « cadre », déclaré dans la DSN de février 2025
+ avec effet rétroactif au 16 janvier 2025, avec rappel de salaire
+
+ Important
+
+ Un changement de catégorie professionnelle en cours de mois, déclaré avec effet rétroactif, donne lieu à un
+ recalcul des cotisations dues, pour chaque catégorie. Le recalcul des cotisations dues au titre de chaque statut
+ s’effectue prorata temporis, sur le salaire réellement perçu le mois du changement.
+
+
+ Le rappel de salaire lié à ce changement rétroactif, ainsi que les cotisations doivent être rattachés au mois de
+ l’activité génératrice des droits.
+
+
+      Plafond de sécurité sociale (2025) :                                                      3.925,00
+
+      Salaire brut « non cadre » mensuel déclaré pour janvier 2025 :                            3.700,00
+
+      Salaire brut « cadre » du 1er au 28 février 2025 :                                        4.100,00
+
+      Salaire total perçu en février :                                                          4.306,45
+               dont rappel de salaire :                                                           206,45(*)
+
+
+
+                     Codification DSN attendue pour le mois déclaré de février 2025
+                                                      Code
+                   Rubrique                                                       Valeur rubrique
+                                                    rubrique
+                                                                            04 - autres cadres au sens de
+           Statut du salarié                                                la convention collective (ou du
+                                                 S21.G00.40.002
+           (conventionnel)                                                  statut pour les régimes
+                                                                            spéciaux)
+           Code statut catégoriel
+           Retraite Complémentaire               S21.G00.40.003             01 - cadre (article 4 et 4bis)
+           obligatoire
+           Date de la modification               S21.G00.41.001             16012025
+                                                                            05 - profession intermédiaire
+           Ancien Statut du salarié
+                                                 S21.G00.41.002             (technicien, contremaître,
+           (conventionnel)
+                                                                            agent de maîtrise, clergé)
+           Profondeur de recalcul de
+                                                 S21.G00.41.028             01012025
+           la paie
+
+           Date de la modification               S21.G00.41.001             16012025
+
+           Ancien Code statut
+           catégoriel Retraite
+                                                 S21.G00.41.003             04 - non cadre
+           Complémentaire
+           obligatoire
+           Profondeur de recalcul de
+                                                 S21.G00.41.028             01012025
+           la paie
+           Date de début de période
+                                                 S21.G00.51.001             01022025
+           de paie
+
+
+© Agirc-Arrco                                              5/10                                                 juin 2025
+                  Changement de situation à effet rétroactif
+
+           Date de fin de période de
+                                       S21.G00.51.002   28022025
+           paie
+                                                        001 - Rémunération brute non
+           Type                        S21.G00.51.011
+                                                        plafonnée
+           Montant                     S21.G00.51.013   4100.00
+           Date de début de période
+                                       S21.G00.51.001   01012025
+           de paie
+           Date de fin de période de
+                                       S21.G00.51.002   31012025
+           paie
+                                                        001 - Rémunération brute non
+           Type                        S21.G00.51.011
+                                                        plafonnée
+           Montant                     S21.G00.51.013   206.45 (*)
+
+           Code de base assujettie     S21.G00.78.001   02 - Assiette brute plafonnée
+           Date de début de période
+                                       S21.G00.78.002   01022025
+           de rattachement
+           Date de fin de période de
+                                       S21.G00.78.003   28022025
+           rattachement
+           Montant de base
+                                       S21.G00.78.004   3925.00
+           assujettie
+           Code de cotisation                           131 - Cotisation régime unifié
+                                       S21.G00.81.001
+           individuelle                                 Agirc-Arrco
+           Montant de cotisation
+                                       S21.G00.81.004   407.02
+           individuelle
+                                                        03 - Assiette brute
+           Code de base assujettie     S21.G00.78.001
+                                                        déplafonnée
+           Date de début de période
+                                       S21.G00.78.002   01022025
+           de rattachement
+           Date de fin de période de
+                                       S21.G00.78.003   28022025
+           rattachement
+           Montant de base
+                                       S21.G00.78.004   4100.00
+           assujettie
+           Code de cotisation                           131 - Cotisation régime unifié
+                                       S21.G00.81.001
+           individuelle                                 Agirc-Arrco
+           Montant de cotisation
+                                       S21.G00.81.004   43.12
+           individuelle
+
+
+           Code de base assujettie     S21.G00.78.001   02 - Assiette brute plafonnée
+           Date de début de période
+                                       S21.G00.78.002   01012025
+           de rattachement
+           Date de fin de période de
+                                       S21.G00.78.003   31012025
+           rattachement
+           Montant de base
+                                       S21.G00.78.004   -3700.00
+           assujettie
+           Code de cotisation                           131 - Cotisation régime unifié
+                                       S21.G00.81.001
+           individuelle                                 Agirc-Arrco
+           Montant de cotisation
+                                       S21.G00.81.004   -370.74
+           individuelle
+
+© Agirc-Arrco                                 6/10                                       juin 2025
+                 Changement de situation à effet rétroactif
+
+                                                        03 - Assiette brute
+           Code de base assujettie     S21.G00.78.001
+                                                        déplafonnée
+           Date de début de période
+                                       S21.G00.78.002   01012025
+           de rattachement
+           Date de fin de période de
+                                       S21.G00.78.003   31012025
+           rattachement
+           Montant de base
+                                       S21.G00.78.004   -3700.00
+           assujettie
+
+
+           Code de base assujettie     S21.G00.78.001   02 - Assiette brute plafonnée
+           Date de début de période
+                                       S21.G00.78.002   01012025
+           de rattachement
+           Date de fin de période de
+                                       S21.G00.78.003   15012025
+           rattachement
+           Montant de base
+                                       S21.G00.78.004   1790.32
+           assujettie
+           Code de cotisation                           131 - Cotisation régime unifié
+                                       S21.G00.81.001
+           individuelle                                 Agirc-Arrco
+           Montant de cotisation
+                                       S21.G00.81.004   179.39
+           individuelle
+                                                        03 - Assiette brute
+           Code de base assujettie     S21.G00.78.001
+                                                        déplafonnée
+           Date de début de période
+                                       S21.G00.78.002   01012025
+           de rattachement
+           Date de fin de période de
+                                       S21.G00.78.003   15012025
+           rattachement
+           Montant de base
+                                       S21.G00.78.004   1790.32
+           assujettie
+
+
+           Code de base assujettie     S21.G00.78.001   02 - Assiette brute plafonnée
+           Date de début de période
+                                       S21.G00.78.002   16012025
+           de rattachement
+           Date de fin de période de
+                                       S21.G00.78.003   31012025
+           rattachement
+           Montant de base
+                                       S21.G00.78.004   2025.81
+           assujettie
+           Code de cotisation                           131 - Cotisation régime unifié
+                                       S21.G00.81.001
+           individuelle                                 Agirc-Arrco
+           Montant de cotisation
+                                       S21.G00.81.004   210.08
+           individuelle
+                                                        03 - Assiette brute
+           Code de base assujettie     S21.G00.78.001
+                                                        déplafonnée
+           Date de début de période
+                                       S21.G00.78.002   16012025
+           de rattachement
+           Date de fin de période de
+                                       S21.G00.78.003   31012025
+           rattachement
+
+
+
+© Agirc-Arrco                                 7/10                                       juin 2025
+                 Changement de situation à effet rétroactif
+
+           Montant de base
+                                                 S21.G00.78.004              2116.13
+           assujettie
+           Code de cotisation                                                131 - Cotisation régime unifié
+                                                 S21.G00.81.001
+           individuelle                                                      Agirc-Arrco
+           Montant de cotisation
+                                                 S21.G00.81.004              22.25
+           individuelle
+           Code de cotisation
+                                                 S21.G00.81.001              132 - Cotisation Apec
+           individuelle
+           Montant de cotisation
+                                                 S21.G00.81.004              1.27
+           individuelle
+
+ Dans cet exemple, pour effectuer la régularisation, les montants de bases plafonnées et déplafonnées, ainsi que
+ les cotisations y associées déclarées dans la DSN de janvier 2025 ont été « annulées » et remplacées par les
+ éléments recalculés pour chaque catégorie : « non cadre » du 01 au 15 janvier et « cadre » du 16 au 31 janvier.
+
+ Assiettes et cotisations déclarées dans la DSN de janvier (salaire inférieur au plafond) :
+     Base plafonnée                   = 3 700,00
+     Base déplafonnée                 = 3 700,00
+     Cotisations (code 131)           = 3 700,00 x 10,02 % = 380,76
+
+ Assiettes et cotisations rattachées à janvier à déclarer dans la DSN de février (régularisation) :
+
+ Période « non cadre » du 01 au 15 janvier
+      Plafond de la sécurité sociale = 3 925,00 x 15/31 = 1 899,19
+      Base plafonnée                 = 3 700,00 x 15/31 = 1 790,32
+      Cotisations (code 131)         = 1 790,32 x 10,02 % = 179,36
+
+ Période « cadre » du 16 au 31 janvier
+      Plafond de la sécurité sociale           = 3 925,00 x 16/31 = 2 025,81
+      Base déplafonnée                         = 4 100,00 x 16/31 = 2 116,13
+      Cotisations Tranche 1 (code 131)         = 2 025,81 x 10,37 % = 210,08
+      Cotisations Tranche 2 (code 131)         = (2 116,13 - 2 025,81) x 24,64% = 22,25
+      Cotisations Apec (code 132)              = 2 116,13 x 0,06 % = 1,27
+
+ * Rappel de salaire de janvier 2025
+      Il s’agit du supplément de salaire calculé pour janvier 2025 correspondant à la période « cadre » du 16 au 31
+ janvier qui n’avait pas été déclarée dans la DSN de janvier 2025.
+      = (1 790,32 + 2 116,13) (bases déplafonnées déclarées en février) - 3 700,00 (déclarée en janvier 2025)
+      = 206,45
+
+
+
+
+© Agirc-Arrco                                             8/10                                                juin 2025
+                   Changement de situation à effet rétroactif
+
+ Exemple 3
+
+ Passage d’un statut « non cadre » à un statut « cadre », déclaré dans la DSN d’avril 2025,
+ avec effet rétroactif mars 2025, sans rappel de salaire
+
+      Plafond de sécurité sociale (2025) :                           3.925,00
+
+      Salaire brut mensuel en mars 2025 :                            4.500,00
+
+      Salaire brut « cadre » du 1er au 30 avril :                    4.500,00
+
+
+
+
+                       Codification DSN attendue pour le mois déclaré d’avril 2025
+
+                   Rubrique                         Code rubrique          Valeur rubrique
+                                                                     04 - autres cadres au sens
+         Statut du salarié                                           de la convention collective
+                                                    S21.G00.40.002
+         (conventionnel)                                             (ou du statut pour les
+                                                                     régimes spéciaux)
+         Code statut catégoriel
+         Retraite Complémentaire                    S21.G00.40.003   01 - cadre (article 4 et 4bis)
+         obligatoire
+         Date de la modification                    S21.G00.41.001   01032025
+                                                                     05 - profession intermédiaire
+         Ancien Statut du salarié
+                                                    S21.G00.41.002   (technicien, contremaître,
+         (conventionnel)
+                                                                     agent de maîtrise, clergé)
+         Profondeur de recalcul de
+                                                    S21.G00.41.028   01032025
+         la paie
+
+         Date de la modification                    S21.G00.41.001   01032025
+
+         Ancien Code statut
+         catégoriel Retraite                        S21.G00.41.003   04 - non cadre
+         Complémentaire obligatoire
+         Profondeur de recalcul de
+                                                    S21.G00.41.028   01032025
+         la paie
+         Date de début de période
+                                                    S21.G00.51.001   01042025
+         de paie
+         Date de fin de période de
+                                                    S21.G00.51.002   30042025
+         paie
+                                                                     001 - Rémunération brute
+         Type                                       S21.G00.51.011
+                                                                     non plafonnée
+         Montant                                    S21.G00.51.013   4500.00
+
+
+
+         Code de base assujettie                    S21.G00.78.001   02 - Assiette brute plafonnée
+         Date de début de période
+                                                    S21.G00.78.002   01032025
+         de rattachement
+         Date de fin de période de
+                                                    S21.G00.78.003   31032025
+         rattachement
+
+
+© Agirc-Arrco                                             9/10                                        juin 2025
+                 Changement de situation à effet rétroactif
+
+         Montant de base assujettie   S21.G00.78.004   0.00
+                                                       03 - Assiette brute
+         Code de base assujettie      S21.G00.78.001
+                                                       déplafonnée
+         Date de début de période
+                                      S21.G00.78.002   01032025
+         de rattachement
+         Date de fin de période de
+                                      S21.G00.78.003   31032025
+         rattachement
+         Montant de base assujettie   S21.G00.78.004   0.00
+         Code de cotisation
+                                      S21.G00.81.001   132 - Cotisation Apec
+         individuelle
+         Montant de cotisation
+                                      S21.G00.81.004   2.70
+         individuelle
+
+
+         Code de base assujettie      S21.G00.78.001   02 - Assiette brute plafonnée
+         Date de début de période
+                                      S21.G00.78.002   01042025
+         de rattachement
+         Date de fin de période de
+                                      S21.G00.78.003   30042025
+         rattachement
+         Montant de base assujettie   S21.G00.78.004   3925.00
+         Code de cotisation                            131 - Cotisation régime unifié
+                                      S21.G00.81.001
+         individuelle                                  Agirc-Arrco
+         Montant de cotisation
+                                      S21.G00.81.004   407,02
+         individuelle
+                                                       03 - Assiette brute
+         Code de base assujettie      S21.G00.78.001
+                                                       déplafonnée
+         Date de début de période
+                                      S21.G00.78.002   01042025
+         de rattachement
+         Date de fin de période de
+                                      S21.G00.78.003   30042025
+         rattachement
+         Montant de base assujettie   S21.G00.78.004   4500.00
+         Code de cotisation                            131 - Cotisation régime unifié
+                                      S21.G00.81.001
+         individuelle                                  Agirc-Arrco
+         Montant de cotisation
+                                      S21.G00.81.004   141.68
+         individuelle
+         Code de cotisation
+                                      S21.G00.81.001   132 - Cotisation Apec
+         individuelle
+         Montant de cotisation
+                                      S21.G00.81.004   2.70
+         individuelle
+
+
+
+
+© Agirc-Arrco                              10/10                                        juin 2025
+

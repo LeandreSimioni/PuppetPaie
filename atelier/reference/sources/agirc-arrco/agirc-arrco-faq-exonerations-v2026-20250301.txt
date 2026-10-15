@@ -1,0 +1,372 @@
+                           Exonérations de cotisations
+
+
+    L’article 8 de la Loi de financement de la sécurité sociale pour 2019 prévoit une révision de
+    plusieurs dispositifs spécifiques d’exonération de cotisations s’appliquant à la retraite
+    complémentaire AGIRC-ARRCO.
+
+
+
+    Exonérations de cotisations pour les salariés apprentis
+
+    Les régimes d’exonération spécifique des cotisations patronales sur les contrats de formation en
+    alternance (à l’exception de celui portant sur les contrats d’apprentissage dans le secteur public)
+    sont supprimés à compter du 1er janvier 2019 au profit de la réduction générale des cotisations.
+
+    Appliquée à la retraite complémentaire AGIRC-ARRCO, l’exonération des cotisations salariales
+    porte sur :
+    - le taux retraite obligatoire
+    - le taux supplémentaire (uniquement à compter du 1er janvier 2021) si prévu
+    - la contribution d’équilibre général (CEG)
+    - et le cas échéant la contribution d’équilibre technique (CET)
+
+        NB : les cotisations APEC des apprentis cadres ne sont pas exonérées
+
+    Elle est applicable pour tous les apprentis, quels que soient la taille et le type de l’entreprise.
+
+    Jusqu’au 28 février 2025, l’exonération totale des cotisations salariales d’origine légale et
+    conventionnelle applicable s’appliquait sur la part de la rémunération des apprentis inférieure
+    ou égale à 79 % du SMIC.
+
+    La loi de financement de la sécurité sociale 2025 a abaissé cette limite d’exonération de
+    cotisations salariales d’origine légale et conventionnelle. Le seuil d’exonération passe à 50 % du
+    SMIC au titre des contrats d’apprentissage conclus à compter du 1er mars 2025 (Décret n° 2025-290
+    du 28 mars 2025 relatif à l'abaissement du seuil d'exonération des cotisations salariales des apprentis)
+
+    En conclusion, la fraction de rémunération au-delà de :
+    - 50 % du SMIC brut pour les contrats d’apprentissage conclus à compter du 1er mars 2025,
+    - 79 % du SMIC brut pour les contrats d’apprentissage conclus jusqu’au 28 février 2025,
+    Reste soumise à cotisations salariales de retraite complémentaire.
+
+    Le plafonnement de l’exonération à 50 % du SMIC (ou 79% du SMIC pour les contrats conclus jusqu’au
+    28 février 2025) s’apprécie mensuellement. Il n’y a pas lieu de procéder à une proratisation du
+    plafond d’exonération en cas d’absence ou de temps partiel.
+    En revanche, le plafond d’exonération doit être proratisé en cas d’embauche ou de fin de contrat
+    de l’apprenti en cours de mois.
+
+
+    À noter également qu’à compter du 1er janvier 2019 le calcul des cotisations s’effectue sur
+    l’assiette réelle, c’est-à-dire sur la rémunération versée à l’apprenti et non plus sur une base
+    forfaitaire.
+
+
+
+© Agirc-Arrco                                           Page 1 sur 7                                           avril 2026
+                                  Exonérations de cotisations
+
+
+      Au niveau du déclaratif dans la DSN,
+      - la réduction des cotisations patronales s’applique selon le dispositif de la réduction générale
+         des cotisations : le montant de cotisations individuelles déclaré (en code « 131 - Montant de
+         cotisation Régime Unifié Agirc-Arrco » du bloc S21.G00.81) est le montant de cotisations,
+         avant application de la réduction générale, et le montant de la réduction est déclaré via le
+         code « 106 - Réduction générale des cotisations patronales Agirc-Arrco » du bloc S21.G00.81
+
+      -      le montant de l’exonération salariale n’est pas porté dans la DSN. Le montant de cotisations
+             individuelles déclaré (en code « 131 - Montant de cotisation Régime Unifié Agirc-Arrco » du
+             bloc S21.G00.81) est le montant de cotisations, déduction faite de l’exonération salariale
+
+      -      en complément, et depuis la norme DSN 2020, le montant de la rémunération exonérée de
+             cotisations salariales est déclaré en code « 109 - Exonération de cotisations salariales de
+             retraite complémentaire au titre de l'emploi d'un apprenti » du bloc S21.G00.81. Ce montant
+             représentant la fraction de rémunération inférieure ou égale à 50 % SMIC brut (79 % SMIC brut
+             pour les contrats conclus jusqu’au 28 février 2025).
+
+      1er Exemple : Contrat d’apprentissage conclus avant le 1er mars 2025.
+      Exonération totale des cotisations salariales sur la part de la rémunération inférieure ou égale à 79% du SMIC.
+
+      Le salarié apprenti ayant signé son contrat d’apprentissage le 1er janvier 2025 perçoit une rémunération mensuelle
+      brute de 954,95.
+
+      Les calculs ci-après ont été opérés sur la base des valeurs 2025 du SMIC (1 801,80 €) et du PMSS (3925 €).
+
+  •       Taux retraite T1 : 6,20 % (appelé à 7,87 %)
+  •       Taux CEG T1 : 2,15 %
+  •       Part patronale : 60 %
+  •       Montant de cotisation patronale avant allègement = 57,40
+  •       Montant de cotisation salariale avant exonération = 38,27
+  •       Montant de cotisation salariale sur la fraction de rémunération jusqu’ à 0,79 % SMIC (1423,42 €) = 38,27 (exonéré)
+  •       Montant de cotisation salariale sur la fraction de rémunération supérieure à 0,79 %SMIC = 0,00 (non exonéré)
+  •       Nombre de salariés dans l’entreprise : 51
+  •       T : 32,34 % (dont 6,01% de part patronale Agirc-Arrco et 4,05% de contribution patronale assurance chômage)
+  •       Montant global de la réduction générale de cotisations patronales : 308,83 €
+  •       Montant de la réduction imputée à l’Urssaf : 308,83 x (26,33 / 32,34) = 251,43 €
+  •       Montant de la réduction imputée à l’Agirc-Arrco : 308,83 – 251,43 = 57,40 €
+
+
+                                                   Codification DSN attendue en mars 2025
+                            Rubrique                        Code rubrique                 Valeur rubrique
+             Montant de versement                            S21.G00.20.005           00,00 (4) = 57,40 - 57,40
+             Dispositif de politique publique et                                      65 – Contrat d’apprentissage entreprises non
+                                                             S21.G00.40.008
+             conventionnel                                                            inscrites au répertoire des métiers
+             Code régime Retraite complémentaire             S21.G00.71.002           RUAA – Régime unifié Agirc-Arrco
+             Code de base assujettie                         S21.G00.78.001           02 - Assiette brute plafonnée
+             Date de début de période de
+                                                             S21.G00.78.002           01/03/2025
+             rattachement
+             Date de fin de période de rattachement          S21.G00.78.003           31/03/2025
+             Montant de base assujettie                      S21.G00.78.004           954,95
+             Code de base assujettie                         S21.G00.78.001           03 - Assiette brute déplafonnée
+             Date de début de période de
+                                                             S21.G00.78.002           01/03/2025
+             rattachement
+             Date de fin de période de rattachement          S21.G00.78.003           31/03/2025
+             Montant de base assujettie                      S21.G00.78.004           954,95
+
+
+
+
+© Agirc-Arrco                                                   Page 2 sur 7                                                     avril 2026
+                                Exonérations de cotisations
+
+                                                                                       131 – Montant de cotisation Régime Unifié
+           Code de cotisation individuelle                   S21.G00.81.001
+                                                                                       Agirc-Arrco
+           Montant de cotisation                             S21.G00.81.004            57,40 (1) = 95,67 – 38,27
+           Type de composant de base                                                   01 – Montant du Smic retenu pour le calcul de
+                                                             S21.G00.79.001
+           assujettie                                                                  la réduction
+           Montant de composant de base
+                                                             S21.G00. 79.004           1 801,80
+           assujettie
+                                                                                       106 – Réduction général des cotisations
+           Code de cotisation individuelle                   S21.G00.81.001
+                                                                                       patronales Agirc-Arrco
+           Montant d’assiette                                S21.G00.81.003            954,95 (2)
+           Montant de cotisation                             S21.G00.81.004            - 57,40 (3)
+
+                            CODIFICATION COMPLEMENTAIRE ATTENDUE A COMPTER DE LA NORME DSN 2020
+                                                                                       109 - Exonération de cotisations salariales de
+           Code de cotisation individuelle                   S21.G00.81.001            retraite complémentaire au titre de l'emploi
+                                                                                       d'un apprenti
+           Montant d’assiette                                S21.G00.81.003            954,95 (5)
+
+       (1) montant total de cotisations avant allègement de la cotisation patronale – exonération de la cotisation salariale sur la fraction
+
+       de rémunération limitée à 79 % du SMIC
+       (2) rémunération mensuelle brute du dénominateur de la formule de calcul du coefficient de réduction
+       (3) le montant de réduction doit être déclaré avec un signe négatif. En cas de régularisation, le montant de la réduction pourra
+
+       être positif (à renseigner sans le signe « + »)
+       (4) montant du paiement = montant de cotisation déduction faite du montant de la réduction générale
+       (5) montant de la rémunération exonérée de cotisations salariales
+
+
+
+
+      2ème Exemple : Contrat d’apprentissage conclus à compter du 1er mars 2025.
+      Exonération totale des cotisations salariales sur la part de la rémunération inférieure ou égale à 50% du SMIC.
+
+      Le salarié apprenti ayant signé son contrat d’apprentissage le 1 er mars 2025, perçoit une rémunération mensuelle
+      brute de 954,95.
+
+      Les calculs ci-après ont été opérés sur la base des valeurs 2025 du SMIC (1 801,80 €) et du PMSS (3925 €).
+
+  •    Taux retraite T1 : 6,20 % (appelé à 7,87 %)
+  •    Taux CEG T1 : 2,15 %
+  •    Part patronale : 60 %
+  •    Montant de cotisation patronale avant allègement = 57,40
+  •    Montant de cotisation salariale avant exonération = 38,27
+  •    Montant de cotisation salariale sur la fraction de rémunération jusqu’ à 0,50 % SMIC (909,90 €) = 36,11 (exonéré)
+  •    Montant de cotisation salariale sur la fraction de rémunération supérieure à 0,50 % SMIC = 2,16 (non exonéré)
+  •    Nombre de salariés dans l’entreprise : 51
+  •    T : 32,34 % (dont 6,01% de part patronale Agirc-Arrco et 4,05% de contribution patronale assurance chômage)
+  •    Montant global de la réduction générale de cotisations patronales : 308,83 €
+  •    Montant de la réduction imputée à l’Urssaf : 308,83 x (26,33 / 32,34) = 251,43 €
+  •    Montant de la réduction imputée à l’Agirc-Arrco : 308,83 – 251,43 = 57,40 €
+
+                                                 Codification DSN attendue en mars 2025
+                          Rubrique                        Code rubrique                 Valeur rubrique
+           Montant de versement                              S21.G00.20.005            2,16 (4) = 59,56 - 57,40
+           Dispositif de politique publique et                                         65 – Contrat d’apprentissage entreprises non
+                                                             S21.G00.40.008
+           conventionnel                                                               inscrites au répertoire des métiers
+           Code régime Retraite complémentaire               S21.G00.71.002            RUAA – Régime unifié Agirc-Arrco
+           Code de base assujettie                           S21.G00.78.001            02 - Assiette brute plafonnée
+           Date de début de période de
+                                                             S21.G00.78.002            01/03/2025
+           rattachement
+           Date de fin de période de rattachement            S21.G00.78.003            31/03/2025
+           Montant de base assujettie                        S21.G00.78.004            954,95
+           Code de base assujettie                           S21.G00.78.001            03 - Assiette brute déplafonnée
+           Date de début de période de
+                                                             S21.G00.78.002            01/03/2025
+           rattachement
+
+
+
+
+© Agirc-Arrco                                                   Page 3 sur 7                                                          avril 2026
+                              Exonérations de cotisations
+
+         Date de fin de période de rattachement             S21.G00.78.003            31/03/2025
+         Montant de base assujettie                         S21.G00.78.004            954,95
+                                                                                      131 – Montant de cotisation Régime Unifié
+         Code de cotisation individuelle                    S21.G00.81.001
+                                                                                      Agirc-Arrco
+         Montant de cotisation                              S21.G00.81.004            59,56 (1) = 95,67 – 36,11
+         Type de composant de base                                                    01 – Montant du Smic retenu pour le calcul de
+                                                            S21.G00.79.001
+         assujettie                                                                   la réduction
+         Montant de composant de base
+                                                            S21.G00. 79.004           1 801,80
+         assujettie
+                                                                                      106 – Réduction général des cotisations
+         Code de cotisation individuelle                    S21.G00.81.001
+                                                                                      patronales Agirc-Arrco
+         Montant d’assiette                                 S21.G00.81.003            954,95 (2)
+         Montant de cotisation                              S21.G00.81.004            - 57,40 (5)
+
+                          CODIFICATION COMPLEMENTAIRE ATTENDUE A COMPTER DE LA NORME DSN 2020
+                                                                                      109 - Exonération de cotisations salariales de
+         Code de cotisation individuelle                    S21.G00.81.001            retraite complémentaire au titre de l'emploi
+                                                                                      d'un apprenti
+         Montant d’assiette                                 S21.G00.81.003            909,90 (5)
+
+      (1) montant total de cotisations avant allègement de la cotisation patronale – exonération de la cotisation salariale sur la fraction
+
+      de rémunération limitée à 50% du SMIC
+      (2) rémunération mensuelle brute du dénominateur de la formule de calcul du coefficient de réduction
+      (3) le montant de réduction doit être déclaré avec un signe négatif. En cas de régularisation, le montant de la réduction pourra
+
+      être positif (à renseigner sans le signe « + »)
+      (4) montant du paiement = montant de cotisation déduction faite du montant de la réduction générale
+      (5) montant de la rémunération exonérée de cotisations salariales
+
+
+
+
+© Agirc-Arrco                                                  Page 4 sur 7                                                          avril 2026
+                                 Exonérations de cotisations
+
+      Exonérations de cotisations patronales bénéficiant aux employeurs d’aides à domicile
+
+      L’exonération « Aide à domicile » bénéficiant aux employeurs d’aides à domicile intervenant au
+      domicile de publics fragiles est étendue aux cotisations patronales de retraite complémentaire
+      Agirc-Arrco à compter du 1er janvier 2019.
+
+      Au niveau du déclaratif dans la DSN,
+      - la réduction des cotisations patronales s’applique selon le dispositif de la réduction générale
+         des cotisations : le montant de cotisations individuelles déclaré (en code « 131 - Montant de
+         cotisation Régime Unifié Agirc-Arrco » du bloc S21.G00.81) est le montant de cotisations,
+         avant application de la réduction générale, et le montant de la réduction est déclaré via le
+         code « 106 - Réduction générale des cotisations patronales Agirc-Arrco » du bloc S21.G00.81
+
+      -      le montant de l’exonération salariale n’est pas porté dans la DSN. Le montant de cotisations
+             individuelles déclaré (en code « 131 - Montant de cotisation Régime Unifié Agirc-Arrco » du
+             bloc S21.G00.81) est le montant de cotisations, déduction faite de l’exonération salariale
+
+      -      en complément, et depuis la norme DSN 2020, le montant de la rémunération exonérée de
+             cotisations salariales est déclaré en code « 111 - Exonération de cotisations de retraite
+             complémentaire applicable aux entreprises et associations d'aide à domicile » du bloc
+             S21.G00.81.
+
+
+      Exemple de la codification attendue en 2025
+
+  •       Montant total de cotisation avant réduction = 200,00
+  •       Montant de la réduction de cotisation patronale applicable à l’Agirc-Arrco = 120,00
+
+                                                      Codification DSN attendue en 2026
+                           Rubrique                         Code rubrique                              Valeur rubrique
+             Code de base assujettie                           S21.G00.78.001           02 - Assiette brute plafonnée
+             Date de début de période de
+                                                               S21.G00.78.002           xxxx2026
+             rattachement
+             Date de fin de période de rattachement            S21.G00.78.003           xxxx2026
+             Montant de base assujettie                        S21.G00.78.004           xxxxx,xx
+             Code de base assujettie                           S21.G00.78.001           03 - Assiette brute déplafonnée
+             Date de début de période de
+                                                               S21.G00.78.002           xxxx2026
+             rattachement
+             Date de fin de période de rattachement            S21.G00.78.003           xxxx2026
+             Montant de base assujettie                        S21.G00.78.004           xxxxx,xx
+             Code de cotisation individuelle                   S21.G00.81.001           131 – Cotisation Régime Unifié Agirc-Arrco
+             Montant de cotisation                             S21.G00.81.004           80.00 (*) = 200 - 120
+                                                                                        111 – Exonération de cotisations de retraite
+             Code de cotisation individuelle                   S21.G00.81.001           complémentaire applicable aux entreprises et
+                                                                                        associations d’aide à domicile
+             Montant de cotisation                             S21.G00.81.004           120.00
+
+          (*) montant total de cotisations avant réduction de la cotisation patronale – exonération de la cotisation patronale
+
+
+
+
+© Agirc-Arrco                                                     Page 5 sur 7                                                   avril 2026
+                             Exonérations de cotisations
+
+      Exonérations de cotisations patronales bénéficiant aux employeurs situés Outre-mer
+
+      L’exonération dite LODEOM bénéficiant aux employeurs situés Outre-mer est étendue aux
+      cotisations patronales de retraite complémentaire Agirc-Arrco à compter du 1er janvier 2019.
+
+      Ce dispositif prévoit, pour les entreprises situées en Outre-Mer, une exonération de leurs
+      cotisations patronales selon trois barèmes différents, en fonction de leur taille et de leur secteur
+      d'activité. Les détails sont disponibles dans le chapitre 5 du BOSS :
+      https://boss.gouv.fr/portail/accueil/exonerations/exonerations-zonees.html#titre-chapitre-5--
+      exonerations-applica-section-1--champ-dapplication
+
+      Les entreprises situées Outre-Mer n'entrant dans aucun des 3 barèmes sont éligibles aux
+      Allègements Généraux.
+      L’exonération LODEOM ne peut pas être cumulée avec une autre exonération totale ou partielle
+      de cotisations patronales de Sécurité sociale.
+
+   Le montant de l’exonération applicable au titre de la retraite complémentaire doit être déclaré
+   dans la DSN utilisant :
+  • Code 110 - Exonération de cotisations patronales de retraite complémentaire applicable dans
+    les DOM (LODEOM) SMIC 130% à 220%
+  • Code 112 - Exonération de cotisations patronales de retraite complémentaire applicable dans
+    les DOM (LODEOM) SMIC 170% à 270%
+  • Code 113 - Exonération de cotisations patronales de retraite complémentaire applicable dans
+    les DOM (LODEOM) SMIC 170% à 350%
+
+      En rubrique S21.G00.81.001
+
+      Le montant de cotisations individuelles déclaré (en code « 131 - Cotisation Régime Unifié Agirc-
+      Arrco » du bloc S21.G00.81) sera le montant total de cotisations, déduction faite de
+      l’exonération.
+
+
+
+      Exemple de la codification attendue en 2026
+
+  •    Montant total de cotisation avant réduction = 300,00
+  •    Montant de la réduction de cotisation patronale applicable à l’Agirc-Arrco = 180,00
+
+                                                   Codification DSN attendue en 2024
+                       Rubrique                          Code rubrique                       Valeur rubrique
+          Code de base assujettie                         S21.G00.78.001      02 - Assiette brute plafonnée
+          Date de début de période de
+                                                          S21.G00.78.002      xxxx2026
+          rattachement
+          Date de fin de période de rattachement          S21.G00.78.003      xxxx2026
+          Montant de base assujettie                      S21.G00.78.004      xxxxx,xx
+          Code de base assujettie                         S21.G00.78.001      03 - Assiette brute déplafonnée
+          Date de début de période de
+                                                          S21.G00.78.002      xxxx2026
+          rattachement
+          Date de fin de période de rattachement          S21.G00.78.003      xxxx2026
+          Montant de base assujettie                      S21.G00.78.004      xxxxx.xx
+
+
+
+
+© Agirc-Arrco                                               Page 6 sur 7                                        avril 2026
+                             Exonérations de cotisations
+
+         Code de cotisation individuelle                   S21.G00.81.001           131 – Cotisation Régime Unifié Agirc-Arrco
+         Montant de cotisation                             S21.G00.81.004           120.00 (*) = 300 - 180
+                                                                                    110/112/113 – Exonérations de cotisations
+         Code de cotisation individuelle                   S21.G00.81.001           patronales de retraite complémentaire
+                                                                                    applicable dans les DOM (LODEOM)
+         Montant de cotisation                             S21.G00.81.004           180.00
+
+      (*) montant total de cotisations avant réduction de la cotisation patronale – exonération de la cotisation patronale
+
+
+
+
+© Agirc-Arrco                                                 Page 7 sur 7                                                   avril 2026
+

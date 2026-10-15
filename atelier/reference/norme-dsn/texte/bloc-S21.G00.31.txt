@@ -1,0 +1,118 @@
+# Bloc S21.G00.31
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 177-178
+
+--- p. 177 ---
+  S21.G00.31  2025-12-24
+
+Libellé du pays de naissance  S21.G00.30.029
+Individu.LibellePaysNaiss
+  Cette rubrique est à renseigner avec le libellé du pays de naissance pour un individu né à l’étranger.
+
+  CCH-11 : Si la rubrique « Code département de naissance - S21.G00.30.014 » est renseignée avec la valeur « 99 » et si
+  la rubrique « Lieu de naissance - S21.G00.30.007 » n'est pas renseignée, alors la rubrique « Libellé du pays de
+  naissance - S21.G00.30.029 » doit obligatoirement être renseignée.
+
+  X  [1,30]
+
+Identifiant du Service de Prévention et de Santé au Travail (SPST)  S21.G00.30.030
+Individu.IdentServicePreventSanteTravail
+  Cette rubrique doit être renseignée par l'identifiant du service de prévention et de santé au travail (SPST).
+  La définition de cet identifiant est précisée dans la fiche consigne dédiée.
+
+  X  [1,14]
+
+S21.G00.31
+
+Changements Individu  S21.G00.31
+  Les rubriques de ce bloc sont à renseigner en cas de modification d’une des caractéristiques suivantes d'un individu
+  (par exemple, changement état civil).
+  Plusieurs caractéristiques d'un individu peuvent être modifiées à la même date.
+  Dans ce cas, l’ensemble de ces modifications sera porté par une seule occurrence du bloc.
+  Si plusieurs modifications surviennent pendant le mois à des dates différentes, il sera nécessaire de les déclarer dans
+  autant de blocs qu’il y a de dates différentes de modifications.
+  Les rubriques doivent être renseignées avec la valeur avant changement.
+
+Date de la modification  S21.G00.31.001
+Ancien NIR  S21.G00.31.008
+Ancien nom de famille  S21.G00.31.009
+Anciens prénoms  S21.G00.31.010
+Ancienne date de naissance  S21.G00.31.011
+
+Date de la modification  S21.G00.31.001
+ChangementsIndividu.DateModification
+  La date de modification correspond à la date de survenance du changement de caractéristique du salarié.
+
+  CCH-12 : Un bloc "Changements Individu - S21.G00.31" qui n'est renseigné qu'avec la rubrique "Date de la
+  modification - S21.G00.31.001" est interdit.
+
+  SIG-11 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(19|20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Ancien NIR  S21.G00.31.008
+ChangementsIndividu.Identifiant
+  Le numéro d'inscription au répertoire (NIR) est l'identifiant unique et invariable des individus inscrits au
+  répertoire national d'identification des personnes physiques (RNIPP). Ce numéro correspond au numéro de
+
+  177 / 361
+
+--- p. 178 ---
+  S21.G00.31  2025-12-24
+
+  sécurité sociale.
+  Ce numéro est composé de 13 chiffres et d'une clé de 2 chiffres. La clé n'est pas à déclarer dans cette
+  rubrique.
+  Cette rubrique permet la déclaration du NIA (numéro d'immatriculation d'attente attribué par les
+  organismes de protection sociale). Le NIA est constitué comme un NIR dans l'attente d'être certifié
+  (circulaire DSS/sd4c N° 2012-213 du 1er juin 2012).
+  Le Nir doit avoir la forme SAAMMDDCCCNNN avec :
+  S = sexe de la personne physique doit être égal à 1 ou 2
+  AA = année de naissance de la personne physique doit être comprise entre 00 et 99
+  MM = mois de naissance de la personne physique doit être compris entre 01 et 12 ou entre 30 et 42 ou entre
+  50 et 99 ou égal à 20
+  DD = département de naissance de la personne physique doit être compris entre 01 et 99 ou être égal à 2A
+  ou 2B
+  CCC = commune de naissance de la personne physique doit être comprise entre 001 et 999
+  NNN = numéro d'inscription la personne physique au registre d'état civil doit être compris entre 001 et 999
+  Si l'immatriculation est provisoire, ne pas utiliser les numéros provisoires reconnaissables par leur premier
+  caractère égal à 7 ou 8, mais utiliser le NIA qui a été notifié.
+  En l'absence de NIR ou de NIA, il est obligatoire de remplir la rubrique Numéro technique temporaire
+  (S21.G00.30.020).
+  CSL 00 : [1-2][0-9]{2}(0[1-9]|1[0-2]|20|3[0-9]|4[0-2]|[5-
+  9][0-9])(0[1-9]|[1-9][0-9]|2A|2B)([0]{2}[1-9]|0[1-9][0-9]|[1-
+  X  [13,13]
+  9][0-9]{2})([0]{2}[1-9]|0[1-9][0-9]|[1-9][0-9]{2})|([1-
+  2][9]{12})
+
+Ancien nom de famille  S21.G00.31.009
+ChangementsIndividu.NomFamille
+  Le nom de famille est le nom défini pour chaque individu dans les jours qui suivent sa naissance. Il est
+  usuellement défini sur la base de la filiation avec l’un ou l’autre parent, voire les deux. Il peut être défini
+  par disposition administrative ou judiciaire.
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,80]
+
+Anciens prénoms  S21.G00.31.010
+ChangementsIndividu.Prenoms
+  Elément d'identification joint au nom de famille qui permet de distinguer les personnes d'une même famille.
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,80]
+
+Ancienne date de naissance  S21.G00.31.011
+ChangementsIndividu.DateNaissance
+  Instant où une personne naît, tel qu'enregistré à l'état civil.
+  Renseigner la date de naissance du salarié sous la forme JJMMAAAA.
+  - L'année de naissance est obligatoire :
+  - Jour de naissance inconnu : 00MMAAAA ou 99MMAAAA,
+  - Mois de naissance inconnu : JJ00AAAA ou JJ99AAAA,
+  - Si jour et mois inconnus : 0000AAAA ou 9999AAAA.
+
+  178 / 361

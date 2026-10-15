@@ -1,0 +1,772 @@
+Code (max 40 caractères);Libellé (Max 300 caractères);Valeur (Num 2 Décimales);Date d'effet (jj/mm/aaaa);Date de fin (jj/mm/aaaa);
+SMIC_H_MAYOTT;SMIC horaire brut Mayotte;9,33;01/01/2026;//;OK
+SMIC_H_MAYOTT;SMIC horaire brut Mayotte;8,98;01/01/2025;31/12/2025;OK
+SMIC_H_MAYOTT;SMIC horaire brut Mayotte;8,98;01/11/2024;31/12/2024;OK
+SMIC_H_MAYOTT;SMIC horaire brut Mayotte;8,8;01/01/2024;31/10/2024;OK
+SMIC_H_MAYOTT;SMIC horaire brut Mayotte;8,7;01/05/2023;31/12/2023;OK
+SMIC_H_MAYOTT;SMIC horaire brut Mayotte;8,51;01/01/2023;30/04/2023;OK
+SMIC_H_MAYOTT;SMIC horaire brut Mayotte;8,35;01/08/2022;31/12/2022;OK
+SMIC_H_MAYOTT;SMIC horaire brut Mayotte;8,19;01/05/2022;31/07/2022;OK
+SMIC_H_MAYOTT;SMIC horaire brut Mayotte;7,98;01/01/2022;30/04/2022;OK
+SMIC_H_MAYOTT;SMIC horaire brut Mayotte;7,91;01/10/2021;31/12/2021;OK
+SMIC_H_MAYOTT;SMIC horaire brut Mayotte;7,74;01/01/2021;30/09/2021;OK
+SMIC_H_METROP;SMIC horaire brut;12,02;01/01/2026;//;OK
+SMIC_H_METROP;SMIC horaire brut;11,88;01/01/2025;31/12/2025;OK
+SMIC_H_METROP;SMIC horaire brut;11,88;01/11/2024;31/12/2024;OK
+SMIC_H_METROP;SMIC horaire brut;11,65;01/01/2024;31/10/2024;OK
+SMIC_H_METROP;SMIC horaire brut;11,52;01/05/2023;31/12/2023;OK
+SMIC_H_METROP;SMIC horaire brut;11,27;01/01/2023;30/04/2023;OK
+SMIC_H_METROP;SMIC horaire brut;11,07;01/08/2022;31/12/2022;OK
+SMIC_H_METROP;SMIC horaire brut;10,85;01/05/2022;31/07/2022;OK
+SMIC_H_METROP;SMIC horaire brut;10,57;01/01/2022;30/04/2022;OK
+SMIC_H_METROP;SMIC horaire brut;10,48;01/10/2021;31/12/2021;OK
+SMIC_H_METROP;SMIC horaire brut;10,25;01/01/2021;30/09/2021;OK
+SMIC_M_MAYOTT;SMIC mensuel brut Mayotte;1415,05;01/01/2026;//;OK
+SMIC_M_MAYOTT;SMIC mensuel brut Mayotte;1361,97;01/01/2025;31/12/2025;OK
+SMIC_M_MAYOTT;SMIC mensuel brut Mayotte;1361,97;01/11/2024;31/12/2024;OK
+SMIC_M_MAYOTT;SMIC mensuel brut Mayotte;1334,67;01/01/2024;31/10/2024;OK
+SMIC_M_MAYOTT;SMIC mensuel brut Mayotte;1319,5;01/05/2023;31/12/2023;OK
+SMIC_M_MAYOTT;SMIC mensuel brut Mayotte;1290,68;01/01/2023;30/04/2023;OK
+SMIC_M_MAYOTT;SMIC mensuel brut Mayotte;1266,42;01/08/2022;31/12/2022;OK
+SMIC_M_MAYOTT;SMIC mensuel brut Mayotte;1242,15;01/05/2022;31/07/2022;OK
+SMIC_M_MAYOTT;SMIC mensuel brut Mayotte;1210,3;01/01/2022;30/04/2022;OK
+SMIC_M_MAYOTT;SMIC mensuel brut Mayotte;1199,08;01/10/2021;31/12/2021;OK
+SMIC_M_MAYOTT;SMIC mensuel brut Mayotte;1173,93;01/01/2021;30/09/2021;OK
+SMIC_M_METROP;SMIC mensuel brut;1823,03;01/01/2026;//;OK
+SMIC_M_METROP;SMIC mensuel brut;1801,8;01/01/2025;31/12/2025;OK
+SMIC_M_METROP;SMIC mensuel brut;1801,8;01/11/2024;31/12/2024;OK
+SMIC_M_METROP;SMIC mensuel brut;1766,92;01/01/2024;31/10/2024;OK
+SMIC_M_METROP;SMIC mensuel brut;1747,2;01/05/2023;31/12/2023;OK
+SMIC_M_METROP;SMIC mensuel brut;1709,28;01/01/2023;30/04/2023;OK
+SMIC_M_METROP;SMIC mensuel brut;1678,95;01/08/2022;31/12/2022;OK
+SMIC_M_METROP;SMIC mensuel brut;1645,58;01/05/2022;31/07/2022;OK
+SMIC_M_METROP;SMIC mensuel brut;1603,12;01/01/2022;30/04/2022;OK
+SMIC_M_METROP;SMIC mensuel brut;1589,47;01/10/2021;31/12/2021;OK
+SMIC_M_METROP;SMIC mensuel brut;1554,58;01/01/2021;30/09/2021;OK
+PSS_A_METROP;Plafond Annuel de la sécurité sociale;48060;01/01/2026;//;OK
+PSS_A_METROP;Plafond Annuel de la sécurité sociale;47100;01/01/2025;31/12/2025;OK
+PSS_A_METROP;Plafond Annuel de la sécurité sociale;46368;01/01/2024;31/12/2024;OK
+PSS_A_METROP;Plafond Annuel de la sécurité sociale;43992;01/01/2023;31/12/2023;OK
+PSS_A_METROP;Plafond Annuel de la sécurité sociale;41136;01/01/2022;31/12/2022;OK
+PSS_A_METROP;Plafond Annuel de la sécurité sociale;41136;01/01/2021;31/12/2021;OK
+PSS_T_METROP;Plafond Trimestriel de la sécurité sociale;12 015;01/01/2026;//;OK
+PSS_T_METROP;Plafond Trimestriel de la sécurité sociale;11775;01/01/2025;31/12/2025;OK
+PSS_T_METROP;Plafond Trimestriel de la sécurité sociale;11592;01/01/2024;31/12/2024;OK
+PSS_T_METROP;Plafond Trimestriel de la sécurité sociale;10998;01/01/2023;31/12/2023;OK
+PSS_T_METROP;Plafond Trimestriel de la sécurité sociale;10284;01/01/2022;31/12/2022;OK
+PSS_T_METROP;Plafond Trimestriel de la sécurité sociale;10284;01/01/2021;31/12/2021;OK
+PSS_M_METROP;Plafond Mensuel de la sécurité sociale;4 005;01/01/2026;//;OK
+PSS_M_METROP;Plafond Mensuel de la sécurité sociale;3925;01/01/2025;31/12/2025;OK
+PSS_M_METROP;Plafond Mensuel de la sécurité sociale;3864;01/01/2024;31/12/2024;OK
+PSS_M_METROP;Plafond Mensuel de la sécurité sociale;3666;01/01/2023;31/12/2023;OK
+PSS_M_METROP;Plafond Mensuel de la sécurité sociale;3428;01/01/2022;31/12/2022;OK
+PSS_M_METROP;Plafond Mensuel de la sécurité sociale;3428;01/01/2021;31/12/2021;OK
+PSS_H_METROP;Plafond Horaire de la sécurité sociale;30;01/01/2026;//;OK
+PSS_H_METROP;Plafond Horaire de la sécurité sociale;29;01/01/2025;31/12/2025;OK
+PSS_H_METROP;Plafond Horaire de la sécurité sociale;29;01/01/2024;31/12/2024;OK
+PSS_H_METROP;Plafond Horaire de la sécurité sociale;27;01/01/2023;31/12/2023;OK
+PSS_H_METROP;Plafond Horaire de la sécurité sociale;26;01/01/2022;31/12/2022;OK
+PSS_H_METROP;Plafond Horaire de la sécurité sociale;26;01/01/2021;31/12/2021;OK
+PSS_M_MAYOTT;Plafond Mensuel de la sécurité sociale Mayotte;3 022;01/01/2026;//;OK
+PSS_M_MAYOTT;Plafond Mensuel de la sécurité sociale Mayotte;2821;01/01/2025;31/12/2025;OK
+PSS_M_MAYOTT;Plafond Mensuel de la sécurité sociale Mayotte;2644;01/01/2024;31/12/2024;OK
+PSS_M_MAYOTT;Plafond Mensuel de la sécurité sociale Mayotte;2393;01/01/2023;31/12/2023;OK
+PSS_M_MAYOTT;Plafond Mensuel de la sécurité sociale Mayotte;2137;01/01/2022;31/12/2022;OK
+PSS_M_MAYOTT;Plafond Mensuel de la sécurité sociale Mayotte;2033;01/01/2021;31/12/2021;OK
+REDUC_COT_AF_SS_METROP;Réduction du taux Cotisations d’allocations familiales;1,8;01/01/2026;//;OK
+COT_AF_SS_METROP;Taux de Cotisations d’allocations familiales;5,25;01/01/2026;//;OK
+COT_AF_SS_METROP;Taux de Cotisations d’allocations familiales;3,45;01/05/2025;31/12/2025;OK
+COT_AF_SS_METROP;Taux de Cotisations d’allocations familiales;3,45;01/01/2025;30/04/2025;OK
+COT_AF_SS_METROP;Taux de Cotisations d’allocations familiales;3,45;01/01/2024;31/12/2024;OK
+COT_AF_SS_METROP;Taux de Cotisations d’allocations familiales;3,45;01/01/2023;31/12/2023;OK
+COT_AF_SS_METROP;Taux de Cotisations d’allocations familiales;3,45;01/01/2022;31/12/2022;OK
+COT_AF_SS_METROP;Taux de Cotisations d’allocations familiales;3,45;01/01/2021;31/12/2021;OK
+REDUC_COT_AF_SS_METROP;Réduction du taux Cotisations d'assurance maladie;6;01/01/2026;//;OK
+COT_AM_SS_METROP;Taux de Cotisation d’assurance maladie;13;01/01/2026;//;OK
+COT_AM_SS_METROP;Taux de Cotisation d’assurance maladie;7;01/05/2025;31/12/2025;OK
+COT_AM_SS_METROP;Taux de Cotisation d’assurance maladie;7;01/01/2025;30/04/2025;OK
+COT_AM_SS_METROP;Taux de Cotisation d’assurance maladie;7;01/01/2024;31/12/2024;OK
+COT_AM_SS_METROP;Taux de Cotisation d’assurance maladie;7;01/01/2023;31/12/2023;OK
+COT_AM_SS_METROP;Taux de Cotisation d’assurance maladie;7;01/01/2022;31/12/2022;OK
+COT_AM_SS_METROP;Taux de Cotisation d’assurance maladie;7;01/01/2021;31/12/2021;OK
+COT_AT_SS_METROP;Taux de Cotisation d’accidents du travail et de maladies professionnelles (part mutualisée);0,49;01/01/2026;//;OK
+COT_AT_SS_METROP;Taux de Cotisation d’accidents du travail et de maladies professionnelles (part mutualisée);0,5;01/05/2025;31/12/2025;OK
+COT_AT_SS_METROP;Taux de Cotisation d’accidents du travail et de maladies professionnelles (part mutualisée);0,46;01/01/2025;30/04/2025;OK
+COT_AT_SS_METROP;Taux de Cotisation d’accidents du travail et de maladies professionnelles (part mutualisée);0,46;01/01/2024;31/12/2024;OK
+COT_AT_SS_METROP;Taux de Cotisation d’accidents du travail et de maladies professionnelles (part mutualisée);0,55;01/01/2023;31/12/2023;OK
+COT_AT_SS_METROP;Taux de Cotisation d’accidents du travail et de maladies professionnelles (part mutualisée);0,59;01/01/2022;31/12/2022;OK
+COT_AT_SS_METROP;Taux de Cotisation d’accidents du travail et de maladies professionnelles (part mutualisée);0,7;01/01/2021;31/12/2021;OK
+COT_AV_SS_METROP;Taux de Cotisation d’assurance vieillesse (plafonnée et déplafonnée);10,66;01/01/2026;//;OK
+COT_AV_SS_METROP;Taux de Cotisation d’assurance vieillesse (plafonnée et déplafonnée);10,57;01/05/2025;31/12/2025;OK
+COT_AV_SS_METROP;Taux de Cotisation d’assurance vieillesse (plafonnée et déplafonnée);10,57;01/01/2025;30/04/2025;OK
+COT_AV_SS_METROP;Taux de Cotisation d’assurance vieillesse (plafonnée et déplafonnée);10,57;01/01/2024;31/12/2024;OK
+COT_AV_SS_METROP;Taux de Cotisation d’assurance vieillesse (plafonnée et déplafonnée);10,45;01/01/2023;31/12/2023;OK
+COT_AV_SS_METROP;Taux de Cotisation d’assurance vieillesse (plafonnée et déplafonnée);10,45;01/01/2022;31/12/2022;OK
+COT_AV_SS_METROP;Taux de Cotisation d’assurance vieillesse (plafonnée et déplafonnée);10,45;01/01/2021;31/12/2021;OK
+COT_SA_SS_METROP;Taux de Contribution de solidarité pour l’autonomie;0,3;01/01/2026;//;OK
+COT_SA_SS_METROP;Taux de Contribution de solidarité pour l’autonomie;0,3;01/05/2025;31/12/2025;OK
+COT_SA_SS_METROP;Taux de Contribution de solidarité pour l’autonomie;0,3;01/01/2025;30/04/2025;OK
+COT_SA_SS_METROP;Taux de Contribution de solidarité pour l’autonomie;0,3;01/01/2024;31/12/2024;OK
+COT_SA_SS_METROP;Taux de Contribution de solidarité pour l’autonomie;0,3;01/01/2023;31/12/2023;OK
+COT_SA_SS_METROP;Taux de Contribution de solidarité pour l’autonomie;0,3;01/01/2022;31/12/2022;OK
+COT_SA_SS_METROP;Taux de Contribution de solidarité pour l’autonomie;0,3;01/01/2021;31/12/2021;OK
+COT_CH_UN_METROP;Taux de Contribution d’assurance chômage;4;01/01/2026;//;OK
+COT_CH_UN_METROP;Taux de Contribution d’assurance chômage;4;01/05/2025;31/12/2025;OK
+COT_CH_UN_METROP;Taux de Contribution d’assurance chômage;4,05;01/01/2025;30/04/2025;OK
+COT_CH_UN_METROP;Taux de Contribution d’assurance chômage;4,05;01/01/2024;31/12/2024;OK
+COT_CH_UN_METROP;Taux de Contribution d’assurance chômage;4,05;01/01/2023;31/12/2023;OK
+COT_CH_UN_METROP;Taux de Contribution d’assurance chômage;4,05;01/01/2022;31/12/2022;OK
+COT_CH_UN_METROP;Taux de Contribution d’assurance chômage;4,05;01/01/2021;31/12/2021;OK
+COT_AV_RC_METROP;Taux de Cotisation aux régimes de retraite complémentaire légalement obligatoires mentionnés à l'article L. 921-4 du code de la sécurité sociale ou créés par la loi;6,01;01/01/2026;//;OK
+COT_AV_RC_METROP;Taux de Cotisation aux régimes de retraite complémentaire légalement obligatoires mentionnés à l'article L. 921-4 du code de la sécurité sociale ou créés par la loi;6,01;01/05/2025;31/12/2025;OK
+COT_AV_RC_METROP;Taux de Cotisation aux régimes de retraite complémentaire légalement obligatoires mentionnés à l'article L. 921-4 du code de la sécurité sociale ou créés par la loi;6,01;01/01/2025;30/04/2025;OK
+COT_AV_RC_METROP;Taux de Cotisation aux régimes de retraite complémentaire légalement obligatoires mentionnés à l'article L. 921-4 du code de la sécurité sociale ou créés par la loi;6,01;01/01/2024;31/12/2024;OK
+COT_AV_RC_METROP;Taux de Cotisation aux régimes de retraite complémentaire légalement obligatoires mentionnés à l'article L. 921-4 du code de la sécurité sociale ou créés par la loi;6,01;01/01/2023;31/12/2023;OK
+COT_AV_RC_METROP;Taux de Cotisation aux régimes de retraite complémentaire légalement obligatoires mentionnés à l'article L. 921-4 du code de la sécurité sociale ou créés par la loi;6,01;01/01/2022;31/12/2022;OK
+COT_AV_RC_METROP;Taux de Cotisation aux régimes de retraite complémentaire légalement obligatoires mentionnés à l'article L. 921-4 du code de la sécurité sociale ou créés par la loi;6,01;01/01/2021;31/12/2021;OK
+COT_FNAL_49_METROP;Taux de Contribution au FNAL moins de 50;0,1;01/01/2026;//;OK
+COT_FNAL_49_METROP;Taux de Contribution au FNAL moins de 50;0,1;01/05/2025;31/12/2025;OK
+COT_FNAL_49_METROP;Taux de Contribution au FNAL moins de 50;0,1;01/01/2025;30/04/2025;OK
+COT_FNAL_49_METROP;Taux de Contribution au FNAL moins de 50;0,1;01/01/2024;31/12/2024;OK
+COT_FNAL_49_METROP;Taux de Contribution au FNAL moins de 50;0,1;01/01/2023;31/12/2023;OK
+COT_FNAL_49_METROP;Taux de Contribution au FNAL moins de 50;0,1;01/01/2022;31/12/2022;OK
+COT_FNAL_49_METROP;Taux de Contribution au FNAL moins de 50;0,1;01/01/2021;31/12/2021;OK
+COT_FNAL_50_METROP;Taux de Contribution au FNAL 50 et plus;0,5;01/01/2026;//;OK
+COT_FNAL_50_METROP;Taux de Contribution au FNAL 50 et plus;0,5;01/05/2025;31/12/2025;OK
+COT_FNAL_50_METROP;Taux de Contribution au FNAL 50 et plus;0,5;01/01/2025;30/04/2025;OK
+COT_FNAL_50_METROP;Taux de Contribution au FNAL 50 et plus;0,5;01/01/2024;31/12/2024;OK
+COT_FNAL_50_METROP;Taux de Contribution au FNAL 50 et plus;0,5;01/01/2023;31/12/2023;OK
+COT_FNAL_50_METROP;Taux de Contribution au FNAL 50 et plus;0,5;01/01/2022;31/12/2022;OK
+COT_FNAL_50_METROP;Taux de Contribution au FNAL 50 et plus;0,5;01/01/2021;31/12/2021;OK
+COT_RGD_T_49_METROP;Valeur T moins de 50;31,93;01/05/2025;31/12/2025;OK
+COT_RGD_T_49_METROP;Valeur T moins de 50;31,94;01/01/2025;30/04/2025;OK
+COT_RGD_T_49_METROP;Valeur T moins de 50;31,94;01/01/2024;31/12/2024;OK
+COT_RGD_T_49_METROP;Valeur T moins de 50;31,91;01/01/2023;31/12/2023;OK
+COT_RGD_T_49_METROP;Valeur T moins de 50;31,95;01/01/2022;31/12/2022;OK
+COT_RGD_T_49_METROP;Valeur T moins de 50;32,06;01/01/2021;31/12/2021;OK
+COT_RGD_T_50_METROP;Valeur T  50 et plus;32,33;01/05/2025;31/12/2025;OK
+COT_RGD_T_50_METROP;Valeur T  50 et plus;32,34;01/01/2025;30/04/2025;OK
+COT_RGD_T_50_METROP;Valeur T  50 et plus;32,34;01/01/2024;31/12/2024;OK
+COT_RGD_T_50_METROP;Valeur T  50 et plus;32,31;01/01/2023;31/12/2023;OK
+COT_RGD_T_50_METROP;Valeur T  50 et plus;32,35;01/01/2022;31/12/2022;OK
+COT_RGD_T_50_METROP;Valeur T  50 et plus;32,46;01/01/2021;31/12/2021;OK
+COT_RGDU_Tmin_METROP;Valeur Tmin métropole;2;01/01/2026;//;OK
+COT_RGDU_Tdelta_49_METROP;Valeur Tdelta moins de 50;37,81;01/01/2026;//;OK
+COT_RGDU_Tdelta_50_METROP;Valeur Tdelta  50 et plus;38,21;01/01/2026;//;OK
+FNO_REST_INT;Indemnité de restauration sur le lieu de travail;7,5;01/01/2026;//;OK
+FNO_REST_INT;Indemnité de restauration sur le lieu de travail;7,4;01/01/2025;31/12/2025;OK
+FNO_REST_INT;Indemnité de restauration sur le lieu de travail;7,3;01/01/2024;31/12/2024;OK
+FNO_REST_INT;Indemnité de restauration sur le lieu de travail;7,1;01/01/2023;31/12/2023;OK
+FNO_REST_INT;Indemnité de restauration sur le lieu de travail;7,1;01/09/2022;31/12/2022;OK
+FNO_REST_INT;Indemnité de restauration sur le lieu de travail;6,8;01/01/2022;31/08/2022;OK
+FNO_REST_INT;Indemnité de restauration sur le lieu de travail;6,7;01/01/2021;31/12/2021;OK
+FNO_REST_EXT;Indemnité de restauration hors des locaux de l’entreprise;10,4;01/01/2026;//;OK
+FNO_REST_EXT;Indemnité de restauration hors des locaux de l’entreprise;10,3;01/01/2025;31/12/2025;OK
+FNO_REST_EXT;Indemnité de restauration hors des locaux de l’entreprise;10,1;01/01/2024;31/12/2024;OK
+FNO_REST_EXT;Indemnité de restauration hors des locaux de l’entreprise;9,9;01/01/2023;31/12/2023;OK
+FNO_REST_EXT;Indemnité de restauration hors des locaux de l’entreprise;9,9;01/09/2022;31/12/2022;OK
+FNO_REST_EXT;Indemnité de restauration hors des locaux de l’entreprise;9,5;01/01/2022;31/08/2022;OK
+FNO_REST_EXT;Indemnité de restauration hors des locaux de l’entreprise;9,4;01/01/2021;31/12/2021;OK
+FNO_REST_RESTO;Indemnité pour frais de repas au restaurant;21,4;01/01/2026;//;OK
+FNO_REST_RESTO;Indemnité pour frais de repas au restaurant;21,1;01/01/2025;31/12/2025;OK
+FNO_REST_RESTO;Indemnité pour frais de repas au restaurant;20,7;01/01/2024;31/12/2024;OK
+FNO_REST_RESTO;Indemnité pour frais de repas au restaurant;20,2;01/01/2023;31/12/2023;OK
+FNO_REST_RESTO;Indemnité pour frais de repas au restaurant;20,2;01/09/2022;31/12/2022;OK
+FNO_REST_RESTO;Indemnité pour frais de repas au restaurant;19,4;01/01/2022;31/08/2022;OK
+FNO_REST_RESTO;Indemnité pour frais de repas au restaurant;19,1;01/01/2021;31/12/2021;OK
+FNO_REST_ROUT_SAND;Indemnité casse-croûte pour les chauffeurs routiers;10,4;01/01/2026;//;OK
+FNO_REST_ROUT_SAND;Indemnité casse-croûte pour les chauffeurs routiers;10,3;01/01/2025;31/12/2025;OK
+FNO_REST_ROUT_SAND;Indemnité casse-croûte pour les chauffeurs routiers;10,1;01/01/2024;31/12/2024;OK
+FNO_REST_ROUT_SAND;Indemnité casse-croûte pour les chauffeurs routiers;9,9;01/01/2023;31/12/2023;OK
+FNO_REST_ROUT_SAND;Indemnité casse-croûte pour les chauffeurs routiers;9,9;01/09/2022;31/12/2022;OK
+FNO_REST_ROUT_SAND;Indemnité casse-croûte pour les chauffeurs routiers;9,5;01/01/2022;31/08/2022;OK
+FNO_REST_ROUT_SAND;Indemnité casse-croûte pour les chauffeurs routiers;9,4;01/01/2021;31/12/2021;OK
+FNO_REST_ROUT_PAUS;Indemnité pour frais de repas au restaurant pour les chauffeurs routiers Si la durée du trajet implique un temps de pause pour ce repas;21,4;01/01/2026;//;OK
+FNO_REST_ROUT_PAUS;Indemnité pour frais de repas au restaurant pour les chauffeurs routiers Si la durée du trajet implique un temps de pause pour ce repas;21,1;01/01/2025;31/12/2025;OK
+FNO_REST_ROUT_PAUS;Indemnité pour frais de repas au restaurant pour les chauffeurs routiers Si la durée du trajet implique un temps de pause pour ce repas;20,7;01/01/2024;31/12/2024;OK
+FNO_REST_ROUT_PAUS;Indemnité pour frais de repas au restaurant pour les chauffeurs routiers Si la durée du trajet implique un temps de pause pour ce repas;20,2;01/01/2023;31/12/2023;OK
+FNO_REST_ROUT_PAUS;Indemnité pour frais de repas au restaurant pour les chauffeurs routiers Si la durée du trajet implique un temps de pause pour ce repas;20,2;01/09/2022;31/12/2022;OK
+FNO_REST_ROUT_PAUS;Indemnité pour frais de repas au restaurant pour les chauffeurs routiers Si la durée du trajet implique un temps de pause pour ce repas;19,4;01/01/2022;31/08/2022;OK
+FNO_REST_ROUT_PAUS;Indemnité pour frais de repas au restaurant pour les chauffeurs routiers Si la durée du trajet implique un temps de pause pour ce repas;19,1;01/01/2021;31/12/2021;OK
+FNO_REST_ROUT_AUTR;Indemnité pour frais de repas au restaurant pour les chauffeurs routiers Autre;10,4;01/01/2026;//;OK
+FNO_REST_ROUT_AUTR;Indemnité pour frais de repas au restaurant pour les chauffeurs routiers Autre;10,3;01/01/2025;31/12/2025;OK
+FNO_REST_ROUT_AUTR;Indemnité pour frais de repas au restaurant pour les chauffeurs routiers Autre;10,1;01/01/2024;31/12/2024;OK
+FNO_REST_ROUT_AUTR;Indemnité pour frais de repas au restaurant pour les chauffeurs routiers Autre;9,9;01/01/2023;31/12/2023;OK
+FNO_REST_ROUT_AUTR;Indemnité pour frais de repas au restaurant pour les chauffeurs routiers Autre;9,9;01/09/2022;31/12/2022;OK
+FNO_REST_ROUT_AUTR;Indemnité pour frais de repas au restaurant pour les chauffeurs routiers Autre;9,5;01/01/2022;31/08/2022;OK
+FNO_REST_ROUT_AUTR;Indemnité pour frais de repas au restaurant pour les chauffeurs routiers Autre;9,4;01/01/2021;31/12/2021;OK
+FTR_PTR_CARB_CASGEN;Prime transport Frais de carburant Cas général;300;01/01/2026;//;OK
+FTR_PTR_CARB_CASGEN;Prime transport Frais de carburant Cas général;300;01/01/2025;31/12/2025;OK
+FTR_PTR_CARB_CASGEN;Prime transport Frais de carburant Cas général;400;01/01/2024;31/12/2024;OK
+FTR_PTR_CARB_CASGEN;Prime transport Frais de carburant Cas général;400;01/01/2023;31/12/2023;OK
+FTR_PTR_CARB_CASGEN;Prime transport Frais de carburant Cas général;400;01/01/2022;31/12/2022;OK
+FTR_PTR_CARB_CASGEN;Prime transport Frais de carburant Cas général;200;01/01/2021;31/12/2021;OK
+FTR_PTR_ELEC_CASGEN;Prime transport Frais d'alimentation d'un véhicule électrique Cas général;600;01/01/2026;//;OK
+FTR_PTR_ELEC_CASGEN;Prime transport Frais d'alimentation d'un véhicule électrique Cas général;600;01/01/2025;31/12/2025;OK
+FTR_PTR_ELEC_CASGEN;Prime transport Frais d'alimentation d'un véhicule électrique Cas général;700;01/01/2024;31/12/2024;OK
+FTR_PTR_ELEC_CASGEN;Prime transport Frais d'alimentation d'un véhicule électrique Cas général;700;01/01/2023;31/12/2023;OK
+FTR_PTR_ELEC_CASGEN;Prime transport Frais d'alimentation d'un véhicule électrique Cas général;700;01/01/2022;31/12/2022;OK
+FTR_PTR_ELEC_CASGEN;Prime transport Frais d'alimentation d'un véhicule électrique Cas général;500;01/01/2021;31/12/2021;OK
+FTR_FMD_PRIV_CASGEN;Forfait mobilités durables pour le secteur privé Cas général;600;01/01/2026;//;OK
+FTR_FMD_PRIV_CASGEN;Forfait mobilités durables pour le secteur privé Cas général;600;01/01/2025;31/12/2025;OK
+FTR_FMD_PRIV_CASGEN;Forfait mobilités durables pour le secteur privé Cas général;700;01/01/2024;31/12/2024;OK
+FTR_FMD_PRIV_CASGEN;Forfait mobilités durables pour le secteur privé Cas général;700;01/01/2023;31/12/2023;OK
+FTR_FMD_PRIV_CASGEN;Forfait mobilités durables pour le secteur privé Cas général;700;01/01/2022;31/12/2022;OK
+FTR_FMD_PRIV_CASGEN;Forfait mobilités durables pour le secteur privé Cas général;500;01/01/2021;31/12/2021;OK
+FTR_PTR_CARB_DOM;Prime transport Frais de carburant en Guadeloupe, à la Réunion, en Guyane, en Martinique et à Mayotte;600;01/01/2024;31/12/2024;OK
+FTR_PTR_CARB_DOM;Prime transport Frais de carburant en Guadeloupe, à la Réunion, en Guyane, en Martinique et à Mayotte;600;01/01/2023;31/12/2023;OK
+FTR_PTR_CARB_DOM;Prime transport Frais de carburant en Guadeloupe, à la Réunion, en Guyane, en Martinique et à Mayotte;600;01/01/2022;31/12/2022;OK
+FTR_PTR_ELEC_DOM;Prime transport Frais d'alimentation d'un véhicule électrique en Guadeloupe, à la Réunion, en Guyane, en Martinique et à Mayotte;900;01/01/2024;31/12/2024;OK
+FTR_PTR_ELEC_DOM;Prime transport Frais d'alimentation d'un véhicule électrique en Guadeloupe, à la Réunion, en Guyane, en Martinique et à Mayotte;900;01/01/2023;31/12/2023;OK
+FTR_PTR_ELEC_DOM;Prime transport Frais d'alimentation d'un véhicule électrique en Guadeloupe, à la Réunion, en Guyane, en Martinique et à Mayotte;900;01/01/2022;31/12/2022;OK
+FTR_FMD_PRIV_DOM;Forfait mobilités durables pour le secteur privé en Guadeloupe, à la Réunion, en Guyane, en Martinique et à Mayotte;900;01/01/2024;31/12/2024;OK
+FTR_FMD_PRIV_DOM;Forfait mobilités durables pour le secteur privé en Guadeloupe, à la Réunion, en Guyane, en Martinique et à Mayotte;900;01/01/2023;31/12/2023;OK
+FTR_FMD_PRIV_DOM;Forfait mobilités durables pour le secteur privé en Guadeloupe, à la Réunion, en Guyane, en Martinique et à Mayotte;900;01/01/2022;31/12/2022;OK
+FTR_FMD_PUBL_59J;Forfait mobilités durables pour la fonction publique Entre 30 et 59 jours;100;01/01/2026;//;OK
+FTR_FMD_PUBL_59J;Forfait mobilités durables pour la fonction publique Entre 30 et 59 jours;100;01/01/2025;31/12/2025;OK
+FTR_FMD_PUBL_59J;Forfait mobilités durables pour la fonction publique Entre 30 et 59 jours;100;01/01/2024;31/12/2024;OK
+FTR_FMD_PUBL_59J;Forfait mobilités durables pour la fonction publique Entre 30 et 59 jours;100;01/01/2023;31/12/2023;OK
+FTR_FMD_PUBL_59J;Forfait mobilités durables pour la fonction publique Entre 30 et 59 jours;100;01/01/2022;31/12/2022;OK
+FTR_FMD_PUBL_99J;Forfait mobilités durables pour la fonction publique Entre 60 et 99 jours;200;01/01/2026;//;OK
+FTR_FMD_PUBL_99J;Forfait mobilités durables pour la fonction publique Entre 60 et 99 jours;200;01/01/2025;31/12/2025;OK
+FTR_FMD_PUBL_99J;Forfait mobilités durables pour la fonction publique Entre 60 et 99 jours;200;01/01/2024;31/12/2024;OK
+FTR_FMD_PUBL_99J;Forfait mobilités durables pour la fonction publique Entre 60 et 99 jours;200;01/01/2023;31/12/2023;OK
+FTR_FMD_PUBL_99J;Forfait mobilités durables pour la fonction publique Entre 60 et 99 jours;200;01/01/2022;31/12/2022;OK
+FTR_FMD_PUBL_100J;Forfait mobilités durables pour la fonction publique Au moins 100 jours;300;01/01/2026;//;OK
+FTR_FMD_PUBL_100J;Forfait mobilités durables pour la fonction publique Au moins 100 jours;300;01/01/2025;31/12/2025;OK
+FTR_FMD_PUBL_100J;Forfait mobilités durables pour la fonction publique Au moins 100 jours;300;01/01/2024;31/12/2024;OK
+FTR_FMD_PUBL_100J;Forfait mobilités durables pour la fonction publique Au moins 100 jours;300;01/01/2023;31/12/2023;OK
+FTR_FMD_PUBL_100J;Forfait mobilités durables pour la fonction publique Au moins 100 jours;300;01/01/2022;31/12/2022;OK
+FTR_FMD_CUM;Cumul du remboursement obligatoire de frais de transport en commun et de service public de location de vélos avec le versement du forfait mobilités durables;900;01/01/2026;//;OK
+FTR_FMD_CUM;Cumul du remboursement obligatoire de frais de transport en commun et de service public de location de vélos avec le versement du forfait mobilités durables;900;01/01/2025;31/12/2025;OK
+FTR_FMD_CUM;Cumul du remboursement obligatoire de frais de transport en commun et de service public de location de vélos avec le versement du forfait mobilités durables;800;01/01/2024;31/12/2024;OK
+FTR_FMD_CUM;Cumul du remboursement obligatoire de frais de transport en commun et de service public de location de vélos avec le versement du forfait mobilités durables;800;01/01/2023;31/12/2023;OK
+FTR_FMD_CUM;Cumul du remboursement obligatoire de frais de transport en commun et de service public de location de vélos avec le versement du forfait mobilités durables;800;01/01/2022;31/12/2022;OK
+FTR_FMD_CUM;Cumul du remboursement obligatoire de frais de transport en commun et de service public de location de vélos avec le versement du forfait mobilités durables;600;01/01/2021;31/12/2021;OK
+FTR_FMD_PUBL_AV22;Forfait mobilités durables pour la fonction publique avant 2022;200;01/01/2021;31/12/2021;OK
+FGD_REPA_METROP;En métropole Dépenses supplémentaires de repas;21,4;01/01/2026;//;OK
+FGD_REPA_METROP;En métropole Dépenses supplémentaires de repas;21,1;01/01/2025;31/12/2025;OK
+FGD_REPA_METROP;En métropole Dépenses supplémentaires de repas;20,7;01/01/2024;31/12/2024;OK
+FGD_REPA_METROP;En métropole Dépenses supplémentaires de repas;20,2;01/01/2023;31/12/2023;OK
+FGD_REPA_METROP;En métropole Dépenses supplémentaires de repas;20,2;01/09/2022;31/12/2022;OK
+FGD_REPA_METROP;En métropole Dépenses supplémentaires de repas;19,4;01/01/2022;31/08/2022;OK
+FGD_REPA_METROP;En métropole Dépenses supplémentaires de repas;19,1;01/01/2021;31/12/2021;OK
+FGD_LOG_PARIS;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;76,6;01/01/2026;//;OK
+FGD_LOG_PARIS;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;75,6;01/01/2025;31/12/2025;OK
+FGD_LOG_PARIS;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;74,3;01/01/2024;31/12/2024;OK
+FGD_LOG_PARIS;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;72,5;01/01/2023;31/12/2023;OK
+FGD_LOG_PARIS;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;69,5;01/01/2022;31/12/2022;OK
+FGD_LOG_PARIS;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;68,5;01/01/2021;31/12/2021;OK
+FGD_LOG_AUTRE;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;56,8;01/01/2026;//;OK
+FGD_LOG_AUTRE;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;56,1;01/01/2025;31/12/2025;OK
+FGD_LOG_AUTRE;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;55,1;01/01/2024;31/12/2024;OK
+FGD_LOG_AUTRE;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;53,8;01/01/2023;31/12/2023;OK
+FGD_LOG_AUTRE;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;51,6;01/01/2022;31/12/2022;OK
+FGD_LOG_AUTRE;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;50,8;01/01/2021;31/12/2021;OK
+FGD_REPA_DOM;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;20;01/01/2026;//;OK
+FGD_REPA_DOM;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;20;01/01/2025;31/12/2025;OK
+FGD_REPA_DOM;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;20;01/01/2024;31/12/2024;OK
+FGD_REPA_DOM;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;20;01/01/2023;31/12/2023;OK
+FGD_REPA_DOM;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;17,5;01/01/2022;31/12/2022;OK
+FGD_REPA_DOM;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;17,5;01/01/2021;31/12/2021;OK
+FGD_LOG_DOM;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;120;01/01/2026;//;OK
+FGD_LOG_DOM;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;120;01/01/2025;31/12/2025;OK
+FGD_LOG_DOM;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;120;01/01/2024;31/12/2024;OK
+FGD_LOG_DOM;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;120;01/01/2023;31/12/2023;OK
+FGD_LOG_DOM;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;70;01/01/2022;31/12/2022;OK
+FGD_LOG_DOM;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;70;01/01/2021;31/12/2021;OK
+FGD_REPA_COM;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;24;01/01/2026;//;OK
+FGD_REPA_COM;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;24;01/01/2025;31/12/2025;OK
+FGD_REPA_COM;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;24;01/01/2024;31/12/2024;OK
+FGD_REPA_COM;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;24;01/01/2023;31/12/2023;OK
+FGD_REPA_COM;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;21;01/01/2022;31/12/2022;OK
+FGD_REPA_COM;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;21;01/01/2021;31/12/2021;OK
+FGD_LOG_COM;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;120;01/01/2026;//;OK
+FGD_LOG_COM;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;120;01/01/2025;31/12/2025;OK
+FGD_LOG_COM;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;120;01/01/2024;31/12/2024;OK
+FGD_LOG_COM;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;120;01/01/2023;31/12/2023;OK
+FGD_LOG_COM;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;90;01/01/2022;31/12/2022;OK
+FGD_LOG_COM;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;90;01/01/2021;31/12/2021;OK
+FGD_REPA_MCO;A Monaco Dépenses supplémentaires de repas;20;01/01/2026;//;OK
+FGD_REPA_MCO;A Monaco Dépenses supplémentaires de repas;20;01/01/2025;31/12/2025;OK
+FGD_REPA_MCO;A Monaco Dépenses supplémentaires de repas;20;01/01/2024;31/12/2024;OK
+FGD_REPA_MCO;A Monaco Dépenses supplémentaires de repas;20;01/01/2023;31/12/2023;OK
+FGD_REPA_MCO;A Monaco Dépenses supplémentaires de repas;17,5;01/01/2022;31/12/2022;OK
+FGD_REPA_MCO;A Monaco Dépenses supplémentaires de repas;17,5;01/01/2021;31/12/2021;OK
+FGD_LOG_MCO;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;120;01/01/2026;//;OK
+FGD_LOG_MCO;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;120;01/01/2025;31/12/2025;OK
+FGD_LOG_MCO;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;120;01/01/2024;31/12/2024;OK
+FGD_LOG_MCO;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;120;01/01/2023;31/12/2023;OK
+FGD_LOG_MCO;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;70;01/01/2022;31/12/2022;OK
+FGD_LOG_MCO;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;70;01/01/2021;31/12/2021;OK
+FGD_REPA_METROP_ABT15;En métropole Dépenses supplémentaires de repas;18,2;01/01/2026;//;OK
+FGD_REPA_METROP_ABT15;En métropole Dépenses supplémentaires de repas;18;01/01/2025;31/12/2025;OK
+FGD_REPA_METROP_ABT15;En métropole Dépenses supplémentaires de repas;17,6;01/01/2024;31/12/2024;OK
+FGD_REPA_METROP_ABT15;En métropole Dépenses supplémentaires de repas;17,2;01/01/2023;31/12/2023;OK
+FGD_REPA_METROP_ABT15;En métropole Dépenses supplémentaires de repas;17,2;01/09/2022;31/12/2022;OK
+FGD_REPA_METROP_ABT15;En métropole Dépenses supplémentaires de repas;16,5;01/01/2022;31/08/2022;OK
+FGD_REPA_METROP_ABT15;En métropole Dépenses supplémentaires de repas;16,3;01/01/2021;31/12/2021;OK
+FGD_LOG_PARIS_ABT15;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;65,1;01/01/2026;//;OK
+FGD_LOG_PARIS_ABT15;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;64,3;01/01/2025;31/12/2025;OK
+FGD_LOG_PARIS_ABT15;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;63,2;01/01/2024;31/12/2024;OK
+FGD_LOG_PARIS_ABT15;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;61,7;01/01/2023;31/12/2023;OK
+FGD_LOG_PARIS_ABT15;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;59,1;01/01/2022;31/12/2022;OK
+FGD_LOG_PARIS_ABT15;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;58,3;01/01/2021;31/12/2021;OK
+FGD_LOG_AUTRE_ABT15;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;48,3;01/01/2026;//;OK
+FGD_LOG_AUTRE_ABT15;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;47,7;01/01/2025;31/12/2025;OK
+FGD_LOG_AUTRE_ABT15;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;46,9;01/01/2024;31/12/2024;OK
+FGD_LOG_AUTRE_ABT15;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;45,8;01/01/2023;31/12/2023;OK
+FGD_LOG_AUTRE_ABT15;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;43,9;01/01/2022;31/12/2022;OK
+FGD_LOG_AUTRE_ABT15;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;43,2;01/01/2021;31/12/2021;OK
+FGD_REPA_DOM_ABT15;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;17;01/01/2026;//;OK
+FGD_REPA_DOM_ABT15;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;17;01/01/2025;31/12/2025;OK
+FGD_REPA_DOM_ABT15;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;17;01/01/2024;31/12/2024;OK
+FGD_REPA_DOM_ABT15;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;17;01/01/2023;31/12/2023;OK
+FGD_REPA_DOM_ABT15;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;14,9;01/01/2022;31/12/2022;OK
+FGD_REPA_DOM_ABT15;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;14,9;01/01/2021;31/12/2021;OK
+FGD_LOG_DOM_ABT15;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;102;01/01/2026;//;OK
+FGD_LOG_DOM_ABT15;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;102;01/01/2025;31/12/2025;OK
+FGD_LOG_DOM_ABT15;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;102;01/01/2024;31/12/2024;OK
+FGD_LOG_DOM_ABT15;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;102;01/01/2023;31/12/2023;OK
+FGD_LOG_DOM_ABT15;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;59,5;01/01/2022;31/12/2022;OK
+FGD_LOG_DOM_ABT15;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;59,5;01/01/2021;31/12/2021;OK
+FGD_REPA_COM_ABT15;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;20,4;01/01/2026;//;OK
+FGD_REPA_COM_ABT15;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;20,4;01/01/2025;31/12/2025;OK
+FGD_REPA_COM_ABT15;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;20,4;01/01/2024;31/12/2024;OK
+FGD_REPA_COM_ABT15;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;20,4;01/01/2023;31/12/2023;OK
+FGD_REPA_COM_ABT15;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;17,9;01/01/2022;31/12/2022;OK
+FGD_REPA_COM_ABT15;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;17,9;01/01/2021;31/12/2021;OK
+FGD_LOG_COM_ABT15;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;102;01/01/2026;//;OK
+FGD_LOG_COM_ABT15;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;102;01/01/2025;31/12/2025;OK
+FGD_LOG_COM_ABT15;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;102;01/01/2024;31/12/2024;OK
+FGD_LOG_COM_ABT15;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;102;01/01/2023;31/12/2023;OK
+FGD_LOG_COM_ABT15;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;76,5;01/01/2022;31/12/2022;OK
+FGD_LOG_COM_ABT15;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;76,5;01/01/2021;31/12/2021;OK
+FGD_REPA_MCO_ABT15;A Monaco Dépenses supplémentaires de repas;17;01/01/2026;//;OK
+FGD_REPA_MCO_ABT15;A Monaco Dépenses supplémentaires de repas;17;01/01/2025;31/12/2025;OK
+FGD_REPA_MCO_ABT15;A Monaco Dépenses supplémentaires de repas;17;01/01/2024;31/12/2024;OK
+FGD_REPA_MCO_ABT15;A Monaco Dépenses supplémentaires de repas;17;01/01/2023;31/12/2023;OK
+FGD_REPA_MCO_ABT15;A Monaco Dépenses supplémentaires de repas;14,9;01/01/2022;31/12/2022;OK
+FGD_REPA_MCO_ABT15;A Monaco Dépenses supplémentaires de repas;14,9;01/01/2021;31/12/2021;OK
+FGD_LOG_MCO_ABT15;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;102;01/01/2026;//;OK
+FGD_LOG_MCO_ABT15;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;102;01/01/2025;31/12/2025;OK
+FGD_LOG_MCO_ABT15;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;102;01/01/2024;31/12/2024;OK
+FGD_LOG_MCO_ABT15;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;102;01/01/2023;31/12/2023;OK
+FGD_LOG_MCO_ABT15;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;59,5;01/01/2022;31/12/2022;OK
+FGD_LOG_MCO_ABT15;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;59,5;01/01/2021;31/12/2021;OK
+FGD_REPA_METROP_ABT30;En métropole Dépenses supplémentaires de repas;15;01/01/2026;//;OK
+FGD_REPA_METROP_ABT30;En métropole Dépenses supplémentaires de repas;14,8;01/01/2025;31/12/2025;OK
+FGD_REPA_METROP_ABT30;En métropole Dépenses supplémentaires de repas;14,5;01/01/2024;31/12/2024;OK
+FGD_REPA_METROP_ABT30;En métropole Dépenses supplémentaires de repas;14,2;01/01/2023;31/12/2023;OK
+FGD_REPA_METROP_ABT30;En métropole Dépenses supplémentaires de repas;14,2;01/09/2022;31/12/2022;OK
+FGD_REPA_METROP_ABT30;En métropole Dépenses supplémentaires de repas;13,6;01/01/2022;31/08/2022;OK
+FGD_REPA_METROP_ABT30;En métropole Dépenses supplémentaires de repas;13,4;01/01/2021;31/12/2021;OK
+FGD_LOG_PARIS_ABT30;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;53,6;01/01/2026;//;OK
+FGD_LOG_PARIS_ABT30;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;53;01/01/2025;31/12/2025;OK
+FGD_LOG_PARIS_ABT30;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;52,1;01/01/2024;31/12/2024;OK
+FGD_LOG_PARIS_ABT30;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;50,8;01/01/2023;31/12/2023;OK
+FGD_LOG_PARIS_ABT30;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;48,7;01/01/2022;31/12/2022;OK
+FGD_LOG_PARIS_ABT30;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les départements 75, 92, 93 et 94;48;01/01/2021;31/12/2021;OK
+FGD_LOG_AUTRE_ABT30;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;39,8;01/01/2026;//;OK
+FGD_LOG_AUTRE_ABT30;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;39,3;01/01/2025;31/12/2025;OK
+FGD_LOG_AUTRE_ABT30;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;38,6;01/01/2024;31/12/2024;OK
+FGD_LOG_AUTRE_ABT30;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;37,7;01/01/2023;31/12/2023;OK
+FGD_LOG_AUTRE_ABT30;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;36,2;01/01/2022;31/12/2022;OK
+FGD_LOG_AUTRE_ABT30;En métropole Dépenses supplémentaires de logement et de petit-déjeuner dans les autres départements métropolitains;35,6;01/01/2021;31/12/2021;OK
+FGD_REPA_DOM_ABT30;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;14;01/01/2026;//;OK
+FGD_REPA_DOM_ABT30;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;14;01/01/2025;31/12/2025;OK
+FGD_REPA_DOM_ABT30;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;14;01/01/2024;31/12/2024;OK
+FGD_REPA_DOM_ABT30;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;14;01/01/2023;31/12/2023;OK
+FGD_REPA_DOM_ABT30;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;12,3;01/01/2022;31/12/2022;OK
+FGD_REPA_DOM_ABT30;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de repas;12,3;01/01/2021;31/12/2021;OK
+FGD_LOG_DOM_ABT30;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;84;01/01/2026;//;OK
+FGD_LOG_DOM_ABT30;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;84;01/01/2025;31/12/2025;OK
+FGD_LOG_DOM_ABT30;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;84;01/01/2024;31/12/2024;OK
+FGD_LOG_DOM_ABT30;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;84;01/01/2023;31/12/2023;OK
+FGD_LOG_DOM_ABT30;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;49;01/01/2022;31/12/2022;OK
+FGD_LOG_DOM_ABT30;Dans les DOM, les collectivités de Mayotte et Saint-Pierre-et-Miquelon Dépenses supplémentaires de logement et de petit-déjeuner;49;01/01/2021;31/12/2021;OK
+FGD_REPA_COM_ABT30;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;16,8;01/01/2026;//;OK
+FGD_REPA_COM_ABT30;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;16,8;01/01/2025;31/12/2025;OK
+FGD_REPA_COM_ABT30;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;16,8;01/01/2024;31/12/2024;OK
+FGD_REPA_COM_ABT30;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;16,8;01/01/2023;31/12/2023;OK
+FGD_REPA_COM_ABT30;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;14,7;01/01/2022;31/12/2022;OK
+FGD_REPA_COM_ABT30;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de repas;14,7;01/01/2021;31/12/2021;OK
+FGD_LOG_COM_ABT30;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;84;01/01/2026;//;OK
+FGD_LOG_COM_ABT30;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;84;01/01/2025;31/12/2025;OK
+FGD_LOG_COM_ABT30;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;84;01/01/2024;31/12/2024;OK
+FGD_LOG_COM_ABT30;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;84;01/01/2023;31/12/2023;OK
+FGD_LOG_COM_ABT30;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;63;01/01/2022;31/12/2022;OK
+FGD_LOG_COM_ABT30;A Wallis-et-Futuna, en Nouvelle-Calédonie et en Polynésie française Dépenses supplémentaires de logement et de petit-déjeuner;63;01/01/2021;31/12/2021;OK
+FGD_REPA_MCO_ABT30;A Monaco Dépenses supplémentaires de repas;14;01/01/2026;//;OK
+FGD_REPA_MCO_ABT30;A Monaco Dépenses supplémentaires de repas;14;01/01/2025;31/12/2025;OK
+FGD_REPA_MCO_ABT30;A Monaco Dépenses supplémentaires de repas;14;01/01/2024;31/12/2024;OK
+FGD_REPA_MCO_ABT30;A Monaco Dépenses supplémentaires de repas;14;01/01/2023;31/12/2023;OK
+FGD_REPA_MCO_ABT30;A Monaco Dépenses supplémentaires de repas;12,3;01/01/2022;31/12/2022;OK
+FGD_REPA_MCO_ABT30;A Monaco Dépenses supplémentaires de repas;12,3;01/01/2021;31/12/2021;OK
+FGD_LOG_MCO_ABT30;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;84;01/01/2026;//;OK
+FGD_LOG_MCO_ABT30;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;84;01/01/2025;31/12/2025;OK
+FGD_LOG_MCO_ABT30;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;84;01/01/2024;31/12/2024;OK
+FGD_LOG_MCO_ABT30;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;84;01/01/2023;31/12/2023;OK
+FGD_LOG_MCO_ABT30;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;49;01/01/2022;31/12/2022;OK
+FGD_LOG_MCO_ABT30;A Monaco Dépenses supplémentaires de logement et de petit-déjeuner;49;01/01/2021;31/12/2021;OK
+FM_IND_FSUPP;Indemnités destinées à compenser les dépenses d'hébergement provisoire et les frais supplémentaires de nourriture (par jour);85,1;01/01/2026;//;OK
+FM_IND_FSUPP;Indemnités destinées à compenser les dépenses d'hébergement provisoire et les frais supplémentaires de nourriture (par jour);84;01/01/2025;31/12/2025;OK
+FM_IND_FSUPP;Indemnités destinées à compenser les dépenses d'hébergement provisoire et les frais supplémentaires de nourriture (par jour);82,5;01/01/2024;31/12/2024;OK
+FM_IND_FSUPP;Indemnités destinées à compenser les dépenses d'hébergement provisoire et les frais supplémentaires de nourriture (par jour);80,5;01/01/2023;31/12/2023;OK
+FM_IND_FSUPP;Indemnités destinées à compenser les dépenses d'hébergement provisoire et les frais supplémentaires de nourriture (par jour);77,2;01/01/2022;31/12/2022;OK
+FM_IND_FSUPP;Indemnités destinées à compenser les dépenses d'hébergement provisoire et les frais supplémentaires de nourriture (par jour);76,1;01/01/2021;31/12/2021;OK
+FM_IND_PERSO;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Pour une personne seule ou un couple;1705,7;01/01/2026;//;OK
+FM_IND_PERSO;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Pour une personne seule ou un couple;1683,8;01/01/2025;31/12/2025;OK
+FM_IND_PERSO;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Pour une personne seule ou un couple;1654;01/01/2024;31/12/2024;OK
+FM_IND_PERSO;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Pour une personne seule ou un couple;1613,7;01/01/2023;31/12/2023;OK
+FM_IND_PERSO;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Pour une personne seule ou un couple;1547,2;01/01/2022;31/12/2022;OK
+FM_IND_PERSO;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Pour une personne seule ou un couple;1524,3;01/01/2021;31/12/2021;OK
+FM_IND_MAJO;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Majoration par enfant à charge;142,2;01/01/2026;//;OK
+FM_IND_MAJO;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Majoration par enfant à charge;140,4;01/01/2025;31/12/2025;OK
+FM_IND_MAJO;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Majoration par enfant à charge;137,9;01/01/2024;31/12/2024;OK
+FM_IND_MAJO;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Majoration par enfant à charge;134,5;01/01/2023;31/12/2023;OK
+FM_IND_MAJO;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Majoration par enfant à charge;129;01/01/2022;31/12/2022;OK
+FM_IND_MAJO;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Majoration par enfant à charge;127,1;01/01/2021;31/12/2021;OK
+FM_PROV_LIMIT;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Montant limite;2132,1;01/01/2026;//;OK
+FM_PROV_LIMIT;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Montant limite;2104,7;01/01/2025;31/12/2025;OK
+FM_PROV_LIMIT;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Montant limite;1067,5;01/01/2024;31/12/2024;OK
+FM_PROV_LIMIT;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Montant limite;2017,1;01/01/2023;31/12/2023;OK
+FM_PROV_LIMIT;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Montant limite;1933,9;01/01/2022;31/12/2022;OK
+FM_PROV_LIMIT;Indemnités destinées à compenser les dépenses inhérentes à l'installation dans le nouveau logement Montant limite;1905,3;01/01/2021;31/12/2021;OK
+FTT_MAXM;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Montant maximal par mois pour 1 journée de télétravail par semaine;11;01/01/2026;//;OK
+FTT_MAXM;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Montant maximal par mois pour 1 journée de télétravail par semaine;10,9;01/01/2025;31/12/2025;OK
+FTT_MAXM;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Montant maximal par mois pour 1 journée de télétravail par semaine;10,7;01/01/2024;31/12/2024;OK
+FTT_MAXM;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Montant maximal par mois pour 1 journée de télétravail par semaine;10,4;01/01/2023;31/12/2023;OK
+FTT_MAXM;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Montant maximal par mois pour 1 journée de télétravail par semaine;10;01/01/2022;31/12/2022;OK
+FTT_MAXM;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Montant maximal par mois pour 1 journée de télétravail par semaine;10;01/01/2021;31/12/2021;OK
+FTT_MAXJ;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Montant maximal par jour ;2,7;01/01/2026;//;OK
+FTT_MAXJ;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Montant maximal par jour ;2,7;01/01/2025;31/12/2025;OK
+FTT_MAXJ;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Montant maximal par jour ;2,7;01/01/2024;31/12/2024;OK
+FTT_MAXJ;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Montant maximal par jour ;2,6;01/01/2023;31/12/2023;OK
+FTT_MAXJ;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Montant maximal par jour ;2,5;01/01/2022;31/12/2022;OK
+FTT_MAXJ;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Montant maximal par jour ;2,5;01/01/2021;31/12/2021;OK
+FTT_LIMIT;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Limite mensuelle en cas d'indemnité par jour de télétravail;59,4;01/01/2026;//;OK
+FTT_LIMIT;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Limite mensuelle en cas d'indemnité par jour de télétravail;59,4;01/01/2025;31/12/2025;OK
+FTT_LIMIT;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Limite mensuelle en cas d'indemnité par jour de télétravail;59,4;01/01/2024;31/12/2024;OK
+FTT_LIMIT;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Limite mensuelle en cas d'indemnité par jour de télétravail;57,2;01/01/2023;31/12/2023;OK
+FTT_LIMIT;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Limite mensuelle en cas d'indemnité par jour de télétravail;55;01/01/2022;31/12/2022;OK
+FTT_LIMIT;Frais fixes et variables liés à la mise à disposition d'un local privé pour un usage professionnel et frais de matériel informatique, de connexion et de fournitures diverses pour le télétravail Limite mensuelle en cas d'indemnité par jour de télétravail;55;01/01/2021;31/12/2021;OK
+FTT_NTIC;Frais relatifs aux outils issus des nouvelles technologies de l’information et de la communication;55,2;01/01/2026;//;OK
+FTT_NTIC;Frais relatifs aux outils issus des nouvelles technologies de l’information et de la communication;54,5;01/01/2025;31/12/2025;OK
+FTT_NTIC;Frais relatifs aux outils issus des nouvelles technologies de l’information et de la communication;53,5;01/01/2024;31/12/2024;OK
+FTT_NTIC;Frais relatifs aux outils issus des nouvelles technologies de l’information et de la communication;52,2;01/01/2023;31/12/2023;OK
+FTT_NTIC;Frais relatifs aux outils issus des nouvelles technologies de l’information et de la communication;50;01/01/2022;31/12/2022;OK
+FTT_NTIC;Frais relatifs aux outils issus des nouvelles technologies de l’information et de la communication;50;01/01/2021;31/12/2021;OK
+AEN_REPA_UN;Fourniture gratuite d’un repas Par repas;5,5;01/01/2026;//;OK
+AEN_REPA_UN;Fourniture gratuite d’un repas Par repas;5,45;01/01/2025;31/12/2025;OK
+AEN_REPA_UN;Fourniture gratuite d’un repas Par repas;5,35;01/01/2024;31/12/2024;OK
+AEN_REPA_UN;Fourniture gratuite d’un repas Par repas;5,2;01/01/2023;31/12/2023;OK
+AEN_REPA_UN;Fourniture gratuite d’un repas Par repas;5;01/01/2022;31/12/2022;OK
+AEN_REPA_UN;Fourniture gratuite d’un repas Par repas;4,95;01/01/2021;31/12/2021;OK
+AEN_REPA_JOURN;Fourniture gratuite d’un repas Par jour;11;01/01/2026;//;OK
+AEN_REPA_JOURN;Fourniture gratuite d’un repas Par jour;10,9;01/01/2025;31/12/2025;OK
+AEN_REPA_JOURN;Fourniture gratuite d’un repas Par jour;10,7;01/01/2024;31/12/2024;OK
+AEN_REPA_JOURN;Fourniture gratuite d’un repas Par jour;10,4;01/01/2023;31/12/2023;OK
+AEN_REPA_JOURN;Fourniture gratuite d’un repas Par jour;10;01/01/2022;31/12/2022;OK
+AEN_REPA_JOURN;Fourniture gratuite d’un repas Par jour;9,9;01/01/2021;31/12/2021;OK
+AEN_REPA_TREST;Participation financière de l’employeur à l’acquisition d’un titre-restaurant;7,32;01/01/2026;//;OK
+AEN_REPA_TREST;Participation financière de l’employeur à l’acquisition d’un titre-restaurant;7,26;01/01/2025;31/12/2025;OK
+AEN_REPA_TREST;Participation financière de l’employeur à l’acquisition d’un titre-restaurant;7,18;01/01/2024;31/12/2024;OK
+AEN_REPA_TREST;Participation financière de l’employeur à l’acquisition d’un titre-restaurant;6,91;01/01/2023;31/12/2023;OK
+AEN_REPA_TREST;Participation financière de l’employeur à l’acquisition d’un titre-restaurant;5,92;01/09/2022;31/12/2022;OK
+AEN_REPA_TREST;Participation financière de l’employeur à l’acquisition d’un titre-restaurant;5,69;01/01/2022;31/08/2022;OK
+AEN_REPA_TREST;Participation financière de l’employeur à l’acquisition d’un titre-restaurant;5,55;01/01/2021;31/12/2021;OK
+AEN_REPA_MG;Minimum garanti;4,25;01/01/2026;//;OK
+AEN_REPA_MG;Minimum garanti;4,22;01/01/2025;31/12/2025;OK
+AEN_REPA_MG;Minimum garanti;4,22;01/11/2024;31/12/2024;OK
+AEN_REPA_MG;Minimum garanti;4,15;01/01/2024;31/10/2024;OK
+AEN_REPA_MG;Minimum garanti;4,1;01/05/2023;31/12/2023;OK
+AEN_REPA_MG;Minimum garanti;4,01;01/01/2023;30/04/2023;OK
+AEN_REPA_MG;Minimum garanti;3,98;01/08/2022;31/12/2022;OK
+AEN_REPA_MG;Minimum garanti;3,86;01/05/2022;31/07/2022;OK
+AEN_REPA_MG;Minimum garanti;3,76;01/01/2022;30/04/2022;OK
+AEN_REPA_MG;Minimum garanti;3,65;01/01/2021;31/12/2021;OK
+AEN_ELEC_BO5;Prise en charge par l’employeur des frais d’achat et d’installation d’une borne de recharge électrique installée au domicile du salarié qui n’est pas restituée à l’employeur à la fin du contrat de travail Plafond pour une borne de 5 ans et moins;1057,1;01/01/2026;//;OK
+AEN_ELEC_BO5;Prise en charge par l’employeur des frais d’achat et d’installation d’une borne de recharge électrique installée au domicile du salarié qui n’est pas restituée à l’employeur à la fin du contrat de travail Plafond pour une borne de 5 ans et moins;1043,5;01/01/2025;31/12/2025;OK
+AEN_ELEC_BO5;Prise en charge par l’employeur des frais d’achat et d’installation d’une borne de recharge électrique installée au domicile du salarié qui n’est pas restituée à l’employeur à la fin du contrat de travail Plafond pour une borne de 5 ans et moins;1025;01/01/2024;31/12/2024;OK
+AEN_ELEC_BO5;Prise en charge par l’employeur des frais d’achat et d’installation d’une borne de recharge électrique installée au domicile du salarié qui n’est pas restituée à l’employeur à la fin du contrat de travail Plafond pour une borne de 5 ans et moins;1000;01/01/2023;31/12/2023;OK
+AEN_ELEC_BO6;Prise en charge par l’employeur des frais d’achat et d’installation d’une borne de recharge électrique installée au domicile du salarié qui n’est pas restituée à l’employeur à la fin du contrat de travail Plafond pour une borne d'au moins 5 ans;1585,5;01/01/2026;//;OK
+AEN_ELEC_BO6;Prise en charge par l’employeur des frais d’achat et d’installation d’une borne de recharge électrique installée au domicile du salarié qui n’est pas restituée à l’employeur à la fin du contrat de travail Plafond pour une borne d'au moins 5 ans;1565,2;01/01/2025;31/12/2025;OK
+AEN_ELEC_BO6;Prise en charge par l’employeur des frais d’achat et d’installation d’une borne de recharge électrique installée au domicile du salarié qui n’est pas restituée à l’employeur à la fin du contrat de travail Plafond pour une borne d'au moins 5 ans;1537,5;01/01/2024;31/12/2024;OK
+AEN_ELEC_BO6;Prise en charge par l’employeur des frais d’achat et d’installation d’une borne de recharge électrique installée au domicile du salarié qui n’est pas restituée à l’employeur à la fin du contrat de travail Plafond pour une borne d'au moins 5 ans;1500;01/01/2023;31/12/2023;OK
+AEN_LOG_T1_MAX;Mise à disposition d’un logement plafond Tranche 1;2002,49;01/01/2026;//;OK
+AEN_LOG_T1_MAX;Mise à disposition d’un logement plafond Tranche 1;1962,49;01/01/2025;31/12/2025;OK
+AEN_LOG_T1_MAX;Mise à disposition d’un logement plafond Tranche 1;1931,99;01/01/2024;31/12/2024;OK
+AEN_LOG_T1_MAX;Mise à disposition d’un logement plafond Tranche 1;1832,99;01/01/2023;31/12/2023;OK
+AEN_LOG_T1_MAX;Mise à disposition d’un logement plafond Tranche 1;1713,99;01/01/2022;31/12/2022;OK
+AEN_LOG_T1_MAX;Mise à disposition d’un logement plafond Tranche 1;1713,99;01/01/2021;31/12/2021;OK
+AEN_LOG_T2_MIN;Mise à disposition d’un logement seuil Tranche 2;2002,5;01/01/2026;//;OK
+AEN_LOG_T2_MIN;Mise à disposition d’un logement seuil Tranche 2;1962,5;01/01/2025;31/12/2025;OK
+AEN_LOG_T2_MIN;Mise à disposition d’un logement seuil Tranche 2;1932;01/01/2024;31/12/2024;OK
+AEN_LOG_T2_MIN;Mise à disposition d’un logement seuil Tranche 2;1833;01/01/2023;31/12/2023;OK
+AEN_LOG_T2_MIN;Mise à disposition d’un logement seuil Tranche 2;1714;01/01/2022;31/12/2022;OK
+AEN_LOG_T2_MIN;Mise à disposition d’un logement seuil Tranche 2;1714;01/01/2021;31/12/2021;OK
+AEN_LOG_T2_MAX;Mise à disposition d’un logement plafond Tranche 2;2402,99;01/01/2026;//;OK
+AEN_LOG_T2_MAX;Mise à disposition d’un logement plafond Tranche 2;2354,99;01/01/2025;31/12/2025;OK
+AEN_LOG_T2_MAX;Mise à disposition d’un logement plafond Tranche 2;2318,39;01/01/2024;31/12/2024;OK
+AEN_LOG_T2_MAX;Mise à disposition d’un logement plafond Tranche 2;2199,59;01/01/2023;31/12/2023;OK
+AEN_LOG_T2_MAX;Mise à disposition d’un logement plafond Tranche 2;2056,79;01/01/2022;31/12/2022;OK
+AEN_LOG_T2_MAX;Mise à disposition d’un logement plafond Tranche 2;2056,79;01/01/2021;31/12/2021;OK
+AEN_LOG_T3_MIN;Mise à disposition d’un logement seuil Tranche 3;2403;01/01/2026;//;OK
+AEN_LOG_T3_MIN;Mise à disposition d’un logement seuil Tranche 3;2355;01/01/2025;31/12/2025;OK
+AEN_LOG_T3_MIN;Mise à disposition d’un logement seuil Tranche 3;2318,4;01/01/2024;31/12/2024;OK
+AEN_LOG_T3_MIN;Mise à disposition d’un logement seuil Tranche 3;2199,6;01/01/2023;31/12/2023;OK
+AEN_LOG_T3_MIN;Mise à disposition d’un logement seuil Tranche 3;2056,8;01/01/2022;31/12/2022;OK
+AEN_LOG_T3_MIN;Mise à disposition d’un logement seuil Tranche 3;2056,8;01/01/2021;31/12/2021;OK
+AEN_LOG_T3_MAX;Mise à disposition d’un logement plafond Tranche 3;2803,49;01/01/2026;//;OK
+AEN_LOG_T3_MAX;Mise à disposition d’un logement plafond Tranche 3;2747,49;01/01/2025;31/12/2025;OK
+AEN_LOG_T3_MAX;Mise à disposition d’un logement plafond Tranche 3;2704,79;01/01/2024;31/12/2024;OK
+AEN_LOG_T3_MAX;Mise à disposition d’un logement plafond Tranche 3;2566,19;01/01/2023;31/12/2023;OK
+AEN_LOG_T3_MAX;Mise à disposition d’un logement plafond Tranche 3;2399,59;01/01/2022;31/12/2022;OK
+AEN_LOG_T3_MAX;Mise à disposition d’un logement plafond Tranche 3;2399,59;01/01/2021;31/12/2021;OK
+AEN_LOG_T4_MIN;Mise à disposition d’un logement seuil Tranche 4;2803,5;01/01/2026;//;OK
+AEN_LOG_T4_MIN;Mise à disposition d’un logement seuil Tranche 4;2747,5;01/01/2025;31/12/2025;OK
+AEN_LOG_T4_MIN;Mise à disposition d’un logement seuil Tranche 4;2704,8;01/01/2024;31/12/2024;OK
+AEN_LOG_T4_MIN;Mise à disposition d’un logement seuil Tranche 4;2566,2;01/01/2023;31/12/2023;OK
+AEN_LOG_T4_MIN;Mise à disposition d’un logement seuil Tranche 4;2399,6;01/01/2022;31/12/2022;OK
+AEN_LOG_T4_MIN;Mise à disposition d’un logement seuil Tranche 4;2399,6;01/01/2021;31/12/2021;OK
+AEN_LOG_T4_MAX;Mise à disposition d’un logement plafond Tranche 4;3604,49;01/01/2026;//;OK
+AEN_LOG_T4_MAX;Mise à disposition d’un logement plafond Tranche 4;3532,49;01/01/2025;31/12/2025;OK
+AEN_LOG_T4_MAX;Mise à disposition d’un logement plafond Tranche 4;3477,59;01/01/2024;31/12/2024;OK
+AEN_LOG_T4_MAX;Mise à disposition d’un logement plafond Tranche 4;3299,39;01/01/2023;31/12/2023;OK
+AEN_LOG_T4_MAX;Mise à disposition d’un logement plafond Tranche 4;3085,19;01/01/2022;31/12/2022;OK
+AEN_LOG_T4_MAX;Mise à disposition d’un logement plafond Tranche 4;3085,19;01/01/2021;31/12/2021;OK
+AEN_LOG_T5_MIN;Mise à disposition d’un logement seuil Tranche 5;3604,5;01/01/2026;//;OK
+AEN_LOG_T5_MIN;Mise à disposition d’un logement seuil Tranche 5;3532,5;01/01/2025;31/12/2025;OK
+AEN_LOG_T5_MIN;Mise à disposition d’un logement seuil Tranche 5;3477,6;01/01/2024;31/12/2024;OK
+AEN_LOG_T5_MIN;Mise à disposition d’un logement seuil Tranche 5;3299,4;01/01/2023;31/12/2023;OK
+AEN_LOG_T5_MIN;Mise à disposition d’un logement seuil Tranche 5;3085,2;01/01/2022;31/12/2022;OK
+AEN_LOG_T5_MIN;Mise à disposition d’un logement seuil Tranche 5;3085,2;01/01/2021;31/12/2021;OK
+AEN_LOG_T5_MAX;Mise à disposition d’un logement plafond Tranche 5;4405,49;01/01/2026;//;OK
+AEN_LOG_T5_MAX;Mise à disposition d’un logement plafond Tranche 5;4317,49;01/01/2025;31/12/2025;OK
+AEN_LOG_T5_MAX;Mise à disposition d’un logement plafond Tranche 5;4250,39;01/01/2024;31/12/2024;OK
+AEN_LOG_T5_MAX;Mise à disposition d’un logement plafond Tranche 5;4032,59;01/01/2023;31/12/2023;OK
+AEN_LOG_T5_MAX;Mise à disposition d’un logement plafond Tranche 5;3770,79;01/01/2022;31/12/2022;OK
+AEN_LOG_T5_MAX;Mise à disposition d’un logement plafond Tranche 5;3770,79;01/01/2021;31/12/2021;OK
+AEN_LOG_T6_MIN;Mise à disposition d’un logement seuil Tranche 6;4405,5;01/01/2026;//;OK
+AEN_LOG_T6_MIN;Mise à disposition d’un logement seuil Tranche 6;4317,5;01/01/2025;31/12/2025;OK
+AEN_LOG_T6_MIN;Mise à disposition d’un logement seuil Tranche 6;4250,4;01/01/2024;31/12/2024;OK
+AEN_LOG_T6_MIN;Mise à disposition d’un logement seuil Tranche 6;4032,6;01/01/2023;31/12/2023;OK
+AEN_LOG_T6_MIN;Mise à disposition d’un logement seuil Tranche 6;3770,8;01/01/2022;31/12/2022;OK
+AEN_LOG_T6_MIN;Mise à disposition d’un logement seuil Tranche 6;3770,8;01/01/2021;31/12/2021;OK
+AEN_LOG_T6_MAX;Mise à disposition d’un logement plafond Tranche 6;5206,49;01/01/2026;//;OK
+AEN_LOG_T6_MAX;Mise à disposition d’un logement plafond Tranche 6;5102,49;01/01/2025;31/12/2025;OK
+AEN_LOG_T6_MAX;Mise à disposition d’un logement plafond Tranche 6;5023,19;01/01/2024;31/12/2024;OK
+AEN_LOG_T6_MAX;Mise à disposition d’un logement plafond Tranche 6;4765,79;01/01/2023;31/12/2023;OK
+AEN_LOG_T6_MAX;Mise à disposition d’un logement plafond Tranche 6;4456,39;01/01/2022;31/12/2022;OK
+AEN_LOG_T6_MAX;Mise à disposition d’un logement plafond Tranche 6;4456,39;01/01/2021;31/12/2021;OK
+AEN_LOG_T7_MIN;Mise à disposition d’un logement seuil Tranche 7;5206,5;01/01/2026;//;OK
+AEN_LOG_T7_MIN;Mise à disposition d’un logement seuil Tranche 7;5102,5;01/01/2025;31/12/2025;OK
+AEN_LOG_T7_MIN;Mise à disposition d’un logement seuil Tranche 7;5023,2;01/01/2024;31/12/2024;OK
+AEN_LOG_T7_MIN;Mise à disposition d’un logement seuil Tranche 7;4765,8;01/01/2023;31/12/2023;OK
+AEN_LOG_T7_MIN;Mise à disposition d’un logement seuil Tranche 7;4456,4;01/01/2022;31/12/2022;OK
+AEN_LOG_T7_MIN;Mise à disposition d’un logement seuil Tranche 7;4456,4;01/01/2021;31/12/2021;OK
+AEN_LOG_T7_MAX;Mise à disposition d’un logement plafond Tranche 7;6007,49;01/01/2026;//;OK
+AEN_LOG_T7_MAX;Mise à disposition d’un logement plafond Tranche 7;5887,49;01/01/2025;31/12/2025;OK
+AEN_LOG_T7_MAX;Mise à disposition d’un logement plafond Tranche 7;5795,99;01/01/2024;31/12/2024;OK
+AEN_LOG_T7_MAX;Mise à disposition d’un logement plafond Tranche 7;5498,99;01/01/2023;31/12/2023;OK
+AEN_LOG_T7_MAX;Mise à disposition d’un logement plafond Tranche 7;5141,99;01/01/2022;31/12/2022;OK
+AEN_LOG_T7_MAX;Mise à disposition d’un logement plafond Tranche 7;5141,99;01/01/2021;31/12/2021;OK
+AEN_LOG_T8_MIN;Mise à disposition d’un logement seuil Tranche 8;6007,5;01/01/2026;//;OK
+AEN_LOG_T8_MIN;Mise à disposition d’un logement seuil Tranche 8;5887,5;01/01/2025;31/12/2025;OK
+AEN_LOG_T8_MIN;Mise à disposition d’un logement seuil Tranche 8;5796;01/01/2024;31/12/2024;OK
+AEN_LOG_T8_MIN;Mise à disposition d’un logement seuil Tranche 8;5499;01/01/2023;31/12/2023;OK
+AEN_LOG_T8_MIN;Mise à disposition d’un logement seuil Tranche 8;5142;01/01/2022;31/12/2022;OK
+AEN_LOG_T8_MIN;Mise à disposition d’un logement seuil Tranche 8;5142;01/01/2021;31/12/2021;OK
+AEN_LOG_T1_1P;Mise à disposition d’un logement 1 pièce Tranche 1;79,7;01/01/2026;//;OK
+AEN_LOG_T1_1P;Mise à disposition d’un logement 1 pièce Tranche 1;78,7;01/01/2025;31/12/2025;OK
+AEN_LOG_T1_1P;Mise à disposition d’un logement 1 pièce Tranche 1;77,3;01/01/2024;31/12/2024;OK
+AEN_LOG_T1_1P;Mise à disposition d’un logement 1 pièce Tranche 1;75,4;01/01/2023;31/12/2023;OK
+AEN_LOG_T1_1P;Mise à disposition d’un logement 1 pièce Tranche 1;72,3;01/01/2022;31/12/2022;OK
+AEN_LOG_T1_1P;Mise à disposition d’un logement 1 pièce Tranche 1;71,2;01/01/2021;31/12/2021;OK
+AEN_LOG_T2_1P;Mise à disposition d’un logement 1 pièce Tranche 2;93;01/01/2026;//;OK
+AEN_LOG_T2_1P;Mise à disposition d’un logement 1 pièce Tranche 2;91,8;01/01/2025;31/12/2025;OK
+AEN_LOG_T2_1P;Mise à disposition d’un logement 1 pièce Tranche 2;90,2;01/01/2024;31/12/2024;OK
+AEN_LOG_T2_1P;Mise à disposition d’un logement 1 pièce Tranche 2;88;01/01/2023;31/12/2023;OK
+AEN_LOG_T2_1P;Mise à disposition d’un logement 1 pièce Tranche 2;84,4;01/01/2022;31/12/2022;OK
+AEN_LOG_T2_1P;Mise à disposition d’un logement 1 pièce Tranche 2;83,2;01/01/2021;31/12/2021;OK
+AEN_LOG_T3_1P;Mise à disposition d’un logement 1 pièce Tranche 3;106,2;01/01/2026;//;OK
+AEN_LOG_T3_1P;Mise à disposition d’un logement 1 pièce Tranche 3;104,8;01/01/2025;31/12/2025;OK
+AEN_LOG_T3_1P;Mise à disposition d’un logement 1 pièce Tranche 3;102,9;01/01/2024;31/12/2024;OK
+AEN_LOG_T3_1P;Mise à disposition d’un logement 1 pièce Tranche 3;100,4;01/01/2023;31/12/2023;OK
+AEN_LOG_T3_1P;Mise à disposition d’un logement 1 pièce Tranche 3;96,3;01/01/2022;31/12/2022;OK
+AEN_LOG_T3_1P;Mise à disposition d’un logement 1 pièce Tranche 3;94,9;01/01/2021;31/12/2021;OK
+AEN_LOG_T4_1P;Mise à disposition d’un logement 1 pièce Tranche 4;119,4;01/01/2026;//;OK
+AEN_LOG_T4_1P;Mise à disposition d’un logement 1 pièce Tranche 4;117,9;01/01/2025;31/12/2025;OK
+AEN_LOG_T4_1P;Mise à disposition d’un logement 1 pièce Tranche 4;115,8;01/01/2024;31/12/2024;OK
+AEN_LOG_T4_1P;Mise à disposition d’un logement 1 pièce Tranche 4;113;01/01/2023;31/12/2023;OK
+AEN_LOG_T4_1P;Mise à disposition d’un logement 1 pièce Tranche 4;108,3;01/01/2022;31/12/2022;OK
+AEN_LOG_T4_1P;Mise à disposition d’un logement 1 pièce Tranche 4;106,7;01/01/2021;31/12/2021;OK
+AEN_LOG_T5_1P;Mise à disposition d’un logement 1 pièce Tranche 5;146,4;01/01/2026;//;OK
+AEN_LOG_T5_1P;Mise à disposition d’un logement 1 pièce Tranche 5;144,5;01/01/2025;31/12/2025;OK
+AEN_LOG_T5_1P;Mise à disposition d’un logement 1 pièce Tranche 5;141,9;01/01/2024;31/12/2024;OK
+AEN_LOG_T5_1P;Mise à disposition d’un logement 1 pièce Tranche 5;138,4;01/01/2023;31/12/2023;OK
+AEN_LOG_T5_1P;Mise à disposition d’un logement 1 pièce Tranche 5;132,7;01/01/2022;31/12/2022;OK
+AEN_LOG_T5_1P;Mise à disposition d’un logement 1 pièce Tranche 5;130,7;01/01/2021;31/12/2021;OK
+AEN_LOG_T6_1P;Mise à disposition d’un logement 1 pièce Tranche 6;172,6;01/01/2026;//;OK
+AEN_LOG_T6_1P;Mise à disposition d’un logement 1 pièce Tranche 6;170,4;01/01/2025;31/12/2025;OK
+AEN_LOG_T6_1P;Mise à disposition d’un logement 1 pièce Tranche 6;167,4;01/01/2024;31/12/2024;OK
+AEN_LOG_T6_1P;Mise à disposition d’un logement 1 pièce Tranche 6;163,3;01/01/2023;31/12/2023;OK
+AEN_LOG_T6_1P;Mise à disposition d’un logement 1 pièce Tranche 6;156,6;01/01/2022;31/12/2022;OK
+AEN_LOG_T6_1P;Mise à disposition d’un logement 1 pièce Tranche 6;154,3;01/01/2021;31/12/2021;OK
+AEN_LOG_T7_1P;Mise à disposition d’un logement 1 pièce Tranche 7;199,4;01/01/2026;//;OK
+AEN_LOG_T7_1P;Mise à disposition d’un logement 1 pièce Tranche 7;196,8;01/01/2025;31/12/2025;OK
+AEN_LOG_T7_1P;Mise à disposition d’un logement 1 pièce Tranche 7;193,3;01/01/2024;31/12/2024;OK
+AEN_LOG_T7_1P;Mise à disposition d’un logement 1 pièce Tranche 7;188,6;01/01/2023;31/12/2023;OK
+AEN_LOG_T7_1P;Mise à disposition d’un logement 1 pièce Tranche 7;180,8;01/01/2022;31/12/2022;OK
+AEN_LOG_T7_1P;Mise à disposition d’un logement 1 pièce Tranche 7;178,1;01/01/2021;31/12/2021;OK
+AEN_LOG_T8_1P;Mise à disposition d’un logement 1 pièce Tranche 8;225,6;01/01/2026;//;OK
+AEN_LOG_T8_1P;Mise à disposition d’un logement 1 pièce Tranche 8;222,7;01/01/2025;31/12/2025;OK
+AEN_LOG_T8_1P;Mise à disposition d’un logement 1 pièce Tranche 8;218,8;01/01/2024;31/12/2024;OK
+AEN_LOG_T8_1P;Mise à disposition d’un logement 1 pièce Tranche 8;213,5;01/01/2023;31/12/2023;OK
+AEN_LOG_T8_1P;Mise à disposition d’un logement 1 pièce Tranche 8;204,7;01/01/2022;31/12/2022;OK
+AEN_LOG_T8_1P;Mise à disposition d’un logement 1 pièce Tranche 8;201,7;01/01/2021;31/12/2021;OK
+AEN_LOG_T1_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 1;42,6;01/01/2026;//;OK
+AEN_LOG_T1_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 1;42,1;01/01/2025;31/12/2025;OK
+AEN_LOG_T1_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 1;41,4;01/01/2024;31/12/2024;OK
+AEN_LOG_T1_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 1;40,4;01/01/2023;31/12/2023;OK
+AEN_LOG_T1_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 1;38,7;01/01/2022;31/12/2022;OK
+AEN_LOG_T1_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 1;38,1;01/01/2021;31/12/2021;OK
+AEN_LOG_T2_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 2;59,7;01/01/2026;//;OK
+AEN_LOG_T2_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 2;58,9;01/01/2025;31/12/2025;OK
+AEN_LOG_T2_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 2;57,9;01/01/2024;31/12/2024;OK
+AEN_LOG_T2_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 2;56,5;01/01/2023;31/12/2023;OK
+AEN_LOG_T2_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 2;54,2;01/01/2022;31/12/2022;OK
+AEN_LOG_T2_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 2;53,4;01/01/2021;31/12/2021;OK
+AEN_LOG_T3_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 3;79,7;01/01/2026;//;OK
+AEN_LOG_T3_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 3;78,7;01/01/2025;31/12/2025;OK
+AEN_LOG_T3_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 3;77,3;01/01/2024;31/12/2024;OK
+AEN_LOG_T3_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 3;75,4;01/01/2023;31/12/2023;OK
+AEN_LOG_T3_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 3;72,3;01/01/2022;31/12/2022;OK
+AEN_LOG_T3_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 3;71,2;01/01/2021;31/12/2021;OK
+AEN_LOG_T4_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 4;99,5;01/01/2026;//;OK
+AEN_LOG_T4_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 4;98,2;01/01/2025;31/12/2025;OK
+AEN_LOG_T4_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 4;96,5;01/01/2024;31/12/2024;OK
+AEN_LOG_T4_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 4;94,1;01/01/2023;31/12/2023;OK
+AEN_LOG_T4_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 4;90,2;01/01/2022;31/12/2022;OK
+AEN_LOG_T4_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 4;88,9;01/01/2021;31/12/2021;OK
+AEN_LOG_T5_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 5;126,1;01/01/2026;//;OK
+AEN_LOG_T5_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 5;124,5;01/01/2025;31/12/2025;OK
+AEN_LOG_T5_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 5;122,3;01/01/2024;31/12/2024;OK
+AEN_LOG_T5_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 5;119,3;01/01/2023;31/12/2023;OK
+AEN_LOG_T5_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 5;114,4;01/01/2022;31/12/2022;OK
+AEN_LOG_T5_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 5;112,7;01/01/2021;31/12/2021;OK
+AEN_LOG_T6_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 6;152,4;01/01/2026;//;OK
+AEN_LOG_T6_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 6;150,4;01/01/2025;31/12/2025;OK
+AEN_LOG_T6_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 6;147,7;01/01/2024;31/12/2024;OK
+AEN_LOG_T6_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 6;144,1;01/01/2023;31/12/2023;OK
+AEN_LOG_T6_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 6;138,2;01/01/2022;31/12/2022;OK
+AEN_LOG_T6_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 6;136,2;01/01/2021;31/12/2021;OK
+AEN_LOG_T7_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 7;185,7;01/01/2026;//;OK
+AEN_LOG_T7_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 7;183,3;01/01/2025;31/12/2025;OK
+AEN_LOG_T7_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 7;180,1;01/01/2024;31/12/2024;OK
+AEN_LOG_T7_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 7;175,7;01/01/2023;31/12/2023;OK
+AEN_LOG_T7_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 7;168,5;01/01/2022;31/12/2022;OK
+AEN_LOG_T7_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 7;166;01/01/2021;31/12/2021;OK
+AEN_LOG_T8_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 8;212,3;01/01/2026;//;OK
+AEN_LOG_T8_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 8;209,6;01/01/2025;31/12/2025;OK
+AEN_LOG_T8_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 8;205,9;01/01/2024;31/12/2024;OK
+AEN_LOG_T8_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 8;200,9;01/01/2023;31/12/2023;OK
+AEN_LOG_T8_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 8;192,6;01/01/2022;31/12/2022;OK
+AEN_LOG_T8_PS;Mise à disposition d’un logement pièce supplémentaire Tranche 8;189,8;01/01/2021;31/12/2021;OK
+IND_LICEN_PSE_SEUIL_COT;Plafond de la fraction de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge exonérée de cotisations sociales;96120;01/01/2026;//;OK
+IND_LICEN_PSE_SEUIL_COT;Plafond de la fraction de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge exonérée de cotisations sociales;94200;01/01/2025;31/12/2025;OK
+IND_LICEN_PSE_SEUIL_COT;Plafond de la fraction de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge exonérée de cotisations sociales;92736;01/01/2024;31/12/2024;OK
+IND_LICEN_PSE_SEUIL_COT;Plafond de la fraction de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge exonérée de cotisations sociales;87984;01/01/2023;31/12/2023;OK
+IND_LICEN_PSE_SEUIL_COT;Plafond de la fraction de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge exonérée de cotisations sociales;82272;01/01/2022;31/12/2022;OK
+IND_LICEN_PSE_SEUIL_COT;Plafond de la fraction de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge exonérée de cotisations sociales;82272;01/01/2021;31/12/2021;OK
+IND_LICEN_PSE_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge ;480600;01/01/2026;//;OK
+IND_LICEN_PSE_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge ;471000;01/01/2025;31/12/2025;OK
+IND_LICEN_PSE_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge ;463680;01/01/2024;31/12/2024;OK
+IND_LICEN_PSE_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge ;439920;01/01/2023;31/12/2023;OK
+IND_LICEN_PSE_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge ;411360;01/01/2022;31/12/2022;OK
+IND_LICEN_PSE_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge ;411360;01/01/2021;31/12/2021;OK
+IND_LICEN_PSE_SEUIL_CSG;Plafond de la fraction de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge exonérée de CSG/CRDS;96120;01/01/202;//;OK
+IND_LICEN_PSE_SEUIL_CSG;Plafond de la fraction de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge exonérée de CSG/CRDS;94200;01/01/2025;31/12/2025;OK
+IND_LICEN_PSE_SEUIL_CSG;Plafond de la fraction de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge exonérée de CSG/CRDS;92736;01/01/2024;31/12/2024;OK
+IND_LICEN_PSE_SEUIL_CSG;Plafond de la fraction de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge exonérée de CSG/CRDS;87984;01/01/2023;31/12/2023;OK
+IND_LICEN_PSE_SEUIL_CSG;Plafond de la fraction de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge exonérée de CSG/CRDS;82272;01/01/2022;31/12/2022;OK
+IND_LICEN_PSE_SEUIL_CSG;Plafond de la fraction de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge exonérée de CSG/CRDS;82272;01/01/2021;31/12/2021;OK
+IND_LICEN_PSE_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge;480600;01/01/2026;//;OK
+IND_LICEN_PSE_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge;471000;01/01/2025;31/12/2025;OK
+IND_LICEN_PSE_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge;463680;01/01/2024;31/12/2024;OK
+IND_LICEN_PSE_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge;439920;01/01/2023;31/12/2023;OK
+IND_LICEN_PSE_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge;411360;01/01/2022;31/12/2022;OK
+IND_LICEN_PSE_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de licenciement et de départ volontaire dans un PSE et dommages-intérêts accordées par le juge;411360;01/01/2021;31/12/2021;OK
+IND_CONV_SEUIL_COT;Plafond de la fraction de l’indemnité de rupture conventionnelle individuelle versée à un salarié ne pouvant pas bénéficier d’une pension de retraite exonérée de cotisations sociales;96120;01/01/2026;//;OK
+IND_CONV_SEUIL_COT;Plafond de la fraction de l’indemnité de rupture conventionnelle individuelle versée à un salarié ne pouvant pas bénéficier d’une pension de retraite exonérée de cotisations sociales;94200;01/01/2025;31/12/2025;OK
+IND_CONV_SEUIL_COT;Plafond de la fraction de l’indemnité de rupture conventionnelle individuelle versée à un salarié ne pouvant pas bénéficier d’une pension de retraite exonérée de cotisations sociales;92736;01/01/2024;31/12/2024;OK
+IND_CONV_SEUIL_COT;Plafond de la fraction de l’indemnité de rupture conventionnelle individuelle versée à un salarié ne pouvant pas bénéficier d’une pension de retraite exonérée de cotisations sociales;87984;01/01/2023;31/12/2023;OK
+IND_CONV_SEUIL_COT;Plafond de la fraction de l’indemnité de rupture conventionnelle individuelle versée à un salarié ne pouvant pas bénéficier d’une pension de retraite exonérée de cotisations sociales;82272;01/01/2022;31/12/2022;OK
+IND_CONV_SEUIL_COT;Plafond de la fraction de l’indemnité de rupture conventionnelle individuelle versée à un salarié ne pouvant pas bénéficier d’une pension de retraite exonérée de cotisations sociales;82272;01/01/2021;31/12/2021;OK
+IND_CONV_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de rupture conventionnelle individuelle versée à un salarié pouvanT bénéficier d’une pension de retraite;480600;01/01/2026;//;OK
+IND_CONV_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de rupture conventionnelle individuelle versée à un salarié pouvanT bénéficier d’une pension de retraite;471000;01/01/2025;31/12/2025;OK
+IND_CONV_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de rupture conventionnelle individuelle versée à un salarié pouvanT bénéficier d’une pension de retraite;463680;01/01/2024;31/12/2024;OK
+IND_CONV_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de rupture conventionnelle individuelle versée à un salarié pouvanT bénéficier d’une pension de retraite;439920;01/01/2023;31/12/2023;OK
+IND_CONV_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de rupture conventionnelle individuelle versée à un salarié pouvanT bénéficier d’une pension de retraite;411360;01/01/2022;31/12/2022;OK
+IND_CONV_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de rupture conventionnelle individuelle versée à un salarié pouvanT bénéficier d’une pension de retraite;411360;01/01/2021;31/12/2021;OK
+IND_CONV_SEUIL_CSG;Plafond de la fraction de l’indemnité de rupture conventionnelle individuelle versée à un salarié ne pouvant pas bénéficier d’une pension de retraite exonérée de CSG/CRDS;96120;01/01/2026;//;OK
+IND_CONV_SEUIL_CSG;Plafond de la fraction de l’indemnité de rupture conventionnelle individuelle versée à un salarié ne pouvant pas bénéficier d’une pension de retraite exonérée de CSG/CRDS;94200;01/01/2025;31/12/2025;OK
+IND_CONV_SEUIL_CSG;Plafond de la fraction de l’indemnité de rupture conventionnelle individuelle versée à un salarié ne pouvant pas bénéficier d’une pension de retraite exonérée de CSG/CRDS;92736;01/01/2024;31/12/2024;OK
+IND_CONV_SEUIL_CSG;Plafond de la fraction de l’indemnité de rupture conventionnelle individuelle versée à un salarié ne pouvant pas bénéficier d’une pension de retraite exonérée de CSG/CRDS;87984;01/01/2023;31/12/2023;OK
+IND_CONV_SEUIL_CSG;Plafond de la fraction de l’indemnité de rupture conventionnelle individuelle versée à un salarié ne pouvant pas bénéficier d’une pension de retraite exonérée de CSG/CRDS;82272;01/01/2022;31/12/2022;OK
+IND_CONV_SEUIL_CSG;Plafond de la fraction de l’indemnité de rupture conventionnelle individuelle versée à un salarié ne pouvant pas bénéficier d’une pension de retraite exonérée de CSG/CRDS;82272;01/01/2021;31/12/2021;OK
+IND_CONV_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de rupture conventionnelle individuelle versée à un salarié pouvanT bénéficier d’une pension de retraite;480600;01/01/2026;//;OK
+IND_CONV_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de rupture conventionnelle individuelle versée à un salarié pouvanT bénéficier d’une pension de retraite;471000;01/01/2025;31/12/2025;OK
+IND_CONV_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de rupture conventionnelle individuelle versée à un salarié pouvanT bénéficier d’une pension de retraite;463680;01/01/2024;31/12/2024;OK
+IND_CONV_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de rupture conventionnelle individuelle versée à un salarié pouvanT bénéficier d’une pension de retraite;439920;01/01/2023;31/12/2023;OK
+IND_CONV_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de rupture conventionnelle individuelle versée à un salarié pouvanT bénéficier d’une pension de retraite;411360;01/01/2022;31/12/2022;OK
+IND_CONV_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de rupture conventionnelle individuelle versée à un salarié pouvanT bénéficier d’une pension de retraite;411360;01/01/2021;31/12/2021;OK
+IND_RETR_SEUIL_COT;Plafond de la fraction de l’indemnité de mise à la retraite d’office par l’employeur versée à un salarié exonérée de cotisations sociales;96120;01/01/2026;//;OK
+IND_RETR_SEUIL_COT;Plafond de la fraction de l’indemnité de mise à la retraite d’office par l’employeur versée à un salarié exonérée de cotisations sociales;94200;01/01/2025;31/12/2025;OK
+IND_RETR_SEUIL_COT;Plafond de la fraction de l’indemnité de mise à la retraite d’office par l’employeur versée à un salarié exonérée de cotisations sociales;92736;01/01/2024;31/12/2024;OK
+IND_RETR_SEUIL_COT;Plafond de la fraction de l’indemnité de mise à la retraite d’office par l’employeur versée à un salarié exonérée de cotisations sociales;87984;01/01/2023;31/12/2023;OK
+IND_RETR_SEUIL_COT;Plafond de la fraction de l’indemnité de mise à la retraite d’office par l’employeur versée à un salarié exonérée de cotisations sociales;82272;01/01/2022;31/12/2022;OK
+IND_RETR_SEUIL_COT;Plafond de la fraction de l’indemnité de mise à la retraite d’office par l’employeur versée à un salarié exonérée de cotisations sociales;82272;01/01/2021;31/12/2021;OK
+IND_RETR_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de mise à la retraite d’office par l’employeur;480600;01/01/2026;//;OK
+IND_RETR_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de mise à la retraite d’office par l’employeur;471000;01/01/2025;31/12/2025;OK
+IND_RETR_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de mise à la retraite d’office par l’employeur;463680;01/01/2024;31/12/2024;OK
+IND_RETR_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de mise à la retraite d’office par l’employeur;439920;01/01/2023;31/12/2023;OK
+IND_RETR_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de mise à la retraite d’office par l’employeur;411360;01/01/2022;31/12/2022;OK
+IND_RETR_PLAF_COT;Assujettissement social au 1er euro de l’indemnité de mise à la retraite d’office par l’employeur;411360;01/01/2021;31/12/2021;OK
+IND_RETR_SEUIL_CSG;Plafond de la fraction de l’indemnité de mise à la retraite d’office par l’employeur versée à un salarié exonérée de CSG/CRDS;96120;01/01/2026;//;OK
+IND_RETR_SEUIL_CSG;Plafond de la fraction de l’indemnité de mise à la retraite d’office par l’employeur versée à un salarié exonérée de CSG/CRDS;94200;01/01/2025;31/12/2025;OK
+IND_RETR_SEUIL_CSG;Plafond de la fraction de l’indemnité de mise à la retraite d’office par l’employeur versée à un salarié exonérée de CSG/CRDS;92736;01/01/2024;31/12/2024;OK
+IND_RETR_SEUIL_CSG;Plafond de la fraction de l’indemnité de mise à la retraite d’office par l’employeur versée à un salarié exonérée de CSG/CRDS;87984;01/01/2023;31/12/2023;OK
+IND_RETR_SEUIL_CSG;Plafond de la fraction de l’indemnité de mise à la retraite d’office par l’employeur versée à un salarié exonérée de CSG/CRDS;82272;01/01/2022;31/12/2022;OK
+IND_RETR_SEUIL_CSG;Plafond de la fraction de l’indemnité de mise à la retraite d’office par l’employeur versée à un salarié exonérée de CSG/CRDS;82272;01/01/2021;31/12/2021;OK
+IND_RETR_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de mise à la retraite d’office par l’employeur;480600;01/01/2026;//;OK
+IND_RETR_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de mise à la retraite d’office par l’employeur;471000;01/01/2025;31/12/2025;OK
+IND_RETR_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de mise à la retraite d’office par l’employeur;463680;01/01/2024;31/12/2024;OK
+IND_RETR_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de mise à la retraite d’office par l’employeur;439920;01/01/2023;31/12/2023;OK
+IND_RETR_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de mise à la retraite d’office par l’employeur;411360;01/01/2022;31/12/2022;OK
+IND_RETR_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité de mise à la retraite d’office par l’employeur;411360;01/01/2021;31/12/2021;OK
+IND_CESS_MAND_SEUIL_COT;Plafond de la fraction de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social exonérée de cotisations sociales;96120;01/01/2026;//;OK
+IND_CESS_MAND_SEUIL_COT;Plafond de la fraction de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social exonérée de cotisations sociales;94200;01/01/2025;31/12/2025;OK
+IND_CESS_MAND_SEUIL_COT;Plafond de la fraction de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social exonérée de cotisations sociales;92736;01/01/2024;31/12/2024;OK
+IND_CESS_MAND_SEUIL_COT;Plafond de la fraction de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social exonérée de cotisations sociales;87984;01/01/2023;31/12/2023;OK
+IND_CESS_MAND_SEUIL_COT;Plafond de la fraction de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social exonérée de cotisations sociales;82272;01/01/2022;31/12/2022;OK
+IND_CESS_MAND_SEUIL_COT;Plafond de la fraction de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social exonérée de cotisations sociales;82272;01/01/2021;31/12/2021;OK
+IND_CESS_MAND_PLAF_COT;Assujettissement social au 1er euro de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social;240300;01/01/2026;//;OK
+IND_CESS_MAND_PLAF_COT;Assujettissement social au 1er euro de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social;235500;01/01/2025;31/12/2025;OK
+IND_CESS_MAND_PLAF_COT;Assujettissement social au 1er euro de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social;231840;01/01/2024;31/12/2024;OK
+IND_CESS_MAND_PLAF_COT;Assujettissement social au 1er euro de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social;219960;01/01/2023;31/12/2023;OK
+IND_CESS_MAND_PLAF_COT;Assujettissement social au 1er euro de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social;205680;01/01/2022;31/12/2022;OK
+IND_CESS_MAND_PLAF_COT;Assujettissement social au 1er euro de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social;205680;01/01/2021;31/12/2021;OK
+IND_CESS_MAND_SEUIL_CSG;Plafond de la fraction de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social exonérée de CSG/CRDS;96120;01/01/2026;//;OK
+IND_CESS_MAND_SEUIL_CSG;Plafond de la fraction de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social exonérée de CSG/CRDS;94200;01/01/2025;31/12/2025;OK
+IND_CESS_MAND_SEUIL_CSG;Plafond de la fraction de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social exonérée de CSG/CRDS;92736;01/01/2024;31/12/2024;OK
+IND_CESS_MAND_SEUIL_CSG;Plafond de la fraction de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social exonérée de CSG/CRDS;87984;01/01/2023;31/12/2023;OK
+IND_CESS_MAND_SEUIL_CSG;Plafond de la fraction de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social exonérée de CSG/CRDS;82272;01/01/2022;31/12/2022;OK
+IND_CESS_MAND_SEUIL_CSG;Plafond de la fraction de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social exonérée de CSG/CRDS;82272;01/01/2021;31/12/2021;OK
+IND_CESS_MAND_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social;240300;01/01/2026;//;OK
+IND_CESS_MAND_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social;235500;01/01/2025;31/12/2025;OK
+IND_CESS_MAND_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social;231840;01/01/2024;31/12/2024;OK
+IND_CESS_MAND_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social;219960;01/01/2023;31/12/2023;OK
+IND_CESS_MAND_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social;205680;01/01/2022;31/12/2022;OK
+IND_CESS_MAND_PLAF_CSG;Assujettissement CSG/CRDS au 1er euro de l’indemnité versées lors de la cessation forcée des fonctions de dirigeant ou de mandataire social;205680;01/01/2021;31/12/2021;OK

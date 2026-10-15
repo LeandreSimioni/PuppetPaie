@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000006901214</ID>
+<ANCIEN_ID>WXXXXXXXXXX1243L0030XX0A</ANCIEN_ID>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/06/90/12/LEGIARTI000006901214.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L1243-3</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2008-05-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132321">Première partie : Les relations individuelles de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145393">Livre II : Le contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160711">Titre IV : Contrat de travail à durée déterminée</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006177867">Chapitre III : Rupture anticipée, échéance du terme et renouvellement du contrat</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006189458">Section 1 : Rupture anticipée du contrat.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2008-05-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000006901214" num="L1243-3" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<br/>
+<br/>
+<br/>
+<p>
+<br clear="none"/>
+</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<br/>La rupture anticipée du contrat de travail à durée déterminée qui intervient à l'initiative du salarié en dehors des cas prévus aux articles L. 1243-1 et L. 1243-2 ouvre droit pour l'employeur à des dommages et intérêts correspondant au préjudice subi.<br/>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000465978" datesignatexte="2007-03-12" id="JORFTEXT000000465978" naturetexte="ORDONNANCE" nortexte="SOCX0700017R" num="" numtexte="2007-329" sens="source" typelien="CODIFICATION">Ordonnance 2007-329 2007-03-12 JORF 13 mars 2007</LIEN>
+
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006646742" naturetexte="CODE" nortexte="" num="L122-3-8" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L122-3-8 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901212" naturetexte="CODE" nortexte="" num="L1243-1" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L1243-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901213" naturetexte="CODE" nortexte="" num="L1243-2" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L1243-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGITEXT000006072050" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail L122-3-8 alinéa 4</LIEN>
+
+
+
+
+</LIENS>
+</ARTICLE>

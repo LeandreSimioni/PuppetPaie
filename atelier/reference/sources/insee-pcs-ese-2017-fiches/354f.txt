@@ -1,0 +1,62 @@
+SOURCE : https://www.insee.fr/fr/metadonnees/pcsese2017/rubriqueRegroupee/354f
+
+
+NomenclatureFicheController
+1766151120002
+pcsese2017
+categorieSocioprofessionnelleAgregee
+categorieSocioprofessionnelle
+rubriqueRegroupee
+354f
+">Accueil
+Définitions, méthodes et qualité
+Nomenclatures
+Nomenclatures des professions et catégories socioprofessionnelles
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Consulter la nomenclature de la PCS-ESE 2017
+Consulter la nomenclature de la PCS-ESE 2017
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Pour les emplois salariés des employeurs privés et publics, la PCS-ESE 2017 est une ventilation plus détaillée de la PCS.
+Les trois premiers caractères de ces deux nomenclatures sont communs, sauf pour les agriculteurs, artisans et commerçants salariés de leur exploitation ou de leur entreprise.
+Nomenclatures
+Date de publication :
+                        19/12/2025
+Recherche nomenclature
+Menu nomenclature
+Rechercher dans la nomenclature
+Tous les niveaux
+catégorie socioprofessionnelle agrégée
+catégorie socioprofessionnelle
+rubrique
+2025-12-19T14:31:59.978+01:00
+Catégorie socioprofessionnelle agrégée 3 : Cadres et professions intellectuelles supérieures
+Catégorie socioprofessionnelle 35 : Professions de l'information, des arts et des spectacles
+Rubrique 354f : Artistes du cirque et des spectacles divers
+Artistes intervenant dans des domaines qui n'entraînent pas l'exercice exclusif ou privilégié de l'une des spécialités artistiques classées dans les rubriques précédentes ou pratiquant leur art dans des conditions particulières (cirque, spectacles de plein air) rendant difficile un tel classement. Ces personnes exercent leur art ou leur spécialité dans le domaine du cirque ou de professionnels. Elles peuvent intervenir également dans des secteurs d'activité très particuliers (défilés de mode, cascades, animation et présentation de spectacles divers).
+Nomenclatures
+Dernière mise à jour le
+ : 19/12/2025
+Professions les plus typiques
+Acrobate
+Artiste de cirque
+Clown
+Dompteur
+Equilibriste
+Jongleur
+Professions assimilées
+Animateur (radio, télévision
+Artiste de cabaret (s.a.i.)
+Artiste de rue (s.a.i.)
+Artiste de variétés (s.a.i.)
+Cascadeur
+Chansonnier
+Fantaisiste
+Illusionniste
+Imitateur
+Mannequin
+Meneur de jeu
+Modèle
+Présentateur
+Speaker
+Professions exclues
+Marionnettiste (voir 354c)

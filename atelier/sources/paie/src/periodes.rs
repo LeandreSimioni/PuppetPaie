@@ -1,7 +1,7 @@
 //! La paie d'un mois decoupee en periodes elementaires (lot R10, 11/10/2026) : un permanent dont le statut, la categorie
 //! ou la quotite change en cours de mois.
 //!
-//! Textes (`prive/reference/`) :
+//! Textes (`atelier/reference/`) :
 //! - norme DSN 2026.1, § 2.1.3.2, p. 28 (`norme-dsn/texte/chapitre-2-principes-de-constitution.txt`, l. 500-511) : « La
 //!   periode elementaire de paie constitue une sous-partie de la periode de paie. Le decoupage [...] decoule de
 //!   modalites differentes de calcul de la paie en cas d'evolution des parametres de calcul de la paie et notamment du

@@ -1,0 +1,23 @@
+Nouvelle nomenclature NAF à compter de janvier 2027 !
+Nouvelle nomenclature NAF à compter de janvier 2027 !
+Publié le 8 octobre 2026
+- Modifié le 8 octobre 2026 
+A la une, DSN, Nomenclatures 
+La nouvelle nomenclature NAF (NAF 2025) entre en vigueur en janvier 2027 (Décret n° 2025-736 du 31 juillet 2025). En conséquence, la norme DSN évoluera à compter de janvier 2027. 
+Par simplification, le code NAF n’est plus à renseigner en DSN. Il convient néanmoins de s’assurer que le code NAF soit modifié en adéquation avec cette nouvelle nomenclature (NAF 2025). 
+Conséquences en norme DSN P27V01 :
+Suppression des rubriques « Code APEN – S21.G00.06.003 » et « Code APET – S21.G00.11.002 »
+NB : ces codes APEN et APET seront récupérés par le système DSN afin de continuer à alimenter les partenaires avec ces informations.
+Concernant le bloc « Lieu de travail ou établissement utilisateur – S21.G00.85 » : il ne sera plus non plus demandé de renseigner le code APE si le lieu de travail est SIRETisé. Dans le cas contraire, il conviendra de continuer à le renseigner dès janvier 2027 avec la nouvelle codification NAF.
+Particularités à prendre en compte pour le passage de la version de norme de P26V01 à P27V01 en 2027 :
+A compter de la mise en production DSN de janvier 2027, il est prévu que la nomenclature NAF 2025 s’applique quelle que soit la version de norme (P27 et P26).
+Inscrivez-vous par mail à l'actualité de net-entreprises.fr
+
+[Schéma « Pour résumer » (image de la page, transcrit à la main le 11/10/2026 depuis la capture d'écran de Léandre) :
+une flèche du 01/01/2027 au 31/01/2027, coupée par un trait pointillé « MEP P27 ».
+Rubriques DSN à déclarer :
+  avant la MEP P27 — Norme P26 : Code APEN S21.G00.06.003, Code APET S21.G00.11.002, Code APET S21.G00.85.002 ;
+  après la MEP P27 — Norme P26 : Code APEN S21.G00.06.003, Code APET S21.G00.11.002, Code APET S21.G00.85.002 ;
+                     Norme P27 : Code APEN S21.G00.06.003 (barré), Code APET S21.G00.11.002 (barré),
+                                 Code APET S21.G00.85.002 (à compléter si lieu de travail non sirétisé).
+Nomenclature à utiliser : avant la MEP P27, NAF 2008 ; après, NAF 2025 (en P26 comme en P27).]

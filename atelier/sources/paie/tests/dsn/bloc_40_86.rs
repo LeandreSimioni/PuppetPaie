@@ -2,7 +2,7 @@
 //!
 //! - `S21.G00.40.002` et `.003` se lisent (la fiche, l'engagement, a defaut le metier du catalogue) ; ce qui ne se lit
 //!   pas refuse en disant quoi saisir, et la CCH-11 (40.003 = 01 => 40.002 dans 03, 04, 08) se verifie avant de
-//!   produire. Cahier technique DSN 2026.1, p. 182-183 (`prive/reference/norme-dsn/texte/bloc-S21.G00.40.txt`,
+//!   produire. Cahier technique DSN 2026.1, p. 182-183 (`atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt`,
 //!   l. 133-198).
 //! - `S21.G00.86.003` : la date d'anciennete de la fiche (decision de Leandre du 23/09/2026 : « la date de la creation
 //!   de la fiche », `prive/journal/archives/2026-09-23.md`, l. 669-673) ; sans elle, ou si elle tombe apres le mois,

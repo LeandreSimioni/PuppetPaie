@@ -408,7 +408,7 @@ fn tableau_conges(cpt: &CompteurConges) -> Value {
 // ------------------------------------------------------------ le modele de l'arrete
 
 /// Les colonnes du tableau du bulletin : le libelle, puis celles du modele de l'arrete du 25/02/2016, art. 1, I
-/// (redaction du 25/06/2024 ; prive/reference/sources/montant-net-social/legi-arrete-20160225-bulletin/
+/// (redaction du 25/06/2024 ; atelier/reference/sources/montant-net-social/legi-arrete-20160225-bulletin/
 /// LEGIARTI000049854119.xml) : « Base », « Taux », « Salarié », « Employeur ». Un seul taux : celui du salarie, le seul
 /// que le code du travail exige (R. 3243-1, 8°, a : « pour les cotisations et contributions [...] a la charge du
 /// salarie, leurs taux ») ; le modele met « - » au taux des lignes que l'employeur paie seul (accidents du travail,
@@ -427,7 +427,7 @@ const LARGEURS_ANNEXE: [f64; 6] = [0.46, 0.11, 0.09, 0.11, 0.11, 0.12];
 /// - *Complet* : le MEME bulletin, ligne pour ligne, suivi d'une page annexe qui detaille chaque cotisation et
 ///   contribution sous la ligne du modele qui la porte (sa base, le taux et le montant de chaque part, le taux employeur
 ///   compris). Le BOSS, FAQ « Règles générales relatives au bulletin de paie », Q 10
-///   (prive/reference/sources/montant-net-social/boss-regles-generales-bulletin-de-paie-20250207-archive-web.txt,
+///   (atelier/reference/sources/montant-net-social/boss-regles-generales-bulletin-de-paie-20250207-archive-web.txt,
 ///   l. 170-172, copie de l'archive du web, a redeposer depuis le BOSS) : « Il n'est pas possible d'indiquer plus de
 ///   détails pour la rubrique « Cotisations et contributions sociales obligatoires » [...] son uniformisation permet
 ///   d'assurer la lisibilité entre les bulletins des différents employeurs » ; « il est autorisé de fournir le détail de
@@ -585,7 +585,7 @@ const FACULTATIVES: &str = "COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES";
 /// de regrouper certaines contributions particulières dans les rubriques « autres » prévues à cet effet » ; Q 12
 /// (l. 175-178) : « totaliser les contributions légales à la charge exclusive de l'employeur dans la rubrique « Autres
 /// charges dues par l'employeur » ». La caisse est propre au secteur, legale (C. trav. L. 3141-32 et D. 7121-40,
-/// prive/reference/sources/code-du-travail/articles-20261013.md : l'employeur du spectacle « s'affilie ») et a la seule
+/// atelier/reference/sources/code-du-travail/articles-20261013.md : l'employeur du spectacle « s'affilie ») et a la seule
 /// charge de l'employeur (le bareme n'a pas de taux salarial).
 fn rang(l: &crate::calcul::LigneCotisation) -> Rang {
     let seule_employeur = l.taux_sal.is_none() && l.montant_sal.is_zero();
@@ -1049,7 +1049,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     blocs.push(para(periode, 7.0, Some(GRIS), 5.0, 5.0));
 
     // Le tableau : le modele de l'arrete du 25/02/2016, art. 1, I (redaction du 25/06/2024, seul modele depuis le
-    // 01/01/2026 ; prive/reference/sources/montant-net-social/legi-arrete-20160225-bulletin/LEGIARTI000049854119.xml),
+    // 01/01/2026 ; atelier/reference/sources/montant-net-social/legi-arrete-20160225-bulletin/LEGIARTI000049854119.xml),
     // ses colonnes (Base, Taux, Salarié, Employeur), ses libelles, son ordre et ses regroupements : voir `tableau_modele`.
     let th = || {
         vec![("couleur", Value::from(BLANC)), gras(), ("taille", num(6.6)), ("fond", Value::from(ROUGE))]

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000036761916</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/36/76/19/LEGIARTI000036761916.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L2315-61</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2018-04-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132331">Deuxième partie : Les relations collectives de travail  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145399">Livre III : Les institutions représentatives du personnel</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2018-01-01" id="LEGISCTA000006160739">Titre Ier : Délégué du personnel</TITRE_TM>
+<TITRE_TM debut="2018-01-01" fin="2999-01-01" id="LEGISCTA000035650770">Titre Ier : Comité social et économique</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006177949">Chapitre V : Fonctionnement</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2018-01-01" id="LEGISCTA000006189547">Section 3 : Local et affichages.</TITRE_TM>
+<TITRE_TM debut="2018-01-01" fin="2999-01-01" id="LEGISCTA000035651286">Section 3 : Dispositions particulières des entreprises d'au moins cinquante salariés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2018-01-01" fin="2999-01-01" id="LEGISCTA000035627340">Sous-section 7 : Subvention de fonctionnement </TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2018-01-01" etat="MODIFIE" fin="2018-04-01" id="LEGIARTI000035627342" num="L2315-61" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2018-04-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000036761916" num="L2315-61" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>L'employeur verse au comité social et économique une subvention de fonctionnement d'un montant annuel équivalent à : </p>
+<p>1° 0,20 % de la masse salariale brute dans les entreprises de cinquante à moins de deux mille salariés ; </p>
+<p>2° 0,22 % de la masse salariale brute dans les entreprises d'au moins deux mille salariés. </p>
+<p>Ce montant s'ajoute à la subvention destinée aux activités sociales et culturelles, sauf si l'employeur fait déjà bénéficier le comité d'une somme ou de moyens en personnel équivalents à 0,22 % de la masse salariale brute. </p>
+<p>Le comité social et économique peut décider, par une délibération, de consacrer une partie de son budget de fonctionnement au financement de la formation des délégués syndicaux de l'entreprise ainsi qu'à la formation des représentants de proximité, lorsqu'ils existent. Il peut également décider, par une délibération, de transférer une partie du montant de l'excédent annuel du budget de fonctionnement au financement des activités sociales et culturelles, dans des conditions et limites fixées par décret en Conseil d'Etat. </p>
+<p>Cette somme et ses modalités d'utilisation sont inscrites, d'une part, dans les comptes annuels du comité social et économique ou, le cas échéant, dans les documents mentionnés à l'article L. 2315-65 et, d'autre part, dans le rapport mentionné à l'article L. 2315-69. </p>
+<p>Pour l'application des dispositions du présent article, la masse salariale brute est constituée par l'ensemble des gains et rémunérations soumis à cotisations de sécurité sociale en application des dispositions de l'article L. 242-1 du code de la sécurité sociale ou de l'article L. 741-10 du code rural et de la pêche maritime, à l'exception des indemnités versées à l'occasion de la rupture du contrat de travail à durée indéterminée. </p>
+<p>Lorsque le financement des frais d'expertise est pris en charge par l'employeur en application du 3° de l'article L. 2315-80 du présent code, le comité social et économique ne peut pas décider de transférer d'excédents du budget de fonctionnement au financement des activités sociales et culturelles pendant les trois années suivantes.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000036755446" datesignatexte="2018-03-29" id="LEGIARTI000036758408" naturetexte="LOI" nortexte="MTRT1726748L" num="6" numtexte="2018-217" sens="cible" typelien="MODIFIE">LOI n°2018-217 du 29 mars 2018 - art. 6 (V)</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000046169263" datesignatexte="2022-08-09" id="LEGIARTI000046169968" naturetexte="DECRET" nortexte="TREK2211205D" num="1" numtexte="2022-1142" sens="cible" typelien="CITATION">Décret n°2022-1142 du 9 août 2022 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000046304564" datesignatexte="2022-09-19" id="LEGIARTI000046304891" naturetexte="DECRET" nortexte="TREK2219958D" num="1" numtexte="2022-1240" sens="cible" typelien="CITATION">Décret n°2022-1240 du 19 septembre 2022 - art. 1</LIEN>
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000006585682" naturetexte="CODE" nortexte="" num="L741-10" numtexte="" sens="source" typelien="CITATION">Code rural - art. L741-10</LIEN>
+<LIEN cidtexte="LEGITEXT000023086525" datesignatexte="2999-01-01" id="LEGIARTI000053216483" naturetexte="CODE" nortexte="" num="R1241-66-8" numtexte="" sens="cible" typelien="CITATION">Code des transports - art. R1241-66-8 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000023086525" datesignatexte="2999-01-01" id="LEGIARTI000046173134" naturetexte="CODE" nortexte="" num="R4312-46" numtexte="" sens="cible" typelien="CITATION">Code des transports - art. R4312-46 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000036433849" naturetexte="CODE" nortexte="" num="D2315-34" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D2315-34 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000036433853" naturetexte="CODE" nortexte="" num="D2315-36" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D2315-36 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000035627354" naturetexte="CODE" nortexte="" num="L2315-65" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L2315-65</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000035627362" naturetexte="CODE" nortexte="" num="L2315-69" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L2315-69</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000035628319" naturetexte="CODE" nortexte="" num="L2315-80" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L2315-80 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000036413334" naturetexte="CODE" nortexte="" num="R2312-49" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R2312-49 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000036413355" naturetexte="CODE" nortexte="" num="R2312-58" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R2312-58 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000037535713" naturetexte="CODE" nortexte="" num="R2315-31-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R2315-31-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000046306684" naturetexte="CODE" nortexte="" num="R1233-18" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. R1233-18 (VD)</LIEN>
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741953" naturetexte="CODE" nortexte="" num="L242-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L242-1</LIEN>
+</LIENS>
+</ARTICLE>

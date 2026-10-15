@@ -1,0 +1,116 @@
+# Bloc S21.G00.34
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 179-180
+
+--- p. 179 ---
+  S21.G00.34  2026-06-10
+
+Ancien nom de famille  S21.G00.31.009
+ChangementsIndividu.NomFamille
+  Le nom de famille est le nom défini pour chaque individu dans les jours qui suivent sa naissance. Il est
+  usuellement défini sur la base de la filiation avec l’un ou l’autre parent, voire les deux. Il peut être défini
+  par disposition administrative ou judiciaire.
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,80]
+
+Anciens prénoms  S21.G00.31.010
+ChangementsIndividu.Prenoms
+  Elément d'identification joint au nom de famille qui permet de distinguer les personnes d'une même famille.
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,80]
+
+Ancienne date de naissance  S21.G00.31.011
+ChangementsIndividu.DateNaissance
+  Instant où une personne naît, tel qu'enregistré à l'état civil.
+  Renseigner la date de naissance du salarié sous la forme JJMMAAAA.
+  - L'année de naissance est obligatoire :
+  - Jour de naissance inconnu : 00MMAAAA ou 99MMAAAA,
+  - Mois de naissance inconnu : JJ00AAAA ou JJ99AAAA,
+  - Si jour et mois inconnus : 0000AAAA ou 9999AAAA.
+  CCH-12 : L'année de l' "Ancienne date de naissance - S21.G00.31.011" doit être inférieure ou égale à l'année en cours
+  et supérieure à l'année en cours moins 120 (années).
+
+  CSL-11 : [(respect des contraintes calendaires)] aux exceptions près acceptées sur le mois ou le jour à 00 ou 99
+
+  CSL 00 : (0[0-9]|[1-2][0-9]|3[0-1]|99)(0[0-9]|1[0-
+  X  [8,8]
+  2]|99)(19|20)[0-9]{2}
+
+S21.G00.34
+
+Compte Professionnel de Prévention (Ex-Pénibilité)  S21.G00.34
+  Ce bloc permet de renseigner l'exposition de chaque individu à certains facteurs de risques professionnels.
+
+Facteur d'exposition  S21.G00.34.001
+Numéro du contrat  S21.G00.34.002
+Année de rattachement  S21.G00.34.003
+
+Facteur d'exposition  S21.G00.34.001
+Penibilite.FacteurExposition
+  CCH-11 : Pour un même individu, la déclaration d'un bloc "Compte Professionnel de Prévention (Ex-Pénibilité) -
+  S21.G00.34" n’est autorisée que si le "Numéro du contrat - S21.G00.34.002" qu'il porte correspond à un numéro de
+  contrat (S21.G00.40.009) déclaré dans un bloc "Contrat (contrat de travail, convention, mandat) - S21.G00.40" portant
+  un "Code régime de base risque vieillesse - S21.G00.40.020" égal à "157 - régime de retraite des avocats (CNBF)",
+  "200 - régime général (CNAV)", "300 - régime agricole (MSA)" ou "905 - Régime général pour la déclaration des
+
+  179 / 370
+
+--- p. 180 ---
+  S21.G00.40  2026-06-10
+
+  individus de Mayotte affiliés à la CSSM".
+
+  X  [2,2]
+
+  05 - les activités exercées en milieu hyperbare
+  06 - les températures extrêmes
+  07 - le bruit
+  08 - le travail de nuit
+  09 - le travail en équipes successives alternantes
+  10 - le travail répétitif (répétition d'un même geste, à une cadence contrainte avec un temps de cycle défini)
+  99 - annulation
+
+Numéro du contrat  S21.G00.34.002
+Penibilite.NumeroContrat
+  Identifiant unique du contrat de travail auquel sont rattachés le ou les facteurs de risques professionnels.
+
+  CCH-11 : La valeur renseignée dans cette rubrique doit être identique à la valeur renseignée dans une rubrique
+  "Numéro du contrat - S21.G00.40.009"
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des numéros de contrat.
+
+  X  [5,20]
+
+Année de rattachement  S21.G00.34.003
+Penibilite.AnneeRattachement
+  Année au titre de laquelle le bloc "Compte Professionnel de Prévention (Ex-Pénibilité) - S21.G00.34" est
+  souscrit.
+
+  N  [4,4]  CSL 00 : 2([0-9]{3})
+
+S21.G00.40
+
+Contrat (contrat de travail, convention, mandat)  S21.G00.40
+  Accord conclu entre une entreprise et un individu par lequel sont fixés les termes des obligations réciproques en termes
+  d'activités ou de fonctions et en termes de rétributions. Le lien de subordination n'existe que dans la notion de contrat
+  de travail. Trois types de contrats ont été à ce jour identifiés : le contrat de travail, la convention de stage, le mandat
+  social
+
+Date de début du contrat  S21.G00.40.001
+Statut du salarié (conventionnel)  S21.G00.40.002
+Code statut catégoriel Retraite Complémentaire obligatoire  S21.G00.40.003
+Code profession et catégorie socioprofessionnelle (PCS-ESE)  S21.G00.40.004
+Code complément PCS-ESE (pour la fonction publique : référentiels NEH, NET et grade de la  S21.G00.40.005
+NNE)
+Libellé de l'emploi  S21.G00.40.006
+Nature du contrat  S21.G00.40.007
+Dispositif de politique publique et conventionnel  S21.G00.40.008
+Numéro du contrat  S21.G00.40.009
+Date de fin prévisionnelle du contrat  S21.G00.40.010
+Unité de mesure de la quotité de travail  S21.G00.40.011
+Quotité de travail de référence de l'entreprise pour la catégorie de salarié  S21.G00.40.012
+Quotité de travail du contrat  S21.G00.40.013
+
+  180 / 370

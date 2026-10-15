@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000043343028</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/43/34/30/LEGIARTI000043343028.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L2333-67</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2022-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006070633" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code général des collectivités territoriales" debut="1996-02-24" fin="2999-01-01" id_txt="LEGITEXT000006070633">Code général des collectivités territoriales</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006088000">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006116628">DEUXIÈME PARTIE : LA COMMUNE</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006135493">LIVRE III : FINANCES COMMUNALES</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006149245">TITRE III : RECETTES</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2999-01-01" id="LEGISCTA000006164579">CHAPITRE III : Taxes, redevances ou versements non prévus par le code général des impôts</TITRE_TM>
+<TM>
+<TITRE_TM debut="1996-02-24" fin="2014-01-29" id="LEGISCTA000006181011">Section 8 : Versement destiné aux transports en commun</TITRE_TM>
+<TITRE_TM debut="2014-01-29" fin="2019-12-27" id="LEGISCTA000028534273">Section 8 : Versement destiné aux transports</TITRE_TM>
+<TITRE_TM debut="2019-12-27" fin="2999-01-01" id="LEGISCTA000039802388">Section 8 : Versement destiné au financement des services de mobilité</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1996-02-24" etat="MODIFIE" fin="1996-12-31" id="LEGIARTI000006390692" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1996-12-31" etat="MODIFIE" fin="1999-07-13" id="LEGIARTI000006390693" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1999-07-13" etat="MODIFIE" fin="2000-12-14" id="LEGIARTI000006390694" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2000-12-14" etat="MODIFIE" fin="2002-02-28" id="LEGIARTI000006390695" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2002-02-28" etat="MODIFIE" fin="2002-12-31" id="LEGIARTI000006390696" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2002-12-14" etat="MODIFIE" fin="2003-12-31" id="LEGIARTI000006390697" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2003-12-31" etat="MODIFIE" fin="2010-07-14" id="LEGIARTI000006390698" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2010-07-14" etat="MODIFIE" fin="2010-12-18" id="LEGIARTI000022494206" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2010-12-18" etat="MODIFIE" fin="2011-01-01" id="LEGIARTI000023259611" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2011-01-01" etat="MODIFIE" fin="2011-12-30" id="LEGIARTI000023372641" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2011-12-30" etat="MODIFIE" fin="2012-03-24" id="LEGIARTI000025075749" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2012-03-24" etat="MODIFIE" fin="2014-11-08" id="LEGIARTI000025576698" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2014-11-08" etat="MODIFIE" fin="2015-01-01" id="LEGIARTI000029737010" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE_MORT_NE">
+<LIEN_ART debut="2015-01-01" etat="MODIFIE_MORT_NE" fin="2014-12-30" id="LEGIARTI000029336347" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2015-01-01" etat="MODIFIE" fin="2015-08-09" id="LEGIARTI000030023854" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2015-08-09" etat="MODIFIE" fin="2017-01-01" id="LEGIARTI000031104857" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2017-01-01" etat="MODIFIE" fin="2019-12-27" id="LEGIARTI000033816774" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2019-12-27" etat="MODIFIE" fin="2022-01-01" id="LEGIARTI000039802359" num="L2333-67" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2022-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000043343028" num="L2333-67" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément aux dispositions prévues par l'article 12 de l'ordonnance n° 2021-408 du 8 avril 2021 relative à l'autorité organisatrice des mobilités des territoires lyonnais, ces dispositions entrent en vigueur le 1er janvier 2022, qui est la date de création de l'autorité organisatrice des mobilités des territoires lyonnais, à l'exception des articles 10 et 11, qui entrent en vigueur le lendemain de la date de publication de l'ordonnance.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<br/>
+<p>Le taux de versement est fixé ou modifié par délibération du conseil municipal ou de l'organisme compétent de l'établissement public qui est l'autorité organisatrice de la mobilité au sens de l'article L. 1231-1 du code des transports dans la limite de :</p>
+<p>- 0,55 % des salaires définis à l'article L. 2333-65  du présent code lorsque la population de la commune ou de l'établissement public est comprise entre 10 000 et 100 000 habitants ;</p>
+<p>- 0,85 % des salaires définis à l'article L. 2333-65 lorsque la population de la commune ou de l'établissement public est comprise entre 50 000 et 100 000 habitants et que l'autorité organisatrice de la mobilité a décidé de réaliser une infrastructure de transport collectif en site propre. Si les travaux correspondants n'ont pas commencé dans un délai maximal de cinq ans à compter de la date de majoration du taux du versement destiné au financement des mobilités, le taux applicable à compter de la sixième année est ramené à 0,55 % au plus ;</p>
+<p>- 1 % des salaires définis à l'article L. 2333-65 lorsque la population de la commune ou de l'établissement public est supérieure à 100 000 habitants ;</p>
+<p>- 1,75 % des salaires définis à l'article L. 2333-65 lorsque la population de la commune ou de l'établissement public de coopération est supérieure à 100 000 habitants et que l'autorité organisatrice de la mobilité a décidé de réaliser une infrastructure de transport collectif en mode routier ou guidé. Si les travaux correspondants n'ont pas été commencés dans un délai maximum de cinq ans à compter de la date de majoration du taux du versement destiné au financement des mobilités, le taux applicable à compter de la sixième année est ramené à 1 % au plus. Toutefois, ce délai court à compter du 1er janvier 2004 pour les collectivités locales dont les délibérations fixant un taux supérieur à 1 % ont été prises antérieurement à cette date.</p>
+<p>Toutefois, les communautés de communes et communautés d'agglomération ont la faculté de majorer de 0,05 % les taux maxima mentionnés aux alinéas précédents.</p>
+<p>Cette faculté est également ouverte :</p>
+<p>- aux communautés urbaines ;</p>
+<p>- aux métropoles ;</p>
+<p>- aux autorités organisatrices de la mobilité auxquelles ont adhéré une communauté de communes, une communauté d'agglomération, une communauté urbaine ; et</p>
+<p>- à l'autorité organisatrice des mobilités des territoires lyonnais.</p>
+<p>Dans les territoires comprenant une ou plusieurs communes classées communes touristiques au sens de l'article L. 133-11 du code du tourisme, le taux applicable peut être majoré de 0,2 %.</p>
+<p>Dans les communes et les établissements publics compétents pour l'organisation de la mobilité dont la population est inférieure à 10 000 habitants et dont le territoire comprend une ou plusieurs communes classées communes touristiques au sens de l'article L. 133-11 du code du tourisme, le taux du versement est fixé dans la limite de 0,55 % des salaires définis à l'article L. 2333-65 du présent code. </p>
+<p>En cas d'extension du périmètre d'un établissement public de coopération intercommunale doté de fiscalité propre ou d'un syndicat mixte auquel a adhéré un établissement public de coopération intercommunale doté de fiscalité propre, le taux de versement destiné au financement des services de mobilité applicable sur le territoire des communes incluses peut être réduit ou porté à zéro par décision de l'organe délibérant de l'établissement public ou du syndicat mixte, pour une durée maximale de douze ans à compter de cette inclusion, par rapport au taux applicable sur le territoire des autres communes, lorsque le versement destiné au financement des mobilités n'était pas institué sur le territoire de communes nouvellement incluses ou l'était à un taux inférieur. Le taux adopté pour ces communes et établissements publics de coopération intercommunale ne peut être inférieur au taux qui leur était applicable l'année précédant la modification de périmètre. Ces dispositions sont applicables lors de la fusion d'établissements publics de coopération intercommunale à fiscalité propre.</p>
+<p>Les dispositions de l'alinéa précédent s'appliquent aux communes incluses dans le ressort territorial d'une autorité organisatrice de la mobilité résultant soit de la création d'un établissement public de coopération intercommunale doté de fiscalité propre compétent en matière de mobilité, soit de la fusion d'établissements publics de coopération intercommunale à fiscalité propre, soit du transfert de la compétence en matière d'organisation de mobilité à un établissement public de coopération intercommunale doté de fiscalité propre dont elles sont membres. Elles s'appliquent également à l'autorité organisatrice des mobilités des territoires lyonnais, à sa création comme en cas d'adhésion d'un nouveau membre.</p>
+<p>Toute modification de taux entre en vigueur au 1er janvier ou au 1er juillet de chaque année ; la délibération fixant le nouveau taux est transmise par l'autorité organisatrice de la mobilité aux organismes de recouvrement avant, respectivement, le 1er novembre ou le 1er mai de chaque année. Les organismes de recouvrement communiquent le nouveau taux aux assujettis au plus tard un mois après ces dernières dates.</p>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000226154" datesignatexte="2002-03-07" id="LEGIARTI000006276088" naturetexte="ORDONNANCE" nortexte="INTX0100168R" num="6" numtexte="2002-327" sens="cible" typelien="CITATION">Ordonnance n°2002-327 du 7 mars 2002 - art. 6 (P)</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000043339522" datesignatexte="2021-04-08" id="LEGIARTI000043340594" naturetexte="ORDONNANCE" nortexte="TRAT2035106R" num="3" numtexte="2021-408" sens="cible" typelien="MODIFIE">Ordonnance n°2021-408 du 8 avril 2021 - art. 3</LIEN>
+<LIEN cidtexte="JORFTEXT000045124505" datesignatexte="2022-02-05" id="LEGIARTI000045127769" naturetexte="DECRET" nortexte="SSAS2137748D" num="1" numtexte="2022-136" sens="cible" typelien="CITATION">Décret n°2022-136 du 5 février 2022 - art. 1</LIEN>
+<LIEN cidtexte="LEGITEXT000006070162" datesignatexte="2999-01-01" id="LEGIARTI000006346100" naturetexte="CODE" nortexte="" num="L233-61" numtexte="" sens="source" typelien="CONCORDANCE">CODE DES COMMUNES. - art. L233-61 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070162" datesignatexte="2999-01-01" id="LEGIARTI000006346104" naturetexte="CODE" nortexte="" num="L233-61" numtexte="" sens="cible" typelien="CONCORDE">CODE DES COMMUNES. - art. L233-61 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000045128193" naturetexte="CODE" nortexte="" num="R225-2-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R225-2-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000045128208" naturetexte="CODE" nortexte="" num="R225-2-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R225-2-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000023086525" datesignatexte="2999-01-01" id="LEGIARTI000043341104" naturetexte="CODE" nortexte="" num="L1243-19" numtexte="" sens="cible" typelien="CITATION">Code des transports - art. L1243-19 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000006390690" naturetexte="CODE" nortexte="" num="L2333-65" numtexte="" sens="source" typelien="CITATION">Code général des collectivités territoriales - art. L2333-65</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000029336340" naturetexte="CODE" nortexte="" num="L2333-68" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. L2333-68 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000031104759" naturetexte="CODE" nortexte="" num="L5722-7" numtexte="" sens="cible" typelien="CITATION">Code général des collectivités territoriales - art. L5722-7 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006070633" datesignatexte="2999-01-01" id="LEGIARTI000017873433" naturetexte="CODE" nortexte="" num="L5722-7-1" numtexte="" sens="source" typelien="CITATION">Code général des collectivités territoriales - art. L5722-7-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006074073" datesignatexte="2999-01-01" id="LEGIARTI000006812594" naturetexte="CODE" nortexte="" num="L133-11" numtexte="" sens="source" typelien="CITATION">Code du tourisme. - art. L133-11</LIEN>
+</LIENS>
+</ARTICLE>

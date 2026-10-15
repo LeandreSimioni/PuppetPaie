@@ -1,0 +1,181 @@
+
+
+Artiste - Mon-entreprise
+
+Aller au contenu principal
+Aller directement au pied de page
+
+Activer le mode sombre
+Rechercher Menu
+
+Artiste-auteur 👩‍🎨
+Bénéficiaire
+Date
+Dirigeant
+Durée légale du travail
+Entreprise 🏢🧑‍💼👷‍♂️🧑‍🏭
+Établissement
+Impôt sur le revenu 🏛️
+Période
+Plafond sécurité sociale
+Protection sociale
+Salarié 🤝 Activité partielle
+Ancienneté
+Contrat 📄
+Convention collective
+Cotisations
+Coût total employeur
+Mois incomplet
+Régimes spécifiques Régime Alsace-Moselle
+Apprentissage
+Déduction forfaitaire spécifique
+Impatriés
+Intermittents du spectacle Artiste Acteur de complément
+Activité accessoire
+Nombre jours travaillés
+Non cadre
+Plafond proratisé
+Réduction de taux
+
+Caisse des congés spectacle
+Formation professionnelle
+Retraite complémentaire techniciens et cadre
+Technicien
+
+Taux réduits cas particuliers
+Taxe sur les salaires
+
+Rémunération 💶
+Temps de travail 🕰️
+
+Situation personnelle
+SMIC
+
+Toutes les règles Salarié 🤝 › Régimes spécifiques › Intermittents du spectacle ›
+Artiste
+Sont considérés comme artistes du spectacle :
+L'artiste lyrique
+L'artiste dramatique
+L'artiste chorégraphique
+L'artiste de variétés
+Le musicien
+Le chansonnier
+L'artiste de complément
+Le chef d'orchestre
+L'arrangeur-orchestrateur
+Le metteur en scène, le réalisateur et le chorégraphe, pour l'exécution matérielle de leur conception artistique
+L'artiste de cirque
+Le marionnettiste
+Les personnes dont l'activité est reconnue comme un métier d'artiste-interprète par les conventions collectives du spectacle vivant étendues.
+
+Valeur : Non applicable
+@ Cette règle est non applicable car elle appartient à l’espace de nom : Intermittents du spectacle -
+
+Comment cette donnée est-elle calculée ?
+( Intermittents du spectacle -
+
+=  artiste =  non )
+
+Références
+Article L7121-2
+
+Informations techniques
+Si vous êtes développeur/euse vous trouverez ci-dessous des informations techniques utiles pour l'intégration de cette règle dans votre application.
+Règle et situation
+Règle actuelle
+Copier
+salarié . régimes spécifiques . intermittents du spectacle . artiste
+✍️ Afficher la règle dans le bac à sable Publicodes
+Situation actuelle
+Votre situation est pour l’instant vide, vous n’avez probablement pas encore fait de simulation.
+Copier
+{}
+
+Réutiliser ce calcul (API REST / Paquet NPM)
+Lancer un calcul avec Publicodes
+Vous pouvez installer notre package de règles pour l’utiliser avec le moteur Publicodes  et ainsi effectuer vos propres calculs. Voici un exemple avec votre situation et la règle actuelle :
+Copier
+// npm i publicodes modele-social
+
+import Engine, { formatValue } from 'publicodes'
+import rules from 'modele-social'
+
+const engine = new Engine(rules)
+engine.setSituation({})
+
+// Artiste
+const evaluation = engine.evaluate("salarié . régimes spécifiques . intermittents du spectacle . artiste")
+
+console.log(formatValue(evaluation))
+
+📦 Retrouvez ce paquet sur NPM
+Utiliser notre API REST
+Vous trouverez ici un exemple d’utilisation de notre API REST via curl ou un fetch javascript.
+Copier fetch js
+curl 'https://mon-entreprise.urssaf.fr/api/v1/evaluate' \
+-H 'accept: application/json' \
+-H 'content-type: application/json' \
+--data-raw $'{"expressions":["salarié . régimes spécifiques . intermittents du spectacle . artiste"],"situation":{}}' \
+--compressed
+👩‍💻 En savoir plus sur notre API REST
+
+Dépendances et effets de la règle
+Données manquantes
+Les règles suivantes sont nécessaires pour le calcul mais n’ont pas été saisies dans la situation. Leur valeur par défaut est utilisée.
+Catégorie juridique
+Entreprise individuelle (y compris auto-entrepreneurs)
+SELAS ou SELASU
+SELARL ou SELARLU
+SAS ou SASU
+SARL ou EURL
+Indépendant
+Auto-entrepreneur
+Contrat 📄
+Règles qui ont besoin de cette valeur
+Les règles suivantes ont besoin de la règle courante pour être calculées :
+Intermittents du spectacle
+Non cadre
+Non cadre › Cotisations retraite complémentaire employeur taux T1
+Non cadre › Cotisations retraite complémentaire employeur taux T2
+Non cadre › Cotisations retraite complémentaire salarié taux T1
+Non cadre › Cotisations retraite complémentaire salarié taux T2
+Non cadre › Plafond sécurité sociale
+Activité accessoire
+Réduction de taux
+Réduction de taux › Cotisations allocations familiales taux
+Réduction de taux › Cotisations FNAL taux
+Réduction de taux › Cotisations maladie employeur taux
+Réduction de taux › Cotisations maladie salarié taux
+Réduction de taux › Cotisations versement mobilité
+Réduction de taux › Cotisations vieillesse employeur déplafonnée taux
+Réduction de taux › Cotisations vieillesse employeur plafonnée taux
+Réduction de taux › Cotisations vieillesse salarié déplafonnée taux
+Réduction de taux › Cotisations vieillesse salarié plafonnée taux
+Réduction de taux › ATMP
+Nombre jours travaillés
+Plafond proratisé
+Acteur de complément
+Acteur de complément › Nombre jours travaillés
+Acteur de complément › Assiette forfaitaire
+Acteur de complément › Assiette forfaitaire › Nombre jours travaillés
+Effets sur d’autres règles
+Cette règle ne modifie aucune autre règle.
+Règles qui peuvent avoir un effet sur cette valeur
+Aucune autre règle n’a d’effets sur cette valeur.
+
+Plan du site
+Nouveautés
+Budget
+Statistiques
+
+Intégrer nos simulateurs
+Devenir beta-testeur
+Voir le code source sur Github
+Switch to the English version
+
+Nous contacter
+Mentions légales
+Conditions générales d'utilisation
+Politique de confidentialité
+Accessibilité : partiellement conforme
+

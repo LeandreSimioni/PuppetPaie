@@ -1,0 +1,124 @@
+# Bloc S21.G00.83
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 323-324
+
+--- p. 323 ---
+  S21.G00.83  2026-06-10
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Référence réglementaire ou contractuelle  S21.G00.82.005
+CotisationEtablissement.ReferenceReglementaireContractuelle
+  Référence réglementaire ou contractuelle de la cotisation établissement, exploitée par certains organismes.
+
+  Modalité de valorisation :
+
+  - Caisse CIBTP : indiquer l'un des codes caisses CIBTP sur deux caractères présents dans la liste des
+  valeurs autorisées disponibles sur le site http://www.net-entreprises.fr (table RRC - Identifiant Organisme
+  de Protection Sociale - Référence réglementaire ou contractuelle).
+  - Organisme complémentaire : à renseigner par l'identifiant technique de l'adhésion Prévoyance
+  (S21.G00.15.005) à laquelle se rattache le montant de la cotisation ou de la déduction de cotisation.
+  - MSA : code caisse MSA (Table RRC - Identifiant Organisme de Protection Sociale - Référence
+  réglementaire ou contractuelle)
+  - Urssaf : SIRET de l'Urssaf (Table RRC - Identifiant Organisme de Protection Sociale - Référence
+  réglementaire ou contractuelle)
+  CCH-12 : Si la rubrique "Code de cotisation - S21.G00.82.002" est renseignée avec la valeur "024 - Cotisation assise
+  sur le nombre d'heures d'intérim" ou "054 - Cotisation assise sur le chiffre d'affaires", la rubrique "Référence
+  réglementaire ou contractuelle - S21.G00.82.005" doit être renseignée avec une valeur comprise entre 01 et 37.
+
+  CCH-14 : Si la rubrique "Code de cotisation - S21.G00.82.002" est renseignée avec une valeur de code comprise dans
+  la plage 001 à 020, 036 à 040, ou égale à "046" ou "090" , la rubrique "Référence réglementaire ou contractuelle -
+  S21.G00.82.005" doit être renseignée avec la même valeur que celle renseignée en S21.G00.15.005 dans le ou l'un des
+  blocs S21.G00.15 "Adhésion prévoyance" de la déclaration.
+
+  X  [1,20]
+
+Identifiant du CRM à l'origine de la régularisation  S21.G00.82.006
+CotisationEtablissement.IdentifiantCRMRegul
+  Il s'agit de l'identifiant du CRM (compte rendu métier) transmis par l'organisme demandeur de la
+  régularisation ou de la correction.
+  CCH-11 : La rubrique "Identifiant du CRM à l'origine de la régularisation - S21.G00.82.006" ne peut être renseignée
+  que pour une période de rattachement (S21.G00.82.003 et S21.G00.82.004) inférieure au mois principal déclaré
+  (S20.G00.05.005) de la déclaration. Dans le cas contraire cette rubrique est interdite. Ce contrôle vise à ce qu'il soit
+  possible de renseigner l'identifiant du CRM à l'origine de la régularisation que pour des régularisations ou des
+  corrections.
+
+  X  [1,18]
+
+S21.G00.83
+
+Période d'affiliation à tort à un régime de retraite  S21.G00.83
+complémentaire
+Date de début de période déclarée à tort  S21.G00.83.001
+Date de fin de période déclarée à tort  S21.G00.83.002
+
+Date de début de période déclarée à tort  S21.G00.83.001
+
+  323 / 370
+
+--- p. 324 ---
+  S21.G00.84  2026-06-10
+
+RegularisationAffiliationRetraiteComplementaire.DateDebutPeriodeD
+eclareeTort
+  Date de début de période de rattachement du code régime retraite complémentaire qui avait été déclaré à
+  tort.
+  CCH-11 : Si un bloc "Affiliation à tort à un régime de retraite complémentaire - S21.G00.72" est présent alors un bloc
+  "Période d'affiliation à tort à un régime de retraite complémentaire - S21.G00.83" doit être obligatoirement renseigné.
+  Dans le cas contraire la déclaration de ce bloc est interdite.
+  Ce contrôle vise à déclarer un bloc "Période d'affiliation à tort à un régime de retraite complémentaire - S21.G00.83"
+  pour chaque bloc "Affiliation à tort à un régime de retraite complémentaire - S21.G00.72" déclaré.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de période déclarée à tort  S21.G00.83.002
+RegularisationAffiliationRetraiteComplementaire.DateFinPeriodeDecl
+areeTort
+  Date de fin de période de rattachement du code régime retraite complémentaire qui avait été déclaré à tort.
+
+  CCH-11 : La "Date de fin de période déclarée à tort - S21.G00.83.002" doit être supérieure ou égale à la "Date de
+  début de période déclarée à tort - S21.G00.83.001".
+
+  CCH-12 : La "Date de fin de période déclarée à tort - S21.G00.83.002" doit être inférieure au premier jour du mois
+  principal déclaré.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+S21.G00.84
+
+Base assujettie déclarée à tort pour un régime de  S21.G00.84
+retraite complémentaire
+Code de base assujettie déclarée à tort  S21.G00.84.001
+Date de début de période de rattachement de la base déclarée à tort  S21.G00.84.002
+Date de fin de période de rattachement de la base déclarée à tort  S21.G00.84.003
+Montant déclaré à tort  S21.G00.84.004
+Numéro du contrat rattaché à la base assujettie déclarée à tort  S21.G00.84.005
+
+Code de base assujettie déclarée à tort  S21.G00.84.001
+AncienneBaseAssujettieDeclareeorganismeRetraiteComplementaire
+DeclareeTort.CodeBaseAssujettie
+  Cette rubrique permet de déclarer toute base assujettie portant des cotisations qui avait été déclarées à tort
+  à des organismes destinataires.
+  - AGIRC-ARRCO : "02", "03", "11", "22", "23", "24", "25", "43", "45"
+  - CAVEC : "03"
+  - CNBF : "02", "03"
+  - CRPCEN : "02", "03", "11", "19" (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : "41", "42"
+  - IRCANTEC : "28"
+  - Urssaf : "02", "03", "11", "19", "22", "23", "24", "25", "43", "45"
+
+  324 / 370

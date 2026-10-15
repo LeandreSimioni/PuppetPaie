@@ -1,0 +1,20 @@
+24/09/2026;code;libellé;trigramme;date de début de validité;date de fin de validité
+MNATA;001;Non assujetti par choix du régime fiscal (option IR en catégorie BNC);;;
+MNATA;002;Collectivités publiques, Parlementaires;;;
+MNATA;003;Etablissements publics de recherche et les établissements publics d'enseignement supérieurs;;;
+MNATA;004;Personnes morales créées pour la gestion d'un pôle de recherche et d'enseignement supérieur ou d'un réseau thématique de recherche avancée;;;
+MNATA;005;Fondations reconnues d'utilité public du secteur de la recherche;;;
+MNATA;006;Sociétés et personnes morales ayant pour objet exclusif l'enseignement;;;
+MNATA;007;Associations sans but lucratif;;;
+MNATA;008;Syndicats professionnels;;;
+MNATA;009;Entreprises sans établissement en France (ESEF);;;
+MNATA;010;Sociétés civiles de moyens (SCM) non commerciale;;;
+MNATA;011;Personnes physiques ou morales assujetties aux BNC ou BA;;;
+MNATA;012;Les coopératives agricoles;;;
+MNATA;013;Les coopératives artisanales, transport (y compris fluvial et maritime) et leurs unions;;;
+MNATA;014;Les groupements d'employeurs dont agricoles;;;
+MNATA;015;Les sociétés civiles agricoles;;;
+MNATA;016;Les mutuelles et organismes mutualistes;;;
+MNATA;017;Les organismes HLM, SA de crédit immobilier (I et au II de l'article L. 422-4 du code de la construction et de l'habitation ) et unions d'économie sociale;;;
+MNATA;018;Les sociétés coopératives de construction désignées à l'article L. 432-2 du code de la construction et de l'habitation.;;;
+MNATA;019;Organismes chargés de l'organisation en France d'une compétition sportive internationale en France (Article L6131-1 du code du travail);;;

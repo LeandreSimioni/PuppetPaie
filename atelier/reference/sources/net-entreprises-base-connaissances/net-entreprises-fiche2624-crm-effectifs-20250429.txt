@@ -1,0 +1,70 @@
+Date de modification : 29/04/2025 05:03 PM
+Les CRM Effectifs
+ Comment les CRM effectifs sont-ils remontés et mis à disposition? 
+ Le contexte
+L’Urssaf et la MSA calculent, sur la base des DSN transmises par les établissements, les effectifs annuels, qui ne sont donc plus à déclarer en DSN.
+Ces effectifs sont ensuite portés à la connaissance des déclarants en raison :
+ Des impacts en cas de franchissements de seuil, 
+ De leur utilisation dans le cadre d’autres dispositifs tels que l’Obligation d’Emploi des Travailleurs Handicapés (OETH) ou la Contribution Supplémentaire à l’Apprentissage (CSA).
+Les « CRM effectifs » mis en place en février 2022 permettent de remonter sur le tableau de bord DSN (en plus de leur affichage sur les comptes cotisants Urssaf ou MSA des entreprises) les effectifs calculés par l’Urssaf ou la MSA.
+Les CRM effectifs (code CRM n° 118 de la norme NEOReS) sont rattachés à la dernière déclaration DSN (mensuelle) reçue dès que l’information relative aux effectifs est disponible.
+Les CRM effectifs sont mis à disposition via :
+ L’API DSN (Le guide d’implémentation de l’API DSN est disponible ici) ;
+ Le tableau de bord DSN en rubrique « Services complémentaires » (depuis la ligne « Informations utiles : Accédez aux rapports complémentaires pour la gestion RH/paie »)
+Le périmètre des effectifs transmis via ces CRM
+Les effectifs concernés par la mise en place des CRM effectifs (et codifiés au sein du Guide d’implémentation API DSN) sont les suivants :
+ | Nature d'effecif
+ | Code
+ | Effectif moyen annuel standard
+ | 
+ A01
+ | 
+ Effectif moyen annuel BOETH (de Bénéficiaire de l'Obligation d'Emploi des travailleurs Handicapés)
+ | A02
+ | Effectif moyen ECAP (d'EmploisExigeant des Conditions d'Aptitude Particulières)
+ | 
+ A03
+ | Effectif moyen annuel d'assujettissement OETH (d'assujettissement d'Obligation d'Emploi des Travailleurs Handicapés)
+ | A04
+ | Effectif moyen annuel CSA CFIP (des Contrats Favorisant l'Insertion Professionnelle (numérateur))
+ | A05
+ | Effectif moyen annuel CSA (de détermination du taux d'alternants (dénominateur))
+ | A07
+Les différents types d'effectifs
+ Effectif Moyen Annuel standard (EMA standard)
+Il correspond à l’effectif moyen de l'entreprise au 31 décembre et il est pris en compte pour la définition de l’assujettissement des entreprises à certaines cotisations (comme par exemple, la contribution supplémentaire à l’apprentissage).
+ Effectif moyen annuel de BOETH (EMA BOETH)
+Effectif moyen annuel des BOETH de l'entreprise au 31 décembre permettant de connaître l’effectif BOETH à prendre en compte pour le calcul de la contribution OETH à verser par l’entreprise.
+ Effectif moyen annuel d’ECAP (EMA ECAP)
+Effectif moyen annuel des personnels occupant des emplois exigeant des conditions d’aptitude particulières pour une entreprise considérée. Il permet à l’entreprise de connaître la proportion des emplois occupés et relevant des ECAP qui a été prise en compte pour une année donnée. A noter que cette information entre en compte pour les déductions de la contribution OETH.
+A noter que les ECAP n’ont pas vocation à être proposés à des travailleurs handicapés.
+ Effectif moyen annuel d’assujettissement d’OETH (EMA OETH)
+Effectif moyen annuel spécifique déterminant l’assujettissement à l’obligation d’emploi des travailleurs handicapés et il permet à l’entreprise de savoir si elle est assujettie à l’OETH.
+ Effectif moyen annuel des Contrats Favorisant l’Insertion Professionnelle (numérateur) (CSA CFIP)
+Effectif des salariés sous contrat de professionnalisation ou d'apprentissage et, pendant l'année suivant la date de fin du contrat de professionnalisation ou d'apprentissage, les salariés embauchés en contrat à durée indéterminée par l'entreprise à l'issue dudit contrat ; et aux personnes bénéficiant d'une convention industrielle de formation par la recherche (CIFRE)
+ Effectif moyen annuel de détermination du taux d’alternants (dénominateur) (CSA) 
+Effectif moyen annuel de salariés permanents de l’entreprise, utilisé comme dénominateur pour le calcul du ratio d'alternants.
+Les précisions sur les calculs des effectifs sont apportées dans le guide mis en ligne par l’URSSAF.(Les modalités de calcul présentes dans ce guide sont reprises par la MSA). A noter que ce guide est en cours de mise à jour avec les éléments relatifs aux effectifs moyens annuels d’alternants.
+Le calendrier de remontée des CRM effectifs
+D’un point de vue général, les CRM effectifs peuvent être transmis en début de mois à partir du moment où de nouveaux effectifs sont calculés par l’Urssaf ou la MSA pour le(s) SIRET concerné(s).
+Néanmoins, les principaux moments dans l’année où les CRM effectifs sont remontés aux établissements (sur la dernière DSN mensuelle transmise pour l’établissement) sont:
+ • Début février (ou début mars) : pour la remontée des effectifs EMA standards.
+ • Début mars : pour la remontée des effectifs EMA CSA et CSA CFIP.
+ • Début avril : pour la remontée des effectifs EMA BOETH, ECAP, et OETH.
+NB : Si différents types d’effectifs sont calculés au même moment pour un SIRET donné, ces différents résultats seront remontés dans un unique CRM effectif.
+A noter : les CRM effectifs mis à disposition sur net-entreprises.fr sont un service complémentaire de la mise à disposition de ceux mis à disposition par l’URSSAF et la MSA sur les comptes cotisants des entreprises sur leur site respectif. En cas de questions, vous devez vous connecter sur votre compte cotisant puis si nécessaire vous rapprocher de votre caisse de rattachement.
+La conservation des CRM effectifs:
+Le déclarant peut accéder pendant 3 mois aux CRM effectifs à partir de leur mise à disposition. 
+Particularité des entreprises mixtes : Les effectifs calculés par l'Urssaf reprennant uniquement les effectifs du régime général, la MSA calcule pour sa part les effectifs relevant du régime agricole.
+Par exemple : Pour une entreprise mixte donnée, un EMA BOETH de 3000 et 5000 a été calculé respectivement par l’Urssaf et la MSA. 
+ L’Urssaf et la MSA transmettent respectivement au RCD un EMA BOETH de l’entreprise de 3000 et 5000;
+ Un CRM relatif à l’EMA BOETH calculé par l’Urssaf (i.e. 3000) sera rattaché à la dernière DSN mensuelle des établissements associés au SIREN de l’entreprise dont le dépôt a été effectué sur le point de dépôt « Bloc 1 Régime Général »
+ Un CRM relatif à l’EMA BOETH calculé par la MSA (i.e. 5000) sera rattaché à la dernière DSN mensuelle des établissements associés au SIREN de l’entreprise dont le dépôt a été effectué sur le point de dépôt « Bloc 1 Régime Agricole »
+NB : cette vision ne reflètera pas ce qui sera mis à disposition au niveau des comptes cotisants Urssaf et MSA.
+En effet et conformément à l’article D 5212-5 du code du travail, lorsque l'employeur emploie des salariés qui relèvent pour partie des Urssaf et de la MSA, l'organisme qui transmet à l'employeur les informations des effectifs OETH, BOETH et ECAP est celui dont relève la majorité de ses salariés.
+Ainsi dans l’exemple cité précédemment où l’effectif EMA global BOETH de l’entreprise est de 8000 et avec un régime majoritaire de l’entreprise est le régime agricole (MSA), la mise à disposition de l’EMA global BOETH de l’entreprise (à savoir 8000) serait donc faite uniquement sur le compte cotisant MSA de l’entreprise alors qu’aucune mise à disposition serait réalisée sur le compte Urssaf.
+Ce principe de mise à disposition est également valable pour les EMA relatifs à la CSA.
+ Date de création : 13/03/2023 05:16 PM 
+ N° de la fiche : 2624 
+ Etes-vous satisfait des informations données sur cette page ?
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 

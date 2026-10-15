@@ -1,0 +1,65 @@
+# Bloc S21.G00.58
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 264-264
+
+--- p. 264 ---
+  S21.G00.58  2025-12-24
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant soumis au prélèvement à la source déclaré le mois de  S21.G00.56.015
+l'erreur
+RegulPAS.MontantSoumisPASErreur
+  Reprise du montant soumis au prélèvement à la source du mois de l’erreur de taux (02).
+
+  N  [4,12]  CSL 00 : [0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+S21.G00.58
+
+Elément de revenu calculé en net  S21.G00.58
+  Les éléments de revenu calculés en net permettent notamment la bonne alimentation du revenu fiscal de référence,
+  mais aussi l'attribution d’aide(s) ou de prestation(s) sociale(s).
+  Ces éléments ne sont pas obligatoirement liés au prélèvement à la source et ils peuvent avoir une datation propre qui ne
+  suit pas systématiquement la date de versement.
+
+Date de début de période de rattachement  S21.G00.58.001
+Date de fin de période de rattachement  S21.G00.58.002
+Type  S21.G00.58.003
+Montant  S21.G00.58.004
+
+Date de début de période de rattachement  S21.G00.58.001
+ElmtRevenuCalculeNet.DDPR
+  Date de début de période à laquelle l'élément de revenu calculé en net est rattaché. Cette rubrique est à
+  renseigner dès lors que sa datation est différente de celle du « Versement individu - S21.G00.50 ».
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de période de rattachement  S21.G00.58.002
+ElmtRevenuCalculeNet.DFPR
+  Date de fin de période à laquelle l'élément de revenu calculé en net est rattaché. Cette rubrique est à
+  renseigner dès lors que sa datation est différente de celle du « Versement individu - S21.G00.50 ».
+  CCH-11 : La « Date de fin de période de rattachement - S21.G00.58.002 » doit être supérieure ou égale à la « Date de
+  début de période de rattachement - S21.G00.58.001 ».
+
+  CCH-12 : La « Date de fin de période de rattachement - S21.G00.58.002 » doit être inférieure ou égale au dernier jour
+  civil du mois suivant le mois principal déclaré.
+
+  CCH-13 : La « Date de fin de période de rattachement - S21.G00.58.002 » doit s’inscrire dans la même année
+  civile que la « Date de début de période de rattachement - S21.G00.58.001 ».
+
+  CCH-14 : Si la rubrique « Date de début de période de rattachement - S21.G00.58.001 » est renseignée alors la
+  rubrique « Date de fin de période de rattachement - S21.G00.58.002 » est obligatoire. Et inversement, si la rubrique «
+  Date de fin de période de rattachement - S21.G00.58.002 » est renseignée alors la rubrique « Date de début de période
+  de rattachement - S21.G00.58.001 » est obligatoire.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+  264 / 361

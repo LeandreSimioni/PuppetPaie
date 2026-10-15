@@ -7,7 +7,7 @@
 //! la nouvelle valeur, le bloc 31 l'ANCIENNE (« Les rubriques doivent etre renseignees avec la valeur avant
 //! changement », p. 177), datee en 31.001 ; plusieurs changements a la meme date font un seul bloc, des dates
 //! differentes autant de blocs (p. 177) ; un bloc qui ne porte que sa date est interdit (CCH-12, p. 177). Textes :
-//! `prive/reference/norme-dsn/texte/bloc-S21.G00.31.txt`, `bloc-S21.G00.34.txt` (la fin de 31.011, p. 179),
+//! `atelier/reference/norme-dsn/texte/bloc-S21.G00.31.txt`, `bloc-S21.G00.34.txt` (la fin de 31.011, p. 179),
 //! `chapitre-2-principes-de-constitution.txt` (p. 18-21), `chapitre-4-controles.txt` (§ 4.4.12, p. 99 : 31.001 ne
 //! depasse pas le dernier jour du mois principal declare).
 //!

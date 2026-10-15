@@ -1,11 +1,11 @@
 //! Corrections DSN, lot V3b (point 11 de la relecture de la norme, fiche N8) : le bloc S21.G00.44 « Assujettissement
 //! fiscal », que le moteur n'ecrivait jamais, se declare dans la DSN de decembre.
 //!
-//! Norme DSN 2026.1 (`prive/reference/norme-dsn/texte/`) : § 2.3.1, p. 58 (`chapitre-2-principes-de-constitution.txt`) :
+//! Norme DSN 2026.1 (`atelier/reference/norme-dsn/texte/`) : § 2.3.1, p. 58 (`chapitre-2-principes-de-constitution.txt`) :
 //! « L'assujettissement ou le non-assujettissement doit obligatoirement être déclaré [...] au plus tard, dans la DSN
 //! mensuelle de décembre » ; le bloc, p. 240-241 (`bloc-S21.G00.44.txt`, suite en tete de `bloc-S21.G00.45.txt`) :
 //! CCH-11 de 44.001 (montant obligatoire pour 005, 009, 015, 016), CCH-12 (montant interdit pour 002, 004, 006, 008,
-//! 010, 014). D'ou vient chaque code : `src/assujettissement.rs` ; les textes : `prive/reference/sources/
+//! 010, 014). D'ou vient chaque code : `src/assujettissement.rs` ; les textes : `atelier/reference/sources/
 //! bloc-44-assujettissement/LISEZ-MOI.md`.
 //!
 //! La contribution supplementaire a l'apprentissage, dont decembre dit l'assujettissement (003/004), se declare en mars
@@ -361,7 +361,7 @@ fn motif_ta(m: &'static str) -> impl FnOnce(&mut Value) {
 #[test]
 fn une_association_non_redevable_en_2025_declare_002_et_son_motif_mnata() {
     // Lot R2 (Q8). La table MNATA est livree (`logiciel/donnees/mnata-base.json`, depuis la nomenclature NEODeS deposee,
-    // prive/reference/sources/dsn-nomenclatures/table-MNATA-20260924.txt) ; 44.004 est « obligatoire si [...] 002 »,
+    // atelier/reference/sources/dsn-nomenclatures/table-MNATA-20260924.txt) ; 44.004 est « obligatoire si [...] 002 »,
     // « CRE-11 : valeurs autorisees », « Table MNATA » (cahier technique DSN 2026.1, p. 241, bloc-S21.G00.45.txt, l. 42-52).
     // Une association a activite non lucrative ne devait pas la taxe d'apprentissage avant le 21/02/2026 (C. trav.
     // L. 6241-1 dans sa redaction du 16/02/2025, deposee) : son bordereau ne la paie pas, et decembre 2025 declare 002

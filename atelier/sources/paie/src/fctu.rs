@@ -154,7 +154,7 @@ pub fn preavis_non_effectue(type_preavis: &str) -> Resultat<bool> {
 
 /// La date de notification de la rupture (S21.G00.62.003) est-elle obligatoire pour ce motif de rupture ? La liste
 /// `notification_rupture.motifs` de `fctu-base.json`, celle de la CCH-12 de S21.G00.62.003 (cahier technique DSN 2026.1,
-/// p. 275, `prive/reference/norme-dsn/texte/bloc-S21.G00.62.txt`). Un signalement de ce motif qui ne la porte pas est
+/// p. 275, `atelier/reference/norme-dsn/texte/bloc-S21.G00.62.txt`). Un signalement de ce motif qui ne la porte pas est
 /// refuse par le point de depot. Un seul endroit : la liste des fins a signaler (`routes_listes::ce_qui_manque`) et
 /// `verifier` la lisent ici.
 pub fn notification_exigee(motif: &str) -> Resultat<bool> {
@@ -255,7 +255,7 @@ preavis ({}) -- CCH-12 de S21.G00.62.006.",
 }
 
 /// S21.G00.62.006, « Dernier jour travaille paye selon le salaire defini par le contrat de travail ou la convention
-/// collective » (cahier technique DSN 2026.1, p. 275, `prive/reference/norme-dsn/texte/bloc-S21.G00.62.txt`) : LA
+/// collective » (cahier technique DSN 2026.1, p. 275, `atelier/reference/norme-dsn/texte/bloc-S21.G00.62.txt`) : LA
 /// SEULE SOURCE, que lisent la mensuelle (`dsn::bloc_contrat_fctu`, le mois ou le contrat finit) et le FCTU du meme
 /// contrat. La mensuelle doit reporter « a l'identique » ce que porte le signalement (§ 2.5.2, p. 68).
 ///

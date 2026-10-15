@@ -1,0 +1,117 @@
+# Bloc S21.G00.95
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 331-332
+
+--- p. 331 ---
+  S21.G00.95  2026-06-10
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des numéros de contrat.
+
+  X  [5,20]
+
+S21.G00.95
+
+Base assujettie déclarée à tort pour un régime de  S21.G00.95
+base risque maladie, AT/MP ou vieillesse
+Code de base assujettie déclarée à tort  S21.G00.95.001
+Date de début de période de rattachement de la base déclarée à tort  S21.G00.95.002
+Date de fin de période de rattachement de la base déclarée à tort  S21.G00.95.003
+Montant déclaré à tort  S21.G00.95.004
+Numéro du contrat rattaché à la base assujettie déclarée à tort  S21.G00.95.005
+
+Code de base assujettie déclarée à tort  S21.G00.95.001
+AncienneBaseAssujettieDeclareeRegimeBaseRisqueMaladieVieilless
+eDeclareeTort.CodeBaseAssujettie
+  Cette rubrique permet de déclarer les bases assujetties portant des cotisations à destination de l’organisme
+  de régime de base risque maladie, AT/MP ou vieillesse déclaré à tort précédemment.
+
+  X  [2,2]
+
+  02 - Assiette brute plafonnée
+  03 - Assiette brute déplafonnée
+  11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale
+
+Date de début de période de rattachement de la base déclarée à tort  S21.G00.95.002
+AncienneBaseAssujettieDeclareeRegimeBaseRisqueMaladieVieilless
+eDeclareeTort.DateDebutPeriodeRattachementBase
+  Date de début de période de rattachement de la base assujettie qui avait été déclaré à tort.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de période de rattachement de la base déclarée à tort  S21.G00.95.003
+AncienneBaseAssujettieDeclareeRegimeBaseRisqueMaladieVieilless
+eDeclareeTort.DateFinPeriodeRattachementBase
+  Date de fin de période de rattachement de la base assujettie qui avait été déclaré à tort.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Montant déclaré à tort  S21.G00.95.004
+AncienneBaseAssujettieDeclareeRegimeBaseRisqueMaladieVieilless
+eDeclareeTort.Montant
+  Cette rubrique permet de renseigner le montant de la base assujettie déclarée à tort pour un organisme de
+
+  331 / 370
+
+--- p. 332 ---
+  S21.G00.98  2026-06-10
+
+  régime de base risque maladie, AT/MP ou vieillesse.
+
+  N  [4,11]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Numéro du contrat rattaché à la base assujettie déclarée à tort  S21.G00.95.005
+AncienneBaseAssujettieDeclareeRegimeBaseRisqueMaladieVieilless
+eDeclareeTort.NumeroContratRattacheBaseAssujettie
+  Cette rubrique est à renseigner avec le "Numéro du contrat - S21.G00.40.009". Dans le cas de la
+  déclaration de plusieurs blocs "Contrat - S21.G00.40" impliquant un découpage des règles de calcul des
+  cotisations, cette rubrique permet d'identifier le contrat concerné pour chaque base assujettie. Dans le cas
+  de la déclaration d'un contrat unique, cette rubrique n'est pas à renseigner.
+
+  X  [5,20]
+
+S21.G00.98
+
+Saisie administrative à tiers détenteur  S21.G00.98
+Identifiant de la SATD  S21.G00.98.001
+Etat de prise en compte de la SATD  S21.G00.98.002
+Montant  S21.G00.98.003
+Mois de l’erreur  S21.G00.98.004
+
+Identifiant de la SATD  S21.G00.98.001
+SaisieAdminTiersDetenteur.IdSATD
+  Identifiant de la SATD porté par le message SATD (message de la saisie administrative à tiers détenteur)
+  transmis par la DGFIP permettant de rattacher la déclaration de l’employeur avec la SATD concernée et de
+  porter à la connaissance du comptable public saisissant qu’il a bien satisfait son obligation légale.
+
+  X  [1,40]
+
+Etat de prise en compte de la SATD  S21.G00.98.002
+SaisieAdminTiersDetenteur.EtatSATD
+  Il s’agit du code retour permettant d’indiquer le degré de prise en compte de la SATD et de définir si cette
+  prise en compte est nulle, partielle ou totale.
+
+  X  [2,2]
+
+  01 - Fin ou sans droits
+  02 - Positif sans règlement
+  03 - Positif avec règlement partiel avec concurrence
+  04 - Positif avec règlement partiel sans concurrence
+  05 - Positif avec règlement total avec concurrence
+  06 - Positif avec règlement total sans concurrence
+
+Montant  S21.G00.98.003
+SaisieAdminTiersDetenteur.MontantSATD
+  Il s’agit du montant saisi sur le revenu au titre de la SATD.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+  332 / 370

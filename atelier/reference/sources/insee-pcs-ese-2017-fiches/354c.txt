@@ -1,0 +1,65 @@
+SOURCE : https://www.insee.fr/fr/metadonnees/pcsese2017/rubriqueRegroupee/354c
+
+
+NomenclatureFicheController
+1766151120002
+pcsese2017
+categorieSocioprofessionnelleAgregee
+categorieSocioprofessionnelle
+rubriqueRegroupee
+354c
+">Accueil
+Définitions, méthodes et qualité
+Nomenclatures
+Nomenclatures des professions et catégories socioprofessionnelles
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Consulter la nomenclature de la PCS-ESE 2017
+Consulter la nomenclature de la PCS-ESE 2017
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Pour les emplois salariés des employeurs privés et publics, la PCS-ESE 2017 est une ventilation plus détaillée de la PCS.
+Les trois premiers caractères de ces deux nomenclatures sont communs, sauf pour les agriculteurs, artisans et commerçants salariés de leur exploitation ou de leur entreprise.
+Nomenclatures
+Date de publication :
+                        19/12/2025
+Recherche nomenclature
+Menu nomenclature
+Rechercher dans la nomenclature
+Tous les niveaux
+catégorie socioprofessionnelle agrégée
+catégorie socioprofessionnelle
+rubrique
+2025-12-19T14:31:59.978+01:00
+Catégorie socioprofessionnelle agrégée 3 : Cadres et professions intellectuelles supérieures
+Catégorie socioprofessionnelle 35 : Professions de l'information, des arts et des spectacles
+Rubrique 354c : Artistes dramatiques
+Artistes dirigeant ou interprétant, à l'aide de techniques d'expression gestuelle ou orale, des oeuvres dramatiques dans le cadre d'un spectacle vivant ou audiovisuel. La rubrique inclut aussi bien des interprètes jouant seuls que des artistes réunis en une formation particulière (troupe théâtrale) ou dirigeant cette dernière. Elle inclut  donc les activités de direction dramatique et de mise en scène (notamment direction d'acteurs) et de conseil artistique dans le domaine dramatique (dramaturges), excepté dans le cas où ces activités  sont exercées de manière accessoire en complément d'une fonction de direction générale ou de conduite d'entreprise.
+Nomenclatures
+Dernière mise à jour le
+ : 19/12/2025
+Professions les plus typiques
+Acteur
+Artiste dramatique
+Comédien
+Conteur parolier
+Marionnettiste (théâtre)
+Metteur en scène (cinéma, audiovisuel)
+Metteur en scène (théâtre, théâtre lyrique)
+Mime
+Professions assimilées
+Conseiller artistique (théâtre, art dramatique)
+Directeur artistique (théâtre, art dramatique)
+Dramaturge (conseil artistique)
+Figurant
+Intermittent du spectacle (théâtre, art dramatique)
+Répétiteur (théâtre)
+Professions exclues
+Artiste de variétés (sai) (voir 354e, 354f)
+Artiste lyrique (voir 354b)
+Imitateur (voir 354f)
+Mannequin (voir 354f)
+Modèle (voir 354f)
+Présentateur animateur (spectacles divers) (voir 354f)
+Professeur d'art dramatique (établissement d'enseignement secondaire et supérieur) (voir 341a, 342b à 342d)
+Professeur d'art dramatique (hors établissements scolaires) (voir 354g)
+Réalisateur (s.a.i.) (cinéma, audiovisuel) (voir 353c)
+Scénographe (théâtre, art dramatique) (voir 353c)

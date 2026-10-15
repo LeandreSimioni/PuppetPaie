@@ -1,0 +1,424 @@
+# Bloc S21.G00.78
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 299-305
+
+--- p. 299 ---
+  S21.G00.78  2026-06-10
+
+  646 - Préretraite d’entreprise sans rupture du contrat de travail
+  647 - Réduction temps d'emploi
+  650 - Congé de proche aidant
+  652 - Inaptitude temporaire liée à la grossesse
+  683 - Potentiel nouveau motif d'aménagement A
+  684 - Potentiel nouveau motif d'aménagement B
+  685 - Potentiel nouveau motif d'aménagement C
+  687 - Potentiel nouveau motif d'aménagement D
+  688 - Potentiel nouveau motif d'aménagement E
+
+S21.G00.78
+
+Base assujettie  S21.G00.78
+  Somme des montants assujettis de manière homogène à une ou plusieurs cotisations sociales.
+  Les montants assujettis peuvent être :
+  - des éléments de revenu brut (ex : salaire de base, l'intéressement, etc…) donnant lieu à versement au salarié
+  - des composants de base assujettie ne donnant pas lieu à versement au salarié.
+  Certains des éléments assujettis peuvent être fixés de manière forfaitaire si les règles d'assujettissement et de cotisation
+  le prévoient.
+
+Code de base assujettie  S21.G00.78.001
+Date de début de période de rattachement  S21.G00.78.002
+Date de fin de période de rattachement  S21.G00.78.003
+Montant  S21.G00.78.004
+Identifiant technique Affiliation  S21.G00.78.005
+Numéro du contrat  S21.G00.78.006
+Identifiant du CRM à l'origine de la régularisation  S21.G00.78.007
+
+Code de base assujettie  S21.G00.78.001
+Base.Codedebaseassujettie
+  Identifie la règle d'assujettissement par référence aux textes législatifs, réglementaires, conventionnels ou
+  contractuels.
+  Pour plus de précisions sur les éléments de salaires à intégrer dans les bases de cotisations CIBTP se
+  référer au document de référence disponible sur www.cibtp.fr. Pour la base brute de cotisations OPPBTP
+  permanents, indiquez le montant brut sans application du coefficient de majoration.
+
+  Les valeurs « 36 - CIBTP - Base de cotisations dérogatoire Bâtiment », « 39 - CIBTP - Base de cotisations
+  dérogatoire Travaux Publics » et « 40 - CIBTP - Base de cotisations dérogatoire Partenaires Bâtiment »
+  renvoient aux cotisations pour lesquelles la caisse CIBTP et les organisations professionnelles du BTP ont
+  signé des conventions de mandat pour la perception des cotisations professionnelles. La définition de ces
+  bases est à apporter par les caisses CIBTP.
+
+  La base IRCANTEC cotisée sert au calcul de l’assiette IRCANTEC pour la période de cotisation et le
+  contrat déclarés. Pour les personnels médicaux hospitaliers relevant de l'IRCANTEC, la base est constitué
+  des émoluments et des indemnités soumis à cotisations IRCANTEC définis par la règlementation. Certaines
+  indemnités peuvent donc ne pas être soumises. Un taux est appliqué à cette base en fonction de l’emploi
+  statutaire du personnel médical hospitalier pour déterminer l’assiette de cotisation.
+  L'assiette caisse de congés spectacles correspond à la rémunération brute acquise par le salarié durant la
+  période de référence, avant toute déduction forfaitaire spécifique pour frais professionnels et toute retenue.
+  En application de l'article D7121-37 du code du travail, les partenaires sociaux d'une branche d'activité ou
+  d'une entreprise peuvent limiter ce montant à un plafond d'indemnité journalière.
+  Pour le régime des pensions civiles et militaires (SRE), la base assujettie est le traitement indiciaire brut
+  éventuellement augmenté de la NBI ou de prime et indemnité.
+
+  299 / 370
+
+--- p. 300 ---
+  S21.G00.78  2026-06-10
+
+Une attention particulière doit être observée pour les fonctionnaires bénéficiant d'indemnité de sujétion.
+Modalité de valorisation :
+- AGIRC-ARRCO : "02", "03", "11", "22", "23", "24", "25", "43", "45"
+- Caisses de congés payés Transport : "02", "03", "11", "20"
+- Caisses de congés payés CIBTP : "02", "03", "11", "20", "21", "34", "35", "36", "39", "40"
+- Caisses de congés payés Manutention portuaire : "02", "03", "11", "20", "55"
+- CAMIEG : "18" (pour régularisation des périodes antérieures à 2020 pour le régime général et
+antérieures à 2021 pour le régime agricole)
+- CAVEC : "03"
+- CCVRP : non concerné
+- CNIEG : "02", "03", "15", "16", "17" (pour régularisation des périodes antérieures à 2022)
+- Congés spectacles (AUDIENS) : "27"
+- CRPCEN : "02", "03", "11", "19" (pour corriger des périodes antérieures à 2023)
+- CRPNPAC : "02", "03", "41", "42"
+- Organisme complémentaire : "31"
+- DGFiP : "03"
+- IRCANTEC : "28"
+- MSA : "02", "03", "04", "05", "07", "11", "12", "13", "14", "15", "16", "17", "18", "22", "23", "24", "25",
+"31", "33", "38", "43", "44", "45", "54", "57"
+- France Travail : "03", "07"
+- Urssaf : "02", "03", "04", "05", "07", "08", "09", "11", "12", "13", "14", "15", "16", "17", "18", "22", "23",
+"24", "25", "33", "43", "44", "45", "52", "53", "54", "57"
+- SRE : "46", "47"
+- RAFP : "49"
+- CNRACL : "02", "03", "04", "11", "48"
+- FSPOEIE : "50"
+- RAEP : "02", "03"
+- CNBF : "02", "03"
+CCH-11 : Les codes de base assujettie « 21 - CIBTP - Base brute de cotisations OPPBTP permanents », « 34 - CIBTP
+- Base plafonnée de cotisations intempéries gros oeuvre travaux publics », « 35 - CIBTP - Base plafonnée de
+cotisations intempéries second oeuvre », « 36 - CIBTP - Base de cotisations dérogatoire Bâtiment », « 39 - CIBTP -
+Base de cotisations dérogatoire Travaux Publics », « 40 - CIBTP - Base de cotisations dérogatoire Partenaires Bâtiment
+» ne sont autorisés que si la rubrique « Code caisse professionnelle de congés payés - S21.G00.40.022 » est renseignée
+avec une valeur comprise entre 01 et 37 ou si la rubrique « Ancien code caisse professionnelle de congés payés -
+S21.G00.41.023 » est renseignée avec une valeur comprise entre 01 et 37 ou 99.
+
+CCH-13 : Si la "Nature de la déclaration - S20.G00.05.001" est "01 - DSN Mensuelle", au moins un bloc "Base
+assujettie - S21.G00.78" dont la rubrique "Code de base assujettie - S21.G00.78.001" est renseignée avec la valeur "31
+- Eléments de cotisation Prévoyance, Santé, retraite supplémentaire" doit être présent pour chaque "Identifiant
+technique Affiliation - S21.G00.70.012" renseigné pour un salarié concerné.
+
+CCH-14 : Si la "Nature de la déclaration - S20.G00.05.001" est "07 - Signalement Fin du contrat de travail Unique",
+alors la valeur "31 - Eléments de cotisation Prévoyance, Santé, retraite supplémentaire" est interdite pour la rubrique
+"Code de base assujettie - S21.G00.78.001".
+
+CCH-24 : Si la rubrique « Code de base assujettie - S21.G00.78.001 » est renseignée avec la valeur « 20 - Caisses de
+congés payés (CIBTP, Transport, Manutention portuaire) - Base brute de cotisations congés payés » alors au moins
+l’une des deux rubriques « Code caisse professionnelle de congés payés - S21.G00.40.022 » ou « Ancien code caisse
+professionnelle de congés payés - S21.G00.41.023 » doit obligatoirement être renseignée.
+
+CCH-25 : Si la rubrique « Nature de la déclaration – S20.G00.05.001 » est renseignée avec la valeur « 07 –
+Signalement Fin du contrat de travail Unique », les codes de base assujettie « 21 - CIBTP - Base brute de cotisations
+OPPBTP permanents », « 34 - CIBTP - Base plafonnée de cotisations intempéries gros œuvre travaux publics », « 35 -
+CIBTP - Base plafonnée de cotisations intempéries second œuvre », « 36 - CIBTP - Base de cotisations dérogatoire
+Bâtiment », « 39 - CIBTP - Base de cotisations dérogatoire Travaux Publics », « 40 - CIBTP - Base de cotisations
+
+  300 / 370
+
+--- p. 301 ---
+  S21.G00.78  2026-06-10
+
+dérogatoire Partenaires Bâtiment » ne sont autorisés que si la rubrique « Code caisse professionnelle de congés payés -
+S21.G00.40.022 » est renseignée avec une valeur comprise entre 01 et 37.
+
+CCH-26 : Si la rubrique « Nature de la déclaration – S20.G00.05.001 » est renseignée avec la valeur « 07 –
+Signalement Fin du contrat de travail Unique » et si la rubrique « Code de base assujettie - S21.G00.78.001 » est
+renseignée avec la valeur « 20 - Caisses de congés payés (CIBTP, Transport, Manutention portuaire) - Base brute de
+cotisations congés payés » alors la rubrique « Code caisse professionnelle de congés payés - S21.G00.40.022 » doit
+obligatoirement être renseignée ».
+
+SIG-18 : Si la rubrique "Code régime retraite complémentaire - S21.G00.71.002" est renseignée avec la valeur
+"CRPNPAC", au moins une rubrique "Code de base assujettie - S21.G00.78.001" doit être renseignée avec la valeur
+"41 - CRPNPAC - Assiette soumise au taux normal (non-plafonnée)" ou "42 - CRPNPAC - Assiette soumise au taux
+majoré (non-plafonnée)".
+
+SIG-19 : Si un bloc "Base assujettie - S21.G00.78" portant la rubrique "Code de base assujettie - S21.G00.78.001"
+renseignée avec la valeur "02 - Assiette brute plafonnée" et portant une "Date de début de période de rattachement -
+S21.G00.78.002" et une "Date de fin de période de rattachement - S21.G00.78.003" incluses dans le mois principal
+déclaré, alors un bloc "Base assujettie - S21.G00.78" portant la rubrique "Code de base assujettie - S21.G00.78.001"
+renseignée avec la valeur "03 - Assiette brute déplafonnée" et avec la même période de rattachement doit également
+être renseigné sous un même bloc "Versement individu - S21.G00.50" parent, et inversement. Ce contrôle vise à ce que
+l'assiette brute plafonnée et l'assiette brute déplafonnée soient déclarée sous le même bloc parent.
+Ce contrôle ne s'applique qu'à une "Base assujettie - S21.G00.78" dont les dates de début et de fin de période sont
+incluses dans le mois principal déclaré.
+
+SIG-23 : Dans une DSN mensuelle ou une fraction de DSN mensuelle, pour un individu donné (S21.G00.30), au sein
+d’un même bloc « Versement individu - S21.G00.50 », deux blocs « Base assujettie - S21.G00.78 » renseignés avec un
+« Code de base assujettie – S21.G00.78.001 » égal à « 31 – Eléments de cotisation Prévoyance, Santé, Retraite
+supplémentaire » ne peuvent être renseignés avec la même période de rattachement (« Date de début de période de
+rattachement - S21.G00.78.002 » - « Date de fin de période de rattachement - S21.G00.78.003 »), le même «
+Identifiant technique affiliation - S21.G00.78.005 » et des montants de cotisation individuelle de même signe au niveau
+de la rubrique « Montant de cotisation - S21.G00.81.004 », sauf si ces « Identifiant technique Affiliation -
+S21.G00.78.005 » sont rattachés à au moins un contrat de mission (rubrique « Nature du contrat - S21.G00.40.007 »
+égale à « 03 - Contrat de mission »).
+
+  X  [2,2]
+
+02 - Assiette brute plafonnée
+03 - Assiette brute déplafonnée
+04 - Assiette de la contribution sociale généralisée
+05 - Assiette du forfait social
+07 - Assiette des contributions d'Assurance Chômage
+08 - Assiette retraite CPRPF
+09 - Assiette de compensation bilatérale maladie CPRPF
+10 - Base brute fiscale
+11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale
+12 - Assiette du crédit d'impôt compétitivité-emploi
+13 - Assiette du forfait social à 8%
+14 - Assiette du forfait social à 20%
+15 - Assiette brute du régime spécial IEG
+16 - Assiette brute du complément invalidité IEG
+17 - Assiette brute du petit pool IEG
+18 - Assiette brute plafonnée régime maladie IEG
+19 - Assiette CRPCEN
+20 - Caisses de congés payés (CIBTP, Transport, Manutention portuaire) - Base brute de cotisations congés payés
+21 - CIBTP - Base brute de cotisations OPPBTP permanents
+22 - Base brute spécifique
+23 - Base exceptionnelle (Agirc Arrco)
+
+  301 / 370
+
+--- p. 302 ---
+  S21.G00.78  2026-06-10
+
+  24 - Base plafonnée spécifique
+  25 - Assiette de contribution libératoire
+  27 - Assiette Caisse de congés spectacles
+  28 - Base IRCANTEC cotisée
+  31 - Eléments de cotisation Prévoyance, Santé, retraite supplémentaire
+  33 - Assiette Contribution sur les avantages de préretraite entreprise
+  34 - CIBTP - Base plafonnée de cotisations intempéries gros oeuvre travaux publics
+  35 - CIBTP - Base plafonnée de cotisations intempéries second oeuvre
+  36 - CIBTP - Base de cotisations dérogatoire Bâtiment
+  38 - Rémunération pour le calcul de la réduction Travailleur Occasionnel
+  39 - CIBTP - Base de cotisations dérogatoire Travaux Publics
+  40 - CIBTP - Base de cotisations dérogatoire Partenaires Bâtiment
+  41 - CRPNPAC-Assiette soumise au taux normal (non-plafonnée)
+  42 - CRPNPAC-Assiette soumise au taux majoré (non-plafonnée)
+  43 - Base plafonnée exceptionnelle Agirc Arrco
+  44 - Assiette du forfait social à 16%
+  45 - Base plafonnée ICP Agirc-Arrco
+  46 - [FP] SRE – Base brute pension civile et militaire
+  47 - [FP] SRE – Base brute accessoires pension civile et militaire
+  48 - [FP] CNRACL – Base brute avant abattement
+  49 - [FP] RAFP – Base brute avant abattement
+  50 - [FP] FSPOEIE - Base brute avant abattement
+  52 - Assiette spécifique Tranche 2 régime spécial RATP
+  53 - Assiette spécifique régime spécial RATP
+  54 - Assiette du forfait social à 10%
+  55 - Assiette de pénibilité conventionnelle de la Manutention portuaire
+  56 - Potentielle nouvelle base assujettie A
+  57 - Assiette du versement mobilité
+  59 - Base contrat d’emploi pénitentiaire 1
+  60 - Base contrat d’emploi pénitentiaire 2
+  61 - Potentielle nouvelle base assujettie D
+  62 - Potentielle nouvelle base assujettie E
+  63 - Potentielle nouvelle base assujettie B
+  64 - Potentielle nouvelle base assujettie C
+
+Date de début de période de rattachement  S21.G00.78.002
+Base.RattachementDateDebut
+  Le début de période de rattachement de la base assujettie est la période pour laquelle est valorisée cette
+  base. La définition de cette période découle de l'application des dispositions réglementaires,
+  conventionnelles ou contractuelles des organismes de protection sociale.
+  Modalité de valorisation :
+  - AGIRC-ARRCO : date
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : date
+  - CAMIEG : date (pour régularisation des périodes antérieures à 2020 pour le régime général et
+  antérieures à 2021 pour le régime agricole)
+  - CAVEC : date
+  - CCVRP : non concerné
+  - CNIEG : date (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : date
+  - CRPCEN : date (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : date
+  - Organisme complémentaire : date
+  - DGFiP : date
+  - IRCANTEC : date
+
+  302 / 370
+
+--- p. 303 ---
+  S21.G00.78  2026-06-10
+
+  - MSA : date
+  - France Travail : date
+  - Urssaf : date
+  - CNRACL : date
+  - FSPOEIE : date
+  - RAFP : date
+  - SRE : date
+  - RAEP : date
+  - CNBF : date
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de période de rattachement  S21.G00.78.003
+Base.RattachementDateFin
+  La fin de période de rattachement de la base assujettie est la période pour laquelle est valorisée cette base.
+  La définition de cette période découle de l'application des dispositions réglementaires, conventionnelles ou
+  contractuelles des organismes de protection sociale.
+  Modalité de valorisation :
+  - AGIRC-ARRCO : date
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : date
+  - CAMIEG : date (pour régularisation des périodes antérieures à 2020 pour le régime général et
+  antérieures à 2021 pour le régime agricole)
+  - CAVEC : date
+  - CCVRP : non concerné
+  - CNIEG : date (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : date
+  - CRPCEN : date (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : date
+  - Organisme complémentaire : date
+  - DGFiP : date
+  - IRCANTEC : date
+  - MSA : date
+  - France Travail : date
+  - Urssaf : date
+  - CNRACL : date
+  - FSPOEIE : date
+  - RAFP : date
+  - SRE : date
+  - RAEP : date
+  - CNBF : date
+  CCH-12 : La date de fin de rattachement doit être supérieure ou égale à la date de début de période de rattachement.
+
+  CCH-15 : Cette date doit être inférieure ou égale au dernier jour civil du mois principal déclaré.
+
+  CCH-16 : La « Date de fin de période de rattachement – S21.G00.78.003 » doit s’inscrire dans la même année civile
+  que la « Date de début de période de rattachement – S21.G00.78.002 ».
+
+  SIG-11 : Si la rubrique "Code de base assujettie - S21.G00.78.001" est renseignée avec la valeur "31 - Eléments de
+  cotisation Prévoyance, Santé, retraite supplémentaire", les dates de début de période de rattachement (S21.G00.78.002)
+  et de fin de période de rattachement (S21.G00.78.003) doivent s’inscrire dans le même mois civil.
+
+  303 / 370
+
+--- p. 304 ---
+  S21.G00.78  2026-06-10
+
+  SIG-17 : Si la rubrique « Code de base assujettie - S21.G00.78.001 » est renseignée avec la valeur « 31 - Eléments de
+  cotisation Prévoyance, Santé, retraite supplémentaire », la période de rattachement couverte par la plage de dates
+  S21.G00.78.002-S21.G00.78.003 doit s’inscrire dans la période d’activité du contrat de travail correspondant à
+  l’identifiant affiliation renseigné en « Identifiant technique Affiliation - S21.G00.78.005 » (la période d’activité du
+  contrat de travail étant définie par la plage de dates S21.G00.40.001-S21.G00.62.001 pour un contrat dont la fin est
+  déclarée dans un bloc « Fin du contrat - S21.G00.62 » avec une valeur renseignée différente de « 099 – annulation » au
+  niveau de la rubrique « Motif de la rupture du contrat – S21.G00.62.002 », ou par la plage de dates S21.G00.40.001 et
+  dernier jour du mois principal déclaré en l’absence de fin de contrat ou si un bloc « Fin du contrat - S21.G00.62 » est
+  déclaré avec la valeur « 099 – annulation » au niveau de la rubrique « Motif de la rupture du contrat – S21.G00.62.002
+  »). Lorsque l’identifiant Affiliation (S21.G00.78.005) du bloc pointe vers un ou plusieurs blocs Affiliation Prévoyance
+  (S21.G00.70) dans lesquels la rubrique « Affiliation prévoyance applicable à plusieurs contrats - S21.G00.70.016 » est
+  présente, ce contrôle ne s’applique pas.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Montant  S21.G00.78.004
+Base.Montant
+  Montant de base assujettie pouvant être positif, négatif ou nul.
+  Modalité de valorisation :
+  - AGIRC-ARRCO : montant
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : montant
+  - CAMIEG : montant (pour régularisation des périodes antérieures à 2020 pour le régime général et
+  antérieures à 2021 pour le régime agricole)
+  - CAVEC : montant
+  - CCVRP : non concerné
+  - CNIEG : montant (pour régularisation des périodes antérieures à 2022)
+  - Congés spectacles (AUDIENS) : montant
+  - CRPCEN : montant (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : montant
+  - Organisme complémentaire : toujours renseigné à "0"
+  - DGFiP : montant
+  - IRCANTEC : montant
+  - MSA : montant assujetti calculé
+  - France Travail : montant
+  - Urssaf : montant
+  - CNRACL : montant
+  - FSPOEIE : montant
+  - RAFP : montant
+  - SRE : montant
+  - RAEP : montant
+  - CNBF : montant
+  CCH-11 : La rubrique "Montant - S21.G00.78.004" doit obligatoirement être renseignée à zéro si le "Code de base
+  assujettie - S21.G00.78.001" est "31 - Eléments de cotisation Prévoyance, Santé, retraite supplémentaire".
+
+  N  [4,11]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Identifiant technique Affiliation  S21.G00.78.005
+Base.IdentifiantTechniqueAffiliation
+  Cette rubrique est à renseigner si le "Code de base assujettie - S21.G00.78.001" est égale à la valeur "31".
+  Elle fait le lien avec l'identifiant technique affiliation Prévoyance renseigné dans la rubrique "Identifiant
+
+  304 / 370
+
+--- p. 305 ---
+  S21.G00.79  2026-06-10
+
+  technique Affiliation - S21.G00.70.012".
+  CCH-11 : Si et seulement si la rubrique "Code de base assujettie - S21.G00.78.001" est renseignée avec la valeur "31 -
+  Eléments de cotisation Prévoyance, Santé, retraite supplémentaire", alors la rubrique "Identifiant technique Affiliation
+  - S21.G00.78.005" doit être présente et contenir un identifiant existant en S21.G00.70.012 pour ce salarié. Dans le cas
+  contraire, cette rubrique est interdite.
+
+  CCH-12 : Si la rubrique "Code de base assujettie - S21.G00.78.001" est renseignée avec la valeur "31 - Eléments de
+  cotisation Prévoyance, Santé, retraite supplémentaire", alors la rubrique "Identifiant technique Affiliation -
+  S21.G00.78.005" doit contenir un identifiant existant en S21.G00.70.012 pour un contrat de travail dont le "Numéro
+  de contrat – S21.G00.40.009" est présent dans au moins une rubrique "Numéro de contrat– S21.G00.51.010" du
+  même Versement.
+
+  X  [1,3]  CSL 00 : [1-9][0-9]*
+
+Numéro du contrat  S21.G00.78.006
+Base.Numero
+  Cette rubrique est à renseigner du "Numéro du contrat - S21.G00.40.009". Dans le cas de la déclaration de
+  plusieurs blocs "Contrat - S21.G00.40" impliquant un découpage des règles de calcul des cotisations, cette
+  rubrique permet d'identifier le contrat concerné pour chaque base assujettie.
+  Dans le cas de la déclaration d'un contrat unique, cette rubrique n'est pas à renseigner.
+
+  X  [5,20]
+
+Identifiant du CRM à l'origine de la régularisation  S21.G00.78.007
+Base.IdentifiantCRMRegul
+  Il s'agit de l'identifiant du CRM (compte rendu métier) transmis par l'organisme demandeur de la
+  régularisation ou de la correction.
+  CCH-11 : La rubrique "Identifiant du CRM à l'origine de la régularisation - S21.G00.78.007" ne peut être renseignée
+  que pour une période de rattachement (S21.G00.78.002 et S21.G00.78.003) inférieure au mois principal déclaré
+  (S20.G00.05.005) de la déclaration. Dans le cas contraire cette rubrique est interdite. Ce contrôle vise à ce qu'il soit
+  possible de renseigner l'identifiant du CRM à l'origine de la régularisation que pour des régularisations ou des
+  corrections.
+
+  X  [1,18]
+
+S21.G00.79
+
+Composant de base assujettie  S21.G00.79
+  Composante de la base assujettie déterminée selon des règles différentes de celles utilisées pour l'établissement
+  d'éléments de revenu brut.
+  Pour les organismes autres que Prévoyance, ce bloc n'est à renseigner que dans le cas où les éléments de revenu brut
+  sont insuffisants pour constituer la base assujettie. Ce cas peut notamment se présenter lorsqu'une base assujettie est
+  composée, d'une part, d'éléments de revenu brut et, d'autre part, de composants ne donnant pas lieu à versement au
+  salarié.
+  Pour la Prévoyance, ce bloc est à alimenter par les éléments constituant les paramètres qui entrent dans le calcul de la
+  cotisation.
+
+Type de composant de base assujettie  S21.G00.79.001
+Montant de composant de base assujettie  S21.G00.79.004
+Identifiant du CRM à l'origine de la régularisation  S21.G00.79.005
+
+Type de composant de base assujettie  S21.G00.79.001
+
+  305 / 370

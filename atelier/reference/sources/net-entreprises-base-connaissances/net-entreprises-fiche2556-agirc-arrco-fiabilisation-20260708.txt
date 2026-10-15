@@ -1,0 +1,1184 @@
+Date de modification : 08/07/2026 05:23 PM
+
+ Comment déclarer les cotisations de retraite complémentaire AGIRC-ARRCO à destination de l’AGIRC-ARRCO et à destination de l’Urssaf/ MSA (fiabilisation) ?
+
+ Le contexte
+
+La déclaration des cotisations de retraite complémentaire AGIRC-ARRCO correspond à un besoin historique : le recouvrement et l’alimentation des droits retraite complémentaire des salariés par l’AGIRC-ARRCO. Depuis la norme P25V01, des éléments relatifs à la retraite complémentaire sont également à déclarer à des fins de fiabilisation par l’URSSAF et la MSA pour le recalcul du montant net social (MNS) et de la réduction générale dégressive unique (RGDU).
+
+Cette fiche présente les modalités déclaratives à destination de l’AGIRC-ARRCO relatives au recouvrement et alimentation des droits retraite complémentaire dans une première partie, puis détaille les modalités spécifiques liées aux besoins de fiabilisation par l’Urssaf et la MSA.
+
+ Déclarer 
+
+Les modalités déclaratives des cotisations à destination de l’AGIRC-ARRCO, sont fondées sur l’utilisation des codes 131 - Cotisation régime unifié AGIRC-ARRCO et 132 - Cotisation APEC en bloc « Cotisation individuelle - S21.G00.81 » (en rubrique « Code de cotisation - S21.G00.81.001 ») :
+
+Les modalités déclaratives liées à la fiabilisation à destination de l’URSSAF et de la MSA s’appuient sur les codes suivants en bloc « Cotisation individuelle - S21.G00.81 » :
+
+ Le code 142 (depuis 2025) pour la déclaration de la part patronale Tranche 1 des cotisations Retraite complémentaire Agirc-Arrco, et de la CEG (Contribution d’Equilibre Général) ;
+
+ Le code 146 (depuis 2026) pour la déclaration de la part patronale Tranche 2 des cotisations Retraite complémentaire Agirc-Arrco et de la CEG, et de manière transitoire la CET Tranche 1 et Tranche 2 en 2026 ;
+
+ Le code 148 (à partir de 2027) dédié à la déclaration de la part patronale de la CET (Tranche 1 et 2).
+
+En résumé, les codes de cotisation à déclarer sont les suivants :
+
+ A. Cotisations déclarées à destination de l’AGIRC-ARRCO 
+
+ Codes 131 et 132
+
+ B. Eléments déclarés à destination de l’Urssaf et de la MSA à des fins de fiabilisation 
+
+ En 2026 : codes 142 et 146
+
+ A partir de 2027 : codes 142, 146 et 148
+
+ A. Cotisations déclarées à destination de l’AGIRC-ARRCO pour le recouvrement et l’alimentation des droits retraite complémentaire
+
+Pour les besoins de recouvrement et d’alimentation des droits retraite, les cotisations de Retraite complémentaire Agirc-Arrco et la cotisation Apec (réservée aux cadres) doivent être déclarées au niveau de la rubrique « Code de cotisation - S21.G00.81.001 » en utilisant les codes suivants : 
+
+ Le code « 131 - Cotisation régime unifié Agirc-Arrco » : pour les cotisations Retraite complémentaire Agirc-Arrco, la CET (Contribution d’Equilibre Technique) et la CEG (Contribution d’Equilibre Général) en distinguant : 
+
+ Les cotisations sur la Tranche 1 à déclarer sous l’assiette plafonnée (« 02 - Assiette brute plafonnée », et dans les cas spécifiques « 24 - Base plafonnée spécifique » ou « 43 - Base plafonnée exceptionnelle Agirc Arrco »)
+
+ Les cotisations sur la Tranche 2 à déclarer sous l’assiette déplafonnée (« 03 - Assiette brute déplafonnée », dans les cas spécifiques « 22 - Base brute spécifique » ou « 23 - Base exceptionnelle (Agirc Arrco) »). 
+
+ Le code « 132 - Cotisation Apec » : pour les salariés cadres, afin de déclarer la cotisation APEC. Il conviendra d’utiliser ce code en le rattachant à l’assiette déplafonnée (« 03 - Assiette brute déplafonnée », dans les cas spécifiques « 22 - Base brute spécifique » ou « 23 - Base exceptionnelle (Agirc Arrco) »). 
+
+ Pour ces deux codes, la rubrique « Identifiant Organisme de Protection Sociale - S21.G00.81.002 » du bloc « Cotisation individuelle - S21.G00.81 » ne doit pas être renseignée.
+
+Remarques : les codes de cotisation individuelle « 131 - Cotisation régime unifié Agirc-Arrco » et « 132 - Cotisation Apec » ont été ajoutés en norme DSN en version P22V01 en remplacement du code « 105 - Montant de cotisation Régime Unifié Agirc-Arrco, y compris Apec » supprimé en version de norme P27V01. Ce code ne doit plus être utilisé.
+
+Lorsqu’elle est déclenchée, la CET est déclarée sous le code « 131 - Cotisation régime unifié Agirc-Arrco » en distinguant la Tranche 1 et la Tranche 2. La part relative à la Tranche 1 est déclarée au sein du code 131 dans un bloc « Cotisation individuelle – S21.G00.81 » enfant d’une base assujettie plafonnée (« 02 – Assiette brute plafonnée », le cas échéant « 24 – Base plafonnée spécifique » ou « 43 – Base plafonnée exceptionnelle AGIRC-ARRCO »). La Tranche 2 est rattachée à une base assujettie déplafonnée (« 03 – Assiette brute déplafonnée », le cas échéant « 22 – Base brute spécifique » ou « 23 – Base exceptionnelle AGIRC-ARRCO »). Cette ventilation est réalisée à des fins déclaratives uniquement. Pour rappel, le pourcentage de cotisation est le même sur la T1 et la T2. Des exemples sont présentés en fin de partie B, intégrant également les codes cotisations déclarés à des fins de fiabilisation. 
+
+ B. Éléments déclarés à destination de l’Urssaf et de la MSA à des fins de fiabilisation
+
+A partir de la version de norme P25V01, de nouvelles modalités déclaratives s’appliquent pour permettre de recalculer et fiabiliser le Montant Net Social (MNS) et la RGDU (Réduction générale dégressive unique des cotisations patronales), anciennement RGCP (Réduction générale des cotisations patronales). 
+
+ Le code « 142 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T1) » 
+
+Depuis 2025, de nouvelles modalités déclaratives s’appliquent pour permettre à l’Urssaf de recalculer et fiabiliser la RGCP/ RGDU.
+
+Un bloc « Cotisation individuelle - S21.G00.81 » avec la valeur « 142 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T1) » est attendu dès lors qu’il est déclaré une cotisation de retraite complémentaire Agirc-Arrco ( « 131 – Cotisation régime unifié Agirc-Arrco ») dont le bloc « Base assujettie - S21.G00.78 » parent est renseigné à « 02 - Assiette brute plafonnée », ou « 24 - Base plafonnée spécifique » sur la période courante. 
+
+Point d’attention : pour les cas des techniciens intermittents du spectacle, pigistes, journalistes et assimilés, il est attendu la déclaration du code de cotisation « 142 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T1) » sous le code de base assujettie « 43 - Base plafonnée exceptionnelle Agirc Arrco ».
+
+Le bloc « Cotisation individuelle - S21.G00.81 » « 142 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T1) » doit porter les montants suivants : 
+
+ La part patronale Tranche 1 de la cotisation régime unifié AA ;
+
+ La part patronale de la tranche T1 de la CEG. 
+
+Le taux indiqué dans ce bloc « Cotisation individuelle - S21.G00.81 » doit correspondre au taux réel appliqué par l’entreprise afin d’en informer l’Urssaf pour lui permettre de fiabiliser et recalculer la RGDU.
+
+ Le code « 146 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T2) et CEG (part patronale T2), hors CET) »
+
+A partir de 2027, il conviendra de renseigner un bloc « Cotisation individuelle - S21.G00.81 » avec le code cotisation « 146 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T2) et CEG (part patronale T2), hors CET », rattaché au type « 03 - Assiette brute déplafonnée », le cas échéant « 22 - Base brute spécifique » ou « 23 - Base exceptionnelle (Agirc Arrco) ». Le montant à déclarer sous cette valeur doit correspondre à :
+
+ la part patronale tranche T2 de la cotisation régime unifié AA ;
+
+ la part patronale de la tranche T2 de la CEG.
+
+NB : les modalités déclaratives transitoires relatives à 2026 sont précisées plus bas. 
+
+ Le code « 148 - Contribution d'équilibre technique (CET) part patronale » (CET T1/T2 global)"
+
+La création du nouveau code 148 en P27V01 permet de déclarer les tranches 1 et 2 sous une même valeur dédiée (en 2026, la CET est attendue T1 et T2 sous la 146). En 2027, le montant de CET est à déclarer entièrement sous l'assiette déplafonnée (« 03 - Assiette brute déplafonnée », le cas échéant « 22 - Base brute spécifique » ou « 23 - Base exceptionnelle (Agirc Arrco) ») déclarée en bloc « Base assujettie - S21.G00.78 ». Le montant à déclarer sous cette valeur doit correspondre à :
+
+ la part patronale tranche T1 et T2 de la CET.
+
+Remarque : Dans le cas d’un individu ayant toujours perçu une rémunération inférieure au PMSS (uniquement sur de la Tranche 1), aucune déclaration de codes 146 et 148 n’est attendue. Toutefois, des montants de CET peuvent également être déclarés sur des mois où l’individu a perçu une rémunération inférieure au PMSS, y compris sous forme négative, lorsqu'ils résultent d'opérations de régularisation portant sur des périodes antérieures au cours desquelles le salarié était assujetti à cette contribution. Dans ces situations, la régularisation de la CET peut également s'accompagner d'une régularisation des cotisations de retraite complémentaire sur tranche 2, pouvant conduire à la déclaration de montants d'assiette ou de cotisations négatifs.
+
+Exemples dans le cas nominal
+
+DSN en norme P27V01
+
+Cas n°1
+
+Un individu cadre à temps plein affilié à la retraite complémentaire Agirc-Arrco est payé 4200 € brut au mois de janvier 2027. 
+
+ | S21.G00.51 – Rémunération 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.51.001
+ | Date de début de période de rattachement 
+ | 
+ 01012027
+
+ | S21.G00.51.002
+ | Date de fin de période de rattachement 
+ | 
+ 31012027
+
+ | S21.G00.51.011
+ | Type
+ | 01 – Rémunération brute non plafonnée
+
+ | S21.G00.51.013
+ | Montant 
+ | 4200.00
+
+ | S21.G00.78 – Base assujettie    
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.51.001
+ | Date de début de période de rattachement 
+ | 02 - Assiette brute plafonnée
+
+ | S21.G00.51.002
+ | Date de fin de période de rattachement 
+ | 01012027
+
+ | S21.G00.51.011
+ | Type
+ | 31012027
+
+ | S21.G00.51.013
+ | Montant 
+ | 4005.00  
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 131 - Cotisation régime unifié AGIRC-ARRCO
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | Non renseigné
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Non renseigné
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 415.32 (retraite complémentaire T1 + CET T1 + CEG T1) 
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Non renseigné
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 142 - Cotisation régime unifié AGIRC-ARRCO (part patronale tranche T1)
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | 
+ SIRET de la caisse Urssaf ou MSA
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Facultatif
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 
+ 240.70
+
+ (montant de la part patronale T1 retraite complémentaire + CEG T1 part patronale) 
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | 6.01 (4,72 % Retraite complémentaire T1+ 1,29% CEG T1)
+
+ | S21.G00.78 – Base assujettie 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.78.001
+ | Code de base assujettie 
+ | 
+ 03 - Assiette brute déplafonnée
+
+ | S21.G00.78.002 
+ | Date de début de période de rattachement 
+ | 01012027
+
+ | S21.G00.78.003 
+ | Date de fin de période de rattachement 
+ | 31012027
+
+ | S21.G00.78.004 
+ | Montant 
+ | 4200.00
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 131 - Cotisation régime unifié AGIRC-ARRCO
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | Non renseigné
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Non renseigné
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 48.05 (part patronale et salariale de la retraite complémentaire T2, de la CET T2 et CEG T2) 
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Non renseigné
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 132 - Cotisation Apec
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | Non renseigné
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Non renseigné
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 2.52 (Apec part patronale et salariale T1+ T2) 
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Non renseigné
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 146 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T2) et CEG (part patronale T2), hors CET 
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | 
+ SIRET de la caisse Urssaf ou MSA
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Facultatif
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 
+ 28.41
+
+ (montant de la part patronale T2 retraite complémentaire + part patronale CEG T2)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Facultatif
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 148 - Contribution d'équilibre technique (CET) part patronale
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | 
+ SIRET de la caisse Urssaf ou MSA
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Facultatif
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 
+ 8,82 (Montant part patronale CET T1 et T2)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Facultatif
+
+Cas n°2
+
+Un individu cadre à temps plein affilié à la retraite complémentaire Agirc-Arrco est payé 2000 € brut au mois de janvier 2027. 
+
+Dans cet exemple, le revenu étant inférieur au PMSS (uniquement sur de la Tranche 1), il n’est pas attendu de déclaration des codes 146 et 148 (relatifs à de la Tranche 2)
+
+ | S21.G00.51 – Rémunération 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.51.001
+ | Date de début de période de rattachement 
+ | 
+ 01012027
+
+ | S21.G00.51.002
+ | Date de fin de période de rattachement 
+ | 
+ 31012027
+
+ | S21.G00.51.011
+ | Type
+ | 01 – Rémunération brute non plafonnée
+
+ | S21.G00.51.013
+ | Montant 
+ | 2000.00
+
+ | S21.G00.78 – Base assujettie 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.78.001
+ | Code de base assujettie 
+ | 
+ 02 - Assiette brute plafonnée
+
+ | S21.G00.78.002 
+ | Date de début de période de rattachement 
+ | 01012027
+
+ | S21.G00.78.003 
+ | Date de fin de période de rattachement 
+ | 31012027
+
+ | S21.G00.78.004 
+ | Montant 
+ | 2000.00
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 131 - Cotisation régime unifié AGIRC-ARRCO
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | Non renseigné
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Non renseigné
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 207.40 (part patronale et salariale de la retraite complémentaire T1 et de la CEG T1)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Non renseigné
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 142 - Cotisation régime unifié AGIRC-ARRCO (part patronale tranche T1)
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | 
+ SIRET de la caisse Urssaf ou MSA
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Facultatif
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 120.20 (montant de la part patronale de la retraite complémentaire T1 et CEG T1)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | 6.01 (4,72 % Retraite complémentaire T1+ 1,29% CEG T1)
+
+ | S21.G00.78 – Base assujettie 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.78.001
+ | Code de base assujettie 
+ | 
+ 03 - Assiette brute déplafonnée
+
+ | S21.G00.78.002 
+ | Date de début de période de rattachement 
+ | 01012027
+
+ | S21.G00.78.003 
+ | Date de fin de période de rattachement 
+ | 31012027
+
+ | S21.G00.78.004 
+ | Montant 
+ | 2000.00
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 132 - Cotisation Apec
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | Non renseigné
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Non renseigné
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 1.20 (Apec part patronale et salariale T1)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Non renseigné
+
+Cas particuliers
+
+Particularité des modalités déclaratives des codes nécessaires à la fiabilisation pour 2026
+
+En 2026, des modalités déclaratives particulières s'appliquent pour permettre de recalculer et fiabiliser le Montant Net Social : il conviendra de renseigner un bloc « Cotisation individuelle - S21.G00.81 » avec le code cotisation « 146 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T2) », rattaché au même type "03 - Assiette brute déplafonnée" », le cas échéant « 22 - Base brute spécifique » ou « 23 - Base exceptionnelle (Agirc Arrco) ». Le montant à déclarer sous cette valeur doit correspondre à 
+
+ la part patronale tranche T2 de la cotisation régime unifié AA ;
+
+ la part patronale de la tranche T2 de la CEG ;
+
+ la part patronale de la CET pour tranche T1 et la tranche T2.
+
+Pour les déclarants qui ne sont pas en mesure d'effectuer la déclaration de ce montant dans un unique bloc « Cotisation individuelle - S21.G00.81 », il est toléré de multiplier les blocs « Cotisation individuelle - S21.G00.81 » avec le code cotisation « 146 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T2) » pour déclarer séparément chacun des éléments sous ce même code. 
+
+Une tolérance est accordée en 2026 sur le contenu déclaratif des cotisations associées au code « 146 » mais une mise en conformité est attendue dès le 1er janvier 2027.
+
+Remarque : En 2026, deux options déclaratives sont possibles pour déclarer la CET au niveau des blocs « Cotisation individuelle - S21.G00.81 » de type « 146 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T2, CET T1 et T2) » : 
+
+ Soit le montant de CET est déclaré entièrement sous l'assiette déplafonnée (« 03 - Assiette brute déplafonnée », le cas échéant « 22 - Base brute spécifique » ou « 23 - Base exceptionnelle (Agirc Arrco) ») déclarée en bloc « Base assujettie - S21.G00.78 ». 
+
+ Soit le montant de CET est réparti entre l'assiette plafonnée (« 02 - Assiette brute plafonnée », le cas échéant « 24 - Base plafonnée spécifique » ou « 43 - Base plafonnée exceptionnelle Agirc Arrco ») pour la part Tranche 1 et l'assiette déplafonnée (« 03 - Assiette brute déplafonnée », le cas échéant « 22 - Base brute spécifique » ou « 23 - Base exceptionnelle (Agirc Arrco) ») pour la part Tranche 2 déclarées en bloc « Base assujettie - S21.G00.78 ».
+
+ Exemples
+
+Cas n°3
+
+Un individu cadre à temps plein affilié à la retraite complémentaire Agirc-Arrco est payé 4200 € brut au mois de janvier 2026. 
+
+Option 1 : Déclaration du code 146 en un seul bloc 81 en 2026
+
+ | S21.G00.78 – Base assujettie 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.78.001
+ | Code de base assujettie 
+ | 
+ 02 - Assiette brute plafonnée
+
+ | S21.G00.78.002 
+ | Date de début de période de rattachement 
+ | 01012026
+
+ | S21.G00.78.003 
+ | Date de fin de période de rattachement 
+ | 31012026
+
+ | S21.G00.78.004 
+ | Montant 
+ | 4005.00
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 
+ 131 - Cotisation régime unifié AGIRC-ARRCO
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | 
+ Non renseigné 
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Non renseigné 
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 
+ 415.32 (montant de la part patronale et salariale de la retraite complémentaire T1 + CET T1 + CEG T1) 
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Non renseigné
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 142 - Cotisation régime unifié AGIRC-ARRCO (part patronale tranche T1)
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | 
+ SIRET de la caisse Urssaf ou MSA
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Facultatif
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 240.70 (montant de la part patronale de la retraite complémentaire T1 et CEG ) 
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | 6.01 (4,72 % Retraite complémentaire T1+ 1,29% CEG T1)
+
+ | S21.G00.78 – Base assujettie 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.78.001
+ | Code de base assujettie 
+ | 
+ 03 - Assiette brute plafonnée
+
+ | S21.G00.78.002 
+ | Date de début de période de rattachement 
+ | 01012026
+
+ | S21.G00.78.003 
+ | Date de fin de période de rattachement 
+ | 31012026
+
+ | S21.G00.78.004 
+ | Montant 
+ | 4200.00
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 
+ 131 - Cotisation régime unifié AGIRC-ARRCO
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | Non renseigné 
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Non renseigné 
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 
+ 48.05 (montant de la part salariale et patronale retraite complémentaire T2 + CET T2 + CEG T2)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Non renseigné
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 
+ 132 - Cotisation Apec
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | Non renseigné 
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Non renseigné 
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 2.52 (Apec part patronale et salariale T1+ T2)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Non renseigné
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 146 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T2)
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | Siret de la caisse Urssaf ou MSA 
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Facultatif 
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 37.23
+
+ (montant de la part patronale T2 retraite complémentaire + part patronale CEG T2 + part patronale CET T2)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Facultatif 
+
+Option 2 : Déclaration du code 146 avec plusieurs blocs 81 en 2026
+
+ | S21.G00.78 – Base assujettie 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.78.001
+ | Code de base assujettie 
+ | 
+ 02 - Assiette brute plafonnée
+
+ | S21.G00.78.002 
+ | Date de début de période de rattachement 
+ | 01012026
+
+ | S21.G00.78.003 
+ | Date de fin de période de rattachement 
+ | 31012026
+
+ | S21.G00.78.004 
+ | Montant 
+ | 4005.00
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 
+ 131 - Cotisation régime unifié AGIRC-ARRCO
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | Non renseigné 
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Non renseigné 
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 
+ 415,32 (montant de la part patronale et salariale de la retraite complémentaire T1 + CET T1 + CEG T1)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Non renseigné
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 142 - Cotisation régime unifié AGIRC-ARRCO (part patronale tranche T1)
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | 
+ SIRET de la caisse Urssaf ou MSA
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Facultatif
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 240.70 (montant de la part patronale de la retraite complémentaire T1 et CEG ) 
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | 6.01 (4,72 % Retraite complémentaire T1+ 1,29% CEG T1)
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 146 - Cotisation régime unifié AGIRC-ARRCO (part patronale tranche T2)
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | 
+ SIRET de la caisse Urssaf ou MSA
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Facultatif
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 8.41 (part patronale CET T1)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Facultatif
+
+ | S21.G00.78 – Base assujettie 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.78.001
+ | Code de base assujettie 
+ | 
+ 03 - Assiette brute déplafonnée
+
+ | S21.G00.78.002 
+ | Date de début de période de rattachement 
+ | 01012026
+
+ | S21.G00.78.003 
+ | Date de fin de période de rattachement 
+ | 31012026
+
+ | S21.G00.78.004 
+ | Montant 
+ | 4200.00
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 
+ 131 - Cotisation régime unifié AGIRC-ARRCO
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | Non renseigné 
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Non renseigné 
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 
+
+ 48.05 (montant de la part salariale et patronale retraite complémentaire T2 + CET T2 + CEG T2)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Non renseigné
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 
+ 132 - Cotisation Apec
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | Non renseigné 
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Non renseigné 
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 2.52 (Apec part patronale et salariale T1+ T2)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Non renseigné
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 146 - Cotisation régime unifié AGIRC-ARRCO (part patronale tranche T2)
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | 
+ SIRET de la caisse Urssaf ou MSA
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Facultatif
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 25.25 (part patronale retraite complémentaire T2)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Facultatif
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 146 - Cotisation régime unifié AGIRC-ARRCO (part patronale tranche T2)
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | 
+ SIRET de la caisse Urssaf ou MSA
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Facultatif
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 3.16 (part patronale CEG T2)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Facultatif
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 146 - Cotisation régime unifié AGIRC-ARRCO (part patronale tranche T2)
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | 
+ SIRET de la caisse Urssaf ou MSA
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Facultatif
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 0.41 (part patronale CEG T2)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Facultatif
+
+Remarque
+
+ Soit le montant de CET (T1 et T2) est déclaré entièrement sous l'assiette déplafonnée (« 03 - Assiette brute déplafonnée », le cas échéant « 22 - Base brute spécifique » ou « 23 - Base exceptionnelle (Agirc Arrco) ») en bloc « Base assujettie - S21.G00.78 ». 
+
+ Soit le montant de CET est réparti entre l'assiette plafonnée (« 02 - Assiette brute plafonnée », le cas échéant « 24 - Base plafonnée spécifique » ou « 43 - Base plafonnée exceptionnelle Agirc Arrco ») pour la part Tranche 1 et l'assiette déplafonnée (« 03 - Assiette brute déplafonnée », le cas échéant « 22 - Base brute spécifique » ou « 23 - Base exceptionnelle (Agirc Arrco) ») pour la part Tranche 2 déclarées en bloc « Base assujettie - S21.G00.78 ».
+
+Cas n°4
+
+Pour un individu cadre à temps plein payé 2000 € brut au mois de janvier 2026 et affilié à la retraite complémentaire Agirc-Arrco. 
+
+ | S21.G00.51 – Rémunération 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.51.001
+ | Date de début de période de rattachement
+ | 01012026
+
+ | S21.G00.51.002 
+ | Date de fin de période de rattachement
+ | 31012026
+
+ | S21.G00.51.011
+ | Type 
+ | 
+ 01 – Rémunération brute non plafonnée
+
+ | S21.G00.51.013
+ | Montant 
+ | 2000.00
+
+ | S21.G00.78 – Base assujettie 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.78.001
+ | Code de base assujettie 
+ | 
+ 02 - Assiette brute plafonnée
+
+ | S21.G00.78.002 
+ | Date de début de période de rattachement 
+ | 01012026
+
+ | S21.G00.78.003 
+ | Date de fin de période de rattachement 
+ | 31012026
+
+ | S21.G00.78.004 
+ | Montant 
+ | 2000.00
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 
+ 131 - Cotisation régime unifié AGIRC-ARRCO
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | Non renseigné 
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Non renseigné 
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 
+ 207.40 (retraite complémentaire T1 + CEG T1)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Non renseigné
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 142 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T1)
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | SIRET URSSAF ou MSA 
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Facultatif 
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 
+ 120.20 (montant de la part patronale T1 retraite complémentaire et CEG)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | 6.01 (4,72 % Retraite complémentaire T1+ 1,29% CEG T1)
+
+ | S21.G00.78 – Base assujettie 
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.78.001
+ | Code de base assujettie 
+ | 
+ 03 - Assiette brute déplafonnée
+
+ | S21.G00.78.002 
+ | Date de début de période de rattachement 
+ | 01012026
+
+ | S21.G00.78.003 
+ | Date de fin de période de rattachement 
+ | 31012026
+
+ | S21.G00.78.004 
+ | Montant 
+ | 2000.00
+
+ | S21.G00.81 - Cotisation individuelle
+
+ | Code
+ | Rubrique
+ | Valorisation
+
+ | S21.G00.81.001
+ | Code de cotisation
+ | 
+ 132 - Cotisation Apec
+
+ | S21.G00.81.002
+ | Identifiant Organisme de Protection Sociale
+ | Non renseigné 
+
+ | S21.G00.81.003
+ | Montant d'assiette
+ | Non renseigné 
+
+ | S21.G00.81.004
+ | Montant de cotisation
+ | 1.20 (Apec part patronale et salariale T1)
+
+ | S21.G00.81.007
+ | Taux de cotisation
+ | Non renseigné
+
+ Régularisations
+
+Les modalités de régularisation suivent les modalités classiques de régularisation des montants :
+
+ Tout élément qui a été déclaré et qui est impacté par l’erreur doit être corrigé ;
+
+ Tout élément non impacté ne doit pas être modifié.
+
+Lorsqu’une régularisation concerne une période postérieure ou égale à janvier 2026 :
+
+ Une correction du code 131 – Cotisation régime unifié Agirc-Arrco est attendue si la cotisation de retraite complémentaire, la CEG et/ou la CET (part salariale ou globale) est erronée ;
+
+ Une correction du code 142 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T1) est attendue dès lors que la régularisation a un impact sur la part patronale Tranche 1 (retraite complémentaire ou CEG). Les situations pouvant nécessiter une régularisation du code 142 sont notamment :
+
+ Erreur d’assiette ;
+
+ Erreur sur le taux patronal de retraite complémentaire T1 ;
+
+ Erreur sur le taux patronal de CEG T1.
+
+De même, à partir de 2027 dès lors que la régularisation a un impact sur la part patronale T2 de cotisations de retraite complémentaire et/ou de la CEG ou CET T1 et T2, des régularisations des codes 146 et 148 sont attendues :
+
+ Une correction du code 146 est attendue si la régularisation impacte la part patronale Tranche 2 de la cotisation de retraite complémentaire et/ou de la CEG ;
+
+ Une correction du code 148 est attendue si la régularisation impacte la CET Tranche 1 / Tranche 2 part patronale.
+
+Exemple 1 : En février l’employeur se rend compte d’une erreur sur le taux salarial, il régularise avec un bloc « Cotisation individuelle - S21.G00.81 » de code « 131 - Cotisation régime unifié AGIRC-ARRCO » mais n’a pas besoin de régulariser avec un bloc « Cotisation individuelle - S21.G00.81 » de code « 142 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T1) » comme le taux patronal et l’assiette étaient corrects. (Il n’y a pas d’impact sur le montant des cotisations patronales)
+
+Exemple 2 : En revanche, si l’erreur avait concerné une erreur de répartition part patronale/part salariale (50%/50% au lieu de 60%/40% par exemple), seule une régularisation est attendue sur le bloc « Cotisation individuelle - S21.G00.81 » de code « 142 - Cotisation régime unifié Agirc-Arrco (part patronale tranche T1) ».
+
+Exemple 3 : Dans le cas d’une erreur déclarative au niveau de la rubrique « Montant de cotisation - S21.G00.81.004 » d’un bloc « Cotisation individuelle - S21.G00.81 » de codes de cotisation 142, 146 ou 148, la correction peut être portée par une méthode différentielle ou en annule et remplace.
+
+Pour plus de précisions vous pouvez vous référer à la fiche consigne 2398 : Modalités de déclaration et de régularisation de la rubrique « Taux de cotisation – S21.G00.81.007 » concernant les modalités déclaratives en cas d’erreur.
+
+ Délai de mise en application 
+
+Concernant le code 146, l’année 2026 est une période durant laquelle s’applique une tolérance déclarative car ce code ne sera pas exploité. Une mise en conformité est attendue en 2027, année sur laquelle la déclaration des codes 146 et 148 sera rendue obligatoire.
+
+ La réglementation (Textes de lois, boss…)
+
+Agirc-Arrco > Le calcul des cotisations de retraite complémentaire
+
+Bulletin officiel de la Sécurité Sociale (BOSS) > Montant net social
+
+ Date de création : 16/03/2022 02:39 PM 
+
+ N° de la fiche : 2556 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

@@ -1,0 +1,366 @@
+# Bloc S21.G00.82
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 318-323
+
+--- p. 318 ---
+  S21.G00.82  2026-06-10
+
+  N  [4,7]  CSL 00 : [0]?([0-9]{1,2}\.[0-9]{2,3}|100\.000|100\.00)
+
+Taux de cotisation patronale  S21.G00.81.008
+CotisationIndividuelle.TauxCotisationPatronale
+  Cette rubrique doit être renseignée avec le taux de cotisation part patronale lorsque l'individu est à temps
+  partiel, qu'il cotise comme un temps plein et que son employeur prend à sa charge sa surcotisation.
+  Modalités de valorisation :
+  - AGIRC-ARRCO : non concerné
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : non concerné
+  - CAVEC : non concerné
+  - CCVRP : non concerné
+  - CNIEG : non concerné
+  - Congés spectacles (AUDIENS) : non concerné
+  - CRPCEN : non concerné
+  - CRPNPAC : non concerné
+  - Organisme complémentaire : non concerné
+  - DGFiP : non concerné
+  - IRCANTEC : non concerné
+  - MSA : à renseigner pour une cotisation
+  - France Travail : non concerné
+  - Urssaf : à renseigner pour une cotisation
+  - CNRACL : non concerné
+  - FSPOEIE : non concerné
+  - RAFP : non concerné
+  - SRE : non concerné
+  - RAEP : non concerné
+  - CNBF : non concerné
+
+  N  [4,7]  CSL 00 : [0]?([0-9]{1,2}\.[0-9]{2,3}|100\.000|100\.00)
+
+S21.G00.82
+
+Cotisation établissement  S21.G00.82
+  Renseigne d'éventuelles cotisations imputables à l'établissement (par exemple : fonds de formation). Il ne s'agit pas
+  d'un récapitulatif ou total de cotisations versées pour un ensemble de salariés attachés au contrat ou à l'établissement.
+
+  Ce bloc est utilisé exclusivement par :
+  - Caisses CIBTP
+  - Organismes complémentaires
+  - MSA
+  - Urssaf
+
+  Les règles détaillées de soumission aux cotisations CCCA-BTP, APNAB et CONSTRUCTYS, pour le secteur du
+  bâtiment et des travaux publics (codes de cotisation 002, 003, et 036 à 040) sont disponibles sur le site http://probtp/.
+  Les seules combinaisons autorisées pour les cotisations de code type 037 à 040 sont les suivantes :
+  - cotisation de type 037
+  - cotisations de type 037 et 038
+  - cotisations de type 037 et 039
+  - cotisations de type 037, 038, 039 et 040
+
+Valeur  S21.G00.82.001
+
+  318 / 370
+
+--- p. 319 ---
+  S21.G00.82  2026-06-10
+
+Code de cotisation  S21.G00.82.002
+Date de début de période de rattachement  S21.G00.82.003
+Date de fin de période de rattachement  S21.G00.82.004
+Référence réglementaire ou contractuelle  S21.G00.82.005
+Identifiant du CRM à l'origine de la régularisation  S21.G00.82.006
+
+Valeur  S21.G00.82.001
+CotisationEtablissement.Valeur
+  Montant de cotisation ou valeur, dont la nature est renseignée dans la rubrique Code de cotisation
+  S21.G00.82.002, due au titre de l'établissement déclaré en S21.G00.11.
+  Avec décimale, signé, valeur zéro autorisée, zéros non significatifs tolérés.
+  Modalité de valorisation :
+  - Caisse CIBTP : valeur. Dans le cas de la cotisation assise sur le nombre d'heures d'intérim, il s'agit du
+  nombre d'heures d'intérim facturées dans le mois par l'établissement. Dans le cas de la cotisation assise sur
+  le chiffre d'affaires, il s'agit de la valeur de la base de cotisation de niveau établissement.
+  - Organisme complémentaire : montant de cotisation dont la nature est renseignée dans la rubrique Code
+  de cotisation S21.G00.82.002, due au titre de l'établissement déclaré en S21.G00.11.
+  - MSA : montant
+  - Urssaf : montant
+
+  N  [4,18]  CSL 00 : -?[0-9]*\.[0-9]{2}
+
+Code de cotisation  S21.G00.82.002
+CotisationEtablissement.CodeCotisation
+  Nature des cotisations ou valeur directement attachées et imputables à l'établissement déclaré en
+  S21.G00.11.
+  Modalité de valorisation :
+  - Caisse CIBTP : "024", "054"
+  - Organisme complémentaire : "001", "002", "003", "004", "005", "006", "007", "009", "010", "011", "012",
+  "017", "018", "019", "020", "036", "037", "038", "039", "040", "046", "090"
+  - MSA : "021", "022", "023", "025", "026", "027", "028", "029", "030", "031", "032", "033", "034", "035",
+  "041", "042", "043", "044", "045", "047", "048", "049", "050", "060", "061", "062", "063", "064", "065",
+  "066", "067", "068", "069", "071", "072", "073", "074", "075", "076", "077", "078", "079", "080", "091"
+  - Urssaf : "060", "061", "062", "063", "064", "065", "066", "067", "068", "069", "071", "072", "073", "074",
+  "075", "076", "077", "078", "079", "080", "091"
+  CCH-14 : Si la rubrique « Référence réglementaire ou contractuelle - S21.G00.82.005 » est renseignée avec une valeur
+  correspondant à celle d'un « Identifiant technique Adhésion - S21.G00.15.005 » ou correspondant à une valeur
+  comprise entre 01 et 37, les valeurs « 021 - Cotisations FMSE (Fond national agricole de mutualisation des risques
+  sanitaires et environnementaux) », « 022 - Cotisations VAL'HOR (association française pour la valorisation des
+  produits et métiers de l'horticulture et du paysage) », « 023 - Activation du bénéfice de l'aide au paiement des
+  cotisations », « 025 - Contribution aux régimes supplémentaires de retraite à prestations définies - Rente », « 026 -
+  Contribution aux régimes supplémentaires de retraite à prestations définies - Prime », « 027 - Contribution aux régimes
+  supplémentaires de retraite à prestations définies - Dotations », « 028 - Contribution additionnelle sur les rentes
+  liquidées », « 029 - Contribution aux régimes supplémentaires de retraite à prestations définies. Rente à taux 7% », «
+  030 - Contribution aux régimes supplémentaires de retraite à prestations définies. Rente à taux 14% », « 031 -
+  Contribution additionnelle de solidarité pour l'autonomie », « 032 - Contribution Sociale généralisée au taux de 3,80%
+  + RDS sur revenu de remplacement », « 033 - Contribution Sociale généralisée au taux de 6,20% + RDS sur revenu de
+  remplacement », « 034 - Contribution Sociale généralisée au taux de 6,60% + RDS sur revenu de remplacement », «
+  035 - Contribution Sociale généralisée au taux de 7,50% + RDS sur revenu de remplacement », « 041 - Cotisation
+  maladie sur les avantages de préretraite », « 042 - Cotisation maladie sur les avantages de retraite », « 043 - Cotisation
+  maladie Alsace-Moselle sur les avantages de retraite », « 044 - Cotisation forfait social à 8% », « 045 - Cotisation
+  forfait social à 20% », « 047 - Cotisation forfait social à 16% », « 048 - Cotisation forfait social à 10% », « 049 - CSG
+  au taux de 8.30% + RDS sur revenus de remplacement », « 050 - CSG au taux de 9.20% + RDS sur revenus de
+
+  319 / 370
+
+--- p. 320 ---
+  S21.G00.82  2026-06-10
+
+remplacement », « 060 - Déduction ECAP », « 061 - Déduction de sous-traitance (EA, ESAT, TIH, portage salarial) »,
+« 062 - Dépense déductible liée aux travaux d’accessibilité », « 063 - Dépense déductible liée au maintien et à la
+reconversion professionnelle », « 064 - Dépense déductible liée aux prestations d’accompagnement et de
+sensibilisation », « 065 - Contribution OETH brute avant déductions », « 066 - Contribution OETH nette », « 067 -
+Contribution OETH nette après écrêtement (pour les millésimes strictement antérieurs à 2025) », « 068 - Contribution
+OETH réelle due », « 069 - Dépenses OETH prévues par l’accord et non réalisées », « 071 - Dépense déductible liée à
+la participation à des événements », « 072 - Dépense déductible liée aux partenariats avec des associations », « 073 -
+Dépenses déductibles liées aux actions concourant à la professionnalisation et aux achats auprès des EA, ESAT, TIH »,
+« 074 - Exonération Taxe d’apprentissage pour un employeur d’apprenti(s), dont la masse salariale est inférieure à 6
+SMICs », « 075 - Déductions relatives aux CFA d’entreprise et/ou au financement des offres nouvelles de formation
+par apprentissage (Art. L6241-2 code du travail) », « 076 - Solde de la taxe d'apprentissage versé en numéraire », « 077
+- Réduction du solde de la taxe d’apprentissage liée à des subventions aux CFA (Art. L6241-4 du code du travail) versé
+en nature », « 078 - Réduction du solde de la taxe d’apprentissage liée à des créances alternants (Art. L6241-4 du code
+du travail) », « 079 - Contribution supplémentaire à l’apprentissage (CSA) », « 080 - Exonération de la contribution
+supplémentaire à l’apprentissage (CSA) » et « 091 - Cotisation relative aux droits spécifiques passés des activités non
+régulées (DSPNR) » sont interdites dans la rubrique « Code de cotisation - S21.G00.82.002 ».
+
+CCH-21 : Si la rubrique « Code de cotisation – S21.G00.82.002 » est renseignée avec la valeur « 060 - Déduction
+ECAP », « 061 - Déduction de sous-traitance (EA, ESAT, TIH, portage salarial) », « 062 - Dépense déductible liée aux
+travaux d’accessibilité », « 063 - Dépense déductible liée au maintien et à la reconversion professionnelle », « 064 -
+Dépense déductible liée aux prestations d’accompagnement et de sensibilisation », « 065 - Contribution OETH brute
+avant déductions », « 066 - Contribution OETH nette », « 067 - Contribution OETH nette après écrêtement (pour les
+millésimes strictement antérieurs à 2025) », « 068 - Contribution OETH réelle due », « 071 - Dépense déductible liée à
+la participation à des événements », « 072 - Dépense déductible liée aux partenariats avec des associations » ou « 073 -
+Dépenses déductibles liées aux actions concourant à la professionnalisation et aux achats auprès des EA, ESAT, TIH »,
+alors l’année renseignée au niveau des rubriques « Date de début de période de rattachement - S21.G00.82.003 » et «
+Date de fin de période de rattachement S21.G00.82.004 » doit être identique.
+Ce contrôle vise à interdire les déclarations qui portent sur deux exercices annuels différents pour les codes de
+cotisation cités ci-dessus.
+
+CCH-22 : Si un bloc « Cotisation établissement - S21.G00.82 » est renseigné avec la valeur « 065 - Contribution
+OETH brute avant déductions » au niveau de la rubrique « Code de cotisation - S21.G00.82.002 », alors un autre bloc
+« Cotisation établissement - S21.G00.82 » doit obligatoirement être déclaré avec la même période (S21.G00.82.003 et
+S21.G00.82.004) avec la valeur « 066 - Contribution OETH nette » au niveau de la rubrique « Code de cotisation -
+S21.G00.82.002 », et, inversement : si un bloc « Cotisation établissement - S21.G00.82 » est renseigné avec la valeur «
+066 - Contribution OETH nette » au niveau de la rubrique « Code de cotisation - S21.G00.82.002 », alors un autre bloc
+« Cotisation établissement - S21.G00.82 » doit obligatoirement être déclaré avec la même période (S21.G00.82.003 et
+S21.G00.82.004) avec la valeur « 065 - Contribution OETH brute avant déductions » au niveau de la rubrique « Code
+de cotisation - S21.G00.82.002 ».
+
+CCH-24 : Si un bloc "Cotisation établissement - S21.G00.82" est renseigné avec la valeur "068 - Contribution OETH
+réelle due" au niveau de la rubrique "Code de cotisation - S21.G00.82.002", alors un autre bloc "Cotisation
+établissement - S21.G00.82" doit obligatoirement être déclaré avec la même période (S21.G00.82.003 et
+S21.G00.82.004) avec la valeur "065 - Contribution OETH brute avant déductions" au niveau de la rubrique "Code de
+cotisation - S21.G00.82.002", et, inversement : si un bloc "Cotisation établissement - S21.G00.82" est renseigné avec
+la valeur "065 - Contribution OETH brute avant déductions" au niveau de la rubrique "Code de cotisation -
+S21.G00.82.002", alors un autre bloc "Cotisation établissement - S21.G00.82" doit obligatoirement être déclaré avec la
+même période (S21.G00.82.003 et S21.G00.82.004) avec la valeur "068 - Contribution OETH réelle due" au niveau de
+la rubrique "Code de cotisation - S21.G00.82.002".
+
+  X  [3,3]
+
+001 - Cotisation ADPFA (Association pour le Développement du Paritarisme des Fleuristes et Animaliers)
+002 - Cotisation APNAB (Association Paritaire Nationale pour le développement de la négociation collective dans
+l'Artisanat du Bâtiment)
+003 - Cotisation sur assiette avec congés payés CCCA-BTP (Comité de Concertation et de Coordination de
+l'apprentissage du Bâtiment et des Travaux Publics)
+004 - Cotisation CPPNTT (Commission Paritaire Professionnelle Nationale du Travail Temporaire)
+
+  320 / 370
+
+--- p. 321 ---
+  S21.G00.82  2026-06-10
+
+005 - Cotisation Développement du paritarisme
+006 - Cotisation Dialogue social
+007 - Cotisation FAF (Fonds d'Assurance formation)
+009 - Cotisation FAPS (Fonds d'action professionnelle et sociale)
+010 - Cotisation FASTT (Fonds d'Action Sociale du Travail Temporaire)
+011 - Cotisation Fonds de péréquation
+012 - Cotisation IFC (Indemnités de fin de carrière)
+017 - Cotisation ORGA (Organisations Syndicales du Travail Temporaire)
+018 - Cotisation Promotion et recrutement
+019 - Cotisations attachées à une population de non salariés ayants-droit
+020 - Cotisations attachées à une population de non salariés retraités
+021 - Cotisations FMSE (Fond national agricole de mutualisation des risques sanitaires et environnementaux)
+022 - Cotisations VAL'HOR (association française pour la valorisation des produits et métiers de l'horticulture et du
+paysage)
+023 - Activation du bénéfice de l'aide au paiement des cotisations
+024 - Cotisation assise sur le nombre d'heures d'intérim
+025 - Contribution aux régimes supplémentaires de retraite à prestations définies - Rente
+026 - Contribution aux régimes supplémentaires de retraite à prestations définies - Prime
+027 - Contribution aux régimes supplémentaires de retraite à prestations définies - Dotations
+028 - Contribution additionnelle sur les rentes liquidées
+029 - Contribution aux régimes supplémentaires de retraite à prestations définies. Rente à taux 7%
+030 - Contribution aux régimes supplémentaires de retraite à prestations définies. Rente à taux 14%
+031 - Contribution additionnelle de solidarité pour l'autonomie
+032 - Contribution Sociale généralisée au taux de 3,80% + RDS sur revenu de remplacement
+033 - Contribution Sociale généralisée au taux de 6,20% + RDS sur revenu de remplacement
+034 - Contribution Sociale généralisée au taux de 6,60% + RDS sur revenu de remplacement
+035 - Contribution Sociale généralisée au taux de 7,50% + RDS sur revenu de remplacement
+036 - Cotisation TTC sur assiette CDD avec congés payés pour le secteur du BTP (Constructys Organisme Paritaire
+Collecteur Agréé pour le BTP)
+037 - Cotisation TTC sur assiette avec congés payés pour le secteur du BTP (Constructys Organisme Paritaire
+Collecteur Agréé pour le BTP)
+038 - Cotisation TTC sur assiette sans congés payés (Constructys Organisme Paritaire Collecteur Agréé pour le BTP)
+039 - Cotisation TTC sur assiette avec congés payés pour les salariés non soumis à la cotisation CCCA-BTP
+(Constructys Organisme Paritaire Collecteur Agréé pour le BTP)
+040 - Cotisation TTC sur assiette hors congés payés pour les salariés non soumis à la cotisation CCCA-BTP
+(Constructys Organisme Paritaire Collecteur Agréé pour le BTP)
+041 - Cotisation maladie sur les avantages de préretraite
+042 - Cotisation maladie sur les avantages de retraite
+043 - Cotisation maladie Alsace-Moselle sur les avantages de retraite
+044 - Cotisation forfait social à 8%
+045 - Cotisation forfait social à 20%
+046 - Cotisations organismes ou syndicats professionnels recouvrées par Audiens (Culture Communication Médias)
+047 - Cotisation forfait social à 16%
+048 - Cotisation forfait social à 10%
+049 - CSG au taux de 8.30% + RDS sur revenus de remplacement
+050 - CSG au taux de 9.20% + RDS sur revenus de remplacement
+054 - Cotisation assise sur le chiffre d'affaires
+060 - Déduction ECAP
+061 - Déduction de sous-traitance (EA, ESAT, TIH, portage salarial)
+062 - Dépense déductible liée aux travaux d’accessibilité
+063 - Dépense déductible liée au maintien et à la reconversion professionnelle
+064 - Dépense déductible liée aux prestations d’accompagnement et de sensibilisation
+065 - Contribution OETH brute avant déductions
+066 - Contribution OETH nette
+067 - Contribution OETH nette après écrêtement (pour les millésimes strictement antérieurs à 2025)
+068 - Contribution OETH réelle due
+
+  321 / 370
+
+--- p. 322 ---
+  S21.G00.82  2026-06-10
+
+  069 - Dépenses OETH prévues par l’accord et non réalisées
+  071 - Dépense déductible liée à la participation à des événements
+  072 - Dépense déductible liée aux partenariats avec des associations
+  073 - Dépenses déductibles liées aux actions concourant à la professionnalisation et aux achats auprès des EA, ESAT,
+  TIH
+  074 - Exonération Taxe d’apprentissage pour un employeur d’apprenti(s), dont la masse salariale est inférieure à 6
+  SMICs
+  075 - Déductions relatives aux CFA d’entreprise et/ou au financement des offres nouvelles de formation par
+  apprentissage (Art. L6241-2 code du travail)
+  076 - Solde de la taxe d'apprentissage versé en numéraire
+  077 - Réduction du solde de la taxe d’apprentissage liée à des subventions aux CFA (Art. L6241-4 du code du travail)
+  versé en nature
+  078 - Réduction du solde de la taxe d’apprentissage liée à des créances alternants (Art. L6241-4 du code du travail)
+  079 - Contribution supplémentaire à l’apprentissage (CSA)
+  080 - Exonération de la contribution supplémentaire à l’apprentissage (CSA)
+  090 - Cotisation spécifique Prévoyance
+  091 - Cotisation relative aux droits spécifiques passés des activités non régulées (DSPNR)
+  092 - Potentielle nouvelle cotisation établissement B
+  093 - Potentielle nouvelle cotisation établissement C
+  094 - Potentielle nouvelle cotisation établissement A
+  095 - Potentielle nouvelle cotisation établissement D
+  096 - Potentielle nouvelle cotisation établissement E
+
+Date de début de période de rattachement  S21.G00.82.003
+CotisationEtablissement.RattachementDateDebutPeriode
+  Date de début de période de rattachement de la cotisation établissement.
+  Modalité de valorisation :
+  - Caisse CIBTP : date
+  - Organisme complémentaire : date
+  - MSA : date
+  - Urssaf : date
+  CCH-11 : Pour les codes de cotisation 001, 002, 003, 004, 005, 006, 007, 009, 010, 011, 012, 017, 018, 019, 020, 036,
+  037, 038, 039, 040, 046, 090, la date de début de la période de rattachement doit être inférieure ou égale au dernier jour
+  civil du mois suivant le mois principal déclaré.
+
+  CCH-12 : Pour les codes de cotisation "021", "022", "023", "024", "025", "026", "027", "028", "029", "030", "031",
+  "032", "033", "034", "035", "041", "042", "043", "044", "045", "047", "048", "049", "050" et "054", la date de début de
+  la période de rattachement doit être inférieure ou égale au dernier jour civil du mois principal déclaré.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de période de rattachement  S21.G00.82.004
+CotisationEtablissement.RattachementDateFinPeriode
+  Date de fin de période de rattachement de la cotisation établissement.
+
+  Modalité de valorisation :
+
+  - Caisse CIBTP : date
+  - Organisme complémentaire : date
+  - MSA : date
+  - Urssaf : date
+
+  322 / 370
+
+--- p. 323 ---
+  S21.G00.83  2026-06-10
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Référence réglementaire ou contractuelle  S21.G00.82.005
+CotisationEtablissement.ReferenceReglementaireContractuelle
+  Référence réglementaire ou contractuelle de la cotisation établissement, exploitée par certains organismes.
+
+  Modalité de valorisation :
+
+  - Caisse CIBTP : indiquer l'un des codes caisses CIBTP sur deux caractères présents dans la liste des
+  valeurs autorisées disponibles sur le site http://www.net-entreprises.fr (table RRC - Identifiant Organisme
+  de Protection Sociale - Référence réglementaire ou contractuelle).
+  - Organisme complémentaire : à renseigner par l'identifiant technique de l'adhésion Prévoyance
+  (S21.G00.15.005) à laquelle se rattache le montant de la cotisation ou de la déduction de cotisation.
+  - MSA : code caisse MSA (Table RRC - Identifiant Organisme de Protection Sociale - Référence
+  réglementaire ou contractuelle)
+  - Urssaf : SIRET de l'Urssaf (Table RRC - Identifiant Organisme de Protection Sociale - Référence
+  réglementaire ou contractuelle)
+  CCH-12 : Si la rubrique "Code de cotisation - S21.G00.82.002" est renseignée avec la valeur "024 - Cotisation assise
+  sur le nombre d'heures d'intérim" ou "054 - Cotisation assise sur le chiffre d'affaires", la rubrique "Référence
+  réglementaire ou contractuelle - S21.G00.82.005" doit être renseignée avec une valeur comprise entre 01 et 37.
+
+  CCH-14 : Si la rubrique "Code de cotisation - S21.G00.82.002" est renseignée avec une valeur de code comprise dans
+  la plage 001 à 020, 036 à 040, ou égale à "046" ou "090" , la rubrique "Référence réglementaire ou contractuelle -
+  S21.G00.82.005" doit être renseignée avec la même valeur que celle renseignée en S21.G00.15.005 dans le ou l'un des
+  blocs S21.G00.15 "Adhésion prévoyance" de la déclaration.
+
+  X  [1,20]
+
+Identifiant du CRM à l'origine de la régularisation  S21.G00.82.006
+CotisationEtablissement.IdentifiantCRMRegul
+  Il s'agit de l'identifiant du CRM (compte rendu métier) transmis par l'organisme demandeur de la
+  régularisation ou de la correction.
+  CCH-11 : La rubrique "Identifiant du CRM à l'origine de la régularisation - S21.G00.82.006" ne peut être renseignée
+  que pour une période de rattachement (S21.G00.82.003 et S21.G00.82.004) inférieure au mois principal déclaré
+  (S20.G00.05.005) de la déclaration. Dans le cas contraire cette rubrique est interdite. Ce contrôle vise à ce qu'il soit
+  possible de renseigner l'identifiant du CRM à l'origine de la régularisation que pour des régularisations ou des
+  corrections.
+
+  X  [1,18]
+
+S21.G00.83
+
+Période d'affiliation à tort à un régime de retraite  S21.G00.83
+complémentaire
+Date de début de période déclarée à tort  S21.G00.83.001
+Date de fin de période déclarée à tort  S21.G00.83.002
+
+Date de début de période déclarée à tort  S21.G00.83.001
+
+  323 / 370

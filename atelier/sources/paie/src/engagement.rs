@@ -569,11 +569,11 @@ impl Engagement {
     /// S21.G00.40.014 : temps plein (10) ou temps partiel (20). C. trav. L. 3123-1, 1° et 2° : est a temps partiel le
     /// salarie dont la duree du travail est inferieure « a la duree legale du travail ou, lorsque cette duree est
     /// inferieure a la duree legale, a la duree du travail fixee conventionnellement [...] ou applicable dans
-    /// l'etablissement » (`prive/reference/sources/code-du-travail/articles-20261010.md`). La reference est donc la plus
+    /// l'etablissement » (`atelier/reference/sources/code-du-travail/articles-20261010.md`). La reference est donc la plus
     /// courte de la duree legale (`quotite_reference_defaut`, 151,67 h) et de la quotite de reference (S21.G00.40.012) :
     /// a 35 h dans une compagnie a 39 h (40.012 = 169, admis en P26V01), un salarie est a temps plein. Sans quoi la
     /// caisse Agirc-Arrco, qui proratise elle-meme le plafond d'un « 20 » sur 40.013 / 40.012 (cahier CT2026, l. 3325-3343,
-    /// `prive/reference/sources/agirc-arrco/`), le proratiserait a tort, alors que la paie ne le fait pas
+    /// `atelier/reference/sources/agirc-arrco/`), le proratiserait a tort, alors que la paie ne le fait pas
     /// (`calcul::duree_du_temps_partiel`, la meme plus courte des durees).
     pub fn modalite_temps_travail(&self) -> Resultat<String> {
         if let Some(m) = self.modalite_temps_travail_saisie.as_ref().filter(|m| !m.is_empty()) {

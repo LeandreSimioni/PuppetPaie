@@ -1,0 +1,321 @@
+# Chapitre 5
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 104-110
+
+--- p. 104 ---
+  5 Principes de constitution des messages  2026-06-10
+
+5 Les modèles de déclarations
+L'arborescence des déclarations est réduite aux blocs.
+
+La liste détaillée décrit les rubriques par bloc une seule fois pour tous les modèles.
+
+Charte graphique des arborescences et de la liste détaillée
+
+Arborescences
+
+Domaines de rubriques
+
+Sous-domaine de Caractéristiques
+
+Les arborescences sont réduites aux blocs.
+
+On retrouve ici les notions de nature, de longueur, expliquées en 3.3, mais aussi la notion de
+type, qui permet d’introduire explicitement le type « énumération » (liste de valeurs) et
+« référentiel externe ».
+
+On peut également distinguer liste de valeurs « interne » (valeurs fournies dans le cahier
+technique) et liste de valeurs « externes » (tables existantes sur le serveur de nomenclatures
+de Net Entreprises).
+
+  104 / 370
+
+--- p. 105 ---
+  5 Principes de constitution des messages  2026-06-10
+
+Les usages ne sont plus traités au niveau de chaque rubrique mais décrits en fin de cahier
+technique, pour chaque rubrique dans chaque forme de message (DSN mensuelle,
+signalements d’évènements).
+
+5.1 DSN Mensuelle
+Ce modèle correspond à la nature de déclaration ‘01’ en S20.G00.05.001
+  o  Le message «DSN Mensuelle» est destiné aux points de stockage des organismes
+  de protection sociale et services de l'Etat et aux institutions de prévoyance, aux
+  mutuelles, aux sociétés d'assurances, aux organismes complémentaires non fédérés
+  par un membre du GIP-MDS (CTIP, FFA, FNMF).
+  o  La CNAMTS, France Travail et la MSA accèdent à ces données dans le cadre de
+  signalements d’évènements les concernant.
+  o  La CNAMTS reçoit également les données mensuelles indispensables à la
+  substitution de la DADS-U.
+  o  La DARES reçoit sur la base de ces données les éléments indispensables à la
+  substitution de la DMMO/EMMO.
+  o  France Travail reçoit les données mensuelles filtrées pour :
+  o Les CDDU infra DSN sous dérogation
+  o Le Relevé Mensuel de mission (RMM)
+  o Les salariés demandeurs d'emploi (SDE) inscrits à France Travail
+  o Le recouvrement des contributions d'assurance chômage des artistes du
+  spectacle ou d’ouvriers et techniciens de l’édition d’enregistrement sonore, de
+  la production cinématographique et audiovisuelle, de la radio, de la diffusion
+  et du spectacle et des expatriés
+  o  L’Urssaf CN reçoit les données mensuelles filtrées pour substituer la DUCS, la
+  DADS-U, le BRC et le TR.
+  o  La CNAF reçoit les données mensuelles filtrées à titre expérimental à des fins de
+  contrôles et sans substitution de déclarations.
+  o  La MSA reçoit les données mensuelles indispensables à la substitution de la DTS
+  (Déclaration Trimestrielle des Salaires), BVM (Bordereau de versement mensuel) et
+  DADS-U.
+  o  Les institutions de prévoyance, mutuelles, sociétés d’assurance, organismes
+  complémentaires non fédérés par un membre du GIP-MDS (CTIP, FFA, FNMF),
+  reçoivent les données indispensables à la substitution de la DUCS EDI, DUCS EFI,
+  Bordereau d’appel trimestriel des Organismes Complémentaires et de la DADS-U
+  o  L’AGIRC-ARRCO reçoit les données mensuelles indispensables à la substitution des
+  appels de cotisations Agirc-Arrco (DUCS EDI, EFI, papier,…) et de la DADS-U
+  o  La CRPCEN reçoit les données mensuelles indispensables à la substitution de la
+  déclaration des cotisations sur salaires dues, de la déclaration nominative annuelle
+  (DNA), de la déclaration de mouvement de personnel et de la déclaration de
+  nouvelles conditions d’emploi.
+  o  La CNIEG reçoit les données mensuelles indispensables à la substitution des
+  bordereaux de cotisations (C131, D131 et D131-bis), des déclarations annuelles
+  (DADS-U et DARS) et ultérieurement d’une partie de la DECA (Déclaration des
+  Eléments de Carrière des Affiliés)
+  o  La CAMIEG reçoit les données mensuelles indispensables à la substitution des
+  bordereaux de Cotisations complémentaires et Cotisations de solidarité ainsi que des
+  évènements individuels déclarés sur les DAR (Déclaration d’Affiliation et de
+  Radiation)
+  o  La DGFiP reçoit les données mensuelles indispensables à la substitution de la
+  DADS-U et aux déclarations et paiements du Prélèvement à la source.
+  o  L’IRCANTEC reçoit les données mensuelles indispensables à la substitution de la
+  DADS-U
+
+  105 / 370
+
+--- p. 106 ---
+  5 Principes de constitution des messages  2026-06-10
+
+  o  La CNAV reçoit les données mensuelles nécessaires à la substitution de la DADS-U
+  o  L’INSEE reçoit les données mensuelles indispensables à la substitution de la DADS-
+  U
+  o  L’ASP (Agence de Services et de Paiement) reçoit les données mensuelles
+  indispensables à la substitution de la DADS-U
+  o  La CRPNPAC reçoit les données mensuelles indispensables à la substitution de la
+  DADS-U et de la déclaration des cotisations
+  o  La CPRPF reçoit les données mensuelles indispensables à la substitution de la
+  DADS-U
+  o  Les Congés spectacles reçoivent les données mensuelles indispensables à la
+  substitution du Certificat d'emploi.
+  o  Le CPF reçoit les données mensuelles indispensables à l'alimentation du compte
+  personnel de formation
+  o  La CNRACL reçoit les données mensuelles indispensables à la substitution de la
+  DADS-U et de la DUCS Urssaf (cette dernière n'incluant que les contributions de type
+  solidarité dès lors que cette contribution est collectée par les Urssaf)
+  o  Le FSPOEIE reçoit les données mensuelles indispensables à la substitution de la
+  DADS-U et de la DUCS Urssaf (cette dernière n'incluant que les contributions de type
+  solidarité dès lors que cette contribution est collectée par les Urssaf)
+  o  Le RAFP reçoit les données mensuelles indispensables à la substitution de la DADS-
+  U et de la DUCS Urssaf (cette dernière n'incluant que les contributions de type
+  solidarité dès lors que cette contribution est collectée par les Urssaf)
+  o  Le RAEP reçoit les données mensuelles indispensables à la substitution de la DADS-
+  U
+  o  La CNBF reçoit les données mensuelles indispensables à la substitution de la DADS-
+  U et le Bordereau Récapitulatif des Cotisations (BRC)
+
+  o  Les caisses de congés payés CIBTP reçoivent les données mensuelles
+  indispensables à la substitution de la DADS-U CIBTP et de la DUCS CIBTP.
+  o  Les caisses de congés payés du Transport et de la Manutention portuaire reçoivent
+  les données mensuelles indispensables à la substitution des fichiers d'échange
+  permettant le calcul des droits aux congés payés.
+  o  La Direction des Affaires Maritimes reçoit les données mensuelles indispensables à
+  la connaissance de l’activité des marins.
+  o  L’ENIM reçoit les données mensuelles indispensables à la substitution de la DMIST
+  et de la DTA, dans le cadre de la gestion et du calcul des droits maladie et vieillesse
+  des gens de mer.
+  o  La CRP RATP reçoit les données mensuelles indispensables à la substitution de la
+  DADS-U et de la déclaration des cotisations, dans le cadre de la gestion et du calcul
+  des droits vieillesse.
+  o  La CAVEC reçoit les données mensuelles indispensables à la substitution des
+  procédures bilatérales et de la déclaration des cotisations, dans le cadre de la
+  gestion et du calcul des droits vieillesse.
+
+A noter : si les données des salariés sont nécessairement structurées sous chaque SIRET
+d’établissement d’affectation, les blocs « généraux » sur les paiements n’ont pas à être
+répétés dans les différents SIRET. Si le siège règle les cotisations pour l’ensemble de ses
+filiales, les blocs en question ne seront présents que sous ce SIRET siège.
+
+  106 / 370
+
+--- p. 107 ---
+  5 Principes de constitution des messages  2026-06-10
+
+5.2 Signalement d’évènement Fin de contrat de travail Unique
+Ce modèle correspond à la nature de déclaration ‘07’ en S20.G00.05.001.
+Le signalement Fin de contrat de travail Unique permet d’informer France Travail, les
+organismes de Prévoyance 2 , les Caisses Congés payés (CIBTP, Transport, Manutention
+Portuaire) de la fin d’un contrat de travail. Il porte l’ensemble des informations relatives à la
+fin d’un contrat de travail, y compris les données du mois en cours calculées dans le cadre
+du solde de tout compte.
+Le signalement d’évènement doit être transmis dans les cinq jours ouvrés qui suivent la
+survenance de la fin du contrat de travail sauf dans le cadre des dérogations existantes :
+salariés intérimaires (sauf demande expresse du salarié) ; artistes du spectacle ou ouvriers
+et techniciens de l’édition d’enregistrement sonore, de la production cinématographique et
+audiovisuelle, de la radio, de la diffusion et du spectacle (AEM), déclarant ayant recours à la
+dérogation pour les contrats d’usage infra-DSN mensuelle (sauf demande expresse du
+salarié).
+Dans les versions précédentes de la phase 3, les salariés concernés par un calcul de solde
+de tout compte pouvaient être portés au sein d’une DSN partielle. A compter de la version
+P19V01, il n’est plus nécessaire d’accompagner le signalement FCTU d’une DSN partielle. Il
+y aura lieu dans tous les cas, de reporter les informations du signalement au sein de la DSN
+mensuelle, y compris lors de l'émission d'un signalement Fin de contrat de travail Unique
+"annule et remplace intégral" (en cas de rappel par exemple).
+ATTENTION : Toutes modifications en DSN mensuelle déclarées postérieurement à la
+transmission d’un signalement FCTU, sur des données présentes dans les signalements,
+doivent faire l’objet d’un signalement « Annule et remplace » ou « Annule ».
+
+5.3 Signalement d’évènement Arrêt de travail
+Ce modèle correspond à la nature de déclaration ‘04’ en S20.G00.05.001.
+Il permet d’informer l’Assurance Maladie du début d'un arrêt de travail pour maladie,
+maternité, paternité ou accident du travail / maladie professionnelle (AT/MP).
+Il est également destiné aux Institutions de prévoyance, Mutuelles, Sociétés d'assurance,
+délégataires de gestion et Organismes complémentaires non fédérés par un membre du
+GIP-MDS (CTIP, FFA, FNMF). Dans le cas d’un arrêt de travail, des informations sont
+demandées à l’entreprise par l’organisme de prévoyance, en vue de la constitution du
+dossier « IJ complémentaires », au moyen de formulaires de déclaration d’arrêt de travail. Il
+pourra être évité de redemander des informations déjà présentes dans la DSN.
+Le signalement d’évènement doit être transmis dans les 5 jours après la prise de
+connaissance de l’évènement par l’employeur, sauf dans un cas de subrogation ou de
+décalage sur le mois suivant de la prise en compte en paie où l’émission du message peut
+être concomitante à l’envoi de la DSN mensuelle (deux déclarations distinctes étant
+cependant constituées à cette échéance, éventuellement communiquées dans un même
+envoi).
+Dans le cas où un salarié disposerait de plusieurs contrats en vigueur simultanément avec
+un même employeur, un signalement d'arrêt de travail doit être émis. L'alimentation des
+données du bloc contrat dans le signalement pourra être réalisée avec les informations d'un
+contrat dont le choix reste à la discrétion du déclarant. Dans la DSN mensuelle suivante, le
+bloc Arrêt de travail devra être renseigné pour tous les contrats de l'individu concerné par
+
+2
+  Les organismes complémentaires ne reçoivent que les données du signalement de fin de contrat nécessaires à
+la prise en compte de la radiation du salarié.
+
+  107 / 370
+
+--- p. 108 ---
+  5 Principes de constitution des messages  2026-06-10
+
+l’arrêt de travail, en portant la même date de dernier jour travaillé et le cas échéant, les
+mêmes dates de subrogations.
+
+5.4 Signalement d’évènement Reprise suite à arrêt de travail
+Ce modèle correspond à la nature de déclaration ‘05’ en S20.G00.05.001.
+Il permet d’informer l’Assurance Maladie de la reprise du travail en cours de mois.
+Il est également destiné aux Institutions de prévoyance, Mutuelles, Sociétés d'assurance,
+délégataires de gestion et Organismes complémentaires non fédérés par un membre du
+GIP-MDS (CTIP, FFA, FNMF). Les informations «Reprise de travail » permettent à
+l’organisme assureur d’arrêter dans le cas de versement automatique d’IJ complémentaires
+au plus près de l’événement et d’éviter ainsi des versements de prestations indues.
+Le signalement d’évènement n’est à émettre qu’en cas de reprise anticipée par rapport à la
+date prévisionnelle de l’arrêt et doit alors être transmis au plus tard dans les cinq jours
+ouvrables qui suivent la reprise du travail.
+
+5.5 Signalement d’Amorçage des données variables
+Ce modèle correspond à l'énuméré "08 - Signalement amorçage des données variables" de
+la rubrique "Nature de déclaration - S20.G00.05.001"
+
+Il s'agit d'un signalement non obligatoire ayant pour vocation de transmettre les informations
+pouvant avoir un impact sur la couverture des droits des salariés ainsi que sur le calcul du
+prélèvement à la source (PAS).
+Il ne se substitue pas aux formalités en vigueur auprès des organismes et administrations
+concernés.
+
+Les organismes destinataires de ce signalement sont :
+- La DGFiP
+- Les organismes complémentaires
+- L’Agence de Service et de Paiement (ASP)
+- La Délégation Générale à l’Emploi et à la Formation Professionnelle (DGEFP)
+- La Direction de l'Animation de la Recherche, des Études et des Statistiques (DARES)
+- France Travail
+
+Ce signalement peut être émis pour les natures d'événements suivantes :
+- Embauche effective de l'individu
+- Mutation de l'individu sans rupture du contrat de travail
+- Fin de dispense d’affiliation
+- Changement des paramètres du contrat collectif prévoyance, santé complémentaire,
+retraite supplémentaire
+- Transmission de l’ensemble d’une population à affilier à un nouveau contrat (individu
+faisant partie d’une population à affilier à un nouveau contrat)
+- Appel de taux de PAS pour un individu non salarié
+- Changement de tiers déclarant ou changement de logiciel déclaratif
+
+Il est ainsi possible d'émettre un signalement d'amorçage des données variables (ADV) au
+moment de la survenance de l’un des événements ci-dessus, en amont de la déclaration
+mensuelle qui suivra.
+
+Une étude est en cours pour que ces retours comportent également mention du numéro
+technique de contrat géré dans l’établissement précédent lorsqu’il s’agit d’une mutation, d'un
+
+  108 / 370
+
+--- p. 109 ---
+  5 Principes de constitution des messages  2026-06-10
+
+changement de tiers déclarant ou d'un changement de logiciel déclaratif, en vue d’améliorer
+la qualité des blocs changements.
+
+5.6 DSN de substitution
+Cette nature de DSN permet à l’Urssaf et à la Mutualité Sociale Agricole de reporter les
+justes droits des salariés lorsque des incohérences sont détectées lors des contrôles opérés
+par ces organismes ainsi que dans le cadre leurs campagnes de fiabilisation.
+
+La DSN de substitution est communiquée aux organismes gérant la retraite afin de leur
+permettre de prendre en compte ces droits dans la gestion des pensions des salariés.
+
+Cette déclaration est ainsi à destination des caisses Urssaf et MSA, en charge du
+recouvrement des cotisations retraite du Régime Général et du Régime Agricole, et de la
+CNAV et de l'Agirc-Arrco.
+
+L’Urssaf et la Mutualité Sociale Agricole sont les seuls émetteurs de cette DSN de
+substitution.
+
+Dans un usage à venir cette DSN de substitution pourrait aussi être réalisée à la suite des
+actions de lutte contre le travail illégal (LCTI).
+
+Cette version de norme ne tient pas compte de ce cas d’usage, si ce n’est en le mentionnant
+dans le type de DSN de substitution, mais sans qu’aucune règle de fonctionnement et
+contenu ne soient statués à ce stade.
+
+Ainsi, en 2026, la production de DSN de substitution fait uniquement suite à contrôle
+comptable d’assiette et contrôle partiel d’assiette sur pièces : les corrections sont effectuées
+dans le cadre de contrôles réalisés par les inspecteurs du recouvrement et suite à
+l’exécution des contrôles opérés par l’Urssaf et la MSA dans le cadre des campagnes de
+fiabilisation.
+
+5.7 Signalement d'évènement Déclaration préalable à l'embauche
+Ce modèle de message correspond à l'énuméré « 10 - Signalement Déclaration préalable à
+l'embauche » de la rubrique « Nature de déclaration - S20.G00.05.001 ».
+
+Cette nature de message permet de proposer aux entreprises de pouvoir effectuer dans la
+DSN la procédure de déclaration préalable à l’embauche (DPAE) actuelle afin de simplifier
+les démarches déclaratives des employeurs à partir de la version de norme P26V01.
+
+Au démarrage, il s'agit d'offrir aux employeurs qui le souhaitent la possibilité de transmettre
+une déclaration préalable à l'embauche via DSN. Les canaux et les modalités de
+transmission classiques sont maintenus mais s'il le souhaite, l'employeur a la possibilité de
+remplir son obligation déclarative préalable à l'embauche exclusivement via la DSN.
+
+Comme la DPAE, ce signalement doit être transmis dans les 8 jours précédant la date
+prévisible de l’embauche de l’individu.
+
+Dans un premier temps, cette nature de déclaration est destinée exclusivement à l’Urssaf
+pour les individus relevant du régime général et qui ne relèvent pas de contrats de travail
+temporaire. L'Urssaf communiquera comme aujourd'hui en sortie du système DPAE, qui
+reste en place, les données portées par le signalement DPAE à chaque administration
+concernée. Ce fonctionnement est à l'identique de ce qui est pratiqué actuellement en
+DPAE.
+
+  109 / 370
+
+--- p. 110 ---
+  5 Principes de constitution des messages  2026-06-10
+
+Dans un usage à venir, le périmètre du signalement DPAE pourrait être élargi au régime
+agricole (MSA) et d'autres compléments apportés.
+
+  110 / 370

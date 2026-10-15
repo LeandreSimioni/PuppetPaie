@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000033024092</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/33/02/40/LEGIARTI000033024092.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L3243-2</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2017-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132332">Troisième partie : Durée du travail, salaire, intéressement, participation et épargne salariale    </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145404">Livre II : Salaire et avantages divers</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160763">Titre IV : Paiement du salaire  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006178028">Chapitre III : Bulletin de paie.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-05-01" etat="MODIFIE" fin="2009-05-14" id="LEGIARTI000006902863" num="L3243-2" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2009-05-14" etat="MODIFIE" fin="2017-01-01" id="LEGIARTI000020625848" num="L3243-2" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2017-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000033024092" num="L3243-2" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Lors du paiement du salaire, l'employeur remet aux personnes mentionnées à l'article L. 3243-1 une pièce justificative dite bulletin de paie. Il ne peut exiger aucune formalité de signature ou d'émargement autre que celle établissant que la somme reçue correspond bien au montant net figurant sur ce bulletin. </p>
+<p>Sauf opposition du salarié, l'employeur peut procéder à la remise du bulletin de paie sous forme électronique, dans des conditions de nature à garantir l'intégrité, la disponibilité pendant une durée fixée par décret et la confidentialité des données ainsi que leur accessibilité dans le cadre du service associé au compte mentionné au 2° du II de l'article L. 5151-6. Un décret en Conseil d'Etat pris après avis de la Commission nationale de l'informatique et des libertés détermine les modalités de cette accessibilité afin de préserver la confidentialité des données. </p>
+<p>Les mentions devant figurer sur le bulletin ou y être annexées sont déterminées par décret en Conseil d'Etat.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000253592" datesignatexte="2004-09-03" id="LEGIARTI000038025216" naturetexte="DECRET" nortexte="SANS0422327D" num="18" numtexte="2004-942" sens="cible" typelien="CITATION">Décret n°2004-942 du 3 septembre 2004 - art. 18 (Ab)</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000025553296" datesignatexte="2012-03-22" id="LEGIARTI000025555096" naturetexte="LOI" nortexte="EFIX1127393L" num="51" numtexte="2012-387" sens="cible" typelien="CITATION">LOI n°2012-387
+ du 22 mars 2012 - art. 51 (V)</LIEN>
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000032974124" datesignatexte="2016-08-03" id="LEGIARTI000054421296" naturetexte="DECRET" nortexte="FCPE1609465D" num="7" numtexte="2016-1073" sens="cible" typelien="CITATION">Décret n°2016-1073 du 3 août 2016 - art. 7 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000032983213" datesignatexte="2016-08-08" id="LEGIARTI000033001098" naturetexte="LOI" nortexte="ETSX1604461L" num="54" numtexte="2016-1088" sens="cible" typelien="MODIFIE">LOI n°2016-1088 du 8 août 2016 - art. 54</LIEN>
+
+<LIEN cidtexte="JORFTEXT000033625104" datesignatexte="2016-12-16" id="LEGITEXT000033626634" naturetexte="DECRET" nortexte="ETST1630502D" num="" numtexte="2016-1762" sens="cible" typelien="CITATION">Décret n°2016-1762 du 16 décembre 2016 (V)</LIEN>
+
+
+
+
+<LIEN cidtexte="JORFTEXT000054415358" datesignatexte="2026-07-08" id="LEGITEXT000054418427" naturetexte="DECRET" nortexte="CPPE2430888D" num="" numtexte="2026-620" sens="cible" typelien="CITATION">Décret n°2026-620 du 8 juillet 2026 (V)</LIEN>
+
+
+<LIEN cidtexte="LEGITEXT000006074069" datesignatexte="2999-01-01" id="LEGIARTI000027572654" naturetexte="CODE" nortexte="" num="L262-43" numtexte="" sens="cible" typelien="CITATION">Code de l'action sociale et des familles - art. L262-43 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000043747397" naturetexte="CODE" nortexte="" num="L133-5-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L133-5-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000037947939" naturetexte="CODE" nortexte="" num="L133-5-8" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L133-5-8 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000028393632" naturetexte="CODE" nortexte="" num="L133-8" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L133-8 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000043356696" naturetexte="CODE" nortexte="" num="R323-10" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R323-10 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000023086525" datesignatexte="2999-01-01" id="LEGIARTI000033452915" naturetexte="CODE" nortexte="" num="Annexe IX" numtexte="" sens="cible" typelien="CITATION">Code des transports - art. Annexe IX (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000023086525" datesignatexte="2999-01-01" id="LEGIARTI000023079431" naturetexte="CODE" nortexte="" num="L5544-55" numtexte="" sens="cible" typelien="CITATION">Code des transports - art. L5544-55 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018520702" naturetexte="CODE" nortexte="" num="D8222-5" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D8222-5 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000028393662" naturetexte="CODE" nortexte="" num="L1271-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1271-3 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000024039738" naturetexte="CODE" nortexte="" num="L1272-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1272-3 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000019290057" naturetexte="CODE" nortexte="" num="L1273-4" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1273-4 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000019290010" naturetexte="CODE" nortexte="" num="L1274-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1274-3 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006646494" naturetexte="CODE" nortexte="" num="L143-3" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L143-3 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901567" naturetexte="CODE" nortexte="" num="L1522-6" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L1522-6 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006902862" naturetexte="CODE" nortexte="" num="L3243-1" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3243-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000037064956" naturetexte="CODE" nortexte="" num="L5151-6" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L5151-6 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006904590" naturetexte="CODE" nortexte="" num="L7122-26" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L7122-26 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000024197698" naturetexte="CODE" nortexte="" num="L8221-5" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L8221-5 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000019285920" naturetexte="CODE" nortexte="" num="L8221-6" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L8221-6 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000054335516" naturetexte="CODE" nortexte="" num="L8222-2" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L8222-2 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000048841718" naturetexte="CODE" nortexte="" num="R3243-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R3243-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000036409997" naturetexte="CODE" nortexte="" num="R5151-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R5151-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGITEXT000006072050" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail L143-3 alinéas 2 et 3</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000048684659" naturetexte="CODE" nortexte="" num="L712-5" numtexte="" sens="cible" typelien="CITATION">Code rural et de la pêche maritime - art. L712-5 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000035917322" naturetexte="CODE" nortexte="" num="R712-9" numtexte="" sens="cible" typelien="CITATION">Code rural et de la pêche maritime - art. R712-9 (M)</LIEN>
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>

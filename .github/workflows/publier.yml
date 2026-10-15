@@ -13,7 +13,7 @@
 #                 `releases/latest/download`).
 #
 # Le numero de version est la date du jour (AAAA.MM.JJ, lue JJ.MM.AAAA), posee par le flux ; `.2`, `.3`... le meme jour.
-# Aucun agent n'approuve un deploiement (atelier/CLAUDE.md). Sources : prive/reference/sources/github/ (depot prive).
+# Aucun agent n'approuve un deploiement (atelier/CLAUDE.md). Sources : atelier/reference/sources/github/.
 
 name: Publier
 

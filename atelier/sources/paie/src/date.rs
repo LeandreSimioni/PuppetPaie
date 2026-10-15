@@ -170,7 +170,7 @@ pub fn jour_impossible(an: impl Into<i64>, mois: impl Into<i64>, jour: impl Into
 /// Le numero du mois d'un « AAAA-MM », de 1 a 12 ; « 00 » (ou « 13 ») n'est aucun mois et se refuse, comme
 /// `premier_du_mois`, `dernier_du_mois` et `envoi::etiquette` (lot F1). Le mois d'une paie est celui que sa DSN declare :
 /// « le premier jour du mois civil au titre duquel est etablie la paie », de forme `(01)(0[1-9]|1[0-2])(20)[0-9]{2}`
-/// (S20.G00.05.005, prive/reference/norme-dsn/texte-2027/bloc-S20.G00.05.txt l. 122-129). La norme n'admet « 00 »
+/// (S20.G00.05.005, atelier/reference/norme-dsn/texte-2027/bloc-S20.G00.05.txt l. 122-129). La norme n'admet « 00 »
 /// qu'au mois d'une date de naissance inconnue (S21.G00.30.006, bloc-S21.G00.30.txt l. 143-148), ce que `champs.rs` lit
 /// du mois de naissance d'un NIR : jamais au mois d'une paie.
 pub fn numero_du_mois(mois: &str) -> Resultat<u32> {

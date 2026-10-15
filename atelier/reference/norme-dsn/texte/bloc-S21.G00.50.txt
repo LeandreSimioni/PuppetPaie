@@ -1,0 +1,228 @@
+# Bloc S21.G00.50
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 242-245
+
+--- p. 242 ---
+  S21.G00.50  2025-12-24
+
+  Ce bloc est à renseigner lorsque le contrat a été déclaré dans la dernière DSN mensuelle sous un autre SIRET
+  employeur ou avec un numéro de contrat différent, alors que le signalement FCTU est transmis avant que la
+  modification/mutation n'ait été déclarée en DSN mensuelle.
+
+SIRET déclarant le contrat précédemment  S21.G00.45.001
+Numéro du contrat déclaré précédemment  S21.G00.45.002
+
+SIRET déclarant le contrat précédemment  S21.G00.45.001
+DonneesPrecedemmentDeclaree.SiretDeclarantContratPrec
+  Le numéro SIRET est un identifiant numérique de 14 chiffres composé du SIREN (9 chiffres) et d'un numéro
+  interne de classement de 5 chiffres (NIC) caractérisant l'établissement d'une entreprise en tant qu'unité
+  géographiquement localisée.
+  CSL-11 : [(vérification de la clé SIREN)]
+
+  CSL-12 : [(vérification de la clé SIRET)]
+
+  X  [14,14]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Numéro du contrat déclaré précédemment  S21.G00.45.002
+DonneesPrecedemmentDeclaree.NumeroContratDeclarePrec
+  Le numéro de contrat est un des identifiants du contrat.
+
+  X  [5,20]
+
+S21.G00.50
+
+Versement individu  S21.G00.50
+  Versement à l'individu des revenus constituant la contrepartie de son activité ou découlant de l'existence de cette
+  activité.
+
+Date de versement  S21.G00.50.001
+Rémunération nette fiscale  S21.G00.50.002
+Numéro de versement  S21.G00.50.003
+Montant net versé  S21.G00.50.004
+Taux de prélèvement à la source  S21.G00.50.006
+Type du taux de prélèvement à la source  S21.G00.50.007
+Identifiant du taux de prélèvement à la source  S21.G00.50.008
+Montant de prélèvement à la source  S21.G00.50.009
+Montant de la part non imposable du revenu  S21.G00.50.011
+Montant de l’abattement sur la base fiscale (non déduit de la rémunération nette fiscale)  S21.G00.50.012
+Montant soumis au PAS  S21.G00.50.013
+Mois de la DSN mensuelle de rattachement des éléments déclarés dans le FCTU  S21.G00.50.020
+
+Date de versement  S21.G00.50.001
+VersementIndividu.Date
+  Date à laquelle le débiteur effectue le versement. Cette date peut différer de la date à laquelle le salarié
+  perçoit effectivement le versement, de même qu'elle peut différer de la date "d'arrêt de saisie" pour
+  lancement du traitement de paie. Cette date permet à la DGFIP de déterminer le millésime sur lequel le
+  versement est imposable.
+
+  242 / 361
+
+--- p. 243 ---
+  S21.G00.50  2025-12-24
+
+  CCH-13 : La Date de versement doit être inférieure ou égale à la date du dernier jour du Mois suivant le mois principal
+  déclaré.
+
+  CCH-14 : Si la rubrique « Code postal - S21.G00.11.004 » est renseignée avec une valeur dont les deux premiers
+  caractères sont différents de « 98 » et si la « Date de versement - S21.G00.50.001 » est égale ou supérieure au premier
+  jour du mois principal déclaré (S20.G00.05.005) et si aucun autre bloc « Versement individu - S21.G00.50 » n'est
+  déclaré avec une « Date de versement - S21.G00.50.001 » supérieure au dernier jour du mois principal déclaré
+  (S20.G00.05.005), alors au moins un bloc enfant « Elément de revenu calculé en net - S21.G00.58 » de type
+  (S21.G00.58.003) « 03 - Montant net social » doit obligatoirement être présent.
+  Ce contrôle vise à rendre obligatoire la déclaration du montant net social pour la période courante lorsqu'un
+  établissement n'est pas en décalage de paie, et, il ne s'applique pas aux établissements monégasques.
+
+  CCH-15 : Si la rubrique « Code postal - S21.G00.11.004 » est renseignée avec une valeur dont les deux premiers
+  caractères sont différents de « 98 » et si la « Date de versement - S21.G00.50.001 » est supérieure au dernier jour du
+  mois principal déclaré (S20.G00.05.005), alors obligatoirement au moins un bloc enfant « Elément de revenu calculé
+  en net - S21.G00.58 » de type (S21.G00.58.003) « 03 - Montant net social » doit être présent.
+  Ce contrôle vise à rendre obligatoire la déclaration du montant net social a minima pour le mois suivant le mois
+  principal déclaré, lorsqu'il s'agit d'un établissement en décalage de paie. Et il ne s'applique pas aux établissements
+  monégasques.
+
+  CCH-16 : Pour un même « Versement individu - S21.G00.50 », si plusieurs blocs « Rémunération - S21.G00.51 »
+  enfants sont présents avec des « Numéro du contrat - S21.G00.51.010 » différents, alors pour les blocs « Autre élément
+  de revenu brut - S21.G00.54 » enfants de type (S21.G00.54.001) « 10 - Déduction forfaitaire spécifique », la rubrique
+  « Numéro de contrat - S21.G00.54.005 » doit obligatoirement être renseignée.
+  Ce contrôle vise à déclarer le montant de déduction forfaitaire spécifique par contrat.
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Rémunération nette fiscale  S21.G00.50.002
+VersementIndividu.NetFiscal
+  La rémunération nette fiscale dite aussi montant net fiscal s'entend du montant total des revenus nets
+  imposables dans le cadre d’un versement c'est-à-dire après déduction des cotisations et contributions
+  sociales obligatoires à la charge des bénéficiaires (cotisations de sécurité sociale, contributions des salariés
+  pour le financement des garanties complémentaires ou supplémentaires frais de santé, prévoyance et
+  retraite dont ils bénéficient à titre collectif et obligatoire, part de la CSG déductible), exception faite des
+  contributions non déductibles (CSG en partie, CRDS dans son intégralité).
+  Plusieurs abattements et exonérations (déterminées en fonction d'un seuil) ne sont pas à déduire : cas des
+  assistants maternels, assistants familiaux, apprentis et stagiaires. Certains de ces abattements seront par
+  ailleurs déclarés au niveau de la rubrique « Montant de l’abattement sur la base fiscale (non déduit de la
+  rémunération nette fiscale) - S21.G00.50.012 ». Si le revenu déclaré dans le bloc « Versement individu -
+  S21.G00.50 » est intégralement non imposable, la rubrique est renseignée à zéro.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Numéro de versement  S21.G00.50.003
+VersementIndividu.Numero
+  Numéro valorisé par le débiteur permettant de distinguer deux versements au même salarié.
+
+  CCH-11 : Pour un même bloc "Individu - S21.G00.30", il est interdit de déclarer plusieurs blocs « Versement individu
+  - S21.G00.50 » avec un même "Numéro de versement - S21.G00.50.003".
+
+  CCH-12 : Pour un même bloc « Individu - S21.G00.30 », si au moins deux blocs « Versement individu - S21.G00.50 »
+  sont déclarés, la rubrique « Numéro de versement - S21.G00.50.003 » est obligatoire.
+
+  243 / 361
+
+--- p. 244 ---
+  S21.G00.50  2025-12-24
+
+  N  [2,2]  CSL 00 : [0]*[1-9][0-9]*
+
+Montant net versé  S21.G00.50.004
+VersementIndividu.NetVersé
+  Le montant net versé correspond à la rémunération nette fiscale (S21.G00.50.002), de laquelle sont déduits
+  le montant de la CSG non déductible, le montant de la CRDS et le montant des contributions des employeurs
+  destinées à financer des garanties « frais de santé » réintégrées dans la base fiscale. Le montant du
+  prélèvement à la source n’est pas à déduire.
+  Si le revenu déclaré dans le bloc « Versement individu - S21.G00.50 » est totalement non imposable, le
+  montant net versé doit correspondre au montant brut (S21.G00.51.013) duquel sont déduits les montants
+  déductibles ou non déductibles des éventuelles cotisations et des prélèvements sociaux obligatoires.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Taux de prélèvement à la source  S21.G00.50.006
+VersementIndividu.TauxPAS
+  Taux de prélèvement à la source précompté appliqué sur le mois de versement.
+
+  N  [4,5]  CSL 00 : [0-9]{1,2}\.[0-9]{2}
+
+Type du taux de prélèvement à la source  S21.G00.50.007
+VersementIndividu.TypeTauxPAS
+  Il s’agit de la nature du taux appliqué.
+
+  CCH-11 : Si la rubrique « Type du taux de prélèvement à la source – S21.G00.50.007 » est renseignée avec la valeur «
+  99 - Indu relatif à un exercice antérieur – pas de taux de PAS » alors les rubriques « Taux de prélèvement à la source –
+  S21.G00.50.006 » et « Montant de prélèvement à la source – S21.G00.50.009 » doivent être nulles.
+
+  X  [2,2]
+
+  01 - Taux transmis par la DGFIP
+  13 - Barème mensuel métropole
+  17 - Barème mathématique sur base mensuelle métropole
+  23 - Barème mensuel Guadeloupe, Réunion et Martinique
+  27 - Barème mathématique sur base mensuelle Guadeloupe, Réunion et Martinique
+  33 - Barème mensuel Guyane et Mayotte
+  37 - Barème mathématique sur base mensuelle Guyane et Mayotte
+  99 - Indu relatif à un exercice antérieur – pas de taux de PAS
+
+Identifiant du taux de prélèvement à la source  S21.G00.50.008
+VersementIndividu.IdTauxPAS
+  Identifiant du taux porté par le CRM PAS (compte rendu métier du Prélèvement à la source) transmis par la
+  DGFIP. En cas de contrat à durée déterminée dont le terme initial n’excède pas deux mois ou dont le terme
+  est imprécis cette rubrique doit être valorisée à « -1 ».
+  CCH-11 : Cette rubrique est obligatoire si le « Type du taux de prélèvement à la source – S21.G00.50.007 » est égal à
+  « 01 – Taux transmis par la DGFIP »
+
+  244 / 361
+
+--- p. 245 ---
+  S21.G00.50  2025-12-24
+
+  N  [1,18]  CSL 00 : -1|0|[1-9][0-9]{0,17}
+
+Montant de prélèvement à la source  S21.G00.50.009
+VersementIndividu.MontantPAS
+  Montant de prélèvement à la source précompté calculé à partir du montant soumis au PAS et du taux à lui
+  appliquer. Il prend en compte la règle de l’arrondi sur les deux décimales après la virgule, en application
+  du f) du 3° de l'article 39 C de l'annexe III au Code général des impôts.
+  Exemple : Si le montant de PAS calculé s’élève à 120,5678 €, la somme à renseigner dans cette rubrique
+  sera 120,57 €.
+  CCH-11 : Le montant déclaré dans cette rubrique doit être égal au montant présent dans la rubrique « Montant soumis
+  au PAS – S21.G00.50.013 » multiplié par le taux du prélèvement à la source en pourcentage présent dans la rubrique «
+  Taux de prélèvement à la source – S21.G00.50.006 » avec une tolérance de plus ou moins 1 euro.
+
+  N  [4,12]  CSL 00 : [0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant de la part non imposable du revenu  S21.G00.50.011
+VersementIndividu.PartNonImposableRevenu
+  Le montant de la part non imposable du revenu désigne la partie du revenu qui n’est pas imposée.
+  Un seul montant est susceptible d’être renseigné dans cette rubrique : le montant du revenu en-deçà du seuil
+  d’exonération annuel pour les apprentis et stagiaires. Attention : aucun autre élément de revenu non
+  imposable ne doit être déclaré à ce niveau (indemnité de fin de contrat, indemnité d’expatriation,
+  participation, intéressement, etc.).
+  Il convient de renseigner le montant net des cotisations et contributions sociales déductibles afférentes à la
+  charge du bénéficiaire.
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant de l’abattement sur la base fiscale (non déduit de la  S21.G00.50.012
+rémunération nette fiscale)
+VersementIndividu.MontantAbattementBaseFiscaleNonDeduitRNF
+  Il s’agit du montant des abattements fiscaux auxquels sont éligibles les assistants maternels et les assistants
+  familiaux. Cette information n’est à remplir que par le centre PAJEmploi pour les assistants maternels et les
+  conseils départementaux ou associations rémunérant les assistants familiaux. Ce montant est intégré à la
+  rémunération nette fiscale renseignée en rubrique "Rémunération nette fiscale - S21.G00.50.002"
+
+  N  [4,12]  CSL 00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+Montant soumis au PAS  S21.G00.50.013
+VersementIndividu.MontantSoumisPAS
+  Le montant soumis au PAS (effectivement pris en compte dans le calcul du prélèvement à la source) et
+  l’assiette déclarée en rubrique « Rémunération nette fiscale - S21.G00.50.002 » peuvent différer. La
+  rubrique est alimentée dans tous les cas, même si elle est égale à la Rémunération nette fiscale :
+  - Dans le cas d’une avance faite par un employeur en cas de subrogation des indemnités journalières : le
+  montant de l’avance s’ajoute à la RNF pour constituer l’assiette du PAS.
+  - Dans le cas d’un abattement d’un demi-SMIC de l’assiette pour les contrats à durée déterminée n’excédant
+  pas deux mois ou à terme imprécis et pour lesquels aucun taux personnalisé n'a été transmis : le montant de
+  l'abattement est déduit de la RNF pour constituer l’assiette du PAS.
+
+  N  [4,12]  CSL 00 : [0]*(0|[1-9][0-9]*)\.[0-9]{2}
+
+  245 / 361

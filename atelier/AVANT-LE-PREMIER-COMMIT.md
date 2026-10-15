@@ -69,8 +69,9 @@ incidents à l'éditeur.
 **Restent à Léandre** : le `client_secret` Google (`donnees/google-application.json`,
 section 3 ; exclu de l'export par défaut) ; le nom du dépôt est `PuppetPaie`, créé
 le 04/10/2026. **Et ce que l'export laisse derrière, à décider** : les textes déposés
-(`prive/reference/sources/`, que les `_source` du code citent) ne sont pas dans le
-dépôt public ; `atelier/site/` nomme l'éditeur (mentions légales) ; les démos
+(`atelier/reference/`, que les `_source` du code citent) sont dans le dépôt public
+depuis le 15/10/2026, sauf l'original d'un organisme privé (seule sa transcription y
+est), les exemples réels et ce qui porte une donnée de la compagnie ; `atelier/site/` nomme l'éditeur (mentions légales) ; les démos
 portent des chemins du poste (suspens du verrou, `PASSATION-N1.md`). L'identifiant de la fenêtre est
 tranché depuis le 13/10/2026 : `fr.puppetpaie.fenetre` (`fenetre/tauri.conf.json`,
 du nom du site de l'éditeur) ; le changer encore déplacerait le dossier de

@@ -1,0 +1,257 @@
+Date de modification : 03/07/2025 03:03 PM
+
+ Qu’est-ce que le CRM Identité, quels contrôles effectue-t-il et comment réaliser les corrections ? 
+
+ a. Qu’est-ce que le CRM Identité ? 
+
+Le Compte Rendu Métier (CRM) Identité est mis à disposition des déclarants en parallèle du BIS (Bilan d'identification des salariés). Il précise aux déclarants DSN les écarts entre l’identité des individus telle que transmise dans la DSN mensuelle et les informations connues dans le Système National de Gestion des Identifiants (SNGI), permettant ainsi l’ouverture et le calcul des prestations sociales (retraites, allocations logement, etc.). 
+
+Le CRM Identité (n° 121) est mis en place : 
+
+ Pour préciser des écarts au niveau : 
+
+ Du NIR (Numéro d'Inscription au Répertoire, à savoir le numéro de Sécurité sociale), 
+
+ Du nom de famille, 
+
+ De la date de naissance ; 
+
+ Pour faciliter la prise en compte par les logiciels de paie des remontées aux déclarants ; 
+
+ Pour indiquer plus clairement aux déclarants les actions attendues pour corriger les écarts détectés. 
+
+La bonne prise en compte des retours contenus dans les CRM Identité est donc essentielle, les écarts non corrigés pouvant entraîner pour les individus concernés une mauvaise reconstitution de leur carrière, de leurs ressources, et fausser en conséquence l’alimentation de leurs droits en matière de protection sociale. 
+
+ Zoom – Différences entre CRM Identité & BIS : 
+
+Les écarts présentés dans le CRM Identité doivent être traités en priorité, celui-ci identifiant les cas d'erreurs posant problème pour la bonne identification des individus. 
+
+Le format du CRM Identité (celui de la norme NEORES, dédiée aux retours des destinataires de la DSN) doit permettre aux éditeurs de logiciels de proposer des solutions ergonomiques facilitant la prise en compte et l’analyse des écarts sur les données des DSN mensuelles transmises par les déclarants.
+
+A la différence du BIS, le CRM identité n'affiche les données d'identité telles qu'enregistrées au SNGI que lorsqu'elles présentent un écart avec les données déclarées en DSN. Par ailleurs, le nom d'usage (par exemple le nom marital), le sexe et le lieu de naissance sont aujourd'hui remontés dans le BIS, mais ne le sont pas dans le CRM identité. 
+
+Le CRM identité ne s'applique dans le cadre d'une DSN mensuelle et pas dans le cas de signalements. 
+
+Le CRM Identité est mis à disposition depuis Juillet 2023 sur le tableau de bord DSN des déclarants ou via API.
+
+b. Consultation du CRM Identité sur le tableau de bord DSN:
+
+A partir de votre tableau de bord DSN, cliquez sur le flux DSN pour lequel vous souhaitez obtenir le CRM Identité : 
+
+ A noter qu’un lien vers le CRM n’est effectivement mis à disposition sur le Tableau de bord que dans le cas où une anomalie est détectée sur un des individus de la déclaration. 
+
+Après avoir accédé au bilan de traitement, le CRM Identité sera téléchargeable au format .xml. 
+
+c. Les vérifications effectuées par le CRM Identité 
+
+Le CRM Identité est le résultat du contrôle des données d’identification principales de tous les individus d’une DSN mensuelle. 
+
+Ces contrôles permettent d’identifier les individus par comparaison des données déclarées en DSN avec les données du SNGI. Deux types d’anomalies peuvent être constatées : 
+
+ Cas 1 : l’individu n’a pas été identifié, les données déclarées n’ayant pas permis d’établir une correspondance avec le SNGI. 
+
+ Cas 2 : l’individu est identifié, mais un écart existe entre une donnée déclarée et une donnée présente au SNGI (ex : écart entre lle nom de famille d’un salarié déclaré dans la DSN mensuelle et le nom de famille répertorié dans le SNGI). 
+
+Les cas de non-identification des individus (cas 1) et les cas d’écarts (cas 2) sont remontés au déclarant dans le cadre du CRM Identité. Des actions sont alors attendues de l’employeur. Ces corrections sont primordiales pour les cas de non-identification de l’individu (cas 1) pour que les droits puissent bien lui être attribués. Dans le cas de remontée d’écart (cas 2), les corrections permettent de sécuriser la bonne attribution des droits à la bonne personne et de limiter les risques d’une erreur d’identification. 
+
+Précisions sur la détection des écarts :
+
+Le BIS et le CRM Identité sont deux outils de fiabilisation de l’identification des individus en DSN (voir fiches consignes dédiées au BIS et à l’identification des individus en DSN). Depuis mai 2024, les règles du CRM Identité sont alignées sur celles du BIS pour déterminer les écarts entre les données clefs dans l’identification : 
+
+ Un écart qui concerne la date de naissance d’un individu mais qui ne coïncide pas avec un écart sur le NIR ou le nom de famille ne donne pas lieu à la remontée d’un CRM Identité. 
+
+ Les écarts sur le nom de famille ne portent que sur les 6 premiers caractères des données. Les différences sur les majuscules, apostrophes, traits d’union et espaces ne seront pas considérées comme des écarts et ne sont pas remontés dans les CRM Identité. 
+
+Le prénom de référence n’est plus remonté dans le CRM.
+
+ Futures évolutions des vérifications effectuées par le CRM Identité et des anomalies remontées : 
+
+Janvier 2024 : Traitement spécifique de risques particuliers de confusion d’identité 
+
+Dans plusieurs situations où les risques de mauvaise identification (« confusion d’identité ») sont particulièrement élevés, les CRM Identité sont associés à partir de depuis janvier 2024 à des messages explicitant ces risques spécifiques : 
+
+ Les données déclarées renvoient à un individu décédé il y a plus d’un an ; 
+
+ Les données déclarées renvoient à un individu né avec plus de 100 ans d’écart avec la date de naissance déclarée.
+
+ Un écart sur la date de naissance a été relevé pour un individu né à l’étranger. 
+
+Mai 2024 : alignement des vérifications effectuées par le BIS et le CRM Identité 
+
+Le BIS et le CRM Identité sont deux outils de fiabilisation de l’identification des individus en DSN (voir fiches consignes dédiées au BIS et à l’identification des individus en DSN). À compter de mai 2024, les règles du CRM Identité seront alignées sur celles du BIS : 
+
+ Un écart qui concerne la date de naissance d’un individu mais qui ne coïncide pas avec un écart sur le NIR ou le nom de famille ne donnera pas lieu à la remontée d’un CRM Identité. Néanmoins, les écarts qui concernent seulement la date de naissance et qui portent sur des individus nés à l’étranger feront tout de même l’objet d’une remontée dans un CRM Identité (cas spécifique de confusion d’identité). 
+
+ Les écarts sur le nom de famille ne porteront que sur les 6 premiers caractères des données. Les différences sur les majuscules, apostrophes, traits d’union et espaces ne seront pas considérées comme des écarts et ne seront pas remontés dans les CRM Identité. 
+
+ Le prénom de référence ne sera également plus remonté au niveau du fichier NEOReS. A noter qu’au niveau de l’affichage net-CRM, cette évolution sera intégrée au cours du T1 2024 (date à confirmer). 
+
+d. Les remontées transmises par le CRM Identité 
+
+ En l’absence d’anomalie : 
+
+Si tous les individus de la DSN mensuelle contrôlée sont bien identifiés et qu’aucun écart entrainant un risque d'identification n'est relevé, le tableau de bord présente l’information « Réussite du traitement » comme suit : 
+
+Dans ce cas, aucune action n’est attendue de l’employeur. 
+
+ En présence d’anomalie : 
+
+Si un ou plusieurs individus de la DSN mensuelle contrôlée n’ont pas pu être identifiés (cas 1) ou sont identifiés avec des écarts entrainant un risque d'erreur d'identification (cas 2), un CRM Identité est mis à disposition pour informer le déclarant et l’inciter à les corriger. 
+
+Pour consulter le CRM Identité, cliquez sur « Compte-rendu disponible avec notifications » comme suit : 
+
+Des corrections sont donc attendues de la part du déclarant au plus tôt afin de corriger les écarts entre la DSN et le SNGI à l’aide des blocs changements. 
+
+NB : Dans certains cas, après vérifications par le gestionnaire, il s’avère que les données du SNGI sont en erreur. Dans cette situation, l’individu doit être sollicité pour obtenir la rectification du SNGI (voir les consignes relatives à l’immatriculation des individus). Toutefois, lorsque ce n’est pas possible, il est préférable que le déclaratif soit fidèle au SNGI.
+
+e. Quelques exemples de correction à effectuer à réception d’un CRM Identité
+
+Pour chaque individu la ou les corrections attendues et les informations relatives à ces corrections sont détaillées à travers les rubriques du CRM Identité dédiées. 
+
+ Exemple A (Cas 2) : Faute de frappe dans le NIR d’un salarié 
+
+Dans le cas où un des individus déclarés par l’employeur a vu son NIR être mal composé dans la déclaration, le CRM Identité remontera pour cet individu les informations suivantes (si d’autres individus présentent une anomalie d’identification ils apparaitront également dans le CRM Identité) : 
+
+ | RO.B004 - Cible d'action
+
+ | RO.B004.R002
+ | Libellé
+ | Individu trouvé au SNGI mais écart par rapport au NIR déclaré
+
+ | RO.B004.R011
+ | Contrôle
+ | L’individu a été reconnu au SNGI mais un écart existe entre le NIR déclaré et le NIR de référence
+
+ | RO.B004.R013
+ | Action attendue
+ | Il vous faut vous rapprocher de l’individu afin de vérifier les informations d’identification à votre disposition, avant d’effectuer la déclaration du changement de NIR. Pour rappel, si vous avez utilisé un NTT, ce dernier n’est valable que 3 mois. Il est conseillé de vous assurer des démarches de l’individu auprès de sa CPAM.
+
+ | RO.B009 - Données d'Identification d'un individu
+
+ | RO.B009.R001
+ | NIR déclaré
+ | NIR avec erreur
+
+ | RO.B009.R003
+ | NIR de référence
+ | NIR enregistré au SNGI pour l'individu en écart
+
+Dans cette situation, l’individu a bien été reconnu par le SNGI, mais il existe un risque que le SNGI l’ait confondu avec quelqu’un d’autre (par exemple, un individu disposant du même nom de famille et de la même date de naissance). Les droits sociaux de l’individu restent comptabilisés, mais avec le risque qu’ils soient associés à quelqu’un d’autre. 
+
+Il convient de corriger l’erreur de frappe dans la DSN du mois suivant, en remplaçant dans le bloc « S21.G00.30 - Individu » le NIR avec erreur par le NIR corrigé. 
+
+La création d’un bloc « S21.G00.31 - Changements Individu » est nécessaire pour permettre le lien d'identification entre la DSN du mois de l’erreur et la DSN du mois de la correction (dans lesquelles l’individu victime de l’erreur aura deux NIR différents) :
+
+ | S21.G00.30 - Individu
+
+ | S21.G00.30.001
+ | Numéro d'inscription au répertoire
+ | NIR corrigé
+
+ | S21.G00.31 - Changements Individu
+
+ | S21.G00.31.008
+ | Ancien NIR
+ | NIR avec erreur
+
+À noter : les écarts de même type rencontrés sur les autres données contrôlées (par exemple : faute de frappe sur le nom de famille et/ou la date de naissance) sont à corriger en DSN de façon analogue via un bloc Changements Individu. 
+
+ Exemple B (Cas 2) : Déclaration du nom d’usage à la place du nom de famille 
+
+Dans le cas où l’employeur a déclaré le nom d’usage d’un individu (par exemple le nom marital) à la place de son nom de famille de naissance, le CRM Identité remontera pour cet individu les informations suivantes si l’individu peut bien être identifié grâce aux autres données (si d’autres individus présentent une anomalie d’identification ils apparaitront également dans le CRM Identité) : 
+
+ | RO.B004 - Cible d'action
+
+ | RO.B004.R002
+ | Libellé
+ | Individu trouvé au SNGI mais écart par rapport au nom de famille déclaré
+
+ | RO.B004.R011
+ | Contrôle
+ | L’individu a été reconnu au SNGI mais un écart existe entre le nom de famille déclaré et de référence
+
+ | RO.B004.R013
+ | Action attendue
+ | Il vous faut vous rapprocher de l’individu afin de vérifier les informations d’identification à votre disposition, avant d’effectuer la déclaration du changement de nom de famille
+
+ | RO.B009 - Données d'identification d'un individu
+
+ | RO.B009.R004
+ | Nom de famille déclaré
+ | NIR avec erreur
+
+ | RO.B009.R005
+ | Nom de famille de référence
+ | Nom de famille enregistré au SNGI pour l'individu en écart
+
+De la même façon que dans l’exemple A, dans cette situation, les droits sociaux de l’individu victime de l’erreur de déclaration restent comptabilisés, mais avec le risque qu’ils soient associés à quelqu’un d’autre. 
+
+Il convient de corriger cette erreur, dans la DSN du mois suivant : en plus du remplacement dans le bloc « S21.G00.30 - Individu » du nom d’usage par le nom de famille. 
+
+La création d’un bloc « S21.G00.31 - Changements Individu » est nécessaire : elle permet le lien d'identification entre la DSN du mois de l’erreur et la DSN du mois de la correction (dans lesquelles l’individu victime de l’erreur aura deux noms de famille différents) :
+
+ | S21.G00.30 - Individu
+
+ | S21.G00.30.002
+ | Nom de famille
+ | Nom de famille
+
+ | S21.G00.31 - Changements Individu
+
+ | S21.G00.31.009
+ | Ancien nom de famille
+ | Nom d'usage
+
+ Exemple C (Cas 1) : Première embauche d’un salarié non-immatriculé au SNGI 
+
+ Un individu né à l’étranger qui n’a pas encore été immatriculé à la sécurité sociale française ne dispose pas de NIR. L’employeur qui l’accueille pour son premier emploi doit effectuer une déclaration préalable à l’embauche (DPAE) et, en parallèle, l’individu doit effectuer des démarches d’immatriculation en contactant la CPAM dont dépend l’entreprise.
+
+ Si ces deux procédures n’ont pas été conduites, le SNGI n’aura pas eu connaissance de l’individu étranger et de son immatriculation. Dans cette situation, un CRM Identité « KO » sera généré et contiendra notamment les informations suivantes : 
+
+ | RO.B004 - Cible d'action
+
+ | RO.B004.R002
+ | Libellé
+ | Individu non trouvé 
+
+ | RO.B004.R011
+ | Contrôle
+ | L’individu n'a pas été reconnu au SNGI 
+
+ | RO.B004.R013
+ | Action attendue
+ | Il vous faut récupérer toutes les données d'identification de l'individu et le cas échéant vous assurer de l'immatriculation de cet individu pour pouvoir déclarer son NIR dans la période suivante. Pour rappel, si vous avez utilisé un NTT, ce dernier n'est valable que trois mois. Il est conseillé de vous assurer des démarches de l'individu auprès de sa CPAM
+
+ | RO.B009 - Données d'identification d'un individu
+
+ | RO.B009.R002
+ | NTT déclaré
+ | NTT déclaré
+
+ | RO.B009.R004
+ | Nom de famille déclaré
+ | Nom de famille déclaré
+
+ | RO.B009.R008
+ | Date de naissance déclarée
+ | Date de naissance déclarée
+
+Actions à réaliser par l’employeur : 
+
+ Vérifier que les données déclarées en DSN sont bien celles transmises par l’individu. 
+
+ S’assurer auprès de l’individu que les démarches d’immatriculation adéquates (voir fiches consignes dédiées) auprès de son organisme de protection sociale ont bien été réalisées. 
+
+L’ensemble des cas et des remontées possibles sont décrits dans le fichier ci-dessous.
+
+Consulter le fichier
+
+ Date de création : 03/04/2023 03:15 PM 
+
+ N° de la fiche : 2627 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

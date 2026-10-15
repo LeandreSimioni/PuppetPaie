@@ -1,6 +1,7 @@
-//! Le verrou des données réelles (règle de fond 9a) : ce qui sera public — `logiciel/`, `fictives/`, `atelier/sources/` — n'écrit
-//! pas un NIR qui ne soit pas inventé ; aucun test ne construit un chemin vers `prive/` ; la suite ne prend pas `prive/` pour
-//! racine. Tout ce qui part du dépôt hors de `prive/` (`atelier/` entier, `.claude/`, la racine : le dépôt public part de
+//! Le verrou des données réelles (règle de fond 9a) : ce qui sera public — `logiciel/`, `fictives/`, `atelier/sources/`, et les
+//! textes de référence d'`atelier/reference/` — n'écrit pas un NIR qui ne soit pas inventé (sauf, dans un texte de référence,
+//! l'exemple que son émetteur y a imprimé : `EXEMPLES_DES_TEXTES`) ; aucun test ne construit un chemin vers `prive/` ; la
+//! suite ne prend pas `prive/` pour racine. Tout ce qui part du dépôt hors de `prive/` (`atelier/` entier, `.claude/`, la racine : le dépôt public part de
 //! là, `atelier/PLAN-DEPOT-PUBLIC.md`, « La forme du dépôt public ») ne porte ni le SIREN ni le nom de la compagnie du poste,
 //! ni un chemin du poste (un chemin absolu sous le dossier des utilisateurs de Windows), sauf ce qui attend une décision
 //! (`EN_SUSPENS`). Il ne voit ni les adresses ni les noms de personnes : les écrire ici pour les chercher, ce serait les
@@ -20,7 +21,31 @@ const NOM_REEL: &str = concat!("ueu", "eue");
 /// Ce qui ne s'écrit pas à la main : ce que construit cargo (ses empreintes ressemblent à des NIR), les caches.
 const HORS_CODE: [&str; 4] = ["target", ".git", "__pycache__", ".pytest_cache"];
 const INVENTE: [&str; 3] = ["999", "123456", "000"];
-const PUBLIC: [&str; 3] = ["logiciel", "fictives", "atelier/sources"];
+const PUBLIC: [&str; 4] = ["logiciel", "fictives", "atelier/sources", "atelier/reference"];
+
+/// Les textes de référence (`atelier/reference/`) sont des copies, octet pour octet, de ce que d'autres ont publié : un numéro
+/// à la forme d'un NIR qui y figure est celui de l'émetteur -- l'exemple d'une documentation officielle, ou un nombre qui
+/// n'est pas un NIR --, et le retirer, ce serait changer la copie (son empreinte est vérifiée, `paie sources`). Chacun est
+/// nommé ici, fichier par fichier (relatif à la racine du dépôt), avec ce qu'il est ; un motif qui ne couvre plus rien se
+/// retire (`chaque_exemple_des_textes_couvre_encore_un_numero`). Ce qui n'est pas listé est refusé, nos notes comprises.
+const EXEMPLES_DES_TEXTES: [(&str, &str); 4] = [
+    (
+        r"^atelier/reference/sources/gip-mds-api-dsn/gip-mds-guide-implementation-api-dsn-v6\.8-20260706\.txt$",
+        "les exemples de flux et de réponses du guide d'implémentation de l'API DSN (GIP-MDS)",
+    ),
+    (
+        r"^atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2955-mutation-transfert-contrat-20250818\.(html|txt)$",
+        "le salarié d'exemple de la fiche net-entreprises 2955",
+    ),
+    (
+        r"^atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2956-bloc-41-changement-modalites-contrat-20250429\.(html|txt)$",
+        "le salarié d'exemple de la fiche net-entreprises 2956",
+    ),
+    (
+        r"^atelier/reference/sources/urssaf-liste-des-sites-et-des-activites\.csv$",
+        "une longitude de la table de l'Urssaf (des décimales de coordonnée), pas un NIR",
+    ),
+];
 
 /// Ce qu'un verrou cherche hors de `prive/`.
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -189,18 +214,38 @@ fn invente(nir: &str) -> bool {
     INVENTE.iter().any(|x| nir.contains(x))
 }
 
+/// Les numéros à la forme d'un NIR, sans la marque d'invention, hors d'une adresse web : `(fichier relatif, ligne, numéro)`.
+fn nirs_reels(p: &Path) -> Vec<(String, usize, String)> {
+    let Some(o) = texte(p) else { return Vec::new() };
+    nirs(&o)
+        .into_iter()
+        .filter(|(debut, _, nir)| !invente(nir) && !dans_une_url(&o, *debut))
+        .map(|(debut, fin, _)| (relatif(p), ligne(&o, debut), String::from_utf8_lossy(&o[debut..fin]).into_owned()))
+        .collect()
+}
+
+/// Le motif d'`EXEMPLES_DES_TEXTES` qui couvre `rel`.
+fn exemple_des_textes(rel: &str) -> Option<&'static str> {
+    EXEMPLES_DES_TEXTES.iter().find(|(motif, _)| Regex::new(motif).unwrap().is_match(rel)).map(|e| e.0)
+}
+
 #[test]
 fn aucun_nir_reel_n_est_ecrit_dans_ce_qui_sera_public() {
-    let mut trouves = Vec::new();
-    for p in publics() {
-        let Some(o) = texte(&p) else { continue };
-        for (debut, fin, nir) in nirs(&o) {
-            if !invente(&nir) && !dans_une_url(&o, debut) {
-                trouves.push(format!("{}:{} {}", relatif(&p), ligne(&o, debut), String::from_utf8_lossy(&o[debut..fin])));
-            }
-        }
-    }
+    let trouves: Vec<String> = publics()
+        .iter()
+        .flat_map(|p| nirs_reels(p))
+        .filter(|(rel, _, _)| exemple_des_textes(rel).is_none())
+        .map(|(rel, l, n)| format!("{}:{} {}", rel, l, n))
+        .collect();
     assert!(trouves.is_empty(), "NIR sans la marque d'un numéro inventé (999, 123456 ou 000) : {:#?}", trouves);
+}
+
+#[test]
+fn chaque_exemple_des_textes_couvre_encore_un_numero() {
+    let trouves: Vec<String> = publics().iter().flat_map(|p| nirs_reels(p)).map(|(rel, _, _)| rel).collect();
+    let vides: Vec<&str> =
+        EXEMPLES_DES_TEXTES.iter().filter(|(motif, _)| !trouves.iter().any(|r| exemple_des_textes(r) == Some(*motif))).map(|e| e.1).collect();
+    assert!(vides.is_empty(), "ces exemples ne couvrent plus rien, ils se retirent d'EXEMPLES_DES_TEXTES : {:#?}", vides);
 }
 
 #[test]

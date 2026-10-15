@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000018537484</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/18/53/74/LEGIARTI000018537484.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>D1237-1</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2008-05-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018464861">Partie réglementaire  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018538094">Première partie : Les relations individuelles de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537950">Livre II : Le contrat de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537734">Titre III : Rupture du contrat de travail à durée indéterminée </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537488">Chapitre VII : Autres cas de rupture</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2008-07-20" id="LEGISCTA000018537486"> Section unique  Retraite</TITRE_TM>
+<TITRE_TM debut="2008-07-20" fin="2999-01-01" id="LEGISCTA000019225845">Section 1 : Retraite</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2008-05-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000018537484" num="D1237-1" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>
+<br/>Le taux de l'indemnité de départ en retraite prévue à l'article L. 1237-9 est au moins égal à : <br/>1° Un demi-mois de salaire après dix ans d'ancienneté ; <br/>2° Un mois de salaire après quinze ans d'ancienneté ; <br/>3° Un mois et demi de salaire après vingt ans d'ancienneté ; <br/>4° Deux mois de salaire après trente ans d'ancienneté.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000704804" datesignatexte="1978-01-19" id="LEGIARTI000006657630" naturetexte="LOI" nortexte="" num="6" numtexte="78-49" sens="source" typelien="CONCORDANCE">Loi n°78-49 du 19 janvier 1978 - art. 6 al 1 à 5 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000018442415" datesignatexte="2008-03-07" id="LEGIARTI000018456736" naturetexte="DECRET" nortexte="MTST0804938D" num="Annexe" numtexte="2008-244" sens="cible" typelien="CREE">Décret n°2008-244 du 7 mars 2008 - art. (V)</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901183" naturetexte="CODE" nortexte="" num="L1237-9" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L1237-9 (VD)</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>

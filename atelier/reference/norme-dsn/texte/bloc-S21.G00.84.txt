@@ -1,0 +1,66 @@
+# Bloc S21.G00.84
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 317-317
+
+--- p. 317 ---
+  S21.G00.84  2025-12-24
+
+  Cette rubrique permet de déclarer toute base assujettie portant des cotisations qui avait été déclarées à tort
+  à des organismes destinataires.
+  - AGIRC-ARRCO : "02", "03", "11", "22", "23", "24", "25", "43", "45"
+  - CAVEC : "03"
+  - CNBF : "02", "03"
+  - CRPCEN : "02", "03", "11", "19" (pour corriger des périodes antérieures à 2023)
+  - CRPNPAC : "41", "42"
+  - IRCANTEC : "28"
+  - Urssaf : "02", "03", "11", "19", "22", "23", "24", "25", "43", "45"
+
+  X  [2,2]
+
+  02 - Assiette brute plafonnée
+  03 - Assiette brute déplafonnée
+  11 - Base forfaitaire soumise aux cotisations de Sécurité Sociale
+  19 - Assiette CRPCEN
+  22 - Base brute spécifique
+  23 - Base exceptionnelle (Agirc Arrco)
+  24 - Base plafonnée spécifique
+  25 - Assiette de contribution libératoire
+  28 - Base IRCANTEC cotisée
+  41 - CRPNPAC-Assiette soumise au taux normal (non-plafonnée)
+  42 - CRPNPAC-Assiette soumise au taux majoré (non-plafonnée)
+  43 - Base plafonnée exceptionnelle Agirc Arrco
+  45 - Base plafonnée ICP Agirc-Arrco
+
+Date de début de période de rattachement de la base déclarée à tort  S21.G00.84.002
+AncienneBaseAssujettieDeclareeorganismeRetraiteComplementaire
+DeclareeTort.DateDebutPeriodeRattachementBase
+  Date de début de période de rattachement de la base assujettie qui avait été déclaré à tort.
+
+  CCH-11 : La "Date de début de période de rattachement de la base déclarée à tort - S21.G00.84.002" doit être
+  supérieure ou égale à la "Date de début de période déclarée à tort - S21.G00.83.001".
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Date de fin de période de rattachement de la base déclarée à tort  S21.G00.84.003
+AncienneBaseAssujettieDeclareeorganismeRetraiteComplementaire
+DeclareeTort.DateFinPeriodeRattachementBase
+  Date de fin de période de rattachement de la base assujettie qui avait été déclaré à tort.
+
+  CCH-11 : La date renseignée dans cette rubrique doit être supérieure ou égale à la "Date de début de période de
+  rattachement de la base déclarée à tort - S21.G00.84.002".
+
+  CCH-12 : La date renseignée dans cette rubrique doit être inférieure au premier jour du mois principal déclaré.
+
+  CCH-13 : La date renseignée dans cette rubrique doit être inférieure ou égale à la "Date de fin de période déclarée à
+  tort - S21.G00.83.002".
+
+  D
+  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  a  [8,8]
+  t  9]{2}
+
+  317 / 361

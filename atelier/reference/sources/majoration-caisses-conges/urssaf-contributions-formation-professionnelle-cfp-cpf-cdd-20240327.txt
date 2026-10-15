@@ -1,0 +1,178 @@
+Les contributions à la formation professionnelle (CFP et CPF-CDD)
+Les contributions à la formation professionnelle (CFP et CPF-CDD)
+Publié le 27 mars 2024
+Partagez le contenu
+Partagez le contenu Les contributions à la formation professionnelle (CFP et CPF-CDD) par Email - Nouvelle fenêtre
+Partagez le contenu Les contributions à la formation professionnelle (CFP et CPF-CDD) sur X - Nouvelle fenêtre
+Partagez le contenu Les contributions à la formation professionnelle (CFP et CPF-CDD) sur Facebook - Nouvelle fenêtre
+Imprimez le contenu
+En tant qu’employeur, vous participez au développement de la formation professionnelle. Pour ce faire, vous versez la contribution à la formation professionnelle (CFP) ainsi que, le cas échéant, la contribution au financement du compte personnel de formation des salariés en CDD (CPF-CDD).
+Sommaire
+Sommaire
+IDCC ou OPCO
+La CFP
+Le CPF-CDD
+Déclaration d’un IDCC ou rattachement à un OPCO
+Les fonds collectés par les Urssaf au titre des contributions à la formation professionnelle et à l’apprentissage sont fléchés et répartis par France Compétences auprès de différents bénéficiaires parmi lesquels il y a les Opérateurs de compétences (Opco).
+Pour assurer sa mission de répartition auprès des Opco, France Compétences doit pouvoir identifier votre branche professionnelle et disposer pour ce faire de données par établissement et par Identifiant De Convention Collective (IDCC).
+C’est pourquoi, en tant qu’entreprise, il est attendu que vous renseigniez pour chacun de vos établissements l’IDCC dans la rubrique S21.G00.11.022 « Code convention collective principale ».
+Votre rattachement à une convention collective est fonction de votre activité principale.
+En cas d’activités multiples, la détermination de la convention collective applicable à votre entreprise suppose donc d’identifier votre activité principale.
+Concrètement, en cas de pluralité d’activités industrielles, l’activité principale est celle qui compte le plus de salariés.
+En cas d’activités commerciales, l’activité principale est celle à laquelle correspond le chiffre d’affaires le plus élevé.
+En cas d’activités mixtes, industrielles ou commerciales, l’activité est principalement industrielle si le chiffre d’affaires relatif à la partie industrielle est égal ou supérieur à 25 % du chiffre d’affaires total.
+À noter que la répartition du temps de travail selon les activités peut également déterminer l’activité principale.
+Si votre entreprise a plusieurs activités séparées et non complémentaires, exercées dans des établissements distincts et autonomes, des conventions collectives différentes peuvent alors s’appliquer à vos différents établissements.
+Il existe enfin des valeurs d’Identifiant dites d’échappement :
+5501 (Convention d'entreprise indépendante ou texte assimilé non précisé) ;
+5100 (Statut divers ou inconnu) ;
+9998 (Convention non encore en vigueur) ;
+9999 (en l’absence de convention collective).
+Pour identifier la convention collective applicable et l’OPCO de rattachement de votre entreprise, faites une recherche sur le moteur de recherche proposé par France compétences :
+moteur de recherche « Connaître son Opco pour sa DSN »
+.
+La contribution à la formation professionnelle (CFP)
+Employeurs concernés
+Vous êtes concerné par la contribution à la formation professionnelle, si vous êtes :
+une association ou une entreprise de droit privé ;
+un établissement public à caractère industriel ou commercial (Epic) ;
+une entreprise publique ;
+une société d'économie mixte ;
+une régie départementale ou communale dotée de la personnalité morale si elle exerce une activité industrielle ou commerciale ;
+un établissement d’enseignement privé.
+Et vous la devez quelle que soit :
+votre activité (agriculture, commerce, industrie, artisanat, prestation de services, centre de gestion agréé ...) ;
+votre forme juridique (entreprise individuelle, personne morale : association loi 1901, société commerciale, groupement d’intérêt économique ...) ;
+votre situation fiscale.
+Bon à savoir
+Cette contribution est due que vous soyez passible ou non de l'impôt sur le revenu, de l'impôt sur les sociétés ou de la taxe sur les salaires.
+Elle ne dépend ni de votre régime d’imposition (régime de la micro-entreprise, bénéfice réel...), ni de vos résultats (bénéficiaires, déficitaires...).
+Vous n’êtes pas concerné par la contribution à la formation professionnelle si vous êtes :
+un service de l’État ;
+une collectivité locale ;
+un établissement public à caractère administratif (EPA) ;
+un établissement public de santé, social et médico-social relevant de la fonction publique hospitalière ;
+un groupement de coopération sanitaire ;
+une ambassade ou un consulat étranger ;
+un organisme chargé de l’organisation en France d’une compétition sportive internationale.
+Entreprises du BTP
+Vous êtes une entreprise du BTP ? Si oui, devez-vous continuer à verser à Pro-BTP la cotisation destinée au comité de concertation et de coordination de l’apprentissage du BTP (CCCA-BTP) ?
+Oui
+, si votre effectif est inférieur à 11 salariés.
+Non
+, si votre effectif est égal ou supérieur à 11 salariés. Dans ce cas, c’est l’Urssaf qui collecte la
+totalité
+de votre CFP, sans déduction du montant de la cotisation au CCCA-BTP.
+Modalités de calcul
+Base
+Base
+La base de calcul de la CFP est égale au revenu d'activité retenu pour le calcul des cotisations et contributions sociales.
+Toutefois, si votre effectif est inférieur à 11 salariés, vous devez exclure de cette base de calcul les rémunérations versées à vos apprentis.
+Entreprises adhérant à une caisse de congés payés
+Vous êtes une entreprise du BTP, du transport ou de la manutention portuaire (dockers) dont les congés payés sont réglés par une caisse de congés payés ? Si oui, devez-vous majorer l’assiette de la CFP ?
+Oui, les salaires à déclarer sont ceux que vous avez effectivement payés,
+majorés d'un cœfficient forfaitaire de 1,1150
+au titre des indemnités de congés payés (soit une majoration de 11,50 % de la masse salariale).
+Mais, si vous le souhaitez, c’est au réel que vous pouvez majorer les congés payés des salariés concernés.
+Taux
+Taux
+Le taux de la contribution à la formation professionnelle varie en fonction de la taille de votre entreprise.
+Il est de
+0,55 %
+si vous employez
+moins de 11 salariés
+et de
+1 %
+si vous employez
+11 salariés et plus
+.
+Bon à savoir
+Parmi les effectifs que l’Urssaf calcule puis met à votre disposition, il y a l’effectif moyen annuel (EMA) de l’entreprise.
+Son calcul résulte des DSN mensuelles que vous effectuez au titre de ses établissements.
+À noter :
+depuis le 1
+er
+janvier 2020, le dispositif de neutralisation du franchissement (à la hausse ou à la baisse) du seuil d’effectif (ici, de 11 salariés et plus) s’applique à la CFP, d’où l’importance du calcul de votre EMA.
+Pour en savoir plus sur ce dispositif, vous pouvez consulter
+le Bulletin officiel de la Sécurité sociale
+.
+Déclarations
+Vous déclarez la masse salariale assujettie à la contribution à la formation professionnelle via :
+le CTP 959 pour les entreprises de moins de 11 salariés (taux de 0,55 %) ;
+le CTP 971 pour les entreprises de 11 salariés et plus ayant franchi ce seuil d’effectif depuis plus de 5 ans (taux de 1,00 %).
+Pour plus de précisions, vous pouvez vous référer à
+la fiche consigne DSN n° 2503
+: modalités déclaratives de la contribution à la formation professionnelle.
+La contribution au compte personnel de formation des salariés en CDD (CPF – CDD)
+Cette contribution permet de financer le compte personnel de formation de vos salariés en CDD.
+Employeurs concernés
+Vous êtes concerné par la contribution au compte personnel de formation des salariés en CDD à la double condition :
+d’être concerné par la contribution à la formation professionnelle (CFP) ;
+d’employer des salariés en CDD.
+Bon à savoir
+En tant qu’organisme chargé de l’organisation en France d’une compétition sportive internationale, vous êtes également concerné par cette contribution au CPF-CDD alors même que vous n’êtes pas concerné par la CFP.
+La contribution au CPF-CDD ne s’applique qu’à certains CDD.
+Exemples de CDD auxquels la contribution au CPF-CDD s’applique
+Exemples de CDD auxquels la contribution au CPF-CDD ne s’applique pas
+Exemples de CDD auxquels la contribution au CPF-CDD s’applique
+Les contrats de travail à durée déterminée (CDD) qui se poursuivent par des contrats à durée indéterminée (CDI) ;
+Les CDD conclus avec des jeunes au cours de leur cursus scolaire ou universitaire.
+Exemples de CDD auxquels la contribution au CPF-CDD ne s’applique pas
+Les contrats d’accompagnement dans l’emploi ;
+Les contrats d’apprentissage ;
+Les contrats de professionnalisation ;
+Les contrats de travail temporaire.
+Modalités de calcul
+Base
+Base
+La base de calcul de la contribution au CPF-CDD est égale au revenu d'activité retenu pour le calcul des cotisations et contributions sociales de vos salariés en CDD.
+Entreprises adhérant à une caisse de congés payés
+Vous êtes une entreprise du BTP, du transport ou de la manutention portuaire (dockers) dont les congés payés sont réglés par de caisses de congés payés ? Si oui, devez-vous majorer l’assiette de la contribution au CPF-CDD ?
+Oui, les salaires à déclarer sont ceux que vous avez effectivement payés,
+majorés d'un coefficient forfaitaire de 1,1150
+au titre des indemnités de congés payés (soit une majoration de 11,50 % de la masse salariale).
+Mais, si vous le souhaitez, c’est au réel que vous pouvez majorer les congés payés des salariés concernés.
+Taux
+Taux
+Le taux de la contribution au CPF-CDD est égal à
+1 %
+du revenu d'activité retenu pour le calcul des cotisations et contributions sociales de vos salariés en CDD.
+Déclarations
+Vous déclarez cette contribution via le CTP 987 (taux de 1 %).
+Pour plus de précisions, vous pouvez vous référer à
+la fiche consigne DSN n° 2502
+: Modalités déclaratives de la contribution dédiée au financement du compte personnel de formation (CPF) pour les titulaires de CDD.
+Guide des contributions de formation professionnelle et d'apprentissage des employeurs
+PDF -
+1,43 Mo -
+Publié le 12 mars 2026
+Téléchargez le document : Guide des contributions de formation professionnelle et d'apprentissage des employeurs (PDF - 1,43 Mo)
+Guide Urssaf : comment déclarer et régulariser les cotisations Urssaf en DSN
+PDF -
+977,66 ko -
+Publié le 04 juin 2026
+Téléchargez le document : Guide Urssaf : comment déclarer et régulariser les cotisations Urssaf en DSN (PDF - 977,66 ko)
+Liens utiles
+Modalités déclaratives de la contribution à la formation professionnelle
+Modalités déclaratives de la contribution dédiée au financement du compte personnel de formation (CPF) pour les titulaires de CDD
+Questions fréquentes
+En matière de formation professionnelle, quelles sont les missions respectives de l’Urssaf, de France compétences et des OPCO ?
+En matière de formation professionnelle, quelles sont les missions respectives de l’Urssaf, de France compétences et des OPCO ?
+Pour connaître leurs missions respectives, vous pouvez consulter le guide des contributions de formation professionnelle et d'apprentissage des employeurs (voir ci-dessus) ainsi que ces sites :
+France compétences
+;
+les opérateurs de compétences (OPCO) - Ministère du Travail
+.
+Les entreprises sans établissement en France doivent-elles les contributions à la formation professionnelle ?
+Les entreprises sans établissement en France doivent-elles les contributions à la formation professionnelle ?
+Non, les employeurs dont l’entreprise ne comporte pas d’établissement en France ne doivent ni la CFP, ni la contribution au CPF-CDD. Autrement dit, ces contributions ne sont pas dues par les entreprises immatriculées auprès du service titre firmes étrangères (TFE) de l’Urssaf.
+Quelles sont les spécificités de la participation à la formation professionnelle des intermittents du spectacle ?
+Quelles sont les spécificités de la participation à la formation professionnelle des intermittents du spectacle ?
+Cette participation est unique ; elle se substitue à la CFP et à la contribution au CPF-CDD. Elle est due à compter du premier salarié intermittent.
+Son taux est de 2 % et la masse salariale assujettie à cette participation est à déclarer via le CTP 983.
+Les rémunérations versées aux mandataires sociaux et aux stagiaires en milieu professionnel entrent-elles dans la base de calcul des contributions à la formation professionnelle ?
+Les rémunérations versées aux mandataires sociaux et aux stagiaires en milieu professionnel entrent-elles dans la base de calcul des contributions à la formation professionnelle ?
+Oui, ces rémunérations entrent dans cette base de calcul :
+en ce qui concerne les mandataires sociaux : pour la totalité de leur montant ;
+en ce qui concerne les stagiaires en milieu professionnel : pour la part qui excède 15 % du plafond horaire de la Sécurité sociale.
+À noter que la prise en compte de ces rémunérations devient obligatoire à compter de la période d’emploi de mai 2024 qui sera déclarée via la DSN du 5 ou du 15 juin 2024.

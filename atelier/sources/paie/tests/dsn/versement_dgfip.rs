@@ -1,7 +1,7 @@
 //! Corrections DSN, vague 1d (point 21 de la relecture de la norme, fiche N3 du bloc 20) : le prelevement a la source
 //! retenu se reverse a la DGFiP par un bloc 20 a part.
 //!
-//! Norme DSN 2026.1, `prive/reference/norme-dsn/texte/bloc-S21.G00.20.txt` : 20.001 = « DGFIP » (p. 154), 20.002 =
+//! Norme DSN 2026.1, `atelier/reference/norme-dsn/texte/bloc-S21.G00.20.txt` : 20.001 = « DGFIP » (p. 154), 20.002 =
 //! « DGFIP_PAS » (p. 155-156, CCH-11), 20.005 « arrondi a l'entier le plus proche » et, sur un annule et remplace sans
 //! PAS d'une declaration qui en versait, un bloc « renseigne a zero » (p. 157), 20.006 et 20.007 le premier et le
 //! dernier jour du mois principal declare (p. 158-159), 20.010 = 05 ou 06 (CCH-14, p. 161), 20.011 non concerne

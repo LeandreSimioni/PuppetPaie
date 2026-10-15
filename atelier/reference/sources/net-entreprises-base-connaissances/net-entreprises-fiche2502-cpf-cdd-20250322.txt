@@ -1,0 +1,89 @@
+Date de modification : 22/03/2025 07:30 PM
+Contribution dédiée au financement du compte personnel de formation (CPF) pour les titulaires de CDD
+Comment déclarer la contribution dédiée au financement du CPF (Compte personnel de formation) pour les titulaires de CDD ?
+Le contexte
+Depuis le 1er janvier 2022, le recouvrement des contributions CPF-CDD, de la contribution à la formation professionnelle, de la contribution supplémentaire à l’apprentissage, et de la taxe d’apprentissage , est réalisé par le réseau des Urssaf et des caisses de MSA (hors cotisations conventionnelles de formation).
+Les employeurs participent au développement de la formation professionnelle, en versant notamment la contribution au financement du compte personnel de formation des salariés en CDD (CPF-CDD).
+Tous les employeurs relevant du Régime de protection sociale français sont concernés.
+Ne sont pas soumis à la contribution CPF-CDD, les salaires des types de contrats suivants :
+Les contrats d’accompagnement dans l’emploi
+Les contrats d’apprentissage
+Les contrats de professionnalisation
+Les contrats à caractère saisonnier
+Les CDD des sportifs et entraîneurs professionnels
+Les contrats des salariés intermittents du spectacle
+Depuis le 1er janvier 2022, les contrats de travail à durée déterminée qui se poursuivent par des contrats à durée indéterminée ne sont plus exonérés de la contribution au CPF-CDD.
+De même, les contrats conclus avec des jeunes au cours de leur cursus scolaire ou universitaire ne sont plus exonérés de la contribution au CPF-CDD.
+Les organismes chargés de l'organisation en France d'une compétition sportive internationale et, le cas échéant, les filiales de ces organismes, sont également redevables de cette contribution, alors même qu’ils ne sont pas redevables de la Contribution à la Formation Professionnelle.
+Déclarer la contribution dédiée au financement du compte personnel de formation (CPF) pour les titulaires de CDD
+La contribution dédiée au financement du Compte personnel de Formation pour les titulaires de CDD (CPF-CDD) est déclarée mensuellement par chaque établissement de l’entreprise.
+Le bloc « Cotisation individuelle- S21.G00.81 » portant la valeur « 129 - Contribution dédiée au financement du Compte Personnel de Formation pour les titulaires de CDD (CPF-CDD) » doit être déclaré sous un bloc « Base assujettie - S21.G00.78 » de valeur « 03 - Assiette brute déplafonnée ».
+A la maille agrégée à l’attention de l’Urssaf, la contribution CPF-CDD doit également être déclarée par un CTP au niveau du bloc « Cotisation agrégée – S21.G00.23 » (voir le Guide Urssaf Caisse nationale).
+Exemple de déclaration de la contribution dédiée au financement du compte personnel de formation (CPF) pour les titulaires de CDD
+Il convient de renseigner mensuellement en DSN, la contribution CPF-CDD, pour chaque établissement, dans les blocs « Cotisation individuelle- S21.G00.81 » et « Base assujettie - S21.G00.78 », comme suit :
+S21.G00.78 - Base assujettie
+Code
+|
+Rubrique
+|
+Valorisation
+S21.G00.78.001
+|
+Code de base assujettie
+|
+03 - Assiette brute non plafonnée
+S21.G00.78.002
+|
+Date de début de période de rattachement
+|
+à renseigner
+exemple : 01012024
+S21.G00.78.003
+|
+Date de fin de période de rattachement
+|
+à renseigner
+exemple: 31012024
+S21.G00.78.004
+|
+Montant de base assujettie
+|
+à renseigner en €
+S21.G00.81 - Cotisation individuelle
+Code
+|
+Rubrique
+|
+Valorisation
+S21.G00.81.001
+|
+Code de cotisation
+|
+129 - contribution dédiée au financement du Compte Personnel de Formation pour les titulaires de CDD (CPF-CDD)
+S21.G00.81.002
+|
+Identifiant organisme de protection
+|
+Siret URSSAF ou code caisse MSA
+S21.G00.81.003
+|
+Montant d'assiette
+|
+à renseigner en €
+S21.G00.81.004
+|
+Montant de cotisation
+|
+à renseigner en €
+S21.G00.81.005
+|
+Code INSEE
+|
+non renseigner
+S21.G00.81.007
+|
+Taux de cotisation
+|
+à renseigner
+La réglementation
+Le transfert auprès du réseau des Urssaf et des caisses de MSA a été mis en œuvre le 1er janvier 2022 en application de la loi n°2018-771 du 5 septembre 2018 pour la liberté de choisir son avenir professionnel, de l’article 18 de la loi n° 2019-1446 du 24 décembre 2019 de financement de la sécurité sociale pour 2020 et de l’article 190 de la loi n°2019-1479 du 28 décembre 2019 de finances pour 2020.

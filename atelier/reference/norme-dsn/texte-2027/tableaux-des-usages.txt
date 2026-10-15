@@ -1,0 +1,1734 @@
+# Tableaux des usages
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 371-392
+
+--- p. 371 ---
+  contrat de travail unique
+  05 - Signalement reprise
+
+  09 - DSN de substitution
+
+  Déclaration préalable à
+  07 - Signalement fin de
+  04 - Signalement arrêt
+
+  suite à arrêt de travail
+  01 - DSN mensuelle
+
+  08 - Signalement
+
+  10 - Signalement
+  Bloc  Rubrique
+
+  l'embauche
+  amorçage
+  de travail
+  Id bloc  Libellé bloc  Id rubrique  Libellé rubrique
+  S10.G00.00.001  Nom du logiciel utilisé  O  O  O  O  O  O  O
+  S10.G00.00.002  Nom de l'éditeur  O  O  O  O  O  O  O
+  S10.G00.00.003  Numéro de version du logiciel utilisé  C  C  C  C  C  C  C
+  S10.G00.00.004  Code de conformité en pré-contrôle  C  C  C  C  C  C  C
+S10.G00.00  Envoi
+  S10.G00.00.005  Code envoi du fichier d'essai ou réel  O  O  O  O  O  O  O
+  S10.G00.00.006  Numéro de version de la norme utilisée  O  O  O  O  O  O  O
+  S10.G00.00.007  Point de dépôt  O  O  O  O  O  O  O
+  S10.G00.00.008  Type de l'envoi  O  O  O  O  O  O  O
+  S10.G00.01.001  Siren de l'émetteur de l'envoi  O  O  O  O  O  O  O
+  S10.G00.01.002  Nic de l'émetteur de l'envoi  O  O  O  O  O  O  O
+  S10.G00.01.003  Nom ou raison sociale de l'émetteur  O  O  O  O  O  O  O
+  S10.G00.01.004  Numéro, extension, nature et libellé de la voie  C  C  C  C  C  C  C
+  S10.G00.01.005  Code postal  C  C  C  C  C  C  C
+S10.G00.01  Emetteur
+  S10.G00.01.006  Localité  C  C  C  C  C  C  C
+  S10.G00.01.007  Code pays  C  C  C  C  C  C  C
+  S10.G00.01.008  Code de distribution à l'étranger  C  C  C  C  C  C  C
+  S10.G00.01.009  Complément de la localisation de la construction  C  C  C  C  C  C  C
+  S10.G00.01.010  Service de distribution, complément de localisation de la voie  C  C  C  C  C  C  C
+  S10.G00.02.001  Code civilité  C  C  C  C  C  C  C
+  S10.G00.02.002  Nom et prénom de la personne à contacter  O  O  O  O  O  O  O
+S10.G00.02  Contact émetteur  S10.G00.02.004  Adresse mél du contact émetteur  O  O  O  O  O  O  O
+  S10.G00.02.005  Adresse téléphonique  O  O  O  O  O  O  O
+  S10.G00.02.006  Adresse fax  C  C  C  C  C  C  C
+  S20.G00.05.001  Nature de la déclaration  O  O  O  O  O  O  O
+  S20.G00.05.002  Type de la déclaration  O  O  O  O  O  O  O
+  S20.G00.05.003  Numéro de fraction de déclaration  O  O  O  O  O  O  O
+  S20.G00.05.004  Numéro d'ordre de la déclaration  O  O  O  O  O  O  O
+  S20.G00.05.005  Date du mois principal déclaré  O  I  I  I  I  O  I
+  S20.G00.05.006  Identifiant de la déclaration annulée ou remplacée  I  C  C  C  C  I  C
+  S20.G00.05.007  Date de constitution du fichier  O  O  O  O  O  O  O
+S20.G00.05  Déclaration
+  S20.G00.05.008  Champ de la déclaration  O  I  I  I  I  O  I
+  S20.G00.05.009  Identifiant métier  C  C  C  C  C  C  C
+  S20.G00.05.010  Devise de la déclaration  O  I  I  O  I  O  I
+  S20.G00.05.011  Nature de l’événement déclencheur du signalement  I  I  I  I  O  I  I
+  S20.G00.05.012  Dernier SIRET connu pour ancien numéro de contrat  I  I  I  I  C  I  C
+  S20.G00.05.013  Type de nature de DSN de substitution  I  I  I  I  I  O  I
+  S20.G00.05.014  Pratique du fractionnement  C  I  I  I  I  C  I
+  S20.G00.07.001  Nom et prénom du contact  O  O  O  O  O  N  O
+  S20.G00.07.002  Adresse téléphonique  O  O  O  O  O  N  O
+S20.G00.07  Contact chez le déclaré
+  S20.G00.07.003  Adresse mél du contact  O  O  O  O  O  N  O
+  S20.G00.07.004  Type  O  O  O  O  O  N  O
+
+S20.G00.08  Identifiant de l’organisme destinataire de la déclaration « Absence de rattachement pour le mois principal déclaré »  S20.G00.08.001  Code caisse  O  N  N  N  N  N  N
+
+  S21.G00.06.001  SIREN  O  O  O  O  O  O  O
+  S21.G00.06.002  NIC du siège  C  C  C  C  C  C  C
+  S21.G00.06.004  Numéro, extension, nature et libellé de la voie  C  I  I  C  I  C  I
+  S21.G00.06.005  Code postal  C  I  I  C  I  C  O
+  S21.G00.06.006  Localité  C  I  I  C  I  C  O
+S21.G00.06  Entreprise  S21.G00.06.007  Complément de la localisation de la construction  C  I  I  C  I  C  I
+  S21.G00.06.008  Service de distribution, complément de localisation de la voie  C  I  I  C  I  C  I
+  S21.G00.06.010  Code pays  C  I  I  C  I  C  I
+  S21.G00.06.011  Code de distribution à l'étranger  C  I  I  C  I  C  I
+  S21.G00.06.012  Implantation de l'entreprise  C  I  I  C  I  C  I
+  S21.G00.06.015  Code convention collective applicable  C  I  I  I  I  C  I
+  S21.G00.11.001  NIC  O  O  O  O  O  O  O
+  S21.G00.11.003  Numéro, extension, nature et libellé de la voie  C  C  C  C  C  C  O
+  S21.G00.11.004  Code postal  C  C  C  C  C  C  O
+  S21.G00.11.005  Localité  C  C  C  C  C  C  O
+  S21.G00.11.006  Complément de la localisation de la construction  C  C  C  C  C  C  C
+  S21.G00.11.007  Service de distribution, complément de localisation de la voie  C  C  C  C  C  C  C
+  S21.G00.11.009  Type de rémunération soumise à contributions d'Assurance chômage pour expatriés  C  I  I  C  I  C  I
+  S21.G00.11.015  Code pays  C  I  I  C  I  C  I
+S21.G00.11  Etablissement
+  S21.G00.11.016  Code de distribution à l'étranger  C  I  I  C  I  C  I
+
+--- p. 372 ---
+  contrat de travail unique
+  05 - Signalement reprise
+
+  09 - DSN de substitution
+
+  Déclaration préalable à
+  07 - Signalement fin de
+  04 - Signalement arrêt
+
+  suite à arrêt de travail
+  01 - DSN mensuelle
+
+  08 - Signalement
+
+  10 - Signalement
+  Bloc  Rubrique
+
+  l'embauche
+  amorçage
+  de travail
+  S21.G00.11.017  Nature juridique de l'employeur  C  I  I  C  I  C  I
+  S21.G00.11.019  Date d’effet de l’adhésion au dispositif TESE/CEA  C  I  I  I  I  C  I
+  S21.G00.11.020  Date d’effet de la sortie du dispositif TESE/CEA  C  I  I  I  I  C  I
+  S21.G00.11.022  Code convention collective principale  O  I  I  C  I  O  I
+  S21.G00.11.023  Opérateur de compétences (OPCO)  C  I  I  I  I  C  I
+  S21.G00.11.024  Demande de sortie de la DSN  C  I  I  I  I  I  I
+  S21.G00.11.025  Identifiant du Service de Prévention et de Santé au Travail (SPST)  C  I  I  I  I  I  I
+  S21.G00.12.001  Type d’usage  O  N  N  N  O  N  N
+S21.G00.12  Coordonnées bancaires spécifiques  S21.G00.12.002  BIC  C  N  N  N  C  N  N
+  S21.G00.12.003  IBAN  O  N  N  N  O  N  N
+  S21.G00.13.001  Accord agréé OETH  C  N  N  N  N  N  N
+  S21.G00.13.002  Type BOETH externe  C  N  N  N  N  N  N
+S21.G00.13  Complément OETH
+  S21.G00.13.003  Nombre BOETH externe  C  N  N  N  N  N  N
+  S21.G00.13.004  Millésime de rattachement  O  N  N  N  N  N  N
+  S21.G00.15.001  Référence du contrat de Prévoyance  O  O  O  O  O  N  N
+  S21.G00.15.002  Code organisme de Prévoyance  O  O  O  O  O  N  N
+S21.G00.15  Adhésion Prévoyance  S21.G00.15.003  Code délégataire de gestion  C  C  C  C  C  N  N
+  S21.G00.15.004  Personnel couvert  O  I  I  I  I  N  N
+  S21.G00.15.005  Identifiant technique Adhésion  O  O  O  O  O  N  N
+  S21.G00.16.001  Date de la modification  O  N  N  N  N  N  N
+S21.G00.16  Changements destinataire Adhésion Prévoyance  S21.G00.16.002  Ancien Code organisme de Prévoyance  O  N  N  N  N  N  N
+  S21.G00.16.003  Ancien Code délégataire de gestion  C  N  N  N  N  N  N
+  S21.G00.20.001  Identifiant Organisme de Protection Sociale  O  N  N  N  N  N  N
+  S21.G00.20.002  Entité d'affectation des opérations  C  N  N  N  N  N  N
+  S21.G00.20.003  BIC  C  N  N  N  N  N  N
+  S21.G00.20.004  IBAN  C  N  N  N  N  N  N
+  S21.G00.20.005  Montant du versement  O  N  N  N  N  N  N
+  S21.G00.20.006  Date de début de période de rattachement  O  N  N  N  N  N  N
+S21.G00.20  Versement Organisme de Protection Sociale  S21.G00.20.007  Date de fin de période de rattachement  O  N  N  N  N  N  N
+  S21.G00.20.008  Code délégataire de gestion  C  N  N  N  N  N  N
+  S21.G00.20.010  Mode de paiement  O  N  N  N  N  N  N
+  S21.G00.20.011  Date de paiement  C  N  N  N  N  N  N
+  S21.G00.20.012  SIRET Payeur  C  N  N  N  N  N  N
+  S21.G00.20.013  Identifiant du CRM à l'origine de la régularisation  C  N  N  N  N  N  N
+  S21.G00.20.014  Identifiant du versement  C  N  N  N  N  N  N
+  S21.G00.22.001  Identifiant Organisme de Protection Sociale  O  N  N  N  N  O  N
+  S21.G00.22.002  Entité d'affectation des opérations  C  N  N  N  N  C  N
+  S21.G00.22.003  Date de début de période de rattachement  O  N  N  N  N  O  N
+S21.G00.22  Bordereau de cotisation due
+  S21.G00.22.004  Date de fin de période de rattachement  O  N  N  N  N  O  N
+  S21.G00.22.005  Montant total de cotisations  O  N  N  N  N  O  N
+  S21.G00.22.006  Identifiant du CRM à l'origine de la régularisation  C  N  N  N  N  C  N
+  S21.G00.23.001  Code de cotisation  O  N  N  N  N  O  N
+  S21.G00.23.002  Qualifiant d'assiette  O  N  N  N  N  O  N
+  S21.G00.23.003  Taux de cotisation  C  N  N  N  N  C  N
+S21.G00.23  Cotisation agrégée  S21.G00.23.004  Montant d'assiette  C  N  N  N  N  C  N
+  S21.G00.23.005  Montant de cotisation  C  N  N  N  N  C  N
+  S21.G00.23.006  Code INSEE commune  C  N  N  N  N  C  N
+  S21.G00.23.007  Identifiant du CRM à l'origine de la régularisation  C  N  N  N  N  C  N
+  S21.G00.30.001  Numéro d'inscription au répertoire  C  C  C  C  C  C  C
+  S21.G00.30.002  Nom de famille  O  O  O  O  O  O  O
+  S21.G00.30.003  Nom d'usage  C  C  C  C  C  C  C
+  S21.G00.30.004  Prénoms  O  O  O  O  O  O  O
+  S21.G00.30.005  Sexe  C  I  I  C  C  C  O
+  S21.G00.30.006  Date de naissance  O  O  O  O  O  O  O
+  S21.G00.30.007  Lieu de naissance  C  I  I  C  C  C  O
+  S21.G00.30.008  Numéro, extension, nature et libellé de la voie  C  I  I  C  C  C  C
+  S21.G00.30.009  Code postal  C  I  I  C  C  C  C
+  S21.G00.30.010  Localité  C  I  I  C  C  C  C
+  S21.G00.30.011  Code pays  C  I  I  C  C  C  C
+  S21.G00.30.012  Code de distribution à l'étranger  C  I  I  C  C  C  C
+  S21.G00.30.013  Codification UE  O  I  I  O  O  O  C
+S21.G00.30  Individu
+  S21.G00.30.014  Code département de naissance  O  I  I  O  O  O  C
+  S21.G00.30.015  Code pays de naissance  O  I  I  O  O  O  C
+  S21.G00.30.016  Complément de la localisation de la construction  C  I  I  C  C  C  C
+
+--- p. 373 ---
+  contrat de travail unique
+  05 - Signalement reprise
+
+  09 - DSN de substitution
+
+  Déclaration préalable à
+  07 - Signalement fin de
+  04 - Signalement arrêt
+
+  suite à arrêt de travail
+  01 - DSN mensuelle
+
+  08 - Signalement
+
+  10 - Signalement
+  Bloc  Rubrique
+
+  l'embauche
+  amorçage
+  de travail
+  S21.G00.30.017  Service de distribution, complément de localisation de la voie  C  I  I  C  C  C  C
+  S21.G00.30.018  Adresse mél  C  I  I  C  C  C  C
+  S21.G00.30.019  Matricule de l'individu dans l'entreprise  C  C  C  C  C  C  C
+  S21.G00.30.020  Numéro technique temporaire  C  C  C  C  C  C  C
+  S21.G00.30.022  Statut à l'étranger au sens fiscal  C  I  I  I  C  C  C
+  S21.G00.30.023  Cumul emploi retraite  C  I  I  I  C  C  C
+  S21.G00.30.024  Niveau de formation le plus élevé obtenu par l'individu  C  I  I  I  C  C  C
+  S21.G00.30.025  Niveau de diplôme préparé par l'individu  C  I  I  I  C  I  C
+  S21.G00.30.029  Libellé du pays de naissance  C  I  I  C  C  C  C
+  S21.G00.30.030  Identifiant du Service de Prévention et de Santé au Travail (SPST)  C  I  I  I  I  I  O
+  S21.G00.31.001  Date de la modification  O  N  N  N  N  N  N
+  S21.G00.31.008  Ancien NIR  C  N  N  N  N  N  N
+S21.G00.31  Changements individu  S21.G00.31.009  Ancien nom de famille  C  N  N  N  N  N  N
+  S21.G00.31.010  Anciens prénoms  C  N  N  N  N  N  N
+  S21.G00.31.011  Ancienne date de naissance  C  N  N  N  N  N  N
+  S21.G00.34.001  Facteur d'exposition  O  N  N  N  N  O  N
+S21.G00.34  Compte Professionnel de Prévention (Ex-Pénibilité)  S21.G00.34.002  Numéro du contrat  O  N  N  N  N  O  N
+  S21.G00.34.003  Année de rattachement  O  N  N  N  N  O  N
+  S21.G00.40.001  Date de début du contrat  O  O  O  O  O  O  O
+  S21.G00.40.002  Statut du salarié (conventionnel)  O  I  I  O  O  O  C
+  S21.G00.40.003  Code statut catégoriel Retraite Complémentaire obligatoire  O  I  I  O  O  O  C
+  S21.G00.40.004  Code profession et catégorie socioprofessionnelle (PCS-ESE)  O  I  I  O  O  O  C
+  S21.G00.40.005  Code complément PCS-ESE  C  I  I  C  C  C  C
+  S21.G00.40.006  Libellé de l'emploi  O  I  I  O  O  O  C
+  S21.G00.40.007  Nature du contrat  O  I  I  O  O  O  O
+  S21.G00.40.008  Dispositif de politique publique et conventionnel  O  I  I  O  O  O  C
+  S21.G00.40.009  Numéro du contrat  O  O  O  O  O  O  C
+  S21.G00.40.010  Date de fin prévisionnelle du contrat  C  I  I  C  C  C  C
+  S21.G00.40.011  Unité de mesure de la quotité de travail  O  I  I  O  O  O  C
+  S21.G00.40.012  Quotité de travail de référence de l'entreprise pour la catégorie de salarié  O  I  I  O  O  O  C
+  S21.G00.40.013  Quotité de travail du contrat  O  I  I  O  O  O  C
+  S21.G00.40.014  Modalité d'exercice du temps de travail  O  I  I  O  O  O  C
+  S21.G00.40.016  Complément de base au régime obligatoire  O  I  I  O  O  O  C
+  S21.G00.40.017  Code convention collective applicable  O  I  I  O  O  O  C
+  S21.G00.40.018  Code régime de base risque maladie  O  I  I  O  O  O  C
+  S21.G00.40.019  Identifiant du lieu de travail  O  C  C  O  O  O  C
+  S21.G00.40.020  Code régime de base risque vieillesse  O  I  I  O  O  O  C
+  S21.G00.40.021  Motif de recours  C  I  I  C  C  C  C
+  S21.G00.40.022  Code caisse professionnelle de congés payés  C  I  I  C  C  C  C
+  S21.G00.40.023  Taux de déduction forfaitaire spécifique pour frais professionnels  C  I  I  C  C  C  C
+  S21.G00.40.024  Travailleur à l'étranger au sens du code de la Sécurité Sociale  O  I  I  O  O  O  C
+  S21.G00.40.025  Motif d'exclusion DSN  C  I  I  C  C  C  C
+  S21.G00.40.026  Statut d'emploi du salarié  O  I  I  O  O  O  C
+  S21.G00.40.027  Code affectation Assurance chômage  C  I  I  C  I  I  I
+  S21.G00.40.028  Numéro interne employeur public  C  I  I  C  I  C  I
+  S21.G00.40.029  Type de gestion de l'Assurance chômage  C  I  I  C  I  C  I
+  S21.G00.40.030  Date d'adhésion  C  I  I  C  I  C  I
+  S21.G00.40.031  Date de dénonciation  I  I  I  C  I  I  I
+  S21.G00.40.032  Date d'effet de la convention de gestion  C  I  I  C  I  C  I
+  S21.G00.40.033  Numéro de convention de gestion  C  I  I  C  I  I  I
+  S21.G00.40.035  Code délégataire du risque maladie  C  I  I  I  C  C  C
+  S21.G00.40.036  Code emplois multiples  O  I  I  O  O  O  C
+  S21.G00.40.037  Code employeurs multiples  O  I  I  O  O  O  C
+  S21.G00.40.039  Code régime de base risque accident du travail  O  I  I  I  I  O  I
+  S21.G00.40.040  Code risque accident du travail  O  I  I  I  I  O  I
+  S21.G00.40.041  Positionnement dans la convention collective  C  I  I  I  C  C  C
+  S21.G00.40.042  Code statut catégoriel APECITA  C  I  I  I  C  C  C
+  S21.G00.40.043  Taux de cotisation accident du travail  C  I  I  I  I  C  I
+  S21.G00.40.044  Salarié à temps partiel cotisant à temps plein  C  I  I  I  C  C  C
+  S21.G00.40.045  Rémunération au pourboire  C  I  I  I  C  C  C
+  Contrat (Contrat de travail, convention,
+S21.G00.40  S21.G00.40.046  Identifiant de l'établissement utilisateur  C  I  I  C  C  C  C
+  mandat)
+  S21.G00.40.048  Numéro de label « Prestataire de services du spectacle vivant »  C  I  I  C  I  C  I
+  S21.G00.40.049  Numéro de licence entrepreneur spectacle  C  I  I  C  I  C  I
+  S21.G00.40.050  Numéro objet spectacle  C  I  I  C  I  C  I
+  S21.G00.40.051  Statut organisateur spectacle  C  I  I  C  I  C  I
+
+--- p. 374 ---
+  contrat de travail unique
+  05 - Signalement reprise
+
+  09 - DSN de substitution
+
+  Déclaration préalable à
+  07 - Signalement fin de
+  04 - Signalement arrêt
+
+  suite à arrêt de travail
+  01 - DSN mensuelle
+
+  08 - Signalement
+
+  10 - Signalement
+Bloc  Rubrique
+
+  l'embauche
+  amorçage
+  de travail
+  S21.G00.40.052  [FP] Code complément PCS-ESE pour la fonction publique d'Etat (NNE)  C  I  I  I  C  C  C
+  S21.G00.40.053  Nature du poste  C  I  I  I  C  C  C
+  [FP] Quotité de travail de référence de l'entreprise pour la catégorie de salarié dans l’hypothèse d’un
+  S21.G00.40.054  C  I  I  I  C  C  C
+  poste à temps complet
+  S21.G00.40.055  Taux de travail à temps partiel  C  I  I  I  C  C  C
+  S21.G00.40.056  Code catégorie de service  C  I  I  I  C  C  C
+  S21.G00.40.057  [FP] Indice brut  C  I  I  I  C  C  C
+  S21.G00.40.058  [FP] Indice majoré  C  I  I  I  C  C  C
+  S21.G00.40.059  [FP] Nouvelle bonification indiciaire (NBI)  C  I  I  I  C  C  C
+  S21.G00.40.060  [FP] Indice brut d'origine  C  I  I  I  I  C  I
+  S21.G00.40.061  [FP] Indice brut de cotisation dans un emploi supérieur (article 15)  C  I  I  I  I  C  I
+  S21.G00.40.062  [FP] Ancien employeur public  C  I  I  I  I  C  I
+  S21.G00.40.063  [FP] Indice brut d’origine ancien salarié employeur public  C  I  I  I  I  C  I
+  S21.G00.40.064  [FP] Indice brut d’origine sapeur-pompier professionnel (SPP)  C  I  I  I  I  C  I
+  S21.G00.40.065  [FP] Maintien du traitement d'origine d'un contractuel titulaire  C  I  I  I  I  C  I
+  S21.G00.40.066  [FP] Type de détachement  C  I  I  I  C  C  C
+  S21.G00.40.067  Genre de navigation  C  I  I  I  I  C  I
+  S21.G00.40.068  Taux de service actif  C  I  I  I  I  C  I
+  S21.G00.40.069  Niveau de rémunération  C  I  I  I  I  C  I
+  S21.G00.40.070  Echelon  C  I  I  I  I  C  I
+  S21.G00.40.071  Coefficient hiérarchique  C  I  I  I  I  C  I
+  S21.G00.40.072  Statut BOETH  C  I  I  C  C  C  C
+  S21.G00.40.073  Complément de dispositif de politique publique  C  I  I  I  C  C  C
+  S21.G00.40.074  Cas de mise à disposition externe d'un individu de l'établissement  C  I  I  I  C  C  C
+  S21.G00.40.075  Catégorie de classement finale  C  I  I  I  I  C  I
+  S21.G00.40.076  Identifiant du contrat d'engagement maritime  C  I  I  I  I  C  I
+  S21.G00.40.077  Collège (CNIEG)  C  I  I  I  C  C  C
+  S21.G00.40.078  Forme d'aménagement du temps de travail dans le cadre de l'activité partielle  C  I  I  I  C  C  C
+  S21.G00.40.079  Grade  C  I  I  I  I  C  I
+  S21.G00.40.080  [FP] Indice complément de traitement indiciaire (CTI)  C  I  I  I  C  C  C
+  S21.G00.40.081  FINESS géographique  C  I  I  I  I  C  I
+  S21.G00.40.082  Nombre de jours de période d’essai  I  I  I  I  I  I  C
+  S21.G00.40.083  Heure prévisible d'embauche  I  I  I  I  I  I  O
+  S21.G00.40.084  Application de la proratisation du Plafond de Sécurité Sociale à hauteur de la quotité de travail  O  I  I  I  C  C  C
+
+  S21.G00.40.085  Choix du salarié en forfait jour réduit indiquant que la proratisation du plafond de Sécurité sociale ne  C  I  I  I  C  C  C
+  s’applique pas au calcul de ses cotisations pour la vieillesse régime de base et la retraite complémentaire
+  S21.G00.40.086  Adhésion à une caisse de congés payés à titre obligatoire  C  I  I  C  C  C  C
+  S21.G00.41.001  Date de la modification  O  N  N  N  N  O  N
+  S21.G00.41.002  Ancien statut du salarié (conventionnel)  C  N  N  N  N  C  N
+  S21.G00.41.003  Ancien code statut catégoriel Retraite Complémentaire obligatoire  C  N  N  N  N  C  N
+  S21.G00.41.004  Ancienne nature du contrat  C  N  N  N  N  C  N
+  S21.G00.41.005  Ancien dispositif de politique publique et conventionnel  C  N  N  N  N  C  N
+  S21.G00.41.006  Ancienne unité de mesure de la quotité de travail  C  N  N  N  N  C  N
+  S21.G00.41.007  Ancienne quotité de travail du contrat  C  N  N  N  N  C  N
+  S21.G00.41.008  Ancienne modalité d'exercice du temps de travail  C  N  N  N  N  C  N
+  S21.G00.41.010  Ancien complément de base au régime obligatoire  C  N  N  N  N  C  N
+  S21.G00.41.011  Ancien code convention collective applicable  C  N  N  N  N  C  N
+  S21.G00.41.012  SIRET ancien établissement d'affectation  C  N  N  N  N  C  N
+  S21.G00.41.013  Ancien identifiant du lieu de travail  C  N  N  N  N  C  N
+  S21.G00.41.014  Ancien numéro du contrat  C  N  N  N  N  C  N
+  S21.G00.41.016  Ancien motif de recours  C  N  N  N  N  C  N
+  S21.G00.41.017  Ancien taux de déduction forfaitaire spécifique pour frais professionnels  C  N  N  N  N  C  N
+  S21.G00.41.018  Ancien travailleur à l'étranger au sens du code de la Sécurité Sociale  C  N  N  N  N  C  N
+  S21.G00.41.019  Ancien code profession et catégorie socioprofessionnelle (PCS-ESE)  C  N  N  N  N  C  N
+  S21.G00.41.020  Ancien code complément PCS-ESE  C  N  N  N  N  C  N
+  S21.G00.41.021  Ancienne date de début du contrat  C  N  N  N  N  C  N
+  S21.G00.41.022  Ancienne quotité de travail de référence de l'entreprise pour la catégorie de salarié  C  N  N  N  N  C  N
+  S21.G00.41.023  Ancien code caisse professionnelle de congés payés  C  N  N  N  N  C  N
+  S21.G00.41.024  Ancien code risque accident du travail  C  N  N  N  N  C  N
+  S21.G00.41.025  Ancien code statut catégoriel APECITA  C  N  N  N  N  C  N
+  S21.G00.41.027  Ancien salarié à temps partiel cotisant à temps plein  C  N  N  N  N  C  N
+  S21.G00.41.028  Profondeur de recalcul de la paie  C  N  N  N  N  C  N
+  S21.G00.41.029  [FP] Ancien code complément PCS-ESE pour la fonction publique d'Etat (NNE)  C  N  N  N  N  C  N
+  S21.G00.41.030  Ancienne nature du poste  C  N  N  N  N  C  N
+
+--- p. 375 ---
+  contrat de travail unique
+  05 - Signalement reprise
+
+  09 - DSN de substitution
+
+  Déclaration préalable à
+  07 - Signalement fin de
+  04 - Signalement arrêt
+
+  suite à arrêt de travail
+  01 - DSN mensuelle
+
+  08 - Signalement
+
+  10 - Signalement
+  Bloc  Rubrique
+
+  l'embauche
+  amorçage
+  de travail
+  [FP] Ancienne quotité de travail de référence de l'entreprise pour la catégorie de salarié dans l’hypothèse
+  S21.G00.41.031  C  N  N  N  N  C  N
+  d’un poste à temps complet
+  S21.G00.41.032  Ancien taux de travail à temps partiel  C  N  N  N  N  C  N
+  S21.G00.41.033  Ancien code catégorie de service  C  N  N  N  N  C  N
+  S21.G00.41.034  [FP] Ancien indice brut  C  N  N  N  N  C  N
+  S21.G00.41.035  [FP] Ancien indice majoré  C  N  N  N  N  C  N
+  S21.G00.41.036  [FP] Ancienne nouvelle bonification indiciaire (NBI)  C  N  N  N  N  C  N
+S21.G00.41  Changements Contrat  S21.G00.41.037  [FP] Ancien indice brut d'origine  C  N  N  N  N  C  N
+  S21.G00.41.038  [FP] Ancien indice brut de cotisation dans un emploi supérieur (article 15)  C  N  N  N  N  C  N
+  S21.G00.41.039  [FP] Ancien ancien employeur public  C  N  N  N  N  C  N
+  S21.G00.41.040  [FP] Ancien indice brut d’origine ancien salarié employeur public  C  N  N  N  N  C  N
+  S21.G00.41.041  [FP] Ancien indice brut d’origine sapeur-pompier professionnel (SPP)  C  N  N  N  N  C  N
+  S21.G00.41.042  [FP] Ancien maintien du traitement d'origine d'un contractuel titulaire  C  N  N  N  N  C  N
+  S21.G00.41.043  Ancien taux de service actif  C  N  N  N  N  C  N
+  S21.G00.41.044  Ancien niveau de rémunération  C  N  N  N  N  C  N
+  S21.G00.41.045  Ancien échelon  C  N  N  N  N  C  N
+  S21.G00.41.046  Ancien coefficient hiérarchique  C  N  N  N  N  C  N
+  S21.G00.41.047  Ancien genre de navigation  C  N  N  N  N  C  N
+  S21.G00.41.048  Ancien statut BOETH  C  N  N  N  N  C  N
+  S21.G00.41.049  Ancien complément de dispositif de politique publique  C  N  N  N  N  C  N
+  S21.G00.41.050  Ancien cas de mise à disposition externe d'un individu de l'établissement  C  N  N  N  N  C  N
+  S21.G00.41.051  Ancienne catégorie de classement finale  C  N  N  N  N  C  N
+  S21.G00.41.052  Ancien code régime de base risque maladie  C  N  N  N  N  C  N
+  S21.G00.41.053  Ancien code régime de base risque vieillesse  C  N  N  N  N  C  N
+  S21.G00.41.054  Ancien identifiant du contrat d'engagement maritime  C  N  N  N  N  C  N
+  S21.G00.41.055  Ancien collège (CNIEG)  C  N  N  N  N  C  N
+  S21.G00.41.056  Ancienne forme d'aménagement du temps de travail dans le cadre de l'activité partielle  C  N  N  N  N  C  N
+  S21.G00.41.057  [FP] Ancien type de détachement  C  N  N  N  N  C  N
+  S21.G00.41.058  Ancien positionnement dans la convention collective  C  N  N  N  N  C  N
+  S21.G00.41.059  Ancien code régime de base risque accident du travail  C  N  N  N  N  C  N
+  S21.G00.41.060  Ancien statut d'emploi du salarié  C  N  N  N  N  C  N
+  S21.G00.41.061  Ancien code emplois multiples  C  N  N  N  N  C  N
+  S21.G00.41.062  Ancien code employeurs multiples  C  N  N  N  N  C  N
+  S21.G00.41.063  Ancien grade  C  N  N  N  N  C  N
+  S21.G00.41.064  [FP] Ancien indice complément de traitement indiciaire (CTI)  C  N  N  N  N  C  N
+  S21.G00.41.065  Ancien FINESS géographique  C  N  N  N  N  C  N
+  S21.G00.41.066  C  N  N  N  N  C  N
+  Ancienne application de la proratisation du Plafond de Sécurité Sociale à hauteur de la quotité de travail
+  Ancien choix du salarié en forfait jour réduit indiquant que la proratisation du plafond de Sécurité sociale
+  S21.G00.41.067  ne s’applique pas au calcul de ses cotisations pour la vieillesse régime de base et la retraite  C  N  N  N  N  C  N
+  complémentaire
+  S21.G00.41.068  Ancienne adhésion à une caisse de congés payés à titre obligatoire  C  N  N  N  N  C  N
+  S21.G00.44.001  Code taxe  O  N  N  N  N  N  N
+  S21.G00.44.002  Montant  C  N  N  N  N  N  N
+S21.G00.44  Assujettissement fiscal
+  S21.G00.44.003  Millésime de rattachement  O  N  N  N  N  N  N
+  S21.G00.44.004  Motif de non assujettissement à la taxe d'apprentissage  C  N  N  N  N  N  N
+  S21.G00.45.001  SIRET déclarant le contrat précédemment  N  N  N  C  N  N  N
+S21.G00.45  Données précédemment déclarées
+  S21.G00.45.002  Numéro du contrat déclaré précédemment  N  N  N  C  N  N  N
+  S21.G00.50.001  Date de versement  O  N  N  O  N  O  N
+  S21.G00.50.002  Rémunération nette fiscale  O  N  N  I  N  O  N
+  S21.G00.50.003  Numéro de versement  C  N  N  C  N  C  N
+  S21.G00.50.004  Montant net versé  O  N  N  I  N  O  N
+  S21.G00.50.006  Taux de prélèvement à la source  O  N  N  I  N  O  N
+  S21.G00.50.007  Type du taux de prélèvement à la source  O  N  N  I  N  O  N
+S21.G00.50  Versement Individu
+  S21.G00.50.008  Identifiant du taux de prélèvement à la source  C  N  N  I  N  C  N
+  S21.G00.50.009  Montant de prélèvement à la source  O  N  N  I  N  O  N
+  S21.G00.50.011  Montant de la part non imposable du revenu  C  N  N  I  N  C  N
+  S21.G00.50.012  Montant de l’abattement sur la base fiscale (non déduit de la rémunération nette fiscale)  C  N  N  I  N  C  N
+  S21.G00.50.013  Montant soumis au PAS  O  N  N  I  N  O  N
+  S21.G00.50.020  Mois de la DSN mensuelle de rattachement des éléments déclarés dans le FCTU  I  N  N  O  N  I  N
+  S21.G00.51.001  Date de début de période de paie  O  N  N  O  N  O  N
+  S21.G00.51.002  Date de fin de période de paie  O  N  N  O  N  O  N
+  S21.G00.51.010  Numéro du contrat  O  N  N  O  N  O  N
+  S21.G00.51.011  Type  O  N  N  O  N  O  N
+  S21.G00.51.012  Nombre d'heures  C  N  N  C  N  C  N
+
+--- p. 376 ---
+  contrat de travail unique
+  05 - Signalement reprise
+
+  09 - DSN de substitution
+
+  Déclaration préalable à
+  07 - Signalement fin de
+  04 - Signalement arrêt
+
+  suite à arrêt de travail
+  01 - DSN mensuelle
+
+  08 - Signalement
+
+  10 - Signalement
+  Bloc  Rubrique
+
+  l'embauche
+  amorçage
+  de travail
+S21.G00.51  Rémunération  S21.G00.51.013  Montant  O  N  N  O  N  O  N
+  S21.G00.51.014  [FP] Taux de rémunération de la situation administrative  C  N  N  I  N  C  N
+  S21.G00.51.015  Taux de conduite centrale nucléaire  C  N  N  C  N  C  N
+  S21.G00.51.016  Taux de majoration  C  N  N  C  N  C  N
+  S21.G00.51.019  Taux de rémunération cotisée  C  N  N  C  N  C  N
+  S21.G00.51.020  Taux de majoration ex-apprenti/ex-élève  C  N  N  I  N  C  N
+  S21.G00.52.001  Type  O  N  N  O  N  N  N
+  S21.G00.52.002  Montant  O  N  N  O  N  N  N
+  S21.G00.52.003  Date de début de la période de rattachement  C  N  N  C  N  N  N
+S21.G00.52  Prime, gratification et indemnité
+  S21.G00.52.004  Date de fin de la période de rattachement  C  N  N  C  N  N  N
+  S21.G00.52.006  Numéro du contrat  O  N  N  O  N  N  N
+  S21.G00.52.007  Date de versement d'origine  C  N  N  C  N  N  N
+  S21.G00.53.001  Type  O  N  N  O  N  N  N
+S21.G00.53  Activité  S21.G00.53.002  Mesure  O  N  N  O  N  N  N
+  S21.G00.53.003  Unité de mesure  C  N  N  C  N  N  N
+  S21.G00.54.001  Type  O  N  N  O  N  N  N
+  S21.G00.54.002  Montant  O  N  N  O  N  N  N
+S21.G00.54  Autre élément de revenu brut  S21.G00.54.003  Date de début de période de rattachement  C  N  N  C  N  N  N
+  S21.G00.54.004  Date de fin de période de rattachement  C  N  N  C  N  N  N
+  S21.G00.54.005  Numéro de contrat  C  N  N  C  N  N  N
+  S21.G00.55.001  Montant versé  O  N  N  N  N  N  N
+  S21.G00.55.002  Type de population  C  N  N  N  N  N  N
+S21.G00.55  Composant de versement  S21.G00.55.003  Code d'affectation  O  N  N  N  N  N  N
+  S21.G00.55.004  Période d'affectation  O  N  N  N  N  N  N
+  S21.G00.55.005  Identifiant du CRM à l'origine de la régularisation  C  N  N  N  N  N  N
+  S21.G00.56.001  Mois de l'erreur  O  N  N  N  N  N  N
+  S21.G00.56.002  Type d'erreur  O  N  N  N  N  N  N
+  S21.G00.56.003  Régularisation de la rémunération nette fiscale  C  N  N  N  N  N  N
+  S21.G00.56.004  Rémunération nette fiscale déclarée le mois de l’erreur  C  N  N  N  N  N  N
+  S21.G00.56.005  Régularisation du taux de prélèvement à la source  C  N  N  N  N  N  N
+  S21.G00.56.006  Taux déclaré le mois de l'erreur  C  N  N  N  N  N  N
+S21.G00.56  Régularisation de prélèvement à la source
+  S21.G00.56.007  Montant de la régularisation du prélèvement à la source  O  N  N  N  N  N  N
+  S21.G00.56.008  Régularisation du montant de la part non imposable du revenu  C  N  N  N  N  N  N
+  Régularisation du montant de l’abattement sur la base fiscale (non déduit de la rémunération nette
+  S21.G00.56.009  C  N  N  N  N  N  N
+  fiscale)
+  S21.G00.56.010  Régularisation du montant soumis au PAS  C  N  N  N  N  N  N
+  S21.G00.56.015  Montant soumis au prélèvement à la source déclaré le mois de l'erreur  C  N  N  N  N  N  N
+  S21.G00.58.001  Date de début de période de rattachement  C  N  N  N  N  N  N
+  S21.G00.58.002  Date de fin de période de rattachement  C  N  N  N  N  N  N
+S21.G00.58  Elément de revenu calculé en net
+  S21.G00.58.003  Type  O  N  N  N  N  N  N
+  S21.G00.58.004  Montant  O  N  N  N  N  N  N
+  S21.G00.59.001  Type  O  N  N  O  N  N  N
+  S21.G00.59.002  Montant  O  N  N  O  N  N  N
+  S21.G00.59.003  Nombre d'heures  C  N  N  C  N  N  N
+S21.G00.59  Elément de revenu associé à des droits spécifiques
+  S21.G00.59.004  Date de début de période de rattachement  O  N  N  O  N  N  N
+  S21.G00.59.005  Date de fin de période de rattachement  O  N  N  O  N  N  N
+  S21.G00.59.006  Numéro de contrat  C  N  N  C  N  N  N
+  S21.G00.60.001  Motif de l'arrêt  O  O  O  O  N  N  N
+  S21.G00.60.002  Date du dernier jour travaillé  O  O  O  O  N  N  N
+  S21.G00.60.003  Date de fin prévisionnelle  O  O  O  O  N  N  N
+  S21.G00.60.004  Subrogation  C  O  I  I  N  N  N
+  S21.G00.60.005  Date de début de subrogation  C  C  I  I  N  N  N
+  S21.G00.60.006  Date de fin de subrogation  C  C  I  I  N  N  N
+S21.G00.60  Arrêt de travail
+  S21.G00.60.007  IBAN  C  C  I  I  N  N  N
+  S21.G00.60.008  BIC  C  C  I  I  N  N  N
+  S21.G00.60.010  Date de la reprise  C  C  O  C  N  N  N
+  S21.G00.60.011  Motif de la reprise  C  C  O  C  N  N  N
+  S21.G00.60.012  Date de l'accident ou de la première constatation  I  C  C  I  N  N  N
+  S21.G00.60.600  SIRET Centralisateur  C  C  C  I  N  N  N
+  S21.G00.62.001  Date de fin du contrat  O  N  N  O  N  O  N
+  S21.G00.62.002  Motif de la rupture du contrat  O  N  N  O  N  O  N
+  S21.G00.62.003  Date de notification de la rupture de contrat  I  N  N  C  N  I  N
+  S21.G00.62.004  Date de signature de la convention de rupture  I  N  N  C  N  I  N
+  S21.G00.62.005  Date d'engagement de la procédure de licenciement  I  N  N  C  N  I  N
+
+--- p. 377 ---
+  contrat de travail unique
+  05 - Signalement reprise
+
+  09 - DSN de substitution
+
+  Déclaration préalable à
+  07 - Signalement fin de
+  04 - Signalement arrêt
+
+  suite à arrêt de travail
+  01 - DSN mensuelle
+
+  08 - Signalement
+
+  10 - Signalement
+  Bloc  Rubrique
+
+  l'embauche
+  amorçage
+  de travail
+  S21.G00.62.006  Dernier jour travaillé et payé au salaire habituel  C  N  N  O  N  C  N
+  S21.G00.62.008  Transaction en cours  I  N  N  O  N  I  N
+  S21.G00.62.011  Nombre de mois de préavis utilisés dans le cadre du calcul CSP  I  N  N  C  N  I  N
+S21.G00.62  Fin de contrat
+  S21.G00.62.013  Montant de l'indemnité de préavis qui aurait été versée  I  N  N  C  N  I  N
+  S21.G00.62.014  Statut particulier du salarié  I  N  N  C  N  I  N
+  S21.G00.62.016  Maintien de l'affiliation du salarié au contrat collectif  C  N  N  C  N  C  N
+  S21.G00.62.017  Modalité de déclaration de la fin du contrat d'usage  C  N  N  I  N  C  N
+  S21.G00.62.018  Nombre de mois de préavis utilisés dans le cadre du calcul PAP  I  N  N  C  N  I  N
+  S21.G00.62.019  Solde de congés acquis et non pris (ENIM)  C  N  N  I  N  C  N
+  S21.G00.62.020  Mois de la DSN mensuelle portant les derniers éléments déclarés dans le FCTU  I  N  N  O  N  I  N
+  S21.G00.62.021  Refus de la proposition d'un CDI suite à CDD ou contrat de mission  C  N  N  C  N  I  N
+  S21.G00.63.001  Type réalisation et paiement du préavis  N  N  N  O  N  N  N
+S21.G00.63  Préavis de fin de contrat  S21.G00.63.002  Date de début de préavis  N  N  N  C  N  N  N
+  S21.G00.63.003  Date de fin de préavis  N  N  N  C  N  N  N
+  S21.G00.65.001  Motif de suspension  O  N  N  O  O  N  N
+  S21.G00.65.002  Date de début de la suspension  O  N  N  O  I  N  N
+  Autre suspension de
+S21.G00.65  S21.G00.65.003  Date de fin de la suspension  C  N  N  C  C  N  N
+  l'exécution du contrat
+  S21.G00.65.004  [FP] Position de détachement  C  N  N  I  C  N  N
+  S21.G00.65.005  Nombre de jours ouvrés de suspension  C  N  N  C  C  N  N
+  S21.G00.66.001  Date de début  O  N  N  N  N  N  N
+S21.G00.66  Temps partiel Thérapeutique  S21.G00.66.002  Date de fin  O  N  N  N  N  N  N
+  S21.G00.66.003  Montant  O  N  N  N  N  N  N
+  S21.G00.70.004  Code option retenue par le salarié  C  N  N  C  C  N  N
+  S21.G00.70.005  Code population de rattachement  C  N  N  C  C  N  N
+  S21.G00.70.007  Nombre d'enfants à charge  C  N  N  C  C  N  N
+  S21.G00.70.008  Nombre d'adultes ayants-droit (conjoint, concubin, ...)  C  N  N  C  C  N  N
+  S21.G00.70.009  Nombre d'ayants-droit  C  N  N  C  C  N  N
+  S21.G00.70.010  Nombre d'ayants-droit autres (ascendants, collatéraux...)  C  N  N  C  C  N  N
+S21.G00.70  Affiliation Prévoyance
+  S21.G00.70.011  Nombre d'enfants ayants-droit  C  N  N  C  C  N  N
+  S21.G00.70.012  Identifiant technique Affiliation  O  N  N  O  I  N  N
+  S21.G00.70.013  Identifiant technique Adhésion  O  N  N  O  O  N  N
+  S21.G00.70.014  Date de début de l'affiliation  C  N  N  C  C  N  N
+  S21.G00.70.015  Date de fin de l'affiliation  C  N  N  C  C  N  N
+  S21.G00.70.016  Affiliation prévoyance applicable à plusieurs contrats  C  N  N  C  I  N  N
+S21.G00.71  Retraite complémentaire  S21.G00.71.002  Code régime Retraite Complémentaire  O  N  N  O  N  O  N
+S21.G00.72  Affiliation à tort à un régime de retraite complémentaire  S21.G00.72.001  Code régime Retraite Complémentaire déclaré à tort  O  N  N  N  N  O  N
+  S21.G00.73.001  Régime local Alsace-Moselle  C  N  N  C  C  N  N
+  S21.G00.73.002  Code option  C  N  N  C  C  N  N
+  S21.G00.73.003  Type  O  N  N  O  O  N  N
+  S21.G00.73.004  Date de début de rattachement à l'ouvrant-droit  C  N  N  C  C  N  N
+  S21.G00.73.005  Date de naissance  O  N  N  O  O  N  N
+S21.G00.73  Ayant-droit  S21.G00.73.006  Nom de famille  O  N  N  O  O  N  N
+  S21.G00.73.007  Numéro d'inscription au répertoire  C  N  N  C  C  N  N
+  S21.G00.73.008  NIR ouvrant-droit régime de base maladie  C  N  N  C  C  N  N
+  S21.G00.73.009  Prénoms  O  N  N  O  O  N  N
+  S21.G00.73.010  Code organisme d'affiliation à l'assurance maladie  C  N  N  C  C  N  N
+  S21.G00.73.011  Date de fin de rattachement à l'ouvrant-droit  C  N  N  C  C  N  N
+  S21.G00.75.001  Motif de l'aménagement  O  N  N  O  O  N  N
+  S21.G00.75.002  Date de début de l'aménagement  O  N  N  O  O  N  N
+S21.G00.75  Aménagement du temps de travail
+  S21.G00.75.003  Date de fin de l'aménagement  C  N  N  C  C  N  N
+  S21.G00.75.004  Ancien motif de l'aménagement  C  N  N  C  C  N  N
+  S21.G00.78.001  Code de base assujettie  O  N  N  O  N  O  N
+  S21.G00.78.002  Date de début de période de rattachement  O  N  N  O  N  O  N
+  S21.G00.78.003  Date de fin de période de rattachement  O  N  N  O  N  O  N
+S21.G00.78  Base assujettie  S21.G00.78.004  Montant  O  N  N  O  N  O  N
+  S21.G00.78.005  Identifiant technique Affiliation  C  N  N  I  N  C  N
+  S21.G00.78.006  Numéro du contrat  C  N  N  I  N  C  N
+  S21.G00.78.007  Identifiant du CRM à l'origine de la régularisation  C  N  N  I  N  C  N
+  S21.G00.79.001  Type de composant de base assujettie  O  N  N  N  N  O  N
+S21.G00.79  Composant de base assujettie  S21.G00.79.004  Montant de composant de base assujettie  O  N  N  N  N  O  N
+  S21.G00.79.005  Identifiant du CRM à l'origine de la régularisation  C  N  N  N  N  C  N
+  S21.G00.81.001  Code de cotisation  O  N  N  O  N  O  N
+  S21.G00.81.002  Identifiant Organisme de Protection Sociale  C  N  N  C  N  C  N
+  S21.G00.81.003  Montant d'assiette  C  N  N  C  N  C  N
+
+--- p. 378 ---
+  contrat de travail unique
+  05 - Signalement reprise
+
+  09 - DSN de substitution
+
+  Déclaration préalable à
+  07 - Signalement fin de
+  04 - Signalement arrêt
+
+  suite à arrêt de travail
+  01 - DSN mensuelle
+
+  08 - Signalement
+
+  10 - Signalement
+  Bloc  Rubrique
+
+  l'embauche
+  amorçage
+  de travail
+  S21.G00.81.004  Montant de cotisation  C  N  N  C  N  C  N
+S21.G00.81  Cotisation individuelle
+  S21.G00.81.005  Code INSEE commune  C  N  N  C  N  C  N
+  S21.G00.81.006  Identifiant du CRM à l'origine de la régularisation  C  N  N  I  N  C  N
+  S21.G00.81.007  Taux de cotisation  C  N  N  C  N  C  N
+  S21.G00.81.008  Taux de cotisation patronale  C  N  N  I  N  C  N
+  S21.G00.82.001  Valeur  O  N  N  N  N  N  N
+  S21.G00.82.002  Code de cotisation  O  N  N  N  N  N  N
+  S21.G00.82.003  Date de début de période de rattachement  O  N  N  N  N  N  N
+S21.G00.82  Cotisation établissement
+  S21.G00.82.004  Date de fin de période de rattachement  O  N  N  N  N  N  N
+  S21.G00.82.005  Référence réglementaire ou contractuelle  O  N  N  N  N  N  N
+  S21.G00.82.006  Identifiant du CRM à l'origine de la régularisation  C  N  N  N  N  N  N
+  S21.G00.83.001  Date de début de période déclarée à tort  O  N  N  N  N  O  N
+S21.G00.83  Période d'affiliation à tort à un régime de retraite complémentaire
+  S21.G00.83.002  Date de fin de période déclarée à tort  O  N  N  N  N  O  N
+  S21.G00.84.001  Code de base assujettie déclarée à tort  O  N  N  N  N  O  N
+  S21.G00.84.002  Date de début de période de rattachement de la base déclarée à tort  O  N  N  N  N  O  N
+S21.G00.84  Base assujettie déclarée à tort pour un régime de retraite complémentaire  S21.G00.84.003  Date de fin de période de rattachement de la base déclarée à tort  O  N  N  N  N  O  N
+  S21.G00.84.004  Montant déclaré à tort  O  N  N  N  N  O  N
+  S21.G00.84.005  Numéro du contrat rattaché à la base assujettie déclarée à tort  C  N  N  N  N  C  N
+  S21.G00.85.001  Identifiant du lieu de travail ou de l'établissement utilisateur  O  N  N  O  O  N  N
+  S21.G00.85.002  Code APET  C  N  N  C  C  N  N
+  S21.G00.85.003  Numéro, extension, nature, libellé de voie  C  N  N  C  C  N  N
+  S21.G00.85.004  Code postal  C  N  N  C  C  N  N
+  S21.G00.85.005  Localité  C  N  N  C  C  N  N
+S21.G00.85  Lieu de travail ou établissement utilisateur  S21.G00.85.006  Code Pays  C  N  N  C  C  N  N
+  S21.G00.85.007  Code de distribution à l'étranger  C  N  N  C  C  N  N
+  S21.G00.85.008  Complément de la localisation de la construction  C  N  N  C  C  N  N
+  S21.G00.85.009  Service de distribution, complément de localisation de la voie  C  N  N  C  C  N  N
+  S21.G00.85.010  Nature juridique  O  N  N  O  O  N  N
+  S21.G00.85.011  Code INSEE commune  C  N  N  C  C  N  N
+  S21.G00.86.001  Type  O  N  N  O  O  N  N
+  S21.G00.86.002  Unité de mesure  O  N  N  O  O  N  N
+S21.G00.86  Ancienneté
+  S21.G00.86.003  Valeur  O  N  N  O  O  N  N
+  S21.G00.86.005  Numéro du contrat  O  N  N  O  O  N  N
+  S21.G00.95.001  Code de base assujettie déclarée à tort  O  N  N  N  N  O  N
+  S21.G00.95.002  Date de début de période de rattachement de la base déclarée à tort  O  N  N  N  N  O  N
+S21.G00.95  Base assujettie déclarée à tort pour un régime de base risque maladie, AT/MP ou vieillesse  S21.G00.95.003  Date de fin de période de rattachement de la base déclarée à tort  O  N  N  N  N  O  N
+  S21.G00.95.004  Montant déclaré à tort  O  N  N  N  N  O  N
+  S21.G00.95.005  Numéro du contrat rattaché à la base assujettie déclarée à tort  C  N  N  N  N  C  N
+  S21.G00.98.001  Identifiant de la SATD  O  N  N  N  N  N  N
+  S21.G00.98.002  Etat de prise en compte de la SATD  O  N  N  N  N  N  N
+S21.G00.98  Saisie administrative à tiers détenteur
+  S21.G00.98.003  Montant  O  N  N  N  N  N  N
+  S21.G00.98.004  Mois de l’erreur  C  N  N  N  N  N  N
+  S89.G00.32.001  Profession ou qualité  O  N  N  N  N  N  N
+  S89.G00.32.002  Nom du bénéficiaire des honoraires  C  N  N  N  N  N  N
+  S89.G00.32.003  Prénom du bénéficiaire des honoraires  C  N  N  N  N  N  N
+  S89.G00.32.004  Siren du bénéficiaire des honoraires  C  N  N  N  N  N  N
+  S89.G00.32.005  Nic du bénéficiaire des honoraires  C  N  N  N  N  N  N
+  S89.G00.32.006  Raison sociale du bénéficiaire des honoraires  C  N  N  N  N  N  N
+  S89.G00.32.007  Complément de localisation de la construction  C  N  N  N  N  N  N
+  S89.G00.32.008  Numéro, extension, nature et libellé de la voie  C  N  N  N  N  N  N
+  S89.G00.32.009  Code INSEE de la commune  C  N  N  N  N  N  N
+S89.G00.32  Bénéficiaire des honoraires
+  S89.G00.32.010  Service de distribution, complément de localisation de la voie  C  N  N  N  N  N  N
+  S89.G00.32.011  Code postal  C  N  N  N  N  N  N
+  S89.G00.32.012  Localité  C  N  N  N  N  N  N
+  S89.G00.32.013  Code pays  C  N  N  N  N  N  N
+  S89.G00.32.014  Code de distribution à l'étranger  C  N  N  N  N  N  N
+  S89.G00.32.015  Code taux réduit ou dispense de retenue à la source  C  N  N  N  N  N  N
+  S89.G00.32.016  Montant TVA droits d'auteurs  C  N  N  N  N  N  N
+  S89.G00.32.017  Millésime de rattachement  O  N  N  N  N  N  N
+  S89.G00.32.018  Date de naissance  C  N  N  N  N  N  N
+  S89.G00.33.001  Code type avantage en nature  O  N  N  N  N  N  N
+S89.G00.33  Avantages en nature
+  S89.G00.33.002  Montant avantage en nature  O  N  N  N  N  N  N
+  S89.G00.35.001  Code modalité de prise en charge des indemnités  O  N  N  N  N  N  N
+S89.G00.35  Prise en charge des indemnités
+  S89.G00.35.002  Montant de l'indemnité  O  N  N  N  N  N  N
+
+--- p. 379 ---
+  contrat de travail unique
+  05 - Signalement reprise
+
+  09 - DSN de substitution
+
+  Déclaration préalable à
+  07 - Signalement fin de
+  04 - Signalement arrêt
+
+  suite à arrêt de travail
+  01 - DSN mensuelle
+
+  08 - Signalement
+
+  10 - Signalement
+  Bloc  Rubrique
+
+  l'embauche
+  amorçage
+  de travail
+  S89.G00.43.001  Code type de la rémunération  O  N  N  N  N  N  N
+S89.G00.43  Rémunérations
+  S89.G00.43.002  Montant de la rémunération  O  N  N  N  N  N  N
+  S89.G00.67.001  NIR  C  N  N  N  N  N  N
+  S89.G00.67.002  Numéro technique temporaire  C  N  N  N  N  N  N
+S89.G00.67  Droit supplémentaire acquis au titre des régimes de retraite supplémentaire à prestations définies  S89.G00.67.003  Montant de droit supplémentaire acquis  O  N  N  N  N  N  N
+  S89.G00.67.004  Pourcentage de droit supplémentaire acquis  O  N  N  N  N  N  N
+  S89.G00.67.005  Millésime de rattachement  O  N  N  N  N  N  N
+  S89.G00.87.001  Code contexte  O  N  N  N  N  N  N
+  S89.G00.87.002  Nombre d'actions  O  N  N  N  N  N  N
+  S89.G00.87.003  Valeur unitaire de l'action  O  N  N  N  N  N  N
+  S89.G00.87.004  Fraction du gain d'acquisition de source française  C  N  N  N  N  N  N
+S89.G00.87  Actions gratuites
+  S89.G00.87.005  Date d'attribution  C  N  N  N  N  N  N
+  S89.G00.87.006  Date d'acquisition définitive  C  N  N  N  N  N  N
+  S89.G00.87.007  Numéro d'inscription au répertoire  C  N  N  N  N  N  N
+  S89.G00.87.008  Numéro technique temporaire  C  N  N  N  N  N  N
+  S89.G00.88.001  Code contexte  O  N  N  N  N  N  N
+  S89.G00.88.002  Nombre d'options  O  N  N  N  N  N  N
+  S89.G00.88.003  Valeur unitaire de l'action  O  N  N  N  N  N  N
+  S89.G00.88.004  Prix de souscription de l'action  O  N  N  N  N  N  N
+S89.G00.88  Options sur titres (stock options)  S89.G00.88.005  Fraction du gain de levée d'option de source française  C  N  N  N  N  N  N
+  S89.G00.88.006  Date d'attribution  C  N  N  N  N  N  N
+  S89.G00.88.007  Date de levée de l'option  C  N  N  N  N  N  N
+  S89.G00.88.008  Numéro d'inscription au répertoire  C  N  N  N  N  N  N
+  S89.G00.88.009  Numéro technique temporaire  C  N  N  N  N  N  N
+  S89.G00.89.001  Nombre de titres  O  N  N  N  N  N  N
+  S89.G00.89.002  Prix d'acquisition des titres  O  N  N  N  N  N  N
+  S89.G00.89.003  Valeur unitaire des titres au jour de l'exercice des bons  O  N  N  N  N  N  N
+  S89.G00.89.004  Fraction du gain de source française  O  N  N  N  N  N  N
+S89.G00.89  Bons de souscription de parts de créateur d'entreprise (BSPCE)
+  S89.G00.89.005  Date d'acquisition des titres  O  N  N  N  N  N  N
+  S89.G00.89.006  Durée d'exercice de l'activité du bénéficiaire dans l'entreprise  O  N  N  N  N  N  N
+  S89.G00.89.007  Numéro d'inscription au répertoire  C  N  N  N  N  N  N
+  S89.G00.89.008  Numéro technique temporaire  C  N  N  N  N  N  N
+  S89.G00.91.001  Numéro d'inscription au répertoire  C  N  N  N  C  C  N
+  S89.G00.91.002  Nom de famille  O  N  N  N  O  O  N
+  S89.G00.91.003  Nom d'usage  C  N  N  N  C  C  N
+  S89.G00.91.004  Prénoms  O  N  N  N  O  O  N
+  S89.G00.91.005  Sexe  C  N  N  N  C  C  N
+  S89.G00.91.006  Date de naissance  O  N  N  N  O  O  N
+  S89.G00.91.007  Lieu de naissance  O  N  N  N  O  O  N
+  S89.G00.91.008  Numéro, extension, nature et libellé de la voie  C  N  N  N  C  C  N
+  S89.G00.91.009  Code postal  C  N  N  N  C  C  N
+  S89.G00.91.010  Localité  C  N  N  N  C  C  N
+S89.G00.91  Individu non salarié  S89.G00.91.011  Code pays  C  N  N  N  C  C  N
+  S89.G00.91.012  Code de distribution à l'étranger  C  N  N  N  C  C  N
+  S89.G00.91.013  Complément de la localisation de la construction  C  N  N  N  C  C  N
+  S89.G00.91.014  Service de distribution, complément de localisation de la voie  C  N  N  N  C  C  N
+  S89.G00.91.015  Adresse mél  C  N  N  N  C  C  N
+  S89.G00.91.016  Matricule de l'individu dans l'entreprise  C  N  N  N  C  C  N
+  S89.G00.91.017  Statut du salarié (conventionnel)  C  N  N  N  C  C  N
+  S89.G00.91.018  Code statut catégoriel Retraite Complémentaire obligatoire  C  N  N  N  C  C  N
+  S89.G00.91.019  Code département de naissance  O  N  N  N  O  O  N
+  S89.G00.91.020  Code pays de naissance  O  N  N  N  O  O  N
+  S89.G00.91.021  Numéro technique temporaire  C  N  N  N  C  C  N
+  S89.G00.92.001  Type  O  N  N  N  N  O  N
+  S89.G00.92.002  Code de base spécifique  O  N  N  N  N  O  N
+  S89.G00.92.003  Montant  O  N  N  N  N  O  N
+  S89.G00.92.004  Date de début de période de rattachement  O  N  N  N  N  O  N
+  S89.G00.92.005  Date de fin de période de rattachement  O  N  N  N  N  O  N
+  S89.G00.92.006  Montant net fiscal du revenu versé  C  N  N  N  N  C  N
+  S89.G00.92.007  Taux de prélèvement à la source  C  N  N  N  N  C  N
+  S89.G00.92.008  Type du taux de prélèvement à la source  C  N  N  N  N  C  N
+  S89.G00.92.009  Identifiant du taux de prélèvement à la source  C  N  N  N  N  C  N
+S89.G00.92  Bases spécifiques individu non salarié
+  S89.G00.92.010  Montant de prélèvement à la source  C  N  N  N  N  C  N
+  S89.G00.92.011  Date de versement  O  N  N  N  N  O  N
+
+--- p. 380 ---
+  contrat de travail unique
+  05 - Signalement reprise
+
+  09 - DSN de substitution
+
+  Déclaration préalable à
+  07 - Signalement fin de
+  04 - Signalement arrêt
+
+  suite à arrêt de travail
+  01 - DSN mensuelle
+
+  08 - Signalement
+
+  10 - Signalement
+  Bloc  Rubrique
+
+  l'embauche
+  amorçage
+  de travail
+  S89.G00.92.012  Montant de la part non imposable du revenu  C  N  N  N  N  C  N
+  S89.G00.92.013  Montant soumis au PAS  C  N  N  N  N  C  N
+  S89.G00.92.014  Montant de l’abattement sur la base fiscale (non déduit du montant net fiscal du revenu versé)  C  N  N  N  N  C  N
+  S89.G00.92.015  Identifiant du CRM à l'origine de la régularisation  C  N  N  N  N  C  N
+  S89.G00.92.016  Montant net versé  C  N  N  N  N  C  N
+  S89.G00.92.017  Montant net social  C  N  N  N  N  C  N
+  S89.G00.92.018  Montant de la retenue à la source sur les revenus versés aux non-résidents fiscaux  C  N  N  N  N  C  N
+  S89.G00.93.001  Mois de l'erreur  O  N  N  N  N  N  N
+  S89.G00.93.002  Type d'erreur  O  N  N  N  N  N  N
+  S89.G00.93.003  Régularisation du montant net fiscal du revenu versé  C  N  N  N  N  N  N
+  S89.G00.93.004  Montant net fiscal du revenu versé le mois de l’erreur  C  N  N  N  N  N  N
+  S89.G00.93.005  Régularisation du taux de prélèvement à la source  C  N  N  N  N  N  N
+  S89.G00.93.006  Taux déclaré le mois de l'erreur  C  N  N  N  N  N  N
+S89.G00.93  Régularisation de prélèvement à la source
+  S89.G00.93.007  Montant de la régularisation du prélèvement à la source  O  N  N  N  N  N  N
+  S89.G00.93.008  Régularisation du montant de la part non imposable du revenu  C  N  N  N  N  N  N
+  S89.G00.93.009  Régularisation du montant soumis au PAS  C  N  N  N  N  N  N
+  Régularisation du montant de l’abattement sur la base fiscale (non déduit du montant net fiscal du
+  S89.G00.93.010  C  N  N  N  N  N  N
+  revenu versé)
+  S89.G00.93.013  Montant soumis au prélèvement à la source déclaré le mois de l'erreur  C  N  N  N  N  N  N
+  S89.G00.94.001  Code de cotisation  O  N  N  N  N  O  N
+S89.G00.94  Cotisation Individu non salarié
+  S89.G00.94.002  Montant de cotisation  O  N  N  N  N  O  N
+  S90.G00.90.001  Nombre total de rubriques  O  O  O  O  O  O  O
+S90.G00.90  Total de l'envoi
+  S90.G00.90.002  Nombre de DSN  O  O  O  O  O  O  O
+
+--- p. 381 ---
+  Tableau des usages de contrôles : explications
+
+Ce tableau permet de visualiser les messages (DSN mensuelle, signalements) dans lesquels les
+contrôles de type CCH et SIG sont réalisés.
+Il convient de le lire de la manière suivante :
+- Oui : le contrôle peut être réalisé dans le message concerné
+- Non : le contrôle n’est pas réalisé dans le message concerné
+
+--- p. 382 ---
+  reprise suite à arrêt de
+  04 - Signalement arrêt
+
+  Déclaration préalable
+  de contrat de travail
+  07 - Signalement fin
+  01 - DSN mensuelle
+
+  05 - Signalement
+
+  08 - Signalement
+
+  10 - Signalement
+
+  à l'embauche
+Identifiant de rubrique  Intitulé de rubrique  Contrôle
+
+  substitution
+  09 - DSN de
+  amorçage
+  de travail
+
+  unique
+  travail
+S10.G00.00.007  Point de dépôt  CCH-11  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S10.G00.00.008  Type de l'envoi  CCH-11  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S10.G00.01.002  Nic de l'émetteur de l'envoi  CCH-11  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S10.G00.01.005  Code postal  CCH-12  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S10.G00.01.006  Localité  CCH-11  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S20.G00.05.001  Nature de la déclaration  CCH-11  Oui  Non  Non  Non  Oui  Oui  Non
+S20.G00.05.001  Nature de la déclaration  CCH-12  Oui  Non  Non  Oui  Oui  Non  Non
+S20.G00.05.001  Nature de la déclaration  CCH-13  Oui  Non  Non  Oui  Oui  Non  Non
+S20.G00.05.002  Type de la déclaration  CCH-11  Non  Oui  Oui  Oui  Oui  Non  Oui
+S20.G00.05.002  Type de la déclaration  CCH-13  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S20.G00.05.002  Type de la déclaration  CCH-14  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S20.G00.05.002  Type de la déclaration  CCH-15  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S20.G00.05.002  Type de la déclaration  CCH-16  Oui  Non  Non  Non  Oui  Oui  Non
+S20.G00.05.003  Numéro de fraction de déclaration  CCH-11  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S20.G00.05.006  Identifiant de la déclaration annulée ou remplacée  CCH-12  Non  Oui  Oui  Oui  Oui  Non  Oui
+S20.G00.05.008  Champ de la déclaration  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S20.G00.05.008  Champ de la déclaration  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S20.G00.05.009  Identifiant métier  CCH-11  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S20.G00.05.010  Devise de la déclaration  SIG-11  Oui  Non  Non  Oui  Non  Oui  Non
+S20.G00.05.011  Nature de l’événement déclencheur du signalement  CCH-11  Non  Non  Non  Non  Oui  Non  Non
+S20.G00.05.011  Nature de l’événement déclencheur du signalement  CCH-12  Non  Non  Non  Non  Oui  Non  Non
+S20.G00.05.011  Nature de l’événement déclencheur du signalement  CCH-13  Non  Non  Non  Non  Oui  Non  Non
+S20.G00.05.011  Nature de l’événement déclencheur du signalement  CCH-14  Non  Non  Non  Non  Oui  Non  Non
+S20.G00.05.012  Dernier SIRET connu pour ancien numéro de contrat  CCH-11  Non  Non  Non  Non  Oui  Non  Non
+S20.G00.07.004  Type  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.06.005  Code postal  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.06.006  Localité  CCH-11  Oui  Non  Non  Oui  Non  Oui  Oui
+S21.G00.06.012  Implantation de l'entreprise  SIG-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.11.004  Code postal  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.11.005  Localité  CCH-11  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S21.G00.11.017  Nature juridique de l'employeur  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.11.019  Date d’effet de l’adhésion au dispositif TESE/CEA  SIG-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.11.024  Demande de sortie de la DSN  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.12.001  Type d’usage  CCH-11  Oui  Non  Non  Non  Oui  Non  Non
+S21.G00.12.001  Type d’usage  CCH-12  Non  Non  Non  Non  Oui  Non  Non
+S21.G00.12.001  Type d’usage  CCH-13  Oui  Non  Non  Non  Oui  Non  Non
+S21.G00.13.003  Nombre BOETH externe  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.13.004  Millésime de rattachement  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.13.004  Millésime de rattachement  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.15.001  Référence du contrat de Prévoyance  CCH-11  Oui  Oui  Oui  Oui  Oui  Non  Non
+S21.G00.15.001  Référence du contrat de Prévoyance  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.15.001  Référence du contrat de Prévoyance  CCH-14  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.15.003  Code délégataire de gestion  CCH-11  Oui  Oui  Oui  Oui  Oui  Non  Non
+S21.G00.15.003  Code délégataire de gestion  CCH-12  Oui  Oui  Oui  Oui  Oui  Non  Non
+S21.G00.15.003  Code délégataire de gestion  CCH-13  Oui  Oui  Oui  Oui  Oui  Non  Non
+S21.G00.15.003  Code délégataire de gestion  CCH-14  Oui  Oui  Oui  Oui  Oui  Non  Non
+S21.G00.15.005  Identifiant technique Adhésion  CCH-11  Oui  Oui  Oui  Oui  Oui  Non  Non
+S21.G00.16.001  Date de la modification  SIG-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.001  Identifiant Organisme de Protection Sociale  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.001  Identifiant Organisme de Protection Sociale  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.002  Entité d'affectation des opérations  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.002  Entité d'affectation des opérations  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.003  BIC  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.004  IBAN  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.004  IBAN  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.005  Montant du versement  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+
+--- p. 383 ---
+  reprise suite à arrêt de
+  04 - Signalement arrêt
+
+  Déclaration préalable
+  de contrat de travail
+  07 - Signalement fin
+  01 - DSN mensuelle
+
+  05 - Signalement
+
+  08 - Signalement
+
+  10 - Signalement
+
+  à l'embauche
+Identifiant de rubrique  Intitulé de rubrique  Contrôle
+
+  substitution
+  09 - DSN de
+  amorçage
+  de travail
+
+  unique
+  travail
+S21.G00.20.005  Montant du versement  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.006  Date de début de période de rattachement  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.006  Date de début de période de rattachement  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.007  Date de fin de période de rattachement  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.007  Date de fin de période de rattachement  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.007  Date de fin de période de rattachement  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.008  Code délégataire de gestion  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.008  Code délégataire de gestion  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.008  Code délégataire de gestion  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.008  Code délégataire de gestion  CCH-14  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.008  Code délégataire de gestion  CCH-15  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.010  Mode de paiement  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.010  Mode de paiement  CCH-14  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.010  Mode de paiement  SIG-13  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.010  Mode de paiement  SIG-14  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.012  SIRET Payeur  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.012  SIRET Payeur  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.012  SIRET Payeur  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.012  SIRET Payeur  CCH-14  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.013  Identifiant du CRM à l'origine de la régularisation  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.20.014  Identifiant du versement  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.22.002  Entité d'affectation des opérations  CCH-13  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.22.003  Date de début de période de rattachement  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.22.004  Date de fin de période de rattachement  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.22.004  Date de fin de période de rattachement  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.22.005  Montant total de cotisations  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.22.006  Identifiant du CRM à l'origine de la régularisation  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.23.006  Code INSEE commune  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.23.007  Identifiant du CRM à l'origine de la régularisation  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.30.001  Numéro d'inscription au répertoire  CCH-11  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S21.G00.30.001  Numéro d'inscription au répertoire  CCH-13  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S21.G00.30.001  Numéro d'inscription au répertoire  CCH-14  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S21.G00.30.001  Numéro d'inscription au répertoire  CCH-15  Oui  Non  Non  Non  Oui  Oui  Non
+S21.G00.30.001  Numéro d'inscription au répertoire  CCH-16  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S21.G00.30.006  Date de naissance  CCH-11  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S21.G00.30.006  Date de naissance  CCH-12  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S21.G00.30.007  Lieu de naissance  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.30.009  Code postal  CCH-12  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.30.010  Localité  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.30.014  Code département de naissance  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.30.020  Numéro technique temporaire  CCH-12  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S21.G00.30.020  Numéro technique temporaire  CCH-13  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S21.G00.30.020  Numéro technique temporaire  CCH-14  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S21.G00.30.020  Numéro technique temporaire  CCH-15  Oui  Non  Non  Non  Oui  Oui  Non
+S21.G00.30.025  Niveau de diplôme préparé par l'individu  CCH-11  Oui  Non  Non  Non  Oui  Non  Oui
+S21.G00.30.029  Libellé du pays de naissance  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.31.001  Date de la modification  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.31.001  Date de la modification  SIG-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.31.011  Ancienne date de naissance  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.34.001  Facteur d'exposition  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.34.002  Numéro du contrat  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.001  Date de début du contrat  CCH-13  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.40.001  Date de début du contrat  CCH-15  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S21.G00.40.001  Date de début du contrat  SIG-14  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.003  Code statut catégoriel Retraite Complémentaire obligatoire  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.003  Code statut catégoriel Retraite Complémentaire obligatoire  CCH-16  Oui  Non  Non  Oui  Non  Oui  Non
+
+--- p. 384 ---
+  reprise suite à arrêt de
+  04 - Signalement arrêt
+
+  Déclaration préalable
+  de contrat de travail
+  07 - Signalement fin
+  01 - DSN mensuelle
+
+  05 - Signalement
+
+  08 - Signalement
+
+  10 - Signalement
+
+  à l'embauche
+Identifiant de rubrique  Intitulé de rubrique  Contrôle
+
+  substitution
+  09 - DSN de
+  amorçage
+  de travail
+
+  unique
+  travail
+S21.G00.40.003  Code statut catégoriel Retraite Complémentaire obligatoire  CCH-17  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.40.003  Code statut catégoriel Retraite Complémentaire obligatoire  SIG-12  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.40.003  Code statut catégoriel Retraite Complémentaire obligatoire  SIG-15  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.004  Code profession et catégorie socioprofessionnelle (PCS-ESE)  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.004  Code profession et catégorie socioprofessionnelle (PCS-ESE)  CCH-12  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.004  Code profession et catégorie socioprofessionnelle (PCS-ESE)  CCH-13  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.004  Code profession et catégorie socioprofessionnelle (PCS-ESE)  CCH-14  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.004  Code profession et catégorie socioprofessionnelle (PCS-ESE)  CCH-15  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.004  Code profession et catégorie socioprofessionnelle (PCS-ESE)  SIG-16  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.005  Code complément PCS-ESE  CCH-19  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.005  Code complément PCS-ESE  CCH-21  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.007  Nature du contrat  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.008  Dispositif de politique publique et conventionnel  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.008  Dispositif de politique publique et conventionnel  CCH-12  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.008  Dispositif de politique publique et conventionnel  CCH-13  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.008  Dispositif de politique publique et conventionnel  CCH-14  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.008  Dispositif de politique publique et conventionnel  CCH-15  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.008  Dispositif de politique publique et conventionnel  CCH-16  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.008  Dispositif de politique publique et conventionnel  CCH-17  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.008  Dispositif de politique publique et conventionnel  CCH-18  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.009  Numéro du contrat  CCH-12  Oui  Oui  Oui  Oui  Oui  Oui  Oui
+S21.G00.40.009  Numéro du contrat  CCH-13  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.40.009  Numéro du contrat  CCH-15  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.010  Date de fin prévisionnelle du contrat  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.010  Date de fin prévisionnelle du contrat  CCH-12  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.011  Unité de mesure de la quotité de travail  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.011  Unité de mesure de la quotité de travail  CCH-12  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.011  Unité de mesure de la quotité de travail  CCH-13  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.011  Unité de mesure de la quotité de travail  SIG-14  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.011  Unité de mesure de la quotité de travail  CCH-15  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.40.011  Unité de mesure de la quotité de travail  CCH-16  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.012  Quotité de travail de référence de l'entreprise pour la catégorie de salarié  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.014  Modalité d'exercice du temps de travail  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.014  Modalité d'exercice du temps de travail  CCH-12  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.018  Code régime de base risque maladie  CCH-14  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.019  Identifiant du lieu de travail  CCH-11  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.40.019  Identifiant du lieu de travail  CCH-12  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.020  Code régime de base risque vieillesse  CCH-12  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.020  Code régime de base risque vieillesse  CCH-13  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.020  Code régime de base risque vieillesse  CCH-14  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.020  Code régime de base risque vieillesse  CCH-15  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.020  Code régime de base risque vieillesse  CCH-16  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.020  Code régime de base risque vieillesse  CCH-17  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.021  Motif de recours  CCH-12  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.021  Motif de recours  SIG-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.021  Motif de recours  CCH-13  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.022  Code caisse professionnelle de congés payés  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.026  Statut d'emploi du salarié  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.027  Code affectation Assurance chômage  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.40.027  Code affectation Assurance chômage  CCH-12  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.40.029  Type de gestion de l'Assurance chômage  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.40.029  Type de gestion de l'Assurance chômage  SIG-12  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.40.030  Date d'adhésion  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.40.030  Date d'adhésion  SIG-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.031  Date de dénonciation  CCH-11  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.40.031  Date de dénonciation  SIG-13  Non  Non  Non  Oui  Non  Non  Non
+
+--- p. 385 ---
+  reprise suite à arrêt de
+  04 - Signalement arrêt
+
+  Déclaration préalable
+  de contrat de travail
+  07 - Signalement fin
+  01 - DSN mensuelle
+
+  05 - Signalement
+
+  08 - Signalement
+
+  10 - Signalement
+
+  à l'embauche
+Identifiant de rubrique  Intitulé de rubrique  Contrôle
+
+  substitution
+  09 - DSN de
+  amorçage
+  de travail
+
+  unique
+  travail
+S21.G00.40.032  Date d'effet de la convention de gestion  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.40.033  Numéro de convention de gestion  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.40.033  Numéro de convention de gestion  CCH-12  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.40.039  Code régime de base risque accident du travail  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.040  Code risque accident du travail  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.040  Code risque accident du travail  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.040  Code risque accident du travail  CCH-15  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.041  Positionnement dans la convention collective  CCH-11  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.042  Code statut catégoriel APECITA  CCH-11  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.043  Taux de cotisation accident du travail  SIG-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.046  Identifiant de l'établissement utilisateur  CCH-11  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.046  Identifiant de l'établissement utilisateur  CCH-12  Oui  Non  Non  Oui  Oui  Oui  Oui
+S21.G00.40.046  Identifiant de l'établissement utilisateur  CCH-13  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.40.050  Numéro objet spectacle  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.40.052  [FP] Code complément PCS-ESE pour la fonction publique d'Etat (NNE)  CCH-11  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.053  Nature du poste  CCH-11  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.054  [FP] Quotité de travail de référence de l'entreprise pour la catégorie de salarié dans l’hypothèse d’un poste à temps complet  CCH-11  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.057  [FP] Indice brut  CCH-11  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.057  [FP] Indice brut  CCH-12  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.058  [FP] Indice majoré  CCH-11  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.059  [FP] Nouvelle bonification indiciaire (NBI)  CCH-11  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.060  [FP] Indice brut d'origine  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.060  [FP] Indice brut d'origine  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.061  [FP] Indice brut de cotisation dans un emploi supérieur (article 15)  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.061  [FP] Indice brut de cotisation dans un emploi supérieur (article 15)  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.062  [FP] Ancien employeur public  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.063  [FP] Indice brut d’origine ancien salarié employeur public  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.063  [FP] Indice brut d’origine ancien salarié employeur public  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.064  [FP] Indice brut d’origine sapeur-pompier professionnel (SPP)  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.064  [FP] Indice brut d’origine sapeur-pompier professionnel (SPP)  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.065  [FP] Maintien du traitement d'origine d'un contractuel titulaire  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.065  [FP] Maintien du traitement d'origine d'un contractuel titulaire  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.066  [FP] Type de détachement  CCH-11  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.069  Niveau de rémunération  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.071  Coefficient hiérarchique  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.074  Cas de mise à disposition externe d'un individu de l'établissement  CCH-11  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.075  Catégorie de classement finale  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.076  Identifiant du contrat d'engagement maritime  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.078  Forme d'aménagement du temps de travail dans le cadre de l'activité partielle  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.078  Forme d'aménagement du temps de travail dans le cadre de l'activité partielle  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.40.079  Grade  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.080  [FP] Indice complément de traitement indiciaire (CTI)  CCH-11  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.080  [FP] Indice complément de traitement indiciaire (CTI)  CCH-12  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.40.081  FINESS géographique  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.40.082  Nombre de jours de période d’essai  CCH-11  Non  Non  Non  Non  Non  Non  Oui
+S21.G00.40.082  Nombre de jours de période d’essai  CCH-12  Non  Non  Non  Non  Non  Non  Oui
+S21.G00.40.084  Application de la proratisation du Plafond de Sécurité Sociale à hauteur de la quotité de travail  CCH-12  Oui  Non  Non  Non  Oui  Oui  Oui
+S21.G00.41.001  Date de la modification  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.41.001  Date de la modification  CCH-13  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.41.001  Date de la modification  CCH-14  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.41.001  Date de la modification  CCH-15  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.41.001  Date de la modification  CCH-16  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.41.001  Date de la modification  SIG-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.41.021  Ancienne date de début du contrat  SIG-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.41.028  Profondeur de recalcul de la paie  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.41.028  Profondeur de recalcul de la paie  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+
+--- p. 386 ---
+  reprise suite à arrêt de
+  04 - Signalement arrêt
+
+  Déclaration préalable
+  de contrat de travail
+  07 - Signalement fin
+  01 - DSN mensuelle
+
+  05 - Signalement
+
+  08 - Signalement
+
+  10 - Signalement
+
+  à l'embauche
+Identifiant de rubrique  Intitulé de rubrique  Contrôle
+
+  substitution
+  09 - DSN de
+  amorçage
+  de travail
+
+  unique
+  travail
+S21.G00.41.028  Profondeur de recalcul de la paie  CCH-13  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.41.028  Profondeur de recalcul de la paie  CCH-14  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.41.028  Profondeur de recalcul de la paie  CCH-15  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.44.001  Code taxe  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.44.001  Code taxe  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.44.003  Millésime de rattachement  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.44.004  Motif de non assujettissement à la taxe d'apprentissage  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.50.001  Date de versement  CCH-13  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.50.001  Date de versement  CCH-14  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.50.001  Date de versement  CCH-15  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.50.001  Date de versement  CCH-16  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.50.003  Numéro de versement  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.50.003  Numéro de versement  CCH-12  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.50.007  Type du taux de prélèvement à la source  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.50.008  Identifiant du taux de prélèvement à la source  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.50.009  Montant de prélèvement à la source  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.51.001  Date de début de période de paie  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.51.002  Date de fin de période de paie  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.51.002  Date de fin de période de paie  CCH-13  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.51.002  Date de fin de période de paie  SIG-14  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.51.010  Numéro du contrat  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.51.010  Numéro du contrat  CCH-12  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.51.011  Type  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.51.011  Type  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.51.011  Type  CCH-13  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.51.011  Type  CCH-15  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.51.011  Type  CCH-16  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.51.012  Nombre d'heures  CCH-12  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.51.012  Nombre d'heures  SIG-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.51.012  Nombre d'heures  SIG-13  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.51.013  Montant  SIG-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.51.014  [FP] Taux de rémunération de la situation administrative  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.52.001  Type  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.001  Type  CCH-20  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.001  Type  CCH-21  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.001  Type  CCH-22  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.001  Type  CCH-23  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.001  Type  CCH-24  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.001  Type  CCH-27  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.001  Type  CCH-29  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.001  Type  CCH-31  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.001  Type  CCH-32  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.001  Type  CCH-33  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.001  Type  CCH-34  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.003  Date de début de la période de rattachement  CCH-12  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.004  Date de fin de la période de rattachement  CCH-11  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.52.004  Date de fin de la période de rattachement  CCH-13  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.004  Date de fin de la période de rattachement  CCH-14  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.006  Numéro du contrat  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.006  Numéro du contrat  CCH-12  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.52.007  Date de versement d'origine  SIG-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.52.007  Date de versement d'origine  SIG-12  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.52.007  Date de versement d'origine  CCH-13  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.53.001  Type  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.53.001  Type  CCH-12  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.53.002  Mesure  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+
+--- p. 387 ---
+  reprise suite à arrêt de
+  04 - Signalement arrêt
+
+  Déclaration préalable
+  de contrat de travail
+  07 - Signalement fin
+  01 - DSN mensuelle
+
+  05 - Signalement
+
+  08 - Signalement
+
+  10 - Signalement
+
+  à l'embauche
+Identifiant de rubrique  Intitulé de rubrique  Contrôle
+
+  substitution
+  09 - DSN de
+  amorçage
+  de travail
+
+  unique
+  travail
+S21.G00.53.002  Mesure  CCH-12  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.53.003  Unité de mesure  CCH-12  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.53.003  Unité de mesure  CCH-13  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.53.003  Unité de mesure  CCH-14  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.53.003  Unité de mesure  CCH-15  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.53.003  Unité de mesure  CCH-16  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.53.003  Unité de mesure  SIG-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.53.003  Unité de mesure  SIG-13  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.54.004  Date de fin de période de rattachement  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.54.004  Date de fin de période de rattachement  SIG-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.54.005  Numéro de contrat  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.54.005  Numéro de contrat  CCH-12  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.55.003  Code d'affectation  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.55.004  Période d'affectation  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.55.005  Identifiant du CRM à l'origine de la régularisation  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.56.001  Mois de l'erreur  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.56.002  Type d'erreur  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.56.002  Type d'erreur  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.56.002  Type d'erreur  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.56.002  Type d'erreur  CCH-14  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.56.002  Type d'erreur  CCH-15  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.56.002  Type d'erreur  CCH-16  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.56.002  Type d'erreur  CCH-17  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.56.002  Type d'erreur  CCH-18  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.56.002  Type d'erreur  CCH-26  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.56.002  Type d'erreur  CCH-27  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.56.008  Régularisation du montant de la part non imposable du revenu  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.56.010  Régularisation du montant soumis au PAS  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.58.002  Date de fin de période de rattachement  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.58.002  Date de fin de période de rattachement  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.58.002  Date de fin de période de rattachement  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.58.002  Date de fin de période de rattachement  CCH-14  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.59.005  Date de fin de période de rattachement  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.59.005  Date de fin de période de rattachement  SIG-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.59.006  Numéro de contrat  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.59.006  Numéro de contrat  CCH-12  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.60.001  Motif de l'arrêt  CCH-12  Oui  Oui  Oui  Oui  Non  Non  Non
+S21.G00.60.001  Motif de l'arrêt  CCH-14  Oui  Oui  Oui  Oui  Non  Non  Non
+S21.G00.60.001  Motif de l'arrêt  SIG-13  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.60.002  Date du dernier jour travaillé  CCH-12  Oui  Oui  Oui  Oui  Non  Non  Non
+S21.G00.60.002  Date du dernier jour travaillé  CCH-13  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.60.002  Date du dernier jour travaillé  SIG-14  Oui  Oui  Oui  Oui  Non  Non  Non
+S21.G00.60.002  Date du dernier jour travaillé  CCH-16  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.60.002  Date du dernier jour travaillé  CCH-17  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.60.002  Date du dernier jour travaillé  CCH-18  Oui  Oui  Oui  Oui  Non  Non  Non
+S21.G00.60.005  Date de début de subrogation  CCH-11  Oui  Oui  Non  Non  Non  Non  Non
+S21.G00.60.005  Date de début de subrogation  SIG-12  Oui  Oui  Non  Non  Non  Non  Non
+S21.G00.60.006  Date de fin de subrogation  CCH-11  Oui  Oui  Non  Non  Non  Non  Non
+S21.G00.60.006  Date de fin de subrogation  CCH-12  Oui  Oui  Non  Non  Non  Non  Non
+S21.G00.60.007  IBAN  CCH-11  Oui  Oui  Non  Non  Non  Non  Non
+S21.G00.60.008  BIC  CCH-11  Oui  Oui  Non  Non  Non  Non  Non
+S21.G00.60.010  Date de la reprise  CCH-11  Oui  Oui  Oui  Oui  Non  Non  Non
+S21.G00.60.010  Date de la reprise  SIG-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.60.010  Date de la reprise  SIG-13  Oui  Oui  Oui  Oui  Non  Non  Non
+S21.G00.60.011  Motif de la reprise  CCH-12  Oui  Oui  Oui  Oui  Non  Non  Non
+S21.G00.60.012  Date de l'accident ou de la première constatation  CCH-11  Non  Oui  Oui  Non  Non  Non  Non
+
+--- p. 388 ---
+  reprise suite à arrêt de
+  04 - Signalement arrêt
+
+  Déclaration préalable
+  de contrat de travail
+  07 - Signalement fin
+  01 - DSN mensuelle
+
+  05 - Signalement
+
+  08 - Signalement
+
+  10 - Signalement
+
+  à l'embauche
+Identifiant de rubrique  Intitulé de rubrique  Contrôle
+
+  substitution
+  09 - DSN de
+  amorçage
+  de travail
+
+  unique
+  travail
+S21.G00.60.012  Date de l'accident ou de la première constatation  SIG-13  Non  Oui  Oui  Non  Non  Non  Non
+S21.G00.60.012  Date de l'accident ou de la première constatation  SIG-14  Non  Oui  Oui  Non  Non  Non  Non
+S21.G00.62.001  Date de fin du contrat  CCH-11  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.62.001  Date de fin du contrat  SIG-13  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.62.002  Motif de la rupture du contrat  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.62.002  Motif de la rupture du contrat  CCH-12  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.62.002  Motif de la rupture du contrat  CCH-13  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.62.002  Motif de la rupture du contrat  CCH-14  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.62.003  Date de notification de la rupture de contrat  CCH-11  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.62.003  Date de notification de la rupture de contrat  CCH-12  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.62.004  Date de signature de la convention de rupture  CCH-11  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.62.005  Date d'engagement de la procédure de licenciement  CCH-11  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.62.005  Date d'engagement de la procédure de licenciement  CCH-12  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.62.006  Dernier jour travaillé et payé au salaire habituel  CCH-12  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.62.006  Dernier jour travaillé et payé au salaire habituel  CCH-14  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.62.006  Dernier jour travaillé et payé au salaire habituel  CCH-15  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.62.006  Dernier jour travaillé et payé au salaire habituel  CCH-16  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.62.011  Nombre de mois de préavis utilisés dans le cadre du calcul CSP  CCH-11  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.62.013  Montant de l'indemnité de préavis qui aurait été versée  CCH-11  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.62.017  Modalité de déclaration de la fin du contrat d'usage  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.62.017  Modalité de déclaration de la fin du contrat d'usage  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.62.018  Nombre de mois de préavis utilisés dans le cadre du calcul PAP  CCH-11  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.62.019  Solde de congés acquis et non pris (ENIM)  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.62.021  Refus de la proposition d'un CDI suite à CDD ou contrat de mission  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.63.001  Type réalisation et paiement du préavis  CCH-11  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.63.001  Type réalisation et paiement du préavis  CCH-12  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.63.001  Type réalisation et paiement du préavis  CCH-13  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.63.001  Type réalisation et paiement du préavis  CCH-14  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.63.002  Date de début de préavis  CCH-11  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.63.002  Date de début de préavis  CCH-13  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.63.002  Date de début de préavis  CCH-14  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.63.002  Date de début de préavis  CCH-15  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.63.002  Date de début de préavis  CCH-16  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.63.003  Date de fin de préavis  CCH-13  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.63.003  Date de fin de préavis  CCH-14  Non  Non  Non  Oui  Non  Non  Non
+S21.G00.65.001  Motif de suspension  SIG-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.65.001  Motif de suspension  CCH-12  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.65.002  Date de début de la suspension  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.65.002  Date de début de la suspension  CCH-13  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.65.002  Date de début de la suspension  SIG-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.65.003  Date de fin de la suspension  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.65.004  [FP] Position de détachement  CCH-11  Oui  Non  Non  Non  Oui  Non  Non
+S21.G00.66.002  Date de fin  SIG-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.70.012  Identifiant technique Affiliation  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.70.013  Identifiant technique Adhésion  CCH-11  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.70.013  Identifiant technique Adhésion  CCH-12  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.70.014  Date de début de l'affiliation  SIG-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.70.015  Date de fin de l'affiliation  CCH-11  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.70.015  Date de fin de l'affiliation  SIG-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.70.016  Affiliation prévoyance applicable à plusieurs contrats  CCH-11  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.71.002  Code régime Retraite Complémentaire  CCH-12  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.71.002  Code régime Retraite Complémentaire  CCH-13  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.71.002  Code régime Retraite Complémentaire  SIG-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.71.002  Code régime Retraite Complémentaire  SIG-14  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.72.001  Code régime Retraite Complémentaire déclaré à tort  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.73.004  Date de début de rattachement à l'ouvrant-droit  SIG-11  Oui  Non  Non  Non  Non  Non  Non
+
+--- p. 389 ---
+  reprise suite à arrêt de
+  04 - Signalement arrêt
+
+  Déclaration préalable
+  de contrat de travail
+  07 - Signalement fin
+  01 - DSN mensuelle
+
+  05 - Signalement
+
+  08 - Signalement
+
+  10 - Signalement
+
+  à l'embauche
+Identifiant de rubrique  Intitulé de rubrique  Contrôle
+
+  substitution
+  09 - DSN de
+  amorçage
+  de travail
+
+  unique
+  travail
+S21.G00.73.005  Date de naissance  CCH-11  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.73.007  Numéro d'inscription au répertoire  CCH-11  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.73.007  Numéro d'inscription au répertoire  CCH-12  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.73.011  Date de fin de rattachement à l'ouvrant-droit  CCH-11  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.75.002  Date de début de l'aménagement  CCH-11  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.75.002  Date de début de l'aménagement  CCH-12  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.75.002  Date de début de l'aménagement  SIG-13  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.75.003  Date de fin de l'aménagement  CCH-11  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.78.001  Code de base assujettie  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.78.001  Code de base assujettie  CCH-13  Oui  Non  Non  Oui  Non  Non  Non
+S21.G00.78.001  Code de base assujettie  CCH-14  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.78.001  Code de base assujettie  CCH-24  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.78.001  Code de base assujettie  CCH-25  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.78.001  Code de base assujettie  CCH-26  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.78.001  Code de base assujettie  SIG-18  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.78.001  Code de base assujettie  SIG-19  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.78.001  Code de base assujettie  SIG-23  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.78.003  Date de fin de période de rattachement  CCH-12  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.78.003  Date de fin de période de rattachement  CCH-15  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.78.003  Date de fin de période de rattachement  CCH-16  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.78.003  Date de fin de période de rattachement  SIG-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.78.003  Date de fin de période de rattachement  SIG-17  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.78.004  Montant  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.78.005  Identifiant technique Affiliation  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.78.005  Identifiant technique Affiliation  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.78.007  Identifiant du CRM à l'origine de la régularisation  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.79.001  Type de composant de base assujettie  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.79.001  Type de composant de base assujettie  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.79.001  Type de composant de base assujettie  CCH-13  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.79.001  Type de composant de base assujettie  CCH-14  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.79.001  Type de composant de base assujettie  CCH-16  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.79.001  Type de composant de base assujettie  CCH-17  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.79.001  Type de composant de base assujettie  SIG-18  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.79.001  Type de composant de base assujettie  SIG-19  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.79.005  Identifiant du CRM à l'origine de la régularisation  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.81.001  Code de cotisation  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.81.001  Code de cotisation  CCH-13  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.81.001  Code de cotisation  CCH-15  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.81.001  Code de cotisation  CCH-16  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.81.001  Code de cotisation  CCH-17  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.81.001  Code de cotisation  SIG-18  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.81.002  Identifiant Organisme de Protection Sociale  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.81.003  Montant d'assiette  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.81.003  Montant d'assiette  CCH-12  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.81.004  Montant de cotisation  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.81.004  Montant de cotisation  CCH-12  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.81.004  Montant de cotisation  CCH-13  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.81.005  Code INSEE commune  CCH-11  Oui  Non  Non  Oui  Non  Oui  Non
+S21.G00.81.006  Identifiant du CRM à l'origine de la régularisation  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.82.002  Code de cotisation  CCH-14  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.82.002  Code de cotisation  CCH-21  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.82.002  Code de cotisation  CCH-22  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.82.002  Code de cotisation  CCH-24  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.82.003  Date de début de période de rattachement  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.82.003  Date de début de période de rattachement  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.82.005  Référence réglementaire ou contractuelle  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+
+--- p. 390 ---
+  reprise suite à arrêt de
+  04 - Signalement arrêt
+
+  Déclaration préalable
+  de contrat de travail
+  07 - Signalement fin
+  01 - DSN mensuelle
+
+  05 - Signalement
+
+  08 - Signalement
+
+  10 - Signalement
+
+  à l'embauche
+Identifiant de rubrique  Intitulé de rubrique  Contrôle
+
+  substitution
+  09 - DSN de
+  amorçage
+  de travail
+
+  unique
+  travail
+S21.G00.82.005  Référence réglementaire ou contractuelle  CCH-14  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.82.006  Identifiant du CRM à l'origine de la régularisation  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S21.G00.83.001  Date de début de période déclarée à tort  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.83.002  Date de fin de période déclarée à tort  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.83.002  Date de fin de période déclarée à tort  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.84.002  Date de début de période de rattachement de la base déclarée à tort  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.84.003  Date de fin de période de rattachement de la base déclarée à tort  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.84.003  Date de fin de période de rattachement de la base déclarée à tort  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.84.003  Date de fin de période de rattachement de la base déclarée à tort  CCH-13  Oui  Non  Non  Non  Non  Oui  Non
+S21.G00.85.001  Identifiant du lieu de travail ou de l'établissement utilisateur  CCH-11  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.85.001  Identifiant du lieu de travail ou de l'établissement utilisateur  CCH-12  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.85.001  Identifiant du lieu de travail ou de l'établissement utilisateur  CCH-13  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.85.004  Code postal  CCH-12  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.85.005  Localité  CCH-11  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.85.011  Code INSEE commune  CCH-11  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.86.001  Type  CCH-12  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.86.001  Type  CCH-13  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.86.001  Type  CCH-14  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.86.003  Valeur  CCH-12  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.86.003  Valeur  CCH-11  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.86.005  Numéro du contrat  CCH-11  Oui  Non  Non  Oui  Oui  Non  Non
+S21.G00.98.004  Mois de l'erreur  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.32.001  Profession ou qualité  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.32.003  Prénom du bénéficiaire des honoraires  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.32.003  Prénom du bénéficiaire des honoraires  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.32.005  Nic du bénéficiaire des honoraires  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.32.006  Raison sociale du bénéficiaire des honoraires  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.32.011  Code postal  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.32.012  Localité  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.32.017  Millésime de rattachement  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.32.018  Date de naissance  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.32.018  Date de naissance  SIG-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.67.001  NIR  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.67.001  NIR  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.67.001  NIR  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.67.001  NIR  CCH-14  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.67.001  NIR  CCH-15  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.67.002  Numéro technique temporaire  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.67.002  Numéro technique temporaire  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.67.005  Millésime de rattachement  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.87.004  Fraction du gain d'acquisition de source française  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.87.005  Date d'attribution  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.87.005  Date d'attribution  SIG-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.87.006  Date d'acquisition définitive  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.87.006  Date d'acquisition définitive  SIG-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.87.007  Numéro d'inscription au répertoire  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.87.007  Numéro d'inscription au répertoire  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.87.007  Numéro d'inscription au répertoire  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.87.007  Numéro d'inscription au répertoire  CCH-14  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.87.007  Numéro d'inscription au répertoire  CCH-15  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.87.008  Numéro technique temporaire  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.87.008  Numéro technique temporaire  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.88.005  Fraction du gain de levée d'option de source française  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.88.006  Date d'attribution  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.88.006  Date d'attribution  SIG-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.88.007  Date de levée de l'option  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+
+--- p. 391 ---
+  reprise suite à arrêt de
+  04 - Signalement arrêt
+
+  Déclaration préalable
+  de contrat de travail
+  07 - Signalement fin
+  01 - DSN mensuelle
+
+  05 - Signalement
+
+  08 - Signalement
+
+  10 - Signalement
+
+  à l'embauche
+Identifiant de rubrique  Intitulé de rubrique  Contrôle
+
+  substitution
+  09 - DSN de
+  amorçage
+  de travail
+
+  unique
+  travail
+S89.G00.88.007  Date de levée de l'option  SIG-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.88.008  Numéro d'inscription au répertoire  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.88.008  Numéro d'inscription au répertoire  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.88.008  Numéro d'inscription au répertoire  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.88.008  Numéro d'inscription au répertoire  CCH-14  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.88.008  Numéro d'inscription au répertoire  CCH-15  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.88.009  Numéro technique temporaire  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.88.009  Numéro technique temporaire  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.89.005  Date d'acquisition des titres  SIG-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.89.007  Numéro d'inscription au répertoire  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.89.007  Numéro d'inscription au répertoire  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.89.007  Numéro d'inscription au répertoire  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.89.007  Numéro d'inscription au répertoire  CCH-14  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.89.007  Numéro d'inscription au répertoire  CCH-15  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.89.008  Numéro technique temporaire  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.89.008  Numéro technique temporaire  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.91.001  Numéro d'inscription au répertoire  CCH-11  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.001  Numéro d'inscription au répertoire  CCH-12  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.001  Numéro d'inscription au répertoire  CCH-13  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.001  Numéro d'inscription au répertoire  CCH-14  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.001  Numéro d'inscription au répertoire  CCH-15  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.006  Date de naissance  CCH-11  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.006  Date de naissance  CCH-12  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.009  Code postal  CCH-11  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.010  Localité  CCH-11  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.018  Code statut catégoriel Retraite Complémentaire obligatoire  CCH-11  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.018  Code statut catégoriel Retraite Complémentaire obligatoire  SIG-12  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.019  Code département de naissance  CCH-11  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.021  Numéro technique temporaire  CCH-12  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.021  Numéro technique temporaire  CCH-13  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.021  Numéro technique temporaire  CCH-14  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.91.021  Numéro technique temporaire  CCH-15  Oui  Non  Non  Non  Oui  Oui  Non
+S89.G00.92.001  Type  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.001  Type  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.001  Type  CCH-13  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.001  Type  CCH-14  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.001  Type  CCH-15  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.005  Date de fin de période de rattachement  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.005  Date de fin de période de rattachement  SIG-12  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.006  Montant net fiscal du revenu versé  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.007  Taux de prélèvement à la source  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.008  Type du taux de prélèvement à la source  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.008  Type du taux de prélèvement à la source  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.009  Identifiant du taux de prélèvement à la source  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.010  Montant de prélèvement à la source  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.010  Montant de prélèvement à la source  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.011  Date de versement  CCH-12  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.013  Montant soumis au PAS  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.015  Identifiant du CRM à l'origine de la régularisation  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.016  Montant net versé  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.017  Montant net social  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.92.018  Montant de la retenue à la source sur les revenus versés aux non-résidents fiscaux  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.93.001  Mois de l'erreur  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.93.001  Mois de l'erreur  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.93.002  Type d'erreur  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.93.002  Type d'erreur  CCH-12  Oui  Non  Non  Non  Non  Non  Non
+
+--- p. 392 ---
+  reprise suite à arrêt de
+  04 - Signalement arrêt
+
+  Déclaration préalable
+  de contrat de travail
+  07 - Signalement fin
+  01 - DSN mensuelle
+
+  05 - Signalement
+
+  08 - Signalement
+
+  10 - Signalement
+
+  à l'embauche
+Identifiant de rubrique  Intitulé de rubrique  Contrôle
+
+  substitution
+  09 - DSN de
+  amorçage
+  de travail
+
+  unique
+  travail
+S89.G00.93.002  Type d'erreur  CCH-13  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.93.002  Type d'erreur  CCH-14  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.93.002  Type d'erreur  CCH-16  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.93.002  Type d'erreur  CCH-17  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.93.002  Type d'erreur  CCH-18  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.93.002  Type d'erreur  CCH-19  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.93.002  Type d'erreur  CCH-20  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.93.002  Type d'erreur  CCH-21  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.93.008  Régularisation du montant de la part non imposable du revenu  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.93.009  Régularisation du montant soumis au PAS  CCH-11  Oui  Non  Non  Non  Non  Non  Non
+S89.G00.94.001  Code de cotisation  CCH-11  Oui  Non  Non  Non  Non  Oui  Non
+S89.G00.94.001  Code de cotisation  CCH-12  Oui  Non  Non  Non  Non  Oui  Non

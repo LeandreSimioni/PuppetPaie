@@ -1,0 +1,518 @@
+Les taux réduits cas particuliers
+Mis à jour le 15 juillet 2026    Lecture 11 min
+
+L’emploi de certaines professions donne lieu au paiement des cotisations de Sécurité sociale à taux réduits.
+Sont notamment concernés : les artistes du spectacle, les mannequins, les journalistes professionnels et les
+pigistes, les professions médicales salariées.
+
+
+
+
+Les artistes du spectacle
+
+Employeurs concernés
+
+Vous êtes employeur du spectacle vivant et cette activité est :
+
+    votre activité principale : vous devez réaliser les formalités et déclarer les cotisations auprès de l’Urssaf ;
+
+    une activité occasionnelle : vous devez vous adresser au guso         Lien vers https://www.guso.fr/information/accueil .
+
+
+Salariés concernés
+
+Seuls les artistes du spectacle sont concernés par l’application des taux réduits. Les techniciens ne sont pas concernés.
+
+
+Rémunérations concernées
+
+Les taux réduits s’appliquent sur l’ensemble des rémunérations.
+
+Vous appliquez la réduction de taux sur chaque « cachet » réglé à l’artiste peu importe leur nombre.
+
+Si vous avez mis en place la déduction forfaitaire spécifique (DFS) pour frais professionnels Lien vers /accueil/employeur/beneficier-
+exonerations/frais-professionnels.html propres aux artistes, vous appliquez les taux réduits sur les rémunérations calculées après la
+DFS.
+
+
+Cotisations concernées
+
+La réduction de taux est de 30 %.
+
+Sont concernées par le taux réduit, pour la part salariale et la part patronale, les cotisations :
+
+    de maladie (maladie, maternité, invalidité, décès) ;
+
+    de vieillesse ;
+
+    d’accident du travail (abattu et arrondi à la décimale la plus proche) ;
+
+    d’allocations familiales ;
+
+    de Fnal ;
+
+    de versement mobilité.
+
+La CSG-CRDS et la contribution solidarité autonomie (CSA) ne sont pas visées par la réduction de taux : vous devez donc calculer ces
+contributions au taux de droit commun.
+
+Pour connaître les taux applicables aux artistes du spectacle et aux mannequins, consultez le tableau ci-dessous : Lien vers
+
+
+
+
+  Cotisations et contributions                                             Taux
+
+
+                                                                                Taux réduit : 4,90 %
+  Assurance maladie, maternité, invalidité, décès                               Taux plein : 9,10 %
+
+
+
+
+  Contribution solidarité autonomie (CSA)                                  0,30 %
+
+
+  Assurance vieillesse                                                     1,48 % sur la totalité et 5,99 % dans la limite du plafond.
+  Cotisations et contributions                                            Taux
+
+
+                                                                              Taux réduit : 2,42 %
+  Allocations familiales                                                      Taux plein : 3,68 %
+
+
+
+
+  Contribution au dialogue social                                         0,016 %
+
+
+                                                                              Effectif de moins de 50 salariés : 0,07 % dans la limite du
+                                                                              plafond
+  Fnal
+                                                                              Effectif 50 salariés et plus : 0,35 %
+
+
+
+
+  Accidents du travail                                                    Taux AT de l'entreprise abattu de 30 %
+
+
+                                                                          70 % du taux VM Lien vers /accueil/outils-
+  Versement mobilité effectif 11 salariés et plus
+                                                                          documentation/outils/recherche-versement-mobilite.html
+
+
+
+  Cotisations et contributions                                            Taux
+
+
+  Assurance vieillesse                                                    0,28 % sur la totalité et 4,83 % dans la limite du plafond
+
+
+                                                                          2,40 % sur 98,25 % du salaire brut dans la limite de 192 240 € en
+  CSG imposable
+                                                                          2026
+
+
+                                                                          6,80 % sur 98,25 % du salaire brut dans la limite de 192 240 € en
+  CSG non imposable
+                                                                          2026
+
+
+                                                                          0,50 % sur 98,25 % du salaire brut dans la limite de 192 240 € en
+  CRDS
+                                                                          2026
+
+
+  Cotisation maladie supplémentaire pour les départements du              0,91 %
+  Haut-Rhin, Bas-Rhin et de la Moselle
+
+
+
+Pour les périodes d’engagement continu inférieures à cinq jours, vous appliquez un plafond aux cotisations d’assurance vieillesse pour
+chaque journée de travail égal à douze fois le plafond horaire, quels que soient :
+
+    le nombre d’heures ;
+
+    le nombre et la répartition des jours de travail durant cette période ;
+    la nature du travail effectué dans ladite journée (répétitions, enregistrements ou représentations prévus au contrat d’engagement) ;
+    ou le nombre et la périodicité des « cachets » versés.
+
+
+Déclaration
+
+Pour vos déclarations, vous utilisez les codes types personnel (CTP) suivants :
+
+    CTP 312 : Artistes cas général abattement 30 % ;
+
+    CTP 316 : FNAL artistes totalité ;
+    CTP 334 : FNAL artistes plafonné;
+    CTP 636 : Complément maladie abattement 30 %.
+
+
+
+Les mannequins
+Tout contrat de mannequinat est un contrat de travail.
+
+Par conséquent, dès lors que votre mannequin perçoit une rémunération, il relève obligatoirement du régime des salariés et doit être
+affilié au régime général. Vous devez obligatoirement le déclarer et verser les cotisations de Sécurité sociale à l’Urssaf.
+
+Les salaires que vous lui versez sont soumis aux cotisations et contributions de Sécurité sociale.
+Ces rémunérations peuvent bénéficier d’une déduction forfaitaire spécifique (DFS) pour frais professionnels Lien vers
+/accueil/employeur/beneficier-exonerations/frais-professionnels.html de 10 % pour les salaires versés :
+
+
+
+    Pour aller plus loin
+
+    Pour en savoir plus, consultez le Bulletin officiel de la Sécurité
+    sociale Lien vers https://boss.gouv.fr/portail/accueil/avantages-en-nature-et-frais-pro/frais-professionnels.html#titre-annexe--liste-des-professio
+
+
+
+Les mannequins bénéficient de taux de cotisations dérogatoires égaux à 70 % des taux de droit commun.
+
+Sont concernés les cotisations et contributions suivantes :
+
+     maternité, invalidité, décès ;
+     vieillesse ;
+
+     accidents du travail(le taux d’accident du travail à deux décimales doit être abattu et arrondi à la décimale la plus proche) ;
+     allocations familiales ;
+
+     fonds national d’aide au logement (Fnal) ;
+     versement mobilité.
+
+
+Pour connaître les taux applicables, consultez le tableau ci-dessus Lien vers /accueil/employeur/cotisations/liste-cotisations/taux-
+reduits-cas-particuliers.html#ancre-spectacle.
+
+Pour vos déclarations, vous utilisez les codes types personnel (CTP) suivants :
+
+     CTP 312 : Artistes cas général abattement 30 %;
+     CTP 316 : FNAL artistes totalité;
+
+     CTP 334 : FNAL artistes plafonné;
+     CTP 636 : Complément maladie abattement 30 %.
+
+
+
+    Bon à savoir
+
+    Si vous employez des mannequins ou que vous utilisez un enregistrement comportant une interprétation de sa part, et que vous lui
+    versez des royalties, cette rémunération est soumise
+
+         à la CSG-CRDS au taux de 10,60 % et 0,5 % ;
+
+         prélèvement unique de solidarité de 7,50 %.
+
+    Le forfait social n’est pas dû.
+
+    Si votre mannequin est affilié à la Sécurité sociale française mais réside fiscalement à l’étranger, les cotisations suivantes sont
+    dues maladie, maternité, invalidité et décès au taux de 12,95 % (9,10 % à la charge de l'employeur et 3,85 % à la charge du salarié).
+
+
+En qualité de producteur si vous ne possédez pas d’établissement en France, vous relevez de l'Urssaf service firmes étrangères.
+
+Service firme étrangère
+En tant qu’entreprise étrangère, vous souhaitez embaucher un salarié en France ? Effectuez vos démarches avec le service Firmes
+étrangères.
+
+Firmes étrangères
+En tant qu’entreprise étrangère, vous souhaitez embaucher un salarié en France ? Effectuez vos démarches avec le service Firmes étrangères.
+ Lien vers /accueil/services/services-employeurs/service-firmes-etrangeres.html
+
+
+
+Les journalistes
+
+Employeurs concernés
+
+Vous êtes concernés si vous êtes :
+
+     des journaux d’information : édition, impression, édition de revues et périodiques ;
+     des agences de presse y compris journalistes et photographes indépendants ;
+     des entreprises de radiodiffusion et de télévision (pour tout le personnel sauf les artistes).
+
+
+Salariés concernés
+
+Vous pouvez appliquer l’abattement, et ce quel que soit le nombre de leurs employeurs, si vos salariés sont :
+    des pigistes ;
+    des journalistes et assimilés ;
+
+         collaborateurs directs de la rédaction ;
+         rédacteurs-traducteurs ;
+         sténographes-rédacteurs ;
+         rédacteurs-réviseurs ;
+         reporters-dessinateurs ;
+
+         reporters-photographes.
+
+Et ce quel que soit le nombre de leurs employeurs.
+
+
+Cotisations concernées
+
+Vous appliquez un abattement de 20 % sur les taux de cotisations de Sécurité sociale dues pour vos salariés concernés.
+
+Cet abattement s’applique aux cotisations :
+
+    accidents du travail – maladies professionnelles (le taux d’accident du travail à deux décimales est abattu et arrondi à la décimale la
+    plus proche.
+    allocations familiales ;
+    assurance vieillesse plafonnée ;
+    assurance vieillesse sur la totalité pour la part patronale ;
+    versement mobilité.
+
+
+Cette réduction de taux n’est en revanche pas applicable :
+
+    à la cotisation d’assurance maladie ;
+    à la contribution Fnal ;
+    à la cotisation salariale d’assurance vieillesse déplafonnée ;
+    à la contribution de solidarité autonomie (CSA) ;
+    aux contributions d’assurance chômage et à la cotisation AGS ;
+
+    à la CSG et à la CRDS.
+
+Pour connaître les taux applicables pour les journalistes, consultez le tableau ci-dessous :
+
+
+
+  Cotisations et contributions                                          Taux
+
+
+                                                                             Taux réduit : 7 %
+  Assurance maladie, maternité, invalidité, décès                            Taux plein : 13 %
+
+
+
+
+  Contribution solidarité autonomie (CSA)                               0,30 %
+
+
+  Assurance vieillesse                                                  1,69 % sur la totalité et 6,84 % dans la limite du plafond
+
+
+                                                                             Taux réduit : 2,76 %
+  Allocations familiales                                                     Taux plein : 4,20 %
+
+
+
+
+  Contribution au dialogue social                                       0,016 %
+
+
+  Contribution assurance chômage                                        4,00 % dans la limite de 192 240 € en 2026
+
+
+  Cotisation AGS                                                        0,25 % dans la limite de 192 240 € en 2026
+
+
+                                                                             Effectif de moins de 50 salariés : 0,10 % dans la limite du
+                                                                             plafond
+  Fnal
+                                                                             Effectif 50 salariés et plus : 0,50 %
+  Cotisations et contributions                                           Taux
+
+
+  Accidents du travail                                                   80 % du taux AT de l'entreprise
+
+
+                                                                         80 % du taux VM Lien vers /accueil/outils-
+  Versement mobilité effectif 11 salariés et plus
+                                                                         documentation/outils/recherche-versement-mobilite.html
+
+
+
+  Cotisations et contributions                                           Taux
+
+
+  Assurance vieillesse                                                   0,40 % sur la totalité et 5,52 % dans la limite du plafond.
+
+
+                                                                         2,40 % sur 98,25 % du salaire brut dans la limite de 192 240 € en
+  CSG imposable
+                                                                         2026
+
+
+                                                                         6,80 % sur 98,25 % du salaire brut dans la limite de 192 240 € en
+  CSG non imposable
+                                                                         2026
+
+
+                                                                         0,50 % sur 98,25 % du salaire brut dans la limite de 192 240 € en
+  CRDS
+                                                                         2026
+
+
+  Cotisation maladie supplémentaire pour les départements du             1,30 %
+  Haut-Rhin, Bas-Rhin et de la Moselle
+
+
+
+Cumuls et non-cumuls
+
+Cumuls possibles :
+
+    Vous pouvez bénéficier de la réduction générale des cotisations dégressive unique Lien vers /accueil/employeur/beneficier-
+    exonerations/reduction-generale-cotisation.html patronales de Sécurité sociale ;
+    Les journalistes professionnels bénéficient d’un taux réduit égal à 80 % du taux de droit commun applicable ainsi que
+    d’une déduction forfaitaire spécifique (DFS) pour frais professionnels de 30 % Lien vers /accueil/employeur/beneficier-
+    exonerations/frais-professionnels.html.
+
+L’application de taux réduits ne permet pas d’effectuer la réduction du plafond de la Sécurité sociale ni d'appliquer la régularisation de
+l’assiette plafonnée.
+
+
+Déclaration
+
+Pour vos déclarations, vous utilisez les codes types personnel (CTP) suivants :
+
+     628 : Journalistes abattement 20 % AT/AV/AF/VT ;
+     434 : Complément AF abattement 20 %.
+
+
+
+Les membres des professions médicales à temps partiel
+
+Salariés concernés
+
+Bénéficient du taux réduit de cotisations :
+
+    les membres des professions médicales ;
+    et les médecins.
+
+qui exercent leur activité à temps partiel régulièrement et simultanément pour plusieurs employeurs relevant du régime général.
+
+
+Cotisations concernées
+
+La cotisation plafonnée d’assurance vieillesse est calculée sur un taux égal à 70 % du taux de droit commun.
+
+Les autres cotisations et contributions sont calculées avec application des taux de droit commun.
+
+Le plafond applicable est celui correspondant à la périodicité de la paie.
+
+Si votre salarié est rémunéré à la vacation, la cotisation est prélevée pour chaque vacation dans la limite du salaire plafond horaire, en
+fonction de nombre d’heures de chaque vacation.
+Pour connaître les taux applicables aux professions médicales, consultez le tableau ci-dessous :
+
+
+
+
+  Cotisations et contributions                                        Taux
+
+
+                                                                           Taux réduit : 7 %
+  Assurance maladie, maternité, invalidité, décès                          Taux plein : 13 %
+
+
+
+
+  Contribution solidarité autonomie (CSA)                             0,30 %
+
+
+  Assurance vieillesse                                                2,11 % sur la totalité et 5,99 % dans la limite du plafond
+
+
+                                                                           Taux réduit : 3,45 %
+  Allocations familiales                                                   Taux plein : 5,25 %
+
+
+
+
+  Contribution au dialogue social                                     0,016 %
+
+
+  Contribution assurance chômage                                      4,00 % dans la limite de 192 240 € en 2026
+
+
+  Cotisation AGS                                                      0,25 % dans la limite de 192 240 € en 2026
+
+
+                                                                           Effectif de moins de 50 salariés : 0,10 % dans la limite du
+                                                                           plafond
+  Fnal
+                                                                           Effectif 50 salariés et plus : 0,50 %
+
+
+
+
+                                                                           Médecine systématique et de dépistage : 1,06 %
+                                                                           Cabinets de médecins et de dentistes : 1,19 %
+  Accidents du travail
+                                                                           Médecins des établissements de soins privés : 2,25 %
+
+
+
+
+                                                                           Médecine systématique et de dépistage et cabinets de
+  Accidents du travail départements du Haut-Rhin, Bas-Rhin et              médecins et de dentistes : 1,16%
+  de la Moselle                                                            Médecins des établissements de soins privés : 2,35 %
+
+
+
+
+                                                                      Outil de recherche versement mobilité Lien vers
+  Versement mobilité effectif 11 salariés et plus                     /accueil/outils-documentation/outils/recherche-versement-
+                                                                      mobilite.html.
+
+
+
+  Cotisations et contributions                                        Taux
+
+
+  Assurance vieillesse                                                0,40 % sur la totalité et 4,83 % dans la limite du plafond
+
+
+                                                                      2,40 % sur 98,25 % du salaire brut dans la limite de 192 240 €
+  CSG imposable
+                                                                      en 2026
+
+
+                                                                      6,80 % sur 98,25 % du salaire brut dans la limite de 192 240 €
+  CSG non imposable
+                                                                      en 2026
+
+
+                                                                      0,50 % sur 98,25 % du salaire brut dans la limite de 192 240 €
+  CRDS
+                                                                      en 2026
+
+
+  Cotisation maladie supplémentaire pour les départements du          1,30 %
+  Haut-Rhin, Bas-Rhin et de la Moselle
+Cumul
+
+Lorsque vous appliquez les taux réduits vous n’effectuez aucune régularisation annuelle en fin d’année.
+
+L’application des taux réduits ne peut pas se cumuler avec celle du prorata de plafond pour employeurs multiples.
+
+Les cotisations plafonnées sont calculées par chaque employeur sans tenir compte des rémunérations perçues au titre de l’activité
+exercée pour le compte d’un ou de plusieurs autres employeurs.
+
+
+Déclaration
+
+Pour vos déclarations, vous utilisez le code types personnel (CTP) 336 : professions médicales abattement 30 % PLF.
+
+
+
+Textes de référence
+
+Article L311-3 16° code de la Sécurité sociale        Lien vers https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000046805349
+
+Article 1er arrêté 26/03/1987                                 Lien vers https://www.legifrance.gouv.fr/loda/id/LEGITEXT000006057385
+
+Arrêté 03/02/1975                                             Lien vers https://www.legifrance.gouv.fr/loda/id/LEGITEXT000006073595
+
+Articles L7122-22 et suivants code du travail         Lien vers https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006904586
+
+Articles R7122-29 et suivants code du travail               Lien vers https://www.legifrance.gouv.fr/codes/id/LEGISCTA000018521685
+
+Arrêté du 24 janvier 1975                                    Lien vers https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000310494
+
+Article L7123-6 code du travail                       Lien vers https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006904602
+

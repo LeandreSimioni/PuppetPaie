@@ -1,0 +1,336 @@
+# Bloc S20.G00.05
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 134-139
+
+--- p. 134 ---
+  S20.G00.05  2026-06-10
+
+  Structure
+
+S20.G00.05
+  S20 Déclaration
+Déclaration  S20.G00.05
+Nature de la déclaration  S20.G00.05.001
+Type de la déclaration  S20.G00.05.002
+Numéro de fraction de déclaration  S20.G00.05.003
+Numéro d'ordre de la déclaration  S20.G00.05.004
+Date du mois principal déclaré  S20.G00.05.005
+Identifiant de la déclaration annulée ou remplacée  S20.G00.05.006
+Date de constitution du fichier  S20.G00.05.007
+Champ de la déclaration  S20.G00.05.008
+Identifiant métier  S20.G00.05.009
+Devise de la déclaration  S20.G00.05.010
+Nature de l’événement déclencheur du signalement  S20.G00.05.011
+Dernier SIRET connu pour ancien numéro de contrat  S20.G00.05.012
+Type de nature de la DSN de substitution  S20.G00.05.013
+Pratique du fractionnement  S20.G00.05.014
+
+Nature de la déclaration  S20.G00.05.001
+Declaration.Nature
+  CCH-11 : Si la rubrique "Nature de la déclaration - S20.G00.05.001" est renseignée avec la valeur "08 - Signalement
+  Amorçage des données variables", alors un et un seul bloc "Individu - S21.G00.30" ou un et un seul bloc "Individu non
+  salarié - S89.G00.91" doit obligatoirement être présent dans la déclaration.
+
+  CCH-12 : Si la rubrique "Nature de la déclaration - S20.G00.05.001" est renseignée avec la valeur "08 - Signalement
+  Amorçage des données variables" et si un bloc "Adhésion Prévoyance - S21.G00.15" est renseigné, au moins un bloc
+  "Ancienneté - S21.G00.86" doit être renseigné.
+
+  CCH-13 : Si la rubrique "Nature de la déclaration - S20.G00.05.001" est renseignée avec la valeur "08 - Signalement
+  Amorçage des données variables", alors pour chaque bloc "Adhésion Prévoyance - S21.G00.15" présent doit être
+  renseigné au moins un bloc "Affiliation Prévoyance - S21.G00.70" avec le même identifiant technique d'adhésion
+  ("Identifiant technique Adhésion - S21.G00.15.005" = "Identifiant technique Adhésion - S21.G00.70.013").
+
+  CST-11 : Lorsque le message est transmis en machine to machine, les envois S10 contiennent une et une seule
+  déclaration S20
+
+  X  [2,2]
+
+  01 - DSN Mensuelle
+  04 - Signalement Arrêt de travail
+  05 - Signalement Reprise suite à arrêt de travail
+  07 - Signalement Fin du contrat de travail Unique
+  08 - Signalement Amorçage des données variables
+  09 - DSN de substitution
+
+  134 / 370
+
+--- p. 135 ---
+  S20.G00.05  2026-06-10
+
+  10 - Signalement Déclaration préalable à l'embauche
+
+Type de la déclaration  S20.G00.05.002
+Declaration.Type
+  Pour un signalement Déclaration préalable à l'embauche (DPAE), l’utilisation du type de déclaration « 03 -
+  déclaration annule et remplace intégral » est interprété par l'Urssaf comme un nouveau signalement DPAE,
+  et non comme l'annulation et le remplacement d'une DPAE précédemment transmise.
+  CCH-11 : Un même envoi ne peut contenir deux déclarations dont l'une annule l'autre.
+
+  CCH-13 : Le type de déclaration « 04 - déclaration annule » n'est autorisé que pour une nature de déclaration
+  (S20.G00.05.001) renseignée avec la valeur « 07 - Signalement Fin du contrat de travail Unique », « 08 - Signalement
+  amorçage des données variables » ou « 09 - DSN de substitution ».
+
+  CCH-14 : Les types de déclaration "02 - déclaration normale sans individu" et "05 - annule et remplace sans individu"
+  ne sont autorisés que pour une nature de déclaration "01 - DSN Mensuelle" (S20.G00.05.001). Ce contrôle vise à
+  établir l'interdiction de déclarer un Type de la déclaration "normal sans individu" ou "annule et remplace sans
+  individu" pour un signalement qui est par nature propre à un individu. Un signalement sans individu n'aurait pas de
+  sens.
+
+  CCH-15 : Le type de déclaration "03 - déclaration annule et remplace intégral" est interdit pour une nature de
+  déclaration (S20.G00.05.001) "08 - Signalement amorçage des données variables".
+
+  CCH-16 : Si la rubrique « Type de la déclaration – S20.G00.05.002 » est renseignée avec la valeur « 01 - déclaration
+  normale » ou « 03 - déclaration annule et remplace intégral », alors au moins un bloc « Individu – S21.G00.30 » ou «
+  Individu non salarié - S89.G00.91 » doit être présent dans la déclaration.
+
+  X  [2,2]
+
+  01 - déclaration normale
+  02 - déclaration normale sans individu
+  03 - déclaration annule et remplace intégral
+  04 - déclaration annule
+  05 - annule et remplace sans individu
+
+Numéro de fraction de déclaration  S20.G00.05.003
+Declaration.Fraction
+  Le numéro de fraction de la déclaration est exprimé par 'n' qui correspond au numéro de la fraction. Le
+  numéro de fraction doit être compris entre 11 et 59.
+  Pour une entreprise qui ne pratique pas le fractionnement, il est possible d'indiquer la valeur 11.
+  CCH-11 : Si la déclaration est de nature « 04 - Signalement Arrêt de travail », « 05 - Signalement Reprise suite à arrêt
+  de travail », « 07 – Signalement Fin du contrat de travail unique », « 08 - Signalement Amorçage des données variables
+  » ou « 10 - Signalement Déclaration préalable à l'embauche » le numéro de fraction de la déclaration doit être égal à «
+  11 » (fraction interdite). Ce contrôle vise à conserver le caractère obligatoire de la rubrique quelle que soit la nature de
+  la déclaration. Bien que le numéro de fraction soit interdit pour un signalement, il est une composante de l'Identifiant
+  d'une déclaration.
+
+  N  [2,2]  CSL 00 : (1[1-9])|([2-9][0-9])
+
+Numéro d'ordre de la déclaration  S20.G00.05.004
+Declaration.Ordre
+  Le numéro d'ordre de la déclaration (attribué par le déclarant) est une référence qui permet d'identifier le
+  rang de constitution d'une déclaration au cours du mois courant.
+
+  135 / 370
+
+--- p. 136 ---
+  S20.G00.05  2026-06-10
+
+  Pour une Mensuelle, ce numéro est remis à zéro à chaque premier jour de mois civil. Pour un signalement,
+  ce numéro ne doit pas être remis à zéro afin qu’il soit unique quel que soit le mois d’émission.
+
+  N  [1,15]  CSL 00 : 0|[1-9][0-9]*
+
+Date du mois principal déclaré  S20.G00.05.005
+Declaration.Mois
+  Il s'agit du premier jour du mois civil au titre duquel est établie la paie, hors éventuels rappels.
+  Cette date doit être renseignée au premier jour du mois (sous la forme 01mmaaaa).
+  D
+  a
+  t
+  [8,8]  CSL 00 : (01)(0[1-9]|1[0-2])(20)[0-9]{2}
+  e
+
+Identifiant de la déclaration annulée ou remplacée  S20.G00.05.006
+Declaration.IdentifiantAnnulation
+  L'identifiant de la déclaration annulée ou remplacée est celui de la dernière déclaration, relative au même
+  évènement validée par le point de dépôt.
+  Cette rubrique est une concaténation de la date de constitution du fichier (S20.G00.05.007) et du numéro
+  d’ordre de la déclaration (S20.G00.05.004) de la déclaration annulée.
+  CCH-12 : Si la rubrique "Type de la déclaration - S20.G00.05.002" est renseignée avec une valeur différente de "03 -
+  déclaration annule et remplace intégral" et "04 - déclaration annule", alors la déclaration d’une rubrique "Identifiant de
+  la déclaration annulée ou remplacée - S20.G00.05.006" est interdite.
+
+  CID-11 : Une déclaration de type "03 - déclaration annule et remplace intégral", "04 - déclaration annule" ou "05 -
+  annule et remplace sans individu" devra annuler une déclaration ayant fait l'objet d'un certificat de déclaration.
+  L'identifiant indiqué ici doit être connu de la plate-forme réceptrice.
+
+  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(19|20)[0-
+  X  [9,23]
+  9]{2}(0|[1-9][0-9]*)
+
+Date de constitution du fichier  S20.G00.05.007
+Declaration.DateFichier
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+Champ de la déclaration  S20.G00.05.008
+Declaration.Champ
+  Pour les entreprises mixtes, cette rubrique doit être renseignée de la valeur 02 ou de la valeur 03 en
+  concordance avec le régime de protection sociale des salariés déclarés. Toutes les autres entreprises non
+  mixtes doivent renseigner cette rubrique avec la valeur 01.
+  CCH-11 : La valeur "02 - Déclaration partielle régime agricole" est interdite si le point de dépôt (S10.G00.00.007) est
+  "01 - Net-entreprises".
+
+  CCH-12 : La valeur "03 - Déclaration partielle régime général" est interdite si le point de dépôt (S10.G00.00.007) est
+  "02 - MSA".
+
+  X  [2,2]
+
+  136 / 370
+
+--- p. 137 ---
+  S20.G00.05  2026-06-10
+
+  01 - déclaration totale
+  02 - déclaration partielle régime agricole
+  03 - déclaration partielle régime général
+
+Identifiant métier  S20.G00.05.009
+Declaration.IdentifiantMetier
+  Cette rubrique vous permet de renseigner un identifiant métier de déclaration qui pourra être utilisé en cas
+  de contact direct avec un OPS.
+  CCH-11 : Cette rubrique doit être différente du "Numéro d'inscription au répertoire - S21.G00.30.001", si celui-ci est
+  renseigné.
+
+  X  [1,15]
+
+Devise de la déclaration  S20.G00.05.010
+Declaration.DeviseDeclaration
+  La devise choisie s'applique à tous les montants présents dans la déclaration.
+
+  SIG-11 : Si la rubrique "Devise de la déclaration - S20.G00.05.010" est renseignée avec le caractère "02 - franc
+  Pacifique", les trois premiers caractères de la rubrique "Code postal -S21.G00.06.005" doivent être "986" pour Wallis
+  et Futuna, "987" pour la Polynésie Française ou "988" pour la Nouvelle Calédonie.
+
+  X  [2,2]
+
+  01 - euro
+  02 - franc Pacifique
+
+Nature de l’événement déclencheur du signalement  S20.G00.05.011
+Declaration.NatureEvenementDeclencheurSignalement
+  Cette rubrique permet d'identifier l'élément variant qui a déclenché l'émission de ce message.
+  Cette rubrique ne peut être renseignée que pour un signalement d'amorçage des données variables.
+  CCH-11 : Si la rubrique "Nature de l’événement déclencheur du signalement - S20.G00.05.011" est renseignée avec la
+  valeur "06 - Appel de taux de PAS pour un individu non salarié" alors la déclaration d'un bloc "Individu non salarié -
+  S89.G00.91" est obligatoire. Si la valeur renseignée est différente de "06 - Appel de taux de PAS pour un individu non
+  salarié" alors la déclaration d'un bloc "Individu non salarié - S89.G00.91" est interdite. Ce contrôle vise à n'autoriser la
+  déclaration de cette valeur que pour un individu non salarié.
+
+  CCH-12 : Si la rubrique "Nature de l’événement déclencheur du signalement - S20.G00.05.011" est renseignée avec la
+  valeur "03 - Fin de dispense d’affiliation", "04 - Changement des paramètres salarié du contrat collectif prévoyance,
+  santé complémentaire, retraite supplémentaire" ou "05 - Transmission de l’ensemble d’une population à affilier à un
+  nouveau contrat (individu faisant partie d’une population à affilier à un nouveau contrat)" alors la déclaration d'au
+  moins un bloc "Adhésion Prévoyance - S21.G00.15" est obligatoire.
+
+  CCH-13 : Si la rubrique "Nature de l’événement déclencheur du signalement - S20.G00.05.011" est renseignée avec la
+  valeur "06 - Appel de taux de PAS pour un individu non salarié" ou "07 - Changement de tiers déclarant ou
+  changement de logiciel déclaratif" alors la déclaration de blocs "Adhésion Prévoyance - S21.G00.15" ou "Lieu de
+  travail ou établissement utilisateur - S21.G00.85" est interdite.
+  Ce contrôle vise à ce qu'aucun bloc "Adhésion Prévoyance - S21.G00.15" et "Lieu de travail ou établissement
+  utilisateur - S21.G00.85" ne soient déclarés pour un appel de taux de PAS pour un individu non salarié et pour un
+  changement de tiers déclarant ou changement de logiciel déclaratif.
+
+  CCH-14 : Si la rubrique "Nature de l’événement déclencheur du signalement - S20.G00.05.011" est renseignée avec la
+  valeur "07 - Changement de tiers déclarant ou changement de logiciel déclaratif" alors la déclaration de blocs "Contrat
+  - S21.G00.40" ou "Ancienneté - S21.G00.86" est interdite.
+
+  137 / 370
+
+--- p. 138 ---
+  S20.G00.05  2026-06-10
+
+  X  [2,2]
+
+  01 - Embauche effective de l'individu
+  02 - Mutation de l'individu sans rupture du contrat de travail
+  03 - Fin de dispense d’affiliation
+  04 - Changement des paramètres salarié du contrat collectif prévoyance, santé complémentaire, retraite supplémentaire
+  05 - Transmission de l’ensemble d’une population à affilier à un nouveau contrat (individu faisant partie d’une
+  population à affilier à un nouveau contrat)
+  06 - Appel de taux de PAS pour un individu non salarié
+  07 - Changement de tiers déclarant ou changement de logiciel déclaratif
+
+Dernier SIRET connu pour ancien numéro de contrat  S20.G00.05.012
+Declaration.DernierSIRETConnuAncienContrat
+  Cette rubrique permet la recherche de certaines données du contrat déclarées précédemment pour un
+  établissement et un individu donnés. Elle doit être renseignée avec le SIRET de l’établissement pour lequel
+  vous souhaitez la communication d'informations relatives au dernier contrat connu de l'individu.
+  Cette recherche est effectuée pour les cas d'embauche d'individus suite à une mutation et les cas de
+  changements de tiers déclarant ou de logiciel déclaratif.
+  CCH-11 : Si la rubrique "Nature de l’événement déclencheur du signalement - S20.G00.05.011" est renseignée avec la
+  valeur "02 - Mutation de l'individu sans rupture du contrat de travail" ou "07 - Changement de tiers déclarant ou
+  changement de logiciel déclaratif" alors la rubrique "Dernier SIRET connu pour ancien numéro de contrat -
+  S20.G00.05.012" doit obligatoirement être renseignée.
+
+  CSL-12 : [(vérification de la clé)]
+
+  X  [14,14]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Type de nature de la DSN de substitution  S20.G00.05.013
+Declaration.NatureDsnSubstitution
+  Cette rubrique permet d'identifier la situation ayant conduit à la production de la DSN de substitution.
+
+  X  [2,2]
+
+  01 - DSN de substitution suite à contrôle (comptable d’assiette)
+  02 - DSN de substitution suite à fiabilisation (CRM)
+  03 - DSN de substitution suite à redressement LCTI
+
+Pratique du fractionnement  S20.G00.05.014
+Declaration.PratiqueFractionnement
+  Toute fraction de DSN déposée devra obligatoirement indiquer la pratique du fractionnement pour que le
+  dépôt d'autres fractions, pour un même SIRET et un même mois principal déclaré, soit accepté. Dans le cas
+  contraire, leur dépôt ne sera pas possible.
+  La déclaration de cette rubrique n'est pas attendue pour un établissement qui ne pratique pas le
+  fractionnement.
+
+  X  [2,2]
+
+  138 / 370
+
+--- p. 139 ---
+  S20.G00.07  2026-06-10
+
+  01 - Oui
+
+S20.G00.07
+
+Contact chez le déclaré  S20.G00.07
+  Acteur en charge, chez le déclaré, des échanges avec les organismes de Protection sociale, Administrations et services
+  de l'Etat, au titre des données transmises en DSN.
+
+Nom et prénom du contact  S20.G00.07.001
+Adresse téléphonique  S20.G00.07.002
+Adresse mél du contact  S20.G00.07.003
+Type  S20.G00.07.004
+
+Nom et prénom du contact  S20.G00.07.001
+ContactDeclare.Nom
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités
+
+  X  [1,80]
+
+Adresse téléphonique  S20.G00.07.002
+ContactDeclare.Tel
+
+  X  [10,20]
+
+Adresse mél du contact  S20.G00.07.003
+ContactDeclare.mel
+  Cette adresse mél est utilisée pour adresser le compte-rendu métier DSIJ ou pour les échanges entre le
+  service de médecine du travail interne à l’établissement pour la prévention et la santé au travail et
+  l'Assurance maladie.
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant de l'adresse mél.
+
+  X  [6,100]
+
+Type  S20.G00.07.004
+ContactDeclare.type
+  Pour les entreprises employant au moins 250 salariés, l'acteur à renseigner avec le type « 14 - Contact chez
+  le déclaré pour le suivi des travailleurs handicapés » doit correspondre au référent handicap qui est en
+  charge « d'orienter, d'informer et d'accompagner les personnes en situation de handicap » conformément à
+  l’article L5213-6-1 du Code du travail.
+  Pour les entreprises assurant elles-mêmes les missions de prévention et de santé au travail, l’acteur à
+  renseigner avec le type « 17 - Contact au sein du service de médecine du travail interne à l’établissement
+  pour la prévention et la santé au travail chez le déclaré » correspond au médecin du travail ou à un
+  interlocuteur placé sous sa responsabilité, pour la transmission des arrêts de travail dans les conditions
+  prévues par l’article L315-4 du Code de la sécurité sociale.
+  CCH-11 : Si et seulement si la déclaration contient un bloc « Etablissement - S21.G00.11 » avec la rubrique «
+  Identifiant du Service de Prévention et de Santé au Travail (SPST) - S21.G00.11.025 » renseignée avec la valeur «
+  MT01 - MEDECINE INTERNE ETABLISSEMENT » ou au moins un bloc « Individu - S21.G00.30 » avec la
+
+  139 / 370

@@ -1,0 +1,49 @@
+Date de modification : 13/05/2025 03:30 PM
+ Rappel de consignes pour les signalements d'évènement   « Arrêt de travail  »,  « R eprise suite à arrêt de travail  »,  « Fin de contrat de travail » et « Fin de contrat de travail unique »   
+ Pour permettre le calcul et la liquidation des droits auprès de l’Assurance Chômage, de l’Assurance Maladie et de la MSA, la DSN met à la disposition des employeurs trois messages : 
+ L‘arrêt de travail  donnant lieu à indemnisation par la CNAM ou la MSA, y compris pour cause de maladie professionnelle ou accident du travail.
+ La reprise anticipée  suite à un arrêt de travail
+ La fin de contrat de travail 
+ Règles de temporalité d’envoi des signalements :  
+ Les signalements d'évènement « Arrêt de travail », « Reprise suite à arrêt de travail » et « Fin de contrat de travail unique », qu'ils soient à destination de France Travail, de la CNAM ou de la MSA, doivent être envoyés dans les 5 jours ouvrés à connaissance de l’évènement .  
+ Précisions concernant les fins de contrat :
+ Dans le cas des CDD d’usage, il est possible que l’employeur, avec l’accord du salarié, ait recours au dispositif dérogatoire de déclaration de la fin de contrat. D : dans ce cas, la transmission des éléments se fait exclusivement à France Travail via la DSN mensuelle (sans transmission de signalement) .
+ De la même manière, les fins de missions des salariés intérimaires, sauf demande expresse de celui-ci, ne sont pas à déclarer via l’usage d’un signalement (cf. fiche consigne 2062 pour plus de détails)
+ Précisions concernant les arrêts de travail :
+ En cas de subrogation, les signalements d'événement « Arrêt de travail » peuvent être émis à la même échéance que la DSN mensuelle. 
+ Transmettre un signalement d'événement « Arrêt de travail » lors du mois d'embauche du salarié entraine un échec de reconstitution de la DSIJ. Il convient donc d’attendre le dépôt de la DSN mensuelle pour envoyer le signalement ou de procéder à l’envoi de la DSIJ via un autre canal pour ne pas léser l’individu.
+ Si l'événement n'est pas pris en compte le mois de survenance dans la paie du salarié (maintien du salaire sur le mois) le signalement « Arrêt de travail » peut être effectué en même temps que la DSN mensuelle du mois.
+ Précisions concernant les reprises suite à arrêts de travail : 
+ Il n’est attendu un signalement de reprise que si cette reprise est anticipée par rapport à la date prévisionnelle de fin de l’arrêt transmise lors de la déclaration de l’arrêt. Aucun signalement de type « Reprise suite à arrêt de travail » n’est attendu dans le cas d’une reprise TPT.
+ Signalements et anciens canaux déclaratifs :  
+ La DSN vise la substitution des Attestations Employeurs (AE) et des Attestations de salaires (DSIJ). De ce fait, il est interdit de procéder à une double déclaration, c'est à dire de transmettre de façon systématique un signalement DSN et une DSIJ (attestation de salaire pour le versement des indemnités journalières) ou une AE (attestation employeur destinée à France Travail) via l'ancienne modalité déclarative.
+  Signalements et DSN mensuelle :  
+ /!\ Toutes les informations relatives à un arrêt de travail ou à une fin de contrat doivent toujours être reportées dans la DSN mensuelle consécutive, ou dans la DSN mensuelle du mois suivant si l'événement est intervenu après la clôture de la paie.
+ Historiques requis pour qu’un signalement soit transmis aux organismes destinataires  : 
+ Dans le cadre d’une fin de contrat, un signalement est transmis à France Travail avec un historique d’informations relatives au contrat concerné issues des DSN mensuelles précédemment déclarées :
+ Signalement FCTU : Un FCTU est transmis avec l’historique présent en base : le système va chercher jusqu’à 36 mois dans la limite de la date de début de contrat ; il n’y a pas de rejet au motif d’un historique incomplet.
+ Dans le cadre d’un arrêt / reprise, le signalement donne lieu à une reconstitution de DSIJ ensuite transmise à la CPAM. Transmettre une DSIJ avec moins de 3 mois d’historique pour les arrêts maladie ou avec moins de 12 mois pour les arrêts AT/MP n’entraine plus l’échec de la constitution de la DSIJ. En effet, les traitements exploitent désormais tous les contrats éligibles de l’individu chez tous les employeurs des régimes général et agricole.
+ Informations identifiantes clé pour la reconstitution de l’historique :  
+ IMPORTANT : tout changement apporté à l'identification du salarié ou au contrat doit faire l'objet d'un bloc « Changements Individu – S21.G00.31 » ou « Changements Contrat – S21.G00.41 » dans les DSN mensuelles afin d'éviter toute rupture dans l’historique de l’indivi du.   
+ Les informations identifiantes sont les suivantes :
+ Bloc "Entreprise" | 
+ SIREN
+ | 
+ Bloc "Etablissement" | 
+ NIC
+ | 
+ Bloc "Individu" | 
+ Numéro d'inscription au répertoire (NIR) et/ou Numéro technique temporaire (NTT)
+ Nom de famille
+ Prénoms
+ Date de naissance
+ | 
+ Bloc "Contrat (contrat de  
+ travail, convention, mandat)" 
+ | 
+ Numéro de contrat 
+ Date de début de contrat
+ Identifiant du contrat d'engagement maritime (pour le rattachement des lignes de services au contrat de travail) 
+ | 
+ Date de création : 29/10/2015 03:32 PM 
+ N° de la fiche : 673

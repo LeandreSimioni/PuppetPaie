@@ -1,6 +1,6 @@
 //! Le bloc « Changements contrat - S21.G00.41 » d'une DSN mensuelle : ce qui a change d'un contrat deja declare.
 //!
-//! Cahier technique DSN 2026.1 (`prive/reference/norme-dsn/texte/`) :
+//! Cahier technique DSN 2026.1 (`atelier/reference/norme-dsn/texte/`) :
 //! - le bloc porte l'ANCIENNE valeur, « Les rubriques doivent etre renseignees avec la valeur avant changement »
 //!   (`bloc-S21.G00.41.txt`, p. 215), datee en 41.001, « date de survenance du changement » (p. 216) ;
 //! - « Le changement d'une des modalites visees doit imperativement etre declare via un bloc « Changements Contrat -

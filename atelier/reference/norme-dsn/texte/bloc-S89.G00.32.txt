@@ -1,0 +1,155 @@
+# Bloc S89.G00.32
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 326-328
+
+--- p. 326 ---
+  S89.G00.32  2025-12-24
+
+  Structure
+
+  S89 Véhicule
+S89.G00.32
+  technique
+Bénéficiaire des honoraires  S89.G00.32
+Profession ou qualité  S89.G00.32.001
+Nom du bénéficiaire des honoraires  S89.G00.32.002
+Prénom du bénéficiaire des honoraires  S89.G00.32.003
+Siren du bénéficiaire des honoraires  S89.G00.32.004
+Nic du bénéficiaire des honoraires  S89.G00.32.005
+Raison sociale du bénéficiaire des honoraires  S89.G00.32.006
+Complément de localisation de la construction  S89.G00.32.007
+Numéro, extension, nature et libellé de la voie  S89.G00.32.008
+Code INSEE de la commune  S89.G00.32.009
+Service de distribution, complément de localisation de la voie  S89.G00.32.010
+Code postal  S89.G00.32.011
+Localité  S89.G00.32.012
+Code pays  S89.G00.32.013
+Code de distribution à l'étranger  S89.G00.32.014
+Code taux réduit ou dispense de retenue à la source  S89.G00.32.015
+Montant TVA droits d'auteurs  S89.G00.32.016
+Millésime de rattachement  S89.G00.32.017
+
+Profession ou qualité  S89.G00.32.001
+BeneficiaireHonoraires.ProfessionQualite
+  CCH-12 : Pour chaque bloc "Bénéficiaire des honoraires - S89.G00.32", au moins l'un des trois blocs "Avantages en
+  nature - S89.G00.33", "Prise en charge des indemnités - S89.G00.35" ou "Rémunérations - S89.G00.43" doit être
+  présent et comporter un montant supérieur à "0".
+
+  X  [1,40]
+
+Nom du bénéficiaire des honoraires  S89.G00.32.002
+BeneficiaireHonoraires.Nom
+  Le nom et le prénom du bénéficiaire sont obligatoires si celui-ci est une personne physique (code général
+  des impôts, article 39 annexe III).
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,80]
+
+  326 / 361
+
+--- p. 327 ---
+  S89.G00.32  2025-12-24
+
+Prénom du bénéficiaire des honoraires  S89.G00.32.003
+BeneficiaireHonoraires.Prenom
+  Le nom et le prénom du bénéficiaire sont obligatoires si celui-ci est une personne physique (code général
+  des impôts, article 39 annexe III).
+  CCH-11 : Les 2 rubriques, "Nom du bénéficiaire des honoraires - S89.G00.32.002" et "Prénom du bénéficiaire des
+  honoraires - S89.G00.32.003", doivent être simultanément présentes ou absentes.
+
+  CCH-12 : La présence d'un et d'un seul des deux ensembles "Nom du bénéficiaire des honoraires - S89.G00.32.002" /
+  "Prénom du bénéficiaire des honoraires - S89.G00.32.003" ou "Siren du bénéficiaire des honoraires S89.G00.32.004" /
+  "Nic du bénéficiaire des honoraires S89.G00.32.005" / "Raison sociale du bénéficiaire des honoraires S89.G00.32.006"
+  est obligatoire.
+
+  CSL-11 : Se reporter au paragraphe de l'éditorial traitant des identités.
+
+  X  [1,40]
+
+Siren du bénéficiaire des honoraires  S89.G00.32.004
+BeneficiaireHonoraires.Siren
+  Un identifiant à zéro n'est pas admis.
+
+  CSL-12 : [(vérification de la clé)]
+
+  X  [9,9]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Nic du bénéficiaire des honoraires  S89.G00.32.005
+BeneficiaireHonoraires.Nic
+  Un identifiant à zéro n'est pas admis.
+
+  CCH-11 : [(vérification de la clé)]
+
+  CME-11 : Le SIRET doit être à l'état actif ou radié au répertoire SIRENE de l'INSEE au cours de la période de
+  référence de la déclaration.
+
+  X  [5,5]  CSL 00 : [0-9]*[1-9][0-9]*
+
+Raison sociale du bénéficiaire des honoraires  S89.G00.32.006
+BeneficiaireHonoraires.RaisonSocial
+  La raison sociale du bénéficiaire est obligatoire si celui-ci est une personne morale (code général des
+  impôts, article 39 annexe III).
+  La présence de la raison sociale exclut celle de l'ensemble nom et prénom.
+  La présence d'une raison sociale ou d'une identité est obligatoire.
+  CCH-11 : Les 3 rubriques, "Siren du bénéficiaire des honoraires S89.G00.32.004" / "Nic du bénéficiaire des honoraires
+  S89.G00.32.005" / "Raison sociale du bénéficiaire des honoraires S89.G00.32.006" doivent être simultanément
+  présentes ou absentes.
+
+  X  [1,60]
+
+Complément de localisation de la construction  S89.G00.32.007
+
+  327 / 361
+
+--- p. 328 ---
+  S89.G00.32  2025-12-24
+
+BeneficiaireHonoraires.ComplementLocalisation
+  Les compléments d’adresse permettent d’indiquer le point de remise exact du courrier. Ils donnent des
+  informations précises et déterminantes dans la phase finale de distribution du courrier, tel que le bâtiment,
+  la boîte aux lettres, le numéro d’appartement.
+
+  X  [1,50]
+
+Numéro, extension, nature et libellé de la voie  S89.G00.32.008
+BeneficiaireHonoraires.NumeroExtensionNatureLibelle
+  Numéro : Il précise l’adresse dans la voie. Sa valeur est différente de 0 et ne doit pas dépasser 4 chiffres.
+  En cas de numéro multiple, seul le premier doit être indiqué (pour exemple indiquer 4 pour 4/14)
+  Extension : Lettre accolée au numéro si celui-ci ne présente pas une précision suffisante (par exemple B
+  pour BIS, T pour TER, etc…)
+  Nature de la voie : information facultative décrivant la nature de la voie (rue, avenue, etc…)
+  Libellé de la voie : Appellation officielle de la voie
+
+  X  [1,50]
+
+Code INSEE de la commune  S89.G00.32.009
+BeneficiaireHonoraires.CodeInsee
+  Nomenclature INSEE des communes de France telle qu’elle figure dans le fichier Hexaposte.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table INSEE - Code INSEE de la commune
+
+Service de distribution, complément de localisation de la voie  S89.G00.32.010
+BeneficiaireHonoraires.ServiceDistribution
+  Il s’agit de services de distribution du courrier spécifiques proposés ou mis en place par La Poste.
+
+  X  [1,50]
+
+Code postal  S89.G00.32.011
+BeneficiaireHonoraires.CodePostal
+  Donnée d'organisation de la distribution postale, à utiliser telle que définie dans le fichier Hexaposte.
+
+  CCH-12 : Si le code postal est présent alors le code pays et le code de distribution à l'étranger sont absents et
+  réciproquement.
+
+  CRE-11 : valeurs autorisées
+
+  X  [5,5]  Table HEX - Code postal
+
+Localité  S89.G00.32.012
+BeneficiaireHonoraires.Localite
+  La localité est un élément géographique et administratif. C’est le premier élément d’identification associé
+  au code postal. Le libellé est la plupart du temps le nom officiel de la localité enregistrée à l’INSEE et au
+  Journal Officiel.
+
+  328 / 361

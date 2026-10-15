@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000033453122</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/33/45/31/LEGIARTI000033453122.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>R3141-4</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2017-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018464861">Partie réglementaire  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018534660">Troisième partie : Durée du travail, salaire, intéressement, participation et épargne salariale </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018534658">Livre Ier : Durée du travail, repos et congés </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018534321">Titre IV : Congés payés et autres congés </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018534319">Chapitre Ier : Congés payés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018534311">Section 2 : Durée du congé</TITRE_TM>
+<TM>
+<TITRE_TM debut="2017-01-01" fin="2999-01-01" id="LEGISCTA000033453098">Sous-section 2 : Dispositions supplétives</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2017-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000033453122" num="R3141-4" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>A défaut d'accord prévu à l'article L. 3141-10, le point de départ de la période prise en compte pour le calcul du droit au congé est fixé au 1er juin de chaque année. <br/>Toutefois, dans les professions où en application de l'article L. 3141-32 l'employeur est tenu de s'affilier à une caisse de congé, le point de départ de l'année de référence est fixé au 1er avril.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000033420377" datesignatexte="2016-11-18" id="LEGIARTI000033441659" naturetexte="DECRET" nortexte="ETST1628309D" num="5" numtexte="2016-1551" sens="cible" typelien="CREE">Décret n°2016-1551 du 18 novembre 2016 - art. 5</LIEN>
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006902647" naturetexte="CODE" nortexte="" num="L3141-10" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3141-10</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033008672" naturetexte="CODE" nortexte="" num="L3141-32" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L3141-32</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018534309" naturetexte="CODE" nortexte="" num="R3141-3" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. R3141-3 (VT)</LIEN>
+
+
+</LIENS>
+</ARTICLE>

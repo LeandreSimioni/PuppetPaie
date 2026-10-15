@@ -4,7 +4,7 @@
   "_forme": "Une nature porte quatre sections. `codes` : une rubrique, une valeur fixe, et ce que cette valeur dit. `champs` : une rubrique dont la valeur se lit sur l'engagement ou la fiche (elle n'est pas la même d'un contrat à l'autre). `absents` : une rubrique que cette nature n'écrit pas, et pourquoi. `interdits` : une rubrique qu'un contrôle du cahier technique REFUSE pour cette nature — `dsn.py` s'arrête plutôt que de produire un fichier qu'on sait rejeté, et `tests/test_contrats.py` vérifie qu'aucune n'est écrite.",
   "_source": {
     "titre": "Cahier technique de la norme NEODeS 2026.1 (norme du 6 janvier 2025, en production toute l'année 2026)",
-    "copie": "prive/reference/norme-dsn/dsn-cahier-technique-2026.1.pdf",
+    "copie": "atelier/reference/norme-dsn/dsn-cahier-technique-2026.1.pdf",
     "relu_le": "2026-09-18",
     "conformite_2027": "Chaque valeur ci-dessous a été relue dans la 2027.1.1 (copie à côté) : les nomenclatures des blocs 40, 62, 71 et 86 y sont identiques.",
     "_et_aussi": "Pour le CDDU du spectacle, la preuve n'est pas seulement le texte : cinquante DSN de CoolPaie (2021-2026) portent ces valeurs et ont toutes été acceptées. Pour les natures permanentes, il n'y a aucun réel en face — voir `_preuve` de chacune."
@@ -103,7 +103,7 @@
         "S21.G00.40.022": {
           "source": "entreprise.congesspectacles_affiliation",
           "quoi": "Code caisse professionnelle de congés payés : « 97 », le numéro d'affiliation et la clé. La rubrique ne s'écrit que « dans le cas où les indemnités ne sont pas versées par l'employeur » — c'est exactement l'intermittent, dont les congés sont payés par la caisse des Congés Spectacles.",
-          "si": "caisse_conges::affilie : un CDDU de douze mois ou plus (du début au terme signés) n'est pas déclaré à la caisse (code du travail D. 7121-41 ; CCN 3090, art. 10.1.1 ; fiche Audiens « CDD de moins de 12 mois ») et ne l'écrit pas. Lot V2f, prive/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md."
+          "si": "caisse_conges::affilie : un CDDU de douze mois ou plus (du début au terme signés) n'est pas déclaré à la caisse (code du travail D. 7121-41 ; CCN 3090, art. 10.1.1 ; fiche Audiens « CDD de moins de 12 mois ») et ne l'écrit pas. Lot V2f, atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md."
         },
         "S21.G00.40.040": {
           "source": "bareme.taux_atmp.code_risque",
@@ -123,12 +123,12 @@
         }
       },
       "absents": {
-        "S21.G00.40.025": "Motif d'exclusion DSN : 05 (ouvrier ou technicien) ou 06 (artiste du spectacle) pour un « Contrat de travail faisant l'objet d'une attestation employeur mensuelle (AEM) » (cahier technique DSN 2026.1, bloc 40, prive/reference/norme-dsn/texte/bloc-S21.G00.40.txt ; identique en 2027.1.1) ; fiche net-entreprises 3344, l. 160-172 : « Ces valeurs ne seront plus à renseigner par les employeurs dès lors que France Travail leur en donnera l'autorisation » (prive/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche3344-intermittents-contrat-remunerations-20251113.txt). Le moteur ne produit plus d'AEM, et l'autorisation est venue pour la compagnie du poste : « Ne plus renseigner de motif d'exclusion DSN dans la rubrique S21.G00.40.025. Celle-ci doit rester vide. » (courriel France Travail du 28/05/2026, prive/reference/sources/francetravail-100-dsn/francetravail-courriel-fin-phase-pilote-100-dsn-20260528.txt). La rubrique ne s'écrit donc pas. NON PORTÉ (lot C1, 14/10/2026) : une compagnie encore sous AEM, avant sa propre autorisation, devrait écrire 05 ou 06 et ne signaler aucune fin (fiche 2062, exclusion de population) ; le moteur n'a ni la date de cette autorisation dans la fiche entreprise, ni l'AEM pour elle. C'est une décision à prendre (prive/journal/finitions/PASSATION-C1.md, point 2)."
+        "S21.G00.40.025": "Motif d'exclusion DSN : 05 (ouvrier ou technicien) ou 06 (artiste du spectacle) pour un « Contrat de travail faisant l'objet d'une attestation employeur mensuelle (AEM) » (cahier technique DSN 2026.1, bloc 40, atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt ; identique en 2027.1.1) ; fiche net-entreprises 3344, l. 160-172 : « Ces valeurs ne seront plus à renseigner par les employeurs dès lors que France Travail leur en donnera l'autorisation » (atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche3344-intermittents-contrat-remunerations-20251113.txt). Le moteur ne produit plus d'AEM, et l'autorisation est venue pour la compagnie du poste : « Ne plus renseigner de motif d'exclusion DSN dans la rubrique S21.G00.40.025. Celle-ci doit rester vide. » (courriel France Travail du 28/05/2026, reference-privee/sources/francetravail-100-dsn/francetravail-courriel-fin-phase-pilote-100-dsn-20260528.txt (releve sur une compagnie reelle, piece hors du depot public : depot prive)). La rubrique ne s'écrit donc pas. NON PORTÉ (lot C1, 14/10/2026) : une compagnie encore sous AEM, avant sa propre autorisation, devrait écrire 05 ou 06 et ne signaler aucune fin (fiche 2062, exclusion de population) ; le moteur n'a ni la date de cette autorisation dans la fiche entreprise, ni l'AEM pour elle. C'est une décision à prendre (prive/journal/finitions/PASSATION-C1.md, point 2)."
       },
       "interdits": {},
       "dpae": {
         "_quoi": "Ce que la DPAE écrit de ce contrat. C'est une AUTRE déclaration que la DSN, et sa nomenclature n'a rien à voir : le Format 120 ne connaît que TROIS types de contrat — 1 CDD, 2 CDI, 3 CTT — là où la DSN en a une vingtaine. Un permanent passe par la même DPAE que n'importe qui : elle est due pour toute embauche (L1221-10), et l'écrire en CDD quand c'est un CDI, c'est déclarer un terme qui n'existe pas.",
-        "_source": "prive/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.pdf, catégorie V « CONTRAT » — C_TYPE_CONTRAT en position 865, D_FIN_CDD en 866 à 873 (positions du dessin, comptées à partir de 1).",
+        "_source": "atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.pdf, catégorie V « CONTRAT » — C_TYPE_CONTRAT en position 865, D_FIN_CDD en 866 à 873 (positions du dessin, comptées à partir de 1).",
         "type_contrat": {
           "valeur": "1",
           "quoi": "CDD. Un contrat d\u2019usage EST un CDD : la DPAE ne distingue pas l\u2019usage du droit commun — c\u2019est la DSN qui le fait, avec 40.007 = 02 (CDD de droit priv\u00e9) et le motif de recours 40.021 = 05 (contrat d\u2019usage), ci-dessus. (29 est la convention de stage, cahier technique 2026.1, p. 186.)",
@@ -158,7 +158,7 @@
           {"code": "083", "libelle": "Rupture pour force majeure ou fait du prince"},
           {"code": "033", "libelle": "Rupture anticipée d'un CDD en cas d'inaptitude physique constatée par le médecin du travail"}
         ],
-        "_motifs": "Ceux que la CCH-11 de S21.G00.62.002 autorise pour la nature 02 (cahier technique DSN 2026.1, p. 270-273, prive/reference/norme-dsn/texte/bloc-S21.G00.62.txt) : un CDDU est un contrat de nature 02 (S21.G00.40.007 ci-dessus), ses motifs sont ceux du CDD ordinaire. Jusqu'au lot C1 (14/10/2026), la liste manquait et un motif réservé au CDI (043, 059…) partait sans contrôle (`Nature::motif_rupture_refuse`).",
+        "_motifs": "Ceux que la CCH-11 de S21.G00.62.002 autorise pour la nature 02 (cahier technique DSN 2026.1, p. 270-273, atelier/reference/norme-dsn/texte/bloc-S21.G00.62.txt) : un CDDU est un contrat de nature 02 (S21.G00.40.007 ci-dessus), ses motifs sont ceux du CDD ordinaire. Jusqu'au lot C1 (14/10/2026), la liste manquait et un motif réservé au CDI (043, 059…) partait sans contrôle (`Nature::motif_rupture_refuse`).",
         "codes": {},
         "signalement_fctu": true,
         "_signalement_fctu": "Toute fin de contrat donne lieu à l'attestation employeur (code du travail R. 1234-9, que cite la fiche net-entreprises 2062), obtenue en DSN par le signalement de fin de contrat (nature 07, fiche 119) ; un CDDU n'en est dispensé que par le circuit dérogatoire ci-dessous, pour le motif 031. Jusqu'au lot C1 (14/10/2026), ce drapeau était faux pour tout CDDU : une rupture anticipée (036, 037, 084…) ne se signalait pas, et la mensuelle lui écrivait un 62.017 = 01 que la CCH-12 refuse. Lu par `Nature::signalement_fctu`, la seule règle.",
@@ -168,8 +168,8 @@
           "applique": "01",
           "non_applique": "02",
           "_quoi": "La modalité de déclaration de la fin du contrat d'usage (S21.G00.62.017), obligatoire dès qu'un CDDU (nature 02, recours 05) a un bloc 62 d'un motif autre que 099 (CCH-11). « 01 - Application du circuit dérogatoire » : la fin part dans la DSN MENSUELLE, sans signalement ; la CCH-12 ne l'autorise QUE pour le motif 031 (ou 099). Tout autre motif écrit « 02 - Non application du circuit dérogatoire », et sa fin se signale (nature 07) : fiche 2062, « Tous les autres motifs de rupture doivent être déclarés par l'émission d'un signalement FCTU. » Le 01 d'un 031 a été tranché sur pièces le 18/09/2026 (§11 point 4 du document) : « 02 » annoncerait un signalement qui ne vient pas, et France Travail édite l'AER CS à partir de la mensuelle qui porte la fin.",
-          "_source": "Cahier technique DSN 2026.1, p. 277-278, CCH-11 et CCH-12 de S21.G00.62.017 (prive/reference/norme-dsn/texte/bloc-S21.G00.62.txt), et § 2.5.3 (chapitre-2-principes-de-constitution.txt : le circuit « dont le motif de fin est une fin de CDD » ; « Dans les autres cas, le déclarant doit procéder selon la procédure de droit commun (signalement) ») ; fiches net-entreprises 2062 (critères a-d) et 1902 (prive/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2062-derogations-fin-de-contrat-fctu-20250905.txt, net-entreprises-fiche1902-circuit-derogatoire-cddu-d-20250512.txt). INFÉRENCE (lot C1) : l'exclusion « AEM » de la fiche 2062 et du § 5.2 (chapitre-5-modeles.txt, p. 107) suit le motif d'exclusion S21.G00.40.025 ; depuis le 100 % DSN, il « doit rester vide » (courriel France Travail du 28/05/2026, prive/reference/sources/francetravail-100-dsn/francetravail-courriel-fin-phase-pilote-100-dsn-20260528.txt), et la règle générale des CDDU s'applique à l'intermittent.",
-          "_reste_ouvert": "Ce que le texte dit et que le moteur ne porte pas : la demande expresse du salarié (fiche 1902 : il refuse le circuit, et même un 031 se signale sous cinq jours ouvrés, 62.017 = 02) ; le CDDU qui n'est pas infra-DSN (§ 2.5.3 : droit commun), pour lequel le 18/09/2026 a retenu 01 (prive/reference/sources/francetravail-100-dsn/LISEZMOI.md, « Ce qu'on en conclut »)."
+          "_source": "Cahier technique DSN 2026.1, p. 277-278, CCH-11 et CCH-12 de S21.G00.62.017 (atelier/reference/norme-dsn/texte/bloc-S21.G00.62.txt), et § 2.5.3 (chapitre-2-principes-de-constitution.txt : le circuit « dont le motif de fin est une fin de CDD » ; « Dans les autres cas, le déclarant doit procéder selon la procédure de droit commun (signalement) ») ; fiches net-entreprises 2062 (critères a-d) et 1902 (atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2062-derogations-fin-de-contrat-fctu-20250905.txt, net-entreprises-fiche1902-circuit-derogatoire-cddu-d-20250512.txt). INFÉRENCE (lot C1) : l'exclusion « AEM » de la fiche 2062 et du § 5.2 (chapitre-5-modeles.txt, p. 107) suit le motif d'exclusion S21.G00.40.025 ; depuis le 100 % DSN, il « doit rester vide » (courriel France Travail du 28/05/2026, reference-privee/sources/francetravail-100-dsn/francetravail-courriel-fin-phase-pilote-100-dsn-20260528.txt (releve sur une compagnie reelle, piece hors du depot public : depot prive)), et la règle générale des CDDU s'applique à l'intermittent.",
+          "_reste_ouvert": "Ce que le texte dit et que le moteur ne porte pas : la demande expresse du salarié (fiche 1902 : il refuse le circuit, et même un 031 se signale sous cinq jours ouvrés, 62.017 = 02) ; le CDDU qui n'est pas infra-DSN (§ 2.5.3 : droit commun), pour lequel le 18/09/2026 a retenu 01 (atelier/reference/sources/francetravail-100-dsn/LISEZMOI.md, « Ce qu'on en conclut »)."
         }
       },
       "remunerations": {
@@ -199,7 +199,7 @@
       "unite_quotite": {
         "valeur": "10",
         "plafond": 250,
-        "quoi": "10 - heure. La quotité d'un contrat mensuel se compte en heures : 40.012 est la durée de référence de l'entreprise pour la catégorie (151.67 h pour 35 h hebdomadaires), 40.013 la durée contractuelle du salarié. La CCH-13 du bloc 40 les plafonne toutes deux à 250.00 en unité heure (cahier technique 2026.1, p. 189 ; 2027.1.1, même texte ; prive/reference/norme-dsn/texte/bloc-S21.G00.40.txt). Le 3250.00 des CCH-11 et CCH-13 du bloc 53 est le plafond de la mesure d'activité (S21.G00.53.002), pas celui de la quotité."
+        "quoi": "10 - heure. La quotité d'un contrat mensuel se compte en heures : 40.012 est la durée de référence de l'entreprise pour la catégorie (151.67 h pour 35 h hebdomadaires), 40.013 la durée contractuelle du salarié. La CCH-13 du bloc 40 les plafonne toutes deux à 250.00 en unité heure (cahier technique 2026.1, p. 189 ; 2027.1.1, même texte ; atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt). Le 3250.00 des CCH-11 et CCH-13 du bloc 53 est le plafond de la mesure d'activité (S21.G00.53.002), pas celui de la quotité."
       },
       "quotite_reference_defaut": {
         "valeur": 151.67,
@@ -208,7 +208,7 @@
       "codes": {
         "S21.G00.40.005": {
           "valeur": "999SPT",
-          "quoi": "999SPT - emplois permanents du spectacle. CCH-18 du bloc 40 (cahier technique 2026.1, p. 185, prive/reference/norme-dsn/texte/bloc-S21.G00.40.txt l. 325-329) : pour une PCS-ESE du spectacle (353b, 353c, 354b, 354c, 354e, 354f, 465b, 637c), le complément est « une valeur présente dans la table de nomenclature des emplois du spectacle ou \"999SPT\" pour les emplois permanents du spectacle ». La table (nomenclature-emplois-ft.json) est celle des intermittents, que France Travail Spectacle lit pour les annexes 8 et 10 : un permanent n'y a pas sa place. La nature décide, pas le métier (tranché le 10/10/2026) : un CDDU garde le code de son métier (fiche, `code_emploi_ft`)."
+          "quoi": "999SPT - emplois permanents du spectacle. CCH-18 du bloc 40 (cahier technique 2026.1, p. 185, atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt l. 325-329) : pour une PCS-ESE du spectacle (353b, 353c, 354b, 354c, 354e, 354f, 465b, 637c), le complément est « une valeur présente dans la table de nomenclature des emplois du spectacle ou \"999SPT\" pour les emplois permanents du spectacle ». La table (nomenclature-emplois-ft.json) est celle des intermittents, que France Travail Spectacle lit pour les annexes 8 et 10 : un permanent n'y a pas sa place. La nature décide, pas le métier (tranché le 10/10/2026) : un CDDU garde le code de son métier (fiche, `code_emploi_ft`)."
         },
         "S21.G00.40.007": {
           "valeur": "01",
@@ -286,7 +286,7 @@
       },
       "dpae": {
         "_quoi": "Ce que la DPAE écrit de ce contrat. C'est une AUTRE déclaration que la DSN, et sa nomenclature n'a rien à voir : le Format 120 ne connaît que TROIS types de contrat — 1 CDD, 2 CDI, 3 CTT — là où la DSN en a une vingtaine. Un permanent passe par la même DPAE que n'importe qui : elle est due pour toute embauche (L1221-10), et l'écrire en CDD quand c'est un CDI, c'est déclarer un terme qui n'existe pas.",
-        "_source": "prive/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.pdf, catégorie V « CONTRAT » — C_TYPE_CONTRAT en position 865, D_FIN_CDD en 866 à 873 (positions du dessin, comptées à partir de 1).",
+        "_source": "atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.pdf, catégorie V « CONTRAT » — C_TYPE_CONTRAT en position 865, D_FIN_CDD en 866 à 873 (positions du dessin, comptées à partir de 1).",
         "type_contrat": {
           "valeur": "2",
           "quoi": "CDI. C\u2019est la seule valeur de ce fichier qui ne vaut pas 1, et c\u2019est tout ce qui sépare la DPAE d\u2019un permanent de celle d\u2019un intermittent.",
@@ -405,7 +405,7 @@
         "S21.G00.40.022": {
           "source": "entreprise.congesspectacles_affiliation",
           "si": "caisse_conges::affilie",
-          "quoi": "Code caisse professionnelle de congés payés, « dans le cas où les indemnités ne sont pas versées par l'employeur » (p. 195) : un CDD ordinaire de MOINS DE DOUZE MOIS d'un artiste (son métier est un emploi de l'annexe 10 de la nomenclature des emplois du spectacle) est déclaré à la caisse des Congés Spectacles « quelle que soit […] la nature du contrat de travail (CDD de droit commun, CDD d'usage, etc) » (fiche Audiens ; code du travail D. 7121-40, D. 7121-41). Les autres prennent leurs congés — ou une indemnité compensatrice — chez leur employeur, et la rubrique ne s'écrit pas. Le technicien en CDD ordinaire reste parmi eux tant que n'est pas décidé quel technicien la caisse attend (l'annexe 8 range aussi l'attaché de production parmi les techniciens). Lot V2f, prive/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md."
+          "quoi": "Code caisse professionnelle de congés payés, « dans le cas où les indemnités ne sont pas versées par l'employeur » (p. 195) : un CDD ordinaire de MOINS DE DOUZE MOIS d'un artiste (son métier est un emploi de l'annexe 10 de la nomenclature des emplois du spectacle) est déclaré à la caisse des Congés Spectacles « quelle que soit […] la nature du contrat de travail (CDD de droit commun, CDD d'usage, etc) » (fiche Audiens ; code du travail D. 7121-40, D. 7121-41). Les autres prennent leurs congés — ou une indemnité compensatrice — chez leur employeur, et la rubrique ne s'écrit pas. Le technicien en CDD ordinaire reste parmi eux tant que n'est pas décidé quel technicien la caisse attend (l'annexe 8 range aussi l'attaché de production parmi les techniciens). Lot V2f, atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md."
         }
       },
       "absents": {},
@@ -414,7 +414,7 @@
       },
       "dpae": {
         "_quoi": "Ce que la DPAE écrit de ce contrat. C'est une AUTRE déclaration que la DSN, et sa nomenclature n'a rien à voir : le Format 120 ne connaît que TROIS types de contrat — 1 CDD, 2 CDI, 3 CTT — là où la DSN en a une vingtaine. Un permanent passe par la même DPAE que n'importe qui : elle est due pour toute embauche (L1221-10), et l'écrire en CDD quand c'est un CDI, c'est déclarer un terme qui n'existe pas.",
-        "_source": "prive/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.pdf, catégorie V « CONTRAT » — C_TYPE_CONTRAT en position 865, D_FIN_CDD en 866 à 873 (positions du dessin, comptées à partir de 1).",
+        "_source": "atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.pdf, catégorie V « CONTRAT » — C_TYPE_CONTRAT en position 865, D_FIN_CDD en 866 à 873 (positions du dessin, comptées à partir de 1).",
         "type_contrat": {
           "valeur": "1",
           "quoi": "CDD. Même valeur que le contrat d\u2019usage : pour l\u2019Urssaf, les deux sont des contrats à durée déterminée.",

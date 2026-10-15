@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000037385776</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/37/38/57/LEGIARTI000037385776.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L6321-9</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2019-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132349">Sixième partie : La formation professionnelle tout au long de la vie </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2019-01-01" id="LEGISCTA000006145422">Livre III : La formation professionnelle continue </TITRE_TM>
+<TITRE_TM debut="2019-01-01" fin="2999-01-01" id="LEGISCTA000037385671">Livre III : La formation professionnelle</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160825">Titre II : Dispositifs de formation professionnelle continue  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006178203">Chapitre Ier : Formations à l'initiative de l'employeur et plan de formation</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006189883">Section 3 : Actions de formation du salarié occupant un emploi saisonnier.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-05-01" etat="MODIFIE" fin="2019-01-01" id="LEGIARTI000006904151" num="L6321-9" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2019-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000037385776" num="L6321-9" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<br/>
+<br/>
+<br/>
+<p>
+<br clear="none"/>
+</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Sans préjudice des dispositions de la section 2, lorsque, en application d'une convention ou d'un accord collectif étendu ou du contrat de travail, l'employeur s'engage à reconduire le contrat d'un salarié occupant un emploi à caractère saisonnier défini au 3° de l'article L. 1242-2 pour la saison suivante, un contrat de travail à durée déterminée peut être conclu, sur le fondement de l'article L. 1242-3, pour permettre au salarié de participer à une action de formation prévue au plan de développement des compétences de l'entreprise. La durée du contrat est égale à la durée prévue de l'action de formation. </p>
+<p>Pour la détermination de la rémunération perçue par le salarié, les fonctions mentionnées à l'article L. 1242-15 sont celles que le salarié doit exercer au cours de la saison suivante. </p>
+<p>Les saisonniers pour lesquels l'employeur s'engage à reconduire le contrat la saison suivante peuvent également bénéficier d'un abondement du compte personnel de formation par accord de branche ou d'entreprise.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000465978" datesignatexte="2007-03-12" id="JORFTEXT000000465978" naturetexte="ORDONNANCE" nortexte="SOCX0700017R" num="" numtexte="2007-329" sens="source" typelien="CODIFICATION">Ordonnance n°2007-329 du 12 mars 2007</LIEN>
+
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000044972538" naturetexte="CODE" nortexte="" num="D6331-72" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D6331-72 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901209" naturetexte="CODE" nortexte="" num="L1242-15" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L1242-15 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901195" naturetexte="CODE" nortexte="" num="L1242-2" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L1242-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006901196" naturetexte="CODE" nortexte="" num="L1242-3" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L1242-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033024533" naturetexte="CODE" nortexte="" num="L6321-13" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L6321-13 (T)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006651410" naturetexte="CODE" nortexte="" num="L932-1" numtexte="" sens="cible" typelien="CONCORDE">Code du travail - art. L932-1 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGITEXT000006072050" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail L932-1 V</LIEN>
+
+</LIENS>
+</ARTICLE>

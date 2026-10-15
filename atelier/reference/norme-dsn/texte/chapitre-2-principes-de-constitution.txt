@@ -1,0 +1,2820 @@
+# Chapitre 2
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 18-72
+
+--- p. 18 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2 Principes de constitution des messages
+
+2.1 Principes généraux de construction des messages
+
+2.1.1 Les données identifiantes
+Parmi les données véhiculées en DSN, certaines sont qualifiées d’identifiantes et doivent
+impérativement être renseignées dans la DSN mensuelle et dans les signalements
+d’évènement. Elles jouent en effet un rôle très structurant dès lors qu’elles permettent de
+faire le lien entre des DSN successives (mensuelles ou événementielles) et ainsi de
+reconstituer les déclarations auxquelles la DSN se substitue. Par exception, certaines
+données identifiantes sont d’usage interdit dans le tableau des usages pour certains
+messages, car la finalité du message ne requiert pas cette information.
+
+Les données « identifiantes » sont les suivantes :
+  • Bloc « Entreprise »
+  o SIREN
+  • Bloc « Etablissement »
+  o NIC
+  • Bloc « Individu »
+  o Numéro d’inscription au répertoire (NIR) et/ou Numéro technique temporaire
+  (NTT)
+  o Nom de famille
+  o Prénoms
+  o Date de naissance
+  • Bloc « Contrat (contrat de travail, convention, mandat) »
+  o Numéro de contrat
+  o Date de début de contrat
+  o Identifiant du contrat d'engagement maritime (pour le rattachement des lignes
+  de services au contrat de travail)
+
+La déclaration de ces données permet de rapprocher les DSN et donc de reconstituer les
+historiques de données nécessaires notamment à la détermination de prestations sociales à
+destination des salariés.
+Lors de l’émission d’un signalement, il sera porté dans les rubriques identifiantes listées ci-
+dessus les mêmes valeurs que celles portées dans la dernière DSN mensuelle déposée en
+mode réel et validée par le point de dépôt (certificat de conformité reçu). La non application
+partielle ou totale de cette règle aura pour conséquence l’impossibilité d’exploiter les
+données reçues dans le signalement et la nécessité pour l’employeur de faire un
+signalement « Annule et remplace intégral » ou de s’affranchir de son obligation déclarative
+par les formalités hors DSN.
+De même, il est important de s’assurer que les valeurs contenues dans les rubriques
+identifiantes sont reportées à l’identique d’une DSN mensuelle à la suivante (en l’absence
+bien sûr de changements réels), tous changements ou corrections apportés à ces rubriques
+étant signalés à l’aide des blocs « changements » appropriés, dès la première DSN portant
+le changement ou la correction (cf. 2.1.2 ci-dessous).
+Le non-respect de ces règles empêchera la reconstitution des déclarations substituées par la
+DSN, ce qui entrainera post déclaration des demandes d’informations complémentaires au
+déclarant de la part des organismes de protection sociale et des services de l’état.
+
+  18 / 361
+
+--- p. 19 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2.1.2  Déclaration de changements et corrections
+
+La situation d’un salarié, les informations permettant de l’identifier et les caractéristiques de
+son contrat sont susceptibles d’évoluer et par conséquent, les données déclarées chaque
+mois en DSN sont susceptibles de changements ou de corrections.
+Un changement doit impérativement être déclaré :
+• au sein d’un bloc « changements » si un tel bloc existe pour la donnée à changer
+• sinon, au sein d’un bloc « normal » (autre que « changements », à savoir : « Individu -
+S21.G00.30 » ou « Contrat - S21.G00.40 »)
+Bien qu’il soit préférable que les changements survenus dans la situation professionnelle
+d’un individu soient communiqués dans les meilleurs délais au système DSN, lorsque le
+changement de situation ne concerne que des données déclarables par bloc changement,
+une déclaration tardive peut être réalisée car les blocs changements permettent un effet
+rétroactif. Une déclaration de changement rétroactif est dans les faits identique à une
+correction puisqu’elle porte correction d’une ou plusieurs DSN mensuelles déjà
+communiquées.
+L'attention des entreprises et des éditeurs est attirée sur l'importance du respect de la
+cinématique des blocs changements. Les changements sont à déclarer dans la DSN du mois
+où le changement a lieu.
+
+2.1.2.1 Définitions des notions de changements et corrections en DSN
+Un changement est un évènement connu avant la date de clôture de la paie. Il donne lieu à
+la déclaration d’un changement dans la DSN correspondante.
+Une correction est un évènement connu après la date de clôture de la paie. Il donne lieu à la
+déclaration d’une correction dans la DSN suivante.
+Exemple :
+Un salarié passe de temps partiel à temps plein à effet du 15 janvier.
+  1. Si le gestionnaire RH en est informé avant la clôture de la paie de janvier, la DSN
+  portera un changement de quotité de travail survenu au cours du mois principal
+  déclaré.
+  2. Si le gestionnaire RH en est informé après la clôture de la paie de février, la DSN
+  relative au mois de mars à déclarer en avril portera alors une correction en date du
+  15 janvier, corrigeant les informations relatives à janvier et février.
+Ainsi, un changement est une modification qui intervient au cours du mois principal déclaré
+(tant que la date de clôture de la paie n’est pas dépassée) alors qu’une correction consiste à
+modifier a posteriori une valeur déjà transmise au système DSN. Compte tenu du dispositif d’
+« Annule et Remplace intégral », le mécanisme de la correction dont il est question ici ne
+concerne que les valeurs qui ne peuvent plus être corrigées par une DSN mensuelle «
+Annule et remplace intégral » suite à dépassement de la date d’exigibilité.
+Le périmètre des blocs changements se limite aux informations suivantes :
+  -  Les informations identifiantes, pour lesquelles il est nécessaire de mettre en relation
+  l’ancienne et la nouvelle valeur en cas de changement
+  -  Les informations retraçant des changements dont la date de survenance porte impact
+  sur la protection sociale
+Pour la déclaration d’un bloc changement, la profondeur de recalcul maximale est de 5 ans.
+Pour résumer, une correction porte uniquement sur un mois antérieur au mois principal
+déclaré, à la différence d’un changement qui est relatif au mois principal déclaré courant.
+Pour autant, en termes de cinématique, déclarer un changement ou une correction est
+similaire.
+
+  19 / 361
+
+--- p. 20 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+En effet, dès lors que la correction concerne un mois antérieur au mois principal déclaré, la
+modalité de déclaration est similaire à celle applicable dans le cadre d’un changement à
+condition que la rubrique à corriger existe au sein d’un bloc changement (changements
+individu, changements contrat).
+
+2.1.2.2 Principes généraux
+Chaque événement déclaré au sein d’un bloc changement est daté par la rubrique « Date de
+modification » qui correspond à la date d’effet des nouvelles valeurs déclarées dans le bloc «
+Individu – S21.G00.30 » ou « Contrat – S21.G00.40 ».
+Cette date doit systématiquement être déclarée et ce, même si la date de survenance
+correspond au premier jour du mois principal déclaré.
+Cette règle est applicable à tout changement déclaré au niveau des blocs « Changements
+individu – S21.G00.31 » et « Changements contrat – S21.G00.41 ».
+
+2.1.2.3 Modalités déclaratives d’un changement de donnée(s) identifiante(s)
+Le bloc « Changements individu – S21.G00.31 » ne contient que des données identifiantes,
+alors que le bloc « Changements contrat – S21.G00.41 » contient pour sa part des données
+identifiantes et non-identifiantes dites de modalités.
+
+Les rubriques présentes dans le bloc « Changements contrat – S21.G00.41 » et portant sur
+des données identifiantes sont :
+• « SIRET ancien établissement d'affectation - S21.G00.41.012 »
+• « Ancien numéro du contrat - S21.G00.41.014 »
+• « Ancienne date de début du contrat - S21.G00.41.021 »
+• « Ancien identifiant du contrat d'engagement maritime - S21.G00.41.054 »
+Les autres rubriques présentes dans le bloc changement portent donc sur des modalités du
+contrat.
+
+2.1.2.3.1 Principes spécifiques
+Pour qu’un changement affectant les données précédemment déclarées soit effectivement
+pris en compte en DSN, il est impératif de pouvoir opérer la traçabilité de l’individu ou du
+contrat concerné.
+Cette opération consiste à relier entre elles les différentes identités prises par une entité
+dans différents messages DSN.
+Les éléments indispensables pour opérer le chaînage des informations relatives à un
+individu ou à un contrat sont les suivants :
+• Chaque identité d’une entité donnée;
+• Le lien entre les identités successives (pour l’individu, par interrogation du référentiel SNGI,
+pour certains organismes seulement).
+Le lien entre les identités prises par une entité doit toujours être déclaré en DSN. La
+déclaration du changement doit intervenir le plus tôt possible, obligatoirement dès la
+première DSN mensuelle dans laquelle est utilisée la nouvelle identité.
+
+  20 / 361
+
+--- p. 21 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+Tout retard de déclaration du bloc changement (« Changements individu – S21.G00.31 » ou
+« Changements contrat – S21.G00.41 ») limite voire empêche le remplacement des
+formalités par la DSN : les DSIJ et les AED ne sont alors pas remplacées tant que le
+changement n’a pas été déclaré.
+Le traitement est réalisé en effectuant un lien entre plusieurs déclarations, donc par
+nécessité en s’appuyant sur une base de données.
+
+2.1.2.3.2 Règle déclarative
+L’analyse conceptuelle de la DSN a permis de retenir l’identification d’un contrat par :
+• Les parties contractantes, soit l’individu et l’employeur, identifiés respectivement par un NIR
+ou un NTT et un SIRET ;
+• La date de début du contrat ;
+• Le numéro de contrat ;
+• L’identifiant du contrat d’engagement maritime (pour les gens de mer affiliés à l’ENIM).
+A chaque fois qu’une donnée identifiante change, il est impératif de déclarer le changement
+ainsi opéré. L’identifiant faisant l’objet du changement porte ainsi la nouvelle valeur déclarée
+dans le bloc normal et l’ancienne valeur dans le bloc changement associé.
+Lorsque plusieurs données identifiantes changent simultanément, il est nécessaire de
+déclarer leur changement simultanément. Les données identifiantes qui ne changent pas
+sont toujours à déclarer au niveau du bloc « Individu – S21.G00.30 » et/ou « Contrat –
+S21.G00.40 ». Seules les données faisant l’objet d’un changement sont à déclarer en bloc
+changement.
+Si des données identifiantes changeant simultanément concernaient toutes des rubriques
+présentes en bloc « Changements individu – S21.G00.31 », alors ces changements
+comportant une date d’effet identique (renseignée en rubrique « Date de la modification –
+S21.G00.31.001 ») devraient être déclarés simultanément et pourraient être portés dans un
+unique bloc « Changements Individus – S21.G00.31 ».
+Pour des données identifiantes (et uniquement celles-ci), la date de modification du bloc
+changement peut correspondre à toute date puisqu’elle n’influe pas sur les modalités de
+prise en compte du lien entre les identités.
+Un point d’ATTENTION est à noter concernant la date de modification à renseigner pour la
+déclaration d’un changement de SIRET. La date doit impérativement correspondre à la date
+d’effet du changement d’employeur. Il s’agit d’une spécificité propre au SIRET en tant
+qu’identifiant. Contrairement aux autres identifiants pour lesquels la date d’effet peut
+correspondre à toute date, la datation précise du changement de SIRET est impactante.
+
+2.1.2.4 Modalités déclaratives d’un changement de modalité du contrat sans
+  équivalent en bloc changement
+
+2.1.2.4.1 Principes spécifiques
+Il s’agit des modalités qui ne peuvent être déclarées par le biais d’un bloc « Changement
+Contrat – S21.G00.41 » et pour lesquelles seule vaut la dernière valeur déclarée pour un
+mois donné.
+Ces changements de modalités n’ont pas d’impact sur les droits.
+
+  21 / 361
+
+--- p. 22 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+Exemple : le libellé de l’emploi ne fait pas l’objet d’une rubrique en bloc changement car
+l’évolution de cette caractéristique du contrat est sans impact direct sur la protection sociale
+de l’individu.
+
+2.1.2.4.2 Règle déclarative
+Il s’agit de déclarer la dernière valeur connue au niveau du bloc « Contrat (Contrat de travail,
+convention, mandat) - S21.G00.40 ».
+Si la modalité à changer n’a pas son équivalent en bloc « Changements contrat -
+S21.G00.41 », la déclaration du changement doit être effectuée au niveau du bloc « Contrat
+(Contrat de travail, convention, mandat) - S21.G00.40 » :
+La valeur déclarée en bloc « Contrat (Contrat de travail, convention, mandat) - S21.G00.40 »
+est applicable du premier au dernier jour du mois principal déclaré (sauf cas particuliers où la
+date de début et/ou de fin du contrat sont incluses dans le mois principal déclaré).
+Si plusieurs changements survenaient dans le mois pour une même modalité, il serait
+toujours déclaré une seule et unique occurrence de la modalité du contrat avec la dernière
+valeur connue lors du traitement de la paie
+
+2.1.2.5 Modalités déclaratives d’un changement de modalité du contrat via bloc
+  changement
+
+2.1.2.5.1 Principes spécifiques
+Les changements de modalités qui sont à déclarer par le biais d’un bloc « Changement
+Contrat – S21.G00.41 » ont un impact sur les droits.
+Exemple : le « Code statut catégoriel Retraite Complémentaire obligatoire » fait l’objet d’une
+rubrique en bloc changement car l’évolution de cette caractéristique du contrat a un impact
+direct sur la protection sociale de l’individu.
+
+A quoi sert la déclaration d’un bloc « Changement Contrat – S21.G00.41 » pour une
+modalité ?
+L’enjeu est de pouvoir, par le biais du traitement de la DSN, reconstituer la situation
+administrative de l’individu à toute date ou période par période.
+La connaissance de cette situation permet ensuite l’application des règles de protection
+sociale et la réalisation d’actes de gestion.
+Il est donc impératif de déclarer correctement les changements de modalités.
+
+Afin de répondre à cet enjeu et de borner la période sur laquelle le déclarant souhaite
+revenir, il a été ajouté au niveau du bloc « Changement Contrat – S21.G00.41 » la rubrique «
+Profondeur de recalcul de la paie (S21.G00.41.028) ».
+Exemple : Si la rubrique « Code statut catégoriel Retraite Complémentaire obligatoire –
+S21.G00.40.003 » est renseignée avec la valeur « 01 – cadre » en DSN d’avril, et si un bloc
+« Changements contrat – S21.G00.41 » est présent avec une date de modification
+renseignée au 15 mars, un ancien code statut catégoriel renseigné avec la valeur « 04 – non
+cadre » et une date de profondeur de recalcul de la paie est renseignée au 1er mars, cela
+signifie que :
+
+  22 / 361
+
+--- p. 23 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+- L’individu est déclaré cadre du 15 mars (date de la modification portée en bloc «
+Changements contrat – S21.G00.41 ») au 30 avril (dernier jour du mois principal déclaré)
+- Avant d’être cadre, il était non cadre (modalité portée par le bloc « Changements contrat –
+S21.G00.41 » jusqu’au 14 mars (veille de la date de modification).
+- L’individu était non cadre au moins depuis le 1er mars (date de la profondeur de recalcul de
+la paie).
+- Dans cet exemple, le déclarant ne souhaite revenir que sur la période allant du 1er mars au
+30 avril. Les informations déclarées pour les périodes précédentes sont réputées correctes.
+
+Pour résumer, la rubrique « Profondeur de recalcul de la paie - S21.G00.41.028 » permet de
+:
+• déterminer depuis quelle date en antériorité il est procédé à un réexamen de la paie ;
+• renseigner la date depuis laquelle court la valeur la plus ancienne du bloc « Changements
+contrat – S21.G00.41 ».
+A noter toutefois que la rubrique « Profondeur de recalcul de la paie - S21.G00.41.028 » ne
+concerne pas les données identifiantes présentes en bloc « Changements contrat –
+S21.G00.41 », à savoir les rubriques suivantes :
+• SIRET ancien établissement d'affectation - S21.G00.41.012
+• Ancien Numéro du contrat - S21.G00.41.014
+• Ancienne Date de début du contrat - S21.G00.41.021
+• Ancien identifiant du contrat d'engagement maritime - S21.G00.41.054
+
+Particularités :
+
+Cas de début et/ou fin de contrat en cours de mois principal déclaré
+• Si aucun bloc « Changement contrat – S21.G00.41 » n’est déclaré concernant une
+modalité du contrat et si la date de début du contrat est incluse dans le mois principal
+déclaré, la valeur déclarée pour cette même modalité au niveau du bloc « Contrat (Contrat
+de travail, convention, mandat) - S21.G00.40 » s’applique de la date de début du contrat au
+dernier jour du mois principal déclaré.
+
+• Si aucun bloc « Changement contrat – S21.G00.41 » n’est déclaré concernant une
+modalité du contrat et si la date de fin du contrat est incluse dans le mois principal déclaré, la
+valeur déclarée pour cette même modalité au niveau du bloc « Contrat (Contrat de travail,
+convention, mandat) - S21.G00.40 » s’applique du premier jour du mois principal déclaré à la
+date de fin du contrat.
+
+• Si aucun bloc « Changement contrat – S21.G00.41 » n’est déclaré concernant une
+modalité du contrat et si la date de début du contrat et la date de fin du contrat sont incluses
+
+  23 / 361
+
+--- p. 24 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+dans le mois principal déclaré, la valeur déclarée pour cette même modalité au niveau du
+bloc « Contrat (Contrat de travail, convention, mandat) - S21.G00.40 » s’applique de la date
+de début du contrat jusqu’à la date de fin du contrat.
+
+Date d’effet de la valeur portée dans le bloc « Contrat – S21.G00.40 »
+• En présence d’un (et un seul) bloc « Changements Contrat – S21.G00.41 » pour une
+modalité donnée, la date d’effet de la valeur présente au niveau du bloc « Contrat –
+S21.G00.40 » correspond à la « Date de la modification – S21.G00.41.001 » du bloc «
+Changements contrat – S21.G00.41 » portant l’ancienne valeur pour cette modalité.
+
+• En présence de plusieurs blocs « Changements Contrat – S21.G00.41 » pour une modalité
+donnée, la date d’effet de la valeur présente au niveau du bloc « Contrat – S21.G00.40 » est
+portée par le bloc « Changement contrat – S21.G00.41 » ayant la « Date de la modification –
+S21.G00.41.001 » la plus récente.
+Exemple : Dans le cas de deux blocs « Changements Contrat – S21.G00.41 » portant sur la
+même modalité (« Ancienne Modalité d’exercice du temps de travail - S21.G00.41.008 »)
+dont la « date de modification – S21.G00.41.001 » est respectivement valorisée à 05/M et
+16/M, la date d’effet de la nouvelle modalité portée par la rubrique « Modalité d’exercice du
+temps de travail - S21.G00.40.014 » est au 16/M (date la plus récente).
+
+Date d’effet de la valeur portée dans un bloc « Changements Contrat – S21.G00.41 » en cas
+de présence de plusieurs blocs « Changements Contrat – S21.G00.41 » pour une modalité
+donnée
+
+• Pour le bloc « Changements Contrat – S21.G00.41 » ayant la « Date de la modification –
+S21.G00.41.001 » (date A) la plus récente parmi l’ensemble des blocs « Changements
+Contrat – S21.G00.41 » présents :
+o La date d’effet de la valeur correspond à la « Date de la modification – S21.G00.41.001 »
+présente au niveau du bloc « Changements Contrat – S21.G00.41 » ayant une « Date de la
+modification – S21.G00.41.001 » (date B) à la fois plus ancienne que la date A et la plus
+proche de cette date A parmi l’ensemble des blocs « Changements Contrat – S21.G00.41 »
+présents.
+
+• Pour le bloc « Changements Contrat – S21.G00.41 » ayant la « Date de la modification –
+S21.G00.41.001 » (date Z) la plus ancienne parmi l’ensemble des blocs « Changements
+Contrat – S21.G00.41 » présents :
+o La date renseignée dans la rubrique « Profondeur de recalcul de la paie - S21.G00.41.028
+» indique l’antériorité de la valeur.
+o Dit autrement, la valeur prend effet jusqu’à la « Date de la modification – S21.G00.41.001
+» (date Z) moins un, et au moins depuis la date renseignée dans la rubrique « Profondeur de
+recalcul de la paie - S21.G00.41.028 ».
+
+  24 / 361
+
+--- p. 25 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+• Pour chaque autre bloc « Changements Contrat – S21.G00.41 » présent, le raisonnement
+est le suivant :
+o Soit une « Date de la modification – S21.G00.41.001 » (date C) renseignée pour ce bloc «
+Changements Contrat – S21.G00.41 ».
+o La date d’effet de la valeur correspond à la « Date de la modification – S21.G00.41.001 »
+présente au niveau du bloc « Changements Contrat – S21.G00.41 » ayant une « Date de la
+modification – S21.G00.41.001 » (date D) à la fois plus ancienne que la date C et la plus
+proche de cette date C parmi l’ensemble des blocs « Changements Contrat – S21.G00.41 »
+présents.
+
+Exemple : Soit trois blocs « Changements Contrat – S21.G00.41 » portant sur la même
+modalité (« Ancienne Modalité d’exercice du temps de travail - S21.G00.41.008 ») dont la «
+Date de la modification – S21.G00.41.001 » est respectivement valorisée à 25/M-1, 05/M et
+16/M.
+Le bloc « Changements Contrat – S21.G00.41 » dont la « Date de la modification –
+S21.G00.41.001 » est la plus ancienne parmi les blocs « Changements Contrat –
+S21.G00.41 » présents, contient une rubrique « Profondeur de recalcul de la paie -
+S21.G00.41.028 » valorisée à 01/M-1.
+• Pour le bloc « Changements Contrat – S21.G00.41 » ayant la « Date de la modification –
+S21.G00.41.001 » la plus récente (16/M), la date d’effet de la valeur est 05/M. La valeur
+prend donc effet du 05/M au 15/M.
+• Pour le bloc « Changements Contrat – S21.G00.41 » ayant une « Date de la modification –
+S21.G00.41.001 » à la fois plus ancienne que 16/M et la plus proche de cette date 16/M
+parmi l’ensemble des blocs « Changements Contrat – S21.G00.41 » présents (soit 05/M), la
+date d’effet de la valeur est 25/M-1. La valeur prend donc effet du 25/M-1 au 04/M.
+• Pour le bloc « Changements Contrat – S21.G00.41 » ayant la « Date de la modification –
+S21.G00.41.001 » la plus ancienne (25/M-1), la date renseignée dans la rubrique «
+Profondeur de recalcul de la paie - S21.G00.41.028 » indique l’antériorité de la valeur qui est
+01/M-1. La valeur prend donc effet jusqu’au 24/M-1 et au moins depuis le 01/M-1.
+
+2.1.2.5.2 Règle déclarative
+Le changement d’une des modalités visées doit impérativement être déclaré via un bloc «
+Changements Contrat – S21.G00.41 ». Si deux modalités différentes faisaient l’objet d’un
+changement, alors il n’est pas possible de les déclarer via un même bloc changement. Ces
+changements doivent être déclarés dans différents blocs changement, et ce même si
+plusieurs changements sont concomitants.
+Seules les modalités faisant l’objet d’un changement sont à déclarer en bloc changement.
+Ce changement doit être déclaré dans la DSN du mois où le service prend connaissance de
+ces modifications, même si elles ont eu lieu antérieurement.
+A noter qu’en cas de déclaration dans une DSN précédente d’une valeur erronée pour une
+modalité de contrat, la valeur à renseigner dans le bloc « Changements Contrat -
+S21.G00.41 » doit être celle qui aurait dû être déclarée et non pas celle qui avait été
+déclarée précédemment de manière erronée.
+
+  25 / 361
+
+--- p. 26 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+La date de survenance du changement ou de la correction (portée par la rubrique « Date de
+la modification - S21.G00.41.001 ») doit obligatoirement être renseignée.
+
+Usage de la rubrique « Profondeur de recalcul de la paie – S21.G00.41.028 »
+La valorisation de la rubrique « Profondeur de recalcul de la paie - S21.G00.41.028 » est
+obligatoire pour une même modalité du contrat si un seul bloc « Changements Contrat –
+S21.G00.41 » est déclaré.
+En cas de déclaration de plusieurs blocs « Changements Contrat - S21.G00.41 » portant sur
+un même contrat et une même modalité, la rubrique « Profondeur de recalcul de la paie -
+S21.G00.41.028 » est obligatoire pour le bloc « Changements Contrat - S21.G00.41 »
+présentant la « Date de la modification – S21.G00.41.001 » la plus ancienne, afin de borner
+la période sur laquelle il est procédé au réexamen de la paie. A noter que dans ce cas, la
+déclaration de la rubrique « Profondeur de recalcul de la paie - S21.G00.41.028 » est
+interdite pour tous les autres blocs portant sur le même contrat et la même modalité.
+
+La date définissant la période de recalcul de la paie doit être renseignée au premier jour d’un
+mois civil sauf si la date de début de contrat est supérieure à celle-ci. Dans ce cas, c’est la
+date de début du contrat qui devra être renseignée dans la rubrique « Profondeur de recalcul
+de la paie - S21.G00.41.028 ».
+En effet, le rythme usuel de la paie est mensuel et la durée des périodes de paie est
+usuellement d’un mois. Le calcul d’une paie faisant l’objet de corrections porte
+nécessairement sur une période composée de plusieurs mois civils complets : soit la période
+de paie courante + les périodes de paie dont les résultats de paie seront modifiés par la
+correction de la modalité.
+Dans le cas d’un changement prenant effet au 1er jour d’un mois civil, la date renseignée en
+rubrique « Profondeur de recalcul de la paie - S21.G00.41.028 » est la même que la date
+renseignée en « Date de la modification - S21.G00.41.001 ».
+
+Pour les cas d’illustration, veuillez-vous référer à la note sur la gestion des changements des
+modalités de contrat en DSN, présente sur DSN info : "DECLARATION DES
+CHANGEMENTS DES MODALITES DU CONTRAT EN DSN".
+
+  26 / 361
+
+--- p. 27 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2.1.3  Déclaration des éléments de revenus bruts et mesures d’activité
+
+2.1.3.1 Périmètre
+Les éléments financiers sont portés par 4 blocs :
+  -  Les blocs « Rémunération » et « Prime, gratification et indemnité » sont rattachés
+  directement au bloc « Versement individu », et indirectement (via la donnée
+  identifiante « Numéro du contrat ») au bloc « Contrat (contrat de travail, convention,
+  mandat)
+  -  Le bloc « Activité », portant les mesures d’activité
+  -  Le bloc « Autre élément de revenu brut » qui véhicule les avantages en nature,
+  frais professionnels (y compris le montant de la Déduction Forfaitaire Spécifique si
+  applicable), l’intéressement, la participation, l’abondement aux plans d’épargne, la
+  participation patronale à divers frais (transport, titre-restaurant), les sommes versées
+  par un tiers... En paie, ces autres éléments de revenu brut n’étant pas forcément
+  rattachés à un contrat de travail, ils seront uniquement déclarés par date de
+  versement de la paie à l’individu.
+  Exemples:
+  -  Le versement d’un commissionnement commercial au profit d’un individu en
+  l’absence de toute relation contractuelle avec le payeur
+  -  Le versement d’un intéressement à un salarié disposant de plusieurs contrats de
+  travail au sein du même établissement. Dans ce cas de figure, le montant
+  d’intéressement peut ne pas être rattaché à un contrat en particulier
+Le « type » et la « mesure de l’activité » donnant lieu à rémunération, sont déclarés au sein
+du bloc « Activité ». Ce dernier ne peut exister qu’en présence du bloc « Rémunération ».
+La déclaration des éléments financiers repose sur des notions de périodes différentes selon
+le bloc.
+
+2.1.3.2 Définition des notions de périodes
+Période de paie
+
+La réglementation prévoit que la paie doit être versée à intervalle régulier qui, sauf exception
+prévue par le code du travail, ne peut dépasser un mois. Selon ce principe, la période de
+paie est une période de durée égale à l’intervalle entre deux versements de la paie. Le
+
+  27 / 361
+
+--- p. 28 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+début et la fin de période de paie peuvent toutefois ne pas correspondre aux dates de
+versement de la paie, en fonction des choix et contraintes de gestion de l’employeur.
+Exemple : une paie versée le 25 du mois M, pour laquelle la période de paie s’étend du 1er
+au 31 du mois M).
+Le montant de la paie est établi sur la base des éléments enregistrés dans le système de
+paie au cours de la période de paie : la mesure de l’activité du salarié, les évolutions du
+statut du salarié, les altérations de la situation professionnelle du salarié (absences, etc.), les
+décisions de versement de primes exceptionnelles.
+Période élémentaire de paie
+La période élémentaire de paie constitue une sous-partie de la période de paie. Le
+découpage de la période de paie en périodes élémentaires de paie découle de modalités
+différentes de calcul de la paie en cas d’évolution des paramètres de calcul de la paie et
+notamment du statut du salarié (par exemple, passage de non cadre à cadre en cours de
+période de paie).
+La période élémentaire est bornée par défaut par les dates de début et de fin de période de
+paie.
+La période à déclarer dans le bloc Rémunération est cette période élémentaire de paie,
+lorsque le logiciel de paie produit effectivement un découpage selon ces périodes
+élémentaires. A minima, les rémunérations doivent être déclarées période de paie par
+période de paie.
+Période de rattachement des éléments exceptionnels de revenu brut (prime
+gratification et indemnité ou autre élément de revenu brut)
+
+Un élément exceptionnel de revenu brut peut être versé à une fréquence différente de la
+paie. Certains éléments de revenu sont par exemple attribués au titre d’une période de
+présence du salarié dans l’entreprise ou l’établissement : le 13ème mois peut être versé au
+titre d’un exercice, un commissionnement commercial peut être versé au titre d’un trimestre.
+La notion de période de rattachement permet également de prendre en compte les cas où le
+versement de l’élément exceptionnel de revenu brut est conditionné à la présence du salarié
+sur une période donnée. La période de rattachement de la prime en question sera alors
+renseignée en fonction de la présence de l’individu dans l’entreprise.
+Le mois principal déclaré
+
+Chaque paie est associée à une période de paie. La DSN est produite suite à l’établissement
+d’une ou plusieurs paies. Si la DSN fait état d’une seule paie, le mois principal déclaré est le
+mois civil au cours duquel finit la période de paie. Si la DSN fait état de plusieurs paies, le
+même raisonnement est appliqué en se basant sur la paie la plus récente non encore
+déclarée.
+En cas de paies infra mensuelles (exemple : les paies hebdomadaires), le mois principal
+déclaré sera associé à plusieurs périodes de paies, elles-mêmes éventuellement découpées
+en périodes élémentaires si cela fait sens.
+Exemple : une entreprise pratique la paie hebdomadaire. Les périodes de paie
+hebdomadaires s’étendent du 31 du mois M-1 au 27 du mois M. Le mois principal déclaré de
+ces périodes est le mois M.
+
+  28 / 361
+
+--- p. 29 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2.1.3.3 Modalités déclaratives des éléments financiers présents au sein du bloc
+  « Rémunération »
+Les éléments financiers présents au sein du bloc « Rémunération » sont déclarés
+par période élémentaire de paie.
+Avec l'introduction du typage des rémunérations déclarées, il n'est plus précisé au niveau du
+tableau des usages le caractère obligatoire ou conditionnel de chaque type de rémunération.
+Le tableau ci-dessous précise ces informations. Le respect de ces consignes de déclaration
+est nécessaire à la reconstitution des déclarations substituées.
+
+  Usage
+  Signalement fin de contrat de
+  Type  DSN mensuelle
+  travail unique
+001 - Rémunération brute non plafonnée  Obligatoire  Obligatoire
+002 - Salaire brut servant aux calculs des droits
+  Obligatoire  Obligatoire
+de l'Assurance chômage
+003 - Salaire rétabli - reconstitué  Obligatoire  Conditionnel
+010 - Salaire de base  Obligatoire  Obligatoire
+012 - Heures d'équivalence Conditionnel
+  Conditionnel  Conditionnel
+Interdit
+013 - Heures d’habillage, déshabillage, pause
+  Conditionnel  Conditionnel
+Conditionnel Interdit
+016 - [FP] Heures affectées à un travail d’aide à
+  Conditionnel  Conditionnel
+domicile
+017 - Heures supplémentaires ou
+  Conditionnel  Conditionnel
+complémentaires aléatoires
+018 - Heures supplémentaires structurelles  Conditionnel  Conditionnel
+019 - Heures d'activité partielle  Conditionnel  Conditionnel
+020 - Heures affectées à un travail d’aide à  Conditionnel  Conditionnel
+domicile de publics fragiles
+025 - Heures correspondant à du chômage
+  Conditionnel  Conditionnel
+intempéries
+
+2.1.3.4 Modalités déclaratives des éléments financiers présents au sein des blocs
+  « Prime, gratification et indemnité » et « Autre élément de revenu brut »
+Les éléments financiers déclarés au sein des blocs « Prime, gratification et indemnité » et
+« Autre élément de revenu brut » sont déclarés par :
+  -  Période de rattachement, selon les types d'éléments financiers
+  -  Et date de versement de la prime, gratification ou indemnité ou de l'autre élément de
+  revenu brut portée dans le bloc Versement individu au titre duquel est constitué le
+  bloc Rémunération
+
+2.1.3.5 Modalités de déclaration des mesures d’activité
+Les mesures d’activité sont toujours valorisées au titre d’une période élémentaire de paie.
+
+Lorsque l’unité de mesure du travail portée par le contrat n’est pas appropriée (par exemple
+mesure d’une absence en heures pour un individu dont le contrat est fixé en forfait jours),
+
+  29 / 361
+
+--- p. 30 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+l’unité utilisée doit être précisée dans le bloc Activité. C’est cette information qui est retenue
+par les traitements des données. Le bloc Activité est à rattacher obligatoirement au bloc
+Rémunération de type Salaire brut servant aux calculs des droits de l'Assurance chômage.
+
+2.1.3.6 Modalités déclaratives d’un rappel de paie
+Un rappel de paie concrétise la correction d’une paie antérieure au titre des Rémunérations
+ou au titre des Primes, Indemnités et Gratifications.
+Les rappels sont à déclarer en approche différentielle. Cependant, l’approche par annulation
+et remplacement d’une écriture est tout à fait possible. Ainsi, un montant de 1000€ déclaré
+en lieu et place d’un montant de 1200€ donnera lieu idéalement à la déclaration d’un rappel
+de 200€ et, s’il n’est pas possible d’opérer dans cette approche différentielle, un premier
+rappel de -1000€ et un second rappel de 1200€.
+Il sera porté une attention particulière au fait que le cumul des rappels sur toute période ne
+mène pas à constater des valeurs négatives pour tous les types d’éléments de revenu brut
+comme pour les types d’activité car s’il est logique que certains mois des paies soient
+négatives, cela ne l’est pas pour déclencher par exemple un signalement de fin de contrat de
+travail sur le cumul de toutes les périodes. Les vérifications sont à opérer au niveau du
+logiciel de paie en amont de l’envoi des signalements.
+Par ailleurs, les principes de rappels définis ci-dessous sont également applicables aux
+rappels survenant après la rupture du contrat. Les périodes de paie afférentes devront
+toutefois être bornées sur la date de fin de contrat de travail.
+En cas de régularisation de cotisation ou de rappel de paie, il doit être appliqué, pour
+l’ensemble des montants présents dans la déclaration, une unique modalité de
+régularisation. Celle-ci pouvant être l’approche différentielle ou l’approche par annulation et
+remplacement.
+Attention, cette consigne ne concerne pas les rubriques des blocs « Bordereau de
+cotisation due - S21.G00.22 » et « Cotisation agrégée -S21.G00.23 », auxquelles
+s’appliquent les consignes spécifiques formalisées au Guide de l'Urssaf « Comment
+déclarer et régulariser les cotisations Urssaf en DSN ».
+
+  2.1.3.6.1 Rappels de primes, indemnités et gratifications
+Le rappel de primes, indemnités et gratifications peut être rendu nécessaire pour correction :
+-  Du type ou de la période de rattachement, entrainant l’obligation de déclarer une
+  annulation de la déclaration initiale accompagnée si opportun d’une déclaration
+  corrective correcte en remplacement.
+-  Du montant. Une correction de montant, sans modification de type et/ou de période de
+  rattachement peut être réalisée en approche cumulative en déclarant le montant de la
+  correction qualifié par le type et :
+  ▪  la période de rattachement initialement déclarée (S21.G00.52.003 /
+  S21.G00.52.004) si les primes sont de type 026, 027 ou 029.
+  ▪  La date de versement d’origine (S21.G00.52.007) pour les autres types.
+
+  2.1.3.6.2 Rappels d'autres éléments de revenu brut
+Le rappel d'autres éléments de revenu brut peut être rendu nécessaire pour correction :
+-  Du type ou de la période de rattachement, entrainant l’obligation de déclarer une
+
+  30 / 361
+
+--- p. 31 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  annulation de la déclaration initiale accompagnée si opportun d’une déclaration
+  corrective correcte en remplacement.
+
+-  Du montant. Une correction de montant, sans modification de type et/ou de période de
+  rattachement peut être réalisée en approche cumulative en déclarant le montant de la
+  correction qualifié par le type et la période de rattachement initialement déclarée
+  (S21.G00.54.003 / S21.G00.54.004), si cela fait sens.
+
+Exemple :
+Un déclarant renseigne par erreur dans la DSN de janvier 100 € d’avantage en nature repas,
+alors qu’il s’agissait d’un avantage en nature : véhicule. Dans la DSN de février, il doit donc
+annuler l’avantage en nature : repas, puis déclarer l’avantage en nature : véhicule.
+
+  DSN de janvier 2013  DSN de février 2013
+
+  S21.G00.54 – Autre élément de revenu brut  S21.G00.54 – Autre élément de revenu brut
+  S21.G00.54.001 : 02 - Avantage en nature : repas  S21.G00.54.001 : 02 - Avantage en nature : repas
+  S21.G00.54.002 : 100  S21.G00.54.002 : - 100
+
+  S21.G00.54 – Autre élément de revenu brut
+  S21.G00.54.001 : 04 - Avantage en nature : véhicule
+  S21.G00.54.002 : 100
+
+2.2 Le recouvrement de cotisations et contributions
+2.2.1  Synthèse des modalités déclaratives des blocs et rubriques par organisme
+
+Les modalités déclaratives par organisme de chacune des rubriques des blocs liés au
+recouvrement de cotisations sont présentées dans les tableaux de synthèse ci-dessous.
+
+Dans les tableaux ci-dessous, la présence d’une « X » signifie que, pour un OPS donné, la
+rubrique peut ou doit être renseignée selon les cas. Les cas particuliers d’alimentation de
+certaines rubriques sont décrits en partie technique du cahier technique.
+
+  31 / 361
+
+--- p. 32 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2.2.1.1 Bloc "Composant de base assujettie" (S21.G00.79)
+
+  Montant de  Identifiant du CRM à
+  Rubriques  Type de composant
+  composant de base  l'origine de la
+  de base assujettie
+  assujettie  régularisation
+  Organismes  S21.G00.79.001
+  S21.G00.79.004  S21.G00.79.005
+
+  AGIRC-ARRCO  X  X
+
+ Caisses Congés payés
+  (CIBTP, Transport,
+  Manutention port.)
+
+  CAMIEG
+
+  CAVEC
+
+  CCVRP
+
+  CNIEG
+
+  Congés spectacles
+  (AUDIENS)
+
+CRPCEN (pour corriger
+  des périodes  X  X
+ antérieures à 2023)
+
+  CRPNPAC  X  X
+
+  Organisme
+  X  X
+  complémentaire
+
+  DGFIP  X  X
+
+  IRCANTEC
+
+  MSA  X  X
+
+  France Travail  X  X
+
+  Urssaf  X  X
+
+  CNRACL
+
+  CPF
+
+  FSPOEIE
+
+  RAEP
+
+  SRE
+
+  RAFP
+
+  CNBF
+
+  32 / 361
+
+--- p. 33 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  2.2.1.2 Bloc "Base assujettie" (S21.G00.78)
+
+  Identifiant du
+  Date de début Date de fin de  Identifiant
+  Rubriques  Code de base  Numéro du  CRM à l'origine
+  de période de  période de  Montant  technique
+  assujettie  contrat  de la
+  rattachement  rattachement S21.G00.78.004  affiliation
+  Organismes  S21.G00.78.001  S21.G00.78.006 régularisation
+  S21.G00.78.002 S21.G00.78.003  S21.G00.78.005
+  S21.G00.78.007
+
+  AGIRC-ARRCO  X  X  X  X  X
+
+ Caisses Congés
+  payés (CIBTP,
+  Transport,  X  X  X  X  X
+  Manutention
+  port.)
+
+  CAMIEG
+  (pour
+régularisation des
+  périodes
+antérieures à 2020
+  X  X  X  X
+  pour le régime
+  général et
+antérieures à 2021
+  pour le régime
+  agricole)
+
+  CAVEC  X  X  X  X
+
+  CCVRP
+
+  CNIEG
+
+  (pour
+régularisation des  X  X  X  X
+  périodes
+  antérieures à
+  2022)
+
+Congés spectacles
+  X  X  X  X
+  (AUDIENS)
+
+  CRPCEN (pour
+  corriger des
+  périodes  X  X  X  X
+  antérieures à
+  2023)
+
+  CRPNPAC  X  X  X  X
+
+  Organisme
+  X  X  X  X  X
+ complémentaire
+
+  DGFIP  X  X  X  X
+
+  IRCANTEC  X  X  X  X  X
+
+  MSA  X  X  X  X  X
+
+  France Travail  X  X  X  X  X
+
+  33 / 361
+
+--- p. 34 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+Urssaf  X  X  X  X  X
+
+CNRACL  X  X  X  X  X
+
+ CPF
+
+FSPOEIE  X  X  X  X
+
+ RAEP  X  X  X  X
+
+ SRE
+
+ RAFP  X  X  X  X  X
+
+ CNBF  X  X  X  X
+
+  34 / 361
+
+--- p. 35 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  2.2.1.3 Bloc "Cotisation individuelle" (S21.G00.81)
+
+  Les rubriques présentées dans les tableaux ci-dessous sont à déclarer à minima en fonction
+  des cas exposés. La présence d’une croix (X) signifie que, pour un organisme donné, la
+  rubrique doit obligatoirement être renseignée.
+  Les déclarants ont la possibilité de renseigner les rubriques « Code de cotisation –
+  S21.G00.81.001 », « Montant d'assiette S21.G00.81.003 » et « Montant de cotisation
+  S21.G00.81.004 », sans distinction préalable par le logiciel de paie en fonction de
+  l’organisme destinataire et de la cotisation/exonération/réduction déclarée.
+  Chaque partenaire récepteur des données déclarées en DSN n’exploitera que les données
+  dont il a besoin pour son métier.
+
+  Cotisation
+
+  Identifiant  Identifiant du
+  Code de
+  Rubriques  organisme de  Montant  Montant de  Code INSEE  CRM à l'origine  Taux de
+  cotisation
+  protection  d'assiette  cotisation  commune  de la  cotisation
+  S21.G00.81.0
+  Organismes  sociale  S21.G00.81.003 S21.G00.81.004 S21.G00.81.005 régularisation S21.G00.81.007
+  01
+  S21.G00.81.002  S21.G00.81.006
+
+  AGIRC-ARRCO  X  X
+
+ Caisses Congés
+  payés (CIBTP,
+  Transport,
+Manutention port.)
+
+  CAMIEG
+  (pour
+régularisation des
+  périodes
+antérieures à 2020
+  X  X  X  X
+  pour le régime
+  général et
+antérieures à 2021
+  pour le régime
+  agricole)
+
+  CAVEC  X  X  X
+
+  CCVRP
+
+  CNIEG
+
+  (pour
+ régularisation des  X  X  X  X
+  périodes
+antérieures à 2022)
+
+Congés spectacles
+  X  X
+  (AUDIENS)
+
+  CRPCEN (pour
+  corriger des
+  X  X  X  X
+  périodes
+antérieures à 2023)
+
+  35 / 361
+
+--- p. 36 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  CRPNPAC  X  X  X  X
+
+  Organisme
+  X  X
+complémentaire
+
+  DGFIP  X  X
+
+  IRCANTEC  X  X  X  X
+
+  MSA  X  X  X  X  X  X
+
+ France Travail  X  X  X  X  X
+
+  Urssaf  X  X  X  X  X  X
+
+  CPF
+
+  CNRACL  X  X  X
+
+  FSPOEIE  X  X  X
+
+  RAEP  X  X  X
+
+  SRE
+
+  RAFP  X  X  X
+
+  CNBF  X  X  X
+
+  36 / 361
+
+--- p. 37 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  Exonération
+
+  Identifiant  Identifiant du
+  Rubriques  Code de  organisme de  Montant  Montant de  Code INSEE  CRM à l'origine  Taux de
+  cotisation  protection  d'assiette  cotisation  commune  de la  cotisation
+ Organismes  S21.G00.81.001  sociale  S21.G00.81.003 S21.G00.81.004 S21.G00.81.005 régularisation S21.G00.81.007
+  S21.G00.81.002  S21.G00.81.006
+
+ AGIRC-ARRCO  X  X
+
+Caisses Congés
+ payés (CIBTP,
+  Transport,  X  X  X
+ Manutention
+  port.)
+
+  CAMIEG
+
+  (pour
+  régularisation
+  des périodes
+  antérieures à
+  2020 pour le
+ régime général
+et antérieures à
+  2021 pour le
+régime agricole)
+
+  CAVEC
+
+  CCVRP
+
+  CNIEG (pour
+ régularisation
+  des périodes
+ antérieures à
+  2022)
+
+  Congés
+  spectacles
+  (AUDIENS)
+
+ CRPCEN (pour
+  corriger des
+  périodes  X  X  X
+ antérieures à
+  2023)
+
+  CRPNPAC  X  X
+
+  Organisme
+complémentaire
+
+  DGFIP
+
+  IRCANTEC
+
+  MSA  X  X  X
+
+ France Travail  X  X  X  X
+
+  Urssaf  X  X  X
+
+  37 / 361
+
+--- p. 38 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+CNRACL  X  X
+
+ CPF
+
+FSPOEIE  X  X
+
+ RAEP
+
+ SRE
+
+ RAFP
+
+ CNBF  X  X  X
+
+  38 / 361
+
+--- p. 39 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  Réduction
+
+  Identifiant  Identifiant du
+  Rubriques  Code de  organisme de  Montant  Montant de  Code INSEE  CRM à l'origine  Taux de
+  cotisation  protection  d'assiette  cotisation  commune  de la  cotisation
+ Organismes  S21.G00.81.001  sociale  S21.G00.81.003 S21.G00.81.004 S21.G00.81.005 régularisation S21.G00.81.007
+  S21.G00.81.002  S21.G00.81.006
+
+ AGIRC-ARRCO  x  x  x
+
+Caisses Congés
+ payés (CIBTP,
+  Transport,
+ Manutention
+  port.)
+
+  CAMIEG
+
+  (pour
+  régularisation
+  des périodes
+  antérieures à
+  2020 pour le
+ régime général
+et antérieures à
+  2021 pour le
+régime agricole)
+
+  CAVEC
+
+  CCVRP
+
+  CNIEG (pour
+ régularisation
+  des périodes  X  X  X  X
+ antérieures à
+  2022)
+
+  Congés
+  spectacles
+  (AUDIENS)
+
+ CRPCEN (pour
+  corriger des
+  périodes  X  X  X  X
+ antérieures à
+  2023)
+
+  CRPNPAC  X  X  X  X
+
+  Organisme
+complémentaire
+
+  DGFIP
+
+  IRCANTEC
+
+  MSA  X  X  X  X
+
+ France Travail  X  X  X  X
+
+  Urssaf  X  X  X  X
+
+  39 / 361
+
+--- p. 40 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+CNRACL  X  X  X
+
+ CPF
+
+FSPOEIE  X  X  X
+
+ RAEP
+
+ SRE
+
+ RAFP
+
+ CNBF
+
+  40 / 361
+
+--- p. 41 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+ 2.2.1.4 Bloc "Bordereau de cotisation due" (S21.G00.22)
+
+  Identifiant  Identifiant du
+  Entité  Date de début Date de fin de
+  organisme de  Montant total CRM à l'origine
+  Rubriques  d'affectation  de période de  période de
+  protection  de cotisations  de la
+  des opérations rattachement  rattachement
+  sociale  S21.G00.22.005 régularisation
+  Organismes  S21.G00.22.002 S21.G00.22.003 S21.G00.22.004
+  S21.G00.22.001  S21.G00.22.006
+
+ AGIRC-ARRCO
+  Caisses Congés
+  payés (CIBTP,
+  Transport,
+  Manutention
+  port.)
+  CAMIEG
+  (pour
+régularisation des
+  périodes
+  antérieures à
+  X  X  X  X  X
+  2020 pour le
+régime général et
+  antérieures à
+  2021 pour le
+ régime agricole)
+  CAVEC
+  CCVRP
+  CNIEG
+  (pour
+régularisation des
+  X  X  X  X  X
+  périodes
+  antérieures à
+  2022)
+Congés spectacles
+  (AUDIENS)
+  CRPCEN (pour
+  corriger des
+  périodes  X  X  X  X  X
+  antérieures à
+  2023)
+  CRPNPAC  X  X  X  X
+  Organisme
+complémentaire
+  DGFIP
+  IRCANTEC
+  MSA
+  France Travail
+  Urssaf  X  X  X  X  X
+  CPF
+  CNRACL
+  FSPOEIE
+  RAEP
+  SRE
+  RAFP
+  CNBF
+
+  41 / 361
+
+--- p. 42 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2.2.1.5 Bloc "Cotisation agrégée" (S21.G00.23)
+
+Se référer aux modalités de déclaration présentées dans les documents suivants :
+-  Guide Urssaf : Comment déclarer et régulariser les cotisations Urssaf en DSN
+  (https://www.urssaf.fr/files/live/sites/urssaffr/files/outils-documentation/guides/Guide-
+  declaration-regularisation-cotisations-sociales-Urssaf-DSN.pdf)
+
+-  Table des codes types de personnel
+  (https://fichierdirect.declaration.urssaf.fr/TablesReference.htm)
+
+Attention : les organismes de retraite de la Fonction publique ne sont pas concernés
+par ce bloc.
+
+  42 / 361
+
+--- p. 43 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2.2.1.6 Bloc "Versement organisme de protection sociale" (S21.G00.20)
+
+1ère partie du tableau
+  Identifiant
+  Entité  Date de début
+  Rubriques  Organisme de  Montant du
+  d'affectation  BIC  IBAN  de période de
+  Protection  versement
+  des opérations S21.G00.20.003 S21.G00.20.004  rattachement
+  Organismes  Sociale  S21.G00.20.005
+  S21.G00.20.002  S21.G00.20.006
+  S21.G00.20.001
+
+ AGIRC-ARRCO  X  X  X  X  X  X
+
+ Caisses Congés
+  payés (CIBTP,
+  Transport,
+  Manutention
+  port.)
+
+  CAMIEG
+
+  (pour
+régularisation des
+  périodes
+  antérieures à  X  X  X  X  X  X
+  2020 pour le
+régime général et
+  antérieures à
+  2021 pour le
+ régime agricole)
+
+  CAVEC  X  X  X  X  X
+
+  CCVRP
+
+  CNIEG
+
+  (pour
+régularisation des  X  X  X  X  X  X
+  périodes
+  antérieures à
+  2022)
+
+Congés spectacles
+  X  X  X  X  X  X
+  (AUDIENS)
+
+ CRPCEN (pour
+  corriger des
+  périodes  X  X  X  X  X  X
+ antérieures à
+  2023)
+
+  CRPNPAC  X  X  X  X  X
+
+  Organisme
+  X  X  X  X  X  X
+complémentaire
+
+  IRCANTEC  X  X  X  X  X
+
+  MSA  X  X  X  X  X
+
+ France Travail  X  X  X  X  X  X
+
+  43 / 361
+
+--- p. 44 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  Urssaf  X  X  X  X  X  X
+
+  DGFIP  X  X  X  X  X
+
+  CPF
+
+  CNRACL
+
+  FSPOEIE
+
+  RAEP
+
+  SRE
+
+  RAFP
+
+  CNBF  X  X  X  X  X
+
+2ème partie du tableau
+  Identifiant du
+  Date de fin de  Code
+  Rubriques  Mode de  Date de  CRM à l'origine
+  période de  délégataire de  SIRET payeur
+  paiement  paiement  de la
+  rattachement  gestion  S21.G00.20.012
+  Organismes  S21.G00.20.010 S21.G00.20.011  régularisation
+  S21.G00.20.007 S21.G00.20.008
+  S21.G00.20.013
+
+ AGIRC-ARRCO  X  X  X
+
+ Caisses Congés
+  payés (CIBTP,
+  Transport,
+  Manutention
+  port.)
+
+  CAMIEG
+  (pour
+régularisation des
+  périodes
+  antérieures à
+  X  X  X  X
+  2020 pour le
+régime général et
+  antérieures à
+  2021 pour le
+ régime agricole)
+
+  CAVEC  X  X  X
+
+  CCVRP
+
+  CNIEG
+
+  (pour
+régularisation des  X  X  X  X
+  périodes
+  antérieures à
+  2022)
+
+Congés spectacles
+  X  X  X
+  (AUDIENS)
+
+  44 / 361
+
+--- p. 45 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+ CRPCEN (pour
+  corriger des
+  périodes  X  X  X
+ antérieures à
+  2023)
+
+  CRPNPAC  X  X  X  X
+
+  Organisme
+  X  X  X  X  X
+complémentaire
+
+  IRCANTEC  X  X  X  X
+
+  MSA  X  X  X  X
+
+ France Travail  X  X  X  X
+
+  Urssaf  X  X
+
+  DGFIP  X  X  X
+
+  CNRACL
+
+  CPF
+
+  FSPOEIE
+
+  RAEP
+
+  SRE
+
+  RAFP
+
+  CNBF  X  X  X  X
+
+Précisions sur la rubrique « Mode de paiement » (S21.G00.20.010)
+
+  Valeurs de la  06 - versement
+  04 - titre inter-  05 -
+rubrique "Mode de  réalisé par un
+  01 - chèque  02 - virement  bancaire de  prélèvement
+  paiement"  autre
+  paiement  SEPA
+ (S21.G00.20.010)  établissement
+
+  AGIRC-ARRCO  X  X
+
+Caisses Congés payés
+ (CIBTP, Transport,
+ Manutention port.)
+
+  CAMIEG  X  X
+
+  CAVEC  X  X
+
+  CCVRP
+
+  CNIEG (pour
+ régularisation des
+  X  X
+périodes antérieures
+  à 2022)
+
+ Congés spectacles
+  X  X
+  (AUDIENS)
+
+  45 / 361
+
+--- p. 46 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  CRPCEN (pour
+corriger des périodes  X
+ antérieures à 2023)
+
+  CRPNPAC  X  X  X  X
+
+  Organisme
+  X  X  X  X  X
+  complémentaire
+
+  IRCANTEC  X
+
+  MSA  X  X  X
+
+  France Travail  X  X  X  X
+
+  Urssaf  X
+
+  DGFIP  X  X
+
+  CNRACL
+
+  FSPOEIE
+
+  RAEP
+
+  SRE
+
+  RAFP
+
+  CPF
+
+  CNBF  X  X  X  X
+
+2.2.1.7 Bloc "Composant de versement" (S21.G00.55)
+
+  Identifiant du
+Rubriques  Type de  Code  Période  CRM à l'origine
+  Montant versé
+  population  d'affectation  d'affectation  de la
+  S21.G00.55.001
+  S21.G00.55.002 S21.G00.55.003 S21.G00.55.004 régularisation
+Organismes  S21.G00.55.005
+  Organisme
+  X  X  X  X
+complémentaire
+
+  46 / 361
+
+--- p. 47 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2.2.1.8 Bloc "Cotisation établissement" (S21.G00.82)
+
+Ce bloc est utilisé exclusivement par les organismes repertoriés dans le tableau ci-dessous.
+
+  Référence  Identifiant du
+  Date de début Date de fin de
+  Code de  règlementaire  CRM à l'origine
+Rubriques  Valeur  de période de  période de
+  cotisation  ou  de la
+  S21.G00.82.001  rattachement  rattachement
+  S21.G00.82.002  contractuelle  régularisation
+Organismes  S21.G00.82.003 S21.G00.82.004
+  S21.G00.82.005  S21.G00.82.006
+  Caisses CIBTP  X  X  X  X  X
+  Organisme
+  X  X  X  X  X
+complémentaire
+  MSA  X  X  X  X  X
+  CNRACL
+  CPF
+  FSPOEIE
+  RAEP
+  SRE
+  RAFP
+  Urssaf  X  X  X  X  X
+
+2.2.2  Modalités déclaratives générales
+
+Le terme « cotisation » est utilisé au sens large tout au long de cette partie pour désigner les
+cotisations, réductions, exonérations et contributions. Par exception, lorsqu’une modalité
+concerne spécifiquement une réduction ou une exonération de cotisations, le terme
+« cotisation » est abandonné au profit d’une appellation plus précise.
+Les principes déclaratifs généraux décrits dans cette partie 2.2.2. s’appliquent à l’ensemble
+des organismes opérant du recouvrement et du paiement de cotisations sociales (AGIRC-
+ARRCO, Caisses de congés payés (CIBTP, Transport et Manutention portuaire), CAMIEG,
+CCVRP, CNBF, CNIEG, Congés spectacles (AUDIENS), CRPCEN, CRPNPAC, Organismes
+complémentaires, DGFiP, IRCANTEC, MSA, France Travail, Urssaf).
+Les modalités déclaratives spécifiques des Urssaf et des organismes complémentaires, y
+compris concernant le recouvrement des cotisations Prévoyance dont la MSA est délégataire
+de gestion, font l’objet de précisions portées respectivement en parties 2.2.3 et 2.2.4.
+
+2.2.2.1 Principes fondamentaux
+
+En complément des éléments de revenu brut, au titre du recouvrement des cotisations
+sociales, il doit être déclaré pour chaque salarié :
+-  Les bases assujetties (somme des montants assujettis de manière homogène à une ou
+  plusieurs cotisations)
+
+  47 / 361
+
+--- p. 48 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+-  Les composants de base assujettie constituant des parties de bases assujetties autres
+  que des éléments de revenu brut (par exemple, le montant du SMIC retenu pour le calcul
+  de la Réduction générale des cotisations patronales de sécurité sociale et d'assurance
+  chômage)
+
+-  Les montants d’assiettes cotisées, exonérées ou éligibles à réduction
+
+La norme NEODeS n’offre plus de possibilité de bordereaux annuels au titre des cotisations
+de Sécurité Sociale. Cette disposition traduit l’abandon de régularisation annuelle au profit
+systématique de la régularisation progressive.
+
+2.2.2.2 Période de rattachement des cotisations
+
+La période de rattachement des cotisations de Sécurité Sociale est :
+-  soit la période courante lorsqu'il n'y a pas de régularisation
+- soit la période d'origine lorsqu'il y a régularisation (cf. partie 2.2.2.5. Correction de
+déclaration de cotisations)
+La période de rattachement des autres cotisations est la période à laquelle se rapportent ces
+cotisations.
+
+2.2.2.3 Déclaration des cotisations nominatives
+
+Les cotisations sociales nominatives sont à déclarer au travers des blocs de données
+suivants :
+-  « Base assujettie »
+
+-  « Composant de base assujettie »
+
+-  « Cotisation individuelle »
+
+Les spécificités relatives à chaque organisme sont précisées dans la partie technique du
+Cahier Technique, pour chacun des blocs et concernés.
+
+2.2.2.4 Déclaration des cotisations établissement
+
+Les cotisations de type établissement ne sont pas individualisables, mais résultent d’un
+calcul globalement effectué au niveau de l’établissement ou de l’entreprise. Il peut s’agir par
+exemple des cotisations CCCA-BTP (Comité de Concertation et de Coordination de
+l'apprentissage du Bâtiment et des Travaux Publics), cotisations FMSE (Fond national
+agricole de mutualisation des risques sanitaires et environnementaux), etc.
+Les spécificités relatives à chaque organisme sont précisées dans la partie technique du
+Cahier Technique, pour chacun des blocs concernés.
+
+2.2.2.5 Corrections de déclarations de cotisations
+
+Une déclaration erronée doit donner lieu à correction de la part de l’employeur,
+accompagnée si opportun du paiement afférent. Les corrections à déclarer via DSN font
+suite à un constat d’erreur ou d’omission par le déclarant. Tant que la date d’exigibilité d’une
+
+  48 / 361
+
+--- p. 49 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+DSN n’est pas dépassée, il reste possible d’opérer une correction de déclaration de
+cotisations grâce au mécanisme d’ « Annule et remplace intégral ». Une fois passée la date
+d’exigibilité, les corrections doivent être portées par une DSN mensuelle ultérieure, émise à
+l’occasion d’une paie ultérieure. Les corrections seront valorisées mois civil par mois civil.
+Les montants des corrections sont établis en approche différentielle. Cependant, l’approche
+par annulation et remplacement d’une écriture est tout à fait possible.
+En cas de régularisation de cotisation ou de rappel de paie, il doit être appliqué, pour
+l’ensemble des montants présents dans la déclaration, une unique modalité de
+régularisation. Celle-ci pouvant être l’approche différentielle ou l’approche par annulation et
+remplacement.
+Attention, cette consigne ne concerne pas les rubriques des blocs « Bordereau de
+cotisation due - S21.G00.22 » et « Cotisation agrégée - S21.G00.23 », auxquelles
+s’appliquent les consignes spécifiques formalisées au Guide de l'Urssaf « Comment
+déclarer et régulariser les cotisations Urssaf en DSN ».
+Exemple de déclaration d’une régularisation de base assujettie par annulation et
+remplacement d’un montant déjà déclaré : En février l’employeur constate que le montant
+d’assiette brute déplafonnée déclaré en janvier pour l’un de ses salariés est de 2000€ et non
+1000€.
+Dans la DSN de janvier:
+Bloc « Base assujettie - S21.G00.78
+  Code de base assujettie S21.G00.78.001 = 03 - Assiette brute déplafonnée
+  Date de début de période de rattachement S21.G00.78.002 = 01012016
+  Date de fin de période de rattachement S21.G00.78.003 = 31012016
+  Montant S21.G00.78.004 = 1000
+
+Dans la DSN de février:
+Déclaration de la base assujettie pour la période courante
+Bloc « Base assujettie - S21.G00.78
+  Code de base assujettie S21.G00.78.001 = 03 - Assiette brute déplafonnée
+  Date de début de période de rattachement S21.G00.78.002 = 01022016
+  Date de fin de période de rattachement S21.G00.78.003 = 28022016
+  Montant S21.G00.78.004 = 2000
+
+Régularisation du montant de base assujettie par annulation et remplacement du montant
+erroné déclaré dans la DSN de janvier
+1er bloc permettant l’annulation du montant déclaré en janvier
+Bloc « Base assujettie - S21.G00.78
+  Code de base assujettie S21.G00.78.001 = 03 - Assiette brute déplafonnée
+  Date de début de période de rattachement S21.G00.78.002 = 01012016
+  Date de fin de période de rattachement S21.G00.78.003 = 31012016
+  Montant S21.G00.78.004 = -1000
+
+2ème bloc permettant le remplacement du montant erroné
+Bloc « Base assujettie - S21.G00.78
+  Code de base assujettie S21.G00.78.001 = 03 - Assiette brute déplafonnée
+
+  49 / 361
+
+--- p. 50 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+Date de début de période de rattachement S21.G00.78.002 = 01012016
+Date de fin de période de rattachement S21.G00.78.003 = 31012016
+Montant S21.G00.78.004 = 2000
+
+  50 / 361
+
+--- p. 51 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2.2.2.6 Paiement des cotisations
+
+Généralités
+Le paiement ou la déclaration du paiement des cotisations sociales sont opérés en
+renseignant le bloc « Versement organisme de protection sociale » (S21.G00.20), qui
+comprend notamment les caractéristiques d’un ordre de paiement.
+Le montant du versement se compose en tout ou partie des éléments suivants, pour leurs
+périodes de rattachement (mensuelle, trimestrielle …) et le ou les établissements
+concernés :
+
+  •  Cotisations nominatives déclarées
+  •  Eventuelles cotisations établissement
+  •  Eventuelles régularisations de cotisations
+
+Le montant de chacun de ces éléments peut correspondre à un paiement total ou partiel.
+Un paiement peut être réparti sur plusieurs comptes bancaires différents, à raison d’un bloc
+« Versement OPS » pour chaque compte.
+Périodicité de paiement
+La périodicité mensuelle de la DSN n’emporte pas de conséquences sur la périodicité des
+paiements de cotisations via la DSN, qui reste selon les cas mensuelle, trimestrielle,
+semestrielle ou annuelle, voire libre pour certains cas. Ainsi le calendrier de paiement reste
+défini par les réglementations des différents régimes et dispositifs de protection sociale.
+Modes de paiement
+Les moyens de paiement des cotisations sociales possibles en DSN sont multiples et varient
+selon l’organisme destinataire : chèque, virement, titre interbancaire de paiement,
+prélèvement SEPA.
+Concernant le prélèvement SEPA (télépaiement), pour les entreprises soumises à échéance
+mensuelle sur la DUCS ou au BVM, il devra être produit un ordre par mois civil.
+Les modalités de transmission des ordres mensuels de prélèvement SEPA (télépaiement)
+des entreprises soumises au régime du paiement trimestriel comprennent deux options de
+paiement trimestriel possibles :
+- Un acte de prélèvement SEPA (télépaiement) dans chaque DSN mensuelle avec une
+exécution unique du paiement à la date limite de paiement.
+- Trois actes de prélèvement SEPA (télépaiement) à la date limite de paiement, rattachés à
+leurs périodes respectives.
+Et dans tous les cas, les ordres de prélèvement SEPA (télépaiement) seront exécutés par
+les Urssaf ou les Caisses MSA à la date d’exigibilité du paiement.
+
+  51 / 361
+
+--- p. 52 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2.2.3  Modalités déclaratives spécifiques Urssaf
+
+2.2.3.1 Principes fondamentaux
+
+Le recouvrement des cotisations sociales par les Urssaf est opéré sous forme agrégée par
+Code Type de Personnel (CTP). En complément, il est déclaré des informations nominatives
+relatives à ces mêmes cotisations. Aussi, la DSN pose le principe fondamental de cohérence
+entre la maille agrégée et nominative. En effet, les agrégats doivent porter l’ensemble des
+éléments déclarés individuellement.
+
+Il convient de noter que les cotisations agrégées sont regroupées par Bordereau de
+cotisation due portant la datation et la somme des cotisations.
+
+2.2.3.2 Déclaration des cotisations agrégées
+
+Les agrégats sont déclarés par CTP. La table des Codes Type de Personnel à utiliser en
+DSN est la même que celle en vigueur pour les autres modalités de déclaration aux Urssaf.
+Il convient de noter que les simplifications suivantes ont été apportées aux déclarations de
+cotisations Urssaf :
+  -  Levée de l’obligation de déclarer les montants de cotisation par Code Type de
+  Personnel (hors DUCS EDI)
+  -  Déclaration du total par mois civil uniquement
+
+Les cotisations agrégées sont regroupées par Bordereau de cotisation due, un versement lui
+étant associé pour le paiement des cotisations sociales recouvrées par les Urssaf. Le
+bordereau ne peut porter que les cotisations et réductions d’un mois civil (déclarations
+courantes). Ainsi, en cas de régularisation ou de correction de cotisations agrégées, il devra
+être renseigné autant de bordereaux mensuels que nécessaire.
+Hors cas de rappel de cotisation, les cotisations agrégées Urssaf n’admettent pas la
+transmission de montants négatifs. Dans le cas où la consolidation des assiettes
+individuelles constituerait un montant négatif à maille agrégée, le déclarant prendra contact
+avec son Urssaf de rattachement pour une gestion de la situation en bilatéral.
+Les rubriques des blocs de type « Cotisation agrégée » et « Cotisation individuelle » portent
+volontairement des intitulés génériques (cotisation) mais comportent des réalités multiples
+(cotisation, exonération, réduction). Les cotisations, les exonérations et les réductions ont
+des modalités déclaratives différentes en termes d’alimentation de rubriques. Ces
+spécificités sont précisées dans la partie technique du Cahier Technique, pour chacune des
+rubriques des blocs concernés.
+
+2.2.3.3 Déclaration des cotisations nominatives
+
+Au titre du recouvrement des cotisations Urssaf, les données suivantes doivent être
+déclarées en DSN à maille nominative pour chaque versement :
+
+  52 / 361
+
+--- p. 53 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  -  Les bases assujetties (somme des montants assujettis de manière homogène à une
+  ou plusieurs cotisations)
+  -  Les composants de base assujettie constituant des parties de bases assujetties
+  autres que des éléments de revenu brut (par exemple, le montant du SMIC retenu
+  pour le calcul de la Réduction générale des cotisations patronales de sécurité sociale
+  et d'assurance chômage)
+  -  Les cotisations individuelles sont à renseigner en concordance avec le "Tableau
+  d'équivalence DI/DA" du guide de l'Urssaf "Comment déclarer et régulariser vos
+  cotisations à l'Urssaf en DSN".
+
+Concernant le bloc Cotisation individuelle, il n’y a pas de mention explicite de chaque
+cotisation pour le recouvrement de cotisations sociales Urssaf. Les exonérations et les
+réductions ont des modalités déclaratives différentes en termes d’alimentation de rubriques.
+Ces spécificités sont précisées dans la partie technique du Cahier Technique, pour chacune
+des rubriques des blocs concernés. Le guide de l'Urssaf détaille les cotisations individuelles
+attendues en regard des blocs « Cotisation agrégée - S21.G00.23 » indiqués dans la DSN.
+A noter : il est possible de déclarer un montant d’assiette négatif à maille individuelle afin de
+permettre la déclaration d’un trop payé en période courante à l’organisme de recouvrement
+(gestion des IJSS notamment), dans la mesure où la consolidation des assiettes constitue un
+montant positif en cotisation agrégée.
+
+2.2.3.4 Corrections de déclarations de cotisations
+
+Si le prélèvement SEPA (télépaiement) est retenu pour le paiement de ces corrections, la
+DSN mensuelle contiendra autant d’ordres de paiement que de bordereaux et donc que de
+mois civils. Veuillez vous référer au guide de l'Urssaf "Comment déclarer et régulariser vos
+cotisations à l'Urssaf en DSN" pour connaitre les modalités déclaratives à suivre en cas de
+correction ou régularisations.
+
+2.2.3.5 Partitionnement : établissements disposant de plusieurs comptes cotisants
+
+Certains secteurs d’activité (travail temporaire, agences de mannequins, etc.) doivent
+produire des déclarations et paiements différenciés de cotisations sociales aux Urssaf, selon
+les catégories de personnel concernées. La différenciation des déclarations et paiements est
+actuellement opérée par l’utilisation de pseudo-SIRET. Cette disposition est portée en DSN
+de la manière suivante :
+  -  L’établissement d’affectation, en l’espèce l’employeur, reste toujours identifié par son
+  vrai SIRET (concaténation du SIREN du bloc entreprise S21.G00.06 et du NIC du
+  bloc Etablissement S21.G00.11)
+
+  -  Les Bordereaux de cotisation due et Versements Organisme de Protection Sociale
+  dont l’ « Entité d’affectation des opérations » n’est pas renseignée concernent le
+  compte cotisant du SIRET de l’établissement d’affectation
+
+  -  Les Bordereaux de cotisation (S21.G00.22) et Versements Organisme de Protection
+  Sociale (S21.G00.20) relatifs à ces catégories de personnel doivent porter le pseudo-
+  SIRET approprié dans la rubrique « Entité d’affectation des opérations ».
+
+  53 / 361
+
+--- p. 54 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+Cette cinématique est à reproduire pour France Travail dans le cadre du versement des
+contributions Assurance Chômage pour les salariés du spectacle et les salariés expatriés. Il
+s’agira donc de renseigner en lieu et place du pseudo-SIRET, dans le bloc « Versement
+OPS », le numéro de compte attribué par France Travail.
+En cas d'absence de personnel permanent pour l'établissement, ce dernier doit quand même
+fournir une "DSN Sans individu" pour permettre d'assoir la déclaration du personnel
+intérimaire.
+
+2.2.4  Modalités déclaratives spécifiques des organismes complémentaires
+
+Les Institutions de prévoyance relevant du CTIP, les Mutuelles relevant de la FNMF, les
+Sociétés d’assurance relevant de la FFA, ainsi que les Organismes complémentaires non
+fédérés par un membre du GIP-MDS (CTIP, FFA, FNMF) exploitent, en sus des blocs de
+données communs à la plupart des organismes (cf.2.2.1), les blocs de données suivants :
+  -  « Adhésion Prévoyance » (S21.G00.15)
+
+  -  « Affiliation Prévoyance » (S21.G00.70)
+
+  -  « Composant de versement » (S21.G00.55)
+
+Les spécificités déclaratives des rubriques appartenant à ces 3 blocs sont précisées dans le
+corps du Cahier Technique.
+
+Hors cas précis nécessitant de nommer la fédération à laquelle ils se rattachent, les
+organismes mentionnés ci-dessus sont identifiés au sein du cahier technique sous
+l’appellation générique « Organisme complémentaire ».
+
+2.2.4.1 Déclaration des blocs « Adhésion Prévoyance » et « Affiliation Prévoyance »
+
+Le bloc 15 « Adhésion Prévoyance » porte les données relatives à l’adhésion de
+l’établissement à un contrat collectif. La DSN comporte autant de blocs « Adhésion
+Prévoyance » que de contrats collectifs souscrits par l’entreprise.
+Le bloc 70 « Affiliation Prévoyance » décrit le rattachement d’un individu au contrat
+collectif souscrit par son employeur. Sont renseignées dans ce bloc les données d’affiliation
+du salarié et de ses ayants-droit. Les spécificités déclaratives des rubriques de ce bloc sont
+précisées dans la partie technique du Cahier Technique.
+Ci-dessous, un exemple déclaratif partiel illustrant les liens établis entre blocs de données
+par l’adhésion et l’affiliation prévoyance.
+
+  54 / 361
+
+--- p. 55 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2.2.4.2 Déclaration des cotisations nominatives
+
+Un bloc 78 « Base assujettie » doit être déclarée pour un salarié, un contrat de travail et
+une affiliation Prévoyance donnés. La base assujettie contient un montant toujours à zéro et
+ne sert qu’à porter l’identifiant technique Affiliation permettant d’effectuer le lien avec
+l’affiliation concernée pour chaque salarié.
+Le bloc 79 « Composant de base assujettie » porte les données permettant de calculer les
+cotisations nominatives pour chaque salarié. Ce bloc doit être renseigné pour chacun des
+paramètres pris en compte dans le calcul de la cotisation. Les spécificités déclaratives des
+rubriques de ce bloc sont précisées dans la partie technique du Cahier Technique.
+Pour une « Base assujettie » 78 de type Prévoyance, c'est-à-dire pour une Affiliation
+Prévoyance, au moins un bloc 79 « Composant de base assujettie » doit être déclaré.
+
+  55 / 361
+
+--- p. 56 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+Le bloc 81 « Cotisation individuelle » porte le montant nominatif total des cotisations
+calculées à partir des composants de base assujettie pour un salarié, un contrat de travail et
+une affiliation donnés.
+Pour une « Base assujettie » 78 de type Prévoyance, c'est-à-dire pour une Affiliation
+Prévoyance, un et un seul bloc « Cotisation individuelle » 81 doit être déclaré.
+
+2.2.4.3 Déclaration des cotisations établissement
+
+Les cotisations de type établissement ne sont pas attachées à des salariés, mais relèvent
+d’un calcul globalement effectué au niveau de l’établissement ou de l’entreprise. Il peut s’agir
+par exemple de fonds de formation assis sur une masse salariale globale.
+Pour une Adhésion Prévoyance donnée, de 0 à n blocs « Cotisation établissement » peuvent
+être renseignés.
+
+2.2.4.4 Paiement des cotisations
+
+La périodicité des paiements de cotisations Prévoyance peut être mensuelle, trimestrielle,
+semestrielle, annuelle, voire libre. En fonction de la périodicité, aucun, un ou plusieurs blocs
+«Versement organisme de protection sociale» peuvent être présents en DSN.
+De préférence, le bloc « Versement organisme de protection sociale » doit être renseigné
+seulement à l’échéance de paiement des cotisations.
+Pour un établissement d'affectation ayant plusieurs contrats avec un même organisme de
+Prévoyance, il sera possible de déclarer dans un seul bloc Versement le paiement des
+cotisations pour tout ou partie des contrats.
+Un paiement peut être réparti sur plusieurs comptes bancaires différents, à raison d’un bloc
+versement pour chaque compte.
+Le montant du versement se compose en tout ou partie des éléments suivants, pour leurs
+périodes afférentes (mensuelle, trimestrielle …) et le ou les établissements concernés. :
+  - cotisations nominatives déclarées
+  - éventuelles cotisations établissement
+  - éventuelles régularisations de cotisations
+Le montant de chacun de ces éléments peut correspondre à un paiement total ou partiel.
+ Au sein d'une même entreprise, un établissement déclaré peut être payeur pour un autre
+établissement. Dans ce cas :
+  -  le bloc Versement de la DSN de l’établissement payeur inclura le paiement des
+  cotisations liées à cet autre établissement,
+
+  -  la DSN de l’autre établissement contiendra un bloc versement S21.G00.20 dont le
+  montant S21.G00.20.005 est renseigné à zéro, dont le SIRET payeur
+  S21.G00.20.012 mentionne l’établissement payeur, et dont le mode de paiement
+  S21.G00.20.010 est renseigné à 06 (versement réalisé par un autre établissement).
+
+Le bloc 20 « Versement organisme de protection sociale » permet de faire le lien entre
+les données de l’affiliation et de l’adhésion pour le paiement des cotisations. En effet, la
+donnée « Identifiant organisme de protection sociale » du bloc 20 correspond au « Code
+
+  56 / 361
+
+--- p. 57 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+organisme de Prévoyance» du bloc 15 ; le « Code délégataire de gestion » du bloc 20
+correspond au « Code délégataire de gestion» du bloc 15.
+Le ou les blocs 55 « Composant de versement » (S21.G00.55) permettent de préciser la
+ventilation du versement par contrats, populations et échéances.
+Pour un bloc 20 « Versement organisme de protection sociale » destiné à un organisme de
+Prévoyance, au moins un bloc 55 « Composant de versement » doit être déclaré.
+Ci-dessous, un exemple déclaratif partiel illustrant l’articulation des données de cotisations et
+de paiements destinées aux Organismes de Prévoyance.
+
+2.3 Les données de paie du champ fiscal
+Certaines informations issues de la paie sont collectées en vue de satisfaire, entre autres,
+des finalités fiscales. A l’exception notoire de la déclaration de l’assujettissement qui ne peut
+être déterminé qu’à cadencement annuel, les autres informations à destination fiscale sont
+collectées à cadencement mensuel.
+
+  57 / 361
+
+--- p. 58 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2.3.1  Données annuelles – L’assujettissement des entreprises
+
+L’assujettissement des entreprises est déclaré en DSN une fois par an, soit en fin d’exercice,
+soit en cours d’exercice pour les cas de cessation d’activité. Conformément au code général
+des impôts, cet assujettissement est déclaré par établissement de l’entreprise.
+En présence d’un salarié employé par plusieurs établissements, la base assujettie est
+déclarée par un seul établissement dit « agglomérant ».
+L'assujettissement ou le non-assujettissement doit obligatoirement être déclaré.
+
+Cette déclaration est opérée en DSN via le bloc « Assujettissement fiscal – S21.G00.44 ».
+Hors cas de cessation d’activité de l’entreprise, le renseignement de ce bloc doit intervenir,
+au plus tard, dans la DSN mensuelle de décembre exigible le 5 ou le 15 janvier. Toutefois, il
+est possible en situation d'erreurs déclarées sur ce bloc de procéder par tolérance à une
+régularisation sur la DSN de janvier de l'année N+1 (exigible le 5 ou le 15 février).
+
+Il est rappelé ci-dessous les critères de détermination de l’assujettissement ainsi que les
+modalités de constitution de l’assiette de l’entreprise aux taxes auxquelles celle-ci est
+assujettie.
+
+La taxe d'apprentissage
+
+  L'assiette de la taxe d'apprentissage est la même que celle retenue pour le calcul des
+  cotisations de sécurité sociale.
+  Les entreprises s'acquittent de la taxe d'apprentissage auprès des Urssaf (pour le régime
+  général) ou de la MSA (pour le régime agricole) à fréquence mensuelle et contemporaine.
+
+La contribution supplémentaire à l'apprentissage
+
+  Cette contribution est due par les entreprises d'au moins 250 salariés qui sont redevables de
+  la taxe d'apprentissage et dont le nombre annuel moyen de salariés en contrat favorisant
+  l’insertion professionnelle (CFIP), i.e. en contrat d'apprentissage ou de professionnalisation
+  ou bénéficiant d'une convention industrielle de formation par la recherche en entreprise
+  (CIFRE) ou en contrat à durée indéterminée faisant suite à un contrat de professionnalisation
+  ou d’apprentissage, est inférieur à 5% de l'effectif annuel moyen. Les entreprises s’acquittent
+  de la contribution annuellement en mars N+1 en référence à l’année N.
+
+La participation des employeurs à l'effort de construction
+
+  En application des articles L. 313-1 et suivants du code de la construction et de l'habitation,
+  les employeurs occupant au minimum cinquante salariés, à l'exception de l’État, des
+  collectivités territoriales et de leurs établissements publics sont soumis à l'obligation d'investir
+  dans la construction de logements, à titre de participation à l'effort de construction.
+
+  Le montant à investir chaque année est égal à 0,45 % des rémunérations servant de base au
+  calcul des cotisations de sécurité sociale et payées au cours de l'année précédente.
+  En vertu de l'article 235 bis du code général des impôts, les employeurs n'ayant pas réalisé,
+  au 31 décembre de l'année suivant celle du paiement des rémunérations, les investissements
+  prévus par l'article L. 313-1 du code de la construction et de l'habitation sont assujettis à une
+  cotisation de 2 % calculées sur la même base des rémunérations versées. Cette cotisation
+  est versée auprès du service des impôts des entreprises.
+
+  58 / 361
+
+--- p. 59 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+La contribution à la formation professionnelle (CFP)
+
+  La contribution est égale à 0,55% du total des rémunérations brutes, y compris les
+  rémunérations versées au titre des contrats à durée déterminée pour les entreprises de moins
+  de 11 salariés ; le taux est de 1% pour les entreprises d'au moins 11 salariés et de 1,30%
+  pour les entreprises de travail temporaire de 11 salariés et plus. Pour les employeurs de
+  personnels intermittents du spectacle, le taux unique est de 2%.
+
+  Dans le cadre de l'accès à la formation des intermittents du spectacle, une contribution
+  conventionnelle de formation professionnelle fixée au taux de 0,10% de l’assiette s’ajoute à la
+  contribution pré-citée de 2% ainsi qu'une contribution annuelle de 50 € forfaitaire par
+  entreprise. Néanmoins, n’étant pas transférées aux Urssaf, ces contributions conventionnelles
+  ne sont pas à déclarer en DSN.
+
+  Il s’agit donc de la même assiette que celle qui est retenue pour le calcul des cotisations de
+  sécurité sociale.
+
+  Les rémunérations assujetties dans le cadre de la contribution dédiée au financement du
+  Compte Personnel de Formation pour les titulaires de CDD (CPF-CDD) font l'objet d'une
+  contribution de 1% dont l'assiette est constituée par le total des rémunérations brutes. Les
+  entreprises s'acquittent de cette contribution auprès des caisses Urssaf (pour le régime
+  général) et de la MSA (pour le régime agricole) à fréquence mensuelle et contemporaine.
+
+La taxe sur les salaires
+
+  En application des articles 231 et suivants du code général des impôts, la taxe sur les
+  salaires est due par les entreprises qui ne sont pas assujetties à la taxe sur la valeur ajoutée.
+  L’article 231 du code général des impôts prévoit dorénavant que l’assiette de la taxe sur les
+  salaires n’est plus alignée sur celle des cotisations sociales mais sur celle de la contribution
+  sociale généralisée perçue sur le revenu d’activité applicable aux salaires.
+  L’assiette à déclarer est la même que celle retenue pour le calcul de la CSG sans qu’il soit fait
+  application du 2e alinéa du I et du 6° du II de l’article L. 136-2 du CSS conformément à
+  l’article 13 de la loi n°2012-1404 de financement.
+
+  La détermination du montant de la taxe sur les salaires est basée sur une assiette ventilée
+  par individu entre les différentes tranches d’imposition.
+
+  Les bases imposables au taux normal sont déclarées mensuellement au niveau de chaque
+  salarié et ajustées de paie en paie selon le principe de la régularisation progressive.
+
+  Les bases imposables aux taux majorés sont déclarées annuellement, uniquement au niveau
+  de l'établissement dans le bloc base assujettie. En présence d'un salarié employé par
+  plusieurs établissements la base imposable aux taux majoré sera déclarée par un seul
+  établissement dit "agglomérant".
+
+  Pour les cas où le salarié changerait d’établissement au sein de la même entreprise (SIREN)
+  en cours d’année, il incombe au dernier établissement payant ce salarié au cours de
+  l’exercice civil d’opérer la régularisation des montants par tranche, en incluant notamment
+  pour cela les assiettes constituées par les paies des établissements précédents.
+
+2.3.2  Donnés mensuelles – imposition des salariés
+
+D'une manière générale, hormis les rubriques spécifiques sus-visées, la DGFIP collecte
+d'autres données à caractère fiscal positionnées dans les rubriques existantes de la DSN.
+
+Ces données sont utilisées principalement à des fins :
+
+  59 / 361
+
+--- p. 60 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  -  de préimpression sur la déclaration des revenus des salariés (Point d'attention : les
+  indemnités journalières imposables ne sont pas déclarées en DSN, car cela
+  constituerait une double prise en compte au niveau du montant des traitements et
+  salaires préimprimé sur la déclaration de revenus des individus concernés)
+  -  de prélèvement à la source
+  -  de retenue à la source des non-résidents
+  -  de contrôle
+
+Une attention particulière sera portée au renseignement de la Rémunération nette fiscale
+(S21.G00.50.002), en veillant notamment à la bonne application des règles suivantes :
+
+La rémunération nette fiscale figure au niveau du bloc "Versement individu - S21.G00.50".
+Elle s'entend du montant total des revenus d'activité nets imposables. Elle est constituée du
+montant des rémunérations passibles, au nom des bénéficiaires, de l'impôt sur le revenu
+dans la catégorie des traitements et salaires.
+RAPPEL des obligations des employeurs en matière d’indemnités journalières de
+maladie ou de maternité : L’obligation de déclarer les indemnités journalières imposables
+incombe exclusivement aux caisses qui ont effectué les paiements, que les versements aient
+été faits à l’assuré ou à l’employeur subrogé dans les droits de l’assuré, pour le compte de
+ce dernier.
+L’employeur ne doit donc pas déclarer les indemnités journalières imposables. A défaut ces
+indemnités seraient prises en compte deux fois dans le montant des traitements et salaires
+préimprimé sur la déclaration de revenus adressée aux personnes concernées.
+
+En cas de subrogation, l'employeur doit procéder de la manière suivante :
+- La somme versée par l'employeur pour le maintien du salaire présente le caractère d'un
+salaire et doit être soumise à l'impôt sur le revenu au titre de l'année au cours de laquelle
+elle a été perçue (ce salaire doit être également soumis aux taxes et participations sur les
+salaires dues par l'employeur).
+Dans ce cas, l'employeur ne doit procéder à aucune diminution du salaire brut et donc du
+salaire imposable (aucune déduction des IJSS subrogés).
+- Au moment où l'employeur, subrogé dans les droits du salarié auprès de la caisse
+d'assurance maladie, perçoit les indemnités journalières, il doit les reverser à son salarié qui
+lui rembourse alors, à due concurrence, le salaire qu'il a antérieurement perçu pour le
+maintien de sa rémunération (en pratique, l'employeur procède généralement à la retenue du
+salaire dont il avait fait l'avance).
+L'employeur ne doit déclarer que les rémunérations dont il a eu la charge effective, c'est-à-
+dire le salaire proprement dit, compte tenu des remboursements, et à l'exclusion des
+indemnités journalières.
+
+Pour la détermination des revenus d'activité nets imposables, procéder de la façon suivante :
+
+Partez du montant brut total des rémunérations versées en espèces et des avantages
+en nature consentis au salarié du 1er janvier au 31 décembre du même exercice fiscal
+servant de base au calcul des cotisations de sécurité sociale, y compris les
+rémunérations exonérées totalement ou partiellement de cotisations de sécurité
+sociale.
+
+DEDUIRE :
+- les retenues effectuées au titre des cotisations de sécurité sociale, des cotisations aux
+  régimes complémentaires ou supplémentaires de retraite et de prévoyance à adhésion
+  obligatoire, à l'exception de la fraction qui excède le maximum autorisé ainsi que des
+  cotisations à la charge des employeurs qui correspondent à des garanties « frais de
+  santé », des cotisations d'assurance chômage et de la fraction déductible de la CSG ;
+- les sommes versées à titre de remboursement de frais professionnels (remboursement
+
+  60 / 361
+
+--- p. 61 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  de frais réels ou allocations forfaitaires) aux salariés à raison desquels vous avez
+  pratiqué un abattement forfaitaire pour frais professionnels ;
+- les allocations complémentaires aux indemnités journalières de sécurité sociale dans le
+  cadre de régimes facultatifs pour la part correspondant à la participation de l'employeur
+  au financement de ces régimes ;
+- les contributions de l'employeur à l'acquisition des chèques-vacances, à l'exception, le
+  cas échéant, de la fraction exclue de l'assiette des cotisations de sécurité sociale dans
+  les conditions prévues aux articles L. 411-9 et L. 411-10 du code du tourisme, dans la
+  limite du SMIC mensuel ;
+- les allocations de préretraite versées par l’employeur ;
+- les allocations de préretraite versées par l'employeur (allocations qui sont à déclarer au
+  niveau du bloc "S89.G00.92") ;
+- les sommes exonérées provenant d’un CET ou d’un régime de retraite supplémentaire ;
+- les jours de congés monétisés (non issus d’un abondement de l’employeur) et affectés
+  par le salarié à un plan d’épargne pour la retraite collectif (PERCO), à un plan d’épargne
+  retraite entreprise collectif (PERECO), à un régime obligatoire de retraite supplémentaire
+  d’entreprise dit « régime article 83 » ou à un plan d’épargne retraite entreprise obligatoire
+  (PEREO) dans la limite de 10 jours par an - que le salarié dispose ou non d'un CET dans
+  l'entreprise.
+AJOUTER :
+- le complément de rémunération constitué par la prise en charge par l’employeur des
+  cotisations versées aux régimes de prévoyance complémentaire collectifs et obligatoires
+  correspondant à des garanties frais de santé ;
+- le montant de l'abattement forfaitaire d'assiette pour frais professionnels pratiqué sur les
+  rémunérations versées aux salariés appartenant à certaines professions ;
+- les indemnités imposables à l'impôt sur le revenu (notamment indemnités d'intempérie) ;
+- la contribution du comité d'entreprise à l'acquisition des chèques vacances sans
+  participation conjointe de l'employeur, à moins que, compte tenu des conditions de
+  versement, elle s'assimile à un secours ;
+- le montant versé immédiatement au titre de la prime d’intéressement qui n’a pas été
+  affectée à la réalisation d’un plan d’épargne et de la prime de participation qui n’a pas été
+  versée sur un compte bloqué ou affectée à la réalisation d’un plan d’épargne.
+NE PAS DEDUIRE :
+- la retenue à la source de l'impôt sur le revenu.
+Le montant obtenu est à reporter dans la rubrique « revenus d'activité nets imposables »
+sauf indemnités d'expatriation et sommes exonérées au titre du régime des impatriés.
+
+2.3.3  Modalités déclaratives
+
+2.3.3.1 Base assujettie
+
+La base assujettie de type 90 autres revenus imposables a été supprimée en norme
+NEODeS 2019.1.
+Il s'agissait des allocations de préretraite, des indemnités parlementaires et de fonction, des
+indemnités versées aux représentants français au Parlement européen, de la rémunération
+et des indemnités versées aux membres du conseil économique et social et du conseil
+constitutionnel et des indemnités versées aux élus locaux.
+Ces revenus sont à déclarer soit au niveau de la rubrique « Rémunération nette fiscale -
+S21.G00.50.002 » soit au niveau de la rubrique « Montant net fiscal du revenu versé -
+S89.G00.92.006 » selon les cas.
+
+  61 / 361
+
+--- p. 62 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2.3.3.2 Composants de base assujettie
+
+Code 90 : Retenue sur salaires : porter la part de l'avantage en nature qui a donné lieu à une
+retenue.
+Code 91 : base imposable de taxe sur les salaires au taux normal
+
+2.3.3.3 Cotisation individuelle
+
+Code 077 : Montant de la retenue à la source effectuée sur les salaires versés aux
+personnes domiciliées hors de France
+Le montant attendu correspond au montant de l'impôt et non de l'assiette.
+Code 901 : Cotisation épargne retraite
+Sommes imputables sur le plafond de déduction épargne retraite.
+Cette rubrique doit être présente s'il existe dans l'entreprise des régimes de retraite
+supplémentaires, des plans d'épargne-retraite collectifs (PERCO) ou des plans d’épargne
+retraite entreprise collectifs (PERECO).
+
+2.3.4  Modalités déclaratives du PAS (Prélèvement à la source)
+
+Dans le cadre de la mise en œuvre du Prélèvement à la source de l’impôt sur le revenu à
+compter du 1er janvier 2019, la norme NEODeS intègre de nouvelles notions.
+
+2.3.4.1 Montant de PAS
+
+Les informations nécessaires à la DGFiP pour le prélèvement à la source dans la DSN sont
+portées par le bloc « Versement individu – S21.G00.50 » pour les individus salariés.
+Pour chaque bloc « Versement individu – S21.G00.50 » déclaré, devront être renseignées
+les rubriques suivantes :
+  -  « Date de versement - S21.G00.50.001 »
+  -  « Rémunération nette fiscale - S21.G00.50.002 »
+  -  « Numéro de versement - S21.G00.50.003 »
+  -  « Taux de prélèvement à la source - S21.G00.50.006 »
+  -  « Type du taux de prélèvement à la source - S21.G00.50.007 »
+  -  « Identifiant du taux de prélèvement à la source - S21.G00.50.008 »
+  -  « Montant de prélèvement à la source - S21.G00.50.009 »
+  -  « Montant de la part non imposable du revenu - S21.G00.50.011 »
+  -  « Montant de l’abattement sur la base fiscale (non déduit de la rémunération nette
+  fiscale) - S21.G00.50.012 »
+  -  « Montant soumis au PAS - S21.G00.50.013 »
+
+Pour les individus non-salariés, ces informations sont à renseigner au niveau du bloc «
+Bases spécifiques individu non salarié - S89.G00.92 ».
+
+  62 / 361
+
+--- p. 63 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2.3.4.2 Régularisation de PAS
+
+Les événements donnant lieu à des cas de régularisation de la situation des individus
+peuvent être de deux types :
+RECTIFICATION
+Une rectification peut être due à une erreur de taux de PAS appliqué ou à une erreur de
+rémunération nette fiscale déclarée.
+Précision : l’envoi d’un taux par la DGFiP qui s’avère incorrect par la suite ne doit pas faire
+l’objet d’une régularisation en DSN par le déclarant.
+Les erreurs d’application de taux peuvent être liées à l’utilisation d’un mauvais barème ou à
+des problèmes informatiques lors de l’application des taux transmis par la DGFiP.
+TROP-VERSE
+Le montant brut du versement était supérieur à ce qui était réellement dû.
+Les modalités de gestion des différents cas varient en fonction de la nécessité ou non de
+récupérer un montant auprès de l’individu (par différence avec la récupération du trop-versé
+via une compensation effectuée sur le versement du mois courant).
+Pour la régularisation de PAS, le bloc « Régularisation de prélèvement à la source -
+S21.G00.56 » a été créé. Il porte les rubriques suivantes :
+  -  « Mois de l’erreur - S21.G00.56.001 »
+  -  « Type d’erreur - S21.G00.56.002 »
+  -  « Régularisation de la rémunération nette fiscale - S21.G00.56.003 »
+  -  « Rémunération nette fiscale déclarée le mois de l’erreur - S21.G00.56.004 »
+  -  « Régularisation du taux de prélèvement à la source - S21.G00.56.005 »
+  -  « Taux déclaré le mois de l’erreur - S21.G00.56.006 »
+  -  « Montant de la régularisation du prélèvement à la source - S21.G00.56.007 »
+  -  « Régularisation du montant de la part non imposable du revenu - S21.G00.56.008 »
+  -  « Régularisation du montant de l’abattement sur la base fiscale (non déduit de la
+  rémunération nette fiscale) - S21.G00.56.009 »
+  -  « Régularisation du montant soumis au PAS - S21.G00.56.010 »
+  -  « Montant soumis au prélèvement à la source déclaré le mois de l'erreur -
+  S21.G00.56.015 »
+
+2.3.5  Modalités déclaratives de la retenue à la source des non-résidents
+
+En DSN, le montant de la retenue à la source des salariés (ou assimilés) non-résidents est à
+renseigner au niveau de la rubrique « Montant de cotisation - S21.G00.81.004 » du bloc «
+Cotisation individuelle - S21.G00.81 » dont la rubrique « Code de cotisation -
+S21.G00.81.001 » est valorisée du code « 077 - Montant de la retenue à la source effectuée
+sur les salaires versés aux personnes domiciliées hors de France ».
+Pour les individus non-salariés, il est à renseigner au niveau du bloc « Bases spécifiques
+individu non salarié - S89.G00.92 » sous la rubrique « Montant de la retenue à la source sur
+les revenus versés aux non-résidents fiscaux - S89.G00.92.018 ».
+
+  63 / 361
+
+--- p. 64 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+2.4 Déclaration de type Sans individu
+La DSN est mensuelle et produite par établissement employeur. Par principe, elle est
+générée par l'acte de paie et liée à la présence de salariés, même pour les ETT pour leur
+personnel permanent (cf. partie 2.2.4). A défaut, une DSN Sans individu devra être produite.
+Cependant, il est possible que des entreprises n’aient pas de salariés pendant certains mois
+de l’année.
+Par exemple :
+-  Une entreprise peut avoir des établissements ayant une activité fortement liée à la
+  saisonnalité et n’avoir que des CDD durant certains mois dans l’année
+-  Une entreprise peut avoir des établissements qui n’ont plus de salarié suite à la
+  cessation de contrats de travail par exemple dans le cas de la mise en sommeil de
+  l’activité de l’établissement
+-  Un employeur de VRP multicartes
+Pour ces différents cas (exemples non exhaustifs), il faut pouvoir émettre une déclaration
+sans salarié. Si cette déclaration sans salarié est la première émise au titre d'un mois
+principal déclaré, le type de la déclaration sera défini à "02 - Normale Sans individu" dans la
+rubrique S20.G00.05.002 Type de la déclaration. Si la déclaration sans salarié vient annuler
+et remplacer une déclaration, le type de la déclaration sera alors défini à "05 - Annule et
+remplace Sans individu" dans la rubrique S20.G00.05.002 Type de la déclaration.
+Dans une déclaration normale Sans individu ou Annule et remplace Sans individu, sont
+autorisés uniquement les blocs des structures S10, S20 et S90 ainsi que les blocs
+S21.G00.06, S21.G00.11 et éventuellement :
+
+  64 / 361
+
+--- p. 65 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  1ère partie du tableau
+
+  Modalité déclarative DSN Sans individu
+
+  Identifiant de
+  l’organisme
+  destinataire de
+  Blocs  la  Changements  Versement
+  déclaration «  Complément  Adhésion  destinataire  organisme de  Bordereau de  Cotisation
+  Absence de  OETH  Prévoyance  Adhésion  protection  cotisation due  agrégée
+  rattachement  S21.G00.13  S21.G00.15  Prévoyance  sociale  S21.G00.22  S21.G00.23
+ Organismes  pour le mois  S21.G00.16  S21.G00.20
+  principal déclaré
+  »
+  S20.G00.08
+
+ AGIRC-ARRCO  X  X
+
+Caisses Congés
+ payés (CIBTP,
+  Transport,  X
+ Manutention
+  port.)
+
+  CAMIEG  X  X  X
+
+  CAVEC  X
+
+  CCVRP
+
+  CNIEG  X  X  X
+
+  CRPCEN  X  X  X
+
+  CRPNPAC  X  X
+
+  DGFIP
+
+  Organisme
+  X  X  X
+complémentaire
+
+  IRCANTEC
+
+  MSA  X  X  X
+
+ France Travail  X  X
+
+  Urssaf  X  X  X  X
+
+  Congés
+  spectacles  X  X
+  (AUDIENS)
+
+  CNRACL
+
+  CPF
+
+  FSPOEIE
+
+  RAEP
+
+  SRE
+
+  65 / 361
+
+--- p. 66 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+RAFP
+
+CNBF  X  X
+
+2e partie du tableau
+  Modalité déclarative DSN Sans individu
+
+  Blocs  Composant  Bénéficiaire  Prise en
+  Cotisation  Avantages en
+  Assujettissement  de  des  charge des  Rémunérations
+  établissement  nature
+  fiscal S21.G00.44  versement  honoraires  indemnités  S89.G00.43
+  S21.G00.82  S89.G00.33
+  Organismes  S21.G00.55  S89.G00.32  S89.G00.35
+
+  AGIRC-ARRCO
+
+  Caisses CIBTP  X
+
+  CAMIEG
+
+  CAVEC
+
+  CCVRP
+
+  CNIEG
+
+  CRPCEN
+
+  CRPNPAC
+
+  DGFIP  X  X  X  X  X
+
+  Organisme
+  X  X
+ complémentaire
+
+  IRCANTEC
+
+  MSA  X
+
+  France Travail
+
+  Urssaf  X
+
+Congés spectacles
+  (AUDIENS)
+
+  CNRACL
+
+  CPF
+
+  FSPOEIE
+
+  RAEP
+
+  SRE
+
+  RAFP
+
+  CNBF
+
+Attention : dès lors qu’un salarié est en suspension temporaire de son contrat de travail (par
+exemple en congé sabbatique) et dans la mesure où une paie est générée pour ce salarié,
+ce dernier doit être mentionné dans la DSN « normale » avec ses données de rémunération
+(même nulles) et éventuellement ses contrats complémentaires ou supplémentaires. Ce type
+
+  66 / 361
+
+--- p. 67 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+de cas ne justifie donc pas une déclaration « Sans individu ».
+Envoi néant
+Dans le cas où l’envoi serait composé uniquement de déclarations de nature mensuelle et de
+type "Sans individu" ou "annule et remplace Sans individu", il convient de renseigner la
+rubrique S10.G00.00.008 avec la valeur ‘02’ : type néant. Dans les autres cas, il convient de
+renseigner la rubrique à ‘01’.
+
+2.5 Les signalements d’évènements
+Outre le message mensuel, la norme NEODeS définit 5 messages de signalement
+d’évènement. Ces 5 messages ont pour finalité de permettre le respect des droits des
+assurés au titre du délai d’indemnisation. Les évènements signalés sont :
+  -  La déclaration préalable à l'embauche
+  -  L‘arrêt de travail donnant lieu à indemnisation par l’Assurance maladie, y compris
+  pour cause de maladie professionnelle ou accident du travail
+  -  La reprise suite à arrêt de travail
+  -  La fin de contrat de travail
+  -  Le signalement Amorçage des données variables
+
+Ces formes de messages portent les informations strictement nécessaires au calcul et à
+l’éventuel versement ou arrêt de versement d’une prestation, en complément des
+informations portées par les DSN mensuelles précédentes.
+Certaines informations portées dans les signalements d’évènements doivent être reportées
+dans la DSN mensuelle suivante, même si les impacts de l’absence sont portés dans une
+paie ultérieure. Ainsi, un arrêt de travail connu du gestionnaire de paie avant la clôture de la
+paie de M devra être reporté dans la DSN mensuelle relative à la paie de M. En revanche,
+l’impact en paie pour ce même arrêt peut tout à fait être porté dans la paie de M+1 et être
+mentionné dans la DSN relative à la paie de M+1. Ainsi, l’arrêt sera signalé en M, reporté
+dans la DSN mensuelle relative à la paie de M et l’impact en paie sera porté par la DSN
+relative à la paie de M+1. A noter que dès lors que la paie du salarié n’est pas, impactée en
+M, la transmission du signalement arrêt de travail peut s’opérer en même temps que la DSN
+mensuelle.
+A ce stade, les signalements ne sont pas utilisés pour la Fonction publique, notamment en
+ce qui concerne les droits spécifiques de ces personnels (dès lors qu’il ne s’agit pas de
+procédures strictement identiques à celle du secteur privé).
+
+2.5.1  Données identifiantes dans les signalements
+
+Tout signalement donne lieu à l’exploitation des DSN mensuelles précédentes. Le bon
+aboutissement du signalement d’évènement impose donc que les données identifiantes (cf.
+liste complète au point 2.1.1.) renseignées dans le signalement correspondent aux données
+identifiantes portées par la dernière DSN mensuelle déposée et validée par le point de dépôt
+(certificat de conformité reçu). A défaut, l’exploitation du signalement n’est pas garantie
+(aucune attestation employeur ne pourra par exemple être reconstituée) et il sera alors
+nécessaire d’émettre un signalement annulant puis remplaçant le précédent ou d’utiliser les
+anciennes formalités, hors DSN.
+
+2.5.2  Articulation entre les signalements d’évènements et la DSN mensuelle
+
+  67 / 361
+
+--- p. 68 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+Certaines informations portées par le signalement d’évènement doivent être reportées dans
+la DSN mensuelle, celle-ci constituant une « photo » en fin de mois des évènements et
+rémunérations du mois. Ceci résulte de la différence de finalités de ces deux messages :
+  -  Le signalement d’évènement vise à permettre l’examen au titre d’une prestation, au
+  plus proche de l’évènement, pour un individu
+  -  La DSN mensuelle vise, entre autres, à constituer l’historique de vie professionnelle
+  de chaque individu en vue de permettre par exemple l’exploitation des signalements
+  d’évènements (reconstitution des formalités actuellement produites par les
+  employeurs).
+Ainsi, il est nécessaire de reporter les informations d’un signalement dans la DSN mensuelle
+consécutive à l’émission du signalement afin que l’évènement signalé soit pris en compte
+dans le traitement d’un évènement futur.
+Les informations à reporter sont précisées dans le tableau des usages, en fin de cahier
+technique. Il s’agit des informations des blocs "Arrêt de travail - S21.G00.60 " et "Fin de
+contrat de travail - S21.G00.62" dont l’usage est obligatoire ou conditionnel en DSN
+mensuelle.
+Outre les informations spécifiques au signalement, le message de signalement d’une fin de
+contrat porte usuellement les éléments de la paie de solde de tous comptes et tout élément
+financier ou de mesure d’activité non encore communiqué. Ces informations de paie doivent
+être reportées à l’identique dans la DSN mensuelle consécutive à l’émission du signalement
+de fin de contrat.
+
+2.5.3  Dérogation pour les CDDU
+
+Une possibilité de dérogation au délai légal de transmission du signalement a été accordée
+pour les contrats d’usage à durée déterminée. Le déclarant indique, lors la déclaration de la
+fin du contrat d'usage, son souhait de recourir ou non, au circuit dérogatoire de transmission
+pour ce contrat. Le salarié a toujours la possibilité de demander une transmission sans
+dérogation (demande expresse du salarié). Ainsi, le recours à la dérogation pour le déclarant
+consiste à pouvoir déclarer à fin de mois les fins de contrat d'usage du mois, sans
+application de pénalités. Dans cette phase, le circuit dérogatoire ne peut être utilisé que pour
+un contrat d'usage qui n'a pas encore fait l'objet d'une déclaration dans une précédente DSN
+mensuelle validée et dont le motif de fin est ‘une fin de CDD’.
+Pour rappel, le circuit dérogatoire ne peut s'appliquer qu'aux contrats à durée déterminée
+d'usage infra DSN mensuelle (aucune mensuelle contenant ce contrat n’a été déposée et
+validée préalablement au dépôt de la DSN mensuelle portant la fin de contrat déclarée sous
+dérogation. Autrement dit, le contrat de travail est intégralement porté dans une seule DSN
+mensuelle).
+Dans les autres cas, le déclarant doit procéder selon la procédure de droit commun
+(signalement).
+ATTENTION : cette dérogation n’est pas applicable pour les CDDU concernant des activités
+visées dans les motifs d’exclusion DSN (S21.G00.40.025)
+
+2.6 Déclaration des facteurs de risques professionnels du compte
+  professionnel de prévention (anciennement Compte Pénibilité)
+La loi garantissant l’avenir et la justice du système de retraites, promulguée le 20 janvier
+2014, a introduit à compter du 1er janvier 2015 le compte personnel de prévention de la
+pénibilité (C3P) qui vise à réduire l’inégalité face aux risques professionnels.
+Depuis, le 1er octobre 2017, ce dispositif a été renommé « Compte professionnel de
+
+  68 / 361
+
+--- p. 69 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+prévention » (C2P) en application de l’ordonnance n°2017-1389 du 22 septembre 2017
+relative à la prévention et à la prise en compte des effets de l’exposition à certains facteurs
+de risques professionnels et au C2P.
+Les modalités déclaratives sont fixées par les décrets n° 2017-1768 et n°2017-1769 du 27
+décembre 2017 relatifs à la prévention et à la prise en compte des effets de l’exposition à
+certains facteurs de risques professionnels et au compte professionnel de prévention.
+Cette déclaration prend en compte 6 facteurs :
+• les activités exercées en milieu hyperbare (hautes pressions)
+• les températures extrêmes
+• le bruit
+• le travail de nuit
+• le travail en équipes successives alternantes
+• le travail répétitif
+
+2.7 Valeurs de réserve
+Suite aux évolutions liées aux annonces présidentielles du 24 décembre 2018 portant sur les
+mesures d'urgence économiques et sociales, aux mesures annoncées dans le PLFSS 2019
+et aux difficultés rencontrées, des valeurs dites de réserve ont été ajoutées en norme, en
+prévision d’évolutions à venir pour les versions de norme suivantes afin d’éviter les blocages
+déclaratifs.
+Lorsqu’une mesure sera identifiée comme urgente et ne pourra pas de fait attendre une
+évolution en norme selon les procédures adaptées et les délais incompressibles, une valeur
+de réserve lui sera attribuée. Les modalités déclaratives correspondantes seront détaillées
+par consigne pour l’année en cours. Dans la version de norme suivante, la valeur
+réquisitionnée sera renommée et une nouvelle valeur de réserve sera créée, afin de toujours
+disposer à chaque version de norme de 5 valeurs de réserve pour les rubriques identifiées
+comme critiques.
+
+2.7.1  Intégration en norme
+
+Cinq valeurs de réserve seront systématiquement disponibles au niveau des blocs et
+rubriques suivants :
+- « Rémunération - S21.G00.51 » au niveau de la rubrique « Type - S21.G00.51.011 »
+- « Prime, gratification et indemnité - S21.G00.52 » au niveau de la rubrique « Type -
+S21.G00.52.001 »
+- « Autre élément de revenu brut - S21.G00.54 » au niveau de la rubrique « Type -
+S21.G00.54.001 »
+- « Elément de revenu calculé en net - S21.G00.58 » au niveau de la rubrique « Type -
+S21.G00.58.003 »
+- « Arrêt de travail - S21.G00.60 » au niveau de la rubrique « Motif de l'arrêt -
+S21.G00.60.001 »
+- « Autre suspension de l'exécution du contrat - S21.G00.65 » au niveau de la rubrique «
+Motif de suspension - S21.G00.65.001 »
+- « Base assujettie - S21.G00.78 » au niveau de la rubrique « Code de base assujettie -
+S21.G00.78.001 »
+- « Composant de base assujettie - S21.G00.79 » au niveau de la rubrique « Type de
+
+  69 / 361
+
+--- p. 70 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  composant de base assujettie - S21.G00.79.001 »
+  - « Cotisation individuelle - S21.G00.81 » au niveau de la rubrique « Code de cotisation -
+  S21.G00.81.001 »
+  - « Cotisation établissement - S21.G00.82 » au niveau de la rubrique « Code de cotisation -
+  S21.G00.82.002 »
+
+  2.7.2  Suivi de l’utilisation des valeurs de réserve
+
+  Libellé de la valeur
+ Version
+  renommée dans la  Justification du recours à une
+de norme  Valeurs de réserves utilisées
+  version de Cahier  valeur de réserve
+concernée
+  technique suivante
+  Déclaration du taux de rémunération de la
+  021 - [FP] Taux de
+  021 - Potentiel nouveau  situation administrative pour les besoins
+  rémunération de la situation
+  type de rémunération A  relatifs à la CNRACL pour la Fonction
+  administrative
+  Publique.
+  Type - S21.G00.51.011
+  022 - [FP] Complément de  Déclaration du Complément de
+  022 - Potentiel nouveau  traitement indiciaire (CTI)  Traitement Indiciaire (CTI) suite à la
+  type de rémunération B  (renommé dans la version de  publication du Ségur de la Santé de Juillet
+  norme P22V01)  2020
+  902 - Potentiel nouveau  902 - Potentiel nouveau type
+  type de prime  de prime exceptionnelle de  Déclaration de la prime exceptionnelle de
+  exceptionnelle de pouvoir  pouvoir d'achat (PEPA)  pouvoir d'achat (PEPA).
+  d'achat (PEPA)  (non renommé)
+  Type - S21.G00.52.001
+  903 - Autre prime exonérée
+  Déclaration d'une prime exceptionnelle
+  903 - Potentiel nouveau  de cotisation, contribution
+  versée à un individu dans le cadre de
+  type de prime A  sociale et impôt sur le
+  l'épidémie de covid-19
+  revenu
+  92 - Potentiel nouveau  Déclaration des éléments relatifs aux
+ P20V01  type d'autre élément de  92 - Cotisation frais de santé  cotisations frais de santé non-déductibles
+  revenu brut A  (Montants inclus dans la base CSG)
+  Type - S21.G00.54.001  Déclaration des éléments relatifs aux
+  93 - Potentiel nouveau
+  93 - Cotisation prévoyance  cotisations prévoyance et retraite
+  type d'autre élément de
+  et retraite supplémentaire  supplémentaire non-déductibles
+  revenu brut B
+  (Montants inclus dans la base CSG)
+  Déclaration de la taxe forfaitaire CDDU
+  908 - Potentielle nouvelle  908 - Taxe forfaitaire CDDU
+  Assurance Chômage suite à la réforme de
+  cotisation A  Assurance Chômage
+  l’assurance chômage.
+  Déclaration de la cotisation au titre du
+  909 - Cotisation au titre du
+  financement des régimes de retraites
+  909 - Potentielle nouvelle  financement des régimes de
+  Cotisation individuelle  supplémentaires à prestations définies
+  cotisation B  retraites supplémentaires à
+  - S21.G00.81.001  suite à l’ordonnance n°2019-697 du 3
+  prestation définies
+  juillet 2019 (art. 2).
+  910 - Exonération de  Application des mesures d’exonération de
+  910 - Potentielle nouvelle  cotisations patronales pour  cotisations et contributions sociales suite
+  cotisation C  les entreprises affectées par  au projet de loi de finance rectificative
+  la crise sanitaire  2020
+
+  70 / 361
+
+--- p. 71 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  911 - Réduction de
+  cotisations patronales pour  Application des mesures de réduction de
+  911 - Potentielle nouvelle
+  les entreprises du secteur de  cotisations patronales pour le secteur
+  cotisation A
+  la vigne affectées par la crise  viticole suite à la Loi de finances 2021
+  sanitaire
+  Cotisation individuelle
+  Application des mesures d’exonération
+  - S21.G00.81.001  912 - Potentielle nouvelle  912 - Exonération du forfait
+  mise en œuvre dans la Loi de finances
+  cotisation B  social à 10%
+  pour 2021
+P21V01  913 - Potentielle nouvelle
+  Application des mesures de l’article 12 de
+  913 - Indemnité inflation  la LFR 2021 instaurant l’indemnité
+  cotisation D
+  inflation
+  Intégration de la contribution relative aux
+  091 - Cotisation relative aux droits spécifiques passés des activités non
+  Code de cotisation  091 - Potentielle nouvelle droits spécifiques passés des  régulées (DSPNR) dans le cadre du
+  S21.G00.82.002  cotisation établissement A  activités non régulées  transfert du recouvrement des cotisations
+  (DSPNR)  CNIEG à l'Urssaf CN et à la MSA à compter
+  de janvier 2022.
+  904 – Prime de partage de la Déclaration en DSN de la Prime de partage
+  904 - Potentiel nouveau valeur exonérée socialement de la Valeur mise en place dans le cadre
+  Type - S21.G00.52.001  et non imposable
+  type de prime B  de la loi portant mesure d’urgence pour la
+  (Renommée dans la version de
+  protection du pouvoir d’achat
+P22V01  norme P24V01)
+  905 – Prime de partage de la Déclaration en DSN de la Prime de partage
+  905 - Potentiel nouveau  valeur exonérée socialement de la Valeur mise en place dans le cadre
+  Type - S21.G00.52.001  et imposable
+  type de prime C  de la loi portant mesure d’urgence pour la
+  (Renommée dans la version de
+  norme P24V01)
+  protection du pouvoir d’achat
+
+  023 - Potentiel nouveau  023 – Jours de RTT  Déclaration en DSN de la monétisation
+  type de rémunération C  monétisés  des jours RTT
+P23V01  Type - S21.G00.51.011
+  027 - Potentiel nouveau  Déclaration en DSN du montant net social
+  027 – Montant net social
+  type de rémunération A  en 2023
+  Déclaration en DSN de la prime de partage
+  de la valeur soumise à la CSG-CRDS et
+  906 - Prime de partage de la
+  906 - Potentiel nouveau  exonérée socialement et non imposable
+  Type - S21.G00.52.001  valeur exonérée socialement
+  type de prime A  dans le cas où elle est placée dans le cadre
+  et non imposable
+  de l'Accord National Interprofessionnel
+  (ANI)
+  914 - Réduction sapeurs-
+  pompiers volontaires sur les
+  914 - Potentielle nouvelle
+  contributions recouvrées par
+  cotisation A
+  la MSA, l’Urssaf ou France
+  Travail (renommé dans la
+  Déclaration en DSN de la réduction
+P24V01  version de norme P26V01)
+  sapeurs-pompiers volontaires
+  915 - Réduction sapeurs-
+  Code de cotisation -  pompiers volontaires sur les
+  915 - Potentielle nouvelle
+  S21.G00.81.001  contributions recouvrées par
+  cotisation B
+  l'Agirc-Arrco (renommé dans la
+  version de norme P26V01)
+  916 - Exonération de
+  916 - Potentielle nouvelle  cotisations applicable en
+  Zones France Ruralités  Déclaration en DSN de l’exonération pour
+  cotisation C
+  Revitalisation (ZFRR)  les Zones France Ruralités Revitalisation
+  (renommé dans la version de
+  norme P26V01)
+  028 - Rémunération perçue
+  028 – Potentiel nouveau  Evolution permettant la proratisation de
+  hors éléments non affectés
+  type de rémunération B  la valeur du SMIC utilisée dans le calcul de
+  par l’absence
+  la Réduction Générale des Cotisations
+P25V01  Type - S21.G00.51.011  029 - Rémunération
+  Patronales de sécurité sociale, de retraite
+  029 – Potentiel nouveau  habituelle mois complet hors
+  complémentaire et d'assurance chômage
+  type de rémunération C  éléments non affectés par
+  (RGCP)
+  l’absence
+
+  71 / 361
+
+--- p. 72 ---
+  2025-12-24
+  2 Principes de constitution des messages
+
+  Code de cotisation -  918 - Potentielle nouvelle  918 - Versement mobilité  Déclaration en DSN de la contribution
+  S21.G00.81.001  cotisation E  régional et rural  versement mobilité régional et rural
+  Motif de l'arrêt -  20 - Potentiel nouveau  20 - Congé supplémentaire  Déclaration du congé supplémentaire de
+  S21.G00.60.001  motif d’arrêt A  de naissance  naissance
+  52 - Assiette spécifique  Déclaration en DSN des assiettes de
+  52 - Potentielle nouvelle
+  Tranche 2 régime spécial  cotisations spécifiques à la CRP RATP suite
+  Code de base  base assujettie B
+  RATP  au transfert de recouvrement des
+  assujettie -
+  cotisations vieillesse des individus affiliés
+  S21.G00.78.001  53 - Potentielle nouvelle  53 - Assiette spécifique
+  au régime spécial de retraite RATP aux
+P26V01  base assujettie C  régime spécial RATP
+  Urssaf
+  919 - Exonération de
+  contribution patronale sur  Déclaration de l’exonération patronale sur
+  Code de cotisation -  919 - Potentielle nouvelle  les indemnités de mise à la  les indemnités de mise à la retraite d’un
+  S21.G00.81.001  cotisation A  retraite d’un salarié en  salarié en contrat de valorisation de
+  contrat de valorisation de  l’expérience (CVE).
+  l’expérience (CVE)
+
+  72 / 361

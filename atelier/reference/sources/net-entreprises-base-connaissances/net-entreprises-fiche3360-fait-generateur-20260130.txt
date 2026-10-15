@@ -1,0 +1,287 @@
+Date de modification : 30/01/2026 03:48 PM
+
+ Comment s'applique le fait générateur en DSN?
+
+ Le contexte : 
+
+ATTENTION : Ce document est établi pour les besoins de fonctionnement opérationnel de la Déclaration Sociale Nominative (DSN), sans qu'il n'emporte aucune conséquence sur le plan juridique au regard du droit positif.
+
+Le fait générateur des cotisations et contributions sociales a fait l'objet d'évolutions réglementaires afin d'harmoniser les pratiques déclaratives et d'assurer la cohérence entre les rémunérations versées et les droits sociaux des individus. Ces règles, précisées dans le chapitre Assiette générale du Bulletin officiel de la sécurité sociale (BOSS) sont opposables à compter de janvier 2027 après une période transitoire sur l'année 2026. Elles s'appliquent aux cotisations de Sécurité sociale du régime général et du régime agricole ainsi que sur toutes celles des régimes spéciaux. Les cotisations dues aux organismes complémentaires ne sont pas concernées. 
+
+La présente fiche consigne rappelle les règles générales de rattachement des éléments de rémunération, illustre leur application dans des exemples déclaratifs et détaille les différentes modalités de correction. 
+
+ PARTIE 1 : PRINCIPES DU FAIT GENERATEUR ET CALENDRIER :
+
+Après une clarification des règles décrites dans le BOSS en juin 2025, la mise en oeuvre suit désormais un calendrier progressif : 
+
+ - En 2026, une phase pilote permettra aux acteurs déjà opérationnels de tester le dispositif, d'en mesurer les contraintes opérationnelles et d'identifier d'éventuelles difficultés, et les résoudre sans application de sanctions. 
+
+ - L'entrée en vigueur pleinement opposable est prévue pour les périodes d'emploi à partir du 1er janvier 2027.
+
+Les règles du fait générateur qui fixent le principe de rattachement social des rémunérations, des assiettes de cotisation et cotisations à la période d'emploi, s'appliquent aux blocs suivants : 
+
+ - Rémunération - S21.G00.51 à l'exception du type "002 - Rémunération servant au calcul des droits de l'Assurance chômage"
+
+ - Base assujettie - S21.G00.78
+
+ - Cotisation individuelle - S21.G00.81
+
+A l'inverse, certains éléments relèvent d'une logique fiscale et ne suivent pas le principe du fait générateur "période d'emploi" car les montants à déclarer sont à rattacher à la date de prise en compte en paie. C'est le cas des sommes déclarés dans les blocs suivants : 
+
+ - Versement individu - S21.G00.50 (rémunération nette fiscale et montant soumis au prélèvement à la source pour exemples)
+
+ - Eléments de revenu calculé en net - S21.G00.58 (montant net social et heures complémentaires ou supplémentaires exonérées fiscalement pour exemples)
+
+ 1 - Cas général de datation des rémunérations : 
+
+ 1.1 - Rémunérations régulières mensuelles
+
+ 1.1.1. Eléments de rémunération versés mensuellement 
+
+Tous les éléments de rémunération versés de manière habituelle et régulière, y compris les revalorisations décidées a posteriori (par exemple dans le cadre d'une négociation annuelle obligatoire), doivent être rattachés socialement à la période d'emploi qu'ils rémunérent. 
+
+Pour exemple, la rémunération due au titre de l'activité exercée sur toute l'année et versée en février est rattachée à la période d'emploi qui est février. 
+
+ 1.1.2. Cas du décalage de paie 
+
+En cas de décalage de paie, c'est-à-dire lorsque les rémunérations dues pour un mois M sont effectivement versées en M+1, celles-ci doivent être rattachées socialement à la période d'emploi correspondant au mois M.
+
+Pour exemple, la rémunération d'un individu due pour le mois février mais intégrée en paie en mars doit être rattachée à la période d'emploi qui est février.
+
+ 1.1.3. Corrections 
+
+ 1.1.3.1. Erreur en paie et en DSN
+
+Lorsqu'une erreur intervient à la fois en paie et en DSN (par exemple une rémunération brute mal calculée), la correction doit être opérée dans la paie suivante et déclarée en DSN en rattachant socialement les montants corrigés à la période d'emploi concernée. 
+
+ 1.1.3.2. Erreur déclarative (la paie est correcte)
+
+Lorsqu'une erreur provient uniquement de la déclaration erronée en DSN (la paie correcte mais les montants ont été mal déclarés), il convient de corriger l'erreur dans le DSN suivante en rattachant socialement la correction à la période d'emploi concernée. 
+
+ 1.2 - Eléments de rémunération versés selon une périodicité non mensuelle 
+
+ 1.2.1. Eléments de rémunération versés selon une périodicité non mensuelle mais à une date habituelle
+
+Certains éléments de rémunération qui ne sont pas versés mensuellement mais le sont tout de même de manière habituelle, comme c'est le cas des primes annuelles, du treizième mois, des avantages d'épargne salariale, ou encore, doivent être rattachés à la période de prise en compte en paie (la rémunération du mois lors duquel ces éléments sont habituellement et régulièrement pris en compte en paie cf Boss).
+
+Par exemple, une prime de 13e mois habituellement versée avec la paie de Janvier N+1 au titre de l'année N est rattachée à janvier N+1.
+
+ 1.2.2. Eléments de rémunération versés de manière régulière mais pas à une date habituelle (primes exceptionnelles)
+
+Les primes exceptionnelles attribuées en cours d'année (qui ne sont pas versées de manière régulière) sont rattachées socialement : 
+
+ - à la date de prise en compte en paie lorsqu'elles sont payées dans les mois 3 mois suivant la décision d'attribution,
+
+ - à la période d'attribution lorsqu'elles sont versées au-delà de 3 mois.
+
+Pour exemple, une prime exceptionnelle attribuée en mars et versée avec la paie d'avril est datée d'avril, la date de prise en compte en paie. Toutefois, si cette prime qui a été attribuée en mars avait été versée avec la paie de juillet, elle aurait dû être datée de mars, ce qui correspond à la période d'attribution. 
+
+ 1.2.3. Corrections
+
+ 1.2.3.1. Erreur en paie et en DSN
+
+Lorsqu'une erreur intervient à la fois en paie et en DSN (par exemple une prime est partiellement prise en compte en paie), la correction doit être opérée dans la paie suivante et déclarée en DSN en rattachant socialement les montants corrigés à la période de prise en compte en paie ou la période de la date d'origine en fonction du cas. 
+
+ 1.2.3.2. Erreur uniquement en déclaration 
+
+Lorsqu'une erreur provient uniquement de la déclaration erronée en DSN (la paie correcte mais les montants ont été mal déclarés), il convient de corriger l'erreur dans la DSN suivante en rattachant socialement la correction à la période de prise en compte en paie ou la période de la date d'attribution en fonction des cas à laquelle la paie correcte a été produite. 
+
+ 2 - Prise en compte postérieur à la paie d'évènements impactant la rémunération (prise en compte décalée d'évènements affectant la rémunération mensuelle) :
+
+ 2.1 - Heures supplémentaires et complémentaires
+
+ 2.1.1. Heures supplémentaires et complémentaires mensualisées 
+
+Les heures supplémentaires et complémentaires mensuelles doivent être rattachées à la période d'emploi au titre de laquelle elles ont été effectuées. Pour les entreprises qui prennent habituellement et de façon régulière ces éléments en compte de manière décalée, une tolérance permet toutefois de les rattacher à la période de prise en compte en paie. 
+
+Pour exemple, avec la paie de février, un individu perçoit des heures supplémentaires accomplies en janvier. Celles-ci doivent être rattachées à janvier (période d'emploi), mais il est admis de les rattacher à février. 
+
+Le rattachement vaut pour l'ensemble de la législation de sécuité sociale : une rémunération rattachée à la période d'emploi du mois M est soumise à la législation du mois M notamment pour la détermination de l'assiette, des taux et des mesures d'exonération. En conséquence, dans l'exemple, en cas de rattachement à la période d'emploi de février, les règles de calcul des cotisations et d'exonérations seront celles applicables en février.
+
+ 2.1.2. Heures supplémentaires et complémentaires décomptées annuellement 
+
+Lorsqu'elles sont décomptées sur une base annuelle, les heures supplémentaires et complémentaires doivent être rattachées au dernier mois de l'année civile, ou au dernier mois de l'exercice d'annualisation de l'entreprise si celui-ci de décembre. 
+
+Pour exemple, avec la paie de janvier N, un employeur verse les heures supplémentaires de l'année N-1. Elles doivent être rattachées à décembre N-1.
+
+ 2.1.3. Corrections
+
+ 2.1.3.1. Erreur en paie et en DSN
+
+Lorsqu'une erreur intervient à la fois en paie et en DSN (par exemple des heures supplémentaires sont partiellement versées), la correction doit être opérée dans la paie suivante et déclarée en DSN en rattachant socialement les montants corrigés à la période d'emploi concernée. Fiscalement, les montants seront rattachés à la date de versement de la correction. 
+
+ 2.1.3.2. Erreur uniquement en déclaration 
+
+Lorsqu'une erreur provient uniquement de la déclaration erronée en DSN (la paie correcte mais les montants ont été mal déclarés), il convient de corriger l'erreur dans la DSN suivante en rattachant socialement la correction à la période d'origine. 
+
+ 2.2 - Maintien de salaire par l'employeur en cas d'absence 
+
+Le maintien de salaire versé par l'employeur en cas d'absence du salarié doit être rattaché à la période d'emploi concernée. Une tolérance permet toutefois un rattachement à la date de prise en compte en paie.
+
+Par exemple, en mars, un salarié perçoit un maintien de relatif à une absence en février. Ce maintien doit être rattaché à février (période d'emploi), mais la tolérance autorise un rattachement à mars.
+
+ 2.2.1. Corrections 
+
+ 2.2.1.1. Erreur en paie et en DSN
+
+Lorsqu'une erreur intervient à la fois en paie et en DSN (par exemple le maintien de salaire n'est pas versé), la correction doit être opérée dans la paie suivante et déclarée en DSN en rattachant socialement les montants corrigés à la période d'emploi.
+
+La tolérance admet un rattachement social à la date de prise en compte en paie de la correction.
+
+ 3 - Salariés non mensualisés :
+
+ 3.1 - CDD inférieur à un mois "à cheval" sur deux mois civils - salarié embauché avant la clôture de la paie du premier mois
+
+Lorsqu'un contrat d'une durée inférieure à un mois civil débute avant l'échéance de paie du premier mois et se termine le mois suivant, il est possible, si l'employeur établit un seul bulletin de salaire et verse une seule rémunération, de rattacher l'ensemble de la rémunération au dernier jour de la période d'emploi considérée. 
+
+Pour exemple, un salarié effectue un CDD du 15 janvier au 13 février. L'employeur établit une rémunération unique, versée en février, qui doit être rattachée à février.
+
+ 3.1.1. Corrections
+
+ 3.1.1.1. Erreur en paie et en DSN 
+
+Lorsqu'une erreur intervient à la fois en paie et en DSN (par exemple une omission partielle de la rémunération due sur la période couverte par la CDD), la correction doit être opérée dans la paie suivante et déclarée en DSN en rattachant socialement les montants corrigés à la période d'emploi considérée.
+
+ 3.1.1.2. Erreur uniquement en déclaration
+
+Lorsqu'une erreur provient uniquement de la déclaration erronée en DSN (la paie correcte mais les montants ont été mal déclarés), il convient de corriger l'erreur dans la DSN suivante en rattachant socialement la correction à la période d'emploi concernée.
+
+ 3.2 - CDD inférieur à un mois "à cheval" sur deux mois civils - salarié embauché après la clôture de la paie du premier mois 
+
+Lorsqu'un contrat d'une durée inférieure à un mois civil débute après l'échéance de paie du premier mois et se termine le mois suivant, la rémunération doit être rattachée au dernier jour de la période d'emploi.
+
+Pour exemple, un salarié effectue un CDD du 30 janvier au 13 février. La rémunération de l'ensemble du contrat sera rattachée à février.
+
+ 3.2.1. Corrections
+
+ 3.2.1.1. Erreur en paie et en DSN 
+
+Lorsqu'une erreur intervient à la fois en paie et en DSN (par exemple une omission partielle de la rémunération due sur la période couverte par le CDD), la correction doit être opérée dans la paie suivante et déclarée en DSN en rattachant socialement les montants corrigés à la période d'emploi concernée.
+
+ 3.2.1.2. Erreur uniquement en déclaration 
+
+Lorsqu'une erreur provient uniquement de la déclaration erronée en DSN (la paie correcte mais les montants ont été mal déclarés), il convient de corriger l'erreur dans la DSN suivante en rattachant socialement la correction à la période d'origine de l'erreur, c'est-à-dire, à la période d'emploi concernée.
+
+ 4 - Rémunérations versées après la fin du contrat de travail :
+
+ 4.1 - Eléments versés postérieurement mais dus au titre de périodes antérieures à la fin de contrat
+
+Lorsqu'un élément de rémunération (prime versée selon une périodicité mensuelle, rappel de salaire hors décision de justice, remboursement de frais professionnels, indemnité compensatrice de préavis, etc.) est versé après la rupture du contrat, il doit être rattaché à la période d'emploi à laquelle il se rapporte. 
+
+Pour exemple, un salarié quitte l'entreprise en juin. En juillet, il reçoit une prime liée au mois de mai. Cette prime est rattachée à mai.
+
+ 4.1.1. Corrections
+
+ 4.1.1.1. Erreur en paie et en DSN
+
+Lorsqu'une erreur intervient à la fois en paie et en DSN (par exemple, une omission de la prime d'activité), la correction doit être opérée dans la paie suivante et déclarée en DSN en rattachant socialement les montants corrigés à la période d'emploi concernée.
+
+ 4.1.1.2. Erreur uniquement en déclaration 
+
+Lorsqu'une erreur provient uniquement de la déclaration erronée en DSN (la paie correcte mais les montants ont été mal déclarés), il convient de corriger l'erreur dans la DSN suivante en rattachant socialement la correction à la période concernée.
+
+ 4.2 - Eléments dus au titre de la fin de la relation de travail
+
+Les indemnités de rupture ou de non-concurrence doivent être rattachées à la dernière période d'emploi du salarié. 
+
+Pour exemple, un employé quitte l'entreprise en septembre et reçoit une indemnité de non-concurrence pendant trois mois en octobre, novembre et décembre. Les trois indemnités d'octobre, novembre et décembre sont rattachées à septembre.
+
+Pour exemple, un salarié, en arrêt sans maintien de salaire depuis juillet et quitte l'entreprise en septembre. Les indemnités versées après sa sortie sont rattachées à septembre.
+
+Pour exemple, un salarié est licencié en juillet avec effet en septembre. L'employeur le dispense de préavis. L'indemnité de rupture est rattachée à septembre. 
+
+ 4.2.1. Corrections
+
+ 4.2.1.1. Erreur en paie et en DSN 
+
+Lorsqu'une erreur intervient à la fois en paie et en DSN (par exemple, une omission de la prise en compte en paie des indemnités de non-concurrence), la correction doit être opérée dans la paie suivante et déclarée en DSN en rattachant socialement les montants corrigés à la dernière période d'emploi de l'individu. 
+
+ 4.2.1.2. Erreur uniquement en déclaration 
+
+Lorsqu'une erreur provient uniquement de la déclaration erronée en DSN (la paie correcte mais les montants ont été mal déclarés), il convient de corriger l'erreur dans la DSN suivante en rattachant socialement la correction à la période d'origine de l'erreur, c'est-à-dire, à la dernière période d'emploi de l'individu.
+
+ 4.3 - Eléments versés après la sortie du salarié selon une périodicité différente du mois
+
+Lorsqu'ils sont pris en compte en paie après la sortie, certains éléments qui sont versés régulièrement, de manière habituelle ou non, selon une périodicité différente du mois (prime annuelle, intéressement, rappel de salaire hors décision de justice, remboursement de frais professionnels, etc.) doivent être rattachés à la période d'activité correspondant à la rémunération avec laquelle ces éléments de rémunération auraient dû être pris en compte en paie. 
+
+Pour exemple, un salarié quitte l'entreprise en décembre et perçoit son intéressement en mai, en application d'une convention collective. L'intéressement est rattaché à mai.
+
+ 4.3.1. Corrections 
+
+ 4.3.1.1. Erreur en paie et en DSN 
+
+Lorsqu'une erreur intervient à la fois en paie et en DSN (par exemple, une omission du versement de la prime de résultat), la correction doit être opérée dans la paie suivante et déclarée en DSN en rattachant socialement les montants corrigés à la période de prise en compte en paie de cet élément de rémunération. 
+
+ 4.3.1.2. Erreur uniquement en déclaration
+
+Lorsqu'une erreur provient uniquement de la déclaration erronée en DSN (la paie correcte mais les montants ont été mal déclarés), il convient de corriger l'erreur dans la DSN suivante en rattachant socialement la correction à la période d'origine de l'erreur, c'est-à-dire, à la période de prise en compte en paie de l'élément de rémunération.
+
+ 5 - Succession de CDD :
+
+ 5.1 - Rappel de la rémunération lié à un contrat précédent
+
+ Pour les salariés effectuant plusieurs CDD auprès d'un même employeur, les éléments de rémunération versés suivent les principes déjà exposés ci-dessus. Lorsqu'un salarié a enchainé plusieurs CDD, un rappel de salaire versé après la fin d'un contrat doit être rattaché à la période d'emploi correspondant au contrat concerné.
+
+Pour exemple, un salarié a eu un CDD A de janvier à mars et un autre CDD B de mars à juin. Il reçoit un rappel de rémunération au titre de février. Le rappel doit être rattaché à février et au contrat A.
+
+ 5.1.1. Corrections
+
+ 5.1.1.1. Erreur en paie et en DSN
+
+Lorsqu'une erreur intervient à la fois en paie et en DSN (par exemple, une omission partielle de la rémunération due au titre d'un CDD antérieur), la correction doit être opérée dans la paie suivante et déclarée en DSN en rattachant socialement les montants corrigés à la période d'emploi et au contrat concernée.
+
+ 5.1.1.2. Erreur uniquement en déclaration 
+
+Lorsqu'une erreur provient uniquement de la déclaration erronée en DSN (la paie correcte mais les montants ont été mal déclarés), il convient de corriger l'erreur dans la DSN suivante en rattachant socialement la correction à la période d'origine de l'erreur, c'est-à-dire, à la période d'emploi et au contrat concernée.
+
+ 5.2 - Versement d'un élément non mensuel
+
+Les primes ou gratifications versées à une date fixe chaque année (prime annuelle, 13e mois, etc.), en application d'un accord collectif ou du contrat de travail, sont rattachées à la rémunération du mois au cours duquel ces éléments de rémunération doivent être versés, même si un ou plusieurs de ces éléments sont dus en application du précédent contrat.
+
+Pour exemple, un salarié a eu un contrat A de janvier à mars et un contrat B de avril à août. En août, il perçoit une prime, au titre du contrat A, habituellement versée à cette période sur le 1er contrat, celle-ci est à rattacher à août sur le 1er contrat.
+
+ 5.2.1. Corrections
+
+ 5.2.1.1. Erreur en paie et en DSN 
+
+Lorsqu'une erreur intervient à la fois en paie et en DSN (par exemple, une d'une prime), la correction doit être opérée dans la paie suivante et déclarée en DSN en rattachant socialement l'élément de rémunération corrigé à la période de prise en compte en paie de cet élément habituel et régulier et au bon contrat.
+
+ 5.2.1.2. Erreur uniquement en déclaration 
+
+Lorsqu'une erreur provient uniquement de la déclaration erronée en DSN (la paie correcte mais les montants ont été mal déclarés), il convient de corriger l'erreur dans la DSN suivante en rattachant socialement la correction à la période d'origine de l'erreur, et au bon contrat.
+
+ 6 - Rémunérations versées suite à une décision de justice : 
+
+Lorsqu'un rappel de rémunération est ordonné par une décision de justice, celui-ci doit être rattaché à la période d'emploi concernée, indépendamment de la date effective de son versement.
+
+Pour exemple, en mars N, l'employeur paye le salaire de mars il procéde également à des rappels sur les rémunérations d'octobre et de novembre N-2 suite à une décision de justice. Dans ce cas, le salaire sera à dater de mars et les rappels seront rattachés aux périodes d'emploi d'octobre et de novembre N-2 sur le contrat concerné.
+
+Point d'attention : le système DSN ne permet pas la correction ou la régularisation d'éléments antérieurs à 5 ans. 
+
+ 6.2.1. Corrections 
+
+ 6.2.1.1. Erreur en paie et en DSN 
+
+Lorsqu'une erreur intervient à la fois en paie et en DSN (par exemple une omission partielle de la rémunération due suite à la décision de justice), la correction doit être opérée dans la paie suivante et déclarée en DSN en rattachant socialement les montants corrigés à la période d'emploi concernée sur le contrat concerné par la décision de justice. 
+
+ 6.2.1.2. Erreur uniquement en déclaration 
+
+Lorsqu'une erreur provient uniquement de la déclaration erronée en DSN (la paie correcte mais les montants ont été mal déclarés), il convient de corriger l'erreur dans la DSN suivante en rattachant socialement la correction à la période d'emploi concernée. 
+
+ PARTIE 2 : EXEMPLES : 
+
+1 - Cas d'un salarié dont le contrat est en cours et perçoit différents éléments de rémunération (cliquer pour y accéder)
+
+2 - Cas d'un salarié percevant des éléments de rémunération après la rupture de son contrat de travail (cliquer pour y accéder)
+
+3 - Cas d'un salarié percevant des rappels de rémunération en application d'une décision de justice (cliquer pour y accéder)
+
+ Date de création : 27/01/2026 05:40 PM 
+
+ N° de la fiche : 3360 
+
+ Etes-vous satisfait des informations données sur cette page ?
+
+ Évaluation de réponse 1 sur 5 Évaluation de réponse 2 sur 5 Évaluation de réponse 3 sur 5 Évaluation de réponse 4 sur 5 Évaluation de réponse 5 sur 5 
+
+ @2024 GIP-MDS | Mentions légales | Informations CNIL | 

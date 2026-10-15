@@ -1,0 +1,113 @@
+# Bloc S21.G00.70
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 285-286
+
+--- p. 285 ---
+  S21.G00.70  2025-12-24
+
+Identifiant technique Adhésion  S21.G00.70.013
+Date de début de l’affiliation  S21.G00.70.014
+Date de fin de l’affiliation  S21.G00.70.015
+
+Code option retenue par le salarié  S21.G00.70.004
+PrevoyanceAffiliation.Option
+  Option définie dans le contrat, que le salarié peut choisir individuellement. Les valeurs de code sont
+  fournies par l'organisme de prévoyance et sont à renseigner seulement sur sa demande.
+
+  X  [1,30]
+
+Code population de rattachement  S21.G00.70.005
+PrevoyanceAffiliation.Population
+  Population définie dans le contrat auquel le salarié est rattaché. Les valeurs de code sont fournies par
+  l'organisme de prévoyance et sont à renseigner seulement sur sa demande.
+
+  X  [1,30]
+
+Nombre d’enfants à charge  S21.G00.70.007
+PrevoyanceAffiliation.NombreEnfantsCharge
+  Il s'agit du nombre d'enfants à charge enregistré dans le logiciel de paie / ressources humaines.
+
+  N  [1,2]  CSL 00 : [0]*(0|[1-9][0-9]*)
+
+Nombre d'ayants-droit conjoint / concubin  S21.G00.70.008
+PrevoyanceAffiliation.NombreAyantsDroitAdultes
+  Nombre d'ayants droit conjoint / concubin attachés au salarié pour le contrat mentionné. Cette donnée doit
+  être renseignée si elle intervient dans le calcul de la cotisation du contrat Prévoyance concerné.
+
+  N  [1,2]  CSL 00 : [0]*(0|[1-9][0-9]*)
+
+Nombre d'ayants-droit attachés au salarié pour le contrat  S21.G00.70.009
+Prévoyance mentionné
+PrevoyanceAffiliation.NombreAyantsDroit
+  Nombre d'ayants-droit attachés au salarié pour le contrat Prévoyance mentionné. Cette donnée doit être
+  renseignée si elle intervient dans le calcul de la cotisation du contrat Prévoyance concerné.
+  Le nombre d’ayants-droit renseigné dans cette rubrique ne correspond pas nécessairement au total des
+  autres compteurs (« Nombre d’ayants-droit conjoint / concubin - S21.G00.70.008 », « Nombre d'ayants-
+  droit autres (ascendants, collatéraux...) - S21.G00.70.010 » et « Nombre d'enfants ayants-droit -
+  S21.G00.70.011 ») car selon la typologie du contrat Prévoyance, la déclaration de l’ensemble de ces
+  rubriques n’est pas toujours attendue. En revanche, si ces rubriques sont toutes les trois valorisées, alors le
+  nombre d’ayants-droit déclaré à la rubrique « Nombre d'ayants-droit attachés au salarié pour le contrat
+  Prévoyance mentionné - S21.G00.70.009 » doit toujours correspondre à la somme des trois autres
+  compteurs.
+
+  N  [1,2]  CSL 00 : [0]*(0|[1-9][0-9]*)
+
+Nombre d'ayants-droit autres (ascendants, collatéraux...)  S21.G00.70.010
+
+  285 / 361
+
+--- p. 286 ---
+  S21.G00.70  2025-12-24
+
+PrevoyanceAffiliation.NombreAyantsDroitAutres
+  Nombre d'ayants droit autres (ascendants, collatéraux) attachés au salarié pour le contrat mentionnés.
+  Cette donnée doit être renseignée si elle intervient dans le calcul de la cotisation du contrat Prévoyance
+  concerné.
+
+  N  [1,2]  CSL 00 : [0]*(0|[1-9][0-9]*)
+
+Nombre d'enfants ayants-droit  S21.G00.70.011
+PrevoyanceAffiliation.NombreAyantsDroitEnfants
+  Nombre d'enfants ayants droit attachés au salarié pour le contrat prévoyance mentionné. Cette donnée doit
+  être renseignée si elle intervient dans le calcul de la cotisation du contrat Prévoyance concerné.
+
+  N  [1,2]  CSL 00 : [0]*(0|[1-9][0-9]*)
+
+Identifiant technique Affiliation  S21.G00.70.012
+PrevoyanceAffiliation.IdentifiantTechniqueAffiliation
+  Identifiant de l'affiliation au contrat de Prévoyance. Cet identifiant technique est interne au message et doit
+  être unique pour chacune des affiliations du salarié concerné.
+  Dans une déclaration mensuelle, il permet de faire le lien avec la ou les bases assujetties déclarées, via la
+  rubrique "Identifiant technique Affiliation - S21.G00.78.005".
+  CCH-11 : Dans une DSN mensuelle ou une fraction de DSN mensuelle, pour un salarié donné (S21.G00.30), cet
+  identifiant doit référencer de manière unique chacune des "Affiliations Prévoyance" (S21.G00.70) déclarées pour un
+  salarié donné, sauf si les conditions suivantes sont simultanément réunies, auquel cas il sera autorisé le renseignement
+  de plusieurs affiliations (S21.G00.70) portant le même identifiant d’affiliation (S21.G00.70.012) :
+  • Les contrats de travail (S21.G00.40) auxquels sont rattachés ces affiliations (S21.G00.70) dans le message sont
+  exclusivement des contrats de mission (valeur 03 au niveau de la rubrique "Nature du contrat - S21.G00.40.007")
+  • Ces affiliations (S21.G00.70) sont toutes rattachées à la même adhésion (S21.G00.15) par le même identifiant
+  adhésion (S21.G00.70.013)
+  • Ces affiliations (S21.G00.70) présentent les mêmes codes option (S21.G00.70.004) et population (S21.G00.70.005)
+  • Les contrats de travail (S21.G00.40) auxquels sont rattachés ces affiliations (S21.G00.70) dans le message présentent
+  un statut conventionnel identique (S21.G00.40.002), un statut catégoriel identique (S21.G00.40.003), un dispositif de
+  politique publique identique (S21.G00.40.008), une convention collective identique (S21.G00.40.017).
+
+  X  [1,3]  CSL 00 : [1-9][0-9]*
+
+Identifiant technique Adhésion  S21.G00.70.013
+PrevoyanceAffiliation.IdentifiantTechniqueAdhesion
+  Identifiant de l'adhésion au contrat de Prévoyance, Santé, Retraite supplémentaire. Cet identifiant doit
+  correspondre à la valeur de la rubrique "S21.G00.15.005" déclarée dans un bloc "Adhésion Prévoyance,
+  Santé, Retraite supplémentaire" S21.G00.15. Il permet de faire le lien avec les blocs décrivant les données
+  de gestion du contrat Prévoyance, Santé, Retraite supplémentaire dans le message.
+  CCH-11 : Cet identifiant doit correspondre à la valeur de la rubrique "Identifiant technique Adhésion-
+  S21.G00.15.005" déclarée dans un bloc "Adhésion Prévoyance - S21.G00.15".
+
+  CCH-12 : Pour un même "Contrat - S21.G00.40", deux blocs "Affiliation Prévoyance - S21.G00.70" ne peuvent être
+  renseignés avec le même triplet "Code option retenue par le salarié - S21.G00.70.004", "Code population de
+  rattachement - S21.G00.70.005" et "Identifiant technique Adhésion - S21.G00.70.013".
+
+  X  [1,3]  CSL 00 : [1-9][0-9]*
+
+Date de début de l’affiliation  S21.G00.70.014
+
+  286 / 361

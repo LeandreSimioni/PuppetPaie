@@ -1,0 +1,177 @@
+# Bloc S21.G00.15
+# Extrait de dsn-cahier-technique-2027.1.1.pdf (pdftotext -layout, espaces repliés), pages 151-153
+
+--- p. 151 ---
+  S21.G00.15  2026-06-10
+
+Nombre BOETH externe  S21.G00.13.003
+Oeth.Nombre
+  Cette rubrique permet de renseigner le nombre associé au type de Bénéficiaires de l’Obligation d’Emploi
+  des Travailleurs Handicapés (BOETH) mis à disposition de l’entreprise pour l’année de rattachement à
+  laquelle le bloc "Complément OETH - S21.G00.13" est souscrit. Cette rubrique permet également de
+  déclarer le nombre de stagiaires BOETH accueillis dans l'entreprise n'ayant pas pu être déclarés au
+  préalable dans les DSN mensuelles de l'année concernée. Si les stagiaires BOETH ont déjà été déclarés à
+  maille nominative dans les déclarations précédentes, cette rubrique ne doit pas être renseignée.
+  CCH-11 : Si la rubrique "Type BOETH - S21.G00.13.002" est renseignée alors la rubrique "Nombre BOETH externe -
+  S21.G00.13.003" est obligatoire, et, inversement : si la rubrique "Nombre BOETH externe - S21.G00.13.003" est
+  renseignée alors la rubrique "Type BOETH - S21.G00.13.002" est obligatoire.
+  Si l'une de ces deux rubriques est absente, alors l'autre est interdite.
+
+  N  [4,8]  CSL 00 : \d{1,5}\.\d{2}
+
+Millésime de rattachement  S21.G00.13.004
+Oeth.Rattachement
+  Année au titre de laquelle le bloc "Complément OETH - S21.G00.13" est souscrit.
+
+  CCH-11 : Le "Millésime de rattachement - S21.G00.13.004" doit obligatoirement être inférieur ou égal aux quatre
+  derniers caractères (Année) du mois principal déclaré au niveau de la rubrique "Date du mois principal déclaré –
+  S20.G00.05.005".
+
+  CCH-12 : Un bloc "Complément OETH - S21.G00.13" ne peut pas être déclaré avec la seule présence d'une rubrique
+  "Millésime de rattachement - S21.G00.13.004". Il doit obligatoirement être renseigné une rubrique "Accord agréé
+  OETH - S21.G00.13.001" ou "Type BOETH externe - S21.G00.13.002".
+
+  N  [4,4]  CSL 00 : 2([0-9]{3})
+
+S21.G00.15
+
+Adhésion Prévoyance  S21.G00.15
+  Adhésion à un contrat collectif de Prévoyance, Complémentaire Santé ou Retraite Supplémentaire souscrit auprès
+  d'une institution de prévoyance, mutuelle, société d'assurance ou organisme complémentaire non fédéré par un membre
+  du GIP-MDS (CTIP, FFA, FNMF).
+  Ce bloc est utilisé exclusivement par les organismes complémentaires.
+
+Référence du contrat de Prévoyance  S21.G00.15.001
+Code organisme de Prévoyance  S21.G00.15.002
+Code délégataire de gestion  S21.G00.15.003
+Personnel couvert  S21.G00.15.004
+Identifiant technique Adhésion  S21.G00.15.005
+
+Référence du contrat de Prévoyance  S21.G00.15.001
+PrevoyanceAdhesion.Reference
+  Référence permettant d'identifier le contrat Prévoyance, complémentaire Santé ou Retraite supplémentaire.
+
+  CCH-11 : Plusieurs blocs "Adhésion Prévoyance - S21.G00.15" peuvent être présents dans une déclaration, mais ils ne
+  peuvent pas être renseignés avec les mêmes valeurs dans les rubriques "Référence du contrat de Prévoyance -
+  S21.G00.15.001" et "Code organisme de Prévoyance - S21.G00.15.002".
+
+  151 / 370
+
+--- p. 152 ---
+  S21.G00.15  2026-06-10
+
+  CCH-13 : Une « Adhésion Prévoyance » avec personnel couvert (S21.G00.15.004 = « 01 - Oui, concerne au moins un
+  salarié de l'établissement d'affectation ») doit être référencée dans au moins un bloc « Affiliation Prévoyance -
+  S21.G00.70 » de la déclaration. Ce contrôle ne s’applique pas en cas de présence d'un contrat dont la rubrique « Nature
+  du contrat - S21.G00.40.007 » est de type « 03 - Contrat de mission (contrat de travail temporaire) » ou « 08 - Contrat
+  à durée indéterminée intérimaire ».
+
+  CCH-14 : Une « Adhésion Prévoyance » sans personnel couvert (S21.G00.15.004 = « 02 - Non, ne concerne aucun
+  salarié de l'établissement d'affectation ») ne doit faire l'objet d'aucune Affiliation Prévoyance (S21.G00.70) dans la
+  déclaration. Ce contrôle ne s’applique pas en cas de présence d'un contrat dont la rubrique « Nature du contrat -
+  S21.G00.40.007 » est de type « 03 - Contrat de mission (contrat de travail temporaire) » ou « 08 - Contrat à durée
+  indéterminée intérimaire ».
+
+  X  [1,30]
+
+Code organisme de Prévoyance  S21.G00.15.002
+PrevoyanceAdhesion.Organisme
+  Code de l'institution de prévoyance (sur 5 caractères sous la forme Pnnnn), de la mutuelle (sur 9 caractères
+  numériques), de la société d'assurances (sur 6 caractères sous la forme Axxxxx) ou de l'organisme
+  complémentaire non fédéré par un membre du GIP-MDS (CTIP, FFA, FNMF) (sur 9 caractères
+  alphanumériques dont un au moins est une lettre ), concerné par le contrat référencé.
+  CRE-11 : valeurs autorisées
+
+  Tables PREV - Code institution de prévoyance, MUT - Code
+  X  [5,9]  mutuelle , ASSU - Code société d’assurance, OCI - Code
+  organisme OC isolé
+
+Code délégataire de gestion  S21.G00.15.003
+PrevoyanceAdhesion.Delegataire
+  Organisme tiers à qui l'organisme de Prévoyance a délégué tout ou partie de la gestion du contrat.
+  Cette rubrique peut être alimentée, en complément du code organisme, uniquement sur instruction
+  spécifique de l'institution de prévoyance, de la mutuelle, de la société d'assurances ou de l'organisme
+  complémentaire non fédéré par un membre du GIP-MDS (CTIP, FFA, FNMF) qui fournira les valeurs à
+  utiliser.
+  CCH-11 : Contrôle sur valeurs autorisées dans la table des délégataires des sociétés d'assurance, si la rubrique "Code
+  délégataire de gestion - S21.G00.15.003" est présente et si la rubrique "Code organisme de Prévoyance -
+  S21.G00.15.002" correspond à une société d’assurance (code organisme sur 6 positions, préfixé par le caractère "A").
+
+  CCH-12 : Contrôle sur valeurs autorisées dans la table des délégataires des institutions de prévoyance, si la rubrique
+  "Code délégataire de gestion - S21.G00.15.003" est présente et si la rubrique "Code organisme de Prévoyance -
+  S21.G00.15.002" correspond à une institution de prévoyance (code organisme sur 5 positions, préfixé par le caractère
+  "P").
+
+  CCH-13 : Contrôle sur valeurs autorisées dans la table des délégataires des mutuelles, si la rubrique "Code délégataire
+  de gestion - S21.G00.15.003" est présente et si la rubrique "Code organisme de Prévoyance - S21.G00.15.002"
+  correspond à une mutuelle (code organisme sur 9 positions numériques).
+
+  CCH-14 : Contrôle sur valeurs autorisées dans la table des délégataires des organismes complémentaires non fédérés
+  par un membre du GIP-MDS (CTIP, FFA, FNMF), si la rubrique "Code délégataire de gestion - S21.G00.15.003" est
+  présente et si la rubrique "Code organisme de Prévoyance - S21.G00.15.002" correspond à un organisme
+  complémentaire non fédéré par un membre du GIP-MDS (CTIP, FFA, FNMF) (code organisme sur 9 caractères
+  alphanumériques dont un au moins est une lettre).
+
+  Tables DLGPREV - Code délégataire de gestion
+  X  [6,6]  prévoyance, DLGMUT - Code délégataire de gestion
+  mutuelle, DLGASSU - Code délégataire de gestion
+
+  152 / 370
+
+--- p. 153 ---
+  S21.G00.16  2026-06-10
+
+  d'assurance, DLGOCI - Code délégataire de gestion OC
+  isolé
+
+Personnel couvert  S21.G00.15.004
+PrevoyanceAdhesion.PersonnelCouvert
+  Dans une déclaration mensuelle, précise s'il existe ou non au moins un salarié couvert par ce contrat de
+  Prévoyance, pour la période et l'établissement d'affectation déclarés.
+
+  Cette rubrique est renseignée à "01" si un salarié au moins est couvert par le contrat référencé en
+  S21.G00.15.001 pour l’établissement d’affectation et le mois déclaré ou à "02" s’il n’existe pas ou plus de
+  salarié couvert dans l’établissement.
+
+  L’alimentation du bloc 15 permet d’assurer que la DSN soit adressée à l’organisme de Prévoyance en
+  l’absence de personnel couvert.
+
+  X  [2,2]
+
+  01 - Oui, concerne au moins un salarié de l'établissement d'affectation
+  02 - Non, ne concerne aucun salarié de l'établissement d'affectation
+
+Identifiant technique Adhésion  S21.G00.15.005
+PrevoyanceAdhesion.IdentifiantTechniqueAdhesion
+  Cet identifiant est interne au message DSN et doit être unique pour chaque adhésion.
+  Dans une DSN mensuelle, il permet de faire le lien :
+  - avec les affiliations prévoyance ("Identifiant technique Adhésion - S21.G00.70.013")
+  - avec les cotisations établissement ("Référence réglementaire ou contractuelle - S21.G00.82.005")
+  CCH-11 : Cet identifiant doit être unique dans la déclaration pour chaque bloc "Adhésion Prévoyance - S21.G00.15".
+
+  X  [1,3]  CSL 00 : [1-9][0-9]*
+
+S21.G00.16
+
+Changements destinataire Adhésion Prévoyance  S21.G00.16
+  Ce bloc se limite à signaler une correction apportée à l'identification de l'organisme Prévoyance destinataire, en cas
+  d'erreur sur la ou les déclarations précédentes.
+
+Date de la modification  S21.G00.16.001
+Ancien Code organisme de Prévoyance  S21.G00.16.002
+Ancien Code délégataire de gestion  S21.G00.16.003
+
+Date de la modification  S21.G00.16.001
+ChangementsDestinataireAdhesionPrevoyance.DateModification
+  La date de modification correspond à la date de survenance du changement de caractéristique de l'Adhésion
+  Prévoyance.
+  SIG-11 : Se reporter au paragraphe 4.4.12 de l’introduction traitant de la datation dans une DSN mensuelle
+
+  D
+  a  CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-
+  t
+  [8,8]
+  9]{2}
+  e
+
+  153 / 370

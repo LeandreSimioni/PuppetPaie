@@ -1,0 +1,790 @@
+24/09/2026;code;libellé;trigramme;date de début de validité;date de fin de validité
+IDCC;0016;Convention collective nationale des transports routiers et activités auxiliaires du transport;;21/12/1950;
+IDCC;0018;Convention collective nationale de l'industrie textile;;01/02/1951;
+IDCC;0029;Convention collective nationale des établissements privés d'hospitalisation, de soins, de cure et de garde à but non lucratif (FEHAP, convention de 1951);;31/10/1951;
+IDCC;0043;Convention collective nationale de l'Import-export et du Commerce international;;01/01/1953;
+IDCC;0044;Convention collective nationale des industries chimiques et connexes;;30/12/1952;
+IDCC;0045;Convention collective nationale du caoutchouc;;06/03/1953;
+IDCC;0054;Convention collective régionale des ouvriers, employés, techniciens et agents de maîtrise des industries métallurgiques, mécaniques et connexes de la région parisienne;;16/07/1954;31/12/2023
+IDCC;0086;Convention collective nationale des entreprises de publicité et assimilées;;01/04/1955;
+IDCC;0087;Convention collective nationale des ouvriers des industries de carrières et de matériaux;;01/05/1955;17/02/2025
+IDCC;0112;Convention collective nationale de l'industrie laitière;;01/01/1977;
+IDCC;0135;Convention collective nationale des employés techniciens et agents de maîtrise des industries de carrières et de matériaux;;01/07/1955;17/02/2025
+IDCC;0158;Convention collective nationale du travail mécanique du bois, des scieries, du négoce et de l'importation des bois;;28/11/1955;
+IDCC;0172;Convention collective interrégionale de l'industrie du bois de pin maritime en forêt de Gascogne (Charente, Aquitaine) (annexée à la convention collective nationale du travail mécanique du bois, des scieries, du négoce et de l'importation des bois 0158);;29/03/1956;31/01/2024
+IDCC;0176;Convention collective nationale de l'industrie pharmaceutique;;08/04/1956;
+IDCC;0184;Convention collective nationale de l'imprimerie de labeur et des industries graphiques;;01/06/1956;
+IDCC;0200;Convention collective nationale des exploitations frigorifiques;;01/07/1956;
+IDCC;0207;Convention collective nationale de l'industrie des cuirs et peaux (annexée à la convention collective nationale de travail des industries de la maroquinerie, articles de voyage, chasse sellerie, gainerie, bracelets en cuir 2528);;06/10/1956;31/01/2024
+IDCC;0211;Convention collective nationale des cadres des industries de carrières et matériaux (UNICEM);;06/12/1956;17/02/2025
+IDCC;0214;Convention collective régionale des ouvriers des entreprises de presse de la région parisienne;;31/12/1956;
+IDCC;0218;Convention collective nationale des organismes de sécurité sociale;;01/04/1957;
+IDCC;0240;Convention collective nationale du personnel des greffes des tribunaux de commerce;;14/11/1957;12/10/2023
+IDCC;0247;Convention collective nationale des industries de l'habillement;;17/02/1958;
+IDCC;0275;Convention collective nationale du personnel au sol des entreprises de transport aérien;;01/06/1959;
+IDCC;0292;Convention collective nationale de la plasturgie (transformation des matières plastiques);;01/07/1960;
+IDCC;0303;Convention collective nationale de la couture parisienne et des autres métiers de la mode;;10/07/1961;
+IDCC;0306;Convention collective régionale des cadres techniques de la presse quotidienne parisienne;;27/11/1961;
+IDCC;0363;Convention collective nationale du personnel ingénieurs et cadres de l'industrie de la fabrication des ciments;;05/07/1963;01/10/2021
+IDCC;0379;Convention collective du travail des commerces de la Martinique;;03/04/1964;
+IDCC;0394;Convention collective des employés de la presse quotidienne Parisienne;;17/02/1965;
+IDCC;0405;Convention collective nationale des établissements médico-sociaux de l'union intersyndicale des secteurs sanitaires et sociaux (UNISSS, FFESCPE, convention de 1965, enfants, adolescents);;01/01/1965;
+IDCC;0412;Convention collective nationale de travail des guides accompagnateurs et accompagnateurs au service des agences de voyages et de tourisme (annexée à la convention collective nationale du personnel des agences de voyages et de tourisme 1710);;01/01/1966;12/05/2022
+IDCC;0413;Convention collective nationale de travail des établissements et services pour personnes inadaptées et handicapées (convention de 1966, SNAPEI);;15/03/1966;
+IDCC;0418;Convention collective nationale de la chemiserie sur mesure (annexée à la convention collective nationale de la couture parisienne 0303);;15/06/1966;27/11/2023
+IDCC;0438;Convention collective nationale de travail des échelons intermédiaires des services extérieurs de production des sociétés d'assurances;;01/01/1968;20/12/2023
+IDCC;0440;Convention collective départementale des sucreries et sucreries-distilleries de la Réunion;;23/12/1982;
+IDCC;0454;Convention collective nationale des remontées mécaniques et domaines skiables;;15/05/1968;
+IDCC;0468;Convention collective nationale du commerce succursaliste de la chaussure;;01/07/1968;
+IDCC;0478;Convention collective nationale des sociétés financières;;23/11/1968;
+IDCC;0489;Convention collective du personnel des industries du cartonnage;;01/01/1969;
+IDCC;0493;Convention collective nationale des vins, cidres, jus de fruits, sirops, spiritueux et liqueurs de France;;01/01/1969;
+IDCC;0500;Convention collective nationale des commerces de gros de l'habillement, de la mercerie, de la chaussure et du jouet;;01/01/1969;
+IDCC;0509;Convention collective des cadres administratifs de la presse quotidienne Parisienne;;01/05/1969;
+IDCC;0538;Convention collective nationale du personnel des entreprises de manutention ferroviaire et travaux connexes;;01/01/1970;
+IDCC;0567;Convention collective nationale de la bijouterie, joaillerie, orfèvrerie et des activités qui s'y rattachent;;05/06/1970;01/01/2024
+IDCC;0573;Convention collective nationale des commerces de gros;;23/06/1970;
+IDCC;0598;Convention collective nationale de travail des ouvriers de la presse quotidienne régionale;;01/01/1971;01/01/2022
+IDCC;0614;Convention collective nationale des industries de la sérigraphie et des procédés d'impression numérique connexes (annexée à la convention collective nationale de l'imprimerie de labeur et des industries graphiques 0184);;01/12/1970;30/01/2024
+IDCC;0625;Convention collective nationale des cadres et agents de maîtrise des services généraux et administratifs des théâtres cinématographiques;;01/07/1971;10/05/2022
+IDCC;0627;Convention collective départementale des employés, techniciens et agents de maîtrise du bâtiment et des travaux publics de La Réunion;;05/12/1972;
+IDCC;0637;Convention collective des industries et du commerce de la récupération;;06/12/1971;
+IDCC;0650;Convention collective nationale des ingénieurs et cadres de la métallurgie;;13/03/1972;31/12/2023
+IDCC;0653;Convention collective nationale des salariés commerciaux des sociétés d'assurances;;01/04/1972;
+IDCC;0669;Convention collective nationale des industries de fabrication mécanique du verre;;01/07/1972;
+IDCC;0673;Convention collective nationale de la fourrure (annexée à la convention collective nationale de la couture parisienne 0303);;29/06/1972;07/08/2023
+IDCC;0675;Convention collective nationale des maisons à succursales de vente au détail d'habillement;;01/07/1972;
+IDCC;0693;Convention collective nationale de travail des employés de la presse quotidienne départementale;;01/11/1972;01/01/2022
+IDCC;0698;Convention collective nationale de travail des employés de la presse quotidienne régionale;;01/01/1973;01/01/2022
+IDCC;0700;Convention collective nationale des ingénieurs et cadres de la production des papiers, cartons et celluloses;;30/12/1972;23/07/2022
+IDCC;0706;Convention collective nationale du personnel de la reprographie (annexée à la convention collective nationale des commerces de détail de papeterie, fournitures de bureau, de bureautique et informatique et de librairie 1539);;01/01/1973;19/04/2024
+IDCC;0707;Convention collective nationale des ingénieurs et cadres de la transformation des papiers cartons et de la pellicule cellulosique;;21/12/1972;23/07/2022
+IDCC;0714;Convention collective départementale des industries du travail des métaux de la Moselle (métallurgie);;01/02/1973;31/12/2023
+IDCC;0715;Convention collective nationale des instruments à écrire et des industries connexes (annexée à la convention collective du personnel des industries du cartonnage 0489);;01/03/1973;31/01/2024
+IDCC;0716;Convention collective nationale des employés et ouvriers de la distribution cinématographique;;01/03/1973;
+IDCC;0731;Convention collective nationale des commerces de quincaillerie, fournitures industrielles, fers, métaux et équipement de la maison, cadres;;01/07/1971;01/08/2023
+IDCC;0733;Convention collective nationale des détaillants en chaussure;;01/07/1973;
+IDCC;0749;Convention collective départementale des ouvriers du bâtiment et des travaux publics de la Martinique;;28/12/1973;
+IDCC;0759;Convention collective nationale des pompes funèbres;;01/03/1974;
+IDCC;0771;Convention collective départementale des ingénieurs assimilés et cadres du bâtiment et des travaux publics de La Réunion;;09/05/1974;
+IDCC;0780;Convention collective régionale des tailleurs sur mesure de la région parisienne (annexée à la convention collective nationale de la couture parisienne 0303);;30/09/1974;27/11/2023
+IDCC;0781;Convention collective nationale des cadres administratifs de la presse quotidienne départementale;;01/01/1974;01/01/2022
+IDCC;0783;Convention collective des centres d'hébergement et de réadaptation sociale et dans les services d'accueil, d'orientation et d'insertion pour adultes;;15/10/1974;
+IDCC;0787;Convention collective nationale des cabinets d'experts-comptables et de commissaires aux comptes;;01/01/1975;
+IDCC;0804;Accord national interprofessionnel des voyageurs, représentants, placiers (VRP);;01/11/1975;
+IDCC;0822;Convention collective départementale applicable aux mensuels de la métallurgie de la Savoie;;29/12/1975;31/12/2023
+IDCC;0827;Convention collective départementale des industries métallurgiques, mécaniques et connexes des Ardennes;;08/01/1976;31/12/2023
+IDCC;0828;Convention collective départementale des industries métallurgiques, mécaniques, connexes et similaires de la Manche;;09/01/1976;31/12/2023
+IDCC;0829;Convention collective départementale des industries métallurgiques et des industries connexes du Vaucluse;;20/01/1976;31/12/2023
+IDCC;0832;Convention collective nationale du personnel ouvrier de l'industrie de la fabrication des ciments;;02/02/1976;01/10/2021
+IDCC;0833;Convention collective nationale du personnel employés, techniciens, dessinateurs et agents de maîtrise de l'industrie de la fabrication des ciments;;02/02/1976;01/10/2021
+IDCC;0836;Convention collective départementale des industries métallurgiques, mécaniques, électriques, connexes et similaires de la Haute-Savoie;;16/02/1976;31/12/2023
+IDCC;0843;Convention collective nationale de la boulangerie-pâtisserie entreprises artisanales;;01/04/1976;
+IDCC;0860;Convention collective départementale de la métallurgie et des industries connexes du Finistère;;09/04/1976;31/12/2023
+IDCC;0863;Convention collective régionale des industries métallurgiques et connexes d'Ille-et-Vilaine et du Morbihan;;12/04/1976;31/12/2023
+IDCC;0878;Convention collective départementale des mensuels des industries métallurgiques du Rhône;;21/05/1976;31/12/2023
+IDCC;0887;Convention collective départementale des industries métallurgiques, mécaniques, électriques et connexes de l'Eure;;01/07/1976;31/12/2023
+IDCC;0892;Convention collective nationale des cadres et agents de maîtrise de la distribution de films de l'industrie cinématographique;;01/06/1976;
+IDCC;0897;Convention collective nationale des services de santé au travail interentreprises;;01/11/1976;
+IDCC;0898;Convention collective départementale des industries métallurgiques, mécaniques, électriques, connexes et similaires de l'Allier;;21/07/1976;31/12/2023
+IDCC;0899;Convention collective départementale des industries métallurgiques, mécaniques et connexes de la Marne;;26/07/1976;31/12/2023
+IDCC;0901;Convention collective départementale des ouvriers de la boulangerie de la Martinique;;06/09/1976;
+IDCC;0911;Convention collective départementale des industries métallurgiques, mécaniques, électriques, connexes et similaires de Seine-et-Marne;;30/11/1976;31/12/2023
+IDCC;0914;Convention collective départementale des mensuels des industries métallurgiques de l'Ain;;01/12/1976;31/12/2023
+IDCC;0915;Convention collective nationale de la branche des sociétés d'expertises et d'évaluations;;01/01/1977;
+IDCC;0919;Convention collective du personnel des garages de la Martinique;;17/12/1976;
+IDCC;0920;Convention collective départementale des industries métallurgiques électriques et connexes de la Vienne;;21/12/1976;31/12/2023
+IDCC;0923;Convention collective départementale de la métallurgie de la Charente-Maritime;;27/12/1976;31/12/2023
+IDCC;0930;Convention collective départementale de la métallurgie et des industries connexes de la Sarthe;;08/03/1977;31/12/2023
+IDCC;0934;Convention collective départementale des industries métallurgiques mécaniques connexes et similaires de l'Indre;;04/04/1977;31/12/2023
+IDCC;0937;Convention collective régionale des industries métallurgiques mécaniques et connexes de la Haute-Vienne et de la Creuse;;01/06/1977;31/12/2023
+IDCC;0943;Convention collective départementale des industries métallurgiques mécaniques et connexes du Calvados;;30/06/1977;31/12/2023
+IDCC;0948;Convention collective départementale des industries métallurgiques, mécaniques et connexes de l'Orne;;06/10/1977;31/12/2023
+IDCC;0953;Convention collective nationale de la charcuterie de détail;;01/01/1978;
+IDCC;0959;Convention collective nationale des laboratoires de biologie médicale extra-hospitaliers;;15/02/1978;
+IDCC;0965;Convention collective départementale des industries métallurgiques et connexes du département du Var;;17/03/1978;31/12/2023
+IDCC;0979;Convention collective locale des industries métallurgiques de l'arrondissement du Havre (Seine-Maritime);;26/06/1978;31/12/2023
+IDCC;0984;Convention collective départementale des industries métallurgiques, mécaniques et connexes d'Eure-et-Loir;;27/07/1978;31/12/2023
+IDCC;0992;Convention collective nationale de la boucherie, boucherie-charcuterie et boucherie hippophagique, triperie, commerce de volailles et gibiers;;12/12/1978;31/10/2025
+IDCC;0993;Convention collective nationale des prothésistes dentaires et des personnels des laboratoires de prothèse dentaire;;28/02/1979;
+IDCC;0998;Convention collective nationale des ouvriers, employés, techniciens et agents de maîtrise de l'exploitation d'équipements thermiques et de génie climatique;;01/03/1979;
+IDCC;1000;Convention collective nationale du personnel des cabinets d'avocats;;01/03/1979;30/09/2025
+IDCC;1001;Convention collective nationale des médecins spécialistes qualifiés au regard du conseil de l'ordre travaillant dans des établissements et services pour personnes inadaptées et handicapées (annexée à la convention collective nationale de travail des établissements et services pour personnes inadaptées et handicapées 0413);;01/03/1979;27/11/2023
+IDCC;1007;Convention collective locale d'arrondissement des industries métallurgiques, mécaniques, connexes et similaires de la région de Thiers (Puy-de-Dôme);;11/04/1979;31/12/2023
+IDCC;1016;Convention collective nationale des cadres et agents de maîtrise de l'édition de musique (annexée à la convention collective nationale de l'édition 2121);;14/06/1979;19/04/2024
+IDCC;1018;Convention collective nationale des cadres techniques de la presse quotidienne départementale française;;25/06/1979;01/01/2022
+IDCC;1031;Convention collective nationale de la fédération nationale des associations familiales rurales (FNAFR);;21/09/1979;
+IDCC;1043;Convention collective nationale des gardiens, concierges et employés d'immeubles;;11/12/1979;
+IDCC;1044;Convention collective nationale de l'horlogerie (annexée à la convention collective nationale de la bijouterie, joaillerie, orfèvrerie et des activités qui s'y rattachent 0567);;17/12/1979;27/11/2023
+IDCC;1049;Convention collective départementale du bâtiment, des travaux publics et de toutes professions concourant à l'acte de bâtir ou d'aménager de Saint Pierre-et-Miquelon;;01/01/1980;
+IDCC;1050;Convention collective départementale du commerce et des services commerciaux de Saint-Pierre-et-Miquelon;;01/01/1980;
+IDCC;1057;Convention collective des consignataires de navire et manutentionnaires de la Martinique;;25/01/1980;
+IDCC;1059;Convention collective régionale des industries métallurgiques, électriques, électroniques et connexes de Midi-Pyrénées (Ariège, Aveyron, Gers, Haute-Garonne, Tarn, Tarn-et-Garonne, Lot, Aude convention du 1er avril 1980 );;01/04/1980;31/12/2023
+IDCC;1060;Convention collective départementale de la métallurgie de la Martinique;;07/06/1980;
+IDCC;1069;Convention collective départementale de la répartition et des dépôts pharmaceutiques de la Martinique;;14/08/1980;
+IDCC;1072;Convention collective du travail réglementant le travail de manutention dans le port de Saint-Pierre;;20/06/1980;
+IDCC;1077;Convention collective nationale entreprises du négoce et de l'industrie des produits du sol, engrais et produits connexes;;01/07/1980;
+IDCC;1083;Convention collective nationale de travail des ouvriers de la presse quotidienne départementale;;31/10/1980;01/01/2022
+IDCC;1090;Convention collective nationale des services de l'automobile (commerce et réparation de l'automobile, du cycle et du motocycle, activités connexes, contrôle technique automobile, formation des conducteurs auto-écoles CNPA );;01/04/1981;
+IDCC;1113;Convention collective locale des industries de la pipe et du fume-cigarette de la région de Saint Claude (Jura);;01/01/1990;
+IDCC;1140;Convention collective départementale des hôtels cafés restaurants de Saint-Pierre-et-Miquelon(HCR);;10/07/1981;
+IDCC;1147;Convention collective du personnel des cabinets médicaux;;15/01/1982;
+IDCC;1159;Convention collective départementale de la métallurgie de la Nièvre;;10/12/1981;31/12/2023
+IDCC;1164;Convention collective locale des industries métallurgiques et annexes de la région de Vimeu (Somme);;01/02/1981;31/12/2023
+IDCC;1170;Convention collective nationale de l'industrie des tuiles et briques (CCNTB);;01/03/1982;
+IDCC;1182;Convention collective nationale des personnels des ports de plaisance;;01/04/1982;
+IDCC;1194;Convention collective nationale des employés de l'édition de musique (annexée à la convention collective nationale de l'édition 2121);;01/06/1982;19/04/2024
+IDCC;1203;Convention collective départementale du commerce et des services de la Guadeloupe;;25/06/1982;
+IDCC;1225;Convention collective départementale du commerce de la Réunion;;23/12/1982;
+IDCC;1232;Convention collective départementale des hôtels de la Guadeloupe;;27/04/1983;
+IDCC;1237;Convention collective nationale des centres de gestion agréés;;17/01/1983;31/01/2024
+IDCC;1247;Convention collective auto moto de La Réunion;;17/03/1983;
+IDCC;1256;Convention collective nationale des cadres, ingénieurs et assimilés des entreprises de gestion d'équipements thermiques et de climatisation;;12/05/1983;
+IDCC;1257;Convention collective départementale des employés, agents de maîtrise et cadres de la pharmacie d'officine de la Réunion;;07/05/1983;
+IDCC;1261;Convention collective nationale des acteurs du lien social et familial : centres sociaux et socioculturels, associations d'accueil de jeunes enfants, associations de développement social local (SNAECSO);;04/06/1983;
+IDCC;1266;Convention collective nationale du personnel des entreprises de restauration de collectivités;;02/02/1984;
+IDCC;1267;Convention collective nationale de la pâtisserie;;30/06/1983;
+IDCC;1274;Convention collective départementale des industries métallurgiques de la Corrèze;;17/05/1984;31/12/2023
+IDCC;1278;Convention collective nationale des personnels PACT et ARIM;;03/12/1983;23/08/2024
+IDCC;1281;Convention collective nationale des employés de la presse hebdomadaire régionale;;01/01/1984;01/01/2022
+IDCC;1285;Convention collective nationale pour les entreprises artistiques et culturelles (SYNDEAC);;01/01/1984;
+IDCC;1286;Convention collective nationale des détaillants, détaillants-fabricants et artisans de la confiserie, chocolaterie, biscuiterie;;01/01/1984;
+IDCC;1307;Convention collective nationale de l'exploitation cinématographique;;26/07/1984;
+IDCC;1311;Convention collective nationale de la restauration ferroviaire;;01/10/1984;
+IDCC;1315;Convention collective régionale des industries métallurgiques, mécaniques et connexes de la Haute-Marne et de la Meuse;;30/10/1984;31/12/2023
+IDCC;1316;Convention collective nationale des organismes de tourisme social et familial;;19/02/1985;
+IDCC;1341;Convention collective départementale des industries agroalimentaires de la Réunion;;01/01/1985;
+IDCC;1351;Convention collective nationale des entreprises de prévention et de sécurité;;01/08/1985;
+IDCC;1353;Convention collective départementale des industries métallurgiques et connexes de la Dordogne;;01/03/1985;31/12/2023
+IDCC;1365;Convention collective départementale de travail des industries de transformation des métaux de Meurthe-et-Moselle (métallurgie);;04/02/1976;31/12/2023
+IDCC;1369;Convention collective départementale des industries métallurgiques, électriques, électroniques et connexes de Loire-Atlantique;;01/05/1985;31/12/2023
+IDCC;1383;Convention collective nationale des commerces de quincaillerie, fournitures industrielles, fers, métaux et équipement de la maison, employés et personnels de maîtrise;;01/10/1985;01/08/2023
+IDCC;1387;Convention collective locale des mensuels des industries métallurgiques des Flandres;;06/08/1985;31/12/2023
+IDCC;1388;Convention collective nationale de l'industrie du pétrole;;03/09/1985;
+IDCC;1391;Convention collective régionale concernant le personnel de l'industrie, de la manutention et du nettoyage sur les aéroports ouverts à la circulation publique de la région parisienne (annexée à la convention collective nationale du personnel au sol des entreprises de transport aérien 0275);;01/10/1973;30/01/2024
+IDCC;1396;Convention collective nationale pour les industries de produits alimentaires élaborés;;01/01/1952;
+IDCC;1404;Convention collective nationale métropolitaine des entreprises de la maintenance, distribution et location de matériels agricoles, de travaux publics, de bâtiment, de manutention, de motoculture de plaisance et activités connexes, dite SDLM;;01/10/1969;
+IDCC;1405;Convention collective nationale des entreprises d'expédition et d'exportation de fruits et légumes;;09/05/1986;
+IDCC;1408;Convention collective nationale des entreprises du négoce et de distribution de combustibles solides, liquides, gazeux et produits pétroliers;;20/12/1985;
+IDCC;1411;Convention collective nationale de la fabrication de l'ameublement;;01/03/1986;
+IDCC;1412;Convention collective nationale des entreprises d'installation sans fabrication, y compris entretien, réparation, dépannage de matériel aéraulique, thermique, frigorifique et connexes;;01/03/1986;
+IDCC;1413;Accord national professionnel relatif aux salariés permanents des entreprises de travail temporaire;;01/07/1986;
+IDCC;1424;Convention collective nationale des réseaux de transports publics urbains de voyageurs;;01/07/1986;
+IDCC;1431;Convention collective nationale de l'optique-lunetterie de détail;;01/07/1986;
+IDCC;1468;Convention collective de branche du Crédit Mutuel;;10/07/1987;
+IDCC;1472;Convention collective départementale des industries métallurgiques du Pas-de-Calais;;16/10/1987;31/12/2023
+IDCC;1480;Convention collective nationale de travail des journalistes;;05/12/1987;
+IDCC;1483;Convention collective nationale du commerce de détail de l'habillement et des articles textiles;;01/11/1987;
+IDCC;1486;Convention collective nationale des bureaux d'études techniques, des cabinets d'ingénieurs-conseils et des sociétés de conseils;;01/01/1988;
+IDCC;1487;Convention collective nationale du commerce de détail de l'horlogerie-bijouterie;;01/01/1988;
+IDCC;1492;Convention collective nationale des ouvriers, employés, dessinateurs, techniciens et agents de maîtrise de la production des papiers, cartons et celluloses;;01/03/1988;23/07/2022
+IDCC;1495;Convention collective nationale pour les ouvriers, employés, dessinateurs, techniciens et agents de maîtrise de la transformation des papiers, cartons et celluloses;;01/03/1988;23/07/2022
+IDCC;1499;Convention collective nationale de la miroiterie, de la transformation et du négoce du verre;;01/07/1988;
+IDCC;1501;Convention collective nationale de la restauration rapide (restauration livrée);;14/12/1988;
+IDCC;1504;Convention collective nationale de la poissonnerie (commerce de détail, de demi-gros et de gros de la poissonnerie);;30/04/1988;31/10/2025
+IDCC;1505;Convention collective nationale du commerce de détail alimentaire non spécialisé;;20/06/1988;
+IDCC;1512;Convention collective nationale de la promotion immobilière;;01/07/1988;
+IDCC;1513;Convention collective nationale des activités de production des eaux embouteillées, des boissons rafraîchissantes sans alcool et de bière;;24/05/1988;
+IDCC;1516;Convention collective nationale des organismes de formation;;01/06/1989;
+IDCC;1517;Convention collective nationale des commerces de détail non alimentaires : antiquités, brocante, galeries d'art (oeuvres d'art), arts de la table, coutellerie, droguerie, équipement du foyer, bazars, commerces ménagers, modélisme, jeux, jouets, puérinatalité, maroquinerie, instruments de musique, partitions et accessoires, presse et jeux de hasard ou pronostics, commerces spécialisés en produits de la vape;;07/07/1988;
+IDCC;1518;Convention collective nationale des métiers de l'éducation, de la culture, des loisirs et de l'animation agissant pour l'utilité sociale et environnementale, au service des territoires (ÉCLAT);;10/01/1989;
+IDCC;1525;Convention collective locale de la métallurgie de la région dunkerquoise;;13/09/1988;31/12/2023
+IDCC;1527;Convention collective nationale de l'immobilier;;04/10/1988;
+IDCC;1534;Convention collective nationale des entreprises de l'industrie et des commerces en gros des viandes;;22/02/1989;
+IDCC;1536;Convention collective nationale des distributeurs conseils hors domicile (entrepositaires-grossistes, bières, eaux minérales et de table, boissons gazeuses, non gazeuses, sirops, jus de fruits, CHD);;09/03/1989;
+IDCC;1539;Convention collective nationale des entreprises du bureau et du numérique Commerces et services;;20/12/1988;
+IDCC;1543;Convention collective nationale de la boyauderie (annexée à la convention collective nationale de l'industrie de la salaison, charcuterie en gros et conserves de viandes 1586);;07/06/1989;30/01/2024
+IDCC;1555;Convention collective nationale de la fabrication et du commerce des produits à usage pharmaceutique, parapharmaceutique et vétérinaire;;01/06/1989;
+IDCC;1557;Convention collective nationale du commerce des articles de sports et d'équipements de loisirs (fusion entre la 1557 et la 1618);;01/11/1989;
+IDCC;1558;Convention collective nationale relative aux conditions de travail du personnel des industries céramiques de France;;06/07/1989;
+IDCC;1560;Convention collective départementale des industries métallurgiques, électriques et connexes des Alpes-Maritimes;;09/12/1989;31/12/2023
+IDCC;1561;Convention collective nationale de la cordonnerie multiservice (annexée à la convention collective nationale de travail des industries de la maroquinerie, articles de voyage, chasse sellerie, gainerie, bracelets en cuir 2528);;01/09/1989;30/01/2024
+IDCC;1563;Convention collective nationale des cadres de la presse hebdomadaire régionale d'information;;15/10/1989;01/01/2022
+IDCC;1564;Convention collective départementale des industries de la métallurgie de Saône-et-Loire;;23/10/1989;31/12/2023
+IDCC;1565;Convention collective des services de soins infirmiers à domicile pour personnes âgées de la Guadeloupe;;19/12/1989;
+IDCC;1572;Convention collective départementale de la métallurgie de la Charente;;12/12/1989;31/12/2023
+IDCC;1576;Convention collective départementale de travail des industries métallurgiques, mécaniques, électriques, électroniques, connexes et similaires du département du Cher;;15/01/1990;31/12/2023
+IDCC;1577;Convention collective régionale des industries métallurgiques, électroniques et connexes de l'Hérault, de l'Aude et des Pyrénées-Orientales;;01/05/1990;31/12/2023
+IDCC;1578;Convention collective départementale de la métallurgie de la Loire et de l'arrondissement d'Yssingeaux;;31/03/1990;31/12/2023
+IDCC;1580;Convention collective nationale de l'industrie de la chaussure et des articles chaussants;;07/03/1990;
+IDCC;1586;Convention collective nationale de l'industrie de la salaison, charcuterie en gros et conserves de viandes;;01/07/1958;
+IDCC;1588;Convention collective nationale du personnel des sociétés coopératives d'HLM (annexée à la convention collective nationale du personnel des Offices Publics de l'Habitat 3220);;16/05/1990;27/11/2023
+IDCC;1589;Convention collective nationale des mareyeurs-expéditeurs;;01/10/1990;
+IDCC;1592;Convention collective locale de la métallurgie du Valenciennois et du Cambrésis;;22/10/1990;31/12/2023
+IDCC;1596;Convention collective nationale concernant les ouvriers employés par les entreprises du bâtiment visées par le décret du 1er mars 1962 -c'est-à-dire occupant jusqu'à 10 salariés-;;01/03/1991;
+IDCC;1597;Convention collective nationale concernant les ouvriers employés par les entreprises du bâtiment non visées par le décret 1er mars 1962 -c'est-à-dire occupant plus de 10 salariés-;;01/03/1991;
+IDCC;1604;Convention collective locale des industries métallurgiques des arrondissements de Rouen et de Dieppe;;01/07/1991;31/12/2023
+IDCC;1605;Convention collective nationale des entreprises de désinfection, désinsectisation, dératisation;;01/09/1991;
+IDCC;1606;Convention collective nationale du bricolage;;30/09/1991;
+IDCC;1607;Convention collective nationale des industries des jeux, jouets, articles de fêtes et ornements de Noël, articles de puériculture et voitures d'enfants modélisme et industries connexes;;01/02/1991;
+IDCC;1611;Convention collective nationale des entreprises de logistique de communication écrite directe;;01/01/1992;
+IDCC;1612;Convention collective nationale du personnel navigant des essais et réceptions;;01/01/1991;
+IDCC;1618;Convention collective nationale du camping (fusion entre la 1557 et la 1618);;23/01/1992;23/01/2023
+IDCC;1619;Convention collective nationale des cabinets dentaires;;04/02/1992;
+IDCC;1621;Convention collective nationale de la répartition pharmaceutique;;30/07/1992;
+IDCC;1626;Convention collective départementale des industries métallurgiques, mécaniques, électriques, électro-céramiques et connexes des Hautes-Pyrénées;;18/02/1992;31/12/2023
+IDCC;1627;Convention collective départementale du travail des industries de la métallurgie et des constructions mécaniques de Clermont-Ferrand et du Puy-de-Dôme;;17/01/1992;31/12/2023
+IDCC;1628;Convention collective départementale de la métallurgie des Deux-Sèvres;;01/07/1991;31/12/2023
+IDCC;1631;Convention collective nationale de l'hôtellerie de plein air;;13/08/1991;
+IDCC;1634;Convention collective départementale de la métallurgie des Côtes-d'Armor;;05/04/1991;31/12/2023
+IDCC;1635;Convention collective régionale des industries métallurgiques, mécaniques et connexes de la Gironde et des Landes;;13/03/1991;31/12/2023
+IDCC;1659;Convention collective nationale du rouissage teillage du lin;;06/03/1992;
+IDCC;1671;Convention collective nationale des maisons d'étudiants;;01/09/1993;
+IDCC;1672;Convention collective nationale des sociétés d'assurances;;20/06/1992;
+IDCC;1679;Convention collective nationale de l'inspection d'assurance;;15/09/1992;
+IDCC;1686;Convention collective nationale des commerces et services de l'audiovisuel, de l'électronique et de l'équipement ménager;;01/01/1993;
+IDCC;1700;Convention collective départementale des sucreries, sucreries-distilleries et distilleries de la Guadeloupe;;20/01/1993;
+IDCC;1702;Convention collective nationale des ouvriers de travaux publics;;01/06/1993;
+IDCC;1710;Convention collective nationale du personnel des agences de voyages et de tourisme;;23/03/1993;12/05/2022
+IDCC;1732;Convention collective départementale des industries métallurgiques, mécaniques, électriques et connexes de l'Yonne;;23/03/1993;31/12/2023
+IDCC;1734;Convention collective des artistes-interprètes engagés pour des émissions de télévision (annexée à la convention collective de la production audiovisuelle 2642);;01/01/1993;19/04/2024
+IDCC;1747;Convention collective des activités industrielles de boulangerie et de pâtisserie;;01/11/1993;30/11/2025
+IDCC;1760;Convention collective nationale des jardineries et graineteries;;01/08/1994;
+IDCC;1790;Convention collective nationale des espaces de loisirs, d'attractions et culturels;;01/09/1994;
+IDCC;1794;Convention collective nationale du personnel des institutions de retraites complémentaires et de prévoyance;;25/03/1994;
+IDCC;1800;Convention collective nationale du personnel de la céramique d'art (annexée à la convention collective nationale relative aux conditions de travail du personnel des industries céramiques de France 1558);;11/05/1994;27/11/2023
+IDCC;1801;Convention collective nationale des sociétés d'assistance;;11/05/1994;
+IDCC;1813;Convention collective locale de travail des industries de la transformation des métaux de la région de Maubeuge;;20/07/1994;31/12/2023
+IDCC;1821;Convention collective nationale des professions regroupées du cristal, du verre et du vitrail;;03/11/1994;
+IDCC;1843;Convention collective régionale des ingénieurs, assimilés et cadres du bâtiment de la région parisienne;;10/07/1993;
+IDCC;1850;Convention collective de l'avocat salarié;;18/03/1995;16/10/2024
+IDCC;1867;Convention collective régionale de la métallurgie de la Drôme-Ardèche;;08/04/1995;31/12/2023
+IDCC;1875;Convention collective nationale des cabinets et cliniques vétérinaires : personnel salarié;;24/01/1996;
+IDCC;1880;Convention collective nationale du négoce de l'ameublement;;26/07/2002;
+IDCC;1885;Convention collective départementale des industries métallurgiques, mécaniques, électriques et connexes du département de la Côte-d'Or;;01/11/1995;31/12/2023
+IDCC;1895;Convention collective nationale de l'encadrement de la presse quotidienne régionale;;12/12/1998;01/01/2022
+IDCC;1902;Convention collective départementale des industries métallurgiques, mécaniques, électriques, électroniques connexes et similaires du Maine-et-Loire;;01/03/1996;31/12/2023
+IDCC;1909;Convention collective nationale des organismes de tourisme;;05/02/1996;
+IDCC;1912;Convention collective départementale des industries de la métallurgie du Haut-Rhin;;01/01/1996;31/12/2023
+IDCC;1921;Convention collective nationale des huissiers de justice;;08/06/1996;30/09/2023
+IDCC;1922;Convention collective nationale de la radiodiffusion;;11/04/1996;
+IDCC;1923;Convention collective de la manutention portuaire de Guadeloupe;;01/10/1995;
+IDCC;1930;Convention collective nationale des métiers de la transformation des grains;;16/06/1996;
+IDCC;1938;Convention collective nationale des industries de la transformation des volailles (abattoirs, ateliers de découpe et centres de conditionnement de volailles, commerce de gros de volailles);;13/09/1996;
+IDCC;1942;Convention collective nationale des textiles artificiels et synthétiques et produits assimilés (annexée à la convention collective nationale de l'industrie textile 0018);;16/05/1996;07/08/2023
+IDCC;1944;Convention collective nationale du personnel navigant technique des exploitants d'hélicoptères;;22/11/1996;
+IDCC;1947;Convention collective nationale du négoce de bois d'oeuvre et produits dérivés;;01/01/1997;30/01/2025
+IDCC;1951;Convention collective nationale des cabinets ou entreprises d'expertises en automobile;;25/04/1998;
+IDCC;1960;Convention collective départementale des industries métallurgiques, mécaniques et connexes du Lot-et-Garonne;;23/01/1996;31/12/2023
+IDCC;1961;Convention collective pour les stations-service en Guadeloupe;;01/01/1997;
+IDCC;1966;Convention collective départementale des industries métallurgiques du Loiret;;19/02/1997;31/12/2023
+IDCC;1967;Convention collective départementale de l'industrie des métaux du Bas-Rhin;;08/06/1996;31/12/2023
+IDCC;1978;Convention collective nationale des fleuristes, de la vente et des services des animaux familiers;;21/10/1997;
+IDCC;1979;Convention collective nationale des hôtels, cafés, restaurants (HCR);;07/12/1997;
+IDCC;1980;Convention collective des commissionnaires en douane et agents auxiliaires de la Martinique;;01/11/1995;
+IDCC;1982;Convention collective nationale du négoce et prestations de services dans les domaines médico-techniques;;01/04/1998;
+IDCC;1987;Convention collective nationale des pâtes alimentaires sèches et du couscous non préparé;;03/07/1997;
+IDCC;1996;Convention collective nationale de la pharmacie d'officine;;13/08/1998;
+IDCC;2002;Convention collective nationale de la blanchisserie, laverie, location de linge, nettoyage à sec, pressing et teinturerie;;25/02/1998;
+IDCC;2003;Convention collective départementale des industries métallurgiques, électriques, électroniques et connexes du département des Vosges;;02/05/1998;31/12/2023
+IDCC;2021;Convention collective nationale du golf;;02/04/1999;
+IDCC;2025;Convention collective régionale du travail des activités minières de Guyane;;23/07/1998;
+IDCC;2046;Convention collective nationale du personnel non médical des centres de lutte contre le cancer;;01/01/1999;
+IDCC;2060;Convention collective nationale des chaînes de cafétérias et assimilés;;30/12/1999;
+IDCC;2075;Convention collective nationale des centres immatriculés de conditionnement, de commercialisation et de transformation des oeufs et des industries en produits d'oeufs (fusion entre la 1747 et la 2075);;10/05/1999;15/04/2024
+IDCC;2089;Convention collective nationale de l'industrie des panneaux à base de bois;;01/07/1999;
+IDCC;2098;Convention collective nationale du personnel des prestataires de services dans le domaine du secteur tertiaire;;01/01/2000;
+IDCC;2104;Convention collective nationale du thermalisme (fusion entre la 2264 et la 2104);;01/01/2000;07/04/2024
+IDCC;2111;Convention collective nationale des salariés du particulier employeur;;11/03/2000;01/01/2022
+IDCC;2120;Convention collective nationale de la banque;;01/01/2000;
+IDCC;2121;Convention collective nationale de l'édition;;14/01/2000;
+IDCC;2126;Convention collective régionale de la métallurgie du Gard et de la Lozère;;01/01/2000;31/12/2023
+IDCC;2128;Convention collective nationale de la mutualité;;01/02/2000;
+IDCC;2147;Convention collective des entreprises des services d'eau et d'assainissement;;01/05/2000;
+IDCC;2148;Convention collective nationale des télécommunications;;01/11/2000;
+IDCC;2149;Convention collective nationale des activités du déchet;;18/07/2001;
+IDCC;2150;Convention collective nationale des personnels des sociétés anonymes et fondations d'HLM;;25/03/2000;
+IDCC;2156;Convention collective nationale des grands magasins et des magasins populaires;;06/07/2000;
+IDCC;2190;Convention collective nationale des missions locales et PAIO des maisons de l'emploi et PLIE;;01/03/2001;
+IDCC;2198;Convention collective nationale des entreprises de vente à distance;;06/02/2001;
+IDCC;2205;Convention collective nationale du notariat;;01/10/2001;
+IDCC;2216;Convention collective nationale du commerce de détail et de gros à prédominance alimentaire (entrepôts d'alimentation, supérettes, supermarchés, hypermarchés, grande distribution);;01/09/2002;
+IDCC;2219;Convention collective nationale des taxis;;13/09/2001;
+IDCC;2221;Convention collective régionale des mensuels des industries des métaux de l'Isère et des Hautes-Alpes;;01/10/2001;31/12/2023
+IDCC;2247;Convention collective des entreprises de courtage d'assurances et/ou de réassurances;;01/01/2002;
+IDCC;2250;Convention collective régionale de la boulangerie-pâtisserie de la Guyane;;01/01/2002;
+IDCC;2257;Convention collective nationale des casinos;;01/05/2003;
+IDCC;2264;Convention collective nationale de l'hospitalisation privée;;01/05/2002;
+IDCC;2266;Convention collective départementale des industries métallurgiques, mécaniques, électriques, connexes et similaires de la Mayenne;;20/02/1993;31/12/2023
+IDCC;2272;Convention collective nationale de l'assainissement et de la maintenance industrielle;;01/08/2002;
+IDCC;2294;Convention collective départementale des industries et métiers de la métallurgie de l'Aube;;06/07/2002;31/12/2023
+IDCC;2328;Convention collective des ouvriers du bâtiment et des travaux publics de la Guadeloupe et dépendances;;18/06/2002;
+IDCC;2329;Accord professionnel national de travail entre les avocats au Conseil d'Etat et à la Cour de Cassation et leur personnel salarié -non avocat-;;01/01/2003;12/10/2023
+IDCC;2332;Convention collective nationale des entreprises d'architecture;;16/01/2004;
+IDCC;2335;Convention collective nationale du personnel des agences générales d'assurances;;01/01/2004;
+IDCC;2336;Convention collective nationale de l'habitat et du logement accompagnés;;16/07/2003;
+IDCC;2344;Convention collective nationale de la sidérurgie;;01/01/2002;31/12/2023
+IDCC;2345;Convention collective régionale du transport sanitaire en Martinique;;06/02/2005;
+IDCC;2357;Accord professionnel national du 3 mars 1993 relatif aux cadres de direction des sociétés d'assurances;;01/01/1993;
+IDCC;2360;Convention collective régionale des services de l'automobile de la Guyane;;01/01/2004;
+IDCC;2372;Convention collective nationale des entreprises de la distribution directe;;14/02/2004;
+IDCC;2378;Accords professionnels nationaux concernant le personnel intérimaire des entreprises de travail temporaire;;25/03/2004;
+IDCC;2389;Convention collective des ouvriers du bâtiment et des travaux publics région de La Réunion;;01/01/2005;
+IDCC;2397;Convention collective des mannequins adultes et des mannequins enfants de moins de seize ans employés par les agences de mannequins;;06/07/2004;31/03/2025
+IDCC;2405;Convention collective départementale des établissements d'hospitalisation privée de la Guadeloupe;;01/04/2003;
+IDCC;2411;Convention collective nationale des chaînes thématiques;;01/08/2004;01/01/2022
+IDCC;2412;Convention collective nationale de la production de films d'animation;;24/09/2004;
+IDCC;2420;Convention collective nationale des cadres du bâtiment;;01/01/2005;
+IDCC;2480;Convention collective de la manutention portuaire du port de Fort-de-France;;01/08/2003;
+IDCC;2489;Convention collective départementale des industries métallurgiques et assimilées de la Vendée;;01/03/2005;31/12/2023
+IDCC;2494;Convention collective nationale de la coopération maritime;;01/01/2005;
+IDCC;2511;Convention collective nationale du sport;;21/11/2006;
+IDCC;2528;Convention collective nationale de travail des industries de la maroquinerie, articles de voyage, chasse sellerie, gainerie, bracelets en cuir;;09/09/2005;
+IDCC;2534;Convention collective de l'industrie sucrière et rhumière de la Martinique;;16/11/2005;
+IDCC;2535;Convention collective dans la culture de la canne à sucre;;01/09/1956;
+IDCC;2542;Convention collective départementale des industries métallurgiques, mécaniques et connexes de l'Aisne;;01/01/2006;31/12/2023
+IDCC;2543;Convention collective nationale des cabinets ou entreprises de géomètres experts, géomètres topographes photogrammètres, experts-fonciers;;01/01/2006;
+IDCC;2564;Convention collective nationale des vétérinaires praticiens salariés;;20/06/2006;29/03/2024
+IDCC;2579;Conventions collectives départementales applicables aux entreprises des industries et métiers de la métallurgie du Loir-et-Cher;;05/07/1991;31/12/2023
+IDCC;2583;Convention collective nationale de branche des sociétés concessionnaires ou exploitantes d'autoroutes ou d'ouvrages routiers;;01/07/2006;
+IDCC;2596;Convention collective nationale de la coiffure et des professions connexes;;18/04/2007;
+IDCC;2603;Convention collective nationale de travail des praticiens conseils du régime général de sécurité sociale;;01/10/2006;
+IDCC;2609;Convention collective nationale des employés, techniciens et agents de maîtrise du bâtiment;;01/07/2007;
+IDCC;2614;Convention collective nationale des employés, techniciens et agents de maîtrise des travaux publics;;01/07/2007;
+IDCC;2615;Convention collective régionale de la métallurgie des Pyrénées-Atlantiques et du Seignanx;;01/01/2007;31/12/2023
+IDCC;2630;Convention collective régionale des industries métallurgiques des Bouches-du-Rhône et Alpes-de-Haute-Provence;;26/01/2007;31/12/2023
+IDCC;2631;Accord collectif national Branche de la télédiffusion. Salariés employés sous contrat à durée déterminée d'usage;;01/12/2007;
+IDCC;2642;Convention collective de la production audiovisuelle;;01/11/2007;
+IDCC;2658;Convention collective régionale du travail des guides d'expédition, guides accompagnateurs et guides animateurs en milieu amazonien;;01/04/2008;
+IDCC;2666;Convention collective nationale des conseils d'architecture, d'urbanisme et de l'environnement;;06/03/2008;01/12/2023
+IDCC;2668;Convention collective nationale de travail des cadres supérieurs des sociétés de secours minières et de leurs établissements, des unions régionales et des assistants sociaux régionaux;;04/09/2007;
+IDCC;2683;Convention collective nationale du portage de presse;;26/06/2007;
+IDCC;2691;Convention collective nationale de l'enseignement prive indépendant;;01/09/2009;
+IDCC;2697;Convention collective nationale des personnels des structures associatives cynégétiques;;13/12/2007;
+IDCC;2700;Convention collective départementale de la métallurgie de l'Oise;;01/02/2008;31/12/2023
+IDCC;2701;Convention collective du travail du personnel des banques de la Guyane;;01/01/2008;
+IDCC;2702;Convention collective du travail du personnel des banques de la Martinique;;01/01/2008;
+IDCC;2704;Convention collective du travail du personnel des banques de la Guadeloupe, de Saint-Martin et de Saint-Barthélemy;;01/01/2008;
+IDCC;2706;Convention collective nationale du personnel des administrateurs et des mandataires judiciaires;;01/08/2008;12/10/2023
+IDCC;2717;Convention collective nationale des entreprises au service de la création et de l'événement;;01/08/2008;31/03/2025
+IDCC;2727;Convention collective nationale des omnipraticiens exerçant dans les centres de santé miniers;;10/03/2008;
+IDCC;2728;Convention collective nationale des sucreries, sucreries-distilleries et raffineries de sucre;;01/02/2010;
+IDCC;2755;Convention collective départementale des industries de la métallurgie de Belfort/Montbéliard;;23/08/2008;31/12/2023
+IDCC;2768;Convention collective nationale de travail des pharmaciens du régime minier;;28/02/1991;
+IDCC;2770;Convention collective nationale de l'édition phonographique (annexée à la convention collective nationale de l'édition 2121);;01/04/2009;19/04/2024
+IDCC;2785;Convention collective nationale des sociétés de ventes volontaires de meubles aux enchères publiques et des offices de commissaires-priseurs judiciaires;;29/01/2009;30/09/2023
+IDCC;2847;Convention collective nationale de Pôle Emploi;;01/01/2010;
+IDCC;2870;Convention collective des ouvriers du bâtiment, des travaux publics et des industries et activités connexes de la Guyane;;01/07/2010;
+IDCC;2931;Convention collective nationale des activités de marchés financiers;;01/07/2010;
+IDCC;2941;Convention collective de la branche de l'aide, de l'accompagnement, des soins et des services à domicile;;01/01/2012;
+IDCC;2964;Accord collectif relatif au transport de proximité public et privé de produits pétroliers et de liquides inflammables sur le territoire de la Martinique;;15/07/2010;
+IDCC;2972;Convention collective du personnel sédentaire des entreprises de navigation;;01/12/2011;
+IDCC;2978;Convention collective nationale du personnel salarié des agences de recherches privées;;08/12/2010;
+IDCC;2980;Convention collective départementale de la métallurgie de la Somme;;31/12/2010;31/12/2023
+IDCC;2992;Convention collective départementale des industries métallurgiques, mécaniques, électriques, connexes et similaires d'Indre-et Loire;;01/06/2012;31/12/2023
+IDCC;3013;Convention collective nationale de la librairie;;01/09/2012;
+IDCC;3016;Convention collective nationale des ateliers et chantiers d'insertion;;04/05/2011;
+IDCC;3017;Convention collective nationale unifiée ports et manutention;;04/05/2011;
+IDCC;3028;Convention collective régionale des transports routiers et activités auxiliaires du transport de la Guadeloupe;;29/07/2011;
+IDCC;3032;Convention collective nationale de l'esthétique - cosmétique et de l'enseignement technique et professionnel liés aux métiers de l'esthétique et de la parfumerie;;12/06/2012;
+IDCC;3035;Convention collective de la parfumerie sélective;;10/11/2020;
+IDCC;3043;Convention collective nationale des entreprises de propreté et services associés;;01/08/2012;
+IDCC;3053;Convention collective départementale des industries de la métallurgie de Haute-Saône;;20/10/2011;31/12/2023
+IDCC;3090;Convention collective nationale des entreprises du secteur privé du spectacle vivant;;01/07/2013;
+IDCC;3097;Convention collective nationale de la production cinématographique;;01/09/2013;
+IDCC;3105;Convention collective nationale des régies de quartier;;27/05/2012;
+IDCC;3107;Convention collective des employés, techniciens et agents de maîtrise du bâtiment et des travaux publics et annexes de la Martinique;;01/07/2013;
+IDCC;3109;Convention collective nationale des 5 branches industries alimentaires diverses;;01/06/2013;
+IDCC;3123;Convention collective régionale des ouvriers, employés et techniciens des entreprises d'ambulances de la Guyane;;01/06/2015;
+IDCC;3127;Convention collective nationale des entreprises de services à la personne;;01/12/2014;
+IDCC;3128;Convention collective régionale des employés, techniciens et agents de maîtrise du bâtiment, des travaux publics et des industries et activités connexes de la Guyane;;01/04/2014;
+IDCC;3144;Convention collective des employés, techniciens et agents de maîtrise du bâtiment et travaux publics de Guadeloupe;;01/02/2014;
+IDCC;3160;Convention collective nationale des associations de gestion et de comptabilité (annexée à la convention collective nationale du personnel des cabinets d'experts-comptables et de commissaires aux comptes 0787);;26/03/2013;07/08/2023
+IDCC;3168;Convention collective nationale des professions de la photographie;;25/04/2013;
+IDCC;3203;Convention collective nationale des structures associatives de pêche de loisir et de protection du milieu aquatique;;22/06/2013;
+IDCC;3204;Convention collective régionale des ingénieurs et cadres du bâtiment, des travaux publics et des industries et activités connexes de la Guyane;;01/03/2018;
+IDCC;3205;Convention collective nationale du personnel des coopératives de consommation;;01/11/2014;
+IDCC;3206;Convention collective départementale du personnel des cabinets médicaux de Martinique;;01/08/1986;
+IDCC;3207;Convention collective régionale des transports sanitaires de Guadeloupe;;02/01/2015;
+IDCC;3209;Convention collective départementale des industries mécaniques, microtechniques et connexes du département du Doubs;;29/01/2017;31/12/2023
+IDCC;3210;Convention collective nationale de la banque populaire;;01/07/2015;
+IDCC;3212;Convention collective nationale des cadres des travaux publics;;23/01/2016;
+IDCC;3213;Convention collective nationale des collaborateurs salariés des entreprises d'économistes de la construction et des métreurs-vérificateurs;;04/04/2016;
+IDCC;3216;Convention collective nationale des salariés du négoce des matériaux de construction;;01/04/2017;
+IDCC;3217;Convention collective nationale de la branche ferroviaire;;01/07/2016;
+IDCC;3218;Convention collective nationale de l'enseignement prive non lucratif;;30/08/2016;
+IDCC;3219;Convention collective nationale de branche des salariés en portage salarial;;01/07/2017;
+IDCC;3220;Convention collective nationale du personnel des offices publics de l'habitat et des sociétés de coordination;;27/04/2018;
+IDCC;3221;Convention collective nationale des employés, techniciens et cadres des agences de presse;;01/07/2017;
+IDCC;3222;Convention collective nationale des menuiseries charpentes et constructions industrialisées et des portes planes;;01/08/2019;
+IDCC;3223;Convention collective des personnels navigants officiers des entreprises de transport et services maritimes;;01/12/2014;
+IDCC;3224;Convention collective nationale de la distribution et du commerce de gros des papiers-cartons;;01/01/2018;
+IDCC;3225;Convention collective nationale des employés et des cadres des éditeurs de la presse magazine;;30/10/2017;
+IDCC;3227;Convention collective nationale des industries de la fabrication de la chaux;;01/03/2018;17/02/2025
+IDCC;3228;Convention collective nationale du groupement des armateurs de service de passages d'eau - personnel navigant;;24/05/2018;
+IDCC;3229;Convention collective nationale du personnel sédentaire des entreprises de transports de marchandises de la navigation intérieure;;25/12/2020;
+IDCC;3230;Convention collective nationale des employés, techniciens, agents de maîtrise et cadres de la presse d'information spécialisée;;15/02/2019;
+IDCC;3231;Convention collective départementale des industries métallurgiques, mécaniques, similaires et connexes du Jura;;05/02/2019;31/12/2023
+IDCC;3232;Convention collective nationale de travail des agents de direction des organismes du régime général de sécurité sociale;;19/12/2018;
+IDCC;3233;Convention collective nationale de la branche de l'industrie de la fabrication des ciments;;01/10/2021;
+IDCC;3235;Convention collective de la parfumerie sélective;;10/11/2020;
+IDCC;3236;Convention collective nationale de l'industrie et des services nautiques;;24/11/2020;
+IDCC;3237;Convention collective nationale des métiers du commerce de détail alimentaire spécialisé;;01/01/2022;
+IDCC;3238;Convention collective nationale de la production et de la transformation des papiers et cartons;;23/07/2022;
+IDCC;3239;Convention collective de la branche du secteur des particuliers employeurs et de l'emploi à domicile;;01/01/2022;
+IDCC;3241;Convention collective nationale de la Télédiffusion;;01/01/2022;
+IDCC;3242;Convention collective nationale de la presse quotidienne et hebdomadaire en régions;;01/01/2022;
+IDCC;3243;Convention collective nationale des commerces de quincaillerie, fournitures industrielles, fers, métaux et équipement de la maison;;01/08/2023;
+IDCC;3244;Convention collective nationale des professions réglementées auprès des juridictions;;01/11/2023;
+IDCC;3245;Convention collective nationale des opérateurs de voyages et des guides;;13/05/2022;
+IDCC;3248;Convention collective nationale de la métallurgie;;01/01/2024;
+IDCC;3249;Convention collective nationale des industries de carrières et matériaux de construction;;27/02/2020;
+IDCC;3250;Convention collective nationale des commissaires de justice et sociétés de ventes;;01/10/2023;
+IDCC;3251;Convention collective nationale de la bijouterie, joaillerie, orfèvrerie, horlogerie (BJOH);;01/01/2024;
+IDCC;3252;Convention collective Entreprises au service de la création et de l'événement;;01/04/2025;
+IDCC;3253;Convention collective nationale des salariés des cabinets d'avocats;;01/10/2025;
+IDCC;3254;Convention collective nationale de la boucherie, boucherie-charcuterie-traiteur, poissonnerie (détail et gros), écailler, traiteur de la mer;;01/11/2025;
+IDCC;3255;Convention collective nationale des activités industrielles de boulangerie et pâtisserie et des professionnels de l'oeuf;;01/12/2025;
+IDCC;5001;Statut des industries électriques et gazières;;01/01/1900;
+IDCC;5002;Statut du Mineur;;01/01/1900;
+IDCC;5003;Statut de la Fonction publique d'État;;01/01/1900;
+IDCC;5005;Statut des Caisses d'épargne;;01/01/1900;
+IDCC;5008;Statut de la Banque de France;;01/01/1900;
+IDCC;5010;Statut des Chambres des métiers & de l'artisanat;;01/01/1900;
+IDCC;5011;Statut de l'Aéroport de Paris;;01/01/1900;
+IDCC;5012;Statut des chemins de fer;;01/01/1900;
+IDCC;5014;Statut de la RATP;;01/01/1900;
+IDCC;5015;Statut du CNRS;;01/01/1900;31/10/2025
+IDCC;5017;Statut des diocèses de l'Eglise catholique en France;;01/01/1900;
+IDCC;5018;Statut des Chambres de commerce et d'industrie;;01/01/1900;
+IDCC;5019;Statut des Chambres d'agriculture;;01/01/1900;
+IDCC;5021;Statut de la Fonction publique territoriale;;01/01/1900;
+IDCC;5022;Statut de la Fonction publique hospitalière;;01/01/1900;
+IDCC;5023;Statut Vivea;;01/01/1900;
+IDCC;5024;Statut des chefs d'établissement de l'enseignement catholique;;01/01/1900;
+IDCC;5025;Statut des personnels des organismes de développement économique;;01/01/1900;
+IDCC;5100;Statut divers ou non précisé;;01/01/1900;
+IDCC;5200;Grille d'usage Mars PF (Non conventionnelle);;01/01/1900;
+IDCC;5201;Recommandations ANIL ADIL (Non conventionnelles);;01/01/1900;
+IDCC;5203;Ancienne convention collective nationale des peintres en lettres et publicité peinte (dénoncée, mais pouvant servir de grille d'usage d'établissements réputés sans convention);;01/01/1900;
+IDCC;5204;Grille d'usage MSF logistique (Non conventionnelle);;01/01/1900;31/10/2025
+IDCC;5205;Convention d'entreprise CSE Air France exploitation hub;;01/01/1900;
+IDCC;5501;Convention d'entreprise indépendante ou texte assimilé non précisé;;01/01/1900;
+IDCC;5502;Convention d'entreprise Croix Rouge;;01/01/1900;
+IDCC;5503;Convention d'entreprise SEITA (LOGISTA France);;01/01/1900;
+IDCC;5505;Convention d'entreprise CEA;;01/01/1900;
+IDCC;5506;Convention d'entreprise Crédit agricole SA;;01/01/1900;
+IDCC;5507;Convention collective nationale des administratifs du football (n'est pas considérée à l'heure actuelle comme une convention de branche);;01/01/1900;
+IDCC;5509;Convention d'entreprise PMU;;01/01/1900;
+IDCC;5513;Convention d'entreprise IFREMER;;01/01/1900;
+IDCC;5514;Convention d'entreprise Crédit Foncier;;01/01/1900;
+IDCC;5516;Convention d'entreprise La Poste - France Télécom;;01/01/1900;
+IDCC;5519;Convention collective nationale des salariés administratifs des sociétés de secours minières (n'est pas considérée à l'heure actuelle comme une convention de branche);;01/01/1900;
+IDCC;5520;Convention collective nationale des officies du transport maritimes;;01/01/1900;
+IDCC;5521;Convention collective nationale du personnel navigant d'exécution du transport maritime;;01/01/1900;
+IDCC;5522;Convention d'entreprise Établissement français du sang;;01/01/1900;
+IDCC;5524;Convention d'entreprise France terre d'asile;;01/01/1900;
+IDCC;5526;Charte du football professionnel (n'est pas considérée à l'heure actuelle comme une convention de branche);;01/01/1900;
+IDCC;5530;Convention d'entreprise Adoma (ex Sonacotra);;01/01/1900;
+IDCC;5531;Convention d'entreprise Syngenta;;01/01/1900;
+IDCC;5532;Convention d'entreprise INRS;;01/01/1900;
+IDCC;5533;Convention du comité d'entreprise SNCF;;01/01/1900;
+IDCC;5537;Convention collective nationale des dentistes des sociétés de secours minières (n'est pas considérée à l'heure actuelle comme une convention de branche);;01/01/1900;
+IDCC;5538;Convention collective nationale des médecins spécialiste des sociétés de secours minières (n'est pas considérée à l'heure actuelle comme une convention de branche);;01/01/1900;
+IDCC;5539;Convention d'entreprise AFPA;;01/01/1900;
+IDCC;5541;Convention collective nationale du rugby professionnel (n'est pas considérée à l'heure actuelle comme une convention de branche);;01/01/1900;
+IDCC;5542;Convention collective nationale du basket ball professionnel (n'est pas considérée à l'heure actuelle comme une convention de branche);;01/01/1900;
+IDCC;5543;Accords-convention d'entreprise SNCF Réseau - ex RFF;;01/01/1900;
+IDCC;5545;Convention d'entreprise des restaurants PTT;;01/01/1900;31/10/2025
+IDCC;5546;Convention d'entreprise CNES;;01/01/1900;
+IDCC;5547;Convention d'entreprise Club Méditerranée;;01/01/1900;31/10/2025
+IDCC;5548;Convention du comité d'entreprise RATP;;01/01/1900;
+IDCC;5549;Convention d'entreprise IRSN;;01/01/1900;
+IDCC;5551;Convention d'entreprise Institut Pasteur;;01/01/1900;
+IDCC;5552;Convention d'entreprise Société d'agences et de diffusion;;01/01/1900;31/10/2025
+IDCC;5553;Convention d'entreprise CCAS;;01/01/1900;
+IDCC;5554;Convention collective nationale des officiers du Remorquage maritime;;01/01/1900;
+IDCC;5555;Convention collective nationale des navigants d'exécution du Remorquage maritime;;01/01/1900;
+IDCC;5558;Accords-convention d'entreprise basés sur l'Accord national Multiservice immobilier et facilties management;;01/01/1900;
+IDCC;5559;Convention d'entreprise Alliance emploi;;01/01/1900;
+IDCC;5562;Convention d'entreprise Talc de Luzenac;;01/01/1900;
+IDCC;5563;Convention d'entreprise Réunion des musées nationaux;;01/01/1900;31/10/2025
+IDCC;5564;Convention d'entreprise APEC;;01/01/1900;31/10/2025
+IDCC;5565;Convention du groupe TF1;;01/01/1900;01/01/2022
+IDCC;5566;Convention d'entreprise Société Protectrice des Animaux;;01/01/1900;31/10/2025
+IDCC;5567;Convention d'entreprise ARTE;;01/01/1900;01/01/2022
+IDCC;5568;Convention d'entreprise CIRAD;;01/01/1900;
+IDCC;5569;Convention d'entreprise Comédie française;;01/01/1900;
+IDCC;5570;Convention d'entreprise Opéra de Paris;;01/01/1900;
+IDCC;5571;Convention d'entreprise Fondation d'Auteuil;;01/01/1900;
+IDCC;5572;Convention d'entreprise Kiloutou;;01/01/1900;31/10/2025
+IDCC;5573;Convention d'entreprise UGAP;;01/01/1900;31/10/2025
+IDCC;5574;Convention du groupe Canal +;;01/01/1900;01/01/2022
+IDCC;5575;Convention d'entreprise du groupe Métropole Télévision;;01/01/1900;01/01/2022
+IDCC;5576;Convention du groupe AGEFOS PME;;01/01/1900;31/10/2025
+IDCC;5577;Convention d'entreprise Agence Française de Développement;;01/01/1900;
+IDCC;5578;Convention d'entreprise Agence Nationale pour les Chèques Vacances;;01/01/1900;31/10/2025
+IDCC;5579;Accords-convention d'entreprise France télévision;;01/01/1900;01/01/2022
+IDCC;5580;Convention d'entreprise Radio France;;01/01/1900;
+IDCC;5581;Convention d'entreprise France Médias Monde;;01/01/1900;01/01/2022
+IDCC;5582;Accords-convention d'entreprise Institut national de l'audio visuel;;01/01/1900;01/01/2022
+IDCC;5583;Convention d'entreprise Voies navigables de France;;01/01/1900;
+IDCC;5584;Accords-convention d'entreprise Laboratoire national de métrologie et d'essais;;01/01/1900;
+IDCC;5585;Accords-convention d'entreprise Pioneer;;01/01/1900;31/10/2025
+IDCC;5586;Accords-convention d'entreprise SACEM;;01/01/1900;31/10/2025
+IDCC;5587;Accords-convention d'entreprise Cité de la musique;;01/01/1900;
+IDCC;5588;Accords-convention d'entreprise SACD;;01/01/1900;31/10/2025
+IDCC;5589;Convention d'entreprise ARPEJ;;01/01/1900;31/10/2025
+IDCC;5590;Convention d'entreprise OPCALIM;;01/01/1900;31/10/2025
+IDCC;5591;Convention d'entreprise Louis Vuitton services;;01/01/1900;31/10/2025
+IDCC;5592;Convention d'entreprise UES CAMIF;;01/01/1900;31/10/2025
+IDCC;5593;Accord de référence FNAB;;01/01/1900;
+IDCC;5594;Convention d'entreprise Ortec Services;;01/01/1900;31/10/2025
+IDCC;5595;Convention d'entreprise Sede environnement;;01/01/1900;
+IDCC;5596;Convention d'entreprise Compagnie des Alpes;;01/01/1900;31/10/2025
+IDCC;5598;Convention d'entreprise Eurotunnel;;01/01/1900;
+IDCC;5599;Convention d'entreprise Havas;;01/01/1900;31/10/2025
+IDCC;5600;Accords-convention d'entreprise CGG Services;;01/01/1900;
+IDCC;5601;Accords-convention d'entreprise COSEM;;01/01/1900;
+IDCC;5602;Accords-convention d'entreprise Bureau de recherche géologiques et minières ;;01/01/1900;
+IDCC;5603;Accords-convention d'entreprise Synchrotron Soleil;;01/01/1900;
+IDCC;5604;Accords-convention d'entreprise Accor;;01/01/1900;
+IDCC;5605;Convention d'entreprise Blondel aérologistique;;01/01/1900;31/10/2025
+IDCC;5606;Convention d'entreprise ANFH;;01/01/1900;31/10/2025
+IDCC;5607;Convention d'entreprise Danone;;01/01/1900;31/10/2025
+IDCC;5608;Convention d'entreprise Arvalis institut du végétal;;01/01/1900;
+IDCC;5610;Convention d'entreprise Cinémathèque française;;01/01/1900;
+IDCC;5611;Accords-convention d'entreprise ADIE;;01/01/1900;31/10/2025
+IDCC;5612;Accords-convention d'entreprise Eurosport;;01/01/1900;01/01/2022
+IDCC;5613;Ancienne convention collective nationale des peintres en lettres et publicité peinte (dénoncée, n'est donc plus considérée comme une convention de branche mais pouvant être appliquée en tant que convention d'entreprise);;01/01/1900;
+IDCC;5614;Convention d'entreprise Institut de l'élevage;;01/01/1900;
+IDCC;5615;Convention d'entreprise Forum des images;;01/01/1900;31/10/2025
+IDCC;5616;Accords-convention d'entreprise CTC;;01/01/1900;
+IDCC;5617;Accords-convention d'entreprise Sodexo Justice Services;;01/01/1900;31/10/2025
+IDCC;5618;Accords-convention d'entreprise ADEF;;01/01/1900;
+IDCC;5619;Convention collective nationale de la pêche professionnelle maritime;;01/01/1900;
+IDCC;5620;Convention d'entreprise Messageries lyonnaises de presse;;01/01/1900;31/10/2025
+IDCC;5621;Convention d'entreprise Fondation Jean Moulin;;01/01/1900;
+IDCC;5622;Accords-convention d'entreprise CCFD Terre Solidaire;;01/01/1900;31/10/2025
+IDCC;5623;Convention d'entreprise du groupement national interprofessionnel des semences graines et plants;;01/01/1900;
+IDCC;5624;Accords-convention d'entreprise Secours catholique;;01/01/1900;
+IDCC;5625;Convention d'entreprise Médecins du monde;;01/01/1900;31/10/2025
+IDCC;5627;Convention d'entreprise du Groupe Technique des Hippodromes Parisiens;;01/01/1900;
+IDCC;5628;Statut-convention d'entreprise d'ACPPA;;01/01/1900;31/10/2025
+IDCC;5629;Convention d'entreprise d'Unifomation;;01/01/1900;31/10/2025
+IDCC;5630;Accords-convention d'entreprise France active;;01/01/1900;
+IDCC;5631;Convention d'entreprise UNAF;;01/01/1900;
+IDCC;5632;Accords-convention d'entreprise Sodiparc;;01/01/1900;
+IDCC;5633;Accords CFA-BTP (numéro provisoire);;01/01/1900;
+IDCC;5634;Accords collaborateurs parlementaires de députés (numéro provisoire);;01/01/1900;
+IDCC;5635;Accords-convention d'entreprise TV5 Monde;;01/01/1900;01/01/2022
+IDCC;7001;Convention collective nationale des coopératives et SICA de production, transformation et vente du bétail et des viandes;;01/01/1900;
+IDCC;7002;Convention collective nationale des coopératives et SICA de céréales, de meunerie, d'approvisionnement et d'alimentation du bétail et d'oléagineux;;01/01/1900;
+IDCC;7003;Convention collective nationale des coopératives agricoles, union de coopératives agricoles et SICA fabriquant des conserves de fruits et de légumes, des plats cuisinés et des spécialités;;01/01/1900;31/12/2025
+IDCC;7004;Convention collective nationale des coopératives laitières, unions de coopératives laitières et SICA laitières;;01/01/1900;
+IDCC;7005;Convention collective nationale des caves coopératives et de leurs unions élargie aux SICA vinicoles;;01/01/1900;
+IDCC;7006;Convention collective nationale des coopératives, unions de coopératives agricoles et SICA de fleurs, de fruits et légumes et de pommes de terre;;01/01/1900;31/12/2025
+IDCC;7007;Convention collective nationale des coopératives, unions de coopératives agricoles et SICA de teillage de lin;;01/01/1900;31/12/2025
+IDCC;7008;Convention collective nationale du personnel des organismes de contrôle laitier;;28/12/2002;31/12/2024
+IDCC;7009;Convention collective nationale des entreprises d'accouvage et de sélection de produits avicoles;;01/01/1900;
+IDCC;7010;Convention collective nationale du personnel des élévages aquacoles;;01/01/1900;
+IDCC;7012;Convention collective nationale des centres équestres;;08/08/1976;01/06/2024
+IDCC;7013;Convention collective nationale des établissements d'entraînement des chevaux de courses au trot;;11/05/1979;01/06/2024
+IDCC;7014;Convention collective nationale des établissements d'entraînement des chevaux de courses au galop;;20/11/2019;01/06/2024
+IDCC;7017;Convention collective nationale des parcs et jardins zoologiques ouverts au public;;01/01/1900;
+IDCC;7018;Convention collective nationale des entreprises du paysage;;01/01/1900;
+IDCC;7019;Convention collective nationale de la conchyliculture;;01/01/1900;
+IDCC;7020;Convention collective nationale du réseau des centres d'économie rurale;;01/01/1900;
+IDCC;7021;Convention collective nationale des entreprises relevant de la sélection et de la reproduction animale;;15/04/2008;31/12/2024
+IDCC;7023;Convention collective nationale des entreprises agricoles de déshydratation;;18/11/2018;31/12/2025
+IDCC;7024;Convention collective nationale PA/CUMA;;15/09/2020;
+IDCC;7025;Convention collective nationale ETARF;;08/10/2020;
+IDCC;7026;Convention collective nationale des activités hippiques;;01/06/2024;
+IDCC;7027;Convention collective nationale du conseil et service en élevage;;01/01/2025;
+IDCC;7028;Convention collective nationale des coopératives agricoles, unions de coopératives agricoles et SICA de fleurs, fruits et légumes frais, transformés et conserveries, de teillage de lin-chanvre et de déshydratation;;01/01/2026;
+IDCC;7501;Convention collective nationale des caisses régionales du crédit agricole;;01/01/1900;
+IDCC;7502;Convention collective nationale de la Mutualité sociale agricole;;01/01/1900;
+IDCC;7503;Convention collective nationale des distilleries coopératives viticoles et SICA de distillation;;01/01/1900;
+IDCC;7508;Convention collective nationale des Maisons familiales rurales, instituts ruraux et centres;;01/01/1900;
+IDCC;7509;Convention collective nationale des organismes de formation et de promotion agricoles;;01/01/1900;30/10/2024
+IDCC;7511;Convention collective nationale du personnel des ASAVPA;;01/01/1900;01/11/2021
+IDCC;7513;Convention collective nationale des centres d'initiatives pour valoriser l'agriculture et le milieu rural;;01/01/1900;
+IDCC;7514;Convention collective nationale des organismes de la Confédération paysanne;;01/01/1900;
+IDCC;7515;Convention collective nationale des sociétés d'aménagement foncier et d'établissement rural (SAFER);;26/10/1999;01/07/2024
+IDCC;7520;Convention collective nationale des salariés des établissements d'enseignement et organismes de formation aux métiers du territoire (EOFMT);;01/01/1900;
+IDCC;8112;Convention collective régionale de la polyculture Île-de-France non cadres;;01/01/1900;
+IDCC;8113;Convention collective régionale de l'arboriculture maraîchage Île-de-France;;01/01/1900;
+IDCC;8114;Convention collective régionale des champignonnières Île-de-France;;01/01/1900;
+IDCC;8115;Convention collective régionale des hippodromes Île-de-France Cabourg Caen Chantilly Deauville;;01/01/1900;
+IDCC;8116;Convention collective régionale de la polyculture Île-de-France cadres;;01/01/1900;
+IDCC;8117;Convention collective régionale des exploitations polyculture élev CUMA Seine et Marne ETAR Ile de France;;01/01/1900;
+IDCC;8211;Convention collective régionale des exploitations forestières Champagne Ardenne;;01/01/1900;
+IDCC;8212;Convention collective régionale des scieries Champagne Ardenne;;01/01/1900;
+IDCC;8214;Convention collective régionale des ETAR Aube Marne polyculture Marne;;01/01/1900;
+IDCC;8216;Convention collective régionale de la viticulture Champagne;;01/01/1900;
+IDCC;8221;Convention collective régionale des champignonnistes Oise Aisne;;01/01/1900;
+IDCC;8231;Convention collective régionale des exploitations forestières Haute Normandie;;01/01/1900;
+IDCC;8233;Convention collective régionale des ETAR Haute Normandie;;01/01/1900;
+IDCC;8234;Convention collective régionale de l'horticulture et pépiniéristes Haute Normandie;;01/01/1900;
+IDCC;8241;Convention collective régionale des exploitations forestières scieries Centre;;01/01/1900;
+IDCC;8243;Convention collective régionale des champignonnières Centre;;01/01/1900;
+IDCC;8244;Convention collective régionale maraîchère Indre Cher;;01/01/1900;
+IDCC;8251;Convention collective régionale des exploitations forestières scieries Calvados Manche Orne;;01/01/1900;
+IDCC;8252;Convention collective régionale des travaux agricoles Basse Normandie;;01/01/1900;
+IDCC;8262;Convention collective régionale des exploitations agricoles Côte d'or Nièvre Yonne ETAR CUMA Côte d'or;;01/01/1900;
+IDCC;8311;Convention collective régionale des exploitations forestières scieries Nord Pas de Calais;;01/01/1900;
+IDCC;8313;Convention collective régionale des ETAR Nord Pas de Calais;;01/01/1900;
+IDCC;8411;Convention collective régionale des exploitations forestières Meurthe et Moselle Vosges;;01/01/1900;
+IDCC;8412;Convention collective régionale des scieries agricoles Alsace Lorraine;;01/01/1900;
+IDCC;8414;Convention collective régionale maraîchère Meurthe et Moselle Meuse Moselle et Vosges;;01/01/1900;
+IDCC;8415;Convention collective régionale des exploitations forestières Lorraine;;01/01/1900;
+IDCC;8416;Convention collective régionale de polyculture Lorraine;;01/01/2019;
+IDCC;8421;Convention collective régionale des exploitations forestières Alsace;;01/01/1900;
+IDCC;8422;Convention collective régionale de polyculture Alsace;;01/01/1900;
+IDCC;8431;Convention collective régionale des exploitations forestières Doubs Jura Haute-Saône Territoire de Belfort;;01/01/1900;
+IDCC;8432;Convention collective régionale des scieries agricoles Franche Comté;;01/01/1900;
+IDCC;8433;Convention collective régionale de l'horticulture Franche Comté;;01/01/1900;
+IDCC;8434;Convention collective régionale des cultures CUMA ETAR Franche Comté;;01/01/1900;
+IDCC;8435;Convention collective régionale des coopératives fruitières Ain Doubs Jura;;01/01/1900;
+IDCC;8522;Convention collective régionale des exploitations forestières scieries Pays de la Loire;;01/01/1900;
+IDCC;8523;Convention collective régionale des exploitations sylvicoles Pays de la Loire;;01/01/1900;
+IDCC;8525;Convention collective régionale des ETAR Pays de la Loire;;01/01/1900;
+IDCC;8526;Convention collective régionale de l'arboriculture fruitière Ouest de la France;;01/01/1900;
+IDCC;8531;Convention collective régionale des exploitations forestières scieries Bretagne;;01/01/1900;
+IDCC;8532;Convention collective régionale des ETAR Bretagne;;01/01/1900;
+IDCC;8534;Convention collective régionale maraîchère Ille et Vilaine Morbihan;;01/01/1900;
+IDCC;8535;Convention collective régionale des CUMA Bretagne Pays de la Loire;;01/01/1900;
+IDCC;8541;Convention collective régionale des exploitations forestières scieries Poitou Charentes;;01/01/1900;
+IDCC;8542;Convention collective régionale des ETAR Vienne Deux Sèvres production agricole Vienne;;01/01/1900;
+IDCC;8721;Convention collective régionale des exploitations forestières scieries Massif Gascogne;;01/01/1900;
+IDCC;8722;Convention collective régionale de gemmage forêt Gascogne;;01/01/1900;
+IDCC;8723;Convention collective régionale de l'entretien forestier Gascogne;;01/01/1900;
+IDCC;8731;Convention collective régionale des exploitations forestières scieries Midi Pyrénées;;01/01/1900;
+IDCC;8733;Convention collective régionale des CUMA Tarn Haute Garonne;;01/01/1900;
+IDCC;8734;Convention collective régionale de l'horticulture Midi Pyrénées;;01/01/1900;
+IDCC;8741;Convention collective régionale des exploitations forestières Limousin;;01/01/1900;
+IDCC;8821;Convention collective régionale des ouvriers forestiers communes ONF Rhône Alpes;;01/01/1900;
+IDCC;8822;Convention collective régionale des exploitations forestières scieries Rhône Alpes;;01/01/1900;
+IDCC;8825;Convention collective régionale de polyculture CUMA Rhône Alpes cadres;;01/01/1900;
+IDCC;8826;Convention collective régionale des exploitations trav agricoles CUMA Savoie Hte Savoie;;05/08/2012;
+IDCC;8831;Convention collective régionale des exploitations forestières scieries Auvergne;;01/01/1900;
+IDCC;8832;Convention collective régionale de polyculture CUMA Haute Loire Lozère;;01/01/1900;
+IDCC;8912;Convention collective régionale des ETAR Languedoc Roussillon;;01/01/1900;
+IDCC;9011;Convention collective départementale des exploitations agricoles Ain;;01/01/1900;
+IDCC;9021;Convention collective départementale des exploitations polyculture Aisne;;01/01/1900;
+IDCC;9022;Convention collective départementale des exploitations forestières Aisne;;01/01/1900;
+IDCC;9031;Convention collective départementale des exploitations polyculture Allier;;01/01/1900;
+IDCC;9032;Convention collective départementale des exploitations agricoles Allier;;01/01/1900;
+IDCC;9041;Convention collective départementale des exploitations agricoles Alpes de Haute Provence;;01/01/1900;
+IDCC;9051;Convention collective départementale des exploitations polyculture Hautes Alpes;;01/01/1900;
+IDCC;9061;Convention collective départementale des exploitations polyculture Alpes Maritimes;;01/01/1900;
+IDCC;9062;Convention collective départementale des exploitations forestières scieries Alpes Maritimes;;01/01/1900;
+IDCC;9071;Convention collective départementale des exploitations agricoles Ardèche;;01/01/1900;
+IDCC;9081;Convention collective départementale des exploitations polyculture Ardennes;;01/01/1900;
+IDCC;9091;Convention collective départementale des exploitations agricoles Ariège;;01/01/1900;
+IDCC;9101;Convention collective départementale des exploitations polyculture Aube;;01/01/1900;
+IDCC;9103;Convention collective départementale de sylviculture Aube;;31/07/1981;01/12/2023
+IDCC;9111;Convention collective départementale des exploitations agricoles zone céréalière Aude;;01/01/1900;
+IDCC;9112;Convention collective départementale des exploitations agricoles zone viticole Aude;;01/01/1900;
+IDCC;9121;Convention collective départementale des exploitations agricoles Aveyron;;01/01/1900;
+IDCC;9131;Convention collective départementale des exploitations agricoles Bouches du Rhône;;01/01/1900;
+IDCC;9141;Convention collective départementale des exploitations polyculture et CUMA Calvados;;01/01/1900;
+IDCC;9142;Convention collective départementale des exploitations horticoles fruits Calvados;;01/01/1900;
+IDCC;9151;Convention collective départementale des exploitations polyculture Cantal;;01/01/1900;
+IDCC;9161;Convention collective départementale des exploitations agricoles Charente;;01/01/1900;
+IDCC;9171;Convention collective départementale des exploitations polyculture Charente Maritime;;01/01/1900;
+IDCC;9181;Convention collective départementale des exploitations polyculture Cher;;01/01/1900;
+IDCC;9182;Convention collective départementale des exploitations pépinières horticulture Cher;;01/01/1900;
+IDCC;9191;Convention collective départementale des exploitations agricoles Corrèze;;01/01/1900;
+IDCC;9201;Convention collective départementale des exploitations agricoles Corse du Sud;;01/01/1900;
+IDCC;9202;Convention collective départementale des exploitations agricoles Haute Corse;;01/01/1900;
+IDCC;9211;Convention collective départementale des exploitations forestières scieries Côte d'or;;01/01/1900;
+IDCC;9221;Convention collective départementale des exploitations polyculture Côtes d'Armor;;01/01/1900;
+IDCC;9222;Convention collective départementale des exploitations pépinières horticulture Côtes d'Armor;;01/01/1900;
+IDCC;9231;Convention collective départementale des exploitations agricoles Creuse;;01/01/1900;
+IDCC;9232;Convention collective départementale des exploitations pépinières sylvicoles Creuse;;01/01/1900;
+IDCC;9241;Convention collective départementale des exploitations agricoles Dordogne;;01/01/1900;
+IDCC;9261;Convention collective départementale des exploitations agricoles Drôme;;01/01/1900;
+IDCC;9272;Convention collective départementale des exploitations polyculture Eure non cadres;;01/01/1900;
+IDCC;9273;Convention collective départementale des exploitations polyculture Eure cadres;;01/01/1900;
+IDCC;9281;Convention collective départementale des exploitations polyculture, élevage et CUMA Eure et Loir;;01/01/1900;
+IDCC;9282;Convention collective départementale de déshydratation Eure et Loir;;01/01/1900;
+IDCC;9283;Convention collective départementale des exploitations horticoles fruitières jardinerie Eure et Loire;;01/01/1900;
+IDCC;9291;Convention collective départementale des exploitations polyculture, élevage et maraîchage Finistère;;01/01/1900;
+IDCC;9292;Convention collective départementale des exploitations pépinières horticulture Finistère;;01/01/1900;
+IDCC;9301;Convention collective départementale des exploitations agricoles Gard;;01/01/1900;
+IDCC;9302;Convention collective départementale des exploitations agricoles Gard cadres;;01/01/1900;
+IDCC;9311;Convention collective départementale des exploitations agricoles Haute Garonne;;01/01/1900;
+IDCC;9321;Convention collective départementale des exploitations agricoles Gers;;01/01/1900;
+IDCC;9331;Convention collective départementale des exploitations agricoles Gironde;;01/01/1900;
+IDCC;9341;Convention collective départementale des exploitations agricoles Hérault;;01/01/1900;
+IDCC;9351;Convention collective départementale des exploitations polyculture, élevage et CUMA Ille et Vilaine;;01/01/1900;
+IDCC;9352;Convention collective départementale des exploitations pépinières horticulture Ille et Vilaine;;01/01/1900;
+IDCC;9361;Convention collective départementale des exploitations polyculture, élevage et CUMA Indre;;01/01/1900;
+IDCC;9362;Convention collective départementale des exploitations pépinières horticulture Indre;;01/01/1900;
+IDCC;9371;Convention collective départementale des exploitations polyculture, élevage viticulture Indre et Loire;;01/01/1900;
+IDCC;9372;Convention collective départementale des exploitations pépinières horticulture Indre et Loire;;01/01/1900;
+IDCC;9374;Convention collective départementale des exploitations arboriculture fruitière Indre et Loire;;01/01/1900;
+IDCC;9383;Convention collective départementale des exploitations agricoles CUMA Isère;;30/11/2012;
+IDCC;9401;Convention collective départementale des exploitations agricoles Landes;;01/01/1900;
+IDCC;9411;Convention collective départementale des exploitations agricoles Loir et Cher;;01/01/1900;
+IDCC;9412;Convention collective départementale des ETAR CUMA Loir et Cher;;01/01/1900;
+IDCC;9413;Convention collective départementale des exploitations pépinières horticulture Loir et Cher;;01/01/1900;
+IDCC;9421;Convention collective départementale des exploitations agricoles Loire;;01/01/1900;
+IDCC;9422;Convention collective départementale des CUMA Loire;;01/01/1900;
+IDCC;9441;Convention collective départementale des exploitations agricoles Loire Atlantique;;01/01/1900;
+IDCC;9442;Convention collective départementale des exploitations pépinières horticulture Loire Atlantique;;01/01/1900;
+IDCC;9444;Convention collective départementale des exploitations maraîchères Loire Atlantique;;01/01/1900;
+IDCC;9451;Convention collective départementale des exploitations polyculture élevage Loiret;;01/01/1900;
+IDCC;9452;Convention collective départementale des CUMA Loiret;;01/01/1900;
+IDCC;9453;Convention collective départementale des exploitations arboriculture fruitière Loiret;;01/01/1900;
+IDCC;9454;Convention collective départementale des exploitations pépinières horticulture Loiret;;01/01/1900;
+IDCC;9455;Convention collective départementale des exploitations maraîchères Loiret;;01/01/1900;
+IDCC;9456;Convention collective départementale des exploitations cultures spécialisées Loiret;;01/01/1900;
+IDCC;9461;Convention collective départementale des exploitations agricoles Lot;;01/01/1900;
+IDCC;9471;Convention collective départementale des exploitations agricoles Lot et Garonne;;01/01/1900;
+IDCC;9472;Convention collective départementale des exploitations pépinières horticulture Lot et Garonne;;01/01/1900;
+IDCC;9491;Convention collective départementale des exploitations polyculture, élevage Maine et Loire;;01/01/1900;
+IDCC;9492;Convention collective départementale des exploitations pépinières horticulture Maine et Loire;;01/01/1900;
+IDCC;9493;Convention collective départementale des champignonnières Maine et Loire;;01/01/1900;
+IDCC;9494;Convention collective départementale des exploitations maraîchères Maine et Loire;;01/01/1900;
+IDCC;9497;Convention collective départementale des producteurs graines Maine et Loire;;01/01/1900;
+IDCC;9501;Convention collective départementale des exploitations agricoles Manche;;01/01/1900;
+IDCC;9502;Convention collective départementale des exploitations pépinières horticulture Manche;;01/01/1900;
+IDCC;9521;Convention collective départementale des polyculture pépinières horticulture CUMA Haute Marne;;01/01/1900;
+IDCC;9531;Convention collective départementale des exploitations polyculture élevage Mayenne;;01/01/1900;
+IDCC;9532;Convention collective départementale des exploitations pépinières horticulture Mayenne;;01/01/1900;
+IDCC;9551;Convention collective départementale des exploitations forestières Meuse;;01/01/1900;
+IDCC;9561;Convention collective départementale des exploitations polyculture élevage Morbihan;;01/01/1900;
+IDCC;9562;Convention collective départementale des exploitations pépinières horticulture Morbihan;;01/01/1900;
+IDCC;9571;Convention collective départementale des exploitations forestières Moselle;;01/01/1900;
+IDCC;9581;Convention collective départementale des exploitations forestières Nièvre;;01/01/1900;
+IDCC;9591;Convention collective départementale des exploitations polyculture élevage Nord;;01/01/1900;
+IDCC;9592;Convention collective départementale des exploitations pépinières horticulture Nord;;01/01/1900;
+IDCC;9601;Convention collective départementale des exploitations polyculture élevage Oise;;01/01/1900;
+IDCC;9602;Convention collective départementale des exploitations forestières Oise;;01/01/1900;
+IDCC;9603;Convention collective départementale des exploitations pépinières horticulture Oise;;01/01/1900;
+IDCC;9612;Convention collective départementale des exploitations polyculture élevage Orne;;01/01/1900;
+IDCC;9613;Convention collective départementale des exploitations pépinières horticulture Orne;;01/01/1900;
+IDCC;9621;Convention collective départementale des exploitations polyculture élevage Pas de Calais;;01/01/1900;
+IDCC;9622;Convention collective départementale des exploitations pépinières horticulture Pas de Calais;;01/01/1900;
+IDCC;9631;Convention collective départementale des exploitations agricoles Puy de Dôme;;01/01/1900;
+IDCC;9641;Convention collective départementale des exploitations agricoles Pyrénées Atlantiques;;01/01/1900;
+IDCC;9651;Convention collective départementale des exploitations agricoles Hautes Pyrénées;;01/01/1900;
+IDCC;9661;Convention collective départementale des exploitations pépinières horticulture Pyrénées Orientales;;01/01/1900;
+IDCC;9691;Convention collective départementale des exploitations agricoles Rhône;;01/01/1900;
+IDCC;9711;Convention collective départementale des exploitations forestières Saône et Loire;;01/01/1900;
+IDCC;9712;Convention collective départementale des exploitations agricoles Saône et Loire;;01/01/1900;
+IDCC;9721;Convention collective départementale des exploitations polyculture élevage Sarthe;;01/01/1900;
+IDCC;9722;Convention collective départementale des exploitations pépinières horticulture Sarthe;;01/01/1900;
+IDCC;9723;Convention collective départementale des exploitations maraîchères Sarthe;;01/01/1900;
+IDCC;9725;Convention collective départementale des champignonnières Sarthe;;01/01/1900;
+IDCC;9761;Convention collective départementale des exploitations agricoles Seine Maritime;;01/01/1900;
+IDCC;9762;Convention collective départementale des exploitations maraîchères Seine Maritime;;01/01/1900;
+IDCC;9791;Convention collective départementale des exploitations agricoles Deux Sèvres;;01/01/1900;
+IDCC;9801;Convention collective départementale des exploitations forestières Somme;;01/01/1900;
+IDCC;9802;Convention collective départementale des exploitations polyculture élevage et CUMA, ETAR Somme;;01/01/1900;
+IDCC;9811;Convention collective départementale des exploitations agricoles Tarn;;01/01/1900;
+IDCC;9821;Convention collective départementale des exploitations agricoles Tarn et Garonne;;01/01/1900;
+IDCC;9831;Convention collective départementale des exploitations agricoles Var;;01/01/1900;
+IDCC;9841;Convention collective départementale des exploitations agricoles Vaucluse;;01/01/1900;
+IDCC;9851;Convention collective départementale des exploitations polyculture élevage Vendée;;01/01/1900;
+IDCC;9852;Convention collective départementale des exploitations pépinières horticulture Vendée;;01/01/1900;
+IDCC;9853;Convention collective départementale des exploitations maraîchères Vendée;;01/01/1900;
+IDCC;9862;Convention collective départementale des champignonnières Vienne;;01/01/1900;
+IDCC;9871;Convention collective départementale des exploitations agricoles Haute Vienne;;01/01/1900;
+IDCC;9891;Convention collective départementale des exploitations forestières Yonne;;01/01/1900;
+IDCC;9971;Convention collective départementale des exploitations bananières Martinique;;01/01/1900;
+IDCC;9972;Convention collective départementale des exploitations agricoles Guyane;;01/01/1900;
+IDCC;9998;___Convention non encore en vigueur___;;01/01/1900;
+IDCC;9999;___Sans convention collective___;;01/01/1900;

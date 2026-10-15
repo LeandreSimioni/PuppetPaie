@@ -569,7 +569,7 @@ fn bareme_de_l_annee(dossier: &Path, an: i32, fichier: Option<Value>, idcc: Opti
 \x20 Le socle livre avec le logiciel couvre : {}. Un socle neuf \
 s'ecrit en janvier, depuis le plus recent : SMIC, plafond de \
 la Securite sociale, taux qui ont bouge (voir \
-reference/veille-taux.md).",
+reference-privee/veille-taux.md (relevé sur une compagnie réelle, pièce hors du dépôt public : dépôt privé)).",
                     an,
                     disponibles(dossier)
                 )));

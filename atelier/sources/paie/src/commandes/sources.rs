@@ -9,8 +9,9 @@
 //! le reglage de l'installation, `"editeur": true`, et jamais depuis une copie). CACHEE : elle n'apparait pas dans l'aide.
 //!
 //! ATTENTION : `--verifier` va au RESEAU (chaque source « telechargement », et l'index KALI de la DILA). Lecture seule,
-//! hors `reference/sources/` de la compagnie de l'editeur : le resume des livraisons KALI (`veille-kali.json`), et avec
-//! `--relever`, la nouvelle version d'une source a cote de l'ancienne et le XML des textes KALI touches (`kali/`).
+//! hors `atelier/reference/sources/` de l'installation (le depot, sur le poste de l'editeur ; `sources::COPIES`) : le
+//! resume des livraisons KALI (`veille-kali.json`), et avec `--relever`, la nouvelle version d'une source a cote de
+//! l'ancienne et le XML des textes KALI touches (`kali/`).
 
 use serde_json::{json, Value};
 
@@ -40,12 +41,14 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     // `--relever` ne se fait qu'en retournant voir : il emporte `--verifier`.
     let relever = args.drapeau("relever");
     let verifier = args.drapeau("verifier") || relever;
+    // Les copies sont les textes du logiciel, pas ceux d'une compagnie : elles vivent dans l'installation.
+    let installation = crate::maj::installation();
     let liste = if verifier {
         let mut tele = |u: &str| crate::sources::telecharger(u, 30);
         let mut kali = |u: &str| crate::sources::telecharger(u, 60).map(|(o, _)| o);
-        crate::sources::verifier(&cadre.racine, &manifeste, &cadre.ctx.aujourdhui, &[], relever, &mut tele, &mut kali)
+        crate::sources::verifier(&installation, &manifeste, &cadre.ctx.aujourdhui, &[], relever, &mut tele, &mut kali)
     } else {
-        crate::sources::etats(&cadre.racine, &manifeste, &cadre.ctx.aujourdhui)
+        crate::sources::etats(&installation, &manifeste, &cadre.ctx.aujourdhui)
     };
     let liste = match liste {
         Ok(l) => l,
@@ -72,8 +75,10 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
             "copie conforme".to_string()
         } else if e["copie_presente"] == json!(true) {
             "COPIE DIFFERENTE du manifeste".to_string()
+        } else if e["transcription_presente"] == json!(true) {
+            format!("original hors du depot public, transcription : {}/{}", crate::sources::COPIES, s(e, "transcription"))
         } else {
-            format!("copie absente (reference/sources/{})", s(e, "fichier"))
+            format!("copie absente ({}/{})", crate::sources::COPIES, s(e, "fichier"))
         };
         let nourrit: Vec<String> = e["nourrit"].as_array().into_iter().flatten().map(crate::etats::py_str).collect();
         dire!("   {} ; nourrit : {}", copie, if nourrit.is_empty() { "rien (verification)".to_string() } else { nourrit.join(", ") });

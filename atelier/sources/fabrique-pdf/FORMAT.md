@@ -635,7 +635,7 @@ Chiffré : `"chiffrement": {"filtre": "Standard", "V": 5, "R": 6, "longueur": 25
 
 **Mesuré contre PyMuPDF 1.28** (script jetable hors du dépôt, les quatre premières pages de
 chacun de 37 PDF — 72 pages — de `exemples/`, `demo/`, `prive/sorties/`,
-`prive/export-coolpaie/` et `prive/reference/` : contrats, bulletins, AER, certificats, exports de
+`prive/export-coolpaie/` et `atelier/reference/` : contrats, bulletins, AER, certificats, exports de
 CoolPaie, DSN, plaquettes d'organismes) :
 
 | ce qu'on compare | résultat |

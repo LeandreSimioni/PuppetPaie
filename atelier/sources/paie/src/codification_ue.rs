@@ -1,13 +1,13 @@
 //! `S21.G00.30.013` (codification UE) : quatre valeurs, et la table qui les donne depuis le pays de nationalite.
 //!
-//! LA NORME (cahier technique DSN 2026.1, p. 173, `prive/reference/norme-dsn/texte/bloc-S21.G00.30.txt`, l. 267-277) :
+//! LA NORME (cahier technique DSN 2026.1, p. 173, `atelier/reference/norme-dsn/texte/bloc-S21.G00.30.txt`, l. 267-277) :
 //! « Classification de l'origine du salarié au vu des frontières françaises et des limites de l'Union Européenne. Il
 //! faut renseigner dans cette rubrique le code le plus précis applicable à l'individu » ; « 01 - France / 02 - UE /
 //! 03 - EEE / 04 - Reste du Monde ». « Le plus precis » : la France est dans l'Union, l'Union dans l'EEE ; 03 ne vaut
 //! donc que pour un Etat de l'EEE hors de l'Union. Lire « origine » comme la nationalite est une INFERENCE (le moteur
 //! le fait depuis le 23/09/2026 ; la norme ne dit pas « nationalite »).
 //!
-//! LES ETATS (`prive/reference/sources/union-europeenne/LISEZ-MOI.md`) : l'Union, traite sur l'Union europeenne,
+//! LES ETATS (`atelier/reference/sources/union-europeenne/LISEZ-MOI.md`) : l'Union, traite sur l'Union europeenne,
 //! art. 52 § 1, version consolidee (JO C 202 du 07/06/2016), moins le Royaume-Uni, sorti par l'accord de retrait
 //! (JO L 29 du 31/01/2020 ; fin de la periode de transition le 31/12/2020, art. 126) ; l'EEE hors Union : Islande,
 //! Liechtenstein, Norvege (synthese EUR-Lex de l'accord EEE, qui dit aussi que la Suisse l'a rejete). Le Royaume-Uni
@@ -38,7 +38,7 @@ pub const UNION: [&str; 26] = [
 /// Les territoires que les traites excluent de l'Union alors que leur pays de rattachement en est : les Feroe (TFUE art. 355
 /// § 5 a), « les traites ne s'appliquent pas aux iles Feroe » ; protocole n° 2 de l'acte d'adhesion de 1972, art. 4 : les
 /// ressortissants danois qui y resident ne sont pas des ressortissants d'un Etat membre ; hors de l'EEE par l'art. 126 § 1
-/// de l'accord : `prive/reference/sources/union-europeenne/LISEZ-MOI.md`, « Les iles Feroe »).
+/// de l'accord : `atelier/reference/sources/union-europeenne/LISEZ-MOI.md`, « Les iles Feroe »).
 pub const TERRITOIRES_HORS_UNION: [&str; 1] = ["FO"];
 
 /// Les Etats parties a l'accord EEE qui ne sont pas dans l'Union.

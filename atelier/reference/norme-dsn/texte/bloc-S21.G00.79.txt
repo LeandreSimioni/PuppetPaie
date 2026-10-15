@@ -1,0 +1,184 @@
+# Bloc S21.G00.79
+# Extrait de dsn-cahier-technique-2026.1.pdf (pdftotext -layout, espaces repliés), pages 298-300
+
+--- p. 298 ---
+  S21.G00.79  2025-12-24
+
+  X  [1,3]  CSL 00 : [1-9][0-9]*
+
+Numéro du contrat  S21.G00.78.006
+Base.Numero
+  Cette rubrique est à renseigner du "Numéro du contrat - S21.G00.40.009". Dans le cas de la déclaration de
+  plusieurs blocs "Contrat - S21.G00.40" impliquant un découpage des règles de calcul des cotisations, cette
+  rubrique permet d'identifier le contrat concerné pour chaque base assujettie.
+  Dans le cas de la déclaration d'un contrat unique, cette rubrique n'est pas à renseigner.
+
+  X  [5,20]
+
+Identifiant du CRM à l'origine de la régularisation  S21.G00.78.007
+Base.IdentifiantCRMRegul
+  Il s'agit de l'identifiant du CRM (compte rendu métier) transmis par l'organisme demandeur de la
+  régularisation ou de la correction.
+  CCH-11 : La rubrique "Identifiant du CRM à l'origine de la régularisation - S21.G00.78.007" ne peut être renseignée
+  que pour une période de rattachement (S21.G00.78.002 et S21.G00.78.003) inférieure au mois principal déclaré
+  (S20.G00.05.005) de la déclaration. Dans le cas contraire cette rubrique est interdite. Ce contrôle vise à ce qu'il soit
+  possible de renseigner l'identifiant du CRM à l'origine de la régularisation que pour des régularisations ou des
+  corrections.
+
+  X  [1,18]
+
+S21.G00.79
+
+Composant de base assujettie  S21.G00.79
+  Composante de la base assujettie déterminée selon des règles différentes de celles utilisées pour l'établissement
+  d'éléments de revenu brut.
+  Pour les organismes autres que Prévoyance, ce bloc n'est à renseigner que dans le cas où les éléments de revenu brut
+  sont insuffisants pour constituer la base assujettie. Ce cas peut notamment se présenter lorsqu'une base assujettie est
+  composée, d'une part, d'éléments de revenu brut et, d'autre part, de composants ne donnant pas lieu à versement au
+  salarié.
+  Pour la Prévoyance, ce bloc est à alimenter par les éléments constituant les paramètres qui entrent dans le calcul de la
+  cotisation.
+
+Type de composant de base assujettie  S21.G00.79.001
+Montant de composant de base assujettie  S21.G00.79.004
+Identifiant du CRM à l'origine de la régularisation  S21.G00.79.005
+
+Type de composant de base assujettie  S21.G00.79.001
+BaseComposant.Type
+  Le type de composant de base assujettie constitue son identifiant. Il permet de donner une signification au
+  montant de composant de base assujettie.
+  Modalité de valorisation :
+  - AGIRC-ARRCO : "01", "03"
+  - Caisses de congés payés (CIBTP, Transport et Manutention portuaire) : non concerné
+  - CAMIEG : non concerné
+  - CCVRP : non concerné
+  - CNIEG : non concerné
+  - Congés spectacles (AUDIENS) : non concerné
+  - CRPCEN : "01", "03", "04", "05", "22" (pour corriger des périodes antérieures à 2023)
+
+  298 / 361
+
+--- p. 299 ---
+  S21.G00.79  2025-12-24
+
+- CRPNPAC : "01"
+- Organisme complémentaire : "10", "11" , "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "23",
+"24"
+- DGFiP : "90", "91"
+- IRCANTEC : non concerné
+- MSA : "01", "03", "06", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "23", "24"
+- France Travail : "01"
+- Urssaf : "01", "02", "03", "04", "05", '06", "07", "22"
+- CNRACL : non concerné
+- FSPOEIE : non concerné
+- RAFP : non concerné
+- SRE : non concerné
+- RAEP : non concerné
+- CNBF : non concerné
+CCH-11 : Si la rubrique "Code de base assujettie - S21.G00.78.001" est renseignée avec la valeur "31 - Eléments de
+cotisation Prévoyance, Santé, retraite supplémentaire", au moins un bloc "Composant de base assujettie - S21.G00.79"
+doit être renseigné.
+
+CCH-12 : Si la rubrique "Code de base assujettie - S21.G00.78.001" est renseignée avec la valeur "31 - Eléments de
+cotisation Prévoyance, Santé, retraite supplémentaire", il doit obligatoirement être renseigné une valeur comprise entre
+"10" et "21" inclus, ou égale à "23" ou égale à "24" au niveau de la rubrique "Type de composant de base assujettie -
+S21.G00.79.001".
+
+CCH-13 : Si la rubrique « Type de composant de base assujettie - S21.G00.79.001 » est renseignée avec la valeur « 23
+- Sans composant de base assujettie en paie", alors la valeur renseignée dans la rubrique « Montant de cotisation -
+S21.G00.81.004 » doit être égale à 0.
+
+CCH-14 : Si la rubrique "Type de composant de base assujettie - S21.G00.79.001" est renseignée avec la valeur "01 -
+Montant du SMIC retenu pour le calcul de la Réduction générale des cotisations patronales de sécurité sociale, de
+retraite complémentaire, d'assurance chômage et de la réduction de cotisation Allocations familiales", alors elle doit
+être rattachée à un bloc "Base assujettie - S21.G00.78" dont la rubrique "Code de base assujettie - S21.G00.78.001" est
+de type "03 - Assiette brute déplafonnée" ou de type "19 - Assiette CRPCEN".
+
+CCH-16 : Si la rubrique "Code de base assujettie - S21.G00.78.001" est alimentée avec la valeur "31 - Eléments de
+cotisation Prévoyance, Santé, retraite supplémentaire":
+- il est interdit de renseigner plusieurs blocs "Composants de base assujettie - S21.G00.79", enfants du même bloc
+"Base assujettie - S21.G00.78", avec la valeur "10 - Salaire brut Prévoyance" au niveau de la rubrique "Type de
+composant de base assujettie - S21.G00.79.001"
+- il est interdit de renseigner plusieurs blocs "Composants de base assujettie - S21.G00.79", enfants du même bloc
+"Base assujettie - S21.G00.78", avec la valeur "11 - Tranche A Prévoyance" au niveau de la rubrique "Type de
+composant de base assujettie - S21.G00.79.001"
+- il est interdit de renseigner plusieurs blocs "Composants de base assujettie - S21.G00.79", enfants du même bloc
+"Base assujettie - S21.G00.78", avec la valeur "12 - Tranche 2 Prévoyance" au niveau de la rubrique "Type de
+composant de base assujettie - S21.G00.79.001"
+- il est interdit de renseigner plusieurs blocs "Composants de base assujettie - S21.G00.79", enfants du même bloc
+"Base assujettie - S21.G00.78", avec la valeur "13 - Tranche B Prévoyance" au niveau de la rubrique "Type de
+composant de base assujettie - S21.G00.79.001"
+- il est interdit de renseigner plusieurs blocs "Composants de base assujettie - S21.G00.79", enfants du même bloc
+"Base assujettie - S21.G00.78", avec la valeur "14 - Tranche C Prévoyance" au niveau de la rubrique "Type de
+composant de base assujettie - S21.G00.79.001"
+- il est interdit de renseigner plusieurs blocs "Composants de base assujettie - S21.G00.79", enfants du même bloc
+"Base assujettie - S21.G00.78", avec la valeur "15 - Tranche D Prévoyance" au niveau de la rubrique "Type de
+composant de base assujettie - S21.G00.79.001"
+- il est interdit de renseigner plusieurs blocs "Composants de base assujettie - S21.G00.79", enfants du même bloc
+"Base assujettie - S21.G00.78", avec la valeur "16 - Tranche D1 Prévoyance" au niveau de la rubrique "Type de
+composant de base assujettie - S21.G00.79.001"
+- il est interdit de renseigner plusieurs blocs "Composants de base assujettie - S21.G00.79", enfants du même bloc
+
+  299 / 361
+
+--- p. 300 ---
+  S21.G00.79  2025-12-24
+
+  "Base assujettie - S21.G00.78", avec la valeur "24 - Tranche 2 Unifiée Prévoyance" au niveau de la rubrique "Type de
+  composant de base assujettie - S21.G00.79.001"
+
+  CCH-17 : Si la rubrique "Code de base assujettie - S21.G00.78.001" est renseignée avec la valeur "31 - Eléments de
+  cotisation Prévoyance, Santé, retraite supplémentaire", il est interdit de renseigner la rubrique "Type de composant de
+  base assujettie - S21.G00.79.001" avec la valeur "01 - Montant du SMIC retenu pour le calcul de la Réduction générale
+  des cotisations patronales de sécurité sociale, de retraite complémentaire, d'assurance chômage et de la réduction de
+  cotisation Allocations familiales", "02 - Montant du SMIC retenu pour le calcul du crédit d'impôt compétitivité-
+  emploi", "03 - Contributions patronales à des régimes complémentaires de retraite", "04 - Contributions patronales
+  destinées au financement des prestations de prévoyance complémentaire", "05 - Contributions patronales destinées au
+  financement des prestations de retraite supplémentaire", "06 - Plafond calculé pour salarié poly-employeurs", "22 -
+  Montant des indemnités journalières CRPCEN", "90 - Retenue sur salaire" ou "91 - Base de taxe sur les salaires au
+  taux normal".
+
+  SIG-18 : Un bloc "Composant de base assujettie - S21.G00.79" portant le code "23 - Sans composant de base assujettie
+  en paie" au niveau de la rubrique "Type de composant de base assujettie - S21.G00.79.001" doit être l'unique bloc
+  "Composant de base assujettie - S21.G00.79" enfant du bloc "Base assujettie - S21.G00.78" auquel il est rattaché.
+
+  SIG-19 : Si la rubrique « Type de composant de base assujettie - S21.G00.79.001 » est renseignée avec la valeur "23 -
+  Sans composant de base assujettie en paie", alors la valeur renseignée dans la rubrique « Montant de composant de
+  base assujettie - S21.G00.79.004 » doit être égale à 0.
+
+  X  [2,2]
+
+  01 - Montant du SMIC retenu pour le calcul de la Réduction générale des cotisations patronales de sécurité sociale, de
+  retraite complémentaire et d'assurance chômage
+  02 - Montant du SMIC retenu pour le calcul du crédit d'impôt compétitivité-emploi
+  03 - Contributions patronales à des régimes complémentaires de retraite
+  04 - Contributions patronales destinées au financement des prestations de prévoyance complémentaire
+  05 - Contributions patronales destinées au financement des prestations de retraite supplémentaire
+  06 - Plafond calculé pour salarié poly-employeurs
+  07 - Plafond de Sécurité Sociale appliqué
+  10 - Salaire brut Prévoyance
+  11 - Tranche A Prévoyance
+  12 - Tranche 2 Prévoyance
+  13 - Tranche B Prévoyance
+  14 - Tranche C Prévoyance
+  15 - Tranche D Prévoyance
+  16 - Tranche D1 Prévoyance
+  17 - Base spécifique Prévoyance
+  18 - Base forfaitaire Prévoyance
+  19 - Base fictive Prévoyance reconstituée
+  20 - Montant forfaitaire Prévoyance
+  21 - Montant Prévoyance libre ou exceptionnel
+  22 - Montant des indemnités journalières CRPCEN
+  23 - Sans composant de base assujettie en paie
+  24 - Tranche 2 Unifiée Prévoyance
+  25 - Potentiel nouveau type de composant de base assujettie A
+  26 - Potentiel nouveau type de composant de base assujettie B
+  27 - Potentiel nouveau type de composant de base assujettie C
+  28 - Potentiel nouveau type de composant de base assujettie D
+  29 - Potentiel nouveau type de composant de base assujettie E
+  90 - Retenue sur salaire
+  91 - Base de taxe sur les salaires au taux normal
+
+Montant de composant de base assujettie  S21.G00.79.004
+
+  300 / 361

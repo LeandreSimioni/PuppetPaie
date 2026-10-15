@@ -1,0 +1,98 @@
+PARAMETRAGE DSN – Aide à la codification de la cotisation du Comité d'Action Sociale et Culturelle
+du Spectacle Vivant Privé IDCC 3090 – CASC SVP - Version juin 2026
+
+Bloc                 Rubrique                              Libellé                                           Paramétrage pour l’ensemble du personnel
+                                                                                     CASCSVP
+                   S21.G00.15.001   Référence contrat de Prévoyance                  Taux de 0,40 % jusqu’au 31 12 2025
+                                                                                     Taux de 0,50 % à compter du 1er janvier 2026
+Bloc Adhésion S21.G00.15.002        Code organisme de Prévoyance                     Pour Audiens Santé Prévoyance le code est P0983
+Prévoyance                                                                           Non concerné (voir fiche de paramétrage)
+              S21.G00.15.003        Code délégataire de gestion
+                                                                                     Fait le lien avec les affiliations prévoyance renseignées dans la rubrique "identifiant
+                   S21.G00.15.005   Identifiant technique d’adhésion                 technique Adhésion - S21.G00.70.013".
+
+                   S21.G00.20.001   Identifiant Organisme de Protection Sociale      P0983 (code institution Audiens Santé prévoyance)
+                                                                                     SIRET
+                   S21.G00.20.002   Entité d'affectation                             Film : PSEUDO-SIRET FILM attribué par l'Urssaf
+                                                                                     Mannequins : ne pas indiquer de pseudo siret
+                                                                                     Il s'agit des coordonnées bancaires au format BIC du compte sur lequel doit être prélevé le montant de
+                   S21.G00.20.003   BIC
+                                                                                     l'ordre de règlement. Cette rubrique s'appuie sur la norme ISO 9362.
+                                                                                     Il s'agit des coordonnées bancaires au format IBAN du compte sur lequel doit être prélevé le montant
+Bloc Versement S21.G00.20.004       IBAN
+                                                                                     de l'ordre de règlement. Cette rubrique s'appuie sur la norme ISO 13616:2007.
+organisme de
+                                                                                     Montant du versement correspondant au montant des cotisations CASCSVP réglées à Audiens Santé
+protection     S21.G00.20.005       Montant du versement
+                                                                                     Prévoyance.
+sociale
+               S21.G00.20.006       Date de début de période de rattachement         Donnée non exploitée : Indiquer 01012000
+PREVOYANCE
+                   S21.G00.20.007   Date de fin de période de rattachement           Donnée non exploitée : Indiquer 01012000
+                   S21.G00.20.008   Code délégataire de gestion                      Non concerné
+                   S21.G00.20.010   Mode de paiement                                 05 - prélèvement SEPA
+                   S21.G00.20.011   Date de paiement                                 Pour un paiement mensuel
+                                    SIRET payeur                                     SIRET de l’établissement payeur. Permet d’identifier le cas où un établissement délègue le paiement de
+                   S21.G00.20.012
+                                                                                     ses cotisations à un autre établissement
+                   S21.G00.40.003   Code statut catégoriel Retraite complémentaire
+                   S21.G00.40.004   Code PCS-ESE
+                   S21.G00.40.005   Code complément PCS-ESE
+Bloc Contrat       S21.G00.40.007   Nature du contrat
+                   S21.G00.40.011   Unité de mesure
+                                                                                     Identique à ce qui est déjà codifié dans les DSN
+                   S21.G00.40.017   Code convention collective applicable
+                   S21.G00.40.019   Identifiant du lieu de travail
+                   S21.G00.40.021   Motif de recours
+                   S21.G00.53.001   Type
+Bloc Activité      S21.G00.53.002   Mesure
+                   S21.G00.53.003   Unité de mesure
+                                                                                     Montant correspondant à la part du versement affectée au contrat CASCSVP référencé en
+                   S21.G00.55.001   Montant versé
+                                                                                     S21.G00.55.003
+                   S21.G00.55.002   Type de population                               Non concerné
+Bloc                                                                                 CASCSVP
+Composant de
+versement
+                   S21.G00.55.003   Code d'affectation                               Taux de 0,40 % jusqu’au 31 12 2025
+                                                                                     Taux de 0,50 % à compter du 1er janvier 2026
+                                                                                     Période d'affectation des cotisations concernées par ce composant. Il s'agit d'une période civile
+                   S21.G00.55.004   Période d'affectation
+                                                                                     complété (mois)
+                   S21.G00.70.007   Nombre d'enfants à charge
+                   S21.G00.70.008   Nombre d'adultes ayants-droit
+                   S21.G00.70.009   Nombre d'ayants-droit                            Non concerné
+Bloc Affiliation   S21.G00.70.010   Nombres d'ayants-droit autres
+Prévoyance         S21.G00.70.011   Nombres d'enfants ayant-droit
+                                                                                     Fait le lien avec l'identifiant technique renseigné dans la rubrique "identifiant technique Affiliation -
+                   S21.G00.70.012   Identifiant technique d'affiliation
+                                                                                     S21.G00.78.005"
+                                                                                     Fait le lien avec l'identifiant technique renseigné dans la rubrique "identifiant technique Adhésion -
+                   S21.G00.70.013   Identifiant technique d'adhésion
+                                                                                     S21.G00.15.005"
+                   S21.G00.78.001   Code Base assujettie PREVOYANCE/SANTE            Code 31 avec un montant '0' en rubrique S21.G00.78.004
+                   S21.G00.78.002   Date début de rattachement                       Date de début de période pour laquelle est valorisée cette base.
+                   S21.G00.78.003   Date fin de rattachement                         Date de fin de période pour laquelle est valorisée cette base.
+Bloc base
+assujettie         S21.G00.78.004   Montant                                          En Prévoyance/santé montant = '0'
+                                                                                     A renseigner si le code S21.G00.78.001 = 31 - Eléments de cotisation Prévoyance, Santé
+                   S21.G00.78.005   Identifiant technique d'affiliation              Fait le lien avec l'identifiant technique Affiliation Prévoyance renseigné dans la rubrique "identifiant
+                                                                                     technique Affiliation - S21.G00.70.012"
+                   S21.G00.79.001   Type de composant de base assujettie             11 – Tranche A
+Bloc
+Composant de                                                                         Montant du composant de base assujettie participant au calcul de la cotisation individuelle renseignée
+base assujettie
+                   S21.G00.79.004   Montant de composant de base assujettie          dans le sous-groupe "cotisation individuelle - S21.G00.81"pour la période et le sous-groupe "base
+                                                                                     assujettie - S21.G00.78"
+                   S21.G00.81.001   Code de cotisation                               Code 059
+                   S21.G00.81.002   Identifiant organisme                            Non concerné
+Bloc Cotisation    S21.G00.81.003   Montant d'assiette                               Non concerné
+individuelle
+                                                                                     Montant total de la cotisation pour le salarié, au titre de la période de rattachement et de l'affiliation
+                   S21.G00.81.004   Montant de cotisation PREVOYANCE SANTE           Prévoyance renseignées dans le bloc S21.G00.78
+
+
+
+
+                                                             1
+

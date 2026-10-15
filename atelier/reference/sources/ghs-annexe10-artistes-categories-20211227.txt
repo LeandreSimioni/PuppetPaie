@@ -1,0 +1,310 @@
+                              ARTISTES DU SPECTACLE
+La catégorie professionnelle est indiquée selon les informations des conventions collectives ou de la documentation
+d'Audiens. Lorsqu'aucune catégorie professionnelle n'est indiquée, il convient pour la connaître, de contacter un
+des syndicats signataires de la convention collective ou Audiens.
+
+La liste indique la catégorie professionnelle telle que définie dans sPAIEctacle. "Artiste" correspond ainsi à des
+professions non cadre et "Artiste Cadre" à des professions cadre.
+
+Une note sur le paramétrage des réalisateurs figure en bas de document.
+           Code emploi                                                                Type              Catégorie
+  N°                                     Intitulé de la profession
+              occupé                                                                Réalisateur      Professionnelle
+        1 PRE060          1ER DANSEUR                                                              Artiste
+        2 ACC070          ACCOMPAGNATEUR PIANO                                                     Artiste
+        3 ACC040          ACCOMPAGNATEUR REPETITEUR                                                Artiste
+        4 ACC050          ACCORDEONISTE                                                            Artiste
+        5 ACR010          ACROBATE                                                                 Artiste
+        6 ACT010          ACTEUR                                                                   Artiste
+        7 ACT020          ACTEUR DE COMPLEMENT                                                     Artiste
+        8 ACT030          ACTEUR DE SYNCHRONISATION                                                Artiste
+        9 ALT010          ALTO                                                                     Artiste
+       10 ANI100          ANIMATEUR CHANT
+       11 ANI110          ANIMATEUR DE RUE
+       12 ANI090          ANIMATEUR VOCALE
+       13 ANT010          ANTIPODISTE                                                              Artiste
+       14 ARA020          ARRANGEUR MUSICAL                                                        Artiste Cadre
+       15 ARA010          ARRANGEUR-ORCHESTRATEUR                                                  Artiste Cadre
+       16 ART210          ARTISTE ACTION                                                           Artiste
+       17 ART220          ARTISTE BRUITEUR                                                         Artiste
+       18 ART030          ARTISTE CHANTEUR                                                         Artiste
+       19 ART040          ARTISTE CHOREGRAPHIQUE / DE CHOREGRAPHIE                                 Artiste
+       20 ART230          ARTISTE CINEMATOGRAPHIQUE                                                Artiste
+       21 ART240          ARTISTE CONCEPTEUR                                                       Artiste
+       22 ART250          ARTISTE DE BALLET                                                        Artiste
+       23 ART050          ARTISTE DE CABARET                                                       Artiste
+       24 ART060          ARTISTE DE CIRQUE                                                        Artiste
+       25 ART070          ARTISTE DE COMPLEMENT                                                    Artiste
+       26 ART080          ARTISTE DE REVUE                                                         Artiste
+       27 ART090          ARTISTE DE RUE                                                           Artiste
+       28 ART110          ARTISTE DE VARIETES                                                      Artiste
+       29 ART120          ARTISTE DRAMATIQUE                                                       Artiste
+       30 ART130          ARTISTE DRAMATIQUE DE VARIETES                                           Artiste
+       31 ART140          ARTISTE DU CHANT                                                         Artiste
+       32 ART150          ARTISTE DU MUSIC-HALL                                                    Artiste
+       33 ART100          ARTISTE DU SPECTACLE                                                     Artiste
+       34 ART260          ARTISTE ETIQUETTE                                                        Artiste
+       35 ART270          ARTISTE FAUCONNIER                                                       Artiste
+       36 ART280          ARTISTE HUMORISTE                                                        Artiste
+       37 ART290          ARTISTE INSTRUMENTISTE                                                   Artiste
+       38 ART200          ARTISTE INTERPRETE                                                       Artiste
+       39 ART330          ARTISTE INVITE                                                           Artiste
+       40 ART160          ARTISTE LYRIQUE                                                          Artiste
+       41 ART170          ARTISTE MUSICIEN                                                         Artiste
+       42 ART320          ARTISTE REPETITION                                                       Artiste
+       43 ART300          ARTISTE SLAM                                                             Artiste
+
+
+                                                         1/5                                      Contrôle le 27/12/21
+                              ARTISTES DU SPECTACLE
+La catégorie professionnelle est indiquée selon les informations des conventions collectives ou de la documentation
+d'Audiens. Lorsqu'aucune catégorie professionnelle n'est indiquée, il convient pour la connaître, de contacter un
+des syndicats signataires de la convention collective ou Audiens.
+
+La liste indique la catégorie professionnelle telle que définie dans sPAIEctacle. "Artiste" correspond ainsi à des
+professions non cadre et "Artiste Cadre" à des professions cadre.
+
+Une note sur le paramétrage des réalisateurs figure en bas de document.
+           Code emploi                                                                Type              Catégorie
+  N°                                     Intitulé de la profession
+              occupé                                                                Réalisateur      Professionnelle
+       44 ART190          ARTISTE VISUEL                                                           Artiste
+       45 ART310          ARTISTE VOCAL                                                            Artiste
+       46 ASS810          ASSISTANT DU CHEF D'ORCHESTRE
+       47 MET042          ASSISTANT METTEUR EN SCENE
+       48 AUT010          AUTEUR COMPOSITEUR INTERPRETE                                            Artiste
+       49 AUT020          AUTOMATE                                                                 Artiste
+       50 AYU010          AYUDA                                                                    Artiste
+       51 BAN010          BANDERILLERO                                                             Artiste
+       52 BAR010          BARYTON                                                                  Artiste
+       53 BAS010          BASSISTE                                                                 Artiste
+       54 BAS020          BASSONISTE                                                               Artiste
+       55 BAT010          BATTEUR                                                                  Artiste
+       56 BOI010          BOIS                                                                     Artiste
+       57 BOL010          BOLAS                                                                    Artiste
+       58 BOL020          BOLEADORAS                                                               Artiste
+       59 BOX010          BOXEUR                                                                   Artiste
+       60 CAN010          CANTATRICE                                                               Artiste
+       61 CAR010          CARICATURISTE                                                            Artiste
+       62 CAS010          CASCADEUR                                                                Artiste
+       63 CAT010          CATCHEUR                                                                 Artiste
+       64 CAV010          CAVALIER                                                                 Artiste
+       65 CHA010          CHANSONNIER                                                              Artiste
+       66 CHA020          CHANTEUR                                                                 Artiste
+       67 CHA030          CHANTEUR DE VARIETES                                                     Artiste
+       68 CHA160          CHANTEUR LYRIQUE                                                         Artiste
+       69 CHA040          CHANTEUR MUSICIEN                                                        Artiste
+       70 CHA050          CHANTEUR SOLISTE                                                         Artiste
+       71 CHE190          CHEF D'ORCHESTRE                                                         Artiste Cadre
+       72 CHE510          CHEF D'ORCHESTRE SYMPHONIQUE                                             Artiste Cadre
+       73 CHE790          CHEF DE CHANT                                                            Artiste Cadre
+       74 ASS820          CHEF DE CHŒUR ASSISTANT
+       75 CHE170          CHEF DES CHOEURS                                                         Artiste Cadre
+       76 CHO010          CHOREGRAPHE                                                              Artiste Cadre
+       77 CHO020          CHORISTE                                                                 Artiste
+       78 CLA050          CLARINETTE BASSE                                                         Artiste
+       79 CLA010          CLARINETTISTE                                                            Artiste
+       80 CLA020          CLAVECINISTE                                                             Artiste
+       81 CLA030          CLAVIER                                                                  Artiste
+       82 CLO020          CLOSE UP                                                                 Artiste
+       83 CLO010          CLOWN                                                                    Artiste
+       84 COM010          COMEDIEN                                                                 Artiste
+       85 CON130          CONTEUR                                                                  Artiste
+       86 CON140          CONTORSIONNISTE                                                          Artiste
+
+
+                                                         2/5                                      Contrôle le 27/12/21
+                              ARTISTES DU SPECTACLE
+La catégorie professionnelle est indiquée selon les informations des conventions collectives ou de la documentation
+d'Audiens. Lorsqu'aucune catégorie professionnelle n'est indiquée, il convient pour la connaître, de contacter un
+des syndicats signataires de la convention collective ou Audiens.
+
+La liste indique la catégorie professionnelle telle que définie dans sPAIEctacle. "Artiste" correspond ainsi à des
+professions non cadre et "Artiste Cadre" à des professions cadre.
+
+Une note sur le paramétrage des réalisateurs figure en bas de document.
+          Code emploi                                                                 Type              Catégorie
+  N°                                     Intitulé de la profession
+            occupé                                                                  Réalisateur      Professionnelle
+     87 CON230            CONTRALTO                                                                Artiste
+     88 CON150            CONTREBASSE                                                              Artiste
+     89 COR050            COR DE BASSET                                                            Artiste
+     90 COR010            CORDES                                                                   Artiste
+     91 COR020            CORNET                                                                   Artiste
+     92 COR040            CORNETISTE                                                               Artiste
+     93 COR030            CORNISTE                                                                 Artiste
+     94 CUI010            CUIVRES                                                                  Artiste
+     95 DAN010            DANSEUR                                                                  Artiste
+     96 DAN020            DANSEUR BALLET                                                           Artiste
+     97 DAN030            DANSEUR DE MUSIC HALL                                                    Artiste
+     98 DAN040            DANSEUR DE VARIETE                                                       Artiste
+     99 DAN050            DANSEUR SOLISTE                                                          Artiste
+    100 DIS020            DISC JOCKEY (ARTISTE DJ)                                                 Artiste
+    101 DOM010            DOMPTEUR                                                                 Artiste
+    102 DOU010            DOUBLURE                                                                 Artiste
+    103 ECH020            ECHASSIER                                                                Artiste
+    104 EQU010            EQUILIBRISTE                                                             Artiste
+    105 FAK010            FAKIR                                                                    Artiste
+    106 FAN010            FANTAISISTE                                                              Artiste
+    107 FIG010            FIGURANT                                                                 Artiste
+    108 FIG020            FIGURANT BALLET                                                          Artiste
+    109 FIL010            FILDEFERISTE                                                             Artiste
+    110 FLU010            FLUTISTE                                                                 Artiste
+    111 FUN010            FUNAMBULE                                                                Artiste
+    112 GUI010            GUITARISTE                                                               Artiste
+    113 HAR010            HARPISTE                                                                 Artiste
+    114 HAU010            HAUTBOISTE                                                               Artiste
+    115 HUM010            HUMORISTE                                                                Artiste
+    116 ILL010            ILLUSIONNISTE                                                            Artiste
+    117 IMI010            IMITATEUR                                                                Artiste
+    118 INS010            INSTRUMENTISTE                                                           Artiste
+    119 INV010            INVITE INTERVENANT                                                       Artiste
+    120 JON010            JONGLEUR                                                                 Artiste
+    121 JOU010            JOUEUR TABLAS                                                            Artiste
+    122 KEY010            KEYBOARD                                                                 Artiste
+    123 LID010            LIDIANDO                                                                 Artiste
+    124 LUT010            LUTTEUR                                                                  Artiste
+    125 MAG010            MAGICIEN                                                                 Artiste
+    126 MAI010            MAITRE DE BALLET                                                         Artiste Cadre
+    127 MAN020            MANDOLINE                                                                Artiste
+    128 MAN010            MANNEQUIN DE FILM PUBLICITAIRE                                           Artiste
+    129 MAR010            MARIONNETTISTE                                                           Artiste
+
+
+                                                         3/5                                      Contrôle le 27/12/21
+                              ARTISTES DU SPECTACLE
+La catégorie professionnelle est indiquée selon les informations des conventions collectives ou de la documentation
+d'Audiens. Lorsqu'aucune catégorie professionnelle n'est indiquée, il convient pour la connaître, de contacter un
+des syndicats signataires de la convention collective ou Audiens.
+
+La liste indique la catégorie professionnelle telle que définie dans sPAIEctacle. "Artiste" correspond ainsi à des
+professions non cadre et "Artiste Cadre" à des professions cadre.
+
+Une note sur le paramétrage des réalisateurs figure en bas de document.
+          Code emploi                                                                 Type              Catégorie
+  N°                                     Intitulé de la profession
+            occupé                                                                  Réalisateur      Professionnelle
+    130 MAT020            MATADOR                                                                  Artiste
+    131 MET040            METTEUR EN SCENE                                                         Artiste Cadre
+    132 MEZ010            MEZZO                                                                    Artiste
+    133 MIM010            MIME                                                                     Artiste
+    134 MOZ010            MOZO DE ESPADA                                                           Artiste
+    135 MUS010            MUSICIEN                                                                 Artiste
+    136 MUS020            MUSICIEN CHANSON VARIETE JAZZ                                            Artiste
+    137 MUS030            MUSICIEN CHANTEUR                                                        Artiste
+    138 MUS060            MUSICIEN DU RANG                                                         Artiste
+    139 MUS070            MUSICIEN SOLISTE CONCERTISTE                                             Artiste
+    140 MUS080            MUSICIEN SOLISTE D'ORCHESTRE                                             Artiste
+    141 NOT010            NOTATEUR                                                                 Artiste Cadre
+    142 NOV010            NOVILLERO                                                                Artiste
+    143 ORC010            ORCHESTRATEUR                                                            Artiste Cadre
+    144 ORG010            ORGANISTE                                                                Artiste
+    145 PAT010            PATINEUR                                                                 Artiste
+    146 PER020            PERCUSSIONNISTE                                                          Artiste
+    147 PIA010            PIANISTE                                                                 Artiste
+    148 PIC020            PICADOR                                                                  Artiste
+    149 PIC010            PICCOLO                                                                  Artiste
+    150 POE010            POETE INTERPRETE                                                         Artiste
+    151 PRE110            PRESTIDIGITATEUR                                                         Artiste
+    152 REA010            REALISATEUR                                                    R         Artiste Cadre
+    153 REA016            REALISATEUR CINEMA                                             R         Artiste Cadre
+    154 REA120            REALISATEUR DE FILMS PUBLICITAIRES                             R         Artiste Cadre
+    155 REA020            REALISATEUR ARTISTIQUE                                         R         Artiste Cadre
+    156 REA100            REALISATEUR AV                                                 R         Artiste Cadre
+    157 REA110            REALISATEUR DE SV                                              R         Artiste Cadre
+    158 REA080            REALISATEUR RADIO                                              R         Artiste Cadre
+    159 REC020            RECITANT                                                                 Artiste
+    160 REJ010            REJONEADOR                                                               Artiste
+    161 SAC010            SACQUEBOUTIER BASSE                                                      Artiste
+    162 SAX010            SAXOPHONISTE                                                             Artiste
+    163 SIL010            SILHOUETTE                                                               Artiste
+    164 SOB010            SOBRESALIENTE                                                            Artiste
+    165 SOL010            SOLISTE                                                                  Artiste
+    166 SOP010            SOPRANO                                                                  Artiste
+    167 SPE010            SPEAKER                                                                  Artiste
+    168 STR010            STRIPTEASEUR                                                             Artiste
+    169 TEC496            TECHNICIEN REALISATEUR 2EME EQUIPE CINE                        R         Artiste Cadre
+    170 TEN010            TENOR                                                                    Artiste
+    171 TER010            TERCERO                                                                  Artiste
+    172 TIM010            TIMBALES                                                                 Artiste
+
+
+                                                         4/5                                      Contrôle le 27/12/21
+                              ARTISTES DU SPECTACLE
+La catégorie professionnelle est indiquée selon les informations des conventions collectives ou de la documentation
+d'Audiens. Lorsqu'aucune catégorie professionnelle n'est indiquée, il convient pour la connaître, de contacter un
+des syndicats signataires de la convention collective ou Audiens.
+
+La liste indique la catégorie professionnelle telle que définie dans sPAIEctacle. "Artiste" correspond ainsi à des
+professions non cadre et "Artiste Cadre" à des professions cadre.
+
+Une note sur le paramétrage des réalisateurs figure en bas de document.
+         Code emploi                                                                  Type              Catégorie
+  N°                                     Intitulé de la profession
+            occupé                                                                  Réalisateur      Professionnelle
+    173 TOR010            TORERO                                                                   Artiste
+    174 TRA050            TRANSFORMISTE                                                            Artiste
+    175 TRA040            TRAPEZISTE                                                               Artiste
+    176 TRO010            TROMBONE                                                                 Artiste
+    177 TRO020            TROMPETTISTE                                                             Artiste
+    178 TUB010            TUBA                                                                     Artiste
+    179 VAL010            VALET D' EPEE                                                            Artiste
+    180 VEN010            VENTRILOQUE                                                              Artiste
+    181 VIB010            VIBRAPHONE                                                               Artiste
+    182 VID020            VIDEO JOCKEY (ARTISTE VJ)                                                Artiste
+    183 VIO010            VIOLONCELLISTE                                                           Artiste
+    184 VIO020            VIOLONISTE                                                               Artiste
+    185 VOI010            VOIX-OFF                                                                 Artiste
+    186 VOL010            VOLTIGEUR                                                                Artiste
+    187 XYL010            XYLOPHONISTE                                                             Artiste
+
+
+
+
+                                                         5/5                                      Contrôle le 27/12/21
+Note sur les réalisateurs
+
+Suite à la Loi 2016-925 du 7 juillet 2016 relative à la liberté de la création, à l'architecture et au
+patrimoine (art. 46), le réalisateur a été intégré à l'art. L7121-2 du Code du travail. Le réalisateur est
+artiste du spectacle pour l'exécution matérielle de sa conception artistique.
+
+Certaines professions réalisateurs ont été transférées de l'annexe VIII (personnel technique) à l'annexe
+X (personnel artistique) de la convention d'assurance chômage (Circulaire 2016-25 du 21 juillet 2016).
+Elles sont listées dans le tableau ci-dessous.
+Les autres professions réalisateurs (ex. Réalisateur coiffure, Réalisateur perruque, Réalisateur
+costumes, Réalisateur lumière, etc.) continuent de relever du champ de l'annexe VIII.
+
+                                                                                                  Code
+                                                                                                             Catégorie
+  IDCC               Convention collective                           Intitulé de la profession   emploi
+                                                                                                          professionnelle
+                                                                                                 occupé
+                                Toutes
+  Tous    Dont Production audiovisuelle, Edition phonographique,          REALISATEUR            REA010    Artiste Cadre
+          Chaînes thématiques et Production de films d’animation
+            pour lesquelles la profession figurait à l’annexe VIII
+
+
+                                                                                                  Code
+                                                                                                             Catégorie
+  IDCC               Convention collective                           Intitulé de la profession   emploi
+                                                                                                          professionnelle
+                                                                                                 occupé
+                                                                       REALISATEUR CINEMA        REA016    Artiste Cadre
+                                                                      REALISATEUR DE FILMS
+                                                                                                 REA120    Artiste Cadre
+  3097        Production cinématographique                                 PUBLICITAIRES
+                                                                     TECHNICIEN REALISATEUR
+                                                                                                 TEC496    Artiste Cadre
+                                                                      2EME EQUIPE CINEMA
+  2770          Edition phonographique                               REALISATEUR ARTISTIQUE      REA020    Artiste Cadre
+  1922               Radiodiffusion                                     REALISATEUR RADIO        REA080    Artiste Cadre
+          Entreprises techniques au service de                           REALISATEUR AV          REA100    Artiste Cadre
+  2717
+             la création et de l’événement                                REALISATEUR SV         REA110    Artiste Cadre
+
+Paramétrage de la profession
+Les professions réalisateurs doivent être déclarées comme Réalisateur dans l'encadré Prestation de
+travail de l'AEM. Dans le menu Type Profession, le choix Réalisateur permet de déclarer ces professions
+comme attendues par Pôle emploi. Il doit être sélectionné lors de la création de la fiche Profession.
+

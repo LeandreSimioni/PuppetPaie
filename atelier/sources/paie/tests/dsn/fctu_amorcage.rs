@@ -326,7 +326,7 @@ fn la_mensuelle_et_le_fctu_du_meme_contrat_portent_le_meme_dernier_jour_paye() {
 }
 
 /// Reste R1 #42 (fiche N5, S21.G00.60.004) : en nature 07, le tableau des usages du cahier technique 2026.1
-/// (`prive/reference/norme-dsn/texte/tableaux-des-usages.txt`, p. 363-382, bloc S21.G00.60) dit 60.001 a 60.003 « O »,
+/// (`atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, p. 363-382, bloc S21.G00.60) dit 60.001 a 60.003 « O »,
 /// 60.010 et 60.011 « C », et 60.004 a 60.008 et 60.012 « I ». Le FCTU appelait `bloc_60` avec la nature « 01 » en dur :
 /// un arret subroge y ecrivait la subrogation, interdite en 07, et le controle des usages arretait le fichier.
 #[test]
@@ -360,7 +360,7 @@ fn le_fctu_d_un_salarie_en_arret_subroge_n_ecrit_que_ce_que_la_nature_07_admet()
 
 /// Reste R1 #52 (fiche N6, S20.G00.05.002 de l'amorcage) : « CCH-15 : Le type de declaration "03 - declaration annule et
 /// remplace integral" est interdit pour une nature de declaration (S20.G00.05.001) "08 - Signalement amorcage des donnees
-/// variables". » (cahier technique 2026.1, p. 135, `prive/reference/norme-dsn/texte/bloc-S20.G00.05.txt` l. 76-77). Un
+/// variables". » (cahier technique 2026.1, p. 135, `atelier/reference/norme-dsn/texte/bloc-S20.G00.05.txt` l. 76-77). Un
 /// amorcage se corrige en l'annulant (04), puis en en deposant un nouveau (§ 1.4.3.4, p. 15). Le moteur offrait et
 /// ecrivait le 03 ; le point de depot l'aurait rejete.
 #[test]

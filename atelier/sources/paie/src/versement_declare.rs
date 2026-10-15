@@ -94,7 +94,7 @@ pub struct VersementDeclare {
     pub affiliations: Vec<(String, String)>,
     /// S21.G00.50.006 du versement du mois d'origine : le taux de prelevement a la source applique ce mois-la, que le
     /// bloc 56 d'un indu cite (S21.G00.56.006, « le taux applique le mois de l'erreur ou de l'indu », cahier technique
-    /// 2026.1, `prive/reference/norme-dsn/texte/bloc-S21.G00.56.txt`). Il se lit sur CE versement (reste R1 #3), pas
+    /// 2026.1, `atelier/reference/norme-dsn/texte/bloc-S21.G00.56.txt`). Il se lit sur CE versement (reste R1 #3), pas
     /// sur un autre fichier du dossier. Apres une correction deja portee, il reste celui du mois d'origine : le
     /// versement de rappel porte le taux de SON mois, qui n'est pas le mois de l'erreur (inference : le texte ne parle
     /// pas d'une seconde correction). `None` : le versement n'en porte pas.

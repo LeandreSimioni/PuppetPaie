@@ -1,0 +1,59 @@
+SOURCE : https://www.insee.fr/fr/metadonnees/pcsese2017/rubriqueRegroupee/354e
+
+
+NomenclatureFicheController
+1766151120002
+pcsese2017
+categorieSocioprofessionnelleAgregee
+categorieSocioprofessionnelle
+rubriqueRegroupee
+354e
+">Accueil
+Définitions, méthodes et qualité
+Nomenclatures
+Nomenclatures des professions et catégories socioprofessionnelles
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Consulter la nomenclature de la PCS-ESE 2017
+Consulter la nomenclature de la PCS-ESE 2017
+Nomenclatures des professions et catégories socioprofessionnelles des emplois salariés des employeurs privés et publics
+Pour les emplois salariés des employeurs privés et publics, la PCS-ESE 2017 est une ventilation plus détaillée de la PCS.
+Les trois premiers caractères de ces deux nomenclatures sont communs, sauf pour les agriculteurs, artisans et commerçants salariés de leur exploitation ou de leur entreprise.
+Nomenclatures
+Date de publication :
+                        19/12/2025
+Recherche nomenclature
+Menu nomenclature
+Rechercher dans la nomenclature
+Tous les niveaux
+catégorie socioprofessionnelle agrégée
+catégorie socioprofessionnelle
+rubrique
+2025-12-19T14:31:59.978+01:00
+Catégorie socioprofessionnelle agrégée 3 : Cadres et professions intellectuelles supérieures
+Catégorie socioprofessionnelle 35 : Professions de l'information, des arts et des spectacles
+Rubrique 354e : Artistes de la danse
+Artistes créant, dirigeant ou interprétant des oeuvres chorégraphiques de tout genre, dans le cadre d'un spectacle vivant ou audiovisuel. La rubrique inclut aussi bien des interprètes jouant seuls que des artistes réunis en une formation particulière (danseurs de ballet) ou dirigeant cette dernière (maître de ballet). Elle inclut également  les activités de chorégraphie et de conseil en chorégraphie, excepté dans le cas où ces activités sont exercées de manière accessoire en complément d'une activité de direction générale ou de conduite d'entreprise.
+Nomenclatures
+Dernière mise à jour le
+ : 19/12/2025
+Professions les plus typiques
+Artiste chorégraphique
+Chorégraphe
+Danseur de ballet
+Danseur soliste
+Maître de ballet
+Professions assimilées
+Artiste de music hall (s.a.i.)
+Assistant pour la danse (théâtre, théâtre lyrique, art chorégraphique, danse)
+Assistant (art chorégraphique, danse)
+Conseiller artistique (art chorégraphique, danse)
+Danseur de music hall
+Danseur de variétés
+Directeur artistique (art chorégraphique, danse)
+Figurant de ballet (art chorégraphique, danse)
+Premier danseur (théâtre, théâtre lyrique)
+Répétiteur (art chorégraphique, danse)
+Professions exclues
+Artiste lyrique (voir 354b)
+Professeur d'art chorégraphique (établissement d'enseignement secondaire et supérieur) (voir 341a, 342b à 342d)
+Professeur d'art chorégraphique (hors établissements scolaires) (voir 354g)

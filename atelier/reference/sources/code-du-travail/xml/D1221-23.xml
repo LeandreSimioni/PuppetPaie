@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000018537878</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/18/53/78/LEGIARTI000018537878.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>D1221-23</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2008-05-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018464861">Partie réglementaire  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018538094">Première partie : Les relations individuelles de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537950">Livre II : Le contrat de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537944">Titre II : Formation et exécution du contrat de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537942">Chapitre Ier : Formation du contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2011-08-01" id="LEGISCTA000018537880">Section 3 : Registre unique du personnel</TITRE_TM>
+<TITRE_TM debut="2011-08-01" fin="2999-01-01" id="LEGISCTA000024214278">Section 2 : Registre unique du personnel</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2008-05-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000018537878" num="D1221-23" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>
+<br/>Les indications complémentaires portées sur le registre unique du personnel pour chaque salarié, mentionnées au troisième alinéa de l'article L. 1221-13, sont les suivantes : <br/>1° La nationalité ; <br/>2° La date de naissance ; <br/>3° Le sexe ; <br/>4° L'emploi ; <br/>5° La qualification ; <br/>6° Les dates d'entrée et de sortie de l'établissement ; <br/>7° Lorsqu'une autorisation d'embauche ou de licenciement est requise, la date de cette autorisation ou, à défaut, la date de la demande d'autorisation ; <br/>8° Pour les travailleurs étrangers assujettis à la possession d'un titre autorisant l'exercice d'une activité salariée, le type et le numéro d'ordre du titre valant autorisation de travail ; <br/>9° Pour les travailleurs titulaires d'un contrat de travail à durée déterminée, la mention « contrat à durée déterminée » ; <br/>10° Pour les salariés temporaires, la mention « salarié temporaire » ainsi que le nom et l'adresse de l'entreprise de travail temporaire ; <br/>11° Pour les travailleurs mis à disposition par un groupement d'employeurs, la mention « mis à disposition par un groupement d'employeurs » ainsi que la dénomination et l'adresse de ce dernier ; <br/>12° Pour les salariés à temps partiel, la mention « salarié à temps partiel » ; <br/>13° Pour les jeunes travailleurs titulaires d'un contrat d'apprentissage ou de professionnalisation, la mention « apprenti » ou « contrat de professionnalisation ».</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000018442415" datesignatexte="2008-03-07" id="LEGIARTI000018456736" naturetexte="DECRET" nortexte="MTST0804938D" num="Annexe" numtexte="2008-244" sens="cible" typelien="CREE">Décret n°2008-244 du 7 mars 2008 - art. (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006900852" naturetexte="CODE" nortexte="" num="L1221-13" numtexte="" sens="source" typelien="CITATION">Code du travail - art. L1221-13 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000030422217" naturetexte="CODE" nortexte="" num="R1227-7" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R1227-7 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018508076" naturetexte="CODE" nortexte="" num="R620-3" numtexte="" sens="source" typelien="CONCORDANCE">Code du travail - art. R620-3 al 1à 10 et al 12 à 16 (Ab)</LIEN>
+</LIENS>
+</ARTICLE>

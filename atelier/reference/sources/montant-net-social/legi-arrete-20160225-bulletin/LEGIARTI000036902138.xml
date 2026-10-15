@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000036902138</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/36/90/21/LEGIARTI000036902138.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>3</NUM>
+
+<ETAT>MODIFIE</ETAT>
+
+<DATE_DEBUT>2016-02-27</DATE_DEBUT>
+<DATE_FIN>2023-02-08</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="JORFTEXT000032106923" date_publi="2016-02-26" date_signature="2016-02-25" ministere="Ministère des finances et des comptes publics" nature="ARRETE" nor="FCPS1604433A" num="" num_parution_jo="0048">
+<TITRE_TXT c_titre_court="Arrêté du 25 février 2016" debut="2999-01-01" fin="2999-01-01" id_txt="JORFTEXT000032106923">Arrêté du 25 février 2016 fixant les libellés, l'ordre et le regroupement des informations figurant sur le bulletin de paie mentionnées à l'article R. 3243-2 du code du travail</TITRE_TXT>
+<TITRE_TXT c_titre_court="Arrêté du 25 février 2016" debut="2016-02-27" fin="2999-01-01" id_txt="LEGITEXT000036902113">Arrêté du 25 février 2016 fixant les libellés, l'ordre et le regroupement des informations figurant sur le bulletin de paie mentionnées à l'article R. 3243-2 du code du travail</TITRE_TXT>
+</TEXTE>
+</CONTEXTE>
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2016-02-27" etat="MODIFIE" fin="2023-02-08" id="LEGIARTI000036902138" num="3" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2023-02-08" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000047098507" num="3" origine="LEGI"/>
+</VERSION>
+<VERSION etat="">
+<LIEN_ART debut="2999-01-01" etat="" fin="2999-01-01" id="JORFARTI000032106931" num="3" origine="JORF"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>
+<br/>La rubrique intitulée « Autres contributions dues par l'employeur » agrège les contributions dues uniquement par l'employeur, notamment le versement transport, la contribution au Fonds national d'aide au logement, la contribution solidarité autonomie, le forfait social, la taxe d'apprentissage et la contribution patronale au financement des organisations syndicales.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS/>
+</ARTICLE>

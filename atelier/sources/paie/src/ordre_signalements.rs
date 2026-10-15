@@ -11,7 +11,7 @@
 //!
 //! CE QUE LA PLATE-FORME DIT. Seul le bilan de nature 11 (certificat ou bilan d'anomalies) porte l'ordre, avec la nature,
 //! le type, le SIREN ; ni salarie, ni contrat (`retours::declarations_du_bilan`). Les documents se purgent a TROIS MOIS
-//! (guide d'implementation de l'API DSN v6.8, §8.2, p. 93, `prive/reference/sources/gip-mds-api-dsn/`) : on releve donc
+//! (guide d'implementation de l'API DSN v6.8, §8.2, p. 93, `atelier/reference/sources/gip-mds-api-dsn/`) : on releve donc
 //! les trois derniers mois, et ce qui est plus ancien n'est plus que dans nos archives (`retours/`) et le journal.
 //!
 //! LE PLUS GRAND DES DEUX, ESSAIS ET REELS ENSEMBLE. Un signalement s'ecrit une fois et part en test puis en reel

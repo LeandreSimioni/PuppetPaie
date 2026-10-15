@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000031685873</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/31/68/58/LEGIARTI000031685873.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L242-10</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2016-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106050">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126888">Livre II : Organisation du régime général, action de prévention, action sanitaire et sociale des caisses</TITRE_TM>
+<TM>
+<TITRE_TM debut="1988-01-06" fin="2999-01-01" id="LEGISCTA000006141614">Titre IV : Ressources</TITRE_TM>
+<TM>
+<TITRE_TM debut="1988-01-06" fin="2999-01-01" id="LEGISCTA000006156071">Chapitre 2 : Assiette, taux et calcul des cotisations</TITRE_TM>
+<TM>
+<TITRE_TM debut="1988-01-06" fin="2999-01-01" id="LEGISCTA000006172925">Section 3 : Cotisations assises sur les rémunérations des salariés à temps partiel.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1985-12-21" etat="MODIFIE" fin="1988-01-06" id="LEGIARTI000006741997" num="L242-10" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1988-01-06" etat="MODIFIE" fin="2013-06-17" id="LEGIARTI000006741998" num="L242-10" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2013-06-17" etat="MODIFIE" fin="2016-01-01" id="LEGIARTI000027565930" num="L242-10" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2016-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000031685873" num="L242-10" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Les dispositions des articles L. 242-8 et L. 242-9 ci-dessus ne sont pas applicables : </p>
+<p>1°) aux salariés ou assimilés dont l'emploi donne lieu à des taux, assiettes ou montants spécifiques de cotisations, en application des articles L. 242-4-4 et L. 242-3 ; </p>
+<p>2°) aux salariés ou assimilés dont l'emploi régulier et simultané par plusieurs employeurs entraîne, quant au calcul des cotisations, un fractionnement entre lesdits employeurs du plafond fixé pour l'assiette des cotisations de sécurité sociale. </p>
+<p>Elles ne s'appliquent pas non plus aux personnels intérimaires des entreprises de travail temporaire ni aux salariés concernés par des mesures de réduction d'horaire ouvrant droit à une indemnisation au titre de l'activité partielle.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000705482" datesignatexte="1981-01-28" id="LEGIARTI000006657671" naturetexte="LOI" nortexte="" num="7" numtexte="81-64" sens="source" typelien="CONCORDANCE">Loi n°81-64 du 28 janvier 1981 - art. 7 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000705482" datesignatexte="1981-01-28" id="LEGIARTI000006657671" naturetexte="LOI" nortexte="" num="7" numtexte="81-64" sens="cible" typelien="CONCORDE">Loi n°81-64 du 28 janvier 1981 - art. 7 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000866621" datesignatexte="1985-12-17" id="JORFTEXT000000866621" naturetexte="DECRET" nortexte="" num="" numtexte="85-1353" sens="source" typelien="CODIFICATION">Décret n° 85-1353 du 17 décembre 1985</LIEN>
+<LIEN cidtexte="JORFTEXT000031663208" datesignatexte="2015-12-21" id="LEGIARTI000031666206" naturetexte="LOI" nortexte="FCPX1523191L" num="32" numtexte="2015-1702" sens="cible" typelien="MODIFIE">LOI n°2015-1702 du 21 décembre 2015 - art. 32</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000031686588" naturetexte="CODE" nortexte="" num="L242-3" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L242-3 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000029956914" naturetexte="CODE" nortexte="" num="L242-4-4" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L242-4-4 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741993" naturetexte="CODE" nortexte="" num="L242-8" numtexte="" sens="cible" typelien="SPEC_APPLI">Code de la sécurité sociale. - art. L242-8 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741990" naturetexte="CODE" nortexte="" num="L242-8" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L242-8 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741996" naturetexte="CODE" nortexte="" num="L242-9" numtexte="" sens="cible" typelien="SPEC_APPLI">Code de la sécurité sociale. - art. L242-9 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741994" naturetexte="CODE" nortexte="" num="L242-9" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L242-9 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000039222466" naturetexte="CODE" nortexte="" num="R242-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R242-2 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000033471274" naturetexte="CODE" nortexte="" num="R242-7" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R242-7 (VT)</LIEN>
+</LIENS>
+</ARTICLE>

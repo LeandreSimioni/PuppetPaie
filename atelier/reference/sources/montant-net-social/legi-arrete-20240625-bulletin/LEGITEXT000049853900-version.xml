@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TEXTE_VERSION>
+<META>
+<META_COMMUN>
+<ID>LEGITEXT000049853900</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>texte/version/LEGI/TEXT/00/00/49/85/39/LEGITEXT000049853900.xml</URL>
+<NATURE>ARRETE</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_TEXTE_CHRONICLE>
+<CID>JORFTEXT000049831771</CID>
+<NUM/>
+<NUM_PARUTION>0152</NUM_PARUTION>
+<NUM_SEQUENCE>5</NUM_SEQUENCE>
+<NOR>ECOS2417548A</NOR>
+<DATE_PUBLI>2024-06-29</DATE_PUBLI>
+<DATE_TEXTE>2024-06-25</DATE_TEXTE>
+<DERNIERE_MODIFICATION>2024-06-30</DERNIERE_MODIFICATION>
+<VERSIONS_A_VENIR/>
+<ORIGINE_PUBLI>JORF n°0152 du 29 juin 2024</ORIGINE_PUBLI>
+<PAGE_DEB_PUBLI/>
+<PAGE_FIN_PUBLI/>
+</META_TEXTE_CHRONICLE>
+<META_TEXTE_VERSION>
+
+
+<TITRE>Arrêté du 25 juin 2024</TITRE>
+<TITREFULL>Arrêté du 25 juin 2024 modifiant l'arrêté du 31 janvier 2023 modifiant l'arrêté du 25 février 2016 fixant les libellés, l'ordre et le regroupement des informations figurant sur le bulletin de paie mentionnées à l'article R. 3243-2 du code du travail</TITREFULL>
+
+<ETAT>VIGUEUR</ETAT>
+<DATE_DEBUT>2024-06-30</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+<AUTORITE/>
+<MINISTERE/>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000032106923" datesignatexte="2016-02-25" id="JORFTEXT000032106923" naturetexte="ARRETE" nortexte="FCPS1604433A" num="" numtexte="" sens="source" typelien="CITATION">Arrêté du 25 février 2016</LIEN>
+<LIEN cidtexte="JORFTEXT000047096915" datesignatexte="2023-01-31" id="JORFTEXT000047096915" naturetexte="ARRETE" nortexte="SPRS2219968A" num="" numtexte="" sens="source" typelien="CITATION">Arrêté du 31 janvier 2023</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGITEXT000006072050" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CITATION">Code du travail</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018487282" naturetexte="CODE" nortexte="" num="R3243-1" numtexte="" sens="source" typelien="CITATION">Code du travail - art. R3243-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018487284" naturetexte="CODE" nortexte="" num="R3243-2" numtexte="" sens="source" typelien="CITATION">Code du travail - art. R3243-2</LIEN>
+</LIENS>
+
+
+</META_TEXTE_VERSION>
+</META_SPEC>
+</META>
+<VISAS>
+<CONTENU>
+<p align="left">
+<br/>Le ministre de l'économie, des finances et de la souveraineté industrielle et numérique, la ministre du travail, de la santé et des solidarités et le ministre délégué auprès du ministre de l'économie, des finances et de la souveraineté industrielle et numérique, chargé des comptes publics,<br/>Vu le code du travail, notamment ses articles R. 3243-1 et R. 3243-2 ;<br/>Vu l'arrêté du 25 février 2016 modifié fixant les libellés, l'ordre et le regroupement des informations figurant sur le bulletin de paie mentionnées à l'article R. 3243-2 du code du travail ;<br/>Vu l'arrêté du 31 janvier 2023 modifiant l'arrêté du 25 février 2016 fixant les libellés, l'ordre et le regroupement des informations figurant sur le bulletin de paie mentionnées à l'article R. 3243-2 du code du travail,<br/>Arrêtent :</p>
+</CONTENU>
+</VISAS>
+<SIGNATAIRES>
+<CONTENU>
+<div align="left">
+<p>Fait le 25 juin 2024.</p>
+</div>
+<div align="left">
+<p>Le ministre de l'économie, des finances et de la souveraineté industrielle et numérique,</p>
+<p>Pour le ministre et par délégation :</p>
+<p>Le chef de service adjoint au directeur de la sécurité sociale,</p>
+<p>M. Delaye</p>
+</div>
+<div align="left">
+<p>La ministre du travail, de la santé et des solidarités,</p>
+<p>Pour la ministre et par délégation :</p>
+<p>Le directeur général du travail,</p>
+<p>P. Ramain</p>
+</div>
+<div align="left">
+<p>Le ministre délégué auprès du ministre de l'économie, des finances et de la souveraineté industrielle et numérique, chargé des comptes publics, </p>
+<p>Pour le ministre et par délégation :</p>
+<p>Le chef de service adjoint au directeur de la sécurité sociale,</p>
+<p>M. Delaye</p>
+</div>
+</CONTENU>
+</SIGNATAIRES>
+<TP>
+<CONTENU/>
+</TP>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<ABRO>
+<CONTENU/>
+</ABRO>
+<RECT>
+<CONTENU/>
+</RECT>
+
+
+</TEXTE_VERSION>
