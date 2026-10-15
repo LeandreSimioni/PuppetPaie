@@ -59,6 +59,12 @@ function nomDuSalarie(cle) {
   return s ? s.libelle : String(cle || "");
 }
 
+/** « attestation de salaire (DSIJ) » : la première lettre seulement, les sigles restent. */
+function minuscule(t) {
+  t = String(t || "");
+  return t.charAt(0).toLowerCase() + t.slice(1);
+}
+
 /** « au plus tard le 16/10/2026 à 10:00 » : la date butoir que le moteur a posée. */
 function butoirEnClair(o) {
   if (!o || !o.butoir) return "";
@@ -170,6 +176,8 @@ function pourquoiDu(o) {
    toucher ici ; seule la route qui la dit faite s'ajoute à cette table. */
 const ROUTES_OBLIGATION_FAITE = {
   declaration_accident: "accident-declare",
+  // Le deuil d'un enfant (motif 19) : pas de signalement, l'attestation de salaire hors DSN.
+  attestation_salaire: "attestation-declare",
 };
 const SIGNALEMENTS_DSN = { signalement_arret: "04", signalement_reprise: "05" };
 const CONNAISSANCE = { signalement_arret: "arret", declaration_accident: "accident" };
@@ -539,7 +547,7 @@ async function boiteArret(ou) {
     const os = r.obligations || [];
     avecDeclaration = os.some((o) => o.cle === "declaration_accident");
     majFaits();
-    ligne.innerHTML = os.length ? `Il faudra ensuite : ${os.map((o) => `${echapper(o.libelle.toLowerCase())}${
+    ligne.innerHTML = os.length ? `Il faudra ensuite : ${os.map((o) => `${echapper(minuscule(o.libelle))}${
       o.etat === "a_la_charge_du_salarie" ? " (par le salarié)" : o.butoir ? ` (${echapper(butoirEnClair(o))})` : ""}`).join(" ; ")}.` : "";
   };
   const majFaits = () => {
@@ -862,7 +870,7 @@ function boiteObligationFaite(a, o) {
         <select id="da-depot">${(o.ou || []).map((x) => `<option value="${echapper(x.code)}"${
           fait.depot === x.code ? " selected" : ""}>${echapper(x.court || x.code)}</option>`).join("")}</select></label>
     </div>
-    <label class="champ-boite">Référence <span class="discret">— l'accusé de net-entreprises, le numéro du recommandé</span>
+    <label class="champ-boite">Référence <span class="discret">— l'accusé de réception, le numéro du recommandé, s'il y en a un</span>
       <input type="text" id="da-reference" value="${echapper(fait.reference || "")}"></label>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
@@ -969,8 +977,8 @@ function ceQuiEnEstParti(i) {
     echapper(quand(s.quand || ""))}`));
   if ((i.reporte_par || []).length) morceaux.push(`déclaré par la DSN ${i.reporte_par.map((m) => echapper(deMois(m))).join(", ")}`);
   (i.obligations || []).forEach((o) => {
-    if (o.fait && o.fait.le && Array.isArray(o.ou)) morceaux.push(`${echapper(o.libelle.toLowerCase())} : faite le ${echapper(jjmmaaaa(o.fait.le))}`);
-    else if (ETATS_DUS[o.etat]) morceaux.push(`${pastilleDu(o)} ${echapper(o.libelle.toLowerCase())}, ${echapper(butoirEnClair(o))}`);
+    if (o.fait && o.fait.le && Array.isArray(o.ou)) morceaux.push(`${echapper(minuscule(o.libelle))} : faite le ${echapper(jjmmaaaa(o.fait.le))}`);
+    else if (ETATS_DUS[o.etat]) morceaux.push(`${pastilleDu(o)} ${echapper(minuscule(o.libelle))}, ${echapper(butoirEnClair(o))}`);
   });
   return morceaux.length ? morceaux.join(" · ") : `<span class="discret">rien n'est encore parti</span>`;
 }
