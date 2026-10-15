@@ -3,7 +3,7 @@
 //! qui n'est pas affilie n'est pas declare affilie.
 //!
 //! Textes :
-//! - cahier technique DSN 2026.1, bloc S21.G00.70 (`prive/reference/norme-dsn/texte/bloc-S21.G00.70.txt`, p. 285-286) :
+//! - cahier technique DSN 2026.1, bloc S21.G00.70 (`atelier/reference/norme-dsn/texte/bloc-S21.G00.70.txt`, p. 285-286) :
 //!   70.004 « Les valeurs de code sont fournies par l'organisme de prévoyance et sont à renseigner seulement sur sa
 //!   demande » ; 70.008 et 70.011 « doit être renseignée si elle intervient dans le calcul de la cotisation » ; 70.009
 //!   la somme des trois compteurs « si ces rubriques sont toutes les trois valorisées » ; 70.014 et 70.015
@@ -370,7 +370,7 @@ fn un_permanent_dispense_de_sante_n_est_pas_affilie_a_la_sante() {
 }
 
 /// R12 : la 3090 a ses dispenses (accord du 19/07/2024, art. 9.1 et 9.2,
-/// `prive/reference/sources/kali-3090-accord-sante-permanents-20240719-20261011.md` : facultatives 9.2.1 a-e, de droit
+/// `atelier/reference/sources/kali-3090-accord-sante-permanents-20240719-20261011.md` : facultatives 9.2.1 a-e, de droit
 /// 9.2.2 a-e). Un permanent 3090 dispense n'a pas de mutuelle au bulletin, et sa DSN ne le rattache pas a FM SPECT
 /// VIVANT PRIV (101) : ni bloc 70, ni base 31 forfaitaire (18) de la sante. La prevoyance (106) et la CASC-SVP (100)
 /// restent. Le motif n'est pas lu : la dispense suffit, son niveau `sante_svp` aussi devient sans objet.
@@ -442,7 +442,7 @@ fn une_dispense_de_sante_que_le_bulletin_ne_suit_pas_refuse() {
 
 /// Q13 (tranchee par Leandre le 11/10/2026) : une dispense de sante a des bornes. Les accords de branche deposes en
 /// donnent deux -- l'echeance du contrat individuel, la justification annuelle (3090 art. 9.2.2 b et d,
-/// `prive/reference/sources/kali-3090-accord-sante-permanents-20240719-20261011.md` ; CCNEAC XII.2.1.8) -- et 70.014
+/// `atelier/reference/sources/kali-3090-accord-sante-permanents-20240719-20261011.md` ; CCNEAC XII.2.1.8) -- et 70.014
 /// nomme « fin d'une dispense d'affiliation » (`bloc-S21.G00.71.txt`, p. 287). Dispense jusqu'au 30/06 : en juin pas
 /// de mutuelle ni d'affiliation a la sante ; en juillet, affilie comme un autre, l'affiliation datee du 01/07.
 #[test]

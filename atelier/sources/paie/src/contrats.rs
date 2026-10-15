@@ -149,7 +149,7 @@ impl Nature {
     /// nature), se declare-t-elle par un signalement de fin de contrat (nature 07) ? Toute fin de contrat donne lieu a
     /// l'attestation employeur (R. 1234-9), par le FCTU en DSN (fiche net-entreprises 119) ; le CDDU n'en est dispense
     /// que par le circuit derogatoire, pour le 031 : « Tous les autres motifs de rupture doivent etre declares par
-    /// l'emission d'un signalement FCTU » (fiche 2062, `prive/reference/sources/net-entreprises-base-connaissances/
+    /// l'emission d'un signalement FCTU » (fiche 2062, `atelier/reference/sources/net-entreprises-base-connaissances/
     /// net-entreprises-fiche2062-derogations-fin-de-contrat-fctu-20250905.txt`). Les listes des fins a signaler (ligne de
     /// commande, page, rappels), le FCTU et l'ecran de saisie la lisent ici.
     pub fn signalement_fctu(&self, motif: Option<&str>) -> bool {
@@ -158,7 +158,7 @@ impl Nature {
 
     /// Les rubriques du bloc 62 que la nature fixe, pour ce motif de rupture : rubrique -> valeur. La modalite de
     /// declaration de la fin d'un contrat d'usage (S21.G00.62.017) suit le motif : « 01 » au circuit derogatoire,
-    /// « 02 » hors de lui (CCH-11 et CCH-12, cahier technique DSN 2026.1 p. 277, `prive/reference/norme-dsn/texte/
+    /// « 02 » hors de lui (CCH-11 et CCH-12, cahier technique DSN 2026.1 p. 277, `atelier/reference/norme-dsn/texte/
     /// bloc-S21.G00.62.txt`).
     pub fn codes_fin(&self, motif: Option<&str>) -> Map<String, Value> {
         let mut out = Map::new();

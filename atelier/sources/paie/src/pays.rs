@@ -3,16 +3,16 @@
 //!
 //! LA LISTE est `logiciel/donnees/pays-base.json`, lue dans le Code officiel geographique de l'INSEE au 1er janvier
 //! 2026, fichier « Pays et territoires etrangers »
-//! (`prive/reference/sources/insee-cog-pays/insee-cog-pays-territoires-etrangers-20260101.csv`, `LISEZ-MOI.md` a
+//! (`atelier/reference/sources/insee-cog-pays/insee-cog-pays-territoires-etrangers-20260101.csv`, `LISEZ-MOI.md` a
 //! cote) : le nom (LIBCOG), le code ISO 3166 a deux lettres (CODEISO2), le pays de rattachement d'un territoire
 //! (CRPAY). Une ligne du COG sans code ISO, ou qui reprend celui d'un Etat, n'est pas dans la liste (`ecartes`).
 //!
-//! LA NORME (cahier technique DSN 2026.1, p. 173, `prive/reference/norme-dsn/texte/bloc-S21.G00.30.txt`, l. 297-303) :
+//! LA NORME (cahier technique DSN 2026.1, p. 173, `atelier/reference/norme-dsn/texte/bloc-S21.G00.30.txt`, l. 297-303) :
 //! « Le Code pays de naissance est à déterminer dans la table "Codes Pays" ISO 3166-1-A2 » ; « X [2,2] Table Pays ».
 //!
 //! LE PAYS DE NAISSANCE (`S21.G00.30.015`) se lit, depuis le 11/10/2026 (lot R2), dans LA TABLE « PAYS » DE LA DSN,
 //! livree dans `logiciel/donnees/pays-dsn-base.json` : la nomenclature NEODeS de net-entreprises du 24/09/2026
-//! (`prive/reference/sources/dsn-nomenclatures/tables-PAYS-et-PAY-20260924.txt`, `LISEZ-MOI.md` a cote), 274 codes,
+//! (`atelier/reference/sources/dsn-nomenclatures/tables-PAYS-et-PAY-20260924.txt`, `LISEZ-MOI.md` a cote), 274 codes,
 //! les 213 du COG et 61 de plus (XK Kosovo, les Etats disparus : SU URSS, YU Yougoslavie, CS Tchecoslovaquie... ; les
 //! territoires et les DROM-COM). Avant, le COG en tenait lieu (une inference) et un ne au Kosovo refusait.
 //! LE PAYS DE NATIONALITE garde la liste du COG : la DSN n'en declare que la codification UE (`30.013`), qui se deduit
@@ -89,7 +89,7 @@ pub fn inconnu_nationalite(quoi: &str, code: &str) -> String {
 }
 
 /// La phrase d'un pays de naissance qui n'est pas dans la table « Pays » de la DSN. `30.015` est obligatoire en DSN
-/// mensuelle (`prive/reference/norme-dsn/texte/tableaux-des-usages.txt` : « O » en nature 01), se lit dans cette table,
+/// mensuelle (`atelier/reference/norme-dsn/texte/tableaux-des-usages.txt` : « O » en nature 01), se lit dans cette table,
 /// « CRE-11 : valeurs autorisées » (cahier technique DSN 2026.1, p. 174, `bloc-S21.G00.30.txt`) : un code qu'elle n'a pas
 /// serait invente (regle 1).
 pub fn inconnu_naissance(quoi: &str, code: &str) -> String {

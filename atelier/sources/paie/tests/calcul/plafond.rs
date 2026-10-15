@@ -2,7 +2,7 @@
 //! engage moins de cinq jours continus : douze fois le plafond horaire par journee de travail accomplie) et, sinon,
 //! CSS R. 242-2 (le plafond mensuel reduit a due proportion des jours du contrat). Vague 1o : hors de l'arrete, un
 //! intermittent a le plafond proratise sur les jours ayant donne lieu a remuneration (BOSS, assiette generale, § 1090,
-//! tolerance appliquee). Textes : prive/reference/sources/arrete-1975-artistes-du-spectacle/,
+//! tolerance appliquee). Textes : atelier/reference/sources/arrete-1975-artistes-du-spectacle/,
 //! code-de-la-securite-sociale/, boss/ (§ 680, 690, 700, 1090, 1100).
 //!
 //! Le moteur se confronte a un oracle ecrit depuis le texte (`oracle`, sans le moteur) sur une grille de 23 808 cas

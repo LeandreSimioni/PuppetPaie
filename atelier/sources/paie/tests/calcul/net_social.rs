@@ -236,7 +236,7 @@ fn une_ligne_hors_assiette_dont_la_nature_ne_dit_pas_ce_qu_elle_est_se_refuse() 
 /// patronale de sante et de prevoyance DANS le montant net social ; le CSS R. 844-1, II, 1° (auquel renvoie le 9° bis
 /// de R. 3243-1 du code du travail) l'en EXCLUT, dans les memes mots depuis le 31/12/2023 (decret n° 2023-1378), le
 /// decret n° 2026-535 n'ayant touche que le 5° du I. Le moteur suit le decret : textes dans
-/// prive/reference/sources/montant-net-social/LISEZ-MOI.md. Un intermittent dont l'employeur finance la prevoyance et
+/// atelier/reference/sources/montant-net-social/LISEZ-MOI.md. Un intermittent dont l'employeur finance la prevoyance et
 /// le Fonds collectif du spectacle pour la sante (interbranche) : son montant net social est son brut moins ses
 /// cotisations salariales, sans un centime de cette part patronale. Le permanent (sante et prevoyance patronales) est
 /// le test `defraiement_acompte_et_indemnite_dans_les_nets_fiscal_et_social`.
@@ -258,7 +258,7 @@ fn la_part_patronale_de_prevoyance_et_du_fonds_sante_d_un_intermittent_reste_hor
 #[test]
 fn le_bulletin_imprime_les_libelles_et_l_ordre_du_modele_de_l_arrete() {
     // Vague 1o. Arrete du 25/02/2016, art. 1, I, redaction du 25/06/2024, seul modele depuis le 01/01/2026
-    // (prive/reference/sources/montant-net-social/legi-arrete-20160225-bulletin/LEGIARTI000049854119.xml) :
+    // (atelier/reference/sources/montant-net-social/legi-arrete-20160225-bulletin/LEGIARTI000049854119.xml) :
     // « MONTANT NET SOCIAL », « REMBOURSEMENTS ET DÉDUCTIONS DIVERSES », « MONTANT NET A PAYER AVANT IMPOT SUR LE
     // REVENU », « IMPOT SUR LE REVENU » (« Montant net imposable », « IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE »),
     // « MONTANT NET A PAYER (en Euros) ». Le defraiement et l'acompte (hors assiette, pas un revenu ; BOSS, Q 39)
@@ -354,7 +354,7 @@ fn octobre_d_avant_1b(ctx: &Contexte, taux: f64) -> (Paie, paie::versement_decla
 
 #[test]
 fn une_correction_du_seul_montant_net_social_declare_garde_la_periode_d_origine() {
-    // BOSS, montant net social, Q 35 (prive/reference/sources/montant-net-social/boss-montant-net-social-20261001.txt,
+    // BOSS, montant net social, Q 35 (atelier/reference/sources/montant-net-social/boss-montant-net-social-20261001.txt,
     // l. 482-486) : « Si seul le calcul du montant net social affiche et declare est errone, mais que le montant
     // effectivement verse au salarie etait correct », la correction se rattache « a la periode d'emploi concernee ».
     // Octobre est corrige en novembre, sans rien changer de ce qui a ete paye : l'annulation du 58.004 depose (le net a
@@ -377,7 +377,7 @@ fn une_correction_du_seul_montant_net_social_declare_garde_la_periode_d_origine(
 
 #[test]
 fn une_correction_qui_verse_un_rappel_le_date_du_mois_du_versement() {
-    // Norme DSN 2026.1, S21.G00.58.003 (prive/reference/norme-dsn/texte/bloc-S21.G00.60.txt, l. 14-18, p. 265) : les
+    // Norme DSN 2026.1, S21.G00.58.003 (atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt, l. 14-18, p. 265) : les
     // dates du montant net social « sont a renseigner en periode de versement » ; BOSS Q 35 et Q 41 : le rappel se prend
     // dans le montant net social du mois ou il est verse. L'heure passe de 19 a 20 EUR, le rappel se verse en
     // novembre ; octobre etait declare avec le net a payer (avant 1b) : il se corrige au montant net social de ce qui a

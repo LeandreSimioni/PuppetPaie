@@ -2,8 +2,8 @@
 //! P27V01 refuse un code NAF rev. 2, en disant vers quels codes NAF 2025 il passe, sans choisir a la place de l'INSEE.
 //!
 //! Textes : decret n° 2025-736 (art. 2 et 6 : NAF 2025 en vigueur, NAF rev. 2 abrogee, au 1er janvier 2027) ; table de
-//! correspondance de l'INSEE (`prive/reference/sources/insee-naf-2025/`, relevee dans `logiciel/donnees/naf-base.json`) ;
-//! actualite net-entreprises du 08/10/2026 (`prive/reference/sources/net-entreprises-actualites/`) : apres la mise en
+//! correspondance de l'INSEE (`atelier/reference/sources/insee-naf-2025/`, relevee dans `logiciel/donnees/naf-base.json`) ;
+//! actualite net-entreprises du 08/10/2026 (`atelier/reference/sources/net-entreprises-actualites/`) : apres la mise en
 //! production de janvier 2027, la NAF 2025 s'applique en P26 comme en P27. Compagnie : une copie de `fictive-3090-grande`
 //! (compagnie inventee). La table livree et la fiche se prouvent dans `src/naf.rs` et `src/champs.rs` ; un fichier P27V01
 //! en NAF 2025 part sans code APE : `norme_par_fichier.rs`.

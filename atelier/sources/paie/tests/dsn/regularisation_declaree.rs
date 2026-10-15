@@ -549,7 +549,7 @@ fn somme(v: &[(String, String)], rubrique: &str, garder: &dyn Fn(&Contexte) -> b
 }
 
 /// L'euro le plus proche de centimes, la fraction egale a 0,50 comptee pour 1 (CSS L. 133-10,
-/// `prive/reference/sources/code-de-la-securite-sociale/articles-20261013.md`) ; rendu en centimes. Un montant negatif
+/// `atelier/reference/sources/code-de-la-securite-sociale/articles-20261013.md`) ; rendu en centimes. Un montant negatif
 /// s'arrondit comme son oppose (INFERENCE : le texte ne dit que « comptee pour 1 »).
 fn a_l_euro(n: i64) -> i64 {
     n.signum() * ((n.abs() + 50) / 100) * 100
@@ -607,7 +607,7 @@ fn par_contrat_de_prevoyance(toutes: &[(String, String)]) -> BTreeMap<String, i6
 /// reduction monte) : le CTP de la reduction en montant (23.005) quand elle monte, son CTP de regularisation en assiette
 /// (23.004), sans signe, quand elle baisse. « Ctp 668/671 : montant de cotisation (reduction) ; Ctp 669/801 :
 /// [montant d'assiette] », « les montants ne doivent pas comporter de signe ; les CTP comprennent les signes
-/// necessaires » (guide declaratif Urssaf 5.1, § 8.2, prive/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt,
+/// necessaires » (guide declaratif Urssaf 5.1, § 8.2, atelier/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt,
 /// lignes 1341-1362).
 fn reduction_ou_sa_regularisation(ctp: &'static str, regularisation: &'static str, d: i64) -> (&'static str, &'static str, i64) {
     if d < 0 { (regularisation, "921", -d) } else { (ctp, "921", d) }
@@ -664,7 +664,7 @@ fn l_agrege_du_mois_d_origine_porte_la_meme_difference_que_le_nominatif() {
     // Le bordereau Urssaf de juillet que porte octobre, code par code (un technicien intermittent : la table des CTP
     // de config/organismes.json). Ses complements maladie et allocations familiales sont ceux du taux plein, 635 et 430
     // (son nominatif declare 907 a 6,00 et 102 a 1,80) : les 636 et 432 « ABATT. 30 % » sont ceux des artistes (« Les
-    // techniciens ne sont pas concernes », prive/reference/sources/urssaf-taux-reduits-artistes/, l. 24 du .txt). La copie
+    // techniciens ne sont pas concernes », atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 24 du .txt). La copie
     // figee a un fichier des organismes compose avant : il se lit juste sans etre recompose.
     let mut attendu: Vec<(String, String, i64)> = [
         ("027", "920", d_brut),
@@ -833,7 +833,7 @@ fn individu(toutes: &[(String, String)], nir: &str) -> Vec<(String, String)> {
 #[test]
 fn un_contrat_paye_ce_mois_et_corrige_porte_des_numeros_de_versement_distincts() {
     // Point 18 de la relecture (fiche N2, S21.G00.50.003 ; N7 § 2.1.3.6 (c)). Norme DSN 2026.1, bloc 50, p. 243-244
-    // (`prive/reference/norme-dsn/texte/bloc-S21.G00.50.txt`) : CCH-11, « Pour un même bloc "Individu - S21.G00.30", il
+    // (`atelier/reference/norme-dsn/texte/bloc-S21.G00.50.txt`) : CCH-11, « Pour un même bloc "Individu - S21.G00.30", il
     // est interdit de déclarer plusieurs blocs « Versement individu - S21.G00.50 » avec un même "Numéro de versement" » ;
     // format N [2,2], CSL 00 [0]*[1-9][0-9]*.
     //
@@ -1019,7 +1019,7 @@ fn la_correction_d_un_cdi_annule_le_declare_et_son_bordereau_porte_la_reduction_
     // etendue » d'un permanent porte la somme de SES 018 de l'Urssaf, part securite sociale et part chomage : « La somme
     // des donnees individuelles (S21.G00.81.004 : code 018) doit etre egale aux donnees agregees (S21.G00.23.005) »,
     // « le montant agrege contient uniquement les montants Urssaf et assurance chomage » (guide declaratif Urssaf, § 8.2,
-    // prive/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt, lignes 1289-1290, 1300-1311 et 1355-1356).
+    // atelier/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt, lignes 1289-1290, 1300-1311 et 1355-1356).
     let r = copie("cdi-bordereau");
     let depose = versement_de(&lignes(&r.join("sorties/2026-07/DSN_Juillet2026.dsn")), NIR_MO, CDI, JUILLET_MOIS);
     let deux = lignes_en_contexte(&depose).into_iter().filter(|(k, _, c)| k == "S21.G00.81.004" && c.code81 == "018" && c.org81 == URSSAF).count();
@@ -1093,7 +1093,7 @@ fn la_correction_d_un_cdi_annule_le_declare_et_son_bordereau_porte_la_reduction_
 #[test]
 fn un_permanent_corrige_au_dessus_de_quatre_plafonds_garde_une_base_07_a_quatre_plafonds() {
     // Vague 2e : le chomage et l'AGS d'un permanent s'assoient dans la limite de quatre plafonds (reglement general
-    // d'assurance chomage, art. 49 ; prive/reference/sources/chomage-permanents/LISEZ-MOI.md). Juillet est parti a
+    // d'assurance chomage, art. 49 ; atelier/reference/sources/chomage-permanents/LISEZ-MOI.md). Juillet est parti a
     // 3 370,00 (base 07 = brut) ; corrige a 20 000,00, le rappel declare une base 07 de 4 x 4 005 = 16 020,00, et le
     // bordereau de juillet porte 16 020 - 3 370 = 12 650 aux CTP 772 et 937 (la base 07 relue, `assiette_declaree`).
     let r = copie("cdi-quatre-plafonds");
@@ -1131,7 +1131,7 @@ fn un_permanent_corrige_au_dessus_de_quatre_plafonds_garde_une_base_07_a_quatre_
     assert_eq!(ligne("100", "921"), Some(a_l_euro(400_500 - 337_000)), "le plafonne sur un plafond");
     // A 20 000,00 la reduction generale tombe a zero : elle BAISSE. Sa regularisation passe au CTP 669, en assiette
     // (23.004) et sans signe, pas au 668 en montant negatif (guide declaratif Urssaf 5.1, § 8.2, schema de l'attendu
-    // declaratif, prive/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt, lignes 1341-1362).
+    // declaratif, atelier/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt, lignes 1341-1362).
     let d_rg = reduction_a_l_urssaf(&regul);
     assert!(d_rg < 0, "la reduction baisse : {}", d_rg);
     assert_eq!(ligne("668", "921"), None, "pas de 668 negatif");
@@ -1146,7 +1146,7 @@ fn un_permanent_corrige_au_dessus_de_quatre_plafonds_garde_une_base_07_a_quatre_
 #[test]
 fn le_taux_du_bloc_56_est_le_50006_du_versement_declare_pas_celui_d_un_autre_fichier_du_mois() {
     // « Taux declare le mois de l'erreur » (S21.G00.56.006) : « le taux applique le mois de l'erreur ou de l'indu »
-    // (cahier technique 2026.1, bloc 56, prive/reference/norme-dsn/texte/bloc-S21.G00.56.txt, l. 134-136). Il se lit sur
+    // (cahier technique 2026.1, bloc 56, atelier/reference/norme-dsn/texte/bloc-S21.G00.56.txt, l. 134-136). Il se lit sur
     // le versement que la correction annule (le dernier etat declare, vague 0b), pas sur n'importe quel .dsn du dossier :
     // avant le reste R1 #3, un fichier d'essai range a cote (ici avec 50.006 = 9.90) l'emportait sur le depot reel.
     let r = copie("taux-bloc-56");

@@ -1,14 +1,14 @@
 //! Le plafond d'un intermittent, au niveau de la paie, suit le texte : il se retient pour chaque paie, sur les jours
 //! remuneres de la paie (BOSS, assiette generale, § 1090, tolerance appliquee :
-//! prive/reference/sources/boss/boss-assiette-generale-20260801.txt, l. 1472-1483).
+//! atelier/reference/sources/boss/boss-assiette-generale-20260801.txt, l. 1472-1483).
 //!
-//! - Arrete du 24/01/1975, art. 3, al. 2 (prive/reference/sources/arrete-1975-artistes-du-spectacle/) : « Pour les
+//! - Arrete du 24/01/1975, art. 3, al. 2 (atelier/reference/sources/arrete-1975-artistes-du-spectacle/) : « Pour les
 //!   periodes d'engagement continu inferieures a cinq jours, le plafond [...] applicable a chaque journee de travail
 //!   accomplie par un artiste du spectacle pour un meme employeur est egal a douze fois le plafond horaire, quels que
 //!   soient le nombre d'heures et la nature du travail effectues dans ladite journee. »
 //! - Sinon, et pour un technicien (l'arrete ne vise que les artistes, art. 1), CSS R. 242-2 : le plafond reduit « a due
 //!   proportion du nombre de jours de la periode pendant laquelle les personnes sont employees »
-//!   (prive/reference/sources/code-de-la-securite-sociale/articles-20261010.md).
+//!   (atelier/reference/sources/code-de-la-securite-sociale/articles-20261010.md).
 //!
 //! Plafond 2026 : 4 005 par mois, 30 de l'heure ; 2025 : 3 925 et 29 (`logiciel/donnees/baremes/`). Sur la copie figee
 //! des compagnies fictives (`tests/donnees/fictives/`, compagnies inventees), lue sans y rien ecrire : les saisies s'ecrivent dans

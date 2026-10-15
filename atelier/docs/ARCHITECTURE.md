@@ -61,7 +61,7 @@ contrat.py bulletin.py  dpae.py     aem.py       dsn.py    conges_spectacles.py
 \* Plus d'AEM produite depuis le 01/06/2026 (100 % DSN, France Travail édite
 l'attestation lui-même — `moteur aer`) ; `aem.py` reste pour relire l'archive
 2021-2026 et pour le rejeu. La source : le courriel de France Travail du
-28/05/2026 à la compagnie (`prive/reference/sources/francetravail-100-dsn/
+28/05/2026 à la compagnie (`atelier/reference/sources/francetravail-100-dsn/
 francetravail-courriel-fin-phase-pilote-100-dsn-20260528.pdf`) — fin des AEM,
 AE Cinéma Spectacle remise au salarié, `S21.G00.40.025` vide ; la date vaut
 pour cette compagnie, une autre reçoit la sienne.
@@ -135,8 +135,9 @@ datée, vérifiable**. CoolPaie ne sert qu'à vérifier.
   pointe la ligne la plus basse et la grille porte les autres pour mémoire.
 - `logiciel/donnees/sources.json` — le **manifeste** : pour chaque source, titre,
   éditeur, URL, description, version et d'où on la lit, date de relevé,
-  fichier de la copie (dans `prive/reference/sources/`, hors dépôt :
-  documents publics, retéléchargeables), SHA-256, mode de vérification, et
+  fichier de la copie (dans `atelier/reference/sources/`, versionnée dans le
+  dépôt depuis le 15/10/2026 ; l'original d'un organisme privé n'y est pas, seule
+  sa transcription), SHA-256, mode de vérification, et
   quels fichiers de données elle nourrit. `paie sources --verifier`
   (poste de l'éditeur seulement, `paie/src/sources.rs`) retélécharge et compare ; une source `changee` est à RELIRE
   (`--relever` pose la nouvelle version à côté). Légifrance refuse les
@@ -148,7 +149,7 @@ datée, vérifiable**. CoolPaie ne sert qu'à vérifier.
   texte modifié (état, arrêté d'extension). Un texte dont le titre parle
   de salaires, ou le texte cité, rend la source `changee` ; le reste est
   montré en second. Lecture incrémentale, résumée dans
-  `prive/reference/sources/veille-kali.json` (livraisons lues, liste des
+  `atelier/reference/sources/veille-kali.json` (livraisons lues, liste des
   textes de chaque convention, trous de l'index) ; à la première veille,
   l'index est remonté jusqu'à la dernière fiche de chaque convention.
   L'ouverture du Python refaisait la vérification une fois par semaine ;
@@ -221,7 +222,7 @@ c'était la seule valeur réglementaire qui vivait dans le code. Le module
 (`paie/src/plafond.rs`) ne porte plus que la règle, et
 `calcul::plafond_de_l_engagement` en est la seule source : le bas du bulletin,
 les bases du calcul, la DSN et le bordereau la suivent. La règle, telle que
-le module la dit avec ses textes (`prive/reference/sources/`) :
+le module la dit avec ses textes (`atelier/reference/sources/`) :
 
 - un **artiste** engagé moins de cinq jours calendaires : 12 × le PSS horaire
   par journée de travail de la paie (arrêté du 24/01/1975, art. 3, al. 2) ;
@@ -278,7 +279,7 @@ utilise `Decimal` avec `ROUND_HALF_UP`.
 Cette section s'appelait « Le plafond déclaré en DSN » : ce n'est pas un
 plafond. `S21.G00.79.001 = '01'` est le « Montant du SMIC retenu pour le
 calcul de la Réduction générale », rattaché à une base 03 (cahier technique
-2026.1, p. 299-300 ; `prive/reference/norme-dsn/texte/bloc-S21.G00.79.txt` ;
+2026.1, p. 299-300 ; `atelier/reference/norme-dsn/texte/bloc-S21.G00.79.txt` ;
 fiche N3 de `prive/journal/norme/`).
 
 Dans les DSN de CoolPaie, il valait **SMIC horaire × 7 h × nombre de
@@ -436,7 +437,7 @@ déposée et le code ; les erreurs relevées sont dans les fiches N1 à N4 de
 - `S21.G00.70.012` et `S21.G00.78.005` sont l'« Identifiant technique
   Affiliation » : « interne au message », unique pour chaque affiliation du
   salarié, le 78.005 d'une base 31 citant le 70.012 de son affiliation (cahier
-  technique 2026.1, p. 286 et p. 297 ; `prive/reference/norme-dsn/texte/bloc-S21.G00.70.txt`,
+  technique 2026.1, p. 286 et p. 297 ; `atelier/reference/norme-dsn/texte/bloc-S21.G00.70.txt`,
   `bloc-S21.G00.78.txt`). Ce n'est ni une affectation ni une « contribution
   formation ». La norme laisse la numérotation libre ; le moteur prend 202 + la
   place de la référence d'adhésion, décalée de `places_par_contrat` × (rang du
@@ -899,7 +900,7 @@ les compléments abattus 432 et 636 ne portent que le brut des **artistes**
 (`"statut": "artiste"`), et un technicien intermittent relève des compléments au
 taux plein 430 et 635 (`"statut": "technicien"`, depuis le 11/10/2026 : « Les
 techniciens ne sont pas concernés » par les taux réduits, page Urssaf déposée dans
-`prive/reference/sources/urssaf-taux-reduits-artistes/` ; un fichier des organismes
+`atelier/reference/sources/urssaf-taux-reduits-artistes/` ; un fichier des organismes
 composé avant se relit ainsi sans être recomposé, `dsn::ctp_urssaf`). Une ligne de
 `ctp_urssaf` peut dépendre de l'effectif (`effectif_au_moins`, `effectif_sous`, lus
 par `dsn::Seuils` dans `config/effectifs.json`) : le FNAL des artistes passe du 334
@@ -912,7 +913,7 @@ permanents, un seul CTP 992.
 `moteur/permanents-base.json` porte les nombres, chacun avec son article ;
 `moteur/permanents.py` porte la règle ; `moteur/operations_permanents.py`
 décide. Les articles sont relevés et datés dans
-`prive/reference/sources/code-du-travail/`.
+`atelier/reference/sources/code-du-travail/`.
 
 - **congés payés** : 2,5 jours ouvrables par mois, 30 au plus (L3141-3) ;
   période de référence au 1er juin (R3141-4 — le 1er avril du même article
@@ -1124,7 +1125,7 @@ Le même bloc « Arrêt de travail » s'écrit à quatre endroits, avec quatre j
 de rubriques — et c'est `dsn::bloc_60` qui les tient tous, pour qu'il n'y ait
 pas deux vérités sur ce qui part. Il décide de ce qu'il écrit par le tableau
 des usages, pour la nature du fichier et jamais une autre (`usage_admet` ;
-`prive/reference/norme-dsn/texte/tableaux-des-usages.txt`, bloc S21.G00.60 ;
+`atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, bloc S21.G00.60 ;
 reste R1 #42 : le FCTU passait « 01 »).
 
 | rubrique | mensuelle (01) | arrêt (04) | reprise (05) | fin de contrat (07) |

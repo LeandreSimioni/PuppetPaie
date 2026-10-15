@@ -6,7 +6,7 @@
 //! signalement le jour ou il est constitue, P27V01 a partir de janvier 2027. Ces tests prouvent que le moteur applique la
 //! donnee, pas que la donnee est juste.
 //!
-//! Ce que P27V01 change dans ce que le moteur ecrit (cahier 2027.1.1, `prive/reference/norme-dsn/texte-2027/`) :
+//! Ce que P27V01 change dans ce que le moteur ecrit (cahier 2027.1.1, `atelier/reference/norme-dsn/texte-2027/`) :
 //! `S21.G00.06.003` (code APEN) et `S21.G00.11.002` (code APET) n'existent plus (p. 142 et 145 ; usages p. 371) ; le code
 //! 105 n'est plus dans la liste de 81.001 (p. 312) ; le 146 devient « hors CET » et la CET part en 148, a l'Urssaf (fiche
 //! net-entreprises 2556, lot R5b).

@@ -15,7 +15,7 @@ use crate::retours::blanc_py;
 ///
 /// Le sexe (30.005, « 01 - masculin », « 02 - féminin ») devient le « 1 » ou « 2 » de la fiche : la norme ne le fait
 /// porter que s'il differe de celui du NIR ou si le NIR manque (cahier technique 2026.1, p. 171,
-/// `prive/reference/norme-dsn/texte/bloc-S21.G00.30.txt`, l. 154-163). Le nom d'usage (30.003, meme bloc, l. 138-144)
+/// `atelier/reference/norme-dsn/texte/bloc-S21.G00.30.txt`, l. 154-163). Le nom d'usage (30.003, meme bloc, l. 138-144)
 /// n'a pas de case dans la fiche salarie (`champs-base.json`) : il n'est pas lu (lot I2, a decider).
 const IDENTITE: [(&str, &str); 14] = [
     ("S21.G00.30.001", "nir"),
@@ -45,7 +45,7 @@ pub(crate) const EMPLOI: [(&str, &str); 5] = [
 
 /// L'entreprise : les blocs 06 (l'entreprise), 11 (l'etablissement) et 40, PAS l'en-tete S10.G00.01, qui est
 /// l'EMETTEUR de l'envoi -- « dans le cas d'un tiers declarant ou d'un concentrateur, c'est l'identifiant SIREN de ce
-/// tiers qui doit figurer ici » (cahier technique 2026.1, p. 130, `prive/reference/norme-dsn/texte/bloc-S10.G00.01.txt`) :
+/// tiers qui doit figurer ici » (cahier technique 2026.1, p. 130, `atelier/reference/norme-dsn/texte/bloc-S10.G00.01.txt`) :
 /// un cabinet qui depose y met son nom et son adresse (lot I2, 3b). Le Siren et l'APEN se lisent en S21.G00.06 (p. 141-142,
 /// `bloc-S21.G00.06.txt`) ; le NIC, l'adresse et l'APET de l'etablissement, en S21.G00.11 (p. 144-145, `bloc-S21.G00.11.txt`)
 /// -- la fiche ne porte qu'un etablissement, celui de son NIC, que le moteur declare en 06.002 et en 11.001 (`dsn.rs`) ;

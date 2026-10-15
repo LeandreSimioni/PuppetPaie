@@ -3,7 +3,7 @@
   "_pourquoi_ici": "Décidé le 17/09/2026 : aucune valeur réglementaire n'est écrite dans le code. Les codes de structure du CDDU déjà écrits dans `dsn.py` (nature du contrat, motif de recours, motif de rupture) restent à sortir de la même façon ; le bloc 60 commence droit.",
   "_source": {
     "titre": "Cahier technique NEODeS 2026.1 (CT2026.1.2 du 24/12/2025), rubriques S21.G00.60.001, .004, .011, .012, p. 265-270 ; tableau d'usages par modèle, p. 363-371",
-    "copie": "reference/norme-dsn/dsn-cahier-technique-2026.1.pdf (voir son LISEZMOI pour l'adresse et le condensat)",
+    "copie": "atelier/reference/norme-dsn/dsn-cahier-technique-2026.1.pdf (voir son LISEZMOI pour l'adresse et le condensat)",
     "relu_le": "2026-09-18",
     "conformite_2027": "Les usages des blocs d'un signalement d'arrêt (05, 07, 06, 11, 15, 30, 40, 60) sont IDENTIQUES dans le cahier technique 2027.1.1 du 10/06/2026 (comparés rubrique par rubrique le 18/09/2026). Seule la liste des motifs d'arrêt y gagne « 25 - Potentiel nouveau motif d'arrêt A », une valeur de réserve, non proposée à la saisie."
   },

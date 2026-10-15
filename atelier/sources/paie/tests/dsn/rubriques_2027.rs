@@ -1,10 +1,10 @@
 //! Corrections DSN, lot V4b : les rubriques que la norme 2027.1.1 ajoute ou change, ecrites ou refusees depuis les
-//! textes, en P27V01 seulement (cahier technique 2027.1.1, `prive/reference/norme-dsn/texte-2027/`).
+//! textes, en P27V01 seulement (cahier technique 2027.1.1, `atelier/reference/norme-dsn/texte-2027/`).
 //!
 //! - `S21.G00.40.084` (proratisation du plafond a la quotite) : conditionnelle en mensuelle depuis le 2027.1.2 (journal
 //!   de maintenance, evolutions 16 et 21), pour un temps partiel seulement. La proratisation est la regle (CSS L. 242-8 ;
 //!   fiche net-entreprises 3369 : « par defaut ») ; l'etablissement peut y renoncer ; un artiste en est exclu
-//!   (L. 242-10, 1° ; BOSS § 1090). `prive/reference/sources/plafond-temps-partiel/LISEZ-MOI.md`.
+//!   (L. 242-10, 1° ; BOSS § 1090). `atelier/reference/sources/plafond-temps-partiel/LISEZ-MOI.md`.
 //! - `S21.G00.40.086` et `S21.G00.41.068` (adhesion a une caisse de conges payes) : « A ne pas renseigner pour la
 //!   version de norme P27V01 » (journal de maintenance 2027.1.2, evolutions 17 et 19).
 //! - `S21.G00.40.012` : la quotite de reference « ne doit pas inclure les heures supplementaires structurelles » (p. 190).

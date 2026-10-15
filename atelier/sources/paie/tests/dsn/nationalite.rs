@@ -2,13 +2,13 @@
 //! pays hors de la liste laisse l'administrateur choisir la zone, le pays de naissance (30.015) se lit dans la table « Pays »
 //! de la DSN ; à la fiche, au questionnaire, dans la DSN et au registre du personnel.
 //!
-//! Les textes : cahier technique DSN 2026.1, `prive/reference/norme-dsn/texte/bloc-S21.G00.30.txt` (30.013, p. 173,
+//! Les textes : cahier technique DSN 2026.1, `atelier/reference/norme-dsn/texte/bloc-S21.G00.30.txt` (30.013, p. 173,
 //! l. 267-277 : « 01 - France / 02 - UE / 03 - EEE / 04 - Reste du Monde », « le code le plus précis applicable » ; 30.015,
-//! p. 174, l. 297-303, CRE-11) ; les Etats : `prive/reference/sources/union-europeenne/LISEZ-MOI.md` ; la liste :
-//! `logiciel/donnees/pays-base.json` (COG de l'INSEE 2026, `prive/reference/sources/insee-cog-pays/`) ; la table « Pays » :
-//! `logiciel/donnees/pays-dsn-base.json` (`prive/reference/sources/dsn-nomenclatures/tables-PAYS-et-PAY-20260924.txt`) ;
+//! p. 174, l. 297-303, CRE-11) ; les Etats : `atelier/reference/sources/union-europeenne/LISEZ-MOI.md` ; la liste :
+//! `logiciel/donnees/pays-base.json` (COG de l'INSEE 2026, `atelier/reference/sources/insee-cog-pays/`) ; la table « Pays » :
+//! `logiciel/donnees/pays-dsn-base.json` (`atelier/reference/sources/dsn-nomenclatures/tables-PAYS-et-PAY-20260924.txt`) ;
 //! le pays hors liste : décision de Léandre du 10/10/2026 ; le registre : C. trav., D1221-23
-//! (`prive/reference/sources/code-du-travail/xml/D1221-23.xml`).
+//! (`atelier/reference/sources/code-du-travail/xml/D1221-23.xml`).
 
 use crate::outils::{self, compagnie};
 use serde_json::{json, Map, Value};

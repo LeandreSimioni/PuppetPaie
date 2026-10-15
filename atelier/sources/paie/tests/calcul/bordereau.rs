@@ -35,7 +35,7 @@ fn la_fraction_d_euro_egale_a_cinquante_centimes_est_comptee_pour_un() {
 
 #[test]
 fn un_montant_negatif_s_arrondit_comme_son_oppose_par_inference() {
-    // INFERENCE (`prive/reference/sources/arrondi-euro/LISEZ-MOI.md`) : L. 133-10 dit « la fraction d'euro egale a 0,50
+    // INFERENCE (`atelier/reference/sources/arrondi-euro/LISEZ-MOI.md`) : L. 133-10 dit « la fraction d'euro egale a 0,50
     // est comptee pour 1 » sans dire le signe, et aucun texte depose ne le dit. Le moteur arrondit -2,50 comme 2,50, au
     // signe pres : une regularisation qui retire ce qu'un mois a declare retire le meme euro.
     for (avant, apres) in [("-0.50", "-1"), ("-2.50", "-3"), ("-2.49", "-2"), ("-2.51", "-3")] {

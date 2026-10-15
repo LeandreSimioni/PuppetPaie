@@ -757,7 +757,7 @@ la Securite sociale), et pas plus de 100.",
         return poser_mutuelle(bar, Some(&texte("pss_periode")), total, pat, Some("Complémentaire santé (contrat de l'entreprise)"));
     }
     // La dispense d'un permanent 3090 : l'accord du 19/07/2024 (art. 9.1, 9.2,
-    // `prive/reference/sources/kali-3090-accord-sante-permanents-20240719-20261011.md`) rend l'adhesion obligatoire
+    // `atelier/reference/sources/kali-3090-accord-sante-permanents-20240719-20261011.md`) rend l'adhesion obligatoire
     // « sous reserve des cas de dispenses facultatives visees a l'article 9.2.1 et des cas de dispenses de droit visees
     // a l'article 9.2.2 » ; le salarie dispense n'adhere pas au contrat collectif : pas de mutuelle, et la DSN ne le
     // rattache pas a la sante (`dsn::affiliations_du_permanent`). Ses bornes sont deja lues
@@ -1012,7 +1012,7 @@ l'Urssaf n'est pas celui du code du travail, qui decide du CSE."
 /// majorations d'assiette) ; un CDD de droit commun de moins de douze mois d'un artiste l'est
 /// (`affilie` : la ligne et le 066 reprises du statut tel qu'il etait avant la nature -- `avant_la_nature` --, et les
 /// majorations). Qui est declare : `caisse_conges::affilie` ; les textes : la section du bareme et
-/// `prive/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md`. Sans section verifiee : refus.
+/// `atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md`. Sans section verifiee : refus.
 pub fn bareme_caisse_conges(bar: Value, avant_la_nature: &Value, nat: &Nature, affilie: bool) -> Resultat<Value> {
     if affilie == crate::caisse_conges::par_defaut(nat) {
         return Ok(bar);
@@ -1322,7 +1322,7 @@ pub fn bareme_vm(bar: Value, sal: &Value) -> Resultat<Value> {
     // L'ASSIETTE MAJOREE (CSS L. 243-1-3, 1° ; D. 243-0-2, 1° : 11,5 %) : l'employeur affilie a une caisse de conges
     // acquitte le versement mobilite du sur les indemnites de conges par une majoration de son assiette (lettre
     // circulaire Acoss 2013-019, § 1.3) -- celle du FNAL, `majoration_conges_115`, qui vaut 1 pour un permanent.
-    // Le 78.004 reste le brut. Textes : prive/reference/sources/majoration-caisses-conges/LISEZ-MOI.md.
+    // Le 78.004 reste le brut. Textes : atelier/reference/sources/majoration-caisses-conges/LISEZ-MOI.md.
     r.insert("base".into(), texte("brut_x115"));
     r.insert("taux_pat".into(), nd(taux));
     r.insert("taux_sal".into(), Value::Null);

@@ -1,6 +1,6 @@
 //! La vieillesse plafonnee, le FNAL et le chomage d'un intermittent s'assoient sur SON plafond, celui que le bas du bulletin imprime (`plafond::pour_paie`).
 //!
-//! Textes (prive/reference/sources/plafond-intermittents/LISEZ-MOI.md) : CSS L. 241-3 (« dans la limite d'un
+//! Textes (atelier/reference/sources/plafond-intermittents/LISEZ-MOI.md) : CSS L. 241-3 (« dans la limite d'un
 //! plafond »), R. 242-2 (le plafond reduit a due proportion des jours du contrat), arrete du 24 janvier 1975 (douze fois
 //! le plafond horaire par journee de travail d'un artiste engage moins de cinq jours continus) ; annexes VIII et X du
 //! 15/11/2024, art. 49 (le chomage dans la limite de quatre fois ce plafond). Norme DSN 2026.1 : « 02 - Assiette brute
@@ -105,8 +105,8 @@ fn juillet_2026_les_intermittents_au_dessus_de_leur_plafond_cotisent_sur_lui() {
     // Lot R2 : les complements maladie et allocations familiales « ABATT. 30 % » (636 et 432) sont ceux des artistes ;
     // un technicien releve du taux plein, 635 et 430, comme son nominatif (907 a 6,00, 102 a 1,80) : « Seuls les artistes
     // du spectacle sont concernes par l'application des taux reduits. Les techniciens ne sont pas concernes »
-    // (prive/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt, l. 24 ;
-    // tableau DIDA, prive/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 838, 1410 et
+    // (atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt, l. 24 ;
+    // tableau DIDA, atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 838, 1410 et
     // 1450 : « Ce CTP artistes »). La copie figee a un fichier des organismes compose avant : il se lit juste sans etre
     // recompose. Le premier 430 et le premier 635 sont ceux des techniciens (les seconds, ceux des permanents).
     assert_eq!(ctp(&dsn, "432", "920"), Some(a_l_euro(somme("artiste", &|p| p.brut))));
@@ -257,7 +257,7 @@ fn un_permanent_garde_sa_tranche_1_et_son_chomage_sur_le_brut() {
 // ------------------------------------------------------------------------------------------------------------------
 // Lot V2e : le chomage d'un permanent dans la limite de quatre plafonds, au bulletin, en DSN et au bordereau.
 //
-// Textes (prive/reference/sources/chomage-permanents/LISEZ-MOI.md) : C. trav. L. 5422-9 (« dans la limite d'un
+// Textes (atelier/reference/sources/chomage-permanents/LISEZ-MOI.md) : C. trav. L. 5422-9 (« dans la limite d'un
 // plafond »), reglement general annexe a la convention d'assurance chomage du 15/11/2024, art. 49, al. 2 (« quatre fois
 // le plafond mentionne a l'article L. 241-3 »), L. 3253-18 (l'AGS sur la meme assiette), CSS R. 242-2, al. 3 (le plafond
 // reduit au prorata des jours d'emploi) ; tableau d'equivalence de l'Urssaf : 772 -> base 07 / 040, 937 -> base 07 /
@@ -374,7 +374,7 @@ fn fictive_a_soixante(cible: &str) -> PathBuf {
 fn a_cinquante_salaries_le_fnal_des_artistes_se_declare_sous_le_ctp_316_sur_la_totalite() {
     // Lot R2 : « Fnal : Effectif de moins de 50 salaries : 0,07 % dans la limite du plafond ; Effectif 50 salaries et
     // plus : 0,35 % » ; « CTP 316 : FNAL artistes totalite ; CTP 334 : FNAL artistes plafonne » (Urssaf, « Les taux
-    // reduits cas particuliers », prive/reference/sources/urssaf-taux-reduits-artistes/, l. 89-92 et 148-149 du .txt).
+    // reduits cas particuliers », atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 89-92 et 148-149 du .txt).
     // Juillet 2026 de la fictive 3090-grande a soixante salaries : le 316 sous 920 porte le brut majore de 11,5 % des
     // artistes, entier, comme leur 81.003 du 049 ; plus de 334.
     let racine = fictive_a_soixante("fnal-artistes-cinquante");
@@ -483,7 +483,7 @@ fn un_fichier_des_organismes_compose_avant_refuse_un_permanent_au_dessus_de_quat
 // reglementation d'assurance chomage applicable a compter du 1er janvier 2025, relative tant a l'indemnisation qu'aux
 // contributions » (circulaire Unedic 2025-05, l. 33-37 du .txt) ; sa fiche technique 1.1 : « Les remunerations
 // depassant 4 fois le plafond [...] demeurent exclues de l'assiette des contributions (15 700 EUR par mois, valeur au
-// 1er janvier 2025) » (l. 109-117). Textes : prive/reference/sources/chomage-permanents/LISEZ-MOI.md.
+// 1er janvier 2025) » (l. 109-117). Textes : atelier/reference/sources/chomage-permanents/LISEZ-MOI.md.
 
 #[test]
 fn en_2025_un_permanent_au_dessus_de_quatre_plafonds_cotise_le_chomage_sur_quatre_plafonds() {

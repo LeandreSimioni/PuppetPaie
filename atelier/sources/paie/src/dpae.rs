@@ -44,7 +44,7 @@ pub const LONGUEUR: usize = 990;
 pub const HEURE_EMBAUCHE: &str = "0800";
 
 /// POSITIONS 0-BASED, [debut, fin). Le dessin d'enregistrement officiel
-/// (Format 120, `reference/norme-dpae/v5.3_FormatDPAE_EMAIL.pdf`) compte a
+/// (Format 120, `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.pdf`) compte a
 /// partir de 1 : sa position 122 est notre 121.
 ///
 /// LE PIEGE DE L'HORODATAGE, trouve le 12/09/2026 apres quatre refus

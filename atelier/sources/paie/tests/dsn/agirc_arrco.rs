@@ -1,6 +1,6 @@
 //! Corrections DSN, vague 1g (point 19 de la relecture) : Agirc-Arrco se declare en 131, l'Apec en 132.
 //!
-//! Cahier technique DSN 2026.1 (`prive/reference/norme-dsn/texte/bloc-S21.G00.81.txt`) : la modalite Agirc-Arrco de
+//! Cahier technique DSN 2026.1 (`atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt`) : la modalite Agirc-Arrco de
 //! S21.G00.81.001 reserve « 105 - Montant de cotisation Regime Unifie Agirc-Arrco, y compris Apec » a la
 //! « regularisation des periodes anterieures a 2025 » et attend « 131 - Cotisation regime unifie Agirc-Arrco » et
 //! « 132 - Cotisation Apec » (p. 302, lignes 79-81 ; liste p. 305) ; CCH-12 de 81.004 (p. 309) : 131 et 132 portent
@@ -205,10 +205,10 @@ fn le_taux_d_une_organisation_patronale_se_pose_sur_le_131() {
 // ------------------------------------------------------------------------------------------------------------------
 // Vague V2d : la part patronale Agirc-Arrco en 142 et 146, a l'Urssaf.
 //
-// Cahier technique 2026.1 (`prive/reference/norme-dsn/texte/bloc-S21.G00.81.txt`) : 142 et 146 sont des codes de la
+// Cahier technique 2026.1 (`atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt`) : 142 et 146 sont des codes de la
 // modalite URSSAF de 81.001 (p. 302, lignes 106-112 ; libelles p. 305, lignes 292 et 296) ; SIG-18 (p. 303, lignes
 // 158-163) : un 131 sous une base 78 datee dans le mois principal veut au moins un 142 sous le meme versement ; 81.002 de
-// l'Urssaf : « SIRET de l'Urssaf » (p. 307). Guide Urssaf du 04/06/2026 (`prive/reference/sources/editeur-dsn/
+// l'Urssaf : « SIRET de l'Urssaf » (p. 307). Guide Urssaf du 04/06/2026 (`atelier/reference/sources/editeur-dsn/
 // guide-urssaf-regularisation.pdf`, p. 34 et 37-38) : 142 = parts patronales retraite T1 et CEG T1, avec le taux ; 146 =
 // parts patronales retraite T2, CEG T2 et CET (T1 et T2), plusieurs blocs 146 toleres ; p. 36 : la retraite salariale de
 // tranche 1 se relit « 131 - 142 », le 131 garde donc les deux parts.
@@ -228,7 +228,7 @@ pub(crate) fn patronale_par_contrat(paies: &[Paie]) -> std::collections::BTreeMa
     out
 }
 
-/// SIG-18 (cahier technique 2026.1, p. 303, `prive/reference/norme-dsn/texte/bloc-S21.G00.81.txt`, l. 158-163) : un 131
+/// SIG-18 (cahier technique 2026.1, p. 303, `atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt`, l. 158-163) : un 131
 /// sous une base 78 dont les deux dates de rattachement (78.002, 78.003) sont incluses dans le mois principal declare
 /// (S20.G00.05.005) veut au moins un 142 sous le meme versement (50). Un 131 sous une base d'un autre mois -- un
 /// versement de regularisation -- n'en veut pas. Et chaque 142 et 146 est a l'Urssaf.

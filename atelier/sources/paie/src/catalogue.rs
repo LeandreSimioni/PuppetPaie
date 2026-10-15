@@ -27,8 +27,8 @@ pub const NATURES: [&str; 7] =
     ["salaire", "frais", "avantage_nature", "indemnite", "prime", "retenue", "absence"];
 
 /// Ce qu'est une ligne hors assiette (`soumis` faux) pour le montant net social (S21.G00.58.004, type 03). Decret
-/// n° 2023-1378 du 28/12/2023 : CSS R. 844-1 II (prive/reference/sources/code-de-la-securite-sociale/
-/// articles-20261010.md), C. trav. R. 3243-1, 9° bis ; FAQ du BOSS, Q 2.2, 2.11 et 2.12 (prive/reference/sources/
+/// n° 2023-1378 du 28/12/2023 : CSS R. 844-1 II (atelier/reference/sources/code-de-la-securite-sociale/
+/// articles-20261010.md), C. trav. R. 3243-1, 9° bis ; FAQ du BOSS, Q 2.2, 2.11 et 2.12 (atelier/reference/sources/
 /// montant-net-social/LISEZ-MOI.md, et la FAQ reproduite a cote).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HorsAssiette {

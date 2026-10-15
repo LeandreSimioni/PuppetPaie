@@ -1,7 +1,7 @@
 //! Le code APE (NAF) de la fiche entreprise, en NAF rev. 2 ou en NAF 2025 (lot R5b, 11/10/2026).
 //!
 //! La NAF 2025 « entre en vigueur le 1er janvier 2027 » et remplace la NAF rev. 2 a la meme date (decret n° 2025-736 du
-//! 31/07/2025, art. 2 et 6 ; `prive/reference/sources/insee-naf-2025/legifrance-decret-2025-736-naf-2025-20250731.txt`).
+//! 31/07/2025, art. 2 et 6 ; `atelier/reference/sources/insee-naf-2025/legifrance-decret-2025-736-naf-2025-20250731.txt`).
 //! Les deux nomenclatures n'ont aucun code en commun ; la table livree (`logiciel/donnees/naf-base.json`, relevee par
 //! `atelier/outils/extraire_naf.py` sur les fichiers de l'INSEE) dit, pour chaque code rev. 2, vers quels codes 2025 son
 //! contenu passe. Elle ne choisit pas : `90.01Z` (arts du spectacle vivant) passe en `90.20Y` (activites de spectacle)
@@ -14,7 +14,7 @@
 //! - un fichier DSN en norme P27V01 (`verifier_pour`) : « Il convient neanmoins de s'assurer que le code NAF soit modifie
 //!   en adequation avec cette nouvelle nomenclature (NAF 2025) », et « a compter de la mise en production DSN de janvier
 //!   2027, il est prevu que la nomenclature NAF 2025 s'applique quelle que soit la version de norme (P27 et P26) »
-//!   (actualite net-entreprises du 08/10/2026, `prive/reference/sources/net-entreprises-actualites/
+//!   (actualite net-entreprises du 08/10/2026, `atelier/reference/sources/net-entreprises-actualites/
 //!   net-entreprises-actualite-naf-2025-en-dsn-janvier-2027-20261008.txt`). Un fichier P27V01 n'existe qu'apres cette
 //!   mise en production : la fiche entreprise (et chaque etablissement qui porte son code) doit alors etre en NAF 2025.
 //!   La regle se lit dans la version (`regles.code_naf_en_naf_2025` de `norme-dsn-base.json`). Un fichier P26V01 ne se

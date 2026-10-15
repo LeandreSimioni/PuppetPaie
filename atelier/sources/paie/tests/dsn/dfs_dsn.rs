@@ -1,6 +1,6 @@
 //! Corrections DSN, vague V2d : la deduction forfaitaire specifique (DFS) dans la DSN.
 //!
-//! Cahier technique DSN 2026.1 (`prive/reference/norme-dsn/texte/`) :
+//! Cahier technique DSN 2026.1 (`atelier/reference/norme-dsn/texte/`) :
 //! - `bloc-S21.G00.40.txt`, p. 180 (ligne 39) et la rubrique, p. 195, lignes 936-943 : « Taux de deduction forfaitaire specifique
 //!   pour frais professionnels - S21.G00.40.023 », « Abattement pour frais professionnels applique a la part de
 //!   remuneration afferente a l'activite ouvrant droit a la deduction », format `N [4,6]`, deux decimales ;

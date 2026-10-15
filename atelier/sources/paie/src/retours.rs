@@ -952,7 +952,7 @@ fn parse_bilan_depot_lu(e: &Entree) -> Resultat<Value> {
 /// une par `declaration` : `nature`, `type`, `ordre` (S20.G00.05.001, .002, .004), `siren`, `nic` (d'affectation),
 /// `etat`, `essai_reel` (de l'envoi : 01 essai, 02 reel) et les `codes` de ses anomalies. C'est TOUT ce que la plate-forme
 /// dit d'une declaration : ni salarie, ni contrat, ni date d'evenement (schema des bilans `v01r08`, ceux qu'elle rend ;
-/// specification VT2.2, `prive/reference/sources/gip-mds-api-dsn/` ; PASSATION-O1, point 1). Un XML illisible, ou qui
+/// specification VT2.2, `atelier/reference/sources/gip-mds-api-dsn/` ; PASSATION-O1, point 1). Un XML illisible, ou qui
 /// n'est pas un rapport de depot, n'en identifie aucune.
 pub fn declarations_du_bilan(o: &[u8]) -> Vec<Value> {
     let Ok(arbre) = lire_octets(o) else { return Vec::new() };
@@ -1473,7 +1473,7 @@ fn releves_vers_salaries(releves: &[Value], nirs: &[Value]) -> Value {
 // -------------------------------------------------- fiche de parametrage OC
 
 /// Les versions du format des fiches de parametrage OC que le lecteur connait : l'attribut `Version` de `FICHE` (schema
-/// XSD, enumeration `139` en R1.3.9, `140` en R1.4.0 ; `prive/reference/sources/fpoc-format/fpoc-r1.3.9.xsd`,
+/// XSD, enumeration `139` en R1.3.9, `140` en R1.4.0 ; `atelier/reference/sources/fpoc-format/fpoc-r1.3.9.xsd`,
 /// `fpoc-r1.4.0.xsd`). La 1.4.0 ajoute un plancher et un plafond facultatifs aux bases et montants specifiques
 /// (`BasePlancher`, `BasePlafond`) et admet une condition tarifaire seule (specification R1.4.0, onglet Versions ;
 /// `fpoc-specification-r1.4.0-20260721.txt` l. 49-75). Une autre valeur se lit comme avant, sans format nomme.

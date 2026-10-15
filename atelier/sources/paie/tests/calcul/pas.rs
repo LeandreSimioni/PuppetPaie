@@ -196,7 +196,7 @@ fn pas_des_paies(racine: &std::path::Path, mois: &str) -> Vec<(String, String, S
 
 #[test]
 fn un_mois_depose_relu_apres_un_changement_de_taux_garde_son_pas() {
-    // CGI art. 1671, 1 et 2 (prive/reference/sources/code-general-des-impots/articles-20261013.md, l. 99 et 102) : la
+    // CGI art. 1671, 1 et 2 (atelier/reference/sources/code-general-des-impots/articles-20261013.md, l. 99 et 102) : la
     // retenue est faite au paiement, au taux transmis. Le mois depose a preleve ce que sa DSN dit ; relu plus tard,
     // apres un nouveau taux de la DGFiP, il le garde (regles 1 et 4). Jusqu'au lot D2 : recalcule au taux du jour.
     let mois = "2025-04";

@@ -1,7 +1,7 @@
 //! Corrections DSN, vague 1f (point 20 de la relecture de la norme, fiche N3 des blocs 20 et 55) : les composants du
 //! versement a un organisme complementaire disent a quel contrat ils servent.
 //!
-//! Norme DSN 2026.1, `prive/reference/norme-dsn/texte/bloc-S21.G00.55.txt` : 55.001 « la part du versement affectee au
+//! Norme DSN 2026.1, `atelier/reference/norme-dsn/texte/bloc-S21.G00.55.txt` : 55.001 « la part du versement affectee au
 //! contrat Prevoyance reference en S21.G00.55.003 [...] pour la periode d'affectation » (p. 259, lignes 44-46) ; 55.003
 //! « Le contrat mentionne doit faire l'objet d'un bloc Adhesion Prevoyance S21.G00.15 dans la declaration », CCH-11
 //! (p. 260, lignes 72-79) ; 55.004 « une periode civile complete [...] contenant la ou les periodes cotisees » (p. 260,

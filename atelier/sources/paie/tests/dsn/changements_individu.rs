@@ -2,7 +2,7 @@
 //! de famille, prenoms, date de naissance) differe de ce qui a ete DECLARE pour lui -- relu dans la derniere DSN
 //! reelle acceptee qui le porte, jamais recalcule --, la DSN porte l'ANCIENNE valeur, datee par l'historique de la fiche
 //! (cahier technique 2026.1, p. 177-179 ; § 2.1.1, p. 18 ; § 2.1.2.2-2.1.2.3, p. 20-21 ;
-//! `prive/reference/norme-dsn/texte/bloc-S21.G00.31.txt`, `chapitre-2-principes-de-constitution.txt`).
+//! `atelier/reference/norme-dsn/texte/bloc-S21.G00.31.txt`, `chapitre-2-principes-de-constitution.txt`).
 //!
 //! Chaque test monte une copie de `fictive-3090-grande` (compagnie inventee) dans un dossier a lui : les DSN de janvier
 //! 2025 a aout 2026 y sont deposees (journal et `sorties/`). Aucun reseau, aucun depot.

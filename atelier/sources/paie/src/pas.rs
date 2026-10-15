@@ -587,7 +587,7 @@ pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>)
 /// deposee ne porte pas son versement (une paie ajoutee apres le depot, que la correction du mois suivant declarera).
 ///
 /// LE PAS D'UN MOIS DEPOSE SE LIT, IL NE SE RECALCULE PAS (lot D2 ; regles 1 et 4). CGI art. 1671, 1 et 2
-/// (`prive/reference/sources/code-general-des-impots/articles-20261013.md`, l. 99 et 102) : la retenue « est effectuée
+/// (`atelier/reference/sources/code-general-des-impots/articles-20261013.md`, l. 99 et 102) : la retenue « est effectuée
 /// par le débiteur lors du paiement », au taux que l'administration a transmis et que l'employeur applique « au plus
 /// tard le deuxième mois suivant sa transmission ». Ce qui a ete retenu l'a ete au paiement, au taux de ce jour-la, et
 /// la DSN deposee le dit (S21.G00.50.006 a 50.013) ; le recalculer au taux du jour (celui que le magasin porte quand on

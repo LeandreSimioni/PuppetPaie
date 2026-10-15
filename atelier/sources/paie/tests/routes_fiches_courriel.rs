@@ -481,7 +481,7 @@ fn les_heures_de_la_reponse_se_lisent_a_paris() {
         ("Fri, 02 Oct 2026 23:30:00 -0500", "2026-10-03T06:30:00", "03/10/2026"),
         ("Sat, 03 Oct 2026 08:15:00 +0000", "2026-10-03T10:15:00", "03/10/2026"),
         ("Mon, 05 Jan 2026 10:15:00 +0100", "2026-01-05T10:15:00", "05/01/2026"),
-        // « -0000 » est une heure UT (RFC 5322 § 3.3, `prive/reference/sources/ietf/LISEZ-MOI.md`) : 12 h 15 a Paris.
+        // « -0000 » est une heure UT (RFC 5322 § 3.3, `atelier/reference/sources/ietf/LISEZ-MOI.md`) : 12 h 15 a Paris.
         ("Sat, 03 Oct 2026 10:15:00 -0000", "2026-10-03T12:15:00", "03/10/2026"),
         ("Sat, 03 Oct 2026 22:30:00 +0000", "2026-10-04T00:30:00", "04/10/2026"),
     ] {

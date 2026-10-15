@@ -417,7 +417,7 @@ fn la_fiche_de_parametrage() {
 }
 
 /// Les fixtures fictives `tests/donnees/fiches-parametrage/fiche-fictive-139.xml` et `-140.xml`, fabriquees depuis le
-/// format depose (`prive/reference/sources/fpoc-format/`) et validees contre son schema : la 1.4.0 par `fpoc-r1.4.0.xsd`
+/// format depose (`atelier/reference/sources/fpoc-format/`) et validees contre son schema : la 1.4.0 par `fpoc-r1.4.0.xsd`
 /// (et refusee par `fpoc-r1.3.9.xsd` sur sa version, `BasePlafond` et `BasePlancher`), la 1.3.9 par `fpoc-r1.3.9.xsd`.
 fn fiche_fictive(version: &str) -> Value {
     let chemin = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("tests/donnees/fiches-parametrage/fiche-fictive-{}.xml", version));
@@ -485,7 +485,7 @@ fn une_condition_tarifaire_inconnue_refuse() {
 #[test]
 fn les_octets_d_une_fiche_se_lisent_en_latin_1() {
     // La specification : « respecter l'encodage ISO_8859_1 »
-    // (`prive/reference/sources/fpoc-format/fpoc-specification-r1.4.0-20260721.txt:14`). Un E accent aigu en UTF-8 (deux
+    // (`atelier/reference/sources/fpoc-format/fpoc-specification-r1.4.0-20260721.txt:14`). Un E accent aigu en UTF-8 (deux
     // octets) y est donc deux lettres.
     let o = "<F IdentifiantFiche=\"\u{e9}\"/>".as_bytes();
     assert_eq!(octets("fiche", o)["fiche"]["identifiant"], "\u{c3}\u{a9}");

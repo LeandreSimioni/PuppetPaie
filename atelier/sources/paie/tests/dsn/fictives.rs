@@ -2,7 +2,7 @@
 //! aujourd'hui sur la copie figée, une fois : le fichier passe `usages` et `formats`, ne porte ni 105 ni bloc 41, déclare
 //! 131 + 132 au montant du 105 déposé, et sa part patronale Agirc-Arrco en 142 et 146 à l'Urssaf (SIG-18).
 //!
-//! Le 105 n'est gardé que « pour régularisation des périodes antérieures à 2025 » (`prive/reference/norme-dsn/texte/
+//! Le 105 n'est gardé que « pour régularisation des périodes antérieures à 2025 » (`atelier/reference/norme-dsn/texte/
 //! bloc-S21.G00.81.txt`, p. 302, l. 79-81) : le bulletin n'a pas changé, l'Apec est seulement sortie du 105. Aucun contrat
 //! n'y change de modalité (CDI de 2022 et CDDU à cheval compris) ; une valeur que la nature fixe (999SPT en 40.005, vague
 //! V2b) ne fait pas de bloc 41 (`changements_contrat::blocs_41`).

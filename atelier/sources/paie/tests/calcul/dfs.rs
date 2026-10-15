@@ -1,6 +1,6 @@
 //! La deduction forfaitaire specifique (DFS) en paie.
 //!
-//! Textes (`prive/reference/sources/dfs/LISEZ-MOI.md`) :
+//! Textes (`atelier/reference/sources/dfs/LISEZ-MOI.md`) :
 //! - arrete du 4 septembre 2025 relatif aux frais professionnels, art. 9 (base LEGI,
 //!   `dfs/arrete-2025-frais-professionnels/`) : les professions de l'article 5 de l'annexe IV du CGI au 31/12/2000 ;
 //!   l'option de l'employeur (accord collectif, CE, CSE ou DP, a defaut chaque salarie) ; « dans la limite de 7 600 euros
@@ -9,7 +9,7 @@
 //! - l'annexe 2, I, 2° et 5° : les defraiements de tournee des artistes dramatiques, lyriques, choregraphiques et
 //!   regisseurs de theatre, les frais de deplacement des musiciens, choristes et chefs d'orchestre restent hors de
 //!   l'assiette ;
-//! - BOSS « Frais professionnels », § 2320 (`prive/reference/sources/boss/boss-frais-professionnels-20261013.txt`) : pour
+//! - BOSS « Frais professionnels », § 2320 (`atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt`) : pour
 //!   le spectacle vivant, par tolerance, tout remboursement de frais au sens de l'arrete se cumule avec la DFS, hors de
 //!   l'assiette abattue ;
 //! - CSS R. 242-1, al. 6, et BOSS « Assiette generale » § 410 : l'assiette abattue ne descend pas sous le SMIC ;
@@ -216,7 +216,7 @@ fn blocs_54(dsn: &str, numero: &str) -> Vec<(String, String, String)> {
 
 #[test]
 fn un_remboursement_de_frais_sous_dfs_reste_hors_de_l_assiette_abattue_par_la_tolerance_du_boss() {
-    // BOSS « Frais professionnels », § 2320 (prive/reference/sources/boss/boss-frais-professionnels-20261013.txt,
+    // BOSS « Frais professionnels », § 2320 (atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt,
     // l. 2917-2921) : pour les huit secteurs, dont le spectacle vivant, « l'ensemble des remboursements de frais
     // professionnels definis par l'arrete du 4 septembre 2025 peut faire l'objet d'un cumul avec la deduction forfaitaire
     // specifique » ; leur integration dans l'assiette avant l'abattement « n'est pas obligatoire ». Un remboursement que

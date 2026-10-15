@@ -96,7 +96,7 @@ l'utilisera — ses données à elle, notre code.
 | `retours/` | ce que renvoient les organismes après dépôt |
 | `maj/` | une version téléchargée et contrôlée, en attente du prochain démarrage (`prete.json`) — n'existe que chez une compagnie qui reçoit les mises à jour |
 | `config/maj.json` | qui est ce poste (`editeur`) et où sont les versions (`depot`) |
-| `reference/` | l'historique CoolPaie qui a servi à retrouver les règles ; `exemples/dsn-val/` : les DSN fictives à passer en test avant un premier vrai |
+| `reference/` | l'historique CoolPaie qui a servi à retrouver les règles ; `exemples/dsn-val/` : les DSN fictives à passer en test avant un premier vrai. Les textes déposés (lois, conventions, norme) sont dans `atelier/reference/` depuis le 15/10/2026 |
 | `journal/` | **ETAT.md** (où en est le projet), `archives/` et son `INDEX.md`, et les dossiers de chantier (CONGES-SPECTACLES.md, PLAN-EXPORTS.md…) |
 | `config/coffre.bin` | **les mots de passe des organismes.** On ne le lit pas. |
 

@@ -908,7 +908,7 @@ le premier sans lui), à l'heure comme au mois ; la NAO 2026, non étendue, dort
 **Les sources** de ces données — notices France Travail, nomenclature des
 emplois, PCS-ESE de l'Insee, avenants salaires sur Légifrance, NAO — sont
 décrites et datées dans `logiciel/donnees/sources.json`, leurs copies rangées
-dans `prive/reference/sources/`. **`paie sources`** les relit (`paie/src/sources.rs`,
+dans `atelier/reference/sources/`. **`paie sources`** les relit (`paie/src/sources.rs`,
 porté en Rust au lot S1, 13/10/2026) : pour chacune, ce qu'elle contient, sa
 version, la date du relevé et son âge, et si la copie colle au condensat du
 manifeste (conforme, différente, absente). **`--verifier`** retourne voir en
@@ -935,8 +935,8 @@ quelques centaines de Ko, sans compte). Pour les sources qui portent un bloc
 parle de salaires, ou le texte cité lui-même, met la source « à relire » avec
 son titre, sa date et son état (étendu ou non) ; les autres mouvements sont
 montrés en second. `--relever` garde le XML du texte touché
-(`prive/reference/sources/kali/`), qui contient le texte intégral. La lecture
-est résumée dans `prive/reference/sources/veille-kali.json` (le même fichier
+(`atelier/reference/sources/kali/`), qui contient le texte intégral. La lecture
+est résumée dans `atelier/reference/sources/veille-kali.json` (le même fichier
 que du temps du Python : la veille reprend où elle s'était arrêtée) ; la
 première fois, elle remonte l'index (environ un an) jusqu'à la dernière fiche
 de chaque convention, pour savoir ensuite rattacher un texte à la sienne : une
@@ -1137,7 +1137,7 @@ signature.
    et le contrat de chaque embauche du mois ne sont pas partis.
 2. **La DSN en dépôt de test** (`depot-dsn --test`) avant tout dépôt réel.
    C'est le validateur qui fait foi : la même brique de contrôle que DSN-Val,
-   à jour, côté plate-forme (voir `prive/reference/norme-dsn/LISEZMOI.md`).
+   à jour, côté plate-forme (voir `atelier/reference/norme-dsn/LISEZMOI.md`).
    Depuis le 20/09/2026 ce n'est plus une discipline mais une **règle du
    moteur** : un dépôt réel dont le contenu exact n'est pas passé en test est
    refusé, pour la DSN comme pour la DPAE — voir « La répétition avant
@@ -1651,6 +1651,11 @@ atelier/                  ← ce dossier : tout le reste
                           programmes Linux et Mac dans `bin/`
   sources/fenetre/        la fenêtre (programme `puppetpaie`, Tauri)
   sources/fabrique-pdf/   la fabrique de PDF
+  reference/              les textes qui fondent les règles, tels que servis
+                          (lois et codes, conventions, norme DSN, BOFiP,
+                          BOSS…), leur transcription et un LISEZ-MOI.md par
+                          dossier (15/10/2026 ; d'un organisme privé, seule la
+                          transcription) ; `paie sources` y vérifie les copies
   docs/                   ARCHITECTURE.md, RUBRIQUES.md, PORTAGE-RUST.md,
                           COMPAGNIES-FICTIVES.md et COMPAGNIES-FICTIVES-DEPOT.md
                           (le dernier bilan du crash-test, 21/09/2026)
@@ -1678,8 +1683,8 @@ prive/                    les données de la compagnie
   sorties/                les fichiers produits
   gabarits/               enregistrements AEM et DPAE réels servant de patrons
   retours/                ce que renvoient les organismes
-  reference/              les textes déposés (`sources/`, `norme-dsn/`…) et des
-                          extraits de l'historique CoolPaie
+  reference/              des extraits de l'historique CoolPaie ; les textes
+                          déposés sont dans `atelier/reference/` (15/10/2026)
   journal/                ETAT.md — où en est le projet
 ```
 

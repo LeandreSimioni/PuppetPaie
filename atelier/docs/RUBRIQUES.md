@@ -108,7 +108,7 @@ celles dont le catalogue dit `imposable` vrai (`calcul.rs`, `calculer`, 7.10) :
 la norme fait « DEDUIRE : […] les sommes versées à titre de remboursement de
 frais professionnels » et « AJOUTER : […] les indemnités imposables à l'impôt
 sur le revenu » (cahier technique 2026.1, § 2.3.2, p. 60-61 ;
-`prive/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`). Un défraiement, un acompte, une indemnité exonérée
+`atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`). Un défraiement, un acompte, une indemnité exonérée
 (CGI 80 duodecies) n'y entrent donc pas, quand avant ils y passaient par le
 net à payer. Une ligne **soumise** reste dans la RNF par le brut, même dite
 non imposable : aucune rubrique livrée n'est dans ce cas, et le moteur ne sait
@@ -141,7 +141,7 @@ suite et ne se récupère pas toujours.
 > avance, saisie), hors. Toute autre nature sur une ligne hors assiette est
 > **refusée** au calcul (`catalogue.rs`, `Rubrique::hors_assiette`). Textes :
 > décret 2023-1378, CSS R. 844-1 II, FAQ du BOSS Q 2.2, 2.11, 2.12
-> (`prive/reference/sources/montant-net-social/LISEZ-MOI.md`).
+> (`atelier/reference/sources/montant-net-social/LISEZ-MOI.md`).
 
 ### Q5 — Qu'est-ce que ça apporte aux droits du salarié ? → `heures_forfait`, `compte_pour`, `plafond_annuel_heures`
 
@@ -228,7 +228,7 @@ date, pas « la réglementation ».
 | le régime des indemnités de rupture | **CGI 80 duodecies**, **CSS L.136-1-1**, même outil |
 | les frais professionnels et leurs limites | **arrêté du 20/12/2002** |
 | les jours et heures à déclarer, les codes emploi | **cahier technique AEM V5**, France Travail |
-| les codes de rémunération, le bloc 54 | **cahier technique DSN** (NEODeS), dans `prive/reference/norme-dsn/` |
+| les codes de rémunération, le bloc 54 | **cahier technique DSN** (NEODeS), dans `atelier/reference/norme-dsn/` |
 | les taux réglementaires | **table des paramètres du BOSS**, en CSV |
 | les minima, les durées de service, la prévoyance | **convention collective** (IDCC 3090, 1285) sur KALI |
 

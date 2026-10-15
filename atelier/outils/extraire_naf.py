@@ -7,7 +7,7 @@ republie ses fichiers. Le moteur lit le JSON produit (`paie/src/naf.rs`).
     python3 outils/extraire_naf.py <structure.xlsx> <correspondances.xlsx> <cible.json>
 
 Les deux classeurs sont ceux de la page INSEE « NAF 2025 », deposes dans
-`prive/reference/sources/insee-naf-2025/` :
+`atelier/reference/sources/insee-naf-2025/` :
   - la structure (`Structure_NAF_2025_Maj_2024-10-04.xlsx`), feuille
     « Sous-classes » : le code (`90.20Y`) et l'intitule de chaque sous-classe ;
   - la correspondance (`Correspondances_NAFrev2-NAF2025.xlsx`), feuille
@@ -75,11 +75,11 @@ def main(structure: str, correspondances: str, cible: str):
                   "attribue le code (`paie/src/naf.rs`)."),
         "_source": ("INSEE, page « NAF 2025 » (https://www.insee.fr/fr/information/8181066) : %s (structure, feuille "
                     "« Sous-classes ») et %s (feuille « NAF rév. 2 vers NAF 2025 »), deposes dans "
-                    "prive/reference/sources/insee-naf-2025/. Releve automatiquement par outils/extraire_naf.py le %s."
+                    "atelier/reference/sources/insee-naf-2025/. Releve automatiquement par outils/extraire_naf.py le %s."
                     % (Path(structure).name, Path(correspondances).name, jour)),
         "_sha256": {Path(structure).name: sha(structure), Path(correspondances).name: sha(correspondances)},
         "en_vigueur_naf_2025": "2027-01-01",
-        "_source_en_vigueur": ("Decret n° 2025-736 du 31/07/2025 (prive/reference/sources/insee-naf-2025/"
+        "_source_en_vigueur": ("Decret n° 2025-736 du 31/07/2025 (atelier/reference/sources/insee-naf-2025/"
                                "legifrance-decret-2025-736-naf-2025-20250731.txt) : art. 2, la NAF 2025 « entre en "
                                "vigueur le 1er janvier 2027 » ; art. 6, le decret de 2007 (NAF rev. 2) est abroge a la "
                                "meme date pour la nomenclature d'activites."),

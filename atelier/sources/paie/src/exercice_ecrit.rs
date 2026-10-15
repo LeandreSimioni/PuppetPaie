@@ -193,7 +193,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
     let mut tiers: BTreeMap<String, Decimal> = BTreeMap::new();
     // LE PRELEVEMENT A LA SOURCE : celui du bulletin (`pas::des_paies`, le meme calcul, la meme position), retenu sur
     // le net et du a la DGFiP (compte 4421 « Prelevements a la source (Impot sur le revenu) » du plan
-    // comptable general, prive/reference/sources/plan-comptable-general/LISEZ-MOI.md). Une paie dont le prelevement
+    // comptable general, atelier/reference/sources/plan-comptable-general/LISEZ-MOI.md). Une paie dont le prelevement
     // ne se calcule pas (bareme sans grille) n'en a pas : le bulletin imprime 0,00 et paie le net entier. Le PAS d'un
     // mois DEPOSE est celui que sa DSN a declare (S21.G00.50.009), lu et non recalcule au taux du jour (lot D2 ; CGI
     // art. 1671 : `pas::des_paies`) ; jusque-la (limite du lot R3), il s'en ecartait quand la DGFiP avait transmis un

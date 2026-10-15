@@ -1,22 +1,22 @@
 //! La contribution CPF-CDD (code du travail L. 6331-6) d'un salarie en CDD de droit commun, et la contribution a la
 //! formation professionnelle (L. 6331-1) qui partage sa ligne du bulletin.
 //!
-//! Textes deposes : L. 6331-6 (`prive/reference/sources/code-du-travail/articles-20261010.md`, l. 545-549) : « une
+//! Textes deposes : L. 6331-6 (`atelier/reference/sources/code-du-travail/articles-20261010.md`, l. 545-549) : « une
 //! contribution dediee au financement du compte personnel de formation egale a 1 % du revenu d'activite retenu pour le
 //! calcul des cotisations sociales des titulaires d'un contrat a duree determinee », sauf les CDD de formation ou
 //! d'alternance et « ceux visant les salaries occupant un emploi a caractere saisonnier » ; L. 6331-55 : l'intermittent
 //! du spectacle en est exclu (« par derogation [...] a l'article L. 6331-6 »). Norme DSN 2026.1 : « 129 - Contribution
 //! dediee au financement du Compte Personnel de Formation pour les titulaires de CDD (CPF-CDD) »
-//! (`prive/reference/norme-dsn/texte/bloc-S21.G00.81.txt`, l. 285). Tableau DIDA de l'Urssaf : CTP 987 -> 129, base 03,
-//! qualifiant 920 (`prive/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv`, l. 1001) ; table
+//! (`atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt`, l. 285). Tableau DIDA de l'Urssaf : CTP 987 -> 129, base 03,
+//! qualifiant 920 (`atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv`, l. 1001) ; table
 //! des CTP : 987 « CONTRIBUTION CPF CDD », 1,0 deplafonne depuis 2022 (`logiciel/donnees/urssaf-codes-types-personnel.csv`).
 //!
 //! La majoration d'un CDD declare a la caisse des Conges Spectacles : CSS L. 243-1-3, 1° (nomme L. 6131-2 et L. 6331-6)
 //! et D. 243-0-2, 1° (11,5 %) ; sa declaration, l'assiette majoree au 81.003 et au CTP (« le montant d'assiette doit
 //! integrer la majoration de 11,5% », « les salaires a declarer sont ceux [...] effectivement payes, majores d'un
-//! coefficient forfaitaire de 1,1150 ») : `prive/reference/sources/majoration-caisses-conges/` (LISEZ-MOI, « La CPF-CDD
+//! coefficient forfaitaire de 1,1150 ») : `atelier/reference/sources/majoration-caisses-conges/` (LISEZ-MOI, « La CPF-CDD
 //! d'un CDD declare a la caisse » ; guide Urssaf des contributions de formation du 12/03/2026) et
-//! `prive/reference/sources/net-entreprises-base-connaissances/` (fiches 2502 et 2503).
+//! `atelier/reference/sources/net-entreprises-base-connaissances/` (fiches 2502 et 2503).
 //!
 //! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`, compagnies inventees) : fictive-3090-grande, mars 2026,
 //! AUDINOT en CDD (motif 02, accroissement temporaire d'activite, technicienne : non declaree a la caisse) et MONTANSIER
