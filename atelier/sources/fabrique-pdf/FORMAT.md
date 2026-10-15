@@ -15,9 +15,9 @@ et `image_fixe`, puis `entete_page` et `pied_page` (même jour, sans changer le 
 plus ancien refuse `tableau` ou `texte_fixe` par un « type inconnu », et le
 bulletin comme le certificat Congés Spectacles s'arrêtent alors, sans PDF fait autrement). Une description du
 format 1 reste lue telle quelle ; le numéro monte parce qu'un programme du
-format 1 refuserait un document modèle (champ inconnu), et que `fabrique.py`
-doit donc ne pas l'employer : il ne retient qu'un programme qui répond
-`fabrique-pdf 2` (puis 3, voir ci-dessous), et s'arrête sinon : plus aucun PDF ne se fait
+format 1 refuserait un document modèle (champ inconnu), et que `fabrique.py` (le Python d'alors, retiré)
+devait donc ne pas l'employer : il ne retenait qu'un programme qui répondait
+`fabrique-pdf 2` (puis 3, voir ci-dessous), et s'arrêtait sinon : plus aucun PDF ne se faisait
 par Python.
 
 **Version 3 (01/10/2026)** : la description ne change pas, à une clé facultative près
@@ -27,7 +27,7 @@ pages), `--texte` (texte de chaque page), `--marquer` (un texte en pied de chaqu
 et `--verrouiller` (chiffrement AES-256). Les descriptions portant `"format": 1`, `2`
 ou `3` se lisent de la même façon (le 3 n'est que le numéro du programme) ; un
 programme du format 2 refuse `largeur_max` (champ inconnu) et ne connaît aucun des
-quatre modes : `fabrique.py` n'emploie les nouveautés qu'avec un programme qui répond
+quatre modes : `fabrique.py` (retiré) n'employait les nouveautés qu'avec un programme qui répondait
 `fabrique-pdf 3`. Un cinquième mode, `--inspecter` (« Inspecter un PDF »), s'est ajouté
 au format 3 le même jour, sans changer le numéro.
 
@@ -276,9 +276,9 @@ blanc. Même règle pour le `logo`.
  "espace_avant": 4, "espace_apres": 0}
 ```
 
-Un tableau « de données » : le Python donne des **cellules de texte**, la fabrique
+Un tableau « de données » : le moteur donne des **cellules de texte**, la fabrique
 calcule les largeurs, les retours à la ligne, les hauteurs et les coupures de page.
-C'est le bloc du bulletin de paie (`moteur/bulletin.py`) et des tableaux des exports.
+C'est le bloc du bulletin de paie (`paie/src/bulletin.rs`) et des tableaux des exports.
 
 - `colonnes` : au moins une ; `largeur` = fraction de la largeur utile (leur somme
   vaut 1) ; `alignement` : `gauche` (défaut), `droite` (les nombres), `centre`,
@@ -318,7 +318,7 @@ C'est le bloc du bulletin de paie (`moteur/bulletin.py`) et des tableaux des exp
 ### Les blocs à position fixe : `texte_fixe`, `trait`, `image_fixe`
 
 Pour un formulaire dessiné point par point (le certificat d'emploi Congés
-Spectacles, `moteur/conges_spectacles.py`) : chaque bloc se pose à des
+Spectacles, `paie/src/conges_spectacles.rs`) : chaque bloc se pose à des
 **coordonnées absolues de la page**, en points depuis son **coin haut-gauche**
 (y vers le bas, comme dans PyMuPDF), quelles que soient les marges de la page.
 Ces blocs **ne coulent pas** : aucun n'occupe de hauteur, aucun ne déplace le
@@ -356,8 +356,8 @@ suivant, et ils ne se coupent pas entre deux pages.
   (Liberation : celles d'Helvetica, de Times et de Courier ; le gras compte).
   Tant qu'il y tient (`largeur <= largeur_max`), le corps ne change pas ; sinon
   le corps devient `max(6, corps × largeur_max ÷ largeur)` — exactement
-  l'ancien `corps_qui_tient` de `moteur/conges_spectacles.py` (retiré : le Python passe
-  maintenant `largeur_max` = `limite − RESPIRATION − x`). Pas de palier : une règle de trois, d'un coup. Le
+  l'ancien `corps_qui_tient` de `moteur/conges_spectacles.py` (retiré : le moteur passe
+  `largeur_max` = `limite − RESPIRATION − x`). Pas de palier : une règle de trois, d'un coup. Le
   plancher est de **6 pt, absolu** : un corps demandé plus petit que 6 et qui ne
   tient pas monte donc à 6, comme dans le Python. L'alignement (`droite`,
   `centre`) se fait sur la largeur du texte une fois réduit. *Écart connu avec le
@@ -416,8 +416,8 @@ le corps, donc ne changent pas les sauts de page.
   et le résultat est le même à l'octet près d'un appel à l'autre. Sans `{pages}`, une
   seule passe.
 - Le texte extrait les contient, page par page. Un programme plus ancien refuse ces
-  deux clés (champ inconnu) : `fabrique.py` ne retient pas un programme qui ne répond pas
-  `fabrique-pdf 3`, et l'opération s'arrête (aucun repli).
+  deux clés (champ inconnu) ; le moteur, lui, lie la fabrique de sa propre version comme
+  bibliothèque (`paie/src/fabrique.rs`) : il ne tombe jamais sur un programme plus ancien.
 
 ## Ce que la fabrique garantit
 
@@ -664,8 +664,8 @@ fabrique-pdf --marquer entree.pdf sortie.pdf "texte"
 ```
 
 Pose `texte` en pied de **chaque page** de `entree.pdf` et écrit `sortie.pdf` (qui peut être
-le même fichier : l'entrée est lue en entier avant). C'est `_marquer` de
-`moteur/operations_dossier.py` (`page.insert_text((34, hauteur − 12), texte, fontname="helv",
+le même fichier : l'entrée est lue en entier avant). C'était `_marquer` de
+`moteur/operations_dossier.py` (Python, retiré ; `page.insert_text((34, hauteur − 12), texte, fontname="helv",
 fontsize=6, color=(0.45, 0.45, 0.45))`) : **à 34 pt du bord gauche, ligne de base à 12 pt du
 bas de la page** (la `CropBox`, dans la `MediaBox`), **corps 6**, gris `#737373`
 (0,45 / 0,45 / 0,45), aligné à gauche, **sur une ligne** (les sauts de ligne du texte deviennent

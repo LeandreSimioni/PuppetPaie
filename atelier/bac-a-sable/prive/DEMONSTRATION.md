@@ -1,11 +1,11 @@
 # Les Deux Rives (démonstration)
 
-Compagnie de DEMONSTRATION, fabriquee par `logiciel/outils/compagnies_demo.py` -- rien n'y est reel, et rien n'en part en reel (marqueur `COPIE-DE-DEVELOPPEMENT.json`).
+Compagnie de DEMONSTRATION, fabriquee par le generateur Python `logiciel/outils/compagnies_demo.py` (parti avec le Python, non porte) -- rien n'y est reel, et rien n'en part en reel (marqueur `COPIE-DE-DEVELOPPEMENT.json`).
 
 - Convention : IDCC 1285
 - Compagnie conventionnee de la CCNEAC : deux permanents, cinq intermittents, deux spectacles, FNAS et FCAP.
 
-Pour l'ouvrir : `PUPPETPAIE_DONNEES=demo/demo-1285-grande python -m moteur interface` (depuis `logiciel/`, chemin a adapter).
+Pour l'ouvrir : ici, c'est la compagnie du poste du bac a sable ; `logiciel\puppetpaie.exe` du bac l'ouvre (`atelier/bac-a-sable/LISEZ-MOI.md`).
 
 ## L'equipe
 

@@ -26,7 +26,8 @@
 - Le nom de la compagnie réelle n'apparaît plus dans le code (un test de
   signature le portait, corrigé).
 
-**Ce que le garde-fou relève** (`python3 atelier/outils/verifier_avant_commit.py`,
+**Ce que le garde-fou relève** (alors `python3 atelier/outils/verifier_avant_commit.py`, porté en Rust
+le 15/10/2026 : `paie verifier-avant-commit` ;
 réveillé le 14/10/2026, lot N1) : il lit désormais tout ce que Git emporterait
 hors de `prive/` (`demo/`, les `config/`, `.dsn` et `.xml` compris), reconnaît
 un NIR inventé à la marque du verrou de la suite (`999`, `123456`, `000`) et
@@ -95,14 +96,16 @@ le piège à éviter.
 
 Les valeurs fabriquées ont **des clés qui se vérifient** : un test ne doit pas
 pouvoir passer sur un numéro impossible. Elles sont listées, avec leur raison
-d'être, en tête de `outils/verifier_avant_commit.py`.
+d'être, dans `FICTIVES` de `paie/src/verifier_avant_commit.rs` (en tête de
+`outils/verifier_avant_commit.py` avant le 15/10/2026).
 
 Vérifié après nettoyage : **117 tests verts**, et `python -m moteur calibrer`
 rend exactement le même rapport qu'avant.
 
 ## 2. Le garde-fou, en place
 
-`outils/verifier_avant_commit.py` cherche NIR, IBAN, BIC, SIRET, identités et
+`paie verifier-avant-commit` (`paie/src/verifier_avant_commit.rs`, porté le 15/10/2026 depuis
+`outils/verifier_avant_commit.py`) cherche NIR, IBAN, BIC, SIRET, identités et
 adresses dans tout ce qui partirait. Il **ne contient aucune donnée
 sensible** : il lit ce qu'il faut protéger dans `prive/config/`, hors du
 dépôt. Un garde-fou qui porterait la liste des NIR à protéger serait

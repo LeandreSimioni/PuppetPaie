@@ -59,9 +59,10 @@ pour la même notion. Le détail est dans
 ## 2. La méthode : sept questions, dans cet ordre
 
 Chaque question a un champ, une source, et un coût si on se trompe. Les
-champs sont ceux de `moteur/catalogue.Rubrique` ; la liste complète, avec qui
-les applique, est dans `catalogue.CHAMPS` — c'est la version que le code peut
-vérifier, et `tests/test_catalogue.py` la vérifie.
+champs sont ceux de `Rubrique` (`paie/src/catalogue.rs`, les vingt-huit de
+`CHAMPS_CONNUS` : un champ inconnu est refusé). La liste de qui les applique,
+`catalogue.CHAMPS` du Python, et son test sont partis avec le Python sans être
+portés (`catalogue.rs`, en tête).
 
 ### Q1 — Qu'est-ce qu'on compte ? → `unite`
 
@@ -173,7 +174,7 @@ nulle part** : elle se paie des années plus tard, quand le salarié compte ses
   même mois en font trente, et un plafond appliqué contrat par contrat les
   laisserait tous passer. Et il ne borne ni ce qu'on paie ni ce qu'on déclare :
   les cachets au-delà sont joués, payés, déclarés, et n'apportent plus
-  d'heures. C'est pourquoi il vit dans `cumul.py`, le décompte des droits, et
+  d'heures. C'est pourquoi il vit dans `paie/src/cumul.rs`, le décompte des droits, et
   non dans le calcul.
 
 Les deux plafonds sont **indépendants** et le restent : l'enseignement est dans
@@ -215,7 +216,9 @@ n'est pas une formalité : c'est ce qui permet à quelqu'un d'autre, plus tard,
 de vérifier le nombre au lieu de le croire. La source nomme le texte et sa
 date, pas « la réglementation ».
 
-`python -m moteur rubriques --detail` affiche la source de chacune.
+La source de chacune se lit dans `logiciel/donnees/rubriques-base.json` (et
+`config/rubriques-compagnie.json` pour celles d'une compagnie) ; la commande
+`rubriques --detail` du Python qui l'affichait n'est pas portée.
 
 ---
 
@@ -261,8 +264,9 @@ plus silencieux des trois. Il a sa section.
 
 ## 5. Ce que le catalogue ne tient pas — relevé du 20/09/2026
 
-L'audit (`python outils/auditer_le_catalogue.py`) relit le moteur et cherche,
-pour chacun des vingt-huit champs d'une rubrique, qui l'applique. **Huit
+L'audit (`outils/auditer_le_catalogue.py`, Python, retiré au lot K sans être
+porté) relisait le moteur Python et cherchait,
+pour chacun des vingt-huit champs d'une rubrique, qui l'appliquait. **Huit
 n'étaient lus que par la commande qui les affiche.** `plafond_mensuel` a été
 branché le jour même — les 28 cachets, comptés sur le total du mois (§49.8) —
 puis trois autres le lendemain (§51). Il en reste **quatre**.
@@ -278,7 +282,7 @@ Et les trois branchés le 20/09/2026, qui ne sont plus dans cette liste :
 
 | champ | ce qu'il fait maintenant |
 |---|---|
-| `dsn_autres_bruts` | un bloc 54 par ligne qui le porte, code vérifié contre la norme (`calcul.py`, `dsn.py`) |
+| `dsn_autres_bruts` | un bloc 54 par ligne qui le porte, code vérifié contre la norme (`paie/src/calcul.rs`, `paie/src/dsn.rs`) |
 | `conges_spectacles` | l'assiette `brut_cs`, un sous-ensemble du brut ligne par ligne, que le barème nomme |
 | `arret_de_travail` | `dsn.generer` refuse de produire le mois quand la ligne est là et l'arrêt absent |
 
@@ -289,12 +293,14 @@ chose. Rien ne part, et rien ne le dit. C'est exactement l'erreur que le §14.1
 annonçait : invisible à la production, invisible au contrôle, découverte des
 mois plus tard par un organisme — ou jamais.
 
-**Ce qui les tient maintenant.** Chaque champ porte, dans `catalogue.CHAMPS`,
-sa question et son lecteur — ou, s'il n'en a pas, **ce qu'il faudrait pour le
-brancher**. Un champ mort et muet est refusé. L'audit confronte le tableau au
-code **dans les deux sens** et échoue si l'un des deux bouge sans l'autre ;
-`tests/test_catalogue.py` le lance. Et `rubriques --detail` dit, rubrique par
-rubrique, ce qu'elle promet en vain.
+**Ce qui les tenait, du temps du Python.** Chaque champ portait, dans
+`catalogue.CHAMPS`, sa question et son lecteur — ou, s'il n'en avait pas,
+**ce qu'il faudrait pour le brancher**. Un champ mort et muet était refusé.
+L'audit confrontait le tableau au code **dans les deux sens** et échouait si
+l'un des deux bougeait sans l'autre, sous un test ; et `rubriques --detail`
+disait, rubrique par rubrique, ce qu'elle promettait en vain. Rien de cela
+n'est porté (`paie/src/catalogue.rs`, en tête) : le moteur Rust refuse un
+champ inconnu, mais plus rien ne confronte un champ à son lecteur.
 
 Aucun des quatre n'est bloquant aujourd'hui : nos intermittents sont payés
 par des rubriques dont tout ce qui compte est appliqué, et le rejeu de cinq

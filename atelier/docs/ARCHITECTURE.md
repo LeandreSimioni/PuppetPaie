@@ -10,7 +10,7 @@ rejouant les mêmes mois et en comparant caractère par caractère.
 D'où trois règles de conception.
 
 **Le calcul est du code, pas du langage.** Un modèle de langage ne doit jamais
-calculer une cotisation. `moteur/calcul.py` applique un barème JSON versionné ;
+calculer une cotisation. `paie/src/calcul.rs` applique un barème JSON versionné ;
 Claude ne fait que traduire une phrase en fichier de saisie et lancer la
 commande.
 
@@ -19,9 +19,12 @@ DPAE sont générées en recopiant un enregistrement réel (`gabarits/`) et en n
 remplaçant que les zones identifiées. Tout ce qui n'a pas été compris reste
 donc exactement tel que l'administration l'a déjà accepté.
 
-**Rien n'est réputé juste sans rejeu.** `python -m moteur calibrer` reconstruit
+**Rien n'est réputé juste sans rejeu.** Le moteur a été calé en reconstruisant
 chaque DSN et chaque AEM du dossier `export/` à partir de leurs propres données
-et les compare à l'original.
+et en les comparant à l'original (`calibrer`, du temps du Python ; retiré avec
+lui et non porté, `docs/PORTAGE-RUST.md`). Ce qui en tient lieu : les attendus
+transcrits dans les tests (`atelier/sources/paie/tests/`) et le dépôt de test,
+seul validateur (règle de fond 10).
 
 ## Le flux
 
@@ -29,38 +32,37 @@ et les compare à l'original.
    une phrase, ou paies/AAAA-MM.json (des lignes de paie datées)
               │
               ▼
-   operations.py ── l'orchestration et les garde-fous, seuls à décider ;
-              │     la ligne de commande (cli.py) et l'interface (web.py)
-              │     ne font que l'appeler. Un nom, neuf modules par domaine
-              │     derrière : operations_socle (erreur, verrou, preuve,
-              │     filet), _paies, _declarations, _retours, _documents,
-              │     _ouverture, _fiches, _catalogues
+   routes.rs ── les routes du moteur (`paie route`) : l'orchestration et les
+              │    garde-fous, seules à décider ; la ligne de commande
+              │    (commandes/) et l'interface (logiciel/interface/, par
+              │    `paie route`) ne font que les appeler. Un aiguillage, un
+              │    module par lot de routes derrière (routes_*.rs)
               ▼
-   contexte.py ── config/entreprise.json, salaries.json, spectacles.json,
+   contexte.rs ── config/entreprise.json, salaries.json, spectacles.json,
               │   organismes.json, baremes/AAAA.json, compteurs.json
               ▼
-   calcul.py  ── brut, assiette CSG, plafond, rubriques du catalogue, net, coût
+   calcul.rs  ── brut, assiette CSG, plafond, rubriques du catalogue, net, coût
               │
-   ┌──────────┼───────────┬────────────┬────────────┬──────────────────┐
-   ▼          ▼           ▼            ▼            ▼                  ▼
-contrat.py bulletin.py  dpae.py     aem.py       dsn.py    conges_spectacles.py
-  PDF        PDF        990 c.   1000 c.*    NEODeS P26V01      PDF
-   │          │           │            │            │                  │
-   └──────────┴───────────┴────────────┴────────────┴──────────────────┘
+   ┌──────────┼───────────┬────────────┬────────────────────┐
+   ▼          ▼           ▼            ▼                    ▼
+contrat.rs bulletin.rs  dpae.rs      dsn.rs        conges_spectacles.rs
+  PDF        PDF        990 c.   NEODeS P26V01            PDF
+   │          │           │            │                    │
+   └──────────┴───────────┴────────────┴────────────────────┘
                           │
                        sorties/AAAA-MM/
                           │
-              verif.py ───┤  rejeu contre export/ de CoolPaie
+        depot.rs / transport.rs ── dépôt par l'API, contre le mot de passe du logiciel
                           │
-        dpae_api.py / dsn_api.py ── dépôt par l'API, contre le mot de passe du logiciel
-                          │
-                     journal.py ── journal/depots.json : ce qu'un fichier
+                     journal.rs ── journal/depots.json : ce qu'un fichier
                                    est devenu, et ce que l'organisme en a dit
 ```
 
-\* Plus d'AEM produite depuis le 01/06/2026 (100 % DSN, France Travail édite
-l'attestation lui-même — `moteur aer`) ; `aem.py` reste pour relire l'archive
-2021-2026 et pour le rejeu. La source : le courriel de France Travail du
+(Les modules sont dans `atelier/sources/paie/src/` ; chacun nomme en tête le
+module Python qu'il a porté.) Plus d'AEM produite depuis le 01/06/2026 (100 %
+DSN, France Travail édite l'attestation lui-même — `paie aer`) ; rien de son
+écriture n'est porté, l'import relit l'archive 2021-2026
+(`paie/src/importation.rs`, `lire_aem`). La source : le courriel de France Travail du
 28/05/2026 à la compagnie (`reference-privee/sources/francetravail-100-dsn/
 francetravail-courriel-fin-phase-pilote-100-dsn-20260528.pdf` : relevé sur une
 compagnie réelle, pièce hors du dépôt public, dépôt privé) — fin des AEM,
@@ -77,10 +79,10 @@ bulletin, une AEM. Le format est dans le `README.md`.
 
 Ce que ça impose au moteur :
 
-- `operations.dates_engagement(e)` est le **seul endroit** qui sache où
+- `dates_engagement` (`paie/src/engagement.rs`) est le **seul endroit** qui sache où
   chercher les jours d'un engagement : dans ses lignes, et nulle part
-  ailleurs. `cumul.py` et `charger` passent par lui.
-- **Une seule écriture** depuis le 13/09/2026. `calcul.Engagement` exige
+  ailleurs. `charger` passe par lui, et le décompte des droits (`cumul.rs`) lit ce qu'il a chargé.
+- **Une seule écriture** depuis le 13/09/2026. `Engagement` exige
   `lignes` ; `cachets` et `heures` en sont **dérivés** (l'AEM, le bloc 53 de
   la DSN, le plafond et `cumul` les lisent toujours), `taux_cachet` est le
   taux de la première ligne `cachet`, `taux_horaire` n'existe plus. Un
@@ -88,10 +90,10 @@ Ce que ça impose au moteur :
   refusé par `charger`, qui dit ce qu'il a vu et ce qu'une saisie porte.
   Plus aucune saisie n'est à l'ancienne écriture : l'outil de conversion
   (Python) est retiré le 15/10/2026.
-- `util.d()` accepte `{"jour": …, "lieu": …}` en plus des quatre formats de
+- `date::d` (`paie/src/date.rs`) accepte `{"jour": …, "lieu": …}` en plus des quatre formats de
   date : une date détaillée est une date, tout ce qui parcourt des jours
   continue de marcher sans le savoir.
-- `Engagement.__post_init__` (`calcul.py`) réunit les deux écritures et n'en
+- La construction d'un `Engagement` (`paie/src/engagement.rs`) réunit les deux écritures et n'en
   laisse qu'une : `dates_travail` reste une liste de dates triées, le lieu part
   dans `lieux` (`lieu_de()`, `lieux_joues()`). Le contrat groupe les dates par
   lieu ; le lieu ne se déclare nulle part ailleurs (ni DSN, ni AEM, ni DPAE).
@@ -281,9 +283,10 @@ Trois subtilités, chacune trouvée en cherchant pourquoi un centime manquait.
 séparément : 0,590 % → 1,69 et 0,090 % → 0,26. Même mécanisme pour la
 contribution formation `059` de la DSN (0,420 + 0,810).
 
-**Tous les arrondis sont au demi supérieur.** `round()` de Python arrondit au
-pair le plus proche et se trompe donc d'un centime régulièrement ; `moteur/util.py`
-utilise `Decimal` avec `ROUND_HALF_UP`.
+**Tous les arrondis sont au demi supérieur.** `round()` de Python arrondissait au
+pair le plus proche et se trompait donc d'un centime régulièrement ; `eur`
+(`paie/src/num.rs`) arrondit un `Decimal` au demi qui s'éloigne de zéro
+(`MidpointAwayFromZero`, le `ROUND_HALF_UP` d'avant).
 
 ## Le SMIC déclaré en DSN (composant 01 de la base 03)
 
@@ -313,7 +316,9 @@ décrit plus haut, avec le barème.
 ## L'AEM V5
 
 Enregistrements de 1000 caractères, latin-1, séparés par CRLF. Zones
-identifiées dans `moteur/aem.py`. La queue numérique est celle-ci :
+identifiées dans `moteur/aem.py` (Python, retiré : plus aucune AEM n'est émise
+depuis le 01/06/2026 et son écriture n'est pas portée ; l'import relit l'archive,
+`paie/src/importation.rs`). La queue numérique est celle-ci :
 
 | Position | Contenu |
 |---|---|
@@ -363,7 +368,7 @@ cachets le même jour. À défaut, les jours valent le nombre de dates jouées
 
 Ces trois valeurs partent dans l'AEM (positions 650-659), dans la DSN (bloc
 `S21.G00.53` : unité 12 journée, 37 cachets, 35 heures) et dans les droits
-(`cumul.py`). Aucune de ces destinations ne les recalcule — la DSN le faisait
+(`cumul.rs`). Aucune de ces destinations ne les recalcule — la DSN le faisait
 pour les jours jusqu'au 20/09/2026, et déclarait donc autre chose que
 l'attestation dès que les deux différaient. Un engagement qui porte des
 lignes de paie et **zéro jour** est refusé : l'unité 12 ouvre les droits du
@@ -372,14 +377,14 @@ salarié, et un mois payé en compte au moins un. Un mois du contrat sans paye
 
 ## Les droits (annexes 8 et 10), et d'où viennent les contrats
 
-`moteur/cumul.py` compte les 507 heures sur 12 mois (un cachet = 12 h, les
+`paie/src/cumul.rs` compte les 507 heures sur 12 mois (un cachet = 12 h, les
 heures d'enseignement plafonnées) et imprime le bloc de cumul du bulletin.
 Depuis le 15/09/2026 il ne lit qu'**une source, la nôtre**, en deux fichiers :
 
 | | quoi | quand |
 |---|---|---|
-| `prive/historique/engagements.json` | les contrats attestés **avant** ce logiciel : les AEM de CoolPaie, importées une fois (`python -m moteur importer`) — dates, numéro d'objet, cachets, heures, jours, brut, numéro et date d'attestation | pour tout mois qui n'a pas de fichier de paie |
-| `prive/paies/AAAA-MM.json` | les mois produits ici, chargés par `operations.charger` (un seul chemin de calcul : mêmes cachets, heures et brut que le bulletin et la DSN) | pour le mois du fichier — et l'historique se tait |
+| `prive/historique/engagements.json` | les contrats attestés **avant** ce logiciel : les AEM de CoolPaie, importées une fois (`paie importer`) — dates, numéro d'objet, cachets, heures, jours, brut, numéro et date d'attestation | pour tout mois qui n'a pas de fichier de paie |
+| `prive/paies/AAAA-MM.json` | les mois produits ici, chargés par `charger` (`paie/src/engagement.rs`) (un seul chemin de calcul : mêmes cachets, heures et brut que le bulletin et la DSN) | pour le mois du fichier — et l'historique se tait |
 
 La règle de départage tient en une phrase : **un mois qui a son fichier de
 paie est lu là, jamais deux fois.** Pendant le double run d'août 2026, l'AEM
@@ -398,16 +403,18 @@ substitue au fichier de leur mois.
 Avant cette date, `cumul.py` lisait `export/AEM_EDI` — le dossier de
 CoolPaie — directement. Cela liait les droits à un logiciel qu'on résilie en
 janvier 2027, et laissait de côté les mois produits ici (plus d'AEM depuis le
-01/06/2026 : la compagnie est en 100 % DSN). `cumul.lire_aem` reste : il
+01/06/2026 : la compagnie est en 100 % DSN). `lire_aem` reste (`paie/src/importation.rs`) : il
 dépouille un dossier d'AEM (l'import s'en sert, et nos propres AEM de
 `sorties/`), mais plus personne ne l'appelle pour les droits.
 
 ### L'import CoolPaie
 
-`moteur/importation.py` lit `export/` (les DSN pour l'identité, l'emploi,
-les numéros d'objet et l'entreprise ; les AEM pour les contrats) ;
-`operations_importation.py` décide quoi écrire, par les mêmes fiches que
-l'écran (`enregistrer_fiche` : même clé, même matricule, même vérification,
+`paie/src/importation.rs` lit le dossier `import/` de la compagnie (les DSN
+pour l'identité, l'emploi, les numéros d'objet et l'entreprise ; les AEM pour
+les contrats ; l'`export/` de CoolPaie avant le 10/10/2026, `atelier/README.md`,
+« Reprendre l'historique ») ;
+`paie/src/importation_ecrite.rs` décide quoi écrire, par les mêmes fiches que
+l'écran (`routes_ecritures::ecrire_fiche` : même clé, même matricule, même vérification,
 même filet). Une fiche existante n'est jamais modifiée : ce que la DSN disait
 autrement est rendu dans `ecarts`, et c'est à l'humain de dater un
 changement. La dernière DSN où un salarié figure fait foi pour son identité ;
@@ -518,9 +525,9 @@ chaque mois a payé le sien.
 Le barème et le SMIC (`calcul.calculer`) sont ceux de `fin_periode`, pas de
 `fin` : un contrat de décembre à février se paie en décembre au barème de
 décembre. Sur un contrat qui tient dans son mois — tout l'historique — ces
-propriétés valent `debut`/`fin` et rien ne bouge : `calibrer` le prouve sur
-75 DSN, `tests/test_contrats_plurimensuels.py` rejoue un contrat fictif
-octobre → décembre et lit les trois DSN — déposées en test le 15/09/2026,
+propriétés valent `debut`/`fin` et rien ne bouge : `calibrer` l'a prouvé sur
+75 DSN, et `tests/test_contrats_plurimensuels.py` (du temps du Python) rejouait un contrat fictif
+octobre → décembre et lisait les trois DSN — déposées en test le 15/09/2026,
 conformes. La quotité 40.012/013 est celle du **contrat entier** (jours
 signés : dates du premier mois + planning, `Engagement.jours_contrat`),
 identique chaque mois et jamais zéro : le cahier technique 2026.1 interdit
@@ -543,11 +550,11 @@ bulletin. Établi par trois dépôts de test le 15/09/2026 (ETAT.md §26.9).
 déclarer quelqu'un qui n'est pas encore immatriculé — une première embauche,
 un artiste étranger. En son absence, la norme exige le **numéro technique
 temporaire** `S21.G00.30.020` (CCH-12), et le moteur le fabrique :
-`sexe + SIREN + matricule`, jamais saisi (`moteur/ntt.py`).
+`sexe + SIREN + matricule`, jamais saisi (`paie/src/ntt.rs`).
 
 | | |
 |---|---|
-| ce qui l'écrit | `ntt.poser_nir` / `ntt.poser_ntt`, appelés par les **trois** émetteurs de bloc 30 — `dsn.py`, `fctu.py`, `signalement.py` |
+| ce qui l'écrit | `ntt::poser_nir` / `ntt::poser_ntt`, appelés par les émetteurs de bloc 30 — `dsn.rs`, `fctu.rs`, `signalement.rs`, `amorcage.rs` |
 | les règles | CSL-11 (commence par 1 ou 2), CSL-12 (aucun espace), CCH-13 (caractères 2 à 10 = le SIREN), longueur [11,40] — trois d'entre elles ne sont **pas** dans le relevé des formats, comme pour le NIR |
 | quand les deux partent ensemble | la déclaration du mois où le NIR a pris effet : « le NTT doit être renseigné sur la première DSN où le NIR est attribué », pour raccorder les deux identités |
 | ce qui le date | l'arrivée du NIR descend dans `historique` (valeur vide jusqu'au jour J) — seule exception à la règle « une case qui se remplit n'a rien à dater » |
@@ -610,8 +617,8 @@ livre**. L'état exact est aux §38 à §45 de `prive/journal/ETAT.md`.
 
 ### Le taux d'une branche n'est pas une donnée de compagnie
 
-`moteur/prevoyance-conventionnelle-base.json` porte la prévoyance des
-permanents telle que la fixe la convention collective, et `moteur/prevoyance.py`
+`logiciel/donnees/prevoyance-conventionnelle-base.json` porte la prévoyance des
+permanents telle que la fixe la convention collective, et `paie/src/bareme.rs` (module `prevoyance`)
 la lit. 1,20 % de la tranche A est vrai pour **toutes** les entreprises de
 l'IDCC 3090 : le mettre dans le barème d'une compagnie, c'est le ranger là où
 aucune autre ne le trouvera. La ligne de partage, et elle vaut pour la suite :
@@ -689,11 +696,11 @@ mensuel : mêmes taux Agirc-Arrco (le régime est unifié), mais l'Apec sur
 quatre plafonds **du mois** et la CET sur des tranches mensuelles. Sa
 prévoyance, elle, vient de la convention.
 
-`moteur/contrats-base.json` porte ce que la DSN écrit de la **structure** d'un
+`logiciel/donnees/contrats-base.json` porte ce que la DSN écrit de la **structure** d'un
 contrat, par nature — ce qui était, jusque-là, écrit dans `dsn.py`. Trois
 natures : `cddu_spectacle` (l'intermittent, et le défaut d'un engagement qui
 ne dit rien), `cdi`, `cdd`. Chaque code y porte sa valeur, sa phrase et sa
-source ; `moteur/contrats.py` les lit et ne décide rien.
+source ; `paie/src/contrats.rs` les lit et ne décide rien.
 
 Ce qui sépare un permanent d'un intermittent, en une page :
 
@@ -725,11 +732,11 @@ notifié. Mélangés, ils obligeaient chaque compagnie qui installe PuppetPaie �
 que nous avions déjà relevé.
 
 ```
-moteur/baremes/2026.json                le socle : droit commun + tout le spectacle
+logiciel/donnees/baremes/2026.json      le socle : droit commun + tout le spectacle
   └─ section `par_convention`           la couche de SA convention, choisie par l'IDCC
 config/baremes/2026.json                ce qui est propre à la compagnie, 2 Ko
 config/effectifs.json                   son effectif, écrit par le moteur depuis
-                                        les retours de nature 118 (moteur/effectif.py)
+                                        les retours de nature 118 (paie/src/releve_retours.rs)
 ```
 
 **Trois étages, et le deuxième est une bifurcation.** Le corps du socle porte
@@ -822,9 +829,9 @@ Venu de `CLAUDE.md` (règle 8) le 04/10/2026, tel quel pour l'essentiel.
 section `seuils_effectif` du socle dit, chemin par chemin, où vit chaque valeur
 qui dépend de l'effectif et ce que le socle y porte (formation des permanents à
 onze salariés ; FNAL, `tdelta` et échéance de la DSN à cinquante).
-`moteur/entreprise.py` la confronte à l'effectif **calculé par l'Urssaf** — depuis
+`paie/src/contexte.rs` la confronte à l'effectif **calculé par l'Urssaf** — depuis
 le 23/09/2026 il ne se saisit plus : il arrive en CRM de nature 118,
-`moteur/effectif.py` l'écrit seul dans `config/effectifs.json` à chaque relevé, et
+`paie/src/releve_retours.rs` l'écrit seul dans `config/effectifs.json` à chaque relevé, et
 un seuil n'est franchi qu'après cinq années consécutives (L. 130-1, II) — et
 **refuse de payer** si la surcouche ne suit pas le palier atteint.
 
@@ -843,7 +850,7 @@ un seuil n'est franchi qu'après cinq années consécutives (L. 130-1, II) — e
 - Le même module refuse une **adhésion à une organisation patronale** dont la
   couche n'est pas relevée (`par_organisation_patronale`) et un **second
   établissement** incomplet (adresse, taux AT/MP) ; complet, il a sa propre DSN
-  depuis le 25/09/2026 (`moteur/etablissements.py`). Le contrôle est appelé dans
+  depuis le 25/09/2026 (`paie/src/contexte.rs`, `paie/src/dsn.rs`). Le contrôle est appelé dans
   `Contexte._bareme_brut`, seul endroit que les deux fronts traversent.
 
 ### Le barème a deux axes, pas un
@@ -921,9 +928,10 @@ permanents, un seul CTP 992.
 
 ### Ce que la loi doit à un permanent
 
-`moteur/permanents-base.json` porte les nombres, chacun avec son article ;
-`moteur/permanents.py` porte la règle ; `moteur/operations_permanents.py`
-décide. Les articles sont relevés et datés dans
+`logiciel/donnees/permanents-base.json` porte les nombres, chacun avec son article ;
+`paie/src/permanents.rs` porte la règle ; les routes portées d'`operations_permanents.py`
+(`paie/src/routes_actes_h1.rs`, `routes_listes.rs`)
+décident. Les articles sont relevés et datés dans
 `atelier/reference/sources/code-du-travail/`.
 
 - **congés payés** : 2,5 jours ouvrables par mois, 30 au plus (L3141-3) ;
@@ -996,7 +1004,7 @@ décide. Les articles sont relevés et datés dans
 
   Chacune a **son** code d'indemnité au bloc S21.G00.52 — 001, 003, 005 —,
   et le cahier technique interdit de les intervertir (CCH-21 à CCH-24). Le
-  contrôle est au point d'écriture du bloc, dans `dsn.py` : c'est le seul
+  contrôle est au point d'écriture du bloc, dans `dsn.rs` (`permanents::code_52_permis`) : c'est le seul
   endroit par où passent toutes les lignes. Avant, le moteur ne connaissait
   que le 007 et le posait sur **toute** fin de CDI — une rupture
   conventionnelle serait partie avec, et CCH-24 l'aurait fait rejeter ;
@@ -1008,7 +1016,7 @@ décide. Les articles sont relevés et datés dans
   dépendent de Pâques — le seul calcul du logiciel qui remplace un relevé,
   aucune table officielle ne publiant cette date. Mais **férié n'est pas
   chômé** : la loi n'impose que le 1er mai (L3133-4), les dix autres relèvent
-  de la convention ou de l'usage. `moteur/feries.py` ne retire donc du
+  de la convention ou de l'usage. `paie/src/feries.rs` ne retire donc du
   décompte des jours ouvrables que ce que `config/entreprise.json` déclare
   chômer (`jours_feries_chomes`), et **dit** ce qu'il a compté comme
   ouvrable. À noter : L3133-3 exclut nommément les **intermittents** du
@@ -1023,7 +1031,7 @@ décide. Les articles sont relevés et datés dans
   saisissent (D1226-5) ;
 - **certificat de travail** (L1234-19, D1234-6) et **reçu pour solde de tout
   compte** (L1234-20, D1234-7, D1234-8) : produits par
-  `moteur/documents_fin.py`, leur texte en donnée dans `gabarits/*.modele`.
+  `paie/src/routes_actes_h1.rs` (porté de `documents_fin.py`), leur texte en donnée dans `gabarits/*.modele`.
   Le certificat est le seul document du logiciel dont le contenu soit
   **plafonné** par la loi — D1234-6 dit « exclusivement ».
 
@@ -1040,10 +1048,10 @@ Le moteur en écrit quatre, dans trois modules :
 
 | `S20.G00.05.001` | message | écrit par |
 |---|---|---|
-| `04` | signalement d'arrêt de travail | `moteur/signalement.py` |
-| `05` | signalement de reprise suite à arrêt de travail | `moteur/signalement.py` |
-| `07` | **fin de contrat de travail unique** (FCTU) | `moteur/fctu.py` |
-| `08` | **amorçage des données variables** (SADV) | `moteur/amorcage.py` |
+| `04` | signalement d'arrêt de travail | `paie/src/signalement.rs` |
+| `05` | signalement de reprise suite à arrêt de travail | `paie/src/signalement.rs` |
+| `07` | **fin de contrat de travail unique** (FCTU) | `paie/src/fctu.rs` |
+| `08` | **amorçage des données variables** (SADV) | `paie/src/amorcage.rs` |
 
 **Trois modules et non un**, parce qu'ils ne portent pas la même chose. Les
 deux premiers ne portent pas de paie ; le FCTU ne porte que ça — il déclare le
@@ -1056,9 +1064,9 @@ attendre une DSN mensuelle, depuis que TOPAze est fermé. Un signalement
 d'amorçage vaut pour **un unique individu** (base de connaissances DSN, fiche
 2117) : cinq salariés à amorcer, c'est cinq fichiers.
 
-**Le bloc 40 est le même dans les quatre**, et c'est voulu : `fctu.py` et
-`amorcage.py` appellent `dsn._bloc_contrat` avec leur nature de déclaration,
-et `_si_admise` retire ce que cette nature n'admet pas **en lisant le tableau
+**Le bloc 40 est le même dans les quatre**, et c'est voulu : `fctu.rs` et
+`amorcage.rs` appellent `dsn::bloc_contrat` (ou `bloc_contrat_fctu`) avec leur nature de déclaration,
+et `si_admise` retire ce que cette nature n'admet pas **en lisant le tableau
 des usages** de la version du fichier (`usages-dsn-base.json` pour P26V01,
 `usages-dsn-p27v01-base.json` pour P27V01) au lieu de recopier la
 différence. Une seule vérité sur la façon de décrire un contrat. Ce que la
@@ -1124,11 +1132,13 @@ plutôt que d'en fabriquer un.
 
 Une rubrique interdite écrite par mégarde, c'est une anomalie bloquante
 **CST-04** côté plate-forme, et le fichier ne déclare rien. Le tableau des
-usages est donc relevé dans `moteur/arrets-base.json`, et
-`tests/test_arrets.py` confronte chaque fichier produit à ce tableau —
+usages est donc relevé dans `logiciel/donnees/arrets-base.json` (section `usages`), et
+`tests/test_arrets.py` confrontait chaque fichier produit à ce tableau —
 rubrique par rubrique, dans les deux sens (aucune interdite, toutes les
 obligatoires). Le générateur, lui, ne lit pas cette section : sinon le test ne
-vérifierait plus rien.
+vérifierait plus rien. Ce test était du Python : il est parti avec lui sans être
+porté, et plus rien ne lit cette section ; le test Rust des signalements
+(`tests/dsn/signalement.rs`) fige le texte de chaque cas.
 
 ### Le bloc 60, et ses trois visages
 
@@ -1205,7 +1215,7 @@ arrêt.
 
 Enregistrements de 990 caractères, **saut de ligne compris** : 989 caractères
 puis `LF`, comme le dit le Format 120 (« 990 en incluant le saut de ligne »).
-Un enregistrement par contrat, encodage latin-1. Zones dans `moteur/dpae.py` :
+Un enregistrement par contrat, encodage latin-1. Zones dans `paie/src/dpae.rs` :
 
 | Position | Contenu |
 |---|---|
@@ -1213,7 +1223,7 @@ Un enregistrement par contrat, encodage latin-1. Zones dans `moteur/dpae.py` :
 | 133-136 | `C_URSSAF`, code de l'Urssaf réceptrice (117 Île-de-France), lu dans `entreprise.json` → `code_urssaf` |
 | 283-315 | nom (32 c.) |
 | 315-347 | prénom (32 c.) |
-| 347-360 | NIR (13 c., sans la clé) — **facultatif** : à blanc, la DPAE vaut demande d'immatriculation (formalité `IMMA`, transmise à la CPAM). C'est par elle que le NIR arrive, et la DSN déclare l'individu sous son NTT en attendant (`moteur/ntt.py`) |
+| 347-360 | NIR (13 c., sans la clé) — **facultatif** : à blanc, la DPAE vaut demande d'immatriculation (formalité `IMMA`, transmise à la CPAM). C'est par elle que le NIR arrive, et la DSN déclare l'individu sous son NTT en attendant (`paie/src/ntt.rs`) |
 | 360-368 | date de naissance `JJMMAAAA` |
 | 368-412 | lieu de naissance (44 c.) |
 | 412-420 | date d'embauche `JJMMAAAA` |
@@ -1247,13 +1257,13 @@ face : la DPAE d'un permanent est conforme au dessin et aux tests, pas à une
 réponse de l'Urssaf.
 
 **Ce que l'Urssaf répond** (onglet « Codes retour » du Format 120, tables dans
-`moteur/dpae.py`) : le bilan de conformité (nature 11, XML) porte un `<code>`
+`paie/src/dpae.rs`) : le bilan de conformité (nature 11, XML) porte un `<code>`
 par anomalie, et le certificat de conformité (nature 41) est **notre
 enregistrement renvoyé** avec ses zones de retour remplies — `C_RET_AR_LOT`
 (76-77, le traitement du message), `R_DOSSIER` (425-429, la référence sous
 laquelle la DPAE est enregistrée), `C_RETOUR_AR` (430-431, le code par DPAE)
 et les formalités déclenchées (`I_CERTIF`, `I_IMMA`, `I_MT`, `I_PMF5`,
-971-976). `journal.py` lit le certificat (`dpae.lire_certificat`) et pose sur
+971-976). `paie/src/etats.rs` lit le certificat (`dpae::lire_certificat`) et pose sur
 chaque embauche sa référence de dossier.
 
 Deux lectures à connaître, observées sur les 16 enregistrements reçus de juin
@@ -1271,7 +1281,7 @@ CoolPaie ; net-entreprises accepte les deux. `DPAE_<mois>_recapitulatif.txt`
 donne la même chose en clair pour la saisie en ligne, qui reste une option
 raisonnable pour deux personnes.
 
-## Ce que le rejeu couvre aujourd'hui
+## Ce que le rejeu couvrait (`calibrer`, retiré avec le Python)
 
 ```
 DSN juillet 2026 ......... identique
@@ -1292,12 +1302,13 @@ n'était utile que pour se rassurer, pas pour produire.
 ## Le dépôt, et le journal
 
 Ces déclarations engagent l'employeur. Le moteur les dépose **par l'API**
-(DSN : `dsn_api.py`, net-entreprises ; DPAE : `dpae_api.py`, Urssaf), jamais
+(`paie/src/depot.rs` le prépare, `paie/src/transport.rs` l'envoie : net-entreprises
+pour la DSN, l'Urssaf pour la DPAE), jamais
 par un portail : un contrat écrit, des retours lus par programme, et une
 erreur qui se voit — la première DPAE du 12/09/2026 a été refusée cinq fois
 pour un code Urssaf faux que le portail DUE de CoolPaie laissait passer.
 
-Trois garde-fous, tous dans `operations` (`operations_declarations.py`, sur la preuve du socle) :
+Trois garde-fous, tous dans le moteur (`paie/src/depot_acte.rs`, porté d'`operations_declarations.py`, sur la preuve du socle) :
 
 - **Une preuve par acte.** Rien ne part en réel sans le mot de passe du
   logiciel tapé au moment de l'acte, et les trois gestes (`README.md`).
@@ -1309,12 +1320,12 @@ Trois garde-fous, tous dans `operations` (`operations_declarations.py`, sur la p
   refusée (`DpaeDejaDeclaree`), `deposer_dsn` une DSN réelle déjà partie pour
   le mois (`DsnDejaDeposee`). Une déclaration **refusée** repart sans forcer —
   c'est la seule raison de la refaire.
-- **Un dépôt n'est pas fini quand il est parti.** `journal.py` écrit une ligne
+- **Un dépôt n'est pas fini quand il est parti.** `paie/src/journal.rs` écrit une ligne
   par acte sortant dans `journal/depots.json` (dépôt, courriel, demande de
-  signature), avec le `flux` rendu par le point de dépôt, puis y rattache les
-  retours relevés à l'ouverture. `verdict_du_retour` lit les bilans (natures
+  signature), avec le `flux` rendu par le point de dépôt ; les retours relevés
+  à l'ouverture s'y rattachent. `verdict_du_retour` (`paie/src/etats.rs`) lit les bilans (natures
   10/11) : une DPAE est **passée quand son bilan est OK**, le certificat 41
-  confirme, il ne décide plus. `resume()` dit « REFUSÉ : motif », « bilan OK »,
+  confirme, il ne décide plus. `resume` dit « REFUSÉ : motif », « bilan OK »,
   « en TEST ».
 
 Déposer la DSN en test avant le dépôt réel, et garder l'ancien logiciel installé le temps
@@ -1323,31 +1334,30 @@ de faire tourner un ou deux mois en parallèle et de comparer.
 
 ## La version, et la mise à jour dans l'ombre
 
-`VERSION` (une date, `AAAA.MM.JJ`, comparée en entiers) ; `moteur/maj.py`.
-Un dépôt est une adresse (dossier ou URL) qui sert deux fichiers :
-`derniere.json` (`version`, `archive`, `sha256`, `notes`, `calcul`) et
-l'archive zip du contenu de `logiciel/` (sans `__pycache__`, `.git`,
-`.avant`), déterministe.
+`VERSION` (une date, `AAAA.MM.JJ`, comparée en entiers) ; `paie/src/maj.rs`
+(porté de `moteur/maj.py`). **Une mise à jour par installation** (lot U1,
+14/10/2026) : tout se passe dans `<installation>/maj/`, à côté de `logiciel/`,
+et l'installation de l'éditeur reçoit comme les autres. Un dépôt est une
+adresse qui sert `derniere.json` et l'archive de `logiciel/`.
 
-- `verifier(ctx)` — à l'ouverture, chez une compagnie (`operations_ouverture`,
-  `maj=True`, sauté chez l'éditeur) : lit `derniere.json`, télécharge si
-  plus récent, vérifie le condensat, déballe dans `prive/maj/<version>/logiciel/`,
-  contrôle par sous-processus (`python -m moteur version --controle`, avec
-  `PUPPETPAIE_DONNEES` sur la racine de la compagnie : tout s'importe et la
-  configuration se lit), pose `prive/maj/prete.json`. Ne lève jamais.
-- `appliquer(ctx)` — par le lanceur, avant le serveur (refusé si le port
-  7331 répond) : `logiciel/*` → `logiciel/.avant/`, puis la version prête
-  → `logiciel/` ; retour arrière si une étape casse ; `appliquee.json`
-  garde `calcul` avec `vue: false`, montré une fois au passage suivant.
-- `revenir(ctx)` — `.avant/` reprend la place.
-- `publier(depot, notes, calcul)` — chez l'éditeur (`config/maj.json`,
-  `editeur: true`, aussi ce qui déclenche la veille des sources à
-  l'ouverture) ; refuse de republier un numéro.
+- `verifier` — au lancement, en fond : lit `derniere.json`, prend une version
+  plus récente, vérifie son condensat et la **signature** de l'éditeur
+  (Ed25519), la déballe dans `maj/<version>/`, la **contrôle** (son programme,
+  `puppetpaie route`, lit la configuration de chaque compagnie de
+  l'installation) et pose `maj/prete.json`.
+- `appliquer` — au démarrage suivant, par un relais lancé avant toute
+  fenêtre : `logiciel/` → `logiciel/.avant/`, la version prête prend sa
+  place ; si ça casse en route, tout revient.
+- `revenir` — `.avant/` reprend la place (`paie maj --revenir`).
+- `publier` — par le flux « Publier » du dépôt public, qui signe et pose
+  l'archive, `derniere.json` et l'installeur dans une Release (la clé du
+  poste, `paie maj --publier`, reste acceptée) ; jamais republier un numéro.
 
 
 ## L'exercice : rappels, clôture, export compta
 
-`operations_exercice.py` (16/09/2026). Trois choses qui regardent plus loin
+Porté d'`operations_exercice.py` (16/09/2026) : `paie/src/exercice_ecrit.rs` (la clôture,
+l'export compta) et `paie/src/routes_ouverture.rs` (les rappels). Trois choses qui regardent plus loin
 que le mois affiché.
 
 **Les rappels** (`rappels(ctx, aujourdhui)`) rendent une liste de `Rappel`,

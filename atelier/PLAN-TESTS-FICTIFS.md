@@ -3,6 +3,15 @@
 Écrit le 25/09/2026, à la demande de Léandre, pour être **repris en ligne**,
 depuis une séance à distance. Ce plan fait foi : on le lit, on ne le refait pas.
 
+> **Clos, et il parle d'une suite qui n'existe plus** (15/10/2026). Ses six étapes
+> ont été faites le 25/09/2026 (« Où on en est », plus bas) ; puis la suite Python
+> qu'il traitait (`logiciel/tests/`, `prive/tests/`, `conftest.py`, pytest) est partie
+> avec le Python (lot K). Les tests du moteur Rust tournent sur des compagnies
+> fictives seules et sur la copie figée `atelier/sources/paie/tests/donnees/fictives/`
+> (règle de fond 9 a ; le verrou est `tests/fichiers/donnees_reelles.rs`). Ce qui
+> suit est le récit de septembre : ses commandes (`pytest`, `pip install`,
+> `outils/exporter.py`, `outils/compagnies_*.py`) n'existent plus.
+
 ## Pourquoi maintenant
 
 `outils/exporter.py complete` sort la version complète **avec ses tests**.

@@ -2,7 +2,7 @@
 
 Pour les années passées sous CoolPaie, PuppetPaie n'a que les **DSN** : elles
 disent ce qui a été versé, pas le bulletin tel qu'il a été remis. Le dossier
-d'un salarié (`python -m moteur dossier`, onglet Exports) reprend donc **tels
+d'un salarié (`paie dossier`, onglet Exports) reprend donc **tels
 quels** les PDF que CoolPaie a écrits — bulletins, contrats, attestations. Ce
 qui n'a jamais été sorti de CoolPaie n'y sera pas.
 
@@ -47,13 +47,16 @@ qu'il faut déposer à la racine d'`export/`.
 ## Puis importer
 
 ```bash
-python -m moteur importer            # l'aperçu
-python -m moteur importer --ecrire   # copie l'export dans historique/coolpaie/, puis importe
+paie importer            # l'aperçu : rien n'est écrit
+paie importer --ecrire   # le reprend
 ```
 
-L'import **copie** l'export dans les données de la compagnie
-(`historique/coolpaie/`) : DSN, AEM, et ces PDF. Tout ce qui se reconstruit
-se lit ensuite dans la copie — le dossier `export/` de CoolPaie peut
-disparaître sans rien emporter. Un import se rejoue : ce qui est déjà copié
-reste tel quel, ce qui manque s'ajoute, et un fichier du même nom au contenu
-différent est **signalé**, jamais écrasé.
+Depuis le 10/10/2026, l'import lit **un seul dossier**, `import/` de la
+compagnie, où va tout ce que CoolPaie a laissé (DSN, AEM, ces PDF) ; il copie
+ce qu'il reprend dans `historique/bulletins/` et reconnaît un bulletin par son
+contenu (`atelier/README.md`, « Reprendre l'historique »). Le dossier d'un
+salarié lit aussi, par les noms du tableau ci-dessus, la copie
+`historique/coolpaie/` qu'un import d'avant le 10/10 a faite de l'`export/`
+de CoolPaie, ou cet `export/` lui-même. Un import se rejoue : ce qui est déjà
+copié reste tel quel, ce qui manque s'ajoute, et un fichier du même nom au
+contenu différent est **signalé**, jamais écrasé.
