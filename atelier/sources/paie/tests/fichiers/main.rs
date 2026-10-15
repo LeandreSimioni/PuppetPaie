@@ -35,6 +35,7 @@ mod essai;
 mod importation_tri;
 mod incidents_filet;
 mod mise_a_jour;
+mod releve_dila;
 mod restauration;
 mod retours;
 mod sauvegarde;

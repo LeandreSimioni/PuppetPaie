@@ -6,7 +6,8 @@ fn usage() -> ! {
          \x20       paie route [--racine R] [--date D]   (route et charge en JSON sur l entree standard : les routes de l interface)\n\
          \x20       paie pdf ...   (la ligne de commande de la fabrique : paie pdf --aide)\n\
          \x20       paie interne NOM ...   (les commandes que le Python appelle avec du JSON : paie interne --aide)\n\
-         \x20       paie oracle ... | paie fabrique DESCRIPTION.json SORTIE.pdf   (outils d'atelier)"
+         \x20       paie oracle ... | paie fabrique DESCRIPTION.json SORTIE.pdf   (outils d'atelier)\n\
+         \x20       paie releve-codes ... | paie releve-conventions ...   (les textes LEGI et KALI de la DILA, outils d'atelier : --aide)"
     );
     std::process::exit(2)
 }
@@ -71,6 +72,11 @@ fn main() -> std::process::ExitCode {
         Some("interface") => return std::process::ExitCode::from(paie::interface::commande(&args[1..]).clamp(0, 255) as u8),
         // Les commandes que le Python appelle avec du JSON : `paie interne NOM`.
         Some("interne") => return interne(&args[1..]),
+        // Les codes (LEGI) et les conventions collectives (KALI) releves chez la DILA, dans `atelier/reference/sources`.
+        Some(q @ ("releve-codes" | "releve-conventions")) => {
+            let commande = if q == "releve-codes" { paie::releve_codes::commande } else { paie::releve_conventions::commande };
+            return std::process::ExitCode::from(commande(&args[1..]).clamp(0, 255) as u8);
+        }
         Some("oracle") => match paie::oracle::commande(&args[1..]) {
             Some(code) => std::process::exit(code),
             None => usage(),
