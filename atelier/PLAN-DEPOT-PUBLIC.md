@@ -261,7 +261,7 @@ plan-ci ajoute ce qu'il ne dit pas.
    payé (décembre). Ce qui la lit chez nous, c'est `importer` et `calibrer` :
    ils prennent un chemin, ils le prendront ailleurs.
 
-2. **Vérifier ce qui partirait.** `outils/verifier_avant_commit.py` sur tout
+2. **Vérifier ce qui partirait.** `paie verifier-avant-commit` sur tout
    `logiciel/`, et lire la liste **en entier**. Il cherche NIR, IBAN, BIC,
    SIRET, identités, adresses — et il lit ce qu'il faut protéger dans
    `prive/`, hors du dépôt, pour ne pas porter lui-même la liste.

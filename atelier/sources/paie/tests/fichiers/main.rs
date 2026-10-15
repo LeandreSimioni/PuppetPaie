@@ -39,3 +39,4 @@ mod restauration;
 mod retours;
 mod sauvegarde;
 mod transport;
+mod verifier_avant_commit;

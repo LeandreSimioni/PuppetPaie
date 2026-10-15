@@ -42,7 +42,7 @@ de fond (0 à 11) ne bougent pas : le code les cite.**
 y crée sa branche, on y code, on y ouvre la PR. `puppetpaieprivate` (privé) : `journal/` (`ETAT.md`, passations, topos,
 archives), `reference-privee/` (les textes lus qu'on ne republie pas), et les **tickets** (ses issues). **Les données de la
 compagnie ne sont dans aucun dépôt** : le poste, la clé USB, le Drive. Rien de réel n'entre jamais dans le public
-(`python3 atelier/outils/verifier_avant_commit.py` et le test `donnees_reelles` avant chaque commit). Dans les anciens textes
+(`paie verifier-avant-commit`, en crochet avant chaque commit, et le test `donnees_reelles`). Dans les anciens textes
 du journal, `prive/journal/` se lit `journal/` du privé.
 
 À la racine du public, ce que les gens reçoivent, et l'atelier :

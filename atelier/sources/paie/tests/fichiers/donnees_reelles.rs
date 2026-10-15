@@ -15,12 +15,14 @@ use std::process::Command;
 
 use regex::Regex;
 
+// La marque d'un NIR inventé (`INVENTE`) est celle du garde avant commit (`paie verifier-avant-commit`), qui la tient.
+use paie::verifier_avant_commit::INVENTE;
+
 /// En deux morceaux, pour que ce fichier ne porte pas lui-même ce qu'il refuse.
 const SIREN_REEL: &str = concat!("8783", "66194");
 const NOM_REEL: &str = concat!("ueu", "eue");
 /// Ce qui ne s'écrit pas à la main : ce que construit cargo (ses empreintes ressemblent à des NIR), les caches.
 const HORS_CODE: [&str; 4] = ["target", ".git", "__pycache__", ".pytest_cache"];
-const INVENTE: [&str; 3] = ["999", "123456", "000"];
 const PUBLIC: [&str; 4] = ["logiciel", "fictives", "atelier/sources", "atelier/reference"];
 
 /// Les textes de référence (`atelier/reference/`) sont des copies, octet pour octet, de ce que d'autres ont publié : un numéro

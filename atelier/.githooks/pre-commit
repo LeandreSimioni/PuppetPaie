@@ -1,23 +1,57 @@
 #!/bin/sh
-# Refuse un commit qui emporterait une donnee personnelle.
+# Refuse un commit qui emporterait une donnee personnelle : `paie verifier-avant-commit --indexes`
+# (atelier/sources/paie/src/verifier_avant_commit.rs) juge ce que l'index porte -- les NIR, IBAN et BIC
+# sans la marque d'invention, et les vraies valeurs de prive/config/ quand il est la.
 #
-# A poser une fois, dans le depot public, depuis sa racine :
+# A poser une fois, depuis la racine du depot :
 #
 #     git config core.hooksPath atelier/.githooks
 #
-# A POSER LE JOUR DE LA PUBLICATION, PAS AVANT (20/09/2026). Le depot de
-# travail est PRIVE et porte les donnees : les tests s'appuient sur de vraies
-# declarations, et c'est ce qui leur donne valeur de preuve. Pose aujourd'hui,
-# ce hook refuserait chaque commit. Il vaut pour le depot PUBLIC a venir, ou
-# l'historique est definitif -- une fois pousse, efface ne veut plus rien
-# dire. Voir AVANT-LE-PREMIER-COMMIT.md.
+# Le programme : PUPPETPAIE_FABRIQUE s'il nomme un paie, sinon celui que Cargo a compile
+# (CARGO_TARGET_DIR, sinon atelier/sources/paie/target ; `cargo build --release`), sinon celui
+# que le depot livre (atelier/sources/paie/bin/<systeme>/). Le premier qui connait la commande
+# juge ; si aucun ne la connait, le commit est refuse : un garde qui n'a pas tourne ne laisse
+# pas passer.
 #
 # Pour passer outre en connaissance de cause : git commit --no-verify.
 # Ne le faire qu'apres avoir REGARDE ce qui est signale.
 
-python atelier/outils/verifier_avant_commit.py --indexes || {
+racine=$(git rev-parse --show-toplevel) || exit 1
+paie_src="$racine/atelier/sources/paie"
+
+case "$(uname -s)" in
+    MINGW* | MSYS* | CYGWIN* | Windows*) systeme=windows ;;
+    Darwin) systeme=mac ;;
+    *) systeme=linux ;;
+esac
+
+# Un chemin Windows (C:\...) lu dans l'environnement, en chemin du shell de Git.
+unix() {
+    if [ -n "$1" ] && command -v cygpath >/dev/null 2>&1; then cygpath -u "$1"; else printf '%s\n' "$1"; fi
+}
+
+cible=$(unix "${CARGO_TARGET_DIR:-$paie_src/target}")
+voulu=$(unix "$PUPPETPAIE_FABRIQUE")
+
+for p in "$voulu" "$cible/release/paie" "$cible/release/paie.exe" \
+         "$paie_src/bin/$systeme/paie" "$paie_src/bin/$systeme/paie.exe"; do
+    [ -n "$p" ] && [ -f "$p" ] || continue
+    case "$(basename "$p")" in paie | paie.exe) ;; *) continue ;; esac
+    "$p" verifier-avant-commit --aide >/dev/null 2>&1 || continue
+    "$p" verifier-avant-commit --indexes
+    code=$?
+    [ "$code" -eq 0 ] && exit 0
     echo
-    echo "Commit refuse. Voir AVANT-LE-PREMIER-COMMIT.md."
+    if [ "$code" -eq 1 ]; then
+        echo "Commit refuse. Voir atelier/AVANT-LE-PREMIER-COMMIT.md."
+    else
+        echo "Commit refuse : le garde n'a pas pu verifier (code $code)."
+    fi
     echo "Pour passer outre malgre tout : git commit --no-verify"
     exit 1
-}
+done
+
+echo "Commit refuse : aucun programme paie ne connait verifier-avant-commit."
+echo "Le compiler : cd atelier/sources/paie && cargo build --release"
+echo "Pour passer outre malgre tout : git commit --no-verify"
+exit 1

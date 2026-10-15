@@ -1660,8 +1660,7 @@ atelier/                  ← ce dossier : tout le reste
                           COMPAGNIES-FICTIVES.md et COMPAGNIES-FICTIVES-DEPOT.md
                           (le dernier bilan du crash-test, 21/09/2026)
   outils/                 les outils d'atelier, encore en Python :
-                          convertir_saisies.py, verifier_avant_commit.py
-                          (garde-fou du dépôt public, en sommeil), les
+                          convertir_saisies.py, les
                           extracteurs de la norme (extraire_*.py), le relevé
                           des codes (relever_les_codes.py)…
   PuppetPaie.sh, PuppetPaie.command   les lanceurs Linux et Mac
@@ -1700,3 +1699,29 @@ garde-fous. Aucun front ne décide quoi que ce soit.
 
 Voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour le détail des formats et la façon
 dont chaque taux a été retrouvé.
+
+### Avant un commit : le garde des données réelles
+
+Rien de la compagnie du poste n'entre dans le dépôt public. `paie
+verifier-avant-commit` cherche, dans ce que Git emporterait (hors de
+`prive/`), les NIR, IBAN et BIC qui ne portent pas la marque d'invention, et
+les vraies valeurs qu'il lit dans `prive/config/` quand il est là (SIRET,
+SIREN, comptes des organismes, IBAN, BIC, NIR, courriels, adresses, nom et
+prénom des salariés). Il dit le fichier, la ligne et ce que c'est, jamais la
+valeur ; il sort en 0 (rien), 1 (trouvé) ou 2 (il n'a pas pu vérifier). Le
+test `donnees_reelles` de la suite le complète sans lire `prive/`.
+
+```bash
+paie verifier-avant-commit             # tout ce qui partirait
+paie verifier-avant-commit --indexes   # ce que l'index porte : le prochain commit
+git config core.hooksPath atelier/.githooks   # une fois : le crochet le lance à chaque commit
+```
+
+Le crochet (`atelier/.githooks/pre-commit`) prend le `paie` de
+`PUPPETPAIE_FABRIQUE`, sinon celui que Cargo a compilé (`CARGO_TARGET_DIR`,
+sinon `atelier/sources/paie/target`), sinon celui que le dépôt livre
+(`atelier/sources/paie/bin/<système>/`) ; si aucun ne connaît la commande, le
+commit est refusé. Une trouvaille se regarde : une valeur réelle sort du
+dépôt, une valeur inventée s'inscrit dans `FICTIVES`
+(`atelier/sources/paie/src/verifier_avant_commit.rs`). Passer outre en
+connaissance de cause : `git commit --no-verify`.
