@@ -1,9 +1,10 @@
-//! `unicodedata.normalize("NFKC", texte)`, sans crate : les tables sont celles de l'Unicode de
-//! Python (`tables_nfkc.rs`, produites par `outils/generer_nfkc.py`).
+//! `unicodedata.normalize("NFKC", texte)`, sans crate : les tables (`tables_nfkc.rs`) sont ecrites par
+//! `paie generer-tables` (`generer_tables.rs`) depuis la base Unicode deposee (`atelier/reference/sources/unicode/`).
 //!
-//! Les trois temps de la norme (UAX 15) : decomposition de compatibilite complete, mise en ordre
-//! canonique des signes combinants (tri stable par classe), puis composition canonique. Les
-//! syllabes Hangul se decomposent et se recomposent par le calcul, pas par la table.
+//! Les trois temps de la norme (Unicode, chapitre 3, D65, D109 et D117 :
+//! `atelier/reference/sources/unicode/unicode-norme-18.0.0-chapitre-3-extraits-20261015.md`) : decomposition de
+//! compatibilite complete, mise en ordre canonique des signes combinants (tri stable par classe), puis composition
+//! canonique. Les syllabes Hangul se decomposent et se recomposent par le calcul (§ 3.12), pas par la table.
 
 use crate::tables_nfkc::{CLASSES, COMPOSITIONS, DECOMP_PLACE, DECOMP_POINTS, DECOMP_TEXTE};
 

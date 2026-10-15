@@ -28,7 +28,7 @@ const PUBLIC: [&str; 4] = ["logiciel", "fictives", "atelier/sources", "atelier/r
 /// n'est pas un NIR --, et le retirer, ce serait changer la copie (son empreinte est vérifiée, `paie sources`). Chacun est
 /// nommé ici, fichier par fichier (relatif à la racine du dépôt), avec ce qu'il est ; un motif qui ne couvre plus rien se
 /// retire (`chaque_exemple_des_textes_couvre_encore_un_numero`). Ce qui n'est pas listé est refusé, nos notes comprises.
-const EXEMPLES_DES_TEXTES: [(&str, &str); 4] = [
+const EXEMPLES_DES_TEXTES: [(&str, &str); 5] = [
     (
         r"^atelier/reference/sources/gip-mds-api-dsn/gip-mds-guide-implementation-api-dsn-v6\.8-20260706\.txt$",
         "les exemples de flux et de réponses du guide d'implémentation de l'API DSN (GIP-MDS)",
@@ -44,6 +44,10 @@ const EXEMPLES_DES_TEXTES: [(&str, &str); 4] = [
     (
         r"^atelier/reference/sources/urssaf-liste-des-sites-et-des-activites\.csv$",
         "une longitude de la table de l'Urssaf (des décimales de coordonnée), pas un NIR",
+    ),
+    (
+        r"^atelier/reference/sources/python/python-cpython-3\.11\.17-pyexpat-20261015\.txt$",
+        "une empreinte hexadécimale d'Argument Clinic dans la source de CPython (`[clinic end generated code: … input=…]`), pas un NIR",
     ),
 ];
 

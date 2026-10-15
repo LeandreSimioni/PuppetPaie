@@ -68,6 +68,7 @@ pub mod fctu;
 pub mod feries;
 pub mod fichiers;
 pub mod filet;
+pub mod generer_tables;
 pub mod google_autorisation;
 pub mod horloge;
 pub mod formats;
