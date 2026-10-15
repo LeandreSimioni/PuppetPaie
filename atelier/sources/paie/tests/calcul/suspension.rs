@@ -121,6 +121,10 @@ fn en_1285_le_mois_entierement_suspendu_attend_la_fiche_entreprise() {
     );
     let e = charger(&racine).err().expect("sans la fiche, le mois refuse");
     assert!(e.contains(paie::calcul::SANTE_SUSPENSION), "{}", e);
+    // « Pour demarrer » le demande, parce qu'une suspension non remuneree est saisie (et seulement alors).
+    let manque = |r: &Path| paie::demarrage::manques(&contexte(r)).iter().any(|m| m["cle"] == json!(paie::calcul::SANTE_SUSPENSION));
+    assert!(manque(&racine));
+    assert!(!manque(&copie("fictive-1285-grande", "1285-sans-suspension")));
 
     let poser = |valeur: &str| {
         let mut ent = lire(&racine, "config/entreprise.json");

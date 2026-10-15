@@ -1077,7 +1077,7 @@ jusqu'au »), si l'organisme et la convention le permettent ; sinon c'est a tran
 pub const SANTE_SUSPENDUE: &str = "_sante_suspendue";
 
 /// Le champ de la fiche entreprise qui dit ce que le contrat de sante de la compagnie fait d'un mois entierement suspendu
-/// sans indemnisation, hors de la 3090 (`logiciel/donnees/champs-base.json`, `docs/RUBRIQUES.md`) : « suspendue » (les
+/// sans indemnisation, hors de la 3090 (`logiciel/donnees/champs-base.json`, `atelier/docs/ARCHITECTURE.md`) : « suspendue » (les
 /// garanties sont suspendues, rien sur la paie), « maintenue » (garanties et cotisations maintenues sur la paie).
 pub const SANTE_SUSPENSION: &str = "sante_suspension_non_indemnisee";
 pub const SANTE_SUSPENSION_SUSPENDUE: &str = "suspendue";
