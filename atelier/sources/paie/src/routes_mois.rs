@@ -83,13 +83,13 @@ fn plur(k: usize, un: &'static str, des: &'static str) -> &'static str {
     }
 }
 
-/// Un refus du chargement d'une saisie. Les deux refus que l'ecran ne tient
-/// pas pour un defaut du logiciel -- le spectacle pas encore choisi, les jours
-/// pas encore saisis (`SaisieIncomplete`) -- gardent leur classe ; tout autre
-/// est celui du moteur (`CalculRefuse` cote Python).
+/// Un refus du chargement d'une saisie. Les refus que l'ecran ne tient pas
+/// pour un defaut du logiciel -- le spectacle pas encore choisi, les jours ou
+/// les heures pas encore saisis (`SaisieIncomplete`, leur liste est
+/// `engagement::saisie_incomplete`) -- gardent leur classe ; tout autre est
+/// celui du moteur (`CalculRefuse` cote Python).
 pub fn classer_saisie(message: String) -> Echec {
-    let incomplete = message.starts_with("L'engagement ")
-        && (message.contains(" ne dit pas quel spectacle il joue") || message.contains(" ne dit aucun jour joue"));
+    let incomplete = engagement::saisie_incomplete(&message);
     Echec { classe: if incomplete { Some("SaisieIncomplete") } else { None }, message }
 }
 
@@ -1369,6 +1369,8 @@ mod tests {
         let e = classer_saisie("L'engagement 2 de 2026-08 ne dit pas quel spectacle il joue, et le mois n'en propose aucun.".into());
         assert_eq!(e.classe, Some("SaisieIncomplete"));
         let e = classer_saisie("L'engagement 1 de 2026-08 ne dit aucun jour joue. Les jours se portent sur chaque ligne".into());
+        assert_eq!(e.classe, Some("SaisieIncomplete"));
+        let e = classer_saisie("L'engagement 1 de 2026-08 : sa ligne 1 (« Service de répétition ») ne dit pas ses heures.".into());
         assert_eq!(e.classe, Some("SaisieIncomplete"));
         let e = classer_saisie("L'engagement 1 de 2026-08 est ecrit a l'ancienne".into());
         assert_eq!(e.classe, None);

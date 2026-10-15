@@ -1024,9 +1024,56 @@ pub fn engagements(
         poser("dernier_jour_paye", e.get("dernier_jour_paye"));
         poser("date_modification", e.get("date_modification"));
         poser("avant", e.get("avant"));
-        out.push(Engagement::nouveau(&ctx.racine, &Value::Object(champs))?);
+        let eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs))?;
+        // Les lignes que la saisie ecrit disent leurs heures (#125). Celles qu'un mois de permanent deduit, quand sa
+        // saisie n'en ecrit pas (`conges::lignes_du_mois`), portent la quotite du contrat en heures : rien a controler.
+        if !nat.mensuelle() || e.get("lignes").map_or(false, |l| !l.is_null()) {
+            heures_dites(ctx, &eng, rang, &mois_dit)?;
+        }
+        out.push(eng);
     }
     Ok((out, dits))
+}
+
+/// Les phrases des refus qui disent une saisie pas encore finie, et non un defaut du logiciel : un spectacle pas encore
+/// choisi, des jours pas encore coches, des heures pas encore dites. L'ecran enregistre a chaque frappe, et ces refus
+/// montent sous `SaisieIncomplete` (`routes_mois::classer_saisie`, `routes_ouverture::refus_du_calcul`) ; leur message
+/// commence par « L'engagement N de AAAA-MM ».
+const SAISIE_INCOMPLETE: [&str; 3] = [" ne dit pas quel spectacle il joue", " ne dit aucun jour joue", " ne dit pas ses heures"];
+
+/// Ce refus de `engagements` dit-il une saisie pas encore finie ([`SAISIE_INCOMPLETE`]) ?
+pub fn saisie_incomplete(message: &str) -> bool {
+    message.starts_with("L'engagement ") && SAISIE_INCOMPLETE.iter().any(|p| message.contains(p))
+}
+
+/// REGLE 1, ticket #125 : une ligne dont la rubrique demande ses heures (`heures` dans sa `saisie`, aucun forfait --
+/// `Rubrique::heures_a_saisir` : le service de repetition, la journee, la semaine, le mois, l'absence a la journee)
+/// les dit, sinon l'engagement se refuse. Sans elles, la ligne paierait et declarerait zero heure en DSN, en AEM, aux
+/// Conges Spectacles et a l'assurance chomage, sans un mot : `Rubrique::heures` n'a rien d'autre a compter. Une ligne
+/// de quantite nulle ne paie rien et ne compte rien : elle n'a pas d'heures a dire.
+fn heures_dites(ctx: &Contexte, eng: &Engagement, rang: usize, mois: &str) -> Resultat<()> {
+    for (i, l) in eng.lignes.iter().enumerate() {
+        let Some(code) = l.get("rubrique") else { continue };
+        let r = rubrique(&ctx.racine, &code.as_str().map_or_else(|| en_texte(code), String::from))?;
+        if !r.heures_a_saisir() {
+            continue;
+        }
+        let quantite = flottant(l.get("quantite").ok_or_else(|| crate::fichiers::absent("quantite"))?)?;
+        if quantite == 0.0 || flottant_opt(l.get("heures"))?.map_or(false, |h| h != 0.0) {
+            continue;
+        }
+        return Err(format!(
+            "L'engagement {} de {} : sa ligne {} (« {} ») ne dit pas ses heures. Cette rubrique n'a pas de forfait \
+             d'heures, comme le cachet en a un : ses heures sont un fait, que la DSN, l'AEM, les Congés Spectacles et \
+             l'assurance chômage comptent, et le moteur ne les devine pas. Saisir sur la ligne ses heures par {}.",
+            rang,
+            mois,
+            i + 1,
+            r.libelle,
+            r.unite
+        ));
+    }
+    Ok(())
 }
 
 /// `ntt.sexe` : "1", "2", ou "" si la fiche ne le dit pas (le NIR d'abord).

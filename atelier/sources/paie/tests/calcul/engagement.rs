@@ -305,3 +305,41 @@ fn un_engagement_sans_cachet_ni_taux_ecrit_n_a_aucun_taux_de_cachet() {
     data["engagements"][0]["taux_cachet"] = json!(165.0);
     assert_eq!(lu(&data), json!("165"));
 }
+
+// ------------------------------------------------- une ligne qui demande ses heures les dit (#125)
+
+/// REGLE 1, ticket #125 : le service de repetition et la journee n'ont pas de forfait d'heures
+/// (`logiciel/donnees/rubriques-base.json`, `_heures` : « partout ailleurs les heures sont saisies, parce qu'elles sont
+/// un fait elles aussi ») ; seul le cachet en a un. Une telle ligne qui tait ses heures, ou les dit nulles, se refuse
+/// comme une saisie pas encore finie, au lieu de payer et de declarer zero heure. La meme ligne qui les dit passe, et
+/// la paie les compte : 2 services de 4 h, 8 h. Sur `fictive-3090-petite` (copie figee), aout 2026, Brioche.
+#[test]
+fn une_ligne_qui_demande_ses_heures_ne_passe_pas_sans_elles() {
+    let racine = fictive("fictive-3090-petite");
+    let ctx = contexte(&racine);
+    let avec = |ligne: Value| {
+        let mut data = crate::outils::lire(&racine, "paies/2026-08.json");
+        data["engagements"][0]["debut"] = json!("2026-08-19");
+        data["engagements"][0]["fin"] = json!("2026-08-20");
+        data["engagements"][0]["lignes"] = json!([ligne]);
+        engagements(&ctx, &data, &paie::conges::lignes_du_mois)
+    };
+    let dates = json!(["2026-08-19", "2026-08-20"]);
+    for (rubrique, heures) in [("repetition", None), ("repetition", Some(json!(0))), ("journee", None), ("journee", Some(Value::Null))] {
+        let mut ligne = json!({"rubrique": rubrique, "quantite": 2, "taux": 120.0, "dates": dates});
+        if let Some(h) = heures.clone() {
+            ligne["heures"] = h;
+        }
+        let refus = avec(ligne).err().unwrap_or_else(|| panic!("{} sans heures ({:?}) passe", rubrique, heures));
+        assert!(refus.starts_with("L'engagement 1 de 2026-08 : sa ligne 1 ") && refus.contains("ne dit pas ses heures"), "{}", refus);
+        assert!(paie::engagement::saisie_incomplete(&refus), "{}", refus);
+    }
+    // Une ligne de quantite nulle ne paie rien et ne compte rien : elle n'a pas d'heures a dire.
+    let (engs, _) = avec(json!({"rubrique": "repetition", "quantite": 0, "taux": 120.0, "dates": dates})).unwrap();
+    assert_eq!(engs[0].heures, None);
+    // Avec ses heures, la ligne passe et la paie les compte.
+    let (engs, _) = avec(json!({"rubrique": "repetition", "quantite": 2, "taux": 120.0, "heures": 4, "dates": dates})).unwrap();
+    assert_eq!(engs[0].heures, Some(8.0));
+    let p = paie::calcul::calculer(&ctx, &engs[0]).unwrap();
+    assert_eq!(p.heures, crate::outils::dec("8"));
+}
