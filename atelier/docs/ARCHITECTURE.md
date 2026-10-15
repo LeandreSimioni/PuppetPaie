@@ -1370,19 +1370,37 @@ de faire tourner un ou deux mois en parallèle et de comparer.
 (porté de `moteur/maj.py`). **Une mise à jour par installation** (lot U1,
 14/10/2026) : tout se passe dans `<installation>/maj/`, à côté de `logiciel/`,
 et l'installation de l'éditeur reçoit comme les autres. Un dépôt est une
-adresse qui sert `derniere.json` et l'archive de `logiciel/`.
+adresse qui sert `derniere.json` et les archives de `logiciel/`.
+
+**Quatre archives par version** (Léandre, 15/10/2026) : une par système
+(`windows`, `linux`, `mac` : les fichiers communs et les programmes de ce
+système) et une pour tous (`tout-systeme`). Dans `logiciel/`, les programmes de
+Windows sont à la racine (`puppetpaie.exe`, `WebView2Loader.dll`), ceux de Linux
+et de Mac dans `linux/` et `mac/` (`puppetpaie`, `paie`), posés par le flux
+seulement (`maj::dossier_programmes_de`, `maj::systeme_du_fichier`).
+`derniere.json` porte `version`, `notes`, `calcul`, `exigee`, et sous `archives`
+une entrée par système publié (`archive`, `sha256`, `signature` ; celle de tous
+dit en plus les systèmes qu'elle porte, `systemes`). « Publier » choisit ce qu'il
+fabrique (Windows seul, Windows et Linux, ou les trois) ; une installation dont
+le système n'est pas publié ne télécharge rien et garde sa version.
 
 - `verifier` — au lancement, en fond : lit `derniere.json`, prend une version
-  plus récente, vérifie son condensat et la **signature** de l'éditeur
-  (Ed25519), la déballe dans `maj/<version>/`, la **contrôle** (son programme,
+  plus récente, télécharge l'archive de son système (`maj::SYSTEME`), ou celle
+  de tous (si elle le porte) quand la sienne n'est pas nommée ou ne se
+  télécharge pas, vérifie son
+  condensat et sa **signature** de l'éditeur (Ed25519 ; une archive qui ne
+  passe pas est refusée, sans repli), la déballe dans `maj/<version>/` (les
+  programmes Unix redeviennent exécutables), la **contrôle** (son programme,
   `puppetpaie route`, lit la configuration de chaque compagnie de
   l'installation) et pose `maj/prete.json`.
 - `appliquer` — au démarrage suivant, par un relais lancé avant toute
   fenêtre : `logiciel/` → `logiciel/.avant/`, la version prête prend sa
   place ; si ça casse en route, tout revient.
 - `revenir` — `.avant/` reprend la place (`paie maj --revenir`).
-- `publier` — par le flux « Publier » du dépôt public, qui signe et pose
-  l'archive, `derniere.json` et l'installeur dans une Release (la clé du
+- `publier` — par le flux « Publier » du dépôt public, qui compile les
+  systèmes choisis (le Mac sur `macos-latest`), signe et pose leurs archives et
+  celle de tous,
+  `derniere.json` et l'installeur dans une Release (la clé du
   poste, `paie maj --publier`, reste acceptée) ; jamais republier un numéro.
 
 

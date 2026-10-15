@@ -230,7 +230,7 @@ On publie depuis GitHub (`journal/finitions/PUBLIER.md` du privé) : à la fin d
 `main` (Léandre fusionne ; le flux pose la date du jour dans `logiciel/VERSION`, une version par jour). Léandre lance
 « Publier » (`.github/workflows/publier.yml`) avec `notes`, et `calcul` **seulement** si la version change un calcul de paie
 (la seule phrase qu'une compagnie verra ; un taux qui change n'en est pas une), `exigee` plus rarement encore. **Léandre
-approuve** (environnement `publication`) ; le moteur signe avec la clé de GitHub et une Release porte l'archive, `derniere.json`
+approuve** (environnement `publication`) ; le moteur signe avec la clé de GitHub et une Release porte les archives (une par système publié et une tout-système ; le choix se fait au lancement), `derniere.json`
 et l'installeur, que toute installation lit (`paie maj`, `paie/src/maj.rs`), la sienne comprise. Une version qui change un
 calcul attend la DSN des mois saisis avant de s'appliquer (`--malgre-calcul` pour passer outre). Jamais pendant que l'interface
 tourne ; jamais republier un numéro. La clé du poste (`maj-cle-privee.bin`, `paie maj --publier`) reste acceptée. On est en

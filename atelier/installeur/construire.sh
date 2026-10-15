@@ -8,9 +8,10 @@
 #   3. la fenetre `puppetpaie.exe` (Tauri 2) ;
 #   4. l'installeur NSIS `PuppetPaie-<JJ.MM.AAAA>-installeur.exe` (la version lue, pas l'identifiant), dans `atelier/depot/installeur/`.
 #
-# Ce que l'installeur pose : exactement ce qu'une compagnie recoit (CLAUDE.md, « Le rangement ») -- les fichiers
-# suivis par Git de `logiciel/` et de `fictives/` --, la fenetre fraichement compilee a la place de
-# `logiciel/puppetpaie.exe`, et `logiciel/EDITION.json` (toujours bride, a cote de ce script).
+# Ce que l'installeur pose : exactement ce qu'une compagnie Windows recoit (CLAUDE.md, « Le rangement ») -- les fichiers
+# suivis par Git de `logiciel/` et de `fictives/` (ni `logiciel/linux/` ni `logiciel/mac/`, qui ne sont pas suivis) --,
+# la fenetre fraichement compilee a la place de `logiciel/puppetpaie.exe`, et `logiciel/EDITION.json` (toujours bride, a
+# cote de ce script).
 #
 # Usage :
 #   atelier/installeur/construire.sh                     tout
@@ -35,7 +36,7 @@ EXE_DU_LOGICIEL=0
 for a in "$@"; do
     case "$a" in
         --exe-du-logiciel) EXE_DU_LOGICIEL=1 ;;
-        -h|--aide|--help) sed -n '2,25p' "$0"; exit 0 ;;
+        -h|--aide|--help) sed -n '2,23p' "$0"; exit 0 ;;
         *) echo "Option inconnue : $a" >&2; exit 2 ;;
     esac
 done
@@ -84,6 +85,14 @@ mkdir -p "$PREPA/pose"
 cd "$DEPOT"
 # Les fichiers suivis par Git, et eux seuls : ni les coffres d'une fictive ouverte (.gitignore), ni `fictives/.origine/`.
 git ls-files -z logiciel fictives > "$PREPA/liste.z"
+# L'installeur est celui de WINDOWS : les programmes de Linux et de Mac (`logiciel/linux/`, `logiciel/mac/`, que le flux
+# « Publier » pose pour les archives de ces systemes et celle de tous ; paie/src/maj.rs) ne sont jamais suivis
+# (.gitignore), donc jamais poses. Si l'un l'etait, l'installeur s'arrete plutot que de les livrer a Windows.
+if grep -zqE '^logiciel/(linux|mac)/' "$PREPA/liste.z"; then
+    echo "Des programmes Linux ou Mac sont suivis par Git dans logiciel/ : l'installeur Windows ne les pose pas." >&2
+    grep -zE '^logiciel/(linux|mac)/' "$PREPA/liste.z" | tr '\0' '\n' >&2
+    exit 1
+fi
 while IFS= read -r -d '' f; do
     mkdir -p "$PREPA/pose/$(dirname "$f")"
     cp -p "$f" "$PREPA/pose/$f"

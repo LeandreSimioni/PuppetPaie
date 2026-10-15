@@ -8,8 +8,12 @@
 //!
 //! La cle de signature est une cle d'essai (graine fixe) : le moteur livre ne connait que `maj::CLE_PUBLIQUE`, et ces
 //! essais passent par les fonctions qui la recoivent en argument (`publier_signe`, `verifier_avec`). Le programme de
-//! l'archive est le `paie` des essais, copie sous le nom `puppetpaie` : c'est lui que `controler` lance sur chaque
-//! compagnie de l'installation. Rien ne sort du dossier du test, rien ne touche le reseau.
+//! l'archive est le `paie` des essais, copie sous le nom de la fenetre de ce systeme (`linux/puppetpaie` ici) : c'est lui
+//! que `controler` lance sur chaque compagnie de l'installation. Les programmes des autres systemes sont des fichiers
+//! factices. Rien ne sort du dossier du test, rien ne touche le reseau.
+//!
+//! QUATRE ARCHIVES PAR VERSION (Leandre, 15/10/2026 : « Il y a les quatre : une par systeme et une tout-systeme,
+//! ensemble ») : l'installation prend celle de son systeme, ou celle de tous si la sienne manque.
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -26,13 +30,15 @@ fn publique() -> String {
     paie::retours::base64_ecrire(k.verifying_key().as_bytes())
 }
 
-/// Un `logiciel/` : VERSION, les donnees livrees, une page, et le programme (le `paie` des essais, nomme `puppetpaie`).
+/// Un `logiciel/` : VERSION, les donnees livrees, une page, et le programme de ce systeme (le `paie` des essais, nomme
+/// comme la fenetre : `linux/puppetpaie` ici).
 fn logiciel(dossier: &Path, version: &str) -> PathBuf {
     copier(&code_livre(), &dossier.join("donnees"));
     std::fs::create_dir_all(dossier.join("interface")).unwrap();
     std::fs::write(dossier.join("interface").join("index.html"), format!("<p>{}</p>\n", version)).unwrap();
     std::fs::write(dossier.join("VERSION"), format!("{}\n", version)).unwrap();
     let exe = maj::programme(dossier, "puppetpaie");
+    std::fs::create_dir_all(exe.parent().unwrap()).unwrap();
     std::fs::copy(env!("CARGO_BIN_EXE_paie"), &exe).unwrap();
     #[cfg(unix)]
     {
@@ -46,36 +52,146 @@ fn lire(p: &Path) -> String {
     std::fs::read_to_string(p).unwrap_or_default()
 }
 
-/// L'archive publiee porte les programmes de tous les systemes a la fois (`puppetpaie.exe`, et, poses par le flux
-/// « Publier », `puppetpaie` et `paie` pour Linux). Un zip ne garde pas le bit d'execution : c'est `archiver` qui le marque
-/// sur les programmes Unix, et sur eux seuls, pour que `deballer` les remette executables et que `controler` puisse lancer
-/// `logiciel/puppetpaie` sur un Linux.
+/// Les programmes des trois systemes, comme le flux « Publier » les pose dans `logiciel/` : ceux de ce systeme sont la
+/// (`logiciel`), les autres sont des fichiers factices (un Linux ne lance ni un `.exe` ni un programme Mac).
+fn tous_les_systemes(code: &Path) {
+    let poser = |rel: &str, o: &[u8]| {
+        let p = code.join(rel);
+        if !p.exists() {
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, o).unwrap();
+        }
+    };
+    poser("puppetpaie.exe", b"MZ fenetre");
+    poser("WebView2Loader.dll", b"MZ chargeur");
+    for s in ["linux", "mac"] {
+        poser(&format!("{}/puppetpaie", s), b"\x7fELF fenetre");
+        poser(&format!("{}/paie", s), b"\x7fELF moteur");
+    }
+}
+
+fn condensat(o: &[u8]) -> String {
+    <sha2::Sha256 as sha2::Digest>::digest(o).iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+/// Les noms d'une archive, et le mode de chacun.
+fn contenu(octets: &[u8]) -> Vec<(String, u32)> {
+    let mut z = zip::ZipArchive::new(std::io::Cursor::new(octets.to_vec())).unwrap();
+    (0..z.len())
+        .map(|i| {
+            let f = z.by_index(i).unwrap();
+            (f.name().to_string(), f.unix_mode().unwrap_or(0) & 0o777)
+        })
+        .collect()
+}
+
+/// LA PUBLICATION FAIT QUATRE ARCHIVES, et `derniere.json` les nomme chacune avec son condensat et sa signature (valable,
+/// par la cle de l'editeur, sur ses octets et pas sur ceux d'une autre). L'archive d'un systeme porte les fichiers
+/// communs et ses programmes, pas ceux des autres ; celle de tous les systemes porte tout. Un zip ne garde pas le bit
+/// d'execution : `archiver` le marque sur les programmes Linux et Mac, et sur eux seuls, pour que `deballer` les remette
+/// executables.
 #[test]
-fn l_archive_marque_executables_les_programmes_unix_et_eux_seuls() {
-    let d = dossier_de_test("mise_a_jour", "programmes_unix");
+fn la_publication_fait_quatre_archives_signees_que_derniere_json_nomme() {
+    let d = dossier_de_test("mise_a_jour", "quatre_archives");
     let code = logiciel(&d.join("logiciel"), "2026.11.03");
-    std::fs::write(code.join("paie"), b"#!/bin/sh\n").unwrap();
-    std::fs::write(code.join("puppetpaie.exe"), b"MZ").unwrap();
-    let octets = maj::archiver(&code).unwrap();
-    let mut z = zip::ZipArchive::new(std::io::Cursor::new(octets)).unwrap();
-    let mode = |z: &mut zip::ZipArchive<std::io::Cursor<Vec<u8>>>, nom: &str| z.by_name(nom).unwrap().unix_mode().unwrap() & 0o777;
-    assert_eq!(mode(&mut z, "puppetpaie"), 0o755, "la fenetre Linux");
-    assert_eq!(mode(&mut z, "paie"), 0o755, "le moteur Linux");
-    assert_eq!(mode(&mut z, "puppetpaie.exe"), 0o644, "la fenetre Windows n'a pas de bit d'execution a garder");
-    assert_eq!(mode(&mut z, "VERSION"), 0o644);
+    tous_les_systemes(&code);
+    let depot = d.join("depot");
+    let r = maj::publier_signe(&code, &depot, &GRAINE, &publique(), "", "", "").unwrap();
+    let manifeste: Value = serde_json::from_str(&lire(&depot.join("derniere.json"))).unwrap();
+    assert_eq!(manifeste["version"], "2026.11.03");
+    assert_eq!(r["archives"], manifeste["archives"]);
+    let archives = manifeste["archives"].as_object().unwrap();
+    let mut cles: Vec<&str> = archives.keys().map(String::as_str).collect();
+    cles.sort();
+    assert_eq!(cles, ["linux", "mac", "tout-systeme", "windows"]);
+    assert_eq!(archives["tout-systeme"]["systemes"], json!(["windows", "linux", "mac"]), "celle de tous dit ce qu'elle porte");
+    let mut octets = std::collections::BTreeMap::new();
+    for (k, a) in archives {
+        assert_eq!(a["archive"], format!("puppetpaie-2026.11.03-{}.zip", k));
+        let o = std::fs::read(depot.join(a["archive"].as_str().unwrap())).unwrap();
+        assert_eq!(a["sha256"], condensat(&o).as_str(), "{}", k);
+        assert!(maj::signature_valide(&o, a["signature"].as_str().unwrap(), &publique()), "{} : signee par l'editeur", k);
+        octets.insert(k.clone(), o);
+    }
+    assert!(!maj::signature_valide(&octets["linux"], archives["mac"]["signature"].as_str().unwrap(), &publique()), "chacune sa signature");
+    assert_eq!(maj::derniere(&depot.display().to_string()).unwrap(), manifeste, "le recepteur relit ce qu'ecrit l'editeur");
+
+    let communs = ["VERSION", "interface/index.html"];
+    let programmes = |s: &str| -> Vec<&str> {
+        match s {
+            "windows" => vec!["puppetpaie.exe", "WebView2Loader.dll"],
+            "linux" => vec!["linux/puppetpaie", "linux/paie"],
+            _ => vec!["mac/puppetpaie", "mac/paie"],
+        }
+    };
+    for (k, o) in &octets {
+        let c = contenu(o);
+        let porte = |n: &str| c.iter().any(|(x, _)| x == n);
+        for n in communs {
+            assert!(porte(n), "{} porte {}", k, n);
+        }
+        assert!(c.iter().any(|(x, _)| x.starts_with("donnees/")), "{} porte les donnees", k);
+        for s in maj::SYSTEMES {
+            for n in programmes(s) {
+                assert_eq!(porte(n), k == s || k == "tout-systeme", "{} et {}", k, n);
+            }
+        }
+        for (n, mode) in &c {
+            let unix = n.starts_with("linux/") || n.starts_with("mac/");
+            assert_eq!(*mode, if unix { 0o755 } else { 0o644 }, "{} : {}", k, n);
+        }
+    }
+
+    // Sans aucune fenetre, rien n'est publie.
+    let vide = d.join("sans-programme");
+    std::fs::create_dir_all(vide.join("donnees")).unwrap();
+    std::fs::write(vide.join("VERSION"), "2026.11.04\n").unwrap();
+    let e = maj::publier_signe(&vide, &depot, &GRAINE, &publique(), "", "", "").unwrap_err();
+    assert!(e.contains("aucune fenetre"), "{}", e);
+    assert_eq!(maj::derniere(&depot.display().to_string()).unwrap()["version"], "2026.11.03");
 }
 
 /// L'editeur : sa version 2026.11.01, publiee dans `<base>/depot`. Rend le depot.
 fn publiee(base: &Path, avec_edition: bool) -> PathBuf {
     let depot = base.join("depot");
     let editeur = logiciel(&base.join("editeur").join("logiciel"), "2026.11.01");
+    tous_les_systemes(&editeur);
     if avec_edition {
         std::fs::write(editeur.join("EDITION.json"), "{\"edition\": \"bride\"}\n").unwrap();
     }
     let r = maj::publier_signe(&editeur, &depot, &GRAINE, &publique(), "Essai de bout en bout", "", "").unwrap();
     assert_eq!(r["version"], "2026.11.01", "l'identifiant reste AAAA.MM.JJ dans derniere.json");
-    assert!(depot.join("puppetpaie-2026.11.01.zip").is_file() && depot.join("derniere.json").is_file());
+    for s in ["windows", "linux", "mac", "tout-systeme"] {
+        assert!(depot.join(format!("puppetpaie-2026.11.01-{}.zip", s)).is_file(), "{}", s);
+    }
+    assert!(depot.join("derniere.json").is_file());
     depot
+}
+
+/// Ce que l'installation a deballe de la version prete (`maj/<version>/logiciel/`).
+fn deballee(inst: &Path, version: &str) -> PathBuf {
+    inst.join("maj").join(version).join("logiciel")
+}
+
+/// Le logiciel deballe porte les programmes de CE systeme, executables, et ceux d'aucun autre (l'archive de son systeme).
+fn seulement_ce_systeme(neuf: &Path) {
+    for s in maj::SYSTEMES {
+        assert_eq!(maj::programme_de(neuf, s, "puppetpaie").is_file(), s == maj::SYSTEME, "la fenetre de {}", s);
+    }
+    executables(neuf);
+}
+
+/// Les programmes de ce systeme sont executables apres le deballage, un fichier de donnees ne l'est pas.
+fn executables(neuf: &Path) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o111;
+        for p in ["puppetpaie", "paie"] {
+            assert_eq!(mode(&maj::programme(neuf, p)), 0o111, "{} executable apres le deballage", p);
+        }
+        assert_eq!(mode(&neuf.join("VERSION")), 0, "un fichier de donnees ne l'est pas");
+    }
 }
 
 /// L'installation de l'installeur : `logiciel/` en 2026.10.09 et l'`EDITION.json` de l'installeur (bride). Rend
@@ -120,6 +236,10 @@ fn une_installation_recoit_la_version_publiee_garde_son_bridage_et_revient() {
     assert_eq!(maj::prete(&inst).unwrap()["version"], "2026.11.01");
     assert!(inst.join("maj").join("2026.11.01").join("logiciel").join("VERSION").is_file(), "rangee a cote de logiciel/");
     assert!(!racine.join("maj").exists(), "rien dans la compagnie");
+    // L'archive de CE systeme (Linux, ici), pas celle de tous : rien d'un autre systeme ; et ses programmes executables.
+    let neuf = deballee(&inst, "2026.11.01");
+    assert_eq!(maj::prete(&inst).unwrap()["archive"], format!("puppetpaie-2026.11.01-{}.zip", maj::SYSTEME));
+    seulement_ce_systeme(&neuf);
     assert_eq!(maj::applicable(&inst).as_deref(), Some("2026.11.01"));
 
     // Appliquee : la neuve est en place, la precedente dans .avant/, et l'EDITION.json de l'installation est la.
@@ -140,6 +260,147 @@ fn une_installation_recoit_la_version_publiee_garde_son_bridage_et_revient() {
     assert_eq!(maj::courante(&code), "2026.10.09");
     assert_eq!(std::fs::read(code.join("EDITION.json")).ok().as_deref(), Some(edition.as_slice()));
     assert!(!code.join(".avant").exists() && !code.join(".apres").exists());
+}
+
+/// Le `derniere.json` du depot, lu et reecrit tel quel (un depot compromis, ou une Release a qui il manque un fichier).
+fn manifeste(depot: &Path) -> Value {
+    serde_json::from_str(&lire(&depot.join("derniere.json"))).unwrap()
+}
+
+fn reecrire_manifeste(depot: &Path, m: &Value) {
+    std::fs::write(depot.join("derniere.json"), serde_json::to_vec_pretty(m).unwrap()).unwrap();
+}
+
+/// Une installation de l'installeur, avec une compagnie, reglee sur `depot`, qui cherche : (installation, ce qui est dit).
+fn recoit(base: &Path, depot: &Path) -> (PathBuf, String) {
+    let (inst, _) = installee(base);
+    ajoutee(&inst.join("compagnies").join("essai"));
+    crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": depot.display().to_string()}));
+    let dit = maj::verifier_avec(&inst, true, &[&publique()]);
+    (inst, dit)
+}
+
+/// SANS L'ARCHIVE DE SON SYSTEME, L'INSTALLATION PREND CELLE DE TOUS : quand `derniere.json` ne la nomme pas, et quand il
+/// la nomme mais qu'elle ne se telecharge pas. Celle de tous se controle, s'applique, et ses programmes sont executables.
+/// Sans l'une ni l'autre, rien n'est prepare. L'ancien `derniere.json` (une seule `archive`, avant le 15/10/2026) est
+/// refuse : pas de compatibilite, Leandre est seul a l'avoir recu.
+#[test]
+fn sans_l_archive_de_son_systeme_l_installation_prend_celle_de_tous() {
+    let base = dossier_de_test("mise_a_jour", "repli_tout_systeme");
+    let depot = publiee(&base, false);
+    let complet = manifeste(&depot);
+    let de_tous = format!("puppetpaie-2026.11.01-{}.zip", maj::TOUT_SYSTEME);
+
+    // derniere.json ne nomme pas l'archive de ce systeme.
+    let mut sans = complet.clone();
+    sans["archives"].as_object_mut().unwrap().remove(maj::SYSTEME);
+    reecrire_manifeste(&depot, &sans);
+    let (inst, dit) = recoit(&base.join("non-nommee"), &depot);
+    assert!(dit.contains("01.11.2026 est telechargee, controlee, prete") && dit.contains("(archive tout-systeme"), "{}", dit);
+    assert_eq!(maj::prete(&inst).unwrap()["archive"], de_tous.as_str());
+    let neuf = deballee(&inst, "2026.11.01");
+    for s in maj::SYSTEMES {
+        assert!(maj::programme_de(&neuf, s, "puppetpaie").is_file(), "celle de tous porte la fenetre de {}", s);
+    }
+    executables(&neuf);
+    maj::appliquer(&inst, false).unwrap();
+    assert_eq!(maj::courante(&inst.join("logiciel")), "2026.11.01");
+    executables(&inst.join("logiciel"));
+
+    // Il la nomme, mais elle n'est pas dans le depot.
+    reecrire_manifeste(&depot, &complet);
+    let propre = depot.join(format!("puppetpaie-2026.11.01-{}.zip", maj::SYSTEME));
+    let gardee = std::fs::read(&propre).unwrap();
+    std::fs::remove_file(&propre).unwrap();
+    let (inst, dit) = recoit(&base.join("introuvable"), &depot);
+    assert!(dit.contains("prete") && dit.contains("(archive tout-systeme"), "{}", dit);
+    assert_eq!(maj::prete(&inst).unwrap()["archive"], de_tous.as_str());
+    std::fs::write(&propre, gardee).unwrap();
+
+    // Ni l'une ni l'autre : rien n'est telecharge, la version en place reste, et c'est dit.
+    let mut aucune = complet.clone();
+    aucune["archives"].as_object_mut().unwrap().retain(|k, _| k != maj::SYSTEME && k != maj::TOUT_SYSTEME);
+    reecrire_manifeste(&depot, &aucune);
+    let (inst, dit) = recoit(&base.join("aucune"), &depot);
+    assert_eq!(dit, format!("version 09.10.2026 -- la 01.11.2026 est publiee sans ce systeme ({}) : cette installation garde sa version", maj::SYSTEME));
+    assert!(maj::prete(&inst).is_none() && !deballee(&inst, "2026.11.01").exists());
+
+    // L'ancien derniere.json : refuse.
+    let t = &complet["archives"][maj::TOUT_SYSTEME];
+    reecrire_manifeste(&depot, &json!({"version": "2026.11.01", "archive": t["archive"], "sha256": t["sha256"], "signature": t["signature"]}));
+    let (inst, dit) = recoit(&base.join("ancien_format"), &depot);
+    assert!(dit.contains("derniere.json sans « archives »"), "{}", dit);
+    assert!(maj::prete(&inst).is_none());
+}
+
+/// « PUBLIER » A FABRIQUE SANS CE SYSTEME (Leandre, 15/10/2026 : on choisit Windows seul, Windows et Linux, ou les trois).
+/// `derniere.json` ne nomme que les archives fabriquees, et celle de tous dit qu'elle ne porte pas ce systeme :
+/// l'installation ne telecharge rien (pas meme celle de tous, ou son programme manque), garde sa version et le dit. Un
+/// `derniere.json` dont celle de tous pretendrait le porter alors qu'il manque serait refuse par `controler`.
+#[test]
+fn une_version_publiee_sans_ce_systeme_ne_se_telecharge_pas() {
+    let base = dossier_de_test("mise_a_jour", "sans_ce_systeme");
+    let editeur = logiciel(&base.join("editeur").join("logiciel"), "2026.11.01");
+    std::fs::remove_dir_all(maj::dossier_programmes(&editeur)).unwrap();
+    std::fs::write(editeur.join("puppetpaie.exe"), b"MZ fenetre").unwrap();
+    std::fs::write(editeur.join("WebView2Loader.dll"), b"MZ chargeur").unwrap();
+    let depot = base.join("depot");
+    maj::publier_signe(&editeur, &depot, &GRAINE, &publique(), "Windows seul", "", "").unwrap();
+    let m = manifeste(&depot);
+    let mut cles: Vec<&str> = m["archives"].as_object().unwrap().keys().map(String::as_str).collect();
+    cles.sort();
+    assert_eq!(cles, ["tout-systeme", "windows"], "seules les archives fabriquees sont nommees");
+    assert_eq!(m["archives"]["tout-systeme"]["systemes"], json!(["windows"]));
+    assert!(!depot.join(format!("puppetpaie-2026.11.01-{}.zip", maj::SYSTEME)).exists());
+
+    let (inst, dit) = recoit(&base, &depot);
+    assert_eq!(dit, format!("version 09.10.2026 -- la 01.11.2026 est publiee sans ce systeme ({}) : cette installation garde sa version", maj::SYSTEME));
+    assert!(maj::prete(&inst).is_none() && !deballee(&inst, "2026.11.01").exists(), "rien n'est telecharge");
+    assert_eq!(maj::courante(&inst.join("logiciel")), "2026.10.09");
+
+    // Celle de tous qui pretendrait porter ce systeme sans son programme : telechargee, mais refusee au controle.
+    let mut menteur = m.clone();
+    menteur["archives"]["tout-systeme"]["systemes"] = json!(["windows", maj::SYSTEME]);
+    reecrire_manifeste(&depot, &menteur);
+    let (inst, dit) = recoit(&base.join("pretendue"), &depot);
+    assert!(dit.contains("n'a pas pu etre preparee") && dit.contains("le programme de ce systeme manque"), "{}", dit);
+    assert!(maj::prete(&inst).is_none());
+}
+
+/// UNE ARCHIVE DONT LA SIGNATURE NE VAUT PAS EST REFUSEE, sans repli sur celle de tous les systemes : celle de son systeme
+/// est la, elle n'est pas la notre. La signature d'une autre archive de la meme version (celle de tous) ne vaut pas pour
+/// elle ; des octets changes ne passent pas le condensat ; un condensat refait sur ces octets ne passe pas la signature.
+/// Rien n'est deballe.
+#[test]
+fn une_archive_dont_la_signature_ne_vaut_pas_est_refusee_sans_repli() {
+    let base = dossier_de_test("mise_a_jour", "signature_refusee");
+    let depot = publiee(&base, false);
+    let complet = manifeste(&depot);
+    let refusee = |inst: &Path, dit: &str, quoi: &str| {
+        assert!(dit.contains("n'a pas pu etre preparee") && dit.contains(quoi), "{} : {}", quoi, dit);
+        assert!(maj::prete(inst).is_none() && !deballee(inst, "2026.11.01").exists(), "rien n'est deballe : {}", dit);
+    };
+
+    let mut m = complet.clone();
+    m["archives"][maj::SYSTEME]["signature"] = complet["archives"][maj::TOUT_SYSTEME]["signature"].clone();
+    reecrire_manifeste(&depot, &m);
+    let (inst, dit) = recoit(&base.join("signature_d_une_autre"), &depot);
+    refusee(&inst, &dit, "signature");
+
+    reecrire_manifeste(&depot, &complet);
+    let propre = depot.join(format!("puppetpaie-2026.11.01-{}.zip", maj::SYSTEME));
+    let mut o = std::fs::read(&propre).unwrap();
+    let n = o.len() / 2;
+    o[n] ^= 1;
+    std::fs::write(&propre, &o).unwrap();
+    let (inst, dit) = recoit(&base.join("octets_changes"), &depot);
+    refusee(&inst, &dit, "alteree");
+
+    let mut m = complet.clone();
+    m["archives"][maj::SYSTEME]["sha256"] = json!(condensat(&o));
+    reecrire_manifeste(&depot, &m);
+    let (inst, dit) = recoit(&base.join("condensat_refait"), &depot);
+    refusee(&inst, &dit, "signature");
 }
 
 /// Une installation DEBLOQUEE (le geste de l'accueil a ecrit `.edition.json` a cote de `logiciel/` ; l'`EDITION.json` de
@@ -306,8 +567,10 @@ fn deux_cles_acceptees_une_troisieme_refusee_par_un_depot_qui_redirige_comme_git
     let dit = maj::verifier_avec(&inst, true, &cles);
     assert!(dit.contains("02.11.2026 est telechargee, controlee, prete"), "{}", dit);
     let chemins: Vec<String> = recu.lock().unwrap().iter().map(|q| q.chemin.clone()).collect();
-    assert!(chemins.contains(&"/releases/latest/download/puppetpaie-2026.11.02.zip".to_string()), "{:?}", chemins);
-    assert!(chemins.contains(&"/stockage/2026.11.02/puppetpaie-2026.11.02.zip".to_string()), "les redirections sont suivies : {:?}", chemins);
+    let nom = format!("puppetpaie-2026.11.02-{}.zip", maj::SYSTEME);
+    assert!(chemins.contains(&format!("/releases/latest/download/{}", nom)), "l'archive de ce systeme : {:?}", chemins);
+    assert!(chemins.contains(&format!("/stockage/2026.11.02/{}", nom)), "les redirections sont suivies : {:?}", chemins);
+    assert!(!chemins.iter().any(|c| c.contains("tout-systeme")), "celle de tous les systemes n'est pas telechargee : {:?}", chemins);
     maj::appliquer(&inst, false).unwrap();
     assert_eq!(maj::courante(&inst.join("logiciel")), "2026.11.02");
 
@@ -345,6 +608,17 @@ fn la_publication_par_github_refuse_sans_cle_reportee_mauvaise_graine_ou_version
     assert_eq!(r["version"], "2026.11.01");
     let e = maj::publier_par_graine(&editeur, &base.join("sortie"), &g64, &publique_de(&graine), "", "", "").unwrap_err();
     assert!(e.contains("deja en 01.11.2026"), "{}", e);
+
+    // La derniere Release est d'avant les quatre archives (un derniere.json a une seule `archive`) : sa version se lit
+    // quand meme, pour refuser la meme et accepter une plus recente.
+    let ancienne = base.join("sortie-ancienne");
+    crate::outils::ecrire(&ancienne, "derniere.json", &json!({"version": "2026.11.01", "archive": "puppetpaie-2026.11.01.zip", "sha256": "0", "signature": "0"}));
+    let e = maj::publier_par_graine(&editeur, &ancienne, &g64, &publique_de(&graine), "", "", "").unwrap_err();
+    assert!(e.contains("deja en 01.11.2026"), "{}", e);
+    std::fs::write(editeur.join("VERSION"), "2026.11.02\n").unwrap();
+    let r = maj::publier_par_graine(&editeur, &ancienne, &g64, &publique_de(&graine), "", "", "").unwrap();
+    assert_eq!(r["version"], "2026.11.02");
+    assert!(r["archives"].get(maj::TOUT_SYSTEME).is_some(), "{}", r);
 }
 
 /// LA CLE DE GITHUB, de bout en bout par le programme : `paie maj --cle-github DOSSIER` ecrit la graine dans un fichier
