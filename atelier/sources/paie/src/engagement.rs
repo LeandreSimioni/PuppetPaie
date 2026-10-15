@@ -245,8 +245,7 @@ impl Engagement {
             return Err("Un engagement se saisit en lignes de paie ([{rubrique, \
                         quantite, taux, dates}]). L'ancienne ecriture -- `dates`, \
                         `cachets`, `heures`, `taux_horaire` sur l'engagement -- \
-                        n'est plus lue : convertir le fichier une fois avec \
-                        outils/convertir_saisies.py."
+                        n'est plus lue, et celui-ci n'a pas de `lignes`."
                 .to_string());
         };
         let lignes: Vec<Value> = lignes_brutes.iter().map(ligne_en_pourcentage).collect::<Resultat<_>>()?;
@@ -939,9 +938,9 @@ pub fn engagements(
             return Err(format!(
                 "L'engagement {} de {} est ecrit a l'ancienne (`dates`, \
                  `cachets`, `heures` ou `taux_horaire` sur l'engagement). \
-                 Depuis le 13/09/2026 tout se porte sur les lignes de paie : \
-                 convertir le fichier une fois avec \
-                 outils/convertir_saisies.py.",
+                 Depuis le 13/09/2026 tout se porte sur les lignes de paie \
+                 ([{{rubrique, quantite, taux, dates}}]), et l'engagement ne \
+                 garde aucun de ces champs.",
                 rang, mois_dit
             ));
         }

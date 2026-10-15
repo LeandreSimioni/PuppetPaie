@@ -845,14 +845,7 @@ se déclare nulle part ailleurs (ni DSN, ni AEM, ni DPAE).
 
 **Une seule écriture, depuis le 13/09/2026.** Un engagement n'a que des
 `lignes` ; `dates`, `cachets`, `heures` ou `taux_horaire` posés sur
-l'engagement lui-même sont **refusés**, en nommant l'outil qui convertit un
-fichier ancien une fois pour toutes :
-
-```bash
-python outils/convertir_saisies.py paies/2026-08.json --ecrire
-```
-
-(la copie d'avant est gardée dans `paies/avant/`). Un contrat mixte se saisit
+l'engagement lui-même sont **refusés**. Un contrat mixte se saisit
 avec une ligne `cachet` et une ligne `heure`, chacune à son taux.
 
 Les noms sont tolérants : « Celi », « celimene », « Mairn » avec la faute de
@@ -1660,7 +1653,7 @@ atelier/                  ← ce dossier : tout le reste
                           COMPAGNIES-FICTIVES.md et COMPAGNIES-FICTIVES-DEPOT.md
                           (le dernier bilan du crash-test, 21/09/2026)
   outils/                 les outils d'atelier, encore en Python :
-                          convertir_saisies.py, verifier_avant_commit.py
+                          verifier_avant_commit.py
                           (garde-fou du dépôt public, en sommeil), les
                           extracteurs de la norme (extraire_*.py), le relevé
                           des codes (relever_les_codes.py)…
