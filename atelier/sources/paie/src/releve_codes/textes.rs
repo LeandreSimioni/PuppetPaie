@@ -163,6 +163,16 @@ pub static TEXTES: &[Texte] = &[
             // majeure d'un CDI (L1234-12, L1234-13), la periode d'essai
             // (L1221-25, L1221-26 : un delai de prevenance, pas un preavis).
             Domaine { cle: "preavis_non_effectue", titre: "Le preavis non effectue : ce que chaque fin de contrat en fait", numeros: &["L1237-1", "L1237-2", "L1226-4", "L1226-12", "L1226-14", "L1234-12", "L1234-13", "L1221-25", "L1221-26"] },
+            // UN MOIS ENTIER DE SUSPENSION NON REMUNEREE (15/10/2026) : lus dans l'entrepot par la recherche du jour
+            // (`atelier/reference/sources/suspension-non-remuneree/legi-extrait-code-du-travail-20261015.md`), suivis
+            // depuis. Le conge parental d'education (L1225-54 : sa duree compte pour moitie dans l'anciennete,
+            // `imprevus::anciennete_depuis`), le conge sabbatique et le conge pour creation d'entreprise (rien sur
+            // l'anciennete ; L3142-33, le report des conges payes), la mensualisation (L3242-1 : la remuneration mensuelle
+            // est « independante, pour un horaire de travail effectif determine », du nombre de jours du mois ; la retenue
+            // d'une absence au reel du mois, `imprevus::lignes_du_mois`), et L3251-1 (les retenues sur salaire).
+            Domaine { cle: "conge_parental", titre: "Le conge parental d'education", numeros: &["L1225-47", "L1225-48", "L1225-49", "L1225-50", "L1225-51", "L1225-52", "L1225-53", "L1225-54", "L1225-55", "L1225-56", "L1225-57", "L1225-58", "L1225-59"] },
+            Domaine { cle: "conge_sabbatique", titre: "Le conge sabbatique et le conge pour creation d'entreprise", numeros: &["L3142-28", "L3142-29", "L3142-30", "L3142-31", "L3142-32", "L3142-33", "L3142-34", "L3142-105", "L3142-106", "L3142-107", "L3142-108", "L3142-109"] },
+            Domaine { cle: "mensualisation", titre: "La mensualisation et les retenues sur salaire", numeros: &["L3242-1", "L3242-2", "L3242-3", "L3251-1"] },
         ],
     },
     // ------------------------------------------------------------------
@@ -237,6 +247,13 @@ pub static TEXTES: &[Texte] = &[
             // qui dit qu'un forfait de sante ne baisse pas avec le temps de
             // travail (`calcul::plafond_de_la_sante`).
             Domaine { cle: "sante_dispenses", titre: "Les dispenses d'adhesion aux garanties collectives de sante", numeros: &["R242-1-6"] },
+            // LA PROTECTION SOCIALE COMPLEMENTAIRE PENDANT UNE SUSPENSION (15/10/2026 ;
+            // `atelier/reference/sources/suspension-non-remuneree/legi-extrait-code-de-la-securite-sociale-20261015.md`) :
+            // le caractere collectif et obligatoire qui exclut les contributions patronales de l'assiette (R242-1-1 a
+            // R242-1-5), la couverture sante obligatoire des salaries (L911-1, L911-2, L911-7, L911-8, D911-1 a D911-8),
+            // et l'assiette de la CRDS (L136-2). Le maintien de la sante d'un mois suspendu sans indemnisation :
+            // `calcul::sante_de_la_suspension`.
+            Domaine { cle: "protection_complementaire", titre: "Les garanties collectives de protection sociale complementaire", numeros: &["R242-1-1", "R242-1-2", "R242-1-3", "R242-1-4", "R242-1-5", "L911-1", "L911-2", "L911-7", "L911-8", "D911-1", "D911-2", "D911-3", "D911-4", "D911-5", "D911-6", "D911-7", "D911-8", "L136-2"] },
             // LES MAJORATIONS DES EMPLOYEURS AFFILIES A UNE CAISSE DE CONGES
             // (10/10/2026, lot V1n) : le FNAL, le versement mobilite et les
             // contributions de formation se paient par une majoration de
@@ -442,6 +459,12 @@ pub static TEXTES: &[Texte] = &[
             // deuxieme mois suivant sa transmission » ; ce qui a ete
             // retenu ne se recalcule pas (`pas::des_paies`).
             Domaine { cle: "pas", titre: "La retenue a la source : quand, et a quel taux", numeros: &["1671"] },
+            // L'ASSIETTE DU PRELEVEMENT A LA SOURCE ET LA SANTE PATRONALE REINTEGREE (15/10/2026 ;
+            // `atelier/reference/sources/suspension-non-remuneree/legi-extrait-code-general-des-impots-20261015.md`) : 83,
+            // 1° quater (la part patronale « frais de sante » n'est pas deductible : elle se reintegre au net fiscal), et
+            // 204 A a 204 H (la retenue a la source, son assiette « montant net imposable », son taux). Une remuneration
+            // nette fiscale negative : 50.013 a 0.00 (`pas::du_versement`, fiche DSN 1810).
+            Domaine { cle: "assiette_pas", titre: "L'assiette de la retenue a la source, et la sante patronale reintegree", numeros: &["83", "204 A", "204 B", "204 E", "204 F", "204 H"] },
         ],
     },
 ];

@@ -4,7 +4,7 @@ Relevé le **15/10/2026** (séance de recherche documentaire, question posée pa
 total, congé sabbatique ou congé sans solde sur tout le mois, bloc DSN S21.G00.65 ; il reste 0,07 € de brut par l'arrondi du
 taux horaire, la part patronale de la complémentaire santé est réintégrée, le montant soumis au PAS devient négatif, le
 contrôle des formats refuse). **Le rapport est `RAPPORT-20261015.md`** (même dossier) : il répond point par point, texte à
-l'appui, et dit ce qui est inférence. Rien n'est codé.
+l'appui, et dit ce qui est inférence. Le code qui s'en sert : voir « Où le moteur s'en sert ».
 
 Nommage : `<émetteur>-<objet>-<AAAAMMJJ>.<ext>` ; le brut est tel que servi, la transcription `.txt` (ou `.md`) est à côté.
 Les empreintes SHA-256 sont celles du **brut**.
@@ -42,12 +42,27 @@ Les empreintes SHA-256 sont celles du **brut**.
 | `legi-extrait-code-general-des-impots-20261015.md` | CGI : 83 (1° quater), 204 A, 204 B, 204 E, 204 F, 204 H. | idem | `58801605d5b77239e04479a63a6d47e7fe2a122da70fcb39b2c3a7346554923b` |
 
 **Les trois `legi-extrait-*` ne sont pas des relevés `paie releve-codes`** : le moteur Linux livré n'a pas cette commande (elle est sous
-`--features atelier`), et ces articles ne sont pas dans `atelier/sources/paie/src/releve_codes/textes.rs`. Ils ont été lus
+`--features atelier`), et ces articles n'étaient pas, ce jour-là, dans `atelier/sources/paie/src/releve_codes/textes.rs`. Ils ont été lus
 dans l'entrepôt LEGI local (`articles.jsonl.gz`, version `en_vigueur`, `<DATE_FIN>` 2999-01-01) par un script de lecture jetable,
-sans rien modifier. **À faire par une séance qui touche au code** : ajouter ces articles à `textes.rs` (domaines « congé
-parental et sabbatique », « protection sociale complémentaire », « assiette du PAS ») pour que `moissonner` les suive.
+sans rien modifier. **Suivis depuis le 15/10/2026** (séance de code) : ces articles sont dans `textes.rs` (code du travail :
+domaines `conge_parental`, `conge_sabbatique`, `mensualisation` ; sécurité sociale : `protection_complementaire` ; impôts :
+`assiette_pas`), et `paie releve-codes moissonner` puis `rapport` les ont relevés dans `../code-du-travail/`,
+`../code-de-la-securite-sociale/` et `../code-general-des-impots/` (`articles-20261015.md`, `xml/`). Les extraits restent
+ici comme la lecture du jour de la recherche.
 
-## Ce qu'on en lit, et où le moteur s'en servira (rien n'est codé)
+## Où le moteur s'en sert (15/10/2026)
+
+- la retenue d'une absence au réel du mois (Cass. soc. 1982 et 1987, fiches 2640 et 2693) : `imprevus::lignes_du_mois`,
+  `conges::jours_oeuvres`, `conges::heures_par_jour_oeuvre` ; l'activité rémunérée jamais négative (fiche 2640) :
+  `engagement.rs` ;
+- la santé d'un mois entièrement suspendu (accord 3090 du 19/07/2024, art. 4.2 ; instruction DSS 2021, II.B) :
+  `calcul::sante_de_la_suspension`, `bareme::bareme_sante`, `dsn::affiliations_du_permanent` ;
+- la RNF négative (fiche 1810) : `pas::du_versement` ; la part patronale dans l'assiette CSG d'un mois sans salaire
+  (L136-1-1) : `calcul::calculer_periode` ;
+- les congés non acquis (L3141-5) : `imprevus::jours_de_conges_non_acquis` ; l'ancienneté du congé parental (L1225-54) :
+  `imprevus::anciennete_depuis`.
+
+## Ce qu'on en lit
 
 Voir le rapport. En une phrase par texte :
 

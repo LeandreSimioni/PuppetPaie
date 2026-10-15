@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000006745465</ID>
+<ANCIEN_ID>SSAXXXXXXXX1X911L02AXXAB</ANCIEN_ID>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/06/74/54/LEGIARTI000006745465.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L911-2</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2006-06-24</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106050">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="2006-06-24" fin="2999-01-01" id="LEGISCTA000006126923">Livre IX : Dispositions relatives à la protection sociale complémentaire et supplémentaire des salariés et non salariés et aux institutions à caractère paritaire</TITRE_TM>
+<TM>
+<TITRE_TM debut="2006-06-24" fin="2999-01-01" id="LEGISCTA000006141707">Titre I : Dispositions générales relatives à la protection sociale complémentaire des salariés</TITRE_TM>
+<TM>
+<TITRE_TM debut="2006-06-24" fin="2999-01-01" id="LEGISCTA000006156295">Chapitre 1 : Détermination des garanties complémentaires des salariés</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1994-08-10" etat="MODIFIE" fin="2006-06-24" id="LEGIARTI000006745464" num="L911-2" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2006-06-24" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000006745465" num="L911-2" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<br/>Les garanties collectives mentionnées à l'article L. 911-1 ont notamment pour objet de prévoir, au profit des salariés, des anciens salariés et de leurs ayants droit, la couverture du risque décès, des risques portant atteinte à l'intégrité physique de la personne ou liés à la maternité, des risques d'incapacité de travail ou d'invalidité, des risques d'inaptitude et du risque chômage, ainsi que la constitution d'avantages sous forme de pensions de retraite, d'indemnités ou de primes de départ en retraite ou de fin de carrière.<br/>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000866621" datesignatexte="1985-12-17" id="JORFTEXT000000866621" naturetexte="DECRET" nortexte="" num="" numtexte="85-1353" sens="source" typelien="CODIFICATION">Décret 85-1353 1985-12-17</LIEN>
+<LIEN cidtexte="JORFTEXT000000709057" datesignatexte="1989-12-31" id="LEGIARTI000006756622" naturetexte="LOI" nortexte="SPSX8900080L" num="15" numtexte="89-1009" sens="cible" typelien="CITATION">Loi n°89-1009 du 31 décembre 1989 - art. 15 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000574606" datesignatexte="1998-12-09" id="LEGIARTI000006660624" naturetexte="DECRET" nortexte="MESF9811265D" num="6" numtexte="98-1109" sens="cible" typelien="CITATION">Décret n°98-1109 du 9 décembre 1998 - art. 6 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000000456741" datesignatexte="2006-03-23" id="LEGIARTI000006250150" naturetexte="ORDONNANCE" nortexte="ECOX0600006R" num="3" numtexte="2006-344" sens="source" typelien="MODIFICATION">Ordonnance n°2006-344 du 23 mars 2006 - art. 3 () JORF 24 mars 2006 en vigueur le 24 juin 2006</LIEN>
+
+
+
+<LIEN cidtexte="JORFTEXT000020016735" datesignatexte="2008-12-30" id="LEGIARTI000020033520" naturetexte="DECRET" nortexte="ECED0831211D" num="1" numtexte="2008-1474" sens="cible" typelien="CITATION">Décret n°2008-1474
+ du 30 décembre 2008 - art. 1 (V)</LIEN>
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000032983213" datesignatexte="2016-08-08" id="LEGIARTI000033001118" naturetexte="LOI" nortexte="ETSX1604461L" num="64" numtexte="2016-1088" sens="cible" typelien="CITATION">LOI n°2016-1088 du 8 août 2016 - art. 64 (Ab)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000036336033" datesignatexte="2017-12-29" id="LEGIARTI000036408282" naturetexte="DECRET" nortexte="MTRT1732438D" num="1" numtexte="2017-1819" sens="cible" typelien="CITATION">Décret n°2017-1819 du 29 décembre 2017 - art. 1</LIEN>
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000044615964" datesignatexte="2021-12-23" id="LEGIARTI000045012859" naturetexte="ARRETE" nortexte="SSAS2123528A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 23 décembre 2021 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000045873905" datesignatexte="2022-06-07" id="LEGIARTI000045874488" naturetexte="DECRET" nortexte="MOMO2208923D" num="1" numtexte="2022-862" sens="cible" typelien="CITATION">Décret n°2022-862 du 7 juin 2022 - art. 1</LIEN>
+
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000054331835" naturetexte="CODE" nortexte="" num="L114-9" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L114-9 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000053282401" naturetexte="CODE" nortexte="" num="L242-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L242-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006745462" naturetexte="CODE" nortexte="" num="L911-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L911-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000042654569" naturetexte="CODE" nortexte="" num="L911-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L911-3 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000054313638" naturetexte="CODE" nortexte="" num="L911-9" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L911-9 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000037063438" naturetexte="CODE" nortexte="" num="L961-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L961-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000045387158" naturetexte="CODE" nortexte="" num="R932-1-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R932-1-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006755162" naturetexte="CODE" nortexte="" num="R932-1-7" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R932-1-7 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000023086525" datesignatexte="2999-01-01" id="LEGIARTI000045875934" naturetexte="CODE" nortexte="" num="R1803-30-24" numtexte="" sens="cible" typelien="CITATION">Code des transports - art. R1803-30-24 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000023086525" datesignatexte="2999-01-01" id="LEGIARTI000029618806" naturetexte="CODE" nortexte="" num="R4312-26" numtexte="" sens="cible" typelien="CITATION">Code des transports - art. R4312-26 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018535631" naturetexte="CODE" nortexte="" num="D2261-2" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D2261-2 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018517612" naturetexte="CODE" nortexte="" num="D322-23" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D322-23 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018526514" naturetexte="CODE" nortexte="" num="D5134-78" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. D5134-78 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006646435" naturetexte="CODE" nortexte="" num="L132-27" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L132-27 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006647042" naturetexte="CODE" nortexte="" num="L133-7" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L133-7 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000027563163" naturetexte="CODE" nortexte="" num="L2242-11" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L2242-11 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000043893940" naturetexte="CODE" nortexte="" num="L2242-17" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L2242-17 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000033024095" naturetexte="CODE" nortexte="" num="L2242-8" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L2242-8 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000035609772" naturetexte="CODE" nortexte="" num="L2312-12" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L2312-12 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000031086052" naturetexte="CODE" nortexte="" num="L2323-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L2323-1 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000031085698" naturetexte="CODE" nortexte="" num="L2323-46" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L2323-46 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000022234449" naturetexte="CODE" nortexte="" num="L2323-50" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L2323-50 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006649202" naturetexte="CODE" nortexte="" num="L431-4" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L431-4 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006649725" naturetexte="CODE" nortexte="" num="L432-3" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L432-3 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006649735" naturetexte="CODE" nortexte="" num="L432-4" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L432-4 (AbD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000045524529" naturetexte="CODE" nortexte="" num="L7343-37" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L7343-37 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000036412644" naturetexte="CODE" nortexte="" num="R2312-22" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R2312-22 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000018535387" naturetexte="CODE" nortexte="" num="R2323-1" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R2323-1 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000006808764" naturetexte="CODE" nortexte="" num="R322-17-9" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. R322-17-9 (M)</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>

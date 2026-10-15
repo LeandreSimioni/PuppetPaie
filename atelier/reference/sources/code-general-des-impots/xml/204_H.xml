@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000054373568</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/54/37/35/LEGIARTI000054373568.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>204 H</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2026-07-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006069577" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code général des impôts, CGI." debut="1952-02-14" fin="2999-01-01" id_txt="LEGITEXT000006069577">Code général des impôts</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1952-02-14" fin="2999-01-01" id="LEGISCTA000006084232">Livre premier : Assiette et liquidation de l'impôt</TITRE_TM>
+<TM>
+<TITRE_TM debut="1952-02-14" fin="2999-01-01" id="LEGISCTA000006114494">Première Partie : Impôts d'État</TITRE_TM>
+<TM>
+<TITRE_TM debut="1954-08-05" fin="2999-01-01" id="LEGISCTA000006133844">Titre premier : Impôts directs et taxes assimilées</TITRE_TM>
+<TM>
+<TITRE_TM debut="1954-08-05" fin="2999-01-01" id="LEGISCTA000006147017">Chapitre premier : Impôt sur le revenu</TITRE_TM>
+<TM>
+<TITRE_TM debut="2018-01-01" fin="2999-01-01" id="LEGISCTA000033780155">Section VIII : Prélèvement à la source de l'impôt sur le revenu&#13;
+</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE_MORT_NE">
+<LIEN_ART debut="2019-01-01" etat="MODIFIE_MORT_NE" fin="2018-12-31" id="LEGIARTI000036354315" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE_MORT_NE">
+<LIEN_ART debut="2019-01-01" etat="MODIFIE_MORT_NE" fin="2017-12-30" id="LEGIARTI000033780236" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2018-12-31" etat="MODIFIE" fin="2019-01-01" id="LEGIARTI000038122085" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2019-01-01" etat="MODIFIE" fin="2019-06-08" id="LEGIARTI000037985556" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2019-06-08" etat="MODIFIE" fin="2020-01-01" id="LEGIARTI000038687193" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2020-01-01" etat="MODIFIE" fin="2020-12-31" id="LEGIARTI000041464037" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE_MORT_NE">
+<LIEN_ART debut="2021-01-01" etat="MODIFIE_MORT_NE" fin="2020-12-31" id="LEGIARTI000041496269" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2020-12-31" etat="MODIFIE" fin="2021-06-12" id="LEGIARTI000042907548" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2021-06-12" etat="MODIFIE" fin="2022-01-01" id="LEGIARTI000043662565" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2022-01-01" etat="MODIFIE" fin="2022-05-07" id="LEGIARTI000044978296" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2022-05-07" etat="MODIFIE" fin="2023-01-01" id="LEGIARTI000045764668" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2023-01-01" etat="MODIFIE" fin="2023-06-03" id="LEGIARTI000046860732" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2023-06-03" etat="MODIFIE" fin="2024-01-01" id="LEGIARTI000047622957" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2024-01-01" etat="MODIFIE" fin="2024-06-02" id="LEGIARTI000048805400" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2024-06-02" etat="MODIFIE" fin="2025-02-16" id="LEGIARTI000049641730" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2025-02-16" etat="MODIFIE" fin="2025-06-19" id="LEGIARTI000051212951" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2025-06-19" etat="MODIFIE" fin="2026-02-21" id="LEGIARTI000051765116" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2026-02-21" etat="MODIFIE" fin="2026-07-01" id="LEGIARTI000053542654" num="204 H" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2026-07-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000054373568" num="204 H" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Modification effectuée en conséquence de l'article 4-I B 1° a de la loi n° 2026-103 du 19 février 2026.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>I. – 1. L'administration fiscale calcule pour chaque foyer fiscal le taux prévu à l'article 204 E. Il est égal au rapport entre le montant de l'impôt sur le revenu du foyer fiscal afférent aux revenus mentionnés au 1 de l'article 204 A, sous déduction des crédits d'impôt correspondant à ces revenus prévus par les conventions fiscales internationales, et ces mêmes revenus pour leurs montants déterminés dans les conditions mentionnées à l'article 204 F et à l'article 204 G, à l'exception des 6° et 7° du 2 et du 4 du même article 204 G.</p>
+<p>Pour le calcul du premier terme du numérateur, l'impôt sur le revenu résultant de l'application des règles prévues aux 1 à 4 du I de l'article 197 ou, le cas échéant, à l'article 197 A est multiplié par le rapport entre les montants nets imposables des revenus mentionnés au 1 de l'article 204 A, les déficits étant retenus pour une valeur nulle, et le revenu net imposable au barème progressif de l'impôt sur le revenu, hors déficits, charges et abattements déductibles du revenu global.</p>
+<p>2. L'impôt sur le revenu et les revenus pris en compte mentionnés au 1 sont ceux de l'avant-dernière année pour le calcul du taux relatif aux versements de l'acompte acquittés et aux retenues à la source effectuées entre le 1er janvier et le 31 août de l'année au cours de laquelle le contribuable dispose des revenus ou réalise les bénéfices, et ceux de l'année précédente pour le calcul du taux relatif aux versements de l'acompte acquittés et aux retenues à la source effectuées entre le 1er septembre et le 31 décembre.</p>
+<p>Toutefois, dans le cas où l'impôt sur le revenu de l'avant-dernière année ou de la dernière année n'a pu être établi, l'impôt sur le revenu et les revenus pris en compte pour le calcul du taux sont ceux de la dernière année pour laquelle l'impôt a été établi à la date du calcul de l'acompte par l'administration ou de la transmission du taux au débiteur des revenus en application du 4, sans que cette année ne puisse être antérieure à l'antépénultième année par rapport à l'année de prélèvement.</p>
+<p>3. Le taux est arrondi à la décimale la plus proche. La fraction de décimale égale à 0,50 est comptée pour un.</p>
+<p>4. Le taux, assorti des calculs qui l'ont déterminé, est communiqué au contribuable par l'administration fiscale. Celle-ci transmet le taux au débiteur mentionné au 1° du 2 de l'article 204 A.</p>
+<p>II. – Par dérogation au I, le taux prévu à l'article 204 E est nul pour les contribuables qui remplissent cumulativement les deux conditions suivantes :</p>
+<p>1° L'impôt sur le revenu, avant imputation du prélèvement prévu à l'article 204 A, mis en recouvrement au titre des revenus des deux dernières années d'imposition connues est nul ;</p>
+<p>2° Le montant des revenus, au sens du 1° du IV de l'article 1417, de la dernière année d'imposition connue est inférieur à 29 310 € par part de quotient familial.</p>
+<p>Pour l'appréciation de la condition prévue au 1° du présent II, les crédits d'impôt prévus au A et au 3 du E du II de l'article 60 de la loi n° 2016-1917 du 29 décembre 2016 de finances pour 2017 ne sont pas pris en compte.</p>
+<p>Le montant des revenus prévu au 2° du présent II est indexé chaque année comme la limite supérieure de la première tranche du barème de l'impôt sur le revenu.</p>
+<p>III. – 1. Lorsque le débiteur ne dispose pas d'un taux calculé par l'administration fiscale ou lorsque l'année dont les revenus ont servi de base au calcul du taux est antérieure à l'antépénultième année par rapport à l'année de prélèvement, il est appliqué un taux proportionnel fixé dans les conditions suivantes :</p>
+<p>a) Pour les contribuables autres que ceux mentionnés aux b et c du présent 1 :</p>
+
+<table border="1">
+<tbody>
+<tr>
+<th>Base mensuelle de prélèvement</th>
+<th>Taux proportionnel</th>
+</tr>
+<tr>
+<td align="justify">Inférieure à 1 635 €</td>
+<td align="center">0 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 1 635 € et inférieure à 1 698 €</td>
+<td align="center">0,5 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 1 698 € et inférieure à 1 807 €</td>
+<td align="center">1,3 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 1 807 € et inférieure à 1 928 €</td>
+<td align="center">2,1 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 1 928 € et inférieure à 2 060 €</td>
+<td align="center">2,9 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 060 € et inférieure à 2 170 €</td>
+<td align="center">3,5 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 170 € et inférieure à 2 315 €</td>
+<td align="center">4,1 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 315 € et inférieure à 2 738 €</td>
+<td align="center">5,3 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 738 € et inférieure à 3 135 €</td>
+<td align="center">7,5 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 3 135 € et inférieure à 3 571 €</td>
+<td align="center">9,9 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 3 571 € et inférieure à 4 019 €</td>
+<td align="center">11,9 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 4 019 € et inférieure à 4 690 €</td>
+<td align="center">13,8 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 4 690 € et inférieure à 5 624 €</td>
+<td align="center">15,8 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 5 624 € et inférieure à 7 037 €</td>
+<td align="center">17,9 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 7 037 € et inférieure à 8 789 €</td>
+<td align="center">20 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 8 789 € et inférieure à 12 200 €</td>
+<td align="center">24 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 12 200 € et inférieure à 16 523 €</td>
+<td align="center">28 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 16 523 € et inférieure à 25 937 €</td>
+<td align="center">33 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 25 937 € et inférieure à 55 558 €</td>
+<td align="center">38 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 55 558 €</td>
+<td align="center">43 %</td>
+</tr>
+</tbody>
+</table>
+
+<p>b) Pour les contribuables domiciliés en Guadeloupe, à La Réunion et en Martinique :</p>
+
+<table border="1">
+<tbody>
+<tr>
+<th>Base mensuelle de prélèvement</th>
+<th>Taux proportionnel</th>
+</tr>
+<tr>
+<td align="justify">Inférieure à 1 875 €</td>
+<td align="center">0 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 1 875 € et inférieure à 1 989 €</td>
+<td align="center">0,5 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 1 989 € et inférieure à 2 191 €</td>
+<td align="center">1,3 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 191 € et inférieure à 2 392 €</td>
+<td align="center">2,1 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 392 € et inférieure à 2 642 €</td>
+<td align="center">2,9 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 642 € et inférieure à 2 786 €</td>
+<td align="center">3,5 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 786 € et inférieure à 2 881 €</td>
+<td align="center">4,1 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 881 € et inférieure à 3 170 €</td>
+<td align="center">5,3 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 3 170 € et inférieure à 3 920 €</td>
+<td align="center">7,5 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 3 920 € et inférieure à 5 016 €</td>
+<td align="center">9,9 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 5 016 € et inférieure à 5 697 €</td>
+<td align="center">11,9 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 5 697 € et inférieure à 6 599 €</td>
+<td align="center">13,8 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 6 599 € et inférieure à 7 907 €</td>
+<td align="center">15,8 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 7 907 € et inférieure à 8 789 €</td>
+<td align="center">17,9 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 8 789 € et inférieure à 9 989 €</td>
+<td align="center">20 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 9 989 € et inférieure à 13 738 €</td>
+<td align="center">24 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 13 738 € et inférieure à 18 253 €</td>
+<td align="center">28 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 18 253 € et inférieure à 27 858 €</td>
+<td align="center">33 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 27 858 € et inférieure à 60 893 €</td>
+<td align="center">38 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 60 893 €</td>
+<td align="center">43 %</td>
+</tr>
+</tbody>
+</table>
+
+<p>c) Pour les contribuables domiciliés en Guyane et à Mayotte :</p>
+
+<table border="1">
+<tbody>
+<tr>
+<th>Base mensuelle de prélèvement</th>
+<th>Taux proportionnel</th>
+</tr>
+<tr>
+<td align="justify">Inférieure à 2 008 €</td>
+<td align="center">0 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 008 € et inférieure à 2 170 €</td>
+<td align="center">0,5 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 170 € et inférieure à 2 420 €</td>
+<td align="center">1,3 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 420 € et inférieure à 2 728 €</td>
+<td align="center">2,1 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 728 € et inférieure à 2 833 €</td>
+<td align="center">2,9 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 833 € et inférieure à 2 930 €</td>
+<td align="center">3,5 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 2 930 € et inférieure à 3 026 €</td>
+<td align="center">4,1 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 3 026 € et inférieure à 3 362 €</td>
+<td align="center">5,3 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 3 362 € et inférieure à 4 639 €</td>
+<td align="center">7,5 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 4 639 € et inférieure à 6 005 €</td>
+<td align="center">9,9 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 6 005 € et inférieure à 6 772 €</td>
+<td align="center">11,9 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 6 772 € et inférieure à 7 858 €</td>
+<td align="center">13,8 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 7 858 € et inférieure à 8 644 €</td>
+<td align="center">15,8 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 8 644 € et inférieure à 9 577 €</td>
+<td align="center">17,9 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 9 577 € et inférieure à 11 115 €</td>
+<td align="center">20 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 11 115 € et inférieure à 14 953 €</td>
+<td align="center">24 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 14 953 € et inférieure à 19 020 €</td>
+<td align="center">28 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 19 020 € et inférieure à 30 482 €</td>
+<td align="center">33 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 30 482 € et inférieure à 64 341 €</td>
+<td align="center">38 %</td>
+</tr>
+<tr>
+<td align="justify">Supérieure ou égale à 64 341 €</td>
+<td align="center">43 %</td>
+</tr>
+</tbody>
+</table>
+
+<p>d) Les limites des tranches des grilles prévues aux a à c sont réduites ou augmentées proportionnellement à la période à laquelle se rapporte le calcul de l'acompte mentionné à l'article 204 C ou proportionnellement à la périodicité usuelle de versement de la rémunération principale, telle qu'elle résulte de la loi, des conventions collectives et accords collectifs, des contrats ou des usages, par le débiteur des revenus mentionnés à l'article 204 B. Toutefois, le débiteur des revenus de remplacement peut effectuer cette réduction ou cette augmentation des tranches proportionnellement à la période à laquelle se rapporte le versement.</p>
+<p>Pour les salaires versés au titre d'un contrat à durée déterminée ou d'un contrat de mission dont le terme initial n'excède pas deux mois ou, s'il s'agit d'un contrat à terme imprécis, dont la durée minimale n'excède pas deux mois, les grilles prévues aux a à c s'appliquent, dans la limite des deux premiers mois d'embauche, aux versements effectués au titre ou au cours d'un mois après un abattement égal à la moitié du montant mensuel du salaire minimum de croissance et sans procéder aux ajustements prévus au premier alinéa du présent d.</p>
+<p>Pour les revenus mentionnés au même article 204 C, les grilles prévues aux a à c du présent 1 s'appliquent à ces revenus majorés de 11 %.</p>
+<p>e) (Abrogé)</p>
+<p>2. Par dérogation au I du présent article, le taux prévu au 1 du présent III est également applicable aux revenus des personnes rattachées, au sens des 2° et 3° du 3 de l'article 6, ou à charge, au sens des articles 196 et 196 A bis, au titre de la dernière année pour laquelle l'impôt a été établi.</p>
+<p>IV. – 1. Sur option du contribuable, le taux mentionné au III du présent article est appliqué aux traitements et salaires soumis à la retenue à la source prévue au 1° du 2 de l'article 204 A.</p>
+<p>L'option peut être exercée à tout moment auprès de l'administration fiscale et est mise en œuvre au plus tard le troisième mois qui suit celui de la demande. Elle est tacitement reconduite, sauf dénonciation dans les trente jours qui suivent la communication au contribuable d'un nouveau taux de prélèvement.</p>
+<p>2. Lorsque le montant de la retenue à la source résultant de l'application de ce taux est inférieur à celui qui aurait résulté de l'application du taux prévu, selon le cas, au I du présent article, à l'article 204 I, à l'article 204 J ou à l'article 204 M, le contribuable acquitte un complément de retenue à la source égal à la différence entre ces deux montants.</p>
+<p>Ce complément est calculé et versé par le contribuable au plus tard le dernier jour du mois suivant celui de la perception du revenu selon les modalités prévues aux 4 et 6 de l'article 1663 C et à l'article 1680 A.</p>
+<p>A défaut de paiement, le recouvrement du complément de retenue à la source est assuré et poursuivi selon les mêmes modalités et sous les mêmes garanties et sûretés que l'impôt sur le revenu. Le rôle d'impôt sur le revenu servant de base au calcul du taux de retenue qui aurait dû être appliqué à défaut d'option vaut titre exécutoire en vue de l'exercice des poursuites consécutives à son non-paiement.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000020753002" datesignatexte="2009-06-16" id="LEGIARTI000046227396" naturetexte="DECRET" nortexte="BCFP0907314D" num="4" numtexte="2009-707" sens="cible" typelien="CITATION">Décret n°2009-707
+ du 16 juin 2009 - art. 4 (VD)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000034676331" datesignatexte="2017-05-10" id="LEGITEXT000034725745" naturetexte="DECRET" nortexte="ECFE1708041D" num="" numtexte="2017-975" sens="cible" typelien="CITATION">Décret n°2017-975 du 10 mai 2017 (VD)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000054341109" datesignatexte="2026-06-29" id="LEGIARTI000054355937" naturetexte="DECRET" nortexte="ECOE2609183D" num="2" numtexte="2026-562" sens="cible" typelien="MODIFIE">Décret n°2026-562 du 29 juin 2026 - art. 2</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000044991946" naturetexte="CODE" nortexte="" num="1665 bis" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 1665 bis (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000041471931" naturetexte="CODE" nortexte="" num="1671" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 1671 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000036354358" naturetexte="CODE" nortexte="" num="1729 G" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 1729 G (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000048806579" naturetexte="CODE" nortexte="" num="204 E" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 204 E (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000033780263" naturetexte="CODE" nortexte="" num="204 I" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 204 I (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000046860839" naturetexte="CODE" nortexte="" num="204 J" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 204 J (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000048806572" naturetexte="CODE" nortexte="" num="204 M" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 204 M (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000033780286" naturetexte="CODE" nortexte="" num="204 N" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 204 N (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069574" datesignatexte="2999-01-01" id="LEGIARTI000034757415" naturetexte="CODE" nortexte="" num="357 E" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe 3, CGIAN3. - art. 357 E (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069574" datesignatexte="2999-01-01" id="LEGIARTI000034729461" naturetexte="CODE" nortexte="" num="383-0" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe 3, CGIAN3. - art. 383-0 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069574" datesignatexte="2999-01-01" id="LEGIARTI000034729481" naturetexte="CODE" nortexte="" num="383-0 quinquies" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe 3, CGIAN3. - art. 383-0 quinquies (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069574" datesignatexte="2999-01-01" id="LEGIARTI000036174588" naturetexte="CODE" nortexte="" num="46 F" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe 3, CGIAN3. - art. 46 F (VD)</LIEN>
+</LIENS>
+</ARTICLE>

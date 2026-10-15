@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000037456478</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/37/45/64/LEGIARTI000037456478.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>R242-1-4</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2018-09-30</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1961-01-12" fin="2999-01-01" id="LEGISCTA000006106085">Partie réglementaire - Décrets en Conseil d'Etat</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126954">Livre II : Organisation du régime général - Action de prévention - Action sanitaire et sociale des caisses</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141857">Titre IV : Ressources</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006156577">Chapitre 2 : Assiette, taux et calcul des cotisations</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006173351">Section 1 : Cotisations assises sur les rémunérations ou gains versés aux travailleurs salariés ou assimilés</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006186434">Sous-section 1 : Dispositions générales.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2012-01-12" etat="MODIFIE" fin="2014-07-11" id="LEGIARTI000025130562" num="R242-1-4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2014-07-11" etat="MODIFIE" fin="2018-09-30" id="LEGIARTI000029217413" num="R242-1-4" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2018-09-30" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000037456478" num="R242-1-4" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Pour bénéficier de l'exclusion de l'assiette, les contributions de l'employeur mentionnées au 4° du II de l'article L. 242-1 sont fixées à un taux ou à un montant uniforme pour l'ensemble des salariés ou pour tous ceux d'une même catégorie au sens de l'article R. 242-1-1, sauf dans les cas suivants :</p>
+<p>1° La prise en charge par l'employeur de l'intégralité des contributions des salariés à temps partiel ou des apprentis dès lors que l'absence d'une telle prise en charge conduirait ces salariés à s'acquitter d'une contribution au moins égale à 10 % de leur rémunération brute ;</p>
+<p>2° La modulation par l'employeur des contributions relatives à la couverture des garanties de prévoyance complémentaire en fonction de la composition du foyer du salarié ;</p>
+<p>3° En matière de prestations de retraite supplémentaire, d'incapacité de travail, d'invalidité ou d'inaptitude, la mise en place de taux croissants en fonction de la rémunération dans la mesure où une progression au moins aussi importante est également appliquée aux contributions des salariés.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+
+<LIEN cidtexte="JORFTEXT000037444514" datesignatexte="2018-09-27" id="LEGIARTI000037446937" naturetexte="DECRET" nortexte="CPAS1808550D" num="1" numtexte="2018-821" sens="cible" typelien="MODIFIE">Décret n°2018-821 du 27 septembre 2018 - art. 1</LIEN>
+
+
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741953" naturetexte="CODE" nortexte="" num="L242-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L242-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000037456515" naturetexte="CODE" nortexte="" num="R242-1-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. R242-1-1 (V)</LIEN>
+
+
+
+
+
+</LIENS>
+</ARTICLE>
