@@ -1,7 +1,7 @@
 {
   "_quoi": "Les obligations qu'un arrêt de travail et une fin de contrat font naître chez l'employeur : ce qu'il faut faire, où, dans quel délai, à compter de quoi, et le texte qui le dit. Livré avec le LOGICIEL : ce sont des règles de droit, pas des choix d'une compagnie. Le calcul (point de départ, date butoir, état) est dans `atelier/sources/paie/src/obligations.rs`, et nulle part ailleurs.",
   "_pourquoi_ici": "Règle du 17/09/2026 : aucune valeur réglementaire n'est écrite dans le code. Un délai sans texte déposé ne s'écrit pas ici ; ce qui est une inférence le dit (`inferences`).",
-  "_textes": "Chaque `textes[].fichier` est une copie déposée dans le dépôt public, relue le 15/10/2026 : `atelier/reference/sources/code-de-la-securite-sociale/` et `arrete-2013-delai-evenements-dsn/` (relevés LEGI, `paie releve-codes`), `atelier/reference/norme-dsn/texte/` (cahier technique DSN 2026.1), `atelier/reference/sources/net-entreprises-base-connaissances/` et `accident-du-travail/` (leur LISEZ-MOI dit l'URL et la date).",
+  "_textes": "Chaque `textes[].fichier` est une copie déposée dans le dépôt public, relue le 15/10/2026 : `atelier/reference/sources/code-de-la-securite-sociale/`, `code-du-travail/` et `arrete-2013-delai-evenements-dsn/` (relevés LEGI, `paie releve-codes`), `atelier/reference/norme-dsn/texte/` (cahier technique DSN 2026.1), `atelier/reference/sources/net-entreprises-base-connaissances/` et `accident-du-travail/` (leur LISEZ-MOI dit l'URL et la date).",
   "jours_ouvres": {
     "_regle": "Un jour ouvré : du lundi au vendredi, hors fêtes légales chômées par la compagnie (fiche Entreprise, `jours_feries_chomes` ; à défaut le 1er mai seul, `feries.rs`). Le jour de départ ne compte pas : le délai court à partir du lendemain.",
     "_inference": "« Cinq jours ouvrés » n'est défini ni par R. 133-14 ni par l'arrêté du 2 juillet 2013 : le moteur prend la lecture usuelle (jours habituellement travaillés dans l'entreprise, le jour de l'événement exclu). C'est une inférence."
@@ -9,9 +9,15 @@
   "obligations": {
     "signalement_arret": {
       "libelle": "Signalement d'arrêt de travail",
-      "nait_de": "un arrêt de travail saisi (tout motif saisissable)",
+      "nait_de": "un arrêt de travail saisi, sauf ceux que la DSN ne couvre pas (`sauf_motifs`)",
       "qui": "employeur",
       "ou": "En DSN, sur net-entreprises : le fichier « signalement d'arrêt » (nature 04) que le logiciel écrit, déposé comme une DSN.",
+      "sauf_motifs": {
+        "codes": ["15", "16", "17", "18", "19"],
+        "pourquoi": "Le congé de deuil (motif 19) et le temps partiel thérapeutique (15 à 18) ne sont « pas à ce jour couverts par la DSN » : l'Assurance Maladie ne tire pas l'attestation de salaire de leur signalement. Pour le deuil, l'obligation qui naît est l'attestation de salaire hors DSN (`attestation_salaire`) ; les motifs 15 à 18 ne se saisissent pas (`arrets-base.json`). La norme, elle, admet le motif 19 dans un signalement (S21.G00.60.001, aucune règle CCH ne l'en exclut) : le moteur ne le refuse pas, il avertit.",
+        "avertissement": "Motif 19 (deuil d'enfant) : la norme admet ce signalement, mais l'Assurance Maladie ne le traite pas — les congés pour deuil ne sont « pas à ce jour couverts par la DSN » (net-entreprises). L'attestation de salaire pour les indemnités journalières (DSIJ) se fait sur net-entreprises, service « Attestation de salaire », par saisie à l'écran ou par fichier EDI, dès réception de l'avis d'arrêt ; une fois faite, la dire faite (route `attestation-declare`, `paie arret declare --attestation`). La DSN mensuelle porte l'arrêt comme les autres.",
+        "texte": {"reference": "net-entreprises, compte entreprise (31/03/2026)", "fichier": "atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt", "dit": "« il suffit de produire vos signalements Arrêt de travail […] via le système DSN. Ainsi, la Caisse primaire d'assurance maladie récupère directement toutes les informations nécessaires (sauf pour les cas spécifiques des temps partiels thérapeutiques et des congés pour deuil qui ne sont pas à ce jour couverts par la DSN). »"}
+      },
       "destinataire": "L'Assurance Maladie (indemnités journalières) et les organismes de prévoyance.",
       "delai_sans_subrogation": {
         "jours_ouvres": 5,
@@ -36,9 +42,15 @@
     },
     "signalement_reprise": {
       "libelle": "Signalement de reprise anticipée",
-      "nait_de": "une reprise saisie AVANT la fin prévisionnelle de l'arrêt (une reprise à la date prévue n'en appelle aucun : la DSN mensuelle la porte)",
+      "nait_de": "une reprise saisie AVANT la fin prévisionnelle de l'arrêt (une reprise à la date prévue n'en appelle aucun : la DSN mensuelle la porte), sauf pour un arrêt que la DSN ne couvre pas (`sauf_motifs`)",
       "qui": "employeur",
       "ou": "En DSN, sur net-entreprises : le fichier « signalement de reprise » (nature 05) que le logiciel écrit.",
+      "sauf_motifs": {
+        "codes": ["15", "16", "17", "18", "19"],
+        "pourquoi": "La même page met le signalement de reprise anticipée avec celui d'arrêt (« vos signalements Arrêt de travail (et Reprise anticipée suite à arrêt de travail […]) ») et en excepte de même le deuil et le temps partiel thérapeutique. Que la reprise d'un congé de deuil ne fasse donc naître aucun signalement est une INFÉRENCE de cette phrase : la page ne dit pas comment l'Assurance Maladie apprend une reprise anticipée de deuil.",
+        "avertissement": "Motif 19 (deuil d'enfant) : la norme admet ce signalement de reprise, mais l'Assurance Maladie ne traite pas les congés pour deuil en DSN (net-entreprises). C'est l'attestation de salaire hors DSN, sur net-entreprises, qui la renseigne.",
+        "texte": {"reference": "net-entreprises, compte entreprise (31/03/2026)", "fichier": "atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt", "dit": "« il suffit de produire vos signalements Arrêt de travail (et Reprise anticipée suite à arrêt de travail, uniquement si la reprise est plus tôt que prévu) via le système DSN […] (sauf pour les cas spécifiques des temps partiels thérapeutiques et des congés pour deuil qui ne sont pas à ce jour couverts par la DSN). »"}
+      },
       "destinataire": "L'Assurance Maladie et les organismes de prévoyance.",
       "delai_sans_subrogation": {
         "jours_ouvres": 5,
@@ -149,6 +161,45 @@
       ],
       "inferences": [
         "La cessation du travail est prise au premier jour de l'arrêt (le lendemain du dernier jour travaillé)."
+      ]
+    },
+    "attestation_salaire": {
+      "libelle": "Attestation de salaire pour les indemnités journalières (DSIJ), hors DSN",
+      "nait_de": "un arrêt dont le motif n'est pas couvert par la DSN (`motifs` : le deuil d'enfant) : à la place du signalement d'arrêt, que l'Assurance Maladie ne traite pas pour lui (`signalement_arret.sauf_motifs`)",
+      "motifs": ["19"],
+      "qui": "employeur",
+      "destinataire": "La caisse primaire d'assurance maladie du salarié : les indemnités journalières du congé de deuil (CSS L. 331-9).",
+      "delai": {
+        "jours": 0,
+        "depart": "connaissance_arret",
+        "dit": "dès réception de l'avis d'arrêt de travail"
+      },
+      "connaissance_presumee": "le premier jour de l'arrêt (le lendemain du dernier jour travaillé). Le salarié prévient la compagnie vingt-quatre heures au moins avant chaque période du congé (C. trav. L. 3142-1-1) : si elle l'a su un autre jour, saisir ce jour-là.",
+      "ou": [
+        {"code": "net-entreprises-ecran", "court": "en ligne, sur net-entreprises (saisie à l'écran)", "libelle": "En ligne, sur net-entreprises.fr : le service « Att salaire IJ - Attestation de salaire pour le versement des indemnités journalières », dans le compte entreprise (rubrique « Vos salariés »), par saisie du formulaire à l'écran. L'habilitation au service vient après l'inscription : s'inscrire avant d'en avoir besoin.", "texte": "atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt"},
+        {"code": "net-entreprises-edi", "court": "sur net-entreprises, par fichier EDI", "libelle": "Sur net-entreprises.fr, par dépôt d'un fichier structuré issu d'un logiciel de paie certifié (EDI). Ce logiciel n'écrit pas ce fichier.", "texte": "atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt"}
+      ],
+      "a_avoir": [
+        "les paies de la période de référence : pour chacune, la période, le nombre de journées et d'heures de travail, le montant et la date de paiement, et la retenue faite au titre des assurances sociales (les bulletins)",
+        "le numéro sous lequel la compagnie verse ses cotisations de sécurité sociale (son SIRET), et l'organisme qui les reçoit (l'Urssaf)",
+        "les dates du congé de deuil (il peut se prendre en deux périodes d'au moins une journée, dans l'année du décès), et si la compagnie maintient le salaire : elle est alors subrogée de plein droit dans les indemnités journalières (L. 331-9)"
+      ],
+      "_a_avoir_source": "CSS R. 323-10 (`atelier/reference/sources/code-de-la-securite-sociale/xml/R323-10.xml`) pour ce que l'attestation porte ; C. trav. L. 3142-1-1 et D. 3142-1-1 (`atelier/reference/sources/code-du-travail/xml/`) pour les périodes ; CSS L. 331-9 pour la subrogation.",
+      "exceptions": [
+        "La DSN mensuelle porte l'arrêt comme les autres : le bloc « Arrêt de travail » (S21.G00.60) admet le motif « 19 - Deuil d'enfant » (cahier technique 2026.1). Seul le signalement d'événement ne sert pas l'Assurance Maladie pour lui.",
+        "Le temps partiel thérapeutique (motifs 15 à 18) est dans le même cas selon la même page, mais ces motifs ne se saisissent pas dans ce logiciel (`arrets-base.json`) : ils n'ont pas d'obligation ici."
+      ],
+      "textes": [
+        {"reference": "net-entreprises, compte entreprise (31/03/2026)", "fichier": "atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt", "dit": "« L'attestation de salaire pour le versement des Indemnités Journalières de la Sécurité Sociale (DSIJ) est obligatoire pour tout arrêt de travail, quel qu'en soit le motif : […] Deuil d'enfant » ; « Maladie, accident du travail, maladie professionnelle, femme enceinte dispensée de travail, deuil d'enfant : Dès réception de l'avis d'arrêt de travail » ; « Par saisie de formulaire à l'écran ; Par dépôt de fichier structuré issu de votre logiciel de paie (EDI) certifié » ; les signalements DSN suffisent « sauf pour les cas spécifiques des temps partiels thérapeutiques et des congés pour deuil qui ne sont pas à ce jour couverts par la DSN »."},
+        {"reference": "Code de la sécurité sociale, art. L. 331-9", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/L331-9.xml", "dit": "« Lorsqu'il exerce son droit au congé prévu à l'article L. 3142-1-1 du code du travail, l'assuré perçoit, pendant la durée du congé et selon les mêmes conditions de liquidation et de service, l'indemnité journalière mentionnée à l'article L. 331-3 […] » ; « L'employeur qui a maintenu le salaire de l'assuré en application de l'article L. 3142-2 du code du travail est subrogé de plein droit dans les droits de son salarié à l'indemnité journalière. »"},
+        {"reference": "Code du travail, art. L. 3142-1-1", "fichier": "atelier/reference/sources/code-du-travail/xml/L3142-1-1.xml", "dit": "« en cas de décès de son enfant âgé de moins de vingt-cinq ans […], le salarié a droit, sur justification, à un congé de deuil de huit jours qui peuvent être fractionnés […]. Le salarié informe l'employeur vingt-quatre heures au moins avant le début de chaque période d'absence. Le congé de deuil peut être pris dans un délai d'un an à compter du décès de l'enfant. »"},
+        {"reference": "Code de la sécurité sociale, art. R. 323-10", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/R323-10.xml", "dit": "« En vue de la détermination du montant de l'indemnité journalière, l'employeur ou les employeurs successifs doivent établir une attestation se rapportant aux payes effectuées pendant les périodes de référence […]. Cette attestation […] est adressée à la caisse : 1° Sous forme électronique, par l'employeur […] »."},
+        {"reference": "Code de la sécurité sociale, art. R. 133-14, IV", "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/R133-14.xml", "dit": "« La transmission de la déclaration sociale nominative permet aux employeurs de satisfaire les obligations suivantes : 1° L'attestation mentionnée aux articles R. 323-10 et R. 441-4 […] » : d'ordinaire, la DSN tient lieu de l'attestation ; pas pour ce qu'elle ne couvre pas."},
+        {"reference": "Cahier technique DSN 2026.1, S21.G00.60.001", "fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt", "dit": "Le motif de l'arrêt « 19 - Deuil d'enfant »."}
+      ],
+      "inferences": [
+        "« Dès réception de l'avis d'arrêt de travail » n'est pas un délai chiffré : le moteur prend pour date butoir le jour même où la compagnie a connaissance de l'arrêt (saisi par `arret-connaissance`, sinon présumé au premier jour de l'arrêt). C'est la lecture la plus exigeante, et c'est une inférence.",
+        "R. 323-10 est écrit pour l'indemnité journalière de maladie ; L. 331-9 sert celle du deuil « selon les mêmes conditions de liquidation et de service » que celle de L. 331-3. Que l'attestation de salaire serve aussi le deuil, c'est la page de net-entreprises qui le dit (« Deuil d'enfant »), pas le code en toutes lettres."
       ]
     }
   }

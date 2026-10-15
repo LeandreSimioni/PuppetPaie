@@ -740,6 +740,24 @@ Ce que le moteur refuse plutôt que de le deviner :
   pas déclaré ce mois-là : le bloc `S21.G00.60` se déclare sous le contrat
   suspendu, et un arrêt qui disparaît en silence est un arrêt non déclaré.
 
+**Ce que chaque arrêt fait naître, et pour quand** : la route `arrets` le rend
+sous chaque arrêt (`paie/src/obligations.rs`, règles dans
+`logiciel/donnees/obligations-base.json`, chacune avec son texte déposé) — le
+signalement et son délai, la déclaration d'accident du travail (hors DSN,
+quarante-huit heures), et pour un **deuil d'enfant** (motif 19), à la place du
+signalement, l'**attestation de salaire** sur net-entreprises (hors DSN, dès
+réception de l'avis d'arrêt) : la DSN ne couvre pas les congés pour deuil.
+Le signalement d'un deuil s'écrit quand même si on le demande (la norme
+l'admet), avec un avertissement. La compagnie dit le jour où elle a su
+l'arrêt, et ce qu'elle a fait hors DSN :
+
+```bash
+paie arret connu Celi --dernier-jour 2026-10-07 --le 2026-10-08
+paie arret declare Celi --dernier-jour 2026-10-07 --le 2026-10-08 --ou net-entreprises --reference 123
+paie arret declare Celi --dernier-jour 2026-10-07 --le 2026-10-08 --ou net-entreprises-ecran --attestation
+paie arret declare Celi --dernier-jour 2026-10-07 --retirer [--attestation]
+```
+
 Un signalement déjà parti ne se corrige pas en en renvoyant un autre : il faut
 un **annule-et-remplace** (type 03), qui vise l'identifiant rendu par le point
 de dépôt — celui du certificat de conformité — et porte un numéro d'ordre

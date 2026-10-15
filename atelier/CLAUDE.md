@@ -75,8 +75,10 @@ montre que celui qui a lieu.
   preuve : il se vérifie avant de s'affirmer.
 - **L'orchestrateur organise, puis vérifie après coup** : il donne à l'Opus le but, les règles, la passation attendue, et le
   laisse faire ; il ne dit pas *comment* faire ce qu'il n'a pas lu dans le code. Puis il vérifie (commits, diff, tests).
-- **Plusieurs Opus à la fois** : des lots disjoints, chacun dans son worktree et sa cible Cargo (`CARGO_TARGET_DIR` seul, un
-  seul profil) ; une passation vérifiée à la fois.
+- **Plusieurs Opus à la fois, quatre au plus, et deux Sonnet au plus** (Léandre, 15/10/2026 ; la limite est le disque du
+  conteneur : une cible Cargo pèse 2 à 6 Go) : des lots disjoints, chacun dans son worktree et sa cible Cargo
+  (`CARGO_TARGET_DIR` seul, un seul profil) ; une passation vérifiée à la fois ; **la cible et le worktree d'un lot fusionné
+  s'effacent aussitôt**.
 - Ne se délègue pas : une décision de conception, un acte qui engage (dépôt réel, envoi, signature), tout ce qui toucherait au
   coffre. Un Opus **ne réécrit jamais l'historique** (`--amend`, `rebase`, `reset`) et **ne laisse aucune tâche de fond**.
 - **Aucun repli Python** : ce qui s'écrit s'écrit en Rust, dans `paie/` ; ce qui ne se porte pas proprement remonte à Léandre.

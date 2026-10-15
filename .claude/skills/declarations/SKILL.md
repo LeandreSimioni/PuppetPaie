@@ -52,6 +52,10 @@ sur net-entreprises (service DAT, s'y habiliter d'avance) ou par le cerfa 14463*
 il la rappelle, et la retient faite quand on le lui dit : `paie arret declare CLE --dernier-jour … --le … --ou
 net-entreprises|courrier [--reference …]` (`--retirer` l'efface). Une maladie professionnelle (05) se déclare par le salarié.
 
+**Deuil d'enfant (motif 19) : pas de signalement, mais l'attestation de salaire (DSIJ) HORS DSN**, sur net-entreprises (service
+« Attestation de salaire », écran ou EDI), dès réception de l'avis d'arrêt — la DSN ne couvre pas le deuil ; la dire faite :
+`paie arret declare CLE --dernier-jour … --le … --ou net-entreprises-ecran|net-entreprises-edi --attestation`.
+
 ```
 paie arret contrats BRIOCHE --le 2026-12-14
 paie arret saisir BRIOCHE --dernier-jour 2026-12-14 --fin 2026-12-20 --motif 01 --subrogation non

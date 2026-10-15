@@ -5,7 +5,8 @@
 //! Chaque verbe passe par une route du moteur : `arrets` (la liste), `arret-contrats`, `arret-enregistrer` (`saisir`),
 //! `arret-reprise`, `arret-maintien` (`maintien` : le complement de salaire d'un mois, les jours deja indemnises), `arret-signaler`,
 //! `arret-oublier`. Les arrets vivent dans le magasin des imprevus (`imprevus`). `connu` et `declare` (15/10/2026) : `arret-connaissance`
-//! (le jour ou la compagnie a su l'arret ou l'accident) et `accident-declare` (la declaration d'accident du travail faite, hors DSN) ; les
+//! (le jour ou la compagnie a su l'arret ou l'accident), `accident-declare` (la declaration d'accident du travail faite, hors DSN) et,
+//! avec `--attestation`, `attestation-declare` (l'attestation de salaire faite hors DSN, pour un deuil d'enfant) ; les
 //! obligations de chaque arret, leur delai et leur etat, sont celles que la route `arrets` rend (`obligations.rs`). Les motifs et le « oui/non » de la subrogation se lisent dans
 //! `arrets-base.json`.
 //!
@@ -55,6 +56,7 @@ pub static SPEC: Spec = Spec {
         Opt::valeur("ou"),
         Opt::valeur("reference"),
         Opt::drapeau("retirer"),
+        Opt::drapeau("attestation"),
     ],
 };
 
@@ -164,7 +166,7 @@ fn lignes_arret(r: &Value) {
     }
 }
 
-/// Les obligations d'un arret, telles que `arret-connaissance` et `accident-declare` les rendent.
+/// Les obligations d'un arret, telles que `arret-connaissance`, `accident-declare` et `attestation-declare` les rendent.
 fn obligations_rendues(r: &Value, json: bool) -> i32 {
     if json {
         return rendre_json(r);
@@ -376,7 +378,13 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         if args.drapeau("retirer") {
             charge["le"] = json!("");
         } else {
-            let le = date(args, "le")?.ok_or_else(|| refus("Il manque --le (le jour de la declaration) et --ou (net-entreprises ou courrier) pour `paie arret declare`."))?;
+            let le = date(args, "le")?.ok_or_else(|| {
+                refus(if args.drapeau("attestation") {
+                    "Il manque --le (le jour de l'attestation) et --ou (net-entreprises-ecran ou net-entreprises-edi) pour `paie arret declare --attestation`."
+                } else {
+                    "Il manque --le (le jour de la declaration) et --ou (net-entreprises ou courrier) pour `paie arret declare`."
+                })
+            })?;
             charge["le"] = json!(le);
             charge["depot"] = json!(opt(args, "ou").unwrap_or_default());
             if let Some(r) = opt(args, "reference") {
@@ -386,7 +394,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
                 charge["heure"] = json!(h);
             }
         }
-        let r = cadre.route("accident-declare", charge)?;
+        let r = cadre.route(if args.drapeau("attestation") { "attestation-declare" } else { "accident-declare" }, charge)?;
         return Ok(obligations_rendues(&r, json));
     }
 

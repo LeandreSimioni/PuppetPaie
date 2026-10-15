@@ -1,0 +1,513 @@
+Date de modification : 29/09/2026 10:28 AM
+
+Comment déclarer les volumes d'activités en DSN?
+
+Le contexte
+
+Les consignes sont applicables aux
+
+Individus relevant du cas général
+
+Salariés du secteur privé, aux agents contractuels de la fonction publique, relevant du droit privé ou du droit public et aux fonctionnaires et contractuels de droit public des fonctions publiques hospitalières et territoriales pour lesquels la déclaration d’un bloc « Activité - S21.G00.53 » est attendue.
+
+Information
+
+Les consignes de cette fiche concernent le remplissage du bloc « Activité - S21.G00.53 », dans toutes les natures de message le contenant sachant que les règles de la DSN mensuelle emportent consignes sur les autres natures de message.
+
+Les rubriques associées qui sont expliquées dans cette fiche concernent le type et la valorisation de l’activité.
+
+Les exemples illustrant les consignes opérationnelles pour la déclaration en DSN des volumes d’activité rémunérée et d’absence partiellement ou non rémunérée au niveau du bloc « Activité - S21.G00.53 » font l’objet d’une fiche consigne dédiée.
+
+Les consignes relatives aux populations particulières comme les pigistes ou intermittents font l’objet de consignes dédiées.
+
+La quotité de mesure du contrat de travail ("Unité de mesure de la quotité de travail - S21.G00.40.011") peut être exprimée dans les unités de mesure suivantes :
+
+10 - heure
+
+12 - journée
+
+20 - forfait jour
+
+21 - forfait heure
+
+31 - à la pige
+
+32 - à la vacation
+
+33 - à la tâche
+
+34 - au SMIC
+
+35 - à la part
+
+99 - salarié non concerné
+
+L'unité de mesure « 99 - salarié non concerné » concerne les cas où la mesure de l'activité ne fait pas sens (ex : les cadres dirigeants, les mandataires sociaux, les VDI, etc.) et pour lesquels un bloc « Activité - S21.G00.53 » n'est pas attendu (excepté un bloc porteur de l'unité de mesure « 40 - jours calendaires de la période d’emploi pris en compte dans le calcul du plafond de Sécurité Sociale »).
+
+Cette unité « 99 - salarié non concerné » est également à déclarer dans les cas où il ne fait pas sens de définir une unique unité de mesure de la quotité de travail du contrat (ex : les intermittents du spectacle, les travailleurs saisonniers, les travailleurs temporaires en contrat de mission, les CDDU). Pour ces individus, les modalités déclaratives de l'activité sont précisées dans les fiches consignés dédiées.
+
+S21.G00.53 - Activité
+
+| Code
+| Rubrique
+| Valorisation
+
+| S21.G00.53.001
+| Type
+|
+
+01 - Travail rémunéré
+
+02 - Durée d’absence partiellement ou pas du tout rémunérée [A partir de la version de norme P26V01]
+
+| S21.G00.53.002
+| Mesure
+| A renseigner par le déclarant selon l’unité de mesure choisie
+
+| S21.G00.53.003
+| Unité de mesure
+|
+
+10 - heure
+
+12 - journée
+
+20 - forfait jour
+
+21 - forfait heure
+
+31 - à la pige
+
+32 - à la vacation
+
+33 - à la tâche
+
+35 - heures intermittents du spectacle
+
+36 - cachets groupés
+
+37 - cachets isolés
+
+38 - jour CRPNPAC
+
+39 - cachet
+
+40 - jours calendaires de la période d’emploi pris en compte dans le calcul du plafond de Sécurité Sociale
+
+41 - heure travaillée le dimanche ou le premier mai (ESAT) [A partir de la version de norme P26V01]
+
+|
+
+Point d’attention :
+
+Les modalités déclaratives de l’unité « 40 - jours calendaires de la période d’emploi pris en compte dans le calcul du plafond de Sécurité sociale » font l’objet d’une fiche consigne dédiée n°2713 intitulée "Rubrique "Unité de mesure - S21.G00.53.003 - Valeur 40 " - nouvelle version de la FC 2007 du 29/01/2025".
+
+Les modalités déclaratives de l’unité « 41 - heures travaillées le dimanche ou le premier mai (ESAT) » sont portées dans une fiche consigne dédiée intitulée "Comment déclarer en DSN les spécificités d'un travailleur handicapé travaillant au sein d'un ESAT (Etablissement et Service d'Aide par le Travail), notamment le complément de rémunération à la charge de l'Etat?"
+
+Le bloc « Activité - S21.G00.53 » est utilisé pour
+
+Alimentation du compte personnel de formation
+
+Les droits chômage (examen, constitution du droit (durée/montant), indemnisation)
+
+Les droits retraite complémentaire
+
+Le calcul du plafond de Sécurité sociale (Urssaf, MSA et Agirc- Arrco)
+
+Les droits maladie (IJSS)
+
+Les cas spécifiques de congés indemnisés par une caisse professionnelle, pour le suivi des droits à congés
+
+Note : Ce bloc étant « générique » pour tous les organismes et dépendant des modalités de gestion adoptées en paie par l’entreprise, les références juridiques de chacun des organismes ne font pas l’objet de cette fiche opérationnelle. Elles sont portées par le BOSS ou les organismes concernées. A contrario, sur la manière de renseigner les données de la DSN cette fiche consigne fait référence et toute indication contraire émanant d’un autre site ne doit pas être prise en compte.
+
+Déclarer l'activité
+
+Règles générales
+
+Un bloc « Activité - S21.G00.53 » de type « 01 - Travail rémunéré » est systématiquement attendu en période courante (sauf salarié sorti le mois précédant et n’ayant eu aucune paie sur le mois en cours ou non concerné selon ce qui est indiqué dans l’introduction de la fiche), que le mois soit entièrement travaillé ou que l’individu soit absent partiellement ou intégralement sur le mois : Si une DSN contient une activité négative sur la période courante, elle sera rejetée par l'assurance chômage. Dans les cas où cela se produit "naturellement" en paie (par exemple, en cas de retenue d'une absence prise en compte en paie en période courante et qui ne peut pas être rattachée à la période de l'évènement car le déclarant ne dispose pas de cette information), il est recommandé de rattacher cette activité au mois antérieur (M-1) afin d'éviter tout rejet dans les traitements de l'assurance chômage.
+
+Les périodes d’activité à déclarer issues du bloc « Activité - S21.G00.53 » doivent être incluses entre les dates réelles de début (« Date de début du contrat -S21.G00.40.001 ») et de fin de contrat (« Date de fin de contrat - S21.G00.62.001 »).
+
+1. Travail rémunéré
+
+La notion de travail rémunéré correspond à la mesure de la quotité de travail pour laquelle un individu est rémunéré par son employeur sur la période en échange de l’exécution de son contrat de travail. Incluant :
+
+- Le temps de travail effectif (y compris les heures supplémentaires et complémentaires)
+
+- Les absences assimilées à de l’activité pour lesquelles l’individu perçoit une rémunération normale de son employeur, telles que :
+
+Les congés annuels, à l’exception des congés indemnisés par une caisse de congés payés,
+
+Les congés payés pour évènements familiaux,
+
+Les jours attribués au titre de la réduction du temps de travail (RTT),
+
+Le compte épargne temps (CET),
+
+Les jours fériés,
+
+Les congés pour raisons familiales ou convenance personnelle, dès lors que ces absences sont entièrement et normalement rémunérées par l’employeur,
+
+Les préavis non effectués.
+
+Le travail rémunéré doit être systématiquement déclaré sur la période courante au sein du bloc « Activité – S21.G00.53 » de type « 01 - Travail rémunéré », y compris dans les situations suivantes :
+
+Pour les individus au forfait jour ou forfait heure sans absence sur le mois et sans heure supplémentaire, le volume de travail effectué par l’individu
+
+Pour un individu entièrement absent sur le mois, avec une valeur à « 0.00 ».
+
+Point d'attention :
+
+Lorsque les congés payés ne sont pas versés par l’employeur mais par une caisse professionnelle de congés payés (CIBTP France par exemple), ils ne sont pas considérés comme du travail rémunéré et doivent être inclus à la durée d’absence non rémunérée (cf. § 2. 02 - Durée d’absence partiellement ou pas du tout rémunérée).
+
+Dans le cas d’un préavis payé non effectué, il convient de déclarer le bloc « Activité - S21.G00.53 » de type « 01 - Travail rémunéré » intégrant la durée correspondante dès lors que celle-ci est comprise dans les bornes de début et de fin du contrat.
+
+Méthodes de calcul du travail rémunéré
+
+| Salariés mensualisés
+| Le volume de travail rémunéré peut être calculé en valeur « réelle » ou « lissée », en fonction de la méthode de calcul utilisée par l’entreprise.
+
+| Autres populations
+| Privilégier un calcul au réel pour les salariés non-mensualisés comme les travailleurs temporaires, les CDI intermittents et les catégories de salariés pour lesquels l’activité n’est pas mesurable en heures ou en jours (ex : journalistes payés à la pige, etc.).
+
+| Il est nécessaire d’appliquer la même méthode de calcul du travail rémunéré (au réel ou au lissé) sur l’ensemble de l’année, afin de reconstituer un volume annuel cohérent, y compris en cas de rappel.
+
+La déclaration en lissé
+
+Le volume de travail rémunéré « lissé » se calcule à partir de la quotité de travail mensuelle définie au niveau contractuel. Lorsque l’individu est présent sur tout le mois et n’a pas effectué d’heure supplémentaire ou complémentaire, la valeur attendue en « 01 - Travail rémunéré » correspond à la valeur déclarée en rubrique « Quotité de travail du contrat - S21.G00.40.013 ».
+
+Calcul de la quotité de travail mensuelle d’un individu au forfait jour ou au forfait heure correspondant à la durée moyenne travaillée par mois :
+
+| Eléments contractuels
+| Valeur en lissé à renseigner
+
+| Forfait annuel 218 jours
+| 21,67 jours = (5 jours x 52 semaines) / 12 mois
+
+| Forfait annuel 109 jours
+| 10,83 jours = (5 jours x 52 semaines) x (109/218) / 12 mois
+
+| Forfait annuel de 210 jours
+| 20,87 jours = (5 jours x 52 semaines) x (210 / 218) / 12 mois
+
+| Temps plein 35 heures par semaine
+| 151,67 heures = (35 heures x 52 semaines) / 12 mois
+
+| Mi-temps sur une base de 35 heures par semaine
+| 75,83 heures = (35 heures x 52 semaines) x 0,5 / 12 mois
+
+| Forfait annuel de 1820 heures
+| 151,67 heures = 1820 heures / 12 mois
+
+| Forfait annuel de 910 heures
+| 75,83 heures = 910 heures / 12 mois
+
+Lorsqu'un individu a une absence non rémunérée sur le mois, le volume de type « 01 - Travail rémunéré » calculé en lissé correspond à sa quotité de travail mensuelle (« Quotité de travail du contrat - S21.G00.40.013 ») diminuée des absences déclarées en type « 02 - Durée d’absence partiellement ou pas du tout rémunérée » (cf. Exemple 9 de la fiche consigne dédiée présentant les exemples déclaratifs pour le bloc « Activité - S21.G00.53 »).
+
+La déclaration au réel
+
+Le travail rémunéré au réel correspond à la durée de travail effectif que le salarié a effectué sur la période courante. Il est mesuré comme étant une valeur réelle, sans recours à la quotité conventionnelle ou contractuelle portée par le contrat de travail.
+
+Ainsi, un individu ayant un statut cadre dont le contrat stipule une quotité de travail de 218 jours dans le cadre d’un forfait annuel, peut être amené certains mois à travailler – sans considération éventuelle de flexibilité du temps de travail – 20 jours (mois de février), 21, 22 voire 23 jours. De même, un individu dont la quotité de travail mensuelle serait de 151,67 heures peut être amené à travailler entre 140 et 161 heures selon le mois, hors considération d’heures supplémentaires ou de flexibilité du temps de travail.
+
+Ces durées sont naturellement diminuées de toutes les absences ne constituant pas du travail rémunéré qui sont déclarées dans un bloc « Activité - S21.G00.53 » de type « 02 - Durée d'absence partiellement ou pas du tout rémunérée».
+
+2. Durée d’absence partiellement ou pas du tout rémunérée
+
+La durée d’absence non rémunérée est le cumul, sur la période considérée (rattachée à la période d’emploi), des durées de toutes les absences. C’est le cas des périodes n’ayant donné lieu à aucune rémunération mais aussi de celles conduisant à un maintien total ou partiel de la rémunération sans être assimilables à du travail rémunéré (ex : maintien de salaire en cas d’absence maladie, arrêt de travail avec carence).
+
+Sont à déclarer sous la notion d’absence non rémunérée les absences en heures ou en jours telles que :
+
+Les absences liées à un arrêt de travail intégrant les jours de carence, que le salaire soit maintenu ou non par l'employeur (ex : « arrêt maladie avec ou sans maintien de salaire », « arrêt maladie avec ou sans subrogation », « arrêt maladie indemnisé ou non ») ou que la prise en charge soit financée par l’Assurance maladie, par une mutuelle, un organisme de prévoyance ou par l’Agence de services et de paiement (ASP) ;
+
+Les suspensions de contrat intégralement non rémunérées ou partiellement rémunérées (congé sans solde, congé parental d'éducation, etc.) ;
+
+Les congés payés indemnisés par une caisse professionnelle de congés payés (CIBTP France par exemple) ;
+
+Les absences justifiées non rémunérées (par exemple, les temps de grève) ;
+
+Les périodes non travaillées de temps partiel thérapeutique, que l’employeur effectue ou non un maintien de salaire ;
+
+Les périodes non travaillées d’activité partielle, qu’elle soit indemnisée (partiellement ou intégralement) ou non par l’employeur ;
+
+Les congés pour raisons familiales ou convenance personnelle, dès lors que ces absences ne sont pas entièrement et normalement rémunérées par l’employeur. Ces congés sont accordés en imposant parfois des conditions d’ancienneté pour le salarié.
+
+Point d'attention : pour les contrats de travail dont l’indemnisation des congés relèvent d'une caisse professionnelle de congés payés (CIBTP France par exemple), la durée des congés doit être renseignée avec la valeur « 02 - Durée d'absence partiellement ou pas du tout rémunérée » au niveau de la rubrique « Type - S21.G00.53.001 ». Cette durée doit également être déclarée dans le bloc « Autre suspension - S21.G00.65 », avec un motif de suspension « 200 - COP (Congés payés indemnisés par une caisse de congés payés) ».
+
+Le décompte et calcul des absences au réel
+
+Toute absence déclarée au sein du bloc « Activité – S21.G00.53 » de type « 02 - Durée d'absence partiellement ou pas du tout rémunérée » doit être systématiquement déclarée en valeur réelle, c’est-à-dire sans application d’une règle de trois visant à rapprocher le volume d’absence à la quotité de travail mensualisée.
+
+Dès que le déclarant dispose de l’information exacte du planning de paie/du cycle de travail du salarié absent sur le bulletin de salaire ou dans son logiciel de paie, la règle d’application du nombre d’heures réelles d’absence est la suivante :
+
+Nombre d’heures d’absence = Nombre exact d’heures d’absence
+
+Dans le cas où cette précision n’est pas connue du déclarant, alors il pourra prendre une ou plusieurs hypothèses de modalités classiques de travail pour le salarié :
+
+Nombre d’heures d’absence = Nb d’heures travaillées/jours œuvrés* x Nb de jours théoriquement œuvrés sur la période
+
+(*) Les jours œuvrés correspondent aux jours de la semaine pendant lesquels un salarié doit travailler. Pour les temps partiels par exemple, le rythme hebdomadaire est précisé dans le contrat de travail. Par ailleurs, en fonction de l'activité d'un établissement ou même d'un service au sein d’un établissement, les jours œuvrés peuvent être spécifiques et encadrés par un planning qui peut être différent d'une semaine sur l'autre. Dans cette situation, l’information n’est pas portée par le contrat.
+
+Déclaration en lissé du travail rémunéré (type « 01 – Travail rémunéré ») :
+
+Le volume réel d’absence déclarée avec le type « 02 - Durée d’absence non rémunérée » doit être retranché de la quotité de travail mensualisée afin de déterminer le volume de travail rémunéré effectué par l’individu sur la période.
+
+Il peut arriver que le volume réel d'absence non rémunérée soit supérieur à la quotité d'activité ce qui conduirait à déclarer un volume négatif de type " 01 - Travail rémunéré". Dans cette situation, il convient de déclarer un volume d'activité de type "01 - Travail rémunéré" valorisé à 0 et non en négatif.
+
+Déclaration au réel du travail rémunéré (type « 01 – Travail rémunéré ») :
+
+Le volume réel d’absence partiellement ou pas du tout rémunérée est déclaré en type « 02 - Durée d’absence partiellement ou pas du tout rémunérée ».
+
+3. Les unités de mesure
+
+Les unités de mesure relatives aux temps de travail de l’individu sont déclarées :
+
+Au niveau du bloc « Contrat - S21.G00.40 » : la rubrique « Unité de mesure de la quotité de travail - S21.G00.40.011 » permet de préciser l’unité de mesure de la quotité de travail de référence de l’entreprise pour la catégorie de salarié (S21.G00.40.012) et de la quotité de travail du contrat (S21.G00.40.013) ;
+
+Au niveau du bloc « Activité - S21.G00.53 » : la rubrique « Unité de mesure - S21.G00.53.003 » permet de préciser l’unité de mesure du volume de travail rémunéré (type « 01 – Travail rémunéré ») et/ou du volume d’absence partiellement ou non rémunérée (type « 02 – Durée d’absence non rémunérée »).
+
+Les usages d’unités (simples ou multiples) de décompte des durées de travail ou d’absence sont de la seule responsabilité de l’employeur dans l’établissement de sa paie, dans le respect du droit du travail.
+
+L’unité utilisée pour déclarer des heures ou des jours doit être homogène entre les durées rémunérées et les durées non rémunérées (cf. § « Règles de conversion des unités de mesure »).
+
+Dans les cas où il n’est pas possible d’appliquer une consigne de stricte homogénéité des unités de mesure déclarées dans les rubriques « Unité de mesure de la quotité de travail - S21.G00.40.011 » et « Unité de mesure - S21.G00.53.003 » (ex : déclaration d’un arrêt maladie pour un individu ayant un contrat en heures), il est obligatoire de valoriser la rubrique « Unité de mesure - S21.G00.53.003 ».
+
+| Bloc « Contrat - S21.G00.40 »
+| Bloc « Activité - S21.G00.53 »
+| Bloc « Activité - S21.G00.53 »
+
+| Unité de mesure de la quotité de travail
+
+(S21.G00.40.011)
+| Unité de mesure (S21.G00.53.003)
+
+de type « 01 - Travail rémunéré »
+|
+
+Unité de mesure (S21.G00.53.003)
+
+de type « 02 - Durée d'absence partiellement ou pas du tout rémunérée »
+
+|
+
+10 - heure
+
+|
+
+10 - heure
+
+|
+
+10 - heure
+
+12 - journée
+
+|
+
+12 - journée
+
+|
+
+10 - heure
+
+12 - journée
+
+|
+
+10 - heure
+
+12 - journée
+
+|
+
+20 - forfait jour
+
+|
+
+12 - journée
+
+|
+
+12 - journée
+
+|
+
+21 - forfait heure
+
+|
+
+10 - heure
+
+|
+
+10 - heure
+
+12 - journée
+
+|
+
+31 - à la pige
+
+|
+
+31 - à la pige
+
+|
+
+10 - heure
+
+|
+
+32 - à la vacation
+
+|
+
+32 - à la vacation
+
+|
+
+10 - heure
+
+|
+
+33 - à la tâche
+
+|
+
+33 - à la tâche
+
+|
+
+10 - heure
+
+|
+
+34 - SMIC
+
+|
+
+10 - heure
+
+12 - journée
+
+|
+
+10 - heure
+
+|
+
+35 - à la part
+
+|
+
+10 - heure
+
+12 - journée
+
+|
+
+10 - heure
+
+|
+
+99 - non concerné (remplissage non systématisé selon les cas de figure)
+
+|
+
+10 - heure
+
+12 - journée
+
+39 - cachet
+
+35 - heures intermittents du spectacle
+
+36 - cachets groupés
+
+37 - cachets isolés
+
+|
+
+10 - heure
+
+12 - journée
+
+NB : Pour les cas particuliers, comme les intermittents du spectacle (artistes, salariés ouvriers ou techniciens de l'édition d'enregistrement sonore, de la production cinématographique et audiovisuelle, de la radio, de la diffusion et du spectacle), plusieurs unités de mesures peuvent être déclarées dans le bloc « Activité - S21.G00.53 » selon le type d’activité : journée (la déclaration en jours est obligatoire), cachets et heures intermittents du spectacle.
+
+Point d'attention :
+
+Lorsque l’unité de mesure utilisée pour déclarer l’activité est identique à celle déclarée au niveau du bloc « Contrat – S21.G00.40 », il n’est pas nécessaire de la déclarer à nouveau en rubrique « Unité de mesure – S21.G00.53.003 ».
+
+Pour les marins pêcheurs
+
+Les unités de mesure « 35 - à la part » et « 34 - au SMIC » sont à déclarer uniquement au niveau du bloc « Contrat - S21.G00.40 » et ne doivent pas être déclarées en bloc « Activité - S21.G00.53 », étant donné qu'un mode de rémunération spécifique s'applique.
+
+Pour les intermittents du spectacle (artistes et les ouvriers ou techniciens de l'édition d'enregistrement sonore, de la production cinématographique et audiovisuelle, de la radio, de la diffusion et du spectacle)
+
+Les unités de mesure « 35 - heures intermittents du spectacle », « 36 - cachets groupés », « 37 - cachets isolés » et « 39 - cachet » permettent de mesurer l’activité effectuée par l’individu, et n’ont pas de lien avec l’unité de mesure définie au niveau du bloc « Contrat - S21.G00.40 ». Pour calculer les droits à assurance chômage de cette population, il est nécessaire de renseigner l’activité de type « 01 – Travail rémunéré » à la fois avec l’unité de mesure « 12 -journée » et « cachets ».
+
+Pour les dockers
+
+L’unité de mesure « 32 - à la vacation » leur est exclusivement réservée.
+
+Activité spécifique ponctuelle (appelée communément « vacation ») :
+
+La quotité de travail effectuée par un individu est renseignée avec les unités de mesure « 10 - heure » et « 33 - à la tâche ».
+
+Travailleur handicapé travaillant au sein d'un ESAT
+
+La valeur "41 - heure travaillée le dimanche ou le premier mai (ESAT)" est exclusivement reservée à la déclaration d'un travailleur handicapé travaillant au sein d'un ESAT (Etablissements ou Services d'Accompagnement par le Travail).
+
+Règles de conversion des unités de mesure des absences
+
+Dans les cas où le déclarant ne dispose pas du volume réel d’absence de l’individu dans l’unité de mesure souhaitée pour la déclaration, il peut être amenée à convertir ce volume d’une unité de mesure à une autre.
+
+Conversion de jours en heures
+
+Lorsque l’information exacte du planning de paie/du cycle de travail du salarié n’est pas connue par le déclarant, la règle de conversion de jours en heures d’absence à appliquer est la suivante :
+
+Nombre d’heures réelles d’absence converties = Nombre d’heures habituellement travaillées par jour œuvré x Nombre de jours théoriquement œuvrés sur la période*
+
+Attention : Certaines méthodes de conversion des unités de mesure des absences semblant complexes et donc sources d’écart très important par rapport à la valeur réelle de l’absence. Les méthodes de conversion suivantes sont à écarter :
+
+Comptabiliser des jours calendaires de l’absence comme des journées théoriquement travaillées :
+
+Nombre d’heures réelles d’absence converties = (Nombre de jours calendaires d’absence x Nombre d’heures travaillées) /jour œuvré*
+
+Faire usage d’un coefficient représentant le nombre d’heures œuvrées moyenne par jour calendaire du mois afin de lisser les absences et le travail rémunéré, tel que :
+
+Nombre d’heures réelles d’absence converties = Nombre de jours calendaires d’absence x [35heures x 52 semaines / (12 mois x Nombre de jours calendaires du mois principal déclaré)]
+
+(*) Les jours œuvrés correspondent aux jours de la semaine pendant lesquels un salarié doit travailler. Pour les temps partiels par exemple, le rythme hebdomadaire est précisé dans le contrat de travail. Par ailleurs, en fonction de l'activité d'un établissement ou même d'un service au sein d’un établissement, les jours œuvrés peuvent être spécifiques et encadrés par un planning qui peut être différent d'une semaine sur l'autre. Dans cette situation, l’information n’est pas portée par le contrat.
+
+Conversion d'heures en jours
+
+Un individu, au forfait jour ou dont la quotité de travail du contrat est exprimée en jours, comptabilise une durée d’absence décomptée en heures, celles-ci peuvent être exprimées en tantièmes de jours (en prenant l’hypothèse du nombre moyen d’heures effectuées par jour). Consigne s’appliquant également aux individus au forfait jour avec une absence d’une durée inférieure à une journée / une demi-journée.
+
+Les corrections et compléments ou rappels de salaires
+
+Seule une correction (portant sur une période antérieure à la période courante) peut être exprimée avec une valeur négative. Les organismes concernés devront ainsi prendre en compte un bloc « Activité – S21.G00.53 » avec une mesure négative déclarée pour une période antérieure, même si la DSN ne porte pas de base assujettie sur cette même période, dès lors que les éléments de calcul du plafond se confondent avec la période courante.
+
+Lorsque l’activité déclarée dans une DSN précédente a évolué, il est nécessaire de la corriger en bloc « Activité - S21.G00.53 ».
+
+Il est important de rattacher ce bloc « Activité - S21.G00.53 » à un bloc « Rémunération - S21.G00.51 » de type « 002 - Salaire brut servant aux calculs des droits de l’Assurance chômage » daté conformément à l’information traitée en paie et portée à la connaissance du salarié via le bulletin de salaire. Néanmoins du fait de l’impossibilité pour les règles de l’assurance chômage de considérer qu’un mois peut être négatif sur la période courante, il convient pour éviter toute blocage de dater cette période en DSN d’un mois antérieur (mois de l’évènement ou M-1 si le déclarant ne dispose pas de l’information précise).
+
+En cas de correction de rémunération n'ayant aucun impact sur l’activité du salarié (ex : versement d’un complément de salaire à un salarié sorti), il n’est pas nécessaire de déclarer le bloc « Activité - S21.G00.53 ».
+
+Lorsqu’un employeur procède à un versement correspondant à un complément de salaire d’une période antérieure (rappel de salaire) et que cela est porté dans la période courante, le salaire brut servant aux calculs des droits de l’Assurance chômage doit être daté conformément à l’information traitée en paie et portée à la connaissance du salarié via le bulletin de salaire.
+
+Tout complément de salaire issu de la modification du volume d’activité (ou d’inactivité) doit, lorsque ce sont ces mesures qui en sont à l’origine, faire l’objet d’une correction du volume d’activité rémunérée et/ou d’absence non rémunérée dans un ou plusieurs blocs « Activité - S21.G00.53 ». Ce bloc « Activité – S21.G00.53 » doit être rattaché à un bloc « Rémunération – S21.G00.51 » de type « 002 – Salaire brut servant aux calculs des droits de l’Assurance chômage » sur la période d’activité concernée.
+
+Tout complément de salaire doit impérativement concerner une période incluse dans le contrat de travail.
+
+Dans tous les cas, qu’il s’agisse de compléments de salaires ou de corrections, la somme des volumes d’activité déclarés dans les différentes DSN pour chaque mois ne peut aboutir à un résultat négatif. Le cumul annuel des volumes d’activité déclarés ne peut pas également être négatif.
+
+Certains dispositifs permettent à un individu de bénéficier d’une réduction de la quotité de travail tout en étant rémunéré au-delà du temps de travail effectué, tels que :
+
+Passage à temps partiel financé par le compte Epargne Temps (CET) : les périodes d’absence financées par le Compte Epargne Temps sont considérées comme de l’activité normalement rémunérée par l’employeur. Elles sont donc intégrées à l’activité de type « 01 – Travail rémunéré ». (Cf. § 1. Travail rémunéré)
+
+Préretraite avec passage à temps partiel : selon la fiche consigne 1691, la nouvelle modalité de temps de travail doit être inscrite au niveau du bloc « Contrat – S21.G00.40 » et doit être prise en compte pour déclarer l’activité. Les périodes d’absence doivent ainsi être intégrées dans les absences non rémunérées (type « 02 – Durée d’absence non rémunérée).
+
+Passage à temps partiel financé par le compte professionnel de prévention (C2P) : l’individu perçoit une rémunération à temps complet et l’organisme gestionnaire du C2P rembourse à l’employeur le complément de rémunération et les cotisations et contributions sociales correspondant à ce complément. Dans cette situation, il convient de maintenir une modalité de temps de travail déclarée à temps complet (rubrique « Modalité d'exercice du temps de travail - S21.G00.40.014 » et l’activité déclarée de type « 01 – Travail rémunéré » ne doit pas intégrer les périodes d’absence financées par le C2P. Ces périodes d’absence liées à l’utilisation du C2P seront déclarées au réel avec le type « 02 – Durée d’absence non rémunérée ». Cette situation fera l’objet d’une fiche consigne dédiée.
+
+Date de création : 21/07/2023 01:51 PM N° de la fiche : 2640

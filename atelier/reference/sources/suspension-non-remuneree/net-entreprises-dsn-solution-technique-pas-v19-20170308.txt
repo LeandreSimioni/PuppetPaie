@@ -1,0 +1,2635 @@
+                                       Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                    Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                  DSN
+
+
+
+
+La construction des données à ajouter dans le cadre du PAS DSN a fait l’objet de travaux approfondis entre la
+DGFIP et le GIP-MDS qui conduisent à la proposition suivante pour la gestion du PAS en DSN.
+La logique de positionnement des principales données déjà présentes et utiles dans ce cadre et de celles à
+ajouter est la suivante :
+    -   Pour la structuration du message (S10 et S20 hors gestion des paiements), aucune spécificité n’est
+        liée au PAS.
+    -   Pour la gestion des individus (bloc S21.G00.30), aucune donnée n’est à ajouter. Il est à noter la
+        présence dans cette zone du « statut à l’étranger au sens fiscal - S21.G00.30.022 » ; dès lors que
+        cette donnée sera renseignée à « 01 - travail frontalier » ou « 02 - travail à l'étranger », des règles
+        fiscales spécifiques sont appliquées et la personne ne sera pas à gérer dans le cadre de ces échanges
+        PAS (présence dans la DSN mais sans les éléments PAS et pas de présence dans le fichier d’appel
+        PASRAU).
+
+Il est important de retenir qu’un individu ne doit figurer qu’une et une seule fois dans un message DSN et
+que cette règle n’est pas remise en cause par le PAS.
+Pour la gestion des contrats (bloc S21.G00.40), a priori aucun besoin n’a été émis par la DGFIP, les règles
+fiscales se basant sur les versements, quelle que soit la nature contractuelle.
+Les rubriques spécifiques fiscales, des blocs « Affectation fiscale – S21.G00.42 » et « Assujettissement fiscal -
+S21.G00.44 », sont traitées dans le cadre du projet DSN en substitution de la DADS U et ne changent pas
+avec le PAS.
+Seul le bloc « Versement - S21.G00.50 » est impacté pour les salariés et les blocs « Individu non salarié
+(anciennement Individu Agirc-Arrco) - S89.G00.91 » et « Bases spécifiques individu non salarié
+(anciennement Bases spécifiques Agirc-Arrco) - S89.G00.92 » le sont pour les non salariés pour lesquels des
+paiements interviennent dans l’entreprise.
+
+
+
+
+                                                                                               Page 1
+                                          Déclaration Sociale Nominative
+                                                                                            Version 19.0
+                     Données et axes structurants en conséquence prévus pour le PAS
+                                                                                            08/03/2017
+                                                   DSN
+
+
+
+
+                 Liste des données présentes en DSN et ré utilisées dans le cadre du PAS
+
+
+Versement organisme de protection sociale - S21.G00.20
+
+              Identifiant Organisme de Protection Sociale                            - S21.G00.20.001
+              BIC                                                                    - S21.G00.20.003
+              IBAN                                                                   - S21.G00.20.004
+              Montant du versement                                                   - S21.G00.20.005
+              Date de début de période de rattachement                               - S21.G00.20.006
+              Date de fin de période de rattachement                                 - S21.G00.20.007
+              Mode de paiement                                                       - S21.G00.20.010
+              Date de paiement                                                       - S21.G00.20.011
+              SIRET Payeur                                                           - S21.G00.20.012
+
+
+
+Versement individu - S21.G00.50
+
+              Date de versement                                                      - S21.G00.50.001
+              Rémunération nette fiscale                                             - S21.G00.50.002
+              Numéro de versement                                                    - S21.G00.50.003
+              Montant net versé                                                      - S21.G00.50.004
+
+
+
+Individu non salarié (actuellement dite Agirc-Arrco) - S89.G00.91
+              Numéro d'inscription au répertoire                                     - S89.G00.91.001
+              Nom de famille                                                         - S89.G00.91.002
+              Nom d'usage                                                            - S89.G00.91.003
+              Prénoms                                                                - S89.G00.91.004
+              Sexe                                                                   - S89.G00.91.005
+              Date de naissance                                                      - S89.G00.91.006
+              Lieu de naissance                                                      - S89.G00.91.007
+              Numéro, extension, nature et libellé de la voie                        - S89.G00.91.008
+              Code postal                                                            - S89.G00.91.009
+              Localité                                                               - S89.G00.91.010
+              Code Pays                                                              - S89.G00.91.011
+              Code de distribution à l'étranger                                      - S89.G00.91.012
+              Complément de la localisation de la construction                       - S89.G00.91.013
+              Service de distribution, complément de localisation de la voie         - S89.G00.91.014
+              Adresse mél                                                            - S89.G00.91.015
+              Matricule de l'individu dans l'entreprise                              - S89.G00.91.016
+              Statut du salarié (conventionnel)                                      - S89.G00.91.017
+              Code statut catégoriel Retraite Complémentaire obligatoire             - S89.G00.91.018
+
+
+
+
+                                                                                           Page 2
+                                         Déclaration Sociale Nominative
+                                                                                             Version 19.0
+                      Données et axes structurants en conséquence prévus pour le PAS
+                                                                                             08/03/2017
+                                                    DSN
+
+
+
+Bases spécifiques non salarié (actuellement dite Agirc-Arrco) - S89.G00.92
+
+              Type                                                                    - S89.G00.92.001
+              Code de base spécifique                                                 - S89.G00.92.002
+              Montant                                                                 - S89.G00.92.003
+              Date de début de période de rattachement                                - S89.G00.92.004
+              Date de fin de période de rattachement                                  - S89.G00.92.005
+
+
+
+
+                                                                                            Page 3
+                                              Déclaration Sociale Nominative
+                                                                                                                  Version 19.0
+                      Données et axes structurants en conséquence prévus pour le PAS
+                                                                                                                  08/03/2017
+                                                    DSN
+
+
+
+
+                                     Liste des données à créer en DSN pour le PAS
+
+
+Au niveau du bloc « Versement individu - S21.G00.50 »
+
+                Rémunération nette fiscale potentielle                                                    - S21.G00.50.005
+                Taux de prélèvement à la source                                                           - S21.G00.50.006
+                Type du taux de prélèvement à la source                                                   - S21.G00.50.007
+                Identifiant du taux de prélèvement à la source                                            - S21.G00.50.008
+                Montant de prélèvement à la source                                                        - S21.G00.50.009
+
+
+
+Avec la création d’un nouveau bloc « Régularisation de prélèvement à la source - S21.G00.56 »
+
+                Mois de l'erreur                                                                          - S21.G00.56.001
+                Type d’erreur                                                                             - S21.G00.56.002
+                 Rubrique qui indique que l’erreur porte sur l’assiette ou le taux précédemment déclaré. Si l’erreur déclarée porte
+                 sur l’assiette il conviendra de déclarer dans ce bloc le différentiel entre les bases fiscales erronée et corrigée. Si
+                 l’erreur déclarée porte sur le taux il conviendra de déclarer dans ce bloc le différentiel entre le taux erroné et le
+                 bon taux
+                Régularisation de la rémunération nette fiscale                                           - S21.G00. 56.003
+                 Différentiel d’assiette du fait de l’erreur d’assiette
+                Rémunération nette fiscale déclarée le mois de l’erreur                                   - S21.G00. 56.004
+                 Reprise de l’assiette précédemment déclarée
+                Régularisation du taux de prélèvement à la source                                         - S21.G00. 56.005
+                 Différentiel de taux du fait de l’erreur de taux
+                Taux déclaré le mois de l’erreur                                                          - S21.G00. 56.006
+                 Reprise du taux précédemment déclaré
+                Montant de la régularisation du prélèvement à la source                                   - S21.G00. 56.007
+
+
+
+Pour les cas des salariés, qu’ils soient ou non « exclus » de la DSN, la transmission s’appuiera sur les
+éléments présents en bloc « Versement – S21.G00.50 ».
+Pour des revenus de remplacement versés à des personnes qui ne sont pas des salariés on trouvera ces
+données au niveau de la structure S89 tel qu’indiqué ci-après.
+Au niveau du bloc « Bases spécifiques Individu non salarié - S89.G00.92 » (actuellement nommé Agirc Arrco mais qui sera
+étendu)
+
+                Montant net fiscal du revenu versé                                                        - S89.G00.92.006
+                Taux de prélèvement à la source                                                           - S89.G00.92.007
+                Type du taux de prélèvement à la source                                                   - S89.G00.92.008
+                Identifiant du taux de prélèvement à la source                                            - S89.G00.92.009
+                Montant de prélèvement à la source                                                        - S89.G00.92.010
+                Date de versement                                                                         - S89.G00.92.011
+
+
+
+
+                                                                                                                 Page 4
+                                            Déclaration Sociale Nominative
+                                                                                                                Version 19.0
+                    Données et axes structurants en conséquence prévus pour le PAS
+                                                                                                                08/03/2017
+                                                  DSN
+
+
+
+
+Avec la création d’un nouveau bloc dans le véhicule technique « Régularisation de prélèvement à la source
+– S89.G00.93 »
+
+              Mois de l’erreur                                                                          - S89.G00. 93.001
+              Type d’erreur                                                                             - S89.G00. 93.002
+               Rubrique qui indique que l’erreur porte sur l’assiette ou le taux précédemment déclaré. Si l’erreur déclarée porte
+               sur l’assiette il conviendra de déclarer dans ce bloc le différentiel entre les bases fiscales erronée et corrigée. Si
+               l’erreur déclarée porte sur le taux il conviendra de déclarer dans ce bloc le différentiel entre le taux erroné et le
+               bon taux
+              Régularisation du montant soumis au prélèvement à la source                               - S89.G00. 93.003
+               Différentiel d’assiette du fait de l’erreur d’assiette
+              Montant soumis au prélèvement à la source le mois de l’erreur                             - S89.G00. 93.004
+               Reprise de l’assiette précédemment déclarée
+              Régularisation du taux de prélèvement à la source                                         - S89.G00. 93.005
+               Différentiel de taux du fait de l’erreur de taux
+              Taux déclaré le mois de l’erreur                                                          - S89.G00. 93.006
+               Reprise du taux précédemment déclaré
+              Montant de la régularisation du prélèvement à la source                                   - S89.G00. 93.007
+
+
+
+Le bloc « Individu non salarié – S89.G00.91 » évolue également pour répondre aux exigences des contrôles
+du SNGI :
+   -   L’usage de la rubrique « Numéro d'inscription au répertoire - S89.G00.91.001 » passe d’obligatoire à
+       conditionnel pour une DSN mensuelle.
+   -   3 nouvelles rubriques sont créées :
+              Code département de naissance – S89.G00.91.019
+              Code pays de naissance – S89.G00.91.020
+              Numéro technique temporaire – S89.G00.91.021
+
+
+
+
+                                                                                                               Page 5
+                                       Déclaration Sociale Nominative
+                                                                                                Version 19.0
+                    Données et axes structurants en conséquence prévus pour le PAS
+                                                                                                08/03/2017
+                                                  DSN
+
+
+
+                Détail des caractéristiques techniques des données et contrôles à spécifier
+
+
+Au niveau du bloc « Versement individu - S21.G00.50 » qui a une cardinalité (1,*) :
+
+
+
+
+        Rémunération nette fiscale potentielle :
+
+        Il s’agit ici d’ajouter une donnée à renseigner dans le cas où le déclarant n’est pas en capacité de
+        connaître le caractère imposable du revenu versé au moment où il le verse (exemple des contrats
+        d’apprentissage) ; la DGFIP fournira la liste des cas concernés qui auront été identifiés (cette liste ne
+        sera pas exhaustive car liée aux évolutions législatives). Dans les cas visés dans cette liste à venir, la
+        zone « Rémunération nette fiscale » est à mettre à 0 et cette rubrique est à alimenter avec la base
+        calculée. En cas de présence en paie d’autres éléments rémunérations imposables, il conviendra de
+        renseigner en DSN un autre bloc versement comprenant ceux-ci.
+
+               Usage : Conditionnel
+               Identifiant : S21.G00.50.005
+               Identifiant sémantique : VersementIndividu.NetFiscalPotentielle
+               Libellé : Rémunération nette fiscale potentielle
+               Description de la rubrique : Donnée à renseigner dans le cas où le déclarant n’est pas en
+                capacité de connaître le caractère imposable du revenu versé.
+               SIG-11 : Cette rubrique doit être renseignée si la valeur présente au niveau de la rubrique «
+                Rémunération nette fiscale – S21.G00.50.002 » est nulle. Dans le cas contraire cette
+                rubrique est interdite.
+               CSL-00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2} Cette expression régulière vise à accepter tout type de
+                montant avec deux décimales.
+               Nature de la rubrique : N / Numérique
+               Longueur : [4,12] / Au minimum 4 caractères et au maximum 12 caractères
+
+
+
+        Taux de prélèvement à la source précompté :
+
+               Usage : Obligatoire
+               Identifiant : S21.G00.50.006
+               Identifiant sémantique : VersementIndividu.TauxPAS
+
+
+                                                                                                Page 6
+                              Déclaration Sociale Nominative
+                                                                                       Version 19.0
+           Données et axes structurants en conséquence prévus pour le PAS
+                                                                                       08/03/2017
+                                         DSN
+
+
+
+      Libellé : Taux de prélèvement à la source
+      Description de la rubrique : Taux de prélèvement à la source précompté appliqué sur le
+       mois de versement.
+      CSL-00 : [0-9]{1,2}\.[0-9]{2} Cette expression régulière vise à autoriser un taux (nul ou positif)
+       au format NN,NN (2 chiffres après la virgule) / exemple : 4,50 % ou 25,50 % - à noter que ce
+       taux doit toujours contenir une valeur ou un taux transmis ou un taux par défaut mais ne
+       peut être absent sauf si la base fiscale est à 0.
+      Nature de la rubrique : N / Numérique
+      Longueur : [4,5] / Au minimum 4 caractères et au maximum 5 caractères
+
+Nature du taux de prélèvement à la source :
+
+      Usage : Obligatoire
+      Identifiant : S21.G00.50.007
+      Identifiant sémantique : VersementIndividu.TypeTauxPAS
+      Libellé : Type du taux de prélèvement à la source
+      Description de la rubrique : Il s’agit de la nature du taux appliqué.
+      Nature : Enumération
+      Format : Alphanumérique
+      Longueur : [2,2] / Au minimum 2 caractères et au maximum 2 caractères
+      Enumérés : Liste de valeurs à finaliser avec la DGFIP
+           o 01 - Taux transmis par la DGFIP
+           o 10 – Barème horaire métropole
+           o 11 – Barème quotidien métropole
+           o 12 – Barème hebdomadaire métropole
+           o 13 – Barème mensuel métropole
+           o 14 – Barème trimestriel métropole
+           o 15 – Barème semestriel métropole
+           o 16 – Barème annuel métropole
+           o 17 – Barème mathématique sur base mensuelle métropole
+           o 18 – Barème mathématique sur base annuelle métropole
+           o 20 – Barème horaire Guadeloupe, Réunion et Martinique
+           o 21 – Barème quotidien Guadeloupe, Réunion et Martinique
+           o 22 – Barème hebdomadaire Guadeloupe, Réunion et Martinique
+           o 23 – Barème mensuel Guadeloupe, Réunion et Martinique
+           o 24 – Barème trimestriel Guadeloupe, Réunion et Martinique
+           o 25 – Barème semestriel Guadeloupe, Réunion et Martinique
+           o 26 – Barème annuel Guadeloupe, Réunion et Martinique
+           o 27 – Barème mathématique sur base mensuelle Guadeloupe, Réunion et Martinique
+           o 28 – Barème mathématique sur base annuelle Guadeloupe, Réunion et Martinique
+           o 30 – Barème horaire Guyane et Mayotte
+           o 31 – Barème quotidien Guyane et Mayotte
+           o 32 – Barème hebdomadaire Guyane et Mayotte
+           o 33 – Barème mensuel Guyane et Mayotte
+
+
+
+                                                                                       Page 7
+                                     Déclaration Sociale Nominative
+                                                                                             Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                             08/03/2017
+                                                 DSN
+
+
+
+                   o 34 – Barème trimestriel Guyane et Mayotte
+                   o 35 – Barème semestriel Guyane et Mayotte
+                   o 36 – Barème annuel Guyane et Mayotte
+                   o 37 – Barème mathématique sur base mensuelle Guyane et Mayotte
+                   o 38 – Barème mathématique sur base annuelle Guyane et Mayotte
+                   o 99 - Indu relatif à un exercice antérieur – pas de taux de PAS
+              CCH-11 : Si la rubrique « Type du taux de prélèvement à la source – S21.G00.50.007 » est
+               renseignée avec la valeur « 99 - Indu relatif à un exercice antérieur » alors les rubriques
+               « Taux de prélèvement à la source – S21.G00.50.006 » et « Montant de prélèvement à la
+               source – S21.G00.50.009 » doivent être nulles.
+
+
+A noter : des travaux sont ouverts avec la DGFIP pour regarder s’il est possible de s’en tenir à un barème
+mensuel tout en respectant l’objectif de ne pas appliquer un taux trop élevé dans le cas de versement d’une
+somme supra mensuelle
+
+
+       Identifiant du taux de prélèvement à la source :
+
+              Usage : Conditionnel
+              Identifiant : S21.G00.50.008
+              Identifiant sémantique : VersementIndividu.IdTauxPAS
+              Libellé : Identifiant du taux de prélèvement à la source Identifiant du fichier CRM dans lequel
+               a été récupéré le taux de prélèvement à la source lorsque la nature du taux est 01
+              Description de la rubrique : Identifiant du taux porté par le CRM PAS (compte rendu métier
+               du Prélèvement à la source) transmis par la DGFIP.
+              CCH-11 : Cette rubrique est obligatoire si le « Type du taux de prélèvement à la source –
+               S21.G00.50.007 » est égal à « 01 – Taux transmis par la DGFIP », dans le cas contraire elle est
+               interdite.
+              Nature de la rubrique : Numérique
+              Longueur : [1,18] 1 caractère au minimum et 18 caractères au maximum
+
+
+       Montant de prélèvement à la source précompté :
+
+              Usage : Obligatoire
+              Identifiant : S21.G00.50.009
+              Identifiant sémantique : VersementIndividu.MontantPAS
+              Libellé : Montant de prélèvement à la source
+              Description de la rubrique : Montant de prélèvement à la source précompté calculé à partir
+               du montant de la rémunération nette fiscale et du taux à lui appliquer.
+              SIG-11 : A l’exception des cas d’application d’un montant minimal à servir, cette rubrique
+               doit être égale à la multiplication de la valeur présente dans la rubrique « Rémunération
+
+
+
+
+                                                                                            Page 8
+                                       Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                    Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                  DSN
+
+
+
+                nette fiscale – S21.G00.50.002 » par la valeur présente dans la rubrique « Taux de
+                prélèvement à la source – S21.G00.50.006 »
+               CSL-00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2} Cette expression régulière vise à autoriser tout type
+                de montant avec deux décimales.
+               Nature de la rubrique : N / numérique
+               Longueur : [4,12] / Au minimum 4 caractères et au maximum 12 caractères
+
+
+
+
+Avec la création d’un nouveau bloc : « Régularisation de prélèvement à la source - S21.G00.56 » avec une
+cardinalité (0,*) – n’est à renseigner que si une erreur est à rectifier et enfant du bloc « Versement individu –
+S21.G00.50 » :
+
+
+
+
+        Mois de l'erreur donnant lieu à régularisation :
+
+               Usage : Obligatoire
+               Identifiant : S21.G00.56.001
+               Identifiant sémantique : RegulPAS.MoisErreur
+               Libellé : Mois de l’erreur
+               Description de la rubrique : Il s’agit du mois sur lequel l’erreur s’est produite. En cas de
+                reconduction de l’erreur sur plusieurs mois chaque mois doit figurer.
+               CSL-00 : (0[1-9]|1[0-2])(19|20)[0-9]{2} Cette expression régulière vise à autoriser
+                uniquement une date au format mois et année.
+               Nature de la rubrique : Date avec seulement mois / année
+               Format : MMAAAA (mois et année)
+               Longueur : [6,6] / Au minimum 6 caractères et au maximum 6 caractères
+
+
+
+        Type de l'erreur donnant lieu à régularisation :
+
+               Usage : Obligatoire
+               Identifiant : S21.G00.56.002
+               Identifiant sémantique : RegulPAS.TypeErreur
+               Libellé : Type d’erreur
+               Description de la rubrique : Indique le type d’erreur à rectifier.
+
+
+
+                                                                                               Page 9
+                                Déclaration Sociale Nominative
+                                                                                      Version 19.0
+            Données et axes structurants en conséquence prévus pour le PAS
+                                                                                      08/03/2017
+                                          DSN
+
+
+
+       Enumération :
+             o 01 - Rectification sur rémunération nette fiscale
+             o 02 - Rectification sur taux
+             o 03 - Cas d’indu avec rémunération nette fiscale du mois courant négative
+                 (obligatoire en présence d’un changement de taux entre le mois de l’erreur et le mois
+                 de régularisation)
+       CCH-11 : Si la rubrique « Type d’erreur – S21.G00.56.002 » est renseignée avec la valeur « 01
+        - Rectification sur rémunération nette fiscale » alors les rubriques «Régularisation de la
+        rémunération nette fiscale - S21.G00.56.003 » et « Taux déclaré le mois de l’erreur –
+        S21.G00.56.006 » sont obligatoires.
+       CCH-12 : Si la rubrique « Type d’erreur – S21.G00.56.002 » est renseignée avec la valeur « 02
+        - Rectification sur taux », les rubriques « Rémunération nette fiscale déclarée le mois de
+        l’erreur - S21.G00.56.004 » et « Régularisation du taux de prélèvement à la source –
+        S21.G00.56.005 » sont obligatoires.
+       CCH-13 : Si la rubrique « Type d’erreur – S21.G00.56.002 » est renseignée avec la valeur « 03
+        – cas d’indu », les rubriques «Régularisation de la rémunération nette fiscale -
+        S21.G00.56.003 » et « Taux déclaré le mois de l’erreur – S21.G00.56.006 » sont obligatoires.
+       CCH-14 : Si la rubrique « Type d’erreur – S21.G00.56.002 » est renseignée avec la valeur « 03
+        – cas d’indu », la rubrique «Régularisation de la rémunération nette fiscale - S21.G00.56.003
+        » est négative.
+       Nature de la rubrique : Enumération
+       Format : Alphanumérique
+       Longueur : [2,2] / Au minimum 2 caractères et au maximum 2 caractères
+
+
+
+Régularisation de la rémunération nette fiscale en différentiel :
+
+       Usage : Conditionnel
+       Identifiant : S21.G00.56.003
+       Identifiant sémantique : RegulPAS.RegulRemunerationNette
+       Libellé : Régularisation de la rémunération nette fiscale Le montant indiqué est un
+        différentiel issu d’un calcul (soit sur l’erreur du mois sauf le résiduel non compensable en cas
+        d’indu)
+       Description de la rubrique : Cette valeur doit être renseignée de l’écart entre la
+        rémunération nette fiscale indiquée le mois M et celle qui aurait dû être indiquée ou du
+        résultat du calcul du trop versé ne pouvant être compensé dans le mois courant.
+       CSL-00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2} Cette expression régulière vise à autoriser uniquement
+        un montant strictement positif ou négatif avec deux décimales après la virgule
+       Nature de la rubrique : N / numérique
+       Longueur : [4,12] / Au minimum 4 caractères et au maximum 12 caractères
+
+
+
+Rappel de l’assiette fiscale du mois de l’erreur :
+
+
+
+
+                                                                                      Page 10
+                               Déclaration Sociale Nominative
+                                                                                        Version 19.0
+            Données et axes structurants en conséquence prévus pour le PAS
+                                                                                        08/03/2017
+                                          DSN
+
+
+
+       Usage : Conditionnel
+       Identifiant : S21.G00.56.004
+       Identifiant sémantique : RegulPAS.RemunerationNette
+       Libellé : Rémunération nette fiscale déclarée le mois de l’erreur
+       Description de la rubrique : Reprise de la rémunération nette fiscale du mois de l’erreur de
+        taux (02) ou montant de l’indu sur le mois.
+       CSL-00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2} Cette expression régulière vise à autoriser uniquement
+        un montant strictement positif ou négatif avec deux décimales.
+       Nature de la rubrique : N / numérique
+       Longueur : [4,12] / Au minimum 4 caractères et au maximum 12 caractères
+
+
+
+Régularisation du taux – différentiel de taux :
+
+       Usage : Conditionnel
+       Identifiant : S21.G00.56.005
+       Identifiant sémantique : RegulPAS.RegulTauxPAS
+       Libellé : Régularisation du taux de prélèvement à la source
+       Description de la rubrique : Cette rubrique prend la valeur de l’écart entre le taux qui aurait
+        dû être appliqué et celui réellement appliqué le mois de l’erreur.
+       CSL-00 : -?0*(([0-9]\.[1-9])|([1-9]\.[0-9])|([1-9][0-9]\.[0-9])) Cette expression régulière vise à
+        autoriser de valoriser un taux positif ou négatif au format NN,NN (2 chiffres après la virgule)
+        / exemple : 4,50 % ou 25,50 %
+       Nature de la rubrique : N / numérique
+       Longueur : [4,6] / Au minimum 4 caractères et au maximum 6 caractères
+
+
+
+Rappel du taux du mois de l’erreur
+
+       Usage : Conditionnel
+       Identifiant : S21.G00.56.006
+       Identifiant sémantique : RegulPAS.TauxDeclare
+       Libellé : Taux déclaré le mois de l’erreur
+       Description de la rubrique : Il s’agit du taux qui était à appliquer le mois de l’erreur ou de
+        l’indu.
+       CSL-00 : [0-9]{1,2}\.[0-9]{1} Cette expression régulière vise à autoriser de valoriser un taux
+        positif ou nul au format NN,NN (avec 2 décimales) / exemple : 4,50 % ou 25,50 %
+       Nature de la rubrique : N / numérique
+       Longueur : [4,5] / Au minimum 4 caractères et au maximum 5 caractères
+
+
+
+Montant de la régularisation du prélèvement à la source :
+
+
+
+
+                                                                                        Page 11
+                          Déclaration Sociale Nominative
+                                                                                Version 19.0
+        Données et axes structurants en conséquence prévus pour le PAS
+                                                                                08/03/2017
+                                      DSN
+
+
+
+   Usage : Obligatoire
+   Identifiant : S21.G00.56.007
+   Identifiant sémantique : RegulPAS.MontantRegulPAS
+   Libellé : Montant de la régularisation du prélèvement à la source
+   Description de la rubrique : Il s’agit du produit entre soit la rémunération nette fiscale du
+    mois de l’erreur et le taux rectifié ou la rémunération nette fiscale rectifiée et le taux du
+    mois.
+   CSL-00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2}
+   Nature de la rubrique : N / numérique
+   Longueur : [4,12] / Au minimum 4 caractères et au maximum 12 caractères
+
+
+
+
+                                                                                Page 12
+                                     Déclaration Sociale Nominative
+                                                                                            Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                            08/03/2017
+                                                 DSN
+
+
+
+
+                Intégration du PAS en DSN pour les individus non-salariés déclarés en DSN
+Il s’agit par exemple de personnes percevant de la part de leur entreprise une allocation de chômage pour
+les entreprises en auto-assurance chômage, une allocation de cessation anticipée d'activité Amiante, une
+allocation de pré-retraite suite à rupture du contrat ou autre.
+Comme indiqué ci-avant les individus sont déclarés en DSN au niveau du bloc « Individu non-salarié -
+S89.G00.91 ».
+Pour l’intégration du PAS en DSN pour ces populations, il est également prévu d’ajouter au bloc « Individu
+non salarié - S89.G00.91 » les données suivantes :
+
+
+       Code département de naissance :
+           Usage : Obligatoire
+           Identifiant : S89.G00.91.019
+           Identifiant sémantique : [Sera défini par le BT CNAV lors de la réalisation du Cahier
+              technique intégrant le PAS en DSN]
+           Libellé : Code département de naissance
+           Description de la rubrique :
+                  - Pour les salariés nés en France : code 01 à 97 ou 2A ou 2B
+                  - Pour les salariés nés dans les TOM : code 98
+                  - Pour les personnes nées à l'étranger, renseigner 99
+           CSL-00 : (0[1-9]|[1-9][0-9])|2A|2B
+           Nature de la rubrique : X / Alphanumérique
+           Longueur : [2,2] / Au minimum 2 caractères et au maximum 2 caractères
+           CCH-11 :
+          - Les valeurs 2A et 2B ne sont acceptées que pour les personnes nées à partir de 1976
+          - La valeur 20 n'est acceptée que pour les personnes nées avant 1976
+          - La valeur 96 n'est acceptée que pour les personnes nées avant 1968
+
+           L'année utilisée doit être extraite de la rubrique "Date de naissance - S89.G00.91.006".
+
+
+       Code pays de naissance :
+           Usage : Obligatoire
+           Identifiant : S89.G00.91.020
+           Identifiant sémantique : [Sera défini par le BT CNAV lors de la réalisation du Cahier
+              technique intégrant le PAS en DSN]
+           Libellé : Code pays de naissance
+           Description de la rubrique : Le Code pays de naissance est à déterminer dans la table "Codes
+              Pays" ISO 3166-1-A2.
+           CRE-11 : valeurs autorisées
+           Nature de la rubrique : Référentiel externe / Alphanumérique / Table Pays - Code pays de
+              naissance
+
+
+
+                                                                                            Page 13
+                                      Déclaration Sociale Nominative
+                                                                                              Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                              08/03/2017
+                                                 DSN
+
+
+
+              Longueur : [2,2] / Au minimum 2 caractères et au maximum 2 caractères
+
+
+       NTT :
+              Usage : Conditionnel
+              Identifiant : S89.G00.91.021
+              Identifiant sémantique : [Sera défini par le BT CNAV lors de la réalisation du Cahier
+               technique intégrant le PAS en DSN]
+              Libellé : Numéro technique temporaire
+              Description de la rubrique :
+               Le NTT est un identifiant technique unique et invariant permettant à l'employeur de
+               déclarer, dans un temps limité, un individu pour lequel il n'aurait pas connaissance du
+               Numéro d'Inscription au Répertoire ou du Numéro d'Identification d'Attente au moment de
+               l'émission d'une DSN.
+
+               Il est composé du code sexe de la personne physique qui doit être égal à 1 ou 2, suivi du
+               SIREN de l'entreprise et d'un identifiant unique et pérenne de l'individu dans l'entreprise,
+               comme le Matricule du salarié dans l'entreprise par exemple.
+
+               Il s'agit d'une donnée technique destinée au système d'information DSN uniquement. Le NTT
+               n'est pas une donnée de gestion et ne permet pas l'ouverture des droits de l'individu auprès
+               des organismes de protection sociale. Le NTT doit désigner un individu et un seul pour
+               l'ensemble de ses contrats dans l'entreprise. En cas d'obtention de plusieurs NTT,
+               l'employeur doit utiliser pour ses déclarations le NTT le plus ancien en cours de validité. En
+               l'absence de NIR ou de NIA, il est obligatoire de remplir la rubrique Numéro technique
+               temporaire (S21.G00.30.020).
+
+               Le NTT doit être renseigné sur la première DSN où le NIR est attribué. Ceci permettra de faire
+               le lien entre les deux identités déclarées par l'employeur.
+
+              CSL-00 : (0[1-9]|[1-9][0-9])|2A|2B
+              Nature de la rubrique : X / Alphanumérique
+              Longueur : [11,40] / Au minimum 11 caractères et au maximum 40 caractères
+              CSL-11 : Le "Numéro technique temporaire - S89.G00.91.021" doit obligatoirement
+               commencer par "1" ou "2".
+              CCH-12 : Si le "Numéro d'inscription au répertoire - S89.G00.91.001" n'est pas renseigné, le
+               "Numéro technique temporaire - S89.G00.91.021" doit obligatoirement être renseigné.
+              CCH-13 : Le "Numéro technique temporaire - S21.G00.91.021" est composé de la valeur
+               déclarée dans la rubrique "SIREN - S21.G00.06.001" de la 2ème à la 10ème position.
+              CCH-14 : Le Numéro technique temporaire doit être unique pour une même déclaration. Ce
+               contrôle vise à permettre la traçabilité et l'identification de l'individu.
+              CSL-15 : Le caractère « espace » est interdit dans la composition du numéro technique
+               temporaire
+
+Pour rappel, l’usage de la rubrique « Numéro d’inscription au répertoire – S89.G00.91.001 » passe
+d’obligatoire à conditionnel en DSN mensuelle.
+
+
+
+                                                                                             Page 14
+                                      Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                 DSN
+
+
+
+
+Il est également prévu d’ajouter au bloc « Bases spécifiques individu non salarié - S89.G00.92 » les données
+suivantes :
+       Sous le montant actuellement renseigné pour Agirc-Arrco ou seul si cela n’impacte pas les droits
+       retraite complémentaire est ajouté un montant net fiscal décrit ci-dessous
+
+              Usage : Obligatoire
+              Identifiant : S89.G00.92.006
+              Identifiant sémantique : BasesSpecifiqueIndividuNonSalarie.NetFiscalVerse
+              Libellé : Montant net fiscal du revenu versé
+              Description de la rubrique : Montant net fiscal calculé (net des cotisations prélevées Agirc-
+               Arrco s’il s’agit d’une des 3 allocations–les autres cotisations n’étant pas véhiculées dans la
+               DSN).
+              CSL-00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2} Cette expression régulière vise à autoriser tout type de
+               montant avec deux décimales.
+              Nature de la rubrique : N / numérique
+              Longueur : [4,12] / Au minimum 4 caractères et au maximum 12 caractères
+
+       Dans l’hypothèse où les sommes versées ne sont pas de nature à entrer dans les cotisations Agirc-
+       Arrco et donc à se retrouver dans le type qui est renseigné tel qu’actuellement, un type « XX -
+       autre » sera renseigné comme type de base assujettie spécifique individu non salarié. Le montant
+       principal ne sera pas à déclarer pour ce type, seul le montant fiscal devra être renseigné.
+       L’usage de la rubrique « Montant – S89.G00.92 » sera modifié et deviendra conditionnel
+       (anciennement obligatoire). Un contrôle sera ajouté rendant cette dernière obligatoire lorsque le
+       type est différent de la valeur « XX - autre », mais le montant net fiscal l’est.
+
+
+
+       Taux de prélèvement à la source :
+
+              Usage : Obligatoire
+              Identifiant : S89.G00.92.007
+              Identifiant sémantique : BasesSpecifiqueIndividuNonSalarie.TauxPAS
+              Libellé : Taux de prélèvement à la source
+              Description de la rubrique : Taux appliqué sur le mois de versement.
+              CSL-00 : [0-9]{1,2}\.[0-9]{2} Cette expression régulière vise à autoriser un taux (nul ou positif)
+               au format NN,NN (2 chiffres après la virgule) / exemple : 4,50 % ou 25,50 % - à noter que ce
+               taux doit toujours contenir une valeur ou un taux transmis ou un taux par défaut mais ne
+               peut être absent sauf si la base fiscale est à 0.
+              Nature de la rubrique : N / Numérique
+              Longueur : [4,5] / Au minimum 4 caractères et au maximum 5 caractères
+
+
+
+
+                                                                                               Page 15
+                             Déclaration Sociale Nominative
+                                                                                  Version 19.0
+           Données et axes structurants en conséquence prévus pour le PAS
+                                                                                  08/03/2017
+                                         DSN
+
+
+
+Nature du taux de prélèvement à la source :
+       Usage : Obligatoire
+       Identifiant : S89.G00.92.008
+       Identifiant sémantique : BasesSpecifiqueIndividuNonSalarie.TypeTauxPAS
+       Libellé : Type du taux de prélèvement à la source
+       Description de la rubrique : Il s’agit de la nature du taux appliqué.
+       Nature : Enumération
+       Format : Alphanumérique
+       Longueur : [2,2] / Au minimum 2 caractères et au maximum 2 caractères
+       Enumérés : Liste de valeurs à finaliser avec la DGFIP
+            o 01 - Taux transmis par la DGFIP
+            o 10 – Barème horaire métropole
+            o 11 – Barème quotidien métropole
+            o 12 – Barème hebdomadaire métropole
+            o 13 – Barème mensuel métropole
+            o 14 – Barème trimestriel métropole
+            o 15 – Barème semestriel métropole
+            o 16 – Barème annuel métropole
+            o 17 – Barème mathématique sur base mensuelle métropole
+            o 18 – Barème mathématique sur base annuelle métropole
+            o 20 – Barème horaire Guadeloupe, Réunion et Martinique
+            o 21 – Barème quotidien Guadeloupe, Réunion et Martinique
+            o 22 – Barème hebdomadaire Guadeloupe, Réunion et Martinique
+            o 23 – Barème mensuel Guadeloupe, Réunion et Martinique
+            o 24 – Barème trimestriel Guadeloupe, Réunion et Martinique
+            o 25 – Barème semestriel Guadeloupe, Réunion et Martinique
+            o 26 – Barème annuel Guadeloupe, Réunion et Martinique
+            o 27 – Barème mathématique sur base mensuelle Guadeloupe, Réunion et Martinique
+            o 28 – Barème mathématique sur base annuelle Guadeloupe, Réunion et Martinique
+            o 30 – Barème horaire Guyane et Mayotte
+            o 31 – Barème quotidien Guyane et Mayotte
+            o 32 – Barème hebdomadaire Guyane et Mayotte
+            o 33 – Barème mensuel Guyane et Mayotte
+            o 34 – Barème trimestriel Guyane et Mayotte
+            o 35 – Barème semestriel Guyane et Mayotte
+            o 36 – Barème annuel Guyane et Mayotte
+            o 37 – Barème mathématique sur base mensuelle Guyane et Mayotte
+            o 38 – Barème mathématique sur base annuelle Guyane et Mayotte
+            o 99 - Indu relatif à un exercice antérieur – pas de taux de PAS
+       CCH-11 : Si la rubrique « Type du taux de prélèvement à la source – S89.G00.92.008 » est
+        renseignée avec la valeur « 99 - Indu relatif à un exercice antérieur » alors les rubriques
+        « Taux de prélèvement à la source – S89.G00.92.007 » et « Montant de prélèvement à la
+        source – S89.G00.92.010 » doivent être nulles.
+
+
+
+
+                                                                                  Page 16
+                                      Déclaration Sociale Nominative
+                                                                                             Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                             08/03/2017
+                                                 DSN
+
+
+
+A noter : Des travaux sont ouverts avec la DGFIP pour regarder s’il est possible de s’en tenir à un barème
+mensuel tout en respectant l’objectif de ne pas appliquer un taux trop élevé dans le cas de versement d’une
+somme supra mensuelle.
+
+
+       Identifiant du taux de prélèvement à la source porté par le CRM PAS transmis par la DGFiP :
+
+              Usage : Conditionnel
+              Identifiant : S89.G00.92.009
+              Identifiant sémantique : BasesSpecifiqueIndividuNonSalarie.IdTauxPAS
+              Libellé : Identifiant du taux de prélèvement à la source Identifiant du fichier CRM dans lequel
+               a été récupéré le taux de prélèvement à la source lorsque la nature du taux est 01
+              Description de la rubrique : Identifiant du taux porté par le CRM PAS (compte rendu métier
+               du prélèvement à la source) transmis par la DGFIP.
+              CCH-11 : Cette rubrique est obligatoire si le « Type du taux de prélèvement à la source –
+               S89.G00.92.008 » est égal à « 01 – Taux transmis par la DGFIP », dans le cas contraire elle est
+               interdite.
+              Nature de la rubrique : Numérique
+              Longueur : [1,18] 1 caractère au minimum et 18 caractères au maximum
+
+       Montant de prélèvement à la source précompté :
+
+              Usage : Obligatoire
+              Identifiant : S89.G00.92.010
+              Identifiant sémantique : BasesSpecifiqueIndividuNonSalarie.MontantPAS
+              Libellé : Montant de prélèvement à la source
+              Description de la rubrique : Montant précompté, calculé à partir du montant de la base
+               fiscale et du taux à lui appliquer.
+              SIG-11 : A l’exception des cas d’application d’un montant minimal à servir, cette rubrique
+               doit être égale à la multiplication de la valeur présente dans la rubrique « Montant -
+               S89.G00.92.003 » par la valeur présente dans la rubrique « Taux de prélèvement à la source
+               – S89.G00.92.007 ».
+              CSL-00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2} Cette expression régulière vise à autoriser tout type
+               de montant avec deux décimales.
+              Nature de la rubrique : N / numérique
+              Longueur : [4,12] / Au minimum 4 caractères et au maximum 12 caractères
+
+
+
+
+       Date de mise à disposition :
+
+              Usage : Obligatoire
+              Identifiant : S89.G00.92.011
+
+
+
+                                                                                            Page 17
+                                       Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                    Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                  DSN
+
+
+
+               Identifiant sémantique : BasesSpecifiquesIndividuNonSalarie.VersementDate
+               Libellé : Date de versement
+               Description de la rubrique : Date à laquelle le débiteur effectue le versement. Cette date
+                peut différer de la date à laquelle l’individu non-salarié perçoit effectivement le versement.
+               CCH-11 : La "Date de versement - S89.G00.92.011" doit être supérieure ou égale au premier
+                jour du mois principal déclaré.
+               CCH-12 : La "Date de versement - S89.G00.92.011" doit être inférieure ou égale à la date du
+                dernier jour du mois suivant le mois principal déclaré.
+               CSL 00 : (0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])(20)[0-9]{2}
+               Nature de la rubrique : Date
+               Longueur : [8,8] 8 caractères
+
+
+
+Ainsi qu’un bloc : « Régularisation de prélèvement à la source – S89.G00.93 » avec une cardinalité (0,*) – qui
+n’est à renseigner que si une erreur est à rectifier – et enfant du bloc « Bases spécifiques individu non salarié
+- S89.G00.92 » :
+
+
+
+
+        Mois de l'erreur donnant lieu à régularisation :
+
+               Usage : Obligatoire
+               Identifiant : S89.G00.93.001
+               Identifiant sémantique : VTRegulPAS.MoisErreur
+               Libellé : Mois de l’erreur
+               Description de la rubrique : Il s’agit du mois sur lequel l’erreur s’est produite. En cas de
+                reconduction de l’erreur sur plusieurs mois chaque mois doit figurer.
+               CSL-00 : (0[1-9]|1[0-2])(19|20)[0-9]{2} Cette expression régulière vise à autoriser
+                uniquement une date au format mois et année
+               Nature de la rubrique : Date avec seulement mois / année (soit alphanumérique)
+               Format : MMAAAA (mois et année)
+               Longueur : [6,6] / Au minimum 6 caractères et au maximum 6 caractères
+
+
+
+        Type de l'erreur donnant lieu à régularisation :
+
+               Usage : Obligatoire
+               Identifiant : S89.G00.93.002
+               Identifiant sémantique : VTRegulPAS.TypeErreur
+               Libellé : Type d’erreur
+
+
+                                                                                               Page 18
+                                Déclaration Sociale Nominative
+                                                                                     Version 19.0
+             Données et axes structurants en conséquence prévus pour le PAS
+                                                                                     08/03/2017
+                                           DSN
+
+
+
+       Description de la rubrique : Indique le type d’erreur à rectifier.
+       Enumération :
+             o 01 - Rectification sur montant soumis au PAS
+             o 02 - Rectification sur taux
+             o 03 - Cas d’indu avec montant net fiscal du mois courant négatif (en présence d’un
+                 changement de taux entre le mois de l’erreur et le mois de régularisation)
+       CCH-11 : Si la rubrique « Type d’erreur – S89.G00.93.002 » est renseignée avec la valeur « 01
+        - Rectification sur rémunération nette fiscale » alors les rubriques «Régularisation du
+        montant soumis au prélèvement à la source - S89.G00.93.003 » et « Taux déclaré le mois de
+        l’erreur – S89.G00.93.006 » sont obligatoires.
+       CCH-12 : Si la rubrique « Type d’erreur – S89.G00.93.002 » est renseignée avec la valeur « 02
+        - Rectification sur taux », les rubriques « Montant soumis au prélèvement à la source le mois
+        de l’erreur - S89.G00.93.004 » et « Régularisation du taux de prélèvement à la source -
+        S89.G00.93.005 » sont obligatoires.
+       CCH-13 : Si la rubrique « Type d’erreur – S89.G00.93.002 » est renseignée avec la valeur « 03
+        – cas d’indu », les rubriques «Régularisation du montant soumis au prélèvement à la source
+        - S89.G00.93.003 » et « Taux déclaré le mois de l’erreur – S89.G00.93.006 » sont
+        obligatoires.
+       CCH-14 : Si la rubrique « Type d’erreur – S89.G00.93.002 » est renseignée avec la valeur « 03
+        – cas d’indu », la rubrique « Régularisation du montant soumis au prélèvement à la source -
+        S89.G00.93.003 » est négative.
+       Nature de la rubrique : Enumération
+       Format : Alphanumérique
+       Longueur : [2,2] / Au minimum 2 caractères et au maximum 2 caractères
+
+
+
+Régularisation de l’assiette fiscale en différentiel :
+
+       Usage : Conditionnel
+       Identifiant : S89.G00.93.003
+       Identifiant sémantique : VTRegulPAS.RegulMontantPAS
+       Libellé : Régularisation du montant soumis au prélèvement à la source
+        Le montant indiqué est un différentiel
+       Description de la rubrique : Cette valeur doit être renseignée de l’écart entre la montant net
+        fiscal déclaré le mois M et celle qui aurait dû être indiquée.
+       CSL-00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2} Cette expression régulière vise à autoriser
+        uniquement un montant strictement positif ou négatif avec deux décimales après la virgule.
+       Nature de la rubrique : N / numérique
+       Longueur : [4,12] / Au minimum 4 caractères et au maximum 12 caractères
+
+
+
+Rappel de l’assiette fiscale du mois de l’erreur :
+
+       Usage : Conditionnel
+
+
+                                                                                    Page 19
+                               Déclaration Sociale Nominative
+                                                                                        Version 19.0
+            Données et axes structurants en conséquence prévus pour le PAS
+                                                                                        08/03/2017
+                                          DSN
+
+
+
+       Identifiant : S89.G00.93.004
+       Identifiant sémantique : VTRegulPAS.MontantPAS
+       Libellé : Montant soumis au prélèvement à la source le mois de l’erreur
+       Description de la rubrique : Reprise du montant net fiscal du mois de l’erreur de taux (02)
+        ou montant de l’indu sur le mois.
+       CSL-00 : -?[0]*(0|[1-9][0-9]*)\.[0-9]{2} Cette expression régulière vise à autoriser
+        uniquement un montant strictement positif ou négatif avec deux décimales.
+       Nature de la rubrique : N / numérique
+       Longueur : [4,12] / Au minimum 4 caractères et au maximum 12 caractères
+
+
+
+Régularisation du taux – différentiel de taux :
+
+       Usage : Conditionnel
+       Identifiant : S89.G00.93.005
+       Identifiant sémantique : VTRegulPAS.RegulTauxPAS
+       Libellé : Régularisation du taux de prélèvement à la source
+       Description de la rubrique : Cette rubrique prend la valeur de l’écart entre le taux qui aurait
+        dû être appliqué et celui réellement appliqué le mois de l’erreur.
+        La valeur déclarée dans cette rubrique ne peut être que positive ou négative. Une valeur
+        nulle est interdite.
+       CSL-00 : -?0*(([0-9]\.[1-9])|([1-9]\.[0-9])|([1-9][0-9]\.[0-9])) Cette expression régulière vise à
+        autoriser de valoriser un taux positif ou négatif au format NN,NN (2 chiffres après la virgule)
+        / exemple : 24,50 % ou -5,50 %
+       Nature de la rubrique : N / numérique
+       Longueur : [4,6] / Au minimum 4 caractères et au maximum 6 caractères
+
+
+
+Rappel du taux du mois de l’erreur
+
+       Usage : Conditionnel
+       Identifiant : S89.G00.93.006
+       Identifiant sémantique : VTRegulPAS.TauxDeclare
+       Libellé : Taux déclaré le mois de l’erreur
+       Description de la rubrique : Il s’agit du taux qui était à appliquer le mois de l’erreur ou de
+        l’indu.
+       CSL-00 : [0-9]{1,2}\.[0-9]{2} Cette expression régulière vise à autoriser de valoriser un taux
+        positif ou nul au format NN,NN (avec 2 décimales) / exemple : 4,50 % ou 25,50 %.
+       Nature de la rubrique : N / numérique
+       Longueur : [4,5] / Au minimum 4 caractères et au maximum 5 caractères
+
+
+
+Montant de la régularisation du prélèvement à la source :
+
+
+
+                                                                                        Page 20
+                          Déclaration Sociale Nominative
+                                                                                Version 19.0
+        Données et axes structurants en conséquence prévus pour le PAS
+                                                                                08/03/2017
+                                      DSN
+
+
+
+
+   Usage : Obligatoire
+   Identifiant : S89.G00.93.007
+   Identifiant sémantique : VTRegulPAS.MontantRegulPAS
+   Libellé : Montant de la régularisation du prélèvement à la source
+   Description de la rubrique : Il s’agit du produit entre soit le montant net fiscal du mois de
+    l’erreur et le taux rectifié ou la base fiscale rectifiée et le taux du mois.
+   CSL-00 : [0]*([1-9][0-9]*\.[0-9]{2}|0\.[0-9]{2}) Cette expression régulière vise à autoriser
+    uniquement un montant positif, négatif ou nul avec deux décimales.
+   Nature de la rubrique : N / numérique
+   Longueur : [4,12] / Au minimum 4 caractères et au maximum 12 caractères
+
+
+
+
+                                                                                Page 21
+                                       Déclaration Sociale Nominative
+                                                                                             Version 19.0
+                    Données et axes structurants en conséquence prévus pour le PAS
+                                                                                             08/03/2017
+                                                  DSN
+
+
+
+
+     Modalité d’usage des données de paiement (bloc « Versement organisme de protection sociale -
+                        S21.G00.20 ») dans le cadre du prélèvement à la source
+
+
+En complément de ces éléments nominatifs, les zones « paiement » prévues dans la DSN seront utilisées
+comme suit par la DGFIP.
+Il s’agit des rubriques du bloc « Versement organisme de protection sociale - S21.G00.20 » qui ne nécessitent
+pas d’ajout mais juste des ajustements au niveau des consignes de remplissage.
+               Identifiant Organisme de Protection Sociale - S21.G00.20.001
+
+                Un ajustement est nécessaire au niveau de la consigne de remplissage portée par la
+                description de la rubrique :
+                - DGFiP : non concernéDGFIP
+
+               Entité d'affectation des opérations - S21.G00.20.002
+                Aucun ajustement n’est nécessaire : La rubrique n’est pas transmise à la DGFIP
+
+               BIC - S21.G00.20.003
+                Aucun ajustement n’est nécessaire
+
+               IBAN - S21.G00.20.004
+                Pas de contrôle de la domiciliation en FR – contrôle actuellement en place à ajuster
+
+                CCH-13 : Vérifier que le compte est bien domicilié en France (FR) [Code pays] sauf si
+                l'organisme renseigné dans la rubrique "Identifiant Organisme de Protection Sociale -
+                S21.G00.20.001" correspond à celui d'un Organisme de Prévoyance ou de la DGFIP.
+
+               Montant du versement - S21.G00.20.005
+                Aucun ajustement n’est nécessaire
+                       Le montant de versement devra être arrondi à l’euro le plus proche (en référence à
+                       l’article 1724 du code général des impôts) – de fait, il convient de forcer
+                       systématiquement la zone des centimes par la valeur « ,00 »
+                       La rubrique devra être valorisée à « 0,00 » dans l'ordre de paiement de la déclaration
+                       ad hoc du SIRET déclaré si délégation de paiement à un autre SIRET (SIRET payeur)
+
+               Date de début de période de rattachement - S21.G00.20.006
+                Aucun ajustement n’est nécessaire
+
+                        Pour la DGFIP, cette date devra correspondre au premier jour du mois principal
+                déclaré.
+
+
+
+
+                                                                                             Page 22
+                                       Déclaration Sociale Nominative
+                                                                                         Version 19.0
+                    Données et axes structurants en conséquence prévus pour le PAS
+                                                                                         08/03/2017
+                                                  DSN
+
+
+
+               Date de fin de période de rattachement - S21.G00.20.007
+                Aucun ajustement n’est nécessaire
+
+                        Pour la DGFIP, cette date devra correspondre au dernier jour du mois principal
+                déclaré.
+
+               Code délégataire de gestion - S21.G00.20.008
+                Aucun ajustement n’est nécessaire
+                - DGFiP : non concerné
+
+                        Cette donnée n’est jamais à remplir pour la DGFIP
+
+               Mode de paiement - S21.G00.20.010
+                Un ajustement au niveau de la consigne de remplissage portée par la description de la
+                rubrique.
+                - DGFiP : non concerné"05", "06"
+
+                    o   01 - chèque
+                    o   02 - virement
+                    o   03 - prélèvement
+                    o   04 - titre inter-bancaire de paiement
+                    o   05 - prélèvement SEPA
+                    o   06 - versement réalisé par un autre établissement
+
+                Pour la DGFIP, la rubrique pourra être valorisée uniquement à « 05 – prélèvement SEPA » ou
+                « 06 – versement réalisé par un autre établissement (de même racine que l'établissement
+                déclaré)
+
+
+Un contrôle est ajouté à ce niveau :
+
+        CCH-14 : Si la rubrique « Identifiant Organisme de Protection Sociale - S21.G00.20.001 » est
+        renseignée avec la valeur « DGFIP », la rubrique « Mode de paiement - S21.G00.20.010 » doit être
+        renseignée avec la valeur « 05 - prélèvement SEPA » ou « 06 - versement réalisé par un autre
+        établissement ».
+
+
+               Date de paiement - S21.G00.20.011
+                Aucun ajustement n’est nécessaire
+                - DGFiP : non concerné
+
+               SIRET Payeur - S21.G00.20.012
+
+
+
+
+                                                                                         Page 23
+                                     Déclaration Sociale Nominative
+                                                                                          Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                          08/03/2017
+                                                 DSN
+
+
+
+               Un ajustement au niveau de la consigne de remplissage portée par la description de la
+               rubrique
+               - DGFiP : non concernéSIRET de l’établissement payeur
+
+               Un contrôle est également à ajouter à ce niveau
+               CCH - 12 : Si la rubrique "Identifiant Organisme de Protection Sociale - S21.G00.20.001" est
+               renseignée avec la valeur "DGFiP" et si la rubrique SIRET payeur – S21.G00.20.012 » est
+               renseignée, alors ce SIRET doit avoir la même racine SIREN que le SIRET de l’établissement
+               redevable (établissement déclaré).
+Pour un établissement redevable qui paie pour lui-même, le collecteur devra renseigner le bloc
+« Versement organisme de protection sociale – S21.G00.20 » de sa DSN (avril déposée en mai pour exemple)
+comme suit :
+
+       S21.G00.20 - Versement organisme de protection sociale
+              S21.G00.20.001 - Identifiant Organisme de Protection Sociale :        DGFiP
+              S21.G00.20.003 - BIC :                                                BIC
+              S21.G00.20.004 - IBAN :                                               IBAN
+              S21.G00.20.005 - Montant du versement :                               XXXXX,XX €
+               Montant total de PAS dû
+              S21.G00.20.006 - Date de début de période de rattachement :           01/04/2016
+              S21.G00.20.007 - Date de fin de période de rattachement :             30/04/2016
+              S21.G00.20.010 - Mode de paiement :                                   05 - Prélèvement SEPA
+              S21.G00.20.011 - Date de paiement :                                   Néant
+
+
+              S21.G00.20.012 - SIRET Payeur :                                       [Néant]
+
+
+Pour un établissement redevable qui passe par un autre établissement payeur, le déclarant devra
+renseigner le bloc « Versement organisme de protection sociale – S21.G00.20 » de sa DSN (avril déposée en
+mai pour exemple) comme suit :
+
+       S21.G00.20 - Versement organisme de protection sociale
+
+              S21.G00.20.001 - Identifiant Organisme de Protection Sociale :        DGFiP
+              S21.G00.20.003 - BIC :                                                [Néant]
+              S21.G00.20.004 - IBAN :                                               [Néant]
+              S21.G00.20.005 - Montant du versement :                               0.00
+              S21.G00.20.006 - Date de début de période de rattachement :           01/04/2016
+              S21.G00.20.007 - Date de fin de période de rattachement :             30/04/2016
+              S21.G00.20.010 - Mode de paiement :                                   06    -  versement
+               réalisé
+                                                                                     par un autre
+                                                                                     établissement
+
+
+                                                                                          Page 24
+                                       Déclaration Sociale Nominative
+                                                                                                 Version 19.0
+                    Données et axes structurants en conséquence prévus pour le PAS
+                                                                                                 08/03/2017
+                                                  DSN
+
+
+
+               S21.G00.20.011 - Date de paiement :                                       [Néant]
+               S21.G00.20.012 - SIRET Payeur :                                           SIRET payeur
+
+
+Pour un établissement qui paie pour d’autres :
+        S21.G00.20 - Versement organisme de protection sociale
+               S21.G00.20.001 - Identifiant Organisme de Protection Sociale :            DGFiP
+               S21.G00.20.003 - BIC :                                                    BIC
+                De l’établissement payeur
+               S21.G00.20.004 - IBAN :                                                   IBAN
+                De l’établissement payeur
+               S21.G00.20.005 - Montant du versement :                                   XXXXX,XX €
+               S21.G00.20.006 - Date de début de période de rattachement :               01/04/2016
+               S21.G00.20.007 - Date de fin de période de rattachement :                 30/04/2016
+               S21.G00.20.010 - Mode de paiement :                                       05 - prélèvement SEPA
+               S21.G00.20.011 - Date de paiement :                                       Néant
+
+               S21.G00.20.012 - SIRET Payeur :                                           [Néant]
+
+
+Pour mémoire, le besoin qui portait sur les paiements au titre d’un potentiel acompte à verser en décembre,
+qui avait fait l’objet d’une instruction par GIP-MDS, a été abandonné par la DGFIP.
+Ce cadre est celui dans lequel ont été examinées les conditions de prise en compte au niveau du GIP dans
+la DSN. Toute remise en cause de ces éléments est susceptible de remettre en cause les éléments de
+chiffrage et de planning.
+Par ailleurs, il a été procédé pour la conception PASRAU à un appui sur ces mêmes éléments fondamentaux.
+
+
+                                                   Exemples
+
+
+Exemple 1 : Prélèvement à la source sans changement de taux sur l’année et sans erreur déclarative
+
+
+Il s’agit du cas courant d’alimentation du PAS dans la DSN s’il n’y a pas d’écart d’application détecté.
+    -   Le taux appliqué sur l’année ne change : 10 %
+
+
+Le collecteur renseignera ainsi les 12 DSN de l’année :
+
+
+        DSN de janvier déposée en février
+
+
+                                                                                                 Page 25
+                               Déclaration Sociale Nominative
+                                                                                    Version 19.0
+           Données et axes structurants en conséquence prévus pour le PAS
+                                                                                    08/03/2017
+                                         DSN
+
+
+
+
+       (1,*) S21.G00.50 - Versement individu
+               [O] S21.G00.50.001 - Date de versement : 27/01/2018
+               [O] S21.G00.50.002 - Rémunération nette fiscale : 2 500,00 (euros)
+               [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+               [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+               [O] S21.G00.50.XXX - Montant de PAS : 250,00 (euros)
+               [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj012018
+
+
+DSN de février déposée en mars
+
+
+       (1,*) S21.G00.50 - Versement individu
+               [O] S21.G00.50.001 - Date de versement : 25/02/2018
+               [O] S21.G00.50.002 - Rémunération nette fiscale : 2 400,00 (euros)
+               [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+               [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+               [O] S21.G00.50.XXX - Montant de PAS : 240,00 (euros)
+               [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj022018
+
+
+
+
+DSN de mars déposée en avril
+
+
+       (1,*) S21.G00.50 - Versement individu
+               [O] S21.G00.50.001 - Date de versement : 27/03/2018
+               [O] S21.G00.50.002 - Rémunération nette fiscale : 2 600,00 (euros)
+               [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+               [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+               [O] S21.G00.50.XXX - Montant de PAS : 260,00 (euros)
+               [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj032018
+
+
+
+
+                                                                                    Page 26
+                                 Déclaration Sociale Nominative
+                                                                                     Version 19.0
+            Données et axes structurants en conséquence prévus pour le PAS
+                                                                                     08/03/2017
+                                          DSN
+
+
+
+
+DSN d’avril déposée en mai
+
+
+        (1,*) S21.G00.50 - Versement individu
+                [O] S21.G00.50.001 - Date de versement : 25/04/2018
+                [O] S21.G00.50.002 - Rémunération nette fiscale : 2 500,00 (euros)
+                [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+                [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                [O] S21.G00.50.XXX - Montant de PAS : 250,00 (euros)
+                [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj042018
+
+
+
+
+DSN de mai déposée en juin
+
+
+        (1,*) S21.G00.50 - Versement individu
+                [O] S21.G00.50.001 - Date de versement : 28/05/2018
+                [O] S21.G00.50.002 - Rémunération nette fiscale : 2 600,00 (euros)
+                [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+                [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                [O] S21.G00.50.XXX - Montant de PAS : 260,00 (euros)
+                [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj052018
+
+
+
+
+DSN de juin déposée en juillet
+
+
+        (1,*) S21.G00.50 - Versement individu
+                [O] S21.G00.50.001 - Date de versement : 28/06/2018
+                [O] S21.G00.50.002 - Rémunération nette fiscale : 2 600,00 (euros)
+                [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+                [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+
+
+
+                                                                                     Page 27
+                             Déclaration Sociale Nominative
+                                                                                    Version 19.0
+            Données et axes structurants en conséquence prévus pour le PAS
+                                                                                    08/03/2017
+                                          DSN
+
+
+
+               [O] S21.G00.50.XXX - Montant de PAS : 260,00 (euros)
+               [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj062018
+
+
+
+
+DSN de juillet déposée en août
+
+
+       (1,*) S21.G00.50 - Versement individu
+               [O] S21.G00.50.001 - Date de versement : 27/07/2018
+               [O] S21.G00.50.002 - Rémunération nette fiscale : 3 500,00 (euros)
+               [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+               [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+               [O] S21.G00.50.XXX - Montant de PAS : 350,00 (euros)
+               [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj072018
+
+
+
+
+DSN d’août déposée en septembre
+
+
+       (1,*) S21.G00.50 - Versement individu
+               [O] S21.G00.50.001 - Date de versement : 28/08/2018
+               [O] S21.G00.50.002 - Rémunération nette fiscale : 2 400,00 (euros)
+               [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+               [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+               [O] S21.G00.50.XXX - Montant de PAS : 240,00 (euros)
+               [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj082018
+
+
+
+
+DSN de septembre déposée en octobre
+
+
+       (1,*) S21.G00.50 - Versement individu
+               [O] S21.G00.50.001 - Date de versement : 26/09/2018
+
+
+
+                                                                                    Page 28
+                            Déclaration Sociale Nominative
+                                                                                   Version 19.0
+           Données et axes structurants en conséquence prévus pour le PAS
+                                                                                   08/03/2017
+                                         DSN
+
+
+
+              [O] S21.G00.50.002 - Rémunération nette fiscale : 2 500,00 (euros)
+              [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+              [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+              [O] S21.G00.50.XXX - Montant de PAS : 250,00 (euros)
+              [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj092018
+
+
+
+
+DSN d’octobre déposée en novembre
+
+
+       (1,*) S21.G00.50 - Versement individu
+              [O] S21.G00.50.001 - Date de versement : 25/10/2018
+              [O] S21.G00.50.002 - Rémunération nette fiscale : 2 400,00 (euros)
+              [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+              [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+              [O] S21.G00.50.XXX - Montant de PAS : 240,00 (euros)
+              [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj102018
+
+
+
+
+DSN de novembre déposée en décembre
+
+
+       (1,*) S21.G00.50 - Versement individu
+              [O] S21.G00.50.001 - Date de versement : 28/11/2018
+              [O] S21.G00.50.002 - Rémunération nette fiscale : 2 500,00 (euros)
+              [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+              [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+              [O] S21.G00.50.XXX - Montant de PAS : 250,00 (euros)
+              [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj112018
+
+
+
+
+DSN de décembre déposée en janvier N+1
+
+
+
+                                                                                   Page 29
+                                                           Déclaration Sociale Nominative
+                                                                                                                             Version 19.0
+                                 Données et axes structurants en conséquence prévus pour le PAS
+                                                                                                                             08/03/2017
+                                                               DSN
+
+
+
+
+                             (1,*) S21.G00.50 - Versement individu
+                                         [O] S21.G00.50.001 - Date de versement : 24/12/2018
+                                         [O] S21.G00.50.002 - Rémunération nette fiscale : 5 000,00 (euros)
+                                         [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+                                         [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                                         [O] S21.G00.50.XXX - Montant de PAS : 500,00 (euros)
+                                         [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj122018
+
+
+
+
+Mois               Janvier     Février     Mars    Avril     Mai    Juin   Juillet   Août   Septembre   Octobre   Novembre     Décembre   2018
+
+Rémunération
+                    2500        2400       2600   2500       2600   2600   3500      2400     2500       2400       2500         5000     33500
+nette fiscale
+
+Taux de PAS         10 %        10 %       10 %   10 %       10 %   10 %   10 %      10 %     10 %       10 %       10 %         10 %       -
+
+Montant de
+                    250         240         260    250       260    260     350      240       250       240        250          500      3350
+PAS
+
+  Synthèse des prélèvements de l’année N :
+
+
+
+
+  Exemple 2 : Prélèvement à la source avec changement de taux sur l’année
+
+
+        -       Le taux transmis par la DGFiP à appliquer est initialement de 10 %
+        -       En cours d’année, sur le retour de la DSN de mars, le taux transmis par la DGFiP passe de 10 % à 20
+                %
+        -       L’entreprise reçoit l’information fin avril et l’applique sur la paie de mai
+
+
+  Le collecteur renseignera ainsi les 12 DSN de l’année :
+
+
+                DSN de janvier déposée en février
+
+
+                             (1,*) S21.G00.50 - Versement individu
+                                         [O] S21.G00.50.001 - Date de versement : 27/01/2018
+
+
+
+                                                                                                                             Page 30
+                               Déclaration Sociale Nominative
+                                                                                    Version 19.0
+           Données et axes structurants en conséquence prévus pour le PAS
+                                                                                    08/03/2017
+                                         DSN
+
+
+
+               [O] S21.G00.50.002 - Rémunération nette fiscale : 3 500,00 (euros)
+               [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+               [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP)
+               [O] S21.G00.50.XXX - Montant de PAS : 350,00 (euros)
+               [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj012018
+
+
+DSN de février déposée en mars
+
+
+       (1,*) S21.G00.50 - Versement individu
+               [O] S21.G00.50.001 - Date de versement : 25/02/2018
+               [O] S21.G00.50.002 - Rémunération nette fiscale : 3 600,00 (euros)
+               [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+               [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+               [O] S21.G00.50.XXX - Montant de PAS : 360,00 (euros)
+               [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj022018
+
+
+
+
+DSN de mars déposée en avril
+
+
+       (1,*) S21.G00.50 - Versement individu
+               [O] S21.G00.50.001 - Date de versement : 27/03/2018
+               [O] S21.G00.50.002 - Rémunération nette fiscale : 3 600,00 (euros)
+               [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+               [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+               [O] S21.G00.50.XXX - Montant de PAS : 360,00 (euros)
+               [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj032018
+
+
+
+
+DSN d’avril déposée en mai
+
+
+
+
+                                                                                    Page 31
+                                 Déclaration Sociale Nominative
+                                                                                     Version 19.0
+            Données et axes structurants en conséquence prévus pour le PAS
+                                                                                     08/03/2017
+                                          DSN
+
+
+
+        (1,*) S21.G00.50 - Versement individu
+                [O] S21.G00.50.001 - Date de versement : 25/04/2018
+                [O] S21.G00.50.002 - Rémunération nette fiscale : 3 500,00 (euros)
+                [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+                [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                [O] S21.G00.50.XXX - Montant de PAS : 350,00 (euros)
+                [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj042018
+
+
+
+
+DSN de mai déposée en juin
+
+
+        (1,*) S21.G00.50 - Versement individu
+                [O] S21.G00.50.001 - Date de versement : 28/05/2018
+                [O] S21.G00.50.002 - Rémunération nette fiscale : 3 600,00 (euros)
+                [O] S21.G00.50.XXX - Taux de PAS : 20,00 %
+                [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                [O] S21.G00.50.XXX - Montant de PAS : 720,00 (euros)
+                [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj052018
+
+
+DSN de juin déposée en juillet
+
+
+        (1,*) S21.G00.50 - Versement individu
+                [O] S21.G00.50.001 - Date de versement : 28/06/2018
+                [O] S21.G00.50.002 - Rémunération nette fiscale : 3 600,00 (euros)
+                [O] S21.G00.50.XXX - Taux de PAS : 20,00 %
+                [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                [O] S21.G00.50.XXX - Montant de PAS : 720,00 (euros)
+                [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj062018
+
+
+
+
+                                                                                     Page 32
+                             Déclaration Sociale Nominative
+                                                                                    Version 19.0
+            Données et axes structurants en conséquence prévus pour le PAS
+                                                                                    08/03/2017
+                                          DSN
+
+
+
+DSN de juillet déposée en août
+
+
+       (1,*) S21.G00.50 - Versement individu
+               [O] S21.G00.50.001 - Date de versement : 27/07/2018
+               [O] S21.G00.50.002 - Rémunération nette fiscale : 4 500,00 (euros)
+               [O] S21.G00.50.XXX - Taux de PAS : 20,00 %
+               [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+               [O] S21.G00.50.XXX - Montant de PAS : 900,00 (euros)
+               [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj072018
+
+
+
+
+DSN d’août déposée en septembre
+
+
+       (1,*) S21.G00.50 - Versement individu
+               [O] S21.G00.50.001 - Date de versement : 28/08/2018
+               [O] S21.G00.50.002 - Rémunération nette fiscale : 3 400,00 (euros)
+               [O] S21.G00.50.XXX - Taux de PAS : 20,00 %
+               [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+               [O] S21.G00.50.XXX - Montant de PAS : 680,00 (euros)
+               [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj082018
+
+
+
+
+DSN de septembre déposée en octobre
+
+
+       (1,*) S21.G00.50 - Versement individu
+               [O] S21.G00.50.001 - Date de versement : 26/09/2018
+               [O] S21.G00.50.002 - Rémunération nette fiscale : 3 500,00 (euros)
+               [O] S21.G00.50.XXX - Taux de PAS : 20,00 %
+               [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+               [O] S21.G00.50.XXX - Montant de PAS : 700,00 (euros)
+
+
+
+                                                                                    Page 33
+                            Déclaration Sociale Nominative
+                                                                                   Version 19.0
+           Données et axes structurants en conséquence prévus pour le PAS
+                                                                                   08/03/2017
+                                         DSN
+
+
+
+              [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj092018
+
+
+
+
+DSN d’octobre déposée en novembre
+
+
+       (1,*) S21.G00.50 - Versement individu
+              [O] S21.G00.50.001 - Date de versement : 25/10/2018
+              [O] S21.G00.50.002 - Rémunération nette fiscale : 3 400,00 (euros)
+              [O] S21.G00.50.XXX - Taux de PAS : 20,00 %
+              [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+              [O] S21.G00.50.XXX - Montant de PAS : 680,00 (euros)
+              [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj102018
+
+
+
+
+DSN de novembre déposée en décembre
+
+
+       (1,*) S21.G00.50 - Versement individu
+              [O] S21.G00.50.001 - Date de versement : 28/11/2018
+              [O] S21.G00.50.002 - Rémunération nette fiscale : 3 500,00 (euros)
+              [O] S21.G00.50.XXX - Taux de PAS : 20,00 %
+              [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+              [O] S21.G00.50.XXX - Montant de PAS : 700,00 (euros)
+              [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj112018
+
+
+
+
+DSN de décembre déposée en janvier N+1
+
+
+       (1,*) S21.G00.50 - Versement individu
+              [O] S21.G00.50.001 - Date de versement : 24/12/2018
+              [O] S21.G00.50.002 - Rémunération nette fiscale : 7 000,00 (euros)
+
+
+
+                                                                                   Page 34
+                                                             Déclaration Sociale Nominative
+                                                                                                                              Version 19.0
+                                           Données et axes structurants en conséquence prévus pour le PAS
+                                                                                                                              08/03/2017
+                                                                         DSN
+
+
+
+                                              [O] S21.G00.50.XXX - Taux de PAS : 20,00 %
+                                              [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                                              [O] S21.G00.50.XXX - Montant de PAS : 1 400,00 (euros)
+                                              [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj122018
+
+
+
+
+                 Synthèse des prélèvements de l’année N :
+
+
+Mois                     Janvier   Février    Mars   Avril   Mai     Juin   Juillet   Août   Septembre   Octobre   Novembre    Décembre   2017
+
+Rémunération nette
+                          3500      3600      3600   3500    3600   3600    4500      3400     3500       3400       3500        7000     46700
+fiscale
+
+Taux de PAS               10 %      10 %      10 %   10 %    20 %    20 %   20 %      20 %     20 %       20 %       20 %        20 %        -
+
+Montant de PAS            350       360       360     350    720     720     900      680       700       680        700         1400     7920
+
+
+
+
+                 Les exemples qui suivent visent à expliquer la gestion des régularisations dans 3 cas :
+                     - Les cas d’erreur sur le taux appliqué par l’employeur – exemples 3, 4 et 5
+                     - Les cas d’erreur par l’employeur sur le calcul de la base fiscale alors que le montant brut ne varie
+                        pas (erreur d’affectation des montants en base fiscale) – exemple 6 et exemple 7 qui cumule les
+                        deux types d’erreur (erreur de rémunération nette fiscale et erreur de taux)
+                     - Les cas de trop versés pouvant être compensés – exemple 8
+                     - Les cas de trop versés ne pouvant être compensés – exemple 9
+                 Dans tous les autres cas de régularisation, la régularisation sera portée par la DGFIP sans obligation faite à
+                 l’employeur de rectifier à son niveau.
+
+
+
+
+                 Exemple 3 : Cas d’un taux de PAS erroné, supérieur au taux transmis par la DGFIP
+
+
+                     -   Trop versé de PAS suite à une erreur de taux
+
+
+                     -   La rémunération nette fiscale du salarié des mois de février et mars est de 10 000€.
+
+
+                     -   Le collecteur applique à tort un taux de 20 % au lieu de 12 % en février et mars.
+
+
+
+                                                                                                                              Page 35
+                                     Déclaration Sociale Nominative
+                                                                                              Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                              08/03/2017
+                                                 DSN
+
+
+
+
+   -   Le montant de PAS précompté s’élève donc à 2 000€ au mois de février comme au mois de mars au
+       lieu de 1 200€ soit un montant de PAS trop prélevé de 1 600€ (800+800) sur cette période.
+
+
+   -   Les 1 600€ de PAS trop versés à la DGFiP seront renseignés par le collecteur au niveau du bloc
+        « Régularisation de prélèvement à la source - S21.G00.XX » et remboursés au salarié par le
+collecteur.
+
+
+
+
+DSN précédemment reçues :
+
+
+       DSN de février déposée en mars :
+
+
+              (1,*) S21.G00.50 - Versement individu
+                      [O] S21.G00.50.001 - Date de versement : 27/02/2016
+                      [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+                      [O] S21.G00.50.XXX - Taux de PAS : 20,00 %
+                      [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                      [O] S21.G00.50.XXX - Montant de PAS : 2 000.00 (euros)
+                      [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+       DSN de mars déposée en avril :
+
+
+              (1,*) S21.G00.50 - Versement individu
+                      [O] S21.G00.50.001 - Date de versement : 27/03/2016
+                      [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+                      [O] S21.G00.50.XXX - Taux de PAS : 20,00 %
+                      [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                      [O] S21.G00.50.XXX - Montant de PAS : 2 000.00 (euros)
+                      [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+                                                                                              Page 36
+                                      Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                    Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                  DSN
+
+
+
+
+Pour la période courante, le collecteur renseignera la DSN d’avril (déposée en mai) de la façon suivante :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/04/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 12,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                       [O] S21.G00.50.XXX - Montant de PAS : 1 200,00 (euros)
+                       [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+Pour les mois antérieurs (février et mars) à régulariser, le collecteur renseignera la DSN d’avril (déposée en
+mai) de la façon suivante :
+
+
+               (0,*) S21.G00.XX - Régularisation de prélèvement à la source
+                       [O] S21.G00.XX.XXX - Mois de l'erreur : 02/2016
+                       [O] S21.G00.XX.XXX - Type de l'erreur : 02 - Rectification sur taux
+                       [C] S21.G00.XX.XXX - Assiette déclarée le mois de l’erreur : 10 000 (euros)
+                       [C] S21.G00.XX.XXX - Régularisation de l'assiette : Non renseigné
+                       [C] S21.G00.XX.XXX - Taux déclaré le mois de l’erreur : [Non renseigné]
+                       [C] S21.G00.XX.XXX - Régularisation du taux : - 8,00 % (12 – 20)
+                       [O] S21.G00.XX.XXX - Montant : - 800.00 (euros)
+
+
+               (0,*) S21.G00.XX - Régularisation de prélèvement à la source
+                       [O] S21.G00.XX.XXX - Mois de l'erreur : 03/2016
+                       [O] S21.G00.XX.XXX - Type de l'erreur : 02 - Rectification sur taux
+                       [C] S21.G00.XX.XXX - Assiette déclarée le mois de l’erreur : 10 000 (euros)
+                       [C] S21.G00.XX.XXX - Régularisation de l'assiette : Non renseigné
+
+
+
+
+                                                                                               Page 37
+                                     Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                 DSN
+
+
+
+                       [C] S21.G00.XX.XXX - Taux déclaré le mois de l’erreur : [Non renseigné]
+                       [C] S21.G00.XX.XXX - Régularisation du taux : - 8,00 %
+                       [O] S21.G00.XX.XXX - Montant : - 800.00 (euros)
+
+
+Exemple 4 : Cas d’un taux de PAS erroné, inférieur au taux transmis par la DGFIP
+
+
+   -   Insuffisance de prélèvement
+
+   -   La rémunération nette fiscale du salarié est de 10 000 €.
+
+   -   Le collecteur applique à tort un taux de 7 % au lieu de 20 % sur les rémunérations de février et mars.
+
+
+   -   Le montant de PAS précompté a été de 700 € sur chacun des deux mois au lieu de 2 000€ soit un
+       montant de PAS manquant de 2 600€ (1 300 + 1 300) sur la période.
+
+
+   -   Les 2 600€ de PAS en insuffisance pour la DGFIP seront renseignés par le collecteur au niveau du
+       bloc « Régularisation de prélèvement à la source – S21.G00.XX » et prélevés sur les rémunérations
+       du salarié des mois d’avril et mai par le collecteur.
+
+
+   -   Le collecteur choisit d’étaler sur deux mois le montant de PAS insuffisamment prélevé sur les mois
+       d’avril et de mai pour ne pas pénaliser le salarié (2 000 € pour la période courante et 1 300 € de
+       régularisation prélevés au lieu de prélever la somme de 2 600€ de régularisation sur un seul mois).
+
+
+DSN précédemment reçues :
+
+
+       DSN de février déposée en mars :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/02/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 7,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                       [O] S21.G00.50.XXX - Montant de PAS : 700.00 (euros)
+                       [C] S21.G00.50.XXX - Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+                                                                                               Page 38
+                                      Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                    Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                  DSN
+
+
+
+
+       DSN de mars déposée en avril :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/03/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 7,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                       [O] S21.G00.50.XXX - Montant de PAS : 700.00 (euros)
+                       [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+Le collecteur renseignera la DSN d’avril (déposée en mai) de la façon suivante :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/04/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 20,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                       [O] S21.G00.50.XXX - Montant de PAS : 2 000,00 (euros)
+                       [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+Pour le mois de février à régulariser, le collecteur renseignera la DSN d’avril (déposée en mai) de la façon
+suivante :
+
+
+               (0,*) S21.G00.XX - Régularisation de prélèvement à la source
+                       [O] S21.G00.XX.XXX - Mois de l'erreur : 02/2016
+                       [O] S21.G00.XX.XXX - Type de l'erreur : 02 - Rectification sur taux
+
+
+
+
+                                                                                               Page 39
+                                      Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                 DSN
+
+
+
+                       [C] S21.G00.XX.XXX - Assiette déclarée le mois de l’erreur : 10 000 (euros)
+                       [C] S21.G00.XX.XXX - Régularisation de l'assiette : Non renseigné
+                       [C] S21.G00.XX.XXX - Taux déclaré le mois de l’erreur : Non renseigné
+                       [C] S21.G00.XX.XXX - Régularisation du taux : 13,00 % (20 – 7)
+                       [O] S21.G00.XX.XXX - Montant : 1 300.00 (euros)
+
+
+
+
+Le collecteur renseignera dans la DSN de mai (déposée en juin) de la façon suivante :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/05/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 20,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                       [O] S21.G00.50.XXX - Montant de PAS : 2 000,00 (euros)
+                       [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+Pour le mois de mars à régulariser, le collecteur renseignera la DSN de mai (déposée en juin) de la façon
+suivante :
+
+
+               (0,*) S21.G00.XX - Régularisation de prélèvement à la source
+                       [O] S21.G00.XX.XXX - Mois de l'erreur : 03/2016
+                       [O] S21.G00.XX.XXX - Type de l'erreur : 02 - Rectification sur taux
+                       [C] S21.G00.XX.XXX - Assiette déclarée le mois de l’erreur : 10 000 (euros)
+                       [C] S21.G00.XX.XXX - Régularisation de l'assiette : Non renseigné
+                       [C] S21.G00.XX.XXX - Taux déclaré le mois de l’erreur : Non renseigné
+                       [C] S21.G00.XX.XXX - Régularisation du taux : 13,00 %
+                       [O] S21.G00.XX.XXX - Montant : 1 300.00 (euros)
+
+
+
+
+                                                                                               Page 40
+                                      Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                 DSN
+
+
+
+
+Exemple 5 : Cas d’un taux de PAS erroné, avec variation des taux appliqués
+
+
+   -   La rémunération nette fiscale du salarié est de 10 000 €.
+
+   -   Le collecteur applique à tort un taux de 9 % au lieu de 20 % sur les rémunérations des mois de
+       février et mars puis de 10 % au lieu de 15 % pour les mois d’avril et mai.
+
+   -   Il effectue les régularisations sur le mois de juin comme suit, effectuant la régularisation du PAS sur
+       la paie du mois de juin :
+
+       A noter que l’exemple met sur 2 périodes la conjonction des deux effets car cela ne peut jamais
+       arriver le même mois (soit c’est une erreur de l’employeur mais dans ce cas il rectifie sur le « bon
+       taux » qu’il connait de la DGFIP soit c’est un changement de taux de la personne et l’employeur
+       l’applique sur les mois qui suivent mais pas de manière rétroactive).
+
+
+
+DSN précédemment reçues :
+
+
+       DSN de février déposée en mars :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/02/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 9,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                       [O] S21.G00.50.XXX - Montant de PAS : 900.00 (euros)
+                       [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+       DSN de mars déposée en avril :
+
+
+               (1,*) S21.G00.50 - Versement individu
+
+
+
+                                                                                               Page 41
+                               Déclaration Sociale Nominative
+                                                                                       Version 19.0
+           Données et axes structurants en conséquence prévus pour le PAS
+                                                                                       08/03/2017
+                                         DSN
+
+
+
+               [O] S21.G00.50.001 - Date de versement : 27/03/2016
+               [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+               [O] S21.G00.50.XXX - Taux de PAS : 9,00 %
+               [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+               [O] S21.G00.50.XXX - Montant de PAS : 900.00 (euros)
+               [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+DSN d’avril déposée en mai :
+
+
+       (1,*) S21.G00.50 - Versement individu
+               [O] S21.G00.50.001 - Date de versement : 27/04/2016
+               [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+               [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+               [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+               [O] S21.G00.50.XXX - Montant de PAS : 1 000.00 (euros)
+               [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+DSN de mai déposée en juin :
+
+
+       (1,*) S21.G00.50 - Versement individu
+               [O] S21.G00.50.001 - Date de versement : 27/05/2016
+               [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+               [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+               [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+               [O] S21.G00.50.XXX - Montant de PAS : 1 000.00 (euros)
+               [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+                                                                                       Page 42
+                                      Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                    Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                  DSN
+
+
+
+Pour la période courante, le collecteur renseignera la DSN de juin (déposée en juillet) de la façon suivante
+:
+
+
+                (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/06/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 15,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                       [O] S21.G00.50.XXX - Montant de PAS : 1 500,00 (euros)
+                       [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+Pour les mois antérieurs (février, mars, avril et mai) à régulariser, le collecteur renseignera la DSN de juin
+(déposée en juillet) de la façon suivante :
+
+
+                (0,*) S21.G00.XX - Régularisation de prélèvement à la source
+                       [O] S21.G00.XX.XXX - Mois de l'erreur : 02/2016
+                       [O] S21.G00.XX.XXX - Type de l'erreur : 02 - Rectification sur taux
+                       [C] S21.G00.XX.XXX - Assiette déclarée le mois de l’erreur : 10 000 (euros)
+                       [C] S21.G00.XX.XXX - Régularisation de l'assiette : Non renseigné
+                       [C] S21.G00.XX.XXX - Taux déclaré le mois de l’erreur : Non renseigné
+                       [C] S21.G00.XX.XXX - Régularisation du taux : 11,00 % (20 – 9)
+                       [O] S21.G00.XX.XXX - Montant : 1 100.00 (euros)
+
+
+                (0,*) S21.G00.XX - Régularisation de prélèvement à la source
+                       [O] S21.G00.XX.XXX - Mois de l'erreur : 03/2016
+                       [O] S21.G00.XX.XXX - Type de l'erreur : 02 - Rectification sur taux
+                       [C] S21.G00.XX.XXX - Assiette déclarée le mois de l’erreur : 10 000 (euros)
+                       [C] S21.G00.XX.XXX - Régularisation de l'assiette : Non renseigné
+                       [C] S21.G00.XX.XXX - Taux déclaré le mois de l’erreur : Non renseigné
+                       [C] S21.G00.XX.XXX - Régularisation du taux : 11,00 %
+
+
+                                                                                               Page 43
+                                      Déclaration Sociale Nominative
+                                                                                             Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                             08/03/2017
+                                                 DSN
+
+
+
+                       [O] S21.G00.XX.XXX - Montant : 1 100.00 (euros)
+
+
+               (0,*) S21.G00.XX - Régularisation de prélèvement à la source
+                       [O] S21.G00.XX.XXX - Mois de l'erreur : 04/2016
+                       [O] S21.G00.XX.XXX - Type de l'erreur : 02 - Rectification sur taux
+                       [C] S21.G00.XX.XXX - Assiette déclarée le mois de l’erreur : 10 000 (euros)
+                       [C] S21.G00.XX.XXX - Régularisation de l'assiette : Non renseigné
+                       [C] S21.G00.XX.XXX - Taux déclaré le mois de l’erreur : Non renseigné
+                       [C] S21.G00.XX.XXX - Régularisation du taux : 5,00 % (15 – 10)
+                       [O] S21.G00.XX.XXX - Montant : 500.00 (euros)
+
+
+               (0,*) S21.G00.XX - Régularisation de prélèvement à la source
+                       [O] S21.G00.XX.XXX - Mois de l'erreur : 04/2016
+                       [O] S21.G00.XX.XXX - Type de l'erreur : 02 - Rectification sur taux
+                       [C] S21.G00.XX.XXX - Assiette déclarée le mois de l’erreur : 10 000 (euros)
+                       [C] S21.G00.XX.XXX - Régularisation de l'assiette : Non renseigné
+                       [C] S21.G00.XX.XXX - Taux déclaré le mois de l’erreur : Non renseigné
+                       [C] S21.G00.XX.XXX - Régularisation du taux : 5,00 %
+                       [O] S21.G00.XX.XXX - Montant : 500.00 (euros)
+
+
+Exemple 6 : Cas d’une rémunération nette fiscale erronée. Le calcul de la rémunération nette fiscale est
+faux alors que la base brute est correcte. Cas avec changement de taux entre le mois de l’erreur et le mois
+de constatation.
+
+
+   -   Un employeur prend en compte à tort, pour le calcul de la rémunération fiscale du mois de mars,
+       une somme qui n’est pas soumise à l’impôt sur le revenu pour le mois de mars
+
+
+   -   La rémunération nette fiscale transmise pour le salarié était de 12 000 € au mois de mars alors
+       qu’elle aurait dû être de 10 000 €
+
+   -   La somme de 2 000€, relative à un remboursement de frais professionnels, a donc été introduite à
+       tort dans le calcul de la rémunération nette fiscale
+
+
+
+
+                                                                                             Page 44
+                                       Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                 DSN
+
+
+
+   -   Il n’y a pas lieu en paie de régulariser la base brute
+
+
+   -   Le taux de PAS du mois de mars était de 10 %, il est passé à 15 %
+
+
+   -   Le montant de PAS précompté à tort s’élève 200 € (2 000 € x 10 % = 200 €)
+
+
+   -   La régularisation de la rémunération nette fiscale sera faite sur son bulletin de paie du mois de mai
+
+
+   -   Le montant de rémunération nette fiscale tenant compte de la régularisation est positif ou nul
+DSN précédemment reçues :
+
+
+       DSN de mars déposée en avril :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/03/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 12 000.00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 (Taux transmis par la DGFIP)
+                       [O] S21.G00.50.XXX - Montant de PAS : 1 200.00 (euros)
+                       [C] S21.G00.50.XXX - Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+       DSN d’avril déposée en mai :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/04/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 15,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 (Taux transmis par la DGFIP)
+                       [O] S21.G00.50.XXX - Montant de PAS : 1 500.00 (euros)
+                       [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+                                                                                               Page 45
+                                     Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                 DSN
+
+
+
+
+Pour la période courante, le collecteur renseignera la DSN de mai (déposée en juin) de la façon suivante :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/05/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 15,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                       [O] S21.G00.50.XXX - Montant de PAS : 1 500,00 (euros)
+                       [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+               (0,*) S21.G00.XX - Régularisation de prélèvement à la source
+                       [O] S21.G00.XX.XXX - Mois de l'erreur : 03/2016
+                       [O] S21.G00.XX.XXX - Type de l'erreur : 01 - Rectification sur rémunération nette
+                       fiscale
+                       [C] S21.G00.XX.XXX - Assiette déclarée le mois de l’erreur : Non renseigné
+                       [C] S21.G00.XX.XXX - Régularisation de l'assiette : -2 000.00 (10 000 – 12 000)
+                       [C] S21.G00.XX.XXX - Taux déclaré le mois de l’erreur : 10,00 %
+                       [C] S21.G00.XX.XXX - Régularisation du taux : Non renseigné
+                       [O] S21.G00.XX.XXX - Montant : - 200.00 (euros)
+
+
+Exemple 7 : Cas d’une double erreur rémunération nette fiscale erronée et taux appliqué erroné
+
+
+   -   Un employeur prend en compte à tort, pour le calcul de la rémunération fiscale du mois de mars,
+       une somme qui n’est pas soumise à l’impôt sur le revenu pour le mois de mars
+
+
+   -   La rémunération nette fiscale transmise pour le salarié était de 12 000 € au mois de mars alors
+       qu’elle aurait dû être de 10 000 €
+
+   -   La somme de 2 000€, relative à un remboursement de frais professionnels, a donc été introduite à
+       tort dans le calcul de la rémunération nette fiscale
+
+
+
+                                                                                               Page 46
+                                      Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                 DSN
+
+
+
+   -   Le taux que l’employeur a appliqué en mars était aussi erroné, il a mis 10 % alors que c’était 15 %
+
+   -   Le montant de PAS précompté à tort s’élève 200 € (2 000 € x 10 % = 200 €) pour l’erreur base fiscale
+       mais il s’élève à 10 000 X 5 % = 500 E pour l’erreur de taux
+
+
+   -   La régularisation de la rémunération nette fiscale sera faite sur son bulletin de paie du mois de mai
+
+
+DSN précédemment reçues :
+
+
+       DSN de mars déposée en avril :
+
+
+              (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/03/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 12 000.00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 (Taux transmis par la DGFIP)
+                       [O] S21.G00.50.XXX - Montant de PAS : 1 200.00 (euros)
+                       [C] S21.G00.50.XXX - Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+       DSN d’avril déposée en mai :
+
+
+              (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/04/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 15,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 (Taux transmis par la DGFIP)
+                       [O] S21.G00.50.XXX - Montant de PAS : 1 500.00 (euros)
+                       [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+                                                                                               Page 47
+                                     Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                 DSN
+
+
+
+Pour la période courante, le collecteur renseignera la DSN de mai (déposée en juin) de la façon suivante :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/05/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 15,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                       [O] S21.G00.50.XXX - Montant de PAS : 1 500,00 (euros)
+                       [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+               (0,*) S21.G00.XX - Régularisation de prélèvement à la source
+                       [O] S21.G00.XX.XXX - Mois de l'erreur : 03/2016
+                       [O] S21.G00.XX.XXX - Type de l'erreur : 01 - Rectification sur rémunération nette
+                       fiscale
+                       [C] S21.G00.XX.XXX - Assiette déclarée le mois de l’erreur : Non renseigné
+                       [C] S21.G00.XX.XXX - Régularisation de l'assiette : -2 000.00 (10 000 – 12 000)
+                       [C] S21.G00.XX.XXX - Taux déclaré le mois de l’erreur : 10,00 %
+                       [C] S21.G00.XX.XXX - Régularisation du taux : Non renseigné
+                       [O] S21.G00.XX.XXX - Montant : - 200.00 (euros)
+               (0,*) S21.G00.XX - Régularisation de prélèvement à la source
+                       [O] S21.G00.XX.XXX - Mois de l'erreur : 03/2016
+                       [O] S21.G00.XX.XXX - Type de l'erreur : 02 - Rectification de taux
+                       [C] S21.G00.XX.XXX - Assiette déclarée le mois de l’erreur : 10 000 (le collecteur
+                       renseigne ici l’assiette correcte qui devait être déclarée le mois de l’erreur)
+                       [C] S21.G00.XX.XXX - Régularisation de l'assiette : Non renseigné
+                       [C] S21.G00.XX.XXX - Taux déclaré le mois de l’erreur : Non renseigné
+                       [C] S21.G00.XX.XXX - Régularisation du taux : 5,00 % (15 – 10)
+                       [O] S21.G00.XX.XXX - Montant : 500.00 (euros)
+
+
+
+
+Exemple 8 : Cas de trop versé de l’employeur avec une variation de taux entre deux périodes
+
+
+                                                                                               Page 48
+                                      Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                 DSN
+
+
+
+
+   -   Un employeur verse à tort un élément de rémunération mensuelle à un salarié, pour le mois de mars
+
+
+   -   La rémunération nette fiscale du salarié est de 12 000 € au mois de mars (le trop versé étant de
+       2 000 €)
+
+
+   -   Le taux de PAS du mois de mars est de 11 %
+
+
+   -   La régularisation sera faite sur son bulletin de paie du mois de mai.
+
+
+   -   Le taux de PAS au mois de mai n’est plus le même, il est passé à 20 %
+
+
+
+
+DSN précédemment reçues :
+
+
+       DSN de mars déposée en avril :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/03/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 12 000,00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 11,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                       [O] S21.G00.50.XXX - Montant de PAS : 1 320.00 (euros)
+                       [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+       DSN d’avril déposée en mai :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/04/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 10 000,00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 11,00 %
+
+
+                                                                                               Page 49
+                                     Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                 DSN
+
+
+
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                       [O] S21.G00.50.XXX - Montant de PAS : 1 100.00 (euros)
+                       [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+Pour la période courante, le collecteur renseignera la DSN de mai (déposée en juin) de la façon suivante :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/05/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 8 000,00
+                       [O] S21.G00.50.XXX - Taux de PAS : 20,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                       [O] S21.G00.50.XXX - Montant de PAS : 1 600,00
+                       [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+Exemple 9 : Cas d’un trop versé de salaire. Cas avec changement de taux entre le mois de l’erreur et le
+mois de constatation et avec une rémunération nette fiscale négative en période courante.
+
+
+   -   Un employeur verse à tort en mars à son salarié 3 000 € de trop.
+
+
+   -   Le taux de PAS du mois de mars était de 10 %
+
+
+   -   Le montant de PAS précompté à tort s’élève 300 € (3 000€ x 10 % = 300 €)
+
+
+   -   La régularisation de la rémunération nette fiscale sera faite sur son bulletin de paie du mois de mai
+
+   -   En mai il ne touche que 1000 euros – le rattrapage du trop versé conduit à constater une
+       rémunération nette fiscale de – 2000 euros sur mai
+
+   -   Le taux de PAS à appliquer en période courante a changé, il est passé de 10 % à 20 %
+
+
+   -   Le montant de rémunération nette fiscale est négatif.
+
+
+
+
+                                                                                               Page 50
+                                      Déclaration Sociale Nominative
+                                                                                                Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                                08/03/2017
+                                                 DSN
+
+
+
+
+DSN précédemment reçues :
+
+
+       DSN de mars déposée en avril :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/03/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 13 000.00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                       [O] S21.G00.50.XXX - Montant de PAS : 1 300.00 (euros)
+                       [C] S21.G00.50.XXX - Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+
+
+Pour la période courante, le collecteur renseignera la DSN de mai (déposée en juin) de la façon suivante :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/05/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 0,00 (euros) (car 1000 – 3000 trop
+                       versés = - 2000)
+                       [O] S21.G00.50.XXX - Taux de PAS : 20,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 - Taux transmis par la DGFIP
+                       [O] S21.G00.50.XXX - Montant de PAS : 0,00 (euros)
+                       [C] S21.G00.50.XXX – Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+               nota : dans cet exemple la rémunération nette fiscale est renseignée à « 0,00 ». Si toutefois le
+               collecteur n’était pas en mesure de forcer l’assiette à « 0,00 », il a la possibilité de renseigner
+               un montant négatif, soit « - 2000,00 » pour l’exemple présent
+
+
+                (0,*) S21.G00.XX - Régularisation de prélèvement à la source
+                       [O] S21.G00.XX.XXX - Mois de l'erreur : 03/2016
+
+
+
+                                                                                                Page 51
+                                     Déclaration Sociale Nominative
+                                                                                               Version 19.0
+                   Données et axes structurants en conséquence prévus pour le PAS
+                                                                                               08/03/2017
+                                                 DSN
+
+
+
+                       [O] S21.G00.XX.XXX - Type de l'erreur : 03 – Cas d’indu
+                       [C] S21.G00.XX.XXX - Régularisation de l'assiette : -2 000.00 (résultat de la
+                       compensation 1000 dus sur le mois alors que 3000 de trop versés à récupérer)
+                       [C] S21.G00.XX.XXX - Taux déclaré le mois de l’erreur : 10,00 %
+                       [C] S21.G00.XX.XXX - Régularisation du taux : Non renseigné
+                       [O] S21.G00.XX.XXX - Montant : - 200.00 (euros)
+
+
+
+
+Exemple 10 : Cas de versement d’éléments de salaire soumis au PAS à un salarié sorti
+
+
+   -   En mai, un employeur effectue un rappel portant sur la paie du mois de mars pour un salarié sorti en
+       avril.
+
+   -   L’employeur verse à son ancien salarié une somme soumise au PAS de 2 000 €
+
+
+   -   Le dernier taux de PAS communiqué en avril par la DGFIP pour ce salarié était de 10 %
+
+
+Pour la période courante, le collecteur renseignera la DSN de mai (déposée en juin) de la façon suivante :
+
+
+               (1,*) S21.G00.50 - Versement individu
+                       [O] S21.G00.50.001 - Date de versement : 27/05/2016
+                       [O] S21.G00.50.002 - Rémunération nette fiscale : 2 000.00 (euros)
+                       [O] S21.G00.50.XXX - Taux de PAS : 10,00 %
+                       [O] S21.G00.50.XXX - Nature du taux de PAS : 01 (Taux transmis par la DGFIP) si le
+                       dernier taux de PAS communiqué par la DGFIP avait plus de 2 mois, le collecteur
+                       aurait appliqué le barème légal
+                       [O] S21.G00.50.XXX - Montant de PAS : 200.00 (euros)
+                       [C] S21.G00.50.XXX - Identifiant du taux : 1zejfiozhrfijffhh33jj33455
+
+
+               (1,*) S21.G00.62 – Fin de contrat
+                       [O] S21.G00.62.001 - Date de fin du contrat : 27/04/2016
+                       [O] S21.G00.62.002 - Motif de la rupture du contrat : 059 – démission
+
+
+
+                                                                                               Page 52
+                       Déclaration Sociale Nominative
+                                                                               Version 19.0
+    Données et axes structurants en conséquence prévus pour le PAS
+                                                                               08/03/2017
+                                  DSN
+
+
+
+        [C] S21.G00.62.006 - Dernier jour travaillé et payé au salaire habituel : 27/04/2016
+
+
+Un bloc « Fin de contrat - S21.G00.62 » doit être déclaré pour rappeler que le salarié est sorti
+
+
+
+
+                                                                               Page 53
+

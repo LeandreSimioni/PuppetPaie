@@ -150,6 +150,41 @@ fn arret_signaler_refuse_un_arret_inconnu_et_produit_le_fichier_sans_toucher_au_
     assert_eq!(std::fs::read(racine.join("imprevus/2026-03.json")).unwrap(), magasin, "produire ne note aucun envoi");
 }
 
+/// Le deuil d'enfant (motif 19) : la norme l'admet dans un signalement (cahier technique DSN 2026.1, S21.G00.60.001,
+/// `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`, l. 104 ; aucune regle CCH ne l'en exclut, a la difference des
+/// motifs 15 a 18, CCH-14) : le moteur ne le refuse pas (regle 7). Mais l'Assurance Maladie ne traite pas les conges pour
+/// deuil en DSN (net-entreprises, `atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt`) :
+/// le signalement s'ecrit AVEC un avertissement qui le dit, et renvoie a l'attestation de salaire sur net-entreprises. Un
+/// signalement de maladie ne porte pas cet avertissement.
+#[test]
+fn un_signalement_de_deuil_s_ecrit_avec_son_avertissement() {
+    let racine = compagnie("arret-deuil");
+    engagements_en_capitales(&racine, "2026-03");
+    reussi(&route(
+        &racine,
+        "arret-enregistrer",
+        json!({"salarie": "BRIOCHE", "dernier_jour": "2026-03-25", "fin": "2026-03-26", "motif": "19", "subrogation": "02"}),
+    ));
+    let r = route(&racine, "arret-signaler", json!({"salarie": "BRIOCHE", "dernier_jour": "2026-03-25"}));
+    let res = reussi(&r);
+    let fichier = racine.join("sorties/2026-03/SignalementArret_BRIOCHE_20260325.dsn");
+    assert!(fichier.exists(), "{}", r);
+    assert_eq!(rubrique(&fichier, "S21.G00.60.001"), "19");
+    let deuil: Vec<&str> = res["avertissements"].as_array().unwrap().iter().filter_map(|a| a.as_str()).filter(|a| a.contains("Motif 19")).collect();
+    assert_eq!(deuil.len(), 1, "{}", r);
+    assert!(deuil[0].contains("ne le traite pas") && deuil[0].contains("Attestation de salaire") && deuil[0].contains("net-entreprises"), "{}", deuil[0]);
+
+    let racine = compagnie("arret-maladie");
+    engagements_en_capitales(&racine, "2026-03");
+    reussi(&route(
+        &racine,
+        "arret-enregistrer",
+        json!({"salarie": "BRIOCHE", "dernier_jour": "2026-03-25", "fin": "2026-03-26", "motif": "01", "subrogation": "02"}),
+    ));
+    let r = route(&racine, "arret-signaler", json!({"salarie": "BRIOCHE", "dernier_jour": "2026-03-25"}));
+    assert!(reussi(&r)["avertissements"].as_array().unwrap().iter().all(|a| !a.as_str().unwrap().contains("Motif 19")), "{}", r);
+}
+
 #[test]
 fn fin_de_contrat_refuse_ce_qui_manque_et_les_documents_s_ecrivent() {
     let racine = compagnie("fin");

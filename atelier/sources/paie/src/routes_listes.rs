@@ -228,6 +228,9 @@ pub(crate) fn resume_arret(n: &Value, a: &Value) -> R<Value> {
         mois.push(get(r, "mois")?.clone());
     }
     let signale = !signalements.is_empty();
+    // UN SIGNALEMENT EST-IL DU ? Pas pour un motif que la DSN ne couvre pas (le deuil d'enfant : `obligations-base.json`,
+    // `signalement_arret.sauf_motifs`) ; son obligation est alors l'attestation de salaire hors DSN.
+    let signalement_du = crate::obligations::signalement_du(&crate::date::en_texte(&motif))?;
     Ok(json!({
         "salarie": champ(a, "salarie", Value::Null),
         "contrat": champ(a, "contrat_numero", Value::Null),
@@ -245,9 +248,10 @@ pub(crate) fn resume_arret(n: &Value, a: &Value) -> R<Value> {
         "note": champ(a, "note", json!("")),
         "saisi_le": champ(a, "saisi_le", Value::Null),
         "signale": signale,
+        "signalement_du": signalement_du,
         "signalements": signalements,
         "reporte_par": mois,
-        "etat": if signale { "signale" } else { "a signaler" },
+        "etat": if signale { "signale" } else if signalement_du { "a signaler" } else { "sans signalement" },
     }))
 }
 
@@ -263,7 +267,7 @@ fn arrets(ctx: &Contexte) -> R<Value> {
     for a in &tous {
         let mut r = crate::routes_imprevus::resume(ctx, &n, a)?;
         r["obligations"] = Value::Array(crate::obligations::de_l_arret(ctx, a, &suivi, ctx.aujourdhui)?);
-        if !r["signale"].as_bool().unwrap_or(false) {
+        if !r["signale"].as_bool().unwrap_or(false) && r["signalement_du"].as_bool().unwrap_or(true) {
             a_signaler.push(r.clone());
         }
         resumes.push(r);

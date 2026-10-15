@@ -9,7 +9,16 @@
 //! - le signalement d'arret (04) et de reprise anticipee (05) : CSS R. 133-14, II
 //!   (`atelier/reference/sources/code-de-la-securite-sociale/xml/R133-14.xml`) et l'arrete du 2 juillet 2013, art. 1er
 //!   (`atelier/reference/sources/arrete-2013-delai-evenements-dsn/xml/1.xml`) : cinq jours ouvres quand l'employeur
-//!   n'est pas subroge ; avec la DSN mensuelle du mois quand il l'est ;
+//!   n'est pas subroge ; avec la DSN mensuelle du mois quand il l'est. SAUF pour les motifs que la DSN ne couvre pas
+//!   (`sauf_motifs` : le deuil d'enfant, 19 ; le temps partiel therapeutique, 15 a 18, non saisissable) : la page du compte
+//!   entreprise de net-entreprises (`atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt`)
+//!   dit que l'Assurance Maladie n'en tire rien. La norme admet pourtant le motif 19 dans un signalement : `arret-signaler`
+//!   ne le refuse pas, il avertit (`avertissement_hors_dsn`, appele par `signalement::verifier`) ;
+//! - l'attestation de salaire pour les indemnites journalieres (DSIJ), HORS DSN, pour le deuil d'enfant (motif 19) : la
+//!   meme page, « obligatoire pour tout arret de travail, quel qu'en soit le motif », « des reception de l'avis d'arret de
+//!   travail », sur net-entreprises (ecran ou EDI) ; CSS L. 331-9 (`.../code-de-la-securite-sociale/xml/L331-9.xml`) pour les
+//!   indemnites du conge de deuil de C. trav. L. 3142-1-1. « Des reception » n'est pas un delai chiffre : la date butoir est
+//!   le jour meme de la connaissance de l'arret, et l'obligation le dit (`inferences`) ;
 //! - le signalement de fin de contrat (07) : les memes textes, cinq jours ouvres apres la fin ;
 //! - la declaration d'accident du travail ou de trajet (motifs 04 et 06), HORS DSN : CSS L. 441-2 et R. 441-3
 //!   (`.../code-de-la-securite-sociale/xml/R441-3.xml`) : quarante-huit heures, dimanches et jours feries non compris, a
@@ -18,7 +27,8 @@
 //!   cessation du travail (L. 461-5, R. 461-5). Le moteur le dit, il n'en fait pas une obligation de la compagnie.
 //!
 //! CE QUI SE SAISIT, ET SE GARDE A COTE DES IMPREVUS (`imprevus/obligations.json`) : le jour (et l'heure) ou la compagnie a
-//! connu l'arret ou l'accident, et la declaration d'accident faite -- le jour, ou elle a ete faite, sa reference. Rien de
+//! connu l'arret ou l'accident, la declaration d'accident faite et l'attestation de salaire faite -- le jour, ou, la
+//! reference. Rien de
 //! cela ne se devine : sans connaissance saisie, le moteur prend le point de depart le plus exigeant et dit lequel
 //! (`depart.presume`) ; sans declaration dite, l'accident n'est pas declare. Le fichier des arrets eux-memes
 //! (`imprevus/AAAA-MM.json`, les imprevus de genre arret) n'est pas touche : ce module le lit par `routes_listes::tous_les_arrets`.
@@ -35,7 +45,7 @@ use crate::etats::{erreur, R};
 use crate::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
 
 /// Les routes qui ecrivent ce que la compagnie dit d'une obligation.
-pub const ROUTES: [&str; 2] = ["arret-connaissance", "accident-declare"];
+pub const ROUTES: [&str; 3] = ["arret-connaissance", "accident-declare", "attestation-declare"];
 
 /// La route qui ne fait que lire : ce qu'un arret en cours de saisie ferait naitre.
 pub const ROUTES_LECTURE: [&str; 1] = ["arret-obligations"];
@@ -75,9 +85,42 @@ fn motifs_de(o: &Value) -> Vec<String> {
     o.get("motifs").and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default()
 }
 
+/// Le motif d'arret appelle-t-il l'obligation `cle` (ses `motifs`) ?
+fn motif_appelle(cle: &str, motif: &str) -> R<bool> {
+    Ok(motifs_de(&obligation(&*base()?, cle)?).iter().any(|m| m == motif))
+}
+
 /// Le motif d'arret appelle-t-il la declaration d'accident (`declaration_accident.motifs`) ?
 pub fn motif_appelle_la_declaration(motif: &str) -> R<bool> {
-    Ok(motifs_de(&obligation(&*base()?, "declaration_accident")?).iter().any(|m| m == motif))
+    motif_appelle("declaration_accident", motif)
+}
+
+/// Les motifs pour lesquels un signalement DSN ne nait pas (`sauf_motifs.codes`) : ceux que la DSN ne couvre pas.
+fn sauf_motifs(o: &Value) -> Vec<String> {
+    o.get("sauf_motifs").and_then(|s| s.get("codes")).and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default()
+}
+
+/// Un signalement d'arret (04) est-il du pour ce motif ? Non pour ceux que la DSN ne couvre pas
+/// (`signalement_arret.sauf_motifs`). La liste des arrets s'en sert pour ne pas dire « a signaler » ce qui ne se signale pas.
+pub fn signalement_du(motif: &str) -> R<bool> {
+    Ok(!sauf_motifs(&obligation(&*base()?, "signalement_arret")?).iter().any(|m| m == motif))
+}
+
+/// L'avertissement d'un signalement de nature `nature` (04 ou 05) dont le motif n'est pas couvert par la DSN
+/// (`sauf_motifs.avertissement`) : la norme l'admet, le moteur ne le refuse pas (regle 7), il dit que l'Assurance Maladie
+/// ne le traite pas et ce qui se fait a la place. `None` pour un motif couvert. Appele par `signalement::verifier`.
+pub fn avertissement_hors_dsn(nature: &str, motif: &str) -> Result<Option<String>, String> {
+    let cle = match nature {
+        crate::signalement::ARRET => "signalement_arret",
+        crate::signalement::REPRISE => "signalement_reprise",
+        _ => return Ok(None),
+    };
+    let n = json_en_cache(&dossier_du_code().join("obligations-base.json"))?;
+    let o = n.get("obligations").and_then(|o| o.get(cle)).ok_or_else(|| format!("obligations-base.json : l'obligation {} manque", repr(cle)))?;
+    if !sauf_motifs(o).iter().any(|m| m == motif) {
+        return Ok(None);
+    }
+    Ok(o["sauf_motifs"].get("avertissement").and_then(Value::as_str).filter(|t| !t.is_empty()).map(str::to_string))
 }
 
 /// Le code « oui » de la subrogation (`arrets-base.json`, S21.G00.60.004).
@@ -249,7 +292,7 @@ impl Suivi {
         // Une fiche qui ne dit plus rien s'en va.
         self.fiches.retain(|f| f.as_object().is_some_and(|o| o.keys().any(|k| k != "salarie" && k != "dernier_jour_travaille")));
         let doc = json!({
-            "_quoi": "Ce que la compagnie a dit des obligations de ses arrets de travail : le jour ou elle a connu l'arret ou l'accident, et la declaration d'accident du travail faite (hors DSN). Ecrit par les routes `arret-connaissance` et `accident-declare` (`atelier/sources/paie/src/obligations.rs`) ; les arrets eux-memes sont dans `AAAA-MM.json`.",
+            "_quoi": "Ce que la compagnie a dit des obligations de ses arrets de travail : le jour ou elle a connu l'arret ou l'accident, la declaration d'accident du travail faite et l'attestation de salaire faite (hors DSN, le deuil d'enfant). Ecrit par les routes `arret-connaissance`, `accident-declare` et `attestation-declare` (`atelier/sources/paie/src/obligations.rs`) ; les arrets eux-memes sont dans `AAAA-MM.json`.",
             "arrets": self.fiches,
         });
         crate::ecriture::ecrire_json(&chemin(ctx), &doc, 2).map_err(|m| erreur("OSError", m))
@@ -388,6 +431,16 @@ fn envoi(a: &Value, nature: &str) -> Option<Fait> {
     })
 }
 
+/// Ce que la compagnie a dit fait d'une obligation hors DSN (`champ` de sa fiche de suivi : `accident_declare`,
+/// `attestation_salaire`) : le jour, et ou (le libelle court du code de `o.ou`).
+fn dit_fait(fiche: &Value, champ: &str, o: &Value) -> Option<Fait> {
+    let v = fiche.get(champ).filter(|v| v.is_object())?;
+    let le = jour(v.get("le").unwrap_or(&Value::Null))?;
+    let ou = texte(v, "depot");
+    let libelle = o["ou"].as_array().and_then(|l| l.iter().find(|x| texte(x, "code") == ou)).map(|x| texte(x, "court")).unwrap_or(ou);
+    Some(Fait { le, comment: format!("dit par la compagnie : {}", libelle), detail: v.clone() })
+}
+
 /// Un signalement DSN (04 ou 05) : cinq jours ouvres sans subrogation, avec la mensuelle du mois avec.
 #[allow(clippy::too_many_arguments)]
 fn signalement_dsn(
@@ -448,18 +501,43 @@ pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) ->
         None => None,
     };
 
-    // LE SIGNALEMENT D'ARRET (04).
+    // LE SIGNALEMENT D'ARRET (04) : pas pour un motif que la DSN ne couvre pas (`sauf_motifs`).
     let o = obligation(&n, "signalement_arret")?;
-    match debut {
-        None => out.push(indetermine(squelette("signalement_arret", &o), "Le dernier jour travaillé de cet arrêt est illisible : le délai ne se compte pas.".into())),
-        Some(debut) => {
-            let depart = connaissance(&fiche, "connaissance_arret", "le jour où la compagnie a connu l'arrêt").unwrap_or(Depart {
-                jour: debut,
-                minute: None,
-                quoi: "le jour où la compagnie a connu l'arrêt".into(),
-                presume: Some(texte(&o, "connaissance_presumee")),
-            });
-            out.push(signalement_dsn(ctx, &mut cal, aujourdhui, "signalement_arret", &o, &subrogation, depart, debut, envoi(a, "04"))?);
+    if !sauf_motifs(&o).contains(&motif) {
+        match debut {
+            None => out.push(indetermine(squelette("signalement_arret", &o), "Le dernier jour travaillé de cet arrêt est illisible : le délai ne se compte pas.".into())),
+            Some(debut) => {
+                let depart = connaissance(&fiche, "connaissance_arret", "le jour où la compagnie a connu l'arrêt").unwrap_or(Depart {
+                    jour: debut,
+                    minute: None,
+                    quoi: "le jour où la compagnie a connu l'arrêt".into(),
+                    presume: Some(texte(&o, "connaissance_presumee")),
+                });
+                out.push(signalement_dsn(ctx, &mut cal, aujourdhui, "signalement_arret", &o, &subrogation, depart, debut, envoi(a, "04"))?);
+            }
+        }
+    }
+
+    // L'ATTESTATION DE SALAIRE HORS DSN (le deuil d'enfant) : des reception de l'avis d'arret, soit -- inference dite --
+    // le jour meme ou la compagnie connait l'arret.
+    let o = obligation(&n, "attestation_salaire")?;
+    if motifs_de(&o).contains(&motif) {
+        let mut m = squelette("attestation_salaire", &o);
+        match debut {
+            None => out.push(indetermine(m, "Le dernier jour travaillé de cet arrêt est illisible : le jour de l'attestation ne se compte pas.".into())),
+            Some(debut) => {
+                let d = &o["delai"];
+                let depart = connaissance(&fiche, "connaissance_arret", "le jour où la compagnie a connu l'arrêt").unwrap_or(Depart {
+                    jour: debut,
+                    minute: None,
+                    quoi: "le jour où la compagnie a connu l'arrêt".into(),
+                    presume: Some(texte(&o, "connaissance_presumee")),
+                });
+                let butoir = plus(depart.jour, entier(d, "jours")?)?;
+                let fait = dit_fait(&fiche, "attestation_salaire", &o);
+                conclure(&mut m, aujourdhui, Some(&depart), butoir, None, &texte(d, "dit"), fait);
+                out.push(Value::Object(m));
+            }
         }
     }
 
@@ -480,16 +558,7 @@ pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) ->
             None => out.push(indetermine(m, "La date de l'accident n'est pas saisie : les quarante-huit heures ne se comptent pas.".into())),
             Some(depart) => {
                 let (butoir, minute) = cal.heures_apres(depart.jour, depart.minute.unwrap_or(0), entier(d, "heures")?)?;
-                let declare = fiche.get("accident_declare").filter(|v| v.is_object());
-                let fait = match declare.and_then(|v| jour(v.get("le").unwrap_or(&Value::Null))) {
-                    Some(le) => {
-                        let v = declare.cloned().unwrap_or(Value::Null);
-                        let ou = texte(&v, "depot");
-                        let libelle = o["ou"].as_array().and_then(|l| l.iter().find(|x| texte(x, "code") == ou)).map(|x| texte(x, "court")).unwrap_or(ou);
-                        Some(Fait { le, comment: format!("dit par la compagnie : {}", libelle), detail: v })
-                    }
-                    None => None,
-                };
+                let fait = dit_fait(&fiche, "accident_declare", &o);
                 // LES SUITES : une fois declaree, les reserves motivees (R. 441-6) ; la feuille d'accident (L. 441-5).
                 let mut suites = Vec::new();
                 if let Some(r) = o["suites"].get("reserves") {
@@ -545,10 +614,11 @@ pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) ->
         }
     }
 
-    // LE SIGNALEMENT DE REPRISE ANTICIPEE (05) : seulement une reprise avant la fin previsionnelle.
+    // LE SIGNALEMENT DE REPRISE ANTICIPEE (05) : seulement une reprise avant la fin previsionnelle, et pas pour un motif que
+    // la DSN ne couvre pas (`sauf_motifs`).
     let o = obligation(&n, "signalement_reprise")?;
     if let (Some(rep), Some(fin)) = (jour(a.get("reprise").unwrap_or(&Value::Null)), jour(a.get("fin_previsionnelle").unwrap_or(&Value::Null))) {
-        if rep < fin {
+        if rep < fin && !sauf_motifs(&o).contains(&motif) {
             let depart = Depart { jour: rep, minute: None, quoi: "la reprise".into(), presume: None };
             out.push(signalement_dsn(ctx, &mut cal, aujourdhui, "signalement_reprise", &o, &subrogation, depart, rep, envoi(a, "05"))?);
         }
@@ -601,6 +671,7 @@ pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "arret-connaissance" => arret_connaissance(ctx, charge),
         "accident-declare" => accident_declare(ctx, charge),
+        "attestation-declare" => attestation_declare(ctx, charge),
         "arret-obligations" => arret_obligations(ctx, charge),
         autre => Err(erreur("ErreurOperation", format!("route inconnue : {}", autre))),
     }
@@ -702,41 +773,84 @@ fn arret_connaissance(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// faite, dite par la compagnie : le jour, ou (un code de `declaration_accident.ou`), et la reference qu'elle en a (le
 /// numero de l'accuse de net-entreprises, celui du recommande). Un `le` vide la retire.
 fn accident_declare(ctx: &Contexte, charge: &Value) -> R<Value> {
+    dire_faite(ctx, charge, &Faite {
+        obligation: "declaration_accident",
+        champ: "accident_declare",
+        connaissance: "connaissance_accident",
+        hors_motif: "n'est pas un accident du travail ou de trajet : il n'y a pas de declaration d'accident a dire faite",
+        quoi: "La declaration",
+        avant: "que la compagnie ait connu l'accident",
+        accident: true,
+    })
+}
+
+/// `attestation-declare` : `{salarie, dernier_jour, le, depot, heure?, reference?}` -- l'attestation de salaire pour les
+/// indemnites journalieres faite hors DSN (le deuil d'enfant, `attestation_salaire`), dite par la compagnie : le jour, ou
+/// (un code de `attestation_salaire.ou` : `net-entreprises-ecran`, `net-entreprises-edi`), et la reference de l'accuse.
+/// Un `le` vide la retire. Refuse un arret dont le motif ne l'appelle pas, un jour futur, un lieu inconnu, un jour avant la
+/// connaissance de l'arret saisie : rien n'est alors ecrit.
+fn attestation_declare(ctx: &Contexte, charge: &Value) -> R<Value> {
+    dire_faite(ctx, charge, &Faite {
+        obligation: "attestation_salaire",
+        champ: "attestation_salaire",
+        connaissance: "connaissance_arret",
+        hors_motif: "est couvert par la DSN : l'attestation de salaire passe par le signalement d'arret, il n'y a pas d'attestation hors DSN a dire faite",
+        quoi: "L'attestation",
+        avant: "que la compagnie ait connu l'arret",
+        accident: false,
+    })
+}
+
+/// Une obligation hors DSN que la compagnie dit faite : laquelle, ou elle se garde dans la fiche de suivi, et ce qui la
+/// borne.
+struct Faite {
+    obligation: &'static str,
+    champ: &'static str,
+    connaissance: &'static str,
+    hors_motif: &'static str,
+    quoi: &'static str,
+    avant: &'static str,
+    /// Bornee aussi par la date de l'accident (la declaration d'accident).
+    accident: bool,
+}
+
+fn dire_faite(ctx: &Contexte, charge: &Value, f: &Faite) -> R<Value> {
     let (cle, a) = l_arret(ctx, charge)?;
     let motif = texte(&a, "motif");
-    if !motif_appelle_la_declaration(&motif)? {
-        return Err(refus(format!(
-            "L'arret de {} (motif {}) n'est pas un accident du travail ou de trajet : il n'y a pas de declaration d'accident a dire faite. Rien n'est ecrit.",
-            cle, motif
-        )));
+    if !motif_appelle(f.obligation, &motif)? {
+        return Err(refus(format!("L'arret de {} (motif {}) {}. Rien n'est ecrit.", cle, motif, f.hors_motif)));
     }
-    let le = jour_saisi(ctx, requis(charge, "le")?, "La declaration")?;
+    let le = jour_saisi(ctx, requis(charge, "le")?, f.quoi)?;
     let valeur = match le {
         None => Value::Null,
         Some(le) => {
             let depot = en_texte(requis(charge, "depot")?);
-            let o = obligation(&*base()?, "declaration_accident")?;
+            let o = obligation(&*base()?, f.obligation)?;
             let codes: Vec<String> = o["ou"].as_array().map(|l| l.iter().map(|x| texte(x, "code")).collect()).unwrap_or_default();
             if !codes.contains(&depot) {
-                return Err(refus(format!("Ou la declaration a-t-elle ete faite ? {} n'est pas connu ; les lieux sont : {}. Rien n'est ecrit.", repr(&depot), codes.join(", "))));
+                return Err(refus(format!("Ou {} a-t-elle ete faite ? {} n'est pas connu ; les lieux sont : {}. Rien n'est ecrit.", f.quoi.to_lowercase(), repr(&depot), codes.join(", "))));
             }
             let fiche = Suivi::lire(ctx)?.de(&cle, &texte(&a, "dernier_jour_travaille"));
-            if let Some(c) = connaissance(&fiche, "connaissance_accident", "") {
+            if let Some(c) = connaissance(&fiche, f.connaissance, "") {
                 if le < c.jour {
                     return Err(refus(format!(
-                        "Declaree le {}, avant que la compagnie ait connu l'accident (le {}, saisi) : ce n'est pas possible. Rien n'est ecrit.",
+                        "{} faite le {}, avant {} (le {}, saisi) : ce n'est pas possible. Rien n'est ecrit.",
+                        f.quoi,
                         le.jj_mm_aaaa(),
+                        f.avant,
                         c.jour.jj_mm_aaaa()
                     )));
                 }
             }
-            if let Some(acc) = jour(a.get("date_accident").unwrap_or(&Value::Null)) {
-                if le < acc {
-                    return Err(refus(format!(
-                        "Declaree le {}, avant l'accident lui-meme (le {}) : ce n'est pas possible. Rien n'est ecrit.",
-                        le.jj_mm_aaaa(),
-                        acc.jj_mm_aaaa()
-                    )));
+            if f.accident {
+                if let Some(acc) = jour(a.get("date_accident").unwrap_or(&Value::Null)) {
+                    if le < acc {
+                        return Err(refus(format!(
+                            "Declaree le {}, avant l'accident lui-meme (le {}) : ce n'est pas possible. Rien n'est ecrit.",
+                            le.jj_mm_aaaa(),
+                            acc.jj_mm_aaaa()
+                        )));
+                    }
                 }
             }
             json!({
@@ -749,12 +863,12 @@ fn accident_declare(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
     };
     let mut suivi = Suivi::lire(ctx)?;
-    suivi.ecrire(ctx, &cle, &texte(&a, "dernier_jour_travaille"), "accident_declare", valeur)?;
+    suivi.ecrire(ctx, &cle, &texte(&a, "dernier_jour_travaille"), f.champ, valeur)?;
     reponse(ctx, &a)
 }
 
 /// `arret-obligations` : `{motif, dernier_jour, fin?, subrogation?, date_accident?, reprise?, connaissance_accident?,
-/// connaissance_heure?}` -- les obligations qu'un arret AINSI SAISI ferait naitre, avant d'etre enregistre (la boite de
+/// connaissance_heure?, connaissance_arret?}` -- les obligations qu'un arret AINSI SAISI ferait naitre, avant d'etre enregistre (la boite de
 /// saisie les montre). Rien n'est ecrit, rien n'est verifie de l'arret lui-meme (c'est `arret-enregistrer` qui refuse) :
 /// un champ vide ou illisible donne une obligation `indetermine`, qui dit pourquoi.
 fn arret_obligations(ctx: &Contexte, charge: &Value) -> R<Value> {
@@ -767,6 +881,9 @@ fn arret_obligations(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut fiche = json!({"salarie": "", "dernier_jour_travaille": champ("dernier_jour")});
     if !champ("connaissance_accident").trim().is_empty() {
         fiche["connaissance_accident"] = json!({"jour": champ("connaissance_accident"), "heure": champ("connaissance_heure")});
+    }
+    if !champ("connaissance_arret").trim().is_empty() {
+        fiche["connaissance_arret"] = json!({"jour": champ("connaissance_arret")});
     }
     let suivi = Suivi { fiches: vec![fiche] };
     Ok(json!({"obligations": de_l_arret(ctx, &a, &suivi, ctx.aujourdhui)?}))

@@ -8,6 +8,12 @@
 //! CSS R. 441-3 (`.../xml/R441-3.xml`) : la declaration d'accident « dans les quarante-huit heures non compris les dimanches
 //! et jours feries » ; L. 441-2 : de « tout accident dont il a eu connaissance » ; R. 441-6 : les reserves, dix jours
 //! francs. L. 461-5 et R. 461-5 : la maladie professionnelle se declare par la victime, en quinze jours.
+//! Le deuil d'enfant (motif 19) : la page du compte entreprise de net-entreprises
+//! (`atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt`) -- la DSN ne couvre
+//! pas « a ce jour » les conges pour deuil ; l'attestation de salaire (DSIJ) est « obligatoire pour tout arret de travail, quel
+//! qu'en soit le motif », deuil d'enfant compris, « des reception de l'avis d'arret de travail », sur net-entreprises (ecran
+//! ou EDI). CSS L. 331-9 (`.../code-de-la-securite-sociale/xml/L331-9.xml`) : les indemnites journalieres du conge de
+//! deuil de C. trav. L. 3142-1-1 (`.../code-du-travail/xml/L3142-1-1.xml`).
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, refus, reussi, route};
 use serde_json::{json, Value};
@@ -242,4 +248,110 @@ fn la_fin_d_un_cdd_se_signale_en_cinq_jours_ouvres() {
     assert_eq!((o["etat"].as_str(), o["fait"]["le"].as_str(), o["dans_les_temps"].as_bool()), (Some("fait"), Some("2026-08-26"), Some(true)), "{}", o);
     let rappels = reussi(&route(c, "rappels", json!({}), "2026-08-28"))["rappels"].clone();
     assert!(rappels.as_array().unwrap().iter().all(|x| x["cle"] != json!("fin-contrat:LEMERCIER:2026-08-20")), "le rappel se tait");
+}
+
+// ---------------------------------------------------------- le deuil d'enfant
+
+/// Motif 19 : la DSN ne couvre pas le conge de deuil (net-entreprises) -- ni signalement d'arret, ni de reprise anticipee ;
+/// a leur place, l'attestation de salaire hors DSN, due « des reception de l'avis d'arret », soit -- inference dite -- le
+/// jour meme ou la compagnie connait l'arret (presume au premier jour, le vendredi 10/07/2026 ; saisi, le lundi 13).
+#[test]
+fn le_deuil_fait_naitre_l_attestation_de_salaire_et_pas_le_signalement() {
+    let c = &compagnie("deuil");
+    arret(c, "2026-07-09", "19", "02", None, Some("2026-07-15"), "2026-07-17");
+    let o = obligations(c, "2026-07-10");
+    assert_eq!(cles(&o), ["attestation_salaire"], "ni signalement d'arret, ni de reprise anticipee");
+    let at = la(&o, "attestation_salaire").clone();
+    assert_eq!((at["depart"]["jour"].as_str(), at["depart"]["saisi"].as_bool()), (Some("2026-07-10"), Some(false)), "{}", at);
+    assert_eq!((at["butoir"].as_str(), at["etat"].as_str(), at["jours_restants"].as_i64()), (Some("2026-07-10"), Some("a_faire"), Some(0)), "{}", at);
+    assert_eq!(at["qui"], json!("employeur"));
+    assert!(at["textes"].to_string().contains("accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt"), "{}", at);
+    assert!(at["textes"].to_string().contains("xml/L331-9.xml"), "{}", at);
+    assert!(at["inferences"].to_string().contains("inférence"), "« des reception » n'est pas un delai chiffre : le moteur le dit");
+    let ou: Vec<&str> = at["ou"].as_array().unwrap().iter().map(|x| x["code"].as_str().unwrap()).collect();
+    assert_eq!(ou, ["net-entreprises-ecran", "net-entreprises-edi"]);
+    assert_eq!(la(&obligations(c, "2026-07-13"), "attestation_salaire")["etat"], json!("en_retard"));
+
+    // La connaissance saisie (le lundi 13) : c'est ce jour-la.
+    reussi(&route(c, "arret-connaissance", json!({"salarie": "BRIOCHE", "dernier_jour": "2026-07-09", "de": "arret", "jour": "2026-07-13"}), "2026-07-13"));
+    let at = la(&obligations(c, "2026-07-13"), "attestation_salaire").clone();
+    assert_eq!((at["depart"]["saisi"].as_bool(), at["butoir"].as_str(), at["etat"].as_str()), (Some(true), Some("2026-07-13"), Some("a_faire")), "{}", at);
+
+    // La liste ne le dit pas « a signaler ».
+    let r = reussi(&route(c, "arrets", json!({}), "2026-07-13")).clone();
+    assert_eq!((r["arrets"][0]["signalement_du"].as_bool(), r["arrets"][0]["etat"].as_str()), (Some(false), Some("sans signalement")), "{}", r["arrets"][0]);
+    assert!(r["a_signaler"].as_array().unwrap().is_empty());
+
+    // Ce qu'un arret en cours de saisie ferait naitre : la meme chose.
+    let r = route(c, "arret-obligations", json!({"motif": "19", "dernier_jour": "2026-07-09", "subrogation": "02"}), "2026-07-10");
+    assert_eq!(cles(reussi(&r)["obligations"].as_array().unwrap()), ["attestation_salaire"]);
+    // Une maladie, elle, n'appelle pas l'attestation hors DSN : le signalement la porte.
+    let r = route(c, "arret-obligations", json!({"motif": "01", "dernier_jour": "2026-07-09", "subrogation": "02"}), "2026-07-10");
+    assert_eq!(cles(reussi(&r)["obligations"].as_array().unwrap()), ["signalement_arret"]);
+}
+
+/// L'attestation dite faite (`attestation-declare`) : gardee dans `imprevus/obligations.json`, relue par la liste, « fait » ;
+/// retiree, l'obligation redevient a faire et la fiche ne garde que ce qu'elle dit encore.
+#[test]
+fn l_attestation_de_salaire_dite_faite_est_retenue_et_se_retire() {
+    let c = &compagnie("attestation-faite");
+    arret(c, "2026-07-09", "19", "02", None, None, "2026-07-17");
+    reussi(&route(c, "arret-connaissance", json!({"salarie": "BRIOCHE", "dernier_jour": "2026-07-09", "de": "arret", "jour": "2026-07-13"}), "2026-07-13"));
+    let dire = json!({"salarie": "Brioche", "dernier_jour": "2026-07-09", "le": "2026-07-13", "depot": "net-entreprises-ecran", "reference": "DSIJ 2026-0713-01"});
+    let r = route(c, "attestation-declare", dire, "2026-07-14");
+    assert_eq!(la(reussi(&r)["obligations"].as_array().unwrap(), "attestation_salaire")["etat"], json!("fait"), "{}", r);
+    let f = lire(c, "imprevus/obligations.json");
+    assert_eq!(f["arrets"][0]["attestation_salaire"]["le"], json!("2026-07-13"));
+    assert_eq!(f["arrets"][0]["attestation_salaire"]["depot"], json!("net-entreprises-ecran"));
+    let at = la(&obligations(c, "2026-07-20"), "attestation_salaire").clone();
+    assert_eq!((at["etat"].as_str(), at["dans_les_temps"].as_bool()), (Some("fait"), Some(true)), "{}", at);
+    assert_eq!(at["fait"]["reference"], json!("DSIJ 2026-0713-01"));
+    assert!(at["phrase"].as_str().unwrap().contains("saisie à l'écran"), "{}", at);
+    // Le fichier des arrets lui-meme n'est pas touche.
+    assert!(lire(c, "imprevus/2026-07.json")["imprevus"][0].get("attestation_salaire").is_none());
+
+    reussi(&route(c, "attestation-declare", json!({"salarie": "Brioche", "dernier_jour": "2026-07-09", "le": ""}), "2026-07-14"));
+    assert_eq!(la(&obligations(c, "2026-07-13"), "attestation_salaire")["etat"], json!("a_faire"));
+    let f = lire(c, "imprevus/obligations.json");
+    assert!(f["arrets"][0].get("attestation_salaire").is_none() && f["arrets"][0].get("connaissance_arret").is_some(), "{}", f);
+}
+
+/// Ce qui ne se dit pas n'est pas ecrit : un jour futur ou illisible, un lieu que l'attestation ne connait pas (le courrier
+/// est celui de la declaration d'accident), un arret inconnu, un jour avant la connaissance saisie de l'arret, un arret
+/// que la DSN couvre (maladie, accident).
+#[test]
+fn une_attestation_impossible_n_ecrit_rien() {
+    let c = &compagnie("attestation-refus");
+    arret(c, "2026-07-09", "19", "02", None, None, "2026-07-17");
+    let base = json!({"salarie": "Brioche", "dernier_jour": "2026-07-09", "le": "2026-07-13", "depot": "net-entreprises-edi"});
+    let avec = |k: &str, v: Value| {
+        let mut b = base.clone();
+        b[k] = v;
+        b
+    };
+    for (nom, charge) in [
+        ("dans le futur", avec("le", json!("2026-07-15"))),
+        ("lieu inconnu", avec("depot", json!("courrier"))),
+        ("arret inconnu", avec("dernier_jour", json!("2026-07-08"))),
+        ("date illisible", avec("le", json!("le 13 juillet"))),
+    ] {
+        assert!(!refus(&route(c, "attestation-declare", charge, "2026-07-14")).1.is_empty(), "{}", nom);
+    }
+    assert!(!c.join("imprevus/obligations.json").exists(), "un refus ne laisse aucun fichier");
+
+    reussi(&route(c, "arret-connaissance", json!({"salarie": "BRIOCHE", "dernier_jour": "2026-07-09", "de": "arret", "jour": "2026-07-13"}), "2026-07-14"));
+    let avant = std::fs::read(c.join("imprevus/obligations.json")).unwrap();
+    assert!(refus(&route(c, "attestation-declare", avec("le", json!("2026-07-10")), "2026-07-14")).1.contains("avant que la compagnie ait connu l'arret"));
+    assert_eq!(std::fs::read(c.join("imprevus/obligations.json")).unwrap(), avant, "rien n'est ecrit");
+
+    // Une maladie (01), un accident (04) : la DSN les couvre, il n'y a pas d'attestation hors DSN a dire.
+    for (motif, accident) in [("01", None), ("04", Some("2026-07-09"))] {
+        arret(c, "2026-07-09", motif, "02", accident, None, "2026-07-17");
+        assert!(!cles(&obligations(c, "2026-07-14")).contains(&"attestation_salaire"), "motif {}", motif);
+        assert!(refus(&route(c, "attestation-declare", base.clone(), "2026-07-14")).1.contains("couvert par la DSN"), "motif {}", motif);
+        assert_eq!(std::fs::read(c.join("imprevus/obligations.json")).unwrap(), avant, "motif {} : rien n'est ecrit", motif);
+    }
+    // Et le deuil n'est pas un accident : pas de declaration d'accident a dire.
+    arret(c, "2026-07-09", "19", "02", None, None, "2026-07-17");
+    assert!(refus(&route(c, "accident-declare", json!({"salarie": "Brioche", "dernier_jour": "2026-07-09", "le": "2026-07-13", "depot": "net-entreprises"}), "2026-07-14")).1.contains("n'est pas un accident"));
 }
