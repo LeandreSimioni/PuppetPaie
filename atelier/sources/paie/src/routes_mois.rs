@@ -243,17 +243,6 @@ fn radical(nom: &str) -> &str {
     }
 }
 
-/// `date_limite_dsn(mois, echeance)` : le jour d'echeance du mois suivant.
-pub(crate) fn date_limite_dsn(mois: &str, echeance: u32) -> R<Jour> {
-    // `mois[:4]` et `mois[5:7]` de Python : une tranche trop courte rend ce qu'il y a (ou rien).
-    let nombre = |de: usize, a: usize| -> R<i32> {
-        let t: String = mois.chars().skip(de).take(a - de).collect();
-        t.trim().parse::<i32>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(&t))))
-    };
-    let (an, mo) = (nombre(0, 4)?, nombre(5, 7)?);
-    let (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };
-    Jour::nouveau(an, mo as u32, echeance).ok_or_else(|| erreur("ValueError", crate::date::date_impossible(an, mo as i64, echeance)))
-}
 
 /// Ce qu'une saisie chargee sans calcul porte : le fichier lu, et une
 /// « embauche » par engagement (le salarie, le spectacle, les dates, la nature
@@ -693,10 +682,11 @@ impl<'a> Moteur<'a> {
         }
     }
 
-    /// `limite` : le dernier jour ou un annule-et-remplace est admis.
+    /// `limite` : le dernier jour ou un annule-et-remplace est admis, jusqu'a minuit : la veille de l'echeance de depot
+    /// (`echeance_dsn::Echeance::veille`, reportee comme elle).
     pub(crate) fn limite(&self, mois: &str) -> R<Jour> {
-        let echeance = self.ctx.echeance_dsn().map_err(plain)?;
-        date_limite_dsn(mois, echeance)?.plus_jours(-1).map_err(plain)
+        let e = crate::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
+        e.veille().map_err(plain)
     }
 
     /// `_ordre_de_la_ligne` : le rang d'un depot reel du journal.
@@ -1047,6 +1037,9 @@ impl<'a> Moteur<'a> {
                 }
             }
         }
+        // L'echeance de depot du mois (`echeance_dsn` : le 5 ou le 15, reporte au jour ouvre, a midi).
+        let echeance = crate::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
+        b.insert("echeance_depot".into(), echeance.en_json());
         out.insert(DSN.into(), Value::Object(b));
         Ok(Value::Object(out))
     }
@@ -1313,12 +1306,6 @@ mod tests {
         for (entree, attendu) in [("620", "620.00"), ("620.0", "620.00"), ("1234.5", "1234.50"), ("0", "0.00"), ("-3.2", "-3.20"), ("2.675", "2.68"), ("2.665", "2.66")] {
             assert_eq!(brut_en_texte(&json!(entree)).unwrap(), attendu, "{}", entree);
         }
-    }
-
-    #[test]
-    fn la_date_limite_de_la_dsn_est_au_mois_suivant() {
-        assert_eq!(date_limite_dsn("2026-08", 15).unwrap().iso(), "2026-09-15");
-        assert_eq!(date_limite_dsn("2026-12", 5).unwrap().iso(), "2027-01-05");
     }
 
     #[test]

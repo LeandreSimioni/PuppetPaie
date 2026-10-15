@@ -193,13 +193,6 @@ fn libelle(mois: &str) -> String {
     format!("{} {}", MOIS_FR[n.clamp(1, 12) - 1], &mois[..4])
 }
 
-/// `date_limite_dsn` : le jour d'echeance du mois suivant.
-pub(crate) fn date_limite_dsn(mois: &str, echeance: u32) -> R<Jour> {
-    let (an, mo): (i32, u32) = (mois[..4].parse().unwrap_or(0), mois[5..7].parse().unwrap_or(1));
-    let (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };
-    Jour::nouveau(an, mo, echeance).ok_or_else(|| crate::date::date_impossible(an, mo, echeance).into())
-}
-
 fn mois_de(j: &Jour) -> String {
     format!("{:04}-{:02}", j.an, j.mois)
 }
@@ -255,6 +248,8 @@ struct Rappel {
     salarie: Option<String>,
     jour: Option<String>,
     a_saisir: Vec<String>,
+    /// Le rappel d'une DSN : son echeance de depot (`echeance_dsn::Echeance::en_json`) ; `null` pour les autres.
+    echeance_depot: Option<Value>,
 }
 
 impl Rappel {
@@ -276,6 +271,7 @@ impl Rappel {
             salarie: None,
             jour: None,
             a_saisir: Vec::new(),
+            echeance_depot: None,
         }
     }
 
@@ -289,6 +285,7 @@ impl Rappel {
             "paies": self.paies, "validees": self.validees,
             "spectacles": self.spectacles.iter().map(brut_valeur).collect::<Vec<_>>(),
             "salarie": opt(&self.salarie), "jour": opt(&self.jour), "a_saisir": self.a_saisir,
+            "echeance_depot": self.echeance_depot,
         })
     }
 }
@@ -636,10 +633,12 @@ fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
         format!("Avez-vous bien fini les paies de {} ?", lib),
     );
     r.mois = Some(mois.to_string());
-    // L'echeance : `Contexte.echeance_dsn`, deduite de l'effectif (le 15 du mois
-    // suivant sous 50 salaries). Passee, ce n'est plus un rappel, c'est un
-    // retard -- et on le dit.
-    r.en_retard = st.aujourdhui > date_limite_dsn(mois, st.ctx.echeance_dsn()?)?;
+    // L'echeance : `echeance_dsn`, le 5 ou le 15 du mois suivant selon l'effectif, reporte au jour ouvre suivant un
+    // samedi, un dimanche ou un jour ferie (R. 133-14, I), a midi. Passee, ce n'est plus un rappel, c'est un retard --
+    // et on le dit.
+    let echeance = crate::echeance_dsn::de_la_compagnie(st.ctx, mois)?;
+    r.en_retard = st.aujourdhui > echeance.jour;
+    r.echeance_depot = Some(echeance.en_json());
 
     let saisie = st.racine().join("paies").join(format!("{}.json", mois));
     if !saisie.exists() {

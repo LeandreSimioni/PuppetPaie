@@ -110,20 +110,6 @@ fn entier(t: &str) -> R<i64> {
     t.trim().parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr(t))))
 }
 
-/// `date_limite_dsn(mois, echeance)` : le jour d'echeance du mois suivant, avec
-/// les refus de `datetime.date` (mois, annee ou jour hors du calendrier).
-fn date_limite_dsn(mois: &str, echeance: u32) -> R<Jour> {
-    let (an, mo) = (entier(&mois.chars().take(4).collect::<String>())?, entier(&mois.chars().skip(5).take(2).collect::<String>())?);
-    let (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };
-    if !(1..=12).contains(&mo) {
-        return Err(erreur("ValueError", crate::date::mois_impossible(mo)));
-    }
-    if !(1..=9999).contains(&an) {
-        return Err(erreur("ValueError", crate::date::annee_impossible(an)));
-    }
-    Jour::nouveau(an as i32, mo as u32, echeance).ok_or_else(|| erreur("ValueError", crate::date::jour_impossible(an as i64, mo as i64, echeance)))
-}
-
 /// Refuse `c` quand ce n'est pas un objet, qu'il porte une cle inconnue ou qu'il oublie un champ obligatoire.
 fn construire(classe: &str, c: &Value, champs: &[&str], requis: usize) -> R<()> {
     let Value::Object(m) = c else {
@@ -566,14 +552,14 @@ fn corrections_par_mois(ctx: &Contexte) -> R<Vec<Value>> {
 /// `etat_mois` : ce mois se corrige-t-il par regularisation, et sinon, quoi faire.
 fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
     let e = m.dsn_du_mois(mois)?;
-    let echeance = ctx.echeance_dsn().map_err(plain)?;
-    let limite = date_limite_dsn(mois, echeance)?;
+    let echeance = crate::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
+    let limite = echeance.jour;
     let passee = ctx.aujourdhui > limite;
     let deposee = vrai(&e);
     let drapeau = |k: &str| -> R<bool> { Ok(deposee && vrai(get(&e, k)?)) };
     let (partie_passee, refusee) = (drapeau("passee")?, drapeau("refusee")?);
-    // `_remplacement.limite` : la veille de l'echeance, a minuit.
-    let veille = limite.plus_jours(-1).map_err(plain)?;
+    // `_remplacement.limite` : la veille de l'echeance (reportee), a minuit.
+    let veille = echeance.veille().map_err(plain)?;
     let mut regularisable = false;
     let raison = if !deposee {
         let retard = if passee { format!(" (en retard : `paie mois paies/{}.json --forcer`)", mois) } else { String::new() };
@@ -600,7 +586,7 @@ fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
     };
     Ok(json!({
         "mois": mois, "deposee": deposee, "passee": partie_passee, "refusee": refusee,
-        "echeance": limite.iso(), "echeance_passee": passee,
+        "echeance": limite.iso(), "echeance_passee": passee, "echeance_depot": echeance.en_json(),
         "mois_courant": ctx.aujourdhui.mois_iso(),
         "regularisable": regularisable, "raison": raison,
     }))

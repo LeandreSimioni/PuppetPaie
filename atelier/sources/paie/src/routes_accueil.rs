@@ -448,8 +448,8 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
     let mut out = Vec::new();
     for (nom, noms) in mois {
         let e = m.dsn_du_mois(nom)?;
-        let echeance = ctx.echeance_dsn().map_err(plain)?;
-        let limite = crate::routes_mois::date_limite_dsn(nom, echeance)?;
+        let echeance = crate::echeance_dsn::de_la_compagnie(ctx, nom).map_err(|m| erreur("ValueError", m))?;
+        let limite = echeance.jour;
         let en_retard = ctx.aujourdhui.ordinal() > limite.ordinal();
         let drapeau = |k: &str| e.get(k).is_some_and(vrai);
         let etat: Option<&str> = if vrai(&e) && drapeau("refusee") {
@@ -471,6 +471,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             "mois": nom, "produit": !noms.is_empty(), "dsn": etat,
             "depose_le": if vrai(&e) { e.get("quand").cloned().unwrap_or(Value::Null) } else { Value::Null },
             "echeance": limite.iso(),
+            "echeance_depot": echeance.en_json(),
             // Deposee, passee, et l'echeance derriere : la correction part dans
             // la DSN du mois courant.
             "corrigeable": vrai(&e) && !drapeau("refusee") && en_retard,

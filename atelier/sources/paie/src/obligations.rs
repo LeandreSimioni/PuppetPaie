@@ -344,6 +344,7 @@ fn squelette(cle: &str, o: &Value) -> Map<String, Value> {
 fn conclure(m: &mut Map<String, Value>, aujourdhui: Jour, depart: Option<&Depart>, butoir: Jour, butoir_minute: Option<u32>, delai: &str, fait: Option<Fait>) {
     let quand_butoir = match butoir_minute {
         Some(1440) => format!("le {}, jusqu'à minuit", lisible(&butoir)),
+        Some(720) => format!("le {} à midi", lisible(&butoir)),
         Some(mn) => format!("le {} à {}", lisible(&butoir), heure_lisible(mn)),
         None => format!("le {}", lisible(&butoir)),
     };
@@ -463,11 +464,16 @@ fn signalement_dsn(
     }
     if en_texte(subrogation) == code_subrogation_oui()? {
         let d = &o["delai_avec_subrogation"];
-        let butoir = crate::routes_mois::date_limite_dsn(&evenement.mois_iso(), ctx.echeance_dsn().map_err(|m| erreur("ValueError", m))?)?;
+        // SUBROGE, la date butoir est l'echeance de la DSN mensuelle du mois de l'evenement (R. 133-14, II, premier
+        // alinea), telle que `echeance_dsn` la donne : reportee au jour ouvre suivant un samedi, un dimanche ou un ferie
+        // (R. 133-14, I), a midi (cahier technique § 1.4.2). INFERENCE : le report de la mensuelle vaut pour le signalement
+        // qui part avec elle (le texte du report parle de « la declaration sociale nominative » sans distinguer).
+        let echeance = crate::echeance_dsn::de_la_compagnie(ctx, &evenement.mois_iso()).map_err(|m| erreur("ValueError", m))?;
         m.insert("subrogation".into(), json!(true));
-        // SUBROGE, la connaissance ne compte pas : le delai court du mois de l'evenement (R. 133-14, II, premier alinea).
+        m.insert("echeance_dsn".into(), echeance.en_json());
+        // La connaissance ne compte pas : le delai court du mois de l'evenement.
         let ev = Depart { jour: evenement, minute: None, quoi: "le jour de l'événement (sa DSN mensuelle est celle de son mois)".into(), presume: None };
-        conclure(&mut m, aujourdhui, Some(&ev), butoir, None, &texte(d, "dit"), fait);
+        conclure(&mut m, aujourdhui, Some(&ev), echeance.jour, Some(crate::echeance_dsn::MINUTE_LIMITE), &texte(d, "dit"), fait);
     } else {
         let d = &o["delai_sans_subrogation"];
         let butoir = cal.jours_ouvres_apres(depart.jour, entier(d, "jours_ouvres")?)?;

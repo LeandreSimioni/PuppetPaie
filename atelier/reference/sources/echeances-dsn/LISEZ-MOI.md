@@ -2,8 +2,9 @@
 
 La question : quand une échéance de DSN tombe un samedi, un dimanche ou un jour férié, est-elle reportée, et à quand ? Et
 ses voisines : le « jour ouvré » des signalements, les quarante-huit heures de la déclaration d'accident du travail. Le
-raisonnement est dans `RAPPORT-20261015.md` ; ce fichier dit ce que chaque pièce est et ce qu'on y lit. **Aucune règle
-n'entre dans le moteur par ce dossier tant qu'une décision de Léandre ne l'a pas retenue** : c'est une recherche.
+raisonnement est dans `RAPPORT-20261015.md` ; ce fichier dit ce que chaque pièce est, ce qu'on y lit, et où le moteur
+s'en sert. Les textes tranchent (Léandre, 15/10/2026) : le report de l'échéance mensuelle est entré dans le moteur le jour
+même (« Où le moteur s'en sert »).
 
 ## Ce qui est déposé ici
 
@@ -51,6 +52,29 @@ La charge entière de `codes.droit.org` (1,8 Mo, non déposée) avait pour SHA-2
 
 ## Où le moteur s'en sert
 
-Rien encore, par construction. Les questions viennent de `atelier/sources/paie/src/obligations.rs`
-(`Calendrier::jours_ouvres_apres`, `Calendrier::heures_apres`) et de `routes_mois.rs` (`date_limite_dsn`, qui prend le 5 ou
-le 15 sans report).
+- **`atelier/sources/paie/src/echeance_dsn.rs`**, le seul endroit qui donne l'échéance de dépôt d'une DSN mensuelle :
+  le 5 ou le 15 du mois suivant (R. 243-6, II ; le choix est `Contexte::echeance_dsn`, l'effectif), **reporté au premier
+  jour ouvré suivant** un samedi, un dimanche ou une fête légale (R. 133-14, I ; le calendrier de net-entreprises pour le
+  samedi), **à midi** (cahier technique § 1.4.2). Ses inférences, écrites dans le module et rendues dans le champ
+  `inference` de chaque réponse : « non ouvré » se lit sur le calendrier du point de dépôt (samedi, dimanche, les onze
+  fêtes légales de `feries::feries`), pas sur les fériés chômés de la compagnie ; « jour ouvrable suivant » se lit
+  « premier jour ouvré » (un vendredi férié reporte au lundi) ; la veille de l'annule-et-remplace est celle de l'échéance
+  reportée.
+- Ses appelants : l'état du mois et l'annule-et-remplace (`routes_mois.rs`, `Moteur::limite`, et par lui `produire_mois.rs`,
+  `depot_acte.rs`, `routes_regularisation.rs`), les régularisations (`routes_listes.rs`), le bilan des mois
+  (`routes_accueil.rs`), l'échéancier (`routes_saisie.rs`, `logiciel/donnees/echeancier-base.json`), les rappels
+  (`routes_ouverture.rs`), les réveils du filet (`filet.rs`), le mois hors délai (`routes_saisie.rs`, `avenant.rs`),
+  l'horloge des compagnies fictives (`horloge.rs`) et la date butoir d'un **signalement d'arrêt subrogé**
+  (`obligations.rs`, `signalement_dsn` : R. 133-14, II, premier alinéa, la DSN du mois de l'événement, et son report).
+  Les routes rendent, à côté de leurs champs, `echeance_depot` (`echeance_dsn` sur une obligation) : le jour, `heure`
+  (`12:00`), la date `nominale`, `reportee`, `pourquoi`, les `textes` et l'`inference`.
+- **Ce qui n'en dépend pas** : la date de paiement du bloc 20 (`S21.G00.20.011`, `dsn.rs`, `echeance_mois_suivant`) reste
+  le 5 ou le 15 de R. 243-6, qui ne prévoit pas de report ; aucun texte déposé ne dit qu'un prélèvement se reporte.
+- Les cinq jours ouvrés des signalements non subrogés (`obligations.rs`, `Calendrier::jours_ouvres_apres`) et les
+  quarante-huit heures de l'accident (`Calendrier::heures_apres`) ne passent pas par ce report : les premiers sont déjà
+  comptés en jours ouvrés, les seconds excluent d'eux-mêmes dimanches et fériés (R. 441-3).
+- Les tests : `atelier/sources/paie/tests/calcul/echeance_dsn.rs` (la règle) et `tests/routes/echeance_dsn.rs` (ce que
+  les routes rendent).
+- Reste ouvert (`RAPPORT-20261015.md`, « Ce qui reste ouvert ») : le vendredi férié (inférence : lundi), le calendrier
+  de qui « non ouvré » parle (inférence : le point de dépôt), la veille de l'annule-et-remplace quand l'échéance est
+  reportée.
