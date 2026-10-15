@@ -351,7 +351,8 @@ function pastilleSort(sort) {
    poste) : c'est elle qui pose `window.pywebview` (la cale de
    `interface/mod.rs`, avant le premier script) et qui sait la route
    `ouvrir-import` (`interface/api.rs`). Sans elle, le bouton n'apparaît pas. */
-const fenetreDuPoste = () => !!(window.pywebview && window.pywebview.api);
+// Dans la fenêtre PuppetPaie (Tauri, `cadre.js`), et non dans un navigateur : le poste peut ouvrir son dossier.
+const fenetreDuPoste = () => !!window.fenetrePuppetPaie;
 
 /* REPRENDRE L'HISTORIQUE (24/09/2026 ; lot G2, 10/10/2026, Léandre : « une
    logique simple : ils mettent tout dans import/, ou ils choisissent un
