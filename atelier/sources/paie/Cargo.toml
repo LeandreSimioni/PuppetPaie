@@ -68,6 +68,9 @@ rustls-platform-verifier = "0.7"
 # La mise a jour (`maj.rs`, lot J4) : la signature Ed25519 de l'editeur, et l'archive zip (lecture et ecriture).
 ed25519-dalek = { version = "2", default-features = false, features = ["std", "zeroize"] }
 zip = { version = "2", default-features = false, features = ["deflate"] }
+# La forme composee (NFC) des releves de l'atelier (`extraire/`, `unicodedata.normalize("NFC")` de l'ancien Python) : la
+# normalisation d'ICU4X, deja liee (`lettre` -> `idna`), avec ses seules donnees compilees.
+icu_normalizer = { version = "2", default-features = false, features = ["compiled_data"] }
 
 # La saisie du mot de passe SANS ECHO dans la console de Windows (`demande.rs`, le canal « terminal ») : l'API de la
 # console (CONIN$ / CONOUT$, mode sans echo, UTF-16) est celle de cette petite bibliotheque entretenue ; sous Unix le
