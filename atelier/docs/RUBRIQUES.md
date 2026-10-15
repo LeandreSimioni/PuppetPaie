@@ -52,7 +52,7 @@ pour que personne ne recrée la colonne de CoolPaie en croyant combler un
 manque. Leur colonne `jours` n'était pas une règle : c'était une supposition
 sur une donnée qu'ils ne demandaient pas, avec quatre valeurs incohérentes
 pour la même notion. Le détail est dans
-`prive/reference/anatomie-rubrique-coolpaie.md`.
+`reference-privee/anatomie-rubrique-coolpaie.md (relevé sur une compagnie réelle, pièce hors du dépôt public : dépôt privé)`.
 
 ---
 
@@ -365,7 +365,7 @@ catalogue n'en dépend pas.
 
 **La correspondance complète des codes DSN.** Cinq rubriques de CoolPaie
 seulement portaient un code, et ces cinq-là sont adossées à `S21.G00.54.001`
-de la norme, valeur par valeur (voir `anatomie-rubrique-coolpaie.md`). Les
+de la norme, valeur par valeur (voir `reference-privee/anatomie-rubrique-coolpaie.md` : relevé sur une compagnie réelle, pièce hors du dépôt public, dépôt privé). Les
 autres alimentent le brut, déclaré globalement. La correspondance pour une
 rubrique **neuve** reste à établir depuis NEODeS, et c'est le §5 qui dit
 pourquoi ça ne presse pas encore.

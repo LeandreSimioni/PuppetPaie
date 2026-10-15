@@ -61,8 +61,9 @@ contrat.py bulletin.py  dpae.py     aem.py       dsn.py    conges_spectacles.py
 \* Plus d'AEM produite depuis le 01/06/2026 (100 % DSN, France Travail édite
 l'attestation lui-même — `moteur aer`) ; `aem.py` reste pour relire l'archive
 2021-2026 et pour le rejeu. La source : le courriel de France Travail du
-28/05/2026 à la compagnie (`atelier/reference/sources/francetravail-100-dsn/
-francetravail-courriel-fin-phase-pilote-100-dsn-20260528.pdf`) — fin des AEM,
+28/05/2026 à la compagnie (`reference-privee/sources/francetravail-100-dsn/
+francetravail-courriel-fin-phase-pilote-100-dsn-20260528.pdf` : relevé sur une
+compagnie réelle, pièce hors du dépôt public, dépôt privé) — fin des AEM,
 AE Cinéma Spectacle remise au salarié, `S21.G00.40.025` vide ; la date vaut
 pour cette compagnie, une autre reçoit la sienne.
 
@@ -186,7 +187,7 @@ datée, vérifiable**. CoolPaie ne sert qu'à vérifier.
   40 % —, `L242-1` perdant un alinéa sans que son 7°, le seul dont le moteur
   dépende, bouge d'un mot.
 
-Ce que la confrontation à CoolPaie a montré (`prive/reference/professions-coolpaie.md`) :
+Ce que la confrontation à CoolPaie a montré (`reference-privee/professions-coolpaie.md (relevé sur une compagnie réelle, pièce hors du dépôt public : dépôt privé)`) :
 les 51 codes PE concordent ; CoolPaie met l'accessoiriste en PCS `637d`,
 l'Insee dit `637c` ; sa colonne « abat. » n'est pas la DFS réglementaire.
 
@@ -1218,7 +1219,7 @@ travail). Ces zones viennent du gabarit et ne sont jamais réécrites.
 
 **Niveau de preuve — plus faible qu'ailleurs, à savoir.** CoolPaie n'a laissé
 qu'**un seul** fichier DPAE dans tout le dossier
-(`export/TEMP/CCoU_280826_15h12m44s_DUE_TEL.txt`, 6 enregistrements du
+(relevé sur une compagnie réelle, pièce hors du dépôt public : dépôt privé ; 6 enregistrements du
 28/08/2026, deux salariés × trois contrats). Les 6 sont reconstitués octet pour
 octet, et l'audit des zones montre que tout segment non vide est soit un champ
 identifié, soit une donnée d'entreprise stable. Mais aucune variation n'a pu

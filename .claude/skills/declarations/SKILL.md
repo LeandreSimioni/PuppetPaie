@@ -56,7 +56,7 @@ banc d'essai.
   (`depot-dsn --test`) : c'est le validateur qui fait foi — la brique de
   contrôle officielle, à jour — et il détecte ce que le moteur ne voit pas.
   DSN-Val (l'outil local) n'est pas installé et ne le sera pas : 200 Mo + Java
-  pour le même moteur (`prive/reference/norme-dsn/LISEZMOI.md`).
+  pour le même moteur (`atelier/reference/norme-dsn/LISEZMOI.md`).
 - **Quand** : le 15 du mois suivant ; le 5 à partir de cinquante salariés
   cinq ans de suite. Déduit de l'effectif calculé par l'Urssaf, et le 15 quand
   il est inconnu.
@@ -96,7 +96,7 @@ deux déclarations le disent.
 oubli. La fin d'un CDDU part dans la DSN mensuelle avec le circuit
 dérogatoire (`S21.G00.62.017 = 01`) — tranché sur pièces le 18/09/2026. Si la
 question revient, ne pas déranger France Travail : les sources sont dans
-`prive/reference/sources/francetravail-100-dsn/`.
+`atelier/reference/sources/francetravail-100-dsn/`.
 
 **Pour un permanent (CDI, CDD)** : le signalement existe, il porte la paie du
 solde de tout compte — `python -m moteur fin-contrat liste|signaler|documents

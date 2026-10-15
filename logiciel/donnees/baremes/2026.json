@@ -509,7 +509,7 @@
   "cotisation_prevoyance_retraite_supp": {
     "taux_sur_brut": 1.23,
     "_rubrique": "S21.G00.54, type 93 - Cotisation prevoyance et retraite supplementaire",
-    "_source": "Prevoyance intermittent Audiens : 1,11 patronale + 0,12 salariale = 1,23 %. Table des taux CoolPaie (reference/taux-coolpaie-2026.csv). Reproduit les 8 contrats 2026 connus (bruts 60 a 520)."
+    "_source": "Prevoyance intermittent Audiens : 1,11 patronale + 0,12 salariale = 1,23 %. Table des taux CoolPaie (reference-privee/taux-coolpaie-2026.csv (releve sur une compagnie reelle, piece hors du depot public : depot prive)). Reproduit les 8 contrats 2026 connus (bruts 60 a 520)."
   },
   "statuts": [
     "artiste"
@@ -614,7 +614,7 @@
           "base": "brut",
           "taux_pat": 2.836,
           "taux_sal": null,
-          "_source": "Agregat, recompose a l'identique depuis la table des taux CoolPaie 2026 (reference/taux-coolpaie-2026.csv) : contribution solidarite autonomie 0,300 + contribution organisations syndicales 0,016 + formation professionnelle intermittents 2,000 + contribution conventionnelle Afdas 0,100 + Thalie Sante Art/Int T1 0,420 = 2,836. AUCUN de ces cinq composants ne porte la mention << artiste >> : identique pour un technicien. Le bulletin de mai 2025 porte 2,736, soit 0,10 de moins, parce que Thalie Sante valait 0,32 avant le 01/01/2026."
+          "_source": "Agregat, recompose a l'identique depuis la table des taux CoolPaie 2026 (reference-privee/taux-coolpaie-2026.csv (releve sur une compagnie reelle, piece hors du depot public : depot prive)) : contribution solidarite autonomie 0,300 + contribution organisations syndicales 0,016 + formation professionnelle intermittents 2,000 + contribution conventionnelle Afdas 0,100 + Thalie Sante Art/Int T1 0,420 = 2,836. AUCUN de ces cinq composants ne porte la mention << artiste >> : identique pour un technicien. Le bulletin de mai 2025 porte 2,736, soit 0,10 de moins, parce que Thalie Sante valait 0,32 avant le 01/01/2026."
         },
         {
           "id": "autres_2",
@@ -656,7 +656,7 @@
           "taux_pat": 0.5,
           "taux_sal": null,
           "masquer_base_et_taux": true,
-          "_source": "CASC-SVP, 0,50 % patronale, plafonnee a la tranche 1 Agirc-Arrco. Ce n'est plus une inference : (1) la fiche de parametrage Audiens du 04/09/2026 donne le groupe << ETAM CASC-SVP >> a 0,4000 en 2025 et 0,5000 depuis le 01/01/2026 (reference/veille-taux.md), groupe qui couvre TOUS les intermittents non cadres, artistes et techniciens ; (2) le bulletin technicien du 15/05/2025 porte 0,22 EUR sur 56,00 de brut = 0,393 %, soit 56 x 0,40 % = 0,224 -> 0,22 au centime pres, le taux 2025 ; (3) Audiens, webconference 2026 p. 18 : << CASC 0,50 % plafonne a T1 Agirc-Arrco, entreprises du secteur prive du spectacle vivant >> -- notre convention (IDCC 3090). Le FCAP-SVP n'est PAS une cotisation du bulletin : c'est une contribution annuelle de l'entreprise, 0,1 % de la tranche A, plancher 80 EUR, plafond 300 EUR, collectee hors DSN en debut d'annee (CCN 3090, art. 5.1 a 5.3, relus dans KALI le 23/09/2026) -- catalogue de branche (`financement_paritarisme`) et etat `exporter fcap-svp`."
+          "_source": "CASC-SVP, 0,50 % patronale, plafonnee a la tranche 1 Agirc-Arrco. Ce n'est plus une inference : (1) la fiche de parametrage Audiens du 04/09/2026 donne le groupe << ETAM CASC-SVP >> a 0,4000 en 2025 et 0,5000 depuis le 01/01/2026 (reference-privee/veille-taux.md (releve sur une compagnie reelle, piece hors du depot public : depot prive)), groupe qui couvre TOUS les intermittents non cadres, artistes et techniciens ; (2) le bulletin technicien du 15/05/2025 porte 0,22 EUR sur 56,00 de brut = 0,393 %, soit 56 x 0,40 % = 0,224 -> 0,22 au centime pres, le taux 2025 ; (3) Audiens, webconference 2026 p. 18 : << CASC 0,50 % plafonne a T1 Agirc-Arrco, entreprises du secteur prive du spectacle vivant >> -- notre convention (IDCC 3090). Le FCAP-SVP n'est PAS une cotisation du bulletin : c'est une contribution annuelle de l'entreprise, 0,1 % de la tranche A, plancher 80 EUR, plafond 300 EUR, collectee hors DSN en debut d'annee (CCN 3090, art. 5.1 a 5.3, relus dans KALI le 23/09/2026) -- catalogue de branche (`financement_paritarisme`) et etat `exporter fcap-svp`."
         },
         {
           "id": "csg_ded",
@@ -930,7 +930,7 @@
       "20": 16,
       "25": 18
     },
-    "_taux": "Taux 2026 par categorie, arrete du 4 septembre 2025, art. 9, II : << pour les professions relevant du spectacle vivant qui beneficient d'un taux de deduction forfaitaire specifique au 31 decembre 2023 de 25 %, a compter du 1er janvier 2024, le taux [...] est reduit de 2 points au 1er janvier de chaque annee puis, a compter du 1er janvier 2026, de 3 points [...] et devient nul a compter du 1er janvier 2032 >> (23, 21, 18 en 2026, 15, 12, 9, 6, 3, 0) ; 20 % : << reduit de 1 point [...] puis, a compter du 1er janvier 2026, de 2 points [...] et, a compter du 1er janvier 2029, de 3 points [...] jusqu'a devenir nul a compter du 1er janvier 2032 >> (19, 18, 16 en 2026, 14, 12, 9, 6, 3, 0). Recoupe par Audiens, webconference << Nouveautes reglementaires 2026 >> p. 22 (reference/fiches-parametrage/Audiens-Webconf-Nouveautes-2026.pdf). Une profession qui porte son propre `taux` le prend (art. 9, III).",
+    "_taux": "Taux 2026 par categorie, arrete du 4 septembre 2025, art. 9, II : << pour les professions relevant du spectacle vivant qui beneficient d'un taux de deduction forfaitaire specifique au 31 decembre 2023 de 25 %, a compter du 1er janvier 2024, le taux [...] est reduit de 2 points au 1er janvier de chaque annee puis, a compter du 1er janvier 2026, de 3 points [...] et devient nul a compter du 1er janvier 2032 >> (23, 21, 18 en 2026, 15, 12, 9, 6, 3, 0) ; 20 % : << reduit de 1 point [...] puis, a compter du 1er janvier 2026, de 2 points [...] et, a compter du 1er janvier 2029, de 3 points [...] jusqu'a devenir nul a compter du 1er janvier 2032 >> (19, 18, 16 en 2026, 14, 12, 9, 6, 3, 0). Recoupe par Audiens, webconference << Nouveautes reglementaires 2026 >> p. 22 (atelier/reference/fiches-parametrage/Audiens-Webconf-Nouveautes-2026.txt). Une profession qui porte son propre `taux` le prend (art. 9, III).",
     "plafond_annuel": 7600,
     "_plafond": "<< Cette deduction est, dans la limite de 7 600 euros par annee civile, calculee en fonction des taux [...] >> (arrete du 4 septembre 2025, art. 9, I, al. 1). Suivi par salarie et par annee civile : `calcul::dfs_deja_deduite` (les mois anterieurs de l'annee recalcules depuis leurs saisies, puis les contrats precedents du mois) ; au-dela, `calcul::abattement_dfs` ramene la deduction et le dit sur la paie.",
     "rubriques_abattues": [
@@ -953,7 +953,7 @@
     "_quoi": "Le statut categoriel (S21.G00.40.003 = 01, champ statut_categoriel_rc de la fiche) se combine au statut artiste / technicien : un cadre garde les taux Urssaf de son statut (abattus pour l'artiste, pleins pour le technicien, RGDU comprise) et change sa prevoyance, sa retraite complementaire et ses contributions cadres. Applique par calcul.bareme_cadre.",
     "cadre": {
       "_verifie": true,
-      "_source": "Reference reelle : la DSN CoolPaie de juin 2025 (export/DSN/Juin_CCoU_300625_MENSUELLE.dsn), contrat FA1.25.7 << METTEUSE EN SCENE >>, 2 cachets, 320 EUR, S21.G00.40.002 = 04 et .003 = 01 -- payee en ARTISTE (074 a 2,42, 075 a 4,90, 79.004 = SMIC x 7 x 2 : le metteur en scene est un artiste du spectacle, art. L. 7121-2 du code du travail), avec la prevoyance CADRE (059 = 5,56 = 320 x 1,74, groupe << CADRE ET ASSIMILES PREVOYANCE >> de la fiche de parametrage Audiens, 1,7400 en 2025 -> 1,8100 en 2026) et la retraite CADRE (105 = 32,27 = 16,74 + 15,33 + 0,12 + 0,08 : retraite T1 5,23 / 4,79 et Apec 0,036 / 0,024, chaque part arrondie separement). Taux 2026 : Audiens << Parametres 2026 >> page 3, << artistes & techniciens intermittents du spectacle cadres >> : T1 JOURNALIERE 3,94 + CEG 1,29 = 5,23 patronal, 3,93 + 0,86 = 4,79 salarial ; T2 journaliere 12,95 + 1,62 = 14,57 / 8,64 + 1,08 = 9,72 ; CET 0,21 / 0,14 sur T1 + T2 si le salaire depasse T1 ; Apec 0,036 / 0,024 sur T1 x 4. Plafonds journaliers 2026 (page 2) : T1 = 220 EUR, T2 = 1 540 EUR par jour travaille. Prevoyance cadres (webconference Audiens 2026 p. 11) : 0,12 salarial ; 0,88 prevoyance + 0,81 fonds collectif = 1,69 patronal ; assiette TA journaliere. RELU LE 13/09/2026 SUR DEUX BULLETINS COOLPAIE 2026 faits pour reference (reference/exemples/bulletins-reference/Bulletin-de-paie-clarifie-dede.pdf, n° 31/2026 artiste cadre 1 cachet 250 EUR, n° 32/2026 chargee de production 1 journee de 7 h 100 EUR ; paies d'essai, supprimees de CoolPaie ensuite) : sur le cadre a 250 EUR, T1 = 220, T2 = 30 ; la CET (0,21 / 0,14), due parce que 250 > 220, est FONDUE dans les lignes T1 et T2 (5,440 / 4,930 et 14,780 / 9,860), chaque ligne arrondie en deux parts, retraite d'un cote, CEG + CET de l'autre (30 x 12,95 = 3,89 + 30 x 1,83 = 0,55 = 4,44) ; l'Apec est sur chaque tranche (220 et 30) ; la CASC (ccn) est sur la T1 : 220 x 0,50 = 1,10 ; la prevoyance sur la T1. Le reste est le bareme artiste, a l'identique.",
+      "_source": "Reference reelle (releve sur une compagnie reelle, piece hors du depot public : depot prive) : une DSN CoolPaie de juin 2025, un contrat << METTEUSE EN SCENE >>, 2 cachets, 320 EUR, S21.G00.40.002 = 04 et .003 = 01 -- payee en ARTISTE (074 a 2,42, 075 a 4,90, 79.004 = SMIC x 7 x 2 : le metteur en scene est un artiste du spectacle, art. L. 7121-2 du code du travail), avec la prevoyance CADRE (059 = 5,56 = 320 x 1,74, groupe << CADRE ET ASSIMILES PREVOYANCE >> de la fiche de parametrage Audiens, 1,7400 en 2025 -> 1,8100 en 2026) et la retraite CADRE (105 = 32,27 = 16,74 + 15,33 + 0,12 + 0,08 : retraite T1 5,23 / 4,79 et Apec 0,036 / 0,024, chaque part arrondie separement). Taux 2026 : Audiens << Parametres 2026 >> page 3, << artistes & techniciens intermittents du spectacle cadres >> : T1 JOURNALIERE 3,94 + CEG 1,29 = 5,23 patronal, 3,93 + 0,86 = 4,79 salarial ; T2 journaliere 12,95 + 1,62 = 14,57 / 8,64 + 1,08 = 9,72 ; CET 0,21 / 0,14 sur T1 + T2 si le salaire depasse T1 ; Apec 0,036 / 0,024 sur T1 x 4. Plafonds journaliers 2026 (page 2) : T1 = 220 EUR, T2 = 1 540 EUR par jour travaille. Prevoyance cadres (webconference Audiens 2026 p. 11) : 0,12 salarial ; 0,88 prevoyance + 0,81 fonds collectif = 1,69 patronal ; assiette TA journaliere. RELU LE 13/09/2026 SUR DEUX BULLETINS COOLPAIE 2026 faits pour reference (reference-privee/exemples/bulletins-reference/Bulletin-de-paie-clarifie-dede.pdf (releve sur une compagnie reelle, piece hors du depot public : depot prive), artiste cadre 1 cachet 250 EUR, chargee de production 1 journee de 7 h 100 EUR ; paies d'essai, supprimees de CoolPaie ensuite) : sur le cadre a 250 EUR, T1 = 220, T2 = 30 ; la CET (0,21 / 0,14), due parce que 250 > 220, est FONDUE dans les lignes T1 et T2 (5,440 / 4,930 et 14,780 / 9,860), chaque ligne arrondie en deux parts, retraite d'un cote, CEG + CET de l'autre (30 x 12,95 = 3,89 + 30 x 1,83 = 0,55 = 4,44) ; l'Apec est sur chaque tranche (220 et 30) ; la CASC (ccn) est sur la T1 : 220 x 0,50 = 1,10 ; la prevoyance sur la T1. Le reste est le bareme artiste, a l'identique.",
       "plafond_journalier": 220,
       "t2_multiple": 8,
       "apec_multiple": 4,
@@ -1226,7 +1226,7 @@
           "taux_pat": null,
           "taux_sal": null,
           "_releve_svp_sante": {
-            "_source": "Fiche de parametrage Audiens version 139 du 13/12/2025, groupes 00003 a 00008, et Audiens-taux-2026-sante-prevoyance-20260904.xls (population \"ENSEMBLE PERSONNEL PERMANENT\", contrat \"FM SPECT VIVANT PRIV\"). Releve le 19/09/2026.",
+            "_source": "Fiche de parametrage Audiens version 139 du 13/12/2025, groupes 00003 a 00008, et reference-privee/fiches-parametrage/Audiens-taux-2026-sante-prevoyance-20260904.xls, releve sur une compagnie reelle, piece hors du depot public : depot prive (population \"ENSEMBLE PERSONNEL PERMANENT\", contrat \"FM SPECT VIVANT PRIV\"). Releve le 19/09/2026.",
             "_assiette": "PMSS -- le plafond mensuel de la Securite sociale, pas le brut. C'est un forfait exprime en pourcentage du plafond : `pss_periode` dans ce moteur, deja proratise quand le contrat ne couvre pas tout le mois.",
             "_repartition": "50 / 50, decide par l'editeur le 19/09/2026 : la fiche ne donne qu'un taux global, et l'employeur doit au moins la moitie (L911-7). A relire sur le premier appel de cotisations.",
             "niveaux": {
@@ -1249,7 +1249,7 @@
             "_part_employeur": 50,
             "composant_79": {
               "type": "18",
-              "_source": "Fiche de parametrage Audiens version 139 du 13/12/2025 (prive/reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), groupes 00003 a 00008, parametres Changement=\"01\", depuis le 01/01/2026 : chaque option de FM SPECT VIVANT PRIV attend ses elements de calcul en <BaseMontantSpecifique ValeurCodeNature=\"18\"> (ISOLE PSS ; ASSURE PSS, CONJOINT PSS, ENFANT PSS pour la famille), <Assiette>PMSS</Assiette>. Cahier technique DSN 2026.1, bloc S21.G00.79 (atelier/reference/norme-dsn/texte/bloc-S21.G00.79.txt, p. 298-300) : << Pour la Prevoyance, ce bloc est a alimenter par les elements constituant les parametres qui entrent dans le calcul de la cotisation >> ; << 18 - Base forfaitaire Prevoyance >>. Le montant (79.004) est la base de la ligne `mutuelle` du bulletin, le plafond du mois (`pss_periode`) : c'est sur lui que le taux s'applique. Le type 11 (tranche A) et le brut qu'ecrivait la DSN n'entrent pas dans ce calcul. Une seule base 18 meme pour une famille : la fiche en donne trois, de meme nature et de meme assiette, que la DSN ne sait pas distinguer -- l'option (70.004) et les ayants droit (70.008, 70.011) disent le reste (lot V3e, PASSATION-V3e.md)."
+              "_source": "Fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), groupes 00003 a 00008, parametres Changement=\"01\", depuis le 01/01/2026 : chaque option de FM SPECT VIVANT PRIV attend ses elements de calcul en <BaseMontantSpecifique ValeurCodeNature=\"18\"> (ISOLE PSS ; ASSURE PSS, CONJOINT PSS, ENFANT PSS pour la famille), <Assiette>PMSS</Assiette>. Cahier technique DSN 2026.1, bloc S21.G00.79 (atelier/reference/norme-dsn/texte/bloc-S21.G00.79.txt, p. 298-300) : << Pour la Prevoyance, ce bloc est a alimenter par les elements constituant les parametres qui entrent dans le calcul de la cotisation >> ; << 18 - Base forfaitaire Prevoyance >>. Le montant (79.004) est la base de la ligne `mutuelle` du bulletin, le plafond du mois (`pss_periode`) : c'est sur lui que le taux s'applique. Le type 11 (tranche A) et le brut qu'ecrivait la DSN n'entrent pas dans ce calcul. Une seule base 18 meme pour une famille : la fiche en donne trois, de meme nature et de meme assiette, que la DSN ne sait pas distinguer -- l'option (70.004) et les ayants droit (70.008, 70.011) disent le reste (lot V3e, PASSATION-V3e.md)."
             }
           },
           "_rempli_par": "bareme_sante -- ses taux ne sont pas dans le bareme parce qu'ils dependent du contrat du salarie : le NIVEAU de garantie (1, 2 ou 3) et la COMPOSITION couverte (assure seul, conjoint, enfants). La fiche du salarie les dit : \"sante_svp\": {\"niveau\": \"2\", \"conjoint\": true, \"enfants\": 2}. Sans elle, le moteur REFUSE -- prendre le niveau 1 par defaut cotiserait moins que le contrat, et un salarie mal couvert ne l'apprend qu'au premier remboursement.",
@@ -1600,7 +1600,7 @@
       "retraite_t1": {
         "artiste": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % en T1 pour les ARTISTES intermittents des adherents, accord du 24/12/1991. Rien pour les permanents (cadres ou non) ni pour les techniciens intermittents : leur taux reste celui de leur population."
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % en T1 pour les ARTISTES intermittents des adherents, accord du 24/12/1991. Rien pour les permanents (cadres ou non) ni pour les techniciens intermittents : leur taux reste celui de leur population."
     },
     "SNDTP": {
       "libelle": "Syndicat national des theatres prives (adherents avant le 01/01/2024)",
@@ -1608,7 +1608,7 @@
       "retraite_t1": {
         "artiste": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991, pour les seuls adherents d'avant le 01/01/2024 (le SNDTP est devenu depuis une composante d'une autre organisation).",
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991, pour les seuls adherents d'avant le 01/01/2024 (le SNDTP est devenu depuis une composante d'une autre organisation).",
       "adhesion_avant": "2024-01-01"
     },
     "LA SCENE INDEPENDANTE": {
@@ -1617,7 +1617,7 @@
       "retraite_t1": {
         "artiste": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991.",
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991.",
       "alias": [
         "SNES"
       ]
@@ -1628,7 +1628,7 @@
       "retraite_t1": {
         "artiste": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991."
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991."
     },
     "SNEP": {
       "libelle": "Syndicat national de l'edition phonographique",
@@ -1636,7 +1636,7 @@
       "retraite_t1": {
         "artiste": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991."
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991."
     },
     "UPC": {
       "libelle": "Union des producteurs de cinema",
@@ -1644,7 +1644,7 @@
       "retraite_t1": {
         "technicien": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens intermittents, accord du 30/12/1991."
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens intermittents, accord du 30/12/1991."
     },
     "AFPF": {
       "libelle": "Association francaise des producteurs de films",
@@ -1652,7 +1652,7 @@
       "retraite_t1": {
         "technicien": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens intermittents, accord du 30/12/1991."
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens intermittents, accord du 30/12/1991."
     },
     "ANIMFRANCE": {
       "libelle": "AnimFrance (ex-SPFA, Syndicat des producteurs de films d'animation)",
@@ -1661,7 +1661,7 @@
         "artiste": 10.16,
         "technicien": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens (accord du 30/12/1991) et les artistes (accord du 24/12/1991) intermittents.",
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens (accord du 30/12/1991) et les artistes (accord du 24/12/1991) intermittents.",
       "alias": [
         "SPFA"
       ]
@@ -1673,7 +1673,7 @@
         "artiste": 10.16,
         "technicien": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens (accord du 30/12/1991) et les artistes (accord du 24/12/1991) intermittents."
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens (accord du 30/12/1991) et les artistes (accord du 24/12/1991) intermittents."
     },
     "FNDF": {
       "libelle": "Federation nationale des editeurs de films",
@@ -1716,7 +1716,7 @@
   },
   "retraite_t1_repartition": {
     "_quoi": "LA REPARTITION EMPLOYEUR / SALARIE DE LA RETRAITE COMPLEMENTAIRE EN TRANCHE 1, par convention collective et par population (Audiens, tableau n 3). Le droit commun est 60 / 40 (art. 38 de l'ANI du 17/11/2017) ; des branches du spectacle ont des repartitions plus favorables aux salaries, anterieures a l'unification de 2019 et maintenues. La CEG n'est pas concernee : 1,29 / 0,86 partout.",
-    "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 3, << a compter du 1er janvier 1999 >> ; << si premier salarie avant 1999 : repartition 50/50 pour l'ensemble du personnel >>.",
+    "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 3, << a compter du 1er janvier 1999 >> ; << si premier salarie avant 1999 : repartition 50/50 pour l'ensemble du personnel >>.",
     "_arrondi": "Part salariale = taux x part, arrondie au centieme (la demie vers le bas) ; part patronale = le reste. C'est ce que donnent les taux publies : 7,87 en 60/40 -> 4,72 / 3,15 ; en 50/50 -> 3,94 / 3,93 (cadres intermittents, Parametres 2026 p. 3) ; 10,16 en 50/50 -> 5,08 / 5,08.",
     "_avant_1999": "Une compagnie dont la fiche dit `premiere_embauche` avant le 01/01/1999 applique 50/50 a tout son personnel (`calcul.bareme_retraite_t1`). Sans date, la repartition de la branche (celle d'une entreprise nee apres 1999) : c'est le cas de la fiche vide, et celui de toutes les compagnies servies a ce jour.",
     "taux_droit_commun": 7.87,

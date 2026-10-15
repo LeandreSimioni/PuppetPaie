@@ -1,6 +1,6 @@
 {
   "annee": 2025,
-  "_source": "LE SOCLE 2025, ecrit le 23/09/2026 pour les compagnies de demonstration et pour que le logiciel ait un historique de taux. Il part du socle 2026 et ne change QUE ce qui differait en 2025 -- chaque changement porte sa cle `_2025` qui dit la valeur, la date et la source. Les notes heritees de 2026 (`_source`, `_note`...) decrivent donc parfois 2026 : c'est `_2025` qui fait foi pour cette annee. Sources : DSN CoolPaie deposees et acceptees de 2025 (export-coolpaie/DSN, janvier a novembre 2025) ; fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025 ; BOSS, table des parametres (atelier/reference/boss-table-parametres-2026.csv), lignes datees 2025 ; BOFiP BOI-BAREME-000037 (versions 20240228 et 20250410, copies dans atelier/reference/sources/bofip/). Recoupement : `moteur calibrer` rejoue les DSN 2025 -- les montants, pas la norme (P25, que le moteur n'ecrit pas).",
+  "_source": "LE SOCLE 2025, ecrit le 23/09/2026 pour les compagnies de demonstration et pour que le logiciel ait un historique de taux. Il part du socle 2026 et ne change QUE ce qui differait en 2025 -- chaque changement porte sa cle `_2025` qui dit la valeur, la date et la source. Les notes heritees de 2026 (`_source`, `_note`...) decrivent donc parfois 2026 : c'est `_2025` qui fait foi pour cette annee. Sources : DSN CoolPaie deposees et acceptees de 2025 (export-coolpaie/DSN, janvier a novembre 2025) ; fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025 ; BOSS, table des parametres (atelier/reference/boss-table-parametres-2026.csv), lignes datees 2025 ; BOFiP BOI-BAREME-000037 (versions 20240228 et 20250410, copies dans atelier/reference/sources/bofip/). Recoupement : `moteur calibrer` rejoue les DSN 2025 -- les montants, pas la norme (P25, que le moteur n'ecrit pas).",
   "_maj": "2026-09-23",
   "smic_horaire": [
     {
@@ -228,7 +228,7 @@
       "taux_pat": 1.04,
       "taux_sal": 0.12,
       "_source": "Intermittents non cadres : Deces AP 0,46 (0,34 patronal, 0,12 salarial) + Fonds collectif du spectacle pour la sante 0,70 patronal (accord interbranche, avenant 6 du 14/04/2020, au 01/04/2021) = 1,16 %. LE FONDS SANTE NE SE REINTEGRE PAS dans le net imposable (S21.G00.50.002), a la difference de la part patronale `mutuelle` des permanents (`calcul::reintegrations`). BOI-RSA-BASE-30-10-20 § 200 ne rend imposable que la part patronale financant des garanties de frais de sante, et § 230 ne vise que des garanties << auxquelles le salarie est affilie a titre obligatoire >>. Or le Fonds, << finance par les cotisations obligatoires des employeurs >>, sert une participation a la cotisation d'un intermittent eligible (24 cachets ou jours sur 12 mois) qui CHOISIT de souscrire la Garantie Sante Intermittents (Audiens, << L'essentiel : le regime prevoyance/sante des artistes et techniciens intermittents >>, 25/04/2022) : le salarie n'est affilie a aucune garantie frais de sante par cette cotisation, elle ne finance pas son contrat et ne s'individualise pas. Lecture de la doctrine sur un cas qu'elle ne nomme pas (inference, forte ; meme pratique chez les editeurs de paie du secteur), decidee le 10/10/2026 (corrections DSN, vague 1b). Textes : atelier/reference/sources/bofip/BOI-RSA-BASE-30-10-20-20260810-extrait-prevoyance.md et atelier/reference/sources/accord-interbranche-prevoyance-intermittents/LISEZ-MOI.md (derniere section). Pas davantage dans le montant net social (S21.G00.58.004) : CSS R. 844-1, II, 1° en exclut le financement par l'employeur des garanties collectives de L. 911-1 (texte depose : atelier/reference/sources/montant-net-social/legi-r844-1-versions/R844-1-versions-20231231-20260627.md, la version en vigueur ; lecture dans atelier/reference/sources/montant-net-social/LISEZ-MOI.md).",
-      "_2025": "Prevoyance INTERBRANCHE des intermittents non cadres (groupe ETAM) : 1,16 % en 2025 -- fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025 -- contre 1,23 en 2026. Repartition 1,04 employeur / 0,12 salarie, lue au centime dans les DSN 2025 : l'assiette CSG porte brut x 0,9825 + brut x 1,04 (387,23 pour 390,00 ; 129,08 pour 130,00 ; 297,87 pour 300,00), et le 059 vaut la ligne employeur plus la ligne salarie, chacune arrondie (390 : 4,06 + 0,47 = 4,53, que 390 x 1,16 = 4,52 ne donne pas)."
+      "_2025": "Prevoyance INTERBRANCHE des intermittents non cadres (groupe ETAM) : 1,16 % en 2025 -- fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025 -- contre 1,23 en 2026. Repartition 1,04 employeur / 0,12 salarie, lue au centime dans les DSN 2025 : l'assiette CSG porte brut x 0,9825 + brut x 1,04 (387,23 pour 390,00 ; 129,08 pour 130,00 ; 297,87 pour 300,00), et le 059 vaut la ligne employeur plus la ligne salarie, chacune arrondie (390 : 4,06 + 0,47 = 4,53, que 390 x 1,16 = 4,52 ne donne pas)."
     },
     {
       "id": "atmp",
@@ -312,7 +312,7 @@
       "base": "brut",
       "taux_pat": 2.416,
       "taux_sal": null,
-      "_2025": "0,42 point de moins qu'en 2026 : la Thalie Sante des intermittents n'existe qu'a partir du 01/01/2026 (fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025 : le groupe << ENSEMBLE PERS. INTERMITTENT THALIE SANTE >> n'a de parametres qu'a partir du 01012026), et le versement Audiens des DSN 2025 est exactement la somme des 059 de prevoyance (juin 2025 : 26,04). 2,416 = CSA 0,30 + dialogue social 0,016 + formation des intermittents 2,00 + contribution conventionnelle Afdas 0,10."
+      "_2025": "0,42 point de moins qu'en 2026 : la Thalie Sante des intermittents n'existe qu'a partir du 01/01/2026 (fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025 : le groupe << ENSEMBLE PERS. INTERMITTENT THALIE SANTE >> n'a de parametres qu'a partir du 01012026), et le versement Audiens des DSN 2025 est exactement la somme des 059 de prevoyance (juin 2025 : 26,04). 2,416 = CSA 0,30 + dialogue social 0,016 + formation des intermittents 2,00 + contribution conventionnelle Afdas 0,10."
     },
     {
       "id": "autres_2",
@@ -353,7 +353,7 @@
       "taux_pat": 0.4,
       "taux_sal": null,
       "masquer_base_et_taux": true,
-      "_2025": "CASC-SVP 0,40 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025, groupes ETAM et CADRE CASC SVP) ; bulletin CoolPaie du 15/05/2025 : 0,22 sur 56,00."
+      "_2025": "CASC-SVP 0,40 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025, groupes ETAM et CADRE CASC SVP) ; bulletin CoolPaie du 15/05/2025 : 0,22 sur 56,00."
     },
     {
       "id": "csg_ded",
@@ -519,7 +519,7 @@
         0.12
       ],
       "_note": "Deux contributions arrondies separement (0,420 + 0,810). Ex. brut 520 -> 2,18 + 4,21 = 6,39 ; brut 480 -> 2,02 + 3,89 = 5,91.",
-      "_2025": "Prevoyance INTERBRANCHE des intermittents non cadres (groupe ETAM) : 1,16 % en 2025 -- fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025 -- contre 1,23 en 2026. Repartition 1,04 employeur / 0,12 salarie, lue au centime dans les DSN 2025 : l'assiette CSG porte brut x 0,9825 + brut x 1,04 (387,23 pour 390,00 ; 129,08 pour 130,00 ; 297,87 pour 300,00), et le 059 vaut la ligne employeur plus la ligne salarie, chacune arrondie (390 : 4,06 + 0,47 = 4,53, que 390 x 1,16 = 4,52 ne donne pas). Une seule affiliation Audiens en 2025 (pas de Thalie) : elle prend l'affectation 202."
+      "_2025": "Prevoyance INTERBRANCHE des intermittents non cadres (groupe ETAM) : 1,16 % en 2025 -- fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025 -- contre 1,23 en 2026. Repartition 1,04 employeur / 0,12 salarie, lue au centime dans les DSN 2025 : l'assiette CSG porte brut x 0,9825 + brut x 1,04 (387,23 pour 390,00 ; 129,08 pour 130,00 ; 297,87 pour 300,00), et le 059 vaut la ligne employeur plus la ligne salarie, chacune arrondie (390 : 4,06 + 0,47 = 4,53, que 390 x 1,16 = 4,52 ne donne pas). Une seule affiliation Audiens en 2025 (pas de Thalie) : elle prend l'affectation 202."
     },
     {
       "bloc78": "43",
@@ -545,8 +545,8 @@
   "cotisation_prevoyance_retraite_supp": {
     "taux_sur_brut": 1.16,
     "_rubrique": "S21.G00.54, type 93 - Cotisation prevoyance et retraite supplementaire",
-    "_source": "Prevoyance intermittent Audiens : 1,11 patronale + 0,12 salariale = 1,23 %. Table des taux CoolPaie (reference/taux-coolpaie-2026.csv). Reproduit les 8 contrats 2026 connus (bruts 60 a 520).",
-    "_2025": "Prevoyance INTERBRANCHE des intermittents non cadres (groupe ETAM) : 1,16 % en 2025 -- fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025 -- contre 1,23 en 2026. Repartition 1,04 employeur / 0,12 salarie, lue au centime dans les DSN 2025 : l'assiette CSG porte brut x 0,9825 + brut x 1,04 (387,23 pour 390,00 ; 129,08 pour 130,00 ; 297,87 pour 300,00), et le 059 vaut la ligne employeur plus la ligne salarie, chacune arrondie (390 : 4,06 + 0,47 = 4,53, que 390 x 1,16 = 4,52 ne donne pas)."
+    "_source": "Prevoyance intermittent Audiens : 1,11 patronale + 0,12 salariale = 1,23 %. Table des taux CoolPaie (reference-privee/taux-coolpaie-2026.csv (releve sur une compagnie reelle, piece hors du depot public : depot prive)). Reproduit les 8 contrats 2026 connus (bruts 60 a 520).",
+    "_2025": "Prevoyance INTERBRANCHE des intermittents non cadres (groupe ETAM) : 1,16 % en 2025 -- fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025 -- contre 1,23 en 2026. Repartition 1,04 employeur / 0,12 salarie, lue au centime dans les DSN 2025 : l'assiette CSG porte brut x 0,9825 + brut x 1,04 (387,23 pour 390,00 ; 129,08 pour 130,00 ; 297,87 pour 300,00), et le 059 vaut la ligne employeur plus la ligne salarie, chacune arrondie (390 : 4,06 + 0,47 = 4,53, que 390 x 1,16 = 4,52 ne donne pas)."
   },
   "statuts": [
     "artiste"
@@ -590,7 +590,7 @@
           "taux_pat": 1.04,
           "taux_sal": 0.12,
           "_source": "Audiens, fiche de parametrage du 04/09/2026 (sante-prevoyance) : la population NON CADRE INTERMITTENT porte Deces AP 0,46 + Fonds Sante 0,77 = 1,23 %, soit exactement la population ARTISTE INTERMITTENT. La fiche donne les deux cote a cote : ce n'est pas une approximation. Fonds sante : ne se reintegre ni dans le net imposable ni dans le montant net social -- voir la note `_source` de la ligne `prevoyance` de `rubriques_bulletin`.",
-          "_2025": "Prevoyance INTERBRANCHE des intermittents non cadres (groupe ETAM) : 1,16 % en 2025 -- fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025 -- contre 1,23 en 2026. Repartition 1,04 employeur / 0,12 salarie, lue au centime dans les DSN 2025 : l'assiette CSG porte brut x 0,9825 + brut x 1,04 (387,23 pour 390,00 ; 129,08 pour 130,00 ; 297,87 pour 300,00), et le 059 vaut la ligne employeur plus la ligne salarie, chacune arrondie (390 : 4,06 + 0,47 = 4,53, que 390 x 1,16 = 4,52 ne donne pas)."
+          "_2025": "Prevoyance INTERBRANCHE des intermittents non cadres (groupe ETAM) : 1,16 % en 2025 -- fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025 -- contre 1,23 en 2026. Repartition 1,04 employeur / 0,12 salarie, lue au centime dans les DSN 2025 : l'assiette CSG porte brut x 0,9825 + brut x 1,04 (387,23 pour 390,00 ; 129,08 pour 130,00 ; 297,87 pour 300,00), et le 059 vaut la ligne employeur plus la ligne salarie, chacune arrondie (390 : 4,06 + 0,47 = 4,53, que 390 x 1,16 = 4,52 ne donne pas)."
         },
         {
           "id": "atmp",
@@ -682,8 +682,8 @@
           "base": "brut",
           "taux_pat": 2.416,
           "taux_sal": null,
-          "_source": "Agregat, recompose a l'identique depuis la table des taux CoolPaie 2026 (reference/taux-coolpaie-2026.csv) : contribution solidarite autonomie 0,300 + contribution organisations syndicales 0,016 + formation professionnelle intermittents 2,000 + contribution conventionnelle Afdas 0,100 + Thalie Sante Art/Int T1 0,420 = 2,836. AUCUN de ces cinq composants ne porte la mention << artiste >> : identique pour un technicien. Le bulletin de mai 2025 porte 2,736, soit 0,10 de moins, parce que Thalie Sante valait 0,32 avant le 01/01/2026.",
-          "_2025": "0,42 point de moins qu'en 2026 : la Thalie Sante des intermittents n'existe qu'a partir du 01/01/2026 (fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025 : le groupe << ENSEMBLE PERS. INTERMITTENT THALIE SANTE >> n'a de parametres qu'a partir du 01012026), et le versement Audiens des DSN 2025 est exactement la somme des 059 de prevoyance (juin 2025 : 26,04). 2,416 = CSA 0,30 + dialogue social 0,016 + formation des intermittents 2,00 + contribution conventionnelle Afdas 0,10."
+          "_source": "Agregat, recompose a l'identique depuis la table des taux CoolPaie 2026 (reference-privee/taux-coolpaie-2026.csv (releve sur une compagnie reelle, piece hors du depot public : depot prive)) : contribution solidarite autonomie 0,300 + contribution organisations syndicales 0,016 + formation professionnelle intermittents 2,000 + contribution conventionnelle Afdas 0,100 + Thalie Sante Art/Int T1 0,420 = 2,836. AUCUN de ces cinq composants ne porte la mention << artiste >> : identique pour un technicien. Le bulletin de mai 2025 porte 2,736, soit 0,10 de moins, parce que Thalie Sante valait 0,32 avant le 01/01/2026.",
+          "_2025": "0,42 point de moins qu'en 2026 : la Thalie Sante des intermittents n'existe qu'a partir du 01/01/2026 (fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025 : le groupe << ENSEMBLE PERS. INTERMITTENT THALIE SANTE >> n'a de parametres qu'a partir du 01012026), et le versement Audiens des DSN 2025 est exactement la somme des 059 de prevoyance (juin 2025 : 26,04). 2,416 = CSA 0,30 + dialogue social 0,016 + formation des intermittents 2,00 + contribution conventionnelle Afdas 0,10."
         },
         {
           "id": "autres_2",
@@ -725,8 +725,8 @@
           "taux_pat": 0.4,
           "taux_sal": null,
           "masquer_base_et_taux": true,
-          "_source": "CASC-SVP, 0,50 % patronale, plafonnee a la tranche 1 Agirc-Arrco. Ce n'est plus une inference : (1) la fiche de parametrage Audiens du 04/09/2026 donne le groupe << ETAM CASC-SVP >> a 0,4000 en 2025 et 0,5000 depuis le 01/01/2026 (reference/veille-taux.md), groupe qui couvre TOUS les intermittents non cadres, artistes et techniciens ; (2) le bulletin technicien du 15/05/2025 porte 0,22 EUR sur 56,00 de brut = 0,393 %, soit 56 x 0,40 % = 0,224 -> 0,22 au centime pres, le taux 2025 ; (3) Audiens, webconference 2026 p. 18 : << CASC 0,50 % plafonne a T1 Agirc-Arrco, entreprises du secteur prive du spectacle vivant >> -- notre convention (IDCC 3090). Le FCAP-SVP n'est PAS une cotisation du bulletin : c'est une contribution annuelle de l'entreprise, 0,1 % de la tranche A, plancher 80 EUR, plafond 300 EUR, collectee hors DSN en debut d'annee (CCN 3090, art. 5.1 a 5.3, relus dans KALI le 23/09/2026) -- catalogue de branche (`financement_paritarisme`) et etat `exporter fcap-svp`.",
-          "_2025": "CASC-SVP 0,40 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025)."
+          "_source": "CASC-SVP, 0,50 % patronale, plafonnee a la tranche 1 Agirc-Arrco. Ce n'est plus une inference : (1) la fiche de parametrage Audiens du 04/09/2026 donne le groupe << ETAM CASC-SVP >> a 0,4000 en 2025 et 0,5000 depuis le 01/01/2026 (reference-privee/veille-taux.md (releve sur une compagnie reelle, piece hors du depot public : depot prive)), groupe qui couvre TOUS les intermittents non cadres, artistes et techniciens ; (2) le bulletin technicien du 15/05/2025 porte 0,22 EUR sur 56,00 de brut = 0,393 %, soit 56 x 0,40 % = 0,224 -> 0,22 au centime pres, le taux 2025 ; (3) Audiens, webconference 2026 p. 18 : << CASC 0,50 % plafonne a T1 Agirc-Arrco, entreprises du secteur prive du spectacle vivant >> -- notre convention (IDCC 3090). Le FCAP-SVP n'est PAS une cotisation du bulletin : c'est une contribution annuelle de l'entreprise, 0,1 % de la tranche A, plancher 80 EUR, plafond 300 EUR, collectee hors DSN en debut d'annee (CCN 3090, art. 5.1 a 5.3, relus dans KALI le 23/09/2026) -- catalogue de branche (`financement_paritarisme`) et etat `exporter fcap-svp`.",
+          "_2025": "CASC-SVP 0,40 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025)."
         },
         {
           "id": "csg_ded",
@@ -946,7 +946,7 @@
             1.04,
             0.12
           ],
-          "_2025": "Prevoyance INTERBRANCHE des intermittents non cadres (groupe ETAM) : 1,16 % en 2025 -- fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025 -- contre 1,23 en 2026. Repartition 1,04 employeur / 0,12 salarie, lue au centime dans les DSN 2025 : l'assiette CSG porte brut x 0,9825 + brut x 1,04 (387,23 pour 390,00 ; 129,08 pour 130,00 ; 297,87 pour 300,00), et le 059 vaut la ligne employeur plus la ligne salarie, chacune arrondie (390 : 4,06 + 0,47 = 4,53, que 390 x 1,16 = 4,52 ne donne pas). Une seule affiliation Audiens en 2025 (pas de Thalie) : elle prend l'affectation 202."
+          "_2025": "Prevoyance INTERBRANCHE des intermittents non cadres (groupe ETAM) : 1,16 % en 2025 -- fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025 -- contre 1,23 en 2026. Repartition 1,04 employeur / 0,12 salarie, lue au centime dans les DSN 2025 : l'assiette CSG porte brut x 0,9825 + brut x 1,04 (387,23 pour 390,00 ; 129,08 pour 130,00 ; 297,87 pour 300,00), et le 059 vaut la ligne employeur plus la ligne salarie, chacune arrondie (390 : 4,06 + 0,47 = 4,53, que 390 x 1,16 = 4,52 ne donne pas). Une seule affiliation Audiens en 2025 (pas de Thalie) : elle prend l'affectation 202."
         },
         {
           "bloc78": "43",
@@ -1055,7 +1055,7 @@
     "_quoi": "Le statut categoriel (S21.G00.40.003 = 01, champ statut_categoriel_rc de la fiche) se combine au statut artiste / technicien : un cadre garde les taux Urssaf de son statut (abattus pour l'artiste, pleins pour le technicien, RGDU comprise) et change sa prevoyance, sa retraite complementaire et ses contributions cadres. Applique par calcul.bareme_cadre.",
     "cadre": {
       "_verifie": true,
-      "_source": "Reference reelle : la DSN CoolPaie de juin 2025 (export/DSN/Juin_CCoU_300625_MENSUELLE.dsn), contrat FA1.25.7 << METTEUSE EN SCENE >>, 2 cachets, 320 EUR, S21.G00.40.002 = 04 et .003 = 01 -- payee en ARTISTE (074 a 2,42, 075 a 4,90, 79.004 = SMIC x 7 x 2 : le metteur en scene est un artiste du spectacle, art. L. 7121-2 du code du travail), avec la prevoyance CADRE (059 = 5,56 = 320 x 1,74, groupe << CADRE ET ASSIMILES PREVOYANCE >> de la fiche de parametrage Audiens, 1,7400 en 2025 -> 1,8100 en 2026) et la retraite CADRE (105 = 32,27 = 16,74 + 15,33 + 0,12 + 0,08 : retraite T1 5,23 / 4,79 et Apec 0,036 / 0,024, chaque part arrondie separement). Taux 2026 : Audiens << Parametres 2026 >> page 3, << artistes & techniciens intermittents du spectacle cadres >> : T1 JOURNALIERE 3,94 + CEG 1,29 = 5,23 patronal, 3,93 + 0,86 = 4,79 salarial ; T2 journaliere 12,95 + 1,62 = 14,57 / 8,64 + 1,08 = 9,72 ; CET 0,21 / 0,14 sur T1 + T2 si le salaire depasse T1 ; Apec 0,036 / 0,024 sur T1 x 4. Plafonds journaliers 2026 (page 2) : T1 = 220 EUR, T2 = 1 540 EUR par jour travaille. Prevoyance cadres (webconference Audiens 2026 p. 11) : 0,12 salarial ; 0,88 prevoyance + 0,81 fonds collectif = 1,69 patronal ; assiette TA journaliere. RELU LE 13/09/2026 SUR DEUX BULLETINS COOLPAIE 2026 faits pour reference (reference/exemples/bulletins-reference/Bulletin-de-paie-clarifie-dede.pdf, n° 31/2026 artiste cadre 1 cachet 250 EUR, n° 32/2026 chargee de production 1 journee de 7 h 100 EUR ; paies d'essai, supprimees de CoolPaie ensuite) : sur le cadre a 250 EUR, T1 = 220, T2 = 30 ; la CET (0,21 / 0,14), due parce que 250 > 220, est FONDUE dans les lignes T1 et T2 (5,440 / 4,930 et 14,780 / 9,860), chaque ligne arrondie en deux parts, retraite d'un cote, CEG + CET de l'autre (30 x 12,95 = 3,89 + 30 x 1,83 = 0,55 = 4,44) ; l'Apec est sur chaque tranche (220 et 30) ; la CASC (ccn) est sur la T1 : 220 x 0,50 = 1,10 ; la prevoyance sur la T1. Le reste est le bareme artiste, a l'identique.",
+      "_source": "Reference reelle (releve sur une compagnie reelle, piece hors du depot public : depot prive) : une DSN CoolPaie de juin 2025, un contrat << METTEUSE EN SCENE >>, 2 cachets, 320 EUR, S21.G00.40.002 = 04 et .003 = 01 -- payee en ARTISTE (074 a 2,42, 075 a 4,90, 79.004 = SMIC x 7 x 2 : le metteur en scene est un artiste du spectacle, art. L. 7121-2 du code du travail), avec la prevoyance CADRE (059 = 5,56 = 320 x 1,74, groupe << CADRE ET ASSIMILES PREVOYANCE >> de la fiche de parametrage Audiens, 1,7400 en 2025 -> 1,8100 en 2026) et la retraite CADRE (105 = 32,27 = 16,74 + 15,33 + 0,12 + 0,08 : retraite T1 5,23 / 4,79 et Apec 0,036 / 0,024, chaque part arrondie separement). Taux 2026 : Audiens << Parametres 2026 >> page 3, << artistes & techniciens intermittents du spectacle cadres >> : T1 JOURNALIERE 3,94 + CEG 1,29 = 5,23 patronal, 3,93 + 0,86 = 4,79 salarial ; T2 journaliere 12,95 + 1,62 = 14,57 / 8,64 + 1,08 = 9,72 ; CET 0,21 / 0,14 sur T1 + T2 si le salaire depasse T1 ; Apec 0,036 / 0,024 sur T1 x 4. Plafonds journaliers 2026 (page 2) : T1 = 220 EUR, T2 = 1 540 EUR par jour travaille. Prevoyance cadres (webconference Audiens 2026 p. 11) : 0,12 salarial ; 0,88 prevoyance + 0,81 fonds collectif = 1,69 patronal ; assiette TA journaliere. RELU LE 13/09/2026 SUR DEUX BULLETINS COOLPAIE 2026 faits pour reference (reference-privee/exemples/bulletins-reference/Bulletin-de-paie-clarifie-dede.pdf (releve sur une compagnie reelle, piece hors du depot public : depot prive), artiste cadre 1 cachet 250 EUR, chargee de production 1 journee de 7 h 100 EUR ; paies d'essai, supprimees de CoolPaie ensuite) : sur le cadre a 250 EUR, T1 = 220, T2 = 30 ; la CET (0,21 / 0,14), due parce que 250 > 220, est FONDUE dans les lignes T1 et T2 (5,440 / 4,930 et 14,780 / 9,860), chaque ligne arrondie en deux parts, retraite d'un cote, CEG + CET de l'autre (30 x 12,95 = 3,89 + 30 x 1,83 = 0,55 = 4,44) ; l'Apec est sur chaque tranche (220 et 30) ; la CASC (ccn) est sur la T1 : 220 x 0,50 = 1,10 ; la prevoyance sur la T1. Le reste est le bareme artiste, a l'identique.",
       "plafond_journalier": 220,
       "t2_multiple": 8,
       "apec_multiple": 4,
@@ -1067,7 +1067,7 @@
           "taux_sal": 0.12,
           "base": "t1_journaliere",
           "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens, cadres)",
-          "_2025": "Prevoyance INTERBRANCHE des cadres intermittents : 1,74 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025, groupe CADRE ET ASSIMILES PREVOYANCE), 1,62 employeur / 0,12 salarie. Lu au centime sur la metteuse en scene de juin 2025 (FA1.25.7, 320,00) : assiette CSG 319,58 = 314,40 + 320 x 1,62 ; 059 = 5,18 + 0,38 = 5,56."
+          "_2025": "Prevoyance INTERBRANCHE des cadres intermittents : 1,74 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025, groupe CADRE ET ASSIMILES PREVOYANCE), 1,62 employeur / 0,12 salarie. Lu au centime sur la metteuse en scene de juin 2025 (320,00) : assiette CSG 319,58 = 314,40 + 320 x 1,62 ; 059 = 5,18 + 0,38 = 5,56."
         },
         "retraite_t1": {
           "base": "t1_journaliere",
@@ -1139,7 +1139,7 @@
         "taux_sur_brut": 1.74,
         "base": "t1_journaliere",
         "_note": "S21.G00.54 type 93, en euros : la prevoyance cadre sur son assiette, la T1 journaliere. 320 x 1,74 = 5,57 -> 6 en juin 2025.",
-        "_2025": "Prevoyance INTERBRANCHE des cadres intermittents : 1,74 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025, groupe CADRE ET ASSIMILES PREVOYANCE), 1,62 employeur / 0,12 salarie. Lu au centime sur la metteuse en scene de juin 2025 (FA1.25.7, 320,00) : assiette CSG 319,58 = 314,40 + 320 x 1,62 ; 059 = 5,18 + 0,38 = 5,56."
+        "_2025": "Prevoyance INTERBRANCHE des cadres intermittents : 1,74 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025, groupe CADRE ET ASSIMILES PREVOYANCE), 1,62 employeur / 0,12 salarie. Lu au centime sur la metteuse en scene de juin 2025 (320,00) : assiette CSG 319,58 = 314,40 + 320 x 1,62 ; 059 = 5,18 + 0,38 = 5,56."
       },
       "cotisations_ajoutees": [
         {
@@ -1172,7 +1172,7 @@
           ],
           "_note": "Prevoyance INTERBRANCHE cadres : 0,12 + 0,88 = 1,00 prevoyance, 0,81 fonds collectif. Thalie (202) inchangee. Sur la T1 journaliere, comme la ligne du bulletin (220 pour un cachet de 250) ; sans reel en face au-dela de la T1 -- juin 2025 (320 < 440) ne tranche pas.",
           "base": "t1_journaliere",
-          "_2025": "Prevoyance INTERBRANCHE des cadres intermittents : 1,74 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025, groupe CADRE ET ASSIMILES PREVOYANCE), 1,62 employeur / 0,12 salarie. Lu au centime sur la metteuse en scene de juin 2025 (FA1.25.7, 320,00) : assiette CSG 319,58 = 314,40 + 320 x 1,62 ; 059 = 5,18 + 0,38 = 5,56. Affectation 202 : la seule affiliation Audiens de 2025."
+          "_2025": "Prevoyance INTERBRANCHE des cadres intermittents : 1,74 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025, groupe CADRE ET ASSIMILES PREVOYANCE), 1,62 employeur / 0,12 salarie. Lu au centime sur la metteuse en scene de juin 2025 (320,00) : assiette CSG 319,58 = 314,40 + 320 x 1,62 ; 059 = 5,18 + 0,38 = 5,56. Affectation 202 : la seule affiliation Audiens de 2025."
         }
       },
       "_verifie_note": "Cale au centime sur le bulletin CoolPaie 31/2026 (artiste cadre, 250 EUR) : toutes les lignes, le total employeur 146,87 et le net 192,91. Une seule difference d'affichage : l'assiette CSG 249,34 chez CoolPaie contre 249,35 ici (250 x 0,9825 = 245,625, que CoolPaie arrondit au pair) -- les montants de CSG sont identiques. Structure DSN relue sur juin 2025."
@@ -1353,7 +1353,7 @@
           "taux_pat": null,
           "taux_sal": null,
           "_releve_svp_sante": {
-            "_source": "Fiche de parametrage Audiens version 139 du 13/12/2025, groupes 00003 a 00008, et Audiens-taux-2026-sante-prevoyance-20260904.xls (population \"ENSEMBLE PERSONNEL PERMANENT\", contrat \"FM SPECT VIVANT PRIV\"). Releve le 19/09/2026.",
+            "_source": "Fiche de parametrage Audiens version 139 du 13/12/2025, groupes 00003 a 00008, et reference-privee/fiches-parametrage/Audiens-taux-2026-sante-prevoyance-20260904.xls, releve sur une compagnie reelle, piece hors du depot public : depot prive (population \"ENSEMBLE PERSONNEL PERMANENT\", contrat \"FM SPECT VIVANT PRIV\"). Releve le 19/09/2026.",
             "_assiette": "PMSS -- le plafond mensuel de la Securite sociale, pas le brut. C'est un forfait exprime en pourcentage du plafond : `pss_periode` dans ce moteur, deja proratise quand le contrat ne couvre pas tout le mois.",
             "_repartition": "50 / 50, decide par l'editeur le 19/09/2026 : la fiche ne donne qu'un taux global, et l'employeur doit au moins la moitie (L911-7). A relire sur le premier appel de cotisations.",
             "niveaux": {
@@ -1374,10 +1374,10 @@
               }
             },
             "_part_employeur": 50,
-            "_2025": "fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025, groupes 00003 a 00008 (ENSEMBLE DU PERS. PERMANENT SVP SANTE) : niveau 1 1,29 (enfant 0,74), niveau 2 1,74 (1,00), niveau 3 2,04 (1,16) % du PMSS, contre 1,44 / 1,84 / 2,04 en 2026.",
+            "_2025": "fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025, groupes 00003 a 00008 (ENSEMBLE DU PERS. PERMANENT SVP SANTE) : niveau 1 1,29 (enfant 0,74), niveau 2 1,74 (1,00), niveau 3 2,04 (1,16) % du PMSS, contre 1,44 / 1,84 / 2,04 en 2026.",
             "composant_79": {
               "type": "18",
-              "_source": "Fiche de parametrage Audiens version 139 du 13/12/2025 (prive/reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), groupes 00003 a 00008, parametres Changement=\"03\", du 01/01/2025 au 31/12/2025 : chaque option de FM SPECT VIVANT PRIV attend ses elements de calcul en <BaseMontantSpecifique ValeurCodeNature=\"18\"> (ISOLE PSS ; ASSURE PSS, CONJOINT PSS, ENFANT PSS pour la famille), <Assiette>PMSS</Assiette>. Cahier technique DSN 2026.1, bloc S21.G00.79 (atelier/reference/norme-dsn/texte/bloc-S21.G00.79.txt, p. 298-300) : << Pour la Prevoyance, ce bloc est a alimenter par les elements constituant les parametres qui entrent dans le calcul de la cotisation >> ; << 18 - Base forfaitaire Prevoyance >>. Le montant (79.004) est la base de la ligne `mutuelle` du bulletin, le plafond du mois (`pss_periode`) : c'est sur lui que le taux s'applique. Le type 11 (tranche A) et le brut qu'ecrivait la DSN n'entrent pas dans ce calcul. Une seule base 18 meme pour une famille : la fiche en donne trois, de meme nature et de meme assiette, que la DSN ne sait pas distinguer -- l'option (70.004) et les ayants droit (70.008, 70.011) disent le reste (lot V3e, PASSATION-V3e.md)."
+              "_source": "Fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), groupes 00003 a 00008, parametres Changement=\"03\", du 01/01/2025 au 31/12/2025 : chaque option de FM SPECT VIVANT PRIV attend ses elements de calcul en <BaseMontantSpecifique ValeurCodeNature=\"18\"> (ISOLE PSS ; ASSURE PSS, CONJOINT PSS, ENFANT PSS pour la famille), <Assiette>PMSS</Assiette>. Cahier technique DSN 2026.1, bloc S21.G00.79 (atelier/reference/norme-dsn/texte/bloc-S21.G00.79.txt, p. 298-300) : << Pour la Prevoyance, ce bloc est a alimenter par les elements constituant les parametres qui entrent dans le calcul de la cotisation >> ; << 18 - Base forfaitaire Prevoyance >>. Le montant (79.004) est la base de la ligne `mutuelle` du bulletin, le plafond du mois (`pss_periode`) : c'est sur lui que le taux s'applique. Le type 11 (tranche A) et le brut qu'ecrivait la DSN n'entrent pas dans ce calcul. Une seule base 18 meme pour une famille : la fiche en donne trois, de meme nature et de meme assiette, que la DSN ne sait pas distinguer -- l'option (70.004) et les ayants droit (70.008, 70.011) disent le reste (lot V3e, PASSATION-V3e.md)."
             }
           },
           "_rempli_par": "bareme_sante -- ses taux ne sont pas dans le bareme parce qu'ils dependent du contrat du salarie : le NIVEAU de garantie (1, 2 ou 3) et la COMPOSITION couverte (assure seul, conjoint, enfants). La fiche du salarie les dit : \"sante_svp\": {\"niveau\": \"2\", \"conjoint\": true, \"enfants\": 2}. Sans elle, le moteur REFUSE -- prendre le niveau 1 par defaut cotiserait moins que le contrat, et un salarie mal couvert ne l'apprend qu'au premier remboursement.",
@@ -1751,7 +1751,7 @@
       "retraite_t1": {
         "artiste": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % en T1 pour les ARTISTES intermittents des adherents, accord du 24/12/1991. Rien pour les permanents (cadres ou non) ni pour les techniciens intermittents : leur taux reste celui de leur population."
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % en T1 pour les ARTISTES intermittents des adherents, accord du 24/12/1991. Rien pour les permanents (cadres ou non) ni pour les techniciens intermittents : leur taux reste celui de leur population."
     },
     "SNDTP": {
       "libelle": "Syndicat national des theatres prives (adherents avant le 01/01/2024)",
@@ -1759,7 +1759,7 @@
       "retraite_t1": {
         "artiste": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991, pour les seuls adherents d'avant le 01/01/2024 (le SNDTP est devenu depuis une composante d'une autre organisation).",
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991, pour les seuls adherents d'avant le 01/01/2024 (le SNDTP est devenu depuis une composante d'une autre organisation).",
       "adhesion_avant": "2024-01-01"
     },
     "LA SCENE INDEPENDANTE": {
@@ -1768,7 +1768,7 @@
       "retraite_t1": {
         "artiste": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991.",
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991.",
       "alias": [
         "SNES"
       ]
@@ -1779,7 +1779,7 @@
       "retraite_t1": {
         "artiste": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991."
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991."
     },
     "SNEP": {
       "libelle": "Syndicat national de l'edition phonographique",
@@ -1787,7 +1787,7 @@
       "retraite_t1": {
         "artiste": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991."
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991."
     },
     "UPC": {
       "libelle": "Union des producteurs de cinema",
@@ -1795,7 +1795,7 @@
       "retraite_t1": {
         "technicien": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens intermittents, accord du 30/12/1991."
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens intermittents, accord du 30/12/1991."
     },
     "AFPF": {
       "libelle": "Association francaise des producteurs de films",
@@ -1803,7 +1803,7 @@
       "retraite_t1": {
         "technicien": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens intermittents, accord du 30/12/1991."
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens intermittents, accord du 30/12/1991."
     },
     "ANIMFRANCE": {
       "libelle": "AnimFrance (ex-SPFA, Syndicat des producteurs de films d'animation)",
@@ -1812,7 +1812,7 @@
         "artiste": 10.16,
         "technicien": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens (accord du 30/12/1991) et les artistes (accord du 24/12/1991) intermittents.",
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens (accord du 30/12/1991) et les artistes (accord du 24/12/1991) intermittents.",
       "alias": [
         "SPFA"
       ]
@@ -1824,7 +1824,7 @@
         "artiste": 10.16,
         "technicien": 10.16
       },
-      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens (accord du 30/12/1991) et les artistes (accord du 24/12/1991) intermittents."
+      "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens (accord du 30/12/1991) et les artistes (accord du 24/12/1991) intermittents."
     },
     "FNDF": {
       "libelle": "Federation nationale des editeurs de films",
@@ -1867,7 +1867,7 @@
   },
   "retraite_t1_repartition": {
     "_quoi": "LA REPARTITION EMPLOYEUR / SALARIE DE LA RETRAITE COMPLEMENTAIRE EN TRANCHE 1, par convention collective et par population (Audiens, tableau n 3). Le droit commun est 60 / 40 (art. 38 de l'ANI du 17/11/2017) ; des branches du spectacle ont des repartitions plus favorables aux salaries, anterieures a l'unification de 2019 et maintenues. La CEG n'est pas concernee : 1,29 / 0,86 partout.",
-    "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans reference/sources/audiens-fp-taux-repartition-retraite-2026.pdf), releve le 25/09/2026. Tableau n 3, << a compter du 1er janvier 1999 >> ; << si premier salarie avant 1999 : repartition 50/50 pour l'ensemble du personnel >>.",
+    "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 3, << a compter du 1er janvier 1999 >> ; << si premier salarie avant 1999 : repartition 50/50 pour l'ensemble du personnel >>.",
     "_arrondi": "Part salariale = taux x part, arrondie au centieme (la demie vers le bas) ; part patronale = le reste. C'est ce que donnent les taux publies : 7,87 en 60/40 -> 4,72 / 3,15 ; en 50/50 -> 3,94 / 3,93 (cadres intermittents, Parametres 2026 p. 3) ; 10,16 en 50/50 -> 5,08 / 5,08.",
     "_avant_1999": "Une compagnie dont la fiche dit `premiere_embauche` avant le 01/01/1999 applique 50/50 a tout son personnel (`calcul.bareme_retraite_t1`). Sans date, la repartition de la branche (celle d'une entreprise nee apres 1999) : c'est le cas de la fiche vide, et celui de toutes les compagnies servies a ce jour.",
     "taux_droit_commun": 7.87,
@@ -1948,7 +1948,7 @@
             "masquer_base_et_taux": true,
             "_source": "CASC-SVP, comite d'action sociale et culturelle du spectacle vivant prive : 0,50 % de la tranche A depuis le 01/01/2026 (0,40 avant). Fiche de parametrage Audiens, groupes 00009 et 00010, contrat CASCSVP ; web-conference Audiens 2026 p. 18. Une entreprise de la CCNEAC ne la paie pas : elle paie le FNAS.",
             "_la_ou_elle_est_sur_le_brut": "Le corps du bareme l'assied sur le brut et non sur la tranche A parce que les cachets n'approchent jamais le plafond journalier ; c'est ainsi que les DSN acceptees la portent. A revoir le jour ou un cachet depassera 220 EUR par jour.",
-            "_2025": "CASC-SVP 0,40 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025)."
+            "_2025": "CASC-SVP 0,40 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025)."
           }
         ],
         "par_categorie": {
@@ -1960,7 +1960,7 @@
                 "base": "t1_journaliere",
                 "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens, cadres)",
                 "_source": "Accord interbranches, taux CADRES : 0,12 salariale et 1,69 patronale (prevoyance 0,88 + fonds collectif du spectacle pour la sante 0,81) sur la tranche A journaliere. Parametres Audiens 2026, p. 4. La CCNEAC y DEROGE pour ses intermittents cadres -- voir la couche 1285. Fonds sante : ne se reintegre ni dans le net imposable ni dans le montant net social -- voir la note `_source` de la ligne `prevoyance` de `rubriques_bulletin`.",
-                "_2025": "Prevoyance INTERBRANCHE des cadres intermittents : 1,74 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml), periode de validite 01/01/2025-31/12/2025, groupe CADRE ET ASSIMILES PREVOYANCE), 1,62 employeur / 0,12 salarie. Lu au centime sur la metteuse en scene de juin 2025 (FA1.25.7, 320,00) : assiette CSG 319,58 = 314,40 + 320 x 1,62 ; 059 = 5,18 + 0,38 = 5,56."
+                "_2025": "Prevoyance INTERBRANCHE des cadres intermittents : 1,74 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025, groupe CADRE ET ASSIMILES PREVOYANCE), 1,62 employeur / 0,12 salarie. Lu au centime sur la metteuse en scene de juin 2025 (320,00) : assiette CSG 319,58 = 314,40 + 320 x 1,62 ; 059 = 5,18 + 0,38 = 5,56."
               }
             }
           }

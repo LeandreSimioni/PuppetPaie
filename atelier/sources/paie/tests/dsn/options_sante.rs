@@ -12,7 +12,7 @@
 //! - bloc S21.G00.79 (`bloc-S21.G00.79.txt`, p. 298-300) : « Pour la Prévoyance, ce bloc est à alimenter par les
 //!   éléments constituant les paramètres qui entrent dans le calcul de la cotisation », « 18 - Base forfaitaire
 //!   Prévoyance » ;
-//! - fiche de parametrage Audiens version 139 (`prive/reference/fiches-parametrage/audiens-2025-12-13-fiche139.xml`),
+//! - fiche de parametrage Audiens version 139 (`atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml`),
 //!   groupes 00003 a 00008 : `ReferenceContrat="FM SPECT VIVANT PRIV"`, `CodeOption` NIV1/I/GE ... NIV3F/IACE/GE,
 //!   `BaseMontantSpecifique` `ValeurCodeNature="18"`, `Assiette` PMSS, par assure, conjoint et enfant.
 //!
