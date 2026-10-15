@@ -113,11 +113,23 @@ rend les fichiers. La compétence `paie` décrit exactement ce qu'il fait.
 racine du dossier sous Windows, dans `atelier/` sous Mac et Linux) : une
 fenêtre s'ouvre, et c'est tout le logiciel.
 
-| système | raccourci | ce qu'il lance |
-|---|---|---|
-| Windows | `PuppetPaie.cmd`, à la racine | `logiciel/puppetpaie.exe` (avec `WebView2Loader.dll`, `donnees/` et `interface/` à côté) |
-| Mac | `atelier/PuppetPaie.command` (clic droit › Ouvrir la première fois) | `atelier/PuppetPaie.sh` |
-| Linux | `logiciel/puppetpaie` directement (l'archive publiée le porte depuis le 15/10/2026), ou `atelier/PuppetPaie.sh` (clic droit › Lancer comme un programme, ou `./PuppetPaie.sh`) | `logiciel/puppetpaie` (la fenêtre), sinon `logiciel/paie interface` ; dans un dépôt de travail, le programme de `atelier/sources/paie/bin/linux/` (`bin/mac/` sur un Mac) |
+| système | ses programmes dans `logiciel/` | son archive publiée | raccourci | ce qu'il lance |
+|---|---|---|---|---|
+| Windows | `puppetpaie.exe` et `WebView2Loader.dll`, à la racine (suivis par Git ; l'installeur Windows ne pose qu'eux) | `puppetpaie-<version>-windows.zip` | `PuppetPaie.cmd`, à la racine | `logiciel/puppetpaie.exe` (avec `WebView2Loader.dll`, `donnees/` et `interface/` à côté) |
+| Linux | `linux/puppetpaie` (la fenêtre) et `linux/paie` (le moteur) | `puppetpaie-<version>-linux.zip` | `logiciel/linux/puppetpaie` directement, ou `atelier/PuppetPaie.sh` (clic droit › Lancer comme un programme, ou `./PuppetPaie.sh`) | `logiciel/linux/puppetpaie` (la fenêtre), sinon `logiciel/linux/paie interface` ; dans un dépôt de travail, le programme de `atelier/sources/paie/bin/linux/` |
+| Mac | `mac/puppetpaie` et `mac/paie`, universels (Intel et Apple) | `puppetpaie-<version>-mac.zip` | `atelier/PuppetPaie.command` (clic droit › Ouvrir la première fois) | `atelier/PuppetPaie.sh` : `logiciel/mac/puppetpaie`, sinon `logiciel/mac/paie interface` ; dans un dépôt de travail, `atelier/sources/paie/bin/mac/` |
+| tous | les systèmes publiés à la fois | `puppetpaie-<version>-tout-systeme.zip` | celui du système où l'on est | un dossier portable qui passe d'une machine à l'autre ; le repli d'une installation dont le système n'a pas son archive |
+
+Le flux « Publier » compile les programmes des trois systèmes (Linux et Mac ne
+sont posés dans `logiciel/linux/` et `logiciel/mac/` que par lui : jamais
+suivis par Git) et publie les quatre archives ensemble (Léandre, 15/10/2026 :
+« Il y a les quatre : une par système et une tout-système, ensemble ») ;
+chaque installation prend celle de son système (`paie/src/maj.rs`). Au
+lancement de « Publier », on choisit ce qu'on publie (`systemes` : `tous`,
+`windows-linux`, `windows`) : seules les archives fabriquées sont publiées,
+celle de tous porte ce qui a été fabriqué (et le dit, `systemes` dans
+`derniere.json`), et une installation dont le système n'est pas publié garde
+sa version et le dit, sans rien télécharger.
 
 Plus de Python (lot J5) : la fenêtre est le programme `puppetpaie`, une
 fenêtre Tauri (WebView2 sous Windows, WebKit sous Mac et Linux) qui tient le
@@ -1556,8 +1568,10 @@ n'est pas une compagnie qui se met à jour, c'est le logiciel. Au lancement, il
 ouverte, au dépôt que dit le réglage de l'installation (`maj/reglage.json`, à
 côté de `logiciel/`, clé `depot` : un dossier ou une adresse web ; en repli,
 `prive/config/maj.json` ; sinon l'adresse par défaut du code). Si elle existe,
-elle est téléchargée dans le fil de fond, vérifiée (condensat, puis **signature
-de l'éditeur** — Ed25519, la clé publique est dans `paie/src/maj.rs`,
+l'archive de son système (`derniere.json` en nomme quatre : `windows`, `linux`,
+`mac`, et `tout-systeme`, prise si la sienne manque) est téléchargée dans le
+fil de fond, vérifiée (condensat, puis **signature de l'éditeur**, une par
+archive — Ed25519, la clé publique est dans `paie/src/maj.rs`,
 `CLE_PUBLIQUE` : un dépôt compromis ne peut pas glisser une version qui n'est
 pas la nôtre), déballée dans `maj/`, à côté de `logiciel/`, et **contrôlée** :
 son programme doit lire la configuration de chaque compagnie de l'installation.
@@ -1607,7 +1621,8 @@ paie maj --cle                      # une fois : la clé qui signe
 paie maj --publier --notes "..." [--calcul "..."] [--exigee "..."]
 ```
 
-pose l'archive **signée** et `derniere.json` dans le dépôt, et refuse de
+pose les archives **signées** (une par système dont la fenêtre est dans
+`logiciel/`, et celle de tous) et `derniere.json` dans le dépôt, et refuse de
 republier un numéro déjà pris : augmenter `VERSION` d'abord. La clé privée
 vit dans `prive/config/maj-cle-privee.bin`, scellée par la clé maîtresse
 du coffre (14/10/2026) : elle s'ouvre où le coffre s'ouvre, par la clé du
@@ -1690,7 +1705,9 @@ PuppetPaie.cmd            le lanceur (Windows)
 logiciel/                 exactement ce qu'une compagnie reçoit, et ce que publie
                           la mise à jour : puppetpaie.exe, WebView2Loader.dll,
                           VERSION (une date), donnees/ (barèmes, bases, modèles,
-                          sources.json), interface/ (la page)
+                          sources.json), interface/ (la page) ; et, posés par le
+                          flux « Publier » seulement, linux/ et mac/ (puppetpaie,
+                          paie) : une archive par système, et une pour tous
 fictives/                 les compagnies fictives, livrées aussi
 maj/                      la mise à jour de l'installation (jamais dans Git)
 prive/                    les données de la compagnie du poste
