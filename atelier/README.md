@@ -845,14 +845,7 @@ se déclare nulle part ailleurs (ni DSN, ni AEM, ni DPAE).
 
 **Une seule écriture, depuis le 13/09/2026.** Un engagement n'a que des
 `lignes` ; `dates`, `cachets`, `heures` ou `taux_horaire` posés sur
-l'engagement lui-même sont **refusés**, en nommant l'outil qui convertit un
-fichier ancien une fois pour toutes :
-
-```bash
-python outils/convertir_saisies.py paies/2026-08.json --ecrire
-```
-
-(la copie d'avant est gardée dans `paies/avant/`). Un contrat mixte se saisit
+l'engagement lui-même sont **refusés**. Un contrat mixte se saisit
 avec une ligne `cachet` et une ligne `heure`, chacune à son taux.
 
 Les noms sont tolérants : « Celi », « celimene », « Mairn » avec la faute de
@@ -927,6 +920,19 @@ C'est un **outil de l'éditeur**, lancé avant chaque publication (`atelier/CLAU
 ne figure pas dans l'aide. Une installation ne fait que recevoir la mise à jour
 signée ; la publication ne vérifie pas d'elle-même que les sources l'ont été.
 
+**Les tables Unicode du moteur** (`paie/src/tables_nfkc.rs`, `nfkd_ascii.rs`,
+`tables_retours.rs`, `tables_journal.rs` : la normalisation NFKC/NFKD, les
+chiffres et lettres de `str.isdigit`/`str.isalnum`/`\d`, cp437 et cp1252, les
+encodages qu'un XML de retour peut déclarer, les caractères d'un nom XML)
+s'écrivent depuis les textes déposés (`atelier/reference/sources/unicode/`,
+`python/`, `w3c/`, chacun avec son `LISEZ-MOI.md`) par **`paie generer-tables
+atelier/reference/sources atelier/sources/paie/src`** (`paie/src/generer_tables.rs`,
+15/10/2026 ; avant, quatre scripts Python les tiraient de l'Unicode de
+l'interpréteur). Le test `tables_generees` vérifie que les tables commitées sont
+celles que les textes donnent. Monter de version d'Unicode : déposer les
+nouveaux fichiers, changer les constantes `UNICODE_*` du module, relancer, lire
+le `git diff` (`unicode/LISEZ-MOI.md`).
+
 Légifrance refuse les robots, mais la DILA publie chaque soir en open data
 ce qui a bougé dans les conventions collectives (base KALI, une archive de
 quelques centaines de Ko, sans compte). Pour les sources qui portent un bloc
@@ -943,6 +949,45 @@ de chaque convention, pour savoir ensuite rattacher un texte à la sienne : une
 minute, une fois. L'ouverture hebdomadaire du Python la refaisait toute
 seule ; en Rust, l'ouverture accepte l'option et ne vérifie rien
 (`paie/src/ouverture.rs`) : c'est l'éditeur qui la lance.
+
+Quand une source a changé, le référentiel qu'elle nourrit se **relève** par
+**`paie extraire`** (`paie/src/extraire/`, porté en Rust le 15/10/2026 depuis
+les `atelier/outils/extraire_*.py`) : `naf` (les deux classeurs INSEE →
+`naf-base.json`), `usages` et `formats` (le classeur de net-entreprises ou le
+cahier technique en PDF → `usages-dsn-*.json`, `formats-dsn-*.json`), `urssaf`
+(la Table des Urssaf, la liste des sites, le COG 2015 →
+`urssaf-dpae-base.json`). Les sources, puis la sortie, se nomment toujours ;
+une sortie qui existe ne se remplace qu'avec `--remplacer`, et rien ne s'écrit
+avant que le relevé soit fait. Le `_source` du JSON nomme la commande, les
+fichiers déposés et le jour du relevé. Par exemple :
+`paie extraire naf <structure.xlsx> <correspondances.xlsx> logiciel/donnees/naf-base.json --remplacer`
+(les commandes de chaque table sont dans `atelier/reference/norme-dsn/LISEZMOI.md`
+et `atelier/reference/sources/insee-naf-2025/LISEZ-MOI.md`). Puis
+`git diff logiciel/donnees/` dit ce qui a bougé, et
+`tests/fichiers/extraction.rs` vérifie que chaque table livrée est bien ce que
+ses textes déposés donnent.
+
+**Les textes eux-mêmes**, articles de loi et de convention, se relèvent dans les
+bases LEGI et KALI de la DILA et se gardent dans deux entrepôts du dépôt
+(`atelier/reference/sources/legi-entrepot/` et `kali-entrepot/` : tous les
+articles des textes suivis, et la liste des livraisons déjà appliquées ;
+`paie/src/entrepot_dila.rs`). Deux commandes de l'atelier, qui prennent le
+dossier des sources :
+
+```
+paie releve-codes moissonner atelier/reference/sources     # les livraisons LEGI nouvelles, puis releve.json et xml/ de chaque texte
+paie releve-codes rapport atelier/reference/sources [code]  # articles-<date>.md, le document lisible
+paie releve-codes comparer atelier/reference/sources       # chaque article changé, relu contre sa version d'avant (archive globale, 1,1 Go en flux)
+paie releve-conventions mettre-a-jour atelier/reference/sources
+paie releve-conventions article atelier/reference/sources 3090 7.6
+paie releve-conventions chercher atelier/reference/sources 3090 licenciement
+```
+
+Les textes suivis sont dans `paie/src/releve_codes/textes.rs` (un article
+ajouté y est déjà dans l'entrepôt : `moissonner` l'écrit sans rien télécharger)
+et, pour les conventions, ceux que cite `sources.json`. `--reconstruire` refait
+défiler l'archive globale (1,1 Go pour LEGI, 180 Mo pour KALI) : on ne le
+lance pas sans raison.
 
 ### La nature du contrat, et les salariés permanents
 
@@ -1659,11 +1704,13 @@ atelier/                  ← ce dossier : tout le reste
   docs/                   ARCHITECTURE.md, RUBRIQUES.md, PORTAGE-RUST.md,
                           COMPAGNIES-FICTIVES.md et COMPAGNIES-FICTIVES-DEPOT.md
                           (le dernier bilan du crash-test, 21/09/2026)
-  outils/                 les outils d'atelier, encore en Python :
-                          convertir_saisies.py, verifier_avant_commit.py
-                          (garde-fou du dépôt public, en sommeil), les
-                          extracteurs de la norme (extraire_*.py), le relevé
-                          des codes (relever_les_codes.py)…
+  outils/                 les outils d'atelier : `demos/` (une description de
+                          démonstration). Plus un fichier Python depuis le
+                          15/10/2026 : le garde avant commit, le guet, les tables
+                          Unicode, les relevés des référentiels, des codes et des
+                          conventions sont des commandes de `paie`
+                          (`verifier-avant-commit`, `guet`, `generer-tables`,
+                          `extraire`, `releve-codes`, `releve-conventions`)
   PuppetPaie.sh, PuppetPaie.command   les lanceurs Linux et Mac
   prive-dev/, depot/ (versions publiées), site/, maquettes/
                           (le serveur du filet : dépôt du site de l'éditeur, infra/filet/)
@@ -1700,3 +1747,29 @@ garde-fous. Aucun front ne décide quoi que ce soit.
 
 Voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour le détail des formats et la façon
 dont chaque taux a été retrouvé.
+
+### Avant un commit : le garde des données réelles
+
+Rien de la compagnie du poste n'entre dans le dépôt public. `paie
+verifier-avant-commit` cherche, dans ce que Git emporterait (hors de
+`prive/`), les NIR, IBAN et BIC qui ne portent pas la marque d'invention, et
+les vraies valeurs qu'il lit dans `prive/config/` quand il est là (SIRET,
+SIREN, comptes des organismes, IBAN, BIC, NIR, courriels, adresses, nom et
+prénom des salariés). Il dit le fichier, la ligne et ce que c'est, jamais la
+valeur ; il sort en 0 (rien), 1 (trouvé) ou 2 (il n'a pas pu vérifier). Le
+test `donnees_reelles` de la suite le complète sans lire `prive/`.
+
+```bash
+paie verifier-avant-commit             # tout ce qui partirait
+paie verifier-avant-commit --indexes   # ce que l'index porte : le prochain commit
+git config core.hooksPath atelier/.githooks   # une fois : le crochet le lance à chaque commit
+```
+
+Le crochet (`atelier/.githooks/pre-commit`) prend le `paie` de
+`PUPPETPAIE_FABRIQUE`, sinon celui que Cargo a compilé (`CARGO_TARGET_DIR`,
+sinon `atelier/sources/paie/target`), sinon celui que le dépôt livre
+(`atelier/sources/paie/bin/<système>/`) ; si aucun ne connaît la commande, le
+commit est refusé. Une trouvaille se regarde : une valeur réelle sort du
+dépôt, une valeur inventée s'inscrit dans `FICTIVES`
+(`atelier/sources/paie/src/verifier_avant_commit.rs`). Passer outre en
+connaissance de cause : `git commit --no-verify`.

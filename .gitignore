@@ -1,22 +1,9 @@
 # ---------------------------------------------------------------------------
-# DEUX DEPOTS, UN SEUL .gitignore (14/10/2026).
-#
-# Le depot de TRAVAIL (`puppetpaieprivate`) est prive : il porte le code ET
-# `prive/`, les donnees de la compagnie du poste, pour qu'on puisse travailler
-# depuis ailleurs qu'ici ; il recoit les tickets d'incident. Le depot PUBLIC
-# (`PuppetPaie`) porte le meme code, sans `prive/` ni rien de reel, avec une
-# histoire neuve : `atelier/outils/exporter_depot_public.sh` l'ecrit depuis
-# ce depot-ci et ajoute en bas de sa copie de ce fichier le bloc de ce qui
-# n'y entre jamais. L'historique de ce depot-ci porte des NIR, des salaires et
-# des adresses, et une histoire ne se nettoie pas apres coup : il ne devient
-# jamais public.
-#
-# Deux consequences, a ne pas reapprendre :
-#   - NE PAS poser `git config core.hooksPath atelier/.githooks` ICI. Ce
-#     hook refuse tout commit qui emporte une donnee personnelle : il est
-#     fait pour le depot public, et il refuserait chaque commit de celui-ci.
-#   - `prive/` ne se met pas dans ce fichier : il est suivi ici, a chaque
-#     commit (regle de fond 9) ; c'est l'export qui l'ecarte du public.
+# LE DEPOT PUBLIC (`PuppetPaie`, 15/10/2026) : le code, les textes de
+# reference, les compagnies fictives. Les donnees d'une compagnie n'entrent
+# dans aucun depot (regle de fond 9) : le poste, la cle USB, le Drive. Le
+# depot prive (`puppetpaieprivate`) ne garde que `journal/`,
+# `reference-privee/` et les tickets.
 # ---------------------------------------------------------------------------
 
 __pycache__/
@@ -147,7 +134,7 @@ atelier/bac-a-sable/prive/maj/
 atelier/bac-a-sable/prive/journal/
 
 # ---------------------------------------------------------------------------
-# LE DEPOT PUBLIC (bloc ajoute par atelier/outils/exporter_depot_public.sh) :
+# CE QUI N'ENTRE JAMAIS DANS LE DEPOT :
 # les donnees d'une compagnie vivent a cote du code et n'y entrent jamais
 # (a la racine seulement : le bac a sable de l'atelier garde son `prive/`,
 # qui est une compagnie fictive copiee).

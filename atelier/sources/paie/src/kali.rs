@@ -23,11 +23,8 @@
 //!
 //! Ce module ne decide rien : il rend ce qui a bouge, `sources::verifier` en fait un etat, la commande l'affiche.
 
-use std::io::Read;
 use std::path::Path;
-use std::sync::OnceLock;
 
-use regex::Regex;
 use serde_json::{json, Map, Value};
 
 pub const INDEX: &str = "https://echanges.dila.gouv.fr/OPENDATA/KALI/";
@@ -40,14 +37,10 @@ type R<T> = Result<T, String>;
 /// Ce qu'on telecharge : une adresse, ses octets (ou la panne, en une phrase).
 pub type Telecharger<'a> = dyn FnMut(&str) -> R<Vec<u8>> + 'a;
 
-/// Les estampilles `AAAAMMJJ-HHMMSS` de l'index, sans doublon, dans l'ordre.
+/// Les estampilles `AAAAMMJJ-HHMMSS` de l'index, sans doublon, dans l'ordre (`entrepot_dila::livraisons`, que l'entrepot KALI
+/// lit aussi).
 pub fn livraisons(index_html: &str) -> Vec<String> {
-    static M: OnceLock<Regex> = OnceLock::new();
-    let m = M.get_or_init(|| Regex::new(r#"href="KALI_(\d{8}-\d{6})\.tar\.gz""#).expect("motif des livraisons"));
-    let mut v: Vec<String> = m.captures_iter(index_html).map(|c| c[1].to_string()).collect();
-    v.sort();
-    v.dedup();
-    v
+    crate::entrepot_dila::livraisons(index_html, "KALI")
 }
 
 /// `AAAAMMJJ...` -> `AAAA-MM-JJ`.
@@ -58,65 +51,14 @@ pub fn jour(livraison: &str) -> String {
 
 // ------------------------------------------------------------------ l'archive
 
-/// Les fichiers d'une archive `.tar.gz` : (nom, octets). Le format tar (POSIX ustar, avec le prefixe de nom, les noms
-/// longs GNU `L` et l'en-tete pax `path=`) se lit ici, sans dependance : 512 octets d'en-tete, le contenu, le bourrage.
+/// Les fichiers d'une archive `.tar.gz` : (nom, octets). Le format tar se lit dans `entrepot_dila::LecteurTar`, sans
+/// dependance (le meme lecteur fait defiler l'archive globale de LEGI en flux).
 pub fn fichiers_tar_gz(octets: &[u8]) -> R<Vec<(String, Vec<u8>)>> {
-    let mut tar = Vec::new();
-    flate2::read::MultiGzDecoder::new(octets).read_to_end(&mut tar).map_err(|e| format!("archive illisible (gzip) : {}", e))?;
-    let champ = |b: &[u8]| -> String {
-        let fin = b.iter().position(|&c| c == 0).unwrap_or(b.len());
-        String::from_utf8_lossy(&b[..fin]).into_owned()
-    };
-    let octal = |b: &[u8]| -> R<usize> {
-        let t = champ(b);
-        let t = t.trim();
-        if t.is_empty() {
-            return Ok(0);
-        }
-        usize::from_str_radix(t, 8).map_err(|_| format!("archive illisible (tar) : taille « {} »", t))
-    };
+    let mut tar = crate::entrepot_dila::archive(octets);
     let mut out = Vec::new();
-    let mut i = 0;
-    let mut nom_suivant: Option<String> = None;
-    while i + 512 <= tar.len() {
-        let h = &tar[i..i + 512];
-        if h.iter().all(|&c| c == 0) {
-            break;
-        }
-        let taille = octal(&h[124..136])?;
-        let type_ = h[156];
-        let debut = i + 512;
-        let fin = debut.checked_add(taille).filter(|f| *f <= tar.len()).ok_or("archive illisible (tar) : fichier tronque")?;
-        let donnees = &tar[debut..fin];
-        i = debut + taille.div_ceil(512) * 512;
-        match type_ {
-            // Le nom long du fichier qui suit (GNU).
-            b'L' => nom_suivant = Some(champ(donnees)),
-            // L'en-tete pax : `longueur cle=valeur\n`, dont `path`.
-            b'x' => {
-                for ligne in String::from_utf8_lossy(donnees).lines() {
-                    if let Some((_, kv)) = ligne.split_once(' ') {
-                        if let Some(p) = kv.strip_prefix("path=") {
-                            nom_suivant = Some(p.to_string());
-                        }
-                    }
-                }
-            }
-            b'g' => {}
-            _ => {
-                let nom = match nom_suivant.take() {
-                    Some(n) => n,
-                    None => {
-                        let prefixe = if &h[257..262] == b"ustar" { champ(&h[345..500]) } else { String::new() };
-                        let n = champ(&h[0..100]);
-                        if prefixe.is_empty() { n } else { format!("{}/{}", prefixe, n) }
-                    }
-                };
-                // Un fichier ordinaire (`0`, ou l'ancien NUL) ; les dossiers et les liens ne nous disent rien.
-                if type_ == b'0' || type_ == 0 || type_ == b'7' {
-                    out.push((nom, donnees.to_vec()));
-                }
-            }
+    while let Some(m) = tar.suivant()? {
+        if m.fichier {
+            out.push((m.nom, tar.lire()?));
         }
     }
     Ok(out)

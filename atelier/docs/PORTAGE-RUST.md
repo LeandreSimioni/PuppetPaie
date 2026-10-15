@@ -1275,7 +1275,8 @@ congés, précarité, préavis, les quatre ruptures), `clauses`, `minima`,
 >   dpae-lire`. Le Python envoie la fiche, les dates et la nature : la DPAE
 >   n'a besoin ni du contexte ni du calcul. L'horodatage vient du Python.
 > - **`nfkd_ascii.rs`** : la table NFKD → ASCII et `str.isdigit` de Python,
->   générée par `outils/generer_nfkd_ascii.py` (pas de crate de
+>   générée alors par un script Python, aujourd'hui par `paie generer-tables`
+>   depuis la base Unicode déposée (15/10/2026 ; pas de crate de
 >   normalisation). Seule dépendance neuve : `flate2`, déjà dans le lock par
 >   la fabrique.
 > - **Prouvé contre l'ancien Python**, à l'octet et à la phrase de refus :
@@ -1304,8 +1305,9 @@ congés, précarité, préavis, les quatre ruptures), `clauses`, `minima`,
 >   pur, déjà dans le lock par la fabrique). Une couche `controle_expat`
 >   refuse ce que roxmltree laisse passer et qu'expat refusait. Les tables
 >   Python (chiffres Unicode de `\d`, cp437, cp1252, noms de codecs, noms XML
->   d'expat) sont générées par `outils/generer_tables_retours.py` →
->   `tables_retours.rs`.
+>   d'expat) sont générées dans `tables_retours.rs` (alors par un script
+>   Python, depuis le 15/10/2026 par `paie generer-tables`, depuis les textes
+>   déposés).
 > - **Prouvé contre l'ancien Python** : 967 retours de `prive/` et
 >   `prive-dev/`, 128 fictifs des démos et leurs variantes (536 580 appels,
 >   1 écart) ; 8 015 appels enregistrés des suites, CRM synthétiques et 1 100
@@ -1540,7 +1542,7 @@ congés, précarité, préavis, les quatre ruptures), `clauses`, `minima`,
 > - **`avenant.rs`** (`paie avenant-ecart`) : `ecart_au_contrat_signe` (ce que le contrat
 >   parti ne dit plus de la paie), lu dans le PDF parti par la fabrique dans le même
 >   processus ; tout ce qui rend "" se décide avant de relire la paie calculée. NFKC sans
->   crate (`nfkc.rs`, `tables_nfkc.rs` générées par `outils/generer_nfkc.py`, 1 174 444 cas
+>   crate (`nfkc.rs`, `tables_nfkc.rs` générées alors par un script Python, aujourd'hui par `paie generer-tables`, 1 174 444 cas
 >   contre Python, 0 écart). Preuve : ~10 000 cas dont ~1 460 non vides, 0 écart.
 > - **Après fusion des quatre lots** (A, B, C, D), preuves rejouées : 3 210 cas du mois avec
 >   le vrai écart au contrat (130 non vides), 4 314 de `rappels`/`apercu`, 274 de l'accueil :
@@ -1774,7 +1776,8 @@ congés, précarité, préavis, les quatre ruptures), `clauses`, `minima`,
 >   `outils/compagnies_demo.py`, doit continuer de marcher : il passe par `paie …`, il ne se retire pas ;
 >   l'horloge qui la fait vivre est au lot I. **Les outils de l'atelier qui importent le moteur Python**
 >   passent par `paie …` ou se retirent : `compagnies_fictives.py` (le crash-test), `exporter.py`,
->   `extraire_usages.py`, `extraire_formats.py` (la fabrique Python),
+>   `extraire_usages.py`, `extraire_formats.py` (la fabrique Python ; portés en Rust le 15/10/2026 avec
+>   `extraire_naf.py`, `extraire_urssaf.py`, `lire_xlsx.py` et `lire_pdf.py` : `paie extraire`, `src/extraire/`),
 >   `auditer_le_catalogue.py`, `essai_contrat_plurimensuel.py` ; **les tests Python** (1 211) qui
 >   testent le moteur Python se réécrivent dans `paie/tests/` ou se retirent (chantier « vider
 >   l'atelier » d'`ETAT.md`).

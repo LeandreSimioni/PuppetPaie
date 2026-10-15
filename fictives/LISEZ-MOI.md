@@ -47,7 +47,9 @@ compagnie fictive a été reproduite ce jour-là.
   sont inventés.
 - Chaque dossier porte `COPIE-DE-DEVELOPPEMENT.json` : les dernières portes
   avant le réseau refusent une DSN ou une DPAE réelle, la sauvegarde et la
-  publication (`logiciel/moteur/compagnies.py`). **Ne pas le retirer.**
+  publication (`paie/src/interface/compagnies.rs`, `est_copie` et
+  `est_fictive` ; `paie/src/routes_accueil.rs`, `simulation_active`).
+  **Ne pas le retirer.**
 - Le montant Urssaf de chaque DSN est **calculé** par le moteur, comme pour
   une vraie compagnie : la somme des lignes 23, chacune valorisée à la table
   des CTP de l'Urssaf (journal §162, `paie/src/bordereau.rs`).
@@ -63,7 +65,7 @@ compagnie fictive a été reproduite ce jour-là.
 
 On arrive sur le bureau d'un administrateur : ce qu'il a fait est fait, ce
 qui tombe maintenant reste à faire. À chaque ouverture, l'horloge
-(`moteur/simulation.py`, `rattraper`) joue ce qui était dû avant
+(`paie/src/horloge.rs`, `rattraper`) joue ce qui était dû avant
 aujourd'hui, à sa date, et seulement ce qui n'a pas été fait :
 
 | quand | ce qui se joue |
@@ -75,34 +77,27 @@ aujourd'hui, à sa date, et seulement ce qui n'a pas été fait :
 
 Ce que le visiteur a fait lui-même n'est jamais refait. L'horloge garde sa
 mémoire dans `config/horloge.json`. Les saisies s'arrêtent en décembre
-2026, faute de barème 2027 : **chaque nouvelle version de la compagnie fictive
-ajoute un mois** (`DERNIER_MOIS` dans le générateur).
+2026, faute de barème 2027.
 
 ## Les ouvrir
 
-Depuis `logiciel/` :
+Dans l'interface : l'accueil propose chaque compagnie fictive en tuile, et
+elle s'ouvre sans mot de passe. En ligne de commande, la compagnie est
+`PUPPETPAIE_DONNEES` (depuis la racine du dépôt) :
 
 ```bash
-PUPPETPAIE_DONNEES=../fictives/fictive-3090-grande python -m moteur interface
+PUPPETPAIE_DONNEES=fictives/fictive-3090-grande paie echeancier
 ```
 
-(sous Windows : `set PUPPETPAIE_DONNEES=..\fictives\fictive-3090-grande` puis la
+(sous Windows : `set PUPPETPAIE_DONNEES=fictives\fictive-3090-grande` puis la
 même commande.)
 
-## Les refaire
+## D'où elles viennent
 
-Tout ce dossier sort de `logiciel/outils/compagnies_demo.py`, et se refait
-à l'identique (aux dates de production près) :
-
-```bash
-python outils/compagnies_demo.py --tout            # les quatre, 4 à 5 minutes
-python outils/compagnies_demo.py fictive-1285-petite  # une seule
-python outils/compagnies_demo.py --jouer --tout     # seulement rattraper aujourd'hui
-```
-
-Le calendrier de chaque compagnie — qui joue quoi, où, quand, à quel
-cachet — est écrit en clair dans ce fichier-là : c'est lui qu'on modifie,
-pas les saisies.
+Ces dossiers ont été fabriqués par un générateur Python
+(`logiciel/outils/compagnies_demo.py`), parti avec le Python et **non
+porté** : ils ne se refont plus d'un coup. Ils vivent : l'horloge les fait
+jouer à chaque ouverture, et le poste commite ce qu'elle a joué.
 
 ## Le poids
 

@@ -521,7 +521,7 @@ mod tests {
         assert!(e.starts_with("Le fichier ne porte pas S10.G00.00.006"), "{}", e);
     }
 
-    /// Le releve d'`extraire_formats.py` sur les classeurs 2027.1.2 : les CSL de 40.070 et 41.045 s'elargissent
+    /// Le releve de `paie extraire formats` sur les classeurs 2027.1.2 : les CSL de 40.070 et 41.045 s'elargissent
     /// (evolutions 15 et 18) ; la date de naissance perd les annees 18xx en 2027 (p. 172). Une saisie se controle dans
     /// toutes les versions livrees, un fichier dans la sienne.
     #[test]

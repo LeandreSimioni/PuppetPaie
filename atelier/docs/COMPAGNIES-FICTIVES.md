@@ -6,9 +6,11 @@ Deux sortes de compagnies fictives (lot U1, 14/10/2026 : le mot « demonstration
   (`COPIE-DE-DEVELOPPEMENT.json`, `"copie_de": "compagnie fictive …"`) fait jouer leurs envois. Les tests en lisent la
   copie figee, `atelier/sources/paie/tests/donnees/fictives/`. Une installation posee avant le lot U1 les a sous
   `demo/demo-*` : le logiciel renomme ce dossier au lancement (`interface::compagnies::ranger_les_fictives`) ;
-- **le jeu de problemes** ci-dessous, monte par les tests et par `outils/compagnies_fictives.py`.
+- **le jeu de problemes** ci-dessous, que montait `outils/compagnies_fictives.py` : parti avec le Python (lot K, 09/10/2026)
+  et **non porte** ; aucun test ne le monte, et ce bilan ne se regenere plus (`atelier/README.md`, « Les compagnies fictives »).
 
-Produit par `outils/compagnies_fictives.py --tout` sur le mois 2026-06.
+Son dernier bilan, produit par `outils/compagnies_fictives.py --tout` sur le mois 2026-06 (21/09/2026) ; les messages cites
+sont ceux du moteur Python d'alors.
 Cet outil ne repare rien : la liste EST le travail a venir, et ce qui en sort est le travail fait.
 
 Ce que ces DSN valent au point de depot -- sept y ont ete deposees EN TEST le 21/09/2026, dont trois qui refusent depuis le meme soir -- est dans `COMPAGNIES-FICTIVES-DEPOT.md`, a cote.

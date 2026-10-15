@@ -28,7 +28,7 @@ D'où ça vient : `../dsn-cahier-technique-2027.1.1.pdf` (cahier du 10/06/2026, 
 ## Où le moteur s'en sert
 
 Ces fichiers sont la lecture ; les tables que le moteur applique se relèvent depuis le PDF par les outils de
-l'atelier (`atelier/outils/extraire_usages.py`, `extraire_formats.py`) : `logiciel/donnees/usages-dsn-base.json`
+l'atelier (`paie extraire usages`, `paie extraire formats` ; `paie/src/extraire/`) : `logiciel/donnees/usages-dsn-base.json`
 et `formats-dsn-base.json`, partie `P27V01`. La version de la norme qu'un fichier porte (`S10.G00.00.006`) se
 lit de `logiciel/donnees/norme-dsn-base.json` ; la seule valeur que ce cahier admet est « P27V01 - Année 2027 Version 1 »
 (p. 129 du PDF, `bloc-S10.G00.00.txt`).

@@ -12,12 +12,11 @@ cargo test --release --locked
 cargo build --release --locked      # target/release/fabrique-pdf[.exe]
 ```
 
-Le poste de l'éditeur ne compile pas (pas d'éditeur de liens) : GitHub
-Actions (`.github/workflows/fabrique-pdf.yml`) fabrique le programme pour
-Windows, Mac et Linux et **le commite dans `bin/<systeme>/`**. Il arrive par
-Git ou par la mise à jour ; rien à installer. `moteur/fabrique.py` cherche,
-dans l'ordre : `PUPPETPAIE_FABRIQUE`, `target/release/` (compilé sur place),
-`bin/<systeme>/`.
+Le moteur ne lance pas ce programme : `paie` lie la fabrique comme
+bibliothèque (`paie/Cargo.toml`, `paie/src/fabrique.rs`), dans le même
+processus, et sa ligne de commande est **`paie pdf …`** (les mêmes modes que
+ci-dessous ; `paie pdf --aide`). Le programme `fabrique-pdf` reste pour
+l'atelier.
 
 ## Appeler
 
@@ -39,13 +38,11 @@ en pied de page) et `verrouiller` (`encryption=PDF_ENCRYPT_AES_256`) ; puis
 avec apparence régénérée, signature et cachet posés). Leur contrat
 exact — arguments, sortie, codes de sortie, règles — est dans `FORMAT.md`.
 
-Côté Python : `moteur/fabrique.py`. Plus aucun PDF ne se fait par Python : sans
-la fabrique (format 3), l'opération s'arrête avec un message clair ;
-`PUPPETPAIE_FABRIQUE=non` est refusé. Depuis le 01/10/2026 le Python n'envoie que le chemin du `.modele` et
-les valeurs : la fabrique lit le modèle elle-même (`src/modele.rs`,
-`src/style_contrat.rs`). Il ne reste plus rien à PyMuPDF ni à PyPDF (01/10/2026) :
-l'AER passe par `--champs` et `--remplir`, et l'aperçu de la démonstration montre le
-PDF dans le lecteur du navigateur.
+Le moteur n'envoie que le chemin du `.modele` et les valeurs : la fabrique lit
+le modèle elle-même (`src/modele.rs`, `src/style_contrat.rs`). Il ne reste plus
+rien à PyMuPDF ni à PyPDF (01/10/2026) : l'AER passe par `--champs` et
+`--remplir`, et l'aperçu d'une compagnie fictive montre le PDF dans le lecteur
+du navigateur.
 
 ## Le texte d'un PDF, mesuré contre PyMuPDF
 

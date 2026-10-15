@@ -102,41 +102,58 @@ VERSION_LUE="${VERSION:8:2}.${VERSION:5:2}.${VERSION:0:4}"
 
 # Les deux listes de l'installeur, tirees du meme dossier : ce qu'il pose, ce que le desinstalleur retire.
 # Chemins Windows (`\`) ; un `$` se double pour NSIS (aucun aujourd'hui).
-python3 -I - "$PREPA" <<'PY'
-import os, sys
-prepa = sys.argv[1]
-pose = os.path.join(prepa, "pose")
-fichiers, dossiers = [], set()
-for racine, ds, fs in os.walk(pose):
-    ds.sort()
-    for f in sorted(fs):
-        rel = os.path.relpath(os.path.join(racine, f), pose)
-        fichiers.append(rel)
-        d = os.path.dirname(rel)
-        while d:
-            dossiers.add(d)
-            d = os.path.dirname(d)
-win = lambda p: p.replace("/", "\\").replace("$", "$$")
-with open(os.path.join(prepa, "poser.nsh"), "w", encoding="utf-8", newline="\n") as o:
-    o.write("; Genere par construire.sh : ce que l'installeur pose (%d fichiers).\n" % len(fichiers))
-    courant = None
-    for rel in fichiers:
-        d = os.path.dirname(rel)
-        if d != courant:
-            o.write('SetOutPath "$INSTDIR\\%s"\n' % win(d) if d else 'SetOutPath "$INSTDIR"\n')
-            courant = d
-        o.write('File "%s"\n' % os.path.join(pose, rel).replace("$", "$$"))
-with open(os.path.join(prepa, "retirer.nsh"), "w", encoding="utf-8", newline="\n") as o:
-    o.write("; Genere par construire.sh : ce que le desinstalleur retire, et rien d'autre.\n")
-    for rel in fichiers:
-        o.write('Delete "$INSTDIR\\%s"\n' % win(rel))
-    # Les dossiers du plus profond au moins profond ; RMDir sans /r : un dossier qui garde quelque chose reste.
-    for d in sorted(dossiers, key=lambda x: (-x.count("/"), x)):
-        o.write('RMDir "$INSTDIR\\%s"\n' % win(d))
-with open(os.path.join(prepa, "liste-posee.txt"), "w", encoding="utf-8", newline="\n") as o:
-    o.write("\n".join(fichiers) + "\n")
-print("%d fichiers, %d dossiers" % (len(fichiers), len(dossiers)))
-PY
+# L'ordre de pose : un dossier, ses fichiers par nom, puis ses sous-dossiers par nom, chacun a son tour (les noms se
+# comparent octet par octet, LC_ALL=C). La cle de tri marque chaque dossier d'un `1` et le fichier d'un `0`, et les
+# separe par \001, plus petit que tout caractere d'un nom : les fichiers d'un dossier passent avant ses sous-dossiers.
+win() { W=${1//\//\\}; W=${W//\$/\$\$}; }
+fichiers=()
+while IFS= read -r -d '' ligne; do
+    fichiers+=("${ligne#*$'\002'}")
+done < <(
+    cd "$PREPA/pose" && find . -type f -print0 | while IFS= read -r -d '' p; do
+        rel=${p#./}; cle=; reste=$rel
+        while [ "${reste#*/}" != "$reste" ]; do
+            cle="${cle}1${reste%%/*}"$'\001'
+            reste=${reste#*/}
+        done
+        printf '%s0%s\002%s\0' "$cle" "$reste" "$rel"
+    done | LC_ALL=C sort -z
+)
+# Les dossiers du plus profond au moins profond, puis par nom ; RMDir sans /r : un dossier qui garde quelque chose reste.
+dossiers=()
+while IFS= read -r -d '' ligne; do
+    dossiers+=("${ligne#*$'\001'}")
+done < <(
+    for rel in "${fichiers[@]}"; do
+        d=$rel
+        while [ "${d%/*}" != "$d" ]; do
+            d=${d%/*}
+            barres=${d//[!\/]/}
+            printf '%04d\001%s\0' "$((9999 - ${#barres}))" "$d"
+        done
+    done | LC_ALL=C sort -z -u
+)
+{
+    printf "; Genere par construire.sh : ce que l'installeur pose (%d fichiers).\n" "${#fichiers[@]}"
+    courant=$'\001'
+    for rel in "${fichiers[@]}"; do
+        d=; [ "${rel%/*}" != "$rel" ] && d=${rel%/*}
+        if [ "$d" != "$courant" ]; then
+            win "$d"
+            if [ -n "$d" ]; then printf 'SetOutPath "$INSTDIR\\%s"\n' "$W"; else printf 'SetOutPath "$INSTDIR"\n'; fi
+            courant=$d
+        fi
+        p="$PREPA/pose/$rel"
+        printf 'File "%s"\n' "${p//\$/\$\$}"
+    done
+} > "$PREPA/poser.nsh"
+{
+    printf "; Genere par construire.sh : ce que le desinstalleur retire, et rien d'autre.\n"
+    for rel in "${fichiers[@]}"; do win "$rel"; printf 'Delete "$INSTDIR\\%s"\n' "$W"; done
+    for d in "${dossiers[@]}"; do win "$d"; printf 'RMDir "$INSTDIR\\%s"\n' "$W"; done
+} > "$PREPA/retirer.nsh"
+if [ ${#fichiers[@]} -gt 0 ]; then printf '%s\n' "${fichiers[@]}"; else printf '\n'; fi > "$PREPA/liste-posee.txt"
+echo "${#fichiers[@]} fichiers, ${#dossiers[@]} dossiers"
 
 # --- 5. L'installeur ------------------------------------------------------------------------------------------
 dire "L'installeur (NSIS)"

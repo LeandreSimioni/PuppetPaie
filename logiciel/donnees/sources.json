@@ -606,7 +606,7 @@
       "fichier": "insee-naf-2025/insee-naf-2025-structure-20241004.xlsx",
       "sha256": "6bbb9b9affc7d547f7b2b4a790043d6c942362d743bf38377d5e32bd7ceba2d7",
       "verification": "manuelle",
-      "verification_comment": "Transmis par Leandre depuis la page INSEE (le conteneur n'a pas l'adresse directe du fichier) : ouvrir la page de veille, retelecharger, comparer le condensat ; s'il a bouge, relancer atelier/outils/extraire_naf.py et lire ce qui change.",
+      "verification_comment": "Transmis par Leandre depuis la page INSEE (le conteneur n'a pas l'adresse directe du fichier) : ouvrir la page de veille, retelecharger, comparer le condensat ; s'il a bouge, relancer `paie extraire naf <structure.xlsx> <correspondances.xlsx> logiciel/donnees/naf-base.json --remplacer` et lire ce qui change.",
       "nourrit": [
         "naf-base.json"
       ]
@@ -623,14 +623,14 @@
       "fichier": "insee-naf-2025/insee-naf-2025-correspondances-naf-rev2-vers-naf-2025-20260107.xlsx",
       "sha256": "8746ed6b5ec70dca426a158a9b43b91e97fd71cf34bc0d8094b982b7260397ab",
       "verification": "manuelle",
-      "verification_comment": "Transmis par Leandre depuis la page INSEE : ouvrir la page de veille, retelecharger, comparer le condensat ; s'il a bouge, relancer atelier/outils/extraire_naf.py et lire ce qui change (une correspondance qui se precise change la phrase du refus, jamais le code d'une compagnie).",
+      "verification_comment": "Transmis par Leandre depuis la page INSEE : ouvrir la page de veille, retelecharger, comparer le condensat ; s'il a bouge, relancer `paie extraire naf <structure.xlsx> <correspondances.xlsx> logiciel/donnees/naf-base.json --remplacer` et lire ce qui change (une correspondance qui se precise change la phrase du refus, jamais le code d'une compagnie).",
       "nourrit": [
         "naf-base.json"
       ]
     }
   },
   "conventions_a_relever": {
-    "_quoi": "Les conventions collectives qui emploient des intermittents (celles des listes de l'annexe 8, notice France Travail du 03/12/2025, et de l'annexe 10) que le moteur ne porte pas encore. Aucune donnee du logiciel n'en derive : elles sont ici pour que l'entrepot local des textes KALI (outils/relever_les_conventions.py) en garde les articles, a relire avant d'ecrire une couche. IDCC et conteneurs lus dans la base KALI de la DILA (Freemium_kali_global_20250713) le 25/09/2026. Mission posee par l'editeur le 24/09/2026 (journal §129 et §130).",
+    "_quoi": "Les conventions collectives qui emploient des intermittents (celles des listes de l'annexe 8, notice France Travail du 03/12/2025, et de l'annexe 10) que le moteur ne porte pas encore. Aucune donnee du logiciel n'en derive : elles sont ici pour que l'entrepot local des textes KALI (`paie releve-conventions`) en garde les articles, a relire avant d'ecrire une couche. IDCC et conteneurs lus dans la base KALI de la DILA (Freemium_kali_global_20250713) le 25/09/2026. Mission posee par l'editeur le 24/09/2026 (journal §129 et §130).",
     "2642": {"titre": "Production audiovisuelle (13/12/2006)", "conteneur": "KALICONT000018828041"},
     "3097": {"titre": "Production cinematographique (19/01/2012)", "conteneur": "KALICONT000028059838"},
     "2412": {"titre": "Production de films d'animation (06/07/2004)", "conteneur": "KALICONT000005635129"},
