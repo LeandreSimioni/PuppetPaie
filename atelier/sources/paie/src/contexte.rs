@@ -1323,7 +1323,10 @@ impl Contexte {
         e.insert("prevoyance_permanents".into(), ou_vide("prevoyance_permanents", Value::Object(Map::new())));
         e.insert("prevoyance_techniciens_3097".into(), copie("prevoyance_techniciens_3097"));
         // Ce que le contrat de sante fait d'un mois entierement suspendu sans indemnisation (`calcul::sante_de_la_suspension`).
-        e.insert(crate::calcul::SANTE_SUSPENSION.into(), copie(crate::calcul::SANTE_SUSPENSION));
+        // Absent : rien (la pile, et son empreinte, ne changent pas pour une compagnie qui ne l'a pas dit).
+        if let Some(v) = ent.get(crate::calcul::SANTE_SUSPENSION).filter(|v| vrai(v)) {
+            e.insert(crate::calcul::SANTE_SUSPENSION.into(), v.clone());
+        }
         e.insert("organisation_patronale".into(), copie("organisation_patronale"));
         e.insert("organisation_patronale_depuis".into(), copie("organisation_patronale_depuis"));
         e.insert("premiere_embauche".into(), copie("premiere_embauche"));

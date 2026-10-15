@@ -109,3 +109,19 @@ Chaque article porte l'identifiant de SA VERSION (`LEGIARTI...`) et la date depu
 > Les réclamations du débiteur ou du bénéficiaire des revenus sont présentées, instruites et jugées selon les règles applicables à cette taxe, selon des modalités précisées par décret en Conseil d'Etat.
 > Par dérogation au premier alinéa du présent 5, lorsque la retenue à la source prévue au 2 a été avancée par les institutions de garantie mentionnées à l'article L. 3253-14 du code du travail, elle est garantie par un privilège de même rang que celui des revenus sur lesquels elle a été précomptée.
 
+---
+
+## L'assiette de la retenue a la source, et la sante patronale reintegree
+
+### 83 -- ABSENT DU RELEVE
+
+### 204 A -- ABSENT DU RELEVE
+
+### 204 B -- ABSENT DU RELEVE
+
+### 204 E -- ABSENT DU RELEVE
+
+### 204 F -- ABSENT DU RELEVE
+
+### 204 H -- ABSENT DU RELEVE
+
