@@ -69,6 +69,7 @@ pub mod feries;
 pub mod fichiers;
 pub mod filet;
 pub mod google_autorisation;
+pub mod guet;
 pub mod horloge;
 pub mod formats;
 pub mod instance;
