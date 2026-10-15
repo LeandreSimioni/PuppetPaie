@@ -1,11 +1,11 @@
 # Les Deux Rives (compagnie fictive)
 
-Compagnie FICTIVE, fabriquee par `logiciel/outils/compagnies_demo.py` -- rien n'y est reel, et rien n'en part en reel (marqueur `COPIE-DE-DEVELOPPEMENT.json`).
+Compagnie FICTIVE, fabriquee par le generateur Python `logiciel/outils/compagnies_demo.py` (parti avec le Python, non porte) -- rien n'y est reel, et rien n'en part en reel (marqueur `COPIE-DE-DEVELOPPEMENT.json`).
 
 - Convention : IDCC 1285
 - Compagnie conventionnee de la CCNEAC : deux permanents, cinq intermittents, deux spectacles, FNAS et FCAP.
 
-Pour l'ouvrir : `PUPPETPAIE_DONNEES=fictives/fictive-1285-grande python -m moteur interface` (depuis `logiciel/`, chemin a adapter).
+Pour l'ouvrir : sa tuile, a l'accueil de l'interface ; en ligne de commande, `PUPPETPAIE_DONNEES=fictives/fictive-1285-grande paie echeancier` (depuis la racine du depot).
 
 ## L'equipe
 
