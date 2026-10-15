@@ -74,6 +74,10 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         }
         for f in &fins {
             dire!("{}  {}  fin le {}  ({})", champ(f, "salarie"), champ(f, "numero"), champ(f, "fin"), champ(f, "nature"));
+            // Le delai du signalement et ou on en est, tels que le moteur les rend (`obligations.rs`).
+            if let Some(o) = f.get("obligation").filter(|o| o.is_object()) {
+                dire!("    {}", champ(o, "phrase"));
+            }
             let a_saisir: Vec<Value> = f.get("a_saisir").and_then(Value::as_array).cloned().unwrap_or_default();
             for m in &a_saisir {
                 dire!("    A SAISIR : {}", super::rendu::texte(m));

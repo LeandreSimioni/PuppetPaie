@@ -89,6 +89,7 @@ pub mod norme;
 pub mod ntt;
 pub mod num;
 pub mod csa;
+pub mod obligations;
 pub mod oeth;
 pub mod organismes;
 pub mod oracle;
