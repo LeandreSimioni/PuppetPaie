@@ -36,3 +36,4 @@ mod plafond;
 mod plafond_intermittents;
 mod plafond_texte;
 mod seuils_effectif;
+mod suspension;

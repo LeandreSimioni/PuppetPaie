@@ -1311,6 +1311,17 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     // L'assiette des Conges Spectacles : les rubriques que le catalogue y met, d'un contrat que l'employeur declare a la
     // caisse -- et d'aucun autre (un CDI, un contrat de douze mois ou plus : `caisse_conges::affilie`).
     let mut par_rubrique: Vec<Assiettes> = soumises.iter().map(|l| assiettes(l.montant, l.conges_spectacles && caisse)).collect();
+    // UN MOIS SANS SALAIRE OU LA PART PATRONALE RESTE DUE (une sante maintenue pendant une suspension non indemnisee :
+    // `sante_de_la_suspension`, « maintenue »). Les contributions de l'employeur aux garanties collectives entrent dans
+    // l'assiette de la CSG (CSS L136-1-1, I, « toutes les sommes [...] dues [...] a l'occasion d'un travail », dont le III, 2°,
+    // n'exclut pas les contributions aux garanties collectives : `atelier/reference/sources/suspension-non-remuneree/legi-extrait-code-de-la-
+    // securite-sociale-20261015.md`) ; elles se repartissent au prorata du brut de chaque rubrique, et un brut nul ne les
+    // repartit nulle part : elles vont entieres a la premiere rubrique soumise, plutot que de sortir de l'assiette.
+    if brut.is_zero() && !tranches_prev.is_zero() {
+        if let Some(premiere) = par_rubrique.first_mut() {
+            premiere.csg = eur(add(premiere.csg, tranches_prev));
+        }
+    }
     let zero = Decimal::new(0, 2);
     let base_csg = par_rubrique.iter().fold(zero, |a, b| a + b.csg);
 
@@ -1561,6 +1572,11 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         (brut, brut, brut)
     } else {
         let base_51 = lb.iter().filter(|l| l.salaire_de_base).fold(zero, |a, l| a + l.montant);
+        // S21.G00.51.011 = 003, « Salaire rétabli – reconstitué », qui « doit toujours être déclaré pour la période de paie
+        // courante dans la DSN mensuelle » (cahier technique 2026.1, bloc S21.G00.51, Type :
+        // `atelier/reference/norme-dsn/texte/bloc-S21.G00.51.txt`) : le salaire RECONSTITUE, le brut sans les absences qui
+        // l'ont reduit (les rubriques `retabli`). Un mois entierement suspendu declare donc 001 a 0.00 et 003 au salaire du
+        // mois.
         let retabli = brut - lb.iter().filter(|l| l.retabli).fold(zero, |a, l| a + l.montant);
         let chomage = brut - lb.iter().filter(|l| l.dsn_bloc52.is_some() && l.soumis).fold(zero, |a, l| a + l.montant);
         (base_51, retabli, chomage)
