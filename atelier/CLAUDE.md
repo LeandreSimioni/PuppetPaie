@@ -62,6 +62,11 @@ du journal, `prive/journal/` se lit `journal/` du privé.
 la fenêtre Tauri (`atelier/sources/fenetre/`) ne fait que l'afficher. **Toute décision vit dans le moteur** (règle 2) : une page
 affiche et saisit, elle ne calcule ni ne refuse d'elle-même. On compile hors du dépôt (`CARGO_TARGET_DIR`), chaîne
 `stable-x86_64-pc-windows-gnu` sur le poste ; l'exe de la fenêtre compilé se copie dans `logiciel/`.
+**Rien de remplissable s'il n'y a pas à le remplir** (Léandre, 15/10/2026 : « simple pour les gens qui ont besoin de simple,
+compliqué pour les gens qui ont besoin de compliqué ») : un champ n'apparaît que parce qu'un fait l'exige (un motif qui
+appelle une date, un arrêt qui appelle le maintien), jamais « au cas où » ; le chemin simple ne montre que les faits, le
+chemin compliqué s'ouvre de lui-même quand un fait l'appelle. On prévoit tous les cas dans le moteur, et l'écran n'en
+montre que celui qui a lieu.
 
 ## Les sous-agents : Opus pour coder, Sonnet ou Haiku pour lire
 
