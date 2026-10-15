@@ -141,13 +141,13 @@ fn arret_signaler_refuse_un_arret_inconnu_et_produit_le_fichier_sans_toucher_au_
         "arret-enregistrer",
         json!({"salarie": "BRIOCHE", "dernier_jour": "2026-03-25", "fin": "2026-03-26", "motif": "01", "subrogation": "02"}),
     ));
-    let magasin = std::fs::read(racine.join("arrets/2026-03.json")).unwrap();
+    let magasin = std::fs::read(racine.join("imprevus/2026-03.json")).unwrap();
     let r = route(&racine, "arret-signaler", json!({"salarie": "BRIOCHE", "dernier_jour": "2026-03-25"}));
     let res = reussi(&r);
     assert_eq!(res["nom"], json!("SignalementArret_BRIOCHE_20260325.dsn"), "{}", r);
     assert_eq!(res["ordre"], json!(1), "{}", r);
     assert!(racine.join("sorties/2026-03/SignalementArret_BRIOCHE_20260325.dsn").exists());
-    assert_eq!(std::fs::read(racine.join("arrets/2026-03.json")).unwrap(), magasin, "produire ne note aucun envoi");
+    assert_eq!(std::fs::read(racine.join("imprevus/2026-03.json")).unwrap(), magasin, "produire ne note aucun envoi");
 }
 
 #[test]

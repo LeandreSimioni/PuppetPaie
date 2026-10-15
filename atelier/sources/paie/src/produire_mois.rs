@@ -745,6 +745,18 @@ fn produire_mois(
             non_signales += 1;
         }
     }
+    // LES SUSPENSIONS (bloc 65) : chacune se declare entiere dans la DSN de chaque mois qu'elle traverse, tiree du magasin
+    // des imprevus sous son contrat (`imprevus::suspensions_du_mois`) ; dit ici, comme l'arret.
+    for s in crate::imprevus::du_mois(&ctx.racine, &mois, Some(crate::imprevus::SUSPENSION)).map_err(crate::routes_listes::refus_magasin)? {
+        let jour = |v: &Value| -> R<String> { Ok(crate::bulletin::jj_mm_aaaa(v).map_err(valeur)?) };
+        avertissements.push(info(format!(
+            "Suspension declaree dans la DSN : {}, motif {}, du {} au {}.",
+            py_str(&s["salarie"]),
+            py_str(&s["motif"]),
+            jour(&s["debut"])?,
+            jour(&s["fin"])?
+        )));
+    }
     if non_signales > 0 {
         avertissements.push(avertissement(format!(
             "{} arret(s) reporte(s) dans la DSN mais JAMAIS SIGNALE(S) : le signalement d'arret est du dans les cinq jours, la DSN du mois ne le remplace pas (Arrets de travail › Signaler).",

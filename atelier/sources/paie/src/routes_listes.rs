@@ -146,57 +146,15 @@ fn champ(v: &Value, k: &str, defaut: Value) -> Value {
 
 // -------------------------------------------------------------------- arrets
 
-const CHAMPS_ARRET: [&str; 16] = [
-    "salarie", "contrat_debut", "contrat_numero", "motif", "dernier_jour_travaille", "fin_previsionnelle", "subrogation",
-    "subrogation_debut", "subrogation_fin", "reprise", "reprise_motif", "date_accident", "saisi_le", "qui", "note", "envois",
-];
-
-/// `operations_arrets.tous_les_arrets` : les arrets de `arrets/AAAA-MM.json`,
-/// dans l'ordre des mois (chacun tel que le fichier le dit, completes de leurs
-/// valeurs par defaut).
-pub(crate) fn tous_les_arrets(ctx: &Contexte) -> R<Vec<Value>> {
-    let dossier = ctx.racine.join("arrets");
-    if !dossier.exists() {
-        return Ok(Vec::new());
-    }
-    let mut out = Vec::new();
-    for (_, chemin) in fichiers_de_mois(&dossier) {
-        // `lire_arrets` : `d_.get("arrets", [])`, puis `Arret(**a)` pour chacun.
-        let contenu = lire_json(&chemin)?;
-        let liste = getd(&contenu, "arrets", &LISTE_VIDE)?;
-        for a in items(liste)? {
-            construire("Arret", &a, &CHAMPS_ARRET, 6)?;
-            out.push(a.into_owned());
-        }
-    }
-    Ok(out)
+/// Un refus du magasin des imprevus (`imprevus`) : un fichier abime, un genre inconnu, le dossier `arrets/` d'avant.
+pub(crate) fn refus_magasin(m: String) -> Echec {
+    erreur("ErreurOperation", m)
 }
 
-/// `operations_arrets.lire_arrets` : les arrets de `arrets/AAAA-MM.json`, chacun comme `asdict(Arret)`
-/// l'ecrirait (les seize champs dans l'ordre de la classe, ceux qui manquent a leur valeur par defaut).
-pub(crate) fn lire_arrets(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
-    let p = ctx.racine.join("arrets").join(format!("{}.json", mois));
-    if !p.exists() {
-        return Ok(Vec::new());
-    }
-    let contenu = lire_json(&p)?;
-    let liste = getd(&contenu, "arrets", &LISTE_VIDE)?;
-    let mut out = Vec::new();
-    for a in items(liste)? {
-        construire("Arret", &a, &CHAMPS_ARRET, 6)?;
-        let mut o = Map::new();
-        for k in CHAMPS_ARRET {
-            let defaut = match k {
-                "qui" => json!("?"),
-                "note" => json!(""),
-                "envois" => json!([]),
-                _ => Value::Null,
-            };
-            o.insert(k.to_string(), champ(&a, k, defaut));
-        }
-        out.push(Value::Object(o));
-    }
-    Ok(out)
+/// Les arrets de travail du magasin des imprevus (`imprevus/AAAA-MM.json`, genre `arret`), dans l'ordre des mois du
+/// magasin, chacun complet.
+pub(crate) fn tous_les_arrets(ctx: &Contexte) -> R<Vec<Value>> {
+    Ok(crate::imprevus::tous(&ctx.racine).map_err(refus_magasin)?.into_iter().filter(crate::imprevus::est_un_arret).collect())
 }
 
 /// `signalement.nomenclatures()`.
@@ -213,7 +171,7 @@ fn codes(n: &Value, quoi: &str) -> R<Vec<Value>> {
 }
 
 /// `signalement.motifs_arret()` et `motifs_reprise()` : les codes saisissables.
-fn saisissables(n: &Value, quoi: &str) -> R<Vec<Value>> {
+pub(crate) fn saisissables(n: &Value, quoi: &str) -> R<Vec<Value>> {
     let mut out = Vec::new();
     for c in codes(n, quoi)? {
         if vrai(get(&c, "saisissable")?) {
@@ -293,29 +251,19 @@ pub(crate) fn resume_arret(n: &Value, a: &Value) -> R<Value> {
     }))
 }
 
-/// La route `arrets`.
+/// La route `arrets` : les arrets de travail du magasin des imprevus, chacun resume comme `imprevus` le resume
+/// (`routes_imprevus::resume`), ceux qu'aucun signalement n'a annonces, et les nomenclatures du bloc 60.
 fn arrets(ctx: &Contexte) -> R<Value> {
     let tous = tous_les_arrets(ctx)?;
     let n = nomenclatures(ctx)?;
-    // `{"arrets": [resume(a) for a in tous_les_arrets(ctx)], "a_signaler": ...}`
     let mut resumes = Vec::new();
-    for a in &tous {
-        resumes.push(resume_arret(&n, a)?);
-    }
-    // `a_signaler` relit les arrets : meme fichiers, meme refus -- et `any`
-    // s'arrete au premier envoi qui signale.
     let mut a_signaler = Vec::new();
     for a in &tous {
-        let mut signale = false;
-        for e in envois(a)? {
-            if matches!(get(&e, "nature")?.as_str(), Some("04") | Some("05")) {
-                signale = true;
-                break;
-            }
+        let r = crate::routes_imprevus::resume(ctx, &n, a)?;
+        if !r["signale"].as_bool().unwrap_or(false) {
+            a_signaler.push(r.clone());
         }
-        if !signale {
-            a_signaler.push(resume_arret(&n, a)?);
-        }
+        resumes.push(r);
     }
     let subrogation = n.get("subrogation").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("subrogation")))?;
     Ok(json!({

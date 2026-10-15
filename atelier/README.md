@@ -711,8 +711,13 @@ paie arret signaler Celi --dernier-jour 2026-10-07
 paie depot-dsn sorties/2026-10/SignalementArret_Celi_20261007.dsn --test
 ```
 
-`saisir` **n'envoie rien** : l'arrêt est écrit dans `arrets/AAAA-MM.json`, au
-mois où il commence. `signaler` **écrit un fichier**, et c'est `depot-dsn` qui
+`saisir` **n'envoie rien** : l'arrêt est écrit dans le magasin des **imprévus**
+(`imprevus/AAAA-MM.json`), au mois de son dernier jour travaillé. C'est un fait
+saisi **une fois** : la production de chaque mois qu'il traverse en tire le bloc
+60 de la DSN et, pour un permanent, la ligne qui retire le salaire des jours
+d'absence (et le maintien de salaire saisi sur l'arrêt, `paie arret maintien
+Celi --dernier-jour 2026-10-07 --mois 2026-10 --montant 300`) ; les cachets
+d'un intermittent datés pendant l'arrêt sont nommés, jamais retirés d'office. `signaler` **écrit un fichier**, et c'est `depot-dsn` qui
 le dépose — même point de dépôt, même mot de passe du logiciel, même journal
 qu'une DSN mensuelle. Comme pour une DSN : **le dépôt de test d'abord**.
 
@@ -1029,15 +1034,17 @@ mois**, avec les mêmes `debut` et `numero`.
 
 **Une saisie de permanent dit des FAITS, pas des lignes.** Depuis le
 18/09/2026, `charger` en déduit les lignes du bulletin — salaire de base et
-son prorata, congés pris et l'indemnité qui les couvre, absences, primes,
-solde de tout compte le dernier mois :
+son prorata, congés pris et l'indemnité qui les couvre, primes, solde de
+tout compte le dernier mois. Un arrêt de travail ou une suspension (congé
+parental, sabbatique, sans solde…) n'est **pas** un fait du mois : c'est un
+**imprévu**, saisi une fois sur le salarié (`paie arret saisir`, `paie
+suspension saisir`), dont le moteur tire la ligne de chaque mois qu'il traverse
+(une saisie qui porte encore des `absences` est refusée) :
 
 ```json
 { "salarie": "Camille", "nature": "cdi", "debut": "2026-01-05",
   "numero": "AD1.26.1", "salaire_mensuel": 2200.00, "quotite_contrat": 151.67,
   "conges_pris": [ { "debut": "2026-07-13", "fin": "2026-07-17" } ],
-  "absences":    [ { "motif": "maladie", "debut": "2026-05-04",
-                     "fin": "2026-05-15", "maintien": 900.00 } ],
   "primes":      [ { "libelle": "Prime de tournée", "montant": 200 } ] }
 ```
 
@@ -1721,8 +1728,9 @@ prive/                    les données de la compagnie
   config/                 entreprise, salariés, spectacles, barèmes, compteurs,
                           effectifs (écrit par le moteur)
   paies/                  fichiers de saisie, un par mois
-  arrets/                 les arrêts de travail, au mois où ils commencent
-                          (créé au premier arrêt)
+  imprevus/               les imprévus des salariés (arrêts de travail,
+                          suspensions), au mois où ils commencent (créé au
+                          premier) ; l'ancien dossier arrets/ n'est plus lu
   exports/                les états pour le comptable et les organismes
   historique/             les contrats et les paies attestés avant ce logiciel
                           (l'import), et les copies de ce qu'il a repris

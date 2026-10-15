@@ -87,6 +87,8 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         r if crate::routes_ecritures::ROUTES.contains(&r) => crate::routes_ecritures::route(o, &ctx, route, &charge),
         // Les ecritures du lot G2 : corrections d'un mois depose, arrets, echeances cochees ; et le cout de l'annee.
         r if crate::routes_ecritures_g2::ROUTES.contains(&r) => crate::routes_ecritures_g2::route(o, &ctx, route, &charge),
+        // Les imprevus d'un salarie : la liste, le maintien d'un arret, la suspension du bloc 65 saisie une fois.
+        r if crate::routes_imprevus::ROUTES.contains(&r) => crate::routes_imprevus::route(o, &ctx, route, &charge),
         // Les ecritures du lot G3 : coffre, mot de passe du logiciel, jeton Google, mise a jour, cloture, export compta, import.
         r if crate::routes_ecritures_g3::ROUTES.contains(&r) => crate::routes_ecritures_g3::route(o, &ctx, route, &charge),
         // Les ecritures du lot G4 : valider une paie, le contrat recu, les reglages et reprises locales.
@@ -168,6 +170,7 @@ fn est_une_ecriture(route: &str) -> bool {
     matches!(route, "revue-spectacles" | "regularisation-mois")
         || crate::routes_ecritures::ROUTES.contains(&route)
         || crate::routes_ecritures_g2::ROUTES.contains(&route)
+        || (crate::routes_imprevus::ROUTES.contains(&route) && route != "imprevus")
         || crate::routes_ecritures_g3::ROUTES.contains(&route)
         || crate::routes_ecritures_g4::ROUTES.contains(&route)
         || crate::routes_actes_h1::ROUTES.contains(&route)

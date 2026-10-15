@@ -53,23 +53,11 @@ fn cle_du_nir(ctx: &Contexte, nir: &str) -> Option<String> {
 
 // ---------------------------------------------------------------------- les arrets
 
-/// `operations_arrets.arrets_pour` : les arrets que la DSN de `mois` doit reporter -- ceux dont la periode
-/// croise le mois principal declare.
+/// Les arrets que la DSN de `mois` doit reporter -- ceux du magasin des imprevus dont la periode croise le mois principal
+/// declare (`imprevus::du_mois`).
 pub(crate) fn arrets_pour(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
-    let (an, mo) = (
-        mois.get(..4).and_then(|t| t.parse::<i32>().ok()).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(mois))))?,
-        mois.get(5..7).and_then(|t| t.parse::<u32>().ok()).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(mois))))?,
-    );
-    let debut = Jour::nouveau(an, mo, 1).ok_or_else(|| erreur("ValueError", crate::date::date_impossible(an, mo, 1)))?;
-    let fin = Jour::nouveau(an, mo, crate::date::jours_du_mois(an, mo)).ok_or_else(|| erreur("ValueError", crate::date::date_impossible(an, mo, 1)))?;
-    let mut out = Vec::new();
-    for a in crate::routes_listes::tous_les_arrets(ctx)? {
-        let arret = crate::dsn::Arret { v: a.clone() };
-        if arret.couvre(&debut, &fin).map_err(|m| erreur("ValueError", m))? {
-            out.push(a);
-        }
-    }
-    Ok(out)
+    crate::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
+    crate::imprevus::du_mois(&ctx.racine, mois, Some(crate::imprevus::ARRET)).map_err(crate::routes_listes::refus_magasin)
 }
 
 /// `operations_arrets._mois_de` : le mois ou l'arret commence.
@@ -118,11 +106,15 @@ pub(crate) fn marquer_envoye_depuis(
     Ok(Some(arret))
 }
 
-/// `operations_arrets.marquer_reportes` : note, sur chaque arret, la DSN mensuelle REELLE qui l'a reporte.
+/// Note, sur chaque imprevu (arret ou suspension) que la DSN mensuelle REELLE de `mois` a declare, qu'elle l'a reporte
+/// (un envoi de nature 01) : un imprevu declare ne s'oublie plus.
 pub(crate) fn marquer_reportes(ctx: &Contexte, mois: &str, fichier: &Path, quand: &str) -> R<()> {
-    for a in arrets_pour(ctx, mois)? {
-        let Some((i, mut liste)) = trouver_ou_rien(ctx, &a["salarie"], &a["dernier_jour_travaille"])? else {
-            return Err(erreur("ErreurOperation", format!("Aucun arret de {} dont le dernier jour travaille soit le {}.", py_str(&a["salarie"]), py_str(&a["dernier_jour_travaille"]))));
+    crate::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
+    for a in crate::imprevus::du_mois(&ctx.racine, mois, None).map_err(crate::routes_listes::refus_magasin)? {
+        let genre = crate::imprevus::genre(&a).to_string();
+        let rangement = crate::imprevus::jour_de_rangement(&a).map_err(|m| erreur("ValueError", m))?;
+        let Some((i, mut liste)) = crate::routes_imprevus::trouver(ctx, &genre, &py_str(&a["salarie"]), &rangement)? else {
+            return Err(erreur("ErreurOperation", format!("Aucun imprevu ({}) de {} au {}.", genre, py_str(&a["salarie"]), rangement.jj_mm_aaaa())));
         };
         let deja = liste[i]["envois"].as_array().is_some_and(|e| {
             e.iter().any(|r| r.get("nature").and_then(Value::as_str) == Some("01") && r.get("mois").and_then(Value::as_str) == Some(mois))
@@ -135,8 +127,7 @@ pub(crate) fn marquer_reportes(ctx: &Contexte, mois: &str, fichier: &Path, quand
             "nature": "01", "type": "01", "ordre": 0, "mois": mois,
             "fichier": fichier.to_string_lossy(), "quand": quand, "identifiant": "",
         }));
-        let arret = liste[i].clone();
-        crate::routes_ecritures_g2::ecrire_arrets(ctx, &mois_de(&arret), liste)?;
+        crate::routes_ecritures_g2::ecrire_arrets(ctx, &rangement.mois_iso(), liste)?;
     }
     Ok(())
 }

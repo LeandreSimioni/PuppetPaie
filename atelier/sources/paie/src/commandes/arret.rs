@@ -1,9 +1,10 @@
-//! `paie arret [liste|motifs|contrats|saisir|reprise|signaler|oublier] [SALARIE] [options] [--json]` : les arrets de travail, de la
+//! `paie arret [liste|motifs|contrats|saisir|reprise|maintien|signaler|oublier] [SALARIE] [options] [--json]` : les arrets de travail, de la
 //! saisie au signalement (`moteur/commandes_arrets.py`). RIEN NE PART D'ICI : `signaler` ECRIT un fichier, c'est `paie depot-dsn`
 //! qui le depose.
 //!
 //! Chaque verbe passe par une route du moteur : `arrets` (la liste), `arret-contrats`, `arret-enregistrer` (`saisir`),
-//! `arret-reprise`, `arret-signaler`, `arret-oublier`. Les motifs et le « oui/non » de la subrogation se lisent dans
+//! `arret-reprise`, `arret-maintien` (`maintien` : le complement de salaire d'un mois, les jours deja indemnises), `arret-signaler`,
+//! `arret-oublier`. Les arrets vivent dans le magasin des imprevus (`imprevus`). Les motifs et le « oui/non » de la subrogation se lisent dans
 //! `arrets-base.json`.
 //!
 //! `saisir` et `reprise` inscrivent `qui = "ligne de commande"` (la charge de la route le porte), comme le Python.
@@ -24,7 +25,7 @@ use crate::retours::Echec;
 pub static SPEC: Spec = Spec {
     commande: "arret",
     positionnels: &[
-        Pos::parmi("quoi", &["liste", "motifs", "contrats", "saisir", "reprise", "signaler", "oublier"], Some("liste")),
+        Pos::parmi("quoi", &["liste", "motifs", "contrats", "saisir", "reprise", "maintien", "signaler", "oublier"], Some("liste")),
         Pos::facultatif("salarie", None),
     ],
     options: &[
@@ -36,6 +37,9 @@ pub static SPEC: Spec = Spec {
         Opt::valeur("subrogation-fin"),
         Opt::valeur("accident"),
         Opt::valeur("contrat"),
+        Opt::valeur("jours-deja-indemnises"),
+        Opt::valeur("mois"),
+        Opt::valeur("montant"),
         Opt::valeur("note"),
         Opt::valeur("le"),
         Opt::avec_defaut("motif-reprise", "01"),
@@ -139,6 +143,14 @@ fn lignes_arret(r: &Value) {
     if !reporte.is_empty() {
         dire!("             reporte par la DSN de {}", reporte.join(", "));
     }
+    if let Some(m) = r.get("maintien").and_then(Value::as_object).filter(|m| !m.is_empty()) {
+        let l: Vec<String> = m.iter().map(|(mois, v)| format!("{} : {} EUR", mois, texte(v))).collect();
+        dire!("             maintien de salaire {}", l.join(", "));
+    }
+    for c in r.get("cachets").and_then(Value::as_array).map_or(&[][..], |a| &a[..]) {
+        let dates: Vec<String> = c.get("dates").and_then(Value::as_array).map_or_else(Vec::new, |a| a.iter().map(|d| jj_mm_aaaa(&texte(d))).collect());
+        dire!("             ! {} paye(s) pendant l'arret ({}) : {}", champ(c, "libelle"), champ(c, "mois"), dates.join(", "));
+    }
 }
 
 /// La reponse `--json` : `sortie_json.enveloppe("arret", brut(resultat))`.
@@ -221,6 +233,9 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         if let Some(c) = opt(args, "contrat") {
             charge["contrat"] = json!(c);
         }
+        if let Some(j) = opt(args, "jours-deja-indemnises") {
+            charge["jours_deja_indemnises"] = json!(j);
+        }
         if let Some(n) = opt(args, "note") {
             charge["note"] = json!(n);
         }
@@ -259,6 +274,26 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             champ(&resume, "salarie"),
             champ(&resume, "dernier_jour_travaille")
         );
+        return Ok(0);
+    }
+
+    if quoi == "maintien" {
+        let salarie = exiger(args, "maintien", &["dernier-jour"])?;
+        let mut charge = json!({"salarie": salarie, "dernier_jour": date(args, "dernier-jour")?});
+        if let Some(m) = opt(args, "mois") {
+            charge["mois"] = json!(m);
+            charge["montant"] = opt(args, "montant").map_or(Value::Null, |t| json!(t));
+        }
+        if let Some(j) = args.texte("jours-deja-indemnises") {
+            charge["jours_deja_indemnises"] = json!(j);
+        }
+        let r = cadre.route("arret-maintien", charge)?;
+        let resume = r.get("arret").cloned().unwrap_or(Value::Null);
+        if json {
+            return Ok(rendre_json(&resume));
+        }
+        dire!("Maintien note. Rien n'est parti : la paie du mois le portera.");
+        lignes_arret(&resume);
         return Ok(0);
     }
 

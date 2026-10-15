@@ -366,7 +366,15 @@ fn fin_contrat_signaler(o: &HashMap<String, String>, ctx: &Contexte, charge: &Va
         envoi_test,
         date_constitution: jour_le(charge)?,
     };
-    let texte = crate::fctu::generer(ctx, &paie, &fin, &options, &paie.engagement.suspensions, &[]).map_err(echec_fctu)?;
+    // Les arrets du contrat qui croisent la periode du signalement : le FCTU les reporte (bloc 60), comme la mensuelle,
+    // tires du magasin des imprevus ; ses suspensions (bloc 65) en viennent deja (`imprevus::suspensions_du_mois`).
+    let (debut_p, fin_p) = (paie.engagement.debut_periode().map_err(plain)?, paie.engagement.fin_periode().map_err(plain)?);
+    let arrets: Vec<crate::dsn::Arret> = crate::imprevus::arrets_du_contrat(ctx, &paie, &debut_p, &fin_p)
+        .map_err(crate::routes_listes::refus_magasin)?
+        .into_iter()
+        .map(|v| crate::dsn::Arret { v })
+        .collect();
+    let texte = crate::fctu::generer(ctx, &paie, &fin, &options, &paie.engagement.suspensions, &arrets).map_err(echec_fctu)?;
     crate::dsn::ecrire(&texte, &cible).map_err(plain)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),
@@ -380,16 +388,14 @@ fn fin_contrat_signaler(o: &HashMap<String, String>, ctx: &Contexte, charge: &Va
 
 // ------------------------------------------------------------------ arret-signaler
 
-/// `operations_arrets._trouver` : l'arret de ce salarie dont c'est le dernier jour travaille.
+/// L'arret de ce salarie dont c'est le dernier jour travaille, dans le magasin des imprevus.
 fn trouver_arret(ctx: &Contexte, salarie: &str, dernier_jour: &Value) -> R<Value> {
-    let jour = en_texte(dernier_jour);
-    let mois: String = jour.chars().take(7).collect();
-    let liste = crate::routes_listes::lire_arrets(ctx, &mois)?;
     let cle = ctx.salarie(salarie).map_err(|m| erreur("KeyError", m))?;
     let cle = cle.get("_cle").map(py_str).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?;
-    for a in liste {
-        if a.get("salarie").and_then(Value::as_str) == Some(cle.as_str()) && a.get("dernier_jour_travaille").and_then(Value::as_str) == Some(jour.as_str()) {
-            return Ok(a);
+    if vrai(dernier_jour) {
+        let jour = crate::routes_imprevus::jour(dernier_jour)?;
+        if let Some((i, liste)) = crate::routes_imprevus::trouver(ctx, crate::imprevus::ARRET, &cle, &jour)? {
+            return Ok(liste[i].clone());
         }
     }
     let lisible = if vrai(dernier_jour) {

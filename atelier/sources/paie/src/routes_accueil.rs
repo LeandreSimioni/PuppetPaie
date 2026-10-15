@@ -836,20 +836,6 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     // Le catalogue qui paie, deja dans l'ordre ou le proposer.
     let rubriques: Vec<Value> = catalogue::catalogue(&ctx.racine).map_err(plain)?.iter().map(rubrique_json).collect();
 
-    let regles = permanents::regles().map_err(plain)?;
-    // LES MOTIFS D'UNE SUSPENSION (bloc S21.G00.65), pour les absences d'un
-    // permanent. Seuls ceux qui se DECLARENT descendent jusqu'au deroulant.
-    let suspensions = regles.get("suspensions").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("suspensions")))?;
-    let motifs = suspensions.get("motifs").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("motifs")))?;
-    let motifs_absence: Vec<Value> = motifs
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
-        .iter()
-        .filter(|m| !m.get("_ne_pas_declarer").is_some_and(vrai))
-        .map(|m| json!({"code": m.get("code").cloned().unwrap_or(Value::Null), "libelle": m.get("libelle").cloned().unwrap_or(Value::Null)}))
-        .collect();
-
     // LA FIN D'UN CONTRAT, telle qu'elle se saisit. Les types de preavis
     // SAISISSABLES seulement.
     let fctu = json_en_cache(&dossier_du_code().join("fctu-base.json")).map_err(plain)?;
@@ -892,7 +878,6 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         // spectacle : c'est le defaut que l'ecran garde.
         "natures": natures(ctx)?,
         "nature_defaut": contrats::defaut().map_err(plain)?,
-        "motifs_absence": motifs_absence,
         "types_preavis": types_preavis,
         "transaction": transaction,
         // Les niveaux de complementaire sante, pour la fiche d'un permanent.
