@@ -2,7 +2,9 @@
 # ---------------------------------------------------------------
 #  PuppetPaie (Linux, et Mac par PuppetPaie.command)
 #  Ouvre la fenetre PuppetPaie : le programme Rust de ce systeme,
-#  dans atelier/sources/paie/bin/ (rangement du 09/10/2026). Plus de Python (lot J5).
+#  dans logiciel/ (ce que le flux « Publier » livre depuis le 15/10/2026 :
+#  `puppetpaie` et `paie` a cote de `puppetpaie.exe`), sinon dans
+#  atelier/sources/paie/bin/ (un depot de travail). Plus de Python (lot J5).
 #  Sans la fenetre native (un Linux sans WebKitGTK), la meme page
 #  s'ouvre dans le navigateur : `paie interface`.
 #  La premiere fois : clic droit > « Lancer comme un programme »,
@@ -14,14 +16,19 @@ case "$(uname)" in
     *)      BIN="$ICI/sources/paie/bin/linux" ;;
 esac
 
-if [ -x "$BIN/puppetpaie" ] && "$BIN/puppetpaie" --peut-ouvrir >/dev/null 2>&1; then
-    exec "$BIN/puppetpaie" "$@"
-fi
-if [ -x "$BIN/paie" ]; then
-    exec "$BIN/paie" interface "$@"
-fi
+LOGICIEL="$ICI/../logiciel"
+for D in "$LOGICIEL" "$BIN"; do
+    if [ -x "$D/puppetpaie" ] && "$D/puppetpaie" --peut-ouvrir >/dev/null 2>&1; then
+        exec "$D/puppetpaie" "$@"
+    fi
+done
+for D in "$LOGICIEL" "$BIN"; do
+    if [ -x "$D/paie" ]; then
+        exec "$D/paie" interface "$@"
+    fi
+done
 
-MESSAGE="Le programme PuppetPaie de ce systeme est absent ($BIN).
+MESSAGE="Le programme PuppetPaie de ce systeme est absent ($LOGICIEL, $BIN).
 Reprendre la derniere version du logiciel, puis relancer."
 echo "$MESSAGE"
 if [ "$(uname)" = "Darwin" ]; then

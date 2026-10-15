@@ -46,6 +46,25 @@ fn lire(p: &Path) -> String {
     std::fs::read_to_string(p).unwrap_or_default()
 }
 
+/// L'archive publiee porte les programmes de tous les systemes a la fois (`puppetpaie.exe`, et, poses par le flux
+/// « Publier », `puppetpaie` et `paie` pour Linux). Un zip ne garde pas le bit d'execution : c'est `archiver` qui le marque
+/// sur les programmes Unix, et sur eux seuls, pour que `deballer` les remette executables et que `controler` puisse lancer
+/// `logiciel/puppetpaie` sur un Linux.
+#[test]
+fn l_archive_marque_executables_les_programmes_unix_et_eux_seuls() {
+    let d = dossier_de_test("maj-programmes-unix");
+    let code = logiciel(&d.join("logiciel"), "2026.11.03");
+    std::fs::write(code.join("paie"), b"#!/bin/sh\n").unwrap();
+    std::fs::write(code.join("puppetpaie.exe"), b"MZ").unwrap();
+    let octets = maj::archiver(&code).unwrap();
+    let mut z = zip::ZipArchive::new(std::io::Cursor::new(octets)).unwrap();
+    let mode = |z: &mut zip::ZipArchive<std::io::Cursor<Vec<u8>>>, nom: &str| z.by_name(nom).unwrap().unix_mode().unwrap() & 0o777;
+    assert_eq!(mode(&mut z, "puppetpaie"), 0o755, "la fenetre Linux");
+    assert_eq!(mode(&mut z, "paie"), 0o755, "le moteur Linux");
+    assert_eq!(mode(&mut z, "puppetpaie.exe"), 0o644, "la fenetre Windows n'a pas de bit d'execution a garder");
+    assert_eq!(mode(&mut z, "VERSION"), 0o644);
+}
+
 /// L'editeur : sa version 2026.11.01, publiee dans `<base>/depot`. Rend le depot.
 fn publiee(base: &Path, avec_edition: bool) -> PathBuf {
     let depot = base.join("depot");

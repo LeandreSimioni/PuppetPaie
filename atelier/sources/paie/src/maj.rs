@@ -85,6 +85,10 @@ const NE_PAS_TOUCHER: [&str; 3] = [".git", ".avant", ".apres"];
 /// de `logiciel/` : la bascule n'y touche pas.) Avant, l'`EDITION.json` de l'installeur partait a la premiere mise a jour
 /// et le poste se debloquait sans geste (`PASSATION-I1.md`, ouvert 1).
 const PROPRES_A_L_INSTALLATION: [&str; 1] = ["EDITION.json"];
+/// Les programmes d'un systeme Unix dans `logiciel/` (la fenetre, et le moteur pour un Linux sans WebKitGTK, qui ouvre la
+/// meme page dans le navigateur) : le flux « Publier » les pose a cote de `puppetpaie.exe` (Leandre, 15/10/2026 : « rajouter
+/// a Publier le Linux »). Un zip ne garde pas le bit d'execution : `archiver` le marque, `deballer` le remet.
+const PROGRAMMES_UNIX: [&str; 2] = ["puppetpaie", "paie"];
 
 type R<T> = Result<T, String>;
 
@@ -303,7 +307,9 @@ fn deballer(octets: &[u8], cible: &Path) -> R<()> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let _ = std::fs::set_permissions(cible.join("puppetpaie"), std::fs::Permissions::from_mode(0o755));
+        for nom in PROGRAMMES_UNIX {
+            let _ = std::fs::set_permissions(cible.join(nom), std::fs::Permissions::from_mode(0o755));
+        }
     }
     Ok(())
 }
@@ -586,7 +592,7 @@ pub fn archiver(code: &Path) -> R<Vec<u8>> {
     for rel in liste {
         let nom = rel.to_string_lossy().replace('\\', "/");
         let o = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated).last_modified_time(date).unix_permissions(
-            if nom == "puppetpaie" { 0o755 } else { 0o644 },
+            if PROGRAMMES_UNIX.contains(&nom.as_str()) { 0o755 } else { 0o644 },
         );
         z.start_file(nom, o).map_err(|e| e.to_string())?;
         z.write_all(&std::fs::read(code.join(&rel)).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;

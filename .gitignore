@@ -64,6 +64,10 @@ atelier/prive-dev/config/.jeton-interface
 /cle-poste.bin
 # Le cache du navigateur de la fenetre, pose a cote d'elle en portable (WebView2, 14/10/2026) : refait seul.
 /logiciel/puppetpaie.exe.WebView2/
+# LES PROGRAMMES LINUX DE `logiciel/` (15/10/2026) : le flux « Publier » les compile et les pose dans l'archive a cote de
+# `puppetpaie.exe` ; une compilation locale copiee la ne se commite pas (le depot ne suit que l'exe Windows).
+/logiciel/puppetpaie
+/logiciel/paie
 /ouverture-gardee.bin
 
 # Le mode developpeur de CE poste (moteur/compagnies.py).

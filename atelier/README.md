@@ -117,7 +117,7 @@ fenêtre s'ouvre, et c'est tout le logiciel.
 |---|---|---|
 | Windows | `PuppetPaie.cmd`, à la racine | `logiciel/puppetpaie.exe` (avec `WebView2Loader.dll`, `donnees/` et `interface/` à côté) |
 | Mac | `atelier/PuppetPaie.command` (clic droit › Ouvrir la première fois) | `atelier/PuppetPaie.sh` |
-| Linux | `atelier/PuppetPaie.sh` (clic droit › Lancer comme un programme, ou `./PuppetPaie.sh`) | le programme du système dans `atelier/sources/paie/bin/linux/` (`bin/mac/` sur un Mac) |
+| Linux | `logiciel/puppetpaie` directement (l'archive publiée le porte depuis le 15/10/2026), ou `atelier/PuppetPaie.sh` (clic droit › Lancer comme un programme, ou `./PuppetPaie.sh`) | `logiciel/puppetpaie` (la fenêtre), sinon `logiciel/paie interface` ; dans un dépôt de travail, le programme de `atelier/sources/paie/bin/linux/` (`bin/mac/` sur un Mac) |
 
 Plus de Python (lot J5) : la fenêtre est le programme `puppetpaie`, une
 fenêtre Tauri (WebView2 sous Windows, WebKit sous Mac et Linux) qui tient le
