@@ -277,7 +277,8 @@ fn maj_cherche_au_depot_du_moteur_tant_qu_aucun_n_est_pose() {
     assert!(r.out.contains("depot injoignable") && r.out.contains("https://github.com/LeandreSimioni/PuppetPaie/releases/latest/download/derniere.json"), "{}", r.out);
     assert_eq!(*demandes.lock().unwrap(), ["CONNECT github.com:443 HTTP/1.1"]);
     // Un depot pose : le moteur ne parle qu'a lui.
-    let (base, recu) = serveur(|_| Some(http_json(200, &json!({"version": "2000.01.01", "archive": "a.zip", "sha256": "x"}))));
+    let derniere = json!({"version": "2000.01.01", "archives": {"tout-systeme": {"archive": "a.zip", "sha256": "x", "signature": "s", "systemes": ["windows", "linux", "mac"]}}});
+    let (base, recu) = serveur(move |_| Some(http_json(200, &derniere)));
     ecrire(&inst, "maj/reglage.json", &json!({"depot": base}).to_string());
     let r = lancer(env!("CARGO_BIN_EXE_paie"), None, &["maj", "--sans-telecharger"], &[("PUPPETPAIE_CODE", &code)]);
     assert!(r.out.contains("a jour"), "{}{}", r.out, r.err);
