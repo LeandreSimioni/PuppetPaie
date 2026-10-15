@@ -161,9 +161,10 @@ cargo nextest run --cargo-profile essais --no-fail-fast                  # le mo
 
 ## GitHub Actions : à la fin seulement
 
-Le dépôt est public : les minutes GitHub Actions sont illimitées, ce n'est pas une raison de s'en priver (Léandre,
-15/10/2026). On teste dans le conteneur parce que c'est là qu'on travaille. **« Moteur Rust » ne se lance pas de
-soi-même** : il livre `paie/bin/` (Windows, Linux, Mac) au poste et sert à la sortie ; on le lance sur un mot de Léandre.
+Le dépôt est public : les minutes GitHub Actions sont illimitées, ce n'est pas une question de quota. On teste dans le
+conteneur parce que c'est là qu'on travaille. **« Moteur Rust » ne se lance pas de soi-même** : il livre `paie/bin/`
+(Windows, Linux, Mac) au poste et sert à la sortie. **Le rythme des versions est à Léandre** (15/10/2026) : une version par
+mois, ou une de plus s'il y a vraiment un truc urgent ; c'est lui qui lance « Moteur Rust » et « Publier », jamais un agent.
 En cas de doute, demander.
 
 ## Les règles de fond du logiciel
