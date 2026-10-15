@@ -117,7 +117,12 @@ jobs:
         run: bash atelier/installeur/construire.sh
 
       # Le moteur Linux : il signe (toujours), et il ouvre la page dans le navigateur sur un Linux sans WebKitGTK.
+      # L'essai `paie version` ouvre une compagnie, comme toute commande du produit (`commandes::executer`) : ici une
+      # compagnie fictive livree (`fictives/`, le banc d'essai de l'interface, regle 11) ; sans elle, le moteur refuse
+      # (« fichier introuvable : logiciel/config/entreprise.json », Publier n° 5, 15/10/2026). Rien n'y est ecrit.
       - name: Le moteur Linux
+        env:
+          PUPPETPAIE_DONNEES: ${{ github.workspace }}/fictives/fictive-1285-petite
         run: |
           cargo build --release --locked --manifest-path atelier/sources/paie/Cargo.toml --bin paie
           "$CARGO_TARGET_DIR/release/paie" version
@@ -182,7 +187,10 @@ jobs:
           done
 
       # Un seul fichier pour les deux sortes de Mac : l'installation n'a pas a savoir quel processeur a le sien.
+      # L'essai `paie version` ouvre une compagnie fictive livree, comme sous Linux (voir « Le moteur Linux »).
       - name: Universels, dans logiciel/mac/
+        env:
+          PUPPETPAIE_DONNEES: ${{ github.workspace }}/fictives/fictive-1285-petite
         run: |
           mkdir -p logiciel/mac
           for P in paie puppetpaie; do
