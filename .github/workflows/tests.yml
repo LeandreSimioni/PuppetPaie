@@ -9,9 +9,9 @@
 
 name: Tests
 
-# A LA MAIN SEULEMENT (Leandre, 02/10/2026 : le quota de minutes est petit).
-# La suite passe dans le conteneur avant chaque PR ; ici, elle ne tourne que
-# lancee a la main (onglet Actions).
+# A LA MAIN SEULEMENT. La suite passe dans le conteneur avant chaque PR ; ici,
+# elle ne tourne que lancee a la main (onglet Actions). Le depot est public :
+# les minutes sont illimitees, ce n'est pas une question de quota (15/10/2026).
 on:
   workflow_dispatch:
 

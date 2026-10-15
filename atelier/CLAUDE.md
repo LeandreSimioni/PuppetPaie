@@ -131,7 +131,7 @@ Léandre a posé `NET_ENTREPRISES_MOTDEPASSE` dans l'environnement : un agent ne
 ## Faire tourner le code dans le conteneur, et les tests
 
 **Le moteur Linux est déjà là** : `atelier/sources/paie/bin/linux/paie` (et la fenêtre `bin/linux/puppetpaie`), livrés par
-« Moteur Rust » ; `bin/SOURCES` dit de quelles sources. Pour reproduire une route : `PUPPETPAIE_CODE=logiciel/donnees` puis `echo '{"route":"…","charge":{…}}' |
+l'ancien flux « Moteur Rust » (retiré le 15/10/2026) ; `bin/SOURCES` dit de quelles sources. Pour reproduire une route : `PUPPETPAIE_CODE=logiciel/donnees` puis `echo '{"route":"…","charge":{…}}' |
 atelier/sources/paie/bin/linux/paie route --racine <copie d'une compagnie fictive>` (sans `PUPPETPAIE_CODE`, l'exécutable
 livré cherche ses référentiels au chemin de compilation). **Il retarde souvent sur les sources** (le 15/10, il plantait sur
 `logiciel/donnees` plus récent que lui) : ce qu'on vient de changer se compile (`cd atelier/sources/paie && cargo build
@@ -163,10 +163,10 @@ cargo nextest run --cargo-profile essais --no-fail-fast                  # le mo
 ## GitHub Actions : à la fin seulement
 
 Le dépôt est public : les minutes GitHub Actions sont illimitées, ce n'est pas une question de quota. On teste dans le
-conteneur parce que c'est là qu'on travaille. **« Moteur Rust » ne se lance pas de soi-même** : il livre `paie/bin/`
-(Windows, Linux, Mac) au poste et sert à la sortie. **Le rythme des versions est à Léandre** (15/10/2026) : une version par
-mois, ou une de plus s'il y a vraiment un truc urgent ; c'est lui qui lance « Moteur Rust » et « Publier », jamais un agent.
-En cas de doute, demander.
+conteneur parce que c'est là qu'on travaille. Deux flux restent, à la main : « Tests » (`tests.yml`) et « Publier »
+(`publier.yml`, qui compile lui-même les exécutables livrés). Le flux « Moteur Rust » est **retiré** (Léandre, 15/10/2026 :
+« il ne sert plus à rien »). **Le rythme des versions est à Léandre** : une version par mois, ou une de plus s'il y a vraiment
+un truc urgent ; c'est lui qui lance « Publier », jamais un agent. En cas de doute, demander.
 
 ## Les règles de fond du logiciel
 
