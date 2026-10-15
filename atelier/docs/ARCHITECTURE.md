@@ -156,18 +156,23 @@ datée, vérifiable**. CoolPaie ne sert qu'à vérifier.
   L'ouverture du Python refaisait la vérification une fois par semaine ;
   en Rust elle ne la fait plus (`paie/src/ouverture.rs`) : c'est l'éditeur
   qui la lance, avant chaque publication.
-- `outils/relever_les_codes.py` — **les articles de loi eux-mêmes**, lus
-  dans la base **LEGI** de la DILA (même voie que KALI) plutôt qu'à la main
-  sur Légifrance, qui refuse les robots. Quatre codes en un seul passage :
-  travail, sécurité sociale, collectivités territoriales (le versement
-  mobilité), impôts. Trois verbes :
-  - `moissonner` fait défiler l'archive globale (1,1 Go, en flux, jamais
+- `paie releve-codes` (`paie/src/releve_codes.rs`, porté du Python le
+  15/10/2026) — **les articles de loi eux-mêmes**, lus dans la base **LEGI**
+  de la DILA (même voie que KALI) plutôt qu'à la main sur Légifrance, qui
+  refuse les robots. Tous les textes en un seul passage
+  (`releve_codes/textes.rs`) : travail, sécurité sociale, collectivités
+  territoriales (le versement mobilité), construction, impôts, et les arrêtés
+  et la loi que la paie lit. Trois verbes, sur le dossier des sources :
+  - `moissonner` tient à jour l'entrepôt `legi-entrepot/`
+    (`paie/src/entrepot_dila.rs`) : la première fois, ou avec
+    `--reconstruire`, l'archive globale défile (1,1 Go, en flux, jamais
     écrite sur le disque) puis **chaque livraison quotidienne depuis sa
-    date**, et garde la version *en vigueur* de chaque article voulu —
-    `<ETAT>` à VIGUEUR et `<DATE_FIN>` à 2999-01-01, vérifié, parce que le
-    dossier `code_en_vigueur` porte aussi les versions périmées. Il note au
-    passage quel article a changé de version, et depuis quelle livraison.
-    Comptez une heure ;
+    date** ; ensuite seules les livraisons nouvelles se téléchargent. Il garde
+    la version *en vigueur* de chaque article — `<ETAT>` à VIGUEUR et
+    `<DATE_FIN>` à 2999-01-01, vérifié, parce que le dossier
+    `code_en_vigueur` porte aussi les versions périmées —, note au passage
+    quel article a changé de version, et depuis quelle livraison, puis écrit
+    `releve.json` et `xml/` de chaque texte ;
   - `rapport` écrit le document lisible d'un code à partir de ce qui a été
     moissonné, chaque article cité avec l'identifiant de **sa** version ;
   - `comparer` répond à la question que `moissonner` pose. « Huit articles
@@ -180,6 +185,11 @@ datée, vérifiable**. CoolPaie ne sert qu'à vérifier.
     article), la range dans `<code>/xml-anterieur/` et écrit le diff,
     alinéa par alinéa. Il s'arrête dès qu'il les a toutes : comptez un quart
     d'heure. Il compare le `BLOC_TEXTUEL` seul, et le dit.
+- `paie releve-conventions` (`paie/src/releve_conventions.rs`) — le texte
+  complet des conventions que cite `sources.json`, tenu dans l'entrepôt
+  `kali-entrepot/` : `mettre-a-jour` (les seules livraisons KALI nouvelles ;
+  la base entière, 180 Mo, la première fois ou pour une convention nouvelle),
+  `article <IDCC> <numéro>…`, `chercher <IDCC> <mot>`.
 
   Ce que ce dernier verbe a trouvé le 21/09/2026, et qu'un relevé sans
   comparaison aurait laissé passer : sur huit articles changés, **un seul
@@ -959,7 +969,7 @@ décide. Les articles sont relevés et datés dans
   duodecies du code général des impôts** — est exclu des cotisations, dans la
   limite de deux plafonds annuels, ce qui n'est pas imposable. Les deux
   articles ont été relevés le 19/09/2026, par le même moissonneur que le code
-  du travail (`outils/relever_les_codes.py`, qui lit désormais trois codes en
+  du travail (aujourd'hui `paie releve-codes`, qui lisait dès lors trois codes en
   un passage). Il en sort trois choses :
   - l'indemnité **légale** de licenciement et celle de mise à la retraite ne
     sont **ni soumises ni imposables** (80 duodecies 3° b et 4° b, qui

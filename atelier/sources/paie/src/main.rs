@@ -10,7 +10,8 @@ fn usage() -> ! {
          \x20       paie guet [--seuil N] [--commits] [--transcript F]   (outil d'atelier : la veille du contexte d'un sous-agent)\n\
          \x20       paie verifier-avant-commit [--indexes]   (le garde avant commit : rien de reel dans ce que git emporterait)\n\
          \x20       paie generer-tables SOURCES SRC   (les tables Unicode du moteur, depuis atelier/reference/sources)\n\
-         \x20       paie extraire naf|usages|formats|urssaf SOURCES... SORTIE.json [--remplacer]   (releves de l'atelier : paie extraire --aide)"
+         \x20       paie extraire naf|usages|formats|urssaf SOURCES... SORTIE.json [--remplacer]   (releves de l'atelier : paie extraire --aide)\n\
+         \x20       paie releve-codes ... | paie releve-conventions ...   (les textes LEGI et KALI de la DILA, outils d'atelier : --aide)"
     );
     std::process::exit(2)
 }
@@ -77,6 +78,11 @@ fn main() -> std::process::ExitCode {
         Some("interne") => return interne(&args[1..]),
         Some("generer-tables") => return std::process::ExitCode::from(paie::generer_tables::commande(&args[1..]).clamp(0, 255) as u8),
         Some("extraire") => return std::process::ExitCode::from(paie::extraire::commande(&args[1..]).clamp(0, 255) as u8),
+        // Les codes (LEGI) et les conventions collectives (KALI) releves chez la DILA, dans `atelier/reference/sources`.
+        Some(q @ ("releve-codes" | "releve-conventions")) => {
+            let commande = if q == "releve-codes" { paie::releve_codes::commande } else { paie::releve_conventions::commande };
+            return std::process::ExitCode::from(commande(&args[1..]).clamp(0, 255) as u8);
+        }
         Some("oracle") => match paie::oracle::commande(&args[1..]) {
             Some(code) => std::process::exit(code),
             None => usage(),

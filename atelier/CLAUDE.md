@@ -56,7 +56,7 @@ du journal, `prive/journal/` se lit `journal/` du privé.
 | `maj/`, `prive/` | sur le poste seulement : la mise à jour de l'installation ; la compagnie du poste |
 | `atelier/sources/` | `paie/` (le moteur, programme `paie` ; exécutables livrés dans `paie/bin/<système>/`), `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
 | `atelier/reference/` | les textes qui fondent les règles (voir « Les sources ») |
-| `atelier/outils/`, `docs/`, `depot/`, `installeur/`, `site/`, `maquettes/` | les outils d'atelier (du Python, à porter), les docs, les versions publiées, l'installeur, le site |
+| `atelier/outils/`, `docs/`, `depot/`, `installeur/`, `site/`, `maquettes/` | les outils d'atelier (plus de Python depuis le 15/10/2026 : des commandes de `paie`), les docs, les versions publiées, l'installeur, le site |
 
 **L'interface** : la page `logiciel/interface/` (HTML, CSS, JS sans cadre) parle au moteur par `paie route` (`js/tuyau.js`) ;
 la fenêtre Tauri (`atelier/sources/fenetre/`) ne fait que l'afficher. **Toute décision vit dans le moteur** (règle 2) : une page
@@ -87,7 +87,7 @@ Une règle sans texte déposé est un souvenir.
   pas ; **un `LISEZ-MOI.md` par dossier** (l'URL, la date du relevé, ce qu'on en lit, **où le moteur s'en sert**) ; une
   **inférence** s'écrit comme telle ; la note `_source` d'un barème et le commentaire d'une fonction **citent le fichier
   déposé**, pas une URL seule.
-- **Les codes** (travail, sécurité sociale, impôts, CGCT) se relèvent depuis LEGI (`outils/relever_les_codes.py`, `TEXTES`,
+- **Les codes** (travail, sécurité sociale, impôts, CGCT) se relèvent depuis LEGI (`paie releve-codes`, les textes suivis dans `paie/src/releve_codes/textes.rs`,
   `moissonner` puis `rapport`), jamais à la main ; la norme DSN est dans `norme-dsn/texte/` ; le BOFiP brut dans `bofip/` ;
   le BOSS depuis sa page quand elle répond.
 - **Ce qui ne se republie pas** : un document d'organisme privé (Audiens, Afdas, CASC-SVP, Agirc-Arrco…) entre par sa

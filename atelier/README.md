@@ -967,6 +967,28 @@ et `atelier/reference/sources/insee-naf-2025/LISEZ-MOI.md`). Puis
 `tests/fichiers/extraction.rs` vérifie que chaque table livrée est bien ce que
 ses textes déposés donnent.
 
+**Les textes eux-mêmes**, articles de loi et de convention, se relèvent dans les
+bases LEGI et KALI de la DILA et se gardent dans deux entrepôts du dépôt
+(`atelier/reference/sources/legi-entrepot/` et `kali-entrepot/` : tous les
+articles des textes suivis, et la liste des livraisons déjà appliquées ;
+`paie/src/entrepot_dila.rs`). Deux commandes de l'atelier, qui prennent le
+dossier des sources :
+
+```
+paie releve-codes moissonner atelier/reference/sources     # les livraisons LEGI nouvelles, puis releve.json et xml/ de chaque texte
+paie releve-codes rapport atelier/reference/sources [code]  # articles-<date>.md, le document lisible
+paie releve-codes comparer atelier/reference/sources       # chaque article changé, relu contre sa version d'avant (archive globale, 1,1 Go en flux)
+paie releve-conventions mettre-a-jour atelier/reference/sources
+paie releve-conventions article atelier/reference/sources 3090 7.6
+paie releve-conventions chercher atelier/reference/sources 3090 licenciement
+```
+
+Les textes suivis sont dans `paie/src/releve_codes/textes.rs` (un article
+ajouté y est déjà dans l'entrepôt : `moissonner` l'écrit sans rien télécharger)
+et, pour les conventions, ceux que cite `sources.json`. `--reconstruire` refait
+défiler l'archive globale (1,1 Go pour LEGI, 180 Mo pour KALI) : on ne le
+lance pas sans raison.
+
 ### La nature du contrat, et les salariés permanents
 
 *Chantier en cours depuis le 18/09/2026. Ce qui suit marche ; ce qui manque
@@ -1682,13 +1704,13 @@ atelier/                  ← ce dossier : tout le reste
   docs/                   ARCHITECTURE.md, RUBRIQUES.md, PORTAGE-RUST.md,
                           COMPAGNIES-FICTIVES.md et COMPAGNIES-FICTIVES-DEPOT.md
                           (le dernier bilan du crash-test, 21/09/2026)
-  outils/                 les outils d'atelier, encore en Python :
-                          le relevé des codes (relever_les_codes.py,
-                          relever_les_conventions.py, entrepot_dila.py)… (le
-                          garde avant commit, le guet, les tables Unicode et les
-                          relevés des référentiels sont en Rust : `paie
-                          verifier-avant-commit`, `paie guet`, `paie generer-tables`,
-                          `paie extraire`)
+  outils/                 les outils d'atelier : `demos/` (une description de
+                          démonstration). Plus un fichier Python depuis le
+                          15/10/2026 : le garde avant commit, le guet, les tables
+                          Unicode, les relevés des référentiels, des codes et des
+                          conventions sont des commandes de `paie`
+                          (`verifier-avant-commit`, `guet`, `generer-tables`,
+                          `extraire`, `releve-codes`, `releve-conventions`)
   PuppetPaie.sh, PuppetPaie.command   les lanceurs Linux et Mac
   prive-dev/, depot/ (versions publiées), site/, maquettes/
                           (le serveur du filet : dépôt du site de l'éditeur, infra/filet/)
