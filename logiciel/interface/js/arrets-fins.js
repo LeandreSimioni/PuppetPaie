@@ -22,16 +22,61 @@
    Un intermittent tombe malade pendant ses dates. Le contrat est signé, il
    est suspendu, et DEUX déclarations le disent :
 
-     - le SIGNALEMENT d'arrêt de travail (nature 04), dû dans les cinq jours
-       qui suivent la prise de connaissance par l'employeur ;
+     - le SIGNALEMENT d'arrêt de travail (nature 04), dans le délai que le
+       moteur calcule ;
      - le REPORT dans la DSN mensuelle, obligatoire (cahier technique §2.5.2),
        qui se fait tout seul à la production du mois.
 
    L'écran montre les deux, parce qu'un écran qui n'en montrerait qu'une
    laisserait croire que l'autre est faite. Rien ne part d'ici : produire
    écrit un fichier, et c'est la boîte de dépôt — avec son mot de passe —
-   qui l'envoie, exactement comme une DSN. */
+   qui l'envoie, exactement comme une DSN.
+
+   LES OBLIGATIONS ET LEURS DÉLAIS (15/10/2026) ne s'écrivent plus ici : le
+   moteur les rend (`obligations.rs`, champ `obligations` de chaque arrêt,
+   `obligation` de chaque fin de contrat) avec leur texte, leur date butoir
+   et leur état ; la page les affiche telles quelles. Un accident du travail
+   ou de trajet en fait naître une de plus, hors DSN : la déclaration
+   d'accident, en 48 heures. Elle n'apparaît que si le moteur la rend. */
 let ARRETS = null;          // le dernier /api/arrets lu
+
+/* L'état d'une obligation, dit en mots. La page ne compte aucun délai : elle
+   lit `etat` et `phrase`, que le moteur a posés. */
+const ETATS_OBLIGATION = {
+  a_faire: ["alerte", "à faire"],
+  en_retard: ["erreur", "en retard"],
+  fait: ["bien", "fait"],
+  a_venir: ["", "à venir"],
+  indetermine: ["alerte", "délai inconnu"],
+  a_la_charge_du_salarie: ["", "au salarié"],
+};
+
+function dessinerObligation(o, boutons = "") {
+  const [classe, mot] = ETATS_OBLIGATION[o.etat] || ["", o.etat];
+  const textes = (o.textes || []).map((t) => t.reference).join(" ; ");
+  const suites = o.etat === "fait" ? (o.suites || []).filter((x) => x.phrase) : [];
+  return `<div class="obligation">
+      <span class="pastille ${classe}">${echapper(mot)}</span>
+      <b>${echapper(o.libelle)}</b> — ${echapper(o.phrase)}
+      ${o.depart && o.depart.presume && o.etat !== "fait"
+        ? `<span class="discret">Point de départ présumé : ${echapper(o.depart.presume)}</span>` : ""}
+      ${suites.map((x) => `<span class="discret">${echapper(x.phrase)}</span>`).join(" ")}
+      ${textes ? `<span class="discret">(${echapper(textes)})</span>` : ""}
+      ${boutons}
+    </div>`;
+}
+
+/* Les gestes d'une obligation d'arrêt : dire quand la compagnie l'a su, et,
+   pour la déclaration d'accident, qu'elle est faite. Rien de plus. */
+function boutonsObligation(a, o) {
+  const id = `${echapper(a.salarie)}:${echapper(a.dernier_jour_travaille)}`;
+  const connu = o.etat !== "fait" && o.depart && (o.depart.presume || o.depart.saisi) && !o.subrogation
+    && (o.cle === "signalement_arret" || o.cle === "declaration_accident")
+    ? `<button class="lien" data-connu="${id}" data-de="${o.cle === "declaration_accident" ? "accident" : "arret"}">Connu le…</button>` : "";
+  const fait = o.cle === "declaration_accident"
+    ? `<button class="lien" data-dat="${id}">${o.fait ? "Déclarée…" : "Faite le…"}</button>` : "";
+  return connu + fait;
+}
 
 /* Le mois principal déclaré présente-t-il une période commune avec l'arrêt ?
    La même règle que le moteur (`signalement.Arret.couvre`), parce que
@@ -63,6 +108,7 @@ async function dessinerArrets(mois) {
         <button class="secondaire" data-signaler="${echapper(a.salarie)}:${echapper(a.dernier_jour_travaille)}">Signaler…</button>
         <button class="lien" data-reprise="${echapper(a.salarie)}:${echapper(a.dernier_jour_travaille)}">Reprise…</button>
         ${a.signale ? "" : `<button class="lien" data-oublier="${echapper(a.salarie)}:${echapper(a.dernier_jour_travaille)}">Retirer</button>`}
+        <div class="obligations">${(a.obligations || []).map((o) => dessinerObligation(o, boutonsObligation(a, o))).join("")}</div>
       </div>`).join("")
       : ""}
     <button class="lien" id="ajouter-arret">+ un arrêt de travail</button>`;
@@ -79,6 +125,16 @@ async function dessinerArrets(mois) {
   cible.querySelectorAll("[data-reprise]").forEach((b) => {
     const [salarie, jour] = b.dataset.reprise.split(":");
     b.onclick = () => boiteReprise(salarie, jour);
+  });
+  const arretDe = (cle) => {
+    const [salarie, jour] = cle.split(":");
+    return (ARRETS.arrets || []).find((x) => x.salarie === salarie && x.dernier_jour_travaille === jour);
+  };
+  cible.querySelectorAll("[data-connu]").forEach((b) => {
+    b.onclick = () => boiteConnaissance(arretDe(b.dataset.connu), b.dataset.de);
+  });
+  cible.querySelectorAll("[data-dat]").forEach((b) => {
+    b.onclick = () => boiteAccidentDeclare(arretDe(b.dataset.dat));
   });
   cible.querySelectorAll("[data-oublier]").forEach((b) => {
     b.onclick = async () => {
@@ -100,9 +156,9 @@ async function boiteArret(mois) {
   const salaries = (ETAT && ETAT.salaries) || [];
   ouvrirBoite(`
     <h3>Un arrêt de travail</h3>
-    <p class="note">Il suspend un contrat en cours. Deux déclarations
-      suivront : le <b>signalement</b>, dû dans les cinq jours, et le report
-      dans la <b>DSN du mois</b>, qui se fait à la production.</p>
+    <p class="note">Il suspend un contrat en cours. Le report dans la
+      <b>DSN du mois</b> se fait à la production ; ce qu'il fait naître
+      d'autre, et pour quand, est dit en bas.</p>
     <label class="champ-boite">Salarié
       <select id="ar-salarie">
         ${salaries.map((s) => `<option value="${echapper(s.cle)}">${echapper(s.libelle)}</option>`).join("")}
@@ -120,6 +176,12 @@ async function boiteArret(mois) {
     <label class="champ-boite" id="ar-bloc-accident" hidden>Date de l'accident
       ou de la première constatation
       <input type="date" id="ar-accident"></label>
+    <div id="ar-bloc-connu" hidden>
+      <label class="champ-boite">La compagnie l'a su le
+        <input type="date" id="ar-connu"></label>
+      <label class="champ-boite">à <span class="discret">— l'heure, si on la sait</span>
+        <input type="time" id="ar-connu-heure"></label>
+    </div>
     <label class="champ-boite">Subrogation
       <select id="ar-subrogation">
         <option value="02">non — le salarié touche ses indemnités journalières</option>
@@ -135,6 +197,7 @@ async function boiteArret(mois) {
     </div>
     <label class="champ-boite">Note <span class="discret">— pour vous, ne part nulle part</span>
       <input type="text" id="ar-note"></label>
+    <div id="ar-obligations" class="obligations"></div>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
       <button class="primaire" id="ar-ok">Enregistrer</button>
@@ -151,9 +214,34 @@ async function boiteArret(mois) {
   const majSub = () => {
     document.getElementById("ar-bloc-subrogation").hidden = sub.value !== "01";
   };
-  motif.onchange = majMotif;
-  sub.onchange = majSub;
-  majMotif(); majSub();
+  // CE QUE L'ARRÊT FERA NAÎTRE, demandé au moteur à chaque changement : les
+  // obligations, leur délai, leur date butoir (`arret-obligations`, rien
+  // n'est écrit). La connaissance de l'accident ne se demande que si le
+  // moteur rend la déclaration d'accident.
+  let avecDeclaration = false;
+  const valeur = (id) => document.getElementById(id).value;
+  const relireObligations = async () => {
+    const bloc = document.getElementById("ar-obligations");
+    let r;
+    try {
+      r = await api("arret-obligations", {
+        motif: valeur("ar-motif"), dernier_jour: valeur("ar-dernier"), fin: valeur("ar-fin"),
+        subrogation: valeur("ar-subrogation"), date_accident: valeur("ar-accident"),
+        connaissance_accident: valeur("ar-connu"), connaissance_heure: valeur("ar-connu-heure"),
+      });
+    } catch (e) { bloc.innerHTML = `<span class="erreur">${echapper(e.message)}</span>`; return; }
+    const obligations = r.obligations || [];
+    avecDeclaration = obligations.some((o) => o.cle === "declaration_accident");
+    document.getElementById("ar-bloc-connu").hidden = !avecDeclaration;
+    bloc.innerHTML = obligations.length
+      ? `<b>Ce que cet arrêt fait naître</b>${obligations.map((o) => dessinerObligation(o)).join("")}` : "";
+  };
+  motif.onchange = () => { majMotif(); relireObligations(); };
+  sub.onchange = () => { majSub(); relireObligations(); };
+  for (const id of ["ar-dernier", "ar-fin", "ar-accident", "ar-connu", "ar-connu-heure"]) {
+    document.getElementById(id).addEventListener("change", relireObligations);
+  }
+  majMotif(); majSub(); relireObligations();
 
   // Les contrats que cet arrêt suspendrait : relus à chaque changement de
   // salarié ou de date, parce que ce sont eux qui décident si l'arrêt peut
@@ -179,7 +267,7 @@ async function boiteArret(mois) {
          à suspendre. Vérifier la date, ou saisir le contrat d'abord.</span>`;
   };
   document.getElementById("ar-salarie").onchange = relire;
-  document.getElementById("ar-dernier").onchange = relire;
+  document.getElementById("ar-dernier").addEventListener("change", relire);
   relire();
 
   document.getElementById("ar-ok").onclick = async () => {
@@ -197,11 +285,97 @@ async function boiteArret(mois) {
         contrat: choisi ? choisi.value : (contrats[0] && contrats[0].numero) || "",
         note: document.getElementById("ar-note").value,
       });
-      fermerBoite();
-      dire("Arrêt enregistré. Le signalement reste à produire.");
-      await dessinerArrets(MOIS_AFFICHE);
-    } catch (e) { dire(e.message, "erreur"); }
+    } catch (e) { dire(e.message, "erreur"); return; }
+    // Le jour où la compagnie a su l'accident : le point de départ des 48 heures.
+    if (avecDeclaration && valeur("ar-connu")) {
+      try {
+        await api("arret-connaissance", {
+          salarie: valeur("ar-salarie"), dernier_jour: valeur("ar-dernier"),
+          de: "accident", jour: valeur("ar-connu"), heure: valeur("ar-connu-heure"),
+        });
+      } catch (e) { fermerBoite(); dire("Arrêt enregistré, mais pas le jour où l'accident a été su : " + e.message, "erreur"); await dessinerArrets(MOIS_AFFICHE); return; }
+    }
+    fermerBoite();
+    dire("Arrêt enregistré. Ce qu'il fait naître est dit sous sa ligne.");
+    await dessinerArrets(MOIS_AFFICHE);
   };
+}
+
+/** Le jour (et l'heure) où la compagnie a su l'arrêt ou l'accident : le point
+ *  de départ du délai. Sans lui, le moteur présume, et le dit. */
+function boiteConnaissance(a, de) {
+  if (!a) return;
+  const o = (a.obligations || []).find((x) => x.cle === (de === "accident" ? "declaration_accident" : "signalement_arret")) || {};
+  const depart = o.depart || {};
+  ouvrirBoite(`
+    <h3>${de === "accident" ? "Quand la compagnie a-t-elle su l'accident ?" : "Quand la compagnie a-t-elle su l'arrêt ?"}</h3>
+    <p class="discret">${echapper(a.salarie)} — ${echapper(o.libelle || "")} : ${echapper(o.phrase || "")}</p>
+    ${depart.presume ? `<p class="note">Aujourd'hui, le moteur présume : ${echapper(depart.presume)}</p>` : ""}
+    <label class="champ-boite">Le
+      <input type="date" id="co-jour" value="${echapper(depart.saisi ? depart.jour : "")}"></label>
+    <label class="champ-boite">à <span class="discret">— l'heure, si on la sait</span>
+      <input type="time" id="co-heure" value="${echapper(depart.saisi && depart.heure ? depart.heure : "")}"></label>
+    <div class="actions">
+      <button class="secondaire" onclick="fermerBoite()">Annuler</button>
+      <button class="primaire" id="co-ok">Enregistrer</button>
+    </div>
+    <p class="note">Laisser le jour vide efface ce qui était dit : le moteur reprend sa présomption.</p>`);
+  document.getElementById("co-ok").onclick = async () => {
+    try {
+      await api("arret-connaissance", {
+        salarie: a.salarie, dernier_jour: a.dernier_jour_travaille, de,
+        jour: document.getElementById("co-jour").value, heure: document.getElementById("co-heure").value,
+      });
+    } catch (e) { dire(e.message, "erreur"); return; }
+    fermerBoite();
+    await dessinerArrets(MOIS_AFFICHE);
+  };
+}
+
+/** La déclaration d'accident du travail : le logiciel ne la fait pas, il la
+ *  rappelle, dit où la faire et ce qu'il faut avoir sous la main, et retient
+ *  qu'elle est faite quand on le lui dit. */
+function boiteAccidentDeclare(a) {
+  if (!a) return;
+  const o = (a.obligations || []).find((x) => x.cle === "declaration_accident");
+  if (!o) return;
+  const fait = o.fait || {};
+  ouvrirBoite(`
+    <h3>${echapper(o.libelle)} — ${echapper(a.salarie)}</h3>
+    <div class="encart ${o.etat === "en_retard" ? "erreur" : o.etat === "fait" ? "bien" : "attention"}">
+      <b>${echapper(o.phrase)}</b>
+      ${echapper(o.delai || "")}. Hors DSN : à la caisse primaire de la victime.
+    </div>
+    <p><b>Où la faire</b></p>
+    ${(o.ou || []).map((x) => `<p class="note">${echapper(x.libelle)}</p>`).join("")}
+    <p><b>Ce qu'il faut avoir sous la main</b></p>
+    <ul class="note">${(o.a_avoir || []).map((x) => `<li>${echapper(x)}</li>`).join("")}</ul>
+    <label class="champ-boite">Faite le
+      <input type="date" id="da-le" value="${echapper(fait.le || "")}"></label>
+    <label class="champ-boite">Où
+      <select id="da-depot">${(o.ou || []).map((x) =>
+        `<option value="${echapper(x.code)}"${fait.depot === x.code ? " selected" : ""}>${echapper(x.court || x.code)}</option>`).join("")}</select></label>
+    <label class="champ-boite">Référence <span class="discret">— l'accusé de net-entreprises, le numéro du recommandé</span>
+      <input type="text" id="da-reference" value="${echapper(fait.reference || "")}"></label>
+    <div class="actions">
+      <button class="secondaire" onclick="fermerBoite()">Annuler</button>
+      ${o.fait ? `<button class="lien" id="da-retirer">Elle n'est pas faite</button>` : ""}
+      <button class="primaire" id="da-ok">Enregistrer</button>
+    </div>`);
+  const envoyer = async (le) => {
+    try {
+      await api("accident-declare", {
+        salarie: a.salarie, dernier_jour: a.dernier_jour_travaille, le,
+        depot: document.getElementById("da-depot").value,
+        reference: document.getElementById("da-reference").value.trim(),
+      });
+    } catch (e) { dire(e.message, "erreur"); return; }
+    fermerBoite();
+    await dessinerArrets(MOIS_AFFICHE);
+  };
+  document.getElementById("da-ok").onclick = () => envoyer(document.getElementById("da-le").value);
+  const retirer = document.getElementById("da-retirer");
+  if (retirer) retirer.onclick = () => envoyer("");
 }
 
 /** La reprise. Elle ne se signale que si elle est ANTICIPÉE ; sinon elle part
@@ -249,12 +423,20 @@ function boiteSignalerArret(salarie, jour) {
     <h3>Signaler l'arrêt de ${echapper(salarie)}</h3>
     <p class="discret">${echapper(a.motif_libelle || "")} — dernier jour travaillé le
       ${echapper(jjmmaaaa(jour))}, fin prévue le ${echapper(jjmmaaaa(a.fin_previsionnelle))}.</p>
-    <div class="encart">
-      <b>Le signalement est dû dans les cinq jours</b>
-      Il informe l'Assurance Maladie au plus près de l'événement, pour les
-      indemnités journalières. La DSN du mois le répétera : ce n'est pas la
-      même déclaration, et l'une ne remplace pas l'autre.
-    </div>
+    ${(a.obligations || []).filter((o) => o.cle === "signalement_arret" || o.cle === "signalement_reprise").map((o) => `
+    <div class="encart${o.etat === "en_retard" ? " erreur" : ""}">
+      <b>${echapper(o.libelle)} — ${echapper(o.phrase)}</b>
+      ${echapper(o.delai || "")}.
+    </div>`).join("")}
+    <p class="note">Le signalement informe l'Assurance Maladie au plus près de
+      l'événement, pour les indemnités journalières. La DSN du mois le
+      répétera : ce n'est pas la même déclaration, et l'une ne remplace pas
+      l'autre.</p>
+    ${(a.obligations || []).filter((o) => o.cle === "declaration_accident" && o.etat !== "fait").map((o) => `
+    <div class="encart attention">
+      <b>${echapper(o.libelle)} : elle ne part pas avec</b>
+      ${echapper(o.phrase)} Hors DSN, à la caisse primaire de la victime.
+    </div>`).join("")}
     ${a.reprise ? `<label class="champ-boite">
       <input type="checkbox" id="si-reprise"> Signaler la <b>reprise anticipée</b>
       (nature 05) plutôt que l'arrêt</label>` : ""}
@@ -293,7 +475,7 @@ function boiteSignalerArret(salarie, jour) {
 
 /* ------------------------------------------ LA FIN D'UN CONTRAT (nature 07)
    Un CDI ou un CDD ordinaire se termine : sa fin ne part pas dans la DSN du
-   mois, elle fait un SIGNALEMENT à part, dû dans les cinq jours ouvrés. Un
+   mois, elle fait un SIGNALEMENT à part, dans le délai que le moteur rend. Un
    CDD d'usage du spectacle arrivé à son terme (031), lui, n'en émet pas — le
    circuit dérogatoire porte sa fin dans la mensuelle ; rompu avant son terme
    (036, 037…), il se signale comme les autres (fiche 2062). C'est le moteur
@@ -314,7 +496,7 @@ async function dessinerFins(mois) {
   const fins = r.fins || [];
   if (!fins.length) { cible.innerHTML = ""; return; }
   cible.innerHTML = `
-    <h2>Fin de contrat <span class="discret">— à signaler sous 5 jours ouvrés</span></h2>
+    <h2>Fin de contrat</h2>
     ${fins.map((f) => `
       <div class="rang">
         <span class="rang-nom">${echapper(f.salarie)}</span>
@@ -330,6 +512,7 @@ async function dessinerFins(mois) {
         <button class="secondaire" data-signaler-fin="${echapper(f.salarie)}"
           ${f.a_saisir.length ? "disabled" : ""}>Signaler…</button>
         <button class="lien" data-papiers="${echapper(f.salarie)}">Les deux papiers…</button>
+        ${f.obligation ? `<div class="obligations">${dessinerObligation(f.obligation)}</div>` : ""}
       </div>`).join("")}
     <p class="note">Le signalement informe France Travail au plus près de la
       rupture — c'est lui qui ouvre les droits. Rien ne part d'ici : le
@@ -351,8 +534,9 @@ function boiteSignalerFin(mois, salarie, f = {}) {
     <h3>Signaler la fin du contrat de ${echapper(salarie)}</h3>
     <p class="discret">${echapper(f.nature || "")} — contrat ${echapper(f.numero || "?")},
       fin le ${echapper(jjmmaaaa(f.fin))}.</p>
-    <div class="encart">
-      <b>Le signalement est dû dans les cinq jours ouvrés</b>
+    <div class="encart${f.obligation && f.obligation.etat === "en_retard" ? " erreur" : ""}">
+      <b>${echapper(f.obligation ? f.obligation.phrase : "")}</b>
+      ${echapper(f.obligation ? f.obligation.delai + "." : "")}
       Il est adressé à France Travail, qui en tire l'attestation employeur du
       salarié : c'est ce document-là qui ouvre ses droits. La DSN du mois ne
       le remplace pas — elle en reprend la fin ensuite, trop tard pour lui.

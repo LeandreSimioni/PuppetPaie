@@ -1007,7 +1007,7 @@ function majNature(div) {
   div.querySelector(".e-contrat-note").textContent = bornes
     ? "Un contrat payé au mois n'a pas de jour coché : ses bornes se disent ici."
       + " La date de fin d'un CDD est celle qui déclenche le signalement de"
-      + " fin de contrat (nature 07), dû dans les cinq jours ouvrés."
+      + " fin de contrat (nature 07) : son délai et sa date butoir se lisent sous « Fin de contrat »."
     : "Le contrat va du premier au dernier jour coché — planning compris,"
       + " quand on a coché des jours dans les mois suivants depuis le"
       + " calendrier d'une ligne. Ses cachets suivants se paient dans le mois"
