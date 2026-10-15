@@ -1219,11 +1219,6 @@ function majContrat(div) {
   const enCours = !!(debut && mois && debut.slice(0, 7) < mois);
   const sePoursuit = !!(fin && mois && fin.slice(0, 7) > mois);
   d.classList.toggle("a-cheval", enCours || sePoursuit);
-  // Un contrat sur plusieurs mois se voit sans ouvrir « Plus d'options ».
-  const suite = div.querySelector(".e-suite");
-  if (suite) suite.textContent = enCours
-    ? `contrat en cours depuis ${moisEnClair(debut.slice(0, 7))}`
-    : sePoursuit ? `le contrat se poursuit en ${moisEnClair(moisSuivant(mois))}` : "";
   // UN CONTRAT SANS TERME (un CDI) n'a pas de dernier jour joué : il se
   // dit par son début (26/09/2026 — la phrase des cachets s'y affichait).
   if (debut && !fin && natureDe(div.querySelector(".e-nature")?.value).mensuelle) {
@@ -1458,6 +1453,31 @@ async function poserContratsEnCours(mois) {
  *  « — » tout seul derrière un nom, c'est un écran qui a l'air cassé. */
 function pourQuoi(ligne) {
   return ligne.spectacle || ligne.nature || "";
+}
+
+/* UN CONTRAT SUR PLUSIEURS MOIS SE VOIT (ticket #127, 15/10/2026) : « c'est
+ * un contrat sur plusieurs mois, on pourrait faire un signe de ça, par
+ * exemple 3 petits points ou une flèche ». Une pastille : les mois du
+ * contrat, et une flèche du côté où il déborde du mois affiché — à gauche
+ * s'il a commencé avant, à droite s'il se poursuit après ; ses dates en
+ * infobulle. Tout vient du moteur, `contrat` d'une paie de l'aperçu ou d'une
+ * ligne des états du mois (`premier_mois`, `dernier_mois`, `depuis`,
+ * `jusqu_a`), avec le début et la fin du contrat : la page ne compare aucune
+ * date. Un contrat sans terme (un CDI) n'en porte pas : il dure, il n'est
+ * pas « sur plusieurs mois ». */
+function marquePlurimensuel(contrat, debut, fin) {
+  if (!contrat || !fin || (contrat.premier_mois && contrat.dernier_mois)) return "";
+  const avant = !contrat.premier_mois, apres = !contrat.dernier_mois;
+  const annees = (contrat.depuis || "").slice(0, 4) !== (contrat.jusqu_a || "").slice(0, 4);
+  const court = (m) => (MOIS_COURTS[Number((m || "").slice(5, 7)) - 1] || m || "")
+    + (annees ? " " + (m || "").slice(0, 4) : "");
+  const titre = [`Contrat du ${jjmmaaaa(debut)} au ${jjmmaaaa(fin)}`,
+    avant ? `commencé en ${moisEnClair(contrat.depuis)}` : "",
+    apres ? `se poursuit jusqu'en ${moisEnClair(contrat.jusqu_a)}` : ""].filter(Boolean).join(" — ");
+  return `<span class="pastille pluri" title="${echapper(titre)}">${
+    avant ? `<span class="fleche" aria-hidden="true">&#x27F5;</span>` : ""}${
+    echapper(court(contrat.depuis))} – ${echapper(court(contrat.jusqu_a))}${
+    apres ? `<span class="fleche" aria-hidden="true">&#x27F6;</span>` : ""}</span>`;
 }
 
 
