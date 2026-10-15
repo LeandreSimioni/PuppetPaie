@@ -52,7 +52,7 @@ fn lire(p: &Path) -> String {
 /// `logiciel/puppetpaie` sur un Linux.
 #[test]
 fn l_archive_marque_executables_les_programmes_unix_et_eux_seuls() {
-    let d = dossier_de_test("maj-programmes-unix");
+    let d = dossier_de_test("mise_a_jour", "programmes_unix");
     let code = logiciel(&d.join("logiciel"), "2026.11.03");
     std::fs::write(code.join("paie"), b"#!/bin/sh\n").unwrap();
     std::fs::write(code.join("puppetpaie.exe"), b"MZ").unwrap();
