@@ -141,3 +141,32 @@ fn le_maintien_d_un_arret_se_saisit_sur_l_arret_et_seulement_pour_un_permanent()
     let m = refuse(&route(&racine, "arret-maintien", json!({"salarie": "Biancolelli", "dernier_jour": "2026-07-09", "mois": "2026-07", "montant": 50})));
     assert!(m.contains("L1226-1"), "{}", m);
 }
+
+/// UNE SEULE LISTE POUR LA PAGE (15/10/2026) : chaque arret que rend `imprevus` porte ses `obligations`, les memes que la
+/// route `arrets` (`obligations::de_l_arret`, regles de `logiciel/donnees/obligations-base.json`) ; une suspension n'en
+/// porte pas -- le bloc 65 part avec la DSN du mois, rien ne nait a cote. Un accident du travail (06) fait naitre la
+/// declaration d'accident en plus du signalement (CSS L. 441-2, R. 441-3 :
+/// `atelier/reference/sources/code-de-la-securite-sociale/xml/R441-3.xml`).
+#[test]
+fn chaque_arret_de_la_liste_porte_ses_obligations_et_une_suspension_aucune() {
+    let racine = compagnie("obligations");
+    let accident = json!({"salarie": "Biancolelli", "dernier_jour": "2026-07-09", "fin": "2026-07-12", "motif": "06",
+        "subrogation": "02", "date_accident": "2026-07-09"});
+    reussi(&route(&racine, "arret-enregistrer", accident));
+    reussi(&route(&racine, "suspension-enregistrer", conge_parental("2026-07-20", "2026-08-10")));
+
+    let l = reussi(&route(&racine, "imprevus", json!({"mois": "2026-07"}))).clone();
+    let liste = l["imprevus"].as_array().unwrap();
+    let arret = liste.iter().find(|i| i["genre"] == json!("arret")).expect("l'arret");
+    let suspension = liste.iter().find(|i| i["genre"] == json!("suspension")).expect("la suspension");
+    let cles: Vec<&str> = arret["obligations"].as_array().unwrap().iter().map(|o| o["cle"].as_str().unwrap()).collect();
+    assert_eq!(cles, ["signalement_arret", "declaration_accident"], "{}", arret);
+    assert!(suspension.get("obligations").is_none(), "{}", suspension);
+
+    // Les memes que la route `arrets` : un seul calcul.
+    let a = reussi(&route(&racine, "arrets", json!({}))).clone();
+    assert_eq!(a["arrets"][0]["obligations"], arret["obligations"]);
+    // Et par salarie, pour son dossier.
+    let s = reussi(&route(&racine, "imprevus", json!({"salarie": "Biancolelli"}))).clone();
+    assert_eq!(s["imprevus"][0]["obligations"], arret["obligations"]);
+}

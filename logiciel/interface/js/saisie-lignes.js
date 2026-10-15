@@ -631,7 +631,7 @@ function ligneEngagement(e = {}) {
          prorata d'un mois incomplet, les deux calculs de l'indemnité de
          congés, la retenue et l'indemnité qui la couvre. Un arrêt ou une
          suspension n'est pas un fait du mois : c'est un IMPRÉVU, saisi une
-         fois sur le salarié (js/imprevus.js), dont le moteur tire la ligne de
+         fois depuis la carte (« Un imprévu… », js/imprevus.js), dont le moteur tire la ligne de
          chaque mois qu'il traverse. Taper les lignes à la main, ce serait refaire à la main
          ce que la loi impose de calculer. -->
     <div class="e-permanent" hidden>
@@ -699,6 +699,10 @@ function ligneEngagement(e = {}) {
       <span class="e-suite"></span>
       <button type="button" class="lien e-viser-btn">Viser un montant</button>
       <button type="button" class="lien e-options-btn">Plus d'options</button>
+      <!-- LA PORTE DES IMPRÉVUS (15/10/2026) : un arrêt de travail, une
+           absence, une rupture avant terme, pour le salarié de cette carte.
+           Discrète : les imprévus sont rares. js/imprevus.js. -->
+      <button type="button" class="lien e-imprevu-btn" hidden>Un imprévu…</button>
     </div>
     <div class="e-chiffres" hidden>
       <label title="ce que le salarié touche sur son compte">Net salarié
@@ -826,6 +830,10 @@ function ligneEngagement(e = {}) {
     <!-- LA PAIE VALIDÉE, EN UNE LIGNE (23/09/2026) : quand, qui, pour
          quoi, ce qui reste à faire, le net. Voir peindreCarte(). -->
     <div class="e-resume"></div>
+    <!-- SES IMPRÉVUS DU MOIS (15/10/2026) : une ligne par arrêt ou absence
+         qui touche ce contrat, avec ses gestes et les jours payés pendant
+         l'imprévu. Vide le plus souvent. Visible aussi sur une paie validée. -->
+    <div class="e-imprevus"></div>
     <div class="avis"></div>
     <div class="etats"></div>`;
 
@@ -950,6 +958,11 @@ function ligneEngagement(e = {}) {
     ev.preventDefault();
     const c = div.querySelector(".e-chiffres");
     c.hidden = !c.hidden;
+  };
+  div.querySelector(".e-imprevu-btn").onclick = (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    menuImprevu(ev.currentTarget, { div });
   };
   div.querySelector(".e-options-btn").onclick = (ev) => {
     ev.preventDefault();
@@ -1231,6 +1244,8 @@ function majQui(div) {
     .map((c) => c.parentNode.textContent.replace(/\s+/g, " ").trim());
   resume.textContent = noms.length ? noms.join(" + ") : "— cocher —";
   resume.classList.toggle("vide", !noms.length);
+  // Un imprévu se dit d'UN salarié : la porte ne s'ouvre que sur une carte qui n'en porte qu'un.
+  majPorteImprevu(div);
 }
 
 /** Une liste ouverte se referme quand on clique ailleurs — un <details> ne
