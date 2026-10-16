@@ -61,9 +61,11 @@ const LECTURES_DE_LA_COMPAGNIE = new Set(["journal-reprise"]);
 const ROUTES_SANS_EFFET = new Set(["veille", "rappels", "pour-demarrer", "organismes-contrats", "incident-navigateur", "diagnostic-etat",
   "verifier-fiche", "emploi", "signalements", "apercu", "importation-incident", "importation-tri", "arret-obligations",
   // Les imprévus d'un salarié (son dossier), les contrats qu'un imprévu suspendrait : des lectures.
-  "imprevus", "arret-contrats"]);
-let LU = null;            // { mois, lectures } : la dernière lecture `mois`
-let LU_EN_COURS = null;   // { mois, promesse } : celle qui est en route
+  "imprevus", "arret-contrats",
+  // Les contrats déclarés avant PuppetPaie (l'historique importé) : une lecture, que l'écran d'un mois passé fait en se peignant.
+  "contrats-passes"]);
+let LU = null;            // { mois, lectures, perime } : la dernière lecture `mois`
+let LU_EN_COURS = null;   // { mois, promesse, perimeAdmis } : celle qui est en route
 let LU_GENERATION = 0;
 
 /** Une réponse du moteur, telle que `appelerMoteur` la rend : son résultat, ou son refus levé. */
@@ -73,13 +75,16 @@ function lireReponse(d) {
   return d.resultat;
 }
 
-/** Tout ce que l'écran de `mois` lit, en une demande (partagée si elle est déjà en route). */
-function lireLeMois(mois) {
+/** Tout ce que l'écran de `mois` lit, en une demande (partagée si elle est déjà en route).
+ *  `perimeAdmis` (le changement de mois, ticket #212) : le dernier état connu, même périmé — il arrive tout de suite,
+ *  marqué `perime`, et `verifierLeMois` le remplace par l'état frais. Sans lui (une relecture après une écriture) :
+ *  l'état frais seulement. */
+function lireLeMois(mois, perimeAdmis = false) {
   if (LU && LU.mois === mois) return Promise.resolve(LU);
-  if (LU_EN_COURS && LU_EN_COURS.mois === mois) return LU_EN_COURS.promesse;
+  if (LU_EN_COURS && LU_EN_COURS.mois === mois && (perimeAdmis || !LU_EN_COURS.perimeAdmis)) return LU_EN_COURS.promesse;
   const generation = LU_GENERATION;
-  const promesse = appelerMoteur("mois", { mois }).then((r) => {
-    const lu = { mois, lectures: r.lectures || {} };
+  const promesse = appelerMoteur("mois", perimeAdmis ? { mois } : { mois, attendre: true }).then((r) => {
+    const lu = { mois, lectures: r.lectures || {}, perime: !!r.perime };
     if (generation === LU_GENERATION) LU = lu;
     if (LU_EN_COURS && LU_EN_COURS.promesse === promesse) LU_EN_COURS = null;
     return lu;
@@ -87,11 +92,62 @@ function lireLeMois(mois) {
     if (LU_EN_COURS && LU_EN_COURS.promesse === promesse) LU_EN_COURS = null;
     throw e;
   });
-  LU_EN_COURS = { mois, promesse };
+  LU_EN_COURS = { mois, promesse, perimeAdmis };
   return promesse;
 }
 
 function oublierLeMois() { LU = null; LU_EN_COURS = null; LU_GENERATION++; }
+
+/* L'ÉTAT AFFICHÉ SE VÉRIFIE DERRIÈRE (ticket #212, Leandre, 16/10/2026 :
+ * « quand je change de mois c'est pas instantané »). Un mois s'affiche avec
+ * son dernier état connu, même périmé ; le moteur le refait en fond, et
+ * `verifierLeMois` attend l'état frais (`attendre`) pour repeindre l'écran,
+ * s'il a changé, sans toucher à une saisie en cours (`repeindreLeMois`). Tant
+ * que ce n'est pas fait, la case du mois dit « mise à jour… », et les gestes
+ * qui engagent attendent (`GESTES_QUI_ENGAGENT`) : on ne valide, ne produit,
+ * ne dépose ni n'envoie sur un écran que le moteur n'a pas confirmé. */
+let VERIF = null;         // { mois, promesse } : la vérification en route
+const GESTES_QUI_ENGAGENT = new Set(["valider-paie", "contrat-recu", "produire", "deposer", "dpae",
+  "demander-signature", "envoyer-documents", "ecrire-documents", "avenant-envoyer", "avenants-envoyer",
+  "dossier-envoyer", "casc-envoyer", "arret-signaler", "fin-contrat-signaler", "fin-contrat-documents",
+  "regularisation-mois", "regularisation-ecrire", "cloture"]);
+
+function marquerMiseAJour(oui) {
+  const el = document.getElementById("mois-maj");
+  if (el) el.hidden = !oui;
+}
+
+/** L'état frais de `mois`, puis l'écran repeint s'il a changé. `peint` : la fin de la peinture en cours (on ne repeint
+ *  pas par-dessus un écran qui se dessine). Rend une promesse qui ne lève jamais. */
+function verifierLeMois(mois, peint) {
+  marquerMiseAJour(true);
+  const generation = LU_GENERATION;
+  const promesse = appelerMoteur("mois", { mois, attendre: true }).then(async (r) => {
+    await peint;
+    // Le mois a été quitté, une écriture de la page l'a relu depuis, ou une vérification plus récente est partie (après
+    // une écriture) : rien à repeindre ici.
+    if (generation !== LU_GENERATION || MOIS_AFFICHE !== mois || DEMANDE_MOIS !== mois) return;
+    if (!VERIF || VERIF.promesse !== promesse) return;
+    const ancien = LU && LU.mois === mois ? LU : null;
+    const frais = { mois, lectures: r.lectures || {}, perime: false };
+    LU = frais;
+    if (ancien) await repeindreLeMois(mois, ancien, frais);
+  }).catch((e) => {
+    if (MOIS_AFFICHE === mois) dire("L'état du mois ne s'est pas mis à jour : " + e.message, "erreur");
+  }).finally(() => {
+    if (VERIF && VERIF.promesse === promesse) { VERIF = null; marquerMiseAJour(false); }
+  });
+  VERIF = { mois, promesse };
+  return promesse;
+}
+
+/** Le mois affiché est confirmé : plus rien à attendre (on a changé de mois vers un état juste). */
+function moisConfirme(mois) {
+  if (VERIF && VERIF.mois !== mois) { VERIF = null; marquerMiseAJour(false); }
+}
+
+/** Ce qu'un geste qui engage attend : la vérification du mois affiché, s'il y en a une en route. */
+function attendreLeMoisFrais() { return VERIF ? VERIF.promesse : Promise.resolve(); }
 
 /** Le mois dont `route` est une lecture, ou `null` : `{mois}` pour une lecture du mois, `{}` pour une de la compagnie. */
 function moisDeLaLecture(route, charge) {
@@ -108,6 +164,7 @@ async function api(route, charge = {}) {
     return structuredClone(lireReponse(lu.lectures[route]));
   }
   if (ROUTES_SANS_EFFET.has(route)) return appelerMoteur(route, charge);
+  if (GESTES_QUI_ENGAGENT.has(route)) await attendreLeMoisFrais();
   oublierLeMois();
   try { return await appelerMoteur(route, charge); } finally { oublierLeMois(); }
 }

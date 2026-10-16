@@ -39,6 +39,7 @@
   .accueil { max-width:1000px; margin:0 auto; padding:34px 24px 28px; }
   .accueil h1 { font-size:20px; }
   .accueil .sous { margin-bottom:20px; }
+  .accueil .version { color:var(--discret); font-size:11px; margin:0 0 2px; }
   .grille { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:16px; }
   .tuile { position:relative; background:var(--carte); border:1px solid var(--bord);
            border-radius:4px; overflow:hidden; display:flex; flex-direction:column;
@@ -83,9 +84,12 @@
   .fictives[open] > summary::before { transform:rotate(90deg); }
   .fictives > summary:hover { color:var(--texte); }
 </style>
+<link rel="stylesheet" href="/mise-a-jour.css?v={{EMPREINTE}}">
 <div class="accueil">
   <div class="filet" id="geste"></div>
   <h1>PuppetPaie</h1>
+  <!-- La version, sous le nom, comme dans la page d'une compagnie (ticket #211). -->
+  <div class="version">version {{VERSION}}</div>
   <div class="sous">{{SOUS_TITRE}}</div>
   {{TUILES}}
   <div class="erreur" id="erreur"></div>
@@ -148,6 +152,8 @@
     });
   }
 </script>
+<!-- L'indicateur de la mise a jour, en bas a gauche (ticket #210). -->
+<script src="/js/mise-a-jour.js?v={{EMPREINTE}}"></script>
 
 <div class="bande"><button class="croix" title="Fermer"
   onclick="window.pywebview.api.fermer()">&#x2715;</button></div>

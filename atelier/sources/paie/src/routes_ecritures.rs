@@ -775,7 +775,10 @@ pub(crate) fn ecrire_saisie(o: &HashMap<String, String>, ctx: &Contexte, mois: &
     Ok(p)
 }
 
-/// Ce que le fichier d'avant portait et que l'ecran n'a pas renvoye.
+/// CE QUE LE MOTEUR TIENT SEUL, repris du fichier d'avant : `_origine`, les numeros figes, et, engagement par engagement,
+/// la validation (sa carte figee comprise, `calcul_du_mois::sceller`), la reouverture et le numero du contrat. Ce que
+/// l'ecran envoie de `valide` et de `rouverte` ne compte pas : une paie se valide et se rouvre par `valider-paie`, jamais
+/// par une saisie (une page qui renverrait une validation lue rouvrirait ou revaliderait en silence).
 ///
 /// LE CONTRAT, PAS LE SALARIE DU JOUR : chaque engagement de l'ecran retrouve le sien dans le fichier par
 /// `jumeaux::apparier` (le numero, sinon le rang parmi ceux du meme salarie et du meme jour) ; le jumeau d'un contrat
@@ -789,51 +792,31 @@ fn fusionner(donnees: &mut Map<String, Value>, ancien: &Value, anciens: &[Ident]
     if ancien.get("numeros_figes").is_some_and(vrai) && !donnees.contains_key("numeros_figes") {
         donnees.insert("numeros_figes".into(), Value::Bool(true));
     }
+    let Some(Value::Array(engagements)) = donnees.get_mut("engagements") else { return };
+    for e in engagements.iter_mut() {
+        if let Value::Object(eng) = e {
+            eng.remove("valide");
+            eng.remove("rouverte");
+        }
+    }
     let engagements_anciens = ancien.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
-    let (mut validees, mut numeros, mut rouvertes, mut figees) = (HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new());
-    for i in 0..anciens.len() {
-        let Some(e) = engagements_anciens.get(i).filter(|e| e.is_object()) else { continue };
-        if let Some(v) = e.get("valide").filter(|v| vrai(v)) {
-            validees.insert(i, v.clone());
-            figees.insert(i, e.clone());
-        }
-        if let Some(n) = e.get("numero").filter(|v| vrai(v)) {
-            numeros.insert(i, n.clone());
-        }
-        if let Some(r) = e.get("rouverte").filter(|v| vrai(v)) {
-            rouvertes.insert(i, r.clone());
-        }
-    }
-    if validees.is_empty() && numeros.is_empty() && rouvertes.is_empty() {
-        return;
-    }
     let en_option = |l: &[Ident]| l.iter().cloned().map(Some).collect::<Vec<_>>();
     let paires = apparier(&en_option(nouveaux), &en_option(anciens));
-    let Some(Value::Array(engagements)) = donnees.get_mut("engagements") else { return };
     for (i, paire) in paires.iter().enumerate() {
-        let Some(ident) = paire else { continue };
+        let Some(e) = (*paire).and_then(|j| engagements_anciens.get(j)).filter(|e| e.is_object()) else { continue };
         let Some(Value::Object(eng)) = engagements.get_mut(i) else { continue };
         // UNE PAIE VALIDEE NE CHANGE PAS PAR CE CHEMIN : on garde celle du fichier, telle quelle.
-        if let (Some(figee), Some(valide)) = (figees.get(ident), validees.get(ident)) {
-            if eng.get("valide").map_or(true, |v| eq_py(v, valide)) {
-                engagements[i] = figee.clone();
-                continue;
-            }
-        }
-        if !eng.get("valide").is_some_and(vrai) {
-            if let Some(v) = validees.get(ident).filter(|v| vrai(v)) {
-                eng.insert("valide".into(), v.clone());
-            }
+        if e.get("valide").is_some_and(vrai) {
+            engagements[i] = e.clone();
+            continue;
         }
         if !eng.get("numero").is_some_and(vrai) {
-            if let Some(n) = numeros.get(ident).filter(|v| vrai(v)) {
+            if let Some(n) = e.get("numero").filter(|v| vrai(v)) {
                 eng.insert("numero".into(), n.clone());
             }
         }
-        if !eng.get("valide").is_some_and(vrai) && !eng.get("rouverte").is_some_and(vrai) {
-            if let Some(r) = rouvertes.get(ident).filter(|v| vrai(v)) {
-                eng.insert("rouverte".into(), r.clone());
-            }
+        if let Some(r) = e.get("rouverte").filter(|v| vrai(v)) {
+            eng.insert("rouverte".into(), r.clone());
         }
     }
 }

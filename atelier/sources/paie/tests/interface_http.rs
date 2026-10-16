@@ -97,3 +97,32 @@ fn le_lanceur_refuse_en_phrase_et_un_corps_trop_gros_se_dit_en_json() {
     assert!(v["erreur"]["message"].as_str().unwrap().contains("trop"), "{}", corps);
     let _ = std::fs::remove_dir_all(&utilisateur);
 }
+
+/// Ticket #210 : l'accueil lit ou en est la mise a jour par le geste `maj` (un etat, meme quand aucune recherche n'a eu
+/// lieu dans ce processus : rien a montrer, rien a relire), et « redemarrer » refuse en phrase quand rien n'est pret,
+/// sans fermer le logiciel (le serveur repond encore).
+#[test]
+fn l_accueil_lit_la_mise_a_jour_et_redemarrer_refuse_quand_rien_n_est_pret() {
+    let (_verrou, utilisateur) = utilisateur();
+    let (f, port) = demarrer_sur(0, 0).unwrap();
+    let fermee = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let temoin = fermee.clone();
+    *f.fermer.lock().unwrap() = Some(Box::new(move || temoin.store(true, std::sync::atomic::Ordering::SeqCst)));
+    let adresse = f.adresse("127.0.0.1", port);
+    let jeton = adresse.split("jeton=").nth(1).unwrap();
+    let geste = |nom: &str| {
+        let (code, corps) = requete_brute(port, &format!("POST /lanceur/{} HTTP/1.1\r\nHost: x\r\nX-Jeton: {}\r\nContent-Length: 2\r\n\r\n[]", nom, jeton));
+        assert_eq!(code, 200, "{}", corps);
+        serde_json::from_str::<serde_json::Value>(&corps).unwrap()
+    };
+    let v = geste("maj");
+    assert_eq!(v["ok"], serde_json::json!(true), "{}", v);
+    assert_eq!(v["etat"]["en_cours"], serde_json::json!(false), "{}", v);
+    assert_eq!(v["etat"]["redemarrer"], serde_json::json!(false), "{}", v);
+    let v = geste("redemarrer");
+    assert_eq!(v["ok"], serde_json::json!(false), "{}", v);
+    assert!(v["erreur"].is_string(), "{}", v);
+    assert!(!fermee.load(std::sync::atomic::Ordering::SeqCst), "rien de pret : le logiciel ne se ferme pas");
+    assert_eq!(geste("maj")["ok"], serde_json::json!(true), "le serveur repond encore");
+    let _ = std::fs::remove_dir_all(&utilisateur);
+}

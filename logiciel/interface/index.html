@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PuppetPaie</title>
 <link rel="stylesheet" href="/interface.css?v={{EMPREINTE}}">
+<link rel="stylesheet" href="/mise-a-jour.css?v={{EMPREINTE}}">
 {{STYLE_COMPAGNIE}}
 </head>
 <body data-jeton="{{JETON}}" data-copie="{{COPIE}}">
@@ -106,7 +107,8 @@
              clic n'importe où ailleurs ouvre les douze mois de l'année. La
              valeur vit dans le champ caché #mois, que toute la page lit. -->
         <div class="choix-mois" id="choix-mois">
-          <span class="choix-mois-lib">Mois</span>
+          <span class="choix-mois-lib">Mois <span id="mois-maj" class="mois-maj" hidden
+                title="Le dernier état connu de ce mois est affiché : le moteur le vérifie.">· mise à jour…</span></span>
           <div class="choix-mois-case">
             <button type="button" class="choix-mois-pas" id="mois-avant"
                     title="Mois précédent" aria-label="Mois précédent">&lsaquo;</button>
@@ -365,6 +367,7 @@
 <script src="/js/filet.js?v={{EMPREINTE}}"></script>
 <script src="/js/identite.js?v={{EMPREINTE}}"></script>
 <script src="/js/modeles-bulletin.js?v={{EMPREINTE}}"></script>
+<script src="/js/mise-a-jour.js?v={{EMPREINTE}}"></script>
 <script src="/js/demarrage.js?v={{EMPREINTE}}"></script>
 </body>
 </html>

@@ -72,15 +72,16 @@ const CALE: &str = r#"<script>
 </script>
 "#;
 
-const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "verifier", "poser", "fermer"]"#;
-/// Dans la page du logiciel, un seul geste : revenir aux compagnies (ticket #113).
-const NOMS_LOGICIEL: &str = r#"["accueil"]"#;
+const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "verifier", "poser", "fermer", "maj", "redemarrer"]"#;
+/// Dans la page du logiciel : revenir aux compagnies (ticket #113) ; et, comme a l'accueil, lire ou en est la mise a
+/// jour et redemarrer pour l'installer (ticket #210, `js/mise-a-jour.js`).
+const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer"]"#;
 
 #[derive(Clone)]
 enum Phase {
     Accueil,
     MotDePasse { racine: PathBuf, premiere: bool },
-    Ouverte { racine: PathBuf, veille: Arc<Veille> },
+    Ouverte { racine: PathBuf, veille: Arc<Veille>, etats: Arc<crate::etat_garde::FileDesEtats> },
 }
 
 pub struct Fenetre {
@@ -243,7 +244,11 @@ fn page_accueil() -> String {
         }
         g
     };
+    // La version, sous le nom, comme dans la page d'une compagnie (ticket #211) ; les tuiles en dernier : un nom de
+    // compagnie n'est jamais lu comme une marque a remplacer.
     ACCUEIL
+        .replace("{{VERSION}}", &version())
+        .replace("{{EMPREINTE}}", &empreinte())
         .replace(
             "{{SOUS_TITRE}}",
             if bride { "des compagnies fictives, et rien ne part" } else { "quelle compagnie ouvrir ?" },
@@ -300,8 +305,9 @@ impl Fenetre {
 
     fn poser_phase(&self, p: Phase) {
         let avant = std::mem::replace(&mut *self.phase.lock().unwrap_or_else(|e| e.into_inner()), p);
-        if let Phase::Ouverte { veille, .. } = avant {
+        if let Phase::Ouverte { veille, etats, .. } = avant {
             veille.arreter();
+            etats.arreter();
         }
     }
 
@@ -335,11 +341,13 @@ impl Fenetre {
     fn ouvrir(&self, racine: PathBuf) {
         // La mise a jour ne se fait pas ici : le logiciel la cherche au lancement (`maj::chercher_en_fond`) et l'applique
         // au lancement suivant, avant toute fenetre (`maj::au_lancement`), sans qu'aucune compagnie soit ouverte.
-        let veille = Veille::nouvelle(&racine, self.minutes_veille);
+        // Les etats des mois se refont en fond, dans ce processus, s'ils ne sont plus justes (`etat_garde::FileDesEtats`) :
+        // a l'ouverture, apres chaque ecriture et chaque tour de veille. Un mois s'affiche ensuite sans calcul.
+        let etats = crate::etat_garde::FileDesEtats::nouvelle(&racine, None);
+        etats.tout_verifier();
+        let veille = Veille::nouvelle(&racine, self.minutes_veille, Some(etats.clone()));
         veille.demarrer();
-        // Les etats des mois se refont en fond s'ils ne sont plus justes : un mois s'affiche ensuite sans calcul.
-        crate::etat_garde::prechauffer(&racine);
-        self.poser_phase(Phase::Ouverte { racine, veille });
+        self.poser_phase(Phase::Ouverte { racine, veille, etats });
     }
 
     fn autorise(&self, r: &Requete) -> bool {
@@ -349,6 +357,12 @@ impl Fenetre {
             *self.temoin.lock().unwrap_or_else(|e| e.into_inner()) = Instant::now();
         }
         ok
+    }
+
+    fn fermer_le_logiciel(&self) {
+        if let Some(f) = self.fermer.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+            f();
+        }
     }
 
     /// Les gestes de l'accueil (`window.pywebview.api.<nom>(...)`).
@@ -406,11 +420,23 @@ impl Fenetre {
                 ok(true)
             }
             ("fermer", _) => {
-                if let Some(f) = self.fermer.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
-                    f();
-                }
+                self.fermer_le_logiciel();
                 ok(false)
             }
+            // Ou en est la recherche de la mise a jour (ticket #210) : l'accueil et la page d'une compagnie l'affichent.
+            ("maj", _) => json!({"ok": true, "etat": crate::maj::RECHERCHE.etat()}),
+            // « Redemarrer pour mettre a jour » : la version prete part au relais, puis le logiciel se ferme comme par sa
+            // croix (la veille s'arrete) ; le relais attend sa fin, installe et rouvre la fenetre neuve. Rien de pret :
+            // refuse, et rien ne se ferme.
+            ("redemarrer", _) => match crate::maj::redemarrer_pour_mettre_a_jour(&crate::maj::installation(), &crate::maj::RECHERCHE) {
+                Ok(v) => {
+                    self.ecrire(&format!("Redemarrage pour la mise a jour {}.\n", crate::maj::version_lue(&v)));
+                    self.poser_phase(Phase::Accueil);
+                    self.fermer_le_logiciel();
+                    ok(false)
+                }
+                Err(m) => refus(m),
+            },
             _ => refus(format!("Geste inconnu ici : {}.", nom)),
         }
     }
@@ -442,10 +468,10 @@ impl Fenetre {
                 return Reponse::json(200, &self.lanceur(nom, &args));
             }
             if let Some(nom) = r.chemin.strip_prefix("/api/") {
-                let Phase::Ouverte { racine, veille } = self.phase() else {
+                let Phase::Ouverte { racine, veille, etats } = self.phase() else {
                     return Reponse::json(200, &json!({"ok": false, "erreur": {"type": "ErreurOperation", "message": "Aucune compagnie n'est ouverte."}}));
                 };
-                return Reponse::json(200, &api::repondre(&racine, nom, &charge, Some(&veille)));
+                return Reponse::json(200, &api::repondre(&racine, nom, &charge, Some(&veille), Some(&etats)));
             }
             return Reponse::json(404, &json!({"ok": false, "erreur": {"type": "Inconnue", "message": "route inconnue"}}));
         }

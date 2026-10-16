@@ -263,6 +263,38 @@ pub fn prete(inst: &Path) -> Option<Value> {
 }
 
 fn lire_depot(depot: &str, nom: &str) -> R<Vec<u8>> {
+    lire_depot_suivi(depot, nom, &|_, _| {}).map_err(|(_, e)| e)
+}
+
+/// Ce qu'on dit d'un echec, en un mot, a l'ecran (ticket #210 : « les erreurs se disent en un mot, sans alarme ») ; la
+/// phrase entiere va au journal de la mise a jour.
+const HORS_LIGNE: &str = "hors ligne";
+const INTROUVABLE: &str = "introuvable";
+const ILLISIBLE: &str = "dépôt illisible";
+const SIGNATURE_REFUSEE: &str = "signature refusée";
+const ALTEREE: &str = "archive altérée";
+const REFUSEE_AU_CONTROLE: &str = "refusée au contrôle";
+const REGLAGE_ILLISIBLE: &str = "réglage illisible";
+
+type Echec = (&'static str, String);
+
+/// `lire_depot`, en disant a `suivre` ce qui est recu (octets recus, octets attendus si le depot le dit) : la barre de
+/// l'indicateur (`Recherche`). Un echec porte son mot : injoignable (`HORS_LIGNE`), ou absent (`INTROUVABLE`).
+fn lire_depot_suivi(depot: &str, nom: &str, suivre: &dyn Fn(u64, Option<u64>)) -> Result<Vec<u8>, Echec> {
+    const LIMITE: u64 = 512 * 1024 * 1024;
+    let lire_tout = |lecteur: &mut dyn Read, attendus: Option<u64>| -> std::io::Result<Vec<u8>> {
+        let mut o = Vec::with_capacity(attendus.unwrap_or(0).min(LIMITE) as usize);
+        let mut tampon = vec![0u8; 64 * 1024];
+        suivre(0, attendus);
+        loop {
+            let n = lecteur.read(&mut tampon)?;
+            if n == 0 {
+                return Ok(o);
+            }
+            o.extend_from_slice(&tampon[..n]);
+            suivre(o.len() as u64, attendus);
+        }
+    };
     if depot.starts_with("http://") || depot.starts_with("https://") {
         let url = format!("{}/{}", depot.trim_end_matches('/'), nom);
         let mut c = ureq::Agent::config_builder().user_agent(AGENT).timeout_global(Some(std::time::Duration::from_secs(120)));
@@ -270,16 +302,35 @@ fn lire_depot(depot: &str, nom: &str) -> R<Vec<u8>> {
             c = c.tls_config(ureq::tls::TlsConfig::builder().root_certs(ureq::tls::RootCerts::PlatformVerifier).build());
         }
         let agent: ureq::Agent = c.build().into();
-        let mut r = agent.get(&url).call().map_err(|e| format!("{} : {}", url, e))?;
-        return r.body_mut().with_config().limit(512 * 1024 * 1024).read_to_vec().map_err(|e| e.to_string());
+        let mut r = agent.get(&url).call().map_err(|e| {
+            let mot = if matches!(e, ureq::Error::StatusCode(_)) { INTROUVABLE } else { HORS_LIGNE };
+            (mot, format!("{} : {}", url, e))
+        })?;
+        let attendus = r.body().content_length();
+        let mut lecteur = r.body_mut().with_config().limit(LIMITE).reader();
+        return lire_tout(&mut lecteur, attendus).map_err(|e| (HORS_LIGNE, format!("{} : {}", url, e)));
     }
-    std::fs::read(Path::new(depot).join(nom)).map_err(|e| format!("{} : {}", Path::new(depot).join(nom).display(), e))
+    let p = Path::new(depot).join(nom);
+    let dit = |e: std::io::Error| (INTROUVABLE, format!("{} : {}", p.display(), e));
+    let mut f = std::fs::File::open(&p).map_err(dit)?;
+    let attendus = f.metadata().ok().map(|m| m.len());
+    lire_tout(&mut f, attendus).map_err(dit)
 }
 
 /// `derniere.json` du depot : la `version`, et sous `archives` une entree par systeme publie (`SYSTEMES`, `TOUT_SYSTEME`),
 /// chacune avec son `archive` (le nom du fichier, a cote), son `sha256` et sa `signature`. Toute autre forme est refusee.
 pub fn derniere(depot: &str) -> R<Value> {
-    let d: Value = serde_json::from_slice(&lire_depot(depot, DERNIERE)?).map_err(|e| format!("derniere.json illisible : {}", e))?;
+    derniere_dite(depot).map_err(|(_, e)| e)
+}
+
+/// `derniere`, l'echec avec son mot : le depot ne repond pas, ou il repond quelque chose qui n'est pas un `derniere.json`.
+fn derniere_dite(depot: &str) -> Result<Value, Echec> {
+    let octets = lire_depot_suivi(depot, DERNIERE, &|_, _| {})?;
+    derniere_lue(&octets).map_err(|e| (ILLISIBLE, e))
+}
+
+fn derniere_lue(octets: &[u8]) -> R<Value> {
+    let d: Value = serde_json::from_slice(octets).map_err(|e| format!("derniere.json illisible : {}", e))?;
     if d.get("version").and_then(Value::as_str).filter(|s| !s.is_empty()).is_none() {
         return Err("derniere.json sans « version »".into());
     }
@@ -452,51 +503,58 @@ fn publiee_pour_ce_systeme(d: &Value) -> bool {
 /// de tous les systemes, si elle le porte), la verifie, la deballe, la controle et la pose prete. Rend la cle de l'archive prise. Une
 /// archive telechargee dont le condensat ou la signature ne vaut pas est refusee sans essayer l'autre : ce n'est pas
 /// qu'elle manque, c'est qu'elle n'est pas la notre.
-fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str]) -> R<&'static str> {
+fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str], suivi: &Recherche) -> Result<&'static str, Echec> {
     let version = d["version"].as_str().unwrap_or_default();
     let candidates = archives_a_essayer(d);
     if candidates.is_empty() {
-        return Err(format!("derniere.json n'a pas d'archive qui porte ce systeme ({})", SYSTEME));
+        return Err((INTROUVABLE, format!("derniere.json n'a pas d'archive qui porte ce systeme ({})", SYSTEME)));
     }
     let mut manquees = Vec::new();
+    let mut mot = INTROUVABLE;
     let mut prise = None;
     for (k, a) in candidates {
-        match lire_depot(depot, a["archive"].as_str().unwrap_or_default()) {
+        let suivre = |recus: u64, attendus: Option<u64>| suivi.poser(Etape::Telechargement, Some(version), |p| (p.recus, p.attendus) = (recus, attendus));
+        match lire_depot_suivi(depot, a["archive"].as_str().unwrap_or_default(), &suivre) {
             Ok(o) => {
                 prise = Some((k, a, o));
                 break;
             }
-            Err(e) => manquees.push(e),
+            Err((m, e)) => {
+                mot = m;
+                manquees.push(e)
+            }
         }
     }
-    let (systeme, a, octets) = prise.ok_or_else(|| manquees.join(" ; "))?;
+    let (systeme, a, octets) = prise.ok_or_else(|| (mot, manquees.join(" ; ")))?;
+    suivi.poser(Etape::Preparation, Some(version), |_| {});
     let sha = condensat(&octets);
     let attendu = a["sha256"].as_str().unwrap_or_default();
     if sha != attendu {
-        return Err(format!("archive alteree (condensat {}… attendu {}…)", &sha[..12], attendu.chars().take(12).collect::<String>()));
+        return Err((ALTEREE, format!("archive alteree (condensat {}… attendu {}…)", &sha[..12], attendu.chars().take(12).collect::<String>())));
     }
-    let signature = a.get("signature").and_then(Value::as_str).ok_or("archive non signee : derniere.json n'a pas de « signature »")?;
+    let signature = a.get("signature").and_then(Value::as_str).ok_or((SIGNATURE_REFUSEE, "archive non signee : derniere.json n'a pas de « signature »".to_string()))?;
     if !signee_par_l_une(&octets, signature, cles) {
-        return Err("la signature de l'archive n'est pas celle de l'editeur".into());
+        return Err((SIGNATURE_REFUSEE, "la signature de l'archive n'est pas celle de l'editeur".into()));
     }
+    let au_controle = |e: String| (REFUSEE_AU_CONTROLE, e);
     let cible = dossier_maj(inst).join(version);
     let _ = std::fs::remove_dir_all(&cible);
     let neuf = cible.join("logiciel");
-    std::fs::create_dir_all(&neuf).map_err(|e| e.to_string())?;
-    deballer(&octets, &neuf)?;
+    std::fs::create_dir_all(&neuf).map_err(|e| au_controle(e.to_string()))?;
+    deballer(&octets, &neuf).map_err(au_controle)?;
     if courante(&neuf) != version {
-        return Err(format!("l'archive dit {}, derniere.json dit {}", version_lue(&courante(&neuf)), version_lue(version)));
+        return Err(au_controle(format!("l'archive dit {}, derniere.json dit {}", version_lue(&courante(&neuf)), version_lue(version))));
     }
     // Le programme de ce systeme doit y etre, meme sans compagnie a controler.
     if !programme(&neuf, "puppetpaie").is_file() {
         let _ = std::fs::remove_dir_all(&cible);
-        return Err(format!("le programme de ce systeme manque dans l'archive ({})", programme(Path::new(""), "puppetpaie").display()));
+        return Err(au_controle(format!("le programme de ce systeme manque dans l'archive ({})", programme(Path::new(""), "puppetpaie").display())));
     }
     // Le programme neuf lit la configuration de chaque compagnie de l'installation (sans compagnie, il n'y a rien a lire).
     for racine in compagnies_de(inst) {
         if let Err(p) = controler(&neuf, &racine) {
             let _ = std::fs::remove_dir_all(&cible);
-            return Err(format!("le nouveau code ne demarre pas sur {} : {}", racine.display(), p));
+            return Err(au_controle(format!("le nouveau code ne demarre pas sur {} : {}", racine.display(), p)));
         }
     }
     ecrire_json(
@@ -507,7 +565,8 @@ fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str]) -> R<&'static
             "notes": d.get("notes").cloned().unwrap_or(json!("")), "calcul": d.get("calcul").cloned().unwrap_or(json!("")),
             "exigee": d.get("exigee").cloned().unwrap_or(json!("")),
         }),
-    )?;
+    )
+    .map_err(au_controle)?;
     Ok(systeme)
 }
 
@@ -522,38 +581,247 @@ pub fn verifier(telecharger_aussi: bool) -> String {
 /// Toute installation recoit, celle de l'editeur comprise : elle a deja la version qu'elle vient de publier depuis son
 /// propre `logiciel/`, et recoit celle qu'on aurait publiee d'ailleurs.
 pub fn verifier_avec(inst: &Path, telecharger_aussi: bool, cles: &[&str]) -> String {
+    verifier_suivi(inst, telecharger_aussi, cles, &Recherche::nouvelle())
+}
+
+/// `verifier_avec`, en tenant `suivi` a jour a chaque etape (ce que l'indicateur montre, ticket #210). Ce que la recherche
+/// rend (la phrase du journal) et ce qu'elle laisse dans `suivi` disent la meme chose.
+pub fn verifier_suivi(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi: &Recherche) -> String {
+    suivi.poser(Etape::Recherche, None, |_| {});
     let c = logiciel_de(inst);
     let cour = version_lue(&courante(&c));
+    let echec = |mot: &'static str, version: Option<&str>, phrase: String| {
+        suivi.poser(Etape::Echec, version, |p| p.mot = mot.to_string());
+        phrase
+    };
     let depot = match reglage(inst) {
         Ok((d, _)) => self::depot(d),
-        Err(e) => return format!("version {} ({})", cour, e),
+        Err(e) => return echec(REGLAGE_ILLISIBLE, None, format!("version {} ({})", cour, e)),
     };
-    let d = match derniere(&depot) {
+    let d = match derniere_dite(&depot) {
         Ok(d) => d,
-        Err(e) => return format!("version {} (depot injoignable : {})", cour, e),
+        Err((mot, e)) => return echec(mot, None, format!("version {} (depot injoignable : {})", cour, e)),
     };
     let v = d["version"].as_str().unwrap_or_default().to_string();
     if !plus_recente(&v, &courante(&c)) {
+        suivi.poser(Etape::AJour, None, |_| {});
         return format!("version {}, a jour", cour);
     }
     let lue = version_lue(&v);
     // Publiee sans ce systeme : rien a telecharger, la version en place reste (une tout-systeme qui ne le porte pas ne
-    // se lancerait pas ici).
+    // se lancerait pas ici). Pour cette installation, il n'y a pas de mise a jour.
     if !publiee_pour_ce_systeme(&d) {
+        suivi.poser(Etape::AJour, None, |p| p.sans_ce_systeme = Some(v.clone()));
         return format!("version {} -- la {} est publiee sans ce systeme ({}) : cette installation garde sa version", cour, lue, SYSTEME);
     }
-    if prete(inst).and_then(|p| p["version"].as_str().map(String::from)).as_deref() == Some(v.as_str()) || !telecharger_aussi {
+    let deja = prete(inst).and_then(|p| p["version"].as_str().map(String::from)).as_deref() == Some(v.as_str());
+    if deja || !telecharger_aussi {
+        if deja {
+            suivi.prete(inst, &v);
+        } else {
+            suivi.poser(Etape::AJour, None, |_| {});
+        }
         return format!("version {} -- la {} est prete", cour, lue);
     }
-    match telecharger(inst, &depot, &d, cles) {
-        Ok(prise) => format!(
-            "version {} -- la {} est telechargee, controlee, prete : elle s'appliquera au prochain demarrage{}",
-            cour,
-            lue,
-            if prise == SYSTEME { String::new() } else { format!(" (archive {} : celle de ce systeme manque)", prise) }
-        ),
-        Err(e) => format!("version {} -- la {} existe mais n'a pas pu etre preparee : {}", cour, lue, e),
+    match telecharger(inst, &depot, &d, cles, suivi) {
+        Ok(prise) => {
+            suivi.prete(inst, &v);
+            format!(
+                "version {} -- la {} est telechargee, controlee, prete : elle s'appliquera au prochain demarrage{}",
+                cour,
+                lue,
+                if prise == SYSTEME { String::new() } else { format!(" (archive {} : celle de ce systeme manque)", prise) }
+            )
+        }
+        Err((mot, e)) => echec(mot, Some(&v), format!("version {} -- la {} existe mais n'a pas pu etre preparee : {}", cour, lue, e)),
     }
+}
+
+/// LA RECHERCHE EN FOND, DITE A L'ECRAN (ticket #210, Leandre, 16/10/2026 : « quand il charge la mise a jour en
+/// arriere-plan, j'aimerais qu'il y ait un petit truc en bas a gauche, des l'ecran d'accueil, avec une barre de
+/// progression : Recherche de mise a jour / Aucune mise a jour / Mise a jour en cours (avec la barre) / Redemarrer pour
+/// mettre a jour »). Le moteur tient ou en est la recherche de CE processus (`chercher_en_fond` pose `RECHERCHE`) ;
+/// l'accueil et la page d'une compagnie la lisent par le geste `maj` du lanceur (`interface::Fenetre::lanceur`) et
+/// n'affichent que ce que `etat` leur dit : la phrase, la barre, et s'il faut relire (`en_cours`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Etape {
+    /// Aucune recherche dans ce processus (un `paie route`, un essai) : rien a montrer.
+    Aucune,
+    Recherche,
+    /// Rien de plus recent pour cette installation.
+    AJour,
+    /// L'archive arrive : `recus` sur `attendus`.
+    Telechargement,
+    /// Recue : condensat, signature, deballage, controle sur chaque compagnie.
+    Preparation,
+    /// Prete, et rien ne la retient : elle s'applique au redemarrage.
+    Prete,
+    /// Prete, mais elle change un calcul et des mois saisis attendent leur DSN (`applicable`).
+    Retenue,
+    /// Quelque chose n'a pas marche ; `mot` le dit.
+    Echec,
+}
+
+#[derive(Debug)]
+struct Point {
+    etape: Etape,
+    version: Option<String>,
+    recus: u64,
+    attendus: Option<u64>,
+    mot: String,
+    retenue_par: Vec<String>,
+    sans_ce_systeme: Option<String>,
+}
+
+impl Point {
+    const fn vide() -> Point {
+        Point { etape: Etape::Aucune, version: None, recus: 0, attendus: None, mot: String::new(), retenue_par: Vec::new(), sans_ce_systeme: None }
+    }
+}
+
+/// L'etat d'une recherche (celle du lancement : `RECHERCHE`).
+#[derive(Debug)]
+pub struct Recherche(std::sync::Mutex<Point>);
+
+/// La recherche du lancement, celle que l'indicateur montre.
+pub static RECHERCHE: Recherche = Recherche::nouvelle();
+
+impl Default for Recherche {
+    fn default() -> Self {
+        Recherche::nouvelle()
+    }
+}
+
+impl Etape {
+    /// Le nom que l'etat donne a l'etape.
+    pub fn nom(self) -> &'static str {
+        match self {
+            Etape::Aucune => "aucune",
+            Etape::Recherche => "recherche",
+            Etape::AJour => "a_jour",
+            Etape::Telechargement => "telechargement",
+            Etape::Preparation => "preparation",
+            Etape::Prete => "prete",
+            Etape::Retenue => "retenue",
+            Etape::Echec => "echec",
+        }
+    }
+}
+
+impl Recherche {
+    pub const fn nouvelle() -> Recherche {
+        Recherche(std::sync::Mutex::new(Point::vide()))
+    }
+
+    /// Passe a `etape` (ce qui tient a l'etape d'avant s'efface, sauf la version si `version` n'en dit pas), puis `plus`.
+    fn poser(&self, etape: Etape, version: Option<&str>, plus: impl FnOnce(&mut Point)) {
+        let mut p = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        if p.etape != etape {
+            let garde = version.map(String::from).or_else(|| if etape == Etape::AJour { None } else { p.version.take() });
+            *p = Point { etape, version: garde, ..Point::vide() };
+        } else if let Some(v) = version {
+            p.version = Some(v.to_string());
+        }
+        plus(&mut p);
+    }
+
+    /// La version `v` est prete : elle s'applique au redemarrage, ou elle est retenue (`applicable`, `mois_qui_retiennent`).
+    fn prete(&self, inst: &Path, v: &str) {
+        if applicable(inst).as_deref() == Some(v) {
+            self.poser(Etape::Prete, Some(v), |_| {});
+        } else {
+            let retenue_par = mois_qui_retiennent(inst);
+            self.poser(Etape::Retenue, Some(v), |p| p.retenue_par = retenue_par);
+        }
+    }
+
+    pub fn etape(&self) -> Etape {
+        self.0.lock().unwrap_or_else(|e| e.into_inner()).etape
+    }
+
+    /// Ce que l'indicateur montre, tout decide ici : `etape`, `texte` (vide : rien a montrer), `detail` (la bulle),
+    /// `progression` (0 a 1, ou rien : pas de barre ; une barre sans fin connue est `null` avec `barre`), `en_cours`
+    /// (la page relit tant que c'est vrai, et se tait ensuite), `redemarrer` (le clic est offert).
+    pub fn etat(&self) -> Value {
+        let p = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        let lue = p.version.as_deref().map(version_lue);
+        let nommee = |t: &str| match &lue {
+            Some(v) => format!("PuppetPaie {} {}", v, t),
+            None => String::new(),
+        };
+        let mo = |o: u64| format!("{:.1}", o as f64 / 1_048_576.0).replace('.', ",");
+        let (texte, detail, barre, progression): (&str, String, bool, Option<f64>) = match p.etape {
+            Etape::Aucune => ("", String::new(), false, None),
+            Etape::Recherche => ("Recherche de mise à jour…", String::new(), false, None),
+            Etape::AJour => (
+                "Aucune mise à jour",
+                match &p.sans_ce_systeme {
+                    Some(v) => format!("PuppetPaie {} est publiée sans ce système : cette installation garde sa version.", version_lue(v)),
+                    None => "Cette version est la dernière.".into(),
+                },
+                false,
+                None,
+            ),
+            Etape::Telechargement => (
+                "Mise à jour en cours",
+                match p.attendus.filter(|a| *a > 0) {
+                    Some(a) => nommee(&format!(": {} Mo sur {} Mo", mo(p.recus), mo(a))),
+                    None => nommee(&format!(": {} Mo reçus", mo(p.recus))),
+                },
+                true,
+                p.attendus.filter(|a| *a > 0).map(|a| (p.recus as f64 / a as f64).min(1.0)),
+            ),
+            Etape::Preparation => ("Mise à jour en cours", nommee(": vérification"), true, Some(1.0)),
+            Etape::Prete => ("Redémarrer pour mettre à jour", nommee("est prête : elle s'installe au redémarrage."), false, None),
+            Etape::Retenue => (
+                "Mise à jour en attente",
+                nommee(&format!(
+                    "change un calcul de paie : elle s'installera quand ces mois auront leur DSN : {}.",
+                    p.retenue_par.join(", ")
+                )),
+                false,
+                None,
+            ),
+            Etape::Echec => (
+                "",
+                match &lue {
+                    Some(v) => format!("PuppetPaie {} n'a pas pu être préparée : cette version reste, la recherche reprend au prochain lancement.", v),
+                    None => "La recherche reprend au prochain lancement ; cette version reste.".into(),
+                },
+                false,
+                None,
+            ),
+        };
+        let texte = if p.etape == Etape::Echec { format!("Mise à jour : {}", p.mot) } else { texte.to_string() };
+        json!({
+            "etape": p.etape.nom(),
+            "texte": texte,
+            "detail": detail,
+            "barre": barre,
+            "progression": progression,
+            "en_cours": matches!(p.etape, Etape::Recherche | Etape::Telechargement | Etape::Preparation),
+            "redemarrer": p.etape == Etape::Prete,
+            "version": lue,
+        })
+    }
+}
+
+/// Le geste « Redemarrer pour mettre a jour » : la version prete part au relais (comme au lancement, `au_lancement`) ; a
+/// l'appelant de s'arreter aussitot, sans rien ouvrir (le relais attend sa fin, bascule et ouvre la neuve). Refuse si la
+/// recherche de ce processus n'a rien de pret, ou si la version est retenue : rien n'est lance.
+pub fn redemarrer_pour_mettre_a_jour(inst: &Path, suivi: &Recherche) -> R<String> {
+    if suivi.etape() != Etape::Prete {
+        return Err("Aucune mise à jour n'est prête à s'installer.".into());
+    }
+    let Some(v) = applicable(inst) else {
+        return Err("La mise à jour n'est plus prête à s'installer.".into());
+    };
+    lancer_relais(inst, &v).map_err(|e| {
+        noter(inst, &format!("Mise a jour {} non appliquee : {}", version_lue(&v), e));
+        format!("La mise à jour ne s'installe pas : {}", e)
+    })?;
+    noter(inst, &format!("Redemarrage demande pour la mise a jour {}.", version_lue(&v)));
+    Ok(v)
 }
 
 /// La version prete et applicable maintenant (rien ne la retient), ou `None`.
@@ -1042,11 +1310,13 @@ pub fn au_lancement() -> bool {
 }
 
 /// AU LANCEMENT, apres `au_lancement` : le logiciel cherche pour lui-meme, en fond, sans attendre qu'une compagnie
-/// s'ouvre ; ce qu'il trouve s'appliquera au lancement suivant. Ce qui s'est passe va dans le journal de la mise a jour.
+/// s'ouvre ; ce qu'il trouve s'appliquera au lancement suivant (ou au clic « Redemarrer pour mettre a jour »). Ce qui
+/// s'est passe va dans le journal de la mise a jour ; ou elle en est, dans `RECHERCHE` (l'indicateur, ticket #210).
 pub fn chercher_en_fond() {
     let inst = installation();
+    RECHERCHE.poser(Etape::Recherche, None, |_| {});
     std::thread::spawn(move || {
-        let dit = verifier_avec(&inst, true, &cles_de_l_editeur());
+        let dit = verifier_suivi(&inst, true, &cles_de_l_editeur(), &RECHERCHE);
         noter(&inst, &format!("Recherche : {}", dit));
     });
 }
@@ -1400,5 +1670,55 @@ mod tests {
     fn versions_comparees_en_entiers() {
         assert!(plus_recente("2026.10.10", "2026.10.9"));
         assert!(!plus_recente("2026.10.02", "2026.10.02"));
+    }
+
+    /// Ce que recoit `suivre` en lisant le depot (la barre de l'indicateur, ticket #210) : des octets recus qui ne
+    /// font que croitre, jusqu'a la taille entiere, et la taille attendue telle que le depot la dit (un dossier : celle
+    /// du fichier ; un serveur : son `Content-Length`). Un fichier absent est `introuvable`, un serveur muet `hors ligne`.
+    fn suivi_de(depot: &str, nom: &str) -> (Result<Vec<u8>, Echec>, Vec<(u64, Option<u64>)>) {
+        let vus = std::sync::Mutex::new(Vec::new());
+        let r = lire_depot_suivi(depot, nom, &|recus, attendus| vus.lock().unwrap().push((recus, attendus)));
+        (r, vus.into_inner().unwrap())
+    }
+
+    fn croissants_jusqu_a(vus: &[(u64, Option<u64>)], n: u64) {
+        assert!(vus.windows(2).all(|w| w[0].0 <= w[1].0), "les octets recus ne reculent pas");
+        assert_eq!(vus.first().map(|v| v.0), Some(0));
+        assert_eq!(vus.last().copied(), Some((n, Some(n))), "la barre finit pleine");
+        assert!(vus.iter().all(|v| v.1 == Some(n)), "la taille attendue est celle que dit le depot");
+    }
+
+    #[test]
+    fn la_lecture_du_depot_dit_ce_qu_elle_a_recu() {
+        let octets: Vec<u8> = (0..300_000u32).map(|i| (i % 251) as u8).collect();
+        let d = std::env::temp_dir().join(format!("paie-maj-suivi-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        std::fs::write(d.join("a.zip"), &octets).unwrap();
+        let (r, vus) = suivi_de(&d.display().to_string(), "a.zip");
+        assert_eq!(r.unwrap(), octets);
+        croissants_jusqu_a(&vus, octets.len() as u64);
+        assert_eq!(suivi_de(&d.display().to_string(), "absente.zip").0.unwrap_err().0, INTROUVABLE);
+        let _ = std::fs::remove_dir_all(&d);
+
+        let ecoute = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = ecoute.local_addr().unwrap().port();
+        let servis = octets.clone();
+        let serveur = std::thread::spawn(move || {
+            let (mut c, _) = ecoute.accept().unwrap();
+            let mut tete = Vec::new();
+            let mut b = [0u8; 1];
+            while !tete.ends_with(b"\r\n\r\n") && c.read(&mut b).unwrap() == 1 {
+                tete.push(b[0]);
+            }
+            write!(c, "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", servis.len()).unwrap();
+            c.write_all(&servis).unwrap();
+        });
+        let (r, vus) = suivi_de(&format!("http://127.0.0.1:{}", port), "a.zip");
+        serveur.join().unwrap();
+        assert_eq!(r.unwrap(), octets);
+        croissants_jusqu_a(&vus, octets.len() as u64);
+
+        let libre = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap().local_addr().unwrap().port();
+        assert_eq!(suivi_de(&format!("http://127.0.0.1:{}", libre), "a.zip").0.unwrap_err().0, HORS_LIGNE);
     }
 }

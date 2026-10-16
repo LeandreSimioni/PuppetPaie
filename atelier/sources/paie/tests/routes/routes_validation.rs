@@ -59,7 +59,7 @@ fn valider_une_paie_valide_ce_contrat_et_pas_son_jumeau_du_meme_jour() {
     reussi(&route(&racine, "valider-paie", c));
     let e = lire(&racine, "paies/2026-11.json")["engagements"].clone();
     assert!(e[0].get("valide").is_none(), "{}", e);
-    assert!(e[1]["valide"].is_string(), "{}", e);
+    assert!(e[1]["valide"]["le"].is_string() && e[1]["valide"]["carte"].is_object(), "{}", e);
     assert_eq!((e[0]["numero"].as_str(), e[1]["numero"].as_str()), (Some("BR.26.01"), Some("BR.26.02")));
     // Un numero que le fichier ne porte pas : refus.
     let mut c = charge.clone();
@@ -75,7 +75,7 @@ fn valider_une_paie_valide_ce_contrat_et_pas_son_jumeau_du_meme_jour() {
     reussi(&route(&racine, "valider-paie", c));
     let e = lire(&racine, "paies/2026-11.json")["engagements"].clone();
     assert!(e[0].get("valide").is_none(), "{}", e);
-    assert!(e[1]["valide"].is_string(), "{}", e);
+    assert!(e[1]["valide"]["le"].is_string() && e[1]["valide"]["carte"].is_object(), "{}", e);
 }
 
 /// L'ETAT DE CHAQUE JUMEAU : un seul des deux contrats du meme jour est valide ; `etat-par-paie` le dit de lui, et
@@ -106,8 +106,8 @@ fn l_etat_par_paie_ne_prete_pas_la_validation_d_un_jumeau_a_l_autre() {
 }
 
 /// Noter qu'un contrat signe est revenu ne touche pas au calcul du mois (`paies/AAAA-MM.calcul.json`) : ni cree s'il
-/// n'y est pas, ni change s'il y est. La route est appelee DANS ce processus : par `paie route`, l'etat du mois se refait
-/// ensuite en arriere-plan (`etat_garde::apres_ecriture`), et lui ecrit le calcul, a dessein.
+/// n'y est pas, ni change s'il y est. La route est appelee DANS ce processus : l'etat du mois se refait ensuite dans la
+/// fenetre (`etat_garde::FileDesEtats`), et lui ecrit le calcul, a dessein.
 #[test]
 fn le_contrat_recu_ne_touche_pas_au_calcul_du_mois() {
     let racine = compagnie("contrat-recu-calcul");

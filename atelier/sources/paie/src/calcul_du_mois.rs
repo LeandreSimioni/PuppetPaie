@@ -164,11 +164,17 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
 /// Le calcul du mois pour un Contexte deja lu (`None` : il ne se lit pas, le
 /// calcul le dira). Relu sans calcul si ses entrees n'ont pas change.
 pub fn calcul_avec(o: &HashMap<String, String>, ctx: Option<&Contexte>, mois: &str, parti: bool) -> Resultat<Value> {
+    Ok(calcul_et_entrees(o, ctx, mois, parti)?.0)
+}
+
+/// `calcul_avec`, et les entrees du resultat rendu : celles du calcul stocke quand il se relit, celles du calcul frais
+/// sinon.
+fn calcul_et_entrees(o: &HashMap<String, String>, ctx: Option<&Contexte>, mois: &str, parti: bool) -> Resultat<(Value, BTreeMap<String, String>)> {
     let racine = racine_de(o);
     let calcul = fichier_calcul(&racine, mois);
     if let Some((resultat, entrees, integre)) = stocke(&calcul) {
         if parti || (integre && ctx.is_some_and(|c| a_jour_avec(o, c, &entrees))) {
-            return Ok(resultat);
+            return Ok((resultat, entrees));
         }
     }
     let saisie = racine.join("paies").join(format!("{}.json", mois));
@@ -178,7 +184,7 @@ pub fn calcul_avec(o: &HashMap<String, String>, ctx: Option<&Contexte>, mois: &s
         // Un dossier qui refuse l'ecriture ne change pas le resultat.
         let _ = enregistrer(&calcul, &rep, &entrees);
     }
-    Ok(rep)
+    Ok((rep, entrees))
 }
 
 /// Ecrit `paies/AAAA-MM.calcul.json` avec ce que `calculer_suivi` a rendu pour une saisie en main dont le fichier vient
@@ -219,4 +225,191 @@ pub fn comparer(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         Some(_) => "ecart",
     };
     Ok(serde_json::json!({ "ok": true, "constat": constat }))
+}
+
+// ------------------------------------------------------------------ la carte figee
+
+/// LA CARTE FIGEE D'UNE PAIE VALIDEE (Leandre, 16/10/2026 : « quand on clique sur Valider, ca doit creer la carte simple qui,
+/// elle, va etre affichee tout le temps sans passer par des calculs -- sauf dans les cas specifiques ou il y a des
+/// changements de taux »).
+///
+/// `valider-paie` ecrit, dans le champ `valide` de l'engagement, `{"le", "carte", "empreinte"}` : `carte` est la vue de
+/// l'apercu de cette paie (`routes_ouverture::vue_paie`, ce que la carte fermee et « Voir le detail » montrent), sans ses
+/// numeros, qui se lisent en direct ; `empreinte` est ce dont ce calcul depend. La carte sert a l'AFFICHAGE, rien d'autre :
+/// DSN, bordereau, bulletins, certificats et exports calculent depuis la saisie, comme avant.
+///
+/// L'empreinte, ce sont les entrees du calcul du mois (`calculer_suivi` : tout ce que le calcul a lu, fichier par fichier :
+/// baremes du socle, couches de la convention et de la compagnie, fiches, effectifs, imprevus, paies des mois precedents,
+/// moteur...), SAUF la saisie du mois, qui change a chaque frappe dans une autre carte. A sa place : la saisie telle que CE
+/// calcul la lit -- le mois, et les engagements jusqu'a celui-ci (`calcul::calculer_apres` lit les paies d'avant dans le
+/// mois), sans ce que le moteur tient seul (`valide`, `rouverte`) ni le numero (pose a la production, il ne change aucun
+/// montant). Rouvrir retire `valide` : la carte part avec lui.
+pub const CARTE: &str = "carte";
+
+/// Ce qu'un engagement dit de sa validation : l'horodatage (`le`), ou rien.
+pub fn valide_le(v: Option<&Value>) -> Value {
+    v.and_then(|v| v.get("le")).cloned().unwrap_or(Value::Null)
+}
+
+/// L'empreinte de la saisie telle que le calcul de l'engagement `i` la lit.
+fn empreinte_saisie(data: &Value, i: usize) -> String {
+    let mut m = data.as_object().cloned().unwrap_or_default();
+    m.remove("_origine");
+    m.remove("numeros_figes");
+    let engagements: Vec<Value> = data
+        .get("engagements")
+        .and_then(Value::as_array)
+        .map_or(&[][..], |a| &a[..])
+        .iter()
+        .take(i + 1)
+        .map(|e| {
+            let mut e = e.as_object().cloned().unwrap_or_default();
+            for k in ["valide", "rouverte", "numero"] {
+                e.remove(k);
+            }
+            Value::Object(e)
+        })
+        .collect();
+    m.insert("engagements".into(), Value::Array(engagements));
+    fichiers::sha256_hex(canonique(&Value::Object(m)).as_bytes())
+}
+
+/// Une valeur ecrite sans ce qui ne change rien a ce qu'elle dit : les cles triees, un nombre ecrit comme un flottant
+/// (`180` et `180.0` sont le meme taux : la page ecrit l'un, un fichier ancien l'autre).
+fn canonique(v: &Value) -> String {
+    match v {
+        Value::Object(m) => {
+            let mut cles: Vec<&String> = m.keys().collect();
+            cles.sort();
+            let corps: Vec<String> = cles.iter().map(|k| format!("{}:{}", Value::String((*k).clone()), canonique(&m[*k]))).collect();
+            format!("{{{}}}", corps.join(","))
+        }
+        Value::Array(a) => format!("[{}]", a.iter().map(canonique).collect::<Vec<_>>().join(",")),
+        Value::Number(n) => n.as_f64().map_or_else(|| n.to_string(), |f| format!("{:?}", f)),
+        // Un montant ecrit en texte (« 190.0 », « 190 ») : le meme nombre.
+        Value::String(t) if !t.is_empty() && t.bytes().all(|c| c.is_ascii_digit() || c == b'.' || c == b'-') && t.parse::<f64>().is_ok() => {
+            format!("{:?}", t.parse::<f64>().unwrap_or_default())
+        }
+        autre => autre.to_string(),
+    }
+}
+
+/// Les entrees d'un calcul, sans la saisie du mois.
+fn entrees_de_la_carte(entrees: &BTreeMap<String, String>, mois: &str) -> Map<String, Value> {
+    let saisie = format!("racine:paies/{}.json", mois);
+    entrees
+        .iter()
+        .filter(|(k, _)| k.split_once(' ').map_or(true, |(_, c)| c != saisie))
+        .map(|(k, v)| (k.clone(), Value::String(v.clone())))
+        .collect()
+}
+
+/// Le `valide` d'une paie qu'on valide : `le`, sa carte, et l'empreinte de ce dont elle depend.
+pub fn sceller(le: &str, carte: &Value, data: &Value, i: usize, entrees: &BTreeMap<String, String>, mois: &str) -> Value {
+    let mut carte = carte.clone();
+    if let Some(c) = carte.as_object_mut() {
+        c.remove("numero_bulletin");
+        c.remove("numero_contrat");
+    }
+    serde_json::json!({
+        "le": le,
+        CARTE: carte,
+        "empreinte": { "saisie": empreinte_saisie(data, i), "entrees": entrees_de_la_carte(entrees, mois) },
+    })
+}
+
+/// LES PAIES VALIDEES SANS CARTE (Leandre, 16/10/2026 : tout ce qui est deja sur le poste profite du gain tout de suite,
+/// sans rien rouvrir ni revalider). ETRE VALIDEE, c'est avoir un `valide` date (`le`) ; AVOIR SA CARTE est autre chose.
+/// Une paie validee avant la carte figee n'avait qu'un horodatage : au premier passage du moteur sur le mois
+/// (`routes_mois::etat_par_paie`, que la file des etats refait pour chaque mois a l'ouverture), son `valide` prend LA
+/// forme unique `{"le", "carte", "empreinte"}`, sa date gardee dans `le`. La carte vient du calcul du mois, celui que
+/// l'ecran montrait deja pour elle (`calcul_avec` : le calcul garde s'il tient, et, mois parti, les chiffres stockes,
+/// comme l'apercu). Si le calcul n'aboutit pas (une donnee manquante, un refus du moteur), elle reste validee, `{"le"}`
+/// sans carte, s'affiche depuis le calcul quand il passe, et recoit sa carte au premier passage ou il aboutit.
+///
+/// SEUL `valide` CHANGE : ni le numero de contrat (regle 4 : il se lit, il ne se recalcule pas), ni rien d'autre de la
+/// saisie ; un mois dont la DSN est partie se scelle comme les autres, ce qui a ete declare ne bouge pas. Le fichier se
+/// relit juste avant d'etre remplace : s'il a change pendant le calcul (une ecriture passait), rien ne s'ecrit, et le
+/// passage suivant scellera. L'ecriture est atomique (`ecriture::ecrire_json`).
+pub fn sceller_les_anciennes(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) {
+    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
+    let Ok(octets) = std::fs::read(&chemin) else { return };
+    let Ok(mut data) = serde_json::from_slice::<Value>(&octets) else { return };
+    // Chaque paie validee sans carte, et sa date de validation.
+    let sans_carte: Vec<(usize, String)> = data
+        .get("engagements")
+        .and_then(Value::as_array)
+        .map_or(&[][..], |a| &a[..])
+        .iter()
+        .enumerate()
+        .filter_map(|(i, e)| {
+            let v = e.get("valide").filter(|v| fichiers::vrai(v))?;
+            if v.get(CARTE).is_some_and(Value::is_object) {
+                return None;
+            }
+            let le = v.get("le").unwrap_or(v);
+            Some((i, le.as_str().map_or_else(|| le.to_string(), str::to_string)))
+        })
+        .collect();
+    if sans_carte.is_empty() {
+        return;
+    }
+    let parti = mois_parti(ctx, mois).unwrap_or(false);
+    let vues = calcul_et_entrees(o, Some(ctx), mois, parti)
+        .ok()
+        .and_then(|(rep, entrees)| Some((crate::routes_ouverture::vues_du_calcul(ctx, &data, &rep, false).ok()?.1, entrees)));
+    for (i, le) in &sans_carte {
+        data["engagements"][*i]["valide"] = match &vues {
+            Some((vues, entrees)) if vues.len() > *i => sceller(le, &vues[*i], &data, *i, entrees, mois),
+            _ => serde_json::json!({ "le": le }),
+        };
+    }
+    let lu: Value = serde_json::from_slice(&octets).unwrap_or(Value::Null);
+    if data != lu && std::fs::read(&chemin).ok().as_deref() == Some(&octets[..]) {
+        let _ = crate::ecriture::ecrire_json(&chemin, &data, 2);
+    }
+}
+
+/// La carte figee de chaque engagement de `data` (`None` : pas validee), et si elle TIENT : son
+/// empreinte est celle d'aujourd'hui. Aucun calcul : la saisie se hache, chaque entree se relit sur le disque.
+pub fn cartes(o: &HashMap<String, String>, ctx: &Contexte, data: &Value) -> Vec<Option<(Value, bool)>> {
+    let engagements = data.get("engagements").and_then(Value::as_array).map_or(&[][..], |a| &a[..]);
+    engagements
+        .iter()
+        .enumerate()
+        .map(|(i, e)| {
+            let v = e.get("valide")?.as_object()?;
+            let carte = v.get(CARTE).filter(|c| c.is_object())?.clone();
+            let emp = v.get("empreinte")?;
+            let entrees: Option<BTreeMap<String, String>> = emp
+                .get("entrees")?
+                .as_object()?
+                .iter()
+                .map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
+                .collect();
+            let tient = emp.get("saisie").and_then(Value::as_str) == Some(empreinte_saisie(data, i).as_str())
+                && entrees.is_some_and(|en| a_jour_avec(o, ctx, &en));
+            Some((carte, tient))
+        })
+        .collect()
+}
+
+/// La carte d'une paie dont l'empreinte a bouge, devant le calcul d'aujourd'hui (`frais`, la meme vue) : la carte, telle
+/// qu'elle a ete validee, et -- si le calcul ne donne plus la meme paie -- `revoir`, ce qu'il donne maintenant. Rien ne
+/// change en silence : la paie n'est plus ce qu'on a valide, l'ecran le dit.
+pub fn devant_le_calcul(carte: &Value, frais: &Value) -> Value {
+    let sans = |v: &Value| -> Value {
+        let mut m = v.as_object().cloned().unwrap_or_default();
+        for k in ["numero_bulletin", "numero_contrat", "avertissements", "informations", "revoir"] {
+            m.remove(k);
+        }
+        Value::Object(m)
+    };
+    let mut c = carte.clone();
+    if canonique(&sans(carte)) != canonique(&sans(frais)) {
+        c["revoir"] = serde_json::json!({
+            "brut": frais.get("brut"), "net_a_payer": frais.get("net_a_payer"), "cout_employeur": frais.get("cout_employeur"),
+        });
+    }
+    c
 }

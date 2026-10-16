@@ -227,6 +227,8 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
    grille au clic. */
 .choix-mois { position: relative; width: 15rem; }
 .choix-mois-lib { display: block; font-size: 12px; color: var(--discret); }
+.mois-maj { font-style: italic; }
+.mois-maj[hidden] { display: none; }
 .choix-mois-case {
   display: flex; align-items: stretch; margin-top: 3px;
   border: 1px solid var(--bord); border-radius: 3px; background: var(--carte);
@@ -1059,6 +1061,19 @@ pre.reponse {
 .e-options-ligne { display: flex; gap: 12px; align-items: end; flex-wrap: wrap;
                    margin-bottom: 6px; }
 .e-options-ligne .e-metier-bloc { font-size: 12px; color: var(--discret); min-width: 16rem; }
+/* Ce que l'engagement porte sans que la saisie courante le demande (`CHAMPS_RARES`) : seulement quand il a une valeur. */
+.e-rares[hidden], .e-avant[hidden] { display: none; }
+.e-rares label { font-size: 12px; color: var(--discret); }
+.e-avant { display: inline-flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+/* Le lieu propre à un jour, sous sa ligne de paie, quand une date en dit un. */
+.rubrique .r-lieux-jours { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline;
+                           font-size: 12px; }
+.rubrique .r-lieux-jours:empty { display: none; }
+.rubrique .r-lieu-jour-l[hidden] { display: none; }
+.rubrique .r-lieu-jour-l { display: inline-flex; align-items: baseline; gap: 4px; }
+.rubrique .r-lieu-jour { display: inline-block; width: 10rem; padding: .2rem .4rem; }
+/* UNE PAIE VALIDÉE QUE LE CALCUL NE DONNE PLUS (16/10/2026) : sa carte reste celle qu'on a validée, et le dit. */
+.carte-revoir { grid-column: 1 / -1; margin-top: 4px; }
 .engagement:not(.validee) .resolu,
 .engagement:not(.validee) .etats-qui { display: none; }
 @media (max-width: 780px) {

@@ -1580,45 +1580,106 @@ pub(crate) fn urssaf_de_l_apercu(ctx: &Contexte, paies: &[Paie], mois: &str) -> 
     Ok((urssaf, avert))
 }
 
-/// `apercu` : le mois calcule, rien d'ecrit -- ni fichier, ni compteur. C'est
-/// ce que l'interface montre avant de produire. Charge : `saisie` (le mois tel
-/// que l'ecran le tient), `lignes` (vrai : les lignes de cotisation de chaque
-/// paie, pour le bulletin affiche).
-fn apercu(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
-    let ctx = crate::service::contexte(o)?;
-    let data = saisie_recue(&ctx, charge)?;
-    let rep = paie_du_mois(o, &ctx, &data)?;
-    let engs = engagements_calcules(&ctx, &data, &rep)?;
+/// Les paies d'une saisie depuis la reponse de son calcul, numerotees comme l'apercu les montre, et la vue de chacune
+/// (`vue_paie`). Ce que `apercu` affiche, et ce que `valider-paie` fige (`calcul_du_mois::sceller`).
+pub(crate) fn vues_du_calcul(ctx: &Contexte, data: &Value, rep: &Value, avec_lignes: bool) -> R<(Vec<Paie>, Vec<Value>)> {
+    let engs = engagements_calcules(ctx, data, rep)?;
     let paies_json = rep.get("paies").and_then(Value::as_array).ok_or("reponse du calcul illisible : `paies`")?;
     let mut paies = Vec::new();
     for (e, v) in engs.into_iter().zip(paies_json) {
-        paies.push(paie_de_json(&ctx, e, v)?);
+        paies.push(paie_de_json(ctx, e, v)?);
     }
     let mois = rep.get("mois").map(en_texte).ok_or_else(|| crate::fichiers::absent("mois"))?;
-    let annee: i32 = mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("mois illisible : {}", crate::fichiers::repr(&mois)))?;
-    numeroter(&ctx, &mut paies, annee)?;
-
-    let (urssaf, avert) = urssaf_de_l_apercu(&ctx, &paies, &mois)?;
-
+    numeroter(ctx, &mut paies, annee_de(&mois)?)?;
     let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut vues = Vec::new();
     for (i, p) in paies.iter().enumerate() {
-        vues.push(vue_paie(&ctx, p, tous.get(i).unwrap_or(&Value::Null), &data, vrai_opt(charge.get("lignes")))?);
+        vues.push(vue_paie(ctx, p, tous.get(i).unwrap_or(&Value::Null), data, avec_lignes)?);
     }
-    let zero = Decimal::new(0, 2);
-    let total_brut = paies.iter().fold(zero, |a, p| a + q2(p.brut));
-    let total_cout = paies.iter().fold(zero, |a, p| a + q2(p.cout_employeur));
+    Ok((paies, vues))
+}
+
+fn annee_de(mois: &str) -> R<i32> {
+    Ok(mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("mois illisible : {}", crate::fichiers::repr(mois)))?)
+}
+
+/// Les paies d'une saisie SANS CALCUL : le salarie, l'engagement et son contrat suivi, numerotes comme l'apercu les
+/// numerote (`numeroter`). Ce que l'apercu d'un mois tout valide lit a cote de ses cartes figees.
+fn paies_sans_calcul(ctx: &Contexte, data: &Value, mois: &str) -> R<Vec<Paie>> {
+    let _derivation = crate::conges::Derivation::ouvrir();
+    let (engs, _) = engagement::engagements(ctx, data, &crate::conges::lignes_du_mois)?;
+    let mut paies = Vec::new();
+    for e in &engs {
+        let mut p = crate::amorcage::embauche(ctx, e)?;
+        engagement::suivre_contrat(ctx, &mut p.engagement)?;
+        paies.push(p);
+    }
+    numeroter(ctx, &mut paies, annee_de(mois)?)?;
+    Ok(paies)
+}
+
+/// `apercu` : le mois tel que l'ecran le montre, rien d'ecrit -- ni fichier, ni compteur. Charge : `saisie` (le mois tel
+/// que l'ecran le tient), `lignes` (vrai : les lignes de cotisation de chaque paie, pour le bulletin affiche), `urssaf`
+/// (vrai : le bordereau Urssaf du mois, que la boite « Fermer le mois » montre ; il ne se calcule que la).
+///
+/// UNE PAIE VALIDEE SE LIT, ELLE NE SE CALCULE PAS (Leandre, 16/10/2026) : sa carte figee (`calcul_du_mois::cartes`) est
+/// sa vue, avec ses numeros du moment. Un mois dont toutes les paies tiennent leur carte ne calcule rien. Sinon le mois se
+/// calcule comme avant ; une paie validee y garde sa carte, et celle dont l'empreinte a bouge (un taux, une fiche...)
+/// est comparee au calcul d'aujourd'hui : s'il ne donne plus la meme paie, la carte le dit (`revoir`).
+fn apercu(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
+    let ctx = crate::service::contexte(o)?;
+    let data = saisie_recue(&ctx, charge)?;
+    let avec_lignes = vrai_opt(charge.get("lignes"));
+    let avec_urssaf = vrai_opt(charge.get("urssaf"));
+    let cartes = crate::calcul_du_mois::cartes(o, &ctx, &data);
+    let toutes_tiennent = !cartes.is_empty() && cartes.iter().all(|c| matches!(c, Some((_, true))));
+    let (mois, paies, vues) = if toutes_tiennent && !avec_lignes && !avec_urssaf {
+        let mois = data.get("mois").map(en_texte).ok_or_else(|| crate::fichiers::absent("mois"))?;
+        let paies = paies_sans_calcul(&ctx, &data, &mois)?;
+        let vues = paies
+            .iter()
+            .zip(&cartes)
+            .map(|(p, c)| {
+                let mut v = c.as_ref().map(|(carte, _)| carte.clone()).unwrap_or(Value::Null);
+                v["numero_bulletin"] = p.numero_bulletin.clone().map_or(Value::Null, Value::String);
+                v["numero_contrat"] = p.engagement.numero.clone().map_or(Value::Null, Value::String);
+                v
+            })
+            .collect::<Vec<_>>();
+        (mois, paies, vues)
+    } else {
+        let rep = paie_du_mois(o, &ctx, &data)?;
+        let mois = rep.get("mois").map(en_texte).ok_or_else(|| crate::fichiers::absent("mois"))?;
+        let (paies, mut vues) = vues_du_calcul(&ctx, &data, &rep, avec_lignes)?;
+        for (v, c) in vues.iter_mut().zip(&cartes) {
+            let Some((carte, tient)) = c else { continue };
+            let mut figee = if *tient { carte.clone() } else { crate::calcul_du_mois::devant_le_calcul(carte, v) };
+            for k in ["numero_bulletin", "numero_contrat", "lignes"] {
+                if let Some(x) = v.get(k) {
+                    figee[k] = x.clone();
+                }
+            }
+            *v = figee;
+        }
+        (mois, paies, vues)
+    };
+    let annee = annee_de(&mois)?;
+    let (urssaf, avert) = if avec_urssaf { urssaf_de_l_apercu(&ctx, &paies, &mois)? } else { (Value::Null, Vec::new()) };
+    let somme = |cle: &str| -> R<Decimal> {
+        let mut t = Decimal::new(0, 2);
+        for v in &vues {
+            t += dec(v.get(cle).ok_or_else(|| crate::fichiers::absent(cle))?)?;
+        }
+        Ok(q2(t))
+    };
+    let (total_brut, total_cout) = (somme("brut")?, somme("cout_employeur")?);
     let mut a_regarder = avert;
     a_regarder.extend(archives_employees(&paies)?);
     let mut informations = Vec::new();
-    for p in &paies {
-        for a in &p.avertissements {
-            if a.info {
-                informations.push(a.texte.clone());
-            } else {
-                a_regarder.push(a.texte.clone());
-            }
-        }
+    for v in &vues {
+        let textes = |k: &str| v.get(k).and_then(Value::as_array).cloned().unwrap_or_default();
+        a_regarder.extend(textes("avertissements").iter().map(en_texte));
+        informations.extend(textes("informations").iter().map(en_texte));
     }
     let n: usize = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", crate::fichiers::repr(&mois)))?;
     Ok(json!({
