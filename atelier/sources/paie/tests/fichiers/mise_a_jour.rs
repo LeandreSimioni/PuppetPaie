@@ -692,3 +692,73 @@ fn la_cle_de_github_va_dans_le_dossier_maj_de_l_installation() {
     assert!(inst.join("maj").join("cle-github-graine.txt").is_file(), "{}", dit);
     assert!(inst.join("maj").join("cle-github-publique.txt").is_file(), "{}", dit);
 }
+
+// ------------------------------------------------------------------ l'indicateur de la recherche (ticket #210, 16/10/2026)
+
+/// LA RECHERCHE DIT OU ELLE EN EST, ET SE TAIT QUAND ELLE A FINI (ticket #210 : « Recherche de mise a jour / Aucune mise
+/// a jour / Mise a jour en cours / Redemarrer pour mettre a jour »). Ce que l'accueil et la page d'une compagnie montrent
+/// est `Recherche::etat` : sans recherche, rien a montrer ; une recherche finie n'est jamais `en_cours` (la page cesse de
+/// relire) ; le clic « redemarrer » n'est offert que pour une version prete que rien ne retient, et le geste refuse sans
+/// rien lancer dans tous les autres cas. Un echec (depot injoignable, signature refusee) se dit sans rien preparer.
+#[test]
+fn la_recherche_dit_ou_elle_en_est_et_se_tait_quand_elle_a_fini() {
+    let fini = |e: &Value, etape: &str| {
+        assert_eq!(e["etape"], etape, "{}", e);
+        assert_eq!(e["en_cours"], false, "une recherche finie ne se relit plus : {}", e);
+        assert!(e["texte"].as_str().is_some_and(|t| !t.is_empty()), "elle se dit : {}", e);
+    };
+    let relais = |inst: &Path| std::fs::read_dir(inst.join("maj")).map(|d| d.flatten().any(|f| f.file_name().to_string_lossy().starts_with("relais-"))).unwrap_or(false);
+
+    let rien = maj::Recherche::nouvelle();
+    let e = rien.etat();
+    assert_eq!((e["texte"].as_str(), e["en_cours"].as_bool(), e["redemarrer"].as_bool()), (Some(""), Some(false), Some(false)), "sans recherche, rien : {}", e);
+
+    let base = dossier_de_test("mise_a_jour", "indicateur");
+    let depot = publiee(&base, false);
+    let (inst, _) = installee(&base);
+    ajoutee(&inst.join("compagnies").join("essai"));
+
+    // Le depot ne repond pas : un echec, rien de pret, rien a redemarrer.
+    crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": base.join("pas-de-depot").display().to_string()}));
+    let suivi = maj::Recherche::nouvelle();
+    maj::verifier_suivi(&inst, true, &[&publique()], &suivi);
+    fini(&suivi.etat(), "echec");
+    assert_eq!(suivi.etat()["redemarrer"], false);
+
+    // Une signature qui n'est pas celle de l'editeur : un echec, rien de deballe.
+    crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": depot.display().to_string()}));
+    maj::verifier_suivi(&inst, true, &maj::cles_de_l_editeur(), &suivi);
+    fini(&suivi.etat(), "echec");
+    assert!(maj::prete(&inst).is_none() && !deballee(&inst, "2026.11.01").exists());
+    assert!(maj::redemarrer_pour_mettre_a_jour(&inst, &suivi).is_err() && !relais(&inst), "rien de pret : rien ne part");
+
+    // La bonne : telechargee, prete, le clic est offert.
+    maj::verifier_suivi(&inst, true, &[&publique()], &suivi);
+    let e = suivi.etat();
+    fini(&e, "prete");
+    assert_eq!((e["redemarrer"].as_bool(), e["version"].as_str()), (Some(true), Some("01.11.2026")), "{}", e);
+    // Une autre recherche (une page d'essai, un autre processus) n'a rien de pret : le geste refuse sans rien lancer.
+    assert!(maj::redemarrer_pour_mettre_a_jour(&inst, &rien).is_err() && !relais(&inst));
+
+    // Prete, mais elle change un calcul et une compagnie reelle a un mois saisi sans DSN : retenue, pas de clic.
+    let mut p: Value = serde_json::from_str(&lire(&inst.join("maj").join("prete.json"))).unwrap();
+    p["calcul"] = json!("la CSG");
+    crate::outils::ecrire(&inst, "maj/prete.json", &p);
+    let reelle = inst.join("compagnies").join("reelle");
+    compagnie::config_et_mois("fictive-3090-petite", &[], &reelle);
+    crate::outils::ecrire(&reelle, "paies/2030-01.json", &json!({"mois": "2030-01", "engagements": [{"salarie": "INVENTE"}]}));
+    maj::verifier_suivi(&inst, true, &[&publique()], &suivi);
+    let e = suivi.etat();
+    fini(&e, "retenue");
+    assert_eq!(e["redemarrer"], false, "{}", e);
+    assert!(e["detail"].as_str().unwrap().contains("2030-01 (reelle)"), "elle dit ce qui la retient : {}", e);
+    assert!(maj::redemarrer_pour_mettre_a_jour(&inst, &suivi).is_err() && !relais(&inst), "retenue : rien ne part");
+
+    // Installee : plus rien de plus recent.
+    std::fs::remove_dir_all(&reelle).unwrap();
+    maj::appliquer(&inst, false).unwrap();
+    maj::verifier_suivi(&inst, true, &[&publique()], &suivi);
+    let e = suivi.etat();
+    fini(&e, "a_jour");
+    assert_eq!(e["redemarrer"], false);
+}
