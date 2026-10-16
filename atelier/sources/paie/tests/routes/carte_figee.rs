@@ -206,3 +206,73 @@ fn chaque_champ_d_un_engagement_fait_l_aller_retour() {
         }
     }
 }
+
+/// La saisie sans le `valide` de ses engagements, ecrite telle qu'elle est lue (ordre des cles et ecriture des nombres compris).
+fn sans_valide(saisie: &Value) -> String {
+    let mut s = saisie.clone();
+    for e in s["engagements"].as_array_mut().unwrap() {
+        e.as_object_mut().unwrap().remove("valide");
+    }
+    s.to_string()
+}
+
+/// LES PAIES VALIDEES AVANT LA CARTE FIGEE (Leandre, 16/10/2026 : tout ce qui est deja sur le poste profite du gain, sans
+/// rien rouvrir ni revalider) : un `valide` qui n'est qu'un horodatage recoit sa carte au premier passage du moteur sur le
+/// mois (`calcul_du_mois::sceller_les_anciennes`), garde sa date, et seul `valide` change dans la saisie. Le passage
+/// suivant ne calcule plus. `parti` : la DSN du mois est deja partie, et la paie se scelle de meme.
+fn l_ancienne_validation_recoit_sa_carte(nom: &str, parti: bool) {
+    let racine = compagnie(nom);
+    let fichier = format!("paies/{}.json", MOIS);
+    tout_valider(&racine);
+    // La saisie telle qu'avant ce lot : chaque `valide` est un horodatage.
+    let mut ancienne = lire(&racine, &fichier);
+    let le: Vec<String> = (0..ancienne["engagements"].as_array().unwrap().len()).map(|i| format!("2026-10-0{}T09:30:00", i + 1)).collect();
+    for (e, le) in ancienne["engagements"].as_array_mut().unwrap().iter_mut().zip(&le) {
+        e["valide"] = json!(le);
+    }
+    ecrire(&racine, &fichier, &ancienne);
+    if parti {
+        crate::outils::dsn_deposee(&racine, MOIS, "dsn-fictive.dsn", "2026-10-15T10:00:00");
+    }
+    // Ce que l'ecran montrait de chaque paie, calculee.
+    let montre = apercu(&racine);
+
+    // Le premier passage : chaque paie recoit sa carte, a sa date de validation.
+    reussi(&route(&racine, "mois", json!({"mois": MOIS})));
+    let scellee = lire(&racine, &fichier);
+    for (i, e) in scellee["engagements"].as_array().unwrap().iter().enumerate() {
+        let v = &e["valide"];
+        assert_eq!(v["le"], json!(le[i]), "{}", v);
+        assert!(v["carte"].is_object() && v["empreinte"]["entrees"].is_object(), "{}", v);
+        for k in ["brut", "net_a_payer", "cout_employeur"] {
+            assert_eq!(v["carte"][k], montre["paies"][i][k], "{} : {}", k, e["salarie"]);
+        }
+    }
+    // Rien d'autre de la saisie ne change : numeros de contrat compris.
+    assert_eq!(sans_valide(&scellee), sans_valide(&ancienne));
+
+    // Le passage suivant lit les cartes : le mois ne se calcule plus, et l'ecran montre la meme chose.
+    let _ = std::fs::remove_file(calcul(&racine));
+    let du_mois = reussi(&route(&racine, "mois", json!({"mois": MOIS}))).clone();
+    assert!(!calcul(&racine).exists(), "une paie scellee s'est recalculee");
+    let etat = reussi(&route(&racine, "etat-par-paie", json!({"mois": MOIS}))).clone();
+    let relue = &du_mois["lectures"]["apercu"]["resultat"];
+    for (i, l) in etat["paies"].as_array().unwrap().iter().enumerate() {
+        assert_eq!(l["valide"], json!(le[i]), "{}", l);
+        for k in ["brut", "net_a_payer", "cout_employeur", "numero_contrat", "numero_bulletin"] {
+            assert_eq!(relue["paies"][i][k], montre["paies"][i][k], "{} : {}", k, l["salarie"]);
+        }
+        assert!(relue["paies"][i].get("revoir").is_none(), "{}", relue["paies"][i]);
+    }
+    assert_eq!(lire(&racine, &fichier), scellee);
+}
+
+#[test]
+fn une_paie_validee_a_l_ancienne_recoit_sa_carte_au_premier_passage() {
+    l_ancienne_validation_recoit_sa_carte("ancienne", false);
+}
+
+#[test]
+fn une_paie_validee_a_l_ancienne_d_un_mois_parti_recoit_sa_carte() {
+    l_ancienne_validation_recoit_sa_carte("ancienne-partie", true);
+}

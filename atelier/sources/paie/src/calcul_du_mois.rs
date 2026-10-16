@@ -164,11 +164,17 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
 /// Le calcul du mois pour un Contexte deja lu (`None` : il ne se lit pas, le
 /// calcul le dira). Relu sans calcul si ses entrees n'ont pas change.
 pub fn calcul_avec(o: &HashMap<String, String>, ctx: Option<&Contexte>, mois: &str, parti: bool) -> Resultat<Value> {
+    Ok(calcul_et_entrees(o, ctx, mois, parti)?.0)
+}
+
+/// `calcul_avec`, et les entrees du resultat rendu : celles du calcul stocke quand il se relit, celles du calcul frais
+/// sinon.
+fn calcul_et_entrees(o: &HashMap<String, String>, ctx: Option<&Contexte>, mois: &str, parti: bool) -> Resultat<(Value, BTreeMap<String, String>)> {
     let racine = racine_de(o);
     let calcul = fichier_calcul(&racine, mois);
     if let Some((resultat, entrees, integre)) = stocke(&calcul) {
         if parti || (integre && ctx.is_some_and(|c| a_jour_avec(o, c, &entrees))) {
-            return Ok(resultat);
+            return Ok((resultat, entrees));
         }
     }
     let saisie = racine.join("paies").join(format!("{}.json", mois));
@@ -178,7 +184,7 @@ pub fn calcul_avec(o: &HashMap<String, String>, ctx: Option<&Contexte>, mois: &s
         // Un dossier qui refuse l'ecriture ne change pas le resultat.
         let _ = enregistrer(&calcul, &rep, &entrees);
     }
-    Ok(rep)
+    Ok((rep, entrees))
 }
 
 /// Ecrit `paies/AAAA-MM.calcul.json` avec ce que `calculer_suivi` a rendu pour une saisie en main dont le fichier vient
@@ -242,11 +248,7 @@ pub const CARTE: &str = "carte";
 
 /// Ce qu'un engagement dit de sa validation : l'horodatage (`le`), ou rien.
 pub fn valide_le(v: Option<&Value>) -> Value {
-    match v {
-        Some(Value::Object(m)) => m.get("le").cloned().unwrap_or(Value::Null),
-        Some(x) if fichiers::vrai(x) => x.clone(),
-        _ => Value::Null,
-    }
+    v.and_then(|v| v.get("le")).cloned().unwrap_or(Value::Null)
 }
 
 /// L'empreinte de la saisie telle que le calcul de l'engagement `i` la lit.
@@ -316,7 +318,47 @@ pub fn sceller(le: &str, carte: &Value, data: &Value, i: usize, entrees: &BTreeM
     })
 }
 
-/// La carte figee de chaque engagement de `data` (`None` : pas validee, ou validee sans carte), et si elle TIENT : son
+/// LES PAIES VALIDEES AVANT LA CARTE FIGEE (Leandre, 16/10/2026 : tout ce qui est deja sur le poste profite du gain tout
+/// de suite, sans rien rouvrir ni revalider). Leur `valide` n'etait qu'un horodatage : au premier passage du moteur sur le
+/// mois (`routes_mois::etat_par_paie`, que la file des etats refait pour chaque mois a l'ouverture), chacune recoit sa
+/// carte, une fois, depuis le calcul du mois -- celui que l'ecran montrait deja pour elle (`calcul_avec` : le calcul
+/// garde s'il tient, et, mois parti, les chiffres stockes, comme l'apercu) --, et garde sa date de validation dans `le`.
+///
+/// SEUL `valide` CHANGE : ni le numero de contrat (regle 4 : il se lit, il ne se recalcule pas), ni rien d'autre de la
+/// saisie ; un mois dont la DSN est partie se scelle comme les autres, ce qui a ete declare ne bouge pas. Le fichier se
+/// relit juste avant d'etre remplace : s'il a change pendant le calcul (une ecriture passait), rien ne s'ecrit, et le
+/// passage suivant scellera. L'ecriture est atomique (`ecriture::ecrire_json`). Un mois qui ne se calcule pas reste tel
+/// quel : il n'y a pas de carte a figer.
+pub fn sceller_les_anciennes(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) {
+    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
+    let Ok(octets) = std::fs::read(&chemin) else { return };
+    let Ok(mut data) = serde_json::from_slice::<Value>(&octets) else { return };
+    let anciennes: Vec<usize> = data
+        .get("engagements")
+        .and_then(Value::as_array)
+        .map_or(&[][..], |a| &a[..])
+        .iter()
+        .enumerate()
+        .filter(|(_, e)| e.get("valide").is_some_and(|v| fichiers::vrai(v) && !v.is_object()))
+        .map(|(i, _)| i)
+        .collect();
+    if anciennes.is_empty() {
+        return;
+    }
+    let parti = mois_parti(ctx, mois).unwrap_or(false);
+    let Ok((rep, entrees)) = calcul_et_entrees(o, Some(ctx), mois, parti) else { return };
+    let Ok((_, vues)) = crate::routes_ouverture::vues_du_calcul(ctx, &data, &rep, false) else { return };
+    for i in anciennes {
+        let (Some(vue), Some(ancien)) = (vues.get(i), data["engagements"][i].get("valide")) else { return };
+        let le = ancien.as_str().map_or_else(|| ancien.to_string(), str::to_string);
+        data["engagements"][i]["valide"] = sceller(&le, vue, &data, i, &entrees, mois);
+    }
+    if std::fs::read(&chemin).ok().as_deref() == Some(&octets[..]) {
+        let _ = crate::ecriture::ecrire_json(&chemin, &data, 2);
+    }
+}
+
+/// La carte figee de chaque engagement de `data` (`None` : pas validee), et si elle TIENT : son
 /// empreinte est celle d'aujourd'hui. Aucun calcul : la saisie se hache, chaque entree se relit sur le disque.
 pub fn cartes(o: &HashMap<String, String>, ctx: &Contexte, data: &Value) -> Vec<Option<(Value, bool)>> {
     let engagements = data.get("engagements").and_then(Value::as_array).map_or(&[][..], |a| &a[..]);

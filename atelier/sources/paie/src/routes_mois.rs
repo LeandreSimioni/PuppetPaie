@@ -498,6 +498,9 @@ impl<'a> Moteur<'a> {
         if !fichier.exists() {
             return Ok(Vec::new());
         }
+        // UNE PAIE VALIDEE A SA CARTE : celle qui a ete validee avant la carte figee la recoit ici, une fois
+        // (`calcul_du_mois::sceller_les_anciennes`), avant que rien du mois ne se lise.
+        crate::calcul_du_mois::sceller_les_anciennes(self.o, self.ctx, mois);
         // Le brut d'abord : un calcul a refaire se fait dans un processus qui
         // n'a rien lu du moteur avant lui (voir `fichiers::suivre`).
         // UNE PAIE VALIDEE SE LIT : un mois dont toutes les paies tiennent leur carte figee prend le brut de chacune dans sa
