@@ -141,9 +141,9 @@ Léandre a posé `NET_ENTREPRISES_MOTDEPASSE` dans l'environnement : un agent ne
 **Le moteur Linux est déjà là** : `atelier/sources/paie/bin/linux/paie` (et la fenêtre `bin/linux/puppetpaie`), livrés par
 l'ancien flux « Moteur Rust » (retiré le 15/10/2026) ; `bin/SOURCES` dit de quelles sources. Pour reproduire une route : `PUPPETPAIE_CODE=logiciel/donnees` puis `echo '{"route":"…","charge":{…}}' |
 atelier/sources/paie/bin/linux/paie route --racine <copie d'une compagnie fictive>` (sans `PUPPETPAIE_CODE`, l'exécutable
-livré cherche ses référentiels au chemin de compilation). **Il retarde souvent sur les sources** (le 15/10, il plantait sur
-`logiciel/donnees` plus récent que lui) : ce qu'on vient de changer se compile (`cd atelier/sources/paie && cargo build
---release`), et les tests compilent toujours. La fenêtre demande
+livré cherche ses référentiels au chemin de compilation). **Pour reproduire, observer ou mesurer, on ne compile pas**
+(Léandre, 16/10/2026) : l'exécutable Linux livré sert tel quel, tant qu'il marche. On ne compile que pour éprouver ce qu'on
+vient de changer dans le moteur (`cd atelier/sources/paie && cargo build --release`), et les tests compilent toujours. La fenêtre demande
 `libwebkit2gtk-4.1-dev libsoup-3.0-dev librsvg2-dev xvfb`.
 
 **Tout doit être vert. Une PR dont la suite est rouge ne se fusionne pas.** Une fois, à la fin, avant de pousser ; pendant le
