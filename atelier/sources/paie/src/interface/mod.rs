@@ -81,7 +81,7 @@ const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer"]"#;
 enum Phase {
     Accueil,
     MotDePasse { racine: PathBuf, premiere: bool },
-    Ouverte { racine: PathBuf, veille: Arc<Veille> },
+    Ouverte { racine: PathBuf, veille: Arc<Veille>, etats: Arc<crate::etat_garde::FileDesEtats> },
 }
 
 pub struct Fenetre {
@@ -305,8 +305,9 @@ impl Fenetre {
 
     fn poser_phase(&self, p: Phase) {
         let avant = std::mem::replace(&mut *self.phase.lock().unwrap_or_else(|e| e.into_inner()), p);
-        if let Phase::Ouverte { veille, .. } = avant {
+        if let Phase::Ouverte { veille, etats, .. } = avant {
             veille.arreter();
+            etats.arreter();
         }
     }
 
@@ -340,11 +341,13 @@ impl Fenetre {
     fn ouvrir(&self, racine: PathBuf) {
         // La mise a jour ne se fait pas ici : le logiciel la cherche au lancement (`maj::chercher_en_fond`) et l'applique
         // au lancement suivant, avant toute fenetre (`maj::au_lancement`), sans qu'aucune compagnie soit ouverte.
-        let veille = Veille::nouvelle(&racine, self.minutes_veille);
+        // Les etats des mois se refont en fond, dans ce processus, s'ils ne sont plus justes (`etat_garde::FileDesEtats`) :
+        // a l'ouverture, apres chaque ecriture et chaque tour de veille. Un mois s'affiche ensuite sans calcul.
+        let etats = crate::etat_garde::FileDesEtats::nouvelle(&racine, None);
+        etats.tout_verifier();
+        let veille = Veille::nouvelle(&racine, self.minutes_veille, Some(etats.clone()));
         veille.demarrer();
-        // Les etats des mois se refont en fond s'ils ne sont plus justes : un mois s'affiche ensuite sans calcul.
-        crate::etat_garde::prechauffer(&racine);
-        self.poser_phase(Phase::Ouverte { racine, veille });
+        self.poser_phase(Phase::Ouverte { racine, veille, etats });
     }
 
     fn autorise(&self, r: &Requete) -> bool {
@@ -465,10 +468,10 @@ impl Fenetre {
                 return Reponse::json(200, &self.lanceur(nom, &args));
             }
             if let Some(nom) = r.chemin.strip_prefix("/api/") {
-                let Phase::Ouverte { racine, veille } = self.phase() else {
+                let Phase::Ouverte { racine, veille, etats } = self.phase() else {
                     return Reponse::json(200, &json!({"ok": false, "erreur": {"type": "ErreurOperation", "message": "Aucune compagnie n'est ouverte."}}));
                 };
-                return Reponse::json(200, &api::repondre(&racine, nom, &charge, Some(&veille)));
+                return Reponse::json(200, &api::repondre(&racine, nom, &charge, Some(&veille), Some(&etats)));
             }
             return Reponse::json(404, &json!({"ok": false, "erreur": {"type": "Inconnue", "message": "route inconnue"}}));
         }

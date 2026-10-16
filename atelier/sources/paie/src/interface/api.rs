@@ -13,6 +13,7 @@ use std::process::{Command, Stdio};
 use serde_json::{json, Map, Value};
 
 use super::veille::Veille;
+use crate::etat_garde::FileDesEtats;
 
 /// Les refus qui ne sont pas des defauts du logiciel : une saisie en cours, un mot de passe mal tape, un mois sans
 /// paie, et ceux que la page traite elle-meme (une fiche refusee, un depot deja fait...). On ne les compte pas en incidents.
@@ -287,7 +288,7 @@ fn signalements_en_fond(racine: &Path) {
     });
 }
 
-fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>) -> Result<Value, Refus> {
+fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, etats: Option<&FileDesEtats>) -> Result<Value, Refus> {
     match nom {
         "ouvrir-piece" => ouvrir_piece(racine, charge),
         "ouvrir-dossier" => ouvrir_dossier(racine, charge),
@@ -330,12 +331,14 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>) ->
         }
         "apercu" => route(racine, nom, &json!({"saisie": charge.get("saisie").cloned().unwrap_or(Value::Null), "lignes": charge.get("lignes").cloned().unwrap_or(Value::Bool(false))})),
         "rappels" => route(racine, nom, &json!({})),
-        // L'ECRAN D'UN MOIS SE LIT ICI, SANS PROCESSUS (PLAN-MOIS-INSTANTANE.md) : l'etat garde du mois, s'il est encore
-        // juste. Sinon seulement, un processus le refait (`paie route`, `etat_garde::route_mois`).
+        // L'ECRAN D'UN MOIS SE LIT ICI, SANS PROCESSUS (PLAN-MOIS-INSTANTANE.md, ticket #212) : le dernier etat connu du
+        // mois, tout de suite, meme perime (marque `perime`, et refait en fond) ; `attendre` : l'etat frais.
         "mois" => {
             let mois = texte(charge, "mois")?;
-            match crate::etat_garde::servir_si_juste(racine, &mois) {
-                Some(v) => Ok(v),
+            match etats {
+                Some(f) => f
+                    .ecran(&mois, charge.get("attendre").and_then(Value::as_bool) == Some(true))
+                    .map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message)),
                 None => route(racine, nom, charge),
             }
         }
@@ -344,8 +347,17 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>) ->
 }
 
 /// La reponse a `/api/<nom>`, au format que la page attend.
-pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>) -> Value {
-    match traiter(racine, nom, charge, veille) {
+pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, etats: Option<&FileDesEtats>) -> Value {
+    let rendu = traiter(racine, nom, charge, veille, etats);
+    // APRES UNE ECRITURE (ou un tour de veille demande), les etats de tous les mois se verifient en fond, le mois affiche
+    // d'abord : une ecriture d'un mois peut changer les suivants (un contrat en cours, une numerotation, un cumul). Meme
+    // refusee, une ecriture a pu toucher un fichier ; un mois deja juste ne coute que son empreinte.
+    if let Some(f) = etats {
+        if crate::routes::est_une_ecriture(nom) || nom == "veille-maintenant" {
+            f.tout_verifier();
+        }
+    }
+    match rendu {
         Ok(v) => json!({"ok": true, "resultat": v}),
         Err(r) => {
             if !PAS_DES_INCIDENTS.contains(&r.classe.as_str()) && nom != "incident-navigateur" {

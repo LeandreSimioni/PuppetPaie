@@ -18,6 +18,7 @@ mod faux_drive;
 mod avenant;
 mod calcul_du_mois;
 mod echeance_dsn;
+mod etat_garde;
 mod routes_accueil;
 mod routes_actes;
 mod routes_apercus;

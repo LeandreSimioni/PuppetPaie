@@ -106,8 +106,8 @@ fn l_etat_par_paie_ne_prete_pas_la_validation_d_un_jumeau_a_l_autre() {
 }
 
 /// Noter qu'un contrat signe est revenu ne touche pas au calcul du mois (`paies/AAAA-MM.calcul.json`) : ni cree s'il
-/// n'y est pas, ni change s'il y est. La route est appelee DANS ce processus : par `paie route`, l'etat du mois se refait
-/// ensuite en arriere-plan (`etat_garde::apres_ecriture`), et lui ecrit le calcul, a dessein.
+/// n'y est pas, ni change s'il y est. La route est appelee DANS ce processus : l'etat du mois se refait ensuite dans la
+/// fenetre (`etat_garde::FileDesEtats`), et lui ecrit le calcul, a dessein.
 #[test]
 fn le_contrat_recu_ne_touche_pas_au_calcul_du_mois() {
     let racine = compagnie("contrat-recu-calcul");
