@@ -96,6 +96,9 @@ function ruptureDuBloc(div, nat, fin, e) {
 
 /** Les engagements qu'un bloc écrit : un par salarié coché. */
 function engagementsDuBloc(div, mois) {
+  // UNE CARTE FERMÉE ÉCRIT CE QU'ELLE A LU (`carteLue`) : son formulaire
+  // n'est pas construit, l'engagement lu de chaque salarié l'est.
+  if (div._lu) return div._lu.ecrits.map(copieJson);
   // L'ENGAGEMENT N'ÉCRIT PLUS DE `dates` : chacune de ses lignes porte les
   // siennes, avec son lieu, et le moteur en fait la réunion
   // (`operations.dates_engagement`). Une seule source, donc pas de
@@ -724,12 +727,23 @@ async function chargerMois(mois, repeint = false) {
   // arrive directement sur les cartes. La page ne devine pas elle-même ce
   // qui est validé : une paie se lit validée aussi quand la DSN réelle du
   // mois est partie, et c'est le moteur qui le sait.
-  const deplies = repeint ? [...cible.querySelectorAll(".engagement")].map((div) =>
+  //
+  // LES CARTES NAISSENT FERMÉES (16/10/2026) : une coque, que l'état de sa
+  // paie ouvre si elle n'est pas validée (`fermerEdition`, `ouvrirCarte`).
+  // Un repeint garde ouvertes celles qui l'étaient, et leurs dépliants.
+  const avant = repeint ? [...cible.querySelectorAll(".engagement")] : [];
+  const deplies = repeint ? avant.map((div) =>
     [...div.querySelectorAll("details")].map((d) => d.open)) : null;
   const defilement = window.scrollY;
-  if (!repeint) cible.classList.add("en-lecture");
+  if (!repeint) {
+    cible.classList.add("en-lecture");
+    // Les états du mois quitté ne se posent pas sur les cartes de celui-ci.
+    ETATS_PAIES = null;
+  }
   cible.innerHTML = "";
-  regrouper(SAISIE.engagements || []).forEach((g) => cible.appendChild(ligneEngagement(g)));
+  const groupes = regrouper(SAISIE.engagements || []);
+  const ouvertes = avant.length === groupes.length ? avant.map((div) => !div._lu) : [];
+  groupes.forEach((g, i) => cible.appendChild(ligneEngagement(g, { fermee: !ouvertes[i] })));
   if (deplies) {
     const blocs = [...cible.querySelectorAll(".engagement")];
     if (blocs.length === deplies.length) {
@@ -744,6 +758,9 @@ async function chargerMois(mois, repeint = false) {
   // fichier identique a chaque fois qu'on effleure un champ.
   clearTimeout(MINUTEUR_SAISIE);
   DERNIERE_ECRITE = JSON.stringify(saisieCourante());
+  // Un repeint montre ses cartes tout de suite : les états qu'on a déjà de
+  // ce mois s'y posent, une coque ne reste pas vide le temps de les relire.
+  if (repeint && ETATS_PAIES) peindreEtats();
   // Un mois dont la DSN etait due (le 15 du mois suivant) ne se touche
   // plus : lecture seule, pas d'ajout, pas d'enregistrement automatique.
   MOIS_FERME = r.hors_delai || null;
@@ -754,7 +771,10 @@ async function chargerMois(mois, repeint = false) {
   // arrive, au bout de quelques secondes : une lecture qui traîne ne doit
   // pas cacher la saisie.
   const montrer = () => {
-    if (DEMANDE_MOIS === mois) cible.classList.remove("en-lecture");
+    if (DEMANDE_MOIS !== mois) return;
+    // Sans état lu, une carte n'a rien qui la dise validée : elle s'ouvre.
+    cible.querySelectorAll(".engagement:not(.validee)").forEach(ouvrirCarte);
+    cible.classList.remove("en-lecture");
   };
   setTimeout(montrer, 5000);
   // Les contrats qui courent encore arrivent AVANT les etats des paies :
@@ -915,6 +935,8 @@ document.getElementById("mois").onchange = (e) => {
     e.target.value = MOIS_AFFICHE;
     ecrite = saisieAEcrire();
     e.target.value = neuf;
+    // Partie : un autre clic avant que le nouveau mois soit peint ne la renvoie pas.
+    if (ecrite) DERNIERE_ECRITE = JSON.stringify(ecrite.s);
   }
   // LE NOUVEAU MOIS N'ATTEND PAS L'ÉCRITURE DE L'ANCIEN (ticket #212) : la saisie quittée est prise telle qu'elle est
   // (`saisieAEcrire`, sous son vrai mois), part au moteur, et le nouveau mois s'affiche en même temps. Une fois
@@ -951,15 +973,15 @@ async function enregistrerEnPartant({ s, forcer }, chargement) {
 
 /* LE CHOIX DU MOIS (25/09/2026). « Un truc simple, qu'on puisse cliquer sur
  * toute la case pour arriver aux choix, et que le défilement soit plus
- * rapide. » Une case : ‹ Octobre 2026 ›. Les flèches changent le nom tout de
- * suite et ne chargent le mois qu'une fois qu'on s'arrête de cliquer —
- * trois clics rapides font UN chargement, pas trois. Un clic sur le nom
- * ouvre l'année : douze mois, un clic pour y aller. Un point marque les
- * mois qui ont une saisie.
+ * rapide. » Une case : ‹ Octobre 2026 ›. Un clic sur une flèche charge le mois
+ * TOUT DE SUITE (16/10/2026 : plus d'attente pour voir si un autre clic
+ * suit) ; un clic qui arrive pendant le chargement le fait abandonner
+ * (`DEMANDE_MOIS`, chargerMois), et c'est le dernier mois demandé qui se
+ * peint. Un clic sur le nom ouvre l'année : douze mois, un clic pour y
+ * aller. Un point marque les mois qui ont une saisie.
  *
  * La valeur reste dans le champ caché #mois et passe par son événement
  * « change » : la saisie à l'écran s'enregistre d'abord sous son vrai mois. */
-let MINUTEUR_MOIS = null;
 let ANNEE_GRILLE = null;
 
 /** Le nom dans la case — appelé partout où la valeur change. */
@@ -969,8 +991,8 @@ function afficherMoisChoisi() {
   nom.textContent = x ? `${MOIS_FR[x[1] - 1].replace(/^./, (c) => c.toUpperCase())} ${x[0]}` : "Choisir un mois";
 }
 
-/** Aller à un mois : le nom tout de suite, le chargement après `attente` ms. */
-function allerAuMois(v, attente = 0) {
+/** Aller à un mois : le nom et le chargement, tout de suite. */
+function allerAuMois(v) {
   const c = document.getElementById("mois");
   c.value = v;
   afficherMoisChoisi();
@@ -978,18 +1000,16 @@ function allerAuMois(v, attente = 0) {
   // mois on reste sur septembre ») : dès que le nom change, les cartes de
   // l'ancien mois s'effacent ; elles reviennent si l'on revient dessus.
   document.getElementById("engagements").classList.toggle("en-lecture", v !== MOIS_AFFICHE);
-  clearTimeout(MINUTEUR_MOIS);
-  MINUTEUR_MOIS = setTimeout(() => {
-    if (c.value !== MOIS_AFFICHE) c.dispatchEvent(new Event("change"));
-  }, attente);
+  // Revenir au mois affiché pendant qu'un autre se charge, c'est aussi le
+  // demander : sans quoi l'autre finirait de se peindre sous ce nom-ci.
+  if (v !== MOIS_AFFICHE || DEMANDE_MOIS !== MOIS_AFFICHE) c.dispatchEvent(new Event("change"));
 }
 
 function moisVoisin(pas) {
   const x = moisLu(document.getElementById("mois").value);
   if (!x) return;
   const d = new Date(x[0], x[1] - 1 + pas, 1);
-  // 30 ms : de quoi faire d'un double clic UN chargement ; un mois se lit, il ne se calcule plus (09/10/2026).
-  allerAuMois(moisEnTexte(d.getFullYear(), d.getMonth() + 1), 30);
+  allerAuMois(moisEnTexte(d.getFullYear(), d.getMonth() + 1));
 }
 
 function dessinerGrilleMois() {

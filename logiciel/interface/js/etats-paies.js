@@ -58,8 +58,7 @@ function identitesDuBloc(div) {
   // jour de la paie est le plus petit de TOUTES ses lignes -- sauf si le
   // contrat dit son début (un contrat en cours depuis octobre s'identifie
   // par le 12/10, pas par son premier cachet de novembre).
-  const dates = joursDuBloc(div);
-  const debut = div.querySelector(".e-debut")?.value || dates[0];
+  const debut = debutDuBloc(div);
   if (!debut) return [];
   return salariesDuBloc(div).map((salarie) => ({ salarie, debut }));
 }
@@ -480,6 +479,8 @@ async function dessinerEtatsDesPaies(mois) {
 /** Ferme ou rouvre les champs d'un bloc. Le bouton de validation, lui, reste
  *  actif — sinon on ne pourrait plus rouvrir. */
 function fermerEdition(div, ferme) {
+  // Une carte fermée qui doit s'ouvrir se construit ici, une fois (ouvrirCarte).
+  if (!ferme) ouvrirCarte(div);
   div.classList.toggle("validee", ferme);
   peindreCarte(div);
   div.querySelectorAll("input, select, button").forEach((c) => {
