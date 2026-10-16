@@ -318,42 +318,54 @@ pub fn sceller(le: &str, carte: &Value, data: &Value, i: usize, entrees: &BTreeM
     })
 }
 
-/// LES PAIES VALIDEES AVANT LA CARTE FIGEE (Leandre, 16/10/2026 : tout ce qui est deja sur le poste profite du gain tout
-/// de suite, sans rien rouvrir ni revalider). Leur `valide` n'etait qu'un horodatage : au premier passage du moteur sur le
-/// mois (`routes_mois::etat_par_paie`, que la file des etats refait pour chaque mois a l'ouverture), chacune recoit sa
-/// carte, une fois, depuis le calcul du mois -- celui que l'ecran montrait deja pour elle (`calcul_avec` : le calcul
-/// garde s'il tient, et, mois parti, les chiffres stockes, comme l'apercu) --, et garde sa date de validation dans `le`.
+/// LES PAIES VALIDEES SANS CARTE (Leandre, 16/10/2026 : tout ce qui est deja sur le poste profite du gain tout de suite,
+/// sans rien rouvrir ni revalider). ETRE VALIDEE, c'est avoir un `valide` date (`le`) ; AVOIR SA CARTE est autre chose.
+/// Une paie validee avant la carte figee n'avait qu'un horodatage : au premier passage du moteur sur le mois
+/// (`routes_mois::etat_par_paie`, que la file des etats refait pour chaque mois a l'ouverture), son `valide` prend LA
+/// forme unique `{"le", "carte", "empreinte"}`, sa date gardee dans `le`. La carte vient du calcul du mois, celui que
+/// l'ecran montrait deja pour elle (`calcul_avec` : le calcul garde s'il tient, et, mois parti, les chiffres stockes,
+/// comme l'apercu). Si le calcul n'aboutit pas (une donnee manquante, un refus du moteur), elle reste validee, `{"le"}`
+/// sans carte, s'affiche depuis le calcul quand il passe, et recoit sa carte au premier passage ou il aboutit.
 ///
 /// SEUL `valide` CHANGE : ni le numero de contrat (regle 4 : il se lit, il ne se recalcule pas), ni rien d'autre de la
 /// saisie ; un mois dont la DSN est partie se scelle comme les autres, ce qui a ete declare ne bouge pas. Le fichier se
 /// relit juste avant d'etre remplace : s'il a change pendant le calcul (une ecriture passait), rien ne s'ecrit, et le
-/// passage suivant scellera. L'ecriture est atomique (`ecriture::ecrire_json`). Un mois qui ne se calcule pas reste tel
-/// quel : il n'y a pas de carte a figer.
+/// passage suivant scellera. L'ecriture est atomique (`ecriture::ecrire_json`).
 pub fn sceller_les_anciennes(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) {
     let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
     let Ok(octets) = std::fs::read(&chemin) else { return };
     let Ok(mut data) = serde_json::from_slice::<Value>(&octets) else { return };
-    let anciennes: Vec<usize> = data
+    // Chaque paie validee sans carte, et sa date de validation.
+    let sans_carte: Vec<(usize, String)> = data
         .get("engagements")
         .and_then(Value::as_array)
         .map_or(&[][..], |a| &a[..])
         .iter()
         .enumerate()
-        .filter(|(_, e)| e.get("valide").is_some_and(|v| fichiers::vrai(v) && !v.is_object()))
-        .map(|(i, _)| i)
+        .filter_map(|(i, e)| {
+            let v = e.get("valide").filter(|v| fichiers::vrai(v))?;
+            if v.get(CARTE).is_some_and(Value::is_object) {
+                return None;
+            }
+            let le = v.get("le").unwrap_or(v);
+            Some((i, le.as_str().map_or_else(|| le.to_string(), str::to_string)))
+        })
         .collect();
-    if anciennes.is_empty() {
+    if sans_carte.is_empty() {
         return;
     }
     let parti = mois_parti(ctx, mois).unwrap_or(false);
-    let Ok((rep, entrees)) = calcul_et_entrees(o, Some(ctx), mois, parti) else { return };
-    let Ok((_, vues)) = crate::routes_ouverture::vues_du_calcul(ctx, &data, &rep, false) else { return };
-    for i in anciennes {
-        let (Some(vue), Some(ancien)) = (vues.get(i), data["engagements"][i].get("valide")) else { return };
-        let le = ancien.as_str().map_or_else(|| ancien.to_string(), str::to_string);
-        data["engagements"][i]["valide"] = sceller(&le, vue, &data, i, &entrees, mois);
+    let vues = calcul_et_entrees(o, Some(ctx), mois, parti)
+        .ok()
+        .and_then(|(rep, entrees)| Some((crate::routes_ouverture::vues_du_calcul(ctx, &data, &rep, false).ok()?.1, entrees)));
+    for (i, le) in &sans_carte {
+        data["engagements"][*i]["valide"] = match &vues {
+            Some((vues, entrees)) if vues.len() > *i => sceller(le, &vues[*i], &data, *i, entrees, mois),
+            _ => serde_json::json!({ "le": le }),
+        };
     }
-    if std::fs::read(&chemin).ok().as_deref() == Some(&octets[..]) {
+    let lu: Value = serde_json::from_slice(&octets).unwrap_or(Value::Null);
+    if data != lu && std::fs::read(&chemin).ok().as_deref() == Some(&octets[..]) {
         let _ = crate::ecriture::ecrire_json(&chemin, &data, 2);
     }
 }

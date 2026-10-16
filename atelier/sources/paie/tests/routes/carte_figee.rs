@@ -276,3 +276,38 @@ fn une_paie_validee_a_l_ancienne_recoit_sa_carte_au_premier_passage() {
 fn une_paie_validee_a_l_ancienne_d_un_mois_parti_recoit_sa_carte() {
     l_ancienne_validation_recoit_sa_carte("ancienne-partie", true);
 }
+
+/// ETRE VALIDEE N'EST PAS AVOIR SA CARTE : un mois dont le calcul refuse (le taux AT/MP de l'annee manque) garde sa paie
+/// validee a l'ancienne validee -- son `valide` devient `{"le"}`, a sa date, sans carte --, et le refus se lit tel quel.
+/// Le premier passage ou le calcul aboutit lui donne sa carte, a la meme date.
+#[test]
+fn une_paie_validee_d_un_mois_qui_refuse_reste_validee() {
+    let racine = compagnie("refus");
+    let fichier = format!("paies/{}.json", MOIS);
+    let mut ancienne = lire(&racine, &fichier);
+    let le = "2026-10-02T09:30:00";
+    ancienne["engagements"][2]["valide"] = json!(le);
+    ecrire(&racine, &fichier, &ancienne);
+    let octets = std::fs::read(racine.join("config/baremes/2026.json")).unwrap();
+    let mut couche = lire(&racine, "config/baremes/2026.json");
+    couche.as_object_mut().unwrap().remove("taux_atmp");
+    ecrire(&racine, "config/baremes/2026.json", &couche);
+
+    for route_du_mois in ["mois", "etat-par-paie"] {
+        let (_, message) = crate::outils::refus(&route(&racine, route_du_mois, json!({"mois": MOIS})));
+        assert!(message.contains("taux AT/MP manque"), "{}", message);
+    }
+    let lue = lire(&racine, &fichier);
+    assert_eq!(lue["engagements"][2]["valide"], json!({"le": le}), "{}", lue["engagements"][2]);
+    assert_eq!(sans_valide(&lue), sans_valide(&ancienne));
+    let saisie = reussi(&route(&racine, "saisie", json!({"mois": MOIS})))["saisie"].clone();
+    assert_eq!(saisie["engagements"][2]["valide"]["le"], json!(le));
+
+    // Le taux revenu, le calcul aboutit : la carte, a la date de la validation.
+    std::fs::write(racine.join("config/baremes/2026.json"), octets).unwrap();
+    let etat = reussi(&route(&racine, "etat-par-paie", json!({"mois": MOIS}))).clone();
+    assert_eq!(etat["paies"][2]["valide"], json!(le), "{}", etat["paies"][2]);
+    let v = &lire(&racine, &fichier)["engagements"][2]["valide"];
+    assert_eq!(v["le"], json!(le));
+    assert!(v["carte"].is_object(), "{}", v);
+}
