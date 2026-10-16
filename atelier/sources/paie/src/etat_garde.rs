@@ -180,9 +180,10 @@ fn lectures(o: &HashMap<String, String>, mois: &str) -> Value {
     }
     // L'APERCU : ce que la page demandait des qu'un mois s'affichait (`calculerApercu`), sur la saisie qu'elle venait de
     // lire. Le meme calcul, sur la saisie enregistree ; la page ne le redemande que quand on modifie la saisie.
-    let saisie = l.get("saisie").and_then(|s| s.pointer("/resultat/saisie")).cloned();
-    if let Some(s) = saisie {
-        l.insert("apercu".into(), lecture(o, "apercu", json!({"saisie": s, "lignes": false})));
+    // La saisie telle qu'elle est sur le disque (`{"saisie": mois}`) : celle dont les cartes figees ont pris l'empreinte, et
+    // dont le calcul du mois est garde (`paies/AAAA-MM.calcul.json`).
+    if l.get("saisie").and_then(|s| s.pointer("/resultat/existe")).is_some_and(|e| e == &Value::Bool(true)) {
+        l.insert("apercu".into(), lecture(o, "apercu", json!({"saisie": mois, "lignes": false})));
     }
     Value::Object(l)
 }
