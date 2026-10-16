@@ -680,12 +680,16 @@ function afficherRappelsMois() {
 }
 
 let DEMANDE_MOIS = null;
-async function chargerMois(mois) {
+/** `repeint` : l'état frais d'un mois déjà affiché (`repeindreLeMois`) — les blocs se refont sans se cacher, et ce qui
+ *  était déplié le reste. */
+async function chargerMois(mois, repeint = false) {
   DEMANDE_MOIS = mois;
-  // TOUT LE MOIS D'UN COUP, lu (pas calculé) : les lectures ci-dessous le prennent dans `LU`.
+  // TOUT LE MOIS D'UN COUP, lu (pas calculé) : les lectures ci-dessous le prennent dans `LU`. Le dernier état connu,
+  // même périmé (ticket #212) : il se vérifie derrière (`verifierLeMois`, plus bas).
   let lu;
-  try { lu = await lireLeMois(mois); } catch (e) { if (DEMANDE_MOIS === mois) document.getElementById("engagements").classList.remove("en-lecture"); throw e; }
+  try { lu = await lireLeMois(mois, true); } catch (e) { if (DEMANDE_MOIS === mois) document.getElementById("engagements").classList.remove("en-lecture"); throw e; }
   if (DEMANDE_MOIS !== mois) return;
+  if (!lu.perime) moisConfirme(mois);
   const r = await api("saisie", { mois });
   // Un mois plus récent a été demandé pendant que celui-ci arrivait : on le
   // laisse tomber, sinon il repeindrait l'écran par-dessus le bon.
@@ -720,9 +724,21 @@ async function chargerMois(mois) {
   // arrive directement sur les cartes. La page ne devine pas elle-même ce
   // qui est validé : une paie se lit validée aussi quand la DSN réelle du
   // mois est partie, et c'est le moteur qui le sait.
-  cible.classList.add("en-lecture");
+  const deplies = repeint ? [...cible.querySelectorAll(".engagement")].map((div) =>
+    [...div.querySelectorAll("details")].map((d) => d.open)) : null;
+  const defilement = window.scrollY;
+  if (!repeint) cible.classList.add("en-lecture");
   cible.innerHTML = "";
   regrouper(SAISIE.engagements || []).forEach((g) => cible.appendChild(ligneEngagement(g)));
+  if (deplies) {
+    const blocs = [...cible.querySelectorAll(".engagement")];
+    if (blocs.length === deplies.length) {
+      blocs.forEach((div, i) => div.querySelectorAll("details").forEach((d, k) => {
+        if (deplies[i][k] !== undefined) d.open = deplies[i][k];
+      }));
+    }
+    window.scrollTo(0, defilement);
+  }
   // Ce qui vient d'etre charge est, par definition, ce qui est sur le disque :
   // on le note, pour que l'enregistrement automatique ne reecrive pas un
   // fichier identique a chaque fois qu'on effleure un champ.
@@ -773,7 +789,46 @@ async function chargerMois(mois) {
     // se posent sur eux, et un bloc absent n'aurait rien ou se poser.
     dessinerEtatsDesPaies(mois).finally(montrer),
   ];
-  return Promise.allSettled(lectures);
+  const peint = Promise.allSettled(lectures);
+  // UN ÉTAT PÉRIMÉ SE VÉRIFIE DERRIÈRE (ticket #212) : le moteur le refait déjà ; on attend l'état frais, et l'écran se
+  // repeint de lui-même s'il a changé.
+  if (lu.perime && !repeint) verifierLeMois(mois, peint);
+  return peint;
+}
+
+/** L'ÉTAT FRAIS D'UN MOIS DÉJÀ AFFICHÉ (ticket #212). Rien n'a changé : rien ne bouge. Sinon on repeint ce qui vient
+ *  du moteur — les états des paies, les actes, les embauches, les imprévus, la reprise, l'aperçu — sans refaire les
+ *  blocs ; ceux-ci ne se refont que si la saisie lue elle-même a changé (un fichier modifié hors de cette page), et
+ *  jamais par-dessus une saisie en cours, qui reste ce qu'elle est et s'enregistre comme d'habitude. */
+async function repeindreLeMois(mois, ancien, frais) {
+  const memes = (k) => JSON.stringify(ancien.lectures[k]) === JSON.stringify(frais.lectures[k]);
+  const cles = new Set([...Object.keys(ancien.lectures), ...Object.keys(frais.lectures)]);
+  if ([...cles].every(memes)) return;
+  const enCours = JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE;
+  const saisieDe = (lu) => JSON.stringify(((lu.lectures.saisie || {}).resultat || {}).saisie);
+  if (!enCours && (saisieDe(ancien) !== saisieDe(frais) || !memes("contrats-en-cours"))) {
+    await chargerMois(mois, true);
+    return;
+  }
+  // La saisie lue n'a pas changé (ou l'on est en train d'en taper une) : ce que le moteur en dit seulement.
+  try {
+    const r = await api("saisie", { mois });
+    if (MOIS_AFFICHE !== mois) return;
+    const defauts = r.defauts || {};
+    if (defauts.taux_cachet != null) DERNIER_TAUX = +defauts.taux_cachet;
+    if (!SAISIE_DATE_PAIEMENT) SAISIE_DATE_PAIEMENT = defauts.date_paiement || "";
+    afficherRappelsMois();
+    MOIS_FERME = r.hors_delai || null;
+    majFermeture(mois, r.existe);
+  } catch (e) { /* la saisie se lit comme avant : rien à changer */ }
+  if (!enCours) calculerApercu(frais.lectures.apercu);
+  await Promise.allSettled([
+    dessinerActions(mois),
+    dessinerEmbauches(mois),
+    dessinerReprise(),
+    dessinerImprevus(mois),
+    dessinerEtatsDesPaies(mois),
+  ]);
 }
 
 /** Ce que la fermeture d'un mois change à l'écran — et ce que sa réouverture
@@ -851,17 +906,48 @@ async function dessinerDeclareAvant(mois, existe) {
  * mois. La case a déjà changé quand on arrive ici : on y remet l'ancien mois
  * le temps de l'écriture, sans quoi les engagements d'août partiraient dans le
  * fichier de septembre — la case du mois est ce qui date les jours joués. */
-document.getElementById("mois").onchange = async (e) => {
+document.getElementById("mois").onchange = (e) => {
   fermerCalendriers();
   const neuf = e.target.value;
+  let ecrite = null;
   if (MOIS_AFFICHE && MOIS_AFFICHE !== neuf) {
     clearTimeout(MINUTEUR_SAISIE);
     e.target.value = MOIS_AFFICHE;
-    await enregistrerSaisie(true);
+    ecrite = saisieAEcrire();
     e.target.value = neuf;
   }
-  chargerMois(neuf);
+  // LE NOUVEAU MOIS N'ATTEND PAS L'ÉCRITURE DE L'ANCIEN (ticket #212) : la saisie quittée est prise telle qu'elle est
+  // (`saisieAEcrire`, sous son vrai mois), part au moteur, et le nouveau mois s'affiche en même temps. Une fois
+  // l'écriture faite, le mois affiché se vérifie : elle a pu le changer (un contrat en cours, une numérotation).
+  const chargement = chargerMois(neuf);
+  if (ecrite) enregistrerEnPartant(ecrite, chargement);
 };
+
+/** Ce que l'écran porte et qui n'est pas encore écrit (le mois de la case), ou `null`. */
+function saisieAEcrire() {
+  const s = saisieCourante();
+  if (!s.mois) return null;
+  if (MOIS_FERME && MOIS_FORCE !== s.mois) return null;
+  const empreinte = JSON.stringify(s);
+  if (empreinte === DERNIERE_ECRITE) return null;
+  return { s, forcer: MOIS_FORCE === s.mois };
+}
+
+/** La saisie d'un mois qu'on vient de quitter : écrite sans repeindre (l'écran montre déjà un autre mois), puis le mois
+ *  affiché vérifié. Un échec se dit : c'est du travail qu'on croit posé. */
+async function enregistrerEnPartant({ s, forcer }, chargement) {
+  try {
+    await appelerMoteur("enregistrer-saisie", { mois: s.mois, saisie: s, forcer });
+    oublierCouts();
+    appelerMoteur("etat").then((e) => { ETAT.historique = e.historique; }, () => {});
+  } catch (e) {
+    if (e.detail?.type !== "SaisieIncomplete") dire(`${moisEnClair(s.mois)} : PAS enregistré — ${e.message}`, "erreur");
+    return;
+  }
+  // Le mois affiché se vérifie quand il est peint (la vérification part tout de suite : le moteur refait l'état).
+  const mois = DEMANDE_MOIS;
+  if (mois) verifierLeMois(mois, chargement.catch(() => {}));
+}
 
 /* LE CHOIX DU MOIS (25/09/2026). « Un truc simple, qu'on puisse cliquer sur
  * toute la case pour arriver aux choix, et que le défilement soit plus
