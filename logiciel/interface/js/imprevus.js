@@ -267,8 +267,9 @@ function carteDe(div) {
  *  rupture (le moteur les donne, `natures`), une fin qu'on peut écrire (un contrat payé au mois, ou des bornes déjà
  *  écrites), et une paie ouverte. Sinon on ne l'invente pas. */
 function ruptureOuverte(div) {
+  if (div._lu || div.classList.contains("validee")) return null;    // une carte fermée, une paie validée
   const nat = natureDe(div.querySelector(".e-nature").value);
-  if (!(nat.motifs_rupture || []).length || div.classList.contains("validee")) return null;
+  if (!(nat.motifs_rupture || []).length) return null;
   if (!nat.mensuelle && !div.querySelector(".e-fin").value) return null;
   return nat.duree_indeterminee ? "La fin du contrat (licenciement, démission…)" : "Une rupture avant terme";
 }
