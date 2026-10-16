@@ -64,12 +64,6 @@ function poserRubriques(select, choisie, nat) {
   select.dataset.forme = forme;
 }
 
-/* LA LIGNE TELLE QU'ELLE A ÉTÉ LUE, par élément de l'écran. Une date peut
- * s'écrire `{"jour": …, "lieu": …}` (le moteur l'accepte, `jours_des_lignes`) ;
- * l'écran n'en montre que le jour. `lignesDuBloc` y reprend le lieu propre à
- * chaque date tant que la ligne n'a changé ni ce jour ni son lieu. */
-const LIGNES_LUES = new WeakMap();
-
 /** Une ligne de rémunération : une rubrique, une quantité, un taux.
  *  Le champ « heures » n'apparaît que si la rubrique le demande — une journée
  *  de 5 h, une répétition de 3 h. Un cachet ne le demande pas : ses 12 heures
@@ -77,7 +71,6 @@ const LIGNES_LUES = new WeakMap();
 function ligneRubrique(l = {}, nat) {
   const div = document.createElement("div");
   div.className = "rubrique";
-  LIGNES_LUES.set(div, l);
   const code = l.rubrique || (ETAT.rubriques || [])[0]?.code || "cachet";
   // Une ligne neuve part du dernier taux donné, pas d'un champ vide : c'est
   // là que « on met de base le dernier taux » se voit. Le dernier taux DE SA
@@ -132,7 +125,12 @@ function ligneRubrique(l = {}, nat) {
            value="${echapper((l.dates || []).map((x) => +jourDe(x).slice(8)).join(" "))}">
     <input class="r-heures" type="number" min="0" step="0.5" placeholder="heures"
            value="${l.heures ?? ""}">
-    <button class="supprimer" title="retirer cette ligne">&times;</button>`;
+    <button class="supprimer" title="retirer cette ligne">&times;</button>
+    <!-- LE LIEU PROPRE À UN JOUR : une date du fichier peut dire le sien,
+         {"jour", "lieu"} (le moteur l'accepte, \`jours_des_lignes\`). Il se
+         montre ici, jour par jour, seulement quand la ligne en porte un ; vide,
+         le jour prend le lieu de la ligne. -->
+    <div class="r-lieux-jours">${lieuxDesJours(l)}</div>`;
   poserRubriques(div.querySelector(".r-code"), code, nat);
   const majAffichage = () => {
     const r = rubriqueDe(div.querySelector(".r-code").value);
@@ -140,7 +138,10 @@ function ligneRubrique(l = {}, nat) {
     // `.cachee` et non l'attribut `hidden` : la feuille de style pose
     // `input { display: block }`, qui l'emporterait sur le defaut du
     // navigateur. Le champ resterait visible sans qu'on comprenne pourquoi.
-    div.querySelector(".r-heures").classList.toggle("cachee", !veutHeures);
+    // Des heures déjà écrites se montrent, quelle que soit la rubrique : ce
+    // qui est dans le fichier se voit (le moteur dit si elles y ont leur place).
+    const h = div.querySelector(".r-heures");
+    h.classList.toggle("cachee", !veutHeures && h.value === "");
     // UNE LIGNE « MONTANT » (prime, acompte, indemnité, défraiement réel —
     // 30/09/2026) : ni quantité, ni jours, ni lieu. On tape la somme ; la
     // quantité vaut 1 et reste écrite, le moteur lit quantité × taux.
@@ -265,6 +266,10 @@ function majJoursBouton(ligne) {
   b.textContent = texte + (suite ? " " + suite : "");
   b.classList.toggle("vide", !jours.length);
   b.classList.toggle("planning", !!suite);
+  // Le lieu propre à un jour ne se montre que tant que ce jour est coché.
+  const mois = document.getElementById("mois").value;
+  const coches = new Set(jours.map((j) => `${mois}-${String(j).padStart(2, "0")}`).concat(plan));
+  ligne.querySelectorAll(".r-lieu-jour").forEach((c) => { c.closest("label").hidden = !coches.has(c.dataset.iso); });
 }
 
 /** Les cases d'un mois PASSÉ : une plage de contrat en gris, un jour joué
@@ -484,7 +489,7 @@ function planningDuBloc(bloc) {
 function debutDuBloc(bloc) {
   if (!bloc) return "";
   const jours = joursDuBloc(bloc);
-  const ecrit = bloc._lu ? (bloc._lu.ecrits[0] || {}).debut : bloc.querySelector(".e-debut").value;
+  const ecrit = carteFermee(bloc) ? (engagementsLus(bloc)[0] || {}).debut : bloc.querySelector(".e-debut").value;
   return ecrit || jours[0] || "";
 }
 
@@ -548,6 +553,96 @@ let SAISIE_DATE_PAIEMENT = "";   // celle du fichier, ou celle que le moteur pro
 
 /** Le jour d'une date écrite d'une façon ou de l'autre — « 2026-10-02 » ou
  *  {"jour": "2026-10-02", "lieu": "Berlin"}. */
+/* CE QU'UN ENGAGEMENT PEUT PORTER ET QUE LA SAISIE COURANTE NE DEMANDE PAS
+ * (16/10/2026). Le moteur lit ces champs dans la saisie (`engagement::
+ * engagements`, `solde.rs`) ; un contrat repris, un import, une saisie à la
+ * main les écrivent. « Rien de remplissable s'il n'y a pas à le remplir » :
+ * chacun n'apparaît dans « Plus d'options » que s'il a une valeur — et alors
+ * il se voit, se modifie, se vide, et s'écrit depuis là, comme le reste. */
+const CHAMPS_RARES = [
+  { cle: "date_paiement", libelle: "Payé le", type: "date",
+    titre: "la date de paiement propre à ce contrat (sinon celle du mois)" },
+  { cle: "lieu", libelle: "Lieu du contrat", type: "text",
+    titre: "le lieu que le contrat imprime quand une ligne de paie n'en dit pas" },
+  { cle: "taux_cachet", libelle: "Cachet du contrat", type: "number",
+    titre: "le taux du cachet de ce contrat quand aucune ligne de cachet ne le dit" },
+  { cle: "jours", libelle: "Jours travaillés déclarés", type: "number",
+    titre: "les jours travaillés que la DSN déclare (sinon les jours cochés)" },
+  { cle: "emploi", libelle: "Emploi déclaré", type: "text" },
+  { cle: "pcs_ese", libelle: "PCS-ESE", type: "text" },
+  { cle: "code_emploi_ft", libelle: "Code emploi France Travail", type: "text" },
+  { cle: "statut", libelle: "Statut", type: "text" },
+  { cle: "statut_conventionnel", libelle: "Statut conventionnel", type: "text" },
+  { cle: "statut_categoriel_rc", libelle: "Statut catégoriel (retraite complémentaire)", type: "text" },
+  { cle: "quotite_reference", libelle: "Quotité de référence", type: "number",
+    titre: "la durée de référence de l'entreprise pour ce contrat (S21.G00.40.012)" },
+  { cle: "modalite_temps_travail", libelle: "Modalité du temps de travail", type: "text" },
+  { cle: "indemnite_licenciement", libelle: "Indemnité de licenciement", type: "number",
+    titre: "le montant retenu, entre l'indemnité légale et la conventionnelle" },
+  { cle: "faute_grave", libelle: "faute grave", type: "checkbox",
+    titre: "une fin de période d'essai pour faute grave : pas d'indemnité du délai de prévenance (L1221-25)" },
+];
+
+const aUneValeur = (v) => v !== undefined && v !== null && v !== "" && v !== false;
+
+/** Les champs rares que l'engagement porte, posés dans le formulaire. */
+function poserRares(div, e) {
+  const cible = div.querySelector(".e-rares");
+  cible.innerHTML = CHAMPS_RARES.filter((c) => aUneValeur(e[c.cle])).map((c) => c.type === "checkbox"
+    ? `<label class="coche" title="${echapper(c.titre || "")}"><input type="checkbox" class="e-rare"
+         data-cle="${c.cle}" data-type="checkbox" checked> ${echapper(c.libelle)}</label>`
+    : `<label title="${echapper(c.titre || "")}">${echapper(c.libelle)}
+         <input class="e-rare" data-cle="${c.cle}" data-type="${c.type}" type="${c.type}"
+           ${c.type === "number" ? `step="any"` : ""} value="${echapper(String(e[c.cle]))}"></label>`).join("");
+  cible.hidden = !cible.children.length;
+  cible.querySelectorAll(".e-rare").forEach((c) => { c.onchange = rafraichirApercu; c.oninput = rafraichirApercu; });
+}
+
+/** Ce que les champs rares du formulaire écrivent. */
+function raresDuBloc(div, e) {
+  div.querySelectorAll(".e-rare").forEach((c) => {
+    if (c.dataset.type === "checkbox") { if (c.checked) e[c.dataset.cle] = true; return; }
+    const v = c.value.trim();
+    if (v !== "") e[c.dataset.cle] = c.dataset.type === "number" ? +v : v;
+  });
+}
+
+/* LES TERMES DU CONTRAT AVANT UN AVENANT EN COURS DE MOIS (`avant`,
+ * periodes.rs : le salaire mensuel et la quotité d'avant, sur lesquels se paie
+ * la période d'avant l'avenant). Ils se montrent quand l'engagement les porte,
+ * ou quand l'avenant est daté : c'est ce fait-là qui les appelle. */
+function poserAvant(div, e) {
+  const avant = e.avant || {};
+  div.querySelector(".e-avant-salaire").value = avant.salaire_mensuel ?? "";
+  div.querySelector(".e-avant-quotite").value = avant.quotite_contrat ?? "";
+  const majAvant = () => {
+    const dit = div.querySelector(".e-avant-salaire").value !== "" || div.querySelector(".e-avant-quotite").value !== "";
+    div.querySelector(".e-avant").hidden = !dit && !div.querySelector(".e-date-modification").value;
+  };
+  div.querySelector(".e-date-modification").addEventListener("change", majAvant);
+  div.querySelectorAll(".e-avant input").forEach((c) => { c.oninput = rafraichirApercu; });
+  majAvant();
+}
+
+function avantDuBloc(div) {
+  const s = div.querySelector(".e-avant-salaire").value, q = div.querySelector(".e-avant-quotite").value;
+  if (s === "" && q === "") return null;
+  const a = {};
+  if (s !== "") a.salaire_mensuel = +s;
+  if (q !== "") a.quotite_contrat = +q;
+  return a;
+}
+
+/** Les jours d'une ligne qui disent leur propre lieu, un champ chacun. */
+function lieuxDesJours(l) {
+  const propres = [...(l.dates || []), ...(l.planning || [])]
+    .filter((x) => x && typeof x === "object" && x.lieu);
+  if (!propres.length) return "";
+  return `<span class="discret">lieu propre à un jour :</span> ` + propres.map((x) =>
+    `<label class="r-lieu-jour-l">le ${echapper(jjmmaaaa(x.jour).slice(0, 5))}
+       <input class="r-lieu-jour" data-iso="${echapper(x.jour)}" value="${echapper(x.lieu)}"></label>`).join("");
+}
+
 /** Le catalogue des métiers, tel que le moteur le rend (route « etat »),
  *  groupé par famille dans SON ordre. La page ne trie pas, elle affiche. */
 function metierDe(code) {
@@ -608,41 +703,23 @@ function poserSpectacles(select) {
  *  d'avoir plusieurs paies — un contrat porte un numéro d'objet, donc un
  *  spectacle, et le mois en compte plusieurs. Il est donc une case de cet
  *  engagement, toujours visible, sans défaut et sans héritage. */
-/* CE QUE LE FICHIER DISAIT DE CHAQUE SALARIÉ DU BLOC (09/10/2026). Un bloc
- * montre un engagement ; le fichier en porte davantage — une date de
- * paiement propre, l'emploi déclaré, un lieu de contrat, un statut — que
- * l'écran n'affiche pas et que `saisieCourante` réécrivait à vide. Chaque
- * bloc garde donc, salarié par salarié, l'engagement tel qu'il a été chargé
- * (`origines`, posé par `regrouper`) : ce qu'il porte appartient à CE
- * salarié, jamais à un autre coché dans le même bloc. Un bloc neuf, un
- * contrat repris d'un mois précédent, un salarié qu'on coche : rien. */
-const ORIGINES_DES_BLOCS = new WeakMap();
-
-function origineDe(div, salarie) {
-  const origines = ORIGINES_DES_BLOCS.get(div) || {};
-  return Object.prototype.hasOwnProperty.call(origines, salarie) ? origines[salarie] : null;
-}
-
 /* LA CARTE NAÎT FERMÉE (Léandre, 16/10/2026 : « la base, ça doit être la carte
  * fermée, pas ouverte ; on affiche l'ouverte que quand on clique dessus »).
- * Un mois de sept paies validées construisait 2 890 éléments pour en montrer
- * 151 : chaque carte, même repliée sur sa ligne d'agenda, montait d'avance tout
- * son formulaire — les lignes de paie, les listes, la fin de contrat.
- *
- * Une carte lue dans le fichier du mois (`chargerMois`) naît donc COQUE : ce
- * qui se voit d'une paie validée (`.e-resume`, ses imprévus, ses états) et ce
- * que l'aperçu y peint, rien d'autre. Ce qu'elle écrit, elle le tient de
- * l'engagement LU (`div._lu`, `carteLue`) : `saisieCourante` la relit sans
- * perte, salarié par salarié. Son formulaire se construit à la première
+ * Une carte lue dans le fichier du mois (`chargerMois`) naît COQUE : ce qui se
+ * voit d'une paie validée (`.e-resume`, ses imprévus, ses états) et ce que
+ * l'aperçu y peint — la carte figée que le moteur rend pour une paie validée.
+ * Elle sait seulement quels engagements du fichier elle montre (`data-rangs`) :
+ * tant que son formulaire n'existe pas, rien ne la modifie, et elle les écrit
+ * tels quels (`engagementsDuBloc`). Son formulaire se construit à la première
  * occasion qui l'ouvre — l'état de sa paie dit qu'elle n'est pas validée, on
  * la rouvre par « Modifier… », les états tardent (`fermerEdition`,
- * `ouvrirCarte`) — et il reste construit tant que la carte vit. Naissent
- * ouvertes : une carte neuve (« Ajouter un engagement »), un contrat en cours
- * repris, une carte dédoublée, et celle qui était ouverte avant un repeint. */
+ * `ouvrirCarte`) — et il reste construit tant que la carte vit ; dès lors
+ * c'est lui qui écrit. Naissent ouvertes : une carte neuve (« Ajouter un
+ * engagement »), un contrat en cours repris, une carte dédoublée, et celle qui
+ * était ouverte avant un repeint. */
 function ligneEngagement(e = {}, { fermee = false } = {}) {
   const div = document.createElement("div");
   div.className = "engagement";
-  ORIGINES_DES_BLOCS.set(div, e.origines || {});
   div.innerHTML = `
     <div class="resolu"></div>
     <!-- LA PAIE VALIDÉE, EN UNE LIGNE (23/09/2026) : quand, qui, pour
@@ -661,45 +738,20 @@ function ligneEngagement(e = {}, { fermee = false } = {}) {
   div.dataset.numeroDe = e.numero ? (e.salarie || "") : "";
   const mois = document.getElementById("mois").value;
   if (e.debut && mois && e.debut.slice(0, 7) < mois) div.classList.add("en-cours");
-  if (fermee) { div._lu = carteLue(e); return div; }
+  if (e.rangs) div.dataset.rangs = e.rangs.join(",");
+  if (fermee && e.rangs) return div;
   construireCarte(div, e);
   return div;
 }
 
-/** Ce qu'une carte fermée sait d'elle-même : ses salariés, dans l'ordre où la
- *  liste à cocher les mettrait, et l'engagement que chacun écrit — celui qui a
- *  été lu, moins ce que le moteur tient seul (`valide`, `rouverte`) et ce que
- *  l'écran n'écrit plus (`absences`, voir CHAMPS_DU_BLOC). */
-function carteLue(e) {
-  const actifs = ETAT.salaries || [];
-  const voulus = new Set(e.salaries || (e.salarie ? [e.salarie] : []));
-  const connus = new Set(actifs.map((s) => s.cle));
-  const salaries = actifs.map((s) => s.cle).filter((c) => voulus.has(c))
-    .concat([...voulus].filter((c) => !connus.has(c)));
-  const origines = e.origines || {};
-  const duGroupe = ["salaries", "origines", "empreinte"];
-  const ecrits = salaries.map((salarie) => {
-    const o = Object.prototype.hasOwnProperty.call(origines, salarie) ? origines[salarie] : e;
-    const x = {};
-    Object.entries(o).forEach(([k, v]) => {
-      if (duGroupe.includes(k) || CHAMPS_DU_MOTEUR.includes(k) || k === "absences") return;
-      x[k] = copieJson(v);
-    });
-    x.salarie = salarie;
-    return x;
-  });
-  return { e, salaries, ecrits };
-}
-
-/** Ouvre une carte fermée : son formulaire se construit, une fois. Ce qui était
- *  à l'écran sans modification le reste : l'enregistrement automatique ne
- *  réécrit pas le fichier parce que le formulaire relit l'engagement à sa façon. */
+/** Ouvre une carte fermée : son formulaire se construit, une fois, sur les
+ *  engagements qu'elle montre. Ce qui était à l'écran sans modification le
+ *  reste : l'enregistrement automatique ne réécrit pas le fichier pour rien. */
 function ouvrirCarte(div) {
-  const lu = div._lu;
-  if (!lu) return;
+  if (!carteFermee(div)) return;
+  const lus = engagementsLus(div);
   const intacte = DERNIERE_ECRITE !== null && JSON.stringify(saisieCourante()) === DERNIERE_ECRITE;
-  delete div._lu;
-  construireCarte(div, lu.e);
+  construireCarte(div, { ...(lus[0] || {}), salaries: lus.map((x) => x.salarie) });
   if (div._paies) peindreChiffres(div, div._paies);
   if (intacte) DERNIERE_ECRITE = JSON.stringify(saisieCourante());
 }
@@ -789,6 +841,9 @@ function construireCarte(div, e) {
              il ne le devine pas. Il ne se recopie pas au mois suivant. -->
         <label title="le jour où prend effet ce que cette saisie change au contrat — la date que la DSN déclare (S21.G00.41.001)">Avenant à compter du
           <input type="date" class="e-date-modification"></label>
+        <span class="e-avant" hidden><span class="discret">avant l'avenant :</span>
+          <label>salaire <input type="number" step="0.01" min="0" class="e-avant-salaire"></label>
+          <label>quotité <input type="number" step="0.01" min="0" class="e-avant-quotite"></label></span>
       </div>
       <div class="e-faits">
         <div class="e-fait-groupe">
@@ -866,6 +921,7 @@ function construireCarte(div, e) {
       <label class="coche e-cadre-bloc" title="cadre pour la retraite complémentaire (DSN 40.003 = 01)">
         <input type="checkbox" class="e-cadre"> cadre</label>
       </div>
+      <div class="e-options-ligne e-rares" hidden></div>
     <!-- LE CONTRAT, replié : « du 12/10/2026 au 20/12/2026 », préréglé sur
          le premier et le dernier jour joué. On l'ouvre pour une seule chose :
          allonger la date de fin quand le contrat se poursuit le mois suivant
@@ -1025,6 +1081,8 @@ function construireCarte(div, e) {
   div.querySelector(".e-salaire").value = e.salaire_mensuel ?? "";
   div.querySelector(".e-quotite").value = e.quotite_contrat ?? "";
   div.querySelector(".e-date-modification").value = e.date_modification || "";
+  poserAvant(div, e);
+  poserRares(div, e);
   remplirFaits(div, e);
   div.querySelectorAll(".ajouter-fait").forEach((b) => {
     b.onclick = (ev) => {
@@ -1101,6 +1159,7 @@ function construireCarte(div, e) {
   // devient invisible.
   const nat = natureDe(selNat.value);
   div.querySelector(".e-options").hidden = !(e.metier || e.cadre != null
+    || CHAMPS_RARES.some((c) => aUneValeur(e[c.cle]))
     || nat.mensuelle || e.debut && e.debut.slice(0, 7) < (document.getElementById("mois").value || "")
     || e.motif_recours || e.motif_rupture);
   return div;
@@ -1242,6 +1301,7 @@ function ligneFait(quoi, v = {}) {
         value="${echapper(v.rubrique || "")}" placeholder="prime"></label>
       <label>montant <input type="number" step="0.01" class="f-montant"
         value="${echapper(v.montant ?? "")}"></label>
+      ${v.libelle ? `<label>libellé <input class="f-libelle" value="${echapper(v.libelle)}"></label>` : ""}
       <button class="retirer-fait lien" title="retirer">&#x2715;</button>`;
   }
   div.querySelector(".retirer-fait").onclick = (ev) => {
@@ -1276,6 +1336,7 @@ function faitsDuBloc(div) {
   const primes = [...div.querySelectorAll(".fait-primes")].map((f) => {
     const p = { montant: +val(f, ".f-montant") };
     if (val(f, ".f-rubrique")) p.rubrique = val(f, ".f-rubrique");
+    if (val(f, ".f-libelle")) p.libelle = val(f, ".f-libelle");
     return p;
   }).filter((p) => p.montant);
   return { conges, primes };
@@ -1326,7 +1387,7 @@ function rafraichirReferentiels() {
   document.querySelectorAll(".engagement").forEach((div) => {
     // Une carte fermée n'a pas de listes : elle les prendra de l'ETAT du
     // moment où elle s'ouvrira.
-    if (div._lu) return;
+    if (carteFermee(div)) return;
     poserQui(div.querySelector(".e-qui-liste"), new Set(salariesDuBloc(div)));
     div.querySelectorAll(".e-qui-case").forEach((c) => {
       c.onchange = () => { majQui(div); rafraichirApercu(); };
@@ -1362,7 +1423,7 @@ function nouvelleFiche(nom) {
 
 /** Les salariés cochés d'un bloc, dans l'ordre de la liste. */
 function salariesDuBloc(div) {
-  if (div._lu) return div._lu.salaries.slice();      // une carte fermée : ceux qu'elle a lus
+  if (carteFermee(div)) return engagementsLus(div).map((e) => e.salarie);   // une carte fermée : les siens
   return [...div.querySelectorAll(".e-qui-case:checked")].map((c) => c.value);
 }
 
@@ -1397,17 +1458,12 @@ function dedoubler(div) {
   if (cles.length < 2) return;
   // Chaque bloc né ici part de ce que l'écran écrit pour SON salarié — les
   // lignes, lieux et jours compris (les salariés jouent les mêmes dates aux
-  // mêmes endroits), la nature, le métier, et ce que son engagement portait
-  // sans le montrer — et il garde SON origine : enregistrer après le
-  // dédoublement ne doit rien effacer de plus qu'avant.
+  // mêmes endroits), la nature, le métier, tout ce que le formulaire dit.
   const engagements = engagementsDuBloc(div, document.getElementById("mois").value);
   const parent = div.parentNode;
   const suivant = div.nextSibling;
   div.remove();
-  engagements.forEach((e) => {
-    const origine = origineDe(div, e.salarie);
-    parent.insertBefore(ligneEngagement({ ...e, origines: origine ? { [e.salarie]: origine } : {} }), suivant);
-  });
+  engagements.forEach((e) => parent.insertBefore(ligneEngagement(e), suivant));
 }
 
 /** Les lignes de paie d'un bloc, telles qu'elles sont saisies. */
@@ -1434,10 +1490,9 @@ function lignesDuBloc(div, mois) {
     }
     const l = { rubrique: r.querySelector(".r-code").value, quantite: +q,
                 taux: t === "" ? "" : +t };
-    // Les heures s'écrivent quand la RUBRIQUE les demande — pas selon que le
-    // champ est affiché : le 30/09/2026, un champ masqué a effacé sans un mot
-    // les heures d'une paie validée. Une rubrique inconnue garde les siennes.
-    if (h !== "" && (!rr || rr.saisie.includes("heures"))) l.heures = +h;
+    // Les heures s'écrivent dès qu'elles sont dites : leur champ se montre
+    // alors, quelle que soit la rubrique (`majAffichage`).
+    if (h !== "") l.heures = +h;
     // Le genre d'un avantage en nature, quand la rubrique en demande un et
     // qu'on en a choisi un : le moteur refuse un genre sur toute autre.
     const genre = r.querySelector(".r-genre").value;
@@ -1446,24 +1501,15 @@ function lignesDuBloc(div, mois) {
     // vides : une ligne qui ne dit rien de son lieu n'écrit pas `"lieu": ""`.
     const ou = r.querySelector(".r-lieu").value.trim();
     if (ou) l.lieu = ou;
-    // UNE DATE QUI DISAIT SON LIEU LE GARDE (09/10/2026). `{"jour", "lieu"}`
-    // revient tel qu'il a été lu si ce jour est toujours coché et que le lieu
-    // de la ligne n'a pas changé ; sinon c'est l'écran qui parle — le jour nu,
-    // au lieu de la ligne. La page ne montre pas ce lieu-là ; elle ne
-    // l'efface pas non plus.
-    const lue = LIGNES_LUES.get(r) || {};
-    const memeLieu = ou === String(lue.lieu || "").trim();
-    const detaille = (iso, lus) => {
-      const d = memeLieu && (lus || []).find((x) => x && typeof x === "object" && jourDe(x) === iso);
-      return d ? JSON.parse(JSON.stringify(d)) : iso;
-    };
+    // Un jour qui dit son propre lieu s'écrit {"jour", "lieu"}, les autres nus.
+    const propres = new Map([...r.querySelectorAll(".r-lieu-jour")]
+      .filter((c) => c.value.trim()).map((c) => [c.dataset.iso, c.value.trim()]));
+    const date = (iso) => (propres.has(iso) ? { jour: iso, lieu: propres.get(iso) } : iso);
     const jours = joursDe(r.querySelector(".r-jours"));
-    if (jours.length) {
-      l.dates = jours.map((j) => detaille(mois + "-" + String(j).padStart(2, "0"), lue.dates));
-    }
+    if (jours.length) l.dates = jours.map((j) => date(mois + "-" + String(j).padStart(2, "0")));
     // Le planning de la ligne : les jours cochés dans les mois suivants.
     const plan = planningDe(r);
-    if (plan.length) l.planning = plan.map((iso) => detaille(iso, lue.planning));
+    if (plan.length) l.planning = plan.map(date);
     return l;
   }).filter(Boolean);
 }
@@ -1473,13 +1519,10 @@ function lignesDuBloc(div, mois) {
  *  (`operations.dates_engagement`). */
 function joursDuBloc(div, mois) {
   const vus = new Set();
-  // Une carte fermée : les jours des lignes lues (un bloc porte les mêmes
-  // lignes pour tous ses salariés).
-  if (div._lu) {
-    ((div._lu.ecrits[0] || {}).lignes || []).forEach((l) => (l.dates || []).forEach((j) => vus.add(jourDe(j))));
-    return [...vus].sort();
-  }
-  lignesDuBloc(div, mois).forEach((l) => (l.dates || []).forEach((j) => vus.add(jourDe(j))));
+  // Une carte fermée : les jours des lignes de ses engagements (un bloc porte
+  // les mêmes lignes pour tous ses salariés).
+  const lignes = carteFermee(div) ? ((engagementsLus(div)[0] || {}).lignes || []) : lignesDuBloc(div, mois);
+  lignes.forEach((l) => (l.dates || []).forEach((j) => vus.add(jourDe(j))));
   return [...vus].sort();
 }
 
@@ -1525,10 +1568,10 @@ async function poserContratsEnCours(mois) {
       // du contrat ou le dernier saisi (`engagement_de_reprise`, #140).
       e.lignes = (e.lignes || []).map((l) => (l.quantite === 0 ? { ...l, quantite: "" } : l));
     }
-    // Ce que l'écran ne montre pas (la durée de référence, l'emploi et les
-    // statuts déclarés…), le bloc le PORTE : l'engagement repris est son
-    // origine (`engagementEcrit`), comme celui d'un mois chargé.
-    cible.appendChild(ligneEngagement({ ...e, origines: { [c.salarie]: c.engagement || {} } }));
+    // Ce que l'engagement repris porte d'autre (la durée de référence,
+    // l'emploi et les statuts déclarés…) se montre dans son formulaire
+    // (`CHAMPS_RARES`), et s'écrit de là.
+    cible.appendChild(ligneEngagement(e));
   });
   rafraichirApercu();
   dire(restants.length === 1
