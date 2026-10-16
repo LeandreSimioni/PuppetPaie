@@ -1,0 +1,39 @@
+/* L'INDICATEUR DE LA MISE A JOUR (ticket #210, 16/10/2026) : « juste en tout
+   petit en bas a gauche », sur l'accueil des compagnies comme dans la page
+   d'une compagnie (les deux pages lient cette feuille). Ce qu'il dit vient du
+   moteur (`maj::Recherche::etat`) ; js/mise-a-jour.js ne fait que l'afficher.
+   Sous les boites (`.voile`, z-index 50) : un dialogue ouvert le couvre. */
+.maj {
+  position: fixed; left: 12px; bottom: 10px; z-index: 40;
+  display: flex; flex-direction: column; gap: 3px;
+  max-width: 260px; padding: 4px 8px;
+  font: 11.5px/1.35 Arial, Helvetica, sans-serif;
+  color: var(--discret, #7A8794);
+  background: color-mix(in srgb, var(--fond, #F7F6F4) 88%, transparent);
+  border-radius: 4px;
+  pointer-events: auto;
+}
+.maj[hidden] { display: none; }
+.maj-barre {
+  width: 140px; height: 3px; border-radius: 2px; overflow: hidden;
+  background: var(--bord, #DDD8D2);
+}
+.maj-barre[hidden] { display: none; }
+.maj-barre > span {
+  display: block; height: 100%; width: 0;
+  background: var(--action, #2E6A57); transition: width .3s;
+}
+/* Une barre dont la fin n'est pas connue (le depot n'a pas dit la taille) :
+   un trait qui va et vient. */
+.maj-barre.sans-fin > span { width: 30%; animation: maj-va-et-vient 1.2s ease-in-out infinite alternate; }
+@keyframes maj-va-et-vient { from { margin-left: 0; } to { margin-left: 70%; } }
+.maj-redemarrer {
+  margin: 0; padding: 0; width: auto; border: 0; background: none;
+  font: inherit; font-weight: normal; color: var(--action, #2E6A57);
+  text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+  text-align: left;
+}
+.maj-redemarrer:hover { color: var(--action-fonce, #22503F); }
+.maj-redemarrer[disabled] { opacity: .6; cursor: default; }
+.maj-refus { color: var(--texte, #2C3E50); }
+.maj-refus:empty { display: none; }

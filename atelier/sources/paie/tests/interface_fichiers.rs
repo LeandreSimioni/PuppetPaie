@@ -207,3 +207,22 @@ fn la_page_montre_la_version_jour_mois_annee() {
     });
     assert!(!annee_d_abord, "aucune version AAAA.MM.JJ dans la page");
 }
+
+/// Ticket #211 : l'accueil des compagnies dit la version aussi, lue JJ.MM.AAAA comme dans la page d'une compagnie ; et ce
+/// qu'il appelle (la feuille et le script de l'indicateur de la mise a jour, ticket #210) est servi.
+#[test]
+fn l_accueil_montre_la_version_et_sert_ce_qu_il_appelle() {
+    let (b, _v) = banc();
+    let adresse = b.fenetre.adresse("127.0.0.1", 1);
+    let jeton = adresse.split("jeton=").nth(1).unwrap();
+    let r = get(b, &format!("/index.html?jeton={}", jeton));
+    assert_eq!(r.code, 200);
+    let html = String::from_utf8(r.corps).unwrap();
+    assert!(html.contains("version 09.10.2026"), "la version lue est sous le nom");
+    assert!(!html.contains("{{"), "aucune marque laissee");
+    let appels: Vec<String> = adresses(&html, "src=\"").into_iter().chain(adresses(&html, "href=\"")).filter(|a| a.contains(".js") || a.contains(".css")).collect();
+    assert!(appels.iter().any(|a| a.starts_with("/js/mise-a-jour.js")) && appels.iter().any(|a| a.starts_with("/mise-a-jour.css")), "{:?}", appels);
+    for a in &appels {
+        assert_eq!(get(b, a).code, 200, "{}", a);
+    }
+}

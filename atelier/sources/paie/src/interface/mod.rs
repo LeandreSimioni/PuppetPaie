@@ -72,9 +72,10 @@ const CALE: &str = r#"<script>
 </script>
 "#;
 
-const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "verifier", "poser", "fermer"]"#;
-/// Dans la page du logiciel, un seul geste : revenir aux compagnies (ticket #113).
-const NOMS_LOGICIEL: &str = r#"["accueil"]"#;
+const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "verifier", "poser", "fermer", "maj", "redemarrer"]"#;
+/// Dans la page du logiciel : revenir aux compagnies (ticket #113) ; et, comme a l'accueil, lire ou en est la mise a
+/// jour et redemarrer pour l'installer (ticket #210, `js/mise-a-jour.js`).
+const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer"]"#;
 
 #[derive(Clone)]
 enum Phase {
@@ -243,7 +244,11 @@ fn page_accueil() -> String {
         }
         g
     };
+    // La version, sous le nom, comme dans la page d'une compagnie (ticket #211) ; les tuiles en dernier : un nom de
+    // compagnie n'est jamais lu comme une marque a remplacer.
     ACCUEIL
+        .replace("{{VERSION}}", &version())
+        .replace("{{EMPREINTE}}", &empreinte())
         .replace(
             "{{SOUS_TITRE}}",
             if bride { "des compagnies fictives, et rien ne part" } else { "quelle compagnie ouvrir ?" },
@@ -351,6 +356,12 @@ impl Fenetre {
         ok
     }
 
+    fn fermer_le_logiciel(&self) {
+        if let Some(f) = self.fermer.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+            f();
+        }
+    }
+
     /// Les gestes de l'accueil (`window.pywebview.api.<nom>(...)`).
     fn lanceur(&self, nom: &str, args: &[Value]) -> Value {
         let a = |i: usize| args.get(i).and_then(Value::as_str).unwrap_or("").to_string();
@@ -406,11 +417,23 @@ impl Fenetre {
                 ok(true)
             }
             ("fermer", _) => {
-                if let Some(f) = self.fermer.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
-                    f();
-                }
+                self.fermer_le_logiciel();
                 ok(false)
             }
+            // Ou en est la recherche de la mise a jour (ticket #210) : l'accueil et la page d'une compagnie l'affichent.
+            ("maj", _) => json!({"ok": true, "etat": crate::maj::RECHERCHE.etat()}),
+            // « Redemarrer pour mettre a jour » : la version prete part au relais, puis le logiciel se ferme comme par sa
+            // croix (la veille s'arrete) ; le relais attend sa fin, installe et rouvre la fenetre neuve. Rien de pret :
+            // refuse, et rien ne se ferme.
+            ("redemarrer", _) => match crate::maj::redemarrer_pour_mettre_a_jour(&crate::maj::installation(), &crate::maj::RECHERCHE) {
+                Ok(v) => {
+                    self.ecrire(&format!("Redemarrage pour la mise a jour {}.\n", crate::maj::version_lue(&v)));
+                    self.poser_phase(Phase::Accueil);
+                    self.fermer_le_logiciel();
+                    ok(false)
+                }
+                Err(m) => refus(m),
+            },
             _ => refus(format!("Geste inconnu ici : {}.", nom)),
         }
     }

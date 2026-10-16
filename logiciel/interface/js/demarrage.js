@@ -107,16 +107,22 @@ function fenetreNative() {
   window.addEventListener("resize", suivre);
   suivre();
 }
+/* Avant de quitter la page (revenir aux compagnies, redémarrer pour mettre à
+   jour : js/mise-a-jour.js) : ce qui attend encore s'enregistre. Faux si
+   l'enregistrement est refusé : on reste, le message est à l'écran, et partir
+   perdrait ce qu'on vient de taper. */
+async function avantDeQuitter() {
+  clearTimeout(MINUTEUR_SAISIE);
+  await enregistrerSaisie(false);
+  const s = saisieCourante();
+  const ecrivable = s.mois && !(MOIS_FERME && MOIS_FORCE !== s.mois);
+  return !(ecrivable && JSON.stringify(s) !== DERNIERE_ECRITE);
+}
+window.avantDeQuitter = avantDeQuitter;
 function boutonAccueil(api) {
   document.body.classList.add("accueil-possible");
   document.getElementById("fenetre-accueil").onclick = async () => {
-    clearTimeout(MINUTEUR_SAISIE);
-    await enregistrerSaisie(false);
-    // Un enregistrement refusé : on reste, le message est à l'écran.
-    // Partir perdrait ce qu'on vient de taper.
-    const s = saisieCourante();
-    const ecrivable = s.mois && !(MOIS_FERME && MOIS_FORCE !== s.mois);
-    if (ecrivable && JSON.stringify(s) !== DERNIERE_ECRITE) return;
+    if (!(await avantDeQuitter())) return;
     api.accueil();
   };
 }
