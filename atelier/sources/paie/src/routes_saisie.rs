@@ -394,6 +394,30 @@ fn defauts_de_la_saisie(ctx: &Contexte, mois: &str, saisie: &Value) -> Value {
     json!({"taux_cachet": taux, "date_paiement": date_paiement})
 }
 
+/// LE SPECTACLE ET LE LIEU DU MOIS DESCENDENT SUR CHAQUE ENGAGEMENT (16/10/2026). Une saisie peut les ecrire au niveau
+/// du mois, comme defaut de ses engagements (`engagement::engagements` : `ou(e.spectacle, data.spectacle)`,
+/// `e.lieu or data.lieu`) ; l'ecran, lui, montre le spectacle d'un engagement et le lieu d'un contrat, et n'ecrit que ce
+/// qu'il montre. Ils sont donc poses sur chaque engagement qui ne dit pas le sien -- le spectacle seulement sur un
+/// contrat d'usage : un permanent n'en a pas (CCH-11) --, et retires du mois. Le calcul lit la meme chose.
+fn descendre_le_mois(saisie: Value) -> Value {
+    let Value::Object(mut m) = saisie else { return saisie };
+    let spectacle = m.remove("spectacle").filter(vrai);
+    let lieu = m.remove("lieu").filter(vrai);
+    if let Some(Value::Array(engagements)) = m.get_mut("engagements") {
+        for e in engagements.iter_mut() {
+            let Value::Object(e) = e else { continue };
+            let mensuel = crate::contrats::nature(e.get("nature").and_then(Value::as_str)).map_or(false, |n| n.mensuelle());
+            if let Some(s) = spectacle.as_ref().filter(|_| !mensuel && !e.get("spectacle").is_some_and(vrai)) {
+                e.insert("spectacle".into(), s.clone());
+            }
+            if let Some(l) = lieu.as_ref().filter(|_| !e.get("lieu").is_some_and(vrai)) {
+                e.insert("lieu".into(), l.clone());
+            }
+        }
+    }
+    Value::Object(m)
+}
+
 /// La route `saisie`.
 fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?;
@@ -403,6 +427,7 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     // `ctx` au squelette : un mois neuf s'ouvre VIDE, avec le dernier taux saisi.
     let saisie = if existe { lire_saisie(&p)? } else { squelette(ctx, &mois)? };
     let limite = mois_hors_delai(ctx, &mois)?;
+    let saisie = descendre_le_mois(saisie);
     let defauts = defauts_de_la_saisie(ctx, &mois, &saisie);
     Ok(json!({
         "mois": brut,

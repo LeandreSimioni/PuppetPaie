@@ -213,11 +213,12 @@ fn une_saisie_qui_ne_se_charge_pas_se_rend_telle_quelle() {
 }
 
 #[test]
-fn un_spectacle_du_mois_se_resout_en_cle_sauf_pour_un_permanent() {
+fn un_spectacle_du_mois_descend_en_cle_sur_ses_engagements() {
     let c = &compagnie("spectacle", &["2026-08"]);
     let mut s = fichier(c, "2026-08");
     let numero = s["engagements"][0]["spectacle"].clone();
-    // La page recoit la cle de la fiche du spectacle, pas son numero d'objet.
+    // La page recoit la cle de la fiche du spectacle, pas son numero d'objet, sur chaque engagement : elle montre le
+    // spectacle d'un engagement, et n'ecrit que ce qu'elle montre (`routes_saisie::descendre_le_mois`).
     let fiches = lire(c, "config/spectacles.json");
     let cle = fiches.as_object().unwrap().iter().find(|(k, v)| !k.starts_with('_') && v["numero_objet"] == numero).unwrap().0.clone();
     for e in s["engagements"].as_array_mut().unwrap() {
@@ -226,8 +227,10 @@ fn un_spectacle_du_mois_se_resout_en_cle_sauf_pour_un_permanent() {
     s["spectacle"] = numero.clone();
     ecrire(c, "paies/2026-08.json", &s);
     let r = saisie_ouverte(c, "2026-08", "2026-09-10");
-    assert_eq!(r["saisie"]["spectacle"], json!(cle));
-    assert_eq!(r["saisie"]["engagements"][0]["spectacle"], json!(cle));
+    assert!(r["saisie"].get("spectacle").is_none(), "{}", r["saisie"]);
+    for e in r["saisie"]["engagements"].as_array().unwrap() {
+        assert_eq!(e["spectacle"], json!(cle));
+    }
     // Le spectacle du mois n'est pas ajoute quand la saisie n'en nommait pas.
     s.as_object_mut().unwrap().remove("spectacle");
     for e in s["engagements"].as_array_mut().unwrap() {

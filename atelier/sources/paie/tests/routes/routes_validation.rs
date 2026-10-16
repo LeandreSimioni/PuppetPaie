@@ -59,7 +59,7 @@ fn valider_une_paie_valide_ce_contrat_et_pas_son_jumeau_du_meme_jour() {
     reussi(&route(&racine, "valider-paie", c));
     let e = lire(&racine, "paies/2026-11.json")["engagements"].clone();
     assert!(e[0].get("valide").is_none(), "{}", e);
-    assert!(e[1]["valide"].is_string(), "{}", e);
+    assert!(e[1]["valide"]["le"].is_string() && e[1]["valide"]["carte"].is_object(), "{}", e);
     assert_eq!((e[0]["numero"].as_str(), e[1]["numero"].as_str()), (Some("BR.26.01"), Some("BR.26.02")));
     // Un numero que le fichier ne porte pas : refus.
     let mut c = charge.clone();
@@ -75,7 +75,7 @@ fn valider_une_paie_valide_ce_contrat_et_pas_son_jumeau_du_meme_jour() {
     reussi(&route(&racine, "valider-paie", c));
     let e = lire(&racine, "paies/2026-11.json")["engagements"].clone();
     assert!(e[0].get("valide").is_none(), "{}", e);
-    assert!(e[1]["valide"].is_string(), "{}", e);
+    assert!(e[1]["valide"]["le"].is_string() && e[1]["valide"]["carte"].is_object(), "{}", e);
 }
 
 /// L'ETAT DE CHAQUE JUMEAU : un seul des deux contrats du meme jour est valide ; `etat-par-paie` le dit de lui, et

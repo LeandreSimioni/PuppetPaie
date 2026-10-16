@@ -1,47 +1,26 @@
 /* Le mois : la saisie courante, l'apercu, charger un mois, la grille des mois, enregistrer, produire. */
 "use strict";
 
-/* CE QUE LE BLOC MONTRE EN UNE SEULE VALEUR, ET QUE `engagementsDuBloc`
- * ÉCRIT POUR CHAQUE SALARIÉ COCHÉ (09/10/2026). Une seule liste, deux usages :
- *   - l'écriture : ces champs-là, c'est l'écran qui les dit, ou les retire
- *     quand il les laisse vides ; tout AUTRE champ de l'engagement chargé est
- *     porté tel quel (`engagementEcrit`) ;
- *   - le regroupement : deux engagements qui diffèrent sur l'un d'eux ne
- *     tiennent pas dans un même bloc (`regrouper`), sans quoi l'enregistrement
- *     recopierait la valeur du premier sur le second.
- * Un champ que l'écran apprend à écrire s'ajoute ICI : absent de la liste, il
- * serait à la fois repris de l'ancien fichier et écrit par l'écran, et les
- * salariés d'un bloc se le partageraient. `absences` y reste sans que l'écran
- * l'écrive (15/10/2026) : une saisie d'avant les imprévus qui en porte la
- * perd à l'enregistrement, et le moteur la refuse tant qu'elle est là. */
-const CHAMPS_DU_BLOC = [
-  "spectacle", "nature", "debut", "fin", "numero", "lignes", "metier", "cadre",
-  "motif_recours", "salaire_mensuel", "quotite_contrat", "date_modification",
-  "conges_pris", "absences", "primes",
-  "motif_rupture", "notification_rupture", "engagement_licenciement",
-  "signature_convention", "preavis", "transaction", "dernier_jour_paye",
-  "en_droit_a_la_retraite", "preavis_non_effectue", "preavis_mois",
-  "precarite_due", "precarite_pourquoi",
-];
-/* Ce que le moteur tient seul : une paie se valide et se rouvre par sa route,
- * et `fusionner` (routes_ecritures.rs) reprend ces deux champs du fichier.
- * Les porter depuis la lecture revaliderait une paie rouverte entre-temps. */
-const CHAMPS_DU_MOTEUR = ["valide", "rouverte"];
-/* Ce que `saisieCourante` écrit au niveau du mois. */
-const CHAMPS_DU_MOIS = ["mois", "taux_cachet", "date_paiement", "engagements"];
+/* CE QU'ON VOIT EST CE QUI EST ENREGISTRÉ (Léandre, 16/10/2026 : « il y a un
+ * formulaire ; on clique sur Valider, ça enregistre le formulaire, et on
+ * n'affiche que ce qui est affiché »). Une carte ouverte écrit son engagement
+ * depuis son formulaire, et depuis lui seul : toute donnée qu'un engagement
+ * peut porter y a son champ quand elle a une valeur (`CHAMPS_RARES`, le lieu
+ * propre à un jour, le libellé d'une prime…). Une carte fermée n'a pas de
+ * formulaire et ne se modifie pas : elle écrit les engagements du fichier
+ * qu'elle montre, tels quels (`engagementsLus`). Ce que le moteur tient seul —
+ * la validation et sa carte figée, la réouverture, `_origine` — il le reprend
+ * du fichier (`fusionner`, routes_ecritures.rs), quoi que la page envoie. */
 
-const copieJson = (v) => JSON.parse(JSON.stringify(v));
+/** Les engagements de la saisie lue qu'une carte montre (`data-rangs`). */
+function engagementsLus(div) {
+  const tous = (SAISIE && SAISIE.engagements) || [];
+  return (div.dataset.rangs || "").split(",").filter(Boolean).map((i) => tous[+i]).filter(Boolean);
+}
 
-/** L'engagement qui part au fichier : `ecran` (le salarié et les champs de
- *  CHAMPS_DU_BLOC que l'écran remplit), puis tout ce que `origine` — cet
- *  engagement tel qu'il a été chargé, ou rien pour un neuf — portait d'autre. */
-function engagementEcrit(origine, ecran) {
-  const e = { ...ecran };
-  Object.entries(origine || {}).forEach(([k, v]) => {
-    if (k in e || k === "salarie" || CHAMPS_DU_BLOC.includes(k) || CHAMPS_DU_MOTEUR.includes(k)) return;
-    e[k] = copieJson(v);
-  });
-  return e;
+/** Une carte fermée : son formulaire n'est pas construit. */
+function carteFermee(div) {
+  return !div.querySelector(".ligne1");
 }
 
 /** La fin de ce contrat se signale-t-elle (nature 07), pour ce motif ? Le
@@ -96,19 +75,15 @@ function ruptureDuBloc(div, nat, fin, e) {
 
 /** Les engagements qu'un bloc écrit : un par salarié coché. */
 function engagementsDuBloc(div, mois) {
-  // UNE CARTE FERMÉE ÉCRIT CE QU'ELLE A LU (`carteLue`) : son formulaire
-  // n'est pas construit, l'engagement lu de chaque salarié l'est.
-  if (div._lu) return div._lu.ecrits.map(copieJson);
+  if (carteFermee(div)) return engagementsLus(div).map((e) => JSON.parse(JSON.stringify(e)));
   // L'ENGAGEMENT N'ÉCRIT PLUS DE `dates` : chacune de ses lignes porte les
   // siennes, avec son lieu, et le moteur en fait la réunion
-  // (`operations.dates_engagement`). Une seule source, donc pas de
-  // divergence possible entre « les jours du contrat » et « les jours
-  // payés ».
+  // (`operations.dates_engagement`).
   //
   // UN ENGAGEMENT PAR SALARIÉ COCHÉ. Le bloc en porte plusieurs à l'écran
   // pour aller vite ; le fichier, lui, garde le format du moteur — un
-  // salarié, un engagement. Chacun reçoit sa propre copie des lignes.
-  // Un bloc sans salarié n'est pas une paie et n'écrit rien.
+  // salarié, un engagement. Chacun reçoit sa copie de ce que le formulaire
+  // dit : un bloc ne regroupe que des engagements identiques (`regrouper`).
   const spectacle = div.querySelector(".e-spectacle").value;
   const lignes = lignesDuBloc(div, mois);
   const metier = div.querySelector(".e-metier").value;
@@ -121,67 +96,56 @@ function engagementsDuBloc(div, mois) {
   const salaire = div.querySelector(".e-salaire").value;
   const quotite = div.querySelector(".e-quotite").value;
   const dateModification = div.querySelector(".e-date-modification").value;
-  const salaries = salariesDuBloc(div);
-  return salaries.map((salarie) => {
-    // LE NUMÉRO EST CELUI D'UN CONTRAT, DONC D'UN SALARIÉ (#139) : celui que
-    // son engagement portait, sinon celui du bloc s'il est le sien
-    // (`numeroDe`). Un salarié coché en plus n'hérite pas du contrat d'un autre — il
-    // recevra le sien à la production (le moteur refuse un numéro sur deux
-    // salariés).
-    const origine = origineDe(div, salarie);
-    const numero = (origine && origine.numero) || (div.dataset.numeroDe === salarie ? numeroDuBloc : "");
-    // UN PERMANENT N'A PAS DE SPECTACLE, et ce n'est pas un détail de
-    // mise en page : le numéro d'objet lui est interdit (CCH-11). Écrire
-    // la case vide, ce serait écrire un rattachement à rien.
+  return salariesDuBloc(div).map((salarie) => {
+    // LE NUMÉRO EST CELUI D'UN CONTRAT, DONC D'UN SALARIÉ (#139) : celui du
+    // bloc s'il est le sien. Un salarié coché en plus n'hérite pas du
+    // contrat d'un autre — il recevra le sien à la production (le moteur
+    // refuse un numéro sur deux salariés).
+    const numero = div.dataset.numeroDe === salarie ? numeroDuBloc : "";
+    // UN PERMANENT N'A PAS DE SPECTACLE, et ce n'est pas un détail de mise
+    // en page : le numéro d'objet lui est interdit (CCH-11).
     const e = nat.mensuelle ? { salarie } : { salarie, spectacle };
     // La nature ne s'écrit que si elle s'écarte du défaut : un engagement
-    // muet est un CDDU du spectacle, et cinq ans de saisies le restent
-    // sans qu'on y touche.
+    // muet est un CDDU du spectacle.
     if (nat.cle && nat.cle !== ETAT.nature_defaut) e.nature = nat.cle;
-    // Le contrat, quand il est dit : ses bornes (un contrat qui déborde
-    // du mois n'existe que par elles) et son numéro, figé à la production.
     if (debut) e.debut = debut;
     if (fin) e.fin = fin;
     if (numero) e.numero = numero;
-    // UN MOIS DU CONTRAT SANS CACHET (15/09/2026) : un contrat aux bornes
-    // dites, et aucune ligne remplie, s'écrit `lignes: []` — le moteur en
-    // fait une DSN qui porte le contrat avec un versement à zéro, sans
-    // bulletin. Sans bornes, on n'écrit rien : c'est une saisie incomplète,
-    // et le moteur le dit.
     if (nat.mensuelle) {
-      // LES FAITS, PAS LES LIGNES. `lignes_du_mois` en fait des lignes de
-      // bulletin — le prorata d'un mois incomplet, l'indemnité de congés
-      // et la retenue qui la couvre, le bloc 65 d'une suspension, le
-      // solde de tout compte du dernier mois. Écrire `lignes` ici
-      // couperait tout ce calcul : c'est la porte de sortie du moteur
-      // (« une saisie qui écrit ses lignes elle-même les garde »), et
-      // elle n'est pas pour cet écran.
+      // LES FAITS, PAS LES LIGNES : `lignes_du_mois` en fait des lignes de
+      // bulletin — le prorata d'un mois incomplet, l'indemnité de congés et
+      // la retenue qui la couvre, les imprévus, le solde de tout compte.
+      // Écrire `lignes` ici couperait tout ce calcul.
       const recours = div.querySelector(".e-recours").value;
       if (recours) e.motif_recours = recours;
       if (salaire !== "") e.salaire_mensuel = +salaire;
       if (quotite !== "") e.quotite_contrat = +quotite;
       if (dateModification) e.date_modification = dateModification;
+      const avant = avantDuBloc(div);
+      if (avant) e.avant = avant;
       if (faits.conges.length) e.conges_pris = faits.conges;
       if (faits.primes.length) e.primes = faits.primes;
-      ruptureDuBloc(div, nat, fin, e);
     } else {
+      // UN MOIS DU CONTRAT SANS CACHET (15/09/2026) : un contrat aux bornes
+      // dites, et aucune ligne remplie, s'écrit `lignes: []` — la DSN porte
+      // le contrat avec un versement à zéro, sans bulletin.
       if (lignes.length) e.lignes = JSON.parse(JSON.stringify(lignes));
       else if (debut && fin) e.lignes = [];
-      ruptureDuBloc(div, nat, fin, e);
     }
-    // Le métier ne s'écrit que s'il est choisi : un engagement sans
-    // `metier` prend celui de la fiche, et toutes les saisies d'avant
-    // restent lisibles telles quelles. `cadre` voyage avec lui, seulement
-    // quand il s'écarte du défaut du catalogue.
+    ruptureDuBloc(div, nat, fin, e);
+    // Le métier ne s'écrit que s'il est choisi : un engagement sans `metier`
+    // prend celui de la fiche. `cadre` voyage avec lui, seulement quand il
+    // s'écarte du défaut du catalogue.
     if (metier) {
       e.metier = metier;
       const m = metierDe(metier);
       if (!m || cadre !== !!m.cadre_par_defaut) e.cadre = cadre;
     }
-    // Ce que l'écran ne montre pas, il le PORTE : la date de paiement
-    // propre à ce contrat, son lieu, l'emploi et les statuts déclarés…
-    // L'origine est celle de CE salarié dans CE bloc (`origineDe`).
-    return engagementEcrit(origineDe(div, salarie), e);
+    // Ce que le formulaire montre parce que l'engagement le porte : la date
+    // de paiement propre au contrat, son lieu, l'emploi et les statuts
+    // déclarés… (`CHAMPS_RARES`).
+    raresDuBloc(div, e);
+    return e;
   });
 }
 
@@ -189,23 +153,12 @@ function saisieCourante() {
   const mois = document.getElementById("mois").value;
   const engagements = [...document.querySelectorAll(".engagement")]
     .flatMap((div) => engagementsDuBloc(div, mois));
-  // `taux_cachet` et `date_paiement` ne s'affichent plus mais restent ECRITS :
-  // le moteur s'en sert -- l'un comme defaut d'un engagement qui ne dit pas
-  // son taux, l'autre comme date de paiement du contrat. Ce qui a disparu,
-  // c'est la saisie, pas la valeur. `lieu` ne se SAISIT plus : il appartient
-  // au cachet. Celui qu'un fichier porte au niveau du mois, comme tout champ
-  // du mois que l'ecran n'ecrit pas, est repris de la saisie chargee.
-  const ecrite = {
-    mois,
-    taux_cachet: DERNIER_TAUX,
-    date_paiement: SAISIE_DATE_PAIEMENT,
-    engagements,
-  };
-  const lue = SAISIE && SAISIE.mois === mois ? SAISIE : {};
-  Object.entries(lue).forEach(([k, v]) => {
-    if (!CHAMPS_DU_MOIS.includes(k)) ecrite[k] = copieJson(v);
-  });
-  return ecrite;
+  // `taux_cachet` et `date_paiement` ne se saisissent plus mais restent
+  // ÉCRITS : le moteur s'en sert — l'un comme défaut d'un engagement qui ne
+  // dit pas son taux, l'autre comme date de paiement du mois (rappelée sous
+  // le mois). Le spectacle et le lieu du mois, le moteur les pose sur chaque
+  // engagement à la lecture (route `saisie`) : rien d'autre ne s'écrit ici.
+  return { mois, taux_cachet: DERNIER_TAUX, date_paiement: SAISIE_DATE_PAIEMENT, engagements };
 }
 
 function rafraichirApercu() {
@@ -399,6 +352,7 @@ function peindreCarte(div) {
     </div>
     <div class="carte-actes">${bandeauEtats(ligne)}</div>
     <div class="carte-net" title="net à payer, avant impôt">${echapper(net)}</div>
+    ${revoirDe(ps)}
     <span class="carte-modifier">
       <button class="secondaire carte-detail">Voir le détail</button>
       <button class="lien carte-imprevu" title="Un imprévu : un arrêt de travail, une absence…"
@@ -416,6 +370,25 @@ function peindreCarte(div) {
   porte.onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); menuImprevu(porte, { div }); };
   brancherRecu(cible);
 }
+
+/* UNE PAIE VALIDÉE QUE LE CALCUL NE DONNE PLUS (Léandre, 16/10/2026). Sa carte
+ * est celle qu'on a validée ; quand ce dont son calcul dépend a bougé (un taux
+ * du barème, la fiche du salarié, la convention) et que le calcul d'aujourd'hui
+ * donne une autre paie, le moteur le dit (`revoir`) : elle n'est plus ce qu'on a
+ * validé, à revoir — rien n'a changé en silence. */
+function revoirDe(ps) {
+  const ecarts = ps.filter((p) => p.revoir).flatMap((p) => [["brut", "brut"], ["net_a_payer", "net"],
+    ["cout_employeur", "coût employeur"]]
+    .filter(([k]) => p.revoir[k] !== p[k])
+    .map(([k, mot]) => `${mot} ${echapper(euros(p.revoir[k]))} au lieu de ${echapper(euros(p[k]))}`));
+  if (!ps.some((p) => p.revoir)) return "";
+  return `<div class="encart attention carte-revoir"><b>À revoir :</b> le calcul d'aujourd'hui ne donne plus la paie
+    validée${ecarts.length ? ` — ${ecarts.join(", ")}` : ""}. Un taux, la fiche du salarié ou la convention a changé
+    depuis la validation ; « Voir le détail › Modifier… » la recalcule.</div>`;
+}
+
+/** Un jour d'une ligne, nu ou avec son propre lieu (`{"jour", "lieu"}`). */
+const jourEnClair = (x) => jjmmaaaa(jourDe(x)) + (x && typeof x === "object" && x.lieu ? ` (${x.lieu})` : "");
 
 /** Le détail d'une paie validée, en lecture : ce qui est payé ligne par
  *  ligne, les jours, les montants. « Modifier… » dedans. */
@@ -440,8 +413,8 @@ function boiteDetail(ligne, ps) {
         ${l.heures_par_unite ? ` — <b>${echapper(h(l.heures_par_unite))}</b>
           ${l.unite === "heure" ? "" : `par ${echapper(l.unite || "unité")}`}` : ""}
         ${l.heures ? `, ${echapper(h(l.heures))} en tout` : ""}
-        ${l.dates.length ? `<br><span class="discret">Jours :</span> ${echapper(l.dates.map(jjmmaaaa).join(", "))}` : ""}
-        ${l.planning.length ? `<br><span class="discret">Prévu ensuite :</span> ${echapper(l.planning.map(jjmmaaaa).join(", "))}` : ""}
+        ${l.dates.length ? `<br><span class="discret">Jours :</span> ${echapper(l.dates.map(jourEnClair).join(", "))}` : ""}
+        ${l.planning.length ? `<br><span class="discret">Prévu ensuite :</span> ${echapper(l.planning.map(jourEnClair).join(", "))}` : ""}
         ${l.lieu ? `<br><span class="discret">Lieu :</span> ${echapper(l.lieu)}` : ""}
       </div>`).join("");
     const refs = [p.numero_contrat ? `contrat n° ${p.numero_contrat}` : "",
@@ -471,6 +444,7 @@ function boiteDetail(ligne, ps) {
     <h3>${echapper(ligne.nom)}</h3>
     <p class="discret">${echapper(pourQuoi(ligne))}, ${echapper(periodeEnClair(ligne.debut, ligne.fin))}
       · validée le ${echapper(quand(ligne.valide))}</p>
+    ${revoirDe(ps)}
     ${ps.length ? ps.map(bloc).join("") : `<p class="discret">Le détail n'est pas encore calculé.</p>`}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
@@ -648,27 +622,24 @@ let MOIS_FORCE = null;          // le mois ferme que l'on a rouvert, en connaiss
  *  déjà démultipliée : elle a son bloc, fermé, et n'absorbe rien. */
 function regrouper(engagements) {
   const groupes = [];
-  // L'EMPREINTE D'UN BLOC, C'EST TOUT CE QU'IL MONTRE EN UNE SEULE VALEUR
-  // (CHAMPS_DU_BLOC, la liste que l'écriture suit aussi). Le bloc affiche les
-  // valeurs du premier engagement et l'enregistrement les recopie sur chaque
-  // salarié coché : deux engagements qui diffèrent sur UN de ces champs —
-  // le motif de recours de deux CDD aux mêmes bornes (09/10/2026), un
-  // salaire, un numéro figé, propre à un salarié — ne se regroupent donc pas.
-  // Vide, absent ou liste vide se valent : la page n'écrit ni l'un ni l'autre.
-  const vide = (v) => v === undefined || v === null || v === ""
-    || (Array.isArray(v) && !v.length);
-  const empreinteDe = (e) => JSON.stringify(CHAMPS_DU_BLOC.map((k) => (vide(e[k]) ? null : e[k])));
-  engagements.forEach((e) => {
+  // UN BLOC NE REGROUPE QUE DES ENGAGEMENTS IDENTIQUES, au salarié près : le
+  // formulaire montre un engagement et l'écrit pour chaque salarié coché.
+  // Deux engagements qui diffèrent en quoi que ce soit — le motif de
+  // recours de deux CDD aux mêmes bornes, un salaire, un numéro, un lieu
+  // propre à un jour — ont chacun leur bloc. Ni une paie validée.
+  const empreinteDe = (e) => {
+    const { salarie, ...reste } = e;
+    return JSON.stringify(Object.keys(reste).sort().map((k) => [k, reste[k]]));
+  };
+  engagements.forEach((e, rang) => {
     const empreinte = empreinteDe(e);
     const dernier = groupes[groupes.length - 1];
     if (dernier && !e.valide && !dernier.valide && dernier.empreinte === empreinte
         && !dernier.salaries.includes(e.salarie)) {
       dernier.salaries.push(e.salarie);
-      dernier.origines[e.salarie] = e;
+      dernier.rangs.push(rang);
     } else {
-      // `origines` : chaque salarié du bloc garde SON engagement tel qu'il a
-      // été lu ; ce qu'il porte sans l'afficher lui revient à l'écriture.
-      groupes.push({ ...e, salaries: [e.salarie], origines: { [e.salarie]: e }, empreinte });
+      groupes.push({ ...e, salaries: [e.salarie], rangs: [rang], empreinte });
     }
   });
   return groupes;
@@ -742,7 +713,7 @@ async function chargerMois(mois, repeint = false) {
   }
   cible.innerHTML = "";
   const groupes = regrouper(SAISIE.engagements || []);
-  const ouvertes = avant.length === groupes.length ? avant.map((div) => !div._lu) : [];
+  const ouvertes = avant.length === groupes.length ? avant.map((div) => !carteFermee(div)) : [];
   groupes.forEach((g, i) => cible.appendChild(ligneEngagement(g, { fermee: !ouvertes[i] })));
   if (deplies) {
     const blocs = [...cible.querySelectorAll(".engagement")];
@@ -1177,7 +1148,7 @@ async function boiteProduire(mois, apres) {
   }
   let urssaf = null;
   try {
-    urssaf = (await api("apercu", { saisie })).urssaf;
+    urssaf = (await api("apercu", { saisie, urssaf: true })).urssaf;
   } catch (e) { dire(e.message, "erreur"); return; }
 
   // Un mois dont la DSN réelle est partie se refait en ANNULE-ET-REMPLACE :

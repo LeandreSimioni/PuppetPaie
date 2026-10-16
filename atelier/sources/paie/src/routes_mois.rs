@@ -437,8 +437,9 @@ impl<'a> Moteur<'a> {
         let eng = s.engagements();
         let mut out = HashMap::new();
         for (i, cle) in cles.iter().enumerate() {
-            if let Some(v) = eng.get(i).and_then(|e| e.get("valide")).filter(|v| vrai(v)) {
-                out.insert(cle.clone(), v.clone());
+            let v = crate::calcul_du_mois::valide_le(eng.get(i).and_then(|e| e.get("valide")));
+            if vrai(&v) {
+                out.insert(cle.clone(), v);
             }
         }
         out
@@ -499,9 +500,25 @@ impl<'a> Moteur<'a> {
         }
         // Le brut d'abord : un calcul a refaire se fait dans un processus qui
         // n'a rien lu du moteur avant lui (voir `fichiers::suivre`).
+        // UNE PAIE VALIDEE SE LIT : un mois dont toutes les paies tiennent leur carte figee prend le brut de chacune dans sa
+        // carte, sans calcul (`calcul_du_mois::cartes`).
         let bruts = if avec_brut {
-            let parti = self.dsn_du_mois(mois).map(|d| vrai(&d)).unwrap_or(false);
-            Some(self.brut_du_mois(mois, parti)?)
+            let data = engagement::lire_saisie(&fichier).map_err(classer_saisie)?;
+            let cartes = crate::calcul_du_mois::cartes(self.o, self.ctx, &data);
+            let figes: Option<Vec<String>> = cartes
+                .iter()
+                .map(|c| match c {
+                    Some((carte, true)) => carte.get("brut").map(texte_de),
+                    _ => None,
+                })
+                .collect();
+            match figes.filter(|f| !f.is_empty()) {
+                Some(f) => Some(f),
+                None => {
+                    let parti = self.dsn_du_mois(mois).map(|d| vrai(&d)).unwrap_or(false);
+                    Some(self.brut_du_mois(mois, parti)?)
+                }
+            }
         } else {
             None
         };

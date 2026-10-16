@@ -255,10 +255,9 @@ function majPorteImprevu(div) {
 /** Ce que la carte sait de son contrat : le salarié, le numéro s'il est figé, le début. */
 function carteDe(div) {
   const salarie = salariesDuBloc(div)[0] || "";
-  const origine = origineDe(div, salarie) || {};
   return {
     div, salarie,
-    numero: origine.numero || (div.dataset.numeroDe === salarie ? div.dataset.numero || "" : ""),
+    numero: div.dataset.numeroDe === salarie ? div.dataset.numero || "" : "",
     debut: debutDuBloc(div),
   };
 }
@@ -267,7 +266,7 @@ function carteDe(div) {
  *  rupture (le moteur les donne, `natures`), une fin qu'on peut écrire (un contrat payé au mois, ou des bornes déjà
  *  écrites), et une paie ouverte. Sinon on ne l'invente pas. */
 function ruptureOuverte(div) {
-  if (div._lu || div.classList.contains("validee")) return null;    // une carte fermée, une paie validée
+  if (carteFermee(div) || div.classList.contains("validee")) return null;    // une carte fermée, une paie validée
   const nat = natureDe(div.querySelector(".e-nature").value);
   if (!(nat.motifs_rupture || []).length) return null;
   if (!nat.mensuelle && !div.querySelector(".e-fin").value) return null;

@@ -124,7 +124,7 @@ fn valider_paie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     };
     let mut eng = a_l_index(&mut data)?;
     if valide {
-        eng.insert("valide".into(), Value::String(maintenant()));
+        eng.remove("valide");
         eng.remove("rouverte");
     } else {
         eng.remove("valide");
@@ -132,8 +132,17 @@ fn valider_paie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
         // qu'on l'a rouverte.
         eng.insert("rouverte".into(), Value::String(maintenant()));
     }
-    let rendu = eng.get("valide").cloned().unwrap_or(Value::Null);
     data["engagements"][i] = Value::Object(eng);
+    if valide {
+        // VALIDER FIGE LA CARTE (`calcul_du_mois::sceller`) : la paie se calcule une fois, ici, et ce que l'ecran en
+        // montre s'ecrit avec l'empreinte de ce dont ce calcul depend. Ensuite elle se lit.
+        let (rep, entrees) = crate::calcul_du_mois::calculer_suivi(o, &json!({"saisie": data.clone()}))
+            .map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &data, m)))?;
+        let (_, vues) = crate::routes_ouverture::vues_du_calcul(ctx, &data, &rep, false).map_err(Echec::from)?;
+        let vue = vues.get(i).ok_or_else(|| erreur("IndexError", "le calcul a rendu une paie de moins que la saisie"))?;
+        data["engagements"][i]["valide"] = crate::calcul_du_mois::sceller(&maintenant(), vue, &data, i, &entrees, mois);
+    }
+    let rendu = crate::calcul_du_mois::valide_le(data["engagements"][i].get("valide"));
     // `fusionner=False` : `data` EST le fichier, validation comprise.
     let Value::Object(donnees) = &data else {
         return Err(erreur("AttributeError", "la saisie n'est pas un objet"));

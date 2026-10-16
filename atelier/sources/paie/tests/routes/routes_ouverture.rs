@@ -254,7 +254,8 @@ fn une_saisie_incomplete_est_un_refus_qui_garde_son_nom() {
 fn sans_les_organismes_le_bordereau_attend_la_paie_non() {
     let c = &compagnie("organismes", &[MOIS]);
     std::fs::remove_file(c.join("config/organismes.json")).unwrap();
-    let r = apercu(c, &saisie(c, MOIS), false);
+    // Le bordereau ne se calcule que demande (`urssaf`, la boite « Fermer le mois »).
+    let r = route(c, "apercu", json!({ "saisie": saisie(c, MOIS), "urssaf": true }), "2026-09-10");
     assert_eq!(r["resultat"]["urssaf"], Value::Null);
     assert!(r["resultat"]["avertissements"][0].as_str().unwrap().starts_with("Bordereau Urssaf pas encore calculable"));
     assert!(!r["resultat"]["paies"].as_array().unwrap().is_empty());
