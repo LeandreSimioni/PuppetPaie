@@ -10,6 +10,7 @@ use std::time::Duration;
 use serde_json::{json, Value};
 
 use super::api::route;
+use crate::etat_garde::FileDesEtats;
 
 pub struct Veille {
     racine: PathBuf,
@@ -21,10 +22,12 @@ pub struct Veille {
     sauvegarde_en_cours: AtomicBool,
     tour_unique: Mutex<()>,
     arretee: AtomicBool,
+    /// Les etats des mois, a verifier apres chaque tour : un retour releve, une signature notee changent un mois.
+    etats: Option<Arc<FileDesEtats>>,
 }
 
 impl Veille {
-    pub fn nouvelle(racine: &Path, minutes: u64) -> Arc<Veille> {
+    pub fn nouvelle(racine: &Path, minutes: u64, etats: Option<Arc<FileDesEtats>>) -> Arc<Veille> {
         Arc::new(Veille {
             racine: racine.to_path_buf(),
             minutes,
@@ -35,6 +38,7 @@ impl Veille {
             sauvegarde_en_cours: AtomicBool::new(false),
             tour_unique: Mutex::new(()),
             arretee: AtomicBool::new(false),
+            etats,
         })
     }
 
@@ -87,6 +91,9 @@ impl Veille {
         }
         self.en_cours.store(false, Ordering::SeqCst);
         self.sauvegarde_en_cours.store(false, Ordering::SeqCst);
+        if let Some(f) = &self.etats {
+            f.tout_verifier();
+        }
         self.etat()
     }
 

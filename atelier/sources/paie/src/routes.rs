@@ -149,12 +149,8 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         }
         autre => autre,
     };
-    // UNE ECRITURE QUI NOMME UN MOIS REFAIT SON ETAT, en arriere-plan : l'ecran le trouvera pret.
-    if rendu.is_ok() && est_une_ecriture(route) {
-        if let Some(mois) = charge.get("mois").and_then(Value::as_str).filter(|m| m.len() >= 7) {
-            crate::etat_garde::apres_ecriture(o, &mois[..7]);
-        }
-    }
+    // Les etats des mois ne se refont plus ici : c'est la fenetre qui les refait, dans son processus, apres chaque
+    // ecriture (`etat_garde::FileDesEtats`, ticket #212). Hors de la fenetre, un etat perime se refait a sa lecture.
     match rendu {
         Ok(v) => Ok(json!({"ok": true, "resultat": v})),
         // Une fiche refusee porte ses anomalies : la page les montre.
@@ -167,8 +163,9 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     }
 }
 
-/// Les routes qui ecrivent (les lots d'ecritures, d'actes, d'envois et de releves) : apres elles, l'etat du mois se refait.
-fn est_une_ecriture(route: &str) -> bool {
+/// Les routes qui ecrivent (les lots d'ecritures, d'actes, d'envois et de releves) : apres elles, la fenetre verifie les
+/// etats des mois (`interface/api.rs`).
+pub fn est_une_ecriture(route: &str) -> bool {
     matches!(route, "revue-spectacles" | "regularisation-mois")
         || crate::routes_ecritures::ROUTES.contains(&route)
         || crate::routes_ecritures_g2::ROUTES.contains(&route)
