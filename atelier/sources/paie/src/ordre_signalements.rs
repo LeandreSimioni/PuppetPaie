@@ -201,9 +201,11 @@ pub struct MensuellesVues {
 /// (l'atelier, un autre poste) ; le journal du dossier ne sait que ce qu'il a envoye.
 ///
 /// Deux lectures, sur les bilans de nature 11 archives dans `retours/` pour ce SIREN et cette base (`essai_reel`) :
-/// - l'ordre de chaque mensuelle (nature 01) recue le mois `constitution` (`AAAA-MM`). INFERENCE : le mois de reception
-///   du bilan (`date_reception`) est celui de constitution du fichier ; un fichier ecrit le 31 et depose le 1er y
-///   echappe, la seconde lecture le rattrape quand la plate-forme l'a cite ;
+/// - l'ordre de chaque mensuelle (nature 01) recue le mois `constitution` (`AAAA-MM`). Le mois de reception du bilan
+///   (`date_reception`) tient lieu de mois de constitution : la date de constitution est le jour meme ou le fichier
+///   s'ecrit (`dsn::generer`), et un fichier se depose ce jour-la ou plus tard ; la lecture ne peut donc que surestimer
+///   l'ordre (un fichier ecrit le 31 et depose le 1er compte pour le mois suivant), jamais le sous-estimer, et trop
+///   grand ne coute rien ;
 /// - le rang que la plate-forme cite dans un refus (« d'ordre 20261021 inferieur (ou egal) au dernier ordre accepte
 ///   20261030 ») : AAAAMM + ordre, exact, quel que soit le jour du bilan.
 ///

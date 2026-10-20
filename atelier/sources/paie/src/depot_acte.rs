@@ -265,12 +265,13 @@ fn exiger_repetition(ctx: &Contexte, lignes: &[Value], quoi: &str, chemin: &Path
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let etat = etats::repetition(lignes, quoi, &crate::journal::empreinte(&octets), &nom)?;
-    // UNE DSN NE PART EN REEL QUE SUR UN BILAN LU (tickets #221, #222, 19/10/2026) : l'accuse d'enregistrement dit
-    // « envoi recu », pas « conforme » (regle 5) ; c'est le bilan de nature 11 du test qui tranche, et il arrive « en
-    // general dans les dix minutes » (la reponse du point de depot). La DPAE garde l'ancien seuil : son certificat de
-    // test n'est pas garanti (reste ouvert).
-    let tranche = quoi != "dsn" || etats::est(&etat["compte_rendu"], "ok");
-    if vrai(&etat["conforme"]) && tranche {
+    // UN REEL NE PART QUE SUR LE BILAN LU DE SON TEST (tickets #221, #222, 19/10/2026) : l'accuse d'enregistrement dit
+    // « envoi recu », pas « conforme » (regle 5). Pour une DSN, c'est le bilan de nature 11 du test, qui arrive « en
+    // general dans les dix minutes » (la reponse du point de depot). Pour une DPAE, le bilan 11 ou le certificat 41 :
+    // celui d'un test revient bel et bien (journal du depot prive, archives 2026-10-02, « a la lumiere du certificat 41
+    // du test (09:13) : les deux DPAE [...] sont revenues enregistrees (code 99, deux dossiers) » ; archives
+    // 2026-09-09_au_09-13, §20.2 : « Passee = bilan OK ; le certificat 41 confirme »).
+    if vrai(&etat["conforme"]) && etats::est(&etat["compte_rendu"], "ok") {
         let l = &etat["conforme"];
         return Ok(json!({
             "test": l.get("quand").cloned().unwrap_or(Value::Null),
@@ -526,7 +527,16 @@ fn verifier_depot_remplacement(o: &HashMap<String, String>, ctx: &Contexte, mois
     if !["03", "05"].contains(&a.champ("type_declaration")) {
         return Ok(false);
     }
-    let Some(dernier) = dernier else { return Ok(false) };
+    // CE QUE LA PLATE-FORME A VU EN REEL au mois de constitution du fichier, lu en silence dans les bilans archives
+    // (`ordre_signalements::dernier_ordre_des_mensuelles`) : une mensuelle reelle envoyee d'un autre poste compte, comme
+    // a la production (`produire_mois::forme_a_produire`).
+    let constitution = mois_de_constitution(a.champ("constitution"), &ctx.aujourdhui);
+    let vues = crate::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &crate::ordre_signalements::siren_de(ctx), false, &constitution, mois)?;
+    let dernier = match dernier {
+        Some(d) => d.max(vues.ordre),
+        None if vues.du_mois_acceptee || vues.ordre > 0 => vues.ordre,
+        None => return Ok(false),
+    };
     let limite = m.limite(mois)?;
     if ctx.aujourdhui > limite {
         return Err(erreur(
@@ -544,7 +554,7 @@ fn verifier_depot_remplacement(o: &HashMap<String, String>, ctx: &Contexte, mois
         return Err(erreur(
             "OrdreTropPetit",
             format!(
-                "Cet annule-et-remplace porte l'ordre {}, et la derniere DSN reelle de {} l'ordre {} : la plate-forme n'integre pas un rang inferieur ou egal (cahier technique DSN, p. 15 ; B1-208-11). Refaire la DSN du mois : elle partira a l'ordre {}. Rien n'est parti.",
+                "Cet annule-et-remplace porte l'ordre {}, et la derniere DSN reelle connue pour {} (journal et bilans de la plate-forme) l'ordre {} : la plate-forme n'integre pas un rang inferieur ou egal (cahier technique DSN, p. 15 ; B1-208-11). Refaire la DSN du mois : elle partira a l'ordre {}. Rien n'est parti.",
                 ordre,
                 mois,
                 dernier,

@@ -175,3 +175,26 @@ fn l_annule_et_remplace_reel_part_au_dessus_de_l_ordre_que_la_plate_forme_a_vu_c
     let t = String::from_utf8_lossy(&std::fs::read(ar).unwrap()).into_owned();
     assert!(t.contains("S20.G00.05.002,'03'") && t.contains("S20.G00.05.004,'6'"), "{}", &t[..t.len().min(1500)]);
 }
+
+#[test]
+fn un_annule_et_remplace_reel_sous_l_ordre_qu_un_autre_poste_a_fait_accepter_ne_part_pas() {
+    // L'annule-et-remplace de juillet s'ecrit a l'ordre 2 (le journal ne sait que l'ordre 1). Puis un autre poste de la
+    // compagnie fait accepter, ce mois civil, une mensuelle reelle a l'ordre 5 : le depot reel de l'ordre 2 prendrait
+    // B1-208-11 (cahier technique DSN, p. 15). Il est refuse avant de partir, et le refus dit l'ordre a prendre.
+    let racine = compagnie::ses_dsn("fictive-3090-grande", &["2026-07"], &outils::dossier_de_test("ordre_mensuelles", "reel-autre-poste"));
+    reussi(&route(&racine, "produire", json!({"mois": "2026-07", "saisie": lire(&racine, "paies/2026-07.json")})));
+    let ar = std::fs::read_dir(racine.join("sorties/2026-07"))
+        .unwrap()
+        .flatten()
+        .map(|e| e.path())
+        .find(|p| p.file_name().unwrap().to_string_lossy().starts_with("DSN_Juillet2026_AR"))
+        .expect("un annule-et-remplace ecrit");
+    assert!(String::from_utf8_lossy(&std::fs::read(&ar).unwrap()).contains("S20.G00.05.004,'2'"));
+    std::fs::create_dir_all(racine.join("retours")).unwrap();
+    std::fs::write(racine.join("retours/20260803-101010_nature11_FLUX-AUTRE-POSTE.xml"), bilan("FLUX-AUTRE-POSTE", "02", "5", "2026-08-03", None)).unwrap();
+    let avant = std::fs::read(racine.join("journal/depots.json")).unwrap();
+    let (classe, m) = refus(&route(&racine, "deposer", json!({"quoi": "dsn", "fichier": ar.to_string_lossy(), "reel": true})));
+    assert_eq!(classe, "OrdreTropPetit", "{}", m);
+    assert!(m.contains("l'ordre 5") && m.contains("l'ordre 6") && m.contains("Rien n'est parti"), "{}", m);
+    assert_eq!(std::fs::read(racine.join("journal/depots.json")).unwrap(), avant, "rien n'est ecrit");
+}
