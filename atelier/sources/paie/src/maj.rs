@@ -616,13 +616,14 @@ pub fn verifier_suivi(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi
         return format!("version {} -- la {} est publiee sans ce systeme ({}) : cette installation garde sa version", cour, lue, SYSTEME);
     }
     let deja = prete(inst).and_then(|p| p["version"].as_str().map(String::from)).as_deref() == Some(v.as_str());
-    if deja || !telecharger_aussi {
-        if deja {
-            suivi.prete(inst, &v);
-        } else {
-            suivi.poser(Etape::AJour, Some(&courante(&c)), |_| {});
-        }
+    if deja {
+        suivi.prete(inst, &v);
         return format!("version {} -- la {} est prete", cour, lue);
+    }
+    // `paie maj --sans-telecharger` (le seul appel sans telechargement, sur un suivi que personne ne lit) : la version
+    // existe, rien n'est recu. On le dit tel quel, sans pretendre « a jour » ni « prete ».
+    if !telecharger_aussi {
+        return format!("version {} -- la {} est publiee, pas encore telechargee (`paie maj` la prepare)", cour, lue);
     }
     match telecharger(inst, &depot, &d, cles, suivi) {
         Ok(prise) => {
