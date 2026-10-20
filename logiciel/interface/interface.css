@@ -137,6 +137,8 @@ body.fenetre .fenetre-boutons { display: flex; gap: 2px; margin-left: 8px; align
 /* L'étape du passage en cours, dite par le moteur (ticket #220). */
 .veille-etape { font-style: italic; }
 .veille-etape::before { content: "⟳ "; font-style: normal; }
+/* Ce qui dure dans la sauvegarde (tickets #231 et #232) : lisible, sans l'alarme des choses à faire. */
+.veille-sauvegarde { color: var(--texte); }
 .veille-texte b { color: var(--texte); }
 .lien {
   border: none; background: none; cursor: pointer; padding: 0;

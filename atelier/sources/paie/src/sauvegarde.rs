@@ -96,9 +96,57 @@ pub struct Sauvegarde {
     /// Purges entre l'inventaire et l'envoi : pas un incident.
     pub disparus: usize,
     pub secondes: f64,
+    /// Le detail brut de ce qui n'est pas passe (`dossier : erreur`), pour la ligne de commande. La fenetre ne le montre
+    /// pas : un dossier reporte au passage suivant n'est pas un incident (tickets #231 et #232).
     pub incidents: Vec<String>,
+    /// Ce qui n'a pas pu monter a ce passage, reporte au suivant.
+    pub reportes: Vec<Reporte>,
+    /// La phrase de ce qui PERSISTE (`souci`), apres ce passage : `None` tant que ce n'est que passager.
+    pub persistant: Option<String>,
     /// Pas de reseau : arretee au premier dossier.
     pub hors_ligne: bool,
+}
+
+/// Un dossier (tout ce qu'il porte) ou un fichier qui n'a pas pu monter a un passage : il reste hors de l'index, et le
+/// passage suivant le reprend.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Reporte {
+    /// Le chemin relatif du dossier (`.` pour la racine) ou du fichier.
+    pub quoi: String,
+    pub dossier: bool,
+    /// La cause, en clair (`cause_de`).
+    pub cause: String,
+}
+
+impl Reporte {
+    /// La cle de l'index (`echecs`) : un dossier finit par `/`.
+    fn cle(&self) -> String {
+        if self.dossier {
+            format!("{}/", self.quoi)
+        } else {
+            self.quoi.clone()
+        }
+    }
+}
+
+/// Les causes, en clair. Le detail brut (« HTTP 500 : Internal Error ») reste dans `incidents`, pour la ligne de commande.
+pub const GOOGLE_INDISPONIBLE: &str = "Google indisponible";
+const GOOGLE_MUET: &str = "Google ne répond pas";
+const GOOGLE_REFUSE: &str = "Google refuse l'envoi";
+const FICHIER_ILLISIBLE: &str = "fichier illisible sur ce poste";
+
+/// La cause d'une erreur, en clair : passagere chez Google (`drive::passagere`, deja retentee par le client), un delai
+/// depasse, un refus de Google, ou un fichier du poste qui ne se lit pas.
+pub fn cause_de(e: &ErreurGoogle) -> &'static str {
+    if crate::drive::passagere(e) {
+        GOOGLE_INDISPONIBLE
+    } else if e.classe == "TimeoutError" || e.message.to_lowercase().contains("timed out") {
+        GOOGLE_MUET
+    } else if matches!(e.classe, "PermissionError" | "OSError") {
+        FICHIER_ILLISIBLE
+    } else {
+        GOOGLE_REFUSE
+    }
 }
 
 impl Sauvegarde {
@@ -106,14 +154,20 @@ impl Sauvegarde {
         !self.deposes.is_empty()
     }
 
+    /// La ligne de la sauvegarde. Ce qui est reporte au prochain passage s'y dit en passant, sans alarme : c'est
+    /// `persistant` (la trace, `sauvegarde_souci`) qui dit ce qui dure.
     pub fn resume(&self) -> String {
         if self.hors_ligne {
             return "Hors connexion : sauvegarde au prochain passage.".into();
         }
+        let reporte = if self.reportes.is_empty() { String::new() } else { format!(" ; {} au prochain passage", combien(&self.reportes, "reporte", "reportes")) };
         if self.deposes.is_empty() {
-            return format!("Sauvegarde a jour ({} fichiers).", self.identiques);
+            if reporte.is_empty() {
+                return format!("Sauvegarde a jour ({} fichiers).", self.identiques);
+            }
+            return format!("Sauvegarde : {} fichier(s) inchange(s){}.", self.identiques, reporte);
         }
-        format!("Sauvegarde : {} fichier(s) envoye(s), {}, {} inchange(s).", self.deposes.len(), lisible(self.octets_deposes), self.identiques)
+        format!("Sauvegarde : {} fichier(s) envoye(s), {}, {} inchange(s){}.", self.deposes.len(), lisible(self.octets_deposes), self.identiques, reporte)
     }
 
     /// Ce que `commandes_ouverture._en_json` en lit : `resume`, `deposes` (les chemins relatifs),
@@ -126,6 +180,103 @@ impl Sauvegarde {
             "octets": self.octets_deposes,
         })
     }
+}
+
+/// « 1 dossier reporte », « 2 fichiers reportes », « 1 dossier et 2 fichiers reportes ».
+fn combien(reportes: &[Reporte], un: &str, plusieurs: &str) -> String {
+    let (nd, nf) = (reportes.iter().filter(|r| r.dossier).count(), reportes.iter().filter(|r| !r.dossier).count());
+    let nom = |n: usize, quoi: &str| format!("{} {}{}", n, quoi, if n > 1 { "s" } else { "" });
+    let (texte, pluriel) = match (nd, nf) {
+        (0, f) => (nom(f, "fichier"), f > 1),
+        (d, 0) => (nom(d, "dossier"), d > 1),
+        (d, f) => (format!("{} et {}", nom(d, "dossier"), nom(f, "fichier")), true),
+    };
+    format!("{} {}", texte, if pluriel { plusieurs } else { un })
+}
+
+// ---------------------------------------------------------------- ce qui persiste
+
+/// CE QUI PERSISTE, ET SEULEMENT CELA (tickets #231 et #232, 20/10/2026). Un dossier reporte au prochain passage n'est pas un
+/// incident a montrer : Google rend parfois un 500 que le passage suivant ne voit plus. Ce qui se dit, c'est ce qui dure :
+/// le meme dossier (ou fichier) en echec sur `PASSAGES_QUI_DURENT` passages de suite (une heure, a vingt minutes d'une veille a
+/// l'autre), ou depuis `UNE_JOURNEE`, ou une journee entiere sans sauvegarde complete.
+pub const PASSAGES_QUI_DURENT: i64 = 3;
+pub const UNE_JOURNEE: i64 = 86_400;
+
+/// Echecs passagers de suite (chacun deja retente par le client) au-dela desquels le reste du passage est reporte sans appel.
+const INDISPONIBLE_D_AFFILEE: usize = 3;
+
+/// « un dossier n'a pas pu être envoyé », « 2 fichiers n'ont pas pu être envoyés ».
+fn ce_qui_manque(nd: usize, nf: usize) -> String {
+    let nom = |n: usize, quoi: &str| if n == 1 { format!("un {}", quoi) } else { format!("{} {}s", n, quoi) };
+    let (texte, pluriel) = match (nd, nf) {
+        (0, f) => (nom(f, "fichier"), f > 1),
+        (d, 0) => (nom(d, "dossier"), d > 1),
+        (d, f) => (format!("{} et {}", nom(d, "dossier"), nom(f, "fichier")), true),
+    };
+    if pluriel {
+        format!("{} n'ont pas pu être envoyés", texte)
+    } else {
+        format!("{} n'a pas pu être envoyé", texte)
+    }
+}
+
+/// « depuis 09:51 » le jour meme, « depuis hier », « depuis le 18/10 ».
+fn depuis_quand(depuis: i64, maintenant: i64) -> String {
+    let iso = crate::releve_retours::iso_de_naif(depuis);
+    match maintenant.div_euclid(UNE_JOURNEE) - depuis.div_euclid(UNE_JOURNEE) {
+        0 => format!("depuis {}", &iso[11..16]),
+        1 => "depuis hier".to_string(),
+        _ => format!("depuis le {}/{}", &iso[8..10], &iso[5..7]),
+    }
+}
+
+/// `AAAA-MM-JJ HH:MM` (l'heure de Paris, comme `quand`) en heure naive.
+fn naif(quand: &str) -> Option<i64> {
+    crate::releve_retours::naif_de_iso(&quand.replacen(' ', "T", 1))
+}
+
+/// La phrase de ce qui persiste dans l'index (`echecs`, `derniere_complete`), a l'heure naive `maintenant`, ou `None`.
+fn phrase_persistante(index: &Map<String, Value>, maintenant: i64) -> Option<String> {
+    let echecs = index.get("echecs").and_then(Value::as_object).filter(|e| !e.is_empty())?;
+    // (cle, depuis, cause) de chaque echec, et ceux qui durent.
+    let tous: Vec<(&String, i64, &str, bool)> = echecs
+        .iter()
+        .map(|(cle, e)| {
+            let depuis = e.get("depuis").and_then(Value::as_str).and_then(naif).unwrap_or(maintenant);
+            let passages = e.get("passages").and_then(Value::as_i64).unwrap_or(1);
+            let cause = e.get("cause").and_then(Value::as_str).unwrap_or(GOOGLE_REFUSE);
+            (cle, depuis, cause, passages >= PASSAGES_QUI_DURENT || maintenant - depuis >= UNE_JOURNEE)
+        })
+        .collect();
+    let complete = index.get("derniere_complete").and_then(Value::as_str).and_then(naif);
+    let durent: Vec<_> = tous.iter().filter(|t| t.3).collect();
+    let (retenus, depuis, par_l_item): (Vec<_>, i64, bool) = if !durent.is_empty() {
+        let depuis = durent.iter().map(|t| t.1).min().unwrap_or(maintenant);
+        (durent, depuis, true)
+    } else {
+        match complete.filter(|c| maintenant - c >= UNE_JOURNEE) {
+            Some(c) => (tous.iter().collect(), c, false),
+            None => return None,
+        }
+    };
+    let nd = retenus.iter().filter(|t| t.0.ends_with('/')).count();
+    let nf = retenus.len() - nd;
+    // La cause du plus ancien.
+    let cause = retenus.iter().min_by_key(|t| t.1).map(|t| t.2).unwrap_or(GOOGLE_REFUSE);
+    let quand = depuis_quand(depuis, maintenant);
+    Some(if par_l_item {
+        format!("Sauvegarde : {} {} ({}) ; le logiciel réessaie.", ce_qui_manque(nd, nf), quand, cause)
+    } else {
+        format!("Sauvegarde : {} ({}), pas de sauvegarde complète {} ; le logiciel réessaie.", ce_qui_manque(nd, nf), cause, quand)
+    })
+}
+
+/// `souci` : ce qui persiste de la sauvegarde, dit en clair (« Sauvegarde : un dossier n'a pas pu être envoyé depuis hier
+/// (Google indisponible) ; le logiciel réessaie. »), ou `None` si tout est passe, ou si ce n'est que passager. SANS RESEAU :
+/// lu dans l'index. La trace de l'ouverture le porte (`sauvegarde_souci`), la fenetre le montre a la place de la sauvegarde.
+pub fn souci(racine: &Path) -> Option<String> {
+    phrase_persistante(&lire_index(racine), crate::releve_retours::maintenant_naif())
 }
 
 fn lisible(octets: u64) -> String {
@@ -329,8 +480,14 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
         disparus: 0,
         secondes: 0.0,
         incidents: Vec::new(),
+        reportes: Vec::new(),
+        persistant: None,
         hors_ligne: false,
     };
+    // GOOGLE ABSENT POUR DE BON : le client a deja retente chaque appel (`drive::NOUVELLES_TENTATIVES`) ; apres
+    // `INDISPONIBLE_D_AFFILEE` echecs passagers de suite, le reste du passage est reporte sans appeler, plutot que de
+    // payer sept secondes d'attente par fichier.
+    let mut indisponibles_de_suite = 0usize;
     // Ce qui n'a PAS pu etre depose. Ces fichiers n'entrent pas dans l'index : sans cela, le
     // passage suivant les croirait a jour.
     let mut en_echec: std::collections::HashSet<String> = std::collections::HashSet::new();
@@ -349,6 +506,11 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
             segments.extend(dossier.split('/'));
         }
         let cle = segments.join("/");
+        if indisponibles_de_suite >= INDISPONIBLE_D_AFFILEE {
+            resultat.reportes.push(Reporte { quoi: dossier.clone(), dossier: true, cause: GOOGLE_INDISPONIBLE.into() });
+            en_echec.extend(fichiers.iter().cloned());
+            continue;
+        }
         let essai: Result<(String, BTreeMap<String, crate::drive::Distant>), ErreurGoogle> = (|| {
             let connu = dossiers.get(&cle).and_then(Value::as_str).filter(|p| !p.is_empty()).map(str::to_string);
             let parent = match connu {
@@ -375,6 +537,9 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
                 // Un dossier qui resiste ne doit pas emporter les autres : la sauvegarde est
                 // partielle, elle le dit, et le prochain passage reprendra celui-la.
                 resultat.incidents.push(format!("{} : {}", dossier, e));
+                let cause = cause_de(&e);
+                indisponibles_de_suite = if cause == GOOGLE_INDISPONIBLE { indisponibles_de_suite + 1 } else { 0 };
+                resultat.reportes.push(Reporte { quoi: dossier.clone(), dossier: true, cause: cause.into() });
                 dossiers.shift_remove(&cle);
                 en_echec.extend(fichiers.iter().cloned());
                 continue;
@@ -384,6 +549,11 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
         let mut tries: Vec<&String> = fichiers.iter().collect();
         tries.sort();
         for relatif in tries {
+            if indisponibles_de_suite >= INDISPONIBLE_D_AFFILEE {
+                resultat.reportes.push(Reporte { quoi: relatif.clone(), dossier: false, cause: GOOGLE_INDISPONIBLE.into() });
+                en_echec.insert(relatif.clone());
+                continue;
+            }
             let chemin = racine.join(relatif);
             let nom = relatif.rsplit('/').next().unwrap_or(relatif);
             let mut faire = || -> Result<Option<EtatFichier>, ErreurGoogle> {
@@ -399,7 +569,11 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
                 // ou renvoye par `tout`) ; « neuf » est ce qui est CREE.
                 Ok(Some(if connu.is_some() { EtatFichier::Modifie } else { EtatFichier::Neuf }))
             };
-            match faire() {
+            let fait = faire();
+            if fait.is_ok() {
+                indisponibles_de_suite = 0;
+            }
+            match fait {
                 Ok(None) => resultat.identiques += 1,
                 Ok(Some(etat)) => {
                     let octets = etat_de[relatif.as_str()].octets;
@@ -415,6 +589,9 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
                 }
                 Err(e) => {
                     resultat.incidents.push(format!("{} : {}", relatif, e));
+                    let cause = cause_de(&e);
+                    indisponibles_de_suite = if cause == GOOGLE_INDISPONIBLE { indisponibles_de_suite + 1 } else { 0 };
+                    resultat.reportes.push(Reporte { quoi: relatif.clone(), dossier: false, cause: cause.into() });
                     en_echec.insert(relatif.clone());
                 }
             }
@@ -429,13 +606,43 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
         }
     }
     let maintenant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs_f64()).unwrap_or(0.0);
-    let index = json!({
-        "quand": crate::paris::iso_minutes(maintenant).replacen('T', " ", 1),
-        "racine_drive": racine_drive,
-        "dossiers": Value::Object(dossiers),
-        "fichiers": Value::Object(fichiers),
-    });
-    ecrire_index(racine, &index)?;
+    let quand = crate::paris::iso_minutes(maintenant).replacen('T', " ", 1);
+    let mut nouvel_index = Map::new();
+    nouvel_index.insert("quand".into(), json!(quand));
+    nouvel_index.insert("racine_drive".into(), json!(racine_drive));
+    nouvel_index.insert("dossiers".into(), Value::Object(dossiers));
+    nouvel_index.insert("fichiers".into(), Value::Object(fichiers));
+    // CE QUI RESTE EN ECHEC, D'UN PASSAGE A L'AUTRE : de quoi dire ce qui persiste (`souci`). Un passage hors ligne ne compte
+    // pas (il n'a rien essaye) : il garde les echecs tels quels. Un passage sans rien de reporte les efface. Les deux cles ne
+    // s'ecrivent que s'il y a un echec : l'index d'une sauvegarde complete reste celui d'avant.
+    let anciens = index.get("echecs").and_then(Value::as_object).cloned().unwrap_or_default();
+    let echecs = if resultat.hors_ligne {
+        anciens.clone()
+    } else {
+        let mut e = Map::new();
+        for r in &resultat.reportes {
+            let cle = r.cle();
+            let avant = anciens.get(&cle);
+            let passages = avant.and_then(|a| a.get("passages")).and_then(Value::as_i64).unwrap_or(0) + 1;
+            let depuis = avant.and_then(|a| a.get("depuis")).and_then(Value::as_str).map(str::to_string).unwrap_or_else(|| quand.clone());
+            e.insert(cle, json!({"depuis": depuis, "passages": passages, "cause": r.cause}));
+        }
+        e
+    };
+    if !echecs.is_empty() {
+        // La derniere sauvegarde complete : celle que l'index d'avant disait deja, sinon le passage d'avant s'il etait complet.
+        let complete = match index.get("derniere_complete") {
+            Some(c) => Some(c.clone()),
+            None if anciens.is_empty() => index.get("quand").filter(|q| q.as_str().is_some_and(|s| !s.is_empty())).cloned(),
+            None => None,
+        };
+        if let Some(c) = complete {
+            nouvel_index.insert("derniere_complete".into(), c);
+        }
+        nouvel_index.insert("echecs".into(), Value::Object(echecs));
+    }
+    resultat.persistant = phrase_persistante(&nouvel_index, crate::releve_retours::maintenant_naif());
+    ecrire_index(racine, &Value::Object(nouvel_index))?;
     resultat.secondes = (debut.elapsed().as_secs_f64() * 10.0).round() / 10.0;
     Ok(resultat)
 }

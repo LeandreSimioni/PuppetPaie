@@ -54,6 +54,9 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     for i in &r.incidents {
         dire!("  ! {}", i);
     }
+    if let Some(p) = &r.persistant {
+        dire!("{}", p);
+    }
     dire!("En {} s.", crate::ecriture::repr_flottant(r.secondes));
     if r.incidents.is_empty() {
         0

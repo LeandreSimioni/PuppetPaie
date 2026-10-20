@@ -95,6 +95,12 @@ function dessinerVeille(v) {
         ? ` · <span class="veille-etape">${echapper(v.etape || "sauvegarde en cours…")}</span>` : ""}`}</span>${enFictive()
     ? ` · <button class="lien" data-fictive-explique="coulisses">compagnie fictive : pas de
         sauvegarde — pourquoi ?</button>` : ""}`];
+  // LA SAUVEGARDE QUI N'ARRIVE PAS AU BOUT, à sa place (tickets #231 et #232) : un dossier que
+  // Google refuse une fois repart au passage suivant, sans bruit ; ce qui dure, le moteur le dit
+  // en une phrase (`sauvegarde::souci`), et elle se lit ici, à côté de l'état, pas parmi les retours.
+  if (d.sauvegarde_souci && !d.hors_ligne) {
+    morceaux.push(`<span class="veille-sauvegarde" title="${echapper(d.sauvegarde || "")}">${echapper(d.sauvegarde_souci)}</span>`);
+  }
 
   // 2. LES NOUVELLES : ce qui est arrivé depuis le dernier regard.
   const nouvelles = [];

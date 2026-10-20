@@ -224,6 +224,7 @@ impl Ouverture {
                 "deposes_detail": s.deposes.iter().map(|f| json!({"relatif": f.relatif, "etat": f.etat.texte(), "octets": f.octets})).collect::<Vec<_>>(),
                 "exclus": s.exclus,
                 "hors_ligne": s.hors_ligne,
+                "souci": s.persistant,
             })
         });
         let retours = self.releve.as_ref().map(|r| {
@@ -378,6 +379,7 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture, precedente: &Value) {
     trace.insert("quand".into(), json!(r.quand));
     trace.insert("secondes".into(), json!(r.secondes));
     trace.insert("sauvegarde".into(), json!(r.sauvegarde.as_ref().map(Sauvegarde::resume).unwrap_or_default()));
+    trace.insert("sauvegarde_souci".into(), json!(sauvegarde::souci(&ctx.racine).unwrap_or_default()));
     trace.insert("retours".into(), json!(retours));
     trace.insert("hors_ligne".into(), json!(r.hors_ligne));
     trace.insert("nouveaux".into(), json!(nouveaux));
@@ -485,6 +487,7 @@ fn completer_la_trace(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Insta
     let mut trace = avant.clone();
     let liste = |cle: &str| -> Vec<Value> { avant.get(cle).and_then(Value::as_array).cloned().unwrap_or_default() };
     trace.insert("sauvegarde".into(), json!(r.sauvegarde.as_ref().map(Sauvegarde::resume).unwrap_or_default()));
+    trace.insert("sauvegarde_souci".into(), json!(sauvegarde::souci(&ctx.racine).unwrap_or_default()));
     let deja = avant.get("secondes").and_then(Value::as_f64).unwrap_or(0.0);
     trace.insert("secondes".into(), json!(((deja + ma_duree) * 10.0).round() / 10.0));
     trace.insert("hors_ligne".into(), json!(etait_hors_ligne || r.hors_ligne));
@@ -777,10 +780,10 @@ fn sauvegarder_le_dossier(ctx: &Contexte, opt: &Options, clients: &mut Clients<'
             None => None,
         };
         match sauvegarde::sauvegarder(&ctx.racine, &opt.racine_drive, false, drive) {
-            Ok(s) => {
-                r.incidents.extend(s.incidents.iter().cloned());
-                r.sauvegarde = Some(s);
-            }
+            // CE QUI EST REPORTE N'EST PAS UN INCIDENT (tickets #231 et #232) : un dossier que Google a refuse une fois (un 500,
+            // deja retente par le client) repart au passage suivant, en silence. Ce qui persiste se dit dans la ligne de la
+            // sauvegarde (`sauvegarde::souci`, la trace `sauvegarde_souci`), pas dans les incidents du releve.
+            Ok(s) => r.sauvegarde = Some(s),
             Err(e) => r.incidents.push(format!("Sauvegarde : {}", e)),
         }
     }

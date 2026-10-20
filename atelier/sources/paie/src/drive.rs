@@ -35,6 +35,33 @@ pub const DOSSIER_DRIVE: &str = "application/vnd.google-apps.folder";
 /// `urlopen(..., timeout=120)` des appels Drive.
 const DELAI_APPEL: u64 = 120;
 
+/// LES NOUVELLES TENTATIVES (tickets #231 et #232, 20/10/2026 : un « HTTP 500 : Internal Error » de Google montait tel quel
+/// dans le bandeau, et le passage suivant passait). Google le dit pour l'API Drive
+/// (`atelier/reference/sources/google-drive-api/`, LISEZ-MOI.md) : sur 500, 502, 503, 504 et 429, « use exponential backoff to
+/// retry the request » (`google-drive-api-gerer-les-erreurs-20261020.txt`, « 429 errors », « 500, 502, 503, 504 errors ») ;
+/// sur un 403 de limite de debit, « retry the upload » (`google-drive-api-televerser-20261020.txt`, « Handle media upload
+/// errors ») ; et l'algorithme : attendre 1 s, puis 2 s, puis 4 s, chaque fois plus un hasard d'au plus 1 000 ms, « up to some
+/// maximum number of retries » (`google-drive-api-limites-et-quotas-20261020.txt`, « Example algorithm »). Trois nouvelles
+/// tentatives au plus : un appel qui echoue encore apres sept secondes d'attente est rendu, et la sauvegarde le reporte au
+/// passage suivant (`sauvegarde.rs`).
+pub const NOUVELLES_TENTATIVES: u32 = 3;
+
+/// L'attente avant la premiere nouvelle tentative, en millisecondes (1 s, puis le double) ; le hasard ajoute en vaut au plus
+/// autant. La preuve la raccourcit (`avec_attente`).
+const ATTENTE_DE_BASE_MS: u64 = 1000;
+
+/// Une erreur que Google dit passagere : a retenter apres une attente (voir `NOUVELLES_TENTATIVES`).
+pub fn passagere(e: &ErreurGoogle) -> bool {
+    match e.statut {
+        Some(500 | 502 | 503 | 504 | 429) => true,
+        Some(403) => {
+            let m = e.message.to_lowercase();
+            m.contains("rate limit") || m.contains("ratelimitexceeded")
+        }
+        _ => false,
+    }
+}
+
 /// Une erreur de l'API ou de la configuration, avec la classe d'exception que le Python levait
 /// (`ErreurGoogle` pour ce qui est deja traduit en francais ; `CopieDeDeveloppement`,
 /// `FileNotFoundError`, `SortieAbsente`... pour le reste). La phrase est ecrite pour etre lue.
@@ -154,6 +181,8 @@ pub struct Client {
     adresses: Adresses,
     /// Le delai d'un appel, en secondes (120, comme `urlopen(timeout=120)`) ; la preuve le raccourcit.
     delai: u64,
+    /// L'attente avant la premiere nouvelle tentative, en millisecondes (`ATTENTE_DE_BASE_MS`) ; la preuve la raccourcit.
+    attente_ms: u64,
 }
 
 /// `google.compte_autorise` : l'adresse du compte, sans reseau ; `None` si pas autorise.
@@ -182,6 +211,7 @@ impl Client {
             acces: None,
             adresses: Adresses::default(),
             delai: DELAI_APPEL,
+            attente_ms: ATTENTE_DE_BASE_MS,
         })
     }
 
@@ -195,6 +225,7 @@ impl Client {
             acces: Some(acces.to_string()),
             adresses,
             delai: DELAI_APPEL,
+            attente_ms: ATTENTE_DE_BASE_MS,
         }
     }
 
@@ -207,6 +238,12 @@ impl Client {
     /// Pour la preuve : un delai d'appel plus court que les 120 s (une panne de delai se prouve vite).
     pub fn avec_delai(mut self, secondes: u64) -> Client {
         self.delai = secondes;
+        self
+    }
+
+    /// Pour la preuve : une attente avant la premiere nouvelle tentative plus courte que la seconde de Google.
+    pub fn avec_attente(mut self, millisecondes: u64) -> Client {
+        self.attente_ms = millisecondes;
         self
     }
 
@@ -250,14 +287,25 @@ impl Client {
     }
 
     /// `appel` sans lecture du JSON : les octets de la reponse, tels quels (le contenu d'un fichier, `telecharger`). Le
-    /// meme 401 rattrape une fois.
+    /// meme 401 rattrape une fois ; une erreur passagere (5xx, 429, limite de debit) se retente jusqu'a
+    /// `NOUVELLES_TENTATIVES` fois, apres 1 s, 2 s puis 4 s, plus un hasard (`passagere`, la page de Google citee la).
     pub fn appel_brut(&mut self, url: &str, donnees: Option<&[u8]>, content_type: Option<&str>, methode: Option<&str>) -> Result<Vec<u8>, ErreurGoogle> {
-        match self.appel_une_fois(url, donnees, content_type, methode) {
-            Err(e) if e.statut == Some(401) && self.identifiants.is_some() => {
-                self.acces = None;
-                self.appel_une_fois(url, donnees, content_type, methode)
+        let mut tentative = 0;
+        loop {
+            let r = match self.appel_une_fois(url, donnees, content_type, methode) {
+                Err(e) if e.statut == Some(401) && self.identifiants.is_some() => {
+                    self.acces = None;
+                    self.appel_une_fois(url, donnees, content_type, methode)
+                }
+                autre => autre,
+            };
+            match r {
+                Err(e) if passagere(&e) && tentative < NOUVELLES_TENTATIVES => {
+                    std::thread::sleep(std::time::Duration::from_millis(attente(self.attente_ms, tentative)));
+                    tentative += 1;
+                }
+                autre => return autre,
             }
-            autre => autre,
         }
     }
 
@@ -407,6 +455,14 @@ fn premier_de(trouves: &Value, strict: bool) -> Result<Option<String>, ErreurGoo
         return Ok(Some(texte_requis(premier, "id")?));
     }
     Ok(en_dict(premier)?.get("id").filter(|i| vrai(i)).map(en_texte))
+}
+
+/// L'attente avant la nouvelle tentative `n` (0 pour la premiere) : `base * 2^n` plus un hasard d'au plus `base`
+/// (« wait 1 + random_number_milliseconds », puis 2, puis 4 : `google-drive-api-limites-et-quotas-20261020.txt`).
+fn attente(base: u64, n: u32) -> u64 {
+    let mut o = [0u8; 2];
+    let hasard = if getrandom::fill(&mut o).is_ok() { u64::from(u16::from_le_bytes(o)) * base / u64::from(u16::MAX) } else { base / 2 };
+    base.saturating_mul(1 << n.min(6)) + hasard
 }
 
 /// `secrets.token_hex(16)`.

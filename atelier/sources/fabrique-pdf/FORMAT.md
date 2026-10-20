@@ -255,6 +255,12 @@ Hauteur selon les proportions. SVG, PNG ou JPEG (`.svg`, `.png`, `.jpg`,
 contenu, pas à leur extension). Un fichier illisible est un refus, pas un
 blanc. Même règle pour le `logo`.
 
+Un PNG ou un JPEG plus fin que **300 pixels par pouce** à sa largeur posée (de
+plus d'un quart) y est ramené (Lanczos 3, proportions gardées) ; un JPEG réduit
+est réécrit en JPEG (qualité 90), un JPEG qui n'a pas à l'être est recopié tel
+quel. Une image posée sur plusieurs pages (le `logo`) n'est écrite qu'une fois
+dans le fichier (ticket #228).
+
 ### `tableau`
 
 ```json

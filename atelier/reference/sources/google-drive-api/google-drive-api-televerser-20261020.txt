@@ -1,0 +1,1505 @@
+Skip to main content
+
+[Google Workspace]
+
+-   []Workspace
+
+Home Google Drive All products
+
+-   Google Workspace apps
+-   
+    Admin console
+-   
+    Cloud Search
+-   
+    Gmail
+-   
+    Google Calendar
+-   
+    Google Chat
+-   
+    Google Classroom
+-   
+    Google Docs
+-   
+    Google Drive
+
+-    
+-   
+    Google Forms
+-   
+    Google Keep
+-   
+    Google Meet
+-   
+    Google Sheets
+-   
+    Google Sites
+-   
+    Google Slides
+-   
+    Google Tasks
+-   
+    Google Vault
+
+-   Extend, automate & share
+-   
+    Add-ons
+-   
+    Apps Script
+-   
+    Chat apps
+-   
+    Drive apps
+-   
+    Marketplace
+
+Resources
+
+-   Tools
+-   
+    Admin console
+-   
+    Apps Script dashboard
+-   
+    Google Cloud console
+-   
+    APIs Explorer
+-   
+    Card Builder
+
+-   Training & support
+-   
+    How to get started
+-   
+    Codelabs
+-   
+    Developer support
+
+-   Updates
+-   
+    Release notes
+-   
+    Developer Previews
+-   
+    YouTube
+-   
+    Newsletter
+-   
+    X (Twitter)
+-   
+    Blog
+
+[]
+
+/
+
+-   English
+-   Deutsch
+-   Español
+-   Español – América Latina
+-   Français
+-   Indonesia
+-   Italiano
+-   Polski
+-   Português – Brasil
+-   Tiếng Việt
+-   Türkçe
+-   Русский
+-   עברית
+-   العربيّة
+-   فارسی
+-   हिंदी
+-   বাংলা
+-   ภาษาไทย
+-   中文 – 简体
+-   中文 – 繁體
+-   日本語
+-   한국어
+
+Sign in
+
+-   Google Drive
+
+Overview Guides Reference MCP server Samples Support
+
+[Google Workspace]
+
+-   []Workspace
+
+-    Home
+-    Google Drive
+    -    Overview
+    -    Guides
+    -    Reference
+    -    MCP server
+    -    Samples
+    -    Support
+-    All products
+    -    More
+-    Resources
+    -    More
+
+-   Get started
+
+-   Drive API overview
+
+-   Get started with Google Workspace
+
+-   Configure OAuth consent
+
+-   Drive API
+
+-   Choose scopes
+
+-   
+    Quickstarts
+
+    -   JavaScript
+    -   Go
+    -   Java
+    -   Node.js
+    -   Python
+    -   Python codelab
+
+-   
+    Manage files and folders
+
+    -   Overview
+
+    -   Create and manage files
+
+    -   Upload file data
+
+    -   Download and export files
+
+    -   Manage file revisions
+
+    -   Manage long-running operations
+
+    -   Create and populate folders
+
+    -   Trash or delete files and folders
+
+    -   Search for files and folders
+
+    -   
+        Manage permissions and sharing
+
+        -   Share files, folders, and drives
+        -   Manage pending access proposals
+        -   Manage approvals
+        -   Manage folders with limited and expansive access
+        -   Transfer file ownership
+        -   Protect file content from modification
+        -   Access link-shared files using resource keys
+
+    -   
+        Work with app and file data
+
+        -   Store application-specific data
+        -   Manage file metadata
+        -   Add custom file properties
+
+    -   Manage comments and replies
+
+    -   Create a shortcut to a Drive file
+
+    -   Create a shortcut file to app content
+
+-   
+    Gather user information
+
+    -   Return user info
+
+-   
+    Handle changes
+
+    -   Overview
+    -   Identify which change log to track
+    -   Track changes for users & shared drives
+    -   Retrieve changes
+    -   Receive notifications for resource changes
+
+-   
+    Work with events from Drive
+
+    -   Overview
+    -   Subscribe to events using the Google Workspace Events API
+
+-   
+    Integrate with the Drive UI
+
+    -   Overview
+    -   Configure a Drive UI integration
+    -   Integrate with Drive UI's "New" button
+    -   Integrate with Drive UI's "Open with" context menu
+
+-   
+    Integrate Drive widgets into your web app
+
+    -   Display the Google Picker
+    -   Add the "Save to Drive" button
+    -   Add the "Share" button
+
+-   
+    Integrate with shared drives
+
+    -   Overview
+    -   Implement shared drive support
+    -   Manage shared drives
+    -   Search for shared drives
+
+-   
+    Manage labels
+
+    -   Overview
+    -   Set label field
+    -   Unset label field
+    -   Remove label
+    -   List labels from file
+    -   Return specific labels from file
+    -   Search by label or field
+
+-   
+    Techniques and best practices
+
+    -   Return specific fields
+    -   Improve performance
+
+-   
+    Troubleshoot
+
+    -   Resolve errors
+    -   Troubleshoot authentication & authorization
+
+-   
+    Publish your Drive app
+
+    -   Use Google Drive brand
+    -   Market & publicize your app
+    -   Publish your Drive app
+
+-   
+    Migrate to Drive API v3
+
+    -   Migration guide
+    -   Comparison guide
+    -   Comparison reference
+    -   Guide to Drive API v2
+
+-   Drive Activity API
+
+-   Overview
+
+-   Data model
+
+-   Make requests
+
+-   Install a client library
+
+-   Migrate from v1
+
+-   
+    Quickstarts
+
+    -   JavaScript
+    -   Google Apps Script
+    -   Go
+    -   Java
+    -   Node.js
+    -   Python
+
+-   
+    Troubleshoot
+
+    -   Troubleshoot authentication & authorization
+
+-   Drive Labels API
+
+-   Overview
+
+-   Label lifecycle
+
+-   Set up scopes & admin access
+
+-   
+    Quickstarts
+
+    -   Python
+    -   Node.js
+
+-   Create & publish a label
+
+-   Update a label
+
+-   Disable, enable & delete labels
+
+-   Search labels
+
+-   
+    Troubleshoot
+
+    -   Troubleshoot authentication & authorization
+
+-   Google Picker API
+
+-   Overview
+
+-   Integrate the Google Picker into web apps
+
+-   Integrate the Google Picker into desktop and mobile apps
+
+-   
+    Code sample
+
+    -   Use Google Picker API features in web apps
+    -   Use the Google Picker web component
+
+-   Extend & automate
+
+-   Add-ons
+
+-   Apps Script
+
+-    Google Workspace apps
+-    Admin console
+-    Cloud Search
+-    Gmail
+-    Google Calendar
+-    Google Chat
+-    Google Classroom
+-    Google Docs
+-    Google Drive
+-     
+-    Google Forms
+-    Google Keep
+-    Google Meet
+-    Google Sheets
+-    Google Sites
+-    Google Slides
+-    Google Tasks
+-    Google Vault
+-    Extend, automate & share
+-    Add-ons
+-    Apps Script
+-    Chat apps
+-    Drive apps
+-    Marketplace
+
+-    Tools
+-    Admin console
+-    Apps Script dashboard
+-    Google Cloud console
+-    APIs Explorer
+-    Card Builder
+-    Training & support
+-    How to get started
+-    Codelabs
+-    Developer support
+-    Updates
+-    Release notes
+-    Developer Previews
+-    YouTube
+-    Newsletter
+-    X (Twitter)
+-    Blog
+
+-   Home
+
+-   
+
+    Google Workspace
+
+-   
+
+    Google Drive
+
+-   
+
+    Guides
+
+Send feedback
+
+Upload file data  Stay organized with collections   Save and categorize content based on your preferences. 
+
+The Google Drive API lets you upload file data when you create or update a File. For information about how to create a metadata-only file, such as a folder, see Create metadata-only files.
+
+There are three types of uploads you can perform:
+
+-   Simple upload (uploadType=media): Use this upload type to transfer a small media file (5 MB or less) without supplying metadata. To perform a simple upload, refer to Perform a simple upload.
+
+-   Multipart upload (uploadType=multipart): "Use this upload type to transfer a small file (5 MB or less) along with metadata that describes the file, in a single request. To perform a multipart upload, refer to Perform a multipart upload.
+
+-   Resumable upload (uploadType=resumable): Use this upload type for large files (greater than 5 MB) and when there's a high chance of network interruption, such as when creating a file from a mobile app. Resumable uploads are also a good choice for most applications because they also work for small files at a minimal cost of one additional HTTP request per upload. To perform a resumable upload, refer to Perform a resumable upload.
+
+The Google API client libraries implement at least one of these types of uploads. Refer to the client library documentation for additional details about how to use each of the types.
+
+Note: In the Drive API documentation, media refers to all available files with MIME types supported for upload to Drive. For a list of supported MIME types, refer to Google Workspace and Drive supported MIME types.
+
+Note: Users can upload any file type to Drive using the Drive UI and Drive attempts to detect and automatically set the MIME type. If the MIME type can't be detected, the MIME type is set to application/octet-stream.
+
+Use PATCH versus PUT
+
+As a refresher, the HTTP verb PATCH supports a partial file resource update whereas the HTTP verb PUT supports full resource replacement. Note that PUT can introduce breaking changes when adding a new field to an existing resource.
+
+When uploading a file resource, use the following guidelines:
+
+-   Use the HTTP verb documented on the API reference for the initial request of a resumable upload or for the only request of a simple or multipart upload.
+-   Use PUT for all subsequent requests for a resumable upload once the request has started. These requests are uploading content no matter the method being called.
+
+Perform a simple upload
+
+To perform a simple upload, use the create method on the files resource with uploadType=media.
+
+Note: If you're using the older Drive API v2, use the files.insert method. You can find code samples in GitHub. Learn how to migrate to Drive API v3.
+
+The following shows how to perform a simple upload:
+
+HTTP
+
+1.  Create a POST request to the method's /upload URI with the query parameter of uploadType=media:
+
+    POST https://www.googleapis.com/upload/drive/v3/files?uploadType=media
+
+2.  Add the file's data to the request body.
+
+3.  Add these HTTP headers:
+
+    -   Content-Type. Set to the MIME media type of the object being uploaded.
+    -   Content-Length. Set to the number of bytes you upload. If you use chunked transfer encoding, this header is not required.
+
+4.  Send the request. If the request succeeds, the server returns the HTTP 200 OK status code along with the file's metadata. {HTTP}
+
+Note: To update an existing file, use PATCH.
+
+JavaScript
+
+    /**
+     * Uploads a file without metadata.
+     *
+     * @param {Blob|File} file The file to upload.
+     * @param {string} accessToken A valid OAuth 2.0 access token.
+     * @return {Promise<Object>} The uploaded file metadata.
+     */
+    async function uploadFileSimple(file, accessToken) {
+      const response = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=media',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': file.type,
+          },
+          body: file,
+        }
+      );
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
+      return response.json();
+    }
+
+When you perform a simple upload, basic metadata is created and some attributes are inferred from the file, such as the MIME type or modifiedTime. You can use a simple upload in cases where you have small files and file metadata isn't important.
+
+Perform a multipart upload
+
+A multipart upload request lets you upload metadata and data in the same request. Use this option if the data you send is small enough to upload again, in its entirety, if the connection fails.
+
+To perform a multipart upload, use the create method on the files resource with uploadType=multipart.
+
+Note: If you're using the older Drive API v2, use the files.insert method. You can find code samples in GitHub. Learn how to migrate to Drive API v3.
+
+The following shows how to perform a multipart upload:
+
+Java
+
+drive/snippets/drive_v3/src/main/java/UploadBasic.java
+
+View on GitHub
+
+    import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+    import com.google.api.client.http.FileContent;
+    import com.google.api.client.http.HttpRequestInitializer;
+    import com.google.api.client.http.javanet.NetHttpTransport;
+    import com.google.api.client.json.gson.GsonFactory;
+    import com.google.api.services.drive.Drive;
+    import com.google.api.services.drive.DriveScopes;
+    import com.google.api.services.drive.model.File;
+    import com.google.auth.http.HttpCredentialsAdapter;
+    import com.google.auth.oauth2.GoogleCredentials;
+    import java.io.IOException;
+    import java.util.Arrays;
+
+    /* Class to demonstrate use of Drive insert file API */
+    public class UploadBasic {
+
+      /**
+       * Upload new file.
+       *
+       * @return Inserted file metadata if successful, {@code null} otherwise.
+       * @throws IOException if service account credentials file not found.
+       */
+      public static String uploadBasic() throws IOException {
+        // Load pre-authorized user credentials from the environment.
+        // TODO(developer) - See https://developers.google.com/identity for
+        // guides on implementing OAuth2 for your application.
+        GoogleCredentials credentials = GoogleCredentials.getApplicationDefault()
+            .createScoped(Arrays.asList(DriveScopes.DRIVE_FILE));
+        HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(
+            credentials);
+
+        // Build a new authorized API client service.
+        Drive service = new Drive.Builder(new NetHttpTransport(),
+            GsonFactory.getDefaultInstance(),
+            requestInitializer)
+            .setApplicationName("Drive samples")
+            .build();
+        // Upload file photo.jpg on drive.
+        File fileMetadata = new File();
+        fileMetadata.setName("photo.jpg");
+        // File's content.
+        java.io.File filePath = new java.io.File("files/photo.jpg");
+        // Specify media type and file-path for file.
+        FileContent mediaContent = new FileContent("image/jpeg", filePath);
+        try {
+          File file = service.files().create(fileMetadata, mediaContent)
+              .setFields("id")
+              .execute();
+          System.out.println("File ID: " + file.getId());
+          return file.getId();
+        } catch (GoogleJsonResponseException e) {
+          // TODO(developer) - handle error appropriately
+          System.err.println("Unable to upload file: " + e.getDetails());
+          throw e;
+        }
+      }
+    }
+
+Python
+
+drive/snippets/drive-v3/file_snippet/upload_basic.py
+
+View on GitHub
+
+    import google.auth
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+    from googleapiclient.http import MediaFileUpload
+
+
+    def upload_basic():
+      """Insert new file.
+      Returns : Id's of the file uploaded
+
+      Load pre-authorized user credentials from the environment.
+      TODO(developer) - See https://developers.google.com/identity
+      for guides on implementing OAuth2 for the application.
+      """
+      creds, _ = google.auth.default()
+
+      try:
+        # create drive api client
+        service = build("drive", "v3", credentials=creds)
+
+        file_metadata = {"name": "download.jpeg"}
+        media = MediaFileUpload("download.jpeg", mimetype="image/jpeg")
+        # pylint: disable=maybe-no-member
+        file = (
+            service.files()
+            .create(body=file_metadata, media_body=media, fields="id")
+            .execute()
+        )
+        print(f'File ID: {file.get("id")}')
+
+      except HttpError as error:
+        print(f"An error occurred: {error}")
+        file = None
+
+      return file.get("id")
+
+
+    if __name__ == "__main__":
+      upload_basic()
+
+Node.js
+
+drive/snippets/drive_v3/file_snippets/upload_basic.js
+
+View on GitHub
+
+    import fs from 'node:fs';
+    import {GoogleAuth} from 'google-auth-library';
+    import {google} from 'googleapis';
+
+    /**
+     * Uploads a file to Google Drive.
+     * @return {Promise<string|null|undefined>} The ID of the uploaded file.
+     */
+    async function uploadBasic() {
+      // Authenticate with Google and get an authorized client.
+      // TODO (developer): Use an appropriate auth mechanism for your app.
+      const auth = new GoogleAuth({
+        scopes: 'https://www.googleapis.com/auth/drive',
+      });
+
+      // Create a new Drive API client (v3).
+      const service = google.drive({version: 'v3', auth});
+
+      // The request body for the file to be uploaded.
+      const requestBody = {
+        name: 'photo.jpg',
+        fields: 'id',
+      };
+
+      // The media content to be uploaded.
+      const media = {
+        mimeType: 'image/jpeg',
+        body: fs.createReadStream('files/photo.jpg'),
+      };
+
+      // Upload the file.
+      const file = await service.files.create({
+        requestBody,
+        media,
+      });
+
+      // Print the ID of the uploaded file.
+      console.log('File Id:', file.data.id);
+      return file.data.id;
+    }
+
+JavaScript
+
+    /**
+     * Uploads a file along with its metadata.
+     *
+     * @param {Blob|File} file The file to upload.
+     * @param {string} accessToken A valid OAuth 2.0 access token.
+     * @return {Promise<Object>} The uploaded file metadata.
+     */
+    async function uploadFileMultipart(file, accessToken) {
+      const metadata = {
+        name: file.name,
+      };
+
+      const boundary = 'foo_bar_baz';
+      const delimiter = `\r\n--${boundary}\r\n`;
+      const closeDelimiter = `\r\n--${boundary}--`;
+
+      const requestBody = new Blob([
+        `--${boundary}\r\n`,
+        'Content-Type: application/json; charset=UTF-8\r\n\r\n',
+        JSON.stringify(metadata),
+        delimiter,
+        `Content-Type: ${file.type}\r\n\r\n`,
+        file,
+        closeDelimiter,
+      ]);
+
+      const response = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': `multipart/related; boundary=${boundary}`,
+          },
+          body: requestBody,
+        }
+      );
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
+      return response.json();
+    }
+
+PHP
+
+drive/snippets/drive_v3/src/DriveUploadBasic.php
+
+View on GitHub
+
+    <?php
+    use Google\Client;
+    use Google\Service\Drive;
+    # TODO - PHP client currently chokes on fetching start page token
+    function uploadBasic()
+    {
+        try {
+            $client = new Client();
+            $client->useApplicationDefaultCredentials();
+            $client->addScope(Drive::DRIVE);
+            $driveService = new Drive($client);
+            $fileMetadata = new Drive\DriveFile(array(
+            'name' => 'photo.jpg'));
+            $content = file_get_contents('../files/photo.jpg');
+            $file = $driveService->files->create($fileMetadata, array(
+                'data' => $content,
+                'mimeType' => 'image/jpeg',
+                'uploadType' => 'multipart',
+                'fields' => 'id'));
+            printf("File ID: %s\n", $file->id);
+            return $file->id;
+        } catch(Exception $e) {
+            echo "Error Message: ".$e;
+        } 
+
+    }
+
+.NET
+
+drive/snippets/drive_v3/DriveV3Snippets/UploadBasic.cs
+
+View on GitHub
+
+    using Google.Apis.Auth.OAuth2;
+    using Google.Apis.Drive.v3;
+    using Google.Apis.Services;
+
+    namespace DriveV3Snippets
+    {
+        // Class to demonstrate use of Drive insert file API
+        public class UploadBasic
+        {
+            /// <summary>
+            /// Upload new file.
+            /// </summary>
+            /// <param name="filePath">Image path to upload.</param>
+            /// <returns>Inserted file metadata if successful, null otherwise.</returns>
+            public static string DriveUploadBasic(string filePath)
+            {
+                try
+                {
+                    /* Load pre-authorized user credentials from the environment.
+                     TODO(developer) - See https://developers.google.com/identity for
+                     guides on implementing OAuth2 for your application. */
+                    GoogleCredential credential = GoogleCredential.GetApplicationDefault()
+                        .CreateScoped(DriveService.Scope.Drive);
+
+                    // Create Drive API service.
+                    var service = new DriveService(new BaseClientService.Initializer
+                    {
+                        HttpClientInitializer = credential,
+                        ApplicationName = "Drive API Snippets"
+                    });
+
+                    // Upload file photo.jpg on drive.
+                    var fileMetadata = new Google.Apis.Drive.v3.Data.File()
+                    {
+                        Name = "photo.jpg"
+                    };
+                    FilesResource.CreateMediaUpload request;
+                    // Create a new file on drive.
+                    using (var stream = new FileStream(filePath,
+                               FileMode.Open))
+                    {
+                        // Create a new file, with metadata and stream.
+                        request = service.Files.Create(
+                            fileMetadata, stream, "image/jpeg");
+                        request.Fields = "id";
+                        request.Upload();
+                    }
+
+                    var file = request.ResponseBody;
+                    // Prints the uploaded file id.
+                    Console.WriteLine("File ID: " + file.Id);
+                    return file.Id;
+                }
+                catch (Exception e)
+                {
+                    // TODO(developer) - handle error appropriately
+                    if (e is AggregateException)
+                    {
+                        Console.WriteLine("Credential Not found");
+                    }
+                    else if (e is FileNotFoundException)
+                    {
+                        Console.WriteLine("File not found");
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                return null;
+            }
+        }
+    }
+
+HTTP
+
+1.  Create a POST request to the method's /upload URI with the query parameter of uploadType=multipart:
+
+    POST https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart
+
+1.  Create the body of the request. Format the body according to the MIME multipart/related content type listed under RFC 2387, which contains two parts:
+
+    -   Metadata. The metadata must come first and must have a Content-Type header set to application/json; charset=UTF-8. Add the file's metadata in JSON format.
+    -   Media. The media must come second and must have a Content-Type header of any MIME type. Add the file's data to the media part. Identify each part with a boundary string, preceded by two hyphens. In addition, add two hyphens after the final boundary string.
+
+    1.  Add these top-level HTTP headers:
+
+        -   Content-Type. Set to multipart/related and include the boundary string you're using to identify the different parts of the request. For example: Content-Type: multipart/related; boundary=foo_bar_baz
+        -   Content-Length. Set to the total number of bytes in the request body.
+
+    2.  Send the request.
+
+    To create or update the metadata portion only, without the associated data, send a POST or PATCH request to the standard resource endpoint: https://www.googleapis.com/drive/v3/files If the request succeeds, the server returns the HTTP 200 OK status code along with the file's metadata.
+
+    Note: To update an existing file, use PATCH.
+
+When creating files, they should specify a file extension in the file's name field. For example, when creating a photo JPEG file, you might specify something like "name": "photo.jpg" in the metadata. Subsequent calls to the get method return the read-only fileExtension property containing the extension originally specified in the name field.
+
+Perform a resumable upload
+
+A resumable upload lets you resume an upload operation after a communication failure interrupts the flow of data. Because you don't have to restart large file uploads from the start, resumable uploads can also reduce your bandwidth usage if there's a network failure.
+
+Resumable uploads are useful when your file sizes might vary greatly or when there's a fixed time limit for requests (such as mobile OS background tasks and certain App Engine requests). You might also use resumable uploads for situations where you want to show an upload progress bar.
+
+A resumable upload consists of several high-level steps:
+
+1.  Send the initial request and retrieve the resumable session URI.
+2.  Upload the data and monitor upload state.
+3.  (optional) If the upload is disturbed, resume the upload.
+
+Send the initial request
+
+To initiate a resumable upload, use the create method on the files resource with uploadType=resumable.
+
+Note: If you're using the older Drive API v2, use the files.insert method. You can find code samples in GitHub. Learn how to migrate to Drive API v3.
+
+HTTP
+
+1.  Create a POST request to the method's /upload URI with the query parameter of uploadType=resumable:
+
+    POST https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable
+
+    If the initiation request succeeds, the response includes a 200 OK HTTP status code. In addition, it includes a Location header that specifies the resumable session URI:
+
+        HTTP/1.1 200 OK
+        Location: https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=xa298sd_sdlkj2
+        Content-Length: 0
+
+    Note: Unlike other file creation requests, the initial response for a resumable upload doesn't return a files resource and has an empty body. The files resource is returned only after you successfully upload the file data.
+
+    Save the resumable session URI so you can upload the file data and query the upload status. A resumable session URI expires after one week.
+
+    To update an existing file, use PATCH.
+
+2.  If you have metadata for the file, add the metadata to the request body in JSON format. Otherwise, leave the request body empty.
+
+3.  Add these HTTP headers:
+
+    -   X-Upload-Content-Type. Optional. Set to the MIME type of the file data, which is transferred in subsequent requests. If the MIME type of the data is not specified in the metadata or through this header, the object is served as application/octet-stream.
+    -   X-Upload-Content-Length. Optional. Set to the number of bytes of file data, which is transferred in subsequent requests.
+    -   Content-Type. Required if you have metadata for the file. Set to application/json; charset=UTF-8.
+    -   Content-Length. Required unless you use chunked transfer encoding. Set to the number of bytes in the body of this initial request.
+
+4.  Send the request. If the session initiation request succeeds, the response includes a 200 OK HTTP status code with an empty body. In addition, the response includes a Location header that specifies the resumable session URI. Use the resumable session URI to upload the file data and query the upload status. A resumable session URI expires after one week.
+
+5.  Copy and save the resumable session URL.
+
+6.  Continue to Upload the content.
+
+JavaScript
+
+    /**
+     * Initiates a resumable upload session and returns the session URI.
+     *
+     * @param {Blob|File} file The file to upload.
+     * @param {string} accessToken A valid OAuth 2.0 access token.
+     * @return {Promise<string>} The resumable session URI.
+     */
+    async function initiateResumableUpload(file, accessToken) {
+      const metadata = {
+        name: file.name,
+        mimeType: file.type,
+      };
+
+      const response = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json; charset=UTF-8',
+            'X-Upload-Content-Type': file.type,
+            'X-Upload-Content-Length': file.size,
+          },
+          body: JSON.stringify(metadata),
+        }
+      );
+      if (!response.ok) {
+        throw new Error(`Failed to initiate upload: ${response.statusText}`);
+      }
+      return response.headers.get('Location');
+    }
+
+Upload the content
+
+There are two ways to upload a file with a resumable session:
+
+-   Upload content in a single request: Use this approach when the file can be uploaded in one request, if there's no fixed time limit for any single request, or you don't need to display an upload progress indicator. This approach is best because it requires fewer requests and results in better performance.
+
+-   Upload the content in multiple chunks: Use this approach if you must reduce the amount of data transferred in any single request. You might need to reduce data transferred when there's a fixed time limit for individual requests, as can be the case for certain classes of App Engine requests. This approach is also useful if you must provide a customized indicator to show the upload progress.
+
+HTTP - single request
+
+1.  Create a PUT request to the resumable session URI.
+2.  Add the file's data to the request body.
+3.  Add a Content-Length HTTP header, set to the number of bytes in the file.
+4.  Send the request. If the upload request is interrupted, or if you receive a 5xx response, follow the procedure in Resume an interrupted upload.
+
+JavaScript - single request
+
+    /**
+     * Uploads the entire file in a single request using the session URI.
+     *
+     * @param {string} sessionUrl The resumable session URI.
+     * @param {Blob|File} file The file to upload.
+     * @return {Promise<Object>} The uploaded file metadata.
+     */
+    async function uploadFileSingleRequest(sessionUrl, file) {
+      const response = await fetch(sessionUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Length': file.size,
+        },
+        body: file,
+      });
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+      }
+      return response.json();
+    }
+
+HTTP - multiple requests
+
+1.  Create a PUT request to the resumable session URI.
+
+2.  Add the chunk's data to the request body. Create chunks in multiples of 256 KB (256 x 1024 bytes) in size, except for the final chunk that completes the upload. Keep the chunk size as large as possible so that the upload is efficient.
+
+3.  Add these HTTP headers:
+
+    -   Content-Length. Set to the number of bytes in the current chunk.
+    -   Content-Range. Set to show which bytes in the file you upload. For example, Content-Range: bytes 0-524287/2000000 shows that you upload the first 524,288 bytes (256 x 1024 x 2) in a 2,000,000 byte file.
+
+4.  Send the request, and process the response. If the upload request is interrupted, or if you receive a 5xx response, follow the procedure in Resume an interrupted upload.
+
+5.  Repeat steps 1 through 4 for each chunk that remains in the file. Use the Range header in the response to determine where to start the next chunk. Don't assume that the server received all bytes sent in the previous request.
+
+When the entire file upload is complete, you receive a 200 OK or 201 Created response, along with any metadata associated with the resource.
+
+JavaScript - multiple requests
+
+    /**
+     * Uploads a file in chunks of a specified size.
+     *
+     * @param {string} sessionUrl The resumable session URI.
+     * @param {Blob|File} file The file to upload.
+     * @param {number} chunkSize Chunk size in bytes (must be a multiple of 256 KB).
+     * @return {Promise<Object>} The uploaded file metadata.
+     */
+    async function uploadFileChunked(sessionUrl, file, chunkSize = 1024 * 1024) {
+      let start = 0;
+      while (start < file.size) {
+        const end = Math.min(start + chunkSize, file.size);
+        const chunk = file.slice(start, end);
+        const chunkLength = end - start;
+
+        const response = await fetch(sessionUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Length': chunkLength,
+            'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
+          },
+          body: chunk,
+        });
+
+        if (response.status === 308) {
+          // 308 Resume Incomplete indicates chunk was received successfully.
+          start = end;
+        } else if (response.ok) {
+          // 200 OK or 201 Created indicates the upload is fully complete.
+          return response.json();
+        } else {
+          throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+        }
+      }
+    }
+
+Resume an interrupted upload
+
+If an upload request is terminated before a response, or if you receive a 503 Service Unavailable response, then you must resume the interrupted upload.
+
+HTTP
+
+1.  To request the upload status, create an empty PUT request to the resumable session URI.
+
+2.  Add a Content-Range header to indicate that the current position in the file is unknown. For example, set the Content-Range to */2000000 if your total file length is 2,000,000 bytes. If you don't know the full size of the file, set the Content-Range to */*.
+
+3.  Send the request.
+
+4.  Process the response:
+
+    -   A 200 OK or 201 Created response indicates that the upload was completed, and no further action is necessary.
+    -   A 308 Resume Incomplete response indicates that you must continue to upload the file.
+    -   A 404 Not Found response indicates the upload session has expired and the upload must be restarted from the beginning.
+
+5.  If you received a 308 Resume Incomplete response, process the Range header of the response to determine which bytes the server has received. If the response doesn't have a Range header, no bytes have been received. For example, a Range header of bytes=0-42 indicates that the first 43 bytes of the file were received and that the next chunk to upload would start with byte 44.
+
+6.  Now that you know where to resume the upload, continue to upload the file beginning with the next byte. Include a Content-Range header to indicate which portion of the file you send. For example, Content-Range: bytes 43-1999999 indicates that you send bytes 44 through 2,000,000.
+
+JavaScript
+
+    /**
+     * Resumes an interrupted upload by querying the status and uploading remaining bytes.
+     *
+     * @param {string} sessionUrl The resumable session URI.
+     * @param {Blob|File} file The file being uploaded.
+     * @return {Promise<Object>} The uploaded file metadata.
+     */
+    async function resumeUpload(sessionUrl, file) {
+      // 1. Query the upload status by sending an empty PUT request
+      const statusResponse = await fetch(sessionUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Range': `bytes */${file.size}`,
+        },
+      });
+
+      if (statusResponse.ok) {
+        // Already completed
+        return statusResponse.json();
+      }
+
+      if (statusResponse.status !== 308) {
+        throw new Error(`Failed to query upload status: ${statusResponse.statusText}`);
+      }
+
+      // 2. Parse the Range header to determine received bytes
+      const rangeHeader = statusResponse.headers.get('Range');
+      let startOffset = 0;
+      if (rangeHeader) {
+        const parts = rangeHeader.split('-');
+        startOffset = parseInt(parts[1], 10) + 1;
+      }
+
+      // 3. Upload the remaining content of the file
+      const remainingChunk = file.slice(startOffset);
+      const response = await fetch(sessionUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Length': remainingChunk.size,
+          'Content-Range': `bytes ${startOffset}-${file.size - 1}/${file.size}`,
+        },
+        body: remainingChunk,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Resume upload failed: ${response.statusText}`);
+      }
+      return response.json();
+    }
+
+Handle media upload errors
+
+When you upload media, follow these best practices to handle errors:
+
+-   For 5xx errors, resume or retry uploads that fail due to connection interruptions. For further information on handling 5xx errors, refer to 500, 502, 503, 504 errors.
+-   For 403 rate limit errors, retry the upload. For further information about handling 403 rate limit errors, refer to 403 error: rateLimitExceeded.
+-   For any 4xx errors (including 403) during a resumable upload, restart the upload. These errors indicate the upload session has expired and must be restarted by requesting a new session URI. Upload sessions also expire after one week of inactivity.
+
+Import to Google Docs types
+
+When you create a file in Drive, you might want to convert the file into a Google Workspace file type, such as Google Docs or Sheets. For example, maybe you want to transform a document from your favorite word processor into a Docs to take advantage of its features.
+
+To convert a file to a specific Google Workspace file type, specify the Google Workspace mimeType when creating the file.
+
+Note: If you're using the older Drive API v2, include the convert query parameter of the insert method and specify the Google Workspace mimeType when creating the file.
+
+The following shows how to convert a CSV file to a Google Workspace sheet:
+
+Note: If you're using the older Drive API v2, you can find code samples in GitHub. Learn how to migrate to Drive API v3.
+
+Java
+
+drive/snippets/drive_v3/src/main/java/UploadWithConversion.java
+
+View on GitHub
+
+    import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+    import com.google.api.client.http.FileContent;
+    import com.google.api.client.http.HttpRequestInitializer;
+    import com.google.api.client.http.javanet.NetHttpTransport;
+    import com.google.api.client.json.gson.GsonFactory;
+    import com.google.api.services.drive.Drive;
+    import com.google.api.services.drive.DriveScopes;
+    import com.google.api.services.drive.model.File;
+    import com.google.auth.http.HttpCredentialsAdapter;
+    import com.google.auth.oauth2.GoogleCredentials;
+    import java.io.IOException;
+    import java.util.Arrays;
+
+    /* Class to demonstrate Drive's upload with conversion use-case. */
+    public class UploadWithConversion {
+
+      /**
+       * Upload file with conversion.
+       *
+       * @return Inserted file id if successful, {@code null} otherwise.
+       * @throws IOException if service account credentials file not found.
+       */
+      public static String uploadWithConversion() throws IOException {
+        // Load pre-authorized user credentials from the environment.
+        // TODO(developer) - See https://developers.google.com/identity for
+        // guides on implementing OAuth2 for your application.
+        GoogleCredentials credentials = GoogleCredentials.getApplicationDefault()
+            .createScoped(Arrays.asList(DriveScopes.DRIVE_FILE));
+        HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(
+            credentials);
+
+        // Build a new authorized API client service.
+        Drive service = new Drive.Builder(new NetHttpTransport(),
+            GsonFactory.getDefaultInstance(),
+            requestInitializer)
+            .setApplicationName("Drive samples")
+            .build();
+
+        // File's metadata.
+        File fileMetadata = new File();
+        fileMetadata.setName("My Report");
+        fileMetadata.setMimeType("application/vnd.google-apps.spreadsheet");
+
+        java.io.File filePath = new java.io.File("files/report.csv");
+        FileContent mediaContent = new FileContent("text/csv", filePath);
+        try {
+          File file = service.files().create(fileMetadata, mediaContent)
+              .setFields("id")
+              .execute();
+          System.out.println("File ID: " + file.getId());
+          return file.getId();
+        } catch (GoogleJsonResponseException e) {
+          // TODO(developer) - handle error appropriately
+          System.err.println("Unable to move file: " + e.getDetails());
+          throw e;
+        }
+      }
+    }
+
+Python
+
+drive/snippets/drive-v3/file_snippet/upload_with_conversion.py
+
+View on GitHub
+
+    import google.auth
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+    from googleapiclient.http import MediaFileUpload
+
+
+    def upload_with_conversion():
+      """Upload file with conversion
+      Returns: ID of the file uploaded
+
+      Load pre-authorized user credentials from the environment.
+      TODO(developer) - See https://developers.google.com/identity
+      for guides on implementing OAuth2 for the application.
+      """
+      creds, _ = google.auth.default()
+
+      try:
+        # create drive api client
+        service = build("drive", "v3", credentials=creds)
+
+        file_metadata = {
+            "name": "My Report",
+            "mimeType": "application/vnd.google-apps.spreadsheet",
+        }
+        media = MediaFileUpload("report.csv", mimetype="text/csv", resumable=True)
+        # pylint: disable=maybe-no-member
+        file = (
+            service.files()
+            .create(body=file_metadata, media_body=media, fields="id")
+            .execute()
+        )
+        print(f'File with ID: "{file.get("id")}" has been uploaded.')
+
+      except HttpError as error:
+        print(f"An error occurred: {error}")
+        file = None
+
+      return file.get("id")
+
+
+    if __name__ == "__main__":
+      upload_with_conversion()
+
+Node.js
+
+drive/snippets/drive_v3/file_snippets/upload_with_conversion.js
+
+View on GitHub
+
+    import fs from 'node:fs';
+    import {GoogleAuth} from 'google-auth-library';
+    import {google} from 'googleapis';
+
+    /**
+     * Uploads a file to Google Drive and converts it to a Google Sheet.
+     * @return {Promise<string|null|undefined>} The ID of the uploaded file.
+     */
+    async function uploadWithConversion() {
+      // Authenticate with Google and get an authorized client.
+      // TODO (developer): Use an appropriate auth mechanism for your app.
+      const auth = new GoogleAuth({
+        scopes: 'https://www.googleapis.com/auth/drive',
+      });
+
+      // Create a new Drive API client (v3).
+      const service = google.drive({version: 'v3', auth});
+
+      // The metadata for the file to be uploaded and converted.
+      const fileMetadata = {
+        name: 'My Report',
+        // The MIME type to convert the file to.
+        mimeType: 'application/vnd.google-apps.spreadsheet',
+      };
+
+      // The media content to be uploaded.
+      const media = {
+        mimeType: 'text/csv',
+        body: fs.createReadStream('files/report.csv'),
+      };
+
+      // Upload the file with conversion.
+      const file = await service.files.create({
+        requestBody: fileMetadata,
+        media,
+        fields: 'id',
+      });
+
+      // Print the ID of the uploaded file.
+      console.log('File Id:', file.data.id);
+      return file.data.id;
+    }
+
+PHP
+
+drive/snippets/drive_v3/src/DriveUploadWithConversion.php
+
+View on GitHub
+
+    <?php
+    use Google\Client;
+    use Google\Service\Drive;
+    function uploadWithConversion()
+    {
+        try {
+            $client = new Client();
+            $client->useApplicationDefaultCredentials();
+            $client->addScope(Drive::DRIVE);
+            $driveService = new Drive($client);
+            $fileMetadata = new Drive\DriveFile(array(
+                'name' => 'My Report',
+                'mimeType' => 'application/vnd.google-apps.spreadsheet'));
+            $content = file_get_contents('../files/report.csv');
+            $file = $driveService->files->create($fileMetadata, array(
+                'data' => $content,
+                'mimeType' => 'text/csv',
+                'uploadType' => 'multipart',
+                'fields' => 'id'));
+            printf("File ID: %s\n", $file->id);
+            return $file->id;
+        } catch(Exception $e) {
+            echo "Error Message: ".$e;
+        }
+
+    }
+
+.NET
+
+drive/snippets/drive_v3/DriveV3Snippets/UploadWithConversion.cs
+
+View on GitHub
+
+    using Google.Apis.Auth.OAuth2;
+    using Google.Apis.Drive.v3;
+    using Google.Apis.Services;
+
+    namespace DriveV3Snippets
+    {
+        // Class to demonstrate Drive's upload with conversion use-case.
+        public class UploadWithConversion
+        {
+            /// <summary>
+            /// Upload file with conversion.
+            /// </summary>
+            /// <param name="filePath">Id of the spreadsheet file.</param>
+            /// <returns>Inserted file id if successful, null otherwise.</returns>
+            public static string DriveUploadWithConversion(string filePath)
+            {
+                try
+                {
+                    /* Load pre-authorized user credentials from the environment.
+                     TODO(developer) - See https://developers.google.com/identity for
+                     guides on implementing OAuth2 for your application. */
+                    GoogleCredential credential = GoogleCredential.GetApplicationDefault()
+                        .CreateScoped(DriveService.Scope.Drive);
+
+                    // Create Drive API service.
+                    var service = new DriveService(new BaseClientService.Initializer
+                    {
+                        HttpClientInitializer = credential,
+                        ApplicationName = "Drive API Snippets"
+                    });
+
+                    // Upload file My Report on drive.
+                    var fileMetadata = new Google.Apis.Drive.v3.Data.File()
+                    {
+                        Name = "My Report",
+                        MimeType = "application/vnd.google-apps.spreadsheet"
+                    };
+                    FilesResource.CreateMediaUpload request;
+                    // Create a new drive.
+                    using (var stream = new FileStream(filePath,
+                               FileMode.Open))
+                    {
+                        // Create a new file, with metadata and stream.
+                        request = service.Files.Create(
+                            fileMetadata, stream, "text/csv");
+                        request.Fields = "id";
+                        request.Upload();
+                    }
+
+                    var file = request.ResponseBody;
+                    // Prints the uploaded file id.
+                    Console.WriteLine("File ID: " + file.Id);
+                    return file.Id;
+                }
+                catch (Exception e)
+                {
+                    // TODO(developer) - handle error appropriately
+                    if (e is AggregateException)
+                    {
+                        Console.WriteLine("Credential Not found");
+                    }
+                    else if (e is FileNotFoundException)
+                    {
+                        Console.WriteLine("File not found");
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                return null;
+            }
+        }
+    }
+
+To see if a conversion is available, check the importFormats field of the about resource before creating the file. Supported conversions are available dynamically in this array. Some common import formats are:
+
+  From                                                                 To
+  -------------------------------------------------------------------- -----------------------------------------
+  Microsoft Word, OpenDocument Text, HTML, RTF, plain text, Markdown   Google Docs
+  Microsoft Excel, OpenDocument Spreadsheet, CSV, TSV, plain text      Google Sheets
+  Microsoft PowerPoint, OpenDocument Presentation                      Google Slides
+  JPEG, PNG, GIF, BMP, PDF                                             Google Docs (embeds the image in a Doc)
+  Plain text (special MIME type), JSON                                 Google Apps Script
+
+When you upload and convert media during an update request to a Docs, Sheets, or Slides file, the full contents of the document are replaced.
+
+When you convert an image to a Docs, Drive uses Optical Character Recognition (OCR) to convert the image to text. You can improve the quality of the OCR algorithm by specifying the applicable BCP 47 language code in the ocrLanguage parameter. The extracted text appears in the document alongside the embedded image.
+
+Use a pre-generated ID to upload files
+
+The Drive API lets you retrieve a list of pre-generated file IDs that can be used to create, copy, and upload resources. For more information, see Generate IDs to use with your files.
+
+You can safely retry uploads with pre-generated IDs if there's an indeterminate server error or timeout. If the file action is successful, subsequent retries return a 409 Conflict HTTP status code response and duplicate files aren't created.
+
+Note that pre-generated IDs aren't supported for the creation of Google Workspace files, except for the application/vnd.google-apps.drive-sdk and application/vnd.google-apps.folder MIME types. Similarly, uploads referencing a conversion to a Google Workspace file format aren't supported.
+
+Define indexable text for unknown file types
+
+Users can use the Drive UI to find document content. You can also use the list method on the files resource and the fullText field to search for content from your app. For more information, see Search for files and folders.
+
+Drive automatically indexes documents for search when it recognizes the file type, including text documents, PDFs, images with text, and other common types. If your app saves other types of files (such as drawings, video, and shortcuts), you can improve the discoverability by supplying indexable text in the contentHints.indexableText field of the file.
+
+For more information about indexable text, see Manage file metadata.
+
+Send feedback
+
+Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License, and code samples are licensed under the Apache 2.0 License. For details, see the Google Developers Site Policies. Java is a registered trademark of Oracle and/or its affiliates.
+
+Last updated 2026-09-03 UTC.
+
+Need to tell us more?
+
+[[["Easy to understand","easyToUnderstand","thumb-up"],["Solved my problem","solvedMyProblem","thumb-up"],["Other","otherUp","thumb-up"]],[["Missing the information I need","missingTheInformationINeed","thumb-down"],["Too complicated / too many steps","tooComplicatedTooManySteps","thumb-down"],["Out of date","outOfDate","thumb-down"],["Samples / code issue","samplesCodeIssue","thumb-down"],["Other","otherDown","thumb-down"]],["Last updated 2026-09-03 UTC."],[],[]]
+
+-   Engage
+
+    -   Google Developer Program
+    -   Google Developer Groups
+    -   Google Developer Experts
+    -   Accelerators
+    -   Google Cloud & NVIDIA
+
+-   Connect
+
+    -   Blog
+    -   Bluesky
+    -   Instagram
+    -   LinkedIn
+    -   X (Twitter)
+    -   YouTube
+
+-   Build
+
+    -   Android
+    -   Chrome
+    -   Firebase
+    -   Google AI Studio
+    -   Google Antigravity
+    -   Google Cloud
+    -   Google Play
+    -   View all
+
+[Google Developers]
+
+-   Android
+-   Chrome
+-   Firebase
+-   Google Cloud Platform
+-   Google AI
+-   All products
+
+-   Terms
+-   Privacy
+-   Manage cookies
+
+-   English
+-   Deutsch
+-   Español
+-   Español – América Latina
+-   Français
+-   Indonesia
+-   Italiano
+-   Polski
+-   Português – Brasil
+-   Tiếng Việt
+-   Türkçe
+-   Русский
+-   עברית
+-   العربيّة
+-   فارسی
+-   हिंदी
+-   বাংলা
+-   ภาษาไทย
+-   中文 – 简体
+-   中文 – 繁體
+-   日本語
+-   한국어
