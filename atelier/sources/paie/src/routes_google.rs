@@ -114,16 +114,16 @@ pub(crate) fn identifiants(racine: &Path) -> R<(Value, Value, String)> {
     let Some(a) = application else {
         return Err(erreur_google(format!(
             "L'application Google du logiciel n'est pas renseignee.\n\n\
-             C'est une chose a faire UNE FOIS, par l'editeur, pas par chaque\n\
-             utilisateur : creer le projet sur console.cloud.google.com et\n\
-             recopier l'identifiant dans APPLICATION, en tete de\n\
-             moteur/google.py. La marche a suivre y est ecrite en entier.\n\n\
-             En attendant, on peut utiliser sa propre application en creant\n\
+             Elle est livree avec chaque version publiee ({}, posee par\n\
+             le flux « Publier » depuis le secret PUPPETPAIE_GOOGLE_APPLICATION) ;\n\
+             une copie de travail du depot ne l'a pas.\n\n\
+             Sinon, on peut utiliser sa propre application en creant\n\
              {} :\n\n\
              \x20 {{\n\
              \x20   \"client_id\": \"....apps.googleusercontent.com\",\n\
              \x20   \"client_secret\": \"....\"\n\
              \x20 }}\n",
+            livre.display(),
             p.display()
         )));
     };
