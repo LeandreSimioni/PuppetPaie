@@ -98,6 +98,14 @@ pub fn reprise(ctx: &Contexte, charge: &Value, maintenant: &str) -> R<Value> {
     for d in &attestes {
         let b = &d.bilan;
         let reel = texte(b, "essai_reel") == "02";
+        // UN TEST QUE CE LOGICIEL N'A PAS ENVOYE NE S'AFFICHE PAS ET NE SE REPREND PAS (Leandre, 20/10/2026) : sous le
+        // meme compte net-entreprises, les essais de l'atelier (ligne de commande, `paie --dev`, seances du nuage)
+        // reviennent dans les retours de la compagnie. Un test n'engage rien : absent du journal, il vient d'ailleurs.
+        // Il compte pourtant pour l'ordre (`ordre_signalements::dernier_ordre_des_mensuelles`, lu en silence). Un REEL
+        // absent du journal est un depot de la compagnie (l'atelier n'en fait jamais) : il se reprend.
+        if !reel && !d.deja {
+            continue;
+        }
         let vue = json!({
             "flux": d.flux,
             "quand": texte(b, "recu_le"),

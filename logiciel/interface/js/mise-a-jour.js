@@ -1,14 +1,16 @@
 /* L'INDICATEUR DE LA MISE A JOUR (ticket #210, Leandre, 16/10/2026 : « un
    petit truc en bas a gauche, des l'ecran d'accueil, avec une barre de
    progression : Recherche de mise a jour / Aucune mise a jour / Mise a jour
-   en cours (avec la barre) / Redemarrer pour mettre a jour »).
+   en cours (avec la barre) / Redemarrer pour mettre a jour » ; ticket #217 :
+   « Logiciel a jour », tout se dit positivement).
 
    Le moteur cherche la mise a jour au lancement, en fond, et tient ou il en
-   est (`maj::Recherche`). Cette page le lui demande par le geste `maj` du
-   lanceur (`window.pywebview.api.maj`, la cale du serveur : la meme sur
-   l'accueil et dans la page d'une compagnie) et affiche ce qu'il rend : la
-   phrase, la bulle, la barre. Elle relit tant que le moteur dit `en_cours`,
-   puis se tait : plus rien ne bouge, plus rien n'est demande.
+   est (`maj::Recherche`) ; lance sans reseau, il reprend de lui-meme. Cette
+   page le lui demande par le geste `maj` du lanceur
+   (`window.pywebview.api.maj`, la cale du serveur : la meme sur l'accueil et
+   dans la page d'une compagnie) et affiche ce qu'il rend : la phrase, la
+   bulle, la barre. Elle relit quand le moteur le dit (`relire_ms` : pendant
+   une recherche, et pendant qu'un nouvel essai est prevu), puis se tait.
 
    « Redemarrer pour mettre a jour » est un clic quand le moteur l'offre
    (`redemarrer`) : le geste `redemarrer` passe la version prete au relais et
@@ -17,7 +19,6 @@
    (`window.avantDeQuitter`, js/demarrage.js) : si elle ne s'enregistre pas,
    on reste. */
 (function () {
-  const RELIRE_MS = 700;
   let boite = null;
 
   function construire() {
@@ -58,7 +59,7 @@
     const r = await api.maj();
     if (!r || !r.ok) return;
     montrer(r.etat);
-    if (r.etat && r.etat.en_cours) setTimeout(lire, RELIRE_MS);
+    if (r.etat && r.etat.relire_ms) setTimeout(lire, r.etat.relire_ms);
   }
 
   async function redemarrer() {
@@ -74,7 +75,7 @@
       return;
     }
     bouton.disabled = false;
-    refus.textContent = (r && r.erreur) || "Le redémarrage ne s'est pas fait.";
+    refus.textContent = (r && r.erreur) || "PuppetPaie reste ouvert sur cette version.";
   }
 
   function demarrer() {

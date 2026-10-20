@@ -467,6 +467,14 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         // Une DPAE deposee en cours de mois fait un fichier, pas un mois ecrit :
         // c'est la DSN sur le disque qui dit « a deposer ».
         let etat = etat.unwrap_or(if sortes.contains(&"DSN") { "a_deposer" } else { "a_ecrire" });
+        // CE QUI RESTE A FAIRE DANS LA PAGE PAIE (Historique, 20/10/2026) : une DSN a ecrire, a deposer, refusee ou en
+        // retard, ou une DSN passee dont la paie a change depuis, tant que l'annule-et-remplace est admis. Le reste se
+        // lit dans l'Historique : un mois fini n'a plus de chemin vers la page Paie.
+        let a_faire = match etat {
+            "passee" => vrai(&m.etat_remplacement(nom, &Value::Null)?["a_envoyer"]),
+            "attente" => false,
+            _ => true,
+        };
         out.push(json!({
             "mois": nom, "produit": !noms.is_empty(), "dsn": etat,
             "depose_le": if vrai(&e) { e.get("quand").cloned().unwrap_or(Value::Null) } else { Value::Null },
@@ -475,6 +483,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             // Deposee, passee, et l'echeance derriere : la correction part dans
             // la DSN du mois courant.
             "corrigeable": vrai(&e) && !drapeau("refusee") && en_retard,
+            "a_faire": a_faire,
             "sortes": sortes, "fichiers": noms,
             "clos": m.exercice_clos(nom)?,
         }));
@@ -490,7 +499,7 @@ fn historique(m: &mut Moteur, ctx: &Contexte) -> Value {
         // Une fiche entreprise incomplete (effectif, echeance) ne doit pas
         // empecher la page de s'ouvrir : on retombe sur la liste nue.
         Err(_) => Value::Array(
-            mois.iter().map(|(nom, noms)| json!({"mois": nom, "produit": !noms.is_empty(), "dsn": null, "corrigeable": false, "sortes": [], "fichiers": noms})).collect(),
+            mois.iter().map(|(nom, noms)| json!({"mois": nom, "produit": !noms.is_empty(), "dsn": null, "corrigeable": false, "a_faire": true, "sortes": [], "fichiers": noms})).collect(),
         ),
     }
 }

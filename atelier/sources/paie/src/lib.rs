@@ -114,6 +114,7 @@ pub mod importation_incident;
 pub mod importation_completer;
 pub mod incidents;
 pub mod caviardage;
+pub mod historique_mois;
 pub mod routes_apercus;
 pub mod routes_bulletin_modele;
 pub mod routes_importation;

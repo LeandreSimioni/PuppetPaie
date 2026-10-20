@@ -794,7 +794,7 @@ async function demanderFiche(bouton) {
   }
   const mdp = await demanderMotDePasse(`envoyer la demande de fiche à ${adresse}`);
   if (!mdp) return;
-  bouton.disabled = true;
+  const rendre = occupe(bouton, "Envoi de la demande en cours…");
   const repere = await repereCourrielsFictifs();
   try {
     const r = await api("fiche-demander", { adresse, prenom, motdepasse: mdp });
@@ -804,11 +804,11 @@ async function demanderFiche(bouton) {
     CLE_ACTIVE = null;
     FICHE_NEUVE = false;
     dessinerConfig();
-    dire(`Demande envoyée à ${r.adresse}. Sa fiche se créera à l'arrivée de sa réponse.`);
+    dire(`Demande envoyée à ${r.adresse}. Sa fiche se créera à l'arrivée de sa réponse.`, "envoye");
     fenetreCourrielsFictifs("fiche", repere);
   } catch (e) {
-    bouton.disabled = false;
-    dire(e.message, "erreur");
+    rendre();
+    dire("Envoi impossible : " + e.message, "erreur");
   }
 }
 

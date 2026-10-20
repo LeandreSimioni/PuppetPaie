@@ -1,0 +1,484 @@
+Les Comptes Rendus Métiers DSN - net-entreprises.fr
+{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://www.net-entreprises.fr/#/schema/WebSite","url":"https://www.net-entreprises.fr/","name":"net-entreprises.fr","description":"Le portail officiel des déclarations sociales","inLanguage":"fr-FR","potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://www.net-entreprises.fr/search/{search_term_string}/"},"query-input":"required name=search_term_string"},"publisher":{"@type":"Organization","@id":"https://www.net-entreprises.fr/#/schema/Organization","name":"net-entreprises.fr","url":"https://www.net-entreprises.fr/"}},{"@type":"WebPage","@id":"https://www.net-entreprises.fr/declaration/comptes-rendus-metiers-dsn/","url":"https://www.net-entreprises.fr/declaration/comptes-rendus-metiers-dsn/","name":"Les Comptes Rendus Métiers DSN - net-entreprises.fr","inLanguage":"fr-FR","isPartOf":{"@id":"https://www.net-entreprises.fr/#/schema/WebSite"},"breadcrumb":{"@type":"BreadcrumbList","@id":"https://www.net-entreprises.fr/#/schema/BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"item":"https://www.net-entreprises.fr/","name":"net-entreprises.fr"},{"@type":"ListItem","position":2,"name":"Les Comptes Rendus Métiers DSN"}]},"potentialAction":{"@type":"ReadAction","target":"https://www.net-entreprises.fr/declaration/comptes-rendus-metiers-dsn/"},"datePublished":"2020-09-16T13:33:34+00:00","dateModified":"2021-11-30T10:26:55+00:00"}]}
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+Votre compte
+Vous inscrire / Vous connecter
+Votre compte
+Vous inscrire / Vous connecter
+Profils
+ Entreprises privées et tiers déclarants
+Inscription et compte net-entreprises.fr
+En savoir plus 
+DSN
+Gestion de compte
+Inscription
+net-entreprises.fr
+ Vous êtes nouveau sur net-entreprises.fr ? 
+ Tout d’abord, vérifiez au sein de votre entreprise – dans la mesure du possible – si vos collègues sont déjà inscrits pour votre entreprise, auquel cas ils ont la possibilité de vous ajouter en tant que déclarant vous permettant ainsi de déclarer rapidement. 
+ En savoir plus 
+La Déclaration Sociale Nominative – DSN
+Accédez à dsn-info
+A la une
+Déclarations sociales
+DSN
+net-entreprises.fr
+RH et paie
+ La déclaration Sociale Nominative (DSN) 
+ La DSN repose sur la transmission unique, mensuelle et dématérialisée des données issues de la paie et sur des signalements d’événements. 
+ Accédez à dsn-info 
+Autres déclarations et services
+En savoir plus
+Actualités
+Formation
+net-entreprises.fr
+SOLTéA
+ Solde de la taxe d’apprentissage – SOLTéA 
+ Le solde de la taxe d’apprentissage est destiné à favoriser le développement des formations initiales technologiques et professionnelles, hors apprentissage, et l’insertion professionnelle. 
+ En savoir plus 
+Les outils de suivi &#8211; Tableaux de bord
+En savoir plus
+CRM
+DSN
+net-entreprises.fr
+ Les Comptes Rendus Métiers DSN 
+ Un Compte Rendu Métier (CRM) est un rapport permettant à l’organisme ou administration concernée de faire un retour aux déclarants à réception de leur déclaration lorsqu’une erreur ou suspicion d’erreur est détectée. Il est donc important de prendre en compte ces retours. 
+ En savoir plus 
+Outils de contrôle et paramétrage
+Testez vos fichiers dsn-val !
+Dsn-Val
+NEODeS
+neorau
+net-entreprises.fr
+Pasrau-Val
+ Outils d’auto-contrôle Dsn-Val et brique de contrôle 
+ Avant de transmettre vos fichiers, nous vous proposons des outils de contrôles vous permettant de vérifier certains éléments avant la transmission de votre fichier. N’hésitez pas ! Testez vos fichiers !&lt;br /&gt;
+ Testez vos fichiers dsn-val ! 
+Nomenclatures et codes
+Accédez aux tables de référence DSN
+DSN
+NEODeS
+neorau
+Nomenclatures
+Pasrau
+ Tables de référence de la norme DSN – P24V01 
+ Les tables de nomenclatures permettent aux employeurs de trouver en un endroit unique toutes les codifications qu’il doit utiliser pour sa paie et la DSN, d’être informé en temps réel des mises à jour et de télécharger ces taux. 
+ Accédez aux tables de référence DSN 
+ Administration Fonction Publique
+Inscription et compte net-entreprises.fr
+En savoir plus 
+DSN
+Gestion de compte
+Inscription
+net-entreprises.fr
+ Vous êtes nouveau sur net-entreprises.fr ? 
+ Tout d’abord, vérifiez au sein de votre entreprise – dans la mesure du possible – si vos collègues sont déjà inscrits pour votre entreprise, auquel cas ils ont la possibilité de vous ajouter en tant que déclarant vous permettant ainsi de déclarer rapidement. 
+ En savoir plus 
+Passage des Revenus Autres – Pasrau
+En savoir plus
+Pasrau
+Pasrau-Val
+ Le tableau de bord PASRAU 
+ Le tableau de bord PASRAU vous informe de la situation de vos traitements et vous délivre les retours positifs ou avec anomalies. 
+ En savoir plus 
+La Déclaration Sociale Nominative – DSN
+Accédez à dsn-info
+A la une
+Déclarations sociales
+DSN
+net-entreprises.fr
+RH et paie
+ La déclaration Sociale Nominative (DSN) 
+ La DSN repose sur la transmission unique, mensuelle et dématérialisée des données issues de la paie et sur des signalements d’événements. 
+ Accédez à dsn-info 
+Autres déclarations et services
+En savoir plus
+Actualités
+Formation
+net-entreprises.fr
+SOLTéA
+ Solde de la taxe d’apprentissage – SOLTéA 
+ Le solde de la taxe d’apprentissage est destiné à favoriser le développement des formations initiales technologiques et professionnelles, hors apprentissage, et l’insertion professionnelle. 
+ En savoir plus 
+Les outils de suivi &#8211; Tableaux de bord
+En savoir plus
+CRM
+DSN
+net-entreprises.fr
+ Les Comptes Rendus Métiers DSN 
+ Un Compte Rendu Métier (CRM) est un rapport permettant à l’organisme ou administration concernée de faire un retour aux déclarants à réception de leur déclaration lorsqu’une erreur ou suspicion d’erreur est détectée. Il est donc important de prendre en compte ces retours. 
+ En savoir plus 
+Outils de contrôle et paramétrage
+Testez vos fichiers dsn-val !
+Dsn-Val
+NEODeS
+neorau
+net-entreprises.fr
+Pasrau-Val
+ Outils d’auto-contrôle Dsn-Val et brique de contrôle 
+ Avant de transmettre vos fichiers, nous vous proposons des outils de contrôles vous permettant de vérifier certains éléments avant la transmission de votre fichier. N’hésitez pas ! Testez vos fichiers !&lt;br /&gt;
+ Testez vos fichiers dsn-val ! 
+Nomenclatures et codes
+Accédez aux tables de référence DSN
+DSN
+NEODeS
+neorau
+Nomenclatures
+Pasrau
+ Tables de référence de la norme DSN – P24V01 
+ Les tables de nomenclatures permettent aux employeurs de trouver en un endroit unique toutes les codifications qu’il doit utiliser pour sa paie et la DSN, d’être informé en temps réel des mises à jour et de télécharger ces taux. 
+ Accédez aux tables de référence DSN 
+ Indépendants &#038; libéraux
+La Déclaration Sociale des Indépendants – DSI
+En savoir plus
+DSI
+ Déclaration Sociale des Indépendants - DSI 
+ Une déclaration sociale et fiscale de revenus unifiée : une simplification majeure depuis 2021 pour les travailleurs indépendants. 
+ En savoir plus 
+La déclaration de chiffres d’affaires de l’auto-entrepreneur
+En savoir plus
+ La déclaration de chiffres d’affaires de l&#039;auto-entrepreneur 
+ La déclaration de chiffre d’affaires et le paiement de vos cotisations et contributions sociales auto-entrepreneur doivent exclusivement être faits sur le site www.autoentrepreneur.urssaf.fr. 
+ En savoir plus 
+ Editeurs
+La Déclaration Sociale Nominative – DSN
+Accédez à dsn-info
+A la une
+Déclarations sociales
+DSN
+net-entreprises.fr
+RH et paie
+ La déclaration Sociale Nominative (DSN) 
+ La DSN repose sur la transmission unique, mensuelle et dématérialisée des données issues de la paie et sur des signalements d’événements. 
+ Accédez à dsn-info 
+Passage des Revenus Autres – Pasrau
+En savoir plus
+Pasrau
+Pasrau-Val
+ Le tableau de bord PASRAU 
+ Le tableau de bord PASRAU vous informe de la situation de vos traitements et vous délivre les retours positifs ou avec anomalies. 
+ En savoir plus 
+Les outils de suivi &#8211; Tableaux de bord
+En savoir plus
+CRM
+DSN
+net-entreprises.fr
+ Les Comptes Rendus Métiers DSN 
+ Un Compte Rendu Métier (CRM) est un rapport permettant à l’organisme ou administration concernée de faire un retour aux déclarants à réception de leur déclaration lorsqu’une erreur ou suspicion d’erreur est détectée. Il est donc important de prendre en compte ces retours. 
+ En savoir plus 
+Outils de contrôle et paramétrage
+Testez vos fichiers dsn-val !
+Dsn-Val
+NEODeS
+neorau
+net-entreprises.fr
+Pasrau-Val
+ Outils d’auto-contrôle Dsn-Val et brique de contrôle 
+ Avant de transmettre vos fichiers, nous vous proposons des outils de contrôles vous permettant de vérifier certains éléments avant la transmission de votre fichier. N’hésitez pas ! Testez vos fichiers !&lt;br /&gt;
+ Testez vos fichiers dsn-val ! 
+Nomenclatures et codes
+Accédez aux tables de référence DSN
+DSN
+NEODeS
+neorau
+Nomenclatures
+Pasrau
+ Tables de référence de la norme DSN – P24V01 
+ Les tables de nomenclatures permettent aux employeurs de trouver en un endroit unique toutes les codifications qu’il doit utiliser pour sa paie et la DSN, d’être informé en temps réel des mises à jour et de télécharger ces taux. 
+ Accédez aux tables de référence DSN 
+L’API DSN
+En savoir plus
+API
+DSN
+ L’API DSN 
+ L’API DSN est l’interface qui permet au logiciel de paie du déclarant (ou au concentrateur) de s’authentifier directement sur le point de dépôt des déclarations sociales nominatives. 
+ En savoir plus 
+Les pilotes DSN en cours
+En savoir plus
+CRM
+MNS
+ Pilote Montant Net Social (MNS) / CRM Urssaf 
+ À partir du Mois Principal Déclaré (MPD) de janvier 2024, le Montant Net Social (MNS) devra être déclaré en DSN, en version de norme P24V01. 
+ En savoir plus 
+ Presse et chercheurs
+Rapport annuel, dossiers de presse et tribunes Net-entreprises
+Découvrir
+presse
+ Rapport annuel, dossiers de presse et tribunes Net-entreprises 
+ Téléchargez les Brochures, Rapport annuel net-entreprises.fr, DSN Fonction publique et DSN et découvrez les tribunes d’Élisabeth Humbert-Bottin et Éric Hayat. 
+ Découvrir 
+Communiqués de presse Net-entreprises
+Découvrir
+presse
+ Communiqués de presse Net-entreprises 
+ Téléchargez nos derniers communiqués de presse. 
+ Découvrir 
+Publications net-entreprises.fr
+Découvrir
+presse
+ Publications net-entreprises.fr 
+ Téléchargez nos publications : brochures, dépliants, affiches et découvrez nos visuels sur le thème sportif &quot;Construisons ensemble des données de compétition&quot;. 
+ Découvrir 
+Témoignages d’entreprises
+Découvrir
+presse
+ Témoignages d’entreprises 
+ Plus de simplification au service des entreprises. Découvrez les témoignages d’utilisateurs. 
+ Découvrir 
+Les principaux chiffres
+Découvrir
+presse
+ Les principaux chiffres 
+ Les chiffres clés de net-entreprises.fr 
+ Découvrir 
+Nos services
+ Les services net-entreprises.fr
+Déclarations Assurance Maladie
+En savoir plus
+Assurance maladie
+AT/MP
+DSN
+ Le compte AT/MP 
+ Avec le compte AT/MP, l’Assurance Maladie – Risques professionnels met à la disposition des employeurs des informations utiles pour gérer leurs risques professionnels. Quand vous le souhaitez, consultez en ligne vos taux de cotisation notifiés et le détail de leur calcul. 
+ En savoir plus 
+Les déclarations de cotisations
+Accédez à dsn-info
+A la une
+Déclarations sociales
+DSN
+net-entreprises.fr
+RH et paie
+ La déclaration Sociale Nominative (DSN) 
+ La DSN repose sur la transmission unique, mensuelle et dématérialisée des données issues de la paie et sur des signalements d’événements. 
+ Accédez à dsn-info 
+Déclarations embauche et fin de contrat
+En savoir plus
+DPAE
+ Déclaration préalable à l’embauche – DPAE 
+ La Déclaration Préalable à l’Embauche (DPAE) permet de regrouper les 5 formalités liées à l’embauche d’un salarié (y compris la période d’essai). 
+ En savoir plus 
+Déclarations des secteurs d’activités spécifiques
+En savoir plus
+CRPCEN
+DSN
+ Déclarations CRPCEN 
+ La CRPCEN (Caisse de Retraite et de Prévoyance des Clercs et Employés de Notaires) est chargée du recouvrement sur émoluments et honoraires ainsi que les affiliations des salariés. 
+ En savoir plus 
+Indépendants et professions libérales
+En savoir plus
+DSI
+ Déclaration Sociale des Indépendants – DSI 
+ Depuis 2019, la DSI de tous les travailleurs indépendants doit être effectuée par voie dématérialisée sur impots.gouv.fr. 
+ En savoir plus 
+Régime agricole
+En savoir plus
+MSA
+ Déclarations MSA liées à la santé 
+ Les déclarations MSA liées à la santé sont : L’Attestation de Salaire et de Reprise de Travail hors accident du travail – ASART MSA et La Déclaration d’Accident du Travail – DAT MSA 
+ En savoir plus 
+Formation
+En savoir plus
+Formation
+SOLTéA
+ Solde de la taxe d’apprentissage – SOLTéA 
+ Le solde de la taxe d’apprentissage est destiné à favoriser le développement des formations initiales technologiques et professionnelles, hors apprentissage, et l’insertion professionnelle. 
+ En savoir plus 
+Les entreprises étrangères
+En savoir plus
+Les entreprises étrangères
+ Les entreprises étrangères 
+ Sont dénommées « entreprises étrangères » tous les employeurs dont l’entreprise ne comporte pas d’établissement en France et qui emploient du personnel salarié relevant du régime social français. 
+ En savoir plus 
+Nouveautés !
+En savoir plus
+A la une
+Actualités
+DSN
+MNS
+ Montant net social : quels sont les éléments à déclarer en DSN en 2024 ? 
+ Le montant net social (MNS) correspond aux revenus servant au calcul du RSA et de la prime d’activité, afin de permettre le juste calcul de la prestation pour les bénéficiaires. 
+ En savoir plus 
+CRM 135
+ : les anomalies de format de dates sont en cours de résolution. Des difficultés de récupération des CRM 135 émis depuis le 1er octobre ont été identifiées par les concentrateurs, corrections en cours. Merci de patienter
+L’inscription et la modification d’inscription sur Net-entreprises
+ seront indisponibles le 21 octobre de 12 h à 14 h en raison de l’intégration des 
+fonctionnalités DSN à votre espace connecté
+.
+Pep&rsquo;s 
+: service actuellement indisponible. Merci de patienter
+IMPORTANT
+: 
+des courriels usurpant l’identité de Net-entreprises circulent actuellement
+. Nous vous invitons à la plus grande vigilance notamment en vérifiant l‘adresse mail de l’expéditeur (les courriers officiels de Net-entreprises se terminent par @net-entreprises.fr).
+S'inscrire sur net-entreprises.fr
+Toutes les entreprises et les indépendants ainsi que leurs mandataires peuvent grâce à ce point d’entrée unique déclarer et télérégler l’ensemble des cotisations sociales relevant du régime général, indépendant et agricole.
+L’inscription et l’utilisation de net-entreprises sont entièrement gratuites.
+Je crée mon compte net-entreprises.fr
+Votre poste est-il compatible avec nos services ?
+ Tester la compatibilité 
+ Utiliser un certificat 
+Se connecter à net-entreprises.fr
+Veuillez utiliser vos identifiants et mot de passe
+ Utiliser un certificat 
+Siret
+Nom
+Prénom
+Mot de passe
+Je me connecte
+ Mot de passe oublié 
+Vous n'avez pas de compte ? ?
+Je crée mon compte net-entreprises.fr
+ <input
+ class="search-menu_input"
+ name="s"
+ type="text"
+ placeholder="Tapez vos mots clés"
+ value=""
+ >
+DSN-INFO : La déclaration Sociale Nominative (DSN)
+Les Comptes Rendus Métiers DSN
+Les Comptes Rendus Métiers DSN
+ Publié le 16 septembre 2020
+ - Modifié le 30 novembre 2021 
+Un Compte Rendu Métier (CRM) est un rapport permettant à l’organisme ou administration concernée de faire un retour aux déclarants à réception de leur déclaration lorsqu’une erreur ou suspicion d’erreur est détectée. Il est donc important de prendre en compte ces retours. 
+En bref
+A réception des données de la DSN, chaque organisme intègre les éléments transmis dans son système et vérifie la cohérence des données transmises dans vos déclarations afin d&rsquo;en garantir la fiabilité.
+Suite à cette analyse, chaque organisme destinataire de vos DSN vous met à disposition un « Compte Rendu Métier (ou CRM) » sur votre tableau de bord, pour vous préciser vos anomalies ou vous confirmer la qualité de vos déclarations.
+Les observations ont mis en évidence qu’à ce stade, il n’était pas facile pour les entreprises d’exploiter ces CRM car la « lecture » de l’action induite n’est pas toujours directe. De plus, certains retours pourraient donner lieu à des prises en compte plus automatisés pour les logiciels de paie.
+Un chantier d’ensemble est ouvert pour optimiser ces fonctionnements.
+Pour autant, en l’état même du système il est essentiel pour les déclarants de traiter des anomalies mises en évidence dans les CRM mis à disposition par chaque organisme ou administration en sortie des DSN ou signalement transmises afin d’effectuer par la suite les corrections nécessaires si besoin.
+Pour consulter ces CRM sur net-entreprises (s’ils ne sont pas directement intégrés dans vos pro-giciels), accédez à votre tableau de bord DSN puis cliquez sur la DSN souhaitée.
+&nbsp;
+Les Comptes Rendus Métiers (CRM) mis à disposition
+La liste des principaux CRM mis à disposition des déclarants en fonction de l’organisme concerné ; les CRM dont le non traitement des anomalies conduit à de forts risques sur les droits des salariés sont signalés en jaune avec en regard les éléments clefs qui doivent être traités.
+&nbsp;
+Organisme / Administration 
+CRM mis à disposition
+Agirc Arrco
+Le compte rendu métier de type synthèse ;
+Le CRM de type notification ;
+les écarts mentionnés par exemple sur les erreurs de plafond doivent être analysés et s’il y a lieu la correction effectuée en paie
+Assurance maladie
+Bilan de non reconstitution du signalement ; si le CRM porte une anomalie relevant de a responsabilité de l’employeur, le signalement doit être corrigé ou une DSI IJ opérée pour garantir le droit du salarié 
+Administration fiscale &#8211; DGFIP
+Compte rendu métier nominatif (CRM nominatif) 
+Compte rendu métier financier (CRM financier) 
+CNAV
+Bilan d’identification des salariés (BIS) les cas où le BIS retournent un autre NIR que celui déclaré ou un NIR à la place d’un NTT déclaré doivent être corrigés pour la paie du mois suivant 
+Contrôles inter déclarations (CID) 
+Pôle emploi
+Bilan de non reconstitution du signalement – si le signalement n’est pas possible compte tenu des données mensuelles antérieures une AED doit être faite 
+Attestation employeur rematérialisée (AER) 
+Prévoyance, mutuelle et délégataires de gestion 
+Bilan de traitement de l’IP et/ou mutuelle concernée
+Urssaf
+Bilan de traitement Urssaf : les écarts de taux et d’assiette doivent être corrigés dans la DSN du mois suivant sur la période d’afférence 
+&nbsp;
+&nbsp;
+NB
+ : Editeurs de logiciels 
+consultez les informations relatives à la norme NEOReS
+ (norme d’échange optimisée des retours sociaux, désignant les flux des organismes destinataires de données DSN vers les déclarants et leurs solutions de paie). 
+&nbsp;
+Le tableau de bord de la DSN
+Découvrir
+Les retours d&rsquo;informations suite au dépôt de votre DSN ou signalement d&rsquo;événement
+Découvrir
+ Besoin d'aide ?
+Posez-nous vos questions !
+Rechercher
+ <a
+ href="https://www.net-entreprises.fr/newsletters-net-entreprises/"
+ class="slider-item"
+ data-duration="5000"
+ style="background-image: url('/media/2022/03/newsletter-carrousel.gif')"
+ >
+ <div
+ class="slider-title slider-title_left"
+ style="color: ;"
+ >
+ <a
+ href="https://www.net-entreprises.fr/suivez-nous-sur-les-reseaux-sociaux-net-entreprises/"
+ class="slider-item"
+ data-duration="5000"
+ style="background-image: url('/media/2022/04/banniere-ok.jpg')"
+ >
+ <div
+ class="slider-title slider-title_left"
+ style="color: ;"
+ >
+Guides et FAQ
+DSN - Conditions de production et/ou de mise à disposition des CRM
+Note sur les Comptes rendus métier (CRM) pour le PAS
+Les remontées d'informations sur le tableau de bord
+URSSAF
+AGIRC-ARRCO
+CNAV
+FRANCE TRAVAIL
+UNEDIC
+CNAM
+CNAF
+MSA
+CIBTP France
+CS
+CRPCEN
+FIPS
+FRANCE ASSUREURS
+MUTUALITÉ FRANÇAISE
+CRPNPAC
+CPRPF
+CNIEG
+CAMIEG
+ENIM
+CAVIMAC
+CNBF
+CRP RATP
+CDC
+RAFP
+IRCANTEC
+CNRACL
+CAVEC
+CFDT
+CFE-CGC
+CFTC
+CGT
+CGT-FO
+CNOEC
+FNSEA
+LES ENTREPRENEURS
+MEDEF
+NUMEUM
+UNAPL
+U2P
+Nos services
+Inscription et gestion de compte
+La Déclaration Sociale Nominative
+Autres déclarations et services
+Profils
+Entreprises privées et Tiers déclarants
+Collectivités et Fonction publique
+Indépendants et professions libérales
+Nous contacter
+Nous connaitre
+Comités Régionaux
+Base de connaissances
+2020 GIP-MDS
+Mentions légales/Conditions générales
+Sécurité
+Glossaire
+Nous contacter
+GIP-MDS
+Nous rejoindre
+ <iframe
+ src="about:blank"
+ frameborder="0"
+ allow="autoplay"
+ allowfullscreen
+ >
+{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":["/wpcb/wp-*.php","/wpcb/wp-admin/*","/media/*","/app/*","/app/modules/*","/app/themes/netentreprises/*","/*\\?(.+)"]}},{"not":{"selector_matches":"a[rel~=\"nofollow\"]"}},{"not":{"selector_matches":".no-prefetch, .no-prefetch a"}}]},"eagerness":"conservative"}]}
+var options = {"dom":"\u003Cdiv class=\"gdpr-popin\" \u003E\n \u003Cdiv class=\"gdpr-popin-content\"\u003E\n \u003Cdiv class=\"gdpr-popin-default\"\u003E\n \u003Ch2\u003EParam\u00e8tres de cookies\u003C/h2\u003E\n\u003Cp\u003ENotre site utilise diff\u00e9rents cookies pour son fonctionnement. Certains de ces cookies sont d\u00e9pos\u00e9s par des services tiers \u00e0 des fins d'analyse statistique pour nous permettre de vous fournir une meilleure exp\u00e9rience.\u003C/p\u003E\n\u003Cp\u003ESi vous souhaitez configurer les cookies que vous souhaitez autoriser, vous pouvez cliquer sur \"Param\u00e9trer les cookies\", ou bien accepter tous les cookies en cliquant sur \"Tout accepter et continuer\".\u003C/p\u003E\n\u003Cp\u003E\u003Cbutton class=\"gdpr-popin-customise-button\"\u003EParam\u00e9trer les cookies\u003C/button\u003E\n\u003Cbutton class=\"gdpr-popin-refuse-all-button\" data-gdpr-refuse-all-button\u003ETout refuser\u003C/button\u003E\n\u003Cbutton class=\"gdpr-popin-accept-all-button\" data-gdpr-accept-all-button\u003ETout accepter\u003C/button\u003E\n\u003C/p\u003E\n\u003Cp\u003ECes param\u00e8tres pourront \u00eatre retrouv\u00e9s \u00e0 tout moment, ainsi que plus d'information sur les cookies utilis\u00e9s par le site, sur la page de\u00a0\u003Ca href=\"/mentions-legales/\"\u003EMentions l\u00e9gales\u003C/a\u003E.\u003C/p\u003E\n \u003C/div\u003E\n \u003Cdiv class=\"gdpr-popin-customisation\"\u003E\n \u003Ch2\u003EVos pr\u00e9f\u00e9rences\u003C/h2\u003E\n\u003Cp\u003EDiff\u00e9rents types de cookies sont utilis\u00e9s par le site. Seuls les cookies de fonctionnement sont obligatoires, et ce afin de fournir une exp\u00e9rience de navigation adapt\u00e9e. Tous les cookies que nous d\u00e9posons respectent les r\u00e9glementations de dur\u00e9e et de vie priv\u00e9e.\u003C/p\u003E\n\u003Cp\u003E\u003Cdiv class=\"gdpr-popin-choices\"\u003E\n\n \u003Cdiv class=\"gdpr-popin-choice\"\u003E\n \u003Clabel for=\"cookies-de-fonctionnement\"\u003E\n \u003Cinput type=\"checkbox\" id=\"cookies-de-fonctionnement\" value=\"cookies-de-fonctionnement\" checked=\"checked\" disabled=\"disabled\" /\u003E\n Cookies de fonctionnement \u003C/label\u003E\n \u003Cp\u003ECes cookies sont n\u00e9cessaires au fonctionnement du site et ne peuvent donc pas \u00eatre d\u00e9sactiv\u00e9s. Ils permettent de s\u00e9curiser le site internet ainsi que vos pr\u00e9f\u00e9rences d'affichage\u003C/p\u003E\n \u003C/div\u003E\n \u003Cdiv class=\"gdpr-popin-choice\"\u003E\n \u003Clabel for=\"cookies-a-des-fins-statistiques\"\u003E\n \u003Cinput type=\"checkbox\" id=\"cookies-a-des-fins-statistiques\" value=\"cookies-a-des-fins-statistiques\" checked=\"checked\" /\u003E\n Cookies \u00e0 des fins statistiques \u003C/label\u003E\n \u003Cp\u003ECes cookies servent \u00e0 mesurer, \u00e9tudier et analyser les comportements des visiteurs, afin d'am\u00e9liorer l'exp\u00e9rience de navigation des utilisateurs. Accepter ces cookies nous aide \u00e0 vous fournir de meilleurs services et \u00e0 am\u00e9liorer votre parcours de navigation.\u003C/p\u003E\n \u003C/div\u003E\n \n\u003C/div\u003E\n\n\u003Cbutton class=\"gdpr-popin-back-button\"\u003ERetour\u003C/button\u003E\n\u003Cbutton class=\"gdpr-popin-accept-button\" data-gdpr-accept-button\u003EEnregistrer\u003C/button\u003E\n\u003C/p\u003E\n\u003Cp\u003ECes param\u00e8tres pourront \u00eatre retrouv\u00e9s \u00e0 tout moment, ainsi que plus d'information sur les cookies utilis\u00e9s par le site, sur la page de\u00a0\u003Ca href=\"/mentions-legales/\"\u003EMentions l\u00e9gales\u003C/a\u003E.\u003C/p\u003E\n \u003C/div\u003E\n \u003C/div\u003E\n\u003C/div\u003E\n"};
+//# sourceURL=globalis-gdpr-popin-js-extra
+var js_vars = {"rgpd":[]};
+//# sourceURL=rgpd-forms-js-extra
+var netent_script = {"ajax_url":"https://www.net-entreprises.fr/ajax.php","nomenclature_url":"https://portail.net-entreprises.fr","calendar_popup_title":"Les \u00e9v\u00e9nements du %s "};
+//# sourceURL=netent%2Fscript-js-extra

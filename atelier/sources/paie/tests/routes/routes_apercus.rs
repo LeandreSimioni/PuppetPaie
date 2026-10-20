@@ -123,8 +123,15 @@ fn bilan_repetition_dit_ou_en_est_le_test_de_ce_fichier() {
     assert_eq!(r["empreinte"], json!(empreinte_de(b"le contenu a declarer")));
     assert_eq!(r["incident"], json!(""));
 
-    // Un test accepte, compte rendu OK.
-    let bon = depot_test("dsn", "DSN_Sept2026.dsn", b"le contenu a declarer", json!([{"verdict": "OK"}]));
+    // L'ACCUSE D'ENREGISTREMENT SEUL (nature 10, `etat_envoi` OK) n'est pas un compte rendu : « envoi recu », pas
+    // « conforme » (regle 5 ; tickets #221, #222 : l'ecran disait « testee — conforme » sur lui seul).
+    let accuse = depot_test("dsn", "DSN_Sept2026.dsn", b"le contenu a declarer", json!([{"nature": "10", "verdict": "OK"}]));
+    ecrire(c, "journal/depots.json", &json!([accuse]));
+    let r = lire(c, "bilan-repetition", charge.clone());
+    assert_eq!(r["compte_rendu"], json!("attendu"), "{}", r);
+
+    // Un test accepte, et son BILAN (nature 11) OK : c'est lui qui dit conforme.
+    let bon = depot_test("dsn", "DSN_Sept2026.dsn", b"le contenu a declarer", json!([{"nature": "10", "verdict": "OK"}, {"nature": "11", "verdict": "OK"}]));
     ecrire(c, "journal/depots.json", &json!([bon]));
     let r = lire(c, "bilan-repetition", charge.clone());
     assert_eq!(r["compte_rendu"], json!("ok"));

@@ -499,18 +499,18 @@ function dessinerCasc(r) {
     if (!liste.length) { dire("La date d'au moins un virement d'abord : les courriels annoncent des virements faits."); return; }
     const mdp = await demanderMotDePasse("envoyer à Audiens et au CASC-SVP la régularisation " + liste.join(" et "));
     if (!mdp) return;
-    envoyer.disabled = true;
+    const rendre = occupe(envoyer, "Envoi des courriels en cours…");
     const repere = await repereCourrielsFictifs();
     try {
       const e = await api("casc-envoyer", { vire_le, motdepasse: mdp });
       dire(`${e.partis.length} courriel(s) envoyé(s) à ${e.partis.join(" et ")} — ` +
-           `${e.annees.map((a) => a.annee).join(" et ")} notée(s) régularisée(s).`);
+           `${e.annees.map((a) => a.annee).join(" et ")} notée(s) régularisée(s).`, "envoye");
       cible.innerHTML = `<p>CASC-SVP ${echapper(e.periode)} : ${echapper(euros(e.total))}, envoyé depuis
         ${echapper(e.expediteur)}. Copie des courriels dans ${echapper(e.dossier)}.</p>`;
       fenetreCourrielsFictifs("courriel", repere);
     } catch (x) {
-      envoyer.disabled = false;
-      dire(x.message, "erreur");
+      rendre();
+      dire("Envoi impossible : " + x.message, "erreur");
     }
   };
 }

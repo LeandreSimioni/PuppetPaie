@@ -2184,3 +2184,378 @@ pub fn anomalies_lisibles_d_octets(o: &[u8]) -> Result<Vec<Value>, Echec> {
 pub fn anomalies_codees_d_octets(o: &[u8]) -> Result<Vec<Value>, Echec> {
     anomalies_codees(&Entree::Octets(o.to_vec()))
 }
+
+// --------------------------------------------- un rapport au format harmonise, lu pour l'Historique
+
+/// Les types de rapport que la specification du schema des bilans nomme (« Modele conceptuel » : AEE, certificat de
+/// conformite, avis de rejet, bilan d'anomalies, BIS, controle inter-declarations ;
+/// `atelier/reference/sources/gip-mds-api-dsn/gip-mds-specifications-schema-bilans-vt2.2-20201118.txt`). Les codes
+/// courts AEE, CCO, BAN sont ceux que la plate-forme ecrit dans `rapport/@type` (pieces recues ; `RAPPORTS_DEPOT`) ;
+/// ARE, BIS et CID sont les noms des exemples du guide v6.8 (§6.1, `exemple_retour_10_ARE.xml`, `_20_BIS_`, `_21_CID`) :
+/// une inference sur le code, qu'aucune piece recue n'a encore eprouvee.
+const TYPES_RAPPORT: [(&str, &str); 6] = [
+    ("AEE", "Accusé d'enregistrement électronique"),
+    ("ARE", "Avis de rejet"),
+    ("CCO", "Certificat de conformité"),
+    ("BAN", "Bilan d'anomalies"),
+    ("BIS", "Bilan d'identification des salariés"),
+    ("CID", "Contrôle inter-déclarations"),
+];
+
+fn premier_texte<'a>(a: &'a Arbre, e: &'a Noeud, noms: &[&str]) -> &'a str {
+    for nom in noms {
+        if let Some(x) = a.sous(e).find(|x| local(&x.tag) == *nom && !x.texte_net().is_empty()) {
+            return x.texte_net();
+        }
+    }
+    ""
+}
+
+/// Un rapport au FORMAT DSN HARMONISE (la racine `rapport` du schema des bilans) lu pour qu'on le lise : son type, le
+/// message d'en-tete (`rapport/@message`), l'etat de l'envoi (`envoi_etat` : OK, KO ou ANO), chaque declaration
+/// (nature, type, ordre, mois, etat), chaque anomalie (code, categorie, message, rubrique declenchante, numero de
+/// ligne, nombre, et le salarie de son environnement), et les informations collectives (`communication`, §2.6 : le
+/// type et les donnees, nom et valeur). Tout vient de la specification VT2.2 deposee
+/// (`atelier/reference/sources/gip-mds-api-dsn/gip-mds-specifications-schema-bilans-vt2.2-20201118.txt`) ; les noms
+/// d'elements sont ceux des pieces recues (`v01r08`) et des exemples du guide. `None` : ce n'est pas un rapport
+/// harmonise (un XML d'un autre format, un PDF, une archive), ou il ne se lit pas.
+pub fn lire_rapport(o: &[u8]) -> Option<Value> {
+    let arbre = lire_octets(o).ok()?;
+    let racine = arbre.racine();
+    if local(&racine.tag) != "rapport" {
+        return None;
+    }
+    let type_rapport = racine.get("type").unwrap_or("").to_string();
+    let libelle = TYPES_RAPPORT.iter().find(|(c, _)| *c == type_rapport).map(|(_, l)| l.to_string()).unwrap_or_default();
+    let envoi = arbre.tous().find(|e| local(&e.tag) == "envoi");
+    let etat_envoi = envoi.map(|e| premier_texte(&arbre, e, &["envoi_etat"])).unwrap_or("");
+    let essai_reel = envoi.map(|e| premier_texte(&arbre, e, &["essai_reel"])).unwrap_or("");
+    let mut declarations = Vec::new();
+    for d in arbre.tous().filter(|e| local(&e.tag) == "declaration") {
+        let id = arbre.sous(d).find(|x| local(&x.tag) == "declaration_identification").unwrap_or(d);
+        let bilan = arbre.sous(d).find(|x| local(&x.tag) == "declaration_bilan").unwrap_or(d);
+        declarations.push(json!({
+            "nature": premier_texte(&arbre, id, &["nature"]), "type": premier_texte(&arbre, id, &["type"]),
+            "ordre": premier_texte(&arbre, id, &["ordre"]), "mois": mois_lisible(premier_texte(&arbre, id, &["mois"])),
+            "etat": premier_texte(&arbre, bilan, &["etat", "etat_conformite"]),
+        }));
+    }
+    let mut anomalies = Vec::new();
+    for a in arbre.tous().filter(|e| {
+        let n = local(&e.tag);
+        n == "anomalie" || n.ends_with("_anomalie")
+    }) {
+        let rubrique = match arbre.sous(a).find(|x| local(&x.tag) == "rubrique_declenchante") {
+            Some(r) => premier_texte(&arbre, r, &["identifiant", "rubrique"]).to_string(),
+            None => premier_texte(&arbre, a, &["identifiant"]).to_string(),
+        };
+        let salarie = [premier_texte(&arbre, a, &["nom_famille"]), premier_texte(&arbre, a, &["prenoms"])]
+            .iter()
+            .filter(|s| !s.is_empty())
+            .cloned()
+            .collect::<Vec<&str>>()
+            .join(" ");
+        let (code, message) = (premier_texte(&arbre, a, &["code"]), premier_texte(&arbre, a, &["message"]));
+        if code.is_empty() && message.is_empty() {
+            continue;
+        }
+        anomalies.push(json!({
+            "code": code, "categorie": premier_texte(&arbre, a, &["categorie"]), "message": message, "rubrique": rubrique,
+            "ligne": premier_texte(&arbre, a, &["numero_ligne"]), "nombre": premier_texte(&arbre, a, &["nombre"]),
+            "salarie": salarie,
+        }));
+    }
+    let mut informations = Vec::new();
+    for c in arbre.tous().filter(|e| local(&e.tag) == "information_collective") {
+        let donnees: Vec<Value> = arbre
+            .sous(c)
+            .skip(1)
+            .filter(|x| x.enfants.is_empty() && !x.texte_net().is_empty() && local(&x.tag) != "type")
+            .map(|x| json!({"nom": local(&x.tag), "valeur": x.texte_net()}))
+            .collect();
+        informations.push(json!({"type": premier_texte(&arbre, c, &["type"]), "donnees": donnees}));
+    }
+    Some(json!({
+        "type": type_rapport, "libelle": libelle, "message": racine.get("message").unwrap_or(""),
+        "etat_envoi": etat_envoi, "essai_reel": essai_reel, "declarations": declarations, "anomalies": anomalies,
+        "informations": informations,
+    }))
+}
+
+/// Les noms des membres d'une archive ZIP (une archive d'AER, nature 43 ou 46) ; vide si ce n'en est pas une.
+pub fn membres_du_zip(o: &[u8]) -> Vec<String> {
+    repertoire_zip(o).map(|m| m.into_iter().map(|x| x.nom).filter(|n| !n.ends_with('/')).collect()).unwrap_or_default()
+}
+
+/// Le nombre de taux de PAS qu'un compte rendu de nature 94 communique (`extraire_taux_pas`, les quatre strategies).
+pub fn nombre_de_taux_pas(o: &[u8]) -> usize {
+    extraire_taux_pas(&Entree::Octets(o.to_vec())).ok().and_then(|v| v["releves"].as_array().map(Vec::len)).unwrap_or(0)
+}
+
+// ------------------------------------------------ un compte rendu NEOReS, lu
+
+/// `RO.B001.R001` « Declencheur du retour organisme » : cahier technique NEOReS 2026.1.2, « Rubriques », bloc RO.B001
+/// (`atelier/reference/sources/neores/gip-mds-neores-cahier-technique-2026.1.2-20251024.txt`) ; 05 et 06 viennent du
+/// cahier 2027.1.0 (`gip-mds-neores-cahier-technique-2027.1.0-20260303.txt`, et la note differentielle, § II).
+const DECLENCHEURS_NEORES: [(&str, &str); 6] = [
+    ("01", "retour sur une DSN mensuelle ou un signalement d'événement"),
+    ("02", "retour en fin d'exercice"),
+    ("03", "rappel d'actions non réalisées"),
+    ("04", "paramètre à prendre en compte en paie"),
+    ("05", "récapitulatif des substitutions de données opérées par l'organisme"),
+    ("06", "retour informatif"),
+];
+
+/// `RO.B004.R003` « Type d'action » (cahier 2026.1.2, « Rubriques », bloc RO.B004).
+const TYPES_ACTION_NEORES: [(&str, &str); 5] = [
+    ("01", "correction de données DSN précédemment déclarées"),
+    ("02", "correction de données d'identification d'individus"),
+    ("03", "émission de l'ensemble des données attendues par l'organisme pour un mois principal déclaré"),
+    ("04", "prise en compte d'un paramètre"),
+    ("05", "régularisation d'un paramètre"),
+];
+
+/// `RO.B004.R006` et `RO.B007.R009` « Resultat du controle » (cahier 2026.1.2, blocs RO.B004 et RO.B007).
+const RESULTATS_NEORES: [(&str, &str); 7] = [
+    ("01", "valeur incohérente"),
+    ("02", "rubrique absente"),
+    ("03", "rubrique présente à tort"),
+    ("04", "bloc absent"),
+    ("05", "bloc présent à tort"),
+    ("06", "cumul incohérent"),
+    ("07", "ensemble des données attendues pour le mois absentes"),
+];
+
+/// `RO.B004.R016` (cahier 2026.1.2) puis `RO.B005.R005` (cahier 2027.1.0) « Caractere substituable de la donnee ».
+const SUBSTITUABLE_NEORES: [(&str, &str); 2] = [
+    ("01", "donnée substituable : sans correction ni opposition de votre part, l'Urssaf ou la MSA la corrigera elle-même"),
+    ("02", "donnée non substituable"),
+];
+
+/// La table des types de parametres (`RO.B008.R001`), telle que net-entreprises la sert
+/// (`atelier/reference/sources/neores/gip-mds-neores-table-types-de-parametres-20230703.csv`).
+const TYPES_PARAMETRE_NEORES: [(&str, &str); 6] = [
+    ("A01", "effectif moyen annuel (niveau entreprise)"),
+    ("A02", "effectif moyen BOETH annuel (niveau entreprise)"),
+    ("A03", "effectif moyen ECAP annuel (niveau entreprise)"),
+    ("A04", "effectif moyen d'assujettissement OETH annuel (niveau entreprise)"),
+    ("A05", "effectif moyen CSA CFIP annuel (niveau entreprise)"),
+    ("A07", "effectif moyen CSA annuel (niveau entreprise)"),
+];
+
+fn dans_table(table: &[(&str, &'static str)], code: &str) -> &'static str {
+    table.iter().find(|(c, _)| *c == code).map(|(_, l)| *l).unwrap_or("")
+}
+
+/// Le texte de la rubrique `nom` (`RO_B004_R001`), enfant direct du bloc `e`, ou `""`.
+fn rubrique_de<'a>(a: &'a Arbre, e: &'a Noeud, nom: &str) -> &'a str {
+    a.enfants(e).find(|x| local(&x.tag) == nom).map(Noeud::texte_net).unwrap_or("")
+}
+
+/// Les blocs `nom` sous `e` (lui exclu), dans l'ordre du document.
+fn blocs_sous<'a>(a: &'a Arbre, e: &'a Noeud, nom: &'a str) -> Vec<&'a Noeud> {
+    a.sous(e).skip(1).filter(|x| local(&x.tag) == nom).collect()
+}
+
+/// Un compte rendu au FORMAT NEOReS (CRM 118 a 121, 124, 125, 130, 132, 135, 136 : guide de l'API DSN v6.8, §6.8 et
+/// tableau des retours), lu d'apres son cahier technique : CT 2026.1.2 et CT 2027.1.0
+/// (`atelier/reference/sources/neores/`). Les blocs et rubriques s'y nomment `RO.Bnnn.Rnnn`, ecrits `RO_Bnnn_Rnnn` dans le
+/// fichier transmis (CT 2026.1.2, §2.2). Un bloc est un element qui porte ses rubriques et ses blocs enfants (les
+/// arborescences, §5) : une INFERENCE sur la forme XML (le schema XSD n'est pas public : net-entreprises sert le cahier
+/// technique, pas le schema), celle que le lecteur des effectifs eprouve sur les 118 recus depuis 2022
+/// (`releve_retours::reconstruire_effectifs`). Rend :
+/// - `retour` : le code, le libelle, l'organisme emetteur (`RO.B002.R002`, `.R003`, `.R005`), le declencheur
+///   (`RO.B001.R001`), l'annule-et-remplace (`RO.B002.R004` = 02), la periode (`.R008`, `.R009`) ;
+/// - `conformite` et `metier` (`RO.B003.R002`, `.R001`) ;
+/// - `actions` : chaque cible d'action (`RO.B004`), ses details (`RO.B005`), leurs individus (`RO.B006`), leurs
+///   donnees DSN (`RO.B007`, valeurs acceptees `RO.B010`) ;
+/// - `parametres` (`RO.B008`) et `identites` (`RO.B009`) ; `informations` (`RO.B011`, `RO.B012`, CT 2027.1.0).
+///
+/// `None` : aucun bloc NEOReS (`RO_B000` a `RO_B012`), ou le fichier ne se lit pas.
+pub fn lire_neores(o: &[u8]) -> Option<Value> {
+    let a = lire_octets(o).ok()?;
+    let est_bloc = |n: &Noeud| {
+        let t = local(&n.tag);
+        t.len() == 7 && t.starts_with("RO_B") && t[4..].chars().all(|c| c.is_ascii_digit())
+    };
+    if !a.tous().any(est_bloc) {
+        return None;
+    }
+    let premier = |nom: &str| a.tous().find(|x| local(&x.tag) == nom);
+    let r = |bloc: Option<&Noeud>, nom: &str| bloc.map(|b| rubrique_de(&a, b, nom).to_string()).unwrap_or_default();
+    let (b000, b001, b002, b003) = (premier("RO_B000"), premier("RO_B001"), premier("RO_B002"), premier("RO_B003"));
+    let version = a.tous().find(|x| local(&x.tag) == "RO_R001").map(|x| x.texte_net().to_string()).unwrap_or_default();
+    let declencheur = r(b001, "RO_B001_R001");
+    let individu = |b: &Noeud, p: &str| {
+        json!({
+            "nom": rubrique_de(&a, b, &format!("{}_R003", p)), "prenom": rubrique_de(&a, b, &format!("{}_R004", p)),
+            "matricule": rubrique_de(&a, b, &format!("{}_R005", p)), "debut_contrat": rubrique_de(&a, b, &format!("{}_R006", p)),
+            "contrat": rubrique_de(&a, b, &format!("{}_R007", p)),
+        })
+    };
+    let mut actions = Vec::new();
+    for c in a.tous().filter(|x| local(&x.tag) == "RO_B004") {
+        let rc = |nom: &str| rubrique_de(&a, c, nom).to_string();
+        let mut details = Vec::new();
+        for d in blocs_sous(&a, c, "RO_B005") {
+            let rd = |nom: &str| rubrique_de(&a, d, nom).to_string();
+            let individus: Vec<Value> = blocs_sous(&a, d, "RO_B006").into_iter().map(|b| individu(b, "RO_B006")).collect();
+            let donnees: Vec<Value> = blocs_sous(&a, d, "RO_B007")
+                .into_iter()
+                .map(|b| {
+                    let acceptees: Vec<String> = blocs_sous(&a, b, "RO_B010").into_iter().map(|v| rubrique_de(&a, v, "RO_B010_R001").to_string()).collect();
+                    let resultat = rubrique_de(&a, b, "RO_B007_R009");
+                    json!({
+                        "rubrique": rubrique_de(&a, b, "RO_B007_R001"), "declaree": rubrique_de(&a, b, "RO_B007_R002"),
+                        "attendue": rubrique_de(&a, b, "RO_B007_R003"), "cumul": rubrique_de(&a, b, "RO_B007_R004") == "01",
+                        "debut": rubrique_de(&a, b, "RO_B007_R005"), "fin": rubrique_de(&a, b, "RO_B007_R006"),
+                        "resultat": dans_table(&RESULTATS_NEORES, resultat), "acceptees": acceptees,
+                    })
+                })
+                .collect();
+            details.push(json!({
+                "atypie": rd("RO_B005_R001"), "debut": rd("RO_B005_R002"), "fin": rd("RO_B005_R003"), "montant": rd("RO_B005_R004"),
+                // CT 2027.1.0 : le caractere substituable et le rappel descendent au detail de l'action (note differentielle, § III).
+                "substituable": dans_table(&SUBSTITUABLE_NEORES, &rd("RO_B005_R005")), "rappel": rd("RO_B005_R006"),
+                "interlocuteur": rd("RO_B005_R007"), "individus": individus, "donnees": donnees,
+            }));
+        }
+        actions.push(json!({
+            "code": rc("RO_B004_R001"), "libelle": rc("RO_B004_R002"), "type_code": rc("RO_B004_R003"), "type": dans_table(&TYPES_ACTION_NEORES, &rc("RO_B004_R003")),
+            "resultat": dans_table(&RESULTATS_NEORES, &rc("RO_B004_R006")), "individus": rc("RO_B004_R009"), "contrats": rc("RO_B004_R010"),
+            "controle": rc("RO_B004_R011"), "reference": rc("RO_B004_R012"), "action": rc("RO_B004_R013"), "aide": rc("RO_B004_R014"),
+            "consequences": rc("RO_B004_R015"), "substituable": dans_table(&SUBSTITUABLE_NEORES, &rc("RO_B004_R016")),
+            "rappel": rc("RO_B004_R017"), "exception": rc("RO_B004_R018"), "details": details,
+        }));
+    }
+    let parametres: Vec<Value> = a
+        .tous()
+        .filter(|x| local(&x.tag) == "RO_B008")
+        .map(|p| {
+            let t = rubrique_de(&a, p, "RO_B008_R001");
+            json!({
+                "type": t, "libelle": dans_table(&TYPES_PARAMETRE_NEORES, t), "valeur": rubrique_de(&a, p, "RO_B008_R002"),
+                "effet": rubrique_de(&a, p, "RO_B008_R003"), "fin": rubrique_de(&a, p, "RO_B008_R004"),
+                "rubrique": rubrique_de(&a, p, "RO_B008_R005"), "calcule_le": rubrique_de(&a, p, "RO_B008_R006"),
+            })
+        })
+        .collect();
+    let identites: Vec<Value> = a
+        .tous()
+        .filter(|x| local(&x.tag) == "RO_B009")
+        .map(|b| {
+            let x = |n: &str| rubrique_de(&a, b, n);
+            let declare = if x("RO_B009_R001").is_empty() { x("RO_B009_R002") } else { x("RO_B009_R001") };
+            json!({
+                "nir_declare": declare, "nir_reference": x("RO_B009_R003"),
+                "nom_declare": x("RO_B009_R004"), "nom_reference": x("RO_B009_R005"),
+                "prenom_declare": x("RO_B009_R006"), "prenom_reference": x("RO_B009_R007"),
+                "naissance_declaree": x("RO_B009_R008"), "naissance_reference": x("RO_B009_R009"), "matricule": x("RO_B009_R010"),
+            })
+        })
+        .collect();
+    let informations: Vec<Value> = a
+        .tous()
+        .filter(|x| local(&x.tag) == "RO_B011")
+        .map(|b| {
+            let x = |n: &str| rubrique_de(&a, b, n);
+            let individus: Vec<Value> = blocs_sous(&a, b, "RO_B012").into_iter().map(|i| individu(i, "RO_B012")).collect();
+            json!({
+                "code": x("RO_B011_R001"), "libelle": x("RO_B011_R002"), "numero": x("RO_B011_R003"), "information": x("RO_B011_R004"),
+                "reference": x("RO_B011_R005"), "aide": x("RO_B011_R006"), "individus": individus,
+            })
+        })
+        .collect();
+    Some(json!({
+        "version": version,
+        "declencheur": declencheur, "declencheur_libelle": dans_table(&DECLENCHEURS_NEORES, &declencheur),
+        "code": r(b002, "RO_B002_R002"), "libelle": r(b002, "RO_B002_R003"), "remplace": r(b002, "RO_B002_R004") == "02",
+        "organisme": r(b002, "RO_B002_R005"), "debut": r(b002, "RO_B002_R008"), "fin": r(b002, "RO_B002_R009"),
+        "produit_le": r(b002, "RO_B002_R011"),
+        "mois": r(b000, "RO_B000_R006"), "essai_reel": r(b000, "RO_B000_R013"), "ordre": r(b000, "RO_B000_R012"),
+        "metier": r(b003, "RO_B003_R001"), "conformite": r(b003, "RO_B003_R002"),
+        "actions": actions, "parametres": parametres, "identites": identites, "informations": informations,
+    }))
+}
+
+// ------------------------------- un compte rendu d'organisme complementaire, lu
+
+/// `Declaration/@CodeRetourDecla`, le code retour global : schema CRM DSN OC P3 V1.1.4
+/// (`atelier/reference/sources/gip-mds-api-dsn/ctip-crm-dsn-oc-p3-v1.1.4-schema-20230915.xsd`, l. 1001-1013) et
+/// specification V1.1.4 du 17/06/2025 (`ctip-crm-dsn-oc-p3-v1.1.4-20250617.txt`, niveau 2, « Code retour global »).
+const RETOURS_GLOBAUX_OC: [(&str, &str); 4] = [
+    ("0", "DSN acceptée"),
+    ("1", "DSN acceptée, avec des corrections à apporter (anomalies non bloquantes)"),
+    ("2", "DSN partiellement prise en compte (des erreurs empêchent la prise en compte de certains salariés ou de certaines données)"),
+    ("3", "DSN non prise en compte par l'organisme (erreurs au niveau de la déclaration)"),
+];
+
+/// `RetourMetier/@CriticiteRetour` (schema V1.1.4, l. 514-523).
+const CRITICITES_OC: [(&str, &str); 2] = [("C", "critique : à corriger impérativement dans la DSN suivante"), ("P", "passable : à corriger dès que possible")];
+
+/// Un compte rendu metier d'organisme complementaire (nature 51 : guide de l'API DSN v6.8, tableau des retours,
+/// « CRM-DSN-OC-P3-V1.1.4-17062025 »), lu d'apres son schema et sa specification
+/// (`atelier/reference/sources/gip-mds-api-dsn/ctip-crm-dsn-oc-p3-v1.1.4-schema-20230915.xsd`,
+/// `ctip-crm-dsn-oc-p3-v1.1.4-20250617.txt`) : l'element `Fichier`, ses `Declaration` (code retour global, complement,
+/// producteur, contact, compteurs), leurs mandats SEPA a creer (`MandatNetE`, `MandatProp`) et leurs `RetourMetier`
+/// (code « SXXXnn », libelle, description, criticite, rubrique ou bloc a l'origine, valeur declaree, valeur corrigee ou
+/// attendue, date d'evenement, regroupement) avec leur `ContexteRetourMetier` (rubrique, libelle, valeur) -- d'ou le
+/// salarie (S21.G00.30.002 et .004). `None` : ce n'en est pas un, ou il ne se lit pas (il est en ISO-8859-1, qu'il
+/// declare : guide v6.8, §7.1).
+pub fn lire_crm_oc(o: &[u8]) -> Option<Value> {
+    let a = lire_octets(o).ok()?;
+    let racine = a.racine();
+    if local(&racine.tag) != "Fichier" || !a.enfants(racine).any(|x| local(&x.tag) == "Declaration") {
+        return None;
+    }
+    let at = |n: &Noeud, k: &str| n.get(k).map(nettoye).unwrap_or("").to_string();
+    let mut declarations = Vec::new();
+    for d in a.enfants(racine).filter(|x| local(&x.tag) == "Declaration") {
+        let mandats: Vec<Value> = a
+            .enfants(d)
+            .filter(|x| matches!(local(&x.tag), "MandatNetE" | "MandatProp"))
+            .map(|m| json!({"net_entreprises": local(&m.tag) == "MandatNetE", "iban": at(m, "IBAN"), "bic": at(m, "BIC"), "ics": at(m, "ICS"), "url": at(m, "URLMandatProp")}))
+            .collect();
+        let mut retours = Vec::new();
+        for rm in a.enfants(d).filter(|x| local(&x.tag) == "RetourMetier") {
+            let contexte: Vec<Value> = a
+                .enfants(rm)
+                .filter(|x| local(&x.tag) == "ContexteRetourMetier")
+                .map(|c| json!({"rubrique": at(c, "Rubrique"), "libelle": at(c, "Libelle"), "valeur": at(c, "Valeur"), "libelle_valeur": at(c, "LibelVal")}))
+                .collect();
+            let du_contexte = |r: &str| contexte.iter().find(|c| c["rubrique"] == json!(r)).map(|c| py_texte(&c["valeur"])).unwrap_or_default();
+            let salarie = [du_contexte("S21.G00.30.002"), du_contexte("S21.G00.30.004")].iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join(" ");
+            retours.push(json!({
+                "code": at(rm, "CodeRetourMetier"), "libelle": at(rm, "LibelCodeRetourMetier"), "description": at(rm, "DescriptionRetour"),
+                "criticite": dans_table(&CRITICITES_OC, &at(rm, "CriticiteRetour")), "nombre": at(rm, "NbErreursSimilaires"),
+                "rubrique": at(rm, "RubriqueBlocRetour"), "libelle_rubrique": at(rm, "LibelRubBlocRetour"),
+                "valeur": at(rm, "ValeurRubriqueErreur"), "libelle_valeur": at(rm, "LibelValRubriqueErreur"),
+                "corrigee": at(rm, "ValeurCorrigeeAjoutee"), "libelle_corrigee": at(rm, "LibelValCorrigeeAjoutee"),
+                "date_evenement": at(rm, "DateEvt"), "salarie": salarie, "contexte": contexte,
+            }));
+        }
+        let code = at(d, "CodeRetourDecla");
+        declarations.push(json!({
+            "nature": at(d, "NatureDecla"), "type": at(d, "TypeDecla"), "ordre": at(d, "NoOrdreDecla"), "mois": mois_de_jjmmaaaa(&at(d, "DateMoisDec")),
+            "code_oc": at(d, "CodeOC"), "code_delegataire": at(d, "CodeDELEG"), "producteur": at(d, "NomProducteurCRM"),
+            "code_producteur": at(d, "CodeProducteurCRM"), "contact": at(d, "NomContact"), "courriel": at(d, "MailContact"), "telephone": at(d, "TelContact"),
+            "code_retour": code, "retour_global": dans_table(&RETOURS_GLOBAUX_OC, &code), "complement": at(d, "ComplementRetourDecla"),
+            "erreurs": at(d, "NbreErreur"), "critiques": at(d, "NbreCritique"), "affiliations": at(d, "NbreAff"), "radiations": at(d, "NbreRad"),
+            "salaries": at(d, "NbreSal"), "mandats": mandats, "retours": retours,
+        }));
+    }
+    Some(json!({"type_crm": at(racine, "TypCRM"), "essai_reel": at(racine, "CodeEnvoi"), "version": at(racine, "VersionCRM"), "declarations": declarations}))
+}
+
+fn py_texte(v: &Value) -> String {
+    v.as_str().unwrap_or("").to_string()
+}
+
+/// `DateMoisDec` est le dernier jour du mois au format JJMMAAAA (exemples de la fiche 692 : « 31032023 ») : `AAAA-MM`.
+fn mois_de_jjmmaaaa(brut: &str) -> String {
+    let c: Vec<char> = brut.chars().collect();
+    if c.len() == 8 && c.iter().all(|x| x.is_ascii_digit()) {
+        return format!("{}-{}", c[4..8].iter().collect::<String>(), c[2..4].iter().collect::<String>());
+    }
+    brut.to_string()
+}

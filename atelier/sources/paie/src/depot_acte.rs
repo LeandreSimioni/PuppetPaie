@@ -195,7 +195,7 @@ pub(crate) fn motdepasse_organisme(ctx: &Contexte, service: &str, ouverture: Opt
 // -------------------------------------------------------- la repetition avant l'irreversible
 
 /// `_pourquoi_rate` : ce qui a fait echouer un depot de test, en une phrase.
-fn pourquoi_rate(ligne: &Value) -> String {
+pub(crate) fn pourquoi_rate(ligne: &Value) -> String {
     let mut anomalies: Vec<String> = Vec::new();
     for r in ligne.get("retours").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
         if r.get("verdict").and_then(Value::as_str) == Some("KO") {
@@ -231,7 +231,12 @@ fn phrase_repetition(ctx: &Contexte, quoi: &str, chemin: &Path, etat: &Value) ->
     let verbe = if quoi == "dsn" { "depot-dsn" } else { "deposer-dpae" };
     let commande = format!("paie {} {} --test", verbe, ou);
     let dernier = |cle: &str| etat.get(cle).and_then(Value::as_array).and_then(|a| a.last()).cloned();
-    let situation = if let Some(l) = dernier("ratees") {
+    let situation = if vrai(&etat["conforme"]) {
+        format!(
+            "Ce contenu est parti en test le {}, et son compte rendu de conformite n'est pas encore arrive :\nl'accuse d'enregistrement dit que l'envoi est recu, pas qu'il est conforme. Attendre le bilan\n(en general dans les dix minutes), relever les retours, puis envoyer le reel.",
+            quand_a(&etat["conforme"]["quand"])
+        )
+    } else if let Some(l) = dernier("ratees") {
         format!(
             "Ce contenu a ete essaye en test le {}, et l'essai a ECHOUE : {}.\nC'est cela qu'il faut corriger : le meme refus attend en reel.",
             quand_a(&l["quand"]),
@@ -260,7 +265,13 @@ fn exiger_repetition(ctx: &Contexte, lignes: &[Value], quoi: &str, chemin: &Path
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let etat = etats::repetition(lignes, quoi, &crate::journal::empreinte(&octets), &nom)?;
-    if vrai(&etat["conforme"]) {
+    // UN REEL NE PART QUE SUR LE BILAN LU DE SON TEST (tickets #221, #222, 19/10/2026) : l'accuse d'enregistrement dit
+    // « envoi recu », pas « conforme » (regle 5). Pour une DSN, c'est le bilan de nature 11 du test, qui arrive « en
+    // general dans les dix minutes » (la reponse du point de depot). Pour une DPAE, le bilan 11 ou le certificat 41 :
+    // celui d'un test revient bel et bien (journal du depot prive, archives 2026-10-02, « a la lumiere du certificat 41
+    // du test (09:13) : les deux DPAE [...] sont revenues enregistrees (code 99, deux dossiers) » ; archives
+    // 2026-09-09_au_09-13, §20.2 : « Passee = bilan OK ; le certificat 41 confirme »).
+    if vrai(&etat["conforme"]) && etats::est(&etat["compte_rendu"], "ok") {
         let l = &etat["conforme"];
         return Ok(json!({
             "test": l.get("quand").cloned().unwrap_or(Value::Null),
@@ -428,6 +439,16 @@ fn ordre_d_essai_du_fichier(calcule: Option<i64>, chemin: &Path) -> R<Option<i64
     Ok(Some(rang_dans_le_fichier(&octets).map_or(c, |m| c.max(m))))
 }
 
+/// Le mois de constitution (`AAAA-MM`) d'une date S20.G00.05.007 (`JJMMAAAA`) ; illisible, celui d'aujourd'hui (la
+/// date de constitution est le jour ou le fichier s'ecrit, `dsn::generer`).
+fn mois_de_constitution(jjmmaaaa: &str, aujourdhui: &crate::date::Jour) -> String {
+    let c: Vec<char> = jjmmaaaa.trim().chars().collect();
+    if c.len() == 8 && c.iter().all(char::is_ascii_digit) {
+        return format!("{}-{}", c[4..8].iter().collect::<String>(), c[2..4].iter().collect::<String>());
+    }
+    aujourdhui.iso().chars().take(7).collect()
+}
+
 /// `re.search(rb"S20\.G00\.05\.004,'(\d+)'", octets)`.
 fn rang_dans_le_fichier(octets: &[u8]) -> Option<i64> {
     let motif = b"S20.G00.05.004,'";
@@ -446,20 +467,23 @@ fn rang_dans_le_fichier(octets: &[u8]) -> Option<i64> {
 
 /// `prochain_ordre_de_test` : l'ordre a donner au prochain essai de ce mois, ou `None` pour le premier. Les
 /// suivants partent en annule-et-remplace, a un ordre plus grand que tout ce que la base de test a pu retenir
-/// : le plus grand des ordres deja poses par nous, de ceux des fichiers essayes encore sur le disque, de ceux
-/// que la plate-forme a cites (« dernier ordre accepte 2026096 » = aaaamm + ordre), et du nombre d'essais, plus
-/// un. Trop grand ne coute rien ; trop petit, c'est B1-208-11.
-fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value) -> R<Option<i64>> {
+/// : le plus grand des ordres deja poses par nous, de ceux des fichiers essayes encore sur le disque, du nombre
+/// d'essais, et de ce que les bilans archives disent de la base d'essai pour le mois de constitution du fichier
+/// (`ordre_signalements::dernier_ordre_des_mensuelles` : les essais faits AILLEURS sous le meme SIREN, l'atelier ou un
+/// autre poste, comptent pour l'ordre sans s'afficher ; Leandre, 20/10/2026), plus un. Une mensuelle du mois deja
+/// acceptee dans la base d'essai, meme venue d'ailleurs, fait partir l'essai en annule-et-remplace. Trop grand ne coute
+/// rien ; trop petit, c'est B1-208-11. `constitution` : le mois de constitution du fichier (`AAAA-MM`, S20.G00.05.007).
+fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution: &str) -> R<Option<i64>> {
     let du_mois = crate::journal::lire(&ctx.racine, Some("dsn"), Some(mois), false).map_err(|m| erreur("OSError", m))?;
     let essais: Vec<Value> = etats::de_l_etablissement(&du_mois, nic, &etats::nic_principal(&ctx.entreprise))?
         .into_iter()
         .filter(|l| l.get("mode").and_then(Value::as_str) == Some("test"))
         .collect();
-    if essais.is_empty() {
+    let vues = crate::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &crate::ordre_signalements::siren_de(ctx), true, constitution, mois)?;
+    if essais.is_empty() && !vues.du_mois_acceptee {
         return Ok(None);
     }
-    let mut connus: Vec<i64> = vec![essais.len() as i64];
-    let motif = regex::Regex::new(&format!(r"ordre (?:accepte )?{}(\d+)", regex::escape(&mois.replace('-', "")))).map_err(|e| erreur("ValueError", e.to_string()))?;
+    let mut connus: Vec<i64> = vec![essais.len() as i64, vues.ordre];
     for l in &essais {
         let d = l.get("detail").cloned().unwrap_or(Value::Null);
         let o = d.get("ordre_test").filter(|o| vrai(o)).map(py_str).unwrap_or_default();
@@ -474,11 +498,6 @@ fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value) -> R<Option<i
                 if let Some(n) = std::fs::read(&p).ok().and_then(|o| rang_dans_le_fichier(&o)) {
                     connus.push(n);
                 }
-            }
-        }
-        for m in motif.captures_iter(&l.to_string()) {
-            if let Ok(n) = m[1].parse() {
-                connus.push(n);
             }
         }
     }
@@ -508,7 +527,16 @@ fn verifier_depot_remplacement(o: &HashMap<String, String>, ctx: &Contexte, mois
     if !["03", "05"].contains(&a.champ("type_declaration")) {
         return Ok(false);
     }
-    let Some(dernier) = dernier else { return Ok(false) };
+    // CE QUE LA PLATE-FORME A VU EN REEL au mois de constitution du fichier, lu en silence dans les bilans archives
+    // (`ordre_signalements::dernier_ordre_des_mensuelles`) : une mensuelle reelle envoyee d'un autre poste compte, comme
+    // a la production (`produire_mois::forme_a_produire`).
+    let constitution = mois_de_constitution(a.champ("constitution"), &ctx.aujourdhui);
+    let vues = crate::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &crate::ordre_signalements::siren_de(ctx), false, &constitution, mois)?;
+    let dernier = match dernier {
+        Some(d) => d.max(vues.ordre),
+        None if vues.du_mois_acceptee || vues.ordre > 0 => vues.ordre,
+        None => return Ok(false),
+    };
     let limite = m.limite(mois)?;
     if ctx.aujourdhui > limite {
         return Err(erreur(
@@ -526,7 +554,7 @@ fn verifier_depot_remplacement(o: &HashMap<String, String>, ctx: &Contexte, mois
         return Err(erreur(
             "OrdreTropPetit",
             format!(
-                "Cet annule-et-remplace porte l'ordre {}, et la derniere DSN reelle de {} l'ordre {} : la plate-forme n'integre pas un rang inferieur ou egal (cahier technique DSN, p. 15 ; B1-208-11). Refaire la DSN du mois : elle partira a l'ordre {}. Rien n'est parti.",
+                "Cet annule-et-remplace porte l'ordre {}, et la derniere DSN reelle connue pour {} (journal et bilans de la plate-forme) l'ordre {} : la plate-forme n'integre pas un rang inferieur ou egal (cahier technique DSN, p. 15 ; B1-208-11). Refaire la DSN du mois : elle partira a l'ordre {}. Rien n'est parti.",
                 ordre,
                 mois,
                 dernier,
@@ -682,7 +710,7 @@ pub fn deposer_dsn_dans(
 
     // UN ESSAI DE PLUS SUR UN MOIS DEJA ESSAYE part en annule-et-remplace, a l'ordre suivant : la base de test
     // garde les essais. JAMAIS PLUS BAS QUE L'ORDRE DU FICHIER (journal §115).
-    let ordre_test = if reel || apercu.est_signalement() { None } else { prochain_ordre_de_test(ctx, &mois, &nic)? };
+    let ordre_test = if reel || apercu.est_signalement() { None } else { prochain_ordre_de_test(ctx, &mois, &nic, &mois_de_constitution(apercu.champ("constitution"), &ctx.aujourdhui))? };
     let ordre_test = ordre_test.max(ordre_d_essai);
     let ordre_test = ordre_d_essai_du_fichier(ordre_test, &chemin)?;
 

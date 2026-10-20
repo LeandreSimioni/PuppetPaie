@@ -993,18 +993,6 @@ pub(crate) fn etat_du_mois(lignes: &[Value], mois: &str) -> R<Value> {
     Ok(Value::Object(etat))
 }
 
-pub(crate) fn dernieres_du_mois(lignes: &[Value], mois: &str, n: i64) -> R<Value> {
-    let mut out = Map::new();
-    for acte in ACTES {
-        let l = filtrer(lignes, Some(acte), Some(mois), false)?;
-        let long = l.len() as i64;
-        // `liste[-n:]`
-        let debut = if n > 0 { (long - n).max(0) } else { (-n).min(long) };
-        out.insert(acte.to_string(), Value::Array(l[debut as usize..].iter().map(|x| (*x).clone()).collect()));
-    }
-    Ok(Value::Object(out))
-}
-
 pub(crate) fn flux_de_test(lignes: &[Value]) -> R<Value> {
     let mut d: Dico<()> = Dico::nouveau();
     for l in lignes {
@@ -1221,6 +1209,12 @@ pub(crate) fn refuse_par_un_retour(ligne: &Value) -> R<bool> {
     Ok(false)
 }
 
+/// Le compte rendu d'un depot : `ko` des qu'un retour refuse ; `ok` seulement quand LE BILAN le dit -- la nature 11
+/// (certificat de conformite ou bilan d'anomalies) pour une DSN, le certificat 41 pour une DPAE ; `attendu` sinon.
+/// L'ACCUSE D'ENREGISTREMENT (nature 10) NE COMPTE PAS : il dit « envoi recu », `etat_envoi` OK, pas « declaration
+/// conforme » (regle 5 ; `retours::NATURES` : « 10 - Accuse d'enregistrement electronique »). Le 19/10/2026 sur le
+/// poste, un test dont seul l'accuse etait la s'affichait « testee — conforme » alors que l'essai precedent du meme
+/// contenu venait de prendre B1-208-11 (tickets #221, #222 du depot prive).
 fn compte_rendu_du_depot(ligne: &Value) -> R<&'static str> {
     let mut ok = false;
     for r in items(ou(get(ligne, "retours")?, &LISTE_VIDE))? {
@@ -1228,7 +1222,8 @@ fn compte_rendu_du_depot(ligne: &Value) -> R<&'static str> {
         if est(v, "KO") {
             return Ok("ko");
         }
-        ok = ok || est(v, "OK");
+        let nature = py_str(get(&r, "nature")?);
+        ok = ok || ((nature == "11" || nature == NATURE_CERTIFICAT_DPAE) && est(v, "OK"));
     }
     Ok(if ok { "ok" } else { "attendu" })
 }
@@ -1939,8 +1934,6 @@ mod tests {
         assert_eq!(e["dpae"], Value::Null);
         assert_eq!(e.as_object().unwrap().len(), 10);
         assert_eq!(documents_envoyes(&l, "2026-06").unwrap(), json!([["ALPHA", "2026-06-04T10:00:00"]]));
-        let dernieres = |n: i64| dernieres_du_mois(&l, "2026-06", n).unwrap()["dsn"].as_array().unwrap().len();
-        assert_eq!((dernieres(3), dernieres(1), dernieres(100)), (3, 1, 3));
     }
 
     #[test]

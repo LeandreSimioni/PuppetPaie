@@ -31,7 +31,7 @@ pub const DOSSIER_DRIVE: &str = "sauvegarde";
 pub const INDEX: &str = ".sauvegarde.json";
 
 /// Ce qui ne monte pas (`NOMS_EXCLUS`).
-const NOMS_EXCLUS: [&str; 5] = ["google-jeton.bin", ".jeton-interface", ".compteurs.verrou", ".sauvegarde.json", ".ouverture.json"];
+const NOMS_EXCLUS: [&str; 6] = ["google-jeton.bin", ".jeton-interface", ".compteurs.verrou", ".sauvegarde.json", ".ouverture.json", ".ouverture-etape.json"];
 const SUFFIXES_EXCLUS: [&str; 4] = [".pyc", ".tmp", ".lock", ".part"];
 const DOSSIERS_EXCLUS: [&str; 2] = ["__pycache__", ".git"];
 

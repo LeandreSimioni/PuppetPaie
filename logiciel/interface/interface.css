@@ -134,6 +134,9 @@ body.fenetre .fenetre-boutons { display: flex; gap: 2px; margin-left: 8px; align
 }
 .veille.souci { background: var(--alerte-fond); color: var(--alerte); }
 .veille.neuf { background: var(--succes-fond); color: var(--succes); }
+/* L'étape du passage en cours, dite par le moteur (ticket #220). */
+.veille-etape { font-style: italic; }
+.veille-etape::before { content: "⟳ "; font-style: normal; }
 .veille-texte b { color: var(--texte); }
 .lien {
   border: none; background: none; cursor: pointer; padding: 0;
@@ -589,6 +592,37 @@ details.historique-fiche[open] > summary { margin-bottom: 8px; }
   .rang.mois { grid-template-columns: 1fr auto; }
   .rang.mois .rang-infos { grid-column: 1 / -1; }
 }
+/* UN MOIS DE L'HISTORIQUE SE DÉPLIE (20/10/2026) : la ligne est le `summary`
+   d'un `details` ; dessous, la vue technique du mois — ses documents, ses
+   envois, et sous chaque envoi ses retours, lus. */
+details.mois-hist { margin-bottom: 8px; }
+details.mois-hist > summary { list-style: none; cursor: pointer; margin-bottom: 0; }
+details.mois-hist > summary::-webkit-details-marker { display: none; }
+details.mois-hist > summary .rang-nom::before { content: "▸ "; color: var(--discret); }
+details.mois-hist[open] > summary .rang-nom::before { content: "▾ "; }
+details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.mois-vue { background: var(--carte); border: 1px solid var(--bord); border-top: 0;
+  border-radius: 0 0 4px 4px; padding: 12px 16px 16px; }
+.mois-vue h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--discret); margin: 14px 0 6px; }
+.mois-vue h3:first-child { margin-top: 0; }
+.docs-sorte { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline;
+  font-size: 13px; margin: 4px 0; }
+.docs-sorte > b { min-width: 14rem; font-weight: normal; color: var(--discret); }
+.envoi { border-left: 3px solid var(--bord); margin: 8px 0; padding: 2px 0 2px 12px; }
+.envoi.reel { border-left-color: var(--action); }
+.envoi > summary { cursor: pointer; font-size: 13px; }
+.envoi > summary .discret { font-size: 12px; }
+.envoi-id { font-size: 12px; color: var(--discret); margin: 4px 0 6px; overflow-wrap: anywhere; }
+.retour { margin: 6px 0 6px 6px; font-size: 13px; }
+.retour > summary { cursor: pointer; }
+.retour-corps { margin: 4px 0 8px 16px; }
+.retour-corps p { margin: 3px 0; }
+.anomalies { border-collapse: collapse; font-size: 12px; margin: 6px 0; width: 100%; }
+.anomalies th, .anomalies td { text-align: left; padding: 3px 8px 3px 0; vertical-align: top;
+  border-bottom: 1px solid var(--bord); }
+.anomalies th { color: var(--discret); font-weight: normal; }
+.anomalies code { font-size: 12px; }
 
 /* ---------------------------------------------------------- dialogue */
 .voile {
@@ -612,6 +646,14 @@ details.historique-fiche[open] > summary { margin-bottom: 8px; }
   border-radius: 4px; z-index: 60; font-size: 13px; max-width: 70vw;
 }
 .message.erreur { background: var(--erreur); }
+/* Ce qui est parti : en vert, coché. */
+.message.envoye { background: var(--succes); }
+.message.envoye::before { content: "✓ "; font-weight: 600; }
+/* Où en est le message « Un problème, une idée ? » qu'on vient d'envoyer. */
+.sg-envoi { font-weight: 600; }
+.sg-envoi.envoye { color: var(--succes); }
+.sg-envoi.envoye::before { content: "✓ "; }
+.sg-envoi.alerte { color: var(--alerte); }
 
 .attente { opacity: .5; pointer-events: none; }
 
@@ -1131,8 +1173,6 @@ pre.reponse {
    refuse se lit ici, sans passer pour un depot fait. */
 .acte-derniers { margin: 4px 0 6px; padding-left: 8px; border-left: 2px solid var(--bord); }
 .acte-dernier { font-size: 12px; color: var(--discret); margin: 2px 0; }
-.acte-dernier.test::before { content: "essai — "; font-style: italic; }
-.acte-dernier.reel::before { content: "réel — "; font-weight: bold; }
 
 /* Une paie validée ne répète pas sa saisie : la ligne « bulletin 34/2026 ·
    contrat … · 1 Cachet · brut 130,00 € » dit déjà tout, et les champs fermés
@@ -1347,9 +1387,8 @@ section.bloc > .encart { margin-bottom: 10px; }
 .etape-phrase { font-size: 13px; margin-bottom: 2px; }
 .etape-detail { font-size: 12px; margin-bottom: 8px; }
 .etape-corps > button { width: 100%; margin-top: 4px; }
-.etape-envois { margin-top: 8px; font-size: 12px; }
-.etape-envois > summary { cursor: pointer; color: var(--discret); }
-.reprise { margin-top: 14px; font-size: 12px; }
+.etape-corps > button.etape-envois { width: auto; display: block; margin-top: 10px; font-size: 12px; text-align: left; }
+.reprise { margin: 0 0 14px; font-size: 12px; }
 .reprise > summary { cursor: pointer; color: var(--discret); padding: 6px 0;
                      border-top: 1px solid var(--bord); }
 .reprise[open] > summary { margin-bottom: 8px; }

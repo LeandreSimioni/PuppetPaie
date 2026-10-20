@@ -353,3 +353,30 @@ fn le_contact_d_un_signalement_est_le_declarant_avec_sa_civilite_ou_rien_ne_s_ec
         ["01", "MOLIERE JEAN", "ADMINISTRATION@DEMO.INVALID"].map(String::from)
     );
 }
+
+#[test]
+fn la_dpae_reelle_attend_le_certificat_de_son_test() {
+    // Comme la DSN (tickets #221, #222) : l'accuse de reception d'un test n'est pas un compte rendu ; c'est le bilan ou le
+    // certificat 41 qui tranche, et celui d'un test revient. Tant qu'il manque, le reel est refuse et rien n'est note.
+    let racine = compagnie("dpae-attend-certificat");
+    // Le marqueur de la fictive : ses envois sont joues, rien ne part.
+    std::fs::copy(crate::outils::fictive("fictive-3090-petite").join("COPIE-DE-DEVELOPPEMENT.json"), racine.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
+    sans_dpae_au_journal(&racine);
+    sans_dpae_ecrites(&racine);
+    reussi(&route(&racine, "dpae", json!({"mois": "2026-03"})));
+    let fichier = racine.join("sorties/2026-03/DPAE_Mars2026.txt").to_string_lossy().into_owned();
+    let deposer = |reel: bool| route(&racine, "deposer", json!({"quoi": "dpae", "fichier": fichier, "reel": reel}));
+    reussi(&deposer(false));
+    let essai = |j: &Value| j.as_array().unwrap().iter().rposition(|l| l["quoi"] == json!("dpae") && l["mode"] == json!("test")).unwrap();
+    let (classe, m) = refus(&deposer(true));
+    assert_eq!(classe, "RepetitionManquante", "{}", m);
+    assert!(m.contains("pas encore arrive") && m.contains("Rien n'est parti"), "{}", m);
+    let mut j = lire(&racine, "journal/depots.json");
+    let i = essai(&j);
+    j[i]["retours"] = json!([{"nature": "41", "verdict": "OK", "anomalies": [], "dpae": []}]);
+    ecrire(&racine, "journal/depots.json", &j);
+    let r = deposer(true);
+    reussi(&r);
+    let j = lire(&racine, "journal/depots.json");
+    assert_eq!(j.as_array().unwrap().last().unwrap()["mode"], json!("reel"), "{}", r);
+}

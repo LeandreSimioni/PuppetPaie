@@ -1,0 +1,955 @@
+               DSN Phases 2 et 3
+            Compte rendu métier OC
+
+                                                           1er juin   2016
+
+
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                                                                       Rappels
+
+
+Pour le support de la phase 3, de nombreuses données nouvelles
+doivent être prises en compte dans le CRM OC :
+ Données de niveau déclaration :
+   Adhésion (Réf. Contrat /Code OC /Code DELEG),
+   Versement et Composant de versement,
+   Cotisation établissement
+ Données de niveau salarié / contrat de travail :
+   Affiliation (Code Option/Code population) et Ayant-Droit
+   Cotisation individuelle, Base assujettie et composant de base assujettie
+   Ancienneté
+
+De plus, il doit être possible de remonter au déclarant une information
+relative à l’absence éventuelle d’un mandat SEPA, dans le cas d’une
+DSN contenant un bloc versement de type prélèvement.
+
+
+
+                                                                               2
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                                                                       Rappels
+
+
+Pour chaque retour produit dans les CRM doivent être décrits :
+ le type de retour (erreur bloquante ou information non bloquante)
+ le libellé descriptif du retour
+ la donnée ayant « déclenché » le retour (rubrique, valeur)
+ les données de « contexte » du retour (donnés descriptives du salarié concerné,
+  de son contrat de travail, de son affiliation …).
+ les données corrigées ou attendues (dans le cas de données absentes) …
+
+Les études conduites entre le CTIP, la FFSA, la FNMF et leurs organismes membres
+ont mis en évidence :
+ les difficultés auxquelles conduirait une simple greffe, sur le CRM actuel phase 1
+  et 2, des données nouvelles requises en phase 3,
+ la nécessité d’une refonte significative du CRM actuel,
+ le choix préférentiel d’un modèle « à plat », proposé sous forme de liste des
+  anomalies rencontrées.
+
+                                                                                   3
+  DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                                                           Rappel du CRM phases 1/2
+
+
+
+
+                                                                                  4
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                                                           Nouveau CRM phases 2/3
+
+
+
+
+                                                                                5
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                              Elément « Fichier » du CRM phases 2/3
+
+
+
+Les attributs de l’élément « Fichier » sont préservés, à trois modifications près
+(voir détails sur le document de spécifications) :
+ Ajout d’un attribut VersionCRM permettant de préciser le niveau de version
+  du modèle de CRM (attribut indispensable pour le support d’évolutions
+  futures du modèle, de même que pour la fiche de paramétrage)
+
+ Ajout d’une valeur autorisée P03V01 pour l’attribut VersionNorme, la valeur
+  P02V01 restant autorisée pour permettre la production en phase 2 de CRM
+  répondant au modèle phase 3 (recouvrement souhaitable pour éviter un effet
+  « big-bang » lors du changement de norme P2  P3)
+
+ Suppression de l’attribut NbreDeclaration, sans valeur ajoutée puisque
+  toujours renseigné à 1 (attribut néanmoins conservé dans le schéma pour
+  compatibilité ascendante)
+
+
+
+
+                                                                                    6
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                                            Elément « Déclaration » du CRM phases 2/3
+
+                       Les attributs de l’élément « Déclaration » du CRM sont préservés pour l’essentiel,
+                       moyennant les modifications suivantes :
+Attributs supprimés
+
+
+
+
+                        NbreEvtFCT (nombre d’événements fin de contrat de travail détectés, via les
+                         blocs S21.G00.62)
+                        NbreEvtEntree (nombre d’événements « entrée » détectés via les rubriques
+                         S21.G00.31.007, supprimées depuis la phase 2)
+                        NbreEvtDCT (nombre d’événements début de contrat de travail détectés via
+                         une date de début de contrat S21.G00.40.001 sur le mois de la déclaration)
+                        NbreEvtOK / NbreEvtKO (nombre d’événements pris en compte / rejetés)
+Attributs ajoutés
+
+
+
+
+                        ComplementRetourDecla (complément du code retour global de la déclaration,
+                         si le détail des retours métier est absent)
+                        NbreErreur (nombre d'erreurs de code Exxxnn dans la déclaration)
+                        NbreAff (nombre d’affiliations à prendre en compte)
+                        NbreRad (nombre de radiations prises en compte)
+
+
+                                                                                                      7
+                       DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                    Eléments « MandatNetE » ou « MandatProp »
+                                               du CRM phase 3
+                                                           Ces éléments sont spécifiques
+                                                           d’un CRM retourné pour une DSN
+                                                           phase 3, et sont facultatifs.
+
+                                                           En cas d’absences de mandats,
+                                                           un créancier peut renseigner :
+
+                                                           • soit des éléments
+                                                             « MandatNetE » pour demander
+                                                             au payeur d’acquitter un
+                                                             mandat sur le Module Mandat
+                                                             Net-entreprises
+
+                                                           • soit des éléments
+                                                             « MandatProp » pour demander
+                                                             au payeur d’acquitter un
+                                                             mandat sur un site propriétaire
+
+                                                           Les éléments « MandatNetE » et
+                                                           « MandatProp » sont exclusifs les
+                                                           uns des autres.
+                                                                                            8
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+     Attributs de l’élément « MandatNetE » du CRM phase 3
+
+
+
+
+ BIC / IBAN : Ces attributs doivent reprendre impérativement les données
+  S21.G00.20.003 / 004 du compte bancaire de la DSN concernée pour lequel le
+  créancier producteur du CRM ne dispose pas de mandat SEPA.
+  A noter que le créancier du bloc versement de la DSN est :
+   Soit le délégataire renseigné en 20.008 s’il est présent
+   Soit l’OC renseigné en 20.001 si aucun délégataire n’est renseigné en 20.008
+
+
+ ICS : identifiant SEPA du créancier connu du référentiel du Module Mandat de
+  Net-entreprises
+
+
+
+
+                                                                                 9
+  DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+      Attributs de l’élément « MandatProp » du CRM phase 3
+
+
+
+ BIC / IBAN : Ces attributs doivent reprendre impérativement les données
+  S21.G00.20.003 / 004 du compte bancaire de la DSN concernée pour lequel le
+  créancier producteur du CRM ne dispose pas de mandat SEPA.
+   A noter que le créancier du bloc versement de la DSN est :
+    Soit le délégataire renseigné en 20.008 s’il est présent
+    Soit l’OC renseigné en 20.001 si aucun délégataire n’est renseigné en 20.008
+
+ ICS : identifiant SEPA du créancier
+
+ URLMandatProp : URL permettant au récepteur d’acquitter un mandat SEPA pour
+  le compte bancaire concerné, sur un site propriétaire du créancier
+
+
+
+
+                                                                                10
+  DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                   Elément « RetourMetier » du CRM phases 2/3
+
+
+
+
+                                                           11
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+    Attributs de l’élément RetourMetier du CRM phases 2/3
+
+ IdRetour : numéro d’ordre du retour
+  Valeur unique dans le CRM, permet d’identifier le retour sans ambiguité.
+ NbErreursSimilaires : supérieur à 1 si plusieurs retours sont regroupés
+  Utilisable pour limiter la taille du CRM sur de grosses déclarations, en cas
+  d’erreurs répétées
+ CodeRetourMétier : renseigné sous la forme « SXXXNN »
+  - S = E (Erreur) ou I (Information)
+  - XXX = domaine du retour (cf. annexe), incluant des événements EVT
+  - NN = numéro
+   EADH02 Référence Contrat de l'adhésion erronée
+   ECIN05 Composant base assujettie manquant
+   IEVT07 Radiation prise en compte suite à fin de contrat
+ LibelCodeRetourMétier : Libellé correspondant au code retour métier (libellé
+  non libre devant respecter la table complète des codes retours métier)
+ DescriptionRetour : description complémentaire libre, obligatoire pour les
+  retours génériques de numéro 98 ou 99 (voir ci-après)
+
+                                                                                 12
+  DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                                    CodeRetourMetier du CRM phases 2/3
+
+    Forme imposée « SXXXNN » (liste de valeurs finie)
+
+     XXX      Domaine
+     DEC      Déclaration (S20.G00.05)
+     ENT      Entreprise (S21.G00.06)
+     ETB      Etablissement (S21.G00.11)
+     ADH      Adhésion (S21.G00.15/16)
+     CET      Cotisation établissement (S21.G00.82)
+     VER      Versement (S21.G00.20)
+     CVE      Composant de versement (S21.G00.55)
+     SAL      Salarié (S21.G00.30/31)
+     TRA      Contrat de travail (S21.G00.40/41)
+     ATR      Arrêt de travail (S21.G00.60)
+     FCT      Fin de contrat (S21.G00.62)
+     AFF      Affiliation (S21.G00.70)
+     AYD      Ayant-droit (S21.G00.73)
+     CIN      Cotisation individuelle (S21.G00.78/79/81)
+     ANC      Ancienneté (S21.G00.86)
+     LIT      Lieu de travail (S21.G00.85)
+     EVT      Evénement
+                                                                    13
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                                      CodeRetourMetier du CRM phase 2/3
+
+    Pour chaque domaine sont prévus :
+     des numéros prédéfinis (de 01 à 97 au plus)
+     le numéro 98 pour un retour générique de type Erreur
+     le numéro 99 pour un retour générique de type Information
+
+
+    Exemple pour le domaine CIN (cotisations individuelles) :
+
+     ECIN01 Base assujettie manquante
+     ECIN02 Identifiant technique Affiliation erroné
+     ECIN03 Date de début de rattachement erronée
+     ECIN04 Date de fin de rattachement erronée
+     ECIN05 Composant base assujettie manquant
+     ECIN06 Type de composant erroné
+     ECIN07 Montant de composant erroné
+     ECIN08 Montant de cotisation individuelle erroné
+     ECIN98 Erreur base ou cotisation individuelle
+     ICIN99 Information base ou cotisation individuelle
+
+
+                                                                     14
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+   Attributs de l’élément RetourMetier du CRM phases 2/3
+
+
+
+
+ RubriqueBlocRetour : code de la rubrique (Snn.Gnn.nn.nnn) ou du bloc à
+  l’origine de l’anomalie (Snn.Gnn.nn)
+
+ LibelRubBlocRetour : libellé dans le cahier technique de la rubrique ou du bloc
+  à l’origine du retour (nécessaire pour faciliter la compréhension du retour)
+
+ ValeurRubriqueErreur : valeur renseignée dans la déclaration pour la rubrique
+  en erreur (non applicable au cas d’un bloc complet en erreur)
+
+ LibelValRubriqueErreur : le cas échéant, si l’attribut précédent est renseigné,
+  libellé de la valeur selon le cahier technique
+
+
+
+
+                                                                                    15
+ DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+    Attributs de l’élément RetourMetier du CRM phases 2/3
+
+
+
+
+ ValeurCorrigeeAjoutee : valeur corrigée de la rubrique en erreur, ou valeur
+  attendue de la rubrique absente
+
+ LibelValCorrigeeAjoutee : le cas échéant, libellé dans le cahier technique de la
+  valeur corrigée ou attendue
+
+
+
+
+ DateEvt : Date de l’événement rapporté (applicable uniquement aux retours de
+  type EEVTnn ou IEVTnn)
+
+
+
+
+                                                                                 16
+ DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+         Elément ContexteRetourMetier du CRM phases 2/3
+
+
+
+                                           Les données de contexte permettent
+                                            d’identifier l’objet à l’origine du retour
+                                            (salarié, contrat de travail, adhésion,
+                                            affiliation, cotisation …)
+
+                                           Pour tout retour lié à un salarié donné (ceci
+                                            excluant les retours liés aux adhésions,
+                                            cotisations établissement, versements et
+                                            composants de versement …) les données de
+                                            contexte doivent mentionner a minima les
+                                            noms, prénoms, NIR et matricule du salarié
+
+                                           Les attributs « Libelle » et « LibelVal », issues
+                                            du cahier technique, permettent de rendre
+                                            lisibles les données de contexte
+
+
+
+
+                                                                                                17
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                                    Transposition CRM phases 1-2  2-3
+                                                                 Phase 1-2
+
+
+
+
+                                                                Phases 2/3
+
+
+
+
+                                                                       18
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+       Représentations de l’AR, du CRT et
+       du CRC
+
+
+
+
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016   19
+            Requis                        Schéma général du CRM de type AR
+            Conditionnel
+                                                     (Accusé de Réception)
+            Optionnel              Niveau 1 Fichier
+                                   Version du CRM
+                                   Identifiant de l’envoi
+                                   Type de CRM
+                                   Point de dépôt – date et
+                                   heure de réception sur point
+                                   de dépôt
+                                   Siret émetteur [et déclarant]
+                                   Type de l’envoi – version de
+                                   la norme
+                                   Fichier d’essai/réel
+
+
+                                   Niveau 2 Déclaration
+                                   Identifiant, nature et type
+                                   de la déclaration
+                                   Fraction et n° d’ordre
+                                   Date du mois principal
+                                   déclaré
+                                   Etablissement déclaré
+                                   Code organisme / Code
+                                   délégataire
+                                   Producteur du CRM
+                                   Nb de salariés dans la
+                                   déclaration
+                                   Date/heure de production du
+                                   CRM
+                                                                        20
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+              Requis
+                                      Schéma général du CRM de type CRT
+              Conditionnel
+
+              Optionnel
+                                           (Compte-rendu de Traitement)
+
+
+                                                                        MandatNetE
+   Niveau 1 Fichier                     Niveau 2 Déclaration
+                                                                        BIC
+   Version du CRM                       Identifiant, nature et type     IBAN
+                                        de la déclaration               ICS
+   Identifiant de l’envoi
+                                        Fraction et n° d’ordre
+                                                                                            OU
+   Type de CRM                                                          MandatProp
+                                        Date du mois principal          BIC
+   Point de dépôt – date et                                             IBAN
+                                        déclaré
+   heure de réception sur point
+                                                                        ICS
+   de dépôt                             Etablissement déclaré
+                                                                        URLMandatProp
+   Siret émetteur [et déclarant]        Code organisme / Code
+                                        délégataire
+   Type de l’envoi – version de
+   la norme                             Producteur du CRM
+   Fichier d’essai/réel                 Contact producteur CRM
+                                        Nb de salariés dans la
+                                        déclaration
+                                                                             Rubriques spécifiques au
+                                        Nb total d’affiliations à
+                                        prendre en compte
+                                                                                   CRT (et CRC)
+                                        Nb total de radiations prises
+                                        en compte
+                                        Date/heure de production du
+                                        CRM
+                                        Code retour global et
+                                        complément explicatif
+
+
+
+                                                                                                        21
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                 Requis
+
+                 Conditionnel
+                                                   Schéma général du CRM de type
+                 Optionnel                  MandatNetE
+                                                             complet dit « CRC »
+                                            BIC
+                                            IBAN
+                                            ICS
+Niveau 1 Fichier                                                              OU
+                                            MandatProp
+Version du CRM                              BIC
+                                            IBAN
+Identifiant de l’envoi
+                                            ICS
+Type de CRM                                 URLMandatProp
+
+Point de dépôt – date et heure de
+réception sur point de dépôt                Retour métier 1
+                                    [0,*]
+Siret émetteur [et déclarant]                                                        [0,15]
+                                            Nb d’erreurs similaires                           Contexte retour métier 1
+Type de l’envoi – version de la             Code du retour métier + libellé                   Identifiant et libellé de la rubrique
+norme                                                                                         associée au retour métier
+                                            Rubrique/bloc à l’origine du retour –
+Fichier d’essai/réel                        identifiant/libellé et valeur/[libellé            Valeur et libellé de la valeur de la
+                                            valeur]                                           rubrique associée au retour métier
+Niveau 2 Déclaration                        Valeur corrigée ou attendue et libellé
+Identifiant, nature et type de la           Date événement
+déclaration                                                                                   Contexte retour métier 2
+Fraction et n° d’ordre                      Retour métier 2                           [0,15] Identifiant et libellé de la rubrique
+                                                                                              associée au retour métier
+Date du mois principal déclaré              Nb d’erreurs similaires
+                                                                                              Valeur et libellé de la valeur de la
+Etablissement déclaré                       Code du retour métier + libellé                   rubrique associée au retour métier
+Code organisme / Code délégataire           Rubrique/bloc à l’origine du retour –
+                                            identifiant/libellé et valeur/[libellé
+Producteur du CRM                           valeur]                                           Contexte retour métier 2
+Contact producteur CRM                      Valeur corrigée ou attendue et libellé
+
+Date/heure de production du CRM             Date événement                                    …
+Code retour global et complément
+explicatif
+                                            Retour métier …
+                                                                                                                                      22
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+       Exemples métier
+
+
+
+
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016   23
+                  Exemple de CRT – Entreprise inconnue de l’OC
+                                  (applicable en phases 2 et 3)
+
+
+                      Niveau 1 Fichier                       Niveau 2 Déclaration
+                      Version CRM   104                      Id            1
+                                                             déclaration
+                      Idenvoi       FbYb8vWBFAhyK5RcZ6Ad
+                                    mXW                      Nature        01 (=mensuelle)
+                                                             déclaration
+                      TypeCRM       2 (= CRT)
+                                                             Type          01 (=normale)
+                      Point de      01 (= Net-entreprises)   déclaration
+                      dépôt
+                                                             Fraction      11
+                      Date heure    20150604122147           déclaration
+                      dépôt
+                                                             N° ordre      3
+                      Emetteur      78912345600045 – Les     déclaration
+                                    experts de la compta
+                                                             Etablisseme   12345678912345 –
+                      Type de       01 (= normal)            nt déclaré    Entreprise Sanzot
+                      l’envoi
+                                                             Code          222333444
+                      Version       P02V01 [P2]              organisme
+                      norme         P03V01 [P3]
+                                                             Producteur    222333444
+                      Code envoi    02 (= réel)              du CRM        Mutuelle 234
+
+                                                             Contact       serv-gestion@mut-234.fr
+
+                                                             Code Retour   3 (= DSN non prise en
+                                                             global        compte par l’organisme)
+
+                                                             Complément    Etablissement inconnu
+                                                             code retour   de l’organisme de
+                                                             global        prévoyance Mutuelle
+                                                                           234.
+
+
+
+
+                                                                                                     24
+DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                       Exemple de CRT – deux mandats absents à acquitter
+                                   sur le module mandat Net-entreprises
+
+                                                                                 MandatNetE 1
+                                                                                 BIC             TRPUFRP1
+Niveau 1 Fichier                         Niveau 2 Déclaration
+                                                                                 IBAN            FR7610071060000000100538731
+Version CRM     104                      Id            1
+                                         déclaration
+Idenvoi         FbYb8vWBFAhyK5RcZ6Ad                                             ICS             FR83ZZZ459654
+                mXW                      Nature        01 (=mensuelle)
+                                         déclaration
+TypeCRM         2 (= CRT)
+                                         Type          01 (=normale)
+Point de        01 (= Net-entreprises)   déclaration
+dépôt
+
+Date heure      20150604122147
+                                         Fraction
+                                         déclaration
+                                                       11
+                                                                                  MandatNetE 2
+dépôt                                                                             BIC            SOGEFRPP
+                                         N° ordre      3
+Emetteur        78912345600045 – Les     déclaration
+                experts de la compta                                              IBAN           FR7630003030200005012345678
+                                         Etablisseme   12345678912345 –
+Type de         01 (= normal)            nt déclaré    Entreprise Sanzot
+                                                                                  ICS            FR83ZZZ459654
+l’envoi
+                                         Code          222333444
+Version         P02V01 [P2]              organisme
+norme           P03V01 [P3]
+                                         Producteur    222333444
+Code envoi      02 (= réel)              du CRM        Mutuelle 234
+
+                                         Contact       serv-gestion@mut-234.fr
+
+                                         Code Retour   0 (= DSN acceptée)
+                                         global
+
+
+
+
+                                                                                                                               25
+              DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                               Exemple de CRC – Prise en compte d’affiliations de
+                               salariés à travers la DSN mensuelle (phases 2 ou 3)
+                                                                                  Retour métier 1
+                                                                                  Code retour métier + libellé    IAFF99 Information affiliation
+
+                                                                                  Message complémentaire          Affiliation à prendre en compte
+
+                                                                                  Rubrique à l’origine du         S21.G00.70.001 [P2]
+Niveau 1 Fichier                        Niveau 2 Déclaration                      retour                          S21.G00.15.001 [P3]
+Version CRM    104                      Id déclaration      1
+                                                                                  Valeur de la rubrique à         XV406
+                                                                                  l’origine du retour
+Idenvoi        FbYb2vWBFAhyK5RcZ6Ad     Nature              01 (=mensuelle)
+               mVO                      déclaration
+
+TypeCRM        3 (= CRC)                Type
+                                        déclaration
+                                                            01 (=normale)                          Contexte retour métier 1
+Point de       01 (= Net-entreprises)                                                              Rubrique et         S21.G00.30.001 – Numéro d’inscription
+dépôt                                   Fraction            11
+                                                                                                   libellé             au répertoire
+                                        déclaration
+Date heure     20150504122125                                                                      Valeur et libellé   2800901198031
+dépôt                                   N° ordre            2
+                                        déclaration
+Emetteur       78912345600045 – Les
+                                        Etablissement       12345678912345 –
+               experts de la compta
+                                        déclaré             Entreprise Sanzot     Retour métier 2
+Type de        01 (= normal)
+l’envoi                                 Code organisme      A10101                Code retour métier + libellé    IAFF99 Information affiliation
+
+Version        P02V01 [P2]              Producteur du       A10101                Message complémentaire          Affiliation à prendre en compte
+norme          P03V01 [P3]              CRM                 Assu
+
+Code envoi     02 (= réel)              Nb d’affiliations   2                     Rubrique à l’origine du         S21.G00.70.001 [P2]
+                                        à prendre en                              retour                          S21.G00.15.001 [P3]
+                                        compte
+                                                                                  Valeur de la rubrique à         XV406
+                                        Contact             contratcoll@assu.fr   l’origine du retour
+
+                                        Code Retour         0 (= DSN acceptée)
+                                        global
+                                                                                                   Contexte retour métier 2
+                                                                                                   Rubrique et         S21.G00.30.001 – Numéro d’inscription
+                                                                                                   libellé             au répertoire
+
+                                                                                                   Valeur et libellé   1620650195032
+
+
+                                                                                                                                                     26
+              DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                                  Exemple de CRC – Affiliations manquantes et code
+                                      option erroné concernant un affilié (phase 2)
+                                                                                 Retour métier 1
+                                                                                 Nb d’erreurs similaires        258
+
+                                                                                 Code retour métier + libellé   EAFF01 Affiliation manquante
+
+Niveau 1 Fichier                        Niveau 2 Déclaration                     Message complémentaire         Les salariés cadres doivent être affiliés au
+                                                                                                                contrat collectif obligatoire prévoyance dont la
+Version CRM    104                      Id            1                                                         référence est « PREV1 ».
+                                        déclaration
+Idenvoi        FbYb2vWBFAhyK5RcZ6Ad                                              Bloc à l’origine du retour     S21.G00.70
+               mVR                      Nature        01 (=mensuelle)
+                                        déclaration
+                                                                                        Contexte retour métier 1
+TypeCRM        3 (= CRC)
+                                        Type          01 (=normale)
+                                                                                        Rubrique et libellé           S21.G00.30.001 – NIR du salarié
+Point de       01 (= Net-entreprises)   déclaration
+dépôt                                                                                   Valeur et libellé             2750535211027
+                                        Fraction      11
+Date heure     20150504122125           déclaration
+dépôt
+                                        N° ordre
+                                        déclaration
+                                                      2
+                                                                                 Retour métier 2
+Emetteur       78912345600045 – Les
+               experts de la compta                                              Nb d’erreurs similaires         1
+                                        Etablisseme   12345678912345 –
+Type de        01 (= normal)            nt déclaré    Entreprise Sanzot          Code retour métier + libellé    EAFF04 Code option absent
+l’envoi
+                                        Code          A10101                     Rubrique origine du retour      S21.G00.70.004 – Code option
+Version        P02V01                   organisme
+norme                                                                            Valeur attendue                 Option2
+                                        Producteur    A10101 - Assu
+Code envoi     02 (= réel)              du CRM
+                                                                                          Contexte retour métier 2
+                                        Contact       contratcoll@assu.fr
+                                                                                          Rubrique et libellé          S21.G00.30.001 – NIR du salarié
+                                        Code Retour   1 (= DSN acceptée, avec
+                                        global        corrections à apporter –            Valeur et libellé            1800901198031
+                                                      présence d’anomalies
+                                                      non bloquantes)
+                                                                                          Contexte retour métier 2
+                                                                                          Rubrique et libellé          S21.G00.70.001 – Référence contrat
+
+                                                                                          Valeur et libellé            SANT1 – Contrat santé ensemble du personnel
+
+                                                                                          Contexte retour métier 2
+                                                                                          Rubrique et libellé          S21.G00.70.002 – Organisme de prévoyance
+
+                                                                                          Valeur et libellé            A10101 – Assu
+                                                                                                                                                            27
+              DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                     Exemple de CRC – Adhésion manquante et code option
+                                   erroné concernant un affilié (phase 3)
+                                                                                 Retour métier 1
+                                                                                 Nb d’erreurs similaires        1
+
+                                                                                 Code retour métier + libellé   EADH01 Adhésion manquante
+
+Niveau 1 Fichier                        Niveau 2 Déclaration                     Message complémentaire         Les salariés cadres doivent être affiliés au
+                                                                                                                contrat collectif obligatoire prévoyance dont la
+Version CRM    104                      Id            1                                                         référence est « PREV1 ».
+                                        déclaration
+Idenvoi        FbYb2vWBFAhyK5RcZ6Ad                                              Bloc à l’origine du retour     S21.G00.15
+               mVR                      Nature        01 (=mensuelle)
+                                        déclaration
+TypeCRM        3 (= CRC)
+                                        Type          01 (=normale)
+Point de       01 (= Net-entreprises)   déclaration
+                                                                                 Retour métier 2
+dépôt
+                                        Fraction      11
+                                        déclaration                              Nb d’erreurs similaires        1
+Date heure     20160204122125
+dépôt                                                                            Code retour métier + libellé   EAFF04 Code option absent
+                                        N° ordre      2
+Emetteur       78912345600045 – Les     déclaration
+                                                                                 Rubrique à l’origine du        S21.G00.70.004 – Code option
+               experts de la compta
+                                        Etablisseme   12345678912345 –           retour
+Type de        01 (= normal)            nt déclaré    Entreprise Sanzot
+                                                                                 Valeur attendue                Option2
+l’envoi
+                                        Code          A10101
+Version        P03V01                   organisme
+norme
+                                        Producteur    A10101 - Assu                       Contexte retour métier 2
+Code envoi     02 (= réel)              du CRM
+                                                                                          Rubrique et libellé       S21.G00.30.001 – NIR du salarié
+                                        Contact       contratcoll@assu.fr
+                                                                                          Valeur et libellé         1800901198031
+                                        Code Retour   1 (= DSN acceptée, avec
+                                        global        corrections à apporter –
+                                                      présence d’anomalies
+                                                      non bloquantes)                     Contexte retour métier 2
+                                                                                          Rubrique et libellé       S21.G00.15.001 – Référence contrat
+
+                                                                                          Valeur et libellé         SANT1 – Contrat santé ensemble du personnel
+
+
+                                                                                          Contexte retour métier 2
+                                                                                          Rubrique et libellé       S21.G00.15.002 – Organisme de prévoyance
+
+                                                                                          Valeur et libellé         A10101 – Assu
+                                                                                                                                                           28
+              DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+              Exemple de CRC – Référence contrat erronée (phase 2)
+                                                                                 Retour métier 1
+                                                                                 Nb d’erreurs              456
+                                                                                 similaires
+
+                                                                                 Code retour métier        EAFF52 Référence Contrat de
+                                                                                 + libellé                 l'affiliation erronée
+
+                                                                                 Message                   L’erreur détectée sur la
+Niveau 1 Fichier                        Niveau 2 Déclaration                     complémentaire            référence contrat concerne les
+                                                                                                           456 salariés affiliés à celui-ci.
+Version CRM    104                      Id            1
+                                        déclaration                              Rubrique à                S21.G00.70.001
+Idenvoi        FbYb2vWBFAhyK5RcZ6Ad                                              l’origine du retour
+               mVR                      Nature        01 (=mensuelle)
+                                        déclaration                              Valeur de la              C123
+TypeCRM        3 (= CRC)                                                         rubrique à l’origine
+                                        Type          01 (=normale)              du retour
+Point de       01 (= Net-entreprises)   déclaration
+dépôt                                                                            Valeur attendue           C321
+                                        Fraction      11
+Date heure     20150504122125           déclaration
+dépôt
+                                        N° ordre      2
+Emetteur       78912345600045 – Les     déclaration
+               experts de la compta
+                                        Etablisseme   12345678912345 –
+Type de        01 (= normal)            nt déclaré    Entreprise Sanzot
+l’envoi
+                                        Code          P9999
+                                                                                             Contexte retour métier 1
+Version        P02V01                   organisme                                            Rubrique et libellé        S21.G00.30.001 – Numéro
+norme                                                                                                                   d’Inscription au répertoire
+                                        Producteur    P9999
+Code envoi     02 (= réel)              du CRM        Prev’ision                             Valeur et libellé          2800901198031
+                                        Contact       gestion@prevision.fr
+
+                                        Code Retour   1 (= DSN acceptée, avec
+                                        global        corrections à apporter –
+                                                      présence d’anomalies
+                                                                                             Contexte retour métier 1
+                                                      non bloquantes)                        Rubrique et          S21.G00.70.002 – Code organisme de
+                                                                                             libellé              prévoyance
+
+                                                                                             Valeur et            P9999 – Prev’ision
+                                                                                             libellé
+
+
+
+
+                                                                                                                                                 29
+           DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+              Exemple de CRC – Référence contrat erronée (phase 3)
+
+                                                                                 Retour métier 1
+                                                                                 Nb d’erreurs            1
+                                                                                 similaires
+
+                                                                                 Code retour métier      EADH02 – Référence contrat de
+Niveau 1 Fichier                        Niveau 2 Déclaration                     + libellé               l’adhésion erronée
+Version CRM    104                      Id            1
+                                                                                 Rubrique à              S21.G00.15.001
+                                        déclaration
+                                                                                 l’origine du retour
+Idenvoi        FbYb2vWBFAhyK5RcZ6Ad
+               mVR                      Nature        01 (=mensuelle)
+                                                                                 Valeur de la            C123
+                                        déclaration
+                                                                                 rubrique à l’origine
+TypeCRM        3 (= CRC)
+                                        Type          01 (=normale)              du retour
+Point de       01 (= Net-entreprises)   déclaration
+                                                                                 Valeur attendue         C321
+dépôt
+                                        Fraction      11
+Date heure     20160204122125           déclaration
+dépôt
+                                        N° ordre      2
+Emetteur       78912345600045 – Les     déclaration
+               experts de la compta
+                                        Etablisseme   12345678912345 –
+                                        nt déclaré    Entreprise Sanzot
+Type de
+l’envoi
+               01 (= normal)
+                                                                                                   Contexte retour métier 1
+                                        Code          P9999
+Version        P03V01                   organisme                                                  Rubrique et     S21.G00.15.001 – Référence
+norme                                                                                              libellé         contrat
+                                        Producteur    P9999
+Code envoi     02 (= réel)              du CRM        Prev’ision                                   Valeur et       C123 – Contrat prévoyance cadres
+                                                                                                   libellé
+                                        Contact       gestion@prevision.fr
+
+                                        Code Retour   1 (= DSN acceptée, avec
+                                        global        corrections à apporter –
+                                                      présence d’anomalies                         Contexte retour métier 1
+                                                      non bloquantes)
+                                                                                                   Rubrique et    S21.G00.15.002 – Code organisme
+                                                                                                   libellé        de prévoyance
+
+                                                                                                   Valeur et      P9999 – Prev’ision
+                                                                                                   libellé
+
+
+
+
+                                                                                                                                            30
+           DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                     Exemple de CRC – Montant du PMSS erroné (phase 3)
+                                                                                Retour métier 1
+                                                                                Nb d’erreurs              4422
+                                                                                similaires
+
+                                                                                Code retour métier +      ECIN07 Montant de composant erroné
+                                                                                libellé
+
+                                                                                Message                   Le montant de la base forfaitaire
+                                                                                complémentaire            PMSS est erroné pour l’ensemble de
+Niveau 1 Fichier                        Niveau 2 Déclaration                                              la déclaration.
+Version CRM    104                      Id            1                         Rubrique à l’origine      S21.G00.79.004 – Montant de
+                                        déclaration                             du retour                 composant de base assujettie
+Idenvoi        FbYb2vWBFAhyK5RcZ6Ad
+               mVR                      Nature        01 (=mensuelle)           Valeur de la rubrique     3129
+                                        déclaration                             à l’origine du retour
+TypeCRM        3 (= CRC)
+                                        Type          01 (=normale)             Valeur attendue           3170
+Point de       01 (= Net-entreprises)   déclaration
+dépôt
+                                        Fraction      11
+                                        déclaration
+Date heure
+dépôt
+               20160204142228
+                                                                                     Contexte retour métier 1
+                                        N° ordre      2
+Emetteur       78912345600045 – Les     déclaration                                  Rubrique et        S21.G00.15.001 – Référence contrat
+               experts de la compta                                                  libellé
+                                        Etablisseme   12345678912345 –
+Type de        01 (= normal)            nt déclaré    Entreprise Sanzot              Valeur et          SANT1 - Contrat santé ensemble du
+l’envoi                                                                              libellé            personnel
+                                        Code          222333444
+Version        P03V01                   organisme
+norme
+                                        Producteur    222333444
+                                                                                     Contexte retour métier 1
+Code envoi     02 (= réel)              du CRM        Mutuelle ABC                   Rubrique et        S21.G00.15.002 – Code organisme de
+                                        Contact       Serv-gestion@mut-abc.fr        libellé            prévoyance
+
+                                                                                     Valeur et          222333444 - Mutuelle ABC
+                                        Code Retour   2 (= DSN partiellement         libellé
+                                        global        prise en compte –
+                                                      présence d’erreurs
+                                                      interdisant la prise en        Contexte retour métier 1
+                                                      compte de certaines
+                                                      données)                       Rubrique et        S21.G00.79.001 – Type de composant
+                                                                                     libellé            de base assujettie
+
+                                                                                     Valeur et          18 – Base forfaitaire prévoyance
+                                                                                     libellé
+
+
+                                                                                                                                               31
+           DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016
+                                 Exemple de CRC – Composant de base assujettie
+                                                          manquant (phase 3)
+                                                                                        Retour métier 1
+                                                                                        Nb d’erreurs            1
+                                                                                        similaires
+
+                                                                                        Code retour métier      ECIN05 Composant de base
+                                                                                        + libellé               assujettie manquant
+Niveau 1 Fichier                        Niveau 2 Déclaration
+                                                                                        Message                 Tranche B manquante
+Version CRM    104                      Id            1                                 complémentaire
+                                        déclaration
+Idenvoi        FbYb7cWBFAhyK5RcZ6Ad                                                     Bloc à l’origine du     S21.G00.79 – Composant de base
+               mWS                      Nature        01 (=mensuelle)                   retour                  assujettie
+                                        déclaration
+TypeCRM        3 (= CRC)                                                                Valeur attendue et      13 – Tranche B prévoyance
+                                        Type          01 (=normale)                     libellé
+Point de       01 (= Net-entreprises)   déclaration
+dépôt
+                                        Fraction
+                                        déclaration
+                                                      11
+                                                                                Contexte retour métier 1
+Date heure     20160204142228
+dépôt                                                                           Rubrique et libellé       S21.G00.15.001 – Référence contrat
+                                        N° ordre      1
+Emetteur       78912345600045 – Les     déclaration
+                                                                                Valeur et libellé         C123 - Contrat prévoyance
+               experts de la compta
+                                        Etablisseme   12345678912345 –
+Type de        01 (= normal)            nt déclaré    Entreprise Sanzot
+l’envoi
+                                        Code          P9999                     Contexte retour métier 1
+Version        P03V01                   organisme
+                                                                                Rubrique et libellé       S21.G00.15.002 – Code organisme de
+norme                                                                                                     prévoyance
+                                        Producteur    P9999
+Code envoi     02 (= réel)              du CRM        Prev’ision
+                                                                                Valeur et libellé         P9999 – Prev’ision
+                                        Contact       gestion@prevision.fr
+
+                                        Code Retour
+                                        global
+                                                      2 (= DSN partiellement
+                                                      prise en compte –
+                                                                                Contexte retour métier 1
+                                                      présence d’erreurs
+                                                                                Rubrique et libellé       S21.G00.30.001 – Numéro d’Inscription
+                                                      interdisant la prise en
+                                                                                                          au répertoire
+                                                      compte de certaines
+                                                      données)                  Valeur et libellé         2800901198031
+
+
+                                                                                Contexte retour métier 1
+                                                                                Rubrique et libellé       S21.G00.30.019 – Matricule
+
+                                                                                                                                                  32
+           DSN – Compte rendu métier CRM phases 2/3 – 1er juin 2016             Valeur et libellé         123456
+

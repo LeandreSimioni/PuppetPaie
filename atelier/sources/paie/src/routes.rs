@@ -70,6 +70,8 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         "arret-contrats" | "dossier-formes" | "exports-periodes" => crate::routes_dossiers::route(o, &ctx, route, &charge),
         // Les apercus : ce que la page montre avant d'agir (lecture seule).
         "documents-liste" | "depot-apercu" => crate::routes_apercus::route(o, &ctx, route, &charge),
+        // L'Historique d'un mois : ses documents, ses envois et leurs retours, lus (lecture seule).
+        crate::historique_mois::ROUTE => crate::historique_mois::route(&ctx, &charge),
         // Les apercus des documents du mois : le contrat a signer, l'avenant, l'envoi.
         "signature-apercu" | "avenant-apercu" | "envoi-apercu" => crate::routes_documents::route(o, &ctx, route, &charge),
         // L'import d'un export CoolPaie : ce qu'il ferait ; le tri de la boite aux lettres `import/` (rien n'est ecrit).

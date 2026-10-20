@@ -46,12 +46,23 @@ impl Veille {
         route(&self.racine, "ouverture-derniere", &json!({})).unwrap_or_else(|_| json!({}))
     }
 
+    /// Ou en est le passage, sans rien lancer (`veille-etape`) : une lecture de drapeaux et d'un petit fichier, que la page
+    /// fait toutes les secondes le temps d'un passage. L'etape est celle que l'ouverture ecrit en y entrant
+    /// (`ouverture::etape_en_cours`) ; aucun passage en cours, aucune etape.
+    pub fn etape(&self) -> Value {
+        let en_cours = self.en_cours.load(Ordering::SeqCst);
+        let sauvegarde = self.sauvegarde_en_cours.load(Ordering::SeqCst);
+        let etape = if en_cours || sauvegarde { crate::ouverture::etape_en_cours(&self.racine) } else { None };
+        json!({"en_cours": en_cours, "sauvegarde_en_cours": sauvegarde, "etape": etape})
+    }
+
     pub fn etat(&self) -> Value {
         let coffre = route(&self.racine, "coffre-etat", &json!({})).unwrap_or_else(|_| json!({}));
         let dernier = self.dernier.lock().ok().and_then(|d| d.clone()).unwrap_or_else(|| self.derniere());
         json!({
             "en_cours": self.en_cours.load(Ordering::SeqCst),
             "sauvegarde_en_cours": self.sauvegarde_en_cours.load(Ordering::SeqCst),
+            "etape": self.etape()["etape"],
             "minutes": self.minutes,
             "dernier": dernier,
             "erreur": self.erreur.lock().map(|e| e.clone()).unwrap_or_default(),
