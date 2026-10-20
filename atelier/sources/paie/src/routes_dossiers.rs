@@ -309,7 +309,7 @@ fn etat_concerne(ctx: &Contexte, etat: &str) -> bool {
         }
     }
     if t["si_permanents"].as_array().expect("permanents").iter().any(|e| e.as_str() == Some(etat)) {
-        return ctx.entreprise.get("emploie_des_permanents") == Some(&Value::Bool(true));
+        return ctx.emploie_des_permanents();
     }
     true
 }

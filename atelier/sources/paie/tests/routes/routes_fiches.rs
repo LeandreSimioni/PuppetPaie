@@ -191,3 +191,57 @@ fn changements_declares_refuse_une_fiche_inconnue_ou_une_charge_qui_ne_se_lit_pa
         assert!(refuse(c, "changements-declares", charge.clone()), "{}", charge);
     }
 }
+
+// ------------------------------------------------------------ permanents
+
+/// Le curseur des permanents (ticket #214) : la page le redemande au moteur quand on coche la case, sur la fiche en
+/// cours ; sans fiche, c'est celle de la compagnie. Absent vaut non.
+#[test]
+fn le_curseur_des_permanents_est_la_reponse_du_moteur() {
+    let c = &compagnie("permanents");
+    let oui = |charge: Value| resultat(c, "permanents", charge)["permanents"].clone();
+    assert_eq!(oui(json!({"entreprise": {"emploie_des_permanents": true}})), json!(true));
+    assert_eq!(oui(json!({"entreprise": {"emploie_des_permanents": false}})), json!(false));
+    assert_eq!(oui(json!({"entreprise": {}})), json!(false));
+    // 3090-petite n'emploie que des intermittents.
+    assert_eq!(oui(json!({})), json!(false));
+    assert!(refuse(c, "permanents", json!({"entreprise": [true]})));
+}
+
+// ------------------------------------------------- taxe-sur-les-salaires-regime
+
+/// Ticket #216 : la compagnie dit sa TVA, le moteur conclut (CGI art. 231, 1, depose :
+/// `atelier/reference/sources/code-general-des-impots/xml/231.xml`) et dit quelles cases suivent. Chaque case n'apparait
+/// que si la precedente l'appelle.
+#[test]
+fn la_taxe_sur_les_salaires_se_deduit_de_la_tva() {
+    let c = &compagnie("taxe-salaires");
+    let r = |ts: Value| resultat(c, "taxe-sur-les-salaires-regime", json!({ "taxe_sur_les_salaires": ts }));
+    let champs = |v: &Value| v["champs"].as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_string()).collect::<Vec<_>>();
+    // Rien de dit : la seule question est la TVA, et la reponse est incomplete.
+    let v = r(Value::Null);
+    assert_eq!((champs(&v), v["complet"].clone()), (vec!["tva".to_string()], json!(false)));
+    // Assujettie : la part de ses recettes soumise a la TVA. A 90 % ou plus, rien n'est du et rien d'autre ne se demande.
+    let v = r(json!({"tva": "assujettie"}));
+    assert_eq!((champs(&v), v["complet"].clone()), (vec!["tva".to_string(), "part_tva".to_string()], json!(false)));
+    let v = r(json!({"tva": "assujettie", "part_tva": 92}));
+    assert_eq!((champs(&v), v["complet"].clone(), v["due"].clone()), (vec!["tva".to_string(), "part_tva".to_string()], json!(true), json!(false)));
+    // Sous 90 % : due sur le reste, sauf sous les plafonds de 293 B (2e alinea) -- la question suit.
+    let v = r(json!({"tva": "assujettie", "part_tva": 40}));
+    assert_eq!((champs(&v).last().cloned(), v["complet"].clone()), (Some("sous_franchise".to_string()), json!(false)));
+    let v = r(json!({"tva": "assujettie", "part_tva": 40, "sous_franchise": false}));
+    assert_eq!((v["due"].clone(), v["part_taxee"].clone()), (json!(true), json!("60")));
+    // L'abattement des associations (art. 1679 A) ne se demande que si la taxe est due.
+    assert_eq!(champs(&v).last().map(String::as_str), Some("association_1679A"));
+    let v = r(json!({"tva": "assujettie", "part_tva": 40, "sous_franchise": true}));
+    assert_eq!((v["due"].clone(), v["complet"].clone(), champs(&v).contains(&"association_1679A".to_string())), (json!(false), json!(true), false));
+    // Exoneree de TVA : due sur tout, sans part a dire.
+    let v = r(json!({"tva": "exoneree", "sous_franchise": false, "part_tva": 12}));
+    assert_eq!((v["part_taxee"].clone(), champs(&v).contains(&"part_tva".to_string())), (json!("100"), false));
+    // Une conclusion se dit toujours en clair.
+    assert!(v["consequence"].as_str().is_some_and(|s| !s.is_empty()));
+    // Sans charge : la fiche de la compagnie (assujettie sur toutes ses recettes).
+    let v = resultat(c, "taxe-sur-les-salaires-regime", json!({}));
+    assert_eq!((v["complet"].clone(), v["due"].clone()), (json!(true), json!(false)));
+    assert!(refuse(c, "taxe-sur-les-salaires-regime", json!({"taxe_sur_les_salaires": "assujettie"})));
+}

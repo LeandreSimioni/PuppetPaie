@@ -136,7 +136,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // Le modele du bulletin (lot R11) : les modeles, l'apercu d'une paie fictive sous chacun, le choix de la compagnie.
         r if crate::routes_bulletin_modele::ROUTES.contains(&r) => crate::routes_bulletin_modele::route(&ctx, route, &charge),
         // La fiche : ce qu elle dirait, ce qu elle changerait, la forme d'une case, le taux AT/MP.
-        "normaliser" | "taux-atmp" | "verifier-fiche" | "changements-declares" => crate::routes_fiches::route(o, &ctx, route, &charge),
+        "normaliser" | "taux-atmp" | "verifier-fiche" | "changements-declares" | "taxe-sur-les-salaires-regime" | "permanents" => crate::routes_fiches::route(o, &ctx, route, &charge),
         // Les incidents et le canal vers l'editeur : le journal, « Un probleme, une idee ? », le filet DPAE.
         r if crate::routes_incidents::ROUTES.contains(&r) || r == crate::routes_incidents::ROUTE_OUBLIER => {
             crate::routes_incidents::route(o, &ctx, route, &charge)

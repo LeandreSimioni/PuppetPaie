@@ -1249,21 +1249,20 @@ pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let Some(annee) = d.annee.as_deref().filter(|a| !a.is_empty()) else {
         return Err(refus("La taxe sur les salaires se calcule sur une ANNÉE (ses seuils sont annuels) : --annee AAAA."));
     };
-    let fiche_brute = ctx.entreprise.get("taxe_sur_les_salaires").cloned();
-    let mut manque = None;
-    let fiche = match &fiche_brute {
-        Some(f) if f.as_object().is_some_and(|o| o.contains_key("assujettie")) => f.clone(),
-        _ => {
-            // NE PAS SAVOIR N'EST PAS UNE ERREUR : l'etat le dit, et dit quoi ecrire.
-            manque = Some("La fiche de la compagnie ne dit pas si elle doit la taxe sur les salaires. Elle la doit si elle n'est pas assujettie à la TVA sur au moins 90 % de son chiffre d'affaires (CGI art. 231) — c'est le cas de beaucoup d'associations. L'écrire dans config/entreprise.json : \"taxe_sur_les_salaires\": {\"assujettie\": true, \"pourcentage_assujettissement\": 100, \"association_1679A\": true} (ou {\"assujettie\": false}).".to_string());
-            serde_json::json!({"assujettie": false})
+    // Qui doit la taxe, et sur quelle part : le meme regime que la DSN de decembre (`assujettissement`, CGI art. 231, 1).
+    // NE PAS SAVOIR N'EST PAS UNE ERREUR : l'etat le dit, et dit quoi repondre.
+    let regime = crate::assujettissement::regime_taxe_sur_les_salaires(&ctx.entreprise);
+    let p = Periode::nouvelle(ctx, None, Some(annee), false, true)?;
+    let mut avert: Vec<String> = Vec::new();
+    let part = match &regime.decision {
+        Ok(part) => *part,
+        Err(m) => {
+            avert.push(m.clone());
+            None
         }
     };
-    let p = Periode::nouvelle(ctx, None, Some(annee), false, true)?;
-    let mut avert: Vec<String> = manque.iter().cloned().collect();
-    let assujettie = fiche.get("assujettie").is_some_and(vrai);
-    if !assujettie && manque.is_none() {
-        avert.push("La fiche dit que la compagnie n'est pas assujettie à la taxe sur les salaires (elle l'est à la TVA) : rien à calculer.".to_string());
+    if regime.decision == Ok(None) {
+        avert.push(format!("{} Rien à calculer.", regime.consequence));
     }
     let jour = crate::date::Jour::lire(&format!("{}-01-01", annee)).map_err(|x| erreur("ValueError", x))?;
     let bar = ctx.bareme(&jour).map_err(crate::retours::Echec::from)?;
@@ -1340,14 +1339,11 @@ pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         brute = add(brute, taxe);
         lignes.push(l);
     }
-    let pct_a = match fiche.get("pourcentage_assujettissement") {
-        Some(v) => dec_du_bareme(v)?,
-        None => Decimal::ONE_HUNDRED,
-    };
-    let due = if assujettie { quant(div(mul(brute, pct_a), cent), 0) } else { zero };
+    let pct_a = part.unwrap_or(Decimal::ZERO);
+    let due = if part.is_some() { quant(div(mul(brute, pct_a), cent), 0) } else { zero };
     let franchise = dec_du_bareme(du_bareme(&ts, "franchise")?)?;
     let limite = dec_du_bareme(du_bareme(&ts, "decote_jusqu_a")?)?;
-    let mut etapes = vec![format!("taxe brute {} € × {} % d'assujettissement = {} €", brute, pct_a, due)];
+    let mut etapes = vec![format!("taxe brute {} € × {} % taxés (CGI art. 231, 1) = {} €", brute, pct_a, due)];
     let mut net;
     if due <= franchise {
         net = zero;
@@ -1359,7 +1355,7 @@ pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     } else {
         net = due;
     }
-    if fiche.get("association_1679A").is_some_and(vrai) && net > Decimal::ZERO {
+    if regime.association && net > Decimal::ZERO {
         let ab = dec_du_bareme(du_bareme(&ts, "abattement_1679A")?)?;
         let reste = sub(net, ab);
         let reste = if reste > zero { reste } else { zero };

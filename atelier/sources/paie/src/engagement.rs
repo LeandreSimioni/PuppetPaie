@@ -901,13 +901,13 @@ pub fn engagements(
         let mut spectacle = ou(e.get("spectacle"), data.get("spectacle"));
         if nat.mensuelle() {
             // Employer des permanents se declare.
-            if ctx.entreprise.get("emploie_des_permanents") != Some(&Value::Bool(true)) {
+            if !ctx.emploie_des_permanents() {
                 return Err(format!(
                     "Engagement {} de {} : config/entreprise.json : cette saisie porte un contrat paye au mois \
                      ({}), et la fiche ne dit pas que la compagnie emploie des \
                      permanents.\n\
-                     \x20 A faire, dans cet ordre : cocher << Emploie des permanents >> dans \
-                     Configuration > Entreprise, puis remplir ce que la case ouvre -- la \
+                     \x20 A faire, dans cet ordre : cocher << La compagnie emploie aussi des salaries au mois >> dans \
+                     Configuration > Entreprise (bloc << Vos salaries >>), puis remplir ce que la case ouvre -- la \
                      complementaire sante de chaque permanent (obligatoire, art. L911-7, \
                      le moteur refuse de payer sans elle) et, pour un non cadre de moins \
                      d'un an dans l'entreprise, son entree dans la branche.\n\
