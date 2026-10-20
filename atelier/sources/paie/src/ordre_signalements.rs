@@ -178,3 +178,86 @@ pub fn conduite_b1_208_10(declaration: &Value, flux: &str) -> Option<String> {
         texte("ordre")
     ))
 }
+
+// ------------------------------------------------------------------ et l'ordre des mensuelles
+
+/// Ce que les bilans archives disent des DSN MENSUELLES d'une base (essai ou reel), lu en silence (tickets #221, #222,
+/// regle de Leandre du 20/10/2026 : « le compteur d'ordre lit tous les retours, en arriere-plan, sans rien montrer, y
+/// compris ceux des tests faits ailleurs »).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct MensuellesVues {
+    /// Le plus grand ordre de mensuelle vu pour ce mois de constitution, 0 si aucun.
+    pub ordre: i64,
+    /// Une mensuelle du mois declare a ete ACCEPTEE dans cette base : une normale de plus y serait refusee, le depot
+    /// suivant part en annule-et-remplace (cahier technique DSN, §1.4.3.2).
+    pub du_mois_acceptee: bool,
+}
+
+/// L'ordre d'une mensuelle « au cours du mois courant », lu sur la plate-forme. Cahier technique DSN 2026.1, p. 136
+/// (`atelier/reference/norme-dsn/texte/bloc-S20.G00.05.txt`) : le numero d'ordre « permet d'identifier le rang de
+/// constitution d'une declaration au cours du mois courant. Pour une Mensuelle, ce numero est remis a zero a chaque
+/// premier jour de mois civil » ; et B1-208-11 (`dsn::generer`, 10/09/2026) compare le rang « AAAAMM + ordre » au
+/// « dernier ordre accepte ». La plate-forme se souvient de tout ce qui est parti sous le SIREN, d'ou qu'il vienne
+/// (l'atelier, un autre poste) ; le journal du dossier ne sait que ce qu'il a envoye.
+///
+/// Deux lectures, sur les bilans de nature 11 archives dans `retours/` pour ce SIREN et cette base (`essai_reel`) :
+/// - l'ordre de chaque mensuelle (nature 01) recue le mois `constitution` (`AAAA-MM`). INFERENCE : le mois de reception
+///   du bilan (`date_reception`) est celui de constitution du fichier ; un fichier ecrit le 31 et depose le 1er y
+///   echappe, la seconde lecture le rattrape quand la plate-forme l'a cite ;
+/// - le rang que la plate-forme cite dans un refus (« d'ordre 20261021 inferieur (ou egal) au dernier ordre accepte
+///   20261030 ») : AAAAMM + ordre, exact, quel que soit le jour du bilan.
+///
+/// `mois` (`AAAA-MM`) : le mois declare (S20.G00.05.005) dont on cherche une mensuelle acceptee.
+pub fn dernier_ordre_des_mensuelles(racine: &Path, siren: &str, essai: bool, constitution: &str, mois: &str) -> Result<MensuellesVues, Echec> {
+    let dossier = racine.join("retours");
+    let Ok(lecture) = std::fs::read_dir(&dossier) else { return Ok(MensuellesVues::default()) };
+    let mut noms: Vec<String> = lecture.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.contains("_nature11_")).collect();
+    noms.sort();
+    let base = if essai { crate::retours::ESSAI_TEST } else { "02" }; // `essai_reel` : 01 essai, 02 reel
+    let aaaamm = constitution.replace('-', "");
+    let cite = regex::Regex::new(r"ordre (?:accept\S* )?(\d{7,})").map_err(|e| erreur("ValueError", e.to_string()))?;
+    let mut vues = MensuellesVues::default();
+    for nom in noms {
+        let p = dossier.join(&nom);
+        if !p.is_file() {
+            continue;
+        }
+        let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+        let bilan = crate::retours::bilan_d_octets(&octets);
+        if bilan.is_null() {
+            continue;
+        }
+        let champ = |k: &str| bilan.get(k).and_then(Value::as_str).unwrap_or("").to_string();
+        if champ("essai_reel") != base {
+            continue;
+        }
+        let mut du_siren = false;
+        for d in crate::retours::declarations_du_bilan(&octets) {
+            let texte = |k: &str| d.get(k).and_then(Value::as_str).unwrap_or("").to_string();
+            if texte("nature") != crate::depot::MENSUELLE || texte("siren") != siren {
+                continue;
+            }
+            du_siren = true;
+            if champ("recu_le").starts_with(constitution) {
+                vues.ordre = vues.ordre.max(texte("ordre").parse::<i64>().unwrap_or(0));
+            }
+            if champ("mois") == mois && texte("etat").eq_ignore_ascii_case("OK") {
+                vues.du_mois_acceptee = true;
+            }
+        }
+        if !du_siren {
+            continue;
+        }
+        for c in cite.captures_iter(&String::from_utf8_lossy(&octets)) {
+            if let Some(reste) = c[1].strip_prefix(aaaamm.as_str()) {
+                vues.ordre = vues.ordre.max(reste.parse::<i64>().unwrap_or(0));
+            }
+        }
+    }
+    Ok(vues)
+}
+
+/// Le SIREN de l'entreprise du dossier, comme le lit `dernier_ordre_connu`.
+pub(crate) fn siren_de(ctx: &Contexte) -> String {
+    siren(&ctx.entreprise)
+}

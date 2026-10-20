@@ -875,6 +875,12 @@ impl<'a> Moteur<'a> {
             "ecrite"
         };
         let (_, courte, phrase) = ETAPES_DEPOT.iter().find(|e| e.0 == etape).copied().expect("etape connue");
+        // UN TEST REFUSE SE DIT AVEC SES ANOMALIES, la ou l'on propose d'envoyer (tickets #221, #222) : le code et le
+        // message du bilan, pas seulement « refuse ».
+        let phrase = match r["ratees"].as_array().and_then(|l| l.last()) {
+            Some(l) if etape == "test_refuse" => format!("Le test a été refusé : {}. Le même refus attendrait le dépôt réel.", crate::depot_acte::pourquoi_rate(l).trim_end_matches('.')),
+            _ => phrase.to_string(),
+        };
         let avant = bilan.get("phrase").filter(|p| vrai(p)).map(py_str).unwrap_or_default();
         let avant = avant.trim_end_matches('.');
         bilan.insert("etape".into(), json!(etape));

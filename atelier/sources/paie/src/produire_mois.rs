@@ -274,7 +274,17 @@ fn forme_a_produire(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Value) -> 
         let n = m.ordre_de_la_ligne(mois, l)?;
         dernier = Some(dernier.map_or(n, |d| d.max(n)));
     }
-    let Some(dernier) = dernier else { return Ok(("01".into(), 1, false)) };
+    // CE QUE LA PLATE-FORME A VU EN REEL ce mois civil, lu en silence dans les bilans archives
+    // (`ordre_signalements::dernier_ordre_des_mensuelles`) : le rang se compte « au cours du mois courant » (cahier
+    // technique DSN, p. 136), toutes declarations du SIREN confondues, d'ou qu'elles soient parties (un autre poste).
+    let constitution: String = ctx.aujourdhui.iso().chars().take(7).collect();
+    let vues = crate::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &crate::ordre_signalements::siren_de(ctx), false, &constitution, mois)?;
+    let dernier = match dernier {
+        Some(d) => d.max(vues.ordre),
+        // Une mensuelle du mois acceptee en reel que le journal ignore : la suivante la remplace.
+        None if vues.du_mois_acceptee => vues.ordre.max(1),
+        None => return Ok(("01".into(), vues.ordre + 1, false)),
+    };
     let limite = m.limite(mois)?;
     if ctx.aujourdhui > limite {
         return Err(erreur(

@@ -26,6 +26,7 @@ mod nationalite;
 mod net_deja_verse;
 mod norme_par_fichier;
 mod oeth_casc;
+mod ordre_mensuelles;
 mod ordre_signalements;
 mod options_sante;
 mod preavis;
