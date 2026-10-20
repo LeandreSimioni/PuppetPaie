@@ -6,7 +6,8 @@
 //! 14/10/2026 : « mon logiciel c'est le meme que les autres […] quand je fais une mise a jour, il faut que la mise a jour
 //! arrive aussi sur ma machine ») ; l'editeur, en plus, publie. Le bridage n'y joue aucun role.
 //!
-//!   verifier   au lancement, en fond (`chercher_en_fond`). Lit `derniere.json` au depot ; une version plus recente est
+//!   verifier   au lancement, en fond (`chercher_en_fond` ; lance sans reseau, il reprend de lui-meme). Lit
+//!              `derniere.json` au depot ; une version plus recente est
 //!              prise, son condensat et la SIGNATURE de l'editeur (Ed25519, `cles_de_l_editeur`) verifies, deballee dans
 //!              `maj/<version>/`, CONTROLEE (son programme lit la configuration de chaque compagnie de l'installation),
 //!              puis `maj/prete.json` est pose.
@@ -604,24 +605,25 @@ pub fn verifier_suivi(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi
     };
     let v = d["version"].as_str().unwrap_or_default().to_string();
     if !plus_recente(&v, &courante(&c)) {
-        suivi.poser(Etape::AJour, None, |_| {});
+        suivi.poser(Etape::AJour, Some(&courante(&c)), |_| {});
         return format!("version {}, a jour", cour);
     }
     let lue = version_lue(&v);
     // Publiee sans ce systeme : rien a telecharger, la version en place reste (une tout-systeme qui ne le porte pas ne
     // se lancerait pas ici). Pour cette installation, il n'y a pas de mise a jour.
     if !publiee_pour_ce_systeme(&d) {
-        suivi.poser(Etape::AJour, None, |p| p.sans_ce_systeme = Some(v.clone()));
+        suivi.poser(Etape::AJour, Some(&courante(&c)), |p| p.sans_ce_systeme = Some(v.clone()));
         return format!("version {} -- la {} est publiee sans ce systeme ({}) : cette installation garde sa version", cour, lue, SYSTEME);
     }
     let deja = prete(inst).and_then(|p| p["version"].as_str().map(String::from)).as_deref() == Some(v.as_str());
-    if deja || !telecharger_aussi {
-        if deja {
-            suivi.prete(inst, &v);
-        } else {
-            suivi.poser(Etape::AJour, None, |_| {});
-        }
+    if deja {
+        suivi.prete(inst, &v);
         return format!("version {} -- la {} est prete", cour, lue);
+    }
+    // `paie maj --sans-telecharger` (le seul appel sans telechargement, sur un suivi que personne ne lit) : la version
+    // existe, rien n'est recu. On le dit tel quel, sans pretendre « a jour » ni « prete ».
+    if !telecharger_aussi {
+        return format!("version {} -- la {} est publiee, pas encore telechargee (`paie maj` la prepare)", cour, lue);
     }
     match telecharger(inst, &depot, &d, cles, suivi) {
         Ok(prise) => {
@@ -671,13 +673,40 @@ struct Point {
     mot: String,
     retenue_par: Vec<String>,
     sans_ce_systeme: Option<String>,
+    /// Un echec `HORS_LIGNE` que la recherche reprendra d'elle-meme : quand (`chercher_tant_que_hors_ligne`).
+    nouvel_essai: Option<std::time::Instant>,
 }
 
 impl Point {
     const fn vide() -> Point {
-        Point { etape: Etape::Aucune, version: None, recus: 0, attendus: None, mot: String::new(), retenue_par: Vec::new(), sans_ce_systeme: None }
+        Point {
+            etape: Etape::Aucune,
+            version: None,
+            recus: 0,
+            attendus: None,
+            mot: String::new(),
+            retenue_par: Vec::new(),
+            sans_ce_systeme: None,
+            nouvel_essai: None,
+        }
     }
 }
+
+/// Ce que la page attend entre deux lectures de l'indicateur : pendant une recherche, et pendant qu'un nouvel essai est
+/// prevu (le reseau peut revenir). Le reste du temps, elle ne relit pas.
+const RELIRE_EN_COURS_MS: u64 = 700;
+const RELIRE_EN_ATTENTE_MS: u64 = 10_000;
+
+/// LE RYTHME DES NOUVEAUX ESSAIS quand le depot ne repond pas (ticket #217, Leandre, 20/10/2026 : le logiciel demarre
+/// sans reseau et reste « hors ligne » alors que le poste est connecte). Apres le n-ieme echec, la recherche attend la
+/// n-ieme duree, puis la derniere a chaque fois : un essai par 5 minutes au plus lent, jamais plus d'un par 30 secondes.
+/// Un essai hors ligne ne coute qu'une demande de `derniere.json` qui echoue ; le fil dort entre deux.
+pub const ATTENTES_HORS_LIGNE: [std::time::Duration; 4] = [
+    std::time::Duration::from_secs(30),
+    std::time::Duration::from_secs(60),
+    std::time::Duration::from_secs(120),
+    std::time::Duration::from_secs(300),
+];
 
 /// L'etat d'une recherche (celle du lancement : `RECHERCHE`).
 #[derive(Debug)]
@@ -739,9 +768,18 @@ impl Recherche {
         self.0.lock().unwrap_or_else(|e| e.into_inner()).etape
     }
 
+    /// La recherche a echoue faute de reseau (`HORS_LIGNE`) : c'est le seul echec qu'un nouvel essai peut lever.
+    fn hors_ligne(&self) -> bool {
+        let p = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        p.etape == Etape::Echec && p.mot == HORS_LIGNE
+    }
+
     /// Ce que l'indicateur montre, tout decide ici : `etape`, `texte` (vide : rien a montrer), `detail` (la bulle),
     /// `progression` (0 a 1, ou rien : pas de barre ; une barre sans fin connue est `null` avec `barre`), `en_cours`
-    /// (la page relit tant que c'est vrai, et se tait ensuite), `redemarrer` (le clic est offert).
+    /// (une recherche se fait), `relire_ms` (dans combien la page relit : pendant une recherche, et pendant qu'un nouvel
+    /// essai est prevu ; `null`, elle se tait), `redemarrer` (le clic est offert).
+    /// Tout se dit positivement, par ce qui est vrai (ticket #217, Leandre, 20/10/2026 : « Logiciel a jour » plutot
+    /// qu'« Aucune mise a jour »).
     pub fn etat(&self) -> Value {
         let p = self.0.lock().unwrap_or_else(|e| e.into_inner());
         let lue = p.version.as_deref().map(version_lue);
@@ -750,14 +788,23 @@ impl Recherche {
             None => String::new(),
         };
         let mo = |o: u64| format!("{:.1}", o as f64 / 1_048_576.0).replace('.', ",");
+        let essai = p.nouvel_essai.map(|t| {
+            let s = t.saturating_duration_since(std::time::Instant::now()).as_secs();
+            match s {
+                0 => "nouvel essai maintenant".to_string(),
+                1..=59 => "nouvel essai dans moins d'une minute".to_string(),
+                _ => format!("nouvel essai dans {} min", s.div_ceil(60)),
+            }
+        });
         let (texte, detail, barre, progression): (&str, String, bool, Option<f64>) = match p.etape {
             Etape::Aucune => ("", String::new(), false, None),
             Etape::Recherche => ("Recherche de mise à jour…", String::new(), false, None),
             Etape::AJour => (
-                "Aucune mise à jour",
-                match &p.sans_ce_systeme {
-                    Some(v) => format!("PuppetPaie {} est publiée sans ce système : cette installation garde sa version.", version_lue(v)),
-                    None => "Cette version est la dernière.".into(),
+                "Logiciel à jour",
+                match (&lue, &p.sans_ce_systeme) {
+                    (Some(c), Some(v)) => format!("PuppetPaie {} est la dernière version pour ce système ; la {} est publiée pour les autres.", c, version_lue(v)),
+                    (Some(c), None) => format!("PuppetPaie {} est la dernière version.", c),
+                    (None, _) => "Cette version est la dernière.".into(),
                 },
                 false,
                 None,
@@ -784,22 +831,33 @@ impl Recherche {
             ),
             Etape::Echec => (
                 "",
-                match &lue {
-                    Some(v) => format!("PuppetPaie {} n'a pas pu être préparée : cette version reste, la recherche reprend au prochain lancement.", v),
-                    None => "La recherche reprend au prochain lancement ; cette version reste.".into(),
+                match (&lue, &essai) {
+                    (Some(v), Some(e)) => format!("Cette version reste en service ; PuppetPaie {} se prépare dès que le réseau revient : {}.", v, e),
+                    (None, Some(e)) => format!("Cette version reste en service ; la recherche reprend dès que le réseau revient : {}.", e),
+                    (Some(v), None) => format!("Cette version reste en service ; PuppetPaie {} se prépare de nouveau au prochain lancement.", v),
+                    (None, None) => "Cette version reste en service ; la recherche reprend au prochain lancement.".into(),
                 },
                 false,
                 None,
             ),
         };
         let texte = if p.etape == Etape::Echec { format!("Mise à jour : {}", p.mot) } else { texte.to_string() };
+        let en_cours = matches!(p.etape, Etape::Recherche | Etape::Telechargement | Etape::Preparation);
+        let relire_ms = if en_cours {
+            Some(RELIRE_EN_COURS_MS)
+        } else if p.etape == Etape::Echec && p.nouvel_essai.is_some() {
+            Some(RELIRE_EN_ATTENTE_MS)
+        } else {
+            None
+        };
         json!({
             "etape": p.etape.nom(),
             "texte": texte,
             "detail": detail,
             "barre": barre,
             "progression": progression,
-            "en_cours": matches!(p.etape, Etape::Recherche | Etape::Telechargement | Etape::Preparation),
+            "en_cours": en_cours,
+            "relire_ms": relire_ms,
             "redemarrer": p.etape == Etape::Prete,
             "version": lue,
         })
@@ -811,10 +869,10 @@ impl Recherche {
 /// recherche de ce processus n'a rien de pret, ou si la version est retenue : rien n'est lance.
 pub fn redemarrer_pour_mettre_a_jour(inst: &Path, suivi: &Recherche) -> R<String> {
     if suivi.etape() != Etape::Prete {
-        return Err("Aucune mise à jour n'est prête à s'installer.".into());
+        return Err("Cette version reste en service jusqu'à ce qu'une nouvelle soit prête.".into());
     }
     let Some(v) = applicable(inst) else {
-        return Err("La mise à jour n'est plus prête à s'installer.".into());
+        return Err("Cette version reste en service : la mise à jour attend encore.".into());
     };
     lancer_relais(inst, &v).map_err(|e| {
         noter(inst, &format!("Mise a jour {} non appliquee : {}", version_lue(&v), e));
@@ -1312,13 +1370,33 @@ pub fn au_lancement() -> bool {
 /// AU LANCEMENT, apres `au_lancement` : le logiciel cherche pour lui-meme, en fond, sans attendre qu'une compagnie
 /// s'ouvre ; ce qu'il trouve s'appliquera au lancement suivant (ou au clic « Redemarrer pour mettre a jour »). Ce qui
 /// s'est passe va dans le journal de la mise a jour ; ou elle en est, dans `RECHERCHE` (l'indicateur, ticket #210).
+/// Lance sans reseau, elle reprend d'elle-meme tant que le logiciel tourne (`chercher_tant_que_hors_ligne`, ticket #217).
 pub fn chercher_en_fond() {
     let inst = installation();
     RECHERCHE.poser(Etape::Recherche, None, |_| {});
-    std::thread::spawn(move || {
-        let dit = verifier_suivi(&inst, true, &cles_de_l_editeur(), &RECHERCHE);
-        noter(&inst, &format!("Recherche : {}", dit));
-    });
+    std::thread::spawn(move || chercher_tant_que_hors_ligne(&inst, &cles_de_l_editeur(), &RECHERCHE, &ATTENTES_HORS_LIGNE));
+}
+
+/// LA RECHERCHE REPREND QUAND LE RESEAU REVIENT (ticket #217, Leandre, 20/10/2026 : le logiciel lance sans reseau
+/// restait « Mise a jour : hors ligne » alors que le poste etait connecte, jusqu'au lancement suivant). `verifier_suivi`,
+/// puis, tant que l'echec est `HORS_LIGNE` (le depot ne repond pas, ou la reception a ete coupee), un nouvel essai apres
+/// `attentes[n]` (la derniere se repete : `ATTENTES_HORS_LIGNE`). Le moment du prochain essai est dans `suivi` : la
+/// bulle le dit, et la page relit tant qu'il est prevu (`relire_ms`). Tout autre issue (a jour, prete, retenue, un echec
+/// qu'un nouvel essai ne leverait pas : signature refusee, archive alteree, depot introuvable) arrete la boucle. Chaque
+/// essai va au journal de la mise a jour. Bloquante : a lancer dans un fil.
+pub fn chercher_tant_que_hors_ligne(inst: &Path, cles: &[&str], suivi: &Recherche, attentes: &[std::time::Duration]) {
+    let mut n = 0usize;
+    loop {
+        let dit = verifier_suivi(inst, true, cles, suivi);
+        noter(inst, &format!("Recherche : {}", dit));
+        let Some(attente) = attentes.get(n).or(attentes.last()).copied() else { return };
+        if !suivi.hors_ligne() {
+            return;
+        }
+        suivi.0.lock().unwrap_or_else(|e| e.into_inner()).nouvel_essai = Some(std::time::Instant::now() + attente);
+        std::thread::sleep(attente);
+        n += 1;
+    }
 }
 
 /// Le journal de la mise a jour (et de ce que le lancement range dans l'installation) : `<installation>/maj/journal.log`,

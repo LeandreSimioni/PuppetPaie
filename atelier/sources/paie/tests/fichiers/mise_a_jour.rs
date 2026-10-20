@@ -705,6 +705,7 @@ fn la_recherche_dit_ou_elle_en_est_et_se_tait_quand_elle_a_fini() {
     let fini = |e: &Value, etape: &str| {
         assert_eq!(e["etape"], etape, "{}", e);
         assert_eq!(e["en_cours"], false, "une recherche finie ne se relit plus : {}", e);
+        assert!(e["relire_ms"].is_null(), "une recherche finie ne se relit plus : {}", e);
         assert!(e["texte"].as_str().is_some_and(|t| !t.is_empty()), "elle se dit : {}", e);
     };
     let relais = |inst: &Path| std::fs::read_dir(inst.join("maj")).map(|d| d.flatten().any(|f| f.file_name().to_string_lossy().starts_with("relais-"))).unwrap_or(false);
@@ -761,4 +762,89 @@ fn la_recherche_dit_ou_elle_en_est_et_se_tait_quand_elle_a_fini() {
     let e = suivi.etat();
     fini(&e, "a_jour");
     assert_eq!(e["redemarrer"], false);
+    assert_eq!(e["texte"], "Logiciel à jour", "ticket #217 : on dit ce qui est vrai, positivement : {}", e);
+    assert_eq!(e["detail"], "PuppetPaie 01.11.2026 est la dernière version.", "{}", e);
+}
+
+/// LANCEE SANS RESEAU, LA RECHERCHE REPREND QUAND IL REVIENT (ticket #217, Leandre, 20/10/2026 : « Mise a jour : hors
+/// ligne » restait affiche alors que le poste etait connecte, le logiciel ayant demarre sans reseau). Le depot coupe
+/// toute connexion (le poste hors ligne) : la recherche echoue `hors ligne`, la bulle dit le prochain essai, la page
+/// relit (`relire_ms`), et elle reessaie d'elle-meme ; le reseau revient : la version publiee est recue, prete, et la
+/// boucle s'arrete (plus aucune demande). Un echec qu'un nouvel essai ne leverait pas (un depot introuvable) ne se
+/// reessaie pas. Le rythme livre est raisonnable : jamais plus d'un essai par 30 secondes, un par 5 minutes au plus lent.
+#[test]
+fn lancee_sans_reseau_la_recherche_reprend_quand_il_revient() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::time::{Duration, Instant};
+
+    assert!(maj::ATTENTES_HORS_LIGNE.iter().all(|a| *a >= Duration::from_secs(30)), "aucune boucle rapide");
+    assert!(maj::ATTENTES_HORS_LIGNE.last().is_some_and(|a| *a <= Duration::from_secs(300)), "le reseau revenu se voit en 5 minutes au plus");
+
+    let base = dossier_de_test("mise_a_jour", "hors_ligne_puis_en_ligne");
+    let depot = publiee(&base, false);
+    let (inst, _) = installee(&base);
+    ajoutee(&inst.join("compagnies").join("essai"));
+    let en_ligne = Arc::new(AtomicBool::new(false));
+    let (url, recu) = {
+        let en_ligne = en_ligne.clone();
+        crate::outils::serveur(move |q| {
+            if !en_ligne.load(Ordering::SeqCst) {
+                return None;
+            }
+            Some(match std::fs::read(depot.join(q.chemin.trim_start_matches('/'))) {
+                Ok(o) => crate::outils::http(200, "application/octet-stream", &o),
+                Err(_) => crate::outils::http(404, "text/plain", b"Not Found"),
+            })
+        })
+    };
+    crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": url}));
+
+    let suivi = Arc::new(maj::Recherche::nouvelle());
+    let fil = {
+        let (inst, suivi) = (inst.clone(), suivi.clone());
+        std::thread::spawn(move || maj::chercher_tant_que_hors_ligne(&inst, &[&publique()], &suivi, &[Duration::from_millis(100), Duration::from_millis(200)]))
+    };
+    let attendre = |quoi: &dyn Fn(&Value) -> bool, dit: &str| {
+        let fin = Instant::now() + Duration::from_secs(120);
+        loop {
+            let e = suivi.etat();
+            if quoi(&e) {
+                return e;
+            }
+            assert!(Instant::now() < fin, "{} : {}", dit, e);
+            std::thread::sleep(Duration::from_millis(20));
+        }
+    };
+
+    // Hors ligne : l'echec se dit, le prochain essai aussi, et la page relit.
+    let e = attendre(&|e| e["etape"] == "echec", "la recherche sans reseau echoue");
+    assert_eq!(e["texte"], "Mise à jour : hors ligne", "{}", e);
+    assert!(e["detail"].as_str().unwrap().contains("dès que le réseau revient"), "{}", e);
+    assert_eq!(e["en_cours"], false, "{}", e);
+    assert!(e["relire_ms"].as_u64().is_some(), "un nouvel essai est prevu : la page relit : {}", e);
+    // Elle reessaie d'elle-meme.
+    attendre(&|_| recu.lock().unwrap().len() >= 3, "elle reessaie");
+    assert!(!fil.is_finished(), "hors ligne, la recherche continue");
+    assert!(maj::prete(&inst).is_none());
+
+    // Le reseau revient : la version est recue, prete, et la boucle s'arrete.
+    en_ligne.store(true, Ordering::SeqCst);
+    let e = attendre(&|e| e["etape"] == "prete", "le reseau revenu, la version se prepare");
+    assert_eq!((e["texte"].as_str(), e["redemarrer"].as_bool()), (Some("Redémarrer pour mettre à jour"), Some(true)), "{}", e);
+    assert!(e["relire_ms"].is_null(), "la recherche finie, la page se tait : {}", e);
+    fil.join().unwrap();
+    let demandes = recu.lock().unwrap().len();
+    std::thread::sleep(Duration::from_millis(500));
+    assert_eq!(recu.lock().unwrap().len(), demandes, "plus aucune demande une fois prete");
+    assert!(maj::prete(&inst).is_some_and(|p| p["version"] == "2026.11.01"));
+
+    // Un depot qui repond « introuvable » : un nouvel essai n'y changerait rien, la boucle rend aussitot.
+    crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": format!("{}/rien-ici", base.join("pas-de-depot").display())}));
+    let autre = maj::Recherche::nouvelle();
+    let debut = Instant::now();
+    maj::chercher_tant_que_hors_ligne(&inst, &[&publique()], &autre, &[Duration::from_secs(3600)]);
+    assert!(debut.elapsed() < Duration::from_secs(60), "aucune attente");
+    let e = autre.etat();
+    assert_eq!(e["etape"], "echec", "{}", e);
+    assert!(e["relire_ms"].is_null() && e["detail"].as_str().unwrap().contains("prochain lancement"), "{}", e);
 }
