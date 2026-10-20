@@ -1,0 +1,89 @@
+Transcription (texte de la page, sans les balises) de cnda-essentiel-offre-edi-employeurs-20200424.html
+URL : https://cnda.ameli.fr/editeurs/referencer-un-logiciel/teleservices-employeurs/lessentiel-sur-loffre-edi-employeurs/  (modifiée le 24/04/2020 selon wp-json, relevée le 20/10/2026)
+
+CNDA > Editeurs > Référencer un logiciel > Téléservices Employeurs > L’essentiel sur l’offre EDI Employeurs
+	
+	
+	
+	
+	 L’essentiel sur l’offre EDI Employeurs
+	
+	
+	 En savoir plus sur l’offre EDI Employeurs
+Qu’appelle-t-on EDI ?
+En pratique, le mode EDI permet de transmettre directement les données sous forme de fichiers issus du logiciel de paie / RH de l’entreprise au lieu de les saisir à nouveau. Le principal avantage de l’EDI est de limiter la saisie et de restreindre les risques d’erreurs correspondants puisque les données à transmettre sont déjà contenues dans le logiciel de paie / RH.
+EDI « posté » : les fichiers XML sont déposés sur le portail Net-Entreprises.fr
+EDI « machine » : les fichiers XML sont échangés de façon automatique, de point à point, entre le système d’information de l’employeur et le système d’information de l’Assurance Maladie, via un opérateur EDI (OPEDI). Le dispositif est hors du portail Net-Entreprises et vise plutôt des échanges de masse. L’OPEDI est responsable de l’émission ou de la réception des flux EDI « machine ». Il peut être n’importe quel acteur du système : l’employeur lui-même, un éditeur, un concentrateur, un portail…
+Contenu de l’offre EDI
+Les services offerts en EDI, dans le cadre de la dématérialisation des formulaires employeurs sont les suivants :
+DAT : Emission des Déclaration d’Accident du Travail (s’effectue en EDI « posté »)
+BPIJ : Réception des Bordereaux de Paiement des Indemnités Journalières (Inscription EDI « machine » nécessaire)
+La transmission en mode EDI des DAT dématérialisées nécessite l’utilisation d’un logiciel certifié et paramétré pour ce type de transfert de données. A l’issue des tests, le CNDA délivre directement le certificat qualité correspondant.
+La mise en œuvre de l’échange EDI « machine » nécessite une phase d’inscription, pour laquelle un certificat qualité est également requis. A l’issue des tests avec le CNDA, une procédure de pré-production est nécessaire avant délivrance du certificat qualité définitif par le CNDA.
+L’Assurance Maladie met à disposition l’ensemble de la documentation technique permettant la constitution des fichiers XML sur son site ameli.fr
+Note : le service Prest’IJ est proposé selon un processus particulier. L’éditeur d’un logiciel destiné aux institutions de prévoyance doit se rapprocher de sa fédération de référence pour obtenir les informations nécessaires.
+Certification par le CNDA
+Pourquoi faire certifier son logiciel ?
+Les flux électroniques échangés contiennent les informations nécessaires à la gestion et à la liquidation des prestations de l’Assurance Maladie précédemment portées sur des formulaires CERFA « papier ». La certification de ces flux dématérialisés permet de leur conférer le statut de pièces justificatives.
+A quoi sert la certification ?
+La certification vérifie la capacité d’un logiciel à produire des flux EDI conformes aux normes publiées par l’Assurance Maladie.
+Le certificat qualité garantit la bonne constitution des fichiers XML et la prise en compte de la majorité des situations rencontrées (plan de tests fonctionnel). Il ne doit pas être assimilé à l’agrément d’un logiciel métier de type paie ou RH par exemple.
+Il est matérialisé par une référence véhiculée dans les flux concernés. Un flux adressé sans Certificat Qualité sera automatiquement rejeté par le système d’information de l’Assurance Maladie.
+En signant le protocole de tests, l’éditeur s’engage à suivre et intégrer les évolutions techniques et réglementaires. Il est tenu de prendre en compte ces modifications dans les délais impartis par l’Assurance Maladie. Dans la négative, le retrait du Certificat Qualité sera prononcé.
+Quels logiciels certifier, à quel prix ?
+Toutes les logiciels qui génèrent des flux dématérialisés vers l’Assurance Maladie dans le cadre de son offre aux employeurs.
+Les fonctionnalités autres que celles nécessaires aux échanges dématérialisés ne sont pas concernées par la certification qualité.
+Le certificat qualité est délivré par le CNDA. La certification est effectuée à titre gratuit.
+La liste des logiciels certifiés est consultable sur ce site.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	© CNDA 2019
+	
+	| Nous contacter
+	| Informations légales
+	| Cnil et cookies
+	
+	
+	
+/* <![CDATA[ */
+wp.i18n.setLocaleData( { 'text direction\u0004ltr': [ 'ltr' ] } );
+/* ]]> */
+/* <![CDATA[ */
+var wpcf7 = {"api":{"root":"https:\/\/cnda.ameli.fr\/wp-json\/","namespace":"contact-form-7\/v1"}};
+/* ]]> */
+var acc =document.getElementsByClassName("accordion");
+var accAMO =document.getElementsByClassName("accordionAMO");
+var i;
+for (i = 0; i < acc.length; i++) {
+acc[i].addEventListener("click", function() {
+this.classList.toggle("active");
+var panel = this.nextElementSibling;
+if(panel.style.maxHeight){
+panel.style.maxHeight= null;
+} else {
+panel.style.maxHeight= panel.scrollHeight + "px";
+}
+});
+}
+	for (i = 0; i < accAMO.length; i++) {
+accAMO[i].addEventListener("click", function() {
+this.classList.toggle("active");
+var panel = this.nextElementSibling;
+if(panel.style.maxHeight){
+panel.style.maxHeight= null;
+} else {
+panel.style.maxHeight= 800 + "px";
+}
+});
+}
