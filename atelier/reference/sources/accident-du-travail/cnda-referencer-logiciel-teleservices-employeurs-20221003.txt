@@ -1,0 +1,100 @@
+Transcription (texte de la page, sans les balises) de cnda-referencer-logiciel-teleservices-employeurs-20221003.html
+URL : https://cnda.ameli.fr/editeurs/referencer-un-logiciel/teleservices-employeurs/  (modifiée le 03/10/2022 selon wp-json, relevée le 20/10/2026). Le lien « Télécharger le protocole » (https://cnda.ameli.fr/editeurs/telecharger-les-protocoles/) répond 404 le 20/10/2026.
+
+CNDA > Editeurs > Référencer un logiciel > Téléservices Employeurs
+	
+	
+	
+	
+	 Téléservices Employeurs
+	
+	
+	
+Menu
+Mode opératoire
+Facturation SESAM Vitale
+Téléservices AMO
+Téléservices AMC
+DMP
+Facturation Hôpitaux
+Facturation Cliniques
+Téléservices Employeurs
+API Lecture carte Vitale
+INS-C
+Comment faire référencer un logiciel EDI Employeurs ?
+L’essentiel sur l’offre EDI
+1
+Signature du protocole
+Pour obtenir la certification qualité d’un logiciel employeur, l’éditeur doit signer un protocole de test avec le CNDA.
+Quel protocole signer ?
+Vous souhaitez envoyer des flux DAT : Protocole DAT
+Vous souhaitez recevoir des flux BPIJ : Protocole BPIJ-DSN
+Télécharger le protocole
+Une fois ce protocole signé et enregistré par le CNDA, l’éditeur reçoit ses identifiants d’accès à son espace personnel sur le site du CNDA.
+Cas particulier des flux Prest’IJ (service destiné aux organismes de prévoyance) : l’éditeur prend contact avec l’institution de prévoyance qui lui remettra les documents du pack documentaire Prest’IJ le plus récent, dont les documents nécessaires à la certification.
+2
+Recette du logiciel par l’éditeur
+Depuis son espace personnel, l’éditeur peut récupérer toute la documentation nécessaire au développement et à la mise au point de son logiciel. Ce package documentaire inclut un outil informatique permettant la vérification en local des résultats obtenus (TEDI). Un plan de tests de référence constitué d’un jeu d’essai couvrant les différents cas d’utilisation est également disponible sur cet espace.
+A l’aide de la dernière version du plan de tests fonctionnel mis à disposition sur le site web du CNDA, il appartient à l’éditeur de :
+réaliser l’intégralité des tests correspondant aux fonctionnalités mises en œuvre par son logiciel
+contrôler les résultats à l’aide de l’outil informatique TEDI
+3
+Vérification de conformité par le CNDA
+Après vérification positive des résultats obtenus, l’éditeur dépose via le guichet web du CNDA son dossier de recette contenant les éléments exigés pour la vérification de chaque test :
+Flux XML
+Résultats TEDI
+Formulaire de dépôt précisant les fonctionnalités testées et à vérifier
+Le CNDA procède aux vérifications des résultats obtenus à partir des flux effectivement déposés.
+Lorsque l’ensemble des contrôles est positif, le CNDA délivre le certificat qualité et référence ce logiciel sur son site.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	© CNDA 2019
+	
+	| Nous contacter
+	| Informations légales
+	| Cnil et cookies
+	
+	
+	
+/* <![CDATA[ */
+wp.i18n.setLocaleData( { 'text direction\u0004ltr': [ 'ltr' ] } );
+/* ]]> */
+/* <![CDATA[ */
+var wpcf7 = {"api":{"root":"https:\/\/cnda.ameli.fr\/wp-json\/","namespace":"contact-form-7\/v1"}};
+/* ]]> */
+var acc =document.getElementsByClassName("accordion");
+var accAMO =document.getElementsByClassName("accordionAMO");
+var i;
+for (i = 0; i < acc.length; i++) {
+acc[i].addEventListener("click", function() {
+this.classList.toggle("active");
+var panel = this.nextElementSibling;
+if(panel.style.maxHeight){
+panel.style.maxHeight= null;
+} else {
+panel.style.maxHeight= panel.scrollHeight + "px";
+}
+});
+}
+	for (i = 0; i < accAMO.length; i++) {
+accAMO[i].addEventListener("click", function() {
+this.classList.toggle("active");
+var panel = this.nextElementSibling;
+if(panel.style.maxHeight){
+panel.style.maxHeight= null;
+} else {
+panel.style.maxHeight= 800 + "px";
+}
+});
+}

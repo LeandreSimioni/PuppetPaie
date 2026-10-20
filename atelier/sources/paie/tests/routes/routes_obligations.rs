@@ -357,3 +357,74 @@ fn une_attestation_impossible_n_ecrit_rien() {
     arret(c, "2026-07-09", "19", "02", None, None, "2026-07-17");
     assert!(refus(&route(c, "accident-declare", json!({"salarie": "Brioche", "dernier_jour": "2026-07-09", "le": "2026-07-13", "depot": "net-entreprises"}), "2026-07-14")).1.contains("n'est pas un accident"));
 }
+
+// ------------------------------------------------------ le rappel de l'ouverture
+
+fn rappels(c: &Path, jour: &str) -> Vec<Value> {
+    reussi(&route(c, "rappels", json!({}), jour))["rappels"].as_array().unwrap().clone()
+}
+
+fn rappel<'a>(r: &'a [Value], cle: &str) -> Option<&'a Value> {
+    r.iter().find(|x| x["cle"] == json!(cle))
+}
+
+/// #205 : a l'ouverture, toute obligation due d'un arret se rappelle, avec la date butoir que `obligations.rs` lui donne et
+/// ce qu'il faut pour la faire. L'accident de trajet du samedi 23/05/2026 (R. 441-3, quarante-huit heures sans dimanche ni
+/// ferie : le mardi 26 a minuit) et le signalement de l'arret, sans subrogation (R. 133-14, II, et l'arrete du 2 juillet
+/// 2013 : cinq jours ouvres apres le premier jour d'arret). En retard le 28, la declaration passe devant ; dite faite
+/// (`accident-declare`), elle se tait, le signalement reste.
+#[test]
+fn les_obligations_d_un_arret_se_rappellent_a_l_ouverture() {
+    let c = &compagnie("rappel-accident");
+    arret(c, "2026-05-22", "06", "02", Some("2026-05-23"), None, "2026-06-10");
+    let r = rappels(c, "2026-05-26");
+    let dat = rappel(&r, "declaration_accident:BRIOCHE:2026-05-22")
+        .unwrap_or_else(|| panic!("pas de rappel de la declaration : {:?}", r.iter().map(|x| &x["cle"]).collect::<Vec<_>>()));
+    assert_eq!(
+        (dat["quoi"].as_str(), dat["jour"].as_str(), dat["etat"].as_str(), dat["en_retard"].as_bool()),
+        (Some("obligation"), Some("2026-05-26"), Some("a_faire"), Some(false)),
+        "{}",
+        dat
+    );
+    assert_eq!(dat["obligation"]["butoir_heure"], json!("24:00"));
+    assert!(dat["obligation"]["textes"].to_string().contains("xml/R441-3.xml"), "la date butoir cite son texte depose");
+    assert!(dat["obligation"]["ou"].as_array().unwrap().iter().any(|x| x["code"] == json!("net-entreprises")), "ou la faire");
+    // Ce sur quoi elle porte : l'arret, resume comme la colonne du mois le lit, pour que le geste soit le meme.
+    assert_eq!((dat["objet"]["genre"].as_str(), dat["objet"]["dernier_jour_travaille"].as_str()), (Some("arret"), Some("2026-05-22")), "{}", dat);
+    let sig = rappel(&r, "signalement_arret:BRIOCHE:2026-05-22").expect("le signalement d'arret se rappelle aussi");
+    let liste = reussi(&route(c, "arrets", json!({}), "2026-05-26"))["arrets"][0]["obligations"].clone();
+    let butoir = liste.as_array().unwrap().iter().find(|o| o["cle"] == json!("signalement_arret")).unwrap()["butoir"].clone();
+    assert_eq!(sig["jour"], butoir, "la meme date butoir que la colonne du mois : {}", sig);
+
+    // En retard, la declaration passe devant tout ce qui ne l'est pas.
+    let r = rappels(c, "2026-05-28");
+    let i = r.iter().position(|x| x["cle"] == json!("declaration_accident:BRIOCHE:2026-05-22")).unwrap();
+    assert!(r[i]["en_retard"].as_bool().unwrap());
+    assert!(r[..i].iter().all(|x| x["en_retard"] == json!(true)), "le plus presse d'abord");
+
+    // Dite faite, elle se tait ; le signalement, lui, n'est pas fait.
+    let declarer = json!({"salarie": "Brioche", "dernier_jour": "2026-05-22", "le": "2026-05-26", "depot": "net-entreprises"});
+    reussi(&route(c, "accident-declare", declarer, "2026-05-28"));
+    let r = rappels(c, "2026-05-28");
+    assert!(rappel(&r, "declaration_accident:BRIOCHE:2026-05-22").is_none(), "faite, elle ne se rappelle plus");
+    assert!(rappel(&r, "signalement_arret:BRIOCHE:2026-05-22").is_some());
+}
+
+/// Ce qui n'est pas du par la compagnie ne se rappelle pas : la maladie professionnelle se declare par le salarie
+/// (L. 461-5, R. 461-5). Le deuil d'enfant (motif 19, la page du compte entreprise de net-entreprises) : pas de
+/// signalement, mais l'attestation de salaire, due le jour meme ou la compagnie connait l'arret -- elle se rappelle.
+#[test]
+fn seul_ce_qui_est_du_par_la_compagnie_se_rappelle() {
+    let c = &compagnie("rappel-mp");
+    arret(c, "2026-07-09", "05", "02", None, None, "2026-07-31");
+    let r = rappels(c, "2026-07-10");
+    assert!(r.iter().all(|x| !x["cle"].as_str().unwrap().starts_with("declaration_maladie_professionnelle:")), "{:?}", r.iter().map(|x| &x["cle"]).collect::<Vec<_>>());
+    assert!(rappel(&r, "signalement_arret:BRIOCHE:2026-07-09").is_some());
+
+    let c = &compagnie("rappel-deuil");
+    arret(c, "2026-07-09", "19", "02", None, None, "2026-07-17");
+    let r = rappels(c, "2026-07-10");
+    let at = rappel(&r, "attestation_salaire:BRIOCHE:2026-07-09").expect("l'attestation du deuil se rappelle");
+    assert_eq!((at["jour"].as_str(), at["etat"].as_str()), (Some("2026-07-10"), Some("a_faire")), "{}", at);
+    assert!(rappel(&r, "signalement_arret:BRIOCHE:2026-07-09").is_none(), "le deuil ne se signale pas en DSN");
+}

@@ -367,8 +367,10 @@ mensuelle et le signalement le declarent tous deux."
     Ok(manque)
 }
 
-/// `operations_permanents.fins_a_signaler`.
-fn fins_a_signaler(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
+/// `operations_permanents.fins_a_signaler` : les contrats qui finissent dans `mois` et dont la fin SE SIGNALE, chacun avec
+/// son obligation (`obligations::de_la_fin`) comptee au jour `aujourdhui`. UN SEUL ENDROIT : la route `fins-de-contrat` (la
+/// colonne du mois) et les rappels de l'ouverture (`routes_ouverture`) la lisent.
+pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R<Vec<Value>> {
     let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
     if !chemin.exists() {
         return Ok(Vec::new());
@@ -404,7 +406,7 @@ fn fins_a_signaler(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
             "preavis": get(e, "preavis")?,
             "a_saisir": ce_qui_manque(ctx, e)?,
             // LE DELAI ET OU ON EN EST (`obligations::de_la_fin`, 15/10/2026) : un champ de plus.
-            "obligation": crate::obligations::de_la_fin(ctx, cle.as_deref(), fin, &journal, ctx.aujourdhui)?,
+            "obligation": crate::obligations::de_la_fin(ctx, cle.as_deref(), fin, &journal, aujourdhui)?,
         }));
     }
     Ok(out)
@@ -413,7 +415,7 @@ fn fins_a_signaler(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
 /// La route `fins-de-contrat`.
 fn fins_de_contrat(ctx: &Contexte, charge: &Value) -> R<Value> {
     let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?;
-    let fins = fins_a_signaler(ctx, &py_str(brut))?;
+    let fins = fins_a_signaler(ctx, &py_str(brut), ctx.aujourdhui)?;
     Ok(json!({"mois": brut, "fins": fins}))
 }
 
