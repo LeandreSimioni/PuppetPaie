@@ -440,6 +440,7 @@ function dessinerFormulaire(fiche) {
   brancherSante(fiche);
   brancherPermanents();
   brancherConditions();       // après : c'est lui qui a le dernier mot
+  brancherTaxeSalaires();
   brancherNir();
   brancherSalarie(fiche);
   FICHE_MODIFIEE = false;
@@ -852,17 +853,26 @@ function brancherFichesAttendues() {
   });
 }
 
+/** LE CURSEUR DES PERMANENTS, TEL QUE L'ÉCRAN LE MONTRE EN CE MOMENT
+ *  (ticket #214, 20/10/2026). C'est la réponse du moteur : celle de la
+ *  configuration enregistrée (`ETAT.configuration.permanents`), puis, la case
+ *  à peine cochée ou décochée, celle de la route `permanents` sur la fiche en
+ *  cours. La page ne le déduit jamais elle-même. */
+let PERMANENTS_A_L_ECRAN = false;
+
 /** LA CASE OUVRE LES CHAMPS TOUT DE SUITE, sans attendre l'enregistrement.
  *  La cocher et ne rien voir apparaître, ce serait laisser croire qu'elle ne
  *  fait rien — alors que c'est elle qui décide de ce qu'il reste à remplir.
+ *  Ce qui s'ouvre, c'est le moteur qui le dit (route `permanents`).
  *  Le déroulant « Nature » d'un engagement, lui, suit à l'enregistrement :
  *  il vient du serveur, qui ne propose que ce que le moteur accepterait. */
 function brancherPermanents() {
+  PERMANENTS_A_L_ECRAN = !!(ETAT.configuration || {}).permanents;
   const case_ = document.querySelector(
     '#config-formulaire [data-cle="emploie_des_permanents"]');
   if (!case_) return;
   const montrer = () => {
-    const oui = case_.checked;
+    const oui = PERMANENTS_A_L_ECRAN;
     // Un champ qui dépend AUSSI d'autre chose (`si`, l'entreprise) suit
     // `brancherConditions`, qui écoute cette case comme les autres.
     document.querySelectorAll("#config-formulaire .champ-permanents")
@@ -875,8 +885,17 @@ function brancherPermanents() {
       .forEach((s) => { s.hidden = !oui; });
     const sante = document.getElementById("config-sante");
     if (sante) sante.hidden = !oui;
+    // Un champ des permanents qui dépend aussi d'un autre suit sa condition.
+    const form = document.getElementById("config-formulaire");
+    if (form && form.appliquerConditions) form.appliquerConditions();
   };
-  case_.addEventListener("change", montrer);
+  case_.addEventListener("change", async () => {
+    try {
+      const r = await api("permanents", { entreprise: { emploie_des_permanents: case_.checked } });
+      PERMANENTS_A_L_ECRAN = !!r.permanents;
+    } catch (e) { dire(e.message, "erreur"); return; }
+    montrer();
+  });
   montrer();
 }
 
@@ -899,25 +918,69 @@ function brancherConditions() {
     return c ? (c.type === "checkbox" ? String(c.checked) : String(c.value ?? "")) : "";
   };
   const appliquer = () => {
-    const perm = form.querySelector('[data-cle="emploie_des_permanents"]');
     form.querySelectorAll("[data-si]").forEach((el) => {
       let si = {};
       try { si = JSON.parse(el.dataset.si); } catch (e) { return; }
       const ok = conditionRemplie(si, valeur) && !el.hasAttribute("data-hors-entreprise");
-      const permOk = !el.classList.contains("champ-permanents") || !perm || perm.checked;
+      // Le curseur des permanents : la réponse du moteur (`brancherPermanents`).
+      const permOk = !el.classList.contains("champ-permanents") || PERMANENTS_A_L_ECRAN;
       el.hidden = !(ok && permOk);
     });
   };
+  form.appliquerConditions = appliquer;
   const cles = new Set();
   form.querySelectorAll("[data-si]").forEach((el) => {
     try { Object.keys(JSON.parse(el.dataset.si)).forEach((k) => cles.add(k)); } catch (e) { /* rien */ }
   });
-  cles.add("emploie_des_permanents");
   cles.forEach((k) => {
     const c = form.querySelector(`[data-cle="${CSS.escape(k)}"]`);
     if (c) c.addEventListener("change", appliquer);
   });
   appliquer();
+}
+
+/** LA TAXE SUR LES SALAIRES (ticket #216, 20/10/2026). La compagnie dit sa
+ *  TVA ; le moteur (route `taxe-sur-les-salaires-regime`, CGI art. 231) dit
+ *  quelles cases suivent et ce qui en découle, écrit sous les cases. La page
+ *  ne montre que ce qu'il nomme, et ne conclut rien. */
+function brancherTaxeSalaires() {
+  const cases = [...document.querySelectorAll(
+    '#config-formulaire [data-sous-de="taxe_sur_les_salaires"]')];
+  if (!cases.length) return;
+  const bloc = cases[0].closest(".structure");
+  let dit = bloc.querySelector(".taxe-consequence");
+  if (!dit) {
+    dit = document.createElement("div");
+    dit.className = "encart taxe-consequence";
+    bloc.querySelector(".sous-champs").after(dit);
+  }
+  const lire = () => {
+    const o = {};
+    cases.forEach((c) => {
+      const v = String(c.value).trim();
+      if (v === "") return;
+      const t = c.dataset.sousType;
+      o[c.dataset.sousCle] = t === "nombre" ? Number(v) : t === "booleen" ? v === "true" : v;
+    });
+    return o;
+  };
+  let tour = 0;
+  const peindre = async () => {
+    const n = ++tour;
+    let r;
+    try { r = await api("taxe-sur-les-salaires-regime", { taxe_sur_les_salaires: lire() }); }
+    catch (e) { dit.textContent = e.message; return; }
+    if (n !== tour) return;            // une réponse plus récente est en route
+    cases.forEach((c) => {
+      c.closest(".sous-champ").hidden = !r.champs.includes(c.dataset.sousCle);
+    });
+    dit.textContent = r.consequence;
+    dit.classList.toggle("attention", !r.complet);
+  };
+  // Avant la première réponse, la première case seule : rien ne clignote.
+  cases.slice(1).forEach((c) => { c.closest(".sous-champ").hidden = true; });
+  cases.forEach((c) => c.addEventListener(c.tagName === "SELECT" ? "change" : "input", peindre));
+  peindre();
 }
 
 /** Les trois cases de la complémentaire santé, dans les deux sens : elles se

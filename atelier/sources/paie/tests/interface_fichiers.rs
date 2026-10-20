@@ -226,3 +226,42 @@ fn l_accueil_montre_la_version_et_sert_ce_qu_il_appelle() {
         assert_eq!(get(b, a).code, 200, "{}", a);
     }
 }
+
+/// Ticket #218 : la capture d'ecran du « Un probleme, une idee ? » dessine la page par html2canvas 1.4.1, qui ne lit
+/// que les couleurs hexadecimales, nommees, `rgb()`/`rgba()` et `hsl()`/`hsla()` ; une fonction de couleur plus recente
+/// (`color-mix()`, que Chromium calcule en `color(srgb ...)`, `color()`, `lab()`, `lch()`, `oklab()`, `oklch()`,
+/// `hwb()`) la fait echouer sur toute la page (« Attempting to parse an unsupported color function "color" »). Ni la
+/// page servie (feuilles, scripts, `index.html`), ni les pages du moteur n'en emploient.
+#[test]
+fn la_page_n_emploie_aucune_couleur_que_la_capture_ne_lit_pas() {
+    let racine = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut fichiers: Vec<PathBuf> = Vec::new();
+    for dossier in [racine.join("../../../logiciel/interface"), racine.join("../../../logiciel/interface/js"), racine.join("src/interface/pages")] {
+        for e in std::fs::read_dir(&dossier).unwrap() {
+            let p = e.unwrap().path();
+            let ext = p.extension().and_then(|x| x.to_str()).unwrap_or("");
+            let nom = p.file_name().and_then(|x| x.to_str()).unwrap_or("");
+            if ["css", "js", "html"].contains(&ext) && nom != "html2canvas.min.js" {
+                fichiers.push(p);
+            }
+        }
+    }
+    assert!(fichiers.len() > 10, "{:?}", fichiers);
+    let mut fautes = Vec::new();
+    for f in &fichiers {
+        let t = std::fs::read_to_string(f).unwrap();
+        let o = t.as_bytes();
+        for fonction in ["color-mix(", "color(", "lab(", "lch(", "oklab(", "oklch(", "hwb("] {
+            let mut depuis = 0;
+            while let Some(i) = t[depuis..].find(fonction) {
+                let i = depuis + i;
+                let avant = if i == 0 { b' ' } else { o[i - 1] };
+                if !(avant.is_ascii_alphanumeric() || avant == b'_' || avant == b'-' || avant == b'.') {
+                    fautes.push(format!("{} : {}", f.display(), fonction));
+                }
+                depuis = i + fonction.len();
+            }
+        }
+    }
+    assert!(fautes.is_empty(), "{:?}", fautes);
+}

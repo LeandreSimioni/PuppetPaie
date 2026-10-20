@@ -46,6 +46,15 @@ complémentaires) ; le découpage infra-mensuel d'un changement en cours de mois
 Ce qui reste ouvert : en P26V01 (sans 40.084), un établissement qui renonce à la proratisation déclare un « 20 » que la
 caisse proratisera, alors que la paie garde le plafond entier ; le cahier ne dit pas comment le lui dire en 2026.
 
+**Ticket #223 (20/10/2026), la date du prélèvement** : `agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.txt`,
+p. 47 (l. 2399-2405) : sans date en S21.G00.20.011, « le prélèvement sera exécuté au plus tard le dernier jour ouvré du
+mois d'exigibilité des cotisations », le mois qui suit le mois principal déclaré (mensuel) ou le trimestre civil
+(trimestriel). `paie/src/ordres_paiement.rs` le dit, dans la boîte de dépôt de la DSN, pour une institution dont
+`codes81` porte le 131 ou le 105 : le dernier jour ouvré du mois qui suit la fin de période (S21.G00.20.007). Pour
+Audiens (44832375800038), c'est le 25 du mois suivant qu'Audiens dit lui-même (`../audiens-dsn/`, et `jour_de_paiement`
+de `logiciel/donnees/organismes-base.json`) : le cahier dit « au plus tard », l'ANI art. 44 cité p. 47 « au plus tard
+le 25 du mois ».
+
 ## La page « Documentation technique DSN » d'Agirc-Arrco, relevée par le conteneur le 11/10/2026
 
 URL donnée par Léandre : `https://www.agirc-arrco.fr/entreprises/mon-entreprise/calculer-et-declarer/documentation-technique-dsn/`

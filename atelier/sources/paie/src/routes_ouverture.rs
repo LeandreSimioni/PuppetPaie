@@ -2,7 +2,8 @@
 //! `moteur/operations_exercice.py`, `moteur/operations_paies.py`).
 //!
 //! `rappels` : ce que le logiciel propose en ouvrant une compagnie (la DSN des
-//! mois passes, les fins de contrat, les DPAE, la cloture de l'exercice,
+//! mois passes, ce qui est du -- les fins de contrat qui se signalent et ce qu'un arret fait naitre, de `obligations.rs` --,
+//! les DPAE, la cloture de l'exercice,
 //! l'export compta, la revue des spectacles). AUCUN CALCUL DE PAIE : le Python
 //! relisait la paie de chaque mois pour n'en tirer que le nombre de paies
 //! validees (`operations_paies.paies_validees` passait par `charger`, donc par
@@ -213,7 +214,8 @@ const DSN: &str = "dsn";
 const CLOTURE: &str = "cloture";
 const EXPORT_COMPTA: &str = "export-compta";
 const REVUE_SPECTACLES: &str = "revue-spectacles";
-const FIN_CONTRAT: &str = "fin-contrat";
+/// Une obligation due (`obligations.rs`) : la fin d'un contrat qui se signale, ce qu'un arret fait naitre.
+const OBLIGATION: &str = "obligation";
 const DPAE: &str = "dpae";
 
 /// Ou en est le mois dont on rappelle la DSN : un mois sans saisie se cree, un
@@ -250,6 +252,10 @@ struct Rappel {
     a_saisir: Vec<String>,
     /// Le rappel d'une DSN : son echeance de depot (`echeance_dsn::Echeance::en_json`) ; `null` pour les autres.
     echeance_depot: Option<Value>,
+    /// Le rappel d'une obligation due : l'obligation telle que `obligations.rs` l'a calculee ; `null` pour les autres.
+    obligation: Option<Value>,
+    /// Ce sur quoi elle porte (la fin de contrat, l'arret resume), que la page repasse au geste qui la fait.
+    objet: Option<Value>,
 }
 
 impl Rappel {
@@ -272,6 +278,8 @@ impl Rappel {
             jour: None,
             a_saisir: Vec::new(),
             echeance_depot: None,
+            obligation: None,
+            objet: None,
         }
     }
 
@@ -286,6 +294,7 @@ impl Rappel {
             "spectacles": self.spectacles.iter().map(brut_valeur).collect::<Vec<_>>(),
             "salarie": opt(&self.salarie), "jour": opt(&self.jour), "a_saisir": self.a_saisir,
             "echeance_depot": self.echeance_depot,
+            "obligation": self.obligation, "objet": self.objet.as_ref().map(brut_valeur),
         })
     }
 }
@@ -313,8 +322,23 @@ impl Etat<'_> {
     }
 
     /// `journal.etat_dsn_du_mois(ctx, mois)` : `Null` ou l'etat.
+    /// UN MOIS TENU AVANT CE LOGICIEL (ticket #215) NE SE RECLAME JAMAIS : sans ligne au journal, la DSN que l'import
+    /// a lue pour lui (`mois_importe::dsn_importee`) le dit declare ; sans aucune trace, il n'est pas reclame non plus
+    /// (`sans_trace`) -- sa DSN, faite ou a faire, releve du logiciel qui a calcule ses paies, et PuppetPaie ne la
+    /// refait pas (regle 4). C'est ICI, et seulement ici, que rappels et echeancier l'apprennent : ni rappel, ni
+    /// « en retard ». La page Paie et l'Historique, eux, disent « aucune trace » (`mois_importe::dsn_avant`).
     pub(crate) fn etat_dsn(&self, mois: &str) -> R<Value> {
-        Ok(etats::etat_dsn_du_mois(&self.journal, mois, &Value::Null, &self.principal)?)
+        let e = etats::etat_dsn_du_mois(&self.journal, mois, &Value::Null, &self.principal)?;
+        if !e.is_null() {
+            return Ok(e);
+        }
+        if let Some(d) = crate::mois_importe::dsn_importee(self.racine(), mois)? {
+            return Ok(d);
+        }
+        if crate::mois_importe::importe(self.racine(), mois)? {
+            return Ok(json!({"importee": true, "sans_trace": true, "passee": false, "refusee": false}));
+        }
+        Ok(Value::Null)
     }
 }
 
@@ -345,10 +369,10 @@ fn lister(st: &Etat) -> R<Vec<Rappel>> {
     for m in mois_a_declarer(st)? {
         dsn.push(rappel_dsn(st, &m)?);
     }
-    // LES FINS DE CONTRAT AVANT LE RESTE : cinq jours ouvres, c'est le delai le
-    // plus court de tout le logiciel, et il court depuis un evenement -- pas
+    // CE QUI EST DU AVANT LE RESTE (les obligations de `obligations.rs`) : quarante-huit heures pour un accident, cinq
+    // jours ouvres pour un signalement -- les delais les plus courts du logiciel, et ils courent depuis un evenement, pas
     // depuis une fin de mois qu'on voit venir.
-    let mut out = rappels_fin_de_contrat(st)?;
+    let mut out = rappels_obligations(st)?;
     out.extend(dsn);
     // ET LES DPAE AVANT TOUT : elles se comptent en heures, pas en jours ouvres
     // -- avant la premiere heure de travail. Un rappel qui ne se calcule pas
@@ -363,7 +387,8 @@ fn lister(st: &Etat) -> R<Vec<Rappel>> {
     if !vrai_opt(exercice_clos(st.ctx, &precedent.to_string())?.as_ref()) && !mois_de_l_annee(st.ctx, &precedent.to_string()).is_empty() {
         // La cloture vient APRES la DSN de decembre : tant qu'elle manque, c'est
         // son rappel qui parle, pas celui-ci.
-        if vrai(&st.etat_dsn(&decembre)?) {
+        let e = st.etat_dsn(&decembre)?;
+        if vrai(&e) && !vrai_opt(e.get("sans_trace")) {
             let mut r = Rappel::nouveau(
                 CLOTURE,
                 format!("cloture:{}", precedent),
@@ -700,108 +725,134 @@ fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
     Ok(r)
 }
 
-// ------------------------------------------------------ les fins de contrat
+// ------------------------------------------------------ les obligations dues
 
-struct Fin {
-    salarie: String,
-    numero: Option<Value>,
-    fin: String,
-    a_saisir: Vec<String>,
-}
-
-/// `operations_permanents.fins_a_signaler` : les contrats qui se terminent dans
-/// ce mois et dont la fin SE SIGNALE. Un CDDU du spectacle arrive a son terme (031)
-/// n'en est pas : sa fin part dans la DSN mensuelle, par le circuit derogatoire ;
-/// rompu avant (036, 037, 084...), il en est (fiche 2062).
-fn fins_a_signaler(ctx: &Contexte, mois: &str) -> R<Vec<Fin>> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !chemin.exists() {
-        return Ok(Vec::new());
-    }
-    let saisie = lire_json(&chemin)?;
-    let fin_mois = crate::date::dernier_du_mois(mois)?;
-    let debut_mois = crate::date::premier_du_mois(mois)?;
+/// CE QUI EST DU, A L'OUVERTURE (20/10/2026, #205) : toute obligation que `obligations.rs` dit a faire ou en retard -- la
+/// fin d'un contrat qui se signale, et ce qu'un arret fait naitre (le signalement d'arret ou de reprise anticipee, la
+/// declaration d'accident du travail ou de trajet sous quarante-huit heures, l'attestation de salaire du deuil d'enfant).
+/// UN SEUL MECANISME : chaque obligation devient un rappel par `rappel_d_obligation`, qui porte l'obligation telle que le
+/// moteur l'a calculee (sa date butoir, son etat, sa phrase, ses textes) et ce sur quoi elle porte (`objet` : la fin de
+/// contrat de la route `fins-de-contrat`, ou l'arret resume comme la route `imprevus` le resume) -- la page en tire le meme
+/// geste que dans la colonne du mois. Le plus presse d'abord : en retard, puis par date butoir.
+///
+/// Ils se taisent des que la chose est faite -- le depot REEL du signalement note au journal, la declaration ou
+/// l'attestation dite faite (`accident-declare`, `attestation-declare`) --, jamais parce qu'on a clique « plus tard ».
+/// Ce qui n'est pas encore du (`a_venir`), ce qui est a la charge du salarie (la maladie professionnelle) et ce dont le
+/// delai ne se compte pas (`indetermine` : il n'a pas de date butoir ; la colonne du mois le montre) ne s'y rappellent pas.
+fn rappels_obligations(st: &Etat) -> R<Vec<Rappel>> {
     let mut out = Vec::new();
-    let liste: Vec<Value> = match saisie.get("engagements") {
-        Some(Value::Array(a)) => a.clone(),
-        _ => Vec::new(),
-    };
-    for e in &liste {
-        let cle = e.get("nature").and_then(Value::as_str);
-        let nat = crate::contrats::nature(cle).map_err(|m| avec_classe("KeyError", m))?;
-        // La regle est celle de la nature et du motif (`Nature::signalement_fctu`) : un CDDU rompu avant son terme se signale.
-        let motif = e.get("motif_rupture").filter(|m| vrai(m)).map(en_texte);
-        if !nat.signalement_fctu(motif.as_deref()) || !vrai_opt(e.get("fin")) {
-            continue;
-        }
-        let fin = crate::date::d(&e["fin"])?;
-        if !(debut_mois <= fin && fin <= fin_mois) {
-            continue;
-        }
-        out.push(Fin {
-            salarie: en_texte(e.get("salarie").ok_or_else(|| avec_classe("KeyError", crate::fichiers::absent("salarie")))?),
-            numero: e.get("numero").cloned(),
-            fin: en_texte(&e["fin"]),
-            a_saisir: ce_qui_manque_au_signalement(ctx, e)?,
-        });
-    }
-    Ok(out)
-}
 
-/// Ce qu'un signalement exige et que la saisie ne dit pas encore : la meme liste que l'ecran des fins de contrat
-/// (`routes_listes::ce_qui_manque`, un seul endroit), que la route `fin-contrat-signaler` relit avant d'ecrire.
-fn ce_qui_manque_au_signalement(ctx: &Contexte, e: &Value) -> R<Vec<String>> {
-    Ok(crate::routes_listes::ce_qui_manque(ctx, e)?.iter().map(en_texte).collect())
-}
-
-/// Les signalements de fin de contrat qui n'ont pas encore ete deposes. Ils se
-/// taisent des que le depot REEL de CE signalement est note au journal -- comme tous les rappels
-/// d'ici, et pour la meme raison : aucun ne se tait parce qu'on a clique << plus
-/// tard >>. Un CDD d'usage du spectacle arrive a son terme (031) n'en fait pas partie.
-/// Le delai, la date butoir et l'etat sont ceux de `obligations::de_la_fin` (15/10/2026) : un seul endroit les calcule,
-/// la liste des fins de contrat (`routes_listes`) les rend aussi.
-fn rappels_fin_de_contrat(st: &Etat) -> R<Vec<Rappel>> {
-    let mut out = Vec::new();
+    // LES FINS DE CONTRAT : celles du mois passe et du mois en cours, deja finies (`routes_listes::fins_a_signaler`, la
+    // meme liste que la colonne du mois). Un CDD d'usage du spectacle arrive a son terme (031) n'en fait pas partie.
     let mois = mois_de(&st.aujourdhui);
     for m in [mois_precedent(&mois), mois.clone()] {
-        for f in fins_a_signaler(st.ctx, &m)? {
-            let fin = Jour::lire(&f.fin)?;
+        for f in crate::routes_listes::fins_a_signaler(st.ctx, &m, st.aujourdhui)? {
+            let fin = Jour::lire(&en_texte(&f["fin"]))?;
             if fin > st.aujourdhui {
                 continue; // il n'a pas encore pris fin
             }
-            let cle = st.ctx.salarie(&f.salarie).ok().and_then(|x| x.get("_cle").map(en_texte));
-            let o = crate::obligations::de_la_fin(st.ctx, cle.as_deref(), fin, &st.journal, st.aujourdhui)?;
-            let etat = o.get("etat").and_then(Value::as_str).unwrap_or("");
-            if etat == crate::obligations::FAIT {
+            let o = &f["obligation"];
+            if !du(o) {
                 continue;
             }
-            let mut r = Rappel::nouveau(
-                FIN_CONTRAT,
-                format!("fin-contrat:{}:{}", f.salarie, f.fin),
-                format!("Signaler la fin du contrat de {}", f.salarie),
-                format!("Le contrat {} s'est terminé le {}.", texte(f.numero.as_ref()), f.fin),
+            let salarie = en_texte(&f["salarie"]);
+            let a_saisir: Vec<String> = f["a_saisir"].as_array().map(|l| l.iter().map(en_texte).collect()).unwrap_or_default();
+            let mut r = rappel_d_obligation(
+                o,
+                format!("fin-contrat:{}:{}", salarie, en_texte(&f["fin"])),
+                format!("Signaler la fin du contrat de {}", salarie),
+                format!("Le contrat {} s'est terminé le {}.", texte(f.get("numero")), en_texte(&f["fin"])),
+                f.clone(),
             );
             r.mois = Some(m.clone());
-            r.salarie = Some(f.salarie.clone());
-            r.jour = Some(f.fin.clone());
-            r.a_saisir = f.a_saisir.clone();
-            r.en_retard = etat == crate::obligations::EN_RETARD;
-            r.etat = if f.a_saisir.is_empty() { A_PRODUIRE } else { A_SAISIR }.into();
-            let suite = if f.a_saisir.is_empty() {
-                format!("paie fin-contrat signaler {} {}", m, f.salarie)
-            } else {
-                format!("À saisir d'abord : {}", f.a_saisir.join(" "))
-            };
-            r.detail = format!(
-                "Il est dû {} (CSS R. 133-14, II ; arrêté du 2 juillet 2013). {} {}",
-                o.get("delai").and_then(Value::as_str).unwrap_or(""),
-                o.get("phrase").and_then(Value::as_str).unwrap_or(""),
-                suite
-            );
+            r.salarie = Some(salarie.clone());
+            r.etat = if a_saisir.is_empty() { A_PRODUIRE } else { A_SAISIR }.into();
+            if !a_saisir.is_empty() {
+                r.detail.push_str(&format!(" À saisir d'abord, dans la carte du contrat : {}", a_saisir.join(" ")));
+            }
+            r.a_saisir = a_saisir;
             out.push(r);
         }
     }
+
+    // CE QU'UN ARRET FAIT NAITRE : tous les arrets du magasin des imprevus (`routes_listes::tous_les_arrets`), leurs
+    // obligations comptees par `obligations::de_l_arret` au jour du rappel.
+    let arrets = crate::routes_listes::tous_les_arrets(st.ctx)?;
+    if !arrets.is_empty() {
+        let n = crate::routes_listes::nomenclatures(st.ctx)?;
+        let suivi = crate::obligations::Suivi::lire(st.ctx)?;
+        for a in &arrets {
+            let obligations = crate::obligations::de_l_arret(st.ctx, a, &suivi, st.aujourdhui)?;
+            if !obligations.iter().any(du) {
+                continue;
+            }
+            let mut resume = crate::routes_imprevus::resume(st.ctx, &n, a)?;
+            resume["obligations"] = Value::Array(obligations.clone());
+            let salarie = nom_affiche(st.ctx, &en_texte(&a["salarie"]));
+            for o in obligations.iter().filter(|o| du(o)) {
+                let mut r = rappel_d_obligation(
+                    o,
+                    format!("{}:{}:{}", en_texte(&o["cle"]), en_texte(&a["salarie"]), en_texte(&a["dernier_jour_travaille"])),
+                    format!("{} — {}", en_texte(&o["libelle"]), salarie),
+                    format!("{}, {}.", arret_en_clair(&resume), periode_de_l_arret(&resume)),
+                    resume.clone(),
+                );
+                r.mois = Some(en_texte(&a["dernier_jour_travaille"]).chars().take(7).collect());
+                r.salarie = Some(en_texte(&a["salarie"]));
+                out.push(r);
+            }
+        }
+    }
+
+    // Le plus presse d'abord : ce qui est en retard, puis par date butoir (le tri est stable : a butoir egale, l'ordre
+    // de lecture reste).
+    out.sort_by_key(|r| (!r.en_retard, r.jour.clone().unwrap_or_default()));
     Ok(out)
+}
+
+/// Une obligation due : a faire, ou en retard.
+fn du(o: &Value) -> bool {
+    matches!(o.get("etat").and_then(Value::as_str), Some(crate::obligations::A_FAIRE) | Some(crate::obligations::EN_RETARD))
+}
+
+/// Le rappel d'une obligation : son titre, sa question, et ce que le moteur en a calcule -- la date butoir (`jour`), le
+/// retard, la phrase -- ; `objet` : ce sur quoi elle porte, que la page repasse au geste qui la fait.
+fn rappel_d_obligation(o: &Value, cle: String, titre: String, question: String, objet: Value) -> Rappel {
+    let mut r = Rappel::nouveau(OBLIGATION, cle, titre, question);
+    r.en_retard = o.get("etat").and_then(Value::as_str) == Some(crate::obligations::EN_RETARD);
+    r.etat = en_texte(&o["etat"]);
+    r.jour = o.get("butoir").and_then(Value::as_str).map(str::to_string);
+    let delai = o.get("delai").and_then(Value::as_str).unwrap_or("");
+    let phrase = o.get("phrase").and_then(Value::as_str).unwrap_or("");
+    r.detail = if delai.is_empty() { phrase.to_string() } else { format!("Délai : {}. {}", delai, phrase) };
+    r.obligation = Some(o.clone());
+    r.objet = Some(objet);
+    r
+}
+
+/// Le nom d'un salarie tel que les listes le montrent (`routes_accueil` : « NOM Prenom ») ; sa cle a defaut.
+fn nom_affiche(ctx: &Contexte, cle: &str) -> String {
+    let Ok(f) = ctx.salarie(cle) else { return cle.to_string() };
+    let prenom = f.get("prenom_affichage").filter(|p| vrai(p)).or(f.get("prenom")).map(en_texte).unwrap_or_default();
+    match f.get("nom").map(en_texte) {
+        Some(nom) if !nom.is_empty() => format!("{} {}", nom, prenom).trim().to_string(),
+        _ => cle.to_string(),
+    }
+}
+
+/// « Arrêt de travail (accident du travail) » : ce qu'est l'arret, avec le libelle de son motif.
+fn arret_en_clair(resume: &Value) -> String {
+    format!("Arrêt de travail ({})", en_texte(&resume["motif_libelle"]).to_lowercase())
+}
+
+/// Sa periode : depuis son premier jour ; jusqu'a la reprise si elle est dite, sinon la fin prescrite.
+fn periode_de_l_arret(resume: &Value) -> String {
+    let jj = |k: &str| Jour::lire(&en_texte(&resume[k])).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| en_texte(&resume[k]));
+    if vrai(&resume["reprise"]) {
+        format!("du {} au {}", jj("premier_jour"), jj("dernier_jour"))
+    } else {
+        format!("depuis le {}, prescrit jusqu'au {}", jj("premier_jour"), jj("dernier_jour"))
+    }
 }
 
 // ------------------------------------------------------------- les DPAE

@@ -27,8 +27,47 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "taux-atmp" => taux_atmp(ctx, charge),
         "verifier-fiche" => verifier_fiche(charge),
         "changements-declares" => changements_declares(ctx, charge),
+        "taxe-sur-les-salaires-regime" => taxe_sur_les_salaires_regime(ctx, charge),
+        "permanents" => permanents(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
+}
+
+// ------------------------------------------------------------------ permanents
+
+/// `permanents` : `{"entreprise": {...}}`, la fiche Entreprise en cours de saisie -- sans elle, celle de la compagnie.
+/// Rend le curseur (`contexte::emploie_des_permanents`) : la page montre ou replie ce qui ne vaut que pour les
+/// permanents selon cette reponse, et ne le decide pas elle-meme quand on coche la case (ticket #214).
+fn permanents(ctx: &Contexte, charge: &Value) -> R<Value> {
+    let oui = match charge.get("entreprise") {
+        Some(e @ Value::Object(_)) => crate::contexte::emploie_des_permanents(e),
+        Some(autre) => return Err(erreur("TypeError", crate::fichiers::attendu("un objet", nom_type(autre)))),
+        None => ctx.emploie_des_permanents(),
+    };
+    Ok(json!({ "permanents": oui }))
+}
+
+// ------------------------------------------------------- taxe-sur-les-salaires-regime
+
+/// `taxe-sur-les-salaires-regime` : `{"taxe_sur_les_salaires": {...}}`, ce que la fiche en cours de saisie dit -- sans
+/// lui, celle de la compagnie. Rend la conclusion du moteur (`assujettissement::regime_taxe_sur_les_salaires`, CGI art.
+/// 231, 1) : les cases a montrer, la consequence en clair, et si la reponse est complete. La page n'en decide rien
+/// (ticket #216).
+fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
+    let cle = crate::assujettissement::CHAMP_TAXE_SUR_LES_SALAIRES;
+    let ent = match charge.get(cle) {
+        Some(v @ (Value::Object(_) | Value::Null)) => json!({ cle: v }),
+        Some(autre) => return Err(erreur("TypeError", crate::fichiers::attendu("un objet", nom_type(autre)))),
+        None => ctx.entreprise.clone(),
+    };
+    let r = crate::assujettissement::regime_taxe_sur_les_salaires(&ent);
+    Ok(json!({
+        "champs": r.champs,
+        "consequence": r.consequence,
+        "complet": r.decision.is_ok(),
+        "due": matches!(r.decision, Ok(Some(_))),
+        "part_taxee": match r.decision { Ok(Some(p)) => json!(p.normalize().to_string()), _ => Value::Null },
+    }))
 }
 
 // ------------------------------------------------------------------ outils

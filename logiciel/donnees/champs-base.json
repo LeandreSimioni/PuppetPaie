@@ -635,7 +635,7 @@
   {
    "_note": "EMPLOYER DES PERMANENTS, C'EST UNE DECISION -- PAS UN ETAT DEDUIT\n(22/09/2026). Tant que ce champ n'existait pas, tout l'appareil des\npermanents etait la pour tout le monde : le deroulant << Nature >>\nproposait le CDI et le CDD a une compagnie qui n'emploie que des\nintermittents, la fiche d'un cachetier demandait sa complementaire\nsante, et la prevoyance conventionnelle attendait dans un coin. Une\ncase affichee est une case a remplir, a relire et a ne pas se tromper :\ncelles-la ne se montrent plus qu'a qui a dit en employer.\n\nET C'EST UN REFUS, pas seulement un affichage (regle 2 : un garde-fou\npose dans un front se contourne par l'autre). Un engagement paye au\nmois dans une compagnie qui n'a pas coche la case est refuse par\n`entreprise.controler_permanents`, avec ce qu'il faut faire.",
    "cle": "emploie_des_permanents",
-   "libelle": "La compagnie emploie des salariés au mois",
+   "libelle": "La compagnie emploie aussi des salariés au mois (CDI, CDD), en plus des intermittents",
    "forme": "booleen",
    "aide": "À cocher si vous avez des salariés payés au mois (CDI, CDD ordinaire) en plus des intermittents. Le logiciel demandera alors leur complémentaire santé ; la prévoyance de la convention s'applique d'elle-même.",
    "obligatoire": false,
@@ -887,11 +887,11 @@
    "ecran": true
   },
   {
-   "_note": "LE BLOC S21.G00.44 (lot V3b, 10/10/2026). La DSN de decembre declare chaque annee si la compagnie\ndoit la taxe sur les salaires (009, avec ses assiettes au taux normal et aux taux majores 015 et\n016) ou non (010). Cela depend de sa TVA, que le moteur ne connait pas : la fiche le dit, et une\nfiche muette fait refuser la DSN de decembre (`assujettissement.rs`). Ce sont les cles que l'etat\n« taxe sur les salaires » lisait deja : `assujettie`, `pourcentage_assujettissement`,\n`association_1679A`.",
+   "_note": "LE BLOC S21.G00.44 (lot V3b, 10/10/2026). La DSN de decembre declare chaque annee si la compagnie\ndoit la taxe sur les salaires (009, avec ses assiettes au taux normal et aux taux majores 015 et\n016) ou non (010). Cela depend de sa TVA, que le moteur ne connait pas : la fiche le dit, et une\nfiche muette fait refuser la DSN de decembre (`assujettissement.rs`). DEPUIS LE TICKET #216 (20/10/2026),\nla fiche dit le FAIT (`tva` : assujettie ou exoneree ; `part_tva` ; `sous_franchise` ;\n`association_1679A`) et le moteur en conclut si la taxe est due, et sur quelle part\n(`assujettissement::regime_taxe_sur_les_salaires`, CGI art. 231, 1) : la DSN de decembre, l'etat\n« taxe sur les salaires » et l'ecran (route `taxe-sur-les-salaires-regime`) lisent la meme conclusion.",
    "cle": "taxe_sur_les_salaires",
    "libelle": "Taxe sur les salaires",
    "forme": "structure",
-   "aide": "La compagnie doit la taxe sur les salaires si elle n'est pas assujettie à la TVA, ou ne l'a pas été sur 90 % au moins de son chiffre d'affaires de l'année précédente (code général des impôts, art. 231) — c'est le cas de beaucoup d'associations. Elle ne la doit pas si 90 % au moins de son chiffre d'affaires est soumis à la TVA, ou s'il n'excède pas les plafonds de la franchise en base de TVA. La part taxée est le rapport entre le chiffre d'affaires qui n'a pas ouvert droit à déduction de TVA et le chiffre d'affaires total (100 % si rien n'est soumis à la TVA). La DSN de décembre le déclare chaque année ; sans réponse, elle ne se fait pas.",
+   "aide": "Dites ce que vous savez de votre TVA : le logiciel en déduit si la compagnie doit la taxe sur les salaires, et sur quelle part (code général des impôts, art. 231), et l'écrit sous les cases. La DSN de décembre le déclare chaque année ; sans réponse, elle ne se fait pas.",
    "obligatoire": false,
    "longueur": null,
    "exemple": "",

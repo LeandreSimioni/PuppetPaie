@@ -1224,3 +1224,161 @@ fn le_bulletin_compare_la_raison_sociale_et_l_adresse_de_l_entreprise() {
     ok(route(&racine, "importer", json!({"dossier": ""})));
     assert_eq!(lire(&racine, "config/entreprise.json")["raison_sociale"], json!("CIE FICTIVE DU FIL TENDU"));
 }
+
+// ------------------------------------------------------------------ le mois importe dans la page Paie (ticket #215)
+
+/// Le bilan d'une mensuelle reelle de mars 2025, acceptee, comme la plate-forme le rend, pour le SIREN de la compagnie
+/// fictive, depose par un autre logiciel (absent du journal).
+fn bilan_de_mars(flux: &str) -> String {
+    format!(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gipmds:rapport xmlns:gipmds=\"http://www.gip-mds.fr/\" profil=\"DSN\" type=\"CCO\" version=\"v01r08\">\
+<envoi><envoi_identification><idflux>{f}</idflux><date_reception>2025-04-04</date_reception><heure_reception>10:12:00</heure_reception>\
+<nom_logiciel>COOLPAIE</nom_logiciel><essai_reel>02</essai_reel></envoi_identification><envoi_bilan><envoi_etat>OK</envoi_etat></envoi_bilan></envoi>\
+<declaration><declaration_identification><nature>01</nature><type>01</type><fraction>11</fraction><ordre>1</ordre><mois>01032025</mois>\
+<SIREN>123456923</SIREN></declaration_identification><declaration_bilan><etat>OK</etat></declaration_bilan></declaration></gipmds:rapport>",
+        f = flux
+    )
+}
+
+/// La carte de ce salarie dans le mois importe.
+fn carte_de<'a>(importe: &'a Value, salarie: &str) -> &'a Value {
+    importe["paies"].as_array().unwrap().iter().find(|c| c["salarie"] == json!(salarie)).unwrap_or_else(|| panic!("pas de carte {} : {}", salarie, importe))
+}
+
+fn champs_manquants(carte: &Value) -> Vec<String> {
+    carte["manque"].as_array().unwrap().iter().map(|m| m["champ"].as_str().unwrap().to_string()).collect()
+}
+
+/// UN MOIS IMPORTE EST UN MOIS COMME LES AUTRES : la route `saisie` d'un mois sans fichier de paie que l'historique
+/// importe porte rend ses paies en cartes, chaque case remplie de ce que les pieces portent (le bulletin fait foi), et
+/// dit, carte par carte, ce que l'import n'a pas pu lire -- et pourquoi. Il ne se saisit pas : rien ne s'ecrit.
+#[test]
+fn un_mois_importe_porte_ses_cases_et_dit_ce_qui_manque() {
+    let racine = compagnie("mois-importe-cases");
+    mettre(&racine, true, true);
+    ok(route(&racine, "importer", json!({"dossier": ""})));
+    let s = ok(route(&racine, "saisie", json!({"mois": "2025-03"})));
+    assert_eq!(s["existe"], json!(false));
+    let im = &s["importe"];
+    assert_eq!(im["paies"].as_array().unwrap().len(), 2, "{}", im);
+
+    // BRIOCHE : la DSN completee par son bulletin -- les cases sont pleines, rien ne manque.
+    let b = carte_de(im, "BRIOCHE");
+    assert_eq!((b["debut"].clone(), b["fin"].clone(), b["contrat"].clone()), (json!("2025-03-10"), json!("2025-03-14"), json!("BR1.25.02")), "{}", b);
+    assert_eq!(b["spectacle"]["numero_objet"], json!("256Z00920022"));
+    assert_eq!(b["spectacle"]["titre"], json!("Les Pupazzi"), "le titre se lit dans la fiche du spectacle : {}", b);
+    assert_eq!(b["dates"].as_array().unwrap().len(), 5, "{}", b);
+    assert_eq!(b["cachets"], json!(5), "le contrat que le bulletin atteste porte les cachets : {}", b);
+    assert_eq!((b["montants"]["brut"].clone(), b["montants"]["net_a_payer"].clone()), (json!("730.00"), json!("592.78")));
+    assert_eq!(b["sources"]["net_a_payer"], json!("bulletin"));
+    assert!(b["nom"].as_str().unwrap().contains("BRIOCHE"), "le nom vient de la fiche : {}", b);
+    assert_eq!(champs_manquants(b), Vec::<String>::new(), "{}", b);
+
+    // LEMERCIER : la DSN seule -- le net a payer, les jours et les cachets ne se lisent pas, et la carte dit pourquoi.
+    let l = carte_de(im, "LEMERCIER");
+    assert_eq!(l["montants"]["brut"].as_str().map(|t| !t.is_empty()), Some(true), "{}", l);
+    assert_eq!(l["montants"].get("net_a_payer"), None, "rien ne se devine : {}", l);
+    let manque = champs_manquants(l);
+    for champ in ["net_a_payer", "dates", "cachets"] {
+        assert!(manque.contains(&champ.to_string()), "{} devrait manquer : {}", champ, l);
+    }
+    let net = l["manque"].as_array().unwrap().iter().find(|m| m["champ"] == json!("net_a_payer")).unwrap();
+    assert!(net["phrase"].as_str().unwrap().contains("la DSN ne le déclare pas"), "{}", net);
+    assert_eq!(im["incompletes"], json!(1));
+
+    // Il ne se saisit pas : la saisie est refusee, et aucun fichier de paie n'apparait.
+    let r = route(&racine, "enregistrer-saisie", json!({"mois": "2025-03", "forcer": true, "saisie": {"engagements": []}}));
+    assert!(refus(&r).1.contains("tenu avant PuppetPaie"), "{}", r);
+    assert!(!racine.join("paies").join("2025-03.json").exists());
+}
+
+/// UN MOIS DECLARE N'EST PAS EN RETARD. Sa DSN importee (le fichier de l'ancien logiciel) le dit declare ; un depot que
+/// les retours attestent entre au journal a l'import, et le mois est « passee » ; sans aucune trace, il le dit -- jamais
+/// « en retard », et aucune etape ne propose de produire ou de deposer sa DSN (regle 4).
+#[test]
+fn un_mois_importe_et_declare_n_est_pas_en_retard() {
+    // La DSN de l'ancien logiciel, importee.
+    let a = compagnie("mois-importe-dsn");
+    mettre(&a, true, true);
+    ok(route(&a, "importer", json!({"dossier": ""})));
+    let s = ok(route(&a, "saisie", json!({"mois": "2025-03"})));
+    assert_eq!(s["importe"]["dsn"]["etat"], json!("importee"), "{}", s["importe"]["dsn"]);
+    let etat = ok(route(&a, "etat", json!({})));
+    let h = etat["historique"].as_array().unwrap().iter().find(|m| m["mois"] == json!("2025-03")).cloned().unwrap_or_else(|| panic!("{}", etat["historique"]));
+    assert_eq!((h["dsn"].clone(), h["a_faire"].clone(), h["corrigeable"].clone()), (json!("importee"), json!(false), json!(false)), "{}", h);
+    let b = ok(route(&a, "bilan-du-mois", json!({"mois": "2025-03"})));
+    for etape in ["dpae", "contrat-signature", "dsn", "documents"] {
+        assert_eq!(b[etape]["vide"], json!(true), "aucun geste sur un mois tenu avant : {} {}", etape, b);
+    }
+    assert_eq!(b["dsn"]["couleur"], json!("bien"), "{}", b["dsn"]);
+    let ech = ok(route(&a, "echeancier", json!({})));
+    assert!(!ech.to_string().contains("dsn:2025-03"), "l'échéancier ne réclame pas sa DSN : {}", ech);
+
+    // Les bulletins seuls, et un depot reel que les retours attestent : il entre au journal, le mois est passe.
+    let b = compagnie("mois-importe-retours");
+    std::fs::remove_dir_all(b.join("retours")).ok();
+    std::fs::create_dir_all(b.join("retours")).unwrap();
+    std::fs::write(b.join("retours").join("20250404-101200_nature11_FLUX-COOLPAIE-MARS.xml"), bilan_de_mars("FLUX-COOLPAIE-MARS")).unwrap();
+    mettre(&b, false, true);
+    let r = ok(route(&b, "importer", json!({"dossier": ""})));
+    assert_eq!(r["depots_repris"], json!(1), "{}", r);
+    let s = ok(route(&b, "saisie", json!({"mois": "2025-03"})));
+    assert_eq!(s["importe"]["dsn"]["etat"], json!("passee"), "{}", s["importe"]["dsn"]);
+    let h = ok(route(&b, "etat", json!({})))["historique"].as_array().unwrap().iter().find(|m| m["mois"] == json!("2025-03")).cloned().unwrap();
+    assert_eq!((h["dsn"].clone(), h["corrigeable"].clone()), (json!("passee"), json!(false)), "{}", h);
+    // Rejoue : rien de plus au journal.
+    let r = ok(route(&b, "importer", json!({"dossier": ""})));
+    assert_eq!(r["depots_repris"], json!(0), "{}", r);
+
+    // Les bulletins seuls, sans aucune trace de DSN : il le dit, sans « en retard » ni geste.
+    let c = compagnie("mois-importe-sans-trace");
+    mettre(&c, false, true);
+    ok(route(&c, "importer", json!({"dossier": ""})));
+    let s = ok(route(&c, "saisie", json!({"mois": "2025-03"})));
+    assert_eq!(s["importe"]["dsn"]["etat"], json!("sans_trace"), "{}", s["importe"]["dsn"]);
+    let h = ok(route(&c, "etat", json!({})))["historique"].as_array().unwrap().iter().find(|m| m["mois"] == json!("2025-03")).cloned().unwrap();
+    assert_eq!((h["dsn"].clone(), h["a_faire"].clone()), (json!("sans_trace"), json!(false)), "{}", h);
+    let b = ok(route(&c, "bilan-du-mois", json!({"mois": "2025-03"})));
+    assert_eq!(b["dsn"]["vide"], json!(true), "ni « Fermer le mois », ni dépôt : {}", b["dsn"]);
+    assert!(!b["dsn"]["phrase"].as_str().unwrap().contains("pas encore déposée"), "{}", b["dsn"]);
+}
+
+/// UN MOIS IMPORTE NE SE RECLAME JAMAIS : le 20 avril 2025, la DSN de mars est passee d'echeance ; une compagnie qui a des
+/// paies et aucune DSN au journal se la voit reclamer « en retard ». Tenu avant PuppetPaie -- DSN importee ou sans aucune
+/// trace --, mars ne fait l'objet d'aucun rappel ni d'aucune echeance en retard (`routes_ouverture::Etat::etat_dsn`).
+#[test]
+fn un_mois_importe_meme_sans_trace_ne_fait_l_objet_d_aucun_rappel_de_dsn() {
+    let le_20_avril = json!({"aujourdhui": "2025-04-20"});
+    let reclame = |racine: &Path| -> (bool, bool) {
+        let r = ok(route(racine, "rappels", le_20_avril.clone()));
+        let rappel = r["rappels"].as_array().unwrap().iter().any(|x| x.to_string().contains("dsn:2025-03"));
+        let e = ok(route(racine, "echeancier", le_20_avril.clone()));
+        let retard = e.to_string().contains("dsn:2025-03") && e["ce_mois"].as_array().is_some_and(|l| {
+            l.iter().any(|x| x["cle"] == json!("dsn:2025-03") && x["etat"] == json!("en_retard"))
+        });
+        (rappel, retard)
+    };
+    let saisie_de_decembre = |racine: &Path| {
+        std::fs::write(racine.join("paies").join("2024-12.json"), json!({"mois": "2024-12", "engagements": []}).to_string()).unwrap();
+    };
+
+    // Le temoin : des paies, aucune DSN au journal, mars sans rien -- mars est reclame, en retard.
+    let t = compagnie("rappel-temoin");
+    saisie_de_decembre(&t);
+    assert_eq!(reclame(&t), (true, true), "le témoin doit réclamer mars");
+
+    // Mars importe, sans aucune trace de DSN (les bulletins seuls) : rien n'est reclame.
+    let s = compagnie("rappel-sans-trace");
+    saisie_de_decembre(&s);
+    mettre(&s, false, true);
+    ok(route(&s, "importer", json!({"dossier": ""})));
+    assert_eq!(ok(route(&s, "saisie", json!({"mois": "2025-03"})))["importe"]["dsn"]["etat"], json!("sans_trace"));
+    assert_eq!(reclame(&s), (false, false));
+
+    // Mars importe avec sa DSN : rien non plus.
+    let d = compagnie("rappel-dsn-importee");
+    saisie_de_decembre(&d);
+    mettre(&d, true, true);
+    ok(route(&d, "importer", json!({"dossier": ""})));
+    assert_eq!(reclame(&d), (false, false));
+}

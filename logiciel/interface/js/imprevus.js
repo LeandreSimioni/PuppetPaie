@@ -360,7 +360,7 @@ function peindreImprevusDeLaCarte(div, liste) {
         ${jours.length ? `<div class="imprevu-jours">Payé pendant ${i.genre === "arret" ? "l'arrêt" : "l'absence"} :
           ${jours.map((c) => c.dates.map((iso) => `${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}
             ${validee ? "" : `<button class="lien" data-retirer="${echapper(iso)}" data-rubrique="${echapper(c.rubrique)}">retirer ce jour</button>`}`).join(" · ")).join(" · ")}
-          ${validee ? `<span class="discret">— la paie est validée : « Voir le détail › Modifier » pour retirer ces jours.</span>` : ""}
+          ${validee ? `<span class="discret">— la paie est validée : cliquer sur la carte, puis « Modifier… », pour retirer ces jours.</span>` : ""}
         </div>` : ""}
       </div>`;
   }).join("");

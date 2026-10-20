@@ -398,10 +398,6 @@ fn somme_de_controle(table: &[u8]) -> u32 {
     somme
 }
 
-/// Ce qu'un PDF demande à une police TrueType embarquée (`FontFile2`) : ces tables-là, et pas
-/// `cmap`, `name`, `post`, `OS/2`, ni les tables de crénage et de substitution.
-const TABLES_GARDEES: [&[u8; 4]; 3] = [b"cvt ", b"fpgm", b"prep"];
-
 /// Coupe le fichier TrueType `donnees` aux glyphes `voulus` (numéros du fichier d'origine) : le
 /// `.notdef` en premier, puis les `voulus` dans l'ordre donné, puis les composants des glyphes
 /// composés. Rend le fichier découpé et, pour chaque glyphe voulu, son numéro dans le découpé.
@@ -485,6 +481,8 @@ pub(crate) fn decouper_ttf(donnees: &[u8], voulus: &[u16]) -> Result<(Vec<u8>, V
                 let g = u16_en(&octets, p + 2).ok_or_else(illisible)? as usize;
                 let n = ajouter(g, &mut anciens);
                 octets[p + 2..p + 4].copy_from_slice(&n.to_be_bytes());
+                // Sans instructions (voir plus bas) : le drapeau WE_HAVE_INSTRUCTIONS tombe.
+                octets[p..p + 2].copy_from_slice(&(drapeaux & !0x0100).to_be_bytes());
                 p += 4 + if drapeaux & 0x0001 != 0 { 4 } else { 2 };
                 if drapeaux & 0x0008 != 0 {
                     p += 2;
@@ -497,6 +495,17 @@ pub(crate) fn decouper_ttf(donnees: &[u8], voulus: &[u16]) -> Result<(Vec<u8>, V
                     break;
                 }
             }
+            octets.truncate(p);
+        } else if octets.len() >= 12 {
+            // Un glyphe simple : ses contours, sans ses instructions.
+            let contours_n = i16::from_be_bytes([octets[0], octets[1]]) as usize;
+            let a = 10 + 2 * contours_n;
+            let longueur = u16_en(&octets, a).ok_or_else(illisible)? as usize;
+            if a + 2 + longueur > octets.len() {
+                return Err(illisible());
+            }
+            octets.drain(a + 2..a + 2 + longueur);
+            octets[a..a + 2].copy_from_slice(&[0, 0]);
         }
         glyphes_ecrits.push(octets);
         i += 1;
@@ -525,8 +534,17 @@ pub(crate) fn decouper_ttf(donnees: &[u8], voulus: &[u16]) -> Result<(Vec<u8>, V
     hhea_neuf[34..36].copy_from_slice(&total.to_be_bytes());
     let mut maxp_neuf = maxp.to_vec();
     maxp_neuf[4..6].copy_from_slice(&total.to_be_bytes());
+    if maxp_neuf.len() >= 28 {
+        maxp_neuf[26..28].copy_from_slice(&[0, 0]); // maxSizeOfInstructions : il n'y en a plus
+    }
 
-    let mut tables: Vec<([u8; 4], Vec<u8>)> = vec![
+    // Ce qu'un PDF demande à une police TrueType embarquée (`FontFile2`) : ces six tables, et pas
+    // `cmap`, `name`, `post`, `OS/2`, ni les tables de crénage et de substitution. NI LE HINTING
+    // (ticket #228) : les instructions TrueType (`cvt `, `fpgm`, `prep` et celles de chaque glyphe,
+    // retirées plus haut) ajustent les contours à la grille des pixels d'un écran ; elles faisaient
+    // plus du tiers du poids des glyphes de Liberation. Les contours, eux, sont recopiés à
+    // l'identique : le texte imprimé ne change pas d'un point.
+    let tables: Vec<([u8; 4], Vec<u8>)> = vec![
         (*b"glyf", glyf_neuf),
         (*b"head", head_neuf),
         (*b"hhea", hhea_neuf),
@@ -534,12 +552,6 @@ pub(crate) fn decouper_ttf(donnees: &[u8], voulus: &[u16]) -> Result<(Vec<u8>, V
         (*b"loca", loca_neuf),
         (*b"maxp", maxp_neuf),
     ];
-    for nom in TABLES_GARDEES {
-        if let Some(t) = table(nom) {
-            tables.push((*nom, t.to_vec()));
-        }
-    }
-    tables.sort_by(|a, b| a.0.cmp(&b.0));
 
     // Le répertoire des tables, puis les tables, chacune alignée sur 4 octets.
     let n = tables.len();

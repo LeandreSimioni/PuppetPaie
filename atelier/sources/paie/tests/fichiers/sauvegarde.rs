@@ -517,6 +517,160 @@ fn erreur_de_fichier_incident_pas_a_l_index_les_autres_partent() {
     assert!(!rien_n_a_bouge(&r, RD));
 }
 
+// ------------------------------------------------------------ tickets #231 et #232 : ce qui est passager, ce qui persiste
+
+/// Une erreur que Google dit passagere (un 500 que le client a deja retente).
+fn erreur_500() -> ErreurGoogle {
+    let mut e = ErreurGoogle::google("HTTP 500 : Internal Error");
+    e.statut = Some(500);
+    e
+}
+
+/// `AAAA-MM-JJ HH:MM` de l'heure de Paris, il y a `secondes`.
+fn il_y_a(secondes: i64) -> String {
+    paie::releve_retours::iso_de_naif(paie::releve_retours::maintenant_naif() - secondes)[..16].replacen('T', " ", 1)
+}
+
+/// `JJ/MM` de l'heure de Paris, il y a `secondes`.
+fn jour_il_y_a(secondes: i64) -> String {
+    let iso = il_y_a(secondes);
+    format!("{}/{}", &iso[8..10], &iso[5..7])
+}
+
+#[test]
+fn un_dossier_reporte_une_fois_se_tait_et_repart_au_passage_suivant() {
+    let r = monde("passager");
+    let mut d = FauxDrive::nouveau();
+    d.pannes.push(Panne { operation: "lister", motif: "sauvegarde/journal".into(), erreur: erreur_500() });
+    let s = passer(&r, &mut d);
+    assert_eq!(s.reportes.len(), 1);
+    assert_eq!((s.reportes[0].quoi.as_str(), s.reportes[0].dossier, s.reportes[0].cause.as_str()), ("journal", true, "Google indisponible"));
+    assert_eq!(s.persistant, None, "un dossier reporte une fois n'est pas un incident a montrer");
+    assert_eq!(sauvegarde::souci(&r), None);
+    // La ligne de la sauvegarde dit ce qui est vrai, positivement.
+    assert_eq!(s.resume(), format!("Sauvegarde : 7 fichier(s) envoye(s), {} o, 0 inchange(s) ; 1 dossier reporte au prochain passage.", s.octets_deposes));
+    let i = index_json(&r);
+    assert_eq!(i["echecs"]["journal/"]["passages"], json!(1));
+    assert_eq!(i["echecs"]["journal/"]["cause"], json!("Google indisponible"));
+    // Le passage suivant passe : plus rien n'est reporte, l'index redevient celui d'une sauvegarde complete.
+    d.pannes.clear();
+    let s = passer(&r, &mut d);
+    assert!(s.reportes.is_empty() && s.persistant.is_none());
+    assert_eq!(s.deposes.iter().map(|f| f.relatif.as_str()).collect::<Vec<_>>(), ["journal/h.md"]);
+    let i = index_json(&r);
+    assert!(i.get("echecs").is_none() && i.get("derniere_complete").is_none(), "{}", i);
+}
+
+#[test]
+fn le_meme_dossier_en_echec_trois_passages_de_suite_se_dit() {
+    let r = monde("persiste");
+    let mut d = FauxDrive::nouveau();
+    d.pannes.push(Panne { operation: "lister", motif: "sauvegarde/journal".into(), erreur: erreur_500() });
+    assert_eq!(passer(&r, &mut d).persistant, None);
+    let premier = index_json(&r)["echecs"]["journal/"]["depuis"].clone();
+    assert_eq!(passer(&r, &mut d).persistant, None);
+    let s = passer(&r, &mut d);
+    assert_eq!(index_json(&r)["echecs"]["journal/"]["depuis"], premier, "depuis le premier echec");
+    let heure = &premier.as_str().unwrap()[11..16];
+    assert_eq!(
+        s.persistant.as_deref(),
+        Some(format!("Sauvegarde : un dossier n'a pas pu être envoyé depuis {} (Google indisponible) ; le logiciel réessaie.", heure).as_str())
+    );
+    assert_eq!(sauvegarde::souci(&r), s.persistant, "la meme phrase, relue sans reseau");
+    assert_eq!(index_json(&r)["echecs"]["journal/"]["passages"], json!(3));
+    // Google revient : la phrase s'en va d'elle-meme.
+    d.pannes.clear();
+    assert_eq!(passer(&r, &mut d).persistant, None);
+    assert_eq!(sauvegarde::souci(&r), None);
+}
+
+#[test]
+fn un_echec_depuis_hier_se_dit_des_le_passage_suivant() {
+    let r = monde("depuis-hier");
+    let mut d = FauxDrive::nouveau();
+    passer(&r, &mut d);
+    // L'index dit : le dossier `journal` est en echec depuis hier, a la meme heure (un seul passage : la veille ne tournait pas).
+    let mut i = index_json(&r);
+    i["echecs"] = json!({"journal/": {"depuis": il_y_a(86_400), "passages": 1, "cause": "Google indisponible"}});
+    std::fs::write(r.join("config/.sauvegarde.json"), i.to_string()).unwrap();
+    d.pannes.push(Panne { operation: "lister", motif: "sauvegarde/journal".into(), erreur: erreur_500() });
+    let s = passer(&r, &mut d);
+    assert_eq!(
+        s.persistant.as_deref(),
+        Some("Sauvegarde : un dossier n'a pas pu être envoyé depuis hier (Google indisponible) ; le logiciel réessaie.")
+    );
+}
+
+#[test]
+fn une_journee_sans_sauvegarde_complete_se_dit() {
+    let r = monde("journee");
+    let mut d = FauxDrive::nouveau();
+    passer(&r, &mut d);
+    // La derniere sauvegarde complete date d'avant-hier ; depuis, rien n'est passe (le poste etait eteint).
+    let mut i = index_json(&r);
+    i["quand"] = json!(il_y_a(2 * 86_400));
+    std::fs::write(r.join("config/.sauvegarde.json"), i.to_string()).unwrap();
+    d.pannes.push(Panne { operation: "televerser", motif: "entreprise.json".into(), erreur: erreur_500() });
+    ecrire(&r, "config/entreprise.json", "{\"a\": 2}");
+    let s = passer(&r, &mut d);
+    // Le fichier n'echoue que depuis ce passage : c'est la journee sans sauvegarde complete qui se dit.
+    assert_eq!(
+        s.persistant.as_deref(),
+        Some(format!("Sauvegarde : un fichier n'a pas pu être envoyé (Google indisponible), pas de sauvegarde complète depuis le {} ; le logiciel réessaie.", jour_il_y_a(2 * 86_400)).as_str())
+    );
+    // Les deux cles ne restent que tant qu'un echec reste.
+    assert_eq!(index_json(&r)["derniere_complete"], json!(il_y_a(2 * 86_400)));
+    d.pannes.clear();
+    let s = passer(&r, &mut d);
+    assert_eq!(s.persistant, None);
+    assert!(index_json(&r).get("derniere_complete").is_none());
+}
+
+#[test]
+fn un_passage_hors_ligne_ne_compte_pas_et_garde_les_echecs() {
+    let r = monde("hors-ligne-echecs");
+    let mut d = FauxDrive::nouveau();
+    d.pannes.push(Panne { operation: "lister", motif: "sauvegarde/journal".into(), erreur: erreur_500() });
+    passer(&r, &mut d);
+    d.pannes.clear();
+    d.pannes.push(Panne { operation: "chemin", motif: "".into(), erreur: ErreurGoogle::google("Reseau injoignable : [Errno 111] Connection refused") });
+    let s = passer(&r, &mut d);
+    assert!(s.hors_ligne);
+    assert_eq!(index_json(&r)["echecs"]["journal/"]["passages"], json!(1), "le passage hors ligne n'a rien essaye");
+}
+
+#[test]
+fn google_absent_le_reste_du_passage_est_reporte_sans_appel() {
+    let r = monde("google-absent");
+    let mut d = FauxDrive::nouveau();
+    // Tout depot rend un 500 (deja retente par le client) : apres trois de suite, on n'appelle plus.
+    d.pannes.push(Panne { operation: "televerser", motif: "".into(), erreur: erreur_500() });
+    let s = passer(&r, &mut d);
+    assert_eq!(d.appels("televerser"), 3, "{:?}", d.journal);
+    assert!(d.appels("chemin PuppetPaie/sauvegarde/journal") == 0, "les dossiers suivants ne sont pas appeles : {:?}", d.journal);
+    // Trois fichiers essayes, puis cinq dossiers (d'un fichier chacun) reportes d'office.
+    assert_eq!((s.reportes.iter().filter(|x| !x.dossier).count(), s.reportes.iter().filter(|x| x.dossier).count()), (3, 5));
+    assert!(s.deposes.is_empty());
+    assert!(s.reportes.iter().all(|x| x.cause == "Google indisponible"));
+    assert_eq!(s.persistant, None);
+    // Le prochain passage reprend tout : rien n'est entre a l'index.
+    assert_eq!(index_json(&r)["fichiers"].as_object().unwrap().len(), 0);
+}
+
+#[test]
+fn les_causes_en_clair() {
+    use paie::sauvegarde::cause_de;
+    assert_eq!(cause_de(&erreur_500()), "Google indisponible");
+    let mut e = ErreurGoogle::google("HTTP 429 : Rate Limit Exceeded");
+    e.statut = Some(429);
+    assert_eq!(cause_de(&e), "Google indisponible");
+    assert_eq!(cause_de(&erreur("TimeoutError", "The read operation timed out")), "Google ne répond pas");
+    let mut e = ErreurGoogle::google("HTTP 403 : The user's Drive storage quota has been exceeded.");
+    e.statut = Some(403);
+    assert_eq!(cause_de(&e), "Google refuse l'envoi");
+    assert_eq!(cause_de(&erreur("PermissionError", "Permission refusee : x")), "fichier illisible sur ce poste");
+}
+
 #[test]
 fn fichier_disparu_entre_l_empreinte_et_l_envoi_ni_incident_ni_index() {
     let r = monde("disparu-envoi");
@@ -697,6 +851,8 @@ fn le_compte_rendu_resume_et_json() {
         disparus: 0,
         secondes: 0.0,
         incidents: vec![],
+        reportes: vec![],
+        persistant: None,
         hors_ligne: false,
     };
     assert_eq!(s.resume(), "Sauvegarde : 2 fichier(s) envoye(s), 1.5 Mo, 3 inchange(s).");

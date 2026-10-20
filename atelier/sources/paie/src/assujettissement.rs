@@ -37,7 +37,7 @@
 //!   006 ; a 50 et plus, 005 avec l'assiette (CCH-11) : les remunerations de l'annee qui servent de base aux cotisations
 //!   de securite sociale, la base 03 « assiette brute deplafonnee » de chaque contrat de l'etablissement.
 //! - taxe sur les salaires (009/010, 015/016) : CGI art. 231. Elle depend de la TVA de la compagnie, que le moteur ne
-//!   connait pas : la fiche le dit (`taxe_sur_les_salaires.assujettie`, `pourcentage_assujettissement`), sinon refus.
+//!   connait pas : la fiche dit sa TVA, le moteur conclut (`regime_taxe_sur_les_salaires`), sinon refus.
 //!   Les assiettes sont celles de l'etat « taxe sur les salaires » (`etats_compta`), etablissement par etablissement.
 //! - CPF-CDD (013/014) : code du travail L. 6331-6 (1 % des remunerations des titulaires d'un CDD), sauf le CDD
 //!   saisonnier (L. 6331-6) et ceux de D. 6331-72 ; l'intermittent du spectacle releve de la participation unique de
@@ -120,44 +120,180 @@ pub(crate) fn fractions_majorees(base: Decimal, seuil_1: Decimal, seuil_2: Decim
     (premiere, positif(sub(base, seuil_2)))
 }
 
-/// Ce que la fiche dit de la taxe sur les salaires : `None` si la compagnie n'y est pas assujettie, sinon la part
-/// assujettie des remunerations en pourcentage (CGI art. 231, 1 : le rapport du chiffre d'affaires non passible de la
-/// TVA au chiffre d'affaires total). Muette ou illisible : refus, avec ce qu'il faut ecrire.
-pub(crate) fn taxe_sur_les_salaires_de_la_fiche(ent: &Value) -> Resultat<Option<Decimal>> {
+/// LA TAXE SUR LES SALAIRES SE DEDUIT DE LA TVA (ticket #216, 20/10/2026). La fiche disait « la compagnie la doit-elle ? »
+/// et « part des salaires taxee » : on demandait a l'administratrice la conclusion du droit, pas le fait qu'elle connait.
+/// Elle dit maintenant ce qu'elle sait de sa TVA, et le moteur conclut, une seule fois, ici -- pour l'ecran (la route
+/// `taxe-sur-les-salaires`), pour la DSN de decembre (`blocs`) et pour l'etat « taxe sur les salaires » (`etats_compta`).
+///
+/// Le texte : CGI art. 231, 1 (version en vigueur depuis le 19/06/2025, deposee :
+/// `atelier/reference/sources/code-general-des-impots/xml/231.xml`, lisible dans `articles-20261015.md`) :
+/// - la taxe est a la charge des employeurs « lorsqu'ils ne sont pas assujettis a la taxe sur la valeur ajoutee ou ne
+///   l'ont pas ete sur 90 % au moins de leur chiffre d'affaires au titre de l'annee civile precedant celle du paiement » ;
+/// - son assiette : les remunerations multipliees par « le rapport [...] entre le chiffre d'affaires qui n'a pas ete
+///   passible de la taxe sur la valeur ajoutee et le chiffre d'affaires total », ce total s'entendant « du total des
+///   recettes et autres produits, y compris ceux [...] qui n'entrent pas dans le champ d'application de la [TVA] », le
+///   numerateur « du total des recettes et autres produits qui n'ont pas ouvert droit a deduction » ;
+/// - 2e alinea : « Les remunerations versees par les employeurs dont le chiffre d'affaires realise au cours de l'annee
+///   civile precedant le versement de ces remunerations n'excede pas les plafonds definis aux I et I bis de l'article
+///   293 B sont exonerees de la taxe sur les salaires. »
+/// L'abattement des associations (art. 1679 A, depose a cote) ne change pas qui doit la taxe, seulement ce qu'il reste a
+/// payer : l'etat le calcule.
+///
+/// La fiche (`taxe_sur_les_salaires` de config/entreprise.json) :
+/// - `tva` : « assujettie » ou « exoneree » (exoneree de TVA, ou hors de son champ) ;
+/// - `part_tva` : pour une compagnie assujettie, la part (en %) de ses recettes et produits de l'annee precedente,
+///   subventions comprises, soumise a la TVA. INFERENCE : une recette soumise a la TVA est une recette qui a ouvert droit
+///   a deduction ; le rapport de l'article 231 vaut donc 100 - `part_tva`. A 90 au moins, la taxe n'est pas due ;
+/// - `sous_franchise` : quand la taxe serait due, le chiffre d'affaires de l'annee precedente n'excede-t-il pas les
+///   plafonds de l'article 293 B ? (2e alinea) ;
+/// - `association_1679A` : quand la taxe est due, l'abattement de l'article 1679 A s'applique-t-il ?
+/// Chaque case ne se montre que si la precedente l'appelle (`champs`). Une case qui manque fait refuser la DSN de
+/// decembre, avec ce qu'il faut dire (regle 1 : rien ne se devine).
+#[derive(Debug, Clone, PartialEq)]
+pub struct RegimeTaxeSalaires {
+    /// `Ok(None)` : la taxe n'est pas due ; `Ok(Some(p))` : elle est due sur `p` % des remunerations (le rapport de
+    /// l'article 231, 1) ; `Err` : ce que la fiche doit encore dire.
+    pub decision: Result<Option<Decimal>, String>,
+    /// L'abattement des associations (art. 1679 A), quand la taxe est due.
+    pub association: bool,
+    /// Les cases de la fiche que l'ecran montre, dans l'ordre : chacune parce que la precedente l'appelle.
+    pub champs: Vec<&'static str>,
+    /// La consequence, en clair, telle que l'ecran l'affiche sous les cases.
+    pub consequence: String,
+}
+
+/// Un pourcentage tel qu'on l'ecrit en francais : « 62,5 ».
+fn pourcent(p: Decimal) -> String {
+    p.normalize().to_string().replace('.', ",")
+}
+
+/// `taxe_sur_les_salaires` de la fiche entreprise `ent`, et ce que le moteur en conclut (CGI art. 231, 1).
+pub fn regime_taxe_sur_les_salaires(ent: &Value) -> RegimeTaxeSalaires {
     let fiche = g(ent, CHAMP_TAXE_SUR_LES_SALAIRES);
-    let dire = "Configuration › Entreprise, « Taxe sur les salaires » (`taxe_sur_les_salaires` de config/entreprise.json) : \
-dire si la compagnie la doit. Elle la doit si elle n'est pas assujettie a la TVA, ou ne l'a pas ete sur 90 % au moins de \
-son chiffre d'affaires de l'annee precedente (CGI art. 231, 1) -- c'est le cas de beaucoup d'associations. Elle ne la \
-doit pas si elle est assujettie a la TVA sur 90 % au moins de son chiffre d'affaires, ou si ce chiffre d'affaires \
-n'excede pas les plafonds de la franchise en base de TVA (art. 293 B). L'ecrire : {\"assujettie\": true, \
-\"pourcentage_assujettissement\": 100} ou {\"assujettie\": false}.";
-    let assujettie = match fiche.get("assujettie") {
-        Some(Value::Bool(b)) => *b,
-        None | Some(Value::Null) => {
-            return Err(format!("La fiche de la compagnie ne dit pas si elle doit la taxe sur les salaires. {}", dire))
+    let mut champs = vec!["tva"];
+    let manque = |champs: Vec<&'static str>, quoi: String, consequence: &str| RegimeTaxeSalaires {
+        decision: Err(format!(
+            "Configuration › Entreprise, « Taxe sur les salaires » : {} (CGI art. 231, 1). Sans cette reponse, la DSN de \
+decembre ne se fait pas.",
+            quoi
+        )),
+        association: false,
+        champs,
+        consequence: consequence.to_string(),
+    };
+    let non_due = |champs: Vec<&'static str>, pourquoi: &str| RegimeTaxeSalaires {
+        decision: Ok(None),
+        association: false,
+        champs,
+        consequence: format!(
+            "La compagnie ne doit pas la taxe sur les salaires : {}. La DSN de décembre le déclare.",
+            pourquoi
+        ),
+    };
+    let part_taxee = match fiche.get("tva").and_then(Value::as_str).unwrap_or("") {
+        "exoneree" => Decimal::ONE_HUNDRED,
+        "assujettie" => {
+            champs.push("part_tva");
+            let part = match fiche.get("part_tva") {
+                None | Some(Value::Null) => None,
+                Some(Value::String(s)) if s.trim().is_empty() => None,
+                Some(v) => match dec_py(v) {
+                    Ok(p) if p >= Decimal::ZERO && p <= Decimal::ONE_HUNDRED => Some(p),
+                    _ => {
+                        return manque(
+                            champs,
+                            format!("la part des recettes soumise a la TVA vaut {}, qui n'est pas un pourcentage de 0 a 100", v),
+                            "La part des recettes soumise à la TVA est un pourcentage, de 0 à 100.",
+                        )
+                    }
+                },
+            };
+            let Some(part) = part else {
+                return manque(
+                    champs,
+                    "dire quelle part de ses recettes de l'annee precedente etait soumise a la TVA".to_string(),
+                    "Dites quelle part de vos recettes de l'an dernier était soumise à la TVA : à 90 % ou plus, la \
+compagnie ne doit pas la taxe sur les salaires ; en dessous, elle la doit sur le reste.",
+                );
+            };
+            if part >= Decimal::from(90) {
+                return non_due(
+                    champs,
+                    &format!(
+                        "elle est assujettie à la TVA sur {} % de ses recettes de l'an dernier, 90 % ou plus (code général \
+des impôts, art. 231)",
+                        pourcent(part)
+                    ),
+                );
+            }
+            sub(Decimal::ONE_HUNDRED, part)
         }
-        Some(autre) => {
-            return Err(format!(
-                "La fiche de la compagnie dit de la taxe sur les salaires `assujettie`: {}, qui n'est ni vrai ni faux. {}",
-                autre, dire
-            ))
+        "" => {
+            return manque(
+                champs,
+                "dire si la compagnie est assujettie a la TVA ou exoneree".to_string(),
+                "Dites si la compagnie est assujettie à la TVA ou exonérée : le logiciel en déduit si elle doit la taxe \
+sur les salaires. Sans réponse, la DSN de décembre ne se fait pas.",
+            )
+        }
+        autre => {
+            return manque(
+                champs,
+                format!("`tva` vaut « {} » ; il vaut « assujettie » ou « exoneree »", autre),
+                "Dites si la compagnie est assujettie à la TVA ou exonérée.",
+            )
         }
     };
-    if !assujettie {
-        return Ok(None);
-    }
-    let pct = match fiche.get("pourcentage_assujettissement") {
-        None | Some(Value::Null) => Decimal::ONE_HUNDRED,
-        Some(v) => dec_py(v).map_err(|_| format!("`taxe_sur_les_salaires.pourcentage_assujettissement` illisible ({}). {}", v, dire))?,
+    // La taxe serait due : sauf sous les plafonds de la franchise en base (231, 1, 2e alinea).
+    champs.push("sous_franchise");
+    let sur = if part_taxee == Decimal::ONE_HUNDRED {
+        "sur tous ses salaires".to_string()
+    } else {
+        format!("sur {} % de ses salaires, la part de ses recettes qui n'était pas soumise à la TVA", pourcent(part_taxee))
     };
-    if pct <= Decimal::ZERO || pct > Decimal::ONE_HUNDRED {
-        return Err(format!(
-            "`taxe_sur_les_salaires.pourcentage_assujettissement` vaut {} : c'est la part (en %) des remunerations soumise a \
-la taxe, plus de 0 et 100 au plus (100 pour une compagnie qui n'est pas du tout assujettie a la TVA). {}",
-            pct, dire
-        ));
+    match fiche.get("sous_franchise") {
+        Some(Value::Bool(true)) => {
+            return non_due(
+                champs,
+                "son chiffre d'affaires de l'an dernier ne dépasse pas les plafonds de la franchise en base de TVA (code \
+général des impôts, art. 231 et 293 B)",
+            )
+        }
+        Some(Value::Bool(false)) => {}
+        _ => {
+            return manque(
+                champs,
+                "dire si le chiffre d'affaires de l'annee precedente depasse les plafonds de la franchise en base de TVA \
+(art. 293 B)"
+                    .to_string(),
+                &format!(
+                    "La compagnie doit la taxe sur les salaires {}, sauf si son chiffre d'affaires de l'an dernier ne \
+dépasse pas les plafonds de la franchise en base de TVA (art. 293 B) : dites-le.",
+                    sur
+                ),
+            )
+        }
     }
-    Ok(Some(pct))
+    champs.push("association_1679A");
+    let association = fiche.get("association_1679A") == Some(&Value::Bool(true));
+    RegimeTaxeSalaires {
+        decision: Ok(Some(part_taxee)),
+        association,
+        champs,
+        consequence: format!(
+            "La compagnie doit la taxe sur les salaires, {} (code général des impôts, art. 231). La DSN de décembre en \
+déclare les assiettes ; l'état « Taxe sur les salaires » (Exports) calcule ce qui reste à payer après la franchise et la \
+décote{}.",
+            sur,
+            if association { ", puis l'abattement des associations (art. 1679 A)" } else { "" }
+        ),
+    }
+}
+
+/// Ce que la DSN de decembre lit : `None` si la taxe n'est pas due, sinon la part taxee des remunerations en
+/// pourcentage. Une fiche qui ne dit pas tout : refus, avec ce qu'il faut dire (`regime_taxe_sur_les_salaires`).
+pub(crate) fn taxe_sur_les_salaires_de_la_fiche(ent: &Value) -> Resultat<Option<Decimal>> {
+    regime_taxe_sur_les_salaires(ent).decision
 }
 
 // ------------------------------------------------------------ les mois de l'annee

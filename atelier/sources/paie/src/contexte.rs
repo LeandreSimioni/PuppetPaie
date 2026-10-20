@@ -1147,6 +1147,14 @@ fn aujourdhui_brut() -> Resultat<Jour> {
     }
 }
 
+/// LE CURSEUR DES PERMANENTS (tickets #214, 20/10/2026) : une fiche Entreprise dit-elle que la compagnie emploie des
+/// salaries payes au mois (`emploie_des_permanents`) ? Absent vaut NON. C'est la seule question qui ouvre ce qui ne vaut
+/// que pour eux : les natures payees au mois, les champs `si_permanents` des fiches, les contrats de prevoyance et de
+/// sante des permanents (`organismes`), les etats qui ne concernent qu'eux. La page ne le deduit jamais : elle le lit
+/// (`configuration.permanents`) ou, la case a peine cochee, le redemande (route `permanents`).
+pub fn emploie_des_permanents(entreprise: &Value) -> bool {
+    entreprise.get("emploie_des_permanents") == Some(&Value::Bool(true))
+}
 
 /// Les donnees de la compagnie, lues une fois.
 #[derive(Debug, Clone)]
@@ -1204,6 +1212,14 @@ impl Contexte {
     /// Les cles des salaries qu'on peut encore embaucher (les archives restent dans `salaries`).
     pub fn salaries_actifs(&self) -> Vec<&str> {
         self.salaries.iter().filter(|(_, v)| !archivee(v)).map(|(k, _)| k.as_str()).collect()
+    }
+
+    /// La compagnie emploie-t-elle des permanents (des salaries payes au mois, contrats `cdi` ou `cdd`) ? Une decision de
+    /// la fiche Entreprise (`emploie_des_permanents`), pas une deduction : absent vaut NON. C'est le fait qui ouvre tout ce
+    /// qui ne vaut que pour eux, a l'ecran comme dans le calcul ; un engagement paye au mois est refuse sans lui
+    /// (`engagement::charger`) : il n'y a donc pas de permanent sans cette case.
+    pub fn emploie_des_permanents(&self) -> bool {
+        emploie_des_permanents(&self.entreprise)
     }
 
     /// Idem pour les spectacles.

@@ -8,4 +8,5 @@ s'en sert. Le BOFiP se laisse lire par un robot (contrairement à Légifrance) :
 |---|---|---|
 | `BOI-BAREME-000037-*.html` | barème kilométrique | défraiements |
 | `BOI-RSA-BASE-30-10-20-20260810.html`, `-extrait-prevoyance.md` | charges déductibles du salaire : prévoyance complémentaire (§ 200-240) | net imposable : part patronale santé réintégrée, prévoyance non ; Fonds santé des intermittents |
+| `BOI-IR-PAS-30-10-30-20-20190329.html`, `BOI-IR-PAS-30-10-30-20-extrait-reversement.md` | prélèvement à la source : la date du reversement (§ 50-60 : le 15 ou le 5 du mois suivant ; option trimestrielle sous onze salariés) | boîte de dépôt de la DSN, date du versement à la DGFiP (`paie/src/ordres_paiement.rs`, ticket #223) |
 | `BOI-TPS-TS-30-20200624.html`, `BOI-TPS-PEEC-10-20141218.html`, `BOI-TPS-PEEC-20-20141218.html`, `BOI-TPS-TS-30-et-PEEC-extrait-bloc-44.md` | taxe sur les salaires : liquidation, taux majorés et part assujettie (§ 40, 110, 240) ; PEEC : qui la doit (§ 40-50), sa base (§ 1-20) | DSN de décembre, bloc S21.G00.44 (`paie/src/assujettissement.rs`, lot V3b) |

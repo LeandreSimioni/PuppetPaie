@@ -47,7 +47,7 @@ async function dessinerCoffre(cible) {
   const exige = c.mot_de_passe_pose;
   // UNE LIGNE PAR SECRET (23/09/2026), comme les mois de l'Historique : ce
   // qu'il sert à faire, où il en est, et les gestes. Les cases de saisie ne
-  // s'ouvrent que sur « Poser… » ou « Modifier… » -- cinq formulaires ouverts
+  // s'ouvrent que sur un clic sur la ligne (ou « Poser… ») -- cinq formulaires ouverts
   // d'office faisaient croire qu'il y avait cinq choses à remplir.
   const etatService = (s) => fictive ? `<span class="pastille">simulé</span>`
     : s.environnement
@@ -79,8 +79,7 @@ async function dessinerCoffre(cible) {
           : exige ? `<span class="pastille bien">posé</span>`
           : `<span class="pastille alerte">aucun</span>`}</div>
         <div class="rang-actions">
-          ${exige ? `<button class="modifier k-ouvrir">${CRAYON}Modifier…</button>`
-            : `<button class="secondaire k-ouvrir">Poser…</button>`}</div>
+          ${exige ? "" : `<button class="secondaire k-ouvrir">Poser…</button>`}</div>
         <form class="rang-forme" id="k-logiciel" onsubmit="return false" autocomplete="off" hidden>
           ${exige ? `<label>Mot de passe actuel
             <input type="password" id="k-actuel" autocomplete="current-password"></label>` : ""}
@@ -102,8 +101,7 @@ async function dessinerCoffre(cible) {
           ${!fictive && (s.pose || s.environnement) ? `<button class="lien k-verifier"
             title="Une tentative de connexion chez l'organisme, une seule">Vérifier</button>` : ""}
           ${s.pose ? `<button class="lien k-oublier">Oublier</button>` : ""}
-          ${s.pose ? `<button class="modifier k-ouvrir">${CRAYON}Modifier…</button>`
-            : `<button class="secondaire k-ouvrir">Poser…</button>`}
+          ${s.pose ? "" : `<button class="secondaire k-ouvrir">Poser…</button>`}
         </div>
         <div class="k-verdict discret"></div>
         <form class="rang-forme" onsubmit="return false" autocomplete="off"
@@ -129,7 +127,9 @@ async function dessinerCoffre(cible) {
       <div class="rang" id="k-google">
         <div class="rang-infos"><b class="rang-nom">Compte Google</b>
           <span class="discret">la sauvegarde du dossier privé et l'archivage des mois,
-            dans son Drive — rien d'autre</span>${VEILLE?.dernier?.sauvegarde
+            dans son Drive — rien d'autre</span>${VEILLE?.dernier?.sauvegarde_souci
+            ? `<span class="compte">${echapper(VEILLE.dernier.sauvegarde_souci)}</span>`
+            : VEILLE?.dernier?.sauvegarde
             ? `<span class="compte">${echapper(VEILLE.dernier.sauvegarde)}</span>` : ""}</div>
         <div class="rang-etat k-google-etat"><span class="discret">lecture…</span></div>
         <div class="rang-actions">
@@ -212,15 +212,18 @@ async function dessinerCoffre(cible) {
     b.onclick = () => document.querySelector(
       `.sous-onglets button[data-fiche="${b.dataset.allerFiche}"]`).click();
   });
-  // « Poser… » / « Modifier… » ouvre la ligne, et met le curseur dans la
-  // première case ; un second clic la referme.
-  cible.querySelectorAll(".k-ouvrir").forEach((b) => {
-    b.onclick = () => {
-      const forme = b.closest(".rang").querySelector(".rang-forme");
-      forme.hidden = !forme.hidden;
-      if (!forme.hidden) forme.querySelector("input").focus();
-    };
+  // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE (ticket #218) : plus de « Modifier… ».
+  // Elle ouvre ses cases et met le curseur dans la première ; un second clic
+  // la referme. « Poser… » (rien n'est posé : il y a à faire) fait de même.
+  const basculer = (rang) => {
+    const forme = rang.querySelector(".rang-forme");
+    forme.hidden = !forme.hidden;
+    if (!forme.hidden) forme.querySelector("input").focus();
+  };
+  cible.querySelectorAll(".rang").forEach((rang) => {
+    if (rang.querySelector(".rang-forme")) rendreOuvrable(rang, () => basculer(rang));
   });
+  cible.querySelectorAll(".k-ouvrir").forEach((b) => { b.onclick = () => basculer(b.closest(".rang")); });
 
   // La preuve, si elle est exigée : le popup. Null = annulé, on ne fait rien.
   const preuve = async (quoi) => {

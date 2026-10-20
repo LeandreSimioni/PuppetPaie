@@ -137,6 +137,9 @@ fn dire_ouverture(r: &Value) {
     dire!("Ouverture du {} ({:.1} s)", champ(r, "quand"), secondes);
     if let Some(s) = objet(r, "sauvegarde") {
         dire!("  Drive     : {}", champ(&s, "resume"));
+        if let Some(souci) = s.get("souci").and_then(Value::as_str) {
+            dire!("  ! {}", souci);
+        }
         let detail = liste(&s, "deposes_detail");
         for f in detail.iter().take(12) {
             dire!("      {:<6} {}", champ(f, "etat"), champ(f, "relatif"));

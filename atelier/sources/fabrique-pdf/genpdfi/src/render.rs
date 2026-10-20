@@ -289,7 +289,17 @@ fn finish(bytes: Vec<u8>, subsets: &[crate::pdf_subset::SubsetFace]) -> Result<V
             }
         }
     }
+    // Une image posée sur plusieurs pages (le logo, en haut de chacune) : un seul masque par plan
+    // alpha, puis (plus bas) un seul objet image (ticket #228).
+    let mut mask_of_marker: std::collections::HashMap<u32, printpdf::lopdf::ObjectId> =
+        std::collections::HashMap::new();
     for (id, marker, w, h) in masks {
+        if let Some(mask_id) = mask_of_marker.get(&marker).copied() {
+            if let Some(Object::Stream(s)) = pdf.objects.get_mut(&id) {
+                s.dict.set("SMask", Object::Reference(mask_id));
+            }
+            continue;
+        }
         let alpha = {
             let planes = ALPHA_PLANES.lock().unwrap_or_else(|e| e.into_inner());
             planes.iter().find(|(m, _)| *m == marker).map(|(_, a)| a.clone())
@@ -305,10 +315,12 @@ fn finish(bytes: Vec<u8>, subsets: &[crate::pdf_subset::SubsetFace]) -> Result<V
         dict.set("ColorSpace", Object::Name(b"DeviceGray".to_vec()));
         dict.set("BitsPerComponent", Object::Integer(8));
         let mask_id = pdf.add_object(Object::Stream(Stream::new(dict, alpha)));
+        mask_of_marker.insert(marker, mask_id);
         if let Some(Object::Stream(s)) = pdf.objects.get_mut(&id) {
             s.dict.set("SMask", Object::Reference(mask_id));
         }
     }
+    merge_identical_images(&mut pdf);
 
     // printpdf copies a converted SVG (a form XObject) into the document without the objects
     // that its resources point to (gradients, patterns, transparency states, embedded images),
@@ -345,6 +357,7 @@ fn finish(bytes: Vec<u8>, subsets: &[crate::pdf_subset::SubsetFace]) -> Result<V
         .set("ID", Object::Array(vec![fixed(0), fixed(1)]));
     pdf.prune_objects();
     pdf.delete_zero_length_streams();
+    predict_images(&mut pdf)?;
     pdf.compress();
     canonicalize(&mut pdf);
 
@@ -352,6 +365,184 @@ fn finish(bytes: Vec<u8>, subsets: &[crate::pdf_subset::SubsetFace]) -> Result<V
     pdf.save_to(&mut out)
         .map_err(|e| Error::new(format!("Failed to write the document: {}", e), ErrorKind::Internal))?;
     Ok(out)
+}
+
+/// Compresses the raw pixels of the images (8 bits per component, grey or RGB, soft masks
+/// included) with the PNG predictors before Flate (PuppetPaie modification, ticket #228): each row
+/// is written with the PNG filter that gives the smallest sum of absolute differences, and the
+/// stream says it (`DecodeParms`, `Predictor 15`, PDF 1.7 § 7.4.4.4).  A plain Flate of the pixels,
+/// which is what `compress` does, keeps a gradient or an anti-aliased edge almost whole.
+fn predict_images(pdf: &mut printpdf::lopdf::Document) -> Result<(), Error> {
+    use printpdf::lopdf::{Dictionary, Object};
+    use std::io::Write as _;
+    for o in pdf.objects.values_mut() {
+        let Object::Stream(s) = o else { continue };
+        let name = |k: &[u8]| s.dict.get(k).ok().and_then(|o| o.as_name().ok()).map(|n| n.to_vec());
+        let int = |k: &[u8]| s.dict.get(k).ok().and_then(|o| o.as_i64().ok());
+        if name(b"Subtype").as_deref() != Some(b"Image") || s.dict.get(b"DecodeParms").is_ok() {
+            continue;
+        }
+        // printpdf comprime déjà en `release` (Flate seul) : on repart des pixels.
+        let raw = match s.dict.get(b"Filter").ok() {
+            None => s.content.clone(),
+            Some(f) => {
+                let flate = match f {
+                    Object::Name(n) => n.as_slice() == b"FlateDecode",
+                    Object::Array(a) => a.len() == 1 && a[0].as_name().ok() == Some(&b"FlateDecode"[..]),
+                    _ => false,
+                };
+                if !flate {
+                    continue;
+                }
+                let mut out = Vec::new();
+                use std::io::Read as _;
+                if flate2::read::ZlibDecoder::new(&s.content[..]).read_to_end(&mut out).is_err() {
+                    continue;
+                }
+                out
+            }
+        };
+        let colors = match name(b"ColorSpace").as_deref() {
+            Some(b"DeviceRGB") => 3usize,
+            Some(b"DeviceGray") => 1,
+            _ => continue,
+        };
+        let (Some(w), Some(h), Some(8)) = (int(b"Width"), int(b"Height"), int(b"BitsPerComponent")) else { continue };
+        let (w, h) = (w as usize, h as usize);
+        let row = w * colors;
+        if w == 0 || h == 0 || raw.len() != row * h {
+            continue;
+        }
+        let mut filtered = Vec::with_capacity((row + 1) * h);
+        let zero = vec![0u8; row];
+        let mut candidate = vec![0u8; row];
+        let mut best = vec![0u8; row];
+        for y in 0..h {
+            let cur = &raw[y * row..(y + 1) * row];
+            let up = if y == 0 { &zero[..] } else { &raw[(y - 1) * row..y * row] };
+            let mut best_type = 0u8;
+            let mut best_score = u64::MAX;
+            for t in 0..5u8 {
+                for i in 0..row {
+                    let a = if i >= colors { cur[i - colors] } else { 0 };
+                    let b = up[i];
+                    let c = if i >= colors { up[i - colors] } else { 0 };
+                    let p = match t {
+                        0 => 0,
+                        1 => a,
+                        2 => b,
+                        3 => ((a as u16 + b as u16) / 2) as u8,
+                        _ => paeth(a, b, c),
+                    };
+                    candidate[i] = cur[i].wrapping_sub(p);
+                }
+                let score: u64 = candidate.iter().map(|&v| (v as i8).unsigned_abs() as u64).sum();
+                if score < best_score {
+                    best_score = score;
+                    best_type = t;
+                    best.copy_from_slice(&candidate);
+                }
+            }
+            filtered.push(best_type);
+            filtered.extend_from_slice(&best);
+        }
+        let mut z = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::best());
+        z.write_all(&filtered)
+            .and_then(|_| z.flush())
+            .map_err(|e| Error::new(format!("Failed to compress an image: {}", e), ErrorKind::Internal))?;
+        let packed = z
+            .finish()
+            .map_err(|e| Error::new(format!("Failed to compress an image: {}", e), ErrorKind::Internal))?;
+        if s.dict.get(b"Filter").is_ok() && packed.len() >= s.content.len() {
+            continue; // le Flate seul de printpdf était déjà plus court
+        }
+        let mut parms = Dictionary::new();
+        parms.set("Predictor", Object::Integer(15));
+        parms.set("Colors", Object::Integer(colors as i64));
+        parms.set("BitsPerComponent", Object::Integer(8));
+        parms.set("Columns", Object::Integer(w as i64));
+        s.dict.set("Filter", Object::Name(b"FlateDecode".to_vec()));
+        s.dict.set("DecodeParms", Object::Dictionary(parms));
+        s.set_content(packed);
+    }
+    Ok(())
+}
+
+/// The PNG Paeth predictor.
+fn paeth(a: u8, b: u8, c: u8) -> u8 {
+    let p = a as i16 + b as i16 - c as i16;
+    let (pa, pb, pc) = ((p - a as i16).abs(), (p - b as i16).abs(), (p - c as i16).abs());
+    if pa <= pb && pa <= pc {
+        a
+    } else if pb <= pc {
+        b
+    } else {
+        c
+    }
+}
+
+/// Merges the image objects that are identical, dictionary and pixels (PuppetPaie modification,
+/// ticket #228): printpdf writes a new image object each time a picture is placed, so the logo
+/// drawn at the top of every page was stored once per page.  The duplicates are removed and every
+/// reference to them points to the first one.
+fn merge_identical_images(pdf: &mut printpdf::lopdf::Document) {
+    use printpdf::lopdf::{Object, ObjectId};
+    let mut first: std::collections::HashMap<(String, Vec<u8>), ObjectId> =
+        std::collections::HashMap::new();
+    let mut replace: std::collections::HashMap<ObjectId, ObjectId> =
+        std::collections::HashMap::new();
+    let ids: Vec<ObjectId> = pdf.objects.keys().copied().collect();
+    for id in ids {
+        if let Some(Object::Stream(s)) = pdf.objects.get(&id) {
+            let is_image = s
+                .dict
+                .get(b"Subtype")
+                .ok()
+                .and_then(|o| o.as_name().ok())
+                .map(|n| n == b"Image")
+                .unwrap_or(false);
+            if !is_image {
+                continue;
+            }
+            let mut keys: Vec<String> = s
+                .dict
+                .iter()
+                .map(|(k, v)| format!("{:?}={:?}", k, v))
+                .collect();
+            keys.sort();
+            let key = (keys.join(";"), s.content.clone());
+            match first.get(&key) {
+                Some(kept) => {
+                    replace.insert(id, *kept);
+                }
+                None => {
+                    first.insert(key, id);
+                }
+            }
+        }
+    }
+    if replace.is_empty() {
+        return;
+    }
+    for id in replace.keys() {
+        pdf.objects.remove(id);
+    }
+    fn redirect(o: &mut Object, replace: &std::collections::HashMap<ObjectId, ObjectId>) {
+        match o {
+            Object::Reference(r) => {
+                if let Some(n) = replace.get(r) {
+                    *r = *n;
+                }
+            }
+            Object::Array(v) => v.iter_mut().for_each(|x| redirect(x, replace)),
+            Object::Dictionary(d) => d.iter_mut().for_each(|(_, v)| redirect(v, replace)),
+            Object::Stream(s) => s.dict.iter_mut().for_each(|(_, v)| redirect(v, replace)),
+            _ => {}
+        }
+    }
+    for o in pdf.objects.values_mut() {
+        redirect(o, &replace);
+    }
 }
 
 fn collect_references(o: &printpdf::lopdf::Object, out: &mut Vec<printpdf::lopdf::ObjectId>) {

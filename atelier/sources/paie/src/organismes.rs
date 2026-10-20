@@ -64,6 +64,23 @@ fn base() -> R<Value> {
     lire_json(&dossier_du_code().join("organismes-base.json")).map_err(plain)
 }
 
+/// LE VERSEMENT NORMATIF D'UN ORGANISME (ticket #223) : l'entree de `donnees/organismes-base.json` dont `siret` est
+/// `identifiant` (S21.G00.20.001), ou `None`. On y lit son `nom` propre, ce que couvre son versement (`objet`) et son
+/// `jour_de_paiement` dans le mois qui suit, chacun avec sa source (`_source_*`). Lu dans la base livree, pas dans
+/// `config/organismes.json` : c'est la norme, la meme pour toute compagnie.
+pub fn versement_normatif(identifiant: &str) -> Result<Option<Value>, String> {
+    let b = lire_json(&dossier_du_code().join("organismes-base.json"))?;
+    Ok(b.get("versements")
+        .and_then(Value::as_array)
+        .and_then(|vs| vs.iter().find(|v| v.get("siret").map(en_texte).as_deref() == Some(identifiant)))
+        .cloned())
+}
+
+/// Le jour du mois suivant ou l'organisme `identifiant` preleve (`jour_de_paiement` de la base), ou `None`.
+pub fn jour_de_paiement(identifiant: &str) -> Result<Option<u32>, String> {
+    Ok(versement_normatif(identifiant)?.and_then(|v| v.get("jour_de_paiement").and_then(Value::as_u64)).map(|j| j as u32))
+}
+
 /// Les contrats que cette compagnie declare, dans l'ordre ou ils se presentent.
 fn attendus(ctx: &Contexte, base: &Value) -> R<Vec<Value>> {
     let ent = &ctx.entreprise;
@@ -165,11 +182,22 @@ fn fichier_en_place(ctx: &Contexte) -> R<Value> {
     }
 }
 
-/// `organismes-contrats` : une ligne par contrat attendu.
+/// Une ligne se montre-t-elle a cette compagnie ? Un contrat des permanents (`role` : prevoyance ou sante, les
+/// affiliations d'un salarie paye au mois) ne se montre qu'a une compagnie qui en emploie (ticket #214 : « j'emploie pas
+/// de permanent pourtant on me propose de remplir ») : le curseur est `Contexte::emploie_des_permanents`, le meme que
+/// partout. Ce qui ne se montre pas ne change pas pour autant : `composer` garde un contrat fixe (la sante des
+/// permanents de la 3090, « declaree meme sans permanent ») et un contrat deja saisi (lu dans le fichier en place), et ne
+/// reclame pas un `si_permanents` vide.
+fn se_montre(ctx: &Contexte, spec: &Value) -> bool {
+    txt(g(spec, "role")).is_empty() || ctx.emploie_des_permanents()
+}
+
+/// `organismes-contrats` : une ligne par contrat attendu qui vaut pour la compagnie (`se_montre`).
 pub fn lire(ctx: &Contexte) -> R<Value> {
     let base = base()?;
     let fichier = fichier_en_place(ctx)?;
-    let lignes: Vec<Value> = attendus(ctx, &base)?.iter().map(|s| ligne(s, &fichier)).collect();
+    let lignes: Vec<Value> =
+        attendus(ctx, &base)?.iter().filter(|s| se_montre(ctx, s)).map(|s| ligne(s, &fichier)).collect();
     Ok(json!({
         "idcc": txt(g(&ctx.entreprise, "idcc")),
         "compose": chemin(ctx).is_file(),

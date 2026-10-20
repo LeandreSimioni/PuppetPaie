@@ -159,7 +159,6 @@ function dessinerConfig() {
       <div class="rang-etat">${etat}</div>
       <div class="rang-actions">
         <button class="lien" data-activer="${archive ? "oui" : "non"}">${archive ? "Réactiver" : "Archiver"}</button>
-        <button class="modifier" title="Modifier la fiche">${CRAYON}Modifier</button>
       </div>
     </div>`;
   };
@@ -242,7 +241,7 @@ function dessinerConfig() {
       ${anonymes.length ? `<p class="note">${anonymes.length} numéro${anonymes.length > 1 ? "s" : ""}
         sans titre, trouvé${anonymes.length > 1 ? "s" : ""} dans les DSN${ans.length
           ? ` de ${Math.min(...ans)}${Math.max(...ans) !== Math.min(...ans) ? "–" + Math.max(...ans) : ""}` : ""}
-        — les nommer si vous savez à quel spectacle ils étaient (« Modifier »).</p>
+        — les nommer si vous savez à quel spectacle ils étaient (cliquer sur la ligne).</p>
         <div class="rangs">${anonymes.map((f) => rangHtml(f)).join("")}</div>` : ""}`;
   };
 
@@ -296,7 +295,8 @@ function dessinerConfig() {
         dessinerFormulaire(rangees.find((f) => f.cle === c));
         document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
       };
-      r.querySelector(".modifier").onclick = () => ouvrir(cle);
+      // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE (ticket #218) : plus de bouton « Modifier ».
+      rendreOuvrable(r, () => ouvrir(cle), "Ouvrir la fiche");
       r.querySelectorAll("[data-ouvrir]").forEach((b) => { b.onclick = () => ouvrir(b.dataset.ouvrir); });
     });
   };
@@ -765,6 +765,11 @@ const SECTIONS_FICHE = {
                                "code_convention_dsn", "annexe_convention",
                                "jauge_annexe_1", "type_radio_1922",
                                "cinquante_salaries_3241"]],
+    // LE CURSEUR DES PERMANENTS SORT DE L'« AVANCÉ » (ticket #214, 20/10/2026).
+    // C'est la question qui commande tout ce qui ne vaut que pour les
+    // salariés au mois (natures CDI/CDD, santé et prévoyance, organismes) :
+    // elle se pose en clair. Le moteur le lit (`contexte::emploie_des_permanents`).
+    ["Vos salariés", ["emploie_des_permanents"]],
     // Le taux AT/MP se pose en tête de ce bloc (`ATMP_HTML`).
     ["Vos numéros chez les organismes",
      ["urssaf_compte", "congesspectacles_adherent",
@@ -776,7 +781,7 @@ const SECTIONS_FICHE = {
     // LA TAXE SUR LES SALAIRES (lot V3b, 10/10/2026) : la DSN de décembre
     // déclare chaque année si la compagnie la doit (bloc S21.G00.44), et ne
     // se fait pas sans réponse. Le moteur ne connaît pas sa TVA.
-    ["Taxe sur les salaires", ["taxe_sur_les_salaires"]],
+    ["La TVA et la taxe sur les salaires", ["taxe_sur_les_salaires"]],
     // L'AVANCE (23/09/2026). L'editeur : « si on peut deviner que c'est le
     // truc de base, on le met en truc de base ; si les gens veulent changer,
     // ils cliquent sur avancé ». Chacun de ces champs a une valeur par
@@ -788,8 +793,7 @@ const SECTIONS_FICHE = {
     // et la prévoyance ne se montrent qu'avec des permanents, la date
     // d'adhésion qu'avec un syndicat, le CSE qu'en CCNEAC, l'exemption
     // CASC-SVP qu'en 3090, l'article 45 qu'au cinéma.
-    ["Avancé — cas particuliers", ["emploie_des_permanents",
-      "jours_feries_chomes", "plafond_temps_partiel",
+    ["Avancé — cas particuliers", ["jours_feries_chomes", "plafond_temps_partiel",
       "deduction_forfaitaire_option",
       "prevoyance_permanents", "sante_permanents",
       "organisation_patronale", "organisation_patronale_depuis",
@@ -964,15 +968,19 @@ const SOUS_CHAMPS = {
     ["taux_contrat", "Taux du contrat (% du plafond mensuel)", "Seulement pour une convention sans régime de santé (production audiovisuelle 2642) : le taux de votre contrat, pour le salarié seul. Il est sur votre contrat ou votre appel de cotisation.", { nombre: true }],
     ["part_patronale", "Part employeur (%)", "Au moins 50 %. Vide : 50 %.", { nombre: true }],
   ] },
-  // LA TAXE SUR LES SALAIRES (lot V3b, 10/10/2026). « Oui » et « Non »
-  // s'enregistrent en vrai et faux (`booleen`) : le moteur ne lit pas un
-  // texte « true ». Vide, la DSN de décembre refuse et dit quoi répondre.
+  // LA TAXE SUR LES SALAIRES (ticket #216, 20/10/2026). On demande ce que la
+  // compagnie sait de sa TVA, pas la conclusion du droit : le moteur conclut
+  // (route `taxe-sur-les-salaires-regime`, CGI art. 231), dit quelles cases
+  // suivent et écrit la conséquence sous elles (`brancherTaxeSalaires`). Les
+  // oui/non s'enregistrent en vrai et faux (`booleen`).
   taxe_sur_les_salaires: { champs: [
-    ["assujettie", "La compagnie la doit-elle ?", "Oui si elle n'est pas assujettie à la TVA, ou ne l'a pas été sur 90 % au moins de son chiffre d'affaires de l'année précédente (beaucoup d'associations). Non si 90 % au moins de son chiffre d'affaires est soumis à la TVA, ou s'il reste sous les plafonds de la franchise en base.",
-     { booleen: true, choix: { "": "— à dire", "true": "Oui, elle la doit", "false": "Non (TVA)" } }],
-    ["pourcentage_assujettissement", "Part des salaires taxée (%)", "Seulement si elle la doit : le chiffre d'affaires qui n'a pas ouvert droit à déduction de TVA, rapporté au chiffre d'affaires total. Vide : 100 %.", { nombre: true }],
-    ["association_1679A", "Abattement des associations", "Une association loi 1901, un syndicat, une mutuelle de moins de trente salariés : l'abattement de l'article 1679 A s'applique à la taxe due.",
-     { booleen: true, choix: { "": "Non", "true": "Oui" } }],
+    ["tva", "La compagnie et la TVA", "Assujettie : elle facture la TVA sur ses ventes (billetterie, cessions…) et la déclare. Exonérée : elle ne facture pas de TVA, ou ses activités n'y entrent pas — c'est le cas de beaucoup d'associations.",
+     { choix: { "": "— à dire —", "assujettie": "Assujettie à la TVA", "exoneree": "Exonérée de TVA (ou hors de son champ)" } }],
+    ["part_tva", "Part de vos recettes de l'an dernier soumise à la TVA (%)", "Vos recettes soumises à la TVA, divisées par toutes vos recettes et produits de l'année, subventions et dons compris. Votre comptable la connaît. À 90 % ou plus, pas de taxe sur les salaires.", { nombre: true }],
+    ["sous_franchise", "Chiffre d'affaires de l'an dernier et franchise en base de TVA", "Les plafonds de la franchise en base de TVA (code général des impôts, art. 293 B), ceux qui dispensent une petite entreprise de facturer la TVA. En dessous, pas de taxe sur les salaires.",
+     { booleen: true, choix: { "": "— à dire —", "false": "Au-dessus des plafonds", "true": "Sous les plafonds" } }],
+    ["association_1679A", "Association loi 1901, syndicat ou mutuelle ?", "Une association loi 1901, une fondation reconnue d'utilité publique, un syndicat, une mutuelle de moins de trente salariés : l'abattement de l'article 1679 A s'applique à la taxe due.",
+     { booleen: true, choix: { "": "Non", "true": "Oui (abattement de l'article 1679 A)" } }],
   ] },
   etablissements: { liste: true, ligne: "établissement", champs: [
     ["nic", "NIC", ""],
@@ -1330,7 +1338,6 @@ async function dessinerOrganismes(cible) {
   const ligne = (c) => `
     <tr>
       <td><b>${echapper(c.quoi)}</b>
-        ${c.si_permanents ? `<div class="note">Seulement si vous employez des permanents : sans lui, la DSN refuse un permanent.</div>` : ""}
         ${c.depuis ? `<div class="note">Depuis le ${echapper(jjmmaaaa(String(c.depuis || "").slice(0, 10)))}.</div>` : ""}
         ${c.note ? `<div class="note">${echapper(c.note)}</div>` : ""}</td>
       <td>${echapper(c.beneficiaires)}</td>

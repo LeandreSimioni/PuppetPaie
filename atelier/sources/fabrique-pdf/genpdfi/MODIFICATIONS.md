@@ -94,6 +94,11 @@ Le `Wrapper` d'origine est remplacé par `wrap::layout`, qui rend des `Line` :
 - **JPEG en niveaux de gris ou en couleurs recopié tel quel** (filtre `DCTDecode`), sans
   décompression ; les autres (CMJN, précision autre que 8 bits) sont décodés. Dans tous les cas le
   fichier est **décodé une fois pour le vérifier** : un fichier tronqué est un refus.
+- **Image ramenée à la résolution d'impression** (ticket #228, 20/10/2026) : une image PNG ou JPEG
+  plus fine que 300 pixels par pouce à sa largeur posée (de plus d'un quart) est réduite à
+  300 pixels par pouce (Lanczos 3, proportions gardées ; en couleurs prémultipliées quand elle a
+  une transparence). Un JPEG réduit est réencodé en JPEG (qualité 90). Un logo de 1 200 pixels
+  posé sur 26 mm (1 168 pixels par pouce) pesait l'essentiel du bulletin.
 - **SVG vectoriel** (`printpdf::svg`). Proportions exactes lues par usvg (printpdf arrondit la
   taille à l'entier). Un SVG qui utilise du texte, un dégradé, un motif, une transparence ou une
   image intégrée est **refusé** : printpdf 0.7.0 recopie l'image sans les objets auxquels elle
@@ -126,9 +131,14 @@ Le sous-ensemble de police, fait une fois le fichier écrit par printpdf (appel�
   réduite à son `.notdef`, marquée d'un numéro), qu'on retrouve dans le fichier écrit ;
 - **découpage TrueType** écrit ici (`decouper_ttf`) : les glyphes voulus, le `.notdef` en tête,
   les composants des glyphes composés ; `glyf`, `loca` (format long), `hmtx`, `head`, `hhea`,
-  `maxp` refaits, `cvt `, `fpgm`, `prep` recopiés, somme de contrôle de `head` recalculée. Ni
-  `cmap`, ni `name`, ni `post`, ni crénage : un PDF n'en demande pas. Contours et hinting sont
-  recopiés tels quels. Les polices CFF sont refusées ;
+  `maxp` refaits, somme de contrôle de `head` recalculée. Ni `cmap`, ni `name`, ni `post`, ni
+  crénage : un PDF n'en demande pas. Les contours sont recopiés tels quels ; **le hinting ne l'est
+  plus** (ticket #228, 20/10/2026) : ni `cvt `, ni `fpgm`, ni `prep`, ni les instructions de chaque
+  glyphe (longueur remise à zéro pour un glyphe simple, drapeau `WE_HAVE_INSTRUCTIONS` retiré d'un
+  glyphe composé, `maxSizeOfInstructions` à zéro). Elles faisaient 36 % des octets des glyphes de
+  Liberation Sans ; elles ajustent les contours à la grille d'un écran, ce que ni l'impression ni
+  un lecteur qui lisse les contours ne demandent (inférence, constatée au rendu de poppler : même
+  texte, mêmes positions). Les polices CFF sont refusées ;
 - le texte s'écrit avec des **codes de deux octets qui sont le point de code Unicode**
   (`Identity-H`, caractères du plan de base) ; `CIDToGIDMap` les traduit vers les glyphes du
   sous-ensemble et la table **`ToUnicode`** rend le code lui-même : le texte extrait est exactement
@@ -174,7 +184,11 @@ Le sous-ensemble de police, fait une fois le fichier écrit par printpdf (appel�
 - **`Renderer::write` passe par `finish`** : relit le fichier écrit par printpdf (lopdf), **coupe
   les polices en sous-ensemble** (`pdf_subset::embed_subsets`), attache
   les masques de transparence, retire les `BBox` et `SMask` nuls que printpdf met dans chaque image
-  (clés invalides là), refuse les SVG dont des ressources manquent, fixe les identifiants, élague
+  (clés invalides là), **n'écrit qu'une fois une image posée sur plusieurs pages** (le logo en haut
+  de chaque page : un masque par plan alpha, puis les objets image identiques fusionnés,
+  `merge_identical_images`, ticket #228), **comprime les pixels avec les prédicteurs PNG**
+  (`predict_images` : par ligne, le filtre PNG le plus court, `DecodeParms` `Predictor 15`, gardé
+  seulement s'il fait mieux que le Flate seul ; dépendance `flate2`, déjà là par lopdf), refuse les SVG dont des ressources manquent, fixe les identifiants, élague
   les objets inutiles, retire les flux vides, **comprime** les flux et renumérote. Le même
   traitement s'applique en `debug` et en `release` (printpdf ne comprime qu'en `release`) : le fichier
   ne dépend pas du profil de compilation.

@@ -579,15 +579,17 @@ fn defaut_un_journal_illisible_ne_fait_pas_tomber_l_ouverture() {
 #[test]
 fn defaut_un_delai_depasse_n_est_pas_un_reseau_absent() {
     // Le Python rangeait « timed out » parmi les signes de reseau absent (`_SIGNES_HORS_LIGNE`) : un refus lent devenait
-    // « hors ligne » et sortait des incidents. Le serveur repond : c'est une vraie panne, a lire.
+    // « hors ligne » et sortait des incidents. Le serveur repond : le dossier est reporte (tickets #231 et #232 : ce n'est
+    // pas un incident du releve), avec sa cause en clair ; s'il dure, la ligne de la sauvegarde le dira.
     let _t = tour();
     let c = compagnie("timed-out", "fictive-3090-petite", true);
     let (mut d, _) = drive_compte();
     d.drive.pannes.push(Panne { operation: "lister", motif: "sauvegarde/config".into(), erreur: ErreurGoogle::nouvelle("TimeoutError", "The read operation timed out") });
     let r = jouer(&c, &seule_la_sauvegarde(), avec_drive(&mut d));
     assert!(!r.hors_ligne);
-    assert!(r.incidents.iter().any(|i| i.contains("timed out")), "l'incident du Drive est repris : {:?}", r.incidents);
-    assert!(r.sauvegarde.is_some());
+    let s = r.sauvegarde.as_ref().unwrap();
+    assert!(!s.reportes.is_empty() && s.reportes.iter().all(|x| x.cause == "Google ne répond pas"), "{:?}", s.reportes);
+    assert!(s.incidents.iter().any(|i| i.contains("timed out")), "le detail reste pour la ligne de commande : {:?}", s.incidents);
 }
 
 // ============================================================================ le PAS, les signatures, les fiches
@@ -714,15 +716,33 @@ fn un_compte_google_non_lie_est_un_manque_meme_en_veille() {
 }
 
 #[test]
-fn les_incidents_du_drive_sont_repris_et_ne_sont_pas_hors_ligne() {
+fn un_dossier_reporte_n_est_pas_un_incident_et_ce_qui_dure_se_dit_dans_la_ligne_de_la_sauvegarde() {
+    // Tickets #231 et #232 : « sorties/2026-08/envoi/... : HTTP 500 : Internal Error » montait dans le bandeau des retours,
+    // et le passage suivant passait. Un dossier reporte une fois se tait ; ce qui dure se dit, a sa place.
     let _t = tour();
     let c = compagnie("drive-incidents", "fictive-3090-petite", true);
     let (mut d, _) = drive_compte();
-    d.drive.pannes.push(Panne { operation: "lister", motif: "sauvegarde/config".into(), erreur: ErreurGoogle::google("HTTP 403 : quota depasse") });
+    let mut e = ErreurGoogle::google("HTTP 500 : Internal Error");
+    e.statut = Some(500);
+    d.drive.pannes.push(Panne { operation: "lister", motif: "sauvegarde/config".into(), erreur: e });
     let r = jouer(&c, &seule_la_sauvegarde(), avec_drive(&mut d));
-    assert!(r.incidents.iter().any(|i| i.contains("quota")), "{:?}", r.incidents);
-    assert!(!r.hors_ligne);
-    assert_eq!(trace(&c)["incidents"], json!(r.incidents));
+    assert!(r.incidents.is_empty(), "{:?}", r.incidents);
+    assert!(!r.hors_ligne && r.tout_va_bien());
+    assert!(r.sauvegarde.as_ref().unwrap().resume().contains(" reportes au prochain passage."), "{}", r.sauvegarde.as_ref().unwrap().resume());
+    assert_eq!(trace(&c)["incidents"], json!([]));
+    assert_eq!(trace(&c)["sauvegarde_souci"], json!(""));
+    // Trois passages de suite : la phrase arrive dans la trace (`sauvegarde_souci`), jamais dans les incidents.
+    jouer(&c, &seule_la_sauvegarde(), avec_drive(&mut d));
+    let r = jouer(&c, &seule_la_sauvegarde(), avec_drive(&mut d));
+    assert!(r.incidents.is_empty(), "{:?}", r.incidents);
+    let souci = trace(&c)["sauvegarde_souci"].as_str().unwrap().to_string();
+    assert!(
+        souci.starts_with("Sauvegarde : ") && souci.contains("pas pu être envoy") && souci.contains(" depuis ") && souci.ends_with("(Google indisponible) ; le logiciel réessaie."),
+        "{}",
+        souci
+    );
+    assert_eq!(r.en_json()["sauvegarde"]["souci"], json!(souci));
+    assert_eq!(trace(&c)["incidents"], json!([]));
 }
 
 #[test]
@@ -830,7 +850,7 @@ fn la_trace_et_le_resultat_portent_toutes_leurs_cles() {
     assert_eq!(
         cles(&t),
         tri([
-            "quand", "secondes", "sauvegarde", "retours", "hors_ligne", "nouveaux", "signatures", "fiches", "signatures_recues", "sources", "maj", "maj_note",
+            "quand", "secondes", "sauvegarde", "sauvegarde_souci", "retours", "hors_ligne", "nouveaux", "signatures", "fiches", "signatures_recues", "sources", "maj", "maj_note",
             "maj_attend", "maj_exigee", "maj_etat", "sources_etat", "incidents", "manquants", "a_poser", "taux_pas", "horloge"
         ])
     );

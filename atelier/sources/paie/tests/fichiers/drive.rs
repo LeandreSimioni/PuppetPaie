@@ -6,7 +6,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use paie::drive::{corps_multipart, Adresses, Client, Distant, Drive};
+use paie::drive::{corps_multipart, passagere, Adresses, Client, Distant, Drive};
 use paie::sauvegarde::hors_ligne;
 
 use crate::outils::{http, Recu, Requete};
@@ -340,7 +340,7 @@ fn erreurs_de_google_traduites_et_statut_garde() {
         },
         _ => json_ok(json!({})),
     });
-    let mut c = Client::pour_essai(&racine("erreurs"), adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(&racine("erreurs"), adresses(&base), "jeton", None).avec_attente(1);
     let e = c.lister("403").unwrap_err();
     assert_eq!((e.classe, e.statut), ("ErreurGoogle", Some(403)));
     assert!(e.message.starts_with("Permission refusee"), "{}", e.message);
@@ -348,6 +348,95 @@ fn erreurs_de_google_traduites_et_statut_garde() {
     assert_eq!((e.classe, e.statut, e.message.as_str()), ("ErreurGoogle", Some(404), "HTTP 404 : File not found: P."));
     let e = c.lister("500").unwrap_err();
     assert_eq!((e.classe, e.statut, e.message.as_str()), ("ErreurGoogle", Some(500), "HTTP 500 : pas du json"));
+}
+
+// ------------------------------------------------------------ tickets #231 et #232 : retenter ce que Google dit passager
+
+/// Un serveur qui rend `pannes[i]` a la i-ieme requete, puis 200 et `ok`.
+fn serveur_capricieux(pannes: Vec<(u16, &'static [u8])>, ok: Value) -> (String, Recu) {
+    let n = std::sync::atomic::AtomicUsize::new(0);
+    serveur(move |_| {
+        let i = n.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        match pannes.get(i) {
+            Some((code, corps)) => reponse(*code, corps),
+            None => json_ok(ok.clone()),
+        }
+    })
+}
+
+#[test]
+fn un_500_puis_200_passe_sans_erreur() {
+    // « 500, 502, 503, 504 errors [...] use exponential backoff to retry the request »
+    // (atelier/reference/sources/google-drive-api/google-drive-api-gerer-les-erreurs-20261020.txt).
+    let (base, recu) = serveur_capricieux(vec![(500, b"Internal Error")], json!({"files": [{"id": "F1", "name": "a.json", "md5Checksum": "m", "size": "3"}]}));
+    let mut c = Client::pour_essai(&racine("500-puis-200"), adresses(&base), "jeton", None).avec_attente(1);
+    let l = c.lister("P").unwrap();
+    assert_eq!(l["a.json"].id, "F1");
+    assert_eq!(recu.lock().unwrap().len(), 2, "une seule nouvelle tentative a suffi");
+}
+
+#[test]
+fn trois_nouvelles_tentatives_au_plus_puis_l_erreur_est_rendue() {
+    let (base, recu) = serveur_capricieux(vec![(503, b"a"), (502, b"b"), (504, b"c"), (500, b"Internal Error")], json!({}));
+    let mut c = Client::pour_essai(&racine("quatre-5xx"), adresses(&base), "jeton", None).avec_attente(1);
+    let e = c.lister("P").unwrap_err();
+    assert_eq!((e.statut, e.message.as_str()), (Some(500), "HTTP 500 : Internal Error"));
+    assert_eq!(recu.lock().unwrap().len(), 4, "le premier appel et trois nouvelles tentatives (NOUVELLES_TENTATIVES)");
+    assert!(passagere(&e));
+    // Le meme client, au prochain appel, repart de zero : trois 5xx puis un 200 passent.
+    let (base, recu) = serveur_capricieux(vec![(503, b"a"), (500, b"b"), (500, b"c")], json!({}));
+    let mut c = Client::pour_essai(&racine("trois-5xx"), adresses(&base), "jeton", None).avec_attente(1);
+    assert!(c.lister("P").is_ok());
+    assert_eq!(recu.lock().unwrap().len(), 4);
+}
+
+#[test]
+fn l_attente_croit_entre_les_tentatives() {
+    // « wait 1 + random_number_milliseconds [...] wait 2 + random_number_milliseconds » : l'attente double (base de 40 ms ici,
+    // hasard d'au plus 40 ms), donc trois nouvelles tentatives attendent au moins 40 + 80 + 160 = 280 ms.
+    let (base, _) = serveur_capricieux(vec![(500, b"a"), (500, b"b"), (500, b"c")], json!({}));
+    let mut c = Client::pour_essai(&racine("attente"), adresses(&base), "jeton", None).avec_attente(40);
+    let debut = std::time::Instant::now();
+    assert!(c.lister("P").is_ok());
+    let duree = debut.elapsed();
+    assert!(duree >= Duration::from_millis(280) && duree < Duration::from_millis(2000), "{:?}", duree);
+}
+
+#[test]
+fn un_429_et_un_403_de_debit_se_retentent_pas_un_refus() {
+    // 429 : « use exponential backoff to retry the request » ; 403 de limite de debit : « retry the upload »
+    // (google-drive-api-televerser-20261020.txt, « Handle media upload errors »).
+    let (base, recu) = serveur_capricieux(vec![(429, br#"{"error": {"message": "Rate Limit Exceeded"}}"#), (403, br#"{"error": {"message": "User rate limit exceeded."}}"#)], json!({}));
+    let mut c = Client::pour_essai(&racine("debit"), adresses(&base), "jeton", None).avec_attente(1);
+    assert!(c.lister("P").is_ok());
+    assert_eq!(recu.lock().unwrap().len(), 3);
+    // Un refus (404, 403 de permission, 400) ne se retente pas : une seule requete.
+    for (code, corps) in [(404u16, &br#"{"error": {"message": "File not found: P."}}"#[..]), (403, br#"{"error": {"message": "The user does not have sufficient permissions"}}"#), (400, b"Bad Request")] {
+        let (base, recu) = serveur_capricieux(vec![(code, corps)], json!({}));
+        let mut c = Client::pour_essai(&racine(&format!("refus-{}", code)), adresses(&base), "jeton", None).avec_attente(1);
+        let e = c.lister("P").unwrap_err();
+        assert_eq!(e.statut, Some(code));
+        assert!(!passagere(&e));
+        assert_eq!(recu.lock().unwrap().len(), 1, "{} ne se retente pas", code);
+    }
+}
+
+#[test]
+fn un_televersement_refuse_une_fois_repart_avec_le_meme_corps() {
+    // « For 5xx errors, resume or retry uploads » (google-drive-api-televerser-20261020.txt) : le meme PATCH, le meme contenu.
+    let (base, recu) = serveur_capricieux(vec![(500, b"Internal Error")], json!({"id": "F1", "name": "a.json", "webViewLink": "L"}));
+    let r = racine("televerser-500");
+    let f = r.join("a.json");
+    std::fs::write(&f, b"{\"x\": 1}").unwrap();
+    let mut c = Client::pour_essai(&r, adresses(&base), "jeton", None).avec_attente(1);
+    let connu = Distant { id: "F1".into(), md5: None, octets: 0 };
+    let d = c.televerser(&f, "P", None, Some(&connu)).unwrap();
+    assert!(d.remplace);
+    let recu = recu.lock().unwrap();
+    assert_eq!(recu.len(), 2);
+    assert_eq!((recu[0].methode.as_str(), recu[1].methode.as_str()), ("PATCH", "PATCH"));
+    assert_eq!(recu[0].corps, recu[1].corps);
+    assert_eq!(recu[1].corps, b"{\"x\": 1}");
 }
 
 #[test]

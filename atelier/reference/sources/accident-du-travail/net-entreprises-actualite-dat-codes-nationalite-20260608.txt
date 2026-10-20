@@ -1,0 +1,31 @@
+Transcription (texte de la page, sans les balises) de net-entreprises-actualite-dat-codes-nationalite-20260608.html
+URL : https://www.net-entreprises.fr/declaration-daccident-de-travail-ou-trajet-dat-mise-a-jour-des-codes-nationalite/  (publiée le 08/06/2026, relevée le 20/10/2026)
+
+Publié le 8 juin 2026
+- Modifié le 8 juin 2026
+A la une , DAT
+La déclaration d’accident du travail ou de trajet (DAT) est à effectuer auprès de la Caisse primaire d’assurance maladie (CPAM) dont dépend la victime au plus tard 48 heures après avoir eu connaissance de l’accident survenant à un ou plusieurs de vos salariés.
+Pour plus de détail, consultez la page dédiée.
+Les codes nationalités de la DAT ont été mis à jour le 27/05/2026 à 14h00. 
+ 
+Dorénavant les nouvelles correspondances sont les suivantes  :
+Nationalité
+Code_nationalite
+Non précisé
+0
+National (France)
+1
+Non national, EEE ou Suisse
+2
+Non national, ni EEE ni Suisse
+3
+ 
+NB : Les codes nationalité de la DAT étaient auparavant les suivants  :  
+1 : Non précisé
+2 : France
+4 : Autres pays étrangers
+5 : Union Européenne
+Ces codes nationalités ne sont présents qu’à des fins statistiques.
+Il n’y a aucun impact pour les déclarants qui ont pu transmettre leur DAT.
+ Pour les déclarants ayant eu un code erreur depuis le 27/05/2026, il est nécessaire de mettre à jour votre paramétrage et de renvoyer les DAT en erreur (ou de les déclarer temporairement en CERFA le temps de la mise à jour de votre outil).
+Inscrivez-vous par mail à l'actualité de net-entreprises.fr
