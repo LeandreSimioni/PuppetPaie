@@ -532,8 +532,8 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
   // LE COMPTE RENDU DU TEST, ATTENDU DANS LA BOÎTE. Toutes les dix secondes,
   // cinq minutes au plus : il arrive le plus souvent dans la minute. Le réel
   // reste éteint tant qu'on attend ; conforme, il devient LE bouton ; refusé,
-  // on dit pourquoi et il reste éteint. Passé cinq minutes, le point de dépôt
-  // a accepté le test : le réel s'ouvre, en le disant.
+  // on dit pourquoi et il reste éteint. Passé cinq minutes, on le dit, et le
+  // réel reste éteint : seul le bilan du test l'ouvre (le moteur le refuse sans lui).
   const zone = () => document.getElementById("d-bilan");
   const boutonReel = (principal) => {
     const b = document.getElementById("d-reel"), t = document.getElementById("d-test");
@@ -586,11 +586,22 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
         + (r && r.incident ? `<p class="discret">${echapper(r.incident)}</p>` : ""));
       await new Promise((ok) => setTimeout(ok, enFictive() ? 3000 : 10000));
     }
+    // La DSN réelle attend le bilan : l'accusé d'enregistrement dit « envoi
+    // reçu », pas « conforme » (tickets #221, #222 ; c'est le moteur qui
+    // refuse). La DPAE garde l'ancien seuil, le moteur aussi.
+    if (quoi !== "dsn") {
+      ecrire(`<div class="encart attention"><b>Le compte rendu n'est
+        pas arrivé en cinq minutes</b> Le point de dépôt a accepté le test : le
+        dépôt réel est ouvert. Le compte rendu se rangera au prochain relevé.</div>`);
+      libre();
+      if (ici()) boutonReel(true);
+      return;
+    }
     ecrire(`<div class="encart attention"><b>Le compte rendu n'est
-      pas arrivé en cinq minutes</b> Le point de dépôt a accepté le test : le
-      dépôt réel est ouvert. Le compte rendu se rangera au prochain relevé.</div>`);
+      pas arrivé en cinq minutes</b> L'envoi est reçu, mais rien ne dit encore
+      qu'il est conforme : le dépôt réel attend ce compte rendu. Il se rangera
+      au prochain relevé ; rouvrez cette boîte un peu plus tard.</div>`);
     libre();
-    if (ici()) boutonReel(true);
   };
 
   document.getElementById("d-test").onclick = () => lancer(false);
@@ -715,8 +726,11 @@ function encartRepetition(r, quoi, a) {
 function situationRepetition(etat) {
   const ratees = etat.ratees || [], perimees = etat.perimees || [];
   if (ratees.length) {
-    return `Ce contenu a été essayé en test le ${quand(ratees[ratees.length - 1].quand)}`
-      + ` et l'essai a échoué : c'est cela qu'il faut corriger, le même refus attend en réel.`;
+    const l = ratees[ratees.length - 1];
+    const anos = (l.retours || []).filter((x) => x.verdict === "KO").flatMap((x) => x.anomalies || []);
+    return `Ce contenu a été essayé en test le ${quand(l.quand)}`
+      + ` et l'essai a échoué${anos.length ? ` : ${anos.join(" ; ").replace(/\.$/, "")}` : ""}.`
+      + ` C'est cela qu'il faut corriger, le même refus attend en réel.`;
   }
   if (perimees.length) {
     return `Un fichier du même nom a bien été essayé le ${quand(perimees[perimees.length - 1].quand)},`
