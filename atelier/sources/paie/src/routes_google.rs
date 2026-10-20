@@ -114,16 +114,16 @@ pub(crate) fn identifiants(racine: &Path) -> R<(Value, Value, String)> {
     let Some(a) = application else {
         return Err(erreur_google(format!(
             "L'application Google du logiciel n'est pas renseignee.\n\n\
-             C'est une chose a faire UNE FOIS, par l'editeur, pas par chaque\n\
-             utilisateur : creer le projet sur console.cloud.google.com et\n\
-             recopier l'identifiant dans APPLICATION, en tete de\n\
-             moteur/google.py. La marche a suivre y est ecrite en entier.\n\n\
-             En attendant, on peut utiliser sa propre application en creant\n\
+             Elle est livree avec chaque version publiee ({}, posee par\n\
+             le flux « Publier » depuis le secret PUPPETPAIE_GOOGLE_APPLICATION) ;\n\
+             une copie de travail du depot ne l'a pas.\n\n\
+             Sinon, on peut utiliser sa propre application en creant\n\
              {} :\n\n\
              \x20 {{\n\
              \x20   \"client_id\": \"....apps.googleusercontent.com\",\n\
              \x20   \"client_secret\": \"....\"\n\
              \x20 }}\n",
+            livre.display(),
             p.display()
         )));
     };
@@ -372,11 +372,14 @@ fn rafraichir(ctx: &Contexte, client_id: &Value, client_secret: &Value) -> R<Opt
 
 /// `operations_ouverture.google_etat`, rendu par `sortie_json.etat_google`.
 fn google_etat(ctx: &Contexte) -> R<Value> {
-    let (client_id, client_secret, origine) = identifiants(&ctx.racine)?;
+    // L'application ne sert qu'a rafraichir un jeton : sans Drive lie, son absence (une copie de travail du depot) n'est
+    // pas un refus, et l'etat dit seulement « pas lie » (#235 du prive).
+    let application = identifiants(&ctx.racine);
+    let origine = application.as_ref().map(|a| json!(a.2)).unwrap_or(Value::Null);
     let permissions = courtes(&PERMISSIONS.map(|p| json!(p)))?;
     let etat = |compte: Value, verifie: bool, probleme: Option<String>, accordees: Vec<Value>| -> Value {
         let mut o = Map::new();
-        o.insert("application".into(), json!(origine));
+        o.insert("application".into(), origine.clone());
         o.insert("permissions".into(), json!(permissions));
         o.insert("accordees".into(), json!(accordees));
         o.insert("autorise".into(), json!(vrai(&compte)));
@@ -400,6 +403,7 @@ fn google_etat(ctx: &Contexte) -> R<Value> {
         p if vrai(&p) => courtes(&liste(&p)?)?,
         _ => permissions.clone(),
     };
+    let (client_id, client_secret, _) = application?;
     match rafraichir(ctx, &client_id, &client_secret)? {
         None => Ok(etat(compte, true, None, accordees)),
         Some(probleme) => Ok(etat(compte, false, Some(probleme), accordees)),
