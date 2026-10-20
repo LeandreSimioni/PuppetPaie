@@ -301,8 +301,8 @@ fn des_effectifs_illisibles_ne_bloquent_pas_l_historique_un_journal_abime_refuse
     let c = &compagnie("repli");
     std::fs::write(c.join("config/effectifs.json"), "{ pas du json").unwrap();
     let e = etat(c);
-    // On retombe sur la liste nue : le mois et ses fichiers, sans etat de DSN.
-    assert_eq!(e["historique"][0], json!({"mois": "2026-09", "produit": false, "dsn": null, "corrigeable": false, "sortes": [], "fichiers": []}));
+    // On retombe sur la liste nue : le mois et ses fichiers, sans etat de DSN ; la page Paie reste a un clic (`a_faire`).
+    assert_eq!(e["historique"][0], json!({"mois": "2026-09", "produit": false, "dsn": null, "corrigeable": false, "a_faire": true, "sortes": [], "fichiers": []}));
     assert_eq!(e["historique"].as_array().unwrap().len(), 2);
     // Un journal abime, lui, refuse la page : c'est une donnee illisible.
     let c = &compagnie("repli-journal");

@@ -93,7 +93,7 @@ fn pdf_de(d: &Path) -> R<Vec<String>> {
 }
 
 /// `documents_du_mois` : les fichiers du mois a ouvrir ou a remettre a la main.
-fn documents_du_mois(ctx: &Contexte, mois: &Value, quoi: &Value) -> R<Value> {
+pub(crate) fn documents_du_mois(ctx: &Contexte, mois: &Value, quoi: &Value) -> R<Value> {
     let base = sous_sorties(ctx, mois)?;
     let envoi = base.join("envoi");
     // `{...}.get(quoi)` : un texte seulement se trouve ; une liste ou un dictionnaire ne se hache pas.

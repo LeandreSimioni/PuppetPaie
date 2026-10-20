@@ -19,6 +19,7 @@ mod avenant;
 mod calcul_du_mois;
 mod carte_figee;
 mod echeance_dsn;
+mod historique_mois;
 mod etat_garde;
 mod routes_accueil;
 mod routes_actes;

@@ -2184,3 +2184,110 @@ pub fn anomalies_lisibles_d_octets(o: &[u8]) -> Result<Vec<Value>, Echec> {
 pub fn anomalies_codees_d_octets(o: &[u8]) -> Result<Vec<Value>, Echec> {
     anomalies_codees(&Entree::Octets(o.to_vec()))
 }
+
+// --------------------------------------------- un rapport au format harmonise, lu pour l'Historique
+
+/// Les types de rapport que la specification du schema des bilans nomme (« Modele conceptuel » : AEE, certificat de
+/// conformite, avis de rejet, bilan d'anomalies, BIS, controle inter-declarations ;
+/// `atelier/reference/sources/gip-mds-api-dsn/gip-mds-specifications-schema-bilans-vt2.2-20201118.txt`). Les codes
+/// courts AEE, CCO, BAN sont ceux que la plate-forme ecrit dans `rapport/@type` (pieces recues ; `RAPPORTS_DEPOT`) ;
+/// ARE, BIS et CID sont les noms des exemples du guide v6.8 (§6.1, `exemple_retour_10_ARE.xml`, `_20_BIS_`, `_21_CID`) :
+/// une inference sur le code, qu'aucune piece recue n'a encore eprouvee.
+const TYPES_RAPPORT: [(&str, &str); 6] = [
+    ("AEE", "Accusé d'enregistrement électronique"),
+    ("ARE", "Avis de rejet"),
+    ("CCO", "Certificat de conformité"),
+    ("BAN", "Bilan d'anomalies"),
+    ("BIS", "Bilan d'identification des salariés"),
+    ("CID", "Contrôle inter-déclarations"),
+];
+
+fn premier_texte<'a>(a: &'a Arbre, e: &'a Noeud, noms: &[&str]) -> &'a str {
+    for nom in noms {
+        if let Some(x) = a.sous(e).find(|x| local(&x.tag) == *nom && !x.texte_net().is_empty()) {
+            return x.texte_net();
+        }
+    }
+    ""
+}
+
+/// Un rapport au FORMAT DSN HARMONISE (la racine `rapport` du schema des bilans) lu pour qu'on le lise : son type, le
+/// message d'en-tete (`rapport/@message`), l'etat de l'envoi (`envoi_etat` : OK, KO ou ANO), chaque declaration
+/// (nature, type, ordre, mois, etat), chaque anomalie (code, categorie, message, rubrique declenchante, numero de
+/// ligne, nombre, et le salarie de son environnement), et les informations collectives (`communication`, §2.6 : le
+/// type et les donnees, nom et valeur). Tout vient de la specification VT2.2 deposee
+/// (`atelier/reference/sources/gip-mds-api-dsn/gip-mds-specifications-schema-bilans-vt2.2-20201118.txt`) ; les noms
+/// d'elements sont ceux des pieces recues (`v01r08`) et des exemples du guide. `None` : ce n'est pas un rapport
+/// harmonise (un XML d'un autre format, un PDF, une archive), ou il ne se lit pas.
+pub fn lire_rapport(o: &[u8]) -> Option<Value> {
+    let arbre = lire_octets(o).ok()?;
+    let racine = arbre.racine();
+    if local(&racine.tag) != "rapport" {
+        return None;
+    }
+    let type_rapport = racine.get("type").unwrap_or("").to_string();
+    let libelle = TYPES_RAPPORT.iter().find(|(c, _)| *c == type_rapport).map(|(_, l)| l.to_string()).unwrap_or_default();
+    let envoi = arbre.tous().find(|e| local(&e.tag) == "envoi");
+    let etat_envoi = envoi.map(|e| premier_texte(&arbre, e, &["envoi_etat"])).unwrap_or("");
+    let essai_reel = envoi.map(|e| premier_texte(&arbre, e, &["essai_reel"])).unwrap_or("");
+    let mut declarations = Vec::new();
+    for d in arbre.tous().filter(|e| local(&e.tag) == "declaration") {
+        let id = arbre.sous(d).find(|x| local(&x.tag) == "declaration_identification").unwrap_or(d);
+        let bilan = arbre.sous(d).find(|x| local(&x.tag) == "declaration_bilan").unwrap_or(d);
+        declarations.push(json!({
+            "nature": premier_texte(&arbre, id, &["nature"]), "type": premier_texte(&arbre, id, &["type"]),
+            "ordre": premier_texte(&arbre, id, &["ordre"]), "mois": mois_lisible(premier_texte(&arbre, id, &["mois"])),
+            "etat": premier_texte(&arbre, bilan, &["etat", "etat_conformite"]),
+        }));
+    }
+    let mut anomalies = Vec::new();
+    for a in arbre.tous().filter(|e| {
+        let n = local(&e.tag);
+        n == "anomalie" || n.ends_with("_anomalie")
+    }) {
+        let rubrique = match arbre.sous(a).find(|x| local(&x.tag) == "rubrique_declenchante") {
+            Some(r) => premier_texte(&arbre, r, &["identifiant", "rubrique"]).to_string(),
+            None => premier_texte(&arbre, a, &["identifiant"]).to_string(),
+        };
+        let salarie = [premier_texte(&arbre, a, &["nom_famille"]), premier_texte(&arbre, a, &["prenoms"])]
+            .iter()
+            .filter(|s| !s.is_empty())
+            .cloned()
+            .collect::<Vec<&str>>()
+            .join(" ");
+        let (code, message) = (premier_texte(&arbre, a, &["code"]), premier_texte(&arbre, a, &["message"]));
+        if code.is_empty() && message.is_empty() {
+            continue;
+        }
+        anomalies.push(json!({
+            "code": code, "categorie": premier_texte(&arbre, a, &["categorie"]), "message": message, "rubrique": rubrique,
+            "ligne": premier_texte(&arbre, a, &["numero_ligne"]), "nombre": premier_texte(&arbre, a, &["nombre"]),
+            "salarie": salarie,
+        }));
+    }
+    let mut informations = Vec::new();
+    for c in arbre.tous().filter(|e| local(&e.tag) == "information_collective") {
+        let donnees: Vec<Value> = arbre
+            .sous(c)
+            .skip(1)
+            .filter(|x| x.enfants.is_empty() && !x.texte_net().is_empty() && local(&x.tag) != "type")
+            .map(|x| json!({"nom": local(&x.tag), "valeur": x.texte_net()}))
+            .collect();
+        informations.push(json!({"type": premier_texte(&arbre, c, &["type"]), "donnees": donnees}));
+    }
+    Some(json!({
+        "type": type_rapport, "libelle": libelle, "message": racine.get("message").unwrap_or(""),
+        "etat_envoi": etat_envoi, "essai_reel": essai_reel, "declarations": declarations, "anomalies": anomalies,
+        "informations": informations,
+    }))
+}
+
+/// Les noms des membres d'une archive ZIP (une archive d'AER, nature 43 ou 46) ; vide si ce n'en est pas une.
+pub fn membres_du_zip(o: &[u8]) -> Vec<String> {
+    repertoire_zip(o).map(|m| m.into_iter().map(|x| x.nom).filter(|n| !n.ends_with('/')).collect()).unwrap_or_default()
+}
+
+/// Le nombre de taux de PAS qu'un compte rendu de nature 94 communique (`extraire_taux_pas`, les quatre strategies).
+pub fn nombre_de_taux_pas(o: &[u8]) -> usize {
+    extraire_taux_pas(&Entree::Octets(o.to_vec())).ok().and_then(|v| v["releves"].as_array().map(Vec::len)).unwrap_or(0)
+}

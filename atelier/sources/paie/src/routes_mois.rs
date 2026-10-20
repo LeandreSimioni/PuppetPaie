@@ -1016,6 +1016,10 @@ impl<'a> Moteur<'a> {
             b.insert("phrase".into(), json!(format!("DSN REFUSÉE — {}", if motif.is_empty() { "motif non lu".to_string() } else { motif })));
         } else if vrai(get(&e, "passee")?) {
             b.insert("couleur".into(), json!("bien"));
+            // RIEN A DEPOSER (ticket #222) : la DSN est passee, l'etape n'a plus de bouton « Deposer la DSN… ». Un
+            // annule-et-remplace a son propre chemin, plus bas (`remplacement` : « Refaire la DSN… », ou l'etape d'un
+            // annule-et-remplace deja ecrit), qui rallume l'etape.
+            b.insert("vide".into(), json!(true));
             b.insert("phrase".into(), json!(format!("DSN déposée le {} — passée", quand_lisible(get(&e, "quand")?))));
         } else {
             b.insert("couleur".into(), json!("alerte"));
@@ -1056,7 +1060,11 @@ impl<'a> Moteur<'a> {
                     }
                 }
             }
+            if vrai(&r["a_envoyer"]) || (vrai(&r["saisie_modifiee"]) && !vrai(&r["admis"])) {
+                b.remove("vide");
+            }
             if vrai(b.get("etape").unwrap_or(&Value::Null)) {
+                b.remove("vide");
                 b.insert("attente".into(), json!(false));
                 if est(b.get("couleur").unwrap_or(&Value::Null), "bien") {
                     b.insert("couleur".into(), json!("alerte"));
@@ -1161,15 +1169,6 @@ impl<'a> Moteur<'a> {
         for (k, v) in actes.as_object().unwrap() {
             resumes.insert(k.clone(), json!(etats::resume(v, &cles_recus, etats::Maille::Contrat)?));
         }
-        let mut derniers = Map::new();
-        for (k, v) in etats::dernieres_du_mois(&lignes, mois, 3)?.as_object().unwrap() {
-            let mut liste = Vec::new();
-            for l in v.as_array().unwrap().iter().rev() {
-                liste.push(json!({"quand": get(l, "quand")?, "mode": get(l, "mode")?, "fichier": get(l, "fichier")?,
-                                  "resume": etats::resume(l, &cles_recus, etats::Maille::Contrat)?}));
-            }
-            derniers.insert(k.clone(), Value::Array(liste));
-        }
         let fichiers = self.fichiers_deposables(mois)?;
         let bilans = self.bilan_du_mois(mois)?;
         let lignes_du_mois: Vec<Value> = etats::filtrer(&lignes, None, Some(mois), false)?.into_iter().cloned().collect();
@@ -1177,7 +1176,7 @@ impl<'a> Moteur<'a> {
             .ouverture_exigee()
             .map_err(|x| Echec { classe: Some(x.classe), message: x.message })?;
         Ok(json!({
-            "mois": mois, "actes": actes, "resumes": resumes, "derniers": derniers, "fichiers": fichiers,
+            "mois": mois, "actes": actes, "resumes": resumes, "fichiers": fichiers,
             "bilans": bilans, "lignes": lignes_du_mois, "mot_de_passe_pose": pose,
         }))
     }

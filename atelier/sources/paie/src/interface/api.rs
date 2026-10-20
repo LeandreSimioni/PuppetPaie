@@ -197,6 +197,21 @@ fn texte(charge: &Value, cle: &str) -> Result<String, Refus> {
 }
 
 fn ouvrir_piece(racine: &Path, charge: &Value) -> Result<Value, Refus> {
+    // UNE PIECE DE L'HISTORIQUE (20/10/2026) : un document du mois ou la piece d'un retour, que `historique-mois` a
+    // listee pour ce mois -- et rien d'autre : le chemin vient de la page, il ne s'ouvre que s'il est dans la liste.
+    if let Some(mois) = charge.get("historique").and_then(Value::as_str) {
+        let chemin = texte(charge, "chemin")?;
+        let listage = route(racine, crate::historique_mois::ROUTE, &json!({"mois": mois}))?;
+        if !crate::historique_mois::piece_listee(&listage, &chemin) {
+            return Err(Refus::simple("ErreurOperation", format!("{} n'est pas une pièce de {} dans l'Historique.", chemin, mois)));
+        }
+        let f = racine.join(&chemin);
+        if !f.is_file() {
+            return Err(Refus::simple("ErreurOperation", format!("{} a été déplacé ou effacé.", chemin)));
+        }
+        ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
+        return Ok(json!({"fichier": chemin}));
+    }
     let fichier = texte(charge, "fichier")?;
     let parties = route(racine, "pieces-parties", charge)?;
     let pieces: Vec<&Value> = match &parties {

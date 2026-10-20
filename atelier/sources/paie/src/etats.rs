@@ -993,18 +993,6 @@ pub(crate) fn etat_du_mois(lignes: &[Value], mois: &str) -> R<Value> {
     Ok(Value::Object(etat))
 }
 
-pub(crate) fn dernieres_du_mois(lignes: &[Value], mois: &str, n: i64) -> R<Value> {
-    let mut out = Map::new();
-    for acte in ACTES {
-        let l = filtrer(lignes, Some(acte), Some(mois), false)?;
-        let long = l.len() as i64;
-        // `liste[-n:]`
-        let debut = if n > 0 { (long - n).max(0) } else { (-n).min(long) };
-        out.insert(acte.to_string(), Value::Array(l[debut as usize..].iter().map(|x| (*x).clone()).collect()));
-    }
-    Ok(Value::Object(out))
-}
-
 pub(crate) fn flux_de_test(lignes: &[Value]) -> R<Value> {
     let mut d: Dico<()> = Dico::nouveau();
     for l in lignes {
@@ -1946,8 +1934,6 @@ mod tests {
         assert_eq!(e["dpae"], Value::Null);
         assert_eq!(e.as_object().unwrap().len(), 10);
         assert_eq!(documents_envoyes(&l, "2026-06").unwrap(), json!([["ALPHA", "2026-06-04T10:00:00"]]));
-        let dernieres = |n: i64| dernieres_du_mois(&l, "2026-06", n).unwrap()["dsn"].as_array().unwrap().len();
-        assert_eq!((dernieres(3), dernieres(1), dernieres(100)), (3, 1, 3));
     }
 
     #[test]

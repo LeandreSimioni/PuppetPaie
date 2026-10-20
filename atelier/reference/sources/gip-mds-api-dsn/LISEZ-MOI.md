@@ -45,3 +45,12 @@ salarié (NIR, nom…) quand elle s'y rattache.
 - `paie/src/ordre_signalements.rs` : la relève des trois derniers mois (§8.2) avant d'écrire un signalement, et
   l'ordre suivant du plus grand que la plate-forme (ses bilans) et le journal connaissent.
 - `prive/journal/finitions/PASSATION-O1.md`, point 1 : la réponse « ce que la plate-forme donne et ne donne pas ».
+- `paie/src/retours.rs`, `lire_rapport` : un rapport au format DSN harmonisé (la spécification VT2.2 : type, message,
+  `envoi_etat`, déclarations, anomalies avec code, catégorie, message, rubrique déclenchante, ligne, nombre et salarié,
+  informations collectives) lu pour l'Historique.
+- `paie/src/historique_mois.rs` (route `historique-mois`, 20/10/2026) : l'organisme et le format de chaque nature de
+  retour (guide, §1.3, tableau p. 11-13), ce que dit un statut (§3.4.4, `flux.retour.statut` : OK, KO, ANO, EN COURS).
+  Les formats NEOReS (118 à 121, 124…), CRM OC (51) et AGIRC-ARRCO (71) ne sont pas dans l'archive v6.8 déposée (le
+  guide les cite, sans les joindre) : ces comptes rendus ne se traduisent pas, l'écran dit leur statut et ouvre la pièce.
+  Le format de la nature 93, laissé vide par le tableau, est lu comme harmonisé : une inférence (la 95 de la DGFiP a son
+  exemple sous « Format DSN harmonisé », §6.3).

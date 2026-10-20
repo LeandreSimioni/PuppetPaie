@@ -343,9 +343,8 @@ fn l_etat_du_mois_rassemble_les_actes_les_resumes_et_le_bilan() {
     assert_eq!(r["actes"]["dsn"], Value::Null);
     assert_eq!(r["resumes"]["dsn"], "pas encore envoyé");
     assert!(r["resumes"]["dpae"].as_str().unwrap().contains("05/09/2026"));
-    // Les derniers envois, le plus recent d'abord, tests compris.
-    assert_eq!(r["derniers"]["dpae"][0]["mode"], "test");
-    assert_eq!(r["derniers"]["dpae"][1]["mode"], "reel");
+    // Le fil des envois n'est plus ici : il se lit dans l'Historique (`historique-mois`).
+    assert!(r.get("derniers").is_none());
     assert_eq!(r["fichiers"], json!({"dsn": [], "dpae": []}));
     assert_eq!(r["bilans"]["dpae"]["couleur"], "bien");
     assert_eq!(r["lignes"].as_array().unwrap().len(), 2);
