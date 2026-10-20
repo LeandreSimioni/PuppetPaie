@@ -452,12 +452,21 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         let limite = echeance.jour;
         let en_retard = ctx.aujourdhui.ordinal() > limite.ordinal();
         let drapeau = |k: &str| e.get(k).is_some_and(vrai);
+        // UN MOIS TENU AVANT CE LOGICIEL (ticket #215) n'est jamais « en retard » ni « a ecrire » : sa DSN est au
+        // journal (un depot que les retours attestent y entre seul), ou c'est celle que l'import a lue (« importee »), ou
+        // il n'en a aucune trace (« sans_trace ») -- et rien ne se refait ici.
+        let importe = crate::mois_importe::importe(&ctx.racine, nom)?;
+        let importee = !vrai(&e) && importe && crate::mois_importe::dsn_importee(&ctx.racine, nom)?.is_some();
         let etat: Option<&str> = if vrai(&e) && drapeau("refusee") {
             Some("refusee")
         } else if vrai(&e) && drapeau("passee") {
             Some("passee")
         } else if vrai(&e) {
             Some("attente")
+        } else if importee {
+            Some("importee")
+        } else if importe {
+            Some("sans_trace")
         } else if en_retard {
             Some("en_retard")
         } else {
@@ -471,6 +480,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         // retard, ou une DSN passee dont la paie a change depuis, tant que l'annule-et-remplace est admis. Le reste se
         // lit dans l'Historique : un mois fini n'a plus de chemin vers la page Paie.
         let a_faire = match etat {
+            _ if importe => false,
             "passee" => vrai(&m.etat_remplacement(nom, &Value::Null)?["a_envoyer"]),
             "attente" => false,
             _ => true,
@@ -482,7 +492,8 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             "echeance_depot": echeance.en_json(),
             // Deposee, passee, et l'echeance derriere : la correction part dans
             // la DSN du mois courant.
-            "corrigeable": vrai(&e) && !drapeau("refusee") && en_retard,
+            "corrigeable": vrai(&e) && !drapeau("refusee") && en_retard && !importe,
+            "importe": importe,
             "a_faire": a_faire,
             "sortes": sortes, "fichiers": noms,
             "clos": m.exercice_clos(nom)?,
@@ -493,7 +504,14 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
 
 /// `_historique` : ce que l'Historique montre de chaque mois.
 fn historique(m: &mut Moteur, ctx: &Contexte) -> Value {
-    let mois = mois_connus(&ctx.racine);
+    let mut mois = mois_connus(&ctx.racine);
+    // Les mois tenus avant ce logiciel (ticket #215) sont des mois comme les autres : l'Historique les montre aussi.
+    for im in crate::mois_importe::mois_importes(&ctx.racine).unwrap_or_default() {
+        if !mois.iter().any(|(x, _)| *x == im) {
+            mois.push((im, Vec::new()));
+        }
+    }
+    mois.sort_by(|a, b| b.0.cmp(&a.0));
     match bilan_des_mois(m, ctx, &mois) {
         Ok(v) => v,
         // Une fiche entreprise incomplete (effectif, echeance) ne doit pas

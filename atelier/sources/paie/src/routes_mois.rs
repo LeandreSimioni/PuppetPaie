@@ -896,6 +896,13 @@ impl<'a> Moteur<'a> {
     /// `bilan_du_mois` : le mois en un coup d'oeil, acte par acte, une phrase et
     /// une couleur. Aucun montant : le brut des paies n'est jamais lu.
     pub fn bilan_du_mois(&mut self, mois: &str) -> R<Value> {
+        // UN MOIS TENU AVANT CE LOGICIEL (ticket #215) : ses etapes se sont faites ailleurs ; elles le disent, sans geste.
+        if let Some(vue) = crate::mois_importe::vue(self.ctx, mois)? {
+            let mut b = crate::mois_importe::etapes(&vue);
+            let echeance = crate::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
+            b[DSN]["echeance_depot"] = echeance.en_json();
+            return Ok(b);
+        }
         let paies = self.etat_par_paie(mois, false)?;
         let mut out: Map<String, Value> = Map::new();
 

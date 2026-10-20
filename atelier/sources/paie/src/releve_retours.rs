@@ -622,6 +622,12 @@ pub fn relever_retours(
         releve.rattaches = crate::etats::rattacher_retours_avec_contenus(&ctx.racine, &Value::Array(releve.trouves.clone()), &contenus)?;
     }
 
+    // UN DEPOT QUE LES RETOURS ATTESTENT EST UN DEPOT (ticket #215) : ce qu'un autre logiciel a depose sous le meme compte
+    // entre au journal de lui-meme, et le mois qu'il declare n'est plus « en retard ».
+    if canal.is_empty() {
+        crate::reprise_journal::reprendre_les_depots(ctx, "releve", &crate::routes_ecritures_g2::maintenant())?;
+    }
+
     // L'AER SE RANGE DES QU'ELLE ARRIVE (01/10/2026) : la boite d'envoi la voit.
     let aer: Vec<PathBuf> = releve
         .archives

@@ -680,7 +680,16 @@ pub(crate) fn importer(ctx: &Contexte, charge: &Value) -> R<Value> {
     reponse["ecrit"] = json!(true);
     reponse["fichiers"] = Value::Array(e.fichiers);
     reponse["copie"] = copie;
+    reponse["depots_repris"] = json!(depots_attestes_au_journal(ctx, charge)?);
     Ok(reponse)
+}
+
+/// LES MOIS IMPORTES SONT DECLARES S'ILS L'ONT ETE (ticket #215) : les depots DSN que les retours deja releves attestent
+/// entrent au journal avec l'historique, pour qu'un mois tenu avant ne se dise pas « en retard »
+/// (`reprise_journal::reprendre_les_depots`). Rend le nombre de depots repris.
+fn depots_attestes_au_journal(ctx: &Contexte, charge: &Value) -> R<usize> {
+    let qui = crate::routes_ecritures_g2::qui_de(charge);
+    crate::reprise_journal::reprendre_les_depots(ctx, &qui, &crate::routes_ecritures_g2::maintenant())
 }
 
 fn avertissement_differents(differents: &[String], ou: &str) -> String {
@@ -791,6 +800,7 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     reponse["ecrit"] = json!(true);
     reponse["fichiers"] = Value::Array(e.fichiers);
     reponse["copie"] = copie;
+    reponse["depots_repris"] = json!(depots_attestes_au_journal(ctx, charge)?);
     Ok(reponse)
 }
 

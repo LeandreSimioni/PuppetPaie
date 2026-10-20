@@ -8,6 +8,11 @@
 //! Une piece qui ne se lit pas (fichier inaccessible, XML mal forme) est NOMMEE dans `illisibles`, « nom (classe) »
 //! comme le Python, et les autres passent (reste 164) ; un XML bien forme qui n'est pas un bilan de depot est saute sans
 //! bruit : le dossier melange des retours de toutes natures.
+//!
+//! UN DEPOT QUE LES RETOURS ATTESTENT EST UN DEPOT (ticket #215, Leandre, 20/10/2026 : un mois importe « se dit en
+//! retard alors qu'il est deja declare » -- « 19 depots retrouves dans les retours, absents du journal ») : le releve des
+//! retours et l'import remettent d'eux-memes au journal ce que les bilans archives attestent (`reprendre_les_depots`),
+//! comme l'effectif se refait seul des retours 118. Un test que ce logiciel n'a pas envoye reste dehors (voir `reprise`).
 
 use serde_json::{json, Map, Value};
 
@@ -189,6 +194,14 @@ pub fn reprise(ctx: &Contexte, charge: &Value, maintenant: &str) -> R<Value> {
     Ok(Value::Object(rapport))
 }
 
+/// Remet au journal, sans qu'on le demande, les depots DSN que les retours archives attestent et que le journal ignore :
+/// la reprise ecrite (`reprise` avec `ecrire`), par le releve des retours et par l'import. Rend le nombre de lignes
+/// ajoutees. Idempotente (par le flux).
+pub fn reprendre_les_depots(ctx: &Contexte, qui: &str, maintenant: &str) -> R<usize> {
+    let r = reprise(ctx, &json!({"ecrire": true, "qui": qui}), maintenant)?;
+    Ok(r.get("ajoutes").and_then(Value::as_array).map_or(0, Vec::len))
+}
+
 // ------------------------------------------------------------- la reprise du canal DPAE
 
 /// `_salarie_par_nir` : le NIR (sans espaces autour) -> la cle de la fiche. Si deux fiches portent le meme NIR, la derniere gagne
@@ -214,7 +227,7 @@ fn flux_du_nom(nom: &str) -> String {
 
 /// `operations_retours.embauches_attestees` : les DPAE dont `retours/dpae/` porte le certificat (nature 41). Une entree par FLUX, avec
 /// les embauches qu'il declare ; les NIR qu'on ne sait rattacher a aucune fiche sont DITS, jamais devines. LECTURE PURE.
-fn embauches_attestees(ctx: &Contexte) -> (Vec<Value>, Vec<String>) {
+pub(crate) fn embauches_attestees(ctx: &Contexte) -> (Vec<Value>, Vec<String>) {
     let dossier = ctx.racine.join("retours").join("dpae");
     let par_nir = salarie_par_nir(ctx);
     let mut noms: Vec<String> = std::fs::read_dir(&dossier)
