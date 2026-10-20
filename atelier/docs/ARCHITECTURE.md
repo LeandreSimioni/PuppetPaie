@@ -281,7 +281,7 @@ Trois subtilités, chacune trouvée en cherchant pourquoi un centime manquait.
 « autres contributions 0,680 % » sur 286,00 € affiche 1,95 € alors que
 286 × 0,68 % = 1,9448 → 1,94. Ce sont en réalité deux contributions arrondies
 séparément : 0,590 % → 1,69 et 0,090 % → 0,26. Même mécanisme pour la
-contribution formation `059` de la DSN (0,420 + 0,810).
+cotisation prévoyance `059` de la DSN (0,420 + 0,810 ; « Cotisation individuelle Prévoyance-Assurance-Mutuelle », versée à Audiens Santé Prévoyance, P0983).
 
 **Tous les arrondis sont au demi supérieur.** `round()` de Python arrondissait au
 pair le plus proche et se trompait donc d'un centime régulièrement ; `eur`

@@ -35,4 +35,5 @@ mod rubriques_2027;
 mod signalement;
 mod suspension;
 mod usages_formats_ntt;
+mod versement_audiens;
 mod versement_dgfip;
