@@ -14,6 +14,9 @@ Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'u
 - `casc-svp-fiche-codification-dsn-202606.pdf` : transcription `casc-svp-fiche-codification-dsn-202606.txt`
 - `casc-svp-modele-liste-nominative.xlsx` : transcription `casc-svp-modele-liste-nominative.csv`
 - `ghs-annexe10-artistes-categories-20211227.pdf` : transcription `ghs-annexe10-artistes-categories-20211227.txt`
+- `google-drive-api/google-drive-api-gerer-les-erreurs-20261020.html` : transcription `google-drive-api/google-drive-api-gerer-les-erreurs-20261020.txt`
+- `google-drive-api/google-drive-api-limites-et-quotas-20261020.html` : transcription `google-drive-api/google-drive-api-limites-et-quotas-20261020.txt`
+- `google-drive-api/google-drive-api-televerser-20261020.html` : transcription `google-drive-api/google-drive-api-televerser-20261020.txt`
 - `spiac-cgt-pav-minima-20260101.xlsx` : transcription `spiac-cgt-pav-minima-20260101.csv`
 - `syndeac-ccneac-artistes-dramatiques-nao-2026.xlsx` : transcription `syndeac-ccneac-artistes-dramatiques-nao-2026.csv`
 - `unedic-circulaire-2016-25-annexes-8-10.pdf` : transcription `unedic-circulaire-2016-25-annexes-8-10.txt`

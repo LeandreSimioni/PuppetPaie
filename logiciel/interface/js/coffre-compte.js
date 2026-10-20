@@ -129,7 +129,9 @@ async function dessinerCoffre(cible) {
       <div class="rang" id="k-google">
         <div class="rang-infos"><b class="rang-nom">Compte Google</b>
           <span class="discret">la sauvegarde du dossier privé et l'archivage des mois,
-            dans son Drive — rien d'autre</span>${VEILLE?.dernier?.sauvegarde
+            dans son Drive — rien d'autre</span>${VEILLE?.dernier?.sauvegarde_souci
+            ? `<span class="compte">${echapper(VEILLE.dernier.sauvegarde_souci)}</span>`
+            : VEILLE?.dernier?.sauvegarde
             ? `<span class="compte">${echapper(VEILLE.dernier.sauvegarde)}</span>` : ""}</div>
         <div class="rang-etat k-google-etat"><span class="discret">lecture…</span></div>
         <div class="rang-actions">
