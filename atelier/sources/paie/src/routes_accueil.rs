@@ -123,11 +123,6 @@ pub(crate) fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Valu
     }))
 }
 
-/// `entreprise.permanents` : la compagnie a-t-elle dit employer des salaries
-/// payes au mois ? Une decision, pas une deduction : absent vaut NON.
-fn permanents_de(fiche: &Value) -> bool {
-    fiche.get("emploie_des_permanents") == Some(&Value::Bool(true))
-}
 
 /// `str(x or "")`.
 fn texte_ou_vide(v: Option<&Value>) -> String {
@@ -369,7 +364,7 @@ fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
     let entreprise = fiche_verifiee("entreprise", None, &ctx.entreprise)?;
     let salaries = ctx.salaries.iter().map(|(k, v)| fiche_verifiee("salarie", Some(k), v)).collect::<R<Vec<_>>>()?;
     let spectacles = ctx.spectacles.iter().map(|(k, v)| fiche_verifiee("spectacle", Some(k), v)).collect::<R<Vec<_>>>()?;
-    let permanents = permanents_de(&ctx.entreprise);
+    let permanents = ctx.emploie_des_permanents();
     Ok(json!({
         "entreprise": entreprise,
         "salaries": salaries,
@@ -684,7 +679,7 @@ fn faits_de_rupture(n: &Nature, motif: &Value) -> R<Vec<&'static str>> {
 fn natures(ctx: &Contexte) -> R<Value> {
     let toutes = contrats::natures().map_err(plain)?;
     let defaut = contrats::defaut().map_err(plain)?;
-    let permanents = permanents_de(&ctx.entreprise);
+    let permanents = ctx.emploie_des_permanents();
     let gardees: Vec<&std::sync::Arc<Nature>> = toutes.iter().filter(|n| permanents || !n.mensuelle() || n.cle == defaut).collect();
     // L'ordre est celui du fichier, le defaut en tete.
     let premier = gardees.iter().find(|n| n.cle == defaut).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(&defaut)))?;

@@ -28,7 +28,7 @@ avant les individus (30) ; les tests : `atelier/sources/paie/tests/bloc_44.rs`.
 | C. trav. L. 6331-55 | idem | « Par dérogation [...] à l'article L. 6331-6 » : la participation unique des employeurs d'intermittents du spectacle | le CDD d'usage (motif 05) n'ouvre pas la CPF-CDD (INFÉRENCE : un CDDU de compagnie est un contrat d'intermittent) |
 | CCH L. 313-1 | `../code-de-la-construction-et-de-l-habitation/articles-20261010.md` | PEEC : cinquante salariés, 0,45 % des revenus d'activité de l'exercice écoulé, effectif selon L. 130-1 CSS | 005 avec l'assiette de l'année (bases 03), 006 sinon |
 | CSS L. 130-1 | `../code-de-la-securite-sociale/articles-20261010.md` | effectif annuel = moyenne de « l'année civile précédente » ; seuil franchi après cinq années consécutives | `Effectif::atteint(seuil, an + 1)` pour la PEEC et la contribution supplémentaire |
-| CGI 231, 1679 A | `../code-general-des-impots/articles-20261010.md` | taxe sur les salaires : qui la doit (TVA, franchise de l'art. 293 B), son assiette (CSG sans la réduction), ses taux majorés (2 bis) | 009/010 depuis la fiche (`taxe_sur_les_salaires.assujettie`, `pourcentage_assujettissement`) ; 015/016 (`fractions_majorees`) |
+| CGI 231, 1679 A | `../code-general-des-impots/articles-20261010.md` | taxe sur les salaires : qui la doit (TVA, franchise de l'art. 293 B), son assiette (CSG sans la réduction), ses taux majorés (2 bis) | 009/010 depuis ce que la fiche dit de sa TVA (`taxe_sur_les_salaires` : `tva`, `part_tva`, `sous_franchise`, `association_1679A`), conclu une seule fois par `regime_taxe_sur_les_salaires` pour la DSN, l'écran (route `taxe-sur-les-salaires-regime`) et l'état « taxe sur les salaires » (ticket #216, 20/10/2026) : le seuil de 90 % et le rapport du 1, l'exonération sous les plafonds de 293 B (2e alinéa) ; version en vigueur depuis le 19/06/2025, `../code-general-des-impots/xml/231.xml`, lisible dans `articles-20261015.md` ; 015/016 (`fractions_majorees`) |
 | CGI 235 bis | idem | la cotisation de 2 % de l'employeur qui n'a pas investi sa PEEC | aucun code : relevé parce que la norme le cite (p. 58) |
 
 ## Le BOFiP (`../bofip/`)
@@ -48,7 +48,10 @@ compagnie qui n'emploie que des intermittents (L. 6331-55), là où CoolPaie éc
 
 - 015 et 016 sont les assiettes au premier (8,50 %) et au second (13,60 %) taux majorés, au-delà des seuils de
   l'article 231, 2 bis.
-- La part assujettie (`pourcentage_assujettissement`) s'applique aux montants 009, 015 et 016 (BOFiP TS-30, § 240).
+- La part taxée (le rapport de l'article 231, 1) s'applique aux montants 009, 015 et 016 (BOFiP TS-30, § 240).
+- (Ticket #216.) Une recette soumise à la TVA est une recette qui a ouvert droit à déduction : le rapport de l'article
+  231, 1 vaut 100 moins la part des recettes soumise à la TVA (`part_tva`), et 100 pour une compagnie exonérée de TVA.
+  Une compagnie sous les plafonds de 293 B (2e alinéa) déclare 010, comme une compagnie qui ne doit pas la taxe.
 - Le montant du 005 est l'assiette des salaires de l'année du millésime ; l'effectif qui déclenche 005, comme celui de
   la contribution supplémentaire, est celui de cette année-là (L. 130-1 : l'année civile qui précède l'obligation, qui
   porte sur l'année d'après).

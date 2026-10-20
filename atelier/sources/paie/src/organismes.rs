@@ -165,11 +165,22 @@ fn fichier_en_place(ctx: &Contexte) -> R<Value> {
     }
 }
 
-/// `organismes-contrats` : une ligne par contrat attendu.
+/// Une ligne se montre-t-elle a cette compagnie ? Un contrat des permanents (`role` : prevoyance ou sante, les
+/// affiliations d'un salarie paye au mois) ne se montre qu'a une compagnie qui en emploie (ticket #214 : « j'emploie pas
+/// de permanent pourtant on me propose de remplir ») : le curseur est `Contexte::emploie_des_permanents`, le meme que
+/// partout. Ce qui ne se montre pas ne change pas pour autant : `composer` garde un contrat fixe (la sante des
+/// permanents de la 3090, « declaree meme sans permanent ») et un contrat deja saisi (lu dans le fichier en place), et ne
+/// reclame pas un `si_permanents` vide.
+fn se_montre(ctx: &Contexte, spec: &Value) -> bool {
+    txt(g(spec, "role")).is_empty() || ctx.emploie_des_permanents()
+}
+
+/// `organismes-contrats` : une ligne par contrat attendu qui vaut pour la compagnie (`se_montre`).
 pub fn lire(ctx: &Contexte) -> R<Value> {
     let base = base()?;
     let fichier = fichier_en_place(ctx)?;
-    let lignes: Vec<Value> = attendus(ctx, &base)?.iter().map(|s| ligne(s, &fichier)).collect();
+    let lignes: Vec<Value> =
+        attendus(ctx, &base)?.iter().filter(|s| se_montre(ctx, s)).map(|s| ligne(s, &fichier)).collect();
     Ok(json!({
         "idcc": txt(g(&ctx.entreprise, "idcc")),
         "compose": chemin(ctx).is_file(),

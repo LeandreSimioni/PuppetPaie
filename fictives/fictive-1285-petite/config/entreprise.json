@@ -52,7 +52,8 @@
   "historique": [],
   "jours_feries_chomes": "tous",
   "taxe_sur_les_salaires": {
-    "assujettie": false,
-    "_note": "Compagnie fictive : assujettie a la TVA, elle ne doit pas la taxe sur les salaires (CGI art. 231). La DSN de decembre le declare (S21.G00.44, code 010) ; lot V3b."
+    "tva": "assujettie",
+    "part_tva": 100,
+    "_note": "Compagnie fictive : assujettie a la TVA sur toutes ses recettes, elle ne doit pas la taxe sur les salaires (CGI art. 231, 1 ; ticket #216). La DSN de decembre le declare (S21.G00.44, code 010)."
   }
 }

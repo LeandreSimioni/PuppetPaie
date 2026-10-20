@@ -39,6 +39,7 @@ mod routes_importation;
 mod routes_listes;
 mod routes_mois;
 mod routes_obligations;
+mod routes_organismes;
 mod routes_ouverture;
 mod routes_produire;
 mod routes_regularisations;

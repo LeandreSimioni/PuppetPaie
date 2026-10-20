@@ -123,11 +123,15 @@ impl Drop for Copie {
     }
 }
 
-fn assujettie(pct: Option<f64>) -> impl FnOnce(&mut Value) {
+/// La fiche d'une compagnie qui doit la taxe sur `pct` % de ses salaires (`Some`), ou qui ne la doit pas (`None`), dite
+/// comme la compagnie la dit : sa TVA (ticket #216 ; CGI art. 231, 1). 100 % : exoneree de TVA ; moins : assujettie sur
+/// le reste de ses recettes ; non due : assujettie sur toutes. Chiffre d'affaires au-dessus des plafonds de 293 B.
+fn taxe_due_sur(pct: Option<f64>) -> impl FnOnce(&mut Value) {
     move |e: &mut Value| {
         e["taxe_sur_les_salaires"] = match pct {
-            Some(p) => json!({"assujettie": true, "pourcentage_assujettissement": p}),
-            None => json!({"assujettie": false}),
+            Some(p) if p >= 100.0 => json!({"tva": "exoneree", "sous_franchise": false}),
+            Some(p) => json!({"tva": "assujettie", "part_tva": 100.0 - p, "sous_franchise": false}),
+            None => json!({"tva": "assujettie", "part_tva": 100}),
         };
     }
 }
@@ -201,7 +205,7 @@ fn taxe_sur_les_salaires_2025(c: &Copie, pct: Decimal) -> (Decimal, Decimal, Dec
 fn la_dsn_de_decembre_declare_chaque_taxe_avec_ses_assiettes() {
     // 3090-grande, 2025 : des CDI, un CDD de droit commun (motif 02), des intermittents ; cinq salaries ; la fiche dit
     // la compagnie redevable de la taxe sur les salaires sur toutes ses remunerations.
-    let c = Copie::de("fictive-3090-grande").fiche(assujettie(Some(100.0)));
+    let c = Copie::de("fictive-3090-grande").fiche(taxe_due_sur(Some(100.0)));
     let dsn = c.dsn("2025-12").unwrap();
     let (normal, premier, second) = taxe_sur_les_salaires_2025(&c, dec("100"));
     assert!(premier > Decimal::ZERO && second > Decimal::ZERO, "les permanents depassent les deux seuils : {} {}", premier, second);
@@ -234,7 +238,7 @@ fn la_dsn_de_decembre_declare_chaque_taxe_avec_ses_assiettes() {
 #[test]
 fn une_part_assujettie_se_porte_sur_chaque_assiette() {
     // Une compagnie assujettie a la TVA sur 40 % de son chiffre d'affaires : 60 % de chaque assiette (CGI art. 231, 1).
-    let c = Copie::de("fictive-3090-grande").fiche(assujettie(Some(60.0)));
+    let c = Copie::de("fictive-3090-grande").fiche(taxe_due_sur(Some(60.0)));
     let dsn = c.dsn("2025-12").unwrap();
     let (normal, premier, second) = taxe_sur_les_salaires_2025(&c, dec("60"));
     assert_eq!((montant(&dsn, "009"), montant(&dsn, "015"), montant(&dsn, "016")), (Some(normal), Some(premier), Some(second)));
@@ -244,7 +248,7 @@ fn une_part_assujettie_se_porte_sur_chaque_assiette() {
 fn une_compagnie_qui_ne_doit_pas_la_taxe_et_n_a_que_des_intermittents() {
     // 3090-petite : trois intermittents, aucun CDD de droit commun ; la fiche dit la compagnie assujettie a la TVA.
     // Aucun montant : CCH-12 les interdit aux codes de non-assujettissement, et 001 et 007 n'en demandent pas.
-    let c = Copie::de("fictive-3090-petite").fiche(assujettie(None));
+    let c = Copie::de("fictive-3090-petite").fiche(taxe_due_sur(None));
     let dsn = c.dsn("2025-12").unwrap();
     assert_eq!(codes(&dsn), ["001", "004", "006", "007", "010", "014"]);
     assert!(blocs_44(&dsn).iter().all(|b| b.1.is_none() && b.2 == "2025"));
@@ -254,7 +258,7 @@ fn une_compagnie_qui_ne_doit_pas_la_taxe_et_n_a_que_des_intermittents() {
 fn un_autre_mois_n_a_pas_de_bloc_44() {
     // « une fois par an [...] au plus tard, dans la DSN mensuelle de décembre » (p. 58) : le moteur ne connait pas la
     // cessation d'activite, seul autre cas.
-    let c = Copie::de("fictive-3090-grande").fiche(assujettie(Some(100.0)));
+    let c = Copie::de("fictive-3090-grande").fiche(taxe_due_sur(Some(100.0)));
     for mois in ["2025-11", "2026-01", "2026-06"] {
         assert!(!c.dsn(mois).unwrap().contains("S21.G00.44"), "{}", mois);
     }
@@ -265,21 +269,49 @@ fn une_fiche_muette_sur_la_taxe_sur_les_salaires_fait_refuser_decembre() {
     let c = Copie::de("fictive-3090-petite").fiche(|e| {
         e.as_object_mut().unwrap().remove("taxe_sur_les_salaires");
     });
-    let e = c.dsn("2025-12").unwrap_err();
-    assert!(e.contains("taxe_sur_les_salaires") && e.contains("Rien n'est ecrit"), "{}", e);
+    assert!(c.dsn("2025-12").is_err());
     // Novembre ne la demande pas.
     assert!(c.dsn("2025-11").is_ok());
-    // Une valeur qui n'est ni vrai ni faux (une case texte « true ») ne vaut pas reponse.
-    let c = Copie::de("fictive-3090-petite").fiche(|e| e["taxe_sur_les_salaires"] = json!({"assujettie": "true"}));
-    let e = c.dsn("2025-12").unwrap_err();
-    assert!(e.contains("ni vrai ni faux"), "{}", e);
+    // Une reponse qui n'en est pas une, ou qui s'arrete avant la conclusion, ne vaut pas reponse : la TVA sans sa part,
+    // une taxe qui serait due sans savoir si le chiffre d'affaires passe les plafonds de 293 B (CGI art. 231, 1).
+    for incomplete in [
+        json!({"tva": "oui"}),
+        json!({"tva": "assujettie"}),
+        json!({"tva": "assujettie", "part_tva": 140}),
+        json!({"tva": "exoneree"}),
+        json!({"tva": "assujettie", "part_tva": 50}),
+    ] {
+        let c = Copie::de("fictive-3090-petite").fiche(|e| e["taxe_sur_les_salaires"] = incomplete.clone());
+        assert!(c.dsn("2025-12").is_err(), "{}", incomplete);
+    }
+}
+
+#[test]
+fn la_tva_de_la_compagnie_dit_si_la_taxe_sur_les_salaires_est_due() {
+    // CGI art. 231, 1 (atelier/reference/sources/code-general-des-impots/xml/231.xml) : due par les employeurs qui ne
+    // sont pas assujettis a la TVA « ou ne l'ont pas ete sur 90 % au moins de leur chiffre d'affaires » de l'annee
+    // precedente ; exoneree sous les plafonds de l'article 293 B (2e alinea).
+    let code_ts = |fiche: Value| {
+        let c = Copie::de("fictive-3090-petite").fiche(move |e| e["taxe_sur_les_salaires"] = fiche);
+        codes(&c.dsn("2025-12").unwrap()).into_iter().find(|k| k == "009" || k == "010").unwrap()
+    };
+    // Assujettie sur 90 % ou plus : non due (010), sans qu'on demande rien d'autre.
+    assert_eq!(code_ts(json!({"tva": "assujettie", "part_tva": 90})), "010");
+    assert_eq!(code_ts(json!({"tva": "assujettie", "part_tva": 100})), "010");
+    // Sous 90 % : due (009) sur le reste.
+    assert_eq!(code_ts(json!({"tva": "assujettie", "part_tva": 89.5, "sous_franchise": false})), "009");
+    // Exoneree de TVA : due sur tout...
+    assert_eq!(code_ts(json!({"tva": "exoneree", "sous_franchise": false})), "009");
+    // ... sauf sous les plafonds de la franchise en base.
+    assert_eq!(code_ts(json!({"tva": "exoneree", "sous_franchise": true})), "010");
+    assert_eq!(code_ts(json!({"tva": "assujettie", "part_tva": 20, "sous_franchise": true})), "010");
 }
 
 #[test]
 fn a_cinquante_salaries_la_peec_porte_l_assiette_de_l_annee() {
     // Soixante salaries depuis cinq ans (CRM 118) : la PEEC est due (CCH L. 313-1, effectif de L. 130-1 CSS), et son
     // montant est l'assiette brute deplafonnee (base 03) que les douze DSN de l'annee ont declaree, contrat par contrat.
-    let c = Copie::de("fictive-3090-petite").fiche(assujettie(None)).effectif(60.0).au_dela_de_cinquante();
+    let c = Copie::de("fictive-3090-petite").fiche(taxe_due_sur(None)).effectif(60.0).au_dela_de_cinquante();
     let mut bases_03 = Decimal::ZERO;
     for m in 1..=11 {
         let mois = format!("2025-{:02}", m);
@@ -310,7 +342,7 @@ fn a_cinquante_salaries_la_peec_porte_l_assiette_de_l_annee() {
 #[test]
 fn a_deux_cent_cinquante_salaries_la_contribution_supplementaire_se_dit() {
     // L. 6242-1 : due a 250 salaries si moins de 5 % de l'effectif est en alternance, ce que le moteur ne compte pas.
-    let c = Copie::de("fictive-3090-petite").fiche(assujettie(None)).effectif(300.0).au_dela_de_cinquante();
+    let c = Copie::de("fictive-3090-petite").fiche(taxe_due_sur(None)).effectif(300.0).au_dela_de_cinquante();
     let e = c.dsn("2025-12").unwrap_err();
     assert!(e.contains("contribution_supplementaire_apprentissage") && e.contains("250"), "{}", e);
     let c = c.fiche(|e| e["contribution_supplementaire_apprentissage"] = json!("due"));
@@ -322,7 +354,7 @@ fn a_deux_cent_cinquante_salaries_la_contribution_supplementaire_se_dit() {
 #[test]
 fn une_dsn_de_decembre_sans_salarie_porte_aussi_le_bloc_44() {
     // CoolPaie l'ecrivait dans la DSN « neant » de decembre 2020 : la declaration est due, salaries ou non.
-    let c = Copie::de("fictive-3090-petite").fiche(assujettie(Some(100.0)));
+    let c = Copie::de("fictive-3090-petite").fiche(taxe_due_sur(Some(100.0)));
     let ctx = c.contexte("2025-12");
     let dsn = generer(&ctx, &[], "2025-12", &[], &[], &Options::default()).unwrap();
     assert!(dsn.contains("S10.G00.00.008,'02'"), "une DSN sans individu");
@@ -335,7 +367,7 @@ fn une_dsn_de_decembre_sans_salarie_porte_aussi_le_bloc_44() {
 fn la_taxe_d_apprentissage_est_ce_que_le_bordereau_paie() {
     // Un etablissement d'Alsace-Moselle paie la taxe d'apprentissage sous le CTP 993 (0,44 %, code du travail
     // L. 6241-1-1, II) : il y est assujetti comme les autres.
-    let c = Copie::de("fictive-3090-petite").fiche(assujettie(None)).organismes(|o| {
+    let c = Copie::de("fictive-3090-petite").fiche(taxe_due_sur(None)).organismes(|o| {
         for l in o["ctp_urssaf"].as_array_mut().unwrap() {
             if l["code"] == "992" {
                 l["code"] = json!("993");
@@ -353,7 +385,7 @@ fn la_taxe_d_apprentissage_est_ce_que_le_bordereau_paie() {
 /// Le motif de non-assujettissement a la taxe d'apprentissage de la fiche.
 fn motif_ta(m: &'static str) -> impl FnOnce(&mut Value) {
     move |e: &mut Value| {
-        e["taxe_sur_les_salaires"] = json!({"assujettie": false});
+        e["taxe_sur_les_salaires"] = json!({"tva": "assujettie", "part_tva": 100});
         e["taxe_apprentissage_motif_non_assujettissement"] = json!(m);
     }
 }
@@ -420,7 +452,7 @@ fn le_motif_de_la_fiche_retire_la_taxe_d_apprentissage_du_bordereau() {
     assert!(ctp(&avril).iter().any(|x| x == "992"), "{:?}", ctp(&avril));
     assert!(!ctp(&avril).iter().any(|x| x == "995") && !avril.contains("S21.G00.82.002,'076'"), "{:?}", ctp(&avril));
     // Sans motif, le meme avril solde 2025 : c'est bien le motif qui l'a retire.
-    let c = Copie::de("fictive-3090-petite").fiche(assujettie(None));
+    let c = Copie::de("fictive-3090-petite").fiche(taxe_due_sur(None));
     let avril = c.dsn("2026-04").unwrap();
     assert!(ctp(&avril).iter().any(|x| x == "995") && avril.contains("S21.G00.82.002,'076'"), "{:?}", ctp(&avril));
     // Un motif qui vaut en 2026 (006, l'enseignement) retire aussi la taxe de 2026.
@@ -440,7 +472,7 @@ fn la_taxe_non_due_ne_se_calcule_ni_au_bulletin_ni_au_nominatif_ni_au_bordereau(
     let porte_130 = |dsn: &str| lignes(dsn).iter().any(|(k, v)| k == "S21.G00.81.001" && v == "130");
     let porte_992 = |dsn: &str| ctp(dsn).iter().any(|x| x == "992" || x == "993");
     // Sans motif : les trois faces la portent.
-    let c = Copie::de("fictive-3090-petite").fiche(assujettie(None));
+    let c = Copie::de("fictive-3090-petite").fiche(taxe_due_sur(None));
     let dsn = c.dsn("2025-11").unwrap();
     assert!(ta_au_bulletin(&c, "2025-11") && porte_130(&dsn) && porte_992(&dsn));
     // Un motif qui vaut toute l'annee (006, l'enseignement) : aucune des trois.
@@ -465,7 +497,7 @@ fn la_taxe_non_due_ne_se_calcule_ni_au_bulletin_ni_au_nominatif_ni_au_bordereau(
 fn l_effectif_de_la_peec_est_celui_de_l_annee_du_millesime() {
     // Soixante salaries de 2020 a 2024, trente en 2025 : la PEEC declaree en decembre 2025 porte sur les salaires de
     // 2025, et c'est l'effectif de 2025 qui la declenche (CCH L. 313-1, L. 130-1 CSS) -- 006.
-    let c = Copie::de("fictive-3090-petite").fiche(assujettie(None)).effectif(60.0).effectif_de("2025", 30.0).au_dela_de_cinquante();
+    let c = Copie::de("fictive-3090-petite").fiche(taxe_due_sur(None)).effectif(60.0).effectif_de("2025", 30.0).au_dela_de_cinquante();
     assert_eq!(codes(&c.dsn("2025-12").unwrap()), ["001", "004", "006", "007", "010", "014"]);
 }
 
@@ -505,7 +537,7 @@ impl Copie {
     /// 2025 se declare en mars 2026.
     fn trois_cents() -> Copie {
         Copie::de("fictive-3090-petite")
-            .fiche(assujettie(None))
+            .fiche(taxe_due_sur(None))
             .fiche(|e| e["contribution_supplementaire_apprentissage"] = json!("due"))
             .effectif(300.0)
             .au_dela_de_cinquante()
@@ -623,7 +655,7 @@ fn sans_les_effectifs_du_crm_118_la_contribution_supplementaire_refuse() {
     let e = c.dsn("2026-03").unwrap_err();
     assert!(e.contains("A05") && e.contains("A07") && e.contains("118") && e.contains("Rien n'est ecrit"), "{}", e);
     // Sous 250 salaries, rien a declarer, rien a lire.
-    let petite = Copie::de("fictive-3090-petite").fiche(assujettie(None));
+    let petite = Copie::de("fictive-3090-petite").fiche(taxe_due_sur(None));
     let dsn = petite.dsn("2026-03").unwrap();
     assert!(blocs_82(&dsn).iter().all(|b| b.1 != "079" && b.1 != "080") && ctp_23(&dsn, "998").is_none());
 }
