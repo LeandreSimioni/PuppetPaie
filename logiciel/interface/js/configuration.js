@@ -781,7 +781,7 @@ const SECTIONS_FICHE = {
     // LA TAXE SUR LES SALAIRES (lot V3b, 10/10/2026) : la DSN de décembre
     // déclare chaque année si la compagnie la doit (bloc S21.G00.44), et ne
     // se fait pas sans réponse. Le moteur ne connaît pas sa TVA.
-    ["Taxe sur les salaires", ["taxe_sur_les_salaires"]],
+    ["La TVA et la taxe sur les salaires", ["taxe_sur_les_salaires"]],
     // L'AVANCE (23/09/2026). L'editeur : « si on peut deviner que c'est le
     // truc de base, on le met en truc de base ; si les gens veulent changer,
     // ils cliquent sur avancé ». Chacun de ces champs a une valeur par
