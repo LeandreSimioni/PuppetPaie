@@ -187,6 +187,15 @@ async function calculerApercu(lu) {
   // un CDI saisi en entier restait devant « ajouter des jours joués »
   // pendant que sa paie, elle, était calculable.
   const aDeQuoiPayer = (e) => aDesJours(e) || e.salaire_mensuel != null;
+  document.getElementById("apercu-sous-titre").textContent = IMPORTE ? "tenu avant PuppetPaie" : "calculé, rien n'est écrit";
+  if (IMPORTE) {
+    // Un mois tenu avant PuppetPaie ne se calcule pas ici : ses paies sont celles de l'ancien logiciel (#215).
+    const n = IMPORTE.paies.length;
+    cible.innerHTML = `<p class="discret">Mois tenu avant PuppetPaie : ${n} paie${n > 1 ? "s" : ""}
+      lue${n > 1 ? "s" : ""} dans l'historique importé, rien ne se calcule ici.${IMPORTE.incompletes
+      ? ` ${IMPORTE.incompletes} carte${IMPORTE.incompletes > 1 ? "s disent" : " dit"} ce que l'import n'a pas pu lire.` : ""}</p>`;
+    return;
+  }
   if (!saisie.engagements.length || !saisie.engagements.some(aDeQuoiPayer)) {
     // Le permanent ne se nomme qu'à une compagnie qui en emploie.
     const perm = !!(ETAT.configuration || {}).permanents;
@@ -672,6 +681,7 @@ async function chargerMois(mois, repeint = false) {
   // laisse tomber, sinon il repeindrait l'écran par-dessus le bon.
   if (DEMANDE_MOIS !== mois) return;
   SAISIE = r.saisie;
+  IMPORTE = r.importe || null;
   MOIS_AFFICHE = mois;
   document.getElementById("mois").value = mois;
   afficherMoisChoisi();
@@ -762,7 +772,7 @@ async function chargerMois(mois, repeint = false) {
   }
   if (DEMANDE_MOIS !== mois) return;
   majFermeture(mois, r.existe);
-  dessinerDeclareAvant(mois, r.existe);
+  dessinerMoisImporte();
   document.getElementById("resultat").innerHTML = "";
   // L'aperçu de la saisie enregistrée est dans la lecture : il ne se recalcule que quand on modifie la saisie.
   calculerApercu(lu.lectures.apercu);
@@ -812,7 +822,9 @@ async function repeindreLeMois(mois, ancien, frais) {
     if (!SAISIE_DATE_PAIEMENT) SAISIE_DATE_PAIEMENT = defauts.date_paiement || "";
     afficherRappelsMois();
     MOIS_FERME = r.hors_delai || null;
+    IMPORTE = r.importe || null;
     majFermeture(mois, r.existe);
+    dessinerMoisImporte();
   } catch (e) { /* la saisie se lit comme avant : rien à changer */ }
   if (!enCours) calculerApercu(frais.lectures.apercu);
   await Promise.allSettled([
@@ -828,6 +840,15 @@ async function repeindreLeMois(mois, ancien, frais) {
  *  contredit. `MOIS_FERME` est la date limite dépassée ; `MOIS_FORCE` dit
  *  qu'on a répondu à l'avertissement pour ce mois-là. */
 function majFermeture(mois, existe) {
+  // UN MOIS TENU AVANT PUPPETPAIE (ticket #215) : il se lit, rien ne s'y ajoute et rien ne le rouvre — sa DSN est
+  // faite ailleurs, ou le moteur dit qu'il n'en a pas trace ; ce n'est pas « en retard » (règle 4 : rien ne la refait).
+  if (IMPORTE) {
+    document.getElementById("ajouter-engagement").hidden = true;
+    document.getElementById("engagements").classList.add("lecture-seule");
+    document.getElementById("rouvrir-mois").hidden = true;
+    noteSaisie("");
+    return;
+  }
   const ferme = !!MOIS_FERME && MOIS_FORCE !== mois;
   const rouvert = !!MOIS_FERME && MOIS_FORCE === mois;
   document.getElementById("ajouter-engagement").hidden = ferme;
@@ -863,35 +884,117 @@ function majFermeture(mois, existe) {
         : "Nouveau mois — l'enregistrement est automatique dès la première saisie.");
 }
 
-/** Un mois PASSÉ sans fichier de paie (avant PuppetPaie) : ce que la
- *  compagnie a déclaré ce mois-là, lu dans l'historique importé (AEM ou
- *  bulletins d'un autre logiciel) — le calendrier du mois et la liste des contrats, en lecture
- *  seule, à la place du vide. « Je voulais que l'historique soit au même
- *  endroit que les paies » (16/09/2026). */
-async function dessinerDeclareAvant(mois, existe) {
-  const cible = document.getElementById("declare-avant");
-  cible.hidden = true; cible.innerHTML = "";
-  const courant = new Date().toISOString().slice(0, 7);
-  if (existe || mois >= courant) return;
-  let contrats = [];
-  try { contrats = (await api("contrats-passes", { mois })).contrats || []; } catch (e) { return; }
-  if (MOIS_AFFICHE !== mois || !contrats.length) return;
-  const plusieurs = new Set(contrats.map((c) => c.salarie)).size > 1;
-  const nCachets = contrats.reduce((n, c) => n + c.cachets, 0);
+/* UN MOIS IMPORTÉ EST UN MOIS COMME LES AUTRES (ticket #215, Léandre,
+ * 20/10/2026 : « j'ai importé les bulletins, mais je pensais que les paies
+ * allaient avoir toutes les infos pour avoir les cases, qu'est-ce qui
+ * manque ? »). Un mois tenu avant PuppetPaie n'a pas de fichier de paie : le
+ * moteur le rend depuis l'historique importé (`importe` de la route `saisie`,
+ * `mois_importe.rs`) — une carte par paie, comme celle d'une paie validée :
+ * quand, qui et pour quoi, ses états, son net ; « Voir les cases » montre
+ * chaque case remplie de ce que l'import a lu, avec d'où elle vient. Ce que
+ * l'import n'a pas pu lire se dit sur la carte, case par case, et pourquoi —
+ * jamais un blanc muet. La page n'en décide rien : elle affiche. */
+let IMPORTE = null;   // le mois tenu avant PuppetPaie, tel que le moteur le rend, ou null
+
+const CASES_IMPORTEES = [
+  ["brut", "Brut"], ["net_imposable", "Net imposable"], ["net_a_payer", "Net à payer"],
+  ["pas", "Prélèvement à la source"], ["net_verse", "Net versé (DSN)"],
+  ["cotisations_salariales", "Cotisations salariales"], ["cotisations_patronales", "Cotisations patronales"],
+  ["cout_employeur", "Coût employeur"],
+];
+const SOURCES_IMPORTEES = { bulletin: "bulletin", DSN: "DSN", AEM: "AEM", historique: "historique" };
+
+function dessinerMoisImporte() {
+  const cible = document.getElementById("mois-importe");
+  // Le cachet par défaut et la date de paiement servent à saisir : un mois tenu avant n'en a pas l'usage.
+  document.getElementById("rappels-mois").hidden = !!IMPORTE;
+  if (!IMPORTE) { cible.hidden = true; cible.innerHTML = ""; return; }
+  const mois = IMPORTE.mois;
+  const moisCourt = MOIS_COURTS[parseInt(mois.slice(5, 7), 10) - 1] || "";
+  const t = IMPORTE.totaux || {};
+  const n = IMPORTE.paies.length;
+  const total = (k, mot) => t[k] && t[k].montant != null
+    ? `${mot} ${euros(t[k].montant)}${t[k].connus < n ? ` (${t[k].connus} paie${t[k].connus > 1 ? "s" : ""} sur ${n})` : ""}` : "";
   cible.innerHTML = `
-    <div class="declare-avant">
-      <div class="da-tete"><b>Déclaré en ${echapper(moisEnClair(mois))}</b>
-        <span class="discret">— avant PuppetPaie, d'après l'historique importé ·
-        ${contrats.length} contrat${contrats.length > 1 ? "s" : ""}, ${nCachets} cachet${nCachets > 1 ? "s" : ""} · lecture seule</span></div>
-      <div class="da-corps">
-        <div class="c-grille">${casesMoisPasse(mois, contrats, plusieurs)}</div>
-        <div class="c-passes">${contrats.map((c) => ligneContratPasse(c, plusieurs)).join("")}</div>
-      </div>
-      <p class="note">Début, fin et nombre de cachets : c'est tout ce que l'attestation
-        portait — les jours exacts ne sont connus que pour les mois produits ici. Les cachets
-        chez d'autres employeurs n'y sont pas.</p>
-    </div>`;
+    <p class="mi-tete"><b>Tenu avant PuppetPaie</b> <span class="discret">— d'après l'historique importé ·
+      ${n} paie${n > 1 ? "s" : ""} ${[total("brut", "· brut"), total("net_a_payer", "· net")].filter(Boolean).join(" ")}
+      · lecture seule</span></p>
+    ${IMPORTE.paies.map((p, i) => carteImportee(p, i, moisCourt, mois)).join("")}`;
+  cible.querySelectorAll(".carte-importee").forEach((div) => {
+    div.querySelector(".carte-detail").onclick = (ev) => {
+      ev.preventDefault();
+      const cases = div.querySelector(".ci-cases");
+      cases.hidden = !cases.hidden;
+      ev.target.textContent = cases.hidden ? "Voir les cases" : "Replier";
+    };
+  });
   cible.hidden = false;
+}
+
+function carteImportee(p, i, moisCourt, mois) {
+  const borne = (d) => d && d.slice(0, 7) === mois ? String(parseInt(d.slice(8, 10), 10)) : "";
+  // QUAND : les jours travaillés que le bulletin imprime ; sans eux, le début et la fin du contrat dans le mois.
+  const jours = p.dates.length ? joursEnClair(p.dates)
+    : [borne(p.debut) || "1", borne(p.fin) || "…"].filter((x, k, a) => k === 0 || x !== a[0]).join("–");
+  const quoi = [p.spectacle.titre || p.spectacle.numero_objet,
+    p.cachets ? `${p.cachets} cachet${p.cachets > 1 ? "s" : ""}` : "",
+    p.heures ? `${p.heures} h` : ""].filter(Boolean).join(" · ");
+  const pastille = (cle, titre) => {
+    const e = p.etats[cle] || {};
+    return `<span class="etat-acte ${e.couleur === "bien" ? "vert" : "gris"}" title="${echapper(e.phrase || "")}">
+      <i class="carre"></i>${echapper(titre)}</span>`;
+  };
+  // LE MONTANT : le net à payer ; sans lui (une DSN seule ne le déclare pas), le brut, et la carte le dit.
+  const net = p.montants.net_a_payer ? euros(p.montants.net_a_payer)
+    : p.montants.brut ? `<span class="discret">brut</span> ${euros(p.montants.brut)}` : "";
+  // CE QUI MANQUE SE DIT SUR LA CARTE, en une ligne (quels champs) ; le pourquoi est sous chaque case vide.
+  const manque = p.manque.length ? `
+    <div class="ci-manque"><b>Non lu par l'import :</b> ${p.manque.map((m) => echapper(m.libelle)).join(" · ")}
+      <span class="discret">— « Voir les cases » dit pourquoi</span></div>` : "";
+  const dits = new Set();
+  const casePlate = (libelle, valeur, source, champ) => {
+    const absent = valeur ? null : p.manque.find((m) => m.champ === champ);
+    const pourquoi = absent && !dits.has(champ) ? (dits.add(champ), `<span class="ci-pourquoi">${echapper(absent.phrase)}</span>`) : "";
+    return `<div class="ci-case${valeur ? "" : " vide"}${absent ? " non-lu" : ""}"><span class="champ">${echapper(libelle)}</span>
+      <span class="ci-valeur">${valeur ? echapper(valeur) : `<i>${absent ? "non lu" : "—"}</i>`}</span>${
+      valeur && source ? `<span class="ci-source">${echapper(source)}</span>` : ""}${pourquoi}</div>`;
+  };
+  const lignes = (p.lignes || []).length ? `
+    <table class="ci-lignes"><tr><th>Ligne du bulletin</th><th class="nombre">Quantité</th><th class="nombre">Taux</th><th class="nombre">Montant</th></tr>
+      ${p.lignes.map((l) => `<tr><td>${echapper(l.libelle || "")}</td><td class="nombre">${echapper(l.quantite || "")}</td>
+        <td class="nombre">${l.taux ? echapper(euros(l.taux)) : ""}</td><td class="nombre">${l.montant ? echapper(euros(l.montant)) : ""}</td></tr>`).join("")}
+    </table>` : "";
+  const origine = [p.declare_par === "DSN" ? "DSN" : "", p.bulletin ? `bulletin${p.bulletin.numero ? " " + p.bulletin.numero : ""}` : "",
+    p.atteste_par === "AEM" ? "AEM" : ""].filter(Boolean).join(" + ");
+  return `
+    <div class="carte-importee${p.manque.length ? " incomplete" : ""}" data-rang="${i}">
+      <div class="e-resume">
+        <div class="carte-quand" title="${echapper(p.dates.length ? p.dates.map(jjmmaaaa).join(", ") : "début et fin du contrat : les jours exacts ne sont pas lus")}">
+          <b class="${jours.includes(" · ") ? "epars" : ""}">${echapper(jours)}</b><span>${echapper(moisCourt)}</span></div>
+        <div class="carte-qui" title="${echapper(origine ? "lu dans : " + origine : "")}">
+          <span class="carte-nom"><b>${echapper(p.nom)}</b></span>
+          <span class="discret">${echapper(quoi || "spectacle non lu")}</span></div>
+        <div class="carte-actes"><div class="etats-actes">${pastille("dpae", "DPAE")}${pastille("signature", "Contrat")}${pastille("documents", "Documents")}</div></div>
+        <div class="carte-net" title="${p.montants.net_a_payer ? "net à payer" : "brut : le net à payer n'est pas lu"}">${net}</div>
+        <span class="carte-modifier"><button class="secondaire carte-detail">Voir les cases</button></span>
+      </div>
+      ${manque}
+      <div class="ci-cases" hidden>
+        <div class="ci-grille">
+          ${casePlate("Salarié", p.nom, "fiche", "salarie")}
+          ${casePlate("Spectacle", [p.spectacle.titre, p.spectacle.numero_objet && p.spectacle.numero_objet !== p.spectacle.titre ? `n° ${p.spectacle.numero_objet}` : ""].filter(Boolean).join(" — "), "", "spectacle")}
+          ${casePlate("Contrat", p.contrat, "", "contrat")}
+          ${casePlate("Début", p.debut ? jjmmaaaa(p.debut) : "", "", "debut")}
+          ${casePlate("Fin", p.fin ? jjmmaaaa(p.fin) : "", "", "fin")}
+          ${casePlate("Jours travaillés", p.dates.map((d) => d.slice(8, 10)).join(" · "), "bulletin", "dates")}
+          ${casePlate("Cachets", p.cachets != null ? String(p.cachets) : "", p.atteste_par || "", "cachets")}
+          ${casePlate("Heures", p.heures != null ? String(p.heures) : "", p.atteste_par || "", "cachets")}
+          ${CASES_IMPORTEES.map(([k, mot]) => casePlate(mot, p.montants[k] ? euros(p.montants[k]) : "",
+              SOURCES_IMPORTEES[p.sources[k]] || "", k)).join("")}
+        </div>
+        ${lignes}
+      </div>
+    </div>`;
 }
 
 /* Changer de mois enregistre d'abord CE QUI EST À L'ÉCRAN, et sous son vrai

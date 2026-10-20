@@ -501,10 +501,19 @@ pub(crate) fn etat_dsn_du_mois(lignes: &[Value], mois: &str, nic: &Value, princi
             anomalies.push(a.into_owned());
         }
     }
+    // UN DEPOT REPRIS DES RETOURS (`reprise_journal`, ticket #215) : sa piece EST le bilan de la plate-forme, et la ligne
+    // en garde le verdict (`detail.etat_declaration`) -- tant qu'aucun retour n'est range en face, c'est lui qui dit.
+    let detail = ou(get(l, "detail")?, objet_vide());
+    let repris = if verdicts.is_empty() && vrai(getd(detail, "reconstruit", &Value::Null)?) {
+        Some(py_str(getd(detail, "etat_declaration", texte_vide())?).to_uppercase())
+    } else {
+        None
+    };
+    let refus_repris = repris.as_deref() == Some("KO");
     Ok(json!({
         "quand": get(l, "quand")?, "fichier": get(l, "fichier")?, "flux": get(l, "flux")?,
-        "passee": verdicts.iter().any(|v| est(v, "OK")) && refus.is_empty(),
-        "refusee": !refus.is_empty(),
+        "passee": (verdicts.iter().any(|v| est(v, "OK")) || repris.as_deref() == Some("OK")) && refus.is_empty(),
+        "refusee": !refus.is_empty() || refus_repris,
         "anomalies": anomalies,
         "aer_recue": aer,
     }))

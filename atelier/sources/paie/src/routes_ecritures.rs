@@ -694,6 +694,20 @@ pub(crate) fn refuser_si_clos(ctx: &Contexte, mois: &str) -> R<()> {
     Ok(())
 }
 
+/// UN MOIS TENU AVANT CE LOGICIEL NE SE SAISIT PAS (ticket #215) : ses paies ont ete calculees et declarees ailleurs
+/// (l'historique importe les porte, `mois_importe`). Une saisie le ferait recalculer ici et proposerait d'en ecrire la
+/// DSN -- une declaration deja faite ne se regenere pas (regle 4). Rien ne passe outre, pas meme `forcer`.
+pub(crate) fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
+    if crate::mois_importe::importe(&ctx.racine, mois)? {
+        return Err(refus(format!(
+            "{} a ete tenu avant PuppetPaie : ses paies ont ete faites par l'ancien logiciel et sont dans l'historique \
+             importe. Il se lit dans la page Paie ; il ne se saisit pas ici.",
+            mois
+        )));
+    }
+    Ok(())
+}
+
 /// `refuser_si_hors_delai` : la DSN du mois etait due ; seul `forcer` passe outre.
 pub(crate) fn refuser_si_hors_delai(ctx: &Contexte, mois: &str, forcer: bool) -> R<()> {
     // Le calcul de la limite se fait meme sous `forcer` : un mois impossible (2026-13) se refuse.
@@ -739,6 +753,7 @@ fn enregistrer_saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Valu
 pub(crate) fn ecrire_saisie(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, forcer: bool, fusionner_ancien: bool) -> R<PathBuf> {
     let mut donnees = brute.clone();
     donnees.insert("mois".into(), Value::String(mois.to_string()));
+    refuser_si_importe(ctx, mois)?;
     refuser_si_clos(ctx, mois)?;
     refuser_si_hors_delai(ctx, mois, forcer)?;
     let calculee = Value::Object(donnees.clone());

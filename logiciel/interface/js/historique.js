@@ -35,6 +35,8 @@ function dessinerHistorique() {
     passee: ["bien", "DSN passée"], attente: ["alerte", "DSN partie, bilan attendu"],
     refusee: ["erreur", "DSN refusée"], a_deposer: ["alerte", "DSN à déposer"],
     a_ecrire: ["", "saisi, pas encore écrit"], en_retard: ["erreur", "DSN en retard"],
+    // Un mois tenu avant PuppetPaie (ticket #215) : sa DSN est celle de l'ancien logiciel, ou il n'en a pas trace ici.
+    importee: ["bien", "DSN déclarée avant PuppetPaie"], sans_trace: ["alerte", "tenu avant PuppetPaie — aucune trace de DSN"],
   };
   const majuscule = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   cible.innerHTML = ETAT.historique.map((m) => {

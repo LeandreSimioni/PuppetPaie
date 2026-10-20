@@ -429,9 +429,13 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let limite = mois_hors_delai(ctx, &mois)?;
     let saisie = descendre_le_mois(saisie);
     let defauts = defauts_de_la_saisie(ctx, &mois, &saisie);
+    // UN MOIS TENU AVANT CE LOGICIEL (ticket #215) : pas de fichier ici, mais l'historique importe le porte -- ses paies,
+    // en cartes, et l'etat vrai de sa DSN (`mois_importe`). Il se lit ; rien ne s'y ajoute.
+    let importe = if existe { None } else { crate::mois_importe::vue(ctx, &mois)? };
     Ok(json!({
         "mois": brut,
         "existe": existe,
+        "importe": importe,
         "defauts": defauts,
         // Passe le 15 du mois suivant, le mois est ferme : la page le montre en
         // lecture seule (le serveur refuserait de toute facon).

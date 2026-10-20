@@ -84,6 +84,7 @@ pub mod lecture_xlsx;
 pub(crate) mod jumeaux;
 pub mod maj;
 pub mod minima;
+pub mod mois_importe;
 pub mod nfkc;
 pub mod naf;
 pub mod norme;

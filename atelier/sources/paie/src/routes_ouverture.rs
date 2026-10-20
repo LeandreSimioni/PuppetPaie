@@ -313,8 +313,14 @@ impl Etat<'_> {
     }
 
     /// `journal.etat_dsn_du_mois(ctx, mois)` : `Null` ou l'etat.
+    /// UN MOIS TENU AVANT CE LOGICIEL (ticket #215) : sans ligne au journal, la DSN que l'import a lue pour lui
+    /// (`mois_importe::dsn_importee`) le dit declare -- ni rappel, ni « en retard ».
     pub(crate) fn etat_dsn(&self, mois: &str) -> R<Value> {
-        Ok(etats::etat_dsn_du_mois(&self.journal, mois, &Value::Null, &self.principal)?)
+        let e = etats::etat_dsn_du_mois(&self.journal, mois, &Value::Null, &self.principal)?;
+        if !e.is_null() {
+            return Ok(e);
+        }
+        Ok(crate::mois_importe::dsn_importee(self.racine(), mois)?.unwrap_or(Value::Null))
     }
 }
 
