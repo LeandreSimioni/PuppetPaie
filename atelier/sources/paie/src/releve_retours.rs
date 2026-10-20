@@ -694,22 +694,20 @@ pub fn derniere_journee() -> (i64, i64) {
 
 // ------------------------------------------------------------------- l'effectif
 
-/// `effectif.lire_crm118` : les effectifs d'un retour de nature 118 (code, valeur, periode, calcul) ; un XML
-/// qui ne se lit pas ne dit rien.
+/// `effectif.lire_crm118` : les effectifs d'un retour de nature 118 (code, valeur, periode, calcul), les parametres
+/// (`RO.B008`) que lit le lecteur des comptes rendus NEOReS (`retours::lire_neores`, d'apres le cahier technique NEOReS
+/// 2026.1.2, `atelier/reference/sources/neores/`) ; un XML qui ne se lit pas ne dit rien.
 fn lire_crm118(contenu: &[u8]) -> R<Option<Vec<(String, f64, String, String, String)>>> {
-    let Ok(texte) = std::str::from_utf8(contenu) else { return Ok(None) };
-    let Ok(doc) = roxmltree::Document::parse(texte) else { return Ok(None) };
+    let Some(crm) = crate::retours::lire_neores(contenu) else { return Ok(None) };
     let mut out = Vec::new();
-    for el in doc.descendants().filter(|n| n.is_element() && n.tag_name().name() == "RO_B008") {
-        let enfant = |nom: &str| -> String {
-            el.children().find(|c| c.is_element() && c.tag_name().name() == nom).map(|c| c.text().unwrap_or("").trim().to_string()).unwrap_or_default()
-        };
-        let (code, valeur) = (enfant("RO_B008_R001"), enfant("RO_B008_R002"));
+    for p in crm["parametres"].as_array().into_iter().flatten() {
+        let t = |k: &str| p[k].as_str().unwrap_or("").to_string();
+        let (code, valeur) = (t("type"), t("valeur"));
         if code.is_empty() || valeur.is_empty() {
             continue;
         }
         let v: f64 = valeur.parse().map_err(|_| erreur("ValueError", format!("nombre illisible : '{}'", valeur)))?;
-        out.push((code, v, enfant("RO_B008_R003"), enfant("RO_B008_R004"), enfant("RO_B008_R006")));
+        out.push((code, v, t("effet"), t("fin"), t("calcule_le")));
     }
     Ok(Some(out))
 }

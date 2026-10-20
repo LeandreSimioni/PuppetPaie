@@ -30,7 +30,11 @@ const PUBLIC: [&str; 4] = ["logiciel", "fictives", "atelier/sources", "atelier/r
 /// n'est pas un NIR --, et le retirer, ce serait changer la copie (son empreinte est vérifiée, `paie sources`). Chacun est
 /// nommé ici, fichier par fichier (relatif à la racine du dépôt), avec ce qu'il est ; un motif qui ne couvre plus rien se
 /// retire (`chaque_exemple_des_textes_couvre_encore_un_numero`). Ce qui n'est pas listé est refusé, nos notes comprises.
-const EXEMPLES_DES_TEXTES: [(&str, &str); 5] = [
+const EXEMPLES_DES_TEXTES: [(&str, &str); 6] = [
+    (
+        r"^atelier/reference/sources/gip-mds-api-dsn/ctip-dsn-crm-oc-phases-2-3-20160601\.txt$",
+        "les salariés d'exemple des comptes rendus métier OC imprimés par le CTIP (présentation des phases 2 et 3, juin 2016)",
+    ),
     (
         r"^atelier/reference/sources/gip-mds-api-dsn/gip-mds-guide-implementation-api-dsn-v6\.8-20260706\.txt$",
         "les exemples de flux et de réponses du guide d'implémentation de l'API DSN (GIP-MDS)",

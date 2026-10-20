@@ -80,7 +80,11 @@ pub const FICTIVES: [(&str, &str); 8] = [
 /// Le verrou de la suite tient sa propre liste (`donnees_reelles.rs`, `EXEMPLES_DES_TEXTES`) : elle excuse ce que SON
 /// détecteur de NIR trouve, qui n'est pas ce que trouvent les trois motifs d'ici (il ne lit pas un NIR dans une adresse
 /// web, mais il en lit un à mois 20-99) ; une liste commune excuserait chez l'un ce que seul l'autre trouve.
-pub const EXEMPLES_DES_TEXTES: [(&str, &str); 6] = [
+pub const EXEMPLES_DES_TEXTES: [(&str, &str); 7] = [
+    (
+        "atelier/reference/sources/gip-mds-api-dsn/ctip-dsn-crm-oc-phases-2-3-20160601.txt",
+        "les salariés et les comptes d'exemple des comptes rendus métier OC imprimés par le CTIP (présentation de juin 2016)",
+    ),
     (
         "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2025-v1.3-20250301.txt",
         "l'IBAN d'exemple (FR99 1234...) de l'aide à la codification Agirc-Arrco",

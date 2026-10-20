@@ -1,0 +1,155 @@
+                       CRM DSN OC
+             PRÉSENTATION DES VERSIONS 1.1.3
+             ET 1.1.4 COMPATIBLES NORME 2020
+
+
+
+
+30/01/2020
+LE SCHÉMA DU CRM 1.1.3                                                                  p. 2
+
+
+   ❑ La version 1.1.3 du CRM devait être alignée sur le cahier technique
+     DSN de janvier 2020
+
+   ❑ Les modifications prises en compte dans le schéma de cette version
+     1.1.3 sont les suivantes :
+
+   A - Retrait de la valeur P18V01 dans la liste des valeurs autorisées de l'attribut
+       VersionNorme (S10.G00.00.006)
+   B - Ajout de la valeur P20V01 dans la liste des valeurs autorisées de l'attribut
+        VersionNorme (S10.G00.00.006)
+   C - Ajout de la valeur 08 correspondant au signalement d’Amorçage des Données
+       Variables dans la liste des valeurs autorisées de l'attribut NatureDecla
+       (S20.G00.05.001)
+
+
+
+
+        30/01/2020
+                         CRM DSN – OC – Versions 1.1.3 et 1.1.4
+LE SCHÉMA DU CRM 1.1.4                                                                     p. 3
+
+
+   ❑ Une nouvelle version 1.1.4 du CRM, qui reprend les modifications
+     précédemment énumérées, a été mise en place pour tenir compte
+     des évolutions suivantes :
+
+   A - Ajout de la nature de l'événement déclencheur du signalement
+       (S20.G00.05.011)
+   B - Création de la donnée "Nombre total d'erreurs Critiques : C" dans le Niveau 2
+   C - Création de la donnée "Criticité du code retour métier" dans le Niveau 3
+   D - Ajout des codes retour métier ICVE01, ICVE02 et ICVE03 relatifs aux composants
+       de versement (BLOC 55)
+   E - Ajout des rubriques 20.004, 20.010 et 20.011 pour l'éligibilité aux codes retours
+        métier relatifs aux versements en DSN
+
+
+
+
+        30/01/2020
+                         CRM DSN – OC – Versions 1.1.3 et 1.1.4
+LE SCHÉMA DU CRM 1.1.4                                                                             p. 4
+
+   A - Ajout de la nature de l'événement déclencheur du signalement
+        (S20.G00.05.011) et de ses valeurs utilisables
+
+   ❑   Valeurs 01 à 05 :
+              ❑ 01 - Embauche effective de l'individu
+              ❑ 02 - Embauche de l'individu suite à une mutation
+              ❑ 03 - Fin de dispense d’affiliation
+              ❑ 04 - Changement des paramètres du contrat collectif prévoyance, santé
+                complémentaire, retraite supplémentaire
+              ❑ 05 - Transmission de l’ensemble d’une population à affilier à un nouveau contrat
+                (individu faisant partie d’une population à affilier à un nouveau contrat)
+
+   ❑   Contexte :
+              ❑ CRM en retour d’un Signalement d’Amorçage des Données Variables (SADV)
+
+
+
+
+        30/01/2020
+                           CRM DSN – OC – Versions 1.1.3 et 1.1.4
+LE SCHÉMA DU CRM 1.1.4                                                                    p. 5
+
+   B - Création de la donnée "Nombre total d'erreurs Critiques "C" " dans le Niveau 2 :
+
+
+
+
+   C - Création de la donnée "Criticité du code retour
+   métier" dans le Niveau 3 :
+
+
+
+
+        30/01/2020
+                         CRM DSN – OC – Versions 1.1.3 et 1.1.4
+LE SCHÉMA DU CRM 1.1.4                                                                              p. 6
+
+
+
+   Ces données ont été ajoutées afin de mieux qualifier les retours contenus dans
+   les CRM de type 3
+
+   ❑   Criticité du code retour métier : une information facultative
+   ❑   Qui permet de définir la criticité de l'anomalie remontée
+              ❑ C = "Critique" : à corriger impérativement dans la DSN suivante
+              ❑ P = "Passable" : à corriger dès que possible
+   ❑   Ajout dans le niveau 2 du CRM d’une rubrique conditionnée à la présence de la criticité du
+       code retour métier
+   ❑   Nombre total d'erreurs Critiques = Nombre total d’erreurs (Exxxnn) dans la déclaration
+       dont la criticité est à « C »
+
+
+   ❑   La criticité est déterminée par le producteur du CRM
+
+
+
+
+        30/01/2020
+                           CRM DSN – OC – Versions 1.1.3 et 1.1.4
+LE SCHÉMA DU CRM 1.1.4                                                                                            p. 7
+
+
+  D - Ajout des codes retours métier ICVE01, ICVE02 et ICVE03 relatifs aux
+      composants de versement (BLOC 55)
+
+
+
+
+                                                             Code retour   Libellé
+
+                                                             ICVE01        Composant de versement pris en
+                                                                           compte (en attente de réalisation du
+                                                                           paiement)
+
+                                                             ICVE02        Composant de versement non pris en
+                                                                           compte
+                                                             ICVE03        Composant de versement reçu
+
+
+
+
+        30/01/2020
+                         CRM DSN – OC – Versions 1.1.3 et 1.1.4
+LE SCHÉMA DU CRM 1.1.4                                                                      p. 8
+
+   E - Ajout des rubriques 20.004, 20.010 et 20.011 pour l'éligibilité aux codes retours
+        métier relatifs aux versements en DSN
+              ❑ Enrichissement des retours métiers
+
+
+
+                                                                           Des données de
+                                                                              contexte
+                                                                          supplémentaires
+                                                                              ajoutées
+
+
+
+
+        30/01/2020
+                         CRM DSN – OC – Versions 1.1.3 et 1.1.4
+
