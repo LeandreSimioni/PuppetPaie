@@ -25,6 +25,9 @@ de fond (0 à 11) ne bougent pas : le code les cite.**
 
 ## Une séance, par tickets
 
+- **Les captures d'un ticket se regardent toutes, avant tout le reste** (Léandre, 20/10/2026) : elles sont la moitié de ce
+  que la personne a dit. L'orchestrateur les ouvre (`curl` du lien `filet.puppetpaie.fr/capture/…`, puis lecture de l'image),
+  les décrit à l'agent qui code et lui en donne le chemin ; un ticket lancé sans ses captures est un ticket mal lu.
 - **Un ticket** : lire ce qu'il dit, le reproduire (dans la fenêtre, sur une compagnie fictive, ou par `paie route`), corriger
   dans le public, prouver (un test quand c'est le moteur ; la fenêtre, à l'écran, quand c'est l'interface), puis **commenter le
   ticket** (ce qui est fait, où, comment le voir) et le **fermer** : corrigé sur la branche, c'est fermé, avec la phrase « ce sera
