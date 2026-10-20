@@ -372,11 +372,14 @@ fn rafraichir(ctx: &Contexte, client_id: &Value, client_secret: &Value) -> R<Opt
 
 /// `operations_ouverture.google_etat`, rendu par `sortie_json.etat_google`.
 fn google_etat(ctx: &Contexte) -> R<Value> {
-    let (client_id, client_secret, origine) = identifiants(&ctx.racine)?;
+    // L'application ne sert qu'a rafraichir un jeton : sans Drive lie, son absence (une copie de travail du depot) n'est
+    // pas un refus, et l'etat dit seulement « pas lie » (#235 du prive).
+    let application = identifiants(&ctx.racine);
+    let origine = application.as_ref().map(|a| json!(a.2)).unwrap_or(Value::Null);
     let permissions = courtes(&PERMISSIONS.map(|p| json!(p)))?;
     let etat = |compte: Value, verifie: bool, probleme: Option<String>, accordees: Vec<Value>| -> Value {
         let mut o = Map::new();
-        o.insert("application".into(), json!(origine));
+        o.insert("application".into(), origine.clone());
         o.insert("permissions".into(), json!(permissions));
         o.insert("accordees".into(), json!(accordees));
         o.insert("autorise".into(), json!(vrai(&compte)));
@@ -400,6 +403,7 @@ fn google_etat(ctx: &Contexte) -> R<Value> {
         p if vrai(&p) => courtes(&liste(&p)?)?,
         _ => permissions.clone(),
     };
+    let (client_id, client_secret, _) = application?;
     match rafraichir(ctx, &client_id, &client_secret)? {
         None => Ok(etat(compte, true, None, accordees)),
         Some(probleme) => Ok(etat(compte, false, Some(probleme), accordees)),
