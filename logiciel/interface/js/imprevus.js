@@ -811,11 +811,13 @@ function boiteSignalerArret(a, nature) {
     </div>`);
   document.getElementById("si-ok").onclick = async () => {
     const remplace = document.getElementById("si-remplace");
+    // Un clic de plus, pendant l'écriture, ne fait pas un second signalement.
+    const rendre = occupe(document.getElementById("si-ok"), "Écriture du signalement…");
     let r;
     try {
       r = await api("arret-signaler", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille, nature,
                                         remplace: remplace ? remplace.value.trim() : "" });
-    } catch (e) { dire(e.message, "erreur"); return; }
+    } catch (e) { rendre(); dire(e.message, "erreur"); return; }
     fermerBoite();
     // Les avis du signalement suivent le message, sur la même ligne (24/09/2026).
     dire(["Signalement écrit : " + r.nom + ". Rien n'est parti."].concat(r.avertissements || []).join("  ·  "));
@@ -905,11 +907,12 @@ function boiteSignalerFin(mois, f) {
       <button class="primaire" id="fi-ok">Écrire le signalement</button>
     </div>`);
   document.getElementById("fi-ok").onclick = async () => {
+    const rendre = occupe(document.getElementById("fi-ok"), "Écriture du signalement…");
     let r;
     try {
       r = await api("fin-contrat-signaler", { mois, salarie: f.salarie,
                                               remplace: document.getElementById("fi-remplace").value.trim() });
-    } catch (e) { dire(e.message, "erreur"); return; }
+    } catch (e) { rendre(); dire(e.message, "erreur"); return; }
     fermerBoite();
     dire(["Signalement écrit : " + r.nom + " (préavis : " + r.preavis + "). Rien n'est parti."]
       .concat(r.avertissements || []).join("  ·  "));

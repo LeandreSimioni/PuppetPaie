@@ -336,35 +336,64 @@ fn texte_ou_vide(v: &Value, cle: &str) -> R<String> {
 /// lance aussitot en fond et que la veille relance tant que le message attend. Le corps exact qui partira (celui de
 /// l'apercu, captures comprises) est fige maintenant, dans `journal/signalements/<id>.json` ; la boite
 /// (`journal/signalements.json`) en garde la ligne, `en-attente`.
+///
+/// UN MEME MESSAGE NE S'ENREGISTRE QU'UNE FOIS (ticket #229, Leandre, 20/10/2026 : un message parti deux fois, l'un
+/// « arrive », l'autre « pas encore parti, le contenu n'est plus sur cet ordinateur »). Deux defauts, corriges ici :
+/// - le meme texte avec les memes captures, enregistre depuis moins de `DOUBLON_SECONDES` (un double clic, une requete
+///   rejouee par la fenetre), n'ajoute pas de ligne : la route rend celle qui existe (`deja`) ;
+/// - le corps s'ecrivait AVANT que la ligne n'entre dans la boite, hors de son verrou : un passage de `partir` lance par
+///   le premier envoi effacait entre-temps le corps du second, qu'aucune ligne n'annoncait encore
+///   (`effacer_les_partis`). Le corps et sa ligne s'ecrivent maintenant sous le meme verrou, que l'effacement tient aussi.
 pub fn envoyer(racine: &Path, texte: &Value, ecran: &Value, captures: &[Value]) -> R<Value> {
     let (corps, _trouve, caps) = corps_signalement(racine, texte, ecran, captures)?;
+    let empreinte = empreinte_du_message(&corps);
+    let maintenant = crate::releve_retours::maintenant_naif();
     let id = nouvel_id()?;
     let fichier = chemin_corps(racine, &id);
-    ecrire_entier(&fichier, &corps)?;
     let ligne = json!({
         "id": id,
         "quand": incidents::maintenant()[..16].to_string(),
         "debut": tete(corps["texte"].as_str().unwrap_or(""), 80),
         "captures": caps.len(),
         "incidents": corps["incidents"].as_array().map_or(0, Vec::len),
+        "empreinte": empreinte,
+        "enregistre": maintenant,
         "envoi": {"etat": EN_ATTENTE, "quand": Value::Null, "essai": Value::Null, "erreur": ""},
     });
     let ecrit = modifier(racine, |lignes| {
+        let recent = |l: &Value| l["enregistre"].as_i64().is_some_and(|t| maintenant - t < DOUBLON_SECONDES);
+        if let Some(deja) = lignes.iter().rev().find(|l| l["empreinte"] == json!(empreinte) && (en_attente(l) || recent(l))) {
+            return Ok((id_de(deja).map(str::to_string), false));
+        }
+        ecrire_entier(&fichier, &corps)?;
         lignes.push(ligne);
-        Ok(((), true))
+        Ok((None, true))
     });
     match ecrit {
-        Ok(Some(())) => {}
-        Ok(None) => {
-            let _ = std::fs::remove_file(&fichier);
-            return Err(erreur("ErreurOperation", "La boîte des messages est occupée : réessayez dans un instant. Rien n'est enregistré."));
-        }
+        Ok(Some(Some(existant))) => Ok(json!({"id": existant, "deja": true, "signalements": signalements(racine)})),
+        Ok(Some(None)) => Ok(json!({"id": id, "deja": false, "signalements": signalements(racine)})),
+        Ok(None) => Err(erreur("ErreurOperation", "La boîte des messages est occupée : réessayez dans un instant. Rien n'est enregistré.")),
         Err(e) => {
             let _ = std::fs::remove_file(&fichier);
-            return Err(e);
+            Err(e)
         }
     }
-    Ok(json!({"id": id, "signalements": signalements(racine)}))
+}
+
+/// Un message enregistre depuis moins de dix minutes, et identique, est le meme message.
+const DOUBLON_SECONDES: i64 = 600;
+
+/// L'empreinte de ce qu'on a ecrit : le texte (caviarde) et les captures, rien de ce qui change d'une seconde a l'autre
+/// (incidents joints, version).
+fn empreinte_du_message(corps: &Value) -> String {
+    use sha2::{Digest, Sha256};
+    let mut h = Sha256::new();
+    h.update(corps["texte"].as_str().unwrap_or("").as_bytes());
+    for c in corps["captures"].as_array().into_iter().flatten() {
+        h.update(b"\n");
+        h.update(c["donnees"].as_str().unwrap_or("").as_bytes());
+    }
+    h.finalize().iter().map(|b| format!("{:02x}", b)).collect()
 }
 
 /// La raison d'un essai manque, dite pour la boite : le canal de l'editeur parle du « filet DPAE », qui n'a rien a voir ici.
@@ -515,16 +544,21 @@ fn noter_raison(racine: &Path, ids: &[String], raison: &str) -> R<()> {
 
 /// Les fichiers d'attente dont le message n'attend plus (parti, ou que la boite ne connait pas : son enregistrement n'a
 /// pas abouti, et la page l'a dit) s'effacent.
+///
+/// SOUS LE VERROU DE LA BOITE (ticket #229) : `envoyer` y ecrit le corps et sa ligne ensemble ; un corps sans ligne, vu
+/// d'ici, n'est jamais celui d'un message en train de s'enregistrer. Boite occupee : rien ne s'efface ce passage-ci.
 fn effacer_les_partis(racine: &Path) -> R<()> {
-    let Ok(entrees) = std::fs::read_dir(dossier_attente(racine)) else { return Ok(()) };
-    let lignes = en_ordre_strict(racine)?;
-    for e in entrees.flatten() {
-        let nom = e.file_name().to_string_lossy().into_owned();
-        let Some(id) = nom.strip_suffix(".json") else { continue };
-        if !lignes.iter().any(|l| en_attente(l) && id_de(l) == Some(id)) {
-            let _ = std::fs::remove_file(e.path());
+    modifier(racine, |lignes| {
+        let Ok(entrees) = std::fs::read_dir(dossier_attente(racine)) else { return Ok(((), false)) };
+        for e in entrees.flatten() {
+            let nom = e.file_name().to_string_lossy().into_owned();
+            let Some(id) = nom.strip_suffix(".json") else { continue };
+            if !lignes.iter().any(|l| en_attente(l) && id_de(l) == Some(id)) {
+                let _ = std::fs::remove_file(e.path());
+            }
         }
-    }
+        Ok(((), false))
+    })?;
     Ok(())
 }
 

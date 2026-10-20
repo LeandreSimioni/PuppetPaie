@@ -134,6 +134,9 @@ body.fenetre .fenetre-boutons { display: flex; gap: 2px; margin-left: 8px; align
 }
 .veille.souci { background: var(--alerte-fond); color: var(--alerte); }
 .veille.neuf { background: var(--succes-fond); color: var(--succes); }
+/* L'étape du passage en cours, dite par le moteur (ticket #220). */
+.veille-etape { font-style: italic; }
+.veille-etape::before { content: "⟳ "; font-style: normal; }
 .veille-texte b { color: var(--texte); }
 .lien {
   border: none; background: none; cursor: pointer; padding: 0;
@@ -643,6 +646,14 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
   border-radius: 4px; z-index: 60; font-size: 13px; max-width: 70vw;
 }
 .message.erreur { background: var(--erreur); }
+/* Ce qui est parti : en vert, coché. */
+.message.envoye { background: var(--succes); }
+.message.envoye::before { content: "✓ "; font-weight: 600; }
+/* Où en est le message « Un problème, une idée ? » qu'on vient d'envoyer. */
+.sg-envoi { font-weight: 600; }
+.sg-envoi.envoye { color: var(--succes); }
+.sg-envoi.envoye::before { content: "✓ "; }
+.sg-envoi.alerte { color: var(--alerte); }
 
 .attente { opacity: .5; pointer-events: none; }
 

@@ -63,7 +63,9 @@ const ROUTES_SANS_EFFET = new Set(["veille", "rappels", "pour-demarrer", "organi
   // Les contrats déclarés avant PuppetPaie (l'historique importé) : une lecture, que l'écran d'un mois passé fait en se peignant.
   "contrats-passes",
   // L'Historique d'un mois (ses documents, ses envois, leurs retours lus) et la pièce qu'on y ouvre : des lectures.
-  "historique-mois", "ouvrir-piece"]);
+  "historique-mois", "ouvrir-piece",
+  // L'étape du relevé en cours, lue toutes les secondes le temps qu'il tourne (ticket #220).
+  "veille-etape"]);
 let LU = null;            // { mois, lectures, perime } : la dernière lecture `mois`
 let LU_EN_COURS = null;   // { mois, promesse, perimeAdmis } : celle qui est en route
 let LU_GENERATION = 0;
@@ -341,10 +343,12 @@ async function ouvrirEtDire(route, charge = {}) {
   } catch (e) { dire(e.message, "erreur"); }
 }
 
+/** `type` : "erreur" (en rouge), "envoye" (ce qui est parti : en vert, coché — ticket #220, Léandre, 20/10/2026 :
+ *  « un petit "envoi en cours" et "message envoyé" joli »), rien pour une simple nouvelle. */
 function dire(texte, type) {
   const el = document.getElementById("message");
   el.textContent = texte;
-  el.className = "message" + (type === "erreur" ? " erreur" : "");
+  el.className = "message" + (type === "erreur" ? " erreur" : type === "envoye" ? " envoye" : "");
   clearTimeout(dire._t);
   dire._t = setTimeout(() => el.classList.add("cachee"), 6000);
 }

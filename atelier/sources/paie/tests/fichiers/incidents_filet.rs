@@ -507,6 +507,29 @@ fn un_seul_envoi_a_la_fois_et_rien_ne_reste_de_ce_qui_est_parti() {
     assert!(!verrou.exists(), "le passage rend son verrou");
 }
 
+/// Ticket #229 : le meme message envoye deux fois (un double clic, une requete rejouee par la fenetre) ne s'enregistre
+/// qu'une fois et ne part qu'une fois, meme revenu juste apres son depart ; un autre texte est un autre message, et
+/// chaque message qui attend a son corps sur le poste (le corps et sa ligne s'ecrivent sous le meme verrou).
+#[test]
+fn un_meme_message_envoye_deux_fois_ne_s_enregistre_et_ne_part_qu_une_fois() {
+    let p = poste("signalement-double", &[]);
+    let (url, recu) = serveur(|_, _| (200, json!({"numero": "R-1"})));
+    p.serveur(&url, json!({}));
+    let a = p.ok("signalement-envoyer", json!({"texte": "la DSN ne part pas"}));
+    let b = p.ok("signalement-envoyer", json!({"texte": "la DSN ne part pas"}));
+    assert_eq!((b["id"].clone(), b["deja"].clone()), (a["id"].clone(), json!(true)), "{}", b);
+    assert_eq!(p.fichier("journal/signalements.json").as_array().unwrap().len(), 1);
+    assert_eq!(p.ok("signalements-partir", json!({}))["partis"], json!(1));
+    let c = p.ok("signalement-envoyer", json!({"texte": "la DSN ne part pas"}));
+    assert_eq!(c["deja"], json!(true), "parti il y a un instant, c'est le meme message : {}", c);
+    assert_eq!(p.ok("signalements-partir", json!({}))["partis"], json!(0));
+    assert_eq!(actions(&recu).iter().filter(|x| *x == "retour").count(), 1, "il n'est parti qu'une fois");
+    let d = p.ok("signalement-envoyer", json!({"texte": "autre chose"}));
+    assert_eq!(d["deja"], json!(false));
+    assert!(p.racine.join(format!("journal/signalements/{}.json", d["id"].as_str().unwrap())).is_file());
+    assert_eq!(p.fichier("journal/signalements.json").as_array().unwrap().len(), 2);
+}
+
 // ======================================================= la soudure de la fictive
 
 #[test]

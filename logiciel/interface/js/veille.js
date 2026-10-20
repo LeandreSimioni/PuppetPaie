@@ -77,7 +77,9 @@ function dessinerVeille(v) {
   zone.classList.remove("souci", "neuf");
 
   if (v.en_cours) {
-    texte.innerHTML = "Relevé des retours en cours…";
+    // L'ÉTAPE, DITE PAR LE MOTEUR (ticket #220) : qui il appelle, puis qui d'autre, puis la sauvegarde.
+    texte.innerHTML = `<span class="veille-etape">${echapper(v.etape || "Relevé des retours en cours…")}</span>`;
+    suivreLesEtapes();
     return;
   }
   const d = v.dernier || {};
@@ -86,10 +88,11 @@ function dessinerVeille(v) {
   //    le cherche rarement, et il reste à portée.
   const detail = [d.sauvegarde, d.retours, d.signatures, d.fiches, d.sources,
                   d.maj_exigee ? "" : d.maj].filter(Boolean).join("\n");
+  if (v.sauvegarde_en_cours) suivreLesEtapes();
   const morceaux = [`<span class="veille-etat" title="${echapper(detail)}">${d.hors_ligne
     ? "<b>Hors connexion</b> — sauvegarde et retours au prochain passage"
     : `À jour — relevé ${echapper(heureDuPassage(d.quand))}${v.sauvegarde_en_cours
-        ? " · sauvegarde en cours…" : ""}`}</span>${enFictive()
+        ? ` · <span class="veille-etape">${echapper(v.etape || "sauvegarde en cours…")}</span>` : ""}`}</span>${enFictive()
     ? ` · <button class="lien" data-fictive-explique="coulisses">compagnie fictive : pas de
         sauvegarde — pourquoi ?</button>` : ""}`];
 
@@ -179,6 +182,29 @@ function dessinerVeille(v) {
   });
 }
 
+/** LE PASSAGE EN COURS, ÉTAPE PAR ÉTAPE (ticket #220, Léandre, 20/10/2026 : « juste un message dans la ligne qui
+ *  explique ce que fait la machine »). Tant qu'un passage tourne, la page lit `veille-etape` toutes les secondes : deux
+ *  drapeaux et l'étape que le moteur a écrite en y entrant, sans processus ni calcul — la page ne rame pas. Le passage
+ *  fini, le bandeau se repeint d'un coup (`suivreVeille`). Un seul suivi à la fois. */
+let SUIVI_ETAPES = null;
+let RELEVE_DEMANDE = false;     // « relever maintenant » attend sa réponse : le suivi tient jusque-là
+function suivreLesEtapes() {
+  if (SUIVI_ETAPES || SERVEUR_PERDU) return;
+  SUIVI_ETAPES = setTimeout(async () => {
+    let e = null;
+    try { e = await api("veille-etape"); } catch (x) { /* déjà signalé */ }
+    SUIVI_ETAPES = null;
+    if (!e) return;
+    if (e.en_cours || e.sauvegarde_en_cours || RELEVE_DEMANDE) {
+      const el = document.querySelector("#veille-texte .veille-etape");
+      if (el && e.etape) el.textContent = e.etape;
+      suivreLesEtapes();
+    } else {
+      suivreVeille();
+    }
+  }, 1000);
+}
+
 async function suivreVeille() {
   if (SERVEUR_PERDU) return;          // le bandeau dit déjà l'essentiel
   try {
@@ -190,14 +216,16 @@ async function suivreVeille() {
 }
 
 document.getElementById("veille-maintenant").onclick = async () => {
-  dessinerVeille({ ...(VEILLE || {}), en_cours: true });
+  RELEVE_DEMANDE = true;
+  dessinerVeille({ ...(VEILLE || {}), en_cours: true, etape: "" });
   try {
     const v = await api("veille-maintenant");
+    RELEVE_DEMANDE = false;
     // Le relevé manuel repeint TOUJOURS : c'est ce qu'on vient demander.
     VEILLE = { ...(VEILLE || {}), dernier: {} };
     await rafraichirApresVeille(v);
     dessinerVeille(v);
     dire("Relevé terminé.");
-  } catch (e) { dire("Relevé impossible : " + e.message, "erreur"); }
+  } catch (e) { RELEVE_DEMANDE = false; dire("Relevé impossible : " + e.message, "erreur"); }
 };
 

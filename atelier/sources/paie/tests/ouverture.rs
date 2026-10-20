@@ -1182,3 +1182,80 @@ fn la_route_ouverture_ne_rend_jamais_d_erreur_et_la_derniere_trace_se_relit() {
     let r = route(&o, "ouverture", json!({"filet": false, "incidents_editeur": false}));
     assert_eq!(r["ok"], json!(true), "{}", r);
 }
+
+// ============================================================================ l'etape en cours (ticket #220)
+
+/// Un faux Drive qui note, a chaque appel, l'etape que le passage a ecrite (`ouverture::etape_en_cours`).
+struct DriveEtape {
+    drive: FauxDrive,
+    racine: PathBuf,
+    vues: Rc<RefCell<Vec<String>>>,
+}
+
+impl DriveEtape {
+    fn noter(&self) {
+        if let Some(e) = paie::ouverture::etape_en_cours(&self.racine) {
+            if self.vues.borrow().last() != Some(&e) {
+                self.vues.borrow_mut().push(e);
+            }
+        }
+    }
+}
+
+impl Drive for DriveEtape {
+    fn compte(&self) -> Option<String> {
+        self.drive.compte()
+    }
+    fn chemin(&mut self, noms: &[&str]) -> Result<String, ErreurGoogle> {
+        self.noter();
+        self.drive.chemin(noms)
+    }
+    fn lister(&mut self, parent: &str) -> Result<std::collections::BTreeMap<String, Distant>, ErreurGoogle> {
+        self.noter();
+        self.drive.lister(parent)
+    }
+    fn televerser(&mut self, fichier: &Path, parent: &str, nom: Option<&str>, connu: Option<&Distant>) -> Result<Depose, ErreurGoogle> {
+        self.noter();
+        assert!(!fichier.ends_with(paie::ouverture::ETAPE), "l'etape ne monte pas au Drive");
+        self.drive.televerser(fichier, parent, nom, connu)
+    }
+    fn sous_dossiers(&mut self, parent: &str) -> Result<Vec<(String, String)>, ErreurGoogle> {
+        self.noter();
+        self.drive.sous_dossiers(parent)
+    }
+    fn telecharger(&mut self, id: &str) -> Result<Vec<u8>, ErreurGoogle> {
+        self.noter();
+        self.drive.telecharger(id)
+    }
+}
+
+/// Ticket #220 (Leandre, 20/10/2026 : « qui on appelle, puis qui d'autre, la sauvegarde ») : chaque etape d'un passage
+/// s'ecrit en y entrant -- net-entreprises, puis l'Urssaf, puis le Drive --, ce que la veille de la fenetre lit pendant
+/// qu'il tourne ; le passage fini, il n'en reste rien.
+#[test]
+fn chaque_etape_d_un_passage_se_dit_en_y_entrant_et_s_efface_a_la_fin() {
+    let _t = tour();
+    let c = compagnie("etapes", "fictive-3090-petite", true);
+    let vues: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
+    let (racine, au_serveur) = (c.clone(), Arc::new(Mutex::new(Vec::<String>::new())));
+    let a2 = au_serveur.clone();
+    let (base, _) = serveur(move |q: &Requete| {
+        if let Some(e) = paie::ouverture::etape_en_cours(&racine) {
+            let mut v = a2.lock().unwrap();
+            if v.last() != Some(&e) {
+                v.push(e);
+            }
+        }
+        Some(if q.chemin.contains("authentifier") { http(200, "text/plain", b"JETON-FICTIF") } else { http(404, "text/plain", b"Aucun retour sur cette plage") })
+    });
+    let mut d = DriveEtape { drive: FauxDrive::nouveau(), racine: c.clone(), vues: vues.clone() };
+    let o = Options { filet: false, signatures: false, ..opt() };
+    let mut clients = les_deux(&c, &base);
+    clients.drive = Some(&mut d as &mut dyn Drive);
+    let r = jouer(&c, &o, clients);
+    assert!(r.sauvegarde.is_some(), "{:?}", r.incidents);
+    assert_eq!(*au_serveur.lock().unwrap(), ["net-entreprises : retours des DSN…", "Urssaf : retours des DPAE…"]);
+    assert_eq!(*vues.borrow(), ["Google Drive : sauvegarde du dossier…"]);
+    assert_eq!(paie::ouverture::etape_en_cours(&c), None, "le passage fini, plus d'etape");
+    assert!(!c.join("config").join(paie::ouverture::ETAPE).exists());
+}

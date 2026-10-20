@@ -89,13 +89,13 @@ function boiteDiagnostic(d, rang, signales = []) {
   });
   const envoyer = document.getElementById("d-envoyer");
   if (envoyer) envoyer.onclick = async () => {
-    const rendre = occupe(envoyer, "Envoi…");
+    const rendre = occupe(envoyer, "Envoi en cours…");
     try {
       const r = await api("diagnostic-envoyer");
       fermerBoite();
       dire(r.bilan.erreur ? "Envoi impossible : " + r.bilan.erreur
                           : r.bilan.envoyes + " incident(s) envoyé(s).",
-           r.bilan.erreur ? "erreur" : undefined);
+           r.bilan.erreur ? "erreur" : "envoye");
       dessinerDiagnostic(rang);
     } catch (e) { rendre(); dire(e.message, "erreur"); }
   };
@@ -303,15 +303,15 @@ function boiteSignalement() {
   // montrer où il en est, dans « Vos messages ».
   envoyer.onclick = async () => {
     montrerErreur("");
-    const rendre = occupe(envoyer, "Envoi…");
+    const rendre = occupe(envoyer, "Envoi en cours…");
     try {
       const r = await api("signalement-envoyer", charge());
       $("sg-pre").hidden = true;
       $("sg-resultat").hidden = false;
-      // D'ABORD MERCI (01/10/2026). La réponse revient dans « Vos messages ».
-      $("sg-resultat").innerHTML = `<b>Merci, votre message est enregistré.</b>
-        Il part chez l'éditeur ; s'il ne peut pas partir tout de suite, PuppetPaie
-        le renverra de lui-même. La réponse viendra ici, dans « Vos messages ».`;
+      // D'ABORD MERCI (01/10/2026), puis où en est l'envoi, dit par le moteur (ticket #220 : « envoi en cours » puis
+      // « message envoyé »). La réponse revient dans « Vos messages ».
+      SG_ENVOI = { id: r.id, deja: !!r.deja };
+      $("sg-resultat").innerHTML = departDuMessage((r.signalements || []).find((s) => s.id === r.id));
       $("sg-messages").innerHTML = vosMessages(r.signalements || []);
       ["sg-voir", "sg-reduire", "sg-ajout"].forEach((id) => { $(id).hidden = true; });
       envoyer.hidden = true;
@@ -375,6 +375,22 @@ function vosMessages(liste) {
       ${s.reponse ? `<p class="sg-reponse">${echapper(s.reponse)}</p>` : etatDuMessage(s)}</li>`).join("")}</ul>`;
 }
 
+/** CE QUE DIT LA BOÎTE DU MESSAGE QU'ON VIENT D'ENVOYER, d'après son état dans le moteur : en cours, envoyé, ou pas
+ *  encore parti (et pourquoi). Un message déjà enregistré (un second clic, ticket #229) le dit : il ne part qu'une fois. */
+let SG_ENVOI = null;
+function departDuMessage(s) {
+  const deja = SG_ENVOI && SG_ENVOI.deja ? ` <span class="discret">Ce message était déjà enregistré : il ne part qu'une fois.</span>` : "";
+  if (!s || s.etat === "en-cours") {
+    return `<b>Merci, votre message est enregistré.</b> <span class="sg-envoi">Envoi en cours…</span>${deja}`;
+  }
+  if (s.etat === "pas-parti") {
+    return `<b>Merci, votre message est enregistré.</b> <span class="sg-envoi alerte">Pas encore parti</span>
+      — ${echapper(s.raison || "PuppetPaie le renverra de lui-même.")}${deja}`;
+  }
+  return `<span class="sg-envoi envoye">Message envoyé.</span> Merci ! La réponse de l'éditeur viendra ici,
+    dans « Vos messages ».${deja}`;
+}
+
 /** Où en est un message (l'état vient du moteur, `problemes::signalements`). */
 function etatDuMessage(s) {
   if (s.etat === "en-cours") return ` <span class="pastille">en cours d'envoi</span>`;
@@ -395,6 +411,8 @@ function suivreLesMessages(boite, depuis) {
     try { l = (await api("signalements")).signalements; } catch (e) { return; }
     const nid = boite.querySelector("#sg-messages");
     if (nid) nid.innerHTML = vosMessages(l);
+    const res = boite.querySelector("#sg-resultat");
+    if (res && SG_ENVOI) res.innerHTML = departDuMessage(l.find((s) => s.id === SG_ENVOI.id));
     if (l.some((s) => s.etat === "en-cours")) suivreLesMessages(boite, depuis);
   }, 3000);
 }

@@ -291,6 +291,34 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
     }
 }
 
+// ------------------------------------------------------------------ l'etape en cours
+
+/// L'ETAPE EN COURS D'UN PASSAGE (ticket #220, Leandre, 20/10/2026 : « qui on appelle, puis qui d'autre, la sauvegarde, juste
+/// un message dans la ligne qui explique ce que fait la machine »). L'ouverture tourne dans un processus a part (la veille
+/// appelle la route `ouverture`) : elle ecrit son etape dans `config/.ouverture-etape.json` en y entrant, l'efface en
+/// finissant ; la veille de la fenetre la lit (`Veille::etape`) tant qu'un passage tourne. Le fichier ne monte pas au Drive
+/// (`sauvegarde::NOMS_EXCLUS`). Une ecriture qui echoue est passee sous silence : ce n'est qu'un message.
+pub const ETAPE: &str = ".ouverture-etape.json";
+
+fn chemin_etape(racine: &Path) -> std::path::PathBuf {
+    racine.join("config").join(ETAPE)
+}
+
+fn dire_l_etape(ctx: &Contexte, etape: &str) {
+    let _ = crate::ecriture::ecrire_json(&chemin_etape(&ctx.racine), &json!({"etape": etape, "depuis": quand_maintenant()}), 1);
+}
+
+fn finir_les_etapes(ctx: &Contexte) {
+    let _ = std::fs::remove_file(chemin_etape(&ctx.racine));
+}
+
+/// L'etape qu'un passage en cours a ecrite, ou `None`.
+pub fn etape_en_cours(racine: &Path) -> Option<String> {
+    let o = std::fs::read(chemin_etape(racine)).ok()?;
+    let v: Value = serde_json::from_slice(&o).ok()?;
+    v.get("etape").and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string)
+}
+
 // ------------------------------------------------------------------ la trace
 
 fn chemin_trace(ctx: &Contexte) -> std::path::PathBuf {
@@ -435,6 +463,7 @@ fn trier_hors_ligne(r: &mut Ouverture) {
 
 /// Termine le compte rendu : le tri, la duree, la trace.
 fn clore(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Instant, precedente: &Value) {
+    finir_les_etapes(ctx);
     trier_hors_ligne(r);
     r.secondes = (debut.elapsed().as_secs_f64() * 10.0).round() / 10.0;
     noter_ouverture(ctx, r, precedente);
@@ -445,6 +474,7 @@ fn clore(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Instant, precedent
 /// « hors ligne » si l'un des deux l'a vu (et alors plus de ligne « retours », comme la trace d'une seule ouverture), les
 /// incidents et les manques a la suite des premiers. Une trace qui manque ou ne se lit pas : la trace ordinaire de ce passage.
 fn completer_la_trace(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Instant, precedente: &Value) {
+    finir_les_etapes(ctx);
     let Some(avant) = precedente.as_object().filter(|m| !m.is_empty()) else {
         return clore(ctx, r, debut, precedente);
     };
@@ -527,12 +557,14 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
     // et rien ne manque au coffre, puisqu'il n'y a rien a y poser.
     if crate::routes_accueil::simulation_active(&ctx.racine) {
         // L'HORLOGE D'ABORD : ce qui etait du avant aujourd'hui se joue, a sa date.
+        dire_l_etape(ctx, "Compagnie fictive : l'administrateur fictif fait ce qui tombait…");
         let jouee = crate::horloge::rattraper(&ctx.racine, None, true).and_then(|fait| if fait.is_empty() { crate::horloge::dernier_rattrapage(&ctx.racine, None) } else { Ok(fait) });
         match jouee {
             Ok(fait) => r.horloge = fait,
             Err(e) => r.incidents.push(format!("Horloge de la compagnie fictive : {}", e.message)),
         }
         if retours {
+            dire_l_etape(ctx, "Compagnie fictive : retours des dépôts joués…");
             let mut releve = Releve::default();
             match releve_retours::rattacher_simulation(ctx, DELAI_RETOURS_FICTIVE) {
                 Ok(n) => releve.rattaches = n,
@@ -541,6 +573,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
             }
             r.releve = Some(releve);
         }
+        dire_l_etape(ctx, "Compagnie fictive : signatures et fiches des salariés…");
         // Le resultat de la relève jouee n'est pas gardé : le Python le jetait aussi (`simulation.relever_signatures(ctx)`).
         if let Err(e) = releve_signatures::relever_signatures_fictive(o, ctx, releve_signatures::DELAI_FICTIVE) {
             r.incidents.push(format!("Signatures : {}", e.message));
@@ -568,6 +601,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
     }
 
     if signatures {
+        dire_l_etape(ctx, "Boîte courriel : contrats revenus signés…");
         // Les reponses « Je signe ». La relève ne leve pas pour un compte absent ou une permission manquante : elle le dit.
         match releve_signatures::relever_signatures(o, ctx, reborrow_courriel(&mut clients.courriel), None, "veille") {
             Ok(s) => {
@@ -577,6 +611,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
             Err(e) => r.incidents.push(format!("Signatures : {}", e.message)),
         }
         // Les fiches demandees aux salaries (23/09/2026) : la meme boite, le meme passage, la meme regle.
+        dire_l_etape(ctx, "Boîte courriel : fiches des salariés…");
         match routes_fiches_courriel::relever_fiches(ctx, reborrow_courriel(&mut clients.courriel), "veille") {
             Ok(f) => {
                 r.incidents.extend(f.incidents.iter().cloned());
@@ -589,6 +624,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
     // LA DPAE PREPAREE D'AVANCE (27/09/2026). Apres les retours DPAE : un test automatique dont le bilan vient d'arriver se
     // lit a jour. Le test ne declare rien -- la veille ne DEPOSE toujours rien de reel.
     if opt.filet {
+        dire_l_etape(ctx, "DPAE préparée d'avance : dépôt de test…");
         match crate::routes_actes_h2::filet_preparer_avec(o, ctx, &json!({"qui": "veille"}), clients.depot_dpae.as_mut()) {
             Ok(f) => {
                 r.incidents.extend(f.get("incidents").and_then(Value::as_array).into_iter().flatten().map(py_str));
@@ -604,6 +640,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
     // celui d'un bac a sable). Le Python lancait cela dans un fil ; ici c'est fait avant de rendre la main.
     let bac_a_sable = std::env::var("PUPPETPAIE_INCIDENTS").is_ok_and(|v| !v.is_empty());
     if opt.filet && opt.incidents_editeur && !bac_a_sable && (!copie || crate::interface::compagnies::est_fictive(&ctx.racine)) {
+        dire_l_etape(ctx, "Serveur de l'éditeur : incidents, messages et réponses…");
         let _ = crate::incidents::envoyer(&ctx.racine);
         // Les messages « Un probleme, une idee ? » que l'envoi en fond n'a pas fait partir (serveur injoignable...).
         let _ = crate::problemes::partir(&ctx.racine);
@@ -668,6 +705,7 @@ fn relever_les_retours(o: &HashMap<String, String>, ctx: &Contexte, opt: &Option
             );
         }
         Some(true) => {
+            dire_l_etape(ctx, "net-entreprises : retours des DSN…");
             let fin = releve_retours::maintenant_naif();
             match releve_retours::relever_retours(ctx, o, fin - opt.jours * 86_400, fin, false, "production", client_dsn, "") {
                 Ok(rel) => {
@@ -700,6 +738,7 @@ fn relever_les_retours(o: &HashMap<String, String>, ctx: &Contexte, opt: &Option
             r.manque_coffre("Mot de passe Urssaf (DPAE) absent du coffre : les retours de DPAE ne peuvent pas etre releves seuls. `paie coffre poser urssaf`.");
         }
         Some(true) => {
+            dire_l_etape(ctx, "Urssaf : retours des DPAE…");
             let fin = releve_retours::maintenant_naif();
             let debut = fin - opt.jours * 86_400;
             // Un client donne passe par la meme releve que le vrai (canal `dpae`) ; sans client, `relever_retours_dpae`
@@ -732,6 +771,7 @@ fn sauvegarder_le_dossier(ctx: &Contexte, opt: &Options, clients: &mut Clients<'
     } else if opt.veille && sauvegarde::rien_n_a_bouge(&ctx.racine, &opt.racine_drive) {
         // rien de neuf sur le disque : on n'appelle pas
     } else {
+        dire_l_etape(ctx, "Google Drive : sauvegarde du dossier…");
         let drive: Option<&mut dyn Drive> = match clients.drive.as_mut() {
             Some(d) => Some(&mut **d),
             None => None,

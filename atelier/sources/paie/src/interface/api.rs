@@ -316,6 +316,8 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
             ouvrir_sous(d, "Aucun export n'a encore ete ecrit : le dossier n'existe pas.")
         }
         "veille" => Ok(veille.map(Veille::etat).unwrap_or_else(|| json!({"minutes": 0, "dernier": {}, "en_cours": false}))),
+        // Ou en est le passage, le temps qu'il tourne : une lecture sans processus (`Veille::etape`).
+        "veille-etape" => Ok(veille.map(Veille::etape).unwrap_or_else(|| json!({"en_cours": false, "sauvegarde_en_cours": false, "etape": null}))),
         "veille-maintenant" => match veille {
             Some(v) => Ok(v.tour(false, false)),
             None => Err(Refus::simple("ErreurOperation", "Pas de veille sur cette interface.")),

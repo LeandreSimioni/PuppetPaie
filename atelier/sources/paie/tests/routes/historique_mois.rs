@@ -310,7 +310,7 @@ fn les_comptes_rendus_neores_et_des_organismes_complementaires_se_traduisent() {
     assert!(a["message"].as_str().unwrap().starts_with("Taux de cotisation incohérent"), "{}", a);
     assert!(a_la_phrase(&rec, "Des écarts ont été constatés"), "{}", rec);
     assert!(a_la_phrase(&rec, "CTL-FICTIF-42 — Action attendue : Corriger le taux"), "{}", rec);
-    assert!(a_la_phrase(&rec, "CTL-FICTIF-42 — Détail : Le taux déclaré pour ce contrat n'est pas le taux attendu. ; S21.G00.81.007 : déclaré « 0.50 », attendu « 0.60 »"), "{}", rec);
+    assert!(a_la_phrase(&rec, "CTL-FICTIF-42 — Détail : Le taux déclaré pour ce contrat n'est pas le taux attendu ; S21.G00.81.007 : déclaré « 0.50 », attendu « 0.60 »"), "{}", rec);
     assert!(rec["phrases"].as_array().unwrap().iter().any(|p| p.as_str().unwrap().contains("prénom de référence « Françoise »")), "{}", rec);
 
     // Le 51 : l'organisme qui l'a produit, le code retour global, le mandat a creer, chaque retour metier.

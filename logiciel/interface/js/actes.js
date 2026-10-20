@@ -472,13 +472,13 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
         // fenêtre au lieu de rester et d'attendre les retours pour proposer
         // d'envoyer direct ». On reste, on attend le compte rendu, et le
         // bouton du réel s'allume ici même.
-        dire("Dépôt de test envoyé — on attend son compte rendu.");
+        dire("Dépôt de test envoyé — on attend son compte rendu.", "envoye");
         attendreBilan();
         rafraichirActions();
         return;
       }
       fermerBoite();
-      dire("Dépôt réel effectué — on relève ses retours.");
+      dire("Dépôt réel effectué — on relève ses retours.", "envoye");
       if (quoi === "dsn") avisDocumentsApresDsn(r.mois);
       await rafraichirActions();
       suivreDepot(quoi, r.flux, r.mois);
@@ -872,7 +872,7 @@ async function boiteEnvoi(mois) {
     try {
       const r = await api("envoyer-documents", { mois, motdepasse: mdp });
       fermerBoite();
-      dire(r.partis.length + " message(s) envoyé(s).");
+      dire(r.partis.length + " message(s) envoyé(s).", "envoye");
       afficherEnvoi("Documents aux salariés", mois, r.partis, r.avertissements);
       fenetreCourrielsFictifs("documents", repere);
       await rafraichirActions();
@@ -1003,7 +1003,7 @@ async function boiteSignature(mois, seulement) {
         const r = await api("demander-signature",
                             { mois, contrats, motdepasse: mdp, relance: true });
         fermerBoite();
-        dire("Relance partie : " + r.partis.join(", ") + ".");
+        dire("Relance partie : " + r.partis.join(", ") + ".", "envoye");
         await rafraichirActions();
       } catch (e) {
         rendre();
@@ -1040,7 +1040,7 @@ async function boiteSignature(mois, seulement) {
         r.contrats.push(...av.avenants.map((a) => ({ fichier: a.fichier })));
       }
       fermerBoite();
-      dire(quoi + " envoyé(s) à la signature.");
+      dire(quoi + " envoyé(s) à la signature.", "envoye");
       afficherEnvoi("Contrats à signer", mois, [...new Set(r.partis)],
                     r.contrats.map((c) => c.fichier));
       if (enFictive()) {
@@ -1115,7 +1115,7 @@ async function boiteAvenant(mois, salarie, debut, numero) {
     try {
       const r = await api("avenant-envoyer", { salarie, debut, numero: numero || "", mois, effet, motdepasse: mdp });
       fermerBoite();
-      dire("Avenant n° " + r.numero + " envoyé à la signature : " + r.partis.join(", ") + ".");
+      dire("Avenant n° " + r.numero + " envoyé à la signature : " + r.partis.join(", ") + ".", "envoye");
       afficherEnvoi("Avenant à signer", a.mois, r.partis, [r.fichier]);
       await rafraichirActions();
     } catch (e) {
@@ -1133,7 +1133,7 @@ async function boiteAvenant(mois, salarie, debut, numero) {
                                                   motdepasse: mdp, remplace: true });
       fermerBoite();
       dire("Contrat qui annule et remplace le n° " + (a.contrat || "") + " envoyé : "
-           + r.partis.join(", ") + ".");
+           + r.partis.join(", ") + ".", "envoye");
       afficherEnvoi("Contrat à signer", a.mois, r.partis, r.contrats.map((c) => c.fichier));
       await rafraichirActions();
     } catch (e) {

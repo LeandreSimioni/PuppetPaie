@@ -417,7 +417,7 @@ fn lire_neores(crm: &Value, l: &mut Lecture) {
         let mut precisions: Vec<String> = Vec::new();
         for d in a["details"].as_array().into_iter().flatten() {
             if !s(&d["atypie"]).is_empty() {
-                precisions.push(s(&d["atypie"]));
+                precisions.push(s(&d["atypie"]).trim_end_matches('.').to_string());
             }
             for i in d["individus"].as_array().into_iter().flatten() {
                 let qui = non_vides(&[s(&i["nom"]), s(&i["prenom"])], " ");
