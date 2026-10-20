@@ -280,7 +280,7 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
 /* Un mois ferme (DSN due) : on lit, on ne touche pas. */
 #engagements.lecture-seule { pointer-events: none; }
 #engagements.lecture-seule .engagement:not(.validee) { opacity: .75; }
-/* ... mais la carte d'une paie se LIT : « Voir le détail » et les pastilles
+/* ... mais la carte d'une paie se LIT : elle s'ouvre d'un clic, et les pastilles
    répondent (30/09/2026). Sans ça, rien d'un mois passé ne s'ouvrait, ni le
    contrat ni la DPAE ; « Modifier… », dans le détail, reste caché tant que
    le mois n'est pas rouvert. */
@@ -1522,6 +1522,16 @@ button.signaler.sur-voile:hover { color: #fff; background: rgba(0,0,0,.55); }
 .sg-messages li.nouveau { border-left: 3px solid var(--action); padding-left: 8px; }
 .sg-reponse { margin: 6px 0 0; padding: 8px 10px; border-radius: 4px; white-space: pre-line;
               background: rgba(46, 106, 87, .08); }
+
+/* CE QUI S'OUVRE D'UN CLIC SUR LUI-MÊME (ticket #218, `rendreOuvrable` dans
+   js/boites.js) : une carte de paie validée, la ligne d'une fiche, la ligne
+   d'un mot de passe. La main et un fond qui s'éclaire disent qu'on peut
+   cliquer ; ce qui, dedans, fait autre chose (bouton, lien, pastille) garde
+   son propre geste. */
+.ouvrable { cursor: pointer; transition: border-color .12s, background-color .12s; }
+.rang.ouvrable:hover { border-color: var(--discret); background: var(--fond); }
+.e-resume.ouvrable:hover { background: var(--carte); }
+.ouvrable:focus-visible { outline: 2px solid var(--action); outline-offset: 1px; }
 
 /* LES IMPRÉVUS (15/10/2026) — js/imprevus.js. Discrets : ils sont rares.
    La porte (« Un imprévu… », « … ») ouvre un petit menu ; sous la carte, une

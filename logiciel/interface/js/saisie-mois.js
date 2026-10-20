@@ -324,7 +324,13 @@ function peindreCarte(div) {
   const cible = div.querySelector(".e-resume");
   if (!cible) return;
   const ligne = div._ligne, ps = div._paies || [];
-  if (!div.classList.contains("validee") || !ligne) { cible.innerHTML = ""; return; }
+  if (!div.classList.contains("validee") || !ligne) {
+    cible.innerHTML = "";
+    cible.classList.remove("ouvrable");
+    cible.removeAttribute("tabindex");
+    cible.removeAttribute("role");
+    return;
+  }
   const p = ps[0];
   const mois = document.getElementById("mois").value;
   // QUAND. Les jours travaillés du mois ; un permanent n'en a pas : son mois.
@@ -354,16 +360,13 @@ function peindreCarte(div) {
     <div class="carte-net" title="net à payer, avant impôt">${echapper(net)}</div>
     ${revoirDe(ps)}
     <span class="carte-modifier">
-      <button class="secondaire carte-detail">Voir le détail</button>
       <button class="lien carte-imprevu" title="Un imprévu : un arrêt de travail, une absence…"
         aria-label="Un imprévu">&hellip;</button></span>`;
   // VOIR SANS MODIFIER (l'utilisateur, 29/09/2026) : relire les heures d'un
-  // service de répétition ne doit pas demander de rouvrir la paie.
+  // service de répétition ne doit pas demander de rouvrir la paie. LA CARTE
+  // S'OUVRE D'UN CLIC SUR ELLE (ticket #218) : plus de « Voir le détail ».
   // « Modifier » est dans la boîte du détail.
-  cible.querySelector(".carte-detail").onclick = (ev) => {
-    ev.preventDefault();
-    boiteDetail(ligne, ps);
-  };
+  rendreOuvrable(cible, () => boiteDetail(div._ligne, div._paies || []), "Ouvrir le détail de la paie");
   // LA PORTE DES IMPRÉVUS sur une paie validée (15/10/2026) : un arrêt ou
   // une absence arrive souvent après la paie. js/imprevus.js.
   const porte = cible.querySelector(".carte-imprevu");
@@ -384,7 +387,7 @@ function revoirDe(ps) {
   if (!ps.some((p) => p.revoir)) return "";
   return `<div class="encart attention carte-revoir"><b>À revoir :</b> le calcul d'aujourd'hui ne donne plus la paie
     validée${ecarts.length ? ` — ${ecarts.join(", ")}` : ""}. Un taux, la fiche du salarié ou la convention a changé
-    depuis la validation ; « Voir le détail › Modifier… » la recalcule.</div>`;
+    depuis la validation ; « Modifier… », dans le détail de la carte, la recalcule.</div>`;
 }
 
 /** Un jour d'une ligne, nu ou avec son propre lieu (`{"jour", "lieu"}`). */

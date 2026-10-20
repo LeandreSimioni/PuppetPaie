@@ -75,6 +75,43 @@ function ajouterToutCocher(racine) {
     suivre();
   });
 }
+
+/* CE QUI S'OUVRE S'OUVRE D'UN CLIC SUR LUI-MÊME (Léandre, ticket #218 :
+ * « plus simple que modifier ou en voir plus : si on clique ça s'ouvre,
+ * simple et efficace »). Une carte de paie, la ligne d'une fiche, la ligne
+ * d'un mot de passe : plus de bouton « Voir le détail » ni « Modifier » pour
+ * les ouvrir, la ligne entière est le geste. UN SEUL MÉCANISME pour toute la
+ * page : `rendreOuvrable(el, ouvrir)` pose la fonction, l'écoute ci-dessous
+ * la joue. Ce qui, dans la ligne, fait autre chose (un bouton, un lien, une
+ * case, un formulaire, une pastille qui ouvre ses pièces) garde son geste. */
+const AUTRE_GESTE = "button, a, input, select, textarea, label, summary, details, form, .cliquable, [data-pas-ouvrir]";
+function rendreOuvrable(el, ouvrir, titre) {
+  if (!el) return;
+  el._ouvrir = ouvrir;
+  el.classList.add("ouvrable");
+  el.tabIndex = 0;
+  el.setAttribute("role", "button");
+  if (titre) el.title = titre;
+}
+function ouvrableDe(ev) {
+  const el = ev.target.closest && ev.target.closest(".ouvrable");
+  if (!el || !el._ouvrir) return null;
+  const autre = ev.target.closest(AUTRE_GESTE);
+  return autre && autre !== el && el.contains(autre) ? null : el;
+}
+document.addEventListener("click", (ev) => {
+  const el = ouvrableDe(ev);
+  // Du texte qu'on sélectionne à la souris n'ouvre rien.
+  if (!el || String(window.getSelection ? window.getSelection() : "").trim()) return;
+  el._ouvrir(ev);
+});
+document.addEventListener("keydown", (ev) => {
+  const el = ev.target;
+  if ((ev.key !== "Enter" && ev.key !== " ") || !el.classList || !el.classList.contains("ouvrable") || !el._ouvrir) return;
+  ev.preventDefault();
+  el._ouvrir(ev);
+});
+
 function fermerBoite() {
   document.getElementById("voile").classList.add("cachee");
   const f = FERMETURE_BOITE;
