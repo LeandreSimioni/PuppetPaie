@@ -338,7 +338,7 @@ function recapitulatifDsn(r) {
 }
 
 function corpsDsn(a) {
-  const v = a.versements || [];
+  const v = a.ordres || [];
   return `
     <p class="discret">${echapper(a.nom)} — ${echapper(a.libelle_type)}
       (type ${echapper(a.type_declaration)}), ordre ${echapper(a.ordre)},
@@ -367,9 +367,16 @@ function corpsDsn(a) {
         la DSN déclare ; un dépôt réel les déclenche tous</summary>
       <div class="encart ${enFictive() ? "info" : "attention"}">
       ${v.length
-        ? `<ul class="versements">${v.map((x) =>
-             `<li class="num">${echapper(euros(x))}</li>`).join("")}</ul>
-           L'organisme prélèvera ces montants. Ce ne sont pas des indications.`
+        ? `<table class="ordres">
+             <tr><th>À qui</th><th>Pour quoi</th><th class="nombre">Montant</th><th>Prélevé</th></tr>
+             ${v.map((x) => `<tr>
+               <td><b>${echapper(x.organisme)}</b></td>
+               <td>${echapper(x.objet)}</td>
+               <td class="nombre"><b>${echapper(euros(x.montant))}</b></td>
+               <td title="${echapper(x.source)}">${echapper(x.quand)}</td></tr>`).join("")}
+           </table>
+           Chaque organisme prélèvera ce montant sur le compte de la compagnie. Ce ne sont pas des indications.
+           <span class="discret">La date se lit dans la DSN ou dans le texte qui la fixe (au survol).</span>`
         : "Aucun ordre de télépaiement dans ce fichier."}
       </div>
     </details>`;

@@ -939,13 +939,14 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 
 /* Les ordres de télépaiement, en entier et un par ligne. Résumés en « 5
    versements », ils ne se relisent plus — et un dépôt réel les déclenche
-   tous. */
-.versements { list-style: none; margin: 6px 0; padding: 0; }
-.versements li {
-  font-size: 17px; font-weight: bold;
-  padding: 2px 0; border-bottom: 1px solid var(--bord);
-}
-.versements li:last-child { border-bottom: none; }
+   tous. Chacun dit à qui, pour quoi, combien et pour quand (ticket #223) :
+   `ordres_paiement.rs` le lit, la page l'affiche. */
+table.ordres { width: 100%; margin: 6px 0 8px; font-size: 13px; }
+table.ordres th, table.ordres td { padding: 4px 6px; text-align: left; vertical-align: top;
+  border-bottom: 1px solid var(--bord); }
+table.ordres th.nombre, table.ordres td.nombre { text-align: right; white-space: nowrap; }
+table.ordres td.nombre b { font-size: 15px; }
+table.ordres tr:last-child td { border-bottom: none; }
 
 /* La réponse de l'organisme, telle quelle. */
 pre.reponse {
