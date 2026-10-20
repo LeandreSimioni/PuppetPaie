@@ -313,14 +313,23 @@ impl Etat<'_> {
     }
 
     /// `journal.etat_dsn_du_mois(ctx, mois)` : `Null` ou l'etat.
-    /// UN MOIS TENU AVANT CE LOGICIEL (ticket #215) : sans ligne au journal, la DSN que l'import a lue pour lui
-    /// (`mois_importe::dsn_importee`) le dit declare -- ni rappel, ni « en retard ».
+    /// UN MOIS TENU AVANT CE LOGICIEL (ticket #215) NE SE RECLAME JAMAIS : sans ligne au journal, la DSN que l'import
+    /// a lue pour lui (`mois_importe::dsn_importee`) le dit declare ; sans aucune trace, il n'est pas reclame non plus
+    /// (`sans_trace`) -- sa DSN, faite ou a faire, releve du logiciel qui a calcule ses paies, et PuppetPaie ne la
+    /// refait pas (regle 4). C'est ICI, et seulement ici, que rappels et echeancier l'apprennent : ni rappel, ni
+    /// « en retard ». La page Paie et l'Historique, eux, disent « aucune trace » (`mois_importe::dsn_avant`).
     pub(crate) fn etat_dsn(&self, mois: &str) -> R<Value> {
         let e = etats::etat_dsn_du_mois(&self.journal, mois, &Value::Null, &self.principal)?;
         if !e.is_null() {
             return Ok(e);
         }
-        Ok(crate::mois_importe::dsn_importee(self.racine(), mois)?.unwrap_or(Value::Null))
+        if let Some(d) = crate::mois_importe::dsn_importee(self.racine(), mois)? {
+            return Ok(d);
+        }
+        if crate::mois_importe::importe(self.racine(), mois)? {
+            return Ok(json!({"importee": true, "sans_trace": true, "passee": false, "refusee": false}));
+        }
+        Ok(Value::Null)
     }
 }
 
@@ -369,7 +378,8 @@ fn lister(st: &Etat) -> R<Vec<Rappel>> {
     if !vrai_opt(exercice_clos(st.ctx, &precedent.to_string())?.as_ref()) && !mois_de_l_annee(st.ctx, &precedent.to_string()).is_empty() {
         // La cloture vient APRES la DSN de decembre : tant qu'elle manque, c'est
         // son rappel qui parle, pas celui-ci.
-        if vrai(&st.etat_dsn(&decembre)?) {
+        let e = st.etat_dsn(&decembre)?;
+        if vrai(&e) && !vrai_opt(e.get("sans_trace")) {
             let mut r = Rappel::nouveau(
                 CLOTURE,
                 format!("cloture:{}", precedent),
