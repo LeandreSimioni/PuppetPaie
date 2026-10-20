@@ -132,11 +132,10 @@
       <h2>Les engagements
         <span class="discret">— chacun porte son état</span></h2>
       <div id="engagements"></div>
-      <!-- Un mois passe sans fichier de paie (16/09/2026, « je voulais que
-           l'historique soit au meme endroit que les paies ») : ce que la
-           compagnie a declare ce mois-la avant PuppetPaie, lu dans
-           l'historique importe. Lecture seule. -->
-      <div id="declare-avant" hidden></div>
+      <!-- Un mois tenu avant PuppetPaie (ticket #215) : ses paies, en cartes,
+           lues dans l'historique importe (route `saisie`, `importe`). Lecture
+           seule. js/saisie-mois.js, dessinerMoisImporte(). -->
+      <div id="mois-importe" hidden></div>
       <button class="secondaire" id="ajouter-engagement">+ un engagement</button>
       <!-- Un contrat signé un mois précédent et qui court encore (15/09/2026,
            contrats sur plusieurs mois) : le bloc arrive prérempli et ses
@@ -179,7 +178,7 @@
     </div>
 
     <aside class="col-apercu">
-      <h2>Le mois <span class="discret">calculé, rien n'est écrit</span></h2>
+      <h2>Le mois <span class="discret" id="apercu-sous-titre">calculé, rien n'est écrit</span></h2>
       <div id="apercu"></div>
 
       <!-- Ce qui est parti de ce mois-ci, et ce qui peut encore partir.
