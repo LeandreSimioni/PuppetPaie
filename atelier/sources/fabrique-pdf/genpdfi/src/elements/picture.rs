@@ -11,6 +11,7 @@
 //! - les PNG avec canal alpha sont acceptés (masque de transparence) ;
 //! - les JPEG en niveaux de gris ou en couleurs sont recopiés tels quels dans le PDF (filtre
 //!   `DCTDecode`), sans décompression ;
+//! - une image plus fine que `RESOLUTION` à sa largeur posée y est ramenée (ticket #228) ;
 //! - le SVG est posé en vectoriel (`printpdf::svg`, donc svg2pdf) ;
 //! - l'image qui ne tient pas dans la place restante passe à la page suivante.
 
@@ -107,13 +108,41 @@ impl Picture {
         // On décode toujours : un fichier tronqué ou corrompu est un refus, pas un blanc.
         let decoded = image::load_from_memory_with_format(data, image_format)
             .map_err(|e| invalid(format!("{} illisible : {}", name, e)))?;
-        let (w_px, h_px) = (decoded.width() as usize, decoded.height() as usize);
-        if w_px == 0 || h_px == 0 {
+        if decoded.width() == 0 || decoded.height() == 0 {
             return Err(invalid(format!("{} vide", name)));
         }
+        // Une image plus fine que ce qui s'imprime est ramenée à `RESOLUTION` à sa largeur posée
+        // (ticket #228 : un logo de 1 200 pixels posé sur 26 mm pesait l'essentiel du bulletin).
+        // Les proportions posées sont celles de l'original : la réduction arrondit les pixels.
+        let proportions = decoded.height() as f32 / decoded.width() as f32;
+        let (decoded, reduite) = reduire(decoded, width);
+        let (w_px, h_px) = (decoded.width() as usize, decoded.height() as usize);
 
         let xobject = match (format, jpeg_components(data)) {
-            // JPEG en niveaux de gris ou en couleurs : recopié tel quel.
+            // JPEG ramené à la résolution d'impression : réencodé en JPEG (filtre `DCTDecode`).
+            (Format::Jpeg, Some(components)) if reduite && (components == 1 || components == 3) => {
+                let (pixels, color_space, color) = if components == 1 {
+                    (decoded.to_luma8().into_raw(), ColorSpace::Greyscale, image::ColorType::L8)
+                } else {
+                    (decoded.to_rgb8().into_raw(), ColorSpace::Rgb, image::ColorType::Rgb8)
+                };
+                let mut jpeg = Vec::new();
+                image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg, QUALITE_JPEG)
+                    .encode(&pixels, w_px as u32, h_px as u32, color)
+                    .map_err(|e| invalid(format!("JPEG : réduction impossible : {}", e)))?;
+                printpdf::xobject::ImageXObject {
+                    width: Px(w_px),
+                    height: Px(h_px),
+                    color_space,
+                    bits_per_component: ColorBits::Bit8,
+                    interpolate: true,
+                    image_data: jpeg,
+                    image_filter: Some(printpdf::xobject::ImageFilter::DCT),
+                    smask: None,
+                    clipping_bbox: None,
+                }
+            }
+            // JPEG en niveaux de gris ou en couleurs, déjà à la bonne résolution : recopié tel quel.
             (Format::Jpeg, Some(components)) if components == 1 || components == 3 => {
                 printpdf::xobject::ImageXObject {
                     width: Px(w_px),
@@ -169,7 +198,7 @@ impl Picture {
                 }
             }
         };
-        let height = width * (h_px as f32 / w_px as f32);
+        let height = width * proportions;
         Ok(Picture {
             kind: Kind::Raster(xobject),
             width,
@@ -277,6 +306,57 @@ impl Element for Picture {
             has_more: false,
         })
     }
+}
+
+/// La résolution, en pixels par pouce, à laquelle une image est ramenée à sa largeur posée : celle
+/// de l'impression courante. Au-delà, les pixels ne s'impriment ni ne se voient, ils ne font que
+/// peser (ticket #228).
+pub const RESOLUTION: f32 = 300.0;
+
+/// La qualité d'un JPEG réencodé après réduction (sur 100).
+#[cfg(feature = "images")]
+const QUALITE_JPEG: u8 = 90;
+
+/// L'image ramenée à `RESOLUTION` à la largeur `width`, si elle la dépasse de plus d'un quart
+/// (en deçà, l'écart ne vaut pas un rééchantillonnage) ; `true` si elle a été réduite. Les
+/// proportions sont gardées. Une image avec transparence est réduite en couleurs prémultipliées :
+/// la couleur d'un pixel transparent ne déteint pas sur le bord du dessin.
+#[cfg(feature = "images")]
+fn reduire(image: image::DynamicImage, width: Mm) -> (image::DynamicImage, bool) {
+    use image::imageops::FilterType;
+    // (le millième retire l'erreur d'arrondi des points convertis en millimètres : 48 pt font 200 pixels, pas 201)
+    let cible = ((width.0 / 25.4) * RESOLUTION - 0.001).ceil().max(1.0) as u32;
+    let (w, h) = (image.width(), image.height());
+    if w <= cible + cible / 4 {
+        return (image, false);
+    }
+    let hauteur = ((h as f64) * (cible as f64) / (w as f64)).round().max(1.0) as u32;
+    if !image.color().has_alpha() {
+        return (image.resize_exact(cible, hauteur, FilterType::Lanczos3), true);
+    }
+    let mut f = image.to_rgba32f();
+    for p in f.pixels_mut() {
+        let a = p.0[3];
+        p.0[0] *= a;
+        p.0[1] *= a;
+        p.0[2] *= a;
+    }
+    let mut r = image::imageops::resize(&f, cible, hauteur, FilterType::Lanczos3);
+    for p in r.pixels_mut() {
+        let a = p.0[3].clamp(0.0, 1.0);
+        for c in 0..3 {
+            p.0[c] = if a > 0.0 { (p.0[c] / a).clamp(0.0, 1.0) } else { 0.0 };
+        }
+        p.0[3] = a;
+    }
+    let reduite = image::DynamicImage::ImageRgba32F(r);
+    // Revenir aux huit bits par composante de l'original (couleur ou niveaux de gris).
+    let reduite = if image.color().has_color() {
+        image::DynamicImage::ImageRgba8(reduite.to_rgba8())
+    } else {
+        image::DynamicImage::ImageLumaA8(reduite.to_luma_alpha8())
+    };
+    (reduite, true)
 }
 
 /// Retourne le nombre de composantes d'un JPEG recopiable tel quel (DCT de base ou progressive,

@@ -610,6 +610,125 @@ fn bloc_image_jpeg_recopie_tel_quel() {
     assert!(String::from_utf8_lossy(&pdf).contains("DCTDecode"));
 }
 
+// --- Ticket #228 : un bulletin aussi léger que possible ---------------------------------------
+
+/// Les objets image du fichier (masques compris), par identifiant.
+fn objets_image(pdf: &[u8]) -> Vec<(lopdf::ObjectId, lopdf::Dictionary)> {
+    let doc = Document::load_mem(pdf).unwrap();
+    doc.objects
+        .iter()
+        .filter_map(|(id, o)| match o {
+            Object::Stream(s) if s.dict.get(b"Subtype").ok().and_then(|x| x.as_name().ok()) == Some(b"Image") => {
+                Some((*id, s.dict.clone()))
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+/// Un logo de 1 200 x 600 pixels, en dégradé, transparent au bord (ce que pose une compagnie).
+fn logo_trop_fin(nom: &str, jpeg: bool) -> String {
+    let (w, h) = (1200u32, 600u32);
+    let p = dossier_temp("logos").join(nom);
+    if jpeg {
+        let img = image::RgbImage::from_fn(w, h, |x, y| image::Rgb([(x * 255 / w) as u8, (y * 255 / h) as u8, 128]));
+        let mut f = std::fs::File::create(&p).unwrap();
+        image::codecs::jpeg::JpegEncoder::new_with_quality(&mut f, 92).encode_image(&img).unwrap();
+    } else {
+        let img = image::RgbaImage::from_fn(w, h, |x, y| {
+            let bord = x < 40 || y < 40 || x >= w - 40 || y >= h - 40;
+            image::Rgba([(x * 255 / w) as u8, (y * 255 / h) as u8, 90, if bord { 0 } else { 255 }])
+        });
+        img.save_with_format(&p, image::ImageFormat::Png).unwrap();
+    }
+    chemin(&p)
+}
+
+#[test]
+fn un_logo_trop_fin_est_ramene_a_300_ppi_et_n_est_ecrit_qu_une_fois() {
+    // 74 pt de large (le logo du bulletin) : 74 / 72 x 300 = 308,3, soit 309 pixels.
+    let mut v = base(vec![para("un")]);
+    v["documents"] = json!([{"blocs": [para("un")]}, {"blocs": [para("deux")]}, {"blocs": [para("trois")]}]);
+    v["logo"] = json!({"chemin": logo_trop_fin("logo.png", false), "largeur": 74.0, "marge_haut": 5.0, "marge_droite": 5.0});
+    let pdf = ok(&v);
+    assert_eq!(nb_pages(&pdf), 3);
+    for page in 1..=3 {
+        assert_eq!(xobjects(&pdf, page, "Image"), 1, "le logo est sur la page {}", page);
+    }
+    let images = objets_image(&pdf);
+    let (pixels, masques): (Vec<_>, Vec<_>) = images.iter().partition(|(_, d)| d.get(b"SMask").is_ok());
+    assert_eq!((pixels.len(), masques.len()), (1, 1), "une image et un masque pour trois pages : {:?}", images);
+    for (_, d) in &images {
+        assert_eq!((d.get(b"Width").unwrap().as_i64().unwrap(), d.get(b"Height").unwrap().as_i64().unwrap()), (309, 155));
+        // Les pixels sont comprimés avec les prédicteurs PNG (PDF 1.7, § 7.4.4.4).
+        let p = d.get(b"DecodeParms").unwrap().as_dict().unwrap();
+        assert_eq!(p.get(b"Predictor").unwrap().as_i64().unwrap(), 15);
+        assert_eq!(p.get(b"Columns").unwrap().as_i64().unwrap(), 309);
+    }
+    // Le logo garde ses proportions et sa place.
+    let ins = inspecter(&pdf, "logo-fin.pdf");
+    let r = nombres(&ins["pages"][2]["images"][0]);
+    assert!((r[2] - r[0] - 74.0).abs() < 0.1 && (r[3] - r[1] - 37.0).abs() < 0.1, "{:?}", r);
+    // Et le fichier est léger : le logo de 1 200 pixels y pesait plus de 100 Ko.
+    assert!(pdf.len() < 40_000, "{} octets", pdf.len());
+}
+
+#[test]
+fn un_jpeg_trop_fin_est_reduit_et_reste_un_jpeg_un_jpeg_a_la_bonne_taille_est_recopie() {
+    let mut v = base(vec![para("x")]);
+    v["logo"] = json!({"chemin": logo_trop_fin("logo.jpg", true), "largeur": 74.0, "marge_haut": 5.0, "marge_droite": 5.0});
+    let pdf = ok(&v);
+    let images = objets_image(&pdf);
+    assert_eq!(images.len(), 1);
+    let d = &images[0].1;
+    assert!(format!("{:?}", d.get(b"Filter").unwrap()).contains("DCTDecode"), "{:?}", d);
+    assert_eq!(d.get(b"Width").unwrap().as_i64().unwrap(), 309);
+    // `exemples/scan.jpg` (368 pixels) posé sur 150 pt (625 pixels à 300 ppi) : recopié tel quel, voir
+    // `bloc_image_jpeg_recopie_tel_quel`. Posé sur 74 pt (309 pixels), il ne les dépasse pas d'un quart : recopié
+    // aussi. Posé sur 48 pt (200 pixels), il est réduit.
+    let mut v = base(vec![para("x")]);
+    v["logo"] = json!({"chemin": image("scan.jpg"), "largeur": 74.0, "marge_haut": 5.0, "marge_droite": 5.0});
+    assert_eq!(objets_image(&ok(&v))[0].1.get(b"Width").unwrap().as_i64().unwrap(), 368);
+    v["logo"]["largeur"] = json!(48.0);
+    assert_eq!(objets_image(&ok(&v))[0].1.get(b"Width").unwrap().as_i64().unwrap(), 200);
+}
+
+#[test]
+fn les_polices_embarquees_n_ont_plus_de_hinting_et_gardent_leurs_contours() {
+    let pdf = ok(&base(vec![para("Bulletin de paie : 1 234,56 € — Élodie")]));
+    let doc = Document::load_mem(&pdf).unwrap();
+    let mut vues = 0;
+    for o in doc.objects.values() {
+        let Object::Dictionary(d) = o else { continue };
+        let Ok(Object::Reference(f)) = d.get(b"FontFile2") else { continue };
+        let ttf = doc.get_object(*f).unwrap().as_stream().unwrap().decompressed_content().unwrap();
+        let n = u16::from_be_bytes([ttf[4], ttf[5]]) as usize;
+        let tables: Vec<String> = (0..n).map(|i| String::from_utf8_lossy(&ttf[12 + 16 * i..16 + 16 * i]).into_owned()).collect();
+        assert_eq!(tables, ["glyf", "head", "hhea", "hmtx", "loca", "maxp"], "ni cvt, ni fpgm, ni prep");
+        // Les contours sont là, et sans instructions : chaque glyphe simple a une longueur d'instructions nulle.
+        let face = ttf_parser::Face::parse(&ttf, 0).unwrap();
+        let mut avec_contour = 0;
+        for g in 1..face.number_of_glyphs() {
+            struct Rien;
+            impl ttf_parser::OutlineBuilder for Rien {
+                fn move_to(&mut self, _: f32, _: f32) {}
+                fn line_to(&mut self, _: f32, _: f32) {}
+                fn quad_to(&mut self, _: f32, _: f32, _: f32, _: f32) {}
+                fn curve_to(&mut self, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32) {}
+                fn close(&mut self) {}
+            }
+            if face.outline_glyph(ttf_parser::GlyphId(g), &mut Rien).is_some() {
+                avec_contour += 1;
+            }
+        }
+        assert!(avec_contour >= 20, "{} glyphes dessinés", avec_contour);
+        vues += 1;
+    }
+    assert!(vues >= 1);
+    // Le texte se relit tel qu'il a été écrit.
+    assert!(texte_complet(&pdf).contains("1 234,56 € — Élodie"), "{}", texte_complet(&pdf));
+}
+
 #[test]
 fn bloc_image_svg_est_vectoriel() {
     let pdf = ok(&base(vec![

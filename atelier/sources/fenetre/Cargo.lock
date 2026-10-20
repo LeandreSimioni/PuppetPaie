@@ -1361,6 +1361,7 @@ name = "genpdfi"
 version = "0.2.7-puppetpaie.1"
 dependencies = [
  "derive_more 0.99.20",
+ "flate2",
  "image",
  "printpdf",
  "rusttype",
