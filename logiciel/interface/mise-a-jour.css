@@ -9,7 +9,10 @@
   max-width: 260px; padding: 4px 8px;
   font: 11.5px/1.35 Arial, Helvetica, sans-serif;
   color: var(--discret, #7A8794);
-  background: color-mix(in srgb, var(--fond, #F7F6F4) 88%, transparent);
+  /* Le fond de la page (--fond, #F7F6F4) a 88 % : en rgba, jamais par la fonction color-mix, que Chromium calcule
+     en fonction « color » et que la capture d'ecran du « Un probleme, une idee ? » (html2canvas 1.4.1) refuse
+     (ticket #218 ; tests/interface_fichiers.rs le garde). */
+  background: rgba(247, 246, 244, 0.88);
   border-radius: 4px;
   pointer-events: auto;
 }
