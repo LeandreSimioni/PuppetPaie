@@ -34,29 +34,9 @@
 */
 let MOIS_ACTES = null;          // le dernier /api/etat-du-mois lu
 
-/* Trois états, trois couleurs, et surtout pas deux : « parti, pas de retour »
- * n'est pas « parti et conforme ». */
-/** Les derniers envois d'un acte, tests compris, quand ils disent autre chose
- *  que l'état réel du dessus — « j'aimerais avoir les derniers retours ici »
- *. */
-/** Le fil des envois d'un acte. Les dépôts de TEST n'y sont que dans la
- *  copie de développement (25/09/2026 : « garde les tests pour quand
- *  j'ouvre la compagnie dev ») ; chez la compagnie, le test d'un dépôt se
- *  lit dans sa boîte, et le fil ne dit que ce qui est parti. */
-function envoisVisibles(e, cle) {
-  const lignes = (e.derniers && e.derniers[cle]) || [];
-  return document.body.dataset.copie ? lignes : lignes.filter((l) => l.mode !== "test");
-}
-
-function derniersEnvois(e, cle) {
-  const lignes = envoisVisibles(e, cle);
-  if (!lignes.length) return "";
-  // Tous, réel compris, le plus récent en premier — l'état réel du dessus
-  // reste la réponse à « est-ce fait ? », ceci est le fil des envois.
-  return `<div class="acte-derniers">` + lignes.map((l) =>
-    `<div class="acte-dernier ${l.mode === "test" ? "test" : "reel"}">${echapper(l.resume)}</div>`)
-    .join("") + `</div>`;
-}
+/* LE FIL DES ENVOIS N'EST PLUS ICI (20/10/2026, tickets #219, #220) : tous les envois du mois et tous leurs retours, lus,
+ * sont dans l'Historique (js/historique.js, route `historique-mois`). L'étape garde son état et son bouton ; un lien
+ * mène au mois dans l'Historique. */
 
 /** La phrase d'un coup d'œil, dans la tête de la boîte : courte quand c'est
  *  fini, la phrase du bilan sinon (elle dit ce qui reste). */
@@ -223,8 +203,8 @@ async function dessinerActions(mois) {
      contrats, DSN, documents, numérotées et reliées. Une étape faite tient en
      une ligne cochée ; seule L'ÉTAPE SUIVANTE — la première qui n'est pas
      faite — est dépliée, avec son bouton en principal. Les autres se
-     déplient d'un clic. Le fil des envois (tests compris) se replie sous
-     « voir les envois » : c'est un historique, pas un état. */
+     déplient d'un clic. Le fil des envois et leurs retours se lisent dans
+     l'Historique : c'est un historique, pas un état. */
   const limite = await limiteDsn(mois);
   const lignes = actes.map((a) => {
     const bilan = (e.bilans && e.bilans[a.cle]) || null;
@@ -264,8 +244,7 @@ async function dessinerActions(mois) {
                  "dsn": "DSN", "documents": "Documents" };
   cible.innerHTML = `<ol class="etapes">` + lignes.map((l, i) => {
     const a = l.a, dispo = a.toujours || !!a.fichier;
-    const envois = derniersEnvois(e, a.cle);
-    const nEnvois = envoisVisibles(e, a.cle).length;
+    const nEnvois = (e.lignes || []).filter((x) => x.quoi === a.cle).length;
     const echeance = a.cle === "dsn" && limite && !l.fini
       ? ` <span class="etape-limite">avant le ${echapper(limite)}</span>` : "";
     return `
@@ -285,7 +264,8 @@ async function dessinerActions(mois) {
                     ${dispo ? "" : "disabled"}>${echapper(a.bouton)}</button>`}
             ${a.second ? `<button class="secondaire" data-second="${echapper(a.cle)}">${echapper(a.second.bouton)}</button>` : ""}
             ${dispo ? "" : `<p class="note">${echapper(a.absent)}</p>`}
-            ${nEnvois ? `<details class="etape-envois"><summary>voir les envois (${nEnvois})</summary>${envois}</details>` : ""}
+            ${nEnvois ? `<button class="lien etape-envois" data-historique="${echapper(mois)}">voir ${nEnvois > 1
+              ? `les ${nEnvois} envois` : "l'envoi"} et leurs retours dans l'Historique</button>` : ""}
           </div>
         </details>
       </li>`;
@@ -297,6 +277,9 @@ async function dessinerActions(mois) {
   cible.querySelectorAll("[data-second]").forEach((b) => {
     b.onclick = () => actes.find((a) => a.cle === b.dataset.second).second.ouvrir();
   });
+  cible.querySelectorAll("[data-historique]").forEach((b) => {
+    b.onclick = () => ouvrirMoisHistorique(b.dataset.historique);
+  });
 }
 
 /* Ce qu'il faut relire après avoir déposé ou envoyé : l'état du mois affiché,
@@ -306,13 +289,7 @@ async function rafraichirActions() {
   await dessinerActions(mois);
   await dessinerEmbauches(mois);
   await dessinerEtatsDesPaies(mois);
-  await dessinerReprise();
 }
-
-/* La reprise ne depend pas du mois : elle balaie tout ce qui est archive. Elle
- * se dessine donc une fois a l'ouverture, et se refait apres un depot -- qui
- * vient justement d'ecrire une ligne, et donc de raccourcir ce qu'il reste a
- * reprendre. */
 
 /* ---------------------------------------- le récapitulatif d'un dépôt */
 
@@ -490,7 +467,6 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
       const r = await api("deposer", { quoi, fichier, reel, motdepasse: mdp,
                                        forcer, contournement });
       rendre();
-      afficherDepot(r, a);
       if (!reel) {
         // LE TEST NE FERME PLUS LA BOÎTE (25/09/2026) : « ça a quitté la
         // fenêtre au lieu de rester et d'attendre les retours pour proposer
@@ -807,46 +783,6 @@ function boiteRenvoiDsn(etat, renvoyer) {
   document.getElementById("d-renvoyer").onclick = () => { fermerBoite(); renvoyer(); };
 }
 const quand_ = (iso) => quand(iso);
-
-/* La réponse de l'organisme, en entier et telle quelle. On n'en fait pas un
- * résumé : c'est la pièce, et c'est elle qu'on relira le jour où un retour
- * dira le contraire. */
-function afficherDepot(r, a) {
-  // CE QUE LE POINT DE DÉPÔT A DIT, EN CLAIR (ticket #105, 02/10/2026). Le
-  // XML brut de l'accusé ne nomme que le DÉCLARANT -- celui qui dépose --,
-  // et on l'a lu comme le seul salarié parti. On dit ce qui est parti, pour
-  // qui ; le XML reste là, replié, pour qui veut le lire.
-  const etat = /<envoi_etat>\s*([A-Z]+)/.exec(r.reponse || "");
-  const qui = r.quoi === "dpae" && a && (a.embauches || []).length
-    ? `<p>${a.embauches.length} embauche${a.embauches.length > 1 ? "s" : ""} dans ce dépôt :</p>
-       <ul>${a.embauches.map((x) => `<li>${echapper(x.nom)} — embauche le
-         ${echapper(jjmmaaaa(x.debut))}</li>`).join("")}</ul>` : "";
-  document.getElementById("resultat").innerHTML = `
-    <div class="carte" style="margin-top:20px">
-      <h2>${echapper(r.quoi.toUpperCase())} ${echapper(r.mois || "")} —
-        ${r.reel ? "dépôt réel" : "dépôt de test"}</h2>
-      ${r.deja ? `<div class="encart attention"><b>Ce fichier avait déjà été
-        déposé</b> Le ${echapper(quand(r.deja.quand))}.</div>` : ""}
-      ${r.repetition?.contournement ? `<div class="encart attention">
-        <b>Déposé sans répétition</b> Motif inscrit au journal des dépôts :
-        ${echapper(r.repetition.contournement)}</div>` : ""}
-      ${r.flux
-        ? `<div class="encart bien"><b>Flux ${echapper(r.flux)}</b>
-           C'est par ce numéro que les retours de l'organisme se rattacheront
-           à ce dépôt.</div>`
-        : `<div class="encart attention"><b>Pas d'identifiant de flux</b>
-           La réponse n'en portait pas : les retours ne pourront pas se
-           rattacher seuls à ce dépôt, et le diront.</div>`}
-      ${etat ? `<p>Accusé de réception de l'organisme : <b>${etat[1] === "OK"
-        ? "envoi reçu" : "envoi " + echapper(etat[1])}</b>. Le compte rendu de
-        conformité suit, en général dans les dix minutes.</p>` : ""}
-      ${qui}
-      <details><summary class="discret">Réponse brute de l'organisme</summary>
-        <pre class="reponse">${echapper(r.reponse || "")}</pre></details>
-      ${r.trace ? `<p class="note">Réponse entière archivée dans
-        ${echapper(r.trace)}</p>` : ""}
-    </div>`;
-}
 
 /* ------------------------------------------ les documents aux salariés */
 async function boiteEnvoi(mois) {

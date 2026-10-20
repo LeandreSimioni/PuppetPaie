@@ -95,7 +95,9 @@ function dessinerVeille(v) {
 
   // 2. LES NOUVELLES : ce qui est arrivé depuis le dernier regard.
   const nouvelles = [];
-  if (d.nouveaux) nouvelles.push(`${d.nouveaux} retour${d.nouveaux > 1 ? "s" : ""} nouveau${d.nouveaux > 1 ? "x" : ""}`);
+  // Les retours se LISENT dans l'Historique (20/10/2026) : le bandeau les annonce et y mène.
+  const retours = d.nouveaux ? ` <button class="lien" data-vers-historique>${d.nouveaux} retour${d.nouveaux > 1 ? "s" : ""}
+    nouveau${d.nouveaux > 1 ? "x" : ""} — les lire dans l'Historique</button>` : "";
   (d.signatures_recues || []).forEach((x) => nouvelles.push(`contrat signé par ${x.nom}`));
   if (d.maj && !d.maj_exigee) nouvelles.push(d.maj);
   // L'HORLOGE DE LA COMPAGNIE FICTIVE : ce que l'administrateur fictif a fait
@@ -103,6 +105,7 @@ function dessinerVeille(v) {
   const horloge = enFictive() && (d.horloge || []).length
     ? ` <button class="lien" id="fictive-horloge">pendant votre absence, la compagnie a
         travaillé (${d.horloge.length}) — voir</button>` : "";
+  if (retours) morceaux.push(retours);
   if (nouvelles.length) morceaux.push(`<b>${nouvelles.map(echapper).join(" · ")}</b>`);
   if (horloge) morceaux.push(horloge);
   if (d.maj_note) morceaux.push(`<b>${echapper(d.maj_note)}</b>`);
@@ -154,6 +157,9 @@ function dessinerVeille(v) {
     zone.classList.add("neuf");
   }
   texte.innerHTML = morceaux.join(" — ");
+  texte.querySelectorAll("[data-vers-historique]").forEach((b) => {
+    b.onclick = () => document.querySelector('.onglets button[data-vue="historique"]').click();
+  });
   texte.querySelectorAll("[data-aller]").forEach((b) => {
     b.onclick = () => allerAuxMotsDePasse(b.dataset.aller);
   });

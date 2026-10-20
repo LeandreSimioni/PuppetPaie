@@ -772,7 +772,6 @@ async function chargerMois(mois, repeint = false) {
   const lectures = [
     dessinerActions(mois),
     dessinerEmbauches(mois),
-    dessinerReprise(),
     // Les imprévus et les fins de contrat : ce qui est dû, et la ligne de
     // chaque imprévu sous sa carte (js/imprevus.js).
     dessinerImprevus(mois),
@@ -788,7 +787,7 @@ async function chargerMois(mois, repeint = false) {
 }
 
 /** L'ÉTAT FRAIS D'UN MOIS DÉJÀ AFFICHÉ (ticket #212). Rien n'a changé : rien ne bouge. Sinon on repeint ce qui vient
- *  du moteur — les états des paies, les actes, les embauches, les imprévus, la reprise, l'aperçu — sans refaire les
+ *  du moteur — les états des paies, les actes, les embauches, les imprévus, l'aperçu — sans refaire les
  *  blocs ; ceux-ci ne se refont que si la saisie lue elle-même a changé (un fichier modifié hors de cette page), et
  *  jamais par-dessus une saisie en cours, qui reste ce qu'elle est et s'enregistre comme d'habitude. */
 async function repeindreLeMois(mois, ancien, frais) {
@@ -816,7 +815,6 @@ async function repeindreLeMois(mois, ancien, frais) {
   await Promise.allSettled([
     dessinerActions(mois),
     dessinerEmbauches(mois),
-    dessinerReprise(),
     dessinerImprevus(mois),
     dessinerEtatsDesPaies(mois),
   ]);

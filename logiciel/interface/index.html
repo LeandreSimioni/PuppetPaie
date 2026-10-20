@@ -200,11 +200,6 @@
            salarié (« Un imprévu… »). js/imprevus.js. -->
       <div id="dus"></div>
 
-      <!-- Ce que les retours attestent et que le journal ignore encore.
-           Vide quand il n'y a rien a reprendre, et c'est la regle : un bloc
-           permanent qui dit « rien a faire » finit par ne plus se lire. -->
-      <div id="reprise"></div>
-
       <!-- Les embauches du MOIS AFFICHÉ dont aucun envoi n'a laissé de trace.
            Du mois affiché seulement, depuis le 12/09/2026 : « je vois octobre
            dans septembre… chaque mois doit être autonome ». Une colonne qui
@@ -279,6 +274,16 @@
        correction voyage dans la DSN du mois courant, datée du mois
        d'origine, cahier technique 2026.1 §2.2.2.5). Puis l'année : clôture
        et export compta. Puis les corrections écrites, s'il y en a. -->
+  <!-- TOUS LES ENVOIS ET TOUS LES RETOURS SE LISENT ICI (Leandre, 20/10/2026 ;
+       tickets #219, #220, #222). Un mois se deplie sur sa vue technique : ses
+       documents, chacun ouvrable, puis ses envois (tests de ce logiciel
+       compris) et, sous chacun, ses retours dans l'ordre d'arrivee, lus par le
+       moteur (`historique-mois`). La page Paie est l'endroit ou l'on fait le
+       mois ; l'Historique, celui ou l'on voit ce qu'il a produit, envoye et
+       recu. En tete, et seulement s'il y a quelque chose : ce que les retours
+       attestent et que le journal ignore encore (la reprise). -->
+  <div id="reprise"></div>
+
   <h2>Les mois</h2>
   <div id="historique"></div>
 

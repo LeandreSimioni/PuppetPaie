@@ -11,7 +11,8 @@
      « je comprends pas pourquoi il veut que je renvoie ça alors qu'on l'a
        déjà envoyé et on a les traces de dépôt il me semble »
 
-   Ce bloc lui rend ce qu'il savait. Il n'apparaît QUE s'il y a quelque chose
+   Ce bloc lui rend ce qu'il savait, en tête de l'Historique (20/10/2026 : tous
+   les envois et leurs retours s'y lisent). Il n'apparaît QUE s'il y a quelque chose
    à reprendre : une fois le journal à jour, il disparaît et ne revient que si
    un nouveau dépôt atteste d'un chemin qui n'est pas passé par ici.
 
@@ -70,8 +71,9 @@ async function dessinerReprise() {
       const f = await api("journal-reprise", { ecrire: true });
       dire(f.ajoutes.length + " dépôt(s) remis au journal"
            + (f.rattaches ? ", " + f.rattaches + " retour(s) rattachés." : "."));
+      // La reprise remet des envois au journal : l'Historique, où elle se montre, se redessine avec eux.
       await rafraichirActions();
-      await dessinerReprise();
+      dessinerHistorique();
     } catch (e) {
       document.getElementById("reprendre").disabled = false;
       dire(e.message, "erreur");
