@@ -890,7 +890,7 @@ function majFermeture(mois, existe) {
  * manque ? »). Un mois tenu avant PuppetPaie n'a pas de fichier de paie : le
  * moteur le rend depuis l'historique importé (`importe` de la route `saisie`,
  * `mois_importe.rs`) — une carte par paie, comme celle d'une paie validée :
- * quand, qui et pour quoi, ses états, son net ; « Voir les cases » montre
+ * quand, qui et pour quoi, ses états, son net ; un clic sur la carte montre
  * chaque case remplie de ce que l'import a lu, avec d'où elle vient. Ce que
  * l'import n'a pas pu lire se dit sur la carte, case par case, et pourquoi —
  * jamais un blanc muet. La page n'en décide rien : elle affiche. */
@@ -920,13 +920,13 @@ function dessinerMoisImporte() {
       ${n} paie${n > 1 ? "s" : ""} ${[total("brut", "· brut"), total("net_a_payer", "· net")].filter(Boolean).join(" ")}
       · lecture seule</span></p>
     ${IMPORTE.paies.map((p, i) => carteImportee(p, i, moisCourt, mois)).join("")}`;
+  // LA CARTE S'OUVRE D'UN CLIC SUR ELLE (ticket #218, `rendreOuvrable`) : ses cases se déplient, un second clic les replie.
   cible.querySelectorAll(".carte-importee").forEach((div) => {
-    div.querySelector(".carte-detail").onclick = (ev) => {
-      ev.preventDefault();
-      const cases = div.querySelector(".ci-cases");
+    const cases = div.querySelector(".ci-cases");
+    rendreOuvrable(div.querySelector(".e-resume"), () => {
       cases.hidden = !cases.hidden;
-      ev.target.textContent = cases.hidden ? "Voir les cases" : "Replier";
-    };
+      div.classList.toggle("ouverte", !cases.hidden);
+    }, "Voir ou replier les cases de la paie");
   });
   cible.hidden = false;
 }
@@ -950,7 +950,7 @@ function carteImportee(p, i, moisCourt, mois) {
   // CE QUI MANQUE SE DIT SUR LA CARTE, en une ligne (quels champs) ; le pourquoi est sous chaque case vide.
   const manque = p.manque.length ? `
     <div class="ci-manque"><b>Non lu par l'import :</b> ${p.manque.map((m) => echapper(m.libelle)).join(" · ")}
-      <span class="discret">— « Voir les cases » dit pourquoi</span></div>` : "";
+      <span class="discret">— un clic sur la carte montre ses cases, et sous chacune pourquoi</span></div>` : "";
   const dits = new Set();
   const casePlate = (libelle, valeur, source, champ) => {
     const absent = valeur ? null : p.manque.find((m) => m.champ === champ);
@@ -976,7 +976,6 @@ function carteImportee(p, i, moisCourt, mois) {
           <span class="discret">${echapper(quoi || "spectacle non lu")}</span></div>
         <div class="carte-actes"><div class="etats-actes">${pastille("dpae", "DPAE")}${pastille("signature", "Contrat")}${pastille("documents", "Documents")}</div></div>
         <div class="carte-net" title="${p.montants.net_a_payer ? "net à payer" : "brut : le net à payer n'est pas lu"}">${net}</div>
-        <span class="carte-modifier"><button class="secondaire carte-detail">Voir les cases</button></span>
       </div>
       ${manque}
       <div class="ci-cases" hidden>
