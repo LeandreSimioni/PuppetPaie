@@ -4,27 +4,38 @@
     {
       "siret": "77567608300030",
       "libelle": "Caisse des Conges Spectacles",
+      "nom": "Caisse des Congés Spectacles",
+      "objet": "la cotisation de congés payés des intermittents",
+      "jour_de_paiement": 25,
       "codes81": [
         "066"
       ],
-      "echeance_jour": null
+      "_source_nom": "Table IVO des nomenclatures DSN, « Caisse des Congés spectacles » (atelier/reference/sources/dsn-nomenclatures/tables-organismes-20260924.txt, l. 492) ; Audiens, « Pour les Congés Spectacles > 77567608300030 » (atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md). Objet : code 066 « Cotisation caisse de congés spectacles » (norme-dsn/texte/bloc-S21.G00.81.txt, l. 232).",
+      "_source_jour_de_paiement": "Audiens, dossier DSN : « L'échéance de paiement pour Audiens est pour un mois M, le 25 du mois M+1. Cette date est automatiquement retenue pour les paiements retraite et Congés Spectacles » (atelier/reference/sources/audiens-dsn/). La DSN n'écrit pas de date pour elle (S21.G00.20.011 : « Congés spectacles (AUDIENS) : non concerné ») : le 25 se dit dans la boîte de dépôt (`ordres_paiement.rs`)."
     },
     {
       "siret": "13000548100010",
       "libelle": "FRANCE TRAVAIL",
+      "nom": "France Travail",
+      "objet": "l'assurance chômage et l'AGS des intermittents",
       "codes81": [
         "040",
         "048",
         "041",
         "018:chomage"
       ],
-      "echeance": "15 du mois suivant",
+      "_source_nom": "Table IVO des nomenclatures DSN, « FRANCE TRAVAIL » (atelier/reference/sources/dsn-nomenclatures/tables-organismes-20260924.txt, l. 974). Objet : codes 040 « Cotisation AC : assurance chômage », 041 « Cotisation AC majorée », 048 « Cotisation AGS : assurance garantie des salaires » (norme-dsn/texte/bloc-S21.G00.81.txt, l. 209-220). Sa date de paiement (S21.G00.20.011) est écrite par `dsn.rs`.",
       "_libelle_coolpaie": "Bordereau France Travail",
       "_correction": "Libelle corrige le 10/09/2026. Il etait faux : verifie sur l'export lisible de CoolPaie du meme jour, qui nomme lui-meme chaque bloc S21.G00.20, et confirme par les codes de cotisation portes. Codes 040/048/041 : contribution chomage, AGS. La reference CS00012345 est un compte Cinema Spectacle France Travail."
     },
     {
       "siret": "44832375800038",
       "libelle": "Retraite complementaire",
+      "nom": "Audiens Retraite",
+      "objet": "la retraite complémentaire Agirc-Arrco",
+      "jour_de_paiement": 25,
+      "_source_nom": "Audiens, « Pour la retraite Audiens > 44832375800038 » (atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md) ; table IVO, « AUDIENS », famille AAR (tables-organismes-20260924.txt, l. 480). Objet : codes 131 « Cotisation régime unifié Agirc-Arrco » et 105 (bloc-S21.G00.81.txt, l. 269, 287).",
+      "_source_jour_de_paiement": "Audiens, dossier DSN : le 25 du mois M+1, « automatiquement retenue pour les paiements retraite et Congés Spectacles » (atelier/reference/sources/audiens-dsn/). La DSN n'écrit pas de date (S21.G00.20.011 : « AGIRC-ARRCO : non concerné »).",
       "codes81": [
         "131",
         "132",
@@ -36,17 +47,23 @@
     },
     {
       "siret": "P0983",
-      "libelle": "Formation professionnelle (AFDAS)",
+      "libelle": "AUDIENS PREVOYANCE",
+      "nom": "Audiens Santé Prévoyance",
+      "objet": "la prévoyance et la santé",
+      "jour_de_paiement": 25,
       "codes81": [
         "059"
       ],
-      "echeance": "31/10",
       "_libelle_coolpaie": "Versement Prevoyance / Sante",
-      "_a_verifier": "CoolPaie nomme ce bloc « Prevoyance / Sante » et P0983 est bien un code d'organisme de PREVOYANCE (S21.G00.15.002). Notre libelle dit « Formation professionnelle (AFDAS) ». Non tranche le 10/09/2026 : le code 059 qu'il porte est decrit comme contribution formation dans docs/ARCHITECTURE.md. A confronter a un bordereau."
+      "_source_nom": "TRANCHE LE 20/10/2026 (ticket #223) : P0983 est Audiens Santé Prévoyance, pas l'AFDAS. Audiens : « Pour Audiens Santé Prévoyance > P0983 » (atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md) ; tables PREV et IVO des nomenclatures DSN, « AUDIENS PREVOYANCE » (dsn-nomenclatures/tables-organismes-20260924.txt, l. 32 et 625, famille CTI, institution de prévoyance). Le code 059 qu'il porte est « Cotisation individuelle Prévoyance-Assurance-Mutuelle » (norme-dsn/texte/bloc-S21.G00.81.txt, l. 228). L'AFDAS est l'OPCO (table OPCO, code 02) : la contribution formation part à l'Urssaf par ses CTP.",
+      "_source_jour_de_paiement": "Audiens, dossier DSN : le 25 du mois M+1, date qui « doit être renseignée dans le bloc paiement à destination d'Audiens Santé Prévoyance (P0983) » : `dsn.rs` l'écrit en S21.G00.20.011. L'échéance trimestrielle (moins de onze salariés, sur option) n'est pas modélisée (atelier/reference/sources/audiens-dsn/LISEZ-MOI.md)."
     },
     {
       "siret": "78861779300013",
       "libelle": "URSSAF",
+      "nom": "Urssaf",
+      "objet": "les cotisations et contributions sociales du bordereau Urssaf",
+      "_source_nom": "Table IVO des nomenclatures DSN, famille URS (tables-organismes-20260924.txt, l. 952, « Urssaf Ile-de-France ») : une Urssaf par région, d'où le nom générique ; c'est l'organisme du bordereau S21.G00.22.",
       "codes81": [
         "049",
         "074",

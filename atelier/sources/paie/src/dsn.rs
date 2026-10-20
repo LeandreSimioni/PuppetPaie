@@ -3871,12 +3871,6 @@ fn echeance_mois_suivant(an: i32, mo: u32, jour: u32) -> Jour {
     Jour::nouveau(an + (mo == 12) as i32, mo % 12 + 1, jour).unwrap_or_else(|| fin_mois(an + (mo == 12) as i32, mo % 12 + 1))
 }
 
-fn fin_trimestre(an: i32, mo: u32) -> Jour {
-    let m = ((mo - 1) / 3 + 1) * 3 + 1;
-    let (an2, m) = if m > 12 { (an + 1, 1) } else { (an, m) };
-    fin_mois(an2, m)
-}
-
 /// LE BAREME D'UN MOIS POUR UN ETABLISSEMENT : le bareme empile (`Contexte::bareme`) surcharge par ce que la fiche
 /// entreprise dit de l'etablissement (`bareme::surcharger` : son taux AT/MP, son versement mobilite). Dans la DSN, la
 /// seule facon de l'obtenir (regle 8 : chaque etablissement a son taux AT/MP) : le bordereau courant, le bordereau
@@ -4392,7 +4386,18 @@ certificat de conformite du depot precedent.",
     let echeance_dsn = ctx.echeance_dsn()?;
     let echeances: HashMap<&str, Jour> = [
         ("13000548100010", echeance_mois_suivant(an, mo, echeance_dsn)),
-        ("P0983", fin_trimestre(an, mo)),
+        // AUDIENS SANTE PREVOYANCE (ticket #223) : le 25 du mois qui suit le mois declare, date qui « doit etre
+        // renseignee dans le bloc paiement a destination d'Audiens Sante Prevoyance (P0983) » (Audiens, dossier DSN,
+        // `atelier/reference/sources/audiens-dsn/` ; `jour_de_paiement` de `donnees/organismes-base.json`). Elle etait
+        // la fin du mois suivant le trimestre, pour un versement pourtant mensuel.
+        (
+            "P0983",
+            echeance_mois_suivant(
+                an,
+                mo,
+                crate::organismes::jour_de_paiement("P0983")?.ok_or("donnees/organismes-base.json : P0983 n'a pas de jour_de_paiement")?,
+            ),
+        ),
     ]
     .into_iter()
     .collect();

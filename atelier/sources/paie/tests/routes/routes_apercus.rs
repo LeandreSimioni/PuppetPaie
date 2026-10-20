@@ -353,8 +353,9 @@ fn depot_apercu_dsn_refuse_ce_qui_n_est_pas_un_fichier_et_lit_un_fichier_vide() 
     assert_eq!(r["ordres"], json!([]));
 }
 
-/// Ticket #223 : chaque ordre de paiement (bloc S21.G00.20) dit a qui, pour quoi, combien et pour quand, et d'ou vient
-/// la date (`ordres_paiement.rs`). La DSN d'aout 2026 de `fictive-3090-petite` (moins de cinquante salaries : le 15).
+/// Ticket #223 : chaque ordre de paiement (bloc S21.G00.20) dit a qui (le nom propre de `donnees/organismes-base.json`),
+/// pour quoi, combien et pour quand, et d'ou vient la date (`ordres_paiement.rs`). La DSN d'aout 2026 de
+/// `fictive-3090-petite` (moins de cinquante salaries : le 15).
 #[test]
 fn depot_apercu_dsn_dit_a_qui_pour_quoi_et_quand_chaque_ordre_est_preleve() {
     let c = &compagnie("dsn-ordres");
@@ -366,33 +367,39 @@ fn depot_apercu_dsn_dit_a_qui_pour_quoi_et_quand_chaque_ordre_est_preleve() {
     assert_eq!(
         vu,
         [
-            // La norme ne demande pas de date pour la Caisse des Conges Spectacles, et aucun texte depose ne la dit.
-            ("Caisse des Conges Spectacles", "281.48", None),
+            // Audiens : « pour un mois M, le 25 du mois M+1 », retenu d'office pour les Conges Spectacles et la retraite.
+            ("Caisse des Congés Spectacles", "281.48", Some("2026-09-25")),
             // S21.G00.20.011, lue dans le fichier.
-            ("FRANCE TRAVAIL", "212.08", Some("2026-09-15")),
-            // Agirc-Arrco (code 105) : le dernier jour ouvre du mois qui suit la periode, le mercredi 30/09/2026.
-            ("Retraite complementaire", "181.76", Some("2026-09-30")),
-            ("Formation professionnelle (AFDAS)", "39.03", Some("2026-10-31")),
+            ("France Travail", "212.08", Some("2026-09-15")),
+            ("Audiens Retraite", "181.76", Some("2026-09-25")),
+            // P0983 est Audiens Sante Prevoyance (tables PREV et IVO de la norme) ; sa date est celle que le fichier porte.
+            ("Audiens Santé Prévoyance", "39.03", Some("2026-10-31")),
             // L'Urssaf, organisme du bordereau : l'echeance de la DSN d'aout (R. 243-6, II), le mardi 15/09/2026.
-            ("URSSAF", "693.00", Some("2026-09-15")),
+            ("Urssaf", "693.00", Some("2026-09-15")),
         ]
     );
-    assert_eq!(ordres[0]["quand"], json!("date non dite par la DSN"));
+    assert_eq!(ordres[0]["quand"], json!("le 25/09/2026"));
+    assert_eq!(ordres[0]["objet"], json!("La cotisation de congés payés des intermittents d'août 2026"));
+    assert_eq!(ordres[2]["objet"], json!("La retraite complémentaire Agirc-Arrco d'août 2026"));
+    assert_eq!(ordres[3]["objet"], json!("La prévoyance et la santé d'août 2026"));
     assert_eq!(ordres[4]["objet"], json!("Les cotisations et contributions sociales du bordereau Urssaf d'août 2026"));
-    assert_eq!(ordres[2]["objet"], json!("Les cotisations de retraite complémentaire d'août 2026"));
     assert!(ordres[4]["source"].as_str().unwrap().contains("R. 243-6"), "{}", ordres[4]);
+    assert!(ordres[0]["source"].as_str().unwrap().contains("le 25 du mois M+1"), "{}", ordres[0]);
     assert_eq!(ordres[1]["periode"], json!({"du": "2026-08-01", "au": "2026-08-31"}));
-    // La DGFiP : le mois suivant ; le jour n'est pas releve -- la reponse le dit, elle n'invente pas de date.
+    // La DGFiP : le 15 du mois suivant jusqu'a quarante-neuf salaries (BOI-IR-PAS-30-10-30-20, § 50).
     changer_rubrique(c, &f, "S21.G00.20.001", "DGFIP");
     let r = lire(c, "depot-apercu", json!({"quoi": "dsn", "fichier": f}));
     let o = &r["ordres"][0];
-    assert_eq!((o["organisme"].as_str(), o["date"].as_str()), (Some("DGFiP (impôts)"), None));
-    assert_eq!(o["quand"], json!("en septembre 2026 (jour non relevé)"));
+    assert_eq!((o["organisme"].as_str(), o["date"].as_str()), (Some("DGFiP"), Some("2026-09-15")));
+    assert_eq!(o["quand"], json!("au plus tard le 15/09/2026"));
+    assert!(o["source"].as_str().unwrap().contains("BOI-IR-PAS-30-10-30-20"), "{}", o);
     assert!(o["objet"].as_str().unwrap().contains("prélevé à la source"), "{}", o);
-    // Un organisme que la configuration ne connait pas se dit par son identifiant, sans nom invente.
+    // Un organisme que ni la base ni la configuration ne connaissent se dit par son identifiant, sans nom ni date inventes.
     changer_rubrique(c, &f, "S21.G00.20.001", "12345678900011");
     let r = lire(c, "depot-apercu", json!({"quoi": "dsn", "fichier": f}));
-    assert_eq!(r["ordres"][0]["organisme"], json!("Organisme 12345678900011 (absent de la configuration)"));
+    let o = &r["ordres"][0];
+    assert_eq!(o["organisme"], json!("Organisme 12345678900011 (inconnu de la configuration)"));
+    assert_eq!((o["date"].as_str(), o["quand"].as_str()), (None, Some("date non dite par la DSN")));
     // Une periode d'un autre mois est une regularisation.
     changer_rubrique(c, &f, "S21.G00.20.006", "01072026");
     changer_rubrique(c, &f, "S21.G00.20.007", "31072026");
