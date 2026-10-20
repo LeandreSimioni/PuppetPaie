@@ -200,9 +200,10 @@ un truc urgent ; c'est lui qui lance « Publier », jamais un agent. En cas de d
 7. **Deux contrôles avant tout dépôt** : les usages (une rubrique a-t-elle le *droit* d'être là pour la nature de déclaration)
    et les formats (ce qu'on y a *mis* a-t-il la bonne forme). Un contrôle faux refuserait du licite : c'est lui qu'on retire,
    jamais la déclaration.
-8. **Un barème a trois étages** : le socle livré (`donnees/baremes/<année>.json`), la couche de la convention (`par_convention`,
-   3090 et 1285 ; une convention sans couche refuse), la surcouche de la compagnie (`config/baremes/<année>.json` : taux AT/MP,
-   effectif, depuis `config/effectifs.json` écrit par les retours 118). Un seul endroit empile (`Contexte._bareme_brut`,
+8. **Un barème a trois étages** : le socle livré (`donnees/baremes/<année>.json`), la couche de la convention (`par_convention`
+   du barème de l'année, qui fait foi : dix conventions en 2026, 3090 et 1285 seulement en 2025 ; une convention sans couche
+   refuse), la surcouche de la compagnie (`config/baremes/<année>.json` : taux AT/MP, effectif, depuis `config/effectifs.json`
+   écrit par les retours 118). Un seul endroit empile (`Contexte._bareme_brut`,
    `baremes.fusionner`) ; le taux AT/MP ne s'écrit qu'une fois (`calcul.bareme_atmp`). Détail : `docs/ARCHITECTURE.md`.
 9. **Trois destinations, et les données de la compagnie dans aucun dépôt.** `logiciel/`, `fictives/`, `atelier/` (dont
    `atelier/reference/`) : le dépôt public. `journal/`, `reference-privee/`, les tickets : le dépôt privé. `prive/` : aucun
