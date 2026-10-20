@@ -70,6 +70,8 @@ La charge entière de `codes.droit.org` (1,8 Mo, non déposée) avait pour SHA-2
   (`12:00`), la date `nominale`, `reportee`, `pourquoi`, les `textes` et l'`inference`.
 - **Ce qui n'en dépend pas** : la date de paiement du bloc 20 (`S21.G00.20.011`, `dsn.rs`, `echeance_mois_suivant`) reste
   le 5 ou le 15 de R. 243-6, qui ne prévoit pas de report ; aucun texte déposé ne dit qu'un prélèvement se reporte.
+  De même la date du prélèvement Urssaf que la boîte de dépôt montre (ticket #223, `ordres_paiement.rs`) : la date
+  nominale de `echeance_dsn::du_mois`, sans report.
 - Les cinq jours ouvrés des signalements non subrogés (`obligations.rs`, `Calendrier::jours_ouvres_apres`) et les
   quarante-huit heures de l'accident (`Calendrier::heures_apres`) ne passent pas par ce report : les premiers sont déjà
   comptés en jours ouvrés, les seconds excluent d'eux-mêmes dimanches et fériés (R. 441-3).

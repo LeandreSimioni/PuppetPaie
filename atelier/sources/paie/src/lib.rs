@@ -92,6 +92,7 @@ pub mod num;
 pub mod csa;
 pub mod obligations;
 pub mod oeth;
+pub mod ordres_paiement;
 pub mod organismes;
 pub mod oracle;
 pub mod ordre_signalements;

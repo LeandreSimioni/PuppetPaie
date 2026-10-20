@@ -460,8 +460,8 @@ async function dessinerFilet(rang, exige) {
   if (f.actif && !f.confirme) guetterConfirmation(rang, exige, Date.now());
   if (f.erreur) verdict.textContent = f.erreur;
   arreter.hidden = !f.actif;
-  ouvrir.innerHTML = f.actif ? `${CRAYON}Modifier…` : "Activer…";
-  ouvrir.className = (f.actif ? "modifier" : "secondaire") + " k-ouvrir";
+  // Actif, la ligne s'ouvre d'un clic sur elle (ticket #218) ; « Activer… » reste tant qu'il y a à faire.
+  ouvrir.hidden = !!f.actif;
   const champ = rang.querySelector("#k-filet-adresse");
   if (!champ.value) champ.value = f.adresse || "";
   const preuve = async (quoi) => {

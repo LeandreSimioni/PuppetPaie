@@ -159,7 +159,6 @@ function dessinerConfig() {
       <div class="rang-etat">${etat}</div>
       <div class="rang-actions">
         <button class="lien" data-activer="${archive ? "oui" : "non"}">${archive ? "Réactiver" : "Archiver"}</button>
-        <button class="modifier" title="Modifier la fiche">${CRAYON}Modifier</button>
       </div>
     </div>`;
   };
@@ -242,7 +241,7 @@ function dessinerConfig() {
       ${anonymes.length ? `<p class="note">${anonymes.length} numéro${anonymes.length > 1 ? "s" : ""}
         sans titre, trouvé${anonymes.length > 1 ? "s" : ""} dans les DSN${ans.length
           ? ` de ${Math.min(...ans)}${Math.max(...ans) !== Math.min(...ans) ? "–" + Math.max(...ans) : ""}` : ""}
-        — les nommer si vous savez à quel spectacle ils étaient (« Modifier »).</p>
+        — les nommer si vous savez à quel spectacle ils étaient (cliquer sur la ligne).</p>
         <div class="rangs">${anonymes.map((f) => rangHtml(f)).join("")}</div>` : ""}`;
   };
 
@@ -296,7 +295,8 @@ function dessinerConfig() {
         dessinerFormulaire(rangees.find((f) => f.cle === c));
         document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
       };
-      r.querySelector(".modifier").onclick = () => ouvrir(cle);
+      // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE (ticket #218) : plus de bouton « Modifier ».
+      rendreOuvrable(r, () => ouvrir(cle), "Ouvrir la fiche");
       r.querySelectorAll("[data-ouvrir]").forEach((b) => { b.onclick = () => ouvrir(b.dataset.ouvrir); });
     });
   };
