@@ -143,7 +143,28 @@ function boiteRappels(liste, ech, manques = []) {
   });
 }
 
+/* CE QUI EST DÛ (20/10/2026, #205) : une obligation à faire ou en retard
+   (`obligations.rs`) — la fin d'un contrat qui se signale, la déclaration
+   d'accident du travail, le signalement d'un arrêt, l'attestation de salaire
+   du deuil. Le moteur rend l'obligation et ce sur quoi elle porte (`objet`) ;
+   le geste est celui de la colonne « Ce qui est dû » du mois, tiré des mêmes
+   champs (`imprevus.js` : `SIGNALEMENTS_DSN`, `ROUTES_OBLIGATION_FAITE`). */
+function gesteObligation(r) {
+  const o = r.obligation || {};
+  if (o.cle === "signalement_fin_contrat") return (r.a_saisir || []).length ? "carte" : "signaler-fin";
+  if (SIGNALEMENTS_DSN[o.cle]) return "signaler";
+  if (Array.isArray(o.ou) && ROUTES_OBLIGATION_FAITE[o.cle]) return "faite";
+  return "mois";
+}
+
 function boutonRappel(r, i) {
+  if (r.quoi === "obligation") {
+    const libelle = {
+      "signaler-fin": "Signaler…", signaler: "Signaler…", faite: "Faite le…",
+      carte: "Compléter le contrat", mois: "Ouvrir le mois",
+    }[gesteObligation(r)];
+    return `<button class="primaire" id="rappel-${i}">${echapper(libelle)}</button>`;
+  }
   const libelle = {
     "dsn": "Vérifier et envoyer",
     "cloture": "Clôturer " + (r.annee || ""),
@@ -180,6 +201,15 @@ async function agirSurRappel(r) {
     document.querySelector('.onglets button[data-vue="paie"]').click();
     await chargerMois(r.mois);
     return boiteDpae(r.mois);
+  }
+  if (r.quoi === "obligation") {
+    const geste = gesteObligation(r);
+    if (geste === "signaler-fin") return boiteSignalerFin(r.mois, r.objet);
+    if (geste === "signaler") return boiteSignalerArret(r.objet, SIGNALEMENTS_DSN[r.obligation.cle]);
+    if (geste === "faite") return boiteObligationFaite(r.objet, r.obligation);
+    // Ce qui manque au contrat se tape dans sa carte, sous « Contrat » : on va au mois.
+    document.querySelector('.onglets button[data-vue="paie"]').click();
+    return chargerMois(r.mois);
   }
   if (r.quoi === "cloture") return boiteCloture(r.annee);
   if (r.quoi === "export-compta") return lancerExportCompta(r.annee);
