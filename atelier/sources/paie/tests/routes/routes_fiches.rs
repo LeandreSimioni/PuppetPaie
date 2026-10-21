@@ -245,3 +245,50 @@ fn la_taxe_sur_les_salaires_se_deduit_de_la_tva() {
     assert_eq!((v["complet"].clone(), v["due"].clone()), (json!(true), json!(false)));
     assert!(refuse(c, "taxe-sur-les-salaires-regime", json!({"taxe_sur_les_salaires": "assujettie"})));
 }
+
+/// Ticket #239 : « on pourrait pas avoir les plafonds directement dans le logiciel ? ». Les plafonds de la franchise en
+/// base de TVA auxquels renvoie CGI art. 231, 1, 2e alinea sont ceux de 293 B, I, ligne « Annee civile precedente »
+/// (version en vigueur depuis le 01/03/2025, deposee par `paie releve-codes` :
+/// `atelier/reference/sources/code-general-des-impots/xml/293_B.xml`). Ils sont au bareme de l'annee, dont le `_source`
+/// cite ce fichier ; la route les ecrit dans l'aide et dans les deux reponses, et la page n'en porte aucun.
+#[test]
+fn les_plafonds_de_la_franchise_viennent_du_bareme_qui_cite_le_texte_depose() {
+    let c = &compagnie("franchise-293B");
+    let sources = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../reference/sources");
+    let xml = std::fs::read_to_string(sources.join("code-general-des-impots/xml/293_B.xml")).unwrap();
+    // Le I de 293 B : la premiere ligne « Annee civile precedente », puis le total et les prestations de services.
+    let i = xml.find("Année civile précédente").expect("293 B, I : la ligne de l'annee civile precedente");
+    let nombres: Vec<i64> = regex::Regex::new(r"(\d{2}) (\d{3})")
+        .unwrap()
+        .captures_iter(&xml[i..])
+        .take(2)
+        .map(|m| format!("{}{}", &m[1], &m[2]).parse().unwrap())
+        .collect();
+    let (total, services) = (nombres[0], nombres[1]);
+    for annee in [2025, 2026] {
+        let bar = lire(&crate::outils::code_livre(), &format!("baremes/{}.json", annee));
+        let pf = &bar["taxe_sur_les_salaires"]["plafonds_franchise"];
+        assert!(pf["_source"].as_str().unwrap().contains("code-general-des-impots/xml/293_B.xml"), "{} : _source", annee);
+        assert_eq!((pf["total"].as_i64(), pf["prestations_de_services"].as_i64()), (Some(total), Some(services)), "{}", annee);
+        let v = resultat(c, "taxe-sur-les-salaires-regime", json!({"annee": annee, "taxe_sur_les_salaires": {"tva": "exoneree"}}));
+        let f = &v["franchise"];
+        assert_eq!(
+            (f["plafonds"]["total"].clone(), f["plafonds"]["prestations_de_services"].clone()),
+            (json!(total.to_string()), json!(services.to_string())),
+            "{}",
+            annee
+        );
+        // Les montants sont ecrits, en euros, la ou on les lit : l'aide et les deux reponses ; le chiffre d'affaires est
+        // celui de l'annee d'avant.
+        let en_euros = |n: i64| format!("{} {:03} €", n / 1000, n % 1000);
+        for texte in [&f["aide"], &f["choix"]["true"], &f["choix"]["false"]] {
+            let t = texte.as_str().unwrap();
+            assert!(t.contains(&en_euros(services)) && t.contains(&en_euros(total)), "{} : {}", annee, t);
+            assert!(t.contains(&(annee - 1).to_string()), "{} : {}", annee, t);
+        }
+        assert!(f["aide"].as_str().unwrap().contains("293 B"));
+    }
+    // Sans annee : celle du jour (03/10/2026 pour ces routes).
+    assert_eq!(resultat(c, "taxe-sur-les-salaires-regime", json!({}))["franchise"]["annee"], json!(2026));
+    assert!(refuse(c, "taxe-sur-les-salaires-regime", json!({"annee": "l'an dernier"})));
+}

@@ -3,10 +3,10 @@
  "_global": "Freemium_legi_global_20250713-140000.tar.gz",
  "_texte": "Code general des impots",
  "_legitext": "LEGITEXT000006069577",
- "_livraisons_lues": 461,
- "_livraisons_totales": 461,
+ "_livraisons_lues": 470,
+ "_livraisons_totales": 470,
  "_complet": true,
- "_derniere_livraison": "20261015-122925",
+ "_derniere_livraison": "20261021-133354",
  "_changes_depuis_le_global": [
   {
    "apres": "LEGIARTI000048806579",
@@ -369,6 +369,14 @@
    "texte": "impots"
   },
   {
+   "apres": "LEGIARTI000052488142",
+   "article": "293 B",
+   "avant": "LEGIARTI000051215135",
+   "depuis": "2025-03-01",
+   "livraison": "20251104-212237",
+   "texte": "impots"
+  },
+  {
    "apres": "LEGIARTI000053278878",
    "article": "1679 A",
    "avant": "LEGIARTI000051764500",
@@ -417,7 +425,7 @@
    "texte": "impots"
   }
  ],
- "_releve_le": "2026-10-15",
+ "_releve_le": "2026-10-21",
  "articles": {
   "1671": {
    "debut": "2019-12-30",
@@ -473,6 +481,11 @@
    "debut": "2019-05-24",
    "en_vigueur": true,
    "id": "LEGIARTI000038586341"
+  },
+  "293 B": {
+   "debut": "2025-03-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000052488142"
   },
   "80 duodecies": {
    "debut": "2025-02-16",

@@ -3,17 +3,17 @@
  "_global": "Freemium_legi_global_20250713-140000.tar.gz",
  "_texte": "Loi n° 2026-103 du 19 fevrier 2026 de finances pour 2026",
  "_legitext": "JORFTEXT000053508155",
- "_livraisons_lues": 461,
- "_livraisons_totales": 461,
+ "_livraisons_lues": 470,
+ "_livraisons_totales": 470,
  "_complet": true,
- "_derniere_livraison": "20261015-122925",
+ "_derniere_livraison": "20261021-133354",
  "_changes_depuis_le_global": [],
- "_releve_le": "2026-10-15",
+ "_releve_le": "2026-10-21",
  "articles": {
   "135": {
+   "id": "LEGIARTI000053511577",
    "debut": "2026-02-21",
-   "en_vigueur": true,
-   "id": "LEGIARTI000053511577"
+   "en_vigueur": true
   }
  }
 }
