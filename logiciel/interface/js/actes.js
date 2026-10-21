@@ -306,25 +306,41 @@ function recapitulatifDsn(r) {
   if (!r) return "";
   if (r.erreur) return `<div class="encart attention"><b>Récapitulatif illisible</b>
     ${echapper(r.erreur)}</div>`;
-  const nb = (x) => (x && x !== "0") ? x : "—";
   const ecarts = r.salaries.reduce((n, s) => n + s.contrats.filter((c) => c.ecarts.length).length, 0);
+  // Un nombre du fichier, à la française ; une correction le signe d'un vrai
+  // moins (« −184 h » : ce qui s'ajoute à ce qui a déjà été déclaré).
+  const signe = (x) => String(x).replace(/^-/, "−");
+  const nombre = (x) => signe(Number(x).toLocaleString("fr-FR", { maximumFractionDigits: 2 }));
+  const vide = (x) => !x || Number(x) === 0;
+  // L'activité en une colonne : « 4 cachets · 4 j », « 151,67 h ».
+  const activite = (c) => [
+    vide(c.cachets) ? "" : `${nombre(c.cachets)} cachet${Math.abs(Number(c.cachets)) > 1 ? "s" : ""}`,
+    vide(c.heures) ? "" : `${nombre(c.heures)} h`,
+    vide(c.jours) ? "" : `${nombre(c.jours)} j`,
+  ].filter(Boolean).join(" · ") || "—";
+  // Les dates sur une ligne : « 06/10 → 09/10/2026 » dans une même année.
+  const dates = (c) => {
+    if (!c.fin || c.fin === c.debut) return jjmmaaaa(c.debut);
+    const d = jjmmaaaa(c.debut), f = jjmmaaaa(c.fin);
+    return `${c.debut.slice(0, 4) === c.fin.slice(0, 4) ? d.slice(0, 5) : d} → ${f}`;
+  };
   const lignes = r.salaries.map((s) => s.contrats.map((c, i) => `
-    <tr class="${c.ecarts.length ? "ecart" : ""}">
+    <tr class="${c.ecarts.length ? "ecart" : ""}${c.correction ? " correction" : ""}">
       <td>${i === 0 ? `<b>${echapper(s.nom)}</b> ${echapper(s.prenoms)}` : ""}</td>
       <td>${echapper(c.numero)}</td>
-      <td>${echapper(jjmmaaaa(c.debut))}${c.fin && c.fin !== c.debut ? " → " + echapper(jjmmaaaa(c.fin)) : ""}</td>
+      <td class="dates">${echapper(dates(c))}</td>
       <td>${echapper(c.emploi)}</td>
-      <td class="num">${nb(c.cachets)}</td>
-      <td class="num">${nb(c.heures)}</td>
-      <td class="num">${nb(c.jours)}</td>
-      <td class="num">${c.remunere ? echapper(euros(c.brut)) : "—"}</td>
-      <td>${c.fin_declaree ? "fin le " + echapper(jjmmaaaa(c.fin_declaree)) : "en cours"}</td>
+      <td class="num">${c.correction ? "correction : " : ""}${echapper(activite(c))}</td>
+      <td class="num">${c.remunere ? echapper(signe(euros(c.brut))) : "—"}</td>
+      <td class="fin">${c.correction ? "mois déjà déclaré"
+        : c.fin_declaree ? "fin le " + echapper(jjmmaaaa(c.fin_declaree)) : "en cours"}</td>
     </tr>
-    ${c.ecarts.length ? `<tr class="ecart"><td></td><td colspan="8">
+    ${c.ecarts.length ? `<tr class="ecart"><td></td><td colspan="6">
       <span class="pastille alerte">${echapper(c.ecarts.join(" ; "))}</span></td></tr>` : ""}`).join("")).join("");
   return `
     <div class="encart ${r.conforme ? "bien" : r.compare ? "attention" : ""}">
-      <b>${r.contrats} contrat${r.contrats > 1 ? "s" : ""} dans ce fichier${r.compare
+      <b>${r.contrats} contrat${r.contrats > 1 ? "s" : ""} dans ce fichier${r.corrections
+        ? ` (et ${r.corrections} correction${r.corrections > 1 ? "s" : ""} d'un mois déjà déclaré)` : ""}${r.compare
         ? `, ${r.contrats_saisis} saisi${r.contrats_saisis > 1 ? "s" : ""} dans la paie du mois` : ""}</b>
       ${r.conforme ? "Tous les contrats de la paie sont dans la DSN, tels que la paie les dit."
         : r.compare ? `${r.absents.length ? r.absents.length + " contrat(s) de la paie manquent au fichier. " : ""}${ecarts
@@ -336,7 +352,7 @@ function recapitulatifDsn(r) {
        ${echapper(x.numero)}, du ${echapper(jjmmaaaa(x.debut))}</li>`).join("")}</ul>` : ""}
     <table class="recap-dsn">
       <tr><th>Salarié</th><th>Contrat</th><th>Dates</th><th>Emploi</th>
-        <th>Cachets</th><th>Heures</th><th>Jours</th><th>Brut</th><th>Fin</th></tr>
+        <th class="num">Activité</th><th class="num">Brut</th><th>Fin</th></tr>
       ${lignes}
     </table>`;
 }
@@ -377,7 +393,11 @@ function corpsDsn(a) {
                <td><b>${echapper(x.organisme)}</b></td>
                <td>${echapper(x.objet)}</td>
                <td class="nombre"><b>${echapper(euros(x.montant))}</b></td>
-               <td title="${echapper(x.source)}">${echapper(x.quand)}</td></tr>`).join("")}
+               <td title="${echapper(x.source)}">${echapper(x.quand)}</td></tr>
+             ${x.credit ? `<tr class="credit"><td></td><td colspan="3">
+               <div class="encart" title="${echapper(x.credit.source)}">
+               <b>${echapper(x.credit.titre)}</b>
+               ${echapper(x.credit.que_faire)}</div></td></tr>` : ""}`).join("")}
            </table>
            Chaque organisme prélèvera ce montant sur le compte de la compagnie. Ce ne sont pas des indications.
            <span class="discret">La date se lit dans la DSN ou dans le texte qui la fixe (au survol).</span>`

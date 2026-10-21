@@ -821,7 +821,7 @@ fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8],
     }
     let mut vus: HashSet<String> = HashSet::new();
     let mut salaries_json = Vec::new();
-    let (mut n_contrats, mut n_ecarts) = (0usize, 0usize);
+    let (mut n_contrats, mut n_ecarts, mut n_corrections) = (0usize, 0usize, 0usize);
     for sal in &sals {
         let mut contrats_json = Vec::new();
         for c in &sal.contrats {
@@ -829,7 +829,12 @@ fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8],
             let p = par_numero.get(&c.numero).map(|&i| &liste[i]);
             let mut ecarts: Vec<String> = Vec::new();
             let brut = c.brut_texte();
+            // UNE CORRECTION D'UN MOIS DEJA DECLARE (21/10/2026) : un contrat que la paie du mois ne porte pas, et dont la
+            // fin (40.010) precede le mois, n'est dans le fichier que pour sa regularisation (« Corriger ce mois »,
+            // `dsn::generer` et ses `regs`). Ce n'est pas un ecart avec la paie : il se dit pour ce qu'il est.
+            let correction = p.is_none() && !c.fin.is_empty() && c.fin.as_str() < format!("{}-01", mois).as_str();
             match p {
+                None if correction => {}
                 None => {
                     if compare {
                         ecarts.push("aucune paie du mois ne porte ce contrat".to_string());
@@ -900,7 +905,11 @@ fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8],
                     }
                 }
             }
-            n_contrats += 1;
+            if correction {
+                n_corrections += 1;
+            } else {
+                n_contrats += 1;
+            }
             if !ecarts.is_empty() {
                 n_ecarts += 1;
             }
@@ -910,7 +919,7 @@ fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8],
                 "jours": c.mesure_texte("jours"), "cachets": c.mesure_texte("cachets"),
                 "heures": c.mesure_texte("heures"),
                 "fin_declaree": c.fin_declaree, "motif_fin": c.motif_fin, "remunere": c.remunere,
-                "paie": p.is_some(), "ecarts": ecarts,
+                "paie": p.is_some(), "ecarts": ecarts, "correction": correction,
             }));
         }
         let versements: Vec<Value> = sal
@@ -942,7 +951,7 @@ fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8],
     let conforme = compare && absents.is_empty() && n_ecarts == 0;
     Ok(json!({
         "salaries": salaries_json, "absents": absents,
-        "contrats": n_contrats, "contrats_saisis": par_numero.len(),
+        "contrats": n_contrats, "corrections": n_corrections, "contrats_saisis": par_numero.len(),
         "compare": compare, "conforme": conforme,
     }))
 }

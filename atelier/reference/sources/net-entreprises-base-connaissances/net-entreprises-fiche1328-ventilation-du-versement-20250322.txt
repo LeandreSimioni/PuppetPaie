@@ -1,0 +1,59 @@
+TITRE: La ventilation du versement des cotisations
+Date de modification : 22/03/2025 03:30 PM
+Le contexte
+Une ventilation du versement de cotisations peut être opérée en DSN. Cette ventilation peut s’expliquer par :
+ L’existence, au sein d’un même établissement, de plusieurs comptes cotisants : travail temporaire, agences de mannequins et producteurs de films
+ Les entreprises doivent dans ce cas transmettre des déclarations et paiements différenciés de cotisations sociales : personnel permanent d’une part, personnel intérimaire ou temporaire d’autre part
+ Le besoin d’un organisme d’imputer le montant versé sur un contrat spécifique
+ La nécessité de distinguer le montant payé selon la période à laquelle il se rattache (période courante vs antérieure (régularisation), mois, trimestre, …)
+ Le paiement de cotisations d’un même établissement via des modes de paiement ou comptes bancaires différents
+Plusieurs rubriques permettent de procéder au découpage d’un montant de cotisation versé :
+Le Bloc « Versement OPS » - S21.G00.20
+Le Bloc « Composant de versement - S21.G00.55»
+Ce bloc , enfant du bloc « Versement OPS » est exploité exclusivement par les organismes complémentaires. Il permet de ventiler le montant du versement (S21.G00.20.005) par :
+ Zoom URSSAF : les Entreprises de Travail Temporaire
+Le pseudo SIRET permet de distinguer le personnel permanent du personnel intérimaire :
+ Pour gérer la population intérimaire, les Urssaf ont recours au pseudo-SIRET et à un compte cotisant séparé. Ce Pseudo-SIRET doit donc être positionné dans le fichier DSN : il s'agit du Partitionnement de la DSN.
+ L’établissement est toujours identifié par son vrai SIRET (SIREN - S21.G00.06.001 + NIC - S21.G00.11.001)
+ Le bloc « Versement OPS » relatif au personnel permanent ne comporte pas la rubrique « Entité d’affectation des opérations »
+ Le bloc « Versement OPS » relatif au personnel intérimaire comporte la rubrique « Entité d’affectation des opérations » alimentée du Pseudo SIRET
+A noter, deux exceptions aux modalités décrites ci-dessus :
+ Exception n° 1 : en cas de règlement des cotisations par virement, le bloc « Versement OPS » n’est pas déclaré, quelque soit les caractéristiques du paiement à destination de l’URSSAF (pseudo SIRET, montant, …)
+ Exception n°2 : en cas de « Versement en Lieu Unique », la rubrique « Entité d’affectation des opérations » est alimentée du pseudo-SIRET payeur (pour les intérimaires) ou d’un SIRET payeur (pour les permanents).
+Pour plus d'informations sur la zone d'affectation des opérations, cliquez ici.
+ Zoom URSSAF : société de production cinématographique
+Les mêmes modalités déclaratives s’appliquent aux blocs « Versement OPS » à destination de l’une URSSAF et d’une caisse de congés payés spectacle (AUDIENS).
+Les entreprises productrices de films utilisent un pseudo SIRET pour gérer leurs productions et distinguer :
+ Les salariés permanents
+ Des salariés affectés à la production d’un film
+La déclaration du paiement des cotisations d’une société de production de film est opérée de la manière suivante :
+ Un bloc « Versement OPS » relatif au personnel permanent ne comportant pas la rubrique « Entité d’affectation des opérations »
+ De 1 à 8 blocs « Versement OPS », pour chacune des productions, comportant une rubrique « Entité d’affectation des opérations » alimentée du Pseudo SIRET 1 à 8
+ Au-delà de 8 productions différentes, la déclaration du paiement doit être réalisée hors DSN
+A noter, deux exceptions aux modalités décrites ci-dessus :
+ Exception n° 1 : en cas de règlement des cotisations par virement, le bloc « Versement OPS » n’est pas déclaré, quelque soit les caractéristiques du paiement (pseudo SIRET, montant, …)
+ Exception n°2 : en cas de « Versement en Lieu Unique », la rubrique « Entité d’affectation des opérations » est alimentée d’un pseudo-SIRET 1 à 8 (pour les intérimaires) ou du SIRET de l’établissement payeur (pour les permanents);
+Pour plus d'information, sur la déclaration des cotisations pour une société de production cinématographique, cliquez ici
+3. Zoom Organismes complémentaires
+Le ou les blocs Composants de versement (55) viennent obligatoirement préciser la ventilation du montant versé, par période d’affectation, par référence contrat et si nécessaire (dans de rares cas) par type de population.
+ Les montants renseignés correspondent aux montants effectivement payés, et pas nécessairement aux montants dus (cas de paiements partiels)
+ Le montant global d’un versement (bloc 20) doit toujours correspondre à la somme des montants renseignés dans les composants de versement (blocs 55) sauf si cette somme fait ressortir un montant négatif, auquel cas un montant nul doit être renseigné
+ Pour 1 bloc 20 « Versement OPS », au moins 1 bloc 55 « Composants de versement » doit être déclaré.
+ Zoom CNIEG et CAMIEG
+Ces deux régimes spéciaux attendent un bloc « Versement OPS » par groupe de cotisations. La ventilation est opérée par alimentation de la rubrique « Entité d’affectation des opérations » des éléments suivants :
+ Groupes de cotisations CAMIEG | 
+ CAMIEG_COT_CPL (Cotisations Régime complémentaire)
+ CAMIEG_COT_SOL (Cotisations de Solidarité)
+ | 
+ Groupe de cotisations CNIEG | 
+ CNIEG_COT_RDC
+ CNIEG_COT_RS
+ CNIEG_COT_POOL
+ | 
+A noter une particularité concernant le groupe « CNIEG_COT_POOL » :
+La rubrique « Montant du versement – S21.G00.20.005 » doit être égale :
+ à la somme des cotisations petit pool de chacun des salariés de l'établissement (ou de la fraction) déclarées en bloc « Cotisation individuelle »
+ moins la somme des réductions petit pool de chacun des salariés de l'établissement (ou de la fraction) déclarées en bloc « Cotisation individuelle »
+Si la somme des réductions est supérieure à la somme des cotisations, indiquer un montant égal à zéro
+ Date de création : 20/02/2017 10:46 AM 
+ N° de la fiche : 1328

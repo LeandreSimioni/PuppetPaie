@@ -1,0 +1,43 @@
+TITRE: DSN - Corrections au niveau du bloc Versement Organisme de Protection Sociale - Gérer les situations créditrices
+Date de modification : 23/03/2025 04:52 PM
+I. Impacts des régularisations de montants au niveau individuel sur le bloc « Versement organisme »
+Les montants renseignés dans les rubriques « Montant de la régularisation du prélèvement à la source - S21.G00.56.007 », qu’ils soient positifs ou négatifs, sont à prendre en compte dans le calcul du montant global dû à la DGFiP, et donc dans le montant à renseigner dans la ou les rubriques « Montant du versement - S21.G00.20.005 ». Cependant, les rubriques « Montant du versement » ne peuvent pas être renseignées avec des montants négatifs. Lorsque la somme totale des rubriques « Montant de la régularisation du prélèvement à la source » et « Montant du Prélèvement à la source » est négative, ces rubriques doivent être renseignées à « 0.00 ».
+II. Dans quelles situations un crédit de Prélèvement à la Source (PAS) peut-il survenir ?
+Une situation de PAS créditrice, pour une entreprise, peut survenir dans les cas suivants :
+ 1. Pour les collecteurs mono-établissement, la somme algébrique des montants de PAS calculés dans les différents blocs individus et blocs régularisation (pour les individus salariés et non salariés) aboutit à un montant global de PAS négatif,
+ 2. Pour les collecteurs multi établissements, le collecteur peut avoir un établissement, plusieurs établissements ou l'ensemble de ses établissements créditeurs (cf. situation 1°)
+III. Comment les déclarations doivent-elles être établies ?
+ 1. Pour les collecteurs mono-établissement
+S'il s'agit d'une DSN initiale créditrice
+ Déclarer les montants individuels de prélèvement à la source de chaque individu salarié ou non-salarié, respectivement au niveau des blocs « S21.G00.50 - Versement individu » et « Bases spécifiques individu non salarié - S89.G00.92 »
+ Ne pas déclarer de bloc « Versement Organisme de Protection Sociale - S21.G00.20 » à destination de la DGFiP ; nota : si par commodité le logiciel en produit un, il devra être déclaré avec un montant total de PAS à reverser (rubrique « Montant du versement - S21.G00.20.005 ») à 0,00.
+Précision : dans le cas d'un ordre de paiement valorisé à 0,00, aucun contrôle du compte bancaire indiqué ne sera réalisé par la DGFiP.
+S'il s'agit d'une DSN annule et remplace intégrale et créditrice
+ Déclarer les montants individuels de prélèvement à la source de chaque individu salarié ou non-salarié, respectivement au niveau des blocs " S21.G00.50 - Versement individu " et " Bases spécifiques individu non salarié - S89.G00.92 "
+ Déclarer un bloc " Versement Organisme de Protection Sociale - S21.G00.20 " à destination de la " DGFIP " (rubrique S21.G00.20.001) avec un montant de PAS (rubrique S21.G00.20.005) à 0,00.
+Précision : dans le cas d'un ordre de paiement valorisé à 0,00, aucun contrôle du compte bancaire indiqué ne sera réalisé par la DGFiP.
+Pour ces deux cas, une demande de remboursement pourra être déposée auprès du SIE dont dépend l'entreprise.
+ 2. Pour les collecteurs multi-établissements (exemple avec deux établissements)
+Deux cas de figures peuvent se présenter : 
+Premier cas : les deux établissements ont un SIRET payeur commun
+Il convient, dès lors que cela s'avère possible, d'opérer une compensation entre les deux établissements.
+Exemple :
+ Soit un organisme dont dépendent deux établissements (établissement A et établissement B), disposant d'un même SIRET payeur.
+ La somme de l'ensemble des blocs versement individu et des blocs régularisations de la déclaration de l'établissement A résulte en un crédit de 100,00€ ; la même somme pour l'établissement B résulte en un montant de 1000,00€ de PAS à reverser à la DGFiP.
+Dans ce contexte :
+ Le collecteur ne renseigne pas de bloc « Versement Organisme de Protection Sociale - S21.G00.20 » à destination de la DGFiP dans la déclaration de l'établissement A. Nota : si par commodité le logiciel en produit un, il devra être déclaré avec un montant total de PAS à reverser (rubrique « Montant du versement - S21.G00.20.005 ») à 0,00.
+ Le bloc « Versement Organisme de Protection Sociale - S21.G00.20 » à destination de la DGFiP dans la déclaration de l'établissement B doit porter un montant de versement (rubrique « Montant du versement - S21.G00.20.005 ») valorisé à 900,00€ (= 1000-100).
+Second cas : les deux établissements ont un SIRET payeur différent
+Dans ce contexte, il n'est pas possible d'opérer à une compensation entre les deux établissements.
+L'établissement créditeur doit suivre les mêmes principes que décrits ci-dessus dans le cas d'un mono établissement, et l'autre établissement verse l'intégralité de son montant dû à la DGFIP.
+Exemple :
+ Soit un organisme dont dépendent deux établissements (établissement A et établissement B), ne disposant pas d'un même SIRET payeur.
+ La somme de l'ensemble des blocs versement individu et des blocs régularisations de la déclaration de l'établissement A résulte en un crédit de 100,00€ ; la même somme pour l'établissement B résulte en un montant de 1000,00€ de PAS à reverser à la DGFiP.
+Dans ce contexte :
+ Le collecteur ne renseigne pas de bloc « Versement Organisme de Protection Sociale - S21.G00.20 » à destination de la DGFiP dans la déclaration de l'établissement A. Nota : si par commodité le logiciel en produit un, il devra être déclaré avec un montant total de PAS à reverser (rubrique « Montant du versement - S21.G00.20.005 ») à 0,00.
+ Le bloc « Versement Organisme de Protection Sociale - S21.G00.20 » à destination de la DGFiP dans la déclaration de l'établissement B doit porter un montant de versement (rubrique « Montant du versement - S21.G00.20.005 ») valorisé à 1000,00€.
+IV. Que faire dans le cas d'un crédit de PAS dégagé au titre d'un mois principal déclaré ?
+Qu'il s'agisse d'un collecteur mono établissement, ou d'un collecteur multi établissements dont la somme algébrique de tous ses établissements révèle un montant de PAS négatif, une demande de remboursement pourra être déposée auprès du SIE dont dépend l'entreprise.
+Depuis fin mars 2019, tout collecteur peut, à partir de la messagerie sécurisée de son espace professionnel sur le site impots.gouv.fr, formuler une réclamation visant à demander le remboursement d’un crédit de PAS. Cette demande sera transmise automatiquement au service impôts des entreprises compétent.
+ Date de création : 25/06/2018 11:10 AM 
+ N° de la fiche : 1931

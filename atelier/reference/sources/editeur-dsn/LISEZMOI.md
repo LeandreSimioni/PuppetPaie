@@ -70,7 +70,7 @@ d'affectation), 1.6 (arrondis). Confronté à `dsn.py` (`_bordereaux_regularises
 | 22/23/20 arrondis à l'euro, nominatif jamais (§1.6) | ✅ |
 | 20.002 / 22.002 « entité d'affectation » : ETT, mannequins, producteurs de films seulement (ch. 7) | ✅ non renseignées |
 | Néant avec régularisations : un 22 du mois principal + un par mois régularisé (ch. 5) | à vérifier le jour venu |
-| **Reprise de crédit** (§6.4) : un 22.005 **négatif** sur le mois d'origine est admis, repris sur le bloc 20 du mois courant dans la limite du bordereau courant, en prévenant l'Urssaf si le montant est important | ✅ 22 et 23 négatifs sur le mois d'origine, pas d'ordre 20 pour lui, l'ordre du mois courant diminué ; refus au-delà du bordereau courant (« contactez votre Urssaf ») |
+| **Reprise de crédit** (§6.4) : un 22.005 **négatif** sur le mois d'origine est admis, repris sur le bloc 20 du mois courant dans la limite du bordereau courant, en prévenant l'Urssaf si le montant est important | ✅ 22 et 23 négatifs sur le mois d'origine, pas d'ordre 20 pour lui, l'ordre du mois courant diminué ; au-delà du bordereau courant, l'ordre du mois tombe à zéro et le reste est dit à la compagnie (« contactez votre Urssaf », cahier technique § 2.2.3.2) ; `bordereau::reprise_urssaf` et `bordereau::credit` (21/10/2026) |
 
 Preuves en dépôt de test : hausse, `WSt0jCJDR28oaFJxx6CIOMF` (17/09, CRM 61
 « 16 euros [...] période de rattachement de août 2026 ») ; baisse en reprise

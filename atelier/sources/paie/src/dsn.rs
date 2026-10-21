@@ -2713,7 +2713,7 @@ pub const AGIRC_ARRCO_DEPUIS_2025: [&str; 2] = ["131", "132"];
 /// 10/10/2026 nomme Agirc-Arrco par le seul 105 ; ce 105 couvrait la retraite ET l'Apec, que la norme 2026.1 declare en
 /// 131 et 132 : le versement qui porte le 105 porte aussi les 131 et 132, sans quoi il perdrait en silence ce que le
 /// bareme declare desormais sous ces codes. Le 105 y reste pour ce qui a ete DEPOSE en 105 (une regularisation).
-fn codes_du_versement(v: &Value) -> Vec<String> {
+pub(crate) fn codes_du_versement(v: &Value) -> Vec<String> {
     let mut codes: Vec<String> = liste(g(v, "codes81")).iter().map(en_texte).collect();
     if codes.iter().any(|c| c == AGIRC_ARRCO_AVANT_2025) {
         for c in AGIRC_ARRCO_DEPUIS_2025 {
@@ -3575,7 +3575,7 @@ fn versement_complementaire(
     }
     let somme = composants.iter().fold(zero(), |s, c| add(s, c.montant));
     // « sauf si cette somme fait ressortir un montant negatif. Auquel cas un montant nul doit etre renseigne » (p. 157).
-    let montant = if somme < Decimal::ZERO { zero() } else { somme };
+    let montant = bordereau::a_verser(somme).montant;
     let mut f = Fichier::nouveau();
     f.add("S21.G00.20.001", en_texte(req(v, "siret")?));
     if let Some(r) = reference_versement(v, ent)? {
@@ -3656,15 +3656,6 @@ pub fn pas_retenu(lignes: &[String]) -> Resultat<Decimal> {
 fn versement_dgfip(
     du: Decimal, mois: &str, debut: Jour, fin: Jour, banque: &Value, remplace: bool, remplacee_versait_pas: Option<bool>,
 ) -> Resultat<Vec<String>> {
-    if du < Decimal::ZERO {
-        return Err(format!(
-            "Prelevement a la source de {} negatif ({} EUR, regularisations comprises) : le versement a la DGFiP \
-(S21.G00.20.005) n'est pas signe (p. 156), et la norme ne dit pas comment reporter ce trop-verse. Porter une \
-partie des corrections sur une DSN suivante, ou voir avec le service des impots des entreprises. Rien n'est ecrit.",
-            mois,
-            mt(du)
-        ));
-    }
     // « arrondi a l'entier le plus proche (les deux decimales etant valorisees a zero) » (p. 157, ligne 194) ; le demi
     // va a l'euro superieur (`bordereau::euro`) : CGI art. 1724, « La liquidation de toutes sommes a recevoir [...] est
     // arrondie a l'euro le plus proche. La fraction d'euro egale a 0,50 est comptee pour 1 »
@@ -3672,7 +3663,12 @@ partie des corrections sur une DSN suivante, ou voir avec le service des impots 
     // et L. 133-10 CSS ne vise pas la DGFiP ; le versement du prelevement a la source est une somme a recevoir du fisc.
     let mut montant = bordereau::euro(du);
     montant.rescale(2);
-    let ecrire = if !montant.is_zero() {
+    // UN PAS NEGATIF (les regularisations rendent plus que le mois ne retient) : « ces rubriques doivent etre renseignees
+    // a 0.00 », et le bloc, que la fiche admet « par commodite » sur une DSN initiale, s'ecrit a zero pour que l'ecran
+    // dise le remboursement a demander (fiche net-entreprises 1931, l. 4 et 13 ; `bordereau::a_verser`).
+    let credit = du < Decimal::ZERO;
+    let montant = bordereau::a_verser(montant).montant;
+    let ecrire = if !montant.is_zero() || credit {
         true
     } else if remplace {
         // « Pour une declaration de type annule et remplace sans paiement de Prelevement a la source et deposee en
@@ -4423,19 +4419,11 @@ certificat de conformite du depot precedent.",
         montants_o.push((m.clone(), bordereau::montant(&l, &premier(m)?)?));
         lignes_o.push((m.clone(), l));
     }
+    // LE TROP-VERSE A L'URSSAF (les bordereaux negatifs des mois corriges) se reprend sur le versement du mois, dans la
+    // limite de son bordereau ; le reste demeure a l'Urssaf (`bordereau::reprise_urssaf`, guide Urssaf § 6.4).
     let credit = -montants_o.iter().filter(|(_, m)| *m < Decimal::ZERO).fold(zero(), |s, (_, m)| add(s, *m));
     let mt_urssaf = bordereau::montant(&lignes_23, &debut_mois)?;
-    if credit > mt_urssaf {
-        let negatifs: Vec<String> = montants_o.iter().filter(|(_, v)| *v < Decimal::ZERO).map(|(m, _)| m.clone()).collect();
-        return Err(format!(
-            "Reprise de credit impossible : les corrections en moins ({} EUR sur {}) depassent le bordereau Urssaf de \
-ce mois ({} EUR). Le guide Urssaf (§6.4) ne permet de se reprendre que dans la limite du bordereau courant : \
-contactez votre Urssaf pour le reste, ou portez la correction sur un mois au bordereau suffisant. Rien n'est ecrit.",
-            mt(credit),
-            negatifs.join(", "),
-            mt(mt_urssaf)
-        ));
-    }
+    let (verse_urssaf, _) = bordereau::reprise_urssaf(mt_urssaf, credit);
     let banque = banque_du_prelevement(&ent)?;
     // Le versement DGFiP s'ecrit ici, en tete des blocs 20, quand les individus ont dit ce qu'ils retiennent.
     let place_dgfip = f.lignes.len();
@@ -4455,13 +4443,15 @@ contactez votre Urssaf pour le reste, ou portez la correction sur un mois au bor
             continue;
         }
         let montant = if libelle == "URSSAF" {
-            sub(mt_urssaf, credit)
+            verse_urssaf.montant
         } else {
             let m = montant_versement(v, &totaux_avec_regs, brut_mois)?;
             if m.is_zero() {
                 continue;
             }
-            m
+            // Une correction a la baisse peut faire la somme negative : le versement est alors a zero, le credit reste
+            // declare dans les cotisations individuelles (`bordereau::a_verser`).
+            bordereau::a_verser(m).montant
         };
         f.add("S21.G00.20.001", &siret);
         if let Some(r) = reference_versement(v, &ent)? {
@@ -5026,7 +5016,7 @@ mod tests {
     }
 
     #[test]
-    fn le_versement_dgfip_s_arrondit_a_l_euro_et_refuse_un_pas_negatif() {
+    fn le_versement_dgfip_s_arrondit_a_l_euro_et_verse_zero_pour_un_pas_negatif() {
         let banque = json!({"bic": "BANQFRPPXXX", "iban": "FR7630001007941234567890185"});
         let (debut, fin) = (Jour::nouveau(2026, 7, 1).unwrap(), Jour::nouveau(2026, 7, 31).unwrap());
         let montant = |du: &str| -> Option<String> {
@@ -5038,8 +5028,8 @@ mod tests {
         assert_eq!(montant("169.49"), Some("'169.00'".into()));
         // Moins de 50 centimes : rien a reverser, rien a ecrire sur une DSN normale.
         assert_eq!(montant("0.40"), None);
-        let e = versement_dgfip(Decimal::from_str_exact("-3.10").unwrap(), "2026-07", debut, fin, &banque, false, None).unwrap_err();
-        assert!(e.contains("negatif"), "{}", e);
+        // Un PAS negatif : un versement a 0.00, que la fiche net-entreprises 1931 admet « par commodite » (l. 13).
+        assert_eq!(montant("-3.10"), Some("'0.00'".into()));
     }
 
     /// Les blocs 78 que `bases_et_cotisations` ecrit pour cette paie : (78.001, 78.004), dans l'ordre.
