@@ -343,7 +343,8 @@ pub fn decrire(texte: &str, mois: &str, organismes: &Value, jour_echeance: u32) 
             (None, "date non dite par la DSN".to_string(), SOURCE_AUCUNE)
         };
         let credit = credit_de(&o, &p, texte, mois, &organisme, &urssaf, config)?.map(|c| {
-            json!({"reste": crate::dsn::mt(c.reste), "deduit": crate::dsn::mt(c.deduit), "que_faire": c.que_faire, "source": c.source})
+            json!({"reste": crate::dsn::mt(c.reste), "deduit": crate::dsn::mt(c.deduit), "titre": c.titre, "que_faire": c.que_faire,
+                "source": c.source})
         });
         out.push(json!({
             "organisme": organisme,

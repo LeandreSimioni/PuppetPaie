@@ -321,10 +321,13 @@ function recapitulatifDsn(r) {
       <td>${c.fin_declaree ? "fin le " + echapper(jjmmaaaa(c.fin_declaree)) : "en cours"}</td>
     </tr>
     ${c.ecarts.length ? `<tr class="ecart"><td></td><td colspan="8">
-      <span class="pastille alerte">${echapper(c.ecarts.join(" ; "))}</span></td></tr>` : ""}`).join("")).join("");
+      <span class="pastille alerte">${echapper(c.ecarts.join(" ; "))}</span></td></tr>` : ""}
+    ${c.correction ? `<tr><td></td><td colspan="8" class="note-correction"><span class="pastille">correction
+      d'un mois déjà déclaré</span> ces montants s'ajoutent à ce qui l'a été</td></tr>` : ""}`).join("")).join("");
   return `
     <div class="encart ${r.conforme ? "bien" : r.compare ? "attention" : ""}">
-      <b>${r.contrats} contrat${r.contrats > 1 ? "s" : ""} dans ce fichier${r.compare
+      <b>${r.contrats} contrat${r.contrats > 1 ? "s" : ""} dans ce fichier${r.corrections
+        ? ` (et ${r.corrections} correction${r.corrections > 1 ? "s" : ""} d'un mois déjà déclaré)` : ""}${r.compare
         ? `, ${r.contrats_saisis} saisi${r.contrats_saisis > 1 ? "s" : ""} dans la paie du mois` : ""}</b>
       ${r.conforme ? "Tous les contrats de la paie sont dans la DSN, tels que la paie les dit."
         : r.compare ? `${r.absents.length ? r.absents.length + " contrat(s) de la paie manquent au fichier. " : ""}${ecarts
@@ -375,11 +378,13 @@ function corpsDsn(a) {
              <tr><th>À qui</th><th>Pour quoi</th><th class="nombre">Montant</th><th>Prélevé</th></tr>
              ${v.map((x) => `<tr>
                <td><b>${echapper(x.organisme)}</b></td>
-               <td>${echapper(x.objet)}${x.credit ? `<div class="encart info"
-                 title="${echapper(x.credit.source)}"><b>Trop versé</b>
-                 ${echapper(x.credit.que_faire)}</div>` : ""}</td>
+               <td>${echapper(x.objet)}</td>
                <td class="nombre"><b>${echapper(euros(x.montant))}</b></td>
-               <td title="${echapper(x.source)}">${echapper(x.quand)}</td></tr>`).join("")}
+               <td title="${echapper(x.source)}">${echapper(x.quand)}</td></tr>
+             ${x.credit ? `<tr class="credit"><td></td><td colspan="3">
+               <div class="encart" title="${echapper(x.credit.source)}">
+               <b>${echapper(x.credit.titre)}</b>
+               ${echapper(x.credit.que_faire)}</div></td></tr>` : ""}`).join("")}
            </table>
            Chaque organisme prélèvera ce montant sur le compte de la compagnie. Ce ne sont pas des indications.
            <span class="discret">La date se lit dans la DSN ou dans le texte qui la fixe (au survol).</span>`

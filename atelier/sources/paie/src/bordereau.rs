@@ -376,6 +376,8 @@ pub struct Credit {
     pub reste: Decimal,
     /// Ce que ce versement reprend deja (l'Urssaf seulement).
     pub deduit: Decimal,
+    /// Le titre de l'encart (« Trop versé : 65,72 € »).
+    pub titre: String,
     pub que_faire: String,
     pub source: &'static str,
 }
@@ -385,74 +387,85 @@ const SOURCE_COMPLEMENTAIRE: &str = "Cahier technique DSN 2026.1, S21.G00.20.005
 const SOURCE_DGFIP: &str = "Fiche net-entreprises 1931 « Gérer les situations créditrices » : un prélèvement à la source négatif se déclare à 0,00, et le remboursement se demande au service des impôts des entreprises (messagerie sécurisée de l'espace professionnel impots.gouv.fr).";
 const SOURCE_AUTRE: &str = "Cahier technique DSN 2026.1, S21.G00.20.005 : « montant des cotisations réglées », « non signé, valeur zéro autorisée ». Aucun texte relevé ne dit comment cet organisme rend un crédit.";
 
+/// Un montant a l'ecran : « 1 295,00 € », milliers separes et euro colle par des espaces insecables (le montant ne se
+/// coupe pas en fin de ligne), comme `euros` de la page (`toLocaleString("fr-FR")`).
 fn euros(x: Decimal) -> String {
-    let mut x = x;
+    let mut x = x.abs();
     x.rescale(2);
-    format!("{} €", x.to_string().replace('.', ","))
+    let t = x.to_string();
+    let (e, c) = t.split_once('.').unwrap_or((&t, "00"));
+    let mut groupes: Vec<&str> = Vec::new();
+    let mut fin = e.len();
+    while fin > 3 {
+        groupes.push(&e[fin - 3..fin]);
+        fin -= 3;
+    }
+    groupes.push(&e[..fin]);
+    groupes.reverse();
+    format!("{},{}\u{a0}€", groupes.join("\u{202f}"), c)
 }
 
-/// Ce que devient le credit d'un versement a `nom` : `reste`, le credit que le versement ne reprend pas ; `deduit`, ce
-/// qu'il reprend (l'Urssaf seulement). `None` quand il n'y a rien a dire.
-pub fn credit(dest: Destinataire, nom: &str, reste: Decimal, deduit: Decimal) -> Option<Credit> {
+/// Ce que devient le credit d'un versement : `reste`, le credit que le versement ne reprend pas ; `deduit`, ce qu'il
+/// reprend (l'Urssaf seulement). `None` quand il n'y a rien a dire. (`_nom` : l'organisme, que l'ecran nomme deja.)
+pub fn credit(dest: Destinataire, _nom: &str, reste: Decimal, deduit: Decimal) -> Option<Credit> {
     if reste <= Decimal::ZERO && deduit <= Decimal::ZERO {
         return None;
     }
-    let (que_faire, source) = match dest {
+    const DEMANDER: &str = "Aucun texte relevé ne dit comment l'organisme rend ce crédit : demandez-lui s'il vous le \
+rembourse ou le déduit d'une prochaine échéance.";
+    let (titre, que_faire, source) = match dest {
         Destinataire::Urssaf if reste <= Decimal::ZERO => (
-            format!(
-                "{} trop versés sur un mois corrigé sont déduits de ce versement (dans la limite du bordereau du mois). \
-Rien d'autre à faire ; si la somme est importante, le guide Urssaf conseille d'expliquer la situation à votre Urssaf \
-par le service en ligne « échange avec mon Urssaf ».",
-                euros(deduit)
-            ),
+            format!("Trop versé déduit : {}", euros(deduit)),
+            "Ce qui a été payé en trop sur un mois corrigé est retiré de ce versement, dans la limite du bordereau du \
+mois. Rien d'autre à faire ; si la somme est importante, le guide Urssaf conseille de l'expliquer à votre Urssaf par \
+le service en ligne « échange avec mon Urssaf »."
+                .to_string(),
             SOURCE_URSSAF,
         ),
         Destinataire::Urssaf => (
+            if deduit > Decimal::ZERO {
+                format!("Trop versé : {} déduits, {} à réclamer", euros(deduit), euros(reste))
+            } else {
+                format!("Trop versé : {} à réclamer", euros(reste))
+            },
             format!(
-                "{}{} trop versés dépassent le bordereau de ce mois et ne peuvent pas en être déduits : contactez votre \
+                "Le trop versé dépasse le bordereau de ce mois : {}{} ne peuvent pas en être déduits. Contactez votre \
 Urssaf (service en ligne « échange avec mon Urssaf ») pour qu'elle vous les rende ou les impute.",
-                if deduit > Decimal::ZERO {
-                    format!("{} trop versés sont déduits de ce versement, qui tombe à zéro ; les ", euros(deduit))
-                } else {
-                    String::new()
-                },
+                if deduit > Decimal::ZERO { "ce versement tombe à zéro, et les " } else { "les " },
                 euros(reste)
             ),
             SOURCE_URSSAF,
         ),
         Destinataire::Complementaire => (
+            format!("Trop versé : {}", euros(reste)),
             format!(
-                "Rien à payer ce mois-ci : les corrections font {} de cotisations en moins, que la DSN déclare dans les \
-composants de versement ; le versement, lui, est à zéro. Aucun texte relevé ne dit comment {} rend ce crédit : \
-demandez-lui s'il le rembourse ou le déduit d'une prochaine échéance.",
-                euros(reste),
-                nom
+                "Rien à payer ce mois-ci : les corrections font plus de cotisations en moins que le mois n'en doit. Le \
+versement est déclaré à zéro, le crédit dans les composants de versement. {}",
+                DEMANDER
             ),
             SOURCE_COMPLEMENTAIRE,
         ),
         Destinataire::Dgfip => (
-            format!(
-                "Rien à reverser ce mois-ci : les régularisations font {} de prélèvement à la source en trop. Demandez \
-le remboursement au service des impôts des entreprises, par la messagerie sécurisée de votre espace professionnel sur \
-impots.gouv.fr.",
-                euros(reste)
-            ),
+            format!("Prélèvement à la source en trop : {}", euros(reste)),
+            "Rien à reverser ce mois-ci : les régularisations rendent plus que le mois ne retient. Demandez le \
+remboursement au service des impôts des entreprises, par la messagerie sécurisée de votre espace professionnel sur \
+impots.gouv.fr."
+                .to_string(),
             SOURCE_DGFIP,
         ),
         Destinataire::Autre => (
+            format!("Trop versé : {}", euros(reste)),
             format!(
-                "Rien à payer ce mois-ci : les corrections déclarées font {} de cotisations en moins que ce que le mois \
-doit à {}. Un versement ne peut pas être négatif : il est déclaré à zéro, et le crédit reste déclaré dans les \
-cotisations des salariés. Aucun texte relevé ne dit comment {} rend ce crédit : demandez-lui s'il le rembourse ou le \
-déduit d'une prochaine échéance.",
-                euros(reste),
-                nom,
-                nom
+                "Rien à payer ce mois-ci : les corrections font plus de cotisations en moins que le mois n'en doit. Un \
+versement ne peut pas être négatif : il est déclaré à zéro, et le crédit reste dans les cotisations des salariés. {}",
+                DEMANDER
             ),
             SOURCE_AUTRE,
         ),
     };
-    Some(Credit { reste: reste.max(Decimal::ZERO), deduit, que_faire, source })
+    // Les guillemets ne se separent pas de ce qu'ils citent en fin de ligne (« échange avec mon Urssaf »).
+    let que_faire = que_faire.replace("« ", "«\u{a0}").replace(" »", "\u{a0}»");
+    Some(Credit { reste: reste.max(Decimal::ZERO), deduit, titre, que_faire, source })
 }
 
 #[cfg(test)]
@@ -480,7 +493,9 @@ mod tests {
         assert_eq!((v.montant, v.credit, deduit), (d("1600.00"), Decimal::ZERO, d("400.00")));
         let (v, deduit) = reprise_urssaf(d("300.00"), d("400.00"));
         assert_eq!((v.montant, v.credit, deduit), (d("0.00"), d("100.00"), d("300.00")));
-        assert!(credit(Destinataire::Urssaf, "Urssaf", v.credit, deduit).unwrap().que_faire.contains("100,00 €"));
+        let c = credit(Destinataire::Urssaf, "Urssaf", v.credit, deduit).unwrap();
+        assert_eq!(c.titre, "Trop versé : 300,00\u{a0}€ déduits, 100,00\u{a0}€ à réclamer");
+        assert_eq!(euros(d("1295.5")), "1\u{202f}295,50\u{a0}€");
     }
 
     /// Une date dont le jour depasse 12 est en AAAA-MM-JJ, les autres en

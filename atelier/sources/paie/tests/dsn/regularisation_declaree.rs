@@ -1333,6 +1333,12 @@ fn un_contrat_qui_n_a_pas_eu_lieu_se_corrige_a_zero() {
     // L'ORDRE DE PAIEMENT DIT LE CREDIT, et ce que la compagnie en fait (`ordres_paiement::decrire`, `bordereau::credit`).
     let a = route_le(&r, JOUR, "depot-apercu", json!({"quoi": "dsn", "fichier": "sorties/2026-10/DSN_Octobre2026.dsn"}));
     let ordres = a["resultat"]["ordres"].as_array().unwrap_or_else(|| panic!("{}", a));
+    // Le recapitulatif de la meme boite : le contrat de juillet n'est dans le fichier que pour sa correction, ce n'est
+    // pas un ecart avec la paie d'octobre (`apercu_dsn::recapitulatif_dsn`).
+    let recap = &a["resultat"]["recapitulatif"];
+    assert_eq!((recap["corrections"].as_u64(), recap["conforme"].as_bool()), (Some(1), Some(true)), "{}", recap);
+    let corrige = recap["salaries"].as_array().unwrap().iter().flat_map(|s| s["contrats"].as_array().unwrap()).find(|c| c["numero"] == json!(CONTRAT)).unwrap();
+    assert_eq!((&corrige["correction"], &corrige["ecarts"]), (&json!(true), &json!([])), "{}", corrige);
     for (org, d) in credits {
         let o = ordres.iter().find(|o| o["identifiant"] == json!(org)).unwrap_or_else(|| panic!("{} : {:?}", org, ordres));
         assert_eq!(o["montant"], json!("0.00"));

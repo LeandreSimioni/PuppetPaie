@@ -980,6 +980,9 @@ table.ordres th, table.ordres td { padding: 4px 6px; text-align: left; vertical-
 table.ordres th.nombre, table.ordres td.nombre { text-align: right; white-space: nowrap; }
 table.ordres td.nombre b { font-size: 15px; }
 table.ordres tr:last-child td { border-bottom: none; }
+/* LE TROP-VERSÉ (21/10/2026) : sous l'ordre qu'il concerne, sur toute la largeur utile ; `bordereau::credit` le dit. */
+table.ordres tr:has(+ tr.credit) td { border-bottom: none; }
+table.ordres tr.credit .encart { margin: 0 0 6px; }
 
 /* La réponse de l'organisme, telle quelle. */
 pre.reponse {
@@ -1493,6 +1496,9 @@ label.coche.montrer-archives { margin-top: 16px; padding-top: 10px; border-top: 
 table.recap-dsn { font-size: 12.5px; margin: 6px 0 10px; }
 table.recap-dsn td, table.recap-dsn th { padding: 3px 6px; }
 table.recap-dsn tr.ecart td { background: var(--fond); }
+/* Un contrat qui n'est dans le fichier que pour sa correction (21/10/2026) : la note se lit sous lui, à gauche. */
+table.recap-dsn td.note-correction { text-align: left; color: var(--discret); font-size: 12px; }
+table.recap-dsn td.note-correction .pastille { margin: 0 6px 0 0; }
 ul.absents { margin: 4px 0 8px; padding-left: 18px; }
 details.replie { margin: 10px 0; }
 details.replie > summary { cursor: pointer; color: var(--discret); font-size: 13px; }
