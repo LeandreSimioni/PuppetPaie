@@ -172,6 +172,11 @@ cargo nextest run --cargo-profile essais --no-fail-fast                  # le mo
   exhaustive se joue sur un échantillon à graine fixe (`outils::tire`).
 - Les tests tournent sur des compagnies fictives et sur **la copie figée** `paie/tests/donnees/fictives/` ; `fictives/` vit
   (le poste la fait jouer et la commite), un test ne la lit jamais. Une compagnie de test se nomme toujours.
+- **Aucun test ne sort de la machine** (21/10/2026 : un test s'était inscrit au vrai filet, d'où des courriels à
+  `a@exemple.fr`). `paie/.cargo/config.toml` pose `PUPPETPAIE_ESSAIS_HORS_RESEAU` pour tout ce que Cargo lance, et
+  `src/garde_reseau.rs` refuse alors toute sortie hors de 127.0.0.1 ; un test qui veut voir une sortie nomme son faux
+  mandataire dans cette variable. `tests/fichiers/garde_reseau.rs` exige que toute connexion du moteur passe par le garde-fou
+  et qu'un `env_clear()` repose la variable.
 - `.claude/hooks/session-start.sh` compile la suite d'avance dans le nuage. Doutes sur des tests : `journal/tests/DOUTES-TESTS.md`.
 
 ## GitHub Actions : à la fin seulement
