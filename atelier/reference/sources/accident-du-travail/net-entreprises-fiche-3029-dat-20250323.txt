@@ -1,0 +1,33 @@
+Transcription (texte de la page, sans les balises ni le menu) de net-entreprises-fiche-3029-dat-20250323.html
+URL : https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/3029/~/la-d%C3%A9claration-daccident-de-travail-ou-de-trajet---dat  (fiche n° 3029, modifiée le 23/03/2025, relevée le 21/10/2026).
+
+3.  La déclaration d'accident de travail ou de trajet - DAT
+A+
+A-
+Date de modification : 23/03/2025 12:02 PM
+En bref
+ 
+La Déclaration d’Accident du Travail ou de trajet (DAT) en ligne associe toutes les garanties de sécurisation des échanges avec 3 accusés de réception mis à la disposition du déclarant : l’accusé de dépôt puis 2 accusés de réception transmis par courriel. L’employeur a la possibilité d’apporter toutes les informations qu’il souhaite communiquer à la caisse primaire ou de joindre des documents complémentaires.
+L’exhaustivité des informations ainsi fournies permet de réduire les échanges ultérieurs nécessaires à la qualité et à la rapidité du traitement de la déclaration.
+Vous avez la possibilité de rattacher des réserves à une DAT non mortelle durant un délai règlementaire de 10 jours francs à partir de la date de dépôt initiale de la DAT.
+ 
+ 
+Qui et quand déclarer ?
+ 
+La Déclaration d’Accident du travail ou de Trajet (DAT) est à effectuer auprès de la Caisse Primaire d’Assurance Maladie (CPAM) dont dépend la victime au plus tard 48 heures après avoir eu connaissance de l’accident survenant à un ou plusieurs de vos salariés.
+La Déclaration d’Accident du Travail ou de Trajet en ligne est proposée à tous les employeurs dont les salariés dépendent du Régime Général de l’Assurance Maladie et à leurs mandataires (experts-comptables, centres ou associations de gestion agréés) :
+-   Par saisie de formulaire à l’écran ;
+-   Par dépôt de fichier structuré issu de votre logiciel de paie (EDI)
+À noter ! Dans le cas d’un Accident du Travail ou de Trajet, l’employeur ou son mandataire doit effectuer par la suite l’attestation de salaire pour le versement des indemnités journalières (IJ) ou un signalement arrêt de travail s’il est redevable de la DSN.
+ 
+ 
+Pour utiliser ce service
+ 
++-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Pas inscrit sur net-entreprises                                                                                                                                         | Inscrit à net-entreprises mais pas à ce service                                                                                                                                |
++:=======================================================================================================================================================================:+================================================================================================================================================================================+
+| -   Vérifiez dans la mesure du possible au sein de votre entreprise si vos collègues sont déjà inscrits.                                                                | -   A partir de vote menu personnalisé, sélectionnez « La déclaration d’accident du travail ou de trajet – DAT ». Accédez à ce service sous 48h afin de transmettre votre DAT. |
+| -   Une fois votre inscription finalisée, vous accéderez à la « Déclaration d’accident du travail ou de trajet – DAT » sous 48h jour après la fin de votre inscription. |                                                                                                                                                                                |
++-------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+Date de création : 06/03/2025 07:48 PM
+N° de la fiche : 3029
