@@ -288,11 +288,11 @@ pub fn noter(racine: &Path, n: &Note) -> Option<Value> {
 /// `FileNotFoundError` et leurs filles.
 // `ErreurCoffre` et `ErreurGoogle` y sont, et c'est voulu (decision de Leandre, 08/10/2026) : le Python les classait en defaut du logiciel
 // (`Exception` simples), mais un coffre ferme ou un refus de Google est une situation d'usage. Un defaut du Python ne se reproduit pas.
-const REFUS_PAR_CLASSE: [&str; 20] = [
+const REFUS_PAR_CLASSE: [&str; 21] = [
     "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "CalculRefuse", "FabriqueRefus", "FicheRefusee",
     "DsnDejaDeposee", "MoisPasPret", "RepetitionManquante", "DpaeDejaDeclaree", "VersionExigee", "CompteursVerrouilles",
     "KeyError", "ValueError", "FileNotFoundError", "UnicodeDecodeError", "JSONDecodeError", "UnicodeEncodeError",
-    "ErreurCoffre", "ErreurGoogle",
+    "ErreurCoffre", "ErreurGoogle", "ModificationApresEcheance",
 ];
 
 /// `nature_de` d'apres le NOM de la classe de l'exception.

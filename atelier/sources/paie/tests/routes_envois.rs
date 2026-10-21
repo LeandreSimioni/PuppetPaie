@@ -376,6 +376,64 @@ fn des_documents_partis_puis_une_paie_modifiee_se_renvoient_au_seul_salarie_conc
     assert!(!faux.message(0).entete("Subject").contains("corrigés"));
 }
 
+/// Le texte du bulletin individuel de Lemercier pour aout 2026, tel qu'il partirait.
+fn bulletin_de_lemercier(racine: &Path) -> String {
+    let f = racine.join("sorties/2026-08/envoi/Bulletin_LEMERCIER_Aout2026.pdf");
+    fabrique_pdf::lecture::texte(&f.to_string_lossy()).unwrap().0.join("\n")
+}
+
+/// Les heures de Lemercier en aout 2026 portees a `heures`, par la route, en confirmant (la DSN d'aout ne se remplace plus).
+fn modifier_lemercier(racine: &Path, heures: i64) {
+    let mut saisie = lire(racine, "paies/2026-08.json");
+    let rang = saisie["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "Lemercier").unwrap();
+    saisie["engagements"][rang]["lignes"][0]["quantite"] = json!(heures);
+    let charge = json!({"mois": "2026-08", "saisie": saisie, "modifier_apres_echeance": true});
+    paie::routes_ecritures::route(&options(racine), &contexte(racine), "enregistrer-saisie", &charge).unwrap();
+}
+
+/// APRES LA LIMITE DE L'ANNULE-ET-REMPLACE (Leandre, 21/10/2026) : la DSN d'aout ne se refait plus, la paie modifiee se
+/// declare dans une DSN suivante. Les documents corriges repartent quand meme -- refaits depuis la paie d'aujourd'hui sans
+/// rien redeclarer --, et le courriel dit avec quelle paie la correction sera declaree : le mois de la DSN qui la porte une
+/// fois ecrite (« Corriger ce mois »), « une paie suivante » tant qu'elle ne l'est pas.
+#[test]
+fn apres_la_limite_les_documents_corriges_repartent_et_le_courriel_dit_quand_la_correction_sera_declaree() {
+    let _t = tour();
+    let racine = compagnie("documents-apres-limite", false);
+    poser_le_mot_de_passe(&racine);
+    ecrire_les_documents(&racine, "2026-08");
+    avec(&racine, "envoyer-documents", json!({"mois": "2026-08", "motdepasse": MOT_DE_PASSE}), &Faux::nouveau()).unwrap();
+    assert!(bulletin_de_lemercier(&racine).contains("576,00"));
+
+    // La paie change apres la limite : rien n'empeche le renvoi.
+    modifier_lemercier(&racine, 40);
+    let a = apercu(&racine, "envoi-apercu", json!({"mois": "2026-08"}));
+    assert_eq!(a["empechements"], json!([]), "{}", a);
+    assert_eq!(a["renvois"], json!(1), "{}", a);
+
+    // Le renvoi : ses documents refaits (personne n'a reecrit les documents du mois), et la phrase de la declaration.
+    let faux = Faux::nouveau();
+    avec(&racine, "envoyer-documents", json!({"mois": "2026-08", "motdepasse": MOT_DE_PASSE}), &faux).unwrap();
+    assert_eq!(faux.partis(), 1);
+    assert!(bulletin_de_lemercier(&racine).contains("720,00"), "{}", bulletin_de_lemercier(&racine));
+    let (corps, _) = faux.message(0).textes();
+    assert!(corps.contains("  - salaire brut : 576,00 € → 720,00 €\n"), "{}", corps);
+    assert!(corps.contains("ne garde que ceux-ci.\n\nTa paie d'août 2026 était déjà déclarée : la correction sera déclarée avec une paie suivante.\n\n"), "{}", corps);
+
+    // La paie change encore, et sa correction s'ecrit (« Corriger ce mois ») : la DSN d'octobre la portera.
+    modifier_lemercier(&racine, 48);
+    let o = options(&racine);
+    let ctx = contexte(&racine);
+    let m = paie::routes_ecrites::route(&o, &ctx, "regularisation-mois", &json!({"mois": "2026-08"})).unwrap();
+    let e = m["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "LEMERCIER").unwrap().clone();
+    let charge = json!({"mois": "2026-08", "salarie": "LEMERCIER", "debut": e["debut"], "engagement": {"lignes": e["engagement_saisi"]["lignes"]},
+                        "motif": "heures de Lemercier", "motdepasse": MOT_DE_PASSE});
+    paie::routes_ecritures_g2::route(&o, &ctx, "regularisation-ecrire", &charge).unwrap();
+    let faux = Faux::nouveau();
+    avec(&racine, "envoyer-documents", json!({"mois": "2026-08", "motdepasse": MOT_DE_PASSE}), &faux).unwrap();
+    let (corps, _) = faux.message(0).textes();
+    assert!(corps.contains("Ta paie d'août 2026 était déjà déclarée : la correction sera déclarée avec la paie d'octobre 2026.\n\n"), "{}", corps);
+}
+
 #[test]
 fn le_courriel_de_renvoi_dit_ce_qui_a_change_contrat_par_contrat() {
     use paie::envoi::ce_qui_a_change;

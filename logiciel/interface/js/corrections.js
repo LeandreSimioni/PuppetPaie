@@ -72,8 +72,8 @@ function encartRegularisation(etat) {
       <b>Ce mois est déposé, et son échéance est passée.</b>
       Ce que vous corrigez ici ne modifie pas la DSN déposée : la correction
       partira dans la DSN ${echapper(deMois(etat.mois_courant))},
-      datée ${echapper(deMois(etat.mois))}. La saisie ${echapper(deMois(etat.mois))}
-      reste telle qu'elle a été déclarée.
+      datée ${echapper(deMois(etat.mois))}. L'« avant » est la paie telle
+      qu'elle a été déclarée.
     </div>`;
 }
 
@@ -98,6 +98,7 @@ async function boiteCorriger(mois) {
           ${echapper(periodeEnClair(e.debut, e.fin))} ·
           brut ${echapper(euros(e.brut))}, net ${echapper(euros(e.net_a_payer))}
           ${e.deja_corrige ? " · déjà corrigé par une DSN partie" : ""}
+          ${e.engagement_saisi && !e.correction_en_cours ? " · <b>modifié dans la saisie : la correction en reprend les lignes</b>" : ""}
           ${e.correction_en_cours ? ` · <b>correction n° ${e.correction_en_cours.numero} en attente</b>` : ""}</span>
         <button class="secondaire" data-eng="${i}">Corriger…</button>
       </div>`).join("")
@@ -187,8 +188,11 @@ function boiteCorrigerEngagement(mois, e, etat) {
     bouton.disabled = !dernier || dernier.rien_ne_change || !motif;
   };
 
-  (e.engagement.lignes || []).forEach(poser);
-  if (!(e.engagement.lignes || []).length) poser({});
+  // LA PAIE MODIFIÉE DANS LA SAISIE APRÈS LA LIMITE (21/10/2026) : la correction part de ce qu'on a saisi
+  // (`engagement_saisi`, donné par le moteur) ; l'aperçu compare toujours à ce qui est déclaré.
+  const depart = (e.engagement_saisi || e.engagement).lignes || [];
+  depart.forEach(poser);
+  if (!depart.length) poser({});
   zone.addEventListener("input", plusTard);
   zone.addEventListener("change", plusTard);
   document.getElementById("cor-motif").oninput = majBoutonCorrection;
@@ -216,6 +220,8 @@ function boiteCorrigerEngagement(mois, e, etat) {
       dire("Correction n° " + r.correction.numero + " écrite — elle partira dans la DSN "
            + deMois(etat.mois_courant) + ".");
       await dessinerRegularisation();
+      // L'étape DSN du mois affiché le dit aussitôt (`correction_ecrite`).
+      if (MOIS_AFFICHE === mois) await rafraichirActions();
     } catch (err) {
       bouton.disabled = false;
       dire(err.message, "erreur");

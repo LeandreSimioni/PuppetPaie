@@ -205,7 +205,13 @@ pub(crate) fn paies_de_en(o: &HashMap<String, String>, ctx: &Contexte, data: &Va
 }
 
 /// `_saisie_d_origine`.
+/// La saisie TELLE QUE DECLAREE quand elle a ete modifiee apres la limite de l'annule-et-remplace
+/// (`chemin_saisie_declaree`, 21/10/2026) : c'est d'elle que la correction part.
 pub(crate) fn saisie_d_origine(ctx: &Contexte, mois: &str) -> R<Value> {
+    let declaree = chemin_saisie_declaree(ctx, mois);
+    if declaree.exists() {
+        return Ok(crate::engagement::lire_saisie(&declaree)?);
+    }
     let p = ctx.racine.join("paies").join(format!("{}.json", mois));
     if !p.exists() {
         return Err(non_regularisable(format!("La saisie de {} (paies/{}.json) n'est pas sur le disque : rien a corriger.", mois, mois)));
@@ -445,4 +451,150 @@ pub(crate) fn apercu_correction(o: &HashMap<String, String>, ctx: &Contexte, cha
         "avertissements": apres.avertissements.iter().map(|a| a.texte.clone()).collect::<Vec<_>>(),
         "engagement": corrige,
     }))
+}
+
+// ------------------------------------------------- modifier la paie d'un mois deja declare
+
+/// LA PAIE D'UN MOIS DEJA DECLARE SE MODIFIE EN LE SACHANT (Leandre, 21/10/2026). La cle de la charge qui confirme, pour
+/// `enregistrer-saisie` (et toute route qui ecrit la saisie d'un mois, `routes_ecritures::ecrire_saisie`).
+pub const CONFIRMATION: &str = "modifier_apres_echeance";
+
+/// La classe du refus : la page la reconnait et montre l'avertissement, avec « Modifier quand meme » et « Annuler ».
+pub const CLASSE_A_CONFIRMER: &str = "ModificationApresEcheance";
+
+/// `septembre 2026`, avec ses accents.
+fn mois_en_clair(mois: &str) -> String {
+    let n: usize = mois.get(5..7).and_then(|m| m.parse().ok()).unwrap_or(1);
+    format!("{} {}", crate::envoi::MOIS_ACCENTS[n.clamp(1, 12) - 1], mois.get(..4).unwrap_or(""))
+}
+
+/// `de septembre 2026`, `d'octobre 2026`.
+pub(crate) fn de_mois_en_clair(mois: &str) -> String {
+    crate::envoi::de_mois(&mois_en_clair(mois))
+}
+
+/// La saisie d'un mois TELLE QUE DECLAREE, gardee quand on la modifie apres la limite de l'annule-et-remplace : la
+/// correction (`Corriger ce mois`) se calcule depuis ce que la DSN deposee a declare, pas depuis la saisie modifiee.
+/// A cote des corrections du mois, sous un nom que `routes_ecrites::toutes_les_corrections` ne lit pas.
+pub(crate) fn chemin_saisie_declaree(ctx: &Contexte, mois: &str) -> PathBuf {
+    ctx.racine.join("regularisations").join(format!("{}.saisie-declaree.json", mois))
+}
+
+/// Ce que la page dit d'un mois dont la DSN reelle est deposee, avant qu'on en modifie la paie (`saisie`,
+/// `enregistrer-saisie`) ; `Null` quand aucune DSN reelle acceptee n'est partie.
+///
+/// * tant que l'annule-et-remplace est admis (jusqu'a la veille de l'echeance, minuit) : une phrase, rien a confirmer ;
+/// * apres : `confirmer`, et l'avertissement que la page montre a la premiere modification. Il dit ce qui est VRAI : la DSN
+///   deposee ne change plus ; la correction se declare dans la DSN du mois courant (celle qui embarque les corrections,
+///   `produire_regularisations::corrections_a_porter`), une fois ecrite par « Corriger ce mois » -- modifier la saisie
+///   ne l'ecrit pas, et l'ecrire est un acte (mot de passe du logiciel, `regularisation-ecrire`).
+pub(crate) fn modification_de_la_paie(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
+    let etat = etat_mois(m, ctx, &json!(mois))?;
+    if !vrai(&etat["deposee"]) || vrai(&etat["refusee"]) {
+        return Ok(Value::Null);
+    }
+    let veille = m.limite(mois)?;
+    let de = de_mois_en_clair(mois);
+    if !vrai(&etat["regularisable"]) {
+        return Ok(json!({
+            "confirmer": false,
+            "limite": veille.iso(),
+            "phrase": format!(
+                "La DSN {} est déposée : la modifier fera partir un annule-et-remplace, jusqu'au {} à minuit.",
+                de,
+                veille.jj_mm_aaaa()
+            ),
+        }));
+    }
+    let porteur = de_mois_en_clair(&py_str(&etat["mois_courant"]));
+    Ok(json!({
+        "confirmer": true,
+        "limite": veille.iso(),
+        "mois_courant": etat["mois_courant"],
+        "phrase": format!(
+            "La DSN {} est déposée et ne peut plus être remplacée : modifier cette paie se confirme, et la correction se déclare dans la DSN {} par « Corriger ce mois ».",
+            de, porteur
+        ),
+        "avertissement": format!(
+            "La limite de la DSN {} est passée : l'annule-et-remplace n'est plus admis depuis le {} à minuit, on ne peut plus la remplacer. La DSN déposée ne changera pas : la correction se déclarera dans la DSN {}, une fois écrite par « Corriger ce mois » (étape DSN). Êtes-vous sûr de vouloir modifier cette paie ?",
+            de,
+            veille.jj_mm_aaaa(),
+            porteur
+        ),
+    }))
+}
+
+/// Garde la saisie telle que declaree avant sa premiere modification apres la limite (`chemin_saisie_declaree`). Ne
+/// garde rien si elle l'est deja, ou si la saisie du disque n'est plus celle que la derniere DSN reelle a declaree (son
+/// empreinte, notee au depot, ne correspond plus) : ce ne serait pas la paie declaree.
+pub(crate) fn garder_la_saisie_declaree(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<()> {
+    let copie = chemin_saisie_declaree(ctx, mois);
+    let saisie = ctx.racine.join("paies").join(format!("{}.json", mois));
+    if copie.exists() || !saisie.exists() {
+        return Ok(());
+    }
+    let faits = m.depots_reels(mois, &Value::Null)?;
+    let notee = faits.last().and_then(|l| l.get("detail")).and_then(|d| d.get("empreinte_saisie")).filter(|e| vrai(e)).map(py_str);
+    if let Some(n) = notee {
+        if m.empreinte_saisie(mois)?.as_deref() != Some(n.as_str()) {
+            return Ok(());
+        }
+    }
+    if let Some(parent) = copie.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| erreur("OSError", format!("{} : {}", parent.display(), e)))?;
+    }
+    std::fs::copy(&saisie, &copie).map_err(|e| erreur("OSError", format!("{} : {}", copie.display(), e)))?;
+    Ok(())
+}
+
+/// Un contrat de la saisie modifiee, compare a la saisie telle que declaree.
+pub(crate) struct ContratModifie {
+    /// La cle du salarie, et le premier jour du contrat : ce qu'une correction designe.
+    pub(crate) salarie: String,
+    pub(crate) debut: String,
+    /// L'engagement tel qu'il est saisi maintenant.
+    pub(crate) engagement: Value,
+}
+
+/// Ce qui a change dans LA PAIE depuis que la saisie a ete declaree (`chemin_saisie_declaree`) : les contrats declares
+/// dont la paie a change -- ce que leurs documents disent (`envoi::resume_de` : bornes, spectacle, jours, cachets, heures,
+/// brut, net), calcule sur les deux saisies : la page reecrit la saisie a sa facon (cles, nombres), ce n'est pas un
+/// changement --, et le nombre de contrats ajoutes ou retires (ceux-la ne sont pas des corrections : « Corriger ce mois »
+/// ne corrige que les lignes d'un contrat declare). `None` sans copie de la saisie declaree, ou si l'une des deux ne se
+/// calcule pas.
+pub(crate) fn ce_qui_a_change(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Option<(Vec<ContratModifie>, usize)>> {
+    let copie = chemin_saisie_declaree(ctx, mois);
+    let saisie = ctx.racine.join("paies").join(format!("{}.json", mois));
+    if !copie.exists() || !saisie.exists() {
+        return Ok(None);
+    }
+    let declaree = crate::engagement::lire_saisie(&copie)?;
+    let actuelle = crate::engagement::lire_saisie(&saisie)?;
+    let (Ok(p_avant), Ok(p_apres)) = (paies_de_en(o, ctx, &declaree, true), paies_de_en(o, ctx, &actuelle, true)) else {
+        return Ok(None);
+    };
+    let ids = |d: &Value| -> Option<Vec<Option<crate::jumeaux::Ident>>> {
+        crate::routes_ecritures::identifiants(ctx, d).ok().map(|v| v.into_iter().map(Some).collect())
+    };
+    let (Some(avant), Some(apres)) = (ids(&declaree), ids(&actuelle)) else { return Ok(None) };
+    let e_apres = actuelle.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+    let resume = |p: Option<&Paie>| p.and_then(|p| crate::envoi::resume_de(&[p]).ok());
+    let paires = crate::jumeaux::apparier(&apres, &avant);
+    let mut modifies = Vec::new();
+    let mut hors = 0usize;
+    for (i, j) in paires.iter().enumerate() {
+        let (Some(Some(id)), Some(e)) = (apres.get(i), e_apres.get(i)) else { continue };
+        match j {
+            None => hors += 1,
+            Some(j) => {
+                let (r_avant, r_apres) = (resume(p_avant.get(*j)), resume(p_apres.get(i)));
+                if r_avant.is_none() || r_avant != r_apres {
+                    modifies.push(ContratModifie { salarie: id.0.clone(), debut: id.1.clone(), engagement: e.clone() });
+                }
+            }
+        }
+    }
+    let gardes = paires.iter().filter(|j| j.is_some()).count();
+    hors += avant.len().saturating_sub(gardes);
+    Ok(Some((modifies, hors)))
 }

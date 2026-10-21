@@ -12,12 +12,12 @@ use super::rendu::{erreur, rendre};
 use crate::retours::Echec;
 
 /// Les classes que le Python attrape comme `ErreurOperation` : elle-meme et ses filles (`operations_*.py`).
-const OPERATION: [&str; 26] = [
+const OPERATION: [&str; 27] = [
     "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "MoisPasPret", "CompteursVerrouilles",
     "VersionExigee", "DsnDejaDeposee", "DpaeDejaDeclaree", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai",
     "MoisNonRegularisable", "ExerciceClos", "ExerciceOuvert", "ClotureRefusee", "MoisHorsDelai", "SortieAbsente", "BoiteAbsente",
     "ArretIntrouvable", "ContratIntrouvable", "FichierExistant", "AucunDocument", "FormatIndisponible", "ExportIntrouvable",
-    "ActeReelRefuse",
+    "ActeReelRefuse", "ModificationApresEcheance",
 ];
 
 /// Cette classe est-elle une `ErreurOperation` du Python ?

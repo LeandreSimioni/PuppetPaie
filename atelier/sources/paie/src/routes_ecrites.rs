@@ -482,9 +482,13 @@ fn engagements_d_origine(o: &HashMap<String, String>, m: &mut Moteur, ctx: &Cont
     let trouve = |liste: &'_ [((Value, Value), Map<String, Value>)], cle: &(Value, Value)| -> Option<usize> {
         liste.iter().position(|(k, _)| eq_py(&k.0, &cle.0) && eq_py(&k.1, &cle.1))
     };
+    // LA SAISIE MODIFIEE APRES LA LIMITE (21/10/2026) : la correction d'un contrat dont la paie a change part de la saisie
+    // d'aujourd'hui (`engagement_saisi`), la page s'en sert pour preremplir ; le declare reste ce qui est declare.
+    let modifies = regul::ce_qui_a_change(o, ctx, mois)?.map(|(m, _)| m).unwrap_or_default();
     let mut out = Vec::new();
     for (p, e) in paies.iter().zip(engs.iter()) {
         let cle_s = py_str(regul::requis(&p.salarie, "_cle")?);
+        let saisi = modifies.iter().find(|c| c.salarie == cle_s && c.debut == p.engagement.debut.iso()).map(|c| c.engagement.clone());
         let cle = (Value::String(cle_s.clone()), Value::String(p.engagement.debut.iso()));
         let portee = trouve(&portees, &cle);
         let declare = match portee {
@@ -509,6 +513,7 @@ fn engagements_d_origine(o: &HashMap<String, String>, m: &mut Moteur, ctx: &Cont
             "net_a_payer": regul::q2(p.net_a_payer),
             "deja_corrige": portee.is_some(),
             "correction_en_cours": en_cours_ici,
+            "engagement_saisi": saisi.unwrap_or(Value::Null),
         }));
     }
     Ok(out)

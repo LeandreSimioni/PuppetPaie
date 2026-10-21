@@ -307,6 +307,7 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[crate::
         resumes.insert(cle.clone(), envoi::resume_de(&siennes).map_err(Echec::from)?);
     }
     let mut choix = Choix { empreintes, resumes, ..Choix::default() };
+    let declaration = declaration_de_la_correction(ctx, mois)?;
     for (cle, parti) in &partis {
         let notee = parti.get("empreinte").filter(|e| vrai(e)).map(py_str);
         match (notee, choix.empreintes.get(cle)) {
@@ -315,7 +316,8 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[crate::
                 let envoye_le = jour_iso(quand.get(..10).unwrap_or("")).map(|j| j.jj_mm_aaaa()).unwrap_or(quand);
                 let ancien = parti.get("resume").cloned().unwrap_or(Value::Null);
                 let changements = envoi::ce_qui_a_change(&ancien, choix.resumes.get(cle).unwrap_or(&Value::Null));
-                choix.renvois.insert(cle.clone(), envoi::Renvoi { envoye_le, changements });
+                let declaration = declaration.as_ref().map(|d| d(cle)).unwrap_or_default();
+                choix.renvois.insert(cle.clone(), envoi::Renvoi { envoye_le, changements, declaration });
             }
             _ => {
                 choix.a_jour.insert(cle.clone());
@@ -323,6 +325,42 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[crate::
         }
     }
     Ok(choix)
+}
+
+/// LA CORRECTION D'UN MOIS DONT L'ANNULE-ET-REMPLACE EST PASSE (Leandre, 21/10/2026 : « le courriel de renvoi, dans ce
+/// cas, ajoute une phrase : la correction sera declaree avec la paie du mois suivant »). La DSN deposee ne se refait plus ;
+/// la correction part dans la DSN d'un mois suivant, celle qui embarque les corrections ECRITES (« Corriger ce mois »,
+/// `produire_regularisations::corrections_a_porter`) : celle du mois courant pour une correction en attente, celle qui
+/// l'a preparee ou portee sinon. Le paragraphe nomme ce mois quand la correction du salarie est ecrite ; sans elle, il ne
+/// dit que « une paie suivante » (l'etape DSN du mois reste orange tant qu'elle ne l'est pas). `None` : le mois n'en est
+/// pas la (pas de DSN deposee, ou son annule-et-remplace encore admis).
+#[allow(clippy::type_complexity)]
+fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn Fn(&str) -> String>>> {
+    let o = HashMap::new();
+    let mut m = crate::routes_mois::Moteur::nouveau(&o, ctx);
+    let etat = crate::routes_regularisation::etat_mois(&mut m, ctx, &json!(mois))?;
+    if !vrai(&etat["regularisable"]) {
+        return Ok(None);
+    }
+    let courant = py_str(&etat["mois_courant"]);
+    let mut porteurs: HashMap<String, String> = HashMap::new();
+    for c in crate::routes_ecrites::lire_corrections(ctx, mois)? {
+        if c.get("annulee_le").is_some_and(vrai) {
+            continue;
+        }
+        let par = |k: &str| c.get(k).filter(|p| vrai(p)).and_then(|p| p.get("mois")).map(py_str);
+        let porteur = par("portee_par").or_else(|| par("preparee_par")).unwrap_or_else(|| courant.clone());
+        porteurs.insert(c.get("salarie").map(py_str).unwrap_or_default(), porteur);
+    }
+    let de = crate::routes_regularisation::de_mois_en_clair(mois);
+    Ok(Some(Box::new(move |cle: &str| match porteurs.get(cle) {
+        Some(p) => format!(
+            "Ta paie {} était déjà déclarée : la correction sera déclarée avec la paie {}.\n\n",
+            de,
+            crate::routes_regularisation::de_mois_en_clair(p)
+        ),
+        None => format!("Ta paie {} était déjà déclarée : la correction sera déclarée avec une paie suivante.\n\n", de),
+    })))
 }
 
 /// `operations_documents.preparer_envoi` : la saisie du mois, les messages, puis la boite -- une boite absente se voit
@@ -337,6 +375,12 @@ pub(crate) fn preparer_envoi(o: &HashMap<String, String>, ctx: &Contexte, mois: 
     }
     let fiche = |cle: &str| ctx.salarie(cle).unwrap_or_else(|_| json!({}));
     let choix = choisir(ctx, mois, &data, &paies)?;
+    // APRES LA LIMITE DE L'ANNULE-ET-REMPLACE, rien ne refait le mois (`produire` refuse, la DSN deposee ne se regenere
+    // pas, regle 4) : les documents de ceux dont la paie a change se refont ICI, depuis la paie d'aujourd'hui, aux numeros
+    // du fichier archive (`ecrire_documents`, qui ne redeclare rien), avant de repartir.
+    if !choix.renvois.is_empty() && choix.renvois.values().any(|r| !r.declaration.is_empty()) {
+        crate::ecrire_documents::ecrire_documents(ctx, &json!({"mois": mois_saisie}))?;
+    }
     let messages = envoi::preparer_avec(&paies, &ctx.entreprise, &mois_saisie, &dossier, Some(&fiche), &choix.renvois).map_err(|m| refus_de_preparation(&m))?;
     let messages = choix.garder(messages, |m| m.cle.as_str());
     let client = ouvrir()?;
