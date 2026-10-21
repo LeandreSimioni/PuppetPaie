@@ -1,7 +1,7 @@
 {
   "_quoi": "LA BANQUE DES CONSEILS « Le saviez-vous ? » (ticket 224). Une option de la compagnie (fiche Entreprise, `conseils`, décochée par défaut) les montre : un conseil général à l'accueil (`quand` = « toujours »), un conseil de saisie sous la carte d'engagement quand un fait de la saisie l'appelle (`saisie:<condition>`), des conseils sur ce que la compagnie a fait, dans le dossier du salarié (`historique:<condition>`). Le moteur évalue les conditions (`paie/src/conseils.rs`) ; le texte, ses chiffres et sa source vivent ici : un conseil s'ajoute sans toucher au moteur. Un conseil de saisie a une phrase courte (`texte`, sous la carte) et peut avoir un `detail` (les deux faces, les chiffres), que l'écran déplie derrière « pourquoi ? » avec la référence. Le salarié s'y nomme par son seul prénom ({prenom}), jamais par un pronom qui le genre (Léandre, 21/10/2026). Plusieurs conseils d'une même condition : le premier dont les gabarits se résolvent parle (ainsi la variante « -minime », quand le coût en jours d'allocation s'arrondit à zéro). Un conseil `suspendu` ne s'affiche pas (un point que Léandre n'a pas tranché).",
   "_gabarits": "Dans `texte` et `detail` : {annee} (l'année du barème lu, celle du jour) ; {bareme:chemin} et {minima:chemin}, une valeur lue dans `donnees/baremes/<annee>.json` ou `donnees/minima-conventionnels.json` (chemin séparé par « / » ; « id=x » choisit l'élément d'une liste dont `id` vaut x ; « *n » ou « /n » après le chemin multiplie ou divise) : un chiffre daté ne s'écrit jamais en dur ; {variable}, une valeur que la condition fournit ({prenom} : le prénom du salarié ; {jours_perdus} : le coût en jours d'allocation, au demi-jour le plus proche, absent quand il s'arrondit à zéro) ; {variable|singulier|pluriel}, le nombre suivi du mot accordé ; {variable?singulier|pluriel}, le mot seul. Un gabarit qui ne se résout pas tait le conseil.",
-  "_source": "Chaque `source` (ou chacune d'une liste) nomme un fichier déposé du dépôt, l'endroit (`article` ; `code` pour l'entrepôt LEGI) et une citation qu'on y lit à l'identique (fragments séparés par « […] », à la casse, aux espaces et aux guillemets près) : le test `fichiers::conseils_banque` le vérifie. La rédaction : `atelier/reference/sources/conseils/LISEZ-MOI.md`.",
+  "_source": "Chaque `source` (ou chacune d'une liste) nomme un fichier déposé du dépôt, l'endroit (`article` ; `code` pour l'entrepôt LEGI) et une citation qu'on y lit à l'identique (fragments séparés par « […] », à la casse, aux espaces et aux guillemets près) : le test `fichiers::conseils_banque` le vérifie. La rédaction : `atelier/reference/sources/conseils/LISEZ-MOI.md`. Une source tirée d'une annexe du régime des intermittents porte son `annexe` (« X », les artistes ; « VIII », les techniciens) : un conseil de saisie ou d'historique ne cite que celles des annexes des salariés dont il parle (les deux quand une phrase les mêle, ou quand le métier ne dit pas l'annexe), et un conseil qui vaut pour les deux annexes cite chaque article dans l'une et l'autre (`conseils::annexes_en_jeu`).",
   "documents": {
     "atelier/README.md": "Mode d'emploi de PuppetPaie",
     "atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt": "Norme DSN, bloc 40 (contrat)",
@@ -2475,17 +2475,20 @@
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 30",
-          "citation": "En cas d'exercice d'une activité au moins égale à 27 jours de travail par mois calendaire, déterminés en fonction du nombre d'heures de travail effectuées à raison de dix heures par jour, aucune indemnisation n'est servie."
+          "citation": "En cas d'exercice d'une activité au moins égale à 27 jours de travail par mois calendaire, déterminés en fonction du nombre d'heures de travail effectuées à raison de dix heures par jour, aucune indemnisation n'est servie.",
+          "annexe": "X"
         },
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
           "article": "art. 30",
-          "citation": "En cas d'exercice d'une activité au moins égale à 26 jours de travail par mois calendaire, déterminés en fonction du nombre d'heures de travail effectuées à raison de huit heures par jour, aucune indemnisation n'est servie."
+          "citation": "En cas d'exercice d'une activité au moins égale à 26 jours de travail par mois calendaire, déterminés en fonction du nombre d'heures de travail effectuées à raison de huit heures par jour, aucune indemnisation n'est servie.",
+          "annexe": "VIII"
         },
         {
           "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
           "article": "« Les cachets »",
-          "citation": "Le cachet est valorisé/comptabilisé à hauteur"
+          "citation": "Le cachet est valorisé/comptabilisé à hauteur",
+          "annexe": "X"
         }
       ],
       "ciblage": "les heures du salarié dans le mois, chez vous (cachets à 12 heures, plus les heures), atteignent le seuil de son annexe (artiste : annexe X, 27 jours de 10 h ; technicien : annexe VIII, 26 jours de 8 h)",
@@ -2502,12 +2505,14 @@
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 3 §1",
-          "citation": "Le nombre maximum de cachets pris en compte pour la recherche de la durée d'affiliation requise est de 28 par mois."
+          "citation": "Le nombre maximum de cachets pris en compte pour la recherche de la durée d'affiliation requise est de 28 par mois.",
+          "annexe": "X"
         },
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 12 §2",
-          "citation": "Il en est de même des rémunérations correspondant aux cachets effectués au-delà de 28 par mois."
+          "citation": "Il en est de même des rémunérations correspondant aux cachets effectués au-delà de 28 par mois.",
+          "annexe": "X"
         }
       ],
       "ciblage": "les cachets du salarié dans la saisie du mois dépassent 28 (simple information : pas de conseil de report)",
@@ -2524,12 +2529,14 @@
         {
           "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
           "article": "« Les périodes retenues pour les 507 heures »",
-          "citation": "De 208 heures pour les ouvriers et […] techniciens : cette limite est majorée"
+          "citation": "De 208 heures pour les ouvriers et […] techniciens : cette limite est majorée",
+          "annexe": "VIII"
         },
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
           "article": "art. 3 §1",
-          "citation": "le salarié a travaillé pour plusieurs employeurs au cours du mois considéré, soit 250 heures de travail."
+          "citation": "le salarié a travaillé pour plusieurs employeurs au cours du mois considéré, soit 250 heures de travail.",
+          "annexe": "VIII"
         }
       ],
       "ciblage": "un technicien (annexe VIII) dont les heures du mois, chez vous, dépassent 208",
@@ -2551,12 +2558,14 @@
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 3 §1",
-          "citation": "base de 1 cachet égal 12 heures."
+          "citation": "base de 1 cachet égal 12 heures.",
+          "annexe": "X"
         },
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 30",
-          "citation": "le nombre de jours de travail au cours du mois civil est déterminé en fonction du nombre d'heures de travail effectuées à raison de dix heures par jour"
+          "citation": "le nombre de jours de travail au cours du mois civil est déterminé en fonction du nombre d'heures de travail effectuées à raison de dix heures par jour",
+          "annexe": "X"
         }
       ],
       "ciblage": "un artiste de la convention 3090 (hors musicien de l'annexe 1) dont une ligne « Service de répétition » à dates connues compte moins de 12 heures par jour pour une somme par jour au moins égale au cachet de répétition de la convention ; ni ses 507 heures assurées chez vous, ni un mois déjà sans allocation",
@@ -2578,12 +2587,14 @@
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 3 §1",
-          "citation": "base de 1 cachet égal 12 heures."
+          "citation": "base de 1 cachet égal 12 heures.",
+          "annexe": "X"
         },
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 30",
-          "citation": "le nombre de jours de travail au cours du mois civil est déterminé en fonction du nombre d'heures de travail effectuées à raison de dix heures par jour"
+          "citation": "le nombre de jours de travail au cours du mois civil est déterminé en fonction du nombre d'heures de travail effectuées à raison de dix heures par jour",
+          "annexe": "X"
         }
       ],
       "ciblage": "comme saisie-repetition-en-cachet, quand le coût en jours d'allocation s'arrondit à zéro (moins d'un quart de jour)",
@@ -2598,14 +2609,28 @@
       "texte": "Pour la même somme, un engagement plus long compterait jusqu'à {gain|heure|heures} de plus pour les 507 heures de {prenom}.",
       "source": [
         {
-          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
-          "article": "art. 30",
-          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,4."
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "X"
         },
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,3.",
+          "annexe": "X"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
           "article": "art. 3 §1",
-          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "VIII"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,4.",
+          "annexe": "VIII"
         }
       ],
       "ciblage": "une ligne payée à l'heure dont la convention fixe un minimum horaire (minima.rs), payée au-dessus : la même somme, au minimum, couvre au moins une heure de plus ; ni ses 507 heures assurées chez vous, ni un mois déjà sans allocation",
@@ -2622,12 +2647,26 @@
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 3 §1",
-          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "X"
         },
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 30",
-          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,3."
+          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,3.",
+          "annexe": "X"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "VIII"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,4.",
+          "annexe": "VIII"
         }
       ],
       "ciblage": "à la place des deux conseils « plus d'heures » quand vos seuls contrats (historique et paies, ce mois compris) font au moins 507 heures au salarié sur la fenêtre de ses droits",
@@ -2640,11 +2679,20 @@
       "domaine": "chômage / enseignement",
       "public": "employeur",
       "texte": "Les heures d'enseignement de {prenom} comptent pour ses 507 heures, dans la limite de {plafond} heures sur la période.",
-      "source": {
-        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
-        "article": "art. 3 §1",
-        "citation": "La limite de 70 heures est portée à 120 heures pour les artistes âgés de 50 ans et plus"
-      },
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "La limite de 70 heures est portée à 120 heures pour les artistes âgés de 50 ans et plus",
+          "annexe": "X"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "La limite de 70 heures est portée à 120 heures pour les ouvriers et techniciens âgés de 50 ans et plus",
+          "annexe": "VIII"
+        }
+      ],
       "ciblage": "une ligne d'enseignement (rubrique qui compte pour l'ouverture des droits)",
       "certitude": "sourcé",
       "detail": "La limite passe à {plafond_50} heures à partir de 50 ans."
@@ -2659,12 +2707,14 @@
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 3 §2",
-          "citation": "Les périodes de suspension du contrat de travail sont retenues à raison de cinq heures de travail par journée de suspension."
+          "citation": "Les périodes de suspension du contrat de travail sont retenues à raison de cinq heures de travail par journée de suspension.",
+          "annexe": "X"
         },
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
           "article": "art. 3 §2",
-          "citation": "Les périodes de suspension du contrat de travail sont retenues à raison de cinq heures de travail par journée de"
+          "citation": "Les périodes de suspension du contrat de travail sont retenues à raison de cinq heures de travail par journée de",
+          "annexe": "VIII"
         }
       ],
       "ciblage": "la paie porte une suspension (un arrêt saisi dans les imprévus)",
@@ -2676,11 +2726,14 @@
       "domaine": "chômage / déclaration",
       "public": "employeur",
       "texte": "Ce mois-ci, {prenom} a des cachets et des heures : à France Travail, les cachets se déclarent en cachets et les heures en heures.",
-      "source": {
-        "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
-        "article": "« Vos obligations »",
-        "citation": "Déclaration des artistes : ne reportez pas l'équivalence […] de vos cachets en heures sur vos"
-      },
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
+          "article": "« Vos obligations »",
+          "citation": "Déclaration des artistes : ne reportez pas l'équivalence […] de vos cachets en heures sur vos",
+          "annexe": "X"
+        }
+      ],
       "ciblage": "un artiste payé ce mois-ci en cachets et à l'heure (répétitions, heures)",
       "certitude": "sourcé",
       "detail": "Sans les convertir soi-même : France Travail compte {heures_cachet} heures par cachet."
@@ -2691,11 +2744,20 @@
       "domaine": "chômage / ouverture des droits",
       "public": "employeur",
       "texte": "Vos contrats ont fait compter {heures} heures à {prenom} {fenetre} : à eux seuls, ils dépassent les {seuil} heures. Ses droits au chômage d'intermittent sont ouverts grâce à vous.",
-      "source": {
-        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
-        "article": "art. 3 §1",
-        "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
-      },
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "X"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "VIII"
+        }
+      ],
       "ciblage": "vos seuls contrats (historique importé et paies) font au moins 507 heures au salarié sur la fenêtre",
       "certitude": "sourcé (seul cas de certitude)"
     },
@@ -2705,11 +2767,20 @@
       "domaine": "chômage / ouverture des droits",
       "public": "employeur",
       "texte": "Vos contrats ont fait compter {heures} heures à {prenom} {fenetre}, soit {pourcentage} % des {seuil} heures qui ouvrent ses droits.",
-      "source": {
-        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
-        "article": "art. 3 §1",
-        "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
-      },
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "X"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "VIII"
+        }
+      ],
       "ciblage": "le salarié a des heures chez vous sur la fenêtre, sans atteindre 507",
       "certitude": "sourcé (ses autres employeurs ne sont pas connus : ce sont les heures chez vous)"
     },
@@ -2719,11 +2790,14 @@
       "domaine": "chômage / plafond mensuel",
       "public": "employeur",
       "texte": "En {mois}, {prenom} a eu {cachets} cachets chez vous : au-delà de {plafond}, {perdus|cachet ne compte|cachets ne comptent} pas pour ses droits.",
-      "source": {
-        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
-        "article": "art. 3 §1",
-        "citation": "Le nombre maximum de cachets pris en compte pour la recherche de la durée d'affiliation requise est de 28 par mois."
-      },
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "Le nombre maximum de cachets pris en compte pour la recherche de la durée d'affiliation requise est de 28 par mois.",
+          "annexe": "X"
+        }
+      ],
       "ciblage": "un mois de la fenêtre où le salarié a eu plus de 28 cachets chez vous",
       "certitude": "sourcé"
     },
@@ -2737,12 +2811,26 @@
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 3 §1",
-          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "X"
         },
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 30",
-          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,3."
+          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,3.",
+          "annexe": "X"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "VIII"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,4.",
+          "annexe": "VIII"
         }
       ],
       "ciblage": "sur la fenêtre, des paies où « saisie-repetition-en-cachet » ou « saisie-heures-pour-la-meme-somme » s'appliquaient, quand vos contrats n'assurent pas ses 507 heures",
@@ -2758,12 +2846,26 @@
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 3 §1",
-          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "X"
         },
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 30",
-          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,3."
+          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,3.",
+          "annexe": "X"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "VIII"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,4.",
+          "annexe": "VIII"
         }
       ],
       "ciblage": "comme historique-gain-des-conseils, quand le coût en jours d'allocation s'arrondit à zéro",
@@ -2775,11 +2877,32 @@
       "domaine": "chômage / travail pendant l'indemnisation",
       "public": "employeur",
       "texte": "Les {seuil} heures de {prenom} étant assurées chez vous, des heures de plus pour la même somme ne servent plus à ses droits : un mois où {prenom} touche ses allocations, chaque tranche de {heures_par_jour} heures déclarées retire {coefficient} jour d'allocation. Mieux vaut un travail intense que dilué.",
-      "source": {
-        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
-        "article": "art. 30",
-        "citation": "le nombre de jours de travail au cours du mois civil est déterminé en fonction du nombre d'heures de travail effectuées à raison de dix heures par jour"
-      },
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "le nombre de jours de travail au cours du mois civil est déterminé en fonction du nombre d'heures de travail effectuées à raison de dix heures par jour",
+          "annexe": "X"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,3.",
+          "annexe": "X"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "le nombre de jours de travail au cours du mois civil est déterminé en fonction du nombre d'heures de travail effectuées à raison de huit heures par jour",
+          "annexe": "VIII"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,4.",
+          "annexe": "VIII"
+        }
+      ],
       "ciblage": "les 507 heures du salarié sont assurées par vos seuls contrats",
       "certitude": "sourcé"
     },
@@ -2789,11 +2912,20 @@
       "domaine": "chômage / enseignement",
       "public": "employeur",
       "texte": "{prenom} a donné chez vous {heures} heures d'enseignement {fenetre} : au-delà de {plafond} heures, {perdus|heure ne compte|heures ne comptent} pas pour ses 507 heures.",
-      "source": {
-        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
-        "article": "art. 3 §1",
-        "citation": "La limite de 70 heures est portée à 120 heures pour les artistes âgés de 50 ans et plus"
-      },
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "La limite de 70 heures est portée à 120 heures pour les artistes âgés de 50 ans et plus",
+          "annexe": "X"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "La limite de 70 heures est portée à 120 heures pour les ouvriers et techniciens âgés de 50 ans et plus",
+          "annexe": "VIII"
+        }
+      ],
       "ciblage": "les heures d'enseignement chez vous dépassent la limite sur la fenêtre",
       "certitude": "sourcé"
     },
@@ -2807,12 +2939,26 @@
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 3 §1",
-          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "X"
         },
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 9 §1 c)",
-          "citation": "L'examen en vue d'une réadmission ... est effectué, quelle que soit la date d'inscription comme demandeur d'emploi, au lendemain ... de la date anniversaire correspondant au terme des douze mois suivant la fin du contrat de travail retenue pour l'ouverture de la période d'indemnisation considérée"
+          "citation": "L'examen en vue d'une réadmission ... est effectué, quelle que soit la date d'inscription comme demandeur d'emploi, au lendemain ... de la date anniversaire correspondant au terme des douze mois suivant la fin du contrat de travail retenue pour l'ouverture de la période d'indemnisation considérée",
+          "annexe": "X"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "VIII"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 9 §1 c)",
+          "citation": "L'examen en vue d'une réadmission ... est effectué, quelle que soit la date d'inscription comme demandeur d'emploi, au lendemain ... de la date anniversaire correspondant au terme des douze mois suivant la fin du contrat de travail retenue pour l'ouverture de la période d'indemnisation considérée",
+          "annexe": "VIII"
         }
       ],
       "ciblage": "à l'accueil : les salariés dont vos seuls contrats font au moins 507 heures sur la fenêtre de leurs droits (celle de leur fiche, `conseils::position`), quand la liste mêle des salariés dont la fiche porte la date anniversaire et d'autres non ; ce conseil passe avant les deux suivants, qui se résoudraient aussi",
@@ -2828,12 +2974,26 @@
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 3 §1",
-          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "X"
         },
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
           "article": "art. 9 §1 c)",
-          "citation": "L'examen en vue d'une réadmission ... est effectué, quelle que soit la date d'inscription comme demandeur d'emploi, au lendemain ... de la date anniversaire correspondant au terme des douze mois suivant la fin du contrat de travail retenue pour l'ouverture de la période d'indemnisation considérée"
+          "citation": "L'examen en vue d'une réadmission ... est effectué, quelle que soit la date d'inscription comme demandeur d'emploi, au lendemain ... de la date anniversaire correspondant au terme des douze mois suivant la fin du contrat de travail retenue pour l'ouverture de la période d'indemnisation considérée",
+          "annexe": "X"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "VIII"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 9 §1 c)",
+          "citation": "L'examen en vue d'une réadmission ... est effectué, quelle que soit la date d'inscription comme demandeur d'emploi, au lendemain ... de la date anniversaire correspondant au terme des douze mois suivant la fin du contrat de travail retenue pour l'ouverture de la période d'indemnisation considérée",
+          "annexe": "VIII"
         }
       ],
       "ciblage": "à l'accueil : les salariés dont vos seuls contrats font au moins 507 heures sur les 12 mois avant la date anniversaire que porte leur fiche, tous",
@@ -2845,11 +3005,20 @@
       "domaine": "chômage / ouverture des droits",
       "public": "employeur",
       "texte": "Vos contrats ont fait compter au moins {seuil} heures à {noms_glissants} sur les 12 derniers mois : {n_glissants?son droit au chômage est ouvert|leurs droits au chômage sont ouverts} grâce à vous.",
-      "source": {
-        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
-        "article": "art. 3 §1",
-        "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
-      },
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "X"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail",
+          "annexe": "VIII"
+        }
+      ],
       "ciblage": "à l'accueil : les salariés dont vos seuls contrats font au moins 507 heures sur les 12 derniers mois, aucun n'ayant de date anniversaire sur sa fiche",
       "certitude": "sourcé"
     }

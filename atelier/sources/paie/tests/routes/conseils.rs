@@ -271,6 +271,48 @@ fn sous_507_heures_chez_nous_on_dit_la_part_pas_les_droits() {
 }
 
 #[test]
+fn un_conseil_cite_l_annexe_du_metier_du_salarie() {
+    // Annexe X pour un artiste, annexe VIII pour un technicien (le metier de la fiche, `emplois`) : le dossier de Nicole,
+    // regisseuse, ne cite que l'annexe VIII (art. 3 §1 : ses 507 heures ; art. 30 : huit heures par jour, coefficient
+    // 1,4) ; celui de Fanchon, marionnettiste, que l'annexe X.
+    let c = &compagnie("annexe-du-metier", true);
+    ecrire(
+        c,
+        "historique/engagements.json",
+        &json!({ "engagements": [
+            { "salarie": "LEMERCIER", "debut": "2026-05-01", "fin": "2026-05-31", "heures": 300, "cachets": 0, "jours": 25, "brut": "5000" },
+            { "salarie": "LEMERCIER", "debut": "2026-06-01", "fin": "2026-06-30", "heures": 0, "cachets": 31, "jours": 30, "brut": "5000" },
+            { "salarie": "BRIOCHE", "debut": "2026-05-01", "fin": "2026-05-10", "heures": 0, "cachets": 10, "jours": 10, "brut": "1500" },
+        ] }),
+    );
+    let conseils = |cle: &str| -> Value { reussi(&route(c, "conseils-salarie", json!({ "salarie": cle }), JOUR))["conseils"].clone() };
+    let references = |cle: &str| -> Vec<String> {
+        let r = conseils(cle);
+        let l: Vec<String> = r.as_array().unwrap().iter().map(|x| x["reference"].as_str().unwrap().to_string()).collect();
+        assert!(!l.is_empty(), "{}", r);
+        l
+    };
+    for r in references("LEMERCIER") {
+        assert!(r.contains("annexe VIII") && !r.contains("annexe X"), "{}", r);
+    }
+    for r in references("BRIOCHE") {
+        assert!(r.contains("annexe X") && !r.contains("annexe VIII"), "{}", r);
+    }
+    // A la saisie, de meme : 4 heures a 100 EUR pour Nicole, dont nos contrats assurent les 507 heures ; le cout d'une
+    // heure de plus se dit en annexe VIII (art. 30 : huit heures par jour, coefficient 1,4).
+    let ligne = json!([{ "rubrique": "heure", "quantite": 4, "taux": 100.0, "dates": ["2026-10-05"] }]);
+    let r = apercu(c, &saisie(vec![engagement("Lemercier", "2026-10-05", "2026-10-05", ligne)]));
+    assert_eq!(id(&r, 0).as_deref(), Some("saisie-507-assurees"), "{}", r["paies"][0]);
+    assert!(detail(&r, 0).contains("tranche de 8 heures déclarées retire 1,4 jour"), "{}", detail(&r, 0));
+    let reference = r["paies"][0]["conseil"]["reference"].as_str().unwrap();
+    assert!(reference.contains("annexe VIII") && !reference.contains("annexe X"), "{}", reference);
+    // Le plafond de 28 cachets par mois est de l'annexe X (art. 3 §1 ; l'annexe VIII ne connait pas le cachet) : ses 31
+    // cachets de juin ne valent pas a Nicole le conseil des cachets perdus, que Fanchon recevrait.
+    let ids: Vec<Value> = conseils("LEMERCIER").as_array().unwrap().iter().map(|x| x["id"].clone()).collect();
+    assert!(ids.contains(&json!("historique-intense")) && !ids.contains(&json!("historique-cachets-perdus")), "{:?}", ids);
+}
+
+#[test]
 fn la_fenetre_part_de_la_date_anniversaire_quand_la_fiche_la_porte() {
     // `cumul::fenetre_anniversaire` : les 12 mois qui precedent la date anniversaire notifiee ; la phrase le dit.
     let c = &compagnie("anniversaire", true);
@@ -310,6 +352,9 @@ fn le_resume_de_l_accueil_compte_chacun_sur_la_fenetre_de_ses_droits() {
         let r = reussi(&route(c, "conseils-resume", json!({}), JOUR)).clone();
         r["conseils"].as_array().unwrap().iter().map(|x| x["texte"].as_str().unwrap().to_string()).collect()
     };
+    let reference = |c: &Path| -> String {
+        reussi(&route(c, "conseils-resume", json!({}), JOUR))["conseils"][0]["reference"].as_str().unwrap().to_string()
+    };
     // Sans date anniversaire, Fanchon et Nicole n'ont rien sur les 12 derniers mois : seul Valentin.
     assert_eq!(
         resume(c),
@@ -325,6 +370,11 @@ fn le_resume_de_l_accueil_compte_chacun_sur_la_fenetre_de_ses_droits() {
         resume(c),
         ["Vos contrats ont fait compter au moins 507 heures à Fanchon et Nicole sur les 12 mois avant leur date anniversaire, et à Valentin sur les 12 derniers mois : leurs droits au chômage sont ouverts grâce à vous."]
     );
+    // Fanchon et Valentin sont artistes (annexe X), Nicole technicienne (annexe VIII) : la reference cite les deux annexes,
+    // chacune pour les 507 heures (art. 3 §1) et la date anniversaire (art. 9 §1 c).
+    let r = reference(c);
+    assert!(r.contains("annexe X") && r.contains("annexe VIII"), "{}", r);
+    assert!(r.matches("art. 3 §1").count() == 2 && r.matches("art. 9 §1 c)").count() == 2, "{}", r);
     // La fiche de Fanchon dit la meme chose que l'accueil.
     let fiche = reussi(&route(c, "conseils-salarie", json!({ "salarie": "BRIOCHE" }), JOUR)).clone();
     assert!(fiche["conseils"].as_array().unwrap().iter().any(|x| x["id"] == "historique-droits-ouverts"), "{}", fiche);
@@ -339,6 +389,9 @@ fn le_resume_de_l_accueil_compte_chacun_sur_la_fenetre_de_ses_droits() {
         resume(c),
         ["Vos contrats ont fait compter au moins 507 heures à Fanchon sur les 12 mois avant sa date anniversaire : son droit au chômage est ouvert grâce à vous."]
     );
+    // Fanchon seule, artiste : l'annexe X seule.
+    let r = reference(c);
+    assert!(r.contains("annexe X") && !r.contains("annexe VIII"), "{}", r);
 }
 
 // ---------------------------------------------------------- le demarrage

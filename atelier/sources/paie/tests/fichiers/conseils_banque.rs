@@ -5,7 +5,7 @@
 //! données livrées. Chaque `quand` est « toujours » ou une condition que le moteur sait évaluer (`conseils::CONDITIONS`).
 
 use crate::outils::code_livre;
-use paie::conseils::{rendre, Donnees, Valeurs, CONDITIONS};
+use paie::conseils::{rendre, Donnees, Valeurs, CONDITIONS, D_UNE_ANNEXE};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
@@ -245,5 +245,56 @@ fn un_conseil_sur_un_salarie_le_nomme_par_son_prenom_sans_le_genrer() {
     // Les conseils de saisie nomment le salarié dans leur phrase courte.
     for c in conseils(&banque()).iter().filter(|c| c["quand"].as_str().unwrap().starts_with("saisie:")) {
         assert!(c["texte"].as_str().unwrap().contains("{prenom}"), "{} : la phrase courte ne nomme pas le salarié", c["id"]);
+    }
+}
+
+#[test]
+fn chaque_conseil_sur_un_salarie_cite_l_annexe_de_son_metier_dans_l_une_et_l_autre() {
+    // Le régime des intermittents a deux annexes : X pour les artistes, VIII pour les techniciens (le métier le dit,
+    // `emplois`). Une source tirée de l'une porte son `annexe`, et le moteur ne cite que celles des salariés dont le
+    // conseil parle. Un conseil qui vaut pour les deux cite chaque article dans l'une et l'autre (l'annexe VIII, art. 30 :
+    // huit heures par jour, coefficient 1,4, 26 jours, là où l'annexe X dit dix heures, 1,3, 27 jours) ; un conseil d'une
+    // seule annexe (`conseils::D_UNE_ANNEXE` : le cachet n'existe qu'en X, les 208 heures qu'en VIII) ne cite pas l'autre.
+    let fichier_de = |a: &str| match a {
+        "X" => "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "VIII" => "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+        autre => panic!("annexe inconnue : {}", autre),
+    };
+    for (q, _) in D_UNE_ANNEXE {
+        assert!(CONDITIONS.contains(&q), "D_UNE_ANNEXE : {}", q);
+    }
+    for c in conseils(&banque()) {
+        let id = c["id"].as_str().unwrap();
+        let quand = c["quand"].as_str().unwrap();
+        // Un conseil général (« toujours ») parle à tout le monde : il cite ce qu'il cite.
+        if !(quand.starts_with("saisie:") || quand.starts_with("historique:")) {
+            continue;
+        }
+        let mut articles: HashMap<&str, std::collections::BTreeSet<String>> = HashMap::new();
+        for s in sources(&c) {
+            let fichier = s["fichier"].as_str().unwrap();
+            let tiree = ["X", "VIII"].into_iter().find(|a| fichier_de(a) == fichier);
+            match (s.get("annexe").and_then(Value::as_str), tiree) {
+                (Some(a), Some(t)) => assert_eq!(a, t, "{} : la source de {} porte l'annexe {}", id, fichier, a),
+                (None, Some(t)) => panic!("{} : une source de l'annexe {} ne le dit pas", id, t),
+                (Some(a), None) => assert!(a == "X" || a == "VIII", "{} : annexe inconnue {}", id, a),
+                (None, None) => {}
+            }
+            if let Some(t) = tiree {
+                articles.entry(t).or_default().insert(s["article"].as_str().unwrap().to_string());
+            }
+        }
+        match D_UNE_ANNEXE.iter().find(|(q, _)| *q == quand) {
+            Some((_, seule)) => {
+                let autre = if *seule == "X" { "VIII" } else { "X" };
+                assert!(!articles.contains_key(autre), "{} : un conseil de l'annexe {} cite l'annexe {}", id, seule, autre);
+            }
+            None => assert_eq!(
+                articles.get("X"),
+                articles.get("VIII"),
+                "{} : chaque article cité dans une annexe se cite aussi dans l'autre",
+                id
+            ),
+        }
     }
 }
