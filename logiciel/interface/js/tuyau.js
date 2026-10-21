@@ -65,7 +65,9 @@ const ROUTES_SANS_EFFET = new Set(["veille", "rappels", "pour-demarrer", "organi
   // L'Historique d'un mois (ses documents, ses envois, leurs retours lus) et la pièce qu'on y ouvre : des lectures.
   "historique-mois", "ouvrir-piece",
   // L'étape du relevé en cours, lue toutes les secondes le temps qu'il tourne (ticket #220).
-  "veille-etape"]);
+  "veille-etape",
+  // Les conseils « Le saviez-vous ? » (ticket 224) : le conseil du jour, ceux d'un salarié, le résumé de l'accueil.
+  "conseil-du-jour", "conseils-salarie", "conseils-resume"]);
 let LU = null;            // { mois, lectures, perime } : la dernière lecture `mois`
 let LU_EN_COURS = null;   // { mois, promesse, perimeAdmis } : celle qui est en route
 let LU_GENERATION = 0;
@@ -396,6 +398,7 @@ document.querySelectorAll(".onglets button").forEach((b) => {
     if (b.dataset.vue === "historique") dessinerHistorique();
     if (b.dataset.vue === "configuration") dessinerConfig();
     if (b.dataset.vue === "exports") dessinerExports();
+    if (b.dataset.vue === "paie") dessinerConseils();
   };
 });
 

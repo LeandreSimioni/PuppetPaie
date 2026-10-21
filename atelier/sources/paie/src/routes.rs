@@ -83,6 +83,8 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         "regularisation-apercu" => crate::routes_regularisation::route(o, &ctx, route, &charge),
         // Le dossier d'un salarie : ses documents, recrees ou pris tels quels, en un PDF ou un ZIP.
         "dossier-salarie" => crate::routes_dossier_salarie::route(o, &ctx, route, &charge),
+        // Les conseils « Le saviez-vous ? » (ticket 224) : le conseil du jour, ceux du dossier d'un salarie, le resume de l'accueil.
+        r if crate::conseils::ROUTES.contains(&r) => crate::conseils::route(&ctx, route, &charge),
         // Les routes qui ecrivent : la revue des spectacles, la correction d'un mois depose.
         "revue-spectacles" | "regularisation-mois" => crate::routes_ecrites::route(o, &ctx, route, &charge),
         // Les ecritures de l'ecran : fiches, identite, metiers, saisie d'un mois, total vise.

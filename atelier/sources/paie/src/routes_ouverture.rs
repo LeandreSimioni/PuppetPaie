@@ -1702,6 +1702,14 @@ fn apercu(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
         let rep = paie_du_mois(o, &ctx, &data)?;
         let mois = rep.get("mois").map(en_texte).ok_or_else(|| crate::fichiers::absent("mois"))?;
         let (paies, mut vues) = vues_du_calcul(&ctx, &data, &rep, avec_lignes)?;
+        // LES CONSEILS DE SAISIE (ticket 224) : au plus un par carte, quand l'option de la compagnie est cochee. Ils ne
+        // vivent qu'ici, dans la vue de l'ecran : ni dans les avertissements de la paie, ni au bulletin, ni a `produire`.
+        // Une paie validee (sa carte figee, ci-dessous) n'en a pas : sa saisie est finie.
+        for (v, c) in vues.iter_mut().zip(crate::conseils::de_saisie(&ctx, &paies)?) {
+            if let Some(c) = c {
+                v["conseil"] = c;
+            }
+        }
         for (v, c) in vues.iter_mut().zip(&cartes) {
             let Some((carte, tient)) = c else { continue };
             let mut figee = if *tient { carte.clone() } else { crate::calcul_du_mois::devant_le_calcul(carte, v) };

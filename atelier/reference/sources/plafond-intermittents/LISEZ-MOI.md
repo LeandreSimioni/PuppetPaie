@@ -65,6 +65,10 @@ sociale, texte `artistes-1975`), et déposés à côté.
   `brut_x115_plafonne`, base 07 et 040/048/041 sur `brut_chomage`.
 - `paie/src/dsn.rs`, `assiettes_ctp` / `valeur_ctp` : sous le qualifiant 921, l'assiette plafonnée de la population
   (312/921, 334/921, 100/921, 332/921) ; `assiette_declaree` pour une régularisation.
+- `logiciel/donnees/conseils.json` et `paie/src/conseils.rs` (ticket 224) : les articles 3 §1 (507 heures, 12 heures par
+  cachet, 28 cachets par mois, l'enseignement plafonné), 3 §2 (5 heures par jour de suspension), 12 §2 et 30 (jours de
+  travail, coefficient, seuil sans allocation, plafond de cumul) fondent les conseils de saisie et d'historique, et
+  `conseils.json` (`annexes`) en garde les constantes de l'article 30.
 
 ## Ce qui est une inférence, et ce qui manque
 

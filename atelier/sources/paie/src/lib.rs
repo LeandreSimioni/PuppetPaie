@@ -43,6 +43,7 @@ pub mod conges_spectacles;
 pub mod contexte;
 pub mod contrat;
 pub mod contrats;
+pub mod conseils;
 pub mod cumul;
 pub mod d28;
 pub mod date;

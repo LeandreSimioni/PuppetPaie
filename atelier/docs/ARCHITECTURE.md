@@ -407,6 +407,33 @@ janvier 2027, et laissait de côté les mois produits ici (plus d'AEM depuis le
 dépouille un dossier d'AEM (l'import s'en sert, et nos propres AEM de
 `sorties/`), mais plus personne ne l'appelle pour les droits.
 
+### Les conseils « Le saviez-vous ? » (ticket 224)
+
+Une **option de la compagnie** (fiche Entreprise, `conseils`, décochée par défaut) : sans elle, aucune route ne rend
+rien. Le texte, ses chiffres et ses sources sont des données (`logiciel/donnees/conseils.json`, chaque citation lue à
+l'identique dans un texte déposé, `tests/fichiers/conseils_banque.rs`) ; `paie/src/conseils.rs` n'a que les conditions.
+Trois familles, qui parlent à l'employeur :
+
+| | où | ce qui décide |
+|---|---|---|
+| le conseil du jour (`conseil-du-jour`, « un autre » : `decalage`) | l'accueil (`js/conseils.js`) | `quand` = « toujours », hors `suspendu` ; rang = `jour × pas mod N`, `pas` premier avec N : N jours de suite font le tour sans répétition, rien ne s'écrit |
+| le conseil de saisie (champ `conseil` d'une paie de `apercu`) | sous la carte d'engagement, au plus un | `ordre_saisie` : plus de 208 h d'un technicien, plus de 28 cachets, mois sans allocation (art. 30), 507 heures assurées chez nous, cachet de répétition de la 3090, heures qu'une même somme couvre au minimum horaire, enseignement, suspension, cachets et heures |
+| ce que la compagnie a fait (`conseils-salarie`, `conseils-resume`) | la fiche du salarié ; l'accueil | `cumul::position_droits` sur la fenêtre (depuis `anniversaire_droits`, sinon 12 mois glissants) : heures comptées chez nous et part des 507, cachets perdus d'un mois, ce que les conseils de saisie auraient changé |
+
+Un conseil de saisie n'est **pas un avis** (`engagement::Avis`) : il ne passe ni dans les avertissements de la paie, ni au
+bulletin, ni à `produire` ; une paie validée (sa carte figée) n'en a pas. Il tient en **une phrase** (`texte`) ; son
+`detail` (les deux faces, les chiffres) et sa référence se déplient derrière « pourquoi ? » : le moteur rend les deux, la
+page n'affiche que ce qu'elle reçoit. Le salarié s'y nomme **par son seul prénom** (`{prenom}`, `conseils::prenom`), jamais
+par un pronom qui le genre (le test `conseils_banque` y veille). Les deux conseils « plus d'heures » ne se montrent que si
+la somme couvre le minimum conventionnel (`minima::cachet_de_repetition`, `minima::minimum_de_la_ligne`) et disent leurs
+deux faces : précieux s'il manque des heures pour les 507, à éviter si elles sont assurées un mois indemnisé (le coût se
+dit en jours d'allocation, art. 30, au demi-jour le plus proche, jamais en euros ; un coût qui s'arrondit à zéro se dit
+« moins d'un demi-jour », variante `-minime` de la banque). « Heures pour la même somme » ne parle qu'à partir d'un gain
+du poids d'un cachet (12 heures, `conseils::gain_heures`, la justification y est) : hors du seuil des 507 heures, une
+heure de plus coûte plus qu'elle ne rapporte. **Le seul cas de certitude** : nos contrats font à eux seuls au moins
+507 heures sur la fenêtre ; ses droits sont ouverts, et « intense plutôt que dilué » prend la place des conseils « plus
+d'heures ».
+
 ### L'import CoolPaie
 
 `paie/src/importation.rs` lit le dossier `import/` de la compagnie (les DSN

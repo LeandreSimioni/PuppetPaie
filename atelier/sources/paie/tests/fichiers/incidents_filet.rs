@@ -568,9 +568,14 @@ fn le_filet_s_active_se_verifie_et_se_desactive_sans_rendre_la_cle() {
         "etat" => (200, json!({"confirme": true})),
         _ => (200, json!({"efface": true})),
     });
-    // Sans serveur configure, on refuse d'activer.
-    let r = p.route("filet-activer", json!({"adresse": "a@exemple.fr"}));
-    assert_eq!((r["ok"].clone(), r["classe"].clone()), (json!(false), json!("ErreurOperation")));
+    // Sans serveur pose, l'inscription va au serveur du moteur (lot S1, `editeur::SERVEUR_PAR_DEFAUT`) -- ici un faux
+    // mandataire local le voit et refuse : rien ne sort, l'activation est refusee et aucun compte n'est ecrit.
+    let (mandataire, demandes) = crate::outils::mandataire();
+    let r = p.route_par(&mandataire, "filet-activer", json!({"adresse": "a@exemple.fr"}));
+    assert_eq!((r["ok"].clone(), r["classe"].clone()), (json!(false), json!("ErreurOperation")), "{}", r);
+    assert_eq!(*demandes.lock().unwrap(), ["CONNECT filet.puppetpaie.fr:443 HTTP/1.1"], "le serveur du moteur, et lui seul");
+    let pose = p.racine.join("config/filet-dpae.json");
+    assert!(!pose.exists() || p.fichier("config/filet-dpae.json")["compte"].is_null(), "aucun compte sans inscription");
     p.serveur(&url, json!({}));
     let r = p.route("filet-activer", json!({"adresse": "sans-arobase"}));
     assert_eq!(r["ok"], json!(false));

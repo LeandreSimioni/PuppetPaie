@@ -1129,6 +1129,26 @@
    "ecran": false
   },
   {
+   "_note": "LES CONSEILS « LE SAVIEZ-VOUS ? » (ticket 224, Leandre, 21/10/2026) : une option, decochee par defaut ; sans elle, rien ne s'affiche nulle part. Cochee : un conseil general a l'accueil, un conseil sous la carte d'engagement quand un fait de la saisie l'appelle, ce que la compagnie a fait pour le salarie dans sa fiche. La banque : donnees/conseils.json ; les conditions : paie/src/conseils.rs.",
+   "cle": "conseils",
+   "libelle": "Afficher des conseils « Le saviez-vous ? » (paie, contrats, droits des intermittents)",
+   "forme": "booleen",
+   "aide": "Un conseil du jour à l'accueil, un conseil sous un engagement quand il y a quelque chose d'utile à savoir (les heures qui comptent pour les 507 heures, un mois au-delà de 28 cachets…), et, dans la fiche d'un salarié, ce que vos contrats ont fait compter pour ses droits. Chaque conseil cite son texte.",
+   "obligatoire": false,
+   "longueur": null,
+   "exemple": "",
+   "choix": [],
+   "declare": false,
+   "derive_de": null,
+   "rubrique": null,
+   "si_permanents": false,
+   "si": null,
+   "si_etablissements": false,
+   "si_entreprise": null,
+   "booleen_defaut": false,
+   "ecran": true
+  },
+  {
    "cle": "historique",
    "libelle": "Ce qui a change",
    "forme": "histoire",

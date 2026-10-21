@@ -773,6 +773,7 @@ function brancherSalarie(fiche) {
   const inviter = document.getElementById("invitation-envoyer");
   if (inviter) inviter.onclick = () => demanderFiche(inviter);
   if (fiche.cle) dessinerImprevusDuSalarie(fiche.cle);
+  if (fiche.cle) dessinerConseilsDuSalarie(fiche.cle);
 }
 
 /* Le salarie a choisir dans « Le dossier d'un salarié », a l'arrivee dans

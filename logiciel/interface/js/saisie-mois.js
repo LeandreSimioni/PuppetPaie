@@ -254,7 +254,9 @@ async function calculerApercu(lu) {
         avisDuBloc(part).map(
           (a) => `<div class="encart attention avis-paie">${echapper(a)}</div>`).join("")
         + avisDuBloc(part, "informations").map(
-          (a) => `<div class="encart info avis-paie">${echapperLiens(a)}</div>`).join("");
+          (a) => `<div class="encart info avis-paie">${echapperLiens(a)}</div>`).join("")
+        // Le conseil que la saisie appelle (ticket 224), au plus un par carte, quand la compagnie a coché l'option.
+        + conseilDuBloc(part);
     });
   } catch (e) {
     cible.innerHTML = `<div class="encart erreur">${erreurEnClair(e)}</div>`;

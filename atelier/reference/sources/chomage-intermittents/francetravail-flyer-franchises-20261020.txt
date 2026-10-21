@@ -1,0 +1,249 @@
+Franchises,
+délai d’attente…
+Quand démarre
+l’indemnisation ?
+   Selon les revenus perçus et la durée de travail
+   des contrats pris en compte pour justifier de
+   l’affiliation, un différé spécifique, un délai
+   d’attente et des franchises peuvent s’appliquer
+   soit au début de votre indemnisation, soit
+   réparties sur plusieurs mois.
+   Les allocations sont donc versées à l'issue :
+       d’un différé spécifique d’indemnisation
+       (s'applique rarement aux CDD dans le
+       domaine du spectacle)
+       d’un délai d’attente
+       d’une franchise congés payés
+       d’une franchise salaire
+
+   L'application des franchises n'impacte pas la
+   date anniversaire. Elles sont déterminées lors
+   de l'admission et leur application est répartie
+   sur plusieurs mois. Le courrier de notification
+   de droit contient le nombre de jours de
+   franchises appliquées et leur répartition.
+
+
+
+1. Le différé spécifique
+Ce différé intervient à la suite d’une prise en
+charge sur une fin de contrat de travail entraînant
+la perception d’indemnités de rupture dont le
+montant ou les modalités de calcul ne résultent pas
+directement de la loi.
+Les intermittents du spectacle étant
+principalement employés sous CDD ne prévoyant
+pas le versement d’indemnités de rupture, ce
+différé est rarement appliqué.
+
+
+2. Le délai d’attente
+Le délai d'attente s'applique dès lors qu’est
+prononcée une ouverture de droits ou une
+réadmission.
+Ce délai ne peut excéder 7 jours sur une même
+période de 12 mois.
+Il ne s’applique qu’après la mise en œuvre des règles
+de cumul de l’ARE avec une activité professionnelle.
+
+                          2
+3. La franchise congés payés
+Cette franchise correspond aux jours de congés
+payés que vous avez acquis auprès de la caisse des
+congés spectacle pendant la période de référence
+affiliation (PRA) de votre ouverture de droit, à
+raison de 2,5 jours de congés par période de 24
+jours travaillés.
+
+Pour déterminer le nombre de jours de franchises
+congés payés (CP), le calcul suivant est appliqué :
+(nombre de jours travaillés dans la période de
+référence x 2.5) / 24
+
+Cette franchise est plafonnée à 30 jours
+calendaires.
+
+Elle s’applique mensuellement selon un forfait
+déterminé en fonction de la franchise totale :
+
+•   Si le résultat est inférieur ou égal à 24 jours :
+    2 jours par mois de franchises CP
+
+•   Si le résultat est supérieur à 24 jours :
+    3 jours par mois de franchises CP
+
+Cette franchise ne peut se consommer que sur des
+jours indemnisables après application du différé
+spécifique, des règles de cumul de l’ARE avec une
+activité professionnelle et du délai d’attente.
+
+Tout forfait non appliqué sur un mois sera reporté
+sur le mois suivant et s’ajoutera au forfait applicable
+du mois.
+
+
+
+    Exemple
+    Les droits d’un musicien sont étudiés à la
+    suite d'une fin de contrat sur une période de
+    référence de 12 mois au cours de laquelle il
+    justifie de 176 jours de travail.
+    Franchise congés payés totale =
+    (176 x 2,5) / 24 = 18 jours.
+    Cette franchise totale étant inférieure à 24
+    jours, elle sera consommée selon un forfait
+    mensuel de 2 jours.
+
+
+                            3
+4. La franchise salaire
+La franchise salaire est déterminée en fonction du
+montant total des salaires non plafonnés y compris
+ceux relevant d’autres régimes perçus au cours de la
+PRA (période de référence affiliation).
+
+Elle s’applique mensuellement et se répartit sur les
+8 premiers mois d’indemnisation en fonction de la
+franchise totale déterminée.
+
+Calcul de la franchise salaires :
+
+
+
+[   SMIC mensuel
+                 ×
+Salaires de la PRA        SJM
+                   3 × SMIC journalier       [
+                                       - 27 jours
+
+
+
+• Salaires de la période de référence (PRA) à
+  prendre en compte : Montant total des salaires
+  non plafonnés y compris ceux relevant d’autres
+  régimes
+• SMIC mensuel et journalier : Valeurs à la fin de la
+  période de référence
+• Salaire journalier moyen (SJM)
+    • SJM annexe 8 = Salaire de Référence / (heures
+      travaillées / 8)
+    • SJM annexe 10 = Salaire de référence / (heures
+      travaillées / 10)
+
+La franchise salaires n’est pas plafonnée.
+
+Cette franchise ne peut se consommer que sur des
+jours indemnisables après application du différé
+spécifique, des règles de cumul de l’ARE avec une
+activité professionnelle, du délai d’attente et des
+franchises CP.
+
+Tout forfait non appliqué sur un mois sera reporté
+sur le mois suivant et s’ajoutera au forfait applicable
+du mois.
+
+
+
+
+                           4
+Exemples
+1. Sur la période d’indemnisation, un
+technicien est indemnisé sur 9 mois civils.
+• Franchise salaire totale = 32 jours
+• Période indemnisée de 9 mois supérieure
+  aux 8 mois de répartition prévus
+• Franchise salaire mensuelle applicable = 32
+  jours / 8 mois = 4 jours
+Une franchise salaires de 4 jours sera
+consommée chaque mois pendant 8 mois.
+
+2. Sur la période d’indemnisation, un
+technicien est indemnisé sur 6 mois civils.
+• Franchise salaire totale = 32 jours.
+• Période indemnisée de 6 mois inférieure aux
+  8 mois de répartition prévus.
+• Franchise salaires mensuelle applicable :
+  = 32 jours / 6 mois = 5,33 soit 6 jours.
+Une franchise salaires de 6 jours sera
+consommée les 5 premiers mois puis 2 jours
+le 6e mois, soit 32 jours au total.
+
+
+
+
+i   Toutes ces informations sont disponibles
+    dans la notification d’ouverture de droits.
+
+
+
+
+                        5
+L’application des différents
+délais et franchises pour
+un premier paiement
+
+  Exemple
+  • Une demande d’allocation pour un
+    technicien est examinée sur la date
+    du 1er janvier.
+  • Il effectue sur ce mois 24 heures de travail
+    pour 500 €.
+  • Calcul du nombre de jours non-
+    indemnisables sur le mois de janvier :
+       24/8 x 1,4 = 4.2 soit 4 jours non
+       indemnisables.
+       Pour le détail du calcul, voir le guide
+       intermittents du spectacle.
+  • Délai d’attente et Franchises indiqués dans
+    la notification d’ouverture de droits
+
+
+       Règles de cumul de l’ARE avec une activité
+       professionnelle (4 jours),
+
+       Délai d’attente de 7 jours,
+
+       Franchise congés payés (2 jours dans notre
+       exemple),
+
+       Franchise salaires (4 jours dans notre exemple)
+
+                              Janvier
+
+ Lundi     Mardi   Mercredi    Jeudi    Vendredi   Samedi   Dimanche
+
+
+                                           1         2         3
+  4         5         6         7          8         9        10
+  11        12       13         14        15        16        17
+ 18         19       20         21        22        23        24
+ 25         26       27        28         29        30        31
+
+  L’intermittent du spectacle sera indemnisé sur la
+  période du 18 au 31, soit 14 jours d’allocations.
+
+                                 6
+    Que se passe-t-il lorsque
+    les franchises n’ont pas pu
+    s’appliquer intégralement
+    à la fin de l’indemnisation ?
+    → Dans le cas où les franchises n'auraient pu
+      être appliquées intégralement à l'échéance
+      de votre période d’indemnisation, un trop-
+      perçu équivalent au reliquat de franchises
+      vous sera notifié, dans la limite de ce que
+      vous avez perçu.
+
+
+
+
+       Pour plus d'informations, consultez
+i      le guide Intermittents du spectacle
+       sur le site francetravail.fr/spectacle/
+
+
+
+
+                           7
+France Travail services - Mars 2026
+
