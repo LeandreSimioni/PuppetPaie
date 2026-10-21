@@ -49,7 +49,7 @@ fn un_arret_se_saisit_se_reprend_et_s_oublie() {
         champs,
         [
             "contrat_debut", "contrat_numero", "date_accident", "dernier_jour_travaille", "envois", "fin_previsionnelle", "genre",
-            "jours_deja_indemnises", "maintien", "motif", "note", "qui", "reprise", "reprise_motif", "saisi_le", "salarie",
+            "jours_deja_indemnises", "maintien", "motif", "note", "prolongations", "qui", "reprise", "reprise_motif", "saisi_le", "salarie",
             "subrogation", "subrogation_debut", "subrogation_fin"
         ]
     );

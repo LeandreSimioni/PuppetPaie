@@ -179,7 +179,9 @@ const ROUTES_OBLIGATION_FAITE = {
   // Le deuil d'un enfant (motif 19) : pas de signalement, l'attestation de salaire hors DSN.
   attestation_salaire: "attestation-declare",
 };
-const SIGNALEMENTS_DSN = { signalement_arret: "04", signalement_reprise: "05" };
+// Le rectificatif d'un arrêt (une subrogation prolongée après le signalement, fiche 1983) est un signalement d'arrêt :
+// la même boîte, qui demande l'identifiant du signalement parti puisqu'il y en a déjà un.
+const SIGNALEMENTS_DSN = { signalement_arret: "04", signalement_arret_rectificatif: "04", signalement_reprise: "05" };
 const CONNAISSANCE = { signalement_arret: "arret", declaration_accident: "accident" };
 
 function rangObligation(a, o, k) {
@@ -396,7 +398,11 @@ function retirerJour(div, rubrique, iso) {
 function gestesImprevu(i, mois) {
   const g = [];
   if (i.genre === "arret") {
-    g.push(`<button class="lien" data-geste="reprise">Reprise…</button>`);
+    // Le moteur dit ce que l'arrêt ouvre : en cours, il se prolonge ou se reprend plus tôt ; une reprise saisie se
+    // corrige tant que son signalement n'est pas parti. Une reprise à la date prévue ne se saisit pas : la DSN la porte.
+    if (i.peut_prolonger) g.push(`<button class="lien" data-geste="prolonger">Prolonger l'arrêt…</button>`);
+    if (i.peut_reprendre_plus_tot) g.push(`<button class="lien" data-geste="reprise">Le salarié a repris plus tôt…</button>`);
+    if (i.reprise_corrigeable) g.push(`<button class="lien" data-geste="reprise">Reprise du ${echapper(jjmmaaaa(i.reprise))} : corriger…</button>`);
     if (i.maintien_ouvert && mois && (i.mois_du_maintien || []).includes(mois)) {
       const m = (i.maintien || {})[mois];
       g.push(`<button class="lien" data-geste="maintien">Maintien ${echapper(deMois(mois))}${
@@ -413,6 +419,7 @@ function gestesImprevu(i, mois) {
 function brancherGestesImprevu(r, i, mois, apres) {
   const b = (g) => r.querySelector(`.imprevu-gestes [data-geste="${g}"]`);
   if (b("reprise")) b("reprise").onclick = () => boiteReprise(i, apres);
+  if (b("prolonger")) b("prolonger").onclick = () => boiteProlonger(i, apres);
   if (b("maintien")) b("maintien").onclick = () => boiteMaintien(i, mois, apres);
   if (b("fin")) b("fin").onclick = () => boiteFinAbsence(i, apres);
   if (b("retirer")) b("retirer").onclick = async () => {
@@ -713,14 +720,14 @@ async function etapeSuite(i, p, phrase) {
 
 /* ------------------------------------------------ reprendre, maintenir, finir */
 
-/** La reprise réelle. Elle ne se signale que si elle est ANTICIPÉE : le moteur fait alors naître le signalement de
- *  reprise, qui paraît dans ce qui est dû. Vide, elle s'efface. */
+/** La reprise plus tôt que prévu. Elle ne se signale que si elle est ANTICIPÉE : le moteur fait alors naître le
+ *  signalement de reprise, qui paraît dans ce qui est dû. Une reprise déjà saisie se corrige ici ; vide, elle s'efface. */
 async function boiteReprise(a, apres) {
   let n;
   try { n = await nomenclaturesImprevus(); } catch (e) { dire(e.message, "erreur"); return; }
   const motifs = n.motifs_reprise || [];
   ouvrirBoite(`
-    <h3>La reprise — ${echapper(nomDuSalarie(a.salarie))}</h3>
+    <h3>${a.reprise ? "La reprise" : "Le salarié a repris plus tôt"} — ${echapper(nomDuSalarie(a.salarie))}</h3>
     <p class="discret">${echapper(quoiDeLImprevu(a))}, ${echapper(periodeDeLImprevu(a))}.</p>
     <label class="champ-boite">Premier jour retravaillé
       <input type="date" id="re-date" value="${echapper(a.reprise || "")}"></label>
@@ -738,6 +745,57 @@ async function boiteReprise(a, apres) {
     } catch (e) { dire(e.message, "erreur"); return; }
     fermerBoite();
     dire("Reprise notée.");
+    await apres();
+  };
+}
+
+/** L'avis de prolongation : la nouvelle fin prescrite, et rien d'autre. Le moteur met l'arrêt à jour et dit ce qui en
+ *  découle ; s'il dit que la subrogation s'arrête désormais avant l'arrêt, sa fin se demande ensuite — et seulement
+ *  alors (`subrogation_a_revoir`). */
+function boiteProlonger(a, apres) {
+  ouvrirBoite(`
+    <h3>Prolonger l'arrêt — ${echapper(nomDuSalarie(a.salarie))}</h3>
+    <p class="discret">${echapper(quoiDeLImprevu(a))}, ${echapper(periodeDeLImprevu(a))}.</p>
+    <label class="champ-boite">Prolongé jusqu'au (avis de prolongation)
+      <input type="date" id="pr-fin" value=""></label>
+    <div class="actions">
+      <button class="secondaire" onclick="fermerBoite()">Annuler</button>
+      <button class="primaire" id="pr-ok">Prolonger</button>
+    </div>`);
+  document.getElementById("pr-ok").onclick = async () => {
+    let r;
+    try {
+      r = await api("arret-prolonger", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille,
+        fin: document.getElementById("pr-fin").value });
+    } catch (e) { dire(e.message, "erreur"); return; }
+    dire((r.avertissements || []).join("  ·  ") || "Arrêt prolongé.");
+    if (r.subrogation_a_revoir) { boiteSubrogationProlongee(r.arret, r.phrase, apres); return; }
+    fermerBoite();
+    await apres();
+  };
+}
+
+/** La fin de la subrogation d'un arrêt prolongé, quand le moteur la demande : il ne connaît pas le maximum que la
+ *  convention permet. La garder ne change rien. */
+function boiteSubrogationProlongee(a, phrase, apres) {
+  ouvrirBoite(`
+    <h3>La subrogation — ${echapper(nomDuSalarie(a.salarie))}</h3>
+    <p>${echapper(phrase || "")}</p>
+    <label class="champ-boite">Subrogation jusqu'au
+      <input type="date" id="ps-fin" value="${echapper(a.subrogation_fin || "")}"></label>
+    <div class="actions">
+      <button class="secondaire" id="ps-garder">Garder le ${echapper(jjmmaaaa(a.subrogation_fin))}</button>
+      <button class="primaire" id="ps-ok">Enregistrer</button>
+    </div>`);
+  document.getElementById("ps-garder").onclick = async () => { fermerBoite(); await apres(); };
+  document.getElementById("ps-ok").onclick = async () => {
+    let r;
+    try {
+      r = await api("arret-prolonger", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille,
+        subrogation_fin: document.getElementById("ps-fin").value });
+    } catch (e) { dire(e.message, "erreur"); return; }
+    fermerBoite();
+    dire((r.avertissements || []).join("  ·  ") || "Subrogation notée.");
     await apres();
   };
 }
@@ -976,7 +1034,9 @@ async function dessinerImprevusDuSalarie(cle) {
 /** Ce qui est parti d'un imprévu, et ce qui en reste dû : une ligne courte. */
 function ceQuiEnEstParti(i) {
   const morceaux = [];
-  (i.signalements || []).forEach((s) => morceaux.push(`${s.nature === "05" ? "reprise signalée" : "signalé"} le ${
+  (i.prolongations || []).filter((p) => p.fin !== p.fin_avant).forEach((p) => morceaux.push(`prolongé jusqu'au ${
+    echapper(jjmmaaaa(p.fin))} (avis saisi le ${echapper(jjmmaaaa(p.le))})`));
+  (i.signalements || []).forEach((s) => morceaux.push(`${s.nature === "05" ? "reprise signalée" : s.type === "03" ? "signalement rectifié" : "signalé"} le ${
     echapper(quand(s.quand || ""))}`));
   if ((i.reporte_par || []).length) morceaux.push(`déclaré par la DSN ${i.reporte_par.map((m) => echapper(deMois(m))).join(", ")}`);
   (i.obligations || []).forEach((o) => {

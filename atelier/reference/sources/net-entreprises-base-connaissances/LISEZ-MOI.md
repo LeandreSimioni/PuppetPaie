@@ -305,6 +305,35 @@ d'usage, il est possible que l'employeur, avec l'accord du salarié, ait recours
 fiche 2062). Il est **interdit de doubler** un signalement DSN par une AE par l'ancienne modalité. Toute information d'une fin de
 contrat doit être reportée dans la DSN mensuelle consécutive. Moteur : `obligations.rs` et `logiciel/donnees/obligations-base.json` (le signalement d'arrêt, de reprise et de fin de contrat, cinq jours ouvrés, ou avec la mensuelle si l'employeur est subrogé ; 15/10/2026).
 
+### Fiche 1983 — la prolongation d'un arrêt, et les dates de subrogation (relevée le 21/10/2026)
+
+URL https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1983/ ; « Date de modification : 22/03/2025 » ; créée le
+10/10/2018. Trouvée par la recherche du site (mot « prolongation ») et par la fiche chapeau 3304 « Gestion des arrêts, reprises et
+suspensions » (non déposée : un sommaire). Fichiers : `net-entreprises-fiche1983-prolongation-arret-dates-de-subrogation-20250322.html`
+(le brut tel que servi) et `.txt` (le corps, transcrit par `pandoc`, tableaux aplatis).
+
+**Ce qu'on en lit** (`.txt`, lignes citées) :
+- l. 13 : « En cas de prolongation d'arrêt, il ne faut pas envoyer de nouveau signalement de nature " arrêt de travail ". Il suffit
+  de déclarer la nouvelle date de fin de l'arrêt en DSN mensuelle, au niveau de la rubrique " Date de fin prévisionnelle -
+  S21.G00.60.003 " » ;
+- l. 17-31 : les données de subrogation (60.004 à 60.008) « ne sont pas présentes en DSN mensuelle, elles n'apparaissent que dans
+  le signalement » ; la fin de subrogation est la « date de fin de subrogation maximale prévue dans le cadre de la convention
+  collective ou de l'accord de branche » ;
+- l. 37-39 : une subrogation « insuffisante ou erronée » se corrige par « un nouveau signalement de nature " arrêt de travail " de
+  type annule et remplace, dans lequel une nouvelle date de fin de subrogation sera renseignée », « dans des délais raisonnables
+  [...] avant le prochain paiement d'indemnités journalières » ; l. 66 : « le plus rapidement possible dès connaissance de la
+  prolongation de l'arrêt » (aucun délai chiffré) ;
+- l. 110 : si la subrogation « court toujours », « il n'est pas nécessaire d'effectuer un nouveau signalement ».
+
+**Où le moteur s'en sert** (21/10/2026) : `atelier/sources/paie/src/routes_imprevus.rs` (`arret_prolonger`, route
+`arret-prolonger`, `paie arret prolonger` : la prolongation ne change que la fin prévisionnelle, rien ne part ;
+`subrogation_a_revoir` demande la fin de subrogation quand elle tombe avant la nouvelle fin) ; `obligations.rs`
+(`rectificatif_du`) et `logiciel/donnees/obligations-base.json` (`signalement_arret_rectificatif` : une fin de subrogation
+repoussée après le dépôt du signalement d'arrêt appelle un annule et remplace ; le délai de cinq jours ouvrés est celui d'un
+signalement d'arrêt, fiche 673 — **inférence**, la fiche n'en chiffre aucun). Le message de `signalement::verifier` pour une
+reprise après la fin prévisionnelle renvoie à la prolongation (il disait « un nouvel arrêt »). Tests :
+`tests/routes/arret_prolonge.rs`.
+
 ### Fiche 1722 — annuler une fin de contrat transmise à tort (bloc 62, motif 099)
 
 URL https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1722/ ; modifiée le 26/03/2025. Dans une DSN mensuelle, une fin

@@ -80,7 +80,7 @@ fn code_subrogation_oui() -> Resultat<String> {
     Err("subrogation : pas de code « oui » dans arrets-base.json".into())
 }
 
-fn avec_subrogation(a: &Arret) -> Resultat<bool> {
+pub(crate) fn avec_subrogation(a: &Arret) -> Resultat<bool> {
     let sub = if vrai(g(&a.v, "subrogation")) { s(&a.v, "subrogation") } else { String::new() };
     Ok(sub == code_subrogation_oui()?)
 }
@@ -237,7 +237,8 @@ CCH-11.",
             return impossible(format!(
                 "Date de reprise ({}) posterieure a la fin previsionnelle de l'arret ({}) : ce n'est pas une \
 reprise anticipee, et la rubrique ne doit alors pas etre valorisee (S21.G00.60.010). Si l'arret s'est \
-prolonge, c'est un nouvel arret qui se signale.",
+prolonge, c'est sa fin previsionnelle qui change (S21.G00.60.003, sans nouveau signalement : fiche net-entreprises \
+1983) : prolonger l'arret d'abord.",
                 s(v, "reprise"),
                 s(v, "fin_previsionnelle")
             ));
