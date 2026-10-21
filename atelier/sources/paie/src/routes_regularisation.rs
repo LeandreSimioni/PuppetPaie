@@ -391,6 +391,12 @@ pub(crate) fn apercu_correction(o: &HashMap<String, String>, ctx: &Contexte, cha
         return Err(non_regularisable(py_str(&etat["raison"])));
     }
     let mois = py_str(mois_v);
+    // UN CONTRAT AJOUTE APRES LA LIMITE (21/10/2026) : rien de declare, sa correction le declare en entier.
+    if let (Some(sal), Some(deb)) = (salarie.as_str(), debut.as_str()) {
+        if let Some(saisi) = contrat_ajoute(o, ctx, &mois, sal, deb)? {
+            return apercu_d_un_ajout(o, &mut m, ctx, charge, etat, &saisi);
+        }
+    }
     let (donnees, declare, fiche) = engagement_declare(o, &mut m, ctx, &mois, salarie, debut)?;
     let avant = paie_d_un_engagement(o, &mut m, ctx, &donnees, &declare)?;
     if !avant.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) {
@@ -461,6 +467,10 @@ pub const CONFIRMATION: &str = "modifier_apres_echeance";
 
 /// La classe du refus : la page la reconnait et montre l'avertissement, avec « Modifier quand meme » et « Annuler ».
 pub const CLASSE_A_CONFIRMER: &str = "ModificationApresEcheance";
+
+/// La classe du refus de ce qui ne se declare pas apres la limite (`refus_non_declarable`) : la page le dit et recharge
+/// la saisie enregistree.
+pub const CLASSE_NON_DECLARABLE: &str = "ModificationNonDeclarable";
 
 /// `septembre 2026`, avec ses accents.
 fn mois_en_clair(mois: &str) -> String {
@@ -547,22 +557,36 @@ pub(crate) fn garder_la_saisie_declaree(m: &mut Moteur, ctx: &Contexte, mois: &s
     Ok(())
 }
 
-/// Un contrat de la saisie modifiee, compare a la saisie telle que declaree.
+/// Un contrat de la saisie dont la paie n'est plus celle que la DSN deposee declare.
 pub(crate) struct ContratModifie {
     /// La cle du salarie, et le premier jour du contrat : ce qu'une correction designe.
     pub(crate) salarie: String,
     pub(crate) debut: String,
     /// L'engagement tel qu'il est saisi maintenant.
     pub(crate) engagement: Value,
+    /// Un contrat que la DSN deposee ne porte pas : ajoute apres elle (un contrat oublie).
+    pub(crate) ajoute: bool,
+}
+
+/// Ce qui a change dans la saisie depuis qu'elle a ete declaree.
+pub(crate) struct Changements {
+    /// Les contrats declares dont la paie a change, et les contrats ajoutes.
+    pub(crate) contrats: Vec<ContratModifie>,
+    /// Les contrats declares que la saisie ne porte plus (le moteur les refuse apres la limite, `refus_non_declarable`).
+    pub(crate) retires: usize,
+}
+
+/// Les engagements d'une saisie, identifies (`jumeaux`) ; `None` s'ils ne s'identifient pas.
+fn identifies(ctx: &Contexte, d: &Value) -> Option<Vec<Option<crate::jumeaux::Ident>>> {
+    crate::routes_ecritures::identifiants(ctx, d).ok().map(|v| v.into_iter().map(Some).collect())
 }
 
 /// Ce qui a change dans LA PAIE depuis que la saisie a ete declaree (`chemin_saisie_declaree`) : les contrats declares
-/// dont la paie a change -- ce que leurs documents disent (`envoi::resume_de` : bornes, spectacle, jours, cachets, heures,
-/// brut, net), calcule sur les deux saisies : la page reecrit la saisie a sa facon (cles, nombres), ce n'est pas un
-/// changement --, et le nombre de contrats ajoutes ou retires (ceux-la ne sont pas des corrections : « Corriger ce mois »
-/// ne corrige que les lignes d'un contrat declare). `None` sans copie de la saisie declaree, ou si l'une des deux ne se
+/// dont la paie a change -- ce que la paie calculee en dit (`resume` : montants, cachets, heures, jours), calculee sur
+/// les deux saisies : la page reecrit la saisie a sa facon (cles, nombres), ce n'est pas un changement --, les contrats
+/// ajoutes, et le nombre de contrats retires. `None` sans copie de la saisie declaree, ou si l'une des deux ne se
 /// calcule pas.
-pub(crate) fn ce_qui_a_change(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Option<(Vec<ContratModifie>, usize)>> {
+pub(crate) fn ce_qui_a_change(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Option<Changements>> {
     let copie = chemin_saisie_declaree(ctx, mois);
     let saisie = ctx.racine.join("paies").join(format!("{}.json", mois));
     if !copie.exists() || !saisie.exists() {
@@ -573,28 +597,202 @@ pub(crate) fn ce_qui_a_change(o: &HashMap<String, String>, ctx: &Contexte, mois:
     let (Ok(p_avant), Ok(p_apres)) = (paies_de_en(o, ctx, &declaree, true), paies_de_en(o, ctx, &actuelle, true)) else {
         return Ok(None);
     };
-    let ids = |d: &Value| -> Option<Vec<Option<crate::jumeaux::Ident>>> {
-        crate::routes_ecritures::identifiants(ctx, d).ok().map(|v| v.into_iter().map(Some).collect())
-    };
-    let (Some(avant), Some(apres)) = (ids(&declaree), ids(&actuelle)) else { return Ok(None) };
+    let (Some(avant), Some(apres)) = (identifies(ctx, &declaree), identifies(ctx, &actuelle)) else { return Ok(None) };
     let e_apres = actuelle.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
-    let resume = |p: Option<&Paie>| p.and_then(|p| crate::envoi::resume_de(&[p]).ok());
     let paires = crate::jumeaux::apparier(&apres, &avant);
-    let mut modifies = Vec::new();
-    let mut hors = 0usize;
+    let mut contrats = Vec::new();
     for (i, j) in paires.iter().enumerate() {
         let (Some(Some(id)), Some(e)) = (apres.get(i), e_apres.get(i)) else { continue };
+        let ajoute = j.is_none();
+        let change = match j {
+            None => true,
+            Some(j) => p_avant.get(*j).map(resume) != p_apres.get(i).map(resume),
+        };
+        if change {
+            contrats.push(ContratModifie { salarie: id.0.clone(), debut: id.1.clone(), engagement: e.clone(), ajoute });
+        }
+    }
+    let gardes = paires.iter().filter(|j| j.is_some()).count();
+    Ok(Some(Changements { contrats, retires: avant.len().saturating_sub(gardes) }))
+}
+
+/// UN CONTRAT DECLARE NE SE RETIRE PAS, NI NE CHANGE DE DATES, APRES LA LIMITE (21/10/2026). Ce que la norme permet
+/// apres la date d'exigibilite (cahier technique DSN 2026.1, §2.2.2.5 et §2.1.3.6,
+/// `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`) : des rappels de paie dans une DSN
+/// suivante, et, pour un contrat, le changement d'une donnee par bloc « Changements contrat » (S21.G00.41). Rien
+/// n'annule un contrat declare : seule une FIN de contrat s'annule (motif S21.G00.62.002 = 099, fiche net-entreprises
+/// 1722, `atelier/reference/sources/net-entreprises-base-connaissances/`). Un contrat qui n'a pas eu lieu garde donc son
+/// bloc 40 et voit ses montants annules (ses quantites a zero : la correction les declare en negatif). Une date
+/// de debut se corrige par le bloc 41 (S21.G00.41.021, fiche 1952) : le logiciel ne le porte pas encore.
+///
+/// `base` : la saisie telle que declaree ; `nouvelle` : ce qu'on veut ecrire. `Ok(None)` : rien d'indeclarable.
+pub(crate) fn refus_non_declarable(ctx: &Contexte, mois: &str, base: &Value, nouvelle: &Value) -> R<Option<String>> {
+    let (Some(avant), Some(apres)) = (identifies(ctx, base), identifies(ctx, nouvelle)) else { return Ok(None) };
+    let paires = crate::jumeaux::apparier(&avant, &apres);
+    let e_avant = base.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+    let e_apres = nouvelle.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+    let de = de_mois_en_clair(mois);
+    for (i, j) in paires.iter().enumerate() {
+        let Some(Some(id)) = avant.get(i) else { continue };
+        let nom = e_avant.get(i).and_then(|e| e.get("salarie")).map(py_str).unwrap_or_else(|| id.0.clone());
+        let debut = crate::date::Jour::lire(&id.1).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| id.1.clone());
         match j {
-            None => hors += 1,
+            None => {
+                return Ok(Some(format!(
+                    "Le contrat de {} du {} est déclaré dans la DSN {}, dont l'annule-et-remplace est passé : il ne se retire plus, et sa date de début ne change plus ici. La norme DSN n'annule pas un contrat déclaré (seule une fin de contrat s'annule, motif 099, fiche net-entreprises 1722). S'il n'a pas eu lieu, gardez-le et mettez ses quantités à zéro : « Corriger ce mois » déclarera l'annulation de ses montants dans la DSN suivante (rappel de paie, cahier technique DSN §2.1.3.6) ; sa DPAE s'annule auprès de l'Urssaf. Rien n'est enregistré.",
+                    nom, debut, de
+                )));
+            }
             Some(j) => {
-                let (r_avant, r_apres) = (resume(p_avant.get(*j)), resume(p_apres.get(i)));
-                if r_avant.is_none() || r_avant != r_apres {
-                    modifies.push(ContratModifie { salarie: id.0.clone(), debut: id.1.clone(), engagement: e.clone() });
+                let fin = |e: Option<&Value>| e.and_then(|e| e.get("fin")).filter(|f| vrai(f)).map(py_str);
+                if fin(e_avant.get(i)) != fin(e_apres.get(*j)) {
+                    return Ok(Some(format!(
+                        "Le contrat de {} du {} est déclaré dans la DSN {}, dont l'annule-et-remplace est passé : ses dates ne changent plus ici. Une date de contrat déclarée se corrige par le bloc « Changements contrat » (S21.G00.41, fiche net-entreprises 1952), que le logiciel ne porte pas encore. Rien n'est enregistré.",
+                        nom, debut, de
+                    )));
                 }
             }
         }
     }
-    let gardes = paires.iter().filter(|j| j.is_some()).count();
-    hors += avant.len().saturating_sub(gardes);
-    Ok(Some((modifies, hors)))
+    Ok(None)
+}
+
+/// Ce qui reste a ecrire pour que la DSN suivante declare la paie d'aujourd'hui (`etat_remplacement`).
+pub(crate) struct Couverture {
+    /// Les contrats changes sans correction ecrite.
+    pub(crate) a_ecrire: usize,
+    /// Les contrats dont la correction ecrite ne declare plus la paie d'aujourd'hui (la saisie a encore change).
+    pub(crate) a_refaire: usize,
+    /// Les contrats declares retires de la saisie (d'avant le refus).
+    pub(crate) retires: usize,
+}
+
+/// LA CORRECTION ECRITE DECLARE-T-ELLE LA PAIE D'AUJOURD'HUI ? Pour chaque contrat change, la derniere correction non
+/// annulee (en attente, preparee ou portee) : sa paie, et celle que la meme correction aurait avec les lignes saisies
+/// aujourd'hui (`normaliser` : l'identite du contrat declare, les lignes de la saisie), calculees de la meme facon
+/// (`paie_d_un_engagement`) et comparees par ce qu'elles declarent (`resume`). `None` sans copie de la saisie declaree.
+pub(crate) fn couverture(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Option<Couverture>> {
+    let Some(ch) = ce_qui_a_change(o, ctx, mois)? else { return Ok(None) };
+    let ecrites = crate::routes_ecrites::lire_corrections(ctx, mois)?;
+    let donnees = saisie_d_origine(ctx, mois)?;
+    let mut m = Moteur::nouveau(o, ctx);
+    let mut c = Couverture { a_ecrire: 0, a_refaire: 0, retires: ch.retires };
+    for x in &ch.contrats {
+        let derniere = ecrites.iter().rev().find(|e| {
+            !e.get("annulee_le").is_some_and(vrai)
+                && e.get("salarie").map(py_str).as_deref() == Some(x.salarie.as_str())
+                && e.get("debut").map(py_str).as_deref() == Some(x.debut.as_str())
+        });
+        let Some(ecrite) = derniere else {
+            c.a_ecrire += 1;
+            continue;
+        };
+        let corrige = ecrite.get("engagement").cloned().unwrap_or(Value::Null);
+        let a_jour = normaliser(&corrige, &x.engagement).ok().and_then(|aujourdhui| {
+            let p1 = paie_d_un_engagement_en(o, &mut m, ctx, &donnees, &corrige, true).ok()?;
+            let p2 = paie_d_un_engagement_en(o, &mut m, ctx, &donnees, &aujourdhui, true).ok()?;
+            Some(resume(&p1) == resume(&p2))
+        });
+        if a_jour != Some(true) {
+            c.a_refaire += 1;
+        }
+    }
+    Ok(Some(c))
+}
+
+/// Le contrat ajoute `(salarie, debut)` de la saisie d'aujourd'hui, s'il en est un (`ce_qui_a_change`).
+pub(crate) fn contrat_ajoute(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> R<Option<Value>> {
+    Ok(ce_qui_a_change(o, ctx, mois)?.and_then(|ch| {
+        ch.contrats.into_iter().find(|c| c.ajoute && c.salarie == salarie && c.debut == debut).map(|c| c.engagement)
+    }))
+}
+
+/// Une paie a zero : ce qu'un contrat ajoute avait de declare (rien).
+fn resume_nul() -> Value {
+    json!({
+        "brut": "0.00", "net_a_payer": "0.00", "net_imposable": "0.00", "cotisations_salariales": "0.00",
+        "cotisations_patronales": "0.00", "cout_employeur": "0.00", "cachets": 0, "heures": "0", "jours": 0,
+        "remuneration": [],
+    })
+}
+
+/// L'apercu de la correction d'un CONTRAT AJOUTE apres la limite (un contrat oublie). Cahier technique DSN 2026.1,
+/// §2.1.2.1 (« une correction est un evenement connu apres la date de cloture de la paie. Il donne lieu a la declaration
+/// d'une correction dans la DSN suivante ») et §2.2.2.5 (« les corrections doivent etre portees par une DSN mensuelle
+/// ulterieure [...] valorisees mois civil par mois civil ») ; fiche net-entreprises 1741 : un contrat que le systeme DSN
+/// ne connait pas encore se declare en entier dans la DSN mensuelle qui le porte. La DSN suivante porte donc son bloc
+/// 40 (S21.G00.40.001 = sa date de debut, passee) et un versement dont les remunerations et les bases sont rattachees au
+/// mois d'origine (S21.G00.51.001/002, S21.G00.78.002/003) : `dsn::bloc_regularisation`, sur un declare vide. Rien
+/// n'a ete declare, rien n'a ete verse : l'« avant » est nul.
+fn apercu_d_un_ajout(
+    o: &HashMap<String, String>, m: &mut Moteur, ctx: &Contexte, charge: &Value, etat: Value, saisi: &Value,
+) -> R<Value> {
+    let mois_v = cle(charge, "mois")?;
+    let mois = py_str(mois_v);
+    let donnees = saisie_d_origine(ctx, &mois)?;
+    let corrige = normaliser(saisi, cle(charge, "engagement")?)?;
+    let apres = paie_d_un_engagement(o, m, ctx, &donnees, &corrige)?;
+    let (r_avant, r_apres) = (resume_nul(), resume(&apres));
+    let mut delta = Map::new();
+    let mut tout_nul = true;
+    for k in ["brut", "net_a_payer", "net_imposable", "cotisations_salariales", "cotisations_patronales", "cout_employeur"] {
+        let d = decimal(&r_apres, k)?;
+        tout_nul &= d.is_zero();
+        delta.insert(k.to_string(), json!(d.to_string()));
+    }
+    let rien_ne_change = tout_nul && r_apres["cachets"] == json!(0) && r_apres["heures"] == json!("0");
+    let sal = &apres.salarie;
+    let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
+        Some(v) => py_str(v),
+        None => py_str(requis(sal, "prenom")?),
+    };
+    Ok(json!({
+        "mois": mois_v,
+        "salarie": cle(charge, "salarie")?,
+        "debut": cle(charge, "debut")?,
+        "nom": format!("{} {}", py_str(requis(sal, "nom")?), prenom),
+        "spectacle": apres.titre()?,
+        "numero": apres.engagement.numero,
+        "etat": etat,
+        "avant": r_avant,
+        "apres": r_apres,
+        "delta": delta,
+        "rien_ne_change": rien_ne_change,
+        "ajout": true,
+        "avertissements": apres.avertissements.iter().map(|a| a.texte.clone()).collect::<Vec<_>>(),
+        "engagement": corrige,
+    }))
+}
+
+/// LE NUMERO D'UN CONTRAT AJOUTE, fige a l'ecriture de sa correction s'il n'en a pas encore (son contrat n'est pas parti
+/// a la signature) : la DSN suivante le declare sous ce numero (S21.G00.40.009), et il ne se recalcule plus (regle 4).
+/// Le meme numero que `numeroter` donnerait : la suite du compteur `contrat_<cle>` de l'annee du contrat, reservee et
+/// ecrite, et pose dans la saisie du mois.
+pub(crate) fn figer_le_numero(ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> R<String> {
+    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
+    let mut data = crate::engagement::lire_saisie(&chemin)?;
+    let ids = crate::routes_ecritures::identifiants(ctx, &data).map_err(|e| erreur("ValueError", e))?;
+    let rang = ids
+        .iter()
+        .position(|(s, d, _)| s == salarie && d == debut)
+        .ok_or_else(|| non_regularisable(format!("Aucun engagement de {} commencant le {} dans la saisie de {}.", salarie, debut, mois)))?;
+    if let Some((_, _, Some(n))) = ids.get(rang) {
+        return Ok(n.clone());
+    }
+    let fiche = ctx.salarie(salarie).map_err(|e| erreur("KeyError", e))?;
+    let texte = |k: &str| fiche.get(k).map(py_str).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)));
+    let annee: i64 = debut.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| erreur("ValueError", format!("date illisible : {}", debut)))?;
+    let _verrou = crate::ecrire_documents::prendre_le_verrou(ctx, "interface")?;
+    let mut reserves = crate::produire_mois::Reserves::default();
+    let compteur = format!("contrat_{}", salarie);
+    let seq = reserves.prochain(ctx, &compteur, annee)?;
+    let numero = format!("{}{}.{}.{:02}", texte("initiales_contrat")?, texte("code_salarie")?, &annee.to_string()[2..], seq);
+    reserves.enregistrer(annee, &compteur, seq);
+    if let Some(Value::Object(e)) = data.get_mut("engagements").and_then(|v| v.get_mut(rang)) {
+        e.insert("numero".into(), json!(numero));
+    }
+    reserves.valider(ctx)?;
+    crate::routes_contrats::sauver_avant(&chemin).map_err(Echec::from)?;
+    crate::ecriture::ecrire_json(&chemin, &data, 2).map_err(|m| erreur("OSError", m))?;
+    Ok(numero)
 }

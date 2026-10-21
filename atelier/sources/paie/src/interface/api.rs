@@ -17,7 +17,7 @@ use crate::etat_garde::FileDesEtats;
 
 /// Les refus qui ne sont pas des defauts du logiciel : une saisie en cours, un mot de passe mal tape, un mois sans
 /// paie, et ceux que la page traite elle-meme (une fiche refusee, un depot deja fait...). On ne les compte pas en incidents.
-const PAS_DES_INCIDENTS: [&str; 9] = [
+const PAS_DES_INCIDENTS: [&str; 10] = [
     "SaisieIncomplete",
     "PreuveInsuffisante",
     "AucunDocument",
@@ -27,6 +27,7 @@ const PAS_DES_INCIDENTS: [&str; 9] = [
     "RepetitionManquante",
     "DpaeDejaDeclaree",
     "ModificationApresEcheance",
+    "ModificationNonDeclarable",
 ];
 
 /// Un refus de route : sa classe (le `type` que la page lit), sa phrase, et ce qu'il porte pour la page.

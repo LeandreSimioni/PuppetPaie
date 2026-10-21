@@ -1286,6 +1286,14 @@ async function enregistrerSaisie(silencieux) {
     // Une paie dont on n'a pas encore choisi les jours n'est pas une faute :
     // c'est la saisie en cours. On le dit en une ligne, sans la règle du
     // fichier (« lignes: [] ») ni d'alerte (30/09/2026).
+    // Ce que la norme ne permet pas de déclarer après la limite (un contrat déclaré retiré, ses dates changées) : le
+    // moteur dit pourquoi et quoi faire, et la saisie revient telle qu'elle est enregistrée.
+    if (e.detail?.type === "ModificationNonDeclarable") {
+      dire(e.message, "erreur");
+      if (MOIS_AFFICHE === s.mois) await chargerMois(s.mois, true);
+      noteSaisie("PAS enregistré — " + e.message);
+      return false;
+    }
     if (e.detail?.type === "ModificationApresEcheance") {
       noteSaisie("Pas encore enregistré : la modification est à confirmer.");
       confirmerModification(s.mois, e.message, () => enregistrerSaisie(silencieux));

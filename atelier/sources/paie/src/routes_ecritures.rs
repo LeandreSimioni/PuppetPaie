@@ -808,6 +808,17 @@ pub(crate) fn ecrire_saisie_confirmee(
         // declare a changer.
         let avant = lire_saisie(&p).ok().map(|v| crate::routes_mois::empreinte_de(&v));
         let change = avant.is_some_and(|a| a != crate::routes_mois::empreinte_de(&donnees));
+        // Ce que la norme ne permet pas de declarer apres la limite (un contrat declare retire, ses dates changees) se
+        // refuse, confirme ou non : accepte, il ne serait jamais declare (`routes_regularisation::refus_non_declarable`).
+        if change {
+            let copie = crate::routes_regularisation::chemin_saisie_declaree(ctx, mois);
+            let base = lire_saisie(if copie.exists() { &copie } else { &p }).ok();
+            if let Some(base) = base {
+                if let Some(texte) = crate::routes_regularisation::refus_non_declarable(ctx, mois, &base, &donnees)? {
+                    return Err(erreur(crate::routes_regularisation::CLASSE_NON_DECLARABLE, texte));
+                }
+            }
+        }
         if change && !confirme {
             let texte = declaree.get("avertissement").map(py_str).unwrap_or_default();
             return Err(erreur(crate::routes_regularisation::CLASSE_A_CONFIRMER, texte));

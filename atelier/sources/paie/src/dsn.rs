@@ -2287,11 +2287,15 @@ cahier 2027.1.1, p. 268). Le logiciel ne sait pas encore l'annuler et la redecla
         f.add("S21.G00.58.004", ms(montant, 1));
         Ok(())
     };
-    if apres.net_a_payer == r.net_deja_verse {
+    // UN CONTRAT AJOUTE (rien de declare, rien de verse : `produire_regularisations::ajout`) : pas de 58 d'origine a
+    // annuler ni a redeclarer ; tout son montant net social est verse par la correction, aux dates du mois du versement
+    // (BOSS, montant net social, Q 35 : « du mois lors duquel ce rappel ou ce versement est effectue »).
+    let ajoute = r.declare.lignes.is_empty() && r.declare.fichier.is_empty() && r.net_deja_verse.is_zero();
+    if !ajoute && apres.net_a_payer == r.net_deja_verse {
         return origine(f, sub(apres.net_social, rappels));
     }
-    let paye = sub(r.net_deja_verse, sub(avant.net_a_payer, avant.net_social));
-    if sub(paye, rappels) != r.declare.net_social {
+    let paye = if ajoute { Decimal::ZERO } else { sub(r.net_deja_verse, sub(avant.net_a_payer, avant.net_social)) };
+    if !ajoute && sub(paye, rappels) != r.declare.net_social {
         origine(f, sub(paye, rappels))?;
     }
     let debut_mois = Jour::nouveau(fin_mois.an, fin_mois.mois, 1).ok_or("mois de versement illisible")?;
@@ -2627,6 +2631,12 @@ fn reduction_a_l_urssaf(p: &Paie, bar: &Value) -> Resultat<Decimal> {
 /// CTP (celles de `assiettes_ctp`). La nature (permanent, intermittent) et le statut (artiste, technicien) sont ceux du
 /// contrat d'avant (`r.avant`), comme ses bornes.
 fn assiette_declaree(cle: &str, r: &Regularisation, bar: &Value) -> Resultat<Result<Decimal, String>> {
+    // Un contrat ajoute apres la limite (`produire_regularisations::ajout`) : rien de declare, toutes ses assiettes sont
+    // nulles -- le bordereau du mois d'origine porte tout le corrige.
+    if r.declare.lignes.is_empty() && r.declare.fichier.is_empty() {
+        let _ = (cle, bar);
+        return Ok(Ok(zero()));
+    }
     let p = &r.avant;
     let mensuelle = p.engagement.nat()?.mensuelle();
     // Un permanent declare a la caisse des Conges Spectacles (lot V2f) a declare sa taxe d'apprentissage et son FNAL

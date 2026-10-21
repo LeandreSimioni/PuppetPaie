@@ -56,23 +56,28 @@ fn une_correction_s_ecrit_s_annule_et_se_refuse() {
     assert_eq!(f["corrections"][0]["engagement"]["debut"], json!("2025-06-03"));
     assert_eq!(f["corrections"][0]["portee_par"], Value::Null);
 
-    // Une seule en cours par engagement ; ce qui ne change rien ou ne se motive pas s'ecarte.
-    assert!(refuse(&route(&racine, "regularisation-ecrire", correction(&racine, 140.0))).contains("deja en attente"));
+    // Une seule en cours par engagement : la suivante la remplace (21/10/2026, rien n'est parti) ; ce qui ne change rien
+    // ou ne se motive pas s'ecarte.
+    let r = route(&racine, "regularisation-ecrire", correction(&racine, 140.0));
+    assert_eq!(r["resultat"]["correction"]["numero"], json!(2), "{}", r);
+    let f = lire(&racine, "regularisations/2025-06.json");
+    assert!(f["corrections"][0]["annulee_le"].is_string());
+    assert_eq!(f["corrections"][0]["remplacee_par"], json!(2));
     let apres_refus = octets(&racine, "regularisations/2025-06.json");
     let mut sans_motif = correction(&racine, 140.0);
     sans_motif["motif"] = json!("   ");
     assert!(refuse(&route(&racine, "regularisation-ecrire", sans_motif)).contains("se motive"));
 
-    let r = route(&racine, "regularisation-annuler", json!({"mois": "2025-06", "numero": "1"}));
+    let r = route(&racine, "regularisation-annuler", json!({"mois": "2025-06", "numero": "2"}));
     assert_eq!(r["resultat"]["etat"], json!("annulee"), "{}", r);
     assert_eq!(r["resultat"]["correction"]["qui"], json!("interface"));
     assert_ne!(octets(&racine, "regularisations/2025-06.json"), apres_refus);
-    assert!(refuse(&route(&racine, "regularisation-annuler", json!({"mois": "2025-06", "numero": 1}))).contains("deja annulee"));
+    assert!(refuse(&route(&racine, "regularisation-annuler", json!({"mois": "2025-06", "numero": 2}))).contains("deja annulee"));
     assert!(refuse(&route(&racine, "regularisation-annuler", json!({"mois": "2025-06", "numero": 7}))).contains("Pas de correction n° 7"));
 
-    // Annulee, elle ne bloque plus : la suivante prend le numero 2.
-    let r = route(&racine, "regularisation-ecrire", correction(&racine, 140.0));
-    assert_eq!(r["resultat"]["correction"]["numero"], json!(2), "{}", r);
+    // Annulee, elle ne bloque plus : la suivante prend le numero 3.
+    let r = route(&racine, "regularisation-ecrire", correction(&racine, 150.0));
+    assert_eq!(r["resultat"]["correction"]["numero"], json!(3), "{}", r);
 }
 
 #[test]

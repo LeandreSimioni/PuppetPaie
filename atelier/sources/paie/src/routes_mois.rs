@@ -810,54 +810,47 @@ impl<'a> Moteur<'a> {
         }
         // Modifiee apres la limite, en le confirmant (21/10/2026) : la saisie telle que declaree est gardee, et dit ce qui a
         // change meme quand le depot n'a pas note d'empreinte.
-        let changes = if admis { None } else { crate::routes_regularisation::ce_qui_a_change(self.o, self.ctx, mois)? };
-        if let Some((m, hors)) = &changes {
-            if !m.is_empty() || *hors > 0 {
+        let couverture = if admis { None } else { crate::routes_regularisation::couverture(self.o, self.ctx, mois)? };
+        if couverture.is_some() {
+            let changes = crate::routes_regularisation::ce_qui_a_change(self.o, self.ctx, mois)?;
+            if changes.is_some_and(|c| !c.contrats.is_empty() || c.retires > 0) {
                 modifiee = true;
                 out.insert("saisie_modifiee".into(), json!(true));
             }
         }
         let quand = quand_lisible(get(derniere, "quand")?);
         let jour = lim.jj_mm_aaaa();
-        if modifiee && !admis {
-            if let Some((modifies, hors)) = &changes {
-                // CE QUI EST ECRIT POUR LA DSN SUIVANTE : une correction (« Corriger ce mois ») par contrat dont la paie a
-                // change. Un contrat ajoute ou retire n'est pas une correction : il se dit, il ne se couvre pas.
-                let ecrites = crate::routes_ecrites::lire_corrections(self.ctx, mois)?;
-                let couvert = |c: &crate::routes_regularisation::ContratModifie| {
-                    ecrites.iter().any(|e| {
-                        !e.get("annulee_le").is_some_and(vrai)
-                            && e.get("salarie").map(py_str).as_deref() == Some(c.salarie.as_str())
-                            && e.get("debut").map(py_str).as_deref() == Some(c.debut.as_str())
-                    })
-                };
-                let restent = modifies.iter().filter(|c| !couvert(c)).count();
-                let pluriel = |n: usize| if n > 1 { "s" } else { "" };
-                let mut phrase = format!("Paie modifiée depuis la DSN du {}, après la limite de l'annule-et-remplace ({} à minuit)", quand, jour);
-                if restent == 0 && *hors == 0 {
-                    out.insert("correction_ecrite".into(), json!(true));
-                    phrase.push_str(" — la correction est écrite (Corriger ce mois), elle part dans la DSN suivante");
-                } else {
-                    if restent > 0 {
-                        phrase.push_str(&format!(
-                            " — {} contrat{} à corriger dans la DSN suivante (Corriger ce mois)",
-                            restent,
-                            pluriel(restent)
-                        ));
-                    }
-                    if *hors > 0 {
-                        phrase.push_str(&format!(
-                            " — {} contrat{} ajouté{} ou retiré{} depuis la DSN : « Corriger ce mois » ne corrige que les lignes d'un contrat déclaré",
-                            hors,
-                            pluriel(*hors),
-                            pluriel(*hors),
-                            pluriel(*hors)
-                        ));
-                    }
+        if let (true, Some(c)) = (modifiee && !admis, &couverture) {
+            // CE QUI EST ECRIT POUR LA DSN SUIVANTE : une correction (« Corriger ce mois ») par contrat dont la paie a
+            // change ou qui est ajoute, et qui declare la paie d'AUJOURD'HUI (`routes_regularisation::couverture`).
+            let pluriel = |n: usize| if n > 1 { "s" } else { "" };
+            let mut phrase = format!("Paie modifiée depuis la DSN du {}, après la limite de l'annule-et-remplace ({} à minuit)", quand, jour);
+            if c.a_ecrire == 0 && c.a_refaire == 0 && c.retires == 0 {
+                out.insert("correction_ecrite".into(), json!(true));
+                phrase.push_str(" — la correction est écrite (Corriger ce mois), elle part dans la DSN suivante");
+            } else {
+                if c.a_ecrire > 0 {
+                    phrase.push_str(&format!(" — {} contrat{} à corriger dans la DSN suivante (Corriger ce mois)", c.a_ecrire, pluriel(c.a_ecrire)));
                 }
-                out.insert("phrase".into(), json!(phrase));
-                return Ok(Value::Object(out));
+                if c.a_refaire > 0 {
+                    phrase.push_str(&format!(
+                        " — la paie a encore changé depuis la correction écrite — à corriger à nouveau (Corriger ce mois, {} contrat{})",
+                        c.a_refaire,
+                        pluriel(c.a_refaire)
+                    ));
+                }
+                if c.retires > 0 {
+                    phrase.push_str(&format!(
+                        " — {} contrat{} déclaré{} retiré{} de la saisie : un contrat déclaré ne se retire pas : il se remet, ses quantités à zéro",
+                        c.retires,
+                        pluriel(c.retires),
+                        pluriel(c.retires),
+                        pluriel(c.retires)
+                    ));
+                }
             }
+            out.insert("phrase".into(), json!(phrase));
+            return Ok(Value::Object(out));
         }
         if modifiee {
             if admis {
