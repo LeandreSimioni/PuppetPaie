@@ -1,0 +1,2625 @@
+Vis
+men
+
+
+
+
+      GUIDE PRATIQUE
+
+
+
+
+       De la DSN à l’attestation
+              employeur
+             Version V3.2
+                  du
+             28/03/2023
+ De la DSN à l’attestation employeur                                                                             2
+
+Nous vous remercions par avance d'être attentif à la qualité de l'ensemble des données déclarées pour l'assurance
+chômage. En cas d’erreur sur l’attestation employeur (AE) au format pdf fournie, une correction doit être transmise
+à Pôle emploi via le signalement FCTU "Annule et remplace" suite à un signalement FCTU avec une AE erronée ou
+via un signalement FCTU initial suite à un CDDUD avec une AE erronée.
+Les données transmises ou corrigées par FCTU doivent être transmises ou corrigées à l’identique dans la DSN
+mensuelle suivante de manière à être diffusée à l’ensemble des organismes concernés. Et toute donnée corrigée
+dans une dsn mensuelle doit être répercutée dans un signalement FCTU si cette correction doit parvenir à Pôle
+emploi (sauf dérogation).
+
+Si des interrogations subsistent, vous pouvez :
+- vous référer :
+         o A la fiche DSN sur le signalement FCTU : http://net-
+             entreprises.custhelp.com/app/answers/detail/a_id/2429
+         o Cinématique de déclaration d’un signalement FCTU https://net-
+             entreprises.custhelp.com/app/answers/detail_dsn/a_id/2130/kw/fctu
+         o A la fiche DSN sur le CDDUD : http://net-entreprises.custhelp.com/app/answers/detail/a_id/1723/
+         o au Guide assurance chômage disponible sur le site de DSN https://www.net-
+             entreprises.fr/media/documentation/guide-assurance-chomage.pdf
+         o à la notice Unédic : DAJ 1250 (https://www.pole-emploi.fr/employeur/vos-declarations-et-
+             cotisations/la-fin-de-vos-contrats-de-travai/lattestation-employeur-destinee.html)
+         o au guide de saisie de l’attestation employeur en ligne sur pole-emploi.fr https://www.pole-
+             emploi.fr/files/live/sites/PE/files/dri/Guide-saisie-Attest-Employeur
+         o https://www.pole-emploi.fr/employeur/vos-declarations-et-cotisations/la-declaration-de-vos-
+             contributi/employeurs-dexpatries-et-dinterm.html
+- adresser vos questions http://net-entreprises.custhelp.com/app/ask ou au 08 11 37 63 76 .
+
+Ce document décrit :
+   - Les cas d’usage où aucune AE n’est remise au déclarant mais un compte rendu métier (CRM) ;
+   - Les règles qui déterminent le choix du modèle d’AE qui sera utilisé lors de la rematérialisation de l’AE ;
+   - Les règles de remplissage communes aux différents modèles.
+   - Dans un premier temps, seuls les modèles d’AE de l’Unédic suivant sont décrits :
+         o DAJ 1240 -01/22 (dans ce document),
+         o DAJ 537 536 544 541 542 543 CSP (dans un document dédié).
+         o modèle d’AE multi contrat de l’UNEDIC – CDDUD Cinéma spectacle (dans un document dédié)
+         o modèle d’AE mono contrat de l’UNEDIC –Cinéma spectacle (dans un document dédié)
+         o modèle d’AE multi contrats de l’UNEDIC – CDDUD régime général - DAJ 1260 (dans un document
+             dédié)
+
+Les modifications de ce document par rapport à la version précédente sont repérées par une étoile.
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                               3
+
+Le Décret n° 2021-346 du 30 mars 2021 portant diverses mesures relatives au régime d'assurance chômage
+(https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000043306112) est maintenant actif.
+
+   -   Pour les employeurs qui utilisent la DSN pour produire leurs AE, ils peuvent déclarer toutes les
+       informations nécessaires à l’application de la nouvelle réglementation et l’AE PDF DSN les reprend ;
+   -   Pour les employeurs qui utilisent l’AE web (PE.fr), les informations nécessaires à l’application de la nouvelle
+       réglementation peuvent être déclarées et ce canal reste disponible en dernier recours en cas de problème
+       sur le canal DSN;
+   -   Pour les employeurs qui utilisent une AE éditique disponible sur leur espace employeur sur PE.fr ou via
+       commande au 3995 (employeurs de moins de 11 salariés), le formulaire comporte toutes les informations à
+       jour ; L’utilisation du papier reste possible en cas de problème sur le canal DSN.
+   -   Pour les employeurs qui utilisent la N4DS (en voie de disparition):
+            ils peuvent déclarer toutes les informations nécessaires à l’application de la nouvelle
+                réglementation, notamment les 36 périodes de salaires (aucun blocage sur la norme N4DS encore
+                disponible);
+            s’ils ne déclarent pas l’intégralité de ces dernières, notamment les périodes de salaire au-delà de
+                13 périodes, le flux AED N4DS ne sera pas rejeté, de même que l’AE PDF N4DS. Attention, ces AE
+                PDF seront rejetées par les conseillers Pôle emploi.
+
+Il est vivement recommandé que les employeurs en DSN produisent des AE DSN, et donc évoluent pour produire
+des signalements FCTU.
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                                                                             4
+
+
+
+
+       Le signalement FCTU et Pôle emploi ........................................................................................................................... 7
+  A.        Paramétrage et contenu de l’envoi à Pôle emploi des signalements FCTU par le dispositif DSN (bloc 3) .............. 7
+  B.        Code Retour de Pôle emploi suite à réception d’un signalement FCTU.................................................................. 7
+  C.        Téléchargement de l’AE PDF ou du CRM ................................................................................................................. 7
+       a.      En mode tableau de bord .................................................................................................................................... 7
+       b.      En mode API ......................................................................................................................................................... 7
+  D.        Règles de non remise d’AE suite au dépôt d’un signalement FCTU ........................................................................ 8
+       a.      Un signalement FCTU annule et annule et remplace .......................................................................................... 8
+       b.      Contrôles bloquants la génération d’une AE ....................................................................................................... 8
+  E.        Règles de détermination du modèle d’AE remise pour un signalement FCTU ....................................................... 9
+       La DSN mensuelle et Pôle emploi .............................................................................................................................. 10
+  A.        Paramétrage d’envoi à Pôle emploi des DSN mensuelles par le dispositif DSN (bloc 3) et par filtre ................... 10
+  B.        Code Retour de Pôle emploi suite à réception d’une DSN mensuelle .................................................................. 10
+  C.        Téléchargement de l’archive des AE PDF ou d’un CRM liés à une DSN mensuelle ............................................... 10
+       a.      En mode tableau de bord .................................................................................................................................. 10
+       b.      En mode API ....................................................................................................................................................... 11
+  D.        Règles de non remise d’une archive AE ou de CRM suite au dépôt d’une DSN mensuelle .................................. 11
+       c.      Une DSN mensuelle annule et remplace ........................................................................................................... 11
+       d.      Contrôles bloquants la génération d’une AE CDDUD Régime général .............................................................. 11
+  E. Règles de détermination du modèle d’AE remise pour une DSN mensuelle contenant des CDD d’usage
+  dérogatoire .................................................................................................................................................................... 12
+       Mapping DSN sur le modèle d’AE multi contrat de l’UNEDIC – CDDUD Cinéma spectacle ...................................... 13
+       Mapping DSN sur le modèle d’AE mono contrat de l’UNEDIC –Cinéma spectacle ................................................... 14
+       Mapping DSN sur le modèle d’AE multi contrats de l’UNEDIC – CDDUD régime général - DAJ 1260 ....................... 15
+       Mapping DSN sur le modèle d’AE de l’UNEDIC – CSP – DAJ 537 – 536 – 544 – 541 – 542 – 543 – ........................... 16
+       Mapping DSN sur le modèle d’AE de l’Unédic - DAJ 1240 -01/22 ............................................................................. 17
+  A.        Entête 1ere page...................................................................................................................................................... 17
+  B.        Entête 2ème page et suivantes ................................................................................................................................ 18
+  C.        Haut gauche des pages 5, 6 ................................................................................................................................... 18
+  D.        Cadre « Employeur ».............................................................................................................................................. 19
+  E.        Cadre « Salarié » .................................................................................................................................................... 20
+  F.        Cadre « Régimes de retraite complémentaire du salarié » ................................................................................... 22
+  G.        Cadre « Emploi » .................................................................................................................................................... 23
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                                                                                 5
+
+       e. Durée d’emploi, date de fin initiale du CDD, dernier emploi tenu, ancienneté dans l’entreprise, Date
+       d’engagement de la procédure de licenciement ou de notification de la démission ou de signature de la
+       convention de rupture conventionnelle .................................................................................................................... 23
+       f.      Préavis ................................................................................................................................................................ 23
+       g.      Catégorie d’emploi particulier ........................................................................................................................... 24
+       h.      Horaire de travail ............................................................................................................................................... 25
+       i.      Nature du contrat, contrat de type particulier .................................................................................................. 26
+       j.      Périodes de suspension du contrat de travail ni rémunérées ni indemnisées .................................................. 27
+       k. Périodes d’absence du salarié au cours des 25 derniers mois de salaire ou 37 derniers mois si le salarié a 53
+       ans et plus au moment de la fin de contrat ............................................................................................................... 28
+       l.      Statut particulier ................................................................................................................................................ 30
+  H.        Cadre « Motif de la rupture du contrat de travail » .............................................................................................. 31
+  I. Cadre « Salaires des 25 derniers mois, y compris le salaire du mois au cours duquel intervient la fin du contrat
+  de travail (37 derniers mois pour les salariés âgés de 53 ans et plus au moment de la fin du contrat de travail) » .... 32
+  J.        Cadre « Primes et indemnités de périodicité différentes des salaires » ............................................................... 33
+  K.        Cadre « Sommes versées à l’occasion de la rupture (solde de tout compte) » .................................................... 35
+  L.        Cadre « Avance du régime de garantie des salaires » ........................................................................................... 37
+  M.           Cadre « Authentification par l’employeur » ...................................................................................................... 38
+       Divers informations ................................................................................................................................................... 39
+  A.        Arrêt de travail ....................................................................................................................................................... 39
+  B.        Suspensions ........................................................................................................................................................... 40
+  C.        ICCP/ICP ................................................................................................................................................................. 41
+  D.        Date de début et de fin de contrat ........................................................................................................................ 42
+  E.        Quand faire un signalement FCTU annule et remplace ? ...................................................................................... 42
+  F.        Le repos compensateur ......................................................................................................................................... 43
+  G.        Constitution des primes en cours d’exécution du contrat .................................................................................... 43
+  H. Constitution des périodes de salaires avec le volume de « travail » et d’ « absence » sur les modèles
+  d’attestations employeur (Hors modèle AE Cinéma spectacle) .................................................................................... 44
+       a.      Salaires des mois complets avant la date de fin de contrat .............................................................................. 44
+       b.      Volume de « travail » et d’ « absence »............................................................................................................. 44
+  I.        Mandataires judiciaires ......................................................................................................................................... 45
+  J.        Changement d’identification d’un contrat ............................................................................................................ 45
+  K.        Absence du mois M – 1 dans le signalement FCTU ............................................................................................... 46
+  L.        Changement de version de norme et FCTU ........................................................................................................... 46
+  M.           Les notifications du dispositif DSN et de Pôle emploi ....................................................................................... 47
+  N.        Les avances de primes ou de salaires .................................................................................................................... 47
+  O.        Grilles de remplissage des primes et indemnités .................................................................................................. 47
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                                                                              6
+
+  P.         Taille technique approximative de l’AE au format pdf .......................................................................................... 47
+  Q.         Cas d’un salarié non identifié auprès du SNGI....................................................................................................... 47
+  R.         Ancienneté du salarié dans l’entreprise ................................................................................................................ 48
+  S.         Salarié frontalier .................................................................................................................................................... 48
+  T.         - Salaire brut servant aux calculs des droits de l'Assurance chômage .................................................................. 48
+  U.         Populations ayant un abattement pour frais professionnels ................................................................................ 49
+  V.         Préavis et CSP......................................................................................................................................................... 49
+  W.            Calcul de l’ancienneté affichée sur l’attestation employeur ............................................................................. 49
+  X.         RTT restants à la rupture de contrat...................................................................................................................... 49
+  Y.         Date de fin initiale du CDD (S21.G00.40.010) ........................................................................................................ 50
+  Z.         Dernier jour travaillé et payé ................................................................................................................................. 50
+  AA.           Changement d’unité de contrat et bloc 53 sans unité de travail ou d’absence ................................................ 50
+  BB.           Attestation employeur pour des salariés ayant été expatriés........................................................................... 51
+  CC.           Salaires incorrects pour les périodes les plus anciennes sur l’Attestation employeur ..................................... 51
+  DD.           Forfait jour en heure pour l’assurance chômage .............................................................................................. 52
+  EE.    Quotité de travail du contrat et quotité de travail de référence de l'entreprise pour la catégorie de salarié :
+  des conséquences pour l’assurance chômage............................................................................................................... 52
+  FF.           FCTU en mode test en production et FCTU sur environnement de test ........................................................... 52
+        a.      Le signalement FCTU en mode test en production ........................................................................................... 52
+        b.      Environnement de test hors production : ......................................................................................................... 52
+  GG.           FCTU ou CDDUD (régime général) ..................................................................................................................... 53
+  HH.           Type de gestion assurance chômage ................................................................................................................. 53
+  II.        Guide relatif à l’indemnisation du chômage dans la fonction publique civile ...................................................... 55
+  JJ.        Quotités de travail pour le contrat et l’entreprise en mensuel ou en hebdomadaire (consigne gip-mds) .......... 55
+  KK.           Mise à pied conservatoire (consigne gip-mds) .................................................................................................. 56
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                    7
+
+
+    Le signalement FCTU et Pôle emploi
+
+    A. Paramétrage et contenu de l’envoi à Pôle emploi des signalements FCTU par le
+       dispositif DSN (bloc 3)
+Une enveloppe Pôle emploi contenant des signalements FCTU est transmise par le dispositif DSN à Pôle emploi quand
+un des paramètres suivants est atteint :
+    - Délai : 30 minutes
+    - Nombre de signalement FCTU : 5000
+    - Taille de l'enveloppe : 1024 Mo
+
+Attention, ces valeurs sont paramétrables et correspondent aux valeurs mises en place au 21 avril 2021.
+
+La transmission à Pôle emploi par le dispositif DSN contiendra :
+    - le signalement FCTU que vous venez de déposer
+    - ainsi que toutes les DSN mensuelles de ce contrat déposées au fil de l’eau et traitées par le dispositif DSN au
+        moment du dépôt du signalement FCTU (jusqu’à 37 DSN mensuelles précédant la date de fin du contrat de
+        travail).
+En effet, le dispositif DSN est en charge de la reconstitution de l‘historique du contrat de travail. (cf : fiche 2131
+https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/2131)
+
+
+    B. Code Retour de Pôle emploi suite à réception d’un signalement FCTU
+A réception d’un signalement FCTU, Pôle emploi fait deux retours au dispositif DSN :
+
+    -   Un avis de réception : code retour 40 avec code statut « OK »
+    -   Un avis de mise à disposition d’un document : code retour 44 avec code statut « OK » pour une AE (PDF) et
+        code statut « ANOBLOQUANTE » pour un CRM (.xml en mode api et .html en mode tableau de bord).
+
+
+Attention, pour un signalement FCTU annule, il n’y a pas d’AE (PDF) à fournir et donc c’est un code 44 qui est remonté
+avec un code retour « ANOBLOQUANTE » pour avoir le lien CRM sur le tableau de bord DSN. Or, ce CRM n’indique pas
+une anomalie mais plutôt une confirmation de prise en compte de cette annulation de fin de contrat (dans le XML les
+balises « envoi_etat » et « etat » de la déclaration sont OK).
+
+
+    C. Téléchargement de l’AE PDF ou du CRM
+    a. En mode tableau de bord
+L’AE PDF peut être téléchargée depuis le tableau de bord, il s’agit d’un PDF qui se nomme par défaut selon le modèle
+AER_[idFLUx]_[rang].pdf
+
+S’il n’y a pas d’AE PDF, il doit y avoir un CRM, il s’agit d’une chaine de caractères interprétée par le navigateur comme
+une page HTML (text/html) reprenant les erreurs bloquantes qui n’ont pas permis de constituer l’AE PDF.
+
+Une notification peut être réceptionnée par le dispositif DSN. (cf : Les notifications du dispositif DSN et de Pôle emploi)
+
+    b. En mode API
+L’AE PDF peut être téléchargée en mode API, il s’agit d’un PDF qui se nomme par défaut selon le modèle
+AER_[idFLUx]_[rang].pdf
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                    8
+
+S’il n’y a pas d’AE PDF, il doit y avoir un CRM, il s’agit d’un fichier XML (CRM_[idFLUX]_[rang].xml) au format standard
+respectant le schéma XSD fourni par le système DSN (V01R06) reprenant les erreurs bloquantes qui n’ont pas permis
+de constituer l’AE PDF.
+
+Une notification peut être réceptionnée par le dispositif DSN. (cf : Les notifications du dispositif DSN et de Pôle emploi)
+
+
+    D. Règles de non remise d’AE suite au dépôt d’un signalement FCTU
+    a. Un signalement FCTU annule et annule et remplace
+Lors de la réception d’un signalement FCTU annule et remplace, une nouvelle AE, à partir du contenu du signalement
+annule et remplace, est mise à disposition du déclarant. L’AE mise à disposition, lors du dépôt du signalement FCTU
+annulé ou remplacé (FCTU précédent) n’est alors plus disponible.
+
+Lors de la réception d’un signalement FCTU annule, aucune AE PDF n’est remise au déclarant et l’AE PDF mise à
+disposition lors du dépôt du signalement FCTU annulé par ce dernier n’est alors plus disponible. Un CRM est transmis
+au déclarant pour attester que Pôle emploi a bien pris en compte cette annulation de fin de contrat de travail.
+
+ En mode API, un code retour 410 sera transmis pour indiquer au traitement qu’il n’est pas utile d’insister sur le
+téléchargement car l’AE PDF n’est plus disponible et ne le sera plus jamais car un signalement FCTU annule et
+remplace ou annule a rendu obsolète les données de l’AE PDF remplacée ou annulée.
+
+En mode tableau de bord, un message spécifique sera affiché afin de prévenir le déclarant que l’AE PDF n’est plus
+disponible.
+
+PS : Contrairement à l’AE PDF, le CRM d’un signalement FCTU reste toujours disponible même en cas d’annulation et
+de remplacement.
+
+    b. Contrôles bloquants la génération d’une AE
+Un ensemble de contrôles bloquants a été défini par Pôle emploi. Si au moins un de ces contrôles est déclenché, alors
+l’AE n’est pas mise à disposition du déclarant et à la place, c’est un CRM qui est mis à disposition décrivant les
+contrôles déclenchés.
+
+CTRLM_001 : FCTU pour un contrat en DSN
+La génération d’une AE par Pôle emploi ne s’effectuera que pour des contrats en DSN vis-à-vis de Pôle emploi, c’est-à-
+dire qu’au moment de la rupture de contrat, la rubrique « 40.025 - Motif d'exclusion DSN » n’est pas renseignée ou
+n’est plus renseignée.
+
+NB : si le motif d’exclusion n’est pas renseigné bien que le contrat relève d’un de ces motifs, il pourrait y avoir une
+production d’AE PDF qui ne correspondra pas à l’attendu et ne serait pas recevable et cela peut entraine des remises
+en cause sur les dossiers des demandeurs d’emploi.
+
+CTRLM_002 : FCTU non anticipé au dépôt
+La génération d’une AE par Pôle emploi ne s’effectuera que pour des fins de contrat dont l’anticipation au moment du
+dépôt sur le dispositif DSN par rapport à la date de fin de contrat n’est pas supérieure à 7 jours calendaires.
+
+Si le délai d’anticipation est supérieur à 7 jours, aucune AE PDF ne sera pas produite. Ce délai de 7 jours est une
+tolérance au regard de la réglementation qui prévoit la déclaration dans les 5 jours ouvrés suivant la survenance de
+l’évènement de fin de contrat. Et il faudra produire un signalement FCTU annule et remplace quand le délai
+d’anticipation passera sous le seuil de 7 jours.
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                 9
+
+CTRLM_005 : FCTU pour un contrat de travail
+La génération d’une AE suite à dépôt d’un signalement FCTU ne s’effectuera que pour des contrats de travail selon le
+code du travail (exemple : un mandat est un contrat DSN mais n’est pas un contrat de travail selon le code du travail)
+ou des contrats de travail pris en compte lors de la génération de l’AE (exemple : le contrat d’engagement maritime
+est un contrat de travail cependant il n’est pas encore géré côté Pôle emploi et côté dispositif DSN par un signalement
+FCTU). La liste des valeurs de la « Nature du contrat – 40.007 » du signalement FCTU est la suivante :
+
+    -   01 - Contrat de travail à durée indéterminée de droit privé
+    -   02 - Contrat de travail à durée déterminée de droit privé
+    -   03 - Contrat de mission (contrat de travail temporaire)
+    -   07 - Contrat à durée indéterminée intermittent
+    -   08 - Contrat à durée indéterminée intérimaire
+    -   09 - Contrat de travail à durée indéterminée de droit public
+    -   10 - Contrat de travail à durée déterminée de droit public
+    -   32 - Contrat d’appui au projet d’entreprise
+    -   51 - Contrat de mission d’un collaborateur occasionnel du service public (COSP) ou assimilé
+    -   52 - [FP] Cumul d’activité à titre accessoire (https://net-
+        entreprises.custhelp.com/app/answers/detail_dsn/a_id/2343 )
+    -   53 - Contrat d'emploi pénitentiaire
+    -   54 - Contrat d'apprentissage détenu
+    -   60 - Contrat d'engagement éducatif
+    -   82 - Contrat de travail à durée indéterminée de Chantier ou d'opération
+
+
+    NB : Au-delà de ce qui est techniquement en place côté SI Pôle Emploi, se référer à la fiche consigne 2062
+    (https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/2062 ) pour avoir le périmètre à jour des
+    cas exclus de l’usage du signalement pour les fins de contrats.
+
+
+    E. Règles de détermination du modèle d’AE remise pour un signalement FCTU
+
+
+
+
+           DAJ 544 Contrat de Sécurisation
+                Professionnelle (CSP)
+            Si S21.G00.62.002 - Motif de la
+          rupture du contrat = 026 - rupture                                       DAJ 1240 Régime général
+                                                         Sinon
+           pour motif économique dans le
+          cadre d’un contrat de sécurisation
+                  professionnelle CSP
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                  10
+
+
+    La DSN mensuelle et Pôle emploi
+
+    A. Paramétrage d’envoi à Pôle emploi des DSN mensuelles par le dispositif DSN (bloc
+       3) et par filtre
+
+Une enveloppe Pôle emploi contenant des DSN mensuelles pour un filtre est transmise par le dispositif DSN à Pôle
+emploi quand un des paramètres suivants est atteint :
+   - Délai : 30 minutes
+   - Nombre de DSN mensuelle : 5000
+   - Taille de l'enveloppe : 1024 Mo
+
+Attention, ces valeurs sont paramétrables et peuvent évoluer.
+
+
+    B. Code Retour de Pôle emploi suite à réception d’une DSN mensuelle
+A réception d’une DSN mensuelle, Pôle emploi fait cinq retours possibles au dispositif DSN :
+
+    -   Un avis de réception : code 40 avec code retour « OK » : pour chaque portion de DSN mensuelle (pour chaque
+        filtre : CDDUD, Cinéma Spectacle/Expatriés bloc 1 et bloc 3)
+    -   Un avis de mise à disposition de différents documents selon certains filtres :
+             o CDDUD régime général :
+                      code retour 42 avec code statut « ANOBLOQUANTE » pour un CRM (pdf)
+                      code retour 43 avec code statut « OK » pour une archive d’AE PDF (zip) : Ces AE PDF ne
+                         concernent que les CDDUD régime général
+             o Cinéma spectacle/Expatriés :
+                      code retour 45 avec code statut « ANOBLOQUANTE » pour un CRM (xml ou html selon le
+                         mode de téléchargement) : Ce CRM ne reprend que les messages sur la partie recouvrement
+                         de Pôle emploi
+                      code retour 46 avec code statut « OK » pour une archive d’AE PDF (zip) : Ces AE PDF ne
+                         concernent que les CDDUD Cinéma spectacle
+
+
+Attention, pour les CRM, Pôle emploi est contraint de transmettre un code statut à « ANOBLOQUANTE » même si le
+dans le CRM xml les balises « envoi_etat » et « etat » de la déclaration sont OK. Ceci permet l’affichage du lien CRM
+sur le tableau de bord DSN.
+
+
+    C. Téléchargement de l’archive des AE PDF ou d’un CRM liés à une DSN mensuelle
+    a. En mode tableau de bord
+Pour le code retour 42, le CRM peut être téléchargé depuis le tableau de bord, il s’agit d’un PDF qui se nomme par
+défaut selon le modèle CRM_[idFlux]_[rang].pdf.
+
+Pour le code retour 43, l’archive des AE PDF peut être téléchargée depuis le tableau de bord, il s’agit d’un zip qui se
+nomme par défaut selon le modèle AER_CDDUD_[idFlux]_[rang].zip. Les fichiers AE PDF dans cette archive sont au
+format pdf qui se nomme par défaut sur le modèle AE_[SIRET - S21.G00.06.001 + S21.G00.11.001]_[Identifiant métier -
+S20.G00.05.009]_[Mois principal déclaré - S20.G00.05.005 (Format MMyyyy)]_[Fraction - S20.G00.05.003]_[Date de
+constitution du fichier DSN - S20.G00.05.007 (Format ddMMyyyy)]_[nom salarié - S21.G00.30.002]_[prénom salarié -
+S21.G00.30.004]_[matricule salarié - S21.G00.30.019]_ [Identifiant technique AER].pdf
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                    11
+
+Pour le code retour 45, le CRM peut être téléchargé depuis le tableau de bord, il s’agit d’une chaine de caractère
+interprétée par le navigateur comme une page HTML (text/html).
+
+Pour le code retour 46, l’archive des AE PDF peut être téléchargée depuis le tableau de bord, il s’agit d’un zip qui se
+nomme par défaut selon le modèle AER_MENSUELLE_[idFlux]_[rang].zip. Les fichiers AE PDF dans cette archive sont
+au format PDF qui se nomme par défaut sur le modèle AE_[SIRET - S21.G00.06.001 + S21.G00.11.001]_[Identifiant
+métier - S20.G00.05.009]_[Mois principal déclaré - S20.G00.05.005 (Format MMyyyy)]_[Fraction -
+S20.G00.05.003]_[Date de constitution du fichier DSN - S20.G00.05.007 (Format ddMMyyyy)]_[nom salarié -
+S21.G00.30.002]_[prénom salarié - S21.G00.30.004]_[matricule salarié - S21.G00.30.019]_ [Identifiant technique
+AER].pdf
+
+Une notification peut être réceptionnée par le dispositif DSN. (cf : Les notifications du dispositif DSN et de Pôle emploi)
+
+    b. En mode API
+Pour le code retour 43 et 46, le format est identique à celui du mode tableau de bord, il y a juste le code « 200 OK » en
+plus. Pour les codes retours 42 et 45, le CRM peut être téléchargé en mode API au format xml, respectant le schéma
+XSD fourni par le système DSN, nommé respectivement :
+
+- CRM_cddud_[idFLUx]_[rang].xml avec le code « 200 OK » (application/xml). Ce fichier xml est au format standard des
+bilans DSN (V01R06).
+
+- CRM_mensuelle_[idFLUx]_[rang].xml avec le code « 200 OK » (application/xml). Ce fichier xml est au format standard
+des bilans DSN (V02R01).
+
+Une notification peut être réceptionnée par le dispositif DSN. (cf : Les notifications du dispositif DSN et de Pôle emploi)
+
+
+    D. Règles de non remise d’une archive AE ou de CRM suite au dépôt d’une DSN
+       mensuelle
+    c. Une DSN mensuelle annule et remplace
+Lors de la réception d’une DSN mensuelle annule et remplace, une nouvelle archive d’AE (CDDUD) et de nouveaux
+CRM, à partir du contenu de la DSN mensuelle annule et remplace, sont éventuellement mis à disposition du
+déclarant. L’archive des AE et les CRM éventuels mis à disposition, lors du dépôt de la DSN mensuelle annulée ou
+remplacée ne sont alors plus disponible.
+
+ En mode API, un code retour 410 sera transmis pour indiquer au traitement qu’il n’est pas utile d’insister sur le
+téléchargement car l’archive des AE et les CRM éventuels ne sont plus disponibles et ne le seront plus jamais car une
+DSN mensuelle annule et remplace a rendu obsolète les données de l’archive des AE et des CRM remplacés.
+
+En mode tableau de bord, un message spécifique sera affiché afin de prévenir le déclarant que l’archive des AE et les
+CRM ne sont plus disponibles.
+
+    d. Contrôles bloquants la génération d’une AE CDDUD Régime général
+Un ensemble de contrôles bloquants a été défini afin d’éviter l’AE d’un contrat incomplet car non infra DSN. Si au
+moins un de ces contrôles est déclenché, alors l’AE n’est pas mise à disposition du déclarant et à la place, c’est un CRM
+qui est mis à disposition décrivant les contrôles déclenchés. Ces contrôles ne s’appliquent qu’aux CDDUD Régime
+général et non au CDDUD Cinéma spectacle (AE spécimens pour le moment).
+
+CTM_018 : Contrat trop ancien
+Il s’agit d’une tentative d’identification d’un contrat infra DSN non gérable par Pôle emploi :
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                       12
+
+    -      Si la date de début de contrat est supérieure ou égale à la borne stricte (= au 1er du mois principal déclaré de la
+           déclaration - S20.G00.05.005)  OK
+
+    -     Sinon si la date de début de contrat est strictement inférieure à la borne tolérée (= au 1er du mois principal de
+          la déclaration – 1 mois)  KO
+CTM_019 : Contrat dont le 1er jour n’est pas justifié
+Il s’agit d’une tentative d’identification d’un contrat DSN non gérable par Pôle emploi car non infra DSN.
+
+Si le 1er jour du contrat correspond à une rémunération, Ou une suspension Ou à un arrêt de travail connu de Pôle
+emploi (et donc présent dans la DSN mensuelle en cours de traitement) alors OK sinon KO.
+
+CTM_020 : Contrat avec un motif d'exclusion DSN
+Si le Motif d'exclusion DSN - S21.G00.40.025 est alimenté alors KO.
+
+
+    E. Règles de détermination du modèle d’AE remise pour une DSN mensuelle
+       contenant des CDD d’usage dérogatoire
+Si une AE doit être générée dans le cadre d’un CDD d’usage dérogatoire (Contrôles bloquants non levés (cf
+paragraphes Contrôles bloquants la génération d’une AE CDDUD Régime général), le choix du modèle doit se faire
+selon les conditions suivantes :
+
+
+
+
+              DAJ Cinéma spectacle (multi contrats)
+        1°) Code complément PCS ESE-S21.G00.40.005 doit
+              être dans la table ART et <> « 999SPT »
+         2°) Code caisse professionnelle de congés payés
+                                                             SINON
+               S21.G00.40.022 commence par ‘97’
+             3°) CDDUD (62,017 = 01 - dérogatoire)
+         NB : les 3 conditions doivent être vérifiées pour                                         DAJ 1260
+                        obtenir ce modèle
+        Attention, si le contrat a une durée de plus de 30
+        jours alors c’est le modèle mono contrat qui sera
+                               utilisé
+
+
+
+
+Attention : Depuis le 01/01/2022, la déclaration des contributions assurance chômage et cotisations AGS, pour les
+intermittents du spectacle au sens de l’Assurance chômage et les expatriés en affiliation obligatoire, est obligatoire en
+DSN. Les AEM doivent impérativement continuer à être produites et transmises par l’employeur à Pôle emploi par les
+circuits habituels (hors DSN) afin de garantir l’indemnisation des demandeurs d’emploi. Ainsi, les AE PDF en DSN
+produites pour le « cinéma spectacle » seront des spécimens non utilisables par l’employeur. Ces AE PDF serviront à
+analyser dès à présent la qualité des déclarations, par Pôle emploi et par les déclarants s’ils le souhaitent. C’est pour
+cette raison que Pôle emploi encourage le positionnement du circuit dérogatoire pour les CDD d’usage du périmètre
+« cinéma spectacle ».
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                       13
+
+
+   Mapping DSN sur le modèle d’AE multi contrat de l’UNEDIC –
+   CDDUD Cinéma spectacle
+Voir la correspondance DSN AE CDDUD CS dans le fichier dédié (à venir).
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                              14
+
+
+    Mapping DSN sur le modèle d’AE mono contrat de l’UNEDIC –
+    Cinéma spectacle
+Voir la correspondance DSN AE mono contrat CS dans le fichier dédié (à venir).
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                       15
+
+
+   Mapping DSN sur le modèle d’AE multi contrats de l’UNEDIC –
+   CDDUD régime général - DAJ 1260
+Voir la correspondance DSN AE CDDUD RG dans le fichier dédié (à venir).
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                         16
+
+
+   Mapping DSN sur le modèle d’AE de l’UNEDIC – CSP – DAJ 537
+   – 536 – 544 – 541 – 542 – 543 –
+Voir la correspondance DSN AE CSP dans le fichier dédié.
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                           17
+
+
+   Mapping DSN sur le modèle d’AE de l’Unédic - DAJ 1240 -
+   01/22
+
+   A. Entête 1ere page
+Pour l’employeur : La réception de l'AE reconstituée par Pôle emploi confirme la
+réception des informations transmises par DSN à Pôle emploi. Dans le cadre d’un                  Pour le salarié :
+envoi dématérialisé à Pôle emploi, il n’est pas nécessaire à l’employeur de                      attestation employeur
+transmettre ce document au centre de traitement de Pôle emploi.                                  à remettre à Pôle
+En revanche, il est rappelé que l’attestation employeur récupérée par l’employeur                emploi selon les
+doit être contrôlée, complétée, datée, signée et remise au salarié.                              conditions ci-dessous
+
+
+
+
+Date et heure de génération par                          Numéro d'ordre de la déclaration -
+Pôle emploi.                                             S20.G00.05.004
+
+
+                                                                        S20.G00.05.004             S10.G00.95.900 - S20.G00.96.902
+
+                               S10.G00.00.001
+
+
+
+
+                      Nom du logiciel            Numéro de version
+                      utilisé -                  de la norme utilisée            S10.G00.95.900 - Identifiant du flux,
+                      S10.G00.00.001             - S10.G00.00.006                attribué par le bloc1 et S20.G00.96.902 -
+                                                 dans la DSN                     Identifiant DSN au sein du flux.
+                                                 déposée                         Il s’agit des rubriques de suivi attribuées
+                                                                                 par le bloc 1 DSN à chaque bloc
+                                                                                 S20.G00.05 d’une DSN déposée.
+
+ATTENTION : L’adresse du centre de traitement de Pôle emploi ci-dessus en jaune est cachée dans le cadre de la
+transmission des données dématérialisées à Pôle emploi. Dans le cadre de la transmission papier, cette adresse reste
+visible sur le document pré-rempli des informations de l’employeur avant sa transmission par Pôle emploi à
+l’employeur. Cette adresse du centre de traitement Pôle emploi reste donc utilisable par l’employeur pour tout envoi
+papier à Pôle emploi d’une attestation employeur.
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                                   18
+
+    B. Entête 2ème page et suivantes
+
+
+
+                                                             Numéro d'ordre de la déclaration -
+                                                             S20.G00.05.004
+
+
+
+                                                                             S20.G00.05.004         S10.G00.95.900 - S20.G00.96.902
+
+                          S21.G00.30.001, S21.G00.30.002, S21.G00.30.004
+
+
+
+
+   Numéro d'inscription au répertoire - S21.G00.30.001                               S10.G00.95.900 - Identifiant du flux,
+   Nom de famille - S21.G00.30.002                                                   attribué par le bloc1 et S20.G00.96.902 -
+   Prénoms - S21.G00.30.004                                                          Identifiant DSN au sein du flux.
+                                                                                     Il s’agit des rubriques de suivi attribuées
+                                                                                     par le bloc 1 DSN à chaque bloc
+                                                                                     S20.G00.05 d’une DSN déposée.
+
+
+
+
+    C. Haut gauche des pages 5, 6
+Affichage en haut à droite du Taux de déduction forfaitaire spécifique pour frais professionnels - S21.G00.40.023
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                                             19
+
+    D. Cadre « Employeur »
+  La raison sociale de l’entreprise S21.G00.06.903 peut ne pas être présente dans le RCD (Référentiel Commun des
+  déclarants en DSN) ou erronée. Le déclarant devra s’adresser au support DSN pour rectifier son contenu.
+  En cas d’adresse à l’étranger (hors territoire français), le code postal et la commune ne sont pas affichés. Pour afficher le
+  libellé du pays concerné, Pôle emploi devra planifier ce sujet.
+
+
+
+                                                              S21.G00.06.903 = Raison sociale de l’entreprise du RCD (Référentiel Commun des
+                Non renseigné                                 déclarants en DSN)
+                                                              S21.G00.11.006
+                                                              S21.G00.11.003
+                      Non renseigné                           S21.G00.11.007
+                                                              S21.G00.11.004       S21.G00.11.005
+
+
+
+               S21.G00.06.001   S21.G00.11.001                                                                                 S21.G00.11.002
+
+
+                                                       S21.G00.06.009 non renseigné pour les contrats courts n’ayant pas de DSN mensuelle
+                                                       et non renseigné depuis 2021 pour l’ensemble des déclarants à quelques exceptions.
+                                                       (Supprimé à partir de septembre 2023)
+
+                                                            Non renseigné
+
+
+
+
+                                      S21.G00.40.033
+
+
+
+                          S21.G00.40.027                                                 S21.G00.40.028
+
+
+
+
+                        S21.G00.40.030
+
+
+
+
+Si [S21.G00.40.029 - Type de gestion de                                         Si [S21.G00.40.026 - Statut d'emploi du salarié] = "01 -
+l'assurance chômage] =                                                          [FP] Fonctionnaire" ou «03 - Statutaire" ou « 06 -
+« 01 - employeur en auto-assurance »                                            Personnel médical hospitalier » ou « 07 - Médecin sans
+« 02 - employeur ayant conclu une                                               statut hospitalier » ou « 09 - [FP] Ouvrier d'Etat » ou
+convention de gestion »                                                         « 10 - [FP] Militaire » Alors « Titulaire »
+« 03 - employeur ayant adhéré au régime
+                                                                                Si [S21.G00.40.026 - Statut d'emploi du salarié] = «02 -
+d'AC (adhésion révocable) »
+                                                                                [FP] Contractuel de la Fonction publique» ou "04 - Non
+« 04 - employeur ayant adhéré au régime
+                                                                                statutaire" ou « 11 - [FP] Parcours d'accès aux carrières
+d'AC (adhésion non révocable) »
+                                                                                (Pacte) » ou « 12 - [FP] Militaire de réserve » Alors «
+« 05 - adhésion au régime particulier pour
+                                                                                Non titulaire »
+les apprentis du secteur public »
+                                                                                Si [S21.G00.40.026 - Statut d'emploi du salarié] = «08 -
+PS : pour obtenir des informations sur vos
+                                                                                [FP] Fonctionnaire stagiaire" Alors « Stagiaire »
+adhésions ou conventions pour
+l’assurance chômage, il faut contacter le                                       PS : En jaune ce qui reste à planifier par Pôle emploi
+3995.
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                                                     20
+
+    E. Cadre « Salarié »
+
+
+
+                                      Le pays s’affichera si c’est le S21.G00.30.011 - Code pays
+                                      qui est renseigné et non le S21.G00.30.009 - code postal.
+
+
+
+
+                                   S21.G00.30.005 sinon 1er caractère du NIR - S21.G00.30.001 ou du NTT S21.G00.30.020
+
+                                              S21.G00.30.002
+
+                                                                                                                                  S21.G00.30.004
+                                               S21.G00.30.003
+
+                  S21.G00.30.008
+
+
+                    S21.G00.30.009                                     S21.G00.30.010        ou       Pays : libellé du code pays - S21.G00.30.011
+
+
+
+                                             S21.G00.30.001 sans clé                                                                   S21.G00.30.006
+
+
+                            S21.G00.30.007
+
+
+
+
+                                   S21.G00.40.002
+
+
+
+
+Suivant [S21.G00.30.013 - Codification                     Selon la valeur de [S21.G00.40.002 - Statut Si [S21.G00.40.003 - Code statut
+UE]:                                                       du salarié (conventionnel)]                 catégoriel Retraite
+01 - France Alors «Ressortissant français »                03 - cadre dirigeant, alors "30"            Complémentaire obligatoire] = « 01
+02 - UE Alors « Ressortissant UE »                         04 - autres cadres au sens de la convention - cadre (article 4 et 4bis) » ou « 02 -
+03 - EEE Alors « Ressortissant EEE »                       collective, alors "30"                      extension cadre pour retraite
+04 - Reste du Monde alors « Ressortissant                  05 - profession intermédiaire, alors "40"   complémentaire » Alors "Oui"
+hors UE et EEE »
+                                                                                                       Sinon "Non"
+                                                           Sinon, non alimenté (cas à planifier cf ci-
+Rien n’est prévu en DSN pour la case                       dessous)
+« Ressortissant Suisse » cela doit être dans
+la case « Ressortissant EEE »                30 = Cadre; 40 = Profession intermédiaire
+
+Et depuis le brexit, le Royaume Uni est
+maintenant hors UE et hors EEE.
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                             21
+
+Ressortissant UE :
+
+    -   Hors ressortissants français
+    -   L’Allemagne, l’Autriche, la Belgique, la Bulgarie, Chypre, la Croatie, le Danemark, l’Espagne, l’Estonie,
+        la Finlande, la Grèce, la Hongrie, l’Irlande, la Lettonie, la Lituanie, le Luxembourg, Malte, le Pays-Bas,
+        la Pologne, le Portugal, la République Tchèque, la Roumanie, la Slovaquie, la Slovénie et la Suède
+Ressortissant EEE :
+
+    -   Hors ressortissants français et hors ressortissants UE
+    -   La Norvège, le Lichtenstein, l’Islande, Andorre, Monaco, Saint-Marin, Suisse
+
+Code niveau de qualification (à planifier) : ces codes suivant ne permettent pas le remplissage automatique du code
+de niveau de qualification :
+01 - agriculteur salarié de son exploitation
+02 - artisan ou commerçant salarié de son entreprise
+06 - employé administratif d'entreprise, de commerce, agent de service
+07 - ouvriers qualifiés et non qualifiés y compris ouvriers agricoles
+08 - agent de la fonction publique d'Etat
+09 - agent de la fonction publique hospitalière
+10 - agent de la fonction publique territoriale
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                                    22
+
+    F. Cadre « Régimes de retraite complémentaire du salarié »
+
+  Suivant [S21.G00.71.002 - Code régime
+  Retraite Complémentaire] = « RETA -
+  Retraite complémentaire ARRCO » ou «
+  RETC - Retraite complémentaire ARRCO et
+  AGIRC » ou « RUAA - Régime unifié AGIRC-
+  ARRCO » Alors "Régime AGIRC-ARRCO"
+
+  « IRCANTEC - Institution de retraite
+  complémentaire des agents non titulaires
+  de l’État et des collectivités publiques »
+  Alors "IRCANTEC"
+
+
+  « CRPNPAC - Caisse de Retraite du
+  Personnel Navigant Professionnel de
+  l'Aéronautique Civile » Alors "CRPN »                                                       Et pour les autres codes
+
+                                                                                              [S21.G00.71.002 - Code régime Retraite
+  « CNBF - Caisse nationale des Barreaux                                                      Complémentaire]
+  Français » Alors "CNBF"
+
+
+
+
+                  S21.G00.40.018 pour l’ensemble des codes sauf "200" régime général (CNAM)
+
+
+
+
+                                                                                         Suivant [S21.G00.40.016 - Complément de
+                                                                                         base au régime obligatoire] = « 01 -
+                                                                                         régime local Alsace Moselle » ou « 03 -
+                                                                                         régime Alsace-Moselle et Complémentaire
+                                                                                         CAMIEG » alors Oui sinon Non
+
+
+
+ATTENTION : seules les caisses de retraite avec lesquelles Pôle emploi communiquent sont présentes sur l’attestation
+employeur. Toutes les autres caisses sont référencées dans la case « Autres » dans la limite des codes présents dans la
+DSN.
+En effet, si la caisse n’est pas référencée dans la DSN alors elle ne pourra pas apparaitre sur l’attestation employeur.
+Le code « 90000 - pas de régime complémentaire » n’est pas affiché.
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                                                     23
+
+    G. Cadre « Emploi »
+    e. Durée d’emploi, date de fin initiale du CDD, dernier emploi tenu, ancienneté dans l’entreprise,
+       Date d’engagement de la procédure de licenciement ou de notification de la démission ou de
+       signature de la convention de rupture conventionnelle
+
+    Conversion en nombre de mois                            Il s’agit ici de la date de fin initiale du CDD et non la
+    de [S21.G00.86.003] pour type                           date de fin de contrat effective. (cf paragraphe détaillé
+    S21.G00.86.001 = "07 -                                  de ce sujet « Date de fin initiale du CDD
+    Ancienneté dans l'entreprise"                           (S21.G00.40.010) » )
+
+
+
+
+                               S21.G00.40.001                    S21.G00.62.001
+
+
+
+                                                                S21.G00.40.010
+
+
+                            S21.G00.40.006                                           S21.G00.40.019 – code postal et localité ou libellé du code pays
+
+
+
+
+                                                                             Si S21.G00.62.005 renseignée – sinon si S21.G00.62.004 renseignée –sinon
+                                                                             si S21.G00.62.003 renseignée
+
+
+
+    f.   Préavis
+   Préavis le plus récent par [S21.G00.63.001 – type de préavis] et par [S21.G00.63.003 - date de fin de préavis]
+   Si [S21.G00.63.001 – type de préavis] =
+       90 – Pas de clause de préavis applicable
+       60 - Délai de prévenance
+   alors pas de rematérialisation sur l’AE
+
+
+                                      S21.G00.63.002                          S21.G00.63.003
+
+
+ S21.G00.63.001
+                                                       S21.G00.63.002                                      S21.G00.63.003
+
+
+
+                                                            S21.G00.63.002                                       S21.G00.63.003
+
+
+
+
+ Si la rubrique [S21.G00.63.001] =
+     10 - préavis non effectué non payé dans le cadre d’un contrat de sécurisation professionnelle (CSP)
+      50 - préavis non effectué et payé dans le cadre d’un congé de reclassement
+      51 - préavis non effectué et payé dans le cadre d’un congé de mobilité
+      61 - préavis non effectué et non payé dans le cadre du parcours d’accompagnement personnalisé (PAP)
+ alors rematérialisation du libellé dans le champ « motif »
+
+PS : La date de fin de contrat est toujours à la date de fin du préavis le plus récent sauf quand le préavis n’est ni
+effectué ni payé. La date de fin de contrat est positionnée à la veille de la date de début de ce dernier cas (Règlement
+d’assurance chômage, art. 3 § 1er al.3).
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                  24
+
+    g. Catégorie d’emploi particulier
+
+
+ Catégorie d’emploi particulier : seule la 1ere valeur est affectée en fonction des règles suivantes :
+       [S21.G00.40.007 - Nature du contrat] =
+              o "03" (Contrat de mission) ou "08" (CDI intérimaire) Alors « Intérimaire »
+              o "07" (Contrat à durée indéterminée intermittent) Alors « Intermittent »
+       [S21.G00.85.010 - Nature juridique] (pour S21.G00.40.019 = S21.G00.85.001) =
+              o "03" (A domicile) Alors "Travailleur à domicile"
+       [S21.G00.40.024 - Travailleur à l'étranger au sens du code de la Sécurité Sociale] =
+              o "02" (Expatrié) Alors « Expatrié »
+              o "01" (Détaché) Alors « Détaché »
+       [S21.G00.40.005 – Code complément PCS-ESE] (Le test sur cette rubrique n'est pas sensible à la casse)
+              o "06" ou "07", alors "VRP et assimilé"
+              o "P352", alors "Journaliste professionnel"
+              o "NP352", alors "Journaliste non professionnel"
+              o "38" et [S21.G00.40.017 - Code convention collective applicable] = 1527, alors "agents immobilier à la
+                  commission"
+       [S21.G00.40.004 - Code PCS-ESE] = (Le test sur cette rubrique n'est pas sensible à la casse)
+              o "652b" et [S21.G00.40.011 - Unité de mesure de la quotité de travail] = "32 – à la vacation" et
+                  [S21.G00.40.007 - Nature du contrat] = "02 - Contrat de travail à durée déterminée de droit privé" ou
+                  « 10 - Contrat de travail à durée déterminée de droit public » alors "Ouvrier docker"
+              o « 563b » ou « 563c » Alors "Employé de maison "
+              o « 563a » Alors "Assistante maternelle"
+              o 389b ou 546d, alors "Personnel navigant de l'aviation civile"
+              o 691f, alors "Bûcherons tâcherons"
+              o 675c, alors "Ouvriers de la presse"
+              o 480b ou 656b, alors "Personnel navigant de la marine marchande"
+              o 464b, alors "Interprète"
+              o 564a, alors "Concierges, gardiens d'immeubles"
+              o 637c, alors "Ouvrier / technicien du spectacle"
+              o 354a ou 354b ou 354c ou 354d ou 354e ou 354f, alors "spectacle artiste"
+              o 353c, alors "spectacle réalisateur"
+              o 465b ou 637c, alors "spectacle technicien"
+ PS : les choix non prévus en case à cocher sont affichés dans la case « autre »
+
+
+
+
+Attention : Les cas de catégorie d’emploi particulier en jaune ci-dessus ne sont pas affichés sur l’attestation employeur
+(à planifier).
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                          25
+
+   h. Horaire de travail
+ Affichage de l’unité de mesure de la quotité de travail -
+ S21.G00.40.011 :
+ 10 – heure ou 21 - forfait heure => «Heure »
+ 12 - journée ou 20 - forfait jour => «Jour »                             Affichage salarié au forfait :
+ 31 - à la pige => «Pige »                                                20 - forfait jour ou 21 - forfait heure => «oui »
+ 32 - à la vacation => «Vacation »                                        sinon « non »
+ 33 - à la tâche => «Tâche »                                              21 - forfait heure => « convention de forfait en
+ 99 - salarié non concerné => Unité de mesure de l'horaire de             heures »
+ travail mensuel du salarié = non renseigné                               20 - forfait jour => « convention de forfait en jour
+                                                                          »
+
+                      S21.G00.40.011
+
+
+
+
+                                                        S21.G00.40.012                 S21.G00.40.012
+
+
+
+                                                        S21.G00.40.013                 S21.G00.40.013
+
+
+
+                                                         S21.G00.40.014
+
+
+
+
+   Affichage de l’horaire en hebdomadaire pour les              Affichage de l’horaire en mensuel pour toutes les
+   natures de contrat :                                         natures de contrat autre que :
+   -       09 – Contrat de travail à durée                      -       09 – Contrat de travail à durée
+   indéterminée de droit public                                 indéterminée de droit public
+
+   -       10 – Contrat de travail à durée déterminée           -       10 – Contrat de travail à durée déterminée
+   de droit public                                              de droit public
+
+   (A partir du week-end end du 17/18 juin 2023)                (A partir du week-end end du 17/18 juin 2023)
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                       26
+
+   i.   Nature du contrat, contrat de type particulier
+  Nature de contrat [S21.G00.40.007] :
+  "CDI" si « 01 - Contrat de travail à durée indéterminée de droit privé » ou 07 - Contrat à durée indéterminée
+  intermittent » ou « 08 - Contrat à durée indéterminée intérimaire ou « 09 - Contrat de travail à durée indéterminée de
+  droit public » ou 82 - Contrat de travail à durée indéterminée de Chantier ou d'opération
+  "CDD" si "02 - Contrat de travail à durée déterminée de droit privé" ou "10 - Contrat de travail à durée déterminée de
+  droit public") ou « 60 - Contrat d'engagement éducatif » ou « 51 - Contrat de mission d’un collaborateur
+  occasionnel du service public (COSP) ou assimilé »
+
+  Sinon non alimenté
+
+
+
+
+                                                                                      S21.G00.40.007
+
+
+
+
+ Contrat de type particulier : seule la 1ere valeur est affectée en fonction des
+ règles suivantes :
+                                                                                   Contrat de type particulier :
+ Si [S21.G00.40.008 - Dispositif de politique publique et conventionnel] =         « autre »
+                                                                                   42 - CUI - Contrat d'accès à l'emploi
+ « 64 - Contrat d'apprentissage entreprises artisanales ou de moins de 11          - DOM
+ salariés (loi du 3 janvier 1979) »                                                70 - Contrat à durée déterminée pour
+ « 65 - Contrat d’apprentissage entreprises non inscrites au répertoire des        les séniors
+                                                                                   71 - Contrat à durée déterminée
+ métiers d’au moins 11 salariés (loi de 1987) »                                    d’insertion
+ « 81 - Contrat d'apprentissage secteur public (Loi de 1992) »                     80 - Contrat de génération
+  alors "apprentissage"                                                            92 - Stage de la formation
+                                                                                   professionnelle
+                                                                                   93 - Période de mise en situation en
+ si [S21.G00.40.008 - Dispositif de politique publique et conventionnel] =
+                                                                                   milieu professionnel
+ « 61 - Contrat de Professionnalisation »                                          94 - Contrat adulte relais
+ alors "professionnalisation"
+
+ si [S21.G00.40.008 - Dispositif de politique publique et conventionnel] =         Tous les types de natures de contrat
+ « 21 - CUI - Contrat Initiative Emploi »                                          PS : en jaune la case autre non
+ alors "CUI-CIE"                                                                   complétée pour le moment sujet à
+                                                                                   planifier par pôle emploi
+ si [S21.G00.40.008 - Dispositif de politique publique et conventionnel] =
+ « 41 - CUI - Contrat d'Accompagnement dans l'Emploi »
+ alors "CUI-CAE"
+
+ si [S21.G00.40.007 - Nature du contrat] = « 60 - Contrat d'engagement
+ éducatif »
+ alors "contrat d’engagement éducatif"
+
+ si [S21.G00.40.008 - Dispositif de politique publique et conventionnel] =
+ « 50 - Emploi d'avenir secteur marchand » ou« 51 - Emploi d'avenir secteur
+ non marchand »
+ alors "emploi d’avenir "
+
+ PS : les choix non prévus en case à cocher sont affichés dans la case « autre »
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                                                       27
+
+    j.   Périodes de suspension du contrat de travail ni rémunérées ni indemnisées
+
+  Périodes de suspension : S21.G00.65.001 – type =
+  675 - [FP] Disponibilité
+
+
+
+
+                                 S21.G00.65.002                                 S21.G00.65.003              S21.G00.65.001 – type = 639 - Congé sabbatique
+
+
+                                                                                                                   S21.G00.65.001 – type = 501 - Congé divers non
+                                            S21.G00.65.002                                 S21.G00.65.003
+                                                                                                                   rémunéré (de au moins 1 mois civil)
+
+
+
+                                                                       S21.G00.65.002                            S21.G00.65.003
+
+
+
+
+                S21.G00.65.002                               S21.G00.65.003
+
+
+
+
+ S21.G00.65.001 – type =
+ 661 - [FP] Congé organisations de jeunesse
+ 662 - [FP] Congé pour siéger auprès d'une assoc., d'une mut., d'une inst. de l'E. ou d'une coll. Terr.
+ 663 - [FP] Congé non rémunéré de 18 jours pour mandats municipaux ou départementaux ou régionaux
+ 671 - [FP] Exclusion temporaire de fonctions
+ 676 - [FP] Disponibilité pour maladie
+ 677 - Disponibilité pour élever enfant âgé de moins de 8 ans
+ 678 – [FP] Position hors cadre
+ 672 - [FP] Suspension
+ 673 - [FP] Absences irrégulières (service non fait) à traiter comme de la désertion
+
+
+PS : seule la plus récente des périodes est rematérialisée (date de début de période - S21.G00.65.002)
+
+Pour le moment, les périodes de type 501 qui ont une durée de moins d’un mois civil ne sont pas écartées sur l’AE
+(extrait règlement assurance chômage : "a) Les périodes de suspension du contrat de travail exercées dans le cadre de
+l'article L. 3142-28 du code du travail, d'un congé sans solde et assimilé d'une durée supérieure ou égale à un mois civil,
+lorsque ces périodes n'ont pas donné lieu au versement des contributions mentionnées aux articles L. 5422-9 à L. 5422-
+12 du code du travail ; "). (Filtrage des périodes de type 501 de moins d’un mois (30 jours sauf février qui reste un mois
+civil à accepter))
+
+
+
+
+Version 3.2 du 28/03/2023
+   De la DSN à l’attestation employeur                                                                                                                  28
+
+         k. Périodes d’absence du salarié au cours des 25 derniers mois de salaire ou 37 derniers mois si le
+            salarié a 53 ans et plus au moment de la fin de contrat
+                                                                   S21.G00.60.001 =
+                                                                   01 – maladie
+                                                                   04 - Congé suite à un accident de trajet
+                                                                   05 - Congé suite à maladie professionnelle
+                                                                   06 - Congé suite à accident de travail ou de service
+                                                                   07 - Femme enceinte dispensée de travail
+                                                                   10 - Congé suite à une maladie imputable au service FP
+         ATTENTION : Pour une raison                               11 - Congé de maladie des victimes ou réformés de guerre (art 41) FP
+        opérationnelle, il n’y a pas de filtre                     12 - Congé de longue durée FP
+        sur la période considérée en fonction                      13 - Congé de longue maladie FPS
+        de l’âge du salarié ou de la période                       14 - [FP] Congé pour invalidité temporaire imputable au service
+        par rapport aux 37 mois ou 25 mois
+                                                                   21.G00.65.001 = 652 - Inaptitude temporaire liée à la grossesse
+        avant la rupture. En effet, la prise en
+        compte des périodes d’absence sera
+        faite en fonction de l’âge au moment
+        de l’étude de droit.
+
+
+
+
+   S21.G00.60.001 ou 21.G00.65.001
+
+                                                                                          S21.G00.60.010 - 1 j et à
+                                                          S21.G00.60.002 + 1 j ou         défaut S21.G00.60.003 ou
+                                                          21.G00.65.002                   21.G00.65.003
+
+
+
+
+   S21.G00.60.001 = 02 – maternité                          S21.G00.60.002 + 1 j             S21.G00.60.010 - 1 j et à défaut S21.G00.60.003
+
+
+S21.G00.60.001 = 03 - paternité                            S21.G00.60.002 + 1 j             S21.G00.60.010 - 1 j et à défaut S21.G00.60.003
+/ accueil de l’enfant
+
+    S21.G00.60.001 = 09 – adoption                          S21.G00.60.002 + 1 j              S21.G00.60.010 - 1 j et à défaut S21.G00.60.003
+
+
+   S21.G00.65.001 = 200 - COP                                                                   S21.G00.65.002                         S21.G00.65.003
+   (Congés payés)
+
+
+
+              S21.G00.65.001 = 602 – activité partielle
+
+               (Congés payés)                                                       S21.G00.65.002                         S21.G00.65.003
+
+
+
+
+   Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                                   29
+
+
+
+    S21.G00.65.001 = 602 – activité partielle
+                                                                                S21.G00.65.002             S21.G00.65.003
+    (Congés payés)
+
+
+
+
+                         Code S21.G00.65.001 ou S21.G00.60.001 autres que les
+                         codes ci-dessus pris en compte
+                                                                                          S21.G00.65.002             S21.G00.65.003
+                          (Congés payés)
+
+         Affichage du libellé pour les codes suivants seulement :
+         Motif de suspension - S21.G00.65.001 =
+         607 - Congé de présence parentale
+         620 - Congé de mobilité
+         625 - Congé de reclassement
+         632 - Congé parental d'éducation
+         642 - Convention FNE d'aide au passage à temps partiel
+         655 - [FP] Détachement conduisant à pension (ECP) (en attente de réponse de la DGEFP)
+         645 - Préretraite progressive
+         646 - Préretraite d'entreprise sans rupture de contrat de travail
+         650 - Congé de proche aidant
+         656 - [FP] Congé pour cessation anticipée d’activité du fait d’une maladie professionnelle provoquée par
+         l’amiante
+
+         Motif de l'arrêt - S21.G00.60.001 =
+         15 - temps partiel thérapeutique (risque maladie)
+         16 - temps partiel thérapeutique (risque accident de travail)
+         17 - temps partiel thérapeutique (risque accident de trajet)
+         18 - temps partiel thérapeutique (risque maladie professionnelle)
+
+
+
+
+PS : Seules les périodes d’absences les plus récentes sont restituées (date de début de période - S21.G00.60.002 + 1
+ou S21.G00.65.002) dans l’ordre chronologique selon les possibilités sur le document par type d’absence.
+N’hésitez pas à consulter les règles détaillées des arrêts de travail et des suspensions mise en place côté Pôle emploi
+(cf Arrêt de travail et cf Suspensions).
+
+
+
+Attention : la date de reprise de l’arrêt de travail peut ne pas être connue car le salarié est toujours en arrêt au
+moment de la fin du contrat de travail. C’est le seul cas où la date de fin de l’arrêt de travail peut être absente de l’AE.
+
+Pôle emploi utilisera pour date de fin de l’arrêt de travail, la valeur de la rubrique « Date de fin prévisionnelle –
+S21.G00.60.003 » en lieu et place de la rubrique « Date de la reprise - S21.G00.60.010 » si cette dernière n’est pas
+renseignée. Par conséquent, il n’y aura plus aucun cas où la date de fin de l’arrêt de travail n’est pas présente sur l’AE.
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                  30
+
+   l.   Statut particulier
+
+   Statut particulier du salarié S21.G00.62.014 :
+   01 - Gérant ou collège de gérance
+   02 - Administrateur
+   03 - Directeur Général
+   04 - Président Directeur Général
+   05 - Membre du Directoire
+   06 - Président du Directoire
+   07 - Membre du Conseil de surveillance
+   08 - Président, administrateur, secrétaire ou trésorier d'une association
+   09 - Contrôleur de gestion, membre ou administrateur membre d'un GIE
+   10 - Associé, actionnaire
+   11 - Salarié en portage salarial (non renseigné)
+
+   PS : les choix non prévus en case à cocher sont affichés dans la case « autre »
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                                                             31
+
+    H. Cadre « Motif de la rupture du contrat de travail »
+
+     Licenciement pour autre motif :
+     - « 020 - licenciement pour autre motif »
+     - « 086 - licenciement convention CATS »
+     - « 087 - licenciement pour faute grave »
+     - « 088 - licenciement pour faute lourde »
+     - « 089 - licenciement pour force majeure »
+     - « 091 - licenciement pour inaptitude physique d'origine non professionnelle »
+     - « 092 - licenciement pour inaptitude physique d'origine professionnelle »
+     - « 093 - licenciement suite à décision d'une autorité administrative »
+     - « 113 - Licenciement pour motif spécifique (Article L. 2254-2 du Code du Travail) »
+     - « 071 - [FP] Révocation suite à sanction pénale »
+
+
+                                                                                    S21.G00.62.002
+
+
+                                                                                   039 - départ à la retraite à l'initiative du salarié
+        011 - licenciement suite à liquidation judiciaire ou
+        à redressement judiciaire
+        012 - licenciement suite à fermeture définitive de                         043 - rupture conventionnelle
+        l'établissement
+                                                                                   058 - prise d'acte de la rupture de contrat de travail
+        014 - licenciement pour motif économique
+
+        015 - licenciement pour fin de chantier ou d'opération                     059 – démission - 070 - [FP] Révocation suite à abandon de poste
+
+                                                                                   081 - fin de contrat d'apprentissage
+
+                                                                                   083 - rupture de contrat de travail ou d’un contrat de mission pour force majeure
+                                                                                   ou fait du prince
+        098 – retrait d’enfant                                                     084 - rupture d'un commun accord du CDD, du contrat d'apprentissage ou d’un
+                                                                                   contrat de mission
+
+        025 - autre fin de contrat pour motif économique
+                                                                                   095 - rupture anticipée du contrat de travail ou d’un contrat de mission pour faute
+                                                                                   grave
+        031 - rupture de contrat de travail à durée déterminée ou fin d'accueil    110 - Rupture conventionnelle collective
+        occasionnel
+                                                                                   111 - Rupture amiable dans le cadre d’un congé de mobilité
+        032 - fin de mission d'intérim
+                                                                                   112 - Rupture dans le cadre d’un accord de performance collective
+        033 - rupture anticipée d’un CDD ou d’un contrat de mission en cas
+        d’inaptitude physique constatée par le médecin du travail
+                                                                                   115 - Licenciement au titre des articles 18 et 19 de la loi n° 2017-1339 du 15
+                                                                                   septembre 2017
+        034 - fin de période d'essai à l'initiative de l'employeur
+        d'apprentissage ou d’un contrat de mission
+        035 - fin de période d'essai à l'initiative du salarié
+
+        036 - rupture anticipée d'un CDD, d'un contrat d'apprentissage ou
+        d’un contrat de mission à l'initiative de l'employeur
+
+        037 - rupture anticipée d'un CDD, d'un contrat d'apprentissage ou
+        d’un contrat de mission à l'initiative du salarié
+
+        038 - mise à la retraite par l'employeur
+
+
+
+    Motifs jamais renseignés :
+                                                                                  Tous les autres motifs de rupture
+     - démission avec versement d’une indemnité de départ
+    volontaire
+    - rupture conventionnelle (fonction publique)
+
+PS : le retrait d’enfant est possible pour un CDD ou un CDI.
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                          32
+
+    I. Cadre « Salaires des 25 derniers mois, y compris le salaire du mois au cours duquel
+       intervient la fin du contrat de travail (37 derniers mois pour les salariés âgés de 53
+       ans et plus au moment de la fin du contrat de travail) »
+     En cas de rappel sur la période de paie, la date de             Le montant de rémunération est le cumul des
+     paiement reste celle déclarée initialement.                     montants initiaux et des rappels éventuels.
+
+
+
+
+       S21.G00.51.001
+                            S21.G00.51.002
+
+
+
+
+                                                 S21.G00.50.001
+                                                                     S21.G00.53.002
+                                                                                          S21.G00.53.002
+                                                                                                            S21.G00.51.013
+
+
+
+
+ Seules les rémunérations de type S21.G00.51.011 = « 002 - Salaire             Le volume de temps rémunéré est récupéré dans
+ brut servant aux calculs des droits de l'Assurance chômage » sont             le bloc 53 de type « 01 - Travail rémunéré »
+ prises en compte. Une période de paie en rappel est injectée sur              exprimé en 10 – heure, 20 - forfait jour et 21 -
+ la période de paie initiale.                                                  forfait heure.
+ Par exemple :                                                                 Le volume d’absence est récupéré dans le bloc 53
+ DSN mensuelle Avril 2021 :                                                    de type « 02 - Durée d'absence non rémunérée »
+ du DSN mensuelle Avril 2021 :                                                 exprimé en 10 – heure ou en 12 – journée.
+ du 01 au 30/04/2021 1000 euros versé le 28/04/2021
+ DSN mensuelle Mai 2021 :                                                      PS : si l’unité du volume S21.G00.53.003 n’est pas
+ du 01 au 30/04/2021 –500 euros versé le 28/05/2021                            renseignée alors c’est l’unité de volume de travail
+                                                                               du salarié pour le contrat S21.G00.40.011 qui est
+ Sur l’AE, il y aura une seule ligne pour avril 2021 (si les unités de         utilisée.
+ travail et d’absence sont compatibles) :
+ du 01 au 30/04/2021 500 euros versé le 28/04/2021
+
+PS : cf règle d’alimentation des salaires avec le volume de travail et d’absence
+
+Attention : l’affichage est effectué sur le nombre de lignes maximales du modèle en privilégiant les salaires les plus
+récents s’il y a un manque de place.
+
+Surtout ne pas déclarer deux unités différentes pour l’activité (parmi celles-ci 10 – heure, 20 - forfait jour et 21 - forfait
+heure) ou l’inactivité (parmi celles-ci 10 – heure ou en 12 – journée).
+
+
+Version 3.2 du 28/03/2023
+  De la DSN à l’attestation employeur                                                                                    33
+
+  Si un bloc 51 type 002 contient deux blocs 53 de type 01 avec deux unités différentes considérées par Pôle emploi sur
+  ce modèle d’AE PDF, Pôle emploi affiche les heures seulement (unité 10) et à défaut les forfaits jours (unité 20) et à
+  défaut les forfaits heures (unité 21).
+  Si un bloc 51 type 002 contient deux blocs 53 de type 02 avec deux unités différentes considérées par Pôle emploi sur
+  ce modèle d’AE, Pôle emploi affiche seulement le volume en heures (unité 10) et à défaut le volume en journée (unité
+  12).
+  Pôle emploi n’a pas à ce jour de meilleure solution sur l’affichage car il est exclu d’afficher toutes les unités et en
+  choisir une est complexe.
+
+
+      J. Cadre « Primes et indemnités de périodicité différentes des salaires »
+  Les primes sont affichées de la plus récente à la plus ancienne par rapport à la date de paiement.
+« 026 - Prime exceptionnelle liée à l'activité avec période de rattachement spécifique »
+« 027 - Prime liée à l'activité avec période de rattachement spécifique »
+« 029 - Prime liée au rachat des jours de RTT avec période de rattachement spécifique »
+« 030 - Prime rachat CET »
+« 039 - Complément de rémunération à la charge de l'état »
+« 040 - [FP] Indemnité mensuelle de technicité »
+« 041 - [FP] Indemnité de sujétions spéciales »
+« 042 - [FP] Indemnité de risque »
+« 043 - [FP] Prime de sujétions spéciales » (pour les SIRET qui commencent par 1 ou 2)
+« 044 - [FP] Indemnité de sujétion spécifique »
+« 047 - [FP] GIPA - Garantie individuelle du pouvoir d'achat »
+« 048 - [FP] Indemnité de résidence »
+« 049 - [FP] Supplément familial de traitement »
+« 050 - [FP] RIFSEEP IFSE »
+« 051 - [FP] RIFSEEP CIA »
+« 052 - Supplément de rémunération fin de grille D2 »
+« 053 - Supplément de rémunération fin de grille A-C et E-H »
+« 054 - Supplément de rémunération agents et ex-agents de conduite »
+« 902 – Prime de pouvoir d’achat »
+
+
+
+
+                          S21.G00.52.001                                           S21.G00.52.007 en
+                                                                                   cas de rappel et à   S21.G00.52.002
+                                                                                         défaut
+                                                                                    S21.G00.50.001
+
+    En cas de rappel, c’est la date de versement d’origine du
+                                                                  Le montant de rémunération est le cumul des
+    rappel qui est présente dans l’AE (Date de versement
+                                                                  montants initiaux et des rappels éventuels. Les
+    d'origine - S21.G00.52.007).
+                                                                  valeurs déclarées à zéro sont affichées.
+
+  PS : cf règles de Constitution des primes en cours d’exécution du contrat
+
+
+  Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                  34
+
+Attention :
+
+   -   La prime 028 - Prime non liée à l'activité n’apparait plus sur l’attestation employeur car elle n’est pas utilisée
+       pour l’assurance chômage.
+   -   l’affichage est effectué sur le nombre de lignes maximales du modèle en privilégiant les primes les plus
+       récentes. S’il y a plus de 14 primes à afficher, il y a un cumul des plus anciennes, sur la ligne 14 (« Total des
+       autres primes restantes).
+   -   les périodes de rattachement des primes ne sont plus affichées sur l’attestation employeur ni utilisées pour les
+       cumuls
+   - un cumul par type de primes et par date de paiement (date de versement d’origine - S21.G00.52.007 et à
+       défaut date de versement - S21.G00.50.001) est effectué pour chaque ligne.
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                   35
+
+    K. Cadre « Sommes versées à l’occasion de la rupture (solde de tout compte) »
+
+
+
+
+                   S21.G00.52.002
+
+
+
+
+                                    S21.G00.40.022
+
+
+                                                       Non complété pas
+                                                     d’information en DSN
+
+
+
+
+      « 020 - Indemnité compensatrice de congés                             « Oui » est coché si le « Code caisse
+      payés » (jours de congés payés par l’employeur                        professionnelle de congés payés -
+      non pris à la rupture du contrat)                                     S21.G00.40.022 » est renseigné
+
+
+
+PS : L’indemnité compensatrice de préavis (code 023 du bloc S21.G00.52), dès lors qu’elle est versée par l’employeur
+en application de la législation, n’entre pas dans les éléments concourant au calcul du différé spécifique (article 12§2
+du règlement) et donc elle n’apparait plus sur l’attestation employeur.
+
+
+
+
+Version 3.2 du 28/03/2023
+  De la DSN à l’attestation employeur                                                                                                                                    36
+                                                                                                                              Somme des indemnités légale,
+                                                                                                                      conventionnelles et transactionnelles ci-dessous
+
+                                                                         Somme des indemnités légales ci-dessous
+
+
+
+                                     S21.G00.52.002 si S21.G00.52.001 = « 007 - Indemnité légale de licenciement »
+
+
+
+                                                  S21.G00.52.002 si S21.G00.52.001 = « 001 - Indemnité spécifique de rupture conventionnelle »
+
+
+
+
+                                                   S21.G00.52.002 si S21.G00.52.001 = « 011 - Indemnité légale de fin de CDD »
+
+
+                            S21.G00.52.002 si S21.G00.52.001 = « 012 - Indemnité légale de fin de mission »
+
+
+                                 S21.G00.52.002 si S21.G00.52.001 = « 005 - Indemnité légale de départ à la retraite du salarié »
+
+
+                                     S21.G00.52.002 si S21.G00.52.001 = « 009 - Indemnité légale spéciale de licenciement »
+
+
+                                     S21.G00.52.002 si S21.G00.52.001 = « 010 - Indemnité légale spécifique de licenciement »
+
+
+
+                                 S21.G00.52.002 si S21.G00.52.001 = « 013 - Indemnité légale due aux journalistes »
+
+
+                                S21.G00.52.002 si S21.G00.52.001 = « 014 - Indemnité légale de clientèle »
+
+
+                                                                  S21.G00.52.002 si S21.G00.52.001 = « 015 - Indemnité légale due au personnel naviguant de l'aviation civile»
+
+
+                                                                                          S21.G00.52.002 si S21.G00.52.001 = « 016 - Indemnité légale versée à l'apprenti »
+
+
+                                                                 S21.G00.52.002 si S21.G00.52.001 = « 025 - indemnité compensatrice des droits acquis dans le cadre d’un
+                                                                                                        compte épargne temps »
+                                             S21.G00.52.002 si S21.G00.52.001 = « 018 - Indemnité due en raison d'un sinistre »
+
+
+
+
+                                                                                    S21.G00.52.002 si S21.G00.52.001 = « 022 - Indemnité transactionnelle »
+
+
+
+
+Autres indemnités légales :                                                                                      Indemnités conventionnelles :
+Somme des S21.G00.52.002 si S21.G00.52.001 =                                                                     Somme des S21.G00.52.002 si
+« 002 - Indemnité versée à l'occasion de la cessation forcée des fonctions des                                   S21.G00.52.001 =
+mandataires sociaux »                                                                                            « 004 - Indemnité conventionnelle de
+« 003 - Indemnité légale de mise à la retraite par l'employeur »                                                 mise à la retraite par l'employeur »
+« 008 - Indemnité légale supplémentaire de licenciement »                                                        « 006 - Indemnité conventionnelle de
+« 017 - Dommages et intérêts dus à la non remise du contrat ou dus à un CDD                                      départ à la retraite du salarié »
+ou à une rupture de période d’essai (délai de prévenance) »                                                      « 021 - Indemnité conventionnelle
+« 045 - Dommages et intérêts à la non remise du contrat de mission »                                             (supplémentaire aux indemnités
+« 019 - Indemnité suite à clause de non concurrence »                                                            légales) »
+« 032 - Indemnité compensatrice de préavis pour inaptitude suite AT ou
+Maladie Professionnelle »
+« 033 - Indemnité forfaitaire de conciliation prud’homale »
+  PS : toutes les indemnités sont cumulées par type sauf indication contraire.
+
+
+
+  Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                         37
+
+   L. Cadre « Avance du régime de garantie des salaires »
+Pas de pré remplissage par Pôle emploi de ce cadre
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                        38
+
+
+
+
+    M. Cadre « Authentification par l’employeur »
+
+ 1 - EMPLOYEUR_QUAL_CHEF_ENTREPRISE                             2 - EMPLOYEUR_QUAL_DIRECTEUR
+ 3 - EMPLOYEUR_QUAL_COMPTABLE                                   4 - EMPLOYEUR_QUAL_MANDATAIRE
+ 5 - EMPLOYEUR_QUAL_GERANT                                      6 - EMPLOYEUR_QUAL_CHEF_PERSONNEL
+ 7 - EMPLOYEUR_QUAL_ADMIN_JUDICIAIRE                            8 - EMPLOYEUR_QUAL_AUTRE
+
+
+                                                EMPLOYEUR_NOM                                        EMPLOYEUR_PRENOM
+
+
+
+
+     1                             2                            3                          4                         5
+     S                             S                            S
+     6
+     2                             7                                      8                    EMPLOYEUR_QUAL_AUTRE_LIB
+                                   2                            2
+     S1                            S1                           1
+      2
+      .                             2
+                                    .                           .
+      1
+      G                             1
+                                    G                           G
+                                      S21.G00.62.002
+      .0                            .0                          0
+       G
+       0                             G
+                                     0                          0
+       0
+       .                             0
+                                     .                          .
+       0
+       6                             0
+                                     6                          6
+       .2     EMPLOYEUR_LIEU_SIGN .2                            2 EMPLOYEUR_DATE_SIGN
+        6
+        .                            6
+                                     .                          .
+        2
+        0                            2
+                                     0                          0
+        .0                           .0                         0
+         0
+         2                            0
+                                      2                         2
+         0                            0
+         2                            2                            S20.G00.07.001
+             EMPLOYEUR_SIGNATURE
+                                                                                                        EMPLOYEUR_CACHET
+                                                                     S20.G00.07.003
+
+
+                                                                          S20.G00.07.002
+
+
+
+
+Une signature électronique qualifiée ou manuscrite est nécessaire pour valider le document. Le cachet de l’entreprise
+n’est pas obligatoire.
+La partie « Personne à joindre concernant cette attestation » sera complétée par Pôle emploi à partir des données
+« ContactDeclare.type - S20.G00.07.004 = 02 - Contact chez le déclaré pour les fins de contrats de travail (Pôle
+emploi) » du signalement FCTU. S’il y en a plusieurs alors un contact au hasard remontera sur l’AE. (S20.G00.07.003 –
+email du contact ne sera pas affiché pour le moment (sujet à planifier côté Pôle emploi))
+Les zones avec un fond vert sont modifiables manuellement ou électroniquement avec un outil pdf qui le permet.
+Toutes les autres zones du document restent verrouillées.
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                        39
+
+
+    Divers informations
+
+    A. Arrêt de travail
+Attention : la déclaration des suspensions et des arrêts de travail doit respecter les règles de requalification,
+modification ou annulation décrites pour la DSN
+
+Fiche consigne 2533 https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/2533
+
+Fiche consigne 568 (https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/568/)
+
+Un arrêt de travail présent dans les DSN mensuelles accompagnants le signalement FCTU (sauf M et M -1) et dans le
+signalement FCTU doit être remonté dans l’AE sur la base des 3 éléments suivants :
+
+- Motif de l'arrêt S21.G00.60.001
+
+- Date de début de l'arrêt = Date du dernier jour travaillé S21.G00.60.002 + 1 : si le dernier jour travaillé est un
+vendredi, une veille de jour férié ou de congé payé alors la date de début de l’arrêt pour l’assurance chômage sera le
+samedi ou le jour férié ou le jour de congé payé même si ce jour n’est pas une journée travaillée. Aucune autre
+donnée ne permet d’avoir la date de début de l’arrêt réelle en DSN.
+
+- Date de fin de l'arrêt = Date de la reprise S21.G00.60.010 - 1 si renseigné : si le jour de reprise est un lundi, un
+lendemain d’un jour férié ou d’un jour de congé payé alors la date de fin de l’arrêt pour l’assurance chômage sera le
+dimanche ou le jour férié ou le jour de congé payé même si ce jour n’est pas une journée travaillée (Pôle emploi
+utilisera la date de fin prévisionnelle de fin de l'arrêt - S21.G00.60.003 si la date de reprise n’est pas renseignée).
+Aucune autre donnée ne permet d’avoir la date de fin de l’arrêt réelle en DSN.
+
+La date de fin prévisionnelle de fin de l'arrêt - S21.G00.60.003 va servir à déterminer le choix des arrêts de travail à
+considérer.
+
+Les arrêts de travail avec le code 99 - annulation ne doivent jamais être ajoutés à l’AE.
+
+Si le code motif est "99 - annulation", il s'agit d'une annulation d'un arrêt de travail précédemment déclaré dans une
+mensuelle précédente et non d'une annulation d'arrêt de travail en cours de déclaration avec la même date de dernier
+jour travaillé. Dans ce cas, l'arrêt de travail identifié comme annulé ne doit pas être remonté sur l’AE.
+
+S'il existe 0 arrêt de travail identifié à annuler (même date de dernier jour travaillé dans une précédente mensuelle)
+alors l'annulation est ignorée.
+
+Dès lors que plusieurs arrêts ont la même date de dernier jour travaillé alors ces arrêts ont un lien et il faut en
+sélectionner un seul selon les règles suivantes (de la priorité la plus faible à la plus forte) sinon on garde ceux que l’on
+ne peut pas écarter :
+
+    -   arrêt présent dans la même mensuelle qui a la durée la plus longue avec la date prévisionnelle de fin de l'arrêt
+        s'il n'y a pas de date de reprise
+    -   arrêt présent dans la même mensuelle et qui a une date de reprise
+    -   arrêt présent dans la même mensuelle et celui qui a la durée la plus longue en tenant compte des dates de
+        reprises
+    -   l'arrêt de travail le plus récemment déclaré (dans la mensuelle la plus récente)
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                   40
+
+Pour rappel, le signalement FCTU doit porter 2 DSN mensuelles, M = mois et année de S21.G00.62.020 et M - 1
+cependant dans les règles précédentes, il faut considérer le signalement FCTU comme une seule mensuelle et non
+deux car il n'est pas possible de distinguer dans le signalement FCTU les arrêts de travail du mois M, de ceux du mois
+M – 1.
+
+NB : Le traitement de Pôle emploi pour gérer les arrêts de travail sans avoir réellement les dates de début et de fin
+déclarées peut poser des problèmes à ce jour seulement sur l’AE PDF qui est erronée, car l’ensemble des arrêts de
+travail de la DSN (maladie, maternité etc) emporte les mêmes conséquences réglementaires assurance chômage
+(exemple 1). En revanche, dans certains cas l’absence de ces dates peut entrainer des calculs de droits erronés quand
+les arrêts de travail suivent une période d’absence (congés payés, toute suspension de contrat, période non
+habituellement travaillée) qui ne correspond pas à un arrêt de travail (maladie, maternité etc), en plus d’avoir une AE
+PDF erronée (exemple 2 et 3).
+
+Exemple 1 : un arrêt maladie suivi d’un congé maternité et inversement peut se traduire sur l’AE par ces deux
+possibilités ci-dessous (c’est le dernier événement portant le même dernier jour travaillé qui l’emporte).
+
+soit
+
+
+
+
+soit
+
+
+
+
+Exemple 2 : un arrêt maladie (du 01/09/2022 au 14/09/2022) qui suit un congé sabbatique (du 21/03/2022 au
+31/08/2022), le dernier jour travaillé est le 20/03/2022 pour l’arrêt de travail et donc Pôle emploi déduit que l’arrêt
+maladie a commencé au 21/03/2022 alors qu’il a démarré au 01/09/2022.
+
+
+
+
+                    Au lieu du             01/09/2022            au                  14/09/2022
+
+
+
+Exemple 3 : un arrêt maladie (du 21/03/2022 au 25/03/2022) qui précède un congé sabbatique (du 26/03/2022 au
+14/09/2022), la date de reprise est le 15/09/2022 pour l’arrêt de travail et donc Pôle emploi déduit que l’arrêt maladie
+se termine le 14/09/2022 alors qu’il s’est terminé au 25/03/2022.
+
+
+
+
+                     Au lieu du             21/03/2022           au                   25/03/2022
+
+
+       B. Suspensions
+Attention : la déclaration des suspensions et des arrêts de travail doit respecter les règles de requalification,
+modification ou annulation décrites pour la DSN (fiche DSN info 2488 pour les suspensions : https://net-
+entreprises.custhelp.com/app/answers/detail_dsn/a_id/2488)
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                     41
+
+Une « suspension de contrat de travail » présente dans les DSN mensuelles accompagnants le signalement FCTU (sauf
+M et M -1) et dans le signalement FCTU doit être remontée dans l’AE sur la base des 3 éléments suivants :
+
+    -   Motif de la suspension S21.G00.65.001
+    -   Date du début de suspension S21.G00.65.002
+    -   Date de fin de suspension S21.G00.65.003
+Les suspensions avec le code 998 - annulation ne doivent jamais être ajoutées à la vue AE PDF.
+
+Si le code motif est "998 - annulation", il s'agit d'une annulation d'une suspension de travail précédemment déclarée
+dans une mensuelle précédente et non d'une annulation d'une suspension en cours de déclaration (dans la même
+déclaration que l'annulation) avec les mêmes dates de début de suspension.
+
+S'il existe 0 suspension à annuler (pas de suspension avec la même date de début dans une mensuelle précédente)
+alors l'annulation est ignorée.
+
+Dès lors que plusieurs suspensions ont la même date de début alors ces suspensions ont un lien et il faut en
+sélectionner une seule (de la priorité la plus faible à la plus forte) sinon on garde celles que l’on ne peut pas écarter
+sans cumul :
+
+    -   la suspension présente dans la même mensuelle et ayant une date de fin
+    -   la suspension présente dans la même mensuelle avec la durée la plus longue si la date de fin de suspension est
+        renseignée
+   - la suspension la plus récemment déclarée (mensuelle la plus récente)
+Pour rappel, le signalement FCTU doit porter 2 DSN mensuelles, M = mois et année de S21.G00.62.020 et M - 1
+cependant dans les règles précédentes, il faut considérer le signalement FCTU comme une seule mensuelle et non
+deux car il n'est pas possible de distinguer dans le signalement FCTU les suspensions du mois M, de celles du mois M –
+1.
+
+NB : Dans le cadre des CDDUD Cinéma spectacle, les règles sont identiques en utilisant la dernière DSN mensuelle et
+toutes les précédentes.
+
+NB : fiches consignes 212 (https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/212 )et 2488
+(https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/2488 )).
+
+ATTENTION : une suspension qui se poursuit sur plusieurs mois ne doit pas être déclarée en la découpant
+mensuellement mais en une seule fois.
+Par exemple : pour un congé de reclassement du 1er janvier au 31 décembre 2023. Il ne faut pas déclarer sur la paie de
+janvier, un congé de reclassement du 1er au 31 janvier 2023, puis sur la paie de février 2023, un congé de reclassement
+du 1er au 28 février 2023 et etc mais juste un congé de reclassement du 1er janvier au 31 décembre 2023 et si par
+hasard, la fin de contrat intervient avant le 30 septembre, il est possible de déclarer à nouveau cette suspension du 1er
+janvier au 30 septembre 2023.
+Ce mode déclaratif permet de conserver une seule suspension (à l’image de la réalité) et non plusieurs suspensions qui
+ne pourraient pas s’afficher en totalité sur l’AE PDF. Une concaténation de plusieurs suspensions de même motif qui
+se suivent est possible côté Pôle emploi (date de fin = veille de la date de début d’une suspension de même motif)
+(prévue pour mi-juin 2023).
+
+
+    C. ICCP/ICP
+https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/686/kw/indemnit%C3%A9%20compensatrice
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                             42
+
+A ce jour, seule l’ICCP (code 020 du bloc 52) est remontée sur l’attestation employeur et elle est à verser à la rupture
+d’un contrat si tous les congés n’ont pas pu être pris.
+
+Attention, si une avance sur l’ICCP est effectuée chaque mois au cours d’un CDD pour lequel, il ne sera pas pris de
+congé payé, elle ne doit pas être déclarée mensuellement mais seulement à la fin du CDD avec le code concernée 020
+- Indemnité compensatrice de congés payés.
+
+Les deux ICP (034 et 046) de la DSN ne sont pas remontées dans l’AE PDF car non utilisées par Pôle emploi.
+
+Pôle emploi ne fait pas de distinction entre l’ICP et le salaire dans le cas où l’ICP est versée par l’employeur. Elle doit
+faire partie intégrante du salaire (bloc 51 type 002 - Salaire brut servant aux calculs des droits de l’assurance
+chômage). Et donc les régularisations de ces ICP sont à effectuer également sur le salaire (bloc 51 type 002 - Salaire
+brut servant aux calculs des droits de l’assurance chômage). Pôle emploi n’exploite pas le code 046 qui concerne les
+indemnités de congés payés pris.
+
+A ce jour les justificatifs des ICP (code 034) versées par une caisse professionnelle sont obtenus auprès du demandeur
+d’emploi par Pôle emploi dans le cas où le « Code caisse professionnelle de congés payés - S21.G00.40.022 » est
+renseignée. Pôle emploi n’exploite pas le code 034.
+
+NB :
+
+        -   Les ICCP (code 020) versées mensuellement sont tolérées pour les contrats de mission, seulement.
+        -   Dans tous les cas, il sera fait somme des ICCP (code 020) déclarées mensuellement dans l’AE PDF (cadre
+            6.3).
+
+
+
+
+                     Somme des rubriques S21.G00.52.002 pour la rubrique S21.G00.52.002 type 020 - Indemnité compensatrice de
+                              congés payés » (jours de congés payés par l’employeur non pris à la rupture du contrat)
+
+
+
+
+    D. Date de début et de fin de contrat
+L’employeur doit déclarer les dates de début et de fin du contrat.
+
+En cas de succession d’employeurs avec reprise, à chaque fois, du contrat de travail du salarié par chacun d’eux, la
+date de début correspond à la date de début du contrat telle que conclue avec l’employeur initial.
+
+Les impacts réglementaires sont nombreux (durée d’emploi prise en compte, ancienneté pour l’éligibilité au CSP
+notamment).
+
+
+    E. Quand faire un signalement FCTU annule et remplace ?
+Un signalement FCTU annule et remplace est attendu à chaque modification sur le contrat même après la sortie
+effective du salarié (sauf cas décrits dans la fiche consigne 299 sur DSN info : https://net-
+entreprises.custhelp.com/app/answers/detail_dsn/a_id/299/ ).
+
+Il n’est pas souhaitable que les règles assurance chômage soient embarquées sur les logiciels de paie pour transmettre
+ou pas un signalement FCTU annule et remplace.
+
+Il est important qu’en cas de retour d’un compte rendu métiers (CRM) de Pôle emploi en lieu et place d’une AE PDF,
+alors il faut déposer un signalement FCTU annule et remplace et non un nouveau signalement FCTU initial (quand cela
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                  43
+
+est possible).
+Par exemple : un dépôt d’un signalement FCTU initial avec une anticipation de plus de 7 jours par rapport à la fin de
+contrat alors Pôle emploi retourne un CRM. Le déclarant doit attendre d’être à moins de 7 jours d’anticipation avant la
+fin de contrat et déposer un signalement FCTU annule et remplace.
+
+Quelques cas de signalements FCTU annule et remplace impossibles qui doivent être convertis en signalement FCTU
+initial afin de pouvoir être conformes sur le dispositif DSN :
+
+    -   Une durée technique limitée pour un signalement FCTU annule et remplace ou annule : Dans le
+        dispositif DSN, le dépôt d’un signalement FCTU « annule et remplace » ou « annule » doit être
+        effectué au maximum jusqu’au dernier jour du mois du dépôt du signalement FCTU à
+        annuler/remplacer + 12 mois (donc 12 mois minimum et 13 mois maximum). Passé ce délai, il faut
+        déposer un signalement FCTU « initial » comme s’il n’y avait jamais eu de signalement FCTU pour ce
+        contrat.
+                Exemple : Si le signalement « Initial » a été envoyé en décembre 2020, on peut effectuer un
+                « Annule et Remplace » jusqu'au 31/12/2021. Si le signalement « annule et remplace » a été
+                envoyé en juin 2021, on peut effectuer un « Annule et Remplace » jusqu’au 30/06/2022.
+    -   Un changement d’émetteur de signalement FCTU (lors d’un changement de logiciel de paie par exemple) :
+        Dans le cadre d’un changement de logiciel de paie, il y a souvent un changement d’émetteur du signalement
+        FCTU. Or un signalement FCTU annule et remplace ou annule ne peuvent être effectués que par le même
+        émetteur (Siren de l'émetteur de l'envoi - S10.G00.01.001 et Nic de l'émetteur de l'envoi - S10.G00.01.002).
+        Par conséquent, dans le cas d’un changement d’émetteur, le signalement FCTU annule et remplace, d’un
+        signalement transmis par le précédent d’émetteur, doit être transformé en signalement FCTU initial.
+        Attention, pour un signalement FCTU annule, il faudra transmettre au centre de traitement de Pôle emploi, la
+        dernière AE PDF avec la mention « annulation ».
+    -   Un changement de siret de signalement FCTU : Un signalement FCTU annule et remplace ou annule ne
+        peuvent être effectués que par le même siret déclaré (SIREN- S21.G00.06.001 et NIC - S21.G00.11.001). Par
+        conséquent, dans le cas d’un changement de siret déclaré, le signalement FCTU annule et remplace et annule,
+        d’un signalement transmis par le précédent siret déclaré, doit être transformé en signalement FCTU initial.
+
+    NB : pour ces cas de signalement FCTU annule et remplace à convertir en signalement FCTU initial, dans un
+    premier temps, Pôle emploi va gérer ce signalement FCTU initial sur sollicitation du conseiller Pôle emploi. En
+    cible, Pôle emploi va gérer ce signalement FCTU initial qui n’en est pas un réellement comme un signalement FCTU
+    annule et remplace lors de l’intégration dans le cœur métier (à planifier).
+
+
+    F. Le repos compensateur
+Concernant la déclaration du repos compensateur en DSN, la demande de l’assurance chômage est d’effectuer la
+déclaration du repos compensateur sous le bloc 52 – prime et indemnité avec le code « 029 - Prime liée au rachat des
+jours de RTT avec période de rattachement spécifique » s’il y a paiement et que le repos n’a pas été pris.
+
+En revanche, si le repos compensateur est pris et payé par l’employeur alors il est déclaré dans le bloc 51 type « 002 -
+Salaire brut servant aux calculs des droits de l'Assurance chômage » avec le volume équivalent en temps de travail.
+
+
+    G. Constitution des primes en cours d’exécution du contrat
+Les primes sont affichées de la plus récente à la plus ancienne. S’il y a plus de primes que de lignes disponibles à
+afficher, la dernière ligne comprendra le cumul de toutes les autres (14ème ligne). Il faut savoir que ce cumul n’est
+prévu que pour l’affichage sur le document, le flux dématérialisé portera l’ensemble des primes et indemnités telles
+que déclarées.
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                     44
+
+Seules les primes respectant les règles suivantes seront présentes sur l’AE :
+
+    •   Pour les primes: afficher seulement les primes dont la date de paiement d’origine ou à défaut la date de
+        paiement est plus récente ou égale à la date de début de la période de référence.
+
+            •   Date de début de la période de référence = 1er du mois de la date de fin de contrat – 36 mois
+                complets
+
+ATTENTION : les primes et indemnités déclarées sous un code précis de la DSN (bloc 52) ne doivent en aucun cas être
+ajoutées aux salaires soumis à contributions assurance chômage (bloc 51 de type 002), à l’exception du code 046 que
+Pôle emploi n’exploite pas. En effet, le code 046 du bloc 52 correspond aux indemnités de congés payés par
+l’employeur or les congés payés par l’employeur sont assimilés à du travail et doivent donc être présents dans le bloc
+51 type 002 avec dans le bloc 53 correspondant la quantité de travail/congé correspondante.
+
+
+    H. Constitution des périodes de salaires avec le volume de « travail » et d’ « absence »
+       sur les modèles d’attestations employeur (Hors modèle AE Cinéma spectacle)
+     a. Salaires des mois complets avant la date de fin de contrat
+Pour un contrat de 36 mois et plus, les 36 ou 37 mois (36 mois + mois de la rupture complet ou pas) sont toujours
+affichés sur l’attestation employeur sans conditionnement (pas de test sur l’âge du salarié).
+
+L’affichage des périodes de salaires est conditionné par la réception des périodes de salaires par Pôle emploi du stock
+DSN.
+
+Pour rappel, Pôle emploi réceptionne l’historique des DSN mensuelles par le dispositif DSN en même temps que le
+signalement FCTU. Pôle emploi ne réceptionne que 36 mois de DSN mensuelle avant le mois de fin de contrat et les
+mois suivants (pour les régularisations ou rappels). Pour une fin de contrat intervenue au 10/06/2021, l’historique
+considéré sera jusqu’à la DSN mensuelle de juin 2018 et pour une fin de contrat au 30/06/2021 (= fin de mois), cela
+sera jusqu’à la DSN mensuelle de juin 2018.
+
+Et c’est seulement cet historique qui est remonté sur l’attestation employeur et en aucun cas les rappels dans ces
+mois de déclaration de périodes antérieures à celle-ci.
+
+Afin de constituer cet historique du cadre principal des salaires, Pôle emploi utilise le signalement FCTU et les DSN
+mensuelles qui l’accompagnent.
+
+A partir de la rubrique « Mois de la DSN mensuelle portant les derniers éléments déclarés dans le FCTU -
+S21.G00.62.020 », Pôle emploi détermine les mois M et M – 1 et écarte de ses traitements les DSN mensuelles
+correspondantes à M et M – 1 (S21.G00.62.020 = 01/06/2021 alors M = juin 2021 et M – 1 = mai 2021). Les éléments
+de ces deux mois de DSN mensuelles doivent être impérativement ajoutés dans le signalement FCTU par le logiciel de
+paie sinon ils n’apparaitront pas dans l’AE PDF et ne seront pas exploités par Pôle emploi.
+
+Deux périodes de salaires identiques (même date de début et de fin) portant les mêmes unités de travail et d’absence
+considérées par Pôle emploi sont cumulées en conservant la date de versement la plus ancienne.
+
+    b. Volume de « travail » et d’ « absence »
+Le temps de travail payé intègre les heures normales, complémentaires et supplémentaires, les absences payées
+considérées travaillées (jours fériés, périodes de congés payés par l’employeur, RTT, jours de récupération ou congé
+conventionnel) (cf bloc 53 : 53.001 = « 01 - Travail rémunéré » exprimé en 10 – heure, 20 - forfait jour et 21 - forfait
+heure).
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                    45
+
+Le temps d’absence correspond à l’absence rémunérée ou non rémunérée (non considérée travaillée car non liée à du
+travail effectué) (cf bloc 53 : 53.001 = « 02 - Durée d'absence non rémunérée » exprimé en 10 – heure ou en 12 –
+journée).
+
+Toutes les autres unités de volumes d’activité ou d’inactivité non indiquées ci-dessus ne sont pas utilisées et reprises
+sur l’AE.
+
+Si l’unité du volume S21.G00.53.003 n’est pas renseignée alors c’est l’unité de volume de travail du salarié pour le
+contrat S21.G00.40.011 qui est utilisée. A ce jour, si un bloc changement vient modifier l’unité S21.G00.40.011
+déclarée initialement avec la période de salaire alors ce changement n’est pas pris en compte lors de la
+rematérialisation de l’AE (évolution importante à prévoir).
+
+L’activité partielle correspond à un volume d’absence et non à un volume de travail et le chômage pour intempéries
+également. En effet, il s’agit dans ces cas d’une indemnité versée en remplacement du salaire qui équivaut à un
+revenu de remplacement qui ne supporte pas les mêmes prélèvements sociaux qu’un salaire. L’employeur paie cette
+indemnité pendant l’absence de son salarié et se fait ensuite rembourser son montant intégralement ou en partie.
+
+Les congés payés par une caisse professionnelle sont à déclarer en absence.
+
+Cf fiche consigne 825 de DSN INFO (https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/825/ ) et
+guide assurance chômage (https://www.net-entreprises.fr/media/documentation/guide-assurance-chomage.pdf).
+
+
+    I. Mandataires judiciaires
+Ainsi qu’il est noté dans la fiche consigne sur les modalités déclaratives pour les entreprises en liquidation judiciaire
+(https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/2389) : « En cas de liquidation judiciaire, c’est le
+mandataire qui dépose, pour l’entreprise, la DSN au titre de chaque mois principal déclaré manquant et gère les
+versements des salaires et le reversement du PAS à la DGFIP ». Aussi, nous pouvons voir sur la consigne de « Procédure
+spécifique traitement « liquidation judiciaire » (https://www.net-entreprises.fr/media/documentation/traitement-
+liquidation-judiciaire.pdf) que l’administrateur (ie : le mandataire judiciaire) a accès à un menu personnalisé de
+l’entreprise en liquidation lui permettant de saisir un formulaire d’attestation d’assurance chômage via le site de Pôle
+emploi (renvoyant vers le lien de l’AE web).
+
+Et le mandataire judiciaire déclaré en DSN pour un établissement peut donc produire un signalement FCTU pour ce
+dernier.
+
+
+    J. Changement d’identification d’un contrat
+Différents cas peuvent conduire à un changement d’identification d’un contrat :
+
+    -   Transfert d’un contrat d’un siret A à un siret B
+    -   Changement de logiciel de paie avec changement de numéro de contrat
+    -   Changement d’identification de l’individu
+    -   Changement de la date de début de contrat
+
+Pour certains de ces cas une solution de contournement peut potentiellement être utilisée. Il s’agit de transmettre un
+signalement FCTU avec les identifiants identiques à la dernière DSN mensuelle émise pour le contrat en question afin
+de conserver le chainage (https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/2130/kw/fctu).
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                    46
+
+En effet, l’information de chainage du contrat entre le siret A et le siret B ne peut pas être véhiculé par le signalement
+FCTU (à compléter avec l’arrivée du bloc 45 dans le signalement FCTU).
+
+Par exemple, lors d’une fin de contrat juste après un transfert de contrat d’un siret A vers un siret B, afin d’obtenir une
+attestation employeur à partir d’un signalement FCTU dans les délais, la seule solution est de déposer un signalement
+FCTU avec le siret A et non avec le siret B.
+
+Cette solution amène à la génération d’une attestation employeur avec le siret A pour une validation par le siret B.
+
+Si cette solution de contournement n’est pas viable alors il faudra attendre l’émission de la DSN mensuelle du siret B
+avec le bloc changement de chainage avant de déposer un signalement FCTU avec le siret B.
+
+Dans tous les cas (utilisation de la solution de contournement ou pas), il est important de rétablir la réalité en
+transmettant au final un signalement FCTU comportant la réalité (un signalement FCTU initial dans le cas où la solution
+de contournement n’a pas été utilisée ou un signalement FCTU annule et remplace dans le cas contraire).
+
+NB : Dans le cadre des CDDUD Cinéma spectacle, comme dans le cas général, les déclarations de changement sont
+indispensables pour obtenir tous les éléments du contrat sur l’AE.
+
+
+    K. Absence du mois M – 1 dans le signalement FCTU
+Différents cas peuvent conduire le déclarant à ne pas pouvoir mettre les éléments de la DSN mensuelle M – 1 dans le
+signalement FCTU :
+
+    -   Changement de logiciel de paie
+    -   Transfert de contrat d’un siret A à un siret B
+
+
+Si le déclarant est dans l’impossibilité de transmettre les éléments de DSN mensuelles M – 1 dans le signalement FCTU
+alors l’AE sera reconstruite par Pôle emploi sans ces éléments que la DSN mensuelle M – 1 était déposée ou pas sur le
+dispositif DSN.
+
+Pôle emploi se cale sur la rubrique S21.G00.62.020 (=M) pour écarter les DSN mensuelles M et M – 1. Par conséquent,
+il faut impérativement ajouter les éléments de M – 1 dans le signalement FCTU s’ils existent sinon ils n’apparaitront
+pas sur l’AE PDF cela impactant le calcul des allocations chômage à servir par Pôle emploi.
+
+    -   Si S21.G00.62.020 = septembre 2021 alors il doit y avoir septembre 2021 et aout 2021 dans le signalement
+        FCTU
+
+Ci-dessous, une solution de contournement non validée par net-entreprises (gip-mds) :
+Si le mois d’aout 2021 n’est pas présent sur le logiciel de paie, il est possible de faire ceci :
+
+             o   Attendre le dépôt de la DSN mensuelle d’aout 2021 par l’autre logiciel de paie,
+             o   Déposer le signalement FCTU avec la paie de septembre 2021 seulement et S21.G00.62.020 = octobre
+                 2021 (même si cette paie n’existe pas et n’existera peut-être jamais pour ce contrat), si les éléments
+                 d’août 2021 n’apparaissent toujours pas cela signifie que la dsn mensuelle n’a pas été encore traitée
+                 complètement, il faut attendre et déposer un signalement FCTU annule et remplace.
+
+
+    L. Changement de version de norme et FCTU
+Une nouvelle version de NEODES est prévue annuellement au mois de janvier et appliquée pour le MPD de janvier.
+Pôle emploi accepte l’ancienne et la nouvelle norme dès le 1er janvier et très souvent même à partir du mois de
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                    47
+
+novembre de l’année précédente.
+La nouvelle version est systématiquement ouverte par le dispositif DSN après la date d’exigibilité du 15 janvier. Par
+conséquent, un signalement FCTU en nouvelle version devra être déposé qu’après l’ouverture à fin janvier.
+Seul un signalement FCTU ancienne version, est accepté par le dispositif DSN du 1er janvier jusqu’à la mise en place de
+la nouvelle version. Une solution est en cours d’étude pour arriver à permettre de déposer la nouvelle norme dès le 1er
+janvier.
+
+
+    M. Les notifications du dispositif DSN et de Pôle emploi
+Ci-dessous de la documentation sur le tableau de bord DSN :
+
+https://www.net-entreprises.fr/media/documentation/tableau-de-bord-dsn.pdf
+
+https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/511/
+
+https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1381
+
+
+
+Et pour le mode API, il faut suivre la documentation technique suivante pour mettre en place la communication de
+machine à machine :
+
+https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/346
+
+
+    N. Les avances de primes ou de salaires
+Les avances de salaires ou de primes ne sont pas à déclarer en DSN. Les primes et salaires sont déclarés en DSN quand
+ils sont réellement dus et soumis à contributions et cotisations.
+
+
+    O. Grilles de remplissage des primes et indemnités
+https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1365
+
+La prime d'encouragement à la mobilité n’est pas référencée dans cette grille : c’est le code « 028 - Prime non liée à
+l'activité » qui doit être utilisée et elle n’apparaitra pas sur l’attestation employeur car elle n’est pas utilisée par
+l’assurance chômage pour les calculs de droits.
+
+Il existe également une grille de correspondance entre les indemnités et les ruptures dans le guide de saisie des
+attestations employeur sous pole-emploi.fr à l’adresse suivante https://www.pole-
+emploi.fr/files/live/sites/PE/files/dri/Guide-saisie-Attest-Employeur.
+
+
+    P. Taille technique approximative de l’AE au format pdf
+
+
+
+    Q. Cas d’un salarié non identifié auprès du SNGI
+Même si l’individu n’est pas identifié par le SNGI, l’AE PDF sera bien constituée car il y a une obligation réglementaire
+de remise d’une AE PDF même si le salarié n’est pas encore enregistré dans le SNGI.
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                      48
+
+L’installation dans le dossier du demandeur d’emploi n’est pas automatique. Il faut l’intervention d’un conseiller pour
+récupérer cette attestation.
+
+Cette attestation sera donc très certainement demandée par Pôle emploi au salarié.
+
+Et c’est pour cette raison que l’on insiste sur le fait que l’employeur doit absolument déclarer avec l’identité exacte,
+NIR compris s’il existe, afin d’éviter les interventions manuelles et permettre une automatisation de bout en bout.
+
+
+    R. Ancienneté du salarié dans l’entreprise
+Dans le cas où il y a une mutation d’un individu entre deux établissements sans rupture de contrat :
+
+    •   Si les deux établissements sont sous le même SIREN, alors l’ancienneté dans l’entreprise est conservée d’un
+        établissement sur l’autre
+    •   Si les deux établissements sont sous deux SIREN différents, alors
+             o S’il y a application de l’article L1224-1 du code du travail ou s’il existe une convention de transfert
+                 entre 2 entités (convention collective, convention tripartite, autre accord contractuel), alors
+                 l’ancienneté dans l’entreprise est conservée d’un établissement sur l’autre
+             o Sinon, l’ancienneté dans l’entreprise n’est pas conservée d’un établissement sur l’autre
+
+
+    S. Salarié frontalier
+Si un salarié français travaille dans un pays frontalier, pour faire valoir ses droits à l’assurance chômage, il doit
+réclamer le document portable U1 à l'institution compétente en matière d'assurance chômage de l’ancien État
+d'emploi.
+
+Si un salarié frontalier travaille en France, pour faire valoir ses droits à l’assurance chômage dans son pays d’origine, il
+doit réclamer à Pôle emploi, le document portable U1.
+
+Pour ces cas précis, cela n’est pas une attestation employeur modèle DAJ 1240 qu’il faut produire et fournir au salarié
+comme cela est possible par l’intermédiaire d’un signalement FCTU.
+
+https://www.service-public.fr/particuliers/vosdroits/F33775
+
+
+    T. - Salaire brut servant aux calculs des droits de l'Assurance chômage
+Dans le bloc 51, le type « 002 - Salaire brut servant aux calculs des droits de l'Assurance chômage » doit prendre en
+compte les montants de rémunération des heures supplémentaires qu’elles soient exonérées ou non. Le régime fiscal
+et social appliqué à ces heures ne doit pas impacter leur prise en compte et celles des rémunérations afférentes dans
+les salaires.
+
+Ces heures doivent ainsi être déclarées et incluses dans les heures travaillées, par période de salaire, de même que
+leur rémunération dans les rémunérations participant au salaire de référence.
+
+Attention : le montant des heures supplémentaires exonérées est déclaré en DSN à la fois dans le type 026 (partie
+exonérée) et à la fois dans le type 017 ou 018 (somme globale).
+
+https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1323/kw/1323
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                 49
+
+    U. Populations ayant un abattement pour frais professionnels
+ L’employeur doit déclarer le salaire abattu si l’assurance chômage doit prendre en compte un salaire abattu
+(exemple : BTP) et déclarer un salaire non abattu dans le cas contraire (exemple : journaliste).
+
+Pour information, le « Taux de déduction forfaitaire spécifique pour frais professionnels - S21.G00.40.023 » est affiché
+sur l’AE PDF en haut à droite sur les pages de salaires pour information. Pôle emploi n’utilise donc pas le « Taux de
+déduction forfaitaire spécifique pour frais professionnels - S21.G00.40.023 ».
+
+Attention, la fiche DSN 484 (https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/484/kw/484 ) est en
+cours de mise à niveau.
+
+
+    V. Préavis et CSP
+Un sujet est en cours d’instruction concernant l’incohérence de la fiche http://net-
+entreprises.custhelp.com/app/answers/detail/a_id/1264/p/674 et les contrôles en place dans la norme.
+
+
+    W. Calcul de l’ancienneté affichée sur l’attestation employeur
+Une conversion en nombre de mois de [S21.G00.86.003 - Anciennete.Valeur] pour type "07 - Ancienneté dans
+l'entreprise" est effectuée.
+
+- Si Unité de mesure « S21.G00.86.002 » = 01 - jours ET que la Valeur « S21.G00.86.003 » / 30,42 = XX,YY
+
+alors l’ancienneté = XX
+
+NB : 30,42 correspond au nombre de jours pour un mois dans les règles (texte de lois) de l’assurance chômage
+notamment pour le calcul du plafond du cumul des allocations avec la rémunération = SJR * 30,42)
+
+- Si Unité de mesure « S21.G00.86.002 » = 02 mois
+
+alors l’ancienneté = Valeur « S21.G00.86.003 »
+
+- Si Unité de mesure « S21.G00.86.002 » = 03 - années
+
+alors l’ancienneté = Valeur « S21.G00.86.003 » * 12
+
+
+    X. RTT restants à la rupture de contrat
+Les RTT trouvent naissance dans l'exécution du contrat de travail et les sommes afférentes sont soumises à
+contributions assurance chômage et cotisations AGS.
+
+Ces sommes sont prises en compte dans la détermination du droit Assurance chômage (dans le cadre de la
+détermination du montant (loi n° 2008-111 du 8 février 2008)).
+
+Concernant les modalités déclaratives, il s'agit bien de la valeur 29 de la rubrique 52.001 avec la période de
+rattachement correspondant à la période d'acquisition des RTT.
+
+NB : Pôle emploi n’utilise pas le type « 023 - Jours de RTT monétisés » du bloc 51 – rémunération.
+
+(cf fiche https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/2604/)
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                    50
+
+    Y. Date de fin initiale du CDD (S21.G00.40.010)
+La réglementation assurance chômage tire des conséquences de la rupture anticipée du CDD à l’initiative de
+l’employeur. En effet, dans cette situation, le paiement des allocations est reporté au lendemain de la date de fin de
+contrat prévisionnel, l’employeur étant alors tenu de verser les salaires qu’il aurait dû supporter jusqu’à la fin du
+contrat telle qu’initialement prévue. Aussi, la date de fin prévisionnelle d’un CDD ne doit pas être modifiée par la date
+de fin du contrat de travail.
+
+cf fiche https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/238/
+
+
+    Z. Dernier jour travaillé et payé
+Le DJTP est le dernier jour travaillé effectif ou a été considéré comme travaillé (un jour de congé payé pris et
+rémunéré par l’employeur, un jour de RTT pris, un jour de congé conventionnel pris, un jour pris en contrepartie
+d’heures complémentaires ou supplémentaires, un jour férié, un week-end, un repos compensateur pris) et payé de
+manière habituelle. Ce jour ne peut en aucun cas être un jour d’absence non considéré travaillé (maladie, formation,
+congé payé pris et rémunéré par une caisse professionnelle, préavis non effectué…). S’il n’y a pas eu de reprise de
+travail avant la rupture de contrat alors le DJTP doit être positionné avant la période d’absence.
+
+Concernant les fins de contrat de travail ou les engagements de procédure de licenciement jusqu’au 30 septembre
+2021, le dernier jour travaillé et payé au salaire habituel (DJTP) doit être renseigné. Le DJTP n’est plus pris en compte à
+l’exception des Dockers occasionnels ou professionnels, mais reste à renseigner en DSN.
+
+
+    AA.         Changement d’unité de contrat et bloc 53 sans unité de travail ou d’absence
+Pôle emploi utilise l’unité de mesure de la quotité de travail - S21.G00.40.011 de la déclaration dans le cas où un bloc
+53 n’a pas d’unité de mesure - S21.G00.53.003.
+
+En revanche, à ce jour si un bloc changement dans une déclaration suivante modifie l’unité de mesure de la quotité de
+travail - S21.G00.40.011 de la déclaration précédente alors Pôle emploi prend toujours l’unité de mesure de la quotité
+de travail - S21.G00.40.011 initialement déclarée dans la déclaration et ne gère donc pas le changement.
+
+Par exemple :
+
+DSN de janvier 2022 :
+
+Unité de mesure de la quotité de travail - S21.G00.40.011 = 10 – heure
+
+Type S21.G00.53.001 = 01 - Travail rémunéré
+
+Mesure S21.G00.53.002 = 151,67
+
+     Pôle emploi prend 151,67 heures de travail
+
+DSN de février 2022 :
+
+Unité de mesure de la quotité de travail - S21.G00.40.011 = 20 – forfait jour
+
+Date de la modification S21.G00.41.001 = 01/02/2022
+
+Ancienne unité de mesure de la quotité de travail S21.G00.41.006 = 20 – forfait jour
+
+Profondeur de recalcul de la paie S21.G00.41.028 = 01/01/2022
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                    51
+
+     Pôle emploi continue à prendre 151,67 heures de travail pour janvier 2022
+
+
+    BB.         Attestation employeur pour des salariés ayant été expatriés
+Pour le moment, le signalement FCTU ne permet pas d’obtenir une attestation employeur expatrié DAJ 317 dont
+l’entête est la suivante :
+
+
+
+
+Seul, le modèle régime général DAJ 1240 est disponible et pouvant convenir à un expatrié dans certains cas.
+
+
+
+
+En fait, il y a des règles pour déterminer si, au moment de la rupture, le salarié est considéré expatrié au sens de
+l’assurance chômage ou pas et cela détermine s’il faut utiliser le modèle DAJ 317 ou celui du régime générale DAJ
+1240.
+
+Par exemple, s’il y a une période d’expatriation dans le contrat de travail du salarié dans l’entreprise mais que cette
+période remonte à plus de 2 mois, c’est le modèle DAJ1240 qui doit être utilisé (et disponible sur le signalement FCTU)
+en revanche s’il vient de revenir de son expatriation alors c’est le modèle DAJ 317 qui doit être utilisé (non disponible
+à ce jour par le signalement FCTU).
+
+
+    CC.Salaires incorrects pour les périodes les plus anciennes sur l’Attestation
+       employeur
+Dans certains cas, Pôle emploi ne réceptionne pas tout l’historique des DSN mensuelles du contrat concerné par le
+signalement FCTU du dispositif DSN. Il s’agit de contrat dont un changement (numéro de contrat, SIRET, ou date de
+début de contrat) s’est produit et ce changement n’a pas été déclaré ou n’a pas été encore pris en compte par le
+dispositif DSN. Seuls des blocs 41 – changement, dans une DSN mensuelle validée et intégrée par le bloc 3 DSN
+peuvent permettre de conserver l’historique.
+
+Pôle emploi n’affiche pas les rappels sur des périodes antérieures à 36 mois avant fin de contrat. Cependant, si
+l’historique des 36 mois n’est pas complet à la réception de Pôle emploi, Pôle emploi peut alors afficher seulement des
+rappels sans période de salaire principal (sujet à planifier côté Pôle emploi car il ne faudrait pas présumer de la
+réception systématique des 37 mois avant fin de contrat).
+
+Exemple : on a un contrat du 01/01/2012 au 02/03/2022 et Pôle emploi ne reçoit que le signalement FCTU sans aucun
+historique.
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                    52
+
+Dans le signalement FCTU, il y a M = mars 2022 (62.20=01032022) et M – 1 = février 2022, dans l’attestation
+employeur, il y aura bien entendu les salaires de mars et de février 2022 qui sont corrects. En revanche, si dans la paie
+de février 2022, il y avait un rappel pour janvier de -200 euros alors on aura aussi sur l’attestation employeur un
+salaire de -200 euros pour janvier. Le salaire de janvier est alors incorrect.
+
+
+    DD.          Forfait jour en heure pour l’assurance chômage
+Dans le cadre de l’application de la réglementation d’assurance chômage, les périodes d’emploi salariées sont
+décomptées, pour une journée de travail à temps plein, à raison de 5h par jour.
+
+En effet, les droits aux allocations sont calculés en lissant le temps de travail sur l’ensemble de la semaine, dans une
+logique calendaire, soit, pour un emploi à temps plein, selon la formule 5h*7 jours = 35h.
+
+Le salaire de référence, et, en cascade, le salaire journalier de référence, à partir duquel est défini le montant
+journalier d’allocation à servir suivent cette même logique calendaire.
+
+En complément, la réglementation d’assurance chômage considère systématiquement un salarié bénéficiant d’un
+horaire au forfait journalier comme travaillant à temps plein.
+
+
+    EE.         Quotité de travail du contrat et quotité de travail de référence de l'entreprise
+          pour la catégorie de salarié : des conséquences pour l’assurance chômage
+
+
+La « Modalité d'exercice du temps de travail S21.G00.40.014 » n’est pas utilisée à ce jour par Pôle emploi.
+
+Pôle emploi applique un coefficient de réduction dès lors que les valeurs suivantes sont différentes et que la quotité
+de travail du contrat est inférieure à la quotité de travail de référence de l’entreprise pour la catégorie de salarié :
+
+    -     la quotité de travail du contrat (S21.G00.40.013)
+    -     la quotité de travail de référence de l'entreprise pour la catégorie de salarié (S21.G00.40.012)
+
+
+Attention : pour un contrat de travail signé en heures, ces quotités ne doivent en aucun cas être égales à 0 et l’unité
+de mesure de la quotité de travail S21.G00.40.011 ne doit surtout pas être égale à 99 – non concerné.
+
+(cf fiche sur les contrats non mensualisés : https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/2593).
+
+PS : Pour les cas des salariés employés par un particulier employeur, Pôle emploi n’applique aucun coefficient de
+réduction.
+
+
+    FF. FCTU en mode test en production et FCTU sur environnement de test
+    a. Le signalement FCTU en mode test en production
+Un signalement FCTU en mode test (Code envoi du fichier d'essai ou réel - S10.G00.00.005 = 01 - envoi fichier test)
+déposé sur l’environnement de production ne donne pas lieu à restitution d’une AE PDF par Pôle emploi. Le dispositif
+DSN ne transmet pas à Pôle emploi ce type de déclaration.
+
+     b. Environnement de test hors production :
+Il existe un environnement de test appelé environnement Pilote ou environnement éditeurs :
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                    53
+
+       Information détaillée sur les tests libres des « Fins de contrat de travail unique (FCTU) sur l’adresse internet
+        suivante: https://www.net-entreprises.fr/declaration/pilotes-dsn/
+       Les dépôts doivent être effectués en mode réel (Code envoi du fichier d'essai ou réel- S10.G00.00.005 = 02 -
+        envoi fichier réel) pour obtenir une AE PDF de Pôle emploi.
+       Attention, l’historique des DSN mensuelles doit être déposé au préalable. Cet environnement ne contient pas
+        l’historique de la production.
+
+
+    GG.           FCTU ou CDDUD (régime général)
+Les employeurs qui sont éligibles aux CDD d’usage, dont ceux du secteur de l’hôtellerie-restauration pour leurs extras
+notamment, disposent du service de production des AE CDDU-D (CDDU – circuit dérogatoire) dans le cadre de la DSN.
+
+A ce titre, il leur est permis, par exception, de produire une seule fois par mois, pour le mois M-1, l’ensemble des
+déclarations mensuelles et fin de contrat – via un process de déclaration simplifiée - pour tous les extras ou plus
+généralement pour tous les CDDU.
+
+Cela leur permet de transmettre à Pôle emploi des AE DSN CDDU-D par voie dématérialisée et de remettre aux salariés
+concernés une AE PDF DSN CDDU qui regroupe toutes les périodes d’emploi ainsi déclarées.
+
+Les dockers occasionnels en CDD d’Usage en application de l’article L5343-6 du code des transports peuvent effectuer
+également des déclarations DSN en mode dérogatoire (CDDU D). Attention, un docker titulaire de la carte G est exclu
+des AE DSN.
+
+Attention, cette fonctionnalité n’est techniquement possible que pour les contrats intra DSN mensuelle (l’ensemble
+du contrat est déclaré dans une même DSN mensuelle). Il faut donc bien respecter les règles décrites sur DSN INFO
+(http://net-entreprises.custhelp.com/app/answers/detail/a_id/1723/).
+
+Dès lors que le contrat de travail ne rentre pas dans le circuit dérogatoire (hors périmètre autorisé en DSN ou
+demande expresse du salarié), un signalement FCTU doit être émis.
+
+
+    HH.           Type de gestion assurance chômage
+
+
+Cas possibles            Nature juridique de               Type de gestion de       Message Rubriques à alimenter
+                         l'employeur - S21.G00.11.017      l’Assurance chômage      norme
+                         (non obligatoire)                 - S21.G00.40.029         SIG12
+Contrat soumis au        Renseignée à 01 - Privée          A ne pas renseigner
+régime d’assurance       Renseignée à 02 – Publique ou     A ne pas renseigner      SIG12
+chômage                  03 - Etablissement privé à
+                         capitaux majoritaires publics
+Contrat en auto          Renseignée à 01 - Privée ou 02    01 - employeur en                   >Statut d'emploi du salarié -
+assurance                – Publique ou 03 -                auto-assurance                      S21.G00.40.026 obligatoire
+                         Etablissement privé à capitaux                                        (différente 99 – non
+                         majoritaires publics                                                  concernée)
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                54
+
+Contrat avec une         Renseignée à 01 - Privée ou 02   02 - employeur                     >Numéro de convention de
+convention de gestion    – Publique ou 03 -               ayant conclu une                   gestion - S21.G00.40.033
+assurance chômage        Etablissement privé à capitaux   convention de                      >Code affectation Assurance
+conclue avec l’Unedic    majoritaires publics             gestion                            chômage - S21.G00.40.027
+ou Pôle emploi                                                                               >Date d’effet de la
+                                                                                             convention de gestion -
+                                                                                             S21.G00.40.032
+                                                                                             >Numéro interne employeur
+                                                                                             public - S21.G00.40.028
+                                                                                             (facultatif)
+
+Contrat en adhésion      Renseignée à 01 - Privée ou 02   03 - employeur                     >Statut d'emploi du salarié -
+révocable                – Publique ou 03 -               ayant adhéré au                    S21.G00.40.026 obligatoire
+                         Etablissement privé à capitaux   régime d'Assurance                 (différente 99 – non
+                         majoritaires publics             chômage (adhésion                  concernée)
+                                                          révocable)                         >Date d'adhésion -
+                                                                                             S21.G00.40.030
+                                                                                             >Date de dénonciation -
+                                                                                             S21.G00.40.031 (facultative)
+Contrat en adhésion                                       04 - employeur                     >Statut d'emploi du salarié -
+non révocable                                             ayant adhéré au                    S21.G00.40.026 obligatoire
+                                                          régime d'Assurance                 (différente 99 – non
+                                                          chômage (adhésion                  concernée)
+                                                          non révocable)                     >Date d'adhésion -
+                                                                                             S21.G00.40.030
+Contrat pour les         Renseignée à 02 – Publique       05 - adhésion au                   >Statut d'emploi du salarié -
+apprentis du secteur                                      régime particulier                 S21.G00.40.026 obligatoire
+public                                                    pour les apprentis                 (différente 99 – non
+                                                          du secteur public                  concernée)
+Contrat intermittents    Renseignée à 01 - Privée         A ne pas renseigner
+du spectacle             02 – Publique ou 03 -                                    SIG12
+(cotisations assurance   Etablissement privé à capitaux
+chômage recouvertes      majoritaires publics
+par Pôle emploi)
+Contrat expatrié         Renseignée à 01 - Privée         A ne pas renseigner
+(cotisations assurance   02 – Publique ou 03 -                                    SIG12
+chômage recouvertes      Etablissement privé à capitaux
+par Pôle emploi)         majoritaires publics
+
+
+ATTENTION :
+
+    -   Même si les salaires bruts ne sont pas soumis à cotisations assurance chômage pour les contractuels dans le
+        secteur public (CDI et CDD de droit public) (par exemple si l’employeur est en auto assurance ou en
+        convention de gestion), il est important de déclarer tout de même les salaires dans le bloc 51 type 002 -
+        Salaire brut soumis à contributions d'Assurance chômage car il faut considérer que ce salaire brut sert aux
+        calculs des droits de l’assurance chômage (« 002 - Salaire brut servant aux calculs des droits de l’assurance
+        chômage » sur le cahier technique 2024). Et il faut impérativement compléter le volume d’activité (bloc 53
+        type 01) et d’inactivité (bloc 53 type 02) correspondant. (Fiche en DSN : https://www.net-
+        entreprises.fr/declaration/dsn-fonction-publique/#guides-et-documentation-utile et en particulier
+        https://www.net-entreprises.fr/media/documentation/guide-dsn-intermediaire-2.pptx qui explique
+        « comment déclarer en DSN les salaires des contractuels ? »)
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                               55
+
+    -   Le numéro de convention de gestion - S21.G00.40.033 doit impérativement respecter le format suivant :
+            o 10 caractères, pour une convention de gestion signée après le 1er janvier 2010 (Pôle emploi),:
+                    Les 4 premiers caractères correspondent aux chiffres de l'année et du mois de la signature de
+                       la convention conclue entre l’employeur public et Pôle emploi.
+                    Les 3 caractères suivants visent à identifier l’employeur public.
+                    Les 3 derniers chiffres renseignent sur le numéro d'établissement financeur.
+            o En l'état de la norme, une saisie inférieure à 10 caractères ou incorrect empêchera le rattachement
+              au régime d’assurance chômage correct.
+            o Le « code affectation Assurance chômage - S21.G00.40.027 » doit impérativement être renseigné et
+              correspondre à une des affectations définies pour le numéro de convention concernée dans la
+              convention de gestion signée avec Pôle emploi.
+
+
+NB : le SIG-12 n’est pas un contrôle bloquant en norme. Ce type de contrôle signale normalement une incohérence
+déclarative mais dans certains cas précis cela n’est pas forcément incohérent (cf le tableau de complétude).
+
+
+    II. Guide relatif à l’indemnisation du chômage dans la fonction publique civile
+https://www.fonction-publique.gouv.fr/toutes-les-publications/guide-sur-lindemnisation-du-chomage-dans-la-
+fonction-publique-civile
+
+Il y a notamment en fiche 3, le tableau de concordance des motifs de privation d’emploi (motifs rupture secteur public
+/ motifs rupture attestation employeur).
+
+
+    JJ. Quotités de travail pour le contrat et l’entreprise en mensuel ou en hebdomadaire
+        (consigne gip-mds)
+Pour les natures de contrats suivantes, les quotités de travail du contrat et de l’entreprise sont exprimées en
+hebdomadaire et non en mensuel :
+
+-       09 – Contrat de travail à durée indéterminée de droit public
+
+-       10 – Contrat de travail à durée déterminée de droit public
+
+-       20 – [FP] Détachement d’un agent d’une Fonction Publique donnant lieu à pension (ECP)
+
+-       21 – [FP] Détachement d’un agent d’une Fonction Publique ne donnant pas lieu à pension (ENCP)
+
+-       50 – Nomination dans la fonction publique (par arrêté, par décision,…)
+
+NB : pour la nature 21 – [FP] Détachement d’un agent d’une Fonction Publique ne donnant pas lieu à pension (ENCP)
+lorsque le détachement a lieu dans un établissement du secteur privé, alors la quotité de travail sera exprimée
+mensuellement.
+
+Cf fiche https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/2059
+
+PS : Un signalement FCTU pour les natures de contrat de travail 20 – [FP] Détachement d’un agent d’une Fonction
+Publique donnant lieu à pension (ECP), 21 – [FP] Détachement d’un agent d’une Fonction Publique ne donnant pas lieu
+à pension (ENCP), 50 – Nomination dans la fonction publique (par arrêté, par décision,…) ne donne pas lieu à
+génération d’AE.
+
+
+
+
+Version 3.2 du 28/03/2023
+De la DSN à l’attestation employeur                                                                                56
+
+    KK.        Mise à pied conservatoire (consigne gip-mds)
+Pour les contrats de droits privés, la mise à pied conservatoire doit être déclarée en DSN comme un congé divers non
+rémunéré avec le code « 501 - Congé divers non rémunéré » en rubrique « Motif de suspension - S21.G00.65.001 »
+
+PS : Le code « 671 - [FP] Exclusion temporaire de fonctions » ne concerne que la fonction publique et l’application
+d’une sanction disciplinaire spécifique pour les agents de la fonction publique pendant laquelle le fonctionnaire est
+exclu du service et ne perçoit plus aucune rémunération. Il n'acquiert donc aucun droit à retraite pendant la période
+d'exclusion.
+
+
+
+
+Version 3.2 du 28/03/2023
+
