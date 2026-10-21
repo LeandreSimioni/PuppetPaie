@@ -541,6 +541,27 @@ fn hors_ligne_une_seule_phrase_et_pas_de_ligne_de_retours() {
     assert_eq!(t["hors_ligne"], json!(true));
     assert_eq!(t["retours"], json!(""), "hors ligne, la ligne des retours se tait");
     assert_eq!(t["incidents"], json!([]));
+    // Elles ne se perdent pas : la trace garde qui n'a pas repondu.
+    assert!(t["injoignables"].as_array().unwrap().iter().any(|i| i.as_str().unwrap().contains("Drive")), "{}", t);
+}
+
+/// « Hors connexion, c'est quand il n'y a pas internet » (Leandre, 21/10/2026) : le Drive qui ne repond pas ne tait pas la
+/// releve qui, elle, est passee ; la trace dit les deux.
+#[test]
+fn le_drive_injoignable_ne_tait_pas_la_releve_passee() {
+    let _t = tour();
+    let c = compagnie("drive-injoignable", "fictive-3090-petite", true);
+    let (base, _, _) = organismes(vec![], Pannes::default());
+    let (mut d, _) = drive_compte();
+    d.drive.pannes.push(Panne { operation: "chemin", motif: "".into(), erreur: ErreurGoogle::google("Reseau injoignable : [Errno 111] Connection refused") });
+    let mut clients = les_deux(&c, &base);
+    clients.drive = Some(&mut d as &mut dyn Drive);
+    let r = jouer(&c, &Options { filet: false, signatures: false, ..opt() }, clients);
+    assert!(r.hors_ligne);
+    assert!(r.releve.is_some());
+    let t = trace(&c);
+    assert_eq!(t["retours"], json!("Aucun retour sur la periode."), "{}", t);
+    assert_eq!(t["injoignables"].as_array().unwrap().len(), 1, "{}", t);
 }
 
 // ============================================================================ les gardes (l'ouverture n'echoue jamais)
@@ -850,7 +871,7 @@ fn la_trace_et_le_resultat_portent_toutes_leurs_cles() {
     assert_eq!(
         cles(&t),
         tri([
-            "quand", "secondes", "sauvegarde", "sauvegarde_souci", "retours", "hors_ligne", "nouveaux", "signatures", "fiches", "signatures_recues", "sources", "maj", "maj_note",
+            "quand", "secondes", "sauvegarde", "sauvegarde_souci", "retours", "hors_ligne", "injoignables", "nouveaux", "signatures", "fiches", "signatures_recues", "sources", "maj", "maj_note",
             "maj_attend", "maj_exigee", "maj_etat", "sources_etat", "incidents", "manquants", "a_poser", "taux_pas", "horloge"
         ])
     );
@@ -862,7 +883,7 @@ fn la_trace_et_le_resultat_portent_toutes_leurs_cles() {
         cles(&r.en_json()),
         tri([
             "quand", "secondes", "sauvegarde", "retours", "signatures", "maj", "sources", "incidents", "manquants", "taux_pas", "retours_dpae", "fiches", "a_poser", "filet",
-            "horloge", "hors_ligne", "tout_va_bien", "retenue"
+            "horloge", "hors_ligne", "injoignables", "tout_va_bien", "retenue"
         ])
     );
     assert_eq!(r.en_json()["maj"], Value::Null);
@@ -1069,7 +1090,9 @@ fn decision_4_le_hors_ligne_ne_vient_que_de_la_seconde_moitie() {
     assert!(r2.hors_ligne);
     let t2 = trace(&c);
     assert_eq!(t2["hors_ligne"], json!(true));
-    assert_eq!(t2["retours"], json!(""), "comme la trace d'une seule ouverture hors ligne");
+    // Le Drive qui ne repond pas ne tait plus la releve passee (Leandre, 21/10/2026) ; il se nomme.
+    assert_eq!(t2["retours"], t1["retours"], "la releve du premier appel reste dite");
+    assert!(t2["injoignables"].as_array().unwrap().iter().any(|i| i.as_str().unwrap().contains("Drive")), "{}", t2);
     assert_eq!(t2["incidents"], t1["incidents"], "l'erreur de reseau n'est pas un incident");
     assert_eq!(t2["manquants"], t1["manquants"]);
 }

@@ -196,6 +196,27 @@ fn une_dsn_passee_n_a_plus_de_depot_a_proposer() {
     assert_eq!(h("2026-09"), json!(true));
 }
 
+/// France Travail publie son compte rendu « cinéma, spectacle » (nature 45) toujours au statut ANOBLOQUANTE (guide
+/// « De la DSN à l'attestation employeur » v3.2, p. 10 : `atelier/reference/sources/net-entreprises-base-connaissances/
+/// net-entreprises-de-la-dsn-a-l-attestation-employeur-v3-2-20230328.txt`). Quand la piece ne releve rien, c'est elle
+/// qui fait le verdict : l'Historique ne montre pas « ANO » sur un compte rendu sans anomalie (Leandre, 21/10/2026).
+#[test]
+fn un_compte_rendu_publie_ano_sans_anomalie_dit_ok() {
+    let racine = compagnie("crm45_ok");
+    let p = racine.join("journal/depots.json");
+    let mut j: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap();
+    j.retain(|l| l["mois"] != json!(MOIS));
+    j.push(ligne("reel", REEL, "2026-10-19T17:11:00", json!([retour("45", "ANO", "20261020090000", json!({}))])));
+    std::fs::write(&p, serde_json::to_string_pretty(&j).unwrap()).unwrap();
+    std::fs::write(racine.join(format!("retours/20261020-090000_nature45_{}.xml", REEL)), rapport("45", REEL, "02", "OK", "")).unwrap();
+
+    let r = reussi(&route(&racine, "historique-mois", json!({"mois": MOIS}), JOUR)).clone();
+    let crm = &r["envois"][0]["retours"][0];
+    assert_eq!((crm["statut"].clone(), crm["verdict"].clone()), (json!("ANO"), json!("OK")), "{}", crm);
+    assert_eq!(crm["phrases"][0], json!("Publié au statut ANO, mais la pièce dit : aucune anomalie (OK)."), "{}", crm);
+    assert_eq!(crm["anomalies"], json!([]));
+}
+
 // ------------------------------------------------- NEOReS et organismes complementaires
 
 /// Un CRM 118 (effectifs) au format NEOReS, fabrique d'apres le cahier technique 2026.1.2

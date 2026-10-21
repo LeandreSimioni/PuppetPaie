@@ -86,13 +86,22 @@ function dessinerVeille(v) {
 
   // 1. L'ÉTAT, en une phrase. Le détail des relevés passe au survol : on
   //    le cherche rarement, et il reste à portée.
-  const detail = [d.sauvegarde, d.retours, d.signatures, d.fiches, d.sources,
+  const detail = [...(d.injoignables || []), d.sauvegarde, d.retours, d.signatures, d.fiches, d.sources,
                   d.maj_exigee ? "" : d.maj].filter(Boolean).join("\n");
   if (v.sauvegarde_en_cours) suivreLesEtapes();
-  const morceaux = [`<span class="veille-etat" title="${echapper(detail)}">${d.hors_ligne
-    ? "<b>Hors connexion</b> — sauvegarde et retours au prochain passage"
-    : `À jour — relevé ${echapper(heureDuPassage(d.quand))}${v.sauvegarde_en_cours
-        ? ` · <span class="veille-etape">${echapper(v.etape || "sauvegarde en cours…")}</span>` : ""}`}</span>${enFictive()
+  // « HORS CONNEXION, C'EST QUAND IL N'Y A PAS INTERNET, PAS QUAND ON ATTEND » (Léandre, 21/10/2026) : l'attente
+  // dit l'heure du prochain relevé ; un service qui n'a pas répondu se nomme (au survol), et le relevé qui est
+  // passé reste dit. « Pas de réponse » seulement quand le relevé lui-même n'est pas passé.
+  const prochain = v.prochain_dans ? ` · prochain relevé dans ${v.prochain_dans} min` : "";
+  const sansReponse = (d.injoignables || []).join("\n");
+  const morceaux = [`<span class="veille-etat" title="${echapper(detail)}">${d.hors_ligne && !d.retours
+    ? `<b>Pas de réponse</b> au relevé ${echapper(heureDuPassage(d.quand))} — vérifier la connexion${
+        v.prochain_dans ? ` ; nouvel essai dans ${v.prochain_dans} min` : ""}`
+    : `À jour — relevé ${echapper(heureDuPassage(d.quand))}${prochain}${v.sauvegarde_en_cours
+        ? ` · <span class="veille-etape">${echapper(v.etape || "sauvegarde en cours…")}</span>` : ""}`}</span>${
+    d.hors_ligne && d.retours ? ` — <span class="veille-sauvegarde" title="${echapper(sansReponse)}">${
+      (d.injoignables || []).length > 1 ? `${d.injoignables.length} services n'ont pas répondu`
+        : "un service n'a pas répondu"} (détail au survol) : nouvel essai au prochain relevé</span>` : ""}${enFictive()
     ? ` · <button class="lien" data-fictive-explique="coulisses">compagnie fictive : pas de
         sauvegarde — pourquoi ?</button>` : ""}`];
   // LA SAUVEGARDE QUI N'ARRIVE PAS AU BOUT, à sa place (tickets #231 et #232) : un dossier que

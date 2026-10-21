@@ -22,6 +22,8 @@ pub struct Veille {
     sauvegarde_en_cours: AtomicBool,
     tour_unique: Mutex<()>,
     arretee: AtomicBool,
+    /// Quand partira le prochain tour de la boucle (Leandre, 21/10/2026 : « prochain relevé dans … minutes »).
+    prochain: Mutex<Option<std::time::SystemTime>>,
     /// Les etats des mois, a verifier apres chaque tour : un retour releve, une signature notee changent un mois.
     etats: Option<Arc<FileDesEtats>>,
 }
@@ -38,6 +40,7 @@ impl Veille {
             sauvegarde_en_cours: AtomicBool::new(false),
             tour_unique: Mutex::new(()),
             arretee: AtomicBool::new(false),
+            prochain: Mutex::new(None),
             etats,
         })
     }
@@ -64,12 +67,25 @@ impl Veille {
             "sauvegarde_en_cours": self.sauvegarde_en_cours.load(Ordering::SeqCst),
             "etape": self.etape()["etape"],
             "minutes": self.minutes,
+            "prochain_dans": self.prochain_dans(),
             "dernier": dernier,
             "erreur": self.erreur.lock().map(|e| e.clone()).unwrap_or_default(),
             "sauvegarde": route(&self.racine, "sauvegarde-derniere", &json!({})).unwrap_or(Value::Null),
             "coffre": coffre.get("services").cloned().unwrap_or_else(|| json!([])),
             "mot_de_passe_pose": coffre.get("mot_de_passe_pose").cloned().unwrap_or(Value::Bool(false)),
         })
+    }
+
+    /// Dans combien de minutes part le prochain tour, arrondi a la minute superieure (au moins 1) ; `null` sans boucle.
+    fn prochain_dans(&self) -> Value {
+        let p = *self.prochain.lock().unwrap_or_else(|p| p.into_inner());
+        match p {
+            Some(t) if self.minutes > 0 => {
+                let s = t.duration_since(std::time::SystemTime::now()).map(|d| d.as_secs()).unwrap_or(0);
+                json!(s.div_ceil(60).max(1))
+            }
+            _ => Value::Null,
+        }
     }
 
     /// Un passage : la releve d'abord (qui ecrit la trace, et envoie les incidents a l'editeur), puis la sauvegarde seule.
@@ -116,6 +132,7 @@ impl Veille {
             // lui-meme, au lancement (`maj::chercher_en_fond`, lot U1).
             v.tour(false, true);
             while v.minutes > 0 {
+                *v.prochain.lock().unwrap_or_else(|p| p.into_inner()) = Some(std::time::SystemTime::now() + Duration::from_secs(v.minutes * 60));
                 for _ in 0..v.minutes * 60 {
                     if v.arretee.load(Ordering::SeqCst) {
                         return;

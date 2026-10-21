@@ -227,6 +227,8 @@ struct Lecture {
     phrases: Vec<String>,
     anomalies: Vec<Value>,
     traduite: bool,
+    /// Ce que la piece dit d'elle-meme (un rapport harmonise : `OK`, `ANO`, `KO`), sinon `""`.
+    verdict: String,
 }
 
 fn verdict_en_mots(etat: &str) -> &'static str {
@@ -242,7 +244,7 @@ fn verdict_en_mots(etat: &str) -> &'static str {
 /// harmonise (`retours::lire_rapport`), une archive d'AER (`retours::aer_spectacle`), un PDF. Autre chose ne se
 /// traduit pas : son format est dit, et la piece s'ouvre telle quelle.
 fn lire_piece(o: &[u8], canal: &str, nature: &str, format: &str) -> Lecture {
-    let mut l = Lecture { titre: String::new(), organisme: String::new(), phrases: Vec::new(), anomalies: Vec::new(), traduite: true };
+    let mut l = Lecture { titre: String::new(), organisme: String::new(), phrases: Vec::new(), anomalies: Vec::new(), traduite: true, verdict: String::new() };
     if canal == "dpae" && nature == "41" {
         let texte: String = o.iter().map(|&b| b as char).collect();
         let lignes = crate::dpae::lire_certificat(&texte);
@@ -332,6 +334,22 @@ fn lire_piece(o: &[u8], canal: &str, nature: &str, format: &str) -> Lecture {
             l.phrases.push(format!("{} taux de prélèvement à la source communiqué{}.", n, if n > 1 { "s" } else { "" }));
         }
         l.anomalies = r["anomalies"].as_array().cloned().unwrap_or_default();
+        // LE VERDICT EST CELUI DE LA PIECE (21/10/2026) : France Travail publie son compte rendu « cinéma, spectacle »
+        // (nature 45) toujours au statut ANOBLOQUANTE, même quand il ne relève rien (guide « De la DSN à l'attestation
+        // employeur », v3.2, p. 10, dépose dans `net-entreprises-base-connaissances/`). Ce que dit la piece passe devant.
+        let etats: Vec<String> = std::iter::once(py_str(&r["etat_envoi"]))
+            .chain(r["declarations"].as_array().into_iter().flatten().map(|d| py_str(&d["etat"])))
+            .filter(|e| !e.is_empty())
+            .collect();
+        l.verdict = if etats.iter().any(|e| e == "KO") {
+            "KO".into()
+        } else if etats.iter().any(|e| e == "ANO") || !l.anomalies.is_empty() {
+            "ANO".into()
+        } else if etats.iter().any(|e| e == "OK") {
+            "OK".into()
+        } else {
+            String::new()
+        };
         return l;
     }
     if let Some(crm) = retours::lire_neores(o) {
@@ -642,13 +660,21 @@ fn retour_lu(racine: &Path, ligne: &Value, r: &Value) -> Value {
     let libelle = r.get("libelle").filter(|v| vrai(v)).map(py_str).unwrap_or_else(|| retours::libelle_nature(&nature));
     let piece = if flux.is_empty() && publication.is_empty() { None } else { piece_du_retour(racine, canal, &flux, &nature, &publication) };
     let mut phrases: Vec<String> = Vec::new();
+    let lecture = piece.as_ref().and_then(|p| std::fs::read(p).ok()).map(|o| lire_piece(&o, canal, &nature, format));
+    let lu_verdict = lecture.as_ref().map(|l| l.verdict.clone()).unwrap_or_default();
     let s = phrase_du_statut(&statut);
-    if !s.is_empty() {
+    if !lu_verdict.is_empty() && !statut.is_empty() && lu_verdict != statut {
+        phrases.push(format!(
+            "Publié au statut {}, mais la pièce dit : {} ({}).",
+            statut,
+            if lu_verdict == "OK" && lecture.as_ref().is_some_and(|l| l.anomalies.is_empty()) { "aucune anomalie" } else { phrase_du_statut(&lu_verdict) },
+            lu_verdict
+        ));
+    } else if !s.is_empty() {
         phrases.push(format!("Statut {} : {}.", statut, s));
     }
-    let (titre, anomalies, traduite, lu_organisme) = match piece.as_ref().and_then(|p| std::fs::read(p).ok()) {
-        Some(o) => {
-            let l = lire_piece(&o, canal, &nature, format);
+    let (titre, anomalies, traduite, lu_organisme) = match lecture {
+        Some(l) => {
             phrases.extend(l.phrases);
             (l.titre, l.anomalies, l.traduite, l.organisme)
         }
@@ -675,7 +701,7 @@ fn retour_lu(racine: &Path, ligne: &Value, r: &Value) -> Value {
     };
     // L'organisme que la piece nomme passe devant celui de la nature (« l'organisme complementaire » : lequel).
     let organisme = if lu_organisme.is_empty() { organisme.to_string() } else { lu_organisme };
-    let verdict = r.get("verdict").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let verdict = if lu_verdict.is_empty() { r.get("verdict").filter(|v| vrai(v)).map(py_str).unwrap_or_default() } else { lu_verdict };
     json!({
         "nature": nature, "libelle": libelle, "organisme": organisme, "statut": statut, "verdict": verdict,
         "quand": quand_publication(&publication), "titre": titre, "phrases": phrases, "anomalies": anomalies, "traduite": traduite,

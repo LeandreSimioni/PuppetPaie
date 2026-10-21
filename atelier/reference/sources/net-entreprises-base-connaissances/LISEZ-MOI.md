@@ -430,3 +430,17 @@ avec la norme et le guide Urssaf, disent ce qu'il en advient.
   `dsn.rs` (`versement_dgfip` : un PAS négatif s'écrit à 0.00 au lieu de refuser ; les versements Urssaf, complémentaires
   et autres passent par `bordereau`) ; `ordres_paiement.rs` (le crédit de chaque ordre, lu dans le fichier, à l'écran de
   dépôt). Test : `tests/dsn/regularisation_declaree.rs`, `un_contrat_qui_n_a_pas_eu_lieu_se_corrige_a_zero`.
+
+## Le guide « De la DSN à l'attestation employeur », version 3.2 du 28/03/2023 (21/10/2026)
+
+- URL : https://www.net-entreprises.fr/media/documentation/correspondances-dsn-ae.pdf ; relevé le 21/10/2026. Fichiers :
+  `net-entreprises-de-la-dsn-a-l-attestation-employeur-v3-2-20230328.{pdf,txt}` (transcription `pdftotext -layout`).
+- Ce qu'on en lit (pages 10 et 11) : pour une DSN mensuelle, France Travail (encore « Pôle emploi » dans le texte) répond
+  par un avis de réception (nature 40) et, pour le spectacle, par un CRM (45, « ANOBLOQUANTE ») et une archive d'AE (46,
+  `AER_MENSUELLE_[idFlux]_[rang].zip`). Le dispositif DSN transmet à France Travail toutes les 30 minutes au plus (valeur
+  « paramétrable »). **Une DSN mensuelle annule et remplace** produit « éventuellement » une nouvelle archive d'AE et de
+  nouveaux CRM ; ceux de la DSN remplacée ne sont plus disponibles (code 410 en API, message au tableau de bord). La
+  fiche 1903 donne le délai : « sous 48h ».
+- Où le moteur s'en sert : `etats.rs` (`etat_dsn_du_mois` : l'AER attendue est celle de la dernière DSN acceptée du
+  mois, donc de l'annule et remplace) ; `routes_documents.rs` (`documents_prets` : les documents ne partent pas tant
+  qu'elle n'est pas revenue).
