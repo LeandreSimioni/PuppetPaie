@@ -1,0 +1,34 @@
+Transcription (texte de la page, sans les balises) de cnda-mode-operatoire-referencement-20221003.html
+URL : https://cnda.ameli.fr/editeurs/referencer-un-logiciel/mode-operatoire/  (modifiée le 03/10/2022 selon wp-json, relevée le 21/10/2026). Son lien « Consulter les documents contractuels » (https://cnda.ameli.fr/editeurs/telecharger-les-protocoles/) répond 404 le 21/10/2026.
+
+Comment faire référencer un logiciel par le CNDA ?
+NB : Le mot « référencement » est un terme générique qui peut prendre diverses appellations selon la procédure envisagée :
+-   Agrément ou Homologation pour l’émission de factures électroniques sécurisées
+-   Autorisation pour l’accès aux téléservices de l’Assurance Maladie
+-   Certification pour la facturation des établissements de santé
+1
+Signature des documents contractuels
+Quelque soit le type de logiciel que vous souhaitez faire référencer, vous devez dans un premier temps télécharger et signer le contrat de service proposé par le CNDA (protocole d’agrément SESAM-Vitale, conditions générales et particulières des téléservices…). Les documents contractuels sont détaillés sur la page spécifique à chaque procédure et sont directement consultables sur la page téléchargement :
+Consulter les documents contractuels
+Après enregistrement du contrat, le CNDA vous adressera votre Numéro d’Identification Editeur (N.I.E) qui vous permettra de disposer d’un accès aux moyens de tests mis à votre disposition via votre espace personnel.
+2
+Recette du logiciel par l’éditeur
+Le développement de votre logiciel est à réaliser sur la base des documents de référence téléchargeables sur l’espace industriels du GIE SESAM-Vitale.
+Les environnements et guides de tests du CNDA vous permettent de valider interactivement le développement de chaque fonctionnalité et de constituer un dossier de recette de votre logiciel.
+Ce dossier de recette est à joindre obligatoirement à votre demande de référencement via le guichet électronique de votre espace personnel.
+Le CNDA va alors procéder à une analyse des éléments du dossier et rédiger un compte-rendu indiquant les points éventuels à corriger et les tests à rejouer avant nouveau dépôt du dossier. Ces échanges se poursuivent jusqu’à acceptation du dossier de recette prononcée par le CNDA.
+3
+Vérification du logiciel par le CNDA
+Après acceptation de votre dossier de recette, une phase de tests du logiciel est planifiée avec le CNDA. La procédure détermine si ces tests doivent se dérouler sur le site du CNDA ou à distance via un logiciel de partage d’écran.
+Cette phase s’effectue sur la base intégrale du guide de tests afin de vérifier le bon fonctionnement et la conformité du logiciel.
+En fonction des résultats obtenus, plusieurs sessions de tests peuvent être nécessaires jusqu’à obtention de la conformité du logiciel.
+4
+Référencement du logiciel par le CNDA
+L’attestation de conformité du CNDA est délivrée au logiciel pour un n° de version donné et en autorise la diffusion auprès des professionnels de santé.
+Parallèlement, le référencement de cette version logiciel fait l’objet d’un affichage sur le site web du CNDA.
+Consulter le détail des différentes procédures de référencement du CNDA
+Informations utiles
+Tout au long du processus de référencement, le CNDA vous fournit un support administratif et/ou technique.
+Les adresses mail et numéros de téléphone des différents supports sont disponibles sur votre espace personnel.
+Pour toute question relative à la procédure de référencement, un formulaire de contact est à votre disposition dans la rubrique « Nous contacter »
+Contacter le CNDA
