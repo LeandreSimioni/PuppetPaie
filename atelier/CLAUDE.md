@@ -91,6 +91,9 @@ montre que celui qui a lieu.
 - Ne se délègue pas : une décision de conception, un acte qui engage (dépôt réel, envoi, signature), tout ce qui toucherait au
   coffre. Un Opus **ne réécrit jamais l'historique** (`--amend`, `rebase`, `reset`) et **ne laisse aucune tâche de fond**.
 - **Aucun repli Python** : ce qui s'écrit s'écrit en Rust, dans `paie/` ; ce qui ne se porte pas proprement remonte à Léandre.
+  **Pas de Python non plus comme outil** (Léandre, 21/10/2026, devant « a Python patch script ») : le code se modifie avec
+  Edit/Write, fonction par fonction (`sed` pour un remplacement mécanique simple) ; un texte se lit avec `pandoc`/`grep` ;
+  Playwright se pilote en Node. Aucun script de patch, dans aucun langage.
   On ne parle jamais de jetons à un Opus. Un script ne montre jamais une requête d'authentification ni son corps.
 
 ## Les sources : tout texte qu'on lit se dépose (Léandre, 10/10/2026)
