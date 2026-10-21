@@ -66,14 +66,15 @@ async function dessinerRegularisation() {
  *  de l'écran : elle dit que la déclaration partie ne bouge pas, et où la
  *  correction s'en va. Le mois porteur vient du moteur (`etat.mois_courant`),
  *  la page ne le calcule pas. */
-function encartRegularisation(etat) {
+function encartRegularisation(etat, ajoute = false) {
   return `
     <div class="encart">
       <b>Ce mois est déposé, et son échéance est passée.</b>
       Ce que vous corrigez ici ne modifie pas la DSN déposée : la correction
       partira dans la DSN ${echapper(deMois(etat.mois_courant))},
-      datée ${echapper(deMois(etat.mois))}. L'« avant » est la paie telle
-      qu'elle a été déclarée.
+      datée ${echapper(deMois(etat.mois))}. ${ajoute
+        ? "Ce contrat n'y était pas : l'« avant » est vide, l'« après » est tout ce qu'il déclare."
+        : "L'« avant » est la paie telle qu'elle a été déclarée."}
     </div>`;
 }
 
@@ -136,7 +137,7 @@ function boiteCorrigerEngagement(mois, e, etat) {
   const rendre = () => { DERNIER_TAUX = tauxAvant; };
   ouvrirBoite(`
     <h3>${e.ajoute ? "Déclarer le contrat ajouté" : `Corriger le contrat ${echapper(e.numero)}`}</h3>
-    ${encartRegularisation(etat)}
+    ${encartRegularisation(etat, !!e.ajoute)}
     <p class="discret">${echapper(e.nom)} — ${echapper(e.spectacle)},
       ${echapper(periodeEnClair(e.debut, e.fin))}.
       ${e.ajoute
