@@ -16,8 +16,10 @@
 //!
 //! Jamais le vrai serveur dans les essais : l'adresse vient de la
 //! configuration, et les essais en donnent une locale. Quand la configuration
-//! ne dit rien, c'est `SERVEUR_PAR_DEFAUT` (lot S1) : un essai qui veut le voir
-//! passe par un faux mandataire local (`tests/outils`, `mandataire`), qui refuse.
+//! ne dit rien, c'est `SERVEUR_PAR_DEFAUT` (lot S1) : en essai, le garde-fou
+//! reseau (`garde_reseau`) le refuse avant toute connexion ; un essai qui veut
+//! le voir nomme un faux mandataire local comme seule porte (`tests/outils`,
+//! `mandataire`), qui refuse.
 
 
 use serde_json::Value;
@@ -38,7 +40,8 @@ pub const REDEMANDER_IDENTITE: &str = "Le serveur ne reconnait plus ce poste : r
 /// incidents, « Un probleme, une idee ? » et leurs reponses. Il repond sur `filet.puppetpaie.fr` (enregistrement pose
 /// par Leandre le 13/10/2026 ; le serveur vit dans le depot du site de l'editeur, `infra/filet/`). Ce qu'une compagnie a
 /// pose le remplace toujours : `serveur` de `config/filet-dpae.json`, celui de son compte du filet, ou `EDITEUR.json` du
-/// paquet. Jamais dans les essais : un test pose son serveur local, ou passe par un faux mandataire.
+/// paquet. Jamais dans les essais : le garde-fou reseau (`garde_reseau`) le refuse ; un test pose son serveur local, ou
+/// nomme un faux mandataire local comme seule porte.
 pub const SERVEUR_PAR_DEFAUT: &str = "https://filet.puppetpaie.fr";
 
 /// `filet.DELAI` : le filet ne doit jamais faire attendre une paie.

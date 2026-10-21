@@ -96,9 +96,10 @@ impl Poste {
         self.route_env(route, charge, aujourdhui, &[])
     }
 
-    /// Par un faux mandataire local (`HTTPS_PROXY`) : il voit a qui le moteur voulait parler, et refuse ; rien ne sort.
+    /// Par un faux mandataire local, nomme comme seule porte du garde-fou reseau des essais (`garde_reseau::VARIABLE`) : il
+    /// voit a qui le moteur voulait parler, et refuse ; rien ne sort.
     fn route_par(&self, mandataire: &str, route: &str, charge: Value) -> Value {
-        self.route_env(route, charge, "2026-09-25", &[("HTTPS_PROXY", mandataire)])
+        self.route_env(route, charge, "2026-09-25", &[(paie::garde_reseau::VARIABLE, mandataire)])
     }
 
     fn route_env(&self, route: &str, charge: Value, aujourdhui: &str, env: &[(&str, &str)]) -> Value {
@@ -558,6 +559,29 @@ fn le_paquet_soude_ne_parle_qu_a_l_editeur() {
 
 fn compte(url: &str, confirme: bool) -> Value {
     json!({"serveur": url, "adresse": "a@exemple.fr", "cle": "c-1", "confirme": confirme, "inscrit_le": "2026-10-01T09:00"})
+}
+
+/// Le garde-fou reseau des essais (21/10/2026, `src/garde_reseau.rs`, pose par `.cargo/config.toml`) : sans serveur pose
+/// et sans porte nommee, `filet-activer` n'atteint pas `filet.puppetpaie.fr` -- c'est ainsi qu'un essai s'y etait inscrit,
+/// et que des courriels de confirmation partaient a `a@exemple.fr` (15, 16, 20 et 21/10/2026). Un mandataire de
+/// l'environnement qui laisserait passer (ici un faux, qui note) n'est pas pris : le refus vient du garde-fou, avant toute
+/// connexion, et rien n'est ecrit. Les incidents non plus ne partent pas.
+#[test]
+fn sans_serveur_pose_rien_ne_sort_vers_le_serveur_de_l_editeur() {
+    let p = poste("garde-reseau", &[]);
+    let (m, demandes) = crate::outils::mandataire();
+    let env: Vec<(&str, &str)> = ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"].iter().map(|v| (*v, m.as_str())).collect();
+    let r = p.route_env("filet-activer", json!({"adresse": "a@exemple.fr"}), "2026-09-25", &env);
+    assert_eq!((r["ok"].clone(), r["classe"].clone()), (json!(false), json!("ErreurOperation")), "{}", r);
+    assert!(r["erreur"].as_str().unwrap().contains(paie::garde_reseau::VARIABLE), "le refus vient du garde-fou : {}", r);
+    let pose = p.racine.join("config/filet-dpae.json");
+    assert!(!pose.exists() || p.fichier("config/filet-dpae.json")["compte"].is_null(), "aucun compte sans inscription");
+    p.ecrire("journal/incidents.json", &json!([incident(0, "en-attente")]));
+    let r = p.route_env("diagnostic-envoyer", json!({}), "2026-09-25", &env);
+    let b = r["resultat"]["bilan"].clone();
+    assert_eq!((b["reste"].clone(), b["envoyes"].clone()), (json!(1), json!(0)), "{}", r);
+    assert!(b["erreur"].as_str().unwrap().contains(paie::garde_reseau::VARIABLE), "{}", b);
+    assert!(demandes.lock().unwrap().is_empty(), "rien n'est parti, pas meme vers un mandataire : {:?}", demandes.lock().unwrap());
 }
 
 #[test]

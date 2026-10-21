@@ -369,7 +369,8 @@ fn mandataire(url: &str) -> Option<ureq::Proxy> {
     ureq::Proxy::new(&valeur).ok()
 }
 
-fn agent(delai: u64, url: &str) -> ureq::Agent {
+/// L'agent d'une demande. En essai, le garde-fou reseau (`garde_reseau`) le regle : rien ne sort de la machine.
+fn agent(delai: u64, url: &str) -> Result<ureq::Agent, Panne> {
     let tls = url.starts_with("https:");
     let d = Some(Duration::from_secs(delai));
     let mut c = ureq::Agent::config_builder()
@@ -387,7 +388,8 @@ fn agent(delai: u64, url: &str) -> ureq::Agent {
     if tls {
         c = c.tls_config(ureq::tls::TlsConfig::builder().root_certs(ureq::tls::RootCerts::PlatformVerifier).build());
     }
-    c.build().into()
+    let c = crate::garde_reseau::regler(c, url).map_err(Panne::Reseau)?;
+    Ok(c.build().into())
 }
 
 /// Lit le corps par morceaux, avec le delai d'urllib : un silence de `delai`
@@ -547,7 +549,7 @@ pub fn envoyer(r: &Requete) -> Result<(Vec<u8>, Entetes), Panne> {
                 b = b.header("Authorization", format!("DSNLogin jeton={}", j));
             }
         }
-        let ag = agent(r.delai, &url);
+        let ag = agent(r.delai, &url)?;
         let rep = if post {
             let corps = donnees.unwrap_or(&[]).to_vec();
             ag.run(b.body(corps).map_err(|e| Panne::brute("ValueError", e.to_string()))?)

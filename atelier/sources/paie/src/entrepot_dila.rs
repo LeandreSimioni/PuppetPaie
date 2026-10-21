@@ -221,7 +221,7 @@ pub trait Source: Sync {
 /// Le site de la DILA, par HTTPS (racines du systeme, mandataire de l'environnement, comme `sources::telecharger`).
 pub struct Reseau;
 
-fn agent(delai_global: Option<u64>) -> ureq::Agent {
+fn agent(delai_global: Option<u64>, url: &str) -> R<ureq::Agent> {
     let mut c = ureq::Agent::config_builder()
         .user_agent(crate::sources::AGENT)
         .timeout_connect(Some(std::time::Duration::from_secs(120)))
@@ -230,17 +230,18 @@ fn agent(delai_global: Option<u64>) -> ureq::Agent {
         c = c.timeout_global(Some(std::time::Duration::from_secs(s)));
     }
     c = c.tls_config(ureq::tls::TlsConfig::builder().root_certs(ureq::tls::RootCerts::PlatformVerifier).build());
-    c.build().into()
+    // En essai, le garde-fou reseau : rien ne sort de la machine.
+    Ok(crate::garde_reseau::regler(c, url)?.build().into())
 }
 
 impl Source for Reseau {
     fn lire(&self, url: &str, delai: u64) -> R<Vec<u8>> {
-        let mut r = agent(Some(delai)).get(url).call().map_err(|e| format!("{} : {}", url, e))?;
+        let mut r = agent(Some(delai), url)?.get(url).call().map_err(|e| format!("{} : {}", url, e))?;
         r.body_mut().with_config().limit(2 * 1024 * 1024 * 1024).read_to_vec().map_err(|e| format!("{} : {}", url, e))
     }
 
     fn flux(&self, url: &str) -> R<Box<dyn Read + Send>> {
-        let r = agent(None).get(url).call().map_err(|e| format!("{} : {}", url, e))?;
+        let r = agent(None, url)?.get(url).call().map_err(|e| format!("{} : {}", url, e))?;
         Ok(Box::new(r.into_body().into_reader()))
     }
 }

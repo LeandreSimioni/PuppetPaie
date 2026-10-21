@@ -108,6 +108,8 @@ pub fn ouvrir(chemin: &Path) -> Result<(), String> {
 
 /// Ouvre une adresse dans le navigateur du poste.
 pub fn ouvrir_adresse(url: &str) -> Result<(), String> {
+    // En essai, le garde-fou reseau : aucun navigateur vers une adresse reelle.
+    crate::garde_reseau::directe(&crate::garde_reseau::hote_de(url))?;
     #[cfg(windows)]
     let r = Command::new("rundll32").args(["url.dll,FileProtocolHandler", url]).spawn();
     #[cfg(target_os = "macos")]
