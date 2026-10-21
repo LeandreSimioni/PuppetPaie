@@ -211,6 +211,9 @@ async function dessinerActions(mois) {
     const couleur = bilan ? bilan.couleur : couleurActe(e.actes[a.cle]);
     const phrase = bilan ? bilan.phrase : e.resumes[a.cle];
     cheminDuDepot(a, bilan);
+    // DES DOCUMENTS À RENVOYER (ticket #240) : la paie de certains salariés a
+    // changé depuis l'envoi. Le moteur le compte et nomme le geste.
+    if (a.cle === "documents" && bilan && bilan.bouton) a.bouton = bilan.bouton;
     // L'ANNULE-ET-REMPLACE (30/09/2026). Une DSN réelle est partie : tant que
     // la norme l'admet (veille de l'échéance, minuit), la refaire reste à
     // portée de main — et c'est LE geste quand la paie a changé depuis. Après,
@@ -821,12 +824,18 @@ async function boiteEnvoi(mois) {
       <tr><th>Salarié</th><th>Adresse</th><th>Pièces</th><th>Taille</th></tr>
       ${a.messages.map((m) => `
         <tr>
-          <td>${echapper(m.nom)}</td>
+          <td>${echapper(m.nom)}${m.renvoi ? `<br><span class="pastille alerte">documents corrigés —
+            remplacent ceux du ${echapper(m.envoye_le)}</span>` : ""}</td>
           <td>${echapper(m.destinataire)}</td>
           <td>${echapper(m.pieces.join(", "))}</td>
           <td class="num">${Math.round(m.octets / 1024)} ko</td>
-        </tr>`).join("")}
+        </tr>
+        ${m.renvoi ? `<tr><td colspan="4" class="discret">Le courriel dit ce qui a changé :
+          <ul>${m.changements.map((c) => `<li>${echapper(c)}</li>`).join("")}</ul></td></tr>` : ""}`).join("")}
     </table>`}
+    ${a.renvois ? `<div class="encart info"><b>La paie a changé depuis l'envoi</b>
+      Seuls les salariés dont la paie a changé reçoivent à nouveau leurs
+      documents, refaits, avec un courriel qui dit ce qui a changé.</div>` : ""}
     ${a.deja ? `<div class="encart attention"><b>Déjà envoyé</b>
       Le ${echapper(quand(a.deja.quand))} — ${echapper(a.deja.reponse || "")}.
       Renvoyer enverra une seconde fois.</div>` : ""}
@@ -847,8 +856,7 @@ async function boiteEnvoi(mois) {
           : `<button class="secondaire" id="e-ecrire">Écrire le mois…</button>`}
       <button class="primaire" id="e-envoyer" ${peut ? "" : "disabled"}
               title="${peut ? "" : echapper((a.empechements || []).concat(
-                a.boite_liee ? [] : ["Aucune boîte courriel."]).join(" "))}">Envoyer à
-        ${a.messages.length} salarié(s)</button>
+                a.boite_liee ? [] : ["Aucune boîte courriel."]).join(" "))}">${echapper(a.bouton)}</button>
     </div>`);
 
   const dossier = document.getElementById("e-dossier");
