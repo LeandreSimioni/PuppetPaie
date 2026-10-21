@@ -1,0 +1,132 @@
+//! Le garde-fou reseau des essais (21/10/2026) : AUCUN ESSAI NE SORT DE LA MACHINE.
+//!
+//! Pourquoi : un essai qui appelait `filet-activer` sans serveur pose partait au vrai serveur de l'editeur
+//! (`editeur::SERVEUR_PAR_DEFAUT`), qui l'inscrivait et envoyait un courriel de confirmation a `a@exemple.fr` (rebonds
+//! dans la boite de l'editeur, les 15, 16, 20 et 21/10/2026). Reparer l'essai ne suffisait pas : tout ce qui retombe sur
+//! une adresse reelle (le serveur de l'editeur, net-entreprises, l'Urssaf, Google, la DILA, le depot des versions, une
+//! boite courriel) partait de la meme facon des qu'un essai l'oubliait, sur tout poste qui a internet.
+//!
+//! La regle, en un seul endroit : quand la variable `PUPPETPAIE_ESSAIS_HORS_RESEAU` est posee -- Cargo la pose pour tout
+//! processus qu'il lance, donc pour chaque essai et chaque `paie` qu'un essai lance (`.cargo/config.toml` du moteur,
+//! `[env]`, `force`) --, une sortie vers une autre machine que celle-ci est REFUSEE avant toute connexion. La seule
+//! porte : un mandataire LOCAL que l'essai nomme dans cette variable meme (`outils::mandataire`, un faux qui note a qui
+//! le moteur voulait parler et refuse) ; il remplace alors le mandataire de l'environnement (celui d'un conteneur, qui
+//! laisse passer, n'est jamais pris). Vers la machine elle-meme (les faux serveurs des essais), rien ne change.
+//!
+//! Hors essais (l'executable livre, lance hors de Cargo), la variable n'existe pas : rien ne change.
+//!
+//! Chaque sortie du moteur passe par ici : `transport::envoyer` (HTTP : editeur, net-entreprises, Urssaf, Google),
+//! `sources::telecharger`, `entrepot_dila`, `maj` (le depot des versions), `courriel` (IMAP, SMTP),
+//! `interface::api::ouvrir_adresse` (le navigateur). L'essai `garde_reseau` (`tests/fichiers/`) le verifie dans les
+//! sources : une nouvelle sortie qui n'y passerait pas le fait echouer.
+
+use std::net::IpAddr;
+
+/// La variable du garde-fou. Posee (n'importe quelle valeur) : aucune sortie hors de la machine. Sa valeur peut nommer
+/// un mandataire local (`http://127.0.0.1:<port>`), seule porte alors permise.
+pub const VARIABLE: &str = "PUPPETPAIE_ESSAIS_HORS_RESEAU";
+
+/// Ce que le garde-fou dit d'une sortie.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Sortie {
+    /// Hors essais : rien ne change (le mandataire de l'environnement fait foi).
+    Libre,
+    /// En essai, vers la machine elle-meme : directe, sans mandataire.
+    Locale,
+    /// En essai, vers dehors : par le seul mandataire local que l'essai a nomme.
+    ParLaPorte(String),
+}
+
+/// Le nom d'hote d'une adresse (`https://hote:port/chemin` -> `hote` ; `[::1]` -> `::1`).
+pub fn hote_de(url: &str) -> String {
+    let reste = url.split_once("://").map(|(_, r)| r).unwrap_or(url);
+    let autorite = reste.split(['/', '?', '#']).next().unwrap_or("");
+    let hote = autorite.rsplit_once('@').map(|(_, h)| h).unwrap_or(autorite);
+    let nom = if let Some(h) = hote.strip_prefix('[') { h.split(']').next().unwrap_or(h) } else { hote.split(':').next().unwrap_or(hote) };
+    nom.to_lowercase()
+}
+
+/// Cette machine : `localhost` (et ses sous-noms), 127.0.0.0/8, `::1`.
+pub fn est_locale(hote: &str) -> bool {
+    let h = hote.trim_start_matches('[').trim_end_matches(']').to_lowercase();
+    h == "localhost" || h.ends_with(".localhost") || h.parse::<IpAddr>().map(|ip| ip.is_loopback()).unwrap_or(false)
+}
+
+/// En essai ? (la variable est posee, meme vide).
+pub fn en_essai() -> bool {
+    std::env::var_os(VARIABLE).is_some()
+}
+
+fn refus(hote: &str) -> String {
+    format!(
+        "Garde-fou des essais ({}) : aucune sortie vers {} ; un essai pose un serveur local, ou nomme un faux mandataire local dans cette variable.",
+        VARIABLE, hote
+    )
+}
+
+/// La decision pour une sortie vers `hote`.
+pub fn sortie_vers(hote: &str) -> Result<Sortie, String> {
+    let Some(valeur) = std::env::var_os(VARIABLE) else { return Ok(Sortie::Libre) };
+    if est_locale(hote) {
+        return Ok(Sortie::Locale);
+    }
+    let porte = valeur.to_string_lossy().trim().to_string();
+    if porte.starts_with("http://") && est_locale(&hote_de(&porte)) {
+        return Ok(Sortie::ParLaPorte(porte));
+    }
+    Err(refus(hote))
+}
+
+/// La decision pour une adresse (`https://...`).
+pub fn sortie(url: &str) -> Result<Sortie, String> {
+    sortie_vers(&hote_de(url))
+}
+
+/// Une connexion directe, sans mandataire possible (IMAP, SMTP, le navigateur) : en essai, vers cette machine seulement.
+pub fn directe(hote: &str) -> Result<(), String> {
+    match sortie_vers(hote)? {
+        Sortie::Libre | Sortie::Locale => Ok(()),
+        Sortie::ParLaPorte(_) => Err(refus(hote)),
+    }
+}
+
+/// Un agent `ureq` pour `url`, regle par le garde-fou : hors essais, tel quel ; en essai, sans mandataire vers cette
+/// machine, par la porte seule vers dehors, refuse sinon.
+pub fn regler(c: ureq::config::ConfigBuilder<ureq::typestate::AgentScope>, url: &str) -> Result<ureq::config::ConfigBuilder<ureq::typestate::AgentScope>, String> {
+    Ok(match sortie(url)? {
+        Sortie::Libre => c,
+        Sortie::Locale => c.proxy(None),
+        Sortie::ParLaPorte(p) => c.proxy(Some(ureq::Proxy::new(&p).map_err(|e| format!("{} : mandataire illisible ({}) : {}", VARIABLE, p, e))?)),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn les_hotes_se_lisent_et_la_machine_se_reconnait() {
+        assert_eq!(hote_de("https://filet.puppetpaie.fr/poste"), "filet.puppetpaie.fr");
+        assert_eq!(hote_de("http://u:p@127.0.0.1:9/x?y"), "127.0.0.1");
+        assert_eq!(hote_de("http://[::1]:80/"), "::1");
+        for h in ["localhost", "127.0.0.1", "127.4.5.6", "::1", "[::1]", "a.localhost"] {
+            assert!(est_locale(h), "{}", h);
+        }
+        for h in ["filet.puppetpaie.fr", "services.net-entreprises.fr", "10.0.0.1", "0.0.0.0", "localhost.exemple.fr", "smtp.gmail.com"] {
+            assert!(!est_locale(h), "{}", h);
+        }
+    }
+
+    /// Cargo pose la variable pour tout essai (`.cargo/config.toml`, `[env]`) : ce processus-ci est un essai, et rien ne
+    /// sort vers le serveur de l'editeur, ni vers aucun autre ; la machine elle-meme reste joignable.
+    #[test]
+    fn dans_un_essai_rien_ne_sort_de_la_machine() {
+        assert!(en_essai(), "Cargo doit poser {} pour les essais (.cargo/config.toml)", VARIABLE);
+        for url in [crate::editeur::SERVEUR_PAR_DEFAUT, "https://services.net-entreprises.fr/", "https://oauth2.googleapis.com/token", crate::maj::DEPOT_PAR_DEFAUT] {
+            assert!(sortie(url).is_err(), "{}", url);
+        }
+        assert!(directe("smtp.gmail.com").is_err());
+        assert_eq!(sortie("http://127.0.0.1:8080/x"), Ok(Sortie::Locale));
+        assert!(directe("localhost").is_ok());
+    }
+}

@@ -691,8 +691,8 @@ pub fn port_ferme() -> String {
     u
 }
 
-/// Un faux mandataire (`HTTPS_PROXY`) : il note la première ligne de chaque demande (`CONNECT hote:port HTTP/1.1`) et
-/// refuse ; rien ne sort de la machine.
+/// Un faux mandataire, que l'essai nomme comme seule porte du garde-fou reseau (`paie::garde_reseau::VARIABLE`) : il
+/// note la première ligne de chaque demande (`CONNECT hote:port HTTP/1.1`) et refuse ; rien ne sort de la machine.
 pub fn mandataire() -> (String, Arc<Mutex<Vec<String>>>) {
     let ecoute = TcpListener::bind("127.0.0.1:0").unwrap();
     let base = format!("http://127.0.0.1:{}", ecoute.local_addr().unwrap().port());

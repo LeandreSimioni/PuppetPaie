@@ -302,7 +302,8 @@ fn lire_depot_suivi(depot: &str, nom: &str, suivre: &dyn Fn(u64, Option<u64>)) -
         if url.starts_with("https:") {
             c = c.tls_config(ureq::tls::TlsConfig::builder().root_certs(ureq::tls::RootCerts::PlatformVerifier).build());
         }
-        let agent: ureq::Agent = c.build().into();
+        // En essai, le garde-fou reseau : rien ne sort de la machine (une panne de reseau, comme hors ligne).
+        let agent: ureq::Agent = crate::garde_reseau::regler(c, &url).map_err(|e| (HORS_LIGNE, format!("{} : {}", url, e)))?.build().into();
         let mut r = agent.get(&url).call().map_err(|e| {
             let mot = if matches!(e, ureq::Error::StatusCode(_)) { INTROUVABLE } else { HORS_LIGNE };
             (mot, format!("{} : {}", url, e))

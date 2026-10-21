@@ -6,7 +6,7 @@
 //! - dans `paie-atelier`, un acte reel est refuse, mot de passe ou non (la meme charge, dans `paie`, est refusee pour une
 //!   autre raison : aucun mot de passe du logiciel) ;
 //! - le binaire livre (`paie`, construit SANS l'option) ne contient pas la redirection : il ignore les variables et parle aux
-//!   adresses en dur. Preuve sans reseau : un faux mandataire local (`HTTPS_PROXY`) recoit la demande `CONNECT` et dit a qui
+//!   adresses en dur. Preuve sans reseau : un faux mandataire local (la porte du garde-fou reseau, `garde_reseau::VARIABLE`) recoit la demande `CONNECT` et dit a qui
 //!   `paie` voulait parler ; le faux serveur, lui, ne recoit rien.
 //!
 //! Les tests de la premiere et de la deuxieme famille ne tournent qu'avec `--features atelier` (la suite de l'atelier,
@@ -52,6 +52,7 @@ struct Sortie {
 fn lancer(binaire: &str, racine: &Path, args: &[&str], extra: &[(&str, &str)]) -> Sortie {
     let mut c = Command::new(binaire);
     c.env_clear()
+        .env(paie::garde_reseau::VARIABLE, "1") // le garde-fou reseau des essais : rien ne sort de la machine
         .env("PATH", std::env::var("PATH").unwrap_or_default())
         .env("HOME", racine.parent().unwrap())
         .env("PUPPETPAIE_DONNEES", racine)
@@ -111,7 +112,7 @@ mod atelier {
         let (base, recu) = faux_serveur(404, "x");
         let (proxy, vus_proxy) = faux_mandataire();
         let _ = base;
-        lancer(ATELIER, &racine, &["retours", "--depuis", "01/10/2026", "--jusqu-a", "02/10/2026"], &[("HTTPS_PROXY", &proxy)]);
+        lancer(ATELIER, &racine, &["retours", "--depuis", "01/10/2026", "--jusqu-a", "02/10/2026"], &[(paie::garde_reseau::VARIABLE, &proxy)]);
         assert!(recu.lock().unwrap().is_empty());
         let v = vus_proxy.lock().unwrap().clone();
         assert!(v.iter().any(|l| l.starts_with("CONNECT services.net-entreprises.fr:443")), "{:?}", v);
@@ -122,7 +123,7 @@ mod atelier {
         let racine = compagnie("non-locale");
         let (proxy, vus_proxy) = faux_mandataire();
         for variable in ["PUPPETPAIE_ATELIER_DSN", "PUPPETPAIE_ATELIER_DPAE", "PUPPETPAIE_ATELIER_GOOGLE"] {
-            let s = lancer(ATELIER, &racine, &["version"], &[(variable, "https://services.net-entreprises.fr/"), ("HTTPS_PROXY", &proxy)]);
+            let s = lancer(ATELIER, &racine, &["version"], &[(variable, "https://services.net-entreprises.fr/"), (paie::garde_reseau::VARIABLE, &proxy)]);
             assert_eq!(s.code, 2, "{}", s.sortie);
             assert!(s.sortie.contains("serveur local") && s.sortie.contains(variable), "{}", s.sortie);
         }
@@ -170,6 +171,7 @@ mod atelier {
             }
             let mut c = Command::new(ATELIER);
             c.env_clear()
+                .env(paie::garde_reseau::VARIABLE, "1") // le garde-fou reseau des essais : rien ne sort de la machine
                 .env("PATH", std::env::var("PATH").unwrap_or_default())
                 .env("HOME", racine.parent().unwrap())
                 .env("PUPPETPAIE_DONNEES", &racine)
@@ -220,7 +222,7 @@ mod livre {
         let racine = compagnie("livre-dsn");
         let (base, recu) = faux_serveur(404, "x");
         let (proxy, vus_proxy) = faux_mandataire();
-        lancer(LIVRE, &racine, &["retours", "--depuis", "01/10/2026", "--jusqu-a", "02/10/2026"], &[("PUPPETPAIE_ATELIER_DSN", &format!("{}/dsn", base)), ("HTTPS_PROXY", &proxy)]);
+        lancer(LIVRE, &racine, &["retours", "--depuis", "01/10/2026", "--jusqu-a", "02/10/2026"], &[("PUPPETPAIE_ATELIER_DSN", &format!("{}/dsn", base)), (paie::garde_reseau::VARIABLE, &proxy)]);
         assert!(lignes(&recu).is_empty(), "le faux serveur a ete appele : {:?}", lignes(&recu));
         let v = vus_proxy.lock().unwrap().clone();
         assert!(v.iter().any(|l| l.starts_with("CONNECT services.net-entreprises.fr:443")), "l'adresse en dur n'a pas ete visee : {:?}", v);
@@ -231,7 +233,7 @@ mod livre {
         let racine = compagnie("livre-dpae");
         let (base, recu) = faux_serveur(404, "x");
         let (proxy, vus_proxy) = faux_mandataire();
-        lancer(LIVRE, &racine, &["retours", "--dpae", "--flux", "FLUX-FAUX"], &[("PUPPETPAIE_ATELIER_DPAE", &format!("{}/dpae", base)), ("HTTPS_PROXY", &proxy)]);
+        lancer(LIVRE, &racine, &["retours", "--dpae", "--flux", "FLUX-FAUX"], &[("PUPPETPAIE_ATELIER_DPAE", &format!("{}/dpae", base)), (paie::garde_reseau::VARIABLE, &proxy)]);
         assert!(lignes(&recu).is_empty(), "le faux serveur a ete appele : {:?}", lignes(&recu));
         let v = vus_proxy.lock().unwrap().clone();
         assert!(v.iter().any(|l| l.starts_with("CONNECT mon.urssaf.fr:443")), "l'adresse en dur n'a pas ete visee : {:?}", v);
@@ -257,12 +259,13 @@ mod livre {
         let (proxy, vus_proxy) = faux_mandataire();
         let mut c = Command::new(LIVRE);
         c.env_clear()
+            .env(paie::garde_reseau::VARIABLE, "1") // le garde-fou reseau des essais : rien ne sort de la machine
             .env("PATH", std::env::var("PATH").unwrap_or_default())
             .env("HOME", racine.parent().unwrap())
             .env("PUPPETPAIE_DONNEES", &racine)
             .env("PUPPETPAIE_CLE", racine.parent().unwrap().join("cle"))
             .env("PUPPETPAIE_AUJOURDHUI", AUJOURDHUI)
-            .env("HTTPS_PROXY", &proxy)
+            .env(paie::garde_reseau::VARIABLE, &proxy)
             .args(["route", "--racine", racine.to_str().unwrap(), "--date", AUJOURDHUI])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())

@@ -73,6 +73,7 @@ pub mod feries;
 pub mod fichiers;
 pub mod filet;
 pub mod generer_tables;
+pub mod garde_reseau;
 pub mod google_autorisation;
 pub mod guet;
 pub mod horloge;

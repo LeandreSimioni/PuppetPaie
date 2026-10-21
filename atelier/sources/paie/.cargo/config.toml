@@ -1,0 +1,7 @@
+# Le garde-fou reseau des essais (21/10/2026, `src/garde_reseau.rs`) : Cargo pose cette variable pour tout processus
+# qu'il lance d'ici -- chaque essai (`cargo nextest run`, `cargo test`, la suite de l'atelier) et chaque `paie` qu'un essai
+# lance --, et le moteur refuse alors toute sortie hors de la machine (serveur de l'editeur, net-entreprises, Urssaf,
+# Google, DILA, depot des versions, boites courriel). `force` : elle l'emporte sur ce que l'environnement aurait pose.
+# L'executable livre, lance hors de Cargo, ne la voit jamais ; `cargo run` d'ici la voit (rien ne sort non plus).
+[env]
+PUPPETPAIE_ESSAIS_HORS_RESEAU = { value = "1", force = true }

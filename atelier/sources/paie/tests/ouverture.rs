@@ -1156,6 +1156,7 @@ fn route(racine: &Path, nom: &str, charge: Value) -> Value {
     let mut p = Command::new(env!("CARGO_BIN_EXE_paie"))
         .args(["route", "--racine", racine.to_str().unwrap(), "--date", AUJOURDHUI])
         .env_clear()
+        .env(paie::garde_reseau::VARIABLE, "1") // le garde-fou reseau des essais : rien ne sort de la machine
         .env("PATH", std::env::var_os("PATH").unwrap_or_default())
         .env("HOME", base.join("home"))
         .env("TZ", "Europe/Paris")
