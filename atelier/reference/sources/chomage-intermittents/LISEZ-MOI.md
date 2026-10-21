@@ -70,3 +70,32 @@ Voir le rapport de la séance (formules recopiées, règles de décompte, lacune
 - Les simulateurs de France Travail (https://candidat.francetravail.fr/portail-simulateurs/) sont dynamiques : leur méthode
   n'est pas publiée ; le guide ci-dessus en tient lieu.
 - Aucun texte officiel trouvé qui dise combien de cachets d'un même employeur comptent pour un même jour : voir le rapport.
+
+## Congés Spectacles : l'indemnité versée par la Caisse, et la franchise « congés payés » (relevé du 21/10/2026, ticket 224)
+
+Question : l'indemnité de la Caisse dépend-elle des jours ou du salaire ; qu'est-ce qui détermine la franchise de l'assurance
+chômage. Les originaux PDF d'Audiens sont dans `reference-privee/chomage-intermittents/` du privé ; ici la transcription
+(`pdftotext -layout`) et l'URL. Tous relevés par `curl` le 21/10/2026 (HTTP 200).
+
+| Fichier | Ce que c'est | URL |
+|---|---|---|
+| `audiens-conges-spectacles-mode-emploi-employeur-202304-20261021` (.txt) | « Congés Spectacles, employeur, mode d'emploi », avril 2023 (FAQ : montant de l'indemnité, durée du congé, plafond de l'assiette) | https://www.audiens.org/files/live/sites/siteAudiens/files/03_documents/entreprise/Fiches-techniques/Conges-Spectacles-Mode-d-emploi-employeur.pdf |
+| `audiens-conges-spectacles-plafonds-conventionnels-202507-20261021` (.txt) | Fiche pratique « Plafonds conventionnels des congés payés des artistes et techniciens intermittents », mise à jour juillet 2025 | https://www.audiens.org/files/live/sites/siteAudiens/files/03_documents/entreprise/Cong%c3%a9s%20spectacles/FP-Plafonds-CCS.pdf |
+| `audiens-conges-spectacles-flyer-artistes-202604-20261021` (.txt) | Flyer destiné aux artistes (éligibilité, étapes), « avril 2026 » | https://conges-spectacles.audiens.org/files/live/sites/siteCCS/files/resources/documents/FLYER_Conges_Spectacles.pdf |
+
+Non redéposés : la fiche pratique `FP-Conges-Spectacles.pdf` servie aujourd'hui est identique, texte pour texte, à celle de
+février 2023 déjà déposée (`../majoration-caisses-conges/audiens-fiche-pratique-conges-spectacles-202302.txt`) ; la web
+conférence Audiens du 23/05/2023 (rien sur le calcul des Congés Spectacles au-delà de cette fiche).
+
+Ce qu'on en lit (le détail est dans le rapport de la séance) :
+- **Indemnité** : 10 % de la « base congé » déclarée sur la période 1er avril - 31 mars (mode d'emploi, FAQ « Quel est le
+  montant de l'indemnité de congé payé ? » ; fiche 2023, exemple 10 % de 400 = 40 €). Aucun nombre de jours n'y entre.
+- **Durée du congé** : « 2,5 jours pour 24 jours de travail ou cachets, sans que la durée totale du congé puisse excéder
+  trente jours ouvrables » (mode d'emploi, FAQ « Quelle est la durée du congé payé ? »).
+- **Plafond de l'assiette** : par jour, d'où l'importance des jours (fiche des plafonds ; D. 7121-37 ; CCN 3090 art. 10.1.2,
+  `../kali-3090-titres-vii-x-xi-annexes-20260924.md`).
+- **Franchise congés payés** (annexes VIII et X, art. 21 §1 a ; art. 23 §2 de l'annexe VIII) : 2,5 jours par 24 jours travaillés de la période
+  de référence, plafonnée à 30 ; les jours travaillés sont ceux de l'AEM (`francetravail-guide-intermittents-20261020.txt`,
+  l. 630-655 ; `francetravail-flyer-franchises-20261020.txt`, § 3).
+- Lacune : le **règlement du régime** de la Caisse (articles 2, 4, 9, 10, 11 cités par le mode d'emploi) n'est pas publié sur
+  les pages relevées ; l'ouverture du droit y est peut-être définie (voir le rapport).
