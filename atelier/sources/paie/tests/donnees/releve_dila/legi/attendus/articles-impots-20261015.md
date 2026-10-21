@@ -71,6 +71,8 @@ Chaque article porte l'identifiant de SA VERSION (`LEGIARTI...`) et la date depu
 > 6. Les dispositions de l'article 1er de la loi n° 68-1043 du 29 novembre 1968, qui, sous réserve du 1, ont supprimé la taxe sur les salaires pour les rémunérations versées à compter du 1er décembre 1968, n'apportent aucune modification aux textes législatifs et réglementaires en vigueur, autres que ceux repris sous le présent article, et qui se réfèrent à la taxe sur les salaires.
 > 7. Le bénéfice de la non-application des taux majorés mentionnée au second alinéa du 2 bis et de l'application des taux réduits définis au 5 du présent article est subordonné au respect de l'article 15 du règlement (UE) n° 651/2014 de la Commission du 17 juin 2014 déclarant certaines catégories d'aides compatibles avec le marché intérieur en application des articles 107 et 108 du traité.
 
+### 293 B -- ABSENT DU RELEVE
+
 ### 1679 (`LEGIARTI000026950015`, en vigueur depuis le 2014-01-01)
 
 > Les sommes dues par les employeurs au titre de la taxe sur les salaires visée à l'article 231 doivent être remises au comptable public compétent dans les conditions et délais qui sont fixés par décret. 

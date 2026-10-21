@@ -446,8 +446,10 @@ pub static TEXTES: &[Texte] = &[
             // LA TAXE SUR LES SALAIRES (journal §117) : l'employeur qui
             // n'est pas assujetti a la TVA -- beaucoup d'associations
             // du spectacle. Le bareme (231) et l'abattement des
-            // associations (1679 A) ; 1679 dit quand elle se verse.
-            Domaine { cle: "taxe_salaires", titre: "La taxe sur les salaires", numeros: &["231", "1679", "1679 A"] },
+            // associations (1679 A) ; 1679 dit quand elle se verse. 293 B (ticket #239, 21/10/2026) : les plafonds de
+            // la franchise en base de TVA, auxquels renvoie le 2e alinea du 1 de 231 -- sous eux, pas de taxe ; leurs
+            // montants entrent au bareme de l'annee (`taxe_sur_les_salaires.plafonds_franchise`).
+            Domaine { cle: "taxe_salaires", titre: "La taxe sur les salaires", numeros: &["231", "293 B", "1679", "1679 A"] },
             // L'ARRONDI A L'EURO DES SOMMES DUES A LA DGFIP (13/10/2026,
             // lot U5) : le versement du prelevement a la source
             // (S21.G00.20.005 de la DGFiP, << arrondi a l'entier le plus

@@ -3,10 +3,10 @@
  "_global": "Freemium_legi_global_20250713-140000.tar.gz",
  "_texte": "Code du travail",
  "_legitext": "LEGITEXT000006072050",
- "_livraisons_lues": 461,
- "_livraisons_totales": 461,
+ "_livraisons_lues": 470,
+ "_livraisons_totales": 470,
  "_complet": true,
- "_derniere_livraison": "20261015-122925",
+ "_derniere_livraison": "20261021-133354",
  "_changes_depuis_le_global": [
   {
    "apres": "LEGIARTI000052437183",
@@ -49,7 +49,7 @@
    "texte": "travail"
   }
  ],
- "_releve_le": "2026-10-15",
+ "_releve_le": "2026-10-21",
  "articles": {
   "D1221-23": {
    "debut": "2008-05-01",
@@ -467,9 +467,9 @@
    "id": "LEGIARTI000033019991"
   },
   "L3123-21": {
+   "id": "LEGIARTI000033019988",
    "debut": "2016-08-10",
-   "en_vigueur": true,
-   "id": "LEGIARTI000033019988"
+   "en_vigueur": true
   },
   "L3123-28": {
    "debut": "2016-08-10",
