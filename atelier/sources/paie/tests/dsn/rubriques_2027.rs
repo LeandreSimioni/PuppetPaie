@@ -433,6 +433,7 @@ fn la_correction_d_un_montant_net_social_de_2027_se_date_au_versement_d_origine(
         apres: jan[0].clone(),
         taux_pas_origine: None,
         net_deja_verse: jan[0].net_a_payer,
+        decidee_le: None,
     };
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2027-03-03").unwrap())).unwrap();
     let fev = mois(&ctx, "2027-02", vec![nicolet("2027-02", 151.67, 2310.0, vec![])]).unwrap();

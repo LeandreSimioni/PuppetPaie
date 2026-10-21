@@ -362,7 +362,7 @@ fn une_correction_du_seul_montant_net_social_declare_garde_la_periode_d_origine(
     let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-11-28").unwrap())).unwrap();
     let (p, declare) = octobre_d_avant_1b(&ctx, 19.0);
     let r = paie::dsn::Regularisation {
-        mois: "2026-10".into(), avant: p.clone(), declare, apres: p.clone(), taux_pas_origine: None, net_deja_verse: p.net_a_payer,
+        mois: "2026-10".into(), avant: p.clone(), declare, apres: p.clone(), taux_pas_origine: None, net_deja_verse: p.net_a_payer, decidee_le: None,
     };
     let dsn = generer(&ctx, &[], "2026-11", &[r], &[], &Options::default()).unwrap();
     let b = blocs_58(&versement(&dsn, "CH1.26.10"));
@@ -389,7 +389,7 @@ fn une_correction_qui_verse_un_rappel_le_date_du_mois_du_versement() {
     let (q, _) = octobre_d_avant_1b(&ctx, 20.0);
     assert!(q.net_social > p.net_social);
     let r = paie::dsn::Regularisation {
-        mois: "2026-10".into(), avant: p.clone(), declare, apres: q.clone(), taux_pas_origine: None, net_deja_verse: p.net_a_payer,
+        mois: "2026-10".into(), avant: p.clone(), declare, apres: q.clone(), taux_pas_origine: None, net_deja_verse: p.net_a_payer, decidee_le: None,
     };
     let dsn = generer(&ctx, &[], "2026-11", &[r], &[], &Options::default()).unwrap();
     let b = blocs_58(&versement(&dsn, "CH1.26.10"));

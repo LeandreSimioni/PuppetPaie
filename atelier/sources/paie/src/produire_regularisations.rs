@@ -133,6 +133,7 @@ fn ajout(o: &HashMap<String, String>, ctx: &Contexte, m: &mut Moteur, c: Map<Str
         lignes: Vec::new(),
         affiliations: Vec::new(),
         taux_pas: None,
+        debut_contrat: None,
     };
     Ok(Reg {
         correction: c,
@@ -279,6 +280,8 @@ pub(crate) fn pour_la_dsn(ctx: &Contexte, regs: &[&Reg]) -> R<Vec<crate::dsn::Re
             apres: a_imprimer(ctx, &r.donnees, &r.corrige, r.apres.engagement.numero.as_ref(), None)?,
             taux_pas_origine: r.taux_pas_origine.clone(),
             net_deja_verse: r.net_deja_verse,
+            // « AAAA-MM-JJ HH:MM » (`routes_ecritures_g2::maintenant`) : le jour seul.
+            decidee_le: r.correction.get("decidee_le").and_then(Value::as_str).and_then(|t| t.get(..10)).and_then(|t| Jour::lire(t).ok()),
         });
     }
     Ok(out)

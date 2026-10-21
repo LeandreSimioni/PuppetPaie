@@ -386,6 +386,9 @@ pub struct Regularisation {
     /// (`produire_regularisations::net_deja_verse_lu`) : ce qui dit si la correction verse ou reprend quelque chose,
     /// et a quel montant net social correspondait ce qui a ete paye (`blocs_58_de_la_correction`).
     pub net_deja_verse: Decimal,
+    /// Le jour ou la correction a ete ecrite (`decidee_le`) : la date de la modification (S21.G00.41.001) quand elle
+    /// change la date de debut du contrat (`changements_contrat::ancienne_date_de_debut`). `None` : inconnu.
+    pub decidee_le: Option<Jour>,
 }
 
 /// Les parametres de `generer`, avec les defauts du Python.
@@ -2350,6 +2353,9 @@ fn bloc_regularisation(
     let (avant, apres) = (&r.avant, &r.apres);
     let debut = avant.engagement.debut_periode()?;
     let fin = avant.engagement.fin_periode()?;
+    // La paie corrigee se rattache a la periode du contrat corrige : ses dates ont pu changer (21/10/2026, fiche
+    // net-entreprises 1952 ; cahier technique DSN 2026.1, §2.1.3.6). L'annulation recopie le declare, a ses dates.
+    let (debut_c, fin_c) = (apres.engagement.debut_periode()?, apres.engagement.fin_periode()?);
     let d_ni = sub(apres.net_imposable, r.declare.net_imposable);
     let d_net = sub(apres.net_verse(), r.declare.net_verse);
     f.add("S21.G00.50.001", fin_mois.jjmmaaaa());
@@ -2367,12 +2373,12 @@ fn bloc_regularisation(
     f.add("S21.G00.50.013", if indu { "0.00".into() } else { mt(soumis) });
 
     annuler_le_declare(f, r, &["51", "53"])?;
-    remunerations(f, apres, &debut, &fin, 1)?;
+    remunerations(f, apres, &debut_c, &fin_c, 1)?;
     if !avant.engagement.sans_paie() {
         annuler_le_declare(f, r, &["54"])?;
     }
     if !apres.engagement.sans_paie() {
-        autre_revenu(f, apres, bar_o, &debut, &fin, 1)?;
+        autre_revenu(f, apres, bar_o, &debut_c, &fin_c, 1)?;
     }
     if indu {
         let taux_o = match r.taux_pas_origine.as_deref().filter(|t| !t.is_empty()) {
@@ -2401,7 +2407,7 @@ doit le citer, et on ne le devine pas. Rien n'est ecrit.",
         annuler_le_declare(f, r, &["78", "79", "81"])?;
     }
     if !apres.engagement.sans_paie() {
-        bases_et_cotisations(f, apres, bar_o, rang, &debut, &fin, 1, "01", &[])?;
+        bases_et_cotisations(f, apres, bar_o, rang, &debut_c, &fin_c, 1, "01", &[])?;
     }
     Ok(())
 }
@@ -4610,7 +4616,15 @@ contactez votre Urssaf pour le reste, ou portez la correction sur un mois au bor
                     ajoutes.push(r);
                     let b = bar_de(&r.mois)?;
                     let autres: Vec<&Paie> = regs.iter().filter(|x| x.mois == r.mois).map(|x| &x.apres).chain(des_mois_regularises[&r.mois].iter()).collect();
-                    bloc_contrat(&mut f, &r.apres, &ent_e, &orgs, rg, &b, false, &[], "01", emplois_multiples(&r.apres, &autres))?;
+                    // UNE FIN CORRIGEE (21/10/2026) : « une correction de fin de contrat s'opere par l'emission d'un bloc
+                    // " Fin du contrat - S21.G00.62 " dans la DSN mensuelle suivante portant les informations correctes
+                    // qui ecraseront celles precedemment declarees » (fiche net-entreprises 1722,
+                    // `atelier/reference/sources/net-entreprises-base-connaissances/`).
+                    let fin_corrigee = r.apres.engagement.fin != r.avant.engagement.fin && !r.declare.lignes.is_empty();
+                    let debut_bloc = f.lignes.len();
+                    bloc_contrat(&mut f, &r.apres, &ent_e, &orgs, rg, &b, fin_corrigee, &[], "01", emplois_multiples(&r.apres, &autres))?;
+                    // UNE DATE DE DEBUT CORRIGEE : l'ancienne, lue dans la DSN deposee, sous le bloc 40 (fiche 1952).
+                    crate::changements_contrat::ancienne_date_de_debut(&mut f.lignes, debut_bloc, r, fin_m)?;
                     rg
                 }
             };

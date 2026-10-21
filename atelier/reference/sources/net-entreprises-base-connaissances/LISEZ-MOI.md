@@ -59,7 +59,7 @@ net social, intermittents, Agirc-Arrco, identification, contrats, Urssaf, entrep
 |---|---|---|---|
 | 2956 | Changement des modalités du contrat - S21.G00.41 | V3c : le bloc 41 (changements contrat) ; Q9 (changement en cours de mois) | `net-entreprises-fiche2956-bloc-41-changement-modalites-contrat-20250429` |
 | 2955 | Déclarer une mutation ou un transfert de contrat | V3c : 41.012 (mutation d'un établissement à l'autre), clôture dans l'ancien établissement | `net-entreprises-fiche2955-mutation-transfert-contrat-20250818` |
-| 1952 | Modalité déclarative de correction d'une date de début de contrat | V3c : 41.021, la correction tardive d'une date de début (vu sans faire) | `net-entreprises-fiche1952-correction-date-debut-contrat-20250326` |
+| 1952 | Modalité déclarative de correction d'une date de début de contrat | V3c : 41.021 ; 21/10/2026 : la correction tardive d'une date de début, portée (voir « Fiche 1952 » plus bas) | `net-entreprises-fiche1952-correction-date-debut-contrat-20250326` |
 | 3272 | La suspension temporaire du contrat de travail en DSN | V4b : le bloc 65 ; Q17 (congé familial non payé) | `net-entreprises-fiche3272-suspension-contrat-bloc-65-20260610` |
 | 2952 | Le numéro technique temporaire - NTT | V3d : le NTT déclaré qui accompagne le NIR | `net-entreprises-fiche2952-ntt-20250703` |
 | 2953 | Différence entre un NIR, un NIA et un NTT | V3d : NIA → NIR en 31.008 | `net-entreprises-fiche2953-nir-nia-ntt-20250323` |
@@ -340,6 +340,26 @@ URL https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1722/ ; mod
 de contrat déclarée à tort s'annule, une fois l'échéance passée, par un bloc 62 de motif **099 - Annulation** dans la DSN du mois
 suivant ; le 099 est **interdit** dans un FCTU (nature 07), qui a sa propre annulation (type « 04 - annule ») ; il annule une fin
 déclarée à tort, il ne la corrige pas. Moteur : `fctu.rs` (`ANNULE`, type 04) ; le 099 en mensuelle n'a pas été cherché.
+
+Elle dit aussi comment une fin se **corrige** : « une correction de fin de contrat s'opère par l'émission d'un bloc " Fin du
+contrat - S21.G00.62 " dans la DSN mensuelle suivante portant les informations correctes qui écraseront celles précédemment
+déclarées ». Moteur (21/10/2026) : la fin d'un contrat déclaré corrigée après la limite de l'annule-et-remplace, son bloc 62
+redéclaré sous le bloc 40 de la correction (`dsn.rs`, `generer`, `fin_corrigee`) ; test
+`tests/dsn/regularisation_declaree.rs`, `une_date_de_debut_reculee_et_une_fin_corrigee_apres_la_limite_se_declarent`.
+
+### Fiche 1952 — corriger une date de début de contrat après l'échéance (bloc 41, 41.021)
+
+URL https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1952/ ; modifiée le 26/03/2025 ; déposée par le lot V3c
+(`net-entreprises-fiche1952-correction-date-debut-contrat-20250326.html`, `.txt`). Ce qu'on en lit : passé l'échéance, la date
+de début se corrige dans la DSN suivante, la nouvelle en S21.G00.40.001, l'ancienne dans un bloc « Changements Contrat »
+(41.001, date de la modification, et 41.021) ; l'exemple date 41.001 du jour de la correction en paie ; 41.001 au plus tard
+le dernier jour du mois principal déclaré ; 41.021 jamais avec la profondeur de recalcul 41.028. **Où le moteur s'en sert**
+(21/10/2026) : `changements_contrat::ancienne_date_de_debut`, appelé par `dsn::generer` pour une régularisation
+(« Corriger ce mois ») ; l'ancienne date se lit dans la DSN déposée (`versement_declare`, `debut_contrat`) ; la saisie et
+l'aperçu : `routes_regularisation` (`dates_indeclarables`, `apercu_correction`), `jumeaux::apparier_meme_numero`. Inférence :
+le contrat doit tenir dans son mois, avant comme après (sinon il est aussi déclaré, ou à déclarer, dans un autre mois, que la
+correction ne reprend pas) ; refus sinon. Tests : `tests/dsn/regularisation_declaree.rs`
+(`une_date_de_debut_avancee_apres_la_limite_se_declare_par_le_bloc_41` et suivant), `tests/routes/modifier_apres_echeance.rs`.
 
 ### Fiche 1903 — les retours de France Travail pour un CDDU-D
 

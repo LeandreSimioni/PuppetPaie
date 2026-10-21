@@ -477,3 +477,67 @@ pub fn poser(lignes: &mut Vec<String>, debut: usize, ctx: &Contexte, p: &Paie, m
     lignes.splice(fin..fin, neuves);
     Ok(())
 }
+
+/// LA DATE DE DEBUT D'UN CONTRAT DECLARE, CORRIGEE APRES LA LIMITE DE L'ANNULE-ET-REMPLACE (21/10/2026), par une
+/// regularisation (`dsn::Regularisation`) : fiche net-entreprises 1952 (`atelier/reference/sources/
+/// net-entreprises-base-connaissances/net-entreprises-fiche1952-correction-date-debut-contrat-20250326.txt`), « Cette
+/// donnee peut etre corrigee via un bloc " Changements Contrat - S21.G00.41 " en remplissant les rubriques " Date de la
+/// modification - S21.G00.41.001 " et " Ancienne date de debut du contrat - S21.G00.41.021 ". La nouvelle valeur est
+/// renseignee au niveau du bloc " Contrat - S21.G00.40 " ». Le bloc 40 vient d'etre ecrit a partir de la ligne `debut`
+/// de `lignes`, a la date corrigee ; le bloc 41 se pose juste apres lui.
+///
+/// - 41.021 : la date declaree, LUE dans la DSN deposee (`versement_declare`, `debut_contrat` : regle 4), pas celle
+///   d'une saisie ;
+/// - 41.001 : le jour ou la correction a ete ecrite (« Cette erreur a ete corrigee en paie le 7 fevrier 2018 » ->
+///   41.001 = 07022018, l'exemple de la fiche), au plus tard le dernier jour du mois principal declare (CCH-15 de
+///   41.001, `bloc-S21.G00.41.txt` p. 217) ; pour un identifiant, « la date de modification du bloc changement peut
+///   correspondre a toute date » (§ 2.1.2.3.2, `chapitre-2-principes-de-constitution.txt` p. 21) ;
+/// - un identifiant seul dans son bloc, sans profondeur de recalcul (CCH-16, principe d, p. 23 ; fiche 1952 : 41.021
+///   « Il n'est pas possible de la declarer avec la rubrique " Profondeur de recalcul de la paie - S21.G00.41.028 " »).
+///
+/// Rien a poser quand la date n'a pas change, ou pour un contrat jamais declare (un contrat ajoute). Refus quand la
+/// date declaree ne se lit pas, ou que le jour de la correction n'est pas connu : le bloc ne se devine pas (regle 1).
+pub fn ancienne_date_de_debut(lignes: &mut Vec<String>, debut: usize, r: &crate::dsn::Regularisation, fin_mois: Jour) -> Resultat<()> {
+    let e = &r.apres.engagement;
+    let numero = e.numero.clone().unwrap_or_default();
+    if r.declare.lignes.is_empty() && r.declare.fichier.is_empty() {
+        return Ok(());
+    }
+    let Some(ancienne) = r.declare.debut_contrat.as_deref() else {
+        if e.debut == r.avant.engagement.debut {
+            return Ok(());
+        }
+        return Err(format!(
+            "Correction de {} (contrat {}) : la date de debut passe du {} au {}, et la DSN deposee {} ne dit pas la date \
+declaree (S21.G00.40.001 du contrat). Le bloc Changements contrat (S21.G00.41.021, fiche net-entreprises 1952) porte la \
+date declaree : elle se lit, elle ne se devine pas. Rien n'est ecrit.",
+            r.mois,
+            numero,
+            r.avant.engagement.debut.jj_mm_aaaa(),
+            e.debut.jj_mm_aaaa(),
+            r.declare.fichier
+        ));
+    };
+    if ancienne == e.debut.jjmmaaaa() {
+        return Ok(());
+    }
+    let Some(decidee) = r.decidee_le else {
+        return Err(format!(
+            "Correction de {} (contrat {}) : la date de debut passe du {} au {} ; le bloc Changements contrat se date du \
+jour de la correction (S21.G00.41.001, fiche net-entreprises 1952), et la correction ne le dit pas (`decidee_le`). Rien \
+n'est ecrit.",
+            r.mois,
+            numero,
+            ddmmaaaa(ancienne).map_or_else(|| ancienne.to_string(), |j| j.jj_mm_aaaa()),
+            e.debut.jj_mm_aaaa()
+        ));
+    };
+    let date = decidee.min(fin_mois);
+    let mut fin = debut;
+    while lignes.get(fin).is_some_and(|l| l.starts_with("S21.G00.40.")) {
+        fin += 1;
+    }
+    let bloc = [format!("S21.G00.41.001,'{}'", date.jjmmaaaa()), format!("S21.G00.41.021,'{}'", ancienne)];
+    lignes.splice(fin..fin, bloc);
+    Ok(())
+}

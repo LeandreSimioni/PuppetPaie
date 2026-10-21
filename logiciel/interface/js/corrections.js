@@ -101,7 +101,11 @@ async function boiteCorriger(mois) {
           ${echapper(periodeEnClair(e.debut, e.fin))} ·
           brut ${echapper(euros(e.brut))}, net ${echapper(euros(e.net_a_payer))}`}
           ${e.deja_corrige ? " · déjà corrigé par une DSN partie" : ""}
-          ${e.engagement_saisi && !e.ajoute && !e.correction_en_cours ? " · <b>modifié dans la saisie : la correction en reprend les lignes</b>" : ""}
+          ${e.engagement_saisi && !e.ajoute && !e.correction_en_cours
+            ? (e.dates_saisies
+              ? ` · <b>modifié dans la saisie, ${echapper(e.dates_saisies)} : la correction en reprend les lignes et les dates</b>`
+              : " · <b>modifié dans la saisie : la correction en reprend les lignes</b>")
+            : ""}
           ${e.correction_en_cours ? ` · <b>correction n° ${e.correction_en_cours.numero} en attente</b>` : ""}</span>
         <button class="secondaire" data-eng="${i}">Corriger…</button>
       </div>`).join("")
@@ -117,9 +121,11 @@ async function boiteCorriger(mois) {
 }
 
 /** Une correction : les lignes de paie de l'engagement déclaré, telles
- *  qu'elles ont été déclarées, qu'on modifie. Le contrat ne bouge pas —
- *  numéro, bornes, spectacle identifient la déclaration d'origine, et le
- *  moteur refuse une correction qui les déplacerait.
+ *  qu'elles ont été déclarées, qu'on modifie. Le contrat garde son numéro
+ *  et son spectacle ; ses bornes sont celles que la saisie lui donne (des
+ *  dates changées après la limite, 21/10/2026 : le moteur les reprend et dit,
+ *  dans `dates`, ce que la DSN suivante en déclare). Les lignes ne les
+ *  déplacent pas : le moteur refuse.
  *
  *  Les lignes sont celles de la saisie (`ligneRubrique`), calendrier compris :
  *  un cachet se coche dans le mois d'ORIGINE, d'où le mois passé à
@@ -133,7 +139,9 @@ function boiteCorrigerEngagement(mois, e, etat) {
     ${encartRegularisation(etat)}
     <p class="discret">${echapper(e.nom)} — ${echapper(e.spectacle)},
       ${echapper(periodeEnClair(e.debut, e.fin))}.
-      Le contrat garde son numéro et ses dates : seules ses lignes se corrigent.</p>
+      ${e.dates_saisies
+        ? `Le contrat garde son numéro ; ses dates sont celles de la saisie (${echapper(e.dates_saisies)}). Ses lignes se corrigent ici.`
+        : "Le contrat garde son numéro et ses dates : seules ses lignes se corrigent."}</p>
     <div id="cor-lignes"></div>
     <button class="secondaire" id="cor-ajouter">+ une ligne</button>
     <label>Ce qui était faux
@@ -250,6 +258,7 @@ function vueApercuCorrection(a) {
       ${ligne("net à payer", "net_a_payer")}
       ${ligne("coût employeur", "cout_employeur")}
     </table>
+    ${a.dates ? `<div class="encart">${echapper(a.dates)}</div>` : ""}
     ${(a.avertissements || []).map((x) => `<div class="encart attention">${echapper(x)}</div>`).join("")}
     ${a.rien_ne_change
       ? `<p class="note">Rien ne change : il n'y a pas de correction à écrire.</p>`

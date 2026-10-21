@@ -99,6 +99,11 @@ pub struct VersementDeclare {
     /// versement de rappel porte le taux de SON mois, qui n'est pas le mois de l'erreur (inference : le texte ne parle
     /// pas d'une seconde correction). `None` : le versement n'en porte pas.
     pub taux_pas: Option<String>,
+    /// S21.G00.40.001 du bloc 40 du contrat (40.009 = son numero) dans la DSN relue (JJMMAAAA) : la date de debut
+    /// declaree, la DERNIERE (une correction deja portee a pu la changer). Une correction qui la change la declare en
+    /// S21.G00.41.021 (fiche net-entreprises 1952) : elle se lit, comme le numero (regle 4). `None` : rien de declare
+    /// (un contrat ajoute apres la limite).
+    pub debut_contrat: Option<String>,
 }
 
 impl VersementDeclare {
@@ -133,8 +138,8 @@ fn dans_le_mois(jjmmaaaa: &str, mois: &str) -> bool {
 /// Le versement du contrat `numero` du salarie `nir` dans la DSN `chemin`, pour le mois `mois` : ses lignes brutes
 /// (bloc 50 a part), et les affiliations du contrat dans ce fichier. Refus : aucun versement, plusieurs, un versement
 /// qui cite aussi un autre contrat.
-fn versement_du_contrat(chemin: &Path, mois: &str, nir: &str, numero: &str) -> Result<(String, Brouillon, Vec<(String, String)>), String> {
-    let (fichier, siens, affiliations) = versements_du_contrat(chemin, mois, nir, numero)?;
+fn versement_du_contrat(chemin: &Path, mois: &str, nir: &str, numero: &str) -> Result<(String, Brouillon, Vec<(String, String)>, Option<String>), String> {
+    let (fichier, siens, affiliations, debut) = versements_du_contrat(chemin, mois, nir, numero)?;
     let b = match siens.len() {
         0 => return Err(format!("la DSN deposee {} ne porte aucun versement du contrat {} (salarie {}) pour ce mois", fichier, numero, nir)),
         1 => siens.into_iter().next().expect("un versement"),
@@ -151,12 +156,14 @@ fn versement_du_contrat(chemin: &Path, mois: &str, nir: &str, numero: &str) -> R
             fichier, numero, autre
         ));
     }
-    Ok((fichier, b, affiliations))
+    Ok((fichier, b, affiliations, debut))
 }
 
 /// Les versements du contrat `numero` du salarie `nir` dans la DSN `chemin` dont la periode est dans le mois `mois`
-/// (tous, qu'il y en ait zero, un ou plusieurs), et les affiliations du contrat dans ce fichier.
-fn versements_du_contrat(chemin: &Path, mois: &str, nir: &str, numero: &str) -> Result<(String, Vec<Brouillon>, Vec<(String, String)>), String> {
+/// (tous, qu'il y en ait zero, un ou plusieurs), les affiliations du contrat dans ce fichier, et la date de debut que
+/// son bloc 40 y declare (S21.G00.40.001).
+#[allow(clippy::type_complexity)]
+fn versements_du_contrat(chemin: &Path, mois: &str, nir: &str, numero: &str) -> Result<(String, Vec<Brouillon>, Vec<(String, String)>, Option<String>), String> {
     let fichier = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let octets = std::fs::read(chemin).map_err(|e| format!("la DSN deposee {} ne se lit pas ({})", fichier, e))?;
     let texte = crate::apercu_dsn::texte_latin1(&octets);
@@ -166,6 +173,7 @@ fn versements_du_contrat(chemin: &Path, mois: &str, nir: &str, numero: &str) -> 
     let mut affiliations: Vec<(String, String)> = Vec::new();
     let mut versements: Vec<Brouillon> = Vec::new();
     let mut ouvert = false;
+    let (mut debut_courant, mut debut_du_contrat): (Option<String>, Option<String>) = (None, None);
     for ligne in crate::apercu_dsn::lignes_py(&texte) {
         let Some((k, v)) = ligne.split_once(',') else { continue };
         let v = v.trim_matches(crate::retours::blanc_py).trim_matches('\'').to_string();
@@ -191,8 +199,16 @@ fn versements_du_contrat(chemin: &Path, mois: &str, nir: &str, numero: &str) -> 
             ouvert = false;
         }
         match k {
-            "S21.G00.40.001" => contrat_courant = None,
-            "S21.G00.40.009" => contrat_courant = Some(v.clone()),
+            "S21.G00.40.001" => {
+                contrat_courant = None;
+                debut_courant = Some(v.clone());
+            }
+            "S21.G00.40.009" => {
+                if v == numero {
+                    debut_du_contrat = debut_courant.clone();
+                }
+                contrat_courant = Some(v.clone());
+            }
             "S21.G00.70.012" => affiliation = Some(v.clone()),
             "S21.G00.70.013" => {
                 if contrat_courant.as_deref() == Some(numero) {
@@ -224,7 +240,7 @@ fn versements_du_contrat(chemin: &Path, mois: &str, nir: &str, numero: &str) -> 
         .into_iter()
         .filter(|b| b.contrats.iter().any(|c| c == numero) && !b.dates.is_empty() && b.dates.iter().all(|d| dans_le_mois(d, mois)))
         .collect();
-    Ok((fichier, siens, affiliations))
+    Ok((fichier, siens, affiliations, debut_du_contrat))
 }
 
 /// Le prelevement a la source qu'une DSN deposee a declare pour le versement d'un contrat (bloc S21.G00.50).
@@ -252,7 +268,7 @@ pub struct PasDeclare {
 /// apres le depot). Refus : plusieurs versements, ou un versement sans taux, sans montant ou sans assiette du
 /// prelevement (le fichier n'est pas de ce moteur, ou il est abime) -- rien ne se devine (regle 1).
 pub fn pas_declare(chemin: &Path, mois: &str, nir: &str, numero: &str) -> Result<Option<PasDeclare>, String> {
-    let (fichier, siens, _) = versements_du_contrat(chemin, mois, nir, numero)?;
+    let (fichier, siens, _, _) = versements_du_contrat(chemin, mois, nir, numero)?;
     let b = match siens.len() {
         0 => return Ok(None),
         1 => siens.into_iter().next().expect("un versement"),
@@ -390,7 +406,7 @@ fn separer_les_rappels_58(lignes: Vec<(String, String)>, mois: &str, fichier: &s
 /// Relit, dans la DSN deposee `chemin` du mois `mois`, le versement du contrat `numero` du salarie `nir`.
 /// `Err` : une phrase qui dit ce qui manque ; l'appelant la complete de ce qu'il faut faire.
 pub fn lire(chemin: &Path, mois: &str, nir: &str, numero: &str) -> Result<VersementDeclare, String> {
-    let (fichier, b, affiliations) = versement_du_contrat(chemin, mois, nir, numero)?;
+    let (fichier, b, affiliations, debut_contrat) = versement_du_contrat(chemin, mois, nir, numero)?;
     let (net_imposable, net_verse) = (entete(&b, "S21.G00.50.002", numero, &fichier)?, entete(&b, "S21.G00.50.004", numero, &fichier)?);
     let lignes: Vec<(String, String)> = b.lignes.into_iter().filter(|(k, _)| !k.starts_with("S21.G00.52.")).collect();
     let (lignes, rappels_net_social) = separer_les_rappels_58(lignes, mois, &fichier)?;
@@ -398,7 +414,7 @@ pub fn lire(chemin: &Path, mois: &str, nir: &str, numero: &str) -> Result<Versem
     let net_social = net_social_de(&lignes, numero, &fichier)?;
     let frais = frais_de(&lignes, &fichier)?;
     let taux_pas = b.entete.iter().find(|(k, _)| k == "S21.G00.50.006").map(|(_, v)| v.clone()).filter(|v| !v.is_empty());
-    Ok(VersementDeclare { fichier, net_imposable, net_verse, net_social, rappels_net_social, frais, brut, lignes, affiliations, taux_pas })
+    Ok(VersementDeclare { fichier, net_imposable, net_verse, net_social, rappels_net_social, frais, brut, lignes, affiliations, taux_pas, debut_contrat })
 }
 
 /// Les groupes de lignes d'un versement, dans l'ordre ou `dsn::bloc_regularisation` les ecrit : chacun commence par
@@ -416,7 +432,7 @@ const GROUPES: [&[&str]; 4] = [&["51", "53"], &["54"], &["58"], &["78", "79", "8
 /// versement porte (50.002, 50.004) ; le montant net social et les frais, ceux du rappel (58.004, 54). Le bloc 56 (la
 /// regularisation du prelevement a la source) et le bloc 52 ne font pas partie de l'etat repris.
 pub fn apres_correction(precedent: &VersementDeclare, chemin: &Path, mois: &str, nir: &str, numero: &str) -> Result<VersementDeclare, String> {
-    let (fichier, b, affiliations) = versement_du_contrat(chemin, mois, nir, numero)?;
+    let (fichier, b, affiliations, debut_lu) = versement_du_contrat(chemin, mois, nir, numero)?;
     let reference = |aff: &[(String, String)], id: &str| aff.iter().find(|(i, _)| i == id).map(|(_, r)| r.clone());
     let du_groupe = |l: &[(String, String)], g: &[&str]| -> Vec<(String, String)> {
         l.iter().filter(|(k, _)| g.iter().any(|x| k.get(8..10) == Some(*x))).cloned().collect()
@@ -473,7 +489,9 @@ pub fn apres_correction(precedent: &VersementDeclare, chemin: &Path, mois: &str,
     let rappels_net_social = precedent.rappels_net_social + rappel_ici;
     let frais = frais_de(&lignes, &fichier)?;
     let taux_pas = precedent.taux_pas.clone();
-    Ok(VersementDeclare { fichier, net_imposable, net_verse, net_social, rappels_net_social, frais, brut, lignes, affiliations, taux_pas })
+    // La DSN qui a porte la correction redeclare le bloc 40 du contrat : sa date de debut est la derniere declaree.
+    let debut_contrat = debut_lu.or_else(|| precedent.debut_contrat.clone());
+    Ok(VersementDeclare { fichier, net_imposable, net_verse, net_social, rappels_net_social, frais, brut, lignes, affiliations, taux_pas, debut_contrat })
 }
 
 #[cfg(test)]

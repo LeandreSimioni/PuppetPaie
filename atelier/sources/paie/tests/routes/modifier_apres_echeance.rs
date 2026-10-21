@@ -218,3 +218,82 @@ fn avant_la_limite_la_modification_ne_demande_rien_et_l_annule_et_remplace_se_di
     // Rien n'est garde : la DSN refaite remplacera la deposee.
     assert!(!racine.join(format!("regularisations/{}.saisie-declaree.json", MOIS)).exists());
 }
+
+/// La saisie d'aout, le contrat de Lemercier (LE3.26.04, du 19 au 22 aout, 8 heures par jour) a d'autres dates.
+fn lemercier_aux_dates(racine: &Path, debut: &str, fin: &str, jours: &[&str]) -> Value {
+    let mut s = lire(racine, &format!("paies/{}.json", MOIS));
+    let rang = s["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "Lemercier").unwrap();
+    let e = &mut s["engagements"][rang];
+    e["debut"] = json!(debut);
+    e["fin"] = json!(fin);
+    e["date_paiement"] = json!(fin);
+    e["lignes"][0]["dates"] = json!(jours);
+    e["lignes"][0]["quantite"] = json!(8 * jours.len());
+    s
+}
+
+/// LES DATES D'UN CONTRAT DECLARE SE CORRIGENT APRES LA LIMITE (21/10/2026). Le contrat garde son numero : la saisie le
+/// retrouve a ses nouvelles dates, et la modification se confirme comme toute autre, sans refus. « Corriger ce mois » le
+/// designe a son premier jour declare et en reprend les dates ; l'apercu dit ce que la DSN suivante en declarera
+/// (l'ancienne date de debut en S21.G00.41.021, fiche net-entreprises 1952 ; la fin en S21.G00.62, fiche 1722) ; la
+/// correction ecrite, l'etape DSN passe au vert. Que la saisie change encore de dates la repasse a l'orange. La DSN qui
+/// la porte : `tests/dsn/regularisation_declaree.rs`.
+#[test]
+fn les_dates_d_un_contrat_declare_se_corrigent_apres_la_limite() {
+    let racine = compagnie("dates");
+    let jours = ["2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22"];
+    let s = lemercier_aux_dates(&racine, "2026-08-18", "2026-08-22", &jours);
+    assert_eq!(refus(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": s}), APRES)).0, "ModificationApresEcheance");
+    reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": s, "modifier_apres_echeance": true}), APRES));
+    let dsn = || reussi(&route(&racine, "bilan-du-mois", json!({"mois": MOIS}), APRES))["dsn"].clone();
+    let d = dsn();
+    assert_eq!(d["couleur"], json!("alerte"), "{}", d);
+    assert!(d["phrase"].as_str().unwrap().contains("1 contrat à corriger dans la DSN suivante"), "{}", d);
+
+    let e = lemercier(&racine);
+    assert_eq!((e["debut"].as_str(), e["numero"].as_str(), e["ajoute"].as_bool()), (Some("2026-08-19"), Some("LE3.26.04"), Some(false)), "{}", e);
+    assert_eq!(e["dates_saisies"], json!("du 18/08/2026 au 22/08/2026"), "{}", e);
+    assert_eq!(e["engagement_saisi"]["debut"], json!("2026-08-18"));
+    let charge = json!({"mois": MOIS, "salarie": "LEMERCIER", "debut": "2026-08-19", "engagement": {"lignes": e["engagement_saisi"]["lignes"]}});
+    let a = route(&racine, "regularisation-apercu", charge.clone(), APRES);
+    let a = reussi(&a);
+    assert_eq!((a["engagement"]["debut"].as_str(), a["engagement"]["fin"].as_str()), (Some("2026-08-18"), Some("2026-08-22")), "{}", a);
+    assert_eq!((a["avant"]["heures"].as_str(), a["apres"]["heures"].as_str(), a["rien_ne_change"].as_bool()), (Some("32.0"), Some("40.0"), Some(false)), "{}", a);
+    assert_eq!(
+        a["dates"],
+        json!("Dates corrigées : du 18/08/2026 au 22/08/2026 (déclaré : du 19/08/2026 au 22/08/2026). La DSN suivante déclare la nouvelle date de début avec l'ancienne, dans un bloc « Changements contrat » (S21.G00.41.021, fiche net-entreprises 1952).")
+    );
+    let mut charge = charge;
+    charge["motif"] = json!("Lemercier a commence le 18");
+    let c = reussi(&route(&racine, "regularisation-ecrire", charge, APRES))["correction"].clone();
+    assert_eq!((c["debut"].as_str(), c["engagement"]["debut"].as_str(), c["engagement"]["numero"].as_str()), (Some("2026-08-19"), Some("2026-08-18"), Some("LE3.26.04")), "{}", c);
+    let d = dsn();
+    assert_eq!((d["couleur"].as_str(), d["remplacement"]["correction_ecrite"].as_bool()), (Some("bien"), Some(true)), "{}", d);
+
+    // La fin change encore dans la saisie, sans rien changer d'autre a la paie : la correction ecrite ne la declare plus.
+    let mut s = lemercier_aux_dates(&racine, "2026-08-18", "2026-08-23", &jours);
+    s["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["salarie"] == "Lemercier").unwrap()["date_paiement"] = json!("2026-08-22");
+    reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": s, "modifier_apres_echeance": true}), APRES));
+    let d = dsn();
+    assert_eq!((d["couleur"].as_str(), d["remplacement"]["correction_ecrite"].as_bool()), (Some("alerte"), Some(false)), "{}", d);
+    assert!(d["phrase"].as_str().unwrap().contains("à corriger à nouveau"), "{}", d);
+}
+
+/// Des dates qui sortent du mois declare ne se corrigent pas ici : le contrat serait aussi a declarer dans la DSN d'un
+/// autre mois. Refus, confirme ou non, et rien n'est ecrit.
+#[test]
+fn des_dates_qui_sortent_du_mois_declare_se_refusent() {
+    let racine = compagnie("dates-hors-du-mois");
+    let saisie = format!("paies/{}.json", MOIS);
+    let avant = octets(&racine, &saisie).unwrap();
+    // Le contrat commencerait le 31 juillet : la DSN de juillet aurait a le declarer.
+    let s = lemercier_aux_dates(&racine, "2026-07-31", "2026-08-22", &["2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22"]);
+    for confirme in [false, true] {
+        let r = route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": s, "modifier_apres_echeance": confirme}), APRES);
+        let (classe, texte) = refus(&r);
+        assert_eq!(classe, "ModificationNonDeclarable", "{}", r);
+        assert!(texte.contains("ses nouvelles dates sortent du mois d'août 2026"), "{}", texte);
+        assert!(texte.contains("S21.G00.41.021, fiche net-entreprises 1952"), "{}", texte);
+        assert_eq!(octets(&racine, &saisie).unwrap(), avant);
+    }
+}
