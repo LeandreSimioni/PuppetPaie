@@ -81,6 +81,9 @@ montre que celui qui a lieu.
   utilisateur), relance l'Opus, vérifie, et seulement ensuite rend compte. Avant d'écrire à Léandre, il relit sa réponse :
   chaque point qu'il lui laisse doit être **une décision d'éditeur** (argent, engagement envers un organisme, publication,
   ce qui change le produit pour toutes les compagnies) **ou un geste sur son poste** ; tout autre point se corrige d'abord.
+  **Un trou trouvé pendant la séance se comble dans la même PR, avant de dire à Léandre de fusionner** (Léandre,
+  21/10/2026 : « pourquoi tu veux que je merge alors que tout n'est pas fini ? ») : « il existait déjà », « pour la PR
+  suivante », « le refus est propre » ne sont pas des raisons de livrer. On ne bâcle pas pour publier plus tôt.
 - **Plusieurs Opus à la fois, quatre au plus, et deux Sonnet au plus** (Léandre, 15/10/2026 ; la limite est le disque du
   conteneur : une cible Cargo pèse 2 à 6 Go) : des lots disjoints, chacun dans son worktree et sa cible Cargo
   (`CARGO_TARGET_DIR` seul, un seul profil) ; une passation vérifiée à la fois ; **la cible et le worktree d'un lot fusionné
