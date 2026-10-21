@@ -1469,6 +1469,9 @@ function enteteSalarie(fiche) {
     <!-- SES IMPRÉVUS (15/10/2026) : ses arrêts et ses absences, passés et en
          cours, ce qui en est parti, et la porte « Un imprévu… ». js/imprevus.js. -->
     <div class="fiche-imprevus" id="fiche-imprevus"></div>
+    <!-- CE QUE VOS CONTRATS FONT POUR SES DROITS (ticket 224) : les conseils sur
+         l'historique, quand l'option « conseils » est cochée. js/conseils.js. -->
+    <div class="fiche-conseils" id="fiche-conseils"></div>
     ${d.fiche_recue && fiche.anomalies.some((a) => a.gravite === "erreur")
       ? `<div class="encart">${echapper(d.fiche_recue)}</div>` : ""}`;
   }

@@ -39,6 +39,8 @@ async function demarrer() {
   try { ouvrir = (await api("mois-a-ouvrir")).mois || ouvrir; } catch (e) { /* le calendrier, alors */ }
   await chargerMois(ouvrir);
   finirChargement();
+  // Le conseil du jour, quand la compagnie a coché l'option (ticket 224) : il ne retient rien.
+  dessinerConseils();
 
   // Ce qui attend : la DSN du mois d'avant, la clôture en janvier. Une
   // boîte, tout de suite, tant que ce n'est pas fait.

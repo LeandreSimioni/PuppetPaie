@@ -370,6 +370,15 @@ tr.total td { font-weight: bold; border-top: 2px solid var(--texte); border-bott
 /* CE QUI RENSEIGNE SANS RIEN DEMANDER (24/09/2026, engagement.rs, Avis) : un
    contrat qui se poursuit le mois suivant n'est pas une alerte. En gris. */
 .encart.info { color: var(--discret); }
+/* LE SAVIEZ-VOUS ? (ticket 224) : un conseil renseigne, il ne demande rien. En gris, son titre en tete, la
+   reference de son texte a la fin. */
+.encart.conseil { color: var(--discret); }
+.conseil-titre { font-weight: bold; color: var(--texte); }
+.conseil-source { font-size: 12px; font-style: italic; }
+.conseil-du-jour .lien { font-size: 12px; color: var(--discret); }
+.fiche-conseils:empty { display: none; }
+.fiche-conseils { margin: 6px 0 14px; }
+.fiche-conseils h3 { margin: 0; font-size: 14px; }
 .encart b { display: block; margin-bottom: 3px; }
 /* L'AVENANT (30/09/2026) : l'ancien texte du contrat et le nouveau, cites. */
 .modif-avenant { margin: 10px 0; }
