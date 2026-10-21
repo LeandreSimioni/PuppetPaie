@@ -40,6 +40,25 @@
         {"reference": "net-entreprises, fiche 673 (13/05/2025)", "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche673-rappel-signalements-arret-reprise-fin-de-contrat-20250513.txt", "dit": "« doivent être envoyés dans les 5 jours ouvrés à connaissance de l'évènement » ; « En cas de subrogation, les signalements d'événement « Arrêt de travail » peuvent être émis à la même échéance que la DSN mensuelle. »"}
       ]
     },
+    "signalement_arret_rectificatif": {
+      "libelle": "Signalement d'arrêt rectificatif (annule et remplace)",
+      "nait_de": "un arrêt subrogé prolongé dont la fin de subrogation a été repoussée APRÈS le dépôt du signalement d'arrêt, qui la portait plus courte. Une prolongation seule n'en fait naître aucun : la DSN mensuelle porte la nouvelle fin prévisionnelle (S21.G00.60.003).",
+      "qui": "employeur",
+      "ou": "En DSN, sur net-entreprises : le signalement d'arrêt (nature 04) que le logiciel écrit, de type « annule et remplace », qui vise l'identifiant du signalement déjà parti (sur son certificat de conformité) et porte la nouvelle date de fin de subrogation (S21.G00.60.006).",
+      "destinataire": "L'Assurance Maladie (la période de subrogation, avant le prochain paiement d'indemnités journalières).",
+      "delai": {
+        "jours_ouvres": 5,
+        "depart": "prolongation",
+        "dit": "le plus vite possible dès la prolongation connue ; au plus tard, comme un signalement d'arrêt, dans les cinq jours ouvrés qui suivent"
+      },
+      "inferences": [
+        "La fiche 1983 ne chiffre pas le délai : « le plus rapidement possible dès connaissance de la prolongation de l'arrêt », « dans des délais raisonnables, afin que la caisse primaire d'assurance maladie enregistre la nouvelle période de subrogation, avant le prochain paiement d'indemnités journalières ». Le moteur retient celui d'un signalement d'arrêt, cinq jours ouvrés à connaissance de l'évènement (fiche 673), compté du jour où la prolongation de la subrogation est saisie. C'est une inférence."
+      ],
+      "textes": [
+        {"reference": "net-entreprises, fiche 1983 (22/03/2025)", "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche1983-prolongation-arret-dates-de-subrogation-20250322.txt", "dit": "« En cas de prolongation d'arrêt, il ne faut pas envoyer de nouveau signalement de nature \" arrêt de travail \". Il suffit de déclarer la nouvelle date de fin de l'arrêt en DSN mensuelle, au niveau de la rubrique \" Date de fin prévisionnelle - S21.G00.60.003 \" » ; « Si la période de subrogation, renseignée dans le signalement de nature \" arrêt de travail \" initialement transmis, est insuffisante ou erronée, l'employeur doit alors transmettre un nouveau signalement de nature \" arrêt de travail \" de type annule et remplace, dans lequel une nouvelle date de fin de subrogation sera renseignée. » ; « La correction doit intervenir le plus rapidement possible dès connaissance de la prolongation de l'arrêt. »"},
+        {"reference": "net-entreprises, fiche 673 (13/05/2025)", "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche673-rappel-signalements-arret-reprise-fin-de-contrat-20250513.txt", "dit": "Les signalements « Arrêt de travail » « doivent être envoyés dans les 5 jours ouvrés à connaissance de l'évènement »."}
+      ]
+    },
     "signalement_reprise": {
       "libelle": "Signalement de reprise anticipée",
       "nait_de": "une reprise saisie AVANT la fin prévisionnelle de l'arrêt (une reprise à la date prévue n'en appelle aucun : la DSN mensuelle la porte), sauf pour un arrêt que la DSN ne couvre pas (`sauf_motifs`)",

@@ -154,7 +154,7 @@ pub(crate) fn ecrire_corrections(ctx: &Contexte, mois: &str, corrections: Vec<Ma
         &chemin,
         json!({
             "_origine": format!(
-                "Corrections du mois {m} apres son echeance DSN : chacune part dans la DSN d'un mois suivant, datee de {m}. La saisie de {m} (paies/{m}.json) reste telle que deposee.",
+                "Corrections du mois {m} apres son echeance DSN : chacune part dans la DSN d'un mois suivant, datee de {m}. La saisie de {m} telle que deposee fait foi : paies/{m}.json, ou regularisations/{m}.saisie-declaree.json quand la paie a ete modifiee apres la limite de l'annule-et-remplace.",
                 m = mois
             ),
             "mois": mois,
@@ -197,15 +197,42 @@ fn regularisation_ecrire(o: &HashMap<String, String>, ctx: &Contexte, charge: &V
     }
     let nom_du_mois = py_str(mois);
     let mut corrections = lire_corrections(ctx, &nom_du_mois)?;
-    for c in &corrections {
+    let ajout = a.get("ajout").is_some_and(vrai);
+    // UNE CORRECTION EN ATTENTE SE REMPLACE (21/10/2026) : la paie a encore change depuis qu'elle a ete ecrite, et rien
+    // n'est parti -- la nouvelle la remplace, l'ancienne est annulee. Une correction deja dans une DSN ecrite (preparee)
+    // attend son depot, ou que la DSN se refasse.
+    let mut remplacee: Option<usize> = None;
+    for (i, c) in corrections.iter().enumerate() {
         let meme = eq_py(&c["salarie"], salarie_v) && eq_py(&c["debut"], debut);
         if meme && !vrai(&c["portee_par"]) && !vrai(&c["annulee_le"]) {
+            if vrai(&c["preparee_par"]) {
+                return Err(refus(format!(
+                    "Une correction de cet engagement est deja dans une DSN ecrite, pas encore deposee (n° {}, {}). La deposer, ou l'annuler d'abord.",
+                    py_str(&c["numero"]),
+                    py_str(&c["motif"])
+                )));
+            }
+            remplacee = Some(i);
+        }
+        // Un contrat ajoute deja declare par une DSN suivante n'est plus un ajout : ce qu'il a de declare est dans la DSN
+        // qui l'a porte, pas dans celle de son mois.
+        if meme && ajout && vrai(&c["portee_par"]) && !vrai(&c["annulee_le"]) {
             return Err(refus(format!(
-                "Une correction de cet engagement est deja en attente (n° {}, {}). L'annuler d'abord, ou attendre qu'elle soit portee.",
-                py_str(&c["numero"]),
-                py_str(&c["motif"])
+                "Ce contrat ajoute a deja ete declare par la DSN de {} (correction n° {}). Le corriger encore n'est pas porte par le logiciel. Rien n'est ecrit.",
+                py_str(&c["portee_par"]["mois"]),
+                py_str(&c["numero"])
             )));
         }
+    }
+    let mut engagement_ecrit = a["engagement"].clone();
+    if ajout && !engagement_ecrit.get("numero").is_some_and(vrai) {
+        let n = crate::routes_regularisation::figer_le_numero(ctx, &nom_du_mois, &py_str(salarie_v), &py_str(debut))?;
+        engagement_ecrit["numero"] = json!(n);
+    }
+    if let Some(i) = remplacee {
+        let n = corrections.len() + 1;
+        corrections[i].insert("annulee_le".into(), json!(maintenant()));
+        corrections[i].insert("remplacee_par".into(), json!(n));
     }
     let mut c = Map::new();
     c.insert("mois".into(), mois.clone());
@@ -213,7 +240,10 @@ fn regularisation_ecrire(o: &HashMap<String, String>, ctx: &Contexte, charge: &V
     c.insert("salarie".into(), salarie_v.clone());
     c.insert("debut".into(), debut.clone());
     c.insert("motif".into(), json!(motif));
-    c.insert("engagement".into(), a["engagement"].clone());
+    c.insert("engagement".into(), engagement_ecrit);
+    if ajout {
+        c.insert("ajout".into(), json!(true));
+    }
     c.insert("decidee_le".into(), json!(maintenant()));
     c.insert("qui".into(), json!(qui_de(charge)));
     c.insert("preparee_par".into(), Value::Null);
@@ -295,7 +325,7 @@ pub(crate) fn ecrire_arrets(ctx: &Contexte, mois: &str, imprevus: Vec<Value>) ->
 
 /// `signalement.verifier(arret, ARRET)` : ce que la norme refuse (`SignalementImpossible`, une
 /// `ValueError`) ; les avertissements ne servent pas ici.
-fn verifier(arret: &Value) -> R<()> {
+pub(crate) fn verifier(arret: &Value) -> R<()> {
     match signalement::verifier(&crate::dsn::Arret { v: arret.clone() }, ARRET, None) {
         Ok(_) => Ok(()),
         Err(signalement::Echec::Impossible(m)) => Err(erreur("ValueError", m)),
@@ -387,6 +417,7 @@ ou accident (L1226-1) : cet arret n'en appelle pas. Rien n'est ecrit.",
     a.insert("date_accident".into(), jour_ou_rien("date_accident")?);
     a.insert("jours_deja_indemnises".into(), deja);
     a.insert("maintien".into(), json!({}));
+    a.insert("prolongations".into(), json!([]));
     a.insert("saisi_le".into(), json!(maintenant()));
     a.insert("qui".into(), json!(qui_de(charge)));
     a.insert("note".into(), note);

@@ -386,6 +386,9 @@ pub struct Regularisation {
     /// (`produire_regularisations::net_deja_verse_lu`) : ce qui dit si la correction verse ou reprend quelque chose,
     /// et a quel montant net social correspondait ce qui a ete paye (`blocs_58_de_la_correction`).
     pub net_deja_verse: Decimal,
+    /// Le jour ou la correction a ete ecrite (`decidee_le`) : la date de la modification (S21.G00.41.001) quand elle
+    /// change la date de debut du contrat (`changements_contrat::ancienne_date_de_debut`). `None` : inconnu.
+    pub decidee_le: Option<Jour>,
 }
 
 /// Les parametres de `generer`, avec les defauts du Python.
@@ -2287,11 +2290,15 @@ cahier 2027.1.1, p. 268). Le logiciel ne sait pas encore l'annuler et la redecla
         f.add("S21.G00.58.004", ms(montant, 1));
         Ok(())
     };
-    if apres.net_a_payer == r.net_deja_verse {
+    // UN CONTRAT AJOUTE (rien de declare, rien de verse : `produire_regularisations::ajout`) : pas de 58 d'origine a
+    // annuler ni a redeclarer ; tout son montant net social est verse par la correction, aux dates du mois du versement
+    // (BOSS, montant net social, Q 35 : « du mois lors duquel ce rappel ou ce versement est effectue »).
+    let ajoute = r.declare.lignes.is_empty() && r.declare.fichier.is_empty() && r.net_deja_verse.is_zero();
+    if !ajoute && apres.net_a_payer == r.net_deja_verse {
         return origine(f, sub(apres.net_social, rappels));
     }
-    let paye = sub(r.net_deja_verse, sub(avant.net_a_payer, avant.net_social));
-    if sub(paye, rappels) != r.declare.net_social {
+    let paye = if ajoute { Decimal::ZERO } else { sub(r.net_deja_verse, sub(avant.net_a_payer, avant.net_social)) };
+    if !ajoute && sub(paye, rappels) != r.declare.net_social {
         origine(f, sub(paye, rappels))?;
     }
     let debut_mois = Jour::nouveau(fin_mois.an, fin_mois.mois, 1).ok_or("mois de versement illisible")?;
@@ -2346,6 +2353,9 @@ fn bloc_regularisation(
     let (avant, apres) = (&r.avant, &r.apres);
     let debut = avant.engagement.debut_periode()?;
     let fin = avant.engagement.fin_periode()?;
+    // La paie corrigee se rattache a la periode du contrat corrige : ses dates ont pu changer (21/10/2026, fiche
+    // net-entreprises 1952 ; cahier technique DSN 2026.1, §2.1.3.6). L'annulation recopie le declare, a ses dates.
+    let (debut_c, fin_c) = (apres.engagement.debut_periode()?, apres.engagement.fin_periode()?);
     let d_ni = sub(apres.net_imposable, r.declare.net_imposable);
     let d_net = sub(apres.net_verse(), r.declare.net_verse);
     f.add("S21.G00.50.001", fin_mois.jjmmaaaa());
@@ -2363,12 +2373,12 @@ fn bloc_regularisation(
     f.add("S21.G00.50.013", if indu { "0.00".into() } else { mt(soumis) });
 
     annuler_le_declare(f, r, &["51", "53"])?;
-    remunerations(f, apres, &debut, &fin, 1)?;
+    remunerations(f, apres, &debut_c, &fin_c, 1)?;
     if !avant.engagement.sans_paie() {
         annuler_le_declare(f, r, &["54"])?;
     }
     if !apres.engagement.sans_paie() {
-        autre_revenu(f, apres, bar_o, &debut, &fin, 1)?;
+        autre_revenu(f, apres, bar_o, &debut_c, &fin_c, 1)?;
     }
     if indu {
         let taux_o = match r.taux_pas_origine.as_deref().filter(|t| !t.is_empty()) {
@@ -2397,7 +2407,7 @@ doit le citer, et on ne le devine pas. Rien n'est ecrit.",
         annuler_le_declare(f, r, &["78", "79", "81"])?;
     }
     if !apres.engagement.sans_paie() {
-        bases_et_cotisations(f, apres, bar_o, rang, &debut, &fin, 1, "01", &[])?;
+        bases_et_cotisations(f, apres, bar_o, rang, &debut_c, &fin_c, 1, "01", &[])?;
     }
     Ok(())
 }
@@ -2627,6 +2637,12 @@ fn reduction_a_l_urssaf(p: &Paie, bar: &Value) -> Resultat<Decimal> {
 /// CTP (celles de `assiettes_ctp`). La nature (permanent, intermittent) et le statut (artiste, technicien) sont ceux du
 /// contrat d'avant (`r.avant`), comme ses bornes.
 fn assiette_declaree(cle: &str, r: &Regularisation, bar: &Value) -> Resultat<Result<Decimal, String>> {
+    // Un contrat ajoute apres la limite (`produire_regularisations::ajout`) : rien de declare, toutes ses assiettes sont
+    // nulles -- le bordereau du mois d'origine porte tout le corrige.
+    if r.declare.lignes.is_empty() && r.declare.fichier.is_empty() {
+        let _ = (cle, bar);
+        return Ok(Ok(zero()));
+    }
     let p = &r.avant;
     let mensuelle = p.engagement.nat()?.mensuelle();
     // Un permanent declare a la caisse des Conges Spectacles (lot V2f) a declare sa taxe d'apprentissage et son FNAL
@@ -2703,7 +2719,7 @@ pub const AGIRC_ARRCO_DEPUIS_2025: [&str; 2] = ["131", "132"];
 /// 10/10/2026 nomme Agirc-Arrco par le seul 105 ; ce 105 couvrait la retraite ET l'Apec, que la norme 2026.1 declare en
 /// 131 et 132 : le versement qui porte le 105 porte aussi les 131 et 132, sans quoi il perdrait en silence ce que le
 /// bareme declare desormais sous ces codes. Le 105 y reste pour ce qui a ete DEPOSE en 105 (une regularisation).
-fn codes_du_versement(v: &Value) -> Vec<String> {
+pub(crate) fn codes_du_versement(v: &Value) -> Vec<String> {
     let mut codes: Vec<String> = liste(g(v, "codes81")).iter().map(en_texte).collect();
     if codes.iter().any(|c| c == AGIRC_ARRCO_AVANT_2025) {
         for c in AGIRC_ARRCO_DEPUIS_2025 {
@@ -3565,7 +3581,7 @@ fn versement_complementaire(
     }
     let somme = composants.iter().fold(zero(), |s, c| add(s, c.montant));
     // « sauf si cette somme fait ressortir un montant negatif. Auquel cas un montant nul doit etre renseigne » (p. 157).
-    let montant = if somme < Decimal::ZERO { zero() } else { somme };
+    let montant = bordereau::a_verser(somme).montant;
     let mut f = Fichier::nouveau();
     f.add("S21.G00.20.001", en_texte(req(v, "siret")?));
     if let Some(r) = reference_versement(v, ent)? {
@@ -3646,15 +3662,6 @@ pub fn pas_retenu(lignes: &[String]) -> Resultat<Decimal> {
 fn versement_dgfip(
     du: Decimal, mois: &str, debut: Jour, fin: Jour, banque: &Value, remplace: bool, remplacee_versait_pas: Option<bool>,
 ) -> Resultat<Vec<String>> {
-    if du < Decimal::ZERO {
-        return Err(format!(
-            "Prelevement a la source de {} negatif ({} EUR, regularisations comprises) : le versement a la DGFiP \
-(S21.G00.20.005) n'est pas signe (p. 156), et la norme ne dit pas comment reporter ce trop-verse. Porter une \
-partie des corrections sur une DSN suivante, ou voir avec le service des impots des entreprises. Rien n'est ecrit.",
-            mois,
-            mt(du)
-        ));
-    }
     // « arrondi a l'entier le plus proche (les deux decimales etant valorisees a zero) » (p. 157, ligne 194) ; le demi
     // va a l'euro superieur (`bordereau::euro`) : CGI art. 1724, « La liquidation de toutes sommes a recevoir [...] est
     // arrondie a l'euro le plus proche. La fraction d'euro egale a 0,50 est comptee pour 1 »
@@ -3662,7 +3669,12 @@ partie des corrections sur une DSN suivante, ou voir avec le service des impots 
     // et L. 133-10 CSS ne vise pas la DGFiP ; le versement du prelevement a la source est une somme a recevoir du fisc.
     let mut montant = bordereau::euro(du);
     montant.rescale(2);
-    let ecrire = if !montant.is_zero() {
+    // UN PAS NEGATIF (les regularisations rendent plus que le mois ne retient) : « ces rubriques doivent etre renseignees
+    // a 0.00 », et le bloc, que la fiche admet « par commodite » sur une DSN initiale, s'ecrit a zero pour que l'ecran
+    // dise le remboursement a demander (fiche net-entreprises 1931, l. 4 et 13 ; `bordereau::a_verser`).
+    let credit = du < Decimal::ZERO;
+    let montant = bordereau::a_verser(montant).montant;
+    let ecrire = if !montant.is_zero() || credit {
         true
     } else if remplace {
         // « Pour une declaration de type annule et remplace sans paiement de Prelevement a la source et deposee en
@@ -4413,19 +4425,11 @@ certificat de conformite du depot precedent.",
         montants_o.push((m.clone(), bordereau::montant(&l, &premier(m)?)?));
         lignes_o.push((m.clone(), l));
     }
+    // LE TROP-VERSE A L'URSSAF (les bordereaux negatifs des mois corriges) se reprend sur le versement du mois, dans la
+    // limite de son bordereau ; le reste demeure a l'Urssaf (`bordereau::reprise_urssaf`, guide Urssaf § 6.4).
     let credit = -montants_o.iter().filter(|(_, m)| *m < Decimal::ZERO).fold(zero(), |s, (_, m)| add(s, *m));
     let mt_urssaf = bordereau::montant(&lignes_23, &debut_mois)?;
-    if credit > mt_urssaf {
-        let negatifs: Vec<String> = montants_o.iter().filter(|(_, v)| *v < Decimal::ZERO).map(|(m, _)| m.clone()).collect();
-        return Err(format!(
-            "Reprise de credit impossible : les corrections en moins ({} EUR sur {}) depassent le bordereau Urssaf de \
-ce mois ({} EUR). Le guide Urssaf (§6.4) ne permet de se reprendre que dans la limite du bordereau courant : \
-contactez votre Urssaf pour le reste, ou portez la correction sur un mois au bordereau suffisant. Rien n'est ecrit.",
-            mt(credit),
-            negatifs.join(", "),
-            mt(mt_urssaf)
-        ));
-    }
+    let (verse_urssaf, _) = bordereau::reprise_urssaf(mt_urssaf, credit);
     let banque = banque_du_prelevement(&ent)?;
     // Le versement DGFiP s'ecrit ici, en tete des blocs 20, quand les individus ont dit ce qu'ils retiennent.
     let place_dgfip = f.lignes.len();
@@ -4445,13 +4449,15 @@ contactez votre Urssaf pour le reste, ou portez la correction sur un mois au bor
             continue;
         }
         let montant = if libelle == "URSSAF" {
-            sub(mt_urssaf, credit)
+            verse_urssaf.montant
         } else {
             let m = montant_versement(v, &totaux_avec_regs, brut_mois)?;
             if m.is_zero() {
                 continue;
             }
-            m
+            // Une correction a la baisse peut faire la somme negative : le versement est alors a zero, le credit reste
+            // declare dans les cotisations individuelles (`bordereau::a_verser`).
+            bordereau::a_verser(m).montant
         };
         f.add("S21.G00.20.001", &siret);
         if let Some(r) = reference_versement(v, &ent)? {
@@ -4593,14 +4599,44 @@ contactez votre Urssaf pour le reste, ou portez la correction sur un mois au bor
         let mut ajoutes: Vec<&Regularisation> = Vec::new();
         for r in &corrections {
             let deja = lot.iter().position(|p| p.engagement.numero == r.apres.engagement.numero).map(|i| i as i64 + 1);
-            let rang = match deja {
-                Some(rg) => rg,
-                None => {
+            // UN CONTRAT SUR PLUSIEURS MOIS corrige pour plusieurs mois (21/10/2026) : un seul bloc 40 sous l'individu,
+            // pose par la premiere de ses corrections ; chaque mois garde son versement, rattache a ce mois (cahier
+            // technique DSN 2026.1, §2.2.2.5 : « valorisees mois civil par mois civil »).
+            let meme_contrat = ajoutes.iter().position(|a| a.apres.engagement.numero == r.apres.engagement.numero);
+            let rang = match (deja, meme_contrat) {
+                (Some(rg), _) => rg,
+                (None, Some(k)) => (lot.len() + k + 1) as i64,
+                (None, None) => {
                     let rg = (lot.len() + ajoutes.len() + 1) as i64;
                     ajoutes.push(r);
-                    let b = bar_de(&r.mois)?;
-                    let autres: Vec<&Paie> = regs.iter().filter(|x| x.mois == r.mois).map(|x| &x.apres).chain(des_mois_regularises[&r.mois].iter()).collect();
-                    bloc_contrat(&mut f, &r.apres, &ent_e, &orgs, rg, &b, false, &[], "01", emplois_multiples(&r.apres, &autres))?;
+                    // Le bloc 40 est celui du contrat tel qu'il est corrige, lu dans la correction de son dernier mois :
+                    // c'est elle qui sait s'il finit (bloc 62).
+                    let groupe: Vec<&Regularisation> =
+                        corrections.iter().copied().filter(|x| x.apres.engagement.numero == r.apres.engagement.numero).collect();
+                    let dernier = groupe.iter().copied().fold(*r, |a, x| if x.mois > a.mois { x } else { a });
+                    let b = bar_de(&dernier.mois)?;
+                    let autres: Vec<&Paie> =
+                        regs.iter().filter(|x| x.mois == dernier.mois).map(|x| &x.apres).chain(des_mois_regularises[&dernier.mois].iter()).collect();
+                    // UNE FIN CORRIGEE (21/10/2026) : « une correction de fin de contrat s'opere par l'emission d'un bloc
+                    // " Fin du contrat - S21.G00.62 " dans la DSN mensuelle suivante portant les informations correctes
+                    // qui ecraseront celles precedemment declarees » (fiche net-entreprises 1722,
+                    // `atelier/reference/sources/net-entreprises-base-connaissances/`). UN CONTRAT AJOUTE apres la limite
+                    // se declare en entier : sa fin aussi, comme celle de tout contrat termine (bloc 62, « Evenement de fin du
+                    // contrat de travail », `norme-dsn/texte/bloc-S21.G00.62.txt`). `bloc_contrat` ne l'ecrit que si le contrat finit dans le mois
+                    // de la correction qui le pose.
+                    let ajoute = |x: &Regularisation| x.declare.lignes.is_empty() && x.declare.fichier.is_empty();
+                    let fin = groupe.iter().any(|x| ajoute(x) || x.apres.engagement.fin != x.avant.engagement.fin);
+                    let debut_bloc = f.lignes.len();
+                    bloc_contrat(&mut f, &dernier.apres, &ent_e, &orgs, rg, &b, fin, &[], "01", emplois_multiples(&dernier.apres, &autres))?;
+                    // UNE DATE DE DEBUT CORRIGEE : l'ancienne, lue dans la DSN deposee, sous le bloc 40 (fiche 1952) --
+                    // une fois, depuis la correction du dernier mois qui a declare le contrat.
+                    let declarant = groupe.iter().copied().filter(|x| !ajoute(x)).fold(None, |a: Option<&Regularisation>, x| match a {
+                        Some(a) if a.mois >= x.mois => Some(a),
+                        _ => Some(x),
+                    });
+                    if let Some(d) = declarant {
+                        crate::changements_contrat::ancienne_date_de_debut(&mut f.lignes, debut_bloc, d, &dernier.apres.engagement.debut, fin_m)?;
+                    }
                     rg
                 }
             };
@@ -5016,7 +5052,7 @@ mod tests {
     }
 
     #[test]
-    fn le_versement_dgfip_s_arrondit_a_l_euro_et_refuse_un_pas_negatif() {
+    fn le_versement_dgfip_s_arrondit_a_l_euro_et_verse_zero_pour_un_pas_negatif() {
         let banque = json!({"bic": "BANQFRPPXXX", "iban": "FR7630001007941234567890185"});
         let (debut, fin) = (Jour::nouveau(2026, 7, 1).unwrap(), Jour::nouveau(2026, 7, 31).unwrap());
         let montant = |du: &str| -> Option<String> {
@@ -5028,8 +5064,8 @@ mod tests {
         assert_eq!(montant("169.49"), Some("'169.00'".into()));
         // Moins de 50 centimes : rien a reverser, rien a ecrire sur une DSN normale.
         assert_eq!(montant("0.40"), None);
-        let e = versement_dgfip(Decimal::from_str_exact("-3.10").unwrap(), "2026-07", debut, fin, &banque, false, None).unwrap_err();
-        assert!(e.contains("negatif"), "{}", e);
+        // Un PAS negatif : un versement a 0.00, que la fiche net-entreprises 1931 admet « par commodite » (l. 13).
+        assert_eq!(montant("-3.10"), Some("'0.00'".into()));
     }
 
     /// Les blocs 78 que `bases_et_cotisations` ecrit pour cette paie : (78.001, 78.004), dans l'ordre.

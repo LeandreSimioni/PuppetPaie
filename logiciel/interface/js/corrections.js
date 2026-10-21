@@ -66,14 +66,15 @@ async function dessinerRegularisation() {
  *  de l'écran : elle dit que la déclaration partie ne bouge pas, et où la
  *  correction s'en va. Le mois porteur vient du moteur (`etat.mois_courant`),
  *  la page ne le calcule pas. */
-function encartRegularisation(etat) {
+function encartRegularisation(etat, ajoute = false) {
   return `
     <div class="encart">
       <b>Ce mois est déposé, et son échéance est passée.</b>
       Ce que vous corrigez ici ne modifie pas la DSN déposée : la correction
       partira dans la DSN ${echapper(deMois(etat.mois_courant))},
-      datée ${echapper(deMois(etat.mois))}. La saisie ${echapper(deMois(etat.mois))}
-      reste telle qu'elle a été déclarée.
+      datée ${echapper(deMois(etat.mois))}. ${ajoute
+        ? "Ce contrat n'y était pas : l'« avant » est vide, l'« après » est tout ce qu'il déclare."
+        : "L'« avant » est la paie telle qu'elle a été déclarée."}
     </div>`;
 }
 
@@ -94,16 +95,24 @@ async function boiteCorriger(mois) {
     ${r.engagements.length ? r.engagements.map((e, i) => `
       <div class="rang">
         <span class="rang-nom">${echapper(e.nom)}</span>
-        <span class="rang-infos">contrat ${echapper(e.numero)} · ${echapper(e.spectacle)} ·
+        <span class="rang-infos">${e.ajoute
+            ? `<b>contrat ajouté après la DSN</b>${e.numero ? ` (${echapper(e.numero)})` : ""} · ${echapper(e.spectacle)} ·
+               ${echapper(periodeEnClair(e.debut, e.fin))} · rien de déclaré : la correction le déclare en entier`
+            : `contrat ${echapper(e.numero)} · ${echapper(e.spectacle)} ·
           ${echapper(periodeEnClair(e.debut, e.fin))} ·
-          brut ${echapper(euros(e.brut))}, net ${echapper(euros(e.net_a_payer))}
+          brut ${echapper(euros(e.brut))}, net ${echapper(euros(e.net_a_payer))}`}
           ${e.deja_corrige ? " · déjà corrigé par une DSN partie" : ""}
+          ${e.engagement_saisi && !e.ajoute && !e.correction_en_cours
+            ? (e.dates_saisies
+              ? ` · <b>modifié dans la saisie, ${echapper(e.dates_saisies)} : la correction en reprend les lignes et les dates</b>`
+              : " · <b>modifié dans la saisie : la correction en reprend les lignes</b>")
+            : ""}
           ${e.correction_en_cours ? ` · <b>correction n° ${e.correction_en_cours.numero} en attente</b>` : ""}</span>
         <button class="secondaire" data-eng="${i}">Corriger…</button>
       </div>`).join("")
       : `<p class="discret">Aucun engagement dans la saisie de ce mois.</p>`}
-    <p class="note">Un engagement oublié en entier n'est pas une correction :
-      c'est un contrat en retard, avec sa DPAE — il se saisit dans son mois.</p>
+    <p class="note">Un contrat oublié se saisit dans son mois, avec sa DPAE :
+      il apparaît alors ici, et sa correction le déclare dans la DSN suivante.</p>
     <div class="actions">
       <button class="primaire" onclick="fermerBoite()">Fermer</button>
     </div>`);
@@ -113,9 +122,11 @@ async function boiteCorriger(mois) {
 }
 
 /** Une correction : les lignes de paie de l'engagement déclaré, telles
- *  qu'elles ont été déclarées, qu'on modifie. Le contrat ne bouge pas —
- *  numéro, bornes, spectacle identifient la déclaration d'origine, et le
- *  moteur refuse une correction qui les déplacerait.
+ *  qu'elles ont été déclarées, qu'on modifie. Le contrat garde son numéro
+ *  et son spectacle ; ses bornes sont celles que la saisie lui donne (des
+ *  dates changées après la limite, 21/10/2026 : le moteur les reprend et dit,
+ *  dans `dates`, ce que la DSN suivante en déclare). Les lignes ne les
+ *  déplacent pas : le moteur refuse.
  *
  *  Les lignes sont celles de la saisie (`ligneRubrique`), calendrier compris :
  *  un cachet se coche dans le mois d'ORIGINE, d'où le mois passé à
@@ -125,11 +136,15 @@ function boiteCorrigerEngagement(mois, e, etat) {
   const tauxAvant = DERNIER_TAUX;     // taper un taux ici ne décide pas du prochain mois
   const rendre = () => { DERNIER_TAUX = tauxAvant; };
   ouvrirBoite(`
-    <h3>Corriger le contrat ${echapper(e.numero)}</h3>
-    ${encartRegularisation(etat)}
+    <h3>${e.ajoute ? "Déclarer le contrat ajouté" : `Corriger le contrat ${echapper(e.numero)}`}</h3>
+    ${encartRegularisation(etat, !!e.ajoute)}
     <p class="discret">${echapper(e.nom)} — ${echapper(e.spectacle)},
       ${echapper(periodeEnClair(e.debut, e.fin))}.
-      Le contrat garde son numéro et ses dates : seules ses lignes se corrigent.</p>
+      ${e.ajoute
+        ? "Rien n'a été déclaré pour ce contrat : la correction le déclare en entier, avec ses dates de la saisie. Son numéro se fixe quand la correction s'écrit."
+        : e.dates_saisies
+        ? `Le contrat garde son numéro ; ses dates sont celles de la saisie (${echapper(e.dates_saisies)}). Ses lignes se corrigent ici.`
+        : "Le contrat garde son numéro et ses dates : seules ses lignes se corrigent."}</p>
     <div id="cor-lignes"></div>
     <button class="secondaire" id="cor-ajouter">+ une ligne</button>
     <label>Ce qui était faux
@@ -187,8 +202,11 @@ function boiteCorrigerEngagement(mois, e, etat) {
     bouton.disabled = !dernier || dernier.rien_ne_change || !motif;
   };
 
-  (e.engagement.lignes || []).forEach(poser);
-  if (!(e.engagement.lignes || []).length) poser({});
+  // LA PAIE MODIFIÉE DANS LA SAISIE APRÈS LA LIMITE (21/10/2026) : la correction part de ce qu'on a saisi
+  // (`engagement_saisi`, donné par le moteur) ; l'aperçu compare toujours à ce qui est déclaré.
+  const depart = (e.engagement_saisi || e.engagement).lignes || [];
+  depart.forEach(poser);
+  if (!depart.length) poser({});
   zone.addEventListener("input", plusTard);
   zone.addEventListener("change", plusTard);
   document.getElementById("cor-motif").oninput = majBoutonCorrection;
@@ -216,6 +234,8 @@ function boiteCorrigerEngagement(mois, e, etat) {
       dire("Correction n° " + r.correction.numero + " écrite — elle partira dans la DSN "
            + deMois(etat.mois_courant) + ".");
       await dessinerRegularisation();
+      // L'étape DSN du mois affiché le dit aussitôt (`correction_ecrite`).
+      if (MOIS_AFFICHE === mois) await rafraichirActions();
     } catch (err) {
       bouton.disabled = false;
       dire(err.message, "erreur");
@@ -225,15 +245,28 @@ function boiteCorrigerEngagement(mois, e, etat) {
 }
 
 function vueApercuCorrection(a) {
-  const ligne = (titre, cle) => `
-    <tr><td>${titre}</td><td class="r">${echapper(a.avant[cle])}</td>
-        <td class="r">${echapper(a.apres[cle])}</td>
-        <td class="r">${a.delta[cle] === undefined ? "" : echapper(a.delta[cle])}</td></tr>`;
+  // Les nombres du moteur, à la française : « 576,00 € », « 32 h » ; une
+  // différence porte son signe (« +8 h », « −144,00 € ») et se tait à zéro.
+  const fr = (x) => Number(x).toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+  const formes = {
+    euros: (x) => euros(x),
+    heures: (x) => `${fr(x)} h`,
+    nombre: (x) => fr(x),
+  };
+  const signe = (x, forme) => {
+    const n = Number(x);
+    if (x === undefined || x === null || !isFinite(n) || n === 0) return "";
+    return (n > 0 ? "+" : "−") + formes[forme](Math.abs(n));
+  };
+  const ligne = (titre, cle, forme = "euros") => `
+    <tr><td>${titre}</td><td class="r">${echapper(formes[forme](a.avant[cle]))}</td>
+        <td class="r">${echapper(formes[forme](a.apres[cle]))}</td>
+        <td class="r">${echapper(signe(a.delta[cle], forme))}</td></tr>`;
   return `
     <table class="compta">
-      <tr><th></th><th>avant</th><th>après</th><th>différence</th></tr>
-      ${ligne("cachets", "cachets")}
-      ${ligne("heures", "heures")}
+      <tr><th></th><th class="r">avant</th><th class="r">après</th><th class="r">différence</th></tr>
+      ${ligne("cachets", "cachets", "nombre")}
+      ${ligne("heures", "heures", "heures")}
       ${ligne("brut", "brut")}
       ${ligne("cot. salariales", "cotisations_salariales")}
       ${ligne("cot. patronales", "cotisations_patronales")}
@@ -241,9 +274,14 @@ function vueApercuCorrection(a) {
       ${ligne("net à payer", "net_a_payer")}
       ${ligne("coût employeur", "cout_employeur")}
     </table>
+    ${a.dates ? `<div class="encart">${echapper(a.dates)}</div>` : ""}
     ${(a.avertissements || []).map((x) => `<div class="encart attention">${echapper(x)}</div>`).join("")}
     ${a.rien_ne_change
       ? `<p class="note">Rien ne change : il n'y a pas de correction à écrire.</p>`
+      : a.ajout
+      ? `<p class="note">Ce contrat partira en entier dans la DSN
+           ${echapper(deMois(a.etat.mois_courant))}, sa paie datée
+           ${echapper(deMois(a.mois))} : rien n'est annulé, rien n'avait été déclaré.</p>`
       : `<p class="note">Cette différence partira dans la DSN
            ${echapper(deMois(a.etat.mois_courant))}, datée
            ${echapper(deMois(a.mois))} — l'ancienne paie en négatif, la

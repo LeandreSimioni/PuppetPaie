@@ -367,20 +367,31 @@ fn code_risque_valide(code: &str) -> bool {
 const CHAMPS_CORRECTION: [&str; 11] =
     ["mois", "numero", "salarie", "debut", "motif", "engagement", "decidee_le", "qui", "preparee_par", "portee_par", "annulee_le"];
 
+/// Les champs qu'une correction ne porte que s'ils disent quelque chose (21/10/2026) : `ajout` (un contrat ajoute apres
+/// la limite, `routes_regularisation::apercu_d_un_ajout`), `remplacee_par` (le numero de la correction qui l'a
+/// remplacee, en attente, quand la paie a encore change).
+const CHAMPS_SI_PRESENTS: [&str; 2] = ["ajout", "remplacee_par"];
+
 /// Une `Correction` : les champs, dans l'ordre, ceux qui manquent a `None` ; une cle inconnue ou
 /// une cle obligatoire absente est un `TypeError`.
 fn correction_de(c: &Value) -> R<Map<String, Value>> {
     let Value::Object(o) = c else {
         return Err(erreur("TypeError", format!("Correction : un objet est attendu, pas {}", nom_type(c))));
     };
-    if let Some(k) = o.keys().find(|k| !CHAMPS_CORRECTION.contains(&k.as_str())) {
+    if let Some(k) = o.keys().find(|k| !CHAMPS_CORRECTION.contains(&k.as_str()) && !CHAMPS_SI_PRESENTS.contains(&k.as_str())) {
         return Err(erreur("TypeError", format!("Correction : champ inconnu {}", repr(k))));
     }
     let manque: Vec<String> = CHAMPS_CORRECTION[..8].iter().filter(|k| !o.contains_key(**k)).map(|k| repr(k)).collect();
     if !manque.is_empty() {
         return Err(erreur("TypeError", format!("Correction : champ manquant {}", manque.join(", "))));
     }
-    Ok(CHAMPS_CORRECTION.iter().map(|k| (k.to_string(), o.get(*k).cloned().unwrap_or(Value::Null))).collect())
+    let mut c: Map<String, Value> = CHAMPS_CORRECTION.iter().map(|k| (k.to_string(), o.get(*k).cloned().unwrap_or(Value::Null))).collect();
+    for k in CHAMPS_SI_PRESENTS {
+        if let Some(v) = o.get(k) {
+            c.insert(k.to_string(), v.clone());
+        }
+    }
+    Ok(c)
 }
 
 /// `lire_corrections(ctx, mois)`.
@@ -482,9 +493,16 @@ fn engagements_d_origine(o: &HashMap<String, String>, m: &mut Moteur, ctx: &Cont
     let trouve = |liste: &'_ [((Value, Value), Map<String, Value>)], cle: &(Value, Value)| -> Option<usize> {
         liste.iter().position(|(k, _)| eq_py(&k.0, &cle.0) && eq_py(&k.1, &cle.1))
     };
+    // LA SAISIE MODIFIEE APRES LA LIMITE (21/10/2026) : la correction d'un contrat dont la paie a change part de la saisie
+    // d'aujourd'hui (`engagement_saisi`), la page s'en sert pour preremplir ; le declare reste ce qui est declare.
+    let modifies = regul::ce_qui_a_change(o, ctx, mois)?.map(|c| c.contrats).unwrap_or_default();
     let mut out = Vec::new();
     for (p, e) in paies.iter().zip(engs.iter()) {
         let cle_s = py_str(regul::requis(&p.salarie, "_cle")?);
+        let modifie = modifies.iter().find(|c| !c.ajoute && c.salarie == cle_s && c.debut == p.engagement.debut.iso());
+        let saisi = modifie.map(|c| c.engagement.clone());
+        // SES DATES CHANGEES DANS LA SAISIE (21/10/2026) : la correction les reprend, la page le dit.
+        let dates_saisies = modifie.filter(|c| c.dates_changees).map(|c| json!(regul::bornes_en_clair(&c.bornes))).unwrap_or(Value::Null);
         let cle = (Value::String(cle_s.clone()), Value::String(p.engagement.debut.iso()));
         let portee = trouve(&portees, &cle);
         let declare = match portee {
@@ -509,6 +527,36 @@ fn engagements_d_origine(o: &HashMap<String, String>, m: &mut Moteur, ctx: &Cont
             "net_a_payer": regul::q2(p.net_a_payer),
             "deja_corrige": portee.is_some(),
             "correction_en_cours": en_cours_ici,
+            "engagement_saisi": saisi.unwrap_or(Value::Null),
+            "dates_saisies": dates_saisies,
+            "ajoute": false,
+        }));
+    }
+    // LES CONTRATS AJOUTES APRES LA LIMITE (un contrat oublie) : rien de declare ; leur correction les declare en entier
+    // dans la DSN suivante (`routes_regularisation::apercu_correction`).
+    for a in modifies.iter().filter(|c| c.ajoute) {
+        let p = regul::paie_d_un_engagement_en(o, m, ctx, &donnees, &a.engagement, true)?;
+        let sal = &p.salarie;
+        let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
+            Some(v) => py_str(v),
+            None => py_str(regul::requis(sal, "prenom")?),
+        };
+        let cle = (Value::String(a.salarie.clone()), Value::String(a.debut.clone()));
+        let en_cours_ici = trouve(&en_cours, &cle).map(|i| Value::Object(en_cours[i].1.clone())).unwrap_or(Value::Null);
+        out.push(json!({
+            "salarie": a.salarie,
+            "debut": a.debut,
+            "nom": format!("{} {}", py_str(regul::requis(sal, "nom")?), prenom),
+            "spectacle": p.titre()?,
+            "numero": p.engagement.numero,
+            "fin": p.engagement.fin.map(|f| f.iso()),
+            "engagement": a.engagement,
+            "brut": "0.00",
+            "net_a_payer": "0.00",
+            "deja_corrige": false,
+            "correction_en_cours": en_cours_ici,
+            "engagement_saisi": a.engagement,
+            "ajoute": true,
         }));
     }
     Ok(out)

@@ -83,7 +83,7 @@ pub const MOIS_ACCENTS: [&str; 12] = [
 ];
 
 /// « de » devant un nom de mois, elide devant une voyelle : « de mars », « d'avril », « d'août », « d'octobre ».
-fn de_mois(nom: &str) -> String {
+pub(crate) fn de_mois(nom: &str) -> String {
     if nom.starts_with(['a', 'e', 'é', 'i', 'o', 'u']) {
         format!("d'{}", nom)
     } else {
@@ -282,6 +282,191 @@ fn enumerer(mots: &[&str]) -> String {
     }
 }
 
+// ------------------------------------------------------------------------------------------- le renvoi (#240)
+
+/// LE RENVOI DES DOCUMENTS CORRIGES (ticket #240, 21/10/2026 : « si on change une DSN, les documents ne sont plus
+/// valables », et le courriel doit « dire ce qui a change »). Le salarie dont la paie a change depuis l'envoi de ses
+/// documents recoit ses documents refaits avec ce message-ci, qui dit l'ancien et le nouveau, et que les documents
+/// precedents sont remplaces. Les champs : ceux de `CORPS`, plus `{de_mois}`, `{envoye_le}`, `{changements}` et
+/// `{declaration}` : vide, ou -- la DSN du mois deposee et son annule-et-remplace passe (21/10/2026) -- la phrase qui dit
+/// avec quelle paie la correction sera declaree (`Renvoi::declaration`).
+pub const CORPS_RENVOI: &str = "Bonjour {prenom},\n\nTa paie {de_mois} {annee} a été modifiée depuis l'envoi de tes documents le {envoye_le}. Ce qui a changé :\n\n{changements}\n\nTu trouveras ci-joint tes documents refaits :\n\n{liste}\n\nIls remplacent ceux que tu as reçus le {envoye_le} : ne garde que ceux-ci.\n\n{declaration}{notes}{france_travail}\nBien à toi,\n{signataire}\n{raison_sociale}\n";
+
+/// Ce qu'un renvoi sait de l'envoi precedent : son jour (« 21/10/2026 ») et ce qui a change depuis
+/// (`ce_qui_a_change`, une ligne par fait).
+#[derive(Debug, Clone, Default)]
+pub struct Renvoi {
+    pub envoye_le: String,
+    pub changements: Vec<String>,
+    /// La phrase de la declaration de la correction, son paragraphe compris, ou rien (`routes_envois::choisir`).
+    pub declaration: String,
+}
+
+/// Le resume de la paie d'UN salarie pour le mois, tel que ses documents la disent : par contrat, ses bornes, son
+/// spectacle, ses jours travailles, ses cachets, ses heures, son brut et son net a payer ; et les totaux. Le journal le
+/// garde a chaque envoi des documents (`routes_envois::expedier_envoi`) : c'est l'« ancien » que le courriel de renvoi
+/// compare a la paie refaite. Les montants et les heures s'ecrivent comme le bulletin les ecrit.
+pub fn resume_de(paies: &[&Paie]) -> Result<Value, String> {
+    let mut contrats: Vec<Value> = Vec::new();
+    let (mut brut, mut net) = (Decimal::ZERO, Decimal::ZERO);
+    for p in paies {
+        let e = &p.engagement;
+        let mut dates = e.dates_travail.clone();
+        dates.sort();
+        let heures = match e.heures.filter(|h| *h != 0.0) {
+            Some(h) => fmt_heures(heures_en_decimal(h)?),
+            None => String::new(),
+        };
+        let spectacle = if vrai(&p.spectacle) { p.spectacle.get("titre").filter(|t| vrai(t)).map(en_texte) } else { None };
+        contrats.push(serde_json::json!({
+            "debut": e.debut.iso(),
+            "fin": e.fin.map(|f| f.iso()),
+            "spectacle": spectacle,
+            "jours": dates.iter().map(|d| d.iso()).collect::<Vec<_>>(),
+            "cachets": e.cachets,
+            "heures": heures,
+            "brut": fmt_eur(p.brut),
+            "net": fmt_eur(p.net_a_payer),
+        }));
+        brut += p.brut;
+        net += p.net_a_payer;
+    }
+    Ok(serde_json::json!({"contrats": contrats, "brut": fmt_eur(brut), "net": fmt_eur(net)}))
+}
+
+/// « 19/08 » d'un « 2026-08-19 ».
+fn jj_mm(iso: &str) -> String {
+    match (iso.get(8..10), iso.get(5..7)) {
+        (Some(j), Some(m)) => format!("{}/{}", j, m),
+        _ => iso.to_string(),
+    }
+}
+
+/// « 19/08/2026 » d'un « 2026-08-19 ».
+fn jj_mm_aaaa(iso: &str) -> String {
+    match iso.get(..4) {
+        Some(a) => format!("{}/{}", jj_mm(iso), a),
+        None => iso.to_string(),
+    }
+}
+
+fn texte_de(v: &Value, cle: &str) -> String {
+    v.get(cle).filter(|x| vrai(x)).map(en_texte).unwrap_or_default()
+}
+
+/// Les jours travailles d'un contrat du resume : « 19/08, 20/08 et 21/08 » ; au-dela de huit, la periode et le compte.
+fn jours_en_clair(c: &Value) -> String {
+    let jours: Vec<String> = c.get("jours").and_then(Value::as_array).map(|l| l.iter().map(en_texte).collect()).unwrap_or_default();
+    match jours.len() {
+        0 => "aucun".to_string(),
+        n if n > 8 => format!("du {} au {} ({} jours)", jj_mm(&jours[0]), jj_mm(&jours[n - 1]), n),
+        _ => {
+            let l: Vec<String> = jours.iter().map(|j| jj_mm(j)).collect();
+            enumerer(&l.iter().map(String::as_str).collect::<Vec<_>>())
+        }
+    }
+}
+
+/// « contrat du 19/08/2026 au 22/08/2026 (Le Spectacle) ».
+fn intitule(c: &Value) -> String {
+    let debut = texte_de(c, "debut");
+    let fin = texte_de(c, "fin");
+    let bornes = if fin.is_empty() || fin == debut { format!("du {}", jj_mm_aaaa(&debut)) } else { format!("du {} au {}", jj_mm_aaaa(&debut), jj_mm_aaaa(&fin)) };
+    let spectacle = texte_de(c, "spectacle");
+    if spectacle.is_empty() {
+        format!("contrat {}", bornes)
+    } else {
+        format!("contrat {} ({})", bornes, spectacle)
+    }
+}
+
+/// Un contrat du resume en une ligne : ses bornes, ses cachets et ses heures, son brut et son net a payer.
+fn decrire(c: &Value) -> String {
+    let mut morceaux = vec![intitule(c)];
+    let cachets = c.get("cachets").and_then(Value::as_i64).unwrap_or(0);
+    if cachets != 0 {
+        morceaux.push(format!("{} cachet{}", cachets, if cachets > 1 { "s" } else { "" }));
+    }
+    let heures = texte_de(c, "heures");
+    if !heures.is_empty() {
+        morceaux.push(format!("{} heure(s)", heures));
+    }
+    morceaux.push(format!("{} € brut", texte_de(c, "brut")));
+    morceaux.push(format!("{} € net à payer", texte_de(c, "net")));
+    morceaux.join(", ")
+}
+
+/// Ce qui differe entre deux contrats du resume, une ligne par fait (« cachets : 1 → 2 »).
+fn differences(a: &Value, n: &Value) -> Vec<String> {
+    let mut out = Vec::new();
+    if intitule(a) != intitule(n) {
+        out.push(format!("{} → {}", intitule(a), intitule(n)));
+    }
+    if a.get("jours") != n.get("jours") {
+        out.push(format!("jours travaillés : {} → {}", jours_en_clair(a), jours_en_clair(n)));
+    }
+    let cachets = |c: &Value| c.get("cachets").and_then(Value::as_i64).unwrap_or(0);
+    if cachets(a) != cachets(n) {
+        out.push(format!("cachets : {} → {}", cachets(a), cachets(n)));
+    }
+    let heures = |c: &Value| Some(texte_de(c, "heures")).filter(|h| !h.is_empty()).unwrap_or_else(|| "0".to_string());
+    if heures(a) != heures(n) {
+        out.push(format!("heures : {} → {}", heures(a), heures(n)));
+    }
+    if texte_de(a, "brut") != texte_de(n, "brut") {
+        out.push(format!("salaire brut : {} € → {} €", texte_de(a, "brut"), texte_de(n, "brut")));
+    }
+    if texte_de(a, "net") != texte_de(n, "net") {
+        out.push(format!("net à payer : {} € → {} €", texte_de(a, "net"), texte_de(n, "net")));
+    }
+    out
+}
+
+/// CE QUI A CHANGE entre la paie envoyee (`ancien`, le resume note au journal) et la paie refaite (`nouveau`), en
+/// lignes pretes pour le courriel : « heures : 32 → 40 », « salaire brut : 576,00 € → 720,00 € »... Un contrat a la
+/// fois quand le salarie en a plusieurs, les totaux ensuite ; un contrat ajoute ou retire se dit avant/maintenant.
+/// Vide quand rien de ce que le resume porte n'a bouge (le detail du bulletin seul a change).
+pub fn ce_qui_a_change(ancien: &Value, nouveau: &Value) -> Vec<String> {
+    let liste = |v: &Value| v.get("contrats").and_then(Value::as_array).cloned().unwrap_or_default();
+    let (a, n) = (liste(ancien), liste(nouveau));
+    let mut out: Vec<String> = Vec::new();
+    if a.len() == n.len() {
+        let plusieurs = n.len() > 1;
+        for (x, y) in a.iter().zip(&n) {
+            let d = differences(x, y);
+            if d.is_empty() {
+                continue;
+            }
+            if plusieurs {
+                out.push(format!("  - {} :", intitule(y)));
+                out.extend(d.into_iter().map(|l| format!("      {}", l)));
+            } else {
+                out.extend(d.into_iter().map(|l| format!("  - {}", l)));
+            }
+        }
+        if !plusieurs {
+            return out;
+        }
+    } else {
+        for x in &a {
+            out.push(format!("  - avant : {}", decrire(x)));
+        }
+        for y in &n {
+            out.push(format!("  - maintenant : {}", decrire(y)));
+        }
+    }
+    if texte_de(ancien, "brut") != texte_de(nouveau, "brut") {
+        out.push(format!("  - total brut du mois : {} € → {} €", texte_de(ancien, "brut"), texte_de(nouveau, "brut")));
+    }
+    if texte_de(ancien, "net") != texte_de(nouveau, "net") {
+        out.push(format!("  - total net à payer : {} € → {} €", texte_de(ancien, "net"), texte_de(nouveau, "net")));
+    }
+    out
+}
+
+/// Ce que le courriel de renvoi dit quand le resume n'a pas bouge.
+pub const RIEN_DANS_LE_RESUME: &str = "  - le détail de ton bulletin ; tes jours, tes cachets, tes heures, ton brut et ton net à payer restent les mêmes";
+
 /// Un `Message` par salarie, a partir des pieces individuelles deja ecrites (`preparer`). Un salarie peut avoir
 /// plusieurs contrats dans le mois : ses pieces sont ecrites une fois, sous sa cle, et il ne recoit qu'un seul
 /// message. `fiche` (cle -> fiche salarie) : pour celui qui n'a AUCUNE paie ce mois-ci mais un bulletin
@@ -292,6 +477,19 @@ pub fn preparer(
     mois: &str,
     dossier: &Path,
     fiche: Option<&dyn Fn(&str) -> Value>,
+) -> Result<Vec<Message>, String> {
+    preparer_avec(paies, ent, mois, dossier, fiche, &std::collections::HashMap::new())
+}
+
+/// La meme ; `renvois` (cle -> `Renvoi`) : ceux dont la paie a change depuis l'envoi de leurs documents recoivent le
+/// courriel de renvoi (`CORPS_RENVOI`), qui dit ce qui a change ; les autres, le premier courriel (`CORPS`).
+pub fn preparer_avec(
+    paies: &[Paie],
+    ent: &Value,
+    mois: &str,
+    dossier: &Path,
+    fiche: Option<&dyn Fn(&str) -> Value>,
+    renvois: &std::collections::HashMap<String, Renvoi>,
 ) -> Result<Vec<Message>, String> {
     let (an, mo) = an_mois(mois)?;
     let etiq = etiquette(mois)?;
@@ -371,24 +569,37 @@ pub fn preparer(
             None => en_texte(signataire.get("prenom").ok_or_else(|| cle_absente("prenom"))?),
         };
         let courts: Vec<&str> = presents.iter().map(|c| chercher(&COURTS, c)).collect();
+        let renvoi = renvois.get(&cle);
+        let champs = [
+            ("prenom", texte("prenom_affichage")?),
+            ("mois", nom_mois.to_string()),
+            ("de_mois", de_mois(nom_mois)),
+            ("annee", an.to_string()),
+            ("liste", libelles.join("\n")),
+            ("notes", if notes.is_empty() { String::new() } else { format!("{}\n", notes.join("\n\n")) }),
+            ("france_travail", ft),
+            ("signataire", nom_signataire),
+            ("raison_sociale", nom_affichage),
+            ("envoye_le", renvoi.map(|r| r.envoye_le.clone()).unwrap_or_default()),
+            ("declaration", renvoi.map(|r| r.declaration.clone()).unwrap_or_default()),
+            (
+                "changements",
+                match renvoi {
+                    Some(r) if !r.changements.is_empty() => r.changements.join("\n"),
+                    _ => RIEN_DANS_LE_RESUME.to_string(),
+                },
+            ),
+        ];
+        let (sujet, corps) = match renvoi {
+            Some(_) => (format!("{} {} — documents corrigés : {}", capitaliser(nom_mois), an, enumerer(&courts)), formater(CORPS_RENVOI, &champs)),
+            None => (format!("{} {} — {}", capitaliser(nom_mois), an, enumerer(&courts)), formater(CORPS, &champs)),
+        };
         messages.push(Message {
             cle: cle.clone(),
             nom: format!("{} {}", texte("prenom_affichage")?, texte("nom")?),
             destinataire: en_texte(email).to_lowercase(),
-            sujet: format!("{} {} — {}", capitaliser(nom_mois), an, enumerer(&courts)),
-            corps: formater(
-                CORPS,
-                &[
-                    ("prenom", texte("prenom_affichage")?),
-                    ("mois", nom_mois.to_string()),
-                    ("annee", an.to_string()),
-                    ("liste", libelles.join("\n")),
-                    ("notes", if notes.is_empty() { String::new() } else { format!("{}\n", notes.join("\n\n")) }),
-                    ("france_travail", ft),
-                    ("signataire", nom_signataire),
-                    ("raison_sociale", nom_affichage),
-                ],
-            ),
+            sujet,
+            corps,
             pieces,
             html: String::new(),
         });

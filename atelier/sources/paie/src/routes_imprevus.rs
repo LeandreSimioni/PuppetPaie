@@ -1,7 +1,8 @@
 //! Les routes des IMPREVUS d'un salarie (`imprevus`, 15/10/2026) : la liste (`imprevus`), le maintien de salaire d'un
-//! arret (`arret-maintien`), et la suspension du bloc 65 saisie une fois (`suspension-enregistrer`, `-modifier`,
-//! `-oublier`). Les arrets se saisissent, se reprennent, se signalent et s'oublient par leurs routes de toujours
-//! (`routes_ecritures_g2`, `routes_actes_h1`), dans le meme magasin.
+//! arret (`arret-maintien`), l'avis de prolongation d'un arret (`arret-prolonger`, 21/10/2026), et la suspension du
+//! bloc 65 saisie une fois (`suspension-enregistrer`, `-modifier`, `-oublier`). Les arrets se saisissent, se
+//! reprennent, se signalent et s'oublient par leurs routes de toujours (`routes_ecritures_g2`, `routes_actes_h1`), dans le
+//! meme magasin.
 //!
 //! RIEN NE PART D'ICI : un imprevu s'ecrit dans `imprevus/AAAA-MM.json`, et c'est la production du mois qui en tire la
 //! ligne de paie et le bloc de la DSN. Les refus sont des `ErreurOperation` (la page les montre tels quels) ; un refus
@@ -26,13 +27,15 @@ use crate::retours::Echec;
 use crate::routes_listes::refus_magasin;
 
 /// Les routes que ce module sert ; toutes sauf `imprevus` ecrivent.
-pub const ROUTES: [&str; 5] = ["imprevus", "arret-maintien", "suspension-enregistrer", "suspension-modifier", "suspension-oublier"];
+pub const ROUTES: [&str; 6] =
+    ["imprevus", "arret-maintien", "arret-prolonger", "suspension-enregistrer", "suspension-modifier", "suspension-oublier"];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "imprevus" => imprevus(ctx, charge),
         "arret-maintien" => arret_maintien(ctx, charge),
+        "arret-prolonger" => arret_prolonger(ctx, charge),
         "suspension-enregistrer" => suspension_enregistrer(ctx, charge),
         "suspension-modifier" => suspension_modifier(ctx, charge),
         "suspension-oublier" => suspension_oublier(ctx, charge),
@@ -188,6 +191,34 @@ fn reporte_par(imp: &Value) -> Vec<Value> {
     })
 }
 
+/// Un signalement de cette nature (04, 05) est-il parti pour cet arret (un `envois` que `marques_depot` a trace) ?
+fn envoye(imp: &Value, nature: &str) -> bool {
+    imp["envois"].as_array().is_some_and(|e| e.iter().any(|x| x.get("nature").and_then(Value::as_str) == Some(nature)))
+}
+
+/// UN ARRET EN COURS (21/10/2026) : celui dont on peut encore apprendre qu'il se prolonge ou que le salarie a repris plus
+/// tot. Aucune reprise n'est saisie, et :
+///
+/// - sa fin previsionnelle n'est pas passee : le salarie est arrete aujourd'hui ;
+/// - ou elle est passee, mais la DSN mensuelle du mois ou elle tombe n'est pas encore partie : l'avis de prolongation peut
+///   arriver apres la fin prescrite, et une reprise anticipee se signale encore. Une fois cette DSN partie (`reporte_par`),
+///   l'arret y est declare fini a sa fin previsionnelle -- « la reprise du travail de votre salarie a la date prevue doit
+///   etre signalee dans la DSN mensuelle » (ameli, `atelier/reference/sources/ameli-arret-de-travail/`) --, et il n'est
+///   plus en cours.
+///
+/// Les routes elles-memes ne s'en servent pas pour refuser : une prolongation se saisit tant qu'aucune reprise ne l'est
+/// (`arret_prolonger`). C'est ce que la page offre, pas ce que le moteur admet.
+pub(crate) fn en_cours(ctx: &Contexte, imp: &Value) -> R<bool> {
+    if vrai(&imp["reprise"]) {
+        return Ok(false);
+    }
+    let fin = jour(&imp["fin_previsionnelle"])?;
+    if fin >= ctx.aujourdhui {
+        return Ok(true);
+    }
+    Ok(!reporte_par(imp).iter().any(|m| py_str(m) == fin.mois_iso()))
+}
+
 // ------------------------------------------------------------------ le resume
 
 /// UN IMPREVU TEL QUE LA PAGE LE LIT. Un arret : le resume de toujours (`routes_listes::resume_arret` : salarie, contrat,
@@ -217,6 +248,15 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         o.insert("mois_du_maintien".into(), json!(if ouvert { mois_traverses(imp)? } else { Vec::new() }));
         o.insert("jours_deja_indemnises_attendus".into(), json!(ouvert && maintien_legal));
         o.insert("cachets".into(), json!(cachets));
+        // CE QUE L'ARRET OUVRE A LA PAGE (21/10/2026, regle de Leandre : rien de remplissable s'il n'y a pas a le remplir) :
+        // un arret en cours se prolonge ou se reprend plus tot ; une reprise saisie se corrige tant que son signalement
+        // n'est pas parti.
+        let cours = en_cours(ctx, imp)?;
+        o.insert("prolongations".into(), imp["prolongations"].clone());
+        o.insert("en_cours".into(), json!(cours));
+        o.insert("peut_prolonger".into(), json!(cours));
+        o.insert("peut_reprendre_plus_tot".into(), json!(cours));
+        o.insert("reprise_corrigeable".into(), json!(vrai(&imp["reprise"]) && !envoye(imp, crate::signalement::REPRISE)));
         return Ok(r);
     }
     let motif = magasin(imprevus::motif_de_suspension(&py_str(&imp["motif"])))?.unwrap_or(Value::Null);
@@ -365,6 +405,175 @@ s'applique pas aux salaries intermittents, et un mois de CDDU n'a pas de salaire
     ecrire(ctx, &dernier.mois_iso(), liste)?;
     let n = crate::routes_listes::nomenclatures(ctx)?;
     Ok(json!({"arret": resume(ctx, &n, &nouveau)?}))
+}
+
+// ------------------------------------------------------------------ la prolongation
+
+/// `arret-prolonger` : `{salarie, dernier_jour, fin?, subrogation_fin?}` -> `{"arret": resume, "subrogation_a_revoir",
+/// "phrase", "avertissements"}`. L'AVIS DE PROLONGATION D'UN ARRET EN COURS (21/10/2026).
+///
+/// CE QUI PART, ET CE QUI NE PART PAS. « En cas de prolongation d'arret, il ne faut pas envoyer de nouveau signalement de
+/// nature " arret de travail ". Il suffit de declarer la nouvelle date de fin de l'arret en DSN mensuelle, au niveau de la
+/// rubrique " Date de fin previsionnelle - S21.G00.60.003 " » (fiche net-entreprises 1983, `atelier/reference/sources/
+/// net-entreprises-base-connaissances/net-entreprises-fiche1983-prolongation-arret-dates-de-subrogation-20250322.txt`, l.
+/// 13) ; ameli dit de meme a l'employeur en DSN : « modifier la date de fin previsionnelle de l'arret de travail dans votre
+/// logiciel de paie » (`atelier/reference/sources/ameli-arret-de-travail/`). La route ne change donc que
+/// `fin_previsionnelle` : le bloc S21.G00.60 de chaque DSN mensuelle que l'arret traverse la porte (`dsn::bloc_60`,
+/// `imprevus::du_mois`, qui suit la nouvelle fin), la paie d'un permanent retire les jours ajoutes et le maintien s'ouvre
+/// aux mois ajoutes (`imprevus::lignes_du_mois`, `mois_du_maintien`), les cachets payes dans la prolongation s'avertissent
+/// (`imprevus::cachets_dans`) -- par le mecanisme de toujours, sans second. Un signalement d'arret pas encore parti partira
+/// avec la nouvelle fin.
+///
+/// LA SUBROGATION. Elle n'est portee que par le signalement d'arret (60.004 a 60.008 : C en 01, mais le moteur ne l'ecrit
+/// qu'en 04 -- `dsn::bloc_60`, tableau des usages) ; sa fin « maximale prevue dans le cadre de la convention collective ou
+/// de l'accord de branche » se declare d'emblee (fiche 1983, l. 25). Si elle est « insuffisante ou erronee », un nouveau
+/// signalement d'arret de type annule et remplace la porte (l. 37), « le plus rapidement possible des connaissance de la
+/// prolongation » (l. 66) ; si elle « court toujours », rien (l. 110). Le moteur ne connait pas le maximum de la convention
+/// (regle 1) : quand l'arret subroge finit desormais apres la subrogation, il le dit (`subrogation_a_revoir`) et la page
+/// demande la fin de subrogation -- c'est `subrogation_fin`, seule ou avec `fin`. Une fin de subrogation changee apres le
+/// depot du signalement d'arret fait naitre le signalement rectificatif (`obligations::de_l_arret`,
+/// `signalement_arret_rectificatif`), d'ou la trace de chaque avis dans `prolongations`.
+///
+/// CE QUI REFUSE, sans rien ecrire : un arret deja repris (« se prolonge sans interruption », ameli : un arret apres la
+/// reprise est un nouvel arret) ; une fin qui n'est pas apres la fin prescrite (une fin plus tot est une reprise
+/// anticipee, qui se signale : `arret-reprise`) ; une fin de subrogation sur un arret qui n'est pas subroge (CCH-11 de
+/// S21.G00.60.006) ; ce que la norme refuse au signalement d'arret (`routes_ecritures_g2::verifier`) ; un chevauchement.
+fn arret_prolonger(ctx: &Contexte, charge: &Value) -> R<Value> {
+    let cle = cle_du_salarie(ctx, exiger(charge, "salarie")?)?;
+    let dernier = jour(exiger(charge, "dernier_jour")?)?;
+    let Some((i, mut liste)) = trouver(ctx, ARRET, &cle, &dernier)? else {
+        return Err(refus(format!("Aucun arret de {} dont le dernier jour travaille soit le {}.", cle, dernier.jj_mm_aaaa())));
+    };
+    let avant = liste[i].clone();
+    if vrai(&avant["reprise"]) {
+        return Err(refus(format!(
+            "L'arrêt de {} a pris fin : le salarié a repris le {}. Une prolongation continue un arrêt en cours, sans \
+interruption ; un arrêt qui commence après la reprise est un nouvel arrêt, qui se saisit et se signale comme tel. Rien \
+n'est changé.",
+            cle,
+            jour(&avant["reprise"])?.jj_mm_aaaa()
+        )));
+    }
+    let date_ou_rien = |k: &str| -> R<Option<Jour>> {
+        match charge.get(k).filter(|v| vrai(v)) {
+            Some(v) => Ok(Some(jour(v)?)),
+            None => Ok(None),
+        }
+    };
+    let (fin, sub_fin) = (date_ou_rien("fin")?, date_ou_rien("subrogation_fin")?);
+    if fin.is_none() && sub_fin.is_none() {
+        return Err(refus("Dire la nouvelle fin de l'arrêt (l'avis de prolongation), ou la fin de la subrogation : rien n'est changé."));
+    }
+    let fin_avant = jour(&avant["fin_previsionnelle"])?;
+    let mut a = avant.clone();
+    if let Some(f) = fin {
+        if f < fin_avant {
+            return Err(refus(format!(
+                "Le {} est avant la fin prescrite de l'arrêt (le {}) : ce n'est pas une prolongation. Si le salarié a repris \
+plus tôt, c'est une reprise anticipée, qui se saisit comme telle et se signale (nature 05). Rien n'est changé.",
+                f.jj_mm_aaaa(),
+                fin_avant.jj_mm_aaaa()
+            )));
+        }
+        if f == fin_avant && sub_fin.is_none() {
+            return Err(refus(format!("L'arrêt est déjà prescrit jusqu'au {} : rien n'est changé.", f.jj_mm_aaaa())));
+        }
+        a["fin_previsionnelle"] = json!(f.iso());
+    }
+    let subroge = signalement_subroge(&a)?;
+    if let Some(sf) = sub_fin {
+        if !subroge {
+            return Err(refus(
+                "Cet arrêt n'est pas subrogé : il n'a pas de fin de subrogation (S21.G00.60.006, interdite sans subrogation -- \
+CCH-11). Rien n'est changé.",
+            ));
+        }
+        a["subrogation_fin"] = json!(sf.iso());
+    }
+    crate::routes_ecritures_g2::verifier(&a)?;
+    sans_chevauchement(ctx, &a, Some(&avant))?;
+
+    // La trace de l'avis : le jour ou la compagnie l'a su (le jour du moteur), l'heure de la saisie, et ce qui a change.
+    let trace = json!({
+        "le": ctx.aujourdhui.iso(),
+        "saisi_le": crate::routes_ecritures_g2::maintenant(),
+        "qui": crate::routes_ecritures_g2::qui_de(charge),
+        "fin_avant": avant["fin_previsionnelle"], "fin": a["fin_previsionnelle"],
+        "subrogation_fin_avant": avant["subrogation_fin"], "subrogation_fin": a["subrogation_fin"],
+    });
+    match a["prolongations"].as_array_mut() {
+        Some(l) => l.push(trace),
+        None => a["prolongations"] = json!([trace]),
+    }
+    liste[i] = a.clone();
+    ecrire(ctx, &dernier.mois_iso(), liste)?;
+
+    let nouvelle_fin = jour(&a["fin_previsionnelle"])?;
+    let mut avertissements = Vec::new();
+    if nouvelle_fin > fin_avant {
+        avertissements.push(json!(format!(
+            "Prolongé jusqu'au {}. Rien ne part : pas de nouveau signalement d'arrêt ; la DSN mensuelle de chaque mois que \
+l'arrêt traverse porte la nouvelle fin prévisionnelle (S21.G00.60.003, fiche net-entreprises 1983).",
+            nouvelle_fin.jj_mm_aaaa()
+        )));
+        // Les jours ajoutes qui tombent dans un mois dont la DSN reelle est deja partie : elle portait l'ancienne fin.
+        let declares = reporte_par(&avant);
+        for m in crate::date::mois_entre(&fin_avant.plus_jours(1).map_err(|e| erreur("ValueError", e))?, &nouvelle_fin) {
+            if declares.iter().any(|x| py_str(x) == m) {
+                avertissements.push(json!(format!(
+                    "La DSN de {} est déjà partie avec l'ancienne fin (le {}) : la paie de ce mois, où les jours ajoutés \
+tombent, est à corriger.",
+                    crate::engagement::libelle_mois(&m),
+                    fin_avant.jj_mm_aaaa()
+                )));
+            }
+        }
+    }
+    let sub_change = sub_fin.is_some() && a["subrogation_fin"] != avant["subrogation_fin"];
+    if sub_change && envoye(&avant, crate::signalement::ARRET) {
+        avertissements.push(json!(
+            "Le signalement d'arrêt est déjà parti avec l'ancienne fin de subrogation : un signalement d'arrêt annule et \
+remplace porte la nouvelle, le plus vite possible (fiche net-entreprises 1983). Il paraît dans ce qui est dû."
+        ));
+    }
+    let (revoir, phrase) = subrogation_a_revoir(&a)?;
+    let n = crate::routes_listes::nomenclatures(ctx)?;
+    Ok(json!({
+        "arret": resume(ctx, &n, &a)?,
+        "subrogation_a_revoir": revoir,
+        "phrase": phrase,
+        "avertissements": avertissements,
+    }))
+}
+
+/// L'arret est-il subroge (S21.G00.60.004 = oui) ?
+fn signalement_subroge(a: &Value) -> R<bool> {
+    crate::signalement::avec_subrogation(&crate::dsn::Arret { v: a.clone() }).map_err(|m| erreur("ValueError", m))
+}
+
+/// UNE SUBROGATION QUI S'ARRETE AVANT L'ARRET : `(true, la question)` quand l'arret est subroge et que sa fin de subrogation
+/// (60.006) tombe avant sa fin previsionnelle. Le moteur ne connait pas le maximum que la convention permet (regle 1) : il
+/// demande. Fiche net-entreprises 1983 (l. 25 et 110) : la fin de subrogation est la « date de fin de subrogation
+/// maximale prevue dans le cadre de la convention collective ou de l'accord de branche » ; si elle « court toujours »,
+/// il n'y a rien a faire.
+fn subrogation_a_revoir(a: &Value) -> R<(bool, Value)> {
+    if !signalement_subroge(a)? || !vrai(&a["subrogation_fin"]) {
+        return Ok((false, Value::Null));
+    }
+    let (sf, fin) = (jour(&a["subrogation_fin"])?, jour(&a["fin_previsionnelle"])?);
+    if sf >= fin {
+        return Ok((false, Value::Null));
+    }
+    Ok((
+        true,
+        json!(format!(
+            "La subrogation demandée s'arrête le {}, avant la nouvelle fin de l'arrêt (le {}). Elle se déclare jusqu'à son \
+maximum prévu par la convention collective ou l'accord de branche : si ce maximum va plus loin, porter sa fin ici ; s'il est \
+atteint, la garder (fiche net-entreprises 1983).",
+            sf.jj_mm_aaaa(),
+            fin.jj_mm_aaaa()
+        )),
+    ))
 }
 
 // ------------------------------------------------------------------ les suspensions

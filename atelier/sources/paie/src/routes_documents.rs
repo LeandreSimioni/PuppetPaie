@@ -723,6 +723,18 @@ fn documents_prets(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Map<String, 
             ));
         }
     }
+    // LES DOCUMENTS DISENT CE QUE LA DSN DECLARE (ticket #240) : une paie modifiee depuis la DSN deposee attend sa DSN
+    // refaite (et ses documents avec elle) ; envoyer avant, ce serait envoyer des documents que la DSN ne dit pas. TANT
+    // QUE L'ANNULE-ET-REMPLACE EST ADMIS seulement (Leandre, 21/10/2026) : apres sa limite, la DSN deposee ne se refait
+    // plus, la paie modifiee se declare dans la DSN suivante (« Corriger ce mois »), et les documents refaits repartent,
+    // le courriel le disant (`routes_envois::choisir`).
+    let remplacement = if vrai(&e) && !e.get("refusee").is_some_and(vrai) { m.etat_remplacement(mois, &Value::Null)? } else { Value::Null };
+    if vrai(&remplacement["saisie_modifiee"]) && vrai(&remplacement["admis"]) {
+        empechements.push(format!(
+            "La paie a changé depuis la DSN déposée le {} : refaire le mois et sa DSN (annule-et-remplace) d'abord — les documents partent avec la paie que la DSN déclare.",
+            etats::quand_lisible(e.get("quand").unwrap_or(nul()))
+        ));
+    }
     let mut r = Map::new();
     r.insert("pret".into(), json!(empechements.is_empty()));
     r.insert("empechements".into(), json!(empechements));
@@ -752,7 +764,7 @@ impl Message {
 /// `envoi.preparer` : un message par salarie, a partir des pieces individuelles deja ecrites. Le texte
 /// du corps, que l'apercu ne montre pas, n'est pas compose : seuls ses refus (`KeyError` d'une fiche
 /// sans nom d'affichage ou sans signataire) sont gardes.
-fn preparer(ctx: &Contexte, paies: &[crate::calcul::Paie], mois: &str, dossier: &Path) -> R<Vec<Message>> {
+fn preparer(ctx: &Contexte, paies: &[crate::calcul::Paie], mois: &str, dossier: &Path, renvois: &HashMap<String, crate::envoi::Renvoi>) -> R<Vec<Message>> {
     const PIECES: [(&str, &str, &str); 4] = [
         ("bulletin", "Bulletin", "bulletin"),
         ("rectificatif", "BulletinRectificatif", "bulletin rectificatif"),
@@ -819,9 +831,10 @@ fn preparer(ctx: &Contexte, paies: &[crate::calcul::Paie], mois: &str, dossier: 
             get_requis(sg, "prenom")?;
         }
         let sujet = format!(
-            "{} {} — {}",
+            "{} {} — {}{}",
             capitaliser(MOIS_ACCENTS[rang_du_mois(mo)?]),
             an,
+            if renvois.contains_key(&cle) { "documents corrigés : " } else { "" },
             match courts.len() {
                 0 => "documents".to_string(),
                 1 => courts[0].to_string(),
@@ -889,14 +902,19 @@ fn envoi_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     // `charger(ctx, paies/<mois>.json)` : la saisie du mois, numerotee.
     let (data, paies) = charger_le_mois(o, ctx, &mois)?;
     let dossier = ctx.racine.join("sorties").join(&mois).join("envoi");
-    let messages = if prets.get("produit").is_some_and(vrai) { preparer(ctx, &paies, &mois, &dossier)? } else { Vec::new() };
+    // A QUI ILS PARTENT (ticket #240) : le meme choix que l'envoi (`routes_envois::choisir`).
+    let choix = crate::routes_envois::choisir(ctx, &mois, &data, &paies)?;
+    let messages = if prets.get("produit").is_some_and(vrai) { preparer(ctx, &paies, &mois, &dossier, &choix.renvois)? } else { Vec::new() };
+    let tous_a_jour = messages.iter().all(|x| choix.a_jour.contains(&x.cle));
+    let renvoi_voulu = !messages.is_empty() && tous_a_jour;
+    let messages = choix.garder(messages, |x| x.cle.as_str());
     let (mut expediteur, mut avertissements) = (String::new(), Vec::<String>::new());
     if prets.get("boite_liee").is_some_and(vrai) {
         // `preparer_envoi` : la saisie rechargee, les messages refaits, le compte de la boite.
         let mois_saisie = data.get("mois").map(crate::date::en_texte).ok_or_else(|| crate::fichiers::absent("mois"))?;
         let dossier = ctx.racine.join("sorties").join(&mois_saisie).join("envoi");
         if dossier.exists() {
-            preparer(ctx, &paies, &mois_saisie, &dossier)?;
+            preparer(ctx, &paies, &mois_saisie, &dossier, &choix.renvois)?;
             expediteur = compte_de_la_boite(ctx)?.to_lowercase();
             let sg = get_requis(&ctx.entreprise, "signataire")?;
             let signataire = sg.get("email").filter(|v| vrai(v)).map(py_str).unwrap_or_default().to_lowercase();
@@ -920,14 +938,40 @@ fn envoi_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
             messages
                 .iter()
                 .map(|x| {
+                    let renvoi = choix.renvois.get(&x.cle);
                     json!({"cle": x.cle, "nom": x.nom, "destinataire": x.destinataire, "sujet": x.sujet,
                            "pieces": x.pieces.iter().map(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()).collect::<Vec<_>>(),
-                           "octets": x.taille()})
+                           "octets": x.taille(),
+                           // Un renvoi : le jour du premier envoi, et ce que le courriel dira avoir change.
+                           "renvoi": renvoi.is_some(),
+                           "envoye_le": renvoi.map(|r| r.envoye_le.clone()),
+                           "changements": renvoi.map(|r| if r.changements.is_empty() {
+                               vec![crate::envoi::RIEN_DANS_LE_RESUME.trim_start_matches([' ', '-']).to_string()]
+                           } else {
+                               r.changements.iter().map(|l| l.trim_start().trim_start_matches("- ").to_string()).collect()
+                           }).unwrap_or_default()})
                 })
                 .collect(),
         ),
     );
-    r.insert("deja".into(), get(&deja, "documents")?.clone());
+    // « Deja envoye » ne se dit que d'un renvoi voulu, a l'identique : tous ont deja leurs documents, et leur paie n'a
+    // pas change. Un renvoi de documents corriges ou un premier envoi n'envoie rien une seconde fois.
+    r.insert("deja".into(), if tous_a_jour { get(&deja, "documents")?.clone() } else { Value::Null });
+    let renvois = messages.iter().filter(|x| choix.renvois.contains_key(&x.cle)).count();
+    let n = messages.len();
+    r.insert("renvois".into(), json!(renvois));
+    r.insert(
+        "bouton".into(),
+        json!(if renvois > 0 && renvois == n {
+            format!("Renvoyer les documents corrigés à {} salarié{}", n, if n > 1 { "s" } else { "" })
+        } else if renvois > 0 {
+            format!("Envoyer à {} salarié{} ({} corrigé{} à renvoyer)", n, if n > 1 { "s" } else { "" }, renvois, if renvois > 1 { "s" } else { "" })
+        } else if renvoi_voulu {
+            format!("Renvoyer à {} salarié{}", n, if n > 1 { "s" } else { "" })
+        } else {
+            format!("Envoyer à {} salarié{}", n, if n > 1 { "s" } else { "" })
+        }),
+    );
     r.extend(prets);
     Ok(Value::Object(r))
 }

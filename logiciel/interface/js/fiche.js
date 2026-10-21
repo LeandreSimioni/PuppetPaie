@@ -977,6 +977,24 @@ function brancherTaxeSalaires() {
     });
     dit.textContent = r.consequence;
     dit.classList.toggle("attention", !r.complet);
+    // Les plafonds de la franchise, chiffrés par le moteur (ticket #239) :
+    // l'aide de la question et ses deux réponses. La question ne se
+    // comprend pas sans les montants : son aide est ouverte d'emblée (le
+    // « ? » la referme).
+    const f = r.franchise;
+    if (f) {
+      const corps = bloc.querySelector(
+        '[data-aide-corps="taxe_sur_les_salaires.sous_franchise"]');
+      const aide = corps && corps.querySelector("p");
+      if (aide) {
+        if (n === 1) corps.hidden = false;
+        aide.textContent = f.aide;
+      }
+      const choix = cases.find((c) => c.dataset.sousCle === "sous_franchise");
+      if (choix) [...choix.options].forEach((o) => {
+        if (f.choix[o.value]) o.textContent = f.choix[o.value];
+      });
+    }
   };
   // Avant la première réponse, la première case seule : rien ne clignote.
   cases.slice(1).forEach((c) => { c.closest(".sous-champ").hidden = true; });

@@ -988,6 +988,26 @@ pub(crate) fn documents_envoyes(lignes: &[Value], mois: &str) -> R<Value> {
     Ok(quand.sortie(Clone::clone))
 }
 
+/// CE QUI EST PARTI A CHAQUE SALARIE avec ses documents du mois (ticket #240) : cle -> `{quand, empreinte, resume}` du
+/// dernier envoi accepte. `empreinte` : la paie du salarie quand ses documents sont partis
+/// (`routes_mois::empreintes_documents`) ; `resume` : ce que ses documents disaient (`envoi::resume_de`). Un envoi
+/// d'avant le 21/10/2026 n'a ni l'un ni l'autre : `null`.
+pub(crate) fn documents_partis(lignes: &[Value], mois: &str) -> R<std::collections::HashMap<String, Value>> {
+    let mut out = std::collections::HashMap::new();
+    for l in filtrer(lignes, Some(DOCUMENTS), Some(mois), false)? {
+        if !accepte(l)? {
+            continue;
+        }
+        for sal in detail_liste(l, "salaries")? {
+            out.insert(
+                py_str(get(&sal, "cle")?),
+                json!({"quand": get(l, "quand")?, "empreinte": get(&sal, "empreinte")?, "resume": get(&sal, "resume")?}),
+            );
+        }
+    }
+    Ok(out)
+}
+
 pub(crate) fn etat_du_mois(lignes: &[Value], mois: &str) -> R<Value> {
     let mut etat = Map::new();
     for acte in ACTES {

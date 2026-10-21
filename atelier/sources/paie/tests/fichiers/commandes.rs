@@ -73,6 +73,7 @@ fn lancer(binaire: &str, donnees: Option<&Path>, args: &[&str], env: &[(&str, &s
     let m = monde();
     let mut c = Command::new(binaire);
     c.env_clear()
+        .env(paie::garde_reseau::VARIABLE, "1") // le garde-fou reseau des essais : rien ne sort de la machine
         .env("PATH", std::env::var("PATH").unwrap_or_default())
         .env("HOME", m.join("home"))
         .env("PUPPETPAIE_CLE", m.join("cle"))
@@ -272,7 +273,7 @@ fn maj_cherche_au_depot_du_moteur_tant_qu_aucun_n_est_pose() {
     let inst = crate::outils::installation(&dossier_de_test("commandes", "maj-depot"), "2026.10.09");
     let code = crate::outils::code_de(&inst);
     let (proxy, demandes) = mandataire();
-    let r = lancer(env!("CARGO_BIN_EXE_paie"), None, &["maj", "--sans-telecharger"], &[("HTTPS_PROXY", &proxy), ("PUPPETPAIE_CODE", &code)]);
+    let r = lancer(env!("CARGO_BIN_EXE_paie"), None, &["maj", "--sans-telecharger"], &[(paie::garde_reseau::VARIABLE, &proxy), ("PUPPETPAIE_CODE", &code)]);
     assert_eq!(r.code, 0, "{}{}", r.out, r.err);
     assert!(r.out.contains("depot injoignable") && r.out.contains("https://github.com/LeandreSimioni/PuppetPaie/releases/latest/download/derniere.json"), "{}", r.out);
     assert_eq!(*demandes.lock().unwrap(), ["CONNECT github.com:443 HTTP/1.1"]);

@@ -370,6 +370,13 @@ tr.total td { font-weight: bold; border-top: 2px solid var(--texte); border-bott
 /* CE QUI RENSEIGNE SANS RIEN DEMANDER (24/09/2026, engagement.rs, Avis) : un
    contrat qui se poursuit le mois suivant n'est pas une alerte. En gris. */
 .encart.info { color: var(--discret); }
+/* UN AVERTISSEMENT QUI DEMANDE UNE RÉPONSE (21/10/2026 : modifier la paie d'un mois dont la DSN ne se remplace plus) :
+   il se voit, il ne se lit pas en passant. */
+.encart.grave {
+  border-left: 6px solid var(--alerte); background: var(--alerte-fond); color: var(--texte);
+  font-size: 15px; line-height: 1.5; padding: 14px 16px;
+}
+.encart.grave b { display: block; font-size: 17px; margin-bottom: 6px; color: var(--alerte); }
 /* LE SAVIEZ-VOUS ? (ticket 224) : un conseil renseigne, il ne demande rien. En gris, son titre en tete, la
    reference de son texte a la fin. */
 .encart.conseil { color: var(--discret); }
@@ -973,6 +980,9 @@ table.ordres th, table.ordres td { padding: 4px 6px; text-align: left; vertical-
 table.ordres th.nombre, table.ordres td.nombre { text-align: right; white-space: nowrap; }
 table.ordres td.nombre b { font-size: 15px; }
 table.ordres tr:last-child td { border-bottom: none; }
+/* LE TROP-VERSÉ (21/10/2026) : sous l'ordre qu'il concerne, sur toute la largeur utile ; `bordereau::credit` le dit. */
+table.ordres tr:has(+ tr.credit) td { border-bottom: none; }
+table.ordres tr.credit .encart { margin: 0 0 6px; }
 
 /* La réponse de l'organisme, telle quelle. */
 pre.reponse {
@@ -1244,7 +1254,7 @@ pre.reponse {
 .tableau-compta { max-height: 50vh; overflow: auto; margin: 10px 0; }
 table.compta { border-collapse: collapse; font-size: 12px; width: 100%; }
 table.compta th, table.compta td { padding: 3px 6px; border-bottom: 1px solid var(--bord); text-align: left; }
-table.compta td.r { text-align: right; font-variant-numeric: tabular-nums; }
+table.compta td.r, table.compta th.r { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* ---------------------------------- corriger un mois depose (18/09/2026)
    L'ecran vit dans l'Historique, et emprunte tout ce qui existe deja :
@@ -1257,6 +1267,26 @@ table.compta td.r { text-align: right; font-variant-numeric: tabular-nums; }
 /* Les lignes de paie d'une correction, dans la boite : la meme grille que
    dans la saisie, mais sur la largeur de la boite. */
 #cor-lignes { margin: 10px 0; }
+/* La grille d'une ligne (jours, quantite, rubrique, taux, lieu) ne tient pas dans les 560 px d'une boite : le taux et
+   le lieu s'y ecrasaient (21/10/2026). La boite d'une correction prend la largeur de la saisie. */
+.boite:has(#cor-lignes) { width: 880px; }
+/* Une ligne sur deux rangs, chaque champ a la largeur de ce qu'il porte : les jours, la quantite, la rubrique, le taux
+   au premier ; le lieu, toute la largeur, au second. */
+#cor-lignes .rubrique {
+  grid-template-columns: minmax(7rem, max-content) 5rem minmax(12rem, 1fr) auto 7rem auto auto auto;
+  grid-template-rows: auto auto;
+  padding-bottom: .4rem; border-bottom: 1px solid var(--bord); margin-bottom: .5rem;
+}
+#cor-lignes .rubrique .r-jours-btn { grid-column: 1; grid-row: 1; overflow: visible; }
+#cor-lignes .rubrique .r-quantite { grid-column: 2; grid-row: 1; }
+#cor-lignes .rubrique .r-code { grid-column: 3; grid-row: 1; }
+#cor-lignes .rubrique .r-mot:nth-of-type(1) { grid-column: 4; grid-row: 1; }
+#cor-lignes .rubrique .r-taux { grid-column: 5; grid-row: 1; }
+#cor-lignes .rubrique .r-mot:nth-of-type(2) { grid-column: 6; grid-row: 1; }
+#cor-lignes .rubrique .r-heures { grid-column: 7; grid-row: 1; }
+#cor-lignes .rubrique .supprimer { grid-column: 8; grid-row: 1; }
+#cor-lignes .rubrique .r-lieu { grid-column: 1 / -1; grid-row: 2; }
+#cor-lignes .rubrique .r-genre { grid-column: 1 / -1; }
 #cor-apercu { margin-top: 12px; }
 
 /* Ce qui ne se montre qu'a qui en a besoin : les bornes d'un contrat paye au
@@ -1486,6 +1516,12 @@ label.coche.montrer-archives { margin-top: 16px; padding-top: 10px; border-top: 
 table.recap-dsn { font-size: 12.5px; margin: 6px 0 10px; }
 table.recap-dsn td, table.recap-dsn th { padding: 3px 6px; }
 table.recap-dsn tr.ecart td { background: var(--fond); }
+/* Un contrat qui n'est dans le fichier que pour sa correction (21/10/2026) : la ligne le dit elle-même, en italique. */
+table.recap-dsn tr.correction td { font-style: italic; color: var(--discret); }
+table.recap-dsn td.dates { white-space: nowrap; }
+table.recap-dsn td.num, table.recap-dsn td.fin { white-space: nowrap; }
+/* La boîte de dépôt de la DSN s'élargit pour que son récapitulatif tienne sans défilement (21/10/2026). */
+.boite:has(table.recap-dsn) { width: 800px; }
 ul.absents { margin: 4px 0 8px; padding-left: 18px; }
 details.replie { margin: 10px 0; }
 details.replie > summary { cursor: pointer; color: var(--discret); font-size: 13px; }

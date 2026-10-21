@@ -34,6 +34,7 @@ mod envoi;
 mod envoi_mime;
 mod essai;
 mod extraction;
+mod garde_reseau;
 mod importation_tri;
 mod incidents_filet;
 mod mise_a_jour;

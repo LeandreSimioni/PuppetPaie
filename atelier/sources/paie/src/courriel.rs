@@ -206,6 +206,8 @@ pub trait Flux: Read + Write {}
 impl<T: Read + Write + ?Sized> Flux for T {}
 
 fn connecter(hote: &str, port: u16) -> Result<TcpStream, ErreurCourriel> {
+    // En essai, le garde-fou reseau : aucune boite reelle.
+    crate::garde_reseau::directe(hote).map_err(injoignable)?;
     let delai = Duration::from_secs(DELAI);
     let adresses: Vec<_> = (hote, port).to_socket_addrs().map_err(injoignable)?.collect();
     let mut derniere = None;
@@ -541,6 +543,8 @@ impl Courriel for Client {
         let enveloppe = Envelope::new(Some(expediteur), adresses).map_err(|e| erreur(e.to_string()))?;
         let mdp = mot_de_passe(&self.racine)?;
         let (hote, port) = (self.serveurs.smtp.clone(), self.serveurs.port_smtp);
+        // En essai, le garde-fou reseau : aucun serveur d'envoi reel.
+        crate::garde_reseau::directe(&hote).map_err(injoignable)?;
         let tls = TlsParameters::builder(hote.clone()).build_rustls().map_err(|e| erreur(format!("TLS : {}", e)))?;
         let transport = SmtpTransport::builder_dangerous(hote.as_str())
             .port(port)

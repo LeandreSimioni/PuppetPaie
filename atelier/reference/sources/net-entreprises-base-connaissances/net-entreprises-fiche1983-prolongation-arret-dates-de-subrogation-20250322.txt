@@ -1,0 +1,115 @@
+Date de modification : 22/03/2025 04:30 PM
+
+Comment régulariser des dates de subrogation dans le cas d'une prolongation d'arrêt maladie ?
+
+-   Le contexte
+
+ 
+
+Présentation de la régularisation à apporter dans le cas d'une prolongation d'arrêt maladie, si la période maximale de subrogation n'a pas été renseignée dans le signalement de nature " arrêt de travail " initial.
+
+-   Rappel de la consigne en cas de prolongation d'arrêt
+
+En cas de prolongation d'arrêt, il ne faut pas envoyer de nouveau signalement de nature " arrêt de travail ". Il suffit de déclarer la nouvelle date de fin de l'arrêt en DSN mensuelle, au niveau de la rubrique " Date de fin prévisionnelle - S21.G00.60.003 " pour l'individu considéré.
+
+-   Rappel de la consigne en cas de subrogation
+
+Les données de subrogation ne sont pas présentes en DSN mensuelle, elles n'apparaissent que dans le signalement de nature " arrêt de travail ".
+
+En cas de subrogation, le signalement de nature " arrêt de travail " doit être transmis avec les rubriques suivantes valorisées comme suit :
+
+-   " Subrogation - S21.G00.60.004 " : " 01 - oui "
+
+-   " Date de début de subrogation - S21.G00.60.005 " : date de début de la période de subrogation
+
+-   " Date de fin de subrogation - S21.G00.60.006 " : date de fin de subrogation maximale prévue dans le cadre de la convention collective ou de l'accord de branche
+
+-   " IBAN - S21.G00.60.007 " / " BIC - S21.G00.60.008 " : coordonnées bancaires de l'employeur
+
+ 
+
+ 
+
+-   Régulariser  des dates de subrogation dans le cas d’une prolongation d’arrêt maladie
+
+Lorsque la consigne ci-dessus concernant la période de subrogation maximale n'a pas été respectée, il convient de procéder comme suit.
+
+Si la période de subrogation, renseignée dans le signalement de nature " arrêt de travail " initialement transmis, est insuffisante ou erronée, l'employeur doit alors transmettre un nouveau signalement de nature " arrêt de travail " de type annule et remplace, dans lequel une nouvelle date de fin de subrogation sera renseignée.
+
+Ce nouveau signalement doit être envoyé dans des délais raisonnables, afin que la caisse primaire d'assurance maladie enregistre la nouvelle période de subrogation, avant le prochain paiement d'indemnités journalières.
+
+Description du cas :En avril 2018, un signalement de nature " arrêt de travail " est transmis pour un individu, avec une période d'arrêt du 04 avril 2018 au 25 mai 2018 et une période de subrogation identique (normalement, la date de fin de subrogation aurait dû être déclarée à la date de fin maximale de subrogation prévue dans le cadre de la convention collective ou de l'accord de branche, mais dans l'exemple le déclarant a fait une erreur déclarative).
+
+Le 26 mai 2018, l'individu est de nouveau arrêté, jusqu'au 15 juin 2018. Cette prolongation recouvre une période qui fait aussi l'objet d'une subrogation. Le gestionnaire doit donc corriger la période de subrogation initialement transmise. Pour cela, il doit transmettre un signalement de nature " arrêt de travail " de type " annule / remplace " corrigeant la période de subrogation.
+Pour l'exemple, la période de subrogation de la branche est de 3 mois.
+Envoi d'un signalement Arrêt de travail " annule et remplace "
+Signalement arrêt de travail transmis en avril 2018
+
+ 
+
+  -------------------------------------------------------------------------------------
+  Bloc « Arrêt de travail - S21.G00.60 »
+  Motif de l'arrêt - S21.G00.60.001 : 01 - maladie
+  Date du dernier jour travaillé - S21.G00.60.002 : 03/04/2018
+  Date de fin prévisionnelle - S21.G00.60.003 : 25/05/2018
+  Subrogation - S21.G00.60.004 : 01 - oui
+  Date de début de subrogation - S21.G00.60.005 : 04/04/2018
+  Date de fin de subrogation - S21.G00.60.006 : 25/05/2018
+  IBAN - S21.G00.60.007 : coordonnées bancaires de l'entreprise
+  BIC - S21.G00.60.008 : coordonnées bancaires de l'entreprise
+  Date de la reprise - S21.G00.60.010 : non renseignée
+  Motif de la reprise - S21.G00.G0.011 : non renseignée
+  Date de l'accident ou de la première constatation - S21.G00.60.012 : non renseignée
+  SIRET Centralisateur - S21.G00.60.600 : non renseignée
+  -------------------------------------------------------------------------------------
+
+ATTENTION : La correction doit intervenir le plus rapidement possible dès connaissance de la prolongation de l'arrêt.
+Correction de l'erreur via un signalement arrêt de travail " annule et remplace " transmis en mai 2018 :
+
+ 
+
++-----------------------------------------------------------------------------------------------------------------------------+
+| Bloc « Arrêt de travail - S21.G00.60 »                                                                                      |
++-----------------------------------------------------------------------------------------------------------------------------+
+| Motif de l'arrêt - S21.G00.60.001 : 01 - maladie                                                                            |
++-----------------------------------------------------------------------------------------------------------------------------+
+| Date du dernier jour travaillé - S21.G00.60.002 : 03/04/2018                                                                |
++-----------------------------------------------------------------------------------------------------------------------------+
+| Date de fin prévisionnelle - S21.G00.60.003 : 15/06/2018 (date de fin suite à la prolongation : la nouvelle date de fin est |
+|                                                                                                                             |
+| habituellement transmise dans la DSN mensuelle)                                                                             |
++-----------------------------------------------------------------------------------------------------------------------------+
+| Subrogation - S21.G00.60.004 : 01 - oui                                                                                     |
++-----------------------------------------------------------------------------------------------------------------------------+
+| Date de début de subrogation - S21.G00.60.005 : 04/04/2018                                                                  |
++-----------------------------------------------------------------------------------------------------------------------------+
+| Date de fin de subrogation - S21.G00.60.006 : 04/07/2018 (date de fin de subrogation positionnée au maximum)                |
++-----------------------------------------------------------------------------------------------------------------------------+
+| IBAN - S21.G00.60.007 : coordonnées bancaires de l'entreprise                                                               |
++-----------------------------------------------------------------------------------------------------------------------------+
+| BIC - S21.G00.60.008 : coordonnées bancaires de l'entreprise                                                                |
++-----------------------------------------------------------------------------------------------------------------------------+
+| Date de la reprise - S21.G00.60.010 : non renseignée                                                                        |
++-----------------------------------------------------------------------------------------------------------------------------+
+| Motif de la reprise - S21.G00.G0.011 : non renseignée                                                                       |
++-----------------------------------------------------------------------------------------------------------------------------+
+| Date de l'accident ou de la première constatation - S21.G00.60.012 : non renseignée                                         |
++-----------------------------------------------------------------------------------------------------------------------------+
+| SIRET Centralisateur - S21.G00.60.600 : non renseignée                                                                      |
++-----------------------------------------------------------------------------------------------------------------------------+
+
+ 
+
+-   Points d'attention
+     
+
+-   Il est nécessaire de renseigner les périodes extrêmes de subrogation définies par la convention collective ou l'accord de branche du salarié (rubriques " Date de début de subrogation - S21.G00.60.005 " et " Date de fin de subrogation - S21.G00.60.006 ").
+
+-   Dans le cas où l'employeur souhaite demander une nouvelle période de subrogation (après une période non subrogée), il est nécessaire de transmettre une nouvelle attestation de salaire hors procédure DSN.
+
+-   Si la période renseignée pour la subrogation lors du signalement initial court toujours, il n'est pas nécessaire d'effectuer un nouveau signalement pour signifier la prolongation de l'arrêt. Il suffit de prolonger l'arrêt au sein de la DSN mensuelle en modifiant la date de fin prévisionnelle (rubrique " Date de fin prévisionnelle - S21.G00.60.003 ").
+
+[ATTENTION] : Les exemples présentés au niveau des fiches de consignes ne reflètent pas l'exhaustivité des cas possibles.
+
+Date de création : 10/10/2018 11:48 AM
+N° de la fiche : 1983

@@ -39,7 +39,7 @@ pub const ROUTES: [&str; 2] = ["saisie", "echeancier"];
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "saisie" => saisie(ctx, charge),
+        "saisie" => saisie(_o, ctx, charge),
         "echeancier" => echeancier(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -419,14 +419,18 @@ fn descendre_le_mois(saisie: Value) -> Value {
 }
 
 /// La route `saisie`.
-fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
+fn saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?;
     let mois = en_texte(brut);
     let p = ctx.racine.join("paies").join(format!("{}.json", mois));
     let existe = p.exists();
     // `ctx` au squelette : un mois neuf s'ouvre VIDE, avec le dernier taux saisi.
     let saisie = if existe { lire_saisie(&p)? } else { squelette(ctx, &mois)? };
-    let limite = mois_hors_delai(ctx, &mois)?;
+    // UN MOIS DECLARE DONT L'ANNULE-ET-REMPLACE EST PASSE (21/10/2026) n'est pas ferme : sa paie se modifie, en le
+    // confirmant a la premiere modification (`routes_regularisation::modification_de_la_paie`) -- il n'est pas en retard.
+    let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
+    let dsn_deposee = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, &mois)?;
+    let limite = if dsn_deposee.get("confirmer").is_some_and(vrai) { None } else { mois_hors_delai(ctx, &mois)? };
     let saisie = descendre_le_mois(saisie);
     let defauts = defauts_de_la_saisie(ctx, &mois, &saisie);
     // UN MOIS TENU AVANT CE LOGICIEL (ticket #215) : pas de fichier ici, mais l'historique importe le porte -- ses paies,
@@ -440,6 +444,8 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
         // Passe le 15 du mois suivant, le mois est ferme : la page le montre en
         // lecture seule (le serveur refuserait de toute facon).
         "hors_delai": limite.map(|j| j.iso()),
+        // La DSN reelle du mois est deposee : ce qu'il faut savoir avant d'en modifier la paie (`null` sinon).
+        "dsn_deposee": dsn_deposee,
         "saisie": resoudre_noms(ctx, &saisie)?,
     }))
 }

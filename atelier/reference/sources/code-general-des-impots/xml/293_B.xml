@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000052488142</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/52/48/81/LEGIARTI000052488142.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>293 B</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2025-03-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006069577" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code général des impôts, CGI." debut="1952-02-14" fin="2999-01-01" id_txt="LEGITEXT000006069577">Code général des impôts</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1952-02-14" fin="2999-01-01" id="LEGISCTA000006084232">Livre premier : Assiette et liquidation de l'impôt</TITRE_TM>
+<TM>
+<TITRE_TM debut="1952-02-14" fin="2999-01-01" id="LEGISCTA000006114494">Première Partie : Impôts d'État</TITRE_TM>
+<TM>
+<TITRE_TM debut="1978-12-30" fin="2999-01-01" id="LEGISCTA000006133846">Titre II : Taxes sur le chiffre d'affaires et taxes assimilées</TITRE_TM>
+<TM>
+<TITRE_TM debut="1978-12-30" fin="2999-01-01" id="LEGISCTA000006147022">Chapitre premier : Taxe sur la valeur ajoutée</TITRE_TM>
+<TM>
+<TITRE_TM debut="1991-06-24" fin="2999-01-01" id="LEGISCTA000006162567">Section VIII bis : Franchise en base</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1991-06-24" etat="MODIFIE" fin="1992-07-04" id="LEGIARTI000006304473" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1992-07-04" etat="MODIFIE" fin="1994-09-02" id="LEGIARTI000006304474" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1994-09-02" etat="MODIFIE" fin="1997-04-11" id="LEGIARTI000006304475" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1997-04-11" etat="MODIFIE" fin="1999-03-31" id="LEGIARTI000006304476" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1999-03-31" etat="MODIFIE" fin="2002-01-01" id="LEGIARTI000006304477" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2002-03-31" etat="MODIFIE" fin="2003-12-31" id="LEGIARTI000006304478" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2003-12-31" etat="MODIFIE" fin="2008-01-01" id="LEGIARTI000006304479" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-01-01" etat="MODIFIE" fin="2008-08-06" id="LEGIARTI000018026406" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-08-06" etat="MODIFIE" fin="2010-01-01" id="LEGIARTI000019288110" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2010-01-01" etat="MODIFIE" fin="2010-05-01" id="LEGIARTI000021645089" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2010-05-01" etat="MODIFIE" fin="2011-06-12" id="LEGIARTI000022201472" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2011-06-12" etat="MODIFIE" fin="2012-01-01" id="LEGIARTI000024189122" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2012-01-01" etat="MODIFIE" fin="2014-05-30" id="LEGIARTI000023480428" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2014-05-30" etat="MODIFIE" fin="2015-01-01" id="LEGIARTI000029042604" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2015-01-01" etat="MODIFIE" fin="2015-01-01" id="LEGIARTI000028447688" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2015-01-01" etat="MODIFIE" fin="2016-12-11" id="LEGIARTI000030023960" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2016-12-11" etat="MODIFIE" fin="2017-03-02" id="LEGIARTI000033613396" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2017-03-02" etat="MODIFIE" fin="2017-05-05" id="LEGIARTI000034111370" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2017-05-05" etat="MODIFIE" fin="2020-07-25" id="LEGIARTI000034596900" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2020-07-25" etat="MODIFIE" fin="2022-01-01" id="LEGIARTI000042159618" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2022-01-01" etat="MODIFIE" fin="2023-01-01" id="LEGIARTI000044983927" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2023-01-01" etat="MODIFIE" fin="2023-06-03" id="LEGIARTI000045035275" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2023-06-03" etat="MODIFIE" fin="2025-01-01" id="LEGIARTI000047622718" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2025-01-01" etat="MODIFIE" fin="2025-03-01" id="LEGIARTI000048826700" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2025-03-01" etat="MODIFIE" fin="2025-03-01" id="LEGIARTI000051215135" num="293 B" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2025-03-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000052488142" num="293 B" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément au II de l'article 32 de la loi n° 2025-127 du 14 février 2025, le I de l'article précité entre en vigueur le 1<sup>er</sup> mars 2025.</p>
+<p>Conformément au A du III de l'article 1 de la loi n° 2025-1044 du 3 novembre 2025, ces dispositions s'appliquent à compter du 1<sup>er</sup> mars 2025.</p>
+<p>Conformément à l'article 2 de la loi n° 2025-1044 du 3 novembre 2025, la perte de recettes pour l'Etat résultant de ces dispositions est compensée, à due concurrence, par la création d'une taxe additionnelle à l'accise sur les tabacs prévue au chapitre IV du titre Ier du livre III du code des impositions sur les biens et services.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>I. - Pour leurs livraisons de biens et leurs prestations de services, les assujettis établis en France bénéficient d'une franchise qui les dispense du paiement de la taxe sur la valeur ajoutée lorsqu'ils n'ont pas réalisé en France un chiffre d'affaires, évalué dans les conditions prévues à l'article 293 D, excédant les plafonds suivants :</p>
+<p>(En euros.)</p>
+<br/>
+
+<table border="1">
+<tbody>
+<tr>
+<th>
+<br/>
+			Année d'évaluation</th>
+<th>
+<br/>
+			Chiffre d'affaires national total</th>
+<th>
+<br/>
+			Chiffre d'affaires national afférent aux prestations de services autres que les ventes<br/>
+<br/>
+			à consommer sur place et les prestations d'hébergement</th>
+</tr>
+<tr>
+<td align="justify">
+<br/>
+			Année civile précédente</td>
+<td align="center">
+<br/>
+			85 000</td>
+<td align="center">
+<br/>
+			37 500</td>
+</tr>
+<tr>
+<td align="justify">
+<br/>
+			Année en cours</td>
+<td align="center">
+<br/>
+			93 500</td>
+<td align="center">
+<br/>
+			41 250</td>
+</tr>
+</tbody>
+</table>
+
+<br/>
+<p> I bis. - A. - Les avocats, les avocats au Conseil d'Etat et à la Cour de cassation, les auteurs d'œuvres de l'esprit et les artistes-interprètes assujettis et établis en France bénéficient d'une franchise qui les dispense du paiement de la taxe sur la valeur ajoutée lorsqu'ils n'ont pas réalisé en France un chiffre d'affaires, évalué dans les conditions prévues à l'article 293 D, excédant les plafonds suivants :</p>
+<p>
+<br/>
+(En euros.)</p>
+<br/>
+
+<table border="1">
+<tbody>
+<tr>
+<th>
+<br/>
+			Année d'évaluation</th>
+<th>
+<br/>
+			Chiffre d'affaires national afférent aux opérations<br/>
+<br/>
+			mentionnées au B du présent I bis</th>
+<th>
+<br/>
+			Chiffre d'affaires national afférent aux opérations autres<br/>
+<br/>
+			que celles mentionnées au B du présent I bis</th>
+</tr>
+<tr>
+<td align="justify">
+<br/>
+			Année civile précédente</td>
+<td align="center">
+<br/>
+			50 000</td>
+<td align="center">
+<br/>
+			35 000</td>
+</tr>
+<tr>
+<td align="justify">
+<br/>
+			Année en cours</td>
+<td align="center">
+<br/>
+			55 000</td>
+<td align="center">
+<br/>
+			38 500</td>
+</tr>
+</tbody>
+</table>
+
+<br/>
+<p>
+<br/>
+ B. - Les opérations prises en compte pour les besoins des plafonds mentionnés à la deuxième colonne du tableau du second alinéa du A du présent I bis sont les suivantes :<br/>
+<br/>
+ 1° Les opérations réalisées par les avocats et les avocats au Conseil d'Etat et à la Cour de cassation, dans le cadre de l'activité définie par la réglementation applicable à leur profession ;<br/>
+<br/>
+ 2° Les livraisons par les auteurs d'œuvres de l'esprit, à l'exception des architectes, de leurs œuvres mentionnées aux 1° à 12° de l'article L. 112-2 du code de la propriété intellectuelle et la cession des droits patrimoniaux qui leur sont reconnus par la loi ;<br/>
+<br/>
+ 3° Les opérations relatives à l'exploitation des droits patrimoniaux qui sont reconnus par la loi aux artistes-interprètes mentionnés à l'article L. 212-1 du même code. ;</p>
+<p> II. - Lorsque l'un des plafonds de chiffre d'affaires prévus aux I ou I bis du présent article pour les opérations de l'année en cours est dépassé, la franchise cesse de s'appliquer pour les opérations intervenant à compter de la date du dépassement. </p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+
+
+<LIEN cidtexte="JORFTEXT000022673720" datesignatexte="2010-07-23" id="LEGIARTI000022676639" naturetexte="ARRETE" nortexte="BCRD1020311A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 23 juillet 2010 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000028400921" datesignatexte="2013-12-29" id="LEGIARTI000028428499" naturetexte="LOI" nortexte="EFIX1327237L" num="20" numtexte="2013-1279" sens="cible" typelien="CITATION">LOI n° 2013-1279 du 29 décembre 2013 - art. 20 (V)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000031665094" datesignatexte="2015-12-21" id="LEGIARTI000031673709" naturetexte="DECRET" nortexte="AFSA1521306D" num="2" numtexte="2015-1710" sens="cible" typelien="CITATION">Décret n°2015-1710 du 21 décembre 2015 - art. 2</LIEN>
+<LIEN cidtexte="JORFTEXT000032110718" datesignatexte="2016-02-25" id="LEGIARTI000032115844" naturetexte="DECRET" nortexte="FCPS1530181D" num="3" numtexte="2016-193" sens="cible" typelien="CITATION">Décret n°2016-193 du 25 février 2016 - art. 3</LIEN>
+<LIEN cidtexte="JORFTEXT000033558528" datesignatexte="2016-12-09" id="LEGIARTI000033562045" naturetexte="LOI" nortexte="ECFM1605542L" num="124" numtexte="2016-1691" sens="cible" typelien="CITATION">LOI n° 2016-1691 du 9 décembre 2016 - art. 124 (V)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000036619470" datesignatexte="2018-01-31" id="LEGIARTI000036621089" naturetexte="ARRETE" nortexte="CPAE1802846A" num="Annexe A" numtexte="" sens="cible" typelien="CITATION">Arrêté du 31 janvier 2018 - art. Annexe A (VT)</LIEN>
+<LIEN cidtexte="JORFTEXT000042963379" datesignatexte="2021-01-13" id="LEGIARTI000043050815" naturetexte="ARRETE" nortexte="CCPE2035569A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 13 janvier 2021 - art. (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000043502610" datesignatexte="2021-05-05" id="LEGIARTI000052847696" naturetexte="ARRETE" nortexte="CCPE2114262A" num="Annexe" numtexte="" sens="cible" typelien="CITATION">Arrêté du 5 mai 2021 - art. Annexe (VD)</LIEN>
+<LIEN cidtexte="JORFTEXT000043519221" datesignatexte="2021-05-05" id="LEGIARTI000043520793" naturetexte="ARRETE" nortexte="CCPE2114286A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 5 mai 2021 - art. (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000044595989" datesignatexte="2999-01-01" id="LEGIARTI000049803762" naturetexte="CODE" nortexte="" num="D162-9" numtexte="" sens="cible" typelien="CITATION">Code des impositions sur les biens et services - art. D162-9 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000044595989" datesignatexte="2999-01-01" id="LEGIARTI000049803826" naturetexte="CODE" nortexte="" num="D173-7" numtexte="" sens="cible" typelien="CITATION">Code des impositions sur les biens et services - art. D173-7</LIEN>
+<LIEN cidtexte="LEGITEXT000044595989" datesignatexte="2999-01-01" id="LEGIARTI000044604081" naturetexte="CODE" nortexte="" num="L162-8" numtexte="" sens="cible" typelien="CITATION">Code des impositions sur les biens et services - art. L162-8 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000050806529" datesignatexte="2024-12-21" id="LEGITEXT000050808925" naturetexte="DECRET" nortexte="ECOE2423899D" num="" numtexte="2024-1195" sens="cible" typelien="CITATION">Décret n°2024-1195 du 21 décembre 2024 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000050806529" datesignatexte="2024-12-21" id="LEGIARTI000050808935" naturetexte="DECRET" nortexte="ECOE2423899D" num="1" numtexte="2024-1195" sens="cible" typelien="CITATION">Décret n°2024-1195 du 21 décembre 2024 - art. 1</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000051168007" datesignatexte="2025-02-14" id="LEGIARTI000052488149" naturetexte="LOI" nortexte="ECOX2423405L" num="32" numtexte="2025-127" sens="cible" typelien="MODIFIE">LOI n°2025-127 du 14 février 2025 - art. 32 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000052485808" datesignatexte="2025-11-03" id="LEGIARTI000052487425" naturetexte="LOI" nortexte="ECOX2515950L" num="1" numtexte="2025-1044" sens="cible" typelien="MODIFIE">LOI n°2025-1044 du 3 novembre 2025 - art. 1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000037125002" naturetexte="CODE" nortexte="" num="D133-17" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D133-17 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000031673928" naturetexte="CODE" nortexte="" num="D845-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D845-2 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000019953338" naturetexte="CODE" nortexte="" num="L133-6-8" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L133-6-8 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000053151645" naturetexte="CODE" nortexte="" num="L311-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L311-3 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000036703788" naturetexte="CODE" nortexte="" num="R133-30-2-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R133-30-2-2 (T)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000038786719" naturetexte="CODE" nortexte="" num="R613-10" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R613-10 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000041468394" naturetexte="CODE" nortexte="" num="102 ter" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 102 ter (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000048844081" naturetexte="CODE" nortexte="" num="151-0" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 151-0 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000044983728" naturetexte="CODE" nortexte="" num="1609 sexvicies" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 1609 sexvicies (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000051764508" naturetexte="CODE" nortexte="" num="1649 quater B quater" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 1649 quater B quater (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000052487640" naturetexte="CODE" nortexte="" num="231" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 231 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000051764907" naturetexte="CODE" nortexte="" num="262 ter" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 262 ter (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000051215143" naturetexte="CODE" nortexte="" num="285 bis" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 285 bis (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000048826983" naturetexte="CODE" nortexte="" num="286" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 286 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000018014071" naturetexte="CODE" nortexte="" num="293 BA" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 293 BA (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000048826686" naturetexte="CODE" nortexte="" num="293 C" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 293 C (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000051215058" naturetexte="CODE" nortexte="" num="293 D" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 293 D (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000048826675" naturetexte="CODE" nortexte="" num="293 E" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 293 E (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000006304492" naturetexte="CODE" nortexte="" num="293 F" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 293 F (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000020549062" naturetexte="CODE" nortexte="" num="293 G" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 293 G (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069577" datesignatexte="2999-01-01" id="LEGIARTI000048844097" naturetexte="CODE" nortexte="" num="50-0" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, CGI. - art. 50-0 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069574" datesignatexte="2999-01-01" id="LEGIARTI000045131937" naturetexte="CODE" nortexte="" num="96 J" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe 3, CGIAN3. - art. 96 J (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069574" datesignatexte="2999-01-01" id="LEGIARTI000022497167" naturetexte="CODE" nortexte="" num="96 O" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe 3, CGIAN3. - art. 96 O (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069576" datesignatexte="2999-01-01" id="LEGIARTI000046386263" naturetexte="CODE" nortexte="" num="41 septies M" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe 4, CGIAN4. - art. 41 septies M (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069576" datesignatexte="2999-01-01" id="LEGIARTI000046386269" naturetexte="CODE" nortexte="" num="41 septies P" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe 4, CGIAN4. - art. 41 septies P (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069569" datesignatexte="2999-01-01" id="LEGIARTI000050811276" naturetexte="CODE" nortexte="" num="242 nonies A" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe II, CGIANII. - art. 242 nonies A (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006069569" datesignatexte="2999-01-01" id="LEGIARTI000049826447" naturetexte="CODE" nortexte="" num="242 septies F" numtexte="" sens="cible" typelien="CITATION">Code général des impôts, annexe II, CGIANII. - art. 242 septies F (VD)</LIEN>
+</LIENS>
+</ARTICLE>

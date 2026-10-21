@@ -75,6 +75,15 @@ montre que celui qui a lieu.
   preuve : il se vérifie avant de s'affirmer.
 - **L'orchestrateur organise, puis vérifie après coup** : il donne à l'Opus le but, les règles, la passation attendue, et le
   laisse faire ; il ne dit pas *comment* faire ce qu'il n'a pas lu dans le code. Puis il vérifie (commits, diff, tests).
+- **Un reste ne remonte pas à Léandre : l'orchestrateur le tranche et le fait corriger** (Léandre, 21/10/2026 : « tu as
+  trouvé un problème ? c'est super, maintenant il faut le corriger »). Chaque « laissé de côté », « à trancher », « limite »
+  d'une passation se lit comme un travail à faire : l'orchestrateur décide (le code, les textes, le bon sens d'un
+  utilisateur), relance l'Opus, vérifie, et seulement ensuite rend compte. Avant d'écrire à Léandre, il relit sa réponse :
+  chaque point qu'il lui laisse doit être **une décision d'éditeur** (argent, engagement envers un organisme, publication,
+  ce qui change le produit pour toutes les compagnies) **ou un geste sur son poste** ; tout autre point se corrige d'abord.
+  **Un trou trouvé pendant la séance se comble dans la même PR, avant de dire à Léandre de fusionner** (Léandre,
+  21/10/2026 : « pourquoi tu veux que je merge alors que tout n'est pas fini ? ») : « il existait déjà », « pour la PR
+  suivante », « le refus est propre » ne sont pas des raisons de livrer. On ne bâcle pas pour publier plus tôt.
 - **Plusieurs Opus à la fois, quatre au plus, et deux Sonnet au plus** (Léandre, 15/10/2026 ; la limite est le disque du
   conteneur : une cible Cargo pèse 2 à 6 Go) : des lots disjoints, chacun dans son worktree et sa cible Cargo
   (`CARGO_TARGET_DIR` seul, un seul profil) ; une passation vérifiée à la fois ; **la cible et le worktree d'un lot fusionné
@@ -82,6 +91,9 @@ montre que celui qui a lieu.
 - Ne se délègue pas : une décision de conception, un acte qui engage (dépôt réel, envoi, signature), tout ce qui toucherait au
   coffre. Un Opus **ne réécrit jamais l'historique** (`--amend`, `rebase`, `reset`) et **ne laisse aucune tâche de fond**.
 - **Aucun repli Python** : ce qui s'écrit s'écrit en Rust, dans `paie/` ; ce qui ne se porte pas proprement remonte à Léandre.
+  **Pas de Python non plus comme outil** (Léandre, 21/10/2026, devant « a Python patch script ») : le code se modifie avec
+  Edit/Write, fonction par fonction (`sed` pour un remplacement mécanique simple) ; un texte se lit avec `pandoc`/`grep` ;
+  Playwright se pilote en Node. Aucun script de patch, dans aucun langage.
   On ne parle jamais de jetons à un Opus. Un script ne montre jamais une requête d'authentification ni son corps.
 
 ## Les sources : tout texte qu'on lit se dépose (Léandre, 10/10/2026)
@@ -166,6 +178,11 @@ cargo nextest run --cargo-profile essais --no-fail-fast                  # le mo
   exhaustive se joue sur un échantillon à graine fixe (`outils::tire`).
 - Les tests tournent sur des compagnies fictives et sur **la copie figée** `paie/tests/donnees/fictives/` ; `fictives/` vit
   (le poste la fait jouer et la commite), un test ne la lit jamais. Une compagnie de test se nomme toujours.
+- **Aucun test ne sort de la machine** (21/10/2026 : un test s'était inscrit au vrai filet, d'où des courriels à
+  `a@exemple.fr`). `paie/.cargo/config.toml` pose `PUPPETPAIE_ESSAIS_HORS_RESEAU` pour tout ce que Cargo lance, et
+  `src/garde_reseau.rs` refuse alors toute sortie hors de 127.0.0.1 ; un test qui veut voir une sortie nomme son faux
+  mandataire dans cette variable. `tests/fichiers/garde_reseau.rs` exige que toute connexion du moteur passe par le garde-fou
+  et qu'un `env_clear()` repose la variable.
 - `.claude/hooks/session-start.sh` compile la suite d'avance dans le nuage. Doutes sur des tests : `journal/tests/DOUTES-TESTS.md`.
 
 ## GitHub Actions : à la fin seulement

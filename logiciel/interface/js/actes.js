@@ -211,10 +211,14 @@ async function dessinerActions(mois) {
     const couleur = bilan ? bilan.couleur : couleurActe(e.actes[a.cle]);
     const phrase = bilan ? bilan.phrase : e.resumes[a.cle];
     cheminDuDepot(a, bilan);
+    // DES DOCUMENTS À RENVOYER (ticket #240) : la paie de certains salariés a
+    // changé depuis l'envoi. Le moteur le compte et nomme le geste.
+    if (a.cle === "documents" && bilan && bilan.bouton) a.bouton = bilan.bouton;
     // L'ANNULE-ET-REMPLACE (30/09/2026). Une DSN réelle est partie : tant que
     // la norme l'admet (veille de l'échéance, minuit), la refaire reste à
     // portée de main — et c'est LE geste quand la paie a changé depuis. Après,
-    // la correction passe par la DSN suivante (« Corriger ce mois »).
+    // la correction passe par la DSN suivante (« Corriger ce mois ») ; une
+    // fois écrite (`correction_ecrite`), il n'y a plus rien à faire ici.
     const r = a.cle === "dsn" && bilan && bilan.remplacement;
     if (r && r.deposee) {
       const refaire = () => boiteProduire(mois, async () => {
@@ -227,7 +231,7 @@ async function dessinerActions(mois) {
         // Un annule-et-remplace est déjà écrit : son chemin passe devant.
       } else if (r.a_envoyer) {
         a.bouton = libelle; a.ouvrir = refaire;
-      } else if (r.saisie_modifiee && !r.admis) {
+      } else if (r.saisie_modifiee && !r.admis && !r.correction_ecrite) {
         a.bouton = "Corriger ce mois…"; a.ouvrir = () => boiteCorriger(mois);
       } else if (r.admis) {
         a.second = { bouton: libelle, ouvrir: refaire };
@@ -302,25 +306,41 @@ function recapitulatifDsn(r) {
   if (!r) return "";
   if (r.erreur) return `<div class="encart attention"><b>Récapitulatif illisible</b>
     ${echapper(r.erreur)}</div>`;
-  const nb = (x) => (x && x !== "0") ? x : "—";
   const ecarts = r.salaries.reduce((n, s) => n + s.contrats.filter((c) => c.ecarts.length).length, 0);
+  // Un nombre du fichier, à la française ; une correction le signe d'un vrai
+  // moins (« −184 h » : ce qui s'ajoute à ce qui a déjà été déclaré).
+  const signe = (x) => String(x).replace(/^-/, "−");
+  const nombre = (x) => signe(Number(x).toLocaleString("fr-FR", { maximumFractionDigits: 2 }));
+  const vide = (x) => !x || Number(x) === 0;
+  // L'activité en une colonne : « 4 cachets · 4 j », « 151,67 h ».
+  const activite = (c) => [
+    vide(c.cachets) ? "" : `${nombre(c.cachets)} cachet${Math.abs(Number(c.cachets)) > 1 ? "s" : ""}`,
+    vide(c.heures) ? "" : `${nombre(c.heures)} h`,
+    vide(c.jours) ? "" : `${nombre(c.jours)} j`,
+  ].filter(Boolean).join(" · ") || "—";
+  // Les dates sur une ligne : « 06/10 → 09/10/2026 » dans une même année.
+  const dates = (c) => {
+    if (!c.fin || c.fin === c.debut) return jjmmaaaa(c.debut);
+    const d = jjmmaaaa(c.debut), f = jjmmaaaa(c.fin);
+    return `${c.debut.slice(0, 4) === c.fin.slice(0, 4) ? d.slice(0, 5) : d} → ${f}`;
+  };
   const lignes = r.salaries.map((s) => s.contrats.map((c, i) => `
-    <tr class="${c.ecarts.length ? "ecart" : ""}">
+    <tr class="${c.ecarts.length ? "ecart" : ""}${c.correction ? " correction" : ""}">
       <td>${i === 0 ? `<b>${echapper(s.nom)}</b> ${echapper(s.prenoms)}` : ""}</td>
       <td>${echapper(c.numero)}</td>
-      <td>${echapper(jjmmaaaa(c.debut))}${c.fin && c.fin !== c.debut ? " → " + echapper(jjmmaaaa(c.fin)) : ""}</td>
+      <td class="dates">${echapper(dates(c))}</td>
       <td>${echapper(c.emploi)}</td>
-      <td class="num">${nb(c.cachets)}</td>
-      <td class="num">${nb(c.heures)}</td>
-      <td class="num">${nb(c.jours)}</td>
-      <td class="num">${c.remunere ? echapper(euros(c.brut)) : "—"}</td>
-      <td>${c.fin_declaree ? "fin le " + echapper(jjmmaaaa(c.fin_declaree)) : "en cours"}</td>
+      <td class="num">${c.correction ? "correction : " : ""}${echapper(activite(c))}</td>
+      <td class="num">${c.remunere ? echapper(signe(euros(c.brut))) : "—"}</td>
+      <td class="fin">${c.correction ? "mois déjà déclaré"
+        : c.fin_declaree ? "fin le " + echapper(jjmmaaaa(c.fin_declaree)) : "en cours"}</td>
     </tr>
-    ${c.ecarts.length ? `<tr class="ecart"><td></td><td colspan="8">
+    ${c.ecarts.length ? `<tr class="ecart"><td></td><td colspan="6">
       <span class="pastille alerte">${echapper(c.ecarts.join(" ; "))}</span></td></tr>` : ""}`).join("")).join("");
   return `
     <div class="encart ${r.conforme ? "bien" : r.compare ? "attention" : ""}">
-      <b>${r.contrats} contrat${r.contrats > 1 ? "s" : ""} dans ce fichier${r.compare
+      <b>${r.contrats} contrat${r.contrats > 1 ? "s" : ""} dans ce fichier${r.corrections
+        ? ` (et ${r.corrections} correction${r.corrections > 1 ? "s" : ""} d'un mois déjà déclaré)` : ""}${r.compare
         ? `, ${r.contrats_saisis} saisi${r.contrats_saisis > 1 ? "s" : ""} dans la paie du mois` : ""}</b>
       ${r.conforme ? "Tous les contrats de la paie sont dans la DSN, tels que la paie les dit."
         : r.compare ? `${r.absents.length ? r.absents.length + " contrat(s) de la paie manquent au fichier. " : ""}${ecarts
@@ -332,7 +352,7 @@ function recapitulatifDsn(r) {
        ${echapper(x.numero)}, du ${echapper(jjmmaaaa(x.debut))}</li>`).join("")}</ul>` : ""}
     <table class="recap-dsn">
       <tr><th>Salarié</th><th>Contrat</th><th>Dates</th><th>Emploi</th>
-        <th>Cachets</th><th>Heures</th><th>Jours</th><th>Brut</th><th>Fin</th></tr>
+        <th class="num">Activité</th><th class="num">Brut</th><th>Fin</th></tr>
       ${lignes}
     </table>`;
 }
@@ -373,7 +393,11 @@ function corpsDsn(a) {
                <td><b>${echapper(x.organisme)}</b></td>
                <td>${echapper(x.objet)}</td>
                <td class="nombre"><b>${echapper(euros(x.montant))}</b></td>
-               <td title="${echapper(x.source)}">${echapper(x.quand)}</td></tr>`).join("")}
+               <td title="${echapper(x.source)}">${echapper(x.quand)}</td></tr>
+             ${x.credit ? `<tr class="credit"><td></td><td colspan="3">
+               <div class="encart" title="${echapper(x.credit.source)}">
+               <b>${echapper(x.credit.titre)}</b>
+               ${echapper(x.credit.que_faire)}</div></td></tr>` : ""}`).join("")}
            </table>
            Chaque organisme prélèvera ce montant sur le compte de la compagnie. Ce ne sont pas des indications.
            <span class="discret">La date se lit dans la DSN ou dans le texte qui la fixe (au survol).</span>`
@@ -821,12 +845,18 @@ async function boiteEnvoi(mois) {
       <tr><th>Salarié</th><th>Adresse</th><th>Pièces</th><th>Taille</th></tr>
       ${a.messages.map((m) => `
         <tr>
-          <td>${echapper(m.nom)}</td>
+          <td>${echapper(m.nom)}${m.renvoi ? `<br><span class="pastille alerte">documents corrigés —
+            remplacent ceux du ${echapper(m.envoye_le)}</span>` : ""}</td>
           <td>${echapper(m.destinataire)}</td>
           <td>${echapper(m.pieces.join(", "))}</td>
           <td class="num">${Math.round(m.octets / 1024)} ko</td>
-        </tr>`).join("")}
+        </tr>
+        ${m.renvoi ? `<tr><td colspan="4" class="discret">Le courriel dit ce qui a changé :
+          <ul>${m.changements.map((c) => `<li>${echapper(c)}</li>`).join("")}</ul></td></tr>` : ""}`).join("")}
     </table>`}
+    ${a.renvois ? `<div class="encart info"><b>La paie a changé depuis l'envoi</b>
+      Seuls les salariés dont la paie a changé reçoivent à nouveau leurs
+      documents, refaits, avec un courriel qui dit ce qui a changé.</div>` : ""}
     ${a.deja ? `<div class="encart attention"><b>Déjà envoyé</b>
       Le ${echapper(quand(a.deja.quand))} — ${echapper(a.deja.reponse || "")}.
       Renvoyer enverra une seconde fois.</div>` : ""}
@@ -847,8 +877,7 @@ async function boiteEnvoi(mois) {
           : `<button class="secondaire" id="e-ecrire">Écrire le mois…</button>`}
       <button class="primaire" id="e-envoyer" ${peut ? "" : "disabled"}
               title="${peut ? "" : echapper((a.empechements || []).concat(
-                a.boite_liee ? [] : ["Aucune boîte courriel."]).join(" "))}">Envoyer à
-        ${a.messages.length} salarié(s)</button>
+                a.boite_liee ? [] : ["Aucune boîte courriel."]).join(" "))}">${echapper(a.bouton)}</button>
     </div>`);
 
   const dossier = document.getElementById("e-dossier");

@@ -83,7 +83,7 @@ fn etat_par_paie_une_ligne_par_engagement_avec_le_brut_du_calcul_stocke() {
     assert_eq!(p["etats"]["dpae"]["fait"], "2026-09-05T10:00:00");
     assert_eq!(p["etats"]["dpae"]["maille"], "paie");
     assert_eq!(p["etats"]["signature"]["maille"], "paie");
-    assert_eq!(p["etats"]["documents"], json!({"fait": null, "maille": "salarie"}));
+    assert_eq!(p["etats"]["documents"], json!({"fait": null, "maille": "salarie", "caduc": false, "pourquoi": ""}));
     assert_eq!(p["etats"]["dsn"], json!({"fait": null, "maille": "mois"}));
     assert_eq!(p["valide"], Value::Null);
     // Le brut est celui du calcul de la saisie, a deux decimales.

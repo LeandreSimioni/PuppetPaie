@@ -15,12 +15,14 @@ mod bulletins_fictifs;
 #[path = "../faux_drive/mod.rs"]
 mod faux_drive;
 
+mod arret_prolonge;
 mod avenant;
 mod calcul_du_mois;
 mod carte_figee;
 mod conseils;
 mod echeance_dsn;
 mod historique_mois;
+mod modifier_apres_echeance;
 mod etat_garde;
 mod routes_accueil;
 mod routes_actes;

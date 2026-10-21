@@ -79,6 +79,29 @@ pub(crate) fn apparier(a: &[Option<Ident>], b: &[Option<Ident>]) -> Vec<Option<u
     sortie
 }
 
+/// `apparier`, puis LE MEME CONTRAT A D'AUTRES DATES : un engagement reste sans jumeau retrouve celui du meme salarie
+/// qui porte le meme numero de contrat pose, quel que soit son premier jour (21/10/2026). Un numero de contrat se lit et
+/// ne se recalcule pas (regle 4) : deux engagements du meme salarie au meme numero sont un seul contrat, dont la date de
+/// debut a change -- ce que la DSN declare par l'ancienne date dans un bloc « Changements contrat » (S21.G00.41.021,
+/// fiche net-entreprises 1952, `atelier/reference/sources/net-entreprises-base-connaissances/`). Seulement pour comparer
+/// une saisie declaree a sa modification (`routes_regularisation`) : ailleurs, l'identite reste (salarie, debut, numero).
+pub(crate) fn apparier_meme_numero(a: &[Option<Ident>], b: &[Option<Ident>]) -> Vec<Option<usize>> {
+    let mut sortie = apparier(a, b);
+    let mut pris = vec![false; b.len()];
+    for j in sortie.iter().flatten() {
+        pris[*j] = true;
+    }
+    for (i, x) in a.iter().enumerate() {
+        let (Some(x), None) = (x, sortie[i]) else { continue };
+        let Some(n) = &x.2 else { continue };
+        if let Some(j) = (0..b.len()).find(|&j| !pris[j] && b[j].as_ref().is_some_and(|y| y.0 == x.0 && y.2.as_ref() == Some(n))) {
+            sortie[i] = Some(j);
+            pris[j] = true;
+        }
+    }
+    sortie
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -109,5 +132,15 @@ mod tests {
         assert_eq!(apparier(&[id("A", "d", Some("N3"))], &fichier), vec![None]);
         // un autre jour, un autre salarie : rien
         assert_eq!(apparier(&[id("A", "e", None), id("B", "d", None)], &fichier), vec![None, None]);
+    }
+
+    #[test]
+    fn le_meme_numero_retrouve_le_contrat_dont_la_date_de_debut_a_change() {
+        let declare = [id("A", "d", Some("N1")), id("A", "d", Some("N2"))];
+        let saisie = [id("A", "c", Some("N2")), id("A", "d", Some("N1"))];
+        assert_eq!(apparier(&saisie, &declare), vec![None, Some(0)]);
+        assert_eq!(apparier_meme_numero(&saisie, &declare), vec![Some(1), Some(0)]);
+        // sans numero, ou chez un autre salarie : rien
+        assert_eq!(apparier_meme_numero(&[id("A", "c", None), id("B", "c", Some("N2"))], &declare), vec![None, None]);
     }
 }

@@ -185,7 +185,7 @@ fn brut_en_texte(v: &Value) -> R<String> {
 /// `json.dumps(_sans_bruit(x))` de `operations_remplacement` : sans les cles
 /// `_...`, ni `valide` ni `rouverte` -- ce qui change dans une saisie sans
 /// changer la paie.
-fn sans_bruit(x: &Value) -> Value {
+pub(crate) fn sans_bruit(x: &Value) -> Value {
     match x {
         Value::Object(o) => Value::Object(
             o.iter()
@@ -198,7 +198,7 @@ fn sans_bruit(x: &Value) -> Value {
     }
 }
 
-fn empreinte_de(v: &Value) -> String {
+pub(crate) fn empreinte_de(v: &Value) -> String {
     sha256_hex(crate::ecriture::json_py_trie(&sans_bruit(v)).as_bytes())[..16].to_string()
 }
 
@@ -467,6 +467,25 @@ impl<'a> Moteur<'a> {
         out
     }
 
+    /// L'EMPREINTE DES DOCUMENTS DE CHAQUE SALARIE (ticket #240) : ses engagements du mois, dans l'ordre de la saisie,
+    /// resumes comme ceux d'un contrat (`empreintes_engagements` : sans numero, sans validation). Notee au journal a
+    /// l'envoi des documents ; une empreinte qui a change depuis dit que ses documents ne sont plus les bons.
+    /// `cles` : la cle du salarie de chaque engagement, dans le meme ordre.
+    pub(crate) fn empreintes_documents(engagements: &[Value], cles: &[String]) -> HashMap<String, String> {
+        let mut par_salarie: Vec<(String, Vec<Value>)> = Vec::new();
+        for (e, cle) in engagements.iter().zip(cles) {
+            let sans_numero: Value = match e {
+                Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| *k != "numero").map(|(k, v)| (k.clone(), v.clone())).collect()),
+                autre => autre.clone(),
+            };
+            match par_salarie.iter_mut().find(|(c, _)| c == cle) {
+                Some((_, v)) => v.push(sans_numero),
+                None => par_salarie.push((cle.clone(), vec![sans_numero])),
+            }
+        }
+        par_salarie.into_iter().map(|(c, v)| (c, empreinte_de(&Value::Array(v)))).collect()
+    }
+
     /// `numeros_saisis` : le numero de contrat ECRIT dans la saisie, et lui seul.
     pub(crate) fn numeros_saisis(s: &SaisieMois, rangs: &[Paire]) -> HashMap<Paire, Value> {
         let eng = s.engagements();
@@ -541,7 +560,9 @@ impl<'a> Moteur<'a> {
         let saisis = Self::numeros_saisis(&s, &uniques);
         let lignes = self.lignes()?;
         let cles_paies = etats::cles_des_paies(&lignes, &contrats_des_paies(&s.paies))?;
-        let docs = documents_par_salarie(&etats::documents_envoyes(&lignes, mois)?);
+        let docs = etats::documents_partis(&lignes, mois)?;
+        let cles_saisies: Vec<String> = rangs.iter().map(|(c, _)| c.clone()).collect();
+        let empreintes_docs = Self::empreintes_documents(s.engagements(), &cles_saisies);
         let actes = etats::etat_du_mois(&lignes, mois)?;
         let depot_dsn = actes.get(DSN).cloned().unwrap_or(Value::Null);
 
@@ -590,8 +611,22 @@ impl<'a> Moteur<'a> {
                 json!({"premier_mois": premier_mois, "dernier_mois": dernier_mois,
                        "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last()}),
             );
-            let dpae_v = g.dpae.get(&k).filter(|v| vrai(v)).unwrap_or(objet_vide());
+            let mut dpae_v = g.dpae.get(&k).filter(|v| vrai(v)).unwrap_or(objet_vide());
+            // UNE DATE D'EMBAUCHE CHANGEE apres la limite (21/10/2026) : la DPAE de l'ancienne date vaut-elle
+            // (`routes_regularisation::dpae_d_une_date_changee`) ?
+            let mut date_changee = Value::Null;
+            if !vrai(dpae_v) {
+                let ancienne = p.engagement.numero.as_deref().and_then(|n| crate::routes_regularisation::debut_declare_avant(self.ctx, &cle, n, &debut));
+                if let Some((avant, deposee)) = ancienne.and_then(|a| g.dpae.get(&(cle.clone(), a.clone())).filter(|v| vrai(v)).map(|v| (a, v))) {
+                    let (vaut, phrase) = crate::routes_regularisation::dpae_d_une_date_changee(&avant, &debut);
+                    if vaut {
+                        dpae_v = deposee;
+                    }
+                    date_changee = json!({"avant": avant, "vaut": vaut, "phrase": phrase});
+                }
+            }
             let dpae = json!({
+                "date_changee": date_changee,
                 "fait": get(dpae_v, "quand")?,
                 "passee": vrai(get(dpae_v, "passee")?),
                 "refusee": vrai(get(dpae_v, "refusee")?),
@@ -635,7 +670,7 @@ impl<'a> Moteur<'a> {
                 };
                 signature["cdi_en_cours"] = json!({"depuis": depuis, "signe_en": signe_en});
             }
-            let documents = json!({"fait": docs.get(&cle).cloned().unwrap_or(Value::Null), "maille": "salarie"});
+            let documents = etat_documents(docs.get(&cle), empreintes_docs.get(&cle).map(String::as_str));
             let dsn = json!({"fait": if vrai(&depot_dsn) { get(&depot_dsn, "quand")?.clone() } else { Value::Null }, "maille": "mois"});
             ligne.insert("etats".into(), json!({"dpae": dpae, "signature": signature, "documents": documents, "dsn": dsn}));
             out.push(Value::Object(ligne));
@@ -769,6 +804,8 @@ impl<'a> Moteur<'a> {
         out.insert("saisie_modifiee".into(), Value::Null);
         out.insert("a_envoyer".into(), json!(false));
         out.insert("phrase".into(), json!(""));
+        // Apres la limite : la correction de chaque contrat modifie est ecrite pour la DSN suivante.
+        out.insert("correction_ecrite".into(), json!(false));
         let Some(derniere) = faits.last() else {
             return Ok(Value::Object(out));
         };
@@ -785,8 +822,50 @@ impl<'a> Moteur<'a> {
             modifiee = maintenant.map_or(true, |m| !est(notee, &m));
             out.insert("saisie_modifiee".into(), json!(modifiee));
         }
+        // Modifiee apres la limite, en le confirmant (21/10/2026) : la saisie telle que declaree est gardee, et dit ce qui a
+        // change meme quand le depot n'a pas note d'empreinte.
+        let couverture = if admis { None } else { crate::routes_regularisation::couverture(self.o, self.ctx, mois)? };
+        if couverture.is_some() {
+            let changes = crate::routes_regularisation::ce_qui_a_change(self.o, self.ctx, mois)?;
+            if changes.is_some_and(|c| !c.contrats.is_empty() || c.retires > 0) {
+                modifiee = true;
+                out.insert("saisie_modifiee".into(), json!(true));
+            }
+        }
         let quand = quand_lisible(get(derniere, "quand")?);
         let jour = lim.jj_mm_aaaa();
+        if let (true, Some(c)) = (modifiee && !admis, &couverture) {
+            // CE QUI EST ECRIT POUR LA DSN SUIVANTE : une correction (« Corriger ce mois ») par contrat dont la paie a
+            // change ou qui est ajoute, et qui declare la paie d'AUJOURD'HUI (`routes_regularisation::couverture`).
+            let pluriel = |n: usize| if n > 1 { "s" } else { "" };
+            let mut phrase = format!("Paie modifiée depuis la DSN du {}, après la limite de l'annule-et-remplace ({} à minuit)", quand, jour);
+            if c.a_ecrire == 0 && c.a_refaire == 0 && c.retires == 0 {
+                out.insert("correction_ecrite".into(), json!(true));
+                phrase.push_str(" — la correction est écrite (Corriger ce mois), elle part dans la DSN suivante");
+            } else {
+                if c.a_ecrire > 0 {
+                    phrase.push_str(&format!(" — {} contrat{} à corriger dans la DSN suivante (Corriger ce mois)", c.a_ecrire, pluriel(c.a_ecrire)));
+                }
+                if c.a_refaire > 0 {
+                    phrase.push_str(&format!(
+                        " — la paie a encore changé depuis la correction écrite — à corriger à nouveau (Corriger ce mois, {} contrat{})",
+                        c.a_refaire,
+                        pluriel(c.a_refaire)
+                    ));
+                }
+                if c.retires > 0 {
+                    phrase.push_str(&format!(
+                        " — {} contrat{} déclaré{} retiré{} de la saisie : un contrat déclaré ne se retire pas : il se remet, ses quantités à zéro",
+                        c.retires,
+                        pluriel(c.retires),
+                        pluriel(c.retires),
+                        pluriel(c.retires)
+                    ));
+                }
+            }
+            out.insert("phrase".into(), json!(phrase));
+            return Ok(Value::Object(out));
+        }
         if modifiee {
             if admis {
                 out.insert("a_envoyer".into(), json!(true));
@@ -934,6 +1013,12 @@ impl<'a> Moteur<'a> {
             json!({"couleur": "", "phrase": format!("aucune DPAE déclarée — {} à faire", n)})
         };
         let mut dpae = dpae.as_object().cloned().unwrap_or_default();
+        // Une date d'embauche changee apres la limite : ce que la DPAE deposee en devient, dit (`dpae_d_une_date_changee`).
+        let changees: Vec<String> = embauches.iter().filter_map(|p| p["etats"]["dpae"]["date_changee"]["phrase"].as_str().map(String::from)).collect();
+        if !changees.is_empty() {
+            let phrase = dpae.get("phrase").and_then(Value::as_str).unwrap_or("").to_string();
+            dpae.insert("phrase".into(), json!(format!("{} — {}", phrase, changees.join(" "))));
+        }
         if n > 0 && passees + parties < n {
             self.etape_de_depot(mois, DPAE, &mut dpae)?;
         }
@@ -995,8 +1080,31 @@ impl<'a> Moteur<'a> {
         // --- Documents : par salarie du mois.
         let salaries: BTreeSet<String> = paies.iter().map(|p| py_str(&p["salarie"])).collect();
         let faits: BTreeSet<String> = paies.iter().filter(|p| vrai(&p["etats"]["documents"]["fait"])).map(|p| py_str(&p["salarie"])).collect();
+        // A RENVOYER (ticket #240) : ceux dont la paie a change depuis l'envoi de leurs documents.
+        let mut a_renvoyer: Vec<String> = Vec::new();
+        let mut noms: Vec<String> = Vec::new();
+        for p in &paies {
+            let cle = py_str(&p["salarie"]);
+            if vrai(&p["etats"]["documents"]["caduc"]) && !a_renvoyer.contains(&cle) {
+                a_renvoyer.push(cle);
+                noms.push(py_str(&p["nom"]));
+            }
+        }
+        let jamais = salaries.len() - faits.len();
         let documents = if salaries.is_empty() {
             rien_ce_mois()
+        } else if !a_renvoyer.is_empty() {
+            let n = a_renvoyer.len();
+            let reste = if jamais > 0 { format!(" — et pas encore envoyés à {} salarié{}", jamais, plur(jamais, "", "s")) } else { String::new() };
+            json!({"couleur": "alerte", "courte": format!("{} à renvoyer", n), "a_renvoyer": n,
+                   "bouton": if jamais > 0 {
+                       format!("Envoyer les documents ({} à envoyer, {} corrigé{} à renvoyer)…", jamais, n, plur(n, "", "s"))
+                   } else {
+                       format!("Renvoyer les documents corrigés ({})…", n)
+                   },
+                   "phrase": format!(
+                       "Documents à renvoyer à {} salarié{} : la paie a changé depuis l'envoi ({}){}",
+                       n, plur(n, "", "s"), noms.join(", "), reste)})
         } else if faits == salaries {
             json!({"couleur": "bien", "phrase": format!("Documents envoyés à tous les salariés du mois ({})", salaries.len())})
         } else if !faits.is_empty() {
@@ -1040,7 +1148,11 @@ impl<'a> Moteur<'a> {
         if vrai(&e) && !vrai(get(&e, "refusee")?) {
             let r = self.etat_remplacement(mois, &Value::Null)?;
             b.insert("remplacement".into(), r.clone());
-            if vrai(&r["saisie_modifiee"]) {
+            if vrai(&r["saisie_modifiee"]) && vrai(&r["correction_ecrite"]) {
+                // Modifiee apres la limite, et sa correction est ecrite : rien a faire ici, la DSN suivante l'embarque.
+                b.insert("phrase".into(), r["phrase"].clone());
+                b.insert("courte".into(), json!("corrigée — part dans la DSN suivante"));
+            } else if vrai(&r["saisie_modifiee"]) {
                 b.insert("couleur".into(), json!("alerte"));
                 b.insert("attente".into(), json!(false));
                 b.insert("phrase".into(), r["phrase"].clone());
@@ -1067,7 +1179,7 @@ impl<'a> Moteur<'a> {
                     }
                 }
             }
-            if vrai(&r["a_envoyer"]) || (vrai(&r["saisie_modifiee"]) && !vrai(&r["admis"])) {
+            if vrai(&r["a_envoyer"]) || (vrai(&r["saisie_modifiee"]) && !vrai(&r["admis"]) && !vrai(&r["correction_ecrite"])) {
                 b.remove("vide");
             }
             if vrai(b.get("etape").unwrap_or(&Value::Null)) {
@@ -1147,17 +1259,35 @@ impl<'a> Moteur<'a> {
                 if !p.engagement.premier_mois().map_err(plain)? {
                     continue;
                 }
+                // UNE DATE D'EMBAUCHE CHANGEE apres la limite (21/10/2026) : reculee, la DPAE de l'ancienne date vaut ;
+                // avancee, une DPAE est a deposer, et la phrase dit pourquoi (`dpae_d_une_date_changee`).
+                let ancienne = p.engagement.numero.as_deref().and_then(|n| crate::routes_regularisation::debut_declare_avant(self.ctx, &cle, n, &debut));
+                let pourquoi = match ancienne.filter(|a| faites.contains(&(cle.clone(), a.clone()))) {
+                    Some(a) => {
+                        let (vaut, phrase) = crate::routes_regularisation::dpae_d_une_date_changee(&a, &debut);
+                        if vaut {
+                            continue;
+                        }
+                        json!(phrase)
+                    }
+                    None => Value::Null,
+                };
                 let prenom = match p.salarie.get("prenom_affichage").filter(|v| vrai(v)) {
                     Some(v) => texte_de(v),
                     None => texte_de(requis(&p.salarie, "prenom")?),
                 };
                 let titre = if vrai(&p.spectacle) { p.spectacle.get("titre").filter(|t| vrai(t)).cloned() } else { None };
-                attente.push(json!({
+                let mut due = json!({
                     "mois": m, "salarie": cle,
                     "nom": format!("{} {}", texte_de(requis(&p.salarie, "nom")?), prenom),
                     "spectacle": titre.unwrap_or_else(|| json!("salarié au mois")),
                     "debut": debut, "fin": p.engagement.fin.map(|f| f.iso()),
-                }));
+                });
+                // Seulement quand une date d'embauche a change : le reste du temps, rien a dire.
+                if !pourquoi.is_null() {
+                    due["pourquoi"] = pourquoi;
+                }
+                attente.push(due);
             }
         }
         Ok(Value::Array(attente))
@@ -1189,18 +1319,19 @@ impl<'a> Moteur<'a> {
     }
 }
 
-/// `documents_envoyes` : les triplets `[cle, quand]` (cle d'un seul element)
-/// en table salarie -> quand.
-fn documents_par_salarie(triplets: &Value) -> HashMap<String, Value> {
-    let mut out = HashMap::new();
-    for t in triplets.as_array().cloned().unwrap_or_default() {
-        if let [cle, quand] = t.as_array().map(Vec::as_slice).unwrap_or(&[]) {
-            if let Some(c) = cle.as_str() {
-                out.insert(c.to_string(), quand.clone());
-            }
-        }
-    }
-    out
+/// La phrase de la pastille Documents d'un salarie dont la paie a change depuis l'envoi.
+pub(crate) const DOCUMENTS_CADUCS: &str = "la paie a changé depuis l'envoi";
+
+/// LA PASTILLE DOCUMENTS d'un salarie (ticket #240). `parti` : ce que le journal garde de son dernier envoi
+/// (`etats::documents_partis`) ; `actuelle` : l'empreinte de sa paie aujourd'hui (`empreintes_documents`).
+/// `caduc` : ses documents sont partis, et sa paie a change depuis -- ils ne sont plus les bons, ils sont a renvoyer.
+pub(crate) fn etat_documents(parti: Option<&Value>, actuelle: Option<&str>) -> Value {
+    let nul = Value::Null;
+    let parti = parti.unwrap_or(&nul);
+    let fait = parti.get("quand").cloned().unwrap_or(Value::Null);
+    let notee = parti.get("empreinte").filter(|e| vrai(e));
+    let caduc = vrai(&fait) && notee.is_some_and(|n| actuelle.is_some_and(|a| !a.is_empty() && !est(n, a)));
+    json!({"fait": fait, "maille": "salarie", "caduc": caduc, "pourquoi": if caduc { DOCUMENTS_CADUCS } else { "" }})
 }
 
 /// `S20\.G00\.05\.004,'(\d+)'` cherche dans les octets d'un fichier DSN.

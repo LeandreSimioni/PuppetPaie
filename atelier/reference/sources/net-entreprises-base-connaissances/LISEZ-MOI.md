@@ -59,7 +59,7 @@ net social, intermittents, Agirc-Arrco, identification, contrats, Urssaf, entrep
 |---|---|---|---|
 | 2956 | Changement des modalités du contrat - S21.G00.41 | V3c : le bloc 41 (changements contrat) ; Q9 (changement en cours de mois) | `net-entreprises-fiche2956-bloc-41-changement-modalites-contrat-20250429` |
 | 2955 | Déclarer une mutation ou un transfert de contrat | V3c : 41.012 (mutation d'un établissement à l'autre), clôture dans l'ancien établissement | `net-entreprises-fiche2955-mutation-transfert-contrat-20250818` |
-| 1952 | Modalité déclarative de correction d'une date de début de contrat | V3c : 41.021, la correction tardive d'une date de début (vu sans faire) | `net-entreprises-fiche1952-correction-date-debut-contrat-20250326` |
+| 1952 | Modalité déclarative de correction d'une date de début de contrat | V3c : 41.021 ; 21/10/2026 : la correction tardive d'une date de début, portée (voir « Fiche 1952 » plus bas) | `net-entreprises-fiche1952-correction-date-debut-contrat-20250326` |
 | 3272 | La suspension temporaire du contrat de travail en DSN | V4b : le bloc 65 ; Q17 (congé familial non payé) | `net-entreprises-fiche3272-suspension-contrat-bloc-65-20260610` |
 | 2952 | Le numéro technique temporaire - NTT | V3d : le NTT déclaré qui accompagne le NIR | `net-entreprises-fiche2952-ntt-20250703` |
 | 2953 | Différence entre un NIR, un NIA et un NTT | V3d : NIA → NIR en 31.008 | `net-entreprises-fiche2953-nir-nia-ntt-20250323` |
@@ -305,12 +305,64 @@ d'usage, il est possible que l'employeur, avec l'accord du salarié, ait recours
 fiche 2062). Il est **interdit de doubler** un signalement DSN par une AE par l'ancienne modalité. Toute information d'une fin de
 contrat doit être reportée dans la DSN mensuelle consécutive. Moteur : `obligations.rs` et `logiciel/donnees/obligations-base.json` (le signalement d'arrêt, de reprise et de fin de contrat, cinq jours ouvrés, ou avec la mensuelle si l'employeur est subrogé ; 15/10/2026).
 
+### Fiche 1983 — la prolongation d'un arrêt, et les dates de subrogation (relevée le 21/10/2026)
+
+URL https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1983/ ; « Date de modification : 22/03/2025 » ; créée le
+10/10/2018. Trouvée par la recherche du site (mot « prolongation ») et par la fiche chapeau 3304 « Gestion des arrêts, reprises et
+suspensions » (non déposée : un sommaire). Fichiers : `net-entreprises-fiche1983-prolongation-arret-dates-de-subrogation-20250322.html`
+(le brut tel que servi) et `.txt` (le corps, transcrit par `pandoc`, tableaux aplatis).
+
+**Ce qu'on en lit** (`.txt`, lignes citées) :
+- l. 13 : « En cas de prolongation d'arrêt, il ne faut pas envoyer de nouveau signalement de nature " arrêt de travail ". Il suffit
+  de déclarer la nouvelle date de fin de l'arrêt en DSN mensuelle, au niveau de la rubrique " Date de fin prévisionnelle -
+  S21.G00.60.003 " » ;
+- l. 17-31 : les données de subrogation (60.004 à 60.008) « ne sont pas présentes en DSN mensuelle, elles n'apparaissent que dans
+  le signalement » ; la fin de subrogation est la « date de fin de subrogation maximale prévue dans le cadre de la convention
+  collective ou de l'accord de branche » ;
+- l. 37-39 : une subrogation « insuffisante ou erronée » se corrige par « un nouveau signalement de nature " arrêt de travail " de
+  type annule et remplace, dans lequel une nouvelle date de fin de subrogation sera renseignée », « dans des délais raisonnables
+  [...] avant le prochain paiement d'indemnités journalières » ; l. 66 : « le plus rapidement possible dès connaissance de la
+  prolongation de l'arrêt » (aucun délai chiffré) ;
+- l. 110 : si la subrogation « court toujours », « il n'est pas nécessaire d'effectuer un nouveau signalement ».
+
+**Où le moteur s'en sert** (21/10/2026) : `atelier/sources/paie/src/routes_imprevus.rs` (`arret_prolonger`, route
+`arret-prolonger`, `paie arret prolonger` : la prolongation ne change que la fin prévisionnelle, rien ne part ;
+`subrogation_a_revoir` demande la fin de subrogation quand elle tombe avant la nouvelle fin) ; `obligations.rs`
+(`rectificatif_du`) et `logiciel/donnees/obligations-base.json` (`signalement_arret_rectificatif` : une fin de subrogation
+repoussée après le dépôt du signalement d'arrêt appelle un annule et remplace ; le délai de cinq jours ouvrés est celui d'un
+signalement d'arrêt, fiche 673 — **inférence**, la fiche n'en chiffre aucun). Le message de `signalement::verifier` pour une
+reprise après la fin prévisionnelle renvoie à la prolongation (il disait « un nouvel arrêt »). Tests :
+`tests/routes/arret_prolonge.rs`.
+
 ### Fiche 1722 — annuler une fin de contrat transmise à tort (bloc 62, motif 099)
 
 URL https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1722/ ; modifiée le 26/03/2025. Dans une DSN mensuelle, une fin
 de contrat déclarée à tort s'annule, une fois l'échéance passée, par un bloc 62 de motif **099 - Annulation** dans la DSN du mois
 suivant ; le 099 est **interdit** dans un FCTU (nature 07), qui a sa propre annulation (type « 04 - annule ») ; il annule une fin
 déclarée à tort, il ne la corrige pas. Moteur : `fctu.rs` (`ANNULE`, type 04) ; le 099 en mensuelle n'a pas été cherché.
+
+Elle dit aussi comment une fin se **corrige** : « une correction de fin de contrat s'opère par l'émission d'un bloc " Fin du
+contrat - S21.G00.62 " dans la DSN mensuelle suivante portant les informations correctes qui écraseront celles précédemment
+déclarées ». Moteur (21/10/2026) : la fin d'un contrat déclaré corrigée après la limite de l'annule-et-remplace, son bloc 62
+redéclaré sous le bloc 40 de la correction (`dsn.rs`, `generer`, `fin_corrigee`) ; test
+`tests/dsn/regularisation_declaree.rs`, `une_date_de_debut_reculee_et_une_fin_corrigee_apres_la_limite_se_declarent`.
+
+### Fiche 1952 — corriger une date de début de contrat après l'échéance (bloc 41, 41.021)
+
+URL https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1952/ ; modifiée le 26/03/2025 ; déposée par le lot V3c
+(`net-entreprises-fiche1952-correction-date-debut-contrat-20250326.html`, `.txt`). Ce qu'on en lit : passé l'échéance, la date
+de début se corrige dans la DSN suivante, la nouvelle en S21.G00.40.001, l'ancienne dans un bloc « Changements Contrat »
+(41.001, date de la modification, et 41.021) ; l'exemple date 41.001 du jour de la correction en paie ; 41.001 au plus tard
+le dernier jour du mois principal déclaré ; 41.021 jamais avec la profondeur de recalcul 41.028. **Où le moteur s'en sert**
+(21/10/2026) : `changements_contrat::ancienne_date_de_debut`, appelé par `dsn::generer` pour une régularisation
+(« Corriger ce mois ») ; l'ancienne date se lit dans la DSN déposée (`versement_declare`, `debut_contrat`) ; la saisie et
+l'aperçu : `routes_regularisation` (`apercu_correction`, `phrase_des_dates`, `propager_les_bornes`),
+`jumeaux::apparier_meme_numero`. Un contrat sur plusieurs mois : ses dates suivent dans chaque mois saisi (la date de début
+« est un des identifiants du contrat », fiche 3344), chaque mois se corrige pour lui-même, et la DSN suivante porte un seul
+bloc 40 et un seul bloc 41 (le dernier mois déclaré fait foi, `produire_regularisations::versement_declare_de`), un versement
+par mois civil (cahier technique §2.2.2.5). Seul refus : des dates qui sortiraient le contrat d'un mois où il est saisi avec
+ses jours. Tests : `tests/dsn/regularisation_declaree.rs` (`une_date_de_debut_avancee_apres_la_limite_se_declare_par_le_bloc_41`,
+`un_contrat_sur_deux_mois_dont_le_debut_est_avance_se_corrige_mois_par_mois` et suivants), `tests/routes/modifier_apres_echeance.rs`.
 
 ### Fiche 1903 — les retours de France Travail pour un CDDU-D
 
@@ -346,3 +398,35 @@ proratisation du SMIC par ces rubriques ; `calcul::reduction_generale_sous_dfs` 
   `tests/dsn/bloc_44.rs` (`la_dsn_de_mars_declare_la_contribution_supplementaire_de_l_annee_precedente` et suivants),
   `csa::tests`. Inférences (passation D2) : l'Alsace-Moselle par l'assiette de son CTP 993 ; la progression de 10 % comme
   le guide la calcule (A05 de N contre A05 de N-1) ; « excède deux mille » sous la règle des cinq ans.
+
+## Le trop-versé : fiches 1931 et 1328 (21/10/2026)
+
+Une correction à la baisse (« Corriger ce mois ») peut faire ressortir négative la somme qu'un mois doit à un organisme
+(cas : un contrat de juillet annulé en entier, DSN d'octobre). `S21.G00.20.005` est « non signé » : ces deux fiches,
+avec la norme et le guide Urssaf, disent ce qu'il en advient.
+
+- **1931, « DSN - Corrections au niveau du bloc Versement Organisme de Protection Sociale - Gérer les situations
+  créditrices »** : URL https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1931 ; « Date de modification :
+  23/03/2025 » ; relevée le 21/10/2026 par `curl`. Brut : `net-entreprises-fiche1931-situations-creditrices-versement-20250323.html` ;
+  texte : `.txt` (le corps de la réponse). Ce qu'on en lit : l. 4, « les rubriques « Montant du versement » ne peuvent pas
+  être renseignées avec des montants négatifs. Lorsque la somme totale [du PAS et de ses régularisations] est négative,
+  ces rubriques doivent être renseignées à « 0.00 » » ; l. 13, une DSN initiale créditrice ne déclare pas de bloc DGFiP,
+  « si par commodité le logiciel en produit un, il devra être déclaré [...] à 0,00 » ; l. 17, un annule et remplace
+  créditeur le déclare à 0,00 ; l. 19 et 40-41, « une demande de remboursement pourra être déposée auprès du SIE », par la
+  messagerie sécurisée de l'espace professionnel impots.gouv.fr. (La fiche 1923, sa jumelle PASRAU, dit la même chose ;
+  non déposée.)
+- **1328, « La ventilation du versement des cotisations »** : URL https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1328 ;
+  « Date de modification : 22/03/2025 » ; relevée le 21/10/2026. Brut et texte :
+  `net-entreprises-fiche1328-ventilation-du-versement-20250322`. Ce qu'on en lit (l. 40) : pour un organisme
+  complémentaire, le versement est la somme des composants (bloc 55) « sauf si cette somme fait ressortir un montant
+  négatif, auquel cas un montant nul doit être renseigné » — la règle du CCH-12 de 20.005, redite.
+- **Ce que rien ne dit** (cherché le 21/10/2026 dans la base net-entreprises — « montant du versement négatif »,
+  « crédit de cotisations », « trop versé » —, les fiches 2417 France Travail et 1266 échéances, le dossier DSN et la page
+  Congés Spectacles d'Audiens, le cahier Agirc-Arrco CT2026) : comment l'Agirc-Arrco, la Caisse des Congés Spectacles et
+  France Travail rendent un crédit. Le moteur verse zéro (la norme l'autorise à chacun) et dit à la compagnie de le leur
+  demander.
+- **Où le moteur s'en sert** : `atelier/sources/paie/src/bordereau.rs`, « le trop-versé » (`a_verser`, `reprise_urssaf`,
+  `credit` : le seul endroit qui dit, par organisme, le montant écrit et ce que la compagnie fait du crédit) ;
+  `dsn.rs` (`versement_dgfip` : un PAS négatif s'écrit à 0.00 au lieu de refuser ; les versements Urssaf, complémentaires
+  et autres passent par `bordereau`) ; `ordres_paiement.rs` (le crédit de chaque ordre, lu dans le fichier, à l'écran de
+  dépôt). Test : `tests/dsn/regularisation_declaree.rs`, `un_contrat_qui_n_a_pas_eu_lieu_se_corrige_a_zero`.

@@ -252,9 +252,115 @@ pub(crate) struct EnvoiPrepare {
     pub(crate) messages: Vec<Message>,
     pub(crate) expediteur: String,
     pub(crate) avertissements: Vec<String>,
+    /// A qui les documents partent, et pourquoi (`choisir`) : le journal en garde l'empreinte et le resume.
+    pub(crate) choix: Choix,
     client: Box<dyn Courriel>,
     /// La duree de la preparation (lecture du mois, messages, boite), en millisecondes : le journal la garde.
     preparation_ms: u128,
+}
+
+/// A QUI LES DOCUMENTS DU MOIS PARTENT (ticket #240, 21/10/2026 : « si on change une DSN, les documents ne sont plus
+/// valables »). Chaque salarie du mois est dans l'un de trois cas, lus dans le journal (`etats::documents_partis`) et
+/// dans la paie d'aujourd'hui :
+///
+/// * ses documents ne sont jamais partis : ils partent, avec le premier courriel ;
+/// * ils sont partis, et sa paie a change depuis (l'empreinte notee a l'envoi n'est plus celle de sa paie,
+///   `routes_mois::Moteur::empreintes_documents`) : ils repartent refaits, avec le courriel qui dit ce qui a change
+///   (`envoi::CORPS_RENVOI`, `envoi::ce_qui_a_change` sur le resume note a l'envoi) ;
+/// * ils sont partis et sa paie n'a pas bouge : ils ne repartent pas.
+///
+/// Quand TOUS sont a jour, l'envoi est un renvoi voulu, a l'identique : tous repartent, avec le premier courriel.
+#[derive(Default)]
+pub(crate) struct Choix {
+    /// Ceux dont la paie a change depuis l'envoi de leurs documents : le jour de l'envoi, ce qui a change.
+    pub(crate) renvois: HashMap<String, envoi::Renvoi>,
+    /// Ceux dont les documents sont partis et dont la paie n'a pas change.
+    pub(crate) a_jour: std::collections::HashSet<String>,
+    /// L'empreinte et le resume de la paie de chaque salarie du mois, a noter au journal avec l'envoi.
+    pub(crate) empreintes: HashMap<String, String>,
+    pub(crate) resumes: HashMap<String, Value>,
+}
+
+impl Choix {
+    /// Ce qui part, parmi les messages de tout le mois : ceux qui ne sont pas a jour ; s'ils le sont tous, tous.
+    pub(crate) fn garder<T>(&self, messages: Vec<T>, cle: impl Fn(&T) -> &str) -> Vec<T> {
+        if messages.iter().all(|m| self.a_jour.contains(cle(m))) {
+            return messages;
+        }
+        messages.into_iter().filter(|m| !self.a_jour.contains(cle(m))).collect()
+    }
+}
+
+/// Le choix, pour le mois `mois`, sur sa saisie `data` et ses paies calculees (`charger_le_mois_avec`).
+pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[crate::calcul::Paie]) -> R<Choix> {
+    let lignes = crate::etats::charger(&ctx.racine)?;
+    let partis = crate::etats::documents_partis(&lignes, mois)?;
+    let cles: Vec<String> = paies.iter().map(|p| p.salarie.get("_cle").map(py_str).unwrap_or_default()).collect();
+    let engagements = data.get("engagements").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
+    let empreintes = crate::routes_mois::Moteur::empreintes_documents(engagements, &cles);
+    let mut resumes: HashMap<String, Value> = HashMap::new();
+    for cle in &cles {
+        if resumes.contains_key(cle) {
+            continue;
+        }
+        let siennes: Vec<&crate::calcul::Paie> = paies.iter().zip(&cles).filter(|(_, c)| *c == cle).map(|(p, _)| p).collect();
+        resumes.insert(cle.clone(), envoi::resume_de(&siennes).map_err(Echec::from)?);
+    }
+    let mut choix = Choix { empreintes, resumes, ..Choix::default() };
+    let declaration = declaration_de_la_correction(ctx, mois)?;
+    for (cle, parti) in &partis {
+        let notee = parti.get("empreinte").filter(|e| vrai(e)).map(py_str);
+        match (notee, choix.empreintes.get(cle)) {
+            (Some(n), Some(a)) if &n != a => {
+                let quand = parti.get("quand").map(py_str).unwrap_or_default();
+                let envoye_le = jour_iso(quand.get(..10).unwrap_or("")).map(|j| j.jj_mm_aaaa()).unwrap_or(quand);
+                let ancien = parti.get("resume").cloned().unwrap_or(Value::Null);
+                let changements = envoi::ce_qui_a_change(&ancien, choix.resumes.get(cle).unwrap_or(&Value::Null));
+                let declaration = declaration.as_ref().map(|d| d(cle)).unwrap_or_default();
+                choix.renvois.insert(cle.clone(), envoi::Renvoi { envoye_le, changements, declaration });
+            }
+            _ => {
+                choix.a_jour.insert(cle.clone());
+            }
+        }
+    }
+    Ok(choix)
+}
+
+/// LA CORRECTION D'UN MOIS DONT L'ANNULE-ET-REMPLACE EST PASSE (Leandre, 21/10/2026 : « le courriel de renvoi, dans ce
+/// cas, ajoute une phrase : la correction sera declaree avec la paie du mois suivant »). La DSN deposee ne se refait plus ;
+/// la correction part dans la DSN d'un mois suivant, celle qui embarque les corrections ECRITES (« Corriger ce mois »,
+/// `produire_regularisations::corrections_a_porter`) : celle du mois courant pour une correction en attente, celle qui
+/// l'a preparee ou portee sinon. Le paragraphe nomme ce mois quand la correction du salarie est ecrite ; sans elle, il ne
+/// dit que « une paie suivante » (l'etape DSN du mois reste orange tant qu'elle ne l'est pas). `None` : le mois n'en est
+/// pas la (pas de DSN deposee, ou son annule-et-remplace encore admis).
+#[allow(clippy::type_complexity)]
+fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn Fn(&str) -> String>>> {
+    let o = HashMap::new();
+    let mut m = crate::routes_mois::Moteur::nouveau(&o, ctx);
+    let etat = crate::routes_regularisation::etat_mois(&mut m, ctx, &json!(mois))?;
+    if !vrai(&etat["regularisable"]) {
+        return Ok(None);
+    }
+    let courant = py_str(&etat["mois_courant"]);
+    let mut porteurs: HashMap<String, String> = HashMap::new();
+    for c in crate::routes_ecrites::lire_corrections(ctx, mois)? {
+        if c.get("annulee_le").is_some_and(vrai) {
+            continue;
+        }
+        let par = |k: &str| c.get(k).filter(|p| vrai(p)).and_then(|p| p.get("mois")).map(py_str);
+        let porteur = par("portee_par").or_else(|| par("preparee_par")).unwrap_or_else(|| courant.clone());
+        porteurs.insert(c.get("salarie").map(py_str).unwrap_or_default(), porteur);
+    }
+    let de = crate::routes_regularisation::de_mois_en_clair(mois);
+    Ok(Some(Box::new(move |cle: &str| match porteurs.get(cle) {
+        Some(p) => format!(
+            "Ta paie {} était déjà déclarée : la correction sera déclarée avec la paie {}.\n\n",
+            de,
+            crate::routes_regularisation::de_mois_en_clair(p)
+        ),
+        None => format!("Ta paie {} était déjà déclarée : la correction sera déclarée avec une paie suivante.\n\n", de),
+    })))
 }
 
 /// `operations_documents.preparer_envoi` : la saisie du mois, les messages, puis la boite -- une boite absente se voit
@@ -268,7 +374,15 @@ pub(crate) fn preparer_envoi(o: &HashMap<String, String>, ctx: &Contexte, mois: 
         return Err(erreur("SortieAbsente", format!("{} n'existe pas.", dossier.display())));
     }
     let fiche = |cle: &str| ctx.salarie(cle).unwrap_or_else(|_| json!({}));
-    let messages = envoi::preparer(&paies, &ctx.entreprise, &mois_saisie, &dossier, Some(&fiche)).map_err(|m| refus_de_preparation(&m))?;
+    let choix = choisir(ctx, mois, &data, &paies)?;
+    // APRES LA LIMITE DE L'ANNULE-ET-REMPLACE, rien ne refait le mois (`produire` refuse, la DSN deposee ne se regenere
+    // pas, regle 4) : les documents de ceux dont la paie a change se refont ICI, depuis la paie d'aujourd'hui, aux numeros
+    // du fichier archive (`ecrire_documents`, qui ne redeclare rien), avant de repartir.
+    if !choix.renvois.is_empty() && choix.renvois.values().any(|r| !r.declaration.is_empty()) {
+        crate::ecrire_documents::ecrire_documents(ctx, &json!({"mois": mois_saisie}))?;
+    }
+    let messages = envoi::preparer_avec(&paies, &ctx.entreprise, &mois_saisie, &dossier, Some(&fiche), &choix.renvois).map_err(|m| refus_de_preparation(&m))?;
+    let messages = choix.garder(messages, |m| m.cle.as_str());
     let client = ouvrir()?;
     let expediteur = expediteur_de(client.as_ref());
     let mut avertissements: Vec<String> = Vec::new();
@@ -279,12 +393,12 @@ pub(crate) fn preparer_envoi(o: &HashMap<String, String>, ctx: &Contexte, mois: 
             expediteur, signataire
         ));
     }
-    Ok(EnvoiPrepare { mois_saisie, messages, expediteur, avertissements, client, preparation_ms: debut.elapsed().as_millis() })
+    Ok(EnvoiPrepare { mois_saisie, messages, expediteur, avertissements, choix, client, preparation_ms: debut.elapsed().as_millis() })
 }
 
 /// Ce qui suit la preparation : la PREUVE (le mot de passe du logiciel), l'envoi, le journal. `qui` : la ligne du journal.
 pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, preuve: &Preuve, qui: &str) -> R<Value> {
-    let EnvoiPrepare { messages, expediteur, avertissements, mut client, preparation_ms, .. } = prepare;
+    let EnvoiPrepare { messages, expediteur, avertissements, choix, mut client, preparation_ms, .. } = prepare;
     let a_qui = format!("{} salarie(s) : {}", messages.len(), messages.iter().map(|m| m.nom.as_str()).collect::<Vec<_>>().join(", "));
     // LA DUREE DE CHAQUE ETAPE (08/10/2026 : un envoi de deux courriels a pris quatre minutes, sans qu'on sache ou).
     let t_preuve = std::time::Instant::now();
@@ -300,7 +414,13 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
     };
     let envoi_ms = t_envoi.elapsed().as_millis();
     let detail = json!({
-        "salaries": messages.iter().map(|m| json!({"cle": m.cle, "nom": m.nom, "pieces": m.pieces.iter().map(|p| nom_du(p)).collect::<Vec<_>>()})).collect::<Vec<_>>(),
+        // Ce que chaque salarie a recu : ses pieces, l'empreinte de sa paie et son resume (ticket #240 : ce qui dira, si sa
+        // paie change, que ses documents sont a renvoyer, et ce qui a change), et si c'etait un renvoi.
+        "salaries": messages.iter().map(|m| json!({
+            "cle": m.cle, "nom": m.nom, "pieces": m.pieces.iter().map(|p| nom_du(p)).collect::<Vec<_>>(),
+            "empreinte": choix.empreintes.get(&m.cle), "resume": choix.resumes.get(&m.cle),
+            "renvoi": choix.renvois.contains_key(&m.cle),
+        })).collect::<Vec<_>>(),
         "expediteur": expediteur,
         "durees_ms": {"preparation": preparation_ms as u64, "mot_de_passe": preuve_ms as u64, "envoi": envoi_ms as u64},
     });

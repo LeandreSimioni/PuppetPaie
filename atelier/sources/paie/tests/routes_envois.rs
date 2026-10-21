@@ -283,6 +283,194 @@ fn envoyer_documents_refuse_une_boite_absente_et_un_mois_non_ecrit() {
     assert_eq!(journal(&racine), j0);
 }
 
+/// Une route du mois (`etat-par-paie`, `bilan-du-mois`) sur cette compagnie.
+fn du_mois(racine: &Path, nom: &str, mois: &str) -> Value {
+    paie::routes_mois::route(&options(racine), &contexte(racine), nom, &json!({"mois": mois})).unwrap()
+}
+
+/// La pastille Documents de chaque paie du mois, par salarie : (caduc, pourquoi).
+fn pastilles_documents(racine: &Path, mois: &str) -> Vec<(String, bool, String)> {
+    du_mois(racine, "etat-par-paie", mois)["paies"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|p| {
+            let d = &p["etats"]["documents"];
+            assert!(d["fait"].is_string(), "{}", d);
+            (p["salarie"].as_str().unwrap().to_string(), d["caduc"].as_bool().unwrap(), d["pourquoi"].as_str().unwrap().to_string())
+        })
+        .collect()
+}
+
+/// TICKET #240 : « j'ai change des infos sur les heures des salaries ; il m'a refait une DSN, mais les documents transmis
+/// aux salaries ne sont plus bons, et il ne me propose pas de les renvoyer ». Les documents partis disent la paie du jour de
+/// l'envoi : une paie qui change ensuite les rend caducs. La pastille et l'etape le disent, le renvoi ne part qu'aux
+/// salaries dont la paie a change, avec un courriel qui dit l'ancien et le nouveau ; apres lui, tout est a jour.
+#[test]
+fn des_documents_partis_puis_une_paie_modifiee_se_renvoient_au_seul_salarie_concerne_en_disant_ce_qui_a_change() {
+    let _t = tour();
+    let racine = compagnie("documents-renvoi", false);
+    poser_le_mot_de_passe(&racine);
+    ecrire_les_documents(&racine, "2026-08");
+    let faux = Faux::nouveau();
+    avec(&racine, "envoyer-documents", json!({"mois": "2026-08", "motdepasse": MOT_DE_PASSE}), &faux).unwrap();
+    assert_eq!(faux.partis(), 3);
+    // Le journal garde, pour chacun, l'empreinte de sa paie et ce que ses documents disaient.
+    let envoi = journal(&racine).last().unwrap().clone();
+    let lemercier = envoi["detail"]["salaries"].as_array().unwrap().iter().find(|s| s["cle"] == "LEMERCIER").unwrap().clone();
+    assert!(lemercier["empreinte"].as_str().is_some_and(|e| e.len() == 16), "{}", lemercier);
+    assert_eq!(lemercier["resume"]["contrats"][0]["heures"], json!("32"));
+    // Tout est a jour : aucune pastille a renvoyer, l'etape est verte.
+    assert!(pastilles_documents(&racine, "2026-08").iter().all(|(_, caduc, _)| !caduc));
+    assert_eq!(du_mois(&racine, "bilan-du-mois", "2026-08")["documents"]["couleur"], json!("bien"));
+
+    // Les heures de Lemercier changent (32 -> 40), et les documents du mois se refont.
+    let mut saisie = lire(&racine, "paies/2026-08.json");
+    let rang = saisie["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "Lemercier").unwrap();
+    saisie["engagements"][rang]["lignes"][0]["quantite"] = json!(40);
+    ecrire(&racine, "paies/2026-08.json", &saisie);
+    ecrire_les_documents(&racine, "2026-08");
+
+    // Sa pastille n'est plus verte : la paie a change depuis l'envoi. Les deux autres n'ont pas bouge.
+    let p = pastilles_documents(&racine, "2026-08");
+    assert_eq!(p.iter().filter(|(_, c, _)| *c).count(), 1, "{:?}", p);
+    assert!(p.iter().any(|(s, c, q)| s == "LEMERCIER" && *c && q == "la paie a changé depuis l'envoi"), "{:?}", p);
+    // L'etape le dit, le compte, et propose le renvoi.
+    let b = du_mois(&racine, "bilan-du-mois", "2026-08")["documents"].clone();
+    assert_eq!((b["couleur"].as_str(), b["a_renvoyer"].as_i64(), b["courte"].as_str()), (Some("alerte"), Some(1), Some("1 à renvoyer")), "{}", b);
+    assert_eq!(b["bouton"], json!("Renvoyer les documents corrigés (1)…"));
+    assert!(b["phrase"].as_str().unwrap().starts_with("Documents à renvoyer à 1 salarié : la paie a changé depuis l'envoi (") && b["phrase"].as_str().unwrap().to_lowercase().contains("lemercier"), "{}", b);
+    // L'apercu ne montre que lui, en renvoi, avec ce qui a change.
+    let a = apercu(&racine, "envoi-apercu", json!({"mois": "2026-08"}));
+    let m = a["messages"].as_array().unwrap();
+    assert_eq!(m.len(), 1, "{}", a);
+    assert_eq!((m[0]["cle"].as_str(), m[0]["renvoi"].as_bool()), (Some("LEMERCIER"), Some(true)));
+    assert!(m[0]["changements"].as_array().unwrap().contains(&json!("heures : 32 → 40")), "{}", m[0]);
+    assert_eq!((a["renvois"].as_i64(), a["bouton"].as_str(), &a["deja"]), (Some(1), Some("Renvoyer les documents corrigés à 1 salarié"), &Value::Null));
+
+    // Le renvoi : un seul message, a lui, qui dit l'ancien et le nouveau et que les documents precedents sont remplaces.
+    let faux = Faux::nouveau();
+    let r = avec(&racine, "envoyer-documents", json!({"mois": "2026-08", "motdepasse": MOT_DE_PASSE}), &faux).unwrap();
+    assert_eq!(faux.partis(), 1);
+    assert_eq!(r["partis"], json!(["nicole.lemercier@exemple.invalid"]));
+    let mail = faux.message(0);
+    assert!(mail.entete("Subject").contains("documents corrigés"), "{}", mail.entete("Subject"));
+    let (corps, _) = mail.textes();
+    assert!(corps.contains("a été modifiée depuis l'envoi de tes documents le "), "{}", corps);
+    assert!(corps.contains("  - heures : 32 → 40\n"), "{}", corps);
+    assert!(corps.contains("  - salaire brut : 576,00 € → 720,00 €\n"), "{}", corps);
+    assert!(corps.contains("  - net à payer : "), "{}", corps);
+    assert!(corps.contains("Ils remplacent ceux que tu as reçus le "), "{}", corps);
+    assert!(mail.pieces().iter().any(|p| p.starts_with("Bulletin_LEMERCIER")), "{:?}", mail.pieces());
+    let l = journal(&racine).last().unwrap().clone();
+    assert_eq!(l["detail"]["salaries"].as_array().unwrap().len(), 1);
+    assert_eq!((l["detail"]["salaries"][0]["renvoi"].as_bool(), &l["detail"]["salaries"][0]["resume"]["contrats"][0]["heures"]), (Some(true), &json!("40")));
+
+    // Apres le renvoi, tout est a jour.
+    assert!(pastilles_documents(&racine, "2026-08").iter().all(|(_, caduc, _)| !caduc));
+    assert_eq!(du_mois(&racine, "bilan-du-mois", "2026-08")["documents"]["couleur"], json!("bien"));
+    // Un nouvel envoi, voulu, repart a tous, avec le premier courriel.
+    let faux = Faux::nouveau();
+    avec(&racine, "envoyer-documents", json!({"mois": "2026-08", "motdepasse": MOT_DE_PASSE}), &faux).unwrap();
+    assert_eq!(faux.partis(), 3);
+    assert!(!faux.message(0).entete("Subject").contains("corrigés"));
+}
+
+/// Le texte du bulletin individuel de Lemercier pour aout 2026, tel qu'il partirait.
+fn bulletin_de_lemercier(racine: &Path) -> String {
+    let f = racine.join("sorties/2026-08/envoi/Bulletin_LEMERCIER_Aout2026.pdf");
+    fabrique_pdf::lecture::texte(&f.to_string_lossy()).unwrap().0.join("\n")
+}
+
+/// Les heures de Lemercier en aout 2026 portees a `heures`, par la route, en confirmant (la DSN d'aout ne se remplace plus).
+fn modifier_lemercier(racine: &Path, heures: i64) {
+    let mut saisie = lire(racine, "paies/2026-08.json");
+    let rang = saisie["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "Lemercier").unwrap();
+    saisie["engagements"][rang]["lignes"][0]["quantite"] = json!(heures);
+    let charge = json!({"mois": "2026-08", "saisie": saisie, "modifier_apres_echeance": true});
+    paie::routes_ecritures::route(&options(racine), &contexte(racine), "enregistrer-saisie", &charge).unwrap();
+}
+
+/// APRES LA LIMITE DE L'ANNULE-ET-REMPLACE (Leandre, 21/10/2026) : la DSN d'aout ne se refait plus, la paie modifiee se
+/// declare dans une DSN suivante. Les documents corriges repartent quand meme -- refaits depuis la paie d'aujourd'hui sans
+/// rien redeclarer --, et le courriel dit avec quelle paie la correction sera declaree : le mois de la DSN qui la porte une
+/// fois ecrite (« Corriger ce mois »), « une paie suivante » tant qu'elle ne l'est pas.
+#[test]
+fn apres_la_limite_les_documents_corriges_repartent_et_le_courriel_dit_quand_la_correction_sera_declaree() {
+    let _t = tour();
+    let racine = compagnie("documents-apres-limite", false);
+    poser_le_mot_de_passe(&racine);
+    ecrire_les_documents(&racine, "2026-08");
+    avec(&racine, "envoyer-documents", json!({"mois": "2026-08", "motdepasse": MOT_DE_PASSE}), &Faux::nouveau()).unwrap();
+    assert!(bulletin_de_lemercier(&racine).contains("576,00"));
+
+    // La paie change apres la limite : rien n'empeche le renvoi.
+    modifier_lemercier(&racine, 40);
+    let a = apercu(&racine, "envoi-apercu", json!({"mois": "2026-08"}));
+    assert_eq!(a["empechements"], json!([]), "{}", a);
+    assert_eq!(a["renvois"], json!(1), "{}", a);
+
+    // Le renvoi : ses documents refaits (personne n'a reecrit les documents du mois), et la phrase de la declaration.
+    let faux = Faux::nouveau();
+    avec(&racine, "envoyer-documents", json!({"mois": "2026-08", "motdepasse": MOT_DE_PASSE}), &faux).unwrap();
+    assert_eq!(faux.partis(), 1);
+    assert!(bulletin_de_lemercier(&racine).contains("720,00"), "{}", bulletin_de_lemercier(&racine));
+    let (corps, _) = faux.message(0).textes();
+    assert!(corps.contains("  - salaire brut : 576,00 € → 720,00 €\n"), "{}", corps);
+    assert!(corps.contains("ne garde que ceux-ci.\n\nTa paie d'août 2026 était déjà déclarée : la correction sera déclarée avec une paie suivante.\n\n"), "{}", corps);
+
+    // La paie change encore, et sa correction s'ecrit (« Corriger ce mois ») : la DSN d'octobre la portera.
+    modifier_lemercier(&racine, 48);
+    let o = options(&racine);
+    let ctx = contexte(&racine);
+    let m = paie::routes_ecrites::route(&o, &ctx, "regularisation-mois", &json!({"mois": "2026-08"})).unwrap();
+    let e = m["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "LEMERCIER").unwrap().clone();
+    let charge = json!({"mois": "2026-08", "salarie": "LEMERCIER", "debut": e["debut"], "engagement": {"lignes": e["engagement_saisi"]["lignes"]},
+                        "motif": "heures de Lemercier", "motdepasse": MOT_DE_PASSE});
+    paie::routes_ecritures_g2::route(&o, &ctx, "regularisation-ecrire", &charge).unwrap();
+    let faux = Faux::nouveau();
+    avec(&racine, "envoyer-documents", json!({"mois": "2026-08", "motdepasse": MOT_DE_PASSE}), &faux).unwrap();
+    let (corps, _) = faux.message(0).textes();
+    assert!(corps.contains("Ta paie d'août 2026 était déjà déclarée : la correction sera déclarée avec la paie d'octobre 2026.\n\n"), "{}", corps);
+}
+
+#[test]
+fn le_courriel_de_renvoi_dit_ce_qui_a_change_contrat_par_contrat() {
+    use paie::envoi::ce_qui_a_change;
+    let contrat = |debut: &str, jours: &[&str], cachets: i64, heures: &str, brut: &str, net: &str| {
+        json!({"debut": debut, "fin": jours.last(), "spectacle": "Le Spectacle", "jours": jours, "cachets": cachets, "heures": heures, "brut": brut, "net": net})
+    };
+    // Un seul contrat : une ligne par fait qui a change.
+    let a = json!({"contrats": [contrat("2026-10-05", &["2026-10-05", "2026-10-06"], 1, "15", "300,00", "230,00")], "brut": "300,00", "net": "230,00"});
+    let n = json!({"contrats": [contrat("2026-10-05", &["2026-10-05", "2026-10-06"], 1, "17,5", "340,00", "260,00")], "brut": "340,00", "net": "260,00"});
+    assert_eq!(
+        ce_qui_a_change(&a, &n),
+        ["  - heures : 15 → 17,5", "  - salaire brut : 300,00 € → 340,00 €", "  - net à payer : 230,00 € → 260,00 €"]
+    );
+    // Rien de ce que le resume porte n'a bouge : rien a dire (le courriel le dit autrement).
+    assert!(ce_qui_a_change(&a, &a).is_empty());
+    // Deux contrats : celui qui a change, nomme, puis les totaux.
+    let deux = |x: &Value, y: &Value, brut: &str| json!({"contrats": [x, y], "brut": brut, "net": "0,00"});
+    let premier = contrat("2026-10-05", &["2026-10-05"], 1, "", "200,00", "0,00");
+    let second = contrat("2026-10-20", &["2026-10-20"], 1, "", "200,00", "0,00");
+    let second_change = contrat("2026-10-20", &["2026-10-20", "2026-10-21"], 2, "", "400,00", "0,00");
+    assert_eq!(
+        ce_qui_a_change(&deux(&premier, &second, "400,00"), &deux(&premier, &second_change, "600,00")),
+        [
+            "  - contrat du 20/10/2026 au 21/10/2026 (Le Spectacle) :",
+            "      contrat du 20/10/2026 (Le Spectacle) → contrat du 20/10/2026 au 21/10/2026 (Le Spectacle)",
+            "      jours travaillés : 20/10 → 20/10 et 21/10",
+            "      cachets : 1 → 2",
+            "      salaire brut : 200,00 € → 400,00 €",
+            "  - total brut du mois : 400,00 € → 600,00 €",
+        ]
+    );
+    // Un contrat de plus : avant, maintenant.
+    let c = ce_qui_a_change(&json!({"contrats": [premier.clone()], "brut": "200,00", "net": "0,00"}), &deux(&premier, &second, "400,00"));
+    assert_eq!(c[0], "  - avant : contrat du 05/10/2026 (Le Spectacle), 1 cachet, 200,00 € brut, 0,00 € net à payer");
+    assert_eq!(c.len(), 4, "{:?}", c);
+}
+
 // ================================================================== demander-signature
 
 /// Le mois d'octobre de la fictive, avec deux salaries et un salarie a deux contrats : de quoi essayer les envois groupes.

@@ -89,10 +89,14 @@ pub(crate) fn regularisations_pour(o: &HashMap<String, String>, ctx: &Contexte, 
     for c in corrections_a_porter(ctx, mois_courant)? {
         let get = |k: &str| c.get(k).cloned().ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)));
         let (mois, salarie, debut, corrige) = (py_str(&get("mois")?), get("salarie")?, get("debut")?, get("engagement")?);
+        let numero = c.get("numero").and_then(Value::as_i64).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("numero")))?;
+        if c.get("ajout").is_some_and(vrai) {
+            out.push(ajout(o, ctx, m, c.clone(), mois, numero, corrige)?);
+            continue;
+        }
         let (donnees, declare, _fiche) = regul::engagement_declare_en(o, m, ctx, &mois, &salarie, &debut, true)?;
         let avant = regul::paie_d_un_engagement_en(o, m, ctx, &donnees, &declare, true)?;
         let apres = regul::paie_d_un_engagement_en(o, m, ctx, &donnees, &corrige, true)?;
-        let numero = c.get("numero").and_then(Value::as_i64).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("numero")))?;
         let (lu, derniere) = versement_declare_de(ctx, &c, &mois, mois_courant, &apres)?;
         // Le taux du bloc 56 : le 50.006 du versement relu (reste R1 #3), pas celui d'un fichier quelconque du mois.
         let taux_pas_origine = lu.taux_pas.clone();
@@ -100,6 +104,50 @@ pub(crate) fn regularisations_pour(o: &HashMap<String, String>, ctx: &Contexte, 
         out.push(Reg { correction: c, mois, numero, avant, declare: lu, net_deja_verse, apres, donnees, declare_saisi: declare, corrige, taux_pas_origine });
     }
     Ok(out)
+}
+
+/// LA CORRECTION D'UN CONTRAT AJOUTE APRES LA LIMITE (un contrat oublie, 21/10/2026) : rien n'a ete declare pour lui --
+/// la DSN deposee du mois ne le porte pas --, et rien n'a ete verse par ce logiciel -- le bulletin archive du mois ne le
+/// porte pas non plus (le contrat n'existait pas quand il a ete ecrit). Le declare est donc vide et le net deja verse
+/// nul : la DSN suivante declare le contrat en entier, ses montants rattaches au mois d'origine (cahier technique DSN
+/// 2026.1, §2.1.2.1 et §2.2.2.5 ; fiche net-entreprises 1741 : `routes_regularisation::apercu_d_un_ajout`), et le
+/// versement de la correction paie son net. Sa paie se calcule depuis la saisie du mois telle que declaree, son
+/// engagement a la place des autres, comme toute correction.
+fn ajout(o: &HashMap<String, String>, ctx: &Contexte, m: &mut Moteur, c: Map<String, Value>, mois: String, numero: i64, corrige: Value) -> R<Reg> {
+    let donnees = regul::saisie_d_origine(ctx, &mois)?;
+    let apres = regul::paie_d_un_engagement_en(o, m, ctx, &donnees, &corrige, true)?;
+    if !apres.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) {
+        return Err(erreur(
+            "MoisNonRegularisable",
+            format!("Correction n° {} de {} : le contrat ajoute n'a pas de numero (S21.G00.40.009). Reecrire la correction : elle le fige.", numero, mois),
+        ));
+    }
+    let declare = VersementDeclare {
+        fichier: String::new(),
+        net_imposable: Decimal::ZERO,
+        net_verse: Decimal::ZERO,
+        net_social: Decimal::ZERO,
+        rappels_net_social: Decimal::ZERO,
+        frais: Decimal::ZERO,
+        brut: Decimal::ZERO,
+        lignes: Vec::new(),
+        affiliations: Vec::new(),
+        taux_pas: None,
+        debut_contrat: None,
+    };
+    Ok(Reg {
+        correction: c,
+        mois,
+        numero,
+        avant: apres.clone(),
+        declare,
+        net_deja_verse: Decimal::ZERO,
+        apres,
+        donnees,
+        declare_saisi: corrige.clone(),
+        corrige,
+        taux_pas_origine: None,
+    })
 }
 
 /// Le versement que la DSN deposee a declare pour le contrat corrige, dans son DERNIER etat : ce que l'annulation
@@ -175,6 +223,28 @@ fn versement_declare_de(ctx: &Contexte, c: &Map<String, Value>, mois: &str, mois
             .ok_or_else(|| refus(format!("aucune DSN reelle acceptee pour {} au journal", porteur), &faire))?;
         etat = versement_declare::apres_correction(&etat, &chemin, mois, nir, &numero).map_err(|e| refus(e, &faire))?;
     }
+    // LA DERNIERE DATE DE DEBUT DECLAREE D'UN CONTRAT SUR PLUSIEURS MOIS (21/10/2026) : la correction d'un AUTRE de ses
+    // mois, deja portee par une DSN anterieure, a pu la changer (bloc 41, fiche net-entreprises 1952). Elle se lit dans la
+    // derniere DSN qui a porte une correction du contrat ; le changement ne se redeclare pas.
+    let mut porteurs: Vec<String> = Vec::new();
+    for autre in crate::routes_ecrites::toutes_les_corrections(ctx)? {
+        let Some(porteur) = autre.get("portee_par").filter(|p| vrai(p)).map(|p| py_str(p.get("mois").unwrap_or(&Value::Null))) else { continue };
+        let meme = autre.get("salarie").map(py_str) == meme("salarie")
+            && autre.get("engagement").and_then(|e| e.get("numero")).map(py_str).as_deref() == Some(numero.as_str());
+        if meme && !autre.get("annulee_le").is_some_and(vrai) && porteur.as_str() < mois_courant {
+            porteurs.push(porteur);
+        }
+    }
+    porteurs.sort();
+    if let Some(porteur) = porteurs.last() {
+        let faire = format!("Remettre dans sorties/{}/ la DSN acceptee de ce mois (celle que nomme journal/depots.json).", porteur);
+        let chemin = crate::casc::dsn_deposee(ctx, porteur, Some(&nic))
+            .map_err(|e| refus(e.trim_end_matches('.').to_string(), &faire))?
+            .ok_or_else(|| refus(format!("aucune DSN reelle acceptee pour {} au journal", porteur), &faire))?;
+        if let Some(d) = versement_declare::debut_du_contrat(&chemin, nir, &numero).map_err(|e| refus(e, &faire))? {
+            etat.debut_contrat = Some(d);
+        }
+    }
     Ok((etat, derniere))
 }
 
@@ -232,6 +302,8 @@ pub(crate) fn pour_la_dsn(ctx: &Contexte, regs: &[&Reg]) -> R<Vec<crate::dsn::Re
             apres: a_imprimer(ctx, &r.donnees, &r.corrige, r.apres.engagement.numero.as_ref(), None)?,
             taux_pas_origine: r.taux_pas_origine.clone(),
             net_deja_verse: r.net_deja_verse,
+            // « AAAA-MM-JJ HH:MM » (`routes_ecritures_g2::maintenant`) : le jour seul.
+            decidee_le: r.correction.get("decidee_le").and_then(Value::as_str).and_then(|t| t.get(..10)).and_then(|t| Jour::lire(t).ok()),
         });
     }
     Ok(out)
@@ -428,7 +500,8 @@ pub(crate) fn ecrire_rectificatifs(
         let rectifie = numero_du_bulletin_rectifie(ctx, r);
         rectif["rectifie"] = rectifie.clone().map_or(Value::Null, Value::String);
         let contrat = r.apres.engagement.numero.as_deref().unwrap_or("None");
-        if rectifie.is_none() {
+        // Un contrat ajoute n'a pas de bulletin d'origine : son bulletin est celui-ci.
+        if rectifie.is_none() && !r.correction.get("ajout").is_some_and(vrai) {
             out.avertissements.push(format!(
                 "Bulletin rectificatif {} ({}, contrat {}) : le numero du bulletin d'origine ne se lit pas dans sorties/{}/ -- le rectificatif cite le contrat a la place.",
                 numero_bulletin,

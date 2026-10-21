@@ -61,7 +61,27 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
         None => ctx.entreprise.clone(),
     };
     let r = crate::assujettissement::regime_taxe_sur_les_salaires(&ent);
+    // LES PLAFONDS DE LA FRANCHISE, CHIFFRES (ticket #239) : ceux du bareme de l'annee des salaires -- `annee` dans la
+    // charge, sinon l'annee en cours. Un bareme absent ne fait pas refuser : la question se pose sans montants.
+    let annee = match charge.get("annee") {
+        None | Some(Value::Null) => ctx.aujourdhui.an,
+        Some(v) => match v.as_i64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())) {
+            Some(a) if (1900..=2999).contains(&a) => a as i32,
+            _ => return Err(erreur("ValueError", crate::date::annee_impossible(py_repr(v)))),
+        },
+    };
+    let bar = crate::date::Jour::nouveau(annee, 1, 1).and_then(|j| ctx.bareme(&j).ok());
+    let q = crate::assujettissement::question_franchise(bar.as_ref(), annee);
     Ok(json!({
+        "franchise": {
+            "aide": q.aide,
+            "choix": { "true": q.sous, "false": q.dessus },
+            "plafonds": q.plafonds.map(|(s, t)| json!({
+                "prestations_de_services": s.normalize().to_string(),
+                "total": t.normalize().to_string(),
+            })),
+            "annee": annee,
+        },
         "champs": r.champs,
         "consequence": r.consequence,
         "complet": r.decision.is_ok(),
