@@ -788,7 +788,8 @@ async function boiteDpae(mois) {
           <span><b>${echapper(l.nom)}</b> — ${echapper(l.spectacle)}, embauche le
             ${echapper(jjmmaaaa(l.debut))}${l.numero
               ? ` <span class="discret">(contrat n° ${echapper(l.numero)})</span>` : ""}
-            ${etat}</span></label>`;
+            ${etat}
+            ${e.date_changee ? `<br><span class="note">${echapper(e.date_changee.phrase)}</span>` : ""}</span></label>`;
       }).join("")}
     </div>
     <p class="note">Heure d'embauche déclarée : 08h00. Toutes les embauches

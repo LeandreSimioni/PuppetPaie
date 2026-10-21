@@ -394,6 +394,8 @@ fn dsn(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
                 "regularisation sans `net_deja_verse` : le net a payer avant impot deja verse (lu sur le bulletin recu) \
                  dit si la correction verse quelque chose, et a quelle periode se rattache son montant net social",
             )?)?,
+            // Le jour de la correction (S21.G00.41.001 d'une date de debut corrigee) : la demande le dit, ou rien.
+            decidee_le: r.get("decidee_le").and_then(Value::as_str).and_then(|t| t.get(..10)).and_then(|t| crate::date::Jour::lire(t).ok()),
         });
     }
     let arrets: Vec<Arret> = liste("arrets").into_iter().map(|v| Arret { v }).collect();

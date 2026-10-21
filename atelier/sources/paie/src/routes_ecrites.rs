@@ -499,7 +499,10 @@ fn engagements_d_origine(o: &HashMap<String, String>, m: &mut Moteur, ctx: &Cont
     let mut out = Vec::new();
     for (p, e) in paies.iter().zip(engs.iter()) {
         let cle_s = py_str(regul::requis(&p.salarie, "_cle")?);
-        let saisi = modifies.iter().find(|c| c.salarie == cle_s && c.debut == p.engagement.debut.iso()).map(|c| c.engagement.clone());
+        let modifie = modifies.iter().find(|c| !c.ajoute && c.salarie == cle_s && c.debut == p.engagement.debut.iso());
+        let saisi = modifie.map(|c| c.engagement.clone());
+        // SES DATES CHANGEES DANS LA SAISIE (21/10/2026) : la correction les reprend, la page le dit.
+        let dates_saisies = modifie.filter(|c| c.dates_changees).map(|c| json!(regul::bornes_en_clair(&c.bornes))).unwrap_or(Value::Null);
         let cle = (Value::String(cle_s.clone()), Value::String(p.engagement.debut.iso()));
         let portee = trouve(&portees, &cle);
         let declare = match portee {
@@ -525,6 +528,7 @@ fn engagements_d_origine(o: &HashMap<String, String>, m: &mut Moteur, ctx: &Cont
             "deja_corrige": portee.is_some(),
             "correction_en_cours": en_cours_ici,
             "engagement_saisi": saisi.unwrap_or(Value::Null),
+            "dates_saisies": dates_saisies,
             "ajoute": false,
         }));
     }

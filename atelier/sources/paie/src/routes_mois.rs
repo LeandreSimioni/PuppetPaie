@@ -611,8 +611,22 @@ impl<'a> Moteur<'a> {
                 json!({"premier_mois": premier_mois, "dernier_mois": dernier_mois,
                        "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last()}),
             );
-            let dpae_v = g.dpae.get(&k).filter(|v| vrai(v)).unwrap_or(objet_vide());
+            let mut dpae_v = g.dpae.get(&k).filter(|v| vrai(v)).unwrap_or(objet_vide());
+            // UNE DATE D'EMBAUCHE CHANGEE apres la limite (21/10/2026) : la DPAE de l'ancienne date vaut-elle
+            // (`routes_regularisation::dpae_d_une_date_changee`) ?
+            let mut date_changee = Value::Null;
+            if !vrai(dpae_v) {
+                let ancienne = p.engagement.numero.as_deref().and_then(|n| crate::routes_regularisation::debut_declare_avant(self.ctx, &cle, n, &debut));
+                if let Some((avant, deposee)) = ancienne.and_then(|a| g.dpae.get(&(cle.clone(), a.clone())).filter(|v| vrai(v)).map(|v| (a, v))) {
+                    let (vaut, phrase) = crate::routes_regularisation::dpae_d_une_date_changee(&avant, &debut);
+                    if vaut {
+                        dpae_v = deposee;
+                    }
+                    date_changee = json!({"avant": avant, "vaut": vaut, "phrase": phrase});
+                }
+            }
             let dpae = json!({
+                "date_changee": date_changee,
                 "fait": get(dpae_v, "quand")?,
                 "passee": vrai(get(dpae_v, "passee")?),
                 "refusee": vrai(get(dpae_v, "refusee")?),
@@ -999,6 +1013,12 @@ impl<'a> Moteur<'a> {
             json!({"couleur": "", "phrase": format!("aucune DPAE déclarée — {} à faire", n)})
         };
         let mut dpae = dpae.as_object().cloned().unwrap_or_default();
+        // Une date d'embauche changee apres la limite : ce que la DPAE deposee en devient, dit (`dpae_d_une_date_changee`).
+        let changees: Vec<String> = embauches.iter().filter_map(|p| p["etats"]["dpae"]["date_changee"]["phrase"].as_str().map(String::from)).collect();
+        if !changees.is_empty() {
+            let phrase = dpae.get("phrase").and_then(Value::as_str).unwrap_or("").to_string();
+            dpae.insert("phrase".into(), json!(format!("{} — {}", phrase, changees.join(" "))));
+        }
         if n > 0 && passees + parties < n {
             self.etape_de_depot(mois, DPAE, &mut dpae)?;
         }
@@ -1239,17 +1259,35 @@ impl<'a> Moteur<'a> {
                 if !p.engagement.premier_mois().map_err(plain)? {
                     continue;
                 }
+                // UNE DATE D'EMBAUCHE CHANGEE apres la limite (21/10/2026) : reculee, la DPAE de l'ancienne date vaut ;
+                // avancee, une DPAE est a deposer, et la phrase dit pourquoi (`dpae_d_une_date_changee`).
+                let ancienne = p.engagement.numero.as_deref().and_then(|n| crate::routes_regularisation::debut_declare_avant(self.ctx, &cle, n, &debut));
+                let pourquoi = match ancienne.filter(|a| faites.contains(&(cle.clone(), a.clone()))) {
+                    Some(a) => {
+                        let (vaut, phrase) = crate::routes_regularisation::dpae_d_une_date_changee(&a, &debut);
+                        if vaut {
+                            continue;
+                        }
+                        json!(phrase)
+                    }
+                    None => Value::Null,
+                };
                 let prenom = match p.salarie.get("prenom_affichage").filter(|v| vrai(v)) {
                     Some(v) => texte_de(v),
                     None => texte_de(requis(&p.salarie, "prenom")?),
                 };
                 let titre = if vrai(&p.spectacle) { p.spectacle.get("titre").filter(|t| vrai(t)).cloned() } else { None };
-                attente.push(json!({
+                let mut due = json!({
                     "mois": m, "salarie": cle,
                     "nom": format!("{} {}", texte_de(requis(&p.salarie, "nom")?), prenom),
                     "spectacle": titre.unwrap_or_else(|| json!("salarié au mois")),
                     "debut": debut, "fin": p.engagement.fin.map(|f| f.iso()),
-                }));
+                });
+                // Seulement quand une date d'embauche a change : le reste du temps, rien a dire.
+                if !pourquoi.is_null() {
+                    due["pourquoi"] = pourquoi;
+                }
+                attente.push(due);
             }
         }
         Ok(Value::Array(attente))

@@ -217,3 +217,23 @@ Tests : `tests/calcul/imprevus.rs`, `tests/routes/routes_imprevus.rs`.
 **Où le moteur s'en sert** : `logiciel/donnees/obligations-base.json`, obligation `attestation_salaire` (ses `textes`, la
 `connaissance_presumee` qui rappelle que le salarié prévient vingt-quatre heures avant, `a_avoir`) ; le calcul est dans
 `atelier/sources/paie/src/obligations.rs` (`de_l_arret`). Tests : `tests/routes/routes_obligations.rs`.
+
+## La déclaration préalable à l'embauche (21/10/2026)
+
+Relevés le 21/10/2026 depuis l'entrepôt LEGI (`paie releve-codes moissonner`, puis `rapport` : `articles-20261021.md`,
+section « La declaration prealable a l'embauche ») ; domaine `dpae` de `paie/src/releve_codes/textes.rs`.
+
+- **L1221-10** (`xml/L1221-10.xml`, `LEGIARTI000006900849`) : « L'embauche d'un salarié ne peut intervenir qu'après
+  déclaration nominative accomplie par l'employeur auprès des organismes de protection sociale désignés à cet effet. »
+- **R1221-1** (`xml/R1221-1.xml`, `LEGIARTI000035492419`) : la DPAE comporte, 3°, la « Date et heure d'embauche ».
+- **R1221-4** (`xml/R1221-4.xml`, `LEGIARTI000024214323`) : elle « est adressée au plus
+  tôt dans les huit jours précédant la date prévisible de l'embauche ».
+
+Ce qu'on en tire quand la date de début d'un contrat déjà déclaré change (inférence, écrite comme telle dans le code) :
+avancée, l'embauche a eu lieu avant la date que la DPAE déclarait, la déclaration ne l'a pas précédée (L1221-10) — une DPAE à
+la date vraie est à déposer ; reculée, la DPAE déposée a précédé l'embauche et portait sa date prévisible (R1221-4) — rien à
+refaire. Le guide de l'API DPAE de l'Urssaf (`../../norme-dpae/5491-API-DPAE-Fonctionnement.pdf`, p. 3 et 9) : pas
+d'annule-et-remplace en DPAE ; un doublon est rejeté (code 98).
+
+**Où le moteur s'en sert** : `atelier/sources/paie/src/routes_mois.rs` (`etat_par_paie`, `embauches_a_declarer`, l'étape
+DPAE de `bilan_du_mois`) et `routes_regularisation::debut_declare_avant`. Tests : `tests/routes/modifier_apres_echeance.rs`.

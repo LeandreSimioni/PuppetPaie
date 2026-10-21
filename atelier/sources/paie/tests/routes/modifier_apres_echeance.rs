@@ -218,3 +218,109 @@ fn avant_la_limite_la_modification_ne_demande_rien_et_l_annule_et_remplace_se_di
     // Rien n'est garde : la DSN refaite remplacera la deposee.
     assert!(!racine.join(format!("regularisations/{}.saisie-declaree.json", MOIS)).exists());
 }
+
+/// La saisie d'aout, le contrat de Lemercier (LE3.26.04, du 19 au 22 aout, 8 heures par jour) a d'autres dates.
+fn lemercier_aux_dates(racine: &Path, debut: &str, fin: &str, jours: &[&str]) -> Value {
+    let mut s = lire(racine, &format!("paies/{}.json", MOIS));
+    let rang = s["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "Lemercier").unwrap();
+    let e = &mut s["engagements"][rang];
+    e["debut"] = json!(debut);
+    e["fin"] = json!(fin);
+    e["date_paiement"] = json!(fin);
+    e["lignes"][0]["dates"] = json!(jours);
+    e["lignes"][0]["quantite"] = json!(8 * jours.len());
+    s
+}
+
+/// LES DATES D'UN CONTRAT DECLARE SE CORRIGENT APRES LA LIMITE (21/10/2026). Le contrat garde son numero : la saisie le
+/// retrouve a ses nouvelles dates, et la modification se confirme comme toute autre, sans refus. « Corriger ce mois » le
+/// designe a son premier jour declare et en reprend les dates ; l'apercu dit ce que la DSN suivante en declarera
+/// (l'ancienne date de debut en S21.G00.41.021, fiche net-entreprises 1952 ; la fin en S21.G00.62, fiche 1722) ; la
+/// correction ecrite, l'etape DSN passe au vert. Que la saisie change encore de dates la repasse a l'orange. La DSN qui
+/// la porte : `tests/dsn/regularisation_declaree.rs`.
+#[test]
+fn les_dates_d_un_contrat_declare_se_corrigent_apres_la_limite() {
+    let racine = compagnie("dates");
+    let jours = ["2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22"];
+    let s = lemercier_aux_dates(&racine, "2026-08-18", "2026-08-22", &jours);
+    assert_eq!(refus(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": s}), APRES)).0, "ModificationApresEcheance");
+    reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": s, "modifier_apres_echeance": true}), APRES));
+    let dsn = || reussi(&route(&racine, "bilan-du-mois", json!({"mois": MOIS}), APRES))["dsn"].clone();
+    let d = dsn();
+    assert_eq!(d["couleur"], json!("alerte"), "{}", d);
+    assert!(d["phrase"].as_str().unwrap().contains("1 contrat à corriger dans la DSN suivante"), "{}", d);
+
+    // LA DPAE : l'embauche avancee n'a pas ete precedee de sa declaration (code du travail, L. 1221-10), et la DPAE porte
+    // la date d'embauche (R. 1221-1, 3°) : une DPAE au 18 est due, et l'etape DPAE dit pourquoi.
+    let attendu = "Embauche avancée du 19/08/2026 au 18/08/2026 : la DPAE déposée pour le 19/08/2026 ne l'a pas précédée (code du travail, art. L. 1221-10)";
+    let b = reussi(&route(&racine, "bilan-du-mois", json!({"mois": MOIS}), APRES)).clone();
+    assert!(b["dpae"]["phrase"].as_str().unwrap().contains(attendu), "{}", b["dpae"]);
+    assert_ne!(b["dpae"]["couleur"], json!("bien"), "{}", b["dpae"]);
+    let dues = reussi(&route(&racine, "embauches-a-declarer", json!({"mois": MOIS}), APRES))["embauches"].clone();
+    let due = dues.as_array().unwrap().iter().find(|x| x["salarie"] == json!("LEMERCIER")).expect("une DPAE due").clone();
+    assert_eq!(due["debut"], json!("2026-08-18"));
+    assert!(due["pourquoi"].as_str().unwrap().starts_with(attendu), "{}", due);
+
+    let e = lemercier(&racine);
+    assert_eq!((e["debut"].as_str(), e["numero"].as_str(), e["ajoute"].as_bool()), (Some("2026-08-19"), Some("LE3.26.04"), Some(false)), "{}", e);
+    assert_eq!(e["dates_saisies"], json!("du 18/08/2026 au 22/08/2026"), "{}", e);
+    assert_eq!(e["engagement_saisi"]["debut"], json!("2026-08-18"));
+    let charge = json!({"mois": MOIS, "salarie": "LEMERCIER", "debut": "2026-08-19", "engagement": {"lignes": e["engagement_saisi"]["lignes"]}});
+    let a = route(&racine, "regularisation-apercu", charge.clone(), APRES);
+    let a = reussi(&a);
+    assert_eq!((a["engagement"]["debut"].as_str(), a["engagement"]["fin"].as_str()), (Some("2026-08-18"), Some("2026-08-22")), "{}", a);
+    assert_eq!((a["avant"]["heures"].as_str(), a["apres"]["heures"].as_str(), a["rien_ne_change"].as_bool()), (Some("32.0"), Some("40.0"), Some(false)), "{}", a);
+    assert_eq!(
+        a["dates"],
+        json!("Dates corrigées : du 18/08/2026 au 22/08/2026 (déclaré : du 19/08/2026 au 22/08/2026). La DSN suivante déclare la nouvelle date de début avec l'ancienne, dans un bloc « Changements contrat » (S21.G00.41.021, fiche net-entreprises 1952).")
+    );
+    let mut charge = charge;
+    charge["motif"] = json!("Lemercier a commence le 18");
+    let c = reussi(&route(&racine, "regularisation-ecrire", charge, APRES))["correction"].clone();
+    assert_eq!((c["debut"].as_str(), c["engagement"]["debut"].as_str(), c["engagement"]["numero"].as_str()), (Some("2026-08-19"), Some("2026-08-18"), Some("LE3.26.04")), "{}", c);
+    let d = dsn();
+    assert_eq!((d["couleur"].as_str(), d["remplacement"]["correction_ecrite"].as_bool()), (Some("bien"), Some(true)), "{}", d);
+
+    // La fin change encore dans la saisie, sans rien changer d'autre a la paie : la correction ecrite ne la declare plus.
+    let mut s = lemercier_aux_dates(&racine, "2026-08-18", "2026-08-23", &jours);
+    s["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["salarie"] == "Lemercier").unwrap()["date_paiement"] = json!("2026-08-22");
+    reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": s, "modifier_apres_echeance": true}), APRES));
+    let d = dsn();
+    assert_eq!((d["couleur"].as_str(), d["remplacement"]["correction_ecrite"].as_bool()), (Some("alerte"), Some(false)), "{}", d);
+    assert!(d["phrase"].as_str().unwrap().contains("à corriger à nouveau"), "{}", d);
+}
+
+/// UN CONTRAT QUI DEBORDE SUR LE MOIS PRECEDENT (21/10/2026) : Lemercier a commence le 31 juillet. Rien ne se refuse ;
+/// l'apercu de la correction d'aout dit que juillet se corrige aussi, pour lui-meme, et que la DSN suivante porte un
+/// versement par mois civil (cahier technique DSN 2026.1, §2.2.2.5).
+#[test]
+fn un_contrat_qui_deborde_sur_un_autre_mois_se_corrige_mois_par_mois() {
+    let racine = compagnie("deborde");
+    let s = lemercier_aux_dates(&racine, "2026-07-31", "2026-08-22", &["2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22"]);
+    reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": s, "modifier_apres_echeance": true}), APRES));
+    let e = lemercier(&racine);
+    let charge = json!({"mois": MOIS, "salarie": "LEMERCIER", "debut": "2026-08-19", "engagement": {"lignes": e["engagement_saisi"]["lignes"]}});
+    let a = route(&racine, "regularisation-apercu", charge, APRES);
+    let phrase = reussi(&a)["dates"].as_str().unwrap().to_string();
+    assert!(phrase.contains("Le contrat court aussi sur juillet 2026 : chaque mois se corrige pour lui-même"), "{}", phrase);
+}
+
+
+/// UNE EMBAUCHE REPORTEE (21/10/2026) : Lemercier a commence le 20 aout, pas le 19. La DPAE deposee pour le 19 a precede
+/// l'embauche (code du travail, art. L. 1221-10) et portait sa date previsible (art. R. 1221-4,
+/// `atelier/reference/sources/code-du-travail/xml/`) : rien a refaire, et l'etape DPAE le dit ; aucune DPAE n'est due.
+#[test]
+fn une_embauche_reportee_garde_sa_dpae_et_l_etape_le_dit() {
+    let racine = compagnie("embauche-reportee");
+    let s = lemercier_aux_dates(&racine, "2026-08-20", "2026-08-22", &["2026-08-20", "2026-08-21", "2026-08-22"]);
+    reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": s, "modifier_apres_echeance": true}), APRES));
+    let b = reussi(&route(&racine, "bilan-du-mois", json!({"mois": MOIS}), APRES)).clone();
+    assert_eq!(b["dpae"]["couleur"], json!("bien"), "{}", b["dpae"]);
+    assert!(
+        b["dpae"]["phrase"].as_str().unwrap().contains("Embauche reportée du 19/08/2026 au 20/08/2026 : la DPAE déposée pour le 19/08/2026 vaut"),
+        "{}",
+        b["dpae"]
+    );
+    let dues = reussi(&route(&racine, "embauches-a-declarer", json!({"mois": MOIS}), APRES))["embauches"].clone();
+    assert!(!dues.as_array().unwrap().iter().any(|x| x["salarie"] == json!("LEMERCIER")), "{}", dues);
+}
