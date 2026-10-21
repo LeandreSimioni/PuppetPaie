@@ -157,6 +157,9 @@ function couleurPastille(cle, e) {
     return (e && e.fait) ? "orange" : "gris";
   }
   if (!e || !e.fait) return "gris";
+  // Des documents partis, puis une paie qui a changé (ticket #240) : ils ne
+  // sont plus les bons, le moteur le dit (`caduc`) — à renvoyer.
+  if (cle === "documents" && e.caduc) return "orange";
   if (cle !== "dpae") return "vert";          // pas d'accusé pour ces envois-là
   // La DPAE, elle, reçoit un certificat de conformité — et le moteur le dit
   // PAR PAIE (`passee`), sur le dépôt qui porte cette embauche-là. Refusée :
@@ -200,6 +203,10 @@ function infobulle(cle, titre, e, ligne) {
   }
   if (!e || !e.fait) return titre + " — rien n'est parti" + enCours;
   const maille = ditLaMaille(e.maille, ligne);
+  if (cle === "documents" && e.caduc) {
+    return titre + " — envoyés le " + quand(e.fait) + (maille ? " (" + maille + ")" : "")
+      + " — à renvoyer : " + e.pourquoi;
+  }
   const couleur = couleurPastille(cle, e);
   if (couleur === "rouge") {
     return titre + " — envoyé le " + quand(e.fait) + " — REFUSÉ : "
