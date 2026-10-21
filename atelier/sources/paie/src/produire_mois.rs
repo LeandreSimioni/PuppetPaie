@@ -931,6 +931,9 @@ pub(crate) fn produire_pour(o: &HashMap<String, String>, ctx: &Contexte, charge:
     // ne montre pas (`_origine`, `valide`, `numero`, `rouverte`, `numeros_figes`) et garde l'ancien dans `avant/`.
     // Produire depuis l'ecran puis reecrire le fichier depuis l'ecran changeait le JSON apres que l'empreinte de la DSN
     // etait notee (un ordre d'engagements, un champ que l'ecran ne renvoie pas) : le depot refusait « la paie a change ».
+    // Un mois dont la DSN etait due ne se produit plus (sauf `forcer`, une DSN en retard assumee) : la saisie d'un mois
+    // declare se modifie apres sa limite en le confirmant (`ecrire_saisie_confirmee`), elle ne se reproduit pas.
+    crate::routes_ecritures::refuser_si_hors_delai(ctx, &mois, forcer)?;
     let chemin = crate::routes_ecritures::ecrire_saisie(o, ctx, &mois, brute, forcer, true)?;
     // Puis tout part du FICHIER : le calcul, les manques, le controle du calcul stocke, la production et ses numeros.
     let mut data = crate::engagement::lire_saisie(&chemin).map_err(Echec::from)?;

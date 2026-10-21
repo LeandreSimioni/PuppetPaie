@@ -72,8 +72,8 @@ function encartRegularisation(etat) {
       <b>Ce mois est déposé, et son échéance est passée.</b>
       Ce que vous corrigez ici ne modifie pas la DSN déposée : la correction
       partira dans la DSN ${echapper(deMois(etat.mois_courant))},
-      datée ${echapper(deMois(etat.mois))}. La saisie ${echapper(deMois(etat.mois))}
-      reste telle qu'elle a été déclarée.
+      datée ${echapper(deMois(etat.mois))}. L'« avant » est la paie telle
+      qu'elle a été déclarée.
     </div>`;
 }
 
@@ -94,16 +94,20 @@ async function boiteCorriger(mois) {
     ${r.engagements.length ? r.engagements.map((e, i) => `
       <div class="rang">
         <span class="rang-nom">${echapper(e.nom)}</span>
-        <span class="rang-infos">contrat ${echapper(e.numero)} · ${echapper(e.spectacle)} ·
+        <span class="rang-infos">${e.ajoute
+            ? `<b>contrat ajouté après la DSN</b>${e.numero ? ` (${echapper(e.numero)})` : ""} · ${echapper(e.spectacle)} ·
+               ${echapper(periodeEnClair(e.debut, e.fin))} · rien de déclaré : la correction le déclare en entier`
+            : `contrat ${echapper(e.numero)} · ${echapper(e.spectacle)} ·
           ${echapper(periodeEnClair(e.debut, e.fin))} ·
-          brut ${echapper(euros(e.brut))}, net ${echapper(euros(e.net_a_payer))}
+          brut ${echapper(euros(e.brut))}, net ${echapper(euros(e.net_a_payer))}`}
           ${e.deja_corrige ? " · déjà corrigé par une DSN partie" : ""}
+          ${e.engagement_saisi && !e.ajoute && !e.correction_en_cours ? " · <b>modifié dans la saisie : la correction en reprend les lignes</b>" : ""}
           ${e.correction_en_cours ? ` · <b>correction n° ${e.correction_en_cours.numero} en attente</b>` : ""}</span>
         <button class="secondaire" data-eng="${i}">Corriger…</button>
       </div>`).join("")
       : `<p class="discret">Aucun engagement dans la saisie de ce mois.</p>`}
-    <p class="note">Un engagement oublié en entier n'est pas une correction :
-      c'est un contrat en retard, avec sa DPAE — il se saisit dans son mois.</p>
+    <p class="note">Un contrat oublié se saisit dans son mois, avec sa DPAE :
+      il apparaît alors ici, et sa correction le déclare dans la DSN suivante.</p>
     <div class="actions">
       <button class="primaire" onclick="fermerBoite()">Fermer</button>
     </div>`);
@@ -125,7 +129,7 @@ function boiteCorrigerEngagement(mois, e, etat) {
   const tauxAvant = DERNIER_TAUX;     // taper un taux ici ne décide pas du prochain mois
   const rendre = () => { DERNIER_TAUX = tauxAvant; };
   ouvrirBoite(`
-    <h3>Corriger le contrat ${echapper(e.numero)}</h3>
+    <h3>${e.ajoute ? "Déclarer le contrat ajouté" : `Corriger le contrat ${echapper(e.numero)}`}</h3>
     ${encartRegularisation(etat)}
     <p class="discret">${echapper(e.nom)} — ${echapper(e.spectacle)},
       ${echapper(periodeEnClair(e.debut, e.fin))}.
@@ -187,8 +191,11 @@ function boiteCorrigerEngagement(mois, e, etat) {
     bouton.disabled = !dernier || dernier.rien_ne_change || !motif;
   };
 
-  (e.engagement.lignes || []).forEach(poser);
-  if (!(e.engagement.lignes || []).length) poser({});
+  // LA PAIE MODIFIÉE DANS LA SAISIE APRÈS LA LIMITE (21/10/2026) : la correction part de ce qu'on a saisi
+  // (`engagement_saisi`, donné par le moteur) ; l'aperçu compare toujours à ce qui est déclaré.
+  const depart = (e.engagement_saisi || e.engagement).lignes || [];
+  depart.forEach(poser);
+  if (!depart.length) poser({});
   zone.addEventListener("input", plusTard);
   zone.addEventListener("change", plusTard);
   document.getElementById("cor-motif").oninput = majBoutonCorrection;
@@ -216,6 +223,8 @@ function boiteCorrigerEngagement(mois, e, etat) {
       dire("Correction n° " + r.correction.numero + " écrite — elle partira dans la DSN "
            + deMois(etat.mois_courant) + ".");
       await dessinerRegularisation();
+      // L'étape DSN du mois affiché le dit aussitôt (`correction_ecrite`).
+      if (MOIS_AFFICHE === mois) await rafraichirActions();
     } catch (err) {
       bouton.disabled = false;
       dire(err.message, "erreur");

@@ -1167,3 +1167,105 @@ fn le_taux_du_bloc_56_est_le_50006_du_versement_declare_pas_celui_d_un_autre_fic
     assert_eq!(valeur(&regul, "S21.G00.56.002"), "03");
     assert_eq!(valeur(&regul, "S21.G00.56.006"), taux_depose, "le taux du versement declare");
 }
+
+/// UN CONTRAT OUBLIE, AJOUTE APRES LA LIMITE (21/10/2026). Servandoni a aussi travaille du 27 au 29 juillet 2026, et ce
+/// contrat n'a jamais ete declare. Juillet est depose, son annule-et-remplace est passe : le contrat s'ajoute a la saisie
+/// de juillet (en le confirmant), sa correction s'ecrit (« Corriger ce mois », qui lui donne son numero), et la DSN
+/// d'octobre le declare en entier -- cahier technique DSN 2026.1, §2.1.2.1 (« une correction est un evenement connu apres
+/// la date de cloture de la paie. Il donne lieu a la declaration d'une correction dans la DSN suivante ») et §2.2.2.5
+/// (« les corrections doivent etre portees par une DSN mensuelle ulterieure [...] valorisees mois civil par mois civil »),
+/// `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt` ; fiche net-entreprises 1741 (un contrat
+/// que le systeme DSN ne connait pas encore se declare en entier dans la DSN mensuelle qui le porte). Son bloc 40 porte sa
+/// date de debut passee (S21.G00.40.001) ; son versement, des remunerations (S21.G00.51.001) et des bases
+/// (S21.G00.78.002) rattachees a juillet, toutes positives : rien n'a ete declare, rien ne s'annule.
+#[test]
+fn un_contrat_oublie_ajoute_apres_la_limite_se_declare_en_entier_dans_la_dsn_suivante() {
+    let r = copie("contrat-oublie");
+    let mut saisie = lire(&r, "paies/2026-07.json");
+    let mut e = saisie["engagements"].as_array().unwrap().iter().find(|e| e["numero"] == json!(CONTRAT)).unwrap().clone();
+    let o = e.as_object_mut().unwrap();
+    o.remove("numero");
+    o.insert("debut".into(), json!("2026-07-27"));
+    o.insert("fin".into(), json!("2026-07-29"));
+    o.insert("date_paiement".into(), json!("2026-07-29"));
+    o.insert(
+        "lignes".into(),
+        json!([{"rubrique": "heure", "quantite": 24, "taux": 18.0, "lieu": "Festival fictif d'Avignon, Gymnase",
+                "dates": ["2026-07-27", "2026-07-28", "2026-07-29"]},
+               {"rubrique": "defraiement_forfait", "quantite": 3, "taux": 20.7}]),
+    );
+    saisie["engagements"].as_array_mut().unwrap().push(e);
+    let ecrire = |confirme: bool| route_le(&r, JOUR, "enregistrer-saisie", json!({"mois": "2026-07", "saisie": saisie, "modifier_apres_echeance": confirme}));
+    assert_eq!(ecrire(false)["classe"], json!("ModificationApresEcheance"));
+    assert_eq!(ecrire(true)["ok"], json!(true));
+
+    // « Corriger ce mois » le liste, sans rien de declare ; sa correction le declare en entier et lui donne son numero.
+    let d = route_le(&r, JOUR, "regularisation-mois", json!({"mois": "2026-07"}));
+    let item = d["resultat"]["engagements"].as_array().unwrap().iter().find(|e| e["ajoute"] == json!(true)).unwrap().clone();
+    assert_eq!((item["debut"].as_str(), &item["numero"]), (Some("2026-07-27"), &Value::Null), "{}", item);
+    let charge = json!({"mois": "2026-07", "salarie": item["salarie"], "debut": item["debut"], "engagement": {"lignes": item["engagement_saisi"]["lignes"]}});
+    let a = route_le(&r, JOUR, "regularisation-apercu", charge.clone());
+    assert_eq!((a["resultat"]["avant"]["brut"].as_str(), a["resultat"]["apres"]["brut"].as_str()), (Some("0.00"), Some("432.00")), "{}", a);
+    let mut ecrite = charge;
+    ecrite["motif"] = json!("contrat oublie");
+    let w = route_le(&r, JOUR, "regularisation-ecrire", ecrite);
+    assert_eq!(w["ok"], json!(true), "{}", w);
+    let numero = w["resultat"]["correction"]["engagement"]["numero"].as_str().unwrap().to_string();
+    assert!(numero.starts_with("SE9.26.") && numero != CONTRAT, "{}", numero);
+    let fige = lire(&r, "paies/2026-07.json")["engagements"].as_array().unwrap().iter().any(|e| e["numero"] == json!(numero));
+    assert!(fige, "le numero est pose dans la saisie de juillet");
+
+    // L'etape DSN de juillet n'a plus rien a faire.
+    let b = route_le(&r, JOUR, "bilan-du-mois", json!({"mois": "2026-07"}));
+    assert_eq!(b["resultat"]["dsn"]["remplacement"]["correction_ecrite"], json!(true), "{}", b["resultat"]["dsn"]);
+
+    octobre_pret(&r);
+    let rep = produire_octobre(&r);
+    assert_eq!(rep["ok"], json!(true), "{}", rep);
+    let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
+    // Le bloc 40 du contrat oublie, a sa date de debut passee.
+    let rang = octobre.iter().position(|(k, v)| k == "S21.G00.40.009" && *v == numero).expect("le contrat oublie est declare");
+    let debut = octobre[..rang].iter().rev().find(|(k, _)| k == "S21.G00.40.001").map(|(_, v)| v.as_str());
+    assert_eq!(debut, Some("27072026"));
+    // Son versement : rattache a juillet, sans rien d'annule.
+    let v = versement_du(&octobre, &numero, "27072026");
+    assert_eq!(valeur(&v, "S21.G00.78.002"), "27072026");
+    // Aucune annulation : une seule remuneration de chaque type, et ni remuneration, ni activite, ni base, ni montant net
+    // social negatifs (les cotisations 81.004 negatives sont des reductions, pas des annulations).
+    assert_eq!(v.iter().filter(|(k, x)| k == "S21.G00.51.011" && x == "001").count(), 1, "{:?}", v);
+    let sans_signe = ["S21.G00.51.013", "S21.G00.53.002", "S21.G00.54.002", "S21.G00.58.004", "S21.G00.78.004"];
+    assert!(v.iter().filter(|(k, _)| sans_signe.contains(&k.as_str())).all(|(_, x)| !x.starts_with('-')), "{:?}", v);
+    assert_eq!(valeur(&v, "S21.G00.51.013"), "432.00");
+}
+
+/// UN CONTRAT DECLARE QUI N'A PAS EU LIEU (21/10/2026). Il ne se retire pas de la saisie apres la limite (la norme n'annule
+/// pas un contrat declare : seule une fin de contrat s'annule, S21.G00.62.002 = 099, fiche net-entreprises 1722) ; ses
+/// quantites passent a zero, et sa correction annule ses montants -- un rappel par annulation (cahier technique DSN
+/// 2026.1, §2.1.3.6 : « un premier rappel de -1000€ et un second rappel de 1200€ » ; ici le second est nul).
+/// La correction s'ecrit, et son apercu annule tout le declare. (Que la DSN d'octobre la porte depend de ce qu'octobre
+/// verse par ailleurs aux memes organismes : un versement S21.G00.20.005 ne peut pas etre negatif, et le moteur refuse
+/// alors ; ce n'est pas propre au contrat ajoute ou retire.)
+#[test]
+fn un_contrat_qui_n_a_pas_eu_lieu_se_corrige_a_zero() {
+    let r = copie("contrat-a-zero");
+    let depose = versement(&lignes(&r.join("sorties/2026-07/DSN_Juillet2026.dsn")), JUILLET);
+    let mut saisie = lire(&r, "paies/2026-07.json");
+    let rang = saisie["engagements"].as_array().unwrap().iter().position(|e| e["numero"] == json!(CONTRAT)).unwrap();
+    for l in saisie["engagements"][rang]["lignes"].as_array_mut().unwrap() {
+        l["quantite"] = json!(0);
+    }
+    let w = route_le(&r, JOUR, "enregistrer-saisie", json!({"mois": "2026-07", "saisie": saisie, "modifier_apres_echeance": true}));
+    assert_eq!(w["ok"], json!(true), "{}", w);
+    let d = route_le(&r, JOUR, "regularisation-mois", json!({"mois": "2026-07"}));
+    let item = d["resultat"]["engagements"].as_array().unwrap().iter().find(|e| e["numero"] == json!(CONTRAT)).unwrap().clone();
+    let c = json!({"mois": "2026-07", "salarie": item["salarie"], "debut": item["debut"], "engagement": {"lignes": item["engagement_saisi"]["lignes"]}});
+    let a = route_le(&r, JOUR, "regularisation-apercu", c.clone());
+    assert_eq!(a["resultat"]["apres"]["brut"], json!("0.00"), "{}", a);
+    assert_eq!(centimes(a["resultat"]["delta"]["brut"].as_str().unwrap()), -centimes(valeur(&depose, "S21.G00.51.013")));
+    let mut c = c;
+    c["motif"] = json!("le contrat n'a pas eu lieu");
+    let w = route_le(&r, JOUR, "regularisation-ecrire", c);
+    assert_eq!(w["ok"], json!(true), "{}", w);
+    let b = route_le(&r, JOUR, "bilan-du-mois", json!({"mois": "2026-07"}));
+    assert_eq!(b["resultat"]["dsn"]["remplacement"]["correction_ecrite"], json!(true), "{}", b["resultat"]["dsn"]);
+}

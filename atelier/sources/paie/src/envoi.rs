@@ -83,7 +83,7 @@ pub const MOIS_ACCENTS: [&str; 12] = [
 ];
 
 /// « de » devant un nom de mois, elide devant une voyelle : « de mars », « d'avril », « d'août », « d'octobre ».
-fn de_mois(nom: &str) -> String {
+pub(crate) fn de_mois(nom: &str) -> String {
     if nom.starts_with(['a', 'e', 'é', 'i', 'o', 'u']) {
         format!("d'{}", nom)
     } else {
@@ -287,8 +287,10 @@ fn enumerer(mots: &[&str]) -> String {
 /// LE RENVOI DES DOCUMENTS CORRIGES (ticket #240, 21/10/2026 : « si on change une DSN, les documents ne sont plus
 /// valables », et le courriel doit « dire ce qui a change »). Le salarie dont la paie a change depuis l'envoi de ses
 /// documents recoit ses documents refaits avec ce message-ci, qui dit l'ancien et le nouveau, et que les documents
-/// precedents sont remplaces. Les champs : ceux de `CORPS`, plus `{de_mois}`, `{envoye_le}` et `{changements}`.
-pub const CORPS_RENVOI: &str = "Bonjour {prenom},\n\nTa paie {de_mois} {annee} a été modifiée depuis l'envoi de tes documents le {envoye_le}. Ce qui a changé :\n\n{changements}\n\nTu trouveras ci-joint tes documents refaits :\n\n{liste}\n\nIls remplacent ceux que tu as reçus le {envoye_le} : ne garde que ceux-ci.\n\n{notes}{france_travail}\nBien à toi,\n{signataire}\n{raison_sociale}\n";
+/// precedents sont remplaces. Les champs : ceux de `CORPS`, plus `{de_mois}`, `{envoye_le}`, `{changements}` et
+/// `{declaration}` : vide, ou -- la DSN du mois deposee et son annule-et-remplace passe (21/10/2026) -- la phrase qui dit
+/// avec quelle paie la correction sera declaree (`Renvoi::declaration`).
+pub const CORPS_RENVOI: &str = "Bonjour {prenom},\n\nTa paie {de_mois} {annee} a été modifiée depuis l'envoi de tes documents le {envoye_le}. Ce qui a changé :\n\n{changements}\n\nTu trouveras ci-joint tes documents refaits :\n\n{liste}\n\nIls remplacent ceux que tu as reçus le {envoye_le} : ne garde que ceux-ci.\n\n{declaration}{notes}{france_travail}\nBien à toi,\n{signataire}\n{raison_sociale}\n";
 
 /// Ce qu'un renvoi sait de l'envoi precedent : son jour (« 21/10/2026 ») et ce qui a change depuis
 /// (`ce_qui_a_change`, une ligne par fait).
@@ -296,6 +298,8 @@ pub const CORPS_RENVOI: &str = "Bonjour {prenom},\n\nTa paie {de_mois} {annee} a
 pub struct Renvoi {
     pub envoye_le: String,
     pub changements: Vec<String>,
+    /// La phrase de la declaration de la correction, son paragraphe compris, ou rien (`routes_envois::choisir`).
+    pub declaration: String,
 }
 
 /// Le resume de la paie d'UN salarie pour le mois, tel que ses documents la disent : par contrat, ses bornes, son
@@ -577,6 +581,7 @@ pub fn preparer_avec(
             ("signataire", nom_signataire),
             ("raison_sociale", nom_affichage),
             ("envoye_le", renvoi.map(|r| r.envoye_le.clone()).unwrap_or_default()),
+            ("declaration", renvoi.map(|r| r.declaration.clone()).unwrap_or_default()),
             (
                 "changements",
                 match renvoi {

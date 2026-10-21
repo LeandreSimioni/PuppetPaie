@@ -119,6 +119,23 @@ pub fn ecrire_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
         .map_err(|_| avec("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(mois))))?;
     let ent = crate::oracle::entreprise_du_mois(ctx, mois).map_err(Echec::from)?;
 
+    // UN CONTRAT AJOUTE APRES LA LIMITE DE L'ANNULE-ET-REMPLACE (21/10/2026) n'est pas dans le fichier archive : il n'a
+    // ni numero de bulletin ni page a redecouper. Son bulletin est celui de sa correction, ecrit avec la DSN qui le
+    // declare (`produire_regularisations::ecrire_rectificatifs`).
+    let ajoutes: Vec<(String, String)> = crate::routes_regularisation::ce_qui_a_change(&HashMap::new(), ctx, mois)?
+        .map(|c| c.contrats.into_iter().filter(|x| x.ajoute).map(|x| (x.salarie, x.debut)).collect())
+        .unwrap_or_default();
+    if !ajoutes.is_empty() {
+        paies.retain(|p| {
+            let cle = p.salarie.get("_cle").map(crate::etats::py_str).unwrap_or_default();
+            !ajoutes.contains(&(cle, p.engagement.debut.iso()))
+        });
+        avertissements.push(format!(
+            "{} contrat(s) ajouté(s) après la DSN de {} : leur bulletin part avec la correction, dans la DSN qui les déclare.",
+            ajoutes.len(),
+            engagement::libelle_mois(mois)
+        ));
+    }
     let (_lus, avert) = crate::apercu_dsn::numeroter_et_lire(ctx, &mut paies, &groupe)?;
     avertissements.extend(avert);
 

@@ -629,6 +629,12 @@ function vueApercu(a) {
 let MOIS_AFFICHE = null;        // le mois REELLEMENT charge dans l'ecran
 let MOIS_FERME = null;          // la date limite depassee de ce mois, ou null
 let MOIS_FORCE = null;          // le mois ferme que l'on a rouvert, en connaissance de cause
+/* UN MOIS DONT LA DSN NE SE REMPLACE PLUS (Léandre, 21/10/2026) : sa paie se modifie, mais la première modification
+ * demande confirmation, une fois par séance d'édition du mois. Le moteur refuse l'enregistrement sans elle
+ * (`ModificationApresEcheance`) et dit ce qu'il faut savoir (`dsn_deposee` de la route `saisie`). */
+let DSN_DEPOSEE = null;         // ce que le moteur dit du mois déclaré (`dsn_deposee`), ou null
+let MOIS_CONFIRME = null;       // le mois dont on a confirmé la modification, pour cette séance d'édition
+let CONFIRMATION_OUVERTE = null; // le mois dont la boîte de confirmation est ouverte
 
 /** Le fichier en blocs : ce qui a été saisi d'un coup pour plusieurs
  *  salariés (saisieCourante) revient d'un coup — même spectacle, mêmes
@@ -750,9 +756,11 @@ async function chargerMois(mois, repeint = false) {
   // Un mois dont la DSN etait due (le 15 du mois suivant) ne se touche
   // plus : lecture seule, pas d'ajout, pas d'enregistrement automatique.
   MOIS_FERME = r.hors_delai || null;
+  DSN_DEPOSEE = r.dsn_deposee || null;
   // Rouvrir ne vaut que pour LE mois rouvert : on change de mois, on
-  // retrouve la lecture seule.
+  // retrouve la lecture seule. Une confirmation de même : on la redonne en revenant.
   if (MOIS_FORCE !== mois) MOIS_FORCE = null;
+  if (MOIS_CONFIRME !== mois) MOIS_CONFIRME = null;
   // Les blocs se montrent quand leurs états sont posés -- ou, quoi qu'il
   // arrive, au bout de quelques secondes : une lecture qui traîne ne doit
   // pas cacher la saisie.
@@ -824,6 +832,7 @@ async function repeindreLeMois(mois, ancien, frais) {
     if (!SAISIE_DATE_PAIEMENT) SAISIE_DATE_PAIEMENT = defauts.date_paiement || "";
     afficherRappelsMois();
     MOIS_FERME = r.hors_delai || null;
+    DSN_DEPOSEE = r.dsn_deposee || null;
     IMPORTE = r.importe || null;
     majFermeture(mois, r.existe);
     dessinerMoisImporte();
@@ -842,6 +851,7 @@ async function repeindreLeMois(mois, ancien, frais) {
  *  contredit. `MOIS_FERME` est la date limite dépassée ; `MOIS_FORCE` dit
  *  qu'on a répondu à l'avertissement pour ce mois-là. */
 function majFermeture(mois, existe) {
+  majAvisDsn(mois);
   // UN MOIS TENU AVANT PUPPETPAIE (ticket #215) : il se lit, rien ne s'y ajoute et rien ne le rouvre — sa DSN est
   // faite ailleurs, ou le moteur dit qu'il n'en a pas trace ; ce n'est pas « en retard » (règle 4 : rien ne la refait).
   if (IMPORTE) {
@@ -884,6 +894,50 @@ function majFermeture(mois, existe) {
       : existe
         ? "Saisie chargée. L'enregistrement est automatique."
         : "Nouveau mois — l'enregistrement est automatique dès la première saisie.");
+}
+
+/** Ce que le moteur dit d'un mois dont la DSN est déposée, au-dessus des engagements : l'annule-et-remplace que la
+ *  modification fera partir, ou que la modification se confirme et se corrige dans la DSN suivante. */
+function majAvisDsn(mois) {
+  const avis = document.getElementById("avis-dsn");
+  const d = !IMPORTE && MOIS_AFFICHE === mois ? DSN_DEPOSEE : null;
+  avis.hidden = !d;
+  if (!d) return;
+  avis.className = "encart " + (d.confirmer ? "attention" : "info");
+  avis.textContent = d.phrase;
+}
+
+/** LA BOÎTE QUI DEMANDE CONFIRMATION (21/10/2026) : le texte est celui du refus du moteur. « Modifier quand même »
+ *  renvoie la même saisie avec la confirmation (`renvoyer`), et la séance d'édition du mois n'en redemande plus ;
+ *  « Annuler » remet la saisie telle qu'elle est enregistrée. */
+function confirmerModification(mois, texte, renvoyer) {
+  if (CONFIRMATION_OUVERTE === mois) return;
+  CONFIRMATION_OUVERTE = mois;
+  clearTimeout(MINUTEUR_SAISIE);
+  // Une boîte déjà ouverte (l'accueil du jour…) se met de côté, et revient après la réponse.
+  const remettre = mettreDeCote();
+  let confirme = false;
+  const annuler = async () => {
+    CONFIRMATION_OUVERTE = null;
+    if (remettre) remettre();
+    if (confirme) return;
+    noteSaisie("Modification annulée : la paie reste telle qu'elle est enregistrée.");
+    if (MOIS_AFFICHE === mois) await chargerMois(mois, true);
+  };
+  ouvrirBoite(`
+    <h3>Modifier la paie ${echapper(deMois(mois))} ?</h3>
+    <div class="encart grave"><b>Cette paie est déjà déclarée</b>${echapper(texte)}</div>
+    <div class="actions">
+      <button class="secondaire" id="mc-annuler">Annuler</button>
+      <button class="primaire" id="mc-modifier">Modifier quand même</button>
+    </div>`, annuler);
+  document.getElementById("mc-annuler").onclick = () => fermerBoite();
+  document.getElementById("mc-modifier").onclick = async () => {
+    confirme = true;
+    MOIS_CONFIRME = mois;
+    fermerBoite();
+    await renvoyer();
+  };
 }
 
 /* UN MOIS IMPORTÉ EST UN MOIS COMME LES AUTRES (ticket #215, Léandre,
@@ -1028,17 +1082,28 @@ function saisieAEcrire() {
   if (MOIS_FERME && MOIS_FORCE !== s.mois) return null;
   const empreinte = JSON.stringify(s);
   if (empreinte === DERNIERE_ECRITE) return null;
-  return { s, forcer: MOIS_FORCE === s.mois };
+  return { s, forcer: MOIS_FORCE === s.mois, confirme: MOIS_CONFIRME === s.mois };
 }
 
 /** La saisie d'un mois qu'on vient de quitter : écrite sans repeindre (l'écran montre déjà un autre mois), puis le mois
  *  affiché vérifié. Un échec se dit : c'est du travail qu'on croit posé. */
-async function enregistrerEnPartant({ s, forcer }, chargement) {
+async function enregistrerEnPartant({ s, forcer, confirme }, chargement) {
+  const ecrire = (oui) => appelerMoteur("enregistrer-saisie",
+    { mois: s.mois, saisie: s, forcer, modifier_apres_echeance: oui });
   try {
-    await appelerMoteur("enregistrer-saisie", { mois: s.mois, saisie: s, forcer });
+    await ecrire(confirme);
     oublierCouts();
     appelerMoteur("etat").then((e) => { ETAT.historique = e.historique; }, () => {});
   } catch (e) {
+    // Le mois quitté était déclaré et sa DSN ne se remplace plus : on le demande ici aussi ; « Annuler » le laisse
+    // tel qu'il est enregistré.
+    if (e.detail?.type === "ModificationApresEcheance") {
+      confirmerModification(s.mois, e.message, async () => {
+        try { await ecrire(true); dire(`${moisEnClair(s.mois)} : modification enregistrée.`); }
+        catch (e2) { dire(`${moisEnClair(s.mois)} : PAS enregistré — ${e2.message}`, "erreur"); }
+      });
+      return;
+    }
     if (e.detail?.type !== "SaisieIncomplete") dire(`${moisEnClair(s.mois)} : PAS enregistré — ${e.message}`, "erreur");
     return;
   }
@@ -1192,12 +1257,16 @@ async function enregistrerSaisie(silencieux) {
   // Un mois ferme ne s'ecrit plus -- sauf celui qu'on a rouvert en repondant
   // a l'avertissement, et le moteur exige alors qu'on le redise (`forcer`).
   if (MOIS_FERME && MOIS_FORCE !== s.mois) return false;
+  // La boîte de confirmation est ouverte : on attend sa réponse, on ne la redemande pas à chaque frappe.
+  if (CONFIRMATION_OUVERTE === s.mois) return false;
   const empreinte = JSON.stringify(s);
   if (empreinte === DERNIERE_ECRITE) return false;
   try {
-    await api("enregistrer-saisie", { mois: s.mois, saisie: s,
-                                      forcer: MOIS_FORCE === s.mois });
+    const r = await api("enregistrer-saisie", { mois: s.mois, saisie: s,
+                                      forcer: MOIS_FORCE === s.mois,
+                                      modifier_apres_echeance: MOIS_CONFIRME === s.mois });
     DERNIERE_ECRITE = empreinte;
+    if (r && "dsn_deposee" in r && MOIS_AFFICHE === s.mois) { DSN_DEPOSEE = r.dsn_deposee; majAvisDsn(s.mois); }
     oublierCouts();
     const h = new Date().toTimeString().slice(0, 5);
     noteSaisie("Enregistré à " + h + ".");
@@ -1217,6 +1286,19 @@ async function enregistrerSaisie(silencieux) {
     // Une paie dont on n'a pas encore choisi les jours n'est pas une faute :
     // c'est la saisie en cours. On le dit en une ligne, sans la règle du
     // fichier (« lignes: [] ») ni d'alerte (30/09/2026).
+    // Ce que la norme ne permet pas de déclarer après la limite (un contrat déclaré retiré, ses dates changées) : le
+    // moteur dit pourquoi et quoi faire, et la saisie revient telle qu'elle est enregistrée.
+    if (e.detail?.type === "ModificationNonDeclarable") {
+      dire(e.message, "erreur");
+      if (MOIS_AFFICHE === s.mois) await chargerMois(s.mois, true);
+      noteSaisie("PAS enregistré — " + e.message);
+      return false;
+    }
+    if (e.detail?.type === "ModificationApresEcheance") {
+      noteSaisie("Pas encore enregistré : la modification est à confirmer.");
+      confirmerModification(s.mois, e.message, () => enregistrerSaisie(silencieux));
+      return false;
+    }
     if (e.detail?.type === "SaisieIncomplete") {
       noteSaisie(/spectacle/.test(e.message)
         ? "Pas encore enregistré : choisir le spectacle."

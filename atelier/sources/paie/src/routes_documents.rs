@@ -724,8 +724,12 @@ fn documents_prets(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Map<String, 
         }
     }
     // LES DOCUMENTS DISENT CE QUE LA DSN DECLARE (ticket #240) : une paie modifiee depuis la DSN deposee attend sa DSN
-    // refaite (et ses documents avec elle) ; envoyer avant, ce serait envoyer des documents que la DSN ne dit pas.
-    if vrai(&e) && !e.get("refusee").is_some_and(vrai) && vrai(&m.etat_remplacement(mois, &Value::Null)?["saisie_modifiee"]) {
+    // refaite (et ses documents avec elle) ; envoyer avant, ce serait envoyer des documents que la DSN ne dit pas. TANT
+    // QUE L'ANNULE-ET-REMPLACE EST ADMIS seulement (Leandre, 21/10/2026) : apres sa limite, la DSN deposee ne se refait
+    // plus, la paie modifiee se declare dans la DSN suivante (« Corriger ce mois »), et les documents refaits repartent,
+    // le courriel le disant (`routes_envois::choisir`).
+    let remplacement = if vrai(&e) && !e.get("refusee").is_some_and(vrai) { m.etat_remplacement(mois, &Value::Null)? } else { Value::Null };
+    if vrai(&remplacement["saisie_modifiee"]) && vrai(&remplacement["admis"]) {
         empechements.push(format!(
             "La paie a changé depuis la DSN déposée le {} : refaire le mois et sa DSN (annule-et-remplace) d'abord — les documents partent avec la paie que la DSN déclare.",
             etats::quand_lisible(e.get("quand").unwrap_or(nul()))

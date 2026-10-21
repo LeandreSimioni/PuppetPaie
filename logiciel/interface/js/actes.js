@@ -217,7 +217,8 @@ async function dessinerActions(mois) {
     // L'ANNULE-ET-REMPLACE (30/09/2026). Une DSN réelle est partie : tant que
     // la norme l'admet (veille de l'échéance, minuit), la refaire reste à
     // portée de main — et c'est LE geste quand la paie a changé depuis. Après,
-    // la correction passe par la DSN suivante (« Corriger ce mois »).
+    // la correction passe par la DSN suivante (« Corriger ce mois ») ; une
+    // fois écrite (`correction_ecrite`), il n'y a plus rien à faire ici.
     const r = a.cle === "dsn" && bilan && bilan.remplacement;
     if (r && r.deposee) {
       const refaire = () => boiteProduire(mois, async () => {
@@ -230,7 +231,7 @@ async function dessinerActions(mois) {
         // Un annule-et-remplace est déjà écrit : son chemin passe devant.
       } else if (r.a_envoyer) {
         a.bouton = libelle; a.ouvrir = refaire;
-      } else if (r.saisie_modifiee && !r.admis) {
+      } else if (r.saisie_modifiee && !r.admis && !r.correction_ecrite) {
         a.bouton = "Corriger ce mois…"; a.ouvrir = () => boiteCorriger(mois);
       } else if (r.admis) {
         a.second = { bouton: libelle, ouvrir: refaire };

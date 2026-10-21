@@ -370,6 +370,13 @@ tr.total td { font-weight: bold; border-top: 2px solid var(--texte); border-bott
 /* CE QUI RENSEIGNE SANS RIEN DEMANDER (24/09/2026, engagement.rs, Avis) : un
    contrat qui se poursuit le mois suivant n'est pas une alerte. En gris. */
 .encart.info { color: var(--discret); }
+/* UN AVERTISSEMENT QUI DEMANDE UNE RÉPONSE (21/10/2026 : modifier la paie d'un mois dont la DSN ne se remplace plus) :
+   il se voit, il ne se lit pas en passant. */
+.encart.grave {
+  border-left: 6px solid var(--alerte); background: var(--alerte-fond); color: var(--texte);
+  font-size: 15px; line-height: 1.5; padding: 14px 16px;
+}
+.encart.grave b { display: block; font-size: 17px; margin-bottom: 6px; color: var(--alerte); }
 /* LE SAVIEZ-VOUS ? (ticket 224) : un conseil renseigne, il ne demande rien. En gris, son titre en tete, la
    reference de son texte a la fin. */
 .encart.conseil { color: var(--discret); }

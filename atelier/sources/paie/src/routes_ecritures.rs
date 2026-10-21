@@ -741,21 +741,45 @@ pub(crate) fn identifiants(ctx: &Contexte, data: &Value) -> Result<Vec<Ident>, S
 fn enregistrer_saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
     let forcer = charge.get("forcer").is_some_and(vrai);
+    let confirme = charge.get(crate::routes_regularisation::CONFIRMATION).is_some_and(vrai);
     let Value::Object(brute) = exiger(charge, "saisie")? else {
         return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
     };
-    let p = ecrire_saisie(o, ctx, mois, brute, forcer, true)?;
-    Ok(json!({"chemin": p.display().to_string()}))
+    let p = ecrire_saisie_confirmee(o, ctx, mois, brute, forcer, confirme, true)?;
+    // Ce que la page dit du mois deja declare, a jour apres l'ecriture (`routes_regularisation::modification_de_la_paie`).
+    let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
+    let dsn = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
+    Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn}))
 }
 
 /// `operations_paies.enregistrer_saisie` : verifie la saisie en la calculant, puis l'ecrit. `fusionner` a faux
-/// pour qui ecrit le fichier ENTIER en connaissance de cause (`valider_paie`).
+/// pour qui ecrit le fichier ENTIER en connaissance de cause (`valider_paie`). Sans confirmation : voir
+/// `ecrire_saisie_confirmee`.
 pub(crate) fn ecrire_saisie(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, forcer: bool, fusionner_ancien: bool) -> R<PathBuf> {
+    ecrire_saisie_confirmee(o, ctx, mois, brute, forcer, false, fusionner_ancien)
+}
+
+/// LA PAIE D'UN MOIS DONT LA DSN EST DEPOSEE ET L'ANNULE-ET-REMPLACE PASSE (Leandre, 21/10/2026 : « modifier la paie
+/// d'un mois dont la DSN est deposee et dont la limite de l'annule-et-remplace est passee demande une confirmation
+/// explicite, avec un gros avertissement »). Une ecriture qui en change la paie (`routes_mois::empreinte_de` : ni la
+/// validation ni la reouverture) se refuse sans `confirme` (`routes_regularisation::CONFIRMATION` dans la charge), sous
+/// `CLASSE_A_CONFIRMER`, avec l'avertissement que la page montre ; rien n'est ecrit. Avec, elle s'ecrit -- la limite de
+/// depot (`refuser_si_hors_delai`) ne la retient pas : le mois n'est pas en retard, il est declare -- et la saisie telle
+/// que declaree est gardee d'abord (`garder_la_saisie_declaree`) : « Corriger ce mois » en part.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn ecrire_saisie_confirmee(
+    o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, forcer: bool, confirme: bool, fusionner_ancien: bool,
+) -> R<PathBuf> {
     let mut donnees = brute.clone();
     donnees.insert("mois".into(), Value::String(mois.to_string()));
     refuser_si_importe(ctx, mois)?;
     refuser_si_clos(ctx, mois)?;
-    refuser_si_hors_delai(ctx, mois, forcer)?;
+    let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
+    let declaree = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
+    let a_confirmer = declaree.get("confirmer").is_some_and(vrai);
+    if !a_confirmer {
+        refuser_si_hors_delai(ctx, mois, forcer)?;
+    }
     let calculee = Value::Object(donnees.clone());
     // Le calcul valide la saisie : un nom de salarie ou un spectacle inconnu refuse, et rien n'est ecrit.
     let (rep, entrees) = crate::calcul_du_mois::calculer_suivi(o, &json!({"saisie": calculee}))
@@ -778,10 +802,34 @@ pub(crate) fn ecrire_saisie(o: &HashMap<String, String>, ctx: &Contexte, mois: &
             fusionner(&mut donnees, &ancien, &anciens, &nouveaux);
         }
     }
+    let donnees = Value::Object(donnees);
+    if a_confirmer {
+        // Ce qui change LA PAIE, pas sa validation ni sa reouverture (`sans_bruit`) ; un mois sans fichier n'a rien de
+        // declare a changer.
+        let avant = lire_saisie(&p).ok().map(|v| crate::routes_mois::empreinte_de(&v));
+        let change = avant.is_some_and(|a| a != crate::routes_mois::empreinte_de(&donnees));
+        // Ce que la norme ne permet pas de declarer apres la limite (un contrat declare retire, ses dates changees) se
+        // refuse, confirme ou non : accepte, il ne serait jamais declare (`routes_regularisation::refus_non_declarable`).
+        if change {
+            let copie = crate::routes_regularisation::chemin_saisie_declaree(ctx, mois);
+            let base = lire_saisie(if copie.exists() { &copie } else { &p }).ok();
+            if let Some(base) = base {
+                if let Some(texte) = crate::routes_regularisation::refus_non_declarable(ctx, mois, &base, &donnees)? {
+                    return Err(erreur(crate::routes_regularisation::CLASSE_NON_DECLARABLE, texte));
+                }
+            }
+        }
+        if change && !confirme {
+            let texte = declaree.get("avertissement").map(py_str).unwrap_or_default();
+            return Err(erreur(crate::routes_regularisation::CLASSE_A_CONFIRMER, texte));
+        }
+        if change {
+            crate::routes_regularisation::garder_la_saisie_declaree(&mut m, ctx, mois)?;
+        }
+    }
     if p.exists() {
         sauver_avant(&p)?;
     }
-    let donnees = Value::Object(donnees);
     ecrire(&p, donnees.clone())?;
     // Le calcul qui vient de valider la saisie est celui du fichier quand la fusion n'y a rien change.
     if eq_py(&donnees, &calculee) {
