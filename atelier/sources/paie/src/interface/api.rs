@@ -99,13 +99,20 @@ pub fn depuis_reponse(rep: Value) -> Result<Value, Refus> {
 
 /// Ouvre un fichier ou un dossier dans le programme du poste (l'explorateur, le lecteur PDF).
 pub fn ouvrir(chemin: &Path) -> Result<(), String> {
+    // Une piece de l'Historique arrive en `retours/...` (barres droites) jointe a la racine : Windows lit le fichier,
+    // mais l'explorateur ne reconnait pas le chemin et ouvre « Documents » a la place (Leandre, 21/10/2026).
     #[cfg(windows)]
-    let r = Command::new("explorer").arg(chemin).spawn();
+    let r = Command::new("explorer").arg(separateurs_windows(&chemin.to_string_lossy())).spawn();
     #[cfg(target_os = "macos")]
     let r = Command::new("open").arg(chemin).spawn();
     #[cfg(all(unix, not(target_os = "macos")))]
     let r = Command::new("xdg-open").arg(chemin).stdout(Stdio::null()).stderr(Stdio::null()).spawn();
     r.map(|_| ()).map_err(|e| format!("Impossible d'ouvrir {} : {}.", chemin.display(), e))
+}
+
+/// Un chemin tel que l'explorateur de Windows le comprend : rien que des barres inverses.
+pub fn separateurs_windows(chemin: &str) -> String {
+    chemin.replace('/', "\\")
 }
 
 /// Ouvre une adresse dans le navigateur du poste.
@@ -415,5 +422,14 @@ mod tests {
         assert_eq!(ps("Le dossier de l'export"), "Le dossier de l''export");
         assert_eq!(ps("l\u{2019}export"), "l\u{2019}\u{2019}export");
         assert_eq!(ps("$a `b"), "$a `b");
+    }
+
+    /// « Ouvrir la piece telle quelle » ouvrait « Documents » : l'explorateur recevait `...\prive\retours/x.xml`.
+    #[test]
+    fn l_explorateur_recoit_un_chemin_windows() {
+        assert_eq!(
+            super::separateurs_windows(r"C:\PuppetPaie\prive\retours/20261019-191514_nature45_FLUX.xml"),
+            r"C:\PuppetPaie\prive\retours\20261019-191514_nature45_FLUX.xml"
+        );
     }
 }
