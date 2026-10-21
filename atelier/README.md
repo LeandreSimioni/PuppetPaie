@@ -733,6 +733,26 @@ d'un intermittent datés pendant l'arrêt sont nommés, jamais retirés d'office
 le dépose — même point de dépôt, même mot de passe du logiciel, même journal
 qu'une DSN mensuelle. Comme pour une DSN : **le dépôt de test d'abord**.
 
+**L'arrêt prolongé, la reprise plus tôt que prévu** :
+
+```bash
+paie arret prolonger Celi --dernier-jour 2026-10-07 --fin 2026-11-05
+paie arret prolonger Celi --dernier-jour 2026-10-07 --subrogation-fin 2027-01-07
+paie arret reprise Celi --dernier-jour 2026-10-07 --le 2026-10-15
+```
+
+Une prolongation **ne fait partir aucun signalement** : elle change la fin
+prévisionnelle, que la DSN mensuelle de chaque mois traversé porte
+(`S21.G00.60.003` ; fiche net-entreprises 1983). Si l'arrêt est subrogé et finit
+désormais après sa subrogation, le moteur le dit et demande la fin de subrogation
+(il ne connaît pas le maximum de la convention) ; repoussée après le dépôt du
+signalement d'arrêt, elle fait naître un **signalement d'arrêt rectificatif**
+(annule et remplace, `paie arret signaler ... --remplace <identifiant>`). Une
+reprise **avant** la fin prévue fait naître le signalement de reprise (05) ; à
+la date prévue, rien à saisir : la DSN du mois la porte. Dans la fenêtre,
+« Prolonger l'arrêt » et « Le salarié a repris plus tôt » ne paraissent que sur un
+arrêt en cours.
+
 Ce que le moteur refuse plutôt que de le deviner :
 
 - un arrêt qui ne suspend **aucun contrat** saisi ce jour-là. Un signalement
