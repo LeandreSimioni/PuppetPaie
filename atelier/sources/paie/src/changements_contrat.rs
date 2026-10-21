@@ -495,16 +495,19 @@ pub fn poser(lignes: &mut Vec<String>, debut: usize, ctx: &Contexte, p: &Paie, m
 /// - un identifiant seul dans son bloc, sans profondeur de recalcul (CCH-16, principe d, p. 23 ; fiche 1952 : 41.021
 ///   « Il n'est pas possible de la declarer avec la rubrique " Profondeur de recalcul de la paie - S21.G00.41.028 " »).
 ///
+/// `r` : la correction du dernier mois qui a declare le contrat (pour un contrat sur plusieurs mois, celle du dernier) ;
+/// `nouveau` : la date de debut du bloc 40 ecrit.
+///
 /// Rien a poser quand la date n'a pas change, ou pour un contrat jamais declare (un contrat ajoute). Refus quand la
 /// date declaree ne se lit pas, ou que le jour de la correction n'est pas connu : le bloc ne se devine pas (regle 1).
-pub fn ancienne_date_de_debut(lignes: &mut Vec<String>, debut: usize, r: &crate::dsn::Regularisation, fin_mois: Jour) -> Resultat<()> {
+pub fn ancienne_date_de_debut(lignes: &mut Vec<String>, debut: usize, r: &crate::dsn::Regularisation, nouveau: &Jour, fin_mois: Jour) -> Resultat<()> {
     let e = &r.apres.engagement;
     let numero = e.numero.clone().unwrap_or_default();
     if r.declare.lignes.is_empty() && r.declare.fichier.is_empty() {
         return Ok(());
     }
     let Some(ancienne) = r.declare.debut_contrat.as_deref() else {
-        if e.debut == r.avant.engagement.debut {
+        if *nouveau == r.avant.engagement.debut {
             return Ok(());
         }
         return Err(format!(
@@ -514,11 +517,11 @@ date declaree : elle se lit, elle ne se devine pas. Rien n'est ecrit.",
             r.mois,
             numero,
             r.avant.engagement.debut.jj_mm_aaaa(),
-            e.debut.jj_mm_aaaa(),
+            nouveau.jj_mm_aaaa(),
             r.declare.fichier
         ));
     };
-    if ancienne == e.debut.jjmmaaaa() {
+    if ancienne == nouveau.jjmmaaaa() {
         return Ok(());
     }
     let Some(decidee) = r.decidee_le else {
@@ -529,7 +532,7 @@ n'est ecrit.",
             r.mois,
             numero,
             ddmmaaaa(ancienne).map_or_else(|| ancienne.to_string(), |j| j.jj_mm_aaaa()),
-            e.debut.jj_mm_aaaa()
+            nouveau.jj_mm_aaaa()
         ));
     };
     let date = decidee.min(fin_mois);

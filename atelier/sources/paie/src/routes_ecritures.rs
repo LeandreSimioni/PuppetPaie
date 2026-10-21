@@ -827,6 +827,37 @@ pub(crate) fn ecrire_saisie_confirmee(
             crate::routes_regularisation::garder_la_saisie_declaree(&mut m, ctx, mois)?;
         }
     }
+    // LES DATES D'UN CONTRAT SUR PLUSIEURS MOIS (21/10/2026) : ses autres mois recoivent les memes dates
+    // (`routes_regularisation::propager_les_bornes`). Chacun se verifie comme cette saisie -- calcul, mois declare a
+    // confirmer -- avant que rien ne s'ecrive.
+    let ancienne = if p.exists() { lire_saisie(&p).ok() } else { None };
+    let autres = match &ancienne {
+        Some(a) => crate::routes_regularisation::propager_les_bornes(ctx, mois, a, &donnees)?,
+        None => Vec::new(),
+    };
+    let mut a_garder = Vec::new();
+    for (autre, saisie) in &autres {
+        refuser_si_importe(ctx, autre)?;
+        refuser_si_clos(ctx, autre)?;
+        let d = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, autre)?;
+        if d.get("confirmer").is_some_and(vrai) {
+            if !confirme {
+                let texte = d.get("avertissement").map(py_str).unwrap_or_default();
+                return Err(erreur(crate::routes_regularisation::CLASSE_A_CONFIRMER, texte));
+            }
+            a_garder.push(autre.clone());
+        }
+        crate::calcul_du_mois::calculer_suivi(o, &json!({"saisie": saisie}))
+            .map_err(|msg| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, saisie, msg)))?;
+    }
+    for autre in &a_garder {
+        crate::routes_regularisation::garder_la_saisie_declaree(&mut m, ctx, autre)?;
+    }
+    for (autre, saisie) in autres {
+        let chemin = ctx.racine.join("paies").join(format!("{}.json", autre));
+        sauver_avant(&chemin)?;
+        ecrire(&chemin, saisie)?;
+    }
     if p.exists() {
         sauver_avant(&p)?;
     }

@@ -243,6 +243,12 @@ fn versements_du_contrat(chemin: &Path, mois: &str, nir: &str, numero: &str) -> 
     Ok((fichier, siens, affiliations, debut_du_contrat))
 }
 
+/// La date de debut (S21.G00.40.001, JJMMAAAA) que la DSN `chemin` declare pour le contrat `numero` du salarie `nir` ;
+/// `None` si elle ne le porte pas.
+pub fn debut_du_contrat(chemin: &Path, nir: &str, numero: &str) -> Result<Option<String>, String> {
+    Ok(versements_du_contrat(chemin, "0000-00", nir, numero)?.3)
+}
+
 /// Le prelevement a la source qu'une DSN deposee a declare pour le versement d'un contrat (bloc S21.G00.50).
 #[derive(Clone, Debug, PartialEq)]
 pub struct PasDeclare {

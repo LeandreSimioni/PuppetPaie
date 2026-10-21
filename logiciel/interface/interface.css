@@ -1264,6 +1264,9 @@ table.compta td.r { text-align: right; font-variant-numeric: tabular-nums; }
 /* Les lignes de paie d'une correction, dans la boite : la meme grille que
    dans la saisie, mais sur la largeur de la boite. */
 #cor-lignes { margin: 10px 0; }
+/* La grille d'une ligne (jours, quantite, rubrique, taux, lieu) ne tient pas dans les 560 px d'une boite : le taux et
+   le lieu s'y ecrasaient (21/10/2026). La boite d'une correction prend la largeur de la saisie. */
+.boite:has(#cor-lignes) { width: 880px; }
 #cor-apercu { margin-top: 12px; }
 
 /* Ce qui ne se montre qu'a qui en a besoin : les bornes d'un contrat paye au

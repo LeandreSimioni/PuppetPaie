@@ -223,6 +223,28 @@ fn versement_declare_de(ctx: &Contexte, c: &Map<String, Value>, mois: &str, mois
             .ok_or_else(|| refus(format!("aucune DSN reelle acceptee pour {} au journal", porteur), &faire))?;
         etat = versement_declare::apres_correction(&etat, &chemin, mois, nir, &numero).map_err(|e| refus(e, &faire))?;
     }
+    // LA DERNIERE DATE DE DEBUT DECLAREE D'UN CONTRAT SUR PLUSIEURS MOIS (21/10/2026) : la correction d'un AUTRE de ses
+    // mois, deja portee par une DSN anterieure, a pu la changer (bloc 41, fiche net-entreprises 1952). Elle se lit dans la
+    // derniere DSN qui a porte une correction du contrat ; le changement ne se redeclare pas.
+    let mut porteurs: Vec<String> = Vec::new();
+    for autre in crate::routes_ecrites::toutes_les_corrections(ctx)? {
+        let Some(porteur) = autre.get("portee_par").filter(|p| vrai(p)).map(|p| py_str(p.get("mois").unwrap_or(&Value::Null))) else { continue };
+        let meme = autre.get("salarie").map(py_str) == meme("salarie")
+            && autre.get("engagement").and_then(|e| e.get("numero")).map(py_str).as_deref() == Some(numero.as_str());
+        if meme && !autre.get("annulee_le").is_some_and(vrai) && porteur.as_str() < mois_courant {
+            porteurs.push(porteur);
+        }
+    }
+    porteurs.sort();
+    if let Some(porteur) = porteurs.last() {
+        let faire = format!("Remettre dans sorties/{}/ la DSN acceptee de ce mois (celle que nomme journal/depots.json).", porteur);
+        let chemin = crate::casc::dsn_deposee(ctx, porteur, Some(&nic))
+            .map_err(|e| refus(e.trim_end_matches('.').to_string(), &faire))?
+            .ok_or_else(|| refus(format!("aucune DSN reelle acceptee pour {} au journal", porteur), &faire))?;
+        if let Some(d) = versement_declare::debut_du_contrat(&chemin, nir, &numero).map_err(|e| refus(e, &faire))? {
+            etat.debut_contrat = Some(d);
+        }
+    }
     Ok((etat, derniere))
 }
 

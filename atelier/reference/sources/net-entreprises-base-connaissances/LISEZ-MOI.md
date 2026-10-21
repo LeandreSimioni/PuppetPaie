@@ -356,10 +356,13 @@ de début se corrige dans la DSN suivante, la nouvelle en S21.G00.40.001, l'anci
 le dernier jour du mois principal déclaré ; 41.021 jamais avec la profondeur de recalcul 41.028. **Où le moteur s'en sert**
 (21/10/2026) : `changements_contrat::ancienne_date_de_debut`, appelé par `dsn::generer` pour une régularisation
 (« Corriger ce mois ») ; l'ancienne date se lit dans la DSN déposée (`versement_declare`, `debut_contrat`) ; la saisie et
-l'aperçu : `routes_regularisation` (`dates_indeclarables`, `apercu_correction`), `jumeaux::apparier_meme_numero`. Inférence :
-le contrat doit tenir dans son mois, avant comme après (sinon il est aussi déclaré, ou à déclarer, dans un autre mois, que la
-correction ne reprend pas) ; refus sinon. Tests : `tests/dsn/regularisation_declaree.rs`
-(`une_date_de_debut_avancee_apres_la_limite_se_declare_par_le_bloc_41` et suivant), `tests/routes/modifier_apres_echeance.rs`.
+l'aperçu : `routes_regularisation` (`apercu_correction`, `phrase_des_dates`, `propager_les_bornes`),
+`jumeaux::apparier_meme_numero`. Un contrat sur plusieurs mois : ses dates suivent dans chaque mois saisi (la date de début
+« est un des identifiants du contrat », fiche 3344), chaque mois se corrige pour lui-même, et la DSN suivante porte un seul
+bloc 40 et un seul bloc 41 (le dernier mois déclaré fait foi, `produire_regularisations::versement_declare_de`), un versement
+par mois civil (cahier technique §2.2.2.5). Seul refus : des dates qui sortiraient le contrat d'un mois où il est saisi avec
+ses jours. Tests : `tests/dsn/regularisation_declaree.rs` (`une_date_de_debut_avancee_apres_la_limite_se_declare_par_le_bloc_41`,
+`un_contrat_sur_deux_mois_dont_le_debut_est_avance_se_corrige_mois_par_mois` et suivants), `tests/routes/modifier_apres_echeance.rs`.
 
 ### Fiche 1903 — les retours de France Travail pour un CDDU-D
 

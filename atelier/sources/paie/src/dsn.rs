@@ -4609,22 +4609,44 @@ contactez votre Urssaf pour le reste, ou portez la correction sur un mois au bor
         let mut ajoutes: Vec<&Regularisation> = Vec::new();
         for r in &corrections {
             let deja = lot.iter().position(|p| p.engagement.numero == r.apres.engagement.numero).map(|i| i as i64 + 1);
-            let rang = match deja {
-                Some(rg) => rg,
-                None => {
+            // UN CONTRAT SUR PLUSIEURS MOIS corrige pour plusieurs mois (21/10/2026) : un seul bloc 40 sous l'individu,
+            // pose par la premiere de ses corrections ; chaque mois garde son versement, rattache a ce mois (cahier
+            // technique DSN 2026.1, §2.2.2.5 : « valorisees mois civil par mois civil »).
+            let meme_contrat = ajoutes.iter().position(|a| a.apres.engagement.numero == r.apres.engagement.numero);
+            let rang = match (deja, meme_contrat) {
+                (Some(rg), _) => rg,
+                (None, Some(k)) => (lot.len() + k + 1) as i64,
+                (None, None) => {
                     let rg = (lot.len() + ajoutes.len() + 1) as i64;
                     ajoutes.push(r);
-                    let b = bar_de(&r.mois)?;
-                    let autres: Vec<&Paie> = regs.iter().filter(|x| x.mois == r.mois).map(|x| &x.apres).chain(des_mois_regularises[&r.mois].iter()).collect();
+                    // Le bloc 40 est celui du contrat tel qu'il est corrige, lu dans la correction de son dernier mois :
+                    // c'est elle qui sait s'il finit (bloc 62).
+                    let groupe: Vec<&Regularisation> =
+                        corrections.iter().copied().filter(|x| x.apres.engagement.numero == r.apres.engagement.numero).collect();
+                    let dernier = groupe.iter().copied().fold(*r, |a, x| if x.mois > a.mois { x } else { a });
+                    let b = bar_de(&dernier.mois)?;
+                    let autres: Vec<&Paie> =
+                        regs.iter().filter(|x| x.mois == dernier.mois).map(|x| &x.apres).chain(des_mois_regularises[&dernier.mois].iter()).collect();
                     // UNE FIN CORRIGEE (21/10/2026) : « une correction de fin de contrat s'opere par l'emission d'un bloc
                     // " Fin du contrat - S21.G00.62 " dans la DSN mensuelle suivante portant les informations correctes
                     // qui ecraseront celles precedemment declarees » (fiche net-entreprises 1722,
-                    // `atelier/reference/sources/net-entreprises-base-connaissances/`).
-                    let fin_corrigee = r.apres.engagement.fin != r.avant.engagement.fin && !r.declare.lignes.is_empty();
+                    // `atelier/reference/sources/net-entreprises-base-connaissances/`). UN CONTRAT AJOUTE apres la limite
+                    // se declare en entier : sa fin aussi, comme celle de tout contrat termine (bloc 62, « Evenement de fin du
+                    // contrat de travail », `norme-dsn/texte/bloc-S21.G00.62.txt`). `bloc_contrat` ne l'ecrit que si le contrat finit dans le mois
+                    // de la correction qui le pose.
+                    let ajoute = |x: &Regularisation| x.declare.lignes.is_empty() && x.declare.fichier.is_empty();
+                    let fin = groupe.iter().any(|x| ajoute(x) || x.apres.engagement.fin != x.avant.engagement.fin);
                     let debut_bloc = f.lignes.len();
-                    bloc_contrat(&mut f, &r.apres, &ent_e, &orgs, rg, &b, fin_corrigee, &[], "01", emplois_multiples(&r.apres, &autres))?;
-                    // UNE DATE DE DEBUT CORRIGEE : l'ancienne, lue dans la DSN deposee, sous le bloc 40 (fiche 1952).
-                    crate::changements_contrat::ancienne_date_de_debut(&mut f.lignes, debut_bloc, r, fin_m)?;
+                    bloc_contrat(&mut f, &dernier.apres, &ent_e, &orgs, rg, &b, fin, &[], "01", emplois_multiples(&dernier.apres, &autres))?;
+                    // UNE DATE DE DEBUT CORRIGEE : l'ancienne, lue dans la DSN deposee, sous le bloc 40 (fiche 1952) --
+                    // une fois, depuis la correction du dernier mois qui a declare le contrat.
+                    let declarant = groupe.iter().copied().filter(|x| !ajoute(x)).fold(None, |a: Option<&Regularisation>, x| match a {
+                        Some(a) if a.mois >= x.mois => Some(a),
+                        _ => Some(x),
+                    });
+                    if let Some(d) = declarant {
+                        crate::changements_contrat::ancienne_date_de_debut(&mut f.lignes, debut_bloc, d, &dernier.apres.engagement.debut, fin_m)?;
+                    }
                     rg
                 }
             };
