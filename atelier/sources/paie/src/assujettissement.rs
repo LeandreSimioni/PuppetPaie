@@ -255,7 +255,7 @@ sur les salaires. Sans réponse, la DSN de décembre ne se fait pas.",
         Some(Value::Bool(true)) => {
             return non_due(
                 champs,
-                "son chiffre d'affaires de l'an dernier ne dépasse pas les plafonds de la franchise en base de TVA (code \
+                "ses recettes de l'an dernier sont restées sous les plafonds de la franchise en base de TVA (code \
 général des impôts, art. 231 et 293 B)",
             )
         }
@@ -267,8 +267,8 @@ général des impôts, art. 231 et 293 B)",
 (art. 293 B)"
                     .to_string(),
                 &format!(
-                    "La compagnie doit la taxe sur les salaires {}, sauf si son chiffre d'affaires de l'an dernier ne \
-dépasse pas les plafonds de la franchise en base de TVA (art. 293 B) : dites-le.",
+                    "La compagnie doit la taxe sur les salaires {}, sauf si ses recettes de l'an dernier sont restées sous les \
+plafonds de la franchise en base de TVA (art. 293 B) : dites-le.",
                     sur
                 ),
             )
@@ -287,6 +287,100 @@ décote{}.",
             sur,
             if association { ", puis l'abattement des associations (art. 1679 A)" } else { "" }
         ),
+    }
+}
+
+/// LES PLAFONDS DE LA FRANCHISE EN BASE DE TVA, EN CLAIR (ticket #239, 21/10/2026). L'ecran demandait « sous les plafonds
+/// de l'article 293 B ? » sans dire lesquels : « on pourrait pas avoir les plafonds directement dans le logiciel ? ». Le
+/// moteur les lit au bareme de l'annee (`taxe_sur_les_salaires.plafonds_franchise`) et ecrit la question et ses deux
+/// reponses avec les montants ; la page n'en porte aucun.
+///
+/// Les textes (deposes, lus dans `atelier/reference/sources/code-general-des-impots/LISEZ-MOI.md`) :
+/// - CGI art. 231, 1, 2e alinea (`xml/231.xml`) : sont exonerees les remunerations des employeurs « dont le chiffre
+///   d'affaires realise au cours de l'annee civile precedant le versement de ces remunerations n'excede pas les plafonds
+///   definis aux I et I bis de l'article 293 B » ;
+/// - CGI art. 293 B, I (`xml/293_B.xml`, version en vigueur depuis le 01/03/2025) : ligne « Annee civile precedente »,
+///   85 000 EUR de « chiffre d'affaires national total » et 37 500 EUR de chiffre d'affaires « afferent aux prestations de
+///   services » ;
+/// - la notice 2502-SD (`formulaires/impots-2502-sd-2025-notice.pdf`, C, 1) : ce chiffre d'affaires « doit s'apprecier au
+///   regard de l'ensemble des recettes et autres produits, y compris [...] subventions non imposables a la TVA ».
+/// INFERENCES, ecrites comme telles : un spectacle vendu (cession, billetterie) est une prestation de services, d'ou le
+/// plafond de 37 500 EUR pour une compagnie ; les subventions comptent dans le total (85 000 EUR), pas dans les prestations ;
+/// la colonne « annee civile precedente » est celle que vise 231 (le chiffre d'affaires de l'annee d'avant) ; le I bis
+/// (avocats, auteurs, artistes-interpretes) ne vise pas une compagnie employeur.
+#[derive(Debug, Clone, PartialEq)]
+pub struct QuestionFranchise {
+    /// L'aide de la question, avec les montants de l'annee.
+    pub aide: String,
+    /// La reponse « sous les plafonds » (`sous_franchise` vrai), et « au-dessus » (faux).
+    pub sous: String,
+    pub dessus: String,
+    /// Les plafonds lus au bareme : prestations de services, total. `None` si le bareme de l'annee ne les porte pas.
+    pub plafonds: Option<(Decimal, Decimal)>,
+}
+
+/// Un montant entier, ecrit comme sur l'ecran : « 37 500 € ».
+fn euros(x: Decimal) -> String {
+    let s = crate::bulletin::fmt_eur(x);
+    format!("{} €", s.strip_suffix(",00").unwrap_or(&s))
+}
+
+/// La question des plafonds pour les remunerations de `annee` (le chiffre d'affaires de `annee - 1`), depuis le bareme
+/// de `annee` (`bar`, `None` s'il n'y en a pas). Un bareme sans plafonds ne fait pas refuser : la question se pose sans
+/// montants, et le dit.
+pub fn question_franchise(bar: Option<&Value>, annee: i32) -> QuestionFranchise {
+    let avant = annee - 1;
+    let pf = bar.map(|b| g(g(b, CHAMP_TAXE_SUR_LES_SALAIRES), "plafonds_franchise"));
+    let lus = pf.and_then(|pf| {
+        let lire = |k: &str| pf.get(k).and_then(|v| dec_py(v).ok());
+        Some((lire("prestations_de_services")?, lire("total")?))
+    });
+    let Some((services, total)) = lus else {
+        return QuestionFranchise {
+            aide: format!(
+                "Le barème {} du logiciel ne porte pas les plafonds de la franchise en base de TVA (code général des impôts, \
+art. 293 B) : la mise à jour du logiciel les apportera. Sous ces plafonds, la compagnie ne doit pas la taxe sur les salaires.",
+                annee
+            ),
+            sous: "Sous les plafonds".to_string(),
+            dessus: "Au-dessus des plafonds".to_string(),
+            plafonds: None,
+        };
+    };
+    // Une version de 293 B entree en vigueur en cours d'annee se dit (2025 : le 01/03).
+    let depuis = pf
+        .and_then(|pf| pf.get("en_vigueur_depuis"))
+        .and_then(Value::as_str)
+        .and_then(|s| crate::date::Jour::lire(s).ok())
+        .filter(|j| j.an == annee && (j.mois, j.jour) != (1, 1))
+        .map(|j| format!(", en vigueur depuis le {}", j.jj_mm_aaaa()))
+        .unwrap_or_default();
+    QuestionFranchise {
+        aide: format!(
+            "La compagnie ne doit pas la taxe sur les salaires si ses recettes de {avant} sont restées sous les deux \
+plafonds de la franchise en base de TVA : {s} pour ses spectacles et autres prestations de services (cessions, \
+billetterie, ateliers…), et {t} pour l'ensemble de ses recettes et produits, subventions comprises. Ce sont les plafonds \
+qui valent pour les salaires de {annee}{depuis} (code général des impôts, art. 231 et 293 B). Votre compte de résultat \
+{avant}, ou votre comptable, vous le dit.",
+            avant = avant,
+            s = euros(services),
+            t = euros(total),
+            annee = annee,
+            depuis = depuis,
+        ),
+        sous: format!(
+            "Sous les plafonds en {} ({} et {})",
+            avant,
+            euros(services),
+            euros(total)
+        ),
+        dessus: format!(
+            "Au-dessus d'un plafond en {} ({} ou {})",
+            avant,
+            euros(services),
+            euros(total)
+        ),
+        plafonds: Some((services, total)),
     }
 }
 

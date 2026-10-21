@@ -977,7 +977,10 @@ const SOUS_CHAMPS = {
     ["tva", "La compagnie et la TVA", "Assujettie : elle facture la TVA sur ses ventes (billetterie, cessions…) et la déclare. Exonérée : elle ne facture pas de TVA, ou ses activités n'y entrent pas — c'est le cas de beaucoup d'associations.",
      { choix: { "": "— à dire —", "assujettie": "Assujettie à la TVA", "exoneree": "Exonérée de TVA (ou hors de son champ)" } }],
     ["part_tva", "Part de vos recettes de l'an dernier soumise à la TVA (%)", "Vos recettes soumises à la TVA, divisées par toutes vos recettes et produits de l'année, subventions et dons compris. Votre comptable la connaît. À 90 % ou plus, pas de taxe sur les salaires.", { nombre: true }],
-    ["sous_franchise", "Chiffre d'affaires de l'an dernier et franchise en base de TVA", "Les plafonds de la franchise en base de TVA (code général des impôts, art. 293 B), ceux qui dispensent une petite entreprise de facturer la TVA. En dessous, pas de taxe sur les salaires.",
+    // Les montants des plafonds, l'aide et les deux réponses viennent du
+    // moteur (`franchise` de la route, barème de l'année ; ticket #239) :
+    // ce qui suit n'est que ce qu'on lit avant sa réponse.
+    ["sous_franchise", "Vos recettes de l'an dernier", "Sous les plafonds de la franchise en base de TVA, la compagnie ne doit pas la taxe sur les salaires.",
      { booleen: true, choix: { "": "— à dire —", "false": "Au-dessus des plafonds", "true": "Sous les plafonds" } }],
     ["association_1679A", "Association loi 1901, syndicat ou mutuelle ?", "Une association loi 1901, une fondation reconnue d'utilité publique, un syndicat, une mutuelle de moins de trente salariés : l'abattement de l'article 1679 A s'applique à la taxe due.",
      { booleen: true, choix: { "": "Non", "true": "Oui (abattement de l'article 1679 A)" } }],
