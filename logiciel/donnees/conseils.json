@@ -2799,16 +2799,58 @@
     },
     {
       "quand": "historique:resume",
+      "id": "historique-resume-melange",
+      "domaine": "chômage / ouverture des droits",
+      "public": "employeur",
+      "texte": "Vos contrats ont fait compter au moins {seuil} heures à {noms_anniversaire} sur les 12 mois avant {n_anniversaire?sa|leur} date anniversaire, et à {noms_glissants} sur les 12 derniers mois : leurs droits au chômage sont ouverts grâce à vous.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 9 §1 c)",
+          "citation": "L'examen en vue d'une réadmission ... est effectué, quelle que soit la date d'inscription comme demandeur d'emploi, au lendemain ... de la date anniversaire correspondant au terme des douze mois suivant la fin du contrat de travail retenue pour l'ouverture de la période d'indemnisation considérée"
+        }
+      ],
+      "ciblage": "à l'accueil : les salariés dont vos seuls contrats font au moins 507 heures sur la fenêtre de leurs droits (celle de leur fiche, `conseils::position`), quand la liste mêle des salariés dont la fiche porte la date anniversaire et d'autres non ; ce conseil passe avant les deux suivants, qui se résoudraient aussi",
+      "certitude": "sourcé"
+    },
+    {
+      "quand": "historique:resume",
+      "id": "historique-resume-anniversaire",
+      "domaine": "chômage / ouverture des droits",
+      "public": "employeur",
+      "texte": "Vos contrats ont fait compter au moins {seuil} heures à {noms_anniversaire} sur les 12 mois avant {n_anniversaire?sa|leur} date anniversaire : {n_anniversaire?son droit au chômage est ouvert|leurs droits au chômage sont ouverts} grâce à vous.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 9 §1 c)",
+          "citation": "L'examen en vue d'une réadmission ... est effectué, quelle que soit la date d'inscription comme demandeur d'emploi, au lendemain ... de la date anniversaire correspondant au terme des douze mois suivant la fin du contrat de travail retenue pour l'ouverture de la période d'indemnisation considérée"
+        }
+      ],
+      "ciblage": "à l'accueil : les salariés dont vos seuls contrats font au moins 507 heures sur les 12 mois avant la date anniversaire que porte leur fiche, tous",
+      "certitude": "sourcé"
+    },
+    {
+      "quand": "historique:resume",
       "id": "historique-resume",
       "domaine": "chômage / ouverture des droits",
       "public": "employeur",
-      "texte": "Vos contrats ont fait compter au moins {seuil} heures sur les 12 derniers mois à {noms} : {n?son droit au chômage est ouvert|leurs droits au chômage sont ouverts} grâce à vous.",
+      "texte": "Vos contrats ont fait compter au moins {seuil} heures à {noms_glissants} sur les 12 derniers mois : {n_glissants?son droit au chômage est ouvert|leurs droits au chômage sont ouverts} grâce à vous.",
       "source": {
         "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
         "article": "art. 3 §1",
         "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
       },
-      "ciblage": "à l'accueil : les salariés dont vos seuls contrats font au moins 507 heures sur les 12 derniers mois",
+      "ciblage": "à l'accueil : les salariés dont vos seuls contrats font au moins 507 heures sur les 12 derniers mois, aucun n'ayant de date anniversaire sur sa fiche",
       "certitude": "sourcé"
     }
   ]

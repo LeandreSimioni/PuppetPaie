@@ -822,8 +822,11 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
     Ok(out)
 }
 
-/// `conseils-resume` : a l'accueil, les salaries dont nos seuls contrats font au moins 507 heures sur les 12 derniers
-/// mois. `{"conseils": [...]}`, vide quand il n'y en a pas.
+/// `conseils-resume` : a l'accueil, les salaries dont nos seuls contrats font au moins 507 heures sur la fenetre de
+/// leurs droits, la meme que leur fiche (`position`) : les 12 mois avant leur date anniversaire si la fiche la porte,
+/// sinon les 12 derniers mois. La phrase dit l'une, l'autre, ou les deux quand la liste les mele : la banque essaie
+/// `historique-resume-melange`, puis `historique-resume-anniversaire`, puis `historique-resume`, et le premier dont
+/// les deux groupes de noms sont la parle. `{"conseils": [...]}`, vide quand il n'y en a pas.
 pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     if !actifs(&ctx.entreprise) {
         return Ok(Vec::new());
@@ -833,40 +836,56 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     let d = Donnees::de_l_annee(&ctx.code, jour.an);
     let c = Constantes::lire(&ctx.racine)?;
     let engs = cumul::lire_engagements(ctx, None)?;
-    let f = cumul::fenetre_douze_mois(&c, jour)?;
     let cles: BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();
     // Les salaries par leur prenom ; deux du meme prenom, par leur prenom et leur nom (sinon on ne saurait lequel).
     let mut fiches = Vec::new();
     for cle in cles {
-        let p = cumul::position(ctx, &c, &engs, cle, &f, cumul::naissance(ctx, cle)?);
+        let (p, anniv) = position(ctx, cle, &engs, jour)?;
         if p.heures_ouverture()? >= c.seuil_heures {
             let mut fiche = ctx.salaries.get(cle).cloned().unwrap_or(Value::Null);
             if !fiche.is_object() {
                 fiche = Value::Object(Map::new());
             }
             fiche["_cle"] = Value::String(cle.to_string());
-            fiches.push((prenom(&fiche), fiche));
+            fiches.push((prenom(&fiche), fiche, anniv));
         }
     }
     if fiches.is_empty() {
         return Ok(Vec::new());
     }
-    let noms: Vec<String> = fiches
+    let noms: Vec<(String, bool)> = fiches
         .iter()
-        .map(|(p, fiche)| {
-            if fiches.iter().filter(|(q, _)| q == p).count() > 1 {
+        .map(|(p, fiche, anniv)| {
+            let n = if fiches.iter().filter(|(q, _, _)| q == p).count() > 1 {
                 let nom = Some(texte(fiche, "nom_affichage")).filter(|n| !n.trim().is_empty()).unwrap_or_else(|| texte(fiche, "nom"));
                 if nom.trim().is_empty() { p.clone() } else { format!("{} {}", p, nom.trim()) }
             } else {
                 p.clone()
-            }
+            };
+            (n, *anniv)
         })
         .collect();
     let mut v = Valeurs::new();
     v.insert("seuil".into(), val_entier(c.seuil_heures));
-    v.insert("n".into(), val_entier(noms.len() as i64));
-    v.insert("noms".into(), val_texte(noms.join(", ")));
+    // `{noms_anniversaire}` (et `{n_anniversaire}`) : ceux dont la fiche porte la date anniversaire ;
+    // `{noms_glissants}` : les autres. Un groupe vide ne se pose pas : les conseils qui le nomment se taisent.
+    for (groupe, anniv) in [("anniversaire", true), ("glissants", false)] {
+        let qui: Vec<String> = noms.iter().filter(|(_, a)| *a == anniv).map(|(n, _)| n.clone()).collect();
+        if !qui.is_empty() {
+            v.insert(format!("n_{}", groupe), val_entier(qui.len() as i64));
+            v.insert(format!("noms_{}", groupe), val_texte(et(&qui)));
+        }
+    }
     Ok(conseil(&b, &d, "historique:resume", &v).into_iter().collect())
+}
+
+/// « Anastasia », « Anastasia et Léandre », « Anastasia, Fanchon et Léandre ».
+fn et(noms: &[String]) -> String {
+    match noms {
+        [] => String::new(),
+        [seul] => seul.clone(),
+        [tete @ .., dernier] => format!("{} et {}", tete.join(", "), dernier),
+    }
 }
 
 // ------------------------------------------------------------------ routes

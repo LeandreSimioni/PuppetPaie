@@ -281,6 +281,66 @@ fn la_fenetre_part_de_la_date_anniversaire_quand_la_fiche_la_porte() {
     assert!(t.contains("les 12 mois avant sa date anniversaire") && t.contains("01/02/2027"), "{}", t);
 }
 
+#[test]
+fn le_resume_de_l_accueil_compte_chacun_sur_la_fenetre_de_ses_droits() {
+    // Leandre, 21/10/2026 (capture de l'accueil) : « il ne devrait pas dire 12 derniers mois mais compter
+    // l'anniversaire ». Le resume prend, salarie par salarie, la fenetre de sa fiche (`conseils::position`) : les 12 mois
+    // avant la date anniversaire notifiee (annexe X, art. 9 §1 c), sinon les 12 derniers mois (art. 3 §1).
+    let c = &compagnie("resume-anniversaire", true);
+    let e = |salarie: &str, debut: &str, fin: &str, heures: i64, cachets: i64| {
+        json!({ "salarie": salarie, "debut": debut, "fin": fin, "heures": heures, "cachets": cachets, "jours": cachets.max(1), "brut": "1000" })
+    };
+    ecrire(
+        c,
+        "historique/engagements.json",
+        &json!({ "engagements": [
+            // Fanchon : 48 cachets (576 heures) en septembre et jusqu'au 20 octobre 2025, avant les 12 derniers mois
+            // (depuis le 21/10/2025).
+            e("BRIOCHE", "2025-09-02", "2025-09-26", 0, 25),
+            e("BRIOCHE", "2025-09-27", "2025-09-30", 0, 3),
+            e("BRIOCHE", "2025-10-01", "2025-10-20", 0, 20),
+            // Nicole, technicienne : 520 heures en septembre 2025.
+            e("LEMERCIER", "2025-09-01", "2025-09-30", 520, 0),
+            // Valentin : 45 cachets en mai et juin 2026, dans les 12 derniers mois.
+            e("SERAPHIN", "2026-05-01", "2026-05-25", 0, 25),
+            e("SERAPHIN", "2026-06-01", "2026-06-20", 0, 20),
+        ] }),
+    );
+    let resume = |c: &Path| -> Vec<String> {
+        let r = reussi(&route(c, "conseils-resume", json!({}), JOUR)).clone();
+        r["conseils"].as_array().unwrap().iter().map(|x| x["texte"].as_str().unwrap().to_string()).collect()
+    };
+    // Sans date anniversaire, Fanchon et Nicole n'ont rien sur les 12 derniers mois : seul Valentin.
+    assert_eq!(
+        resume(c),
+        ["Vos contrats ont fait compter au moins 507 heures à Valentin sur les 12 derniers mois : son droit au chômage est ouvert grâce à vous."]
+    );
+    // Leur fiche porte la date anniversaire du 01/09/2026 : les 12 mois qui la precedent (du 01/09/2025 au
+    // 01/09/2026) comptent ses 48 cachets pour Fanchon, 520 heures pour Nicole. La liste mele les deux fenetres, et la phrase les dit l'une et l'autre.
+    crate::outils::retoucher_fiches(
+        c,
+        &[("BRIOCHE", json!({ "anniversaire_droits": "2026-09-01" })), ("LEMERCIER", json!({ "anniversaire_droits": "2026-09-01" }))],
+    );
+    assert_eq!(
+        resume(c),
+        ["Vos contrats ont fait compter au moins 507 heures à Fanchon et Nicole sur les 12 mois avant leur date anniversaire, et à Valentin sur les 12 derniers mois : leurs droits au chômage sont ouverts grâce à vous."]
+    );
+    // La fiche de Fanchon dit la meme chose que l'accueil.
+    let fiche = reussi(&route(c, "conseils-salarie", json!({ "salarie": "BRIOCHE" }), JOUR)).clone();
+    assert!(fiche["conseils"].as_array().unwrap().iter().any(|x| x["id"] == "historique-droits-ouverts"), "{}", fiche);
+    // L'inverse : la date anniversaire de Valentin, le 01/04/2026, laisse ses contrats de mai et juin hors de sa
+    // fenetre, bien qu'ils passent 507 heures sur les 12 derniers mois. Et Nicole n'a plus la sienne : ses heures de
+    // septembre 2025 sortent des 12 derniers mois.
+    crate::outils::retoucher_fiches(
+        c,
+        &[("SERAPHIN", json!({ "anniversaire_droits": "2026-04-01" })), ("LEMERCIER", json!({ "anniversaire_droits": null }))],
+    );
+    assert_eq!(
+        resume(c),
+        ["Vos contrats ont fait compter au moins 507 heures à Fanchon sur les 12 mois avant sa date anniversaire : son droit au chômage est ouvert grâce à vous."]
+    );
+}
+
 // ---------------------------------------------------------- le demarrage
 
 #[test]
