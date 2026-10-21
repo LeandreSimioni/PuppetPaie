@@ -23,6 +23,7 @@ mod caviardage;
 mod cle_de_signature;
 mod coffre;
 mod commandes;
+mod conseils_banque;
 mod courriel;
 mod courriel_lecture;
 mod depot;

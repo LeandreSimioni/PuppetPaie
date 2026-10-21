@@ -18,6 +18,7 @@ mod faux_drive;
 mod avenant;
 mod calcul_du_mois;
 mod carte_figee;
+mod conseils;
 mod echeance_dsn;
 mod historique_mois;
 mod etat_garde;
