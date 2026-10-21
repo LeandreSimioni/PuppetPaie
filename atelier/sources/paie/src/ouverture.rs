@@ -186,6 +186,9 @@ pub struct Ouverture {
     pub secondes: f64,
     /// Le reseau manquait : dit une fois, pas par erreur.
     pub hors_ligne: bool,
+    /// Ce qui n'a pas repondu, une phrase par service (l'erreur telle qu'elle est venue) : le reseau manquait pour CELA,
+    /// pas forcement pour tout -- la releve a pu passer quand le Drive ne repondait pas (21/10/2026).
+    pub injoignables: Vec<String>,
     /// `pas_avant` a retenu ce passage (la derniere ouverture est trop recente) : rien n'a ete fait, la trace n'est pas
     /// reecrite. L'appelant qui lance encore la verification de version en Python (lot J) ne la lance pas non plus.
     pub retenue: bool,
@@ -269,6 +272,7 @@ impl Ouverture {
             "filet": self.filet,
             "horloge": self.horloge,
             "hors_ligne": self.hors_ligne,
+            "injoignables": self.injoignables,
             "tout_va_bien": self.tout_va_bien(),
             "retenue": self.retenue,
         })
@@ -366,7 +370,10 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture, precedente: &Value) {
         Some(rel) => (hors_tests(&rel.trouves), hors_tests(&rel.nouveaux)),
         None => (0, 0),
     };
-    let retours = if r.releve.is_some() && !r.hors_ligne {
+    // La ligne des retours dit ce que la releve a fait, si ELLE a joint net-entreprises -- le Drive qui ne repond pas ne
+    // la tait plus (21/10/2026) ; une releve sans reseau, elle, n'a rien vu, et « aucun retour » serait faux.
+    let releve_passee = r.releve.as_ref().is_some_and(|rel| !rel.incidents.iter().any(|i| sauvegarde::hors_ligne(i)));
+    let retours = if releve_passee {
         if trouves > 0 {
             format!("{} retour(s), dont {} nouveau(x).", trouves, nouveaux)
         } else {
@@ -382,6 +389,7 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture, precedente: &Value) {
     trace.insert("sauvegarde_souci".into(), json!(sauvegarde::souci(&ctx.racine).unwrap_or_default()));
     trace.insert("retours".into(), json!(retours));
     trace.insert("hors_ligne".into(), json!(r.hors_ligne));
+    trace.insert("injoignables".into(), json!(r.injoignables));
     trace.insert("nouveaux".into(), json!(nouveaux));
     trace.insert("signatures".into(), json!(r.signatures.as_ref().map(ReleveSignatures::resume).unwrap_or_default()));
     trace.insert("fiches".into(), json!(r.fiches.as_ref().map(ReleveFiches::resume).unwrap_or_default()));
@@ -455,11 +463,18 @@ fn coffre_dispo(ctx: &Contexte, service: &str) -> Result<bool, String> {
 /// `_trier_hors_ligne` : une seule phrase pour l'absence de reseau, pas une erreur par dossier et par organisme. Les erreurs
 /// qui ne disent que « pas de reseau » sortent des incidents ; les autres (un mot de passe refuse, un coffre ferme)
 /// restent, elles demandent un geste.
+/// Elles ne se perdent pas pour autant : `injoignables` garde de quoi dire QUI n'a pas repondu.
 fn trier_hors_ligne(r: &mut Ouverture) {
-    let reseau = r.incidents.iter().any(|i| sauvegarde::hors_ligne(i));
-    if reseau || r.sauvegarde.as_ref().is_some_and(|s| s.hors_ligne) {
+    let reseau: Vec<String> = r.incidents.iter().filter(|i| sauvegarde::hors_ligne(i)).cloned().collect();
+    let drive = r.sauvegarde.as_ref().is_some_and(|s| s.hors_ligne);
+    if !reseau.is_empty() || drive {
         r.hors_ligne = true;
         r.incidents.retain(|i| !sauvegarde::hors_ligne(i));
+        for i in reseau.into_iter().chain(drive.then(|| "Sauvegarde dans le Drive : réseau injoignable.".to_string())) {
+            if !r.injoignables.contains(&i) {
+                r.injoignables.push(i);
+            }
+        }
     }
 }
 
@@ -491,9 +506,10 @@ fn completer_la_trace(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Insta
     let deja = avant.get("secondes").and_then(Value::as_f64).unwrap_or(0.0);
     trace.insert("secondes".into(), json!(((deja + ma_duree) * 10.0).round() / 10.0));
     trace.insert("hors_ligne".into(), json!(etait_hors_ligne || r.hors_ligne));
-    if r.hors_ligne && !etait_hors_ligne {
-        trace.insert("retours".into(), json!(""));
-    }
+    // La sauvegarde qui ne passe pas ne tait plus la ligne des retours : la releve, elle, est passee (21/10/2026).
+    let mut injoignables = liste("injoignables");
+    injoignables.extend(r.injoignables.iter().map(|i| json!(i)));
+    trace.insert("injoignables".into(), Value::Array(injoignables));
     let mut incidents = liste("incidents");
     incidents.extend(r.incidents.iter().map(|i| json!(i)));
     trace.insert("incidents".into(), Value::Array(incidents));
