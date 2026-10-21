@@ -9,7 +9,8 @@
 //! - les conseils de saisie (`de_saisie`) : sous la carte d'engagement de l'apercu, au plus un par carte, quand un fait
 //!   de la saisie l'appelle (`saisie:<condition>`, dans l'ordre de `ordre_saisie`). Ils ne vivent QUE dans la route
 //!   `apercu` (champ `conseil` de la vue d'une paie) : ni dans les avertissements de la paie, ni sur le bulletin, ni
-//!   dans `produire` ;
+//!   dans `produire`. Une phrase courte (`texte`), et le detail (`detail` : les deux faces, les chiffres) que l'ecran
+//!   deplie derriere « pourquoi ? » avec la reference (Leandre, 21/10/2026) ;
 //! - les conseils sur l'historique (`conseils-salarie`, `conseils-resume`) : ce que la compagnie a reellement fait pour
 //!   un salarie, sur la fenetre de ses droits (depuis la date anniversaire que porte sa fiche, sinon 12 mois glissants).
 //!
@@ -19,6 +20,8 @@
 //! X ou VIII, art. 30). JAMAIS d'euros d'allocation (Leandre) : on ne connait pas les autres employeurs. Le seul cas de
 //! certitude : nos contrats font a eux seuls au moins 507 heures sur la fenetre ; alors ses droits sont ouverts, et le
 //! conseil « plus d'heures » cede la place a « intense plutot que dilue ».
+//!
+//! Le salarie se nomme par son seul prenom (`{prenom}`), jamais par un pronom qui le genre (Leandre, 21/10/2026).
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
@@ -264,14 +267,19 @@ fn sources_de(c: &Value) -> Vec<&Value> {
     }
 }
 
-/// Le conseil rendu pour l'ecran : son texte, sa reference (celle de chaque source), son identifiant.
-fn vue(b: &Value, c: &Value, texte_rendu: String) -> Value {
+/// Le conseil rendu pour l'ecran : son identifiant, son texte (la phrase courte d'un conseil de saisie), son detail
+/// quand la banque en a un, sa reference (celle de chaque source) ; rien si l'un de ses gabarits ne se resout pas.
+fn vue(b: &Value, c: &Value, d: &Donnees, vals: &Valeurs) -> Option<Value> {
     let references: Vec<String> = sources_de(c).iter().map(|s| reference_de(b, s)).collect();
-    json!({
+    let mut v = json!({
         "id": texte(c, "id"),
-        "texte": texte_rendu,
+        "texte": rendre(&texte(c, "texte"), d, vals)?,
         "reference": references.join(" ; "),
-    })
+    });
+    if c.get("detail").is_some() {
+        v["detail"] = Value::String(rendre(&texte(c, "detail"), d, vals)?);
+    }
+    Some(v)
 }
 
 /// Le premier conseil de la banque pour cette condition (`quand`), rendu avec ces valeurs : un conseil suspendu, ou
@@ -280,7 +288,34 @@ fn conseil(b: &Value, d: &Donnees, quand: &str, vals: &Valeurs) -> Option<Value>
     conseils_de(b)
         .iter()
         .filter(|c| texte(c, "quand") == quand && !suspendu(c))
-        .find_map(|c| rendre(&texte(c, "texte"), d, vals).map(|t| vue(b, c, t)))
+        .find_map(|c| vue(b, c, d, vals))
+}
+
+/// Le prenom du salarie, tel que sa fiche l'affiche (`prenom_affichage`, sinon `prenom`, en capitales initiales s'il
+/// est tout en majuscules) ; sans prenom, son nom, sinon sa cle.
+pub fn prenom(sal: &Value) -> String {
+    let lu = |k: &str| sal.get(k).filter(|v| vrai(v)).map(en_texte).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+    if let Some(p) = lu("prenom_affichage") {
+        return p;
+    }
+    if let Some(p) = lu("prenom").or_else(|| lu("nom_affichage")).or_else(|| lu("nom")) {
+        if p.chars().any(char::is_lowercase) {
+            return p;
+        }
+        // FANCHON -> Fanchon, JEAN-LOUP -> Jean-Loup.
+        let mut out = String::with_capacity(p.len());
+        let mut debut = true;
+        for ch in p.chars() {
+            if debut {
+                out.extend(ch.to_uppercase());
+            } else {
+                out.extend(ch.to_lowercase());
+            }
+            debut = !ch.is_alphabetic();
+        }
+        return out;
+    }
+    texte(sal, "_cle")
 }
 
 // ------------------------------------------------------------ le demarrage
@@ -308,7 +343,7 @@ fn generaux(b: &Value, d: &Donnees) -> Vec<Value> {
     conseils_de(b)
         .iter()
         .filter(|c| texte(c, "quand") == "toujours" && !suspendu(c))
-        .filter_map(|c| rendre(&texte(c, "texte"), d, &Valeurs::new()).map(|t| vue(b, c, t)))
+        .filter_map(|c| vue(b, c, d, &Valeurs::new()))
         .collect()
 }
 
@@ -358,16 +393,25 @@ fn art30(b: &Value, annexe: &str) -> Option<Art30> {
 }
 
 /// Les jours d'allocation qu'un nombre d'heures retire un mois indemnise (art. 30 : heures / heures par jour x
-/// coefficient), arrondis au demi-jour superieur : « environ ».
-fn jours_perdus(heures: Decimal, a: &Art30) -> Decimal {
-    let j = div(heures, a.heures_par_jour) * a.coefficient;
-    let demis = (j * Decimal::from(2)).ceil();
-    (demis / Decimal::from(2)).max(Decimal::new(5, 1))
+/// coefficient), sans arrondi : une somme sur plusieurs paies s'arrondit une fois (`environ`).
+fn jours_bruts(heures: Decimal, a: &Art30) -> Decimal {
+    div(heures, a.heures_par_jour) * a.coefficient
 }
 
-fn val_jours(j: Decimal) -> Valeur {
-    let t = if j == Decimal::new(5, 1) { "½".to_string() } else { nombre_fr(j, None) };
-    Valeur { texte: t, nombre: Some(j) }
+/// « environ » : au demi-jour le plus proche (Leandre, 21/10/2026 : 8 heures en annexe X, 1,04 jour, font « environ
+/// 1 jour »). Zero quand le cout est de moins d'un quart de jour : la condition ne fournit alors pas `jours_perdus`, et
+/// la variante « -minime » de la banque dit « moins d'un demi-jour » au lieu d'une perte.
+fn environ(jours: Decimal) -> Decimal {
+    (jours * Decimal::from(2)).round_dp_with_strategy(0, rust_decimal::RoundingStrategy::MidpointAwayFromZero) / Decimal::from(2)
+}
+
+/// `jours_perdus`, seulement quand le cout arrondi n'est pas nul.
+fn avec_jours(v: &mut Vec<(&str, Valeur)>, jours: Decimal) {
+    let j = environ(jours);
+    if j > Decimal::ZERO {
+        let t = if j == Decimal::new(5, 1) { "½".to_string() } else { nombre_fr(j, None) };
+        v.push(("jours_perdus", Valeur { texte: t, nombre: Some(j) }));
+    }
 }
 
 fn libelle_mois(mois: &str) -> String {
@@ -426,7 +470,16 @@ fn gain_repetition(ctx: &Contexte, p: &Paie, heures_cachet: Decimal) -> Resultat
 
 /// Ce qu'une paie gagnerait en heures a couvrir, pour la meme somme, autant d'heures que le minimum horaire de la
 /// convention le permet (`minima::minimum_de_la_ligne`, un minimum a l'heure) : la ligne au plus grand gain, ou rien.
-/// Un gain d'au moins une heure ; sous le minimum, rien.
+/// Sous le minimum, rien.
+///
+/// LE SEUIL : un gain d'au moins `seuil` heures, le poids d'un cachet (12 heures, annexe X art. 3 §1 ; Leandre,
+/// 21/10/2026 : « seulement si l'ecart est important »). Pourquoi lui : les deux simulations du ticket 224 (le modele
+/// mensuel des annexes VIII et X, rejoue sur les exemples chiffres du guide France Travail) montrent que des heures de
+/// plus pour la meme somme ne valent que pres du seuil des 507 heures, ou elles peuvent valoir d'un mois a une annee de
+/// droits ; ailleurs, un mois indemnise, chaque heure coute 0,13 jour d'allocation (X ; 0,175 en VIII) et rapporte
+/// moins l'annee suivante (2 heures de plus : de 0 a -60 EUR sur 24 mois ; dix fois 2 heures : -60 a -200 EUR). Le conseil ne
+/// gagne que si le salarie est a moins de `gain` heures des 507 : sa chance de servir croit avec le gain, et sous le
+/// poids d'un cachet elle est trop mince pour une ligne sous chaque carte.
 struct GainHeures {
     heures: Decimal,
     montant: Decimal,
@@ -435,7 +488,7 @@ struct GainHeures {
     gain: Decimal,
 }
 
-fn gain_heures(ctx: &Contexte, p: &Paie) -> Resultat<Option<GainHeures>> {
+fn gain_heures(ctx: &Contexte, p: &Paie, seuil: Decimal) -> Resultat<Option<GainHeures>> {
     let mut meilleur: Option<GainHeures> = None;
     for (i, l) in p.remuneration.iter().enumerate() {
         if l.heures_annexes <= Decimal::ZERO || l.montant <= Decimal::ZERO {
@@ -447,7 +500,7 @@ fn gain_heures(ctx: &Contexte, p: &Paie) -> Resultat<Option<GainHeures>> {
         }
         let heures_max = div(l.montant, m.montant).floor();
         let gain = (heures_max - l.heures_annexes).floor();
-        if gain < Decimal::ONE {
+        if gain < seuil.max(Decimal::ONE) {
             continue;
         }
         if meilleur.as_ref().map_or(true, |g| gain > g.gain) {
@@ -524,11 +577,11 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
         let Some(a30) = art30(&b, annexe) else { continue };
         let cle = texte(&p.salarie, "_cle");
         let (heures_mois, cachets_mois) = du_mois.get(&cle).copied().unwrap_or((0, 0));
-        let qui = minima::qui(&p.salarie);
+        let qui = prenom(&p.salarie);
         let mois = libelle_mois(&e.mois);
         let base = |extra: Vec<(&str, Valeur)>| -> Valeurs {
             let mut v = Valeurs::new();
-            v.insert("qui".into(), val_texte(qui.clone()));
+            v.insert("prenom".into(), val_texte(qui.clone()));
             v.insert("mois".into(), val_texte(mois.clone()));
             v.insert("heures_cachet".into(), val_entier(c.heures_par_cachet));
             for (k, x) in extra {
@@ -540,7 +593,7 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
         let sature = Decimal::from(heures_mois) >= seuil_mois;
         // Les deux conseils « plus d'heures », et ce qui les remplace quand nos contrats assurent les 507 heures.
         let rep = if annexe == "X" { gain_repetition(ctx, p, Decimal::from(c.heures_par_cachet))? } else { None };
-        let hrs = gain_heures(ctx, p)?;
+        let hrs = gain_heures(ctx, p, Decimal::from(c.heures_par_cachet))?;
         let assure = if (rep.is_some() || hrs.is_some()) && !sature {
             if !assurees.contains_key(&cle) {
                 let fin = e.fin_periode()?;
@@ -588,25 +641,27 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
                     ])
                 }),
                 "saisie:repetition-en-cachet" if assure.is_none() && !sature => rep.as_ref().map(|g| {
-                    base(vec![
+                    let mut v = vec![
                         ("heures_avant", val_nombre(g.heures_avant)),
                         ("nb_jours", val_entier(g.jours)),
                         ("montant_jour", val_texte(nombre_fr(div(g.montant, Decimal::from(g.jours)), Some(2)))),
                         ("minimum", val_texte(nombre_fr(g.minimum.montant, Some(2)))),
                         ("gain", val_nombre(g.gain)),
-                        ("jours_perdus", val_jours(jours_perdus(g.gain, &a30))),
-                    ])
+                    ];
+                    avec_jours(&mut v, jours_bruts(g.gain, &a30));
+                    base(v)
                 }),
                 "saisie:heures-pour-la-meme-somme" if assure.is_none() && !sature => hrs.as_ref().map(|g| {
-                    base(vec![
+                    let mut v = vec![
                         ("heures", val_nombre(g.heures)),
                         ("montant", val_texte(nombre_fr(g.montant, Some(2)))),
                         ("taux", val_texte(nombre_fr(div(g.montant, g.heures), Some(2)))),
                         ("minimum", val_texte(nombre_fr(g.minimum, Some(2)))),
                         ("heures_max", val_nombre(g.heures_max)),
                         ("gain", val_nombre(g.gain)),
-                        ("jours_perdus", val_jours(jours_perdus(g.gain, &a30))),
-                    ])
+                    ];
+                    avec_jours(&mut v, jours_bruts(g.gain, &a30));
+                    base(v)
                 }),
                 "saisie:enseignement" => {
                     let mut trouve = None;
@@ -642,8 +697,9 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
 
 // --------------------------------------------------------------- l'historique
 
-/// Ce que les conseils de saisie auraient change aux paies de ce salarie sur la fenetre : (heures, jours d'allocation).
-/// Chaque mois saisi de la fenetre se recharge (`engagement::charger`) ; un mois qui ne se charge pas est laisse de cote.
+/// Ce que les conseils de saisie auraient change aux paies de ce salarie sur la fenetre : (heures, jours d'allocation,
+/// avant arrondi). Chaque mois saisi de la fenetre se recharge (`engagement::charger`) ; un mois qui ne se charge pas
+/// est laisse de cote.
 fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, annexe: &str) -> Resultat<(Decimal, Decimal)> {
     let c = Constantes::lire(&ctx.racine)?;
     let (debut, fin, _) = f;
@@ -666,11 +722,11 @@ fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, ann
             }
             let g = match (annexe == "X").then(|| gain_repetition(ctx, p, Decimal::from(c.heures_par_cachet))).transpose()?.flatten() {
                 Some(r) => r.gain,
-                None => gain_heures(ctx, p)?.map_or(Decimal::ZERO, |h| h.gain),
+                None => gain_heures(ctx, p, Decimal::from(c.heures_par_cachet))?.map_or(Decimal::ZERO, |h| h.gain),
             };
             if g > Decimal::ZERO {
                 gain += g;
-                jours += jours_perdus(g, a30);
+                jours += jours_bruts(g, a30);
             }
         }
     }
@@ -696,14 +752,14 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
     if let Value::Object(m) = &mut f {
         m.insert("_cle".into(), Value::String(cle.into()));
     }
-    let qui = minima::qui(&f);
+    let qui = prenom(&f);
     let fenetre = phrase_fenetre(&b, &pos, anniv);
     let annexe = annexe_de(&f)?;
     let a30 = annexe.and_then(|a| art30(&b, a));
     let heures = pos.heures_ouverture()?;
     let base = |extra: Vec<(&str, Valeur)>| -> Valeurs {
         let mut v = Valeurs::new();
-        v.insert("qui".into(), val_texte(qui.clone()));
+        v.insert("prenom".into(), val_texte(qui.clone()));
         v.insert("fenetre".into(), val_texte(fenetre.clone()));
         v.insert("seuil".into(), val_entier(c.seuil_heures));
         for (k, x) in extra {
@@ -733,10 +789,9 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
             let (gain, jours) = gains_sur_la_fenetre(ctx, cle, &f, a, ax)?;
             if gain > Decimal::ZERO {
                 let pct = (gain * Decimal::from(100) / Decimal::from(c.seuil_heures)).round_dp(1).normalize();
-                pousser(
-                    "historique:gain-des-conseils",
-                    base(vec![("gain", val_nombre(gain)), ("pourcentage", val_nombre(pct)), ("jours_perdus", val_jours(jours))]),
-                );
+                let mut v = vec![("gain", val_nombre(gain)), ("pourcentage", val_nombre(pct))];
+                avec_jours(&mut v, jours);
+                pousser("historique:gain-des-conseils", base(v));
             }
         }
     }
@@ -780,7 +835,8 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     let engs = cumul::lire_engagements(ctx, None)?;
     let f = cumul::fenetre_douze_mois(&c, jour)?;
     let cles: BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();
-    let mut noms = Vec::new();
+    // Les salaries par leur prenom ; deux du meme prenom, par leur prenom et leur nom (sinon on ne saurait lequel).
+    let mut fiches = Vec::new();
     for cle in cles {
         let p = cumul::position(ctx, &c, &engs, cle, &f, cumul::naissance(ctx, cle)?);
         if p.heures_ouverture()? >= c.seuil_heures {
@@ -788,13 +844,24 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
             if !fiche.is_object() {
                 fiche = Value::Object(Map::new());
             }
-            let qui = minima::qui(&fiche);
-            noms.push(if qui.trim().is_empty() { cle.to_string() } else { qui });
+            fiche["_cle"] = Value::String(cle.to_string());
+            fiches.push((prenom(&fiche), fiche));
         }
     }
-    if noms.is_empty() {
+    if fiches.is_empty() {
         return Ok(Vec::new());
     }
+    let noms: Vec<String> = fiches
+        .iter()
+        .map(|(p, fiche)| {
+            if fiches.iter().filter(|(q, _)| q == p).count() > 1 {
+                let nom = Some(texte(fiche, "nom_affichage")).filter(|n| !n.trim().is_empty()).unwrap_or_else(|| texte(fiche, "nom"));
+                if nom.trim().is_empty() { p.clone() } else { format!("{} {}", p, nom.trim()) }
+            } else {
+                p.clone()
+            }
+        })
+        .collect();
     let mut v = Valeurs::new();
     v.insert("seuil".into(), val_entier(c.seuil_heures));
     v.insert("n".into(), val_entier(noms.len() as i64));

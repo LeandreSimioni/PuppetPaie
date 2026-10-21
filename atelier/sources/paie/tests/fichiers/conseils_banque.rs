@@ -170,7 +170,7 @@ fn chaque_chiffre_date_se_lit_dans_les_donnees_du_moteur() {
 }
 
 #[test]
-fn chaque_condition_est_evaluee_par_le_moteur_et_les_points_non_tranches_sont_suspendus() {
+fn chaque_condition_est_evaluee_par_le_moteur_et_les_points_tranches_sont_dits() {
     let b = banque();
     let mut ids = std::collections::BTreeSet::new();
     for c in conseils(&b) {
@@ -186,10 +186,64 @@ fn chaque_condition_est_evaluee_par_le_moteur_et_les_points_non_tranches_sont_su
     for q in b["ordre_saisie"].as_array().unwrap() {
         assert!(CONDITIONS.contains(&q.as_str().unwrap()), "ordre_saisie : {}", q);
     }
-    // Deux points que Léandre n'a pas tranchés (l'ouverture du droit Congés Spectacles, D. 7121-31 contre Audiens ; le
-    // délai des signalements) : leurs conseils restent dans la banque, suspendus.
-    for id in ["conges-spectacles-droit-ouvre-1er-jour", "signalement-fin-contrat-cinq-jours", "signalement-arret-cinq-jours"] {
+    // Les deux points que Léandre a tranchés le 21/10/2026 : le délai des signalements (« cinq jours ouvrés », CSS
+    // R. 133-14 II, en vigueur depuis le 01/07/2026, que la banque cite) ; l'ouverture du droit Congés Spectacles (le
+    // conseil qui opposait D. 7121-31 à Audiens est retiré, remplacé par ce que finance la cotisation).
+    for id in ["signalement-fin-contrat-cinq-jours", "signalement-arret-cinq-jours"] {
         let c = conseils(&b).into_iter().find(|c| c["id"] == id).unwrap_or_else(|| panic!("{} absent", id));
-        assert!(c["suspendu"].as_str().map_or(false, |s| !s.is_empty()), "{} doit être suspendu", id);
+        assert!(c.get("suspendu").is_none(), "{} est tranché", id);
+        assert!(sources(&c).iter().any(|s| s["article"] == "R133-14"), "{} cite R. 133-14", id);
+    }
+    assert!(conseils(&b).iter().all(|c| c["id"] != "conges-spectacles-droit-ouvre-1er-jour"));
+}
+
+#[test]
+fn un_conseil_sur_un_salarie_le_nomme_par_son_prenom_sans_le_genrer() {
+    // Léandre, 21/10/2026 : « le prénom seul, pas de pronom genré ». Les conseils de saisie et d'historique nomment le
+    // salarié par {prenom} (jamais {qui}, « NOM Prénom ») ; aucun ne le désigne par « il », « elle », ni par un mot qui
+    // s'accorde à son genre. « il » n'y est qu'impersonnel (« il manque », « il faut ») ; un pluriel (« ils » : les
+    // contrats) ne désigne jamais le salarié.
+    let interdits = ["elle", "indemnisé", "indemnisée", "payé", "payée", "sûr", "sûre", "celui", "celle"];
+    for c in conseils(&banque()) {
+        let quand = c["quand"].as_str().unwrap();
+        if quand == "toujours" {
+            continue;
+        }
+        let id = c["id"].as_str().unwrap();
+        for champ in ["texte", "detail"] {
+            let Some(t) = c[champ].as_str() else { continue };
+            assert!(!t.contains("{qui}"), "{} : {{qui}} au lieu de {{prenom}}", id);
+            // Hors des gabarits : `{heures|heure payée|heures payées}` accorde le mot au nombre d'heures, pas au salarié.
+            let mut hors = String::new();
+            let mut dedans = false;
+            for ch in t.chars() {
+                match ch {
+                    '{' => dedans = true,
+                    '}' => dedans = false,
+                    _ if !dedans => hors.push(ch),
+                    _ => {}
+                }
+            }
+            let mots: Vec<String> = hors
+                .split(|ch: char| !(ch.is_alphanumeric() || ch == '\'' || ch == '’'))
+                .map(|m| m.to_lowercase().replace('’', "'"))
+                .collect();
+            for (i, m) in mots.iter().enumerate() {
+                let m = m.rsplit('\'').next().unwrap_or(m);
+                assert!(!interdits.contains(&m), "{} ({}) : « {} » genre le salarié : {}", id, champ, m, t);
+                if m == "il" {
+                    let suivant = mots.get(i + 1).map(String::as_str).unwrap_or("");
+                    assert!(["manque", "faut", "reste"].contains(&suivant), "{} ({}) : « il {} » : {}", id, champ, suivant, t);
+                }
+            }
+        }
+        if quand.starts_with("saisie:") || quand == "historique:resume" {
+            continue;
+        }
+        assert!(c["texte"].as_str().unwrap().contains("{prenom}"), "{} : le salarié n'est pas nommé", id);
+    }
+    // Les conseils de saisie nomment le salarié dans leur phrase courte.
+    for c in conseils(&banque()).iter().filter(|c| c["quand"].as_str().unwrap().starts_with("saisie:")) {
+        assert!(c["texte"].as_str().unwrap().contains("{prenom}"), "{} : la phrase courte ne nomme pas le salarié", c["id"]);
     }
 }

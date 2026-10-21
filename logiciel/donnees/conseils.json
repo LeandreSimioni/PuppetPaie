@@ -1,6 +1,6 @@
 {
-  "_quoi": "LA BANQUE DES CONSEILS « Le saviez-vous ? » (ticket 224). Une option de la compagnie (fiche Entreprise, `conseils`, décochée par défaut) les montre : un conseil général à l'accueil (`quand` = « toujours »), un conseil de saisie sous la carte d'engagement quand un fait de la saisie l'appelle (`saisie:<condition>`), des conseils sur ce que la compagnie a fait, dans le dossier du salarié (`historique:<condition>`). Le moteur évalue les conditions (`paie/src/conseils.rs`) ; le texte, ses chiffres et sa source vivent ici : un conseil s'ajoute sans toucher au moteur. Un conseil `suspendu` ne s'affiche pas (un point que Léandre n'a pas tranché).",
-  "_gabarits": "Dans `texte` : {annee} (l'année du barème lu, celle du jour) ; {bareme:chemin} et {minima:chemin}, une valeur lue dans `donnees/baremes/<annee>.json` ou `donnees/minima-conventionnels.json` (chemin séparé par « / » ; « id=x » choisit l'élément d'une liste dont `id` vaut x ; « *n » ou « /n » après le chemin multiplie ou divise) : un chiffre daté ne s'écrit jamais en dur ; {variable}, une valeur que la condition fournit ; {variable|singulier|pluriel}, le nombre suivi du mot accordé ; {variable?singulier|pluriel}, le mot seul. Un gabarit qui ne se résout pas tait le conseil.",
+  "_quoi": "LA BANQUE DES CONSEILS « Le saviez-vous ? » (ticket 224). Une option de la compagnie (fiche Entreprise, `conseils`, décochée par défaut) les montre : un conseil général à l'accueil (`quand` = « toujours »), un conseil de saisie sous la carte d'engagement quand un fait de la saisie l'appelle (`saisie:<condition>`), des conseils sur ce que la compagnie a fait, dans le dossier du salarié (`historique:<condition>`). Le moteur évalue les conditions (`paie/src/conseils.rs`) ; le texte, ses chiffres et sa source vivent ici : un conseil s'ajoute sans toucher au moteur. Un conseil de saisie a une phrase courte (`texte`, sous la carte) et peut avoir un `detail` (les deux faces, les chiffres), que l'écran déplie derrière « pourquoi ? » avec la référence. Le salarié s'y nomme par son seul prénom ({prenom}), jamais par un pronom qui le genre (Léandre, 21/10/2026). Plusieurs conseils d'une même condition : le premier dont les gabarits se résolvent parle (ainsi la variante « -minime », quand le coût en jours d'allocation s'arrondit à zéro). Un conseil `suspendu` ne s'affiche pas (un point que Léandre n'a pas tranché).",
+  "_gabarits": "Dans `texte` et `detail` : {annee} (l'année du barème lu, celle du jour) ; {bareme:chemin} et {minima:chemin}, une valeur lue dans `donnees/baremes/<annee>.json` ou `donnees/minima-conventionnels.json` (chemin séparé par « / » ; « id=x » choisit l'élément d'une liste dont `id` vaut x ; « *n » ou « /n » après le chemin multiplie ou divise) : un chiffre daté ne s'écrit jamais en dur ; {variable}, une valeur que la condition fournit ({prenom} : le prénom du salarié ; {jours_perdus} : le coût en jours d'allocation, au demi-jour le plus proche, absent quand il s'arrondit à zéro) ; {variable|singulier|pluriel}, le nombre suivi du mot accordé ; {variable?singulier|pluriel}, le mot seul. Un gabarit qui ne se résout pas tait le conseil.",
   "_source": "Chaque `source` (ou chacune d'une liste) nomme un fichier déposé du dépôt, l'endroit (`article` ; `code` pour l'entrepôt LEGI) et une citation qu'on y lit à l'identique (fragments séparés par « […] », à la casse, aux espaces et aux guillemets près) : le test `fichiers::conseils_banque` le vérifie. La rédaction : `atelier/reference/sources/conseils/LISEZ-MOI.md`.",
   "documents": {
     "atelier/README.md": "Mode d'emploi de PuppetPaie",
@@ -39,7 +39,12 @@
     "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt": "Assurance chômage, annexe VIII (techniciens)",
     "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt": "Urssaf, taux réduits des artistes du spectacle",
     "atelier/reference/sources/legi-entrepot/articles.jsonl.gz#travail": "Code du travail",
-    "atelier/reference/sources/legi-entrepot/articles.jsonl.gz#securite-sociale": "Code de la sécurité sociale"
+    "atelier/reference/sources/legi-entrepot/articles.jsonl.gz#securite-sociale": "Code de la sécurité sociale",
+    "atelier/reference/norme-dsn/texte/chapitre-5-modeles.txt": "Norme DSN, cahier technique, chapitre 5 (les modèles de déclaration)",
+    "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2062-derogations-fin-de-contrat-fctu-20250905.txt": "net-entreprises, fiche 2062 (dérogations au signalement de fin de contrat)",
+    "atelier/reference/sources/majoration-caisses-conges/audiens-fiche-pratique-conges-spectacles-202302.txt": "Audiens, fiche pratique Congés Spectacles (2023)",
+    "atelier/reference/sources/conseils/cour-des-comptes-caisse-conges-spectacles-s2021-1136-20261021.txt": "Cour des comptes, la Caisse des Congés Spectacles (S2021-1136)",
+    "atelier/reference/sources/legi-entrepot/articles.jsonl.gz#evenements-dsn-2013": "Arrêté du 2 juillet 2013 (délai des signalements de la DSN)"
   },
   "annexes": {
     "_quoi": "Ce que l'article 30 des annexes dit d'un mois travaillé pendant l'indemnisation : les heures font des jours de travail (10 h par jour en X, 8 h en VIII), chaque jour retire un coefficient de jours d'allocation, et au-delà d'un nombre de jours aucune allocation n'est versée ; un technicien n'a que 208 heures retenues par mois pour ses 507 heures (250 avec plusieurs employeurs).",
@@ -289,7 +294,7 @@
       "domaine": "chômage / travail pendant l'indemnisation",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Le salaire d'un intermittent indemnisé et son allocation du mois ne peuvent pas dépasser ensemble 1,18 fois le plafond mensuel de la Sécurité sociale (soit {bareme:plafond_securite_sociale/mensuel*1.18,2} € en {annee}). Au-delà, l'allocation est réduite pour ne pas dépasser ce total : un salaire plus élevé n'ajoute alors rien à ce qu'il touche, côté allocation.",
+      "texte": "Le salaire d'un intermittent indemnisé et son allocation du mois ne peuvent pas dépasser ensemble 1,18 fois le plafond mensuel de la Sécurité sociale (soit {bareme:plafond_securite_sociale/mensuel*1.18,2} € en {annee}). Au-delà, l'allocation est réduite pour ne pas dépasser ce total : un salaire plus élevé n'ajoute alors rien, côté allocation.",
       "source": {
         "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
         "article": "art. 30",
@@ -359,7 +364,7 @@
       "domaine": "chômage / rattrapage",
       "public": "artiste, technicien",
       "quand": "toujours",
-      "texte": "Pour bénéficier de la clause de rattrapage, l'intermittent doit en faire la demande dans les 30 jours après l'envoi de la notification de France Travail ; sans réponse, il y renonce. C'est utile à rappeler à un salarié dont les heures sont proches du seuil.",
+      "texte": "Pour bénéficier de la clause de rattrapage, l'intermittent doit en faire la demande dans les 30 jours après l'envoi de la notification de France Travail ; sans demande dans ce délai, la clause est perdue. C'est utile à rappeler à un salarié dont les heures sont proches du seuil.",
       "source": {
         "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
         "article": "art. 9 §1 e)",
@@ -429,7 +434,7 @@
       "domaine": "chômage / arrêts",
       "public": "employeur, artiste, technicien",
       "quand": "toujours",
-      "texte": "Un congé maternité ou d'adoption indemnisé par la Sécurité sociale, pris hors contrat, compte aussi pour 5 heures par jour dans les 507 heures de la salariée. S'il y a eu un arrêt en cours de période, le salaire de référence est même réajusté pour ne pas pénaliser l'allocation.",
+      "texte": "Un congé maternité ou d'adoption indemnisé par la Sécurité sociale, pris hors contrat, compte aussi pour 5 heures par jour dans les 507 heures. S'il y a eu un arrêt en cours de période, le salaire de référence est même réajusté pour ne pas pénaliser l'allocation.",
       "source": {
         "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
         "article": "art. 3 §3 a)",
@@ -513,7 +518,7 @@
       "domaine": "chômage / quelle annexe",
       "public": "employeur, artiste, technicien",
       "quand": "toujours",
-      "texte": "Un salarié qui a été à la fois artiste et technicien relève de l'annexe où il a totalisé le plus d'heures sur la période : annexe X (artistes) ou VIII (techniciens). Le métier inscrit sur votre contrat et votre attestation décide donc de la règle qui s'appliquera à lui.",
+      "texte": "Un salarié qui a été à la fois artiste et technicien relève de l'annexe où ses heures sont les plus nombreuses sur la période : annexe X (artistes) ou VIII (techniciens). Le métier inscrit sur votre contrat et votre attestation décide donc de la règle qui s'appliquera.",
       "source": {
         "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
         "article": "« Qu'est-ce qu'un intermittent du spectacle ? »",
@@ -706,19 +711,25 @@
       "certitude": "sourcé"
     },
     {
-      "id": "conges-spectacles-droit-ouvre-1er-jour",
+      "id": "conges-spectacles-ce-que-finance-la-cotisation",
       "domaine": "Congés Spectacles",
-      "public": "employeur, artiste",
+      "public": "employeur",
       "quand": "toujours",
-      "texte": "Les Congés Spectacles concernent les artistes et techniciens en CDD de moins de 12 mois, que ce soit ponctuel ou régulier. Selon Audiens, le droit à congé est ouvert dès le premier jour de travail, et l'indemnité est soumise aux cotisations sociales comme un salaire.",
-      "source": {
-        "fichier": "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-flyer-artistes-202604-20261021.txt",
-        "article": "",
-        "citation": "Le droit à congé est ouvert dès le 1er jour de travail. Comme vos salaires, cette indemnité de Congés Spectacles donne lieu au calcul de cotisations sociales et ouvre donc des droits à prestations (Assurance maladie, Retraite de base et complémentaire...)."
-      },
+      "texte": "Les {bareme:rubriques_bulletin/id=conges_spec/taux_pat} % que vous versez à la Caisse des Congés Spectacles financent les congés payés de vos salariés : environ 10 % de leur salaire en indemnité, plus les cotisations sociales sur cette indemnité. Les frais de gestion représentent environ 2 % de ces cotisations. Vos salariés demandent eux-mêmes leur indemnité à la Caisse.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/majoration-caisses-conges/audiens-fiche-pratique-conges-spectacles-202302.txt",
+          "article": "exemple de calcul",
+          "citation": "L'artiste fait sa demande de congés à la caisse pour percevoir ses droits. […] L'indemnité de congés payés est de 10% du salaire de référence (10 % de 400 = 40 €). […] Il reste 21,60 € pour la part patronale et les frais de gestion."
+        },
+        {
+          "fichier": "atelier/reference/sources/conseils/cour-des-comptes-caisse-conges-spectacles-s2021-1136-20261021.txt",
+          "article": "frais de gestion",
+          "citation": "Le ratio des charges de gestion de la Caisse, intégrant celles afférentes au Guso, sur les cotisations s'établit donc, en fin de période à 1,9%."
+        }
+      ],
       "ciblage": "aucun",
-      "certitude": "sourcé (voir contradiction avec D7121-31 dans le rapport : à ne pas diffuser avant arbitrage)",
-      "suspendu": "Non tranché (Léandre) : D7121-31 « au moins quatre semaines d'engagement ou de trente cachets » contre Audiens « dès le 1er jour de travail »."
+      "certitude": "sourcé (texte de Léandre, 21/10/2026 ; remplace `conges-spectacles-droit-ouvre-1er-jour`, qui opposait D. 7121-31 à Audiens)"
     },
     {
       "id": "conges-spectacles-taxe-apprentissage-employeur",
@@ -767,7 +778,7 @@
       "domaine": "santé",
       "public": "artiste, technicien",
       "quand": "toujours",
-      "texte": "Un artiste ou un technicien intermittent peut souscrire la complémentaire santé collective du spectacle (Audiens) s'il justifie de 24 cachets ou jours de travail sur l'année civile précédente, chez un ou plusieurs employeurs du champ. C'est un argument à connaître si vous employez des intermittents sans mutuelle d'entreprise.",
+      "texte": "Un artiste ou un technicien intermittent peut souscrire la complémentaire santé collective du spectacle (Audiens) en justifiant de 24 cachets ou jours de travail sur l'année civile précédente, chez un ou plusieurs employeurs du champ. C'est un argument à connaître si vous employez des intermittents sans mutuelle d'entreprise.",
       "source": {
         "fichier": "atelier/reference/sources/accord-interbranche-prevoyance-intermittents/audiens-essentiel-regime-intermittents-20220425.txt",
         "article": "« Qui peut adhérer à la Garantie Santé Intermittents ? »",
@@ -795,7 +806,7 @@
       "domaine": "prévoyance",
       "public": "employeur, artiste, technicien",
       "quand": "toujours",
-      "texte": "Pour un intermittent en arrêt maladie, la prévoyance du spectacle verse une indemnité journalière à partir du 91e jour d'arrêt continu (20 % de son salaire de base). Pour y avoir droit, il doit avoir 24 jours de travail ou cachets dans les 12 mois, ou 48 dans les 24 mois, avant l'arrêt.",
+      "texte": "Pour un intermittent en arrêt maladie, la prévoyance du spectacle verse une indemnité journalière à partir du 91e jour d'arrêt continu (20 % de son salaire de base). Pour y avoir droit, il faut 24 jours de travail ou cachets dans les 12 mois, ou 48 dans les 24 mois, avant l'arrêt.",
       "source": {
         "fichier": "atelier/reference/sources/accord-interbranche-prevoyance-intermittents/audiens-essentiel-regime-intermittents-20220425.txt",
         "article": "« Incapacité temporaire totale de travail »",
@@ -851,7 +862,7 @@
       "domaine": "formation / Afdas",
       "public": "tous",
       "quand": "toujours",
-      "texte": "Pour être financé par l'Afdas, un intermittent n'a pas besoin d'être indemnisé par France Travail : les deux sont indépendants. Un salarié qui n'a pas ses 507 heures peut quand même se former, s'il a assez de jours ou cachets sur 2 ans.",
+      "texte": "Pour être financé par l'Afdas, un intermittent n'a pas besoin d'être indemnisé par France Travail : les deux sont indépendants. Un salarié qui n'a pas ses 507 heures peut quand même se former, avec assez de jours ou cachets sur 2 ans.",
       "source": {
         "fichier": "atelier/reference/sources/conseils/afdas-intermittents-conditions-20261021.md",
         "article": "",
@@ -995,7 +1006,7 @@
       "domaine": "conventions / minima",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Dans les entreprises artistiques et culturelles, le cachet minimum d'un artiste dramatique engagé moins d'un mois n'est pas le même selon qu'il a 1 ou 2 cachets dans le mois, ou plus de 2 : le minimum de chaque cachet est plus bas au-delà de 2. Regrouper les dates dans le mois peut donc faire baisser le minimum de chaque cachet.",
+      "texte": "Dans les entreprises artistiques et culturelles, le cachet minimum d'un artiste dramatique engagé moins d'un mois dépend du nombre de ses cachets dans le mois : 1 ou 2, ou plus de 2. Le minimum de chaque cachet est plus bas au-delà de 2 : regrouper les dates dans le mois peut donc faire baisser le minimum de chaque cachet.",
       "source": {
         "fichier": "atelier/reference/sources/kali-1285-x3-remuneration-artistes-20260929.md",
         "article": "X.3.1 C",
@@ -1065,7 +1076,7 @@
       "domaine": "conventions / musiciens",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Dans le spectacle vivant privé, le cachet d'un musicien correspond à un service de 3 h 30 indivisible (répétition, enregistrement ou représentation), avec une pause de 20 minutes, et son temps de travail ne peut pas dépasser 7 heures par jour. S'il joue plusieurs instruments, sa rémunération est d'au moins 110 % du minimum, et 120 % s'il participe au jeu de scène.",
+      "texte": "Dans le spectacle vivant privé, le cachet d'un musicien correspond à un service de 3 h 30 indivisible (répétition, enregistrement ou représentation), avec une pause de 20 minutes, et son temps de travail ne peut pas dépasser 7 heures par jour. Jouer plusieurs instruments porte sa rémunération à au moins 110 % du minimum, et participer au jeu de scène à 120 %.",
       "source": {
         "fichier": "atelier/reference/sources/chomage-intermittents/kali-3090-repetitions-cachets-representations-20261020.md",
         "article": "KALIARTI000028157549",
@@ -1079,7 +1090,7 @@
       "domaine": "conventions / répétitions",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Dans le spectacle vivant privé, un service de répétition annulé moins de 72 heures à l'avance (48 heures pour un musicien) reste dû à l'artiste, sauf s'il est reporté le même jour. Une répétition payée est aussi comptée dans ses 507 heures s'il est artiste : l'annulation tardive a donc un coût et un effet.",
+      "texte": "Dans le spectacle vivant privé, un service de répétition annulé moins de 72 heures à l'avance (48 heures pour un musicien) reste dû à l'artiste, sauf report le même jour. Une répétition payée compte aussi dans les 507 heures d'un artiste : l'annulation tardive a donc un coût et un effet.",
       "source": {
         "fichier": "atelier/reference/sources/chomage-intermittents/kali-3090-repetitions-cachets-representations-20261020.md",
         "article": "KALIARTI000028157526",
@@ -1135,7 +1146,7 @@
       "domaine": "conventions / cachets",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Dans le spectacle vivant privé (théâtre musical), pour un spectacle joué en exploitation continue, un artiste a droit à au moins 30 fois son cachet si les répétitions durent 30 jours ou moins. Entre 30 et 50 jours de répétition, il reçoit autant de cachets que de jours de répétition.",
+      "texte": "Dans le spectacle vivant privé (théâtre musical), pour un spectacle joué en exploitation continue, un artiste a droit à au moins 30 fois son cachet si les répétitions durent 30 jours ou moins. Entre 30 et 50 jours de répétition, l'artiste reçoit autant de cachets que de jours de répétition.",
       "source": {
         "fichier": "atelier/reference/sources/chomage-intermittents/kali-3090-repetitions-cachets-representations-20261020.md",
         "article": "KALIARTI000028157521",
@@ -1193,7 +1204,7 @@
       "domaine": "déclarations",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Une seule DPAE vous épargne plusieurs démarches : elle vaut immatriculation de votre salarié à l'Assurance Maladie s'il n'a pas encore de numéro, affiliation de votre entreprise à l'assurance chômage, demande d'adhésion à un service de santé au travail et demande de visite médicale d'information. Vous n'avez pas à les refaire à part.",
+      "texte": "Une seule DPAE vous épargne plusieurs démarches : elle vaut immatriculation à l'Assurance Maladie d'un salarié qui n'a pas encore de numéro, affiliation de votre entreprise à l'assurance chômage, demande d'adhésion à un service de santé au travail et demande de visite médicale d'information. Vous n'avez pas à les refaire à part.",
       "source": {
         "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
         "code": "travail",
@@ -1325,7 +1336,7 @@
       "domaine": "contrats",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Quand vous faites appel à un artiste du spectacle contre rémunération, la loi présume qu'il est votre salarié, même si vous l'appelez « prestataire » et même s'il fournit son propre matériel. Cette présomption ne tombe que s'il exerce son activité sous un statut d'entrepreneur immatriculé.",
+      "texte": "Quand vous faites appel à un artiste du spectacle contre rémunération, la loi présume un contrat de travail, même si vous parlez de « prestataire » et même quand l'artiste fournit son propre matériel. Cette présomption ne tombe que pour une activité exercée sous un statut d'entrepreneur immatriculé.",
       "source": {
         "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
         "code": "travail",
@@ -1428,7 +1439,7 @@
       "domaine": "contrats",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Un CDD, y compris d'usage, ne se rompt avant son terme que d'un commun accord, ou pour faute grave, force majeure ou inaptitude. Si vous annulez en dehors de ces cas, vous devez au salarié au moins les rémunérations qu'il aurait perçues jusqu'à la fin du contrat. Une date annulée sans accord se paie.",
+      "texte": "Un CDD, y compris d'usage, ne se rompt avant son terme que d'un commun accord, ou pour faute grave, force majeure ou inaptitude. Si vous annulez en dehors de ces cas, vous devez au salarié au moins les rémunérations prévues jusqu'à la fin du contrat. Une date annulée sans accord se paie.",
       "source": {
         "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
         "code": "travail",
@@ -1650,7 +1661,7 @@
       "domaine": "obligations / bulletins",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Vous ne pouvez exiger de votre salarié aucune signature ni émargement à la remise du bulletin, sauf pour constater qu'il a bien reçu la somme nette indiquée. Et accepter un bulletin sans réserve ne lui fait pas perdre son droit de réclamer ce qui lui est dû.",
+      "texte": "Vous ne pouvez exiger de votre salarié aucune signature ni émargement à la remise du bulletin, sauf pour constater la remise de la somme nette indiquée. Et accepter un bulletin sans réserve ne fait pas perdre au salarié son droit de réclamer ce qui lui est dû.",
       "source": {
         "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
         "code": "travail",
@@ -1665,7 +1676,7 @@
       "domaine": "obligations / bulletins",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Vous pouvez remettre les bulletins sous forme électronique, sauf si le salarié s'y oppose. Les envoyer en pièce jointe à son adresse, comme le fait PuppetPaie, est donc possible tant qu'il ne refuse pas.",
+      "texte": "Vous pouvez remettre les bulletins sous forme électronique, sauf si le salarié s'y oppose. Les envoyer en pièce jointe à son adresse, comme le fait PuppetPaie, est donc possible sauf refus de sa part.",
       "source": {
         "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
         "code": "travail",
@@ -1695,7 +1706,7 @@
       "domaine": "paie générale",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Les cotisations d'allocations familiales, qui financent les prestations familiales, sont entièrement à la charge de l'employeur : rien n'est retenu sur le salaire de votre salarié. La retraite de base (assurance vieillesse), elle, se partage entre vous et lui.",
+      "texte": "Les cotisations d'allocations familiales, qui financent les prestations familiales, sont entièrement à la charge de l'employeur : rien n'est retenu sur le salaire de votre salarié. La retraite de base (assurance vieillesse), elle, se partage entre vous et votre salarié.",
       "source": {
         "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
         "code": "securite-sociale",
@@ -2208,12 +2219,24 @@
       "domaine": "déclarations",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Pour un CDD d'usage du spectacle, la fin de contrat peut se déclarer directement dans la DSN mensuelle, sans signalement séparé (c'est le « circuit dérogatoire »), si le salarié est d'accord. France Travail vous renvoie dans les 48 heures les attestations employeur de vos salariés. Pour un CDI ou un CDD classique, le signalement reste obligatoire.",
-      "source": {
-        "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche673-rappel-signalements-arret-reprise-fin-de-contrat-20250513.txt",
-        "article": "",
-        "citation": "Dans le cas des CDD d'usage, il est possible que l'employeur, avec l'accord du salarié, ait recours au dispositif dérogatoire de déclaration de la fin de contrat."
-      },
+      "texte": "Un CDD d'usage déclaré en circuit dérogatoire n'a pas de signalement de fin de contrat : sa fin part dans la DSN mensuelle, sauf demande expresse du salarié. France Travail renvoie alors sous 48 heures les attestations employeur. Un CDI ou un CDD classique, lui, se signale toujours.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2062-derogations-fin-de-contrat-fctu-20250905.txt",
+          "article": "",
+          "citation": "Aucun signalement de type FCTU n'est attendu quand la dérogation est appliquée, sauf demande expresse du salarié."
+        },
+        {
+          "fichier": "atelier/reference/norme-dsn/texte/chapitre-5-modeles.txt",
+          "article": "§ 5.2",
+          "citation": "Le signalement d'évènement doit être transmis dans les cinq jours ouvrés qui suivent la survenance de la fin du contrat de travail sauf dans le cadre des dérogations existantes […] déclarant ayant recours à la dérogation pour les contrats d'usage infra-DSN mensuelle (sauf demande expresse du salarié)."
+        },
+        {
+          "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche1903-retours-france-travail-cddu-d-20250603.txt",
+          "article": "",
+          "citation": "France Travail met à disposition du déclarant (en mode tableau de bord ou machine to machine) sous 48h"
+        }
+      ],
       "ciblage": "quand un CDDU se termine",
       "certitude": "sourcé"
     },
@@ -2222,42 +2245,81 @@
       "domaine": "déclarations",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "La fin de contrat d'un salarié (hors circuit dérogatoire du CDDU) se signale à France Travail dans les cinq jours ouvrés. Le retour de France Travail est l'attestation employeur rematérialisée (AER) : imprimez-la et remettez-la au salarié qui part.",
-      "source": {
-        "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche119-preavis-signalement-fin-de-contrat-20250512.txt",
-        "article": "",
-        "citation": "Le signalement fin de contrat de travail doit être émis dans les cinq jours après la survenance de l'événement."
-      },
+      "texte": "La fin d'un contrat se signale dans la DSN dans les cinq jours ouvrés, sauf pour un CDD d'usage déclaré en circuit dérogatoire. Le retour de France Travail est l'attestation employeur rematérialisée (AER) : imprimez-la et remettez-la à la personne qui part.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+          "code": "securite-sociale",
+          "article": "R133-14",
+          "citation": "sont déclarés dans un délai fixé par arrêté conjoint du ministre chargé de la sécurité sociale et du ministre chargé de l'emploi, qui ne peut excéder cinq jours ouvrés, la fin du contrat de travail"
+        },
+        {
+          "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+          "code": "evenements-dsn-2013",
+          "article": "1",
+          "citation": "Le délai prévu par le II de l'article R. 133-14 du code de la sécurité sociale est fixé à cinq jours ouvrés."
+        },
+        {
+          "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche119-preavis-signalement-fin-de-contrat-20250512.txt",
+          "article": "",
+          "citation": "d'imprimer l'attestation employeur rematérialisée (AER) et de la transmettre au salarié quittant l'entreprise"
+        }
+      ],
       "ciblage": "quand un CDI ou un CDD classique se termine",
-      "certitude": "sourcé",
-      "suspendu": "Non tranché (Léandre) : le délai des signalements, « 5 jours » (fiches 113, 119), « 5 jours ouvrés » (fiche 673, arrêté du 02/07/2013) ou « ouvrables » (cahier technique)."
+      "certitude": "sourcé (CSS R. 133-14 II, en vigueur depuis le 01/07/2026, et arrêté du 2 juillet 2013 : « cinq jours ouvrés » ; tranché par Léandre le 21/10/2026)"
     },
     {
       "id": "signalement-arret-cinq-jours",
       "domaine": "déclarations",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Quand un salarié est en arrêt maladie, il faut le signaler dans les cinq jours ouvrés après en avoir eu connaissance. Sans ce signalement, l'Assurance Maladie ne peut pas établir l'attestation de salaire qui permet de lui verser ses indemnités journalières.",
-      "source": {
-        "fichier": "atelier/reference/sources/echeances-dsn/net-entreprises-fiche113-signalement-arret-de-travail-20220211.txt",
-        "article": "",
-        "citation": "Dès lors qu'un arrêt de travail est constaté, un signalement doit obligatoirement être émis (dans un délai de 5 jours). En effet, sans signalement, aucune attestation de salaire ne peut être reconstituée par le système pour le versement des indemnités journalières du salarié."
-      },
-      "ciblage": "quand un arrêt est saisi dans le logiciel",
-      "certitude": "sourcé",
-      "suspendu": "Non tranché (Léandre) : le délai des signalements, « 5 jours » (fiches 113, 119), « 5 jours ouvrés » (fiche 673, arrêté du 02/07/2013) ou « ouvrables » (cahier technique)."
+      "texte": "Sans subrogation, un arrêt de travail se signale dans la DSN dans les cinq jours ouvrés. Sans ce signalement, l'Assurance Maladie ne peut pas établir l'attestation de salaire qui permet de verser les indemnités journalières.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+          "code": "securite-sociale",
+          "article": "R133-14",
+          "citation": "qui ne peut excéder cinq jours ouvrés, la fin du contrat de travail ainsi que, lorsque l'employeur n'est pas subrogé dans les droits de l'assuré aux indemnités journalières, le début et la fin de l'arrêt de travail"
+        },
+        {
+          "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+          "code": "evenements-dsn-2013",
+          "article": "1",
+          "citation": "Le délai prévu par le II de l'article R. 133-14 du code de la sécurité sociale est fixé à cinq jours ouvrés."
+        },
+        {
+          "fichier": "atelier/reference/sources/echeances-dsn/net-entreprises-fiche113-signalement-arret-de-travail-20220211.txt",
+          "article": "",
+          "citation": "sans signalement, aucune attestation de salaire ne peut être reconstituée par le système pour le versement des indemnités journalières du salarié."
+        }
+      ],
+      "ciblage": "quand un arrêt est saisi sans subrogation",
+      "certitude": "sourcé (CSS R. 133-14 II, en vigueur depuis le 01/07/2026, et arrêté du 2 juillet 2013 : « cinq jours ouvrés » ; tranché par Léandre le 21/10/2026)"
     },
     {
       "id": "signalement-arret-subrogation",
       "domaine": "déclarations",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Si vous maintenez le salaire pendant l'arrêt et touchez vous-même les indemnités de la Sécurité sociale (c'est la « subrogation »), vous avez jusqu'à l'échéance de la DSN pour signaler l'arrêt. Sans subrogation, le signalement est urgent : c'est lui qui permet à la caisse de verser les indemnités au salarié.",
-      "source": {
-        "fichier": "atelier/reference/sources/echeances-dsn/net-entreprises-fiche113-signalement-arret-de-travail-20220211.txt",
-        "article": "",
-        "citation": "L'entreprise effectue la subrogation […] L'arrêt de travail peut être émis à la même échéance que la DSN mensuelle."
-      },
+      "texte": "Si vous êtes subrogé (vous maintenez le salaire pendant l'arrêt et touchez vous-même les indemnités de la Sécurité sociale), l'arrêt se signale au plus tard avec la DSN mensuelle du mois. Sans subrogation, c'est dans les cinq jours ouvrés : le signalement permet à la caisse de verser les indemnités.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+          "code": "securite-sociale",
+          "article": "R133-14",
+          "citation": "est effectuée au plus tard en même temps que la déclaration sociale nominative relative au mois au cours duquel cet événement est survenu. […] lorsque l'employeur n'est pas subrogé dans les droits de l'assuré aux indemnités journalières"
+        },
+        {
+          "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche673-rappel-signalements-arret-reprise-fin-de-contrat-20250513.txt",
+          "article": "",
+          "citation": "En cas de subrogation, les signalements d'événement « Arrêt de travail » peuvent être émis à la même échéance que la DSN mensuelle."
+        },
+        {
+          "fichier": "atelier/reference/sources/echeances-dsn/net-entreprises-fiche113-signalement-arret-de-travail-20220211.txt",
+          "article": "",
+          "citation": "L'entreprise effectue la subrogation […] L'arrêt de travail peut être émis à la même échéance que la DSN mensuelle."
+        }
+      ],
       "ciblage": "quand un arrêt est saisi avec ou sans subrogation",
       "certitude": "sourcé"
     },
@@ -2380,7 +2442,7 @@
       "domaine": "logiciel / contrats",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Votre artiste peut signer son contrat en un clic : il reçoit un bouton « Je signe », sa messagerie prépare la réponse avec un code, et PuppetPaie relève le message, le range comme preuve, puis lui renvoie le contrat contresigné. C'est une signature électronique « simple » : elle identifie le signataire par son adresse et la lie à l'acte.",
+      "texte": "Votre artiste peut signer son contrat en un clic : l'artiste reçoit un bouton « Je signe », sa messagerie prépare la réponse avec un code, et PuppetPaie relève le message, le range comme preuve, puis renvoie le contrat contresigné. C'est une signature électronique « simple » : elle identifie le signataire par son adresse et la lie à l'acte.",
       "source": {
         "fichier": "atelier/README.md",
         "article": "§ « Le contrat se signe d'un clic »",
@@ -2408,7 +2470,7 @@
       "id": "saisie-mois-sature",
       "domaine": "chômage / travail pendant l'indemnisation",
       "public": "employeur",
-      "texte": "{qui} : vos contrats lui font déjà {heures} heures en {mois}. À partir de {seuil} heures dans le mois ({jours} jours de travail comptés à {heures_par_jour} heures), France Travail ne lui verse aucune allocation pour ce mois : des heures de plus ce mois-ci ne lui retirent donc rien de ce côté.",
+      "texte": "En {mois}, {prenom} a déjà {heures} heures chez vous : des heures de plus ce mois-ci ne retirent rien à ses allocations.",
       "source": [
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
@@ -2427,14 +2489,15 @@
         }
       ],
       "ciblage": "les heures du salarié dans le mois, chez vous (cachets à 12 heures, plus les heures), atteignent le seuil de son annexe (artiste : annexe X, 27 jours de 10 h ; technicien : annexe VIII, 26 jours de 8 h)",
-      "certitude": "sourcé (les heures des autres employeurs, inconnues, ne peuvent qu'ajouter)"
+      "certitude": "sourcé (les heures des autres employeurs, inconnues, ne peuvent qu'ajouter)",
+      "detail": "À partir de {seuil} heures dans le mois ({jours} jours de travail comptés à {heures_par_jour} heures), France Travail ne verse aucune allocation pour ce mois."
     },
     {
       "quand": "saisie:plus-de-28-cachets",
       "id": "saisie-plus-de-28-cachets",
       "domaine": "chômage / plafond mensuel",
       "public": "employeur",
-      "texte": "{qui} : {cachets} cachets en {mois} chez vous. Au-delà de {plafond} cachets dans un même mois, les suivants ne comptent ni pour ses 507 heures ni dans le salaire qui sert à calculer son allocation : {perdus|cachet ne comptera|cachets ne compteront} pas.",
+      "texte": "{prenom} a {cachets} cachets chez vous en {mois} : au-delà de {plafond}, {perdus|cachet ne comptera|cachets ne compteront} pas pour ses droits.",
       "source": [
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
@@ -2448,14 +2511,15 @@
         }
       ],
       "ciblage": "les cachets du salarié dans la saisie du mois dépassent 28 (simple information : pas de conseil de report)",
-      "certitude": "sourcé"
+      "certitude": "sourcé",
+      "detail": "Au-delà de {plafond} cachets dans un même mois, les suivants ne comptent ni pour les 507 heures ni dans le salaire qui sert à calculer l'allocation."
     },
     {
       "quand": "saisie:technicien-plus-de-208-heures",
       "id": "saisie-technicien-plus-de-208-heures",
       "domaine": "chômage / plafond mensuel",
       "public": "employeur",
-      "texte": "{qui} : {heures} heures en {mois} chez vous. Pour un technicien, France Travail ne retient que {plafond} heures par mois pour ses 507 heures ({plafond_majore} s'il a travaillé pour plusieurs employeurs dans le mois) : les heures au-delà ne lui comptent pas.",
+      "texte": "{prenom} a {heures} heures chez vous en {mois} : pour les 507 heures des techniciens, France Travail n'en retient que {plafond} par mois.",
       "source": [
         {
           "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
@@ -2469,14 +2533,15 @@
         }
       ],
       "ciblage": "un technicien (annexe VIII) dont les heures du mois, chez vous, dépassent 208",
-      "certitude": "sourcé (le chiffre 208 vient du guide ; l'annexe renvoie à L. 3121-21)"
+      "certitude": "sourcé (le chiffre 208 vient du guide ; l'annexe renvoie à L. 3121-21)",
+      "detail": "La limite passe à {plafond_majore} heures quand {prenom} a travaillé pour plusieurs employeurs dans le mois. Les heures au-delà ne comptent pas pour ses droits."
     },
     {
       "quand": "saisie:repetition-en-cachet",
       "id": "saisie-repetition-en-cachet",
       "domaine": "chômage / heures des artistes",
       "public": "employeur",
-      "texte": "{qui} : ses répétitions de ce contrat comptent {heures_avant} heures pour ses droits ({nb_jours|jour|jours}, {montant_jour} € par jour). Sa convention prévoit un cachet de répétition pour 1 ou 2 services dans la même journée, d'au moins {minimum} € : payé ainsi, chaque jour compterait {heures_cachet} heures, soit {gain} heures de plus. C'est précieux s'il lui manque des heures pour ses 507 heures ; s'il est sûr de les atteindre et qu'il est indemnisé ce mois-ci, mieux vaut s'abstenir : il perdrait environ {jours_perdus|jour|jours} d'allocation.",
+      "texte": "Payées en cachets de répétition, les répétitions de {prenom} compteraient {gain|heure|heures} de plus pour ses 507 heures.",
       "source": [
         {
           "fichier": "atelier/reference/sources/legifrance-3090-avenant-salaires-20250721.md",
@@ -2495,14 +2560,42 @@
         }
       ],
       "ciblage": "un artiste de la convention 3090 (hors musicien de l'annexe 1) dont une ligne « Service de répétition » à dates connues compte moins de 12 heures par jour pour une somme par jour au moins égale au cachet de répétition de la convention ; ni ses 507 heures assurées chez vous, ni un mois déjà sans allocation",
-      "certitude": "sourcé ; le coût en jours est l'article 30 (heures ÷ 10 × 1,3), qui ne vaut que s'il est indemnisé ce mois-là"
+      "certitude": "sourcé ; le coût en jours est l'article 30 (heures ÷ 10 × 1,3), qui ne vaut que s'il est indemnisé ce mois-là",
+      "detail": "Ces répétitions comptent aujourd'hui {heures_avant|heure|heures} ({nb_jours|jour|jours}, {montant_jour} € par jour). La convention prévoit un cachet de répétition pour 1 ou 2 services dans la même journée, d'au moins {minimum} € : en cachet, chaque jour compterait {heures_cachet} heures. C'est précieux s'il manque des heures à {prenom} pour ses 507 heures. Si ses 507 heures sont déjà assurées et que {prenom} touche ses allocations ce mois-ci, mieux vaut s'abstenir : {prenom} perdrait environ {jours_perdus|jour|jours} d'allocation."
+    },
+    {
+      "quand": "saisie:repetition-en-cachet",
+      "id": "saisie-repetition-en-cachet-minime",
+      "domaine": "chômage / heures des artistes",
+      "public": "employeur",
+      "texte": "Payées en cachets de répétition, les répétitions de {prenom} compteraient {gain|heure|heures} de plus pour ses 507 heures.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/legifrance-3090-avenant-salaires-20250721.md",
+          "article": "grille des cachets de répétition",
+          "citation": "Cachet de répétition (pour 1 ou 2 services de répétition dans la même journée)"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "base de 1 cachet égal 12 heures."
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "le nombre de jours de travail au cours du mois civil est déterminé en fonction du nombre d'heures de travail effectuées à raison de dix heures par jour"
+        }
+      ],
+      "ciblage": "comme saisie-repetition-en-cachet, quand le coût en jours d'allocation s'arrondit à zéro (moins d'un quart de jour)",
+      "certitude": "sourcé ; le coût en jours est l'article 30 (heures ÷ 10 × 1,3), qui ne vaut que s'il est indemnisé ce mois-là",
+      "detail": "Ces répétitions comptent aujourd'hui {heures_avant|heure|heures} ({nb_jours|jour|jours}, {montant_jour} € par jour). La convention prévoit un cachet de répétition pour 1 ou 2 services dans la même journée, d'au moins {minimum} € : en cachet, chaque jour compterait {heures_cachet} heures. C'est précieux s'il manque des heures à {prenom} pour ses 507 heures. Un mois où {prenom} touche ses allocations, le coût serait de moins d'un demi-jour d'allocation."
     },
     {
       "quand": "saisie:heures-pour-la-meme-somme",
       "id": "saisie-heures-pour-la-meme-somme",
       "domaine": "chômage / heures",
       "public": "employeur",
-      "texte": "{qui} : {heures|heure payée|heures payées} {montant} €, soit {taux} € de l'heure, au-dessus du minimum de sa convention ({minimum} € de l'heure). La même somme couvre jusqu'à {heures_max} heures au minimum : un engagement plus long compterait jusqu'à {gain} heures de plus pour ses 507 heures. C'est précieux s'il lui en manque ; s'il est sûr de les atteindre et qu'il est indemnisé ce mois-ci, mieux vaut s'abstenir : il perdrait environ {jours_perdus|jour|jours} d'allocation.",
+      "texte": "Pour la même somme, un engagement plus long compterait jusqu'à {gain|heure|heures} de plus pour les 507 heures de {prenom}.",
       "source": [
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
@@ -2516,14 +2609,15 @@
         }
       ],
       "ciblage": "une ligne payée à l'heure dont la convention fixe un minimum horaire (minima.rs), payée au-dessus : la même somme, au minimum, couvre au moins une heure de plus ; ni ses 507 heures assurées chez vous, ni un mois déjà sans allocation",
-      "certitude": "sourcé ; le coût en jours est l'article 30 (VIII : heures ÷ 8 × 1,4 ; X : ÷ 10 × 1,3), qui ne vaut que s'il est indemnisé ce mois-là"
+      "certitude": "sourcé ; le coût en jours est l'article 30 (VIII : heures ÷ 8 × 1,4 ; X : ÷ 10 × 1,3), qui ne vaut que s'il est indemnisé ce mois-là",
+      "detail": "{heures|heure payée|heures payées} {montant} €, soit {taux} € de l'heure, au-dessus du minimum de la convention ({minimum} € de l'heure) : la même somme couvre jusqu'à {heures_max|heure|heures} au minimum. C'est précieux s'il manque des heures à {prenom}. Si ses 507 heures sont déjà assurées et que {prenom} touche ses allocations ce mois-ci, mieux vaut s'abstenir : {prenom} perdrait environ {jours_perdus|jour|jours} d'allocation."
     },
     {
       "quand": "saisie:507-assurees",
       "id": "saisie-507-assurees",
       "domaine": "chômage / travail pendant l'indemnisation",
       "public": "employeur",
-      "texte": "{qui} : vos contrats lui font déjà compter {heures} heures {fenetre} : ses 507 heures sont assurées. S'il est indemnisé, mieux vaut un travail intense que dilué : des heures de plus pour la même somme ne lui servent plus pour ses droits, et chaque tranche de {heures_par_jour} heures déclarées lui retire {coefficient} jour d'allocation ce mois-là.",
+      "texte": "Vos seuls contrats assurent déjà les 507 heures de {prenom} : mieux vaut un travail intense que dilué.",
       "source": [
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
@@ -2537,28 +2631,30 @@
         }
       ],
       "ciblage": "à la place des deux conseils « plus d'heures » quand vos seuls contrats (historique et paies, ce mois compris) font au moins 507 heures au salarié sur la fenêtre de ses droits",
-      "certitude": "sourcé (seul cas de certitude : vos contrats suffisent)"
+      "certitude": "sourcé (seul cas de certitude : vos contrats suffisent)",
+      "detail": "Vos contrats font compter {heures} heures à {prenom} {fenetre}. Des heures de plus pour la même somme ne servent donc plus à ses droits, et un mois où {prenom} touche ses allocations, chaque tranche de {heures_par_jour} heures déclarées retire {coefficient} jour d'allocation."
     },
     {
       "quand": "saisie:enseignement",
       "id": "saisie-enseignement",
       "domaine": "chômage / enseignement",
       "public": "employeur",
-      "texte": "{qui} : ses heures d'enseignement comptent pour ses 507 heures, mais dans la limite de {plafond} heures sur la période ({plafond_50} à partir de 50 ans).",
+      "texte": "Les heures d'enseignement de {prenom} comptent pour ses 507 heures, dans la limite de {plafond} heures sur la période.",
       "source": {
         "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
         "article": "art. 3 §1",
         "citation": "La limite de 70 heures est portée à 120 heures pour les artistes âgés de 50 ans et plus"
       },
       "ciblage": "une ligne d'enseignement (rubrique qui compte pour l'ouverture des droits)",
-      "certitude": "sourcé"
+      "certitude": "sourcé",
+      "detail": "La limite passe à {plafond_50} heures à partir de 50 ans."
     },
     {
       "quand": "saisie:suspension",
       "id": "saisie-suspension",
       "domaine": "chômage / arrêts",
       "public": "employeur",
-      "texte": "{qui} : chaque jour où son contrat est suspendu (maladie, accident du travail, maternité) compte pour 5 heures dans ses 507 heures.",
+      "texte": "Chaque jour où le contrat de {prenom} est suspendu (maladie, accident du travail, maternité) compte pour 5 heures dans ses 507 heures.",
       "source": [
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
@@ -2579,21 +2675,22 @@
       "id": "saisie-cachets-et-heures",
       "domaine": "chômage / déclaration",
       "public": "employeur",
-      "texte": "{qui} est payé en cachets et en heures ce mois-ci : à France Travail, il déclare ses cachets en cachets et ses heures en heures, sans convertir lui-même ses cachets (France Travail compte {heures_cachet} heures par cachet).",
+      "texte": "Ce mois-ci, {prenom} a des cachets et des heures : à France Travail, les cachets se déclarent en cachets et les heures en heures.",
       "source": {
         "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
         "article": "« Vos obligations »",
         "citation": "Déclaration des artistes : ne reportez pas l'équivalence […] de vos cachets en heures sur vos"
       },
       "ciblage": "un artiste payé ce mois-ci en cachets et à l'heure (répétitions, heures)",
-      "certitude": "sourcé"
+      "certitude": "sourcé",
+      "detail": "Sans les convertir soi-même : France Travail compte {heures_cachet} heures par cachet."
     },
     {
       "quand": "historique:droits-ouverts",
       "id": "historique-droits-ouverts",
       "domaine": "chômage / ouverture des droits",
       "public": "employeur",
-      "texte": "Vos contrats ont fait compter {heures} heures à {qui} {fenetre} : à eux seuls, ils dépassent les {seuil} heures. Ses droits au chômage d'intermittent sont ouverts grâce à vous.",
+      "texte": "Vos contrats ont fait compter {heures} heures à {prenom} {fenetre} : à eux seuls, ils dépassent les {seuil} heures. Ses droits au chômage d'intermittent sont ouverts grâce à vous.",
       "source": {
         "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
         "article": "art. 3 §1",
@@ -2607,7 +2704,7 @@
       "id": "historique-heures-comptees",
       "domaine": "chômage / ouverture des droits",
       "public": "employeur",
-      "texte": "Vos contrats ont fait compter {heures} heures à {qui} {fenetre}, soit {pourcentage} % des {seuil} heures qui ouvrent ses droits.",
+      "texte": "Vos contrats ont fait compter {heures} heures à {prenom} {fenetre}, soit {pourcentage} % des {seuil} heures qui ouvrent ses droits.",
       "source": {
         "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
         "article": "art. 3 §1",
@@ -2621,7 +2718,7 @@
       "id": "historique-cachets-perdus",
       "domaine": "chômage / plafond mensuel",
       "public": "employeur",
-      "texte": "En {mois}, {qui} a eu {cachets} cachets chez vous : au-delà de {plafond}, {perdus|cachet ne compte|cachets ne comptent} pas pour ses droits.",
+      "texte": "En {mois}, {prenom} a eu {cachets} cachets chez vous : au-delà de {plafond}, {perdus|cachet ne compte|cachets ne comptent} pas pour ses droits.",
       "source": {
         "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
         "article": "art. 3 §1",
@@ -2635,7 +2732,7 @@
       "id": "historique-gain-des-conseils",
       "domaine": "chômage / heures",
       "public": "employeur",
-      "texte": "Payées comme les conseils de saisie le proposent, les répétitions et les heures de {qui} chez vous auraient compté {gain} heures de plus pour ses droits {fenetre}, soit {pourcentage} % des {seuil} heures. S'il était indemnisé ces mois-là, il aurait perdu environ {jours_perdus|jour|jours} d'allocation : le calcul vaut d'être fait quand il lui manque des heures.",
+      "texte": "Payées comme les conseils de saisie le proposent, les répétitions et les heures de {prenom} chez vous auraient compté {gain|heure|heures} de plus pour ses droits {fenetre}, soit {pourcentage} % des {seuil} heures. Si {prenom} touchait ses allocations ces mois-là, {prenom} aurait perdu environ {jours_perdus|jour|jours} d'allocation : le calcul vaut d'être fait quand il manque des heures à {prenom}.",
       "source": [
         {
           "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
@@ -2652,11 +2749,32 @@
       "certitude": "sourcé ; les jours perdus ne valent que s'il était indemnisé ces mois-là"
     },
     {
+      "quand": "historique:gain-des-conseils",
+      "id": "historique-gain-des-conseils-minime",
+      "domaine": "chômage / heures",
+      "public": "employeur",
+      "texte": "Payées comme les conseils de saisie le proposent, les répétitions et les heures de {prenom} chez vous auraient compté {gain|heure|heures} de plus pour ses droits {fenetre}, soit {pourcentage} % des {seuil} heures. Si {prenom} touchait ses allocations ces mois-là, le coût aurait été de moins d'un demi-jour d'allocation.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,3."
+        }
+      ],
+      "ciblage": "comme historique-gain-des-conseils, quand le coût en jours d'allocation s'arrondit à zéro",
+      "certitude": "sourcé ; les jours perdus ne valent que s'il était indemnisé ces mois-là"
+    },
+    {
       "quand": "historique:intense",
       "id": "historique-intense",
       "domaine": "chômage / travail pendant l'indemnisation",
       "public": "employeur",
-      "texte": "Ses {seuil} heures étant assurées chez vous, des heures de plus pour la même somme ne servent plus à {qui} pour ses droits : s'il est indemnisé, chaque tranche de {heures_par_jour} heures déclarées lui retire {coefficient} jour d'allocation. Pour lui, mieux vaut un travail intense que dilué.",
+      "texte": "Les {seuil} heures de {prenom} étant assurées chez vous, des heures de plus pour la même somme ne servent plus à ses droits : un mois où {prenom} touche ses allocations, chaque tranche de {heures_par_jour} heures déclarées retire {coefficient} jour d'allocation. Mieux vaut un travail intense que dilué.",
       "source": {
         "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
         "article": "art. 30",
@@ -2670,7 +2788,7 @@
       "id": "historique-enseignement-perdu",
       "domaine": "chômage / enseignement",
       "public": "employeur",
-      "texte": "{qui} a donné chez vous {heures} heures d'enseignement {fenetre} : au-delà de {plafond} heures, {perdus|heure ne compte|heures ne comptent} pas pour ses 507 heures.",
+      "texte": "{prenom} a donné chez vous {heures} heures d'enseignement {fenetre} : au-delà de {plafond} heures, {perdus|heure ne compte|heures ne comptent} pas pour ses 507 heures.",
       "source": {
         "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
         "article": "art. 3 §1",
@@ -2684,7 +2802,7 @@
       "id": "historique-resume",
       "domaine": "chômage / ouverture des droits",
       "public": "employeur",
-      "texte": "Vos contrats ont fait compter au moins {seuil} heures à {n|salarié|salariés} sur les 12 derniers mois ({noms}) : {n?son droit au chômage est ouvert|leurs droits au chômage sont ouverts} grâce à vous.",
+      "texte": "Vos contrats ont fait compter au moins {seuil} heures sur les 12 derniers mois à {noms} : {n?son droit au chômage est ouvert|leurs droits au chômage sont ouverts} grâce à vous.",
       "source": {
         "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
         "article": "art. 3 §1",

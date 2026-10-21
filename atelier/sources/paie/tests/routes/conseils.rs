@@ -38,10 +38,23 @@ fn apercu(c: &Path, s: &Value) -> Value {
     reussi(&route(c, "apercu", json!({ "saisie": s }), JOUR)).clone()
 }
 
-/// Le conseil de la `i`-ème paie de l'apercu : (son identifiant, son texte), ou rien.
+/// Le conseil de la `i`-ème paie de l'apercu : (son identifiant, sa phrase courte suivie de son detail), ou rien. Un
+/// conseil de saisie nomme le salarie par son seul prenom, jamais par son nom (Leandre, 21/10/2026) : la phrase courte
+/// porte le prenom de la fiche, et ni elle ni le detail ne portent le nom.
 fn conseil(r: &Value, i: usize) -> Option<(String, String)> {
     let c = r["paies"][i].get("conseil")?;
-    Some((c["id"].as_str().unwrap().to_string(), c["texte"].as_str().unwrap().to_string()))
+    let court = c["texte"].as_str().unwrap().to_string();
+    let detail = c.get("detail").and_then(Value::as_str).unwrap_or("");
+    for nom in ["BRIOCHE", "Brioche", "SERAPHIN", "Seraphin", "LEMERCIER", "Lemercier"] {
+        assert!(!court.contains(nom) && !detail.contains(nom), "le nom dans un conseil : {} / {}", court, detail);
+    }
+    assert!(["Fanchon", "Valentin", "Nicole"].iter().any(|p| court.contains(p)), "le prenom manque : {}", court);
+    Some((c["id"].as_str().unwrap().to_string(), format!("{} {}", court, detail)))
+}
+
+/// Le detail d'un conseil de saisie (derriere « pourquoi ? »).
+fn detail(r: &Value, i: usize) -> String {
+    r["paies"][i]["conseil"]["detail"].as_str().unwrap_or_default().to_string()
 }
 
 fn id(r: &Value, i: usize) -> Option<String> {
@@ -96,7 +109,7 @@ fn au_dela_de_28_cachets_dans_le_mois_les_suivants_ne_comptent_pas() {
     let r = apercu(c, &saisie(vec![engagement("Brioche", "2026-10-01", "2026-10-30", json!([cachets(30)]))]));
     let (id, texte) = conseil(&r, 0).expect("30 cachets appellent le conseil");
     assert_eq!(id, "saisie-plus-de-28-cachets");
-    assert!(texte.starts_with("BRIOCHE ") && texte.contains("30 cachets en octobre 2026") && texte.contains("2 cachets ne compteront pas"), "{}", texte);
+    assert!(texte.contains("30 cachets") && texte.contains("octobre 2026") && texte.contains("2 cachets ne compteront pas"), "{}", texte);
     nulle_part_ailleurs(&r, &texte);
     // 28 cachets : aucun ne se perd (le mois est sature, c'est l'autre conseil qui parle).
     let r = apercu(c, &saisie(vec![engagement("Brioche", "2026-10-01", "2026-10-28", json!([cachets(28)]))]));
@@ -117,7 +130,7 @@ fn un_mois_sature_chez_vous_ne_retire_rien_de_plus() {
     let r = apercu(c, &saisie(vec![engagement("Brioche", "2026-10-01", "2026-10-23", json!([cachets(23)]))]));
     let (id, texte) = conseil(&r, 0).unwrap();
     assert_eq!(id, "saisie-mois-sature");
-    assert!(texte.contains("276 heures en octobre 2026") && texte.contains("270 heures"), "{}", texte);
+    assert!(texte.contains("276 heures") && texte.contains("octobre 2026") && texte.contains("270 heures"), "{}", texte);
     let r = apercu(c, &saisie(vec![engagement("Brioche", "2026-10-01", "2026-10-22", json!([cachets(22)]))]));
     assert_eq!(id_de(&r), None, "{}", r["paies"][0]);
 }
@@ -131,7 +144,7 @@ fn un_technicien_n_a_que_208_heures_retenues_par_mois() {
     let r = apercu(c, &saisie(vec![engagement("Lemercier", "2026-10-01", "2026-10-26", heures(210))]));
     let (id, texte) = conseil(&r, 0).unwrap();
     assert_eq!(id, "saisie-technicien-plus-de-208-heures");
-    assert!(texte.starts_with("LEMERCIER ") && texte.contains("210 heures") && texte.contains("250"), "{}", texte);
+    assert!(texte.contains("210 heures") && texte.contains("250"), "{}", texte);
     let r = apercu(c, &saisie(vec![engagement("Lemercier", "2026-10-01", "2026-10-26", heures(200))]));
     assert_ne!(id_de(&r), Some("saisie-technicien-plus-de-208-heures".into()));
 }
@@ -144,35 +157,53 @@ fn repetition(taux: f64) -> Value {
 fn une_repetition_payee_au_moins_le_cachet_de_repetition_compterait_douze_heures() {
     // CCN 3090, avenant salaires du 21/07/2025 : un « Cachet de répétition (pour 1 ou 2 services de répétition dans la
     // même journée) » ; annexe X, art. 3 §1 : un cachet vaut 12 heures. Un service de 4 heures paye 100 EUR (au moins
-    // le cachet de repetition de l'annexe 4, 94,34 EUR) compterait 8 heures de plus ; le conseil dit ses deux faces et
-    // le cout (art. 30 : 8 h / 10 x 1,3 = 1,04 jour, environ 1,5 au demi-jour superieur).
+    // le cachet de repetition de l'annexe 4, 94,34 EUR) compterait 8 heures de plus. La phrase courte dit le gain ; le
+    // detail, les deux faces et le cout : art. 30, 8 h / 10 x 1,3 = 1,04 jour, « environ 1 jour » au demi-jour le plus
+    // proche (Leandre, 21/10/2026).
     let c = &compagnie("repetition", true);
     let r = apercu(c, &saisie(vec![engagement("Brioche", "2026-10-05", "2026-10-05", repetition(100.0))]));
     let (id, texte) = conseil(&r, 0).unwrap();
     assert_eq!(id, "saisie-repetition-en-cachet");
-    assert!(texte.contains("8 heures de plus") && texte.contains("94,34") && texte.contains("s'il lui manque des heures") && texte.contains("mieux vaut s'abstenir"), "{}", texte);
-    assert!(!texte.contains('€') || !texte.contains("allocation journalière"), "{}", texte);
-    nulle_part_ailleurs(&r, &texte);
+    let court = r["paies"][0]["conseil"]["texte"].as_str().unwrap();
+    assert!(court.contains("8 heures de plus"), "{}", court);
+    let d = detail(&r, 0);
+    assert!(d.contains("94,34") && d.contains("mieux vaut s'abstenir") && d.contains("environ 1 jour d'allocation"), "{}", d);
+    assert!(!texte.contains("allocation journalière"), "{}", texte);
+    nulle_part_ailleurs(&r, court);
     // Sous le minimum : rien (un conseil ne propose jamais moins que la convention).
     let r = apercu(c, &saisie(vec![engagement("Brioche", "2026-10-05", "2026-10-05", repetition(90.0))]));
     assert_eq!(id_de(&r), None, "{}", r["paies"][0]);
+    // Une repetition de 11 heures : 1 heure de plus, 0,13 jour, qui s'arrondit a zero : on ne parle pas de perte.
+    let onze = json!([{ "rubrique": "repetition", "quantite": 1, "taux": 100.0, "heures": 11, "dates": ["2026-10-05"] }]);
+    let r = apercu(c, &saisie(vec![engagement("Brioche", "2026-10-05", "2026-10-05", onze)]));
+    assert_eq!(id_de(&r).as_deref(), Some("saisie-repetition-en-cachet-minime"), "{}", r["paies"][0]);
+    let d = detail(&r, 0);
+    assert!(d.contains("moins d'un demi-jour") && !d.contains("perdrait"), "{}", d);
 }
 
 #[test]
 fn des_heures_payees_au_dessus_du_minimum_couvriraient_plus_d_heures_pour_la_meme_somme() {
-    // Annexe VIII, art. 30 (le cout : heures / 8 x 1,4) et art. 3 §1 (les 507 heures) : 4 heures a 50 EUR, 200 EUR, bien
-    // au-dessus du minimum horaire de la grille du regisseur ; la meme somme au minimum couvre davantage d'heures.
+    // Annexe VIII, art. 30 (le cout : heures / 8 x 1,4) et art. 3 §1 (les 507 heures) : 4 heures a 100 EUR, 400 EUR, bien
+    // au-dessus du minimum horaire de la grille de la regisseuse (17,28 EUR en 2026) : la meme somme au minimum couvre
+    // 23 heures, 19 de plus.
     let c = &compagnie("heures", true);
-    let ligne = |taux: f64| json!([{ "rubrique": "heure", "quantite": 4, "taux": taux, "dates": ["2026-10-05"] }]);
-    let r = apercu(c, &saisie(vec![engagement("Lemercier", "2026-10-05", "2026-10-05", ligne(50.0))]));
-    let (id, texte) = conseil(&r, 0).unwrap();
+    let ligne = |q: i64, taux: f64| json!([{ "rubrique": "heure", "quantite": q, "taux": taux, "dates": ["2026-10-05"] }]);
+    let r = apercu(c, &saisie(vec![engagement("Lemercier", "2026-10-05", "2026-10-05", ligne(4, 100.0))]));
+    let (id, _) = conseil(&r, 0).unwrap();
     assert_eq!(id, "saisie-heures-pour-la-meme-somme");
-    assert!(texte.contains("4 heures payées 200,00 €") && texte.contains("mieux vaut s'abstenir"), "{}", texte);
-    nulle_part_ailleurs(&r, &texte);
+    let d = detail(&r, 0);
+    assert!(d.contains("4 heures payées 400,00 €") && d.contains("mieux vaut s'abstenir"), "{}", d);
+    nulle_part_ailleurs(&r, r["paies"][0]["conseil"]["texte"].as_str().unwrap());
     // Sous le minimum horaire : rien.
-    let r = apercu(c, &saisie(vec![engagement("Lemercier", "2026-10-05", "2026-10-05", ligne(5.0))]));
+    let r = apercu(c, &saisie(vec![engagement("Lemercier", "2026-10-05", "2026-10-05", ligne(4, 5.0))]));
+    assert_eq!(id_de(&r), None, "{}", r["paies"][0]);
+    // Un petit ecart ne s'affiche pas : il ne sert que si le salarie est a moins de ce gain des 507 heures (le seuil :
+    // le poids d'un cachet, 12 heures ; `conseils::gain_heures`). 4 heures a 50 EUR, 200 EUR : 11 heures au minimum,
+    // 7 de plus.
+    let r = apercu(c, &saisie(vec![engagement("Lemercier", "2026-10-05", "2026-10-05", ligne(4, 50.0))]));
     assert_eq!(id_de(&r), None, "{}", r["paies"][0]);
 }
+
 
 #[test]
 fn quand_vos_contrats_assurent_les_507_heures_le_conseil_s_inverse() {
@@ -219,7 +250,10 @@ fn nos_seuls_contrats_au_dela_de_507_heures_ouvrent_ses_droits() {
     assert!(textes.iter().any(|t| t.contains("En mai 2026") && t.contains("3 cachets ne comptent pas")), "{:?}", textes);
     // L'accueil le resume.
     let resume = reussi(&route(c, "conseils-resume", json!({}), JOUR)).clone();
-    assert!(resume["conseils"][0]["texte"].as_str().unwrap().contains("BRIOCHE"), "{}", resume);
+    // Le salarie par son seul prenom (Leandre, 21/10/2026), ici comme dans son dossier.
+    let t = resume["conseils"][0]["texte"].as_str().unwrap();
+    assert!(t.contains("Fanchon") && !t.contains("BRIOCHE"), "{}", resume);
+    assert!(textes.iter().all(|t| !t.contains("BRIOCHE")) && ouverts.contains("Fanchon"), "{:?}", textes);
 }
 
 #[test]
@@ -266,8 +300,10 @@ fn le_conseil_du_jour_fait_le_tour_de_la_banque_sans_se_repeter() {
     }
     let autre = reussi(&route(c, "conseil-du-jour", json!({ "decalage": 1 }), "2026-01-01")).clone();
     assert_ne!(autre["conseil"]["id"], premier["conseil"]["id"]);
-    // Un conseil suspendu (point non tranche) n'est jamais du nombre.
-    assert!(!vus.contains("conges-spectacles-droit-ouvre-1er-jour") && !vus.contains("signalement-arret-cinq-jours"));
+    // Les deux signalements que Leandre a tranches le 21/10/2026 (« 5 jours ouvres », CSS R. 133-14 II) sont du
+    // nombre ; le conseil retire (le droit Conges Spectacles « des le 1er jour ») n.y est plus.
+    assert!(vus.contains("signalement-arret-cinq-jours") && vus.contains("signalement-fin-contrat-cinq-jours"));
+    assert!(vus.contains("conges-spectacles-ce-que-finance-la-cotisation") && !vus.contains("conges-spectacles-droit-ouvre-1er-jour"));
     assert!(premier["conseil"]["reference"].as_str().is_some_and(|r| !r.is_empty()));
 }
 
@@ -288,7 +324,7 @@ fn l_enseignement_compte_dans_sa_limite() {
 fn l_historique_chiffre_ce_que_les_conseils_auraient_change() {
     // Un mois enregistre de la fenetre : deux journees de repetition d'un service de 4 heures payees 100 EUR, au-dessus du
     // cachet de repetition de l'annexe 4 (CCN 3090) : payees en cachets (annexe X, art. 3 §1, 12 heures), 16 heures de
-    // plus ; le cout, s'il etait indemnise, en jours (art. 30 : 8 h / 10 x 1,3 = 1,04, au demi-jour superieur, par paie).
+    // plus ; le cout, un mois indemnise, en jours (art. 30 : 16 h / 10 x 1,3 = 2,08), au demi-jour le plus proche : 2.
     let c = &compagnie("gain", true);
     let s = saisie(vec![engagement(
         "Seraphin",
@@ -302,5 +338,5 @@ fn l_historique_chiffre_ce_que_les_conseils_auraient_change() {
     let r = reussi(&route(c, "conseils-salarie", json!({ "salarie": "SERAPHIN" }), JOUR)).clone();
     let gain = r["conseils"].as_array().unwrap().iter().find(|x| x["id"] == "historique-gain-des-conseils").unwrap_or_else(|| panic!("{}", r));
     let t = gain["texte"].as_str().unwrap();
-    assert!(t.contains("16 heures de plus") && t.contains("3,2 %") && t.contains("2,5 jours"), "{}", t);
+    assert!(t.contains("16 heures de plus") && t.contains("3,2 %") && t.contains("environ 2 jours") && t.contains("Valentin"), "{}", t);
 }
