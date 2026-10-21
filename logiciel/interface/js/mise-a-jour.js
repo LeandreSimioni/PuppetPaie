@@ -5,12 +5,15 @@
    « Logiciel a jour », tout se dit positivement).
 
    Le moteur cherche la mise a jour au lancement, en fond, et tient ou il en
-   est (`maj::Recherche`) ; lance sans reseau, il reprend de lui-meme. Cette
-   page le lui demande par le geste `maj` du lanceur
+   est (`maj::Recherche`) ; lance sans reseau, il reprend de lui-meme, et a
+   jour, il recherche toutes les 5 minutes tant qu'il tourne (Leandre,
+   21/10/2026). Cette page le lui demande par le geste `maj` du lanceur
    (`window.pywebview.api.maj`, la cale du serveur : la meme sur l'accueil et
    dans la page d'une compagnie) et affiche ce qu'il rend : la phrase, la
    bulle, la barre. Elle relit quand le moteur le dit (`relire_ms` : pendant
-   une recherche, et pendant qu'un nouvel essai est prevu), puis se tait.
+   une recherche, pendant qu'un nouvel essai est prevu, et tant que la
+   recherche de fond tourne : une version trouvee se voit sans recharger la
+   page), puis se tait. Une lecture ne fait que lire ou en est le moteur.
 
    « Redemarrer pour mettre a jour » est un clic quand le moteur l'offre
    (`redemarrer`) : le geste `redemarrer` passe la version prete au relais et

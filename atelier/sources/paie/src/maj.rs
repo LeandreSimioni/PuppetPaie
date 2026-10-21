@@ -588,7 +588,17 @@ pub fn verifier_avec(inst: &Path, telecharger_aussi: bool, cles: &[&str]) -> Str
 /// `verifier_avec`, en tenant `suivi` a jour a chaque etape (ce que l'indicateur montre, ticket #210). Ce que la recherche
 /// rend (la phrase du journal) et ce qu'elle laisse dans `suivi` disent la meme chose.
 pub fn verifier_suivi(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi: &Recherche) -> String {
-    suivi.poser(Etape::Recherche, None, |_| {});
+    verifier_en(inst, telecharger_aussi, cles, suivi, false)
+}
+
+/// `verifier_suivi` ; `calme` : un tour de fond (`chercher_tant_qu_il_tourne`), qui ne change ce que l'indicateur montre
+/// que si quelque chose change. Il ne passe pas par « Recherche de mise a jour… », et un depot qui ne repond pas, le temps
+/// d'un tour, laisse l'etat tel qu'il etait (« Logiciel a jour », ou la version retenue) : le tour suivant redemandera.
+/// Une version plus recente trouvee se dit comme au lancement (« Mise a jour en cours », puis prete ou l'echec).
+fn verifier_en(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi: &Recherche, calme: bool) -> String {
+    if !calme {
+        suivi.poser(Etape::Recherche, None, |_| {});
+    }
     let c = logiciel_de(inst);
     let cour = version_lue(&courante(&c));
     let echec = |mot: &'static str, version: Option<&str>, phrase: String| {
@@ -597,15 +607,17 @@ pub fn verifier_suivi(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi
     };
     let depot = match reglage(inst) {
         Ok((d, _)) => self::depot(d),
+        Err(e) if calme => return format!("version {} ({} ; nouvel essai au tour suivant)", cour, e),
         Err(e) => return echec(REGLAGE_ILLISIBLE, None, format!("version {} ({})", cour, e)),
     };
     let d = match derniere_dite(&depot) {
         Ok(d) => d,
+        Err((_, e)) if calme => return format!("version {} (depot injoignable : {} ; nouvel essai au tour suivant)", cour, e),
         Err((mot, e)) => return echec(mot, None, format!("version {} (depot injoignable : {})", cour, e)),
     };
     let v = d["version"].as_str().unwrap_or_default().to_string();
     if !plus_recente(&v, &courante(&c)) {
-        suivi.poser(Etape::AJour, Some(&courante(&c)), |_| {});
+        suivi.poser(Etape::AJour, Some(&courante(&c)), |p| p.sans_ce_systeme = None);
         return format!("version {}, a jour", cour);
     }
     let lue = version_lue(&v);
@@ -673,7 +685,7 @@ struct Point {
     mot: String,
     retenue_par: Vec<String>,
     sans_ce_systeme: Option<String>,
-    /// Un echec `HORS_LIGNE` que la recherche reprendra d'elle-meme : quand (`chercher_tant_que_hors_ligne`).
+    /// Un echec `HORS_LIGNE` que la recherche reprendra d'elle-meme : quand (`chercher_tant_qu_il_tourne`).
     nouvel_essai: Option<std::time::Instant>,
 }
 
@@ -692,10 +704,18 @@ impl Point {
     }
 }
 
-/// Ce que la page attend entre deux lectures de l'indicateur : pendant une recherche, et pendant qu'un nouvel essai est
-/// prevu (le reseau peut revenir). Le reste du temps, elle ne relit pas.
+/// Ce que la page attend entre deux lectures de l'indicateur : pendant une recherche, pendant qu'un nouvel essai est
+/// prevu (le reseau peut revenir), et pendant que la recherche de fond tourne (« a jour », « retenue » : une version
+/// trouvee entre deux tours doit se voir sans recharger la page, `RYTHME_A_JOUR`). Une lecture ne fait que lire `RECHERCHE` :
+/// aucune recherche, aucun fil. Une version prete, ou un echec definitif : plus rien ne change, elle ne relit pas.
 const RELIRE_EN_COURS_MS: u64 = 700;
 const RELIRE_EN_ATTENTE_MS: u64 = 10_000;
+const RELIRE_EN_FOND_MS: u64 = 30_000;
+
+/// LE RYTHME DE LA RECHERCHE quand le logiciel est a jour (Leandre, 21/10/2026 : la 2026.10.21, publiee a 11 h 40, ne
+/// se voyait pas dans un logiciel lance avant, qui restait « Logiciel a jour » ; « ca coute rien » : toutes les 5 minutes).
+/// Un tour ne coute qu'une demande de `derniere.json` ; le fil dort entre deux (`chercher_tant_qu_il_tourne`).
+pub const RYTHME_A_JOUR: std::time::Duration = std::time::Duration::from_secs(5 * 60);
 
 /// LE RYTHME DES NOUVEAUX ESSAIS quand le depot ne repond pas (ticket #217, Leandre, 20/10/2026 : le logiciel demarre
 /// sans reseau et reste « hors ligne » alors que le poste est connecte). Apres le n-ieme echec, la recherche attend la
@@ -776,8 +796,8 @@ impl Recherche {
 
     /// Ce que l'indicateur montre, tout decide ici : `etape`, `texte` (vide : rien a montrer), `detail` (la bulle),
     /// `progression` (0 a 1, ou rien : pas de barre ; une barre sans fin connue est `null` avec `barre`), `en_cours`
-    /// (une recherche se fait), `relire_ms` (dans combien la page relit : pendant une recherche, et pendant qu'un nouvel
-    /// essai est prevu ; `null`, elle se tait), `redemarrer` (le clic est offert).
+    /// (une recherche se fait), `relire_ms` (dans combien la page relit : pendant une recherche, pendant qu'un nouvel essai
+    /// est prevu, et tant que la recherche de fond tourne ; `null`, elle se tait), `redemarrer` (le clic est offert).
     /// Tout se dit positivement, par ce qui est vrai (ticket #217, Leandre, 20/10/2026 : « Logiciel a jour » plutot
     /// qu'« Aucune mise a jour »).
     pub fn etat(&self) -> Value {
@@ -847,6 +867,8 @@ impl Recherche {
             Some(RELIRE_EN_COURS_MS)
         } else if p.etape == Etape::Echec && p.nouvel_essai.is_some() {
             Some(RELIRE_EN_ATTENTE_MS)
+        } else if matches!(p.etape, Etape::AJour | Etape::Retenue) {
+            Some(RELIRE_EN_FOND_MS)
         } else {
             None
         };
@@ -1370,32 +1392,60 @@ pub fn au_lancement() -> bool {
 /// AU LANCEMENT, apres `au_lancement` : le logiciel cherche pour lui-meme, en fond, sans attendre qu'une compagnie
 /// s'ouvre ; ce qu'il trouve s'appliquera au lancement suivant (ou au clic « Redemarrer pour mettre a jour »). Ce qui
 /// s'est passe va dans le journal de la mise a jour ; ou elle en est, dans `RECHERCHE` (l'indicateur, ticket #210).
-/// Lance sans reseau, elle reprend d'elle-meme tant que le logiciel tourne (`chercher_tant_que_hors_ligne`, ticket #217).
+/// Elle continue tant que le logiciel tourne (`chercher_tant_qu_il_tourne` : ticket #217 sans reseau, 21/10/2026 a jour).
+/// Un seul fil par processus : un second appel ne lance rien.
 pub fn chercher_en_fond() {
+    static LANCEE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if LANCEE.swap(true, std::sync::atomic::Ordering::SeqCst) {
+        return;
+    }
     let inst = installation();
     RECHERCHE.poser(Etape::Recherche, None, |_| {});
-    std::thread::spawn(move || chercher_tant_que_hors_ligne(&inst, &cles_de_l_editeur(), &RECHERCHE, &ATTENTES_HORS_LIGNE));
+    std::thread::spawn(move || chercher_tant_qu_il_tourne(&inst, &cles_de_l_editeur(), &RECHERCHE, &ATTENTES_HORS_LIGNE, RYTHME_A_JOUR));
 }
 
-/// LA RECHERCHE REPREND QUAND LE RESEAU REVIENT (ticket #217, Leandre, 20/10/2026 : le logiciel lance sans reseau
-/// restait « Mise a jour : hors ligne » alors que le poste etait connecte, jusqu'au lancement suivant). `verifier_suivi`,
-/// puis, tant que l'echec est `HORS_LIGNE` (le depot ne repond pas, ou la reception a ete coupee), un nouvel essai apres
-/// `attentes[n]` (la derniere se repete : `ATTENTES_HORS_LIGNE`). Le moment du prochain essai est dans `suivi` : la
-/// bulle le dit, et la page relit tant qu'il est prevu (`relire_ms`). Tout autre issue (a jour, prete, retenue, un echec
-/// qu'un nouvel essai ne leverait pas : signature refusee, archive alteree, depot introuvable) arrete la boucle. Chaque
-/// essai va au journal de la mise a jour. Bloquante : a lancer dans un fil.
-pub fn chercher_tant_que_hors_ligne(inst: &Path, cles: &[&str], suivi: &Recherche, attentes: &[std::time::Duration]) {
+/// LA RECHERCHE CONTINUE TANT QUE LE LOGICIEL TOURNE. `verifier_suivi`, puis, selon ce qu'elle laisse dans `suivi` :
+/// - un echec `HORS_LIGNE` (le depot ne repond pas, ou la reception a ete coupee ; ticket #217, Leandre, 20/10/2026 : le
+///   logiciel lance sans reseau restait « hors ligne » alors que le poste etait connecte) : un nouvel essai apres
+///   `attentes[n]` (la derniere se repete : `ATTENTES_HORS_LIGNE`). Le moment du prochain essai est dans `suivi` : la
+///   bulle le dit, et la page relit tant qu'il est prevu (`relire_ms`) ;
+/// - « a jour », ou « retenue » : un tour calme (`verifier_en`) toutes les `rythme` (`RYTHME_A_JOUR`). Une version publiee
+///   entre-temps est trouvee, telechargee et preparee ; l'indicateur passe a « Redemarrer pour mettre a jour ». Rien ne
+///   s'installe : elle attend le redemarrage. Une version retenue (elle change un calcul et des mois attendent leur DSN)
+///   se relit au meme rythme : la DSN deposee, elle devient prete ; une plus recente parue, elle la remplace (personne ne
+///   peut cliquer sur une version retenue) ;
+/// - « prete », ou un echec qu'un nouvel essai ne leverait pas (signature refusee, archive alteree, depot introuvable) :
+///   la boucle s'arrete. Une version prete ne se remplace pas sous le bouton « Redemarrer » : le clic installe celle que
+///   l'indicateur nomme, et le lancement d'apres recherche de nouveau (une plus recente s'y trouve en un tour).
+///
+/// Le journal de la mise a jour recoit chaque tour dont la phrase change (pas une ligne par tour). Bloquante : a lancer
+/// dans un fil.
+pub fn chercher_tant_qu_il_tourne(inst: &Path, cles: &[&str], suivi: &Recherche, attentes: &[std::time::Duration], rythme: std::time::Duration) {
     let mut n = 0usize;
+    let mut calme = false;
+    let mut notee = String::new();
     loop {
-        let dit = verifier_suivi(inst, true, cles, suivi);
-        noter(inst, &format!("Recherche : {}", dit));
-        let Some(attente) = attentes.get(n).or(attentes.last()).copied() else { return };
-        if !suivi.hors_ligne() {
-            return;
+        let dit = verifier_en(inst, true, cles, suivi, calme);
+        if dit != notee {
+            noter(inst, &format!("Recherche : {}", dit));
+            notee = dit;
         }
-        suivi.0.lock().unwrap_or_else(|e| e.into_inner()).nouvel_essai = Some(std::time::Instant::now() + attente);
+        let attente = match suivi.etape() {
+            Etape::AJour | Etape::Retenue => {
+                n = 0;
+                calme = true;
+                rythme
+            }
+            _ if suivi.hors_ligne() => {
+                let Some(a) = attentes.get(n).or(attentes.last()).copied() else { return };
+                n += 1;
+                calme = false;
+                suivi.0.lock().unwrap_or_else(|e| e.into_inner()).nouvel_essai = Some(std::time::Instant::now() + a);
+                a
+            }
+            _ => return,
+        };
         std::thread::sleep(attente);
-        n += 1;
     }
 }
 
