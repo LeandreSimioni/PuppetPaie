@@ -297,9 +297,191 @@ pub fn montant(lignes: &[LigneBordereau], jour: &Jour) -> Resultat<Decimal> {
     Ok(s)
 }
 
+// ------------------------------------------------------------------ le trop-verse
+//
+// UN VERSEMENT N'EST JAMAIS NEGATIF. Une correction a la baisse (une regularisation qui annule plus qu'elle ne redeclare)
+// peut faire ressortir negative la somme qu'un mois doit a un organisme. La norme ne l'admet pour aucun : S21.G00.20.005
+// est « Montant du versement correspondant au montant des cotisations reglees. Avec decimale, non signe, valeur zero
+// autorisee » (cahier technique DSN 2026.1, p. 156, `atelier/reference/norme-dsn/texte/bloc-S21.G00.20.txt`, l. 166-167 ;
+// CSL 00 `[0]*(0|[1-9][0-9]*)\.[0-9]{2}`, l. 219). Le guide Urssaf le redit : « Un montant negatif est interdit en bloc
+// Versement organisme de protection sociale » (`sources/editeur-dsn/guide-urssaf-regularisation.txt`, l. 733-734). Ce qui
+// suit est le seul endroit qui dit, organisme par organisme, ce que devient la somme due et ce que la compagnie fait du
+// credit ; `dsn.rs` ecrit le montant, `ordres_paiement.rs` dit le reste a l'ecran.
+//
+// - L'URSSAF : « Lors du paiement de votre declaration courante, vous pouvez deduire du montant du, celui de votre trop
+//   verse dans la rubrique Montant du versement - S21.G00.20.005. Cette deduction pourra s'effectuer dans la limite du
+//   montant du bloc S21.G00.22 courant. Il est conseille dans ce cas, notamment si vous vous reprenez d'un montant
+//   important, de contacter votre Urssaf via le service en ligne « echange avec mon Urssaf » » (guide Urssaf, § 6.4, l.
+//   1095-1103). Au-dela, le credit reste a l'Urssaf : « le declarant prendra contact avec son Urssaf de rattachement pour
+//   une gestion de la situation en bilateral » (cahier technique, § 2.2.3.2, `texte/chapitre-2-principes-de-
+//   constitution.txt`, l. 1741-1744).
+// - UN ORGANISME COMPLEMENTAIRE (prevoyance, bloc 55) : le versement est la somme des composants « sauf si cette somme fait
+//   ressortir un montant negatif. Auquel cas un montant nul doit etre renseigne » (p. 157, l. 191-193 ; CCH-12, l. 211-213 ;
+//   redit par la fiche net-entreprises 1328, `sources/net-entreprises-base-connaissances/net-entreprises-fiche1328-
+//   ventilation-du-versement-20250322.txt`). Les composants (55.001), eux, portent le negatif : l'organisme le voit.
+// - LA DGFIP (prelevement a la source) : « Lorsque la somme totale [...] est negative, ces rubriques doivent etre
+//   renseignees a 0.00 » ; une DSN initiale creditrice ne declare pas de bloc DGFiP, « si par commodite le logiciel en
+//   produit un, il devra etre declare [...] a 0,00 » ; « une demande de remboursement pourra etre deposee aupres du SIE
+//   [...] a partir de la messagerie securisee de son espace professionnel sur le site impots.gouv.fr » (fiche
+//   net-entreprises 1931, `net-entreprises-fiche1931-situations-creditrices-versement-20250323.txt`, l. 4, 13, 19, 40-41).
+// - TOUT AUTRE ORGANISME (Agirc-Arrco, Conges Spectacles, France Travail) : la norme seule. Le versement est ce que la
+//   compagnie REGLE (« montant des cotisations reglees ») : elle ne regle rien, il vaut zero, valeur que la norme autorise
+//   a chacun d'eux (modalite « montant », p. 156-157). Les cotisations individuelles (81.004) portent, elles, le negatif de
+//   la correction. INFERENCE assumee : aucun texte releve ne dit comment ces organismes rendent un credit (remboursement,
+//   ou deduction d'une echeance suivante) ; le logiciel ne l'invente pas, il dit a la compagnie de le leur demander.
+
+/// A qui va un versement, pour ce que devient un credit.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Destinataire {
+    Urssaf,
+    /// Un organisme complementaire, dont le versement porte des composants (bloc S21.G00.55).
+    Complementaire,
+    Dgfip,
+    /// Agirc-Arrco, Conges Spectacles, France Travail : aucun texte particulier.
+    Autre,
+}
+
+/// Ce qu'un versement ecrit (S21.G00.20.005, jamais negatif) et le credit que la somme due laisse.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct AVerser {
+    pub montant: Decimal,
+    /// Ce que la somme due avait de negatif (0 sinon).
+    pub credit: Decimal,
+}
+
+/// Le versement d'une somme due `du` (deja arrondie comme l'organisme l'attend) : elle-meme, ou zero et le credit.
+pub fn a_verser(du: Decimal) -> AVerser {
+    let mut zero = Decimal::ZERO;
+    zero.rescale(2);
+    if du < Decimal::ZERO {
+        AVerser { montant: zero, credit: -du }
+    } else {
+        AVerser { montant: du, credit: Decimal::ZERO }
+    }
+}
+
+/// La reprise d'un credit Urssaf (guide Urssaf, § 6.4) : `courant`, le bordereau du mois (22.005) ; `credit`, ce que les
+/// bordereaux des mois corriges ont de negatif (positif ici). Le versement du mois est le bordereau moins le credit, dans
+/// la limite du bordereau ; `deduit` est ce qui a ete repris, le reste demeure a l'Urssaf.
+pub fn reprise_urssaf(courant: Decimal, credit: Decimal) -> (AVerser, Decimal) {
+    let deduit = credit.max(Decimal::ZERO).min(courant.max(Decimal::ZERO));
+    let v = a_verser(courant - deduit);
+    (AVerser { montant: v.montant, credit: credit.max(Decimal::ZERO) - deduit + v.credit }, deduit)
+}
+
+/// Le credit d'un ordre, dit a l'ecran : combien, ce que la compagnie fait, et le texte qui le dit.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Credit {
+    /// Ce que la compagnie a verse en trop et qui n'est pas repris par ce versement.
+    pub reste: Decimal,
+    /// Ce que ce versement reprend deja (l'Urssaf seulement).
+    pub deduit: Decimal,
+    pub que_faire: String,
+    pub source: &'static str,
+}
+
+const SOURCE_URSSAF: &str = "Guide Urssaf « Comment déclarer et régulariser les cotisations Urssaf en DSN », § 6.4 « La reprise de crédit » : le trop versé se déduit du versement courant, dans la limite du bordereau du mois ; au-delà, cahier technique DSN 2026.1, § 2.2.3.2 : prendre contact avec son Urssaf.";
+const SOURCE_COMPLEMENTAIRE: &str = "Cahier technique DSN 2026.1, S21.G00.20.005 (CCH-12) et fiche net-entreprises 1328 : quand la somme des composants de versement est négative, le versement est déclaré à zéro.";
+const SOURCE_DGFIP: &str = "Fiche net-entreprises 1931 « Gérer les situations créditrices » : un prélèvement à la source négatif se déclare à 0,00, et le remboursement se demande au service des impôts des entreprises (messagerie sécurisée de l'espace professionnel impots.gouv.fr).";
+const SOURCE_AUTRE: &str = "Cahier technique DSN 2026.1, S21.G00.20.005 : « montant des cotisations réglées », « non signé, valeur zéro autorisée ». Aucun texte relevé ne dit comment cet organisme rend un crédit.";
+
+fn euros(x: Decimal) -> String {
+    let mut x = x;
+    x.rescale(2);
+    format!("{} €", x.to_string().replace('.', ","))
+}
+
+/// Ce que devient le credit d'un versement a `nom` : `reste`, le credit que le versement ne reprend pas ; `deduit`, ce
+/// qu'il reprend (l'Urssaf seulement). `None` quand il n'y a rien a dire.
+pub fn credit(dest: Destinataire, nom: &str, reste: Decimal, deduit: Decimal) -> Option<Credit> {
+    if reste <= Decimal::ZERO && deduit <= Decimal::ZERO {
+        return None;
+    }
+    let (que_faire, source) = match dest {
+        Destinataire::Urssaf if reste <= Decimal::ZERO => (
+            format!(
+                "{} trop versés sur un mois corrigé sont déduits de ce versement (dans la limite du bordereau du mois). \
+Rien d'autre à faire ; si la somme est importante, le guide Urssaf conseille d'expliquer la situation à votre Urssaf \
+par le service en ligne « échange avec mon Urssaf ».",
+                euros(deduit)
+            ),
+            SOURCE_URSSAF,
+        ),
+        Destinataire::Urssaf => (
+            format!(
+                "{}{} trop versés dépassent le bordereau de ce mois et ne peuvent pas en être déduits : contactez votre \
+Urssaf (service en ligne « échange avec mon Urssaf ») pour qu'elle vous les rende ou les impute.",
+                if deduit > Decimal::ZERO {
+                    format!("{} trop versés sont déduits de ce versement, qui tombe à zéro ; les ", euros(deduit))
+                } else {
+                    String::new()
+                },
+                euros(reste)
+            ),
+            SOURCE_URSSAF,
+        ),
+        Destinataire::Complementaire => (
+            format!(
+                "Rien à payer ce mois-ci : les corrections font {} de cotisations en moins, que la DSN déclare dans les \
+composants de versement ; le versement, lui, est à zéro. Aucun texte relevé ne dit comment {} rend ce crédit : \
+demandez-lui s'il le rembourse ou le déduit d'une prochaine échéance.",
+                euros(reste),
+                nom
+            ),
+            SOURCE_COMPLEMENTAIRE,
+        ),
+        Destinataire::Dgfip => (
+            format!(
+                "Rien à reverser ce mois-ci : les régularisations font {} de prélèvement à la source en trop. Demandez \
+le remboursement au service des impôts des entreprises, par la messagerie sécurisée de votre espace professionnel sur \
+impots.gouv.fr.",
+                euros(reste)
+            ),
+            SOURCE_DGFIP,
+        ),
+        Destinataire::Autre => (
+            format!(
+                "Rien à payer ce mois-ci : les corrections déclarées font {} de cotisations en moins que ce que le mois \
+doit à {}. Un versement ne peut pas être négatif : il est déclaré à zéro, et le crédit reste déclaré dans les \
+cotisations des salariés. Aucun texte relevé ne dit comment {} rend ce crédit : demandez-lui s'il le rembourse ou le \
+déduit d'une prochaine échéance.",
+                euros(reste),
+                nom,
+                nom
+            ),
+            SOURCE_AUTRE,
+        ),
+    };
+    Some(Credit { reste: reste.max(Decimal::ZERO), deduit, que_faire, source })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn d(s: &str) -> Decimal {
+        Decimal::from_str(s).unwrap()
+    }
+
+    /// Un versement n'est jamais negatif (S21.G00.20.005, « non signe, valeur zero autorisee ») : une somme due negative
+    /// s'ecrit 0.00 et devient un credit.
+    #[test]
+    fn une_somme_due_negative_se_verse_a_zero_et_laisse_un_credit() {
+        assert_eq!(a_verser(d("12.30")), AVerser { montant: d("12.30"), credit: Decimal::ZERO });
+        let v = a_verser(d("-65.72"));
+        assert_eq!((v.montant.to_string().as_str(), v.credit), ("0.00", d("65.72")));
+    }
+
+    /// Guide Urssaf, § 6.4 : 2000 dus en fevrier, 400 trop verses en janvier, 1600 verses ; la deduction s'arrete au
+    /// bordereau courant, le reste demeure a l'Urssaf.
+    #[test]
+    fn la_reprise_urssaf_s_arrete_au_bordereau_du_mois() {
+        let (v, deduit) = reprise_urssaf(d("2000.00"), d("400.00"));
+        assert_eq!((v.montant, v.credit, deduit), (d("1600.00"), Decimal::ZERO, d("400.00")));
+        let (v, deduit) = reprise_urssaf(d("300.00"), d("400.00"));
+        assert_eq!((v.montant, v.credit, deduit), (d("0.00"), d("100.00"), d("300.00")));
+        assert!(credit(Destinataire::Urssaf, "Urssaf", v.credit, deduit).unwrap().que_faire.contains("100,00 €"));
+    }
 
     /// Une date dont le jour depasse 12 est en AAAA-MM-JJ, les autres en
     /// AAAA-JJ-MM.

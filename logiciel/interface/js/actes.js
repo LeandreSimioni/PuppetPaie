@@ -375,7 +375,9 @@ function corpsDsn(a) {
              <tr><th>À qui</th><th>Pour quoi</th><th class="nombre">Montant</th><th>Prélevé</th></tr>
              ${v.map((x) => `<tr>
                <td><b>${echapper(x.organisme)}</b></td>
-               <td>${echapper(x.objet)}</td>
+               <td>${echapper(x.objet)}${x.credit ? `<div class="encart info"
+                 title="${echapper(x.credit.source)}"><b>Trop versé</b>
+                 ${echapper(x.credit.que_faire)}</div>` : ""}</td>
                <td class="nombre"><b>${echapper(euros(x.montant))}</b></td>
                <td title="${echapper(x.source)}">${echapper(x.quand)}</td></tr>`).join("")}
            </table>

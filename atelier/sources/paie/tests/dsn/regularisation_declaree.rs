@@ -1242,9 +1242,9 @@ fn un_contrat_oublie_ajoute_apres_la_limite_se_declare_en_entier_dans_la_dsn_sui
 /// pas un contrat declare : seule une fin de contrat s'annule, S21.G00.62.002 = 099, fiche net-entreprises 1722) ; ses
 /// quantites passent a zero, et sa correction annule ses montants -- un rappel par annulation (cahier technique DSN
 /// 2026.1, §2.1.3.6 : « un premier rappel de -1000€ et un second rappel de 1200€ » ; ici le second est nul).
-/// La correction s'ecrit, et son apercu annule tout le declare. (Que la DSN d'octobre la porte depend de ce qu'octobre
-/// verse par ailleurs aux memes organismes : un versement S21.G00.20.005 ne peut pas etre negatif, et le moteur refuse
-/// alors ; ce n'est pas propre au contrat ajoute ou retire.)
+/// La correction s'ecrit, son apercu annule tout le declare, et la DSN d'octobre la porte : quand octobre verse trop peu
+/// a un organisme pour couvrir l'annulation, son versement S21.G00.20.005 (jamais negatif) est a zero, et l'ordre de
+/// paiement dit le credit et ce que la compagnie en fait (`bordereau.rs`, « le trop-verse »).
 #[test]
 fn un_contrat_qui_n_a_pas_eu_lieu_se_corrige_a_zero() {
     let r = copie("contrat-a-zero");
@@ -1268,4 +1268,98 @@ fn un_contrat_qui_n_a_pas_eu_lieu_se_corrige_a_zero() {
     assert_eq!(w["ok"], json!(true), "{}", w);
     let b = route_le(&r, JOUR, "bilan-du-mois", json!({"mois": "2026-07"}));
     assert_eq!(b["resultat"]["dsn"]["remplacement"]["correction_ecrite"], json!(true), "{}", b["resultat"]["dsn"]);
+
+    // LA DSN D'OCTOBRE porte la correction, et se produit : elle a passe les controles d'usages et de formats du moteur
+    // (`dsn::generer`, `usages::verifier_fichier` et `formats::verifier_fichier`), qui refusaient « S21.G00.20.005 =
+    // '-65.72' ». Octobre verse trop peu aux Conges Spectacles et a France Travail pour couvrir l'annulation de juillet :
+    // leur versement est a zero -- « non signe, valeur zero autorisee » (cahier technique DSN 2026.1, p. 156,
+    // `norme-dsn/texte/bloc-S21.G00.20.txt`) -- et le credit reste declare dans les cotisations individuelles (81.004).
+    octobre_pret(&r);
+    let rep = produire_octobre(&r);
+    assert_eq!(rep["ok"], json!(true), "{}", rep);
+    let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
+    let regul = versement(&octobre, JUILLET);
+    assert!(!regul.is_empty(), "octobre porte la correction de juillet");
+    // Aucun versement negatif.
+    let versements: Vec<(String, String)> = {
+        let mut out = Vec::new();
+        let mut org = String::new();
+        for (k, v) in &octobre {
+            if k == "S21.G00.20.001" {
+                org = v.clone();
+            } else if k == "S21.G00.20.005" {
+                out.push((org.clone(), v.clone()));
+            }
+        }
+        out
+    };
+    assert!(versements.iter().all(|(_, m)| !m.starts_with('-')), "{:?}", versements);
+    // Les cotisations individuelles d'octobre dues a chacun (81.004 : par 81.002, ou par le code 066 des Conges
+    // Spectacles, « non concerne » en 81.002) : negatives, et leur versement est a zero.
+    let du = |org: &str, code_sans_81_002: Option<&str>| -> i64 {
+        let mut s = 0;
+        let mut courant: Option<(String, Option<String>)> = None;
+        for (k, v) in &octobre {
+            match k.as_str() {
+                "S21.G00.81.001" => courant = Some((v.clone(), None)),
+                "S21.G00.81.002" => {
+                    if let Some(c) = courant.as_mut() {
+                        c.1 = Some(v.clone())
+                    }
+                }
+                "S21.G00.81.004" => {
+                    if let Some((code, o)) = &courant {
+                        let a_lui = match o {
+                            Some(o) => o == org,
+                            None => Some(code.as_str()) == code_sans_81_002,
+                        };
+                        if a_lui {
+                            s += centimes(v);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        s
+    };
+    const CONGES_SPECTACLES: &str = "77567608300030";
+    let credits = [(CONGES_SPECTACLES, du(CONGES_SPECTACLES, Some("066"))), (FRANCE_TRAVAIL, du(FRANCE_TRAVAIL, None))];
+    for (org, d) in credits {
+        assert!(d < 0, "{} : {}", org, d);
+        assert_eq!(versements.iter().filter(|(o, _)| o == org).map(|(_, m)| m.as_str()).collect::<Vec<_>>(), vec!["0.00"], "{}", org);
+    }
+
+    // L'ORDRE DE PAIEMENT DIT LE CREDIT, et ce que la compagnie en fait (`ordres_paiement::decrire`, `bordereau::credit`).
+    let a = route_le(&r, JOUR, "depot-apercu", json!({"quoi": "dsn", "fichier": "sorties/2026-10/DSN_Octobre2026.dsn"}));
+    let ordres = a["resultat"]["ordres"].as_array().unwrap_or_else(|| panic!("{}", a));
+    for (org, d) in credits {
+        let o = ordres.iter().find(|o| o["identifiant"] == json!(org)).unwrap_or_else(|| panic!("{} : {:?}", org, ordres));
+        assert_eq!(o["montant"], json!("0.00"));
+        assert_eq!(centimes(o["credit"]["reste"].as_str().unwrap()), -d, "{}", o);
+        let dit = o["credit"]["que_faire"].as_str().unwrap();
+        assert!(dit.contains("Rien à payer") && dit.contains("demandez"), "{}", dit);
+    }
+    // L'Urssaf : le bordereau de juillet est negatif (22.005, admis pour une periode passee : CCH-11 de 22.005), et son
+    // trop-verse se deduit du versement d'octobre, dans la limite du bordereau d'octobre (guide Urssaf, § 6.4).
+    let bordereaux: Vec<(String, i64)> = {
+        let mut out: Vec<(String, i64)> = Vec::new();
+        for (k, v) in &octobre {
+            match k.as_str() {
+                "S21.G00.22.003" => out.push((v.clone(), 0)),
+                "S21.G00.22.005" => out.last_mut().unwrap().1 = centimes(v),
+                _ => {}
+            }
+        }
+        out
+    };
+    let juillet = bordereaux.iter().find(|(d, _)| d == "01072026").map(|(_, m)| *m).unwrap();
+    let courant = bordereaux.iter().find(|(d, _)| d == "01102026").map(|(_, m)| *m).unwrap();
+    assert!(juillet < 0 && courant > -juillet, "{:?}", bordereaux);
+    let u = ordres.iter().find(|o| o["identifiant"] == json!(URSSAF)).unwrap();
+    assert_eq!(centimes(u["montant"].as_str().unwrap()), courant + juillet, "{}", u);
+    assert_eq!((centimes(u["credit"]["deduit"].as_str().unwrap()), u["credit"]["reste"].as_str()), (-juillet, Some("0.00")), "{}", u);
+    // Les autres ordres, payes en entier, ne portent pas de credit.
+    let autres = ordres.iter().filter(|o| o["montant"] != json!("0.00") && o["identifiant"] != json!(URSSAF));
+    assert!(autres.clone().count() > 0 && autres.into_iter().all(|o| o["credit"].is_null()), "{:?}", ordres);
 }

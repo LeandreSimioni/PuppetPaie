@@ -38,11 +38,20 @@
 //!    le dernier jour ouvre du mois qui suit la fin de periode (S21.G00.20.007). « Ouvre » : ni samedi, ni dimanche, ni
 //!    fete legale (`echeance_dsn::non_ouvre`).
 //! 6. Tout autre organisme sans S21.G00.20.011 : aucun texte depose ne dit son jour. Le logiciel le dit.
+//!
+//! LE TROP-VERSE (21/10/2026) : un ordre n'est jamais negatif ; quand une correction a la baisse laisse un credit, l'ordre
+//! le dit, avec ce que la compagnie en fait (`credit`). Le credit se LIT dans le fichier, a la maille ou la norme le
+//! porte : les bordereaux negatifs des mois corriges (22.005) pour l'Urssaf, les composants (55.001) pour un organisme
+//! complementaire, le prelevement retenu (50.009 et 56.007) pour la DGFiP, les cotisations individuelles (81.004) de
+//! l'organisme pour les autres -- par 81.002 quand la cotisation le nomme, par son code (`codes81` de la configuration)
+//! quand la norme dit 81.002 « non concerne » (Agirc-Arrco, Conges Spectacles : `texte/bloc-S21.G00.81.txt`, l. 372 et
+//! 379). Ce qu'il en advient est dit a un seul endroit, `bordereau::credit`.
 
 use serde_json::{json, Map, Value};
 
+use crate::bordereau::{self, Destinataire};
 use crate::date::Jour;
-use crate::num::Resultat;
+use crate::num::{Decimal, Resultat};
 
 /// Un bloc S21.G00.20, tel que le fichier l'ecrit.
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -52,6 +61,8 @@ pub struct Ordre {
     pub debut: String,
     pub fin: String,
     pub date_paiement: String,
+    /// La somme des composants de versement (55.001) qui suivent le bloc, s'il en a.
+    pub composants: Option<Decimal>,
 }
 
 const MOIS: [&str; 12] =
@@ -69,6 +80,12 @@ pub fn lire(texte: &str) -> Vec<Ordre> {
     let mut out: Vec<Ordre> = Vec::new();
     for ligne in texte.split('\n') {
         let ligne = ligne.trim_end_matches('\r');
+        if let Some(v) = ligne.strip_prefix("S21.G00.55.001,'").and_then(|v| v.strip_suffix('\'')) {
+            if let (Some(o), Ok(m)) = (out.last_mut(), v.parse::<Decimal>()) {
+                o.composants = Some(o.composants.unwrap_or_default() + m);
+            }
+            continue;
+        }
         let Some(reste) = ligne.strip_prefix("S21.G00.20.") else { continue };
         let Some((rub, valeur)) = reste.split_once(",'") else { continue };
         let valeur = valeur.strip_suffix('\'').unwrap_or(valeur).to_string();
@@ -149,9 +166,122 @@ fn texte_de<'a>(v: Option<&'a Value>, cle: &str) -> Option<&'a str> {
     v.and_then(|v| v.get(cle)).and_then(Value::as_str).filter(|s| !s.is_empty())
 }
 
+/// Les paires (rubrique, valeur) du fichier, dans l'ordre.
+fn paires(texte: &str) -> Vec<(&str, &str)> {
+    texte
+        .split('\n')
+        .filter_map(|l| {
+            let (k, v) = l.trim_end_matches('\r').split_once(",'")?;
+            Some((k, v.strip_suffix('\'').unwrap_or(v)))
+        })
+        .collect()
+}
+
+fn montant_lu(v: &str) -> Option<Decimal> {
+    v.parse::<Decimal>().ok()
+}
+
+/// Les cotisations individuelles (81.004) dues a `organisme` : celles dont 81.002 le nomme, et, sans 81.002, celles dont
+/// le code est l'un de `codes` (les codes simples du versement configure).
+fn cotisations_de(p: &[(&str, &str)], organisme: &str, codes: &[String]) -> Decimal {
+    let mut s = Decimal::ZERO;
+    let mut courant: Option<(&str, Option<&str>, Option<Decimal>)> = None;
+    let fermer = |c: Option<(&str, Option<&str>, Option<Decimal>)>, s: &mut Decimal| {
+        if let Some((code, org, Some(m))) = c {
+            let a_lui = match org {
+                Some(o) => o == organisme,
+                None => codes.iter().any(|x| x == code),
+            };
+            if a_lui {
+                *s += m;
+            }
+        }
+    };
+    for (k, v) in p {
+        match *k {
+            "S21.G00.81.001" => {
+                fermer(courant.take(), &mut s);
+                courant = Some((v, None, None));
+            }
+            "S21.G00.81.002" => {
+                if let Some(c) = courant.as_mut() {
+                    c.1 = Some(v);
+                }
+            }
+            "S21.G00.81.004" => {
+                if let Some(c) = courant.as_mut() {
+                    c.2 = montant_lu(v);
+                }
+            }
+            k if k.starts_with("S21.G00.81.") => {}
+            _ => fermer(courant.take(), &mut s),
+        }
+    }
+    fermer(courant.take(), &mut s);
+    s
+}
+
+/// Le credit d'un ordre (`bordereau::credit`), lu dans le fichier ; `None` quand il n'y en a pas.
+fn credit_de(
+    o: &Ordre, p: &[(&str, &str)], texte: &str, mois: &str, organisme: &str, urssaf: &str, config: Option<&Map<String, Value>>,
+) -> Resultat<Option<bordereau::Credit>> {
+    let montant = montant_lu(&o.montant).unwrap_or_default();
+    let mois_de = |jjmmaaaa: &str| jour_dsn(jjmmaaaa).map(|j| j.mois_iso());
+    if o.organisme == "DGFIP" {
+        if !montant.is_zero() {
+            return Ok(None);
+        }
+        let lignes: Vec<String> = texte.split('\n').map(|l| l.trim_end_matches('\r').to_string()).collect();
+        let pas = crate::dsn::pas_retenu(&lignes)?;
+        return Ok(bordereau::credit(Destinataire::Dgfip, organisme, -pas, Decimal::ZERO));
+    }
+    if !urssaf.is_empty() && o.organisme == urssaf {
+        if mois_de(&o.debut).as_deref() != Some(mois) {
+            return Ok(None);
+        }
+        // Les bordereaux (22.003 debut, 22.005 montant) du fichier.
+        let mut bordereaux: Vec<(Option<String>, Decimal)> = Vec::new();
+        for (k, v) in p {
+            match *k {
+                "S21.G00.22.003" => bordereaux.push((mois_de(v), Decimal::ZERO)),
+                "S21.G00.22.005" => {
+                    if let Some(b) = bordereaux.last_mut() {
+                        b.1 = montant_lu(v).unwrap_or_default();
+                    }
+                }
+                _ => {}
+            }
+        }
+        let courant = bordereaux.iter().filter(|(m, _)| m.as_deref() == Some(mois)).map(|(_, x)| *x).sum::<Decimal>();
+        let negatifs = -bordereaux
+            .iter()
+            .filter(|(m, x)| m.as_deref() != Some(mois) && *x < Decimal::ZERO)
+            .map(|(_, x)| *x)
+            .sum::<Decimal>();
+        if negatifs <= Decimal::ZERO {
+            return Ok(None);
+        }
+        let deduit = (courant - montant).max(Decimal::ZERO);
+        return Ok(bordereau::credit(Destinataire::Urssaf, organisme, negatifs - deduit, deduit));
+    }
+    if let Some(c) = o.composants {
+        return Ok(bordereau::credit(Destinataire::Complementaire, organisme, -c, Decimal::ZERO));
+    }
+    if !montant.is_zero() {
+        return Ok(None);
+    }
+    let codes: Vec<String> = match config {
+        Some(v) => crate::dsn::codes_du_versement(&Value::Object(v.clone())).into_iter().filter(|c| !c.contains(':')).collect(),
+        None => Vec::new(),
+    };
+    let du = cotisations_de(p, &o.organisme, &codes);
+    Ok(bordereau::credit(Destinataire::Autre, organisme, -du, Decimal::ZERO))
+}
+
 /// Les ordres du fichier DSN `texte`, mois principal declare `mois` (`AAAA-MM`), en clair : `organisme` (le nom propre,
 /// ou l'identifiant quand rien ne le connait), `identifiant`, `objet`, `montant`, `periode` (du, au), `date` (ISO, ou
-/// `null` quand aucun texte ne la dit), `quand` (la phrase de la page) et `source` (d'ou vient la date).
+/// `null` quand aucun texte ne la dit), `quand` (la phrase de la page), `source` (d'ou vient la date) et `credit` (le
+/// trop-verse que l'ordre ne reprend pas ou reprend, et ce que la compagnie en fait ; `null` sans trop-verse).
 /// `organismes` : `config/organismes.json` (Null s'il manque) ; `jour_echeance` : 5 ou 15 (`Contexte::echeance_dsn`).
 pub fn decrire(texte: &str, mois: &str, organismes: &Value, jour_echeance: u32) -> Resultat<Vec<Value>> {
     let urssaf = texte
@@ -159,6 +289,7 @@ pub fn decrire(texte: &str, mois: &str, organismes: &Value, jour_echeance: u32) 
         .find_map(|l| l.trim_end_matches('\r').strip_prefix("S21.G00.22.001,'").and_then(|v| v.strip_suffix('\'')))
         .unwrap_or("")
         .to_string();
+    let p = paires(texte);
     let mut out = Vec::new();
     for o in lire(texte) {
         let config = versement_de(organismes, &o.organisme);
@@ -211,6 +342,9 @@ pub fn decrire(texte: &str, mois: &str, organismes: &Value, jour_echeance: u32) 
         } else {
             (None, "date non dite par la DSN".to_string(), SOURCE_AUCUNE)
         };
+        let credit = credit_de(&o, &p, texte, mois, &organisme, &urssaf, config)?.map(|c| {
+            json!({"reste": crate::dsn::mt(c.reste), "deduit": crate::dsn::mt(c.deduit), "que_faire": c.que_faire, "source": c.source})
+        });
         out.push(json!({
             "organisme": organisme,
             "identifiant": o.organisme,
@@ -220,6 +354,7 @@ pub fn decrire(texte: &str, mois: &str, organismes: &Value, jour_echeance: u32) 
             "date": date.map(|j| j.iso()),
             "quand": quand,
             "source": source,
+            "credit": credit,
         }));
     }
     Ok(out)

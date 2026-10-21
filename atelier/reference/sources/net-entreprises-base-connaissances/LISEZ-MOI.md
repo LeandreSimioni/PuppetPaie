@@ -375,3 +375,35 @@ proratisation du SMIC par ces rubriques ; `calcul::reduction_generale_sous_dfs` 
   `tests/dsn/bloc_44.rs` (`la_dsn_de_mars_declare_la_contribution_supplementaire_de_l_annee_precedente` et suivants),
   `csa::tests`. Inférences (passation D2) : l'Alsace-Moselle par l'assiette de son CTP 993 ; la progression de 10 % comme
   le guide la calcule (A05 de N contre A05 de N-1) ; « excède deux mille » sous la règle des cinq ans.
+
+## Le trop-versé : fiches 1931 et 1328 (21/10/2026)
+
+Une correction à la baisse (« Corriger ce mois ») peut faire ressortir négative la somme qu'un mois doit à un organisme
+(cas : un contrat de juillet annulé en entier, DSN d'octobre). `S21.G00.20.005` est « non signé » : ces deux fiches,
+avec la norme et le guide Urssaf, disent ce qu'il en advient.
+
+- **1931, « DSN - Corrections au niveau du bloc Versement Organisme de Protection Sociale - Gérer les situations
+  créditrices »** : URL https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1931 ; « Date de modification :
+  23/03/2025 » ; relevée le 21/10/2026 par `curl`. Brut : `net-entreprises-fiche1931-situations-creditrices-versement-20250323.html` ;
+  texte : `.txt` (le corps de la réponse). Ce qu'on en lit : l. 4, « les rubriques « Montant du versement » ne peuvent pas
+  être renseignées avec des montants négatifs. Lorsque la somme totale [du PAS et de ses régularisations] est négative,
+  ces rubriques doivent être renseignées à « 0.00 » » ; l. 13, une DSN initiale créditrice ne déclare pas de bloc DGFiP,
+  « si par commodité le logiciel en produit un, il devra être déclaré [...] à 0,00 » ; l. 17, un annule et remplace
+  créditeur le déclare à 0,00 ; l. 19 et 40-41, « une demande de remboursement pourra être déposée auprès du SIE », par la
+  messagerie sécurisée de l'espace professionnel impots.gouv.fr. (La fiche 1923, sa jumelle PASRAU, dit la même chose ;
+  non déposée.)
+- **1328, « La ventilation du versement des cotisations »** : URL https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/1328 ;
+  « Date de modification : 22/03/2025 » ; relevée le 21/10/2026. Brut et texte :
+  `net-entreprises-fiche1328-ventilation-du-versement-20250322`. Ce qu'on en lit (l. 40) : pour un organisme
+  complémentaire, le versement est la somme des composants (bloc 55) « sauf si cette somme fait ressortir un montant
+  négatif, auquel cas un montant nul doit être renseigné » — la règle du CCH-12 de 20.005, redite.
+- **Ce que rien ne dit** (cherché le 21/10/2026 dans la base net-entreprises — « montant du versement négatif »,
+  « crédit de cotisations », « trop versé » —, les fiches 2417 France Travail et 1266 échéances, le dossier DSN et la page
+  Congés Spectacles d'Audiens, le cahier Agirc-Arrco CT2026) : comment l'Agirc-Arrco, la Caisse des Congés Spectacles et
+  France Travail rendent un crédit. Le moteur verse zéro (la norme l'autorise à chacun) et dit à la compagnie de le leur
+  demander.
+- **Où le moteur s'en sert** : `atelier/sources/paie/src/bordereau.rs`, « le trop-versé » (`a_verser`, `reprise_urssaf`,
+  `credit` : le seul endroit qui dit, par organisme, le montant écrit et ce que la compagnie fait du crédit) ;
+  `dsn.rs` (`versement_dgfip` : un PAS négatif s'écrit à 0.00 au lieu de refuser ; les versements Urssaf, complémentaires
+  et autres passent par `bordereau`) ; `ordres_paiement.rs` (le crédit de chaque ordre, lu dans le fichier, à l'écran de
+  dépôt). Test : `tests/dsn/regularisation_declaree.rs`, `un_contrat_qui_n_a_pas_eu_lieu_se_corrige_a_zero`.
