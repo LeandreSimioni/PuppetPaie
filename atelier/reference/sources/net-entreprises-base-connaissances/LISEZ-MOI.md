@@ -155,7 +155,8 @@ Relevées le 13/10/2026 par `curl` (le site répond), dans la catégorie « La g
 ### Fiche 2062 — « Quels sont les cas de dérogation à la déclaration des fins de contrat par signalement ? »
 
 - URL : https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/2062/ ; « Date de modification : 05/09/2025 » ; créée
-  le 20/12/2018. Fichier : `net-entreprises-fiche2062-derogations-fin-de-contrat-fctu-20250905.{html,txt}`.
+  le 20/12/2018. Fichier : `net-entreprises-fiche2062-derogations-fin-de-contrat-fctu-20250905.{html,txt}`. Le conseil
+  `signalement-fin-contrat-cddu-derogatoire` de `logiciel/donnees/conseils.json` la cite (ticket 224).
 - **Règle générale** (fiche 119, `…fiche119-…`, et R. 1234-9 du code du travail, cité par 2062 en dernière ligne) : « toute fin
   de contrat de travail, quels qu'en soient le motif et l'origine, doit donner lieu à la remise […] d'une Attestation Employeur »,
   et en DSN l'attestation s'obtient par le FCTU dans les 5 jours de la fin. Tout contrat déclaré en DSN a donc un FCTU, sauf

@@ -1252,12 +1252,12 @@ paie rappels --le 2026-10-02    ... à une autre date
 
 ### Les conseils « Le saviez-vous ? »
 
-Sur option (fiche Entreprise, « Afficher des conseils », décochée par défaut). Cochée : un conseil du jour à l'accueil
-(« un autre » en montre un suivant), un conseil sous la carte d'un engagement quand la saisie appelle quelque chose d'utile
-à savoir (les heures qui comptent pour les 507 heures, un mois au-delà de 28 cachets, un cachet de répétition que la
-convention prévoit…), et, dans la fiche d'un salarié, ce que vos contrats ont fait compter pour ses droits. Chaque conseil
-finit par la référence de son texte ; la banque est `logiciel/donnees/conseils.json` (`atelier/docs/ARCHITECTURE.md`,
-« Les conseils »).
+Sur option (fiche Entreprise, bloc « Vos salariés », « Afficher des conseils », décochée par défaut). Cochée : un conseil
+du jour à l'accueil (« un autre » en montre un suivant), un conseil d'une phrase sous la carte d'un engagement quand la
+saisie appelle quelque chose d'utile à savoir (les heures qui comptent pour les 507 heures, un mois au-delà de 28 cachets,
+un cachet de répétition que la convention prévoit…), son détail et sa référence derrière « pourquoi ? », et, dans la
+fiche d'un salarié, ce que vos contrats ont fait compter pour ses droits. Chaque conseil cite son texte ; la banque est
+`logiciel/donnees/conseils.json` (`atelier/docs/ARCHITECTURE.md`, « Les conseils »).
 
 ```
 echo '{"route":"conseil-du-jour","charge":{}}' | paie route --racine <compagnie>

@@ -421,12 +421,18 @@ Trois familles, qui parlent à l'employeur :
 | ce que la compagnie a fait (`conseils-salarie`, `conseils-resume`) | la fiche du salarié ; l'accueil | `cumul::position_droits` sur la fenêtre (depuis `anniversaire_droits`, sinon 12 mois glissants) : heures comptées chez nous et part des 507, cachets perdus d'un mois, ce que les conseils de saisie auraient changé |
 
 Un conseil de saisie n'est **pas un avis** (`engagement::Avis`) : il ne passe ni dans les avertissements de la paie, ni au
-bulletin, ni à `produire` ; une paie validée (sa carte figée) n'en a pas. Les deux conseils « plus d'heures » ne se montrent
-que si la somme couvre le minimum conventionnel (`minima::cachet_de_repetition`, `minima::minimum_de_la_ligne`) et disent
-leurs deux faces : précieux s'il manque des heures pour les 507, à éviter si elles sont sûres et que le salarié est
-indemnisé (le coût se dit en jours d'allocation, art. 30, jamais en euros). **Le seul cas de certitude** : nos contrats
-font à eux seuls au moins 507 heures sur la fenêtre ; ses droits sont ouverts, et « intense plutôt que dilué » prend la
-place des conseils « plus d'heures ».
+bulletin, ni à `produire` ; une paie validée (sa carte figée) n'en a pas. Il tient en **une phrase** (`texte`) ; son
+`detail` (les deux faces, les chiffres) et sa référence se déplient derrière « pourquoi ? » : le moteur rend les deux, la
+page n'affiche que ce qu'elle reçoit. Le salarié s'y nomme **par son seul prénom** (`{prenom}`, `conseils::prenom`), jamais
+par un pronom qui le genre (le test `conseils_banque` y veille). Les deux conseils « plus d'heures » ne se montrent que si
+la somme couvre le minimum conventionnel (`minima::cachet_de_repetition`, `minima::minimum_de_la_ligne`) et disent leurs
+deux faces : précieux s'il manque des heures pour les 507, à éviter si elles sont assurées un mois indemnisé (le coût se
+dit en jours d'allocation, art. 30, au demi-jour le plus proche, jamais en euros ; un coût qui s'arrondit à zéro se dit
+« moins d'un demi-jour », variante `-minime` de la banque). « Heures pour la même somme » ne parle qu'à partir d'un gain
+du poids d'un cachet (12 heures, `conseils::gain_heures`, la justification y est) : hors du seuil des 507 heures, une
+heure de plus coûte plus qu'elle ne rapporte. **Le seul cas de certitude** : nos contrats font à eux seuls au moins
+507 heures sur la fenêtre ; ses droits sont ouverts, et « intense plutôt que dilué » prend la place des conseils « plus
+d'heures ».
 
 ### L'import CoolPaie
 
