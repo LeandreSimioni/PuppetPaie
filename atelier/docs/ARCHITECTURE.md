@@ -407,6 +407,27 @@ janvier 2027, et laissait de côté les mois produits ici (plus d'AEM depuis le
 dépouille un dossier d'AEM (l'import s'en sert, et nos propres AEM de
 `sorties/`), mais plus personne ne l'appelle pour les droits.
 
+### Les conseils « Le saviez-vous ? » (ticket 224)
+
+Une **option de la compagnie** (fiche Entreprise, `conseils`, décochée par défaut) : sans elle, aucune route ne rend
+rien. Le texte, ses chiffres et ses sources sont des données (`logiciel/donnees/conseils.json`, chaque citation lue à
+l'identique dans un texte déposé, `tests/fichiers/conseils_banque.rs`) ; `paie/src/conseils.rs` n'a que les conditions.
+Trois familles, qui parlent à l'employeur :
+
+| | où | ce qui décide |
+|---|---|---|
+| le conseil du jour (`conseil-du-jour`, « un autre » : `decalage`) | l'accueil (`js/conseils.js`) | `quand` = « toujours », hors `suspendu` ; rang = `jour × pas mod N`, `pas` premier avec N : N jours de suite font le tour sans répétition, rien ne s'écrit |
+| le conseil de saisie (champ `conseil` d'une paie de `apercu`) | sous la carte d'engagement, au plus un | `ordre_saisie` : plus de 208 h d'un technicien, plus de 28 cachets, mois sans allocation (art. 30), 507 heures assurées chez nous, cachet de répétition de la 3090, heures qu'une même somme couvre au minimum horaire, enseignement, suspension, cachets et heures |
+| ce que la compagnie a fait (`conseils-salarie`, `conseils-resume`) | la fiche du salarié ; l'accueil | `cumul::position_droits` sur la fenêtre (depuis `anniversaire_droits`, sinon 12 mois glissants) : heures comptées chez nous et part des 507, cachets perdus d'un mois, ce que les conseils de saisie auraient changé |
+
+Un conseil de saisie n'est **pas un avis** (`engagement::Avis`) : il ne passe ni dans les avertissements de la paie, ni au
+bulletin, ni à `produire` ; une paie validée (sa carte figée) n'en a pas. Les deux conseils « plus d'heures » ne se montrent
+que si la somme couvre le minimum conventionnel (`minima::cachet_de_repetition`, `minima::minimum_de_la_ligne`) et disent
+leurs deux faces : précieux s'il manque des heures pour les 507, à éviter si elles sont sûres et que le salarié est
+indemnisé (le coût se dit en jours d'allocation, art. 30, jamais en euros). **Le seul cas de certitude** : nos contrats
+font à eux seuls au moins 507 heures sur la fenêtre ; ses droits sont ouverts, et « intense plutôt que dilué » prend la
+place des conseils « plus d'heures ».
+
 ### L'import CoolPaie
 
 `paie/src/importation.rs` lit le dossier `import/` de la compagnie (les DSN
