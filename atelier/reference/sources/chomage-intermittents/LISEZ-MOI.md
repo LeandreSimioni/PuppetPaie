@@ -1,8 +1,8 @@
 # L'assurance chômage des intermittents (annexes VIII et X) : textes en vigueur au 20/10/2026
 
-Relevé du 20/10/2026 pour le **futur module « conseil intermittents »** (ticket 224 : conseiller l'employeur, sur option,
-sur la façon d'engager un intermittent pour améliorer ses droits, licitement, à masse salariale égale). Ce dossier ne
-contient que des textes ; aucune règle n'est encore portée dans le moteur.
+Relevé du 20/10/2026 pour les **conseils « Le saviez-vous ? »** (ticket 224 : conseiller l'employeur, sur option, sur la
+façon d'engager un intermittent pour ses droits, à masse salariale égale). Où le moteur s'en sert : voir la section du même
+nom, plus bas.
 
 Les annexes VIII et X elles-mêmes (texte du 15/11/2024, identique octet pour octet au PDF servi par l'Unédic le 20/10/2026)
 sont déposées dans `../plafond-intermittents/` (`unedic-annexe8-convention-20241115.txt`,
@@ -99,3 +99,17 @@ Ce qu'on en lit (le détail est dans le rapport de la séance) :
   l. 630-655 ; `francetravail-flyer-franchises-20261020.txt`, § 3).
 - Lacune : le **règlement du régime** de la Caisse (articles 2, 4, 9, 10, 11 cités par le mode d'emploi) n'est pas publié sur
   les pages relevées ; l'ouverture du droit y est peut-être définie (voir le rapport).
+
+## Où le moteur s'en sert (ticket 224, 21/10/2026)
+
+- `logiciel/donnees/conseils.json` (la banque des conseils) cite ces textes : le guide France Travail (les 208 heures d'un
+  technicien, les 12 heures d'un cachet, les répétitions déclarées et payées, la déclaration des artistes), les
+  « premiers pas » (l'échéance de la DSN au 15 pour France Travail), les fiches Congés Spectacles, les extraits KALI des
+  conventions 1285 et 3090 (services de répétition, cachet du musicien, répétitions annulées). Les annexes VIII et X
+  (`../plafond-intermittents/`) fondent les conditions.
+- `atelier/sources/paie/src/conseils.rs` évalue les conditions de saisie et d'historique : les heures du mois au regard du
+  seuil de l'article 30 (27 jours de 10 h en X, 26 de 8 h en VIII), plus de 28 cachets (art. 3 §1, art. 12 §2), plus de
+  208 heures pour un technicien (guide), le cachet de répétition de la 3090 (`minima::cachet_de_repetition`), les heures
+  qu'une même somme couvre au minimum horaire de la convention (`minima::minimum_de_la_ligne`), et les 507 heures
+  assurées par nos seuls contrats (`cumul::position_droits`). Le coût d'une heure de plus pendant l'indemnisation se dit en
+  jours (art. 30 : heures ÷ 10 × 1,3 en X, ÷ 8 × 1,4 en VIII), jamais en euros.

@@ -1,0 +1,2697 @@
+{
+  "_quoi": "LA BANQUE DES CONSEILS « Le saviez-vous ? » (ticket 224). Une option de la compagnie (fiche Entreprise, `conseils`, décochée par défaut) les montre : un conseil général à l'accueil (`quand` = « toujours »), un conseil de saisie sous la carte d'engagement quand un fait de la saisie l'appelle (`saisie:<condition>`), des conseils sur ce que la compagnie a fait, dans le dossier du salarié (`historique:<condition>`). Le moteur évalue les conditions (`paie/src/conseils.rs`) ; le texte, ses chiffres et sa source vivent ici : un conseil s'ajoute sans toucher au moteur. Un conseil `suspendu` ne s'affiche pas (un point que Léandre n'a pas tranché).",
+  "_gabarits": "Dans `texte` : {annee} (l'année du barème lu, celle du jour) ; {bareme:chemin} et {minima:chemin}, une valeur lue dans `donnees/baremes/<annee>.json` ou `donnees/minima-conventionnels.json` (chemin séparé par « / » ; « id=x » choisit l'élément d'une liste dont `id` vaut x ; « *n » ou « /n » après le chemin multiplie ou divise) : un chiffre daté ne s'écrit jamais en dur ; {variable}, une valeur que la condition fournit ; {variable|singulier|pluriel}, le nombre suivi du mot accordé ; {variable?singulier|pluriel}, le mot seul. Un gabarit qui ne se résout pas tait le conseil.",
+  "_source": "Chaque `source` (ou chacune d'une liste) nomme un fichier déposé du dépôt, l'endroit (`article` ; `code` pour l'entrepôt LEGI) et une citation qu'on y lit à l'identique (fragments séparés par « […] », à la casse, aux espaces et aux guillemets près) : le test `fichiers::conseils_banque` le vérifie. La rédaction : `atelier/reference/sources/conseils/LISEZ-MOI.md`.",
+  "documents": {
+    "atelier/README.md": "Mode d'emploi de PuppetPaie",
+    "atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt": "Norme DSN, bloc 40 (contrat)",
+    "atelier/reference/sources/accord-interbranche-prevoyance-intermittents/audiens-essentiel-regime-intermittents-20220425.txt": "Audiens, L'essentiel du régime des intermittents (2022)",
+    "atelier/reference/sources/arrete-1975-artistes-du-spectacle/articles-20261015.md": "Arrêté du 24 janvier 1975 (artistes du spectacle)",
+    "atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt": "Audiens, répartition des taux de retraite complémentaire (2026)",
+    "atelier/reference/sources/audiens-parametres-2026/Audiens-Parametres-2026.txt": "Audiens, Paramètres 2026",
+    "atelier/reference/sources/bocc-1922-cddu-accord-20071129.md": "Radiodiffusion (IDCC 1922), accord CDD d'usage du 29/11/2007",
+    "atelier/reference/sources/bofip/BOI-IR-PAS-30-10-30-20-extrait-reversement.md": "BOFiP, BOI-IR-PAS-30-10-30-20",
+    "atelier/reference/sources/boss/boss-assiette-generale-20260801.txt": "BOSS, Assiette générale",
+    "atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt": "BOSS, Frais professionnels",
+    "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-flyer-artistes-202604-20261021.txt": "Congés Spectacles, dépliant pour les artistes et techniciens (avril 2026)",
+    "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-mode-emploi-employeur-202304-20261021.txt": "Congés Spectacles, Employeur : mode d'emploi (avril 2023)",
+    "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt": "France Travail, guide des intermittents du spectacle",
+    "atelier/reference/sources/chomage-intermittents/francetravail-premiers-pas-intermittence-20261020.txt": "France Travail, Premiers pas dans l'intermittence",
+    "atelier/reference/sources/chomage-intermittents/kali-1285-organisation-travail-repetitions-representations-20261020.md": "Convention des entreprises artistiques et culturelles (IDCC 1285), titre XIII",
+    "atelier/reference/sources/chomage-intermittents/kali-3090-repetitions-cachets-representations-20261020.md": "Convention du spectacle vivant privé (IDCC 3090)",
+    "atelier/reference/sources/code-general-des-impots/articles-20261015.md": "Code général des impôts",
+    "atelier/reference/sources/conseils/afdas-intermittents-conditions-20261021.md": "Afdas, Intermittents : quelles conditions",
+    "atelier/reference/sources/dfs/annexes-2025/legi-arrete-20250904-frais-professionnels-annexe2-frais-hors-assiette-20250907.txt": "Arrêté du 4 septembre 2025, annexe 2 (frais hors assiette)",
+    "atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261015.md": "Arrêté du 4 septembre 2025 (frais professionnels)",
+    "atelier/reference/sources/echeances-dsn/LISEZ-MOI.md": "Échéances de la DSN (cahier technique, relevé)",
+    "atelier/reference/sources/echeances-dsn/net-entreprises-fiche113-signalement-arret-de-travail-20220211.txt": "net-entreprises, fiche 113 (signalement d'arrêt de travail)",
+    "atelier/reference/sources/kali-1285-x3-remuneration-artistes-20260929.md": "Convention des entreprises artistiques et culturelles (IDCC 1285), rémunération des artistes",
+    "atelier/reference/sources/legifrance-3090-avenant-salaires-20250721.md": "Convention du spectacle vivant privé (IDCC 3090), avenant salaires du 21/07/2025",
+    "atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt": "Urssaf, guide des contributions formation et apprentissage",
+    "atelier/reference/sources/montant-net-social/boss-montant-net-social-20261001.txt": "BOSS, Montant net social",
+    "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche119-preavis-signalement-fin-de-contrat-20250512.txt": "net-entreprises, fiche 119 (signalement de fin de contrat)",
+    "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche1902-circuit-derogatoire-cddu-d-20250512.txt": "net-entreprises, fiche 1902 (circuit dérogatoire du CDDU)",
+    "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche1903-retours-france-travail-cddu-d-20250603.txt": "net-entreprises, fiche 1903 (retours France Travail du CDDU)",
+    "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche3360-fait-generateur-20260130.txt": "net-entreprises, fiche 3360 (fait générateur)",
+    "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche484-abattement-frais-professionnels-brut-non-plafonne-et-chomage-20250701.txt": "net-entreprises, fiche 484 (abattement et assurance chômage)",
+    "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche673-rappel-signalements-arret-reprise-fin-de-contrat-20250513.txt": "net-entreprises, fiche 673 (signalements)",
+    "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt": "Assurance chômage, annexe X (artistes)",
+    "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt": "Assurance chômage, annexe VIII (techniciens)",
+    "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt": "Urssaf, taux réduits des artistes du spectacle",
+    "atelier/reference/sources/legi-entrepot/articles.jsonl.gz#travail": "Code du travail",
+    "atelier/reference/sources/legi-entrepot/articles.jsonl.gz#securite-sociale": "Code de la sécurité sociale"
+  },
+  "annexes": {
+    "_quoi": "Ce que l'article 30 des annexes dit d'un mois travaillé pendant l'indemnisation : les heures font des jours de travail (10 h par jour en X, 8 h en VIII), chaque jour retire un coefficient de jours d'allocation, et au-delà d'un nombre de jours aucune allocation n'est versée ; un technicien n'a que 208 heures retenues par mois pour ses 507 heures (250 avec plusieurs employeurs).",
+    "_source": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt et unedic-annexe8-convention-20241115.txt, art. 3 §1 et art. 30 ; le guide France Travail (chomage-intermittents/francetravail-guide-intermittents-20261020.txt) pour les 208 heures et les 12 heures d'un cachet à l'article 30.",
+    "X": {
+      "heures_par_jour": 10,
+      "coefficient": 1.3,
+      "jours_sans_allocation": 27
+    },
+    "VIII": {
+      "heures_par_jour": 8,
+      "coefficient": 1.4,
+      "jours_sans_allocation": 26,
+      "heures_retenues_par_mois": 208,
+      "heures_retenues_plusieurs_employeurs": 250
+    }
+  },
+  "fenetres": {
+    "_quoi": "La fenêtre des droits que la phrase nomme : depuis la date anniversaire que porte la fiche du salarié (`anniversaire_droits`, les 12 mois qui la précèdent, `cumul::fenetre_anniversaire`), sinon les 12 mois glissants.",
+    "anniversaire": "du {debut} au {fin}, les 12 mois avant sa date anniversaire",
+    "glissante": "sur les 12 mois du {debut} au {fin}"
+  },
+  "ordre_saisie": [
+    "saisie:technicien-plus-de-208-heures",
+    "saisie:plus-de-28-cachets",
+    "saisie:mois-sature",
+    "saisie:507-assurees",
+    "saisie:repetition-en-cachet",
+    "saisie:heures-pour-la-meme-somme",
+    "saisie:enseignement",
+    "saisie:suspension",
+    "saisie:cachets-et-heures"
+  ],
+  "conseils": [
+    {
+      "id": "chomage-507-heures",
+      "domaine": "chômage / ouverture des droits",
+      "public": "tous",
+      "quand": "toujours",
+      "texte": "Pour ouvrir ses droits au chômage, un intermittent doit avoir travaillé au moins 507 heures sur les 12 mois qui précèdent la fin de son dernier contrat. Vos contrats comptent donc dans cette fenêtre glissante d'un an : leur date autant que leur durée.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 3 §1",
+        "citation": "Les salariés privés d'emploi doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "cachet-12-heures",
+      "domaine": "chômage / décompte des cachets",
+      "public": "employeur, artiste",
+      "quand": "toujours",
+      "texte": "Pour France Travail, un cachet d'artiste vaut 12 heures de travail pour atteindre les 507 heures, quelle que soit la durée réelle de la prestation. 43 cachets suffisent donc pour 516 heures.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 3 §1",
+        "citation": "Lorsque l'activité des artistes est déclarée sous la forme de cachets, chaque cachet est converti en heures sur la base de 1 cachet égal 12 heures."
+      },
+      "ciblage": "quand l'engagement est un artiste payé au cachet",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "cachets-28-par-mois",
+      "domaine": "chômage / plafond mensuel",
+      "public": "employeur, artiste",
+      "quand": "toujours",
+      "texte": "Au-delà de 28 cachets dans un même mois, les cachets suivants ne comptent plus pour les 507 heures de vos artistes. Concentrer trop de cachets sur un mois n'apporte donc rien de plus de ce côté-là.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 3 §1",
+        "citation": "Le nombre maximum de cachets pris en compte pour la recherche de la durée d'affiliation requise est de 28 par mois."
+      },
+      "ciblage": "quand un artiste a plus de 28 cachets dans le même mois civil chez l'employeur (ou à venir)",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "cachets-au-dela-de-28-salaire-de-reference",
+      "domaine": "chômage / salaire de référence",
+      "public": "employeur, artiste",
+      "quand": "toujours",
+      "texte": "Les cachets payés au-delà du 28e du mois ne comptent pas non plus dans le salaire qui sert à calculer l'allocation de vos artistes : ni dans leurs heures, ni dans leur salaire de référence.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 12 §2",
+        "citation": "Il en est de même des rémunérations correspondant aux cachets effectués au-delà de 28 par mois."
+      },
+      "ciblage": "quand un artiste a plus de 28 cachets dans le même mois",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "technicien-heures-208-250",
+      "domaine": "chômage / plafond mensuel",
+      "public": "employeur, technicien",
+      "quand": "toujours",
+      "texte": "Pour un technicien, France Travail ne retient que 208 heures par mois pour les 507 heures. La limite monte à 250 heures si le technicien a travaillé pour plusieurs employeurs dans le mois.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
+          "article": "« Les périodes retenues pour les 507 heures »",
+          "citation": "De 208 heures pour les ouvriers et […] techniciens : cette limite est majorée"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "le salarié a travaillé pour plusieurs employeurs au cours du mois considéré, soit 250 heures de travail."
+        }
+      ],
+      "ciblage": "quand l'engagement est un technicien (annexe VIII) avec plus de 208 h dans le mois",
+      "certitude": "sourcé (le chiffre 208 vient du guide ; l'annexe renvoie à L. 3121-21 sans le chiffrer)"
+    },
+    {
+      "id": "repetitions-comptent",
+      "domaine": "chômage / heures des artistes",
+      "public": "employeur, artiste",
+      "quand": "toujours",
+      "texte": "Les heures de répétition de vos artistes comptent pour leurs 507 heures, à condition d'être déclarées et payées par vous. Un service de répétition bien indiqué sur le contrat et la paie, c'est du temps qui leur sert pour leurs droits.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
+        "article": "« Les périodes retenues pour les 507 heures »",
+        "citation": "Pour les artistes, sont retenues en plus des […] Les heures de répétitions déclarées et payées"
+      },
+      "ciblage": "quand un engagement d'artiste comporte des répétitions",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "aem-delai-15",
+      "domaine": "chômage / attestation d'employeur",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Vos salariés intermittents sont payés définitivement par France Travail seulement quand toutes les attestations de leurs employeurs sont arrivées. Pour un employeur du spectacle, c'est la DSN du mois qui les porte : elle part au plus tard le 15 du mois suivant ; pour un employeur occasionnel (via le Guso), la déclaration unique se fait dans les 15 jours après la prestation.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-premiers-pas-intermittence-20261020.txt",
+        "article": "p. 9",
+        "citation": "Les employeurs « professionnels […] du spectacle » ont jusqu'au 15 […] du mois suivant la prestation […] pour adresser à France Travail"
+      },
+      "ciblage": "toujours (rappel de fin de mois ; ou quand un contrat de la paie du mois vient d'être clos)",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "paiement-provisoire",
+      "domaine": "chômage / attestation d'employeur",
+      "public": "employeur, artiste, technicien",
+      "quand": "toujours",
+      "texte": "Tant que votre attestation d'employeur n'est pas arrivée, France Travail verse à vos salariés un paiement provisoire d'après leurs seules déclarations, puis régularise : un rappel, ou un trop-perçu à rendre si leur déclaration différait de la vôtre. Des chiffres identiques entre leur déclaration et votre attestation leur évitent cela.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
+        "article": "« Vos paiements »",
+        "citation": "Un paiement provisoire est effectué à partir de vos déclarations."
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "date-anniversaire",
+      "domaine": "chômage / date anniversaire",
+      "public": "tous",
+      "quand": "toujours",
+      "texte": "Les droits d'un intermittent durent jusqu'à une « date anniversaire », 12 mois après la fin du contrat qui a ouvert ses droits. À cette date, ses droits sont réexaminés : les contrats que vous lui donnez dans les mois qui précèdent comptent pour la suite.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
+        "article": "« Quelle période d'indemnisation ? »",
+        "citation": "La date anniversaire est fixée au terme d'un […] délai de 12 mois (365 jours) à compter de la […] fin de contrat de travail prise en considération pour l'ouverture des droits."
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "contrat-en-cours-a-la-date-anniversaire",
+      "domaine": "chômage / date anniversaire",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Si l'un de vos contrats est en cours à la date anniversaire d'un de vos salariés, le réexamen de ses droits attend la fin de ce contrat (le premier jour sans contrat du spectacle). La durée de votre contrat n'est donc pas coupée par cette date.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
+        "article": "« Quand intervient l'examen de nouveaux droits ? »",
+        "citation": "Au premier jour chômé (sans activité relevant de l'annexe 8 ou 10) suivant votre date anniversaire lorsqu'à cette date vous exercez une activité relevant des annexes 8 ou 10."
+      },
+      "ciblage": "quand un engagement chevauche une date connue de renouvellement (fiche du salarié)",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "heures-proches-du-seuil",
+      "domaine": "chômage / seuil des 507 heures",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Quand un salarié est à quelques heures des 507, ces quelques heures décident d'une année de droits ou de rien. À l'inverse, une fois les 507 heures atteintes, des heures en plus changent très peu son allocation : elle dépend surtout de son salaire.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 3 §1",
+        "citation": "d'au moins 507 heures de travail"
+      },
+      "ciblage": "quand l'historique d'un salarié (autres employeurs connus) le place juste sous ou juste au-dessus de 507 h",
+      "certitude": "sourcé (formule) / inférence prudente (l'ordre de grandeur vient des simulations du cahier)"
+    },
+    {
+      "id": "jours-non-indemnises-formule",
+      "domaine": "chômage / travail pendant l'indemnisation",
+      "public": "employeur, technicien, artiste",
+      "quand": "toujours",
+      "texte": "Pendant qu'un intermittent est indemnisé, chaque jour de travail lui retire plus d'un jour d'allocation : 1,3 jour pour un artiste (10 heures = 1 jour) et 1,4 jour pour un technicien (8 heures = 1 jour). Par exemple, 80 heures d'un technicien font 10 jours de travail, soit 14 jours d'allocation en moins ce mois-là.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+        "article": "art. 30",
+        "citation": "le nombre de jours de privation involontaire d'emploi indemnisables au cours d'un mois civil est égal à la différence entre le nombre de jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,4"
+      },
+      "ciblage": "quand le salarié engagé est connu comme indemnisé (fiche)",
+      "certitude": "sourcé"
+    },
+    {
+      "quand": "toujours",
+      "id": "travail-intense-plutot-que-dilue",
+      "domaine": "chômage / travail pendant l'indemnisation",
+      "public": "employeur",
+      "texte": "Si vos salariés sont sûrs d'atteindre leurs 507 heures, mieux vaut un travail intense que dilué : 2 heures bien payées plutôt que 4 heures pour la même somme. Pendant leur indemnisation, chaque heure déclarée réduit leur allocation du mois. Pour atteindre les 507 heures, c'est l'inverse : chaque heure compte.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "le nombre de jours de travail au cours du mois civil est déterminé en fonction du nombre d'heures de travail effectuées à raison de dix heures par jour"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+        }
+      ],
+      "ciblage": "quand un engagement d'un salarié indemnisé est en préparation ; à la saisie, remplacé par « saisie-507-assurees »",
+      "certitude": "sourcé (texte validé par Léandre, 21/10/2026)"
+    },
+    {
+      "id": "seuil-aucune-indemnisation",
+      "domaine": "chômage / travail pendant l'indemnisation",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Un intermittent qui travaille l'équivalent de 27 jours dans le mois (270 heures) pour un artiste, 26 jours (208 heures) pour un technicien, ne reçoit plus aucune allocation ce mois-là. Au-dessus de ce seuil, la paie remplace entièrement l'allocation.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 30",
+        "citation": "En cas d'exercice d'une activité au moins égale à 27 jours de travail par mois calendaire, déterminés en fonction du nombre d'heures de travail effectuées à raison de dix heures par jour, aucune indemnisation n'est servie."
+      },
+      "ciblage": "quand les heures d'un salarié sur le mois approchent 208 h (technicien) ou 270 h (artiste)",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "plafond-cumul-118",
+      "domaine": "chômage / travail pendant l'indemnisation",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Le salaire d'un intermittent indemnisé et son allocation du mois ne peuvent pas dépasser ensemble 1,18 fois le plafond mensuel de la Sécurité sociale (soit {bareme:plafond_securite_sociale/mensuel*1.18,2} € en {annee}). Au-delà, l'allocation est réduite pour ne pas dépasser ce total : un salaire plus élevé n'ajoute alors rien à ce qu'il touche, côté allocation.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 30",
+        "citation": "dans la limite de 1,18 fois le plafond mensuel de la sécurité sociale"
+      },
+      "ciblage": "quand un salarié indemnisé a un salaire du mois élevé",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "delai-attente-7-jours",
+      "domaine": "chômage / délai d'attente",
+      "public": "tous",
+      "quand": "toujours",
+      "texte": "À chaque ouverture ou renouvellement de droits, un intermittent attend 7 jours avant d'être payé (délai d'attente). Ce délai ne s'applique qu'une fois sur une même période de 12 mois.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 22",
+        "citation": "La prise en charge est reportée au terme d'un délai d'attente de sept jours. Le délai d'attente s'applique à chaque ouverture de droits ou réadmission, dès lors qu'il n'excède pas sept jours sur une même période de douze mois."
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "franchise-conges-payes",
+      "domaine": "chômage / franchises",
+      "public": "employeur, artiste, technicien",
+      "quand": "toujours",
+      "texte": "Les congés payés que vos salariés ont acquis auprès de la Caisse des Congés Spectacles retardent un peu leur premier paiement de chômage : 2,5 jours de franchise par tranche de 24 jours travaillés, au plus 30 jours, étalés sur les mois d'indemnisation (2 ou 3 jours par mois). Ce n'est pas une perte : c'est la contrepartie des congés payés qu'ils ont touchés.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 21 §1 a)",
+        "citation": "à raison de 2,5 jours de congés par période de 24 jours travaillés, dans la limite de 30 jours"
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé (la dernière phrase est une explication, non une citation)"
+    },
+    {
+      "id": "franchise-salaire",
+      "domaine": "chômage / franchises",
+      "public": "tous",
+      "quand": "toujours",
+      "texte": "Plus les salaires d'un intermittent ont été élevés sur l'année, plus la « franchise salaire » qui retarde ses paiements est longue : elle est répartie sur les 8 premiers mois d'indemnisation. Elle est écrite sur sa notification de droits.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 21 §1 b) et art. 23 §2",
+        "citation": "Le délai de franchise prévu au b du §1er de l'article 21 est réparti sur les huit premiers mois de la période d'indemnisation"
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "clause-de-rattrapage",
+      "domaine": "chômage / rattrapage",
+      "public": "employeur, artiste, technicien",
+      "quand": "toujours",
+      "texte": "Un intermittent qui n'atteint pas tout à fait les 507 heures à sa date anniversaire peut, sous conditions, être indemnisé 6 mois de plus pour finir de compléter ses heures : il lui faut au moins 338 heures sur l'année et 5 ans d'ancienneté dans le régime (5 ouvertures de droits ou 2 535 heures sur 10 ans). Vos contrats de ces mois-là l'aident à rejoindre les 507 heures.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 9 §1 e)",
+        "citation": "justifier d'au moins cinq années d'affiliation correspondant à 5x507 heures de travail attestées ou d'au moins cinq ouvertures de droits ... au cours des dix années précédant la fin de contrat de travail ayant permis l'ouverture des droits"
+      },
+      "ciblage": "quand l'historique d'un salarié place ses heures entre 338 et 506",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "rattrapage-delai-30-jours",
+      "domaine": "chômage / rattrapage",
+      "public": "artiste, technicien",
+      "quand": "toujours",
+      "texte": "Pour bénéficier de la clause de rattrapage, l'intermittent doit en faire la demande dans les 30 jours après l'envoi de la notification de France Travail ; sans réponse, il y renonce. C'est utile à rappeler à un salarié dont les heures sont proches du seuil.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 9 §1 e)",
+        "citation": "le délai de 30 jours courant à compter de la date d'envoi de la notification ... l'absence de réponse de l'allocataire vaut renoncement au bénéfice de la clause de rattrapage"
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "enseignement-70-heures",
+      "domaine": "chômage / enseignement",
+      "public": "employeur, artiste, technicien",
+      "quand": "toujours",
+      "texte": "Les heures d'enseignement d'un artiste ou d'un technicien (cours dans un conservatoire, une école agréée...) comptent pour ses 507 heures, mais seulement jusqu'à 70 heures, ou 120 heures à partir de 50 ans. Elles ne servent pas au calcul du montant de l'allocation.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 3 §1",
+        "citation": "sont retenues dans la limite de 70 heures ... La limite de 70 heures est portée à 120 heures pour les artistes âgés de 50 ans et plus"
+      },
+      "ciblage": "quand un engagement est un contrat d'enseignement (cours) ou l'activité enseignement",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "enseignement-technicien-contrat-termine",
+      "domaine": "chômage / enseignement",
+      "public": "technicien",
+      "quand": "toujours",
+      "texte": "Pour un technicien, les heures d'enseignement ne comptent que si le contrat d'enseignement est terminé dans la période des 12 mois ; pour un artiste, un contrat d'enseignement encore en cours compte aussi.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+        "article": "art. 3 §1",
+        "citation": "en exécution d'un contrat de travail, ayant pris fin au cours de la période de référence"
+      },
+      "ciblage": "quand l'activité enseignement concerne un technicien",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "formation-assimilee-deux-tiers",
+      "domaine": "chômage / formation",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Les jours de formation suivis par vos salariés (hors formations déjà rémunérées par le chômage) sont assimilés à des heures de travail, jusqu'aux deux tiers des 507 heures, soit 338 heures. Se former n'éloigne donc pas de l'ouverture de droits, à condition d'avoir aussi du travail.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 3 §1",
+        "citation": "sont assimilées à des heures de travail dans la limite des deux tiers du nombre d'heures fixé par le présent article"
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "arret-maladie-suspension-5-heures",
+      "domaine": "chômage / arrêts",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Si un contrat de votre salarié est suspendu (maladie, maternité, accident du travail), chaque jour de suspension est compté pour 5 heures dans ses 507 heures. Pensez à le signaler sur son attestation.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 3 §2",
+        "citation": "Les périodes de suspension du contrat de travail sont retenues à raison de cinq heures de travail par journée de suspension."
+      },
+      "ciblage": "quand un engagement est suspendu par un arrêt (absence déclarée dans la paie)",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "maternite-hors-contrat",
+      "domaine": "chômage / arrêts",
+      "public": "employeur, artiste, technicien",
+      "quand": "toujours",
+      "texte": "Un congé maternité ou d'adoption indemnisé par la Sécurité sociale, pris hors contrat, compte aussi pour 5 heures par jour dans les 507 heures de la salariée. S'il y a eu un arrêt en cours de période, le salaire de référence est même réajusté pour ne pas pénaliser l'allocation.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 3 §3 a)",
+        "citation": "Sont également retenues, à raison de cinq heures de travail par journée, les périodes : a) de maternités mentionnées à l'article L. 331-3 du code de la sécurité sociale"
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "allocation-salaire-reference",
+      "domaine": "chômage / montant",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "L'allocation de chômage d'un artiste se calcule en grande partie sur le salaire de référence, c'est-à-dire sur les salaires bruts des 12 mois. Mais au-delà de 13 700 € de salaires, chaque euro compte environ sept fois moins (5 % au lieu de 36 %) : à partir de là, mieux payer le même travail change peu l'allocation.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 14",
+        "citation": "A = [AJ minimale x (0,36 x SR ou SAR (jusqu'à 13 700 €) + 0,05 x SR ou SAR (au-delà de 13 700 €)] : 5 000"
+      },
+      "ciblage": "quand le salaire de référence connu d'un artiste dépasse ~13 700 € (historique)",
+      "certitude": "sourcé (« environ sept fois » = 36 ÷ 5, calcul)"
+    },
+    {
+      "id": "salaire-reference-exclusions",
+      "domaine": "chômage / salaire de référence",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Certaines sommes versées à vos salariés n'entrent pas dans leur salaire de référence : l'indemnité compensatrice de congés payés, les indemnités de rupture, les heures au-delà des limites légales. Seul ce qui rémunère le travail normal du contrat compte pour leur allocation.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 12 §2",
+        "citation": "Sont exclues les indemnités de licenciement, de départ, ... les indemnités compensatrices de congés payés, les indemnités compensatrices de préavis ou de non-concurrence, toutes sommes dont l'attribution trouve sa seule origine dans la rupture du contrat de travail"
+      },
+      "ciblage": "quand une paie comporte une indemnité compensatrice de congés payés",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "cachet-ne-pas-reporter-en-heures",
+      "domaine": "chômage / déclaration",
+      "public": "artiste, employeur",
+      "quand": "toujours",
+      "texte": "Vos artistes payés au cachet déclarent à France Travail leurs cachets en cachets, et leurs répétitions payées en heures en heures : surtout pas de conversion des cachets en heures de leur côté. C'est France Travail qui convertit (1 cachet = 12 heures). Un bulletin et un contrat qui disent clairement « cachet » ou « heures » les aident à bien remplir leur actualisation.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
+        "article": "« Vos obligations »",
+        "citation": "Déclaration des artistes : ne reportez pas l'équivalence […] de vos cachets en heures sur vos"
+      },
+      "ciblage": "quand un engagement d'artiste est payé au cachet",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "droits-auteur-cumulables",
+      "domaine": "chômage / cumul",
+      "public": "artiste",
+      "quand": "toujours",
+      "texte": "Les droits d'auteur, les droits voisins et les bourses d'artistes se cumulent entièrement avec l'allocation chômage et n'ont pas à être déclarés. En revanche, les salaires accessoires versés par les sociétés de perception et de répartition des droits (SPRD) doivent l'être.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
+        "article": "« Les activités prises en compte »",
+        "citation": "Les revenus perçus au titre des droits […] d'auteurs et droits voisins du droit d'auteur et des bourses d'artistes sont entièrement cumulables avec les allocations et n'ont pas à être déclarés"
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "artistes-europe-6-heures",
+      "domaine": "chômage / activité à l'étranger",
+      "public": "artiste",
+      "quand": "toujours",
+      "texte": "Les jours travaillés par un artiste dans l'Espace économique européen, en Suisse ou au Royaume-Uni comptent à raison de 6 heures par jour pour ses 507 heures, sur présentation d'une attestation du pays d'emploi, de ses contrats et de ses bulletins. Pour un technicien, ces jours relèvent du régime général.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
+        "article": "« Le décompte des heures »",
+        "citation": "Effectuée dans l'Espace Economique […] européen, la Suisse ou le Royaume Uni : la […] période est comptabilisée pour les artistes"
+      },
+      "ciblage": "quand un engagement d'artiste se déroule hors de France (EEE)",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "annexe-8-ou-10-plus-d-heures",
+      "domaine": "chômage / quelle annexe",
+      "public": "employeur, artiste, technicien",
+      "quand": "toujours",
+      "texte": "Un salarié qui a été à la fois artiste et technicien relève de l'annexe où il a totalisé le plus d'heures sur la période : annexe X (artistes) ou VIII (techniciens). Le métier inscrit sur votre contrat et votre attestation décide donc de la règle qui s'appliquera à lui.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
+        "article": "« Qu'est-ce qu'un intermittent du spectacle ? »",
+        "citation": "le régime […] d'indemnisation qui vous est attribué, […] annexe 8 ou annexe 10, est celui dans"
+      },
+      "ciblage": "quand l'emploi du salarié est enregistré avec un code d'emploi",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "premier-droit-regime-general",
+      "domaine": "chômage / premier contrat",
+      "public": "artiste, technicien",
+      "quand": "toujours",
+      "texte": "Un jeune intermittent qui s'inscrit à France Travail avant d'avoir 507 heures peut se voir ouvrir des droits au régime général (avec 6 mois d'affiliation) plutôt qu'à l'intermittence. Le moment de l'inscription compte : les heures déjà travaillées avant une ouverture de droits ne servent plus après.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-premiers-pas-intermittence-20261020.txt",
+        "article": "p. 6",
+        "citation": "Je m'inscris donc une fois […] que j'ai atteint les 507 heures requises."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "conges-spectacles-pourquoi",
+      "domaine": "Congés Spectacles",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Vos artistes et techniciens intermittents n'ont pas de congés payés versés par vous : c'est la Caisse des Congés Spectacles, créée en 1939, qui les paie. Vous cotisez à chaque embauche ; chaque année, vos salariés demandent à la Caisse l'indemnité calculée sur tous leurs salaires de l'année.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-mode-emploi-employeur-202304-20261021.txt",
+        "article": "Préambule",
+        "citation": "L'association « les Congés spectacles » a été créée en 1939 pour assurer le service du congé payé aux artistes et aux techniciens du spectacle non permanents. Lors de chaque embauche d'un artiste ou d'un technicien, les employeurs calculent une cotisation correspondant au montant des congés dus pour cette embauche."
+      },
+      "ciblage": "quand le premier engagement intermittent de la compagnie est créé",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "conges-spectacles-pas-de-versement-direct",
+      "domaine": "Congés Spectacles",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Si vous cotisez à la Caisse des Congés Spectacles, vous ne devez pas verser vous-même d'indemnité de congés payés à vos intermittents : c'est la Caisse qui la leur paie. Et un versement direct ne vous dispense pas de déclarer ni de cotiser.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-mode-emploi-employeur-202304-20261021.txt",
+        "article": "§1",
+        "citation": "L'employeur tenu de s'affilier au Congés spectacles […] n'est pas autorisé à verser directement une indemnité"
+      },
+      "ciblage": "quand une ligne d'indemnité de congés payés figure sur la paie d'un intermittent affilié à la Caisse",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "conges-spectacles-taux-155",
+      "domaine": "Congés Spectacles",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La cotisation Congés Spectacles est entièrement à la charge de l'employeur : {bareme:rubriques_bulletin/id=conges_spec/taux_pat} % du salaire brut en {annee} (avant l'abattement pour frais professionnels). Elle finance l'indemnité de vos salariés (10 % du salaire), les charges patronales sur cette indemnité et les frais de gestion.",
+      "source": {
+        "fichier": "atelier/reference/sources/audiens-parametres-2026/Audiens-Parametres-2026.txt",
+        "article": "p. 4",
+        "citation": "La cotisation est calculée sur le salaire brut avant tout abattement pour frais professionnel"
+      },
+      "ciblage": "quand un bulletin d'intermittent est préparé",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "conges-spectacles-periode-avril-mars",
+      "domaine": "Congés Spectacles",
+      "public": "employeur, artiste, technicien",
+      "quand": "toujours",
+      "texte": "Les droits à congés payés de vos intermittents se comptent du 1er avril au 31 mars. Chaque année, à partir du 1er avril, ils peuvent faire leur demande à la Caisse sur leurs 12 derniers mois d'activité, et être payés à partir du 1er mai. Un petit rappel de votre part les aide à ne pas oublier.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-flyer-artistes-202604-20261021.txt",
+        "article": "",
+        "citation": "La demande s'effectue directement sur le site dédié, à partir du 1er avril pour les droits acquis lors des 12 mois précédents."
+      },
+      "ciblage": "en mars-avril (date du jour)",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "conges-spectacles-certificat-demploi",
+      "domaine": "Congés Spectacles",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "À la fin de chaque contrat d'un intermittent, vous devez lui remettre un certificat d'emploi : c'est lui qui fixe le montant de son indemnité de congés et de votre cotisation. Avec une paie qui envoie la DSN (la déclaration mensuelle), il est transmis automatiquement à la Caisse.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-mode-emploi-employeur-202304-20261021.txt",
+        "article": "§3",
+        "citation": "Le certificat d'emploi détermine le montant de l'indemnité congé payé qui sera versée au salarié."
+      },
+      "ciblage": "quand un contrat d'intermittent se termine",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "conges-spectacles-pas-12-mois",
+      "domaine": "Congés Spectacles",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La Caisse des Congés Spectacles concerne les artistes et techniciens que vous n'avez pas employés de façon continue pendant les 12 mois qui précèdent leur demande de congé. Un salarié employé en continu chez vous toute l'année relève des congés payés ordinaires.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "D7121-41",
+        "citation": "Les employeurs déclarent à la caisse de congés payés le personnel artistique et technique qu'ils n'ont pas employé de façon continue pendant les douze mois précédant la demande de congé."
+      },
+      "ciblage": "quand un engagement dure 12 mois ou plus, ou un CDI est créé",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "conges-spectacles-affiliation-automatique",
+      "domaine": "Congés Spectacles",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Si vous cotisez déjà à Audiens pour la retraite complémentaire, vous êtes automatiquement affilié à la Caisse des Congés Spectacles, avec votre numéro de Siret comme numéro d'affiliation. Sinon, il faut contacter Audiens pour vous affilier.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-mode-emploi-employeur-202304-20261021.txt",
+        "article": "§2",
+        "citation": "L'affiliation d'un employeur est automatique dès lors qu'il […] est adhérent à Audiens pour la retraite complémentaire. […] Les employeurs non adhérents à Audiens en retraite"
+      },
+      "ciblage": "quand la compagnie n'a pas d'affiliation renseignée dans sa fiche",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "conges-spectacles-guso",
+      "domaine": "Congés Spectacles",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Si le spectacle n'est pas votre activité principale (une mairie, une association, un particulier...), vous faites vos démarches d'embauche d'artistes et de techniciens par le Guso, le guichet unique pour le spectacle occasionnel, et non en direct avec la Caisse.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-mode-emploi-employeur-202304-20261021.txt",
+        "article": "§1 « Employeurs occasionnels »",
+        "citation": "Les employeurs occasionnels – particuliers ou entreprises […] dont l'activité principale n'est pas l'exploitation de lieux"
+      },
+      "ciblage": "aucun (compagnie : la compagnie est un employeur du spectacle, donc non concernée)",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "conges-spectacles-plafond-triple-minimum",
+      "domaine": "Congés Spectacles",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Pour la cotisation Congés Spectacles, si votre convention collective fixe un salaire minimum pour l'emploi, vous pouvez plafonner la base de calcul au triple de ce minimum. Pour un cachet très élevé, c'est une économie, mais le plafond doit venir de votre branche et de l'emploi exact : Audiens précise qu'il ne se transpose pas d'un emploi ou d'une branche à l'autre.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-mode-emploi-employeur-202304-20261021.txt",
+        "article": "« Salaire à déclarer »",
+        "citation": "Si la convention collective applicable dans l'entreprise […] définit un salaire minimum, l'entreprise peut plafonner la […] base de calcul au triple du montant du salaire minimum"
+      },
+      "ciblage": "quand un cachet dépasse trois fois le minimum conventionnel de l'emploi",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "conges-spectacles-arret-maternite-declare",
+      "domaine": "Congés Spectacles",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Quand un intermittent est en arrêt (maternité, accident du travail, maladie professionnelle) pendant un contrat, vous devez continuer à déclarer cette période à la Caisse des Congés Spectacles jusqu'à la fin prévue du contrat : elle compte comme du travail pour calculer son indemnité de congé.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-mode-emploi-employeur-202304-20261021.txt",
+        "article": "Questions fréquentes",
+        "citation": "Vous devez déclarer l'activité qui a été interrompue […] à la suite d'un accident de travail, de trajet ou d'une […] maladie professionnelle jusqu'à la fin prévue du"
+      },
+      "ciblage": "quand un engagement a une absence pour maternité ou AT",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "conges-spectacles-qui-declarer",
+      "domaine": "Congés Spectacles",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "À la Caisse des Congés Spectacles, il faut déclarer aussi vos salariés étrangers, retraités ou fonctionnaires (quand vous les embauchez sous contrat de droit privé), ainsi que les mineurs. En revanche, les heures qu'un artiste ou un technicien donne comme formateur n'ont pas à être déclarées.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-mode-emploi-employeur-202304-20261021.txt",
+        "article": "Questions fréquentes",
+        "citation": "Oui. Toute personne, à quelque nationalité qu'elle appartienne ..."
+      },
+      "ciblage": "quand la fiche du salarié indique retraité, fonctionnaire, mineur ou étranger",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "conges-spectacles-duree-25-jours",
+      "domaine": "Congés Spectacles",
+      "public": "artiste, technicien",
+      "quand": "toujours",
+      "texte": "Le congé d'un intermittent se calcule à raison de 2,5 jours pour 24 jours de travail ou 24 cachets, sans pouvoir dépasser 30 jours ouvrables. Chaque journée de congé compte ensuite comme une journée de travail pour ses droits suivants.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-mode-emploi-employeur-202304-20261021.txt",
+        "article": "Questions fréquentes",
+        "citation": "Le salarié a droit à une période de congé à raison de 2,5 jours pour 24 jours de travail ou cachets, sans que la durée totale du congé puisse excéder trente jours ouvrables."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "conges-spectacles-droit-ouvre-1er-jour",
+      "domaine": "Congés Spectacles",
+      "public": "employeur, artiste",
+      "quand": "toujours",
+      "texte": "Les Congés Spectacles concernent les artistes et techniciens en CDD de moins de 12 mois, que ce soit ponctuel ou régulier. Selon Audiens, le droit à congé est ouvert dès le premier jour de travail, et l'indemnité est soumise aux cotisations sociales comme un salaire.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-flyer-artistes-202604-20261021.txt",
+        "article": "",
+        "citation": "Le droit à congé est ouvert dès le 1er jour de travail. Comme vos salaires, cette indemnité de Congés Spectacles donne lieu au calcul de cotisations sociales et ouvre donc des droits à prestations (Assurance maladie, Retraite de base et complémentaire...)."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé (voir contradiction avec D7121-31 dans le rapport : à ne pas diffuser avant arbitrage)",
+      "suspendu": "Non tranché (Léandre) : D7121-31 « au moins quatre semaines d'engagement ou de trente cachets » contre Audiens « dès le 1er jour de travail »."
+    },
+    {
+      "id": "conges-spectacles-taxe-apprentissage-employeur",
+      "domaine": "Congés Spectacles",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La Caisse des Congés Spectacles ne paie pas à votre place la taxe d'apprentissage sur les congés de vos intermittents : c'est à vous de la régler, sur une assiette augmentée de 10 % de l'assiette Congés déclarée.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/audiens-conges-spectacles-mode-emploi-employeur-202304-20261021.txt",
+        "article": "Questions fréquentes",
+        "citation": "C'est l'employeur qui en est directement redevable. La Caisse des Congés spectacles ne versant pas, en lieu et place de l'entreprise, la taxe d'apprentissage sur les salaires versés au titre des congés, il appartient aux"
+      },
+      "ciblage": "quand la paie du mois comporte une cotisation Congés Spectacles",
+      "certitude": "sourcé (limite avec le domaine de B : paie)"
+    },
+    {
+      "id": "audiens-intermittent-prevoyance-couverte",
+      "domaine": "prévoyance",
+      "public": "employeur, artiste, technicien",
+      "quand": "toujours",
+      "texte": "Chaque intermittent est couvert par la prévoyance collective du spectacle (arrêt de travail longue durée, invalidité, décès) dès qu'une entreprise a cotisé pour lui au moins une fois au cours des 24 derniers mois. Votre cotisation protège donc aussi vos salariés quand ils travaillent ailleurs ou sont entre deux contrats.",
+      "source": {
+        "fichier": "atelier/reference/sources/accord-interbranche-prevoyance-intermittents/audiens-essentiel-regime-intermittents-20220425.txt",
+        "article": "",
+        "citation": "dès lors qu'une entreprise a cotisé pour lui / elle au moins une fois au titre du régime […] de prévoyance au cours des 24 derniers mois civils ayant précédé la"
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé (brochure de mars 2022)"
+    },
+    {
+      "id": "audiens-prevoyance-assiette-tranche-a",
+      "domaine": "prévoyance",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La cotisation prévoyance et santé des intermittents se calcule sur le salaire brut dans la limite d'un plafond journalier (la tranche A de la Sécurité sociale, par jour). Un cachet élevé ne fait donc pas monter cette cotisation sans limite.",
+      "source": {
+        "fichier": "atelier/reference/sources/audiens-parametres-2026/Audiens-Parametres-2026.txt",
+        "article": "p. 4",
+        "citation": "La base de calcul de ces cotisations est le salaire brut dans la limite de la tranche A journalière."
+      },
+      "ciblage": "quand un cachet dépasse le plafond journalier",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "audiens-garantie-sante-24-cachets",
+      "domaine": "santé",
+      "public": "artiste, technicien",
+      "quand": "toujours",
+      "texte": "Un artiste ou un technicien intermittent peut souscrire la complémentaire santé collective du spectacle (Audiens) s'il justifie de 24 cachets ou jours de travail sur l'année civile précédente, chez un ou plusieurs employeurs du champ. C'est un argument à connaître si vous employez des intermittents sans mutuelle d'entreprise.",
+      "source": {
+        "fichier": "atelier/reference/sources/accord-interbranche-prevoyance-intermittents/audiens-essentiel-regime-intermittents-20220425.txt",
+        "article": "« Qui peut adhérer à la Garantie Santé Intermittents ? »",
+        "citation": "Il suffit de justifier de 24 cachets (ou jours de travail) au cours des 12 mois de l'année civile précédente dans une ou plusieurs entreprises relevant du champ d'application de l'Accord Interbranches."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé (brochure de mars 2022 : à reconfirmer)"
+    },
+    {
+      "id": "audiens-indemnite-maternite",
+      "domaine": "prévoyance",
+      "public": "artiste",
+      "quand": "toujours",
+      "texte": "Une artiste ou technicienne intermittente en congé maternité sans droit aux indemnités de la Sécurité sociale ni de France Travail peut recevoir une indemnité journalière pendant 56 jours, versée par la prévoyance du spectacle, si elle a été indemnisée au titre des annexes 8 ou 10 dans les 24 mois qui précèdent.",
+      "source": {
+        "fichier": "atelier/reference/sources/accord-interbranche-prevoyance-intermittents/audiens-essentiel-regime-intermittents-20220425.txt",
+        "article": "",
+        "citation": "Pour les artistes et techniciennes intermittentes du spectacle en situation de maternité qui ont perçu au cours des 24 mois précédant la date présumée du début de la grossesse une […] indemnisation du Pôle Emploi en application des annexes 8 ou 10"
+      },
+      "ciblage": "quand une absence pour maternité est saisie sur un engagement",
+      "certitude": "sourcé (montant daté de 2022)"
+    },
+    {
+      "id": "audiens-incapacite-91e-jour",
+      "domaine": "prévoyance",
+      "public": "employeur, artiste, technicien",
+      "quand": "toujours",
+      "texte": "Pour un intermittent en arrêt maladie, la prévoyance du spectacle verse une indemnité journalière à partir du 91e jour d'arrêt continu (20 % de son salaire de base). Pour y avoir droit, il doit avoir 24 jours de travail ou cachets dans les 12 mois, ou 48 dans les 24 mois, avant l'arrêt.",
+      "source": {
+        "fichier": "atelier/reference/sources/accord-interbranche-prevoyance-intermittents/audiens-essentiel-regime-intermittents-20220425.txt",
+        "article": "« Incapacité temporaire totale de travail »",
+        "citation": "compter du 91 e jour d'arrêt de travail continu."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé (brochure de mars 2022)"
+    },
+    {
+      "id": "audiens-retraite-plafond-annuel-non-cadre",
+      "domaine": "retraite complémentaire",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Pour la retraite complémentaire d'un intermittent non cadre, les tranches se calculent sur le plafond annuel de la Sécurité sociale, quelle que soit la durée de son contrat : un cachet isolé reste donc dans la première tranche (le taux le plus bas). Pour un cadre intermittent, c'est le plafond journalier qui s'applique.",
+      "source": {
+        "fichier": "atelier/reference/sources/audiens-parametres-2026/Audiens-Parametres-2026.txt",
+        "article": "p. 2",
+        "citation": "Intermittents du spectacle non-cadres : les plafonds applicables sont les plafonds annuels. […] Intermittents du spectacle cadres : les plafonds applicables sont les plafonds journaliers - dans la limite du plafond mensuel"
+      },
+      "ciblage": "quand l'engagement est un intermittent non cadre ou cadre",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "audiens-retraite-repartition-50-50",
+      "domaine": "retraite complémentaire",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La cotisation de retraite complémentaire des intermittents du spectacle est répartie à parts égales (50/50) entre employeur et salarié dans le spectacle vivant, pour les techniciens, en vertu d'un accord de 1991.",
+      "source": {
+        "fichier": "atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt",
+        "article": "Tableau n°1",
+        "citation": "accord de retraite concernant les […] salariés intermittents techniques […] cadres et non cadres du SV signé le […] 15 novembre 1991 etendu le 8 novembre"
+      },
+      "ciblage": "quand l'engagement est un technicien intermittent du spectacle vivant",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "afdas-seuils-jours-cachets",
+      "domaine": "formation / Afdas",
+      "public": "employeur, artiste, technicien",
+      "quand": "toujours",
+      "texte": "L'Afdas finance la formation des intermittents qui ont assez travaillé en CDD d'usage sur les 2 dernières années : 48 jours ou cachets pour un artiste, un musicien, un metteur en scène ou un réalisateur ; 88 pour un technicien du spectacle vivant ; 130 pour un technicien du cinéma et de l'audiovisuel. Vos contrats comptent pour ces seuils.",
+      "source": {
+        "fichier": "atelier/reference/sources/conseils/afdas-intermittents-conditions-20261021.md",
+        "article": "",
+        "citation": "Dès lors que vous justifiez d'un volume d'activité minimum en CDDU intermittent ... Artistes interprètes, Musiciens et Metteurs en scène 48 ... Techniciens du spectacle vivant 88 ... Techniciens du cinéma et de l'audiovisuel 130 ... Réalisateurs 48 au cours des 2 dernières années"
+      },
+      "ciblage": "aucun (ou : l'historique chez l'employeur d'un salarié)",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "afdas-independant-de-france-travail",
+      "domaine": "formation / Afdas",
+      "public": "tous",
+      "quand": "toujours",
+      "texte": "Pour être financé par l'Afdas, un intermittent n'a pas besoin d'être indemnisé par France Travail : les deux sont indépendants. Un salarié qui n'a pas ses 507 heures peut quand même se former, s'il a assez de jours ou cachets sur 2 ans.",
+      "source": {
+        "fichier": "atelier/reference/sources/conseils/afdas-intermittents-conditions-20261021.md",
+        "article": "",
+        "citation": "Important : l'éligibilité à un financement Afdas est indépendante de votre situation d'intermittent auprès de France Travail"
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "afdas-carence",
+      "domaine": "formation / Afdas",
+      "public": "artiste, technicien",
+      "quand": "toujours",
+      "texte": "Après une formation financée par l'Afdas, un intermittent doit attendre avant d'en financer une autre : 12 mois si elle a duré 40 heures ou moins, 18 mois entre 41 et 80 heures, 24 mois au-delà. Les formations à la sécurité, à la transition écologique et contre les violences sexistes et sexuelles ne déclenchent pas cette attente.",
+      "source": {
+        "fichier": "atelier/reference/sources/conseils/afdas-intermittents-conditions-20261021.md",
+        "article": "« Délai de carence »",
+        "citation": "Inférieure ou égale à 40 heures 12 mois […] Entre 41 heures et 80 heures 18 mois […] Supérieure à 80 heures 24 mois"
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "cfp-intermittents-2-pour-cent",
+      "domaine": "formation / contributions",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Pour vos salariés intermittents, la contribution à la formation professionnelle est unique et d'au moins 2 % de leurs rémunérations, dès le premier intermittent. Elle remplace la contribution légale habituelle, et c'est la Caisse des Congés Spectacles (Audiens) qui la déclare et la règle à l'Urssaf.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L6331-55",
+        "citation": "Le pourcentage de la contribution ne peut être inférieur à 2 % des rémunérations versées pendant l'année en cours."
+      },
+      "ciblage": "quand l'engagement est un intermittent (CDDU) en spectacle vivant",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "cpf-cdd-pas-pour-intermittents",
+      "domaine": "formation / contributions",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La contribution « CPF-CDD » (1 % de la masse salariale des CDD ordinaires) n'est pas due pour vos intermittents du spectacle vivant et enregistré : la contribution formation unique des intermittents la remplace.",
+      "source": {
+        "fichier": "atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt",
+        "article": "",
+        "citation": "conformément à l'article L. 6331-55 du code du travail, la contribution au CPF-CDD n'est pas due au titre des salariés intermittents du spectacle qui relèvent des secteurs d'activités du spectacle vivant et du spectacle enregistré."
+      },
+      "ciblage": "quand un CDD d'intermittent en spectacle vivant est saisi",
+      "certitude": "sourcé (limite avec B : paie)"
+    },
+    {
+      "id": "medecine-visite-3-mois",
+      "domaine": "médecine du travail",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Tout salarié, y compris en CDD, doit passer une visite d'information et de prévention dans les 3 mois qui suivent la prise de poste, et avec une périodicité de suivi équivalente à celle d'un CDI. Pour un contrat de quelques jours, cette obligation est à anticiper avant l'embauche.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "R4624-10",
+        "citation": "Tout travailleur bénéficie d'une visite d'information et de prévention ... dans un délai qui n'excède pas trois mois à compter de la prise effective du poste de travail."
+      },
+      "ciblage": "quand un engagement est créé pour une personne sans attestation de suivi enregistrée",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "medecine-attestation-5-ans",
+      "domaine": "médecine du travail",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Si un salarié a déjà passé une visite d'information et de prévention dans les 5 ans (3 ans pour un suivi adapté) pour un emploi identique avec des risques équivalents, et que vous avez son attestation de suivi, une nouvelle visite n'est pas requise. Demandez-la à vos intermittents avant l'embauche : elle vous évite de refaire la visite.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "R4624-15",
+        "citation": "Lorsque le travailleur a bénéficié d'une visite d'information et de prévention dans les cinq ans ou, pour le travailleur mentionné à l'article R. 4624-17, dans les trois ans précédant son embauche, l'organisation d'une nouvelle visite d'information et de prévention n'est pas requise dès lors que l'ensemble des conditions suivantes sont réunies"
+      },
+      "ciblage": "quand le salarié est embauché pour un emploi déjà tenu",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "medecine-intermittents-accord-de-branche",
+      "domaine": "médecine du travail",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La loi prévoit pour les artistes et techniciens intermittents du spectacle une organisation du suivi médical adaptée : un accord de branche étendu peut déroger aux règles de choix du service de santé au travail, sans changer la périodicité des examens. Regardez si votre convention collective en prévoit un.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L4625-2",
+        "citation": "Un accord collectif de branche étendu peut prévoir des dérogations aux règles relatives à l'organisation et au choix du service de prévention et de santé au travail ainsi qu'aux modalités de surveillance de l'état de santé des travailleurs dès lors que ces dérogations n'ont pas pour effet de modifier la périodicité des examens médicaux définie par le présent code. Ces dérogations concernent les catégories de travailleurs suivantes : 1° Artistes et techniciens intermittents du spectacle"
+      },
+      "ciblage": "quand la compagnie emploie des intermittents",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "medecine-radio-fiche-aptitude",
+      "domaine": "médecine du travail",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans la convention de la radiodiffusion (accord CDD d'usage), un intermittent doit remettre sa fiche d'aptitude de la médecine du travail des intermittents à la première embauche, puis chaque année. À défaut de certificat à jour, l'employeur organise la visite médicale lui-même.",
+      "source": {
+        "fichier": "atelier/reference/sources/bocc-1922-cddu-accord-20071129.md",
+        "article": "art. 4.5",
+        "citation": "Le salarié doit remettre la fiche d'aptitude délivrée par la médecine du travail au moment de la première embauche, puis régulièrement chaque année. Si le salarié ne peut produire un certificat médical à jour de la médecine du travail, l'employeur devra respecter la législation relative à la visite médicale, conformément aux articles R. 241-48 et suivants du code du travail."
+      },
+      "ciblage": "quand la convention de l'engagement est la 1922 (radiodiffusion)",
+      "certitude": "sourcé (article du code cité par l'accord, R. 241-48, ancien numéro)"
+    },
+    {
+      "id": "ccneac-service-repetition-4h",
+      "domaine": "conventions / répétitions",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans les entreprises artistiques et culturelles, un service de répétition dure au plus 4 heures et ne se coupe pas. On ne peut pas demander à un artiste plus de 2 services par jour (un troisième est possible dans les 10 jours ouvrés avant la première). Tout service commencé est dû.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/kali-1285-organisation-travail-repetitions-representations-20261020.md",
+        "article": "XIII.2.3",
+        "citation": "Chaque service est d'une durée maximale de 4 heures. Il n'est pas fractionnable."
+      },
+      "ciblage": "quand la convention de l'engagement est la 1285 et un planning de répétitions existe",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "ccneac-periode-creation-5-semaines",
+      "domaine": "conventions / création",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Pour la création d'un spectacle dramatique de durée normale (1 à 3 heures), la convention des entreprises artistiques et culturelles prévoit une période de création d'au moins 5 semaines, dont 4 de répétitions. Les artistes engagés pour moins de 4 mois sont payés au moins 5 semaines au minimum mensuel.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/kali-1285-organisation-travail-repetitions-representations-20261020.md",
+        "article": "XIII.2.2",
+        "citation": "(durée comprise entre 1 heure et 3 heures, entracte compris) est d'une durée minimale de 5 semaines. Elle comprend au moins 4 semaines de répétition."
+      },
+      "ciblage": "quand un engagement d'artiste dramatique de création est préparé, convention 1285",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "ccneac-cachet-1-2-ou-plus",
+      "domaine": "conventions / minima",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans les entreprises artistiques et culturelles, le cachet minimum d'un artiste dramatique engagé moins d'un mois n'est pas le même selon qu'il a 1 ou 2 cachets dans le mois, ou plus de 2 : le minimum de chaque cachet est plus bas au-delà de 2. Regrouper les dates dans le mois peut donc faire baisser le minimum de chaque cachet.",
+      "source": {
+        "fichier": "atelier/reference/sources/kali-1285-x3-remuneration-artistes-20260929.md",
+        "article": "X.3.1 C",
+        "citation": "Le montant du cachet brut est différent selon que le mois calendaire comporte le versement de 1 ou 2 cachets ou plus de 2 cachets"
+      },
+      "ciblage": "quand un artiste dramatique engagé moins d'un mois a des cachets prévus, convention 1285",
+      "certitude": "sourcé (extension de l'accord du 01/07/2026 non vérifiée sur source primaire ; montants à ne pas figer)"
+    },
+    {
+      "id": "ccneac-service-repetition-isole",
+      "domaine": "conventions / minima",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans les entreprises artistiques et culturelles, une journée de répétition d'un artiste dramatique engagé moins d'un mois se paie par service, et tout service commencé est dû. Un service annulé tard peut rester dû : vérifiez le délai de votre convention.",
+      "source": {
+        "fichier": "atelier/reference/sources/kali-1285-x3-remuneration-artistes-20260929.md",
+        "article": "X.3.1 C",
+        "citation": "la rémunération est assurée par service, tout service commencé étant dû"
+      },
+      "ciblage": "quand un artiste dramatique est engagé moins d'un mois, convention 1285",
+      "certitude": "sourcé (extension non vérifiée)"
+    },
+    {
+      "id": "ccneac-raccord-et-activites-connexes",
+      "domaine": "conventions / temps de travail",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans les entreprises artistiques et culturelles, un raccord avant la représentation ne peut pas dépasser un service, et 1 heure s'il y a plusieurs représentations le même jour. Les activités connexes (ateliers, interventions scolaires) exigent une clause dans le contrat et ne peuvent pas dépasser 2 heures les jours de représentation.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/kali-1285-organisation-travail-repetitions-representations-20261020.md",
+        "article": "XIII.2.4",
+        "citation": "En dehors de la représentation il peut être demandé à l'artiste dramatique un raccord qui ne peut excéder un service. Lorsque plusieurs représentations sont données dans la même journée, le raccord éventuel ne pourra excéder 1 heure."
+      },
+      "ciblage": "quand un engagement d'artiste dramatique de la convention 1285 prévoit des activités connexes",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "ccneac-repos-35h",
+      "domaine": "conventions / temps de travail",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans les entreprises artistiques et culturelles, un artiste doit avoir un repos hebdomadaire d'au moins 35 heures consécutives, sans répétition, raccord ni déplacement pendant ce repos. Une tournée mal planifiée peut le rompre.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/kali-1285-organisation-travail-repetitions-representations-20261020.md",
+        "article": "XIII.2.7",
+        "citation": "L'artiste devra obligatoirement bénéficier d'un repos hebdomadaire d'au moins 35 heures consécutives. Durant ce repos, aucune répétition, aucun raccord ou déplacement ne pourra avoir lieu."
+      },
+      "ciblage": "quand un engagement d'artiste dramatique de la convention 1285 couvre une tournée",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "ccneac-mensuel-non-proratise",
+      "domaine": "conventions / minima",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans les entreprises artistiques et culturelles, le salaire mensuel minimum d'un artiste est garanti en entier, sans prorata ni lissage, quel que soit son temps de travail réel dans le mois. Si le premier ou le dernier mois est incomplet, on prend 1/21 du salaire mensuel par jour ouvré prévu au contrat.",
+      "source": {
+        "fichier": "atelier/reference/sources/kali-1285-x3-remuneration-artistes-20260929.md",
+        "article": "",
+        "citation": "La rémunération mensuelle telle que prévue dans les articles X. 3.1, X. 3.2, X. 3.3, X. 3.4 et les grilles annexées à la convention est garantie non proratisée et non lissée quel que soit le temps de travail effectif réalisé par l'artiste au cours du mois."
+      },
+      "ciblage": "quand un engagement d'artiste mensualisé commence ou finit en cours de mois, convention 1285",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "ccnsvp-cachet-musicien-3h30",
+      "domaine": "conventions / musiciens",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans le spectacle vivant privé, le cachet d'un musicien correspond à un service de 3 h 30 indivisible (répétition, enregistrement ou représentation), avec une pause de 20 minutes, et son temps de travail ne peut pas dépasser 7 heures par jour. S'il joue plusieurs instruments, sa rémunération est d'au moins 110 % du minimum, et 120 % s'il participe au jeu de scène.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/kali-3090-repetitions-cachets-representations-20261020.md",
+        "article": "KALIARTI000028157549",
+        "citation": "Pour les artistes musiciens rémunérés au cachet, celui-ci correspond à un service de travail de 3 h 30 indivisibles (répétition, enregistrement ou représentation)."
+      },
+      "ciblage": "quand la convention est la 3090 et l'engagement un musicien au cachet",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "ccnsvp-repetition-annulee",
+      "domaine": "conventions / répétitions",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans le spectacle vivant privé, un service de répétition annulé moins de 72 heures à l'avance (48 heures pour un musicien) reste dû à l'artiste, sauf s'il est reporté le même jour. Une répétition payée est aussi comptée dans ses 507 heures s'il est artiste : l'annulation tardive a donc un coût et un effet.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/kali-3090-repetitions-cachets-representations-20261020.md",
+        "article": "KALIARTI000028157526",
+        "citation": "Lorsqu'un service de répétition est annulé par la direction moins de 72 heures avant sa programmation et qu'il n'est pas reporté dans la même journée, il reste dû à l'artiste."
+      },
+      "ciblage": "quand la convention est la 3090 et une répétition est annulée",
+      "certitude": "sourcé (deuxième phrase : rapprochement avec FT-guide, répétitions payées comptent)"
+    },
+    {
+      "id": "ccnsvp-salaire-mensuel-24-30",
+      "domaine": "conventions / mensualisation",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans le spectacle vivant privé, le salaire mensuel d'un artiste couvre au plus 24 représentations par mois (30 pour un musicien), répétitions non incluses. Chaque représentation de plus est payée au moins 1/24e (1/30e pour un musicien) du salaire mensuel.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/kali-3090-repetitions-cachets-representations-20261020.md",
+        "article": "KALIARTI000028157647",
+        "citation": "Le salaire mensuel s'entend pour 30 représentations au plus par mois, de date à date, répétitions non incluses. Toute représentation supplémentaire est payée a minima 1/30 du salaire mensuel conventionnel. L'artiste (hors musicien) peut être rémunéré soit au cachet, soit mensuellement ... Le salaire mensuel s'entend pour 24 représentations au plus par mois ... 1/24 de la rémunération mensuelle conventionnelle."
+      },
+      "ciblage": "quand la convention est la 3090 et un artiste mensualisé dépasse 24 (ou 30) représentations",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "ccnsvp-raccord-inclus-cachet",
+      "domaine": "conventions / cachets",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans le spectacle vivant privé, le cachet d'un artiste est une rémunération forfaitaire : un raccord ou une balance avant la représentation y est compris, tant qu'il ne dépasse pas 2 heures. Au-delà, il se paie en plus.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/kali-3090-repetitions-cachets-representations-20261020.md",
+        "article": "KALIARTI000028157647",
+        "citation": "Le cachet est une rémunération forfaitaire. Tout raccord ou balance qui précède la représentation est inclus dans le cachet de représentation, à la condition que le raccord ou la balance ne dépasse pas 2 heures."
+      },
+      "ciblage": "quand la convention est la 3090 et un artiste est payé au cachet",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "ccnsvp-abattements-repetitions",
+      "domaine": "conventions / répétitions",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans le spectacle vivant privé, le cachet de base de répétition d'un artiste baisse quand la période de répétition est longue : -5 % de 3 à 5 journées, -10 % de 6 à 10, -15 % à partir de la 11e.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/kali-3090-repetitions-cachets-representations-20261020.md",
+        "article": "KALIARTI000028157630 (annexe 2, II.3)",
+        "citation": "Entre 3 et 5 journées de répétition, le cachet de base subira un abattement de 5 %. Entre 6 et 10 journées de répétition, le cachet de base subira un abattement de 10 %. A la onzième journée de répétition, le cachet de base subira un abattement de 15 %."
+      },
+      "ciblage": "quand la convention est la 3090 (annexe 2) et plus de 2 journées de répétition d'un artiste sont prévues",
+      "certitude": "sourcé (l'annexe 1 musiciens a un barème d'abattements différent, jusqu'à 20 % : voir contradictions)"
+    },
+    {
+      "id": "ccnsvp-exploitation-continue-garantie",
+      "domaine": "conventions / cachets",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans le spectacle vivant privé (théâtre musical), pour un spectacle joué en exploitation continue, un artiste a droit à au moins 30 fois son cachet si les répétitions durent 30 jours ou moins. Entre 30 et 50 jours de répétition, il reçoit autant de cachets que de jours de répétition.",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/kali-3090-repetitions-cachets-representations-20261020.md",
+        "article": "KALIARTI000028157521",
+        "citation": "si le nombre de jours de répétition est égal ou inférieur à 30, l'artiste-interprète aura la garantie de recevoir pour les représentations, au minimum 30 fois son cachet contractuel […] si le nombre de jours de répétition est supérieur à 30 et inférieur à 50, l'artiste-interprète aura la garantie de recevoir, pour les représentations, le même nombre de cachets contractuels"
+      },
+      "ciblage": "quand la convention est la 3090, théâtre musical en exploitation continue",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "ccnsvp-minima-theatre",
+      "domaine": "conventions / minima",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans le spectacle vivant privé, le cachet minimum d'un artiste dramatique dépend de la taille de la salle et du nombre de représentations. Le cachet de répétition (1 ou 2 services le même jour) est de {minima:3090/annexes/1/repetition/cachet} € au minimum.",
+      "source": {
+        "fichier": "atelier/reference/sources/legifrance-3090-avenant-salaires-20250721.md",
+        "article": "grille des cachets de répétition",
+        "citation": "Cachet de répétition (pour 1 ou 2 services de répétition dans la même journée)"
+      },
+      "ciblage": "quand la convention est la 3090 et un artiste dramatique théâtre est engagé",
+      "certitude": "sourcé (montants au 01/09/2025, à rafraîchir à chaque avenant)"
+    },
+    {
+      "id": "dpae-avant-embauche",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La déclaration préalable à l'embauche (la DPAE) se fait avant que votre salarié commence, pas après : la loi dit que l'embauche « ne peut intervenir qu'après » cette déclaration. Pour un cachet, c'est donc avant le premier jour de répétition ou de représentation, pas le jour de la paie.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L1221-10",
+        "citation": "L'embauche d'un salarié ne peut intervenir qu'après déclaration nominative accomplie par l'employeur auprès des organismes de protection sociale désignés à cet effet."
+      },
+      "ciblage": "quand un engagement commence dans les 15 jours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dpae-huit-jours",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "On ne peut pas déclarer une embauche trop tôt : la DPAE s'envoie au plus tôt dans les huit jours qui précèdent la date prévue. Pour un spectacle programmé dans trois mois, inutile de s'y prendre maintenant, mais ne laissez pas passer la fenêtre des huit jours.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "R1221-4",
+        "citation": "La déclaration préalable à l'embauche est adressée au plus tôt dans les huit jours précédant la date prévisible de l'embauche."
+      },
+      "ciblage": "quand un engagement commence dans plus de 8 jours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dpae-cinq-demarches",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Une seule DPAE vous épargne plusieurs démarches : elle vaut immatriculation de votre salarié à l'Assurance Maladie s'il n'a pas encore de numéro, affiliation de votre entreprise à l'assurance chômage, demande d'adhésion à un service de santé au travail et demande de visite médicale d'information. Vous n'avez pas à les refaire à part.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "R1221-2",
+        "citation": "Au moyen de la déclaration préalable à l'embauche, l'employeur accomplit les déclarations et demandes suivantes : 1° L'immatriculation de l'employeur au régime général […] 2° L'immatriculation du salarié à la caisse primaire d'assurance maladie […] 3° L'affiliation de l'employeur au régime d'assurance chômage […] 4° La demande d'adhésion à un service de santé au travail […] 5° La demande de visite d'information et de prévention"
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dpae-date-et-heure",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La DPAE demande la date et l'heure d'embauche, pas seulement le jour. Une répétition qui commence à 9 h se déclare à 9 h : c'est l'heure du début de travail du salarié qui compte, avant elle la déclaration doit être partie.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "R1221-1",
+        "citation": "3° Date et heure d'embauche ;"
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé (la lecture « l'heure du début de travail » est une inférence de bon sens à partir de « heure d'embauche »)"
+    },
+    {
+      "id": "dpae-penalite",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Oublier la DPAE a un prix fixé par la loi : une pénalité égale à 300 fois le taux horaire du minimum garanti, pour chaque salarié concerné. Une DPAE à jour coûte moins cher que la plus petite des erreurs.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L1221-11",
+        "citation": "Le non-respect de l'obligation de déclaration préalable à l'embauche, constaté par les agents mentionnés à l'article L. 8271-7, entraîne une pénalité dont le montant est égal à trois cents fois le taux horaire du minimum garanti prévu à l'article L. 3231-12."
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dpae-repetition-test",
+      "domaine": "logiciel",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans PuppetPaie, votre DPAE est « répétée » avant d'être déposée pour de vrai : dès qu'un contrat part, le logiciel envoie le même fichier en dépôt de test, qui ne déclare rien mais dit si l'Urssaf l'accepterait. Le jour du dépôt réel, il n'y a plus de surprise.",
+      "source": {
+        "fichier": "atelier/README.md",
+        "article": "§ « La DPAE préparée d'avance, et son filet de sécurité »",
+        "citation": "Dès qu'un contrat part […] sa DPAE s'écrit et part en test, sans rien demander : c'est le même fichier que le dépôt réel reprendra, déjà répété. Le test ne déclare rien."
+      },
+      "ciblage": "quand un contrat vient d'être envoyé ou signé",
+      "certitude": "sourcé (doc du dépôt)"
+    },
+    {
+      "id": "dpae-rappel-huit-jours",
+      "domaine": "logiciel",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "PuppetPaie vous prévient huit jours avant chaque embauche avec le rappel « DPAE à envoyer », et il se tait dès que la DPAE réelle est partie. En option, un courriel « filet » vous alerte la veille si elle n'est pas partie, sans que le serveur ne connaisse ni vos salariés ni vos contrats.",
+      "source": {
+        "fichier": "atelier/README.md",
+        "article": "§ « La DPAE préparée d'avance, et son filet de sécurité »",
+        "citation": "Huit jours avant l'embauche, la boîte des rappels dit « DPAE à envoyer — embauche du … »"
+      },
+      "ciblage": "quand un engagement commence dans moins de 8 jours et que la DPAE n'est pas au journal",
+      "certitude": "sourcé (doc du dépôt)"
+    },
+    {
+      "id": "mois-ferme-dpae-contrat",
+      "domaine": "logiciel",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "PuppetPaie refuse de fermer un mois tant que la DPAE et le contrat de chaque embauche de ce mois ne sont pas partis. C'est volontaire : mieux vaut un blocage à l'écran qu'une embauche sans papier.",
+      "source": {
+        "fichier": "atelier/README.md",
+        "article": "§ « Ce qu'il faut vérifier à chaque mois »",
+        "citation": "La commande ferme le mois : elle refuse (`MoisPasPret`) tant que la DPAE et le contrat de chaque embauche du mois ne sont pas partis."
+      },
+      "ciblage": "quand un mois contient une embauche dont la DPAE ou le contrat n'est pas parti",
+      "certitude": "sourcé (doc du dépôt)"
+    },
+    {
+      "id": "contrat-ecrit-sinon-cdi",
+      "domaine": "contrats",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Un contrat à durée déterminée, y compris un contrat d'usage, doit être écrit et dire précisément son motif. Sans écrit, la loi le considère comme un contrat à durée indéterminée : mieux vaut un contrat signé avant la première date qu'un CDI par accident.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L1242-12",
+        "citation": "Le contrat de travail à durée déterminée est établi par écrit et comporte la définition précise de son motif. A défaut, il est réputé conclu pour une durée indéterminée."
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "contrat-mentions",
+      "domaine": "contrats",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Un contrat à durée déterminée doit notamment nommer le poste ou l'emploi occupé, la convention collective applicable, la rémunération avec ses composantes, la période d'essai s'il y en a une, et la caisse de retraite complémentaire ainsi que l'organisme de prévoyance.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L1242-12",
+        "citation": "4° La désignation du poste de travail […] la désignation de l'emploi occupé […] 5° L'intitulé de la convention collective applicable ; 6° La durée de la période d'essai éventuellement prévue ; 7° Le montant de la rémunération et de ses différentes composantes […] 8° Le nom et l'adresse de la caisse de retraite complémentaire ainsi que, le cas échéant, ceux de l'organisme de prévoyance."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "contrat-deux-jours",
+      "domaine": "contrats",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Le contrat doit être remis au salarié au plus tard dans les deux jours ouvrables qui suivent l'embauche. Avec la signature par courriel de PuppetPaie, l'envoi et la preuve de la réponse se font en quelques clics.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L1242-13",
+        "citation": "Le contrat de travail est transmis au salarié, au plus tard, dans les deux jours ouvrables suivant l'embauche."
+      },
+      "ciblage": "quand un contrat n'est pas encore envoyé alors qu'un engagement a commencé",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "contrat-artiste-presume-salarie",
+      "domaine": "contrats",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Quand vous faites appel à un artiste du spectacle contre rémunération, la loi présume qu'il est votre salarié, même si vous l'appelez « prestataire » et même s'il fournit son propre matériel. Cette présomption ne tombe que s'il exerce son activité sous un statut d'entrepreneur immatriculé.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L7121-3",
+        "citation": "Tout contrat par lequel une personne s'assure, moyennant rémunération, le concours d'un artiste du spectacle en vue de sa production, est présumé être un contrat de travail dès lors que cet artiste n'exerce pas l'activité qui fait l'objet de ce contrat dans des conditions impliquant son inscription au registre du commerce et des sociétés."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "contrat-artiste-individuel",
+      "domaine": "contrats",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Chaque artiste a son propre contrat de travail. Seule exception : un numéro ou un orchestre peut avoir un contrat commun, à condition qu'il nomme chaque artiste et le salaire de chacun, et que le signataire ait un mandat écrit de tous les autres.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L7121-6",
+        "citation": "Le contrat de travail d'un artiste du spectacle est individuel."
+      },
+      "ciblage": "quand un engagement porte plusieurs artistes (une troupe, un orchestre)",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "cddu-secteur-spectacles",
+      "domaine": "contrats",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Le « CDD d'usage » (CDDU) n'est pas un contrat à part : c'est un CDD autorisé pour les emplois où il est d'usage constant de ne pas faire de CDI, ce que le code du travail reconnaît expressément pour « les spectacles, l'action culturelle, l'audiovisuel, la production cinématographique, l'édition phonographique ». Dans ces secteurs, l'enchaînement de contrats courts est le cadre normal de l'emploi.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L1242-2",
+        "citation": "il est d'usage constant de ne pas recourir au contrat de travail à durée indéterminée en raison de la nature de l'activité exercée et du caractère par nature temporaire de ces emplois"
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "cddu-motif-contrat-usage",
+      "domaine": "contrats",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans la DSN, un CDD d'usage se déclare avec le motif de recours « 05 - Contrat d'usage ». Ce motif est obligatoire pour un CDD ordinaire, et c'est lui qui permet les règles propres au CDDU, comme la fin de contrat déclarée sans signalement séparé. PuppetPaie le pose pour vous.",
+      "source": {
+        "fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt",
+        "article": "S21.G00.40.021",
+        "citation": "05 - Contrat d'usage"
+      },
+      "ciblage": "quand un engagement est un CDDU",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "cddu-un-contrat-par-engagement",
+      "domaine": "contrats",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Si vous avez engagé le même artiste sur plusieurs contrats dans le mois, la DSN doit montrer un contrat par engagement réel. Il est formellement interdit de les regrouper en un seul contrat « pour simplifier ».",
+      "source": {
+        "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche1903-retours-france-travail-cddu-d-20250603.txt",
+        "article": "",
+        "citation": "Chaque contrat doit être déclaré en DSN, ce qui doit se traduire par la présence d'un bloc 40 par contrat effectivement contracté avec chaque salarié. Il est formellement proscrit de ne déclarer qu'un seul contrat en DSN regroupant l'ensemble des contrats du mois du salarié."
+      },
+      "ciblage": "quand un salarié a plus d'un contrat dans le mois",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "cddu-moins-un-mois-un-bulletin",
+      "domaine": "contrats / bulletins",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Pour un contrat d'usage de moins d'un mois, la loi prévoit un seul bulletin de paie pour tout le contrat, et non un par date.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L1242-2",
+        "citation": "Lorsque la durée du contrat de travail est inférieure à un mois, un seul bulletin de paie est émis par l'employeur ;"
+      },
+      "ciblage": "quand un contrat d'usage dure moins d'un mois",
+      "certitude": "sourcé (la phrase vise le 3° de L1242-2 : emplois saisonniers et d'usage ; à vérifier que le logiciel produit bien un bulletin par contrat dans ce cas)"
+    },
+    {
+      "id": "cddu-prime-precarite",
+      "domaine": "contrats",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La prime de précarité de 10 % de la rémunération brute, qui conclut la plupart des CDD, n'est pas due par la loi à la fin d'un contrat d'usage, sauf si une convention collective ou un usage prévoit mieux. Regardez ce que dit la vôtre avant de conclure qu'il n'y en a pas.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L1243-8",
+        "citation": "Cette indemnité est égale à 10 % de la rémunération totale brute versée au salarié."
+      },
+      "ciblage": "quand un engagement est un CDDU",
+      "certitude": "sourcé (aucun texte conventionnel déposé sur ce point : voir « points où les textes ne tranchent pas »)"
+    },
+    {
+      "id": "cdd-rupture-anticipee",
+      "domaine": "contrats",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Un CDD, y compris d'usage, ne se rompt avant son terme que d'un commun accord, ou pour faute grave, force majeure ou inaptitude. Si vous annulez en dehors de ces cas, vous devez au salarié au moins les rémunérations qu'il aurait perçues jusqu'à la fin du contrat. Une date annulée sans accord se paie.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L1243-1",
+        "citation": "Sauf accord des parties, le contrat de travail à durée déterminée ne peut être rompu avant l'échéance du terme qu'en cas de faute grave, de force majeure ou d'inaptitude constatée par le médecin du travail."
+      },
+      "ciblage": "quand un engagement est annulé ou raccourci",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "cdd-requalification",
+      "domaine": "contrats",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Un CDD conclu sans respecter les règles de base (motif précis, écrit, cas de recours autorisés) est réputé à durée indéterminée. Si le juge requalifie, il accorde au salarié au moins un mois de salaire d'indemnité. Un contrat bien rédigé protège aussi l'employeur.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L1245-1",
+        "citation": "Est réputé à durée indéterminée tout contrat de travail conclu en méconnaissance des dispositions des articles L. 1242-1 à L. 1242-4, L. 1242-6, L. 1242-7, L. 1242-8-1, L. 1242-12, alinéa premier […]"
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "objet-spectacle-seulement-cdd",
+      "domaine": "contrats / DSN",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Le numéro d'objet du spectacle (12 caractères, unique pour chaque spectacle ou production) ne se déclare que pour un contrat à durée déterminée. Mis sur un CDI de permanent, il fait refuser la DSN : PuppetPaie le retire de lui-même.",
+      "source": {
+        "fichier": "atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt",
+        "article": "S21.G00.40.050",
+        "citation": "CCH-11 : La rubrique \"Numéro objet spectacle - S21.G00.40.050\" n'est autorisée que si la rubrique \"Nature du contrat"
+      },
+      "ciblage": "quand la compagnie a des permanents",
+      "certitude": "sourcé (« PuppetPaie le retire » : `R CLAUDE.md` règle 6 — le moteur refuse/retire hors natures 02 et 10)"
+    },
+    {
+      "id": "objet-spectacle-renouvele",
+      "domaine": "contrats / DSN",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "France Travail délivre un numéro d'objet de spectacle pour une année : le premier chiffre-lettre change chaque janvier (216Z… en 2021, 266Z… en 2026). Une reprise l'année suivante demande donc un nouveau numéro.",
+      "source": {
+        "fichier": "atelier/README.md",
+        "article": "§ « Ce qu'il faut vérifier à chaque mois », point 3",
+        "citation": "France Travail en délivre un nouveau chaque année (`216Z…` = 2021 … `266Z…` = 2026)"
+      },
+      "ciblage": "quand un spectacle repris a un numéro d'objet d'une année passée",
+      "certitude": "sourcé (doc du dépôt ; voir contradiction sur l'émetteur du numéro)"
+    },
+    {
+      "id": "licence-recepisse",
+      "domaine": "obligations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Depuis 2019, la « licence d'entrepreneur de spectacles » n'est plus une autorisation à demander : c'est une déclaration d'activité faite en ligne auprès de la préfecture de région, qui délivre un récépissé « valant licence ». Le silence de l'administration pendant un mois après le récépissé vaut absence d'opposition.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L7122-3",
+        "citation": "Cette déclaration donne lieu à la délivrance d'un récépissé de déclaration d'entrepreneur de spectacles vivants, valant licence."
+      },
+      "ciblage": "quand la fiche de la compagnie n'a pas de numéro de licence ou de récépissé",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "licence-six-representations",
+      "domaine": "obligations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Jusqu'à six représentations par an, on peut organiser des spectacles sans déclaration d'entrepreneur de spectacles, si le spectacle n'est pas son activité principale. Au-delà, ou si c'est votre métier, la déclaration est nécessaire. La DSN le sait : elle distingue l'organisateur « occasionnel » (6 spectacles au plus) du « professionnel ».",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "R7122-13",
+        "citation": "Le plafond annuel permettant d'exercer l'activité d'entrepreneur de spectacles vivants sans être soumis aux obligations de déclaration mentionnées à l'article L. 7122-3 est fixé à six représentations."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "licence-numero-billetterie",
+      "domaine": "obligations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Le numéro de votre récépissé d'entrepreneur de spectacles doit figurer sur vos supports de communication et sur la billetterie de chaque spectacle. Un oubli sur l'affiche ou le billet se corrige en quelques minutes.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "R7122-12",
+        "citation": "Les supports de communication et la billetterie de tout spectacle vivant mentionnent le numéro du récépissé de la déclaration en cours de validité du ou des entrepreneurs de spectacles vivants qui le produisent ou le diffusent."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "licence-cinq-ans",
+      "domaine": "obligations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La déclaration d'entrepreneur de spectacles se renouvelle tous les cinq ans, auprès de la préfecture de région. Notez l'échéance : un récépissé périmé n'a plus valeur de licence.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "R7122-5",
+        "citation": "La déclaration prévue par le 2° de l'article L. 7122-3 est renouvelée par l'entrepreneur tous les cinq ans"
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé (voir contradiction sur « 3/5 ans ou à vie » dans la norme DSN : anciennes licences)"
+    },
+    {
+      "id": "licence-changement-quinze-jours",
+      "domaine": "obligations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Tout changement dans les éléments de votre déclaration d'entrepreneur de spectacles se signale à la préfecture de région dans les quinze jours, en ligne. Le départ de la personne qui justifie votre compétence professionnelle en fait partie : il faut alors justifier de son remplacement.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "R7122-6",
+        "citation": "Toute modification dans les éléments constitutifs de la déclaration est portée à la connaissance du préfet de région, dans un délai de quinze jours suivant ce changement"
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "guso-occasionnel",
+      "domaine": "obligations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Si le spectacle vivant n'est qu'une activité occasionnelle pour vous (une association, une mairie, un comité d'entreprise), vos formalités passent par le Guso, le guichet unique du spectacle occasionnel, et non par la DSN de l'Urssaf. Si c'est votre activité principale, vous déclarez à l'Urssaf.",
+      "source": {
+        "fichier": "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt",
+        "article": "",
+        "citation": "Vous êtes employeur du spectacle vivant et cette activité est : votre activité principale : vous devez réaliser les formalités et déclarer les cotisations auprès de l'Urssaf ; une activité occasionnelle : vous devez vous adresser au guso"
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "guso-remplace-formalites",
+      "domaine": "obligations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Quand un employeur occasionnel passe par le Guso, une seule déclaration unique et simplifiée tient lieu de DPAE, de certificat de travail, de contrat transmis, de déclaration à la caisse de congés payés et de déclaration fiscale. Le Guso délivre même au salarié une attestation mensuelle d'emploi à la place du bulletin de paie.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L7122-24",
+        "citation": "L'employeur, qui remet au salarié et qui adresse à l'organisme habilité par l'Etat les éléments de la déclaration […] est réputé satisfaire aux obligations relatives : 1° A la déclaration préalable à l'embauche […] 2° A la remise du certificat de travail […] 4° A l'affiliation à la caisse de congés payés"
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "registre-personnel",
+      "domaine": "obligations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Tout établissement qui emploie des salariés tient un registre unique du personnel : les noms et prénoms y sont inscrits dans l'ordre des embauches, avec l'emploi, la qualification, les dates d'entrée et de sortie, et la mention « contrat à durée déterminée » pour un CDD. Il peut être tenu sur informatique, et doit être présentable à l'inspection du travail.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L1221-13",
+        "citation": "Un registre unique du personnel est tenu dans tout établissement où sont employés des salariés."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "registre-cinq-ans",
+      "domaine": "obligations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Les mentions du registre du personnel se gardent cinq ans à partir du jour où le salarié a quitté l'établissement. Pour un intermittent, c'est cinq ans après la fin de son dernier contrat avec vous.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "R1221-26",
+        "citation": "Les mentions portées sur le registre unique du personnel sont conservées pendant cinq ans à compter de la date à laquelle le salarié ou le stagiaire a quitté l'établissement."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "bulletin-double-cinq-ans",
+      "domaine": "obligations / bulletins",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Vous devez conserver un double de chaque bulletin de paie pendant cinq ans, électronique ou papier. PuppetPaie garde les bulletins de chaque mois avec le dossier de paie, et la sauvegarde ne supprime jamais rien d'envoyé dans votre Drive.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L3243-4",
+        "citation": "L'employeur conserve un double des bulletins de paie des salariés ou les bulletins de paie remis aux salariés sous forme électronique pendant cinq ans."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "bulletin-salarie-sans-limite",
+      "domaine": "obligations / bulletins",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Vous gardez les bulletins cinq ans, mais votre salarié doit les garder sans limitation de durée : le bulletin porte d'ailleurs en caractères apparents une mention qui l'y invite. Si un ancien salarié vous demande un duplicata, vous pouvez le lui donner.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "R3243-5",
+        "citation": "Le bulletin de paie comporte en caractères apparents une mention incitant le salarié à le conserver sans limitation de durée."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "bulletin-aucune-signature",
+      "domaine": "obligations / bulletins",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Vous ne pouvez exiger de votre salarié aucune signature ni émargement à la remise du bulletin, sauf pour constater qu'il a bien reçu la somme nette indiquée. Et accepter un bulletin sans réserve ne lui fait pas perdre son droit de réclamer ce qui lui est dû.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L3243-2",
+        "citation": "Il ne peut exiger aucune formalité de signature ou d'émargement autre que celle établissant que la somme reçue correspond bien au montant net figurant sur ce bulletin."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "bulletin-electronique",
+      "domaine": "obligations / bulletins",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Vous pouvez remettre les bulletins sous forme électronique, sauf si le salarié s'y oppose. Les envoyer en pièce jointe à son adresse, comme le fait PuppetPaie, est donc possible tant qu'il ne refuse pas.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "L3243-2",
+        "citation": "Sauf opposition du salarié, l'employeur peut procéder à la remise du bulletin de paie sous forme électronique, dans des conditions de nature à garantir l'intégrité, la disponibilité pendant une durée fixée par décret et la confidentialité des données"
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé (le décret de modalités n'est pas déposé : la phrase ne garantit pas que l'envoi en pièce jointe remplisse toutes ses conditions)"
+    },
+    {
+      "id": "bulletin-total-verse-employeur",
+      "domaine": "paie générale",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Le bulletin de paie doit aussi afficher le « montant total versé par l'employeur » : le salaire brut plus toutes les cotisations patronales, diminuées des exonérations. C'est le vrai coût de l'engagement, pas seulement le brut.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "travail",
+        "article": "R3243-1",
+        "citation": "Le montant total versé par l'employeur, c'est-à-dire la somme de la rémunération mentionnée au 7° et des cotisations et contributions à la charge de l'employeur mentionnées au a du 8°, déduction faite des exonérations et exemptions des mêmes cotisations et contributions mentionnées au 13° ;"
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "cotisations-employeur-seul-famille",
+      "domaine": "paie générale",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Les cotisations d'allocations familiales, qui financent les prestations familiales, sont entièrement à la charge de l'employeur : rien n'est retenu sur le salaire de votre salarié. La retraite de base (assurance vieillesse), elle, se partage entre vous et lui.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "securite-sociale",
+        "article": "L241-6",
+        "citation": "Des cotisations assises sur les revenus d'activité […] perçus par les salariés des professions non agricoles et agricoles. Ces cotisations sont intégralement à la charge de l'employeur."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "cotisations-a-quoi-servent",
+      "domaine": "paie générale",
+      "public": "tous",
+      "quand": "toujours",
+      "texte": "Les cotisations ne s'évaporent pas : celles de la branche maladie financent les frais de santé, les indemnités journalières et les pensions d'invalidité ; celles d'assurance vieillesse financent les retraites du régime général ; celles de la branche famille, les prestations familiales. Chaque ligne du bulletin a donc une destination.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "securite-sociale",
+        "article": "L241-2",
+        "citation": "La couverture des dépenses afférentes à la prise en charge des frais de santé […] des prestations mentionnées aux titres II à IV et VI du livre III […] est assurée par les cotisations, contributions et autres ressources"
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "csg-quatre-vingt-dix-huit",
+      "domaine": "paie générale",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La CSG et la CRDS ne se calculent pas sur 100 % du brut : la loi retranche 1,75 % pour frais professionnels, ce qui donne une assiette de {bareme:abattement_csg*100} % (dans la limite de quatre plafonds de la Sécurité sociale). Si vous refaites un bulletin à la main, ne partez pas du brut tout rond.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "securite-sociale",
+        "article": "L136-2",
+        "citation": "les revenus bruts suivants bénéficient d'une réduction représentative de frais professionnels fixée à 1,75 % pour leur montant inférieur à quatre fois la valeur du plafond mentionné à l'article L. 241-3"
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "net-social-definition",
+      "domaine": "paie générale",
+      "public": "tous",
+      "quand": "toujours",
+      "texte": "Le « montant net social » du bulletin n'est pas le net à payer : c'est la somme des revenus bruts du mois moins les cotisations du salarié, avant impôt, et il sert à votre salarié pour remplir sa déclaration de ressources du RSA ou de la prime d'activité. Il figure obligatoirement sur le bulletin.",
+      "source": {
+        "fichier": "atelier/reference/sources/montant-net-social/boss-montant-net-social-20261001.txt",
+        "article": "",
+        "citation": "Le montant net social correspond aux revenus que les bénéficiaires du revenu de solidarité active (RSA) ou de la prime d'activité doivent déclarer pour calculer leurs prestations"
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "net-social-hors-assiette",
+      "domaine": "paie générale",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Le net social ne dépend ni de l'assiette sociale ni de l'assiette fiscale : une indemnité exonérée de cotisations y entre quand même, alors qu'un remboursement de frais professionnels n'y entre pas. Deux salariés de même net à payer peuvent donc avoir deux nets sociaux différents.",
+      "source": {
+        "fichier": "atelier/reference/sources/montant-net-social/boss-montant-net-social-20261001.txt",
+        "article": "",
+        "citation": "Le montant net social n'est ni défini en fonction de l'assiette fiscale, ni de l'assiette sociale."
+      },
+      "ciblage": "quand une paie contient des défraiements",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "plafond-valeurs-2026",
+      "domaine": "paie générale",
+      "public": "tous",
+      "quand": "toujours",
+      "texte": "Le plafond de la Sécurité sociale est le montant au-delà duquel certaines cotisations (surtout la retraite de base) ne se calculent plus. En {annee} : {bareme:plafond_securite_sociale/mensuel} € par mois, {bareme:plafond_securite_sociale/mensuel*12} € par an et {bareme:plafond_securite_sociale/horaire} € par heure. Il est revalorisé chaque année et ne peut pas baisser.",
+      "source": {
+        "fichier": "atelier/reference/sources/boss/boss-assiette-generale-20260801.txt",
+        "article": "§ 650",
+        "citation": "Le plafond de la sécurité sociale est le montant maximum des rémunérations ou gains à prendre en compte pour le calcul de"
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "plafond-artiste-moins-cinq-jours",
+      "domaine": "paie générale",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Pour un artiste engagé moins de cinq jours de suite, le plafond de la Sécurité sociale n'est pas le plafond mensuel : c'est douze fois le plafond horaire pour chaque journée travaillée. En {annee}, 12 × {bareme:plafond_securite_sociale/horaire} € = {bareme:plafond_securite_sociale/horaire*12} € par jour, quel que soit le nombre d'heures ou de cachets de la journée. C'est ce que le bas du bulletin affiche.",
+      "source": {
+        "fichier": "atelier/reference/sources/arrete-1975-artistes-du-spectacle/articles-20261015.md",
+        "article": "art. 3",
+        "citation": "Pour les périodes d'engagement continu inférieures à cinq jours, le plafond mentionné à l'article L. 241-3 du code de la sécurité sociale applicable à chaque journée de travail accomplie par un artiste du spectacle pour un même employeur est égal à douze fois le plafond horaire, quels que soient le nombre d'heures et la nature du travail effectués dans ladite journée."
+      },
+      "ciblage": "quand un artiste est engagé moins de 5 jours consécutifs",
+      "certitude": "sourcé (le produit 12 × 30 est un calcul)"
+    },
+    {
+      "id": "plafond-intermittent-prorata",
+      "domaine": "paie générale",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Pour un technicien intermittent, ou un artiste engagé cinq jours ou plus, l'administration admet que le plafond de la Sécurité sociale soit réduit aux seuls jours rémunérés. Pour un mois de 31 jours avec 3 jours payés, en {annee} : {bareme:plafond_securite_sociale/mensuel} € × 3/31, soit {bareme:plafond_securite_sociale/mensuel*3/31,2} €.",
+      "source": {
+        "fichier": "atelier/reference/sources/boss/boss-assiette-generale-20260801.txt",
+        "article": "§ 1090",
+        "citation": "Toutefois, il est admis que : pour les salariés intermittents, le plafond soit proratisé pour ne tenir compte que des jours ayant donné lieu à rémunération"
+      },
+      "ciblage": "quand un intermittent est engagé 5 jours ou plus, ou est technicien",
+      "certitude": "sourcé (calcul de l'exemple : 4005 × 3 / 31 = 387,58)"
+    },
+    {
+      "id": "taux-reduits-artistes",
+      "domaine": "paie générale",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Les artistes du spectacle ont des cotisations réduites de 30 % (maladie, vieillesse, allocations familiales, accidents du travail, FNAL, versement mobilité), pour la part patronale comme pour la part salariale, sur chaque cachet. Les techniciens n'y ont pas droit : même chantier, deux taux.",
+      "source": {
+        "fichier": "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt",
+        "article": "",
+        "citation": "Seuls les artistes du spectacle sont concernés par l'application des taux réduits. Les techniciens ne sont pas concernés."
+      },
+      "ciblage": "quand une paie mélange artistes et techniciens",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "taux-reduits-csg-hors",
+      "domaine": "paie générale",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La réduction de 30 % des artistes ne s'applique pas à la CSG, à la CRDS ni à la contribution solidarité autonomie (CSA) : celles-là se calculent au taux ordinaire. C'est pourquoi le prélèvement d'un artiste baisse moins que ses cotisations.",
+      "source": {
+        "fichier": "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt",
+        "article": "",
+        "citation": "La CSG-CRDS et la contribution solidarité autonomie (CSA) ne sont pas visées par la réduction de taux : vous devez donc calculer ces contributions au taux de droit commun."
+      },
+      "ciblage": "quand une paie contient un artiste",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dfs-principe-option",
+      "domaine": "paie générale / frais",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "L'abattement de frais professionnels des artistes (la « déduction forfaitaire spécifique », ou DFS) n'est pas automatique : vous devez l'avoir prévue, par un accord collectif, par l'accord du comité social et économique, ou par l'accord de chaque salarié (dans son contrat, ou en recueillant son consentement chaque année). Le salarié peut demander à tout moment à en bénéficier ou à y renoncer, à effet du 1er janvier suivant.",
+      "source": {
+        "fichier": "atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261015.md",
+        "article": "art. 9, I",
+        "citation": "L'employeur peut opter pour la déduction forfaitaire spécifique lorsqu'une convention ou un accord collectif l'a explicitement prévu ou lorsque le comité d'entreprise, le comité social et économique ou les délégués du personnel ont donné leur accord. A défaut, il appartient à chaque salarié d'accepter ou non cette option. […] Lorsque le travailleur salarié et assimilé ne répond pas dans un délai raisonnable à cette consultation, son silence vaut accord."
+      },
+      "ciblage": "quand la compagnie a des artistes et n'a pas renseigné l'option DFS sur sa fiche",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dfs-taux-baisse",
+      "domaine": "paie générale / frais",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "L'abattement des artistes diminue chaque année jusqu'à disparaître en 2032 : pour les artistes dramatiques, lyriques et chorégraphiques, il est passé de 25 % à 23 % puis 21 %, et vaut {bareme:deduction_forfaitaire/taux/25} % en {annee} ; pour les musiciens, choristes, chefs d'orchestre et régisseurs de théâtre, de 20 % à 19 %, 18 %, puis {bareme:deduction_forfaitaire/taux/20} % en {annee}. Une paie calculée avec l'ancien taux est fausse.",
+      "source": {
+        "fichier": "atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt",
+        "article": "§ 2300",
+        "citation": "Pour le spectacle vivant et le spectacle enregistré à 25 %, à compter du 1er janvier 2024, le taux de déduction forfaitaire spécifique est réduit de 2 points pendant 2 ans, puis de 3 points à compter du 1er janvier 2026 pendant 7 ans, jusqu'à sa suppression à partir du 1er janvier 2032"
+      },
+      "ciblage": "quand l'option DFS est active",
+      "certitude": "sourcé (les taux de l'année sont un calcul à partir du BOSS § 2300)"
+    },
+    {
+      "id": "dfs-plafond-sept-mille-six-cents",
+      "domaine": "paie générale / frais",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "L'abattement de frais professionnels est plafonné à {bareme:deduction_forfaitaire/plafond_annuel} € par salarié et par année civile. Pour un intermittent qui travaille pour plusieurs compagnies, l'administration admet que ce plafond soit apprécié séparément employeur par employeur.",
+      "source": {
+        "fichier": "atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt",
+        "article": "§ 2120",
+        "citation": "Le montant de cette déduction est plafonné par salarié et par année civile à 7 600 euros."
+      },
+      "ciblage": "quand l'option DFS est active",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dfs-apres-taux-reduits",
+      "domaine": "paie générale / frais",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Pour un artiste, les deux avantages se cumulent dans un ordre précis : on applique d'abord l'abattement de frais professionnels (DFS), puis les taux de cotisation réduits de 30 % sur la rémunération qui reste.",
+      "source": {
+        "fichier": "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt",
+        "article": "",
+        "citation": "Si vous avez mis en place la déduction forfaitaire spécifique (DFS) pour frais professionnels […] propres aux artistes, vous appliquez les taux réduits sur les rémunérations calculées après la DFS"
+      },
+      "ciblage": "quand l'option DFS est active et qu'un artiste est payé",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dfs-mois-absence",
+      "domaine": "paie générale / frais",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "L'abattement de frais professionnels ne porte que sur la rémunération d'un travail effectif. Pour un mois entier d'absence (maladie ou congés), même payé, il ne s'applique pas.",
+      "source": {
+        "fichier": "atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt",
+        "article": "§ 2150",
+        "citation": "il ne peut être fait application de la déduction forfaitaire spécifique que sur la rémunération correspondant à un travail effectif du salarié. En cas d'absence, rémunérée ou non rémunérée sur un mois complet (pour cause de maladie ou de congés), l'application de la déduction forfaitaire spécifique au titre de ce mois n'est pas admise."
+      },
+      "ciblage": "quand un salarié avec DFS a un arrêt ou un congé couvrant tout un mois",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dfs-sans-frais-reels",
+      "domaine": "paie générale / frais",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Dans le spectacle vivant, depuis le 1er janvier 2023, l'administration admet l'abattement de frais professionnels même quand le salarié n'a pas payé de frais précis (c'est ce qui permet par exemple à la caisse de congés payés de l'appliquer aux indemnités de congés). Les autres conditions, notamment l'option, restent exigées.",
+      "source": {
+        "fichier": "atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt",
+        "article": "§ 2310",
+        "citation": "par tolérance, son bénéfice est admis, dans ces huit secteurs uniquement, même en l'absence de frais professionnel réellement supporté par un salarié"
+      },
+      "ciblage": "quand l'option DFS est active",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dfs-ne-reduit-pas-le-chomage",
+      "domaine": "paie générale / frais",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "L'abattement de frais professionnels réduit les cotisations sociales de vos artistes, mais pas le salaire que l'assurance chômage retient pour calculer leurs droits : pour les intermittents, les rémunérations sont prises en compte avant l'abattement de 20 ou 25 %. L'option ne pénalise donc pas leurs allocations.",
+      "source": {
+        "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche484-abattement-frais-professionnels-brut-non-plafonne-et-chomage-20250701.txt",
+        "article": "",
+        "citation": "Pour les activités relevant des critères des intermittents du spectacle au sens de l'Assurance-chômage, les rémunérations versées depuis le 1er juillet 2017 sont prises en compte avant application de l'abattement pour les professions admises au bénéfice de la déduction pour frais professionnels de 20% ou de 25%, selon les cas."
+      },
+      "ciblage": "quand l'option DFS est active",
+      "certitude": "sourcé (à croiser avec le rédacteur A, domaine chômage)"
+    },
+    {
+      "id": "defraiement-justificatifs",
+      "domaine": "frais",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Un défraiement peut se payer de deux façons : en remboursant les dépenses réelles sur justificatifs, ou en versant une allocation forfaitaire dans les limites fixées par l'arrêté du 4 septembre 2025. Dans les deux cas c'est à vous de pouvoir justifier : conservez les notes ou le barème que vous avez appliqué.",
+      "source": {
+        "fichier": "atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261015.md",
+        "article": "art. 2",
+        "citation": "1° Soit sous la forme du remboursement des dépenses réellement engagées par le travailleur salarié ou assimilé ; l'employeur est tenu de produire les justificatifs afférents. […] 2° Soit sur la base d'allocations forfaitaires ; l'employeur est autorisé à déduire leurs montants dans les limites fixées par le présent arrêté"
+      },
+      "ciblage": "quand une paie contient des défraiements",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "defraiement-tournee-hors-assiette",
+      "domaine": "frais",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Les indemnités journalières de « défraiement » versées aux artistes dramatiques, lyriques et chorégraphiques et aux régisseurs de théâtre en tournée font partie des quelques frais que la loi laisse hors de l'assiette de cotisations, même quand l'abattement de frais professionnels est appliqué. Les musiciens et choristes ont la même règle pour leurs déplacements, répétitions comprises.",
+      "source": {
+        "fichier": "atelier/reference/sources/dfs/annexes-2025/legi-arrete-20250904-frais-professionnels-annexe2-frais-hors-assiette-20250907.txt",
+        "article": "",
+        "citation": "2° Les indemnités journalières de « défraiement » versées aux artistes dramatiques, lyriques, chorégraphiques ainsi qu'aux régisseurs de théâtre, qui participent à des tournées théâtrales ;"
+      },
+      "ciblage": "quand une paie contient un défraiement de tournée",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "defraiement-kilometrique",
+      "domaine": "frais",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Quand un salarié utilise sa propre voiture pour le travail, vous pouvez le rembourser au barème kilométrique publié chaque année par l'administration fiscale (majoré de 20 % pour un véhicule électrique), sans cotisations sociales. Gardez de quoi justifier les déplacements et le nombre de kilomètres : sans pièce, l'indemnité entre dans l'assiette.",
+      "source": {
+        "fichier": "atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt",
+        "article": "§ 380",
+        "citation": "son employeur peut déduire l'indemnité forfaitaire kilométrique dans les limites fixées par les barèmes kilométriques annuellement publiés par l'administration fiscale. En cas d'utilisation d'un véhicule électrique, le montant de l'indemnité kilométrique est majoré de 20 %."
+      },
+      "ciblage": "quand une paie contient un défraiement kilométrique",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "pas-taux-transmis-dgfip",
+      "domaine": "paie générale",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Le taux de prélèvement à la source de votre salarié ne se devine pas et ne se demande pas à lui : c'est l'administration fiscale qui le transmet, en retour de vos DSN. PuppetPaie relève ces retours (le compte rendu de la DGFiP) et applique le taux lu.",
+      "source": {
+        "fichier": "atelier/README.md",
+        "article": "§ « Les retours DSN »",
+        "citation": "Celui de la DGFiP, nature 94, porte le taux de prélèvement à la source de chaque salarié et son identifiant"
+      },
+      "ciblage": "quand un salarié n'a pas de taux enregistré",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "pas-taux-applique-deux-mois",
+      "domaine": "paie générale",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Quand l'administration fiscale vous transmet un nouveau taux pour un salarié, vous devez l'appliquer au plus tard le deuxième mois qui suit sa transmission. Un taux qui change en cours d'année se retrouve donc sur le bulletin avec un petit décalage, c'est normal.",
+      "source": {
+        "fichier": "atelier/reference/sources/code-general-des-impots/articles-20261015.md",
+        "article": "CGI 1671, 2",
+        "citation": "Le débiteur de la retenue à la source […] applique le taux calculé par l'administration fiscale, au plus tard le deuxième mois suivant sa transmission par l'administration."
+      },
+      "ciblage": "quand un nouveau taux est relevé",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "pas-sans-taux-grille",
+      "domaine": "paie générale",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Si vous n'avez reçu aucun taux pour un salarié (nouveau, pas encore dans votre DSN), vous appliquez la grille par défaut de l'administration, qui dépend du salaire du mois : nulle pour un petit salaire, puis montant par paliers. Pour un petit cachet, le prélèvement est souvent de 0 €.",
+      "source": {
+        "fichier": "atelier/reference/sources/code-general-des-impots/articles-20261015.md",
+        "article": "CGI 204 H, III",
+        "citation": "Lorsque le débiteur ne dispose pas d'un taux calculé par l'administration fiscale"
+      },
+      "ciblage": "quand un salarié n'a pas de taux enregistré",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "pas-cdd-deux-mois",
+      "domaine": "paie générale",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Pour un CDD de deux mois au plus sans taux transmis, la grille par défaut s'applique après un abattement égal à la moitié du SMIC mensuel, pendant les deux premiers mois. C'est ce qui rend le prélèvement très faible sur un contrat court.",
+      "source": {
+        "fichier": "atelier/reference/sources/code-general-des-impots/articles-20261015.md",
+        "article": "CGI 204 H, III, 1, d",
+        "citation": "Pour les salaires versés au titre d'un contrat à durée déterminée […] dont le terme initial n'excède pas deux mois […] les grilles […] s'appliquent, dans la limite des deux premiers mois d'embauche, aux versements effectués au titre ou au cours d'un mois après un abattement égal à la moitié du montant mensuel du salaire minimum de croissance"
+      },
+      "ciblage": "quand un CDD de moins de deux mois a un salarié sans taux",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "pas-taux-neutre-option",
+      "domaine": "paie générale",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Votre salarié peut demander à l'administration fiscale de ne pas vous faire transmettre son taux personnalisé, et d'appliquer à la place un taux « neutre » de la grille par défaut. Si le taux d'un salarié vous surprend, c'est une de ses options, pas une erreur du logiciel.",
+      "source": {
+        "fichier": "atelier/reference/sources/code-general-des-impots/articles-20261015.md",
+        "article": "CGI 204 H, IV, 1",
+        "citation": "Sur option du contribuable, le taux mentionné au III du présent article est appliqué aux traitements et salaires soumis à la retenue à la source"
+      },
+      "ciblage": "quand le taux enregistré d'un salarié est un taux du barème, alors qu'un taux DGFiP existe",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "pas-reversement-5-15",
+      "domaine": "paie générale / déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Le prélèvement à la source retenu sur les salaires se reverse le mois suivant : au plus tard le 15 pour une entreprise de moins de 50 salariés, le 5 pour les autres. Une entreprise de moins de onze salariés peut choisir un reversement trimestriel. Avec la DSN, c'est la même déclaration qui sert.",
+      "source": {
+        "fichier": "atelier/reference/sources/bofip/BOI-IR-PAS-30-10-30-20-extrait-reversement.md",
+        "article": "BOI-IR-PAS-30-10-30-20, § 50-60",
+        "citation": "le 15 du mois pour les entreprises comptant au maximum quarante-neuf salariés ; […] le 5 du mois pour les autres."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé (le moteur ne gère pas l'option trimestrielle : `S bofip/…extrait-reversement.md`)"
+    },
+    {
+      "id": "dsn-meme-sans-salaire",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La DSN, la déclaration sociale mensuelle, se dépose chaque mois, même si vous n'avez versé aucun salaire pendant ce mois. Elle ne s'arrête que si vous demandez la radiation de votre compte à l'Urssaf ou obtenez l'autorisation de ne plus la déposer. Une compagnie en vacances d'été dépose donc une DSN « néant ».",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "securite-sociale",
+        "article": "R133-14",
+        "citation": "La déclaration sociale nominative est accomplie chaque mois même si aucune rémunération n'a été versée au cours de celui-ci tant que l'employeur n'a pas demandé la radiation de son compte auprès de l'organisme de recouvrement des cotisations de sécurité sociale dont il relève, ou obtenu de ce dernier l'autorisation de ne plus l'adresser en l'absence d'emploi salarié."
+      },
+      "ciblage": "quand un mois précédent n'a aucune paie saisie et la compagnie a déjà déposé une DSN",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dsn-echeance-5-ou-15",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La DSN du mois se dépose le mois suivant : au plus tard le 15, ou le 5 si vous avez au moins 50 salariés et payez dans le mois même du travail. PuppetPaie choisit la bonne date d'après l'effectif de votre fiche.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "securite-sociale",
+        "article": "R243-6",
+        "citation": "1° Le 5 de ce mois pour les employeurs dont l'effectif est d'au moins cinquante salariés et dont la paie est effectuée au cours du même mois que la période de travail ; […] 2° Le 15 de ce mois dans les autres cas."
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dsn-echeance-report",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Si le 5 ou le 15 tombe un samedi, un dimanche ou un jour férié, l'échéance de la DSN est reportée au premier jour ouvré suivant. PuppetPaie en tient compte dans ses rappels.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "securite-sociale",
+        "article": "R133-14",
+        "citation": "Si le délai imparti pour effectuer la déclaration sociale nominative expire un jour férié ou non ouvré, il est prorogé jusqu'au jour ouvrable suivant."
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dsn-heure-limite-midi",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "L'heure limite d'un dépôt de DSN, le jour de l'échéance, est midi (heure de France métropolitaine), pas minuit. Déposer à 15 h le 15, c'est déjà trop tard.",
+      "source": {
+        "fichier": "atelier/reference/sources/echeances-dsn/LISEZ-MOI.md",
+        "article": "",
+        "citation": "Cahier technique § 1.4.2 : échéance au 5e ou au 15e jour, « heure limite du dépôt […] 12h (midi) en France métropolitaine »"
+      },
+      "ciblage": "quand l'échéance est dans moins de 3 jours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dsn-une-declaration",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La DSN sert à beaucoup de choses à la fois : elle calcule vos cotisations, ouvre les droits de vos salariés (maladie, retraite, chômage, formation), remplace la déclaration des revenus à l'administration fiscale et le prélèvement à la source. Une seule déclaration exacte vaut mieux que plusieurs approximatives.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "securite-sociale",
+        "article": "L133-5-3",
+        "citation": "Les données de cette déclaration servent au recouvrement des cotisations, des contributions sociales et de certaines impositions, à la vérification de leur montant, à l'ouverture et au calcul des droits des salariés en matière d'assurances sociales, de formation et de prévention"
+      },
+      "ciblage": "toujours",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dsn-penalite",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Une DSN en retard, incomplète ou inexacte entraîne une pénalité, par salarié concerné, qui peut aller jusqu'à 1,5 % du plafond mensuel de la Sécurité sociale (environ {bareme:plafond_securite_sociale/mensuel*0.015,0} € en {annee}). Une rémunération sous-déclarée coûte aussi 1 % du plafond par salarié. Le dépôt de test de PuppetPaie existe pour repérer les anomalies avant.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "securite-sociale",
+        "article": "L133-5-4",
+        "citation": "Le défaut de production des déclarations […] dans les délais prescrits, l'omission de données devant y figurer, l'inexactitude des données déclarées […] entraînent l'application d'une pénalité. Cette pénalité est fixée par décret en Conseil d'Etat dans la limite de 1,5 % du plafond mensuel de sécurité sociale en vigueur, arrondi à l'euro supérieur, au titre de chaque personne pour laquelle le manquement est constaté."
+      },
+      "ciblage": "quand la DSN du mois précédent n'est pas encore au journal",
+      "certitude": "sourcé (le « environ 60 € » est le calcul 1,5 % × 4 005 €)"
+    },
+    {
+      "id": "dsn-correction-avant-apres",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Tant que l'échéance n'est pas passée, vous pouvez refaire le mois et redéposer une DSN qui remplace l'ancienne. Après l'échéance, on ne remplace plus : la correction part dans la DSN du mois suivant, datée de la période d'origine. PuppetPaie fait cette correction pour vous et produit un bulletin rectificatif.",
+      "source": {
+        "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche1902-circuit-derogatoire-cddu-d-20250512.txt",
+        "article": "",
+        "citation": "Une fois la date d'exigibilité passée, aucune DSN mensuelle de type \" Annule et Remplace \" n'est possible."
+      },
+      "ciblage": "quand un mois est déposé et qu'une anomalie est détectée",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dsn-correction-organismes",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Quand les organismes détectent une anomalie dans votre DSN, vous êtes tenu de la corriger. Si vous ne le faites pas, ils peuvent la corriger eux-mêmes. Lisez donc les comptes rendus qu'ils vous renvoient : ils ne sont pas facultatifs.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "securite-sociale",
+        "article": "L133-5-3-1",
+        "citation": "En cas de constat d'anomalie résultant de ces vérifications, les déclarants sont tenus d'effectuer les corrections requises. En l'absence de correction par le déclarant, celle-ci peut être réalisée par les organismes de sécurité sociale auxquels la déclaration a été adressée."
+      },
+      "ciblage": "quand un retour DSN signale une anomalie",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "dsn-retours-bilan",
+      "domaine": "déclarations / logiciel",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Un dépôt de DSN n'est pas terminé quand le fichier est parti : l'organisme répond ensuite par un accusé, un certificat de conformité, des bilans, puis des comptes rendus métier. Le bilan seul dit si la déclaration est acceptée. PuppetPaie relève ces retours à l'ouverture.",
+      "source": {
+        "fichier": "atelier/README.md",
+        "article": "§ « Les retours DSN »",
+        "citation": "Après chaque dépôt, les organismes répondent : accusé, certificat de conformité, bilans, puis les comptes-rendus métier."
+      },
+      "ciblage": "quand une DSN réelle est déposée et le bilan n'est pas relevé",
+      "certitude": "sourcé (doc du dépôt ; « le bilan seul dit… » vient de `R CLAUDE.md` règle 5 : accusé de transport OK n'est pas une déclaration acceptée)"
+    },
+    {
+      "id": "dsn-fait-generateur-2027",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "À partir du 1er janvier 2027, les rémunérations se rattachent socialement à la période où le travail a été fait, et non à celle où elles sont payées. Un rappel de salaire versé en février pour tout janvier se déclare en janvier. 2026 est une année pilote, sans sanction.",
+      "source": {
+        "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche3360-fait-generateur-20260130.txt",
+        "article": "",
+        "citation": "Tous les éléments de rémunération versés de manière habituelle et régulière […] doivent être rattachés socialement à la période d'emploi qu'ils rémunérent."
+      },
+      "ciblage": "quand une paie verse une rémunération d'un mois antérieur",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "signalement-fin-contrat-cddu-derogatoire",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Pour un CDD d'usage du spectacle, la fin de contrat peut se déclarer directement dans la DSN mensuelle, sans signalement séparé (c'est le « circuit dérogatoire »), si le salarié est d'accord. France Travail vous renvoie dans les 48 heures les attestations employeur de vos salariés. Pour un CDI ou un CDD classique, le signalement reste obligatoire.",
+      "source": {
+        "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche673-rappel-signalements-arret-reprise-fin-de-contrat-20250513.txt",
+        "article": "",
+        "citation": "Dans le cas des CDD d'usage, il est possible que l'employeur, avec l'accord du salarié, ait recours au dispositif dérogatoire de déclaration de la fin de contrat."
+      },
+      "ciblage": "quand un CDDU se termine",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "signalement-fin-contrat-cinq-jours",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La fin de contrat d'un salarié (hors circuit dérogatoire du CDDU) se signale à France Travail dans les cinq jours ouvrés. Le retour de France Travail est l'attestation employeur rematérialisée (AER) : imprimez-la et remettez-la au salarié qui part.",
+      "source": {
+        "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche119-preavis-signalement-fin-de-contrat-20250512.txt",
+        "article": "",
+        "citation": "Le signalement fin de contrat de travail doit être émis dans les cinq jours après la survenance de l'événement."
+      },
+      "ciblage": "quand un CDI ou un CDD classique se termine",
+      "certitude": "sourcé",
+      "suspendu": "Non tranché (Léandre) : le délai des signalements, « 5 jours » (fiches 113, 119), « 5 jours ouvrés » (fiche 673, arrêté du 02/07/2013) ou « ouvrables » (cahier technique)."
+    },
+    {
+      "id": "signalement-arret-cinq-jours",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Quand un salarié est en arrêt maladie, il faut le signaler dans les cinq jours ouvrés après en avoir eu connaissance. Sans ce signalement, l'Assurance Maladie ne peut pas établir l'attestation de salaire qui permet de lui verser ses indemnités journalières.",
+      "source": {
+        "fichier": "atelier/reference/sources/echeances-dsn/net-entreprises-fiche113-signalement-arret-de-travail-20220211.txt",
+        "article": "",
+        "citation": "Dès lors qu'un arrêt de travail est constaté, un signalement doit obligatoirement être émis (dans un délai de 5 jours). En effet, sans signalement, aucune attestation de salaire ne peut être reconstituée par le système pour le versement des indemnités journalières du salarié."
+      },
+      "ciblage": "quand un arrêt est saisi dans le logiciel",
+      "certitude": "sourcé",
+      "suspendu": "Non tranché (Léandre) : le délai des signalements, « 5 jours » (fiches 113, 119), « 5 jours ouvrés » (fiche 673, arrêté du 02/07/2013) ou « ouvrables » (cahier technique)."
+    },
+    {
+      "id": "signalement-arret-subrogation",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Si vous maintenez le salaire pendant l'arrêt et touchez vous-même les indemnités de la Sécurité sociale (c'est la « subrogation »), vous avez jusqu'à l'échéance de la DSN pour signaler l'arrêt. Sans subrogation, le signalement est urgent : c'est lui qui permet à la caisse de verser les indemnités au salarié.",
+      "source": {
+        "fichier": "atelier/reference/sources/echeances-dsn/net-entreprises-fiche113-signalement-arret-de-travail-20220211.txt",
+        "article": "",
+        "citation": "L'entreprise effectue la subrogation […] L'arrêt de travail peut être émis à la même échéance que la DSN mensuelle."
+      },
+      "ciblage": "quand un arrêt est saisi avec ou sans subrogation",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "signalement-arret-mois-embauche",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Si un salarié tombe malade le mois même de son embauche, n'envoyez pas le signalement tout de suite : un signalement d'arrêt pendant le mois d'embauche fait échouer la reconstitution de l'attestation de salaire. Attendez le dépôt de la DSN mensuelle de ce mois pour l'envoyer.",
+      "source": {
+        "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche673-rappel-signalements-arret-reprise-fin-de-contrat-20250513.txt",
+        "article": "",
+        "citation": "Transmettre un signalement d'événement « Arrêt de travail » lors du mois d'embauche du salarié entraine un échec de reconstitution de la DSIJ. Il convient donc d'attendre le dépôt de la DSN mensuelle pour envoyer le signalement"
+      },
+      "ciblage": "quand un arrêt est saisi dans le mois de début du contrat",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "signalement-reprise-anticipee",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Le signalement de reprise n'est dû que si votre salarié reprend plus tôt que la fin prévue de son arrêt. Si l'arrêt va jusqu'à son terme, la DSN du mois suffit.",
+      "source": {
+        "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche673-rappel-signalements-arret-reprise-fin-de-contrat-20250513.txt",
+        "article": "",
+        "citation": "Il n'est attendu un signalement de reprise que si cette reprise est anticipée par rapport à la date prévisionnelle de fin de l'arrêt transmise lors de la déclaration de l'arrêt."
+      },
+      "ciblage": "quand un arrêt est saisi",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "signalement-pas-de-double",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Le signalement par la DSN remplace l'ancienne attestation de salaire (pour la Sécurité sociale) et l'ancienne attestation employeur (pour France Travail) : il est interdit de faire les deux. Un seul canal, jamais en double.",
+      "source": {
+        "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche673-rappel-signalements-arret-reprise-fin-de-contrat-20250513.txt",
+        "article": "",
+        "citation": "il est interdit de procéder à une double déclaration, c'est à dire de transmettre de façon systématique un signalement DSN et"
+      },
+      "ciblage": "quand un signalement est préparé",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "signalement-reporter-dans-dsn",
+      "domaine": "déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Un signalement n'enlève rien à la DSN : un arrêt ou une fin de contrat signalé se reporte toujours dans la DSN mensuelle qui suit. PuppetPaie le fait automatiquement à la production du mois, et chaque DSN d'un arrêt long le reprend.",
+      "source": {
+        "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche673-rappel-signalements-arret-reprise-fin-de-contrat-20250513.txt",
+        "article": "",
+        "citation": "Toutes les informations relatives à un arrêt de travail ou à une fin de contrat doivent toujours être reportées dans la DSN mensuelle consécutive"
+      },
+      "ciblage": "quand un arrêt ou une fin de contrat est saisi",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "accident-travail-quarante-huit-heures",
+      "domaine": "obligations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Un accident du travail se déclare à la Caisse primaire d'assurance maladie dans les 48 heures, sans compter les dimanches et jours fériés (les samedis comptent). Ce n'est pas une démarche de la DSN : elle se fait à part, en ligne ou par le cerfa.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "securite-sociale",
+        "article": "R441-3",
+        "citation": "La déclaration de l'employeur ou l'un de ses préposés prévue à l'article L. 441-2 doit être faite, par tout moyen conférant date certaine à sa réception, dans les quarante-huit heures non compris les dimanches et jours fériés."
+      },
+      "ciblage": "quand un arrêt saisi est un accident du travail ou de trajet",
+      "certitude": "sourcé"
+    },
+    {
+      "id": "accident-hors-locaux",
+      "domaine": "obligations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Pour un accident survenu hors de vos locaux, par exemple en tournée, les 48 heures ne commencent à courir que du jour où vous en avez été informé. Prévenez vos équipes en déplacement de vous avertir tout de suite.",
+      "source": {
+        "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz",
+        "code": "securite-sociale",
+        "article": "R441-3",
+        "citation": "Pour la déclaration des accidents dont sont victimes hors des locaux de l'établissement les personnes mentionnées aux 1°, 2°, 4°, 6°, 8° et 13° de l'article L. 311-3 […] le délai imparti à l'employeur ne commence à courir que du jour où il a été informé de l'accident."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé (les personnes visées par les 1°, 2°, 4°, 6°, 8° et 13° de L. 311-3 : L. 311-3 n'est pas déposé dans l'entrepôt ; ne pas affirmer que tous vos salariés en tournée sont visés)"
+    },
+    {
+      "id": "logiciel-correction-bulletin-rectificatif",
+      "domaine": "logiciel",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Si vous découvrez un cachet oublié sur un mois déjà déclaré, PuppetPaie ne modifie pas l'ancien mois : il garde la saisie d'origine, enregistre la correction à part, la fait partir dans la DSN du mois courant et produit un bulletin rectificatif qui reprend le numéro du bulletin corrigé. Vous voyez l'avant et l'après avant de valider.",
+      "source": {
+        "fichier": "atelier/README.md",
+        "article": "§ « Corriger un mois déjà déposé »",
+        "citation": "La correction est un objet à part […] : la saisie déposée ne bouge jamais, et la DSN du mois courant l'embarque d'elle-même"
+      },
+      "ciblage": "quand un mois est déposé",
+      "certitude": "sourcé (doc du dépôt)"
+    },
+    {
+      "id": "logiciel-sauvegarde-ne-supprime-jamais",
+      "domaine": "logiciel",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "La sauvegarde de PuppetPaie dans votre Drive ne supprime jamais rien là-bas : un fichier effacé par erreur sur votre ordinateur reste dans la sauvegarde. Une sauvegarde qui répercute les suppressions n'est qu'un miroir qui recopie les accidents.",
+      "source": {
+        "fichier": "atelier/README.md",
+        "article": "§ « La sauvegarde »",
+        "citation": "Elle ne supprime jamais rien là-bas. Un fichier effacé ici reste dans le Drive : une sauvegarde qui répercute les suppressions n'est pas une sauvegarde, c'est un miroir, et un miroir recopie fidèlement les accidents."
+      },
+      "ciblage": "aucun",
+      "certitude": "sourcé (doc du dépôt)"
+    },
+    {
+      "id": "logiciel-signature-clic",
+      "domaine": "logiciel / contrats",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "Votre artiste peut signer son contrat en un clic : il reçoit un bouton « Je signe », sa messagerie prépare la réponse avec un code, et PuppetPaie relève le message, le range comme preuve, puis lui renvoie le contrat contresigné. C'est une signature électronique « simple » : elle identifie le signataire par son adresse et la lie à l'acte.",
+      "source": {
+        "fichier": "atelier/README.md",
+        "article": "§ « Le contrat se signe d'un clic »",
+        "citation": "C'est une signature électronique simple (art. 1367 du code civil), pas un service certifié : le procédé identifie le signataire (son adresse) et le lie à l'acte (le code, le message gardé)."
+      },
+      "ciblage": "quand un contrat est prêt à être envoyé",
+      "certitude": "sourcé (doc du dépôt ; l'art. 1367 du code civil n'est pas déposé)"
+    },
+    {
+      "id": "logiciel-dsn-rappel-ouverture",
+      "domaine": "logiciel / déclarations",
+      "public": "employeur",
+      "quand": "toujours",
+      "texte": "À l'ouverture de PuppetPaie, le logiciel vous dit quel mois attend sa DSN et dans quel état il est (saisi, validé, écrit), avec un bouton « Vérifier et envoyer ». Passé l'échéance, le rappel dit « en retard ». Rien ne part sans le dernier geste de votre part : le mot de passe du logiciel.",
+      "source": {
+        "fichier": "atelier/README.md",
+        "article": "§ « À l'ouverture : ce que le logiciel rappelle »",
+        "citation": "Le mois fini, la fenêtre s'ouvre sur le suivant — et dit ce qui attend."
+      },
+      "ciblage": "quand une DSN d'un mois précédent n'est pas au journal",
+      "certitude": "sourcé (doc du dépôt)"
+    },
+    {
+      "quand": "saisie:mois-sature",
+      "id": "saisie-mois-sature",
+      "domaine": "chômage / travail pendant l'indemnisation",
+      "public": "employeur",
+      "texte": "{qui} : vos contrats lui font déjà {heures} heures en {mois}. À partir de {seuil} heures dans le mois ({jours} jours de travail comptés à {heures_par_jour} heures), France Travail ne lui verse aucune allocation pour ce mois : des heures de plus ce mois-ci ne lui retirent donc rien de ce côté.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "En cas d'exercice d'une activité au moins égale à 27 jours de travail par mois calendaire, déterminés en fonction du nombre d'heures de travail effectuées à raison de dix heures par jour, aucune indemnisation n'est servie."
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "En cas d'exercice d'une activité au moins égale à 26 jours de travail par mois calendaire, déterminés en fonction du nombre d'heures de travail effectuées à raison de huit heures par jour, aucune indemnisation n'est servie."
+        },
+        {
+          "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
+          "article": "« Les cachets »",
+          "citation": "Le cachet est valorisé/comptabilisé à hauteur"
+        }
+      ],
+      "ciblage": "les heures du salarié dans le mois, chez vous (cachets à 12 heures, plus les heures), atteignent le seuil de son annexe (artiste : annexe X, 27 jours de 10 h ; technicien : annexe VIII, 26 jours de 8 h)",
+      "certitude": "sourcé (les heures des autres employeurs, inconnues, ne peuvent qu'ajouter)"
+    },
+    {
+      "quand": "saisie:plus-de-28-cachets",
+      "id": "saisie-plus-de-28-cachets",
+      "domaine": "chômage / plafond mensuel",
+      "public": "employeur",
+      "texte": "{qui} : {cachets} cachets en {mois} chez vous. Au-delà de {plafond} cachets dans un même mois, les suivants ne comptent ni pour ses 507 heures ni dans le salaire qui sert à calculer son allocation : {perdus|cachet ne comptera|cachets ne compteront} pas.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "Le nombre maximum de cachets pris en compte pour la recherche de la durée d'affiliation requise est de 28 par mois."
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 12 §2",
+          "citation": "Il en est de même des rémunérations correspondant aux cachets effectués au-delà de 28 par mois."
+        }
+      ],
+      "ciblage": "les cachets du salarié dans la saisie du mois dépassent 28 (simple information : pas de conseil de report)",
+      "certitude": "sourcé"
+    },
+    {
+      "quand": "saisie:technicien-plus-de-208-heures",
+      "id": "saisie-technicien-plus-de-208-heures",
+      "domaine": "chômage / plafond mensuel",
+      "public": "employeur",
+      "texte": "{qui} : {heures} heures en {mois} chez vous. Pour un technicien, France Travail ne retient que {plafond} heures par mois pour ses 507 heures ({plafond_majore} s'il a travaillé pour plusieurs employeurs dans le mois) : les heures au-delà ne lui comptent pas.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
+          "article": "« Les périodes retenues pour les 507 heures »",
+          "citation": "De 208 heures pour les ouvriers et […] techniciens : cette limite est majorée"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "le salarié a travaillé pour plusieurs employeurs au cours du mois considéré, soit 250 heures de travail."
+        }
+      ],
+      "ciblage": "un technicien (annexe VIII) dont les heures du mois, chez vous, dépassent 208",
+      "certitude": "sourcé (le chiffre 208 vient du guide ; l'annexe renvoie à L. 3121-21)"
+    },
+    {
+      "quand": "saisie:repetition-en-cachet",
+      "id": "saisie-repetition-en-cachet",
+      "domaine": "chômage / heures des artistes",
+      "public": "employeur",
+      "texte": "{qui} : ses répétitions de ce contrat comptent {heures_avant} heures pour ses droits ({nb_jours|jour|jours}, {montant_jour} € par jour). Sa convention prévoit un cachet de répétition pour 1 ou 2 services dans la même journée, d'au moins {minimum} € : payé ainsi, chaque jour compterait {heures_cachet} heures, soit {gain} heures de plus. C'est précieux s'il lui manque des heures pour ses 507 heures ; s'il est sûr de les atteindre et qu'il est indemnisé ce mois-ci, mieux vaut s'abstenir : il perdrait environ {jours_perdus|jour|jours} d'allocation.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/legifrance-3090-avenant-salaires-20250721.md",
+          "article": "grille des cachets de répétition",
+          "citation": "Cachet de répétition (pour 1 ou 2 services de répétition dans la même journée)"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "base de 1 cachet égal 12 heures."
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "le nombre de jours de travail au cours du mois civil est déterminé en fonction du nombre d'heures de travail effectuées à raison de dix heures par jour"
+        }
+      ],
+      "ciblage": "un artiste de la convention 3090 (hors musicien de l'annexe 1) dont une ligne « Service de répétition » à dates connues compte moins de 12 heures par jour pour une somme par jour au moins égale au cachet de répétition de la convention ; ni ses 507 heures assurées chez vous, ni un mois déjà sans allocation",
+      "certitude": "sourcé ; le coût en jours est l'article 30 (heures ÷ 10 × 1,3), qui ne vaut que s'il est indemnisé ce mois-là"
+    },
+    {
+      "quand": "saisie:heures-pour-la-meme-somme",
+      "id": "saisie-heures-pour-la-meme-somme",
+      "domaine": "chômage / heures",
+      "public": "employeur",
+      "texte": "{qui} : {heures|heure payée|heures payées} {montant} €, soit {taux} € de l'heure, au-dessus du minimum de sa convention ({minimum} € de l'heure). La même somme couvre jusqu'à {heures_max} heures au minimum : un engagement plus long compterait jusqu'à {gain} heures de plus pour ses 507 heures. C'est précieux s'il lui en manque ; s'il est sûr de les atteindre et qu'il est indemnisé ce mois-ci, mieux vaut s'abstenir : il perdrait environ {jours_perdus|jour|jours} d'allocation.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,4."
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+        }
+      ],
+      "ciblage": "une ligne payée à l'heure dont la convention fixe un minimum horaire (minima.rs), payée au-dessus : la même somme, au minimum, couvre au moins une heure de plus ; ni ses 507 heures assurées chez vous, ni un mois déjà sans allocation",
+      "certitude": "sourcé ; le coût en jours est l'article 30 (VIII : heures ÷ 8 × 1,4 ; X : ÷ 10 × 1,3), qui ne vaut que s'il est indemnisé ce mois-là"
+    },
+    {
+      "quand": "saisie:507-assurees",
+      "id": "saisie-507-assurees",
+      "domaine": "chômage / travail pendant l'indemnisation",
+      "public": "employeur",
+      "texte": "{qui} : vos contrats lui font déjà compter {heures} heures {fenetre} : ses 507 heures sont assurées. S'il est indemnisé, mieux vaut un travail intense que dilué : des heures de plus pour la même somme ne lui servent plus pour ses droits, et chaque tranche de {heures_par_jour} heures déclarées lui retire {coefficient} jour d'allocation ce mois-là.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,3."
+        }
+      ],
+      "ciblage": "à la place des deux conseils « plus d'heures » quand vos seuls contrats (historique et paies, ce mois compris) font au moins 507 heures au salarié sur la fenêtre de ses droits",
+      "certitude": "sourcé (seul cas de certitude : vos contrats suffisent)"
+    },
+    {
+      "quand": "saisie:enseignement",
+      "id": "saisie-enseignement",
+      "domaine": "chômage / enseignement",
+      "public": "employeur",
+      "texte": "{qui} : ses heures d'enseignement comptent pour ses 507 heures, mais dans la limite de {plafond} heures sur la période ({plafond_50} à partir de 50 ans).",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 3 §1",
+        "citation": "La limite de 70 heures est portée à 120 heures pour les artistes âgés de 50 ans et plus"
+      },
+      "ciblage": "une ligne d'enseignement (rubrique qui compte pour l'ouverture des droits)",
+      "certitude": "sourcé"
+    },
+    {
+      "quand": "saisie:suspension",
+      "id": "saisie-suspension",
+      "domaine": "chômage / arrêts",
+      "public": "employeur",
+      "texte": "{qui} : chaque jour où son contrat est suspendu (maladie, accident du travail, maternité) compte pour 5 heures dans ses 507 heures.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §2",
+          "citation": "Les périodes de suspension du contrat de travail sont retenues à raison de cinq heures de travail par journée de suspension."
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt",
+          "article": "art. 3 §2",
+          "citation": "Les périodes de suspension du contrat de travail sont retenues à raison de cinq heures de travail par journée de"
+        }
+      ],
+      "ciblage": "la paie porte une suspension (un arrêt saisi dans les imprévus)",
+      "certitude": "sourcé"
+    },
+    {
+      "quand": "saisie:cachets-et-heures",
+      "id": "saisie-cachets-et-heures",
+      "domaine": "chômage / déclaration",
+      "public": "employeur",
+      "texte": "{qui} est payé en cachets et en heures ce mois-ci : à France Travail, il déclare ses cachets en cachets et ses heures en heures, sans convertir lui-même ses cachets (France Travail compte {heures_cachet} heures par cachet).",
+      "source": {
+        "fichier": "atelier/reference/sources/chomage-intermittents/francetravail-guide-intermittents-20261020.txt",
+        "article": "« Vos obligations »",
+        "citation": "Déclaration des artistes : ne reportez pas l'équivalence […] de vos cachets en heures sur vos"
+      },
+      "ciblage": "un artiste payé ce mois-ci en cachets et à l'heure (répétitions, heures)",
+      "certitude": "sourcé"
+    },
+    {
+      "quand": "historique:droits-ouverts",
+      "id": "historique-droits-ouverts",
+      "domaine": "chômage / ouverture des droits",
+      "public": "employeur",
+      "texte": "Vos contrats ont fait compter {heures} heures à {qui} {fenetre} : à eux seuls, ils dépassent les {seuil} heures. Ses droits au chômage d'intermittent sont ouverts grâce à vous.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 3 §1",
+        "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+      },
+      "ciblage": "vos seuls contrats (historique importé et paies) font au moins 507 heures au salarié sur la fenêtre",
+      "certitude": "sourcé (seul cas de certitude)"
+    },
+    {
+      "quand": "historique:heures-comptees",
+      "id": "historique-heures-comptees",
+      "domaine": "chômage / ouverture des droits",
+      "public": "employeur",
+      "texte": "Vos contrats ont fait compter {heures} heures à {qui} {fenetre}, soit {pourcentage} % des {seuil} heures qui ouvrent ses droits.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 3 §1",
+        "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+      },
+      "ciblage": "le salarié a des heures chez vous sur la fenêtre, sans atteindre 507",
+      "certitude": "sourcé (ses autres employeurs ne sont pas connus : ce sont les heures chez vous)"
+    },
+    {
+      "quand": "historique:cachets-perdus",
+      "id": "historique-cachets-perdus",
+      "domaine": "chômage / plafond mensuel",
+      "public": "employeur",
+      "texte": "En {mois}, {qui} a eu {cachets} cachets chez vous : au-delà de {plafond}, {perdus|cachet ne compte|cachets ne comptent} pas pour ses droits.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 3 §1",
+        "citation": "Le nombre maximum de cachets pris en compte pour la recherche de la durée d'affiliation requise est de 28 par mois."
+      },
+      "ciblage": "un mois de la fenêtre où le salarié a eu plus de 28 cachets chez vous",
+      "certitude": "sourcé"
+    },
+    {
+      "quand": "historique:gain-des-conseils",
+      "id": "historique-gain-des-conseils",
+      "domaine": "chômage / heures",
+      "public": "employeur",
+      "texte": "Payées comme les conseils de saisie le proposent, les répétitions et les heures de {qui} chez vous auraient compté {gain} heures de plus pour ses droits {fenetre}, soit {pourcentage} % des {seuil} heures. S'il était indemnisé ces mois-là, il aurait perdu environ {jours_perdus|jour|jours} d'allocation : le calcul vaut d'être fait quand il lui manque des heures.",
+      "source": [
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 3 §1",
+          "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+        },
+        {
+          "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+          "article": "art. 30",
+          "citation": "jours calendaires du mois et le nombre de jours de travail affecté du coefficient 1,3."
+        }
+      ],
+      "ciblage": "sur la fenêtre, des paies où « saisie-repetition-en-cachet » ou « saisie-heures-pour-la-meme-somme » s'appliquaient, quand vos contrats n'assurent pas ses 507 heures",
+      "certitude": "sourcé ; les jours perdus ne valent que s'il était indemnisé ces mois-là"
+    },
+    {
+      "quand": "historique:intense",
+      "id": "historique-intense",
+      "domaine": "chômage / travail pendant l'indemnisation",
+      "public": "employeur",
+      "texte": "Ses {seuil} heures étant assurées chez vous, des heures de plus pour la même somme ne servent plus à {qui} pour ses droits : s'il est indemnisé, chaque tranche de {heures_par_jour} heures déclarées lui retire {coefficient} jour d'allocation. Pour lui, mieux vaut un travail intense que dilué.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 30",
+        "citation": "le nombre de jours de travail au cours du mois civil est déterminé en fonction du nombre d'heures de travail effectuées à raison de dix heures par jour"
+      },
+      "ciblage": "les 507 heures du salarié sont assurées par vos seuls contrats",
+      "certitude": "sourcé"
+    },
+    {
+      "quand": "historique:enseignement-perdu",
+      "id": "historique-enseignement-perdu",
+      "domaine": "chômage / enseignement",
+      "public": "employeur",
+      "texte": "{qui} a donné chez vous {heures} heures d'enseignement {fenetre} : au-delà de {plafond} heures, {perdus|heure ne compte|heures ne comptent} pas pour ses 507 heures.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 3 §1",
+        "citation": "La limite de 70 heures est portée à 120 heures pour les artistes âgés de 50 ans et plus"
+      },
+      "ciblage": "les heures d'enseignement chez vous dépassent la limite sur la fenêtre",
+      "certitude": "sourcé"
+    },
+    {
+      "quand": "historique:resume",
+      "id": "historique-resume",
+      "domaine": "chômage / ouverture des droits",
+      "public": "employeur",
+      "texte": "Vos contrats ont fait compter au moins {seuil} heures à {n|salarié|salariés} sur les 12 derniers mois ({noms}) : {n?son droit au chômage est ouvert|leurs droits au chômage sont ouverts} grâce à vous.",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+        "article": "art. 3 §1",
+        "citation": "doivent justifier d'une période d'affiliation d'au moins 507 heures de travail au cours des douze mois qui précèdent la fin du contrat de travail"
+      },
+      "ciblage": "à l'accueil : les salariés dont vos seuls contrats font au moins 507 heures sur les 12 derniers mois",
+      "certitude": "sourcé"
+    }
+  ]
+}
