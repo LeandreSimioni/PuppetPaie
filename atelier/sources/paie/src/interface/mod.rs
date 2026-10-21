@@ -72,7 +72,9 @@ const CALE: &str = r#"<script>
 </script>
 "#;
 
-const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "verifier", "poser", "fermer", "maj", "redemarrer"]"#;
+/// Les pages du mot de passe sont servies avec ces noms : leur « Retour » (et Echap) appelle `accueil`. Absent de la
+/// liste, la cale ne le definissait pas et le bouton levait sans rien faire (capture de Leandre, version 20.10.2026).
+const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "verifier", "poser", "accueil", "fermer", "maj", "redemarrer"]"#;
 /// Dans la page du logiciel : revenir aux compagnies (ticket #113) ; et, comme a l'accueil, lire ou en est la mise a
 /// jour et redemarrer pour l'installer (ticket #210, `js/mise-a-jour.js`).
 const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer"]"#;
