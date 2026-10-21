@@ -447,9 +447,9 @@ fn arret_prolonger(ctx: &Contexte, charge: &Value) -> R<Value> {
     let avant = liste[i].clone();
     if vrai(&avant["reprise"]) {
         return Err(refus(format!(
-            "L'arret de {} a pris fin : le salarie a repris le {}. Une prolongation continue un arret en cours, sans \
-interruption ; un arret qui commence apres la reprise est un nouvel arret, qui se saisit et se signale comme tel. Rien \
-n'est change.",
+            "L'arrêt de {} a pris fin : le salarié a repris le {}. Une prolongation continue un arrêt en cours, sans \
+interruption ; un arrêt qui commence après la reprise est un nouvel arrêt, qui se saisit et se signale comme tel. Rien \
+n'est changé.",
             cle,
             jour(&avant["reprise"])?.jj_mm_aaaa()
         )));
@@ -462,21 +462,21 @@ n'est change.",
     };
     let (fin, sub_fin) = (date_ou_rien("fin")?, date_ou_rien("subrogation_fin")?);
     if fin.is_none() && sub_fin.is_none() {
-        return Err(refus("Dire la nouvelle fin de l'arret (l'avis de prolongation), ou la fin de la subrogation : rien n'est change."));
+        return Err(refus("Dire la nouvelle fin de l'arrêt (l'avis de prolongation), ou la fin de la subrogation : rien n'est changé."));
     }
     let fin_avant = jour(&avant["fin_previsionnelle"])?;
     let mut a = avant.clone();
     if let Some(f) = fin {
         if f < fin_avant {
             return Err(refus(format!(
-                "Le {} est avant la fin prescrite de l'arret (le {}) : ce n'est pas une prolongation. Si le salarie a repris \
-plus tot, c'est une reprise anticipee, qui se saisit comme telle et se signale (nature 05). Rien n'est change.",
+                "Le {} est avant la fin prescrite de l'arrêt (le {}) : ce n'est pas une prolongation. Si le salarié a repris \
+plus tôt, c'est une reprise anticipée, qui se saisit comme telle et se signale (nature 05). Rien n'est changé.",
                 f.jj_mm_aaaa(),
                 fin_avant.jj_mm_aaaa()
             )));
         }
         if f == fin_avant && sub_fin.is_none() {
-            return Err(refus(format!("L'arret est deja prescrit jusqu'au {} : rien n'est change.", f.jj_mm_aaaa())));
+            return Err(refus(format!("L'arrêt est déjà prescrit jusqu'au {} : rien n'est changé.", f.jj_mm_aaaa())));
         }
         a["fin_previsionnelle"] = json!(f.iso());
     }
@@ -484,8 +484,8 @@ plus tot, c'est une reprise anticipee, qui se saisit comme telle et se signale (
     if let Some(sf) = sub_fin {
         if !subroge {
             return Err(refus(
-                "Cet arret n'est pas subroge : il n'a pas de fin de subrogation (S21.G00.60.006, interdite sans subrogation -- \
-CCH-11). Rien n'est change.",
+                "Cet arrêt n'est pas subrogé : il n'a pas de fin de subrogation (S21.G00.60.006, interdite sans subrogation -- \
+CCH-11). Rien n'est changé.",
             ));
         }
         a["subrogation_fin"] = json!(sf.iso());
@@ -512,8 +512,8 @@ CCH-11). Rien n'est change.",
     let mut avertissements = Vec::new();
     if nouvelle_fin > fin_avant {
         avertissements.push(json!(format!(
-            "Prolonge jusqu'au {}. Rien ne part : pas de nouveau signalement d'arret ; la DSN mensuelle de chaque mois que \
-l'arret traverse porte la nouvelle fin previsionnelle (S21.G00.60.003, fiche net-entreprises 1983).",
+            "Prolongé jusqu'au {}. Rien ne part : pas de nouveau signalement d'arrêt ; la DSN mensuelle de chaque mois que \
+l'arrêt traverse porte la nouvelle fin prévisionnelle (S21.G00.60.003, fiche net-entreprises 1983).",
             nouvelle_fin.jj_mm_aaaa()
         )));
         // Les jours ajoutes qui tombent dans un mois dont la DSN reelle est deja partie : elle portait l'ancienne fin.
@@ -521,8 +521,8 @@ l'arret traverse porte la nouvelle fin previsionnelle (S21.G00.60.003, fiche net
         for m in crate::date::mois_entre(&fin_avant.plus_jours(1).map_err(|e| erreur("ValueError", e))?, &nouvelle_fin) {
             if declares.iter().any(|x| py_str(x) == m) {
                 avertissements.push(json!(format!(
-                    "La DSN de {} est deja partie avec l'ancienne fin (le {}) : la paie de ce mois, ou les jours ajoutes \
-tombent, est a corriger.",
+                    "La DSN de {} est déjà partie avec l'ancienne fin (le {}) : la paie de ce mois, où les jours ajoutés \
+tombent, est à corriger.",
                     crate::engagement::libelle_mois(&m),
                     fin_avant.jj_mm_aaaa()
                 )));
@@ -532,8 +532,8 @@ tombent, est a corriger.",
     let sub_change = sub_fin.is_some() && a["subrogation_fin"] != avant["subrogation_fin"];
     if sub_change && envoye(&avant, crate::signalement::ARRET) {
         avertissements.push(json!(
-            "Le signalement d'arret est deja parti avec l'ancienne fin de subrogation : un signalement d'arret annule et \
-remplace porte la nouvelle, le plus vite possible (fiche net-entreprises 1983). Il parait dans ce qui est du."
+            "Le signalement d'arrêt est déjà parti avec l'ancienne fin de subrogation : un signalement d'arrêt annule et \
+remplace porte la nouvelle, le plus vite possible (fiche net-entreprises 1983). Il paraît dans ce qui est dû."
         ));
     }
     let (revoir, phrase) = subrogation_a_revoir(&a)?;
@@ -567,8 +567,8 @@ fn subrogation_a_revoir(a: &Value) -> R<(bool, Value)> {
     Ok((
         true,
         json!(format!(
-            "La subrogation demandee s'arrete le {}, avant la nouvelle fin de l'arret (le {}). Elle se declare jusqu'a son \
-maximum prevu par la convention collective ou l'accord de branche : si ce maximum va plus loin, porter sa fin ici ; s'il est \
+            "La subrogation demandée s'arrête le {}, avant la nouvelle fin de l'arrêt (le {}). Elle se déclare jusqu'à son \
+maximum prévu par la convention collective ou l'accord de branche : si ce maximum va plus loin, porter sa fin ici ; s'il est \
 atteint, la garder (fiche net-entreprises 1983).",
             sf.jj_mm_aaaa(),
             fin.jj_mm_aaaa()

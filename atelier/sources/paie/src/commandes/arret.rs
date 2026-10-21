@@ -316,7 +316,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             return Ok(rendre_json(&r));
         }
         let resume = r.get("arret").cloned().unwrap_or(Value::Null);
-        dire!("Arret prescrit jusqu'au {}.", jj_mm_aaaa(&champ(&resume, "fin_previsionnelle")));
+        dire!("Arrêt prescrit jusqu'au {}.", jj_mm_aaaa(&champ(&resume, "fin_previsionnelle")));
         lignes_arret(&resume);
         for a in r.get("avertissements").and_then(Value::as_array).into_iter().flatten() {
             dire!("  {}", texte(a));

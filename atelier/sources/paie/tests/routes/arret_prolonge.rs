@@ -146,9 +146,9 @@ fn ce_que_la_prolongation_refuse_n_ecrit_rien() {
     arreter(c, json!({"subrogation": "02"}));
     let avant = lire(c, "imprevus/2026-07.json");
     for (nom, charge, dit) in [
-        ("plus tot", json!({"fin": "2026-07-25"}), "reprise anticipee"),
-        ("la meme", json!({"fin": "2026-07-31"}), "deja prescrit"),
-        ("rien", json!({}), "rien n'est change"),
+        ("plus tot", json!({"fin": "2026-07-25"}), "reprise anticipée"),
+        ("la meme", json!({"fin": "2026-07-31"}), "déjà prescrit"),
+        ("rien", json!({}), "rien n'est changé"),
         ("subrogation sans subrogation", json!({"fin": "2026-08-20", "subrogation_fin": "2026-09-30"}), "CCH-11"),
         ("date illisible", json!({"fin": "pas une date"}), ""),
     ] {
