@@ -131,7 +131,7 @@ fn heures_texte(x: Decimal) -> String {
     t.trim_end_matches('0').trim_end_matches('.').replace('.', ",")
 }
 
-fn qui(sal: &Value) -> String {
+pub fn qui(sal: &Value) -> String {
     let nom = sal.get("nom").map(en_texte).unwrap_or_default();
     let prenom = match g(sal, "prenom_affichage") {
         p if vrai(p) => en_texte(p),
@@ -1030,18 +1030,38 @@ fn a_verifier(t: &Value, idcc: &str, phrase: String) -> Avis {
     }
 }
 
-/// Les lignes de cette paie payees sous un minimum conventionnel : une phrase
-/// par ligne fautive, qui dit le paye, le minimum, et la grille lue.
-pub fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>> {
+/// Ce qu'un minimum compare : le prix d'une heure, d'un cachet, d'un service, ou d'une unite de grille (la journee,
+/// la semaine, le mois).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Par {
+    Heure,
+    Cachet,
+    Service,
+    Unite,
+}
+
+/// Le minimum conventionnel d'une ligne de paie, tel que les avertissements le lisent : le montant, la grille d'ou il
+/// vient, ce qu'il compare. `service_3090` : le service de repetition d'un artiste de la 3090 (sa phrase est a part).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Minimum {
+    pub montant: Decimal,
+    pub quoi: String,
+    pub par: Par,
+    pub service_3090: bool,
+}
+
+/// Le contexte d'un plancher pour cette paie (la convention du contrat, le metier de la fiche), passe a `f` ; rien
+/// quand la table ne connait pas la convention ou que la fiche ne dit pas de metier connu.
+fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Option<T>>) -> Resultat<Option<T>> {
     let ent = &ctx.entreprise;
     let idcc = idcc_du_contrat(ent, paie)?;
     let tab = table()?;
     let t: &Value = &tab;
     if t.get(&idcc).is_none() {
-        return Ok(vec![]);
+        return Ok(None);
     }
     let sal = &paie.salarie;
-    let Some(m) = emplois::metier(&texte_de(sal, "code_emploi_ft"))? else { return Ok(vec![]) };
+    let Some(m) = emplois::metier(&texte_de(sal, "code_emploi_ft"))? else { return Ok(None) };
     let nb_cachets = paie
         .remuneration
         .iter()
@@ -1062,87 +1082,172 @@ pub fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>> {
         organisation: ou_rien(g(ent, "organisation_patronale")),
         nb_cachets,
     };
-    let qui = qui(sal);
-    let statut = texte_de(&m, "statut");
+    f(&cx)
+}
+
+/// Le minimum d'une ligne de remuneration (`saisie` : la ligne telle que saisie, pour ses dates), ou rien.
+fn minimum_dans(cx: &Cx, l: &LigneBrut, saisie: &Value) -> Resultat<Option<Minimum>> {
+    let statut = texte_de(cx.m, "statut");
+    // Le service de repetition de la 3090 : un minimum par service ou par heure selon
+    // l'annexe, jamais le cachet de la journee.
+    if repetition(&l.code) && cx.idcc == "3090" && statut == "artiste" {
+        let dates: BTreeSet<String> = g(saisie, "dates").as_array().into_iter().flatten().map(en_texte).collect();
+        let par_jour = (!dates.is_empty()).then(|| div(l.quantite, Decimal::from(dates.len())));
+        return Ok(cx.plancher_service_3090(par_jour)?.map(|(montant, quoi, heure)| Minimum {
+            montant,
+            quoi,
+            par: if heure { Par::Heure } else { Par::Service },
+            service_3090: true,
+        }));
+    }
+    let Some(p) = cx.plancher_de(l)? else { return Ok(None) };
+    let par = if p.unite {
+        Par::Unite
+    } else if horaire(&l.code) || mensuel(&l.code) {
+        Par::Heure
+    } else if cachet(&l.code) {
+        Par::Cachet
+    } else {
+        Par::Service
+    };
+    Ok(Some(Minimum { montant: p.montant, quoi: p.quoi, par, service_3090: false }))
+}
+
+/// Les lignes saisies de cette paie, une par ligne de remuneration ; `Null` quand elles ne se correspondent pas.
+pub fn saisies_de(paie: &Paie) -> Vec<&Value> {
     let lignes = &paie.remuneration;
-    // Les dates de chaque ligne, telles que saisies : une ligne de remuneration par ligne de saisie.
-    let saisies: Vec<&Value> = if paie.engagement.lignes.len() == lignes.len() {
+    if paie.engagement.lignes.len() == lignes.len() {
         paie.engagement.lignes.iter().collect()
     } else {
         vec![&NUL; lignes.len()]
-    };
-    let texte_source = premiere_partie(cle(t, &idcc)?)?;
-    let mut avis = Vec::new();
-    for (l, saisie) in lignes.iter().zip(saisies) {
-        // Le service de repetition de la 3090 : un minimum par service ou par heure selon
-        // l'annexe, jamais le cachet de la journee.
-        if repetition(&l.code) && idcc == "3090" && statut == "artiste" {
-            let dates: BTreeSet<String> = g(saisie, "dates").as_array().into_iter().flatten().map(en_texte).collect();
-            let par_jour = (!dates.is_empty()).then(|| div(l.quantite, Decimal::from(dates.len())));
-            let Some((minimum, quoi, heure)) = cx.plancher_service_3090(par_jour)? else { continue };
-            let (paye, unite) = if heure {
-                if l.heures_annexes.is_zero() {
-                    continue;
+    }
+}
+
+/// Le minimum conventionnel de la ligne `i` de la remuneration de cette paie, tel que `avertissements` le compare
+/// (les conseils de saisie s'en servent pour ne jamais proposer moins que lui ; `conseils::de_saisie`).
+pub fn minimum_de_la_ligne(ctx: &Contexte, paie: &Paie, i: usize) -> Resultat<Option<Minimum>> {
+    let Some(l) = paie.remuneration.get(i) else { return Ok(None) };
+    let saisie = saisies_de(paie)[i];
+    avec_cx(ctx, paie, |cx| minimum_dans(cx, l, saisie))
+}
+
+/// LE CACHET DE REPETITION de la convention, quand elle en a un pour ce metier : la 3090 fixe un « cachet de
+/// repetition pour 1 ou 2 services de repetition dans la meme journee » (annexe 1, 84,00 EUR), un « cachet de base des
+/// journees de repetition » (annexe 2, 106,20 EUR), un cachet de repetition « pour un ou deux services de repetitions de
+/// quatre heures dans la meme journee » (annexe 4, 94,34 EUR), un « cachet de base par jour » de repetition (annexe 5,
+/// 108,03 EUR) -- avenant du 21/07/2025, `atelier/reference/sources/legifrance-3090-avenant-salaires-20250721.md`, lus
+/// dans `minima-conventionnels.json` (`annexes.<a>.repetition.cachet`). Rien pour un musicien de l'annexe 1 (« Sauf
+/// dispositions particulieres prevues pour les artistes musiciens » : son cachet est un service de 3 h 30,
+/// `chomage-intermittents/kali-3090-repetitions-cachets-representations-20261020.md`, KALIARTI000028157549) ; rien
+/// pour une autre convention (la CCNEAC paie la repetition par service : `kali-1285-x3-remuneration-artistes-20260929.md`).
+/// L'annexe de l'entreprise inconnue : le plus HAUT des cachets possibles, pour qu'un conseil ne propose jamais moins
+/// que le minimum de la bonne annexe.
+pub fn cachet_de_repetition(ctx: &Contexte, paie: &Paie) -> Resultat<Option<Minimum>> {
+    avec_cx(ctx, paie, |cx| {
+        if cx.idcc != "3090" || texte_de(cx.m, "statut") != "artiste" {
+            return Ok(None);
+        }
+        let annexes = cle(cle(cx.t, "3090")?, "annexes")?;
+        let refs = cx.refs();
+        let mut trouves: Vec<(Decimal, String, String)> = Vec::new();
+        for annexe in cx.annexes_ou_la_sienne()? {
+            let sorte = texte_de(refs, &annexe);
+            let sorte = sorte.split('.').next().unwrap_or("");
+            if annexe == "1" && (sorte == "musicien" || sorte == "chef_orchestre") {
+                return Ok(None);
+            }
+            let r = g(cle(annexes, &annexe)?, "repetition");
+            let Some(c) = r.get("cachet") else { return Ok(None) };
+            trouves.push((dec(c)?, annexe, texte_de(r, "cachet_libelle")));
+        }
+        Ok(trouves.into_iter().max_by(|a, b| a.0.cmp(&b.0)).map(|(montant, annexe, libelle)| Minimum {
+            montant,
+            quoi: format!("CCN 3090, annexe {}, {}", annexe, libelle),
+            par: Par::Cachet,
+            service_3090: false,
+        }))
+    })
+}
+
+/// Les lignes de cette paie payees sous un minimum conventionnel : une phrase
+/// par ligne fautive, qui dit le paye, le minimum, et la grille lue.
+pub fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>> {
+    let avis = avec_cx(ctx, paie, |cx| {
+        let t = cx.t;
+        let idcc = cx.idcc;
+        let qui = qui(cx.sal);
+        let texte_source = premiere_partie(cle(t, idcc)?)?;
+        let mut avis = Vec::new();
+        for (l, saisie) in paie.remuneration.iter().zip(saisies_de(paie)) {
+            let Some(p) = minimum_dans(cx, l, saisie)? else { continue };
+            if p.service_3090 {
+                let (paye, unite) = if p.par == Par::Heure {
+                    if l.heures_annexes.is_zero() {
+                        continue;
+                    }
+                    (pair(div(l.montant, l.heures_annexes)), "l'heure")
+                } else {
+                    (l.taux, "le service")
+                };
+                if paye < p.montant {
+                    avis.push(a_verifier(
+                        t,
+                        idcc,
+                        format!(
+                            "{}, {} : {} \u{20ac} {}. Notre lecture de la convention donne un minimum conventionnel de {} \u{20ac} {} ({} ; {}).",
+                            qui,
+                            l.designation(),
+                            euros(paye),
+                            unite,
+                            euros(p.montant),
+                            unite,
+                            p.quoi,
+                            texte_source
+                        ),
+                    ));
                 }
-                (pair(div(l.montant, l.heures_annexes)), "l'heure")
-            } else {
-                (l.taux, "le service")
+                continue;
+            }
+            let (paye, unite) = match p.par {
+                // Une grille a l'unite : le taux de la ligne contre le montant de la grille.
+                Par::Unite => (
+                    l.taux,
+                    match l.code.as_str() {
+                        "journee" => "la journee",
+                        "semaine" => "la semaine",
+                        "mois" => "le mois",
+                        _ => "l'unite",
+                    },
+                ),
+                Par::Heure => {
+                    if l.heures_annexes.is_zero() {
+                        continue;
+                    }
+                    (pair(div(l.montant, l.heures_annexes)), "l'heure")
+                }
+                Par::Cachet => (l.taux, "le cachet"),
+                Par::Service => (l.taux, "le service"),
             };
-            if paye < minimum {
+            if paye < p.montant {
                 avis.push(a_verifier(
                     t,
-                    &idcc,
+                    idcc,
                     format!(
-                        "{}, {} : {} \u{20ac} {}. Notre lecture de la convention donne un minimum conventionnel de {} \u{20ac} {} ({} ; {}).",
+                        "{}, {} : {} \u{20ac} {}. Notre lecture de la convention donne un minimum conventionnel de {} \u{20ac} ({} ; {}).",
                         qui,
                         l.designation(),
                         euros(paye),
                         unite,
-                        euros(minimum),
-                        unite,
-                        quoi,
+                        euros(p.montant),
+                        p.quoi,
                         texte_source
                     ),
                 ));
             }
-            continue;
         }
-        let Some(p) = cx.plancher_de(l)? else { continue };
-        let (paye, unite) = if p.unite {
-            // Une grille a l'unite : le taux de la ligne contre le montant de la grille.
-            let unite = match l.code.as_str() {
-                "journee" => "la journee",
-                "semaine" => "la semaine",
-                "mois" => "le mois",
-                _ => "l'unite",
-            };
-            (l.taux, unite)
-        } else if horaire(&l.code) || mensuel(&l.code) {
-            if l.heures_annexes.is_zero() {
-                continue;
-            }
-            (pair(div(l.montant, l.heures_annexes)), "l'heure")
-        } else {
-            (l.taux, if cachet(&l.code) { "le cachet" } else { "le service" })
-        };
-        if paye < p.montant {
-            avis.push(a_verifier(
-                t,
-                &idcc,
-                format!(
-                    "{}, {} : {} \u{20ac} {}. Notre lecture de la convention donne un minimum conventionnel de {} \u{20ac} ({} ; {}).",
-                    qui,
-                    l.designation(),
-                    euros(paye),
-                    unite,
-                    euros(p.montant),
-                    p.quoi,
-                    texte_source
-                ),
-            ));
-        }
-    }
-    Ok(avis)
+        Ok(Some(avis))
+    })?;
+    Ok(avis.unwrap_or_default())
 }
 
 /// Les lignes de cette paie payees sous le SMIC horaire. Le SMIC est la loi :
