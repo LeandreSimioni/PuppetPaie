@@ -19,4 +19,8 @@
 ## Où le moteur s'en sert
 
 `logiciel/donnees/obligations-base.json` (`signalement_arret`, `signalement_reprise`) et `atelier/sources/paie/src/obligations.rs`
-(`de_l_arret`) : les dates butoirs des signalements. La prolongation d'un arrêt n'a pas encore de route (`journal/ETAT.md`).
+(`de_l_arret`) : les dates butoirs des signalements. La prolongation (21/10/2026) : route `arret-prolonger`
+(`atelier/sources/paie/src/routes_imprevus.rs`, `arret_prolonger`), qui ne change que la fin prévisionnelle (la DSN mensuelle
+la porte, S21.G00.60.003 ; aucun nouveau signalement : fiche net-entreprises 1983, `../net-entreprises-base-connaissances/`) ;
+l'arrêt « en cours » de la page (`routes_imprevus::en_cours`) cesse quand la DSN du mois de sa fin est partie — la reprise à la
+date prévue y est alors déclarée. La reprise plus tôt que prévu : `arret-reprise`, qui fait naître le signalement 05.

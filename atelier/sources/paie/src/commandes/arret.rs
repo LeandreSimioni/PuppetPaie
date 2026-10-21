@@ -1,9 +1,10 @@
-//! `paie arret [liste|motifs|contrats|saisir|reprise|maintien|signaler|oublier|connu|declare] [SALARIE] [options] [--json]` : les arrets de travail, de la
+//! `paie arret [liste|motifs|contrats|saisir|reprise|prolonger|maintien|signaler|oublier|connu|declare] [SALARIE] [options] [--json]` : les arrets de travail, de la
 //! saisie au signalement (`moteur/commandes_arrets.py`). RIEN NE PART D'ICI : `signaler` ECRIT un fichier, c'est `paie depot-dsn`
 //! qui le depose.
 //!
 //! Chaque verbe passe par une route du moteur : `arrets` (la liste), `arret-contrats`, `arret-enregistrer` (`saisir`),
-//! `arret-reprise`, `arret-maintien` (`maintien` : le complement de salaire d'un mois, les jours deja indemnises), `arret-signaler`,
+//! `arret-reprise`, `arret-prolonger` (`prolonger` : l'avis de prolongation, `--fin`, et la fin de subrogation, `--subrogation-fin`),
+//! `arret-maintien` (`maintien` : le complement de salaire d'un mois, les jours deja indemnises), `arret-signaler`,
 //! `arret-oublier`. Les arrets vivent dans le magasin des imprevus (`imprevus`). `connu` et `declare` (15/10/2026) : `arret-connaissance`
 //! (le jour ou la compagnie a su l'arret ou l'accident), `accident-declare` (la declaration d'accident du travail faite, hors DSN) et,
 //! avec `--attestation`, `attestation-declare` (l'attestation de salaire faite hors DSN, pour un deuil d'enfant) ; les
@@ -28,7 +29,7 @@ use crate::retours::Echec;
 pub static SPEC: Spec = Spec {
     commande: "arret",
     positionnels: &[
-        Pos::parmi("quoi", &["liste", "motifs", "contrats", "saisir", "reprise", "maintien", "signaler", "oublier", "connu", "declare"], Some("liste")),
+        Pos::parmi("quoi", &["liste", "motifs", "contrats", "saisir", "reprise", "prolonger", "maintien", "signaler", "oublier", "connu", "declare"], Some("liste")),
         Pos::facultatif("salarie", None),
     ],
     options: &[
@@ -298,6 +299,36 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             champ(&resume, "salarie"),
             champ(&resume, "dernier_jour_travaille")
         );
+        return Ok(0);
+    }
+
+    if quoi == "prolonger" {
+        let salarie = exiger(args, "prolonger", &["dernier-jour"])?;
+        let mut charge = json!({"salarie": salarie, "dernier_jour": date(args, "dernier-jour")?, "qui": "ligne de commande"});
+        if let Some(f) = date(args, "fin")? {
+            charge["fin"] = json!(f);
+        }
+        if let Some(f) = date(args, "subrogation-fin")? {
+            charge["subrogation_fin"] = json!(f);
+        }
+        let r = cadre.route("arret-prolonger", charge)?;
+        if json {
+            return Ok(rendre_json(&r));
+        }
+        let resume = r.get("arret").cloned().unwrap_or(Value::Null);
+        dire!("Arret prescrit jusqu'au {}.", jj_mm_aaaa(&champ(&resume, "fin_previsionnelle")));
+        lignes_arret(&resume);
+        for a in r.get("avertissements").and_then(Value::as_array).into_iter().flatten() {
+            dire!("  {}", texte(a));
+        }
+        if r.get("subrogation_a_revoir").is_some_and(vrai) {
+            dire!(
+                "\n{}\n`paie arret prolonger {} --dernier-jour {} --subrogation-fin AAAA-MM-JJ` la porte.",
+                texte(&r["phrase"]),
+                champ(&resume, "salarie"),
+                champ(&resume, "dernier_jour_travaille")
+            );
+        }
         return Ok(0);
     }
 

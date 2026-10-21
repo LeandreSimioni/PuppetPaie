@@ -432,6 +432,42 @@ fn envoi(a: &Value, nature: &str) -> Option<Fait> {
     })
 }
 
+/// LE SIGNALEMENT RECTIFICATIF EST-IL DU ? Quand un avis de prolongation (`prolongations`, `routes_imprevus::arret_prolonger`)
+/// a change la fin de subrogation APRES le premier depot du signalement d'arret (04) : la subrogation partie etait
+/// « insuffisante », et « l'employeur doit alors transmettre un nouveau signalement de nature " arret de travail " de type
+/// annule et remplace, dans lequel une nouvelle date de fin de subrogation sera renseignee » (fiche net-entreprises 1983,
+/// `atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche1983-prolongation-arret-dates-de-subrogation-20250322.txt`,
+/// l. 37). Le depart : le jour ou la derniere de ces prolongations a ete sue (`le`). Fait : un signalement d'arret de type
+/// 03 (annule et remplace) depose apres sa saisie. L'ordre se lit sur les heures de saisie et de depot, toutes deux a
+/// l'horloge (`saisi_le`, `quand`).
+fn rectificatif_du(a: &Value) -> Option<(Depart, Option<Fait>)> {
+    let envois: Vec<&Value> = a.get("envois").and_then(Value::as_array).into_iter().flatten().filter(|e| texte(e, "nature") == "04").collect();
+    let premier = envois.iter().map(|e| texte(e, "quand")).filter(|q| q.len() >= 10).min()?;
+    let p = a
+        .get("prolongations")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|p| p.get("subrogation_fin") != p.get("subrogation_fin_avant") && texte(p, "saisi_le") > premier)
+        .last()?;
+    let saisi = texte(p, "saisi_le");
+    let depart = Depart { jour: jour(p.get("le")?)?, minute: None, quoi: "le jour où la prolongation de la subrogation a été saisie".into(), presume: None };
+    let fait = envois
+        .iter()
+        .filter(|e| texte(e, "type") == crate::signalement::ANNULE_ET_REMPLACE && texte(e, "quand") >= saisi)
+        .map(|e| texte(e, "quand"))
+        .min()
+        .and_then(|quand| {
+            let le = Jour::lire(quand.get(..10)?).ok()?;
+            Some(Fait {
+                le,
+                comment: "annule et remplace déposé sur net-entreprises ; le bilan dit s'il est accepté".into(),
+                detail: json!({"quand": quand, "comment": "depot"}),
+            })
+        });
+    Some((depart, fait))
+}
+
 /// Ce que la compagnie a dit fait d'une obligation hors DSN (`champ` de sa fiche de suivi : `accident_declare`,
 /// `attestation_salaire`) : le jour, et ou (le libelle court du code de `o.ou`).
 fn dit_fait(fiche: &Value, champ: &str, o: &Value) -> Option<Fait> {
@@ -522,6 +558,17 @@ pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) ->
                 out.push(signalement_dsn(ctx, &mut cal, aujourdhui, "signalement_arret", &o, &subrogation, depart, debut, envoi(a, "04"))?);
             }
         }
+    }
+
+    // LE SIGNALEMENT D'ARRET RECTIFICATIF (04, annule et remplace) : une fin de subrogation prolongee APRES le depot du
+    // signalement d'arret, qui la portait plus courte (fiche net-entreprises 1983 ; `rectificatif_du`).
+    let o = obligation(&n, "signalement_arret_rectificatif")?;
+    if let Some((depart, fait)) = rectificatif_du(a) {
+        let mut m = squelette("signalement_arret_rectificatif", &o);
+        let d = &o["delai"];
+        let butoir = cal.jours_ouvres_apres(depart.jour, entier(d, "jours_ouvres")?)?;
+        conclure(&mut m, aujourdhui, Some(&depart), butoir, None, &texte(d, "dit"), fait);
+        out.push(Value::Object(m));
     }
 
     // L'ATTESTATION DE SALAIRE HORS DSN (le deuil d'enfant) : des reception de l'avis d'arret, soit -- inference dite --

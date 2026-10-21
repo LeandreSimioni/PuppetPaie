@@ -295,7 +295,7 @@ pub(crate) fn ecrire_arrets(ctx: &Contexte, mois: &str, imprevus: Vec<Value>) ->
 
 /// `signalement.verifier(arret, ARRET)` : ce que la norme refuse (`SignalementImpossible`, une
 /// `ValueError`) ; les avertissements ne servent pas ici.
-fn verifier(arret: &Value) -> R<()> {
+pub(crate) fn verifier(arret: &Value) -> R<()> {
     match signalement::verifier(&crate::dsn::Arret { v: arret.clone() }, ARRET, None) {
         Ok(_) => Ok(()),
         Err(signalement::Echec::Impossible(m)) => Err(erreur("ValueError", m)),
@@ -387,6 +387,7 @@ ou accident (L1226-1) : cet arret n'en appelle pas. Rien n'est ecrit.",
     a.insert("date_accident".into(), jour_ou_rien("date_accident")?);
     a.insert("jours_deja_indemnises".into(), deja);
     a.insert("maintien".into(), json!({}));
+    a.insert("prolongations".into(), json!([]));
     a.insert("saisi_le".into(), json!(maintenant()));
     a.insert("qui".into(), json!(qui_de(charge)));
     a.insert("note".into(), note);

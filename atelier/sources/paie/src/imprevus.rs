@@ -39,11 +39,13 @@ pub const DOSSIER: &str = "imprevus";
 /// Les champs d'un arret, dans l'ordre ou ils s'ecrivent ; les `REQUIS_ARRET` premiers sont obligatoires. Ceux de la
 /// norme (motif, dernier jour travaille, fin previsionnelle, subrogation, reprise, accident) sont ceux du bloc 60 et du
 /// signalement (`signalement::verifier`) ; `jours_deja_indemnises` et `maintien` sont ceux du maintien de salaire d'un
-/// permanent (D1226-4 ; le complement verse, mois par mois : `{"AAAA-MM": montant}`).
-pub const CHAMPS_ARRET: [&str; 19] = [
+/// permanent (D1226-4 ; le complement verse, mois par mois : `{"AAAA-MM": montant}`) ; `prolongations` garde chaque avis de
+/// prolongation saisi (`routes_imprevus::arret_prolonger` : quand, la fin et la fin de subrogation d'avant et d'apres),
+/// dont le moteur tire le signalement rectificatif qu'une subrogation prolongee appelle (`obligations::de_l_arret`).
+pub const CHAMPS_ARRET: [&str; 20] = [
     "genre", "salarie", "contrat_debut", "contrat_numero", "motif", "dernier_jour_travaille", "fin_previsionnelle",
     "subrogation", "subrogation_debut", "subrogation_fin", "reprise", "reprise_motif", "date_accident",
-    "jours_deja_indemnises", "maintien", "saisi_le", "qui", "note", "envois",
+    "jours_deja_indemnises", "maintien", "prolongations", "saisi_le", "qui", "note", "envois",
 ];
 const REQUIS_ARRET: usize = 7;
 
@@ -118,15 +120,19 @@ suspension du contrat, bloc S21.G00.65).",
             "note" => json!(""),
             "envois" => json!([]),
             "maintien" => json!({}),
+            "prolongations" => json!([]),
             _ => Value::Null,
         };
-        o.insert(k.to_string(), m.get(*k).cloned().filter(|x| !(x.is_null() && matches!(*k, "envois" | "maintien" | "note"))).unwrap_or(defaut));
+        o.insert(k.to_string(), m.get(*k).cloned().filter(|x| !(x.is_null() && matches!(*k, "envois" | "maintien" | "prolongations" | "note"))).unwrap_or(defaut));
     }
     if !o["envois"].is_array() {
         return Err(format!("Imprevu ({}) : `envois` n'est pas une liste", genre));
     }
     if genre == ARRET && !o["maintien"].is_object() {
         return Err("Arret : `maintien` est un objet {\"AAAA-MM\": montant}.".into());
+    }
+    if genre == ARRET && !o["prolongations"].is_array() {
+        return Err("Arret : `prolongations` n'est pas une liste.".into());
     }
     Ok(Value::Object(o))
 }
@@ -859,6 +865,7 @@ mod tests {
         .unwrap();
         assert_eq!(a.as_object().unwrap().keys().cloned().collect::<Vec<_>>(), CHAMPS_ARRET.to_vec());
         assert_eq!((a["qui"].clone(), a["maintien"].clone(), a["envois"].clone()), (json!("?"), json!({}), json!([])));
+        assert_eq!(a["prolongations"], json!([]));
         assert!(complet(&json!({"genre": "arret", "salarie": "X"})).unwrap_err().contains("champ manquant"));
         assert!(complet(&json!({"genre": "autre"})).unwrap_err().contains("genre"));
         let mut s = json!({"genre": "suspension", "salarie": "X", "contrat_debut": "2026-01-01", "contrat_numero": "N",
