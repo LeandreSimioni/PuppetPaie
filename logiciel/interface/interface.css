@@ -376,6 +376,11 @@ tr.total td { font-weight: bold; border-top: 2px solid var(--texte); border-bott
 .conseil-titre { font-weight: bold; color: var(--texte); }
 .conseil-source { font-size: 12px; font-style: italic; }
 .conseil-du-jour .lien { font-size: 12px; color: var(--discret); }
+/* Sous une carte, le detail d'un conseil se deplie derriere « pourquoi ? » (21/10/2026). */
+.conseil-pourquoi { margin-top: 3px; }
+.conseil-pourquoi summary { display: inline; cursor: pointer; font-size: 12px; text-decoration: underline; }
+.conseil-pourquoi summary::-webkit-details-marker { display: none; }
+.conseil-pourquoi[open] summary { display: block; margin-bottom: 3px; }
 .fiche-conseils:empty { display: none; }
 .fiche-conseils { margin: 6px 0 14px; }
 .fiche-conseils h3 { margin: 0; font-size: 14px; }

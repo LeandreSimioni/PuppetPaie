@@ -769,7 +769,9 @@ const SECTIONS_FICHE = {
     // C'est la question qui commande tout ce qui ne vaut que pour les
     // salariés au mois (natures CDI/CDD, santé et prévoyance, organismes) :
     // elle se pose en clair. Le moteur le lit (`contexte::emploie_des_permanents`).
-    ["Vos salariés", ["emploie_des_permanents"]],
+    // Les conseils « Le saviez-vous ? » (ticket 224, Léandre, 21/10/2026) :
+    // une option qui parle de vos salariés, elle se pose avec eux.
+    ["Vos salariés", ["emploie_des_permanents", "conseils"]],
     // Le taux AT/MP se pose en tête de ce bloc (`ATMP_HTML`).
     ["Vos numéros chez les organismes",
      ["urssaf_compte", "congesspectacles_adherent",
