@@ -61,10 +61,19 @@
     err.textContent = r.erreur; ok.disabled = false; mdp.focus();
   });
   window.addEventListener("pywebviewready", () => mdp.focus());
+  // « Retour » et Echap : revenir au choix de la compagnie. La reponse du geste dit `recharger` et la cale ramene la
+  // fenetre sur `/`, ou le serveur sert l'accueil. Un refus s'affiche, rien ne se tait.
+  async function retour() {
+    const r = await window.pywebview.api.accueil();
+    if (!r.ok) err.textContent = r.erreur;
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !e.isComposing && !e.repeat) { e.preventDefault(); retour(); }
+  });
 </script>
 
 <div class="bande"><button class="retour" title="Revenir au choix de la compagnie"
-  onclick="window.pywebview.api.accueil().then(() => location.reload())">&lsaquo; Retour</button><button class="croix" title="Fermer"
+  onclick="retour()">&lsaquo; Retour</button><button class="croix" title="Fermer"
   onclick="window.pywebview.api.fermer()">&#x2715;</button></div>
 <script>
   // Toute la page se tire (le corps porte la classe de pywebview) -- sauf le

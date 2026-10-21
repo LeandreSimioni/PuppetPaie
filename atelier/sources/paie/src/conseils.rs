@@ -68,6 +68,27 @@ pub const CONDITIONS: [&str; 16] = [
     "historique:resume",
 ];
 
+/// Les conditions qui ne parlent que d'une annexe : (condition, annexe). Le cachet est propre a l'annexe X (art. 3 §1 :
+/// « Lorsque l'activité des artistes est déclarée sous la forme de cachets » ; l'annexe VIII ne le connait pas) ; les
+/// 208 heures retenues par mois, a l'annexe VIII. Les autres valent pour les deux annexes : leur conseil cite chaque
+/// article dans l'une et l'autre (le test de la banque le verifie), et le moteur n'en montre que celles en jeu.
+pub const D_UNE_ANNEXE: [(&str, &str); 5] = [
+    ("saisie:technicien-plus-de-208-heures", "VIII"),
+    ("saisie:plus-de-28-cachets", "X"),
+    ("saisie:repetition-en-cachet", "X"),
+    ("saisie:cachets-et-heures", "X"),
+    ("historique:cachets-perdus", "X"),
+];
+
+/// Les deux annexes : X (artistes), VIII (techniciens).
+const LES_DEUX: [&str; 2] = ["X", "VIII"];
+
+/// Les annexes dont parle un conseil sur ce salarie : la sienne, lue de son metier ; les deux quand son metier ne la
+/// dit pas (rien ne se devine : la regle citee vaut alors pour l'une ou l'autre).
+fn annexes_en_jeu(annexe: Option<&'static str>) -> Vec<&'static str> {
+    annexe.map_or(LES_DEUX.to_vec(), |a| vec![a])
+}
+
 /// L'option de la fiche Entreprise : absente vaut NON.
 pub fn actifs(entreprise: &Value) -> bool {
     entreprise.get("conseils") == Some(&Value::Bool(true))
@@ -268,9 +289,15 @@ fn sources_de(c: &Value) -> Vec<&Value> {
 }
 
 /// Le conseil rendu pour l'ecran : son identifiant, son texte (la phrase courte d'un conseil de saisie), son detail
-/// quand la banque en a un, sa reference (celle de chaque source) ; rien si l'un de ses gabarits ne se resout pas.
-fn vue(b: &Value, c: &Value, d: &Donnees, vals: &Valeurs) -> Option<Value> {
-    let references: Vec<String> = sources_de(c).iter().map(|s| reference_de(b, s)).collect();
+/// quand la banque en a un, sa reference (celle de chaque source) ; rien si l'un de ses gabarits ne se resout pas. Une
+/// source tiree d'une annexe (`annexe` : « X » ou « VIII ») n'est citee que si cette annexe est en jeu (`annexes` :
+/// celles des salaries dont le conseil parle) ; une source sans annexe l'est toujours.
+fn vue(b: &Value, c: &Value, d: &Donnees, vals: &Valeurs, annexes: &[&str]) -> Option<Value> {
+    let references: Vec<String> = sources_de(c)
+        .iter()
+        .filter(|s| s.get("annexe").and_then(Value::as_str).map_or(true, |a| annexes.contains(&a)))
+        .map(|s| reference_de(b, s))
+        .collect();
     let mut v = json!({
         "id": texte(c, "id"),
         "texte": rendre(&texte(c, "texte"), d, vals)?,
@@ -284,11 +311,11 @@ fn vue(b: &Value, c: &Value, d: &Donnees, vals: &Valeurs) -> Option<Value> {
 
 /// Le premier conseil de la banque pour cette condition (`quand`), rendu avec ces valeurs : un conseil suspendu, ou
 /// dont un gabarit ne se resout pas, cede la place au suivant ; rien s'il n'en reste aucun.
-fn conseil(b: &Value, d: &Donnees, quand: &str, vals: &Valeurs) -> Option<Value> {
+fn conseil(b: &Value, d: &Donnees, quand: &str, vals: &Valeurs, annexes: &[&str]) -> Option<Value> {
     conseils_de(b)
         .iter()
         .filter(|c| texte(c, "quand") == quand && !suspendu(c))
-        .find_map(|c| vue(b, c, d, vals))
+        .find_map(|c| vue(b, c, d, vals, annexes))
 }
 
 /// Le prenom du salarie, tel que sa fiche l'affiche (`prenom_affichage`, sinon `prenom`, en capitales initiales s'il
@@ -343,7 +370,7 @@ fn generaux(b: &Value, d: &Donnees) -> Vec<Value> {
     conseils_de(b)
         .iter()
         .filter(|c| texte(c, "quand") == "toujours" && !suspendu(c))
-        .filter_map(|c| vue(b, c, d, &Valeurs::new()))
+        .filter_map(|c| vue(b, c, d, &Valeurs::new(), &LES_DEUX))
         .collect()
 }
 
@@ -627,7 +654,7 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
                     ("jours", val_nombre(a30.jours_sans_allocation)),
                     ("heures_par_jour", val_nombre(a30.heures_par_jour)),
                 ])),
-                "saisie:plus-de-28-cachets" if cachets_mois > c.cachets_par_mois => Some(base(vec![
+                "saisie:plus-de-28-cachets" if annexe == "X" && cachets_mois > c.cachets_par_mois => Some(base(vec![
                     ("cachets", val_entier(cachets_mois)),
                     ("plafond", val_entier(c.cachets_par_mois)),
                     ("perdus", val_entier(cachets_mois - c.cachets_par_mois)),
@@ -685,7 +712,7 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
                 _ => None,
             };
             if let Some(v) = vals {
-                if let Some(x) = conseil(&b, &d, id, &v) {
+                if let Some(x) = conseil(&b, &d, id, &v, &[annexe]) {
                     out[i] = Some(x);
                     break;
                 }
@@ -767,9 +794,10 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
         }
         v
     };
+    let en_jeu = annexes_en_jeu(annexe);
     let mut out = Vec::new();
     let mut pousser = |quand: &str, v: Valeurs| {
-        if let Some(x) = conseil(&b, &d, quand, &v) {
+        if let Some(x) = conseil(&b, &d, quand, &v, &en_jeu) {
             out.push(x);
         }
     };
@@ -795,8 +823,9 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
             }
         }
     }
+    // Le plafond de 28 cachets est de l'annexe X (art. 3 §1) : rien a dire d'un technicien.
     let par_mois = pos.cachets_par_mois();
-    for m in pos.mois_plafonnes() {
+    for m in pos.mois_plafonnes().into_iter().filter(|_| annexe != Some("VIII")) {
         let n = par_mois.get(&m).copied().unwrap_or(0);
         pousser(
             "historique:cachets-perdus",
@@ -822,8 +851,11 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
     Ok(out)
 }
 
-/// `conseils-resume` : a l'accueil, les salaries dont nos seuls contrats font au moins 507 heures sur les 12 derniers
-/// mois. `{"conseils": [...]}`, vide quand il n'y en a pas.
+/// `conseils-resume` : a l'accueil, les salaries dont nos seuls contrats font au moins 507 heures sur la fenetre de
+/// leurs droits, la meme que leur fiche (`position`) : les 12 mois avant leur date anniversaire si la fiche la porte,
+/// sinon les 12 derniers mois. La phrase dit l'une, l'autre, ou les deux quand la liste les mele : la banque essaie
+/// `historique-resume-melange`, puis `historique-resume-anniversaire`, puis `historique-resume`, et le premier dont
+/// les deux groupes de noms sont la parle. `{"conseils": [...]}`, vide quand il n'y en a pas.
 pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     if !actifs(&ctx.entreprise) {
         return Ok(Vec::new());
@@ -833,40 +865,66 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     let d = Donnees::de_l_annee(&ctx.code, jour.an);
     let c = Constantes::lire(&ctx.racine)?;
     let engs = cumul::lire_engagements(ctx, None)?;
-    let f = cumul::fenetre_douze_mois(&c, jour)?;
     let cles: BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();
     // Les salaries par leur prenom ; deux du meme prenom, par leur prenom et leur nom (sinon on ne saurait lequel).
     let mut fiches = Vec::new();
     for cle in cles {
-        let p = cumul::position(ctx, &c, &engs, cle, &f, cumul::naissance(ctx, cle)?);
+        let (p, anniv) = position(ctx, cle, &engs, jour)?;
         if p.heures_ouverture()? >= c.seuil_heures {
             let mut fiche = ctx.salaries.get(cle).cloned().unwrap_or(Value::Null);
             if !fiche.is_object() {
                 fiche = Value::Object(Map::new());
             }
             fiche["_cle"] = Value::String(cle.to_string());
-            fiches.push((prenom(&fiche), fiche));
+            fiches.push((prenom(&fiche), fiche, anniv));
         }
     }
     if fiches.is_empty() {
         return Ok(Vec::new());
     }
-    let noms: Vec<String> = fiches
+    // Les annexes de ceux que la phrase nomme : la reference cite X pour un artiste, VIII pour un technicien, les deux
+    // quand la liste les mele.
+    let mut en_jeu: Vec<&str> = Vec::new();
+    for (_, fiche, _) in &fiches {
+        for a in annexes_en_jeu(annexe_de(fiche)?) {
+            if !en_jeu.contains(&a) {
+                en_jeu.push(a);
+            }
+        }
+    }
+    let noms: Vec<(String, bool)> = fiches
         .iter()
-        .map(|(p, fiche)| {
-            if fiches.iter().filter(|(q, _)| q == p).count() > 1 {
+        .map(|(p, fiche, anniv)| {
+            let n = if fiches.iter().filter(|(q, _, _)| q == p).count() > 1 {
                 let nom = Some(texte(fiche, "nom_affichage")).filter(|n| !n.trim().is_empty()).unwrap_or_else(|| texte(fiche, "nom"));
                 if nom.trim().is_empty() { p.clone() } else { format!("{} {}", p, nom.trim()) }
             } else {
                 p.clone()
-            }
+            };
+            (n, *anniv)
         })
         .collect();
     let mut v = Valeurs::new();
     v.insert("seuil".into(), val_entier(c.seuil_heures));
-    v.insert("n".into(), val_entier(noms.len() as i64));
-    v.insert("noms".into(), val_texte(noms.join(", ")));
-    Ok(conseil(&b, &d, "historique:resume", &v).into_iter().collect())
+    // `{noms_anniversaire}` (et `{n_anniversaire}`) : ceux dont la fiche porte la date anniversaire ;
+    // `{noms_glissants}` : les autres. Un groupe vide ne se pose pas : les conseils qui le nomment se taisent.
+    for (groupe, anniv) in [("anniversaire", true), ("glissants", false)] {
+        let qui: Vec<String> = noms.iter().filter(|(_, a)| *a == anniv).map(|(n, _)| n.clone()).collect();
+        if !qui.is_empty() {
+            v.insert(format!("n_{}", groupe), val_entier(qui.len() as i64));
+            v.insert(format!("noms_{}", groupe), val_texte(et(&qui)));
+        }
+    }
+    Ok(conseil(&b, &d, "historique:resume", &v, &en_jeu).into_iter().collect())
+}
+
+/// « Anastasia », « Anastasia et Léandre », « Anastasia, Fanchon et Léandre ».
+fn et(noms: &[String]) -> String {
+    match noms {
+        [] => String::new(),
+        [seul] => seul.clone(),
+        [tete @ .., dernier] => format!("{} et {}", tete.join(", "), dernier),
+    }
 }
 
 // ------------------------------------------------------------------ routes

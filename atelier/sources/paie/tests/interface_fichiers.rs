@@ -265,3 +265,76 @@ fn la_page_n_emploie_aucune_couleur_que_la_capture_ne_lit_pas() {
     }
     assert!(fautes.is_empty(), "{:?}", fautes);
 }
+
+fn poste(f: &Fenetre, jeton: &str, nom: &str, args: serde_json::Value) -> serde_json::Value {
+    let entetes = HashMap::from([("x-jeton".to_string(), jeton.to_string())]);
+    let corps = args.to_string().into_bytes();
+    let r = f.traiter(Requete { methode: "POST".into(), chemin: format!("/lanceur/{}", nom), params: HashMap::new(), entetes, corps });
+    assert_eq!(r.code, 200, "{}", nom);
+    serde_json::from_slice(&r.corps).unwrap()
+}
+
+fn racine_servie(f: &Fenetre, jeton: &str) -> String {
+    let params = HashMap::from([("jeton".to_string(), jeton.to_string())]);
+    let r = f.traiter(Requete { methode: "GET".into(), chemin: "/index.html".into(), params, entetes: HashMap::new(), corps: Vec::new() });
+    assert_eq!(r.code, 200);
+    String::from_utf8(r.corps).unwrap()
+}
+
+/// Ce que la page appelle (`window.pywebview.api.<nom>`) est defini par la cale servie avec elle : un geste absent de
+/// la liste n'existe pas dans la page, et le bouton qui l'appelle leve sans rien faire.
+fn chaque_geste_appele_est_dans_la_cale(html: &str, page: &str) {
+    let liste = html.split("for (const nom of ").nth(1).and_then(|s| s.split(") api[nom]").next()).expect("la cale et sa liste");
+    let noms: Vec<String> = serde_json::from_str(liste).unwrap();
+    for appel in html.split("window.pywebview.api.").skip(1) {
+        let nom: String = appel.chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '_').collect();
+        assert!(noms.contains(&nom), "{} appelle `{}`, que sa cale ne definit pas : {:?}", page, nom, noms);
+    }
+}
+
+/// L'identifiant de la tuile de la compagnie ajoutee (`cie:<dossier>`), lu dans l'accueil servi.
+fn tuile_ajoutee(html: &str) -> String {
+    let dossier = html.split("data-id=\"cie:").nth(1).and_then(|s| s.split('"').next()).expect("la tuile de la compagnie ajoutee");
+    format!("cie:{}", dossier)
+}
+
+/// Capture de Leandre (Windows, version 20.10.2026) : sur la page du mot de passe d'une compagnie, « Retour » ne
+/// faisait rien (le geste `accueil` manquait a la cale de la page). Les deux pages du mot de passe (le choix, a la
+/// premiere ouverture, puis la saisie) n'appellent que des gestes que leur cale definit, offrent Retour et Echap, et
+/// le geste `accueil` ramene la fenetre au choix de la compagnie : `/` sert de nouveau l'accueil.
+#[test]
+fn retour_et_echap_ramenent_des_pages_du_mot_de_passe_au_choix_de_la_compagnie() {
+    let (_b, _v) = banc();
+    let f = Fenetre::nouvelle(0);
+    let adresse = f.adresse("127.0.0.1", 1);
+    let jeton = adresse.split("jeton=").nth(1).unwrap().to_string();
+    let est_l_accueil = |html: &str| html.contains("data-id=\"cie:") && !html.contains("id=\"mdp\"");
+    let rien = serde_json::json!([]);
+    chaque_geste_appele_est_dans_la_cale(&racine_servie(&f, &jeton), "l'accueil");
+
+    // Une compagnie reelle neuve : le choix du mot de passe.
+    let v = poste(&f, &jeton, "ajouter", serde_json::json!(["Compagnie du Retour"]));
+    assert_eq!(v["ok"], serde_json::json!(true), "{}", v);
+    let choix = racine_servie(&f, &jeton);
+    assert!(choix.contains("Poser et ouvrir"), "la page du choix du mot de passe");
+    chaque_geste_appele_est_dans_la_cale(&choix, "le choix du mot de passe");
+    assert!(choix.contains("class=\"retour\"") && choix.contains("\"Escape\""), "Retour et Echap");
+    let v = poste(&f, &jeton, "accueil", rien.clone());
+    assert_eq!((&v["ok"], &v["recharger"]), (&serde_json::json!(true), &serde_json::json!(true)), "{}", v);
+    let accueil = racine_servie(&f, &jeton);
+    assert!(est_l_accueil(&accueil), "Retour ramene au choix de la compagnie");
+
+    // Le mot de passe pose, la compagnie rouverte : la saisie du mot de passe.
+    let id = tuile_ajoutee(&accueil);
+    assert_eq!(poste(&f, &jeton, "choisir", serde_json::json!([id]))["ok"], serde_json::json!(true));
+    let v = poste(&f, &jeton, "poser", serde_json::json!(["secret-du-retour", "secret-du-retour"]));
+    assert_eq!(v["ok"], serde_json::json!(true), "{}", v);
+    assert_eq!(poste(&f, &jeton, "accueil", rien.clone())["ok"], serde_json::json!(true));
+    assert_eq!(poste(&f, &jeton, "choisir", serde_json::json!([id]))["ok"], serde_json::json!(true));
+    let saisie = racine_servie(&f, &jeton);
+    assert!(saisie.contains("id=\"mdp\"") && !saisie.contains("id=\"mdp2\""), "la page de la saisie du mot de passe");
+    chaque_geste_appele_est_dans_la_cale(&saisie, "la saisie du mot de passe");
+    assert!(saisie.contains("class=\"retour\"") && saisie.contains("\"Escape\""), "Retour et Echap");
+    assert_eq!(poste(&f, &jeton, "accueil", rien)["ok"], serde_json::json!(true));
+    assert!(est_l_accueil(&racine_servie(&f, &jeton)), "Retour ramene au choix de la compagnie");
+}

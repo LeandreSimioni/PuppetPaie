@@ -704,8 +704,12 @@ fn la_cle_de_github_va_dans_le_dossier_maj_de_l_installation() {
 fn la_recherche_dit_ou_elle_en_est_et_se_tait_quand_elle_a_fini() {
     let fini = |e: &Value, etape: &str| {
         assert_eq!(e["etape"], etape, "{}", e);
-        assert_eq!(e["en_cours"], false, "une recherche finie ne se relit plus : {}", e);
-        assert!(e["relire_ms"].is_null(), "une recherche finie ne se relit plus : {}", e);
+        assert_eq!(e["en_cours"], false, "une recherche finie n'est pas en cours : {}", e);
+        if matches!(etape, "a_jour" | "retenue") {
+            assert!(e["relire_ms"].as_u64().is_some(), "la recherche de fond continue : la page relit : {}", e);
+        } else {
+            assert!(e["relire_ms"].is_null(), "une recherche finie pour de bon ne se relit plus : {}", e);
+        }
         assert!(e["texte"].as_str().is_some_and(|t| !t.is_empty()), "elle se dit : {}", e);
     };
     let relais = |inst: &Path| std::fs::read_dir(inst.join("maj")).map(|d| d.flatten().any(|f| f.file_name().to_string_lossy().starts_with("relais-"))).unwrap_or(false);
@@ -802,7 +806,7 @@ fn lancee_sans_reseau_la_recherche_reprend_quand_il_revient() {
     let suivi = Arc::new(maj::Recherche::nouvelle());
     let fil = {
         let (inst, suivi) = (inst.clone(), suivi.clone());
-        std::thread::spawn(move || maj::chercher_tant_que_hors_ligne(&inst, &[&publique()], &suivi, &[Duration::from_millis(100), Duration::from_millis(200)]))
+        std::thread::spawn(move || maj::chercher_tant_qu_il_tourne(&inst, &[&publique()], &suivi, &[Duration::from_millis(100), Duration::from_millis(200)], Duration::from_secs(3600)))
     };
     let attendre = |quoi: &dyn Fn(&Value) -> bool, dit: &str| {
         let fin = Instant::now() + Duration::from_secs(120);
@@ -842,9 +846,103 @@ fn lancee_sans_reseau_la_recherche_reprend_quand_il_revient() {
     crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": format!("{}/rien-ici", base.join("pas-de-depot").display())}));
     let autre = maj::Recherche::nouvelle();
     let debut = Instant::now();
-    maj::chercher_tant_que_hors_ligne(&inst, &[&publique()], &autre, &[Duration::from_secs(3600)]);
+    maj::chercher_tant_qu_il_tourne(&inst, &[&publique()], &autre, &[Duration::from_secs(3600)], Duration::from_secs(3600));
     assert!(debut.elapsed() < Duration::from_secs(60), "aucune attente");
     let e = autre.etat();
     assert_eq!(e["etape"], "echec", "{}", e);
     assert!(e["relire_ms"].is_null() && e["detail"].as_str().unwrap().contains("prochain lancement"), "{}", e);
+}
+
+/// A JOUR, LA RECHERCHE CONTINUE TANT QUE LE LOGICIEL TOURNE (Leandre, 21/10/2026 : la 2026.10.21, publiee a 11 h 40, ne
+/// se voyait pas dans un logiciel lance avant, qui disait encore « Logiciel a jour » ; « toutes les 5 minutes »). Le
+/// depot n'a rien de plus recent : « Logiciel a jour », et la page relit. Les tours suivants se font sans que
+/// l'indicateur repasse par « Recherche de mise a jour… » ; une coupure le temps d'un tour le laisse « a jour ». Une
+/// version publiee APRES est trouvee par un tour suivant, telechargee, preparee : « Redemarrer pour mettre a jour », la
+/// boucle s'arrete, et rien n'est installe (le logiciel en place reste le meme). Le rythme livre est de 5 minutes.
+#[test]
+fn a_jour_la_recherche_continue_et_trouve_la_version_publiee_apres() {
+    use std::sync::atomic::{AtomicU8, Ordering};
+    use std::time::{Duration, Instant};
+
+    assert_eq!(maj::RYTHME_A_JOUR, Duration::from_secs(300), "Leandre, 21/10/2026 : toutes les 5 minutes");
+
+    let base = dossier_de_test("mise_a_jour", "a_jour_puis_publiee");
+    let depot = publiee(&base, false);
+    let (inst, _) = installee(&base);
+    ajoutee(&inst.join("compagnies").join("essai"));
+    // 0 : le depot dit la version en place ; 1 : il ne repond pas (un tour coupe) ; 2 : la 2026.11.01 est publiee.
+    let publication = Arc::new(AtomicU8::new(0));
+    let (url, recu) = {
+        let (publication, depot) = (publication.clone(), depot.clone());
+        crate::outils::serveur(move |q| {
+            let nom = q.chemin.trim_start_matches('/');
+            let o = std::fs::read(depot.join(nom));
+            Some(match (publication.load(Ordering::SeqCst), o) {
+                (1, _) => return None,
+                (0, Ok(o)) if nom == "derniere.json" => {
+                    let mut d: Value = serde_json::from_slice(&o).unwrap();
+                    d["version"] = json!("2026.10.09");
+                    crate::outils::http(200, "application/json", d.to_string().as_bytes())
+                }
+                (2, Ok(o)) => crate::outils::http(200, "application/octet-stream", &o),
+                _ => crate::outils::http(404, "text/plain", b"Not Found"),
+            })
+        })
+    };
+    crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": url}));
+    let demandes = || recu.lock().unwrap().iter().filter(|q| q.chemin.ends_with("derniere.json")).count();
+
+    let suivi = Arc::new(maj::Recherche::nouvelle());
+    let fil = {
+        let (inst, suivi) = (inst.clone(), suivi.clone());
+        std::thread::spawn(move || maj::chercher_tant_qu_il_tourne(&inst, &[&publique()], &suivi, &[Duration::from_secs(3600)], Duration::from_millis(100)))
+    };
+    let vues = Mutex::new(Vec::<String>::new());
+    let attendre = |quoi: &dyn Fn(&Value) -> bool, dit: &str| {
+        let fin = Instant::now() + Duration::from_secs(120);
+        loop {
+            let e = suivi.etat();
+            let etape = e["etape"].as_str().unwrap_or_default().to_string();
+            let mut v = vues.lock().unwrap();
+            if v.last() != Some(&etape) {
+                v.push(etape);
+            }
+            drop(v);
+            if quoi(&e) {
+                return e;
+            }
+            assert!(Instant::now() < fin, "{} : {}", dit, e);
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    };
+
+    // A jour : il le dit, et la page relit (la recherche de fond continue).
+    let e = attendre(&|e| e["etape"] == "a_jour", "le depot n'a rien de plus recent");
+    assert_eq!(e["texte"], "Logiciel à jour", "{}", e);
+    assert!(e["relire_ms"].as_u64().is_some(), "a jour, la page relit : {}", e);
+    vues.lock().unwrap().clear();
+    // Des tours se font, sans que l'indicateur bouge ; un tour coupe le laisse « a jour ».
+    let d = demandes();
+    attendre(&|_| demandes() >= d + 3, "la recherche continue, a jour");
+    publication.store(1, Ordering::SeqCst);
+    let d = recu.lock().unwrap().len();
+    attendre(&|_| recu.lock().unwrap().len() >= d + 2, "un tour sans reponse");
+    assert!(!fil.is_finished(), "a jour, la recherche ne s'arrete pas");
+    assert_eq!(*vues.lock().unwrap(), vec!["a_jour".to_string()], "un tour de fond ne fait pas clignoter l'indicateur");
+    assert!(maj::prete(&inst).is_none());
+
+    // La version est publiee apres : un tour la trouve, la prepare ; prete, la boucle s'arrete.
+    publication.store(2, Ordering::SeqCst);
+    let e = attendre(&|e| e["etape"] == "prete", "la version publiee apres se prepare");
+    assert_eq!((e["texte"].as_str(), e["redemarrer"].as_bool(), e["version"].as_str()), (Some("Redémarrer pour mettre à jour"), Some(true), Some("01.11.2026")), "{}", e);
+    assert!(e["relire_ms"].is_null(), "prete, plus rien ne change : {}", e);
+    fil.join().unwrap();
+    assert!(!vues.lock().unwrap().iter().any(|v| v == "recherche" || v == "echec"), "rien d'autre que ce qui change : {:?}", vues.lock().unwrap());
+    assert!(maj::prete(&inst).is_some_and(|p| p["version"] == "2026.11.01"));
+    assert!(deballee(&inst, "2026.11.01").join("VERSION").is_file(), "preparee a cote");
+    // Rien n'est installe pendant que le logiciel tourne : la version en place reste.
+    assert_eq!(maj::courante(&inst.join("logiciel")), "2026.10.09", "rien ne s'installe avant le redemarrage");
+    let n = recu.lock().unwrap().len();
+    std::thread::sleep(Duration::from_millis(400));
+    assert_eq!(recu.lock().unwrap().len(), n, "prete : plus aucune demande");
 }
