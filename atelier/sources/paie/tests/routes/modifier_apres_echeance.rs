@@ -270,6 +270,8 @@ fn les_dates_d_un_contrat_declare_se_corrigent_apres_la_limite() {
     let a = reussi(&a);
     assert_eq!((a["engagement"]["debut"].as_str(), a["engagement"]["fin"].as_str()), (Some("2026-08-18"), Some("2026-08-22")), "{}", a);
     assert_eq!((a["avant"]["heures"].as_str(), a["apres"]["heures"].as_str(), a["rien_ne_change"].as_bool()), (Some("32.0"), Some("40.0"), Some(false)), "{}", a);
+    // La difference d'activite vient du moteur, comme celle des montants (regle 2) : la page ne la calcule pas.
+    assert_eq!((a["delta"]["heures"].as_str(), a["delta"]["cachets"].as_i64()), (Some("8"), Some(0)), "{}", a["delta"]);
     assert_eq!(
         a["dates"],
         json!("Dates corrigées : du 18/08/2026 au 22/08/2026 (déclaré : du 19/08/2026 au 22/08/2026). La DSN suivante déclare la nouvelle date de début avec l'ancienne, dans un bloc « Changements contrat » (S21.G00.41.021, fiche net-entreprises 1952).")

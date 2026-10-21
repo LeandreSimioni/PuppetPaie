@@ -139,7 +139,9 @@ function boiteCorrigerEngagement(mois, e, etat) {
     ${encartRegularisation(etat)}
     <p class="discret">${echapper(e.nom)} — ${echapper(e.spectacle)},
       ${echapper(periodeEnClair(e.debut, e.fin))}.
-      ${e.dates_saisies
+      ${e.ajoute
+        ? "Rien n'a été déclaré pour ce contrat : la correction le déclare en entier, avec ses dates de la saisie. Son numéro se fixe quand la correction s'écrit."
+        : e.dates_saisies
         ? `Le contrat garde son numéro ; ses dates sont celles de la saisie (${echapper(e.dates_saisies)}). Ses lignes se corrigent ici.`
         : "Le contrat garde son numéro et ses dates : seules ses lignes se corrigent."}</p>
     <div id="cor-lignes"></div>
@@ -242,15 +244,28 @@ function boiteCorrigerEngagement(mois, e, etat) {
 }
 
 function vueApercuCorrection(a) {
-  const ligne = (titre, cle) => `
-    <tr><td>${titre}</td><td class="r">${echapper(a.avant[cle])}</td>
-        <td class="r">${echapper(a.apres[cle])}</td>
-        <td class="r">${a.delta[cle] === undefined ? "" : echapper(a.delta[cle])}</td></tr>`;
+  // Les nombres du moteur, à la française : « 576,00 € », « 32 h » ; une
+  // différence porte son signe (« +8 h », « −144,00 € ») et se tait à zéro.
+  const fr = (x) => Number(x).toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+  const formes = {
+    euros: (x) => euros(x),
+    heures: (x) => `${fr(x)} h`,
+    nombre: (x) => fr(x),
+  };
+  const signe = (x, forme) => {
+    const n = Number(x);
+    if (x === undefined || x === null || !isFinite(n) || n === 0) return "";
+    return (n > 0 ? "+" : "−") + formes[forme](Math.abs(n));
+  };
+  const ligne = (titre, cle, forme = "euros") => `
+    <tr><td>${titre}</td><td class="r">${echapper(formes[forme](a.avant[cle]))}</td>
+        <td class="r">${echapper(formes[forme](a.apres[cle]))}</td>
+        <td class="r">${echapper(signe(a.delta[cle], forme))}</td></tr>`;
   return `
     <table class="compta">
-      <tr><th></th><th>avant</th><th>après</th><th>différence</th></tr>
-      ${ligne("cachets", "cachets")}
-      ${ligne("heures", "heures")}
+      <tr><th></th><th class="r">avant</th><th class="r">après</th><th class="r">différence</th></tr>
+      ${ligne("cachets", "cachets", "nombre")}
+      ${ligne("heures", "heures", "heures")}
       ${ligne("brut", "brut")}
       ${ligne("cot. salariales", "cotisations_salariales")}
       ${ligne("cot. patronales", "cotisations_patronales")}
@@ -262,6 +277,10 @@ function vueApercuCorrection(a) {
     ${(a.avertissements || []).map((x) => `<div class="encart attention">${echapper(x)}</div>`).join("")}
     ${a.rien_ne_change
       ? `<p class="note">Rien ne change : il n'y a pas de correction à écrire.</p>`
+      : a.ajout
+      ? `<p class="note">Ce contrat partira en entier dans la DSN
+           ${echapper(deMois(a.etat.mois_courant))}, sa paie datée
+           ${echapper(deMois(a.mois))} : rien n'est annulé, rien n'avait été déclaré.</p>`
       : `<p class="note">Cette différence partira dans la DSN
            ${echapper(deMois(a.etat.mois_courant))}, datée
            ${echapper(deMois(a.mois))} — l'ancienne paie en négatif, la

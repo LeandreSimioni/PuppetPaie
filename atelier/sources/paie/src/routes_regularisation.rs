@@ -453,6 +453,7 @@ pub(crate) fn apercu_correction(o: &HashMap<String, String>, ctx: &Contexte, cha
         tout_nul &= d.is_zero();
         delta.insert(k.to_string(), json!(d.to_string()));
     }
+    difference_d_activite(&mut delta, &r_avant, &r_apres)?;
     let rien_ne_change = tout_nul
         && dates.is_none()
         && r_avant["cachets"] == r_apres["cachets"]
@@ -474,6 +475,16 @@ pub(crate) fn apercu_correction(o: &HashMap<String, String>, ctx: &Contexte, cha
         "avertissements": apres.avertissements.iter().map(|a| a.texte.clone()).collect::<Vec<_>>(),
         "engagement": corrige,
     }))
+}
+
+/// La difference d'activite (cachets, heures) entre deux paies resumees (`resume`), dans `delta` : la page la montre a
+/// cote de celle des montants, sans la calculer (regle 2).
+fn difference_d_activite(delta: &mut Map<String, Value>, avant: &Value, apres: &Value) -> R<()> {
+    let entier = |v: &Value, k: &str| v[k].as_i64().unwrap_or(0);
+    delta.insert("cachets".into(), json!(entier(apres, "cachets") - entier(avant, "cachets")));
+    let d = decimal(apres, "heures")? - decimal(avant, "heures")?;
+    delta.insert("heures".into(), json!(d.normalize().to_string()));
+    Ok(())
 }
 
 /// Ce que la page dit d'une correction qui change les dates du contrat : les dates declarees, les corrigees, ce que la
@@ -952,6 +963,7 @@ fn apercu_d_un_ajout(
         tout_nul &= d.is_zero();
         delta.insert(k.to_string(), json!(d.to_string()));
     }
+    difference_d_activite(&mut delta, &r_avant, &r_apres)?;
     let rien_ne_change = tout_nul && r_apres["cachets"] == json!(0) && r_apres["heures"] == json!("0");
     let sal = &apres.salarie;
     let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
