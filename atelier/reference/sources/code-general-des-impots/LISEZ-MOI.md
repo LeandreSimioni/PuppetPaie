@@ -40,6 +40,9 @@ depuis le 01/03/2025, modifiée par la loi n° 2025-127 du 14/02/2025, art. 32, 
 **Où le moteur s'en sert** : `logiciel/donnees/baremes/2025.json` et `2026.json`, `taxe_sur_les_salaires.plafonds_franchise`
 (`prestations_de_services`, `total`, `en_vigueur_depuis`) ; `assujettissement::question_franchise`
 (`atelier/sources/paie/src/assujettissement.rs`) en écrit l'aide et les deux réponses de la question « Vos recettes de l'an
-dernier » (Configuration › Entreprise, « Taxe sur les salaires »), par la route `taxe-sur-les-salaires-regime` (`franchise`).
+dernier » (Configuration › Entreprise, « Taxe sur les salaires »), par la route `taxe-sur-les-salaires-regime` (`franchise`) ;
+depuis le ticket #245, chaque réponse dit ce que mesure chaque plafond, en mots de compagnie (37 500 € de « spectacles
+vendus », 85 000 € de « recettes en tout, subventions comprises » : les deux inférences ci-dessus), et la conclusion sous les
+cases (`assujettissement::regime_taxe_sur_les_salaires`) nomme les deux plafonds.
 Le test `les_plafonds_de_la_franchise_viennent_du_bareme_qui_cite_le_texte_depose` (`tests/routes/routes_fiches.rs`) relit les
 montants dans `xml/293_B.xml`.
