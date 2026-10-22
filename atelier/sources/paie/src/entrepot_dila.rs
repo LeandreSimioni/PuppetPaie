@@ -496,31 +496,6 @@ impl<L: Read> LecteurTar<L> {
     }
 }
 
-/// Les lignes d'un texte au sens de `str.splitlines()` : `\n`, `\r\n`, `\r`, `\v`, `\f`, `\x1c`-`\x1e`, `\x85`, ` `,
-/// ` `.
-pub fn lignes_py(t: &str) -> Vec<&str> {
-    let mut out = Vec::new();
-    let mut debut = 0;
-    let mut it = t.char_indices().peekable();
-    while let Some((i, c)) = it.next() {
-        if matches!(c, '\n' | '\r' | '\u{b}' | '\u{c}' | '\u{1c}' | '\u{1d}' | '\u{1e}' | '\u{85}' | '\u{2028}' | '\u{2029}') {
-            out.push(&t[debut..i]);
-            let mut fin = i + c.len_utf8();
-            if c == '\r' {
-                if let Some(&(j, '\n')) = it.peek() {
-                    it.next();
-                    fin = j + 1;
-                }
-            }
-            debut = fin;
-        }
-    }
-    if debut < t.len() {
-        out.push(&t[debut..]);
-    }
-    out
-}
-
 /// Un blanc au sens de Python (`str.isspace`, `\s` d'un motif `str`) : celui d'Unicode, plus `\x1c` a `\x1f`.
 pub fn blanc_py(c: char) -> bool {
     c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)
@@ -633,9 +608,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn les_lignes_et_les_blancs_sont_ceux_de_python() {
-        assert_eq!(lignes_py("a\r\nb\rc\n\nd\u{85}e"), ["a", "b", "c", "", "d", "e"]);
-        assert_eq!(lignes_py("a\n"), ["a"]);
+    fn les_blancs_et_les_entites_sont_ceux_de_python() {
         assert_eq!(strip_py("\u{1f} x \u{a0}"), "x");
         // Ce que rend `html.unescape` du Python sur la meme chaine.
         assert_eq!(unescape_html("a &amp;lt; &#13;&#x41;&#128;&#1;&inconnue; &ampx &ltfoo; &apos &apos;"), "a &lt; \rA\u{20ac}&inconnue; &x <foo; &apos '");

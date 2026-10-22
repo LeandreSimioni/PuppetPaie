@@ -153,27 +153,27 @@ fn flottant(d: Decimal) -> f64 {
     d.to_string().parse::<f64>().unwrap_or(0.0)
 }
 
-/// `str.splitlines()` d'un texte latin-1.
-pub(crate) fn lignes_py(t: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut cur = String::new();
-    let mut it = t.chars().peekable();
-    while let Some(c) = it.next() {
-        match c {
-            '\r' => {
-                if it.peek() == Some(&'\n') {
-                    it.next();
-                }
-                out.push(std::mem::take(&mut cur));
+/// Les lignes d'un texte comme les compte `str.splitlines()` de Python (le numéro qu'on affiche est le sien) : `\n`,
+/// `\r`, `\r\n`, et les séparateurs `\x0b`, `\x0c`, `\x1c`-`\x1e`, `\u{85}`, `\u{2028}`, `\u{2029}` ; une fin de ligne
+/// finale ne fait pas de ligne vide. La seule copie du moteur (DSN, retours, DILA, garde avant commit).
+pub fn lignes_py(t: &str) -> Vec<&str> {
+    let mut v = Vec::new();
+    let mut debut = 0;
+    let mut it = t.char_indices().peekable();
+    while let Some((i, c)) = it.next() {
+        if matches!(c, '\n' | '\r' | '\x0b' | '\x0c' | '\x1c' | '\x1d' | '\x1e' | '\u{85}' | '\u{2028}' | '\u{2029}') {
+            v.push(&t[debut..i]);
+            debut = i + c.len_utf8();
+            if c == '\r' && it.peek().is_some_and(|&(_, d)| d == '\n') {
+                it.next();
+                debut += 1;
             }
-            '\n' | '\u{b}' | '\u{c}' | '\u{1c}' | '\u{1d}' | '\u{1e}' | '\u{85}' => out.push(std::mem::take(&mut cur)),
-            _ => cur.push(c),
         }
     }
-    if !cur.is_empty() {
-        out.push(cur);
+    if debut < t.len() {
+        v.push(&t[debut..]);
     }
-    out
+    v
 }
 
 pub(crate) fn texte_latin1(o: &[u8]) -> String {
@@ -1055,8 +1055,10 @@ mod tests {
     }
 
     #[test]
-    fn lignes_de_python() {
-        assert_eq!(lignes_py("a\r\nb\rc\nd\u{85}e"), vec!["a", "b", "c", "d", "e"]);
+    fn les_lignes_se_comptent_comme_splitlines() {
+        assert_eq!(lignes_py("a\r\nb\rc\n\nd\u{85}e\u{2028}f\n"), ["a", "b", "c", "", "d", "e", "f"]);
+        assert_eq!(lignes_py("a\n"), ["a"]);
+        assert!(lignes_py("").is_empty());
     }
 
     fn chars(t: &str) -> Vec<char> {
