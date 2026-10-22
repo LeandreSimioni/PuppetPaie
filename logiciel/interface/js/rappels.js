@@ -17,18 +17,48 @@
    dépôt avec son mot de passe. Rien ne part d'ici. « Plus tard » ferme la
    boîte ; elle reviendra à la prochaine ouverture, tant que le journal des
    dépôts ne dit pas que c'est fait. */
-async function montrerRappels() {
+/* `lu(route)` : la lecture de l'ouverture (js/demarrage.js : tout arrive d'un
+ * coup, et la boîte s'ouvre avec la page) — elle rend le résultat ou lève le
+ * refus, comme `api`. Sans elle, on demande. */
+let RAPPELS_MONTRES = null;   // ce que la boîte de l'ouverture a montré : `{liste, ech, manques}`, ou null
+async function montrerRappels(lu = api) {
   let r, ech = null;
-  try { r = await api("rappels"); } catch (e) { return; }
-  try { ech = await api("echeancier"); } catch (e) { ech = null; }
+  try { r = await lu("rappels"); } catch (e) { return; }
+  try { ech = await lu("echeancier"); } catch (e) { ech = null; }
   let manques = [];
-  try { manques = (await api("pour-demarrer")).manques || []; } catch (e) { manques = []; }
+  try { manques = (await lu("pour-demarrer")).manques || []; } catch (e) { manques = []; }
   const liste = r.rappels || [];
   // L'ÉCHÉANCIER (23/09/2026) : « un pop-up au démarrage : on est le…,
   // bienvenue sur PuppetPaie, n'oublie pas de faire la DSN ». Elle s'ouvrait
   // aussi une fois par jour quand rien n'attendait ; l'éditeur, 01/10/2026 :
   // « elle apparaît seulement s'il y a des trucs à faire ».
   if (!liste.length && !(ech && ech.a_faire) && !manques.length) return;
+  RAPPELS_MONTRES = { liste, ech, manques };
+  boiteRappels(liste, ech, manques);
+}
+
+/** L'ÉTAT FRAIS DE L'OUVERTURE (ticket #244) : la boîte des rappels, si elle
+ *  est encore ouverte et que le moteur dit autre chose, se repeint en place ;
+ *  s'il n'y en avait pas et qu'il y a maintenant quelque chose à faire, elle
+ *  s'ouvre (par-dessus la page : rien ne bouge dessous). Fermée par la
+ *  personne, elle ne revient pas avant la prochaine ouverture. */
+async function rafraichirRappels(lu) {
+  const ouverte = !document.getElementById("voile").classList.contains("cachee")
+    && document.querySelector("#boite .boite-rappels");
+  if (RAPPELS_MONTRES && !ouverte) return;
+  let r, ech = null, manques = [];
+  try { r = await lu("rappels"); } catch (e) { return; }
+  try { ech = await lu("echeancier"); } catch (e) { ech = null; }
+  try { manques = (await lu("pour-demarrer")).manques || []; } catch (e) { manques = []; }
+  const liste = r.rappels || [];
+  const neuf = { liste, ech, manques };
+  if (JSON.stringify(neuf) === JSON.stringify(RAPPELS_MONTRES)) return;
+  if (!liste.length && !(ech && ech.a_faire) && !manques.length) {
+    if (ouverte) fermerBoite();
+    return;
+  }
+  if (!RAPPELS_MONTRES && !document.getElementById("voile").classList.contains("cachee")) return; // une autre boîte est ouverte
+  RAPPELS_MONTRES = neuf;
   boiteRappels(liste, ech, manques);
 }
 
@@ -92,15 +122,18 @@ function htmlEcheancier(ech) {
   // ça alors que je l'ai déjà fait, pas besoin ») : la DSN de septembre,
   // déposée, s'affichait encore « fait ». Une échéance cochable reste, pour
   // pouvoir la décocher ; les autres faites se taisent.
-  const ceMois = (ech.ce_mois || []).filter((x) => x.etat !== "fait" || x.cochable);
+  // UNE CHOSE SE DIT UNE FOIS (ticket #244) : la DSN qu'un rappel réclame
+  // (`rappel`, le moteur le dit) se dit dans ce rappel, sous l'en-tête, avec
+  // sa date et son geste ; ici elle se dirait en double.
+  const ceMois = (ech.ce_mois || []).filter((x) => (x.etat !== "fait" || x.cochable) && !x.rappel);
+  const ditAilleurs = (ech.ce_mois || []).some((x) => x.rappel);
   return `
     <div class="accueil">
       <p class="accueil-date">Nous sommes le ${echapper(ech.date)}</p>
       <h2 class="accueil-titre">${echapper(ech.bienvenue)}</h2>
-      <h3>Ce mois-ci</h3>
       ${ceMois.length
-        ? `<ul class="echeances">${ceMois.map(ligne).join("")}</ul>`
-        : `<p class="discret">Rien à faire ce mois-ci.</p>`}
+        ? `<h3>Ce mois-ci</h3><ul class="echeances">${ceMois.map(ligne).join("")}</ul>`
+        : ditAilleurs ? "" : `<h3>Ce mois-ci</h3><p class="discret">Rien à faire ce mois-ci.</p>`}
       ${annee ? `<details class="accueil-annee"><summary>L'année qui vient</summary>
         <ul class="echeances-annee">${annee}</ul></details>` : ""}
     </div>`;
@@ -109,7 +142,8 @@ function htmlEcheancier(ech) {
 function boiteRappels(liste, ech, manques = []) {
   const html = htmlDemarrage(manques) + htmlEcheancier(ech) + liste.map((r, i) => `
     <div class="rappel ${r.en_retard ? "retard" : ""}">
-      <h3>${echapper(r.titre)}${r.en_retard ? ` <span class="pastille alerte">en retard</span>` : ""}</h3>
+      <h3>${echapper(r.titre)}${r.en_retard ? ` <span class="pastille alerte">en retard</span>` : ""}${r.echeance_depot && r.echeance_depot.jour
+        ? ` <span class="discret">— avant le ${echapper(jjmmaaaa(r.echeance_depot.jour))}</span>` : ""}</h3>
       <p class="rappel-question">${echapper(r.question)}</p>
       ${r.detail ? `<p class="note">${echapper(r.detail)}</p>` : ""}
       ${r.spectacles && r.spectacles.length ? `<ul class="rappel-liste">${r.spectacles.map((s) =>
@@ -117,7 +151,7 @@ function boiteRappels(liste, ech, manques = []) {
       <div class="actions">${boutonRappel(r, i)}</div>
     </div>`).join("");
   ouvrirBoite(`
-    ${html}
+    <div class="boite-rappels"></div>${html}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">${liste.length ? "Plus tard" : "Fermer"}</button>
     </div>`);

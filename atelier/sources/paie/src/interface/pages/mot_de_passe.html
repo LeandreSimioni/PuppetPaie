@@ -41,7 +41,8 @@
   <h1>PuppetPaie</h1>
   <div class="sous">paies d'intermittents</div>
   <form id="f">
-    <p>Mot de passe du logiciel</p>
+    <script type="application/json" id="administrateur">{{ADMINISTRATEUR}}</script>
+    <p id="titre-mdp">Mot de passe du logiciel</p>
     <input id="mdp" type="password" autocomplete="current-password" autofocus>
     <button id="ok" type="submit">Ouvrir</button>
     <div class="erreur" id="erreur"></div>
@@ -60,6 +61,13 @@
     if (r.ok) { ok.textContent = "D\u00e9marrage\u2026"; return; }
     err.textContent = r.erreur; ok.disabled = false; mdp.focus();
   });
+  // UNE COMPAGNIE DE L'ADMINISTRATEUR (ticket #244) : son mot de passe ouvre aussi les autres, pour toute la fenetre.
+  const adm = JSON.parse(document.getElementById("administrateur").textContent || "{}");
+  if (adm.rattachee) {
+    const autres = adm.autres || [];
+    document.getElementById("titre-mdp").textContent = "Mot de passe de l'administrateur"
+      + (autres.length ? " — il ouvre aussi " + (autres.length > 1 ? autres.slice(0, -1).join(", ") + " et " + autres[autres.length - 1] : autres[0]) : "");
+  }
   window.addEventListener("pywebviewready", () => mdp.focus());
   // « Retour » et Echap : revenir au choix de la compagnie. La reponse du geste dit `recharger` et la cale ramene la
   // fenetre sur `/`, ou le serveur sert l'accueil. Un refus s'affiche, rien ne se tait.

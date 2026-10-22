@@ -84,6 +84,38 @@
   .fictives[open] > summary::before { transform:rotate(90deg); }
   .fictives > summary:hover { color:var(--texte); }
 </style>
+<style>
+  /* LE TABLEAU DE BORD DE L'ADMINISTRATEUR (ticket #244) : les declarations de ses compagnies, la plus pressee d'abord. */
+  .tableau { margin:0 0 26px; }
+  .tableau h2 { font-size:15px; margin:0 0 4px; }
+  .tableau .intro { color:var(--discret); font-size:12.5px; margin:0 0 10px; }
+  .declarations { background:var(--carte); border:1px solid var(--bord); border-radius:4px; }
+  .declaration { display:grid; grid-template-columns:170px 1fr 190px; gap:12px; align-items:baseline;
+                 padding:9px 14px; border-top:1px solid var(--bord); cursor:pointer; }
+  .declaration:first-child { border-top:0; }
+  .declaration:hover { background:#FBFAF8; }
+  .declaration .cie { font-weight:bold; font-size:13px; display:flex; gap:7px; align-items:center; }
+  .declaration .cie::before { content:""; width:9px; height:9px; border-radius:50%; background:var(--cie, var(--accent)); flex:none; }
+  .declaration .quoi b { display:block; font-size:13.5px; }
+  .declaration .quoi span { color:var(--discret); font-size:12.5px; }
+  .declaration .limite { text-align:right; font-size:12.5px; }
+  .declaration.retard .limite { color:var(--accent); font-weight:bold; }
+  .declaration .pastille { display:inline-block; font-size:11px; padding:1px 7px; border-radius:9px;
+                           background:#EEF5EA; color:#3B6D2E; margin-left:6px; }
+  .declaration .pastille.test { background:#E8F0F7; color:#2E5A7D; }
+  .declaration ul { margin:4px 0 0 16px; padding:0; color:var(--discret); font-size:12px; }
+  .tableau .vide { color:var(--discret); padding:12px 14px; }
+  .tableau .groupe { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+  .tableau .groupe button { width:auto; margin:0; padding:8px 14px; }
+  .tableau .groupe button.second { background:#fff; color:var(--texte); border-color:var(--bord); font-weight:normal; }
+  .tableau .resultats { margin-top:10px; font-size:13px; }
+  .tableau .resultats li { margin:3px 0; }
+  .tableau .resultats .refus { color:var(--accent); }
+  .boite-mdp { position:fixed; inset:0; background:rgba(44,62,80,.35); display:grid; place-items:center; z-index:5; }
+  .boite-mdp form { background:#fff; padding:22px 26px; border-radius:6px; width:380px; }
+  .boite-mdp .barre { display:flex; gap:8px; }
+  .boite-mdp .barre button.second { background:#fff; color:var(--texte); border-color:var(--bord); font-weight:normal; }
+</style>
 <link rel="stylesheet" href="/mise-a-jour.css?v={{EMPREINTE}}">
 <div class="accueil">
   <div class="filet" id="geste"></div>
@@ -91,6 +123,7 @@
   <!-- La version, sous le nom, comme dans la page d'une compagnie (ticket #211). -->
   <div class="version">version {{VERSION}}</div>
   <div class="sous">{{SOUS_TITRE}}</div>
+  <section class="tableau" id="tableau" hidden></section>
   {{TUILES}}
   <div class="erreur" id="erreur"></div>
 </div>
@@ -151,6 +184,113 @@
       err.textContent = r.ok ? "" : r.erreur;
     });
   }
+</script>
+<script>
+  /* LE TABLEAU DE BORD DE L'ADMINISTRATEUR (ticket #244). Tout vient du moteur (`administrateur.rs`) : les declarations
+     de ses compagnies, triees par urgence avec leur date limite, ce qui est pret, et s'il y a lieu de proposer le depot
+     groupe (`groupe.*.propose` : au moins deux compagnies avec quelque chose de pret). La page affiche, elle ne decide
+     rien. D'abord le tableau garde (tout de suite), puis refait en fond. */
+  (function () {
+    const zone = document.getElementById("tableau");
+    // La fenetre se tire par son corps : le tableau n'en est pas une poignee.
+    zone.addEventListener("mousedown", (e) => e.stopPropagation());
+    const api = window.pywebview.api;
+    const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    let dernier = null, resultats = "";
+    const pluriel = (n, un, des) => (n > 1 ? des : un);
+
+    function ligne(d) {
+      const pret = d.pret || {};
+      const pastille = pret.reel ? `<span class="pastille">prête à envoyer</span>`
+        : pret.test ? `<span class="pastille test">prête pour le test</span>` : "";
+      const ou = (d.ou || []).length ? `<ul>${d.ou.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
+      return `<div class="declaration${d.en_retard ? " retard" : ""}" data-id="${esc(d.id)}" style="--cie:${esc(d.couleur)}">
+        <span class="cie">${esc(d.compagnie)}</span>
+        <span class="quoi"><b>${esc(d.titre)}${pastille}</b><span>${esc(d.marche || d.detail || "")}</span>${ou}</span>
+        <span class="limite">${d.quand ? (d.en_retard ? "en retard — c'était " : "au plus tard ") + esc(d.quand) : ""}</span>
+      </div>`;
+    }
+
+    function dessiner(t) {
+      dernier = t;
+      if (!t || !(t.compagnies || []).length) { zone.hidden = true; return; }
+      zone.hidden = false;
+      const decl = t.declarations || [];
+      const noms = t.compagnies.map((c) => c.nom);
+      // Une compagnie dont le tableau ne se fait pas le dit, avec la phrase du moteur (pas avant qu'il ait ete refait).
+      const pannes = t.garde ? [] : t.compagnies.filter((c) => c.erreur);
+      const g = t.groupe || {};
+      const boutons = [];
+      if (g.reel && g.reel.propose) boutons.push(`<button type="button" id="g-reel">Déposer les ${g.reel.declarations} DSN prêtes</button>`);
+      if (g.test && g.test.propose) boutons.push(`<button type="button" class="second" id="g-test">Tester les ${g.test.declarations} DSN écrites</button>`);
+      zone.innerHTML = `
+        <h2>Les déclarations de vos compagnies</h2>
+        <p class="intro">${esc(noms.join(" · "))} — un seul mot de passe, celui de l'administrateur.</p>
+        <div class="declarations">${decl.length ? decl.map(ligne).join("")
+          : pannes.length ? "" : `<div class="vide">Toutes les déclarations de vos compagnies sont faites.</div>`}
+          ${pannes.map((c) => `<div class="declaration retard" data-id="${esc(c.id)}" style="--cie:${esc(c.couleur)}">
+            <span class="cie">${esc(c.nom)}</span><span class="quoi"><b>Le tableau de cette compagnie ne se lit pas</b>
+            <span>${esc(c.erreur)}</span></span><span class="limite"></span></div>`).join("")}</div>
+        ${boutons.length ? `<div class="groupe">${boutons.join("")}</div>` : ""}
+        <div class="resultats">${resultats}</div>`;
+      for (const l of zone.querySelectorAll(".declaration[data-id]")) {
+        l.addEventListener("click", async () => {
+          const r = await api.choisir(l.dataset.id);
+          if (!r || !r.ok) err.textContent = (r && r.erreur) || "La compagnie ne s'ouvre pas.";
+        });
+      }
+      const reel = document.getElementById("g-reel"), test = document.getElementById("g-test");
+      if (reel) reel.onclick = () => demanderMotDePasse(g.reel.declarations, (m) => deposer(true, m, reel));
+      if (test) test.onclick = () => deposer(false, "", test);
+    }
+
+    /* Le mot de passe de l'administrateur, tape au moment de l'acte : il ouvre chaque coffre, et chaque depot le
+       reverifie. Annuler ne fait rien. */
+    function demanderMotDePasse(n, suite) {
+      const b = document.createElement("div");
+      b.className = "boite-mdp";
+      b.innerHTML = `<form><p><b>Déposer ${n} DSN pour de vrai</b></p>
+        <p class="discret">Chaque DSN part avec ses contrôles et son bilan, compagnie par compagnie. Le mot de passe de
+          l'administrateur le confirme.</p>
+        <input type="password" autocomplete="current-password" placeholder="le mot de passe de l'administrateur">
+        <div class="barre"><button type="button" class="second">Annuler</button><button type="submit">Déposer</button></div></form>`;
+      document.body.appendChild(b);
+      const champ = b.querySelector("input");
+      champ.focus();
+      b.querySelector("button.second").onclick = () => b.remove();
+      b.querySelector("form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const m = champ.value;
+        b.remove();
+        if (m) suite(m);
+      });
+    }
+
+    async function deposer(reel, motdepasse, bouton) {
+      bouton.disabled = true;
+      bouton.textContent = reel ? "Dépôts en cours…" : "Tests en cours…";
+      const r = await api.deposer_groupe(reel, motdepasse);
+      if (!r || !r.ok) {
+        resultats = `<p class="refus">${esc((r && r.erreur) || "Rien n'est parti.")}</p>`;
+        dessiner(dernier);
+        return;
+      }
+      const d = r.depot;
+      resultats = `<p><b>${d.partis} ${pluriel(d.partis, "déclaration partie", "déclarations parties")}${d.refuses ? `, ${d.refuses} ${pluriel(d.refuses, "refusée", "refusées")}` : ""}.</b></p>
+        <ul>${(d.resultats || []).map((x) => `<li class="${x.parti ? "" : "refus"}"><b>${esc(x.compagnie)}</b>${x.titre ? " — " + esc(x.titre) : ""} :
+          ${esc(x.parti ? x.phrase : x.refus)}</li>`).join("")}</ul>`;
+      dessiner(d.tableau);
+    }
+
+    (async () => {
+      if (typeof api.tableau !== "function") return;
+      const r = await api.tableau();
+      if (r && r.ok) dessiner(r.tableau);
+      if (!r || !r.ok || !(r.tableau.compagnies || []).length) return;
+      const frais = await api.tableau_rafraichir();
+      if (frais && frais.ok) dessiner(frais.tableau);
+    })();
+  })();
 </script>
 <!-- L'indicateur de la mise a jour, en bas a gauche (ticket #210). -->
 <script src="/js/mise-a-jour.js?v={{EMPREINTE}}"></script>

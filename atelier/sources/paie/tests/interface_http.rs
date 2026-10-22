@@ -2,7 +2,7 @@
 //! refuse en phrase et un corps trop gros se dit en JSON (#141). Le journal de la fenetre va dans un dossier utilisateur
 //! sous `CARGO_TARGET_TMPDIR`, jamais celui du poste ; le serveur n'ecoute que sur 127.0.0.1.
 
-use paie::interface::{demarrer_sur, lire_options, Options, MINUTES_VEILLE, PORT_DEFAUT};
+use paie::interface::{demarrer_sur, lire_options, Options, MINUTES_VEILLE};
 use std::net::TcpListener;
 use std::path::Path;
 
@@ -26,10 +26,10 @@ fn utilisateur() -> (std::sync::MutexGuard<'static, ()>, std::path::PathBuf) {
 
 #[test]
 fn les_options_de_paie_interface_se_lisent_et_un_port_illisible_est_refuse() {
-    assert_eq!(lire_options(&[]).unwrap(), Options { port: PORT_DEFAUT, minutes_veille: MINUTES_VEILLE, sans_navigateur: false });
+    assert_eq!(lire_options(&[]).unwrap(), Options { port: None, minutes_veille: MINUTES_VEILLE, sans_navigateur: false });
     assert_eq!(
         lire_options(&args(&["--port", "8123", "--sans-navigateur", "--veille", "3"])).unwrap(),
-        Options { port: 8123, minutes_veille: 3, sans_navigateur: true }
+        Options { port: Some(8123), minutes_veille: 3, sans_navigateur: true }
     );
     for faux in [&["--port", "huit"][..], &["--port", "0"], &["--port", "70000"], &["--veille", "longtemps"], &["--port"], &["--autre"]] {
         assert!(lire_options(&args(faux)).is_err(), "{:?} doit etre refuse", faux);
@@ -41,7 +41,6 @@ fn la_fenetre_ecoute_au_port_qu_on_lui_donne() {
     let (_verrou, utilisateur) = utilisateur();
     // Un port libre, rendu aussitot : la fenetre doit ecouter la, pas au port par defaut.
     let libre = TcpListener::bind(("127.0.0.1", 0)).unwrap().local_addr().unwrap().port();
-    assert_ne!(libre, PORT_DEFAUT);
     let (_f, port) = demarrer_sur(0, libre).unwrap();
     assert_eq!(port, libre);
     std::net::TcpStream::connect(("127.0.0.1", port)).unwrap();
@@ -125,4 +124,19 @@ fn l_accueil_lit_la_mise_a_jour_et_redemarrer_refuse_quand_rien_n_est_pret() {
     assert!(!fermee.load(std::sync::atomic::Ordering::SeqCst), "rien de pret : le logiciel ne se ferme pas");
     assert_eq!(geste("maj")["ok"], serde_json::json!(true), "le serveur repond encore");
     let _ = std::fs::remove_dir_all(&utilisateur);
+}
+
+/// Le journal de l'interface note chaque route servie, son nom et sa duree, et la classe d'un refus (ticket #244) ; un
+/// nom de route qui porterait autre chose qu'un nom n'y entre pas tel quel.
+#[test]
+fn le_journal_de_l_interface_note_chaque_route_et_sa_duree() {
+    use paie::interface::ligne_de_route;
+    use std::time::Duration;
+    let ok = ligne_de_route("mois-a-ouvrir", Duration::from_millis(237), &serde_json::json!({"ok": true, "resultat": {"mois": "2026-09"}}));
+    assert!(ok.ends_with(" route mois-a-ouvrir 237 ms\n"), "{:?}", ok);
+    let refus = ligne_de_route("saisie", Duration::from_millis(3), &serde_json::json!({"ok": false, "erreur": {"type": "KeyError", "message": "il faut mois"}}));
+    assert!(refus.ends_with(" route saisie 3 ms refus KeyError\n"), "{:?}", refus);
+    assert!(!refus.contains("il faut mois"), "la phrase du refus n'a rien a faire au journal : {:?}", refus);
+    let bizarre = ligne_de_route("etat\nmotdepasse secret", Duration::from_millis(1), &serde_json::json!({"ok": true}));
+    assert_eq!(bizarre.matches('\n').count(), 1, "{:?}", bizarre);
 }

@@ -9,6 +9,7 @@
 //! Les fichiers de donnees se lisent en `serde_json::Value`, comme le Python
 //! lit des dictionnaires : rien a migrer, et une cle inconnue survit.
 
+pub mod administrateur;
 pub mod aer;
 #[cfg(feature = "atelier")]
 pub mod atelier;
@@ -71,6 +72,7 @@ pub mod fiche_recapitulative;
 pub mod fctu;
 pub mod feries;
 pub mod fichiers;
+pub mod fil_de_fond;
 pub mod filet;
 pub mod generer_tables;
 pub mod garde_reseau;
@@ -78,7 +80,6 @@ pub mod google_autorisation;
 pub mod guet;
 pub mod horloge;
 pub mod formats;
-pub mod instance;
 pub mod interface;
 pub mod journal;
 pub mod kali;

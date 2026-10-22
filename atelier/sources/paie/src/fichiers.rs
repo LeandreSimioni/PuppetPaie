@@ -18,20 +18,24 @@ use std::sync::{Arc, Mutex, OnceLock};
 // `est_dossier` et `lister`. Quand un registre est ouvert (`suivre`), chacun
 // y note ce qu'il a vu : l'empreinte du contenu d'un fichier, `absent`, la
 // liste des `.json` d'un dossier. C'est la liste des entrees du calcul
-// (`calcul_du_mois`). Un processus par calcul : un cache deja chaud ne
-// rejoue pas les lectures qu'il a saisies.
+// (`calcul_du_mois`). Les caches qui ne notent rien quand ils servent (les baremes composes) se cle par
+// `generation` : un calcul suivi a la sienne, a lui seul, et repart a froid ; hors registre, la generation est 0 et
+// ces caches servent d'une route a l'autre (la fenetre garde le moteur charge, ticket #244).
 
 struct Registre {
     racine: PathBuf,
     code: PathBuf,
     entrees: BTreeMap<String, String>,
+    /// Le numero de ce registre, unique dans le processus.
+    numero: u64,
 }
 
 static GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
-/// Le nombre de fois qu'un registre s'est ouvert dans ce processus (cle des caches qui ne notent pas).
+/// La cle des caches qui ne notent pas : le numero du registre ouvert SUR CE FIL, 0 sans registre. Un calcul suivi ne
+/// sert ainsi que ce qu'il a compose lui-meme (tout ce qu'il lit se note), meme si un autre fil compose en meme temps.
 pub fn generation() -> u64 {
-    GENERATION.load(std::sync::atomic::Ordering::SeqCst)
+    REGISTRE.with(|r| r.borrow().as_ref().map_or(0, |g| g.numero))
 }
 
 thread_local! {
@@ -41,11 +45,29 @@ thread_local! {
 /// Ouvre le registre : les chemins sous `racine` ou `code` s'y notent relatifs.
 pub fn suivre(racine: &Path, code: &Path) {
     // Un registre neuf, c'est un calcul « a froid » : les caches de bareme (qui ne notent rien quand ils servent)
-    // sont oublies, pour que la liste des entrees soit celle d'un processus neuf (comme en Python).
-    GENERATION.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    // ne lui servent que ce qu'il compose, pour que la liste des entrees soit celle d'un processus neuf.
+    let numero = GENERATION.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
     REGISTRE.with(|r| {
-        *r.borrow_mut() = Some(Registre { racine: racine.to_path_buf(), code: code.to_path_buf(), entrees: BTreeMap::new() })
+        *r.borrow_mut() = Some(Registre { racine: racine.to_path_buf(), code: code.to_path_buf(), entrees: BTreeMap::new(), numero })
     });
+}
+
+/// Un registre est-il ouvert sur ce fil ?
+pub fn registre_ouvert() -> bool {
+    suivi()
+}
+
+/// Au-dela, un cache du processus se vide (`ranger`).
+pub const CACHE_MAX: usize = 512;
+
+/// Range `v` sous `cle` dans un cache du processus. La fenetre garde le moteur charge (ticket #244) : chaque calcul
+/// suivi ajoute ses cles (`generation`), et un cache plein se vide plutot que de grossir tant que la fenetre tourne.
+pub fn ranger<K: Eq + std::hash::Hash, V>(cache: &Mutex<HashMap<K, V>>, cle: K, v: V) {
+    let mut c = cache.lock().unwrap_or_else(|p| p.into_inner());
+    if c.len() >= CACHE_MAX {
+        c.clear();
+    }
+    c.insert(cle, v);
 }
 
 /// Ferme le registre et rend ce qu'il a note, trie par cle.
@@ -190,7 +212,29 @@ pub fn dossier_du_code() -> PathBuf {
 }
 
 /// `util.signature_fichier` : (date de modification en ns, taille), ou `None`.
+///
+/// LE CODE LIVRE NE BOUGE PAS PENDANT UNE ROUTE (ticket #244) : le temps d'une route (`code_fige`), la signature d'un
+/// fichier du code (`dossier_du_code`) se lit une fois. Les caches du moteur la demandaient a chaque service -- mille
+/// fois `norme-dsn-base.json` pour un seul `etat` --, et sous Windows chaque demande ouvre le fichier, que l'antivirus
+/// inspecte. Les fichiers de la compagnie, eux, se relisent toujours : une route les ecrit.
 pub fn signature(chemin: &Path) -> Option<(u128, u64)> {
+    let memo = CODE_FIGE.with(|c| c.borrow().as_ref().filter(|(code, _)| chemin.starts_with(code)).map(|(_, m)| m.get(chemin).copied()));
+    match memo {
+        Some(Some(s)) => s,
+        Some(None) => {
+            let s = signature_lue(chemin);
+            CODE_FIGE.with(|c| {
+                if let Some((_, m)) = c.borrow_mut().as_mut() {
+                    m.insert(chemin.to_path_buf(), s);
+                }
+            });
+            s
+        }
+        None => signature_lue(chemin),
+    }
+}
+
+fn signature_lue(chemin: &Path) -> Option<(u128, u64)> {
     let m = std::fs::metadata(chemin).ok()?;
     let ns = m
         .modified()
@@ -201,11 +245,48 @@ pub fn signature(chemin: &Path) -> Option<(u128, u64)> {
     Some((ns, m.len()))
 }
 
+type SignaturesDuCode = Option<(PathBuf, HashMap<PathBuf, Option<(u128, u64)>>)>;
+
+thread_local! {
+    static CODE_FIGE: RefCell<SignaturesDuCode> = const { RefCell::new(None) };
+}
+
+/// Le temps d'une route, le code livre est fige (`signature`). Rendu par `code_fige`, il le libere en tombant ; une
+/// route lue depuis une autre ne fige rien de plus.
+pub struct CodeFige(bool);
+
+#[must_use = "le code n'est fige que tant que son garde vit"]
+pub fn code_fige() -> CodeFige {
+    CodeFige(CODE_FIGE.with(|c| {
+        let mut c = c.borrow_mut();
+        if c.is_some() {
+            return false;
+        }
+        *c = Some((dossier_du_code(), HashMap::new()));
+        true
+    }))
+}
+
+impl Drop for CodeFige {
+    fn drop(&mut self) {
+        if self.0 {
+            CODE_FIGE.with(|c| *c.borrow_mut() = None);
+        }
+    }
+}
+
 type Cache = Mutex<HashMap<PathBuf, ((u128, u64), Arc<Value>)>>;
 
 /// Un fichier JSON lu une fois tant qu'il ne change pas (objet partage : on
 /// ne le modifie pas).
 pub fn json_en_cache(chemin: &Path) -> Resultat<Arc<Value>> {
+    json_en_cache_ou(chemin, lire_json)
+}
+
+/// `json_en_cache`, lu par `lire` quand il faut le lire : le refus d'un fichier illisible reste celui de l'appelant (sa
+/// classe, son message), et ne se garde jamais -- seul un JSON lu se garde, sous la signature du fichier (date, taille).
+/// `lire` doit noter sa lecture (`lire_texte`) ; servi du cache, le fichier se note ici (`noter_si_besoin`).
+pub fn json_en_cache_ou<E>(chemin: &Path, lire: impl FnOnce(&Path) -> Result<Value, E>) -> Result<Arc<Value>, E> {
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     let sig = signature(chemin);
@@ -217,7 +298,7 @@ pub fn json_en_cache(chemin: &Path) -> Resultat<Arc<Value>> {
             }
         }
     }
-    let v = Arc::new(lire_json(chemin)?);
+    let v = Arc::new(lire(chemin)?);
     if let Some(s) = sig {
         cache.lock().unwrap().insert(chemin.to_path_buf(), (s, v.clone()));
     }

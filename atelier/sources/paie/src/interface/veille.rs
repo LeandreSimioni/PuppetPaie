@@ -127,7 +127,7 @@ impl Veille {
     /// Le premier tour, complet, puis un tour toutes les `minutes` tant que la veille n'est pas arretee.
     pub fn demarrer(self: &Arc<Self>) {
         let v = self.clone();
-        std::thread::spawn(move || {
+        crate::routes::fil_de_routes(move || {
             // La mise a jour ne se cherche plus ici, a l'ouverture d'une compagnie : c'est le logiciel qui la cherche pour
             // lui-meme, au lancement (`maj::chercher_en_fond`, lot U1).
             v.tour(false, true);

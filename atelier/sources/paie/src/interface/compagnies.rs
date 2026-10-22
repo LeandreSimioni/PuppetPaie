@@ -202,10 +202,15 @@ fn nom_dossier(p: &Path) -> String {
 
 /// Ce que propose l'accueil, dans l'ordre des tuiles : les vraies, puis les fictives.
 pub fn liste() -> Vec<Compagnie> {
-    let b = base();
+    liste_de(&base())
+}
+
+/// Les compagnies de l'installation `b` (le dossier qui porte `logiciel/`, `prive/`, `compagnies/`, `fictives/`), dans
+/// l'ordre des tuiles. L'administrateur (`administrateur.rs`) lit celles de l'installation qu'on lui donne.
+pub fn liste_de(b: &Path) -> Vec<Compagnie> {
     let mut out = Vec::new();
     if !crate::bridage::est_bride() {
-        let reel = dossier_reel();
+        let reel = if b == base() { dossier_reel() } else { b.join("prive") };
         if reel.join("config").is_dir() {
             out.push(entree("reelle".into(), &reel, true));
         }
@@ -217,6 +222,16 @@ pub fn liste() -> Vec<Compagnie> {
         out.push(entree(format!("fictive:{}", nom_dossier(&d)), &d, false));
     }
     out
+}
+
+/// LES COMPAGNIES QUE LA FENETRE TIENT A JOUR EN FOND des son lancement (ticket #244, `Fenetre::prechauffer`) : les
+/// vraies compagnies de l'installation `b` (pas les fictives), la derniere ouverte d'abord -- la date de son journal de
+/// la fenetre (`journal/interface.log`), que chaque ouverture recommence ; jamais ouverte, a la fin.
+pub fn a_tenir_a_jour(b: &Path) -> Vec<PathBuf> {
+    let date = |r: &Path| std::fs::metadata(r.join("journal").join("interface.log")).and_then(|m| m.modified()).ok();
+    let mut reelles: Vec<PathBuf> = liste_de(b).into_iter().filter(|c| c.reelle).map(|c| c.racine).collect();
+    reelles.sort_by_key(|r| std::cmp::Reverse(date(r)));
+    reelles
 }
 
 /// Le dossier d'une tuile -- et seulement d'une tuile : l'identifiant ne designe jamais un chemin qu'on n'a pas propose.

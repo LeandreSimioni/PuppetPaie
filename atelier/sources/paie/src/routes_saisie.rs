@@ -475,6 +475,10 @@ struct Echeance {
     annee: Option<String>,
     /// La DSN seule : `echeance_dsn::Echeance::en_json` (le jour, midi, la date nominale, le report et ses textes).
     echeance_depot: Option<Value>,
+    /// DITE PAR UN RAPPEL DE L'OUVERTURE (ticket #244) : la DSN d'un mois que la route `rappels` reclame
+    /// (`routes_ouverture::mois_a_declarer`, la meme lecture), avec son geste (« Verifier et envoyer »). La boite de
+    /// l'ouverture ne la dit qu'une fois, par ce rappel ; l'echeance reste ici pour sa date (l'etape DSN du mois la lit).
+    rappel: bool,
 }
 
 impl Echeance {
@@ -483,7 +487,7 @@ impl Echeance {
         json!({
             "cle": self.cle, "quoi": self.quoi, "mois": self.mois, "titre": self.titre, "detail": self.detail,
             "source": self.source, "etat": self.etat, "date": self.date, "cochable": self.cochable, "annee": self.annee,
-            "echeance_depot": self.echeance_depot,
+            "echeance_depot": self.echeance_depot, "rappel": self.rappel,
         })
     }
 }
@@ -574,6 +578,7 @@ fn dsn(st: &Etat, jour_dsn: u32, mois: &str, modele: &Value, aujourdhui: &Jour) 
         cochable: false,
         annee: None,
         echeance_depot: Some(echeance.en_json()),
+        rappel: false,
     })
 }
 
@@ -701,6 +706,7 @@ fn annuelle(
         cochable: comment == Some("coche"),
         annee: Some(annee.to_string()),
         echeance_depot: None,
+        rappel: false,
     }))
 }
 
@@ -743,7 +749,8 @@ fn echeancier(ctx: &Contexte, charge: &Value) -> R<Value> {
     // d'avant sa premiere embauche.
     let precedent = mois_plus(&courant, -1);
     let premier = ouverture::premier_mois_declarable(&st);
-    for m in ouverture::mois_a_declarer(&st).map_err(en_echec)? {
+    let reclames = ouverture::mois_a_declarer(&st).map_err(en_echec)?;
+    for m in reclames.iter().cloned() {
         if m < precedent {
             toutes.push(dsn(&st, jour_dsn, &m, modele, &aujourdhui)?);
         }
@@ -764,6 +771,10 @@ fn echeancier(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
     }
 
+    // UNE DSN SE DIT UNE FOIS (ticket #244) : celle qu'un rappel reclame, avec son geste, ne se repete pas dans « Ce mois-ci ».
+    for x in toutes.iter_mut() {
+        x.rappel = x.quoi == "dsn" && x.etat != FAIT && reclames.iter().any(|m| x.cle == format!("dsn:{}", m));
+    }
     let fin = mois_plus(&courant, mois_a_venir);
     let (mut ce_mois, mut a_venir) = (Vec::new(), Vec::new());
     for x in toutes {
@@ -810,6 +821,6 @@ fn echeancier(ctx: &Contexte, charge: &Value) -> R<Value> {
         "idcc": ctx.entreprise.get("idcc").cloned().unwrap_or(Value::Null),
         "ce_mois": ce_mois.iter().map(Echeance::json).collect::<Vec<_>>(),
         "a_venir": a_venir.iter().map(Echeance::json).collect::<Vec<_>>(),
-        "a_faire": ce_mois.iter().filter(|x| x.etat == A_FAIRE || x.etat == EN_RETARD).count(),
+        "a_faire": ce_mois.iter().filter(|x| !x.rappel && (x.etat == A_FAIRE || x.etat == EN_RETARD)).count(),
     }))
 }

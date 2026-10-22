@@ -16,6 +16,7 @@ mod bulletins_fictifs;
 mod faux_drive;
 
 mod arret_prolonge;
+mod administrateur;
 mod avenant;
 mod calcul_du_mois;
 mod carte_figee;
@@ -24,6 +25,7 @@ mod echeance_dsn;
 mod historique_mois;
 mod modifier_apres_echeance;
 mod etat_garde;
+mod prechauffage;
 mod routes_accueil;
 mod routes_actes;
 mod routes_apercus;

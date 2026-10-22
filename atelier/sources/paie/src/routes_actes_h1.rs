@@ -251,11 +251,11 @@ fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = cle_du_salarie(ctx, salarie)?;
     let (rang, e) = engagement_qui_finit(ctx, &saisie, &cle, salarie, mois)?;
     let p = paie_de_l_engagement(ctx, &chemin, rang, &cle, salarie, mois)?;
-    let ent = ctx.entreprise.clone();
+    let ent = ctx.entreprise_et_gabarits();
     let sortie = ctx.racine.join("sorties").join(mois);
     let date: Jour = jour_le(charge)?.unwrap_or(ctx.aujourdhui);
     let fin_jj = en_texte(&e["fin"]).replace('-', "");
-    let poste = crate::avenant::gabarits_du_poste();
+    let poste = ctx.gabarits();
 
     let numero = p.engagement.numero.clone().unwrap_or_else(|| "?".to_string());
     if p.engagement.fin.is_none() {
@@ -767,7 +767,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
     let code = code_urssaf(&ctx.entreprise)?;
     let chemins = Chemins {
         defaut: dossier_du_code().join("modeles").join("due_tel_gabarit.txt"),
-        poste: crate::avenant::gabarits_du_poste(),
+        poste: ctx.gabarits(),
     };
     let heure_texte = en_texte(&heure);
     let embauches: Vec<Embauche> = retenues.iter().map(|p| embauche_dpae(p, false)).collect();
@@ -894,7 +894,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
 /// `sans_contrat` (l'horloge de la compagnie fictive). Rend le chemin du `.txt` (le `.zip` est ecrit a cote).
 pub(crate) fn ecrire_dpae_du_mois(ctx: &Contexte, ent: &Value, embauches: &[&Paie], sortie: &Path, etiq: &str) -> R<PathBuf> {
     let code = code_urssaf(&ctx.entreprise)?;
-    let chemins = Chemins { defaut: dossier_du_code().join("modeles").join("due_tel_gabarit.txt"), poste: crate::avenant::gabarits_du_poste() };
+    let chemins = Chemins { defaut: dossier_du_code().join("modeles").join("due_tel_gabarit.txt"), poste: ctx.gabarits() };
     let h = horodatage(&maintenant_iso());
     let heure = "0800";
     let pour_fichier: Vec<Embauche> = embauches.iter().map(|p| embauche_dpae(p, false)).collect();

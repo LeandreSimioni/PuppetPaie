@@ -271,7 +271,8 @@ fn la_date_la_bienvenue_et_la_dsn_du_mois_d_avant() {
     assert_eq!(dsn["annee"], Value::Null);
     // Le mardi 15/09/2026 est ouvre : pas de report, a midi (cahier technique § 1.4.2).
     assert!(dsn["detail"].as_str().unwrap().starts_with("Au plus tard le 15 septembre 2026 à midi. Elle part"), "{}", dsn["detail"]);
-    let a_faire = |r: &Value| r["ce_mois"].as_array().unwrap().iter().filter(|x| x["etat"] == "a_faire" || x["etat"] == "en_retard").count();
+    // Ce qui reste a faire, hors la DSN qu'un rappel de l'ouverture reclame (elle se dit une fois, par lui : #244).
+    let a_faire = |r: &Value| r["ce_mois"].as_array().unwrap().iter().filter(|x| x["rappel"] != json!(true) && (x["etat"] == "a_faire" || x["etat"] == "en_retard")).count();
     assert_eq!(r["a_faire"], json!(a_faire(&r)));
     // Passee l'echeance, elle est en retard ; septembre prend le relais, aout reste -- quand
     // la derniere DSN passee est celle de juillet (sans aucune DSN, on ne reclame que le mois d'avant).
@@ -293,8 +294,10 @@ fn une_dsn_reelle_acceptee_fait_l_echeance_une_refusee_la_rouvre() {
     journal(c, json!([dsn_reelle("2026-08", "KO")]));
     let r = echeancier(c, "2026-09-20");
     assert_eq!(par_cle(&r["ce_mois"], "dsn:2026-08")["etat"], "en_retard");
-    // La DSN refusee compte parmi ce qu'il reste a faire.
-    let rouverte = r["ce_mois"].as_array().unwrap().iter().filter(|x| x["etat"] == "a_faire" || x["etat"] == "en_retard").count();
+    // La DSN refusee reste a faire : dite par le rappel de l'ouverture qui la reclame, sinon comptee ici (#244).
+    let rouverte = r["ce_mois"].as_array().unwrap().iter().filter(|x| x["rappel"] != json!(true) && (x["etat"] == "a_faire" || x["etat"] == "en_retard")).count();
+    let aout = par_cle(&r["ce_mois"], "dsn:2026-08");
+    assert!(aout["rappel"] == json!(true) || rouverte >= 1, "{}", aout);
     assert_eq!(r["a_faire"], json!(rouverte));
 }
 

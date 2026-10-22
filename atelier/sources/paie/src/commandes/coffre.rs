@@ -228,6 +228,15 @@ fn ouverture(cadre: &Cadre) -> Result<i32, Echec> {
     dire!("Il n'est pas ecrit : il scelle une enveloppe de la cle du coffre,");
     dire!("et une enveloppe ne rend rien a qui n'a pas le mot de passe.");
     let coffre = Coffre::du_poste(&cadre.racine, &maintenant_minutes());
+    // UNE COMPAGNIE DE L'ADMINISTRATEUR (ticket #244) : son mot de passe est aussi celui des autres ; il se change pour
+    // toutes a la fois, dans la fenetre (Configuration > Mots de passe), jamais pour une seule ici.
+    if crate::administrateur::est_rattachee(&crate::administrateur::installation_de(&cadre.racine), &cadre.racine) {
+        dire!();
+        dire!("Cette compagnie est geree par l'administrateur : son mot de passe ouvre aussi ses autres");
+        dire!("compagnies, et il se change pour toutes a la fois, dans la fenetre PuppetPaie");
+        dire!("(Configuration > Mots de passe). Rien n'a ete modifie.");
+        return Ok(2);
+    }
     // LE MOT DE PASSE ACTUEL, quand la cle de ce poste n'ouvre plus le coffre : le moteur le demande avec la preuve de l'acte
     // (ci-dessous), et ce meme mot de passe ouvre le coffre pour la suite de la commande.
     if !coffre.ouvre_a_ce_poste().map_err(vers_classe)? {

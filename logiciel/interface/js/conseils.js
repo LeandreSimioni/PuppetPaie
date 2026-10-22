@@ -37,24 +37,29 @@ function conseilDuBloc(part) {
   return p ? conseilHtml(p.conseil, true) : "";
 }
 
-/** L'accueil : le conseil du jour, et le résumé de ce que la compagnie a fait. Vide quand l'option est décochée. */
-async function dessinerConseils() {
+/** L'accueil : le conseil du jour, et le résumé de ce que la compagnie a fait. Vide quand l'option est décochée.
+ *  `lus` : les deux lectures déjà faites (`{jour, resume}`, l'ouverture d'un coup, js/demarrage.js) ; sinon on les
+ *  demande. Repeindre le même contenu ne change rien à l'écran. */
+async function dessinerConseils(lus) {
   const cible = document.getElementById("conseils-accueil");
   if (!cible) return;
   let jour, resume;
   try {
-    [jour, resume] = await Promise.all([
+    [jour, resume] = lus ? [lus.jour, lus.resume] : await Promise.all([
       api("conseil-du-jour", { decalage: CONSEIL_DECALAGE }),
       api("conseils-resume"),
     ]);
-  } catch (e) { cible.innerHTML = ""; return; }
+  } catch (e) { cible.innerHTML = ""; cible.dataset.peint = ""; return; }
   const c = jour && jour.conseil;
   const r = (resume && resume.conseils) || [];
-  if (!c && !r.length) { cible.innerHTML = ""; return; }
-  cible.innerHTML = `
+  if (!c && !r.length) { cible.innerHTML = ""; cible.dataset.peint = ""; return; }
+  const html = `
     ${r.map((x) => conseilHtml(x)).join("")}
     ${c ? `<div class="conseil-du-jour">${conseilHtml(c)}
       <button type="button" class="lien" id="conseil-autre">un autre</button></div>` : ""}`;
+  if (cible.dataset.peint === html) return;
+  cible.dataset.peint = html;
+  cible.innerHTML = html;
   const autre = document.getElementById("conseil-autre");
   if (autre) autre.onclick = async () => {
     CONSEIL_DECALAGE += 1;

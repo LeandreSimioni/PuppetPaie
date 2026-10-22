@@ -1,12 +1,11 @@
 //! `/api/<route>` : ce que la page demande, rendu comme `web.py` le rendait (`{"ok", "resultat"}` ou
 //! `{"ok": false, "erreur": {"type", "message", ...}}`).
 //!
-//! UNE ROUTE, UN PROCESSUS, comme du temps du Python (`paie route`, `paie_rust.route`) : une panique d'une route ne fait
-//! pas tomber la fenetre, et l'etat d'une route (le mot de passe tape, les caches) meurt avec elle. Seuls restent ici
-//! les gestes qui ne sont pas des routes du moteur : ouvrir un dossier dans l'explorateur, la veille, l'autorisation
-//! Google (le navigateur s'ouvre sur la fenetre de consentement), et le filet qui repasse en fond.
+//! LES ROUTES TOURNENT DANS LE PROCESSUS DE LA FENETRE (ticket #244 ; avant, une route, un processus, comme du temps du
+//! Python) : `route`, et pourquoi rien ne reste a part. S'ajoutent ici les gestes qui ne sont pas des routes du moteur :
+//! ouvrir un dossier dans l'explorateur, la veille, l'autorisation Google (le navigateur s'ouvre sur la fenetre de
+//! consentement), et le filet qui repasse en fond.
 
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -43,36 +42,21 @@ impl Refus {
     }
 }
 
-/// Le programme qui sert les routes : ce binaire-ci (`paie`, ou la fenetre, qui sait aussi `route`).
-fn programme() -> PathBuf {
-    std::env::current_exe().unwrap_or_else(|_| PathBuf::from("paie"))
-}
-
-/// Une route du moteur, dans son propre processus. Rend son `resultat`, ou son refus.
+/// Une route du moteur, servie ICI, dans le processus de la fenetre (ticket #244, « ouvrir une compagnie prend 4 s ») :
+/// sous Windows, un processus par route coutait 120 a 260 ms de plus a chaque appel (l'antivirus inspecte chaque
+/// lancement et chaque lecture d'un processus neuf), et les baremes, referentiels et catalogues se relisaient a chaque
+/// fois ; ici ils restent en memoire tant que leur fichier ne change pas (`fichiers::json_en_cache` et les caches qui
+/// s'en servent). Rend son `resultat`, ou son refus.
+///
+/// Rien ne reste dans un processus a part. Ce que le processus separe protegeait est tenu ici : une panique rend un
+/// refus et la fenetre reste (`routes::dans_la_fenetre`, `panic = "unwind"` en `release`) ; le mot de passe tape est
+/// oublie a la fin de sa route, quoi qu'il arrive ; la compagnie vient de `racine`, jamais d'une variable du processus
+/// (deux compagnies peuvent etre servies en meme temps par deux fils) ; les sorties reseau passent par `garde_reseau`
+/// comme avant. Seul `maj::controler` lance encore un processus : il eprouve le NOUVEAU programme, qui n'est pas celui-ci.
 pub fn route(racine: &Path, nom: &str, charge: &Value) -> Result<Value, Refus> {
-    let mut c = Command::new(programme());
-    c.arg("route").arg("--racine").arg(racine).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        // Sans console : la fenetre ne fait pas clignoter une boite noire a chaque appel.
-        c.creation_flags(0x0800_0000);
-    }
-    let mut p = c.spawn().map_err(|e| Refus::simple("ErreurOperation", format!("Le moteur ne se lance pas : {}.", e)))?;
-    let demande = serde_json::to_vec(&json!({"route": nom, "charge": charge})).unwrap_or_default();
-    if let Some(mut entree) = p.stdin.take() {
-        let _ = entree.write_all(&demande);
-    }
-    let sortie = p.wait_with_output().map_err(|e| Refus::simple("ErreurOperation", format!("Le moteur ne repond pas : {}.", e)))?;
-    let texte = String::from_utf8_lossy(&sortie.stdout);
-    let Some(rep) = texte.lines().rev().find_map(|l| serde_json::from_str::<Value>(l.trim()).ok()) else {
-        let err = String::from_utf8_lossy(&sortie.stderr);
-        return Err(Refus::simple(
-            "DefautDuLogiciel",
-            format!("Defaut du logiciel : la route {} s'est arretee sans reponse ({}).", nom, err.trim().lines().last().unwrap_or("rien sur la sortie d'erreur")),
-        ));
-    };
-    depuis_reponse(rep)
+    let mut o = std::collections::HashMap::new();
+    o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
+    depuis_reponse(crate::routes::dans_la_fenetre(&o, nom, charge))
 }
 
 /// Une reponse de `paie route` (`{"ok", "resultat"}` ou `{"ok": false, "erreur", "classe", ...}`) : son resultat, ou son refus.
@@ -300,7 +284,7 @@ fn google_autoriser(racine: &Path, charge: &Value) -> Result<Value, Refus> {
 /// Le filet repasse en fond apres une ecriture de mois ou un envoi de contrats : l'ecran n'attend pas l'Urssaf.
 fn filet_en_fond(racine: &Path) {
     let r = racine.to_path_buf();
-    std::thread::spawn(move || {
+    crate::routes::fil_de_routes(move || {
         let _ = route(&r, "filet-preparer", &json!({"qui": "filet"}));
     });
 }
@@ -309,7 +293,7 @@ fn filet_en_fond(racine: &Path) {
 /// rendu la main ; `signalements-partir` le fait partir, le temps du serveur de l'editeur, sans que la page attende.
 fn signalements_en_fond(racine: &Path) {
     let r = racine.to_path_buf();
-    std::thread::spawn(move || {
+    crate::routes::fil_de_routes(move || {
         let _ = route(&r, "signalements-partir", &json!({}));
     });
 }
@@ -369,6 +353,31 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
                     .map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message)),
                 None => route(racine, nom, charge),
             }
+        }
+        // L'OUVERTURE D'UNE COMPAGNIE, D'UN COUP ET SANS PROCESSUS (ticket #244) : le dernier etat connu de ce que la page lit
+        // en s'ouvrant (`etat_garde::FileDesEtats::ouverture`), et, lus a chaque fois a cote, ce qui vit dans la memoire de
+        // la fenetre (la veille, la mise a jour) et les signalements (que l'etat garde ne suit pas).
+        "ouverture" => {
+            let Some(f) = etats else {
+                return Err(Refus::simple("ErreurOperation", "Pas d'ouverture sans la fenetre de PuppetPaie."));
+            };
+            let frais = charge.get("frais").and_then(Value::as_bool) == Some(true);
+            let patienter = std::time::Duration::from_millis(charge.get("patienter").and_then(Value::as_u64).unwrap_or(400).min(5000));
+            // La veille se lit pendant que l'etat garde se lit (elle demande au coffre ce qui est pose).
+            let (rendu, etat_veille) = std::thread::scope(|s| {
+                let v = s.spawn(|| (!frais).then(|| veille.map(Veille::etat)).flatten());
+                let r = f.ouverture(patienter, frais);
+                (r, v.join().ok().flatten())
+            });
+            let mut v = rendu.map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message))?;
+            if v.get("pret").and_then(Value::as_bool) == Some(true) && !frais {
+                v["veille"] = etat_veille.unwrap_or_else(|| json!({"minutes": 0, "dernier": {}, "en_cours": false}));
+                v["maj"] = crate::maj::RECHERCHE.etat();
+                v["signalements"] = en_page(
+                    crate::routes_etats::signalements_route(racine).map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message)),
+                );
+            }
+            Ok(v)
         }
         _ => route(racine, nom, charge),
     }

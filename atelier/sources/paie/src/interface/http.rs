@@ -148,13 +148,11 @@ fn refus_de_lecture(code: u16) -> Reponse {
 }
 
 fn ecrire_reponse(flux: &mut TcpStream, r: &Reponse) -> std::io::Result<()> {
-    let mut tete = format!(
-        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nCache-Control: no-cache\r\n",
-        r.code,
-        phrase(r.code),
-        r.type_mime,
-        r.corps.len()
-    );
+    let mut tete = format!("HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n", r.code, phrase(r.code), r.type_mime, r.corps.len());
+    // Rien ne se garde, sauf ce qui le dit (une feuille ou un script nomme par son empreinte, `interface/mod.rs`).
+    if !r.entetes.iter().any(|(k, _)| k == "Cache-Control") {
+        tete.push_str("Cache-Control: no-cache\r\n");
+    }
     if !r.entetes.iter().any(|(k, _)| k == "Content-Security-Policy") {
         tete.push_str("Content-Security-Policy: default-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'\r\n");
     }
@@ -162,13 +160,20 @@ fn ecrire_reponse(flux: &mut TcpStream, r: &Reponse) -> std::io::Result<()> {
         tete.push_str(&format!("{}: {}\r\n", k, v));
     }
     tete.push_str("\r\n");
-    flux.write_all(tete.as_bytes())?;
-    flux.write_all(&r.corps)?;
+    // UNE SEULE ECRITURE, SANS NAGLE (ticket #244) : la tete puis le corps en deux `write`, puis la lecture de la requete
+    // suivante, c'est le motif ou le reste du corps attend l'accuse de reception de la tete, que l'autre bout differe
+    // (jusqu'a 200 ms sous Windows ; sous Linux, en boucle locale, l'accuse part aussitot et rien ne se mesure). Tout part
+    // d'un coup, sans attente (`servir_connexion` : `set_nodelay`).
+    let mut tout = Vec::with_capacity(tete.len() + r.corps.len());
+    tout.extend_from_slice(tete.as_bytes());
+    tout.extend_from_slice(&r.corps);
+    flux.write_all(&tout)?;
     flux.flush()
 }
 
 fn servir_connexion(flux: TcpStream, traiter: Arc<dyn Fn(Requete) -> Reponse + Send + Sync>) {
     let _ = flux.set_read_timeout(Some(Duration::from_secs(30)));
+    let _ = flux.set_nodelay(true);
     let Ok(mut sortie) = flux.try_clone() else { return };
     let mut entree = BufReader::new(flux);
     while let Some(r) = lire_requete(&mut entree) {
@@ -219,7 +224,7 @@ pub fn sans_heritage(l: &TcpListener) {
 pub fn servir(ecouteur: TcpListener, traiter: Arc<dyn Fn(Requete) -> Reponse + Send + Sync>) {
     for flux in ecouteur.incoming().flatten() {
         let t = traiter.clone();
-        std::thread::spawn(move || servir_connexion(flux, t));
+        crate::routes::fil_de_routes(move || servir_connexion(flux, t));
     }
 }
 

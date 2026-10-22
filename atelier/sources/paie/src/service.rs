@@ -37,6 +37,8 @@ fn saisie(ctx: &Contexte, demande: &Value) -> Resultat<Saisie> {
     }
 }
 
+/// La compagnie d'une commande : `--racine` (`o["racine"]`, toujours pose par la fenetre et la file des etats), sinon,
+/// a la ligne de commande seulement, `PUPPETPAIE_DONNEES` (`paie route` lance a la main ou par un test).
 pub(crate) fn racine_de(o: &HashMap<String, String>) -> PathBuf {
     match (o.get("racine"), std::env::var("PUPPETPAIE_DONNEES")) {
         (Some(r), _) if !r.is_empty() => PathBuf::from(r),

@@ -118,3 +118,102 @@ fn apres_une_ecriture_la_file_rend_tous_les_etats_justes() {
     }
     f.arreter();
 }
+
+// ------------------------------------------------------------------ l'ouverture (ticket #244)
+
+/// L'etat garde de l'ouverture est-il juste ?
+fn ouverture_juste(racine: &Path) -> bool {
+    juste(racine, paie::etat_garde::OUVERTURE)
+}
+
+/// L'ouverture, d'un coup, telle que la fenetre la sert (`FileDesEtats::ouverture`).
+fn ouvrir(f: &FileDesEtats, patienter: u64, frais: bool) -> Value {
+    f.ouverture(Duration::from_millis(patienter), frais).unwrap_or_else(|e| panic!("{}", e.message))
+}
+
+#[test]
+fn l_ouverture_sans_etat_connu_se_calcule_et_dit_ce_qu_elle_fait() {
+    let racine = compagnie("ouverture-neuve");
+    let f = FileDesEtats::nouvelle(&racine, Some(JOUR));
+    // Rien de garde : la fenetre ne fait pas attendre sans rien dire -- au bout du delai, la phrase du moteur.
+    let attente = ouvrir(&f, 0, false);
+    assert_eq!(attente["pret"], json!(false), "{}", attente);
+    assert!(attente["phrase"].as_str().is_some_and(|p| !p.is_empty()), "la phrase dit ce que fait le moteur : {}", attente);
+    // Le temps qu'il faut : tout est la, juste, et ecrit.
+    let o = ouvrir(&f, 120_000, false);
+    assert_eq!(o["pret"], json!(true), "{}", o);
+    assert_eq!(o["perime"], json!(false));
+    assert_eq!(o["ecran"]["perime"], json!(false));
+    assert!(ouverture_juste(&racine), "l'etat de l'ouverture est ecrit, et juste");
+    let mois = o["mois"].as_str().unwrap().to_string();
+    assert!(juste(&racine, &mois), "l'ecran du mois a ouvrir est ecrit, et juste");
+    // Les memes lectures que les routes de `paie route`.
+    for route in ["etat", "mois-a-ouvrir", "echeancier", "rappels", "pour-demarrer"] {
+        let r = route_en_processus(&racine, route, json!({}), JOUR);
+        assert_eq!(&o["lectures"][route]["resultat"], reussi(&r), "{}", route);
+    }
+    assert_eq!(o["mois"], reussi(&route_en_processus(&racine, "mois-a-ouvrir", json!({}), JOUR))["mois"]);
+    let ecran = route_en_processus(&racine, "mois", json!({"mois": mois}), JOUR);
+    assert_eq!(o["ecran"]["lectures"], reussi(&ecran)["lectures"]);
+    f.arreter();
+}
+
+/// L'etat garde de l'ouverture, marque a la main (ce qu'aucun calcul n'ecrirait) : ce qui se sert ensuite est-il le garde ?
+fn marquer_l_ouverture(racine: &Path) {
+    let p = paie::etat_garde::chemin(racine, paie::etat_garde::OUVERTURE);
+    let mut v: Value = serde_json::from_slice(&std::fs::read(&p).unwrap()).unwrap();
+    v["lectures"]["marque-du-test"] = json!({"ok": true, "resultat": "garde"});
+    std::fs::write(&p, v.to_string()).unwrap();
+}
+
+#[test]
+fn l_ouverture_juste_se_sert_sans_recalcul_perimee_se_sert_marquee_et_se_refait() {
+    let racine = compagnie("ouverture-gardee");
+    let f = FileDesEtats::nouvelle(&racine, Some(JOUR));
+    ouvrir(&f, 120_000, false);
+    assert!(ouverture_juste(&racine));
+    // JUSTE : servie telle qu'elle est gardee, sans rien refaire (la marque du test est la).
+    marquer_l_ouverture(&racine);
+    assert!(ouverture_juste(&racine), "le fichier garde n'est pas dans son empreinte");
+    let o = ouvrir(&f, 0, false);
+    assert_eq!(o["pret"], json!(true));
+    assert_eq!(o["perime"], json!(false));
+    assert_eq!(o["lectures"]["marque-du-test"]["resultat"], json!("garde"), "servie sans recalcul");
+    // UNE FICHE CHANGE : le dernier etat connu, TOUT DE SUITE, marque perime ; puis l'etat frais, refait par la file.
+    toucher(&racine, "config/salaries.json");
+    assert!(!ouverture_juste(&racine), "une fiche perime l'ouverture");
+    let debut = Instant::now();
+    let perime = ouvrir(&f, 0, false);
+    assert!(debut.elapsed() < Duration::from_secs(2), "le perime se sert sans attendre le calcul");
+    assert_eq!(perime["pret"], json!(true));
+    assert_eq!(perime["perime"], json!(true), "{}", perime["perime"]);
+    assert_eq!(perime["lectures"]["marque-du-test"]["resultat"], json!("garde"), "c'est le dernier etat connu qui se sert");
+    let frais = ouvrir(&f, 0, true);
+    assert_eq!(frais["perime"], json!(false));
+    assert!(frais["lectures"].get("marque-du-test").is_none(), "l'etat frais est refait");
+    assert!(ouverture_juste(&racine), "la file a refait l'etat de l'ouverture");
+    // Ce que l'ouverture ne garde pas (les signalements : lus a cote) ne la perime pas.
+    toucher(&racine, "journal/signalements.json");
+    assert!(ouverture_juste(&racine));
+    f.arreter();
+}
+
+#[test]
+fn une_ecriture_perime_l_ouverture_et_la_file_la_refait() {
+    let racine = compagnie("ouverture-ecriture");
+    let f = FileDesEtats::nouvelle(&racine, Some(JOUR));
+    ouvrir(&f, 120_000, false);
+    assert!(ouverture_juste(&racine));
+    let saisie: Value = serde_json::from_slice(&std::fs::read(racine.join("paies/2026-08.json")).unwrap()).unwrap();
+    reussi(&route_en_processus(&racine, "enregistrer-saisie", json!({"mois": "2026-08", "saisie": saisie, "forcer": true}), JOUR));
+    toucher(&racine, "paies/2026-08.json");
+    assert!(!ouverture_juste(&racine), "une ecriture perime l'ouverture");
+    // La fenetre, apres une ecriture (`api::repondre`) : tout se verifie en fond, l'ouverture comprise.
+    f.tout_verifier();
+    let debut = Instant::now();
+    while !ouverture_juste(&racine) {
+        assert!(debut.elapsed() < Duration::from_secs(120), "la file n'a pas refait l'ouverture");
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    f.arreter();
+}

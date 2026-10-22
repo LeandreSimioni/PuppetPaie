@@ -944,7 +944,7 @@ fn bareme_du_salarie(ctx: &Contexte, sal: &Value, nat: &Nature, fin: &Jour, cais
         return Ok(v.clone());
     }
     let bar = Arc::new(bareme_applique_au_contrat(ctx.bareme(fin)?, sal, nat, Some(fin), caisse, cpf_cdd)?);
-    cache.lock().unwrap().insert(cle, bar.clone());
+    crate::fichiers::ranger(cache, cle, bar.clone());
     Ok(bar)
 }
 

@@ -440,10 +440,11 @@ fn lister(st: &Etat) -> R<Vec<Rappel>> {
 /// `operations_socle.exercice_clos` : la cloture de l'annee (ou `None`).
 pub(crate) fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
     let p = ctx.racine.join("config").join("exercices.json");
-    if !p.exists() {
+    if !crate::fichiers::existe(&p) {
         return Ok(None);
     }
-    match lire_json(&p)? {
+    // Lu une fois tant qu'il ne change pas (ticket #244), le refus d'un fichier illisible inchange (`lire_json`).
+    match &*crate::fichiers::json_en_cache_ou(&p, lire_json)? {
         Value::Object(o) => Ok(o.iter().find(|(k, _)| !k.starts_with('_') && k.as_str() == &annee[..4.min(annee.len())]).map(|(_, v)| v.clone())),
         autre => Err(avec_classe("AttributeError", format!("config/exercices.json : {}", crate::fichiers::attendu("un objet", crate::etats::nom_type(&autre))))),
     }
@@ -606,6 +607,9 @@ fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {
     let mut fichiers: Vec<(String, PathBuf)> = entrees_dans_l_ordre(&dossier)
         .into_iter()
         .filter(|(nom, c)| c.is_file() && Path::new(nom).extension().map_or(false, |e| e.to_string_lossy().to_lowercase() == "dsn"))
+        // LA MENSUELLE, PAS UN SIGNALEMENT (ticket #244) : un signalement d'arret ou de fin ecrit apres la DSN du mois, dans
+        // le meme dossier, devenait « la DSN a deposer » du rappel.
+        .filter(|(_, c)| std::fs::read(c).map(|o| !crate::depot::lire(&o).est_signalement()).unwrap_or(false))
         .collect();
     fichiers.sort_by(|a, b| mtime(&b.1).partial_cmp(&mtime(&a.1)).unwrap_or(std::cmp::Ordering::Equal));
     fichiers.into_iter().next().map(|(nom, c)| (nom, c.to_string_lossy().into_owned()))

@@ -50,7 +50,7 @@ fn banc() -> (&'static Banc, MutexGuard<'static, ()>) {
         }
         let compagnie = base.join("compagnie");
         std::fs::create_dir_all(compagnie.join("config")).unwrap();
-        let fenetre = Fenetre::nouvelle(0);
+        let fenetre = Fenetre::nouvelle(0, utilisateur.clone(), 1);
         Banc { logiciel, compagnie, fenetre }
     });
     (b, verrou)
@@ -305,7 +305,7 @@ fn tuile_ajoutee(html: &str) -> String {
 #[test]
 fn retour_et_echap_ramenent_des_pages_du_mot_de_passe_au_choix_de_la_compagnie() {
     let (_b, _v) = banc();
-    let f = Fenetre::nouvelle(0);
+    let f = Fenetre::nouvelle(0, _b.logiciel.parent().unwrap().join("utilisateur"), 1);
     let adresse = f.adresse("127.0.0.1", 1);
     let jeton = adresse.split("jeton=").nth(1).unwrap().to_string();
     let est_l_accueil = |html: &str| html.contains("data-id=\"cie:") && !html.contains("id=\"mdp\"");

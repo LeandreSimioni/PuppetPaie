@@ -66,6 +66,10 @@ fn refus(hote: &str) -> String {
 
 /// La decision pour une sortie vers `hote`.
 pub fn sortie_vers(hote: &str) -> Result<Sortie, String> {
+    // LE FIL DE FOND de la fenetre (ticket #244, `fil_de_fond`) : il tourne avant tout mot de passe, et ne sort jamais.
+    if crate::fil_de_fond::ici() {
+        return Err(crate::fil_de_fond::refus(&format!("une sortie vers {}", hote)));
+    }
     let Some(valeur) = std::env::var_os(VARIABLE) else { return Ok(Sortie::Libre) };
     if est_locale(hote) {
         return Ok(Sortie::Locale);

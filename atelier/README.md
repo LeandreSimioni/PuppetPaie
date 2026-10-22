@@ -147,10 +147,12 @@ La page : le mois, les engagements, l'aperçu
 chiffré qui se recalcule à mesure, et la production. Un second écran édite
 l'entreprise, les salariés et les spectacles, en vérifiant chaque champ au
 format qu'exigent la DSN et l'AEM. Le serveur n'écoute que la machine
-(127.0.0.1), sur le port 7331 — fixe, pour que le navigateur reconnaisse le
-site `puppetpaie.localhost` et retrouve le mot de passe du logiciel — et exige
-un jeton. Les dépôts et les envois se font depuis l'interface, mot de passe
-du logiciel retapé à chaque acte.
+(127.0.0.1), sur un port propre à l'installation et stable d'un lancement à
+l'autre (7331 à 7429, retenu dans `.fenetre.json`) — pour que le navigateur
+reconnaisse le site `puppetpaie.localhost` et retrouve le mot de passe du
+logiciel, et que deux installations s'ouvrent côte à côte sur un poste — et
+exige un jeton. Les dépôts et les envois se font depuis l'interface, mot de
+passe du logiciel retapé à chaque acte.
 
 **En ligne de commande.**
 

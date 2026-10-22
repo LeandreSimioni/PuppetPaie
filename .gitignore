@@ -70,7 +70,11 @@ atelier/prive-dev/config/.jeton-interface
 # `WebView2Loader.dll`, a la racine de `logiciel/`), et l'installeur Windows ne pose que ce qui est suivi.
 /logiciel/linux/
 /logiciel/mac/
-/ouverture-gardee.bin
+/ouverture-gardee*.bin
+# LA FENETRE DE CETTE INSTALLATION (ticket #244, paie/src/interface/instance.rs) : le creneau retenu (son port), et, en
+# portable, le profil de son navigateur et le jeton de sa page.
+/.fenetre.json
+/.fenetre/
 
 # Le mode developpeur de CE poste (moteur/compagnies.py).
 .mode-developpeur.json

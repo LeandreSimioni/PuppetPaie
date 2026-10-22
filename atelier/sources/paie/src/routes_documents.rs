@@ -344,7 +344,7 @@ pub(crate) fn avenant_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte, c
     // Ce que les avenants SIGNES ont deja ecrit fait foi, paragraphe par paragraphe.
     let texte_signe = crate::avenant::textes_des_avenants_de(&deja, true)?;
     let ent = crate::avenant::ent_du_mois(ctx, &mois_parti)?;
-    let modele = crate::avenant::modele_du_contrat(&ent)?;
+    let modele = crate::avenant::modele_du_contrat(&ent, &ctx.gabarits())?;
     let paie_json = rep
         .get("paies")
         .and_then(Value::as_array)
@@ -583,7 +583,7 @@ fn assembler(pieces: &[Vec<u8>]) -> R<Vec<u8>> {
 
 /// `chemin_identite("cachet")` : le tampon pose, quelle que soit son extension (png, jpg, svg).
 fn cachet_pose(ent: &Value) -> Option<String> {
-    let dossier = crate::bulletin::gabarits_de(ent).join("identite");
+    let dossier = crate::bulletin::gabarits_de(ent)?.join("identite");
     [".png", ".jpg", ".svg"].iter().map(|e| dossier.join(format!("cachet{}", e))).find(|f| f.exists()).map(|f| f.to_string_lossy().into_owned())
 }
 
@@ -654,8 +654,8 @@ pub(crate) fn ranger_aer_detail(o: &HashMap<String, String>, ctx: &Contexte, moi
                 heures: e.heures.unwrap_or(0.0) as i128,
             });
         }
-        let signature = crate::bulletin::identite_de(&ctx.entreprise, "signature").map(|f| f.to_string_lossy().into_owned());
-        let cachet = cachet_pose(&ctx.entreprise);
+        let signature = crate::bulletin::identite_de(&ctx.entreprise_et_gabarits(), "signature").map(|f| f.to_string_lossy().into_owned());
+        let cachet = cachet_pose(&ctx.entreprise_et_gabarits());
         let (mut signees, mut ecarts): (Vec<Vec<u8>>, Vec<String>) = (Vec::new(), Vec::new());
         for att in groupe {
             let a = Authentification {

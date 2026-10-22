@@ -26,6 +26,7 @@ use crate::retours::base64_ecrire;
 
 pub const FICHIER: &str = "coffre.bin";
 pub const FICHIER_CLE: &str = "cle-poste.bin";
+/// Le nom de la seance gardee, que `Coffre::chemin_gardee` complete de l'empreinte du coffre (un fichier par coffre).
 pub const GARDEE: &str = "ouverture-gardee.bin";
 pub const VERSION: i64 = 2;
 pub const CONSULTATION: &str = "consultation";
@@ -614,6 +615,10 @@ fn aad_fiches(fiches: &Value) -> Vec<u8> {
 /// La cle scrypt de 32 octets. Les parametres sont ceux du fichier : ils sont
 /// verifies comme `hashlib.scrypt` le fait (OpenSSL), memoire comprise.
 pub fn deriver(motdepasse: &str, kdf: Option<&Value>) -> R<Vec<u8>> {
+    // Le fil de fond de la fenetre (ticket #244) ne dechiffre rien : aucun mot de passe ne s'y derive.
+    if crate::fil_de_fond::ici() {
+        return Err(refus(crate::fil_de_fond::refus("le coffre")));
+    }
     let kdf = objet(kdf)?;
     let algo = kdf.get("algo").filter(|v| vrai(v));
     if algo.and_then(Value::as_str) != Some("scrypt") {
@@ -672,8 +677,9 @@ fn scrypt_32(motdepasse: &[u8], sel: &[u8], n: i128, r: i128, p: i128) -> R<Vec<
 // du logiciel tape par un humain pour CETTE commande l'ouvre, pour tout ce qu'elle lit : consultation, envois,
 // verification des comptes, releves, depots. Il arrive par la demande (`motdepasse` d'une route) ou par
 // `PUPPETPAIE_MOTDEPASSE`, la variable que les fenetres posent apres l'avoir fait taper. Il ne change rien au poste
-// et ne s'ecrit nulle part. Par fil : un processus `paie` sert une commande ; les tests, chacun sur son fil, ne se
-// le transmettent pas.
+// et ne s'ecrit nulle part. Par fil, et le temps d'une route : la fenetre sert ses routes dans son
+// processus, une par fil a la fois, et `routes::commande` remet en sortant ce qu'il a trouve, quoi qu'il arrive (ticket
+// #244) ; les tests, chacun sur son fil, ne se le transmettent pas.
 thread_local! {
     static TAPE: std::cell::RefCell<Option<String>> = const { std::cell::RefCell::new(None) };
 }
@@ -688,6 +694,12 @@ pub fn retenir_mot_de_passe_tape(motdepasse: &str) {
 /// Oublie le mot de passe retenu pour ce fil (la fin d'une commande, ou d'un test).
 pub fn oublier_mot_de_passe_tape() {
     TAPE.with(|t| *t.borrow_mut() = None);
+}
+
+/// Un mot de passe tape est-il retenu sur ce fil ? (Rien de plus : jamais sa valeur.) Les essais de la fenetre s'en
+/// servent : un mot de passe ne survit pas a sa route (ticket #244).
+pub fn mot_de_passe_retenu() -> bool {
+    TAPE.with(|t| t.borrow().is_some())
 }
 
 /// Le mot de passe tape pour cette commande : celui de la demande, sinon `PUPPETPAIE_MOTDEPASSE`.
@@ -766,6 +778,17 @@ impl Coffre {
         }
     }
 
+    /// Le coffre de `racine` avec la cle du poste dans `dossier_cle`, sans variable de service : celui que l'administrateur
+    /// rescelle (`administrateur.rs`), et que ses essais montent sans toucher a l'environnement du processus.
+    pub fn sur(racine: impl Into<PathBuf>, dossier_cle: impl Into<PathBuf>, maintenant: &str) -> Coffre {
+        Coffre { racine: racine.into(), dossier_cle: dossier_cle.into(), maintenant: maintenant.to_string(), variables: BTreeMap::new() }
+    }
+
+    /// Le dossier de la cle de CE poste, tel que `du_poste` le trouve.
+    pub fn dossier_cle_du_poste() -> PathBuf {
+        dossier_cle_de(&|n| if n == "HOME" { std::env::var(n).ok() } else { env_non_vide(n) }, dossier_portable().as_deref())
+    }
+
     /// L'heure locale `AAAA-MM-JJTHH:MM` : celle qu'on a donnee, sinon l'horloge. Les lecteurs du moteur font leur
     /// coffre sans heure (`du_poste(racine, "")`) et la seance, elle, expire : une heure vide ne doit pas la rendre eternelle.
     fn heure(&self) -> String {
@@ -783,8 +806,15 @@ impl Coffre {
         self.dossier_cle.join(FICHIER_CLE)
     }
 
+    /// LA SEANCE GARDEE DE CE COFFRE (`ouverture-gardee-<empreinte>.bin`, a cote de la cle du poste). Une par coffre (ticket
+    /// #244) : la cle du poste sert a toutes les compagnies et a toutes les installations d'une machine ; avec une seule
+    /// seance pour toutes, celle qu'on ouvrait pour l'une effacait celle de l'autre. Le nom porte l'empreinte du chemin du
+    /// coffre : deux coffres ne se marchent jamais dessus ; la seance garde en plus ce chemin, et ne sert qu'a lui.
     pub fn chemin_gardee(&self) -> PathBuf {
-        self.dossier_cle.join(GARDEE)
+        use sha2::{Digest, Sha256};
+        let h = Sha256::digest(affiche(&resoudre(&self.chemin())).as_bytes());
+        let court: String = h.iter().take(6).map(|o| format!("{:02x}", o)).collect();
+        self.dossier_cle.join(format!("{}-{}.bin", GARDEE.trim_end_matches(".bin"), court))
     }
 
     pub fn cle_posee(&self) -> R<bool> {
@@ -793,6 +823,10 @@ impl Coffre {
 
     /// Les 32 octets de ce poste, ou None. `creer` en tire de neufs.
     fn cle_poste(&self, creer: bool) -> R<Option<Vec<u8>>> {
+        // Le fil de fond de la fenetre (ticket #244) ne dechiffre rien : la cle du poste ne s'y sert pas.
+        if crate::fil_de_fond::ici() {
+            return Err(refus(crate::fil_de_fond::refus("le coffre")));
+        }
         let p = self.chemin_cle();
         if existe(&p)? {
             let cle = lire_cle_posee(&p)?;
@@ -1070,6 +1104,27 @@ impl Coffre {
         fiches: Map<String, Value>,
         secrets: &Map<String, Value>,
     ) -> R<PathBuf> {
+        let octets = self.octets_a_ecrire(contenu, maitresse, fiches, secrets)?;
+        self.ecrire_octets(&octets)
+    }
+
+    /// Ecrit `octets` a la place du coffre (0600).
+    fn ecrire_octets(&self, octets: &[u8]) -> R<PathBuf> {
+        let p = self.chemin();
+        dossier_de(&p)?;
+        std::fs::write(&p, octets).map_err(|e| oserr(&e, &p))?;
+        permissions(&p, 0o600);
+        Ok(p)
+    }
+
+    /// Ce que `enregistrer` ecrirait, sans l'ecrire.
+    fn octets_a_ecrire(
+        &self,
+        contenu: &Map<String, Value>,
+        maitresse: &[u8],
+        fiches: Map<String, Value>,
+        secrets: &Map<String, Value>,
+    ) -> R<Vec<u8>> {
         let mut c = contenu.clone();
         c.insert("version".into(), VERSION.into());
         let clair = dumps(&Value::Object(secrets.clone()), None, false, true);
@@ -1083,11 +1138,7 @@ impl Coffre {
             enveloppes.insert("poste".into(), b64(&sceller(&self.cle_ou_creer()?, maitresse, AAD_POSTE)?));
         }
         c.insert("enveloppes".into(), Value::Object(enveloppes));
-        let p = self.chemin();
-        dossier_de(&p)?;
-        std::fs::write(&p, dumps(&Value::Object(c), Some(2), false, true)).map_err(|e| oserr(&e, &p))?;
-        permissions(&p, 0o600);
-        Ok(p)
+        Ok(dumps(&Value::Object(c), Some(2), false, true).into_bytes())
     }
 
     // ------------------------------------------------------------- l'usage
@@ -1262,6 +1313,13 @@ impl Coffre {
     /// Pose (ou change) le mot de passe du logiciel. `ancien` sert quand la cle
     /// du poste n'ouvre pas le coffre.
     pub fn poser_ouverture(&self, motdepasse: &str, ancien: Option<&str>) -> R<PathBuf> {
+        let octets = self.preparer_ouverture(motdepasse, ancien)?;
+        self.ecrire_octets(&octets)
+    }
+
+    /// Ce que `poser_ouverture` ecrirait, SANS L'ECRIRE : les octets du coffre rescelle par `motdepasse`. Sert a qui doit
+    /// resceller plusieurs coffres d'un coup (l'administrateur, `administrateur.rs`) : tout se prepare, puis tout se remplace.
+    pub fn preparer_ouverture(&self, motdepasse: &str, ancien: Option<&str>) -> R<Vec<u8>> {
         if strip(motdepasse).chars().count() < LONGUEUR_MINIMALE_LOGICIEL {
             return Err(refus(format!(
                 "Mot de passe du logiciel trop court : {} caracteres au moins. \
@@ -1280,7 +1338,7 @@ impl Coffre {
         c.insert("logiciel_pose_le".into(), self.pose_le()?.into());
         let secrets = self.secrets(&c, &maitresse)?;
         let fiches = objet(c.get("fiches"))?;
-        self.enregistrer(&c, &maitresse, fiches, &secrets)
+        self.octets_a_ecrire(&c, &maitresse, fiches, &secrets)
     }
 
     /// Un mot de passe du logiciel a-t-il ete pose ?
