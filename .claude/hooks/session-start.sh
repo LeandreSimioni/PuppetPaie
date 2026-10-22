@@ -3,12 +3,16 @@
 # du conteneur (6 min a froid) ; la suite livree seulement : celle de l'atelier a sa propre cible et ne se lance que
 # quand on touche a l'atelier (`atelier/CLAUDE.md`, « Les tests »). A la fin de la seance, `cargo nextest run` ne
 # recompile que ce qui a change (`cargo test` si nextest manque).
-# Le poste de Leandre n'est pas concerne.
+# Le poste de Leandre, une installation ordinaire, n'est pas concerne.
 set -euo pipefail
 
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi
+
+# On ne developpe que dans le nuage (22/10/2026) : le garde des donnees reelles (`atelier/.githooks/pre-commit`) y juge
+# chaque commit, avec le `paie` que la compilation d'avance produit (profil `essais`).
+git -C "$CLAUDE_PROJECT_DIR" config core.hooksPath atelier/.githooks || true
 
 PAIE="$CLAUDE_PROJECT_DIR/atelier/sources/paie"
 JOURNAL="${TMPDIR:-/tmp}/puppetpaie-compilation-davance.log"
