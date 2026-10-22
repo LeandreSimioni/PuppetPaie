@@ -118,6 +118,7 @@ pub mod importation_bulletins;
 pub mod importation_incident;
 pub mod importation_completer;
 pub mod incidents;
+pub mod nombre_de_paies;
 pub mod caviardage;
 pub mod historique_mois;
 pub mod routes_apercus;

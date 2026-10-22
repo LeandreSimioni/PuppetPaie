@@ -990,7 +990,7 @@ fn decision_3_incidents_et_reponses_de_l_editeur_partent_seulement_quand_l_appel
     let n = recu.lock().unwrap().len();
     let o_filet = Options { filet: true, ..o.clone() };
     sans_clients(&c, &o_filet);
-    assert_eq!(actions(n), ["poste", "rapport", "retour", "reponses"], "l'identite du poste d'abord (serveur version 7)");
+    assert_eq!(actions(n), ["poste", "rapport", "paies", "retour", "reponses"], "l'identite du poste d'abord (serveur version 7), et le nombre de paies de 2025 (ticket #246 : apres le 16 janvier)");
     let attendait = lire(&c, "journal/signalements.json")[1].clone();
     assert_eq!((attendait["envoi"]["etat"].clone(), attendait["numero"].clone()), (json!("depose"), json!("R-000002")));
     assert!(!c.join(format!("journal/signalements/{}.json", ATTEND)).exists(), "parti, son corps s'efface");
