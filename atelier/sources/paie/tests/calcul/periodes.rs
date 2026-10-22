@@ -10,13 +10,11 @@
 //! cadre, 3 010 EUR ; DORVAL depuis le 01/04/2025, technicienne non cadre, 2 200 EUR ; toutes les DSN deposees jusqu'a
 //! aout 2026), copiee dans le dossier temporaire des tests avant d'y retoucher les fiches et les saisies.
 
-use paie::contexte::Contexte;
-use paie::date::Jour;
-use paie::dsn::{generer, Options};
-use paie::engagement::{charger, Saisie};
+use paie::engagement::Saisie;
 use paie::calcul::Paie;
 use paie::num::Decimal;
-use serde_json::{json, Value};
+use serde_json::json;
+use crate::outils::permanents::{bloc, blocs_41, contexte, deposer, dorval_cadre_au, dsn, retoucher_saisie, saisie};
 use crate::outils::{compagnie::sans_les_pdf, dec, dossier_de_test, ecrire, individu, lire};
 use std::path::{Path, PathBuf};
 
@@ -28,98 +26,6 @@ fn compagnie(dossier: &str) -> PathBuf {
 /// La valeur de la rubrique, ou rien.
 fn valeur(lignes: &[(String, String)], r: &str) -> String {
     crate::outils::valeur(lignes, r).unwrap_or_default()
-}
-
-/// Pose des champs sur une fiche salarie (`null` efface).
-fn retoucher_fiche(racine: &Path, cle: &str, champs: Value) {
-    let mut sal = lire(racine, "config/salaries.json");
-    for (k, v) in champs.as_object().unwrap() {
-        if v.is_null() {
-            sal[cle].as_object_mut().unwrap().remove(k);
-        } else {
-            sal[cle][k] = v.clone();
-        }
-    }
-    ecrire(racine, "config/salaries.json", &sal);
-}
-
-/// Pose des champs sur l'engagement de `salarie` dans la saisie du mois.
-fn retoucher_saisie(racine: &Path, mois: &str, salarie: &str, champs: Value) {
-    let chemin = format!("paies/{}.json", mois);
-    let mut s = lire(racine, &chemin);
-    for e in s["engagements"].as_array_mut().unwrap() {
-        if e["salarie"] == salarie {
-            for (k, v) in champs.as_object().unwrap() {
-                e[k] = v.clone();
-            }
-        }
-    }
-    ecrire(racine, &chemin, &s);
-}
-
-/// Le contexte du jour ou l'on produit `mois` : le 5 du mois suivant.
-fn contexte(racine: &Path, mois: &str) -> Contexte {
-    let (an, mo): (i32, u32) = (mois[..4].parse().unwrap(), mois[5..7].parse().unwrap());
-    let (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };
-    Contexte::nouveau(racine, Some(Jour::lire(&format!("{:04}-{:02}-05", an, mo)).unwrap())).unwrap()
-}
-
-fn saisie(racine: &Path, mois: &str) -> Result<Saisie, String> {
-    charger(&contexte(racine, mois), &racine.join(format!("paies/{}.json", mois)))
-}
-
-fn dsn(racine: &Path, mois: &str) -> Result<String, String> {
-    let ctx = contexte(racine, mois);
-    let s = charger(&ctx, &racine.join(format!("paies/{}.json", mois)))?;
-    generer(&ctx, &s.paies, mois, &[], &[], &Options::default())
-}
-
-/// Les blocs S21.G00.41 d'un individu, chacun ouvert par son 41.001.
-fn blocs_41(lignes: &[(String, String)]) -> Vec<Vec<(String, String)>> {
-    let mut out: Vec<Vec<(String, String)>> = Vec::new();
-    for (k, v) in lignes {
-        if k == "S21.G00.41.001" {
-            out.push(Vec::new());
-        }
-        if k.starts_with("S21.G00.41.") {
-            out.last_mut().unwrap().push((k.clone(), v.clone()));
-        }
-    }
-    out
-}
-
-fn bloc(paires: &[(&str, &str)]) -> Vec<(String, String)> {
-    paires.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
-}
-
-/// Le mois est depose : la DSN produite remplace le fichier du mois dans la copie et le journal la dit acceptee en reel
-/// (ce que `casc::dsn_deposee` relit).
-fn deposer(racine: &Path, mois: &str, nom: &str, texte: &str) {
-    paie::dsn::ecrire(texte, &racine.join("sorties").join(mois).join(nom)).unwrap();
-    let mut j = lire(racine, "journal/depots.json");
-    let deja = j.as_array().unwrap().iter().any(|l| l["quoi"] == "dsn" && l["mois"] == mois && l["mode"] == "reel" && l["fichier"] == nom);
-    if !deja {
-        j.as_array_mut().unwrap().push(json!({"quoi": "dsn", "mois": mois, "mode": "reel", "accepte": true, "fichier": nom, "quand": format!("{}-28T12:00:00", mois)}));
-    }
-    ecrire(racine, "journal/depots.json", &j);
-}
-
-
-/// DORVAL (CDI depuis le 01/04/2025, chargee de production, 05 / 04) passe cadre le lendemain de `veille`, change saisi
-/// et date sur sa fiche comme l'ecran le fait (`historique` : l'ancienne valeur jusqu'a la veille).
-fn dorval_cadre_au(racine: &Path, veille: &str) {
-    retoucher_fiche(
-        racine,
-        "DORVAL",
-        json!({
-            "statut_conventionnel": "04",
-            "statut_categoriel_rc": "01",
-            "historique": [
-                {"champ": "statut_categoriel_rc", "valeur": "04", "jusqu_au": veille, "note": ""},
-                {"champ": "statut_conventionnel", "valeur": "05", "jusqu_au": veille, "note": ""}
-            ]
-        }),
-    );
 }
 
 fn paie_de<'a>(s: &'a Saisie, cle: &str) -> &'a Paie {
@@ -199,6 +105,7 @@ fn un_passage_cadre_au_15_decoupe_la_paie_en_deux_periodes_chacune_sur_sa_pile_e
     let s = saisie(&racine, "2026-09").unwrap();
     let seul = paie_de(&s, "DORVAL");
     assert!(seul.periodes.is_empty());
+    assert!(!ids(seul).contains(&"apec_t1".to_string()), "cadre au 01/10 : septembre reste non cadre, d'un seul tenant");
     assert_eq!(seul.reduction_generale.as_ref().unwrap().coefficient, rg.coefficient);
     assert_eq!(seul.reduction_generale.as_ref().unwrap().montant, rg.montant);
 }
