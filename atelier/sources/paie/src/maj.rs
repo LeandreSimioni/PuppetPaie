@@ -42,7 +42,9 @@
 //! De meme pour `derniere.json` : `version`, et sous `archives` une entree par systeme (`archive`, `sha256`,
 //! `signature` ; `systemes` pour la tout-systeme) ; on peut AJOUTER une cle a sa racine (`fictives`, le 22/10/2026 : le
 //! code d'avant ne lit que `version` et `archives`), jamais en retirer ni en changer une, et rien sous `archives` qui ne
-//! soit un systeme (le code d'avant refuse alors tout `derniere.json`).
+//! soit un systeme (le code d'avant refuse alors tout `derniere.json`). Les installations d'avant le 15/10/2026 (une seule
+//! archive) lisent, elles, `archive`, `sha256` et `signature` a la racine : ce sont ceux de l'archive de Windows
+//! (`publier_signe`).
 //! `tests/fichiers/mise_a_jour.rs` deballe l'archive comme le code d'avant (`deballer` de 8fc646b, recopie tel quel).
 //!
 //! L'ARCHIVE D'INSTALLATION, a cote (ticket #246, 22/10/2026 : `archiver_installation`,
@@ -1730,13 +1732,21 @@ pub fn publier_signe(c: &Path, d: &Path, privee: &[u8], cle_publique: &str, note
     for (nom, octets) in &faites {
         std::fs::write(d.join(nom), octets).map_err(|e| e.to_string())?;
     }
-    let manifeste = json!({
+    let mut manifeste = json!({
         "version": version,
         "publiee_le": crate::releve_retours::iso_de_naif(crate::releve_retours::maintenant_naif())[..10].to_string(),
         "notes": notes, "calcul": calcul, "exigee": exigee,
         "archives": archives,
         "fictives": fictives,
     });
+    // LES INSTALLATIONS D'AVANT LE 15/10/2026 (une seule archive, celle de Windows : v2026.10.14.2, v2026.10.15) lisent a
+    // la racine `archive`, `sha256` et `signature` (le code d'avant 6a5c83f) : l'archive de Windows y est nommee, et elles
+    // se mettent a jour. Le code d'aujourd'hui ne lit pas ces cles.
+    if let Some(w) = manifeste["archives"].get("windows").cloned() {
+        for k in ["archive", "sha256", "signature"] {
+            manifeste[k] = w[k].clone();
+        }
+    }
     ecrire_json(&d.join(DERNIERE), &manifeste)?;
     let mut r = manifeste;
     r["installations"] = Value::Object(installations);

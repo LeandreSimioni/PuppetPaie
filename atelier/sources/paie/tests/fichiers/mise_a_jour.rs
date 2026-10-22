@@ -577,6 +577,11 @@ fn une_installation_au_code_d_avant_deballe_et_lit_l_archive_de_mise_a_jour() {
     // Les fictives sont nommees a la racine, sous une cle que le code d'avant ne lit pas (il ne lit que `version` et
     // `archives`, et refuserait sous `archives` ce qui n'est pas un systeme).
     assert!(d["fictives"]["archive"].is_string() && !archives.contains_key("fictives"));
+    // Et le code d'avant le 15/10/2026 (6a5c83f^ : une seule archive) lit a la racine `archive`, `sha256`, `signature` :
+    // l'archive de Windows, la seule qu'il connaissait.
+    for k in ["archive", "sha256", "signature"] {
+        assert_eq!(d[k], archives["windows"][k], "{}", k);
+    }
     for systeme in [maj::SYSTEME, maj::TOUT_SYSTEME] {
         let a = &archives[systeme];
         let octets = std::fs::read(depot.join(a["archive"].as_str().unwrap())).unwrap();
