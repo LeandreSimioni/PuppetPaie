@@ -316,7 +316,7 @@ pub fn page_logiciel(racine: &Path, jeton: &str) -> Result<String, String> {
             "{{STYLE_COMPAGNIE}}",
             &if copie { String::new() } else { format!("<style>:root {{ --compagnie: {}; }}</style>", compagnies::couleur(racine)) },
         )
-        .replace("{{EDITION}}", if crate::bridage::est_bride() { " &middot; brid&eacute;" } else { "" });
+        .replace("{{EDITION}}", if crate::bridage::est_bride() { " &middot; d&eacute;mo" } else { "" });
     let cale = CALE.replace("{{JETON}}", jeton).replace("{{NOMS}}", NOMS_LOGICIEL);
     // Avant le PREMIER script de la page (`/js/tuyau.js`, qui definit `api`) : la cale doit exister avant lui.
     p = p.replacen("<script src=\"/js/", &format!("{}<script src=\"/js/", cale), 1);
