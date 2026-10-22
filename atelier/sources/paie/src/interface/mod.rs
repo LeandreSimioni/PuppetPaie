@@ -504,6 +504,12 @@ impl Fenetre {
             "/apercu/bulletin" => self.apercu_bulletin(&r),
             c if c.starts_with("/identite/") => self.identite(&r, &c["/identite/".len()..]),
             c => match fichier_de_la_page(c) {
+                // UNE FEUILLE OU UN SCRIPT NOMME PAR SON EMPREINTE (`?v=`, `empreinte`) se garde (ticket #244) : la page
+                // d'une compagnie charge vingt-cinq fichiers, qu'elle ne redemande plus a chaque ouverture. Ce qui change
+                // change d'empreinte, donc d'adresse : rien de perime ne se garde.
+                Some((o, mime)) if r.params.contains_key("v") && (c.ends_with(".js") || c.ends_with(".css")) => {
+                    Reponse::nouvelle(200, mime, o).avec("Cache-Control", "max-age=31536000, immutable")
+                }
                 Some((o, mime)) => Reponse::nouvelle(200, mime, o),
                 None => texte(404),
             },
