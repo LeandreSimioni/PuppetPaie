@@ -140,6 +140,13 @@ body.fenetre .fenetre-boutons { display: flex; gap: 2px; margin-left: 8px; align
 /* Ce qui dure dans la sauvegarde (tickets #231 et #232) : lisible, sans l'alarme des choses à faire. */
 .veille-sauvegarde { color: var(--texte); }
 .veille-texte b { color: var(--texte); }
+/* UNE LIGNE, TOUJOURS (ticket #244 : « une fois affichée, rien ne bouge ») : le relevé qui finit, une nouvelle qui
+   arrive changent le texte, jamais la hauteur du bandeau ; ce qui dépasse se lit au survol (`title`). Un « + n autres »
+   déplié, c'est la personne qui l'a demandé. */
+.veille-texte { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.veille-texte details:not([open]) { display: inline; }
+.veille-texte details[open] { white-space: normal; }
+#veille-maintenant { flex: none; }
 .lien {
   border: none; background: none; cursor: pointer; padding: 0;
   font: inherit; color: var(--action); text-decoration: underline;
@@ -233,7 +240,7 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
 .choix-mois { position: relative; width: 15rem; }
 .choix-mois-lib { display: block; font-size: 12px; color: var(--discret); }
 .mois-maj { font-style: italic; }
-.mois-maj[hidden] { display: none; }
+.mois-maj[hidden] { display: inline; visibility: hidden; }  /* sa place reste prise : rien ne bouge (#244) */
 .choix-mois-case {
   display: flex; align-items: stretch; margin-top: 3px;
   border: 1px solid var(--bord); border-radius: 3px; background: var(--carte);
@@ -1353,14 +1360,11 @@ table.compta tr.total-general td {
 pre.courriel { white-space: pre-wrap; font: 12px/1.5 Consolas, monospace;
   background: var(--carte); border: 1px solid var(--bord); padding: 10px; }
 
-/* LE VOILE DU DEMARRAGE : la page ne se montre qu'une fois peinte. */
+/* LE VOILE DU DEMARRAGE : la page ne se montre qu'une fois peinte, d'un coup (ticket #244) ; s'il faut attendre, la
+   phrase du moteur, sans roue. */
 #chargement { position: fixed; inset: 0; z-index: 9999; display: flex;
-  flex-direction: column; align-items: center; justify-content: center; gap: 14px;
-  background: var(--fond); color: var(--discret); font-size: 13px; transition: opacity .25s; }
-#chargement.fini { opacity: 0; pointer-events: none; }
-#chargement .roue { width: 34px; height: 34px; border-radius: 50%;
-  border: 3px solid var(--bord); border-top-color: var(--action); animation: roue 0.9s linear infinite; }
-@keyframes roue { to { transform: rotate(360deg); } }
+  align-items: center; justify-content: center;
+  background: var(--fond); color: var(--discret); font-size: 14px; }
 
 /* LA COPIE DE DEVELOPPEMENT (interface/compagnies.rs) : on doit la reconnaitre
    d'un coup d'oeil, pour ne jamais la prendre pour la vraie compagnie. */

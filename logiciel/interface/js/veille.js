@@ -175,6 +175,7 @@ function dessinerVeille(v) {
     zone.classList.add("neuf");
   }
   texte.innerHTML = morceaux.join(" — ");
+  texte.title = texte.textContent.replace(/\s+/g, " ").trim();   // une ligne : ce qui dépasse se lit au survol
   texte.querySelectorAll("[data-vers-historique]").forEach((b) => {
     b.onclick = () => document.querySelector('.onglets button[data-vue="historique"]').click();
   });
