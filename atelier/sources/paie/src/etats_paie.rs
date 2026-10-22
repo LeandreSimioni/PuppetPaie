@@ -51,9 +51,10 @@ pub(crate) struct Demande {
     pub analytique: Option<bool>,
 }
 
-/// `util.MOIS` abrege de quatre lettres, avec son point : « Janv. ».
+/// Le nom du mois `i` abrege de quatre lettres, avec son point : « Janv. ». Les appelants parcourent les douze colonnes
+/// d'une annee (1 a 12) : un autre rang ne peut pas arriver, et donnerait une entete vide plutot qu'un autre mois.
 pub(crate) fn mois_abrege(i: usize) -> String {
-    crate::tableaux_export::MOIS[i - 1].chars().take(4).collect::<String>() + "."
+    crate::date::nom_du_mois(i as i64, crate::date::Graphie::Titre).map(|n| n.chars().take(4).collect::<String>() + ".").unwrap_or_default()
 }
 
 // ------------------------------------------------------------------ ou ca s'ecrit

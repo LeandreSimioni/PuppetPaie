@@ -28,7 +28,6 @@ use crate::etats::py_str;
 use crate::fichiers::vrai;
 use crate::num::{eur2, Decimal};
 use crate::routes_ouverture::{refus_du_calcul, Refus};
-use crate::tableaux_export::MOIS;
 
 type R<T> = Result<T, Refus>;
 
@@ -790,7 +789,7 @@ impl<'a> Recapitulatifs<'a> {
         }
         let mut cols = vec![colonne("salarie", "Salarié", Genre::Texte)];
         for i in 1..=12usize {
-            let abrege: String = MOIS[i - 1].chars().take(4).collect::<String>() + ".";
+            let abrege = crate::etats_paie::mois_abrege(i);
             cols.push(colonne(&format!("m{:02}", i), &abrege, Genre::Montant));
         }
         cols.push(colonne("brut", "Brut annuel", Genre::Montant));

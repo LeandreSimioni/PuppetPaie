@@ -50,7 +50,7 @@ use std::path::{Path, PathBuf};
 use rust_decimal::Decimal;
 use serde_json::Value;
 
-use crate::bulletin::{fmt_eur, fmt_heures, MOIS_FR};
+use crate::bulletin::{fmt_eur, fmt_heures};
 use crate::calcul::Paie;
 use crate::courriel::Courriel;
 use crate::date::{en_texte, repr_flottant};
@@ -76,11 +76,6 @@ impl Message {
         self.pieces.iter().filter_map(|p| std::fs::metadata(p).ok()).map(|m| m.len()).sum()
     }
 }
-
-/// `MOIS_ACCENTS` : un courriel s'ecrit en francais (`bulletin::MOIS_FR` est sans accent : noms de fichier).
-pub const MOIS_ACCENTS: [&str; 12] = [
-    "janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre",
-];
 
 /// « de » devant un nom de mois, elide devant une voyelle : « de mars », « d'avril », « d'août », « d'octobre ».
 pub(crate) fn de_mois(nom: &str) -> String {
@@ -239,7 +234,7 @@ pub fn recap_france_travail(paies: &[&Paie], mois: &str, employeur: &str) -> Res
         return Ok(String::new());
     }
     let (an, mo) = an_mois(mois)?;
-    let nom_mois = MOIS_ACCENTS.get(mo.wrapping_sub(1)).ok_or_else(|| crate::date::mois_impossible(mo))?;
+    let nom_mois = crate::date::nom_du_mois(mo as i64, crate::date::Graphie::Accentuee)?;
     Ok(format!(
         "Pour ton actualisation France Travail {} {}, employeur {} :\n{}\nCe sont les chiffres de ton bulletin ; \
          vérifie que ce que France Travail pré-remplit est identique.\n",
@@ -259,8 +254,8 @@ fn heures_en_decimal(h: f64) -> Result<Decimal, String> {
 /// « Aout2026 » a partir de « 2026-08 » : l'etiquette des noms de fichier, sans accent.
 pub fn etiquette(mois: &str) -> Result<String, String> {
     let (an, mo) = an_mois(mois)?;
-    let nom = MOIS_FR.get(mo.wrapping_sub(1)).ok_or_else(|| crate::date::mois_impossible(mo))?;
-    Ok(format!("{}{}", capitaliser(nom), an))
+    let nom = crate::date::nom_du_mois(mo as i64, crate::date::Graphie::Titre)?;
+    Ok(format!("{}{}", nom, an))
 }
 
 pub fn nom_fichier(prefixe: &str, cle: &str, etiq: &str) -> String {
@@ -493,7 +488,7 @@ pub fn preparer_avec(
 ) -> Result<Vec<Message>, String> {
     let (an, mo) = an_mois(mois)?;
     let etiq = etiquette(mois)?;
-    let nom_mois = *MOIS_ACCENTS.get(mo.wrapping_sub(1)).ok_or_else(|| crate::date::mois_impossible(mo))?;
+    let nom_mois = crate::date::nom_du_mois(mo as i64, crate::date::Graphie::Accentuee)?;
     let mut vus: Vec<String> = Vec::new();
     let mut messages = Vec::new();
     let mut salaries: Vec<Value> = paies.iter().map(|p| p.salarie.clone()).collect();
@@ -1528,10 +1523,7 @@ fn est_blanc(c: char) -> bool {
     c == ' ' || c == '\t'
 }
 
-/// `str.isspace()` de Python : les blancs d'Unicode (dont l'espace insecable), plus `\x1c` a `\x1f`.
-fn est_espace_unicode(c: char) -> bool {
-    c.is_whitespace() || ('\x1c'..='\x1f').contains(&c)
-}
+use crate::retours::blanc_py as est_espace_unicode;
 
 /// `get_unstructured`, sans mots codes : des blancs et des mots. Un blanc COMMENCE par un espace ou une tabulation
 /// et `get_fws` (`value.lstrip()`) l'etend a tous les blancs d'Unicode qui suivent, l'espace insecable compris ;
@@ -1844,7 +1836,7 @@ mod tests {
 
     #[test]
     fn de_s_elide_devant_avril_aout_et_octobre_seulement() {
-        let d: Vec<String> = MOIS_ACCENTS.iter().map(|m| de_mois(m)).collect();
+        let d: Vec<String> = (1..=12).map(|i| de_mois(crate::date::nom_du_mois(i, crate::date::Graphie::Accentuee).unwrap())).collect();
         assert_eq!(d.iter().filter(|x| x.starts_with("d'")).count(), 3, "{:?}", d);
         for (i, attendu) in [(3, "d'avril"), (7, "d'août"), (9, "d'octobre"), (0, "de janvier"), (1, "de février"), (11, "de décembre")] {
             assert_eq!(d[i], attendu);

@@ -544,8 +544,7 @@ pub const CLASSE_NON_DECLARABLE: &str = "ModificationNonDeclarable";
 
 /// `septembre 2026`, avec ses accents.
 fn mois_en_clair(mois: &str) -> String {
-    let n: usize = mois.get(5..7).and_then(|m| m.parse().ok()).unwrap_or(1);
-    format!("{} {}", crate::envoi::MOIS_ACCENTS[n.clamp(1, 12) - 1], mois.get(..4).unwrap_or(""))
+    crate::date::libelle_du_mois_ou_tel_quel(mois, crate::date::Graphie::Accentuee)
 }
 
 /// `de septembre 2026`, `d'octobre 2026`.

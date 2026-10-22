@@ -806,19 +806,11 @@ pub(crate) fn ecrire(t: &mut Tableau, dossier: &Path, nom: &str, ctx: &Contexte)
 
 // ------------------------------------------------------------------ petits outils
 
-/// `util.MOIS`.
-pub(crate) const MOIS: [&str; 12] = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"];
-
-/// Le nom du mois `AAAA-MM` : « Septembre ». Un mois hors 01-12 n'est aucun mois et se refuse, comme le refusent
-/// `date::premier_du_mois` et `envoi::etiquette` (le Python lisait « 00 » decembre, par l'indice -1 d'une liste : un
-/// accident, pas une regle).
+/// Le nom du mois `AAAA-MM` : « Septembre » (`date::nom_du_mois`, graphie `Titre`). Un mois hors 01-12 se refuse.
 pub(crate) fn nom_du_mois(m: &str) -> R<&'static str> {
     let tranche: String = m.chars().skip(5).take(2).collect();
     let n = crate::apercu_dsn::int_py(&tranche).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(&tranche))))?;
-    if !(1..=12).contains(&n) {
-        return Err(erreur("IndexError", crate::date::mois_impossible(n)));
-    }
-    Ok(MOIS[(n - 1) as usize])
+    crate::date::nom_du_mois(i64::try_from(n).unwrap_or(0), crate::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))
 }
 
 /// `_libelle_mois` : « Septembre 2026 ».

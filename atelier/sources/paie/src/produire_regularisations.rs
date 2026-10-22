@@ -330,7 +330,7 @@ fn refus_valeur(m: String) -> Echec {
 fn net_deja_verse_lu(ctx: &Contexte, mois: &str, mois_courant: &str, avant: &Paie, apres: &Paie, derniere: Option<&(String, String)>) -> R<Decimal> {
     let nom = py_str(apres.salarie.get("nom").unwrap_or(&Value::Null));
     let numero = apres.engagement.numero.clone().unwrap_or_default();
-    let etiq = crate::apercu_dsn::etiquette(mois).map_err(refus_valeur)?;
+    let etiq = crate::envoi::etiquette(mois).map_err(refus_valeur)?;
     let (fichier, lequel) = match derniere {
         None => (format!("Bulletins_{}.pdf", etiq), "le bulletin du mois d'origine, tel qu'il lui a ete remis".to_string()),
         Some((porteur, n)) => {
@@ -434,7 +434,7 @@ pub(crate) fn versement_de_la_correction(ctx: &Contexte, r: &Reg, mois_courant: 
 /// d'origine, par le numero de contrat declare. `None` s'il ne s'y lit pas : l'appelant le dit, il ne le devine
 /// pas. Un fichier illisible ne se devine pas non plus.
 fn numero_du_bulletin_rectifie(ctx: &Contexte, r: &Reg) -> Option<String> {
-    let etiq = crate::apercu_dsn::etiquette(&r.mois).ok()?;
+    let etiq = crate::envoi::etiquette(&r.mois).ok()?;
     let groupe = ctx.racine.join("sorties").join(&r.mois).join(format!("Bulletins_{}.pdf", etiq));
     if !groupe.exists() {
         return None;
@@ -518,7 +518,7 @@ pub(crate) fn ecrire_rectificatifs(
         }
         let ent = crate::oracle::entreprise_du_mois(ctx, &r.mois).map_err(Echec::from)?;
         let cle = py_str(r.apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?);
-        let etiq = crate::apercu_dsn::etiquette(&r.mois).map_err(refus_valeur)?;
+        let etiq = crate::envoi::etiquette(&r.mois).map_err(refus_valeur)?;
         let archive = ctx.racine.join("sorties").join(&r.mois).join(format!("{}_{}_{}_c{}.pdf", PREFIXE_ARCHIVE, cle, etiq, r.numero));
         let imprimee = a_imprimer(ctx, &r.donnees, &r.corrige, r.apres.engagement.numero.as_ref(), Some(numero_bulletin))?;
         let rectifs: HashMap<usize, Value> = HashMap::from([(0, rectif.clone())]);
@@ -531,7 +531,7 @@ pub(crate) fn ecrire_rectificatifs(
         }
     }
     let dossier = sortie_courante.join("envoi");
-    let etiq = crate::apercu_dsn::etiquette(mois_courant).map_err(refus_valeur)?;
+    let etiq = crate::envoi::etiquette(mois_courant).map_err(refus_valeur)?;
     for (cle, siens) in &par_salarie {
         // Un fichier par salarie, tous ses rectificatifs dedans, comme ses bulletins du mois. Un seul `ent` par
         // fichier : la licence du premier mois d'origine (les archives, elles, ont chacune la leur).

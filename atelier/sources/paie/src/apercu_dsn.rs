@@ -40,10 +40,6 @@ use crate::routes_ouverture::{engagements_calcules, numeroter, paie_de_json, pai
 
 type R<T> = Result<T, Echec>;
 
-const MOIS_FR: [&str; 12] = [
-    "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre",
-];
-
 const TYPES: [(&str, &str); 5] = depot::TYPES;
 
 // ------------------------------------------------------------------ les petits outils de Python
@@ -382,9 +378,7 @@ fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
 const MARQUE_NUMERO: &str = "Bulletin de paie n";
 const MARQUE_CONTRAT: &str = "Contrat n";
 
-fn blanc(c: char) -> bool {
-    blanc_py(c)
-}
+use crate::retours::blanc_py as blanc;
 
 fn suite_de(m: &[char], de: usize, f: impl Fn(char) -> bool) -> usize {
     m.get(de..).map_or(0, |r| r.iter().take_while(|c| f(**c)).count())
@@ -705,19 +699,6 @@ pub(crate) fn numeroter_et_lire(ctx: &Contexte, paies: &mut [Paie], groupe: &Pat
 
 // ------------------------------------------------------------------ la saisie aux numeros declares
 
-/// `envoi.etiquette` : `2026-08` -> `Aout2026`.
-pub(crate) fn etiquette(mois: &str) -> Result<String, String> {
-    let c: Vec<char> = mois.chars().collect();
-    let tranche = |a: usize, b: usize| -> String { c.iter().skip(a).take(b - a).collect() };
-    let an = int_py(&tranche(0, 4)).ok_or_else(|| format!("nombre entier illisible : {}", repr(&tranche(0, 4))))?;
-    let mo = int_py(&tranche(5, 7)).ok_or_else(|| format!("nombre entier illisible : {}", repr(&tranche(5, 7))))?;
-    let rang = if mo >= 1 { mo - 1 } else { mo - 1 + 12 };
-    if !(0..12).contains(&rang) {
-        return Err(crate::date::mois_impossible(mo));
-    }
-    Ok(format!("{}{}", MOIS_FR[rang as usize], an))
-}
-
 /// `saisie_aux_numeros_declares` : la saisie du mois (le fichier lu, la reponse du calcul), et ses paies,
 /// chaque contrat sous le numero qu'il porte VRAIMENT (figes dans la saisie, lus dans l'archive, ou ceux
 /// que la production prendrait).
@@ -767,7 +748,7 @@ pub(crate) fn paies_aux_numeros_declares_avec(
         }
         return Ok((data, rep, paies));
     }
-    let groupe = ctx.racine.join("sorties").join(mois).join(format!("Bulletins_{}.pdf", etiquette(mois)?));
+    let groupe = ctx.racine.join("sorties").join(mois).join(format!("Bulletins_{}.pdf", crate::envoi::etiquette(mois)?));
     if groupe.exists() {
         numeroter_depuis_archive(ctx, &mut paies, &groupe)?;
     } else {
@@ -1089,13 +1070,5 @@ mod tests {
         assert_eq!((c.brut_texte().as_str(), c.mesure_texte("cachets").as_str()), ("200.00", "2"));
         assert_eq!((c.debut.as_str(), c.fin_declaree.as_str(), c.remunere), ("2026-08-01", "2026-08-31", true));
         assert_eq!(lire_recap(b"S21.G00.30.001,'1'\nS21.G00.40.001,'01082026'\nS21.G00.40.009,'A'\nS21.G00.51.001,'x'\nS21.G00.51.010,'A'\nS21.G00.51.013,'12,5'\n").err(), Some(crate::num::illisible("12,5")));
-    }
-
-    #[test]
-    fn etiquette_du_mois() {
-        assert_eq!(etiquette("2026-08").unwrap(), "Aout2026");
-        assert_eq!(etiquette("2026-12").unwrap(), "Decembre2026");
-        assert!(etiquette("?").is_err());
-        assert!(etiquette("2026-13").is_err());
     }
 }

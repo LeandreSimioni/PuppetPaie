@@ -19,8 +19,6 @@ use crate::etats::{erreur, py_str, R};
 use crate::fichiers::{lire_json, vrai};
 use crate::num::Decimal;
 
-const MOIS: [&str; 12] = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-
 fn refus(m: impl Into<String>) -> crate::retours::Echec {
     erreur("ErreurOperation", m)
 }
@@ -209,7 +207,7 @@ pub(crate) struct Demande {
 /// (`date::numero_du_mois`, lot F1 ; l'indice `0 - 1` paniquait, un mois illisible se lisait janvier).
 fn libelle_du_mois(m: &str, an: &str) -> R<String> {
     let mo = crate::date::numero_du_mois(m).map_err(refus)?;
-    Ok(format!("{} {}", MOIS[mo as usize - 1], an))
+    Ok(format!("{} {}", crate::date::nom_du_mois(mo as i64, crate::date::Graphie::Accentuee).map_err(refus)?, an))
 }
 
 fn plafond_mensuel(annee: &str) -> R<Option<Decimal>> {

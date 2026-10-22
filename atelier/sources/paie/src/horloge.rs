@@ -136,8 +136,8 @@ fn options(racine: &Path) -> HashMap<String, String> {
 
 /// `_mois_fr` : « octobre 2026 ».
 fn mois_fr(mois: &str) -> String {
-    let m: usize = mois.get(5..).and_then(|t| t.parse().ok()).unwrap_or(1);
-    format!("{} {}", crate::avenant::MOIS_ACCENTS[m.clamp(1, 12) - 1], mois.get(..4).unwrap_or(""))
+    // Une ligne du recit ne se refuse pas pour son mois : un mois hors 01-12 s'ecrit tel quel, jamais janvier.
+    crate::date::libelle_du_mois_ou_tel_quel(mois, crate::date::Graphie::Accentuee)
 }
 
 /// `_le` : `JJ/MM/AAAA` d'un `AAAA-MM-JJ...`.

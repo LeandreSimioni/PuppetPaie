@@ -92,14 +92,12 @@ fn gauche(t: &str, n: usize) -> String {
 }
 
 fn mois_en_toutes_lettres(mois: &str) -> R<(String, String)> {
-    const MOIS: [&str; 12] =
-        ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"];
     let an = mois.get(..4).ok_or_else(|| erreur("ValueError", "mois illisible"))?;
     let rang: usize = mois
         .get(5..7)
         .and_then(|m| m.parse().ok())
         .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", repr_texte(mois.get(5..7).unwrap_or("")))))?;
-    let nom = MOIS.get(rang.wrapping_sub(1)).ok_or_else(|| erreur("IndexError", crate::date::mois_impossible(rang)))?;
+    let nom = crate::date::nom_du_mois(rang as i64, crate::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))?;
     let annee: i64 = an.parse().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr_texte(an))))?;
     Ok((format!("{}{}", nom, annee), format!("{} {}", nom, annee)))
 }

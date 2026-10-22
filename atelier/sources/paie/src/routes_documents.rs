@@ -393,11 +393,6 @@ pub(crate) fn avenant_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte, c
 
 // ------------------------------------------------------------------ envoi-apercu
 
-const MOIS_FR: [&str; 12] =
-    ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"];
-const MOIS_ACCENTS: [&str; 12] =
-    ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-
 /// `int(texte)` d'un morceau de `mois` : `ValueError` sinon.
 fn entier(t: &str) -> R<i64> {
     let s = t.trim();
@@ -418,21 +413,16 @@ fn an_et_mois(mois: &str) -> R<(i64, i64)> {
     Ok((entier(&tranche(0, 4))?, entier(&tranche(5, 7))?))
 }
 
-/// `LISTE[mo - 1]` avec l'indice negatif de Python : `IndexError` hors de la liste.
-fn rang_du_mois(mo: i64) -> R<usize> {
-    let r = mo - 1;
-    let r = if r < 0 { r + 12 } else { r };
-    if (0..12).contains(&r) {
-        Ok(r as usize)
-    } else {
-        Err(erreur("IndexError", crate::date::mois_impossible(mo)))
-    }
+/// Le nom du mois `mo` (`date::nom_du_mois`) ; hors 1-12, `IndexError` (l'indice negatif du Python lisait « 00 »
+/// decembre : il se refuse).
+fn nom_du_mois(mo: i64, g: crate::date::Graphie) -> R<&'static str> {
+    crate::date::nom_du_mois(mo, g).map_err(|e| erreur("IndexError", e))
 }
 
 /// `envoi.etiquette` : `2026-08` -> `Aout2026`.
 fn etiquette(mois: &str) -> R<String> {
     let (an, mo) = an_et_mois(mois)?;
-    Ok(format!("{}{}", MOIS_FR[rang_du_mois(mo)?], an))
+    Ok(format!("{}{}", nom_du_mois(mo, crate::date::Graphie::Titre)?, an))
 }
 
 /// `envoi.nom_fichier` : `AER_<cle>_<etiquette>.pdf`.
@@ -832,7 +822,7 @@ fn preparer(ctx: &Contexte, paies: &[crate::calcul::Paie], mois: &str, dossier: 
         }
         let sujet = format!(
             "{} {} — {}{}",
-            capitaliser(MOIS_ACCENTS[rang_du_mois(mo)?]),
+            capitaliser(nom_du_mois(mo, crate::date::Graphie::Accentuee)?),
             an,
             if renvois.contains_key(&cle) { "documents corrigés : " } else { "" },
             match courts.len() {

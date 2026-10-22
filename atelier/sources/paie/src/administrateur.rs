@@ -58,8 +58,6 @@ pub const TABLEAU: &str = "config/.tableau.json";
 /// Les routes de l'administrateur (servies par `routes_ecritures_g3`).
 pub const ROUTES: [&str; 2] = ["administrateur-tableau", "administrateur-deposer"];
 
-const MOIS: [&str; 12] = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-
 // ------------------------------------------------------------------ le poste
 
 /// Ou est la cle du poste, et quelle heure il est : ce qu'il faut pour monter le coffre d'une compagnie.
@@ -385,14 +383,6 @@ pub fn changer(inst: &Path, actuel: &str, nouveau: &str, confirmation: &str, pos
 
 // ------------------------------------------------------------------ le tableau d'une compagnie
 
-fn mois_en_lettres(mois: &str) -> String {
-    let n: usize = mois.get(5..7).and_then(|m| m.parse().ok()).unwrap_or(0);
-    match MOIS.get(n.wrapping_sub(1)) {
-        Some(m) => format!("{} {}", m, mois.get(..4).unwrap_or("")),
-        None => mois.to_string(),
-    }
-}
-
 fn jj_mm_aaaa(iso: &str) -> String {
     match (iso.get(..4), iso.get(5..7), iso.get(8..10)) {
         (Some(a), Some(m), Some(j)) => format!("{}/{}/{}", j, m, a),
@@ -481,7 +471,7 @@ fn declaration(o: &HashMap<String, String>, ctx: &Contexte, lignes: &[Value], r:
             let mois = texte("mois");
             let e = r.get("echeance_depot").cloned().unwrap_or(Value::Null);
             d.insert("genre".into(), json!("dsn"));
-            d.insert("titre".into(), json!(format!("DSN de {}", mois_en_lettres(&mois))));
+            d.insert("titre".into(), json!(format!("DSN de {}", crate::date::libelle_du_mois_ou_tel_quel(&mois, crate::date::Graphie::Accentuee))));
             d.insert("mois".into(), json!(mois));
             d.insert("butoir".into(), e.get("jour").cloned().unwrap_or(Value::Null));
             d.insert("quand".into(), e.get("phrase").cloned().unwrap_or(Value::Null));

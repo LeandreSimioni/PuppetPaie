@@ -98,15 +98,6 @@ fn cle_valide(cle: &str) -> bool {
     cle == OUVERTURE || mois_valide(cle)
 }
 
-/// « septembre 2026 » : ce que dit la phrase d'attente.
-fn mois_en_lettres(mois: &str) -> String {
-    let n: usize = mois.get(5..7).and_then(|m| m.parse().ok()).unwrap_or(0);
-    match crate::avenant::MOIS_ACCENTS.get(n.wrapping_sub(1)) {
-        Some(nom) => format!("{} {}", nom, &mois[..4]),
-        None => mois.to_string(),
-    }
-}
-
 /// Le dossier, absolu et comparable (sous Windows, sans le `\\?\` de `canonicalize`).
 fn absolu(p: &Path) -> String {
     let abs = std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
@@ -831,7 +822,7 @@ impl FileDesEtats {
         match self.verrou().en_cours.clone() {
             Some(c) if c == OUVERTURE => "Lecture de la compagnie : sa configuration, ses échéances, ses rappels…".into(),
             Some(c) if c == TABLEAU => "Tableau des déclarations de la compagnie…".into(),
-            Some(m) => format!("Calcul de {}…", mois_en_lettres(&m)),
+            Some(m) => format!("Calcul de {}…", crate::date::libelle_du_mois_ou_tel_quel(&m, crate::date::Graphie::Accentuee)),
             None => "Préparation de l'écran…".into(),
         }
     }

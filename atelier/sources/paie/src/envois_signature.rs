@@ -22,7 +22,7 @@ use serde_json::{json, Map, Value};
 use crate::calcul::Paie;
 use crate::contexte::Contexte;
 use crate::depot_acte::verifier_preuve;
-use crate::envoi::{self, Message, MOIS_ACCENTS};
+use crate::envoi::{self, Message};
 use crate::etats::{erreur, py_str};
 use crate::fichiers::{repr, vrai};
 use crate::retours::Echec;
@@ -248,7 +248,7 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
     let quoi = if relance { "relance de demande de signature de contrat" } else if remplace { "contrat refait, a signer (il annule et remplace le precedent)" } else { "demande de signature de contrat" };
     verifier_preuve(ctx, Some(&preuve_de(charge)), &mois, quoi, &a_qui)?;
 
-    let (an, mo) = an_et_mois(&s_mois)?;
+    let (an, nom_mois) = an_et_nom_du_mois(&s_mois)?;
     let ent = crate::avenant::ent_du_mois(ctx, &s_mois)?;
     // Retours Windows, B : deux contrats du meme salarie qui commencent le meme jour se distinguent par leur NUMERO
     // (`numero`, que `signature-apercu` rend et que la page renvoie) : on peut n'en envoyer qu'un. Sans `numero`, la
@@ -377,7 +377,7 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
             }
             titres.push(t);
         }
-        let sujet_de = |spectacle: &str| envoi::formater(SUJET_SIGNATURE, &[("spectacle", spectacle.to_string()), ("mois", MOIS_ACCENTS[mo - 1].to_string()), ("annee", an.to_string())]);
+        let sujet_de = |spectacle: &str| envoi::formater(SUJET_SIGNATURE, &[("spectacle", spectacle.to_string()), ("mois", nom_mois.to_string()), ("annee", an.to_string())]);
         let du_au = |p: &Paie, titre: &str| -> R<String> { Ok(format!("{}, du {} au {}", titre, p.engagement.debut.jj_mm_aaaa(), fin_de(p)?)) };
         let numero_de = |p: &Paie| p.engagement.numero.clone().filter(|n| !n.is_empty()).unwrap_or_else(|| "(sans numéro)".to_string());
         let (mut sujet, mut liste, le_signer, quoi, exemplaire);
@@ -392,7 +392,7 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
             sujet = if spectacles.len() == 1 {
                 sujet_de(&spectacles[0])
             } else {
-                envoi::formater(SUJET_SIGNATURE_PLURIEL, &[("mois", MOIS_ACCENTS[mo - 1].to_string()), ("annee", an.to_string())])
+                envoi::formater(SUJET_SIGNATURE_PLURIEL, &[("mois", nom_mois.to_string()), ("annee", an.to_string())])
             };
             let mut lignes = Vec::new();
             for (p, t) in ps.iter().zip(&titres) {
@@ -499,18 +499,16 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
     Ok(json!({"partis": partis, "contrats": contrats, "expediteur": expediteur, "ligne": ligne}))
 }
 
-/// `(int(mois[:4]), int(mois[5:7]))`, le mois dans 1..=12 (sinon `IndexError`, comme `MOIS_ACCENTS[mo - 1]`).
-fn an_et_mois(mois: &str) -> R<(i32, usize)> {
+/// L'annee et le nom du mois d'un « AAAA-MM », pour les sujets des courriels (« octobre 2026 ») ; un mois illisible ou
+/// hors 01-12 se refuse (`date::nom_du_mois`).
+pub(crate) fn an_et_nom_du_mois(mois: &str) -> R<(i32, &'static str)> {
     let lire = |t: Option<&str>| -> R<i64> {
         let t = t.unwrap_or("");
         t.trim().parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr(t))))
     };
     let an = lire(mois.get(..4))?;
-    let mo = lire(mois.get(5..7))?;
-    if !(1..=12).contains(&mo) {
-        return Err(erreur("IndexError", crate::date::mois_impossible(mo)));
-    }
-    Ok((an as i32, mo as usize))
+    let nom = crate::date::nom_du_mois(lire(mois.get(5..7))?, crate::date::Graphie::Accentuee).map_err(|e| erreur("IndexError", e))?;
+    Ok((an as i32, nom))
 }
 
 /// `_verifier_relance` : une relance ne vaut que pour un contrat demande, pas revenu, a jour.
@@ -730,7 +728,7 @@ fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value
     let (mut partis, mut lignes, mut faits): (Vec<String>, Vec<Value>, Vec<Value>) = (Vec::new(), Vec::new(), Vec::new());
     for (salarie, aa) in &par_salarie {
         let mois = aa[0].texte("mois");
-        let (an, mo) = an_et_mois(&mois)?;
+        let (an, nom_mois) = an_et_nom_du_mois(&mois)?;
         let mut pdfs: Vec<PathBuf> = Vec::new();
         let mut lignes_contrats: Vec<Value> = Vec::new();
         let mut sal: Option<Value> = None;
@@ -816,7 +814,7 @@ fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value
                 articles
             ))
         };
-        let sujet_de = |spectacle: &str| envoi::formater(SUJET_SIGNATURE, &[("spectacle", spectacle.to_string()), ("mois", MOIS_ACCENTS[mo - 1].to_string()), ("annee", an.to_string())]);
+        let sujet_de = |spectacle: &str| envoi::formater(SUJET_SIGNATURE, &[("spectacle", spectacle.to_string()), ("mois", nom_mois.to_string()), ("annee", an.to_string())]);
         let (sujet, liste, quoi);
         if aa.len() == 1 {
             let a = &aa[0];
@@ -829,7 +827,7 @@ fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value
                 if spectacles.len() == 1 {
                     sujet_de(&spectacles[0])
                 } else {
-                    envoi::formater(SUJET_SIGNATURE_PLURIEL, &[("mois", MOIS_ACCENTS[mo - 1].to_string()), ("annee", an.to_string())])
+                    envoi::formater(SUJET_SIGNATURE_PLURIEL, &[("mois", nom_mois.to_string()), ("annee", an.to_string())])
                 }
             );
             let mut morceaux = Vec::new();
