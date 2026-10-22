@@ -844,7 +844,10 @@ mod tests {
             assert!(!ouvrir_seance(&m.racine).est_accepte());
         }
         assert_eq!(photo(&[&m.racine]), avant, "un refus n'ecrit rien (ni seance gardee, ni cle, ni journal)");
-        assert!(!m.poste_b.join(crate::coffre::GARDEE).exists());
+        assert!(
+            !std::fs::read_dir(&m.poste_b).unwrap().flatten().any(|e| e.file_name().to_string_lossy().starts_with("ouverture-gardee")),
+            "aucune seance gardee"
+        );
         // Et rien n'est retenu : le coffre reste ferme pour la suite de la commande.
         assert!(le_poste_n_ouvre_pas(&m));
         let _ = CONSULTATION;

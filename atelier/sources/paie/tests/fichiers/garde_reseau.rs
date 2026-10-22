@@ -30,9 +30,8 @@ fn manifeste() -> PathBuf {
 const SORTIES: [&str; 8] = ["ureq::Agent", "ureq::get(", "ureq::post(", "TcpStream::connect", "SmtpTransport::", "UdpSocket", "\"xdg-open\"", "rundll32"];
 
 /// Les fichiers qui n'ouvrent de connexion que vers la machine elle-meme.
-const LOCAUX: [(&str, &str); 3] = [
-    ("src/instance.rs", "appelle la fenetre deja ouverte, sur 127.0.0.1"),
-    ("src/interface/mod.rs", "la fenetre deja ouverte, sur 127.0.0.1"),
+const LOCAUX: [(&str, &str); 2] = [
+    ("src/interface/instance.rs", "le verrou d'une installation : la fenetre deja ouverte, sur 127.0.0.1"),
     ("src/google_autorisation.rs", "reveille son propre ecouteur local (127.0.0.1) ; l'echange de jetons passe par `transport`"),
 ];
 

@@ -224,6 +224,16 @@ pub fn liste_de(b: &Path) -> Vec<Compagnie> {
     out
 }
 
+/// LES COMPAGNIES QUE LA FENETRE TIENT A JOUR EN FOND des son lancement (ticket #244, `Fenetre::prechauffer`) : les
+/// vraies compagnies de l'installation `b` (pas les fictives), la derniere ouverte d'abord -- la date de son journal de
+/// la fenetre (`journal/interface.log`), que chaque ouverture recommence ; jamais ouverte, a la fin.
+pub fn a_tenir_a_jour(b: &Path) -> Vec<PathBuf> {
+    let date = |r: &Path| std::fs::metadata(r.join("journal").join("interface.log")).and_then(|m| m.modified()).ok();
+    let mut reelles: Vec<PathBuf> = liste_de(b).into_iter().filter(|c| c.reelle).map(|c| c.racine).collect();
+    reelles.sort_by_key(|r| std::cmp::Reverse(date(r)));
+    reelles
+}
+
 /// Le dossier d'une tuile -- et seulement d'une tuile : l'identifiant ne designe jamais un chemin qu'on n'a pas propose.
 pub fn racine_choisie(id: &str) -> Result<PathBuf, String> {
     liste()

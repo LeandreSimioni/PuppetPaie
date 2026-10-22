@@ -1494,9 +1494,10 @@ pub fn lancer_relais(inst: &Path, version: &str) -> R<bool> {
     Ok(true)
 }
 
-/// Attend la fin du processus `pid` (60 s au plus). Vrai s'il est parti.
+/// Attend la fin du processus `pid` (60 s au plus). Vrai s'il est parti. Sous Windows, le processus lui-meme (son numero,
+/// qui ne se confond avec aucun autre) ; `_inst` n'y sert pas.
 #[cfg(windows)]
-fn attendre_fin(pid: u32) -> bool {
+fn attendre_fin(pid: u32, _inst: &Path) -> bool {
     extern "system" {
         fn OpenProcess(acces: u32, heriter: i32, pid: u32) -> isize;
         fn WaitForSingleObject(objet: isize, millisecondes: u32) -> u32;
@@ -1515,11 +1516,13 @@ fn attendre_fin(pid: u32) -> bool {
     }
 }
 
-/// Hors Windows, la prise du verrou n'est jamais heritee (CLOEXEC) : quand elle se libere, la fenetre est partie.
+/// Hors Windows, la prise du verrou n'est jamais heritee (CLOEXEC) : quand LA FENETRE DE CETTE INSTALLATION ne repond plus
+/// a son creneau (`interface::instance::ouverte`, qui compare le dossier de l'installation), elle est partie. Une autre
+/// installation ouverte sur le poste (ticket #244) a son propre creneau, et ne se confond jamais avec elle.
 #[cfg(not(windows))]
-fn attendre_fin(_pid: u32) -> bool {
+fn attendre_fin(_pid: u32, inst: &Path) -> bool {
     for _ in 0..120 {
-        if std::net::TcpListener::bind(("127.0.0.1", crate::interface::PORT_INSTANCE)).is_ok() {
+        if !crate::interface::instance::ouverte(inst, crate::interface::instance::Plage::DU_POSTE) {
             return true;
         }
         std::thread::sleep(std::time::Duration::from_millis(500));
@@ -1541,7 +1544,7 @@ pub fn relais(args: &[String]) -> i32 {
     };
     let inst = code.parent().map(Path::to_path_buf).unwrap_or_default();
     let pid = valeur("--attendre").and_then(|p| p.to_str().and_then(|p| p.parse::<u32>().ok())).unwrap_or(0);
-    if !attendre_fin(pid) {
+    if !attendre_fin(pid, &inst) {
         noter(&inst, "Mise a jour non appliquee : le programme qui l'a lancee ne s'est pas arrete.");
     } else {
         let journal = |t: &str| noter(&inst, t);
@@ -1630,14 +1633,14 @@ pub fn commande(args: &[String]) -> i32 {
                 }
             })
     } else if drapeau("--appliquer") {
-        if std::net::TcpListener::bind(("127.0.0.1", crate::interface::PORT_INSTANCE)).is_err() {
+        if crate::interface::instance::ouverte(&installation(), crate::interface::instance::Plage::DU_POSTE) {
             Err("PuppetPaie tourne : fermer la fenetre, puis appliquer".into())
         } else {
             appliquer(&installation(), drapeau("--malgre-calcul"))
                 .map(|r| format!("Version {} en place ; la precedente est dans {}", version_lue(r["version"].as_str().unwrap_or("")), r["avant"].as_str().unwrap_or("")))
         }
     } else if drapeau("--revenir") {
-        if std::net::TcpListener::bind(("127.0.0.1", crate::interface::PORT_INSTANCE)).is_err() {
+        if crate::interface::instance::ouverte(&installation(), crate::interface::instance::Plage::DU_POSTE) {
             Err("PuppetPaie tourne : fermer la fenetre, puis revenir".into())
         } else {
             revenir(&installation()).map(|r| format!("Retour a la version {}", version_lue(r["version"].as_str().unwrap_or(""))))

@@ -2,7 +2,7 @@
 //! refuse en phrase et un corps trop gros se dit en JSON (#141). Le journal de la fenetre va dans un dossier utilisateur
 //! sous `CARGO_TARGET_TMPDIR`, jamais celui du poste ; le serveur n'ecoute que sur 127.0.0.1.
 
-use paie::interface::{demarrer_sur, lire_options, Options, MINUTES_VEILLE, PORT_DEFAUT};
+use paie::interface::{demarrer_sur, lire_options, Options, MINUTES_VEILLE};
 use std::net::TcpListener;
 use std::path::Path;
 
@@ -26,10 +26,10 @@ fn utilisateur() -> (std::sync::MutexGuard<'static, ()>, std::path::PathBuf) {
 
 #[test]
 fn les_options_de_paie_interface_se_lisent_et_un_port_illisible_est_refuse() {
-    assert_eq!(lire_options(&[]).unwrap(), Options { port: PORT_DEFAUT, minutes_veille: MINUTES_VEILLE, sans_navigateur: false });
+    assert_eq!(lire_options(&[]).unwrap(), Options { port: None, minutes_veille: MINUTES_VEILLE, sans_navigateur: false });
     assert_eq!(
         lire_options(&args(&["--port", "8123", "--sans-navigateur", "--veille", "3"])).unwrap(),
-        Options { port: 8123, minutes_veille: 3, sans_navigateur: true }
+        Options { port: Some(8123), minutes_veille: 3, sans_navigateur: true }
     );
     for faux in [&["--port", "huit"][..], &["--port", "0"], &["--port", "70000"], &["--veille", "longtemps"], &["--port"], &["--autre"]] {
         assert!(lire_options(&args(faux)).is_err(), "{:?} doit etre refuse", faux);
@@ -41,7 +41,6 @@ fn la_fenetre_ecoute_au_port_qu_on_lui_donne() {
     let (_verrou, utilisateur) = utilisateur();
     // Un port libre, rendu aussitot : la fenetre doit ecouter la, pas au port par defaut.
     let libre = TcpListener::bind(("127.0.0.1", 0)).unwrap().local_addr().unwrap().port();
-    assert_ne!(libre, PORT_DEFAUT);
     let (_f, port) = demarrer_sur(0, libre).unwrap();
     assert_eq!(port, libre);
     std::net::TcpStream::connect(("127.0.0.1", port)).unwrap();

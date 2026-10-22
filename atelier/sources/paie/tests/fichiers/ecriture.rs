@@ -1,6 +1,6 @@
-//! L'ecriture des fichiers (`ecriture`), le verrou des compteurs (`verrou`), le journal des depots (`journal`) et la
-//! fenetre unique (`instance`). La forme des JSON de la compagnie (indentation 2, accents tels quels, flottants ecrits au
-//! plus court) est figee : `prive/` est commite, et la changer ferait un diff sur tous ses fichiers deja ecrits.
+//! L'ecriture des fichiers (`ecriture`), le verrou des compteurs (`verrou`) et le journal des depots (`journal`). La
+//! forme des JSON de la compagnie (indentation 2, accents tels quels, flottants ecrits au plus court) est figee : `prive/`
+//! est commite, et la changer ferait un diff sur tous ses fichiers deja ecrits.
 
 use paie::ecriture::{ecrire_json, json_py, repr_flottant};
 use paie::journal::{self, Note};
@@ -185,50 +185,4 @@ fn la_reponse_est_coupee_a_600_caracteres() {
     n.reponse = &longue;
     let l = journal::noter(&d, &n, "t").unwrap();
     assert_eq!(l["reponse"].as_str().unwrap().chars().count(), 600);
-}
-
-// -------------------------------------------------------------- instance
-
-mod instance {
-    use paie::instance::{appeler, prendre, Prise};
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::sync::Arc;
-
-    /// Un test de port a la fois : `port_libre` rend un port que l'autre test pourrait prendre.
-    static UN_A_LA_FOIS: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
-    fn seul() -> std::sync::MutexGuard<'static, ()> {
-        UN_A_LA_FOIS.lock().unwrap_or_else(|e| e.into_inner())
-    }
-
-    fn port_libre() -> u16 {
-        let l = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
-        l.local_addr().unwrap().port()
-    }
-
-    #[test]
-    fn le_second_lancement_ramene_le_premier_devant() {
-        let _seul = seul();
-        let port = port_libre();
-        let vus = Arc::new(AtomicUsize::new(0));
-        let v = vus.clone();
-        let Prise::Tenue(verrou) = prendre(move || { v.fetch_add(1, Ordering::SeqCst); }, port) else { panic!("premier lancement") };
-        assert!(appeler(port));
-        assert!(matches!(prendre(|| {}, port), Prise::Devant));
-        std::thread::sleep(std::time::Duration::from_millis(200));
-        assert_eq!(vus.load(Ordering::SeqCst), 2);
-        drop(verrou);
-        std::thread::sleep(std::time::Duration::from_millis(200));
-        // Rendue a la fermeture : le port se reprend.
-        assert!(matches!(prendre(|| {}, port), Prise::Tenue(_)));
-    }
-
-    #[test]
-    fn un_autre_programme_sur_le_port_n_empeche_pas_d_ouvrir() {
-        let autre = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
-        let port = autre.local_addr().unwrap().port();
-        // Il accepte et ne dit rien de PuppetPaie.
-        std::thread::spawn(move || for c in autre.incoming() { drop(c); });
-        assert!(matches!(prendre(|| {}, port), Prise::Sans));
-    }
 }

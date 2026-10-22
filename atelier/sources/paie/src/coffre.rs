@@ -26,6 +26,7 @@ use crate::retours::base64_ecrire;
 
 pub const FICHIER: &str = "coffre.bin";
 pub const FICHIER_CLE: &str = "cle-poste.bin";
+/// Le nom de la seance gardee, que `Coffre::chemin_gardee` complete de l'empreinte du coffre (un fichier par coffre).
 pub const GARDEE: &str = "ouverture-gardee.bin";
 pub const VERSION: i64 = 2;
 pub const CONSULTATION: &str = "consultation";
@@ -614,6 +615,10 @@ fn aad_fiches(fiches: &Value) -> Vec<u8> {
 /// La cle scrypt de 32 octets. Les parametres sont ceux du fichier : ils sont
 /// verifies comme `hashlib.scrypt` le fait (OpenSSL), memoire comprise.
 pub fn deriver(motdepasse: &str, kdf: Option<&Value>) -> R<Vec<u8>> {
+    // Le fil de fond de la fenetre (ticket #244) ne dechiffre rien : aucun mot de passe ne s'y derive.
+    if crate::fil_de_fond::ici() {
+        return Err(refus(crate::fil_de_fond::refus("le coffre")));
+    }
     let kdf = objet(kdf)?;
     let algo = kdf.get("algo").filter(|v| vrai(v));
     if algo.and_then(Value::as_str) != Some("scrypt") {
@@ -801,8 +806,15 @@ impl Coffre {
         self.dossier_cle.join(FICHIER_CLE)
     }
 
+    /// LA SEANCE GARDEE DE CE COFFRE (`ouverture-gardee-<empreinte>.bin`, a cote de la cle du poste). Une par coffre (ticket
+    /// #244) : la cle du poste sert a toutes les compagnies et a toutes les installations d'une machine ; avec une seule
+    /// seance pour toutes, celle qu'on ouvrait pour l'une effacait celle de l'autre. Le nom porte l'empreinte du chemin du
+    /// coffre : deux coffres ne se marchent jamais dessus ; la seance garde en plus ce chemin, et ne sert qu'a lui.
     pub fn chemin_gardee(&self) -> PathBuf {
-        self.dossier_cle.join(GARDEE)
+        use sha2::{Digest, Sha256};
+        let h = Sha256::digest(affiche(&resoudre(&self.chemin())).as_bytes());
+        let court: String = h.iter().take(6).map(|o| format!("{:02x}", o)).collect();
+        self.dossier_cle.join(format!("{}-{}.bin", GARDEE.trim_end_matches(".bin"), court))
     }
 
     pub fn cle_posee(&self) -> R<bool> {
@@ -811,6 +823,10 @@ impl Coffre {
 
     /// Les 32 octets de ce poste, ou None. `creer` en tire de neufs.
     fn cle_poste(&self, creer: bool) -> R<Option<Vec<u8>>> {
+        // Le fil de fond de la fenetre (ticket #244) ne dechiffre rien : la cle du poste ne s'y sert pas.
+        if crate::fil_de_fond::ici() {
+            return Err(refus(crate::fil_de_fond::refus("le coffre")));
+        }
         let p = self.chemin_cle();
         if existe(&p)? {
             let cle = lire_cle_posee(&p)?;
