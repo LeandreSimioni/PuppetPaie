@@ -711,3 +711,166 @@ fn une_panne_du_serveur_ne_leve_pas_et_le_compte_efface_se_dit_sans_boucler() {
     assert_eq!((etat["compte"]["confirme"].clone(), etat["reveils"].clone()), (json!(false), json!({})));
     assert!(etat["compte"]["erreur"].as_str().unwrap().contains("compte inconnu"));
 }
+
+// ================================================= le nombre de paies de l'annee (ticket #246)
+
+/// Une compagnie de test pour le nombre de paies : les mois de 2025, janvier et fevrier 2026 de la fictive inventee, ses
+/// depots (DSN reelles comprises) SAUF la DSN de 2025-12, et une seule paie de 2025-12 validee a la main. Le compte de 2025 :
+/// 20 paies dans des mois dont la DSN reelle est partie, moins les 3 de 2025-12, plus la validee a la main = 18 ; les 3 de
+/// fevrier 2026 (sa DSN reelle partie) ne comptent pas pour 2025. Le logiciel est debloque (le geste de l'accueil), sauf
+/// ce qu'un test change.
+fn poste_des_paies(nom: &str) -> Poste {
+    let mois: Vec<String> = (1..=12).map(|m| format!("2025-{:02}", m)).chain(["2026-01".to_string(), "2026-02".to_string()]).collect();
+    let p = poste(nom, &mois.iter().map(String::as_str).collect::<Vec<_>>());
+    let fictive = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fictives/fictive-3090-petite");
+    let depots: Value = serde_json::from_slice(&std::fs::read(fictive.join("journal/depots.json")).unwrap()).unwrap();
+    let sans_decembre: Vec<Value> = depots.as_array().unwrap().iter().filter(|l| !(l["quoi"] == json!("dsn") && l["mois"] == json!("2025-12"))).cloned().collect();
+    p.ecrire("journal/depots.json", &json!(sans_decembre));
+    let mut decembre = p.fichier("paies/2025-12.json");
+    decembre["engagements"][0]["valide"] = json!({"le": "2026-01-05T10:00:00"});
+    p.ecrire("paies/2025-12.json", &decembre);
+    p.edition("debloque");
+    p
+}
+
+impl Poste {
+    /// Le geste de l'accueil, retenu sur le poste (`bridage`) : `bride` ou `debloque`.
+    fn edition(&self, etat: &str) {
+        std::fs::write(self.base.join(".edition.json"), json!({"edition": etat}).to_string()).unwrap();
+    }
+
+    /// Un passage d'ouverture (ou de veille) ce jour-la, sans releve ni sauvegarde : ce qui part chez l'editeur.
+    fn ouvrir_le(&self, aujourdhui: &str) {
+        let r = self.route_au("ouverture", json!({"retours": false, "signatures": false, "sauvegarder": false}), aujourdhui);
+        assert_eq!(r["ok"], json!(true), "{}", r);
+    }
+}
+
+/// Le faux serveur de l'editeur qui recoit le nombre de paies (`paies`), et repond `{}` au reste.
+fn serveur_des_paies() -> (String, Recu) {
+    serveur(|action, corps| match action {
+        "paies" => (200, json!({"recu": true, "annee": corps["annee"], "paies": corps["paies"]})),
+        _ => (200, json!({})),
+    })
+}
+
+fn paies_parties(recu: &Recu) -> Vec<Vu> {
+    vus(recu).into_iter().filter(|v| v.action == "paies").collect()
+}
+
+#[test]
+fn le_nombre_de_paies_de_l_annee_part_le_16_janvier_une_seule_fois() {
+    let p = poste_des_paies("paies-annee");
+    let (url, recu) = serveur_des_paies();
+    p.serveur(&url, json!({}));
+    // Avant le 16 janvier : rien.
+    p.ouvrir_le("2026-01-15");
+    assert!(paies_parties(&recu).is_empty(), "{:?}", actions(&recu));
+    // Le 16 : l'annee passee, comptee, avec l'identite du poste, et rien d'autre.
+    p.ouvrir_le("2026-01-16");
+    let partis = paies_parties(&recu);
+    assert_eq!(partis.len(), 1, "{:?}", actions(&recu));
+    assert_eq!(partis[0].corps, json!({"annee": 2025, "paies": 18, "poste": POSTE_DONNE}), "ni nom, ni SIREN, ni NIR, ni montant");
+    assert_eq!(partis[0].cle, CLE_DONNEE, "la cle du poste en en-tete, comme les incidents");
+    // Retenu : il ne repart ni au passage suivant, ni le mois d'apres.
+    let d = p.fichier("config/diagnostic.json");
+    assert_eq!(d["paies_annuelles"]["2025"]["paies"], json!(18));
+    p.ouvrir_le("2026-01-16");
+    p.ouvrir_le("2026-03-02");
+    assert_eq!(paies_parties(&recu).len(), 1);
+    // L'ecran de ce qui est parti le montre, tel qu'il est parti, sans le compter parmi les incidents.
+    let e = p.ok("diagnostic-etat", json!({}));
+    assert_eq!(e["total"], json!(0));
+    let g = e["groupes"].as_array().unwrap().iter().find(|g| g["quoi"] == json!("paies")).cloned().expect("l'annee partie est dans la liste");
+    assert_eq!(g["contenu"], json!({"annee": 2025, "paies": 18, "poste": POSTE_DONNE}));
+    assert!(g["parti_le"].is_string());
+    // L'annee suivante, le 16 janvier : 2026 (les 3 paies de fevrier 2026, validees par sa DSN reelle).
+    p.ouvrir_le("2027-01-16");
+    let partis = paies_parties(&recu);
+    assert_eq!(partis.len(), 2);
+    assert_eq!(partis[1].corps["annee"], json!(2026));
+    assert_eq!(partis[1].corps["paies"], json!(3));
+}
+
+#[test]
+fn zero_paie_part_aussi() {
+    let p = poste("paies-zero", &[]);
+    p.edition("debloque");
+    let (url, recu) = serveur_des_paies();
+    p.serveur(&url, json!({}));
+    p.ouvrir_le("2026-02-01");
+    let partis = paies_parties(&recu);
+    assert_eq!(partis.len(), 1);
+    assert_eq!(partis[0].corps["paies"], json!(0));
+}
+
+#[test]
+fn rien_ne_part_si_l_envoi_est_coupe_d_une_fictive_d_une_copie_de_developpement_ni_d_un_logiciel_bride() {
+    let (url, recu) = serveur_des_paies();
+    // L'envoi coupe (`config/diagnostic.json`, `envoi` : faux) : rien ; rallume, il part.
+    let p = poste_des_paies("paies-coupe");
+    p.serveur(&url, json!({}));
+    p.ok("diagnostic-regler", json!({"actif": false}));
+    p.ouvrir_le("2026-01-20");
+    assert!(paies_parties(&recu).is_empty());
+    p.ok("diagnostic-regler", json!({"actif": true}));
+    p.ouvrir_le("2026-01-20");
+    assert_eq!(paies_parties(&recu).len(), 1);
+    // Une compagnie fictive, et la copie de developpement (le meme marqueur, sans la marque fictive).
+    for (nom, marque) in [("paies-fictive", "compagnie fictive 3090 petite"), ("paies-copie", "prive")] {
+        let p = poste_des_paies(nom);
+        p.serveur(&url, json!({}));
+        std::fs::write(p.racine.join("COPIE-DE-DEVELOPPEMENT.json"), json!({"copie_de": marque}).to_string()).unwrap();
+        p.ouvrir_le("2026-01-20");
+        assert_eq!(paies_parties(&recu).len(), 1, "{}", nom);
+    }
+    // Un logiciel bride (le geste), et le paquet soude.
+    let p = poste_des_paies("paies-bride");
+    p.serveur(&url, json!({}));
+    p.edition("bride");
+    p.ouvrir_le("2026-01-20");
+    std::fs::write(p.base.join("logiciel/EDITION.json"), r#"{"edition": "bride"}"#).unwrap();
+    p.edition("debloque");
+    p.ouvrir_le("2026-01-20");
+    assert_eq!(paies_parties(&recu).len(), 1, "rien de plus n'est parti");
+}
+
+#[test]
+fn un_envoi_qui_echoue_se_refait_au_passage_suivant() {
+    let p = poste_des_paies("paies-echec");
+    // Le serveur en panne : rien n'est retenu.
+    let (url, recu) = serveur(|action, _| if action == "paies" { (503, json!({"erreur": "en panne"})) } else { (200, json!({})) });
+    p.serveur(&url, json!({}));
+    p.ouvrir_le("2026-01-16");
+    assert_eq!(paies_parties(&recu).len(), 1, "il a essaye");
+    assert!(p.fichier("config/diagnostic.json").get("paies_annuelles").is_none(), "et n'a rien retenu");
+    // Hors ligne (le serveur ne repond plus du tout) : rien non plus.
+    let mut d = p.fichier("config/diagnostic.json");
+    d["serveur"] = json!("http://127.0.0.1:9");
+    p.ecrire("config/diagnostic.json", &d);
+    p.serveur("http://127.0.0.1:9", json!({}));
+    p.ouvrir_le("2026-01-17");
+    assert!(p.fichier("config/diagnostic.json").get("paies_annuelles").is_none());
+    // Le serveur revenu : le passage suivant le refait, une fois.
+    let (url2, recu2) = serveur_des_paies();
+    p.serveur(&url2, json!({}));
+    p.ouvrir_le("2026-01-18");
+    p.ouvrir_le("2026-01-18");
+    let partis = paies_parties(&recu2);
+    assert_eq!(partis.len(), 1);
+    assert_eq!(partis[0].corps["paies"], json!(18));
+}
+
+/// Aucun essai ne sort de la machine : sans serveur pose, l'envoi viserait celui de l'editeur, et le garde-fou des essais le
+/// refuse avant toute connexion ; le faux mandataire, seule porte, voit qu'on voulait y aller, et rien n'est retenu.
+#[test]
+fn sans_serveur_pose_le_nombre_de_paies_ne_sort_pas_de_la_machine() {
+    let p = poste_des_paies("paies-garde");
+    let (mandataire, vus) = crate::outils::mandataire();
+    let r = p.route_env("ouverture", json!({"retours": false, "signatures": false, "sauvegarder": false}), "2026-01-16", &[(paie::garde_reseau::VARIABLE, mandataire.as_str())]);
+    assert_eq!(r["ok"], json!(true), "{}", r);
+    let vus = vus.lock().unwrap().clone();
+    assert!(!vus.is_empty() && vus.iter().all(|v| v.contains("filet.puppetpaie.fr")), "{:?}", vus);
+    let d = p.racine.join("config/diagnostic.json");
+    assert!(!d.exists() || p.fichier("config/diagnostic.json").get("paies_annuelles").is_none());
+}

@@ -186,13 +186,34 @@ fn diagnostic_etat(racine: &std::path::Path) -> R<Value> {
     liste.sort_by(|a, b| cle_de(b).cmp(&cle_de(a)));
     let partis: Vec<String> = liste.iter().filter(|g| vrai(&g["parti_le"])).map(|g| py_str(&g["parti_le"])).collect();
     let somme = |c: &str| liste.iter().map(|g| g[c].as_i64().unwrap_or(0)).sum::<i64>();
+    let (partis_total, en_attente_total) = (somme("partis"), somme("en_attente"));
+    // LE NOMBRE DE PAIES DE L'ANNEE (ticket #246) se voit dans la meme liste : une entree par annee partie, avec exactement
+    // ce qui a quitte le poste. Ce n'est pas un incident : il ne compte ni dans `total`, ni dans `partis`.
+    let annees = crate::nombre_de_paies::pour_l_ecran(racine);
+    for a in &annees {
+        let mut g = Map::new();
+        g.insert("quoi".into(), json!("paies"));
+        g.insert("ou".into(), json!("une fois par an"));
+        g.insert("genre".into(), json!(""));
+        g.insert("resume".into(), json!(format!("{} : {} paie(s) faite(s)", a["annee"], a["paies"])));
+        g.insert("combien".into(), json!(1));
+        g.insert("partis".into(), json!(1));
+        g.insert("en_attente".into(), json!(0));
+        g.insert("premiere".into(), a["parti_le"].clone());
+        g.insert("derniere".into(), a["parti_le"].clone());
+        g.insert("parti_le".into(), a["parti_le"].clone());
+        g.insert("contenu".into(), a["contenu"].clone());
+        liste.push(g);
+    }
+    liste.sort_by(|a, b| cle_de(b).cmp(&cle_de(a)));
     Ok(json!({
         "serveur": serveur,
         "envoi": incidents::envoi_actif(racine),
         "total": lignes.len(),
-        "partis": somme("partis"),
-        "en_attente": somme("en_attente"),
+        "partis": partis_total,
+        "en_attente": en_attente_total,
         "dernier_envoi": partis.iter().max().map_or(Value::Null, |m| json!(m)),
+        "paies_annuelles": annees,
         "groupes": liste.into_iter().map(Value::Object).collect::<Vec<_>>(),
     }))
 }

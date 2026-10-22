@@ -369,6 +369,12 @@ impl Client {
         self.post_du_poste("rapport", serde_json::json!({"incidents": incidents}), DELAI)
     }
 
+    /// Le nombre de paies de l'annee (`nombre_de_paies`, ticket #246) : `{"annee", "paies"}` et le numero du poste, rien
+    /// d'autre.
+    pub fn compter_paies(&self, annee: i32, paies: usize) -> Rep {
+        self.post_du_poste("paies", serde_json::json!({"annee": annee, "paies": paies}), DELAI)
+    }
+
     /// Un texte, des incidents et des captures : le delai est plus long.
     pub fn signaler(&self, corps: &Value) -> Rep {
         self.post_du_poste("retour", corps.clone(), 60)
