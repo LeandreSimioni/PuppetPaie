@@ -157,10 +157,7 @@ pub fn fiche(nom: &str) -> R<Vec<Champ>> {
 
 // ------------------------------------------------------- les outils de texte
 
-/// Les espaces que `str.strip()` et `\s` retirent : `str.isspace`.
-pub(crate) fn espace(c: char) -> bool {
-    c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)
-}
+pub(crate) use crate::retours::blanc_py as espace;
 
 pub(crate) fn strip(s: &str) -> &str {
     s.trim_matches(espace)

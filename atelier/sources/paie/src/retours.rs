@@ -108,14 +108,16 @@ pub fn libelle_nature(code: &str) -> String {
 
 // ------------------------------------------------------ le texte, a la Python
 
-/// `str.isspace()` de Python (donc ce que `strip()` retire).
-fn est_blanc(c: char) -> bool {
+/// `str.isspace()` de Python (donc ce que `strip()` retire et ce que `\s` reconnait) : le blanc d'Unicode (`char::is_whitespace`),
+/// plus `\x1c` a `\x1f`. La seule du moteur : `entrepot_dila`, `coffre`, `usages`, `champs`, `transport`, `avenant`, `envoi` et
+/// `apercu_dsn` la reprennent sous leur nom.
+pub fn blanc_py(c: char) -> bool {
     matches!(c, '\u{9}'..='\u{d}' | '\u{1c}'..='\u{20}' | '\u{85}' | '\u{a0}' | '\u{1680}' | '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}')
 }
 
 /// `str.strip()`.
 fn nettoye(s: &str) -> &str {
-    s.trim_matches(est_blanc)
+    s.trim_matches(blanc_py)
 }
 
 /// `\d` d'une expression reguliere de Python sur du texte : un chiffre decimal Unicode.
@@ -2160,11 +2162,6 @@ pub fn commande(entree: &str) -> Result<Value, String> {
 
 // ------------------------------------------------- ce que le journal en lit
 
-/// `str.isspace()` de Python.
-pub fn blanc_py(c: char) -> bool {
-    est_blanc(c)
-}
-
 /// `parse_bilan_depot(octets)` : le bilan (`null` si ce n'est pas un rapport).
 pub fn bilan_d_octets(o: &[u8]) -> Value {
     parse_bilan_depot(&Entree::Octets(o.to_vec()))
@@ -2558,4 +2555,18 @@ fn mois_de_jjmmaaaa(brut: &str) -> String {
         return format!("{}-{}", c[4..8].iter().collect::<String>(), c[2..4].iter().collect::<String>());
     }
     brut.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn le_blanc_de_python_est_celui_d_unicode_plus_les_separateurs_1c_a_1f() {
+        // La table de `blanc_py` et la forme que reprenaient ses anciennes copies (`is_whitespace`, plus 0x1C-0x1F) disent
+        // la meme chose, caractere pour caractere.
+        for c in (0..=0x10FFFFu32).filter_map(char::from_u32) {
+            assert_eq!(blanc_py(c), c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c), "U+{:04X}", c as u32);
+        }
+    }
 }

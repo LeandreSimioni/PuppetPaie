@@ -496,10 +496,7 @@ impl<L: Read> LecteurTar<L> {
     }
 }
 
-/// Un blanc au sens de Python (`str.isspace`, `\s` d'un motif `str`) : celui d'Unicode, plus `\x1c` a `\x1f`.
-pub fn blanc_py(c: char) -> bool {
-    c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)
-}
+use crate::retours::blanc_py;
 
 /// `str.strip()`.
 pub fn strip_py(t: &str) -> &str {

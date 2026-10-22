@@ -166,10 +166,7 @@ fn resoudre(p: &Path) -> PathBuf {
     }
 }
 
-/// `str.isspace()` de Python.
-fn espace(c: char) -> bool {
-    c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)
-}
+use crate::retours::blanc_py as espace;
 
 fn strip(s: &str) -> &str {
     s.trim_matches(espace)
