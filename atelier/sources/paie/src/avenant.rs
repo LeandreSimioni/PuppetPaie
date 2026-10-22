@@ -33,7 +33,7 @@ use crate::date::{d, en_texte, Jour};
 use crate::emplois::{emploi_de, EmploiEngagement};
 use crate::etats::{accepte, est, get, getd, items, objet_vide, ou, py_str, CONTRAT_RECU, LISTE_VIDE, SIGNATURE};
 use crate::retours::Echec;
-use crate::fichiers::{dossier_du_code, vrai};
+use crate::fichiers::vrai;
 use crate::nfkc::nfkc;
 use crate::num::{dec, Resultat};
 
@@ -919,16 +919,6 @@ fn mois_hors_delai(ctx: &Contexte, mois: &str) -> Resultat<bool> {
     Ok(ctx.aujourdhui > crate::echeance_dsn::de_la_compagnie(ctx, mois)?.jour)
 }
 
-/// `contexte.GABARITS` : le dossier `gabarits/` du poste (les donnees du processus).
-pub(crate) fn gabarits_du_poste() -> PathBuf {
-    if let Some(e) = std::env::var_os("PUPPETPAIE_DONNEES").filter(|e| !e.is_empty()) {
-        return PathBuf::from(e).join("gabarits");
-    }
-    let code = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
-    let voisin = code.parent().map(|p| p.join("prive")).unwrap_or_default();
-    if voisin.join("config").is_dir() { voisin } else { code }.join("gabarits")
-}
-
 /// `operations_documents._ent_du_mois` : la fiche entreprise, avec la licence du mois et les gabarits de la compagnie.
 pub(crate) fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Value> {
     let licence = ctx.licence(&Jour::lire(&format!("{}-01", mois.get(..7).ok_or("mois illisible")?))?)?;
@@ -1014,8 +1004,8 @@ pub(crate) fn valeurs_de_la_paie(ctx: &Contexte, ent: &Value, paie: &Value, nume
 }
 
 /// `contrat.lire_modele(modele_de(contrat.MODELE.name, ent))` pour le contrat d'engagement.
-pub(crate) fn modele_du_contrat(ent: &Value) -> Resultat<Modele> {
-    modele::lire_fichier(&crate::dpae::modele_de(MODELE, ent, &gabarits_du_poste()).to_string_lossy()).map_err(|r| r.0)
+pub(crate) fn modele_du_contrat(ent: &Value, gabarits: &Path) -> Resultat<Modele> {
+    modele::lire_fichier(&crate::dpae::modele_de(MODELE, ent, gabarits).to_string_lossy()).map_err(|r| r.0)
 }
 
 fn ecart(ctx: &Contexte, mois: &str, salarie: &str, debut: &str, numero: Option<&str>, rang: usize) -> Resultat<String> {
@@ -1039,7 +1029,7 @@ fn ecart(ctx: &Contexte, mois: &str, salarie: &str, debut: &str, numero: Option<
     // Un avenant ENVOYE compte deja, signe ou non : ce qu'il attend, c'est sa signature, pas un autre avenant.
     let deja = textes_des_avenants(&ctx.racine, salarie, debut, numero, &parti)?;
     let ent = ent_du_mois(ctx, mois)?;
-    let modele = modele_du_contrat(&ent)?;
+    let modele = modele_du_contrat(&ent, &ctx.gabarits())?;
     let texte_pdf = texte_du_pdf(&pdf)?;
     // Seulement maintenant, la paie : ses montants, la designation et le taux de ses lignes.
     let Some(vals) = valeurs_du_rang(ctx, mois, salarie, debut, rang)? else {

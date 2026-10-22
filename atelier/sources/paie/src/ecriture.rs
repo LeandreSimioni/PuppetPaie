@@ -206,9 +206,21 @@ pub fn ecrire_json(chemin: &Path, donnees: &Value, indent: usize) -> Resultat<()
     // puis ecrivait : un lecteur arrive entre les deux (l'etat du mois se refait dans le fil de la fenetre, `etat_garde::
     // FileDesEtats`, pendant qu'une route ou un test relit `journal/depots.json`) lisait un fichier vide, « EOF while
     // parsing a value ». Un journal JSON ne se voit jamais a moitie ecrit.
-    let provisoire = chemin.with_extension(format!("{}.provisoire", chemin.extension().and_then(|e| e.to_str()).unwrap_or("json")));
+    // Le fichier d'a cote est a cette ecriture seule (le processus, un numero) : la fenetre sert ses routes dans son
+    // processus, et deux fils qui ecrivent le meme fichier ne s'ecrivent jamais l'un sur l'autre (ticket #244). En `.tmp` :
+    // ni l'empreinte de l'etat d'un mois ni la sauvegarde ne le voient le temps qu'il existe.
+    let provisoire = provisoire(chemin);
     std::fs::write(&provisoire, texte).map_err(|e| format!("{} : {}", provisoire.display(), e))?;
     std::fs::rename(&provisoire, chemin).map_err(|e| format!("{} : {}", chemin.display(), e))
+}
+
+/// Le fichier provisoire d'une ecriture de `chemin` : a cote, `<nom>.<processus>-<numero>.tmp`, que nulle autre ecriture
+/// ne prend (ni un autre fil, ni un autre processus).
+pub fn provisoire(chemin: &Path) -> std::path::PathBuf {
+    static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let n = N.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    chemin.with_file_name(format!("{}.{}-{}.tmp", nom, std::process::id(), n))
 }
 
 /// `paie ecrire-json` : `{"chemin", "donnees", "indent"?}` (2 par defaut).

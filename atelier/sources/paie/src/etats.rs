@@ -378,7 +378,31 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
 
 /// Toutes les lignes de `journal/depots.json` (aucune si le fichier n'existe pas).
 pub(crate) fn charger(racine: &Path) -> R<Vec<Value>> {
+    Ok((*charger_partage(racine)?).clone())
+}
+
+/// Les lignes de `journal/depots.json`, PARTAGEES : lues une fois tant que le fichier ne change pas (chemin, date,
+/// taille ; il s'ecrit toujours d'un coup, `ecriture::ecrire_json`), et servies a chaque route qui les relit -- la
+/// fenetre garde le moteur charge (ticket #244). Un refus ne se garde pas.
+pub(crate) fn charger_partage(racine: &Path) -> R<std::sync::Arc<Vec<Value>>> {
+    type Cache = std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, (Option<(u128, u64)>, std::sync::Arc<Vec<Value>>)>>;
+    static CACHE: std::sync::OnceLock<Cache> = std::sync::OnceLock::new();
+    let cache = CACHE.get_or_init(Default::default);
     let p = chemin(racine);
+    let sig = crate::fichiers::signature(&p);
+    if let Some((s, l)) = sig.and_then(|_| cache.lock().unwrap_or_else(|e| e.into_inner()).get(&p).cloned()) {
+        if s == sig {
+            return Ok(l);
+        }
+    }
+    let l = std::sync::Arc::new(charger_du_disque(&p)?);
+    if sig.is_some() {
+        crate::fichiers::ranger(cache, p, (sig, l.clone()));
+    }
+    Ok(l)
+}
+
+fn charger_du_disque(p: &Path) -> R<Vec<Value>> {
     if !p.exists() {
         return Ok(Vec::new());
     }

@@ -28,7 +28,7 @@ use crate::contexte::Contexte;
 use crate::etats::{self, erreur, est, eq_py, get, getd, items, joindre, nom_type, objet_vide, ou, py_str, DPAE, SIGNATURE};
 use crate::fichiers::{dossier_du_code, vrai};
 use crate::retours::Echec;
-use crate::routes_accueil::{identite, mois_connus, racine_du_poste};
+use crate::routes_accueil::{identite, mois_connus};
 use crate::routes_mois::Moteur;
 
 type R<T> = Result<T, Echec>;
@@ -43,7 +43,7 @@ const CONTRAT_RECU: &str = "contrat-recu";
 /// Une route de ce module.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "identite" => Ok(json!({"identite": identite(ctx, &racine_du_poste().join("gabarits"))?})),
+        "identite" => Ok(json!({"identite": identite(ctx, &ctx.gabarits())?})),
         "exercices" => exercices_route(o, ctx),
         "coffre-etat" => coffre_etat(ctx),
         "filet-etat" => etat_filet(&ctx.racine),

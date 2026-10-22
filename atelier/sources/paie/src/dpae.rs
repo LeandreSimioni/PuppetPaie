@@ -297,8 +297,8 @@ fn gabarit_lu(ent: Option<&Value>, chemins: &Chemins) -> Resultat<Vec<char>> {
 /// Ce que la DPAE dirait de l'employeur de cette fiche, sans rien ecrire : `Err` avec la phrase du refus (le code du
 /// centre de medecine du travail qui manque, par exemple). La liste « Pour demarrer » s'en sert : la meme regle que le
 /// depot, au meme endroit.
-pub fn employeur_pret(ent: &Value) -> Resultat<()> {
-    let chemins = Chemins { defaut: dossier_du_code().join("modeles").join(NOM_GABARIT), poste: crate::avenant::gabarits_du_poste() };
+pub fn employeur_pret(ent: &Value, gabarits: &Path) -> Resultat<()> {
+    let chemins = Chemins { defaut: dossier_du_code().join("modeles").join(NOM_GABARIT), poste: gabarits.to_path_buf() };
     employeur(ent, &gabarit_lu(Some(ent), &chemins)?).map(|_| ())
 }
 

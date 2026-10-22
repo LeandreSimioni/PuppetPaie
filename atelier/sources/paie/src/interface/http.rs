@@ -219,7 +219,7 @@ pub fn sans_heritage(l: &TcpListener) {
 pub fn servir(ecouteur: TcpListener, traiter: Arc<dyn Fn(Requete) -> Reponse + Send + Sync>) {
     for flux in ecouteur.incoming().flatten() {
         let t = traiter.clone();
-        std::thread::spawn(move || servir_connexion(flux, t));
+        crate::routes::fil_de_routes(move || servir_connexion(flux, t));
     }
 }
 

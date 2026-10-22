@@ -1,4 +1,5 @@
-//! `paie route` : les routes de l'interface, une par processus.
+//! `paie route` : les routes de l'interface. La fenetre les sert dans son processus (`dans_la_fenetre`, ticket #244) ;
+//! `paie route`, une par processus, reste pour la ligne de commande et les tests.
 //!
 //! Demande sur l'entree standard : `{"route": "...", "charge": {...}}`, avec
 //! `--racine` et `--date` comme `paie interne`. Reponse : `{"ok": true,
@@ -21,14 +22,75 @@ use crate::num::Resultat;
 use crate::retours::Echec;
 use crate::service::contexte;
 
+/// La pile d'un fil qui sert des routes dans la fenetre : 8 Mo, celle du fil principal d'un `paie route` sous Linux (un
+/// fil neuf n'en a que 2). Un calcul qui remonte les mois d'avant s'y empile ; un debordement de pile ne se rattrape pas
+/// (`catch_unwind` n'y peut rien), il fermerait la fenetre.
+pub const PILE_D_UNE_ROUTE: usize = 8 * 1024 * 1024;
+
+/// Un fil qui sert des routes dans la fenetre (une connexion, la file des etats, la veille, un passage en fond), avec
+/// la pile qu'il leur faut (`PILE_D_UNE_ROUTE`).
+pub fn fil_de_routes<F: FnOnce() + Send + 'static>(f: F) {
+    if let Err(e) = std::thread::Builder::new().stack_size(PILE_D_UNE_ROUTE).spawn(f) {
+        eprintln!("Un fil du moteur ne demarre pas : {}.", e);
+    }
+}
+
+/// La route d'essai qui tombe (`commande`, en essai seulement).
+pub const ROUTE_QUI_TOMBE: &str = "essai-defaut-du-logiciel";
+
+/// Le fil remis propre apres une route servie dans la fenetre (`dans_la_fenetre`, `etat_garde::FileDesEtats`) : plus
+/// de mot de passe tape, les nombres a leur ecriture normale, aucun registre de lectures ouvert.
+pub(crate) fn remettre_le_fil() {
+    crate::coffre::oublier_mot_de_passe_tape();
+    crate::engagement::FIDELE.with(|f| f.set(false));
+    let _ = crate::fichiers::rendre();
+}
+
+/// UNE ROUTE SERVIE DANS LA FENETRE, ET CE QU'ELLE LAISSE SUR SON FIL (ticket #244). La fenetre sert ses routes dans son
+/// processus (`interface::api::route`, la file des etats), et le fil d'une connexion en sert d'autres ensuite. Cette
+/// fonction fait la route (`commande`), gardee d'une panique (une route qui tombe rend un refus `DefautDuLogiciel` et le
+/// fil continue), puis remet le fil propre, quoi qu'il soit arrive : le mot de passe tape oublie (`coffre::TAPE` : il ne
+/// survit jamais a sa route), les nombres a leur ecriture normale (`engagement::FIDELE`), le registre des lectures
+/// qu'un calcul aurait laisse ouvert en tombant ferme (`fichiers::suivre`).
+///
+/// `paie route` et la ligne de commande (`commandes::Cadre`) appellent `commande` directement : le processus meurt avec
+/// sa commande, et le mot de passe qu'elle a fait taper (`demande::autoriser_acte`) sert a toute la commande.
+pub fn dans_la_fenetre(o: &HashMap<String, String>, route: &str, charge: &Value) -> Value {
+    let entree = json!({"route": route, "charge": charge}).to_string();
+    let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| commande(o, &entree)));
+    remettre_le_fil();
+    match rendu {
+        Ok(Ok(rep)) => rep,
+        Ok(Err(m)) => json!({"ok": false, "erreur": m}),
+        Err(panique) => {
+            let pourquoi = panique
+                .downcast_ref::<&str>()
+                .map(|s| s.to_string())
+                .or_else(|| panique.downcast_ref::<String>().cloned())
+                .unwrap_or_else(|| "sans phrase".into());
+            json!({"ok": false, "classe": "DefautDuLogiciel", "erreur": format!("Defaut du logiciel : la route {} s'est arretee ({}).", route, pourquoi)})
+        }
+    }
+}
+
 /// `paie route [--racine R] [--date D]`.
 pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
+    // Le code livre ne bouge pas le temps de la route : ses signatures se lisent une fois (`fichiers::code_fige`).
+    let _code = crate::fichiers::code_fige();
     let d: Value = serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))?;
     let route = d.get("route").and_then(Value::as_str).ok_or("demande illisible : il faut `route`")?;
     let charge = d.get("charge").cloned().unwrap_or_else(|| json!({}));
-    // Le mot de passe du logiciel tape pour cette route ouvre aussi le coffre (`coffre::retenir_mot_de_passe_tape`).
+    // Le mot de passe du logiciel tape pour cette route ouvre aussi le coffre (`coffre::retenir_mot_de_passe_tape`) ;
+    // dans la fenetre, le temps de cette route seulement (`dans_la_fenetre`).
     if let Some(m) = charge.get("motdepasse").and_then(Value::as_str) {
         crate::coffre::retenir_mot_de_passe_tape(m);
+    }
+    // UNE ROUTE QUI TOMBE, pour les essais seulement (`garde_reseau::en_essai`, que Cargo pose) : la fenetre doit rendre
+    // un refus et servir la suivante (`dans_la_fenetre`, `tests/routes_dans_la_fenetre.rs`). Le fil est laisse sale
+    // expres, comme un calcul qui tombe le laisserait.
+    if route == ROUTE_QUI_TOMBE && crate::garde_reseau::en_essai() {
+        crate::engagement::FIDELE.with(|f| f.set(true));
+        panic!("la route d'essai tombe expres");
     }
     if let Some(r) = crate::routes_ouverture::traiter(o, route, &charge) {
         return match r {

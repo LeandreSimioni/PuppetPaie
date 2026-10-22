@@ -672,8 +672,9 @@ fn scrypt_32(motdepasse: &[u8], sel: &[u8], n: i128, r: i128, p: i128) -> R<Vec<
 // du logiciel tape par un humain pour CETTE commande l'ouvre, pour tout ce qu'elle lit : consultation, envois,
 // verification des comptes, releves, depots. Il arrive par la demande (`motdepasse` d'une route) ou par
 // `PUPPETPAIE_MOTDEPASSE`, la variable que les fenetres posent apres l'avoir fait taper. Il ne change rien au poste
-// et ne s'ecrit nulle part. Par fil : un processus `paie` sert une commande ; les tests, chacun sur son fil, ne se
-// le transmettent pas.
+// et ne s'ecrit nulle part. Par fil, et le temps d'une route : la fenetre sert ses routes dans son
+// processus, une par fil a la fois, et `routes::commande` remet en sortant ce qu'il a trouve, quoi qu'il arrive (ticket
+// #244) ; les tests, chacun sur son fil, ne se le transmettent pas.
 thread_local! {
     static TAPE: std::cell::RefCell<Option<String>> = const { std::cell::RefCell::new(None) };
 }
@@ -688,6 +689,12 @@ pub fn retenir_mot_de_passe_tape(motdepasse: &str) {
 /// Oublie le mot de passe retenu pour ce fil (la fin d'une commande, ou d'un test).
 pub fn oublier_mot_de_passe_tape() {
     TAPE.with(|t| *t.borrow_mut() = None);
+}
+
+/// Un mot de passe tape est-il retenu sur ce fil ? (Rien de plus : jamais sa valeur.) Les essais de la fenetre s'en
+/// servent : un mot de passe ne survit pas a sa route (ticket #244).
+pub fn mot_de_passe_retenu() -> bool {
+    TAPE.with(|t| t.borrow().is_some())
 }
 
 /// Le mot de passe tape pour cette commande : celui de la demande, sinon `PUPPETPAIE_MOTDEPASSE`.

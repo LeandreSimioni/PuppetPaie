@@ -144,6 +144,9 @@ pub fn fiche(nom: &str) -> R<Vec<Champ>> {
         })
         .as_ref()
         .map_err(|m| plain(m.clone()))?;
+    // Lu une fois par processus (le code livre ne change pas sous la fenetre), mais note a chaque usage : un calcul
+    // suivi dans un processus deja chaud a les memes entrees qu'un processus neuf (ticket #244).
+    crate::fichiers::noter_si_besoin(&dossier_du_code().join("champs-base.json"));
     match nom {
         "entreprise" => Ok(t.entreprise.clone()),
         "salarie" => Ok(t.salarie.clone()),

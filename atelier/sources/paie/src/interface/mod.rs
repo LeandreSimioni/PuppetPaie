@@ -323,7 +323,8 @@ impl Fenetre {
         if let Err(e) = compagnies::figer_origine(&racine) {
             self.ecrire(&format!("Photo d'origine non prise : {}\n", e));
         }
-        std::env::set_var("PUPPETPAIE_DONNEES", &racine);
+        // Aucune variable du processus ne dit la compagnie (ticket #244) : chaque route la recoit (`--racine`, `o["racine"]`,
+        // le `Contexte`), et la fenetre pourra en servir plusieurs a la fois.
         let journal = racine.join("journal").join("interface.log");
         if let Some(d) = journal.parent() {
             let _ = std::fs::create_dir_all(d);
@@ -473,7 +474,13 @@ impl Fenetre {
                 let Phase::Ouverte { racine, veille, etats } = self.phase() else {
                     return Reponse::json(200, &json!({"ok": false, "erreur": {"type": "ErreurOperation", "message": "Aucune compagnie n'est ouverte."}}));
                 };
-                return Reponse::json(200, &api::repondre(&racine, nom, &charge, Some(&veille), Some(&etats)));
+                // LE JOURNAL DE L'INTERFACE note chaque route et sa duree (ticket #244 : mesurer l'ouverture sur le poste) :
+                // l'heure, le nom, les millisecondes, et la classe d'un refus. Jamais la charge : elle peut porter un mot
+                // de passe.
+                let debut = Instant::now();
+                let rendu = api::repondre(&racine, nom, &charge, Some(&veille), Some(&etats));
+                self.ecrire(&ligne_de_route(nom, debut.elapsed(), &rendu));
+                return Reponse::json(200, &rendu);
             }
             return Reponse::json(404, &json!({"ok": false, "erreur": {"type": "Inconnue", "message": "route inconnue"}}));
         }
@@ -539,7 +546,7 @@ impl Fenetre {
     }
 
     /// L'apercu d'un modele de bulletin (lot R11) : le PDF d'une paie fictive, que la route `bulletin-modele-apercu` fait
-    /// dans son propre processus, comme toute route ; le lecteur de la fenetre l'affiche (Configuration).
+    /// dans le processus de la fenetre, comme toute route ; le lecteur de la fenetre l'affiche (Configuration).
     fn apercu_bulletin(&self, r: &Requete) -> Reponse {
         let interdit = Reponse::nouvelle(403, "text/plain", Vec::new());
         let Phase::Ouverte { racine, .. } = self.phase() else { return interdit };
@@ -591,6 +598,18 @@ impl Fenetre {
     pub fn adresse(&self, hote: &str, port: u16) -> String {
         format!("http://{}:{}/?jeton={}", hote, port, self.jeton)
     }
+}
+
+/// La ligne du journal de l'interface pour une route servie : `HH:MM:SS route NOM N ms`, et ` refus CLASSE` quand elle a
+/// refuse. Ni la charge ni la reponse : seulement de quoi mesurer (ticket #244).
+pub fn ligne_de_route(nom: &str, duree: Duration, rendu: &Value) -> String {
+    let heure = crate::releve_retours::iso_de_naif(crate::releve_retours::maintenant_naif());
+    let nom: String = nom.chars().filter(|c| c.is_ascii_alphanumeric() || "-_.".contains(*c)).take(80).collect();
+    let refus = match rendu.get("ok").and_then(Value::as_bool) {
+        Some(true) => String::new(),
+        _ => format!(" refus {}", rendu.pointer("/erreur/type").and_then(Value::as_str).unwrap_or("?")),
+    };
+    format!("{} route {} {} ms{}\n", heure.get(11..).unwrap_or(""), nom, duree.as_millis(), refus)
 }
 
 fn egal_en_temps_constant(a: &[u8], b: &[u8]) -> bool {

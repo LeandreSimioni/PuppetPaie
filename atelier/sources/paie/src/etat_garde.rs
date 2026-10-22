@@ -220,7 +220,7 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
 /// ecriture impossible ne change rien au resultat : la prochaine lecture refera.
 fn ecrire(racine: &Path, mois: &str, etat: &Value) {
     let f = chemin(racine, mois);
-    let tmp = f.with_extension(format!("json.{}.tmp", std::process::id()));
+    let tmp = crate::ecriture::provisoire(&f);
     if std::fs::write(&tmp, etat.to_string()).is_ok() && std::fs::rename(&tmp, &f).is_err() {
         let _ = std::fs::remove_file(&tmp);
     }
@@ -358,7 +358,7 @@ impl FileDesEtats {
         }
         let f = Arc::new(FileDesEtats { o, racine: racine.to_path_buf(), etat: Mutex::new(EtatDeLaFile::default()), signal: Condvar::new() });
         let fil = f.clone();
-        std::thread::spawn(move || fil.tourner());
+        crate::routes::fil_de_routes(move || fil.tourner());
         f
     }
 
@@ -400,10 +400,15 @@ impl FileDesEtats {
             return Ok(v);
         }
         let o = &self.o;
-        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let _code = crate::fichiers::code_fige();
+        let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
             lire(o, &ctx, mois)
-        })) {
+        }));
+        // Un calcul tombe a pu laisser son fil sale (un registre ouvert, les nombres « fideles ») : le mois suivant
+        // repart d'un fil propre.
+        crate::routes::remettre_le_fil();
+        match rendu {
             Ok(Ok(v)) => Ok(v),
             Ok(Err(e)) => Err((e.classe, e.message)),
             Err(_) => Err((Some("DefautDuLogiciel"), format!("Defaut du logiciel : l'etat de {} ne s'est pas refait (le calcul s'est arrete).", mois))),
