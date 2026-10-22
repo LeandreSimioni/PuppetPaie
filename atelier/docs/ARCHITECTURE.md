@@ -1472,7 +1472,7 @@ installe un second logiciel. `paie/src/administrateur.rs` :
 et l'installation de l'éditeur reçoit comme les autres. Un dépôt est une
 adresse qui sert `derniere.json` et les archives de `logiciel/`.
 
-**Quatre archives par version** (Léandre, 15/10/2026) : une par système
+**Quatre archives de mise à jour par version** (Léandre, 15/10/2026) : une par système
 (`windows`, `linux`, `mac` : les fichiers communs et les programmes de ce
 système) et une pour tous (`tout-systeme`). Dans `logiciel/`, les programmes de
 Windows sont à la racine (`puppetpaie.exe`, `WebView2Loader.dll`), ceux de Linux
@@ -1483,6 +1483,43 @@ une entrée par système publié (`archive`, `sha256`, `signature` ; celle de to
 dit en plus les systèmes qu'elle porte, `systemes`). « Publier » choisit ce qu'il
 fabrique (Windows seul, Windows et Linux, ou les trois) ; une installation dont
 le système n'est pas publié ne télécharge rien et garde sa version.
+
+**La forme de l'archive de mise à jour est un contrat** avec toutes les
+installations posées (ticket #246, 22/10/2026) : le contenu de `logiciel/` à sa
+racine, rien d'autre. Le code déjà installé la déballe telle quelle dans
+`maj/<version>/logiciel/` et y lit `VERSION` ; une autre forme (le 22/10,
+`logiciel/` et `fictives/` dans chaque archive) coupe toutes les installations
+de leurs mises à jour. `derniere.json` peut gagner une clé à sa racine (le
+code d'avant ne lit que `version` et `archives`), jamais en perdre ni rien
+gagner sous `archives` qui ne soit un système.
+
+**Deux autres sortes d'archives, à côté.** L'**archive des fictives**
+(`puppetpaie-<version>-fictives.zip`, `maj::archiver_fictives`), signée, que
+`derniere.json` nomme sous `fictives` avec l'**empreinte** de leur contenu
+(SHA-256 des fichiers livrés et de leurs noms, ni compression ni dates). Les
+**archives d'installation** (`puppetpaie-<version>-<système>-installation.zip`,
+Linux, Mac et tous ; `maj::archiver_installation`) : `logiciel/` et
+`fictives/`, ce qu'on décompresse pour installer ; ni signées ni nommées,
+comme l'installeur Windows.
+
+**Les fictives se mettent à jour à part** (Léandre, 22/10/2026). Une
+installation retient la livraison qu'elle a dans `fictives/.livraison.json`
+(`empreinte`, et `posees` : le nom et l'empreinte de chaque fictive qu'elle a
+posée) ; chaque fictive posée porte sa marque, `.livree.json` (son empreinte).
+L'archive d'installation les porte, l'installeur Windows aussi (le flux les
+pose avant, `paie maj --marquer-fictives`). `maj::preparer_les_fictives` ne
+télécharge l'archive des fictives que si l'empreinte publiée n'est pas celle
+retenue (un dépôt de travail, qui porte `.git`, ne la reçoit jamais), la
+vérifie comme une archive du logiciel et la range dans `maj/fictives-pretes/`.
+Au lancement suivant, avant toute fenêtre, `maj::poser_les_fictives_pretes`
+remplace ce que la livraison avait posé (un dossier dont le nom est dans
+`posees` et dont la marque dit l'empreinte retenue ; sans livraison retenue,
+un dossier au nom d'une fictive livrée dont `COPIE-DE-DEVELOPPEMENT.json` dit
+« compagnie fictive <ce nom> »), joué ou non, photo d'origine comprise (elle
+se reprend à la prochaine ouverture) ; retire ce qu'elle avait posé et ne
+porte plus ; pose ce qui est nouveau. Un dossier qu'elle n'a pas posé n'est
+jamais touché : si une fictive livrée en porte le nom, elle n'est pas posée,
+et `maj/journal.log` le dit.
 
 - `verifier` — au lancement, en fond : lit `derniere.json`, prend une version
   plus récente, télécharge l'archive de son système (`maj::SYSTEME`), ou celle
@@ -1498,8 +1535,8 @@ le système n'est pas publié ne télécharge rien et garde sa version.
   place ; si ça casse en route, tout revient.
 - `revenir` — `.avant/` reprend la place (`paie maj --revenir`).
 - `publier` — par le flux « Publier » du dépôt public, qui compile les
-  systèmes choisis (le Mac sur `macos-latest`), signe et pose leurs archives et
-  celle de tous,
+  systèmes choisis (le Mac sur `macos-latest`), signe et pose leurs archives,
+  celle de tous et celle des fictives, les archives d'installation,
   `derniere.json` et l'installeur dans une Release (la clé du
   poste, `paie maj --publier`, reste acceptée) ; jamais republier un numéro.
 
