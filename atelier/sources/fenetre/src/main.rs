@@ -73,7 +73,8 @@ fn main() -> std::process::ExitCode {
         paie::interface::Instance::Tenue(p) => p,
         paie::interface::Instance::Devant => return std::process::ExitCode::SUCCESS,
     };
-    // Une installation posee avant le lot U1 range ses compagnies fictives (`demo/` devient `fictives/`).
+    // Une installation posee avant le lot U1 range ses compagnies fictives (`demo/` devient `fictives/`), et une livraison
+    // de fictives prete se pose (`paie::maj::poser_les_fictives_pretes`).
     paie::interface::preparer_l_installation();
     // Une version prete s'applique ICI, avant toute fenetre : le relais attend notre fin, bascule et ouvre la neuve.
     if paie::maj::au_lancement() {

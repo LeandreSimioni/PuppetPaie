@@ -188,6 +188,26 @@ fn la_publication_fait_quatre_archives_signees_que_derniere_json_nomme() {
         assert_eq!(sans_tete, maj_du_systeme, "{} : le meme logiciel que l'archive de mise a jour", k);
     }
 
+    // LES FICTIVES, a part : signees, nommees sous `fictives` avec leur empreinte ; leur archive porte exactement le
+    // `fictives/` des archives d'installation, et rien d'autre.
+    let f = &manifeste["fictives"];
+    assert_eq!(f["archive"], maj::nom_des_fictives("2026.11.03"));
+    let o = std::fs::read(depot.join(f["archive"].as_str().unwrap())).unwrap();
+    assert_eq!(f["sha256"], condensat(&o).as_str());
+    assert!(maj::signature_valide(&o, f["signature"].as_str().unwrap(), &publique()), "les fictives sont signees");
+    assert_eq!(f["empreinte"].as_str().map(str::len), Some(64));
+    let noms: Vec<String> = contenu(&o).into_iter().map(|(x, _)| x).collect();
+    assert!(noms.iter().all(|x| x.starts_with("fictives/")), "{:?}", noms);
+    for nom in FICTIVES {
+        assert!(noms.contains(&format!("fictives/{}/.livree.json", nom)), "{} porte sa marque", nom);
+    }
+    let installation: Vec<String> = contenu(&std::fs::read(depot.join(maj::nom_d_installation("2026.11.03", "linux"))).unwrap())
+        .into_iter()
+        .map(|(x, _)| x)
+        .filter(|x| x.starts_with("fictives/"))
+        .collect();
+    assert_eq!(noms, installation, "l'installation porte la meme livraison");
+
     // Sans aucune fenetre, rien n'est publie.
     let vide = d.join("sans-programme");
     std::fs::create_dir_all(vide.join("donnees")).unwrap();
@@ -554,6 +574,9 @@ fn une_installation_au_code_d_avant_deballe_et_lit_l_archive_de_mise_a_jour() {
         }
     }
     assert!(archives[maj::TOUT_SYSTEME]["systemes"].as_array().is_some_and(|l| !l.is_empty()));
+    // Les fictives sont nommees a la racine, sous une cle que le code d'avant ne lit pas (il ne lit que `version` et
+    // `archives`, et refuserait sous `archives` ce qui n'est pas un systeme).
+    assert!(d["fictives"]["archive"].is_string() && !archives.contains_key("fictives"));
     for systeme in [maj::SYSTEME, maj::TOUT_SYSTEME] {
         let a = &archives[systeme];
         let octets = std::fs::read(depot.join(a["archive"].as_str().unwrap())).unwrap();
@@ -573,9 +596,10 @@ fn une_installation_au_code_d_avant_deballe_et_lit_l_archive_de_mise_a_jour() {
     assert_eq!(maj::courante(&neuf), "0.0.0", "le code d'avant ne lirait pas une archive d'installation");
 }
 
-/// LA MISE A JOUR EN PLACE N'ECRASE PAS LES FICTIVES DU POSTE : une fictive jouee (sa fiche changee, une paie de plus) et
-/// sa photo d'origine (`fictives/.origine/`) restent exactement comme elles etaient : l'archive de mise a jour n'en porte
-/// aucune, et rien n'est range dans `maj/` hors de `logiciel/`.
+/// LA MISE A JOUR DU LOGICIEL SEUL NE TOUCHE PAS LES FICTIVES DU POSTE : la livraison de fictives publiee est celle que
+/// le poste retient (`fictives/.livraison.json`) ; rien n'en est telecharge, et une fictive jouee (sa fiche changee, une
+/// paie de plus) et sa photo d'origine (`fictives/.origine/`) restent exactement comme elles etaient. L'archive de mise a
+/// jour n'en porte aucune.
 #[test]
 fn la_mise_a_jour_en_place_n_ecrase_pas_les_fictives_du_poste() {
     let base = dossier_de_test("mise_a_jour", "fictives_du_poste");
@@ -592,10 +616,14 @@ fn la_mise_a_jour_en_place_n_ecrase_pas_les_fictives_du_poste() {
     let fiche = lire(&fictive.join("config").join("entreprise.json"));
     let photo = lire(&origine.join("config").join("entreprise.json"));
     crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": depot.display().to_string()}));
+    // Le poste a deja la livraison de fictives publiee : seule la version du logiciel est neuve.
+    let publiees: Value = serde_json::from_str(&lire(&depot.join("derniere.json"))).unwrap();
+    crate::outils::ecrire(&inst, "fictives/.livraison.json", &json!({"empreinte": publiees["fictives"]["empreinte"], "posees": {}}));
 
     let dit = maj::verifier_avec(&inst, true, &[&publique()]);
     assert!(dit.contains("prete"), "{}", dit);
     assert!(!inst.join("maj").join("2026.11.01").join("fictives").exists(), "rien des fictives de l'archive n'est range");
+    assert!(!inst.join("maj").join("fictives-pretes").exists(), "la livraison de fictives est celle du poste : rien n'est telecharge");
     maj::appliquer(&inst, false).unwrap();
     assert_eq!(maj::courante(&inst.join("logiciel")), "2026.11.01");
     assert_eq!(lire(&fictive.join("config").join("entreprise.json")), fiche, "la fiche jouee est intacte");
@@ -603,7 +631,186 @@ fn la_mise_a_jour_en_place_n_ecrase_pas_les_fictives_du_poste() {
     assert_eq!(lire(&origine.join("config").join("entreprise.json")), photo, "la photo d'origine aussi");
     let mut fictives: Vec<String> = std::fs::read_dir(inst.join("fictives")).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
     fictives.sort();
-    assert_eq!(fictives, [".origine", "fictive-3090-petite"], "aucune fictive de l'archive n'est arrivee");
+    assert_eq!(fictives, [".livraison.json", ".origine", "fictive-3090-petite"], "aucune fictive de l'archive n'est arrivee");
+    assert!(maj::poser_les_fictives_pretes(&inst).is_none(), "au lancement, rien a poser");
+}
+
+/// Tout ce que porte un dossier, chemin par chemin : pour dire qu'il est intact.
+fn photo_de(d: &Path) -> std::collections::BTreeMap<String, Vec<u8>> {
+    let mut out = std::collections::BTreeMap::new();
+    let mut pile = vec![d.to_path_buf()];
+    while let Some(p) = pile.pop() {
+        for e in std::fs::read_dir(&p).into_iter().flatten().flatten() {
+            if e.path().is_dir() {
+                pile.push(e.path());
+            } else {
+                out.insert(e.path().strip_prefix(d).unwrap().to_string_lossy().into_owned(), std::fs::read(e.path()).unwrap());
+            }
+        }
+    }
+    out
+}
+
+/// L'editeur publie la version `version` dans `depot`, ses fictives livrees puis changees par `changer` (le dossier
+/// `fictives/` de l'editeur). Rend `derniere.json`.
+fn publier_avec_fictives(base: &Path, depot: &Path, version: &str, changer: impl Fn(&Path)) -> Value {
+    let editeur = logiciel(&base.join(format!("editeur-{}", version)).join("logiciel"), version);
+    livrer_les_fictives(&editeur);
+    changer(&editeur.parent().unwrap().join("fictives"));
+    tous_les_systemes(&editeur);
+    maj::publier_signe(&editeur, depot, &GRAINE, &publique(), "", "", "").unwrap();
+    serde_json::from_str(&lire(&depot.join("derniere.json"))).unwrap()
+}
+
+/// Le marqueur d'une fictive livree, au nom `nom`.
+fn marquer(dossier: &Path, nom: &str) {
+    crate::outils::ecrire(dossier, "COPIE-DE-DEVELOPPEMENT.json", &json!({"copie_de": format!("compagnie fictive {}", nom)}));
+}
+
+/// LES FICTIVES VOYAGENT A PART, ET UNE LIVRAISON NE TOUCHE QUE CE QU'ELLE A POSE (Leandre, 22/10/2026). Une installation
+/// posee par l'archive d'installation retient sa livraison : une Release aux memes fictives ne telecharge rien. Une
+/// livraison changee se prepare en fond sans rien toucher, puis, au lancement, REMPLACE les fictives qu'elle avait posees,
+/// jouees ou non, photo d'origine comprise (la suivante se prend sur la fictive neuve), retire celle qu'elle ne porte
+/// plus, pose la nouvelle. Une copie renommee sur le poste, et un dossier fait sur le poste au nom d'une fictive livree,
+/// restent intacts (la livraison ne pose pas celle-ci, et le dit) ; ni `compagnies/` ni `prive/` ne bougent. Une Release
+/// suivante aux memes fictives ne retelecharge rien et ne touche rien.
+#[test]
+fn une_livraison_de_fictives_changee_remplace_celles_qu_elle_a_posees_et_rien_d_autre() {
+    let base = dossier_de_test("mise_a_jour", "livraison_de_fictives");
+    let depot = base.join("depot");
+    let v1 = publier_avec_fictives(&base, &depot, "2026.11.01", |_| {});
+
+    // L'installation, telle que la pose l'archive d'installation ; une compagnie reelle a cote.
+    let inst = installee(&base);
+    let deballee = base.join("archive-d-installation");
+    let octets = std::fs::read(depot.join(maj::nom_d_installation("2026.11.01", maj::SYSTEME))).unwrap();
+    zip::ZipArchive::new(std::io::Cursor::new(octets)).unwrap().extract(&deballee).unwrap();
+    std::fs::rename(deballee.join("fictives"), inst.join("fictives")).unwrap();
+    assert_eq!(maj::empreinte_retenue(&inst.join("fictives")).as_deref(), v1["fictives"]["empreinte"].as_str(), "elle retient sa livraison");
+    ajoutee(&inst.join("compagnies").join("essai"));
+    let compagnies = photo_de(&inst.join("compagnies"));
+    crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": depot.display().to_string()}));
+    let f = inst.join("fictives");
+
+    // Les memes fictives que la Release : rien a telecharger.
+    maj::verifier_avec(&inst, true, &[&publique()]);
+    assert!(!inst.join("maj").join("fictives-pretes").exists(), "les memes fictives ne se telechargent pas");
+
+    // Le poste joue une fictive livree, en copie une sous un autre nom, et fait la sienne au nom d'une fictive a venir.
+    let jouee = f.join("fictive-3090-petite");
+    paie::interface::compagnies::figer_origine(&jouee).unwrap();
+    crate::outils::ecrire(&jouee, "config/entreprise.json", &json!({"nom_affichage": "Jouee sur ce poste"}));
+    crate::outils::ecrire(&jouee, "paies/2026-12.json", &json!({"joue": true}));
+    let copie = f.join("ma-partie");
+    copier(&jouee, &copie);
+    paie::interface::compagnies::figer_origine(&copie).unwrap();
+    let a_moi = f.join("fictive-nouvelle");
+    copier(&f.join("fictive-1285-petite"), &a_moi);
+    crate::outils::ecrire(&a_moi, "config/entreprise.json", &json!({"nom_affichage": "Faite sur ce poste"}));
+    let (photo_copie, photo_origine_copie, photo_a_moi) = (photo_de(&copie), photo_de(&f.join(".origine").join("ma-partie")), photo_de(&a_moi));
+
+    // La livraison suivante : une fictive changee, une retiree, une nouvelle (au nom du dossier fait sur le poste).
+    let v2 = publier_avec_fictives(&base, &depot, "2026.11.02", |l| {
+        crate::outils::ecrire(&l.join("fictive-3090-petite"), "config/entreprise.json", &json!({"nom_affichage": "Nouvelle histoire"}));
+        std::fs::remove_dir_all(l.join("fictive-1285-grande")).unwrap();
+        copier(&l.join("fictive-3090-grande"), &l.join("fictive-nouvelle"));
+        marquer(&l.join("fictive-nouvelle"), "fictive-nouvelle");
+    });
+    assert_ne!(v2["fictives"]["empreinte"], v1["fictives"]["empreinte"]);
+    maj::verifier_avec(&inst, true, &[&publique()]);
+    assert!(inst.join("maj").join("fictives-pretes").is_dir(), "la livraison changee se prepare");
+    assert!(lire(&jouee.join("config").join("entreprise.json")).contains("Jouee"), "rien n'est pose avant le lancement");
+
+    // Au lancement : posee.
+    let dit = maj::poser_les_fictives_pretes(&inst).unwrap();
+    assert!(dit.contains("fictive-nouvelle non posee"), "{}", dit);
+    assert!(lire(&jouee.join("config").join("entreprise.json")).contains("Nouvelle histoire"), "la fictive jouee est remplacee");
+    assert!(!jouee.join("paies").join("2026-12.json").exists(), "ce qui y etait joue est parti");
+    assert!(!f.join(".origine").join("fictive-3090-petite").exists(), "sa photo d'origine aussi");
+    paie::interface::compagnies::figer_origine(&jouee).unwrap();
+    assert!(lire(&f.join(".origine/fictive-3090-petite/config/entreprise.json")).contains("Nouvelle histoire"), "la suivante est la neuve");
+    assert!(!f.join("fictive-1285-grande").exists(), "la fictive retiree de la livraison disparait");
+    assert!(f.join("fictive-1285-petite").join("config").join("entreprise.json").is_file(), "celles qui n'ont pas change restent");
+    assert_eq!(photo_de(&copie), photo_copie, "la copie renommee est intacte");
+    assert_eq!(photo_de(&f.join(".origine").join("ma-partie")), photo_origine_copie, "et sa photo d'origine");
+    assert_eq!(photo_de(&a_moi), photo_a_moi, "le dossier fait sur le poste, au nom d'une fictive livree, est intact");
+    assert_eq!(photo_de(&inst.join("compagnies")), compagnies, "rien hors de fictives/");
+    assert!(!inst.join("prive").exists());
+    assert!(!inst.join("maj").join("fictives-pretes").exists() && !inst.join("maj").join("fictives-avant").exists());
+    let retenue: Value = serde_json::from_str(&lire(&f.join(".livraison.json"))).unwrap();
+    assert_eq!(retenue["empreinte"], v2["fictives"]["empreinte"]);
+    let mut posees: Vec<&str> = retenue["posees"].as_object().unwrap().keys().map(String::as_str).collect();
+    posees.sort();
+    assert_eq!(posees, ["fictive-1285-petite", "fictive-3090-grande", "fictive-3090-petite"], "seulement ce qu'elle a pose");
+
+    // Une Release aux memes fictives : rien n'est telecharge (son archive des fictives n'est meme pas lue), rien n'est touche.
+    let v3 = publier_avec_fictives(&base, &depot, "2026.11.03", |l| {
+        crate::outils::ecrire(&l.join("fictive-3090-petite"), "config/entreprise.json", &json!({"nom_affichage": "Nouvelle histoire"}));
+        std::fs::remove_dir_all(l.join("fictive-1285-grande")).unwrap();
+        copier(&l.join("fictive-3090-grande"), &l.join("fictive-nouvelle"));
+        marquer(&l.join("fictive-nouvelle"), "fictive-nouvelle");
+    });
+    assert_eq!(v3["fictives"]["empreinte"], v2["fictives"]["empreinte"], "memes fictives, meme empreinte");
+    std::fs::remove_file(depot.join(maj::nom_des_fictives("2026.11.03"))).unwrap();
+    crate::outils::ecrire(&jouee, "config/entreprise.json", &json!({"nom_affichage": "Rejouee"}));
+    let avant = photo_de(&f);
+    maj::verifier_avec(&inst, true, &[&publique()]);
+    assert!(!inst.join("maj").join("fictives-pretes").exists(), "rien n'est retelecharge");
+    assert!(maj::poser_les_fictives_pretes(&inst).is_none());
+    assert_eq!(photo_de(&f), avant, "rien n'est touche");
+}
+
+/// UNE INSTALLATION D'AVANT CE MECANISME (rien de retenu : l'installeur Windows, ou une installation posee avant le
+/// 22/10/2026) : la premiere livraison ne remplace que les dossiers au nom d'une fictive livree QUI PORTENT LE MARQUEUR
+/// D'UNE FICTIVE LIVREE (`COPIE-DE-DEVELOPPEMENT.json` : « compagnie fictive <ce nom> »). Un dossier fait sur le poste au
+/// nom d'une fictive livree, sans ce marqueur, survit intact, et la fictive livree n'y est pas posee.
+#[test]
+fn sans_livraison_retenue_seules_les_fictives_marquees_livrees_sont_remplacees() {
+    let base = dossier_de_test("mise_a_jour", "livraison_sans_retenue");
+    let depot = base.join("depot");
+    publier_avec_fictives(&base, &depot, "2026.11.01", |_| {});
+    let inst = installee(&base);
+    let f = inst.join("fictives");
+    let livree = f.join("fictive-3090-petite");
+    copier(&crate::outils::fictive("fictive-3090-petite"), &livree);
+    crate::outils::ecrire(&livree, "config/entreprise.json", &json!({"nom_affichage": "Jouee sur ce poste"}));
+    let a_moi = f.join("fictive-3090-grande");
+    copier(&crate::outils::fictive("fictive-1285-petite"), &a_moi);
+    let photo_a_moi = photo_de(&a_moi);
+    crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": depot.display().to_string()}));
+
+    maj::verifier_avec(&inst, true, &[&publique()]);
+    let dit = maj::poser_les_fictives_pretes(&inst).unwrap();
+    assert!(dit.contains("fictive-3090-grande non posee"), "{}", dit);
+    assert!(!lire(&livree.join("config").join("entreprise.json")).contains("Jouee"), "la fictive livree est remplacee");
+    assert!(livree.join(".livree.json").is_file(), "et marquee");
+    assert_eq!(photo_de(&a_moi), photo_a_moi, "le dossier fait sur le poste est intact");
+    for nom in ["fictive-1285-grande", "fictive-1285-petite"] {
+        assert!(f.join(nom).join("config").join("entreprise.json").is_file(), "{} est posee", nom);
+    }
+}
+
+/// L'INSTALLEUR WINDOWS RETIENT SA LIVRAISON : le flux « Publier » marque les fictives livrees (`paie maj
+/// --marquer-fictives`) avant de fabriquer l'installeur, qui pose ces marques avec elles. Une installation ainsi posee ne
+/// retelecharge pas des fictives qui n'ont pas change. Les marques ne changent ni l'empreinte ni ce qui se livre.
+#[test]
+fn les_fictives_marquees_par_le_flux_ne_se_retelechargent_pas() {
+    let base = dossier_de_test("mise_a_jour", "fictives_marquees");
+    let depot = base.join("depot");
+    let v1 = publier_avec_fictives(&base, &depot, "2026.11.01", |_| {});
+    let editeur = base.join("editeur-2026.11.01").join("logiciel");
+    let s = std::process::Command::new(env!("CARGO_BIN_EXE_paie")).args(["maj", "--marquer-fictives", "--logiciel", editeur.to_str().unwrap()]).output().unwrap();
+    assert!(s.status.success(), "{}", String::from_utf8_lossy(&s.stdout));
+    let fictives = editeur.parent().unwrap().join("fictives");
+    assert_eq!(maj::empreinte_retenue(&fictives).as_deref(), v1["fictives"]["empreinte"].as_str());
+    assert_eq!(maj::archiver_fictives(&editeur).unwrap().1, v1["fictives"]["empreinte"].as_str().unwrap(), "les marques ne se livrent pas");
+
+    // Ce que pose l'installeur : les fichiers des fictives et leurs marques.
+    let inst = installee(&base);
+    copier(&fictives, &inst.join("fictives"));
+    crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": depot.display().to_string()}));
+    maj::verifier_avec(&inst, true, &[&publique()]);
+    assert!(!inst.join("maj").join("fictives-pretes").exists(), "rien n'est telecharge");
 }
 
 /// Une installation BRIDEE dont les seules compagnies sont les fictives (et une copie de developpement) recoit et applique

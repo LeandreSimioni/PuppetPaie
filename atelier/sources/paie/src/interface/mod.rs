@@ -841,11 +841,16 @@ fn egal_en_temps_constant(a: &[u8], b: &[u8]) -> bool {
 }
 
 /// AU LANCEMENT, avant tout : ce qu'une installation posee avant le lot U1 doit ranger (`demo/` devient `fictives/`,
-/// `compagnies::ranger_les_fictives`), et ce que la fenetre d'avant le ticket #244 a laisse sur le poste
+/// `compagnies::ranger_les_fictives`), la livraison de fictives prete (`maj::poser_les_fictives_pretes`), et ce que la
+/// fenetre d'avant le ticket #244 a laisse sur le poste
 /// (`effacer_les_restes`). Ce qui s'est passe va dans le journal de l'installation (`maj::noter`).
 pub fn preparer_l_installation() {
     let inst = crate::maj::installation();
     if let Some(t) = compagnies::ranger_les_fictives(&inst) {
+        crate::maj::noter(&inst, &t);
+    }
+    // Une livraison de compagnies fictives prete (`maj::preparer_les_fictives`) remplace celles du poste, avant toute fenetre.
+    if let Some(t) = crate::maj::poser_les_fictives_pretes(&inst) {
         crate::maj::noter(&inst, &t);
     }
     let effaces = effacer_les_restes(&navigateur::dossier_utilisateur(), &crate::coffre::Coffre::dossier_cle_du_poste());
