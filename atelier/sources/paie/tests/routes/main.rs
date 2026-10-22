@@ -25,6 +25,7 @@ mod echeance_dsn;
 mod historique_mois;
 mod modifier_apres_echeance;
 mod etat_garde;
+mod fictive_ajoutee;
 mod prechauffage;
 mod routes_accueil;
 mod routes_actes;

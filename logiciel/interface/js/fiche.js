@@ -794,7 +794,7 @@ async function demanderFiche(bouton) {
     dire("Il faut son adresse de courriel.");
     return;
   }
-  const mdp = await demanderMotDePasse(`envoyer la demande de fiche à ${adresse}`);
+  const mdp = await demanderMotDePasse(`envoyer la demande de fiche à ${adresse}`, { envoi: true });
   if (!mdp) return;
   const rendre = occupe(bouton, "Envoi de la demande en cours…");
   const repere = await repereCourrielsFictifs();

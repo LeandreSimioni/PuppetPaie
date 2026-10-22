@@ -678,6 +678,8 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 .boite h3 { margin: 0 0 10px; font-size: 16px; }
 /* Le popup du mot de passe passe au-dessus de la boite courante. */
 #voile-mdp { z-index: 55; }
+/* L'envoi refuse d'une fictive ajoutee (ticket #236) : au-dessus de la boite du geste. */
+#voile-envoi-refuse { z-index: 56; }
 .boite-mdp { width: 400px; }
 .boite-mdp input[type="password"] { width: 100%; box-sizing: border-box; font-size: 15px; }
 

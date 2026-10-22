@@ -395,6 +395,17 @@ fn reponse_fictive(quoi: &str, reel: bool) -> R<String> {
     ))
 }
 
+/// LA PORTE DES ORGANISMES POUR UNE FICTIVE AJOUTEE (ticket #236, `bridage::refus_d_envoi`) : la premiere chose que font
+/// `deposer_dsn_dans` et `deposer_dpae_avec`, seuls chemins vers `Client::deposer_octets` -- donc tout depot, test et
+/// reel, signalements compris, d'ou qu'il vienne. Avant elle rien n'est lu ni ecrit : pas de ligne au journal des depots,
+/// pas d'incident, pas de preuve demandee.
+pub(crate) fn refuser_l_envoi(ctx: &Contexte) -> R<()> {
+    match crate::bridage::refus_d_envoi(&ctx.racine) {
+        Some(m) => Err(erreur(crate::bridage::CLASSE_REFUS_D_ENVOI, m)),
+        None => Ok(()),
+    }
+}
+
 /// `compagnies.refuser_si_copie` : la derniere porte -- une copie de developpement ne declare rien en reel.
 fn refuser_si_copie(ctx: &Contexte, quoi: &str) -> R<()> {
     if ctx.racine.join("COPIE-DE-DEVELOPPEMENT.json").is_file() {
@@ -605,6 +616,7 @@ pub fn deposer_dsn_dans(
     contournement: &str,
     ordre_d_essai: Option<i64>,
 ) -> R<DepotFait> {
+    refuser_l_envoi(ctx)?;
     if reel && environnement != "production" {
         return Err(erreur(
             "ErreurOperation",
@@ -830,6 +842,7 @@ pub fn deposer_dpae_avec(
     contournement: &str,
     client_donne: Option<&mut Client>,
 ) -> R<DepotFait> {
+    refuser_l_envoi(ctx)?;
     let chemin = PathBuf::from(crate::routes_apercus::resoudre(&ctx.racine, fichier)?);
     let apercu = crate::routes_apercus::apercu_depot_dpae(o, ctx, &json!(chemin.to_string_lossy()))?;
     let octets = crate::routes_apercus::lire_octets(&chemin.to_string_lossy())?;

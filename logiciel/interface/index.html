@@ -358,6 +358,19 @@
   </form>
 </div>
 
+<!-- L'envoi refusé d'une fictive ajoutée (ticket #236) : la phrase du moteur,
+     la même pour tout geste qui ferait partir quelque chose (js/tuyau.js,
+     montrerEnvoiRefuse). -->
+<div class="voile cachee" id="voile-envoi-refuse">
+  <div class="boite boite-mdp" role="dialog" aria-labelledby="envoi-refuse-titre">
+    <h3 id="envoi-refuse-titre">Version démo</h3>
+    <p id="envoi-refuse-texte"></p>
+    <div class="actions">
+      <button type="button" class="primaire" id="envoi-refuse-ok">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <div id="message" class="message cachee"></div>
 
 <script src="/js/tuyau.js?v={{EMPREINTE}}"></script>

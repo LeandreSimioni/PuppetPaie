@@ -795,6 +795,44 @@ fn sans_livraison_retenue_seules_les_fictives_marquees_livrees_sont_remplacees()
     }
 }
 
+/// UNE FICTIVE AJOUTEE (ticket #236 : le « + » d'un logiciel bride, `compagnies::ajouter_dans`) n'est jamais a la
+/// livraison : une livraison posee sur le poste ne la remplace ni ne la retire, meme quand l'editeur livre une fictive du
+/// meme nom ; et celle que le poste de l'editeur aurait ajoutee ne part dans aucune archive des fictives.
+#[test]
+fn la_livraison_des_fictives_ne_touche_jamais_une_fictive_ajoutee() {
+    let base = dossier_de_test("mise_a_jour", "livraison_et_ajoutee");
+    let depot = base.join("depot");
+    let v1 = publier_avec_fictives(&base, &depot, "2026.11.01", |f| {
+        // Le poste de l'editeur a ajoute une fictive : elle ne se livre pas.
+        let c = paie::interface::compagnies::ajouter_dans(f.parent().unwrap(), "Chez l'editeur").unwrap();
+        assert!(c.racine.starts_with(f));
+    });
+    assert!(!v1.to_string().contains("ajoutee-"), "{}", v1);
+    let inst = installee(&base);
+    crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": depot.display().to_string()}));
+    maj::verifier_avec(&inst, true, &[&publique()]);
+    maj::poser_les_fictives_pretes(&inst).unwrap();
+    let f = inst.join("fictives");
+    assert!(!f.join("ajoutee-chez-l-editeur").exists(), "rien de l'editeur n'arrive");
+    let c = paie::interface::compagnies::ajouter_dans(&inst, "Fictive 3090 petite").unwrap();
+    crate::outils::ecrire(&c.racine, "paies/2026-12.json", &json!({"saisi": "sur ce poste"}));
+    let photo = photo_de(&c.racine);
+
+    // La livraison suivante change tout, et livre une fictive au nom que porterait l'ajoutee sans son prefixe.
+    publier_avec_fictives(&base, &depot, "2026.11.02", |l| {
+        crate::outils::ecrire(&l.join("fictive-3090-petite"), "config/entreprise.json", &json!({"nom_affichage": "Nouvelle histoire"}));
+        std::fs::remove_dir_all(l.join("fictive-1285-grande")).unwrap();
+    });
+    maj::verifier_avec(&inst, true, &[&publique()]);
+    let dit = maj::poser_les_fictives_pretes(&inst).unwrap();
+    assert!(!dit.contains("non posee"), "le nom de l'ajoutee ne prend celui d'aucune livree : {}", dit);
+    assert!(lire(&f.join("fictive-3090-petite/config/entreprise.json")).contains("Nouvelle histoire"));
+    assert_eq!(photo_de(&c.racine), photo, "la fictive ajoutee est intacte");
+    assert!(!c.racine.join(".livree.json").exists());
+    let retenue: Value = serde_json::from_str(&lire(&f.join(".livraison.json"))).unwrap();
+    assert!(retenue["posees"].get(c.racine.file_name().unwrap().to_str().unwrap()).is_none(), "{}", retenue);
+}
+
 /// L'INSTALLEUR WINDOWS RETIENT SA LIVRAISON : le flux « Publier » marque les fictives livrees (`paie maj
 /// --marquer-fictives`) avant de fabriquer l'installeur, qui pose ces marques avec elles. Une installation ainsi posee ne
 /// retelecharge pas des fictives qui n'ont pas change. Les marques ne changent ni l'empreinte ni ce qui se livre.

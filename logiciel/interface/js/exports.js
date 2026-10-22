@@ -180,7 +180,7 @@ async function lancerDossier(route, apercu) {
   else if (quand === "annee") charge.annee = periode;
   else charge.toutes_les_annees = true;
   if (route === "dossier-envoyer") {
-    const mdp = await demanderMotDePasse("envoyer leur dossier aux salariés");
+    const mdp = await demanderMotDePasse("envoyer leur dossier aux salariés", { envoi: true });
     if (!mdp) return;
     charge.motdepasse = mdp;
   }
@@ -497,7 +497,7 @@ function dessinerCasc(r) {
     for (const c of document.querySelectorAll(".casc-date")) if (c.value) vire_le[c.dataset.annee] = c.value;
     const liste = Object.keys(vire_le);
     if (!liste.length) { dire("La date d'au moins un virement d'abord : les courriels annoncent des virements faits."); return; }
-    const mdp = await demanderMotDePasse("envoyer à Audiens et au CASC-SVP la régularisation " + liste.join(" et "));
+    const mdp = await demanderMotDePasse("envoyer à Audiens et au CASC-SVP la régularisation " + liste.join(" et "), { envoi: true });
     if (!mdp) return;
     const rendre = occupe(envoyer, "Envoi des courriels en cours…");
     const repere = await repereCourrielsFictifs();

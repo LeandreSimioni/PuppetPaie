@@ -1353,7 +1353,8 @@ fn fictives_livrees(code: &Path) -> R<Vec<PathBuf>> {
             out.push(PathBuf::from(&nom));
             continue;
         }
-        if !crate::interface::compagnies::est_fictive(&e.path()) {
+        // Une fictive AJOUTEE sur le poste (ticket #236) porte les donnees qu'on y a mises : elle ne se livre jamais.
+        if !crate::interface::compagnies::est_fictive_livree(&e.path()) {
             continue;
         }
         n += 1;

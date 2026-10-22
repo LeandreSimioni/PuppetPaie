@@ -138,10 +138,13 @@ document.getElementById("voile").onclick = (e) => {
    la page vit dans la fenêtre unique, et vivra dans Tauri : « il n'y a plus
    Chrome, et il n'y aura pas Chrome ». Le mot de passe se tape, à chaque
    fois, et c'est le but. */
-function demanderMotDePasse(pourquoi) {
+function demanderMotDePasse(pourquoi, { envoi = false } = {}) {
   // LA COMPAGNIE FICTIVE (routes_accueil::simulation_active) : rien ne part, rien à prouver.
   // L'acte suit son cours comme en vrai, sans le popup.
   if (enFictive()) return Promise.resolve("fictive");
+  // UNE FICTIVE AJOUTÉE (ticket #236, `envois_refuses` du moteur) : un envoi n'y part pas, le moteur le refuse avant
+  // toute preuve ; on ne demande pas un mot de passe pour rien. Le geste part, et la page montre le refus.
+  if (envoi && ETAT && ETAT.envois_refuses) return Promise.resolve("envoi-refuse");
   return new Promise((resoudre) => {
     const voile = document.getElementById("voile-mdp");
     const forme = document.getElementById("forme-mdp");
