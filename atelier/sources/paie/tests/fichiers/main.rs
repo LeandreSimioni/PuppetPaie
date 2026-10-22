@@ -37,6 +37,7 @@ mod extraction;
 mod garde_reseau;
 mod importation_tri;
 mod incidents_filet;
+mod installations;
 mod mise_a_jour;
 mod releve_dila;
 mod restauration;

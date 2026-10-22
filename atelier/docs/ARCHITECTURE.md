@@ -1435,10 +1435,30 @@ installe un second logiciel. `paie/src/administrateur.rs` :
   par la route `deposer` de chacune, avec ses contrôles et son bilan. En réel, un mot de passe tapé au moment de l'acte sert
   de preuve à chaque dépôt, qui le revérifie. Une compagnie qui refuse n'arrête pas les autres. Le bouton n'apparaît qu'à
   partir de deux compagnies qui ont quelque chose de prêt.
-- **Une fenêtre à la fois par poste** (`interface::prendre_instance`) : une autre installation déjà ouverte le dit
-  (« PuppetPaie est déjà ouvert depuis <dossier> : fermez-le d'abord »). La clé du poste (hors mode portable, dans le profil
-  de la machine) sert aux deux installations sans danger : elle ne scelle que des enveloppes, chacune d'une clé maîtresse
-  tirée au hasard pour sa compagnie ; un coffre ne s'ouvre jamais avec la clé maîtresse d'un autre.
+- **Une fenêtre par installation** (`interface/instance.rs`) : deux installations s'ouvrent côte à côte sur un poste (la
+  clé USB arrive sur un poste qui a déjà son logiciel) ; la même, relancée, ramène sa fenêtre devant. Chacune tient un
+  **créneau** de la plage 7330-7429 : un verrou (une prise d'écoute, rendue par le système à la mort du processus) et, au
+  port suivant, sa page. Le créneau est **retenu** dans `.fenetre.json` à la racine de l'installation (il voyage avec
+  elle) ; à défaut, tiré d'une empreinte de son chemin. Pourquoi un port stable : le navigateur retient un mot de passe
+  par origine (`hôte:port`). Un créneau tenu par une autre installation (son verrou répond par son dossier, un autre),
+  par une copie de celle-ci (même `.fenetre.json`, autre dossier) ou par un autre programme se saute, et le suivant est
+  retenu ; aucun créneau libre : la fenêtre s'ouvre quand même, sans verrou. Ce qui est propre à une fenêtre sur le poste
+  (le profil de WebView2/WebKit ou du Chromium, le jeton de sa page, son journal d'avant toute compagnie) va dans
+  `<profil>/fenetres/<port>/` — en portable, dans `.fenetre/` de l'installation ; le cookie du jeton porte le port
+  (`jeton-<port>`). Ce qui reste commun aux installations d'un poste : la clé du poste (hors mode portable), sans danger —
+  elle ne scelle que des enveloppes, chacune d'une clé maîtresse tirée au hasard pour sa compagnie, et se pose une fois
+  (`O_EXCL`) ; la séance gardée est **une par coffre** (`ouverture-gardee-<empreinte>.bin`). La mise à jour est déjà
+  par installation (`maj/`) ; son relais attend la fin de **sa** fenêtre (le processus sous Windows, le créneau de son
+  installation ailleurs), et `paie maj --appliquer` ne refuse que si **cette** installation est ouverte.
+- **Toutes les compagnies tenues à jour dès le lancement** (`Fenetre::prechauffer`, `etat_garde::Fil`) : chaque vraie
+  compagnie de l'installation (pas les fictives) reçoit sa file des états sur **un seul fil de calcul** pour toute la
+  fenêtre, la dernière ouverte d'abord (la date de son `journal/interface.log`), puis chacune son tour ; la compagnie
+  choisie passe devant dès son choix (pendant qu'on tape son mot de passe). L'état d'ouverture, le tableau (compagnie de
+  l'administrateur, sous l'empreinte de l'ouverture) et les mois se refont en fond ; ouvrir sert un état frais sans
+  attendre ; minuit passé, tout se revérifie. **Avant le mot de passe, du calcul local seulement** : le fil est marqué
+  (`fil_de_fond`), et `garde_reseau` y refuse toute sortie, le coffre y refuse la clé du poste et toute dérivation de mot
+  de passe. La veille (réseau, coffre, relève, sauvegarde) ne démarre qu'à l'ouverture d'une compagnie ; le tableau de
+  l'accueil ne relève les comptes rendus qu'une fois le mot de passe de l'administrateur tapé dans la fenêtre.
 
 
 ## La version, et la mise à jour dans l'ombre

@@ -573,6 +573,9 @@ fn cle_d_urgence(d: &Value) -> (bool, String) {
 /// LE TABLEAU DE LA COMPAGNIE `ctx` : ses declarations obligatoires, du plus presse au moins presse, chacune avec sa date
 /// limite et, pour ce qui part par la DSN, ou en est son fichier. Ecrit dans `config/.tableau.json` (ce que l'accueil lit).
 pub fn tableau_compagnie(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
+    // L'EMPREINTE DE TOUTE LA COMPAGNIE, prise avant (celle de l'etat d'ouverture, `etat_garde::empreinte_de`) : le fil de
+    // la fenetre ne le refait pas tant qu'elle n'a pas bouge (ticket #244, `FileDesEtats::faire_le_tableau`).
+    let empreinte = crate::etat_garde::empreinte_de(&ctx.racine, crate::etat_garde::OUVERTURE, &ctx.aujourdhui.iso());
     let rappels = match crate::routes_ouverture::traiter(o, "rappels", &json!({})) {
         Some(Ok(v)) => v,
         Some(Err(m)) => {
@@ -589,7 +592,7 @@ pub fn tableau_compagnie(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value
         }
     }
     declarations.sort_by_key(cle_d_urgence);
-    let t = json!({"le": ctx.aujourdhui.iso(), "declarations": declarations});
+    let t = json!({"le": ctx.aujourdhui.iso(), "declarations": declarations, "empreinte": empreinte});
     let _ = crate::ecriture::ecrire_json(&ctx.racine.join(TABLEAU), &t, 2);
     Ok(t)
 }
@@ -649,6 +652,14 @@ fn assembler(inst: &Path, par_compagnie: Vec<(PathBuf, Result<Value, String>)>) 
             "reel": {"declarations": reel_n, "compagnies": reel_k, "propose": reel_k >= 2},
         },
     })
+}
+
+/// Le tableau de l'administrateur a partir du tableau de chaque compagnie, deja fait ailleurs (le fil de la fenetre,
+/// ticket #244) : celui de chacune, ou son refus en phrase.
+pub fn tableau_de(inst: &Path, par_compagnie: Vec<(PathBuf, Result<Value, String>)>) -> Value {
+    let mut v = assembler(inst, par_compagnie);
+    v["garde"] = json!(false);
+    v
 }
 
 /// Le tableau tel qu'il est garde : AUCUN CALCUL, la lecture de `config/.tableau.json` de chaque compagnie rattachee.

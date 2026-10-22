@@ -57,8 +57,10 @@ fn sans_console(c: &mut Command) -> &mut Command {
     c.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
 }
 
-/// Ouvre la page. Rend le processus du navigateur quand on le tient (un Chromium a nous), sinon `None`.
-pub fn ouvrir(url: &str, journal: &dyn Fn(&str)) -> Option<Child> {
+/// Ouvre la page. Rend le processus du navigateur quand on le tient (un Chromium a nous), sinon `None`. `profil` : le
+/// profil du Chromium a nous, un par fenetre (`instance::dossier_local`) : deux installations ouvertes ensemble ne
+/// partagent pas le leur (un second Chromium sur le meme profil passe la main au premier et s'arrete aussitot).
+pub fn ouvrir(url: &str, profil: &std::path::Path, journal: &dyn Fn(&str)) -> Option<Child> {
     let choix = std::env::var("PUPPETPAIE_NAVIGATEUR").unwrap_or_default();
     let choix = choix.trim();
     if !choix.eq_ignore_ascii_case("defaut") {
@@ -71,8 +73,7 @@ pub fn ouvrir(url: &str, journal: &dyn Fn(&str)) -> Option<Child> {
                 // Un Chromium en snap n'ecrit pas hors de son bac : il garde son profil.
                 let reel = std::fs::canonicalize(&exe).unwrap_or_else(|_| exe.clone());
                 if !reel.to_string_lossy().contains("/snap/") {
-                    let profil = dossier_utilisateur().join("navigateur");
-                    let _ = std::fs::create_dir_all(&profil);
+                    let _ = std::fs::create_dir_all(profil);
                     a.insert(0, format!("--user-data-dir={}", profil.display()));
                 }
                 (exe, a)

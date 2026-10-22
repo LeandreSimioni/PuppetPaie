@@ -65,35 +65,35 @@ fn main() -> std::process::ExitCode {
     }
 
     paie::commandes::compagnie::fixer_le_code();
-    // UNE FENETRE PAR POSTE. Celle de cette installation est deja ouverte : elle revient devant. Celle d'une AUTRE
-    // installation (ticket #244) : elle revient devant, et celle-ci s'ouvre sur la seule page qui le dit.
-    let (_verrou, ailleurs) = match paie::interface::prendre_instance(devant) {
-        paie::interface::Instance::Tenue(l) => (Some(l), None),
+    // UNE FENETRE PAR INSTALLATION (ticket #244, `paie::interface::instance`). Celle de cette installation est deja
+    // ouverte : elle revient devant. Une AUTRE installation ouverte sur le poste ne change rien : chacune a son creneau
+    // (son verrou et le port de sa page), et elles s'ouvrent cote a cote.
+    let prise = match paie::interface::prendre_instance(devant) {
+        paie::interface::Instance::Tenue(p) => p,
         paie::interface::Instance::Devant => return std::process::ExitCode::SUCCESS,
-        paie::interface::Instance::Ailleurs(d) => (None, Some(d)),
     };
-    if ailleurs.is_none() {
-        // Une installation posee avant le lot U1 range ses compagnies fictives (`demo/` devient `fictives/`).
-        paie::interface::preparer_l_installation();
-        // Une version prete s'applique ICI, avant toute fenetre : le relais attend notre fin, bascule et ouvre la neuve.
-        if paie::maj::au_lancement() {
-            return std::process::ExitCode::SUCCESS;
-        }
-        // Sinon le logiciel cherche, en fond, une version plus recente pour l'installation : elle s'appliquera au prochain
-        // lancement (lot U1 : c'est le logiciel qui se met a jour, une fois par installation, pas une compagnie).
-        paie::maj::chercher_en_fond();
+    // Une installation posee avant le lot U1 range ses compagnies fictives (`demo/` devient `fictives/`).
+    paie::interface::preparer_l_installation();
+    // Une version prete s'applique ICI, avant toute fenetre : le relais attend notre fin, bascule et ouvre la neuve.
+    if paie::maj::au_lancement() {
+        return std::process::ExitCode::SUCCESS;
     }
-    let demarre = match &ailleurs {
-        Some(d) => paie::interface::demarrer_ailleurs(d),
-        None => paie::interface::demarrer(paie::interface::MINUTES_VEILLE),
-    };
-    let (fenetre, port) = match demarre {
+    // Sinon le logiciel cherche, en fond, une version plus recente pour l'installation : elle s'appliquera au prochain
+    // lancement (lot U1 : c'est le logiciel qui se met a jour, une fois par installation, pas une compagnie).
+    paie::maj::chercher_en_fond();
+    let (fenetre, port) = match paie::interface::demarrer(paie::interface::MINUTES_VEILLE, &prise) {
         Ok(x) => x,
         Err(e) => {
             eprintln!("La fenetre ne demarre pas : {}.", e);
             std::process::exit(1);
         }
     };
+    // Les compagnies de l'installation se tiennent a jour en fond des maintenant, sans rien ouvrir (calcul local seulement).
+    fenetre.prechauffer();
+    // LE PROFIL DU NAVIGATEUR DE LA FENETRE, a elle (WebView2 sous Windows, WebKit ailleurs) : un par fenetre
+    // (`instance::dossier_local`), jamais celui d'une autre installation ouverte a cote -- ses cookies, ce qu'elle a
+    // retenu, et son processus de rendu.
+    let profil = fenetre.dossier_local().join("webview");
     let adresse = fenetre.adresse("127.0.0.1", port);
     let pour_fermer: Arc<Mutex<Option<tauri::AppHandle>>> = Arc::new(Mutex::new(None));
     let poignee = pour_fermer.clone();
@@ -120,13 +120,15 @@ fn main() -> std::process::ExitCode {
                 .min_inner_size(LARGEUR_MIN, HAUTEUR_MIN)
                 .center()
                 .initialization_script(CADRE)
+                .data_directory(profil.clone())
+                .data_directory(profil)
                 .build()?;
             Ok(())
         })
         .run(tauri::generate_context!());
     if let Err(e) = resultat {
         fenetre.ecrire(&format!("La fenetre Tauri ne s'ouvre pas ({}) ; le navigateur prend le relais.\n", e));
-        let _ = paie::interface::navigateur::ouvrir(&fenetre.adresse("puppetpaie.localhost", port), &|t| fenetre.ecrire(t));
+        let _ = paie::interface::navigateur::ouvrir(&fenetre.adresse("puppetpaie.localhost", port), &fenetre.dossier_local().join("navigateur"), &|t| fenetre.ecrire(t));
         loop {
             std::thread::sleep(std::time::Duration::from_secs(5));
             if fenetre.silence() > std::time::Duration::from_secs(300) {
