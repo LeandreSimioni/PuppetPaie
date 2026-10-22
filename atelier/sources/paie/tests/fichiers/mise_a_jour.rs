@@ -48,6 +48,23 @@ fn logiciel(dossier: &Path, version: &str) -> PathBuf {
     dossier.to_path_buf()
 }
 
+/// Les quatre compagnies fictives livrees, a cote du logiciel `code` (`<code>/../fictives/`), comme dans le depot que
+/// publie le flux : leur marqueur, leur fiche et leur configuration (la copie figee des essais). Sans elles, rien ne se
+/// publie (`maj::archiver`).
+const FICTIVES: [&str; 4] = ["fictive-1285-grande", "fictive-1285-petite", "fictive-3090-grande", "fictive-3090-petite"];
+
+fn livrer_les_fictives(code: &Path) {
+    let f = code.parent().unwrap().join("fictives");
+    for nom in FICTIVES {
+        let de = crate::outils::fictive(nom);
+        copier(&de.join("config"), &f.join(nom).join("config"));
+        for fichier in ["COPIE-DE-DEVELOPPEMENT.json", "FICTIVE.md"] {
+            std::fs::copy(de.join(fichier), f.join(nom).join(fichier)).unwrap();
+        }
+    }
+    std::fs::write(f.join("LISEZ-MOI.md"), "Les compagnies fictives.\n").unwrap();
+}
+
 fn lire(p: &Path) -> String {
     std::fs::read_to_string(p).unwrap_or_default()
 }
@@ -94,6 +111,7 @@ fn contenu(octets: &[u8]) -> Vec<(String, u32)> {
 fn la_publication_fait_quatre_archives_signees_que_derniere_json_nomme() {
     let d = dossier_de_test("mise_a_jour", "quatre_archives");
     let code = logiciel(&d.join("logiciel"), "2026.11.03");
+    livrer_les_fictives(&code);
     tous_les_systemes(&code);
     let depot = d.join("depot");
     let r = maj::publier_signe(&code, &depot, &GRAINE, &publique(), "", "", "").unwrap();
@@ -116,12 +134,12 @@ fn la_publication_fait_quatre_archives_signees_que_derniere_json_nomme() {
     assert!(!maj::signature_valide(&octets["linux"], archives["mac"]["signature"].as_str().unwrap(), &publique()), "chacune sa signature");
     assert_eq!(maj::derniere(&depot.display().to_string()).unwrap(), manifeste, "le recepteur relit ce qu'ecrit l'editeur");
 
-    let communs = ["VERSION", "interface/index.html"];
+    let communs = ["logiciel/VERSION", "logiciel/interface/index.html", "fictives/LISEZ-MOI.md"];
     let programmes = |s: &str| -> Vec<&str> {
         match s {
-            "windows" => vec!["puppetpaie.exe", "WebView2Loader.dll"],
-            "linux" => vec!["linux/puppetpaie", "linux/paie"],
-            _ => vec!["mac/puppetpaie", "mac/paie"],
+            "windows" => vec!["logiciel/puppetpaie.exe", "logiciel/WebView2Loader.dll"],
+            "linux" => vec!["logiciel/linux/puppetpaie", "logiciel/linux/paie"],
+            _ => vec!["logiciel/mac/puppetpaie", "logiciel/mac/paie"],
         }
     };
     for (k, o) in &octets {
@@ -130,14 +148,19 @@ fn la_publication_fait_quatre_archives_signees_que_derniere_json_nomme() {
         for n in communs {
             assert!(porte(n), "{} porte {}", k, n);
         }
-        assert!(c.iter().any(|(x, _)| x.starts_with("donnees/")), "{} porte les donnees", k);
+        assert!(c.iter().any(|(x, _)| x.starts_with("logiciel/donnees/")), "{} porte les donnees", k);
+        // Une installation : le logiciel et, a cote, les quatre fictives livrees (ticket #246).
+        for nom in FICTIVES {
+            assert!(porte(&format!("fictives/{}/config/entreprise.json", nom)), "{} porte {}", k, nom);
+        }
+        assert!(c.iter().all(|(x, _)| x.starts_with("logiciel/") || x.starts_with("fictives/")), "{} : rien hors de logiciel/ et fictives/", k);
         for s in maj::SYSTEMES {
             for n in programmes(s) {
                 assert_eq!(porte(n), k == s || k == "tout-systeme", "{} et {}", k, n);
             }
         }
         for (n, mode) in &c {
-            let unix = n.starts_with("linux/") || n.starts_with("mac/");
+            let unix = n.starts_with("logiciel/linux/") || n.starts_with("logiciel/mac/");
             assert_eq!(*mode, if unix { 0o755 } else { 0o644 }, "{} : {}", k, n);
         }
     }
@@ -155,6 +178,7 @@ fn la_publication_fait_quatre_archives_signees_que_derniere_json_nomme() {
 fn publiee(base: &Path, avec_edition: bool) -> PathBuf {
     let depot = base.join("depot");
     let editeur = logiciel(&base.join("editeur").join("logiciel"), "2026.11.01");
+    livrer_les_fictives(&editeur);
     tous_les_systemes(&editeur);
     if avec_edition {
         std::fs::write(editeur.join("EDITION.json"), "{\"edition\": \"bride\"}\n").unwrap();
@@ -340,6 +364,7 @@ fn sans_l_archive_de_son_systeme_l_installation_prend_celle_de_tous() {
 fn une_version_publiee_sans_ce_systeme_ne_se_telecharge_pas() {
     let base = dossier_de_test("mise_a_jour", "sans_ce_systeme");
     let editeur = logiciel(&base.join("editeur").join("logiciel"), "2026.11.01");
+    livrer_les_fictives(&editeur);
     std::fs::remove_dir_all(maj::dossier_programmes(&editeur)).unwrap();
     std::fs::write(editeur.join("puppetpaie.exe"), b"MZ fenetre").unwrap();
     std::fs::write(editeur.join("WebView2Loader.dll"), b"MZ chargeur").unwrap();
@@ -423,6 +448,63 @@ fn une_installation_debloquee_reste_debloquee() {
     assert_eq!(lire(&inst.join(".edition.json")), curseur, "le choix du geste est intact");
     assert!(!code.join("EDITION.json").exists(), "l'EDITION.json de l'editeur n'est pas arrive");
     assert!(!paie::bridage::est_bride_de(&inst), "l'installation reste debloquee");
+}
+
+/// UNE ARCHIVE DECOMPRESSEE DANS UN DOSSIER NEUF EST UNE INSTALLATION (ticket #246) : `logiciel/` et, a cote, les quatre
+/// fictives livrees. Rien ne dit « debloque » : elle est bridee, et l'accueil propose ses quatre fictives, aucune compagnie
+/// reelle. Le programme de ce systeme y est, executable.
+#[test]
+fn une_archive_decompressee_dans_un_dossier_neuf_est_une_installation_bridee_avec_ses_fictives() {
+    let base = dossier_de_test("mise_a_jour", "archive_decompressee");
+    let depot = publiee(&base, false);
+    let octets = std::fs::read(depot.join(format!("puppetpaie-2026.11.01-{}.zip", maj::SYSTEME))).unwrap();
+    let neuf = base.join("dossier-neuf");
+    zip::ZipArchive::new(std::io::Cursor::new(octets)).unwrap().extract(&neuf).unwrap();
+    let mut a_la_racine: Vec<String> = std::fs::read_dir(&neuf).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+    a_la_racine.sort();
+    assert_eq!(a_la_racine, ["fictives", "logiciel"], "une installation, rien d'autre");
+    assert_eq!(maj::courante(&neuf.join("logiciel")), "2026.11.01");
+    executables(&neuf.join("logiciel"));
+    assert!(paie::bridage::est_bride_de(&neuf), "rien ne dit « debloque » : bridee");
+    let l = paie::interface::compagnies::liste_de(&neuf);
+    assert_eq!(l.iter().filter(|c| c.reelle).count(), 0, "aucune compagnie reelle");
+    let mut ids: Vec<String> = l.iter().map(|c| c.id.clone()).collect();
+    ids.sort();
+    assert_eq!(ids, FICTIVES.map(|n| format!("fictive:{}", n)), "les quatre fictives");
+    assert!(l.iter().all(|c| paie::interface::compagnies::est_fictive(&c.racine)));
+}
+
+/// LA MISE A JOUR EN PLACE N'ECRASE PAS LES FICTIVES DU POSTE : une fictive jouee (sa fiche changee, une paie de plus) et
+/// sa photo d'origine (`fictives/.origine/`) restent exactement comme elles etaient ; de l'archive, seul `logiciel/` est
+/// pris, et rien de ses fictives n'est range dans `maj/`.
+#[test]
+fn la_mise_a_jour_en_place_n_ecrase_pas_les_fictives_du_poste() {
+    let base = dossier_de_test("mise_a_jour", "fictives_du_poste");
+    let depot = publiee(&base, false);
+    let inst = installee(&base);
+    let fictive = inst.join("fictives").join("fictive-3090-petite");
+    compagnie::config_et_mois("fictive-3090-petite", &[], &fictive);
+    std::fs::copy(crate::outils::fictive("fictive-3090-petite").join("COPIE-DE-DEVELOPPEMENT.json"), fictive.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
+    paie::interface::compagnies::figer_origine(&fictive).unwrap();
+    let origine = inst.join("fictives").join(".origine").join("fictive-3090-petite");
+    assert!(origine.join("config").join("entreprise.json").is_file(), "la photo d'origine");
+    crate::outils::ecrire(&fictive, "config/entreprise.json", &json!({"nom_affichage": "Jouee sur ce poste"}));
+    crate::outils::ecrire(&fictive, "paies/2026-12.json", &json!({"joue": true}));
+    let fiche = lire(&fictive.join("config").join("entreprise.json"));
+    let photo = lire(&origine.join("config").join("entreprise.json"));
+    crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": depot.display().to_string()}));
+
+    let dit = maj::verifier_avec(&inst, true, &[&publique()]);
+    assert!(dit.contains("prete"), "{}", dit);
+    assert!(!inst.join("maj").join("2026.11.01").join("fictives").exists(), "rien des fictives de l'archive n'est range");
+    maj::appliquer(&inst, false).unwrap();
+    assert_eq!(maj::courante(&inst.join("logiciel")), "2026.11.01");
+    assert_eq!(lire(&fictive.join("config").join("entreprise.json")), fiche, "la fiche jouee est intacte");
+    assert!(fictive.join("paies").join("2026-12.json").is_file(), "la paie jouee aussi");
+    assert_eq!(lire(&origine.join("config").join("entreprise.json")), photo, "la photo d'origine aussi");
+    let mut fictives: Vec<String> = std::fs::read_dir(inst.join("fictives")).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+    fictives.sort();
+    assert_eq!(fictives, [".origine", "fictive-3090-petite"], "aucune fictive de l'archive n'est arrivee");
 }
 
 /// Une installation BRIDEE dont les seules compagnies sont les fictives (et une copie de developpement) recoit et applique
@@ -511,6 +593,7 @@ fn publique_de(graine: &[u8; 32]) -> String {
 /// `<base>/releases/<etiquette>/`. Rend le dossier.
 fn release(base: &Path, version: &str, graine: &[u8; 32]) -> PathBuf {
     let editeur = logiciel(&base.join(format!("editeur-{}", version)).join("logiciel"), version);
+    livrer_les_fictives(&editeur);
     let dossier = base.join("releases").join(version);
     maj::publier_par_graine(&editeur, &dossier, &paie::retours::base64_ecrire(graine), &publique_de(graine), "Essai", "", "").unwrap();
     dossier
@@ -587,6 +670,7 @@ fn deux_cles_acceptees_une_troisieme_refusee_par_un_depot_qui_redirige_comme_git
 fn la_publication_par_github_refuse_sans_cle_reportee_mauvaise_graine_ou_version_pas_plus_recente() {
     let base = dossier_de_test("mise_a_jour", "publier_github_refus");
     let editeur = logiciel(&base.join("editeur").join("logiciel"), "2026.11.01");
+    livrer_les_fictives(&editeur);
     let (graine, autre) = ([7u8; 32], [9u8; 32]);
     let g64 = paie::retours::base64_ecrire(&graine);
     let sortie = base.join("sortie");
@@ -652,6 +736,7 @@ fn la_cle_de_github_se_fabrique_dans_un_fichier_et_ne_s_affiche_jamais() {
 
     // Le flux, avec le moteur livre : la graine vient de l'environnement et ne se montre pas.
     let editeur = logiciel(&base.join("editeur").join("logiciel"), "2026.11.01");
+    livrer_les_fictives(&editeur);
     let sortie = base.join("sortie");
     let (code, dit) = paie_exe(
         &["--publier-github", "--logiciel", editeur.to_str().unwrap(), "--sortie", sortie.to_str().unwrap()],

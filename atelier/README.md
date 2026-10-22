@@ -120,6 +120,12 @@ fenêtre s'ouvre, et c'est tout le logiciel.
 | Mac | `mac/puppetpaie` et `mac/paie`, universels (Intel et Apple) | `puppetpaie-<version>-mac.zip` | `atelier/PuppetPaie.command` (clic droit › Ouvrir la première fois) | `atelier/PuppetPaie.sh` : `logiciel/mac/puppetpaie`, sinon `logiciel/mac/paie interface` ; dans un dépôt de travail, `atelier/sources/paie/bin/mac/` |
 | tous | les systèmes publiés à la fois | `puppetpaie-<version>-tout-systeme.zip` | celui du système où l'on est | un dossier portable qui passe d'une machine à l'autre ; le repli d'une installation dont le système n'a pas son archive |
 
+Chaque archive est une installation (ticket #246) : `logiciel/` et, à côté,
+`fictives/`, les quatre compagnies fictives. Décompressée dans un dossier neuf
+(Linux, Mac, un dossier portable), elle s'ouvre bridée sur ses fictives ; le
+geste de l'accueil la débloque. La mise à jour en place n'en prend que
+`logiciel/` : les fictives du poste ne sont jamais écrasées.
+
 Le flux « Publier » compile les programmes des trois systèmes (Linux et Mac ne
 sont posés dans `logiciel/linux/` et `logiciel/mac/` que par lui : jamais
 suivis par Git) et publie les quatre archives ensemble (Léandre, 15/10/2026 :

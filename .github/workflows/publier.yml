@@ -4,6 +4,8 @@
 #
 # QUATRE ARCHIVES PAR VERSION (Leandre, 15/10/2026 : « Il y a les quatre : une par systeme et une tout-systeme,
 # ensemble ») : Windows, Linux, Mac, et une qui porte les trois (un dossier portable pour plusieurs machines, et le repli).
+# Chacune est une INSTALLATION (ticket #246) : `logiciel/` et, a cote, les compagnies fictives livrees (`fictives/`) ;
+# decompressee dans un dossier neuf, elle s'ouvre bridee sur ses fictives, et la mise a jour n'en prend que `logiciel/`.
 # Chaque installation prend celle de son systeme (paie/src/maj.rs). Dans `logiciel/`, les programmes de Windows sont a la
 # racine (`puppetpaie.exe`, `WebView2Loader.dll`, les seuls suivis par Git) ; ceux de Linux et de Mac dans `logiciel/linux/`
 # et `logiciel/mac/` (`puppetpaie`, la fenetre ; `paie`, le moteur), poses ici seulement.
@@ -22,7 +24,7 @@
 #                     `logiciel/mac/`. Aucun secret.
 #   3. publier        ATTEND L'APPROBATION DE LEANDRE (environnement `publication` : approbateur Leandre, `main` seule),
 #                     puis seulement voit le secret PUPPETPAIE_CLE_SIGNATURE (la graine de la cle de GitHub). Il rassemble
-#                     `logiciel/` (les systemes choisis), et le moteur lui-meme signe (`paie maj --publier-github`,
+#                     `logiciel/` (les systemes choisis) et `fictives/`, et le moteur lui-meme signe (`paie maj --publier-github`,
 #                     paie/src/maj.rs) : une archive par systeme fabrique et celle de tous, chacune verifiee contre
 #                     CLE_PUBLIQUE_GITHUB, et `derniere.json` qui les nomme ; il refuse une version qui n'est pas plus
 #                     recente que la derniere Release. Puis une Release GitHub `v<version>` porte ces archives,
@@ -134,7 +136,8 @@ jobs:
           cargo build --release --locked --manifest-path atelier/sources/fenetre/Cargo.toml
           "$CARGO_TARGET_DIR/release/puppetpaie" --peut-ouvrir || echo "La fenetre Linux ne s'ouvre pas sur ce runner (pas d'ecran) : attendu."
 
-      # Le logiciel tel que la mise a jour le publie (maj::archiver), moins le Mac (fabriquer-mac) : les fichiers suivis de
+      # Ce que l'archive porte (maj::archiver : une installation, `logiciel/` et `fictives/`), moins le Mac (fabriquer-mac) :
+      # les compagnies fictives livrees (`fictives/`, suivies par Git), les fichiers suivis de
       # `logiciel/`, la fenetre Windows neuve a la place de `logiciel/puppetpaie.exe`, et, si Linux est publie, les deux
       # programmes Linux dans `logiciel/linux/`. Une archive tar garde les bits d'execution, qu'un artefact perdrait.
       - name: Rassembler
@@ -153,7 +156,7 @@ jobs:
           mkdir -p publication
           cp "atelier/depot/installeur/PuppetPaie-$L-installeur.exe" publication/
           cp "$CARGO_TARGET_DIR/release/paie" publication/paie
-          tar -cf publication.tar logiciel publication
+          tar -cf publication.tar logiciel fictives publication
           ls -l publication logiciel/puppetpaie.exe
 
       - uses: actions/upload-artifact@v4
@@ -287,6 +290,10 @@ jobs:
           for S in $CHOISIS tout-systeme; do
             A="$(jq -r --arg s "$S" '.archives[$s].archive // ""' sortie/derniere.json)"
             [ "$A" = "puppetpaie-$V-$S.zip" ] && [ -f "sortie/$A" ] || { echo "::error::L'archive $S manque ($A)."; exit 1; }
+            # Une installation (ticket #246) : decompressee dans un dossier neuf, `logiciel/` et les quatre fictives a cote.
+            N="$(unzip -Z1 "sortie/$A" | grep -cE '^fictives/[^/]+/COPIE-DE-DEVELOPPEMENT\.json$' || true)"
+            unzip -Z1 "sortie/$A" | grep -qx 'logiciel/VERSION' && [ "$N" -ge 4 ] \
+              || { echo "::error::L'archive $S n'est pas une installation (logiciel/VERSION, $N fictive(s))."; exit 1; }
             ARCHIVES+=("sortie/$A")
           done
           L="${V:8:2}.${V:5:2}.${V:0:4}"; [ "${#V}" -gt 10 ] && L="$L-${V:11}"
