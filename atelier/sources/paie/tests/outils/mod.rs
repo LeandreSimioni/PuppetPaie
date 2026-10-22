@@ -53,6 +53,14 @@ pub fn installation(dossier: &Path, version: &str) -> PathBuf {
     dossier.to_path_buf()
 }
 
+/// Le geste de l'accueil sur une installation de test : `.edition.json` « debloque » a cote de `logiciel/`. Sans lui,
+/// une installation est BRIDEE (ticket #246, `paie/src/bridage.rs`) : elle ne propose ni ne rattache de compagnie reelle.
+/// Un test qui fait vivre des compagnies reelles dans son installation la debloque ainsi, et le dit.
+pub fn debloquer(installation: &Path) {
+    std::fs::create_dir_all(installation).unwrap();
+    std::fs::write(installation.join(".edition.json"), "{\"edition\": \"debloque\"}\n").unwrap();
+}
+
 /// Le `PUPPETPAIE_CODE` d'une installation.
 pub fn code_de(installation: &Path) -> String {
     installation.join("logiciel").join("donnees").display().to_string()

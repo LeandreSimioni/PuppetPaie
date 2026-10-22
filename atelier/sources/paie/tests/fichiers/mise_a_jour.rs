@@ -1,6 +1,6 @@
 //! La mise a jour d'une INSTALLATION, de bout en bout (`paie::maj` ; lot V1, refait par le lot U1 le 14/10/2026) :
-//! l'editeur publie dans un dossier ; une installation (celle que pose `atelier/installeur/` : `logiciel/` avec son
-//! `EDITION.json`, des compagnies a cote) y trouve la version POUR ELLE-MEME, sans qu'aucune compagnie soit ouverte, la
+//! l'editeur publie dans un dossier ; une installation (celle que pose `atelier/installeur/` : `logiciel/`, bridee faute
+//! de `.edition.json`, des compagnies a cote) y trouve la version POUR ELLE-MEME, sans qu'aucune compagnie soit ouverte, la
 //! telecharge, la controle, la range dans `<installation>/maj/`, l'applique, GARDE SON BRIDAGE (`EDITION.json`,
 //! `.edition.json`), puis revient. Le poste de l'editeur recoit comme les autres (Leandre, 14/10/2026 : « mon logiciel
 //! c'est le meme que les autres […] quand je fais une mise a jour, il faut que la mise a jour arrive aussi sur ma
@@ -194,14 +194,13 @@ fn executables(neuf: &Path) {
     }
 }
 
-/// L'installation de l'installeur : `logiciel/` en 2026.10.09 et l'`EDITION.json` de l'installeur (bride). Rend
-/// (installation, son EDITION.json).
-fn installee(base: &Path) -> (PathBuf, Vec<u8>) {
+/// L'installation de l'installeur : `logiciel/` en 2026.10.09, sans `EDITION.json` (l'installeur n'en pose plus : sans
+/// rien qui dise « debloque », le logiciel est bride, ticket #246). Rend l'installation.
+fn installee(base: &Path) -> PathBuf {
     let inst = base.join("installation");
-    let code = logiciel(&inst.join("logiciel"), "2026.10.09");
-    let edition = std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../installeur/EDITION.json")).unwrap();
-    std::fs::write(code.join("EDITION.json"), &edition).unwrap();
-    (inst, edition)
+    logiciel(&inst.join("logiciel"), "2026.10.09");
+    assert!(paie::bridage::est_bride_de(&inst), "une installation neuve est bridee");
+    inst
 }
 
 /// Une compagnie telle que la cree « Ajouter une compagnie » (`interface::compagnies::ajouter`) : trois fiches.
@@ -212,13 +211,13 @@ fn ajoutee(racine: &Path) {
 }
 
 /// L'installation bridee de l'installeur recoit la version publiee POUR ELLE-MEME (aucune compagnie ouverte : la
-/// recherche ne prend que l'installation), la range a cote de `logiciel/`, l'applique en gardant son `EDITION.json`, et
+/// recherche ne prend que l'installation), la range a cote de `logiciel/`, l'applique en restant bridee, et
 /// revient a la precedente. Rien ne se range dans une compagnie.
 #[test]
 fn une_installation_recoit_la_version_publiee_garde_son_bridage_et_revient() {
     let base = dossier_de_test("mise_a_jour", "bout_en_bout");
     let depot = publiee(&base, false);
-    let (inst, edition) = installee(&base);
+    let inst = installee(&base);
     let code = inst.join("logiciel");
     let racine = inst.join("compagnies").join("essai");
     ajoutee(&racine);
@@ -247,18 +246,18 @@ fn une_installation_recoit_la_version_publiee_garde_son_bridage_et_revient() {
     assert_eq!(r["version"], "2026.11.01");
     assert_eq!(maj::courante(&code), "2026.11.01");
     assert_eq!(lire(&code.join("interface").join("index.html")), "<p>2026.11.01</p>\n");
-    assert_eq!(std::fs::read(code.join("EDITION.json")).ok().as_deref(), Some(edition.as_slice()), "l'installation reste bridee");
+    assert!(!code.join("EDITION.json").exists() && paie::bridage::est_bride_de(&inst), "l'installation reste bridee");
     assert_eq!(maj::courante(&code.join(".avant")), "2026.10.09");
     assert!(maj::prete(&inst).is_none() && maj::applicable(&inst).is_none(), "plus rien a appliquer");
     let applique: Value = serde_json::from_str(&lire(&inst.join("maj").join("appliquee.json"))).unwrap();
     assert_eq!(applique["version"], "2026.11.01");
     assert_eq!(maj::verifier_avec(&inst, true, &[&publique()]), "version 01.11.2026, a jour");
 
-    // La marche arriere : la precedente revient, avec son EDITION.json.
+    // La marche arriere : la precedente revient, et l'installation reste bridee.
     let r = maj::revenir(&inst).unwrap();
     assert_eq!(r["version"], "2026.10.09");
     assert_eq!(maj::courante(&code), "2026.10.09");
-    assert_eq!(std::fs::read(code.join("EDITION.json")).ok().as_deref(), Some(edition.as_slice()));
+    assert!(!code.join("EDITION.json").exists() && paie::bridage::est_bride_de(&inst), "toujours bridee");
     assert!(!code.join(".avant").exists() && !code.join(".apres").exists());
 }
 
@@ -273,7 +272,7 @@ fn reecrire_manifeste(depot: &Path, m: &Value) {
 
 /// Une installation de l'installeur, avec une compagnie, reglee sur `depot`, qui cherche : (installation, ce qui est dit).
 fn recoit(base: &Path, depot: &Path) -> (PathBuf, String) {
-    let (inst, _) = installee(base);
+    let inst = installee(base);
     ajoutee(&inst.join("compagnies").join("essai"));
     crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": depot.display().to_string()}));
     let dit = maj::verifier_avec(&inst, true, &[&publique()]);
@@ -403,15 +402,15 @@ fn une_archive_dont_la_signature_ne_vaut_pas_est_refusee_sans_repli() {
     refusee(&inst, &dit, "signature");
 }
 
-/// Une installation DEBLOQUEE (le geste de l'accueil a ecrit `.edition.json` a cote de `logiciel/` ; l'`EDITION.json` de
-/// l'installeur est toujours la) reste debloquee : la mise a jour ne touche ni l'un ni l'autre, meme si le logiciel de
+/// Une installation DEBLOQUEE (le geste de l'accueil a ecrit `.edition.json` a cote de `logiciel/`)
+/// reste debloquee : la mise a jour ne touche pas ce choix, meme si le logiciel de
 /// l'editeur porte son propre `EDITION.json` (il ne part pas dans l'archive). Leandre, 14/10/2026 : « le petit curseur
 /// ecrit en JSON lui il reste comme il etait. Si les gens ont debloque, elle reste debloquee ».
 #[test]
 fn une_installation_debloquee_reste_debloquee() {
     let base = dossier_de_test("mise_a_jour", "installation_debloquee");
     let depot = publiee(&base, true);
-    let (inst, edition) = installee(&base);
+    let inst = installee(&base);
     let code = inst.join("logiciel");
     let curseur = "{\"edition\": \"debloque\", \"_quoi\": \"le geste de l'accueil\"}";
     std::fs::write(inst.join(".edition.json"), curseur).unwrap();
@@ -422,7 +421,8 @@ fn une_installation_debloquee_reste_debloquee() {
     maj::appliquer(&inst, false).unwrap();
     assert_eq!(maj::courante(&code), "2026.11.01");
     assert_eq!(lire(&inst.join(".edition.json")), curseur, "le choix du geste est intact");
-    assert_eq!(std::fs::read(code.join("EDITION.json")).ok().as_deref(), Some(edition.as_slice()), "l'EDITION.json de l'installation aussi");
+    assert!(!code.join("EDITION.json").exists(), "l'EDITION.json de l'editeur n'est pas arrive");
+    assert!(!paie::bridage::est_bride_de(&inst), "l'installation reste debloquee");
 }
 
 /// Une installation BRIDEE dont les seules compagnies sont les fictives (et une copie de developpement) recoit et applique
@@ -432,7 +432,7 @@ fn une_installation_debloquee_reste_debloquee() {
 fn une_installation_bridee_recoit_applique_et_reste_bridee() {
     let base = dossier_de_test("mise_a_jour", "installation_bridee");
     let depot = publiee(&base, false);
-    let (inst, edition) = installee(&base);
+    let inst = installee(&base);
     let fictive = inst.join(paie::interface::compagnies::DOSSIER_FICTIVES).join("fictive-3090-petite");
     compagnie::config_et_mois("fictive-3090-petite", &[], &fictive);
     std::fs::copy(crate::outils::fictive("fictive-3090-petite").join("COPIE-DE-DEVELOPPEMENT.json"), fictive.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
@@ -446,7 +446,7 @@ fn une_installation_bridee_recoit_applique_et_reste_bridee() {
     assert!(dit.contains("01.11.2026 est telechargee, controlee, prete"), "{}", dit);
     maj::appliquer(&inst, false).unwrap();
     assert_eq!(maj::courante(&inst.join("logiciel")), "2026.11.01");
-    assert_eq!(std::fs::read(inst.join("logiciel").join("EDITION.json")).ok().as_deref(), Some(edition.as_slice()), "l'installation reste bridee");
+    assert!(!inst.join("logiciel").join("EDITION.json").exists() && paie::bridage::est_bride_de(&inst), "l'installation reste bridee");
     assert!(!inst.join(".edition.json").exists(), "aucun choix bride/debloque n'a ete ecrit");
 }
 
@@ -554,7 +554,7 @@ fn deux_cles_acceptees_une_troisieme_refusee_par_un_depot_qui_redirige_comme_git
     release(&base, "2026.12.01", &poste);
     let derniere = Arc::new(Mutex::new("2026.11.01".to_string()));
     let (url, recu) = faux_github(&base, derniere.clone());
-    let (inst, _) = installee(&base);
+    let inst = installee(&base);
     crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": format!("{}/releases/latest/download", url)}));
 
     // Signee par une troisieme cle : refusee, rien n'est prepare.
@@ -666,7 +666,7 @@ fn la_cle_de_github_se_fabrique_dans_un_fichier_et_ne_s_affiche_jamais() {
     // La meme graine, avec SA cle publique : l'installation qui la connait recoit.
     let depot = base.join("depot");
     maj::publier_par_graine(&editeur, &depot, &g64, &publique, "", "", "").unwrap();
-    let (inst, _) = installee(&base);
+    let inst = installee(&base);
     crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": depot.display().to_string()}));
     let dit = maj::verifier_avec(&inst, true, &[maj::CLE_PUBLIQUE, &publique]);
     assert!(dit.contains("01.11.2026 est telechargee, controlee, prete"), "{}", dit);
@@ -720,7 +720,7 @@ fn la_recherche_dit_ou_elle_en_est_et_se_tait_quand_elle_a_fini() {
 
     let base = dossier_de_test("mise_a_jour", "indicateur");
     let depot = publiee(&base, false);
-    let (inst, _) = installee(&base);
+    let inst = installee(&base);
     ajoutee(&inst.join("compagnies").join("essai"));
 
     // Le depot ne repond pas : un echec, rien de pret, rien a redemarrer.
@@ -786,7 +786,7 @@ fn lancee_sans_reseau_la_recherche_reprend_quand_il_revient() {
 
     let base = dossier_de_test("mise_a_jour", "hors_ligne_puis_en_ligne");
     let depot = publiee(&base, false);
-    let (inst, _) = installee(&base);
+    let inst = installee(&base);
     ajoutee(&inst.join("compagnies").join("essai"));
     let en_ligne = Arc::new(AtomicBool::new(false));
     let (url, recu) = {
@@ -868,7 +868,7 @@ fn a_jour_la_recherche_continue_et_trouve_la_version_publiee_apres() {
 
     let base = dossier_de_test("mise_a_jour", "a_jour_puis_publiee");
     let depot = publiee(&base, false);
-    let (inst, _) = installee(&base);
+    let inst = installee(&base);
     ajoutee(&inst.join("compagnies").join("essai"));
     // 0 : le depot dit la version en place ; 1 : il ne repond pas (un tour coupe) ; 2 : la 2026.11.01 est publiee.
     let publication = Arc::new(AtomicU8::new(0));

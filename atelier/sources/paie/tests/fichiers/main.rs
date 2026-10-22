@@ -18,6 +18,7 @@ mod faux_drive;
 
 mod aer;
 mod archivage;
+mod bridage;
 mod bulletin_lu;
 mod caviardage;
 mod cle_de_signature;

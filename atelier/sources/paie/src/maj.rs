@@ -93,9 +93,8 @@ const NE_PAS_TOUCHER: [&str; 3] = [".git", ".avant", ".apres"];
 /// bascule le laisse EXACTEMENT comme il etait -- remis s'il etait la (copie depuis `.avant/`, qui garde l'image entiere de
 /// la version d'avant pour `revenir`), absent s'il n'y etait pas, meme si une archive d'avant le lot V1 en portait un.
 /// Leandre, 14/10/2026 : « le petit curseur ecrit en JSON lui il reste comme il etait. Si les gens ont debloque, elle reste
-/// debloquee » ; bridee, elle reste bridee. (L'autre moitie du curseur, `.edition.json`, vit a cote
-/// de `logiciel/` : la bascule n'y touche pas.) Avant, l'`EDITION.json` de l'installeur partait a la premiere mise a jour
-/// et le poste se debloquait sans geste (`PASSATION-I1.md`, ouvert 1).
+/// debloquee » ; bridee, elle reste bridee. Depuis le ticket #246, ce fichier n'est plus que celui du PAQUET SOUDE
+/// (`"edition": "bride"`, `bridage.rs`) ; le geste, `.edition.json`, vit a cote de `logiciel/` : la bascule n'y touche pas.
 const PROPRES_A_L_INSTALLATION: [&str; 1] = ["EDITION.json"];
 /// Les programmes d'un systeme Unix, dans son dossier de `logiciel/` (`linux/`, `mac/`) : la fenetre, et le moteur (pour un
 /// Linux sans WebKitGTK, qui ouvre la meme page dans le navigateur ; et le flux « Publier » signe avec celui de Linux).
@@ -1688,11 +1687,12 @@ mod tests {
         std::fs::write(d.join("interface").join("index.html"), version).unwrap();
     }
 
-    /// Une archive qui porterait un `EDITION.json` (publiee avant le lot V1) ne change pas le bridage de l'installation :
-    /// debloquee ou bridee, elle reste comme elle etait ; sans `EDITION.json`, elle n'en recoit pas.
+    /// Une archive qui porterait un `EDITION.json` (publiee avant le lot V1) ne change pas l'installation : un paquet soude
+    /// garde son `EDITION.json` ; une installation sans `EDITION.json` n'en recoit pas (elle reste bridee ou debloquee par son
+    /// `.edition.json`, a cote de `logiciel/`, que la bascule ne touche pas).
     #[test]
     fn la_bascule_laisse_l_edition_de_l_installation_comme_elle_etait() {
-        for avant in [Some("{\"defaut\": \"bride\"}"), Some("{\"defaut\": \"debloque\"}"), None] {
+        for avant in [Some("{\"edition\": \"bride\"}"), None] {
             let base = std::env::temp_dir().join(format!("puppetpaie-maj-edition-{}", std::process::id()));
             let _ = std::fs::remove_dir_all(&base);
             let (code, racine) = (base.join("logiciel"), base.clone());
@@ -1735,7 +1735,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&base);
         let (code, racine) = (base.join("logiciel"), base.clone());
         arbre(&code, "2026.10.09");
-        std::fs::write(code.join("EDITION.json"), "{\"defaut\": \"bride\"}").unwrap();
+        std::fs::write(code.join("EDITION.json"), "{\"edition\": \"bride\"}").unwrap();
         let neuf = racine.join("maj").join("2026.11.01").join("logiciel");
         arbre(&neuf, "2026.11.01");
         ecrire_json(&racine.join("maj").join("prete.json"), &json!({"version": "2026.11.01", "calcul": ""})).unwrap();
