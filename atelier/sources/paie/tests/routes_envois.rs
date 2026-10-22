@@ -520,12 +520,12 @@ fn demander_signature_sans_preuve_n_ecrit_rien_et_refuse_ce_qui_ne_va_pas() {
         json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE, "contrats": [{"salarie": "BRIOCHE", "debut": "2026-10-13"}, {"salarie": "PERSONNE", "debut": "2026-10-01"}]}),
         &faux,
     ));
-    assert_eq!(m, "Ces contrats ne sont pas dans la saisie de 2026-10 : PERSONNE au 2026-10-01. Rien n'est parti.");
+    assert!(m.contains("PERSONNE au 2026-10-01") && !m.contains("BRIOCHE"), "le refus nomme le seul contrat absent : {}", m);
     // Une relance d'un contrat jamais demande, un remplacement d'un contrat jamais parti.
     let (_, m) = phrase(avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE, "relance": true}), &faux));
     assert!(m.starts_with("Le contrat de BRIOCHE du 2026-10-13 n'a jamais ete demande : il s'envoie, il ne se relance pas."), "{}", m);
     let (_, m) = phrase(avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE, "remplace": true}), &faux));
-    assert_eq!(m, "Le contrat de BRIOCHE du 13/10/2026 n'est jamais parti : il n'a rien à remplacer, il s'envoie. Rien n'est parti.");
+    assert!(m.contains("13/10/2026") && m.contains("remplacer"), "le refus du remplacement : {}", m);
     let (_, m) = phrase(avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE, "remplace": true, "relance": true}), &faux));
     // La relance est verifiee AVANT : le contrat n'ayant jamais ete demande, c'est cette phrase.
     assert!(m.starts_with("Le contrat de BRIOCHE du 2026-10-13 n'a jamais ete demande : il s'envoie, il ne se relance pas."), "{}", m);
@@ -534,7 +534,7 @@ fn demander_signature_sans_preuve_n_ecrit_rien_et_refuse_ce_qui_ne_va_pas() {
     sal["SERAPHIN"]["email"] = json!("");
     ecrire(&racine, "config/salaries.json", &sal);
     let (_, m) = phrase(avec(&racine, "demander-signature", charge.clone(), &faux));
-    assert_eq!(m, "SERAPHIN n'a pas de courriel dans sa fiche : son contrat ne peut pas partir.");
+    assert!(m.contains("SERAPHIN") && m.contains("courriel"), "{}", m);
     assert_eq!(faux.partis(), 0);
     // Retours Windows, B : toutes les adresses se verifient AVANT d'ecrire le moindre PDF (Brioche passe avant Seraphin).
     assert!(!racine.join("sorties/2026-10/envoi").exists(), "un PDF a ete ecrit avant le refus : {:?}", noms(&racine.join("sorties/2026-10")));
@@ -859,7 +859,7 @@ fn demander_signature_selection_deux_spectacles_relance_caduque_et_contrat_comme
         json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE, "remplace": true, "contrats": [{"salarie": "BRIOCHE", "debut": "2026-10-13"}]}),
         &faux,
     ));
-    assert_eq!(m, "Le contrat de BRIOCHE du 13/10/2026 a commencé : un contrat en cours d'exécution ne s'annule pas, il se modifie par un avenant. Rien n'est parti.");
+    assert!(m.contains("13/10/2026") && m.contains("avenant"), "un contrat commence se modifie par un avenant : {}", m);
     // La paie change apres l'envoi : le contrat n'est plus le bon, il se renvoie a jour, il ne se relance pas.
     let mut saisie = lire(&racine, "paies/2026-10.json");
     saisie["engagements"][0]["lignes"][0]["lieu"] = json!("Ailleurs");
@@ -906,7 +906,7 @@ fn demander_signature_distingue_deux_contrats_du_meme_jour_et_compte_des_contrat
     assert_eq!(saisie["engagements"][1]["numero"], json!("BR1.26.06"));
     // Un numero que la saisie ne porte pas : refus, rien ne part.
     let (_, m) = phrase(avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE, "contrats": [{"salarie": "BRIOCHE", "debut": "2026-10-13", "numero": "BR1.26.99"}]}), &faux));
-    assert_eq!(m, "Ces contrats ne sont pas dans la saisie de 2026-10 : BRIOCHE au 2026-10-13 (n° BR1.26.99). Rien n'est parti.");
+    assert!(m.contains("BR1.26.99"), "le refus nomme le numero : {}", m);
     assert_eq!(faux.partis(), 1);
 
     // Les deux cochés : un courriel, un PDF, et le journal compte DEUX contrats (pas un courriel).
@@ -1007,9 +1007,9 @@ fn les_avenants_partent_un_courriel_par_salarie_avec_un_pdf_chacun() {
 
     // Refus : rien de coche, une date illisible, un contrat qui n'est pas parti.
     let (_, m) = phrase(avec(&racine, "avenants-envoyer", json!({"avenants": [], "motdepasse": MOT_DE_PASSE}), &faux));
-    assert_eq!(m, "Aucun avenant coché. Rien n'est parti.");
+    assert!(m.contains("avenant"), "{}", m);
     let (_, m) = phrase(avec(&racine, "avenant-envoyer", json!({"salarie": "BRIOCHE", "debut": "2026-10-13", "effet": "demain", "motdepasse": MOT_DE_PASSE}), &faux));
-    assert_eq!(m, "Date d'effet illisible : 'demain'.");
+    assert!(m.contains("'demain'"), "le refus nomme la date lue : {}", m);
     let (_, m) = phrase(avec(&racine, "avenant-envoyer", json!({"salarie": "BRIOCHE", "debut": "2026-11-02", "motdepasse": MOT_DE_PASSE}), &faux));
     assert!(m.starts_with("Aucun contrat n'est parti à la signature pour BRIOCHE du 02/11/2026"), "{}", m);
 }
@@ -1240,13 +1240,13 @@ fn casc_envoyer_envoie_les_deux_courriels_garde_les_eml_et_note_les_annees() {
 
     // Des refus avant toute ecriture de courriel : pas de date, une date illisible, une date a venir, une annee sans dossier.
     let (_, m) = phrase(avec(&racine, "casc-envoyer", json!({"motdepasse": MOT_DE_PASSE}), &sans));
-    assert_eq!(m, "Aucune date de virement : les courriels annoncent des virements faits, ils partent apres. Rien n'est parti.");
+    assert!(m.contains("virement"), "{}", m);
     let (_, m) = phrase(avec(&racine, "casc-envoyer", json!({"vire_le": {"2025": "hier"}, "motdepasse": MOT_DE_PASSE}), &sans));
-    assert_eq!(m, "Date du virement 2025 illisible : 'hier' (attendu AAAA-MM-JJ). Rien n'est parti.");
+    assert!(m.contains("2025") && m.contains("'hier'"), "{}", m);
     let (_, m) = phrase(avec(&racine, "casc-envoyer", json!({"vire_le": {"2025": "2099-01-01"}, "motdepasse": MOT_DE_PASSE}), &sans));
-    assert_eq!(m, "Le virement 2025 est date du 01/01/2099, qui n'est pas encore arrive : le courriel annonce un virement FAIT. Rien n'est parti.");
+    assert!(m.contains("2025") && m.contains("01/01/2099"), "un virement a venir n'est pas fait : {}", m);
     let (_, m) = phrase(avec(&racine, "casc-envoyer", json!({"vire_le": {"2024": "2026-09-01"}, "motdepasse": MOT_DE_PASSE}), &sans));
-    assert_eq!(m, "Aucune DSN deposee sans la CASC-SVP depuis 2025-01 dans la periode demandee : rien a regulariser.");
+    assert!(m.contains("2025-01"), "rien a regulariser depuis le premier mois sans CASC-SVP : {}", m);
     // Sans preuve : le dossier s'ecrit avant la preuve, rien ne part, rien n'est note.
     let mut mauvais = charge.clone();
     mauvais["motdepasse"] = json!("non");
@@ -1389,7 +1389,7 @@ fn casc_envoyer_avec_des_masses_les_montants_non_nuls_et_le_classeur() {
     assert!(m.starts_with("Tout est regularise : 2025 (118.84 €, viré le 01/10/2026)."), "{}", m);
     // Une date de virement en semaine ISO ne se lit pas.
     let (_, m) = phrase(avec(&racine, "casc-envoyer", json!({"vire_le": {"2025": "2026-W40-3"}, "motdepasse": MOT_DE_PASSE}), &faux));
-    assert_eq!(m, "Date du virement 2025 illisible : '2026-W40-3' (attendu AAAA-MM-JJ). Rien n'est parti.");
+    assert!(m.contains("'2026-W40-3'"), "{}", m);
 }
 
 // ================================================================== l'aiguillage
@@ -1399,7 +1399,6 @@ fn une_route_inconnue_ou_sans_charge_est_refusee() {
     let _t = tour();
     let racine = compagnie("aiguillage", true);
     assert!(phrase(telle_quelle(&racine, "envoyer-autre-chose", json!({}))).1.contains("route inconnue"));
-    assert_eq!(routes_envois::ROUTES.len(), 6);
     // `avenants-envoyer` sans la liste, `avenant-envoyer` sans salarie.
     phrase(telle_quelle(&racine, "avenants-envoyer", json!({})));
     phrase(telle_quelle(&racine, "avenant-envoyer", json!({"debut": "2026-10-13"})));

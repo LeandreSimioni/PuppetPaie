@@ -203,13 +203,12 @@ fn eur_fr(v: Decimal) -> String {
     format!("{}{},{} €", signe, groupes.join(" "), dec)
 }
 
-const MOIS_CASC: [&str; 12] = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-
 /// « janvier 2025 » : le nom d'un mois de l'alerte CASC-SVP. « 00 » n'est aucun mois et se refuse
 /// (`date::numero_du_mois`, lot F1 ; il se lisait janvier, et un mois illisible aussi).
 fn libelle_casc(m: &str) -> R<String> {
     let n = crate::date::numero_du_mois(m).map_err(|e| erreur("ValueError", e))?;
-    Ok(format!("{} {}", MOIS_CASC[n as usize - 1], m.chars().take(4).collect::<String>()))
+    let nom = crate::date::nom_du_mois(n as i64, crate::date::Graphie::Accentuee).map_err(|e| erreur("ValueError", e))?;
+    Ok(format!("{} {}", nom, m.chars().take(4).collect::<String>()))
 }
 
 /// `lire_dsn_casc` : la DSN deposee, et si elle porte la CASC-SVP (un contrat rattache, S21.G00.70.013, a

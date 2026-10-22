@@ -247,6 +247,94 @@ pub fn dsn_du_mois(racine: &Path, mois: &str, jour: &str) -> Result<String, Stri
     paie::dsn::generer(&ctx, &s.paies, mois, &[], &[], &paie::dsn::Options::default())
 }
 
+/// Les changements datés d'un permanent sur une copie de `fictive-1285-grande` (deux CDI, NADAR cadre depuis 2022,
+/// DORVAL non cadre depuis le 01/04/2025 ; toutes les DSN déposées jusqu'à août 2026) : `tests/dsn/bloc_41.rs` et
+/// `tests/calcul/periodes.rs`.
+pub mod permanents {
+    use super::*;
+    use paie::contexte::Contexte;
+    use paie::date::Jour;
+    use paie::engagement::{charger, Saisie};
+
+    /// Pose des champs sur l'engagement de `salarie` dans la saisie du mois.
+    pub fn retoucher_saisie(racine: &Path, mois: &str, salarie: &str, champs: Value) {
+        let chemin = format!("paies/{}.json", mois);
+        let mut s = lire(racine, &chemin);
+        for e in s["engagements"].as_array_mut().unwrap() {
+            if e["salarie"] == salarie {
+                for (k, v) in champs.as_object().unwrap() {
+                    e[k] = v.clone();
+                }
+            }
+        }
+        ecrire(racine, &chemin, &s);
+    }
+
+    /// Le contexte du jour où l'on produit `mois` : le 5 du mois suivant.
+    pub fn contexte(racine: &Path, mois: &str) -> Contexte {
+        let (an, mo): (i32, u32) = (mois[..4].parse().unwrap(), mois[5..7].parse().unwrap());
+        let (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };
+        Contexte::nouveau(racine, Some(Jour::lire(&format!("{:04}-{:02}-05", an, mo)).unwrap())).unwrap()
+    }
+
+    /// La saisie de `mois`, lue au 5 du mois suivant.
+    pub fn saisie(racine: &Path, mois: &str) -> Result<Saisie, String> {
+        charger(&contexte(racine, mois), &racine.join(format!("paies/{}.json", mois)))
+    }
+
+    /// La DSN de `mois`, produite au 5 du mois suivant, sans rien écrire.
+    pub fn dsn(racine: &Path, mois: &str) -> Result<String, String> {
+        let ctx = contexte(racine, mois);
+        let s = charger(&ctx, &racine.join(format!("paies/{}.json", mois)))?;
+        paie::dsn::generer(&ctx, &s.paies, mois, &[], &[], &paie::dsn::Options::default())
+    }
+
+    /// DORVAL (CDI depuis le 01/04/2025, chargée de production, 05 / 04) passe cadre le lendemain de `veille`, changement
+    /// saisi et daté sur sa fiche comme l'écran le fait (`historique` : l'ancienne valeur jusqu'à la veille).
+    pub fn dorval_cadre_au(racine: &Path, veille: &str) {
+        retoucher_fiches(
+            racine,
+            &[(
+                "DORVAL",
+                json!({
+                    "statut_conventionnel": "04",
+                    "statut_categoriel_rc": "01",
+                    "historique": [
+                        {"champ": "statut_categoriel_rc", "valeur": "04", "jusqu_au": veille, "note": ""},
+                        {"champ": "statut_conventionnel", "valeur": "05", "jusqu_au": veille, "note": ""}
+                    ]
+                }),
+            )],
+        );
+    }
+
+    /// Les blocs S21.G00.41 d'un individu, chacun ouvert par son 41.001.
+    pub fn blocs_41(lignes: &[(String, String)]) -> Vec<Vec<(String, String)>> {
+        let mut out: Vec<Vec<(String, String)>> = Vec::new();
+        for (k, v) in lignes {
+            if k == "S21.G00.41.001" {
+                out.push(Vec::new());
+            }
+            if k.starts_with("S21.G00.41.") {
+                out.last_mut().unwrap().push((k.clone(), v.clone()));
+            }
+        }
+        out
+    }
+
+    /// Un bloc attendu, en paires (rubrique, valeur).
+    pub fn bloc(paires: &[(&str, &str)]) -> Vec<(String, String)> {
+        paires.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+    }
+
+    /// Le mois est déposé : la DSN produite remplace le fichier du mois dans la copie et le journal la dit acceptée en
+    /// réel (ce que `casc::dsn_deposee` relit).
+    pub fn deposer(racine: &Path, mois: &str, nom: &str, texte: &str) {
+        paie::dsn::ecrire(texte, &racine.join("sorties").join(mois).join(nom)).unwrap();
+        dsn_deposee(racine, mois, nom, &format!("{}-28T12:00:00", mois));
+    }
+}
+
 /// Le mois est prêt à produire : les DPAE des engagements qui y commencent sont parties et leurs contrats sont revenus
 /// signés (des lignes de journal comme celles de la compagnie fictive).
 pub fn mois_pret(racine: &Path, mois: &str) {

@@ -44,9 +44,6 @@ type R<T> = Result<T, Echec>;
 /// Les routes de lecture des conseils.
 pub const ROUTES: [&str; 3] = ["conseil-du-jour", "conseils-salarie", "conseils-resume"];
 
-const MOIS_ACCENTUES: [&str; 12] =
-    ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-
 /// Les conditions que le moteur sait evaluer : un conseil de la banque dont le `quand` n'est ni « toujours » ni l'une
 /// d'elles ne s'afficherait jamais (le test de la banque le refuse).
 pub const CONDITIONS: [&str; 16] = [
@@ -441,14 +438,6 @@ fn avec_jours(v: &mut Vec<(&str, Valeur)>, jours: Decimal) {
     }
 }
 
-fn libelle_mois(mois: &str) -> String {
-    let n: usize = mois.get(5..7).and_then(|m| m.parse().ok()).unwrap_or(0);
-    match n {
-        1..=12 => format!("{} {}", MOIS_ACCENTUES[n - 1], &mois[..4]),
-        _ => mois.to_string(),
-    }
-}
-
 /// Ce qu'une paie gagnerait en heures a suivre le conseil « cachet de repetition » : (heures avant, gain, jours,
 /// somme), ou rien. La convention 3090 fixe un « cachet de repetition pour 1 ou 2 services de repetition dans la meme
 /// journee » (`minima::cachet_de_repetition`) ; un cachet compte 12 heures (annexe X, art. 3). Seulement les lignes
@@ -605,7 +594,7 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
         let cle = texte(&p.salarie, "_cle");
         let (heures_mois, cachets_mois) = du_mois.get(&cle).copied().unwrap_or((0, 0));
         let qui = prenom(&p.salarie);
-        let mois = libelle_mois(&e.mois);
+        let mois = crate::date::libelle_du_mois_ou_tel_quel(&e.mois, crate::date::Graphie::Accentuee);
         let base = |extra: Vec<(&str, Valeur)>| -> Valeurs {
             let mut v = Valeurs::new();
             v.insert("prenom".into(), val_texte(qui.clone()));
@@ -830,7 +819,7 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
         pousser(
             "historique:cachets-perdus",
             base(vec![
-                ("mois", val_texte(libelle_mois(&m))),
+                ("mois", val_texte(crate::date::libelle_du_mois_ou_tel_quel(&m, crate::date::Graphie::Accentuee))),
                 ("cachets", val_entier(n)),
                 ("plafond", val_entier(c.cachets_par_mois)),
                 ("perdus", val_entier(n - c.cachets_par_mois)),

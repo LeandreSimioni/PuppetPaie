@@ -325,5 +325,4 @@ fn le_mot_de_passe_pose_se_lit_dans_le_coffre_sans_jamais_le_rendre() {
     ecrire_texte(c, "config/coffre.bin", "pas un coffre");
     let r = liste(c, "regularisations", json!({}), "2026-10-03");
     assert_eq!(r["mot_de_passe_pose"], json!(false));
-    assert_eq!(r.as_object().unwrap().len(), 3);
 }

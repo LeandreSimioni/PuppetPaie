@@ -1119,15 +1119,11 @@ pub fn engagements_du_fichier(
 
 // ------------------------------------------- le contrat qui deborde du mois
 
-const MOIS: [&str; 12] = [
-    "janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre",
-    "decembre",
-];
-
-/// `libelle_mois` : '2026-10' -> 'octobre 2026'.
+/// `libelle_mois` : '2026-10' -> 'octobre 2026' (sans accent, comme l'ecrivent les phrases et les documents qui
+/// l'appellent). Ses appelants ecrivent une phrase et ne refusent pas pour le mois : un mois illisible ou hors 01-12
+/// s'ecrit tel quel (« 2026-00 »), jamais sous le nom de janvier.
 pub fn libelle_mois(mois: &str) -> String {
-    let n: usize = mois.get(5..7).and_then(|m| m.parse().ok()).unwrap_or(1);
-    format!("{} {}", MOIS[n.clamp(1, 12) - 1], &mois[..4])
+    crate::date::libelle_du_mois_ou_tel_quel(mois, crate::date::Graphie::Minuscule)
 }
 
 /// La cle de la fiche a laquelle un engagement brut de la saisie se rattache : son `salarie` lu par `Contexte::salarie`

@@ -44,16 +44,9 @@ const MODELE: &str = "contrat-cddu.modele";
 /// sert (`re.sub` ne sait pas poser autre chose qu'une chaine). Une phrase qui la porte est un refus.
 const INVALIDE: &str = "\u{0}\u{0}VALEUR-SANS-TEXTE\u{0}\u{0}";
 
-pub(crate) const MOIS_ACCENTS: [&str; 12] = [
-    "janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre",
-];
-
 // ------------------------------------------------------ le texte d'un PDF
 
-/// Un blanc au sens de `str.isspace` de Python (ce que `\s` reconnait) : Unicode, plus 0x1C-0x1F.
-fn est_blanc(c: char) -> bool {
-    c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)
-}
+use crate::retours::blanc_py as est_blanc;
 
 /// `avenant._normaliser` : ce qui se compare. Ligatures defaites (NFKC : « ﬀ » -> « ff », espaces
 /// insecables -> espaces), une coupure apres un trait d'union recollee, les blancs ramenes a un seul.
@@ -467,7 +460,7 @@ fn remuneration_detaillee(remuneration: &[Value], e: &Eng) -> Resultat<String> {
     }
     let mut phrase = et(&morceaux);
     if !e.dernier_mois {
-        let nom = MOIS_ACCENTS.get(mois_de(&e.mois)?.saturating_sub(1)).ok_or("mois hors du calendrier")?;
+        let nom = crate::date::nom_du_mois(mois_de(&e.mois)? as i64, crate::date::Graphie::Accentuee)?;
         let quand = format!("{} {}", nom, an_de(&e.mois)?);
         if !e.planning.is_empty() {
             let n = e.planning.len();
@@ -513,7 +506,7 @@ fn periode_remuneration(e: &Eng) -> Resultat<String> {
     if e.dernier_mois {
         return Ok(String::new());
     }
-    let nom = MOIS_ACCENTS.get(mois_de(&e.mois)?.saturating_sub(1)).ok_or("mois hors du calendrier")?;
+    let nom = crate::date::nom_du_mois(mois_de(&e.mois)? as i64, crate::date::Graphie::Accentuee)?;
     let de = if nom.chars().next().map_or(false, |c| "aeiouyâàéèêîôû".contains(c)) { "d'" } else { "de " };
     Ok(format!(" pour le mois {}{} {}", de, nom, an_de(&e.mois)?))
 }

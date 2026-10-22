@@ -556,6 +556,8 @@ fn produire_mois(
     // apercu_mois : le mois calcule, rien d'ecrit (`charger` : la saisie numerotee, une deuxieme fois).
     let annee: i64 = mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("nombre entier illisible : {}", crate::fichiers::repr(&mois))))?;
     let numero_mois: usize = mois.get(5..7).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("mois illisible : {}", crate::fichiers::repr(&mois))))?;
+    // « 00 » ou « 13 » ne sont aucun mois : refus ici, jamais un mois ramene de force dans l'annee.
+    let nom_du_mois = crate::date::nom_du_mois(numero_mois as i64, crate::date::Graphie::Titre).map_err(valeur)?;
     let paies = charger(ctx, data, rep, Some(reserves))?;
     let (urssaf, avert) = crate::routes_ouverture::urssaf_de_l_apercu(ctx, &paies, &mois)?;
     let mut avertissements: Vec<Avis> = avert.into_iter().map(avertissement).collect();
@@ -585,7 +587,7 @@ fn produire_mois(
     // Quel engagement du fichier recevra quel numero : un numero deja pose et different se refuse ICI, avant la premiere
     // ecriture ; il ne s'ecrit qu'apres `valider`.
     let a_figer = numeros_a_figer(ctx, &mois, data, &paies)?;
-    let etiq = crate::apercu_dsn::etiquette(&mois).map_err(valeur)?;
+    let etiq = crate::envoi::etiquette(&mois).map_err(valeur)?;
     // Ceux de l'apercu d'abord : ils portent sur ce qu'on produit, pas sur la facon de le produire.
     if envoi_test {
         avertissements.push(info(
@@ -873,7 +875,7 @@ fn produire_mois(
     if numeros_figes.is_none() {
         avertissements.push(avertissement(format!(
             "Numeros de contrat non enregistres : la saisie de {} n'a pas pu etre relue. Un contrat qui se poursuit le mois suivant risque de ne pas retrouver son numero -- rouvrir le mois et l'enregistrer a nouveau.",
-            crate::routes_ouverture::MOIS_TITRE[numero_mois.clamp(1, 12) - 1].to_string() + &format!(" {}", annee)
+            format!("{} {}", nom_du_mois, annee)
         )));
     }
 
@@ -890,7 +892,7 @@ fn produire_mois(
         vues.push(crate::routes_ouverture::vue_paie(ctx, p, tous.get(i).unwrap_or(&Value::Null), data, false)?);
     }
     Ok(MoisProduit {
-        libelle: format!("{} {}", crate::routes_ouverture::MOIS_TITRE[numero_mois.clamp(1, 12) - 1], annee),
+        libelle: format!("{} {}", nom_du_mois, annee),
         mois: mois.clone(),
         dossier: sortie,
         vues,

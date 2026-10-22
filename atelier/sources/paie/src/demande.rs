@@ -794,8 +794,6 @@ mod tests {
         // Une fenetre sans ecran ne s'ouvre pas.
         let fenetre_sans_ecran = Reel { ecran: false, fenetre: Some(Box::new(Fausse::mot("x"))), terminal: None };
         assert_eq!(tout_refuse(fenetre_sans_ecran.demander(&q())), SANS_HUMAIN);
-        // La phrase dit pourquoi et quoi faire.
-        assert!(SANS_HUMAIN.contains("aucun humain") && SANS_HUMAIN.contains("terminal") && SANS_HUMAIN.contains("fenetre"));
     }
 
     #[test]

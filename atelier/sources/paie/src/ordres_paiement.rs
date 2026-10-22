@@ -65,9 +65,6 @@ pub struct Ordre {
     pub composants: Option<Decimal>,
 }
 
-const MOIS: [&str; 12] =
-    ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-
 const SOURCE_011: &str = "Date de paiement écrite dans la DSN (S21.G00.20.011) : « date à prendre en compte par l'organisme dans le cas d'un prélèvement SEPA » (cahier technique DSN 2026.1, bloc S21.G00.20).";
 const SOURCE_URSSAF: &str = "Code de la sécurité sociale, art. R. 243-6, II : le versement est effectué le mois suivant la période de travail, au plus tard le 5 ou le 15 (sans report : seul le dépôt de la DSN se reporte un jour non ouvré, R. 133-14, I).";
 const SOURCE_DGFIP: &str = "BOFiP, BOI-IR-PAS-30-10-30-20, § 50 : pour un employeur en DSN, le reversement de la retenue à la source intervient le mois suivant, au plus tard le 15 jusqu'à quarante-neuf salariés, le 5 au-delà (art. 1671 du CGI). L'option trimestrielle sous onze salariés (§ 60) n'est pas prise en compte.";
@@ -114,7 +111,8 @@ fn jour_dsn(v: &str) -> Option<Jour> {
 }
 
 fn nom_du_mois(an: i32, mois: u32) -> String {
-    format!("{} {}", MOIS[(mois as usize).saturating_sub(1).min(11)], an)
+    // `mois` vient d'un `Jour`, donc de 1 a 12 : le repli (vide) ne peut pas arriver.
+    format!("{} {}", crate::date::nom_du_mois(mois as i64, crate::date::Graphie::Accentuee).unwrap_or_default(), an)
 }
 
 /// « d'août 2026 », « de septembre 2026 », ou « du 01/07/2026 au 30/09/2026 ».

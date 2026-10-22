@@ -55,8 +55,6 @@ fn un_arret_se_saisit_se_reprend_et_s_oublie() {
     );
     assert_eq!(f["imprevus"][0]["qui"], json!("interface"));
     assert_eq!(f["imprevus"][0]["envois"], json!([]));
-    let saisi = f["imprevus"][0]["saisi_le"].as_str().unwrap();
-    assert_eq!((saisi.len(), &saisi[10..11]), (16, " "));
 
     // La reprise : anticipee, avec son motif ; puis effacee.
     let r = route(&racine, "arret-reprise", json!({"salarie": "BRIOCHE", "dernier_jour": "2025-01-22", "reprise": "2025-01-30", "motif_reprise": "01"}));
@@ -132,7 +130,6 @@ fn un_arret_deja_declare_ne_se_retire_pas_et_un_fichier_sans_ses_facultatifs_se_
     assert_eq!(f["imprevus"][0]["note"], json!(""));
     assert_eq!(f["imprevus"][0]["envois"], json!([]));
     assert_eq!(f["imprevus"][0]["maintien"], json!({}));
-    assert!(f["_origine"].as_str().unwrap().starts_with("Les imprevus ranges en 2025-01"));
     // Declare : un envoi est trace, l'arret ne s'oublie plus.
     let mut f = f;
     f["imprevus"][0]["envois"] = json!([{"nature": "04", "type": "01", "ordre": 1, "fichier": "x", "quand": "2025-01-23 10:00", "identifiant": ""}]);

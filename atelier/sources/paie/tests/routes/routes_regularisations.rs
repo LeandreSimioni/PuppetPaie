@@ -47,7 +47,8 @@ fn une_correction_s_ecrit_s_annule_et_se_refuse() {
     assert_eq!(r["resultat"]["etat"], json!("en attente"));
     let f = lire(&racine, "regularisations/2025-06.json");
     assert_eq!(f["mois"], json!("2025-06"));
-    assert!(f["_origine"].as_str().unwrap().contains("La saisie de 2025-06 telle que deposee fait foi : paies/2025-06.json, ou regularisations/2025-06.saisie-declaree.json"));
+    // La note du fichier dit ou est la saisie qui fait foi, la saisie declaree comprise.
+    assert!(f["_origine"].as_str().unwrap().contains("regularisations/2025-06.saisie-declaree.json"));
     let mut champs: Vec<&String> = f["corrections"][0].as_object().unwrap().keys().collect();
     champs.sort();
     assert_eq!(champs, ["annulee_le", "debut", "decidee_le", "engagement", "mois", "motif", "numero", "portee_par", "preparee_par", "qui", "salarie"]);

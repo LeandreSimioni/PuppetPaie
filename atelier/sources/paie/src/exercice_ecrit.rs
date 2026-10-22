@@ -34,9 +34,6 @@ use crate::routes_ouverture::{mois_de_l_annee, nic_principal, refus_du_calcul};
 
 type R<T> = Result<T, Echec>;
 
-/// `util.MOIS`.
-const MOIS: [&str; 12] = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"];
-
 fn refus(m: impl Into<String>) -> Echec {
     erreur("ErreurOperation", m)
 }
@@ -147,7 +144,8 @@ fn date_et_libelle(mois: &str) -> R<(String, String)> {
     let annee: i64 = mois.chars().take(4).collect::<String>().parse().map_err(|_| erreur("ValueError", "mois illisible"))?;
     let mo = i64::from(crate::date::numero_du_mois(mois).map_err(|e| erreur("ValueError", e))?);
     let date = dernier_jour(annee, mo)?;
-    Ok((date, format!("{} {}", MOIS[(mo - 1) as usize], annee)))
+    let nom = crate::date::nom_du_mois(mo, crate::date::Graphie::Titre).map_err(|e| erreur("ValueError", e))?;
+    Ok((date, format!("{} {}", nom, annee)))
 }
 
 /// `plan[cle]` : `KeyError` s'il manque.

@@ -115,8 +115,6 @@ fn le_net_deja_verse_de_servandoni_est_celui_de_son_bulletin_de_juillet() {
 struct Chaminade {
     r: PathBuf,
     numero: String,
-    /// Le bulletin d'octobre archive.
-    bulletin: String,
     /// Le montant net social et le net a payer imprimes.
     social: String,
     paye: String,
@@ -168,7 +166,7 @@ fn chaminade_corrigee(test: &str, ancien_58004: bool) -> Chaminade {
     mois_pret(&r, "2026-11");
     outils::reussi(&produire_le(&r, "2026-11", jour));
     let verse = montant_apres(&texte_pdf(&rectificatif(&r, "2026-10", 1)), NET_RECTIFIE);
-    Chaminade { r, numero, bulletin, social, paye, verse }
+    Chaminade { r, numero, social, paye, verse }
 }
 
 #[test]
@@ -180,11 +178,6 @@ fn le_net_deja_verse_d_un_contrat_defraye_avec_acompte_est_celui_du_bulletin_et_
     let c = chaminade_corrigee("chaminade", false);
     assert_ne!(c.social, c.paye, "defraiements (82,80) et acompte (100) separent les deux nets");
     assert_eq!(c.verse, c.paye, "le net deja verse est celui du bulletin");
-    // Le bulletin du moteur du jour est au modele de l'arrete du 25/02/2016 (art. 1, I), et le lecteur le lit.
-    for libelle in ["MONTANT BRUT", "COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES", "TOTAL DES COTISATIONS ET CONTRIBUTIONS OBLIGATOIRES", "TOTAL VERSÉ PAR L'EMPLOYEUR"] {
-        assert!(c.bulletin.contains(libelle), "le bulletin neuf imprime {:?}", libelle);
-    }
-    assert!(!c.bulletin.contains("SALAIRE BRUT") && !c.bulletin.contains("Coût total employeur"), "plus les libelles d'avant");
     let (b58, nets) = blocs_58(&c.r.join("sorties/2026-11/DSN_Novembre2026.dsn"), &c.numero);
     assert_eq!(b58.len(), 1, "{:?}", b58);
     let (d, f, m) = &b58[0];

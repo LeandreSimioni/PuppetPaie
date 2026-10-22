@@ -35,11 +35,6 @@ const SAISIE: &str = "saisie";
 const DSN: &str = "DSN déposée";
 const AEM: &str = "AEM attestée";
 
-/// `util.MOIS`.
-const MOIS: [&str; 12] = [
-    "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre",
-];
-
 const PAGE_LARGEUR: f64 = 841.89;
 const PAGE_HAUTEUR: f64 = 595.28;
 const ROUGE: &str = "#B22222";
@@ -368,18 +363,6 @@ impl Periode {
     }
 }
 
-/// `util.MOIS[int(m[5:7]) - 1]`, l'indice negatif de Python compris.
-fn nom_du_mois(m: &str) -> R<&'static str> {
-    let n = crate::apercu_dsn::int_py(&m.chars().skip(5).take(2).collect::<String>())
-        .ok_or_else(|| avec_classe("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(&m.chars().skip(5).take(2).collect::<String>()))))?;
-    let i = n - 1;
-    let i = if i < 0 { i + 12 } else { i };
-    if !(0..12).contains(&i) {
-        return Err(avec_classe("IndexError", crate::date::mois_impossible(n)));
-    }
-    Ok(MOIS[i as usize])
-}
-
 fn libelle_periode(mois: &[String], un_mois: &Option<String>, annee: &Option<String>, toutes: bool) -> R<String> {
     if toutes {
         let annees: BTreeSet<String> = mois.iter().map(|m| m.chars().take(4).collect()).collect();
@@ -391,7 +374,7 @@ fn libelle_periode(mois: &[String], un_mois: &Option<String>, annee: &Option<Str
         ));
     }
     if let Some(u) = un_mois {
-        return Ok(format!("{} {}", nom_du_mois(u)?, u.chars().take(4).collect::<String>()));
+        return Ok(crate::tableaux_export::libelle_mois(u)?);
     }
     Ok(annee.clone().unwrap_or_default())
 }
@@ -587,7 +570,7 @@ impl<'a> Recapitulatifs<'a> {
         let libelle = if !mois.is_empty() {
             libelle_periode(&mois, &un_mois, &annee, toutes)?
         } else if let Some(m) = &un_mois {
-            format!("{} {}", nom_du_mois(m)?, m.chars().take(4).collect::<String>())
+            crate::tableaux_export::libelle_mois(m)?
         } else if let Some(a) = &annee {
             a.clone()
         } else {
@@ -806,7 +789,7 @@ impl<'a> Recapitulatifs<'a> {
         }
         let mut cols = vec![colonne("salarie", "Salarié", Genre::Texte)];
         for i in 1..=12usize {
-            let abrege: String = MOIS[i - 1].chars().take(4).collect::<String>() + ".";
+            let abrege = crate::etats_paie::mois_abrege(i);
             cols.push(colonne(&format!("m{:02}", i), &abrege, Genre::Montant));
         }
         cols.push(colonne("brut", "Brut annuel", Genre::Montant));
@@ -1137,12 +1120,5 @@ mod tests {
         let rangs = vec![(vec!["2026-10".to_string(), "260.00".to_string()], "")];
         let f = fractions(&entetes, &rangs, 700.0);
         assert!((f.iter().sum::<f64>() - 1.0).abs() < 1e-9);
-    }
-
-    #[test]
-    fn le_mois_a_l_indice_negatif_de_python() {
-        assert_eq!(nom_du_mois("2026-00").unwrap(), "Decembre");
-        assert!(nom_du_mois("2026-13").is_err());
-        assert_eq!(nom_du_mois("2026-10").unwrap(), "Octobre");
     }
 }

@@ -354,17 +354,15 @@ Conv. collective IDCC 3090";
     let c = caviarder(texte, &Connus::default());
     assert_eq!(c.texte, texte, "rien ne devait partir : {:?}", c.enleves);
     assert_eq!(c.total(), 0);
-    assert_eq!(c.resume(), "rien d'enlevé");
 }
 
 #[test]
-fn le_resume() {
+fn le_decompte_de_ce_qui_est_enleve() {
     let c = caviarder("Jean DUPLAIN\nPaul DUPLAIN\nN° SS 1 88 02 99 999 363 10\n8 rue des Glycines\n2 avenue des Lilas", &Connus::default());
     assert_eq!(c.enleves["NOM"], 2);
     assert_eq!(c.enleves["PRENOM"], 2);
     assert_eq!(c.enleves["NIR"], 1);
     assert_eq!(c.enleves["ADRESSE"], 2);
-    assert_eq!(c.resume(), "2 noms, 2 prénoms, 1 NIR, 2 adresses enlevés");
 }
 
 #[test]

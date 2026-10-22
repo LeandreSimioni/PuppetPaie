@@ -11,10 +11,7 @@ use serde_json::Value;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-/// Un espace au sens de `str.isspace` de Python (`\s`, `strip()`).
-pub(crate) fn espace(c: char) -> bool {
-    c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)
-}
+pub(crate) use crate::retours::blanc_py as espace;
 
 /// `str.strip()` de Python.
 pub(crate) fn strip(s: &str) -> &str {

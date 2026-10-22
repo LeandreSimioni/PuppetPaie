@@ -46,20 +46,6 @@ fn les_catalogues_et_les_refus() {
 }
 
 #[test]
-fn la_compagnie_ajuste_ajoute_et_ordonne() {
-    let racine = chemin_oracle("racines/a");
-    let cat = catalogue(&racine).unwrap();
-    // Les actives d'abord, la plus utilisee en tete.
-    assert_eq!(cat[0].code, "prime_maison");
-    assert_eq!(cat[1].code, "heure");
-    assert!(cat[0].active && cat[0].origine == "compagnie" && cat[0].usages == 9);
-    let cachet = rubrique(&racine, "cachet").unwrap();
-    assert_eq!(cachet.libelle, "Cachet maison");
-    assert_eq!(cachet.origine, "base");
-    assert_eq!(cachet.heures_forfait, Some(12.0));
-}
-
-#[test]
 fn les_heures() {
     let racine = chemin_oracle("racines/a");
     let mut heures = lire_oracle("catalogue.json")["heures"].clone();

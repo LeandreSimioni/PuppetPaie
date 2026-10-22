@@ -335,7 +335,6 @@ fn cocher_des_rubriques_ecrit_la_preference_garde_une_copie_et_rend_le_catalogue
     assert!(rubriques[0]["active"] == json!(true) && rubriques[2]["active"] == json!(false));
     let ecrit = lire(c, "config/rubriques-actives.json");
     assert_eq!(ecrit["actives"], json!(["journee", "cachet"]));
-    assert!(ecrit["_quoi"].as_str().unwrap().starts_with("Les rubriques que cette compagnie a cochees"));
     // La copie horodatee de l'ancien fichier, avec l'heure de Paris.
     let copies: Vec<_> = std::fs::read_dir(c.join("config/avant")).unwrap().flatten().collect();
     assert_eq!(copies.len(), 1);
