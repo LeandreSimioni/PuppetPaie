@@ -1,6 +1,7 @@
 //! LE BRIDAGE (lot U1, 14/10/2026). Il n'y a qu'un logiciel, BRIDE ou DEBLOQUE ; Leandre : « Il n'y a pas de version
 //! demonstration. C'est toujours le meme logiciel qui est bride ou pas bride. » Bride, l'accueil ne propose que les
-//! compagnies fictives et n'en ajoute pas ; debloque, il propose aussi les compagnies reelles. Rien d'autre ne change :
+//! compagnies fictives, et son « + » ajoute une FICTIVE AJOUTEE (ticket #236, `compagnies::ajouter`) dont les envois sont
+//! refuses (`refus_d_envoi`) ; debloque, il propose aussi les compagnies reelles. Rien d'autre ne change :
 //! le meme moteur, la meme mise a jour (le bridage n'y joue aucun role, `maj.rs`).
 //!
 //! BRIDE TANT QUE RIEN NE DIT QU'IL EST DEBLOQUE (ticket #246, Leandre 22/10/2026 : « Le logiciel ne doit jamais etre
@@ -74,6 +75,24 @@ pub fn est_bride_de(inst: &Path) -> bool {
         return true;
     }
     mot(&lire(&inst.join(FICHIER_GESTE)), "edition").unwrap_or(true)
+}
+
+/// LE REFUS D'UN ENVOI DEPUIS UNE FICTIVE AJOUTEE (ticket #236, Leandre 22/10/2026), mot pour mot : le meme pour tout geste
+/// qui ferait partir quelque chose vers un organisme ou une personne. Sa classe : `CLASSE_REFUS_D_ENVOI` (la page la
+/// reconnait et montre la phrase dans sa boite, `js/tuyau.js`).
+pub const REFUS_D_ENVOI: &str = "L'envoi n'est pas possible depuis la version démo. Pour 2027, et afin d'offrir un service de qualité, le nombre d'utilisateurs est restreint. N'hésitez pas à contacter Léandre (puppetpaie@gmail.com) avec une courte présentation et votre motivation pour débloquer le logiciel et faire partie des premiers utilisateurs.";
+pub const CLASSE_REFUS_D_ENVOI: &str = "EnvoiBride";
+
+/// UNE FICTIVE AJOUTEE N'ENVOIE RIEN (ticket #236) : `Some(REFUS_D_ENVOI)` pour la compagnie `racine` si elle en est une
+/// (`compagnies::est_ajoutee`), `None` sinon. Tout le refus tient ici ; deux portes l'appellent, avant que rien ne
+/// s'ecrive au journal des depots : `depot_acte::refuser_l_envoi` (les depots DSN et DPAE, test et reel, signalements
+/// compris, quel qu'en soit l'appelant : page, ligne de commande, filet, administrateur) et `routes_envois::client_courriel`
+/// (la boite de tout courriel envoye a quelqu'un) ; s'y ajoutent les deux envois qui ouvrent leur propre chemin : le
+/// contrat contresigne (`releve_signatures`) et l'inscription au filet (`filet::activer`, dont le serveur ecrit a
+/// l'adresse). Ce qui va a l'editeur (incidents, « Un probleme, une idee ? ») et la verification d'un mot de passe ne
+/// sont pas des envois : ils restent permis.
+pub fn refus_d_envoi(racine: &Path) -> Option<&'static str> {
+    crate::interface::compagnies::est_ajoutee(racine).then_some(REFUS_D_ENVOI)
 }
 
 /// Le mot qui le dit (le journal des incidents, la description du poste) : `bride` ou `debloque`.

@@ -303,8 +303,12 @@ pub fn identite(ctx: &Contexte, gabarits: &Path) -> R<Value> {
 /// `simulation.active` : les envois de ce contexte sont-ils joues ? Le paquet
 /// soude (`bridage::paquet_soude`), ou une COMPAGNIE FICTIVE (son marqueur le
 /// dit, `compagnies::est_fictive`). Le logiciel simplement bride, lui, ne joue rien.
+///
+/// JAMAIS UNE FICTIVE AJOUTEE (ticket #236, `compagnies::est_ajoutee`), meme dans le paquet soude : ses envois ne sont pas
+/// joues, ils sont refuses (`bridage::refus_d_envoi`).
 pub fn simulation_active(racine: &Path) -> bool {
-    crate::bridage::paquet_soude() || crate::interface::compagnies::est_fictive(racine)
+    use crate::interface::compagnies::{est_ajoutee, est_fictive};
+    !est_ajoutee(racine) && (crate::bridage::paquet_soude() || est_fictive(racine))
 }
 
 /// `boite_liee` : peut-on envoyer, et les signatures reviennent-elles seules ?
@@ -889,6 +893,9 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         // UNE COMPAGNIE FICTIVE : les envois sont joues, et la page ne demande aucun
         // mot de passe.
         "simulation": simulation_active(&ctx.racine),
+        // UNE FICTIVE AJOUTEE (ticket #236) : ses envois sont refuses par le moteur (`bridage::refus_d_envoi`) ; la page
+        // ne demande pas le mot de passe du logiciel pour un envoi qui ne partira pas.
+        "envois_refuses": crate::bridage::refus_d_envoi(&ctx.racine).is_some(),
         "historique": historique,
         "salaries": salaries,
         "spectacles": spectacles,

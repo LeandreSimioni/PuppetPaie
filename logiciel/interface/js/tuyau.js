@@ -212,9 +212,31 @@ async function appelerMoteur(route, charge = {}) {
   }
   if (!d.ok) {
     const erreur = typeof d.erreur === "object" && d.erreur ? d.erreur : { message: String(d.erreur || "Refusé.") };
+    if (erreur.type === "EnvoiBride") montrerEnvoiRefuse(erreur.message);
     const e = new Error(erreur.message); e.detail = erreur; throw e;
   }
   return d.resultat;
+}
+
+/* L'ENVOI REFUSÉ D'UNE FICTIVE AJOUTÉE (ticket #236) : le moteur refuse tout
+ * geste qui ferait partir quelque chose (bridage::refus_d_envoi) et rend sa
+ * phrase, toujours la même ; la page la montre dans une seule boîte, au-dessus
+ * de tout, quel que soit le geste. L'adresse de la phrase devient un lien
+ * mailto:. Le geste qui l'a demandé reçoit aussi le refus (il rallume son
+ * bouton) : sa ligne d'erreur ne répète pas la phrase (`dire`). */
+let ENVOI_REFUSE_MONTRE = null;
+function montrerEnvoiRefuse(message) {
+  ENVOI_REFUSE_MONTRE = message;
+  const voile = document.getElementById("voile-envoi-refuse");
+  if (!voile) return;
+  const texte = String(message).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  document.getElementById("envoi-refuse-texte").innerHTML = texte.replace(/([\w.+-]+@[\w-]+(\.[\w-]+)+)/g,
+    (a) => `<a href="mailto:${a}">${a}</a>`);
+  voile.classList.remove("cachee");
+  const fermer = () => { voile.classList.add("cachee"); voile.onclick = null; };
+  document.getElementById("envoi-refuse-ok").onclick = fermer;
+  voile.onclick = (e) => { if (e.target === voile) fermer(); };
+  setTimeout(() => document.getElementById("envoi-refuse-ok").focus(), 30);
 }
 
 /* ------------------------------ ce qui casse ICI, et qui mourait en silence
@@ -358,6 +380,8 @@ async function ouvrirEtDire(route, charge = {}) {
 /** `type` : "erreur" (en rouge), "envoye" (ce qui est parti : en vert, coché — ticket #220, Léandre, 20/10/2026 :
  *  « un petit "envoi en cours" et "message envoyé" joli »), rien pour une simple nouvelle. */
 function dire(texte, type) {
+  // Le refus d'un envoi d'une fictive ajoutée est déjà dans sa boîte (`montrerEnvoiRefuse`).
+  if (type === "erreur" && ENVOI_REFUSE_MONTRE !== null && texte === ENVOI_REFUSE_MONTRE) return;
   const el = document.getElementById("message");
   el.textContent = texte;
   el.className = "message" + (type === "erreur" ? " erreur" : type === "envoye" ? " envoye" : "");

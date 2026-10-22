@@ -355,6 +355,34 @@ fn une_panne_ou_le_serveur_du_moteur_injoignable_laisse_tout_en_attente() {
     assert_eq!(p.ok("incidents-lire", json!({"en_attente": true}))["lignes"].as_array().unwrap().len(), 5);
 }
 
+/// UNE FICTIVE AJOUTEE (ticket #236) n'envoie rien a un organisme ni a une personne, mais ce qui va a l'editeur part :
+/// ses incidents, et « Un probleme, une idee ? » (le corps dit qu'il vient d'une fictive : `demonstration`). L'inscription
+/// au filet, dont le serveur ecrirait a l'adresse, est refusee.
+#[test]
+fn une_fictive_ajoutee_envoie_a_l_editeur_et_pas_au_filet() {
+    let p = poste("fictive-ajoutee", &[]);
+    let inst = Path::new(env!("CARGO_TARGET_TMPDIR")).join("incidents-filet-fictive-ajoutee-installation");
+    let _ = std::fs::remove_dir_all(&inst);
+    let c = paie::interface::compagnies::ajouter_dans(&inst, "Marque").unwrap();
+    std::fs::copy(c.racine.join("COPIE-DE-DEVELOPPEMENT.json"), p.racine.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
+    assert!(paie::interface::compagnies::est_ajoutee(&p.racine));
+    p.ecrire("journal/incidents.json", &json!([incident(1, "en-attente")]));
+    let (url, recu) = serveur(|action, corps| match action {
+        "rapport" => (200, json!({"recus": corps["incidents"].as_array().unwrap().iter().map(|x| json!([x["empreinte"], x["quand"]])).collect::<Vec<_>>()})),
+        "retour" => (200, json!({"numero": "R-000001"})),
+        _ => (200, json!({})),
+    });
+    p.serveur(&url, json!({}));
+    assert_eq!(p.ok("incidents-envoyer", json!({}))["envoyes"], json!(1));
+    p.ok("signalement-envoyer", json!({"texte": "x"}));
+    assert_eq!(p.ok("signalements-partir", json!({}))["partis"], json!(1));
+    assert_eq!(actions(&recu), ["poste", "rapport", "retour"]);
+    assert_eq!(vus(&recu)[2].corps["contexte"]["demonstration"], json!(true));
+    let r = p.route("filet-activer", json!({"adresse": "a@exemple.fr"}));
+    assert_eq!(r["classe"], json!(paie::bridage::CLASSE_REFUS_D_ENVOI), "{}", r);
+    assert_eq!(actions(&recu).len(), 3, "rien n'est parti au filet");
+}
+
 // ============================================== « Un probleme, une idee ? »
 
 #[test]

@@ -83,6 +83,13 @@
                                 transition:transform .15s; }
   .fictives[open] > summary::before { transform:rotate(90deg); }
   .fictives > summary:hover { color:var(--texte); }
+  /* Le message du « + » d'un logiciel bride (ticket #236), avant le nom. */
+  .avis-ajouter { position:fixed; inset:0; background:rgba(44,62,80,.35); display:grid; place-items:center; z-index:5; }
+  .avis-ajouter[hidden] { display:none; }
+  .avis-ajouter .carte-avis { background:#fff; padding:22px 26px; border-radius:6px; width:440px; max-width:calc(100vw - 32px); }
+  .avis-ajouter a { color:var(--accent); }
+  .avis-ajouter .barre { display:flex; gap:8px; }
+  .avis-ajouter .barre button.second { background:#fff; color:var(--texte); border-color:var(--bord); font-weight:normal; }
 </style>
 <style>
   /* LE TABLEAU DE BORD DE L'ADMINISTRATEUR (ticket #244) : les declarations de ses compagnies, la plus pressee d'abord. */
@@ -177,7 +184,21 @@
   const ajout = document.querySelector(".ajouter");
   if (ajout) {
     const nom = ajout.querySelector("input");
-    ajout.addEventListener("click", () => { ajout.classList.add("saisie"); nom.focus(); });
+    const saisir = () => { ajout.classList.add("saisie"); nom.focus(); };
+    // BRIDE (ticket #236) : le message d'abord, le nom ensuite -- le moteur ne sert le message qu'a un logiciel bride.
+    const avis = document.getElementById("avis-ajouter");
+    ajout.addEventListener("click", () => {
+      if (ajout.classList.contains("saisie")) return;
+      if (!avis) { saisir(); return; }
+      avis.hidden = false;
+      document.getElementById("avis-continuer").focus();
+    });
+    if (avis) {
+      avis.addEventListener("mousedown", (e) => e.stopPropagation());
+      document.getElementById("avis-annuler").onclick = () => { avis.hidden = true; };
+      document.getElementById("avis-continuer").onclick = () => { avis.hidden = true; saisir(); };
+      avis.addEventListener("keydown", (e) => { if (e.key === "Escape") avis.hidden = true; });
+    }
     ajout.querySelector("form").addEventListener("submit", async (e) => {
       e.preventDefault(); e.stopPropagation();
       const r = await window.pywebview.api.ajouter(nom.value);

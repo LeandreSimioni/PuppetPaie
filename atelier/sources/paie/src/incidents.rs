@@ -308,7 +308,7 @@ pub fn nature_de(classe: &str) -> &'static str {
 /// `nature` absente : elle se deduit du type. Les copies de developpement ne
 /// notent rien (« rien ne part d'ici », le moteur tient sa porte).
 pub fn depuis_exception(racine: &Path, classe: &str, message: &str, nature: Option<&str>, ou: &str, detail: Value, trace: Option<&str>) -> Option<Value> {
-    if classe == "CopieDeDeveloppement" || classe == "EditionBridee" {
+    if classe == "CopieDeDeveloppement" || classe == "EditionBridee" || classe == crate::bridage::CLASSE_REFUS_D_ENVOI {
         return None;
     }
     let nature = nature.unwrap_or_else(|| nature_de(classe));

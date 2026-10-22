@@ -486,7 +486,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
   const lancer = async (reel, forcer = false, contournement = "") => {
     let mdp = "";
     if (reel) {
-      mdp = mdpConnu || await demanderMotDePasse("le dépôt réel de " + (quoi === "dsn" ? "la DSN" : "la DPAE"));
+      mdp = mdpConnu || await demanderMotDePasse("le dépôt réel de " + (quoi === "dsn" ? "la DSN" : "la DPAE"), { envoi: true });
       if (!mdp) return;
       mdpConnu = mdp;
     }
@@ -900,7 +900,7 @@ async function boiteEnvoi(mois) {
     }
   };
   document.getElementById("e-envoyer").onclick = async () => {
-    const mdp = await demanderMotDePasse("envoyer les documents à " + a.messages.length + " salarié(s)");
+    const mdp = await demanderMotDePasse("envoyer les documents à " + a.messages.length + " salarié(s)", { envoi: true });
     if (!mdp) return;
     const rendre = occupe(document.getElementById("e-envoyer"),
                           "Envoi des documents en cours…");
@@ -1032,7 +1032,7 @@ async function boiteSignature(mois, seulement) {
     b.onclick = async (ev) => {
       ev.preventDefault();                 // le bouton est dans un <label>
       const contrats = [{ salarie: b.dataset.salarie, debut: b.dataset.debut, numero: b.dataset.numero }];
-      const mdp = await demanderMotDePasse("relancer la signature de ce contrat");
+      const mdp = await demanderMotDePasse("relancer la signature de ce contrat", { envoi: true });
       if (!mdp) return;
       const rendre = occupe(b, "Relance…");
       try {
@@ -1060,7 +1060,7 @@ async function boiteSignature(mois, seulement) {
     if (!coches.length) { dire("Aucun contrat coché."); return; }
     const quoi = [contrats.length ? contrats.length + " contrat(s)" : "",
                   avenants.length ? avenants.length + " avenant(s)" : ""].filter(Boolean).join(" et ");
-    const mdp = await demanderMotDePasse("envoyer " + quoi + " à la signature");
+    const mdp = await demanderMotDePasse("envoyer " + quoi + " à la signature", { envoi: true });
     if (!mdp) return;
     const rendre = occupe(document.getElementById("s-envoyer"), "Envoi de " + quoi + " en cours…");
     const repere = await repereCourrielsFictifs();
@@ -1145,7 +1145,7 @@ async function boiteAvenant(mois, salarie, debut, numero) {
   const envoyer = document.getElementById("av-envoyer");
   if (envoyer) envoyer.onclick = async () => {
     const effet = document.getElementById("av-effet").value || a.effet;
-    const mdp = await demanderMotDePasse("envoyer l'avenant n° " + a.numero + " à " + a.nom);
+    const mdp = await demanderMotDePasse("envoyer l'avenant n° " + a.numero + " à " + a.nom, { envoi: true });
     if (!mdp) return;
     const rendre = occupe(envoyer, "Envoi de l'avenant…");
     try {
@@ -1161,7 +1161,7 @@ async function boiteAvenant(mois, salarie, debut, numero) {
   };
   const remplace = document.getElementById("av-remplace");
   if (remplace) remplace.onclick = async () => {
-    const mdp = await demanderMotDePasse("envoyer le contrat qui annule et remplace le n° " + (a.contrat || ""));
+    const mdp = await demanderMotDePasse("envoyer le contrat qui annule et remplace le n° " + (a.contrat || ""), { envoi: true });
     if (!mdp) return;
     const rendre = occupe(remplace, "Envoi du contrat…");
     try {

@@ -111,6 +111,10 @@ demo/*/journal/interface.log
 # ne les prend jamais des fichiers suivis.
 fictives/.livraison.json
 fictives/*/.livree.json
+# LES FICTIVES AJOUTEES SUR UN POSTE (ticket #236) : le « + » d'un logiciel bride les pose sous `fictives/ajoutee-…`,
+# avec les donnees qu'on y met -- de vraies donnees, souvent. Elles n'entrent jamais dans le depot (ni dans une
+# livraison : paie/src/maj.rs, `fictives_livrees`).
+fictives/ajoutee-*/
 
 # LA FABRIQUE DE PDF (Rust) : le dossier de compilation se refait d'une
 # commande. `Cargo.lock`, lui, SE VERSIONNE (les dependances sont figees).

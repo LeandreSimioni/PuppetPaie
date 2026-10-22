@@ -249,6 +249,12 @@ pub fn relever_signatures(o: &HashMap<String, String>, ctx: &Contexte, client: O
             ouverte.insert(Box::new(boite_des_signatures(ctx, DELAI_FICTIVE)?)).as_mut()
         }
         None => {
+            // UNE FICTIVE AJOUTEE (ticket #236) : la releve renverrait le contrat contresigne au salarie -- un envoi. Rien
+            // ne se releve, et le refus se dit (`bridage::refus_d_envoi`).
+            if let Some(m) = crate::bridage::refus_d_envoi(&ctx.racine) {
+                r.incidents.push(m.to_string());
+                return Ok(r);
+            }
             if !courriel::disponible(&ctx.racine) {
                 r.incidents.push(
                     "Aucune boite courriel : les signatures ne peuvent pas etre relevees. Poser le mot de passe d'application de la boite (Configuration > Mots de passe)."

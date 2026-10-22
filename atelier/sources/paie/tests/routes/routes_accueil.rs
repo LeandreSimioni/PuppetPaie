@@ -62,7 +62,7 @@ fn l_etat_rend_tout_ce_que_la_page_lit_en_s_ouvrant() {
     assert_eq!(
         cles,
         [
-            "configuration", "conventions", "emplois", "emplois_autres", "familles_emplois", "historique", "nature_defaut",
+            "configuration", "conventions", "emplois", "emplois_autres", "envois_refuses", "familles_emplois", "historique", "nature_defaut",
             "natures", "niveaux_sante", "organismes_urssaf", "pays", "pays_naissance", "rubriques", "salaries", "simulation", "spectacles", "transaction", "types_preavis",
             "urssaf_deduit"
         ]

@@ -73,6 +73,33 @@ pub fn est_fictive(racine: &Path) -> bool {
         .is_some_and(|c| c.starts_with(MARQUE_FICTIVE) || c.starts_with(ANCIENNE_MARQUE_FICTIVE))
 }
 
+/// LA FICTIVE AJOUTEE (ticket #236, Leandre 22/10/2026) : la compagnie que le « + » d'un logiciel bride ajoute. C'est une
+/// fictive (`est_fictive` : elle vit sous `fictives/`, s'ouvre sans mot de passe, ne retient aucune version, rien ne part
+/// d'elle a l'editeur qu'un incident ou un message), mais elle porte des donnees qu'on y a mises, pas celles d'une
+/// fictive livree : ses envois NE SONT PAS JOUES, ILS SONT REFUSES (`bridage::refus_d_envoi`), elle n'a pas de photo
+/// d'origine ni de remise a zero, et la livraison des fictives (`maj.rs`) ne la touche jamais. SA MARQUE : la cle
+/// `ajoutee` de son marqueur (`COPIE-DE-DEVELOPPEMENT.json`, que `ajouter` ecrit) -- lue ICI et nulle part ailleurs.
+pub const CLE_AJOUTEE: &str = "ajoutee";
+
+///
+/// UN DOSSIER DE `fictives/` SANS MARQUEUR DE FICTIVE (un marqueur retire ou illisible) se lit aussi comme ajoute : l'accueil
+/// le propose parmi les fictives, rien ne doit en partir, et rien n'en est joue.
+pub fn est_ajoutee(racine: &Path) -> bool {
+    let marque = lire(&racine.join(MARQUEUR)).and_then(|i| i.get(CLE_AJOUTEE).cloned()).is_some_and(|v| crate::fichiers::vrai(&v));
+    marque || (racine.parent().and_then(Path::file_name).is_some_and(|n| n == DOSSIER_FICTIVES) && !est_fictive(racine))
+}
+
+/// UNE FICTIVE LIVREE : une fictive qui n'est pas ajoutee. Ses envois sont joues ; elle a sa photo d'origine et sa remise
+/// a zero.
+pub fn est_fictive_livree(racine: &Path) -> bool {
+    est_fictive(racine) && !est_ajoutee(racine)
+}
+
+/// Le prefixe du dossier d'une fictive ajoutee. Les fictives livrees s'appellent `fictive-…` (`ranger_les_fictives`, le
+/// dossier `fictives/` du depot) : une fictive ajoutee ne prend jamais le nom d'une livree, et la livraison, qui ne pose
+/// pas une fictive dont le nom est pris (`maj::poser_les_fictives_pretes`), n'en est jamais empechee.
+pub const PREFIXE_AJOUTEE: &str = "ajoutee-";
+
 /// AU LANCEMENT, une fois : le dossier `demo/` d'une installation posee avant le lot U1 devient `fictives/`, et chaque
 /// `demo-<nom>` (et sa photo d'origine) `fictive-<nom>`. Rien ne bouge si `fictives/` existe deja (une reinstallation l'a
 /// pose : l'ancien reste ou il est). Ce qui ne se renomme pas (un fichier ouvert ailleurs) se retente au lancement
@@ -292,16 +319,25 @@ fn nom_de_dossier(nom: &str) -> String {
 }
 
 /// « Ajouter une compagnie » : le dossier et les trois fiches sans lesquelles le contexte ne s'ouvre pas.
+///
+/// LOGICIEL BRIDE (ticket #236) : la compagnie ajoutee est une FICTIVE AJOUTEE (`est_ajoutee`) -- sous `fictives/`, dans
+/// un dossier `ajoutee-…`, avec le marqueur d'une fictive et sa marque. Debloque : une compagnie reelle, sous `compagnies/`.
 pub fn ajouter(nom: &str) -> Result<Compagnie, String> {
-    if crate::bridage::est_bride() {
-        return Err("Le logiciel est bridé : il n'ajoute pas de compagnie.".into());
-    }
+    ajouter_dans(&base(), nom)
+}
+
+/// `ajouter`, dans l'installation `inst` (le dossier qui porte `logiciel/`).
+pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
     let nom = nom.split_whitespace().collect::<Vec<_>>().join(" ");
     if nom.chars().count() < 2 {
         return Err("Le nom de la compagnie, s'il vous plait.".into());
     }
-    let parent = base().join("compagnies");
-    let racine_nom = nom_de_dossier(&nom);
+    let bride = crate::bridage::est_bride_de(inst);
+    let (parent, racine_nom) = if bride {
+        (inst.join(DOSSIER_FICTIVES), format!("{}{}", PREFIXE_AJOUTEE, nom_de_dossier(&nom)))
+    } else {
+        (inst.join("compagnies"), nom_de_dossier(&nom))
+    };
     let mut dossier = parent.join(&racine_nom);
     let mut n = 2;
     while dossier.exists() {
@@ -313,7 +349,21 @@ pub fn ajouter(nom: &str) -> Result<Compagnie, String> {
     ecrire(&cfg.join("entreprise.json"), &json!({"nom_affichage": nom, "raison_sociale": nom.to_uppercase()}))?;
     ecrire(&cfg.join("salaries.json"), &json!({}))?;
     ecrire(&cfg.join("spectacles.json"), &json!({}))?;
-    Ok(entree(format!("cie:{}", nom_dossier(&dossier)), &dossier, true))
+    if !bride {
+        return Ok(entree(format!("cie:{}", nom_dossier(&dossier)), &dossier, true));
+    }
+    // Le marqueur d'une fictive (`est_fictive`), et la marque qui la dit ajoutee. `copie_de` ne dit pas le nom d'une
+    // fictive livree (`maj::marquee_comme_livree` compare « compagnie fictive <nom du dossier> ») : elle n'en est pas une.
+    ecrire(
+        &dossier.join(MARQUEUR),
+        &json!({
+            "copie_de": format!("{} ajoutee sur ce poste", MARQUE_FICTIVE),
+            CLE_AJOUTEE: true,
+            "quand": crate::incidents::maintenant(),
+            "_quoi": "Une compagnie fictive ajoutee sur ce poste, le logiciel etant bride : tout s'y fait, rien n'en part vers un organisme ni vers une personne.",
+        }),
+    )?;
+    Ok(entree(format!("fictive:{}", nom_dossier(&dossier)), &dossier, false))
 }
 
 fn origine(racine: &Path) -> PathBuf {
@@ -340,7 +390,7 @@ fn copier_arbre(de: &Path, vers: &Path, rel: &Path, sauf: &[&str]) -> std::io::R
 
 /// La photo d'origine d'une fictive, prise avant le premier geste (un dossier `.origine/<nom>/`).
 pub fn figer_origine(racine: &Path) -> Result<(), String> {
-    if !est_fictive(racine) {
+    if !est_fictive_livree(racine) {
         return Ok(());
     }
     let o = origine(racine);
@@ -357,8 +407,8 @@ pub fn figer_origine(racine: &Path) -> Result<(), String> {
 pub fn remettre_a_zero(id: &str) -> Result<(String, bool), String> {
     let c = liste()
         .into_iter()
-        .find(|c| c.id == id && !c.reelle && est_fictive(&c.racine))
-        .ok_or("Seule une compagnie fictive se remet à zéro.")?;
+        .find(|c| c.id == id && !c.reelle && est_fictive_livree(&c.racine))
+        .ok_or("Seule une compagnie fictive livrée se remet à zéro.")?;
     let o = origine(&c.racine);
     if !o.is_dir() {
         return Ok((c.nom, true));
@@ -388,11 +438,11 @@ pub fn remettre_a_zero(id: &str) -> Result<(String, bool), String> {
 
 /// L'etiquette du bandeau d'une compagnie qui n'est pas reelle (deja en HTML).
 pub fn texte_copie(racine: &Path) -> String {
+    if est_ajoutee(racine) {
+        return "compagnie fictive &mdash; version d&eacute;mo, rien ne part".into();
+    }
     if est_fictive(racine) {
         return "compagnie fictive &mdash; les envois sont simul&eacute;s".into();
-    }
-    if racine.parent().and_then(Path::file_name).is_some_and(|n| n == DOSSIER_FICTIVES) {
-        return "compagnie fictive &mdash; rien ne part".into();
     }
     "copie de test &mdash; rien ne part en r&eacute;el".into()
 }
