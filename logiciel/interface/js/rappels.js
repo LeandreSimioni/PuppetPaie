@@ -122,15 +122,18 @@ function htmlEcheancier(ech) {
   // ça alors que je l'ai déjà fait, pas besoin ») : la DSN de septembre,
   // déposée, s'affichait encore « fait ». Une échéance cochable reste, pour
   // pouvoir la décocher ; les autres faites se taisent.
-  const ceMois = (ech.ce_mois || []).filter((x) => x.etat !== "fait" || x.cochable);
+  // UNE CHOSE SE DIT UNE FOIS (ticket #244) : la DSN qu'un rappel réclame
+  // (`rappel`, le moteur le dit) se dit dans ce rappel, sous l'en-tête, avec
+  // sa date et son geste ; ici elle se dirait en double.
+  const ceMois = (ech.ce_mois || []).filter((x) => (x.etat !== "fait" || x.cochable) && !x.rappel);
+  const ditAilleurs = (ech.ce_mois || []).some((x) => x.rappel);
   return `
     <div class="accueil">
       <p class="accueil-date">Nous sommes le ${echapper(ech.date)}</p>
       <h2 class="accueil-titre">${echapper(ech.bienvenue)}</h2>
-      <h3>Ce mois-ci</h3>
       ${ceMois.length
-        ? `<ul class="echeances">${ceMois.map(ligne).join("")}</ul>`
-        : `<p class="discret">Rien à faire ce mois-ci.</p>`}
+        ? `<h3>Ce mois-ci</h3><ul class="echeances">${ceMois.map(ligne).join("")}</ul>`
+        : ditAilleurs ? "" : `<h3>Ce mois-ci</h3><p class="discret">Rien à faire ce mois-ci.</p>`}
       ${annee ? `<details class="accueil-annee"><summary>L'année qui vient</summary>
         <ul class="echeances-annee">${annee}</ul></details>` : ""}
     </div>`;
@@ -139,7 +142,8 @@ function htmlEcheancier(ech) {
 function boiteRappels(liste, ech, manques = []) {
   const html = htmlDemarrage(manques) + htmlEcheancier(ech) + liste.map((r, i) => `
     <div class="rappel ${r.en_retard ? "retard" : ""}">
-      <h3>${echapper(r.titre)}${r.en_retard ? ` <span class="pastille alerte">en retard</span>` : ""}</h3>
+      <h3>${echapper(r.titre)}${r.en_retard ? ` <span class="pastille alerte">en retard</span>` : ""}${r.echeance_depot && r.echeance_depot.jour
+        ? ` <span class="discret">— avant le ${echapper(jjmmaaaa(r.echeance_depot.jour))}</span>` : ""}</h3>
       <p class="rappel-question">${echapper(r.question)}</p>
       ${r.detail ? `<p class="note">${echapper(r.detail)}</p>` : ""}
       ${r.spectacles && r.spectacles.length ? `<ul class="rappel-liste">${r.spectacles.map((s) =>

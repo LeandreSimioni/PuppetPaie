@@ -150,3 +150,46 @@ fn le_fil_de_fond_ne_sort_pas_et_ne_touche_a_aucune_cle() {
     assert!(paie::garde_reseau::sortie_vers("127.0.0.1").is_ok());
     assert!(coffre(&racine).poser_cle_poste().is_ok());
 }
+
+/// CE QUE LA FENETRE D'AVANT LE TICKET #244 LAISSAIT SUR LE POSTE s'efface au lancement (`interface::effacer_les_restes`) :
+/// la seance gardee au nom unique, le jeton du profil commun, les profils du Chromium commun et de WebView2 ; ce qu'une
+/// fenetre d'aujourd'hui tient (la cle du poste, la seance d'un coffre, le dossier de chaque fenetre) reste.
+#[test]
+fn les_restes_de_l_ancienne_fenetre_s_effacent_et_rien_d_autre() {
+    let d = dossier_de_test("installations", "restes");
+    let local = d.join("donnees-locales");
+    let utilisateur = local.join("PuppetPaie");
+    let cle = d.join("config-poste");
+    let ecrire = |p: &Path| {
+        std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+        std::fs::write(p, b"x").unwrap();
+    };
+    let anciens = [
+        cle.join("ouverture-gardee.bin"),
+        utilisateur.join(".jeton-interface"),
+        utilisateur.join("navigateur/Default/Cookies"),
+        local.join("fr.puppetpaie.fenetre/EBWebView/Default/Login Data"),
+    ];
+    let gardes = [
+        cle.join("cle-poste.bin"),
+        cle.join("ouverture-gardee-0a1b2c3d4e5f.bin"),
+        utilisateur.join("fenetres/7331/.jeton-interface"),
+        utilisateur.join("fenetres/7331/navigateur/Default/Cookies"),
+        utilisateur.join("fenetres/7331/webview/EBWebView/Default/Login Data"),
+        local.join("autre-logiciel/x"),
+    ];
+    for p in anciens.iter().chain(gardes.iter()) {
+        ecrire(p);
+    }
+    let effaces = paie::interface::effacer_les_restes(&utilisateur, &cle);
+    assert_eq!(effaces.len(), 4, "{:?}", effaces);
+    for p in &anciens {
+        assert!(!p.exists(), "{} : efface", p.display());
+    }
+    assert!(!utilisateur.join("navigateur").exists() && !local.join("fr.puppetpaie.fenetre").exists());
+    for p in &gardes {
+        assert!(p.exists(), "{} : garde", p.display());
+    }
+    // Rien a effacer : rien ne change, et le lancement suivant ne trouve plus rien.
+    assert!(paie::interface::effacer_les_restes(&utilisateur, &cle).is_empty());
+}

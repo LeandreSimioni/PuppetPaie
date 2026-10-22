@@ -440,10 +440,11 @@ fn lister(st: &Etat) -> R<Vec<Rappel>> {
 /// `operations_socle.exercice_clos` : la cloture de l'annee (ou `None`).
 pub(crate) fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
     let p = ctx.racine.join("config").join("exercices.json");
-    if !p.exists() {
+    if !crate::fichiers::existe(&p) {
         return Ok(None);
     }
-    match lire_json(&p)? {
+    // Lu une fois tant qu'il ne change pas (ticket #244), le refus d'un fichier illisible inchange (`lire_json`).
+    match &*crate::fichiers::json_en_cache_ou(&p, lire_json)? {
         Value::Object(o) => Ok(o.iter().find(|(k, _)| !k.starts_with('_') && k.as_str() == &annee[..4.min(annee.len())]).map(|(_, v)| v.clone())),
         autre => Err(avec_classe("AttributeError", format!("config/exercices.json : {}", crate::fichiers::attendu("un objet", crate::etats::nom_type(&autre))))),
     }

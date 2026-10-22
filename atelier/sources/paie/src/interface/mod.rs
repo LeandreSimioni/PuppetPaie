@@ -130,19 +130,31 @@ fn ressources() -> PathBuf {
 /// lancement a l'autre. Le nom entre dans le condensat avec le contenu.
 fn empreinte() -> String {
     use sha2::{Digest, Sha256};
-    let mut noms: Vec<String> = Vec::new();
+    use std::sync::OnceLock;
+    let mut noms: Vec<(String, Option<(u128, u64)>)> = Vec::new();
     for dossier in ["", "js"] {
         let Ok(it) = std::fs::read_dir(ressources().join(dossier)) else { continue };
         for e in it.flatten() {
             let nom = e.file_name().to_string_lossy().into_owned();
             if e.file_type().is_ok_and(|t| t.is_file()) && (nom.ends_with(".css") || nom.ends_with(".js")) {
-                noms.push(if dossier.is_empty() { nom } else { format!("{}/{}", dossier, nom) });
+                let nom = if dossier.is_empty() { nom } else { format!("{}/{}", dossier, nom) };
+                let sig = crate::fichiers::signature(&ressources().join(&nom));
+                noms.push((nom, sig));
             }
         }
     }
     noms.sort();
+    // LE CONTENU NE SE RELIT QUE S'IL A CHANGE (ticket #244) : la date et la taille de chaque fichier suffisent a savoir
+    // que rien n'a bouge depuis la derniere page -- la relecture et le condensat de 800 Ko a chaque `GET /` coutaient.
+    static DERNIERE: OnceLock<Mutex<Option<(Vec<(String, Option<(u128, u64)>)>, String)>>> = OnceLock::new();
+    let memo = DERNIERE.get_or_init(|| Mutex::new(None));
+    if let Some((vus, e)) = memo.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
+        if *vus == noms {
+            return e.clone();
+        }
+    }
     let mut h = Sha256::new();
-    for nom in &noms {
+    for (nom, _) in &noms {
         if let Ok(o) = std::fs::read(ressources().join(nom)) {
             h.update(nom.as_bytes());
             h.update([0u8]);
@@ -150,7 +162,9 @@ fn empreinte() -> String {
             h.update(&o);
         }
     }
-    h.finalize().iter().take(6).map(|b| format!("{:02x}", b)).collect()
+    let e: String = h.finalize().iter().take(6).map(|b| format!("{:02x}", b)).collect();
+    *memo.lock().unwrap_or_else(|p| p.into_inner()) = Some((noms, e.clone()));
+    e
 }
 
 /// Un fichier de la page (`interface/`), servi tel quel. Le chemin arrive decode : il n'est pris que s'il est fait de
@@ -827,12 +841,47 @@ fn egal_en_temps_constant(a: &[u8], b: &[u8]) -> bool {
 }
 
 /// AU LANCEMENT, avant tout : ce qu'une installation posee avant le lot U1 doit ranger (`demo/` devient `fictives/`,
-/// `compagnies::ranger_les_fictives`). Ce qui s'est passe va dans le journal de l'installation (`maj::noter`).
+/// `compagnies::ranger_les_fictives`), et ce que la fenetre d'avant le ticket #244 a laisse sur le poste
+/// (`effacer_les_restes`). Ce qui s'est passe va dans le journal de l'installation (`maj::noter`).
 pub fn preparer_l_installation() {
     let inst = crate::maj::installation();
     if let Some(t) = compagnies::ranger_les_fictives(&inst) {
         crate::maj::noter(&inst, &t);
     }
+    let effaces = effacer_les_restes(&navigateur::dossier_utilisateur(), &crate::coffre::Coffre::dossier_cle_du_poste());
+    if !effaces.is_empty() {
+        let noms: Vec<String> = effaces.iter().map(|p| p.display().to_string()).collect();
+        crate::maj::noter(&inst, &format!("Restes de l'ancienne fenetre effaces : {}.", noms.join(", ")));
+    }
+}
+
+/// Le dossier de la fenetre Tauri d'avant le ticket #244, ou WebView2 (WebKit ailleurs) tenait son profil : l'identifiant
+/// de `fenetre/tauri.conf.json` sous les donnees locales de l'utilisateur, a cote de `dossier_utilisateur`.
+const PROFIL_TAURI_D_AVANT: &str = "fr.puppetpaie.fenetre";
+
+/// CE QUE LA FENETRE D'AVANT LE TICKET #244 LAISSAIT SUR LE POSTE, et que plus rien ne lit : la seance gardee au nom
+/// unique (`ouverture-gardee.bin`, a cote de la cle du poste : une seance scellee du coffre, remplacee par une par coffre,
+/// `Coffre::chemin_gardee`), le jeton de la page du profil commun (`.jeton-interface`), le profil du Chromium commun
+/// (`navigateur/`) et celui de WebView2 (le dossier par defaut de Tauri) : chaque fenetre a les siens
+/// (`instance::dossier_local`), et ceux d'avant gardaient cookies et mots de passe retenus. Effaces sans etre lus ; rend
+/// ce qui l'a ete. Pas de transition (rien ne les relit), pas de dechet non plus.
+pub fn effacer_les_restes(utilisateur: &Path, cle: &Path) -> Vec<PathBuf> {
+    let mut effaces = Vec::new();
+    for f in [cle.join(crate::coffre::GARDEE), utilisateur.join(".jeton-interface")] {
+        if std::fs::symlink_metadata(&f).is_ok_and(|m| !m.is_dir()) && std::fs::remove_file(&f).is_ok() {
+            effaces.push(f);
+        }
+    }
+    let mut dossiers = vec![utilisateur.join("navigateur")];
+    if let Some(local) = utilisateur.parent() {
+        dossiers.push(local.join(PROFIL_TAURI_D_AVANT));
+    }
+    for d in dossiers {
+        if std::fs::symlink_metadata(&d).is_ok_and(|m| m.is_dir()) && std::fs::remove_dir_all(&d).is_ok() {
+            effaces.push(d);
+        }
+    }
+    effaces
 }
 
 pub use instance::{Instance, Prise};

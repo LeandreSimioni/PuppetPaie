@@ -121,7 +121,6 @@ fn main() -> std::process::ExitCode {
                 .min_inner_size(LARGEUR_MIN, HAUTEUR_MIN)
                 .center()
                 .initialization_script(CADRE)
-                .data_directory(profil.clone())
                 .data_directory(profil)
                 .build()?;
             Ok(())

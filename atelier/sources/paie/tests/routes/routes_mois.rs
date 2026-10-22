@@ -2,7 +2,7 @@
 //! `mois-a-ouvrir`, `bilan-du-mois`, `fichiers-deposables`). Sur `fictive-3090-petite` (config, aout 2026), avec le journal
 //! des depots que chaque test ecrit ; le contexte est au 03/10/2026, le jour du test varie.
 
-use crate::outils::{compagnie, dossier_de_test, ecrire, lire, reussi, route_avec};
+use crate::outils::{compagnie, dossier_de_test, ecrire, lire, refus, reussi, route_avec, route_en_processus};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -434,4 +434,34 @@ fn un_cdi_sans_fin_se_rend_null_et_pas_none() {
     let e = rendu(c, "embauches-a-declarer", json!({"mois": "2026-10"}), "2026-10-03")["embauches"].as_array().unwrap().clone();
     let nicolet = e.iter().find(|x| x["debut"] == json!("2026-10-01")).unwrap_or_else(|| panic!("{:?}", e));
     assert_eq!(nicolet["fin"], Value::Null, "embauches-a-declarer : {}", nicolet);
+}
+
+/// `config/exercices.json` se lit une fois tant qu'il ne change pas (ticket #244 : `etat` le relisait pour chaque mois),
+/// dans un meme processus, comme dans la fenetre. Un fichier illisible refuse comme avant, a chaque fois (un refus ne se
+/// garde pas) ; un fichier change se relit.
+#[test]
+fn les_exercices_se_gardent_et_un_fichier_illisible_refuse_toujours() {
+    let c = &compagnie("exercices-en-cache");
+    let p = c.join("config/exercices.json");
+    let jour = "2026-10-03";
+    let mois = |c: &Path| reussi(&route_en_processus(c, "mois-a-ouvrir", json!({}), jour))["mois"].clone();
+    std::fs::write(&p, "{}").unwrap();
+    assert_eq!(mois(c), MOIS, "rien de clos : le mois d'aout reste a ouvrir");
+    assert_eq!(mois(c), MOIS, "servi du cache, meme reponse");
+    // Illisible comme JSON : le refus d'avant, deux fois de suite.
+    std::fs::write(&p, "{\"2026\": ").unwrap();
+    for _ in 0..2 {
+        assert_eq!(refus(&route_en_processus(c, "mois-a-ouvrir", json!({}), jour)).0, "JSONDecodeError");
+    }
+    // Illisible comme texte : le refus du disque.
+    std::fs::write(&p, b"{\"2026\": \"\xff\xfe\"}").unwrap();
+    assert_eq!(refus(&route_en_processus(c, "mois-a-ouvrir", json!({}), jour)).0, "OSError");
+    // Pas un objet.
+    std::fs::write(&p, "[1, 2]").unwrap();
+    assert_eq!(refus(&route_en_processus(c, "mois-a-ouvrir", json!({}), jour)).0, "AttributeError");
+    // Clos : relu, aout ne se rappelle plus ; rouvert : relu encore.
+    std::fs::write(&p, json!({"2026": {"le": "2026-09-30T10:00:00"}}).to_string()).unwrap();
+    assert_ne!(mois(c), MOIS, "l'exercice 2026 clos, relu malgre le cache");
+    std::fs::write(&p, json!({"_rouverts": [], "2026": false}).to_string()).unwrap();
+    assert_eq!(mois(c), MOIS, "rouvert, relu encore");
 }
