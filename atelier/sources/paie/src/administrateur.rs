@@ -132,7 +132,8 @@ fn ecrire_registre(inst: &Path, entrees: &[Value]) -> Result<(), String> {
     crate::ecriture::ecrire_json(&p, &v, 2)
 }
 
-/// Les compagnies rattachees a l'administrateur, telles qu'elles sont sur le disque (un dossier parti n'y est plus).
+/// Les compagnies rattachees a l'administrateur, telles qu'elles sont sur le disque (un dossier parti n'y est plus). Une
+/// compagnie fictive n'y entre pas : `rattacher` la refuse.
 pub fn rattachees(inst: &Path) -> Vec<PathBuf> {
     let mut out = Vec::new();
     for e in lire_registre(inst) {

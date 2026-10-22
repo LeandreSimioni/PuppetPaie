@@ -217,6 +217,8 @@
       zone.hidden = false;
       const decl = t.declarations || [];
       const noms = t.compagnies.map((c) => c.nom);
+      // Une compagnie dont le tableau ne se fait pas le dit, avec la phrase du moteur (pas avant qu'il ait ete refait).
+      const pannes = t.garde ? [] : t.compagnies.filter((c) => c.erreur);
       const g = t.groupe || {};
       const boutons = [];
       if (g.reel && g.reel.propose) boutons.push(`<button type="button" id="g-reel">Déposer les ${g.reel.declarations} DSN prêtes</button>`);
@@ -225,7 +227,10 @@
         <h2>Les déclarations de vos compagnies</h2>
         <p class="intro">${esc(noms.join(" · "))} — un seul mot de passe, celui de l'administrateur.</p>
         <div class="declarations">${decl.length ? decl.map(ligne).join("")
-          : `<div class="vide">Toutes les déclarations de vos compagnies sont faites.</div>`}</div>
+          : pannes.length ? "" : `<div class="vide">Toutes les déclarations de vos compagnies sont faites.</div>`}
+          ${pannes.map((c) => `<div class="declaration retard" data-id="${esc(c.id)}" style="--cie:${esc(c.couleur)}">
+            <span class="cie">${esc(c.nom)}</span><span class="quoi"><b>Le tableau de cette compagnie ne se lit pas</b>
+            <span>${esc(c.erreur)}</span></span><span class="limite"></span></div>`).join("")}</div>
         ${boutons.length ? `<div class="groupe">${boutons.join("")}</div>` : ""}
         <div class="resultats">${resultats}</div>`;
       for (const l of zone.querySelectorAll(".declaration[data-id]")) {

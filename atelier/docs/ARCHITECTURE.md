@@ -1412,6 +1412,34 @@ Trois garde-fous, tous dans le moteur (`paie/src/depot_acte.rs`, porté d'`opera
 Déposer la DSN en test avant le dépôt réel, et garder l'ancien logiciel installé le temps
 de faire tourner un ou deux mois en parallèle et de comparer.
 
+### Un logiciel, un administrateur (ticket #244, 22/10/2026)
+
+Une installation (le dossier qui porte `logiciel/`, `prive/`, `compagnies/*`, `fictives/*`) appartient à une personne,
+l'**administrateur**, qui peut y gérer plusieurs compagnies d'un seul mot de passe ; qui veut deux administrateurs
+installe un second logiciel. `paie/src/administrateur.rs` :
+
+- **Rien de neuf dans le chiffrement.** Chaque compagnie garde son coffre (`config/coffre.bin`) et sa clé maîtresse, scellée
+  par la clé du poste et par le mot de passe du logiciel. Rattacher une compagnie, c'est sceller cette enveloppe par le mot
+  de passe de l'administrateur ; la détacher, la resceller par un mot de passe à elle. Le **registre**
+  (`administrateur.json`, à la racine de l'installation, sans aucun secret) dit lesquelles s'ouvrent ensemble.
+- **Changer le mot de passe de l'administrateur** rescelle toutes ses compagnies : tout se prépare
+  (`Coffre::preparer_ouverture`), puis tout se remplace ; un échec au milieu remet chacune dans son état d'avant.
+- **La fenêtre** demande « Gérer cette compagnie avec le même administrateur ? » à la création d'une compagnie quand une
+  autre a déjà un mot de passe ; retient le mot de passe de l'administrateur, une fois tapé, pour ouvrir ses autres
+  compagnies sans le redemander (il ouvre, il n'autorise aucun acte) ; et l'accueil devient son **tableau de bord** : les
+  déclarations obligatoires de ses compagnies (les rappels de chacune : DSN, signalements, obligations d'`obligations.rs`,
+  DPAE), du plus pressé au moins pressé, lues de `config/.tableau.json` sans calcul, refaites en fond
+  (route `administrateur-tableau`).
+- **Le dépôt groupé** (route `administrateur-deposer`, `{"reel"}`) : ce qui part par la DSN et qui est prêt — en test, un
+  fichier écrit pas encore essayé ; en réel, un fichier dont le test est revenu conforme — part compagnie par compagnie
+  par la route `deposer` de chacune, avec ses contrôles et son bilan. En réel, un mot de passe tapé au moment de l'acte sert
+  de preuve à chaque dépôt, qui le revérifie. Une compagnie qui refuse n'arrête pas les autres. Le bouton n'apparaît qu'à
+  partir de deux compagnies qui ont quelque chose de prêt.
+- **Une fenêtre à la fois par poste** (`interface::prendre_instance`) : une autre installation déjà ouverte le dit
+  (« PuppetPaie est déjà ouvert depuis <dossier> : fermez-le d'abord »). La clé du poste (hors mode portable, dans le profil
+  de la machine) sert aux deux installations sans danger : elle ne scelle que des enveloppes, chacune d'une clé maîtresse
+  tirée au hasard pour sa compagnie ; un coffre ne s'ouvre jamais avec la clé maîtresse d'un autre.
+
 
 ## La version, et la mise à jour dans l'ombre
 
