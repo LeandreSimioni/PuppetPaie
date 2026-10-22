@@ -606,6 +606,9 @@ fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {
     let mut fichiers: Vec<(String, PathBuf)> = entrees_dans_l_ordre(&dossier)
         .into_iter()
         .filter(|(nom, c)| c.is_file() && Path::new(nom).extension().map_or(false, |e| e.to_string_lossy().to_lowercase() == "dsn"))
+        // LA MENSUELLE, PAS UN SIGNALEMENT (ticket #244) : un signalement d'arret ou de fin ecrit apres la DSN du mois, dans
+        // le meme dossier, devenait « la DSN a deposer » du rappel.
+        .filter(|(_, c)| std::fs::read(c).map(|o| !crate::depot::lire(&o).est_signalement()).unwrap_or(false))
         .collect();
     fichiers.sort_by(|a, b| mtime(&b.1).partial_cmp(&mtime(&a.1)).unwrap_or(std::cmp::Ordering::Equal));
     fichiers.into_iter().next().map(|(nom, c)| (nom, c.to_string_lossy().into_owned()))

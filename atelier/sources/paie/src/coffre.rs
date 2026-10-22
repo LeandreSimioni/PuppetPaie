@@ -766,6 +766,17 @@ impl Coffre {
         }
     }
 
+    /// Le coffre de `racine` avec la cle du poste dans `dossier_cle`, sans variable de service : celui que l'administrateur
+    /// rescelle (`administrateur.rs`), et que ses essais montent sans toucher a l'environnement du processus.
+    pub fn sur(racine: impl Into<PathBuf>, dossier_cle: impl Into<PathBuf>, maintenant: &str) -> Coffre {
+        Coffre { racine: racine.into(), dossier_cle: dossier_cle.into(), maintenant: maintenant.to_string(), variables: BTreeMap::new() }
+    }
+
+    /// Le dossier de la cle de CE poste, tel que `du_poste` le trouve.
+    pub fn dossier_cle_du_poste() -> PathBuf {
+        dossier_cle_de(&|n| if n == "HOME" { std::env::var(n).ok() } else { env_non_vide(n) }, dossier_portable().as_deref())
+    }
+
     /// L'heure locale `AAAA-MM-JJTHH:MM` : celle qu'on a donnee, sinon l'horloge. Les lecteurs du moteur font leur
     /// coffre sans heure (`du_poste(racine, "")`) et la seance, elle, expire : une heure vide ne doit pas la rendre eternelle.
     fn heure(&self) -> String {
@@ -1070,6 +1081,27 @@ impl Coffre {
         fiches: Map<String, Value>,
         secrets: &Map<String, Value>,
     ) -> R<PathBuf> {
+        let octets = self.octets_a_ecrire(contenu, maitresse, fiches, secrets)?;
+        self.ecrire_octets(&octets)
+    }
+
+    /// Ecrit `octets` a la place du coffre (0600).
+    fn ecrire_octets(&self, octets: &[u8]) -> R<PathBuf> {
+        let p = self.chemin();
+        dossier_de(&p)?;
+        std::fs::write(&p, octets).map_err(|e| oserr(&e, &p))?;
+        permissions(&p, 0o600);
+        Ok(p)
+    }
+
+    /// Ce que `enregistrer` ecrirait, sans l'ecrire.
+    fn octets_a_ecrire(
+        &self,
+        contenu: &Map<String, Value>,
+        maitresse: &[u8],
+        fiches: Map<String, Value>,
+        secrets: &Map<String, Value>,
+    ) -> R<Vec<u8>> {
         let mut c = contenu.clone();
         c.insert("version".into(), VERSION.into());
         let clair = dumps(&Value::Object(secrets.clone()), None, false, true);
@@ -1083,11 +1115,7 @@ impl Coffre {
             enveloppes.insert("poste".into(), b64(&sceller(&self.cle_ou_creer()?, maitresse, AAD_POSTE)?));
         }
         c.insert("enveloppes".into(), Value::Object(enveloppes));
-        let p = self.chemin();
-        dossier_de(&p)?;
-        std::fs::write(&p, dumps(&Value::Object(c), Some(2), false, true)).map_err(|e| oserr(&e, &p))?;
-        permissions(&p, 0o600);
-        Ok(p)
+        Ok(dumps(&Value::Object(c), Some(2), false, true).into_bytes())
     }
 
     // ------------------------------------------------------------- l'usage
@@ -1262,6 +1290,13 @@ impl Coffre {
     /// Pose (ou change) le mot de passe du logiciel. `ancien` sert quand la cle
     /// du poste n'ouvre pas le coffre.
     pub fn poser_ouverture(&self, motdepasse: &str, ancien: Option<&str>) -> R<PathBuf> {
+        let octets = self.preparer_ouverture(motdepasse, ancien)?;
+        self.ecrire_octets(&octets)
+    }
+
+    /// Ce que `poser_ouverture` ecrirait, SANS L'ECRIRE : les octets du coffre rescelle par `motdepasse`. Sert a qui doit
+    /// resceller plusieurs coffres d'un coup (l'administrateur, `administrateur.rs`) : tout se prepare, puis tout se remplace.
+    pub fn preparer_ouverture(&self, motdepasse: &str, ancien: Option<&str>) -> R<Vec<u8>> {
         if strip(motdepasse).chars().count() < LONGUEUR_MINIMALE_LOGICIEL {
             return Err(refus(format!(
                 "Mot de passe du logiciel trop court : {} caracteres au moins. \
@@ -1280,7 +1315,7 @@ impl Coffre {
         c.insert("logiciel_pose_le".into(), self.pose_le()?.into());
         let secrets = self.secrets(&c, &maitresse)?;
         let fiches = objet(c.get("fiches"))?;
-        self.enregistrer(&c, &maitresse, fiches, &secrets)
+        self.octets_a_ecrire(&c, &maitresse, fiches, &secrets)
     }
 
     /// Un mot de passe du logiciel a-t-il ete pose ?

@@ -1,0 +1,31 @@
+<style>
+  :root { --accent:#B22222; --texte:#2C3E50; --fond:#F7F6F4; --carte:#FFFFFF;
+          --bord:#DDD8D2; --discret:#7A8794; }
+  * { box-sizing:border-box; }
+  html, body { overflow:hidden; }
+  body { margin:0; height:100vh; display:flex; align-items:center;
+         justify-content:center; font:14px/1.5 Arial,Helvetica,sans-serif;
+         color:var(--texte); background:var(--fond); }
+  .carte { width:100%; max-width:520px; padding:30px 36px 24px; background:var(--carte); }
+  .filet { height:3px; background:var(--accent); width:48px; margin-bottom:14px; }
+  h1 { margin:0 0 14px; font-size:20px; }
+  p { margin:0 0 12px; }
+  .dossier { font:13px Consolas,monospace; background:var(--fond); border:1px solid var(--bord);
+             border-radius:4px; padding:6px 9px; word-break:break-all; }
+  button { margin-top:12px; width:100%; padding:9px; font:inherit; font-weight:bold; color:#fff;
+           background:var(--accent); border:1px solid var(--accent); border-radius:4px; cursor:pointer; }
+  .discret { color:var(--discret); font-size:12px; }
+</style>
+
+<!-- Une autre installation de PuppetPaie tient la fenetre de ce poste (ticket #244, `prendre_instance`). Une a la fois. -->
+<div class="carte">
+  <div class="filet"></div>
+  <h1>PuppetPaie est déjà ouvert depuis un autre dossier</h1>
+  <p>PuppetPaie est déjà ouvert depuis</p>
+  <p class="dossier">{{DOSSIER}}</p>
+  <p>Fermez-le d'abord, puis relancez celui-ci :</p>
+  <p class="dossier">{{ICI}}</p>
+  <p class="discret">Sa fenêtre vient de revenir devant. Un seul PuppetPaie s'ouvre à la fois sur un ordinateur ; chacun
+    garde ses compagnies et ses mots de passe.</p>
+  <button type="button" onclick="window.pywebview.api.fermer()">Fermer</button>
+</div>

@@ -202,10 +202,15 @@ fn nom_dossier(p: &Path) -> String {
 
 /// Ce que propose l'accueil, dans l'ordre des tuiles : les vraies, puis les fictives.
 pub fn liste() -> Vec<Compagnie> {
-    let b = base();
+    liste_de(&base())
+}
+
+/// Les compagnies de l'installation `b` (le dossier qui porte `logiciel/`, `prive/`, `compagnies/`, `fictives/`), dans
+/// l'ordre des tuiles. L'administrateur (`administrateur.rs`) lit celles de l'installation qu'on lui donne.
+pub fn liste_de(b: &Path) -> Vec<Compagnie> {
     let mut out = Vec::new();
     if !crate::bridage::est_bride() {
-        let reel = dossier_reel();
+        let reel = if b == base() { dossier_reel() } else { b.join("prive") };
         if reel.join("config").is_dir() {
             out.push(entree("reelle".into(), &reel, true));
         }

@@ -20,6 +20,7 @@
            font-weight:bold; color:#fff; background:var(--accent);
            border:1px solid var(--accent); border-radius:4px; cursor:pointer; }
   button[disabled] { opacity:.5; cursor:default; }
+  button.second { background:#fff; color:var(--texte); border-color:var(--bord); font-weight:normal; }
   .erreur { color:var(--accent); min-height:1.5em; margin-top:8px; }
   .discret { color:var(--discret); font-size:12px; }
   pre { white-space:pre-wrap; font:12px Consolas,monospace; color:var(--discret); }
@@ -40,6 +41,22 @@
   <div class="filet"></div>
   <h1>PuppetPaie</h1>
   <div class="sous">premi&egrave;re ouverture</div>
+  <!-- « Meme administrateur ? » (ticket #244) : seulement quand le moteur dit qu'il y a lieu (`administrateur::etat`,
+       `question`) -- une compagnie reelle sans mot de passe, et d'autres qui en ont un. -->
+  <script type="application/json" id="administrateur">{{ADMINISTRATEUR}}</script>
+  <div id="question" hidden>
+    <p><b>Gérer cette compagnie avec le même administrateur ?</b></p>
+    <p class="discret">Celui de <span class="q-noms"></span>.</p>
+    <button id="q-oui" type="button">Oui, le même administrateur</button>
+    <button id="q-non" type="button" class="second">Non, un mot de passe à elle</button>
+  </div>
+  <form id="a" hidden>
+    <p>Le mot de passe que vous tapez pour <span class="q-noms"></span> ouvrira aussi cette
+      compagnie, et il servira aux actes sur toutes à la fois, comme déposer d'un coup toutes les DSN prêtes.</p>
+    <input id="a-mdp" type="password" autocomplete="current-password" placeholder="le mot de passe de l'administrateur">
+    <button id="a-ok" type="submit">Rattacher et ouvrir</button>
+    <div class="erreur" id="a-erreur"></div>
+  </form>
   <form id="f">
     <p>Choisissez le mot de passe du logiciel</p>
     <input id="mdp" type="password" autocomplete="new-password" autofocus placeholder="six caract&egrave;res au moins">
@@ -61,7 +78,29 @@
     if (r.ok) { mdp.value = mdp2.value = ""; ok.textContent = "D\u00e9marrage\u2026"; return; }
     err.textContent = r.erreur; ok.disabled = false; mdp.focus();
   });
-  window.addEventListener("pywebviewready", () => mdp.focus());
+  // LA QUESTION DE L'ADMINISTRATEUR : oui, son mot de passe tape une fois (le moteur le verifie et rattache) ; non, le
+  // choix d'un mot de passe propre, comme pour une premiere compagnie.
+  const adm = JSON.parse(document.getElementById("administrateur").textContent || "{}");
+  const question = document.getElementById("question"), formeA = document.getElementById("a");
+  const noms = (adm.autres || []);
+  const enListe = noms.length > 1 ? noms.slice(0, -1).join(", ") + " et " + noms[noms.length - 1] : (noms[0] || "");
+  for (const s of document.querySelectorAll(".q-noms")) s.textContent = enListe;
+  if (adm.question) { question.hidden = false; f.hidden = true; }
+  document.getElementById("q-non").onclick = () => { question.hidden = true; f.hidden = false; mdp.focus(); };
+  document.getElementById("q-oui").onclick = () => {
+    question.hidden = true; formeA.hidden = false; document.getElementById("a-mdp").focus();
+  };
+  formeA.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const champ = document.getElementById("a-mdp"), bouton = document.getElementById("a-ok"),
+          errA = document.getElementById("a-erreur");
+    bouton.disabled = true; errA.textContent = "";
+    const r = await window.pywebview.api.rattacher_nouvelle(champ.value);
+    champ.value = "";
+    if (r.ok) { bouton.textContent = "Démarrage…"; return; }
+    errA.textContent = r.erreur; bouton.disabled = false; champ.focus();
+  });
+  window.addEventListener("pywebviewready", () => (adm.question ? document.getElementById("q-oui") : mdp).focus());
   // « Retour » et Echap : revenir au choix de la compagnie. La reponse du geste dit `recharger` et la cale ramene la
   // fenetre sur `/`, ou le serveur sert l'accueil. Un refus s'affiche, rien ne se tait.
   async function retour() {

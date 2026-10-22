@@ -26,7 +26,7 @@ use crate::retours::Echec;
 use crate::routes_etats::{coffre_etat_de, version};
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 10] = [
+pub const ROUTES: [&str; 12] = [
     "coffre-poser",
     "coffre-compte-dpae",
     "coffre-oublier",
@@ -37,6 +37,9 @@ pub const ROUTES: [&str; 10] = [
     "cloture",
     "export-compta",
     "importer",
+    // L'administrateur (ticket #244) : le tableau de ses compagnies et le depot groupe (`administrateur.rs`).
+    crate::administrateur::ROUTES[0],
+    crate::administrateur::ROUTES[1],
 ];
 
 /// Une route de ce module.
@@ -52,6 +55,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "cloture" => crate::exercice_ecrit::cloture_route(ctx, charge),
         "export-compta" => crate::exercice_ecrit::export_compta_route(ctx, charge),
         "importer" => crate::importation_ecrite::importer(ctx, charge),
+        r if crate::administrateur::ROUTES.contains(&r) => crate::administrateur::route(o, ctx, r, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -182,12 +186,25 @@ fn mot_de_passe_changer(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     // Une saisie qui n'est pas un texte n'est pas un mot de passe : le coffre la lit comme vide.
     let nouveau = if matches!(optionnel(charge, "nouveau"), Value::String(_) | Value::Null) { nouveau } else { String::new() };
+    // UNE COMPAGNIE DE L'ADMINISTRATEUR (ticket #244) : son mot de passe est celui de toutes ses compagnies, et il se change
+    // pour toutes a la fois (`administrateur::changer`) ; l'actuel les ouvre chacune, tout se prepare puis tout se remplace.
+    let inst = crate::administrateur::installation_de(&ctx.racine);
+    if crate::administrateur::est_rattachee(&inst, &ctx.racine) {
+        let Some(actuel) = chaine(charge, "motdepasse").filter(|m| !m.is_empty()) else {
+            return Err(refus("Tapez le mot de passe actuel de l'administrateur : le nouveau le remplace dans toutes ses compagnies. Rien n'a ete modifie."));
+        };
+        crate::administrateur::changer(&inst, actuel, &nouveau, &confirmation, &crate::administrateur::Poste::de_ce_poste()).map_err(refus)?;
+        return etat_du_coffre(ctx);
+    }
     coffre(ctx).poser_ouverture(&nouveau, chaine(charge, "motdepasse")).map_err(en_operation)?;
     etat_du_coffre(ctx)
 }
 
 /// `operations_ouverture.retirer_mot_de_passe_logiciel` : plus de mot de passe du logiciel. L'actuel est exige.
 fn mot_de_passe_retirer(ctx: &Contexte, charge: &Value) -> R<Value> {
+    if crate::administrateur::est_rattachee(&crate::administrateur::installation_de(&ctx.racine), &ctx.racine) {
+        return Err(refus("Cette compagnie est geree par l'administrateur : son mot de passe ouvre aussi les autres. La detacher d'abord (elle recoit alors son propre mot de passe), puis le retirer. Rien n'a ete modifie."));
+    }
     exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "retirer le mot de passe du logiciel")?;
     coffre(ctx).oublier_ouverture(chaine(charge, "motdepasse")).map_err(en_coffre)?;
     etat_du_coffre(ctx)
