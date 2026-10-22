@@ -160,13 +160,20 @@ fn ecrire_reponse(flux: &mut TcpStream, r: &Reponse) -> std::io::Result<()> {
         tete.push_str(&format!("{}: {}\r\n", k, v));
     }
     tete.push_str("\r\n");
-    flux.write_all(tete.as_bytes())?;
-    flux.write_all(&r.corps)?;
+    // UNE SEULE ECRITURE, SANS NAGLE (ticket #244) : la tete puis le corps en deux `write`, puis la lecture de la requete
+    // suivante, c'est le motif ou le reste du corps attend l'accuse de reception de la tete, que l'autre bout differe
+    // (jusqu'a 200 ms sous Windows ; sous Linux, en boucle locale, l'accuse part aussitot et rien ne se mesure). Tout part
+    // d'un coup, sans attente (`servir_connexion` : `set_nodelay`).
+    let mut tout = Vec::with_capacity(tete.len() + r.corps.len());
+    tout.extend_from_slice(tete.as_bytes());
+    tout.extend_from_slice(&r.corps);
+    flux.write_all(&tout)?;
     flux.flush()
 }
 
 fn servir_connexion(flux: TcpStream, traiter: Arc<dyn Fn(Requete) -> Reponse + Send + Sync>) {
     let _ = flux.set_read_timeout(Some(Duration::from_secs(30)));
+    let _ = flux.set_nodelay(true);
     let Ok(mut sortie) = flux.try_clone() else { return };
     let mut entree = BufReader::new(flux);
     while let Some(r) = lire_requete(&mut entree) {

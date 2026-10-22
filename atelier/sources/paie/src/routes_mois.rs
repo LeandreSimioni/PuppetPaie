@@ -1211,12 +1211,16 @@ impl<'a> Moteur<'a> {
     /// `exercice_clos` : la cloture de l'annee de ce mois, ou `None`.
     pub(crate) fn exercice_clos(&self, mois_ou_annee: &str) -> R<bool> {
         let p = self.racine().join("config").join("exercices.json");
-        if !p.exists() {
+        if !crate::fichiers::existe(&p) {
             return Ok(false);
         }
-        let t = std::fs::read_to_string(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
-        let v: Value = serde_json::from_str(&t).map_err(|e| erreur("JSONDecodeError", e.to_string()))?;
-        let Value::Object(o) = &v else {
+        // LU UNE FOIS TANT QU'IL NE CHANGE PAS (ticket #244) : `etat` le demandait pour chaque mois. Le refus d'un fichier
+        // illisible ne change pas (`OSError`, `JSONDecodeError`), et ne se garde pas.
+        let v = crate::fichiers::json_en_cache_ou(&p, |p| {
+            let t = crate::fichiers::lire_texte(p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+            serde_json::from_str::<Value>(&t).map_err(|e| erreur("JSONDecodeError", e.to_string()))
+        })?;
+        let Value::Object(o) = &*v else {
             return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", etats::nom_type(&v))));
         };
         let annee: String = mois_ou_annee.chars().take(4).collect();

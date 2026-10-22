@@ -1449,7 +1449,10 @@ installe un second logiciel. `paie/src/administrateur.rs` :
   elle ne scelle que des enveloppes, chacune d'une clé maîtresse tirée au hasard pour sa compagnie, et se pose une fois
   (`O_EXCL`) ; la séance gardée est **une par coffre** (`ouverture-gardee-<empreinte>.bin`). La mise à jour est déjà
   par installation (`maj/`) ; son relais attend la fin de **sa** fenêtre (le processus sous Windows, le créneau de son
-  installation ailleurs), et `paie maj --appliquer` ne refuse que si **cette** installation est ouverte.
+  installation ailleurs), et `paie maj --appliquer` ne refuse que si **cette** installation est ouverte. Ce que la fenêtre
+  d'avant laissait sur le poste et que plus rien ne lit — la séance gardée au nom unique (`ouverture-gardee.bin`), le
+  `.jeton-interface` et le profil `navigateur/` communs, le profil WebView2 par défaut de Tauri (`fr.puppetpaie.fenetre`) —
+  s'efface au lancement, sans être lu (`interface::effacer_les_restes`).
 - **Toutes les compagnies tenues à jour dès le lancement** (`Fenetre::prechauffer`, `etat_garde::Fil`) : chaque vraie
   compagnie de l'installation (pas les fictives) reçoit sa file des états sur **un seul fil de calcul** pour toute la
   fenêtre, la dernière ouverte d'abord (la date de son `journal/interface.log`), puis chacune son tour ; la compagnie

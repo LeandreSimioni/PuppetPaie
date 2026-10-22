@@ -94,6 +94,38 @@ fn une_compagnie_sans_saisie_ni_dsn_n_est_en_retard_de_rien() {
     assert!(rappels(c, "2026-09-30").is_empty());
 }
 
+/// UNE DSN SE DIT UNE FOIS A L'OUVERTURE (ticket #244) : celle qu'un rappel reclame (avec son geste, « Verifier et
+/// envoyer ») est marquee `rappel` dans « Ce mois-ci » de l'echeancier, qui la garde pour sa date (l'etape DSN du mois la
+/// lit) mais ne la compte plus dans ce qui reste a faire ; une DSN faite n'a ni rappel ni marque.
+#[test]
+fn la_dsn_qu_un_rappel_reclame_ne_se_redit_pas_dans_l_echeancier() {
+    let c = &compagnie("une-fois", &["2026-08"]);
+    let jour = "2026-10-20";
+    let verifier = |c: &Path| {
+        let r = rappels(c, jour);
+        let ech = reussi(&route(c, "echeancier", json!({}), jour)).clone();
+        let ce_mois = ech["ce_mois"].as_array().unwrap().clone();
+        let dsn: Vec<&Value> = ce_mois.iter().filter(|x| x["quoi"] == "dsn").collect();
+        assert!(!dsn.is_empty(), "{}", ech);
+        for x in &dsn {
+            let rappelee = r.iter().any(|y| y["quoi"] == "dsn" && y["cle"] == x["cle"]);
+            assert_eq!(x["rappel"], json!(rappelee), "{} : marquee si et seulement si un rappel la reclame", x["cle"]);
+            assert!(x["date"].is_string(), "{} : la date reste", x["cle"]);
+        }
+        let restent = ce_mois.iter().filter(|x| x["rappel"] != json!(true) && (x["etat"] == "a_faire" || x["etat"] == "en_retard")).count();
+        assert_eq!(ech["a_faire"], json!(restent));
+        (r, dsn.into_iter().cloned().collect::<Vec<Value>>())
+    };
+    let (r, dsn) = verifier(c);
+    let septembre = dsn.iter().find(|x| x["cle"] == "dsn:2026-09").unwrap_or_else(|| panic!("{:?}", dsn));
+    assert_eq!(septembre["rappel"], json!(true), "septembre manque : son rappel le dit, lui seul");
+    assert!(r.iter().any(|y| y["cle"] == "dsn:2026-09" && y["en_retard"] == json!(true)));
+    // Deposee et acceptee : faite, plus de rappel, plus de marque.
+    journal(c, json!([dsn_reelle("2026-08", "OK"), dsn_reelle("2026-09", "OK")]));
+    let (r, dsn) = verifier(c);
+    assert!(r.iter().all(|y| y["quoi"] != "dsn"));
+    assert!(dsn.iter().all(|x| x["rappel"] == json!(false)));
+}
 #[test]
 fn la_fin_d_annee_cloture_exporte_et_revoit_les_spectacles() {
     let c = &compagnie("annee", &["2026-12"]);
