@@ -13,7 +13,7 @@ use crate::contexte::Contexte;
 use crate::cumul::{lire_engagements, tableau_cumul, Colonne};
 use crate::date::{d, dernier_du_mois, en_texte, repr_py, Jour};
 use crate::emplois;
-use crate::fichiers::{dossier_du_code, vrai};
+use crate::fichiers::vrai;
 use crate::num::{dec, dec_f64, div, sub, Decimal, Resultat};
 use crate::pas::{self, Versement};
 use rust_decimal::RoundingStrategy;
@@ -1144,26 +1144,13 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
 
 // ------------------------------------------------------------ la description
 
-/// `contexte.gabarits_de` : le dossier `gabarits/` de LA COMPAGNIE dont `ent` est
-/// la fiche ; sans `_gabarits`, celui du poste.
-pub fn gabarits_de(ent: &Value) -> PathBuf {
+/// `contexte.gabarits_de` : le dossier `gabarits/` de LA COMPAGNIE dont `ent` est la fiche (`_gabarits`,
+/// `Contexte::entreprise_et_gabarits`). Sans `_gabarits`, aucun : la compagnie ne se devine pas d'une variable du
+/// processus (la fenetre en sert plusieurs, ticket #244) ; un document sans dossier n'a ni logo ni signature posee.
+pub fn gabarits_de(ent: &Value) -> Option<PathBuf> {
     match ent.get("_gabarits") {
-        Some(g) if vrai(g) => PathBuf::from(en_texte(g)),
-        _ => racine_du_poste().join("gabarits"),
-    }
-}
-
-/// `contexte.racine_donnees`.
-fn racine_du_poste() -> PathBuf {
-    if let Some(e) = std::env::var_os("PUPPETPAIE_DONNEES").filter(|e| !e.is_empty()) {
-        return PathBuf::from(e);
-    }
-    let code = dossier_du_code().join("..");
-    let voisin = code.join("..").join("prive");
-    if voisin.join("config").is_dir() {
-        voisin
-    } else {
-        code
+        Some(g) if vrai(g) => Some(PathBuf::from(en_texte(g))),
+        _ => None,
     }
 }
 
@@ -1174,7 +1161,7 @@ fn chemin_texte(p: &Path) -> String {
 
 /// `identite_de` : le fichier d'identite (`logo`, `signature`) de la compagnie, ou `None`.
 pub fn identite_de(ent: &Value, nom: &str) -> Option<PathBuf> {
-    let dossier = gabarits_de(ent).join("identite");
+    let dossier = gabarits_de(ent)?.join("identite");
     IDENTITE_EXTENSIONS.iter().map(|ext| dossier.join(format!("{}{}", nom, ext))).find(|f| f.exists())
 }
 

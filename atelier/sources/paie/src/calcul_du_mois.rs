@@ -54,7 +54,8 @@ fn empreinte(entrees: &BTreeMap<String, String>) -> String {
 }
 
 /// `calculer` en notant tout ce qu'il lit : la reponse, et les entrees.
-/// A lancer dans un processus neuf : un cache deja chaud ne relit pas.
+/// Un cache deja chaud note quand meme ce qu'il sert (`fichiers::noter_si_besoin`), et ceux qui ne notent pas se cle par
+/// le registre de ce calcul (`fichiers::generation`) : la liste est celle d'un processus neuf, meme dans la fenetre.
 pub fn calculer_suivi(o: &HashMap<String, String>, demande: &Value) -> Resultat<(Value, BTreeMap<String, String>)> {
     fichiers::suivre(&racine_de(o), &dossier_du_code());
     let r = contexte(o).and_then(|ctx| {

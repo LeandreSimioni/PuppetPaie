@@ -240,10 +240,17 @@ impl Drop for Derivation {
     }
 }
 
+/// La cle d'un mois au memo de la derivation : la compagnie, le mois, et le registre de lectures ouvert sur ce fil
+/// (`fichiers::generation`, 0 sans registre). Un calcul suivi ne se sert ainsi que des mois relus par lui-meme (leurs
+/// lectures se notent), meme dans une derivation ouverte avant lui (`routes_mois::mois_a_ouvrir`, ticket #244).
+fn cle_du_memo(ctx: &Contexte, mois: &str) -> (String, String) {
+    (ctx.racine.display().to_string(), format!("{}|{}", mois, crate::fichiers::generation()))
+}
+
 /// Le brut des paies d'un mois deja charge, pose dans le memo de la derivation
 /// ouverte : `remuneration_du_mois` ne le recalcule pas.
 pub(crate) fn memoriser_mois(ctx: &Contexte, mois: &str, paies: &[Paie]) {
-    let reference = (ctx.racine.display().to_string(), mois.to_string());
+    let reference = cle_du_memo(ctx, mois);
     MEMO.with(|m| {
         let mut m = m.borrow_mut();
         if m.0 > 0 && !m.1.contains_key(&reference) {
@@ -618,7 +625,7 @@ fn mois_du_salarie(
 
 /// Les paies d'un mois de saisie, recalculees une fois par derivation (`resume_des_paies`).
 fn paies_du_mois_memorisees(ctx: &Contexte, mois: &str) -> PaiesDuMois {
-    let reference = (ctx.racine.display().to_string(), mois.to_string());
+    let reference = cle_du_memo(ctx, mois);
     let memo = MEMO.with(|m| {
         let m = m.borrow();
         if m.0 > 0 { m.1.get(&reference).cloned() } else { None }

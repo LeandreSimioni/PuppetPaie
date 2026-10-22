@@ -285,7 +285,7 @@ pub(crate) struct Globales {
 pub struct Moteur<'a> {
     o: &'a HashMap<String, String>,
     ctx: &'a Contexte,
-    journal: Option<Result<Rc<Vec<Value>>, Echec>>,
+    journal: Option<Result<std::sync::Arc<Vec<Value>>, Echec>>,
     globales: Option<Rc<Globales>>,
     fichiers: HashMap<String, Value>,
     compteurs: Option<Value>,
@@ -301,9 +301,9 @@ impl<'a> Moteur<'a> {
     }
 
     /// Les lignes de `journal/depots.json`, lues une fois (et le refus aussi).
-    pub(crate) fn lignes(&mut self) -> R<Rc<Vec<Value>>> {
+    pub(crate) fn lignes(&mut self) -> R<std::sync::Arc<Vec<Value>>> {
         if self.journal.is_none() {
-            self.journal = Some(etats::charger(self.racine()).map(Rc::new));
+            self.journal = Some(etats::charger_partage(self.racine()));
         }
         match self.journal.as_ref().unwrap() {
             Ok(l) => Ok(l.clone()),
@@ -982,7 +982,16 @@ impl<'a> Moteur<'a> {
             b[DSN]["echeance_depot"] = echeance.en_json();
             return Ok(b);
         }
-        let paies = self.etat_par_paie(mois, false)?;
+        // L'ETAT GARDE DU MOIS, S'IL EST JUSTE (ticket #244) : `etat-par-paie` y est deja, fait par la file des etats
+        // (`etat_garde`, sous l'empreinte de tout ce dont il est tire) ; le refaire chargeait la saisie et ses conges,
+        // mois apres mois, a chaque `mois-a-ouvrir`. Il porte en plus le brut de chaque paie, que le bilan ne lit pas.
+        let gardees = crate::etat_garde::servir(self.racine(), mois, &self.ctx.aujourdhui.iso())
+            .filter(|(_, juste)| *juste)
+            .and_then(|(v, _)| v.get("paies").and_then(Value::as_array).cloned());
+        let paies = match gardees {
+            Some(p) => p,
+            None => self.etat_par_paie(mois, false)?,
+        };
         let mut out: Map<String, Value> = Map::new();
 
         // --- DPAE : par embauche -- celles du mois.
@@ -1217,6 +1226,10 @@ impl<'a> Moteur<'a> {
     /// `mois_a_ouvrir` : le plus ancien mois passe dont une etape n'est pas
     /// verte, sinon le mois du calendrier.
     pub fn mois_a_ouvrir(&mut self) -> R<Value> {
+        // UNE DERIVATION POUR TOUS LES MOIS (ticket #244) : le bilan de chaque mois charge sa saisie, et les conges d'un
+        // permanent y relisent les paies des mois d'avant (`conges::paies_du_mois_memorisees`) ; sans elle, chaque mois les
+        // recalculait toutes. Rien ne s'ecrit entre deux mois de cette lecture : le memo vaut pour toute la route.
+        let _derivation = crate::conges::Derivation::ouvrir();
         let courant = self.ctx.aujourdhui.mois_iso();
         for m in mois_saisis(self.racine()) {
             if m >= courant || self.exercice_clos(&m)? {
@@ -1233,6 +1246,10 @@ impl<'a> Moteur<'a> {
 
     /// `embauches_a_declarer` : les contrats dont la DPAE n'est pas encore partie.
     pub fn embauches_a_declarer(&mut self, mois: Option<&str>) -> R<Value> {
+        // UNE DERIVATION POUR TOUS LES MOIS (ticket #244) : le bilan de chaque mois charge sa saisie, et les conges d'un
+        // permanent y relisent les paies des mois d'avant (`conges::paies_du_mois_memorisees`) ; sans elle, chaque mois les
+        // recalculait toutes. Rien ne s'ecrit entre deux mois de cette lecture : le memo vaut pour toute la route.
+        let _derivation = crate::conges::Derivation::ouvrir();
         let lignes = self.lignes()?;
         let faites = cles_en_ensemble(etats::embauches_par_depot(&lignes)?.cles());
         let mois: Vec<String> = match mois.filter(|m| !m.is_empty()) {

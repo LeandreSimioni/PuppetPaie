@@ -171,8 +171,8 @@ fn salaries_au_mois(ctx: &Contexte) -> R<Vec<String>> {
     let mut trouves: BTreeSet<String> = BTreeSet::new();
     for f in noms_de_fichiers {
         // Un fichier illisible ou qui n'est pas une saisie est ignore.
-        let Ok(texte) = std::fs::read_to_string(&f) else { continue };
-        let Ok(v) = serde_json::from_str::<Value>(&texte) else { continue };
+        // Lu une fois tant qu'il ne change pas (`json_en_cache`, ticket #244) : `etat` le relisait a chaque appel.
+        let Ok(v) = crate::fichiers::json_en_cache(&f) else { continue };
         let Some(d) = v.as_object() else { continue };
         let engs = d.get("engagements").filter(|x| vrai(x)).cloned().unwrap_or(Value::Array(vec![]));
         let Value::Array(engs) = engs else { continue };
@@ -202,7 +202,9 @@ fn salaries_au_mois(ctx: &Contexte) -> R<Vec<String>> {
 }
 
 /// La racine des donnees du poste (`contexte.RACINE`) : `PUPPETPAIE_DONNEES`,
-/// sinon le dossier `prive/` voisin du code, sinon le code lui-meme.
+/// sinon le dossier `prive/` voisin du code, sinon le code lui-meme. LA LIGNE DE COMMANDE SEULEMENT (`paie COMMANDE`,
+/// `paie maj --publier`) : une route recoit sa compagnie (`o["racine"]`, `Contexte::racine`) et ne lit jamais cette
+/// variable -- la fenetre sert ses compagnies dans un seul processus (ticket #244).
 pub(crate) fn racine_du_poste() -> PathBuf {
     if let Some(e) = std::env::var_os("PUPPETPAIE_DONNEES").filter(|e| !e.is_empty()) {
         return PathBuf::from(e);
@@ -384,7 +386,7 @@ fn configuration_de(ctx: &Contexte, m: &mut Moteur) -> R<Value> {
         // Et, parmi les salaries, ceux qui sont payes au mois.
         "salaries_au_mois": if permanents { salaries_au_mois(ctx)? } else { vec![] },
         // CE QUI EST POSE : signature et logo, avec leur date.
-        "identite": identite(ctx, &racine_du_poste().join("gabarits"))?,
+        "identite": identite(ctx, &ctx.gabarits())?,
         // LA FICHE REMPLIE PAR LE SALARIE : sans boite liee, la demande ne peut
         // pas partir. Et ce qui attend encore sa reponse.
         "boite_liee": boite_liee(ctx)?,
@@ -779,8 +781,8 @@ fn conventions(ctx: &Contexte) -> R<Value> {
     candidats.extend(fichiers);
     let mut par = Map::new();
     for f in candidats {
-        let Ok(texte) = std::fs::read_to_string(&f) else { continue };
-        let Ok(v) = serde_json::from_str::<Value>(&texte) else { continue };
+        // Lu une fois tant qu'il ne change pas (`json_en_cache`, ticket #244) : `etat` le relisait a chaque appel.
+        let Ok(v) = crate::fichiers::json_en_cache(&f) else { continue };
         let Some(d) = v.as_object() else { continue };
         if let Some(Value::Object(p)) = d.get("par_convention").filter(|x| vrai(x)) {
             par = p.clone();

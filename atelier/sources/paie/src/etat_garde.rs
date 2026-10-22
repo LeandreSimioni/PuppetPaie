@@ -305,7 +305,7 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
 /// ecriture impossible ne change rien au resultat : la prochaine lecture refera.
 fn ecrire(racine: &Path, mois: &str, etat: &Value) {
     let f = chemin(racine, mois);
-    let tmp = f.with_extension(format!("json.{}.tmp", std::process::id()));
+    let tmp = crate::ecriture::provisoire(&f);
     if std::fs::write(&tmp, etat.to_string()).is_ok() && std::fs::rename(&tmp, &f).is_err() {
         let _ = std::fs::remove_file(&tmp);
     }
@@ -465,7 +465,7 @@ impl Fil {
     pub fn nouveau() -> Arc<Fil> {
         let f = Arc::new(Fil { etat: Mutex::new(EtatDuFil::default()), reveil: Condvar::new() });
         let fil = f.clone();
-        std::thread::spawn(move || {
+        crate::routes::fil_de_routes(move || {
             crate::fil_de_fond::marquer();
             fil.tourner();
         });
@@ -657,10 +657,15 @@ impl FileDesEtats {
             return Ok(v);
         }
         let o = &self.o;
-        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let _code = crate::fichiers::code_fige();
+        let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
             lire(o, &ctx, mois)
-        })) {
+        }));
+        // Un calcul tombe a pu laisser son fil sale (un registre ouvert, les nombres « fideles ») : le mois suivant
+        // repart d'un fil propre.
+        crate::routes::remettre_le_fil();
+        match rendu {
             Ok(Ok(v)) => Ok(v),
             Ok(Err(e)) => Err((e.classe, e.message)),
             Err(_) => Err((Some("DefautDuLogiciel"), format!("Defaut du logiciel : l'etat de {} ne s'est pas refait (le calcul s'est arrete).", mois))),
@@ -676,10 +681,14 @@ impl FileDesEtats {
             return Ok(v);
         }
         let o = &self.o;
-        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let _code = crate::fichiers::code_fige();
+        let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
             crate::administrateur::tableau_compagnie(o, &ctx)
-        })) {
+        }));
+        // Comme apres un mois (`faire`) : le travail suivant, d'une autre compagnie peut-etre, repart d'un fil propre.
+        crate::routes::remettre_le_fil();
+        match rendu {
             Ok(Ok(v)) => Ok(v),
             Ok(Err(e)) => Err((e.classe, e.message)),
             Err(_) => Err((Some("DefautDuLogiciel"), "Defaut du logiciel : le tableau de la compagnie ne s'est pas refait.".into())),

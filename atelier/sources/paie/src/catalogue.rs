@@ -444,7 +444,11 @@ pub fn catalogue(racine: &Path) -> Resultat<Arc<Vec<Rubrique>>> {
     );
     let cache = CATALOGUES.get_or_init(|| Mutex::new(HashMap::new()));
     if let Some(c) = cache.lock().unwrap().get(&cle) {
-        // Un catalogue servi par le cache a lu ses fichiers quand meme, pour l'empreinte du calcul.
+        // Un catalogue servi par le cache a lu ses fichiers quand meme, pour l'empreinte du calcul -- seulement quand un
+        // calcul suivi les note (sinon, autant de lectures du disque pour rien a chaque rubrique, ticket #244).
+        if !crate::fichiers::registre_ouvert() {
+            return Ok(c.clone());
+        }
         crate::fichiers::est_dossier(racine);
         for p in [
             dossier_du_code().join("rubriques-base.json"),

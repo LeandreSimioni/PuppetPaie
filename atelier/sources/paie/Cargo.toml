@@ -82,7 +82,10 @@ rpassword = "7"
 opt-level = "z"
 lto = "fat"
 codegen-units = 1
-panic = "abort"
+# « unwind », pas « abort » (ticket #244) : la fenetre sert les routes du moteur dans son processus ; une route qui
+# tombe (une panique) doit rendre un refus `DefautDuLogiciel` et laisser la fenetre debout (`routes::dans_la_fenetre`,
+# `catch_unwind`). En « abort », la premiere panique fermait le logiciel.
+panic = "unwind"
 strip = true
 
 # scrypt brasse 32 Mo par essai : le code des briques de chiffrement va vite,

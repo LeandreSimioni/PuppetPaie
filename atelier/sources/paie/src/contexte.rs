@@ -1252,6 +1252,17 @@ impl Contexte {
         self.racine.join("gabarits")
     }
 
+    /// La fiche entreprise et le dossier `gabarits/` de CETTE compagnie (`_gabarits`) : ce qu'un document lit pour
+    /// trouver son modele, la signature, le logo ou le cachet. La compagnie vient du contexte, jamais d'une variable
+    /// du processus : la fenetre sert plusieurs compagnies dans le meme processus (ticket #244).
+    pub fn entreprise_et_gabarits(&self) -> Value {
+        let mut ent = self.entreprise.clone();
+        if let Some(o) = ent.as_object_mut() {
+            o.insert("_gabarits".into(), Value::String(self.gabarits().to_string_lossy().into_owned()));
+        }
+        ent
+    }
+
     /// `Contexte._bareme_brut` : le socle livre + la surcouche de la compagnie,
     /// confrontes aux faits d'entreprise de la fiche. Les listes datees restent des listes.
     /// Ce dont depend le bareme d'une annee : la compagnie, sa fiche, et la
@@ -1278,7 +1289,7 @@ impl Contexte {
             return Ok(v.clone());
         }
         let fondu = Arc::new(self.bareme_brut_sans_cache(an)?);
-        cache.lock().unwrap().insert(cle, fondu.clone());
+        crate::fichiers::ranger(cache, cle, fondu.clone());
         Ok(fondu)
     }
 
@@ -1312,7 +1323,7 @@ impl Contexte {
             return Ok(v.clone());
         }
         let bar = Arc::new(self.bareme_sans_cache(jour)?);
-        cache.lock().unwrap().insert(cle, bar.clone());
+        crate::fichiers::ranger(cache, cle, bar.clone());
         Ok(bar)
     }
 
