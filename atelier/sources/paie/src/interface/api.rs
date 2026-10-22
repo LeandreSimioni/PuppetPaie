@@ -370,6 +370,31 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
                 None => route(racine, nom, charge),
             }
         }
+        // L'OUVERTURE D'UNE COMPAGNIE, D'UN COUP ET SANS PROCESSUS (ticket #244) : le dernier etat connu de ce que la page lit
+        // en s'ouvrant (`etat_garde::FileDesEtats::ouverture`), et, lus a chaque fois a cote, ce qui vit dans la memoire de
+        // la fenetre (la veille, la mise a jour) et les signalements (que l'etat garde ne suit pas).
+        "ouverture" => {
+            let Some(f) = etats else {
+                return Err(Refus::simple("ErreurOperation", "Pas d'ouverture sans la fenetre de PuppetPaie."));
+            };
+            let frais = charge.get("frais").and_then(Value::as_bool) == Some(true);
+            let patienter = std::time::Duration::from_millis(charge.get("patienter").and_then(Value::as_u64).unwrap_or(400).min(5000));
+            // La veille se lit pendant que l'etat garde se lit (elle demande au coffre ce qui est pose).
+            let (rendu, etat_veille) = std::thread::scope(|s| {
+                let v = s.spawn(|| (!frais).then(|| veille.map(Veille::etat)).flatten());
+                let r = f.ouverture(patienter, frais);
+                (r, v.join().ok().flatten())
+            });
+            let mut v = rendu.map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message))?;
+            if v.get("pret").and_then(Value::as_bool) == Some(true) && !frais {
+                v["veille"] = etat_veille.unwrap_or_else(|| json!({"minutes": 0, "dernier": {}, "en_cours": false}));
+                v["maj"] = crate::maj::RECHERCHE.etat();
+                v["signalements"] = en_page(
+                    crate::routes_etats::signalements_route(racine).map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message)),
+                );
+            }
+            Ok(v)
+        }
         _ => route(racine, nom, charge),
     }
 }

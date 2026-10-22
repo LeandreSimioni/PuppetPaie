@@ -148,13 +148,11 @@ fn refus_de_lecture(code: u16) -> Reponse {
 }
 
 fn ecrire_reponse(flux: &mut TcpStream, r: &Reponse) -> std::io::Result<()> {
-    let mut tete = format!(
-        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nCache-Control: no-cache\r\n",
-        r.code,
-        phrase(r.code),
-        r.type_mime,
-        r.corps.len()
-    );
+    let mut tete = format!("HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n", r.code, phrase(r.code), r.type_mime, r.corps.len());
+    // Rien ne se garde, sauf ce qui le dit (une feuille ou un script nomme par son empreinte, `interface/mod.rs`).
+    if !r.entetes.iter().any(|(k, _)| k == "Cache-Control") {
+        tete.push_str("Cache-Control: no-cache\r\n");
+    }
     if !r.entetes.iter().any(|(k, _)| k == "Content-Security-Policy") {
         tete.push_str("Content-Security-Policy: default-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'\r\n");
     }

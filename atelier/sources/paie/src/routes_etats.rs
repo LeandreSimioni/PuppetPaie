@@ -594,7 +594,7 @@ pub(crate) fn version(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
 // ------------------------------------------------------------------ les signalements
 
 /// La route `signalements` : `{"signalements", "non_lues"}`.
-fn signalements_route(racine: &Path) -> R<Value> {
+pub(crate) fn signalements_route(racine: &Path) -> R<Value> {
     let liste = crate::problemes::signalements(racine);
     // `reponses_non_lues` : les reponses que la boite n'a pas encore montrees.
     let mut non_lues = 0;

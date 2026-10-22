@@ -9,9 +9,10 @@
 {{STYLE_COMPAGNIE}}
 </head>
 <body data-jeton="{{JETON}}" data-copie="{{COPIE}}">
-<!-- LE VOILE DU DEMARRAGE (22/09/2026) : une roue, et la page n'apparait
-     qu'une fois peinte. Retire par `finirChargement` dans js/demarrage.js. -->
-<div id="chargement" aria-live="polite"><div class="roue"></div><div>PuppetPaie s'ouvre&hellip;</div></div>
+<!-- LE VOILE DU DEMARRAGE (22/09/2026 ; ticket #244, 22/10/2026) : le fond seul, le temps que la page se peigne
+     d'un coup avec l'ouverture ; s'il faut attendre (rien n'est encore connu), la phrase du moteur, jamais une roue
+     muette. Retire par `finirChargement` dans js/demarrage.js. -->
+<div id="chargement" aria-live="polite"><div id="chargement-phrase"></div></div>
 
 <header class="bandeau">
   <!-- A GAUCHE, AVANT LE LOGO, AVEC UNE MAISON (Leandre, 08/10/2026) : le

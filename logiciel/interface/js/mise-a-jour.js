@@ -81,9 +81,19 @@
     refus.textContent = (r && r.erreur) || "PuppetPaie reste ouvert sur cette version.";
   }
 
+  /* Dans la page d'une compagnie, l'état arrive avec l'ouverture (ticket #244,
+     js/demarrage.js : un seul appel peint la page) ; la relecture suit le
+     moteur comme ailleurs. */
+  window.miseAJourMontrer = (etat) => {
+    if (!boite) construire();
+    montrer(etat);
+    if (etat && etat.relire_ms) setTimeout(lire, etat.relire_ms);
+  };
+
   function demarrer() {
     if (!boite) construire();
-    lire();
+    // La page d'une compagnie (son voile de demarrage) recoit l'etat avec l'ouverture.
+    if (!document.getElementById("chargement")) lire();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", demarrer);
   else demarrer();

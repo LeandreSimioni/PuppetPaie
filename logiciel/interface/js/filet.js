@@ -417,13 +417,14 @@ function suivreLesMessages(boite, depuis) {
   }, 3000);
 }
 
-async function dessinerPastilleReponses() {
+/** La pastille des réponses. `lus` : les signalements déjà lus (l'ouverture d'un coup, js/demarrage.js), sinon on
+ *  les demande. */
+async function dessinerPastilleReponses(lus) {
   let n = 0;
-  try { n = (await api("signalements")).non_lues || 0; } catch (e) { return; }
+  try { n = (lus || await api("signalements")).non_lues || 0; } catch (e) { return; }
   document.getElementById("signaler").innerHTML = "Un problème, une idée ?"
     + (n ? ` <span class="sg-nouvelles">· ${n} réponse${n > 1 ? "s" : ""}</span>` : "");
 }
-dessinerPastilleReponses();
 
 function listeSignalements(liste) {
   if (!liste.length) return "";

@@ -67,7 +67,10 @@ const ROUTES_SANS_EFFET = new Set(["veille", "rappels", "pour-demarrer", "organi
   // L'étape du relevé en cours, lue toutes les secondes le temps qu'il tourne (ticket #220).
   "veille-etape",
   // Les conseils « Le saviez-vous ? » (ticket 224) : le conseil du jour, ceux d'un salarié, le résumé de l'accueil.
-  "conseil-du-jour", "conseils-salarie", "conseils-resume"]);
+  "conseil-du-jour", "conseils-salarie", "conseils-resume",
+  // Les lectures de l'ouverture (ticket #244) : l'accueil, le mois à ouvrir, l'échéancier, et l'ouverture d'un coup.
+  // Elles vidaient ce qui avait été lu du mois : l'écran, servi tout de suite, attendait alors l'état frais (~1 s).
+  "etat", "mois-a-ouvrir", "echeancier", "ouverture"]);
 let LU = null;            // { mois, lectures, perime } : la dernière lecture `mois`
 let LU_EN_COURS = null;   // { mois, promesse, perimeAdmis } : celle qui est en route
 let LU_GENERATION = 0;
@@ -101,6 +104,13 @@ function lireLeMois(mois, perimeAdmis = false) {
 }
 
 function oublierLeMois() { LU = null; LU_EN_COURS = null; LU_GENERATION++; }
+
+/** L'écran de `mois` arrivé avec l'ouverture (ticket #244, js/demarrage.js) : c'est la lecture `mois` que la page
+ *  aurait faite, servie de même (dernier état connu, `perime` s'il l'est). */
+function poserLeMois(mois, ecran) {
+  LU = { mois, lectures: (ecran && ecran.lectures) || {}, perime: !!(ecran && ecran.perime) };
+  LU_EN_COURS = null;
+}
 
 /* L'ÉTAT AFFICHÉ SE VÉRIFIE DERRIÈRE (ticket #212, Leandre, 16/10/2026 :
  * « quand je change de mois c'est pas instantané »). Un mois s'affiche avec
