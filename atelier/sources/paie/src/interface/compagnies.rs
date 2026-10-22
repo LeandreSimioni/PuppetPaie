@@ -81,8 +81,12 @@ pub fn est_fictive(racine: &Path) -> bool {
 /// `ajoutee` de son marqueur (`COPIE-DE-DEVELOPPEMENT.json`, que `ajouter` ecrit) -- lue ICI et nulle part ailleurs.
 pub const CLE_AJOUTEE: &str = "ajoutee";
 
+///
+/// UN DOSSIER DE `fictives/` SANS MARQUEUR DE FICTIVE (un marqueur retire ou illisible) se lit aussi comme ajoute : l'accueil
+/// le propose parmi les fictives, rien ne doit en partir, et rien n'en est joue.
 pub fn est_ajoutee(racine: &Path) -> bool {
-    lire(&racine.join(MARQUEUR)).and_then(|i| i.get(CLE_AJOUTEE).cloned()).is_some_and(|v| crate::fichiers::vrai(&v))
+    let marque = lire(&racine.join(MARQUEUR)).and_then(|i| i.get(CLE_AJOUTEE).cloned()).is_some_and(|v| crate::fichiers::vrai(&v));
+    marque || (racine.parent().and_then(Path::file_name).is_some_and(|n| n == DOSSIER_FICTIVES) && !est_fictive(racine))
 }
 
 /// UNE FICTIVE LIVREE : une fictive qui n'est pas ajoutee. Ses envois sont joues ; elle a sa photo d'origine et sa remise
@@ -439,9 +443,6 @@ pub fn texte_copie(racine: &Path) -> String {
     }
     if est_fictive(racine) {
         return "compagnie fictive &mdash; les envois sont simul&eacute;s".into();
-    }
-    if racine.parent().and_then(Path::file_name).is_some_and(|n| n == DOSSIER_FICTIVES) {
-        return "compagnie fictive &mdash; rien ne part".into();
     }
     "copie de test &mdash; rien ne part en r&eacute;el".into()
 }

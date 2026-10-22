@@ -6,6 +6,11 @@ Deux sortes de compagnies fictives (lot U1, 14/10/2026 : le mot « demonstration
   (`COPIE-DE-DEVELOPPEMENT.json`, `"copie_de": "compagnie fictive …"`) fait jouer leurs envois. Les tests en lisent la
   copie figee, `atelier/sources/paie/tests/donnees/fictives/`. Une installation posee avant le lot U1 les a sous
   `demo/demo-*` : le logiciel renomme ce dossier au lancement (`interface::compagnies::ranger_les_fictives`) ;
+- **celles qu'on ajoute sur un logiciel bride** (ticket #236) : le « + » de l'accueil, apres un message, pose
+  `fictives/ajoutee-<nom>` avec la marque `"ajoutee": true` dans son marqueur (`interface::compagnies::est_ajoutee`, lue
+  la seulement). Tout s'y fait ; ses envois (depots DSN et DPAE, test compris, courriels, filet) ne sont pas joues mais
+  refuses par le moteur (`bridage::refus_d_envoi`), sans rien ecrire au journal des depots. Pas de photo d'origine ni de
+  remise a zero ; la livraison des fictives ne la touche jamais et ne la livre pas ; `.gitignore` l'ecarte du depot ;
 - **le jeu de problemes** ci-dessous, que montait `outils/compagnies_fictives.py` : parti avec le Python (lot K, 09/10/2026)
   et **non porte** ; aucun test ne le monte, et ce bilan ne se regenere plus (`atelier/README.md`, « Les compagnies fictives »).
 

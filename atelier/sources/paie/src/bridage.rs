@@ -1,6 +1,7 @@
 //! LE BRIDAGE (lot U1, 14/10/2026). Il n'y a qu'un logiciel, BRIDE ou DEBLOQUE ; Leandre : « Il n'y a pas de version
 //! demonstration. C'est toujours le meme logiciel qui est bride ou pas bride. » Bride, l'accueil ne propose que les
-//! compagnies fictives et n'en ajoute pas ; debloque, il propose aussi les compagnies reelles. Rien d'autre ne change :
+//! compagnies fictives, et son « + » ajoute une FICTIVE AJOUTEE (ticket #236, `compagnies::ajouter`) dont les envois sont
+//! refuses (`refus_d_envoi`) ; debloque, il propose aussi les compagnies reelles. Rien d'autre ne change :
 //! le meme moteur, la meme mise a jour (le bridage n'y joue aucun role, `maj.rs`).
 //!
 //! BRIDE TANT QUE RIEN NE DIT QU'IL EST DEBLOQUE (ticket #246, Leandre 22/10/2026 : « Le logiciel ne doit jamais etre

@@ -82,6 +82,10 @@ fn le_plus_d_un_logiciel_bride_ajoute_une_fictive_ajoutee() {
     // Le nom d'une fictive livree ne se prend pas.
     let homonyme = ajouter_dans(&inst, "Fictive 3090 petite").unwrap();
     assert_eq!(homonyme.racine, inst.join("fictives/ajoutee-fictive-3090-petite"));
+    // Son marqueur retire, un dossier de `fictives/` reste refuse : rien n'en part, rien n'en est joue.
+    std::fs::remove_file(homonyme.racine.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
+    assert!(!est_fictive(&homonyme.racine) && refus_d_envoi(&homonyme.racine).is_some());
+    assert!(!paie::routes_accueil::simulation_active(&homonyme.racine));
     assert_eq!(ajouter_dans(&inst, "Les Pupazzi").unwrap().racine, inst.join("fictives/ajoutee-les-pupazzi-2"));
     // Pas de photo d'origine (donc pas de remise a zero).
     paie::interface::compagnies::figer_origine(&c.racine).unwrap();
