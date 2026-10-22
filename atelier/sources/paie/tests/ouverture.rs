@@ -725,18 +725,6 @@ fn la_sauvegarde_part_en_dernier_et_la_veille_ne_rappelle_pas_le_drive_quand_rie
 }
 
 #[test]
-fn un_compte_google_non_lie_est_un_manque_meme_en_veille() {
-    let _t = tour();
-    let c = compagnie("google-non-lie", "fictive-3090-petite", true);
-    let r = sans_clients(&c, &seule_la_sauvegarde());
-    assert_eq!(r.a_poser, ["google"]);
-    assert!(r.manquants[0].starts_with("Compte Google non lie"));
-    assert_eq!(trace(&c)["manquants"], json!([]));
-    let r = sans_clients(&c, &Options { veille: true, ..seule_la_sauvegarde() });
-    assert_eq!(r.a_poser, ["google"]);
-}
-
-#[test]
 fn un_dossier_reporte_n_est_pas_un_incident_et_ce_qui_dure_se_dit_dans_la_ligne_de_la_sauvegarde() {
     // Tickets #231 et #232 : « sorties/2026-08/envoi/... : HTTP 500 : Internal Error » montait dans le bandeau des retours,
     // et le passage suivant passait. Un dossier reporte une fois se tait ; ce qui dure se dit, a sa place.

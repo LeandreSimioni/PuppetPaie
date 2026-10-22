@@ -15,6 +15,10 @@ fn les_natures_et_contrat_court() {
     let mut rel = lire_oracle("contrats.json");
     rel["defaut"] = json!(defaut().unwrap());
     rel["inconnue"] = json!(nature(Some("zzz")).unwrap_err());
+    // Un engagement muet (sans nature, ou nature vide) est de la nature par defaut (regle 6 : un CDDU).
+    for muet in [None, Some("")] {
+        assert_eq!(nature(muet).unwrap().cle, defaut().unwrap(), "{:?}", muet);
+    }
     assert_eq!(natures().unwrap().len(), rel["natures"].as_object().unwrap().len());
     for (cle, v) in rel["natures"].as_object_mut().unwrap() {
         let n = nature(Some(cle)).unwrap();

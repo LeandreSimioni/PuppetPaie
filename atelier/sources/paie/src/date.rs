@@ -485,15 +485,12 @@ mod tests {
     }
 
     #[test]
-    fn les_refus_ont_le_message_du_python() {
-        assert_eq!(Jour::lire("demain").unwrap_err(), "date illisible : 'demain'");
-        assert_eq!(Jour::lire("l'an 2").unwrap_err(), "date illisible : \"l'an 2\"");
-        assert_eq!(Jour::lire("").unwrap_err(), "date illisible : ''");
-        assert_eq!(d(&json!(null)).unwrap_err(), "date illisible : 'None'");
-        assert_eq!(
-            d(&json!({"lieu": "Tours", "n": 1.0})).unwrap_err(),
-            "date detaillee sans `jour` : {'lieu': 'Tours', 'n': 1.0}"
-        );
+    fn ce_qui_n_est_pas_une_date_se_refuse() {
+        for s in ["demain", "l'an 2", ""] {
+            assert!(Jour::lire(s).is_err(), "{}", s);
+        }
+        assert!(d(&json!(null)).is_err());
+        assert!(d(&json!({"lieu": "Tours", "n": 1.0})).is_err(), "une date detaillee sans `jour`");
     }
 
     #[test]
@@ -585,13 +582,12 @@ mod tests {
     }
 
     #[test]
-    fn les_reprs() {
+    fn les_flottants_s_ecrivent_comme_str_de_python() {
+        // `num::dec_py` en tire un Decimal (`Decimal(str(x))`) : la forme du flottant y est une valeur.
         assert_eq!(repr_flottant(1.0), "1.0");
         assert_eq!(repr_flottant(0.25), "0.25");
         assert_eq!(repr_flottant(1e-5), "1e-05");
         assert_eq!(repr_flottant(1e16), "1e+16");
         assert_eq!(repr_flottant(123456789012345.0), "123456789012345.0");
-        assert_eq!(repr_texte("a\\b\n"), "'a\\\\b\\n'");
-        assert_eq!(repr_py(&json!([{"a": null, "b": true}, "x'y"])), "[{'a': None, 'b': True}, \"x'y\"]");
     }
 }

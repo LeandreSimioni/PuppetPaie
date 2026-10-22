@@ -392,18 +392,6 @@ pub fn source() -> Resultat<Value> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn les_natures_utilisees_par_le_calcul() {
-        let cddu = nature(None).unwrap();
-        assert_eq!(cddu.cle, "cddu_spectacle");
-        assert!(!cddu.mensuelle() && cddu.remunerations_au_brut() && cddu.bareme.is_none());
-        let cdi = nature(Some("cdi")).unwrap();
-        assert!(cdi.mensuelle() && cdi.duree_indeterminee && !cdi.remunerations_au_brut());
-        assert_eq!(cdi.bareme.as_deref(), Some("permanent"));
-        assert_eq!(cdi.quotite_reference_defaut, Some(151.67));
-        assert_eq!(nature(Some("")).unwrap().cle, "cddu_spectacle");
-    }
-
     /// CCH-18 du 40.005 (cahier technique 2026.1, p. 185, `bloc-S21.G00.40.txt` l. 325-329) : « 999SPT pour les emplois
     /// permanents du spectacle » ; un CDDU garde le code de la nomenclature.
     #[test]

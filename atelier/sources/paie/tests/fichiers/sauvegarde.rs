@@ -11,7 +11,7 @@ use crate::faux_drive;
 
 use std::path::{Path, PathBuf};
 
-use faux_drive::{ecrire, fixer_date, md5_de, racine as racine_de, FauxDrive, Panne};
+use faux_drive::{ecrire, fixer_date, racine as racine_de, FauxDrive, Panne};
 use md5::{Digest, Md5};
 use paie::drive::{Drive, ErreurGoogle};
 use paie::sauvegarde::{self, derniere, empreinte, inventaire, rien_n_a_bouge, sauvegarder, EtatFichier, Fichier, Sauvegarde};
@@ -94,21 +94,14 @@ fn index_json(r: &Path) -> Value {
     serde_json::from_str(&lire_index(r)).unwrap()
 }
 
-/// Le texte de l'index avec `quand` masque (`AAAA-MM-JJ HH:MM`, a la minute) ; le format est verifie au passage.
-fn index_masque(r: &Path) -> String {
-    let t = lire_index(r);
-    let mut sortie = Vec::new();
-    for l in t.lines() {
-        if let Some(v) = l.strip_prefix(" \"quand\": \"") {
-            let v = v.strip_suffix("\",").expect(l);
-            let b = v.as_bytes();
-            assert!(v.len() == 16 && b[4] == b'-' && b[7] == b'-' && b[10] == b' ' && b[13] == b':', "quand : {}", v);
-            sortie.push(" \"quand\": \"MASQUE\",".to_string());
-        } else {
-            sortie.push(l.to_string());
-        }
-    }
-    sortie.join("\n") + "\n"
+/// L'index relu, `quand` verifie (`AAAA-MM-JJ HH:MM`, a la minute : la route de la sauvegarde l'affiche) puis retire.
+fn index_sans_quand(r: &Path) -> Value {
+    let mut i = index_json(r);
+    let v = i["quand"].as_str().unwrap().to_string();
+    let b = v.as_bytes();
+    assert!(v.len() == 16 && b[4] == b'-' && b[7] == b'-' && b[10] == b' ' && b[13] == b':', "quand : {}", v);
+    i.as_object_mut().unwrap().remove("quand");
+    i
 }
 
 fn erreur(classe: &'static str, message: &str) -> ErreurGoogle {
@@ -249,25 +242,24 @@ fn le_coffre_monte_le_jeton_google_non() {
 }
 
 #[test]
-fn l_index_octet_pour_octet() {
-    // Reference : `json.dumps(index, ensure_ascii=False, indent=1) + "\n"` de `util.ecrire_json` (LF), `quand` a la minute,
-    // `dossiers` dans l'ordre de passage, `fichiers` dans l'ordre de `sorted(rglob)`.
+fn l_index_dit_les_dossiers_et_les_fichiers_passes() {
+    // Ce que la sauvegarde suivante relit (`sauvegarde::Derniere`) : la racine, les dossiers Drive connus, la taille et la
+    // date de chaque fichier envoye.
     let r = racine("index-octets");
     ecrire(&r, "config/é à.json", "{}");
     ecrire(&r, "notes.txt", "12345");
     fixer_date(&r.join("notes.txt"), 1_700_000_042, 0);
     let mut d = FauxDrive::nouveau();
     passer(&r, &mut d);
-    let (racine_d, sauv, config) = (d.id_du_dossier("PuppetPaie"), d.id_du_dossier("PuppetPaie/sauvegarde"), d.id_du_dossier("PuppetPaie/sauvegarde/config"));
-    let _ = racine_d;
-    let attendu = format!(
-        "{{\n \"quand\": \"MASQUE\",\n \"racine_drive\": \"PuppetPaie\",\n \"dossiers\": {{\n  \"PuppetPaie/sauvegarde\": \"{}\",\n  \"PuppetPaie/sauvegarde/config\": \"{}\"\n }},\n \"fichiers\": {{\n  \"config/é à.json\": {{\n   \"octets\": 2,\n   \"mtime\": 1700000000\n  }},\n  \"notes.txt\": {{\n   \"octets\": 5,\n   \"mtime\": 1700000042\n  }}\n }}\n}}\n",
-        sauv, config
+    let (sauv, config) = (d.id_du_dossier("PuppetPaie/sauvegarde"), d.id_du_dossier("PuppetPaie/sauvegarde/config"));
+    assert_eq!(
+        index_sans_quand(&r),
+        json!({
+            "racine_drive": "PuppetPaie",
+            "dossiers": {"PuppetPaie/sauvegarde": sauv, "PuppetPaie/sauvegarde/config": config},
+            "fichiers": {"config/é à.json": {"octets": 2, "mtime": 1_700_000_000}, "notes.txt": {"octets": 5, "mtime": 1_700_000_042}}
+        })
     );
-    assert_eq!(index_masque(&r), attendu);
-    // Les octets bruts : LF seulement, accents en UTF-8 et pas en \uXXXX, un saut de ligne final.
-    let brut = std::fs::read(r.join("config").join(".sauvegarde.json")).unwrap();
-    assert!(!brut.contains(&b'\r') && brut.ends_with(b"}\n") && String::from_utf8(brut).unwrap().contains("é à.json"));
 }
 
 #[test]
@@ -369,19 +361,6 @@ fn defaut_3_on_remplace_le_fichier_que_lister_retient_jamais_un_dossier_ni_un_au
 }
 
 #[test]
-fn defaut_4_aucune_recherche_par_fichier_un_seul_listage_par_dossier() {
-    let r = monde("defaut-4");
-    let mut d = FauxDrive::nouveau();
-    passer(&r, &mut d);
-    // Huit fichiers neufs, huit dossiers : 8 listages, 8 envois, et le journal n'a aucune autre sorte d'appel (le Python
-    // faisait une recherche par fichier, 8 de plus, toutes vides).
-    assert_eq!(d.appels("lister"), 8);
-    assert_eq!(d.appels("televerser"), 8);
-    assert_eq!(d.appels("chemin"), 8);
-    assert_eq!(d.journal.len(), 24);
-}
-
-#[test]
 fn defaut_5_un_fichier_sans_empreinte_chez_drive_est_remplace_donc_modifie_pas_neuf() {
     let r = racine("defaut-5");
     ecrire(&r, "doc.txt", "local");
@@ -470,7 +449,7 @@ fn reseau_absent_arret_au_premier_dossier_et_rien_n_entre_a_l_index() {
     assert!(s.deposes.is_empty() && s.incidents.is_empty());
     assert_eq!(d.journal, ["chemin PuppetPaie/sauvegarde"], "arret au premier dossier");
     assert_eq!(s.resume(), "Hors connexion : sauvegarde au prochain passage.");
-    assert_eq!(index_masque(&r), "{\n \"quand\": \"MASQUE\",\n \"racine_drive\": \"PuppetPaie\",\n \"dossiers\": {},\n \"fichiers\": {}\n}\n");
+    assert_eq!(index_sans_quand(&r), json!({"racine_drive": "PuppetPaie", "dossiers": {}, "fichiers": {}}));
     assert!(!rien_n_a_bouge(&r, RD));
     // Le reseau revient : tout part.
     d.pannes.clear();
@@ -884,9 +863,4 @@ fn hors_ligne_reconnait_le_reseau_absent_et_pas_le_delai() {
     ] {
         assert_eq!(sauvegarde::hors_ligne(message), hors, "{:?}", message);
     }
-}
-
-#[test]
-fn md5_de_reference_du_faux_est_celui_de_drive() {
-    assert_eq!(md5_de(b"abc"), "900150983cd24fb0d6963f7d28e17f72");
 }

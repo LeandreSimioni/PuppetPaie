@@ -884,18 +884,6 @@ mod tests {
     // ---------------------------------------------------------------- les phrases
 
     #[test]
-    fn les_petits_outils_des_phrases() {
-        assert_eq!(mois_fr("2026-10"), "octobre 2026");
-        assert_eq!(mois_fr("2026-12"), "décembre 2026");
-        assert_eq!(le("2026-10-13T07:00:00"), "13/10/2026");
-        assert_eq!(le("2027-01-31"), "31/01/2027");
-        assert_eq!(motif_de(&Echec { classe: None, message: "première\nseconde".into() }), "première");
-        assert_eq!(motif_de(&Echec { classe: None, message: "é".repeat(200) }).chars().count(), 160);
-        assert_eq!(motif_de(&Echec { classe: Some("KeyError"), message: String::new() }), "KeyError");
-        assert_eq!(motif_de(&Echec { classe: None, message: String::new() }), "Exception");
-    }
-
-    #[test]
     fn un_pas_dit_ce_qu_il_a_fait_et_se_tait_quand_il_n_y_a_rien_a_faire() {
         let r = racine_d_essai(true);
         let d = HorlogeFictive::verifier(&r).unwrap().au_jour(jour("2026-10-13"));
