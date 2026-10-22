@@ -78,6 +78,8 @@ fn lancer(inst: &Path) -> Vec<Arc<FileDesEtats>> {
 #[test]
 fn au_lancement_les_compagnies_se_refont_en_fond_et_s_ouvrent_fraiches() {
     let inst = installation(&dossier_de_test("prechauffage", "lancement"), "2026.10.22");
+    // Debloquee par le geste (ticket #246) : bridee, elle ne tiendrait aucune compagnie reelle a jour.
+    crate::outils::debloquer(&inst);
     let (a, b) = (compagnie_de(&inst, "a"), compagnie_de(&inst, "b"));
     // Une fictive de l'installation : jamais prechauffee.
     let f = compagnie::saisies("fictive-3090-petite", &MOIS, &inst.join("fictives").join("fictive-3090-petite"));

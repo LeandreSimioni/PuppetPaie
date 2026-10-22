@@ -1,6 +1,6 @@
 //! La mise a jour d'une INSTALLATION, de bout en bout (`paie::maj` ; lot V1, refait par le lot U1 le 14/10/2026) :
-//! l'editeur publie dans un dossier ; une installation (celle que pose `atelier/installeur/` : `logiciel/` avec son
-//! `EDITION.json`, des compagnies a cote) y trouve la version POUR ELLE-MEME, sans qu'aucune compagnie soit ouverte, la
+//! l'editeur publie dans un dossier ; une installation (celle que pose `atelier/installeur/` : `logiciel/`, bridee faute
+//! de `.edition.json`, des compagnies a cote) y trouve la version POUR ELLE-MEME, sans qu'aucune compagnie soit ouverte, la
 //! telecharge, la controle, la range dans `<installation>/maj/`, l'applique, GARDE SON BRIDAGE (`EDITION.json`,
 //! `.edition.json`), puis revient. Le poste de l'editeur recoit comme les autres (Leandre, 14/10/2026 : « mon logiciel
 //! c'est le meme que les autres […] quand je fais une mise a jour, il faut que la mise a jour arrive aussi sur ma
@@ -46,6 +46,23 @@ fn logiciel(dossier: &Path, version: &str) -> PathBuf {
         std::fs::set_permissions(&exe, std::fs::Permissions::from_mode(0o755)).unwrap();
     }
     dossier.to_path_buf()
+}
+
+/// Les quatre compagnies fictives livrees, a cote du logiciel `code` (`<code>/../fictives/`), comme dans le depot que
+/// publie le flux : leur marqueur, leur fiche et leur configuration (la copie figee des essais). Sans elles, rien ne se
+/// publie (`maj::archiver`).
+const FICTIVES: [&str; 4] = ["fictive-1285-grande", "fictive-1285-petite", "fictive-3090-grande", "fictive-3090-petite"];
+
+fn livrer_les_fictives(code: &Path) {
+    let f = code.parent().unwrap().join("fictives");
+    for nom in FICTIVES {
+        let de = crate::outils::fictive(nom);
+        copier(&de.join("config"), &f.join(nom).join("config"));
+        for fichier in ["COPIE-DE-DEVELOPPEMENT.json", "FICTIVE.md"] {
+            std::fs::copy(de.join(fichier), f.join(nom).join(fichier)).unwrap();
+        }
+    }
+    std::fs::write(f.join("LISEZ-MOI.md"), "Les compagnies fictives.\n").unwrap();
 }
 
 fn lire(p: &Path) -> String {
@@ -94,6 +111,7 @@ fn contenu(octets: &[u8]) -> Vec<(String, u32)> {
 fn la_publication_fait_quatre_archives_signees_que_derniere_json_nomme() {
     let d = dossier_de_test("mise_a_jour", "quatre_archives");
     let code = logiciel(&d.join("logiciel"), "2026.11.03");
+    livrer_les_fictives(&code);
     tous_les_systemes(&code);
     let depot = d.join("depot");
     let r = maj::publier_signe(&code, &depot, &GRAINE, &publique(), "", "", "").unwrap();
@@ -116,12 +134,12 @@ fn la_publication_fait_quatre_archives_signees_que_derniere_json_nomme() {
     assert!(!maj::signature_valide(&octets["linux"], archives["mac"]["signature"].as_str().unwrap(), &publique()), "chacune sa signature");
     assert_eq!(maj::derniere(&depot.display().to_string()).unwrap(), manifeste, "le recepteur relit ce qu'ecrit l'editeur");
 
-    let communs = ["VERSION", "interface/index.html"];
+    let communs = ["logiciel/VERSION", "logiciel/interface/index.html", "fictives/LISEZ-MOI.md"];
     let programmes = |s: &str| -> Vec<&str> {
         match s {
-            "windows" => vec!["puppetpaie.exe", "WebView2Loader.dll"],
-            "linux" => vec!["linux/puppetpaie", "linux/paie"],
-            _ => vec!["mac/puppetpaie", "mac/paie"],
+            "windows" => vec!["logiciel/puppetpaie.exe", "logiciel/WebView2Loader.dll"],
+            "linux" => vec!["logiciel/linux/puppetpaie", "logiciel/linux/paie"],
+            _ => vec!["logiciel/mac/puppetpaie", "logiciel/mac/paie"],
         }
     };
     for (k, o) in &octets {
@@ -130,14 +148,19 @@ fn la_publication_fait_quatre_archives_signees_que_derniere_json_nomme() {
         for n in communs {
             assert!(porte(n), "{} porte {}", k, n);
         }
-        assert!(c.iter().any(|(x, _)| x.starts_with("donnees/")), "{} porte les donnees", k);
+        assert!(c.iter().any(|(x, _)| x.starts_with("logiciel/donnees/")), "{} porte les donnees", k);
+        // Une installation : le logiciel et, a cote, les quatre fictives livrees (ticket #246).
+        for nom in FICTIVES {
+            assert!(porte(&format!("fictives/{}/config/entreprise.json", nom)), "{} porte {}", k, nom);
+        }
+        assert!(c.iter().all(|(x, _)| x.starts_with("logiciel/") || x.starts_with("fictives/")), "{} : rien hors de logiciel/ et fictives/", k);
         for s in maj::SYSTEMES {
             for n in programmes(s) {
                 assert_eq!(porte(n), k == s || k == "tout-systeme", "{} et {}", k, n);
             }
         }
         for (n, mode) in &c {
-            let unix = n.starts_with("linux/") || n.starts_with("mac/");
+            let unix = n.starts_with("logiciel/linux/") || n.starts_with("logiciel/mac/");
             assert_eq!(*mode, if unix { 0o755 } else { 0o644 }, "{} : {}", k, n);
         }
     }
@@ -155,6 +178,7 @@ fn la_publication_fait_quatre_archives_signees_que_derniere_json_nomme() {
 fn publiee(base: &Path, avec_edition: bool) -> PathBuf {
     let depot = base.join("depot");
     let editeur = logiciel(&base.join("editeur").join("logiciel"), "2026.11.01");
+    livrer_les_fictives(&editeur);
     tous_les_systemes(&editeur);
     if avec_edition {
         std::fs::write(editeur.join("EDITION.json"), "{\"edition\": \"bride\"}\n").unwrap();
@@ -194,14 +218,13 @@ fn executables(neuf: &Path) {
     }
 }
 
-/// L'installation de l'installeur : `logiciel/` en 2026.10.09 et l'`EDITION.json` de l'installeur (bride). Rend
-/// (installation, son EDITION.json).
-fn installee(base: &Path) -> (PathBuf, Vec<u8>) {
+/// L'installation de l'installeur : `logiciel/` en 2026.10.09, sans `EDITION.json` (l'installeur n'en pose plus : sans
+/// rien qui dise « debloque », le logiciel est bride, ticket #246). Rend l'installation.
+fn installee(base: &Path) -> PathBuf {
     let inst = base.join("installation");
-    let code = logiciel(&inst.join("logiciel"), "2026.10.09");
-    let edition = std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../installeur/EDITION.json")).unwrap();
-    std::fs::write(code.join("EDITION.json"), &edition).unwrap();
-    (inst, edition)
+    logiciel(&inst.join("logiciel"), "2026.10.09");
+    assert!(paie::bridage::est_bride_de(&inst), "une installation neuve est bridee");
+    inst
 }
 
 /// Une compagnie telle que la cree « Ajouter une compagnie » (`interface::compagnies::ajouter`) : trois fiches.
@@ -212,13 +235,13 @@ fn ajoutee(racine: &Path) {
 }
 
 /// L'installation bridee de l'installeur recoit la version publiee POUR ELLE-MEME (aucune compagnie ouverte : la
-/// recherche ne prend que l'installation), la range a cote de `logiciel/`, l'applique en gardant son `EDITION.json`, et
+/// recherche ne prend que l'installation), la range a cote de `logiciel/`, l'applique en restant bridee, et
 /// revient a la precedente. Rien ne se range dans une compagnie.
 #[test]
 fn une_installation_recoit_la_version_publiee_garde_son_bridage_et_revient() {
     let base = dossier_de_test("mise_a_jour", "bout_en_bout");
     let depot = publiee(&base, false);
-    let (inst, edition) = installee(&base);
+    let inst = installee(&base);
     let code = inst.join("logiciel");
     let racine = inst.join("compagnies").join("essai");
     ajoutee(&racine);
@@ -247,18 +270,18 @@ fn une_installation_recoit_la_version_publiee_garde_son_bridage_et_revient() {
     assert_eq!(r["version"], "2026.11.01");
     assert_eq!(maj::courante(&code), "2026.11.01");
     assert_eq!(lire(&code.join("interface").join("index.html")), "<p>2026.11.01</p>\n");
-    assert_eq!(std::fs::read(code.join("EDITION.json")).ok().as_deref(), Some(edition.as_slice()), "l'installation reste bridee");
+    assert!(!code.join("EDITION.json").exists() && paie::bridage::est_bride_de(&inst), "l'installation reste bridee");
     assert_eq!(maj::courante(&code.join(".avant")), "2026.10.09");
     assert!(maj::prete(&inst).is_none() && maj::applicable(&inst).is_none(), "plus rien a appliquer");
     let applique: Value = serde_json::from_str(&lire(&inst.join("maj").join("appliquee.json"))).unwrap();
     assert_eq!(applique["version"], "2026.11.01");
     assert_eq!(maj::verifier_avec(&inst, true, &[&publique()]), "version 01.11.2026, a jour");
 
-    // La marche arriere : la precedente revient, avec son EDITION.json.
+    // La marche arriere : la precedente revient, et l'installation reste bridee.
     let r = maj::revenir(&inst).unwrap();
     assert_eq!(r["version"], "2026.10.09");
     assert_eq!(maj::courante(&code), "2026.10.09");
-    assert_eq!(std::fs::read(code.join("EDITION.json")).ok().as_deref(), Some(edition.as_slice()));
+    assert!(!code.join("EDITION.json").exists() && paie::bridage::est_bride_de(&inst), "toujours bridee");
     assert!(!code.join(".avant").exists() && !code.join(".apres").exists());
 }
 
@@ -273,7 +296,7 @@ fn reecrire_manifeste(depot: &Path, m: &Value) {
 
 /// Une installation de l'installeur, avec une compagnie, reglee sur `depot`, qui cherche : (installation, ce qui est dit).
 fn recoit(base: &Path, depot: &Path) -> (PathBuf, String) {
-    let (inst, _) = installee(base);
+    let inst = installee(base);
     ajoutee(&inst.join("compagnies").join("essai"));
     crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": depot.display().to_string()}));
     let dit = maj::verifier_avec(&inst, true, &[&publique()]);
@@ -341,6 +364,7 @@ fn sans_l_archive_de_son_systeme_l_installation_prend_celle_de_tous() {
 fn une_version_publiee_sans_ce_systeme_ne_se_telecharge_pas() {
     let base = dossier_de_test("mise_a_jour", "sans_ce_systeme");
     let editeur = logiciel(&base.join("editeur").join("logiciel"), "2026.11.01");
+    livrer_les_fictives(&editeur);
     std::fs::remove_dir_all(maj::dossier_programmes(&editeur)).unwrap();
     std::fs::write(editeur.join("puppetpaie.exe"), b"MZ fenetre").unwrap();
     std::fs::write(editeur.join("WebView2Loader.dll"), b"MZ chargeur").unwrap();
@@ -403,15 +427,15 @@ fn une_archive_dont_la_signature_ne_vaut_pas_est_refusee_sans_repli() {
     refusee(&inst, &dit, "signature");
 }
 
-/// Une installation DEBLOQUEE (le geste de l'accueil a ecrit `.edition.json` a cote de `logiciel/` ; l'`EDITION.json` de
-/// l'installeur est toujours la) reste debloquee : la mise a jour ne touche ni l'un ni l'autre, meme si le logiciel de
+/// Une installation DEBLOQUEE (le geste de l'accueil a ecrit `.edition.json` a cote de `logiciel/`)
+/// reste debloquee : la mise a jour ne touche pas ce choix, meme si le logiciel de
 /// l'editeur porte son propre `EDITION.json` (il ne part pas dans l'archive). Leandre, 14/10/2026 : « le petit curseur
 /// ecrit en JSON lui il reste comme il etait. Si les gens ont debloque, elle reste debloquee ».
 #[test]
 fn une_installation_debloquee_reste_debloquee() {
     let base = dossier_de_test("mise_a_jour", "installation_debloquee");
     let depot = publiee(&base, true);
-    let (inst, edition) = installee(&base);
+    let inst = installee(&base);
     let code = inst.join("logiciel");
     let curseur = "{\"edition\": \"debloque\", \"_quoi\": \"le geste de l'accueil\"}";
     std::fs::write(inst.join(".edition.json"), curseur).unwrap();
@@ -422,7 +446,65 @@ fn une_installation_debloquee_reste_debloquee() {
     maj::appliquer(&inst, false).unwrap();
     assert_eq!(maj::courante(&code), "2026.11.01");
     assert_eq!(lire(&inst.join(".edition.json")), curseur, "le choix du geste est intact");
-    assert_eq!(std::fs::read(code.join("EDITION.json")).ok().as_deref(), Some(edition.as_slice()), "l'EDITION.json de l'installation aussi");
+    assert!(!code.join("EDITION.json").exists(), "l'EDITION.json de l'editeur n'est pas arrive");
+    assert!(!paie::bridage::est_bride_de(&inst), "l'installation reste debloquee");
+}
+
+/// UNE ARCHIVE DECOMPRESSEE DANS UN DOSSIER NEUF EST UNE INSTALLATION (ticket #246) : `logiciel/` et, a cote, les quatre
+/// fictives livrees. Rien ne dit « debloque » : elle est bridee, et l'accueil propose ses quatre fictives, aucune compagnie
+/// reelle. Le programme de ce systeme y est, executable.
+#[test]
+fn une_archive_decompressee_dans_un_dossier_neuf_est_une_installation_bridee_avec_ses_fictives() {
+    let base = dossier_de_test("mise_a_jour", "archive_decompressee");
+    let depot = publiee(&base, false);
+    let octets = std::fs::read(depot.join(format!("puppetpaie-2026.11.01-{}.zip", maj::SYSTEME))).unwrap();
+    let neuf = base.join("dossier-neuf");
+    zip::ZipArchive::new(std::io::Cursor::new(octets)).unwrap().extract(&neuf).unwrap();
+    let mut a_la_racine: Vec<String> = std::fs::read_dir(&neuf).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+    a_la_racine.sort();
+    assert_eq!(a_la_racine, ["fictives", "logiciel"], "une installation, rien d'autre");
+    assert_eq!(maj::courante(&neuf.join("logiciel")), "2026.11.01");
+    executables(&neuf.join("logiciel"));
+    assert!(paie::bridage::est_bride_de(&neuf), "rien ne dit « debloque » : bridee");
+    let l = paie::interface::compagnies::liste_de(&neuf);
+    assert_eq!(l.iter().filter(|c| c.reelle).count(), 0, "aucune compagnie reelle");
+    let mut ids: Vec<String> = l.iter().map(|c| c.id.clone()).collect();
+    ids.sort();
+    assert_eq!(ids, FICTIVES.map(|n| format!("fictive:{}", n)), "les quatre fictives");
+    assert!(l.iter().all(|c| paie::interface::compagnies::est_fictive(&c.racine)));
+}
+
+/// LA MISE A JOUR EN PLACE N'ECRASE PAS LES FICTIVES DU POSTE : une fictive jouee (sa fiche changee, une paie de plus) et
+/// sa photo d'origine (`fictives/.origine/`) restent exactement comme elles etaient ; de l'archive, seul `logiciel/` est
+/// pris, et rien de ses fictives n'est range dans `maj/`.
+#[test]
+fn la_mise_a_jour_en_place_n_ecrase_pas_les_fictives_du_poste() {
+    let base = dossier_de_test("mise_a_jour", "fictives_du_poste");
+    let depot = publiee(&base, false);
+    let inst = installee(&base);
+    let fictive = inst.join("fictives").join("fictive-3090-petite");
+    compagnie::config_et_mois("fictive-3090-petite", &[], &fictive);
+    std::fs::copy(crate::outils::fictive("fictive-3090-petite").join("COPIE-DE-DEVELOPPEMENT.json"), fictive.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
+    paie::interface::compagnies::figer_origine(&fictive).unwrap();
+    let origine = inst.join("fictives").join(".origine").join("fictive-3090-petite");
+    assert!(origine.join("config").join("entreprise.json").is_file(), "la photo d'origine");
+    crate::outils::ecrire(&fictive, "config/entreprise.json", &json!({"nom_affichage": "Jouee sur ce poste"}));
+    crate::outils::ecrire(&fictive, "paies/2026-12.json", &json!({"joue": true}));
+    let fiche = lire(&fictive.join("config").join("entreprise.json"));
+    let photo = lire(&origine.join("config").join("entreprise.json"));
+    crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": depot.display().to_string()}));
+
+    let dit = maj::verifier_avec(&inst, true, &[&publique()]);
+    assert!(dit.contains("prete"), "{}", dit);
+    assert!(!inst.join("maj").join("2026.11.01").join("fictives").exists(), "rien des fictives de l'archive n'est range");
+    maj::appliquer(&inst, false).unwrap();
+    assert_eq!(maj::courante(&inst.join("logiciel")), "2026.11.01");
+    assert_eq!(lire(&fictive.join("config").join("entreprise.json")), fiche, "la fiche jouee est intacte");
+    assert!(fictive.join("paies").join("2026-12.json").is_file(), "la paie jouee aussi");
+    assert_eq!(lire(&origine.join("config").join("entreprise.json")), photo, "la photo d'origine aussi");
+    let mut fictives: Vec<String> = std::fs::read_dir(inst.join("fictives")).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+    fictives.sort();
+    assert_eq!(fictives, [".origine", "fictive-3090-petite"], "aucune fictive de l'archive n'est arrivee");
 }
 
 /// Une installation BRIDEE dont les seules compagnies sont les fictives (et une copie de developpement) recoit et applique
@@ -432,7 +514,7 @@ fn une_installation_debloquee_reste_debloquee() {
 fn une_installation_bridee_recoit_applique_et_reste_bridee() {
     let base = dossier_de_test("mise_a_jour", "installation_bridee");
     let depot = publiee(&base, false);
-    let (inst, edition) = installee(&base);
+    let inst = installee(&base);
     let fictive = inst.join(paie::interface::compagnies::DOSSIER_FICTIVES).join("fictive-3090-petite");
     compagnie::config_et_mois("fictive-3090-petite", &[], &fictive);
     std::fs::copy(crate::outils::fictive("fictive-3090-petite").join("COPIE-DE-DEVELOPPEMENT.json"), fictive.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
@@ -446,7 +528,7 @@ fn une_installation_bridee_recoit_applique_et_reste_bridee() {
     assert!(dit.contains("01.11.2026 est telechargee, controlee, prete"), "{}", dit);
     maj::appliquer(&inst, false).unwrap();
     assert_eq!(maj::courante(&inst.join("logiciel")), "2026.11.01");
-    assert_eq!(std::fs::read(inst.join("logiciel").join("EDITION.json")).ok().as_deref(), Some(edition.as_slice()), "l'installation reste bridee");
+    assert!(!inst.join("logiciel").join("EDITION.json").exists() && paie::bridage::est_bride_de(&inst), "l'installation reste bridee");
     assert!(!inst.join(".edition.json").exists(), "aucun choix bride/debloque n'a ete ecrit");
 }
 
@@ -511,6 +593,7 @@ fn publique_de(graine: &[u8; 32]) -> String {
 /// `<base>/releases/<etiquette>/`. Rend le dossier.
 fn release(base: &Path, version: &str, graine: &[u8; 32]) -> PathBuf {
     let editeur = logiciel(&base.join(format!("editeur-{}", version)).join("logiciel"), version);
+    livrer_les_fictives(&editeur);
     let dossier = base.join("releases").join(version);
     maj::publier_par_graine(&editeur, &dossier, &paie::retours::base64_ecrire(graine), &publique_de(graine), "Essai", "", "").unwrap();
     dossier
@@ -554,7 +637,7 @@ fn deux_cles_acceptees_une_troisieme_refusee_par_un_depot_qui_redirige_comme_git
     release(&base, "2026.12.01", &poste);
     let derniere = Arc::new(Mutex::new("2026.11.01".to_string()));
     let (url, recu) = faux_github(&base, derniere.clone());
-    let (inst, _) = installee(&base);
+    let inst = installee(&base);
     crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": format!("{}/releases/latest/download", url)}));
 
     // Signee par une troisieme cle : refusee, rien n'est prepare.
@@ -587,6 +670,7 @@ fn deux_cles_acceptees_une_troisieme_refusee_par_un_depot_qui_redirige_comme_git
 fn la_publication_par_github_refuse_sans_cle_reportee_mauvaise_graine_ou_version_pas_plus_recente() {
     let base = dossier_de_test("mise_a_jour", "publier_github_refus");
     let editeur = logiciel(&base.join("editeur").join("logiciel"), "2026.11.01");
+    livrer_les_fictives(&editeur);
     let (graine, autre) = ([7u8; 32], [9u8; 32]);
     let g64 = paie::retours::base64_ecrire(&graine);
     let sortie = base.join("sortie");
@@ -652,6 +736,7 @@ fn la_cle_de_github_se_fabrique_dans_un_fichier_et_ne_s_affiche_jamais() {
 
     // Le flux, avec le moteur livre : la graine vient de l'environnement et ne se montre pas.
     let editeur = logiciel(&base.join("editeur").join("logiciel"), "2026.11.01");
+    livrer_les_fictives(&editeur);
     let sortie = base.join("sortie");
     let (code, dit) = paie_exe(
         &["--publier-github", "--logiciel", editeur.to_str().unwrap(), "--sortie", sortie.to_str().unwrap()],
@@ -666,7 +751,7 @@ fn la_cle_de_github_se_fabrique_dans_un_fichier_et_ne_s_affiche_jamais() {
     // La meme graine, avec SA cle publique : l'installation qui la connait recoit.
     let depot = base.join("depot");
     maj::publier_par_graine(&editeur, &depot, &g64, &publique, "", "", "").unwrap();
-    let (inst, _) = installee(&base);
+    let inst = installee(&base);
     crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": depot.display().to_string()}));
     let dit = maj::verifier_avec(&inst, true, &[maj::CLE_PUBLIQUE, &publique]);
     assert!(dit.contains("01.11.2026 est telechargee, controlee, prete"), "{}", dit);
@@ -720,7 +805,7 @@ fn la_recherche_dit_ou_elle_en_est_et_se_tait_quand_elle_a_fini() {
 
     let base = dossier_de_test("mise_a_jour", "indicateur");
     let depot = publiee(&base, false);
-    let (inst, _) = installee(&base);
+    let inst = installee(&base);
     ajoutee(&inst.join("compagnies").join("essai"));
 
     // Le depot ne repond pas : un echec, rien de pret, rien a redemarrer.
@@ -786,7 +871,7 @@ fn lancee_sans_reseau_la_recherche_reprend_quand_il_revient() {
 
     let base = dossier_de_test("mise_a_jour", "hors_ligne_puis_en_ligne");
     let depot = publiee(&base, false);
-    let (inst, _) = installee(&base);
+    let inst = installee(&base);
     ajoutee(&inst.join("compagnies").join("essai"));
     let en_ligne = Arc::new(AtomicBool::new(false));
     let (url, recu) = {
@@ -868,7 +953,7 @@ fn a_jour_la_recherche_continue_et_trouve_la_version_publiee_apres() {
 
     let base = dossier_de_test("mise_a_jour", "a_jour_puis_publiee");
     let depot = publiee(&base, false);
-    let (inst, _) = installee(&base);
+    let inst = installee(&base);
     ajoutee(&inst.join("compagnies").join("essai"));
     // 0 : le depot dit la version en place ; 1 : il ne repond pas (un tour coupe) ; 2 : la 2026.11.01 est publiee.
     let publication = Arc::new(AtomicU8::new(0));

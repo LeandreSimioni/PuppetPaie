@@ -10,8 +10,8 @@
 #
 # Ce que l'installeur pose : exactement ce qu'une compagnie Windows recoit (CLAUDE.md, « Le rangement ») -- les fichiers
 # suivis par Git de `logiciel/` et de `fictives/` (ni `logiciel/linux/` ni `logiciel/mac/`, qui ne sont pas suivis) --,
-# la fenetre fraichement compilee a la place de `logiciel/puppetpaie.exe`, et `logiciel/EDITION.json` (toujours bride, a
-# cote de ce script).
+# et la fenetre fraichement compilee a la place de `logiciel/puppetpaie.exe`. Rien sur le bridage : sans rien qui dise
+# « debloque », le logiciel est bride (ticket #246, paie/src/bridage.rs).
 #
 # Usage :
 #   atelier/installeur/construire.sh                     tout
@@ -98,7 +98,6 @@ while IFS= read -r -d '' f; do
     cp -p "$f" "$PREPA/pose/$f"
 done < "$PREPA/liste.z"
 cp -p "$FENETRE" "$PREPA/pose/logiciel/puppetpaie.exe"
-cp -p "$ICI/EDITION.json" "$PREPA/pose/logiciel/EDITION.json"
 # L'application Google n'est pas suivie par le depot public : le flux « Publier » la pose depuis un secret GitHub.
 [ -f "$DEPOT/logiciel/donnees/google-application.json" ] && cp -p "$DEPOT/logiciel/donnees/google-application.json" "$PREPA/pose/logiciel/donnees/"
 VERSION="$(tr -d ' \r\n' < "$DEPOT/logiciel/VERSION")"

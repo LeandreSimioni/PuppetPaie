@@ -48,6 +48,8 @@ fn banc() -> (&'static Banc, MutexGuard<'static, ()>) {
         for v in ["LOCALAPPDATA", "HOME", "USERPROFILE", "XDG_DATA_HOME"] {
             std::env::set_var(v, &utilisateur);
         }
+        // Debloquee par le geste (ticket #246) : bridee, l'accueil n'ajouterait pas la compagnie reelle d'un test.
+        outils::debloquer(&base);
         let compagnie = base.join("compagnie");
         std::fs::create_dir_all(compagnie.join("config")).unwrap();
         let fenetre = Fenetre::nouvelle(0, utilisateur.clone(), 1);

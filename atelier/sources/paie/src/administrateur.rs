@@ -212,8 +212,8 @@ pub fn etat(inst: &Path, racine: Option<&Path>, poste: &Poste) -> Value {
         reelles(inst).into_iter().filter(|c| relatif(inst, &c.racine) != relatif(inst, racine) && exigee(poste, &c.racine)).map(|c| c.nom).collect()
     };
     v["autres"] = json!(autres);
-    v["peut_rattacher"] = json!(!fictive && !rattachee && !autres.is_empty() && !crate::bridage::est_bride());
-    v["question"] = json!(!fictive && !rattachee && !autres.is_empty() && !exigee(poste, racine) && !crate::bridage::est_bride());
+    v["peut_rattacher"] = json!(!fictive && !rattachee && !autres.is_empty() && !crate::bridage::est_bride_de(inst));
+    v["question"] = json!(!fictive && !rattachee && !autres.is_empty() && !exigee(poste, racine) && !crate::bridage::est_bride_de(inst));
     v["mot_de_passe_pose"] = json!(exigee(poste, racine));
     v
 }
@@ -258,7 +258,7 @@ fn entree_registre(inst: &Path, racine: &Path, poste: &Poste) -> Option<Value> {
 /// son mot de passe donne aussi `actuel` (c'est lui que le rattachement remplace). Un refus n'ecrit rien. Rend les noms des
 /// compagnies de l'administrateur.
 pub fn rattacher(inst: &Path, racine: &Path, admin: &str, actuel: Option<&str>, poste: &Poste) -> Result<Vec<String>, String> {
-    if crate::bridage::est_bride() {
+    if crate::bridage::est_bride_de(inst) {
         return Err("Le logiciel est bridé : il ne gère que des compagnies fictives.".into());
     }
     if compagnies::est_fictive(racine) {
