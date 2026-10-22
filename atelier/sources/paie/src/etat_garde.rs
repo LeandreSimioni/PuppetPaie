@@ -159,7 +159,7 @@ fn signer_dossier(h: &mut Sha256, base: &Path, dossier: &Path, profond: bool, ga
 /// - `journal/signalements.json` : « Un probleme, une idee ? » (`problemes.rs`) ; lu par `signalements` et
 ///   `importation-etat` ;
 /// - `journal/incidents.json` : le journal des incidents.
-const HORS_DE_L_ECRAN: [&str; 8] = [
+const HORS_DE_L_ECRAN: [&str; 9] = [
     "config/.ouverture.json",
     "config/.sauvegarde.json",
     "config/diagnostic.json",
@@ -168,6 +168,8 @@ const HORS_DE_L_ECRAN: [&str; 8] = [
     "config/.filet.verrou",
     "journal/signalements.json",
     "journal/incidents.json",
+    // Le tableau de l'administrateur (`administrateur.rs`, ticket #244) : le resume de la compagnie que l'accueil lit.
+    "config/.tableau.json",
 ];
 
 /// L'empreinte de tout ce dont l'etat garde `cle` est tire, au jour `jour` (AAAA-MM-JJ).

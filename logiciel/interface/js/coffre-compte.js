@@ -45,6 +45,15 @@ async function dessinerCoffre(cible) {
   const fictive = enFictive();
   const c = await api("coffre-etat");
   const exige = c.mot_de_passe_pose;
+  // L'ADMINISTRATEUR (ticket #244) : ce que le moteur dit de cette compagnie pour lui (rattachée, ou à rattacher), par
+  // le geste de la fenêtre. Une compagnie fictive n'en a pas.
+  const geste = window.pywebview && window.pywebview.api;
+  let adm = {};
+  if (!fictive && geste && typeof geste.administrateur === "function") {
+    const r = await geste.administrateur();
+    if (r && r.ok) adm = r.etat || {};
+  }
+  const enListe = (n) => n.length > 1 ? n.slice(0, -1).join(", ") + " et " + n[n.length - 1] : (n[0] || "");
   // UNE LIGNE PAR SECRET (23/09/2026), comme les mois de l'Historique : ce
   // qu'il sert à faire, où il en est, et les gestes. Les cases de saisie ne
   // s'ouvrent que sur un clic sur la ligne (ou « Poser… ») -- cinq formulaires ouverts
@@ -71,27 +80,58 @@ async function dessinerCoffre(cible) {
       sauvegarde n'emporte jamais de quoi ouvrir le coffre.</div>`}
     <div class="rangs">
       <div class="rang">
-        <div class="rang-infos"><b class="rang-nom">Le mot de passe du logiciel</b>
-          <span class="discret">${exige || fictive
+        <div class="rang-infos"><b class="rang-nom">${adm.rattachee ? "Le mot de passe de l'administrateur" : "Le mot de passe du logiciel"}</b>
+          <span class="discret">${adm.rattachee
+            ? "il ouvre aussi " + enListe(adm.autres || []) + " ; demandé à l'ouverture et à chaque dépôt réel, envoi ou signature"
+            : exige || fictive
             ? "demandé à l'ouverture et à chaque dépôt réel, envoi ou signature"
             : "rien ne peut partir en réel tant qu'il n'est pas posé"}</span></div>
         <div class="rang-etat">${fictive ? `<span class="pastille">simulé</span>`
-          : exige ? `<span class="pastille bien">posé</span>`
+          : exige ? `<span class="pastille bien">${adm.rattachee ? "commun à " + (1 + (adm.autres || []).length) + " compagnies" : "posé"}</span>`
           : `<span class="pastille alerte">aucun</span>`}</div>
         <div class="rang-actions">
           ${exige ? "" : `<button class="secondaire k-ouvrir">Poser…</button>`}</div>
         <form class="rang-forme" id="k-logiciel" onsubmit="return false" autocomplete="off" hidden>
-          ${exige ? `<label>Mot de passe actuel
+          ${exige ? `<label>Mot de passe actuel${adm.rattachee ? " de l'administrateur" : ""}
             <input type="password" id="k-actuel" autocomplete="current-password"></label>` : ""}
-          <label>Nouveau <span class="discret">— six caractères au moins</span>
+          <label>Nouveau <span class="discret">— six caractères au moins${adm.rattachee ? " ; il remplacera l'actuel dans toutes ses compagnies" : ""}</span>
             <input type="password" id="k-nouveau" autocomplete="new-password"></label>
           <label>Le retaper <input type="password" id="k-confirmation" autocomplete="new-password"></label>
           <div class="barre-boutons">
             <button class="primaire" id="k-changer">${exige ? "Enregistrer" : "Poser"}</button>
-            ${exige ? `<button class="lien" id="k-retirer">retirer le mot de passe</button>` : ""}
+            ${exige && !adm.rattachee ? `<button class="lien" id="k-retirer">retirer le mot de passe</button>` : ""}
           </div>
         </form>
       </div>
+      ${adm.rattachee ? `
+      <div class="rang" id="k-admin">
+        <div class="rang-infos"><b class="rang-nom">L'administrateur</b>
+          <span class="discret">cette compagnie s'ouvre avec ${enListe(adm.autres || [])}, d'un seul mot de passe</span></div>
+        <div class="rang-etat"><span class="pastille bien">rattachée</span></div>
+        <div class="rang-actions"><button class="lien k-ouvrir">Détacher…</button></div>
+        <form class="rang-forme" onsubmit="return false" autocomplete="off" hidden>
+          <p class="note">Détachée, elle a son propre mot de passe : celui de l'administrateur ne l'ouvre plus, et elle
+            dépose seule.</p>
+          <label>Mot de passe de l'administrateur <input type="password" id="k-adm-actuel" autocomplete="current-password"></label>
+          <label>Son propre mot de passe <span class="discret">— six caractères au moins</span>
+            <input type="password" id="k-adm-nouveau" autocomplete="new-password"></label>
+          <label>Le retaper <input type="password" id="k-adm-confirmation" autocomplete="new-password"></label>
+          <div class="barre-boutons"><button class="primaire" id="k-detacher">Détacher</button></div>
+        </form>
+      </div>` : adm.peut_rattacher ? `
+      <div class="rang" id="k-admin">
+        <div class="rang-infos"><b class="rang-nom">L'administrateur</b>
+          <span class="discret">le mot de passe de ${enListe(adm.autres || [])} peut ouvrir aussi cette compagnie</span></div>
+        <div class="rang-etat"><span class="pastille">son propre mot de passe</span></div>
+        <div class="rang-actions"><button class="secondaire k-ouvrir">Rattacher…</button></div>
+        <form class="rang-forme" onsubmit="return false" autocomplete="off" hidden>
+          <p class="note">Rattachée, elle s'ouvre avec le mot de passe de l'administrateur, et ses déclarations prêtes
+            partent avec celles des autres compagnies, d'un seul mot de passe.</p>
+          ${exige ? `<label>Son mot de passe actuel <input type="password" id="k-adm-propre" autocomplete="current-password"></label>` : ""}
+          <label>Mot de passe de l'administrateur <input type="password" id="k-adm-mdp" autocomplete="current-password"></label>
+          <div class="barre-boutons"><button class="primaire" id="k-rattacher">Rattacher</button></div>
+        </form>
+      </div>` : ""}
       ${c.services.map((s) => `
       <div class="rang" data-service="${echapper(s.service)}">
         <div class="rang-infos"><b class="rang-nom">${echapper(s.libelle)}</b>
@@ -258,10 +298,32 @@ async function dessinerCoffre(cible) {
     if (!nouveau) { dire("Tapez le nouveau mot de passe."); return; }
     const p = actuelSaisi("changer");
     if (!p) return;
+    // UNE COMPAGNIE DE L'ADMINISTRATEUR : le nouveau mot de passe remplace l'actuel dans toutes ses compagnies d'un coup
+    // (le moteur prépare tout, puis remplace ; si une seule refuse, aucune ne change), et la fenêtre le retient.
+    if (adm.rattachee) {
+      const r = await geste.changer_administrateur(p.motdepasse, nouveau, confirmation);
+      if (r && r.ok) ok(`Mot de passe de l'administrateur changé dans ${r.compagnies.length} compagnies : ${enListe(r.compagnies)}.`);
+      else dire((r && r.erreur) || "Rien n'a changé.", "erreur");
+      return;
+    }
     try {
       await api("mot-de-passe-changer", { nouveau, confirmation, ...p });
       ok(exige ? "Mot de passe du logiciel changé." : "Mot de passe du logiciel posé : il sera demandé à la prochaine ouverture.");
     } catch (e) { raté(e); }
+  };
+  const detacher = document.getElementById("k-detacher");
+  if (detacher) detacher.onclick = async () => {
+    const r = await geste.detacher(document.getElementById("k-adm-actuel").value,
+      document.getElementById("k-adm-nouveau").value, document.getElementById("k-adm-confirmation").value);
+    if (r && r.ok) ok("Compagnie détachée : elle s'ouvre désormais avec son propre mot de passe.");
+    else dire((r && r.erreur) || "Rien n'a changé.", "erreur");
+  };
+  const rattacher = document.getElementById("k-rattacher");
+  if (rattacher) rattacher.onclick = async () => {
+    const propre = document.getElementById("k-adm-propre");
+    const r = await geste.rattacher(document.getElementById("k-adm-mdp").value, propre ? propre.value : "");
+    if (r && r.ok) ok(`Compagnie rattachée à l'administrateur : ${enListe(r.compagnies)} s'ouvrent avec le même mot de passe.`);
+    else dire((r && r.erreur) || "Rien n'a changé.", "erreur");
   };
   const retirer = document.getElementById("k-retirer");
   if (retirer) retirer.onclick = async () => {

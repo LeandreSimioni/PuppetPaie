@@ -65,19 +65,29 @@ fn main() -> std::process::ExitCode {
     }
 
     paie::commandes::compagnie::fixer_le_code();
-    let Some(_verrou) = paie::interface::prendre_instance(devant) else {
-        return std::process::ExitCode::SUCCESS;
+    // UNE FENETRE PAR POSTE. Celle de cette installation est deja ouverte : elle revient devant. Celle d'une AUTRE
+    // installation (ticket #244) : elle revient devant, et celle-ci s'ouvre sur la seule page qui le dit.
+    let (_verrou, ailleurs) = match paie::interface::prendre_instance(devant) {
+        paie::interface::Instance::Tenue(l) => (Some(l), None),
+        paie::interface::Instance::Devant => return std::process::ExitCode::SUCCESS,
+        paie::interface::Instance::Ailleurs(d) => (None, Some(d)),
     };
-    // Une installation posee avant le lot U1 range ses compagnies fictives (`demo/` devient `fictives/`).
-    paie::interface::preparer_l_installation();
-    // Une version prete s'applique ICI, avant toute fenetre : le relais attend notre fin, bascule et ouvre la neuve.
-    if paie::maj::au_lancement() {
-        return std::process::ExitCode::SUCCESS;
+    if ailleurs.is_none() {
+        // Une installation posee avant le lot U1 range ses compagnies fictives (`demo/` devient `fictives/`).
+        paie::interface::preparer_l_installation();
+        // Une version prete s'applique ICI, avant toute fenetre : le relais attend notre fin, bascule et ouvre la neuve.
+        if paie::maj::au_lancement() {
+            return std::process::ExitCode::SUCCESS;
+        }
+        // Sinon le logiciel cherche, en fond, une version plus recente pour l'installation : elle s'appliquera au prochain
+        // lancement (lot U1 : c'est le logiciel qui se met a jour, une fois par installation, pas une compagnie).
+        paie::maj::chercher_en_fond();
     }
-    // Sinon le logiciel cherche, en fond, une version plus recente pour l'installation : elle s'appliquera au prochain
-    // lancement (lot U1 : c'est le logiciel qui se met a jour, une fois par installation, pas une compagnie).
-    paie::maj::chercher_en_fond();
-    let (fenetre, port) = match paie::interface::demarrer(paie::interface::MINUTES_VEILLE) {
+    let demarre = match &ailleurs {
+        Some(d) => paie::interface::demarrer_ailleurs(d),
+        None => paie::interface::demarrer(paie::interface::MINUTES_VEILLE),
+    };
+    let (fenetre, port) = match demarre {
         Ok(x) => x,
         Err(e) => {
             eprintln!("La fenetre ne demarre pas : {}.", e);

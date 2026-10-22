@@ -74,21 +74,33 @@ const CALE: &str = r#"<script>
 
 /// Les pages du mot de passe sont servies avec ces noms : leur « Retour » (et Echap) appelle `accueil`. Absent de la
 /// liste, la cale ne le definissait pas et le bouton levait sans rien faire (capture de Leandre, version 20.10.2026).
-const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "verifier", "poser", "accueil", "fermer", "maj", "redemarrer"]"#;
+/// L'administrateur (ticket #244) : `rattacher_nouvelle` (la question « meme administrateur ? » d'une compagnie neuve),
+/// `tableau`, `tableau_rafraichir` et `deposer_groupe` (le tableau de bord de l'accueil).
+const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "verifier", "poser", "accueil", "fermer", "maj", "redemarrer", "rattacher_nouvelle", "tableau", "tableau_rafraichir", "deposer_groupe"]"#;
 /// Dans la page du logiciel : revenir aux compagnies (ticket #113) ; et, comme a l'accueil, lire ou en est la mise a
-/// jour et redemarrer pour l'installer (ticket #210, `js/mise-a-jour.js`).
-const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer"]"#;
+/// jour et redemarrer pour l'installer (ticket #210, `js/mise-a-jour.js`). L'administrateur, dans la Configuration
+/// (ticket #244, `js/coffre-compte.js`) : ce qu'il est pour cette compagnie, la rattacher, la detacher, changer son mot
+/// de passe.
+const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer", "administrateur", "rattacher", "detacher", "changer_administrateur"]"#;
+/// La page qui dit qu'une autre installation tient deja la fenetre du poste.
+const DEJA_OUVERT: &str = include_str!("pages/deja_ouvert.html");
 
 #[derive(Clone)]
 enum Phase {
     Accueil,
     MotDePasse { racine: PathBuf, premiere: bool },
     Ouverte { racine: PathBuf, veille: Arc<Veille>, etats: Arc<crate::etat_garde::FileDesEtats> },
+    /// Une autre installation de PuppetPaie tient la fenetre de ce poste (`prendre_instance`) : on le dit, on n'ouvre rien.
+    Ailleurs { dossier: String },
 }
 
 pub struct Fenetre {
     jeton: String,
     phase: Mutex<Phase>,
+    /// LE MOT DE PASSE DE L'ADMINISTRATEUR, tape une fois dans cette fenetre (ticket #244) : il ouvre ses autres
+    /// compagnies sans le redemander tant que la fenetre vit. Il OUVRE, il n'autorise rien : un acte reel redemande
+    /// toujours le mot de passe au moment de l'acte. Il ne va dans aucune route, aucun fichier, aucun journal.
+    administrateur: Mutex<Option<String>>,
     temoin: Mutex<Instant>,
     journal: Mutex<Option<PathBuf>>,
     minutes_veille: u64,
@@ -188,6 +200,11 @@ fn jeton() -> String {
     j
 }
 
+/// Un JSON pose dans la page, dans un `<script type="application/json">` : rien ne peut y fermer la balise.
+fn json_dans_la_page(v: &Value) -> String {
+    v.to_string().replace('<', "\\u003c").replace('>', "\\u003e").replace('&', "\\u0026")
+}
+
 fn page(corps: &str, jeton: &str, noms: &str) -> String {
     format!(
         "<!doctype html>\n<html lang=\"fr\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>PuppetPaie</title>\n{}</head><body>\n{}\n</body></html>",
@@ -284,6 +301,7 @@ impl Fenetre {
         Arc::new(Fenetre {
             jeton: jeton(),
             phase: Mutex::new(Phase::Accueil),
+            administrateur: Mutex::new(None),
             temoin: Mutex::new(Instant::now()),
             journal: Mutex::new(None),
             minutes_veille,
@@ -336,8 +354,102 @@ impl Fenetre {
             return Ok(());
         }
         let exigee = crate::coffre::Coffre::du_poste(&racine, "").ouverture_exigee().map_err(|e| e.message)?;
+        // UNE COMPAGNIE DE L'ADMINISTRATEUR, quand son mot de passe a deja ete tape dans cette fenetre : elle s'ouvre sans
+        // le redemander (il ouvre encore son coffre : c'est verifie, pas suppose).
+        if exigee && self.administrateur_ouvre(&racine) {
+            self.ecrire("Ouverte par le mot de passe de l'administrateur, deja tape dans cette fenetre.\n");
+            self.ouvrir(racine);
+            return Ok(());
+        }
         self.poser_phase(Phase::MotDePasse { racine, premiere: !exigee });
         Ok(())
+    }
+
+    /// Le mot de passe de l'administrateur, tape dans cette fenetre, ouvre-t-il `racine`, compagnie rattachee ?
+    fn administrateur_ouvre(&self, racine: &Path) -> bool {
+        let inst = compagnies::base();
+        if !crate::administrateur::est_rattachee(&inst, racine) {
+            return false;
+        }
+        let garde = self.administrateur.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        garde.is_some_and(|m| crate::administrateur::mot_de_passe_ouvre(&crate::administrateur::Poste::de_ce_poste(), racine, &m))
+    }
+
+    /// Retient le mot de passe de l'administrateur pour la fenetre, s'il ouvre une compagnie rattachee.
+    fn retenir_administrateur(&self, racine: &Path, motdepasse: &str) {
+        if crate::administrateur::est_rattachee(&compagnies::base(), racine) {
+            *self.administrateur.lock().unwrap_or_else(|e| e.into_inner()) = Some(motdepasse.to_string());
+        }
+    }
+
+    /// Les gestes de l'administrateur (ticket #244) : tout se decide dans `administrateur.rs`, la fenetre ne fait que
+    /// passer la saisie et retenir, pour sa seance, le mot de passe qui vient d'etre verifie.
+    fn geste_administrateur(&self, nom: &str, args: &[Value]) -> Option<Value> {
+        let a = |i: usize| args.get(i).and_then(Value::as_str).unwrap_or("").to_string();
+        let refus = |m: String| json!({"ok": false, "erreur": m});
+        let inst = compagnies::base();
+        let poste = crate::administrateur::Poste::de_ce_poste();
+        let ouverte = match self.phase() {
+            Phase::Ouverte { racine, .. } => Some(racine),
+            _ => None,
+        };
+        let premiere_racine = || crate::administrateur::rattachees(&inst).into_iter().next();
+        Some(match nom {
+            "administrateur" => json!({"ok": true, "etat": crate::administrateur::etat(&inst, ouverte.as_deref(), &poste)}),
+            "rattacher" => {
+                let Some(racine) = ouverte else { return Some(refus("Aucune compagnie n'est ouverte.".into())) };
+                match crate::administrateur::rattacher(&inst, &racine, &a(0), Some(&a(1)), &poste) {
+                    Ok(noms) => {
+                        self.retenir_administrateur(&racine, &a(0));
+                        self.ecrire("Compagnie rattachee a l'administrateur.\n");
+                        json!({"ok": true, "compagnies": noms, "etat": crate::administrateur::etat(&inst, Some(&racine), &poste)})
+                    }
+                    Err(m) => refus(m),
+                }
+            }
+            "detacher" => {
+                let Some(racine) = ouverte else { return Some(refus("Aucune compagnie n'est ouverte.".into())) };
+                match crate::administrateur::detacher(&inst, &racine, &a(0), &a(1), &a(2), &poste) {
+                    Ok(()) => {
+                        self.ecrire("Compagnie detachee de l'administrateur.\n");
+                        json!({"ok": true, "etat": crate::administrateur::etat(&inst, Some(&racine), &poste)})
+                    }
+                    Err(m) => refus(m),
+                }
+            }
+            "changer_administrateur" => match crate::administrateur::changer(&inst, &a(0), &a(1), &a(2), &poste) {
+                Ok(noms) => {
+                    *self.administrateur.lock().unwrap_or_else(|e| e.into_inner()) = Some(a(1));
+                    self.ecrire("Mot de passe de l'administrateur change.\n");
+                    json!({"ok": true, "compagnies": noms})
+                }
+                Err(m) => refus(m),
+            },
+            // Le tableau de bord : ce qui est garde, tout de suite ; puis refait (et les comptes rendus attendus releves).
+            "tableau" => json!({"ok": true, "tableau": crate::administrateur::tableau_garde(&inst)}),
+            "tableau_rafraichir" => match premiere_racine() {
+                None => json!({"ok": true, "tableau": crate::administrateur::tableau_garde(&inst)}),
+                Some(r) => match api::route(&r, "administrateur-tableau", &json!({"relever": true})) {
+                    Ok(t) => json!({"ok": true, "tableau": t}),
+                    Err(e) => refus(e.message),
+                },
+            },
+            // LE DEPOT GROUPE : la route de l'administrateur, qui depose chaque compagnie par sa route `deposer`. Le mot de
+            // passe (reel) est celui que la page vient de faire taper, au moment de l'acte.
+            "deposer_groupe" => {
+                let reel = args.first().and_then(Value::as_bool).unwrap_or(false);
+                let Some(r) = premiere_racine() else { return Some(refus("Ce logiciel n'a pas d'administrateur.".into())) };
+                let mut charge = json!({"reel": reel});
+                if reel {
+                    charge["motdepasse"] = json!(a(1));
+                }
+                match api::route(&r, "administrateur-deposer", &charge) {
+                    Ok(v) => json!({"ok": true, "depot": v}),
+                    Err(e) => refus(e.message),
+                }
+            }
+            _ => return None,
+        })
     }
 
     fn ouvrir(&self, racine: PathBuf) {
@@ -395,12 +507,26 @@ impl Fenetre {
             },
             ("verifier", Phase::MotDePasse { racine, .. }) => match crate::coffre::Coffre::du_poste(&racine, "").verifier_ouverture(&a(0)) {
                 Ok(true) => {
+                    self.retenir_administrateur(&racine, &a(0));
                     self.ouvrir(racine);
                     ok(true)
                 }
                 Ok(false) => refus("Mot de passe refusé.".into()),
                 Err(e) => refus(e.message),
             },
+            // « Meme administrateur ? » -- oui (ticket #244) : le mot de passe de l'administrateur, tape une fois pour le
+            // verifier, scelle aussi cette compagnie neuve.
+            ("rattacher_nouvelle", Phase::MotDePasse { racine, premiere: true }) => {
+                match crate::administrateur::rattacher(&compagnies::base(), &racine, &a(0), None, &crate::administrateur::Poste::de_ce_poste()) {
+                    Ok(_) => {
+                        self.retenir_administrateur(&racine, &a(0));
+                        self.ecrire("Compagnie neuve rattachee a l'administrateur.\n");
+                        self.ouvrir(racine);
+                        ok(true)
+                    }
+                    Err(m) => refus(m),
+                }
+            }
             ("poser", Phase::MotDePasse { racine, premiere: true }) => {
                 if a(0) != a(1) {
                     return refus("Les deux saisies diffèrent.".into());
@@ -439,7 +565,7 @@ impl Fenetre {
                 }
                 Err(m) => refus(m),
             },
-            _ => refus(format!("Geste inconnu ici : {}.", nom)),
+            _ => self.geste_administrateur(nom, args).unwrap_or_else(|| refus(format!("Geste inconnu ici : {}.", nom))),
         }
     }
 
@@ -490,9 +616,17 @@ impl Fenetre {
                 }
                 let html = match self.phase() {
                     Phase::Accueil => page(&page_accueil(), &self.jeton, NOMS_ACCUEIL),
-                    Phase::MotDePasse { premiere, .. } => {
-                        page(if premiere { CHOIX_MOT_DE_PASSE } else { MOT_DE_PASSE }, &self.jeton, NOMS_ACCUEIL)
+                    Phase::MotDePasse { racine, premiere } => {
+                        // Ce que l'administrateur est pour cette compagnie (ticket #244) : la page le lit, sans rien decider.
+                        let etat = crate::administrateur::etat(&compagnies::base(), Some(&racine), &crate::administrateur::Poste::de_ce_poste());
+                        let gabarit = if premiere { CHOIX_MOT_DE_PASSE } else { MOT_DE_PASSE };
+                        page(&gabarit.replace("{{ADMINISTRATEUR}}", &json_dans_la_page(&etat)), &self.jeton, NOMS_ACCUEIL)
                     }
+                    Phase::Ailleurs { dossier } => page(
+                        &DEJA_OUVERT.replace("{{DOSSIER}}", &echapper(&dossier)).replace("{{ICI}}", &echapper(&compagnies::base().display().to_string())),
+                        &self.jeton,
+                        NOMS_ACCUEIL,
+                    ),
                     Phase::Ouverte { racine, .. } => match page_logiciel(&racine, &self.jeton) {
                         Ok(p) => p,
                         Err(m) => return Reponse::nouvelle(500, "text/plain; charset=utf-8", m),
@@ -628,39 +762,84 @@ pub fn demarrer_sur(minutes_veille: u64, port: u16) -> std::io::Result<(Arc<Fene
     Ok((f, port))
 }
 
-/// UNE SEULE FENETRE PAR POSTE : le verrou est une prise d'ecoute a un port fixe. Le second lancement dit « devant » a
-/// la premiere et s'arrete (`None`). Un port tenu par un autre programme n'empeche jamais d'ouvrir.
-pub fn prendre_instance(devant: impl Fn() + Send + 'static) -> Option<TcpListener> {
+/// LA FENETRE D'UNE AUTRE INSTALLATION tient le poste (`Instance::Ailleurs`) : un serveur qui ne sert que la page qui le
+/// dit, a un port libre (le port de la fenetre est celui de l'autre). Rien d'autre ne s'ouvre : ni compagnie, ni veille.
+pub fn demarrer_ailleurs(dossier: &str) -> std::io::Result<(Arc<Fenetre>, u16)> {
+    let f = Fenetre::nouvelle(MINUTES_VEILLE);
+    *f.phase.lock().unwrap_or_else(|e| e.into_inner()) = Phase::Ailleurs { dossier: dossier.to_string() };
+    let (ecouteur, port) = http::ecouter(0)?;
+    let servie = f.clone();
+    std::thread::spawn(move || http::servir(ecouteur, Arc::new(move |r| servie.traiter(r))));
+    Ok((f, port))
+}
+
+/// Ce que dit le verrou d'une seule fenetre par poste.
+pub enum Instance {
+    /// Cette fenetre est la premiere : le verrou, a garder tant qu'elle vit (ou une prise sans verrou, le port etant a un
+    /// autre programme).
+    Tenue(TcpListener),
+    /// La fenetre de CETTE installation est deja ouverte : elle vient d'etre ramenee devant.
+    Devant,
+    /// La fenetre d'une AUTRE installation (un autre dossier, une autre cle USB) est ouverte sur ce poste : son dossier.
+    /// Elle est ramenee devant ; celle-ci ne s'ouvre pas (une a la fois), et le dit.
+    Ailleurs(String),
+}
+
+/// Le dossier de cette installation, tel que le verrou le compare et que l'ecran le montre.
+fn cette_installation() -> String {
+    let b = compagnies::base();
+    let c = std::fs::canonicalize(&b).unwrap_or(b);
+    let t = c.to_string_lossy().into_owned();
+    t.strip_prefix(r"\\?\").map(String::from).unwrap_or(t)
+}
+
+/// UNE SEULE FENETRE PAR POSTE : le verrou est une prise d'ecoute a un port fixe. Le second lancement dit « devant » a la
+/// premiere, avec le dossier de son installation ; la premiere revient devant et repond avec le sien. Meme installation :
+/// `Devant`. Une autre : `Ailleurs` (ticket #244 : « PuppetPaie est deja ouvert depuis <dossier> : fermez-le d'abord »).
+/// Un port tenu par un autre programme n'empeche jamais d'ouvrir.
+pub fn prendre_instance(devant: impl Fn() + Send + 'static) -> Instance {
+    let ici = cette_installation();
     match TcpListener::bind(("127.0.0.1", PORT_INSTANCE)) {
         Ok(l) => {
-            let ecoute = l.try_clone().ok()?;
+            let Ok(ecoute) = l.try_clone() else { return Instance::Tenue(l) };
             http::sans_heritage(&l);
             http::sans_heritage(&ecoute);
+            let repondre = ici.clone();
             std::thread::spawn(move || {
                 for c in ecoute.incoming().flatten() {
                     let mut lecteur = BufReader::new(&c);
                     let mut ligne = String::new();
-                    if lecteur.read_line(&mut ligne).is_ok() && ligne.as_bytes() == SALUT {
-                        let _ = (&c).write_all(REPONSE_SALUT);
+                    if lecteur.read_line(&mut ligne).is_ok() && ligne.as_bytes().starts_with(SALUT.strip_suffix(b"\n").unwrap_or(SALUT)) {
+                        let _ = (&c).write_all(format!("{} {}\n", String::from_utf8_lossy(REPONSE_SALUT).trim_end(), repondre).as_bytes());
                         devant();
                     }
                 }
             });
-            Some(l)
+            Instance::Tenue(l)
         }
         Err(_) => {
-            let deja = TcpStream::connect_timeout(&(std::net::Ipv4Addr::LOCALHOST, PORT_INSTANCE).into(), Duration::from_secs(2)).ok().and_then(|mut c| {
+            let reponse = TcpStream::connect_timeout(&(std::net::Ipv4Addr::LOCALHOST, PORT_INSTANCE).into(), Duration::from_secs(2)).ok().and_then(|mut c| {
                 let _ = c.set_read_timeout(Some(Duration::from_secs(3)));
-                c.write_all(SALUT).ok()?;
+                c.write_all(format!("{} {}\n", String::from_utf8_lossy(SALUT).trim_end(), ici).as_bytes()).ok()?;
                 let mut l = String::new();
                 BufReader::new(c).read_line(&mut l).ok()?;
-                Some(l.as_bytes() == REPONSE_SALUT)
+                Some(l)
             });
-            if deja == Some(true) {
-                None
-            } else {
+            let attendu = String::from_utf8_lossy(REPONSE_SALUT).trim_end().to_string();
+            match reponse.as_deref().map(str::trim_end).and_then(|l| l.strip_prefix(attendu.as_str())) {
+                Some(reste) => {
+                    let la_bas = reste.trim();
+                    if la_bas.is_empty() || la_bas == ici {
+                        Instance::Devant
+                    } else {
+                        Instance::Ailleurs(la_bas.to_string())
+                    }
+                }
                 // Un autre programme tient le port : on ouvre quand meme, sans verrou.
-                TcpListener::bind(("127.0.0.1", 0)).ok()
+                None => match TcpListener::bind(("127.0.0.1", 0)) {
+                    Ok(l) => Instance::Tenue(l),
+                    Err(_) => Instance::Devant,
+                },
             }
         }
     }
@@ -714,20 +893,34 @@ pub fn commande(args: &[String]) -> i32 {
     let minutes = options.minutes_veille;
     let adresse = Arc::new(Mutex::new(String::new()));
     let pour_devant = adresse.clone();
-    let Some(_verrou) = prendre_instance(move || {
+    let instance = prendre_instance(move || {
         let a = pour_devant.lock().map(|a| a.clone()).unwrap_or_default();
         if !a.is_empty() {
             navigateur::ouvrir(&a, &|_| {});
         }
-    }) else {
-        println!("PuppetPaie est deja ouvert sur ce poste : sa fenetre revient devant.");
-        return 0;
+    });
+    let (_verrou, ailleurs) = match instance {
+        Instance::Tenue(l) => (Some(l), None),
+        Instance::Devant => {
+            println!("PuppetPaie est deja ouvert sur ce poste : sa fenetre revient devant.");
+            return 0;
+        }
+        Instance::Ailleurs(d) => {
+            println!("PuppetPaie est deja ouvert depuis {} : fermez-le d'abord.", d);
+            (None, Some(d))
+        }
     };
-    // La mise a jour se cherche au lancement, pour l'installation (`maj::chercher_en_fond`) ; elle s'appliquera au
-    // prochain lancement de la fenetre.
-    preparer_l_installation();
-    crate::maj::chercher_en_fond();
-    let (f, port) = match demarrer_sur(minutes, options.port) {
+    if ailleurs.is_none() {
+        // La mise a jour se cherche au lancement, pour l'installation (`maj::chercher_en_fond`) ; elle s'appliquera au
+        // prochain lancement de la fenetre.
+        preparer_l_installation();
+        crate::maj::chercher_en_fond();
+    }
+    let demarre = match &ailleurs {
+        Some(d) => demarrer_ailleurs(d),
+        None => demarrer_sur(minutes, options.port),
+    };
+    let (f, port) = match demarre {
         Ok(x) => x,
         Err(e) => {
             eprintln!("La fenetre ne demarre pas : {}.", e);
@@ -753,7 +946,7 @@ pub fn commande(args: &[String]) -> i32 {
             return 0;
         }
     }
-    if options.sans_navigateur {
+    if options.sans_navigateur && ailleurs.is_none() {
         loop {
             std::thread::sleep(Duration::from_secs(3600));
         }

@@ -16,6 +16,7 @@ mod bulletins_fictifs;
 mod faux_drive;
 
 mod arret_prolonge;
+mod administrateur;
 mod avenant;
 mod calcul_du_mois;
 mod carte_figee;

@@ -9,6 +9,7 @@
 //! Les fichiers de donnees se lisent en `serde_json::Value`, comme le Python
 //! lit des dictionnaires : rien a migrer, et une cle inconnue survit.
 
+pub mod administrateur;
 pub mod aer;
 #[cfg(feature = "atelier")]
 pub mod atelier;

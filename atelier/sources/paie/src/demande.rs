@@ -215,6 +215,18 @@ pub fn autoriser_acte(racine: &Path, acte: &Acte) -> Verdict {
     }
 }
 
+/// L'aval d'un humain pour un acte qui part pour PLUSIEURS compagnies de l'administrateur (`administrateur::deposer`, ticket
+/// #244) : le mot de passe tape, verifie sur le coffre de `racine` (une compagnie rattachee), RENDU a l'appelant, qui le
+/// passe comme preuve au depot de chaque compagnie -- chaque depot le reverifie sur son propre coffre (`verifier_preuve`).
+/// Rien n'est retenu ici. Refuse comme `autoriser_acte` : sans mot de passe pose, sans humain, fenetre fermee.
+pub fn mot_de_passe_de_l_acte(racine: &Path, acte: &Acte) -> Result<String, String> {
+    if let Some(phrase) = sans_mot_de_passe_pose(racine) {
+        return Err(phrase);
+    }
+    let Some(canal) = canal_installe() else { return Err(SANS_HUMAIN.into()) };
+    obtenir(racine, canal.as_ref(), |essai, refuse| question_de_l_acte(acte, essai, refuse))
+}
+
 /// La seance : le mot de passe tape une fois, GARDE `HEURES_SEANCE` h (`Coffre::garder_ouverture`) et retenu pour la
 /// commande. Elle ouvre le coffre ; elle n'autorise jamais un acte reel.
 pub fn ouvrir_seance(racine: &Path) -> Verdict {
