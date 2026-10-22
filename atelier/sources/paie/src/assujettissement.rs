@@ -167,8 +167,19 @@ fn pourcent(p: Decimal) -> String {
     p.normalize().to_string().replace('.', ",")
 }
 
-/// `taxe_sur_les_salaires` de la fiche entreprise `ent`, et ce que le moteur en conclut (CGI art. 231, 1).
-pub fn regime_taxe_sur_les_salaires(ent: &Value) -> RegimeTaxeSalaires {
+/// `taxe_sur_les_salaires` de la fiche entreprise `ent`, et ce que le moteur en conclut (CGI art. 231, 1). `plafonds` :
+/// ceux de la franchise en base de TVA, lus au bareme de l'annee (`plafonds_franchise`) ; la conclusion les nomme quand
+/// on les a (ticket #245), elle dit « les plafonds » sinon. Ils ne changent rien a la decision.
+pub fn regime_taxe_sur_les_salaires(ent: &Value, plafonds: Option<(Decimal, Decimal)>) -> RegimeTaxeSalaires {
+    // Les deux plafonds, en mots de compagnie, pour la conclusion (ticket #245).
+    let les_plafonds = match plafonds {
+        Some((services, total)) => format!(
+            "les deux plafonds de la franchise en base de TVA, {} de spectacles vendus et {} de recettes en tout",
+            euros(services),
+            euros(total)
+        ),
+        None => "les plafonds de la franchise en base de TVA".to_string(),
+    };
     let fiche = g(ent, CHAMP_TAXE_SUR_LES_SALAIRES);
     let mut champs = vec!["tva"];
     let manque = |champs: Vec<&'static str>, quoi: String, consequence: &str| RegimeTaxeSalaires {
@@ -255,8 +266,10 @@ sur les salaires. Sans réponse, la DSN de décembre ne se fait pas.",
         Some(Value::Bool(true)) => {
             return non_due(
                 champs,
-                "ses recettes de l'an dernier sont restées sous les plafonds de la franchise en base de TVA (code \
-général des impôts, art. 231 et 293 B)",
+                &format!(
+                    "ses recettes de l'an dernier sont restées sous {} (code général des impôts, art. 231 et 293 B)",
+                    les_plafonds
+                ),
             )
         }
         Some(Value::Bool(false)) => {}
@@ -267,9 +280,9 @@ général des impôts, art. 231 et 293 B)",
 (art. 293 B)"
                     .to_string(),
                 &format!(
-                    "La compagnie doit la taxe sur les salaires {}, sauf si ses recettes de l'an dernier sont restées sous les \
-plafonds de la franchise en base de TVA (art. 293 B) : dites-le.",
-                    sur
+                    "La compagnie doit la taxe sur les salaires {}, sauf si ses recettes de l'an dernier sont restées sous \
+{} (code général des impôts, art. 231 et 293 B) : dites-le.",
+                    sur, les_plafonds
                 ),
             )
         }
@@ -310,7 +323,7 @@ décote{}.",
 /// (avocats, auteurs, artistes-interpretes) ne vise pas une compagnie employeur.
 #[derive(Debug, Clone, PartialEq)]
 pub struct QuestionFranchise {
-    /// L'aide de la question, avec les montants de l'annee.
+    /// L'aide de la question, avec les montants de l'annee : un paragraphe par ligne (`\n`).
     pub aide: String,
     /// La reponse « sous les plafonds » (`sous_franchise` vrai), et « au-dessus » (faux).
     pub sous: String,
@@ -319,10 +332,19 @@ pub struct QuestionFranchise {
     pub plafonds: Option<(Decimal, Decimal)>,
 }
 
-/// Un montant entier, ecrit comme sur l'ecran : « 37 500 € ».
+/// Un montant entier, ecrit comme sur l'ecran : « 37 500 € », en espaces insecables (ticket #245 : un montant ne se coupe
+/// pas en fin de ligne, « 85 / 000 € »).
 fn euros(x: Decimal) -> String {
     let s = crate::bulletin::fmt_eur(x);
-    format!("{} €", s.strip_suffix(",00").unwrap_or(&s))
+    format!("{} €", s.strip_suffix(",00").unwrap_or(&s)).replace(' ', "\u{a0}")
+}
+
+/// Les plafonds de la franchise en base de TVA au bareme `bar` (`taxe_sur_les_salaires.plafonds_franchise`) : prestations
+/// de services, total. `None` si le bareme ne les porte pas.
+pub fn plafonds_franchise(bar: Option<&Value>) -> Option<(Decimal, Decimal)> {
+    let pf = g(g(bar?, CHAMP_TAXE_SUR_LES_SALAIRES), "plafonds_franchise");
+    let lire = |k: &str| pf.get(k).and_then(|v| dec_py(v).ok());
+    Some((lire("prestations_de_services")?, lire("total")?))
 }
 
 /// La question des plafonds pour les remunerations de `annee` (le chiffre d'affaires de `annee - 1`), depuis le bareme
@@ -331,10 +353,7 @@ fn euros(x: Decimal) -> String {
 pub fn question_franchise(bar: Option<&Value>, annee: i32) -> QuestionFranchise {
     let avant = annee - 1;
     let pf = bar.map(|b| g(g(b, CHAMP_TAXE_SUR_LES_SALAIRES), "plafonds_franchise"));
-    let lus = pf.and_then(|pf| {
-        let lire = |k: &str| pf.get(k).and_then(|v| dec_py(v).ok());
-        Some((lire("prestations_de_services")?, lire("total")?))
-    });
+    let lus = plafonds_franchise(bar);
     let Some((services, total)) = lus else {
         return QuestionFranchise {
             aide: format!(
@@ -342,8 +361,8 @@ pub fn question_franchise(bar: Option<&Value>, annee: i32) -> QuestionFranchise 
 art. 293 B) : la mise à jour du logiciel les apportera. Sous ces plafonds, la compagnie ne doit pas la taxe sur les salaires.",
                 annee
             ),
-            sous: "Sous les plafonds".to_string(),
-            dessus: "Au-dessus des plafonds".to_string(),
+            sous: "Sous les deux plafonds".to_string(),
+            dessus: "Au-dessus d'un des plafonds".to_string(),
             plafonds: None,
         };
     };
@@ -357,11 +376,12 @@ art. 293 B) : la mise à jour du logiciel les apportera. Sous ces plafonds, la c
         .unwrap_or_default();
     QuestionFranchise {
         aide: format!(
-            "La compagnie ne doit pas la taxe sur les salaires si ses recettes de {avant} sont restées sous les deux \
-plafonds de la franchise en base de TVA : {s} pour ses spectacles et autres prestations de services (cessions, \
-billetterie, ateliers…), et {t} pour l'ensemble de ses recettes et produits, subventions comprises. Ce sont les plafonds \
-qui valent pour les salaires de {annee}{depuis} (code général des impôts, art. 231 et 293 B). Votre compte de résultat \
-{avant}, ou votre comptable, vous le dit.",
+            "Les deux plafonds se comparent aux recettes de l'année civile {avant} (du 1er janvier au 31 décembre), pour \
+les salaires de {annee}. Sous les deux, la compagnie ne doit pas la taxe sur les salaires ; au-dessus d'un seul, elle la \
+doit.\n{s} : les spectacles vendus, c'est-à-dire les cessions, la billetterie, les ateliers et vos autres prestations. Les \
+subventions n'y entrent pas.\n{t} : les recettes en tout, ces ventes plus les subventions et tous les autres produits.\n\
+Ces montants sont dans le compte de résultat {avant} (ses produits), ou chez votre comptable. Code général des impôts, \
+art. 231 et 293 B{depuis}.",
             avant = avant,
             s = euros(services),
             t = euros(total),
@@ -369,13 +389,14 @@ qui valent pour les salaires de {annee}{depuis} (code général des impôts, art
             depuis = depuis,
         ),
         sous: format!(
-            "Sous les plafonds en {} ({} et {})",
+            "Sous les deux plafonds en {} : au plus {} de spectacles vendus (cessions, billetterie, ateliers…) et au plus \
+{} de recettes en tout, subventions comprises",
             avant,
             euros(services),
             euros(total)
         ),
         dessus: format!(
-            "Au-dessus d'un plafond en {} ({} ou {})",
+            "Au-dessus d'un plafond en {} : plus de {} de spectacles vendus, ou plus de {} de recettes en tout",
             avant,
             euros(services),
             euros(total)
@@ -387,7 +408,7 @@ qui valent pour les salaires de {annee}{depuis} (code général des impôts, art
 /// Ce que la DSN de decembre lit : `None` si la taxe n'est pas due, sinon la part taxee des remunerations en
 /// pourcentage. Une fiche qui ne dit pas tout : refus, avec ce qu'il faut dire (`regime_taxe_sur_les_salaires`).
 pub(crate) fn taxe_sur_les_salaires_de_la_fiche(ent: &Value) -> Resultat<Option<Decimal>> {
-    regime_taxe_sur_les_salaires(ent).decision
+    regime_taxe_sur_les_salaires(ent, None).decision
 }
 
 // ------------------------------------------------------------ les mois de l'annee
