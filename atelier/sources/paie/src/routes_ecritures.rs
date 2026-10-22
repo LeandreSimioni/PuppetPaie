@@ -193,8 +193,8 @@ fn identite_inconnue(quoi: &str) -> Echec {
     refus(format!("Identite inconnue : {}. Connues : cachet, logo, signature.", crate::fichiers::repr(quoi)))
 }
 
-fn dossier_identite() -> PathBuf {
-    routes_accueil::racine_du_poste().join("gabarits").join("identite")
+fn dossier_identite(ctx: &Contexte) -> PathBuf {
+    ctx.gabarits().join("identite")
 }
 
 /// Le fichier pose pour `quoi`, quelle que soit son extension.
@@ -249,7 +249,7 @@ fn poser_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
     let format = format_de(&octets).ok_or_else(|| {
         refus("Ce fichier n'est ni un PNG, ni un JPEG, ni un SVG (ses premiers octets ne sont ceux d'aucun des trois). Rien n'a ete ecrit.")
     })?;
-    let dossier = dossier_identite();
+    let dossier = dossier_identite(ctx);
     creer_dossier(&dossier)?;
     // Les autres extensions s'en vont : une identite, un fichier.
     if let Some(ancien) = chemin_identite(&dossier, quoi) {
@@ -278,14 +278,14 @@ fn retirer_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
     if !IDENTITES.contains(&quoi) {
         return Err(identite_inconnue(quoi));
     }
-    if let Some(f) = chemin_identite(&dossier_identite(), quoi) {
+    if let Some(f) = chemin_identite(&dossier_identite(ctx), quoi) {
         avant(&f)?;
     }
     identite(ctx)
 }
 
 fn identite(ctx: &Contexte) -> R<Value> {
-    Ok(json!({"identite": routes_accueil::identite(ctx, &routes_accueil::racine_du_poste().join("gabarits"))?}))
+    Ok(json!({"identite": routes_accueil::identite(ctx, &ctx.gabarits())?}))
 }
 
 // ---------------------------------------------------------------- les metiers

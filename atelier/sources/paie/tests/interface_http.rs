@@ -126,3 +126,18 @@ fn l_accueil_lit_la_mise_a_jour_et_redemarrer_refuse_quand_rien_n_est_pret() {
     assert_eq!(geste("maj")["ok"], serde_json::json!(true), "le serveur repond encore");
     let _ = std::fs::remove_dir_all(&utilisateur);
 }
+
+/// Le journal de l'interface note chaque route servie, son nom et sa duree, et la classe d'un refus (ticket #244) ; un
+/// nom de route qui porterait autre chose qu'un nom n'y entre pas tel quel.
+#[test]
+fn le_journal_de_l_interface_note_chaque_route_et_sa_duree() {
+    use paie::interface::ligne_de_route;
+    use std::time::Duration;
+    let ok = ligne_de_route("mois-a-ouvrir", Duration::from_millis(237), &serde_json::json!({"ok": true, "resultat": {"mois": "2026-09"}}));
+    assert!(ok.ends_with(" route mois-a-ouvrir 237 ms\n"), "{:?}", ok);
+    let refus = ligne_de_route("saisie", Duration::from_millis(3), &serde_json::json!({"ok": false, "erreur": {"type": "KeyError", "message": "il faut mois"}}));
+    assert!(refus.ends_with(" route saisie 3 ms refus KeyError\n"), "{:?}", refus);
+    assert!(!refus.contains("il faut mois"), "la phrase du refus n'a rien a faire au journal : {:?}", refus);
+    let bizarre = ligne_de_route("etat\nmotdepasse secret", Duration::from_millis(1), &serde_json::json!({"ok": true}));
+    assert_eq!(bizarre.matches('\n').count(), 1, "{:?}", bizarre);
+}

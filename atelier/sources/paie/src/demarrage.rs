@@ -167,7 +167,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         }
     }
     // L'employeur de la DPAE : la DPAE elle-meme dit ce qui lui manque.
-    if let Err(m) = crate::dpae::employeur_pret(ent) {
+    if let Err(m) = crate::dpae::employeur_pret(ent, &ctx.gabarits()) {
         let (libelle, aide) = champ("medecine_travail");
         if m.contains("medecine") {
             out.push(manque("medecine_travail", libelle, "la DPAE", ENTREPRISE, Some("medecine_travail"), aide));

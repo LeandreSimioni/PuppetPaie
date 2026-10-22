@@ -1,6 +1,7 @@
 //! PuppetPaie : la fenetre (lot J3). Le serveur de la fenetre (`paie::interface`) tourne dans ce processus, et sa page
 //! s'affiche dans une fenetre Tauri (WebView2 sous Windows, WebKit sous Mac et Linux). Les routes du moteur tournent
-//! chacune dans son processus, lance depuis ce meme programme (`puppetpaie route ...`, comme `paie route ...`).
+//! dans ce processus (`paie::interface::api::route`, ticket #244) ; `puppetpaie route ...` reste, comme `paie route ...`,
+//! pour la mise a jour, qui eprouve le nouveau programme avant de l'installer (`paie::maj`).
 //!
 //! Sans Tauri (un poste sans moteur de rendu), `paie interface` ouvre la meme page dans le navigateur.
 
@@ -43,7 +44,7 @@ fn devant() {
 
 fn main() -> std::process::ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    // Les sous-commandes du moteur, que la fenetre lance pour elle-meme : une route par processus, et la fabrique.
+    // Les sous-commandes du moteur : `route` (la mise a jour eprouve ainsi le nouveau programme), et la fabrique.
     match args.first().map(String::as_str) {
         Some("route") => match paie::service::commande("route", &args[1..]) {
             Some(code) => std::process::exit(code),

@@ -10,7 +10,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::avenant::{gabarits_du_poste, valeurs_de_la_paie};
+use crate::avenant::valeurs_de_la_paie;
 use crate::bulletin::{identite_de, FORMAT, LOGO_LARGEUR, LOGO_MARGE_DROITE, LOGO_MARGE_HAUT};
 use crate::calcul::Paie;
 use crate::conges_spectacles::chemin_texte;
@@ -131,7 +131,7 @@ pub(crate) type Remplacements = [((String, String, String), (String, String))];
 /// paie, le modele en texte. `remplacements` : ces contrats-la annulent et remplacent celui qui est parti avant
 /// eux, et le disent en tete.
 pub(crate) fn description(ctx: &Contexte, paies: &[Paie], ent: &Value, remplacements: &Remplacements) -> R<Value> {
-    let modele = crate::dpae::modele_de(MODELE, ent, &gabarits_du_poste());
+    let modele = crate::dpae::modele_de(MODELE, ent, &ctx.gabarits());
     let mut d = enveloppe("contrat", ent);
     let signature = identite_de(ent, "signature");
     let mut documents = Vec::new();
@@ -270,7 +270,7 @@ const MODELE_AVENANT: &str = "avenant-cddu.modele";
 /// `avenant.description` puis `fabrique.figer` : le modele de l'avenant en texte, les valeurs du contrat et les
 /// siennes, et les articles modifies avec l'ancien texte et le nouveau.
 fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], extra: &[(&str, String)]) -> R<Value> {
-    let modele = crate::dpae::modele_de(MODELE_AVENANT, ent, &gabarits_du_poste());
+    let modele = crate::dpae::modele_de(MODELE_AVENANT, ent, &ctx.gabarits());
     let mut d = enveloppe("avenant", ent);
     let v = valeurs_de_paie(ctx, ent, p)?;
     // Les memes refus que le contrat (#136) : ses articles modifies sont ceux du modele de CONTRAT de la compagnie,
@@ -280,7 +280,7 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], 
     }
     let mut un = Map::new();
     un.insert("valeurs".into(), valeurs_en_ordre(&v, extra));
-    let contrat = crate::dpae::modele_de(MODELE, ent, &gabarits_du_poste());
+    let contrat = crate::dpae::modele_de(MODELE, ent, &ctx.gabarits());
     refuser_ce_que_le_modele_tairait(&contrat, &lire_modele_texte(&contrat)?, &un["valeurs"])?;
     let articles: Vec<Value> = modifs
         .iter()
@@ -312,7 +312,7 @@ pub(crate) fn ecrire_avenant(
     if modifs.is_empty() {
         return Err(Refus { classe: Some("ValueError"), message: "Rien n'a changé : pas d'avenant à écrire.".into() });
     }
-    let fichier = crate::dpae::modele_de(MODELE_AVENANT, ent, &gabarits_du_poste());
+    let fichier = crate::dpae::modele_de(MODELE_AVENANT, ent, &ctx.gabarits());
     let m = fabrique_pdf::modele::lire_fichier(&fichier.to_string_lossy()).map_err(|r| Refus { classe: Some("ValueError"), message: r.0 })?;
     if m.modification.is_empty() {
         return Err(Refus { classe: Some("ValueError"), message: format!("{} n'a pas de bloc MODIFICATION:.", MODELE_AVENANT) });
