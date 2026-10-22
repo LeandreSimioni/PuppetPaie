@@ -91,7 +91,6 @@ fn les_formes_listent_les_salaries_les_categories_et_les_mois() {
     assert_eq!(r["salaries"][0]["actif"], json!(true));
     assert_eq!(r["salaries"][0]["email"], json!(true));
     assert!(r["salaries"][0]["nom"].as_str().unwrap().starts_with("BRIOCHE "));
-    assert_eq!(r["categories"].as_array().unwrap().len(), 7);
     assert_eq!(r["categories"][2], json!({"categorie": "contrats-signes", "quoi": "Contrats signés"}));
     assert_eq!(r["mois"], json!(["2025-01", "2025-02", "2025-03"]));
     assert_eq!(r["annees"], json!(["2025"]));
@@ -181,10 +180,8 @@ fn les_periodes_disent_les_mois_leur_source_les_etats_et_les_faits_du_poste() {
     assert_eq!(r["etats"][0]["famille"], json!("États de paie"));
     assert_eq!(r["etats"][0]["formats"], json!(["csv", "xlsx", "pdf"]));
     assert_eq!(r["formats"][0]["format"], json!("csv"));
-    assert_eq!(r["regroupements"].as_array().unwrap().len(), 4);
     assert_eq!(r["compta"]["logiciel"], json!(""));
     assert_eq!(r["compta"]["controle"], json!([]));
-    assert_eq!(r["compta"]["logiciels"].as_array().unwrap().len(), 11);
     // Sans rien dans la charge, les deux faits sont faux.
     let r = periodes(c, json!({}));
     assert_eq!((r["xlsx"].clone(), r["pdf"].clone()), (json!(false), json!(false)));

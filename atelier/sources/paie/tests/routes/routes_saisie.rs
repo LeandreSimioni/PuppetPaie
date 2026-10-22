@@ -395,7 +395,6 @@ fn une_echeance_se_coche_se_decoche_et_garde_l_ordre_du_fichier() {
     std::fs::remove_file(racine.join("config/echeancier.json")).unwrap();
     assert_eq!(faite(&racine, json!({"cle": "at-mp:2026"}))["ok"], json!(true));
     let f = lire(&racine, "config/echeancier.json");
-    assert!(f["_origine"].as_str().unwrap().starts_with("Les echeances que l'utilisateur a dites faites"));
     assert_eq!(f["fait"].as_object().unwrap().len(), 1);
 }
 

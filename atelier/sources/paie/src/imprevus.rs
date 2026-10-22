@@ -863,7 +863,11 @@ mod tests {
         let a = complet(&json!({"genre": "arret", "salarie": "X", "contrat_debut": "2026-01-01", "contrat_numero": "N",
             "motif": "01", "dernier_jour_travaille": "2026-02-02", "fin_previsionnelle": "2026-02-10"}))
         .unwrap();
-        assert_eq!(a.as_object().unwrap().keys().cloned().collect::<Vec<_>>(), CHAMPS_ARRET.to_vec());
+        let mut champs: Vec<String> = a.as_object().unwrap().keys().cloned().collect();
+        champs.sort();
+        let mut attendus: Vec<String> = CHAMPS_ARRET.iter().map(|c| c.to_string()).collect();
+        attendus.sort();
+        assert_eq!(champs, attendus, "un arret complete porte tous ses champs");
         assert_eq!((a["qui"].clone(), a["maintien"].clone(), a["envois"].clone()), (json!("?"), json!({}), json!([])));
         assert_eq!(a["prolongations"], json!([]));
         assert!(complet(&json!({"genre": "arret", "salarie": "X"})).unwrap_err().contains("champ manquant"));

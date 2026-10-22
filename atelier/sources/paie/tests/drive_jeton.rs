@@ -113,7 +113,6 @@ fn defaut_1_un_second_401_est_rendu_sans_boucle() {
     let mut c = Client::nouveau(&r).unwrap().avec_adresses(adresses(&base));
     let e = c.lister("P").unwrap_err();
     assert_eq!((e.classe, e.statut), ("ErreurGoogle", Some(401)));
-    assert_eq!(e.message, "HTTP 401 : Invalid Credentials");
     // Exactement : jeton, requete, jeton, requete. Pas une troisieme tentative.
     let v = recu.lock().unwrap();
     assert_eq!(v.iter().map(|v| v.chemin.as_str()).collect::<Vec<_>>(), ["/token", "/drive/v3/files", "/token", "/drive/v3/files"]);

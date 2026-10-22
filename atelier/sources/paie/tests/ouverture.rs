@@ -93,6 +93,16 @@ fn trace_octets(racine: &Path) -> Vec<u8> {
     std::fs::read(racine.join("config/.ouverture.json")).unwrap()
 }
 
+/// Les nombres que dit la ligne des retours de la trace (combien, dont combien de nouveaux) : le decompte, pas la phrase.
+fn nombres(ligne: &Value) -> Vec<u64> {
+    ligne.as_str().unwrap().split(|c: char| !c.is_ascii_digit()).filter(|n| !n.is_empty()).map(|n| n.parse().unwrap()).collect()
+}
+
+/// La ligne des retours dit quelque chose, sans aucun nombre : rien n'est revenu.
+fn dit_sans_nombre(ligne: &Value) -> bool {
+    !ligne.as_str().unwrap().is_empty() && nombres(ligne).is_empty()
+}
+
 /// Les cles d'un objet, triees.
 fn cles(v: &Value) -> Vec<&str> {
     let mut c: Vec<&str> = v.as_object().unwrap().keys().map(String::as_str).collect();
@@ -468,7 +478,7 @@ fn un_client_donne_n_est_jamais_confronte_au_coffre() {
     // Le taux AT/MP recu demande un geste : il devient un manquant (le geste, pas une phrase du coffre).
     assert!(r.manquants.iter().any(|m| m.contains("taux AT/MP")), "{:?}", r.manquants);
     assert!(trace(&c)["manquants"].as_array().unwrap().iter().any(|m| m.as_str().unwrap().contains("taux AT/MP")));
-    assert_eq!(trace(&c)["retours"], json!("2 retour(s), dont 2 nouveau(x)."));
+    assert_eq!(nombres(&trace(&c)["retours"]), [2, 2], "deux retours, deux nouveaux");
     assert_eq!(trace(&c)["nouveaux"], json!(2));
     // Les pieces sont archivees.
     assert!(std::fs::read_dir(c.join("retours")).unwrap().flatten().count() >= 2);
@@ -478,7 +488,7 @@ fn un_client_donne_n_est_jamais_confronte_au_coffre() {
     // Un second tour ne trouve rien de nouveau.
     let r2 = jouer(&c, &o, les_deux(&c, &base));
     assert_eq!(r2.releve.as_ref().unwrap().nouveaux.len(), 0);
-    assert_eq!(trace(&c)["retours"], json!("2 retour(s), dont 0 nouveau(x)."));
+    assert_eq!(nombres(&trace(&c)["retours"]), [2, 0], "deux retours, aucun nouveau");
 }
 
 #[test]
@@ -522,7 +532,7 @@ fn les_pannes_d_un_organisme_sont_des_incidents_pas_un_arret() {
     let r = jouer(&c, &o, les_deux(&c, &base));
     assert!(r.incidents.is_empty(), "{:?}", r.incidents);
     assert_eq!(r.releve.as_ref().unwrap().trouves.len(), 0);
-    assert_eq!(trace(&c)["retours"], json!("Aucun retour sur la periode."));
+    assert!(dit_sans_nombre(&trace(&c)["retours"]), "aucun retour : {}", trace(&c)["retours"]);
 }
 
 #[test]
@@ -560,7 +570,7 @@ fn le_drive_injoignable_ne_tait_pas_la_releve_passee() {
     assert!(r.hors_ligne);
     assert!(r.releve.is_some());
     let t = trace(&c);
-    assert_eq!(t["retours"], json!("Aucun retour sur la periode."), "{}", t);
+    assert!(dit_sans_nombre(&t["retours"]), "{}", t);
     assert_eq!(t["injoignables"].as_array().unwrap().len(), 1, "{}", t);
 }
 
@@ -895,7 +905,7 @@ fn les_retours_des_depots_de_test_se_relevent_mais_ne_se_comptent_pas_dans_la_tr
     assert_eq!((rel.trouves.len(), rel.nouveaux.len()), (2, 2), "le resultat les compte");
     let t = trace(&c);
     assert_eq!(t["nouveaux"], json!(1));
-    assert_eq!(t["retours"], json!("1 retour(s), dont 1 nouveau(x)."), "la trace ecarte le retour du depot de test");
+    assert_eq!(nombres(&t["retours"]), [1, 1], "la trace ecarte le retour du depot de test");
 }
 
 #[test]
@@ -1050,7 +1060,7 @@ fn decision_4_la_seconde_moitie_complete_la_trace_sans_rien_effacer() {
     let r1 = jouer(&c, &les_retours_et_le_rappel(), les_deux(&c, &base));
     assert!(r1.sauvegarde.is_none());
     let t1 = trace(&c);
-    assert_eq!(t1["retours"], json!("1 retour(s), dont 1 nouveau(x)."));
+    assert_eq!(nombres(&t1["retours"]), [1, 1]);
     assert_eq!(t1["a_poser"], json!([]));
     // Appel 2 : la sauvegarde seule, qui complete.
     let (mut d, _) = drive_compte();

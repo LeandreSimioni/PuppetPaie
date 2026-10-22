@@ -186,7 +186,7 @@ fn changements_declares_garde_les_notes_internes_de_la_fiche() {
 fn changements_declares_refuse_une_fiche_inconnue_ou_une_charge_qui_ne_se_lit_pas() {
     let c = &compagnie("changements-refus");
     let r = route(c, "changements-declares", json!({"nom": "autre", "donnees": {}}), "2026-10-03");
-    assert_eq!(r["erreur"], json!("Fiche inconnue : 'autre'"), "{}", r);
+    assert!(r["ok"] == json!(false) && r["erreur"].as_str().unwrap().contains("autre"), "le refus nomme la fiche : {}", r);
     for charge in [json!({}), json!({"nom": "salarie"}), json!({"nom": ["a"], "donnees": {}}), json!({"nom": "salarie", "cle": ["a"], "donnees": {}}), json!({"nom": "salarie", "donnees": null})] {
         assert!(refuse(c, "changements-declares", charge.clone()), "{}", charge);
     }

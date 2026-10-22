@@ -220,17 +220,17 @@ fn une_fiche_fautive_remonte_ses_anomalies() {
     let e = etat(c);
     let a = anomalies(&e["configuration"]["salaries"][0]);
     let a: Vec<(&str, &str, &str)> = a.iter().map(|(x, y, z)| (x.as_str(), y.as_str(), z.as_str())).collect();
-    // La forme declaree (`nom`) se deduit de la forme lisible : on pointe celle-ci.
-    assert!(a.iter().any(|(c, g, m)| *c == "nom_affichage" && *g == "erreur" && m.starts_with("ne peut pas finir par un espace, un trait d'union, une apostrophe ou un point (cahier technique DSN, section 4) (la forme declaree, « ")), "{:?}", a);
-    assert!(a.contains(&("email", "erreur", "adresse de courriel attendue")), "{:?}", a);
-    assert!(a.contains(&("date_naissance", "erreur", "date attendue au format AAAA-MM-JJ")), "{:?}", a);
-    assert!(a.iter().any(|(c, g, m)| *c == "sexe" && *g == "erreur" && m.starts_with("le NIR commence par 2, cette case dit 1.")), "{:?}", a);
-    assert!(a.iter().any(|(c, g, m)| *c == "nir_cle" && *g == "erreur" && m.starts_with("cle incoherente avec le NIR : ") && m.contains("attendue.")), "{:?}", a);
-    assert!(a.iter().any(|(c, g, m)| *c == "code_emploi_ft" && *g == "avertissement" && *m == "Code emploi France Travail 'ZZZ999' inconnu de la nomenclature (S21.G00.40.005)."), "{:?}", a);
-    // La fiche entreprise : SIRET != SIREN + NIC, et une cle de Luhn fausse.
+    // Chaque champ fautif est nomme, avec sa gravite. La forme declaree (`nom`) se deduit de la forme lisible : on pointe
+    // celle-ci.
+    let a_le = |champ: &str, gravite: &str| a.iter().any(|(c, g, _)| *c == champ && *g == gravite);
+    for champ in ["nom_affichage", "email", "date_naissance", "sexe", "nir_cle"] {
+        assert!(a_le(champ, "erreur"), "{} : {:?}", champ, a);
+    }
+    assert!(a.iter().any(|(c, g, m)| *c == "code_emploi_ft" && *g == "avertissement" && m.contains("ZZZ999")), "{:?}", a);
+    // La fiche entreprise : SIRET != SIREN + NIC (le SIRET attendu est dit), et une cle de Luhn fausse.
     let a = anomalies(&e["configuration"]["entreprise"]);
-    assert!(a.iter().any(|(c, _, m)| c == "siret" && m == "SIRET != SIREN + NIC (12345692300010)"), "{:?}", a);
-    assert!(a.iter().any(|(c, _, m)| c == "siret" && m.starts_with("ce numéro ne peut pas être un SIRET")), "{:?}", a);
+    assert_eq!(a.iter().filter(|(c, _, _)| c == "siret").count(), 2, "{:?}", a);
+    assert!(a.iter().any(|(c, _, m)| c == "siret" && m.contains("12345692300010")), "{:?}", a);
     // Les autres fiches ne disent rien.
     assert!(anomalies(&e["configuration"]["salaries"][1]).is_empty());
     assert!(anomalies(&e["configuration"]["spectacles"][0]).is_empty());

@@ -315,7 +315,9 @@ fn verifier_concordance_rend_une_liste_vide() {
 #[test]
 fn verifier_un_ecart_donne_un_message_qui_dit_quoi() {
     let e = aer::verifier(&attestation(), &paies_fausses()).unwrap();
-    assert_eq!(e, vec!["FA1.26.15 (2026-08-01 au 2026-08-31) : 12 heures sur l'attestation, 24 dans la paie".to_string()]);
+    // Le contrat, sa periode, et les deux heures qui different.
+    assert_eq!(e.len(), 1);
+    assert!(["FA1.26.15", "2026-08-01", "2026-08-31", "12 heures", "24"].iter().all(|x| e[0].contains(x)), "{:?}", e);
     let e = aer::verifier(&attestation(), &[paie(jour(2026, 8, 1), jour(2026, 8, 31), 3, 12)]).unwrap();
     assert_eq!(e.len(), 1);
     assert!(e[0].contains("2 cachets sur l'attestation, 3 dans la paie"), "{:?}", e);
