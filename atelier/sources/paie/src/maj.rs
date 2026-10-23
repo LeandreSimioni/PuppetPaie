@@ -454,7 +454,8 @@ pub fn compagnies_de(inst: &Path) -> Vec<PathBuf> {
 /// retiennent rien non plus : le logiciel ne les a jamais declares, la personne ne les deposera souvent jamais (ses vraies
 /// paies sont passees par son ancien outil), et ils bloqueraient la mise a jour de toute l'installation pour toujours ; la
 /// mention datee de la compagnie dit qu'ils n'ont ete ni declares ni envoyes. Un mois saisi APRES qu'elle a ete gardee
-/// retient comme celui de toute compagnie reelle. La regle tient dans `mois_qui_retiennent_la_compagnie`, que la route
+/// retient comme celui de toute compagnie reelle, et un mois de demo RETRAVAILLE apres (sa saisie enregistree) sort de la
+/// mention et retient aussi (`suppression::sortir_de_la_demo`). La regle tient dans `mois_qui_retiennent_la_compagnie`, que la route
 /// `version` lit aussi.
 fn mois_qui_retiennent(inst: &Path) -> Vec<String> {
     let mut out = Vec::new();
