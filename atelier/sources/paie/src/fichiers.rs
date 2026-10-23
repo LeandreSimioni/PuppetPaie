@@ -86,11 +86,20 @@ fn cle_de(genre: &str, chemin: &Path) -> String {
         let r = r.as_ref().expect("registre ouvert");
         for (nom, base) in [("racine", &r.racine), ("code", &r.code)] {
             if let Ok(rel) = chemin.strip_prefix(base) {
-                return format!("{} {}:{}", genre, nom, rel.to_string_lossy());
+                return format!("{} {}:{}", genre, nom, chemin_en_barres(rel));
             }
         }
         format!("{} abs:{}", genre, chemin.to_string_lossy())
     })
+}
+
+/// UN CHEMIN RELATIF NOTE S'ECRIT AVEC DES BARRES DROITES, sur tous les systemes (#253, 23/10/2026) : la saisie du mois
+/// se cherche dans les entrees sous `racine:paies/AAAA-MM.json` (`calcul_du_mois`), et, sous Windows, la cle notee
+/// etait `racine:paies\AAAA-MM.json` -- la saisie ne s'y retrouvait jamais (la carte figee d'une paie validee ne
+/// tenait plus a la moindre frappe dans une autre carte, et le calcul d'un mois depose ne savait pas si c'etait sa
+/// saisie). `chemin_de` la relit telle quelle : Windows accepte la barre droite.
+fn chemin_en_barres(rel: &Path) -> String {
+    rel.components().map(|c| c.as_os_str().to_string_lossy()).collect::<Vec<_>>().join("/")
 }
 
 /// Le genre et le chemin absolu d'une entree notee, pour la relire.

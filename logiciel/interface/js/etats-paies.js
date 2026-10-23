@@ -458,7 +458,10 @@ async function dessinerEtatsDesPaies(mois) {
   } catch (e) {
     // Mois jamais enregistré, spectacle manquant, saisie en cours : il n'y a
     // rien à peindre, et rien d'alarmant à dire. La saisie, elle, marche.
-    ETATS_PAIES = {};
+    // On ne sait rien des paies : les cartes restent comme elles sont (#253).
+    // Un état vide les ouvrait TOUTES en formulaire, validées comprises, et le
+    // refus du moteur (dit dans « Les étapes ») se lisait « tout s'est ouvert ».
+    ETATS_PAIES = null;
   }
   peindreEtats();
 }
@@ -746,7 +749,8 @@ async function boiteDpae(mois) {
   try {
     r = await api("etat-par-paie", { mois });
   } catch (e) {
-    dire("Rien d'enregistré pour " + moisEnClair(mois) + " : saisir une paie d'abord.");
+    // Un mois sans paie rend une liste vide (plus bas) ; un refus est un refus, et il se dit tel quel (#253).
+    dire(e.message, "erreur");
     return;
   }
   const lignes = r.paies || [];

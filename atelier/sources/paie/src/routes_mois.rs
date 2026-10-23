@@ -622,7 +622,19 @@ impl<'a> Moteur<'a> {
             ligne.insert("emploi".into(), sal.get("emploi").cloned().unwrap_or(Value::Null));
             ligne.insert("statut".into(), sal.get("statut").cloned().unwrap_or(Value::Null));
             if let Some(b) = &bruts {
-                ligne.insert("brut".into(), Value::String(b.get(i).cloned().ok_or_else(|| plain("calcul du mois : une paie de moins que la saisie"))?));
+                // Le calcul du mois rend une paie par engagement de la saisie : il ne peut en manquer une que si un calcul
+                // garde passait pour celui d'une autre saisie (#253, `calcul_du_mois::calcul_et_entrees`). Ce n'est
+                // jamais la saisie de l'utilisateur, et la phrase le lui dit.
+                let brut = b.get(i).cloned().ok_or_else(|| Echec {
+                    classe: Some("DefautDuLogiciel"),
+                    message: format!(
+                        "Le montant de la paie de {} {} ne se lit pas : le calcul de {} ne correspond pas à la saisie \
+                         enregistrée. Ce n'est pas votre saisie qui est en cause : c'est un défaut du logiciel, \
+                         noté dans ses incidents.",
+                        nom_famille, prenom, mois
+                    ),
+                })?;
+                ligne.insert("brut".into(), Value::String(brut));
             }
             ligne.insert("valide".into(), valide);
             ligne.insert(

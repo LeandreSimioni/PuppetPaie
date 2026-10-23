@@ -146,6 +146,8 @@ function boiteSignalement() {
       && !document.getElementById("voile").classList.contains("cachee")) return;
   const ecran = ecranCourant();
   const captures = [];                      // { type, donnees (data URL), octets }
+  const enCours = new Set();                // les captures d'écran qui se dessinent encore (promesses)
+  chargerHtml2canvas().catch(() => {});     // l'outil de capture se charge dès l'ouverture, pas au clic (#253)
   // La boîte déjà ouverte (une DPAE, un dépôt) attend dessous, et revient
   // quand celle-ci se ferme ou se réduit.
   let dessous = mettreDeCote();
@@ -189,32 +191,36 @@ function boiteSignalement() {
   const dessinerVignettes = () => {
     $("sg-vignettes").innerHTML = captures.map((c, i) => `
       <span class="sg-vignette"><img src="${c.donnees}" alt="Capture ${i + 1}">
-        <button type="button" class="sg-retirer" data-i="${i}" title="Retirer cette capture">×</button></span>`).join("");
+        <button type="button" class="sg-retirer" data-i="${i}" title="Retirer cette capture">×</button></span>`).join("")
+      + `<span class="sg-vignette sg-en-cours">capture…</span>`.repeat(enCours.size);
     $("sg-vignettes").querySelectorAll(".sg-retirer").forEach((b) => {
       b.onclick = () => { captures.splice(+b.dataset.i, 1); dessinerVignettes(); };
     });
-    $("sg-ajout").hidden = captures.length >= CAPTURES_MAX;
+    $("sg-ajout").hidden = captures.length + enCours.size >= CAPTURES_MAX;
     changement();
   };
-  const poser = (fichier) => {
+  /** Pose une image parmi les captures ; rend une promesse tenue quand elle y est (ou refusée). */
+  const poser = (fichier) => new Promise((fini) => {
     montrerErreur("");
     if (captures.length >= CAPTURES_MAX) {
-      return montrerErreur(`${CAPTURES_MAX} captures au plus.`);
+      return fini(montrerErreur(`${CAPTURES_MAX} captures au plus.`));
     }
     if (!/^image\/(png|jpeg)$/.test(fichier.type)) {
-      return montrerErreur("Une capture doit être une image PNG ou JPEG.");
+      return fini(montrerErreur("Une capture doit être une image PNG ou JPEG."));
     }
     if (fichier.size > CAPTURE_MAX) {
-      return montrerErreur("Une capture dépasse 1,5 Mo : réduisez-la, ou découpez-la.");
+      return fini(montrerErreur("Une capture dépasse 1,5 Mo : réduisez-la, ou découpez-la."));
     }
     const lecteur = new FileReader();
     lecteur.onload = () => {
-      if (captures.length >= CAPTURES_MAX) return montrerErreur(`${CAPTURES_MAX} captures au plus.`);
+      if (captures.length >= CAPTURES_MAX) return fini(montrerErreur(`${CAPTURES_MAX} captures au plus.`));
       captures.push({ type: fichier.type, donnees: lecteur.result, octets: fichier.size });
       dessinerVignettes();
+      fini();
     };
+    lecteur.onerror = () => fini();
     lecteur.readAsDataURL(fichier);
-  };
+  });
   $("sg-fichier").onchange = () => {
     [...$("sg-fichier").files].forEach(poser);
     $("sg-fichier").value = "";
@@ -259,23 +265,33 @@ function boiteSignalement() {
   // dépôt) revient pour y figurer --, puis tout se remet en place. La photo
   // est celle de la PAGE, dessinée par html2canvas : ce qui est hors de
   // PuppetPaie (une autre fenêtre, le bureau) n'y est pas.
+  //
+  // LA BOÎTE REVIENT DÈS QUE LA PAGE EST COPIÉE (#253, 23/10/2026 : « quand
+  // j'ai cliqué sur capturer l'écran ça a pris 1,5 seconde alors que ça devrait
+  // être instantané »). html2canvas copie la page, puis dessine la copie : la
+  // boîte n'a à rester cachée que le temps de la copie (`onclone`) ; le dessin
+  // et l'encodage se font ensuite, la boîte revenue, une place « capture… »
+  // tenant celle de l'image. Envoyer attend qu'elle soit posée. L'image est la
+  // même qu'avant : la page telle qu'on la voyait, en JPEG sous 1,5 Mo.
   $("sg-capturer").onclick = async () => {
     montrerErreur("");
-    if (captures.length >= CAPTURES_MAX) return montrerErreur(`${CAPTURES_MAX} captures au plus.`);
+    if (captures.length + enCours.size >= CAPTURES_MAX) return montrerErreur(`${CAPTURES_MAX} captures au plus.`);
     boite.remove();
     const d = dessous;
     dessous = null;
     if (d) d(); else document.getElementById("voile").classList.add("cachee");
-    let fichier = null, erreur = "";
-    try {
-      fichier = await photographierLaPage();
-    } catch (e) { erreur = "La capture n'a pas pu se faire : " + e.message; }
+    let copiee;
+    const pageCopiee = new Promise((ok) => { copiee = ok; });
+    const photo = photographierLaPage(copiee);
+    await Promise.race([pageCopiee, photo.catch(() => {})]);
     dessous = mettreDeCote();
     ouvrirBoite("");
     document.getElementById("boite").appendChild(boite);
     surCetteBoite();
-    if (erreur) montrerErreur(erreur);
-    else if (fichier) poser(fichier);
+    const tour = photo.then(poser, (e) => montrerErreur("La capture n'a pas pu se faire : " + e.message))
+      .finally(() => { enCours.delete(tour); dessinerVignettes(); });
+    enCours.add(tour);
+    dessinerVignettes();
   };
   $("sg-reduire").onclick = () => {
     const pastille = document.createElement("button");
@@ -304,6 +320,7 @@ function boiteSignalement() {
     if (!$("sg-pre").hidden) { $("sg-pre").hidden = true; return; }
     montrerErreur("");
     try {
+      await Promise.all([...enCours]);      // une capture qui se dessine encore part avec le reste
       const a = await api("signalement-apercu", charge());
       $("sg-pre").textContent = JSON.stringify(a.corps, null, 2);
       $("sg-pre").hidden = false;
@@ -317,6 +334,7 @@ function boiteSignalement() {
     montrerErreur("");
     const rendre = occupe(envoyer, "Envoi en cours…");
     try {
+      await Promise.all([...enCours]);      // une capture qui se dessine encore part avec le reste
       const r = await api("signalement-envoyer", charge());
       $("sg-pre").hidden = true;
       $("sg-resultat").hidden = false;
@@ -353,21 +371,33 @@ function chargerHtml2canvas() {
   return HTML2CANVAS;
 }
 
-/** La page telle qu'on la voit (la partie affichée), en JPEG sous 1,5 Mo. */
-async function photographierLaPage() {
+/** La page telle qu'on la voit (la partie affichée), en JPEG sous 1,5 Mo. `copiee` est appelée dès que html2canvas a
+ *  copié la page (`onclone`) : ce qu'on change ensuite à l'écran (la boîte qui revient) n'est plus dans la photo.
+ *
+ *  UN SEUL DESSIN (#253) : la page se dessine une fois, à l'échelle 1 ; une image trop lourde se réduit depuis ce dessin
+ *  (mêmes échelles et qualités qu'avant), au lieu de redessiner la page -- qui, la boîte revenue, ne serait plus la même. */
+async function photographierLaPage(copiee) {
   const h2c = await chargerHtml2canvas();
   await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
+  const toile = await h2c(document.body, {
+    scale: 1, logging: false, backgroundColor: "#ffffff",
+    x: window.scrollX, y: window.scrollY,
+    width: window.innerWidth, height: window.innerHeight,
+    windowWidth: document.documentElement.clientWidth,
+    ignoreElements: (el) => el.id === "signaler-voile"
+      || (el.classList && el.classList.contains("sg-pastille")),
+    onclone: () => { if (copiee) copiee(); },
+  });
   const essais = [[1, 0.85], [1, 0.6], [0.75, 0.6], [0.5, 0.6]];
   for (const [echelle, qualite] of essais) {
-    const toile = await h2c(document.body, {
-      scale: echelle, logging: false, backgroundColor: "#ffffff",
-      x: window.scrollX, y: window.scrollY,
-      width: window.innerWidth, height: window.innerHeight,
-      windowWidth: document.documentElement.clientWidth,
-      ignoreElements: (el) => el.id === "signaler-voile"
-        || (el.classList && el.classList.contains("sg-pastille")),
-    });
-    const blob = await new Promise((ok) => toile.toBlob(ok, "image/jpeg", qualite));
+    let t = toile;
+    if (echelle !== 1) {
+      t = document.createElement("canvas");
+      t.width = Math.round(toile.width * echelle);
+      t.height = Math.round(toile.height * echelle);
+      t.getContext("2d").drawImage(toile, 0, 0, t.width, t.height);
+    }
+    const blob = await new Promise((ok) => t.toBlob(ok, "image/jpeg", qualite));
     if (blob && blob.size <= CAPTURE_MAX) {
       const quand = new Date().toTimeString().slice(0, 8).replace(/:/g, "");
       return new File([blob], `ecran-${quand}.jpg`, { type: "image/jpeg" });

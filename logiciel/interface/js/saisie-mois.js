@@ -1259,8 +1259,21 @@ function noteSaisie(texte) {
   document.getElementById("note-saisie").textContent = texte;
 }
 
-/** Enregistre si quelque chose a changé. Rend true si le fichier a été écrit. */
-async function enregistrerSaisie(silencieux) {
+/** Enregistre si quelque chose a changé. Rend true si le fichier a été écrit.
+ *
+ *  UN ENREGISTREMENT À LA FOIS (#253, 23/10/2026). L'enregistrement part une
+ *  seconde après la dernière frappe ; un mois long met plus d'une seconde à se
+ *  calculer, et le suivant partait pendant que le précédent tournait encore.
+ *  Ils se suivent : chacun attend la fin du précédent, puis compare ce qui est
+ *  à l'écran à ce qui vient d'être écrit — rien ne repart pour rien. */
+let ENREGISTREMENT = Promise.resolve(false);
+function enregistrerSaisie(silencieux) {
+  const tour = ENREGISTREMENT.then(() => enregistrerSaisieSeule(silencieux));
+  ENREGISTREMENT = tour.catch(() => false);
+  return tour;
+}
+
+async function enregistrerSaisieSeule(silencieux) {
   const s = saisieCourante();
   if (!s.mois) return false;
   // Un mois ferme ne s'ecrit plus -- sauf celui qu'on a rouvert en repondant

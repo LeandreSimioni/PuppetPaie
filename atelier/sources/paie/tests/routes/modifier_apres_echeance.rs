@@ -326,3 +326,41 @@ fn une_embauche_reportee_garde_sa_dpae_et_l_etape_le_dit() {
     let dues = reussi(&route(&racine, "embauches-a-declarer", json!({"mois": MOIS}), APRES))["embauches"].clone();
     assert!(!dues.as_array().unwrap().iter().any(|x| x["salarie"] == json!("LEMERCIER")), "{}", dues);
 }
+
+/// UN ENGAGEMENT AJOUTE PAR LA PAGE A UN MOIS DEPOSE (ticket #253, Leandre, 23/10/2026 : « je peux pas ajouter un
+/// engagement ce mois-ci »). Le mois avait son calcul garde (`paies/AAAA-MM.calcul.json`) ; la page envoie la saisie sans
+/// ce que le moteur tient seul (`_origine`, `numeros_figes`), le fichier ecrit n'est donc pas la saisie calculee, et le
+/// calcul garde n'etait pas remplace. Le mois etant parti, ce calcul d'avant l'ajout passait pour celui d'apres : une
+/// paie de moins que d'engagements, et l'ecran du mois refusait (« calcul du mois : une paie de moins que la saisie »),
+/// a chaque relecture. L'engagement ajoute a sa paie, et l'ecran du mois se lit.
+#[test]
+fn un_engagement_ajoute_par_la_page_a_un_mois_depose_a_sa_paie() {
+    const PENDANT: &str = "2026-09-10";
+    let racine = compagnie("ajout-253");
+    let fichier = format!("paies/{}.json", MOIS);
+    // Le calcul garde du mois, tel qu'il est avant l'ajout.
+    reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": lire(&racine, &fichier)}), PENDANT));
+    assert!(racine.join(format!("paies/{}.calcul.json", MOIS)).exists());
+    // Ce que la page envoie : la saisie sans `_origine` ni `numeros_figes`, et un cachet de plus pour Brioche, au meme
+    // spectacle, un autre jour, sans lieu.
+    let mut s = lire(&racine, &fichier);
+    let o = s.as_object_mut().unwrap();
+    o.remove("_origine");
+    o.remove("numeros_figes");
+    let mut nouveau = s["engagements"][0].clone();
+    let e = nouveau.as_object_mut().unwrap();
+    for k in ["numero", "valide", "debut", "fin", "date_paiement"] {
+        e.remove(k);
+    }
+    e.insert("lignes".into(), json!([{"rubrique": "cachet", "quantite": 1, "taux": 136, "lieu": "", "dates": ["2026-08-28"]}]));
+    s["engagements"].as_array_mut().unwrap().push(nouveau);
+    reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": s}), PENDANT));
+    let engagements = lire(&racine, &fichier)["engagements"].as_array().unwrap().len();
+    assert_eq!(engagements, 4);
+    for _ in 0..2 {
+        let etat = route(&racine, "etat-par-paie", json!({"mois": MOIS}), PENDANT);
+        assert_eq!(reussi(&etat)["paies"].as_array().unwrap().len(), engagements, "{}", etat);
+        let ecran = route(&racine, "mois", json!({"mois": MOIS}), PENDANT);
+        assert_eq!(reussi(&ecran)["lectures"]["etat-par-paie"]["ok"], json!(true), "{}", ecran["resultat"]["lectures"]["etat-par-paie"]);
+    }
+}
