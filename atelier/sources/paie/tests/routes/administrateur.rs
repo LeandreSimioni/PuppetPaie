@@ -16,9 +16,12 @@ use crate::outils::{compagnie, dossier_de_test, ecrire, installation, lire, refu
 const ADMIN: &str = "administrateur-essai-1";
 const JOUR: &str = "2026-10-02";
 
-/// Une installation de test (`logiciel/donnees` copie) : son dossier.
+/// Une installation de test (`logiciel/donnees` copie), debloquee par le geste (ticket #246 : bridee, elle ne rattacherait
+/// aucune compagnie reelle) : son dossier.
 fn installation_de_test(nom: &str) -> PathBuf {
-    installation(&dossier_de_test("administrateur", nom), "2026.10.22")
+    let inst = installation(&dossier_de_test("administrateur", nom), "2026.10.22");
+    crate::outils::debloquer(&inst);
+    inst
 }
 
 /// Une compagnie reelle de test, `compagnies/<nom>` de l'installation : la config de la petite fictive 3090, sans son

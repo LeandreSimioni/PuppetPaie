@@ -249,6 +249,12 @@ pub fn relever_signatures(o: &HashMap<String, String>, ctx: &Contexte, client: O
             ouverte.insert(Box::new(boite_des_signatures(ctx, DELAI_FICTIVE)?)).as_mut()
         }
         None => {
+            // UNE FICTIVE AJOUTEE (ticket #236) : la releve renverrait le contrat contresigne au salarie -- un envoi. Rien
+            // ne se releve, et le refus se dit (`bridage::refus_d_envoi`).
+            if let Some(m) = crate::bridage::refus_d_envoi(&ctx.racine) {
+                r.incidents.push(m.to_string());
+                return Ok(r);
+            }
             if !courriel::disponible(&ctx.racine) {
                 r.incidents.push(
                     "Aucune boite courriel : les signatures ne peuvent pas etre relevees. Poser le mot de passe d'application de la boite (Configuration > Mots de passe)."
@@ -419,7 +425,7 @@ pub fn relever_signatures(o: &HashMap<String, String>, ctx: &Contexte, client: O
         }
 
         // Le contrat contresigne, renvoye au salarie.
-        let (an, mo) = an_et_mois(&a_mois)?;
+        let (an, nom_mois) = crate::envois_signature::an_et_nom_du_mois(&a_mois)?;
         let nb = contrats.len();
         let mut spectacles: Vec<String> = Vec::new();
         for c in &contrats {
@@ -439,7 +445,7 @@ pub fn relever_signatures(o: &HashMap<String, String>, ctx: &Contexte, client: O
                 if nb == 1 || spectacles.len() == 1 {
                     envoi::formater(SUJET_CONTRESIGNE, &[("spectacle", spectacles[0].clone())])
                 } else {
-                    envoi::formater(SUJET_CONTRESIGNE_PLURIEL, &[("mois", envoi::MOIS_ACCENTS[mo - 1].to_string()), ("annee", an.to_string())])
+                    envoi::formater(SUJET_CONTRESIGNE_PLURIEL, &[("mois", nom_mois.to_string()), ("annee", an.to_string())])
                 },
                 if nb == 1 { "ton contrat d'engagement".to_string() } else { format!("tes {} contrats d'engagement (un par page)", nb) },
             )
@@ -491,18 +497,4 @@ pub fn relever_signatures(o: &HashMap<String, String>, ctx: &Contexte, client: O
     }
     client.fermer();
     Ok(r)
-}
-
-/// `int(mois[:4]), int(mois[5:7])` d'un « AAAA-MM ».
-fn an_et_mois(mois: &str) -> R<(i32, usize)> {
-    let lire = |t: Option<&str>| -> R<i64> {
-        let t = t.unwrap_or("");
-        t.trim().parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : '{}'", t)))
-    };
-    let an = lire(mois.get(..4))?;
-    let mo = lire(mois.get(5..7))?;
-    if !(1..=12).contains(&mo) {
-        return Err(erreur("IndexError", crate::date::mois_impossible(mo)));
-    }
-    Ok((an as i32, mo as usize))
 }

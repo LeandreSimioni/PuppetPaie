@@ -458,8 +458,6 @@ const EN_RETARD: &str = "en_retard";
 const INFORMATION: &str = "information";
 
 const JOURS: [&str; 7] = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
-const MOIS: [&str; 12] =
-    ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
 /// Une echeance (`operations_echeancier.Echeance`).
 struct Echeance {
@@ -527,7 +525,8 @@ fn formater(modele: &str, valeurs: &[(&str, String)]) -> R<String> {
 
 fn libelle(mois: &str) -> R<String> {
     let n = entier(&tranche(mois, 5, 7))?;
-    Ok(format!("{} {}", MOIS[(n.clamp(1, 12) - 1) as usize], tranche(mois, 0, 4)))
+    let nom = crate::date::nom_du_mois(n as i64, crate::date::Graphie::Accentuee).map_err(|e| erreur("IndexError", e))?;
+    Ok(format!("{} {}", nom, tranche(mois, 0, 4)))
 }
 
 /// « de septembre 2026 », « d'août 2026 », « d'octobre 2026 ».
@@ -546,7 +545,9 @@ fn mois_plus(mois: &str, n: i32) -> String {
 
 /// « mercredi 23 septembre 2026 ».
 fn date_en_clair(j: &Jour) -> String {
-    format!("{} {} {} {}", JOURS[j.jour_de_la_semaine() as usize], j.jour, MOIS[(j.mois - 1) as usize], j.an)
+    // Le mois d'un `Jour` va de 1 a 12 : le repli (vide) ne peut pas arriver.
+    let mois = crate::date::nom_du_mois(j.mois as i64, crate::date::Graphie::Accentuee).unwrap_or_default();
+    format!("{} {} {} {}", JOURS[j.jour_de_la_semaine() as usize], j.jour, mois, j.an)
 }
 
 /// La DSN de `mois`, due dans le mois suivant, a midi, le jour que dit `echeance_dsn` (reporte au jour ouvre).

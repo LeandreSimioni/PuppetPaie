@@ -113,16 +113,38 @@ rend les fichiers. La compétence `paie` décrit exactement ce qu'il fait.
 racine du dossier sous Windows, dans `atelier/` sous Mac et Linux) : une
 fenêtre s'ouvre, et c'est tout le logiciel.
 
-| système | ses programmes dans `logiciel/` | son archive publiée | raccourci | ce qu'il lance |
-|---|---|---|---|---|
-| Windows | `puppetpaie.exe` et `WebView2Loader.dll`, à la racine (suivis par Git ; l'installeur Windows ne pose qu'eux) | `puppetpaie-<version>-windows.zip` | `PuppetPaie.cmd`, à la racine | `logiciel/puppetpaie.exe` (avec `WebView2Loader.dll`, `donnees/` et `interface/` à côté) |
-| Linux | `linux/puppetpaie` (la fenêtre) et `linux/paie` (le moteur) | `puppetpaie-<version>-linux.zip` | `logiciel/linux/puppetpaie` directement, ou `atelier/PuppetPaie.sh` (clic droit › Lancer comme un programme, ou `./PuppetPaie.sh`) | `logiciel/linux/puppetpaie` (la fenêtre), sinon `logiciel/linux/paie interface` ; dans un dépôt de travail, le programme de `atelier/sources/paie/bin/linux/` |
-| Mac | `mac/puppetpaie` et `mac/paie`, universels (Intel et Apple) | `puppetpaie-<version>-mac.zip` | `atelier/PuppetPaie.command` (clic droit › Ouvrir la première fois) | `atelier/PuppetPaie.sh` : `logiciel/mac/puppetpaie`, sinon `logiciel/mac/paie interface` ; dans un dépôt de travail, `atelier/sources/paie/bin/mac/` |
-| tous | les systèmes publiés à la fois | `puppetpaie-<version>-tout-systeme.zip` | celui du système où l'on est | un dossier portable qui passe d'une machine à l'autre ; le repli d'une installation dont le système n'a pas son archive |
+| système | ses programmes dans `logiciel/` | pour l'installer | sa mise à jour | raccourci | ce qu'il lance |
+|---|---|---|---|---|---|
+| Windows | `puppetpaie.exe` et `WebView2Loader.dll`, à la racine (suivis par Git ; l'installeur Windows ne pose qu'eux) | `PuppetPaie-<JJ.MM.AAAA>-installeur.exe` | `puppetpaie-<version>-windows.zip` | `PuppetPaie.cmd`, à la racine | `logiciel/puppetpaie.exe` (avec `WebView2Loader.dll`, `donnees/` et `interface/` à côté) |
+| Linux | `linux/puppetpaie` (la fenêtre) et `linux/paie` (le moteur) | `puppetpaie-<version>-linux-installation.zip` | `puppetpaie-<version>-linux.zip` | `logiciel/linux/puppetpaie` directement, ou `atelier/PuppetPaie.sh` (clic droit › Lancer comme un programme, ou `./PuppetPaie.sh`) | `logiciel/linux/puppetpaie` (la fenêtre), sinon `logiciel/linux/paie interface` ; dans un dépôt de travail, le programme de `atelier/sources/paie/bin/linux/` |
+| Mac | `mac/puppetpaie` et `mac/paie`, universels (Intel et Apple) | `puppetpaie-<version>-mac-installation.zip` | `puppetpaie-<version>-mac.zip` | `atelier/PuppetPaie.command` (clic droit › Ouvrir la première fois) | `atelier/PuppetPaie.sh` : `logiciel/mac/puppetpaie`, sinon `logiciel/mac/paie interface` ; dans un dépôt de travail, `atelier/sources/paie/bin/mac/` |
+| tous | les systèmes publiés à la fois | `puppetpaie-<version>-tout-systeme-installation.zip` | `puppetpaie-<version>-tout-systeme.zip` | celui du système où l'on est | un dossier portable qui passe d'une machine à l'autre ; le repli d'une installation dont le système n'a pas son archive |
+
+**Pour installer, on prend l'installeur (Windows) ou l'archive d'installation**
+(`…-installation.zip`, ticket #246) : `logiciel/` et, à côté, `fictives/`, les
+quatre compagnies fictives. Décompressée dans un dossier neuf (Linux, Mac, un
+dossier portable), elle s'ouvre bridée sur ses fictives ; le geste de
+l'accueil la débloque.
+
+**L'archive de mise à jour** (`puppetpaie-<version>-<système>.zip`, celle que
+`derniere.json` nomme et que le logiciel télécharge tout seul) ne sert pas à
+installer : elle porte le contenu de `logiciel/` à sa racine, et rien d'autre.
+Cette forme est un contrat avec toutes les installations déjà posées, dont le
+code la déballe telle quelle : elle ne change plus (tête de `paie/src/maj.rs`).
+
+**Les compagnies fictives voyagent à part** (`puppetpaie-<version>-fictives.zip`,
+signée, nommée dans `derniere.json` sous `fictives` avec l'empreinte de son
+contenu). Une installation ne la télécharge que si les fictives ont changé
+depuis celles qu'elle a (`fictives/.livraison.json`) ; elles remplacent alors,
+au lancement suivant, les fictives que la livraison avait posées, jouées ou
+non, photo d'origine comprise ; une fictive retirée disparaît, une nouvelle
+apparaît. Un dossier que la livraison n'a pas posé (une fictive copiée et
+renommée, une fictive faite sur le poste) n'est jamais touché, ni rien hors de
+`fictives/`. La mise à jour du logiciel, elle, ne touche jamais `fictives/`.
 
 Le flux « Publier » compile les programmes des trois systèmes (Linux et Mac ne
 sont posés dans `logiciel/linux/` et `logiciel/mac/` que par lui : jamais
-suivis par Git) et publie les quatre archives ensemble (Léandre, 15/10/2026 :
+suivis par Git) et publie les quatre archives de mise à jour ensemble (Léandre, 15/10/2026 :
 « Il y a les quatre : une par système et une tout-système, ensemble ») ;
 chaque installation prend celle de son système (`paie/src/maj.rs`). Au
 lancement de « Publier », on choisit ce qu'on publie (`systemes` : `tous`,

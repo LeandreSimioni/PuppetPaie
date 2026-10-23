@@ -116,12 +116,6 @@ pub fn traiter(o: &HashMap<String, String>, route: &str, charge: &Value) -> Opti
 
 // ------------------------------------------------------------------ outils
 
-const MOIS_FR: [&str; 12] = [
-    "janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre",
-];
-pub(crate) const MOIS_TITRE: [&str; 12] = [
-    "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre",
-];
 
 /// `str(x)` d'une valeur facultative (`None` si absente).
 fn texte(v: Option<&Value>) -> String {
@@ -187,11 +181,6 @@ fn mois_suivant(mois: &str) -> String {
     } else {
         format!("{:04}-{:02}", an, mo + 1)
     }
-}
-
-fn libelle(mois: &str) -> String {
-    let n: usize = mois[5..7].parse().unwrap_or(1);
-    format!("{} {}", MOIS_FR[n.clamp(1, 12) - 1], &mois[..4])
 }
 
 fn mois_de(j: &Jour) -> String {
@@ -654,7 +643,7 @@ fn paies_validees(ctx: &Contexte, mois: &str) -> i64 {
 }
 
 fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
-    let lib = libelle(mois);
+    let lib = crate::date::libelle_du_mois(mois, crate::date::Graphie::Minuscule).map_err(Refus::from)?;
     let mut r = Rappel::nouveau(
         DSN,
         format!("dsn:{}", mois),
@@ -1747,7 +1736,7 @@ fn apercu(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
     let n: usize = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", crate::fichiers::repr(&mois)))?;
     Ok(json!({
         "mois": mois,
-        "libelle": format!("{} {}", MOIS_TITRE[n.clamp(1, 12) - 1], annee),
+        "libelle": format!("{} {}", crate::date::nom_du_mois(n as i64, crate::date::Graphie::Titre)?, annee),
         "paies": vues,
         "total_brut": total_brut.to_string(), "total_cout": total_cout.to_string(),
         "urssaf": urssaf,

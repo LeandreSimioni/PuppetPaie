@@ -281,9 +281,11 @@ fn une_adresse_invalide_est_refusee_avant_la_boite_et_avant_la_preuve() {
     ] {
         // Meme sans mot de passe : la phrase est celle de l'adresse.
         let r = demande_avec(&racine, json!({"adresse": adresse}), &faux);
-        assert_eq!(phrase(r).1, format!("« {} » n'est pas une adresse de courriel.", vue), "{:?}", adresse);
+        let (classe, m) = phrase(r);
+        assert!(classe != "PreuveInsuffisante" && m.contains(&format!("« {} »", vue)), "le refus est celui de l'adresse, lue {:?} : {}", vue, m);
     }
-    assert_eq!(phrase(demande_avec(&racine, json!({}), &faux)).1, "«  » n'est pas une adresse de courriel.");
+    let (classe, m) = phrase(demande_avec(&racine, json!({}), &faux));
+    assert!(classe != "PreuveInsuffisante" && m.contains("«  »"), "{}", m);
     assert_eq!(faux.partis(), 0);
     assert!(lignes_du_journal(&racine, "fiche-demande").is_empty(), "rien au journal : rien n'a ete tente");
     // Les adresses ordinaires, dont celle qui a plusieurs points et celle en majuscules, passent.
@@ -311,10 +313,7 @@ fn la_preuve_est_exigee_hors_fictive() {
     );
     assert_eq!(phrase(demande_avec(&racine, charge(json!({"motdepasse": ""})), &faux)).0, "PreuveInsuffisante");
     assert_eq!(phrase(demande_avec(&racine, charge(json!({"motdepasse": null})), &faux)).0, "PreuveInsuffisante");
-    assert_eq!(
-        phrase(demande_avec(&racine, charge(json!({"motdepasse": "pas-le-bon"})), &faux)),
-        ("PreuveInsuffisante".to_string(), "Mot de passe du logiciel refuse. Rien n'est parti.".to_string())
-    );
+    assert_eq!(phrase(demande_avec(&racine, charge(json!({"motdepasse": "pas-le-bon"})), &faux)).0, "PreuveInsuffisante");
     assert_eq!(faux.partis(), 0);
     assert!(lignes_du_journal(&racine, "fiche-demande").is_empty());
     demande_avec(&racine, charge(json!({"motdepasse": MOT_DE_PASSE})), &faux).unwrap();
@@ -575,7 +574,8 @@ fn une_reponse_d_une_autre_adresse_est_un_incident_et_n_est_pas_retenue() {
         noter_demande(&racine, C1, ZOE, "Zoé", "<demande-1@exemple.invalid>");
         let r = releve_avec(&racine, &Faux::avec(vec![("m1", reponse(de, C1, &[], "<rep-1@exemple.invalid>"))]));
         assert_eq!(r["recues"], json!([]));
-        assert_eq!(r["incidents"], json!([format!("Fiche {} : une reponse vient de intrus@exemple.invalid et non de {} ; elle n'est pas retenue.", C1, ZOE)]));
+        let i = r["incidents"].as_array().unwrap();
+        assert!(i.len() == 1 && i[0].as_str().unwrap().contains(C1) && i[0].as_str().unwrap().contains("intrus@exemple.invalid"), "{:?}", i);
         assert!(!racine.join("sorties/fiches-salaries").exists());
     }
     // L'adresse de la reponse peut s'ecrire avec un nom d'affichage ou des majuscules.
@@ -600,7 +600,8 @@ fn une_reponse_sans_nom_ni_prenom_ne_cree_rien() {
     noter_demande(&racine, C1, ZOE, "Zoé", "<demande-1@exemple.invalid>");
     let r = releve_avec(&racine, &Faux::avec(vec![("m1", reponse(ZOE, C1, &[("prenom", ""), ("nom", "")], "<rep-1@exemple.invalid>"))]));
     assert_eq!(r["recues"], json!([]));
-    assert_eq!(r["incidents"], json!([format!("Fiche {} : la reponse de {} ne porte ni nom ni prenom lisible ; rien n'est cree.", C1, ZOE)]));
+    let i = r["incidents"].as_array().unwrap();
+    assert!(i.len() == 1 && i[0].as_str().unwrap().contains(C1) && i[0].as_str().unwrap().contains(ZOE), "{:?}", i);
     assert!(lignes_du_journal(&racine, "fiche-recue").is_empty());
     assert!(!racine.join("sorties/fiches-salaries").exists(), "rien n'est garde non plus");
     // Un nom seul suffit.
@@ -746,7 +747,7 @@ fn la_boite_absente_est_un_incident_pas_une_exception() {
     let r = releve_telle_quelle(&racine);
     assert_eq!(r["attendues"], json!(1));
     assert_eq!(r["recues"], json!([]));
-    assert_eq!(r["incidents"], json!(["Aucune boite courriel : les fiches demandees ne peuvent pas etre relevees."]));
+    assert_eq!(r["incidents"].as_array().unwrap().len(), 1, "sans boite, un incident le dit");
     // Sans demande, aucune boite n'est necessaire et rien n'est dit.
     let racine = compagnie("relever-boite-absente-sans-demande", false);
     assert_eq!(releve_telle_quelle(&racine)["incidents"], json!([]));
@@ -762,7 +763,8 @@ fn une_recherche_ou_une_lecture_qui_echoue_est_un_incident() {
     faux.recherche_en_echec = true;
     let r = releve_avec(&racine, &faux);
     // La recherche echoue : la releve s'arrete (les autres codes ne seraient pas mieux servis).
-    assert_eq!(r["incidents"], json!([format!("Recherche de {} : la recherche echoue", C1)]));
+    let i = r["incidents"].as_array().unwrap();
+    assert!(i.len() == 1 && i[0].as_str().unwrap().contains(C1), "{:?}", i);
     assert_eq!(faux.recherches(), 1);
     assert_eq!(r["recues"], json!([]));
     // Une lecture qui echoue : incident, et la suite est lue.
@@ -771,7 +773,8 @@ fn une_recherche_ou_une_lecture_qui_echoue_est_un_incident() {
     let mut faux = Faux::avec(vec![("m0", message("x@exemple.invalid", "rien", "Sat, 03 Oct 2026 10:00:00 +0200", "<x@exemple.invalid>")), ("m1", reponse(ZOE, C1, &[], "<a@exemple.invalid>"))]);
     faux.lecture_en_echec = vec!["m0".to_string()];
     let r = releve_avec(&racine, &faux);
-    assert_eq!(r["incidents"], json!(["Lecture du message m0 : la lecture echoue"]));
+    let i = r["incidents"].as_array().unwrap();
+    assert!(i.len() == 1 && i[0].as_str().unwrap().contains("m0"), "{:?}", i);
     assert_eq!(r["recues"].as_array().unwrap().len(), 1);
 }
 

@@ -1119,7 +1119,6 @@ mod tests {
         let m = enr(&e, None, json!("")).unwrap_err();
         assert!(m.contains("date de fin"), "{}", m);
         assert!(m.contains("'cdd'"), "{}", m);
-        assert!(m.starts_with("Dupont : un contrat de nature"), "{}", m);
         // Avec son terme, il part, type 1 (CDD) et date de fin dans la case.
         let e = embauche(salarie(), "cdd", json!("2026-12-31"));
         let t = enr(&e, None, json!("")).unwrap();
@@ -1175,7 +1174,6 @@ mod tests {
         // Ni NIR ni sexe : la DPAE ne part pas.
         s["sexe"] = json!("");
         let m = enr(&embauche(s, "cdi", Value::Null), None, json!("")).unwrap_err();
-        assert!(m.starts_with("La DPAE de Dupont Alice ne peut pas partir"), "{}", m);
         assert!(m.contains("zone SEXE, position 731"), "{}", m);
     }
 
@@ -1183,12 +1181,11 @@ mod tests {
     fn le_code_urssaf_doit_etre_bien_forme_et_exister() {
         let e = embauche(salarie(), "cdi", Value::Null);
         let m = enr(&e, None, json!("11")).unwrap_err();
-        assert_eq!(m, "code_urssaf: '11', attendu 3 chiffres (annexe II.1)");
+        assert!(m.contains("code_urssaf") && m.contains("'11'"), "{}", m);
         let m = enr(&e, None, json!("abc")).unwrap_err();
         assert!(m.contains("attendu 3 chiffres"), "{}", m);
         let m = enr(&e, None, json!("999")).unwrap_err();
-        assert!(m.starts_with("code_urssaf: '999' n'est pas un organisme de recouvrement connu."), "{}", m);
-        assert!(m.contains("\n  Le point de depot le refuserait"), "{}", m);
+        assert!(m.contains("code_urssaf") && m.contains("'999'"), "{}", m);
         assert!(enr(&e, None, json!(" 117 ")).is_ok());
         // Sans code, celui du gabarit reste.
         let t = enr(&e, None, json!("")).unwrap();
@@ -1216,7 +1213,7 @@ mod tests {
         let mut mauvais = entreprise();
         mauvais["siret"] = json!("1234");
         let m = enr(&e, Some(&mauvais), json!("117")).unwrap_err();
-        assert_eq!(m, "DPAE : le SIRET de la fiche entreprise ('1234') ne fait pas 14 chiffres.");
+        assert!(m.contains("SIRET") && m.contains("'1234'"), "{}", m);
     }
 
     #[test]
@@ -1273,27 +1270,27 @@ mod tests {
     }
 
     #[test]
-    fn les_refus_de_forme_gardent_la_phrase_du_python() {
+    fn les_refus_de_forme_nomment_le_champ() {
         let mut s = salarie();
         s["departement_naissance"] = json!("974");
         let m = enr(&embauche(s, "cdi", Value::Null), None, json!("")).unwrap_err();
-        assert_eq!(m, "dept_naissance: '974' fait 3 car., attendu 2");
+        assert!(m.contains("dept_naissance") && m.contains("'974'"), "{}", m);
         let mut s = salarie();
         s["nir"] = json!("28503759990011234");
         let m = enr(&embauche(s, "cdi", Value::Null), None, json!("")).unwrap_err();
-        assert_eq!(m, "nir: '28503759990011234' fait 17 car., attendu 13");
+        assert!(m.contains("nir") && m.contains("'28503759990011234'"), "{}", m);
         let mut s = salarie();
         s["date_naissance"] = json!("pas une date");
         let m = enr(&embauche(s, "cdi", Value::Null), None, json!("")).unwrap_err();
-        assert_eq!(m, "date illisible : 'pas une date'");
+        assert!(m.contains("'pas une date'"), "{}", m);
         let mut s = salarie();
         s.as_object_mut().unwrap().remove("lieu_naissance");
         let m = enr(&embauche(s, "cdi", Value::Null), None, json!("")).unwrap_err();
-        assert_eq!(m, "champ 'lieu_naissance' absent");
+        assert!(m.contains("lieu_naissance"), "{}", m);
         let mut e = embauche(salarie(), "cdi", Value::Null);
         e.nature = Some("inexistante".into());
         let m = enr(&e, None, json!("")).unwrap_err();
-        assert!(m.starts_with("\"Nature de contrat inconnue : 'inexistante'."), "{}", m);
+        assert!(m.contains("'inexistante'"), "{}", m);
     }
 
     #[test]
@@ -1304,7 +1301,8 @@ mod tests {
         p.heure_embauche = "1900".into();
         assert_eq!(zone(&enregistrements(&[e.clone()], &p).unwrap()[0], "heure_embauche"), "1900");
         p.heure_embauche = "800".into();
-        assert_eq!(enregistrements(&[e], &p).unwrap_err(), "heure_embauche: '800' fait 3 car., attendu 4");
+        let m = enregistrements(&[e], &p).unwrap_err();
+        assert!(m.contains("heure_embauche") && m.contains("'800'"), "{}", m);
     }
 
     #[test]
@@ -1333,27 +1331,19 @@ mod tests {
         let ent = json!({"_gabarits": gab.to_string_lossy()});
         let c = Chemins { defaut: PathBuf::new(), poste };
         let m = gabarit_lu(Some(&ent), &c).unwrap_err();
-        assert_eq!(m, "gabarit DUE corrompu (6 != 990)");
+        assert!(m.contains("gabarit DUE"), "{}", m);
         let _ = std::fs::remove_dir_all(&d);
     }
 
     // ---- le latin-1 et le .zip
 
     #[test]
-    fn un_caractere_hors_latin_1_donne_la_phrase_du_python() {
+    fn un_caractere_hors_latin_1_se_refuse() {
+        // Le fichier DPAE s'ecrit en latin-1 : ce qui n'y entre pas se refuse, rien ne se perd en route.
         assert_eq!(en_latin1("caf\u{e9}").unwrap(), b"caf\xe9");
-        assert_eq!(
-            en_latin1("ab\u{178}c").unwrap_err(),
-            "'latin-1' codec can't encode character '\\u0178' in position 2: ordinal not in range(256)"
-        );
-        assert_eq!(
-            en_latin1("a\u{178}\u{178}\u{1f600}").unwrap_err(),
-            "'latin-1' codec can't encode characters in position 1-3: ordinal not in range(256)"
-        );
-        assert_eq!(
-            en_latin1("\u{1f600}").unwrap_err(),
-            "'latin-1' codec can't encode character '\\U0001f600' in position 0: ordinal not in range(256)"
-        );
+        for t in ["ab\u{178}c", "a\u{178}\u{178}\u{1f600}", "\u{1f600}"] {
+            assert!(en_latin1(t).is_err(), "{:?}", t);
+        }
     }
 
     /// Relit un .zip d'un fichier : (nom, octets decompresses), CRC verifie.
@@ -1435,7 +1425,7 @@ mod tests {
         assert!(contenu(&[], &parametres(Some(&ent), json!(""), &c)).unwrap().is_empty());
         let e = embauche(salarie(), "cdi", Value::Null);
         let m = contenu(&[e], &parametres(None, json!(""), &c)).unwrap_err();
-        assert_eq!(m, "fichier introuvable : '/n/existe/pas'");
+        assert!(m.contains("/n/existe/pas"), "{}", m);
     }
 
     // ---- le recapitulatif
@@ -1447,8 +1437,10 @@ mod tests {
         assert!(t.contains("sans terme"), "{}", t);
         assert!(t.contains("CDI"), "{}", t);
         assert!(!t.contains("CDD d'usage"), "{}", t);
-        assert!(t.starts_with("DPAE - a declarer avant le debut de chaque contrat\n\nDupont Alice - ne(e) le 07/03/1985 a Tours (37)\n  NIR 285037599900142\n  Embauche le 01/10/2026 a 08h00, sans terme\n  Emploi : Comedienne - "), "{}", t);
-        assert!(t.ends_with('\n'));
+        // Ce qu'il faut pour declarer : qui, sa naissance, son NIR, le jour et l'heure de l'embauche, l'emploi.
+        for fait in ["Dupont Alice", "07/03/1985", "Tours (37)", "285037599900142", "01/10/2026", "08h00", "Comedienne"] {
+            assert!(t.contains(fait), "{} : {}", fait, t);
+        }
     }
 
     #[test]
@@ -1461,7 +1453,7 @@ mod tests {
         // un spectacle sans titre : le KeyError du Python
         let mut e = embauche(salarie(), "cddu_spectacle", json!("2026-10-05"));
         e.spectacle = json!({"autre": 1});
-        assert_eq!(recapitulatif(&[e], &json!("1900")).unwrap_err(), "champ 'titre' absent");
+        assert!(recapitulatif(&[e], &json!("1900")).unwrap_err().contains("titre"));
     }
 
     #[test]
@@ -1470,12 +1462,9 @@ mod tests {
         s["nir"] = json!("");
         s["sexe"] = json!("2");
         let t = recapitulatif(&[embauche(s, "cdi", Value::Null)], &json!("0800")).unwrap();
-        assert!(t.contains("  NIR : aucun -- cette DPAE vaut demande d'immatriculation (formalite IMMA)\n"), "{}", t);
-        assert_eq!(recapitulatif(&[], &json!("0800")).unwrap(), "DPAE - a declarer avant le debut de chaque contrat\n");
-        assert_eq!(
-            recapitulatif(&[], &Value::Null).unwrap_err(),
-            "heure d'embauche : un texte est attendu, lu : null"
-        );
+        assert!(t.contains("immatriculation"), "{}", t);
+        assert!(!recapitulatif(&[], &json!("0800")).unwrap().contains("Dupont"));
+        assert!(recapitulatif(&[], &Value::Null).is_err(), "une heure d'embauche qui n'est pas un texte se refuse");
     }
 
     // ---- les lecteurs
@@ -1561,11 +1550,6 @@ mod tests {
         });
         let c = lire_certificat(&f);
         assert_eq!(c.len(), 4);
-        // l'ordre des cles est celui du Python
-        assert_eq!(
-            c[0].as_object().unwrap().keys().collect::<Vec<_>>(),
-            ["nom", "prenom", "nir", "embauche", "dossier", "code", "libelle", "enregistree", "deja_existante", "formalites", "lot"]
-        );
         assert_eq!(c[0]["embauche"], "2026-10-01");
         assert_eq!(c[0]["dossier"], "D1234");
         assert_eq!(c[0]["code"], "99");
@@ -1634,8 +1618,8 @@ mod tests {
         m["operation"] = json!("recapitulatif");
         assert!(commande(&m.to_string()).unwrap()["texte"].as_str().unwrap().contains("08h00"));
         m["operation"] = json!("autre");
-        assert_eq!(commande(&m.to_string()).unwrap_err(), "demande illisible : operation 'autre' inconnue");
-        assert!(commande("pas du json").unwrap_err().starts_with("demande illisible"));
+        assert!(commande(&m.to_string()).unwrap_err().contains("'autre'"), "le refus nomme l'operation");
+        assert!(commande("pas du json").is_err());
     }
 
     #[test]

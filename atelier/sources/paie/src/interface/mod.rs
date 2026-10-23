@@ -39,6 +39,7 @@ const ACCUEIL: &str = include_str!("pages/accueil.html");
 const CRAYON: &str = include_str!("pages/crayon.html");
 const ZERO: &str = include_str!("pages/zero.html");
 const TUILE_AJOUTER: &str = include_str!("pages/tuile_ajouter.html");
+const AVIS_AJOUTER: &str = include_str!("pages/avis_ajouter.html");
 
 /// Les appels `window.pywebview.api.<nom>(...)` de l'accueil, postes au serveur. Une reponse qui dit `recharger`
 /// fait revenir la fenetre sur `/` : c'est le serveur qui sait quelle page montrer ensuite.
@@ -259,7 +260,14 @@ fn page_accueil() -> String {
                 echapper(&c.id),
                 if c.reelle { format!(" style=\"--cie:{}\"", c.couleur) } else { String::new() },
                 medaillon,
-                if c.reelle { CRAYON.replace("%s", &c.couleur) } else { ZERO.to_string() },
+                // Une fictive AJOUTEE n'a pas de photo d'origine : pas de remise a zero (ticket #236).
+                if c.reelle {
+                    CRAYON.replace("%s", &c.couleur)
+                } else if compagnies::est_fictive_livree(&c.racine) {
+                    ZERO.to_string()
+                } else {
+                    String::new()
+                },
                 echapper(&c.nom),
                 echapper(&c.lieu)
             ),
@@ -267,7 +275,8 @@ fn page_accueil() -> String {
     }
     let bride = crate::bridage::est_bride();
     let grille = if bride {
-        format!("<div class=\"grille\">{}</div>", tuiles.iter().map(|(_, t)| t.as_str()).collect::<String>())
+        // BRIDE, LE « + » AUSSI (ticket #236) : il ajoute une fictive (`compagnies::ajouter`), apres le message.
+        format!("<div class=\"grille\">{}{}</div>{}", tuiles.iter().map(|(_, t)| t.as_str()).collect::<String>(), TUILE_AJOUTER, AVIS_AJOUTER)
     } else {
         let reelles: String = tuiles.iter().filter(|(r, _)| *r).map(|(_, t)| t.as_str()).collect::<String>() + TUILE_AJOUTER;
         let fictives: Vec<&str> = tuiles.iter().filter(|(r, _)| !*r).map(|(_, t)| t.as_str()).collect();
@@ -307,7 +316,7 @@ pub fn page_logiciel(racine: &Path, jeton: &str) -> Result<String, String> {
             "{{STYLE_COMPAGNIE}}",
             &if copie { String::new() } else { format!("<style>:root {{ --compagnie: {}; }}</style>", compagnies::couleur(racine)) },
         )
-        .replace("{{EDITION}}", if crate::bridage::est_bride() { " &middot; brid&eacute;" } else { "" });
+        .replace("{{EDITION}}", if crate::bridage::est_bride() { " &middot; d&eacute;mo" } else { "" });
     let cale = CALE.replace("{{JETON}}", jeton).replace("{{NOMS}}", NOMS_LOGICIEL);
     // Avant le PREMIER script de la page (`/js/tuyau.js`, qui definit `api`) : la cale doit exister avant lui.
     p = p.replacen("<script src=\"/js/", &format!("{}<script src=\"/js/", cale), 1);
@@ -841,11 +850,16 @@ fn egal_en_temps_constant(a: &[u8], b: &[u8]) -> bool {
 }
 
 /// AU LANCEMENT, avant tout : ce qu'une installation posee avant le lot U1 doit ranger (`demo/` devient `fictives/`,
-/// `compagnies::ranger_les_fictives`), et ce que la fenetre d'avant le ticket #244 a laisse sur le poste
+/// `compagnies::ranger_les_fictives`), la livraison de fictives prete (`maj::poser_les_fictives_pretes`), et ce que la
+/// fenetre d'avant le ticket #244 a laisse sur le poste
 /// (`effacer_les_restes`). Ce qui s'est passe va dans le journal de l'installation (`maj::noter`).
 pub fn preparer_l_installation() {
     let inst = crate::maj::installation();
     if let Some(t) = compagnies::ranger_les_fictives(&inst) {
+        crate::maj::noter(&inst, &t);
+    }
+    // Une livraison de compagnies fictives prete (`maj::preparer_les_fictives`) remplace celles du poste, avant toute fenetre.
+    if let Some(t) = crate::maj::poser_les_fictives_pretes(&inst) {
         crate::maj::noter(&inst, &t);
     }
     let effaces = effacer_les_restes(&navigateur::dossier_utilisateur(), &crate::coffre::Coffre::dossier_cle_du_poste());

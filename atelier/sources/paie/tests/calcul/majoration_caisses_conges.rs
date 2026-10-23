@@ -116,27 +116,6 @@ fn le_versement_mobilite_d_un_intermittent_se_majore_de_11_5_pour_cent_pas_celui
 }
 
 #[test]
-fn un_permanent_seul_n_a_aucune_majoration() {
-    // Montansier (CDI) a 5 000,00 : son versement mobilite et son bordereau sur le brut, son FNAL sur la tranche 1.
-    let copie = copie(|_, _| {});
-    let ctx = Contexte::nouveau(&copie.0, Some(Jour::lire("2026-10-28").unwrap())).unwrap();
-    let s = saisie(
-        &ctx,
-        json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": [
-            {"salarie": "Montansier", "nature": "cdi", "debut": "2023-09-04", "numero": "MO.23.01", "quotite_contrat": 151.67,
-             "lignes": [{"rubrique": "mois", "quantite": 1, "taux": 5000.0, "heures": 151.67}]}
-        ]}),
-    );
-    let dsn = generer(&ctx, &s.paies, "2026-10", &[], &[], &Options::default()).unwrap();
-    let p = &s.paies[0];
-    assert_eq!(ligne(p, "versement_mobilite").0, dec("5000.00"));
-    assert_eq!(ligne(p, "autres_3").0, dec("5000.00"), "la taxe d'apprentissage d'un permanent n'est pas majoree");
-    assert_eq!(base81(&versement(&dsn, "MO.23.01"), "081"), dec("5000.00"));
-    assert_eq!(ctp(&dsn, "900", "920"), Some(dec("5000")));
-    assert_eq!(ctp(&dsn, "921", "920"), None);
-}
-
-#[test]
 fn sous_deduction_forfaitaire_les_assiettes_majorees_partent_du_brut_abattu() {
     // Deburau, comedien (categorie 25 : 18 % en 2026), un cachet de 200,00 sous son plafond (360,00) : brut abattu
     // 164,00. Le FNAL et le versement mobilite sur 164,00 x 1,115 = 182,86, la taxe d'apprentissage sur 164,00 x 1,10

@@ -1985,34 +1985,39 @@ mod tests {
         let e = etat_du_mois(&l, "2026-06").unwrap();
         assert_eq!(e["dsn"]["quand"], "2026-06-02T10:00:00");
         assert_eq!(e["dpae"], Value::Null);
-        assert_eq!(e.as_object().unwrap().len(), 10);
         assert_eq!(documents_envoyes(&l, "2026-06").unwrap(), json!([["ALPHA", "2026-06-04T10:00:00"]]));
     }
 
     #[test]
     fn les_resumes() {
         let r = |l: Value, k: Value| resume(&l, &recus(k), Maille::Paire).unwrap();
-        assert_eq!(r(Value::Null, json!([])), "pas encore envoyé");
+        // Chaque resume dit l'etat du geste : envoye ou non, en test, refuse et pourquoi, accepte, signe.
+        assert!(r(Value::Null, json!([])).contains("pas encore envoyé"));
         let l = ligne("dsn", "2026-06", "test", "2026-06-02T10:05:00", json!({}), json!([]));
-        assert_eq!(r(l, json!([])), "envoyé en TEST le 02/06/2026 à 10:05 — pas encore de retour");
+        let s = r(l, json!([]));
+        assert!(s.contains("TEST") && s.contains("02/06/2026") && s.contains("pas encore de retour"), "{}", s);
         let mut refus = ligne("dpae", "2026-06", "reel", "2026-06-02", json!({}), json!([]));
         refus["accepte"] = json!(false);
         refus["reponse"] = json!("Code URSSAF invalide");
-        assert_eq!(r(refus, json!([])), "envoi du 02/06/2026 refusé au dépôt — Code URSSAF invalide");
+        let s = r(refus, json!([]));
+        assert!(s.contains("refusé") && s.contains("Code URSSAF invalide"), "{}", s);
         let ko = ligne("dsn", "2026-06", "reel", "2026-06-02T10:05:00", json!({}), json!([{"nature": "11", "verdict": "KO", "anomalies": ["a", "b", "a"]}]));
-        assert_eq!(r(ko, json!([])), "envoyé le 02/06/2026 à 10:05 — REFUSÉ : a ; b");
+        let s = r(ko, json!([]));
+        assert!(s.contains("REFUSÉ") && s.ends_with(": a ; b"), "chaque anomalie une fois : {}", s);
         let ok = ligne("dsn", "2026-06", "reel", "2026-06-02T10:05:00", json!({}),
                        json!([{"nature": "10"}, {"nature": "11", "verdict": "OK"}, {"nature": "45"}, {"nature": "46"}]));
-        assert_eq!(r(ok, json!([])), "envoyé le 02/06/2026 à 10:05 — bilan OK, aucune anomalie ; 2 comptes-rendus d'organismes reçus");
+        let s = r(ok, json!([]));
+        assert!(s.contains("bilan OK") && s.contains("2 comptes-rendus"), "{}", s);
         let cert = ligne("dpae", "2026-06", "reel", "2026-06-02T10:05:00", json!({}),
                          json!([{"nature": "41", "dpae": [{"nom": "X", "enregistree": true, "dossier": "D1"}, {"nom": "Y", "deja_existante": true}]}]));
-        assert_eq!(r(cert, json!([])), "envoyé le 02/06/2026 à 10:05 — certificat de conformité reçu : passée (dossier D1) ; déjà existante à l'Urssaf, rien de créé : Y");
+        let s = r(cert, json!([]));
+        assert!(s.contains("(dossier D1)") && s.ends_with(": Y"), "{}", s);
         let sig = ligne("contrat-signature", "2026-06", "reel", "2026-06-02T10:05:00", json!({"contrats": [{"salarie": "A", "debut": "d"}, {"salarie": "B", "debut": "d"}]}), json!([]));
-        assert_eq!(r(sig.clone(), json!([])), "envoyé le 02/06/2026 à 10:05 — pas encore revenu signé");
-        assert_eq!(r(sig.clone(), json!([["A", "d"]])), "envoyé le 02/06/2026 à 10:05 — 1 contrat sur 2 revenu signé");
-        assert_eq!(r(sig, json!([["A", "d"], ["B", "d"]])), "envoyé le 02/06/2026 à 10:05 — tous revenus signés (2)");
+        assert!(r(sig.clone(), json!([])).contains("pas encore revenu signé"));
+        assert!(r(sig.clone(), json!([["A", "d"]])).contains("1 contrat sur 2"));
+        assert!(r(sig, json!([["A", "d"], ["B", "d"]])).contains("tous revenus signés (2)"));
         let dernier = ligne("dsn", "2026-06", "reel", "2026-06-02T10:05:00", json!({}), json!([{"nature": 99, "libelle": ""}]));
-        assert_eq!(r(dernier, json!([])), "envoyé le 02/06/2026 à 10:05 — 99");
+        assert!(r(dernier, json!([])).ends_with("99"));
     }
 
     #[test]

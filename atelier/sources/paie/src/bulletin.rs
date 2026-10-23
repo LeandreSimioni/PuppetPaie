@@ -41,11 +41,6 @@ pub const LOGO_MARGE_HAUT: i64 = 28;
 /// Dans l'ordre de preference : le vectoriel d'abord.
 pub const IDENTITE_EXTENSIONS: [&str; 3] = [".svg", ".png", ".jpg"];
 
-pub const MOIS_FR: [&str; 12] = [
-    "janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre",
-    "decembre",
-];
-
 // ------------------------------------------------------------ les formats (util)
 
 /// Un `Decimal` arrondi a `dp` decimales au pair sur le demi (le contexte de

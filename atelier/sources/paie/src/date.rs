@@ -182,6 +182,48 @@ pub fn numero_du_mois(mois: &str) -> Resultat<u32> {
     Ok(n as u32)
 }
 
+/// Les trois graphies d'un nom de mois que le moteur ecrit, chacune la ou elle s'ecrivait deja :
+/// - `Titre` (« Aout ») : noms de fichiers (`DSN_Aout2026.dsn`), titres et sections des etats ;
+/// - `Minuscule` (« aout ») : sans accent, dans une phrase (le libelle d'un mois d'engagement, d'un dossier) ;
+/// - `Accentuee` (« août ») : dans une phrase en francais (courriels, contrats, avenants, ecrans).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Graphie {
+    Titre,
+    Minuscule,
+    Accentuee,
+}
+
+const MOIS_TITRE: [&str; 12] = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"];
+const MOIS_MINUSCULE: [&str; 12] = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"];
+const MOIS_ACCENTUE: [&str; 12] = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+
+/// Le nom du mois `mois` (1 a 12) dans la graphie `g` : la seule table des noms de mois du moteur. Un mois hors 1-12
+/// n'est aucun mois et se refuse (`mois_impossible`), comme `numero_du_mois` : jamais l'indice -1 d'une liste (le Python
+/// lisait « 00 » decembre) ni un mois ramene de force dans l'annee.
+pub fn nom_du_mois(mois: i64, g: Graphie) -> Resultat<&'static str> {
+    if !(1..=12).contains(&mois) {
+        return Err(mois_impossible(mois));
+    }
+    let table = match g {
+        Graphie::Titre => &MOIS_TITRE,
+        Graphie::Minuscule => &MOIS_MINUSCULE,
+        Graphie::Accentuee => &MOIS_ACCENTUE,
+    };
+    Ok(table[(mois - 1) as usize])
+}
+
+/// « octobre 2026 » d'un « AAAA-MM », dans la graphie `g` ; un mois illisible ou hors 01-12 se refuse.
+pub fn libelle_du_mois(mois: &str, g: Graphie) -> Resultat<String> {
+    let n = numero_du_mois(mois)?;
+    Ok(format!("{} {}", nom_du_mois(n as i64, g)?, mois.chars().take(4).collect::<String>()))
+}
+
+/// `libelle_du_mois` pour une phrase qui ne peut pas refuser pour son mois (un bandeau, un conseil, un avertissement) :
+/// un mois illisible ou hors 01-12 s'ecrit tel quel (« 2026-00 »), jamais sous le nom d'un autre mois.
+pub fn libelle_du_mois_ou_tel_quel(mois: &str, g: Graphie) -> String {
+    libelle_du_mois(mois, g).unwrap_or_else(|_| mois.to_string())
+}
+
 /// L'annee, sinon le mois, sinon le jour : ce que `datetime.date` refuse en premier.
 pub fn date_impossible(an: impl Into<i64>, mois: impl Into<i64>, jour: impl Into<i64>) -> String {
     let (an, mois, jour) = (an.into(), mois.into(), jour.into());
@@ -485,15 +527,12 @@ mod tests {
     }
 
     #[test]
-    fn les_refus_ont_le_message_du_python() {
-        assert_eq!(Jour::lire("demain").unwrap_err(), "date illisible : 'demain'");
-        assert_eq!(Jour::lire("l'an 2").unwrap_err(), "date illisible : \"l'an 2\"");
-        assert_eq!(Jour::lire("").unwrap_err(), "date illisible : ''");
-        assert_eq!(d(&json!(null)).unwrap_err(), "date illisible : 'None'");
-        assert_eq!(
-            d(&json!({"lieu": "Tours", "n": 1.0})).unwrap_err(),
-            "date detaillee sans `jour` : {'lieu': 'Tours', 'n': 1.0}"
-        );
+    fn ce_qui_n_est_pas_une_date_se_refuse() {
+        for s in ["demain", "l'an 2", ""] {
+            assert!(Jour::lire(s).is_err(), "{}", s);
+        }
+        assert!(d(&json!(null)).is_err());
+        assert!(d(&json!({"lieu": "Tours", "n": 1.0})).is_err(), "une date detaillee sans `jour`");
     }
 
     #[test]
@@ -569,6 +608,21 @@ mod tests {
     }
 
     #[test]
+    fn le_nom_d_un_mois_hors_01_12_se_refuse_et_garde_sa_graphie() {
+        // « 00 » n'est pas decembre (l'indice -1 du Python), ni « 13 » janvier : aucun mois, un refus.
+        for n in [0, 13, -1] {
+            for g in [Graphie::Titre, Graphie::Minuscule, Graphie::Accentuee] {
+                assert_eq!(nom_du_mois(n, g).unwrap_err(), mois_impossible(n));
+            }
+        }
+        assert_eq!((nom_du_mois(8, Graphie::Titre).unwrap(), nom_du_mois(8, Graphie::Minuscule).unwrap(), nom_du_mois(8, Graphie::Accentuee).unwrap()), ("Aout", "aout", "août"));
+        assert_eq!(libelle_du_mois("2026-12", Graphie::Accentuee).unwrap(), "décembre 2026");
+        assert!(libelle_du_mois("2026-00", Graphie::Accentuee).is_err());
+        assert_eq!(libelle_du_mois_ou_tel_quel("2026-00", Graphie::Minuscule), "2026-00");
+        assert_eq!(libelle_du_mois_ou_tel_quel("2026-02", Graphie::Minuscule), "fevrier 2026");
+    }
+
+    #[test]
     fn les_mois() {
         assert_eq!(jours_du_mois(2024, 2), 29);
         assert_eq!(jours_du_mois(1900, 2), 28);
@@ -585,13 +639,12 @@ mod tests {
     }
 
     #[test]
-    fn les_reprs() {
+    fn les_flottants_s_ecrivent_comme_str_de_python() {
+        // `num::dec_py` en tire un Decimal (`Decimal(str(x))`) : la forme du flottant y est une valeur.
         assert_eq!(repr_flottant(1.0), "1.0");
         assert_eq!(repr_flottant(0.25), "0.25");
         assert_eq!(repr_flottant(1e-5), "1e-05");
         assert_eq!(repr_flottant(1e16), "1e+16");
         assert_eq!(repr_flottant(123456789012345.0), "123456789012345.0");
-        assert_eq!(repr_texte("a\\b\n"), "'a\\\\b\\n'");
-        assert_eq!(repr_py(&json!([{"a": null, "b": true}, "x'y"])), "[{'a': None, 'b': True}, \"x'y\"]");
     }
 }

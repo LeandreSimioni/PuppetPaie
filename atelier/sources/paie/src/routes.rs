@@ -209,7 +209,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     };
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
     let rendu = match rendu {
-        Err(Echec { classe, message }) if est_une_ecriture(route) && !message.trim_start().starts_with('{') => {
+        Err(Echec { classe, message }) if est_une_ecriture(route) && classe != Some(crate::bridage::CLASSE_REFUS_D_ENVOI) && !message.trim_start().starts_with('{') => {
             let suite = crate::demarrage::a_la_suite(&ctx).unwrap_or_default();
             Err(Echec { classe, message: message + &suite })
         }

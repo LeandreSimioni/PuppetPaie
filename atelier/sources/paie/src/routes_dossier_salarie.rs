@@ -94,8 +94,6 @@ fn rang_de(c: &str) -> usize {
 
 const PIED_REEDITE: &str = "Réédité par PuppetPaie le {} depuis les données de paie — numéros et montants identiques au document remis ; mise en page d'aujourd'hui.";
 
-/// `util.MOIS_FR`.
-const MOIS_FR: [&str; 12] = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"];
 
 // ------------------------------------------------------------------ les refus
 
@@ -253,12 +251,9 @@ impl Periode {
         if let Some(m) = &self.mois {
             let c: Vec<char> = m.chars().collect();
             let n = (chiffre(c[5]).unwrap_or(0) * 10 + chiffre(c[6]).unwrap_or(0)) as i64;
-            let i = n - 1;
-            let i = if i < 0 { i + 12 } else { i };
-            if i >= 12 {
-                return Err(avec("IndexError", crate::date::mois_impossible(n)));
-            }
-            return Ok(format!("{} {}", MOIS_FR[i as usize], c[..4].iter().collect::<String>()));
+            // « 00 » n'est aucun mois (l'indice -1 du Python le lisait decembre) : il se refuse, comme partout.
+            let nom = crate::date::nom_du_mois(n, crate::date::Graphie::Minuscule).map_err(|e| avec("IndexError", e))?;
+            return Ok(format!("{} {}", nom, c[..4].iter().collect::<String>()));
         }
         Ok(self.annee.clone().unwrap_or_default())
     }
@@ -434,8 +429,8 @@ fn numeroter(ctx: &Contexte, data: &Value, paies: &mut [Paie], attente: &mut Has
 
 /// `etiquette(mois)`, ses refus sous leur classe.
 pub(crate) fn etiquette(mois: &str) -> R<String> {
-    crate::apercu_dsn::etiquette(mois).map_err(|m| {
-        if m.starts_with("list index") {
+    crate::envoi::etiquette(mois).map_err(|m| {
+        if m.starts_with("mois impossible") {
             avec("IndexError", m)
         } else {
             avec("ValueError", m)

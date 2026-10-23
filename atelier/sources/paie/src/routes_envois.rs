@@ -99,6 +99,9 @@ pub(crate) fn preuve_de(charge: &Value) -> Preuve {
 /// `operations_documents._client_courriel` : la boite qui envoie. La compagnie fictive ecrit les messages, elle ne
 /// les envoie pas ; sans mot de passe d'application au coffre, il n'y en a pas (`BoiteAbsente`).
 pub(crate) fn client_courriel(ctx: &Contexte) -> R<Box<dyn Courriel>> {
+    // UNE FICTIVE AJOUTEE n'a pas de boite qui envoie (ticket #236, `bridage::refus_d_envoi`) : la route s'arrete ici,
+    // avant la preuve et avant toute ligne au journal des depots (pas meme `noter_echec_d_envoi`).
+    crate::depot_acte::refuser_l_envoi(ctx)?;
     if crate::routes_accueil::simulation_active(&ctx.racine) {
         return Ok(Box::new(BoiteSimulee::du_contexte(ctx)));
     }

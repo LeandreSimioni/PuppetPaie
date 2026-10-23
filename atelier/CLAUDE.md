@@ -53,15 +53,27 @@ du journal, `prive/journal/` se lit `journal/` du privé.
 | `PuppetPaie.cmd` | le lanceur |
 | `logiciel/` | **exactement ce qu'une compagnie reçoit** : `puppetpaie.exe` (la fenêtre), `WebView2Loader.dll`, `VERSION`, `donnees/` (barèmes, bases, modèles), `interface/` (la page : `index.html`, `interface.css`, `js/`). C'est ce que publie la mise à jour. |
 | `fictives/` | les quatre compagnies fictives, livrées (`docs/COMPAGNIES-FICTIVES.md`) |
-| `maj/`, `prive/` | sur le poste seulement : la mise à jour de l'installation ; la compagnie du poste |
+| `maj/`, `prive/` | dans une installation seulement, jamais dans le dépôt : la mise à jour de l'installation ; la compagnie de l'installation |
 | `atelier/sources/` | `paie/` (le moteur, programme `paie` ; exécutables livrés dans `paie/bin/<système>/`), `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
 | `atelier/reference/` | les textes qui fondent les règles (voir « Les sources ») |
 | `atelier/outils/`, `docs/`, `depot/`, `installeur/`, `site/`, `maquettes/` | les outils d'atelier (plus de Python depuis le 15/10/2026 : des commandes de `paie`), les docs, les versions publiées, l'installeur, le site |
 
 **L'interface** : la page `logiciel/interface/` (HTML, CSS, JS sans cadre) parle au moteur par `paie route` (`js/tuyau.js`) ;
 la fenêtre Tauri (`atelier/sources/fenetre/`) ne fait que l'afficher. **Toute décision vit dans le moteur** (règle 2) : une page
-affiche et saisit, elle ne calcule ni ne refuse d'elle-même. On compile hors du dépôt (`CARGO_TARGET_DIR`), chaîne
-`stable-x86_64-pc-windows-gnu` sur le poste ; l'exe de la fenêtre compilé se copie dans `logiciel/`.
+affiche et saisit, elle ne calcule ni ne refuse d'elle-même. On compile hors du dépôt (`CARGO_TARGET_DIR`) ; les exécutables
+livrés (Windows, Linux, Mac), c'est « Publier » qui les compile.
+
+**Le poste de Léandre est une installation ordinaire** (Léandre, 22/10/2026 : « j'utilise le logiciel comme tout le monde sur
+mon poste ») : installée par l'installeur, mise à jour par la Release, sa compagnie dans son `prive/`. **On développe dans le
+nuage, et seulement là** : aucune consigne ne suppose qu'il compile, commite, publie ou fait jouer les fictives depuis son
+poste. Ce qui lui revient sur son poste, ce sont les gestes d'un utilisateur (essayer dans la fenêtre, configurer sa compagnie,
+relever un texte que le nuage n'atteint pas) et ceux de l'éditeur (le serveur du filet). Ses retours y sont sans plafond : le
+filet reconnaît le poste de l'éditeur par sa clé. Un miroir hebdomadaire des trois dépôts et des tickets, sur son poste, garde
+tout si GitHub disparaît (`journal/ETAT.md` du privé).
+
+**Ce que les gens lisent : on ne promet rien, on propose tout** (Léandre, 22/10/2026). Aucune phrase de l'écran ne dit ce qui
+se passera plus tard (au déblocage, dans une prochaine version). Le logiciel bridé s'appelle **« démo »** dans ce qu'on lit à
+l'écran, **« bridé »** dans le code et entre nous.
 **Rien de remplissable s'il n'y a pas à le remplir** (Léandre, 15/10/2026 : « simple pour les gens qui ont besoin de simple,
 compliqué pour les gens qui ont besoin de compliqué ») : un champ n'apparaît que parce qu'un fait l'exige (un motif qui
 appelle une date, un arrêt qui appelle le maintien), jamais « au cas où » ; le chemin simple ne montre que les faits, le
@@ -177,7 +189,8 @@ cargo nextest run --cargo-profile essais --no-fail-fast                  # le mo
   `tests/donnees/` se réécrit par le test qui le lit (`PUPPETPAIE_REECRIRE_ORACLES=1`, jamais posée par un test) ; une grille
   exhaustive se joue sur un échantillon à graine fixe (`outils::tire`).
 - Les tests tournent sur des compagnies fictives et sur **la copie figée** `paie/tests/donnees/fictives/` ; `fictives/` vit
-  (le poste la fait jouer et la commite), un test ne la lit jamais. Une compagnie de test se nomme toujours.
+  (les séances la refont et la commitent ; « Publier » la livre à part, `maj.rs`), un test ne la lit jamais. Une compagnie de
+  test se nomme toujours.
 - **Aucun test ne sort de la machine** (21/10/2026 : un test s'était inscrit au vrai filet, d'où des courriels à
   `a@exemple.fr`). `paie/.cargo/config.toml` pose `PUPPETPAIE_ESSAIS_HORS_RESEAU` pour tout ce que Cargo lance, et
   `src/garde_reseau.rs` refuse alors toute sortie hors de 127.0.0.1 ; un test qui veut voir une sortie nomme son faux
@@ -248,8 +261,12 @@ On publie depuis GitHub (`journal/finitions/PUBLIER.md` du privé) : à la fin d
 `main` (Léandre fusionne ; le flux pose la date du jour dans `logiciel/VERSION`, une version par jour). Léandre lance
 « Publier » (`.github/workflows/publier.yml`) avec `notes`, et `calcul` **seulement** si la version change un calcul de paie
 (la seule phrase qu'une compagnie verra ; un taux qui change n'en est pas une), `exigee` plus rarement encore. **Léandre
-approuve** (environnement `publication`) ; le moteur signe avec la clé de GitHub et une Release porte les archives (une par système publié et une tout-système ; le choix se fait au lancement), `derniere.json`
-et l'installeur, que toute installation lit (`paie maj`, `paie/src/maj.rs`), la sienne comprise. Une version qui change un
-calcul attend la DSN des mois saisis avant de s'appliquer (`--malgre-calcul` pour passer outre). Jamais pendant que l'interface
-tourne ; jamais republier un numéro. La clé du poste (`maj-cle-privee.bin`, `paie maj --publier`) reste acceptée. On est en
+approuve** (environnement `publication`) ; le moteur signe avec la clé de GitHub. Une Release porte trois sortes d'archives
+(`paie/src/maj.rs`, en tête) : **la mise à jour** (`puppetpaie-<v>-<système>.zip`, le contenu de `logiciel/` à la racine :
+**sa forme est un contrat avec toutes les installations posées et ne change plus**), **les fictives** (livrées à part, signées,
+téléchargées seulement quand leur empreinte change ; elles ne remplacent que ce qu'une livraison a posé), **l'installation**
+(`…-installation.zip`, `logiciel/` et `fictives/`, pour Linux, Mac et le dossier portable) ; plus `derniere.json` et
+l'installeur Windows. Une version qui change un calcul attend la DSN des mois saisis avant de s'appliquer (`--malgre-calcul`
+pour passer outre). Jamais pendant que l'interface tourne ; jamais republier un numéro. Le moteur accepte encore la clé de
+signature d'un poste (`maj-cle-privee.bin`, `paie maj --publier`), mais on ne publie que depuis GitHub. On est en
 développement : ne pas signaler qu'aucune version n'a été publiée depuis longtemps.

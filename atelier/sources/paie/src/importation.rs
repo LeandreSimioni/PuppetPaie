@@ -138,7 +138,8 @@ fn texte(s: &str) -> Value {
 /// fichier ne se lit pas, ou si elle ne dit pas son mois.
 pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
     let octets = std::fs::read(chemin).ok()?;
-    let lignes = lignes_py(&texte_latin1(&octets));
+    let contenu = texte_latin1(&octets);
+    let lignes = lignes_py(&contenu);
     let (mut mois, mut depot) = (String::new(), String::new());
     let mut entreprise: Map<String, Value> = Map::new();
     let mut individus: Vec<Map<String, Value>> = Vec::new();

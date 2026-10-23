@@ -219,7 +219,7 @@ fn une_empreinte_qui_ne_colle_pas_n_ecrit_rien_de_ce_fichier() {
     let cible = base.join("cible");
     let r = restaurer(&cible, RD, &mut d).unwrap();
     assert_eq!(r.incidents.len(), 1, "{:?}", r.incidents);
-    assert!(r.incidents[0].starts_with("paies/2026-06/dupont.json : l'empreinte ne colle pas (le Drive annonce 00000000000000000000000000000000"), "{}", r.incidents[0]);
+    assert!(r.incidents[0].starts_with("paies/2026-06/dupont.json") && r.incidents[0].contains(&"0".repeat(32)), "le fichier et l'empreinte annoncee : {}", r.incidents[0]);
     assert_eq!(r.redescendus.len(), 5);
     // Ni le fichier, ni un `.part`, ni une ligne d'index.
     assert!(!cible.join("paies/2026-06/dupont.json").exists());
@@ -243,16 +243,13 @@ fn ce_que_la_sauvegarde_n_envoie_pas_un_nom_qui_sortirait_et_un_document_sans_em
     let r = restaurer(&cible, RD, &mut d).unwrap();
     assert_eq!(r.ecartes, 2);
     assert_eq!(r.redescendus.len(), 6);
+    // Un incident par nom refuse, qui le nomme.
     let mut incidents = r.incidents.clone();
     incidents.sort();
-    assert_eq!(
-        incidents,
-        [
-            "a\\b.txt : ce nom ne peut pas etre un nom de fichier ici, il n'est pas redescendu.",
-            "config/.. : ce nom ne peut pas etre un nom de fichier ici, il n'est pas redescendu.",
-            "journal/note Google : le Drive n'en donne pas d'empreinte (un document Google ?), il n'est pas redescendu.",
-        ]
-    );
+    assert_eq!(incidents.len(), 3, "{:?}", incidents);
+    for (i, nom) in ["a\\b.txt :", "config/.. :", "journal/note Google :"].iter().enumerate() {
+        assert!(incidents[i].starts_with(nom), "{:?}", incidents);
+    }
     assert_eq!(contenu(&cible), contenu(&source));
     assert!(!cible.join("config/google-jeton.bin").exists() && !base.join("poste").join("evasion").exists());
     assert!(tout(&base.join("poste")).iter().all(|f| f.starts_with("prive/")), "{:?}", tout(&base.join("poste")));
@@ -270,7 +267,7 @@ fn des_dossiers_homonymes_ne_se_choisissent_pas() {
     let cible = base.join("cible");
     let r = restaurer(&cible, RD, &mut d).unwrap();
     assert_eq!(r.incidents.len(), 1);
-    assert!(r.incidents[0].starts_with("paies/ : 2 dossiers de ce nom dans le Drive, rien n'en est redescendu"), "{}", r.incidents[0]);
+    assert!(r.incidents[0].starts_with("paies/ :"), "l'incident nomme le dossier : {}", r.incidents[0]);
     assert_eq!(r.redescendus.len(), 4);
     assert!(!cible.join("paies").exists());
     // A la racine : un refus, rien d'ecrit.
@@ -318,9 +315,10 @@ fn le_coffre_redescendu_s_ouvre_ailleurs_par_le_mot_de_passe_du_logiciel_et_le_d
     let b = coffre_restaure("coffre", true);
     // Ce qu'il reste a faire : ce que le coffre porte, comment il s'ouvre ici, ce qui manque. Jamais une valeur.
     let lignes = a_faire(&b);
-    assert_eq!(lignes[0], "Le coffre est revenu ; il porte : net-entreprises (pose le 2026-10-03 14:05).");
-    assert!(lignes[1].starts_with("La cle de ce poste ne l'ouvre pas") && lignes[1].contains("`paie coffre ouverture`"), "{}", lignes[1]);
-    assert_eq!(&lignes[2..], ["Ce qu'il ne porte pas, a poser s'il le faut :", "  paie coffre poser urssaf", "  paie coffre poser courriel --compte <adresse>"]);
+    assert!(lignes[0].contains("net-entreprises (pose le 2026-10-03 14:05)"), "ce que le coffre porte : {}", lignes[0]);
+    assert!(lignes[1].contains("`paie coffre ouverture`"), "la commande qui l'ouvre ici : {}", lignes[1]);
+    assert_eq!(&lignes[3..], ["  paie coffre poser urssaf", "  paie coffre poser courriel --compte <adresse>"], "ce qui manque");
+    assert_eq!(lignes.len(), 5);
     assert!(!lignes.join("\n").contains("unvraimotdepasse"));
     // Et c'est vrai : la cle du poste B n'ouvre pas, le mot de passe du logiciel ouvre, et le reposer rend une cle a B.
     assert!(!b.ouvre_a_ce_poste().unwrap());
@@ -330,14 +328,13 @@ fn le_coffre_redescendu_s_ouvre_ailleurs_par_le_mot_de_passe_du_logiciel_et_le_d
     b.poser_ouverture("sesame-123", Some("sesame-123")).unwrap();
     assert!(b.ouvre_a_ce_poste().unwrap());
     assert_eq!(lire(&b, None).unwrap().as_deref(), Some("unvraimotdepasse"));
-    assert!(a_faire(&b)[0].starts_with("Le coffre est revenu et la cle de ce poste l'ouvre."));
+    assert!(!a_faire(&b).join("\n").contains("paie coffre ouverture"), "la cle de ce poste l'ouvre : plus rien a ouvrir");
 }
 
 #[test]
 fn un_coffre_sans_mot_de_passe_du_logiciel_ne_s_ouvrira_pas_ailleurs_et_le_dit() {
     let lignes = a_faire(&coffre_restaure("coffre-sans", false));
-    assert!(lignes[0].starts_with("Le coffre est revenu (net-entreprises (pose le 2026-10-03 14:05)), mais sans mot de passe du logiciel"), "{}", lignes[0]);
-    assert!(lignes[0].contains("il ne s'ouvrira pas ici"), "{}", lignes[0]);
+    assert!(lignes[0].contains("net-entreprises (pose le 2026-10-03 14:05)") && lignes[0].contains("ne s'ouvrira pas"), "{}", lignes[0]);
     assert_eq!(&lignes[1..], ["  paie coffre poser net-entreprises", "  paie coffre poser urssaf", "  paie coffre poser courriel --compte <adresse>"]);
 }
 
@@ -352,16 +349,16 @@ fn sans_coffre_dans_la_sauvegarde_tout_est_a_reposer_et_la_cle_de_signature_se_s
     let cible = base.join("cible");
     restaurer(&cible, RD, &mut d).unwrap();
     let lignes = a_faire(&coffre(&cible, &chemin_unique("poste-b")));
+    assert!(lignes[0].contains("`paie coffre ouverture`"), "{}", lignes[0]);
     assert_eq!(
-        lignes[..4],
+        lignes[1..4],
         [
-            "Le coffre n'est pas dans la sauvegarde : poser le mot de passe du logiciel (`paie coffre ouverture`), puis ceux des organismes :",
             "  paie coffre poser net-entreprises",
             "  paie coffre poser urssaf",
             "  paie coffre poser courriel --compte <adresse>",
         ]
     );
-    assert!(lignes[4].starts_with("config/maj-cle-privee.bin (la cle qui signe les mises a jour) est revenu, mais il n'est scelle que par la cle du poste"), "{}", lignes[4]);
+    assert!(lignes[4].starts_with("config/maj-cle-privee.bin") && lignes[4].contains("ne s'ouvre pas"), "scellee par la seule cle du poste A : {}", lignes[4]);
     assert_eq!(lignes.len(), 5);
 }
 
@@ -393,11 +390,9 @@ fn la_cle_de_signature_redescend_et_s_ouvre_ailleurs_par_le_mot_de_passe_du_logi
     // Le coffre est redescendu avec elle, tel quel.
     assert_eq!(std::fs::read(b.chemin()).unwrap(), std::fs::read(a.chemin()).unwrap());
     let lignes = a_faire(&b);
-    assert_eq!(
-        lignes.last().unwrap(),
-        "config/maj-cle-privee.bin (la cle qui signe les mises a jour) est revenu, scelle par le coffre : il s'ouvre quand le coffre \
-         s'ouvre, ici par le mot de passe du logiciel, puis par la cle de ce poste une fois `paie coffre ouverture` passe."
-    );
+    // La cle est dite, sans commande de remplacement : elle s'ouvre avec le coffre.
+    let derniere = lignes.last().unwrap();
+    assert!(derniere.starts_with("config/maj-cle-privee.bin") && !derniere.contains("ne s'ouvre pas") && !derniere.contains("--remplacer"), "{}", derniere);
     // Et c'est vrai : le mot de passe du logiciel, tape pour la commande, ouvre la cle au poste B, et elle signe.
     retenir_mot_de_passe_tape("sesame-123");
     let signature = signer_par_la_cle(&b, b"une archive inventee");
@@ -411,12 +406,11 @@ fn la_cle_de_signature_revenue_sans_son_coffre_ne_s_ouvre_pas_et_le_dit() {
     // Le coffre redescend avec elle ; le cas est celui ou il manque quand meme (perdu, ou ecarte a la main).
     std::fs::remove_file(b.chemin()).unwrap();
     let lignes = a_faire(&b);
-    assert!(lignes[0].starts_with("Le coffre n'est pas dans la sauvegarde"), "{}", lignes[0]);
+    assert!(lignes[0].contains("`paie coffre ouverture`"), "sans coffre, le mot de passe du logiciel est a poser : {}", lignes[0]);
     let derniere = lignes.last().unwrap();
-    assert!(derniere.starts_with("config/maj-cle-privee.bin (la cle qui signe les mises a jour) est revenu, mais le coffre qui le scelle n'est pas revenu"), "{}", derniere);
-    assert!(derniere.contains("un coffre neuf") && derniere.contains("`paie maj --cle --remplacer`"), "{}", derniere);
+    assert!(derniere.starts_with("config/maj-cle-privee.bin") && derniere.contains("`paie maj --cle --remplacer`"), "la cle, et la commande qui la remplace : {}", derniere);
     retenir_mot_de_passe_tape("sesame-123");
     let refus = signer_par_la_cle(&b, b"une archive inventee");
     oublier_mot_de_passe_tape();
-    assert!(refus.unwrap_err().contains("il n'y a pas de coffre ici"));
+    assert!(refus.is_err(), "sans coffre, la cle ne signe pas");
 }

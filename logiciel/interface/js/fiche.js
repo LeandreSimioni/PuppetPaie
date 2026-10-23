@@ -794,7 +794,7 @@ async function demanderFiche(bouton) {
     dire("Il faut son adresse de courriel.");
     return;
   }
-  const mdp = await demanderMotDePasse(`envoyer la demande de fiche à ${adresse}`);
+  const mdp = await demanderMotDePasse(`envoyer la demande de fiche à ${adresse}`, { envoi: true });
   if (!mdp) return;
   const rendre = occupe(bouton, "Envoi de la demande en cours…");
   const repere = await repereCourrielsFictifs();
@@ -985,14 +985,21 @@ function brancherTaxeSalaires() {
     if (f) {
       const corps = bloc.querySelector(
         '[data-aide-corps="taxe_sur_les_salaires.sous_franchise"]');
-      const aide = corps && corps.querySelector("p");
-      if (aide) {
+      if (corps) {
         if (n === 1) corps.hidden = false;
-        aide.textContent = f.aide;
+        // Un paragraphe par ligne de l'aide du moteur (ticket #245).
+        corps.replaceChildren(...f.aide.split("\n").map((ligne) => {
+          const p = document.createElement("p");
+          p.textContent = ligne;
+          return p;
+        }));
       }
+      // Les réponses sont des boutons à cocher (ticket #245) : chacune porte
+      // la phrase du moteur.
       const choix = cases.find((c) => c.dataset.sousCle === "sous_franchise");
-      if (choix) [...choix.options].forEach((o) => {
-        if (f.choix[o.value]) o.textContent = f.choix[o.value];
+      const groupe = choix && choix.closest(".boutons-choix");
+      if (groupe) groupe.querySelectorAll("[data-choix-libelle]").forEach((s) => {
+        if (f.choix[s.dataset.choixLibelle]) s.textContent = f.choix[s.dataset.choixLibelle];
       });
     }
   };

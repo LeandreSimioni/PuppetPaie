@@ -138,7 +138,7 @@ fn passer<L: Read>(tar: &mut LecteurTar<L>, ent: &mut Entrepot, conteneurs: &Map
         }
         if m.nom.ends_with(".dat") && m.nom.contains("suppression") {
             let liste = String::from_utf8_lossy(&tar.lire()?).into_owned();
-            let retires: HashSet<&str> = dila::lignes_py(&liste)
+            let retires: HashSet<&str> = crate::apercu_dsn::lignes_py(&liste)
                 .into_iter()
                 .map(dila::strip_py)
                 .filter(|l| !l.is_empty())

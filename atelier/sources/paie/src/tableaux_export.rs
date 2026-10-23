@@ -806,19 +806,11 @@ pub(crate) fn ecrire(t: &mut Tableau, dossier: &Path, nom: &str, ctx: &Contexte)
 
 // ------------------------------------------------------------------ petits outils
 
-/// `util.MOIS`.
-pub(crate) const MOIS: [&str; 12] = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"];
-
-/// `MOIS[int(m[5:7]) - 1]`, l'indice negatif de Python compris.
+/// Le nom du mois `AAAA-MM` : « Septembre » (`date::nom_du_mois`, graphie `Titre`). Un mois hors 01-12 se refuse.
 pub(crate) fn nom_du_mois(m: &str) -> R<&'static str> {
     let tranche: String = m.chars().skip(5).take(2).collect();
     let n = crate::apercu_dsn::int_py(&tranche).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(&tranche))))?;
-    let i = n - 1;
-    let i = if i < 0 { i + 12 } else { i };
-    if !(0..12).contains(&i) {
-        return Err(erreur("IndexError", crate::date::mois_impossible(n)));
-    }
-    Ok(MOIS[i as usize])
+    crate::date::nom_du_mois(i64::try_from(n).unwrap_or(0), crate::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))
 }
 
 /// `_libelle_mois` : « Septembre 2026 ».
@@ -891,5 +883,17 @@ mod tests {
         t.colonnes = vec![col_t("nom", "Nom")];
         let o = csv_tableau(&t, None).unwrap();
         assert!(String::from_utf8(o).unwrap().starts_with("\u{feff}Titre — 2026\r\n\r\nNom\r\n"));
+    }
+
+    #[test]
+    fn le_mois_00_n_est_aucun_mois_et_se_refuse() {
+        // Le mois d'une saisie va de 01 a 12 ; « 00 » n'est pas decembre (l'indice -1 du Python), il se refuse, comme
+        // dans `envoi::etiquette` et `date::premier_du_mois`.
+        assert!(nom_du_mois("2026-00").is_err());
+        assert!(nom_du_mois("2026-13").is_err());
+        assert!(libelle_mois("2026-00").is_err());
+        assert_eq!(nom_du_mois("2026-10").unwrap(), "Octobre");
+        assert_eq!(nom_du_mois("2026-01").unwrap(), "Janvier");
+        assert_eq!(nom_du_mois("2026-12").unwrap(), "Decembre");
     }
 }

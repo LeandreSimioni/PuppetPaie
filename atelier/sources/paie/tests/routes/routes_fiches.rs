@@ -186,7 +186,7 @@ fn changements_declares_garde_les_notes_internes_de_la_fiche() {
 fn changements_declares_refuse_une_fiche_inconnue_ou_une_charge_qui_ne_se_lit_pas() {
     let c = &compagnie("changements-refus");
     let r = route(c, "changements-declares", json!({"nom": "autre", "donnees": {}}), "2026-10-03");
-    assert_eq!(r["erreur"], json!("Fiche inconnue : 'autre'"), "{}", r);
+    assert!(r["ok"] == json!(false) && r["erreur"].as_str().unwrap().contains("autre"), "le refus nomme la fiche : {}", r);
     for charge in [json!({}), json!({"nom": "salarie"}), json!({"nom": ["a"], "donnees": {}}), json!({"nom": "salarie", "cle": ["a"], "donnees": {}}), json!({"nom": "salarie", "donnees": null})] {
         assert!(refuse(c, "changements-declares", charge.clone()), "{}", charge);
     }
@@ -280,13 +280,28 @@ fn les_plafonds_de_la_franchise_viennent_du_bareme_qui_cite_le_texte_depose() {
         );
         // Les montants sont ecrits, en euros, la ou on les lit : l'aide et les deux reponses ; le chiffre d'affaires est
         // celui de l'annee d'avant.
-        let en_euros = |n: i64| format!("{} {:03} €", n / 1000, n % 1000);
+        let en_euros = |n: i64| format!("{}\u{a0}{:03}\u{a0}€", n / 1000, n % 1000);
         for texte in [&f["aide"], &f["choix"]["true"], &f["choix"]["false"]] {
             let t = texte.as_str().unwrap();
             assert!(t.contains(&en_euros(services)) && t.contains(&en_euros(total)), "{} : {}", annee, t);
             assert!(t.contains(&(annee - 1).to_string()), "{} : {}", annee, t);
         }
         assert!(f["aide"].as_str().unwrap().contains("293 B"));
+        // Ticket #245 : la question est posee a la compagnie exoneree de TVA (la taxe serait due sur tout), et la
+        // conclusion sous les cases nomme les deux plafonds, qu'on reponde ou non.
+        assert_eq!(v["champs"].as_array().unwrap().last(), Some(&json!("sous_franchise")), "{}", annee);
+        for sous in [None, Some(true)] {
+            let mut ts = json!({"tva": "exoneree"});
+            if let Some(s) = sous {
+                ts["sous_franchise"] = json!(s);
+            }
+            let v = resultat(c, "taxe-sur-les-salaires-regime", json!({"annee": annee, "taxe_sur_les_salaires": ts}));
+            let t = v["consequence"].as_str().unwrap();
+            assert!(t.contains(&en_euros(services)) && t.contains(&en_euros(total)), "{} : {}", annee, t);
+        }
+        // Assujettie sur 90 % ou plus de ses recettes : la taxe n'est pas due, la question ne se pose pas.
+        let v = resultat(c, "taxe-sur-les-salaires-regime", json!({"annee": annee, "taxe_sur_les_salaires": {"tva": "assujettie", "part_tva": 95}}));
+        assert!(!v["champs"].as_array().unwrap().contains(&json!("sous_franchise")), "{}", annee);
     }
     // Sans annee : celle du jour (03/10/2026 pour ces routes).
     assert_eq!(resultat(c, "taxe-sur-les-salaires-regime", json!({}))["franchise"]["annee"], json!(2026));

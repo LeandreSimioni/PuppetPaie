@@ -496,6 +496,17 @@ details.relire[open] > summary { margin-bottom: 8px; }
   display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 10px 14px;
 }
+/* Une question dont les réponses sont des phrases entières (ticket #245) :
+   des boutons à cocher, sur toute la largeur, plutôt qu'une liste
+   déroulante qui les couperait. */
+.sous-champ.sous-champ-large { grid-column: 1 / -1; }
+/* Sans quoi la ligne pleine garderait toutes les colonnes de `auto-fit`, et
+   les cases voisines tomberaient à 190 px. */
+.sous-champs:has(> .sous-champ-large) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.libelle-boutons { font-size: 12px; color: var(--discret); }
+.boutons-choix { margin-top: 3px; }
+.boutons-choix label.coche { align-items: flex-start; }
+.boutons-choix label.coche input { margin-top: 3px; }
 .ligne-structure {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) 28px;
   gap: 10px 14px; align-items: end;
@@ -667,6 +678,8 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 .boite h3 { margin: 0 0 10px; font-size: 16px; }
 /* Le popup du mot de passe passe au-dessus de la boite courante. */
 #voile-mdp { z-index: 55; }
+/* L'envoi refuse d'une fictive ajoutee (ticket #236) : au-dessus de la boite du geste. */
+#voile-envoi-refuse { z-index: 56; }
 .boite-mdp { width: 400px; }
 .boite-mdp input[type="password"] { width: 100%; box-sizing: border-box; font-size: 15px; }
 

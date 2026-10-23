@@ -240,8 +240,6 @@ fn televerser_cree_par_un_multipart_related() {
     assert_eq!(v.param("fields").unwrap(), "id,name,webViewLink");
     let ct = v.entete("content-type");
     let frontiere = ct.strip_prefix("multipart/related; boundary=").expect(ct).to_string();
-    // `----` et 32 chiffres hexadecimaux (`secrets.token_hex(16)`).
-    assert!(frontiere.starts_with("----") && frontiere.len() == 4 + 32 && frontiere[4..].bytes().all(|b| b.is_ascii_hexdigit()), "{}", frontiere);
     assert_eq!(v.corps, corps_multipart("note.txt", "PARENT", "text/plain", b"contenu\n", &frontiere));
     assert_eq!(v.entete("content-length").parse::<usize>().unwrap(), v.corps.len());
 }

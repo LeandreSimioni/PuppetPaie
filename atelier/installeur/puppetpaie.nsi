@@ -9,7 +9,8 @@
 ;   - PORTABLE : le dossier de son choix (une cle USB) ; le logiciel, ses donnees et la cle qui les scelle y vivent
 ;     ensemble et s'ouvrent sur n'importe quel ordinateur (`PORTABLE.json` a cote de `logiciel\`, lu par le moteur :
 ;     paie/src/coffre.rs, dossier_portable). Ni raccourci, ni entree dans Windows, ni desinstalleur : on efface le dossier.
-; TOUJOURS BRIDE : `logiciel\EDITION.json` dit `"defaut": "bride"` (paie/src/bridage.rs).
+; TOUJOURS BRIDE, sans rien poser pour le dire : sans rien qui dise « debloque », le logiciel est bride (ticket #246,
+;   paie/src/bridage.rs). Le geste de l'accueil le debloque (`.edition.json`, a cote de `logiciel\`).
 ; Le desinstalleur retire ce qu'il a pose, fichier par fichier, et laisse tout le reste.
 ;
 ; Les textes lus pour l'ecrire (a deposer, voir prive/journal/finitions/PASSATION-I1.md) : l'exemple NSIS
@@ -173,7 +174,7 @@ Section "PuppetPaie" SecProgramme
   SetShellVarContext current
 
   ; Ce qu'une compagnie recoit : logiciel\ et fictives\, fichier par fichier (liste tiree de Git par construire.sh),
-  ; et logiciel\EDITION.json : toujours bride (le paquet n'est pas soude : le geste de l'accueil reste possible).
+  ; et rien d'autre : bride par defaut, le paquet n'est pas soude (le geste de l'accueil reste possible).
   !include "${PREPA}/poser.nsh"
 
   SetOutPath "$INSTDIR"

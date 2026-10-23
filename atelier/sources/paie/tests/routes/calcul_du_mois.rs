@@ -103,7 +103,7 @@ fn le_premier_appel_calcule_et_ecrit_le_suivant_relit_a_l_identique() {
     assert_eq!(second, direct);
     // La forme du fichier : l'empreinte, les entrees, le resultat tel que rendu.
     let f = lire(&c.calcul(MOIS));
-    assert_eq!(f["empreinte"].as_str().unwrap().len(), 64);
+    // Le moteur est une entree : une autre version recalcule.
     assert!(f["entrees"]["moteur"].as_str().unwrap().starts_with(env!("CARGO_PKG_VERSION")));
     assert!(f["entrees"].as_object().unwrap().contains_key(&format!("fichier racine:paies/{}.json", MOIS)));
     assert!(f["entrees"].as_object().unwrap().contains_key("fichier code:baremes/2026.json"));

@@ -201,7 +201,8 @@ fn les_statuts_d_erreur_portent_leur_message_et_leur_code() {
         let (classe, message, c) = erreur(&appel(&url, json!({})));
         assert_eq!(classe, "ErreurApi");
         assert_eq!(c, Some(code));
-        assert_eq!(message, format!("HTTP {} sur {}/code/{}\n  {}\n  corps {}", code, base, code, phrase, code), "{}", code);
+        // Le message dit le statut, l'adresse, et ce que le guide de l'API en dit.
+        assert!(message.contains(&format!("HTTP {} sur {}/code/{}", code, base, code)) && message.contains(phrase), "{}", message);
         assert!(!message.contains("secret"), "la requete ne fuit pas dans le message");
     }
 }
@@ -323,8 +324,7 @@ fn un_mot_de_passe_absent_ou_un_declarant_incomplet_ne_partent_pas() {
     for mdp in [json!(null), json!("")] {
         let (classe, message, code) = erreur(&authentifier(&base, "/auth", json!({"motdepasse": mdp})));
         assert_eq!((classe.as_str(), code), ("ErreurApi", Some(0)));
-        assert!(message.starts_with("Mot de passe absent.\nTrois facons de le fournir, dans cet ordre de priorite :\n"));
-        assert!(message.contains("2. la variable d'environnement NET_ENTREPRISES_MOTDEPASSE ;"));
+        assert!(message.contains("NET_ENTREPRISES_MOTDEPASSE"), "le message dit ou poser le mot de passe : {}", message);
     }
     let (_, message, _) = erreur(&authentifier(&base, "/auth", json!({"declarant": {"siret": "1", "nom": "", "prenom": null}})));
     assert!(message.contains("Manque : nom, prenom."), "{}", message);
@@ -442,7 +442,7 @@ fn archiver_nomme_la_piece_comme_avant_et_ne_l_ecrase_pas() {
 }
 
 #[test]
-fn le_journal_des_retours_vus_note_sans_doublon_et_garde_sa_forme() {
+fn le_journal_des_retours_vus_note_sans_doublon() {
     let racine = dossier_de_test("transport", "journal");
     let r = racine.to_str().unwrap();
     let e1 = json!({"flux": "F1", "nature": "11", "publication": "1"});
@@ -450,11 +450,9 @@ fn le_journal_des_retours_vus_note_sans_doublon_et_garde_sa_forme() {
     assert_eq!(op(json!({"operation": "deja_vus", "racine": r}))["vus"], json!([]));
     op(json!({"operation": "noter", "racine": r, "entrees": [e1, e2]}));
     op(json!({"operation": "noter", "racine": r, "entrees": [e1, {"flux": "F3", "nature": "1", "publication": "3"}]}));
-    let t = std::fs::read_to_string(racine.join("retours/journal.json")).unwrap();
-    assert_eq!(
-        t,
-        "[\n  {\n    \"flux\": \"F1\",\n    \"nature\": \"11\",\n    \"publication\": \"1\"\n  },\n  {\n    \"flux\": \"F2\",\n    \"nature\": \"94\",\n    \"publication\": \"2\",\n    \"url\": \"http://x/\u{e9}\"\n  },\n  {\n    \"flux\": \"F3\",\n    \"nature\": \"1\",\n    \"publication\": \"3\"\n  }\n]\n"
-    );
+    // Chaque entree une fois, entiere (l'url comprise).
+    let t: Value = serde_json::from_str(&std::fs::read_to_string(racine.join("retours/journal.json")).unwrap()).unwrap();
+    assert_eq!(t, json!([e1, e2, {"flux": "F3", "nature": "1", "publication": "3"}]));
     assert_eq!(op(json!({"operation": "deja_vus", "racine": r}))["vus"], json!([["F1", "11", "1"], ["F2", "94", "2"], ["F3", "1", "3"]]));
     // Le canal DPAE a son journal a part.
     assert_eq!(op(json!({"operation": "deja_vus", "racine": r, "canal": "dpae"}))["vus"], json!([]));

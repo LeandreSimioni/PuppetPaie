@@ -97,10 +97,7 @@ fn echec_brut(p: Panne) -> Value {
 
 // ------------------------------------------------------- les petits outils Python
 
-/// `str.isspace` de Python : celui de Rust, plus U+001C a U+001F.
-fn blanc(c: char) -> bool {
-    c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)
-}
+use crate::retours::blanc_py as blanc;
 
 fn py_strip(s: &str) -> &str {
     s.trim_matches(blanc)

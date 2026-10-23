@@ -106,6 +106,15 @@ demo/*/config/.jeton-interface
 # a pas besoin pour tourner.
 fictives/*/journal/interface.log
 demo/*/journal/interface.log
+# ET LES MARQUES D'UNE LIVRAISON DE FICTIVES (22/10/2026) : posees par le flux « Publier » avant l'installeur
+# (`paie maj --marquer-fictives`), ou par une livraison sur un poste (paie/src/maj.rs). Elles se refont ; la livraison
+# ne les prend jamais des fichiers suivis.
+fictives/.livraison.json
+fictives/*/.livree.json
+# LES FICTIVES AJOUTEES SUR UN POSTE (ticket #236) : le « + » d'un logiciel bride les pose sous `fictives/ajoutee-…`,
+# avec les donnees qu'on y met -- de vraies donnees, souvent. Elles n'entrent jamais dans le depot (ni dans une
+# livraison : paie/src/maj.rs, `fictives_livrees`).
+fictives/ajoutee-*/
 
 # LA FABRIQUE DE PDF (Rust) : le dossier de compilation se refait d'une
 # commande. `Cargo.lock`, lui, SE VERSIONNE (les dependances sont figees).

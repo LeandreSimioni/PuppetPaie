@@ -402,28 +402,6 @@ fn utf8_sans_erreurs(mut o: &[u8]) -> String {
     }
 }
 
-/// Les lignes d'un texte comme les compte `str.splitlines` de Python (le numéro qu'on affiche est le sien) : `\n`, `\r`,
-/// `\r\n`, et les séparateurs Unicode `\x0b`, `\x0c`, `\x1c`-`\x1e`, `\u{85}`, `\u{2028}`, `\u{2029}`.
-fn lignes(t: &str) -> Vec<&str> {
-    let mut v = Vec::new();
-    let mut debut = 0;
-    let mut it = t.char_indices().peekable();
-    while let Some((i, c)) = it.next() {
-        if matches!(c, '\n' | '\r' | '\x0b' | '\x0c' | '\x1c' | '\x1d' | '\x1e' | '\u{85}' | '\u{2028}' | '\u{2029}') {
-            v.push(&t[debut..i]);
-            debut = i + c.len_utf8();
-            if c == '\r' && it.peek().is_some_and(|&(_, d)| d == '\n') {
-                it.next();
-                debut += 1;
-            }
-        }
-    }
-    if debut < t.len() {
-        v.push(&t[debut..]);
-    }
-    v
-}
-
 /// Une valeur fabriquée : listée dans `FICTIVES`, ou un NIR (générique) qui porte la marque d'invention dans ses treize
 /// premiers chiffres. Un IBAN se compare sans ses espaces (il s'écrit par groupes de quatre).
 fn invente(trouve: &str, quoi: &str) -> bool {
@@ -447,9 +425,9 @@ fn chercher(fichier: &str, o: &[u8], motifs: &[Motif], trouvailles: &mut Vec<Tro
     // frais, le nuage), les minuscules ne servent à rien.
     let valeurs = siens.iter().any(|m| matches!(m, Motif::Valeur { .. }));
     let minuscules = if valeurs { texte.to_lowercase() } else { String::new() };
-    let lignes_min = if valeurs { lignes(&minuscules) } else { Vec::new() };
+    let lignes_min = if valeurs { crate::apercu_dsn::lignes_py(&minuscules) } else { Vec::new() };
     let lignes_min = lignes_min.into_iter().chain(std::iter::repeat(""));
-    for (n, (ligne, min)) in lignes(&texte).into_iter().zip(lignes_min).enumerate() {
+    for (n, (ligne, min)) in crate::apercu_dsn::lignes_py(&texte).into_iter().zip(lignes_min).enumerate() {
         if let Some(m) = siens.iter().find(|m| m.trouve(ligne, min)) {
             trouvailles.push(Trouvaille { fichier: fichier.to_string(), ligne: n + 1, quoi: m.quoi().to_string() });
         }
@@ -541,10 +519,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn les_lignes_se_comptent_comme_splitlines() {
-        assert_eq!(lignes("a\r\nb\rc\nd\u{2028}e\n"), ["a", "b", "c", "d", "e"]);
-        assert_eq!(lignes("a\n\nb"), ["a", "", "b"]);
-        assert!(lignes("").is_empty());
+    fn un_octet_hors_utf8_se_saute() {
         assert_eq!(utf8_sans_erreurs(b"a\xffb\xe9"), "ab");
     }
 

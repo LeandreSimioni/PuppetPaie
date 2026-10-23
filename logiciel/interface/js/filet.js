@@ -19,10 +19,14 @@ async function dessinerDiagnostic(rang) {
         ouvrirBoite(`<h3>Désactiver le signalement des dysfonctionnements ?</h3>
           <p>Si vous le désactivez, l'éditeur ne verra plus les problèmes de votre
             logiciel, et risque de ne pas pouvoir les corriger avant qu'ils vous
-            arrivent — ou qu'ils arrivent à d'autres compagnies.</p>
-          <p class="note">Ce qui part ne contient ni nom, ni NIR, ni montant. Les
-            incidents resteront notés sur cet ordinateur, et vous pourrez réactiver
-            l'envoi à tout moment.</p>
+            arrivent — ou qu'ils arrivent à d'autres compagnies. Il ne saura plus
+            non plus combien de paies PuppetPaie fait chez vous : le logiciel est
+            gratuit, c'est sa seule façon de savoir s'il sert.</p>
+          <p class="note">Ce qui part : les dysfonctionnements (des codes et des
+            messages qui nomment un champ), et une fois par an, à partir du
+            16 janvier, le nombre de paies faites l'année précédente. Rien d'autre :
+            ni nom, ni NIR, ni montant. Les incidents resteront notés sur cet
+            ordinateur, et vous pourrez réactiver l'envoi à tout moment.</p>
           <p>Voulez-vous vraiment continuer ?</p>
           <div class="actions">
             <button class="secondaire" id="dg-garder">Non, garder l'envoi</button>
@@ -48,6 +52,11 @@ async function dessinerDiagnostic(rang) {
     : !d.serveur ? "aucun serveur de l'éditeur connu : rien ne part"
     : d.dernier_envoi ? `${d.partis} incident(s) parti(s), le dernier le ${quand(d.dernier_envoi)}`
     : d.total ? "rien n'est encore parti" : "";
+  // Le nombre de paies de l'année (ticket #246) : le dernier parti, à la suite.
+  const annee = d.envoi !== false && (d.paies_annuelles || [])[0];
+  if (annee) {
+    compte.textContent += `${compte.textContent ? " · " : ""}nombre de paies de ${annee.annee} parti le ${quand(annee.parti_le)}`;
+  }
   let signales = [];
   try { signales = (await api("signalements")).signalements; } catch (e) { /* la liste est un plus */ }
   rang.querySelector("#k-diag-voir").onclick = () => boiteDiagnostic(d, rang, signales);
@@ -55,11 +64,14 @@ async function dessinerDiagnostic(rang) {
 
 function boiteDiagnostic(d, rang, signales = []) {
   const NOMS = { logiciel: "plantage", refus: "refus du moteur", dpae: "DPAE rejetée",
-                 dsn: "DSN rejetée" };
+                 dsn: "DSN rejetée", paies: "nombre de paies de l'année" };
   ouvrirBoite(`
     <h3>Ce qui est parti chez l'éditeur</h3>
     <p class="note">Quand quelque chose casse, PuppetPaie le note et l'envoie au serveur
-      de l'éditeur, pour qu'il le corrige. Ce qui part est affiché ici tel quel :
+      de l'éditeur, pour qu'il le corrige. Une fois par an, à partir du 16 janvier, il
+      envoie aussi le nombre de paies faites l'année précédente : le logiciel est
+      gratuit, c'est la seule façon pour l'éditeur de savoir s'il sert. Ce qui part est
+      affiché ici tel quel :
       ni nom, ni NIR, ni montant ; le poste est désigné par un numéro tiré au hasard.
       ${d.serveur ? `Serveur : <b>${echapper(d.serveur)}</b>.` : "<b>Aucun serveur connu : rien ne part.</b>"}</p>
     ${!d.groupes.length ? `<p>Rien n'a été noté.</p>` : `<div class="liste-choix">

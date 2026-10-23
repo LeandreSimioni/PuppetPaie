@@ -385,7 +385,7 @@ fn passer_outre_un_calcul_s_ecrit_dans_la_version_prete() {
     let code = crate::outils::code_de(&inst);
     let env = [("PUPPETPAIE_CODE", code.as_str())];
     let r = route(&racine, "maj-malgre-calcul", json!({}), &env);
-    assert_eq!(r["erreur"], json!("Aucune version prete."), "{}", r);
+    assert_eq!(r["ok"], json!(false), "aucune version prete : refus ; {}", r);
     std::fs::create_dir_all(inst.join("maj").join("9.9.9").join("logiciel").join("donnees")).unwrap();
     std::fs::write(inst.join("maj").join("9.9.9").join("logiciel").join("donnees").join("x.json"), "{}\n").unwrap();
     std::fs::write(inst.join("maj").join("prete.json"), r#"{"version": "9.9.9", "note_calcul": "é"}"#).unwrap();

@@ -295,7 +295,7 @@ fn source(depuis: &str) -> Result<PathBuf, String> {
         return Err(format!("{} : ce n'est pas une compagnie (pas de config/entreprise.json). Rien n'est ecrit.", d.display()));
     }
     // Seulement une FICTIVE : jamais `prive/` ni une autre compagnie reelle, dont les salaries partiraient sous un autre SIREN.
-    if !crate::interface::compagnies::est_fictive(&d) {
+    if !crate::interface::compagnies::est_fictive_livree(&d) {
         return Err(format!("{} n'est pas une compagnie fictive (son marqueur ne le dit pas) : une compagnie d'essai ne se monte que depuis une fictive. Rien n'est ecrit.", d.display()));
     }
     Ok(d)

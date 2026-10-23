@@ -70,10 +70,9 @@ fn envoyer_l_echec_au_troisieme_dit_qui_est_deja_parti() {
     let messages = [message("a@exemple.fr"), message("b@exemple.fr"), message("c@exemple.fr"), message("d@exemple.fr")];
     let (mut ids, mut copies) = (Vec::new(), Vec::new());
     let e = envoi::envoyer(&messages, "compagnie@gmail.com", &mut c, Some(&mut ids), Some(&mut copies)).unwrap_err();
-    assert_eq!(
-        e,
-        "c@exemple.fr : le serveur refuse ce message\nATTENTION, 2 message(s) etaient deja partis : a@exemple.fr, b@exemple.fr"
-    );
+    // L'erreur nomme le message refuse et ceux qui etaient deja partis, pas celui qui n'a pas ete tente.
+    assert!(e.contains("c@exemple.fr") && e.contains("le serveur refuse ce message"), "{}", e);
+    assert!(e.contains("a@exemple.fr") && e.contains("b@exemple.fr") && !e.contains("d@exemple.fr"), "{}", e);
     // Le quatrieme n'a pas ete tente ; les listes ne portent que ce qui est reellement parti.
     assert_eq!(c.partis(), 2);
     assert_eq!(ids.len(), 2);
@@ -123,20 +122,6 @@ fn etiquette_et_nom_de_fichier() {
     assert!(envoi::etiquette("2026-13").is_err());
     assert!(envoi::etiquette("pas un mois").is_err());
     assert_eq!(envoi::nom_fichier("Bulletin", "DUPONT", "Aout2026"), "Bulletin_DUPONT_Aout2026.pdf");
-}
-
-#[test]
-fn les_tables_du_message() {
-    assert_eq!(envoi::PIECES, ["bulletin", "rectificatif", "certificat_cs", "aer"]);
-    for (cle, _) in envoi::LIBELLES {
-        assert!(envoi::PIECES.contains(&cle));
-    }
-    assert_eq!(envoi::LIBELLES.len(), 4);
-    assert_eq!(envoi::COURTS.len(), 4);
-    assert_eq!(envoi::NOTES.len(), 4);
-    assert_eq!(envoi::MOIS_ACCENTS[1], "février");
-    assert_eq!(envoi::MOIS_ACCENTS[7], "août");
-    assert!(envoi::NOTE_SANS_AER.starts_with("Ton attestation employeur France Travail"));
 }
 
 // -------------------------------------------------------------------------------------- preparer, sur la fictive

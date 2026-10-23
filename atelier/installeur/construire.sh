@@ -9,9 +9,10 @@
 #   4. l'installeur NSIS `PuppetPaie-<JJ.MM.AAAA>-installeur.exe` (la version lue, pas l'identifiant), dans `atelier/depot/installeur/`.
 #
 # Ce que l'installeur pose : exactement ce qu'une compagnie Windows recoit (CLAUDE.md, « Le rangement ») -- les fichiers
-# suivis par Git de `logiciel/` et de `fictives/` (ni `logiciel/linux/` ni `logiciel/mac/`, qui ne sont pas suivis) --,
-# la fenetre fraichement compilee a la place de `logiciel/puppetpaie.exe`, et `logiciel/EDITION.json` (toujours bride, a
-# cote de ce script).
+# suivis par Git de `logiciel/` et de `fictives/` (ni `logiciel/linux/` ni `logiciel/mac/`, qui ne sont pas suivis), et les
+# marques de la livraison de fictives si le flux les a posees --,
+# et la fenetre fraichement compilee a la place de `logiciel/puppetpaie.exe`. Rien sur le bridage : sans rien qui dise
+# « debloque », le logiciel est bride (ticket #246, paie/src/bridage.rs).
 #
 # Usage :
 #   atelier/installeur/construire.sh                     tout
@@ -97,8 +98,14 @@ while IFS= read -r -d '' f; do
     mkdir -p "$PREPA/pose/$(dirname "$f")"
     cp -p "$f" "$PREPA/pose/$f"
 done < "$PREPA/liste.z"
+# Les marques de la livraison de fictives (`fictives/.livraison.json`, `fictives/<nom>/.livree.json`), que le flux
+# « Publier » pose avant de fabriquer l'installeur (`paie maj --marquer-fictives`, paie/src/maj.rs) : une installation de
+# l'installeur retient sa livraison et ne retelecharge pas des fictives qui n'ont pas change. Pas suivies par Git ; hors
+# du flux (un poste), il n'y en a pas, et la premiere livraison se pose alors par le marqueur des fictives livrees.
+for f in fictives/.livraison.json fictives/*/.livree.json; do
+    if [ -f "$f" ]; then cp -p "$f" "$PREPA/pose/$f"; fi
+done
 cp -p "$FENETRE" "$PREPA/pose/logiciel/puppetpaie.exe"
-cp -p "$ICI/EDITION.json" "$PREPA/pose/logiciel/EDITION.json"
 # L'application Google n'est pas suivie par le depot public : le flux « Publier » la pose depuis un secret GitHub.
 [ -f "$DEPOT/logiciel/donnees/google-application.json" ] && cp -p "$DEPOT/logiciel/donnees/google-application.json" "$PREPA/pose/logiciel/donnees/"
 VERSION="$(tr -d ' \r\n' < "$DEPOT/logiciel/VERSION")"

@@ -60,7 +60,6 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
         Some(autre) => return Err(erreur("TypeError", crate::fichiers::attendu("un objet", nom_type(autre)))),
         None => ctx.entreprise.clone(),
     };
-    let r = crate::assujettissement::regime_taxe_sur_les_salaires(&ent);
     // LES PLAFONDS DE LA FRANCHISE, CHIFFRES (ticket #239) : ceux du bareme de l'annee des salaires -- `annee` dans la
     // charge, sinon l'annee en cours. Un bareme absent ne fait pas refuser : la question se pose sans montants.
     let annee = match charge.get("annee") {
@@ -72,6 +71,8 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let bar = crate::date::Jour::nouveau(annee, 1, 1).and_then(|j| ctx.bareme(&j).ok());
     let q = crate::assujettissement::question_franchise(bar.as_ref(), annee);
+    // La conclusion nomme les deux plafonds (ticket #245).
+    let r = crate::assujettissement::regime_taxe_sur_les_salaires(&ent, q.plafonds);
     Ok(json!({
         "franchise": {
             "aide": q.aide,

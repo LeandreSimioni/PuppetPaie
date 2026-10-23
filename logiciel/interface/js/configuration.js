@@ -980,10 +980,11 @@ const SOUS_CHAMPS = {
      { choix: { "": "— à dire —", "assujettie": "Assujettie à la TVA", "exoneree": "Exonérée de TVA (ou hors de son champ)" } }],
     ["part_tva", "Part de vos recettes de l'an dernier soumise à la TVA (%)", "Vos recettes soumises à la TVA, divisées par toutes vos recettes et produits de l'année, subventions et dons compris. Votre comptable la connaît. À 90 % ou plus, pas de taxe sur les salaires.", { nombre: true }],
     // Les montants des plafonds, l'aide et les deux réponses viennent du
-    // moteur (`franchise` de la route, barème de l'année ; ticket #239) :
-    // ce qui suit n'est que ce qu'on lit avant sa réponse.
-    ["sous_franchise", "Vos recettes de l'an dernier", "Sous les plafonds de la franchise en base de TVA, la compagnie ne doit pas la taxe sur les salaires.",
-     { booleen: true, choix: { "": "— à dire —", "false": "Au-dessus des plafonds", "true": "Sous les plafonds" } }],
+    // moteur (`franchise` de la route, barème de l'année ; tickets #239 et
+    // #245) : ce qui suit n'est que ce qu'on lit avant sa réponse. Des
+    // boutons à cocher : chaque réponse est une phrase entière.
+    ["sous_franchise", "Vos recettes de l'an dernier", "Sous les deux plafonds de la franchise en base de TVA (les spectacles vendus, et les recettes en tout, subventions comprises), la compagnie ne doit pas la taxe sur les salaires.",
+     { booleen: true, boutons: true, choix: { "": "— à dire —", "true": "Sous les deux plafonds", "false": "Au-dessus d'un des plafonds" } }],
     ["association_1679A", "Association loi 1901, syndicat ou mutuelle ?", "Une association loi 1901, une fondation reconnue d'utilité publique, un syndicat, une mutuelle de moins de trente salariés : l'abattement de l'article 1679 A s'applique à la taxe due.",
      { booleen: true, choix: { "": "Non", "true": "Oui (abattement de l'article 1679 A)" } }],
   ] },
@@ -1144,15 +1145,25 @@ function structureHtml(c, v, sous, a, avecPermanents) {
         data-ajouter="${echapper(c.cle)}">+ Ajouter un ${echapper(sous.ligne || "élément")}</button>`;
   } else {
     const o = (v && typeof v === "object" && !Array.isArray(v)) ? v : {};
-    corps = `<div class="sous-champs">${sous.champs.map(([k, lib, aide, genre = {}]) => `
-      <div class="sous-champ">
-        <label>${echapper(lib)}
-          ${aide ? `<button type="button" class="aide-bouton"
-             data-aide="${echapper(c.cle + "." + k)}" title="aide">?</button>` : ""}
-          ${caseSousChamp(c.cle, k, valeurEn(o, k), genre)}</label>
+    corps = `<div class="sous-champs">${sous.champs.map(([k, lib, aide, genre = {}]) => {
+      const bouton = aide ? `<button type="button" class="aide-bouton"
+             data-aide="${echapper(c.cle + "." + k)}" title="aide">?</button>` : "";
+      // Des boutons à cocher (`boutons`) : chaque réponse est une phrase
+      // entière, qu'une liste déroulante couperait (ticket #245). Le libellé
+      // n'est pas un <label> : il en contiendrait plusieurs.
+      const haut = genre.boutons
+        ? `<div class="libelle-boutons">${echapper(lib)} ${bouton}</div>
+           ${caseSousChamp(c.cle, k, valeurEn(o, k), genre)}`
+        : `<label>${echapper(lib)}
+          ${bouton}
+          ${caseSousChamp(c.cle, k, valeurEn(o, k), genre)}</label>`;
+      return `
+      <div class="sous-champ${genre.boutons ? " sous-champ-large" : ""}">
+        ${haut}
         ${aide ? `<div class="aide" data-aide-corps="${echapper(c.cle + "." + k)}" hidden>
             <p>${echapper(aide)}</p></div>` : ""}
-      </div>`).join("")}</div>`;
+      </div>`;
+    }).join("")}</div>`;
   }
   return `<div class="champ pleine structure${c.si_permanents ? " champ-permanents" : ""}"${
       cache ? " hidden" : ""}>
@@ -1172,6 +1183,21 @@ function valeurEn(o, chemin) {
  * l'enregistrement (`lireFormulaire`). */
 function caseSousChamp(parent, k, val, genre) {
   const attrs = `data-sous-de="${echapper(parent)}" data-sous-cle="${echapper(k)}"`;
+  if (genre.choix && genre.boutons) {
+    // Les boutons à cocher : la valeur est dans une case cachée, que tout
+    // le reste de la page lit comme une liste de choix (`lireFormulaire`) ;
+    // cocher l'écrit (`cocherUnBouton`). Le choix vide (« à dire ») n'est
+    // pas un bouton : rien de coché.
+    const type = genre.booleen ? "booleen" : "choix";
+    const nom = `bouton-${parent}-${k}`;
+    return `<div class="boutons-choix" role="radiogroup">
+      <input type="hidden" ${attrs} data-sous-type="${type}" value="${echapper(String(val ?? ""))}">
+      ${Object.entries(genre.choix).filter(([v]) => v !== "").map(([v, lib]) => `
+      <label class="coche"><input type="radio" name="${echapper(nom)}" value="${echapper(v)}"
+        ${String(val ?? "") === v ? "checked" : ""}>
+        <span data-choix-libelle="${echapper(v)}">${echapper(lib)}</span></label>`).join("")}
+    </div>`;
+  }
   if (genre.choix) {
     // Un oui/non (`booleen`) se choisit comme un choix et s'enregistre en
     // vrai booleen (`lireFormulaire`).
@@ -1185,6 +1211,20 @@ function caseSousChamp(parent, k, val, genre) {
   }
   return `<input ${attrs} value="${echapper(val ?? "")}">`;
 }
+
+/* Cocher un bouton écrit sa valeur dans la case cachée du groupe, et la
+ * case le dit comme si on l'avait tapée (`input`). En capture : la case est
+ * à jour avant que le bouton lui-même ne relise le formulaire. */
+function cocherUnBouton(e) {
+  const r = e.target;
+  if (!(r instanceof HTMLInputElement) || r.type !== "radio") return;
+  const groupe = r.closest(".boutons-choix");
+  const caseCachee = groupe && groupe.querySelector('input[type="hidden"][data-sous-cle]');
+  if (!caseCachee) return;
+  caseCachee.value = r.value;
+  caseCachee.dispatchEvent(new Event("input", { bubbles: true }));
+}
+document.addEventListener("input", cocherUnBouton, true);
 
 function ligneStructure(cle, sous, ligne, i) {
   const o = ligne && typeof ligne === "object" ? ligne : {};
