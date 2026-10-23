@@ -1581,7 +1581,7 @@ async function boiteSuppression() {
     <p class="erreur" id="sup-erreur"></p>
     <div class="actions">
       <button type="button" class="secondaire" id="sup-annuler">Annuler</button>
-      <button type="button" class="primaire" id="sup-confirmer">Supprimer définitivement</button>
+      <button type="button" class="secondaire alerte" id="sup-confirmer">Supprimer définitivement</button>
     </div>`);
   document.getElementById("sup-annuler").onclick = fermerBoite;
   const bSauve = document.getElementById("sup-sauvegarder");

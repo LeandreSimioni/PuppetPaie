@@ -279,3 +279,13 @@ pub fn mention(racine: &Path) -> Option<Value> {
         ),
     }))
 }
+
+/// LES MOIS SAISIS EN DEMO d'une compagnie gardee (`config/demo.json`, `mois`) ; aucun pour une autre. Le logiciel ne les a
+/// jamais declares, et ils ne retiennent pas une version qui change un calcul (`maj::mois_qui_retiennent_la_compagnie`).
+pub fn mois_de_demo(racine: &Path) -> Vec<String> {
+    std::fs::read_to_string(racine.join(FICHIER_DEMO))
+        .ok()
+        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
+        .and_then(|v| v.get("mois").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_str).map(String::from).collect()))
+        .unwrap_or_default()
+}

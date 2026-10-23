@@ -449,19 +449,35 @@ pub fn compagnies_de(inst: &Path) -> Vec<PathBuf> {
 /// retiennent rien : elles ne deposent jamais, leurs mois retiendraient la version pour toujours. Le garde-fou reste ce
 /// qu'il etait (la DSN doit dire ce que disent les bulletins deja faits) ; il regarde seulement toutes les compagnies
 /// qui declarent, puisque la version s'applique a toutes a la fois.
+///
+/// LES MOIS SAISIS EN DEMO d'une compagnie gardee au deblocage (ticket #236, `interface::suppression::mois_de_demo`) ne
+/// retiennent rien non plus : le logiciel ne les a jamais declares, la personne ne les deposera souvent jamais (ses vraies
+/// paies sont passees par son ancien outil), et ils bloqueraient la mise a jour de toute l'installation pour toujours ; la
+/// mention datee de la compagnie dit qu'ils n'ont ete ni declares ni envoyes. Un mois saisi APRES qu'elle a ete gardee
+/// retient comme celui de toute compagnie reelle. La regle tient dans `mois_qui_retiennent_la_compagnie`, que la route
+/// `version` lit aussi.
 fn mois_qui_retiennent(inst: &Path) -> Vec<String> {
     let mut out = Vec::new();
     for racine in compagnies_de(inst).into_iter().filter(|r| !crate::interface::compagnies::est_copie(r)) {
         let o = std::collections::HashMap::from([("racine".to_string(), racine.display().to_string())]);
         let nom = racine.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         // Une compagnie qu'on ne lit pas retient la version : on ne sait pas si ses mois ont leur DSN.
-        let lus = crate::service::contexte(&o).and_then(|ctx| crate::routes_etats::mois_saisis_non_deposes(&o, &ctx).map_err(|e| e.message));
+        let lus = crate::service::contexte(&o).and_then(|ctx| mois_qui_retiennent_la_compagnie(&o, &ctx).map_err(|e| e.message));
         match lus {
             Ok(mois) => out.extend(mois.iter().map(|m| format!("{} ({})", m.as_str().unwrap_or_default(), nom))),
             Err(e) => out.push(format!("? ({} illisible : {})", nom, e)),
         }
     }
     out
+}
+
+/// Les mois d'UNE compagnie qui retiennent une version qui change un calcul (`mois_qui_retiennent`) : ses mois saisis sans
+/// DSN acceptee, hors ceux qu'elle a saisis en demo avant d'etre gardee.
+pub(crate) fn mois_qui_retiennent_la_compagnie(o: &std::collections::HashMap<String, String>, ctx: &crate::contexte::Contexte) -> crate::etats::R<Vec<Value>> {
+    let demo = crate::interface::suppression::mois_de_demo(&ctx.racine);
+    let mut mois = crate::routes_etats::mois_saisis_non_deposes(o, ctx)?;
+    mois.retain(|m| !m.as_str().is_some_and(|m| demo.iter().any(|d| d == m)));
+    Ok(mois)
 }
 
 /// L'ARCHIVE DE MISE A JOUR (`archiver` : le contenu de `logiciel/` a sa racine, le contrat de la tete de ce fichier),
