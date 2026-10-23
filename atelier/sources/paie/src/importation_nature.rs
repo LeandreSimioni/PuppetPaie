@@ -18,9 +18,9 @@
 //! (S21.G00.40.009, « un des identifiants du contrat » ; CCH-12) et la meme date de debut (S21.G00.40.001) que
 //! l'ancien logiciel : `atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt`. Aucun bulletin ne les imprime ; un
 //! numero ne se recalcule pas, il se lit (regle 4) : sur la DSN deja deposee. Ils se demandent donc avec la nature
-//! (`demande` : `debut`, `numero`, le salaire mensuel du contrat, et `fin` s'il a un terme), s'ecrivent sur ses
-//! contrats repris (`contrat_debut`, `contrat_fin`, `numero`, `contrat_salaire_mensuel`), et le contrat se reprend au
-//! mois suivant (`repris_en_cours`, lu par
+//! (`demande` : `debut`, `numero`, le salaire mensuel et la duree du travail du contrat, `fin` s'il a un terme),
+//! s'ecrivent sur ses contrats repris (`contrat_debut`, `contrat_fin`, `numero`, `contrat_salaire_mensuel`,
+//! `contrat_quotite`), et le contrat se reprend au mois suivant (`repris_en_cours`, lu par
 //! `routes_contrats::contrats_en_cours`) avec son numero (`numero_repris`, lu par `engagement::suivre_permanent`).
 //!
 //! Un salarie, une reponse : les bulletins d'un permanent attestent un contrat par mois, tous du meme contrat.
@@ -51,13 +51,13 @@ fn natures_permanentes() -> R<Vec<std::sync::Arc<crate::contrats::Nature>>> {
     Ok(toutes.iter().filter(|n| n.paie == "mensuelle").cloned().collect())
 }
 
-/// Ce qu'une nature demande avec elle pour un contrat qui court encore : son debut, son numero et son salaire, et sa
-/// fin s'il a un terme. Rien pour un contrat fini.
+/// Ce qu'une nature demande avec elle pour un contrat qui court encore : son debut, son numero, son salaire et
+/// sa duree du travail, et sa fin s'il a un terme. Rien pour un contrat fini.
 fn demande(n: &crate::contrats::Nature, en_cours: bool) -> Vec<&'static str> {
     match (en_cours, n.duree_indeterminee) {
         (false, _) => vec![],
-        (true, true) => vec!["debut", "numero", "salaire"],
-        (true, false) => vec!["debut", "fin", "numero", "salaire"],
+        (true, true) => vec!["debut", "numero", "salaire", "quotite"],
+        (true, false) => vec!["debut", "fin", "numero", "salaire", "quotite"],
     }
 }
 
@@ -177,6 +177,10 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
                 "debut" => format!("La date de début du contrat de {} manque (celle que la DSN déclare) : rien n'a été écrit.", qui),
                 "fin" => format!("La date de fin prévue du contrat de {} manque : rien n'a été écrit.", qui),
                 "salaire" => format!("Le salaire mensuel brut du contrat de {} manque (celui du contrat signé) : rien n'a été écrit.", qui),
+                "quotite" => format!(
+                    "La durée du travail du contrat de {} manque (en heures par mois, celle du contrat signé) : rien n'a été écrit.",
+                    qui
+                ),
                 _ => format!("Le numéro du contrat de {} manque (celui que la DSN déclare) : rien n'a été écrit.", qui),
             })
         })?;
@@ -194,11 +198,16 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
                 }
                 contrat.insert(if champ == "debut" { "contrat_debut" } else { "contrat_fin" }.into(), json!(j));
             }
-            "salaire" => {
+            "salaire" | "quotite" => {
                 let s = v.replace([' ', '\u{a0}'], "").replace(',', ".");
+                let (cle, quoi) = if champ == "salaire" {
+                    ("contrat_salaire_mensuel", "un salaire mensuel brut")
+                } else {
+                    ("contrat_quotite", "une durée du travail en heures par mois")
+                };
                 match s.parse::<crate::num::Decimal>() {
-                    Ok(d) if d > crate::num::Decimal::ZERO => contrat.insert("contrat_salaire_mensuel".into(), json!(d.to_string().parse::<f64>().unwrap_or_default())),
-                    _ => return Err(refus(format!("« {} » n'est pas un salaire mensuel brut : rien n'a été écrit.", v))),
+                    Ok(d) if d > crate::num::Decimal::ZERO => contrat.insert(cle.into(), json!(d.to_string().parse::<f64>().unwrap_or_default())),
+                    _ => return Err(refus(format!("« {} » n'est pas {} : rien n'a été écrit.", v, quoi))),
                 };
             }
             _ => {
@@ -253,6 +262,8 @@ pub(crate) struct Repris {
     pub depuis: String,
     /// Le salaire mensuel brut du contrat, tel qu'il a ete dit.
     pub salaire_mensuel: Option<Value>,
+    /// Sa duree du travail (S21.G00.40.013), en heures par mois, telle qu'elle a ete dite.
+    pub quotite: Option<Value>,
 }
 
 /// Les contrats repris (`contrat_debut` et `numero` dits) qui courent en `mois` (`AAAA-MM`), apres le dernier mois
@@ -273,6 +284,7 @@ pub(crate) fn repris_en_cours(racine: &Path, mois: &str) -> Vec<Repris> {
             nature,
             depuis: atteste.clone(),
             salaire_mensuel: e.get("contrat_salaire_mensuel").filter(|v| v.is_number()).cloned(),
+            quotite: e.get("contrat_quotite").filter(|v| v.is_number()).cloned(),
         });
         if atteste > r.depuis {
             r.depuis = atteste;

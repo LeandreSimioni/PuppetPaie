@@ -465,6 +465,8 @@ function vueNaturesADire(liste) {
         <input type="text" data-nature-champ="numero" placeholder="sur la DSN de ${echapper(moisEnClair(String(x.au).slice(0, 7)))}"></label>`,
     salaire: (x) => `<label>Salaire mensuel brut <input type="number" step="0.01" min="0" data-nature-champ="salaire"
         placeholder="celui du contrat signé"></label>`,
+    quotite: (x) => `<label title="rubrique S21.G00.40.013 de la DSN">Durée du travail (heures par mois)
+        <input type="number" step="0.01" min="0" data-nature-champ="quotite" placeholder="celle du contrat signé"></label>`,
   };
   const lignes = liste.map((x) => `<div class="rang" data-nature-rang="${echapper(x.salarie)}">
       <div class="rang-infos"><b class="rang-nom">${echapper(x.nom)}</b>
@@ -475,7 +477,7 @@ function vueNaturesADire(liste) {
           continue en ${echapper(moisEnClair(x.suite))}, et sa DSN le déclare avec la date de début et le
           numéro que votre ancien logiciel lui a donnés. Ils sont sur sa dernière DSN (bloc Contrat), pas sur
           le bulletin.</div>` : ""}
-        <div class="e-contrat-champs" data-nature-cases hidden>${["debut", "fin", "numero", "salaire"].map((c) =>
+        <div class="e-contrat-champs" data-nature-cases hidden>${["debut", "fin", "numero", "salaire", "quotite"].map((c) =>
           `<span data-nature-case="${c}" hidden>${CASES[c](x)}</span>`).join("")}</div></div>
       <div class="rang-etat" style="display:flex;gap:6px;align-items:center">
         <select data-nature-choix aria-label="Nature du contrat de ${echapper(x.nom)}">

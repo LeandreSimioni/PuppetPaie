@@ -180,7 +180,8 @@ Ce que l'import lit d'un bulletin, et ce qu'il demande après :
   régime `permanent`, sans `objet`) fait un contrat dont la nature (CDI ou CDD) se demande après l'import, dans
   Configuration, « Reprendre l'historique ». Un permanent payé le dernier mois repris a un contrat qui continue : la
   page demande aussi sa date de début et son numéro (ceux de la DSN de l'ancien logiciel, S21.G00.40.001 et .009 ;
-  un joueur les invente, par exemple `00001`), et le mois suivant le reprend tout seul (« Contrat en cours repris ») ;
+  un joueur les invente, par exemple `00001`), son salaire mensuel brut et sa durée du travail, et le mois suivant le
+  reprend tout seul (« Contrat en cours repris ») ;
 - ce qu'aucun bulletin n'imprime (lieu de naissance, métier non reconnu…) s'affiche, après l'import, sous chaque fiche
   créée (« Reste à remplir dans la fiche »), avec le bouton qui l'ouvre.
 

@@ -168,29 +168,30 @@ fn le_contrat_d_un_permanent_qui_continue_se_reprend_au_mois_suivant() {
     let cle = x["salarie"].as_str().unwrap().to_string();
     assert_eq!((x["en_cours"].clone(), x["suite"].clone()), (json!(true), json!("2025-06")), "{}", x);
     let demande = |n: &str| x["natures"].as_array().unwrap().iter().find(|v| v["cle"] == json!(n)).unwrap()["demande"].clone();
-    assert_eq!(demande("cdi"), json!(["debut", "numero", "salaire"]));
-    assert_eq!(demande("cdd"), json!(["debut", "fin", "numero", "salaire"]));
+    assert_eq!(demande("cdi"), json!(["debut", "numero", "salaire", "quotite"]));
+    assert_eq!(demande("cdd"), json!(["debut", "fin", "numero", "salaire", "quotite"]));
 
     let avant = std::fs::read(racine.join("historique/engagements.json")).unwrap();
     for charge in [
         json!({"salarie": cle, "nature": "cdi"}),
         json!({"salarie": cle, "nature": "cdi", "debut": "2024-01-15"}),
-        json!({"salarie": cle, "nature": "cdi", "debut": "2025-05-20", "numero": "00042", "salaire": "2400"}),
-        json!({"salarie": cle, "nature": "cdd", "debut": "2024-01-15", "numero": "00042", "salaire": "2400"}),
-        json!({"salarie": cle, "nature": "cdd", "debut": "2024-01-15", "fin": "2025-05-01", "numero": "00042", "salaire": "2400"}),
+        json!({"salarie": cle, "nature": "cdi", "debut": "2025-05-20", "numero": "00042", "salaire": "2400", "quotite": "151,67"}),
+        json!({"salarie": cle, "nature": "cdd", "debut": "2024-01-15", "numero": "00042", "salaire": "2400", "quotite": "151,67"}),
+        json!({"salarie": cle, "nature": "cdd", "debut": "2024-01-15", "fin": "2025-05-01", "numero": "00042", "salaire": "2400", "quotite": "151,67"}),
         json!({"salarie": cle, "nature": "cdi", "debut": "2024-01-15", "numero": "00042"}),
-        json!({"salarie": cle, "nature": "cdi", "debut": "2024-01-15", "numero": "00042", "salaire": "0"}),
+        json!({"salarie": cle, "nature": "cdi", "debut": "2024-01-15", "numero": "00042", "salaire": "0", "quotite": "151.67"}),
+        json!({"salarie": cle, "nature": "cdi", "debut": "2024-01-15", "numero": "00042", "salaire": "2400"}),
     ] {
         assert_eq!(route(&racine, "importation-nature", charge.clone())["ok"], json!(false), "{}", charge);
     }
     assert_eq!(std::fs::read(racine.join("historique/engagements.json")).unwrap(), avant);
     assert!(!racine.join("config/entreprise.json").exists() || lire(&racine, "config/entreprise.json")["emploie_des_permanents"] != json!(true));
 
-    reussi(&route(&racine, "importation-nature", json!({"salarie": cle, "nature": "cdi", "debut": "15/01/2024", "numero": "00042", "salaire": "2 400,50"})));
+    reussi(&route(&racine, "importation-nature", json!({"salarie": cle, "nature": "cdi", "debut": "15/01/2024", "numero": "00042", "salaire": "2 400,50", "quotite": "151,67"})));
     let r = reussi(&route(&racine, "contrats-en-cours", json!({"mois": "2025-06"}))).clone();
     let c = r["contrats"].as_array().unwrap().iter().find(|c| c["salarie"] == json!(cle)).unwrap_or_else(|| panic!("{}", r)).clone();
     assert_eq!((c["debut"].clone(), c["numero"].clone(), c["engagement"]["nature"].clone()), (json!("2024-01-15"), json!("00042"), json!("cdi")), "{}", c);
-    assert_eq!(c["engagement"]["salaire_mensuel"], json!(2400.5), "{}", c);
+    assert_eq!((c["engagement"]["salaire_mensuel"].clone(), c["engagement"]["quotite_contrat"].clone()), (json!(2400.5), json!(151.67)), "{}", c);
     // Le mois repris lui-meme ne le reprend pas : il est dans l'historique.
     let mai = reussi(&route(&racine, "contrats-en-cours", json!({"mois": "2025-05"}))).clone();
     assert!(mai["contrats"].as_array().unwrap().iter().all(|c| c["salarie"] != json!(cle)), "{}", mai);
