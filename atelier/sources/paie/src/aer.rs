@@ -86,6 +86,24 @@ const DEBUT: &str = "SAL_DT_DEB_";
 const FIN: &str = "SAL_DT_FIN_";
 const NUM_CONTRAT: &str = "CON_NUMERO_";
 
+/// QUAND UNE AER CINEMA SPECTACLE EST DUE : a l'intermittent (CDD d'usage du spectacle, la nature payee a l'activite de
+/// `contrats-base.json`, annexes 8 et 10), le mois ou son contrat FINIT -- une seule par employeur et par mois, et pour un
+/// contrat sur plusieurs mois, « 1 AE CS éditée à la fin du dernier mois concerné par le contrat »
+/// (`atelier/reference/sources/francetravail-100-dsn/movinmotion-fin-des-aem-20260601.txt`, l. 152-166 ;
+/// `mescachets-aem-aer-cs-20260903.txt`, l. 47 et 69 : « salariés intermittents du spectacle relevant des annexes 8 et
+/// 10 », « l'attestation est produite à la fin du dernier mois concerné » ; `comenolo-aer-cs.txt`, l. 37). France Travail
+/// l'edite depuis la DSN mensuelle qui porte la fin du contrat (son bloc 62 ; `francetravail-100-dsn/LISEZMOI.md`,
+/// « Ce qu'on en conclut », point 1). Un permanent (CDI, CDD de droit commun) n'en a pas : sa fin de contrat est un
+/// signalement (`contrats-base.json`, `cdd.fin_de_contrat.signalement_fctu`), et l'attestation de droit commun qui en
+/// revient n'est pas celle-ci.
+pub fn due(e: &crate::engagement::Engagement) -> Resultat<bool> {
+    if e.nat()?.mensuelle() {
+        return Ok(false);
+    }
+    let (debut, fin) = (e.debut_mois()?, e.fin_mois()?);
+    Ok(e.fin.is_some_and(|f| debut <= f && f <= fin))
+}
+
 /// Pourquoi une attestation n'est pas rendue.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Echec {

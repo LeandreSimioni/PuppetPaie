@@ -677,8 +677,19 @@ pub(crate) fn ranger_aer_detail(o: &HashMap<String, String>, ctx: &Contexte, moi
     Ok(fait)
 }
 
+/// Une AER Cinema Spectacle est-elle due a l'un des salaries du mois (`aer::due`) ? Sans elle, France Travail n'en
+/// publie aucune (pas de retour 46) : le mois d'un permanent seul n'a rien a attendre.
+fn aer_attendue(paies: &[crate::calcul::Paie]) -> R<bool> {
+    for p in paies {
+        if crate::aer::due(&p.engagement).map_err(Echec::from)? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 /// `documents_prets` : peut-on envoyer les documents du mois ? Le moteur repond, et dit pourquoi.
-fn documents_prets(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Map<String, Value>> {
+fn documents_prets(m: &mut Moteur, ctx: &Contexte, mois: &str, paies: &[crate::calcul::Paie]) -> R<Map<String, Value>> {
     let dossier = ctx.racine.join("sorties").join(mois).join("envoi");
     let produit = dossier.exists() && un_nom_commence_et_finit(&dossier, "Bulletin_", ".pdf");
     let groupe = ctx.racine.join("sorties").join(mois).join(format!("Bulletins_{}.pdf", etiquette(mois)?));
@@ -699,7 +710,7 @@ fn documents_prets(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Map<String, 
         empechements.push("La DSN du mois a ete REFUSEE : a corriger et a redeposer.".to_string());
     } else if !e.get("passee").is_some_and(vrai) {
         empechements.push(format!("La DSN est deposee ({}), son bilan n'est pas encore arrive.", etats::quand_lisible(e.get("quand").unwrap_or(nul()))));
-    } else if !e.get("aer_recue").is_some_and(vrai) {
+    } else if !e.get("aer_recue").is_some_and(vrai) && aer_attendue(paies)? {
         empechements.push(
             "L'attestation employeur (AER) de France Travail n'est pas encore revenue -- elle suit la DSN de quelques heures ; l'ouverture du logiciel la releve."
                 .to_string(),
@@ -887,10 +898,10 @@ fn envoi_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     if !aer_manquantes(ctx, &mois)?.is_empty() {
         let _ = ranger_aer(o, ctx, Some(&mois), None, false)?;
     }
-    let mut m = Moteur::nouveau(o, ctx);
-    let prets = documents_prets(&mut m, ctx, &mois)?;
     // `charger(ctx, paies/<mois>.json)` : la saisie du mois, numerotee.
     let (data, paies) = charger_le_mois(o, ctx, &mois)?;
+    let mut m = Moteur::nouveau(o, ctx);
+    let prets = documents_prets(&mut m, ctx, &mois, &paies)?;
     let dossier = ctx.racine.join("sorties").join(&mois).join("envoi");
     // A QUI ILS PARTENT (ticket #240) : le meme choix que l'envoi (`routes_envois::choisir`).
     let choix = crate::routes_envois::choisir(ctx, &mois, &data, &paies)?;
