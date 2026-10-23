@@ -65,14 +65,17 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 // ------------------------------------------------------------------ outils
 
+#[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    Echec { classe: None, message: m.into() }
+    crate::etats::noter_et(None, m)
 }
 
+#[track_caller]
 fn refus(m: impl Into<String>) -> Echec {
     erreur("ErreurOperation", m)
 }
 
+#[track_caller]
 fn en_os(m: String) -> Echec {
     erreur("OSError", m)
 }
@@ -189,6 +192,7 @@ fn oublier_demande(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
 const IDENTITES: [&str; 3] = ["signature", "cachet", "logo"];
 const OCTETS_MAX: usize = 2 * 1024 * 1024;
 
+#[track_caller]
 fn identite_inconnue(quoi: &str) -> Echec {
     refus(format!("Identite inconnue : {}. Connues : cachet, logo, signature.", crate::fichiers::repr(quoi)))
 }

@@ -159,17 +159,19 @@ fn diagnostic_etat(racine: &std::path::Path) -> R<Value> {
         let envoi = if vrai(envoi) { envoi.clone() } else { json!({}) };
         let etat = get(&envoi, "etat")?;
         let g = &mut groupes[i].1;
+        // Un incident revu (ses doublons, `fois`) compte autant de fois qu'il a eu lieu.
+        let fois = incidents::fois_de(l);
         let incr = |g: &mut Map<String, Value>, c: &str| {
-            let n = g[c].as_i64().unwrap_or(0) + 1;
+            let n = g[c].as_i64().unwrap_or(0) + fois;
             g.insert(c.into(), json!(n));
         };
         incr(g, "combien");
-        g.insert("derniere".into(), quand.clone());
+        g.insert("derniere".into(), l.get("derniere").filter(|d| d.is_string()).unwrap_or(quand).clone());
         let resume = get(l, "resume")?;
         if vrai(resume) {
             g.insert("resume".into(), resume.clone());
         }
-        g.insert("contenu".into(), incidents::pour_l_editeur(l)?);
+        g.insert("contenu".into(), incidents::pour_l_editeur(racine, l)?);
         if etat.as_str() == Some(DEPOSE) {
             incr(g, "partis");
             let q = get(&envoi, "quand")?;

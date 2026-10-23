@@ -57,6 +57,7 @@ pub mod drive;
 pub mod dsn;
 pub mod echeance_dsn;
 pub mod ecriture;
+pub mod diagnostic;
 pub mod editeur;
 pub mod emplois;
 pub mod engagement;

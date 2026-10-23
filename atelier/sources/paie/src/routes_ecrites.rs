@@ -42,10 +42,12 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
     }
 }
 
+#[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    Echec { classe: None, message: m.into() }
+    crate::etats::noter_et(None, m)
 }
 
+#[track_caller]
 fn en_os(m: String) -> Echec {
     erreur("OSError", m)
 }

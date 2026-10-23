@@ -32,12 +32,14 @@ const AUDIENS: &str = "P0983";
 /// Le premier identifiant d'adhesion libre : 100 a 103 sont ceux que `affectations_81_059` nomme.
 const PREMIER_LIBRE: u32 = 104;
 
+#[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    Echec { classe: None, message: m.into() }
+    crate::etats::noter_et(None, m)
 }
 
+#[track_caller]
 fn refus(m: impl Into<String>) -> Echec {
-    Echec { classe: Some("ErreurOperation"), message: m.into() }
+    crate::etats::noter_et(Some("ErreurOperation"), m)
 }
 
 fn g<'a>(v: &'a Value, k: &str) -> &'a Value {

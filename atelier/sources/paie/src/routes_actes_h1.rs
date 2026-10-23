@@ -44,6 +44,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 // ------------------------------------------------------------------ outils
 
+#[track_caller]
 fn refus(m: impl Into<String>) -> Echec {
     erreur("ErreurOperation", m)
 }
@@ -52,8 +53,9 @@ fn en_echec(r: Refus) -> Echec {
     Echec { classe: r.classe, message: r.message }
 }
 
+#[track_caller]
 fn plain(m: String) -> Echec {
-    Echec { classe: None, message: m }
+    crate::etats::noter_et(None, m)
 }
 
 /// `charge["cle"]` : un texte requis.

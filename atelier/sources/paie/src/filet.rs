@@ -40,6 +40,7 @@ fn chemin(racine: &Path) -> PathBuf {
     racine.join("config").join(FICHIER)
 }
 
+#[track_caller]
 fn en_os(m: String) -> crate::retours::Echec {
     erreur("OSError", m)
 }

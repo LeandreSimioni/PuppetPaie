@@ -45,6 +45,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 
 // ------------------------------------------------------------------ outils
 
+#[track_caller]
 pub(crate) fn refus(m: impl Into<String>) -> Echec {
     erreur("ErreurOperation", m)
 }
