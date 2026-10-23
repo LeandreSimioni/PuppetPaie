@@ -25,6 +25,7 @@ mod conseils;
 mod demarrage;
 mod echeance_dsn;
 mod historique_mois;
+mod import_neuve;
 mod modifier_apres_echeance;
 mod etat_garde;
 mod fictive_ajoutee;

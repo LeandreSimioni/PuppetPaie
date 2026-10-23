@@ -162,10 +162,28 @@ commune 999 à clé juste ; rien de réel) :
 | `non_soumis` | sPAIEctacle seulement : `Défraiement non soumis`, `Prime de panier non soumise`, `Acompte` |
 | `taux_pas`, `regle_le`, `numero`, `analytique` | facultatifs : le taux du PAS (0), le jour du règlement (`fin`), le numéro CoolPaie (`k/année`), le code analytique sPAIEctacle |
 
-Le gabarit se donne dans la description ou par `--gabarit` (qui l'emporte). Les plafonds de la Sécurité sociale imprimés
-sont connus pour 2024 à 2026 ; une autre année : `"plafonds": {"2023": {"mensuel": 3666, "journalier": 202}}`. Ce que
-l'import ne lit pas d'un bulletin (la nature du contrat : CDI, CDD, CDDU ; la qualité de cadre) reste à configurer dans la
-page après l'import.
+Le gabarit se donne dans la description ou par `--gabarit` (qui l'emporte). Le « plafond Urssaf » imprimé se calcule
+par la règle du moteur (`plafond.rs`), sur le plafond de la Sécurité sociale de l'année lu dans le barème livré
+(`logiciel/donnees/baremes/<année>.json`), sinon dans la table des paramètres du BOSS déposée
+(`atelier/reference/boss-table-parametres-2026.csv`, de 2021 à 2026) ; une année que ni l'un ni l'autre ne porte se
+refuse.
+
+Ce que l'import lit d'un bulletin, et ce qu'il demande après :
+
+- `statut` « artiste » ou « technicien » remplit la case « Artiste ou technicien » ; « cadre » ou « non cadre », la case
+  « Cadre ou non cadre » ;
+- `emploi` qui nomme un métier du catalogue (`logiciel/donnees/emplois-base.json`, libellé, féminin ou forme déclarée,
+  sans casse ni accents), et un seul, donne le métier entier (son code PCS-ESE compris) ; un autre intitulé reste à
+  choisir dans la fiche ;
+- **la nature du contrat** : aucun gabarit ne l'imprime. Un bulletin avec un numéro d'objet ou une cotisation Congés
+  Spectacles (le régime `intermittent`) fait un contrat muet, un CDDU (règle 6) ; un bulletin sans aucun des deux (le
+  régime `permanent`, sans `objet`) fait un contrat dont la nature (CDI ou CDD) se demande après l'import, dans
+  Configuration, « Reprendre l'historique ». Un permanent payé le dernier mois repris a un contrat qui continue : la
+  page demande aussi sa date de début et son numéro (ceux de la DSN de l'ancien logiciel, S21.G00.40.001 et .009 ;
+  un joueur les invente, par exemple `00001`), son salaire mensuel brut et sa durée du travail, et le mois suivant le
+  reprend tout seul (« Contrat en cours repris ») ;
+- ce qu'aucun bulletin n'imprime (lieu de naissance, métier non reconnu…) s'affiche, après l'import, sous chaque fiche
+  créée (« Reste à remplir dans la fiche »), avec le bouton qui l'ouvre.
 
 ## Ce que contient un banc
 

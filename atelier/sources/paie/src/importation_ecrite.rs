@@ -472,7 +472,9 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
         };
         emplacement["cle"] = e.cle.map_or(Value::Null, Value::String);
         emplacement["etat"] = json!("creee");
-        emplacement["anomalies"] = sans_prives(&Value::Array(e.anomalies));
+        let mut anomalies = e.anomalies;
+        crate::routes_fiches::avec_libelles(a.nom, &mut anomalies)?;
+        emplacement["anomalies"] = sans_prives(&Value::Array(anomalies));
         let fichier = match a.nom {
             "entreprise" => "entreprise.json",
             "salarie" => "salaries.json",

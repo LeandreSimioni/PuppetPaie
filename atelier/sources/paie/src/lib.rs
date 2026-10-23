@@ -160,6 +160,7 @@ pub mod casc_regularisation;
 pub mod versement_declare;
 pub mod exercice_ecrit;
 pub mod importation_ecrite;
+pub mod importation_nature;
 pub mod routes_google;
 pub mod routes_incidents;
 pub mod routes_contrats;

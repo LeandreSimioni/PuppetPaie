@@ -441,6 +441,27 @@ pub fn catalogue() -> Resultat<Vec<Value>> {
     Ok(out)
 }
 
+/// Le metier du catalogue qu'un intitule imprime nomme (un bulletin d'un logiciel precedent : « MUSICIEN »), compare
+/// par `norme` (sans casse ni accents) a son libelle, a son feminin et a sa forme declaree. `(code, feminin)` quand un
+/// seul metier porte cet intitule ; `None` quand aucun, ou plusieurs (« SCRIPTE ») : on ne choisit pas entre eux.
+pub fn par_intitule(intitule: &str, norme: impl Fn(&str) -> String) -> Resultat<Option<(String, bool)>> {
+    let cherche = norme(intitule);
+    if cherche.is_empty() {
+        return Ok(None);
+    }
+    let base = json_en_cache(&dossier_du_code().join("emplois-base.json"))?;
+    let emplois = base.get("emplois").and_then(Value::as_object).ok_or_else(|| crate::fichiers::absent("emplois"))?;
+    let mut trouves: Vec<(String, bool)> = Vec::new();
+    for (code, m) in emplois {
+        let t = |k: &str| m.get(k).and_then(Value::as_str).map(&norme).unwrap_or_default();
+        let (libelle, feminin, emploi) = (t("libelle"), t("feminin"), t("emploi"));
+        if [&libelle, &feminin, &emploi].contains(&&cherche) {
+            trouves.push((code.clone(), feminin == cherche && libelle != cherche));
+        }
+    }
+    Ok(if trouves.len() == 1 { trouves.pop() } else { None })
+}
+
 /// `emplois.noms_des_conventions()` : IDCC -> le nom court de la convention.
 pub fn noms_des_conventions() -> Resultat<Map<String, Value>> {
     let base = json_en_cache(&dossier_du_code().join("emplois-base.json"))?;
