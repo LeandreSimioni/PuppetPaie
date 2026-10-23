@@ -5,6 +5,19 @@ Réécrit le 15/10/2026 : le moteur est quasiment fini, on fait de l'interface, 
 (`journal/archives/2026-10-15-claude-md-avant.md`, et `2026-10-04-claude-md-avant.md` avant lui). **Les numéros des règles
 de fond (0 à 11) ne bougent pas : le code les cite.**
 
+## Es-tu l'orchestrateur ou un exécutant ? (Léandre, 23/10/2026)
+
+Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à l'orchestrateur.
+- **L'orchestrateur** est la séance que Léandre a ouverte : il parle à Léandre, lit `ETAT.md` et les tickets, découpe,
+  lance les sous-agents, fusionne, lance **la** suite complète, pousse, ouvre la PR, commente et ferme les tickets, écrit
+  le journal.
+- **Un exécutant** est un sous-agent lancé par l'orchestrateur (sa consigne le dit, il travaille dans un worktree, sur une
+  branche de lot). Il fait son lot et rien d'autre, commite sur sa branche, et rend une passation. **Il ne fait jamais** :
+  la suite complète (seulement les binaires qu'il nomme), un push, une PR, une fusion dans la branche de séance, un
+  commentaire ou une fermeture de ticket, le journal ou `ETAT.md`, ni ne parle à Léandre. Quand ce fichier dit « à la fin
+  de la séance », « avant de pousser », « on ferme le ticket », c'est l'orchestrateur ; en cas de doute, c'est sa
+  consigne qui tranche.
+
 ## Par quoi on commence
 
 1. **`journal/ETAT.md` du dépôt privé** : une page, le point de reprise. Rien d'autre ne se lit d'office.
