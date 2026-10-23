@@ -73,7 +73,8 @@ const JS_PILE_MAX: usize = 2000;
 /// passage suivant reprend.
 const LOT: usize = 20;
 const MAX_PAR_PASSAGE: usize = 200;
-/// Un lot, en octets de JSON : le serveur en admet `MAX_CORPS_RAPPORT` (infra/filet/filet_serveur.py du site).
+/// Un lot, en octets de JSON : le serveur doit en admettre davantage (`MAX_CORPS_RAPPORT` de infra/filet/filet_serveur.py
+/// du site, 1 Mio depuis le diagnostic du 23/10/2026 ; il en admettait 64 Kio).
 const LOT_OCTETS: usize = 400_000;
 
 const POSTE_FICHIER: &str = "diagnostic.json";
@@ -689,6 +690,30 @@ pub fn pour_l_editeur(racine: &Path, ligne: &Value) -> R<Value> {
     Ok(crate::diagnostic::textes_en_forme(Some(racine), &Value::Object(d)))
 }
 
+/// Un incident qui pese plus qu'un lot entier (une saisie de cent engagements dans ses ecritures) ne resterait jamais
+/// sans partir : ses ecritures deviennent leur ligne compacte, puis son fil ses quarante dernieres lignes. Rend sa taille.
+fn alleger(c: &mut Value) -> usize {
+    let mut n = c.to_string().len();
+    if n > LOT_OCTETS {
+        if let Some(Value::Array(e)) = c.get_mut("ecritures") {
+            for x in e.iter_mut() {
+                if let Some(ch) = x.get_mut("charge") {
+                    *ch = json!(crate::diagnostic::compact(ch, 2_000));
+                }
+            }
+        }
+        n = c.to_string().len();
+    }
+    if n > LOT_OCTETS {
+        if let Some(Value::Array(f)) = c.get_mut("fil") {
+            let debut = f.len().saturating_sub(40);
+            f.drain(..debut);
+        }
+        n = c.to_string().len();
+    }
+    n
+}
+
 /// `incidents.machine` : la machine, en une ligne -- « Linux Ubuntu 24.04 ·
 /// x86_64 · moteur Rust · complete » : le systeme, l'architecture, le moteur et
 /// l'edition. Rien qui designe la personne. Pas de virgule : le serveur les
@@ -996,8 +1021,8 @@ fn passage(racine: &Path, bilan: &mut Bilan) -> R<()> {
     let mut lots: Vec<Vec<Value>> = Vec::new();
     let mut taille = 0;
     for l in a_faire {
-        let c = pour_l_editeur(racine, l)?;
-        let n = c.to_string().len();
+        let mut c = pour_l_editeur(racine, l)?;
+        let n = alleger(&mut c);
         match lots.last_mut() {
             Some(lot) if lot.len() < LOT && taille + n <= LOT_OCTETS => {
                 lot.push(c);
