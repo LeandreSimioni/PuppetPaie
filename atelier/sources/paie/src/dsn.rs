@@ -1354,16 +1354,17 @@ pub(crate) fn usage_admet(f: &Fichier, rubrique: &str, nature_dsn: &str) -> Resu
 /// spectacles » ; « en l'absence de licence spectacle, cette rubrique doit etre renseignee par la reference portee sur le
 /// recepisse » (cahier technique 2027.1.1, `norme-dsn/texte-2027/bloc-S21.G00.40.txt` l. 1418-1426 ; la meme phrase en
 /// 2026.1, `texte/bloc-S21.G00.40.txt` l. 1367-1375). Ecrite quand la compagnie en a une ; sans elle, la DSN refuse
-/// QUAND ELLE EST EXIGEE de la compagnie (`demarrage::licence_exigee`, la condition `exige_si` du champ, celle que
-/// « Pour demarrer » lit aussi) et ne l'ecrit pas sinon : une production audiovisuelle n'en a pas, et un lieu en 1790
-/// qui n'organise pas de spectacles non plus (#236). Une valeur vide ne s'ecrit jamais : `X [1,100]`.
-fn licence_du_contrat(f: &mut Fichier, nature_dsn: &str, ent: &Value) -> Resultat<()> {
+/// QUAND ELLE EST EXIGEE (`demarrage::licence_exigee`, que « Pour demarrer » lit aussi : la convention, ou un contrat de
+/// spectacle, `spectacle`, dans une convention ou la case se montre) et ne l'ecrit pas sinon : une production
+/// audiovisuelle n'en a pas, ni un lieu en 1790 qui n'engage pour aucun spectacle (#236). Une valeur vide ne s'ecrit
+/// jamais : `X [1,100]`.
+fn licence_du_contrat(f: &mut Fichier, nature_dsn: &str, ent: &Value, spectacle: bool) -> Resultat<()> {
     let licence = txt(req(ent, "licence_spectacle")?);
     if !licence.trim().is_empty() {
         return si_admise(f, nature_dsn, "S21.G00.40.049", Some(licence));
     }
-    if crate::demarrage::licence_exigee(ent) && usage_admet(f, "S21.G00.40.049", nature_dsn)? {
-        return Err("La licence d'entrepreneur de spectacles manque : la saisir dans Configuration › Entreprise, « Licence d'entrepreneur de spectacles » (le numéro attribué par la DRAC, ou celui du récépissé de déclaration en attendant). Elle se déclare dans chaque contrat (S21.G00.40.049). Rien n'est écrit.".to_string());
+    if crate::demarrage::licence_exigee(ent, spectacle) && usage_admet(f, "S21.G00.40.049", nature_dsn)? {
+        return Err("La licence d'entrepreneur de spectacles manque : la saisir dans Configuration › Entreprise, « Licence d'entrepreneur de spectacles » (le numéro attribué par la DRAC, ou la référence du récépissé de déclaration). L'entrepreneur de spectacles vivants la déclare dans chaque contrat (S21.G00.40.049). Rien n'est écrit.".to_string());
     }
     Ok(())
 }
@@ -1688,7 +1689,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
         si_admise(f, nature_dsn, "S21.G00.40.040", Some(en_texte(&atmp["code_risque"])))?;
         si_admise(f, nature_dsn, "S21.G00.40.043", Some(fmt_f(dec_py(&atmp["valeur"])?, 2)))?;
     }
-    licence_du_contrat(f, nature_dsn, ent)?;
+    licence_du_contrat(f, nature_dsn, ent, nat.ecrit("S21.G00.40.050"))?;
     if nat.ecrit("S21.G00.40.050") && usage_admet(f, "S21.G00.40.050", nature_dsn)? {
         f.add_v("S21.G00.40.050", req(&p.spectacle, "numero_objet")?)?;
     }

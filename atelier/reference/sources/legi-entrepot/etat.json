@@ -270183,6 +270183,438 @@
    "depuis": "2008-05-01",
    "livraison": "20261020-214622",
    "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000055004433",
+   "article": "L136-1-1",
+   "avant": "LEGIARTI000053282440",
+   "depuis": "2026-10-22",
+   "livraison": "20261021-213023",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000053279221",
+   "article": "L351-3",
+   "avant": "LEGIARTI000030226210",
+   "depuis": "2025-12-31",
+   "livraison": "20261022-214745",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000042160366",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000052022129",
+   "depuis": "2020-07-25",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000042160354",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000053188848",
+   "depuis": "2020-07-25",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000044873223",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000042160366",
+   "depuis": "2022-01-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000044873210",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000042160354",
+   "depuis": "2022-01-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000022209308",
+   "article": "1609 tertricies",
+   "avant": "LEGIARTI000053188833",
+   "depuis": "2010-05-13",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000023378342",
+   "article": "1609 tertricies",
+   "avant": "LEGIARTI000022209308",
+   "depuis": "2010-08-03",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000025516074",
+   "article": "1609 tertricies",
+   "avant": "LEGIARTI000023378342",
+   "depuis": "2012-03-16",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000025051331",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000044873223",
+   "depuis": "2011-12-30",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000025051371",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000044873210",
+   "depuis": "2011-12-30",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000028447840",
+   "article": "1609 tertricies",
+   "avant": "LEGIARTI000025516074",
+   "depuis": "2014-01-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000028448665",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000025051331",
+   "depuis": "2014-01-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000028448662",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000025051371",
+   "depuis": "2014-01-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000030517141",
+   "article": "1609 tertricies",
+   "avant": "LEGIARTI000028447840",
+   "depuis": "2015-04-25",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000030702109",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000028448665",
+   "depuis": "2015-06-06",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000030702104",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000028448662",
+   "depuis": "2015-06-06",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000033817491",
+   "article": "1609 tertricies",
+   "avant": "LEGIARTI000030517141",
+   "depuis": "2017-01-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000041466911",
+   "article": "1609 tertricies",
+   "avant": "LEGIARTI000033817491",
+   "depuis": "2022-09-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000051190990",
+   "article": "1609 tertricies",
+   "avant": "LEGIARTI000041466911",
+   "depuis": "2027-01-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000051191104",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000030702109",
+   "depuis": "2027-01-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000051191087",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000030702104",
+   "depuis": "2027-01-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000051287357",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000051191104",
+   "depuis": "2025-03-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000051288275",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000051191087",
+   "depuis": "2026-01-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000051764607",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000051287357",
+   "depuis": "2025-06-19",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000051764601",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000051288275",
+   "depuis": "2025-06-19",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000053188833",
+   "article": "1609 tertricies",
+   "avant": "LEGIARTI000051190990",
+   "depuis": "2026-09-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000053188843",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000051764607",
+   "depuis": "2026-09-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000053188848",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000051764601",
+   "depuis": "2026-09-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000027517561",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000053188843",
+   "depuis": "2013-06-07",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000027517558",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000053188848",
+   "depuis": "2013-06-07",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000029042542",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000027517561",
+   "depuis": "2014-05-30",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000029042539",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000027517558",
+   "depuis": "2014-05-30",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000029961952",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000029042542",
+   "depuis": "2014-12-25",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000032700993",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000029961952",
+   "depuis": "2016-06-13",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000032700988",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000029042539",
+   "depuis": "2016-06-13",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000036392616",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000032700993",
+   "depuis": "2018-07-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000036392612",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000032700988",
+   "depuis": "2018-07-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000037100499",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000036392616",
+   "depuis": "2018-06-23",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000037100495",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000036392612",
+   "depuis": "2018-06-23",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000037993576",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000037100499",
+   "depuis": "2019-01-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000037993569",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000037100495",
+   "depuis": "2019-01-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000038686585",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000037993576",
+   "depuis": "2019-06-08",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000038686573",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000037993569",
+   "depuis": "2019-06-08",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000043662956",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000038686585",
+   "depuis": "2021-06-12",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000043662944",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000038686573",
+   "depuis": "2021-06-12",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000045764857",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000043662956",
+   "depuis": "2022-05-07",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000045764846",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000043662944",
+   "depuis": "2022-05-07",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000047623425",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000045764857",
+   "depuis": "2023-06-03",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000047623414",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000045764846",
+   "depuis": "2023-06-03",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000049641245",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000047623425",
+   "depuis": "2024-06-02",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000049641234",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000047623414",
+   "depuis": "2024-06-02",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000052022129",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000049641245",
+   "depuis": "2025-08-02",
+   "livraison": "20261022-214745",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000054374000",
+   "article": "1613 ter",
+   "avant": "LEGIARTI000052022129",
+   "depuis": "2026-07-01",
+   "livraison": "20261022-214745",
+   "texte": "impots"
   }
  ],
  "construit_le": "2026-10-10",
@@ -270657,7 +271089,9 @@
   "20261020-214622",
   "20261021-122932",
   "20261021-130408",
-  "20261021-133354"
+  "20261021-133354",
+  "20261021-213023",
+  "20261022-214745"
  ],
- "mis_a_jour_le": "2026-10-21"
+ "mis_a_jour_le": "2026-10-23"
 }
