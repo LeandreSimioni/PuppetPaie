@@ -208,11 +208,11 @@ fn preparer_un_message_par_salarie() {
     assert_eq!(p.sujet, "Octobre 2025 — bulletin et attestation France Travail");
     assert!(!p.corps.contains("pas encore revenue") && !p.corps.contains("actualisation"));
     assert!(p.corps.contains("Elle est éditée par France Travail"));
-    // Rien de joint : l'objet ne promet que des « documents », et la note le dit.
+    // Rien de joint : l'objet ne promet que des « documents » ; ce salarie permanent n'a aucune AER due, donc pas de note.
     let nu = &messages[1];
     assert!(nu.pieces.is_empty());
     assert_eq!(nu.sujet, "Octobre 2025 — documents");
-    assert!(nu.corps.contains("pour octobre 2025 :\n\n\n\nTon attestation"), "{:?}", nu.corps);
+    assert!(!nu.corps.contains(paie::envoi::NOTE_SANS_AER), "{:?}", nu.corps);
 }
 
 #[test]

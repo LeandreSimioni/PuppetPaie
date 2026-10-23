@@ -108,6 +108,24 @@ pub fn due(e: &crate::engagement::Engagement) -> Resultat<bool> {
     Ok(e.fin.is_some_and(|f| debut <= f && f <= fin))
 }
 
+/// LA FIN DE CONTRAT QUI SE SIGNALE (CDD et CDI de droit commun, CDDU rompu avant son terme : `Nature::signalement_fctu`)
+/// dans le mois : France Travail en edite l'attestation employeur rematerialisee (AER) en retour du signalement FCTU
+/// (nature 44 : « AER » en PDF quand le signalement passe, compte rendu metier quand il est refuse -- guide
+/// d'implementation de l'API DSN v6.8, §5.7.4 a 5.7.6 et tableau des formats,
+/// `atelier/reference/sources/gip-mds-api-dsn/gip-mds-guide-implementation-api-dsn-v6.8-20260706.txt`), et l'employeur
+/// doit la remettre au salarie (fiche net-entreprises 3037,
+/// `net-entreprises-base-connaissances/net-entreprises-fiche3037-attestation-employeur-aed-fctu-20250323.txt`). Le moteur
+/// ne la range pas pour l'envoi : la forme de ce PDF (ses champs, son cadre d'authentification) n'est relevee sur
+/// aucune piece deposee. Le courriel des documents le dit (`envoi::NOTE_SANS_ATTESTATION_FCTU`), sans rien promettre.
+pub fn attestation_fctu(e: &crate::engagement::Engagement) -> Resultat<bool> {
+    let nat = e.nat()?;
+    if !nat.signalement_fctu(e.motif_rupture.as_deref().filter(|m| !m.is_empty())) {
+        return Ok(false);
+    }
+    let (debut, fin) = (e.debut_mois()?, e.fin_mois()?);
+    Ok(e.fin.is_some_and(|f| debut <= f && f <= fin))
+}
+
 /// Pourquoi une attestation n'est pas rendue.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Echec {

@@ -166,3 +166,20 @@ fn ni_une_fictive_ajoutee_ni_une_compagnie_reelle_n_ont_d_aer_jouee() {
         assert!(noms(&envoi(r)).iter().all(|n| !n.starts_with("AER_")));
     }
 }
+
+/// LA FIN D'UN CDD DE DROIT COMMUN (`fictive-3090-grande`, AUDINOT, CDD du 01/09/2025 au 30/06/2026) : pas d'AER Cinema
+/// Spectacle (elle est due a l'intermittent, `aer::due`), mais l'attestation employeur qu'edite France Travail en retour
+/// du signalement de fin de contrat (fiche net-entreprises 3037 ; guide API DSN v6.8, §5.7.4). Elle n'est pas dans le
+/// courriel des documents, et le courriel le dit -- a lui seul : les permanents qui restent n'ont aucune des deux notes.
+#[test]
+fn la_fin_d_un_cdd_le_dit_sans_annoncer_d_aer_cinema_spectacle() {
+    let r = compagnie::entiere("fictive-3090-grande", &dossier_de_test("aer_fictive", "cdd"));
+    let ctx = contexte(&r);
+    let paies = paie::engagement::charger(&ctx, &r.join("paies/2026-06.json")).unwrap().paies;
+    let messages = paie::envoi::preparer(&paies, &ctx.entreprise, "2026-06", &r.join("sorties/2026-06/envoi"), None).unwrap();
+    assert_eq!(messages.len(), 3);
+    for m in &messages {
+        assert!(!m.corps.contains(paie::envoi::NOTE_SANS_AER), "{} n'est pas intermittent", m.cle);
+        assert_eq!(m.corps.contains(paie::envoi::NOTE_SANS_ATTESTATION_FCTU), m.cle == "AUDINOT", "{}", m.cle);
+    }
+}
