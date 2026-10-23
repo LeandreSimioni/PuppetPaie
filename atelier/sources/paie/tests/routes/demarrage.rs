@@ -128,3 +128,61 @@ fn le_seul_numero_conges_spectacles_saisi_est_le_numero_d_adherent() {
     assert!(ent.get("congesspectacles_affiliation").is_none(), "rien d'autre ne s'ecrit : {}", ent);
     assert!(par_champ(&manques(&racine), "congesspectacles_adherent").is_empty());
 }
+
+/// AUCUN MANQUE NE POINTE VERS UN CHAMP MASQUE, POUR AUCUNE CONVENTION (#236 : « Licence d'entrepreneur de spectacles —
+/// bloque la DSN » en 1790, alors que la case y etait repliee). Pour chaque convention du bareme 2026 (et la compagnie qui
+/// n'a pas encore dit la sienne), avec et sans permanents, avec et sans spectacle : tout ce que « Pour demarrer » demande
+/// dans la fiche Entreprise est une case que l'ecran montre (`Champ::montre`, la regle que la page applique, `fiche.js`),
+/// et tout champ EXIGE (`exige_si`) est montre.
+///
+/// La licence (`demarrage::licence_exigee`) : « est entrepreneur de spectacles vivants toute personne qui exerce une
+/// activite d'exploitation de lieux de spectacles, de production ou de diffusion de spectacles » (L7122-2), et il declare
+/// son activite, le recepisse valant licence (L7122-3 ; `atelier/reference/sources/code-du-travail/articles-20261023.md`).
+/// Exigee de la 3090 et de la 1285 (et de la compagnie sans convention) ; en 1790 et en 3252, montree, et exigee des qu'un
+/// spectacle est configure ; ni montree ni demandee dans l'audiovisuel. La DSN le prouve dans `tests/dsn/licence.rs`.
+#[test]
+fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
+    let bareme: Value = serde_json::from_slice(&std::fs::read(paie::fichiers::dossier_du_code().join("baremes/2026.json")).unwrap()).unwrap();
+    let mut conventions: Vec<String> =
+        bareme["par_convention"].as_object().unwrap().keys().filter(|k| !k.starts_with('_')).cloned().collect();
+    assert_eq!(conventions.len(), 10, "les dix conventions de 2026 : {:?}", conventions);
+    conventions.push(String::new());
+    let fiche = paie::champs::fiche("entreprise").unwrap();
+    let licence = fiche.iter().find(|c| c.cle == "licence_spectacle").unwrap();
+    for idcc in &conventions {
+        for (permanents, spectacle) in [(false, false), (false, true), (true, false), (true, true)] {
+            let nom = format!("grille-{}-{}-{}", if idcc.is_empty() { "sans" } else { idcc }, permanents, spectacle);
+            let racine = neuve(&nom);
+            let mut ent = lire(&racine, "config/entreprise.json");
+            ent["idcc"] = json!(idcc);
+            ent["emploie_des_permanents"] = json!(permanents);
+            ecrire(&racine, "config/entreprise.json", &ent);
+            if spectacle {
+                ecrire(&racine, "config/spectacles.json", &json!({"266Z00910022": {"titre": "Le Banc", "actif": true}}));
+            }
+            let m = manques(&racine);
+            for x in &m {
+                let Some(champ) = x["champ"].as_str() else { continue };
+                if x["ou"] != json!("Configuration › Entreprise") || champ == "taux_atmp" {
+                    continue; // le taux AT/MP vit dans le bareme de la compagnie (`ATMP_HTML`)
+                }
+                let c = fiche.iter().find(|c| c.cle == champ.split('.').next().unwrap()).unwrap_or_else(|| panic!("{} : pas un champ", champ));
+                assert!(c.montre(&ent, permanents, false), "{} : « {} » demande, case masquee", nom, champ);
+            }
+            for c in &fiche {
+                if c.exige(&ent) {
+                    assert!(c.montre(&ent, permanents, false), "{} : « {} » exige et masque", nom, c.cle);
+                }
+            }
+            let demandee = par_champ(&m, "licence_spectacle").len() == 1;
+            let (montree, exigee) = (licence.montre(&ent, permanents, false), paie::demarrage::licence_exigee(&ent, spectacle));
+            assert_eq!(demandee, exigee, "{} : la licence demandee si et seulement si exigee", nom);
+            assert!(!exigee || montree, "{} : la licence exigee, case masquee", nom);
+            match idcc.as_str() {
+                "3090" | "1285" | "" => assert!(exigee, "{}", nom),
+                "1790" | "3252" => assert!(montree && exigee == spectacle, "{} : un lieu sans spectacle n'a pas a la dire", nom),
+                _ => assert!(!montree && !exigee, "{} : l'audiovisuel n'a pas de licence de spectacles vivants", nom),
+            }
+        }
+    }
+}
