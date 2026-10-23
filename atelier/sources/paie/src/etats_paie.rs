@@ -519,6 +519,23 @@ pub(crate) fn source_declaree(x: &Value) -> &'static str {
 /// paie, quand l'import les a lus) les ont declarees.
 fn lignes_declarees(ctx: &Contexte, mois: &str, coordonnees: bool, declarees: &[Value]) -> R<Vec<LigneLivre>> {
     let mut out = Vec::new();
+    // LA NATURE D'UNE PAIE D'AVANT (#236) : celle du contrat repris du meme salarie qui couvre le mois -- dite apres
+    // l'import pour un permanent (`importation_nature`) ; un contrat muet, ou aucun, est un CDDU (regle 6).
+    let contrats = liste_historique(ctx, "engagements.json", "engagements")?;
+    let nature_de = |cle: &str| -> R<String> {
+        for e in &contrats {
+            let Some(o) = e.as_object() else { continue };
+            let t = |k: &str| o.get(k).map(py_str).unwrap_or_default();
+            let (debut, fin) = (t("debut"), t("fin"));
+            if t("salarie") != cle || debut.len() < 7 || debut[..7] > *mois || (fin.len() >= 7 && fin[..7] < *mois) {
+                continue;
+            }
+            if let Some(l) = crate::importation_nature::libelle_d_un_contrat(o)? {
+                return Ok(l);
+            }
+        }
+        Ok(crate::contrats::nature(None).map_err(|m| erreur("ErreurOperation", m))?.libelle.clone())
+    };
     for x in declarees {
         if x.get("mois").map_or(true, |m| py_str(m) != mois) {
             continue;
@@ -547,7 +564,7 @@ fn lignes_declarees(ctx: &Contexte, mois: &str, coordonnees: bool, declarees: &[
             },
             cle_salarie: cle.clone(),
             contrat: fiche_texte(x, "contrat"),
-            nature: crate::contrats::nature(None).map_err(|m| erreur("ErreurOperation", m))?.libelle.clone(),
+            nature: nature_de(&cle)?,
             spectacle,
             brut: montant(x.get("brut"))?,
             // Les colonnes qu'un bulletin de paie ajoute a la ligne (lot E de l'import) ; vides pour une DSN seule.

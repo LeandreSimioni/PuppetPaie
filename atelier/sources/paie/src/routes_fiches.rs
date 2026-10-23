@@ -473,6 +473,41 @@ pub(crate) fn verifier(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>>
     champs::verifier_fiche(nom, &copie)
 }
 
+/// LES ANOMALIES QUE L'ECRITURE TROUVERA (#236) : celles d'une fiche que l'import cree, derivee comme `ecrire_fiche` la
+/// derive avant d'ecrire (`deriver` force : la forme declaree se refait de la forme lisible), puis verifiee. L'apercu
+/// de l'import les montre telles : avant, il verifiait la fiche avant derivation, et chaque champ que le bulletin ou
+/// la DSN imprime en minuscules (« 3 quai de la Fosse ») criait « doit etre en MAJUSCULES » sous sa forme lisible,
+/// alors que l'ecriture le declare bien en majuscules.
+///
+/// Le matricule d'un salarie neuf que la piece ne donne pas, l'ecriture le pose (le suivant, `ecrire_fiche`) : son
+/// absence n'est pas une anomalie a montrer. Chaque anomalie porte le libelle de sa case (`libelle`), celui que la
+/// fiche montre : la page le dit a l'utilisateur, pas la cle.
+pub(crate) fn verifier_comme_a_l_ecriture(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> {
+    let mut copie = donnees.clone();
+    if nom == "salarie" && copie.get("code_salarie").is_none_or(|v| !vrai(v)) {
+        copie.insert("code_salarie".into(), json!("1"));
+    }
+    deriver(nom, &mut copie, true)?;
+    let mut anomalies = champs::verifier_fiche(nom, &copie)?;
+    avec_libelles(nom, &mut anomalies)?;
+    Ok(anomalies)
+}
+
+/// Pose sur chaque anomalie le libelle de sa case (`libelle`), celui que la fiche montre.
+pub(crate) fn avec_libelles(nom: &str, anomalies: &mut [Value]) -> R<()> {
+    let champs = champs::fiche(nom)?;
+    for a in anomalies.iter_mut() {
+        let cle = a.get("champ").and_then(Value::as_str).unwrap_or("").to_string();
+        // Le code PCS-ESE ne se tape pas : la fiche le remplit du metier choisi (`emplois.rs`).
+        if cle == "pcs_ese" {
+            a["libelle"] = json!("Métier (il donne le code PCS-ESE)");
+        } else if let Some(c) = champs.iter().find(|c| c.cle == cle) {
+            a["libelle"] = json!(c.libelle);
+        }
+    }
+    Ok(())
+}
+
 /// `verifier-fiche` : les anomalies de la fiche telle qu'elle SERAIT derivee, ce qui
 /// serait declare, et ce que le moteur proposerait pour les cases vides.
 fn verifier_fiche(charge: &Value) -> R<Value> {

@@ -107,9 +107,49 @@ const COTISATIONS: [(&str, Base, &str, &str, &str, &str); 13] = [
 /// La part du brut soumise a la CSG (abattement de 1,75 % pour frais professionnels).
 const ASSIETTE_CSG: &str = "0.9825";
 
-/// Les plafonds de la Securite sociale qu'imprime le faux bulletin (mensuel, journalier), par annee ; une autre annee
-/// les recoit de la description (`plafonds`).
-const PLAFONDS: [(i32, i64, i64); 3] = [(2024, 3864, 213), (2025, 3925, 216), (2026, 4005, 220)];
+/// La table des parametres du BOSS deposee : elle porte le PSS de 2021 a 2026 (codes PSS_M_METROP et PSS_H_METROP),
+/// les annees qu'aucun bareme livre n'a (2024).
+fn table_boss() -> std::path::PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../reference/boss-table-parametres-2026.csv")
+}
+
+/// LE PLAFOND DE LA SECURITE SOCIALE D'UNE ANNEE (mensuel, horaire), d'un texte et non de memoire (#236, regle 1) :
+/// le bareme livre du moteur (`logiciel/donnees/baremes/<annee>.json`, `plafond_securite_sociale`, qui cite sa
+/// source), sinon la table des parametres du BOSS deposee (`table_boss`), sinon refus -- l'annee manque, on ne
+/// l'invente pas.
+fn pss(annee: i32) -> Resultat<(Decimal, Decimal)> {
+    let bareme = crate::fichiers::dossier_du_code().join("baremes").join(format!("{}.json", annee));
+    if let Ok(t) = std::fs::read_to_string(&bareme) {
+        let v: Value = serde_json::from_str(&t).map_err(|e| format!("{} illisible ({})", bareme.display(), e))?;
+        let p = &v["plafond_securite_sociale"];
+        if let (Some(m), Some(h)) = (p.get("mensuel"), p.get("horaire")) {
+            return Ok((crate::num::dec(m)?, crate::num::dec(h)?));
+        }
+    }
+    let chemin = table_boss();
+    let octets = std::fs::read(&chemin).map_err(|e| format!("{} : {}", chemin.display(), e))?;
+    let texte = String::from_utf8_lossy(&octets);
+    let valeur = |code: &str| -> Option<Decimal> {
+        texte.lines().find_map(|l| {
+            let c: Vec<&str> = l.split(';').collect();
+            let effet = format!("01/01/{}", annee);
+            (c.len() >= 4 && c[0] == code && c[3].trim() == effet)
+                .then(|| c[2].replace([' ', '\u{a0}'], "").replace(',', ".").parse::<Decimal>().ok())
+                .flatten()
+        })
+    };
+    match (valeur("PSS_M_METROP"), valeur("PSS_H_METROP")) {
+        (Some(m), Some(h)) => Ok((m, h)),
+        _ => Err(format!(
+            "pas de plafond de la Sécurité sociale pour {} : ni bareme livré (logiciel/donnees/baremes/{}.json) ni ligne \
+             PSS_M_METROP/PSS_H_METROP au 01/01/{} dans {} -- déposez le texte qui le donne",
+            annee,
+            annee,
+            annee,
+            chemin.display()
+        )),
+    }
+}
 
 // --------------------------------------------------------------------------------------------- la description lue
 
@@ -284,7 +324,7 @@ struct Calcule {
     annee: Cumuls,
 }
 
-fn calculer(b: &Bulletin, plafonds: &HashMap<i32, (Decimal, Decimal)>, avant: &Cumuls) -> Resultat<Calcule> {
+fn calculer(b: &Bulletin, avant: &Cumuls) -> Resultat<Calcule> {
     let brut: Decimal = b.lignes.iter().map(|l| l.montant).sum();
     let jours_travailles: BTreeSet<Jour> = b
         .dates
@@ -292,16 +332,18 @@ fn calculer(b: &Bulletin, plafonds: &HashMap<i32, (Decimal, Decimal)>, avant: &C
         .flat_map(|(d, f)| (0..=f.moins(d)).filter_map(move |k| d.plus_jours(k).ok()))
         .collect();
     let jours = Decimal::from(jours_travailles.len());
-    let (mensuel, journalier) = plafonds
-        .get(&b.fin.an)
-        .copied()
-        .ok_or_else(|| format!("bulletin {} : pas de plafond pour {} (donnez `plafonds` dans la description)", b.rang, b.fin.an))?;
+    // LE « PLAFOND URSSAF » IMPRIME, PAR LA REGLE DU MOTEUR (`plafond.rs`, qui cite ses textes) et le PSS d'un texte
+    // (`pss`) : le prorata calendaire pour un permanent, les journees de l'artiste engage moins de cinq jours, le
+    // prorata des jours remuneres pour les autres intermittents.
+    let t = |j: &Jour| (j.an, j.mois, j.jour);
+    let resoudre = |annee: i32| pss(annee);
     let plafond = if b.permanent {
-        let calendaires = Decimal::from(b.fin.moins(&b.debut) + 1);
-        eur2((mensuel * calendaires / Decimal::from(b.fin.jours_du_mois())).min(mensuel))
+        crate::plafond::plafond_permanent(t(&b.debut), t(&b.fin), None, &resoudre)
     } else {
-        eur2(journalier * jours)
-    };
+        let dates: Vec<_> = jours_travailles.iter().map(t).collect();
+        crate::plafond::plafond_urssaf(t(&b.debut), t(&b.fin), jetons(&b.statut).concat() == "artiste", &resoudre, &dates)
+    }
+    .map_err(|m| format!("bulletin {} : {}", b.rang, m))?;
     let assiette_csg = eur2(brut * ASSIETTE_CSG.parse::<Decimal>().unwrap_or_default());
     let mut cotisations = Vec::new();
     let (mut total_e, mut total_s, mut csg_non_deductible) = (Decimal::ZERO, Decimal::ZERO, Decimal::ZERO);
@@ -370,7 +412,6 @@ struct Description {
     entreprise: Value,
     salaries: Vec<Salarie>,
     bulletins: Vec<Bulletin>,
-    plafonds: HashMap<i32, (Decimal, Decimal)>,
 }
 
 fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -> Resultat<Description> {
@@ -515,14 +556,10 @@ fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -
         });
     }
 
-    let mut plafonds: HashMap<i32, (Decimal, Decimal)> = PLAFONDS.iter().map(|(a, m, j)| (*a, (Decimal::from(*m), Decimal::from(*j)))).collect();
-    if let Some(p) = d.get("plafonds").and_then(Value::as_object) {
-        for (an, v) in p {
-            let a: i32 = an.parse().map_err(|_| format!("plafonds : {} n'est pas une année", an))?;
-            plafonds.insert(a, (nombre(v, "mensuel", "plafonds")?, nombre(v, "journalier", "plafonds")?));
-        }
+    if d.get("plafonds").is_some() {
+        return Err("`plafonds` ne se donne plus : le plafond de la Sécurité sociale se lit dans le barème livré ou la table du BOSS déposée".into());
     }
-    Ok(Description { gabarit, entreprise: e, salaries, bulletins, plafonds })
+    Ok(Description { gabarit, entreprise: e, salaries, bulletins })
 }
 
 // --------------------------------------------------------------------------------------------- les pages
@@ -750,7 +787,7 @@ pub fn fabriquer(d: &Value, gabarit: Option<&str>, dossier: &Path) -> Resultat<V
         let b = &desc.bulletins[k];
         let cle = (b.salarie, b.fin.an);
         let avant = cumuls.get(&cle).cloned().unwrap_or_default();
-        let c = calculer(b, &desc.plafonds, &avant)?;
+        let c = calculer(b, &avant)?;
         cumuls.insert(cle, c.annee.clone());
         let n = numeros.entry(b.fin.an).or_insert(0);
         *n += 1;
@@ -881,6 +918,36 @@ mod tests {
             assert_eq!(brut, Some(Decimal::new(43800 + 27000, 2)));
             let _ = std::fs::remove_dir_all(&d);
         }
+    }
+
+    /// LE PLAFOND IMPRIME VIENT D'UN TEXTE (#236, regle 1) : un mois entier d'un permanent porte le PSS mensuel de son
+    /// annee -- 2025 du bareme livre (3 925), 2024 de la table du BOSS deposee (3 864, ligne PSS_M_METROP au
+    /// 01/01/2024 de `atelier/reference/boss-table-parametres-2026.csv`). Une annee qu'aucun texte depose ne porte
+    /// (2019) se refuse, et rien n'est ecrit ; `plafonds` ne se donne plus a la main.
+    #[test]
+    fn le_plafond_imprime_vient_du_bareme_ou_de_la_table_du_boss() {
+        let permanent = |an: i32| {
+            let mut desc = description();
+            let mut b = desc["bulletins"][1].clone();
+            b["debut"] = json!(format!("{}-03-01", an));
+            b["fin"] = json!(format!("{}-03-31", an));
+            desc["bulletins"] = json!([b]);
+            desc
+        };
+        for (an, pss) in [(2025, 3925), (2024, 3864)] {
+            let d = dossier(&format!("plafond-{}", an));
+            fabriquer(&permanent(an), Some("coolpaie"), &d).unwrap();
+            let lu = lire_tout(&d).remove(0);
+            let plafond = lu.cumuls.iter().find(|(n, _)| n == "plafond").map(|(_, c)| c.periode).unwrap();
+            assert_eq!(plafond, Some(Decimal::from(pss)), "{}", an);
+            let _ = std::fs::remove_dir_all(&d);
+        }
+        let d = dossier("plafond-2019");
+        assert!(fabriquer(&permanent(2019), Some("coolpaie"), &d).is_err());
+        assert!(!d.exists());
+        let mut desc = permanent(2025);
+        desc["plafonds"] = json!({"2025": {"mensuel": 1, "journalier": 1}});
+        assert!(fabriquer(&desc, Some("coolpaie"), &d).is_err());
     }
 
     /// Ce que l'import ne reprendrait pas entier se refuse, et rien n'est ecrit.

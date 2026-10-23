@@ -26,7 +26,7 @@ use crate::retours::Echec;
 use crate::routes_etats::{coffre_etat_de, version};
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 12] = [
+pub const ROUTES: [&str; 13] = [
     "coffre-poser",
     "coffre-compte-dpae",
     "coffre-oublier",
@@ -37,6 +37,8 @@ pub const ROUTES: [&str; 12] = [
     "cloture",
     "export-compta",
     "importer",
+    // La nature des contrats repris qu'aucun bulletin ne dit (#236, `importation_nature`).
+    crate::importation_nature::ROUTE,
     // L'administrateur (ticket #244) : le tableau de ses compagnies et le depot groupe (`administrateur.rs`).
     crate::administrateur::ROUTES[0],
     crate::administrateur::ROUTES[1],
@@ -55,6 +57,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "cloture" => crate::exercice_ecrit::cloture_route(ctx, charge),
         "export-compta" => crate::exercice_ecrit::export_compta_route(ctx, charge),
         "importer" => crate::importation_ecrite::importer(ctx, charge),
+        crate::importation_nature::ROUTE => crate::importation_nature::dire(ctx, charge),
         r if crate::administrateur::ROUTES.contains(&r) => crate::administrateur::route(o, ctx, r, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
