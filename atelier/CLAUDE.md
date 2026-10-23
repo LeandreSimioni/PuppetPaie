@@ -111,8 +111,10 @@ montre que celui qui a lieu.
   suivante », « le refus est propre » ne sont pas des raisons de livrer. On ne bâcle pas pour publier plus tôt.
 - **Plusieurs Opus à la fois, quatre au plus, et deux Sonnet au plus** (Léandre, 15/10/2026 ; la limite est le disque du
   conteneur : une cible Cargo pèse 2 à 6 Go) : des lots disjoints, chacun dans son worktree et sa cible Cargo
-  (`CARGO_TARGET_DIR` seul, un seul profil) ; une passation vérifiée à la fois ; **la cible et le worktree d'un lot fusionné
-  s'effacent aussitôt**.
+  (`CARGO_TARGET_DIR` seul, un seul profil) ; une passation vérifiée à la fois ; le worktree d'un lot fusionné s'efface
+  aussitôt. **La cible, c'est l'orchestrateur qui la choisit** (Léandre, 23/10/2026) : des lots qui se suivent un par un
+  partagent une même cible, gardée d'un lot à l'autre (on ne recompile que ce qui a changé) ; des lots en parallèle ont
+  chacun la sienne, effacée à la fusion du lot. Sa consigne nomme la cible ; l'exécutant n'en crée pas d'autre.
 - Ne se délègue pas : une décision de conception, un acte qui engage (dépôt réel, envoi, signature), tout ce qui toucherait au
   coffre. Un Opus **ne réécrit jamais l'historique** (`--amend`, `rebase`, `reset`) et **ne laisse aucune tâche de fond**.
 - **Aucun repli Python** : ce qui s'écrit s'écrit en Rust, dans `paie/` ; ce qui ne se porte pas proprement remonte à Léandre.
