@@ -127,7 +127,13 @@ pub(crate) fn verifier_preuve(ctx: &Contexte, preuve: Option<&Preuve>, mois_atte
 }
 
 #[cfg(feature = "atelier")]
-fn refus_atelier(_ctx: &Contexte, _preuve: Option<&Preuve>, _mois_attendu: &str, _quoi: &str, _a_qui: &str) -> R<String> {
+fn refus_atelier(ctx: &Contexte, _preuve: Option<&Preuve>, _mois_attendu: &str, _quoi: &str, _a_qui: &str) -> R<String> {
+    // UNE COMPAGNIE FICTIVE AUX ENVOIS SIMULES : son « acte reel » est joue (`FICTIF-…`), rien ne part -- comme dans le
+    // binaire livre (`verifier_preuve_du_logiciel`). Le banc d'essai (#236) en vit : l'horloge y depose la DSN et la DPAE
+    // « en reel ». Toute autre compagnie : refuse, mot de passe ou non (la commande `signatures` fait de meme).
+    if crate::routes_accueil::simulation_active(&ctx.racine) {
+        return Ok("fictive".into());
+    }
     Err(erreur("ActeReelRefuse", crate::atelier::REFUS_ACTE_REEL.to_string()))
 }
 
@@ -356,7 +362,9 @@ fn noter(
     detail: &Value,
 ) -> R<Value> {
     let fichier = fichier.to_string_lossy().into_owned();
-    let trace = trace.map(|t| t.to_string_lossy().into_owned());
+    // LA TRACE, RELATIVE A LA COMPAGNIE (#236 : une compagnie change de dossier -- gardee de `fictives/` a `compagnies/`
+    // --, et un chemin absolu ne mene plus nulle part) ; `journal::trace_de` la relit, et lit tel quel un absolu d'avant.
+    let trace = trace.map(|t| t.strip_prefix(&ctx.racine).unwrap_or(t).to_string_lossy().replace('\\', "/"));
     let n = crate::journal::Note {
         quoi,
         mois: Some(mois),
@@ -385,7 +393,7 @@ pub(crate) const ANCIEN_PREFIXE_FLUX_FICTIF: &str = "DEMO-";
 /// `simulation.reponse_depot` : ce que le point de depot aurait repondu -- un flux, et la mention.
 fn reponse_fictive(quoi: &str, reel: bool) -> R<String> {
     let mut o = [0u8; 6];
-    getrandom::fill(&mut o).map_err(|e| erreur("OSError", format!("pas d'alea du systeme : {}", e)))?;
+    crate::temps::aleas(&mut o).map_err(|e| erreur("OSError", format!("pas d'alea du systeme : {}", e)))?;
     let flux = format!("{}{}", PREFIXE_FLUX_FICTIF, o.iter().map(|b| format!("{:02X}", b)).collect::<String>());
     Ok(format!(
         "<idflux>{}</idflux>\nCompagnie fictive : {} {} jouee, rien n'a quitte le poste.",

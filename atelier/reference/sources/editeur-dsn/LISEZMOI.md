@@ -54,6 +54,15 @@ d'envoyer le logiciel aux compagnies amies.** Prérequis : la régularisation
 après échéance (`journal/REGULARISATION-APRES-ECHEANCE.md`), et une page
 « ce que le logiciel ne couvre pas » lisible par une entreprise.
 
+**Décision de Léandre, 23/10/2026 : signer fin octobre ou début novembre 2026**, et non plus en décembre. Les prérequis
+sont devenus des tickets du privé : #250 (régularisation sur exercice antérieur), #251 (export « changer de logiciel »),
+#252 (la page « ce que le logiciel ne couvre pas »). La charte, relue le 23/10/2026, est inchangée (même SHA-256).
+
+**L'éditeur, c'est Léandre, développeur indépendant** (Léandre, 23/10/2026 : « c'est moi qui signe en tant que dev
+indépendant ; c'est le futur de notre logiciel, libre, on peut vérifier le code, open source »). PuppetPaie est un
+logiciel libre (EUPL 1.2, `LICENCE` à la racine du dépôt public), son code est public. Le bloc de signature de la charte
+(p. 6) ne demande que « Nom de l'éditeur » et « Qualité du signataire » : aucun SIRET n'y est exigé.
+
 ## Ce que dit le guide Urssaf sur la régularisation (lu le 17/09/2026)
 
 Chapitres 3 (régularisation), 5 (néant), 6 (paiement), 7 (entité

@@ -1,0 +1,129 @@
+# Audiens, « Paramétrage DSN Congés Spectacles — Fiche de spécificités » (PDF de 2 pages, créé le 16/02/2023)
+
+Relevé le 23/10/2026 : https://www.audiens.org/files/live/sites/siteAudiens/files/03_documents/entreprise/DSN/DSN-Fiche-specificites-Conges-spectacles.pdf
+Original (organisme privé) : dépôt privé, `reference-privee/sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.pdf` (SHA-256 `98df807c389e147b0a3d829a7c87cb68801be7d56805314aaed99a9f9949d712`).
+Transcription par `pdftotext -layout`, telle quelle.
+
+```
+                                                         PARAMÉTRAGE DSN CONGÉS SPECTACLES                                                                                                               L’utilisation de valeurs différentes de celles
+                                                                                                                                                                                                          présentes dans le tableau peut entraîner
+                                                                                          Fiche de spécificités                                                                                             une mauvaise détermination du statut
+                                                                                                                                                                                                         des salariés, ce qui peut générer des erreurs
+                                                                                                                                                                                                                   de cotisations et de droits.
+
+
+
+                                                                                                                                                                                                                   Salarié étranger détenteur
+                                                                                       CADRE                         NON CADRE                         ARTISTE                         ARTISTE                    du formulaire A1 ou relevant
+    BLOC           RUBRIQUE                          LIBELLÉ
+                                                                                    INTERMITTENT                    INTERMITTENT                    INTERMITTENT                      DE CORRIDA                   d’un pays ayant un accord
+                                                                                                                                                                                                                         avec la France
+
+                 S21.G00.20.001   Identifiant Organisme de Protection Sociale                                                        77567608300030 (siret Audiens CONGÉS SPECTACLES)
+
+                 S21.G00.20.002   Entité d’affectation                                                                                       PSEUDO-SIRET FILM attribué par l’Urssaf
+
+                                                                                                  Il s’agit des coordonnées bancaires au format BIC du compte sur lequel doit être prélevé le montant de l’ordre de règlement.
+                 S21.G00.20.003   BIC
+                                                                                                                                         Cette rubrique s’appuie sur la norme ISO 9362.
+
+                                                                                                 Il s’agit des coordonnées bancaires au format IBAN du compte sur lequel doit être prélevé le montant de l’ordre de règlement.
+                 S21.G00.20.004   IBAN
+                                                                                                                                     Cette rubrique s’appuie sur la norme ISO 13616:2007.
+Bloc Versement
+organisme        S21.G00.20.005   Montant du versement                                                        Montant du versement correspondant au montant des cotisations CONGÉS SPECTACLES réglées.
+de protection
+sociale                           Date de début de période                                                    Début de la période au titre de laquelle ont été établies les cotisations dont l’établissement s’acquitte.
+                 S21.G00.20.006   de rattachement                                                              Cette période peut être définie selon les règles applicables aux différents dispositifs de cotisation.
+CONGÉS
+SPECTACLES                        Date de fin de période                                                       Fin de la période au titre de laquelle ont été établies les cotisations dont l’établissement s’acquitte.
+                 S21.G00.20.007   de rattachement                                                              Cette période peut être définie selon les règles applicables aux différents dispositifs de cotisation.
+
+                 S21.G00.20.008   Code délégataire de gestion                                                                                              Non concerné
+
+                 S21.G00.20.010   Mode de paiement                                                                                                    05 - prélèvement SEPA
+
+                 S21.G00.20.011   Date de paiement                                                                                                         Non concerné
+
+                 S21.G00.20.012   SIRET payeur                                          SIRET de l’établissement payeur. Permet d’identifier le cas où un établissement délègue le paiement de ses cotisations à un autre établissement
+
+                                  Code statut catégoriel Retraite                                                                                                                                                          99 - pas de retraite
+                 S21.G00.40.003   Complémentaire obligatoire
+                                                                                        01 - cadre                    04 - non cadre                  04 - non cadre                    04 - non cadre
+                                                                                                                                                                                                                            complémentaire
+                                                                                 353b ou 353c ou 354b                                             354b ou 354c ou 354e
+                                                                                                                 354f ou 465b ou 637c                                                      354f                     À compléter selon la situation
+                 S21.G00.40.004   Code PCS-ESE                                     ou 354c ou 354e
+                                                                                                                     9999 interdit
+                                                                                                                                                        ou 354f
+                                                                                                                                                                                        9999 interdit                      9999 interdit
+                                                                                     9999 interdit                                                    9999 interdit
+
+                                                                                    Code correspondant             Code correspondant               Code correspondant          51 ou Code correspondant
+                                                                                    de la nomenclature             de la nomenclature               de la nomenclature              de la nomenclature
+                                                                                 des emplois du spectacle       des emplois du spectacle         des emplois du spectacle        des emplois du spectacle                     À compléter
+                 S21.G00.40.005   Code complément PCS-ESE                       vivant relevant de l’annexe    vivant relevant de l’annexe      vivant relevant de l’annexe     vivant relevant de l’annexe                 selon la situation
+                                                                                 8 ou 10 de la convention           8 de la convention              10 de la convention             10 de la convention                       9999 interdit
+                                                                                   d’assurance chômage            d’assurance chômage              d’assurance chômage             d’assurance chômage
+Bloc Contrat                                                                          999SPT interdit                999SPT interdit                  999SPT interdit                 999SPT interdit
+
+                 S21.G00.40.007   Nature du contrat                                                                                                          02 - CDD
+
+                 S21.G00.40.011   Unité de mesure                                                                                              Selon les termes du contrat de travail
+
+                 S21.G00.40.017   Code convention collective applicable                                                     Indiquer le code IDCC de la convention collective appliquée ou applicable
+
+                 S21.G00.40.019   Identifiant du lieu de travail                                       PSEUDO-SIRET FILM attribué par l’Urssaf
+
+                 S21.G00.40.021   Motif de recours                                                                                                      05 - Contrat d'usage
+
+                                                                                                                       97 puis le numéro d’adhérent à la caisse Congés spectacles (10 chiffres + 1 lettre).
+                 S21.G00.40.022   Code caisse professionnelle de congés payés                                        Ces 2 identifiants doivent être accolés, sans espaces, ni tiret, etc… EX : 970000000001A
+                                                                  PARAMÉTRAGE DSN CONGÉS SPECTACLES                                                                                                           L’utilisation de valeurs différentes de celles
+                                                                                                                                                                                                               présentes dans le tableau peut entraîner
+                                                                                                   Fiche de spécificités                                                                                         une mauvaise détermination du statut
+                                                                                                                                                                                                              des salariés, ce qui peut générer des erreurs
+                                                                                                                                                                                                                        de cotisations et de droits.
+
+
+
+                                                                                                                                                                                                                        Salarié étranger détenteur
+                                                                                                 CADRE                     NON CADRE                         ARTISTE                         ARTISTE                   du formulaire A1 ou relevant
+               BLOC            RUBRIQUE                         LIBELLÉ
+                                                                                              INTERMITTENT                INTERMITTENT                    INTERMITTENT                      DE CORRIDA                  d’un pays ayant un accord
+                                                                                                                                                                                                                              avec la France
+
+                             S21.G00.53.001   Type                                                                                                           01 - travail rémunéré
+
+          Bloc Activité      S21.G00.53.002   Mesure                                                                                                 Volume d’activité par unité de mesure
+
+                                                                                                              Pour les emplois artistes, renseigner à la fois l’unité de mesure en jours (code 12) et en cachets (code 36 et/ou 37).
+                             S21.G00.53.003   Unité de mesure
+                                                                                                                                   Pour les autres emplois, renseigner l’unité de mesure en jours (code 12).
+
+          Bloc Retraite
+                             S21.G00.71 002   Code régime Retraite complémentaire                                                                                    RUAA
+          complémentaire
+
+                             S21.G00.78.001   Code Base assujettie CONGÉS SPECTACLES                                               27 (assiette utilisée pour le calcul de la cotisation des Congés spectacles)
+
+                             S21.G00.78.002   Date de début de période de rattachement                                   En cas de multi contrats de travail dans un même mois, date de début du contrat de travail
+
+          Bloc Base          S21.G00.78.003   Date de fin de période de rattachement                                       En cas de multi contrats de travail dans un même mois, date de fin du contrat de travail
+          assujettie
+                             S21.G00.78.004   Montant                                                                                         Montant de la base de cotisation Congés spectacles
+
+                                                                                                         À renseigner du «n° de contrat - S21.G00.40.009». Dans le cas de la déclaration de plusieurs blocs «Contrat - S21.G00.40»
+                             S21.G00.78.006   Numéro de contrat
+                                                                                                                                        impliquant un découpage des règles de calcul des cotisations.
+
+          Bloc Cotisations   S21.G00.81.001   Code de cotisation CONGÉS SPECTACLES                                                               066 - Cotisation caisse de Congés spectacles
+          individuelles      S21.G00.81.004   Montant de cotisation CONGÉS SPECTACLES                                                       Montant de la cotisation individuelle Congés spectacles
+09/2022
+
+
+
+
+                                    Audiens, Institution de prévoyance autorisée sous le numéro 983 par arrêté ministériel du 15 novembre 1991, régie par les dispositions du Livre IX Code de la Sécurité sociale.
+                                                                                             74 rue Jean Bleuzen • 92170 Vanves • www.audiens.org
+```

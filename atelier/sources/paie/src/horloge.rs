@@ -252,11 +252,46 @@ fn deposer_dpae_joue(d: &HorlogeFictive, o: &HashMap<String, String>, ctx: &Cont
     Ok(())
 }
 
-/// `simulation.rattacher(ctx, delai=0)` : les retours des depots joues arrivent tout de suite.
-fn rattacher(d: &HorlogeFictive, ctx: &Contexte) -> R<()> {
+/// LES DSN DU MOIS QUI NE SONT PAS PARTIES et que `garder` retient (sur ce que le fichier declare), deposees chacune en
+/// test puis en reel -- le bilan du test lu avant le reel (tickets #221, #222 : `depot_acte::exiger_repetition`) --, dans
+/// l'ordre de `routes_mois::ordre_de_depot`. Rend vrai si l'une est partie ; `a_faire` recoit ce que le rangement des AER
+/// jouees laisse a faire (`rattacher`).
+fn deposer_les_dsn(
+    d: &HorlogeFictive,
+    o: &HashMap<String, String>,
+    ctx: &Contexte,
+    mois: &str,
+    garder: impl Fn(&crate::depot::Apercu) -> bool,
+    a_faire: &mut Vec<String>,
+) -> R<bool> {
+    let f = Moteur::nouveau(o, ctx).fichiers_deposables(mois)?;
+    let chemins: Vec<String> = f["dsn"].as_array().map(|l| l.iter().map(|x| py_str(&x["chemin"])).collect()).unwrap_or_default();
+    let parties: BTreeSet<String> = etats::charger(&ctx.racine)?
+        .iter()
+        .filter(|l| l.get("quoi").and_then(Value::as_str) == Some("dsn") && l.get("mode").and_then(Value::as_str) == Some("reel"))
+        .filter(|l| l.get("accepte").is_some_and(vrai))
+        .filter_map(|l| l.get("fichier").and_then(Value::as_str).map(String::from))
+        .collect();
+    let mut fait = false;
+    for chemin in chemins {
+        let nom = Path::new(&chemin).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        if parties.contains(&nom) || !std::fs::read(&chemin).is_ok_and(|o| garder(&crate::depot::lire(&o))) {
+            continue;
+        }
+        for reel in [false, true] {
+            deposer_dsn_joue(d, o, ctx, &chemin, reel)?;
+            a_faire.extend(rattacher(d, ctx)?);
+        }
+        fait = true;
+    }
+    Ok(fait)
+}
+
+/// `simulation.rattacher(ctx, delai=0)` : les retours des depots joues arrivent tout de suite. Rend ce que le rangement
+/// des AER jouees laisse a faire (`releve_retours::rattacher_simulation_detail`), comme les autres chemins de la releve.
+fn rattacher(d: &HorlogeFictive, ctx: &Contexte) -> R<Vec<String>> {
     d.reverifier()?;
-    crate::releve_retours::rattacher_simulation(ctx, 0)?;
-    Ok(())
+    Ok(crate::releve_retours::rattacher_simulation_detail(ctx, 0)?.1)
 }
 
 // ------------------------------------------------------------------ dernier_rattrapage
@@ -383,13 +418,14 @@ fn le_premier_du_mois(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &st
     // suivent sont alors les bons.
     let mut reecrit = false;
     let faits = pas(d, &format!("{} écrit — contrats, bulletins, DSN", crate::routes_envois::capitaliser(&mois_fr(mois))), &quand, |ctx| {
-        let connus = crate::routes_accueil::mois_connus(&ctx.racine);
         let saisie = ctx.racine.join("paies").join(format!("{}.json", mois));
-        let Some((_, fichiers)) = connus.iter().find(|(m, _)| m == mois) else { return Ok(false) };
         if !saisie.exists() {
             return Ok(false);
         }
-        if !fichiers.is_empty() {
+        // ECRIT, C'EST CE QUE LE MOTEUR A CONSIGNE (#236) : la DSN du mois notee au journal des ecritures
+        // (`produire_mois::mois_ecrit`). Une DPAE ou un contrat dans `sorties/<mois>/` ne l'ecrivent pas : le mois d'une
+        // compagnie ajoutee, ses DPAE envoyees, ne s'ecrivait jamais.
+        if crate::produire_mois::mois_ecrit(&ctx.racine, mois) {
             // Le mois est deja ecrit : sa DSN partie, ou une saisie inchangee, le laissent tel quel.
             if dsn_partie(o, ctx, mois)? {
                 return Ok(false);
@@ -438,8 +474,14 @@ fn le_premier_du_mois(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &st
             let fichier = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
             for reel in [false, true] {
                 deposer_dpae_joue(d, o, ctx, &fichier, reel)?;
+                // LE BILAN DU TEST AVANT LE REEL (tickets #221, #222, `depot_acte::exiger_repetition`) ; puis celui du reel.
+                rattacher(d, ctx)?;
             }
-            rattacher(d, ctx)?;
+            // LE SIGNALEMENT D'AMORCAGE (nature 08, motif 01 « embauche effective ») part AVEC LA DPAE, dans le meme
+            // geste (atelier/README.md, « Demander un taux » ; `routes_actes_h1::dpae` produit les deux) : pas a
+            // l'echeance de la DSN.
+            // Un signalement ne recoit pas d'AER : son rangement n'a rien a dire.
+            deposer_les_dsn(d, o, ctx, mois, |a| a.champ("nature") == "08", &mut Vec::new())?;
             Ok(true)
         });
         fait.extend(faits);
@@ -485,23 +527,28 @@ fn a_l_echeance(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, ech
     let mut fait = Vec::new();
     let jour = echeance.iso();
 
+    let mut a_faire: Vec<String> = Vec::new();
     fait.extend(pas(d, &format!("DSN de {} déposée", mois_fr(mois)), &format!("{}T10:00:00", jour), |ctx| {
         if dsn_partie(o, ctx, mois)? {
             return Ok(false);
         }
-        let f = Moteur::nouveau(o, ctx).fichiers_deposables(mois)?;
-        let Some(chemin) = f["dsn"].as_array().and_then(|l| l.first()).map(|x| py_str(&x["chemin"])) else { return Ok(false) };
-        for reel in [false, true] {
-            deposer_dsn_joue(d, o, ctx, &chemin, reel)?;
-        }
-        rattacher(d, ctx)?;
-        Ok(true)
+        // TOUTES LES DSN DU MOIS QUI NE SONT PAS PARTIES (#236, trouve au banc d'essai), dans l'ordre de
+        // `routes_mois::ordre_de_depot` : la mensuelle, puis les signalements. L'horloge ne prenait que la plus recente --
+        // un signalement d'amorcage, ecrit apres la mensuelle -- et la mensuelle ne partait jamais.
+        deposer_les_dsn(d, o, ctx, mois, |_| true, &mut a_faire)
     }));
+    // Ce que le rangement de l'AER jouee laisse a faire se dit, a la date du depot, comme le dit la releve.
+    fait.extend(a_faire.into_iter().map(|p| format!("Le {} : {}", le(&format!("{}T10:00:00", jour)), p)));
 
     fait.extend(pas(d, &format!("documents de {} envoyés aux salariés", mois_fr(mois)), &format!("{}T11:00:00", jour), |ctx| {
         let lignes = Moteur::nouveau(o, ctx).lignes()?;
         let envoyes = etats::documents_envoyes(&lignes, mois)?;
         if envoyes.as_array().is_some_and(|a| !a.is_empty()) {
+            return Ok(false);
+        }
+        // LES DOCUMENTS D'UN MOIS QUI N'EST PAS PARTI ne partent pas (#236, trouve sur la demo Les Faisceaux : un mois que
+        // l'horloge n'avait pas pu ecrire voyait « ses documents envoyes ») : ils suivent sa DSN, jamais avant.
+        if !dsn_partie(o, ctx, mois)? {
             return Ok(false);
         }
         // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
@@ -517,26 +564,6 @@ fn a_l_echeance(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, ech
 }
 
 // ------------------------------------------------------------------ l'annee
-
-/// `_export_compta_a_jour` : l'export existe et il est plus recent que la derniere saisie de l'annee. Un export fait en
-/// septembre ne dit rien d'octobre : en janvier, on le redemande.
-fn export_compta_a_jour(ctx: &Contexte, annee: i32) -> bool {
-    let p = ctx.racine.join("sorties").join("exercices").join(format!("Compta_{}.csv", annee));
-    let Ok(export) = std::fs::metadata(&p) else { return false };
-    let prefixe = format!("{}-", annee);
-    let derniere = std::fs::read_dir(ctx.racine.join("paies"))
-        .map(|rd| {
-            rd.flatten()
-                .filter(|e| {
-                    let nom = e.file_name().to_string_lossy().into_owned();
-                    nom.starts_with(&prefixe) && nom.ends_with(".json")
-                })
-                .filter_map(|e| std::fs::metadata(e.path()).ok().map(|m| crate::paris::mtime(&m)))
-                .fold(0.0_f64, f64::max)
-        })
-        .unwrap_or(0.0);
-    crate::paris::mtime(&export) >= derniere
-}
 
 /// `_l_annee` : fin janvier, l'annee precedente se clot et s'exporte ; les echeances qu'on coche se cochent a la fin de
 /// leur fenetre (la revue des spectacles comprise : tous continuent).
@@ -562,7 +589,7 @@ fn l_annee(d: &HorlogeFictive, o: &HashMap<String, String>, annee: i32, jour: Jo
             Ok(true)
         }));
         fait.extend(pas(d, &format!("exercice {} exporté pour la comptabilité", precedente), &format!("{}T11:00:00", fin_janvier.iso()), |ctx| {
-            if !Moteur::nouveau(o, ctx).exercice_clos(&precedente.to_string())? || export_compta_a_jour(ctx, precedente) {
+            if !Moteur::nouveau(o, ctx).exercice_clos(&precedente.to_string())? || crate::exercice_ecrit::export_compta_a_jour(&ctx.racine, &precedente.to_string()) {
                 return Ok(false);
             }
             crate::exercice_ecrit::export_compta_route(ctx, &json!({"annee": precedente.to_string()}))?;
@@ -588,6 +615,11 @@ fn l_annee(d: &HorlogeFictive, o: &HashMap<String, String>, annee: i32, jour: Jo
             .and_then(|v| v.get("fait").and_then(Value::as_object).cloned())
             .unwrap_or_default();
         if jour < fin || deja.contains_key(&cle) {
+            continue;
+        }
+        // UNE ECHEANCE D'AVANT LA COMPAGNIE ne la regarde pas (#236, trouve au banc : une compagnie ajoutee en novembre
+        // cochait « Les spectacles de 2026 » au 31/03/2026) : le jour ou elle a ete ajoutee (`compagnies::cree_le`).
+        if crate::interface::compagnies::cree_le(racine).is_some_and(|c| fin < c) {
             continue;
         }
         let titre = py_str(&e["titre"])
@@ -812,6 +844,26 @@ mod tests {
         crate::routes_ecrites::marquer_echeance(&ctx, "at-mp:2026", true, "interface").unwrap();
         let e: Value = serde_json::from_str(&std::fs::read_to_string(r.join("config").join("echeancier.json")).unwrap()).unwrap();
         assert_eq!(e["fait"]["at-mp:2026"]["le"], "2026-10-07");
+    }
+
+    /// #236 : une echeance dont la fenetre s'est fermee AVANT que la compagnie soit ajoutee (`config/creation.json`) ne se
+    /// coche pas ; ajoutee avant, elle se coche. Sans date d'ajout (une fictive livree), rien ne change.
+    #[test]
+    fn une_echeance_d_avant_l_ajout_de_la_compagnie_ne_se_coche_pas() {
+        let cochees = |cree: Option<&str>| {
+            let r = racine_d_essai(true);
+            std::fs::write(r.join("config/entreprise.json"), r#"{"idcc": "3090"}"#).unwrap();
+            if let Some(c) = cree {
+                std::fs::write(r.join("config").join(crate::interface::compagnies::FICHIER_CREATION), format!(r#"{{"le": "{}"}}"#, c)).unwrap();
+            }
+            let d = HorlogeFictive::verifier(&r).unwrap().au_jour(jour("2027-01-05"));
+            l_annee(&d, &options(&r), 2026, jour("2027-01-05")).unwrap().into_iter().filter(|p| p.contains("coché")).count()
+        };
+        let toutes = cochees(None);
+        assert!(toutes > 0, "une fictive livree coche les echeances de son annee");
+        assert_eq!(cochees(Some("2026-01-01")), toutes);
+        assert!(cochees(Some("2026-11-02")) < toutes, "ajoutee en novembre, elle ne coche pas ce qui fermait avant");
+        assert_eq!(cochees(Some("2027-01-01")), 0, "ajoutee apres l'annee, rien de 2026 ne la regarde");
     }
 
     // ---------------------------------------------------------------- la boite muette

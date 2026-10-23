@@ -165,10 +165,9 @@ fn etat_exercices(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         }
         let export_json = match &export {
             Some(p) => {
-                let st = std::fs::metadata(p).map_err(|e| erreur_io(&e, p))?;
                 json!({
                     "fichier": p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
-                    "ecrit": crate::paris::iso_minutes(crate::paris::mtime(&st)),
+                    "ecrit": crate::produire_mois::ecrit_le(&ctx.racine, p),
                 })
             }
             None => Value::Null,
@@ -573,7 +572,7 @@ pub(crate) fn version(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     let attend: Vec<Value> = match &prete {
         _ if crate::interface::compagnies::est_copie(&ctx.racine) => Vec::new(),
         Some(pr) if vrai(get(pr, "malgre_calcul")?) => Vec::new(),
-        Some(pr) if vrai(get(pr, "calcul")?) => mois_saisis_non_deposes(o, ctx)?,
+        Some(pr) if vrai(get(pr, "calcul")?) => crate::maj::mois_qui_retiennent_la_compagnie(o, ctx)?,
         _ => Vec::new(),
     };
     let avant = if code.join(".avant").join("donnees").is_dir() { json!(courante(&code.join(".avant"))?) } else { Value::Null };

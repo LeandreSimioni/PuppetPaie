@@ -15,6 +15,7 @@ mod bloc_41;
 mod bloc_44;
 mod changements_individu;
 mod composants_versement;
+mod contact_declare;
 mod cpf_cdd;
 mod fictives;
 mod dfs_dsn;

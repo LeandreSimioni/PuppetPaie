@@ -156,15 +156,6 @@ fn entrees(dossier: &Path) -> Vec<(String, PathBuf)> {
     v
 }
 
-fn mtime(p: &Path) -> f64 {
-    use std::time::UNIX_EPOCH;
-    std::fs::metadata(p)
-        .and_then(|m| m.modified())
-        .ok()
-        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
-        .map_or(0.0, |d| d.as_secs() as f64 + f64::from(d.subsec_nanos()) * 1e-9)
-}
-
 fn mois_precedent(mois: &str) -> String {
     let (an, mo): (i32, u32) = (mois[..4].parse().unwrap_or(0), mois[5..7].parse().unwrap_or(1));
     if mo == 1 {
@@ -392,7 +383,7 @@ fn lister(st: &Etat) -> R<Vec<Rappel>> {
             );
             out.push(r);
         }
-        if !export_compta_a_jour(st.ctx, &precedent.to_string()) {
+        if !crate::exercice_ecrit::export_compta_a_jour(&st.ctx.racine, &precedent.to_string()) {
             let mut r = Rappel::nouveau(
                 EXPORT_COMPTA,
                 format!("export-compta:{}", precedent),
@@ -468,25 +459,6 @@ pub(crate) fn mois_de_l_annee(ctx: &Contexte, annee: &str) -> Vec<String> {
     let mut v: Vec<String> = mois_connus(ctx).into_iter().map(|m| m.0).filter(|m| m.starts_with(annee)).collect();
     v.sort();
     v
-}
-
-/// `_export_compta_a_jour` : l'export existe et il est plus recent que la
-/// derniere saisie de l'annee. Un export fait en septembre ne dit rien
-/// d'octobre : en janvier, on le redemande.
-fn export_compta_a_jour(ctx: &Contexte, annee: &str) -> bool {
-    let p = ctx.racine.join("sorties").join("exercices").join(format!("Compta_{}.csv", annee));
-    if !p.exists() {
-        return false;
-    }
-    let prefixe = format!("{}-", annee);
-    let derniere = entrees(&ctx.racine.join("paies"))
-        .into_iter()
-        // Les saisies seulement : la paie calculee (`.calcul.json`) se reecrit a
-        // l'ouverture, et l'export paraitrait perime a chaque fois.
-        .filter(|(nom, _)| nom.starts_with(&prefixe) && nom.ends_with(".json") && !nom.ends_with(".calcul.json"))
-        .map(|(_, c)| mtime(&c))
-        .fold(0.0_f64, f64::max);
-    mtime(&p) >= derniere
 }
 
 /// `spectacles_a_revoir` : les spectacles actifs, tant que la revue de l'annee
@@ -586,13 +558,15 @@ pub(crate) fn mois_a_declarer(st: &Etat) -> R<Vec<String>> {
     Ok(out)
 }
 
-/// `operations_declarations.fichiers_deposables(ctx, mois)["dsn"][0]` : `(nom,
-/// chemin)` de la DSN la plus recemment ecrite du dossier du mois.
+/// `fichiers_deposables(ctx, mois)["dsn"]` : `(nom,
+/// chemin)` de la DSN mensuelle du dossier du mois, dans l'ordre de `routes_mois::ordre_de_depot`.
 fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {
-    let dossier = st.racine().join("sorties").join(mois);
-    if !dossier.is_dir() {
+    // Le mois n'est ecrit que si le moteur a note sa DSN mensuelle (`produire_mois::mois_ecrit`, le critere de l'horloge
+    // et de l'accueil) : un fichier DSN qu'il n'a pas note ne fait pas « le mois est ecrit ».
+    if !crate::produire_mois::mois_ecrit(st.racine(), mois) {
         return None;
     }
+    let dossier = st.racine().join("sorties").join(mois);
     let mut fichiers: Vec<(String, PathBuf)> = entrees_dans_l_ordre(&dossier)
         .into_iter()
         .filter(|(nom, c)| c.is_file() && Path::new(nom).extension().map_or(false, |e| e.to_string_lossy().to_lowercase() == "dsn"))
@@ -600,7 +574,7 @@ fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {
         // le meme dossier, devenait « la DSN a deposer » du rappel.
         .filter(|(_, c)| std::fs::read(c).map(|o| !crate::depot::lire(&o).est_signalement()).unwrap_or(false))
         .collect();
-    fichiers.sort_by(|a, b| mtime(&b.1).partial_cmp(&mtime(&a.1)).unwrap_or(std::cmp::Ordering::Equal));
+    fichiers.sort_by_cached_key(|(nom, c)| crate::routes_mois::ordre_de_depot(nom, c));
     fichiers.into_iter().next().map(|(nom, c)| (nom, c.to_string_lossy().into_owned()))
 }
 

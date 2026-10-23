@@ -68,9 +68,14 @@ async function rafraichirRappels(lu) {
  * trouve la valeur. La page ne fait que l'afficher. */
 function htmlDemarrage(manques) {
   if (!manques || !manques.length) return "";
+  // CHAQUE CHOSE MÈNE À SA CASE (#236) : le libellé conduit au champ que le
+  // moteur nomme (`champ`, celui que l'écran montre : `demarrage::a_l_ecran`),
+  // ou à l'onglet qu'il nomme (`ou`) quand ce n'est pas une case.
   const ligne = (m) => `
     <li>
-      <b>${echapper(m.libelle)}</b> <span class="discret">— bloque ${echapper(m.bloque)}</span>
+      <button type="button" class="lien" data-manque-champ="${echapper(m.champ || "")}"
+        data-manque-ou="${echapper(m.ou || "")}"><b>${echapper(m.libelle)}</b></button>
+      <span class="discret">— bloque ${echapper(m.bloque)}</span>
       <div class="note">À saisir dans ${echapper(m.ou)}.</div>
       ${m.trouver ? `<details><summary>Où le trouver</summary><p class="note">${echapper(m.trouver)}</p></details>` : ""}
     </li>`;
@@ -83,8 +88,46 @@ function htmlDemarrage(manques) {
     </div>`;
 }
 
+/** Aller à ce qui manque : l'onglet, puis la case (son tiroir ouvert, le
+ *  curseur dedans). Le taux AT/MP n'est pas une case de la fiche
+ *  (`ATMP_HTML`) ; les organismes ont leur onglet. */
+function allerAuManque(champ, ou) {
+  if (!document.getElementById("voile").classList.contains("cachee")) fermerBoite();
+  document.querySelector('.onglets button[data-vue="configuration"]').click();
+  const fiche = /Organismes/.test(ou) ? "organismes" : "entreprise";
+  const sous = document.querySelector(`.sous-onglets button[data-fiche="${fiche}"]`);
+  if (sous && !sous.classList.contains("actif")) sous.click();
+  if (fiche !== "entreprise" || !champ) return;
+  const trouver = () => champ === "taux_atmp" ? document.getElementById("atmp-valeur")
+    : document.querySelector(`#config-formulaire [data-cle="${CSS.escape(champ)}"]:not([type="hidden"])`)
+      || document.querySelector(`#config-formulaire [data-sous-de="${CSS.escape(champ)}"]:not([type="hidden"])`);
+  let essais = 0;
+  const viser = () => {
+    const c = trouver();
+    if (!c) { if (++essais < 20) setTimeout(viser, 100); return; }
+    const tiroir = c.closest("details");
+    if (tiroir) tiroir.open = true;
+    c.scrollIntoView({ block: "center" });
+    c.focus({ preventScroll: true });
+  };
+  // La liste « Pour démarrer » se peint au-dessus de la fiche quand le moteur
+  // a répondu : viser après elle, sinon elle repousse la case hors de la vue.
+  Promise.resolve(DEMARRAGE_PEINT).then(viser, viser);
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest && e.target.closest("[data-manque-champ]");
+  if (!b) return;
+  e.preventDefault();
+  allerAuManque(b.dataset.manqueChamp, b.dataset.manqueOu);
+});
+
 /** La liste « Pour démarrer », en tête de Configuration › Entreprise. */
-async function peindreDemarrage(conteneur) {
+let DEMARRAGE_PEINT = null;   // la peinture en cours de la liste, pour `allerAuManque`
+function peindreDemarrage(conteneur) {
+  DEMARRAGE_PEINT = peindreDemarrageDans(conteneur);
+  return DEMARRAGE_PEINT;
+}
+async function peindreDemarrageDans(conteneur) {
   let manques = [];
   try { manques = (await api("pour-demarrer")).manques || []; } catch (e) { return; }
   conteneur.innerHTML = htmlDemarrage(manques);
@@ -305,7 +348,7 @@ async function dessinerExercices() {
       <span class="rang-infos">
         ${x.mois.length} mois · ${x.dsn_acceptees.length} DSN acceptée${x.dsn_acceptees.length === 1 ? "" : "s"}
         ${clos ? ` · clos le ${echapper(quand(clos.le))}, ${echapper(clos.archive)}` : ""}
-        ${x.export ? ` · export compta du ${echapper(quand(x.export.ecrit))}` : " · pas d'export compta"}
+        ${x.export ? ` · export compta${x.export.ecrit ? ` du ${echapper(quand(x.export.ecrit))}` : ""}` : " · pas d'export compta"}
       </span>
       <button class="secondaire" data-export="${echapper(x.annee)}">Export compta</button>
       ${clos

@@ -412,6 +412,9 @@ impl Drop for Copie {
     }
 }
 
+/// Le rejeu d'un scenario du banc d'essai et le releve de ses sorties (#236, phase 2).
+pub mod rejeu;
+
 // ------------------------------------------------------------------ la route
 
 /// Les variables qu'aucun sous-processus de test n'hérite du poste : les secrets, le bac à sable des incidents, le code.

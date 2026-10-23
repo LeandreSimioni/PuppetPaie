@@ -71,7 +71,11 @@ function poserRubriques(select, choisie, nat) {
 function ligneRubrique(l = {}, nat) {
   const div = document.createElement("div");
   div.className = "rubrique";
-  const code = l.rubrique || (ETAT.rubriques || [])[0]?.code || "cachet";
+  // LA RUBRIQUE D'UNE LIGNE NEUVE, le moteur la dit (#236 : c'était la
+  // première du déroulant, « Absence » dans une compagnie neuve) : par forme
+  // de paie (`etat.rubrique_par_defaut`, `catalogue::par_defaut`).
+  const forme = nat && nat.mensuelle ? "mensuelle" : "activite";
+  const code = l.rubrique || (ETAT.rubrique_par_defaut || {})[forme] || "";
   // Une ligne neuve part du dernier taux donné, pas d'un champ vide : c'est
   // là que « on met de base le dernier taux » se voit. Le dernier taux DE SA
   // RUBRIQUE : « le cachet c'est le cachet, les heures c'est les heures ».
@@ -622,6 +626,23 @@ function poserAvant(div, e) {
   div.querySelector(".e-date-modification").addEventListener("change", majAvant);
   div.querySelectorAll(".e-avant input").forEach((c) => { c.oninput = rafraichirApercu; });
   majAvant();
+  div.querySelector(".e-debut").addEventListener("change", () => majAvenant(div));
+  majAvenant(div);
+}
+
+/* L'AVENANT NE SE PROPOSE QU'À UN CONTRAT QUI EXISTE DÉJÀ (#236, 23/10/2026).
+ * Un CDI saisi pour la première fois montrait « Avenant à compter du » : rien
+ * à remplir, puisque ce qu'on tape ce mois-ci, ce sont les termes du contrat.
+ * La case paraît quand le contrat a commencé avant le mois affiché — c'est ce
+ * fait-là qui l'appelle —, ou quand elle porte déjà une date. */
+function majAvenant(div) {
+  const case_ = div.querySelector(".e-date-modification");
+  const debut = div.querySelector(".e-debut").value;
+  const mois = document.getElementById("mois").value || "";
+  const cachee = !case_.value && !(debut && mois && debut.slice(0, 7) < mois);
+  const l = case_.closest("label");
+  l.hidden = cachee;
+  l.style.display = cachee ? "none" : "";   // la feuille de style pose `display` sur ces étiquettes
 }
 
 function avantDuBloc(div) {
@@ -1200,6 +1221,20 @@ function majNature(div) {
                      || div.querySelector(".e-fin").value);
   const bornes = !!nat.mensuelle || ecrites;
   div.querySelectorAll(".e-borne").forEach((l) => { l.hidden = !bornes; });
+  // UN CONTRAT AU MOIS DIT SES BORNES (#236, 23/10/2026) : son début (et la fin
+  // d'un CDD) ne se déduit d'aucun jour coché, et le moteur refuse sans lui.
+  // Tant qu'il manque, le contrat s'ouvre de lui-même — un testeur ne va pas
+  // chercher sous « Plus d'options » ce qu'on exige de lui.
+  const sansBornes = nat.mensuelle && (!div.querySelector(".e-debut").value
+    || (!nat.duree_indeterminee && !div.querySelector(".e-fin").value));
+  if (sansBornes) {
+    div.querySelector(".e-options").hidden = false;
+    div.querySelector(".e-contrat").open = true;
+  }
+  if (nat.mensuelle) {
+    majContrat(div);
+    majAvenant(div);
+  }
   div.querySelector(".e-contrat-note").textContent = bornes
     ? "Un contrat payé au mois n'a pas de jour coché : ses bornes se disent ici."
       + " La date de fin d'un CDD est celle qui déclenche le signalement de"
@@ -1367,6 +1402,11 @@ function majContrat(div) {
       numero ? ` · n° ${numero}` : ""}`;
     return;
   }
+  if (!debut && natureDe(div.querySelector(".e-nature")?.value).mensuelle) {
+    // Un contrat au mois n'a pas de jour joué d'où tirer son début (#236).
+    s.innerHTML = `Contrat <span class="discret">— sa date de début, celle du contrat signé</span>`;
+    return;
+  }
   if (!debut || !fin) {
     s.innerHTML = `Contrat <span class="discret">— du premier au dernier jour joué</span>`;
     return;
@@ -1413,9 +1453,10 @@ function nouvelleFiche(nom) {
   CLE_ACTIVE = null;
   FICHE_NEUVE = true;
   dessinerConfig();
-  // L'anciennete d'une fiche neuve : aujourd'hui, a changer au besoin.
+  // L'ancienneté d'une fiche neuve : le jour du moteur (#236 ; le moteur la pose
+  // aussi à l'enregistrement si elle est vide), à changer au besoin.
   const donnees = nom === "salarie"
-    ? { actif: true, date_anciennete: new Date().toLocaleDateString("sv-SE") }
+    ? { actif: true, date_anciennete: aujourdhuiIso() }
     : { actif: true };
   dessinerFormulaire({ nom, cle: null, donnees, anomalies: [] });
   document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });

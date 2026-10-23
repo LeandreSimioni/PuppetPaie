@@ -473,10 +473,17 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         } else {
             None
         };
-        let sortes: Vec<&str> = SORTES.iter().filter(|(p, _)| noms.iter().any(|n| n.starts_with(p))).map(|(_, l)| *l).collect();
-        // Une DPAE deposee en cours de mois fait un fichier, pas un mois ecrit :
-        // c'est la DSN sur le disque qui dit « a deposer ».
-        let etat = etat.unwrap_or(if sortes.contains(&"DSN") { "a_deposer" } else { "a_ecrire" });
+        let mut sortes: Vec<&str> = SORTES.iter().filter(|(p, _)| noms.iter().any(|n| n.starts_with(p))).map(|(_, l)| *l).collect();
+        // LES AER DE FRANCE TRAVAIL (#236) : rangees avec les documents des salaries (`sorties/<mois>/envoi/`), pas a la
+        // racine du mois ; elles se nomment avec les autres sortes.
+        if crate::routes_documents::un_nom_commence_et_finit(&ctx.racine.join("sorties").join(nom).join("envoi"), "AER_", ".pdf") {
+            let rang = sortes.iter().position(|s| *s == "AEM").unwrap_or(sortes.len());
+            sortes.insert(rang, "attestations AER");
+        }
+        // Une DPAE deposee en cours de mois fait un fichier, pas un mois ecrit : le mois est ecrit quand le moteur a note
+        // sa DSN mensuelle (`produire_mois::mois_ecrit`, le critere de l'horloge et des rappels), et il dit alors
+        // « a deposer ».
+        let etat = etat.unwrap_or(if crate::produire_mois::mois_ecrit(&ctx.racine, nom) { "a_deposer" } else { "a_ecrire" });
         // CE QUI RESTE A FAIRE DANS LA PAGE PAIE (Historique, 20/10/2026) : une DSN a ecrire, a deposer, refusee ou en
         // retard, ou une DSN passee dont la paie a change depuis, tant que l'annule-et-remplace est admis. Le reste se
         // lit dans l'Historique : un mois fini n'a plus de chemin vers la page Paie.
@@ -863,7 +870,11 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         .collect::<R<Vec<Value>>>()?;
 
     // Le catalogue qui paie, deja dans l'ordre ou le proposer.
-    let rubriques: Vec<Value> = catalogue::catalogue(&ctx.racine).map_err(plain)?.iter().map(rubrique_json).collect();
+    let cat = catalogue::catalogue(&ctx.racine).map_err(plain)?;
+    let rubriques: Vec<Value> = cat.iter().map(rubrique_json).collect();
+    // La rubrique d'une ligne neuve, par forme de paie : le moteur la choisit (`catalogue::par_defaut`), la page la pose.
+    let par_defaut = |forme: &str| catalogue::par_defaut(&cat, forme).map_or(Value::Null, |r| json!(r.code));
+    let rubrique_par_defaut = json!({"activite": par_defaut("activite"), "mensuelle": par_defaut("mensuelle")});
 
     // LA FIN D'UN CONTRAT, telle qu'elle se saisit. Les types de preavis
     // SAISISSABLES seulement.
@@ -896,10 +907,16 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         // UNE FICTIVE AJOUTEE (ticket #236) : ses envois sont refuses par le moteur (`bridage::refus_d_envoi`) ; la page
         // ne demande pas le mot de passe du logiciel pour un envoi qui ne partira pas.
         "envois_refuses": crate::bridage::refus_d_envoi(&ctx.racine).is_some(),
+        // SUPPRIMER LA COMPAGNIE (ticket #236) : la Configuration ne le propose que si elle se supprime -- jamais une
+        // fictive livree, qui se remet a zero (`interface::suppression::genre`).
+        "supprimable": crate::interface::suppression::genre(&crate::administrateur::installation_de(&ctx.racine), &ctx.racine).is_ok(),
+        // UNE COMPAGNIE CREEE EN DEMO PUIS GARDEE : sa mention, et les mois saisis en demo, ou la page la montre.
+        "demo": crate::interface::suppression::mention(&ctx.racine),
         "historique": historique,
         "salaries": salaries,
         "spectacles": spectacles,
         "rubriques": rubriques,
+        "rubrique_par_defaut": rubrique_par_defaut,
         // Le catalogue des metiers, deja dans l'ordre des familles.
         "emplois": metiers(ctx)?,
         "familles_emplois": emplois::familles().map_err(plain)?,

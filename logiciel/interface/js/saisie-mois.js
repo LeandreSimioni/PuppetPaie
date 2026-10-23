@@ -852,6 +852,7 @@ async function repeindreLeMois(mois, ancien, frais) {
  *  qu'on a répondu à l'avertissement pour ce mois-là. */
 function majFermeture(mois, existe) {
   majAvisDsn(mois);
+  majAvisDemo(mois);
   // UN MOIS TENU AVANT PUPPETPAIE (ticket #215) : il se lit, rien ne s'y ajoute et rien ne le rouvre — sa DSN est
   // faite ailleurs, ou le moteur dit qu'il n'en a pas trace ; ce n'est pas « en retard » (règle 4 : rien ne la refait).
   if (IMPORTE) {
@@ -905,6 +906,15 @@ function majAvisDsn(mois) {
   if (!d) return;
   avis.className = "encart " + (d.confirmer ? "attention" : "info");
   avis.textContent = d.phrase;
+}
+
+/** UN MOIS SAISI EN DÉMO, dans une compagnie gardée au déblocage (ticket #236) : la mention du moteur (route `etat`,
+ *  `demo`) — ses paies n'ont été ni déclarées ni envoyées. Les pastilles disent ce qui reste à faire. */
+function majAvisDemo(mois) {
+  const avis = document.getElementById("avis-demo");
+  const d = ETAT && ETAT.demo;
+  avis.hidden = !(d && (d.mois || []).includes(mois));
+  if (!avis.hidden) avis.textContent = d.phrase;
 }
 
 /** LA BOÎTE QUI DEMANDE CONFIRMATION (21/10/2026) : le texte est celui du refus du moteur. « Modifier quand même »
@@ -1156,8 +1166,7 @@ function moisVoisin(pas) {
 function dessinerGrilleMois() {
   const grille = document.getElementById("mois-grille");
   const choisi = document.getElementById("mois").value;
-  const aujourdhui = new Date();
-  const ceMois = moisEnTexte(aujourdhui.getFullYear(), aujourdhui.getMonth() + 1);
+  const ceMois = aujourdhuiIso().slice(0, 7);   // le mois du moteur (#236)
   const saisis = new Set((ETAT.historique || []).map((h) => h.mois));
   grille.innerHTML = `
     <div class="choix-mois-annee">
@@ -1182,7 +1191,7 @@ function dessinerGrilleMois() {
 
 function ouvrirGrilleMois() {
   const x = moisLu(document.getElementById("mois").value);
-  ANNEE_GRILLE = x ? x[0] : new Date().getFullYear();
+  ANNEE_GRILLE = x ? x[0] : anneeDuJour();
   dessinerGrilleMois();
   document.getElementById("mois-grille").hidden = false;
   document.getElementById("mois-nom").setAttribute("aria-expanded", "true");
@@ -1268,8 +1277,8 @@ async function enregistrerSaisie(silencieux) {
     DERNIERE_ECRITE = empreinte;
     if (r && "dsn_deposee" in r && MOIS_AFFICHE === s.mois) { DSN_DEPOSEE = r.dsn_deposee; majAvisDsn(s.mois); }
     oublierCouts();
-    const h = new Date().toTimeString().slice(0, 5);
-    noteSaisie("Enregistré à " + h + ".");
+    // L'heure du moteur (`enregistre_a`), pas celle du navigateur : au banc, le temps est simulé.
+    noteSaisie("Enregistré à " + r.enregistre_a.slice(11, 16) + ".");
     ETAT.historique = await api("etat").then((e) => e.historique);
     // Ce qui vient d'etre enregistre devient declarable : les blocs qui
     // disaient << pas dans la saisie enregistree >> doivent cesser de le dire,
@@ -1333,6 +1342,14 @@ async function boiteProduire(mois, apres) {
   const saisie = saisieCourante();
   if (mois && saisie.mois !== mois) {
     dire("Le mois affiché n'est pas " + mois + "."); return;
+  }
+  // UN MOIS DONT LA DSN ÉTAIT DUE (#236) : le moteur refuse de le produire tant
+  // qu'on ne l'a pas rouvert en connaissance de cause (`forcer`). Le rappel
+  // « envoyer la DSN en retard » menait ici, et le refus tombait en une ligne
+  // qui citait une commande de terminal : on demande d'abord de le rouvrir.
+  if (MOIS_FERME && MOIS_FORCE !== saisie.mois) {
+    boiteRouvrirMois(saisie.mois, MOIS_FERME, () => boiteProduire(mois, apres));
+    return;
   }
   let urssaf = null;
   try {

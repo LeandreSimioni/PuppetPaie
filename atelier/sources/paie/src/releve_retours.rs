@@ -28,7 +28,7 @@ use crate::retours::{base64_ecrire, base64_lire, Echec};
 
 /// Les secondes unix de l'horloge.
 fn secondes_unix() -> i64 {
-    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64)
+    crate::temps::secondes().floor() as i64
 }
 
 /// `datetime.now()` a l'heure de Paris, en secondes d'une epoque « naive » (l'heure locale lue comme si
@@ -457,10 +457,39 @@ fn tranches(debut: i64, fin: i64) -> Vec<(i64, i64)> {
 /// Rend le nombre de depots completes. Ne touche a aucune autre ligne : un vrai depot (flux sans le
 /// prefixe) garde ses vrais retours.
 pub fn rattacher_simulation(ctx: &Contexte, delai: i64) -> R<i64> {
+    rattacher_simulation_detail(ctx, delai).map(|(n, _)| n)
+}
+
+/// L'AER Cinema Spectacle qu'une DSN mensuelle REELLE jouee appelle (`aer_fictive::archive`) : l'archive de nature 46,
+/// ou `None` quand aucune n'est due (France Travail ne publie rien). Seulement la ou la simulation est active
+/// (`routes_accueil::simulation_active` : une fictive livree ou le paquet soude) ; une signalement (nature 04, 05, 07)
+/// n'en appelle pas. Le fichier deposé est relu la ou le depot l'a pris (`sorties/<mois>/<fichier>`).
+fn aer_jouee(ctx: &Contexte, l: &Value) -> R<Option<Vec<u8>>> {
+    if !crate::routes_accueil::simulation_active(&ctx.racine) || l.get("mode").and_then(Value::as_str) != Some("reel") {
+        return Ok(None);
+    }
+    let nature = l.get("detail").and_then(|d| d.get("nature")).filter(|n| vrai(n)).map(py_str).unwrap_or_default();
+    if !nature.is_empty() && nature != "01" {
+        return Ok(None);
+    }
+    let mois = l.get("mois").map(py_str).unwrap_or_default();
+    let fichier = l.get("fichier").filter(|f| vrai(f)).map(py_str).unwrap_or_default();
+    if mois.is_empty() || fichier.is_empty() {
+        return Ok(None);
+    }
+    let chemin = if Path::new(&fichier).is_absolute() { PathBuf::from(&fichier) } else { ctx.racine.join("sorties").join(&mois).join(&fichier) };
+    let Ok(octets) = std::fs::read(&chemin) else { return Ok(None) };
+    crate::aer_fictive::archive(ctx, &octets, &mois, ctx.aujourdhui).map_err(Echec::from)
+}
+
+/// `rattacher_simulation`, avec ce que le rangement des AER jouees laisse a faire (`routes_documents::ranger_aer`) :
+/// une attestation que la paie ne confirme pas, un nom qu'aucune fiche ne porte.
+pub fn rattacher_simulation_detail(ctx: &Contexte, delai: i64) -> R<(i64, Vec<String>)> {
     let p = crate::journal::chemin(&ctx.racine);
     if !p.exists() {
-        return Ok(0);
+        return Ok((0, Vec::new()));
     }
+    let mut a_archiver: Vec<(Value, Vec<u8>)> = Vec::new();
     let mut lignes = crate::etats::charger(&ctx.racine)?;
     let maintenant = maintenant_naif();
     let pub_ = horodatage_archive(maintenant).replace('-', "");
@@ -496,8 +525,13 @@ pub fn rattacher_simulation(ctx: &Contexte, delai: i64) -> R<i64> {
             } else {
                 retours.push(Value::Object(base("10", Some("OK"), "Accuse de reception (compagnie fictive)")));
                 retours.push(Value::Object(base("11", Some("OK"), "Bilan de conformite (compagnie fictive)")));
-                if l.get("mode").and_then(Value::as_str) == Some("reel") {
-                    retours.push(Value::Object(base("46", None, "Attestation employeur rematerialisee (compagnie fictive)")));
+                // L'AER : seulement quand elle est due, et avec sa piece, comme France Travail la publie.
+                if let Some(archive) = aer_jouee(ctx, l)? {
+                    let r46 = base("46", None, "Attestation employeur rematerialisee (compagnie fictive)");
+                    let mut a = r46.clone();
+                    a.insert("flux".into(), json!(flux));
+                    a_archiver.push((Value::Object(a), archive));
+                    retours.push(Value::Object(r46));
                 }
             }
             l["retours"] = Value::Array(retours);
@@ -507,7 +541,14 @@ pub fn rattacher_simulation(ctx: &Contexte, delai: i64) -> R<i64> {
     if faits > 0 {
         crate::ecriture::ecrire_json(&p, &Value::Array(lignes), 2).map_err(|m| erreur("OSError", m))?;
     }
-    Ok(faits)
+    // LE MEME CHEMIN QU'UNE VRAIE : l'archive dans `retours/`, puis le rangement, qui signe le cadre 5 et la pose dans
+    // `sorties/<mois>/envoi/`, ou l'envoi va la chercher.
+    let mut chemins: Vec<PathBuf> = Vec::new();
+    for (retour, archive) in &a_archiver {
+        chemins.push(archiver(ctx, retour, archive, "application/zip", "").map_err(en_echec)?);
+    }
+    let a_faire = if chemins.is_empty() { Vec::new() } else { crate::routes_documents::ranger_aer(&HashMap::new(), ctx, None, Some(&chemins), true)? };
+    Ok((faits, a_faire))
 }
 
 /// `operations_retours.relever_retours` : telecharge et archive ce que les organismes ont publie. `debut`
@@ -526,7 +567,7 @@ pub fn relever_retours(
     let mut releve = Releve::default();
     // LA COMPAGNIE FICTIVE : les retours des depots joues arrivent d'ici, sans reseau ni mot de passe.
     if client.is_none() && crate::routes_accueil::simulation_active(&ctx.racine) {
-        releve.rattaches = rattacher_simulation(ctx, 6)?;
+        (releve.rattaches, releve.a_faire) = rattacher_simulation_detail(ctx, 6)?;
         return Ok(releve);
     }
     let mut client = match client {
@@ -650,7 +691,7 @@ pub fn relever_retours(
 pub fn relever_retours_dpae(ctx: &Contexte, o: &HashMap<String, String>, debut: i64, fin: i64, tout: bool, flux: &str) -> R<Releve> {
     if crate::routes_accueil::simulation_active(&ctx.racine) {
         let mut r = Releve::default();
-        r.rattaches = rattacher_simulation(ctx, 6)?;
+        (r.rattaches, r.a_faire) = rattacher_simulation_detail(ctx, 6)?;
         return Ok(r);
     }
     let Some(mdp) = mot_de_passe_de_consultation(ctx, "urssaf")? else {

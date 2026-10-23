@@ -564,7 +564,8 @@ fn marqueurs(ent: &Value, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Valu
     poser("employeur.licence", licence);
     poser("employeur.idcc", idcc);
     poser("employeur.convention", convention);
-    poser("employeur.congesspectacles", en_texte(requis(ent, "congesspectacles_affiliation")?));
+    // Le numero sous lequel la compagnie est affiliee a la Caisse : son numero d'adherent (`conges_spectacles::adherent`).
+    poser("employeur.congesspectacles", crate::conges_spectacles::adherent(ent)?);
     poser(
         "employeur.signataire",
         format!("{} {}", en_texte(aff(sig, "prenom")?), en_texte(aff(sig, "nom")?)),

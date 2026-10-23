@@ -837,12 +837,16 @@ impl FileDesEtats {
     /// attend au plus `patienter` ; passe ce delai, `{"pret": false, "phrase"}` dit ce que fait le moteur, et la page
     /// redemande. `frais` : les lectures de l'ouverture une fois refaites (la page qui a peint un etat perime), sans
     /// l'ecran du mois (la page attend celui-ci par la route `mois`).
+    ///
+    /// `aujourdhui` : LE JOUR DU MOTEUR (#236), celui que la page prend pour tout ce qu'elle date ou presente au jour (une
+    /// date d'effet proposee, l'annee du taux AT/MP, le mois en cours de la grille) -- jamais l'horloge du navigateur :
+    /// au banc d'essai le moteur a son temps simule (`temps`), et c'est le seul qui vaille (regle 2).
     pub fn ouverture(&self, patienter: Duration, frais: bool) -> R<Value> {
         let jour = self.jour();
         if frais {
             let v = self.attendre(OUVERTURE)?;
             let mois = mois_a_ouvrir(&v, &jour);
-            return Ok(json!({"pret": true, "perime": false, "mois": mois, "lectures": v.get("lectures").cloned().unwrap_or(Value::Null), "ecran": Value::Null}));
+            return Ok(json!({"pret": true, "perime": false, "mois": mois, "aujourdhui": jour, "lectures": v.get("lectures").cloned().unwrap_or(Value::Null), "ecran": Value::Null}));
         }
         let limite = Instant::now() + patienter;
         let attente = || json!({"pret": false, "phrase": self.phrase()});
@@ -862,6 +866,7 @@ impl FileDesEtats {
             "pret": true,
             "perime": !juste,
             "mois": mois,
+            "aujourdhui": jour,
             "lectures": ouv.get("lectures").cloned().unwrap_or(Value::Null),
             "ecran": ecran,
         }))
@@ -885,6 +890,24 @@ impl FileDesEtats {
             g.arrete = true;
         }
         self.fil.reveil.notify_all();
+    }
+
+    /// LA COMPAGNIE S'EN VA (supprimee, ou deplacee quand on la garde au deblocage : `interface::suppression`) : sa file
+    /// quitte le fil, qui continue de servir les autres -- meme s'il n'en reste aucune, la fenetre lui en donnera d'autres --,
+    /// et l'on attend la fin du calcul qui tourne pour elle : rien ne s'ecrit plus dans son dossier ensuite.
+    pub fn quitter(&self) {
+        self.fermer();
+        {
+            let mut g = self.fil.verrou();
+            g.files.retain(|f| !std::ptr::eq(Arc::as_ptr(f), self));
+            if g.devant.as_ref().is_some_and(|d| std::ptr::eq(Arc::as_ptr(d), self)) {
+                g.devant = None;
+            }
+        }
+        let mut e = self.verrou();
+        while e.en_cours.is_some() {
+            e = self.signal.wait(e).unwrap_or_else(|p| p.into_inner());
+        }
     }
 
     fn fermer(&self) {

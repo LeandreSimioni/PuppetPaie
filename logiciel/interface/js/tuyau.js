@@ -64,6 +64,8 @@ const ROUTES_SANS_EFFET = new Set(["veille", "rappels", "pour-demarrer", "organi
   "contrats-passes",
   // L'Historique d'un mois (ses documents, ses envois, leurs retours lus) et la pièce qu'on y ouvre : des lectures.
   "historique-mois", "ouvrir-piece",
+  // Ce que la boîte « Supprimer cette compagnie » demande (ticket #236) : une lecture.
+  "compagnie-suppression",
   // L'étape du relevé en cours, lue toutes les secondes le temps qu'il tourne (ticket #220).
   "veille-etape",
   // Les conseils « Le saviez-vous ? » (ticket 224) : le conseil du jour, ceux d'un salarié, le résumé de l'accueil.
@@ -429,10 +431,23 @@ document.querySelectorAll(".onglets button").forEach((b) => {
     b.classList.add("actif");
     document.querySelectorAll(".vue").forEach((v) => v.classList.add("cachee"));
     document.getElementById("vue-" + b.dataset.vue).classList.remove("cachee");
-    if (b.dataset.vue === "historique") dessinerHistorique();
+    if (b.dataset.vue === "historique") { dessinerHistorique(); rafraichirHistorique(); }
     if (b.dataset.vue === "configuration") dessinerConfig();
     if (b.dataset.vue === "exports") dessinerExports();
-    if (b.dataset.vue === "paie") dessinerConseils();
+    if (b.dataset.vue === "paie") {
+      dessinerConseils();
+      // REVENIR SUR PAIE REPREND CE QUI N'A PAS PU S'ÉCRIRE (#236) : une saisie
+      // que le moteur a refusée faute d'une fiche (le taux AT/MP, l'effectif…)
+      // restait à l'écran, « PAS enregistré », jusqu'à une frappe. La fiche
+      // vient peut-être d'être corrigée : on la redonne au moteur tout de
+      // suite ; c'est lui qui dit si elle passe. Rien d'autre à écrire : on
+      // relit seulement ce que le moteur dit du mois.
+      if (MOIS_AFFICHE) {
+        const enAttente = JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE;
+        if (enAttente) await enregistrerSaisie(true);
+        else await rafraichirActions();
+      }
+    }
   };
 });
 

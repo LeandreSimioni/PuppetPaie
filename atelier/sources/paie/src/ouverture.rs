@@ -482,7 +482,7 @@ fn trier_hors_ligne(r: &mut Ouverture) {
 fn clore(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Instant, precedente: &Value) {
     finir_les_etapes(ctx);
     trier_hors_ligne(r);
-    r.secondes = (debut.elapsed().as_secs_f64() * 10.0).round() / 10.0;
+    r.secondes = (crate::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
     noter_ouverture(ctx, r, precedente);
 }
 
@@ -497,7 +497,7 @@ fn completer_la_trace(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Insta
     };
     let etait_hors_ligne = avant.get("hors_ligne").is_some_and(vrai);
     trier_hors_ligne(r);
-    let ma_duree = (debut.elapsed().as_secs_f64() * 10.0).round() / 10.0;
+    let ma_duree = (crate::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
     r.secondes = ma_duree;
     let mut trace = avant.clone();
     let liste = |cle: &str| -> Vec<Value> { avant.get(cle).and_then(Value::as_array).cloned().unwrap_or_default() };
@@ -571,6 +571,13 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
         sauvegarder = false;
         signatures = false;
     }
+    // UNE FICTIVE AJOUTEE (#236) : rien n'en part (`bridage::refus_d_envoi`), donc rien n'y revient -- ni retour de DSN ou de
+    // DPAE, ni contrat signe. La veille ne les releve pas, et ne demande pas les mots de passe qui serviraient a les relever :
+    // le bandeau ne presente pas comme une panne ce qui est voulu. Le coffre, lui, s'y pose comme ailleurs (Configuration).
+    if crate::bridage::refus_d_envoi(&ctx.racine).is_some() {
+        retours = false;
+        signatures = false;
+    }
 
     // LA COMPAGNIE FICTIVE : les retours des depots joues et les signatures demandees arrivent d'ici, sans coffre ni reseau --
     // et rien ne manque au coffre, puisqu'il n'y a rien a y poser.
@@ -585,8 +592,8 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
         if retours {
             dire_l_etape(ctx, "Compagnie fictive : retours des dépôts joués…");
             let mut releve = Releve::default();
-            match releve_retours::rattacher_simulation(ctx, DELAI_RETOURS_FICTIVE) {
-                Ok(n) => releve.rattaches = n,
+            match releve_retours::rattacher_simulation_detail(ctx, DELAI_RETOURS_FICTIVE) {
+                Ok((n, a_faire)) => (releve.rattaches, releve.a_faire) = (n, a_faire),
                 // Le Python ne rattrapait rien ici : l'ouverture ne doit pas tomber (lot I2b).
                 Err(e) => r.incidents.push(format!("Retours : {}", e.message)),
             }

@@ -62,3 +62,20 @@ fn sans_permanent_l_enregistrement_garde_ce_qui_etait_declare() {
     }
     assert_eq!(apres["affiliations_par_nature"]["permanent"]["references"], json!(["106", "101"]));
 }
+
+/// UNE COMPAGNIE QUI EMPLOIE DES PERMANENTS DIT LA REFERENCE DE LEUR PREVOYANCE (#236) : enregistrer sans elle passait
+/// sans un mot, et le mois de son permanent se refusait ensuite (`dsn::affiliations` : « affiliations_par_nature.
+/// permanent.references est null »). L'enregistrement se refuse, rien n'est ecrit ; avec elle, il passe.
+#[test]
+fn avec_permanents_la_reference_de_leur_prevoyance_est_exigee() {
+    let c = &compagnie("fictive-3090-petite", "avec-permanents");
+    std::fs::remove_file(c.join("config/organismes.json")).unwrap();
+    poser_permanents(c, true);
+    let r = route(c, "organismes-enregistrer", json!({"contrats": {}}), JOUR);
+    assert_eq!(r["ok"], json!(false), "{}", r);
+    assert!(!c.join("config/organismes.json").exists(), "rien n'est ecrit");
+    let r = route(c, "organismes-enregistrer", json!({"contrats": {"prevoyance_permanents": {"libelle": "PREV PERM"}}}), JOUR);
+    reussi(&r);
+    let refs = lire(c, "config/organismes.json")["affiliations_par_nature"]["permanent"]["references"].clone();
+    assert!(refs.as_array().is_some_and(|a| a.len() == 2), "{}", refs);
+}

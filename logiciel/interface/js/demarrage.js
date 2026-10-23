@@ -64,6 +64,7 @@ async function demarrer() {
     document.getElementById("chargement-phrase").textContent = o.phrase || "";
     o = await appelerMoteur("ouverture", { patienter: 400 });
   }
+  AUJOURDHUI = o.aujourdhui || "";
   ETAT = lectureDe(o, "etat");
   peindreEtatGlobal();
   // L'échéancier sert à la colonne des actes (la date limite de la DSN) : il est déjà là.
@@ -104,6 +105,7 @@ async function demarrer() {
 async function rafraichirOuverture() {
   let o;
   try { o = await appelerMoteur("ouverture", { frais: true }); } catch (e) { return; }
+  if (o.aujourdhui) AUJOURDHUI = o.aujourdhui;
   try { ETAT = lectureDe(o, "etat"); peindreEtatGlobal(); } catch (e) { /* l'état d'avant reste */ }
   try { ECHEANCIER = lectureDe(o, "echeancier"); } catch (e) { /* idem */ }
   dessinerConseils(conseilsDe(o));

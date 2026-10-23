@@ -188,7 +188,7 @@ async function dessinerActions(mois) {
                             if (d2) await boiteDepot("dsn", d2.chemin, { testerDabord: true });
                           }) },
     { cle: "documents", titre: "Documents aux salariés", court: "DOCUMENTS",
-      detail: "bulletin, certificat Congés Spectacles, AER",
+      detail: "",
       bouton: "Envoyer les documents…", toujours: true,
       ouvrir: () => boiteEnvoi(mois) },
   ];
@@ -214,6 +214,8 @@ async function dessinerActions(mois) {
     // DES DOCUMENTS À RENVOYER (ticket #240) : la paie de certains salariés a
     // changé depuis l'envoi. Le moteur le compte et nomme le geste.
     if (a.cle === "documents" && bilan && bilan.bouton) a.bouton = bilan.bouton;
+    // CE QUI PART CE MOIS-CI : le moteur le nomme (`pieces` des paies), la page le dit.
+    if (a.cle === "documents") a.detail = (bilan && bilan.detail) || "";
     // L'ANNULE-ET-REMPLACE (30/09/2026). Une DSN réelle est partie : tant que
     // la norme l'admet (veille de l'échéance, minuit), la refaire reste à
     // portée de main — et c'est LE geste quand la paie a changé depuis. Après,
@@ -261,9 +263,9 @@ async function dessinerActions(mois) {
           </summary>
           <div class="etape-corps">
             <div class="etape-phrase">${echapper(l.phrase)}</div>
-            <div class="discret etape-detail">${echapper(a.detail)}</div>
+            ${a.detail ? `<div class="discret etape-detail">${echapper(a.detail)}</div>` : ""}
             ${a.fichier ? `<div class="acte-fichier">${echapper(a.fichier.nom)}
-               <span class="discret">écrit le ${echapper(quand(a.fichier.ecrit))}</span></div>` : ""}
+               ${a.fichier.ecrit ? `<span class="discret">écrit le ${echapper(quand(a.fichier.ecrit))}</span>` : ""}</div>` : ""}
             ${l.vide ? "" : `<button class="${i === suivante ? "primaire" : "secondaire"}" data-acte="${echapper(a.cle)}"
                     ${dispo ? "" : "disabled"}>${echapper(a.bouton)}</button>`}
             ${a.second ? `<button class="secondaire" data-second="${echapper(a.cle)}">${echapper(a.second.bouton)}</button>` : ""}
@@ -410,8 +412,8 @@ function corpsDsn(a) {
  *  plus tôt huit jours avant l'embauche). L'Urssaf l'enregistre quand même
  *  (test du 02/10/2026) : on prévient, on ne bloque pas. */
 function dpaeTropTot(a) {
-  const ici = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
-  return !!(a && a.pas_avant && a.pas_avant > ici.toISOString().slice(0, 10));
+  // Le jour du moteur (#236), pas l'horloge du navigateur.
+  return !!(a && a.pas_avant && aujourdhuiIso() && a.pas_avant > aujourdhuiIso());
 }
 
 function corpsDpae(a) {
@@ -594,8 +596,8 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
         return;
       }
       ecrire((r && r.conforme ? encartRepetition(r, quoi, a)
-        : `<div class="encart"><b>Test envoyé — on attend son compte rendu, il
-            arrive bientôt</b> Restez sur cette fenêtre : le dépôt réel s'ouvrira ici.</div>`)
+        : `<div class="encart"><b>Test envoyé — son compte rendu est attendu</b> Le dépôt réel se fait
+            ici, une fois le test revenu conforme.</div>`)
         + (r && r.incident ? `<p class="discret">${echapper(r.incident)}</p>` : ""));
       await new Promise((ok) => setTimeout(ok, enFictive() ? 3000 : 10000));
     }
@@ -632,22 +634,17 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
   }
 }
 
-/** APRÈS LA DSN RÉELLE, LES DOCUMENTS DES SALARIÉS (29/09/2026). France
- *  Travail édite l'AER à partir de la DSN : la DSN d'août 2026 a eu la
- *  sienne 2 h 50 après le dépôt, son annule-et-remplace 1 h 21 après (dates
- *  de publication des retours). On annonce donc quatre heures, et l'heure. */
+/** APRÈS LA DSN RÉELLE, LES DOCUMENTS DES SALARIÉS. Rien ne s'annonce ici
+ *  (« on ne promet rien ») : ce qui manque encore aux documents -- l'AER de
+ *  France Travail, quand elle est due -- c'est le moteur qui le dit, dans
+ *  l'étape 4 (`documents_prets`). */
 function avisDocumentsApresDsn(mois) {
-  const h = new Date(Date.now() + 4 * 3600 * 1000);
-  const heure = h.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  const demain = h.toDateString() !== new Date().toDateString() ? " demain" : "";
   ouvrirBoite(`
     <h3>DSN envoyée</h3>
     ${moisEnGros(mois)}
-    <div class="encart info"><b>Les documents des salariés, dans quatre heures
-      environ</b> France Travail édite l'attestation employeur (AER) à partir
-      de la DSN, en général dans les trois heures. Vers ${echapper(heure)}${demain},
-      bulletins, certificats Congés Spectacles et AER pourront partir ensemble :
-      bouton « Envoyer les documents… » de l'étape 4.</div>
+    <div class="encart info"><b>Les documents des salariés</b> Ils partent de
+      l'étape 4, « Envoyer les documents… », qui dit ce qu'il leur manque
+      encore.</div>
     <div class="actions">
       <button class="primaire" onclick="fermerBoite()">Compris</button>
     </div>`);
@@ -712,17 +709,17 @@ function encartRepetition(r, quoi, a) {
   }
   if (r.conforme) {
     return `<div class="encart">
-      <b>${cette} est en test — on attend son compte rendu, il arrive bientôt</b>
-      Envoyée en test le ${echapper(quand(r.conforme.quand))}. Restez sur cette
-      fenêtre : le dépôt réel s'ouvrira ici dès qu'il sera là.</div>`;
+      <b>${cette} est en test — son compte rendu est attendu</b>
+      Envoyée en test le ${echapper(quand(r.conforme.quand))}. Le dépôt réel se
+      fait ici, une fois ce compte rendu revenu conforme.</div>`;
   }
   // Jamais essayé : ce n'est pas une mise en garde, c'est l'étape suivante
   // (26/09/2026 : l'orange se garde pour ce qui demande de corriger).
   const rate = (r.ratees || []).length || (r.perimees || []).length;
   return `<div class="encart ${rate ? "attention" : ""}">
     <b>${rate ? "Pas de test valable pour ce contenu" : "D'abord, le dépôt de test"}</b>
-    ${echapper(situationRepetition(r))} Le dépôt réel s'ouvrira dès que le
-    test sera revenu conforme.</div>`;
+    ${echapper(situationRepetition(r))} Le dépôt réel se fait une fois le
+    test revenu conforme.</div>`;
 }
 
 function situationRepetition(etat) {
@@ -841,14 +838,15 @@ async function boiteEnvoi(mois) {
       `<div class="encart attention">${echapper(x)}</div>`).join("")}
     ${(a.avertissements || []).map((x) =>
       `<div class="encart info">${echapper(x)}</div>`).join("")}
-    ${!a.produit ? "" : `<table>
+    ${!a.produit ? "" : `<table class="table-envoi">
+      <colgroup><col class="c-salarie"><col class="c-adresse"><col class="c-pieces"><col class="c-taille"></colgroup>
       <tr><th>Salarié</th><th>Adresse</th><th>Pièces</th><th>Taille</th></tr>
       ${a.messages.map((m) => `
         <tr>
           <td>${echapper(m.nom)}${m.renvoi ? `<br><span class="pastille alerte">documents corrigés —
             remplacent ceux du ${echapper(m.envoye_le)}</span>` : ""}</td>
           <td>${echapper(m.destinataire)}</td>
-          <td>${echapper(m.pieces.join(", "))}</td>
+          <td class="pieces">${m.pieces.map((x) => `<div>${echapper(x)}</div>`).join("")}</td>
           <td class="num">${Math.round(m.octets / 1024)} ko</td>
         </tr>
         ${m.renvoi ? `<tr><td colspan="4" class="discret">Le courriel dit ce qui a changé :

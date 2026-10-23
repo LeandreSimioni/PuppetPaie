@@ -265,6 +265,6 @@ pub fn services_connus() -> Vec<&'static str> {
 
 /// `datetime.now().isoformat(timespec="minutes")` a l'heure de Paris : ce que le coffre note comme date de pose.
 pub fn maintenant_minutes() -> String {
-    let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64());
+    let t = crate::temps::secondes();
     crate::paris::iso_minutes(t)
 }

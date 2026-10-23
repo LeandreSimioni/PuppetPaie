@@ -108,7 +108,7 @@ pub(crate) fn configuration(o: &HashMap<String, String>, ctx: &Contexte) -> R<Va
 
 /// L'heure de Paris, a la seconde (`datetime.now().isoformat(timespec="seconds")`).
 fn maintenant() -> String {
-    let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64());
+    let t = crate::temps::secondes();
     crate::paris::iso_secondes(t)
 }
 
@@ -510,7 +510,8 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
     let note = charge.get("note").unwrap_or(&Value::Null);
     let e = ecrire_fiche(ctx, nom, cle, donnees, forcer, depuis, note)?;
     let fiche = routes_accueil::vue_fiche(nom, e.cle.as_deref(), &e.donnees, e.anomalies, &e.derives)?;
-    Ok(json!({"fiche": fiche, "configuration": configuration(o, ctx)?}))
+    // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (#236 : au banc, le temps est simule).
+    Ok(json!({"fiche": fiche, "configuration": configuration(o, ctx)?, "enregistre_a": maintenant()}))
 }
 
 /// `operations_fiches.enregistrer_fiche` : verifie, date ce qui change, sauvegarde l'ancien fichier et
@@ -749,7 +750,8 @@ fn enregistrer_saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Valu
     // Ce que la page dit du mois deja declare, a jour apres l'ecriture (`routes_regularisation::modification_de_la_paie`).
     let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
     let dsn = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
-    Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn}))
+    // « Enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (#236 : au banc, le temps est simule).
+    Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn, "enregistre_a": maintenant()}))
 }
 
 /// `operations_paies.enregistrer_saisie` : verifie la saisie en la calculant, puis l'ecrit. `fusionner` a faux
@@ -857,11 +859,14 @@ pub(crate) fn ecrire_saisie_confirmee(
         let chemin = ctx.racine.join("paies").join(format!("{}.json", autre));
         sauver_avant(&chemin)?;
         ecrire(&chemin, saisie)?;
+        crate::interface::suppression::sortir_de_la_demo(&ctx.racine, &autre).map_err(|m| erreur("OSError", m))?;
     }
     if p.exists() {
         sauver_avant(&p)?;
     }
     ecrire(&p, donnees.clone())?;
+    // UN MOIS FAIT EN DEMO, retravaille dans la compagnie gardee : il cesse d'etre « de demo » (`suppression::sortir_de_la_demo`).
+    crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
     // Le calcul qui vient de valider la saisie est celui du fichier quand la fusion n'y a rien change.
     if eq_py(&donnees, &calculee) {
         crate::calcul_du_mois::ecrire_calcul(o, mois, &rep, entrees);

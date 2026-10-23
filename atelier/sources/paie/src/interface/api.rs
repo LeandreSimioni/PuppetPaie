@@ -56,6 +56,12 @@ impl Refus {
 pub fn route(racine: &Path, nom: &str, charge: &Value) -> Result<Value, Refus> {
     let mut o = std::collections::HashMap::new();
     o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
+    // LE BANC D'ESSAI (l'atelier seulement, #236) : chaque route que la fenetre sert -- la page, la veille, le fil de fond --
+    // entre dans le scenario, avec sa charge et son instant (`scenario::Enregistreur`).
+    #[cfg(feature = "atelier")]
+    if let Some(e) = crate::scenario::enregistreur_actif() {
+        return depuis_reponse(e.route(racine, nom, charge, || crate::routes::dans_la_fenetre(&o, nom, charge)));
+    }
     depuis_reponse(crate::routes::dans_la_fenetre(&o, nom, charge))
 }
 
@@ -315,6 +321,11 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
         "veille-etape" => Ok(veille.map(Veille::etape).unwrap_or_else(|| json!({"en_cours": false, "sauvegarde_en_cours": false, "etape": null}))),
         "veille-maintenant" => match veille {
             Some(v) => Ok(v.tour(false, false)),
+            None => Err(Refus::simple("ErreurOperation", "Pas de veille sur cette interface.")),
+        },
+        // LA SAUVEGARDE AVANT DE SUPPRIMER (ticket #236) : un passage complet de la veille, sauvegarde comprise.
+        "sauvegarde-maintenant" => match veille {
+            Some(v) => Ok(v.tour(false, true)),
             None => Err(Refus::simple("ErreurOperation", "Pas de veille sur cette interface.")),
         },
         "google-autoriser" => google_autoriser(racine, charge),

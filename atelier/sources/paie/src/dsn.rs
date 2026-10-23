@@ -141,6 +141,24 @@ pub(crate) fn contact_emetteur(f: &mut Fichier, ent: &Value) -> Resultat<()> {
     Ok(())
 }
 
+/// LE TYPE DU CONTACT CHEZ LE DECLARE (S20.G00.07.004), commun a la mensuelle, aux signalements et a l'amorcage. Le
+/// moteur ne declare qu'UN contact (`declarant_dsn`) : celui qui repond aux organismes pour toute la declaration. La
+/// norme (cahier technique 2027.1.1, `norme-dsn/texte-2027/bloc-S20.G00.07.txt`, rubrique « Type », les valeurs
+/// lignes 67-80) donne la liste ; « 04 - Contact chez le declare recouvrant, entre autres, des cotisations de Securite
+/// Sociale (Urssaf CN, MSA) et contributions assurance chomage et cotisations AGS (France Travail) » est celui-la. Les
+/// types 14 et 17 (referent handicap des 250 salaries et plus, medecine du travail interne) ne sont pas ce contact-la.
+/// Une compagnie neuve n'a donc rien a choisir (#236 : la fiche ne montre pas cette case, et « Pour demarrer » ne la
+/// demande plus) ; une valeur posee dans la fiche (`declarant_dsn.qualite`) reste lue telle quelle.
+pub const TYPE_CONTACT_ORDINAIRE: &str = "04";
+
+/// Le type du contact a ecrire en S20.G00.07.004 : celui de la fiche s'il y en a un, sinon [`TYPE_CONTACT_ORDINAIRE`].
+pub fn type_du_contact(decl: &Value) -> Value {
+    match decl.get("qualite") {
+        Some(q) if vrai(q) => q.clone(),
+        _ => Value::String(TYPE_CONTACT_ORDINAIRE.to_string()),
+    }
+}
+
 /// `str(v or "")`.
 pub(crate) fn txt(v: &Value) -> String {
     if vrai(v) {
@@ -1068,7 +1086,7 @@ pub(crate) fn rattachements(p: &Paie, orgs: &Value, ent: &Value, refs: Vec<Strin
 fiche ne date que son anciennete dans l'entreprise (`date_anciennete`) : assez pour la cotisation, pas pour dire si \
 l'affiliation a commence avec le contrat (le {}) ou plus tard, au plus tard le {}. La DSN date le debut de \
 l'affiliation quand ce n'est pas celui du contrat (S21.G00.70.014, cahier technique p. 287) ; elle ne le devine pas.\n  \
-A poser sur sa fiche : \"prevoyance_branche_depuis\": \"AAAA-MM-JJ\", la date de son entree dans la branche (s'il n'y \
+A dire sur sa fiche : Configuration › Salariés, bloc « Salarié au mois », « Dans la branche depuis » : la date de son entree dans la branche (s'il n'y \
 travaillait pas avant, sa date d'embauche chez nous). Rien n'est declare.",
                                 qui_contrat(p),
                                 e.debut.jj_mm_aaaa(),
@@ -1629,7 +1647,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     // des Conges Spectacles (`caisse_conges::affilie`), et aucun autre -- ni un CDI, ni un contrat de douze mois ou plus.
     let caisse_conges = nat.ecrit("S21.G00.40.022") && crate::caisse_conges::de_la_paie(p)?;
     if caisse_conges {
-        f.add_v("S21.G00.40.022", req(ent, "congesspectacles_affiliation")?)?;
+        f.add("S21.G00.40.022", crate::conges_spectacles::code_dsn(ent)?);
     }
     // La deduction forfaitaire specifique que la fiche exerce (`calcul::deduction_forfaitaire`) : « Taux de deduction
     // forfaitaire specifique pour frais professionnels - S21.G00.40.023 », « Abattement pour frais professionnels applique
@@ -4273,7 +4291,7 @@ certificat de conformite du depot precedent.",
     f.add_v("S20.G00.07.001", req(decl, "nom_prenom")?)?;
     f.add_v("S20.G00.07.002", req(decl, "tel")?)?;
     f.add_v("S20.G00.07.003", req(decl, "email")?)?;
-    f.add_v("S20.G00.07.004", req(decl, "qualite")?)?;
+    f.add_v("S20.G00.07.004", &crate::dsn::type_du_contact(decl))?;
     if sans_individu {
         for code in liste(req(req(&orgs, "sans_individu")?, "absence_de_rattachement")?) {
             f.add_v("S20.G00.08.001", code)?;

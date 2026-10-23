@@ -1122,10 +1122,9 @@ fn a_la_date(obj: &Value, jour: &Jour, garder: &[&str]) -> Resultat<Value> {
 // --------------------------------------------------------------- le Contexte
 
 /// Le jour courant (UTC : sans fuseau, un `date.today()` local differe
-/// entre minuit et l'heure locale).
+/// entre minuit et l'heure locale). Au temps du moteur (`temps`) : la montre, ou le temps simule du banc et du rejeu.
 pub fn jour_reel() -> Jour {
-    let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-    Jour::depuis_jours_unix((s / 86_400) as i64).expect("horloge systeme")
+    crate::temps::jour_utc()
 }
 
 /// `contexte.aujourdhui` : `PUPPETPAIE_AUJOURDHUI` (AAAA-MM-JJ) remplace l'horloge.
@@ -1141,6 +1140,10 @@ pub fn aujourdhui_sans_note() -> Resultat<Jour> {
 }
 
 fn aujourdhui_brut() -> Resultat<Jour> {
+    // LE TEMPS SIMULE (le banc d'essai, le rejeu d'un scenario : `temps`) fait foi : c'est lui qui dit quel jour on est.
+    if crate::temps::simule() {
+        return Ok(crate::temps::jour_de_paris());
+    }
     match std::env::var("PUPPETPAIE_AUJOURDHUI") {
         Ok(v) if !v.is_empty() => Jour::lire(&v),
         _ => Ok(jour_reel()),

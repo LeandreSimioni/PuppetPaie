@@ -77,14 +77,54 @@ pub const CHAMP_CACHET: &str = "EMPLOYEUR_CACHET";
 // Quantites imprimees par France Travail, par rang de contrat (01 a 05).
 const QUANTITES: [(&str, &str); 2] = [("cachets", "SAL_NB_CACHET_"), ("heures", "SAL_NB_HEURES_")];
 
-// LA CLE DE RAPPROCHEMENT, ET POURQUOI CE N'EST PAS LE NUMERO DE CONTRAT.
-// L'attestation imprime bien CON_NUMERO_nn -- << MA2.26.15 >> -- mais ce numero
-// vient d'un compteur qui a avance depuis. Recharger paies/2026-08.json
-// aujourd'hui rend MA2.26.18, et le rapprochement echouerait sur tout.
-// Les dates de contrat, elles, ne bougent pas.
+// LA CLE DE RAPPROCHEMENT : LE NUMERO DE CONTRAT ET LA PERIODE (23/10/2026). Le cadre 4 de l'attestation a une colonne
+// par PERIODE d'emploi -- un mois d'un contrat --, et le numero du contrat (`CON_NUMERO_nn`, avec ses dates
+// `CON_NUM_DT_DEB/FIN_nn`) n'est imprime que dans la colonne de sa premiere periode ; les colonnes suivantes du meme
+// contrat le laissent a blanc (releve le 23/10/2026 sur une vraie AER d'octobre 2026, un contrat du 29/09 au 16/10 :
+// une colonne 29/09-30/09 numerotee, puis 01/10-16/10 sans numero ; la piece reelle est au depot prive,
+// `reference-privee/exemples/`). Une colonne se rapproche donc de la paie DU MOIS de sa periode, sous le numero de
+// contrat que la DSN a declare (regle 4 : il se lit -- `apercu_dsn::paies_aux_numeros_declares`, jamais le compteur
+// d'aujourd'hui). Le rapprochement par les seules dates du contrat laissait passer sans rien dire un contrat sur
+// plusieurs mois : aucune de ses colonnes n'avait les dates du contrat.
 const DEBUT: &str = "SAL_DT_DEB_";
 const FIN: &str = "SAL_DT_FIN_";
 const NUM_CONTRAT: &str = "CON_NUMERO_";
+
+/// QUAND UNE AER CINEMA SPECTACLE EST DUE : a l'intermittent (CDD d'usage du spectacle, la nature payee a l'activite de
+/// `contrats-base.json`, annexes 8 et 10), le mois ou son contrat FINIT -- une seule par employeur et par mois, et pour un
+/// contrat sur plusieurs mois, « 1 AE CS éditée à la fin du dernier mois concerné par le contrat »
+/// (`atelier/reference/sources/francetravail-100-dsn/movinmotion-fin-des-aem-20260601.txt`, l. 152-166 ;
+/// `mescachets-aem-aer-cs-20260903.txt`, l. 47 et 69 : « salariés intermittents du spectacle relevant des annexes 8 et
+/// 10 », « l'attestation est produite à la fin du dernier mois concerné » ; `comenolo-aer-cs.txt`, l. 37). France Travail
+/// l'edite depuis la DSN mensuelle qui porte la fin du contrat (son bloc 62 ; `francetravail-100-dsn/LISEZMOI.md`,
+/// « Ce qu'on en conclut », point 1). Un permanent (CDI, CDD de droit commun) n'en a pas : sa fin de contrat est un
+/// signalement (`contrats-base.json`, `cdd.fin_de_contrat.signalement_fctu`), et l'attestation de droit commun qui en
+/// revient n'est pas celle-ci.
+pub fn due(e: &crate::engagement::Engagement) -> Resultat<bool> {
+    if e.nat()?.mensuelle() {
+        return Ok(false);
+    }
+    let (debut, fin) = (e.debut_mois()?, e.fin_mois()?);
+    Ok(e.fin.is_some_and(|f| debut <= f && f <= fin))
+}
+
+/// LA FIN DE CONTRAT QUI SE SIGNALE (CDD et CDI de droit commun, CDDU rompu avant son terme : `Nature::signalement_fctu`)
+/// dans le mois : France Travail en edite l'attestation employeur rematerialisee (AER) en retour du signalement FCTU
+/// (nature 44 : « AER » en PDF quand le signalement passe, compte rendu metier quand il est refuse -- guide
+/// d'implementation de l'API DSN v6.8, §5.7.4 a 5.7.6 et tableau des formats,
+/// `atelier/reference/sources/gip-mds-api-dsn/gip-mds-guide-implementation-api-dsn-v6.8-20260706.txt`), et l'employeur
+/// doit la remettre au salarie (fiche net-entreprises 3037,
+/// `net-entreprises-base-connaissances/net-entreprises-fiche3037-attestation-employeur-aed-fctu-20250323.txt`). Le moteur
+/// ne la range pas pour l'envoi : la forme de ce PDF (ses champs, son cadre d'authentification) n'est relevee sur
+/// aucune piece deposee. Le courriel des documents le dit (`envoi::NOTE_SANS_ATTESTATION_FCTU`), sans rien promettre.
+pub fn attestation_fctu(e: &crate::engagement::Engagement) -> Resultat<bool> {
+    let nat = e.nat()?;
+    if !nat.signalement_fctu(e.motif_rupture.as_deref().filter(|m| !m.is_empty())) {
+        return Ok(false);
+    }
+    let (debut, fin) = (e.debut_mois()?, e.fin_mois()?);
+    Ok(e.fin.is_some_and(|f| debut <= f && f <= fin))
+}
 
 /// Pourquoi une attestation n'est pas rendue.
 #[derive(Debug, Clone, PartialEq)]
@@ -202,7 +242,8 @@ pub fn jour(t: &str) -> Resultat<Option<Jour>> {
     Jour::nouveau(a as i32, m, j).map(Some).ok_or_else(|| crate::date::jour_impossible(a, m, j))
 }
 
-/// Un contrat tel qu'IMPRIME sur l'attestation.
+/// Une colonne du cadre 4 telle qu'IMPRIMEE sur l'attestation : la periode, le numero du contrat (repris de la colonne
+/// precedente quand celle-ci ne l'imprime pas : la suite du meme contrat), les quantites.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Ligne {
     pub debut: Option<Jour>,
@@ -216,14 +257,18 @@ fn valeur(champs: &Value, nom: &str) -> Option<String> {
     champs.get(nom).and_then(|c| c.get("valeur")).and_then(Value::as_str).map(str::to_string)
 }
 
-/// Les quantites imprimees, par (debut, fin) ; les dates se comparent comme des
-/// dates, sans passer par une chaine : l'attestation ecrit JJ/MM/AAAA, la paie
-/// tient des dates. Deux rangs de meme cle : le dernier l'emporte, a la place
-/// du premier (un dictionnaire).
+/// Les colonnes imprimees, dans l'ordre. Une colonne sans dates de periode n'en est pas une ; une colonne sans numero
+/// prend celui de la colonne precedente (la suite du meme contrat). Deux colonnes de meme cle (numero, periode) : la
+/// derniere l'emporte, a la place de la premiere.
 pub fn lire_quantites(champs: &Value) -> Resultat<Vec<Ligne>> {
     let mut out: Vec<Ligne> = Vec::new();
+    let mut numero_courant = String::new();
     for rang in 1..=5 {
         let nom = |p: &str| format!("{}{:02}", p, rang);
+        let numero = valeur(champs, &nom(NUM_CONTRAT)).unwrap_or_default().trim().to_string();
+        if !numero.is_empty() {
+            numero_courant = numero;
+        }
         let (deb, fin) = (valeur(champs, &nom(DEBUT)), valeur(champs, &nom(FIN)));
         let (deb, fin) = match (deb.filter(|v| !v.is_empty()), fin.filter(|v| !v.is_empty())) {
             (Some(d), Some(f)) => (d, f),
@@ -234,14 +279,8 @@ pub fn lire_quantites(champs: &Value) -> Resultat<Vec<Ligne>> {
             continue;
         }
         let q = |i: usize| entier(valeur(champs, &nom(QUANTITES[i].1)).as_deref());
-        let ligne = Ligne {
-            debut,
-            fin,
-            cachets: q(0)?,
-            heures: q(1)?,
-            numero: valeur(champs, &nom(NUM_CONTRAT)).unwrap_or_default().trim().to_string(),
-        };
-        match out.iter_mut().find(|l| l.debut == debut && l.fin == fin) {
+        let ligne = Ligne { debut, fin, cachets: q(0)?, heures: q(1)?, numero: numero_courant.clone() };
+        match out.iter_mut().find(|l| l.debut == debut && l.fin == fin && l.numero == ligne.numero) {
             Some(l) => *l = ligne,
             None => out.push(ligne),
         }
@@ -249,39 +288,88 @@ pub fn lire_quantites(champs: &Value) -> Resultat<Vec<Ligne>> {
     Ok(out)
 }
 
-/// Ce que `verifier` lit d'une paie : son engagement, et rien d'autre.
+/// Ce que `verifier` lit d'une paie : le numero de contrat DECLARE, la periode du mois (le contrat borne au mois de la
+/// paie : `PaieAer::du_mois`), les quantites du mois.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PaieAer {
+    pub numero: String,
     pub debut: Jour,
     pub fin: Jour,
     pub cachets: i128,
     pub heures: i128,
 }
 
-/// Les ecarts entre l'attestation et la paie. Liste vide = concordance.
+impl PaieAer {
+    /// La periode d'une paie : son contrat (`e.debut`, `e.fin`) borne au mois de la paie.
+    pub fn du_mois(e: &crate::engagement::Engagement) -> Resultat<PaieAer> {
+        let (d, f) = (e.debut_mois()?, e.fin_mois()?);
+        let fin = e.fin.ok_or_else(|| format!("contrat {} sans fin", e.numero.clone().unwrap_or_default()))?;
+        Ok(PaieAer {
+            numero: e.numero.clone().unwrap_or_default(),
+            debut: if e.debut > d { e.debut } else { d },
+            fin: if fin < f { fin } else { f },
+            cachets: i128::from(e.cachets),
+            heures: e.heures.unwrap_or(0.0) as i128,
+        })
+    }
+}
+
+fn periode(debut: Option<Jour>, fin: Option<Jour>) -> String {
+    let j = |x: Option<Jour>| x.map(|j| j.iso()).unwrap_or_else(|| "?".to_string());
+    format!("{} au {}", j(debut), j(fin))
+}
+
+fn nom_du_contrat(numero: &str) -> &str {
+    if numero.is_empty() {
+        "contrat"
+    } else {
+        numero
+    }
+}
+
+/// Les ecarts entre l'attestation et la paie. Liste vide = concordance. `paies` : TOUTES les periodes que l'attestation
+/// doit porter pour ce salarie (les paies des contrats dont l'AER est due, mois par mois).
 ///
-/// On compare ce qui se perd en silence : les cachets et les heures. Le brut
-/// n'est pas compare ici -- un ecart de brut se verrait au premier coup d'oeil
-/// sur le bulletin, alors qu'une case d'heures vide ne se voit pas.
+/// Chaque colonne se rapproche de la paie de meme numero et de meme periode : ses cachets et ses heures doivent etre
+/// ceux de la paie (ce qui se perd en silence ; un ecart de brut se verrait au premier coup d'oeil sur le bulletin). Une
+/// colonne qu'aucune paie n'explique est un ecart ; une periode de la paie qu'aucune colonne ne porte aussi : signer,
+/// ce serait certifier exacte une attestation qui ajoute ou retire une periode d'emploi.
 pub fn ecarts(imprime: &[Ligne], paies: &[PaieAer]) -> Vec<String> {
     let mut ecarts = Vec::new();
-    for p in paies {
-        let ligne = match imprime.iter().find(|l| l.debut == Some(p.debut) && l.fin == Some(p.fin)) {
-            Some(l) => l,
-            None => continue, // contrat d'un autre salarie
+    for ligne in imprime {
+        let p = paies.iter().find(|p| p.numero == ligne.numero && Some(p.debut) == ligne.debut && Some(p.fin) == ligne.fin);
+        let Some(p) = p else {
+            ecarts.push(format!(
+                "{} ({}) : une periode sur l'attestation qu'aucune paie n'explique ({} cachets, {} heures)",
+                nom_du_contrat(&ligne.numero),
+                periode(ligne.debut, ligne.fin),
+                ligne.cachets,
+                ligne.heures
+            ));
+            continue;
         };
         for (quoi, vu, n) in [("cachets", ligne.cachets, p.cachets), ("heures", ligne.heures, p.heures)] {
             if vu != n {
                 ecarts.push(format!(
-                    "{} ({} au {}) : {} {} sur l'attestation, {} dans la paie",
-                    if ligne.numero.is_empty() { "contrat" } else { &ligne.numero },
-                    p.debut.iso(),
-                    p.fin.iso(),
+                    "{} ({}) : {} {} sur l'attestation, {} dans la paie",
+                    nom_du_contrat(&ligne.numero),
+                    periode(ligne.debut, ligne.fin),
                     vu,
                     quoi,
                     n
                 ));
             }
+        }
+    }
+    for p in paies {
+        if !imprime.iter().any(|l| l.numero == p.numero && l.debut == Some(p.debut) && l.fin == Some(p.fin)) {
+            ecarts.push(format!(
+                "{} ({}) : une periode de la paie ({} cachets, {} heures) que l'attestation ne porte pas",
+                nom_du_contrat(&p.numero),
+                periode(Some(p.debut), Some(p.fin)),
+                p.cachets,
+                p.heures
+            ));
         }
     }
     ecarts
@@ -420,7 +508,8 @@ fn paies_de(v: &Value) -> Resultat<Vec<PaieAer>> {
     for p in v.as_array().ok_or("demande illisible : `paies` doit etre une liste")? {
         let jour = |c: &str| Jour::lire(&en_texte(p.get(c).unwrap_or(&Value::Null)));
         let entier = |c: &str| p.get(c).and_then(Value::as_i64).map(i128::from).ok_or(format!("demande illisible : `{}` doit etre un entier", c));
-        out.push(PaieAer { debut: jour("debut")?, fin: jour("fin")?, cachets: entier("cachets")?, heures: entier("heures")? });
+        let numero = p.get("numero").map(en_texte).unwrap_or_default();
+        out.push(PaieAer { numero, debut: jour("debut")?, fin: jour("fin")?, cachets: entier("cachets")?, heures: entier("heures")? });
     }
     Ok(out)
 }
@@ -453,7 +542,7 @@ fn reponse(r: R<Map<String, Value>>) -> Resultat<Value> {
 
 /// `aer` : l'attestation signee. Demande : `fichier` (le PDF), `sortie` (le PDF
 /// signe y est ecrit), `entreprise`, `aujourdhui`, `paies` (null : on signe sans
-/// regarder, sinon `[{"debut", "fin", "cachets", "heures"}]`), `signature`,
+/// regarder, sinon `[{"numero", "debut", "fin", "cachets", "heures"}]`, une par periode), `signature`,
 /// `cachet_fichier`, `forcer`. Reponse : `{"chemin"}`, ou `{"ecarts"}` si rien
 /// n'est signe.
 fn authentifier_service(d: &Value) -> Resultat<Value> {

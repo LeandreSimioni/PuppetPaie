@@ -682,6 +682,10 @@ fn retour_lu(racine: &Path, ligne: &Value, r: &Value) -> Value {
             // Sans piece : ce que le releve en a lu quand il l'a rattachee (`journal.rattacher_retours`), et rien d'autre.
             if format == "aucun" {
                 phrases.push("Un accusé de réception, sans document : son statut dit tout.".into());
+            } else if statut == "fictive" || statut == "demonstration" {
+                // Le retour d'un depot joue par une compagnie fictive (`releve_retours::rattacher_simulation_detail`) : le
+                // bilan est joue sans piece ; seule l'AER (nature 46) a la sienne, fabriquee (`aer_fictive`).
+                phrases.push("Compagnie fictive : ce retour est joué par le logiciel, sans pièce d'organisme.".into());
             } else {
                 phrases.push("La pièce de ce retour n'est pas archivée sur ce poste : ce qui est dit ici vient du relevé.".into());
             }

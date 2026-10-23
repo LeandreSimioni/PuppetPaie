@@ -147,4 +147,16 @@ impl Veille {
     pub fn arreter(&self) {
         self.arretee.store(true, Ordering::SeqCst);
     }
+
+    /// Un passage tourne-t-il (la releve, ou la sauvegarde) ?
+    pub fn occupee(&self) -> bool {
+        self.en_cours.load(Ordering::SeqCst) || self.sauvegarde_en_cours.load(Ordering::SeqCst)
+    }
+
+    /// LA COMPAGNIE S'EN VA (`interface::suppression`) : plus de tour, et celui qui aurait commence se finit avant qu'on
+    /// rende la main -- rien ne s'ecrit plus dans son dossier ensuite.
+    pub fn arreter_et_attendre(&self) {
+        self.arreter();
+        let _fini = self.tour_unique.lock().unwrap_or_else(|p| p.into_inner());
+    }
 }

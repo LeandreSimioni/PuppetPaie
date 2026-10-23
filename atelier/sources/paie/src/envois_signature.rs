@@ -95,7 +95,7 @@ pub(crate) fn code_au_hasard(prefixe: &str) -> String {
     let mut code = String::from(prefixe);
     while code.len() < prefixe.len() + 6 {
         let mut b = [0u8; 1];
-        if getrandom::fill(&mut b).is_err() {
+        if crate::temps::aleas(&mut b).is_err() {
             let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.subsec_nanos()).unwrap_or(7);
             b[0] = (t >> (code.len() % 3)) as u8;
         }

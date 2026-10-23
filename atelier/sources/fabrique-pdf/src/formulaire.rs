@@ -996,3 +996,225 @@ fn poser_images(doc: &mut Document, poses: &[Pose]) -> Result<(), Refus> {
     }
     Ok(())
 }
+
+// ------------------------------------------------------------------ ajouter des champs
+
+/// Un champ à ajouter (`ajouter_champs`).
+struct Ajout {
+    nom: String,
+    page: usize,
+    rect: [f64; 4],
+    valeur: Option<String>,
+    lecture_seule: bool,
+    taille: f64,
+    q: i64,
+}
+
+fn lire_ajout(c: &Value, rang: usize) -> Result<Ajout, Refus> {
+    let o = match c.as_object() {
+        Some(o) => o,
+        None => return refus(format!("champ {} : un objet est attendu", rang)),
+    };
+    for cle in o.keys() {
+        if !matches!(cle.as_str(), "nom" | "page" | "rect" | "valeur" | "lecture_seule" | "taille" | "alignement") {
+            return refus(format!("champ {} : clé inconnue « {} »", rang, cle));
+        }
+    }
+    let nom = match o.get("nom").and_then(Value::as_str) {
+        Some(n) if !n.is_empty() && !n.contains('.') => n.to_string(),
+        _ => return refus(format!("champ {} : « nom » doit être un texte non vide, sans point", rang)),
+    };
+    let page = match o.get("page").and_then(Value::as_u64) {
+        Some(p) if p >= 1 => p as usize,
+        _ => return refus(format!("champ « {} » : « page » doit être un entier à partir de 1", nom)),
+    };
+    let rect: Vec<f64> = o.get("rect").and_then(Value::as_array).map(|v| v.iter().filter_map(nombre_json).collect()).unwrap_or_default();
+    if rect.len() != 4 || rect[2] <= rect[0] || rect[3] <= rect[1] {
+        return refus(format!("champ « {} » : « rect » doit être [x0, y0, x1, y1] avec x1 > x0 et y1 > y0", nom));
+    }
+    let valeur = match o.get("valeur") {
+        None | Some(Value::Null) => None,
+        Some(Value::String(s)) => Some(s.clone()),
+        Some(_) => return refus(format!("champ « {} » : la valeur doit être une chaîne", nom)),
+    };
+    let lecture_seule = match o.get("lecture_seule") {
+        None => false,
+        Some(Value::Bool(b)) => *b,
+        Some(_) => return refus(format!("champ « {} » : « lecture_seule » est vrai ou faux", nom)),
+    };
+    let taille = match o.get("taille") {
+        None => 0.0,
+        Some(v) => match nombre_json(v) {
+            Some(t) if t >= 0.0 => t,
+            _ => return refus(format!("champ « {} » : « taille » doit être un nombre positif ou nul", nom)),
+        },
+    };
+    let q = match o.get("alignement").and_then(Value::as_str) {
+        None | Some("gauche") => 0,
+        Some("centre") => 1,
+        Some("droite") => 2,
+        Some(a) => return refus(format!("champ « {} » : alignement « {} » inconnu (gauche, centre, droite)", nom, a)),
+    };
+    if valeur.is_none() && lecture_seule {
+        return refus(format!("champ « {} » : un champ en lecture seule sans valeur ne servirait à rien", nom));
+    }
+    Ok(Ajout { nom, page, rect: [rect[0], rect[1], rect[2], rect[3]], valeur, lecture_seule, taille, q })
+}
+
+/// `ajouter_champs` : des champs texte AcroForm ajoutés à un PDF existant (le plus souvent un document de la fabrique,
+/// dessiné en blocs fixes), chacun à sa page et dans son rectangle (origine en haut à gauche, comme `--champs`). Un champ
+/// qui a une valeur la reçoit avec son apparence régénérée (celle de `remplir`) ; `lecture_seule` pose ensuite le bit 1
+/// de `/Ff`, que `remplir` refuse de franchir. Description : `{"format", "champs": [{"nom", "page", "rect", "valeur",
+/// "lecture_seule", "taille", "alignement"}]}` ; `taille` 0 (défaut) : le corps qui tient. Tout se vérifie avant d'écrire :
+/// un nom déjà porté par le formulaire, une page qui n'existe pas, un caractère que la police n'a pas, et rien n'est rendu.
+pub fn ajouter_champs(octets: &[u8], description: &str) -> Result<Vec<u8>, Refus> {
+    let d: Value = serde_json::from_str(description).map_err(|e| Refus(format!("description illisible : {}", e)))?;
+    let d = match d.as_object() {
+        Some(o) => o,
+        None => return refus("description illisible : un objet JSON est attendu"),
+    };
+    match d.get("format").and_then(Value::as_i64) {
+        Some(f) if f == crate::FORMAT as i64 => {}
+        Some(f) => return refus(format!("format {} : cette fabrique lit le format {}", f, crate::FORMAT)),
+        None => return refus("description sans « format »"),
+    }
+    for cle in d.keys() {
+        if !matches!(cle.as_str(), "format" | "champs") {
+            return refus(format!("clé inconnue « {} » dans la description", cle));
+        }
+    }
+    let liste = match d.get("champs") {
+        Some(Value::Array(v)) if !v.is_empty() => v,
+        _ => return refus("« champs » doit être une liste non vide"),
+    };
+    let mut ajouts = Vec::new();
+    for (i, c) in liste.iter().enumerate() {
+        ajouts.push(lire_ajout(c, i + 1)?);
+    }
+    let mut doc = crate::lecture::charger(octets)?;
+    if doc.trailer.get(b"Encrypt").is_ok() {
+        return refus("le PDF est chiffré : on n'y ajoute rien");
+    }
+    let (existants, _) = lister(&doc);
+    let mut noms: BTreeSet<String> = existants.into_iter().map(|c| c.nom).collect();
+    for a in &ajouts {
+        if !noms.insert(a.nom.clone()) {
+            return refus(format!("le formulaire a déjà un champ « {} »", a.nom));
+        }
+    }
+    let pages: BTreeMap<u32, ObjectId> = doc.get_pages();
+    for a in &ajouts {
+        if !pages.contains_key(&(a.page as u32)) {
+            return refus(format!("champ « {} » : pas de page {} (le PDF en a {})", a.nom, a.page, pages.len()));
+        }
+    }
+
+    // Le formulaire du catalogue : créé s'il n'existe pas, avec Helvetica comme police par défaut (`/DR`).
+    let helv = doc.add_object(Object::Dictionary({
+        let mut f = Dictionary::new();
+        f.set("Type", Object::Name(b"Font".to_vec()));
+        f.set("Subtype", Object::Name(b"Type1".to_vec()));
+        f.set("BaseFont", Object::Name(b"Helvetica".to_vec()));
+        f.set("Encoding", Object::Name(b"WinAnsiEncoding".to_vec()));
+        f
+    }));
+    let racine = doc.trailer.get(b"Root").and_then(Object::as_reference).map_err(|_| Refus("PDF sans catalogue".into()))?;
+    let acro_existant: Option<Object> = doc.get_dictionary(racine).ok().and_then(|c| c.get(b"AcroForm").ok()).cloned();
+    let acro_id = match acro_existant {
+        Some(Object::Reference(id)) => id,
+        Some(Object::Dictionary(dico_inline)) => doc.add_object(Object::Dictionary(dico_inline)),
+        _ => doc.add_object(Object::Dictionary(Dictionary::new())),
+    };
+    {
+        let acro = doc.get_object_mut(acro_id).and_then(Object::as_dict_mut).map_err(|e| Refus(format!("formulaire illisible ({})", e)))?;
+        if !acro.has(b"DA") {
+            acro.set("DA", Object::String(b"/Helv 0 Tf 0 g".to_vec(), lopdf::StringFormat::Literal));
+        }
+        if !acro.has(b"DR") {
+            let mut polices = Dictionary::new();
+            polices.set("Helv", Object::Reference(helv));
+            let mut dr = Dictionary::new();
+            dr.set("Font", Object::Dictionary(polices));
+            acro.set("DR", Object::Dictionary(dr));
+        }
+    }
+    if let Ok(c) = doc.get_object_mut(racine).and_then(Object::as_dict_mut) {
+        c.set("AcroForm", Object::Reference(acro_id));
+    }
+
+    // Les widgets (champ et widget fusionnés), dans `/Annots` de leur page et dans `/Fields`.
+    let mut nouveaux: Vec<ObjectId> = Vec::new();
+    for a in &ajouts {
+        let page = pages[&(a.page as u32)];
+        let c = cadre(&doc, page).unwrap_or([0.0, 0.0, 595.0, 842.0]);
+        let r = [c[0] + a.rect[0], c[3] - a.rect[3], c[0] + a.rect[2], c[3] - a.rect[1]];
+        let mut w = Dictionary::new();
+        w.set("Type", Object::Name(b"Annot".to_vec()));
+        w.set("Subtype", Object::Name(b"Widget".to_vec()));
+        w.set("FT", Object::Name(b"Tx".to_vec()));
+        w.set("T", Object::String(vers_chaine_pdf(&a.nom), lopdf::StringFormat::Literal));
+        w.set("Rect", Object::Array(r.iter().map(|x| Object::Real(*x as f32)).collect()));
+        w.set("P", Object::Reference(page));
+        w.set("F", Object::Integer(4));
+        w.set("Ff", Object::Integer(0));
+        w.set("Q", Object::Integer(a.q));
+        w.set("DA", Object::String(format!("/Helv {} Tf 0 g", nb(a.taille)).into_bytes(), lopdf::StringFormat::Literal));
+        let id = doc.add_object(Object::Dictionary(w));
+        nouveaux.push(id);
+        let annots: Option<Object> = doc.get_dictionary(page).ok().and_then(|p| p.get(b"Annots").ok()).cloned();
+        match annots {
+            Some(Object::Reference(tab)) => {
+                if let Ok(Object::Array(v)) = doc.get_object_mut(tab) {
+                    v.push(Object::Reference(id));
+                }
+            }
+            Some(Object::Array(mut v)) => {
+                v.push(Object::Reference(id));
+                if let Ok(p) = doc.get_object_mut(page).and_then(Object::as_dict_mut) {
+                    p.set("Annots", Object::Array(v));
+                }
+            }
+            _ => {
+                if let Ok(p) = doc.get_object_mut(page).and_then(Object::as_dict_mut) {
+                    p.set("Annots", Object::Array(vec![Object::Reference(id)]));
+                }
+            }
+        }
+    }
+    let champs_existants: Option<Object> = doc.get_dictionary(acro_id).ok().and_then(|a| a.get(b"Fields").ok()).cloned();
+    let refs: Vec<Object> = nouveaux.iter().map(|id| Object::Reference(*id)).collect();
+    match champs_existants {
+        Some(Object::Reference(tab)) => {
+            if let Ok(Object::Array(v)) = doc.get_object_mut(tab) {
+                v.extend(refs);
+            }
+        }
+        Some(Object::Array(mut v)) => {
+            v.extend(refs);
+            if let Ok(a) = doc.get_object_mut(acro_id).and_then(Object::as_dict_mut) {
+                a.set("Fields", Object::Array(v));
+            }
+        }
+        _ => {
+            if let Ok(a) = doc.get_object_mut(acro_id).and_then(Object::as_dict_mut) {
+                a.set("Fields", Object::Array(refs));
+            }
+        }
+    }
+
+    // Les valeurs, avec leur apparence (le même chemin que `remplir`), puis la lecture seule.
+    let valeurs: Vec<(String, String)> = ajouts.iter().filter_map(|a| a.valeur.clone().map(|v| (a.nom.clone(), v))).collect();
+    if !valeurs.is_empty() {
+        ecrire_champs(&mut doc, &valeurs)?;
+    }
+    for (a, id) in ajouts.iter().zip(&nouveaux) {
+        if a.lecture_seule {
+            if let Ok(w) = doc.get_object_mut(*id).and_then(Object::as_dict_mut) {
+                w.set("Ff", Object::Integer(1));
+            }
+        }
+    }
+    let mut sortie = Vec::new();
+    doc.save_to(&mut sortie).map_err(|e| Refus(format!("écriture du PDF impossible ({})", e)))?;
+    Ok(sortie)
+}

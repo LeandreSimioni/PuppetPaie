@@ -5,6 +5,19 @@ Réécrit le 15/10/2026 : le moteur est quasiment fini, on fait de l'interface, 
 (`journal/archives/2026-10-15-claude-md-avant.md`, et `2026-10-04-claude-md-avant.md` avant lui). **Les numéros des règles
 de fond (0 à 11) ne bougent pas : le code les cite.**
 
+## Es-tu l'orchestrateur ou un exécutant ? (Léandre, 23/10/2026)
+
+Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à l'orchestrateur.
+- **L'orchestrateur** est la séance que Léandre a ouverte : il parle à Léandre, lit `ETAT.md` et les tickets, découpe,
+  lance les sous-agents, fusionne, lance **la** suite complète, pousse, ouvre la PR, commente et ferme les tickets, écrit
+  le journal.
+- **Un exécutant** est un sous-agent lancé par l'orchestrateur (sa consigne le dit, il travaille dans un worktree, sur une
+  branche de lot). Il fait son lot et rien d'autre, commite sur sa branche, et rend une passation. **Il ne fait jamais** :
+  la suite complète (seulement les binaires qu'il nomme), un push, une PR, une fusion dans la branche de séance, un
+  commentaire ou une fermeture de ticket, le journal ou `ETAT.md`, ni ne parle à Léandre. Quand ce fichier dit « à la fin
+  de la séance », « avant de pousser », « on ferme le ticket », c'est l'orchestrateur ; en cas de doute, c'est sa
+  consigne qui tranche.
+
 ## Par quoi on commence
 
 1. **`journal/ETAT.md` du dépôt privé** : une page, le point de reprise. Rien d'autre ne se lit d'office.
@@ -98,8 +111,10 @@ montre que celui qui a lieu.
   suivante », « le refus est propre » ne sont pas des raisons de livrer. On ne bâcle pas pour publier plus tôt.
 - **Plusieurs Opus à la fois, quatre au plus, et deux Sonnet au plus** (Léandre, 15/10/2026 ; la limite est le disque du
   conteneur : une cible Cargo pèse 2 à 6 Go) : des lots disjoints, chacun dans son worktree et sa cible Cargo
-  (`CARGO_TARGET_DIR` seul, un seul profil) ; une passation vérifiée à la fois ; **la cible et le worktree d'un lot fusionné
-  s'effacent aussitôt**.
+  (`CARGO_TARGET_DIR` seul, un seul profil) ; une passation vérifiée à la fois ; le worktree d'un lot fusionné s'efface
+  aussitôt. **La cible, c'est l'orchestrateur qui la choisit** (Léandre, 23/10/2026) : des lots qui se suivent un par un
+  partagent une même cible, gardée d'un lot à l'autre (on ne recompile que ce qui a changé) ; des lots en parallèle ont
+  chacun la sienne, effacée à la fusion du lot. Sa consigne nomme la cible ; l'exécutant n'en crée pas d'autre.
 - Ne se délègue pas : une décision de conception, un acte qui engage (dépôt réel, envoi, signature), tout ce qui toucherait au
   coffre. Un Opus **ne réécrit jamais l'historique** (`--amend`, `rebase`, `reset`) et **ne laisse aucune tâche de fond**.
 - **Aucun repli Python** : ce qui s'écrit s'écrit en Rust, dans `paie/` ; ce qui ne se porte pas proprement remonte à Léandre.
@@ -171,7 +186,10 @@ vient de changer dans le moteur (`cd atelier/sources/paie && cargo build --relea
 `libwebkit2gtk-4.1-dev libsoup-3.0-dev librsvg2-dev xvfb`.
 
 **Tout doit être vert. Une PR dont la suite est rouge ne se fusionne pas.** Une fois, à la fin, avant de pousser ; pendant le
-travail, on corrige sans relancer. Une seule commande d'attente à la fois, en arrière-plan.
+travail, on corrige sans relancer. Une seule commande d'attente à la fois, en arrière-plan. **La suite complète
+(`cargo nextest run` sans `-E`) ne se lance qu'une fois par séance, par l'orchestrateur, sur la branche où tout est
+fusionné** (Léandre, 23/10/2026 : « ces tests 20 fois de suite, ça n'a pas de sens ») ; un sous-agent ne lance que les
+binaires qu'il nomme un par un (`-E 'binary(routes)'`…).
 
 ```bash
 cd atelier/sources/paie && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"     # les dossiers de travail des tests (~3 Go)

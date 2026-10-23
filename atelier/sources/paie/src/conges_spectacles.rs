@@ -19,6 +19,64 @@ use crate::routes_ouverture::Refus;
 
 type R<T> = Result<T, Refus>;
 
+// ------------------------------------------------- le numero d'adherent, et le code que la DSN en tire
+
+/// La cle de la fiche entreprise : le numero d'adherent a la Caisse des Conges Spectacles, le SEUL numero Conges
+/// Spectacles que la compagnie saisit (#236). Il va dans la case COMPTE des certificats, dans les contrats, et la DSN
+/// le declare precede de 97 (`code_dsn`).
+pub const CLE_ADHERENT: &str = "congesspectacles_adherent";
+
+/// LA FORME ECRITE DU NUMERO D'ADHERENT : la meme valeur, « accolés, sans espaces, ni tiret » et la lettre en capitale,
+/// comme l'exemple de la fiche (970000000001A ; `audiens-fiche-specificites-conges-spectacles-20261023.txt`, l. 80-81).
+/// Rien ne s'ajoute ni ne se devine : on ote les blancs et les tirets, on met en majuscules. Le seul endroit qui le fait ;
+/// `routes_fiches::deriver` l'applique avant de controler et d'enregistrer la fiche, `adherent` avant de declarer.
+pub fn forme_adherent(v: &str) -> String {
+    v.chars().filter(|c| !c.is_whitespace() && *c != '-').flat_map(char::to_uppercase).collect()
+}
+
+/// LA FORME DU NUMERO D'ADHERENT : « le numéro d'adhérent à la caisse Congés spectacles (10 chiffres + 1 lettre) »
+/// (Audiens, fiche de specificites « Parametrage DSN Conges Spectacles »,
+/// `atelier/reference/sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt`, l. 80-81). La
+/// lettre s'ecrit en capitale (l'exemple de la fiche : 970000000001A). `None` : la forme est bonne.
+pub fn faute_adherent(v: &str) -> Option<String> {
+    let c: Vec<char> = v.chars().collect();
+    let bon = c.len() == 11 && c[..10].iter().all(char::is_ascii_digit) && c[10].is_ascii_uppercase();
+    (!bon).then(|| {
+        "le numéro d'adhérent Congés Spectacles s'écrit en dix chiffres suivis d'une lettre \
+         (par exemple 0123450001F), tel qu'il figure sur les courriers d'Audiens"
+            .to_string()
+    })
+}
+
+/// Le numero d'adherent de la fiche, de la forme que dit la fiche d'Audiens (`faute_adherent`) ; sinon, refus qui dit
+/// quoi saisir.
+pub fn adherent(ent: &Value) -> Result<String, String> {
+    let v = match ent.get(CLE_ADHERENT) {
+        Some(v) if vrai(v) => forme_adherent(&py_str(v)),
+        _ => {
+            return Err("le numéro d'adhérent Congés Spectacles manque dans la fiche de l'entreprise (Entreprise, « Vos \
+                        numéros chez les organismes ») : dix chiffres suivis d'une lettre, tel qu'il figure sur les \
+                        courriers d'Audiens"
+                .to_string())
+        }
+    };
+    match faute_adherent(&v) {
+        Some(faute) => Err(format!("fiche de l'entreprise : {}", faute)),
+        None => Ok(v),
+    }
+}
+
+/// LE CODE CONGES SPECTACLES QUE LA DSN DECLARE (S21.G00.40.022), et le seul endroit qui l'ecrit : « 97 puis le numéro
+/// d'adhérent à la caisse Congés spectacles (10 chiffres + 1 lettre). Ces 2 identifiants doivent être accolés, sans
+/// espaces, ni tiret, etc… EX : 970000000001A » (Audiens, fiche de specificites « Parametrage DSN Conges Spectacles »,
+/// `atelier/reference/sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt`, l. 80-81). La
+/// norme dit la meme forme (« Indiquer "97", le numero d'affiliation et la cle », CRE-11 : les deux premiers caracteres
+/// dans la table CPCP, ou 97 est la « Caisse de conges spectacles » ; `atelier/reference/norme-dsn/texte/
+/// bloc-S21.G00.40.txt`, l. 921-933). Une cle `congesspectacles_affiliation` qu'une fiche porterait encore n'est pas lue.
+pub fn code_dsn(ent: &Value) -> Result<String, String> {
+    Ok(format!("97{}", adherent(ent)?))
+}
+
 const TIMES: &str = "tiro";
 const TIMES_GRAS: &str = "tibo";
 const COURIER: &str = "cour";

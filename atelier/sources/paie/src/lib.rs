@@ -11,6 +11,7 @@
 
 pub mod administrateur;
 pub mod aer;
+pub mod aer_fictive;
 #[cfg(feature = "atelier")]
 pub mod atelier;
 pub mod amorcage;
@@ -171,6 +172,7 @@ pub mod routes_ouverture;
 pub mod routes_saisie;
 pub mod routes_sauvegarde;
 pub mod sauvegarde;
+pub mod scenario;
 pub mod restauration;
 pub mod signature_courriel;
 pub mod service;
@@ -180,6 +182,7 @@ pub mod sources;
 pub mod tables_journal;
 pub mod tables_nfkc;
 pub mod tables_retours;
+pub mod temps;
 pub mod usages;
 pub mod verifier_avant_commit;
 pub mod transport;

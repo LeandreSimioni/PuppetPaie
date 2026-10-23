@@ -90,7 +90,7 @@ const MODALITES: [Modalite; 20] = [
     // date de la mutation (le SIRET, identifiant, va en 41.012 dans un autre bloc, CCH-16).
     m("S21.G00.40.019", "S21.G00.41.013", false, &["etablissement"], &[]),
     m("S21.G00.40.021", "S21.G00.41.016", true, &[], &[]),
-    m("S21.G00.40.022", "S21.G00.41.023", false, &[], &["congesspectacles_affiliation"]),
+    m("S21.G00.40.022", "S21.G00.41.023", false, &[], &["congesspectacles_adherent"]),
     // Le taux de la deduction forfaitaire specifique vient du bareme de l'annee (arrete du 4 septembre 2025, art. 9, II :
     // reduit « au 1er janvier de chaque annee ») et de la fiche (profession, accord du salarie, option de l'employeur).
     Modalite {

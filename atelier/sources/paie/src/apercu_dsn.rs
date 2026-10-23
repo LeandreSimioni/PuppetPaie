@@ -190,39 +190,39 @@ fn date_dsn(v: &str) -> String {
 }
 
 #[derive(Default)]
-struct Contrat {
-    numero: String,
-    debut: String,
-    fin: String,
-    emploi: String,
-    nature: String,
-    objet: String,
-    brut: Decimal,
-    jours: Decimal,
-    cachets: Decimal,
-    heures: Decimal,
-    fin_declaree: String,
-    motif_fin: String,
-    remunere: bool,
+pub(crate) struct Contrat {
+    pub(crate) numero: String,
+    pub(crate) debut: String,
+    pub(crate) fin: String,
+    pub(crate) emploi: String,
+    pub(crate) nature: String,
+    pub(crate) objet: String,
+    pub(crate) brut: Decimal,
+    pub(crate) jours: Decimal,
+    pub(crate) cachets: Decimal,
+    pub(crate) heures: Decimal,
+    pub(crate) fin_declaree: String,
+    pub(crate) motif_fin: String,
+    pub(crate) remunere: bool,
 }
 
 #[derive(Default)]
-struct Versement {
-    date: String,
-    net_verse: String,
-    net_fiscal: String,
-    taux_pas: String,
-    montant_pas: String,
+pub(crate) struct Versement {
+    pub(crate) date: String,
+    pub(crate) net_verse: String,
+    pub(crate) net_fiscal: String,
+    pub(crate) taux_pas: String,
+    pub(crate) montant_pas: String,
 }
 
 #[derive(Default)]
-struct Individu {
-    nir: String,
-    nom: String,
-    prenoms: String,
-    contrats: Vec<Contrat>,
-    versements: Vec<Versement>,
-    par_numero: HashMap<String, (usize, usize)>,
+pub(crate) struct Individu {
+    pub(crate) nir: String,
+    pub(crate) nom: String,
+    pub(crate) prenoms: String,
+    pub(crate) contrats: Vec<Contrat>,
+    pub(crate) versements: Vec<Versement>,
+    pub(crate) par_numero: HashMap<String, (usize, usize)>,
 }
 
 /// Les sorties de `dsn_recap.lire` sous la forme que le recapitulatif complete : les montants
@@ -241,7 +241,7 @@ impl Contrat {
 }
 
 /// `dsn_recap.lire` : les salaries du fichier, leurs contrats, leurs versements.
-fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
+pub(crate) fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
     let texte = texte_latin1(octets);
     let mut sals: Vec<Individu> = Vec::new();
     let mut contrat: Option<(usize, usize)> = None;

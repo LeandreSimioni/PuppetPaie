@@ -6,11 +6,19 @@
 |---|---|---|
 | `audiens-dossier-dsn-20261020.md` | transcription de la section « Payer les cotisations Audiens Santé Prévoyance » du dossier DSN d'Audiens | https://www.audiens.org/solutions/entreprise-dossier-dsn-declaration-sociale-nominative.html |
 | `audiens-declarer-payer-conges-spectacles-20261020.md` | transcription du haut de la page « Déclarer et payer les cotisations Congés Spectacles » | https://www.audiens.org/solutions/declarer-et-payer-les-cotisations-conges-spectacles.html |
+| `audiens-fiche-specificites-conges-spectacles-20261023.txt` | transcription (`pdftotext -layout`) de la « Fiche de spécificités — Paramétrage DSN Congés Spectacles » (PDF du 16/02/2023), relevée le 23/10/2026 | https://www.audiens.org/files/live/sites/siteAudiens/files/03_documents/entreprise/DSN/DSN-Fiche-specificites-Conges-spectacles.pdf |
 
 Audiens est un organisme privé : les pages telles que servies (HTML) sont dans le dépôt privé,
 `reference-privee/sources/audiens-dsn/`, avec leurs empreintes données dans chaque transcription.
 
 ## Ce qu'on en lit
+
+- **Le code Congés Spectacles de S21.G00.40.022 se déduit du numéro d'adhérent** (fiche de spécificités, l. 80-81) :
+  « 97 puis le numéro d'adhérent à la caisse Congés spectacles (10 chiffres + 1 lettre). Ces 2 identifiants doivent
+  être accolés, sans espaces, ni tiret, etc… EX : 970000000001A ». La norme dit la même forme (« Indiquer "97", le
+  numéro d'affiliation et la clé », `../../norme-dsn/texte/bloc-S21.G00.40.txt`, l. 921-933) : le « numéro
+  d'affiliation et la clé » de la norme est donc le numéro d'adhérent d'Audiens (dix chiffres et une lettre). Une
+  compagnie ne saisit que son numéro d'adhérent ; le moteur écrit `97` + ce numéro.
 
 - **Les trois identifiants de versement (S21.G00.20.001) d'Audiens** : « Pour la retraite Audiens > 44832375800038 »,
   « Pour les Congés Spectacles > 77567608300030 », « Pour Audiens Santé Prévoyance > P0983 ». La table IVO des
@@ -29,6 +37,11 @@ Audiens est un organisme privé : les pages telles que servies (HTML) sont dans 
   cotisations sont identiques à celles de la retraite et de la prévoyance. »
 
 ## Où le moteur s'en sert
+
+- `atelier/sources/paie/src/conges_spectacles.rs` : `code_dsn` écrit S21.G00.40.022 = `97` + le numéro d'adhérent
+  (`congesspectacles_adherent`, le seul numéro Congés Spectacles de la fiche ; `dsn.rs` l'appelle), `faute_adherent`
+  contrôle sa forme (dix chiffres et une lettre) à la saisie (`champs::verifier_champ`) comme à l'écriture de la DSN ;
+  `importation.rs` reprend d'une DSN le numéro d'adhérent qui suit le `97`.
 
 - `logiciel/donnees/organismes-base.json` : le nom de chaque organisme (`nom`), ce que couvre son versement (`objet`)
   et, pour les trois identifiants d'Audiens, `jour_de_paiement` = 25.

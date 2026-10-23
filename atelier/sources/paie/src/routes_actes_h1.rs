@@ -77,7 +77,7 @@ fn jour_le(charge: &Value) -> R<Option<Jour>> {
 
 /// Les secondes unix de l'horloge.
 fn maintenant() -> f64 {
-    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64())
+    crate::temps::secondes()
 }
 
 /// `datetime.now()` a l'heure de Paris, en `AAAA-MM-JJTHH:MM:SS`.
@@ -374,6 +374,7 @@ fn fin_contrat_signaler(o: &HashMap<String, String>, ctx: &Contexte, charge: &Va
         .collect();
     let texte = crate::fctu::generer(ctx, &paie, &fin, &options, &paie.engagement.suspensions, &arrets).map_err(echec_fctu)?;
     crate::dsn::ecrire(&texte, &cible).map_err(plain)?;
+    crate::produire_mois::noter_piece_ecrite(&ctx.racine, &crate::produire_mois::cle_de_piece(&cible), None)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),
         "nom": nom,
@@ -467,6 +468,7 @@ fn arret_signaler(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -
     };
     let texte = signalement::generer(ctx, &dsn_arret, &options).map_err(echec)?;
     crate::dsn::ecrire(&texte, &cible).map_err(plain)?;
+    crate::produire_mois::noter_piece_ecrite(&ctx.racine, &crate::produire_mois::cle_de_piece(&cible), None)?;
     let nomenclatures = crate::routes_listes::nomenclatures(ctx)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),
@@ -809,6 +811,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
             let cible = sortie.join(format!("DPAE_{}{}.txt", etiq, marque));
             let h = horodatage(&maintenant_iso());
             crate::dpae::ecrire(&embauches, &cible, &parametres_de(&h, &heure_texte, &code, &ent, &chemins), true).map_err(plain)?;
+            crate::produire_mois::noter_piece_ecrite(&ctx.racine, &crate::produire_mois::cle_de_piece(&cible), None)?;
             let pour_recap: Vec<Embauche> = retenues.iter().map(|p| embauche_dpae(p, true)).collect();
             ecrire_texte(&recap, &crate::dpae::recapitulatif(&pour_recap, &heure).map_err(plain)?)?;
             cible
@@ -898,6 +901,7 @@ pub(crate) fn ecrire_dpae_du_mois(ctx: &Contexte, ent: &Value, embauches: &[&Pai
     let pour_fichier: Vec<Embauche> = embauches.iter().map(|p| embauche_dpae(p, false)).collect();
     let cible = sortie.join(format!("DPAE_{}.txt", etiq));
     crate::dpae::ecrire(&pour_fichier, &cible, &parametres_de(&h, heure, &code, ent, &chemins), true).map_err(plain)?;
+    crate::produire_mois::noter_piece_ecrite(&ctx.racine, &crate::produire_mois::cle_de_piece(&cible), None)?;
     let pour_recap: Vec<Embauche> = embauches.iter().map(|p| embauche_dpae(p, true)).collect();
     let recap = sortie.join(format!("DPAE_{}_recapitulatif.txt", etiq));
     ecrire_texte(&recap, &crate::dpae::recapitulatif(&pour_recap, &json!(heure)).map_err(plain)?)?;

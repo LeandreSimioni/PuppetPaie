@@ -287,7 +287,7 @@ fn decimal_py(texte: &str) -> Option<Dec> {
 
 /// Le jour d'aujourd'hui a Paris, `JJ/MM/AAAA` (`date.today().strftime("%d/%m/%Y")`).
 fn aujourdhui_jj_mm_aaaa() -> String {
-    let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64());
+    let t = crate::temps::secondes();
     let iso = crate::paris::iso_secondes(t);
     format!("{}/{}/{}", &iso[8..10], &iso[5..7], &iso[..4])
 }

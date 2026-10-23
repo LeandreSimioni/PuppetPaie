@@ -124,7 +124,8 @@ fn le_bilan_dit_l_etat_de_chaque_acte() {
     let b = rendu(c, "bilan-du-mois", json!({"mois": MOIS}), "2026-10-03");
     assert_eq!(b["dpae"], json!({"couleur": "", "phrase": "aucune DPAE déclarée — 3 à faire"}));
     assert_eq!(b["contrat-signature"], json!({"couleur": "", "phrase": "aucun contrat envoyé — 3 à faire signer"}));
-    assert_eq!(b["documents"], json!({"couleur": "", "phrase": "Documents pas encore envoyés — 3 salariés"}));
+    // Ce qui part, nomme par le moteur : trois contrats d'usage qui finissent dans le mois (bulletin, certificat CS, AER).
+    assert_eq!(b["documents"], json!({"couleur": "", "phrase": "Documents pas encore envoyés — 3 salariés", "detail": "bulletin, certificat Congés Spectacles, AER"}));
     // Deux DPAE passees, une partie sans retour.
     journal(c, &[
         dpae_declaree(&CLES[..2], json!([{"nature": "41", "dpae": []}])),
@@ -149,7 +150,7 @@ fn le_bilan_dit_l_etat_de_chaque_acte() {
     let b = rendu(c, "bilan-du-mois", json!({"mois": MOIS}), "2026-10-03");
     assert_eq!(b["contrat-signature"]["phrase"], "Tous les contrats sont envoyés (3) — 1 reçu signé, 2 à recevoir");
     assert_eq!(b["contrat-signature"]["attente"], true);
-    assert_eq!(b["documents"], json!({"couleur": "alerte", "phrase": "Documents envoyés à 2 salariés sur 3"}));
+    assert_eq!(b["documents"], json!({"couleur": "alerte", "phrase": "Documents envoyés à 2 salariés sur 3", "detail": "bulletin, certificat Congés Spectacles, AER"}));
 }
 
 #[test]
@@ -214,6 +215,8 @@ fn le_chemin_d_un_depot_se_lit_dans_le_bilan() {
     let c = &compagnie("etapes");
     let dsn = dossier_sorties(c, MOIS).join("DSN_Aout2026.dsn");
     std::fs::write(&dsn, "S10.G00.00.005,'02'\nS20.G00.05.001,'01'\nS20.G00.05.002,'01'\nS20.G00.05.004,'1'\n").unwrap();
+    // Ecrite, c'est notee au journal des ecritures (`produire_mois::mois_ecrit`) : le moteur la note en l'ecrivant.
+    std::fs::write(c.join("journal/dsn-ecrites.json"), json!({"2026-08/DSN_Aout2026.dsn": {"quand": "2026-10-01T09:00:00"}}).to_string()).unwrap();
     let empreinte = paie::journal::empreinte_fichier(&dsn).unwrap();
     let essai = |retours: Value, accepte: bool| {
         let mut l = ligne("dsn", MOIS, "test", retours, json!({"type": "01", "ordre": "1"}));
@@ -253,34 +256,40 @@ fn le_chemin_d_un_depot_se_lit_dans_le_bilan() {
     assert_eq!(b["dsn"]["courte"], "la paie a changé — à réécrire et tester");
 }
 
+/// L'ORDRE DES FICHIERS DEPOSABLES (#236, `routes_mois::ordre_de_depot`) ne depend plus de la date d'un fichier : les
+/// mensuelles d'abord, par leur nom ; puis les signalements, dans l'ordre de leur numero d'ordre (S20.G00.05.004, cahier
+/// technique DSN 2026.1 p. 136 : unique, jamais remis a zero) ; les DPAE, la plus recente d'abord par son nom. `ecrit`
+/// dit QUAND LE MOTEUR L'A ECRIT, tel que son journal des ecritures le consigne (`journal/dsn-ecrites.json`), et jamais
+/// la date du fichier : une fictive decompressee chez le visiteur dirait le jour de l'installation (#236).
 #[test]
-fn les_fichiers_deposables_le_dernier_ecrit_en_tete_a_l_heure_de_paris() {
+fn les_fichiers_deposables_dans_l_ordre_de_ce_qu_ils_declarent() {
     let c = &compagnie("fichiers");
     let d = dossier_sorties(c, MOIS);
-    let poser = |nom: &str, secondes: u64| {
-        let f = std::fs::File::create(d.join(nom)).unwrap();
-        f.set_modified(UNIX_EPOCH + Duration::from_secs(secondes)).unwrap();
-        std::fs::write(d.join(nom), nom).unwrap();
+    let poser = |nom: &str, contenu: &str, secondes: u64| {
+        std::fs::write(d.join(nom), contenu).unwrap();
         let f = std::fs::OpenOptions::new().write(true).open(d.join(nom)).unwrap();
         f.set_modified(UNIX_EPOCH + Duration::from_secs(secondes)).unwrap();
     };
-    // 15/07/2026 10:30 UTC (ete : 12:30 a Paris), 15/01/2026 10:30 UTC (hiver : 11:30).
-    poser("DSN_Aout2026.dsn", 1_784_111_400);
-    poser("DSN_Aout2026_AR2.dsn", 1_768_473_000);
-    poser("autre.DSN", 1_784_111_460);
-    poser("DPAE_Aout2026.txt", 1_768_473_000);
-    poser("DPAE_Aout2026_recapitulatif.txt", 1_784_111_400);
-    poser("DPAE_Aout2026.txt.zip", 1_784_111_400);
-    poser("Bulletins_Aout2026.pdf", 1_784_111_400);
+    // 15/07/2026 10:30 UTC (ete : 12:30 a Paris), 15/01/2026 10:30 UTC (hiver : 11:30). Les dates ne decident plus rien.
+    poser("DSN_Aout2026.dsn", "DSN_Aout2026.dsn", 1_784_111_400);
+    poser("DSN_Aout2026_AR2.dsn", "DSN_Aout2026_AR2.dsn", 1_768_473_000);
+    poser("autre.DSN", "autre.DSN", 1_784_111_460);
+    poser("Amorcage01_X.dsn", "S20.G00.05.001,'08'\nS20.G00.05.004,'2'\n", 1_768_473_000);
+    poser("Fin_Y.dsn", "S20.G00.05.001,'04'\nS20.G00.05.004,'1'\n", 1_784_111_460);
+    poser("DPAE_Aout2026.txt", "x", 1_784_111_400);
+    poser("DPAE_Aout2026_20260815-0900.txt", "x", 1_768_473_000);
+    poser("DPAE_Aout2026_recapitulatif.txt", "x", 1_784_111_400);
+    poser("DPAE_Aout2026.txt.zip", "x", 1_784_111_400);
+    poser("Bulletins_Aout2026.pdf", "x", 1_784_111_400);
+    ecrire(c, "journal/dsn-ecrites.json", &json!({format!("{}/DSN_Aout2026.dsn", MOIS): {"quand": "2026-09-01T10:15:42", "empreinte_saisie": null}}));
     let r = rendu(c, "fichiers-deposables", json!({"mois": MOIS}), "2026-10-03");
     let noms = |k: &str| r[k].as_array().unwrap().iter().map(|f| f["nom"].as_str().unwrap().to_string()).collect::<Vec<_>>();
-    assert_eq!(noms("dsn"), ["autre.DSN", "DSN_Aout2026.dsn", "DSN_Aout2026_AR2.dsn"]);
-    assert_eq!(noms("dpae"), ["DPAE_Aout2026.txt"]);
-    assert_eq!(r["dsn"][0]["ecrit"], "2026-07-15T12:31");
-    assert_eq!(r["dsn"][1]["ecrit"], "2026-07-15T12:30");
-    assert_eq!(r["dsn"][2]["ecrit"], "2026-01-15T11:30");
-    assert_eq!(r["dsn"][2]["octets"], "DSN_Aout2026_AR2.dsn".len());
-    assert_eq!(r["dsn"][2]["chemin"], d.join("DSN_Aout2026_AR2.dsn").to_str().unwrap());
+    assert_eq!(noms("dsn"), ["DSN_Aout2026.dsn", "DSN_Aout2026_AR2.dsn", "autre.DSN", "Fin_Y.dsn", "Amorcage01_X.dsn"]);
+    assert_eq!(noms("dpae"), ["DPAE_Aout2026_20260815-0900.txt", "DPAE_Aout2026.txt"]);
+    assert_eq!(r["dsn"][0]["ecrit"], "2026-09-01T10:15", "la date consignee, pas celle du fichier");
+    assert_eq!(r["dsn"][1]["ecrit"], Value::Null, "rien de consigne : rien a dire, meme si le fichier a une date");
+    assert_eq!(r["dsn"][1]["octets"], "DSN_Aout2026_AR2.dsn".len());
+    assert_eq!(r["dsn"][1]["chemin"], d.join("DSN_Aout2026_AR2.dsn").to_str().unwrap());
     // Un mois sans dossier de sorties : rien.
     assert_eq!(rendu(c, "fichiers-deposables", json!({"mois": "2031-01"}), "2026-10-03"), json!({"dsn": [], "dpae": []}));
 }

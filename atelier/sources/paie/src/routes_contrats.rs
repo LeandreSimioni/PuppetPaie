@@ -343,7 +343,12 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
         let bornes = du_mois.iter().map(|(_, e)| bornes_brutes(e)).collect::<R<Vec<_>>>()?;
         let ids: Vec<jumeaux::Ident> = du_mois.iter().zip(&bornes).map(|((c, e), b)| (c.clone(), b.0.clone(), jumeaux::numero_du_champ(e.get("numero")))).collect();
         for (((cle, e), (debut, fin)), (_, _, marque)) in du_mois.into_iter().zip(bornes).zip(jumeaux::cles(&ids)) {
-            if debut.is_empty() || fin < premier {
+            // UN CDI SANS TERME COURT TOUJOURS (#236) : sa fin vide se comparait comme « avant le mois », et le contrat
+            // d'un permanent ne se reprenait jamais au mois suivant. Une fin vide ne vaut « en cours » que pour une
+            // nature a duree indeterminee : un contrat d'usage sans jour ni fin ne court pas.
+            let sans_terme = fin.is_empty()
+                && e.get("nature").and_then(Value::as_str).and_then(|n| crate::contrats::nature(Some(n)).ok()).is_some_and(|n| n.duree_indeterminee);
+            if debut.is_empty() || (fin < premier && !sans_terme) {
                 continue;
             }
             let ident = vec![json!(cle), json!(debut), json!(marque)];
@@ -905,7 +910,7 @@ pub(crate) fn sauver_avant(chemin: &Path) -> R<()> {
     let dossier = parent.join("avant");
     std::fs::create_dir_all(&dossier).map_err(io)?;
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let maintenant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64());
+    let maintenant = crate::temps::secondes();
     let horodatage = crate::paris::iso_secondes(maintenant).replace(['-', ':'], "").replace('T', "-");
     std::fs::copy(chemin, dossier.join(format!("{}.{}", nom, horodatage))).map_err(io)?;
     let prefixe = format!("{}.", nom);

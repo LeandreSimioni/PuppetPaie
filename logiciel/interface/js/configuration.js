@@ -33,6 +33,7 @@ function fichesDe(nom) {
 
 function dessinerConfig() {
   const liste = document.getElementById("config-liste");
+  dessinerSuppression();
   if (FICHE_ACTIVE === "importer") {
     document.getElementById("config-formulaire").innerHTML = "";
     dessinerImportation(liste);
@@ -773,11 +774,14 @@ const SECTIONS_FICHE = {
     // une option qui parle de vos salariés, elle se pose avec eux.
     ["Vos salariés", ["emploie_des_permanents", "conseils"]],
     // Le taux AT/MP se pose en tête de ce bloc (`ATMP_HTML`).
+    // LE CODE DU SERVICE DE SANTÉ AU TRAVAIL SORT DE L'« AVANCÉ » (#236,
+    // 23/10/2026) : il n'était dans aucune section, donc dans la dernière (le
+    // tiroir replié), alors que chaque DPAE l'exige (`dpae::medecine_de`) et que
+    // « Pour démarrer » le demande. Un champ exigé est visible là où on l'exige.
     ["Vos numéros chez les organismes",
      ["urssaf_compte", "congesspectacles_adherent",
-      "congesspectacles_affiliation",
-      "affiliation_france_travail", "code_employeur_france_travail",
-      "france_travail_dossier_recouvrement"], { atmp: true }],
+      "affiliation_france_travail",
+      "france_travail_dossier_recouvrement", "medecine_travail"], { atmp: true }],
     ["Qui signe, qui répond", ["signataire", "declarant_dsn"]],
     ["Paiement des cotisations", ["banque"]],
     // LA TAXE SUR LES SALAIRES (lot V3b, 10/10/2026) : la DSN de décembre
@@ -883,10 +887,9 @@ const FACULTATIFS = {
  * qu'on les lui dise : ils restent dans le formulaire — donc ils repartent
  * a l'enregistrement avec leur valeur — mais en case cachee.
  *
- *  - `siren`, `nic` : le SIRET ; `convention_collective`,
- *    `code_convention_dsn` : l'IDCC (`brancherDeduits`, `brancherConvention`) ;
- *  - `congesspectacles_affiliation` : le numero d'adherent precede de 97,
- *    `code_employeur_france_travail` : l'affiliation sans sa cle ;
+ *  - `siren`, `nic` : le SIRET (le moteur, `routes_fiches::deriver`, #236) ;
+ *    `convention_collective`,
+ *    `code_convention_dsn` : l'IDCC (`brancherConvention`) ;
  *  - `etablissements` (le moteur n'en declare qu'un) : garde tel quel,
  *    jamais demande.
  *
@@ -896,7 +899,6 @@ const FACULTATIFS = {
  *  l'interface les choix que peut faire l'entreprise ». */
 const CACHES = {
   entreprise: ["siren", "nic", "convention_collective", "code_convention_dsn",
-               "congesspectacles_affiliation", "code_employeur_france_travail",
                "etablissements"],
   // `sante_svp` se remplit par les trois cases de la complementaire sante ;
   // `taux_pas` n'est plus lu par personne (il vit dans config/pas.json) :
@@ -914,7 +916,7 @@ const SOUS_CHAMPS = {
   // Le solde de congés d'un salarié au mois arrivé d'un autre logiciel
   // (§111) : ce que son dernier bulletin disait.
   conges_reprise: { champs: [
-    ["date", "PuppetPaie compte à partir du", "AAAA-MM-JJ : le premier jour du premier mois produit par PuppetPaie"],
+    ["date", "PuppetPaie compte à partir du", "Le premier jour du premier mois produit par PuppetPaie", { date: true }],
     ["report", "Reste N-1 (jours)", "Les jours de l'année de référence précédente qui restent à prendre"],
     ["acquis_report", "Acquis N-1 en tout (jours)", "Souvent 30 : il sert à payer un jour au dixième"],
     ["remuneration_report", "Brut de la période N-1 (€)", "L'assiette du dixième des jours N-1"],
@@ -1209,6 +1211,11 @@ function caseSousChamp(parent, k, val, genre) {
     return `<input type="number" step="0.01" min="0" ${attrs} data-sous-type="nombre"
       value="${echapper(val ?? "")}">`;
   }
+  // Une date se choisit dans un calendrier, comme partout (#236) ; la valeur
+  // reste AAAA-MM-JJ. Une valeur ancienne d'une autre forme reste un texte.
+  if (genre.date && /^(\d{4}-\d{2}-\d{2})?$/.test(String(val ?? ""))) {
+    return `<input type="date" ${attrs} value="${echapper(val ?? "")}">`;
+  }
   return `<input ${attrs} value="${echapper(val ?? "")}">`;
 }
 
@@ -1280,7 +1287,7 @@ function oublierCouts() { Object.keys(COUTS).forEach((k) => delete COUTS[k]); }
 async function peindreCoutAnnee() {
   const el = document.querySelector("#config-formulaire .cout-annee");
   if (!el) return;
-  const an = new Date().getFullYear();
+  const an = anneeDuJour();
   const ligne = (r, annee) => {
     const d = r && (r[el.dataset.cote] || {})[el.dataset.cle];
     if (!d || (!d.bulletins && !Number(d.prevu))) return "";
@@ -1423,7 +1430,7 @@ async function dessinerOrganismes(cible) {
  * sortie de la case, et ne marque pas la fiche « modifiée ». Sans lui, le
  * premier mois d'une compagnie neuve ne se calculait pas. */
 function ATMP_HTML() {
-  const an = new Date().getFullYear();
+  const an = anneeDuJour();
   return `<div class="encart" id="config-atmp" data-annee="${an}">
     <div class="ligne-champs">
       <label>Taux accident du travail (AT/MP) ${an}
@@ -1544,3 +1551,65 @@ function enteteSalarie(fiche) {
       se donne à l'enregistrement.</p>`;
 }
 
+
+/* SUPPRIMER LA COMPAGNIE (ticket #236, Léandre 22/10/2026), sous la fiche Entreprise. Le moteur dit si elle se supprime
+   (`supprimable` de la route `etat` : jamais une fictive livrée, qui se remet à zéro) et ce que la boîte demande
+   (`compagnie-suppression`) : une compagnie créée en démo, une confirmation ; une compagnie réelle, le rappel de la
+   conservation des bulletins, la sauvegarde si un Drive est lié, puis le mot de passe du logiciel (le popup de chaque acte
+   qui engage, `demanderMotDePasse`). La fenêtre supprime (`pywebview.api.supprimer`) et revient à l'accueil. */
+function dessinerSuppression() {
+  const zone = document.getElementById("config-suppression");
+  if (!zone) return;
+  if (FICHE_ACTIVE !== "entreprise" || !ETAT || !ETAT.supprimable) { zone.innerHTML = ""; return; }
+  zone.innerHTML = `<div class="encart attention suppression-compagnie">
+      <b>Supprimer cette compagnie</b>
+      Tout son dossier est effacé de ce poste : fiches, paies, documents, journaux.
+      <div class="actions"><button type="button" class="secondaire alerte" id="supprimer-compagnie">Supprimer cette compagnie…</button></div>
+    </div>`;
+  document.getElementById("supprimer-compagnie").onclick = boiteSuppression;
+}
+
+async function boiteSuppression() {
+  let q;
+  try { q = await api("compagnie-suppression"); }
+  catch (e) { dire(e.message, "erreur"); return; }
+  const reelle = q.genre === "reelle";
+  const s = q.sauvegarde || {};
+  const sauvegarde = reelle && s.liee
+    ? `<p>${s.derniere ? "Dernière sauvegarde dans le Drive : " + echapper(quand(s.derniere)) + "." : "Aucune sauvegarde n'est encore partie dans le Drive."}</p>
+       <p><button type="button" class="secondaire" id="sup-sauvegarder">Sauvegarder maintenant</button>
+       <span class="discret" id="sup-sauvegarde-etat"></span></p>`
+    : "";
+  ouvrirBoite(`<h3>Supprimer ${echapper(q.nom)} ?</h3>
+    <p>Tout le dossier de cette compagnie sera effacé de ce poste : fiches, paies, documents, journaux. Cela ne se défait pas.</p>
+    ${reelle ? `<p>${echapper(q.conservation)}</p>` : ""}
+    ${sauvegarde}
+    <p class="erreur" id="sup-erreur"></p>
+    <div class="actions">
+      <button type="button" class="secondaire" id="sup-annuler">Annuler</button>
+      <button type="button" class="secondaire alerte" id="sup-confirmer">Supprimer définitivement</button>
+    </div>`);
+  document.getElementById("sup-annuler").onclick = fermerBoite;
+  const bSauve = document.getElementById("sup-sauvegarder");
+  if (bSauve) bSauve.onclick = async () => {
+    const etat = document.getElementById("sup-sauvegarde-etat");
+    bSauve.disabled = true;
+    etat.textContent = "sauvegarde en cours…";
+    try {
+      const v = await api("sauvegarde-maintenant");
+      const d = v && v.sauvegarde;
+      etat.textContent = v && v.erreur ? v.erreur
+        : d && d.quand ? "sauvegardée le " + quand(d.quand) + "." : "faite.";
+    } catch (e) { etat.textContent = e.message; }
+    bSauve.disabled = false;
+  };
+  document.getElementById("sup-confirmer").onclick = async () => {
+    let mdp = "";
+    if (q.mot_de_passe) {
+      mdp = await demanderMotDePasse("supprimer définitivement " + q.nom);
+      if (mdp === null) return;
+    }
+    const r = await window.pywebview.api.supprimer(mdp);
+    if (!r || !r.ok) document.getElementById("sup-erreur").textContent = (r && r.erreur) || "Rien n'a été supprimé.";
+  };
+}
