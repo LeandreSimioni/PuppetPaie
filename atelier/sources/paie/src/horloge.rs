@@ -438,8 +438,9 @@ fn le_premier_du_mois(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &st
             let fichier = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
             for reel in [false, true] {
                 deposer_dpae_joue(d, o, ctx, &fichier, reel)?;
+                // LE BILAN DU TEST AVANT LE REEL (tickets #221, #222, `depot_acte::exiger_repetition`) ; puis celui du reel.
+                rattacher(d, ctx)?;
             }
-            rattacher(d, ctx)?;
             Ok(true)
         });
         fait.extend(faits);
@@ -490,13 +491,33 @@ fn a_l_echeance(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, ech
         if dsn_partie(o, ctx, mois)? {
             return Ok(false);
         }
+        // TOUTES LES DSN DU MOIS QUI NE SONT PAS PARTIES, la plus ancienne d'abord (#236, trouve au banc d'essai) : la
+        // mensuelle, et a cote d'elle un signalement d'amorcage (une embauche sans taux de PAS connu). L'horloge ne prenait
+        // que la plus recente -- l'amorcage, ecrit apres la mensuelle -- et la mensuelle ne partait jamais.
         let f = Moteur::nouveau(o, ctx).fichiers_deposables(mois)?;
-        let Some(chemin) = f["dsn"].as_array().and_then(|l| l.first()).map(|x| py_str(&x["chemin"])) else { return Ok(false) };
-        for reel in [false, true] {
-            deposer_dsn_joue(d, o, ctx, &chemin, reel)?;
+        let mut chemins: Vec<String> = f["dsn"].as_array().map(|l| l.iter().map(|x| py_str(&x["chemin"])).collect()).unwrap_or_default();
+        chemins.reverse();
+        let parties: BTreeSet<String> = etats::charger(&ctx.racine)?
+            .iter()
+            .filter(|l| l.get("quoi").and_then(Value::as_str) == Some("dsn") && l.get("mode").and_then(Value::as_str) == Some("reel"))
+            .filter(|l| l.get("accepte").is_some_and(vrai))
+            .filter_map(|l| l.get("fichier").and_then(Value::as_str).map(String::from))
+            .collect();
+        let mut fait = false;
+        for chemin in chemins {
+            let nom = Path::new(&chemin).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+            if parties.contains(&nom) {
+                continue;
+            }
+            for reel in [false, true] {
+                deposer_dsn_joue(d, o, ctx, &chemin, reel)?;
+                // LE BILAN DU TEST AVANT LE REEL (tickets #221, #222 : un reel ne part que sur le bilan lu de son test,
+                // `depot_acte::exiger_repetition`) ; puis celui du reel.
+                a_faire.extend(rattacher(d, ctx)?);
+            }
+            fait = true;
         }
-        a_faire = rattacher(d, ctx)?;
-        Ok(true)
+        Ok(fait)
     }));
     // Ce que le rangement de l'AER jouee laisse a faire se dit, a la date du depot, comme le dit la releve.
     fait.extend(a_faire.into_iter().map(|p| format!("Le {} : {}", le(&format!("{}T10:00:00", jour)), p)));

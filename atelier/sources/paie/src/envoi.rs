@@ -1130,7 +1130,7 @@ fn frontiere_libre(base: String, texte: &[u8]) -> String {
 fn frontiere_au_hasard() -> String {
     let mut o = [0u8; 8];
     // Sans alea du systeme, le temps : la frontiere n'a pas besoin d'etre imprevisible, seulement absente du texte.
-    if getrandom::fill(&mut o).is_err() {
+    if crate::temps::aleas(&mut o).is_err() {
         o = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos() as u64).unwrap_or(1).to_le_bytes();
     }
     let jeton = u64::from_le_bytes(o) >> 1;
@@ -1139,16 +1139,16 @@ fn frontiere_au_hasard() -> String {
 
 /// `utils.make_msgid(domain=...)`.
 pub(crate) fn nouveau_message_id(domaine: &str) -> String {
-    let maintenant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default();
+    let maintenant = std::time::Duration::from_secs_f64(crate::temps::secondes());
     let centiemes = maintenant.as_millis() / 10;
     let mut o = [0u8; 8];
-    let _ = getrandom::fill(&mut o);
-    format!("<{}.{}.{}@{}>", centiemes, std::process::id(), u64::from_le_bytes(o), domaine)
+    let _ = crate::temps::aleas(&mut o);
+    format!("<{}.{}.{}@{}>", centiemes, crate::temps::numero_de_processus(), u64::from_le_bytes(o), domaine)
 }
 
 /// `utils.formatdate(localtime=True)`, a l'heure de Paris.
 fn date_locale() -> String {
-    let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
+    let t = crate::temps::secondes().floor() as i64;
     date_de(t)
 }
 

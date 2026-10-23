@@ -65,7 +65,7 @@ pub const FICTIVES: [(&str, &str); 8] = [
     // (85) est juste, et il ne désigne aucun compte.
     ("FR7630001007941234567890185", "IBAN fabriqué (clé 85 juste)"),
     // (14/10/2026) Les deux suivants se disent inventés dans leur fichier : la vie de démonstration
-    // `atelier/outils/demos/les-faisceaux.json` (« Aucune valeur ne désigne une entreprise ou une personne réelle »), et
+    // `atelier/outils/demos/les-faisceaux/gestes.jsonl`, que reprend le scenario du banc `tests/donnees/scenarios/treteaux-du-banc/` (« Aucune valeur ne désigne une entreprise ou une personne réelle »), et
     // `tests/fichiers/caviardage.rs` (« les IBAN sont faits de zéros »).
     ("FR7630001007943252044000039", "IBAN de la démonstration Les Faisceaux"),
     ("FR7630001000000000000000185", "IBAN fait de zéros, test du caviardage"),

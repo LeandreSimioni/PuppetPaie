@@ -92,6 +92,11 @@ PUPPETPAIE_DONNEES=fictives/fictive-3090-grande paie echeancier
 (sous Windows : `set PUPPETPAIE_DONNEES=fictives\fictive-3090-grande` puis la
 même commande.)
 
+Une fictive livrée ne se supprime pas : sa tuile la remet à zéro. Les
+compagnies qu'on ajoute à côté d'elles en démo (`ajoutee-<nom>`) se suppriment
+depuis leur Configuration, et se gardent ou non au déblocage
+(`atelier/sources/paie/src/interface/suppression.rs`).
+
 ## D'où elles viennent
 
 Ces dossiers ont été fabriqués par un générateur Python

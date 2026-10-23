@@ -86,9 +86,7 @@ pub fn copie_faite() -> bool {
 
 /// Le jour de Paris, aujourd'hui.
 pub fn jour_de_paris() -> Jour {
-    let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64);
-    let local = t + crate::paris::decalage(t);
-    Jour::depuis_jours_unix(local.div_euclid(86_400)).expect("horloge systeme")
+    crate::temps::jour_de_paris()
 }
 
 /// Pose `PUPPETPAIE_AUJOURDHUI` a l'heure de Paris quand rien ne l'a posee (le Python lit `date.today()`, a Paris).

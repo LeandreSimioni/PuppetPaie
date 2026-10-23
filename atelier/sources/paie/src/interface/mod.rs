@@ -16,6 +16,7 @@ pub mod compagnies;
 pub mod http;
 pub mod instance;
 pub mod navigateur;
+pub mod suppression;
 pub mod veille;
 
 use std::collections::HashMap;
@@ -40,6 +41,7 @@ const CRAYON: &str = include_str!("pages/crayon.html");
 const ZERO: &str = include_str!("pages/zero.html");
 const TUILE_AJOUTER: &str = include_str!("pages/tuile_ajouter.html");
 const AVIS_AJOUTER: &str = include_str!("pages/avis_ajouter.html");
+const GARDER: &str = include_str!("pages/garder.html");
 
 /// Les appels `window.pywebview.api.<nom>(...)` de l'accueil, postes au serveur. Une reponse qui dit `recharger`
 /// fait revenir la fenetre sur `/` : c'est le serveur qui sait quelle page montrer ensuite.
@@ -74,12 +76,12 @@ const CALE: &str = r#"<script>
 /// liste, la cale ne le definissait pas et le bouton levait sans rien faire (capture de Leandre, version 20.10.2026).
 /// L'administrateur (ticket #244) : `rattacher_nouvelle` (la question « meme administrateur ? » d'une compagnie neuve),
 /// `tableau`, `tableau_rafraichir` et `deposer_groupe` (le tableau de bord de l'accueil).
-const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "verifier", "poser", "accueil", "fermer", "maj", "redemarrer", "rattacher_nouvelle", "tableau", "tableau_rafraichir", "deposer_groupe"]"#;
+const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "garder", "verifier", "poser", "accueil", "fermer", "maj", "redemarrer", "rattacher_nouvelle", "tableau", "tableau_rafraichir", "deposer_groupe"]"#;
 /// Dans la page du logiciel : revenir aux compagnies (ticket #113) ; et, comme a l'accueil, lire ou en est la mise a
 /// jour et redemarrer pour l'installer (ticket #210, `js/mise-a-jour.js`). L'administrateur, dans la Configuration
 /// (ticket #244, `js/coffre-compte.js`) : ce qu'il est pour cette compagnie, la rattacher, la detacher, changer son mot
 /// de passe.
-const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer", "administrateur", "rattacher", "detacher", "changer_administrateur"]"#;
+const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer", "supprimer", "administrateur", "rattacher", "detacher", "changer_administrateur"]"#;
 
 #[derive(Clone)]
 enum Phase {
@@ -290,6 +292,17 @@ fn page_accueil() -> String {
         }
         g
     };
+    // AU DEBLOCAGE (ticket #236) : tant qu'il reste des compagnies creees en demo, la question se pose a chaque accueil.
+    let a_garder = suppression::a_garder(&compagnies::base());
+    let grille = if a_garder.is_empty() {
+        grille
+    } else {
+        let liste: String = a_garder
+            .iter()
+            .map(|c| format!("<li><label><input type=\"checkbox\" value=\"{}\" checked> {}</label></li>", echapper(&c.id), echapper(&c.nom)))
+            .collect();
+        format!("{}{}", grille, GARDER.replace("{{LISTE}}", &liste))
+    };
     // La version, sous le nom, comme dans la page d'une compagnie (ticket #211) ; les tuiles en dernier : un nom de
     // compagnie n'est jamais lu comme une marque a remplacer.
     ACCUEIL
@@ -451,6 +464,31 @@ impl Fenetre {
         Ok(())
     }
 
+    /// LA FENETRE LACHE LA COMPAGNIE `racine`, qui va etre supprimee ou deplacee (`suppression.rs`) : ouverte, sa veille
+    /// s'arrete (le tour en cours se finit) et l'on revient a l'accueil, son journal n'est plus celui de la fenetre ; sa
+    /// file quitte le fil des calculs (le calcul en cours se finit). Ensuite rien de la fenetre n'ecrit plus dans son
+    /// dossier, et rien ne la refait apparaitre.
+    fn lacher(&self, racine: &Path) {
+        let cle = std::fs::canonicalize(racine).unwrap_or_else(|_| racine.to_path_buf());
+        if let Phase::Ouverte { racine: r, veille, .. } = self.phase() {
+            if std::fs::canonicalize(&r).unwrap_or(r) == cle {
+                veille.arreter_et_attendre();
+                self.poser_phase(Phase::Accueil);
+            }
+        }
+        // Le journal de la fenetre est celui de la derniere compagnie ouverte, meme revenu a l'accueil : il ne doit plus
+        // recreer son dossier.
+        let mut journal = self.journal.lock().unwrap_or_else(|e| e.into_inner());
+        if journal.as_ref().is_some_and(|j| j.starts_with(racine) || j.starts_with(&cle)) {
+            *journal = None;
+        }
+        drop(journal);
+        let file = self.files.lock().unwrap_or_else(|e| e.into_inner()).remove(&cle);
+        if let Some(f) = file {
+            f.quitter();
+        }
+    }
+
     /// Le mot de passe de l'administrateur, tape dans cette fenetre, ouvre-t-il `racine`, compagnie rattachee ?
     fn administrateur_ouvre(&self, racine: &Path) -> bool {
         let inst = compagnies::base();
@@ -578,6 +616,98 @@ impl Fenetre {
         }
     }
 
+    /// « Ajouter une compagnie » (le « + » de l'accueil). Au banc d'essai de l'atelier, le geste entre dans le scenario :
+    /// c'est le decor de depart que le rejeu refait (`scenario::rejouer`).
+    fn ajouter(&self, nom: &str) -> Result<compagnies::Compagnie, String> {
+        #[cfg(feature = "atelier")]
+        if let Some(e) = crate::scenario::enregistreur_actif() {
+            return e.geste("ajouter", || {
+                let c = compagnies::ajouter(nom)?;
+                let mut m = serde_json::Map::new();
+                m.insert("nom".into(), json!(nom));
+                m.insert("compagnie".into(), json!(e.compagnie(&c.racine)));
+                Ok((c, m))
+            });
+        }
+        compagnies::ajouter(nom)
+    }
+
+    /// LES GESTES DU BANC D'ESSAI (l'atelier seulement, #236 ; `atelier/outils/banc/`) : `/atelier/<geste>`, avec le jeton.
+    /// - `etat` : le jour simule, le scenario, la compagnie ouverte ;
+    /// - `jour` `{"jour": "AAAA-MM-JJ"}` : le calendrier avance jusqu'a ce jour, 9 h (Paris) ; puis, si une compagnie est
+    ///   ouverte, un passage de la veille, comme a l'ouverture : l'horloge d'une fictive aux envois simules joue ce qui
+    ///   etait du, les retours des depots joues reviennent. Rend ce que la veille a fait ;
+    /// - `simuler` : la compagnie ouverte, une fictive ajoutee par le « + », devient une fictive aux envois simules
+    ///   (`scenario::rendre_simulee`).
+    #[cfg(feature = "atelier")]
+    fn atelier(&self, geste: &str, charge: &Value) -> Value {
+        let refus = |m: String| json!({"ok": false, "erreur": m});
+        let phase = self.phase();
+        let ouverte = match &phase {
+            Phase::Ouverte { racine, .. } => Some(racine.clone()),
+            _ => None,
+        };
+        let enr = crate::scenario::enregistreur_actif();
+        match geste {
+            "etat" => json!({"ok": true,
+                "simule": crate::temps::simule(),
+                "jour": crate::temps::jour_de_paris().iso(),
+                "heure": crate::paris::iso_secondes(crate::temps::secondes()),
+                "secondes": crate::temps::secondes(),
+                "scenario": enr.map(|e| e.dossier().display().to_string()),
+                "compagnie": ouverte.as_ref().map(|r| r.display().to_string()),
+                "simulee": ouverte.as_ref().is_some_and(|r| crate::routes_accueil::simulation_active(r)),
+                "ajoutee": ouverte.as_ref().is_some_and(|r| compagnies::est_ajoutee(r))}),
+            "jour" => {
+                if !crate::temps::simule() {
+                    return refus("Le temps n'est pas simule : lancer l'interface avec --jour.".into());
+                }
+                let Some(jour) = charge.get("jour").and_then(Value::as_str).and_then(|j| crate::date::Jour::lire(j).ok()) else {
+                    return refus("Il faut {\"jour\": \"AAAA-MM-JJ\"}.".into());
+                };
+                let instant = crate::temps::instant_de(jour, 9);
+                if instant <= crate::temps::secondes() {
+                    return refus(format!("Le {} n'est pas apres l'instant simule ({}) : le calendrier n'avance que vers demain.", jour.iso(), crate::paris::iso_secondes(crate::temps::secondes())));
+                }
+                crate::temps::couler_depuis(instant);
+                if let Some(e) = enr {
+                    let _ = e.geste("jour", || {
+                        let mut m = serde_json::Map::new();
+                        m.insert("jour".into(), json!(jour.iso()));
+                        Ok(((), m))
+                    });
+                }
+                self.ecrire(&format!("Banc d'essai : le calendrier avance au {}.\n", jour.iso()));
+                match phase {
+                    Phase::Ouverte { veille, etats, .. } => {
+                        let v = veille.tour(false, false);
+                        etats.tout_verifier();
+                        json!({"ok": true, "jour": jour.iso(), "veille": v})
+                    }
+                    _ => json!({"ok": true, "jour": jour.iso()}),
+                }
+            }
+            "simuler" => {
+                let Some(racine) = ouverte else { return refus("Aucune compagnie n'est ouverte.".into()) };
+                let faire = || crate::scenario::rendre_simulee(&racine).map(|()| {
+                    let mut m = serde_json::Map::new();
+                    if let Some(e) = enr {
+                        m.insert("compagnie".into(), json!(e.compagnie(&racine)));
+                    }
+                    ((), m)
+                });
+                match enr.map_or_else(|| faire().map(|_| ()), |e| e.geste("simuler", faire)) {
+                    Ok(()) => {
+                        self.ecrire("Banc d'essai : la compagnie devient une fictive aux envois simules.\n");
+                        json!({"ok": true})
+                    }
+                    Err(m) => refus(m),
+                }
+            }
+            _ => refus(format!("Geste d'atelier inconnu : {}.", geste)),
+        }
+    }
+
     /// Les gestes de l'accueil (`window.pywebview.api.<nom>(...)`).
     fn lanceur(&self, nom: &str, args: &[Value]) -> Value {
         let a = |i: usize| args.get(i).and_then(Value::as_str).unwrap_or("").to_string();
@@ -600,10 +730,42 @@ impl Fenetre {
                 Ok((n, deja)) => json!({"ok": true, "message": format!("{} est {}.", n, if deja { "déjà dans son état d'origine" } else { "revenue à son état d'origine" })}),
                 Err(m) => refus(m),
             },
-            ("ajouter", Phase::Accueil) => match compagnies::ajouter(&a(0)).and_then(|c| self.prendre(c.racine)) {
+            ("ajouter", Phase::Accueil) => match self.ajouter(&a(0)).and_then(|c| self.prendre(c.racine)) {
                 Ok(()) => ok(true),
                 Err(m) => refus(m),
             },
+            // AU DEBLOCAGE (ticket #236) : les fictives ajoutees gardees deviennent reelles, les autres sont supprimees
+            // (`suppression::repondre`). `garder` et `ne_pas_garder` : des identifiants de tuile.
+            ("garder", Phase::Accueil) => {
+                let ids = |i: usize| -> Vec<String> {
+                    args.get(i).and_then(Value::as_array).map(|v| v.iter().filter_map(Value::as_str).map(String::from).collect()).unwrap_or_default()
+                };
+                let poste = crate::administrateur::Poste::de_ce_poste();
+                match suppression::repondre(&compagnies::base(), &ids(0), &ids(1), &poste, &|r| self.lacher(r)) {
+                    Ok(v) => {
+                        self.ecrire(&format!("Au deblocage : {}\n", v));
+                        json!({"ok": true, "recharger": true, "reponse": v})
+                    }
+                    Err(m) => refus(m),
+                }
+            }
+            // SUPPRIMER LA COMPAGNIE OUVERTE (ticket #236) : tout se decide dans `suppression::supprimer` (la preuve d'une
+            // compagnie reelle : le mot de passe du logiciel, tape dans le popup de la page). Un passage de la veille en
+            // cours ecrit dans son dossier : on attend qu'il finisse.
+            ("supprimer", Phase::Ouverte { racine, veille, .. }) => {
+                if veille.occupee() {
+                    return refus("Un relevé ou une sauvegarde de cette compagnie est en cours : attendez qu'il se termine, puis recommencez. Rien n'a été supprimé.".into());
+                }
+                let mdp = a(0);
+                let poste = crate::administrateur::Poste::de_ce_poste();
+                match suppression::supprimer(&compagnies::base(), &racine, Some(mdp.as_str()), &poste, &|r| self.lacher(r)) {
+                    Ok(nom) => {
+                        self.ecrire(&format!("Compagnie supprimee : {} ({}).\n", nom, racine.display()));
+                        json!({"ok": true, "recharger": true, "nom": nom})
+                    }
+                    Err(m) => refus(m),
+                }
+            }
             ("verifier", Phase::MotDePasse { racine, .. }) => match crate::coffre::Coffre::du_poste(&racine, "").verifier_ouverture(&a(0)) {
                 Ok(true) => {
                     self.retenir_administrateur(&racine, &a(0));
@@ -693,6 +855,10 @@ impl Fenetre {
             if let Some(nom) = r.chemin.strip_prefix("/lanceur/") {
                 let args = charge.as_array().cloned().unwrap_or_default();
                 return Reponse::json(200, &self.lanceur(nom, &args));
+            }
+            #[cfg(feature = "atelier")]
+            if let Some(nom) = r.chemin.strip_prefix("/atelier/") {
+                return Reponse::json(200, &self.atelier(nom, &charge));
             }
             if let Some(nom) = r.chemin.strip_prefix("/api/") {
                 let Phase::Ouverte { racine, veille, etats } = self.phase() else {
@@ -862,6 +1028,12 @@ pub fn preparer_l_installation() {
     if let Some(t) = crate::maj::poser_les_fictives_pretes(&inst) {
         crate::maj::noter(&inst, &t);
     }
+    // Une compagnie supprimee dont un fichier resistait (`suppression::effacer`) : son reste cache part maintenant.
+    let restes = suppression::effacer_les_restes(&inst);
+    if !restes.is_empty() {
+        let noms: Vec<String> = restes.iter().map(|p| p.display().to_string()).collect();
+        crate::maj::noter(&inst, &format!("Restes de compagnies supprimees effaces : {}.", noms.join(", ")));
+    }
     let effaces = effacer_les_restes(&navigateur::dossier_utilisateur(), &crate::coffre::Coffre::dossier_cle_du_poste());
     if !effaces.is_empty() {
         let noms: Vec<String> = effaces.iter().map(|p| p.display().to_string()).collect();
@@ -967,9 +1139,70 @@ pub fn lire_options(args: &[String]) -> Result<Options, String> {
     Ok(o)
 }
 
+/// LE BANC D'ESSAI (l'atelier seulement, #236 ; `atelier/outils/banc/`) : `paie-atelier interface ... [--enregistrer
+/// DOSSIER] [--jour AAAA-MM-JJ]`. `--jour` : le temps du moteur coule depuis ce jour, 9 h a Paris (`temps`) ;
+/// `--enregistrer` : chaque geste entre dans le scenario `DOSSIER` (`scenario::Enregistreur`). Un scenario deja
+/// commence se poursuit : sans `--jour`, le temps reprend une minute apres son dernier geste ; un `--jour` avant lui est
+/// refuse. Rend les autres options, pour `lire_options`.
+#[cfg(feature = "atelier")]
+fn poser_le_banc(args: &[String]) -> Result<Vec<String>, String> {
+    let (mut reste, mut dossier, mut jour) = (Vec::new(), None, None);
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--enregistrer" if i + 1 < args.len() => {
+                dossier = Some(PathBuf::from(&args[i + 1]));
+                i += 2;
+            }
+            "--jour" if i + 1 < args.len() => {
+                jour = Some(crate::date::Jour::lire(&args[i + 1]).map_err(|_| format!("Jour illisible : {} (AAAA-MM-JJ).", args[i + 1]))?);
+                i += 2;
+            }
+            a => {
+                reste.push(a.to_string());
+                i += 1;
+            }
+        }
+    }
+    let enr = match &dossier {
+        Some(d) => Some(crate::scenario::Enregistreur::demarrer(d, &compagnies::base())?),
+        None => None,
+    };
+    let dernier = enr.and_then(|e| e.dernier_instant());
+    let depart = match (jour, dernier) {
+        (Some(j), Some(t)) if crate::temps::instant_de(j, 9) <= t => {
+            return Err(format!("Le scenario va deja jusqu'au {} : --jour {} le ferait reculer.", crate::paris::iso_secondes(t), j.iso()))
+        }
+        (Some(j), _) => Some(crate::temps::instant_de(j, 9)),
+        (None, Some(t)) => Some(t + 60.0),
+        (None, None) => None,
+    };
+    if let Some(t) = depart {
+        crate::temps::couler_depuis(t);
+    }
+    if let Some(e) = enr {
+        e.geste("debut", || {
+            let mut m = serde_json::Map::new();
+            m.insert("jour".into(), json!(crate::temps::jour_de_paris().iso()));
+            m.insert("logiciel".into(), json!(version()));
+            m.insert("format".into(), json!(crate::scenario::FORMAT));
+            Ok(((), m))
+        })?;
+    }
+    Ok(reste)
+}
+
 /// `paie interface [--port N] [--sans-navigateur] [--veille MINUTES]` : la fenetre dans le navigateur du poste.
 pub fn commande(args: &[String]) -> i32 {
     crate::commandes::compagnie::fixer_le_code();
+    #[cfg(feature = "atelier")]
+    let args = &match poser_le_banc(args) {
+        Ok(reste) => reste,
+        Err(e) => {
+            eprintln!("{}", e);
+            return 2;
+        }
+    };
     let options = match lire_options(args) {
         Ok(o) => o,
         Err(e) => {

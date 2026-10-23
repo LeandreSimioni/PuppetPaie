@@ -403,7 +403,7 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
     if let Some(s) = &src {
         copier(s, dossier, s)?;
         retirer_les_depots_de_dsn(dossier)?;
-        let quand = crate::paris::iso_secondes(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64()));
+        let quand = crate::paris::iso_secondes(crate::temps::secondes());
         let marqueur = json!({
             "copie_de": format!("{} (paie essai monter, identite de {}), depuis la compagnie fictive {}", MARQUE_ESSAI, VARIABLE, nom),
             "depuis": nom,

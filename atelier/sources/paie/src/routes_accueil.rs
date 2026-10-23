@@ -902,6 +902,11 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         // UNE FICTIVE AJOUTEE (ticket #236) : ses envois sont refuses par le moteur (`bridage::refus_d_envoi`) ; la page
         // ne demande pas le mot de passe du logiciel pour un envoi qui ne partira pas.
         "envois_refuses": crate::bridage::refus_d_envoi(&ctx.racine).is_some(),
+        // SUPPRIMER LA COMPAGNIE (ticket #236) : la Configuration ne le propose que si elle se supprime -- jamais une
+        // fictive livree, qui se remet a zero (`interface::suppression::genre`).
+        "supprimable": crate::interface::suppression::genre(&crate::administrateur::installation_de(&ctx.racine), &ctx.racine).is_ok(),
+        // UNE COMPAGNIE CREEE EN DEMO PUIS GARDEE : sa mention, et les mois saisis en demo, ou la page la montre.
+        "demo": crate::interface::suppression::mention(&ctx.racine),
         "historique": historique,
         "salaries": salaries,
         "spectacles": spectacles,

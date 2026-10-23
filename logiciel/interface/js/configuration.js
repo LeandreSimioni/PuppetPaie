@@ -33,6 +33,7 @@ function fichesDe(nom) {
 
 function dessinerConfig() {
   const liste = document.getElementById("config-liste");
+  dessinerSuppression();
   if (FICHE_ACTIVE === "importer") {
     document.getElementById("config-formulaire").innerHTML = "";
     dessinerImportation(liste);
@@ -1544,3 +1545,65 @@ function enteteSalarie(fiche) {
       se donne à l'enregistrement.</p>`;
 }
 
+
+/* SUPPRIMER LA COMPAGNIE (ticket #236, Léandre 22/10/2026), sous la fiche Entreprise. Le moteur dit si elle se supprime
+   (`supprimable` de la route `etat` : jamais une fictive livrée, qui se remet à zéro) et ce que la boîte demande
+   (`compagnie-suppression`) : une compagnie créée en démo, une confirmation ; une compagnie réelle, le rappel de la
+   conservation des bulletins, la sauvegarde si un Drive est lié, puis le mot de passe du logiciel (le popup de chaque acte
+   qui engage, `demanderMotDePasse`). La fenêtre supprime (`pywebview.api.supprimer`) et revient à l'accueil. */
+function dessinerSuppression() {
+  const zone = document.getElementById("config-suppression");
+  if (!zone) return;
+  if (FICHE_ACTIVE !== "entreprise" || !ETAT || !ETAT.supprimable) { zone.innerHTML = ""; return; }
+  zone.innerHTML = `<div class="encart attention suppression-compagnie">
+      <b>Supprimer cette compagnie</b>
+      Tout son dossier est effacé de ce poste : fiches, paies, documents, journaux.
+      <div class="actions"><button type="button" class="secondaire alerte" id="supprimer-compagnie">Supprimer cette compagnie…</button></div>
+    </div>`;
+  document.getElementById("supprimer-compagnie").onclick = boiteSuppression;
+}
+
+async function boiteSuppression() {
+  let q;
+  try { q = await api("compagnie-suppression"); }
+  catch (e) { dire(e.message, "erreur"); return; }
+  const reelle = q.genre === "reelle";
+  const s = q.sauvegarde || {};
+  const sauvegarde = reelle && s.liee
+    ? `<p>${s.derniere ? "Dernière sauvegarde dans le Drive : " + echapper(quand(s.derniere)) + "." : "Aucune sauvegarde n'est encore partie dans le Drive."}</p>
+       <p><button type="button" class="secondaire" id="sup-sauvegarder">Sauvegarder maintenant</button>
+       <span class="discret" id="sup-sauvegarde-etat"></span></p>`
+    : "";
+  ouvrirBoite(`<h3>Supprimer ${echapper(q.nom)} ?</h3>
+    <p>Tout le dossier de cette compagnie sera effacé de ce poste : fiches, paies, documents, journaux. Cela ne se défait pas.</p>
+    ${reelle ? `<p>${echapper(q.conservation)}</p>` : ""}
+    ${sauvegarde}
+    <p class="erreur" id="sup-erreur"></p>
+    <div class="actions">
+      <button type="button" class="secondaire" id="sup-annuler">Annuler</button>
+      <button type="button" class="secondaire alerte" id="sup-confirmer">Supprimer définitivement</button>
+    </div>`);
+  document.getElementById("sup-annuler").onclick = fermerBoite;
+  const bSauve = document.getElementById("sup-sauvegarder");
+  if (bSauve) bSauve.onclick = async () => {
+    const etat = document.getElementById("sup-sauvegarde-etat");
+    bSauve.disabled = true;
+    etat.textContent = "sauvegarde en cours…";
+    try {
+      const v = await api("sauvegarde-maintenant");
+      const d = v && v.sauvegarde;
+      etat.textContent = v && v.erreur ? v.erreur
+        : d && d.quand ? "sauvegardée le " + quand(d.quand) + "." : "faite.";
+    } catch (e) { etat.textContent = e.message; }
+    bSauve.disabled = false;
+  };
+  document.getElementById("sup-confirmer").onclick = async () => {
+    let mdp = "";
+    if (q.mot_de_passe) {
+      mdp = await demanderMotDePasse("supprimer définitivement " + q.nom);
+      if (mdp === null) return;
+    }
+    const r = await window.pywebview.api.supprimer(mdp);
+    if (!r || !r.ok) document.getElementById("sup-erreur").textContent = (r && r.erreur) || "Rien n'a été supprimé.";
+  };
+}

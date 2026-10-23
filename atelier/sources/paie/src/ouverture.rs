@@ -482,7 +482,7 @@ fn trier_hors_ligne(r: &mut Ouverture) {
 fn clore(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Instant, precedente: &Value) {
     finir_les_etapes(ctx);
     trier_hors_ligne(r);
-    r.secondes = (debut.elapsed().as_secs_f64() * 10.0).round() / 10.0;
+    r.secondes = (crate::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
     noter_ouverture(ctx, r, precedente);
 }
 
@@ -497,7 +497,7 @@ fn completer_la_trace(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Insta
     };
     let etait_hors_ligne = avant.get("hors_ligne").is_some_and(vrai);
     trier_hors_ligne(r);
-    let ma_duree = (debut.elapsed().as_secs_f64() * 10.0).round() / 10.0;
+    let ma_duree = (crate::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
     r.secondes = ma_duree;
     let mut trace = avant.clone();
     let liste = |cle: &str| -> Vec<Value> { avant.get(cle).and_then(Value::as_array).cloned().unwrap_or_default() };

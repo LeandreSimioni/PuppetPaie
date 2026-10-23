@@ -643,6 +643,6 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
     }
     resultat.persistant = phrase_persistante(&nouvel_index, crate::releve_retours::maintenant_naif());
     ecrire_index(racine, &Value::Object(nouvel_index))?;
-    resultat.secondes = (debut.elapsed().as_secs_f64() * 10.0).round() / 10.0;
+    resultat.secondes = (crate::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
     Ok(resultat)
 }

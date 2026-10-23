@@ -932,6 +932,67 @@ fn une_version_qui_change_un_calcul_attend_les_compagnies_reelles_pas_les_fictiv
     assert_eq!(maj::courante(&inst.join("logiciel")), "2026.11.01");
 }
 
+/// LES MOIS SAISIS EN DEMO d'une compagnie gardee au deblocage (ticket #236) ne retiennent pas une version qui change un
+/// calcul : le logiciel ne les a jamais declares. Un mois saisi apres qu'elle a ete gardee retient comme toute reelle.
+#[test]
+fn les_mois_faits_en_demo_d_une_compagnie_gardee_ne_retiennent_pas_la_version() {
+    let base = dossier_de_test("mise_a_jour", "garde_fou_demo");
+    let inst = base.join("installation");
+    logiciel(&inst.join("logiciel"), "2026.10.09");
+    logiciel(&inst.join("maj").join("2026.11.01").join("logiciel"), "2026.11.01");
+    crate::outils::ecrire(&inst, "maj/prete.json", &json!({"version": "2026.11.01", "calcul": "la CSG"}));
+    // Bride : le « + » ajoute une fictive ; on y saisit un mois, jamais declare.
+    let ajoutee = paie::interface::compagnies::ajouter_dans(&inst, "Les Pupazzi").unwrap();
+    compagnie::config_et_mois("fictive-3090-petite", &[], &ajoutee.racine);
+    let mut e = crate::outils::lire(&ajoutee.racine, "config/entreprise.json");
+    e["nom_affichage"] = json!("Les Pupazzi");
+    crate::outils::ecrire(&ajoutee.racine, "config/entreprise.json", &e);
+    crate::outils::ecrire(&ajoutee.racine, "paies/2030-01.json", &json!({"mois": "2030-01", "engagements": [{"salarie": "INVENTE"}]}));
+    // Debloque, on la garde : une compagnie reelle.
+    crate::outils::debloquer(&inst);
+    let poste = paie::administrateur::Poste { dossier_cle: base.join("cle"), maintenant: "2026-10-23T10:00".into() };
+    let v = paie::interface::suppression::repondre(&inst, std::slice::from_ref(&ajoutee.id), &[], &poste, &|_| {}).unwrap();
+    assert_eq!(v["erreurs"], json!([]), "{}", v);
+    let gardee = inst.join("compagnies").join("les-pupazzi");
+    assert!(gardee.join("paies/2030-01.json").is_file());
+    assert_eq!(maj::applicable(&inst).as_deref(), Some("2026.11.01"), "le mois fait en demo ne retient rien");
+    // Un mois saisi apres : il attend sa DSN.
+    crate::outils::ecrire(&gardee, "paies/2030-02.json", &json!({"mois": "2030-02", "engagements": [{"salarie": "INVENTE"}]}));
+    assert!(maj::applicable(&inst).is_none(), "le mois 2030-02, saisi apres, attend sa DSN");
+    let refus = maj::appliquer(&inst, false).unwrap_err();
+    assert!(refus.contains("2030-02 (les-pupazzi)") && !refus.contains("2030-01"), "{}", refus);
+}
+
+/// UN MOIS DE DEMO RETRAVAILLE apres que la compagnie a ete gardee (sa saisie enregistree) est un mois qu'on entend
+/// declarer : il sort de la mention de demo et retient la version comme tout mois reel.
+#[test]
+fn un_mois_de_demo_retravaille_apres_avoir_ete_garde_retient_la_version() {
+    let base = dossier_de_test("mise_a_jour", "garde_fou_demo_retravaille");
+    let inst = base.join("installation");
+    logiciel(&inst.join("logiciel"), "2026.10.09");
+    logiciel(&inst.join("maj").join("2026.11.01").join("logiciel"), "2026.11.01");
+    crate::outils::ecrire(&inst, "maj/prete.json", &json!({"version": "2026.11.01", "calcul": "la CSG"}));
+    let ajoutee = paie::interface::compagnies::ajouter_dans(&inst, "Les Pupazzi").unwrap();
+    compagnie::config_et_mois("fictive-3090-petite", &["2026-10"], &ajoutee.racine);
+    // En demo, rien n'a ete ecrit au journal des depots.
+    std::fs::remove_dir_all(ajoutee.racine.join("journal")).unwrap();
+    let mut e = crate::outils::lire(&ajoutee.racine, "config/entreprise.json");
+    e["nom_affichage"] = json!("Les Pupazzi");
+    crate::outils::ecrire(&ajoutee.racine, "config/entreprise.json", &e);
+    crate::outils::debloquer(&inst);
+    let poste = paie::administrateur::Poste { dossier_cle: base.join("cle"), maintenant: "2026-10-23T10:00".into() };
+    paie::interface::suppression::repondre(&inst, std::slice::from_ref(&ajoutee.id), &[], &poste, &|_| {}).unwrap();
+    let gardee = inst.join("compagnies").join("les-pupazzi");
+    assert_eq!(paie::interface::suppression::mois_de_demo(&gardee), vec!["2026-10".to_string()]);
+    assert_eq!(maj::applicable(&inst).as_deref(), Some("2026.11.01"), "fait en demo, il ne retient rien");
+    // On le retravaille : sa saisie s'enregistre.
+    let saisie = crate::outils::lire(&gardee, "paies/2026-10.json");
+    crate::outils::reussi(&crate::outils::route(&gardee, "enregistrer-saisie", json!({"mois": "2026-10", "saisie": saisie}), "2026-10-22"));
+    assert!(paie::interface::suppression::mois_de_demo(&gardee).is_empty(), "il n'est plus de demo");
+    assert!(maj::applicable(&inst).is_none(), "il attend sa DSN comme tout mois reel");
+    assert!(maj::appliquer(&inst, false).unwrap_err().contains("2026-10 (les-pupazzi)"));
+}
+
 // ------------------------------------------------------------------ la publication par GitHub (lot P1, 14/10/2026)
 
 fn publique_de(graine: &[u8; 32]) -> String {

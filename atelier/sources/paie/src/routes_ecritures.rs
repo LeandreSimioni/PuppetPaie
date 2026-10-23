@@ -108,7 +108,7 @@ pub(crate) fn configuration(o: &HashMap<String, String>, ctx: &Contexte) -> R<Va
 
 /// L'heure de Paris, a la seconde (`datetime.now().isoformat(timespec="seconds")`).
 fn maintenant() -> String {
-    let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64());
+    let t = crate::temps::secondes();
     crate::paris::iso_secondes(t)
 }
 
@@ -857,11 +857,14 @@ pub(crate) fn ecrire_saisie_confirmee(
         let chemin = ctx.racine.join("paies").join(format!("{}.json", autre));
         sauver_avant(&chemin)?;
         ecrire(&chemin, saisie)?;
+        crate::interface::suppression::sortir_de_la_demo(&ctx.racine, &autre).map_err(|m| erreur("OSError", m))?;
     }
     if p.exists() {
         sauver_avant(&p)?;
     }
     ecrire(&p, donnees.clone())?;
+    // UN MOIS FAIT EN DEMO, retravaille dans la compagnie gardee : il cesse d'etre « de demo » (`suppression::sortir_de_la_demo`).
+    crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
     // Le calcul qui vient de valider la saisie est celui du fichier quand la fusion n'y a rien change.
     if eq_py(&donnees, &calculee) {
         crate::calcul_du_mois::ecrire_calcul(o, mois, &rep, entrees);

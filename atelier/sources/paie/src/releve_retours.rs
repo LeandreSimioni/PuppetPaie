@@ -28,7 +28,7 @@ use crate::retours::{base64_ecrire, base64_lire, Echec};
 
 /// Les secondes unix de l'horloge.
 fn secondes_unix() -> i64 {
-    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64)
+    crate::temps::secondes().floor() as i64
 }
 
 /// `datetime.now()` a l'heure de Paris, en secondes d'une epoque « naive » (l'heure locale lue comme si

@@ -116,6 +116,9 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         }
         // L'accueil : la page lit tout en s'ouvrant.
         "etat" | "configuration" => crate::routes_accueil::route(o, &ctx, route, &charge),
+        // Supprimer la compagnie : ce que la boite demande (`interface::suppression::question`) ; la suppression elle-meme
+        // est un geste de la fenetre, qui lache d'abord ce qu'elle tient de la compagnie.
+        "compagnie-suppression" => crate::interface::suppression::question(&ctx.racine).map_err(|m| Echec { classe: Some("ErreurOperation"), message: m }),
         // La saisie d'un mois et l'echeancier : la page les lit en s'ouvrant.
         "saisie" | "echeancier" => crate::routes_saisie::route(o, &ctx, route, &charge),
         // Les petites lectures de l'ouverture : identite, exercices, coffre, filet, importation, mise a jour, signalements, pieces parties.

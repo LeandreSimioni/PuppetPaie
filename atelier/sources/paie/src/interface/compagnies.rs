@@ -2,7 +2,7 @@
 //!
 //! A cote du code : `prive/` (la vraie), `compagnies/*` (les autres vraies), `fictives/*` (les compagnies fictives, livrees
 //! avec le logiciel). La copie de developpement (`prive-dev/`) n'est jamais proposee. Bride (`bridage.rs`), l'accueil ne
-//! montre que les fictives.
+//! montre que les fictives. Supprimer une compagnie, et garder au deblocage celles qu'on a ajoutees en demo : `suppression.rs`.
 
 use std::path::{Path, PathBuf};
 
@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 
 use crate::fichiers::dossier_du_code;
 
-const MARQUEUR: &str = "COPIE-DE-DEVELOPPEMENT.json";
+pub const MARQUEUR: &str = "COPIE-DE-DEVELOPPEMENT.json";
 const COULEUR_DEFAUT: &str = "#B22222";
 const DOSSIER_ORIGINE: &str = ".origine";
 /// Ce qui appartient au poste et survit a une remise a zero.
@@ -147,6 +147,11 @@ fn nom(racine: &Path) -> String {
     trouve.unwrap_or(repli)
 }
 
+/// Le nom d'une compagnie tel que sa tuile le dit (`nom_affichage`, sinon la raison sociale, sinon son dossier).
+pub fn nom_de(racine: &Path) -> String {
+    nom(racine)
+}
+
 fn titre(s: &str) -> String {
     let mut sortie = String::new();
     let mut debut = true;
@@ -215,9 +220,17 @@ fn entree(id: String, racine: &Path, reelle: bool) -> Compagnie {
     Compagnie { id, nom: n, lieu: lieu(racine), racine: racine.to_path_buf(), reelle, couleur: couleur(racine) }
 }
 
+/// Un dossier dont le nom commence par un point n'est jamais une compagnie : la photo d'origine des fictives
+/// (`.origine/`), le reste d'une compagnie supprimee qui ne s'est pas efface (`suppression::effacer`).
+pub fn est_cache(p: &Path) -> bool {
+    p.file_name().is_some_and(|n| n.to_string_lossy().starts_with('.'))
+}
+
 fn sous_dossiers(dossier: &Path) -> Vec<PathBuf> {
     let mut v: Vec<PathBuf> = std::fs::read_dir(dossier)
-        .map(|it| it.filter_map(|e| e.ok().map(|e| e.path())).filter(|d| d.join("config").join("entreprise.json").is_file()).collect())
+        .map(|it| {
+            it.filter_map(|e| e.ok().map(|e| e.path())).filter(|d| !est_cache(d) && d.join("config").join("entreprise.json").is_file()).collect()
+        })
         .unwrap_or_default();
     v.sort();
     v
@@ -280,7 +293,7 @@ pub fn poser_couleur(id: &str, valeur: &str) -> Result<String, String> {
     Ok(v)
 }
 
-fn nom_de_dossier(nom: &str) -> String {
+pub(crate) fn nom_de_dossier(nom: &str) -> String {
     let mut s = String::new();
     for c in nom.to_lowercase().chars() {
         let pli = match c {

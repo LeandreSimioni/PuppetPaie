@@ -1318,7 +1318,7 @@ fn horodatage_dos(secondes: i64) -> (u16, u16) {
 }
 
 fn maintenant() -> i64 {
-    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0)
+    crate::temps::secondes().floor() as i64
 }
 
 /// `zipfile.ZipFile(chemin, "w", ZIP_DEFLATED)` : deflate, CRC-32, cree sous Unix, comme Python.

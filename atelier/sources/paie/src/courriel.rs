@@ -650,7 +650,7 @@ fn message_id_de(brut: &[u8]) -> Option<String> {
 
 pub(crate) fn hexa_au_hasard(octets: usize) -> String {
     let mut o = vec![0u8; octets];
-    if getrandom::fill(&mut o).is_err() {
+    if crate::temps::aleas(&mut o).is_err() {
         let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(1);
         for (i, c) in o.iter_mut().enumerate() {
             *c = (t >> (i * 8 % 64)) as u8;
@@ -683,7 +683,7 @@ impl Courriel for BoiteSimulee {
         let dossier = self.racine.join(DOSSIER_COURRIELS);
         std::fs::create_dir_all(&dossier).map_err(|e| erreur(format!("{} : {}", dossier.display(), e)))?;
         let ident = message_id_de(message_mime).unwrap_or_else(|| format!("<{}@fictive.puppetpaie>", hexa_au_hasard(8)));
-        let maintenant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default();
+        let maintenant = std::time::Duration::from_secs_f64(crate::temps::secondes());
         let nom = format!("{}_{}.eml", horodatage_de(maintenant), hexa_au_hasard(4));
         let chemin = dossier.join(&nom);
         std::fs::write(&chemin, message_mime).map_err(|e| erreur(format!("{} : {}", chemin.display(), e)))?;

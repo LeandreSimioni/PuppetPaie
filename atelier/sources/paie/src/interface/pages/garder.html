@@ -1,0 +1,27 @@
+<!-- AU DEBLOCAGE (ticket #236, Leandre 22/10/2026) : les compagnies creees en demo, a garder ou non. Le moteur sert cette
+     boite tant qu'il en reste (`suppression::a_garder`) ; la fermer sans repondre la fait revenir a l'accueil suivant.
+     Le choix part au moteur (`garder`), qui garde ou supprime. -->
+<div class="avis-ajouter" id="garder">
+  <form class="carte-avis" role="dialog" aria-labelledby="garder-titre">
+    <p id="garder-titre"><b>Vous venez de débloquer le logiciel. Voulez-vous garder les compagnies créées ?</b></p>
+    <ul class="a-garder">{{LISTE}}</ul>
+    <p class="discret">Une compagnie gardée devient une compagnie réelle : son mot de passe du logiciel se choisit à sa
+      première ouverture. Une compagnie décochée est supprimée, avec tout son dossier.</p>
+    <div class="barre"><button type="button" class="second" id="garder-plus-tard">Plus tard</button><button type="submit" id="garder-valider">Valider</button></div>
+  </form>
+</div>
+<script>
+  (function () {
+    const boite = document.getElementById("garder");
+    boite.addEventListener("mousedown", (e) => e.stopPropagation());
+    document.getElementById("garder-plus-tard").onclick = () => boite.remove();
+    boite.querySelector("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const cases = [...boite.querySelectorAll("input[type=checkbox]")];
+      const garder = cases.filter((c) => c.checked).map((c) => c.value);
+      const nePas = cases.filter((c) => !c.checked).map((c) => c.value);
+      const r = await window.pywebview.api.garder(garder, nePas);
+      if (!r || !r.ok) document.getElementById("erreur").textContent = (r && r.erreur) || "Rien n'a changé.";
+    });
+  })();
+</script>

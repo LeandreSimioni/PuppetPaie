@@ -154,7 +154,7 @@ fn tete(s: &str, n: usize) -> String {
 
 /// L'heure de Paris, `datetime.now().isoformat(timespec="seconds")`.
 pub fn maintenant() -> String {
-    let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64());
+    let t = crate::temps::secondes();
     crate::paris::iso_secondes(t)
 }
 

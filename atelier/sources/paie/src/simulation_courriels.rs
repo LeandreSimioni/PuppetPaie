@@ -380,7 +380,7 @@ pub fn reponse_jouee(de: &str, a: &str, sujet: &str, corps: &str, ident: &str) -
         corps: corps.to_string(),
         ..Default::default()
     };
-    let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
+    let t = crate::temps::secondes().floor() as i64;
     let mut frontiere = String::new;
     let octets = crate::envoi::en_mime_avec(
         &message,

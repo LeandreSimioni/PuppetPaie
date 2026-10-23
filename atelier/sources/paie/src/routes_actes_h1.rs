@@ -77,7 +77,7 @@ fn jour_le(charge: &Value) -> R<Option<Jour>> {
 
 /// Les secondes unix de l'horloge.
 fn maintenant() -> f64 {
-    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64())
+    crate::temps::secondes()
 }
 
 /// `datetime.now()` a l'heure de Paris, en `AAAA-MM-JJTHH:MM:SS`.
