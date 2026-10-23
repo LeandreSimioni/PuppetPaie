@@ -64,6 +64,8 @@ const ROUTES_SANS_EFFET = new Set(["veille", "rappels", "pour-demarrer", "organi
   "contrats-passes",
   // L'Historique d'un mois (ses documents, ses envois, leurs retours lus) et la pièce qu'on y ouvre : des lectures.
   "historique-mois", "ouvrir-piece",
+  // Ce que la boîte « Supprimer cette compagnie » demande (ticket #236) : une lecture.
+  "compagnie-suppression",
   // L'étape du relevé en cours, lue toutes les secondes le temps qu'il tourne (ticket #220).
   "veille-etape",
   // Les conseils « Le saviez-vous ? » (ticket 224) : le conseil du jour, ceux d'un salarié, le résumé de l'accueil.

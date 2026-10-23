@@ -126,6 +126,20 @@ quatre compagnies fictives. Décompressée dans un dossier neuf (Linux, Mac, un
 dossier portable), elle s'ouvre bridée sur ses fictives ; le geste de
 l'accueil la débloque.
 
+**Bridé, le « + » de l'accueil ajoute une compagnie fictive** (`fictives/ajoutee-<nom>`,
+ticket #236) dont rien ne part. **Au déblocage**, l'accueil demande lesquelles
+garder, et redemande tant qu'il en reste : une compagnie gardée passe sous
+`compagnies/`, devient réelle (son mot de passe du logiciel se choisit à sa
+première ouverture, son coffre est gardé) et porte `config/demo.json`, qui fait
+dire à chaque mois saisi en démo que rien n'en est parti ; une compagnie
+décochée est supprimée. **Supprimer une compagnie** se fait sous la fiche
+Entreprise de sa Configuration : une compagnie créée en démo sur une simple
+confirmation, une compagnie réelle sur le mot de passe du logiciel (le double
+des bulletins se conserve cinq ans, article L3243-4) ; une fictive livrée ne
+se supprime pas, elle se remet à zéro. Le dossier est renommé en dossier caché
+(`.supprimee-…`) puis effacé ; un reste s'efface au lancement suivant
+(`paie/src/interface/suppression.rs`).
+
 **L'archive de mise à jour** (`puppetpaie-<version>-<système>.zip`, celle que
 `derniere.json` nomme et que le logiciel télécharge tout seul) ne sert pas à
 installer : elle porte le contenu de `logiciel/` à sa racine, et rien d'autre.

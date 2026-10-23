@@ -852,6 +852,7 @@ async function repeindreLeMois(mois, ancien, frais) {
  *  qu'on a répondu à l'avertissement pour ce mois-là. */
 function majFermeture(mois, existe) {
   majAvisDsn(mois);
+  majAvisDemo(mois);
   // UN MOIS TENU AVANT PUPPETPAIE (ticket #215) : il se lit, rien ne s'y ajoute et rien ne le rouvre — sa DSN est
   // faite ailleurs, ou le moteur dit qu'il n'en a pas trace ; ce n'est pas « en retard » (règle 4 : rien ne la refait).
   if (IMPORTE) {
@@ -905,6 +906,15 @@ function majAvisDsn(mois) {
   if (!d) return;
   avis.className = "encart " + (d.confirmer ? "attention" : "info");
   avis.textContent = d.phrase;
+}
+
+/** UN MOIS SAISI EN DÉMO, dans une compagnie gardée au déblocage (ticket #236) : la mention du moteur (route `etat`,
+ *  `demo`) — ses paies n'ont été ni déclarées ni envoyées. Les pastilles disent ce qui reste à faire. */
+function majAvisDemo(mois) {
+  const avis = document.getElementById("avis-demo");
+  const d = ETAT && ETAT.demo;
+  avis.hidden = !(d && (d.mois || []).includes(mois));
+  if (!avis.hidden) avis.textContent = d.phrase;
 }
 
 /** LA BOÎTE QUI DEMANDE CONFIRMATION (21/10/2026) : le texte est celui du refus du moteur. « Modifier quand même »

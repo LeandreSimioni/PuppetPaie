@@ -135,6 +135,9 @@
       <!-- UN MOIS DONT LA DSN EST DÉPOSÉE (21/10/2026) : ce qu'une modification de sa paie entraîne, tel que le moteur le
            dit (route `saisie`, `dsn_deposee`) — un annule-et-remplace tant qu'il est admis, puis une confirmation et la
            correction dans la DSN suivante. js/saisie-mois.js, majFermeture(). -->
+      <!-- UN MOIS SAISI EN DÉMO, la compagnie gardée au déblocage (ticket #236) : rien n'en est parti. js/saisie-mois.js,
+           majAvisDemo(). -->
+      <div class="encart attention" id="avis-demo" hidden></div>
       <div class="encart" id="avis-dsn" hidden></div>
       <div id="engagements"></div>
       <!-- Un mois tenu avant PuppetPaie (ticket #215) : ses paies, en cartes,
@@ -272,6 +275,9 @@
   </nav>
   <div id="config-liste"></div>
   <div id="config-formulaire"></div>
+  <!-- Supprimer la compagnie (ticket #236), sous la fiche Entreprise, et seulement si elle se supprime (`supprimable`
+       du moteur : jamais une fictive livrée, qui se remet à zéro). js/configuration.js, dessinerSuppression(). -->
+  <div id="config-suppression"></div>
 </section>
 
 <!-- ------------------------------------------------------- HISTORIQUE -->
