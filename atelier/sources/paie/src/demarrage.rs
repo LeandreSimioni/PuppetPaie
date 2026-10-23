@@ -26,7 +26,7 @@ const ENTREPRISE: &str = "Configuration › Entreprise";
 /// (chemin dans la fiche entreprise, ce que son absence bloque). Le SIRET avant le SIREN et le NIC : ils s'en deduisent
 /// (`routes_fiches::deriver`) et se disent sur sa ligne. La qualite du contact (S20.G00.07.004) n'y est plus : le moteur
 /// l'ecrit seul (`dsn::type_du_contact`, #236).
-const FICHE: [(&str, &str); 19] = [
+const FICHE: [(&str, &str); 22] = [
     ("raison_sociale", "la DSN"),
     ("siret", "la DSN et la DPAE"),
     ("siren", "la DSN"),
@@ -43,6 +43,11 @@ const FICHE: [(&str, &str); 19] = [
     ("declarant_dsn.nom_prenom", "la DSN"),
     ("declarant_dsn.tel", "la DSN"),
     ("declarant_dsn.email", "la DSN"),
+    // Seulement quand la medecine du travail est interne (code MT01) : le champ est alors exige (`exige_si`), et la DSN
+    // de 2027 l'ecrit en S20.G00.07 de type 17 (`dsn::contact_sante_travail`).
+    ("contact_sante_travail.nom_prenom", "la DSN"),
+    ("contact_sante_travail.tel", "la DSN"),
+    ("contact_sante_travail.email", "la DSN"),
     ("banque.iban", "la DSN (le paiement des cotisations)"),
     ("banque.bic", "la DSN (le paiement des cotisations)"),
     // Le SEUL numero Conges Spectacles demande : la DSN le declare precede de 97 (`conges_spectacles::code_dsn`, fiche de
@@ -149,6 +154,11 @@ fn une_suspension_non_remuneree(ctx: &Contexte) -> bool {
     })
 }
 
+/// Le champ `cle` de la fiche entreprise est-il exige de la compagnie `ent` (`exige_si` de `champs-base.json`) ?
+fn champ_exige(ent: &Value, cle: &str) -> bool {
+    crate::champs::champ("entreprise", cle).ok().flatten().is_some_and(|c| c.exige(ent))
+}
+
 /// Tout ce qui manque a la compagnie pour ses premiers actes. Vide : rien ne manque.
 pub fn manques(ctx: &Contexte) -> Vec<Value> {
     let ent = &ctx.entreprise;
@@ -158,6 +168,9 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     let mut vus: Vec<String> = Vec::new();
     for (cle, bloque) in FICHE {
         if cle == crate::conges_spectacles::CLE_ADHERENT && !intermittents {
+            continue;
+        }
+        if cle.starts_with("contact_sante_travail.") && !champ_exige(ent, "contact_sante_travail") {
             continue;
         }
         if valeur(ent, cle).is_some_and(vrai) {

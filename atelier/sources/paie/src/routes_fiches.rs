@@ -300,8 +300,13 @@ fn capitales(v: &Value) -> String {
 /// rend `{cle: [avant, apres]}` pour les structures modifiees.
 fn deriver_personnes(donnees: &mut Map<String, Value>, forcer: bool) -> Map<String, Value> {
     let mut faits = Map::new();
-    let personnes: [(&str, &[&str], Option<(&str, [&str; 2])>); 2] =
-        [("signataire", &["nom", "prenom"], None), ("declarant_dsn", &[], Some(("nom_prenom", ["nom", "prenom"])))];
+    // Le contact de la medecine du travail interne (S20.G00.07 de type 17, `dsn::contact_sante_travail`) s'ecrit comme
+    // celui de la DSN : « NOM PRENOM ».
+    let personnes: [(&str, &[&str], Option<(&str, [&str; 2])>); 3] = [
+        ("signataire", &["nom", "prenom"], None),
+        ("declarant_dsn", &[], Some(("nom_prenom", ["nom", "prenom"]))),
+        ("contact_sante_travail", &[], Some(("nom_prenom", ["nom", "prenom"]))),
+    ];
     for (cle, officiels, compose) in personnes {
         let Some(Value::Object(p)) = donnees.get(cle) else { continue };
         let mut neuf = p.clone();

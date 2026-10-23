@@ -782,7 +782,10 @@ const SECTIONS_FICHE = {
      ["urssaf_compte", "congesspectacles_adherent",
       "affiliation_france_travail",
       "france_travail_dossier_recouvrement", "medecine_travail"], { atmp: true }],
-    ["Qui signe, qui répond", ["signataire", "declarant_dsn"]],
+    // Le contact de la médecine du travail interne ne se montre que si le code du
+    // service de santé au travail vaut MT01 (`si` de champs-base.json) ; la DSN
+    // l'écrit alors en S20.G00.07 de type 17 (#236).
+    ["Qui signe, qui répond", ["signataire", "declarant_dsn", "contact_sante_travail"]],
     ["Paiement des cotisations", ["banque"]],
     // LA TAXE SUR LES SALAIRES (lot V3b, 10/10/2026) : la DSN de décembre
     // déclare chaque année si la compagnie la doit (bloc S21.G00.44), et ne
@@ -941,6 +944,12 @@ const SOUS_CHAMPS = {
   declarant_dsn: { champs: [
     ["civilite", "Civilité", "Celle de la personne que les organismes contactent : elle s'écrit dans chaque DSN.",
      { choix: { "": "—", "02": "Madame", "01": "Monsieur" } }],
+    ["prenom_affichage", "Prénom", ""],
+    ["nom_affichage", "Nom", ""],
+    ["tel", "Téléphone", ""],
+    ["email", "Courriel", ""],
+  ] },
+  contact_sante_travail: { champs: [
     ["prenom_affichage", "Prénom", ""],
     ["nom_affichage", "Nom", ""],
     ["tel", "Téléphone", ""],

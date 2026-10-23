@@ -407,6 +407,7 @@ tr.total td { font-weight: bold; border-top: 2px solid var(--texte); border-bott
 .fiche-conseils { margin: 6px 0 14px; }
 .fiche-conseils h3 { margin: 0; font-size: 14px; }
 .encart b { display: block; margin-bottom: 3px; }
+.encart .anomalie b { display: inline; margin: 0; }
 /* L'AVENANT (30/09/2026) : l'ancien texte du contrat et le nouveau, cites. */
 .modif-avenant { margin: 10px 0; }
 .modif-avenant .citation { margin: 2px 0 6px 12px; font-style: italic; font-size: 13px; }

@@ -218,23 +218,11 @@ pub(crate) fn bornes_brutes(e: &Map<String, Value>) -> R<(String, String)> {
 
 // ------------------------------------------------------------ les fichiers de mois
 
-/// Les mois dont un fichier de saisie existe (`operations_paies.mois_connus`,
-/// ceux qui ont une `saisie`) : le radical de chaque `paies/*.json`, comme
-/// `Path.stem` -- `2026-09.calcul.json` y est le mois « 2026-09.calcul ». Dans
-/// l'ordre croissant.
+/// Les mois dont un fichier de saisie existe, dans l'ordre croissant : `routes_mois::mois_saisis`, les `paies/AAAA-MM.json`
+/// seulement. Un cache (`2024-12.etat.json`, `2026-09.calcul.json`), qu'une lecture ecrit en fond, n'est pas un mois
+/// (#236 : le rejeu d'un banc, qui ne refait pas les lectures, ne doit pas voir une autre compagnie).
 pub(crate) fn mois_saisis(ctx: &Contexte) -> Vec<String> {
-    let mut mois: Vec<String> = match std::fs::read_dir(ctx.racine.join("paies")) {
-        Ok(l) => l
-            .filter_map(|e| e.ok())
-            .map(|e| e.file_name().to_string_lossy().into_owned())
-            .filter(|n| n.ends_with(".json"))
-            .map(|n| if n.len() > 5 { n[..n.len() - 5].to_string() } else { n })
-            .collect(),
-        Err(_) => Vec::new(),
-    };
-    mois.sort();
-    mois.dedup();
-    mois
+    crate::routes_mois::mois_saisis(&ctx.racine)
 }
 
 /// `operations_paies._engagements_du_mois` : les engagements bruts d'un fichier

@@ -628,6 +628,7 @@ function vueApercu(a) {
 /* ------------------------------------------------------- charger un mois */
 let MOIS_AFFICHE = null;        // le mois REELLEMENT charge dans l'ecran
 let MOIS_FERME = null;          // la date limite depassee de ce mois, ou null
+let AVANT_EMBAUCHE = null;      // la premiere embauche, quand ce mois passe la precede (rien n'y est dû), ou null
 let MOIS_FORCE = null;          // le mois ferme que l'on a rouvert, en connaissance de cause
 /* UN MOIS DONT LA DSN NE SE REMPLACE PLUS (Léandre, 21/10/2026) : sa paie se modifie, mais la première modification
  * demande confirmation, une fois par séance d'édition du mois. Le moteur refuse l'enregistrement sans elle
@@ -756,6 +757,7 @@ async function chargerMois(mois, repeint = false) {
   // Un mois dont la DSN etait due (le 15 du mois suivant) ne se touche
   // plus : lecture seule, pas d'ajout, pas d'enregistrement automatique.
   MOIS_FERME = r.hors_delai || null;
+  AVANT_EMBAUCHE = r.avant_premiere_embauche || null;
   DSN_DEPOSEE = r.dsn_deposee || null;
   // Rouvrir ne vaut que pour LE mois rouvert : on change de mois, on
   // retrouve la lecture seule. Une confirmation de même : on la redonne en revenant.
@@ -832,6 +834,7 @@ async function repeindreLeMois(mois, ancien, frais) {
     if (!SAISIE_DATE_PAIEMENT) SAISIE_DATE_PAIEMENT = defauts.date_paiement || "";
     afficherRappelsMois();
     MOIS_FERME = r.hors_delai || null;
+    AVANT_EMBAUCHE = r.avant_premiere_embauche || null;
     DSN_DEPOSEE = r.dsn_deposee || null;
     IMPORTE = r.importe || null;
     majFermeture(mois, r.existe);
@@ -860,6 +863,16 @@ function majFermeture(mois, existe) {
     document.getElementById("engagements").classList.add("lecture-seule");
     document.getElementById("rouvrir-mois").hidden = true;
     noteSaisie("");
+    return;
+  }
+  // UN MOIS D'AVANT LA PREMIÈRE EMBAUCHE (#236) : le moteur dit qu'aucune DSN n'y est due ; rien ne s'y ajoute et rien
+  // ne le rouvre « en retard ».
+  if (AVANT_EMBAUCHE) {
+    document.getElementById("ajouter-engagement").hidden = true;
+    document.getElementById("engagements").classList.add("lecture-seule");
+    document.getElementById("rouvrir-mois").hidden = true;
+    noteSaisie(`Ce mois précède la première embauche de la compagnie (${jjmmaaaa(AVANT_EMBAUCHE)}) : aucune DSN n'y est due. `
+      + "Si la compagnie employait déjà, la date de première embauche se corrige dans Configuration › Entreprise.");
     return;
   }
   const ferme = !!MOIS_FERME && MOIS_FORCE !== mois;

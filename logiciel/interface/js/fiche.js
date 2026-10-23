@@ -1528,21 +1528,28 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
         erreurs = erreurs.filter((a) => !duMetier.includes(a));
         erreurs.unshift({ champ: "Métier", message: "à choisir dans la liste" });
       }
+      // LE MOTEUR DIT CE QUI SE FORCE (#236, règle 2) : une erreur de forme
+      // (`forcable`), oui ; une valeur obligatoire absente d'un salarié ou d'un
+      // spectacle (son métier…), non — sans elle, ni DPAE ni DSN.
+      const forcable = e.detail.anomalies.filter((a) => a.gravite === "erreur").every((a) => a.forcable !== false);
+      // Le libellé et son message sur une ligne : `.encart b` est un titre.
       ouvrirBoite(`<h3>Enregistrement refusé</h3>
         <div class="encart erreur"><b>${erreurs.length > 1 ? `${erreurs.length} erreurs` : "Une erreur"}</b>
-          ${erreurs.map((a) => `<div><b>${echapper(libelles[a.champ] || a.champ)}</b> : ${echapper(a.message)}</div>`).join("")}</div>
-        <p class="note">Ces champs partent dans des déclarations. Si la règle
+          ${erreurs.map((a) => `<div class="anomalie"><b>${echapper(libelles[a.champ] || a.champ)}</b> : ${echapper(a.message)}</div>`).join("")}</div>
+        ${forcable
+          ? `<p class="note">Ces champs partent dans des déclarations. Si la règle
            se trompe et que la valeur est juste, on peut passer outre — mais il
-           faut le vouloir.</p>
+           faut le vouloir.</p>`
+          : `<p class="note">Sans ces valeurs, ni la DPAE ni la DSN ne peuvent se
+           faire : elles se remplissent avant d'enregistrer.</p>`}
         <div class="actions">
-          <button class="secondaire" onclick="fermerBoite()">Corriger</button>
-          <button class="primaire" id="b-forcer">Enregistrer quand même</button>
+          <button class="${forcable ? "secondaire" : "primaire"}" onclick="fermerBoite()">Corriger</button>
+          ${forcable ? `<button class="primaire" id="b-forcer">Enregistrer quand même</button>` : ""}
         </div>`);
       // La date d'effet deja saisie voyage avec : passer outre une erreur
       // ne doit pas faire perdre au passage ce qu'on venait de dater.
-      document.getElementById("b-forcer").onclick = () => {
-        fermerBoite(); ecrireFiche(fiche, donnees, daté, true);
-      };
+      const forcer = document.getElementById("b-forcer");
+      if (forcer) forcer.onclick = () => { fermerBoite(); ecrireFiche(fiche, donnees, daté, true); };
     } else { dire(e.message, "erreur"); }
   }
 }

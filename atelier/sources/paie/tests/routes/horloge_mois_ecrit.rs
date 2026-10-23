@@ -152,3 +152,44 @@ fn l_export_compta_est_a_jour_d_apres_le_journal_et_non_les_dates() {
     ecrire(&c, "paies/2025-03.json", &mars);
     assert!(rappel(&c), "la saisie de mars n'est plus celle que l'export a lue");
 }
+
+/// UN MOIS S'ECRIT LE 1ER DU MOIS SUIVANT, ET L'HORLOGE DIT LA VRAIE DATE (#236, banc du Petit Castelet : le 20/01/2025,
+/// « Le 01/01/2025 : Janvier 2025 écrit », et une DSN « constituee le 20012025 » qui portait les cachets des 25 et 26/01).
+/// Un mois en cours n'a ni bulletins ni DSN : il s'ecrit le 1er du mois suivant, ou, pour une compagnie ajoutee plus tard,
+/// le jour ou elle l'a ete. Sur `fictive-3090-petite`, dont novembre 2026 est saisi et pas ecrit.
+#[test]
+fn un_mois_ne_s_ecrit_que_le_premier_du_mois_suivant_a_sa_vraie_date() {
+    let ecrites = |c: &std::path::Path| {
+        lire(c, "journal/dsn-ecrites.json").as_object().unwrap().keys().filter(|k| k.starts_with("2026-11/DSN_")).count()
+    };
+    let c = compagnie::ses_dsn("fictive-3090-petite", &[], &dossier_de_test("horloge_mois_ecrit", "premier-suivant").join("compagnie"));
+    let phrases = reussi(&route(&c, "horloge-rattraper", json!({"aujourdhui": "2026-11-30"}), "2026-11-30")).clone();
+    assert!(!phrases.to_string().contains("Novembre 2026"), "le 30 novembre, novembre n'est pas fini : {}", phrases);
+    assert_eq!(ecrites(&c), 0);
+    let phrases = reussi(&route(&c, "horloge-rattraper", json!({"aujourdhui": "2026-12-01"}), "2026-12-01")).clone();
+    assert!(phrases.as_array().unwrap().iter().any(|p| p == "Le 01/12/2026 : Novembre 2026 écrit — contrats, bulletins, DSN"), "{}", phrases);
+    assert_eq!(ecrites(&c), 1);
+
+    // Une compagnie ajoutee le 03/12/2026 : son mois de novembre s'ecrit ce jour-la, pas le 1er decembre.
+    let c = compagnie::ses_dsn("fictive-3090-petite", &[], &dossier_de_test("horloge_mois_ecrit", "ajoutee-apres").join("compagnie"));
+    ecrire(&c, "config/creation.json", &json!({"le": "2026-12-03"}));
+    let phrases = reussi(&route(&c, "horloge-rattraper", json!({"aujourdhui": "2026-12-05"}), "2026-12-05")).clone();
+    assert!(phrases.as_array().unwrap().iter().any(|p| p == "Le 03/12/2026 : Novembre 2026 écrit — contrats, bulletins, DSN"), "{}", phrases);
+}
+
+/// UN CACHE DE LECTURE NE FAIT CLORE AUCUN EXERCICE (#236, banc du Petit Castelet : `paies/2024-12.etat.json`, ecrit en
+/// fond quand on avait regarde decembre 2024, faisait clore au banc un exercice 2024 vide -- `config/exercices.json`,
+/// `Exercice_2024.zip` -- que le rejeu du scenario, qui ne refait pas les lectures, ne clot pas). Seules les saisies
+/// `paies/AAAA-MM.json` disent qu'une annee a des paies. Sur `fictive-3090-petite`, qui commence en janvier 2025.
+#[test]
+fn un_cache_de_lecture_ne_fait_clore_aucun_exercice() {
+    let c = compagnie::ses_dsn("fictive-3090-petite", &[], &dossier_de_test("horloge_mois_ecrit", "cache-exercice").join("compagnie"));
+    let mut memoire = lire(&c, "config/horloge.json");
+    memoire["annees_faites"] = json!([]);
+    ecrire(&c, "config/horloge.json", &memoire);
+    ecrire(&c, "paies/2024-12.etat.json", &json!({}));
+    let phrases = reussi(&route(&c, "horloge-rattraper", json!({"aujourdhui": "2026-11-25"}), "2026-11-25")).clone();
+    assert!(!phrases.to_string().contains("exercice 2024"), "{}", phrases);
+    assert!(lire(&c, "config/exercices.json").get("2024").is_none(), "2024 n'a aucune paie : rien a clore");
+    assert!(!c.join("sorties/exercices/Exercice_2024.zip").exists());
+}

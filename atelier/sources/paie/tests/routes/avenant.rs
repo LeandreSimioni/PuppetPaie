@@ -336,3 +336,27 @@ fn le_contrat_ecrit_l_emploi_de_l_engagement_au_feminin_si_la_fiche_le_dit() {
     // Biancolelli, comedien, engage comme danseur.
     assert_eq!(emploi_au_contrat("bianco-dan", "Biancolelli", "DAN010"), ("danseur".to_string(), "de ".to_string()));
 }
+
+/// LE TEXTE GARDE D'UN CONTRAT NE DEPEND QUE DE SON CONTENU (#236, banc du Petit Castelet : `.textes/Contrat_….pdf.<date a
+/// la nanoseconde>.<taille>.txt`, un nom qu'aucun rejeu ne retrouve, et le rejeu ne refaisait pas la compagnie fichier pour
+/// fichier). Deux copies du meme PDF, a deux dates, rangent leur texte sous le meme nom ; un PDF refait, sous un autre.
+#[test]
+fn le_texte_garde_d_un_contrat_porte_l_empreinte_de_son_contenu() {
+    let pdf = outils::fictive("fictive-3090-petite").join("sorties/2026-08/Contrats_Aout2026.pdf");
+    let noms = |cas: &str, quand: u64| -> Vec<String> {
+        let d = outils::dossier_de_test("avenant", cas);
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        let copie = d.join("Contrats_Aout2026.pdf");
+        std::fs::copy(&pdf, &copie).unwrap();
+        let t = std::time::UNIX_EPOCH + std::time::Duration::from_secs(quand);
+        std::fs::File::options().write(true).open(&copie).unwrap().set_modified(t).unwrap();
+        paie::avenant::texte_du_pdf(&copie).unwrap();
+        let mut n: Vec<String> = std::fs::read_dir(d.join(".textes")).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+        n.sort();
+        n
+    };
+    let (a, b) = (noms("texte-garde-a", 1_577_836_800), noms("texte-garde-b", 1_798_761_600));
+    assert_eq!(a.len(), 1, "{:?}", a);
+    assert_eq!(a, b, "le meme contrat, deux dates : le meme texte garde");
+}
