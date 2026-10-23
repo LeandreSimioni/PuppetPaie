@@ -798,7 +798,7 @@ async function boiteDpae(mois) {
     </div>
     <p class="note">Heure d'embauche déclarée : 08h00. Toutes les embauches
       cochées partent ensemble, dans un seul dépôt. D'abord le test, qui ne
-      déclare rien ; une fois le test revenu conforme, l'envoi réel.</p>
+      déclare rien ; une fois le test revenu conforme, ${enFictive() ? "l'envoi, simulé" : "l'envoi réel"}.</p>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
       <button class="primaire" id="d-ecrire">Envoyer le test…</button>
