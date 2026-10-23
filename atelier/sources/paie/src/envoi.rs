@@ -134,11 +134,18 @@ pub const NOTES: [(&str, &str); 4] = [
     ),
 ];
 
-/// Quand l'AER n'est pas encore revenue. On le DIT, plutot que d'envoyer un message qui laisse croire que le
-/// dossier est complet.
-pub const NOTE_SANS_AER: &str = "Ton attestation employeur France Travail (AER Cinéma Spectacle) n'est pas encore \
-    revenue : France Travail l'édite à partir de notre déclaration, quelques jours après le dépôt. Elle te sera \
-    envoyée dès réception.";
+/// Quand l'AER DUE ce mois-ci (`aer::due` : un intermittent dont le contrat finit dans le mois) n'est pas jointe. On le
+/// DIT, plutot que d'envoyer un message qui laisse croire que le dossier est complet ; on ne promet rien de la suite.
+/// Un salarie a qui aucune AER Cinema Spectacle n'est due (un permanent, un contrat d'usage qui continue le mois
+/// suivant) n'a pas cette phrase.
+pub const NOTE_SANS_AER: &str = "Ton attestation employeur France Travail (AER Cinéma Spectacle) de ce mois n'est pas \
+    jointe : France Travail l'édite à partir de notre déclaration, et elle n'était pas encore revenue au moment de cet envoi.";
+
+/// Quand le contrat finit ce mois-ci et que sa fin se signale (`aer::attestation_fctu` : CDD, CDI, CDDU rompu avant son
+/// terme) : l'attestation employeur de droit commun revient de France Travail apres le signalement, a part de la paie.
+/// Le courriel le dit, pour que son absence ne laisse pas croire le dossier complet ; il ne promet rien.
+pub const NOTE_SANS_ATTESTATION_FCTU: &str = "Ton contrat se termine ce mois-ci : ton attestation employeur pour France \
+    Travail n'est pas jointe à ce courriel. France Travail l'édite à partir du signalement de fin de contrat.";
 
 fn chercher(table: &[(&'static str, &'static str)], cle: &str) -> &'static str {
     table.iter().find(|(c, _)| *c == cle).map(|(_, v)| *v).unwrap_or("")
@@ -541,9 +548,6 @@ pub fn preparer_avec(
             }
         }
         let mut notes: Vec<&str> = presents.iter().map(|c| chercher(&NOTES, c)).collect();
-        if !presents.contains(&"aer") {
-            notes.push(NOTE_SANS_AER);
-        }
         let siennes: Vec<&Paie> = {
             let mut v = Vec::new();
             for p in paies {
@@ -553,6 +557,17 @@ pub fn preparer_avec(
             }
             v
         };
+        let (mut aer_due, mut fctu) = (false, false);
+        for p in &siennes {
+            aer_due |= crate::aer::due(&p.engagement)?;
+            fctu |= crate::aer::attestation_fctu(&p.engagement)?;
+        }
+        if aer_due && !presents.contains(&"aer") {
+            notes.push(NOTE_SANS_AER);
+        }
+        if fctu {
+            notes.push(NOTE_SANS_ATTESTATION_FCTU);
+        }
         let nom_affichage = en_texte(ent.get("nom_affichage").ok_or_else(|| cle_absente("nom_affichage"))?);
         let mut ft = recap_france_travail(&siennes, mois, &nom_affichage)?;
         if !ft.is_empty() && !notes.is_empty() {

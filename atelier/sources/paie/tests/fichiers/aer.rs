@@ -218,16 +218,16 @@ fn png(largeur: u32, hauteur: u32) -> Vec<u8> {
 
 const SVG_SIGNATURE: &str = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"50\" viewBox=\"0 0 100 50\"><path d=\"M5 40 C 20 5, 40 5, 50 30 S 80 45, 95 10\" fill=\"none\" stroke=\"#123\" stroke-width=\"2\"/></svg>";
 
-fn paie(debut: Jour, fin: Jour, cachets: i128, heures: i128) -> PaieAer {
-    PaieAer { debut, fin, cachets, heures }
+fn paie(numero: &str, debut: Jour, fin: Jour, cachets: i128, heures: i128) -> PaieAer {
+    PaieAer { numero: numero.into(), debut, fin, cachets, heures }
 }
 
 fn paies_justes() -> Vec<PaieAer> {
-    vec![paie(jour(2026, 8, 1), jour(2026, 8, 31), 2, 12), paie(jour(2026, 8, 5), jour(2026, 8, 6), 1, 0)]
+    vec![paie("FA1.26.15", jour(2026, 8, 1), jour(2026, 8, 31), 2, 12), paie("MA2.26.15", jour(2026, 8, 5), jour(2026, 8, 6), 1, 0)]
 }
 
 fn paies_fausses() -> Vec<PaieAer> {
-    vec![paie(jour(2026, 8, 1), jour(2026, 8, 31), 2, 24)]
+    vec![paie("FA1.26.15", jour(2026, 8, 1), jour(2026, 8, 31), 2, 24), paie("MA2.26.15", jour(2026, 8, 5), jour(2026, 8, 6), 1, 0)]
 }
 
 fn signer(pdf: &[u8], ent: &Value, paies: Option<&[PaieAer]>, forcer: bool, signature: Option<&str>, cachet: Option<&str>) -> Result<Vec<u8>, Echec> {
@@ -297,12 +297,13 @@ fn lire_quantites_deux_rangs_de_meme_cle_le_dernier_l_emporte_a_la_place_du_prem
         match ch.nom.as_str() {
             "SAL_DT_DEB_02" => ch.valeur = Some("01/08/2026".into()),
             "SAL_DT_FIN_02" => ch.valeur = Some("31/08/2026".into()),
+            "CON_NUMERO_02" => ch.valeur = Some("FA1.26.15".into()),
             _ => {}
         }
     }
     let q = aer::lire_quantites(&aer::champs(&formulaire(&c)).unwrap()).unwrap();
     assert_eq!(q.len(), 1);
-    assert_eq!((q[0].numero.as_str(), q[0].cachets, q[0].heures), ("MA2.26.15", 1, 0));
+    assert_eq!((q[0].numero.as_str(), q[0].cachets, q[0].heures), ("FA1.26.15", 1, 0));
 }
 
 // ------------------------------------------------------------------ verifier
@@ -318,14 +319,28 @@ fn verifier_un_ecart_donne_un_message_qui_dit_quoi() {
     // Le contrat, sa periode, et les deux heures qui different.
     assert_eq!(e.len(), 1);
     assert!(["FA1.26.15", "2026-08-01", "2026-08-31", "12 heures", "24"].iter().all(|x| e[0].contains(x)), "{:?}", e);
-    let e = aer::verifier(&attestation(), &[paie(jour(2026, 8, 1), jour(2026, 8, 31), 3, 12)]).unwrap();
+    let mut trois = paies_justes();
+    trois[0].cachets = 3;
+    let e = aer::verifier(&attestation(), &trois).unwrap();
     assert_eq!(e.len(), 1);
     assert!(e[0].contains("2 cachets sur l'attestation, 3 dans la paie"), "{:?}", e);
 }
 
+/// Une periode imprimee qu'aucune paie n'explique, ou une periode de la paie que l'attestation ne porte pas : signer
+/// certifierait exacte une attestation qui ajoute ou retire une periode d'emploi. C'est un ecart, jamais un silence.
 #[test]
-fn verifier_un_contrat_d_un_autre_salarie_ne_compte_pas() {
-    assert_eq!(aer::verifier(&attestation(), &[paie(jour(2026, 7, 1), jour(2026, 7, 2), 9, 99)]), Ok(vec![]));
+fn verifier_une_periode_en_trop_ou_en_moins_est_un_ecart() {
+    let e = aer::verifier(&attestation(), &paies_justes()[..1]).unwrap();
+    assert_eq!(e.len(), 1, "{:?}", e);
+    assert!(e[0].contains("MA2.26.15") && e[0].contains("aucune paie"), "{:?}", e);
+    let mut plus = paies_justes();
+    plus.push(paie("FA1.26.15", jour(2026, 7, 1), jour(2026, 7, 31), 9, 99));
+    let e = aer::verifier(&attestation(), &plus).unwrap();
+    assert_eq!(e.len(), 1, "{:?}", e);
+    assert!(e[0].contains("2026-07-01") && e[0].contains("ne porte pas"), "{:?}", e);
+    // Le meme contrat sous un autre numero (le compteur d'aujourd'hui, pas celui de la DSN) ne s'explique pas.
+    let e = aer::verifier(&attestation(), &[paie("FA1.26.18", jour(2026, 8, 1), jour(2026, 8, 31), 2, 12), paies_justes()[1].clone()]).unwrap();
+    assert_eq!(e.len(), 2, "{:?}", e);
 }
 
 #[test]
@@ -333,6 +348,40 @@ fn verifier_un_contrat_sans_numero_s_appelle_contrat() {
     let sans_numero: Vec<Champ> = champs_aer(2, 12).into_iter().filter(|c| c.nom != "CON_NUMERO_01").collect();
     let e = aer::verifier(&formulaire(&sans_numero), &paies_fausses()).unwrap();
     assert!(e[0].starts_with("contrat (2026-08-01 au 2026-08-31)"), "{:?}", e);
+}
+
+/// UN CONTRAT SUR DEUX MOIS (la forme d'une vraie AER d'octobre 2026, depot prive `reference-privee/exemples/`) : une
+/// colonne par mois, le numero du contrat imprime dans la premiere seulement. Chaque colonne se compare a la paie de
+/// son mois, sous le numero declare.
+fn deux_mois(heures_oct: u32) -> Vec<u8> {
+    let mut c = Vec::new();
+    let colonnes = [("29/09/2026", "30/09/2026", Some("SI2.26.19"), 8), ("01/10/2026", "16/10/2026", None, heures_oct)];
+    for (i, (deb, fin, num, h)) in colonnes.iter().enumerate() {
+        let rang = i + 1;
+        let x = 150.0 + 85.0 * i as f64;
+        c.push(champ(&format!("SAL_DT_DEB_{:02}", rang), 2, [x, 218.0, x + 80.0, 233.0], Some(deb), 1, None));
+        c.push(champ(&format!("SAL_DT_FIN_{:02}", rang), 2, [x, 236.0, x + 80.0, 251.0], Some(fin), 1, None));
+        c.push(champ(&format!("SAL_NB_HEURES_{:02}", rang), 2, [x, 258.0, x + 80.0, 273.0], Some(&h.to_string()), 1, None));
+        if let Some(n) = num {
+            c.push(champ(&format!("CON_NUMERO_{:02}", rang), 2, [x, 82.0, x + 80.0, 100.0], Some(n), 1, None));
+        }
+    }
+    formulaire(&c)
+}
+
+#[test]
+fn verifier_un_contrat_sur_deux_mois_colonne_par_colonne() {
+    let paies = [paie("SI2.26.19", jour(2026, 9, 29), jour(2026, 9, 30), 0, 8), paie("SI2.26.19", jour(2026, 10, 1), jour(2026, 10, 16), 0, 10)];
+    let q = aer::lire_quantites(&aer::champs(&deux_mois(10)).unwrap()).unwrap();
+    assert_eq!(q.iter().map(|l| l.numero.as_str()).collect::<Vec<_>>(), ["SI2.26.19", "SI2.26.19"], "la suite du contrat garde son numero");
+    assert_eq!(aer::verifier(&deux_mois(10), &paies), Ok(vec![]));
+    let e = aer::verifier(&deux_mois(12), &paies).unwrap();
+    assert_eq!(e.len(), 1, "{:?}", e);
+    assert!(["SI2.26.19", "2026-10-01", "12 heures", "10"].iter().all(|x| e[0].contains(x)), "{:?}", e);
+    // La paie d'octobre seule (septembre oublie) : la colonne de septembre ne s'explique pas.
+    let e = aer::verifier(&deux_mois(10), &paies[1..]).unwrap();
+    assert_eq!(e.len(), 1, "{:?}", e);
+    assert!(e[0].contains("2026-09-29"), "{:?}", e);
 }
 
 // ------------------------------------------------------------------ authentifier
@@ -392,8 +441,8 @@ fn authentifier_remplit_le_cadre_5_et_ne_touche_pas_aux_chiffres() {
 #[test]
 fn authentifier_sans_paies_signe_sans_regarder() {
     assert!(signer(&attestation(), &fiche(), None, false, None, None).unwrap().starts_with(b"%PDF"));
-    // une liste vide n'est pas « sans paies » : elle verifie, et rien ne s'oppose
-    assert!(signer(&attestation(), &fiche(), Some(&[]), false, None, None).is_ok());
+    // une liste vide n'est pas « sans paies » : rien n'explique les periodes imprimees, et rien ne se signe
+    assert!(matches!(signer(&attestation(), &fiche(), Some(&[]), false, None, None), Err(Echec::Ecarts(_))));
 }
 
 #[test]

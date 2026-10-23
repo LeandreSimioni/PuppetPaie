@@ -34,6 +34,20 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
     for doc in ["sorties/2026-11/envoi/Bulletin_FULLER_Novembre2026.pdf", "sorties/2026-11/envoi/CertificatCS_FULLER_Novembre2026.pdf"] {
         assert!(f.get(doc).is_some(), "{} manque", doc);
     }
+    // L'AER CINEMA SPECTACLE (`aer::due`, `aer_fictive`) : la DSN mensuelle de novembre, qui porte la fin du contrat de la
+    // comedienne, recoit son retour 46 et l'AER signee part avec ses documents ; le signalement d'amorcage (nature 08) n'en
+    // recoit aucun -- France Travail n'edite l'AER que depuis la mensuelle.
+    let natures = |fichier: &str| -> Vec<Value> {
+        depots
+            .iter()
+            .filter(|l| l["quoi"] == json!("dsn") && l["mode"] == json!("reel") && l["fichier"] == json!(fichier))
+            .flat_map(|l| l["retours"].as_array().cloned().unwrap_or_default())
+            .map(|r| r["nature"].clone())
+            .collect()
+    };
+    assert!(natures("DSN_Novembre2026.dsn").contains(&json!("46")), "{:?}", natures("DSN_Novembre2026.dsn"));
+    assert!(!natures("Amorcage01_FULLER_20261120.dsn").contains(&json!("46")), "{:?}", natures("Amorcage01_FULLER_20261120.dsn"));
+    assert!(f.get("sorties/2026-11/envoi/AER_FULLER_Novembre2026.pdf").is_some(), "l'AER de novembre manque");
     // Deux cachets de 150 € : 300 € de brut.
     let paie = &releve["paies"]["2026-11"]["paies"][0];
     assert_eq!(paie["brut"], json!("300"), "{}", paie);

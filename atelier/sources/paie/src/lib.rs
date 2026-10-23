@@ -11,6 +11,7 @@
 
 pub mod administrateur;
 pub mod aer;
+pub mod aer_fictive;
 #[cfg(feature = "atelier")]
 pub mod atelier;
 pub mod amorcage;

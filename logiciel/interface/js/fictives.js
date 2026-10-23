@@ -157,7 +157,7 @@ async function fenetreCourrielsFictifs(genre, repere) {
     partis = (await api("courriels-fictifs", { apres: repere || "" })).courriels;
   } catch (e) { return; }
   if (!partis.length) return;
-  const premier = partis[0];
+  let premier = partis[0];
 
   const apercu = (m) => `
     <div class="fictive-courriel">
@@ -223,8 +223,10 @@ async function fenetreCourrielsFictifs(genre, repere) {
     <div class="fictive-fenetre">
       <h3>Compagnie fictive — ${echapper(c.titre)}</h3>
       <p class="intro">${partis.length} courriel${partis.length > 1 ? "s" : ""} joué${partis.length > 1 ? "s" : ""}
-        — rien n'a quitté le poste.${partis.length > 1 ? ` Voici celui de ${echapper(premier.a)} ; les autres
-        sont sur le même modèle.` : ""}</p>
+        — rien n'a quitté le poste.${partis.length > 1 ? ` Chacun reçoit les siens :` : ""}</p>
+      ${partis.length > 1 ? `<div class="fictive-destinataires">${partis.map((m, i) => `
+        <button class="${i === 0 ? "primaire" : "secondaire"} fictive-destinataire" data-rang="${i}"
+          title="${echapper(m.sujet)}">${echapper(m.a)}</button>`).join("")}</div>` : ""}
       ${c.bulles.length > 1 ? `<ol class="fictive-bulles">${c.bulles.map((t, i) => `
         <li><button class="fictive-bulle" data-etape="${i}"><span>${i + 1}</span>${echapper(t)}</button></li>`).join("")}</ol>` : ""}
       <div class="fictive-etape"></div>
@@ -235,6 +237,24 @@ async function fenetreCourrielsFictifs(genre, repere) {
     </div>`, () => { clearTimeout(ATTENTE_FICTIVE); });
   document.querySelectorAll(".fictive-bulle").forEach((x) => {
     x.onclick = () => { etape = +x.dataset.etape; dessiner(); };
+  });
+  // UN COURRIEL PAR SALARIÉ, ET ILS DIFFÈRENT (#227) : le permanent reçoit son
+  // bulletin, l'intermittent aussi son certificat Congés Spectacles et son
+  // AER. On choisit celui qu'on regarde.
+  document.querySelectorAll(".fictive-destinataire").forEach((x) => {
+    x.onclick = () => {
+      premier = partis[+x.dataset.rang];
+      document.querySelectorAll(".fictive-destinataire").forEach((y) => {
+        y.className = `${y === x ? "primaire" : "secondaire"} fictive-destinataire`;
+      });
+      etape = 0;
+      dessiner();
+      if (genre === "signature") {
+        api("courriels-fictifs", { apres: partis[partis.length - 1].nom }).then((r) => {
+          retours = r.courriels.filter((m) => c.retour.test(m.sujet) && m.a === premier.a);
+        }).catch(() => {});
+      }
+    };
   });
   const suivant = document.getElementById("fictive-suivant");
   if (suivant) suivant.onclick = () => { etape = (etape + 1) % c.bulles.length; dessiner(); };
