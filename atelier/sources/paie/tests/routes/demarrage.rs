@@ -111,14 +111,17 @@ fn le_seul_numero_conges_spectacles_saisi_est_le_numero_d_adherent() {
         route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": fiche, "forcer": false}), JOUR)
     };
     let fautif = |r: &Value| r["anomalies"].as_array().unwrap().iter().any(|a| a["champ"] == json!("congesspectacles_adherent"));
-    for mal_forme in ["970123450001F", "0123450001", "0123450001f", "0123 450001F", "A123450001F"] {
+    for mal_forme in ["970123450001F", "0123450001", "01234500011F", "A123450001F", "0123450001É"] {
         let r = poser(mal_forme);
         assert_eq!(r["ok"], json!(false));
         assert!(fautif(&r), "{} : pas dix chiffres et une lettre : {}", mal_forme, r);
         assert!(lire(&racine, "config/entreprise.json").get("congesspectacles_adherent").is_none(), "rien n'est ecrit");
     }
     assert!(!fautif(&poser("0123450001F")), "dix chiffres et une lettre : rien a redire");
-    let fiche = json!({"nom_affichage": "Les Tréteaux Neufs", "congesspectacles_adherent": "0123450001F"});
+    // La meme valeur ecrite avec des blancs, un tiret ou la lettre en minuscule : le moteur l'ecrit dans sa forme
+    // (`conges_spectacles::forme_adherent`), sans rien reprocher.
+    assert!(!fautif(&poser("0123 450001-f")), "la meme valeur : rien a redire");
+    let fiche = json!({"nom_affichage": "Les Tréteaux Neufs", "congesspectacles_adherent": "0123 450001-f"});
     reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": fiche, "forcer": true}), JOUR));
     let ent = lire(&racine, "config/entreprise.json");
     assert_eq!(ent["congesspectacles_adherent"], json!("0123450001F"));

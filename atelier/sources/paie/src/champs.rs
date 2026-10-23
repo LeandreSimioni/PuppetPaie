@@ -821,7 +821,7 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
     // LE NUMERO D'ADHERENT CONGES SPECTACLES (#236) : dix chiffres et une lettre, dont la DSN tire S21.G00.40.022 (97 + ce
     // numero) ; la forme et sa source sont a un seul endroit, `conges_spectacles::faute_adherent`.
     if c.cle == crate::conges_spectacles::CLE_ADHERENT {
-        if let Some(faute) = crate::conges_spectacles::faute_adherent(v) {
+        if let Some(faute) = crate::conges_spectacles::faute_adherent(&crate::conges_spectacles::forme_adherent(v)) {
             return Ok(Some(faute));
         }
     }

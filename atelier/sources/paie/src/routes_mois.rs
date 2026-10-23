@@ -948,16 +948,9 @@ impl<'a> Moteur<'a> {
             }
             return Ok(None);
         }
-        // Seulement la DSN MENSUELLE : un signalement ne declare pas la paie du mois.
-        if !est_une_dsn_mensuelle(&nom) {
-            return Ok(None);
-        }
-        let saisie = self.racine().join("paies").join(format!("{}.json", mois));
-        if let (Ok(f), Ok(s)) = (std::fs::metadata(fichier), std::fs::metadata(&saisie)) {
-            if crate::paris::mtime(&s) > crate::paris::mtime(&f) + 60.0 {
-                return Ok(Some("la paie a ete enregistree depuis que ce fichier a ete ecrit".to_string()));
-            }
-        }
+        // SANS EMPREINTE NOTEE, LE MOTEUR NE SAIT PAS (#236) : il ne compare plus les dates des fichiers. Une fictive
+        // livree, decompressee chez un visiteur, a des dates de fichier qui ne disent rien de l'ordre ou elle a ete ecrite,
+        // et chacun de ses mois se disait « paie changee ».
         Ok(None)
     }
 

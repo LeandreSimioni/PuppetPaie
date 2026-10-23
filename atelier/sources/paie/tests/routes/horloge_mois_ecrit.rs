@@ -75,3 +75,43 @@ fn l_accueil_le_rappel_et_la_page_paie_lisent_le_critere_de_l_horloge() {
     assert_ne!(rappel(&c)["etat"], json!("a_deposer"));
     assert!(etape(&c).is_null());
 }
+
+/// LES DATES DES FICHIERS NE DISENT PAS QUE LA PAIE A CHANGE (#236). Une fictive livree, decompressee chez un visiteur,
+/// a des dates de fichier quelconques : ses DSN peuvent paraitre plus vieilles que ses saisies. « La paie a change depuis
+/// l'ecriture » ne se lit que de l'empreinte de la saisie notee au journal des ecritures (`produire_mois::noter_dsn_ecrite`) ;
+/// sans empreinte, le moteur ne sait pas et ne le dit pas. Sur une copie de `fictive-3090-petite` (rien de depose, pour
+/// que chaque mois montre son etape), DSN datees de 2020, saisies d'aujourd'hui.
+#[test]
+fn des_dates_de_fichier_touchees_ne_font_changer_aucune_paie() {
+    let c = compagnie::ses_dsn("fictive-3090-petite", &[], &dossier_de_test("horloge_mois_ecrit", "dates-touchees").join("compagnie"));
+    ecrire(&c, "journal/depots.json", &json!([]));
+    let vieux = std::time::UNIX_EPOCH + std::time::Duration::from_secs(1_577_836_800); // 2020-01-01
+    let toucher = |p: &std::path::Path, t: std::time::SystemTime| std::fs::File::options().write(true).open(p).unwrap().set_modified(t).unwrap();
+    let mut mois: Vec<String> = Vec::new();
+    for e in std::fs::read_dir(c.join("sorties")).unwrap().flatten().filter(|e| e.path().is_dir()) {
+        for f in std::fs::read_dir(e.path()).unwrap().flatten().filter(|f| f.file_name().to_string_lossy().starts_with("DSN_")) {
+            toucher(&f.path(), vieux);
+            mois.push(e.file_name().to_string_lossy().into_owned());
+        }
+    }
+    for e in std::fs::read_dir(c.join("paies")).unwrap().flatten().filter(|e| e.path().is_file()) {
+        toucher(&e.path(), std::time::SystemTime::now());
+    }
+    assert!(mois.len() > 10, "{:?}", mois);
+    let changees = |c: &std::path::Path| -> Vec<String> {
+        mois.iter()
+            .filter(|m| reussi(&route(c, "bilan-du-mois", json!({"mois": m}), "2026-10-03"))["dsn"]["etape"] == json!("paie_changee"))
+            .cloned()
+            .collect()
+    };
+    let etape = |m: &str| reussi(&route(&c, "bilan-du-mois", json!({"mois": m}), "2026-10-03"))["dsn"]["etape"].clone();
+    assert!(mois.iter().all(|m| !etape(m).is_null()), "chaque mois montre l'etape de sa DSN ecrite");
+    assert_eq!(changees(&c), Vec::<String>::new(), "les empreintes notees concordent : aucun mois n'a change");
+    // Un journal dont les notes n'ont pas d'empreinte : le moteur ne sait pas, il ne dit pas que la paie a change.
+    let mut journal = lire(&c, "journal/dsn-ecrites.json");
+    for note in journal.as_object_mut().unwrap().values_mut() {
+        note.as_object_mut().unwrap().remove("empreinte_saisie");
+    }
+    ecrire(&c, "journal/dsn-ecrites.json", &journal);
+    assert_eq!(changees(&c), Vec::<String>::new(), "sans empreinte, les dates des fichiers ne disent rien");
+}

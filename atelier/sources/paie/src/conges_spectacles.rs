@@ -26,6 +26,14 @@ type R<T> = Result<T, Refus>;
 /// le declare precede de 97 (`code_dsn`).
 pub const CLE_ADHERENT: &str = "congesspectacles_adherent";
 
+/// LA FORME ECRITE DU NUMERO D'ADHERENT : la meme valeur, « accolés, sans espaces, ni tiret » et la lettre en capitale,
+/// comme l'exemple de la fiche (970000000001A ; `audiens-fiche-specificites-conges-spectacles-20261023.txt`, l. 80-81).
+/// Rien ne s'ajoute ni ne se devine : on ote les blancs et les tirets, on met en majuscules. Le seul endroit qui le fait ;
+/// `routes_fiches::deriver` l'applique avant de controler et d'enregistrer la fiche, `adherent` avant de declarer.
+pub fn forme_adherent(v: &str) -> String {
+    v.chars().filter(|c| !c.is_whitespace() && *c != '-').flat_map(char::to_uppercase).collect()
+}
+
 /// LA FORME DU NUMERO D'ADHERENT : « le numéro d'adhérent à la caisse Congés spectacles (10 chiffres + 1 lettre) »
 /// (Audiens, fiche de specificites « Parametrage DSN Conges Spectacles »,
 /// `atelier/reference/sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt`, l. 80-81). La
@@ -34,8 +42,8 @@ pub fn faute_adherent(v: &str) -> Option<String> {
     let c: Vec<char> = v.chars().collect();
     let bon = c.len() == 11 && c[..10].iter().all(char::is_ascii_digit) && c[10].is_ascii_uppercase();
     (!bon).then(|| {
-        "le numéro d'adhérent Congés Spectacles s'écrit en dix chiffres suivis d'une lettre majuscule, accolés, sans espace \
-         ni tiret (par exemple 0123450001F), tel qu'il figure sur les courriers d'Audiens"
+        "le numéro d'adhérent Congés Spectacles s'écrit en dix chiffres suivis d'une lettre \
+         (par exemple 0123450001F), tel qu'il figure sur les courriers d'Audiens"
             .to_string()
     })
 }
@@ -44,7 +52,7 @@ pub fn faute_adherent(v: &str) -> Option<String> {
 /// quoi saisir.
 pub fn adherent(ent: &Value) -> Result<String, String> {
     let v = match ent.get(CLE_ADHERENT) {
-        Some(v) if vrai(v) => py_str(v),
+        Some(v) if vrai(v) => forme_adherent(&py_str(v)),
         _ => {
             return Err("le numéro d'adhérent Congés Spectacles manque dans la fiche de l'entreprise (Entreprise, « Vos \
                         numéros chez les organismes ») : dix chiffres suivis d'une lettre, tel qu'il figure sur les \

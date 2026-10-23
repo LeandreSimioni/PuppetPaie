@@ -491,7 +491,7 @@
    "ecran": true
   },
   {
-   "_note": "UN SEUL NUMERO CONGES SPECTACLES (#236, 23/10/2026). « 97 puis le numero d'adherent a la caisse Conges spectacles (10 chiffres + 1 lettre). Ces 2 identifiants doivent etre accoles, sans espaces, ni tiret, etc... EX : 970000000001A » (Audiens, fiche de specificites, atelier/reference/sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt, l. 80-81). La compagnie ne saisit que ce numero ; le moteur ecrit S21.G00.40.022 = 97 + ce numero (`conges_spectacles::code_dsn`) et controle sa forme (`conges_spectacles::faute_adherent`). L'ancienne cle `congesspectacles_affiliation` n'est plus lue.",
+   "_note": "UN SEUL NUMERO CONGES SPECTACLES (#236, 23/10/2026). « 97 puis le numero d'adherent a la caisse Conges spectacles (10 chiffres + 1 lettre). Ces 2 identifiants doivent etre accoles, sans espaces, ni tiret, etc... EX : 970000000001A » (Audiens, fiche de specificites, atelier/reference/sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt, l. 80-81). La compagnie ne saisit que ce numero ; le moteur ecrit S21.G00.40.022 = 97 + ce numero (`conges_spectacles::code_dsn`) l'ecrit sans blancs ni tirets, lettre en capitale (`conges_spectacles::forme_adherent`), et controle sa forme (`conges_spectacles::faute_adherent`). L'ancienne cle `congesspectacles_affiliation` n'est plus lue.",
    "cle": "congesspectacles_adherent",
    "libelle": "Numéro d'adhérent Congés Spectacles",
    "forme": "texte",
