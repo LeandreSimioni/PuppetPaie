@@ -13,7 +13,8 @@
 //!
 //! `commande` relit sans calculer tant que les entrees sont les
 //! memes ; sinon, mois non parti : il recalcule et reecrit sans rien dire ;
-//! mois parti (DSN deposee) : il garde les chiffres stockes.
+//! mois parti (DSN deposee) : il garde les chiffres stockes tant que la saisie est celle qu'ils calculent
+//! (`calcul_et_entrees`, #253).
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
@@ -170,44 +171,69 @@ pub fn calcul_avec(o: &HashMap<String, String>, ctx: Option<&Contexte>, mois: &s
 
 /// `calcul_avec`, et les entrees du resultat rendu : celles du calcul stocke quand il se relit, celles du calcul frais
 /// sinon.
+///
+/// UN MOIS PARTI GARDE SES CHIFFRES, PAS UNE AUTRE SAISIE (#253, 23/10/2026). Depuis le 21/10/2026, la paie d'un mois dont
+/// la DSN est deposee se modifie (annule-et-remplace, ou correction le mois suivant) : le calcul stocke ne vaut plus pour
+/// elle des que la saisie n'est plus celle qu'il a calculee. Le mois parti ne relit donc ses chiffres que si la saisie
+/// est la meme, octet pour octet (`saisie_du_calcul`) ; les autres entrees (baremes, fiches, moteur) peuvent avoir bouge,
+/// c'est ce que « parti » veut dire. Sinon il se recalcule, et le calcul de la nouvelle saisie remplace l'ancien : c'est
+/// celui de la paie qu'on va redeclarer (la saisie telle que declaree est gardee a part,
+/// `routes_regularisation::garder_la_saisie_declaree`). Avant, un engagement ajoute a un mois depose laissait le calcul
+/// stocke d'avant l'ajout servir pour la saisie d'apres : une paie de moins, et l'ecran du mois refuse.
 fn calcul_et_entrees(o: &HashMap<String, String>, ctx: Option<&Contexte>, mois: &str, parti: bool) -> Resultat<(Value, BTreeMap<String, String>)> {
     let racine = racine_de(o);
     let calcul = fichier_calcul(&racine, mois);
+    let saisie = racine.join("paies").join(format!("{}.json", mois));
+    let mut saisie_changee = false;
     if let Some((resultat, entrees, integre)) = stocke(&calcul) {
-        if parti || (integre && ctx.is_some_and(|c| a_jour_avec(o, c, &entrees))) {
+        let meme_saisie = integre && saisie_du_calcul(&entrees, mois) == Some(fichiers::empreinte_fichier(&saisie).as_str());
+        if (parti && meme_saisie) || (integre && ctx.is_some_and(|c| a_jour_avec(o, c, &entrees))) {
             return Ok((resultat, entrees));
         }
+        saisie_changee = !meme_saisie;
     }
-    let saisie = racine.join("paies").join(format!("{}.json", mois));
     let demande_calcul = serde_json::json!({ "fichier": saisie.to_string_lossy() });
     let (rep, entrees) = calculer_suivi(o, &demande_calcul)?;
-    if !parti {
+    if !parti || saisie_changee {
         // Un dossier qui refuse l'ecriture ne change pas le resultat.
         let _ = enregistrer(&calcul, &rep, &entrees);
     }
     Ok((rep, entrees))
 }
 
+/// L'empreinte de la saisie du mois que ce calcul a lue (`fichier racine:paies/AAAA-MM.json`), s'il l'a notee.
+fn saisie_du_calcul<'a>(entrees: &'a BTreeMap<String, String>, mois: &str) -> Option<&'a str> {
+    entrees.get(&format!("fichier racine:paies/{}.json", mois)).map(String::as_str)
+}
+
 /// Ecrit `paies/AAAA-MM.calcul.json` avec ce que `calculer_suivi` a rendu pour une saisie en main dont le fichier vient
-/// d'etre ecrit tel quel : `true` si le fichier est ecrit. Le fichier du mois, qui n'existait pas ou pas encore comme cela
-/// quand le calcul a lu le disque, prend sa valeur d'aujourd'hui. Si le calcul a lu l'ancien fichier du mois, rien n'est
-/// ecrit : son resultat n'est pas celui du nouveau.
-pub fn ecrire_calcul(o: &HashMap<String, String>, mois: &str, resultat: &Value, mut entrees: BTreeMap<String, String>) -> bool {
+/// d'etre ecrit tel quel (`ecrite`) : `true` si le fichier est ecrit. Le fichier du mois, qui n'existait pas ou pas encore
+/// comme cela quand le calcul a lu le disque, prend sa valeur d'aujourd'hui. Si le calcul a lu l'ancien fichier du mois,
+/// rien n'est ecrit : son resultat n'est pas celui du nouveau.
+///
+/// L'EMPREINTE NOTEE EST CELLE DE CE QU'ON A ECRIT (#253) : la fenetre sert ses routes en parallele, et un second
+/// enregistrement du meme mois peut avoir remplace le fichier entre son ecriture et celle-ci. Le fichier se relit une fois ;
+/// s'il ne dit plus `ecrite`, rien n'est ecrit -- sinon le calcul de l'ancienne saisie se serait note sous l'empreinte de
+/// la nouvelle, et passerait pour elle.
+pub fn ecrire_calcul(o: &HashMap<String, String>, mois: &str, resultat: &Value, mut entrees: BTreeMap<String, String>, ecrite: &Value) -> bool {
     let racine = racine_de(o);
     let saisie = racine.join("paies").join(format!("{}.json", mois));
     let cle = |genre: &str, rel: &str| format!("{} racine:{}", genre, rel);
     let rel = format!("paies/{}.json", mois);
     if entrees.contains_key(&cle("fichier", &rel)) || resultat.get("mois").and_then(Value::as_str) != Some(mois) {
-        false
-    } else {
-        entrees.insert(cle("fichier", &rel), fichiers::empreinte_fichier(&saisie));
-        entrees.insert(cle("existe", &rel), "oui".into());
-        let dossier = cle("dossier", "paies");
-        if entrees.contains_key(&dossier) {
-            entrees.insert(dossier, fichiers::empreinte_dossier(&racine.join("paies")));
-        }
-        enregistrer(&fichier_calcul(&racine, mois), resultat, &entrees).is_ok()
+        return false;
     }
+    let Ok(octets) = std::fs::read(&saisie) else { return false };
+    if !serde_json::from_slice::<Value>(&octets).is_ok_and(|lu| crate::etats::eq_py(&lu, ecrite)) {
+        return false;
+    }
+    entrees.insert(cle("fichier", &rel), fichiers::sha256_hex(&octets));
+    entrees.insert(cle("existe", &rel), "oui".into());
+    let dossier = cle("dossier", "paies");
+    if entrees.contains_key(&dossier) {
+        entrees.insert(dossier, fichiers::empreinte_dossier(&racine.join("paies")));
+    }
+    enregistrer(&fichier_calcul(&racine, mois), resultat, &entrees).is_ok()
 }
 
 /// `{"mois", "resultat"}`, un calcul frais de
@@ -401,7 +427,10 @@ pub fn cartes(o: &HashMap<String, String>, ctx: &Contexte, data: &Value) -> Vec<
 pub fn devant_le_calcul(carte: &Value, frais: &Value) -> Value {
     let sans = |v: &Value| -> Value {
         let mut m = v.as_object().cloned().unwrap_or_default();
-        for k in ["numero_bulletin", "numero_contrat", "avertissements", "informations", "revoir"] {
+        // `taux_cachet` n'est pas la paie : d'une paie sans ligne de cachet (un permanent, des heures), c'est le dernier
+        // taux tape dans le mois (`routes_ouverture::vue_paie`), et un engagement ajoute a un autre taux mettait toutes
+        // les paies au mois validees « a revoir » (#253). D'une paie au cachet, il change avec son brut, qui reste compare.
+        for k in ["numero_bulletin", "numero_contrat", "avertissements", "informations", "revoir", "taux_cachet"] {
             m.remove(k);
         }
         Value::Object(m)

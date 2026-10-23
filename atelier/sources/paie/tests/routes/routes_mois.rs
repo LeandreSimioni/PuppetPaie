@@ -257,7 +257,7 @@ fn le_chemin_d_un_depot_se_lit_dans_le_bilan() {
 }
 
 /// L'ORDRE DES FICHIERS DEPOSABLES (#236, `routes_mois::ordre_de_depot`) ne depend plus de la date d'un fichier : les
-/// mensuelles d'abord, par leur nom ; puis les signalements, dans l'ordre de leur numero d'ordre (S20.G00.05.004, cahier
+/// mensuelles d'abord, par etablissement, l'annule-et-remplace le plus recent avant ce qu'il remplace (#253) ; puis les signalements, dans l'ordre de leur numero d'ordre (S20.G00.05.004, cahier
 /// technique DSN 2026.1 p. 136 : unique, jamais remis a zero) ; les DPAE, la plus recente d'abord par son nom. `ecrit`
 /// dit QUAND LE MOTEUR L'A ECRIT, tel que son journal des ecritures le consigne (`journal/dsn-ecrites.json`), et jamais
 /// la date du fichier : une fictive decompressee chez le visiteur dirait le jour de l'installation (#236).
@@ -273,6 +273,9 @@ fn les_fichiers_deposables_dans_l_ordre_de_ce_qu_ils_declarent() {
     // 15/07/2026 10:30 UTC (ete : 12:30 a Paris), 15/01/2026 10:30 UTC (hiver : 11:30). Les dates ne decident plus rien.
     poser("DSN_Aout2026.dsn", "DSN_Aout2026.dsn", 1_784_111_400);
     poser("DSN_Aout2026_AR2.dsn", "DSN_Aout2026_AR2.dsn", 1_768_473_000);
+    // UN ANNULE-ET-REMPLACE PASSE AVANT LA DSN QU'IL REMPLACE (#253) : son numero d'ordre se lit dans le fichier
+    // (S20.G00.05.004), sinon dans son nom (`_AR<n>`) ; le plus grand d'abord, quelle que soit la date des fichiers.
+    poser("DSN_Aout2026_AR3.dsn", "S20.G00.05.001,'01'\nS20.G00.05.002,'03'\nS20.G00.05.004,'3'\n", 1_700_000_000);
     poser("autre.DSN", "autre.DSN", 1_784_111_460);
     poser("Amorcage01_X.dsn", "S20.G00.05.001,'08'\nS20.G00.05.004,'2'\n", 1_768_473_000);
     poser("Fin_Y.dsn", "S20.G00.05.001,'04'\nS20.G00.05.004,'1'\n", 1_784_111_460);
@@ -284,9 +287,9 @@ fn les_fichiers_deposables_dans_l_ordre_de_ce_qu_ils_declarent() {
     ecrire(c, "journal/dsn-ecrites.json", &json!({format!("{}/DSN_Aout2026.dsn", MOIS): {"quand": "2026-09-01T10:15:42", "empreinte_saisie": null}}));
     let r = rendu(c, "fichiers-deposables", json!({"mois": MOIS}), "2026-10-03");
     let noms = |k: &str| r[k].as_array().unwrap().iter().map(|f| f["nom"].as_str().unwrap().to_string()).collect::<Vec<_>>();
-    assert_eq!(noms("dsn"), ["DSN_Aout2026.dsn", "DSN_Aout2026_AR2.dsn", "autre.DSN", "Fin_Y.dsn", "Amorcage01_X.dsn"]);
+    assert_eq!(noms("dsn"), ["DSN_Aout2026_AR3.dsn", "DSN_Aout2026_AR2.dsn", "DSN_Aout2026.dsn", "autre.DSN", "Fin_Y.dsn", "Amorcage01_X.dsn"]);
     assert_eq!(noms("dpae"), ["DPAE_Aout2026_20260815-0900.txt", "DPAE_Aout2026.txt"]);
-    assert_eq!(r["dsn"][0]["ecrit"], "2026-09-01T10:15", "la date consignee, pas celle du fichier");
+    assert_eq!(r["dsn"][2]["ecrit"], "2026-09-01T10:15", "la date consignee, pas celle du fichier");
     assert_eq!(r["dsn"][1]["ecrit"], Value::Null, "rien de consigne : rien a dire, meme si le fichier a une date");
     assert_eq!(r["dsn"][1]["octets"], "DSN_Aout2026_AR2.dsn".len());
     assert_eq!(r["dsn"][1]["chemin"], d.join("DSN_Aout2026_AR2.dsn").to_str().unwrap());

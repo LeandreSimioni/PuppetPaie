@@ -26,7 +26,7 @@ use crate::engagement;
 use crate::etats::{eq_py, erreur, py_str, R};
 use crate::fichiers::vrai;
 use crate::journal;
-use crate::jumeaux::{apparier, numero_pose, Ident};
+use crate::jumeaux::{apparier_meme_numero, numero_pose, Ident};
 use crate::num::{dec, Decimal};
 use crate::retours::Echec;
 use crate::routes_accueil;
@@ -768,8 +768,23 @@ pub(crate) fn ecrire_saisie(o: &HashMap<String, String>, ctx: &Contexte, mois: &
 /// `CLASSE_A_CONFIRMER`, avec l'avertissement que la page montre ; rien n'est ecrit. Avec, elle s'ecrit -- la limite de
 /// depot (`refuser_si_hors_delai`) ne la retient pas : le mois n'est pas en retard, il est declare -- et la saisie telle
 /// que declaree est gardee d'abord (`garder_la_saisie_declaree`) : « Corriger ce mois » en part.
+///
+/// UNE SAISIE S'ECRIT A LA FOIS (#253, 23/10/2026). La fenetre sert ses routes en parallele, et la page enregistre une
+/// seconde apres la derniere frappe, meme si l'enregistrement d'avant n'a pas fini (un mois long se calcule en plus d'une
+/// seconde) : deux ecritures du meme mois se croisaient -- l'une fusionnait avec un fichier que l'autre remplacait. Elles
+/// passent l'une apres l'autre, dans ce processus (`SAISIE_EN_COURS`).
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn ecrire_saisie_confirmee(
+    o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, forcer: bool, confirme: bool, fusionner_ancien: bool,
+) -> R<PathBuf> {
+    static SAISIE_EN_COURS: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _une_a_la_fois = SAISIE_EN_COURS.lock().unwrap_or_else(|e| e.into_inner());
+    ecrire_saisie_seule(o, ctx, mois, brute, forcer, confirme, fusionner_ancien)
+}
+
+/// `ecrire_saisie_confirmee`, la seule ecriture en cours.
+#[allow(clippy::too_many_arguments)]
+fn ecrire_saisie_seule(
     o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, forcer: bool, confirme: bool, fusionner_ancien: bool,
 ) -> R<PathBuf> {
     let mut donnees = brute.clone();
@@ -869,7 +884,7 @@ pub(crate) fn ecrire_saisie_confirmee(
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
     // Le calcul qui vient de valider la saisie est celui du fichier quand la fusion n'y a rien change.
     if eq_py(&donnees, &calculee) {
-        crate::calcul_du_mois::ecrire_calcul(o, mois, &rep, entrees);
+        crate::calcul_du_mois::ecrire_calcul(o, mois, &rep, entrees, &donnees);
     }
     Ok(p)
 }
@@ -882,6 +897,12 @@ pub(crate) fn ecrire_saisie_confirmee(
 /// LE CONTRAT, PAS LE SALARIE DU JOUR : chaque engagement de l'ecran retrouve le sien dans le fichier par
 /// `jumeaux::apparier` (le numero, sinon le rang parmi ceux du meme salarie et du meme jour) ; le jumeau d'un contrat
 /// valide ne devient pas sa copie, et chacun garde son numero.
+///
+/// LE MEME CONTRAT A D'AUTRES DATES GARDE SA REOUVERTURE (#253, 23/10/2026 ; banc Le Petit Castelet) : un jour ajoute
+/// AVANT le premier jour d'une paie rouverte change son premier jour, et l'appariement par (salarie, debut) ne la
+/// retrouvait plus : la reouverture tombait au premier enregistrement, et, le mois etant depose, la paie modifiee se
+/// relisait « validee » au jour du depot, avec les chiffres d'avant. Le numero de contrat pose la designe, quel que soit
+/// son premier jour (`jumeaux::apparier_meme_numero`, regle 4).
 fn fusionner(donnees: &mut Map<String, Value>, ancien: &Value, anciens: &[Ident], nouveaux: &[Ident]) {
     if let Some(origine) = ancien.get("_origine") {
         if !donnees.contains_key("_origine") {
@@ -900,7 +921,7 @@ fn fusionner(donnees: &mut Map<String, Value>, ancien: &Value, anciens: &[Ident]
     }
     let engagements_anciens = ancien.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let en_option = |l: &[Ident]| l.iter().cloned().map(Some).collect::<Vec<_>>();
-    let paires = apparier(&en_option(nouveaux), &en_option(anciens));
+    let paires = apparier_meme_numero(&en_option(nouveaux), &en_option(anciens));
     for (i, paire) in paires.iter().enumerate() {
         let Some(e) = (*paire).and_then(|j| engagements_anciens.get(j)).filter(|e| e.is_object()) else { continue };
         let Some(Value::Object(eng)) = engagements.get_mut(i) else { continue };
