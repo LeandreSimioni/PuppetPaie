@@ -4,7 +4,6 @@
  *   PUPPETPAIE_ATELIER=<cible>/essais/paie-atelier node atelier/outils/banc/exemple.js /tmp/banc-treteaux
  *
  * Les captures vont dans `<banc>/captures/`. */
-const fs = require("fs");
 const path = require("path");
 const banc = require("./banc.js");
 const B = path.resolve(process.argv[2] || "/tmp/banc-treteaux");
@@ -64,22 +63,35 @@ function etape(t) { console.log(`\n== ${t}`); }
   for (const [k, v] of Object.entries({ prenom_affichage: "Adolphe", nom_affichage: "Appia", tel: "0100000052", email: "direction@les-treteaux.invalid" })) await sous(page, "declarant_dsn", k, v);
   await sous(page, "banque", "iban", "FR7630001007943252044000039"); await sous(page, "banque", "bic", "BANQFRPPXXX");
   await page.fill("#atmp-valeur", "1,10"); await page.fill("#atmp-code", "923AD");
-  // Le code du service de santé au travail est sous « Avancé — cas particuliers », replié.
-  await page.$eval("[data-cle=medecine_travail]", (e) => e.closest("details").querySelector("summary").click());
-  await champ(page, "medecine_travail", "MT952");
   await banc.capture(page, C + "p03-entreprise-remplie.png");
   await page.click("#config-enregistrer"); await page.waitForTimeout(2500);
   let t = await texte(page);
-  console.log(t.includes("Pour démarrer") ? t.slice(t.indexOf("Pour démarrer"), t.indexOf("Pour démarrer") + 300) : "plus rien ne manque");
-  await fermer();
+  console.log(t.includes("Pour démarrer") ? t.slice(t.indexOf("Pour démarrer"), t.indexOf("Pour démarrer") + 400) : "plus rien ne manque");
 
-  etape("contournement : la qualité du déclarant (la fiche ne la montre pas)");
-  const gestes = fs.readFileSync(B + "/scenario/gestes.jsonl", "utf8").trim().split("\n").map(JSON.parse);
-  const donnees = gestes.filter((g) => g.route === "enregistrer-fiche" && g.ok && g.charge.nom === "entreprise").pop().charge.donnees;
-  donnees.declarant_dsn = { ...donnees.declarant_dsn, qualite: "04" };
-  ({ page, fermer } = await ouvrir());
-  console.log(await page.evaluate((d) => api("enregistrer-fiche", { nom: "entreprise", cle: null, donnees: d }).then(() => "ok", (e) => "refus : " + e.message), donnees));
-  await page.reload(); await page.waitForTimeout(2500); await voile(page);
+  // Ce qui manque encore, la page le dit (« Pour démarrer ») : on suit ses liens, comme un testeur, jusqu'à la case.
+  etape("« Pour démarrer » mène à ce qui manque");
+  const manques = await page.$$eval("[data-manque-champ]", (bs) => bs.filter((b) => b.offsetParent).map((b) => b.dataset.manqueChamp));
+  console.log("  manques :", manques.join(", ") || "aucun");
+  if (manques.some((m) => /qualite/.test(m))) throw new Error("« Pour démarrer » demande la qualité du déclarant");
+  const suivre = async (cle) => {
+    await page.locator(`[data-manque-champ="${cle}"]`).filter({ visible: true }).first().click(); await page.waitForTimeout(1500);
+    const vu = await page.$eval(`#config-formulaire [data-cle="${cle}"]:not([type=hidden]), #config-formulaire [data-sous-de="${cle}"]`, (e) => ({
+      visible: !!(e.offsetWidth || e.offsetHeight), focus: document.activeElement === e, tiroir: !!e.closest("details:not([open])") }));
+    console.log(`  ${cle} :`, JSON.stringify(vu));
+    if (!vu.visible || vu.tiroir) throw new Error(`« Pour démarrer » mène à ${cle}, qui n'est pas visible`);
+  };
+  if (manques.includes("medecine_travail")) {
+    await suivre("medecine_travail");
+    await banc.capture(page, C + "p03b-sante-au-travail.png");
+    await champ(page, "medecine_travail", "MT952");
+  }
+  if (manques.includes("taxe_sur_les_salaires")) {
+    await suivre("taxe_sur_les_salaires");
+    await sous(page, "taxe_sur_les_salaires", "tva", "assujettie"); await page.waitForTimeout(1000);
+    await sous(page, "taxe_sur_les_salaires", "part_tva", "100"); await page.waitForTimeout(1000);
+    await banc.capture(page, C + "p03c-taxe-sur-les-salaires.png");
+  }
+  await page.click("#config-enregistrer"); await page.waitForTimeout(2500);
 
   etape("les organismes et contrats de la DSN");
   await page.click("button[data-vue=configuration]");
@@ -88,16 +100,26 @@ function etape(t) { console.log(`\n== ${t}`); }
   await page.click("button[data-fiche=entreprise]"); await page.waitForTimeout(1500);
   t = await texte(page);
   console.log(t.includes("Pour démarrer") ? t.slice(t.indexOf("Pour démarrer"), t.indexOf("Pour démarrer") + 300) : "plus rien ne manque");
+  if (await page.locator("[data-manque-champ]").filter({ visible: true }).count()) throw new Error("« Pour démarrer » demande encore quelque chose");
+  if (await page.isVisible("#etat-global .pastille.erreur")) throw new Error("la configuration se dit en erreur : " + await page.textContent("#etat-global"));
   await banc.capture(page, C + "p04-configuration-complete.png");
 
   etape("une salariée : Loïe Fuller, comédienne");
   await page.click("button[data-fiche=salarie]"); await page.waitForTimeout(1000);
   await page.click("text=+ un salarié"); await page.waitForTimeout(1500);
-  await page.selectOption("#config-metier-choix", "COM010"); await page.waitForTimeout(500);
   for (const [k, v] of Object.entries({ prenom_affichage: "Loïe", nom_affichage: "Fuller", nir: "2820144999002", nir_cle: "46",
     date_naissance: "1982-01-15", lieu_naissance_affichage: "Villeneuve-sur-Loire", departement_naissance: "44", pays_naissance: "FR",
     code_nationalite_dsn: "01", adresse_affichage: "7 rue de la Paix", code_postal: "44000", commune_affichage: "Nantes",
     email: "loie.fuller@exemple.invalid" })) await champ(page, k, v);
+  // Un testeur enregistre sans avoir vu le métier : la page dit lequel manque et où il se choisit.
+  await page.click("#config-enregistrer"); await page.waitForTimeout(2000);
+  t = await texte(page);
+  console.log("  sans métier :", t.includes("Enregistrement refusé") ? t.slice(t.indexOf("Enregistrement refusé"), t.indexOf("Enregistrement refusé") + 200).replace(/\s+/g, " ") : "enregistré ?");
+  await banc.capture(page, C + "p05a-sans-metier.png");
+  if (await page.isVisible("text=Corriger")) await page.click("text=Corriger");
+  await page.waitForTimeout(500);
+  await page.selectOption("#config-metier-choix", "COM010"); await page.waitForTimeout(800);
+  console.log("  intitulé d'emploi prérempli :", await page.$eval('#config-formulaire [data-cle="emploi_affichage"]', (e) => e.value));
   await page.click("#config-enregistrer"); await page.waitForTimeout(2500);
   await banc.capture(page, C + "p05-salariee.png");
 

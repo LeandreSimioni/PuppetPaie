@@ -397,6 +397,9 @@
    "rubrique": null,
    "si_permanents": true,
    "si": {
+    "idcc": [
+     "3090"
+    ],
     "annexe_convention": [
      "1"
     ]
@@ -445,11 +448,11 @@
    "ecran": true
   },
   {
-   "_note": "LA LICENCE EST UN CHAMP, PAS UN MECANISME (22/09/2026). Elle etait une\nliste datee -- `[{\"depuis\": ..., \"numero\": ...}]` -- avec sa resolution\na elle dans `Contexte.licence`. C'etait le meme travail que `historique`\nfait deja pour TOUS les champs declares, ecrit une deuxieme fois pour un\nseul d'entre eux. L'editeur : << pas besoin de l'historique, quand on\nchange la licence, celle d'avant reste sauvegardee, simple et\nefficace. >> Elle se tape donc comme le reste, et changer sa valeur\nouvre la boite de datage comme pour une adresse : l'ancienne reste, avec\nla date jusqu'a laquelle elle valait, et le rejeu la retrouve.\nLe spectacle vivant seulement : une production audiovisuelle ou\nde cinema n'en a pas. Vide (compagnie neuve) : la case se montre.",
+   "_note": "LA LICENCE EST UN CHAMP, PAS UN MECANISME (22/09/2026). Elle etait une\nliste datee -- `[{\"depuis\": ..., \"numero\": ...}]` -- avec sa resolution\na elle dans `Contexte.licence`. C'etait le meme travail que `historique`\nfait deja pour TOUS les champs declares, ecrit une deuxieme fois pour un\nseul d'entre eux. L'editeur : << pas besoin de l'historique, quand on\nchange la licence, celle d'avant reste sauvegardee, simple et\nefficace. >> Elle se tape donc comme le reste, et changer sa valeur\nouvre la boite de datage comme pour une adresse : l'ancienne reste, avec\nla date jusqu'a laquelle elle valait, et le rejeu la retrouve.\nLe spectacle vivant seulement : une production audiovisuelle ou\nde cinema n'en a pas. Vide (compagnie neuve) : la case se montre.\nLA LICENCE ET LA CONVENTION (#236, 23/10/2026). Est entrepreneur de spectacles vivants qui exploite un lieu, produit ou diffuse des spectacles (L7122-2) ; il declare son activite, et le recepisse vaut licence (L7122-3) ; celui dont ce n'est pas l'activite principale passe par le guichet unique (L7122-22, L7122-23) : `code-du-travail/articles-20261023.md`. La norme DSN l'ecrit dans chaque contrat (S21.G00.40.049, `norme-dsn/texte-2027/bloc-S21.G00.40.txt` l. 1418-1426). `si` : les conventions ou un employeur peut etre entrepreneur de spectacles vivants (3090, 1285, 1790 les lieux, 3252 la creation et l'evenement, et la compagnie sans convention) ; l'audiovisuel ne voit pas la case. `exige_si` : celles dont c'est le champ (3090, 1285, sans convention). En 1790 et en 3252, elle devient exigee quand la compagnie engage pour un spectacle (`demarrage::licence_exigee`, lu par « Pour demarrer » et par la DSN).",
    "cle": "licence_spectacle",
-   "libelle": "Licence d'entrepreneur de spectacles",
+   "libelle": "Licence d'entrepreneur de spectacles ou récépissé de déclaration",
    "forme": "texte",
-   "aide": "Le numéro attribué par la DRAC, de la forme L-R-20-1234. En attendant qu'il le soit, le numéro du récépissé de déclaration. Quand il change, saisissez le nouveau : l'ancien est conservé pour les déclarations passées.",
+   "aide": "Le numéro de licence attribué par la DRAC (de la forme L-R-20-1234), ou la référence du récépissé de déclaration d'entrepreneur de spectacles vivants, qui vaut licence. Quand il change, saisissez le nouveau : l'ancien est conservé pour les déclarations passées.",
    "obligatoire": false,
    "longueur": null,
    "exemple": "",
@@ -462,11 +465,20 @@
     "idcc": [
      "3090",
      "1285",
+     "1790",
+     "3252",
      ""
     ]
    },
    "si_etablissements": false,
    "si_entreprise": null,
+   "exige_si": {
+    "idcc": [
+     "3090",
+     "1285",
+     ""
+    ]
+   },
    "booleen_defaut": true,
    "ecran": true
   },

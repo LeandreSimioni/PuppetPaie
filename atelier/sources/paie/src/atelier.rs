@@ -13,6 +13,12 @@
 //!
 //! Les adresses de la boite courriel (SMTP et IMAP, en TLS) et du serveur des incidents ne sont pas redirigees ici : celle
 //! du serveur des incidents vient deja de la configuration de la compagnie.
+//!
+//! Et un outil (#236) : `paie-atelier fabriquer-bulletins`, les bulletins fictifs d'un logiciel precedent
+//! (`fabriquer_bulletins`), dessines par la fabrique que les tests partagent (`bulletins_fictifs`).
+
+pub mod bulletins_fictifs;
+pub mod fabriquer_bulletins;
 
 /// Le faux net-entreprises : `BASE/authentifier/`, `BASE/lister-retours-declarant/1.0/`, `BASE/lister-retours-flux/1.0/`, `BASE/deposer-dsn/1.0/`.
 pub const VARIABLE_DSN: &str = "PUPPETPAIE_ATELIER_DSN";

@@ -106,6 +106,27 @@ fn manque(cle: &str, libelle: String, bloque: &str, ou: &str, champ: Option<&str
     json!({ "cle": cle, "libelle": libelle, "bloque": bloque, "ou": ou, "champ": champ, "trouver": trouver })
 }
 
+/// LA LICENCE D'ENTREPRENEUR DE SPECTACLES est-elle exigee de la compagnie `ent` ? « Est entrepreneur de spectacles
+/// vivants toute personne qui exerce une activite d'exploitation de lieux de spectacles, de production ou de diffusion de
+/// spectacles » (L7122-2) ; il exerce « sous reserve de [...] declarer son activite », declaration qui « donne lieu a la
+/// delivrance d'un recepisse [...] valant licence » (L7122-3) ; celui dont ce n'est pas l'activite principale declare ses
+/// artistes et techniciens par le guichet unique, pas en DSN (L7122-22, L7122-23 ; `atelier/reference/sources/
+/// code-du-travail/articles-20261023.md`, « L'entrepreneur de spectacles vivants et sa declaration »). La norme DSN
+/// l'ecrit dans chaque contrat (S21.G00.40.049, `norme-dsn/texte-2027/bloc-S21.G00.40.txt` l. 1418-1426).
+///
+/// Deux faits la rendent exigee, lus ici pour « Pour demarrer » et pour la DSN :
+/// - la convention dont c'est le champ (3090, 1285 ; et la compagnie qui n'a pas dit la sienne) : `exige_si` du champ
+///   `licence_spectacle` (`champs-base.json`) ;
+/// - dans une convention ou la case se montre (`si` : 1790, 3252), la compagnie engage pour un spectacle
+///   (`spectacle` : un spectacle configure pour « Pour demarrer », un contrat de spectacle pour la DSN). Un lieu en 1790
+///   sans spectacle n'a rien a dire ; l'audiovisuel ne voit pas la case.
+pub fn licence_exigee(ent: &Value, spectacle: bool) -> bool {
+    crate::champs::champ("entreprise", "licence_spectacle")
+        .ok()
+        .flatten()
+        .is_some_and(|c| c.exige(ent) || (spectacle && crate::champs::condition_remplie(&c.si, ent)))
+}
+
 /// La compagnie emploie-t-elle des intermittents ? Un spectacle actif le dit : un CDDU se rattache a un spectacle.
 fn a_des_spectacles(ctx: &Contexte) -> bool {
     std::fs::read(ctx.racine.join("config").join("spectacles.json"))
@@ -164,10 +185,13 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         out.push(manque(&cle_ecran, libelle, bloque, ENTREPRISE, Some(&racine), aide));
         vus.push(racine);
     }
-    // La licence d'entrepreneur de spectacles : la DSN l'ecrit dans chaque contrat (S21.G00.40.049) et refuse sans elle.
+    // La licence d'entrepreneur de spectacles : la DSN l'ecrit dans chaque contrat (S21.G00.40.049) et refuse sans elle
+    // QUAND ELLE EST EXIGEE de la compagnie (`exige_si` de `champs-base.json`, lu par `dsn::licence_du_contrat` aussi) :
+    // en 1790 et en 3252 la case se montre sans etre exigee, dans l'audiovisuel elle ne se montre pas (#236).
     // Elle peut etre datee (une par periode) : le contexte la resout au jour.
     match ctx.licence(&ctx.aujourdhui) {
         Ok(l) if !l.trim().is_empty() => {}
+        _ if !licence_exigee(ent, intermittents) => {}
         autre => {
             let (libelle, aide) = champ("licence_spectacle");
             let trouver = match autre {

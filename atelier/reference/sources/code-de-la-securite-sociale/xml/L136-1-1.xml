@@ -2,10 +2,10 @@
 <ARTICLE>
 <META>
 <META_COMMUN>
-<ID>LEGIARTI000053282440</ID>
+<ID>LEGIARTI000055004433</ID>
 <ANCIEN_ID/>
 <ORIGINE>LEGI</ORIGINE>
-<URL>article/LEGI/ARTI/00/00/53/28/24/LEGIARTI000053282440.xml</URL>
+<URL>article/LEGI/ARTI/00/00/55/00/44/LEGIARTI000055004433.xml</URL>
 <NATURE>Article</NATURE>
 </META_COMMUN>
 <META_SPEC>
@@ -15,7 +15,7 @@
 
 <ETAT>VIGUEUR</ETAT>
 
-<DATE_DEBUT>2025-12-31</DATE_DEBUT>
+<DATE_DEBUT>2026-10-22</DATE_DEBUT>
 <DATE_FIN>2999-01-01</DATE_FIN>
 
 
@@ -88,8 +88,11 @@
 <VERSION etat="MODIFIE">
 <LIEN_ART debut="2025-03-01" etat="MODIFIE" fin="2025-12-31" id="LEGIARTI000051284754" num="L136-1-1" origine="LEGI"/>
 </VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2025-12-31" etat="MODIFIE" fin="2026-10-22" id="LEGIARTI000053282440" num="L136-1-1" origine="LEGI"/>
+</VERSION>
 <VERSION etat="VIGUEUR">
-<LIEN_ART debut="2025-12-31" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000053282440" num="L136-1-1" origine="LEGI"/>
+<LIEN_ART debut="2026-10-22" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000055004433" num="L136-1-1" origine="LEGI"/>
 </VERSION>
 </VERSIONS>
 <NOTA>
@@ -101,10 +104,9 @@
 </NOTA>
 <BLOC_TEXTUEL>
 <CONTENU>
-<br/>
-<p>I.-La contribution prévue à l'article L. 136-1 est due sur toutes les sommes, ainsi que les avantages et accessoires en nature ou en argent qui y sont associés, dus en contrepartie ou à l'occasion d'un travail, d'une activité ou de l'exercice d'un mandat ou d'une fonction élective, quelles qu'en soient la dénomination ainsi que la qualité de celui qui les attribue, que cette attribution soit directe ou indirecte.</p>
+<p>I. - La contribution prévue à l'article L. 136-1 est due sur toutes les sommes, ainsi que les avantages et accessoires en nature ou en argent qui y sont associés, dus en contrepartie ou à l'occasion d'un travail, d'une activité ou de l'exercice d'un mandat ou d'une fonction élective, quelles qu'en soient la dénomination ainsi que la qualité de celui qui les attribue, que cette attribution soit directe ou indirecte.</p>
 <p>Ne constituent pas un revenu d'activité les remboursements effectués au titre de frais professionnels correspondant dans les conditions et limites fixées par arrêté des ministres chargés de la sécurité sociale et du budget à des charges de caractère spécial inhérentes à la fonction ou à l'emploi des travailleurs salariés ou assimilés que ceux-ci supportent lors de l'accomplissement de leurs missions.</p>
-<p>II.-L'assiette de la contribution inclut notamment :</p>
+<p>II. - L'assiette de la contribution inclut notamment :</p>
 <p>1° Les revenus professionnels des travailleurs indépendants, dans les conditions définies par les articles L. 136-3 et L. 136-4 ;</p>
 <p>2° Les revenus des artistes-auteurs mentionnés au troisième alinéa de l'article L. 382-3 ;</p>
 <p>3° a) L'indemnité parlementaire et l'indemnité de fonction prévues aux articles 1er et 2 de l'ordonnance n° 58-1210 du 13 décembre 1958 portant loi organique relative à l'indemnité des membres du Parlement, l'indemnité de résidence, ainsi que, la plus élevée d'entre elles ne pouvant être supérieure de plus de la moitié à ce montant, les indemnités de fonction complémentaires versées, au même titre, en vertu d'une décision prise par le bureau desdites assemblées, à certains de leurs membres exerçant des fonctions particulières ;</p>
@@ -116,7 +118,7 @@
 <p>5° Les avantages mentionnés au I et au II de l'article 80 bis du code général des impôts lorsque ces derniers sont imposés à l'impôt sur le revenu suivant les règles de droit commun des traitements et salaires ;</p>
 <p>6° La garantie de ressources des travailleurs handicapés prévue à l'article L. 243-4 du code de l'action sociale et des familles ;</p>
 <p>7° La rémunération des apprentis mentionnée à l'article L. 6221-1 du code du travail pour la part excédant 50 % du salaire minimum de croissance.</p>
-<p>III.-Par dérogation au I, sont exclus de l'assiette de la contribution mentionnée à l'article L. 136-1 les revenus suivants :</p>
+<p>III. - Par dérogation au I, sont exclus de l'assiette de la contribution mentionnée à l'article L. 136-1 les revenus suivants :</p>
 <p>1° a) (Abrogé).</p>
 <p>b) La fraction de la gratification versée aux personnes mentionnées aux a, b et f du 2° de l'article L. 412-8 du présent code et aux 1° et 8° du II de l'article L. 751-1 du code rural et de la pêche maritime, qui n'excède pas, au titre d'un mois civil, le produit d'un pourcentage, fixé par décret, du plafond horaire défini en application du premier alinéa de l'article L. 241-3 du présent code et du nombre d'heures de stage effectuées au cours du mois considéré. Les dispositions de l'article L. 131-7 ne sont pas applicables ;</p>
 <p>c) La rémunération des stagiaires de la formation professionnelle mentionnée à l'article L. 6341-1 et à l'article L. 6341-7 du code du travail ;</p>
@@ -141,7 +143,7 @@
 <p>b) L'avantage résultant pour le bénévole de la contribution de l'association au financement de chèques-repas en application de l'article 12 de la loi n° 2006-586 du 23 mai 2006 relative à l'engagement éducatif ;</p>
 <p>c) L'aide financière du comité social et économique de l'entreprise ou celle de l'entreprise destinée au financement d'activités de services à la personne mentionnées aux articles L. 7233-4 et L. 7233-5 du code du travail ;</p>
 <p>d) L'avantage résultant de la prise en charge obligatoire par l'employeur des frais de transports publics dans les conditions prévues à l'article L. 3261-2 du même code ;</p>
-<p>e) L'avantage résultant de la prise en charge par l'employeur des frais de carburant ou des frais exposés pour l'alimentation de véhicules électriques engagés par les salariés dans les conditions prévues à l'article L. 3261-3 du même code et des frais mentionnés à l'article L. 3261-3-1 du même code, dans les limites prévues au b du 19° ter de l'article 81 du code général des impôts, ainsi que l'avantage mentionné au c du même 19° ter, dans la limite prévue au même c ;</p>
+<p>e) L'avantage résultant de la prise en charge par l'employeur des frais de carburant ou des frais exposés pour l'alimentation de véhicules électriques engagés par les salariés dans les conditions prévues à l'article L. 3261-3 du même code et des frais mentionnés à l'article L. 3261-3-1 du même code, dans les limites fixées par décret ainsi que l'avantage mentionné au c du même 19° ter, dans la limite fixée par décret ;</p>
 <p>f) Afin de favoriser le développement du sport en entreprise, les avantages que représentent pour ses salariés la mise à disposition par l'employeur d'équipements sportifs à usage collectif et le financement de prestations sportives à destination de l'ensemble de ses salariés, dans des conditions et limites prévues par décret ;</p>
 <p>5° a) Indépendamment de leur assujettissement à l'impôt sur le revenu, les indemnités versées à l'occasion de la rupture du contrat de travail, dans la limite du plus petit des montants suivants :</p>
 <p>-le montant prévu par la convention collective de branche, l'accord professionnel ou interprofessionnel ou la loi si ce dernier est le plus élevé, ou, en l'absence de montant légal ou conventionnel pour le motif concerné, le montant de l'indemnité légale ou conventionnelle de licenciement ;</p>
@@ -158,7 +160,6 @@
 <p>f) Les prestations mentionnées aux articles L. 325-1 et L. 325-2 du code rural et de la pêche maritime dans le cadre de l'entraide entre agriculteurs ;</p>
 <p>7° Les revenus d'activité versés à des bénéficiaires redevables de la cotisation mentionnée au deuxième alinéa du IV de l'article L. 380-3-1 du présent code.</p>
 <p>8° Dans la limite du seuil de revente à perte, tel que défini à l'article L. 442-5 du code de commerce, les réductions tarifaires jusqu'à 50 % du prix de vente public normal, toutes taxes comprises, dont bénéficient les salariés sur les produits initialement destinés à la vente mais qui ne peuvent pas ou ne peuvent plus être vendus par l'entreprise qui les emploie ou par toute entreprise du groupe auquel ils appartiennent, le groupe étant entendu au sens de l'article L. 2331-1 du code du travail.</p>
-<br/>
 </CONTENU>
 </BLOC_TEXTUEL>
 <LIENS>
@@ -176,23 +177,26 @@
 
 
 
-<LIEN cidtexte="JORFTEXT000051168007" datesignatexte="2025-02-14" id="LEGIARTI000053563909" naturetexte="LOI" nortexte="ECOX2423405L" num="125" numtexte="2025-127" sens="cible" typelien="MODIFIE">LOI n°2025-127 du 14 février 2025 - art. 125 (V)</LIEN>
 <LIEN cidtexte="JORFTEXT000051254024" datesignatexte="2025-02-25" id="LEGITEXT000051257092" naturetexte="ARRETE" nortexte="TSSS2505703A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 25 février 2025 (V)</LIEN>
 
 
 
 <LIEN cidtexte="JORFTEXT000052198430" datesignatexte="2025-09-04" id="LEGITEXT000052206387" naturetexte="ARRETE" nortexte="TSSS2523915A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 4 septembre 2025 (V)</LIEN>
-<LIEN cidtexte="JORFTEXT000053226384" datesignatexte="2025-12-30" id="LEGIARTI000053265280" naturetexte="LOI" nortexte="CPPX2521641L" num="17" numtexte="2025-1403" sens="cible" typelien="MODIFIE">LOI n°2025-1403 du 30 décembre 2025 - art. 17 (V)</LIEN>
 
 
 
+<LIEN cidtexte="JORFTEXT000055002911" datesignatexte="2026-10-20" id="LEGITEXT000055003912" naturetexte="DECRET" nortexte="CPPS2621386D" num="" numtexte="2026-973" sens="cible" typelien="CITATION">Décret n°2026-973 du 20 octobre 2026 (V)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000055002911" datesignatexte="2026-10-20" id="LEGIARTI000055003922" naturetexte="DECRET" nortexte="CPPS2621386D" num="1" numtexte="2026-973" sens="cible" typelien="MODIFIE">Décret n°2026-973 du 20 octobre 2026 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000055002925" datesignatexte="2026-10-20" id="LEGITEXT000055004138" naturetexte="DECRET" nortexte="CPPS2624143D" num="" numtexte="2026-974" sens="cible" typelien="CITATION">Décret n°2026-974 du 20 octobre 2026 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000055002925" datesignatexte="2026-10-20" id="LEGIARTI000055004147" naturetexte="DECRET" nortexte="CPPS2624143D" num="1" numtexte="2026-974" sens="cible" typelien="CITATION">Décret n°2026-974 du 20 octobre 2026 - art. 1 (V)</LIEN>
 <LIEN cidtexte="LEGITEXT000006072665" datesignatexte="2999-01-01" id="LEGIARTI000047394634" naturetexte="CODE" nortexte="" num="R6146-26" numtexte="" sens="cible" typelien="CITATION">Code de la santé publique - art. R6146-26 (M)</LIEN>
 <LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000037456354" naturetexte="CODE" nortexte="" num="D241-15" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D241-15 (V)</LIEN>
 <LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000039810043" naturetexte="CODE" nortexte="" num="D242-2-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-2-1 (Ab)</LIEN>
 <LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000037074899" naturetexte="CODE" nortexte="" num="L133-4-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L133-4-3 (V)</LIEN>
 <LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000047452686" naturetexte="CODE" nortexte="" num="L137-15" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L137-15 (VD)</LIEN>
 <LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000037074800" naturetexte="CODE" nortexte="" num="L241-3-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L241-3-2 (VD)</LIEN>
-<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000053282401" naturetexte="CODE" nortexte="" num="L242-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L242-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000051218352" naturetexte="CODE" nortexte="" num="L242-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L242-1 (M)</LIEN>
 <LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000054906971" naturetexte="CODE" nortexte="" num="R382-1-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R382-1-2 (V)</LIEN>
 <LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000041435656" naturetexte="CODE" nortexte="" num="R412-4" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R412-4 (V)</LIEN>
 <LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGIARTI000048488949" naturetexte="CODE" nortexte="" num="L3332-11" numtexte="" sens="cible" typelien="CITATION">Code du travail - art. L3332-11 (V)</LIEN>

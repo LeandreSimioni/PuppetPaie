@@ -299,7 +299,7 @@
   "fichiers": {
     "COPIE-DE-DEVELOPPEMENT.json": {
       "copie_de": "compagnie fictive ajoutee-les-treteaux-du-banc sur le banc d'essai",
-      "quand": "2026-11-02T09:00:42",
+      "quand": "2026-11-02T09:00:47",
       "_quoi": "Une compagnie ajoutee par le « + », devenue fictive aux envois SIMULES sur le banc d'essai de l'atelier (scenario.rs, geste `simuler`) : ses DPAE, DSN et courriels sont joues, rien ne part."
     },
     "config/baremes/2026.json": {
@@ -345,10 +345,9 @@
       "conseils": false,
       "urssaf_compte": "5200000000",
       "congesspectacles_adherent": "0000052000F",
-      "congesspectacles_affiliation": "970000052000F",
       "affiliation_france_travail": "80000052008",
-      "code_employeur_france_travail": "8000005200",
       "france_travail_dossier_recouvrement": "",
+      "medecine_travail": "MT952",
       "jours_feries_chomes": "",
       "plafond_temps_partiel": "",
       "deduction_forfaitaire_option": "",
@@ -363,7 +362,6 @@
       "retraite_complementaire": "",
       "etablissements": null,
       "secteur_2121": "",
-      "medecine_travail": "MT952",
       "sante_suspension_non_indemnisee": "",
       "courriel_nom": "",
       "courriel_signature": "",
@@ -382,39 +380,20 @@
         "nom_affichage": "Appia",
         "tel": "0100000052",
         "email": "direction@les-treteaux.invalid",
-        "qualite": "04",
         "nom_prenom": "APPIA ADOLPHE"
       },
       "banque": {
         "iban": "FR7630001007943252044000039",
         "bic": "BANQFRPPXXX"
       },
-      "taxe_sur_les_salaires": null,
+      "taxe_sur_les_salaires": {
+        "tva": "assujettie",
+        "part_tva": 100
+      },
       "prevoyance_permanents": null,
       "sante_permanents": null,
       "adresse": "12 QUAI DE LA FOSSE",
-      "commune": "NANTES",
-      "historique": [
-        {
-          "champ": "declarant_dsn",
-          "valeur": {
-            "civilite": "01",
-            "prenom_affichage": "Adolphe",
-            "nom_affichage": "Appia",
-            "tel": "0100000052",
-            "email": "direction@les-treteaux.invalid",
-            "nom_prenom": "APPIA ADOLPHE"
-          },
-          "jusqu_au": "2026-11-01",
-          "note": ""
-        },
-        {
-          "champ": "raison_sociale",
-          "valeur": "LES TRÉTEAUX DU BANC",
-          "jusqu_au": "2026-11-01",
-          "note": ""
-        }
-      ]
+      "commune": "NANTES"
     },
     "config/horloge.json": {
       "_quoi": "L'horloge de la compagnie fictive (moteur/simulation.py) : le dernier jour joue, ce qui n'est plus a regarder, et ce qu'elle a fait en dernier (le bandeau le dit).",
@@ -861,7 +840,7 @@
         "qui": "horloge",
         "accepte": true,
         "destinataire": "urssaf",
-        "flux": "FICTIF-95674FB65EA7",
+        "flux": "FICTIF-F3BD54DEA582",
         "retours": [
           {
             "statut": "fictive",
@@ -881,7 +860,7 @@
             "dpae": []
           }
         ],
-        "reponse": "<idflux>FICTIF-95674FB65EA7</idflux>\nCompagnie fictive : DPAE de test jouee, rien n'a quitte le poste.",
+        "reponse": "<idflux>FICTIF-F3BD54DEA582</idflux>\nCompagnie fictive : DPAE de test jouee, rien n'a quitte le poste.",
         "trace": "retours/depots/20261120-090000_depot-dpae_202611.txt",
         "detail": {
           "preuve": "",
@@ -906,7 +885,7 @@
         "qui": "horloge",
         "accepte": true,
         "destinataire": "urssaf",
-        "flux": "FICTIF-CBCFBF4B4600",
+        "flux": "FICTIF-6C6AA3730684",
         "retours": [
           {
             "statut": "fictive",
@@ -926,13 +905,13 @@
             "dpae": []
           }
         ],
-        "reponse": "<idflux>FICTIF-CBCFBF4B4600</idflux>\nCompagnie fictive : DPAE reelle jouee, rien n'a quitte le poste.",
+        "reponse": "<idflux>FICTIF-6C6AA3730684</idflux>\nCompagnie fictive : DPAE reelle jouee, rien n'a quitte le poste.",
         "trace": "retours/depots/20261120-090000_depot-dpae_202611-2.txt",
         "detail": {
           "preuve": "fictive",
           "repetition": {
             "test": "2026-11-20T09:00:00",
-            "flux": "FICTIF-95674FB65EA7",
+            "flux": "FICTIF-F3BD54DEA582",
             "empreinte": "2cbee421f1645a0b",
             "compte_rendu": "ok"
           },
@@ -956,7 +935,7 @@
         "qui": "horloge",
         "accepte": true,
         "destinataire": "net-entreprises",
-        "flux": "FICTIF-07FFE5873B2A",
+        "flux": "FICTIF-BF33B0D132CE",
         "retours": [
           {
             "statut": "fictive",
@@ -975,7 +954,7 @@
             "libelle": "Bilan de conformite (compagnie fictive)"
           }
         ],
-        "reponse": "<idflux>FICTIF-07FFE5873B2A</idflux>\nCompagnie fictive : DSN de test jouee, rien n'a quitte le poste.",
+        "reponse": "<idflux>FICTIF-BF33B0D132CE</idflux>\nCompagnie fictive : DSN de test jouee, rien n'a quitte le poste.",
         "trace": "retours/depots/20261120-090000_depot-dsn_20261120.txt",
         "detail": {
           "preuve": "",
@@ -1002,7 +981,7 @@
         "qui": "horloge",
         "accepte": true,
         "destinataire": "net-entreprises",
-        "flux": "FICTIF-9C052EB7BD86",
+        "flux": "FICTIF-54E677FDA8CB",
         "retours": [
           {
             "statut": "fictive",
@@ -1021,7 +1000,7 @@
             "libelle": "Bilan de conformite (compagnie fictive)"
           }
         ],
-        "reponse": "<idflux>FICTIF-9C052EB7BD86</idflux>\nCompagnie fictive : DSN reelle jouee, rien n'a quitte le poste.",
+        "reponse": "<idflux>FICTIF-54E677FDA8CB</idflux>\nCompagnie fictive : DSN reelle jouee, rien n'a quitte le poste.",
         "trace": "retours/depots/20261120-090000_depot-dsn_20261120-2.txt",
         "detail": {
           "preuve": "fictive",
@@ -1034,7 +1013,7 @@
           "pas_bareme": 0,
           "repetition": {
             "test": "2026-11-20T09:00:00",
-            "flux": "FICTIF-07FFE5873B2A",
+            "flux": "FICTIF-BF33B0D132CE",
             "empreinte": "f1c77fe343b0ea67",
             "compte_rendu": "ok"
           },
@@ -1076,7 +1055,7 @@
         "qui": "horloge",
         "accepte": true,
         "destinataire": "net-entreprises",
-        "flux": "FICTIF-FCB0E87DEE4A",
+        "flux": "FICTIF-38B02217E3D0",
         "retours": [
           {
             "statut": "fictive",
@@ -1095,7 +1074,7 @@
             "libelle": "Bilan de conformite (compagnie fictive)"
           }
         ],
-        "reponse": "<idflux>FICTIF-FCB0E87DEE4A</idflux>\nCompagnie fictive : DSN de test jouee, rien n'a quitte le poste.",
+        "reponse": "<idflux>FICTIF-38B02217E3D0</idflux>\nCompagnie fictive : DSN de test jouee, rien n'a quitte le poste.",
         "trace": "retours/depots/20261216-090000_depot-dsn_202611.txt",
         "detail": {
           "preuve": "",
@@ -1128,7 +1107,7 @@
         "qui": "horloge",
         "accepte": true,
         "destinataire": "net-entreprises",
-        "flux": "FICTIF-72B65B412178",
+        "flux": "FICTIF-38C0FC338E2F",
         "retours": [
           {
             "statut": "fictive",
@@ -1154,7 +1133,7 @@
             "libelle": "Attestation employeur rematerialisee (compagnie fictive)"
           }
         ],
-        "reponse": "<idflux>FICTIF-72B65B412178</idflux>\nCompagnie fictive : DSN reelle jouee, rien n'a quitte le poste.",
+        "reponse": "<idflux>FICTIF-38C0FC338E2F</idflux>\nCompagnie fictive : DSN reelle jouee, rien n'a quitte le poste.",
         "trace": "retours/depots/20261216-090000_depot-dsn_202611-2.txt",
         "detail": {
           "preuve": "fictive",
@@ -1173,7 +1152,7 @@
           "pas_bareme": 1,
           "repetition": {
             "test": "2026-12-16T09:00:00",
-            "flux": "FICTIF-FCB0E87DEE4A",
+            "flux": "FICTIF-38B02217E3D0",
             "empreinte": "2009c550f77bb908",
             "compte_rendu": "ok"
           },
@@ -1278,7 +1257,7 @@
       ],
       "numeros_figes": true
     },
-    "retours/20261216-090000_nature46_FICTIF-72B65B412178.txt": [
+    "retours/20261216-090000_nature46_FICTIF-38C0FC338E2F.txt": [
       "PK\u0003\u0004\u0014\u0000\u0000\u0000\b\u0000\u0000\u0000!\u0000\"+hÑi\u0000\u0000Þ«\u0000\u0000D\u0000\u0000\u0000AER_32520440200011__112026_FICTIVE_16122026_FULLER_LOIE_1_900001.pdf´|\u0005X\\K¶n\b\u001aB\u0002\t\u0016¼\t\u001a\u0012¤\u001bè¦q÷à\u0010\\\u0002\ri¬Ñà\u0010\u0002\u0004w'¸\u0013,¸Cp\u000bîî\u0001Bp÷÷\u000583gfÎ;ïÝû(¾^{×^õWÕªÚ»VÕ¿kÓÈ\t2\u0002X1\u0000\u0016\u0000â­1&77³­Í;\u0015ý\u000bf!+\r\u001ca.¬g\u0003£\u0017æ\u0004B!,,@\u0016 ËÍßK\u0016\u0016:\u0016\u0016º;­\u001b}1%E\u001d9aQU\u00155\u001caNÿYÂ\u0000fn\u00037Ã~_9Ø!¬\f¬é_0¿F\u0018ü{P9+­þM2EÛ·Æ0}\u001bú\u0017ÌJp\u001bS\u0018½\rÌÚæ¦`\u0000)Â\u0001fk\u0005Ð37ÙÃ¬\u0001\u001c\u0000\r\u0000È\u0002 ×GYè\u0019Ãa\u0000C¸¾\rü=ì\u0005`ñC\u0004@TYZZD\u0001 -+!òYÉJÏÂ\u0002fÀ,ªgj\rãåÅ\u001bü¶\u0001èï¶\u0015³BXÀ¬là0knnfáßQ2\u001a¬\u0000\u0016\u0002\u0000|ó\u000bùý«Å,ke\u0000³ú«",
       "bV\b[\u000bk\r-^^fY!1ë¿Pú}ÅÖÆ\u0014n~S\u0001\u0016\u0002³\u0011LZÏ\u0001akÃ,k\u000e\u0013BÚßD¾F\u0018À­a2\bsØM5\u0000zBÉÁ\u0002Æ,¤g£g0b\u0016Ð·B\"¬Ì\u0000¬¿ë¢ð÷ª±þ½j\u0012æ60s\u001b\u0000ÛMj\u0019=3\u0018½´\u0003Ì",
       "\u0000|q%+$Æ¬l­g\u0004\u0003°ÿ#Æï\u0014¿¥\u0006³",
@@ -1381,27 +1360,27 @@
       "ôÃÚ\u0006CZ'\u0003\u0003IÎæícëåãïå¸\rÀcñlââD\u001dÕÿ\u0005PK\u0001\u0002\u0014\u0003\u0014\u0000\u0000\u0000\b\u0000\u0000\u0000!\u0000\"+hÑi\u0000\u0000Þ«\u0000\u0000D\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000¤\u0000\u0000\u0000\u0000AER_32520440200011__112026_FICTIVE_16122026_FULLER_LOIE_1_900001.pdfPK\u0005\u0006\u0000\u0000\u0000\u0000\u0001\u0000\u0001\u0000r\u0000\u0000\u00003j\u0000\u0000\u0000\u0000"
     ],
     "retours/depots/20261120-090000_depot-dpae_202611-2.txt": [
-      "<idflux>FICTIF-CBCFBF4B4600</idflux>",
+      "<idflux>FICTIF-6C6AA3730684</idflux>",
       "Compagnie fictive : DPAE reelle jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261120-090000_depot-dpae_202611.txt": [
-      "<idflux>FICTIF-95674FB65EA7</idflux>",
+      "<idflux>FICTIF-F3BD54DEA582</idflux>",
       "Compagnie fictive : DPAE de test jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261120-090000_depot-dsn_20261120-2.txt": [
-      "<idflux>FICTIF-9C052EB7BD86</idflux>",
+      "<idflux>FICTIF-54E677FDA8CB</idflux>",
       "Compagnie fictive : DSN reelle jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261120-090000_depot-dsn_20261120.txt": [
-      "<idflux>FICTIF-07FFE5873B2A</idflux>",
+      "<idflux>FICTIF-BF33B0D132CE</idflux>",
       "Compagnie fictive : DSN de test jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261216-090000_depot-dsn_202611-2.txt": [
-      "<idflux>FICTIF-72B65B412178</idflux>",
+      "<idflux>FICTIF-38C0FC338E2F</idflux>",
       "Compagnie fictive : DSN reelle jouee, rien n'a quitte le poste."
     ],
     "retours/depots/20261216-090000_depot-dsn_202611.txt": [
-      "<idflux>FICTIF-FCB0E87DEE4A</idflux>",
+      "<idflux>FICTIF-38B02217E3D0</idflux>",
       "Compagnie fictive : DSN de test jouee, rien n'a quitte le poste."
     ],
     "sorties/2026-11/Amorcage01_20261120_recapitulatif.txt": [
@@ -1983,11 +1962,11 @@
     ]
   },
   "copies_avant": [
-    "config/avant/entreprise.json.20261102-090007",
-    "config/avant/entreprise.json.20261102-090013",
-    "config/avant/salaries.json.20261102-090025",
-    "config/avant/spectacles.json.20261102-090030",
-    "config/baremes/avant/2026.json.20261102-090007",
+    "config/avant/entreprise.json.20261102-090008",
+    "config/avant/entreprise.json.20261102-090015",
+    "config/avant/salaries.json.20261102-090030",
+    "config/avant/spectacles.json.20261102-090035",
+    "config/baremes/avant/2026.json.20261102-090008",
     "paies/avant/2026-11.json.20261120-090000"
   ]
 }
