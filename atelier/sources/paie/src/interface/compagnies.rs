@@ -383,7 +383,13 @@ pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
     }
     let cfg = dossier.join("config");
     std::fs::create_dir_all(&cfg).map_err(|e| e.to_string())?;
-    ecrire(&cfg.join("entreprise.json"), &json!({"nom_affichage": nom, "raison_sociale": nom.to_uppercase()}))?;
+    // La raison sociale se deduit du nom comme a chaque enregistrement de la fiche (`routes_fiches::deriver` : majuscules
+    // SANS ACCENTS, la forme declaree). `to_uppercase` gardait les accents : la fiche neuve naissait avec une erreur de
+    // configuration, et le premier enregistrement datait la correction comme un changement declare (#236).
+    let mut ent = serde_json::Map::new();
+    ent.insert("nom_affichage".into(), Value::String(nom.clone()));
+    crate::routes_fiches::deriver("entreprise", &mut ent, false).map_err(|e| e.message)?;
+    ecrire(&cfg.join("entreprise.json"), &Value::Object(ent))?;
     ecrire(&cfg.join("salaries.json"), &json!({}))?;
     ecrire(&cfg.join("spectacles.json"), &json!({}))?;
     ecrire(

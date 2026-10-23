@@ -93,7 +93,13 @@ function htmlDemarrage(manques) {
  *  (`ATMP_HTML`) ; les organismes ont leur onglet. */
 function allerAuManque(champ, ou) {
   if (!document.getElementById("voile").classList.contains("cachee")) fermerBoite();
-  document.querySelector('.onglets button[data-vue="configuration"]').click();
+  // Déjà dans la configuration : on n'y retourne pas. Recliquer l'onglet
+  // redessinait la fiche et, sur une fiche en cours de saisie, ouvrait « Vous
+  // avez modifié cette fiche » — suivre un manque après l'autre sans
+  // enregistrer entre deux ne doit rien demander (#236).
+  if (document.getElementById("vue-configuration").classList.contains("cachee")) {
+    document.querySelector('.onglets button[data-vue="configuration"]').click();
+  }
   const fiche = /Organismes/.test(ou) ? "organismes" : "entreprise";
   const sous = document.querySelector(`.sous-onglets button[data-fiche="${fiche}"]`);
   if (sous && !sous.classList.contains("actif")) sous.click();
