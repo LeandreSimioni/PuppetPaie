@@ -171,7 +171,10 @@ vient de changer dans le moteur (`cd atelier/sources/paie && cargo build --relea
 `libwebkit2gtk-4.1-dev libsoup-3.0-dev librsvg2-dev xvfb`.
 
 **Tout doit être vert. Une PR dont la suite est rouge ne se fusionne pas.** Une fois, à la fin, avant de pousser ; pendant le
-travail, on corrige sans relancer. Une seule commande d'attente à la fois, en arrière-plan.
+travail, on corrige sans relancer. Une seule commande d'attente à la fois, en arrière-plan. **La suite complète
+(`cargo nextest run` sans `-E`) ne se lance qu'une fois par séance, par l'orchestrateur, sur la branche où tout est
+fusionné** (Léandre, 23/10/2026 : « ces tests 20 fois de suite, ça n'a pas de sens ») ; un sous-agent ne lance que les
+binaires qu'il nomme un par un (`-E 'binary(routes)'`…).
 
 ```bash
 cd atelier/sources/paie && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"     # les dossiers de travail des tests (~3 Go)
