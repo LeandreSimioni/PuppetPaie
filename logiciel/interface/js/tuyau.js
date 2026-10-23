@@ -431,7 +431,7 @@ document.querySelectorAll(".onglets button").forEach((b) => {
     b.classList.add("actif");
     document.querySelectorAll(".vue").forEach((v) => v.classList.add("cachee"));
     document.getElementById("vue-" + b.dataset.vue).classList.remove("cachee");
-    if (b.dataset.vue === "historique") dessinerHistorique();
+    if (b.dataset.vue === "historique") { dessinerHistorique(); rafraichirHistorique(); }
     if (b.dataset.vue === "configuration") dessinerConfig();
     if (b.dataset.vue === "exports") dessinerExports();
     if (b.dataset.vue === "paie") dessinerConseils();

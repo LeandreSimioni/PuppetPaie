@@ -254,8 +254,16 @@ fn deposer_dpae_joue(d: &HorlogeFictive, o: &HashMap<String, String>, ctx: &Cont
 
 /// LES DSN DU MOIS QUI NE SONT PAS PARTIES et que `garder` retient (sur ce que le fichier declare), deposees chacune en
 /// test puis en reel -- le bilan du test lu avant le reel (tickets #221, #222 : `depot_acte::exiger_repetition`) --, dans
-/// l'ordre de `routes_mois::ordre_de_depot`. Rend vrai si l'une est partie.
-fn deposer_les_dsn(d: &HorlogeFictive, o: &HashMap<String, String>, ctx: &Contexte, mois: &str, garder: impl Fn(&crate::depot::Apercu) -> bool) -> R<bool> {
+/// l'ordre de `routes_mois::ordre_de_depot`. Rend vrai si l'une est partie ; `a_faire` recoit ce que le rangement des AER
+/// jouees laisse a faire (`rattacher`).
+fn deposer_les_dsn(
+    d: &HorlogeFictive,
+    o: &HashMap<String, String>,
+    ctx: &Contexte,
+    mois: &str,
+    garder: impl Fn(&crate::depot::Apercu) -> bool,
+    a_faire: &mut Vec<String>,
+) -> R<bool> {
     let f = Moteur::nouveau(o, ctx).fichiers_deposables(mois)?;
     let chemins: Vec<String> = f["dsn"].as_array().map(|l| l.iter().map(|x| py_str(&x["chemin"])).collect()).unwrap_or_default();
     let parties: BTreeSet<String> = etats::charger(&ctx.racine)?
@@ -272,18 +280,18 @@ fn deposer_les_dsn(d: &HorlogeFictive, o: &HashMap<String, String>, ctx: &Contex
         }
         for reel in [false, true] {
             deposer_dsn_joue(d, o, ctx, &chemin, reel)?;
-            rattacher(d, ctx)?;
+            a_faire.extend(rattacher(d, ctx)?);
         }
         fait = true;
     }
     Ok(fait)
 }
 
-/// `simulation.rattacher(ctx, delai=0)` : les retours des depots joues arrivent tout de suite.
-fn rattacher(d: &HorlogeFictive, ctx: &Contexte) -> R<()> {
+/// `simulation.rattacher(ctx, delai=0)` : les retours des depots joues arrivent tout de suite. Rend ce que le rangement
+/// des AER jouees laisse a faire (`releve_retours::rattacher_simulation_detail`), comme les autres chemins de la releve.
+fn rattacher(d: &HorlogeFictive, ctx: &Contexte) -> R<Vec<String>> {
     d.reverifier()?;
-    crate::releve_retours::rattacher_simulation(ctx, 0)?;
-    Ok(())
+    Ok(crate::releve_retours::rattacher_simulation_detail(ctx, 0)?.1)
 }
 
 // ------------------------------------------------------------------ dernier_rattrapage
@@ -471,7 +479,8 @@ fn le_premier_du_mois(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &st
             // LE SIGNALEMENT D'AMORCAGE (nature 08, motif 01 « embauche effective ») part AVEC LA DPAE, dans le meme
             // geste (atelier/README.md, « Demander un taux » ; `routes_actes_h1::dpae` produit les deux) : pas a
             // l'echeance de la DSN.
-            deposer_les_dsn(d, o, ctx, mois, |a| a.champ("nature") == "08")?;
+            // Un signalement ne recoit pas d'AER : son rangement n'a rien a dire.
+            deposer_les_dsn(d, o, ctx, mois, |a| a.champ("nature") == "08", &mut Vec::new())?;
             Ok(true)
         });
         fait.extend(faits);
@@ -517,6 +526,7 @@ fn a_l_echeance(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, ech
     let mut fait = Vec::new();
     let jour = echeance.iso();
 
+    let mut a_faire: Vec<String> = Vec::new();
     fait.extend(pas(d, &format!("DSN de {} déposée", mois_fr(mois)), &format!("{}T10:00:00", jour), |ctx| {
         if dsn_partie(o, ctx, mois)? {
             return Ok(false);
@@ -524,8 +534,10 @@ fn a_l_echeance(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, ech
         // TOUTES LES DSN DU MOIS QUI NE SONT PAS PARTIES (#236, trouve au banc d'essai), dans l'ordre de
         // `routes_mois::ordre_de_depot` : la mensuelle, puis les signalements. L'horloge ne prenait que la plus recente --
         // un signalement d'amorcage, ecrit apres la mensuelle -- et la mensuelle ne partait jamais.
-        deposer_les_dsn(d, o, ctx, mois, |_| true)
+        deposer_les_dsn(d, o, ctx, mois, |_| true, &mut a_faire)
     }));
+    // Ce que le rangement de l'AER jouee laisse a faire se dit, a la date du depot, comme le dit la releve.
+    fait.extend(a_faire.into_iter().map(|p| format!("Le {} : {}", le(&format!("{}T10:00:00", jour)), p)));
 
     fait.extend(pas(d, &format!("documents de {} envoyés aux salariés", mois_fr(mois)), &format!("{}T11:00:00", jour), |ctx| {
         let lignes = Moteur::nouveau(o, ctx).lignes()?;

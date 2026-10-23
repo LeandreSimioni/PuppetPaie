@@ -585,8 +585,8 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
         if retours {
             dire_l_etape(ctx, "Compagnie fictive : retours des dépôts joués…");
             let mut releve = Releve::default();
-            match releve_retours::rattacher_simulation(ctx, DELAI_RETOURS_FICTIVE) {
-                Ok(n) => releve.rattaches = n,
+            match releve_retours::rattacher_simulation_detail(ctx, DELAI_RETOURS_FICTIVE) {
+                Ok((n, a_faire)) => (releve.rattaches, releve.a_faire) = (n, a_faire),
                 // Le Python ne rattrapait rien ici : l'ouverture ne doit pas tomber (lot I2b).
                 Err(e) => r.incidents.push(format!("Retours : {}", e.message)),
             }

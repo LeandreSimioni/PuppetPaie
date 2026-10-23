@@ -124,7 +124,8 @@ fn le_bilan_dit_l_etat_de_chaque_acte() {
     let b = rendu(c, "bilan-du-mois", json!({"mois": MOIS}), "2026-10-03");
     assert_eq!(b["dpae"], json!({"couleur": "", "phrase": "aucune DPAE déclarée — 3 à faire"}));
     assert_eq!(b["contrat-signature"], json!({"couleur": "", "phrase": "aucun contrat envoyé — 3 à faire signer"}));
-    assert_eq!(b["documents"], json!({"couleur": "", "phrase": "Documents pas encore envoyés — 3 salariés"}));
+    // Ce qui part, nomme par le moteur : trois contrats d'usage qui finissent dans le mois (bulletin, certificat CS, AER).
+    assert_eq!(b["documents"], json!({"couleur": "", "phrase": "Documents pas encore envoyés — 3 salariés", "detail": "bulletin, certificat Congés Spectacles, AER"}));
     // Deux DPAE passees, une partie sans retour.
     journal(c, &[
         dpae_declaree(&CLES[..2], json!([{"nature": "41", "dpae": []}])),
@@ -149,7 +150,7 @@ fn le_bilan_dit_l_etat_de_chaque_acte() {
     let b = rendu(c, "bilan-du-mois", json!({"mois": MOIS}), "2026-10-03");
     assert_eq!(b["contrat-signature"]["phrase"], "Tous les contrats sont envoyés (3) — 1 reçu signé, 2 à recevoir");
     assert_eq!(b["contrat-signature"]["attente"], true);
-    assert_eq!(b["documents"], json!({"couleur": "alerte", "phrase": "Documents envoyés à 2 salariés sur 3"}));
+    assert_eq!(b["documents"], json!({"couleur": "alerte", "phrase": "Documents envoyés à 2 salariés sur 3", "detail": "bulletin, certificat Congés Spectacles, AER"}));
 }
 
 #[test]

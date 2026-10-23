@@ -953,3 +953,59 @@ fn remplir_deux_fois_de_suite_remplace_la_valeur() {
     let (flux, _) = apparence(&doc, NOM);
     assert!(flux.contains(&hex("Second")) && !flux.contains(&hex("Premier")), "{}", flux);
 }
+
+// ------------------------------------------------------------------ ajouter des champs
+
+fn ajouter(o: &[u8], d: Value) -> Result<Vec<u8>, String> {
+    fabrique_pdf::formulaire::ajouter_champs(o, &d.to_string()).map_err(|e| e.0)
+}
+
+#[test]
+fn ajouter_champs_a_un_document_de_la_fabrique_se_relit_et_se_remplit() {
+    let base = octets_fabrique(2);
+    let d = json!({"format": 3, "champs": [
+        {"nom": "IMPRIME", "page": 1, "rect": [60, 100, 160, 116], "valeur": "12/10/2026", "lecture_seule": true, "taille": 9},
+        {"nom": "A_REMPLIR", "page": 2, "rect": [60, 200, 260, 216], "taille": 9},
+        {"nom": "CENTRE", "page": 1, "rect": [60, 130, 160, 146], "valeur": "2", "alignement": "centre"}
+    ]});
+    let o = ajouter(&base, d).unwrap();
+    let c = champs(&o);
+    // Ce que `--champs` relit : la valeur, la lecture seule, la page et le rectangle donnés (origine en haut à gauche).
+    assert_eq!(c["IMPRIME"]["valeur"], json!("12/10/2026"));
+    assert_eq!(c["IMPRIME"]["lecture_seule"], json!(true));
+    assert_eq!(c["IMPRIME"]["page"], json!(1));
+    let r: Vec<f64> = c["IMPRIME"]["rect"].as_array().unwrap().iter().map(|x| x.as_f64().unwrap()).collect();
+    assert!(proche(r[0], 60.0) && proche(r[1], 100.0) && proche(r[2], 160.0) && proche(r[3], 116.0), "{:?}", r);
+    assert_eq!(c["A_REMPLIR"]["valeur"], Value::Null);
+    assert_eq!(c["A_REMPLIR"]["lecture_seule"], json!(false));
+    assert_eq!(c["A_REMPLIR"]["page"], json!(2));
+    // La valeur imprimée a son apparence : elle se lit dans tous les lecteurs.
+    let doc = charge(&o);
+    let id = doc
+        .objects
+        .iter()
+        .find(|(_, v)| v.as_dict().ok().and_then(|d| d.get(b"T").ok()).and_then(|t| t.as_str().ok()) == Some(&b"IMPRIME"[..]))
+        .map(|(id, _)| *id)
+        .unwrap();
+    let (texte, _) = apparence(&doc, id);
+    assert!(texte.contains(&hex("12/10/2026")), "{}", texte);
+    // Le champ en lecture seule ne se remplit pas ; l'autre, si.
+    assert!(remplir(&o, json!({"format": 3, "champs": {"IMPRIME": "13/10/2026"}})).unwrap_err().contains("lecture seule"));
+    let rempli = remplir_ok(&o, json!({"format": 3, "champs": {"A_REMPLIR": "Lyon"}}));
+    assert_eq!(champs(&rempli)["A_REMPLIR"]["valeur"], json!("Lyon"));
+}
+
+#[test]
+fn ajouter_champs_refuse_sans_rien_rendre() {
+    let base = octets_fabrique(1);
+    let un = |c: Value| ajouter(&base, json!({"format": 3, "champs": [c]})).unwrap_err();
+    assert!(un(json!({"nom": "X", "page": 2, "rect": [0, 0, 10, 10], "valeur": "a"})).contains("pas de page 2"));
+    assert!(un(json!({"nom": "X", "page": 1, "rect": [10, 0, 0, 10], "valeur": "a"})).contains("rect"));
+    assert!(un(json!({"nom": "X", "page": 1, "rect": [0, 0, 10, 10], "lecture_seule": true})).contains("sans valeur"));
+    assert!(un(json!({"nom": "X", "page": 1, "rect": [0, 0, 10, 10], "valeur": "漢"})).contains("police"));
+    let deux = ajouter(&base, json!({"format": 3, "champs": [
+        {"nom": "X", "page": 1, "rect": [0, 0, 10, 10]}, {"nom": "X", "page": 1, "rect": [0, 20, 10, 30]}]}));
+    assert!(deux.unwrap_err().contains("déjà un champ"));
+    let deja = ajouter(&base, json!({"format": 3, "champs": [{"nom": "X", "page": 1, "rect": [0, 0, 10, 10]}]})).unwrap();
+    assert!(ajouter(&deja, json!({"format": 3, "champs": [{"nom": "X", "page": 1, "rect": [0, 20, 10, 30]}]})).unwrap_err().contains("déjà un champ"));
+}

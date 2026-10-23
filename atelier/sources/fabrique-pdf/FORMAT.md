@@ -832,3 +832,25 @@ salarié et par mois) : pages 1 et 2 **identiques au pixel** à celles que signa
 n'est touché hors du cadre 5) ; page 3, le même cadre 5 à l'œil, les écarts tenant au dessin des
 lettres (Liberation embarquée contre l'Helvetica de MuPDF) ; rendu identique par MuPDF et par
 Poppler.
+
+### Ajouter des champs (bibliothèque seulement : `formulaire::ajouter_champs`)
+
+Le moteur fabrique la fausse attestation d'une compagnie fictive (`paie/src/aer_fictive.rs`) : un document de blocs fixes,
+puis des **champs texte AcroForm** posés dessus, que `--champs` relit et que `--remplir` remplit comme ceux d'un vrai
+formulaire. Pas de mode en ligne de commande.
+
+```json
+{"format": 3,
+ "champs": [{"nom": "SAL_DT_DEB_01", "page": 2, "rect": [147, 218, 227, 233], "valeur": "29/09/2026",
+             "lecture_seule": true, "taille": 8.5, "alignement": "centre"},
+            {"nom": "EMPLOYEUR_NOM", "page": 3, "rect": [131, 542, 569, 558], "taille": 9}]}
+```
+
+- `nom` (texte non vide, sans point), `page` (à partir de 1), `rect` (origine en haut à gauche, comme `--champs`) :
+  obligatoires. `valeur` : le champ la reçoit **avec son apparence** (la même que `--remplir`) ; `lecture_seule` (faux par
+  défaut) pose ensuite le bit 1 de `/Ff` — un champ en lecture seule sans valeur est un refus. `taille` : le corps du
+  `/DA` (0 par défaut : ce qui tient) ; `alignement` : `gauche`, `centre`, `droite` (`/Q`).
+- Un `/AcroForm` est créé s'il manque (`/DA` et `/DR` Helvetica) ; chaque champ est un widget fusionné, ajouté aux
+  `/Annots` de sa page et aux `/Fields`.
+- Tout se vérifie avant d'écrire : un nom déjà porté (par le formulaire ou deux fois dans la liste), une page qui
+  n'existe pas, un rectangle vide, un caractère que la police n'a pas. Un refus, et rien n'est rendu.
