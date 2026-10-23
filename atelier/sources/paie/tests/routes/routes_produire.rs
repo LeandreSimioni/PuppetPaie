@@ -80,6 +80,20 @@ fn un_mois_deja_depose_repart_en_annule_et_remplace() {
     assert!(r.join("paies/2026-03.calcul.json").is_file());
     assert!(lire(&r, "journal/dsn-ecrites.json").get("2026-03/DSN_Mars2026_AR2.dsn").is_some());
     assert_ne!(lire(&r, "config/compteurs.json")["2026"]["bulletin"], avant["2026"]["bulletin"]);
+    // CE QUI SE DEPOSE ENSUITE, C'EST L'ANNULE-ET-REMPLACE (#253) : la DSN deja partie reste dans le dossier, mais la DSN
+    // du mois -- celle que la boite « Deposer la DSN » ouvre et que l'etape DSN nomme -- est la nouvelle.
+    let f = crate::outils::route(&r, "fichiers-deposables", json!({"mois": "2026-03"}), "2026-04-10");
+    let noms: Vec<&str> = f["resultat"]["dsn"].as_array().unwrap().iter().map(|x| x["nom"].as_str().unwrap()).collect();
+    assert_eq!(noms.first(), Some(&"DSN_Mars2026_AR2.dsn"), "{:?}", noms);
+    assert!(noms.contains(&"DSN_Mars2026.dsn"), "{:?}", noms);
+    // L'etat du mois, que lisent l'etape DSN et la boite « Deposer » (`fichiers.dsn[0]`), le dit de meme.
+    let e = crate::outils::route(&r, "etat-du-mois", json!({"mois": "2026-03"}), "2026-04-10");
+    assert_eq!(e["resultat"]["fichiers"]["dsn"][0]["nom"], json!("DSN_Mars2026_AR2.dsn"), "{}", e["resultat"]["fichiers"]);
+    // Et la boite « Deposer la DSN » ouverte sur ce fichier montre un annule-et-remplace integral (type 03, cahier
+    // technique DSN, S20.G00.05.002), d'ordre 2 : c'est lui qui se teste et part.
+    let chemin = e["resultat"]["fichiers"]["dsn"][0]["chemin"].clone();
+    let a = crate::outils::route(&r, "depot-apercu", json!({"quoi": "dsn", "fichier": chemin}), "2026-04-10");
+    assert_eq!((&a["resultat"]["type_declaration"], &a["resultat"]["ordre"]), (&json!("03"), &json!("2")), "{}", a);
 }
 
 #[test]

@@ -26,7 +26,7 @@ use crate::engagement;
 use crate::etats::{eq_py, erreur, py_str, R};
 use crate::fichiers::vrai;
 use crate::journal;
-use crate::jumeaux::{apparier, numero_pose, Ident};
+use crate::jumeaux::{apparier_meme_numero, numero_pose, Ident};
 use crate::num::{dec, Decimal};
 use crate::retours::Echec;
 use crate::routes_accueil;
@@ -897,6 +897,12 @@ fn ecrire_saisie_seule(
 /// LE CONTRAT, PAS LE SALARIE DU JOUR : chaque engagement de l'ecran retrouve le sien dans le fichier par
 /// `jumeaux::apparier` (le numero, sinon le rang parmi ceux du meme salarie et du meme jour) ; le jumeau d'un contrat
 /// valide ne devient pas sa copie, et chacun garde son numero.
+///
+/// LE MEME CONTRAT A D'AUTRES DATES GARDE SA REOUVERTURE (#253, 23/10/2026 ; banc Le Petit Castelet) : un jour ajoute
+/// AVANT le premier jour d'une paie rouverte change son premier jour, et l'appariement par (salarie, debut) ne la
+/// retrouvait plus : la reouverture tombait au premier enregistrement, et, le mois etant depose, la paie modifiee se
+/// relisait « validee » au jour du depot, avec les chiffres d'avant. Le numero de contrat pose la designe, quel que soit
+/// son premier jour (`jumeaux::apparier_meme_numero`, regle 4).
 fn fusionner(donnees: &mut Map<String, Value>, ancien: &Value, anciens: &[Ident], nouveaux: &[Ident]) {
     if let Some(origine) = ancien.get("_origine") {
         if !donnees.contains_key("_origine") {
@@ -915,7 +921,7 @@ fn fusionner(donnees: &mut Map<String, Value>, ancien: &Value, anciens: &[Ident]
     }
     let engagements_anciens = ancien.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let en_option = |l: &[Ident]| l.iter().cloned().map(Some).collect::<Vec<_>>();
-    let paires = apparier(&en_option(nouveaux), &en_option(anciens));
+    let paires = apparier_meme_numero(&en_option(nouveaux), &en_option(anciens));
     for (i, paire) in paires.iter().enumerate() {
         let Some(e) = (*paire).and_then(|j| engagements_anciens.get(j)).filter(|e| e.is_object()) else { continue };
         let Some(Value::Object(eng)) = engagements.get_mut(i) else { continue };

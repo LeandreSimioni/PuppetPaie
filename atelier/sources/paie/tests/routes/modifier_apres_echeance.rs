@@ -359,8 +359,58 @@ fn un_engagement_ajoute_par_la_page_a_un_mois_depose_a_sa_paie() {
     assert_eq!(engagements, 4);
     for _ in 0..2 {
         let etat = route(&racine, "etat-par-paie", json!({"mois": MOIS}), PENDANT);
-        assert_eq!(reussi(&etat)["paies"].as_array().unwrap().len(), engagements, "{}", etat);
+        let paies = reussi(&etat)["paies"].as_array().unwrap();
+        assert_eq!(paies.len(), engagements, "{}", etat);
+        // Ce que la DSN partie declare se lit valide au jour du depot ; l'engagement ajoute apres, que le fichier parti ne
+        // declare pas, ne l'est pas : il se valide a la main.
+        assert!(paies[0]["valide"].is_string(), "{}", paies[0]);
+        assert_eq!(paies[3]["valide"], Value::Null, "{}", paies[3]);
         let ecran = route(&racine, "mois", json!({"mois": MOIS}), PENDANT);
         assert_eq!(reussi(&ecran)["lectures"]["etat-par-paie"]["ok"], json!(true), "{}", ecran["resultat"]["lectures"]["etat-par-paie"]);
     }
+}
+
+/// UNE PAIE ROUVERTE D'UN MOIS DEPOSE RESTE ROUVERTE QUAND SON PREMIER JOUR CHANGE (#253, banc Le Petit Castelet : « la
+/// carte dit 3 × Cachet… validée le 03/02/2025, le tableau 2 Cachets 280 € »). Un jour ajoute avant le premier jour de la
+/// paie rouverte changeait son identite (salarie, debut) : l'enregistrement de la page ne la retrouvait plus dans le
+/// fichier, la reouverture tombait, et, la DSN etant partie, la paie modifiee se relisait validee au jour du depot. Le
+/// numero de contrat pose la designe (`jumeaux::apparier_meme_numero`, regle 4) : elle reste rouverte, et se lit avec
+/// ses chiffres d'apres.
+#[test]
+fn une_paie_rouverte_garde_sa_reouverture_quand_son_premier_jour_change() {
+    const PENDANT: &str = "2026-09-10";
+    let racine = compagnie("rouverte-253");
+    let fichier = format!("paies/{}.json", MOIS);
+    let brioche = |racine: &Path| -> Value {
+        let etat = route(racine, "etat-par-paie", json!({"mois": MOIS}), PENDANT);
+        reussi(&etat)["paies"].as_array().unwrap().iter().find(|p| p["numero"] == "BR1.26.04").unwrap().clone()
+    };
+    let avant = brioche(&racine);
+    assert!(avant["valide"].is_string(), "la DSN partie la declare : {}", avant);
+    reussi(&route(&racine, "valider-paie", json!({"mois": MOIS, "salarie": "BRIOCHE", "debut": "2026-08-19", "valide": false}), PENDANT));
+    assert_eq!(brioche(&racine)["valide"], Value::Null);
+
+    // La page ajoute le 18 : un cachet de plus, et un premier jour plus tot. Elle n'envoie pas la reouverture.
+    let mut s = lire(&racine, &fichier);
+    let rang = s["engagements"].as_array().unwrap().iter().position(|e| e["numero"] == "BR1.26.04").unwrap();
+    let e = s["engagements"][rang].as_object_mut().unwrap();
+    e.remove("rouverte");
+    // Le contrat se borne a ses jours, comme dans la page : ni debut ni fin poses.
+    e.remove("debut");
+    e.remove("fin");
+    e.insert("lignes".into(), {
+        let mut l = e["lignes"].clone();
+        l[0]["quantite"] = json!(5);
+        l[0]["dates"] = json!(["2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22"]);
+        l
+    });
+    reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": s}), PENDANT));
+
+    let ecrit = lire(&racine, &fichier)["engagements"][rang].clone();
+    assert!(ecrit["rouverte"].is_string(), "la reouverture reste : {}", ecrit);
+    let apres = brioche(&racine);
+    assert_eq!(apres["valide"], Value::Null, "rouverte, pas validee au jour du depot : {}", apres);
+    assert_eq!(apres["debut"], "2026-08-18", "{}", apres);
+    let brut = |p: &Value| p["brut"].as_str().unwrap().parse::<f64>().unwrap();
+    assert!(brut(&apres) > brut(&avant), "les chiffres d'apres : {} puis {}", avant["brut"], apres["brut"]);
 }
