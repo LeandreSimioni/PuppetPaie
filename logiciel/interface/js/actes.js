@@ -632,22 +632,17 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
   }
 }
 
-/** APRÈS LA DSN RÉELLE, LES DOCUMENTS DES SALARIÉS (29/09/2026). France
- *  Travail édite l'AER à partir de la DSN : la DSN d'août 2026 a eu la
- *  sienne 2 h 50 après le dépôt, son annule-et-remplace 1 h 21 après (dates
- *  de publication des retours). On annonce donc quatre heures, et l'heure. */
+/** APRÈS LA DSN RÉELLE, LES DOCUMENTS DES SALARIÉS. Rien ne s'annonce ici
+ *  (« on ne promet rien ») : ce qui manque encore aux documents -- l'AER de
+ *  France Travail, quand elle est due -- c'est le moteur qui le dit, dans
+ *  l'étape 4 (`documents_prets`). */
 function avisDocumentsApresDsn(mois) {
-  const h = new Date(Date.now() + 4 * 3600 * 1000);
-  const heure = h.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  const demain = h.toDateString() !== new Date().toDateString() ? " demain" : "";
   ouvrirBoite(`
     <h3>DSN envoyée</h3>
     ${moisEnGros(mois)}
-    <div class="encart info"><b>Les documents des salariés, dans quatre heures
-      environ</b> France Travail édite l'attestation employeur (AER) à partir
-      de la DSN, en général dans les trois heures. Vers ${echapper(heure)}${demain},
-      bulletins, certificats Congés Spectacles et AER pourront partir ensemble :
-      bouton « Envoyer les documents… » de l'étape 4.</div>
+    <div class="encart info"><b>Les documents des salariés</b> Ils partent de
+      l'étape 4, « Envoyer les documents… », qui dit ce qu'il leur manque
+      encore.</div>
     <div class="actions">
       <button class="primaire" onclick="fermerBoite()">Compris</button>
     </div>`);

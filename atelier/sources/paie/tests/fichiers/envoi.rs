@@ -197,7 +197,7 @@ fn preparer_un_message_par_salarie() {
          \x20 - le bulletin de paie\n  - le certificat d'emploi Congés Spectacles\n\n\
          Le bulletin est à conserver sans limitation de durée.\n\n\
          Le certificat d'emploi Congés Spectacles te sert à faire valoir tes droits à congé auprès d'Audiens : garde-le, c'est la pièce qu'ils demandent.\n\n\
-         Ton attestation employeur France Travail (AER Cinéma Spectacle) n'est pas encore revenue : France Travail l'édite à partir de notre déclaration, quelques jours après le dépôt. Elle te sera envoyée dès réception.\n\n\
+         Ton attestation employeur France Travail (AER Cinéma Spectacle) de ce mois n'est pas jointe : France Travail l'édite à partir de notre déclaration, et elle n'était pas encore revenue au moment de cet envoi.\n\n\
          Pour ton actualisation France Travail d'octobre 2025, employeur Les Marées hautes (démonstration) :\n\
          \x20 - du 07/10/2025 au 08/10/2025 : 2 cachets, 370,00 € brut\n\
          Ce sont les chiffres de ton bulletin ; vérifie que ce que France Travail pré-remplit est identique.\n\n\

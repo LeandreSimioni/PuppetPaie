@@ -712,7 +712,7 @@ fn documents_prets(m: &mut Moteur, ctx: &Contexte, mois: &str, paies: &[crate::c
         empechements.push(format!("La DSN est deposee ({}), son bilan n'est pas encore arrive.", etats::quand_lisible(e.get("quand").unwrap_or(nul()))));
     } else if !e.get("aer_recue").is_some_and(vrai) && aer_attendue(paies)? {
         empechements.push(
-            "L'attestation employeur (AER) de France Travail n'est pas encore revenue -- elle suit la DSN de quelques heures ; l'ouverture du logiciel la releve."
+            "L'attestation employeur (AER) de France Travail n'est pas encore revenue : France Travail l'édite à partir de la DSN, et chaque relevé des retours la cherche."
                 .to_string(),
         );
     } else {

@@ -1505,6 +1505,8 @@ label.coche.montrer-archives { margin-top: 16px; padding-top: 10px; border-top: 
    salarié le reçoit, et le circuit en bulles. */
 .fictive-fenetre { max-width: 760px; }
 .fictive-bulles { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 12px 0; }
+.fictive-destinataires { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.fictive-destinataires button { font-size: 12px; padding: 4px 10px; }
 .fictive-bulle { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; font-size: 13px;
   padding: 6px 14px 6px 6px; border: 1px solid var(--bord, #d0d0d0); background: transparent; }
 .fictive-bulle span { display: inline-grid; place-items: center; width: 22px; height: 22px;
