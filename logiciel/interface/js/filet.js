@@ -260,35 +260,25 @@ function boiteSignalement() {
   $("sg-fermer").onclick = () => fermerBoite();
 
   // CAPTURER L'ÉCRAN, PAR LE LOGICIEL (ticket #102, 02/10/2026 : « un bouton,
-  // capturer l'écran actuel, une espèce d'imprime-écran »). La boîte s'efface
-  // le temps de la photo -- et la fenêtre qu'elle recouvrait (une DPAE, un
-  // dépôt) revient pour y figurer --, puis tout se remet en place. La photo
-  // est celle de la PAGE, dessinée par html2canvas : ce qui est hors de
-  // PuppetPaie (une autre fenêtre, le bureau) n'y est pas.
+  // capturer l'écran actuel, une espèce d'imprime-écran »). La photo est la
+  // page SANS cette boîte -- et avec la fenêtre qu'elle recouvrait (une DPAE,
+  // un dépôt) --, celle de la PAGE, dessinée par html2canvas : ce qui est hors
+  // de PuppetPaie (une autre fenêtre, le bureau) n'y est pas.
   //
-  // LA BOÎTE REVIENT DÈS QUE LA PAGE EST COPIÉE (#253, 23/10/2026 : « quand
-  // j'ai cliqué sur capturer l'écran ça a pris 1,5 seconde alors que ça devrait
-  // être instantané »). html2canvas copie la page, puis dessine la copie : la
-  // boîte n'a à rester cachée que le temps de la copie (`onclone`) ; le dessin
-  // et l'encodage se font ensuite, la boîte revenue, une place « capture… »
-  // tenant celle de l'image. Envoyer attend qu'elle soit posée. L'image est la
-  // même qu'avant : la page telle qu'on la voyait, en JPEG sous 1,5 Mo.
-  $("sg-capturer").onclick = async () => {
+  // LA BOÎTE NE BOUGE PLUS (#253, 23/10/2026 : « quand j'ai cliqué sur
+  // capturer l'écran ça a pris 1,5 seconde alors que ça devrait être
+  // instantané, en arrière-plan discret »). Elle s'effaçait de l'écran le temps
+  // de la photo, puis revenait. Elle reste : c'est dans la COPIE de la page que
+  // html2canvas dessine qu'on la retire et qu'on remet la fenêtre d'en dessous
+  // (`photographierLaPage`). Une place « capture… » tient celle de l'image
+  // pendant le dessin ; Envoyer attend qu'elle soit posée. L'image est la même
+  // qu'avant : la page telle qu'on la voyait, en JPEG sous 1,5 Mo.
+  $("sg-capturer").onclick = () => {
     montrerErreur("");
     if (captures.length + enCours.size >= CAPTURES_MAX) return montrerErreur(`${CAPTURES_MAX} captures au plus.`);
-    boite.remove();
-    const d = dessous;
-    dessous = null;
-    if (d) d(); else document.getElementById("voile").classList.add("cachee");
-    let copiee;
-    const pageCopiee = new Promise((ok) => { copiee = ok; });
-    const photo = photographierLaPage(copiee);
-    await Promise.race([pageCopiee, photo.catch(() => {})]);
-    dessous = mettreDeCote();
-    ouvrirBoite("");
-    document.getElementById("boite").appendChild(boite);
-    surCetteBoite();
-    const tour = photo.then(poser, (e) => montrerErreur("La capture n'a pas pu se faire : " + e.message))
+    // La place « capture… » d'abord : elle se peint avant que la copie de la page ne prenne la main.
+    const tour = photographierLaPage(dessous && dessous.noeuds)
+      .then(poser, (e) => montrerErreur("La capture n'a pas pu se faire : " + e.message))
       .finally(() => { enCours.delete(tour); dessinerVignettes(); });
     enCours.add(tour);
     dessinerVignettes();
@@ -371,12 +361,13 @@ function chargerHtml2canvas() {
   return HTML2CANVAS;
 }
 
-/** La page telle qu'on la voit (la partie affichée), en JPEG sous 1,5 Mo. `copiee` est appelée dès que html2canvas a
- *  copié la page (`onclone`) : ce qu'on change ensuite à l'écran (la boîte qui revient) n'est plus dans la photo.
+/** La page telle qu'on la voit (la partie affichée), SANS la boîte du message, en JPEG sous 1,5 Mo. `dessous` : les
+ *  nœuds de la boîte qu'elle recouvre (`mettreDeCote`), qui figurent sur la photo à sa place ; sans eux, le voile part.
+ *  L'écran, lui, ne change pas (#253) : tout se fait dans la copie de la page que html2canvas dessine (`onclone`).
  *
  *  UN SEUL DESSIN (#253) : la page se dessine une fois, à l'échelle 1 ; une image trop lourde se réduit depuis ce dessin
- *  (mêmes échelles et qualités qu'avant), au lieu de redessiner la page -- qui, la boîte revenue, ne serait plus la même. */
-async function photographierLaPage(copiee) {
+ *  (mêmes échelles et qualités qu'avant), au lieu de redessiner la page. */
+async function photographierLaPage(dessous) {
   const h2c = await chargerHtml2canvas();
   await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
   const toile = await h2c(document.body, {
@@ -386,7 +377,13 @@ async function photographierLaPage(copiee) {
     windowWidth: document.documentElement.clientWidth,
     ignoreElements: (el) => el.id === "signaler-voile"
       || (el.classList && el.classList.contains("sg-pastille")),
-    onclone: () => { if (copiee) copiee(); },
+    onclone: (copie) => {
+      const nid = copie.getElementById("boite");
+      if (!nid) return;
+      nid.innerHTML = "";
+      if (dessous && dessous.length) dessous.forEach((n) => nid.appendChild(copieAvecSaisie(n, copie)));
+      else copie.getElementById("voile").classList.add("cachee");
+    },
   });
   const essais = [[1, 0.85], [1, 0.6], [0.75, 0.6], [0.5, 0.6]];
   for (const [echelle, qualite] of essais) {
@@ -404,6 +401,22 @@ async function photographierLaPage(copiee) {
     }
   }
   throw new Error("l'image dépasse 1,5 Mo même réduite");
+}
+
+/** `noeud` copié dans le document `doc`, avec ce qu'on y a tapé ou coché : une copie de nœud reprend les attributs,
+ *  pas la valeur courante d'un champ (une case cochée à la main, un texte tapé). */
+function copieAvecSaisie(noeud, doc) {
+  const copie = doc.importNode(noeud, true);
+  if (noeud.nodeType !== 1) return copie;
+  const champs = (n) => [n, ...n.querySelectorAll("input, textarea, select")].filter((c) => /^(INPUT|TEXTAREA|SELECT)$/.test(c.tagName));
+  const de = champs(noeud), vers = champs(copie);
+  de.forEach((c, i) => {
+    const v = vers[i];
+    if (!v) return;
+    if (c.type === "checkbox" || c.type === "radio") v.checked = c.checked;
+    else v.value = c.value;
+  });
+  return copie;
 }
 
 /* LES RÉPONSES DE L'ÉDITEUR (01/10/2026 : « chaque ticket a le droit à une
