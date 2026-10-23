@@ -48,8 +48,9 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 // ------------------------------------------------------------------ les outils
 
+#[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    Echec { classe: None, message: m.into() }
+    crate::etats::noter_et(None, m)
 }
 
 /// Un refus du coffre, sous la classe que Python levait : une `OSError` se
@@ -133,6 +134,7 @@ fn champ(v: &Value, k: &str, defaut: Value) -> Value {
 // -------------------------------------------------------------------- arrets
 
 /// Un refus du magasin des imprevus (`imprevus`) : un fichier abime, un genre inconnu, le dossier `arrets/` d'avant.
+#[track_caller]
 pub(crate) fn refus_magasin(m: String) -> Echec {
     erreur("ErreurOperation", m)
 }

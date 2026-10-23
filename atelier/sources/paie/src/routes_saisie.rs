@@ -130,6 +130,7 @@ fn elements(v: Option<&Value>) -> R<Vec<Value>> {
     }
 }
 
+#[track_caller]
 fn pas_de_get(v: &Value) -> Echec {
     erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(v)))
 }

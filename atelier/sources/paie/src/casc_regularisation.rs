@@ -19,6 +19,7 @@ use crate::etats::{erreur, py_str, R};
 use crate::fichiers::{lire_json, vrai};
 use crate::num::Decimal;
 
+#[track_caller]
 fn refus(m: impl Into<String>) -> crate::retours::Echec {
     erreur("ErreurOperation", m)
 }

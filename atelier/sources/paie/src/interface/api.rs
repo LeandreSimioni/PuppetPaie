@@ -54,6 +54,24 @@ impl Refus {
 /// (deux compagnies peuvent etre servies en meme temps par deux fils) ; les sorties reseau passent par `garde_reseau`
 /// comme avant. Seul `maj::controler` lance encore un processus : il eprouve le NOUVEAU programme, qui n'est pas celui-ci.
 pub fn route(racine: &Path, nom: &str, charge: &Value) -> Result<Value, Refus> {
+    // LE FIL (`diagnostic`) : une route que la page n'a pas demandee (la veille, le filet, le fond) s'y note ici ; celle de
+    // la page se note dans `repondre`, avec ce que la page a fait avant.
+    if DANS_LA_PAGE.with(std::cell::Cell::get) {
+        return route_seule(racine, nom, charge);
+    }
+    let debut = std::time::Instant::now();
+    let r = route_seule(racine, nom, charge);
+    let issue = r.as_ref().map(|_| ()).map_err(|e| (e.classe.as_str(), e.message.as_str()));
+    crate::diagnostic::noter_route(racine, "fond", nom, charge, debut.elapsed(), issue);
+    r
+}
+
+thread_local! {
+    /// Vrai le temps d'une requete de la page (`repondre`) : ses routes internes ne se notent pas une a une dans le fil.
+    static DANS_LA_PAGE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+fn route_seule(racine: &Path, nom: &str, charge: &Value) -> Result<Value, Refus> {
     let mut o = std::collections::HashMap::new();
     o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
     // LE BANC D'ESSAI (l'atelier seulement, #236) : chaque route que la fenetre sert -- la page, la veille, le fil de fond --
@@ -396,7 +414,27 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
 
 /// La reponse a `/api/<nom>`, au format que la page attend.
 pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, etats: Option<&FileDesEtats>) -> Value {
+    let debut = std::time::Instant::now();
+    let debut_ms = crate::diagnostic::maintenant_ms();
+    let avant = DANS_LA_PAGE.with(|d| d.replace(true));
     let rendu = traiter(racine, nom, charge, veille, etats);
+    DANS_LA_PAGE.with(|d| d.set(avant));
+    let duree = debut.elapsed();
+    // LE FIL : la route de la page, sa charge mise en forme, sa duree, son issue. Une erreur de la page (`incident-navigateur`)
+    // s'y dit comme telle.
+    if nom == "incident-navigateur" {
+        let c = |k: &str| charge.get(k).map(crate::etats::py_str).unwrap_or_default();
+        crate::diagnostic::noter_moteur(&format!(
+            "erreur JS {} : {} ({}:{})",
+            c("genre"),
+            crate::diagnostic::texte_en_forme(Some(racine), &c("message"), 200),
+            crate::diagnostic::texte_en_forme(Some(racine), &c("fichier"), 80),
+            c("ligne")
+        ));
+    } else {
+        let issue = rendu.as_ref().map(|_| ()).map_err(|e| (e.classe.as_str(), e.message.as_str()));
+        crate::diagnostic::noter_route(racine, "page", nom, charge, duree, issue);
+    }
     // APRES UNE ECRITURE (ou un tour de veille demande), les etats de tous les mois se verifient en fond, le mois affiche
     // d'abord : une ecriture d'un mois peut changer les suivants (un contrat en cours, une numerotation, un cumul). Meme
     // refusee, une ecriture a pu toucher un fichier ; un mois deja juste ne coute que son empreinte.
@@ -409,7 +447,21 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
         Ok(v) => json!({"ok": true, "resultat": v}),
         Err(r) => {
             if !PAS_DES_INCIDENTS.contains(&r.classe.as_str()) && nom != "incident-navigateur" {
-                let _ = crate::incidents::depuis_exception(racine, &r.classe, &r.message, None, nom, json!({"route": nom}), None);
+                // DE QUOI REJOUER LA ROUTE (ticket #253 : dix `{"route": "mois"}` sans rien d'autre) : sa charge mise en forme,
+                // sa duree, l'etat du mois qu'elle touche, ce que le refus portait pour la page ; et la trace -- l'endroit du
+                // code et la chaine des echecs. Le fil et la machine s'y ajoutent dans `incidents::noter`.
+                let mut detail = Map::new();
+                detail.insert("route".into(), json!(nom));
+                detail.insert("charge".into(), crate::diagnostic::en_forme(Some(racine), charge));
+                detail.insert("duree_ms".into(), json!(duree.as_millis() as u64));
+                if let Some(m) = charge.get("mois").and_then(Value::as_str) {
+                    detail.insert("mois".into(), crate::diagnostic::etat_du_mois(racine, m));
+                }
+                if !r.plus.is_empty() {
+                    detail.insert("refus".into(), crate::diagnostic::en_forme(Some(racine), &Value::Object(r.plus.clone())));
+                }
+                let trace = crate::diagnostic::trace_du_refus(racine, &r.message, debut_ms);
+                let _ = crate::incidents::depuis_exception(racine, &r.classe, &r.message, None, nom, Value::Object(detail), trace.as_deref());
             }
             en_page(Err(r))
         }

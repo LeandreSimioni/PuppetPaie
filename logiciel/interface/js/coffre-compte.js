@@ -206,8 +206,9 @@ async function dessinerCoffre(cible) {
       </div>
       <div class="rang" id="k-diagnostic">
         <div class="rang-infos"><b class="rang-nom">Signalement des dysfonctionnements</b>
-          <span class="discret">ce qui casse part chez l'éditeur, et une fois par an le nombre
-            de paies faites — rien d'autre : ni nom, ni NIR, ni montant</span>
+          <span class="discret">ce qui casse part chez l'éditeur, avec de quoi le reproduire
+            (ses données, les 3 minutes d'avant, cet ordinateur), et une fois par an le nombre de
+            paies faites — les noms, NIR, adresses et coordonnées des salariés n'en partent pas</span>
           <span class="compte k-diag-compte"></span></div>
         <div class="rang-etat k-diag-etat"><span class="discret">lecture…</span></div>
         <div class="rang-actions">

@@ -70,8 +70,9 @@ fn dupliquer(e: &Echec) -> Echec {
     Echec { classe: e.classe, message: e.message.clone() }
 }
 
+#[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    Echec { classe: None, message: m.into() }
+    crate::etats::noter_et(None, m)
 }
 
 /// `un if k == 1 else des` : le pluriel de `_pluriel`, qui compte zero au pluriel.

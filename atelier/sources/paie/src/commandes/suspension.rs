@@ -37,8 +37,9 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     }
 }
 
+#[track_caller]
 fn refus(m: impl Into<String>) -> Echec {
-    Echec { classe: Some("ErreurOperation"), message: m.into() }
+    crate::etats::noter_et(Some("ErreurOperation"), m)
 }
 
 fn opt<'a>(args: &'a Args, nom: &str) -> Option<&'a str> {

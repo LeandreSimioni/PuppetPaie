@@ -184,12 +184,107 @@ async function api(route, charge = {}) {
   try { return await appelerMoteur(route, charge); } finally { oublierLeMois(); }
 }
 
+/* LES GESTES DE LA PAGE (Léandre, 23/10/2026 : « un petit historique de toutes
+ * les actions sur la machine, joint au ticket… les 3 minutes d'avant »). La
+ * page note ce qu'on y fait — un clic (sur quel bouton, lien, carte), un champ
+ * modifié (son nom et ce qu'on y a mis), une boîte qui s'ouvre, ce que la
+ * console dit d'une erreur — et le joint à sa prochaine demande au moteur
+ * (l'en-tête `X-Gestes`). C'est le moteur qui le met en forme (`diagnostic.rs` :
+ * rien qui désigne une personne ne passe) et qui le garde trois minutes, en
+ * mémoire : ce fil part avec un retour et avec chaque incident. La page ne
+ * garde que ce qui n'est pas encore parti. */
+const GESTES = [];
+let GESTES_PERDUS = 0;
+let PAGE_DITE = false;
+const GESTES_MAX = 80;
+
+function noterGeste(g) {
+  try {
+    if (GESTES.length >= GESTES_MAX) { GESTES.shift(); GESTES_PERDUS += 1; }
+    GESTES.push({ t: Date.now(), ...g });
+  } catch (e) { /* un guetteur ne lève jamais */ }
+}
+
+/** Ce que la page dit d'elle-même, une fois : l'écran, l'échelle, la langue, le fuseau, le moteur de rendu (WebView2). */
+function ditDeLaPage() {
+  let fuseau = "";
+  try { fuseau = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { /* rien */ }
+  return {
+    ecran: `${screen.width}×${screen.height}`, fenetre: `${innerWidth}×${innerHeight}`,
+    echelle: window.devicePixelRatio || 1, langue: navigator.language || "",
+    langues: (navigator.languages || []).join(" "), fuseau,
+    decalage_minutes: -new Date().getTimezoneOffset(), agent: navigator.userAgent || "",
+    memoire_go: navigator.deviceMemory ?? null, coeurs: navigator.hardwareConcurrency ?? null,
+  };
+}
+
+/** L'en-tête qui emporte les gestes en attente (et les vide), ou `null`. */
+function enteteGestes() {
+  if (!GESTES.length && PAGE_DITE && !GESTES_PERDUS) return null;
+  const lot = { gestes: GESTES.splice(0) };
+  if (!PAGE_DITE) { lot.page = ditDeLaPage(); PAGE_DITE = true; }
+  if (GESTES_PERDUS) { lot.perdus = GESTES_PERDUS; GESTES_PERDUS = 0; }
+  return encodeURIComponent(sansJeton(JSON.stringify(lot)));
+}
+
+/** Ce sur quoi on a cliqué : la balise, l'identifiant, la classe, le texte lisible, l'écran ouvert. */
+function cibleDuClic(el) {
+  const c = el.closest("button, a, summary, label, select, input, textarea, [role=button], [data-vue], .carte, .choix, tr, li") || el;
+  const texte = (c.getAttribute("aria-label") || c.title || c.innerText || c.value || "").replace(/\s+/g, " ").trim();
+  return {
+    balise: c.tagName.toLowerCase(), id: c.id || "", classe: String(c.className || "").split(/\s+/).slice(0, 2).join("."),
+    texte: c.matches("input, textarea, select")
+      ? (c.name || c.id || (c.closest("label")?.innerText || "").replace(/\s+/g, " ").trim()).slice(0, 80) : texte.slice(0, 80),
+  };
+}
+
+document.addEventListener("click", (e) => {
+  if (!(e.target instanceof Element)) return;
+  noterGeste({ quoi: "clic", cible: cibleDuClic(e.target), vue: ouDansLaPage() });
+}, true);
+
+document.addEventListener("change", (e) => {
+  const el = e.target;
+  if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) return;
+  // Le nom du champ : la clé de fiche qu'il remplit (`data-cle` : `nir`, `adresse`…), son `name`, son `id`, son libellé, sinon sa première classe (`e-spectacle`, `r-taux`).
+  const nom = el.dataset.cle || el.name || el.id || el.getAttribute("aria-label") || el.placeholder || String(el.className || "").split(/\s+/)[0] || "";
+  const type = el.type || el.tagName.toLowerCase();
+  // Un mot de passe ne voyage jamais, même jusqu'au moteur : seulement qu'il a été tapé.
+  if (type === "password") return noterGeste({ quoi: "champ", nom, type, secret: true });
+  const valeur = type === "checkbox" || type === "radio" ? el.checked
+    : type === "file" ? `${(el.files || []).length} fichier(s)` : String(el.value).slice(0, 300);
+  // Une case dit aussi ce qu'elle coche (sa `value` : un salarié, un jour) ; le moteur le met en forme.
+  noterGeste({ quoi: "champ", nom, type, valeur, ...(type === "checkbox" || type === "radio" ? { de: String(el.value).slice(0, 80) } : {}) });
+}, true);
+
+// Une boîte qui s'ouvre (`ouvrirBoite`) : son titre.
+let BOITE_DITE = "";
+new MutationObserver(() => {
+  const voile = document.getElementById("voile");
+  if (!voile || voile.classList.contains("cachee")) { BOITE_DITE = ""; return; }
+  const h = voile.querySelector("h3, h2");
+  const titre = h ? h.textContent.trim().slice(0, 100) : "";
+  if (titre && titre !== BOITE_DITE) { BOITE_DITE = titre; noterGeste({ quoi: "boite", titre }); }
+}).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] });
+
+// Ce que la console dit d'une erreur ou d'un avertissement.
+for (const niveau of ["error", "warn"]) {
+  const avant = console[niveau].bind(console);
+  console[niveau] = (...args) => {
+    noterGeste({ quoi: "console", niveau, message: args.map((a) => (a instanceof Error ? `${a.name}: ${a.message}` : String(a))).join(" ").slice(0, 300) });
+    avant(...args);
+  };
+}
+
 async function appelerMoteur(route, charge = {}) {
   let r;
   try {
+    const entetes = { "Content-Type": "application/json", "X-Jeton": JETON };
+    const gestes = enteteGestes();
+    if (gestes) entetes["X-Gestes"] = gestes;
     r = await fetch("/api/" + route + "?jeton=" + encodeURIComponent(JETON), {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-Jeton": JETON },
+      headers: entetes,
       body: JSON.stringify(charge),
     });
   } catch (e) {
@@ -296,7 +391,7 @@ function noterIncident(rapport) {
     // depuis le guetteur d'exceptions rentrerait dans sa propre bouche.
     fetch("/api/incident-navigateur?jeton=" + encodeURIComponent(JETON), {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-Jeton": JETON },
+      headers: (() => { const h = { "Content-Type": "application/json", "X-Jeton": JETON }; const g = enteteGestes(); if (g) h["X-Gestes"] = g; return h; })(),
       body: JSON.stringify({
         genre: rapport.genre,
         message: sansJeton(rapport.message),

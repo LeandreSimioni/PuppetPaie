@@ -22,10 +22,12 @@ async function dessinerDiagnostic(rang) {
             arrivent — ou qu'ils arrivent à d'autres compagnies. Il ne saura plus
             non plus combien de paies PuppetPaie fait chez vous : le logiciel est
             gratuit, c'est sa seule façon de savoir s'il sert.</p>
-          <p class="note">Ce qui part : les dysfonctionnements (des codes et des
-            messages qui nomment un champ), et une fois par an, à partir du
-            16 janvier, le nombre de paies faites l'année précédente. Rien d'autre :
-            ni nom, ni NIR, ni montant. Les incidents resteront notés sur cet
+          <p class="note">Ce qui part : chaque dysfonctionnement avec de quoi le
+            reproduire (ce que le logiciel faisait, ses données, les 3 minutes
+            d'avant, cet ordinateur), et une fois par an, à partir du 16 janvier,
+            le nombre de paies faites l'année précédente. Les noms, NIR, adresses,
+            IBAN et coordonnées de vos salariés n'en partent pas : ils sont
+            remplacés par leur forme. Les incidents resteront notés sur cet
             ordinateur, et vous pourrez réactiver l'envoi à tout moment.</p>
           <p>Voulez-vous vraiment continuer ?</p>
           <div class="actions">
@@ -71,8 +73,12 @@ function boiteDiagnostic(d, rang, signales = []) {
       de l'éditeur, pour qu'il le corrige. Une fois par an, à partir du 16 janvier, il
       envoie aussi le nombre de paies faites l'année précédente : le logiciel est
       gratuit, c'est la seule façon pour l'éditeur de savoir s'il sert. Ce qui part est
-      affiché ici tel quel :
-      ni nom, ni NIR, ni montant ; le poste est désigné par un numéro tiré au hasard.
+      affiché ici tel quel : ce que le logiciel faisait et ses données (montants, dates,
+      codes, spectacles, lieux), ce que vous et le logiciel avez fait les 3 minutes d'avant,
+      et cet ordinateur (système, version, mémoire, disque, écran). Les noms, NIR, adresses,
+      IBAN, naissances, courriels et téléphones des salariés sont remplacés par leur forme
+      (« salarié n°2 », « NIR présent, clé valide ») ; la compagnie n'est pas nommée et le
+      poste est désigné par un numéro tiré au hasard.
       ${d.serveur ? `Serveur : <b>${echapper(d.serveur)}</b>.` : "<b>Aucun serveur connu : rien ne part.</b>"}</p>
     ${!d.groupes.length ? `<p>Rien n'a été noté.</p>` : `<div class="liste-choix">
       ${d.groupes.map((g, i) => `
@@ -161,6 +167,11 @@ function boiteSignalement() {
       <button type="button" class="lien" id="sg-capturer"
         title="Photographier l'écran de PuppetPaie tel qu'il est derrière cette boîte">capturez
         l'écran</button>.</p>
+    <p class="note" id="sg-ce-qui-part">Pour qu'on trouve la panne sans vous redemander, partent avec votre
+      message : cet ordinateur (système, version, mémoire, disque, écran), tout ce que vous et PuppetPaie
+      avez fait ces 3 dernières minutes, et les derniers dysfonctionnements notés. Les noms, NIR, adresses,
+      IBAN, naissances, courriels et téléphones de vos salariés y sont remplacés par leur forme
+      (« salarié n°2 ») et la compagnie n'est pas nommée ; montants, dates et codes restent tels quels.</p>
     <p class="encart erreur" id="sg-erreur" hidden></p>
     <p id="sg-resultat" hidden></p>
     <div class="actions">

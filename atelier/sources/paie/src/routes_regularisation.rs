@@ -36,6 +36,7 @@ fn cle<'a>(charge: &'a Value, k: &str) -> R<&'a Value> {
     charge.get(k).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)))
 }
 
+#[track_caller]
 fn non_regularisable(message: impl Into<String>) -> Echec {
     erreur("MoisNonRegularisable", message)
 }

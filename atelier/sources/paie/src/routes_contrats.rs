@@ -51,10 +51,12 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 
 // ------------------------------------------------------------------ outils
 
+#[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    Echec { classe: None, message: m.into() }
+    crate::etats::noter_et(None, m)
 }
 
+#[track_caller]
 fn cle_manquante(cle: &str) -> Echec {
     erreur("KeyError", crate::fichiers::absent(cle))
 }
@@ -77,6 +79,7 @@ fn comparer(a: &Value, b: &Value) -> R<Ordering> {
     }
 }
 
+#[track_caller]
 fn pas_comparable(a: &Value, b: &Value) -> Echec {
     erreur("TypeError", crate::fichiers::incomparables(nom_type(a), nom_type(b)))
 }

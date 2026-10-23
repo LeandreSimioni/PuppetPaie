@@ -46,8 +46,20 @@ pub const NATURES_DPAE: [(&str, &str); 4] = [
 
 // ------------------------------------------------------ les erreurs de Python
 
+/// L'endroit ou l'echec est construit se note (`diagnostic::noter_echec`) : la trace d'un refus de route le retrouve.
+#[track_caller]
 pub(crate) fn erreur(classe: &'static str, message: impl Into<String>) -> Echec {
-    Echec { classe: Some(classe), message: message.into() }
+    let message = message.into();
+    crate::diagnostic::noter_echec(Some(classe), &message);
+    Echec { classe: Some(classe), message }
+}
+
+/// Un echec de classe quelconque (`None` : un refus ordinaire), son endroit note comme pour `erreur`.
+#[track_caller]
+pub(crate) fn noter_et(classe: Option<&'static str>, message: impl Into<String>) -> Echec {
+    let message = message.into();
+    crate::diagnostic::noter_echec(classe, &message);
+    Echec { classe, message }
 }
 
 pub(crate) fn nom_type(v: &Value) -> &'static str {

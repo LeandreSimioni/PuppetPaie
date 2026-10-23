@@ -68,10 +68,12 @@ pub const INDICATEUR_REEL: &str = "120";
 pub const INDICATEUR_TEST: &str = "TST";
 pub const LONGUEUR_DPAE: i64 = 990;
 
+#[track_caller]
 fn refus(classe: &'static str, message: impl Into<String>) -> Echec {
-    Echec { classe: Some(classe), message: message.into() }
+    crate::etats::noter_et(Some(classe), message)
 }
 
+#[track_caller]
 fn depot_refuse(message: impl Into<String>) -> Echec {
     refus("DepotRefuse", message)
 }

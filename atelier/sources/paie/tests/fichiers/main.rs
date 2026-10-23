@@ -28,6 +28,7 @@ mod conseils_banque;
 mod courriel;
 mod courriel_lecture;
 mod depot;
+mod diagnostic;
 mod donnees_reelles;
 mod drive;
 mod ecriture;

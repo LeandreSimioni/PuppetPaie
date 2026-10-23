@@ -64,6 +64,7 @@ fn config(racine: &Path) -> PathBuf {
 }
 
 /// `ErreurGoogle` : la phrase est ecrite pour etre lue.
+#[track_caller]
 fn erreur_google(message: impl Into<String>) -> Echec {
     erreur("ErreurGoogle", message)
 }
@@ -78,6 +79,7 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
 }
 
 /// `AttributeError` de `x.get(...)` sur ce qui n'est pas un dict.
+#[track_caller]
 fn sans_get(v: &Value) -> Echec {
     erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(v)))
 }

@@ -9,10 +9,13 @@
 //! n'ajoute qu'a la fin.
 //!
 //! Quatre natures (`logiciel`, `refus`, `dpae`, `dsn`) ; les deux premieres se
-//! regroupent par empreinte. AUCUNE VALEUR PERSONNELLE : un message nomme le
-//! champ, jamais la valeur, et `noter` CAVIARDE tout ce qui a la forme d'un
-//! NIR, d'un IBAN, d'un BIC ou du jeton de session -- c'est l'alarme, pas le
-//! garde-fou.
+//! regroupent par empreinte, et le meme incident revu dans les dix minutes se
+//! compte dans sa ligne (`fois`, `derniere`). UNE LIGNE PORTE DE QUOI DEBOGUER
+//! (Leandre, 23/10/2026) : le detail (la charge de la route, l'etat du mois),
+//! la trace, le fil des trois minutes d'avant et la machine (`diagnostic`).
+//! RIEN QUI DESIGNE UNE PERSONNE : `noter` passe tout par la frontiere de
+//! `diagnostic` (une personne devient sa forme, « salarie n°2 ») puis CAVIARDE
+//! ce qui a la forme d'un NIR, d'un IBAN, d'un BIC ou du jeton de session.
 //!
 //! ET IL NE LEVE JAMAIS : `noter`, `depuis_exception`, `depuis_navigateur`,
 //! `marquer_envoye`, `oublier` et `envoyer` ne remontent aucun refus a
@@ -70,6 +73,8 @@ const JS_PILE_MAX: usize = 2000;
 /// passage suivant reprend.
 const LOT: usize = 20;
 const MAX_PAR_PASSAGE: usize = 200;
+/// Un lot, en octets de JSON : le serveur en admet `MAX_CORPS_RAPPORT` (infra/filet/filet_serveur.py du site).
+const LOT_OCTETS: usize = 400_000;
 
 const POSTE_FICHIER: &str = "diagnostic.json";
 const FICHIER_EDITEUR: &str = "EDITEUR.json";
@@ -252,35 +257,101 @@ pub fn noter(racine: &Path, n: &Note) -> Option<Value> {
         return None;
     }
     let mut trouve = Vec::new();
-    let texte = |s: &str, limite: usize, trouve: &mut Vec<&'static str>| nettoyer(&Value::String(s.to_string()), trouve, limite);
+    // LA FRONTIERE (`diagnostic`) : un message peut nommer un salarie ; il devient son numero, puis le caviardage. L'alarme
+    // (`caviarde`) se leve sur ce qui est ARRIVE : ce que la frontiere a deja remplace se dit quand meme.
+    let forme = |s: &str, limite: usize| crate::diagnostic::texte_en_forme(Some(racine), s, limite);
+    let texte = |s: &str, limite: usize, trouve: &mut Vec<&'static str>| {
+        nettoyer(&Value::String(s.to_string()), trouve, limite);
+        nettoyer(&Value::String(forme(s, limite)), trouve, limite + 40)
+    };
     let ou = texte(n.ou, 200, &mut trouve);
     let genre = texte(n.quoi, 200, &mut trouve);
     let resume = texte(n.resume, TEXTE_MAX, &mut trouve);
-    let detail = if vrai(&n.detail) { nettoyer(&n.detail, &mut trouve, TEXTE_MAX) } else { json!({}) };
+    let detail = if vrai(&n.detail) {
+        nettoyer(&n.detail, &mut trouve, TEXTE_MAX);
+        nettoyer(&crate::diagnostic::en_forme(Some(racine), &n.detail), &mut trouve, TEXTE_MAX)
+    } else {
+        json!({})
+    };
     let trace = match n.trace {
         Some(t) if !t.is_empty() => texte(t, TRACE_MAX, &mut trouve),
         _ => Value::Null,
     };
     trouve.sort_unstable();
     trouve.dedup();
+    let quand = n.quand.map_or_else(maintenant, str::to_string);
+    let empreinte = empreinte(nature, n.ou, n.quoi);
+    let p = chemin(racine);
+    let mut toutes = lignes(&p);
+    // LES DOUBLONS (ticket #253 : dix incidents identiques en une seconde) : le meme incident (meme empreinte, meme resume),
+    // encore en attente et vu il y a moins de dix minutes, ne fait pas une ligne de plus -- il se compte (`fois`, `derniere`).
+    // La ligne garde le fil et la machine de la premiere fois : ce qui a mene au refus.
+    let recent = |l: &Value| {
+        let derniere = l.get("derniere").or_else(|| l.get("quand")).and_then(Value::as_str).unwrap_or("");
+        ecart_secondes(derniere, &quand).is_some_and(|s| (0..DOUBLON_SECONDES).contains(&s))
+    };
+    let debut = toutes.len().saturating_sub(50);
+    if let Some(l) = toutes[debut..].iter_mut().rev().find(|l| {
+        l.get("empreinte").and_then(Value::as_str) == Some(empreinte.as_str())
+            && l.get("resume") == Some(&resume)
+            && matches!(etat_d_envoi(l), Ok(Some(e)) if e == EN_ATTENTE)
+            && recent(l)
+    }) {
+        let fois = l.get("fois").and_then(Value::as_u64).unwrap_or(1) + 1;
+        l["fois"] = json!(fois);
+        l["derniere"] = json!(quand);
+        let ligne = l.clone();
+        ecrire_json(&p, &Value::Array(toutes), 2).ok()?;
+        return Some(ligne);
+    }
+    let fil = crate::diagnostic::fil(crate::diagnostic::maintenant_ms());
+    let fil = fil[fil.len().saturating_sub(FIL_PAR_INCIDENT)..].to_vec();
     let ligne = json!({
         "quoi": nature,
-        "quand": n.quand.map_or_else(maintenant, str::to_string),
+        "quand": quand,
         "version": version(),
-        "empreinte": empreinte(nature, n.ou, n.quoi),
+        "empreinte": empreinte,
         "ou": ou,
         "genre": genre,
         "resume": resume,
         "detail": detail,
         "trace": trace,
         "caviarde": trouve,
+        "fois": 1,
+        "derniere": quand,
+        "fil": fil,
+        "ecritures": crate::diagnostic::ecritures(crate::diagnostic::maintenant_ms(), ECRITURES_PAR_INCIDENT),
+        "machine_detail": crate::diagnostic::machine(racine),
         "envoi": {"etat": n.envoi.unwrap_or(EN_ATTENTE), "quand": Value::Null},
     });
-    let p = chemin(racine);
-    let mut toutes = lignes(&p);
     toutes.push(ligne.clone());
     ecrire_json(&p, &Value::Array(toutes), 2).ok()?;
     Some(ligne)
+}
+
+/// Le meme incident revu dans ce delai se compte dans sa ligne (`noter`).
+const DOUBLON_SECONDES: i64 = 600;
+/// Les dernieres lignes du fil qu'un incident emporte.
+const FIL_PAR_INCIDENT: usize = 100;
+/// Les dernieres ecritures (charges entieres) de la page qu'un incident emporte : de quoi le rejouer.
+const ECRITURES_PAR_INCIDENT: usize = 3;
+
+/// Les secondes entre deux instants `AAAA-MM-JJTHH:MM:SS` (de `b` moins `a`) ; `None` si l'un ne se lit pas.
+fn ecart_secondes(a: &str, b: &str) -> Option<i64> {
+    fn secondes(s: &str) -> Option<i64> {
+        let n = |i: usize, j: usize| s.get(i..j).and_then(|x| x.parse::<i64>().ok());
+        let (an, mois, jour) = (n(0, 4)?, n(5, 7)?, n(8, 10)?);
+        let (h, m, sec) = (n(11, 13)?, n(14, 16)?, n(17, 19).unwrap_or(0));
+        // Jours depuis 1970 (civil -> jours, calendrier gregorien).
+        let (y, mo) = if mois <= 2 { (an - 1, mois + 9) } else { (an, mois - 3) };
+        let era = y.div_euclid(400);
+        let yoe = y - era * 400;
+        let doy = (153 * mo + 2) / 5 + jour - 1;
+        let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+        let jours = era * 146_097 + doe - 719_468;
+        Some(jours * 86_400 + h * 3600 + m * 60 + sec)
+    }
+    Some(secondes(b)? - secondes(a)?)
 }
 
 /// Les classes que le Python tenait pour un refus (`nature_de`) : une
@@ -485,7 +556,7 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
                 p.insert("ou".into(), get(&l, "ou")?.clone());
                 p.insert("genre".into(), get(&l, "genre")?.clone());
                 p.insert("resume".into(), get(&l, "resume")?.clone());
-                p.insert("combien".into(), json!(1));
+                p.insert("combien".into(), json!(fois_de(&l)));
                 p.insert("premiere".into(), quand.clone());
                 p.insert("derniere".into(), quand);
                 p.insert("versions".into(), json!([get(&l, "version")?.clone()]));
@@ -495,7 +566,7 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
             }
             Some(i) => {
                 let p = &mut paquets[i].1;
-                let n = p["combien"].as_i64().unwrap_or(0) + 1;
+                let n = p["combien"].as_i64().unwrap_or(0) + fois_de(&l);
                 p.insert("combien".into(), json!(n));
                 p.insert("derniere".into(), quand);
                 let version = get(&l, "version")?.clone();
@@ -522,6 +593,11 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
     let mut v: Vec<Map<String, Value>> = paquets.into_iter().map(|(_, p)| p).collect();
     v.sort_by(|a, b| cle_de(b).cmp(&cle_de(a)));
     Ok(v.into_iter().map(Value::Object).collect())
+}
+
+/// Combien de fois une ligne a ete vue (`fois`, les doublons comptes ; 1 pour une ligne d'avant).
+pub fn fois_de(l: &Value) -> i64 {
+    l.get("fois").and_then(Value::as_i64).filter(|n| *n > 0).unwrap_or(1)
 }
 
 /// `marquer_envoye` : passe les lignes en attente qui portent l'une de ces
@@ -595,13 +671,22 @@ fn pour_texte(v: &Value) -> Value {
 
 /// `pour_l_editeur` : ce qui part d'une ligne -- moins son etat d'envoi --, plus
 /// la machine qui l'envoie.
-pub fn pour_l_editeur(ligne: &Value) -> R<Value> {
+pub fn pour_l_editeur(racine: &Path, ligne: &Value) -> R<Value> {
     let mut d = Map::new();
     for k in ["quoi", "quand", "version", "empreinte", "ou", "genre", "resume", "detail", "trace", "caviarde"] {
         d.insert(k.to_string(), pour_texte(get(ligne, k)?));
     }
     d.insert("machine".into(), json!(machine()));
-    Ok(Value::Object(d))
+    // Ce que le diagnostic ajoute (`diagnostic`, 23/10/2026) : combien de fois, la derniere, le fil des trois minutes d'avant,
+    // la machine en entier. Une ligne d'avant ne les a pas : ils partent vides.
+    d.insert("fois".into(), ligne.get("fois").cloned().unwrap_or(json!(1)));
+    d.insert("derniere".into(), ligne.get("derniere").cloned().unwrap_or_else(|| ligne.get("quand").cloned().unwrap_or(Value::Null)));
+    d.insert("fil".into(), pour_texte(ligne.get("fil").unwrap_or(&json!([]))));
+    d.insert("ecritures".into(), pour_texte(ligne.get("ecritures").unwrap_or(&json!([]))));
+    d.insert("machine_detail".into(), pour_texte(ligne.get("machine_detail").unwrap_or(&json!({}))));
+    // LA FRONTIERE encore, au depart (`diagnostic::textes_en_forme`) : une ligne notee avant elle, ou avant qu'un salarie
+    // entre dans les fiches, ne part pas avec son nom.
+    Ok(crate::diagnostic::textes_en_forme(Some(racine), &Value::Object(d)))
 }
 
 /// `incidents.machine` : la machine, en une ligne -- « Linux Ubuntu 24.04 ·
@@ -907,11 +992,24 @@ fn passage(racine: &Path, bilan: &mut Bilan) -> R<()> {
         Canal::Pret(c) => c,
     };
     let a_faire = &attente[..attente.len().min(MAX_PAR_PASSAGE)];
-    for lot in a_faire.chunks(LOT) {
-        let mut contenu = Vec::new();
-        for l in lot {
-            contenu.push(pour_l_editeur(l)?);
+    // Des lots de `LOT` incidents au plus, et de `LOT_OCTETS` : un incident porte son fil et sa machine.
+    let mut lots: Vec<Vec<Value>> = Vec::new();
+    let mut taille = 0;
+    for l in a_faire {
+        let c = pour_l_editeur(racine, l)?;
+        let n = c.to_string().len();
+        match lots.last_mut() {
+            Some(lot) if lot.len() < LOT && taille + n <= LOT_OCTETS => {
+                lot.push(c);
+                taille += n;
+            }
+            _ => {
+                lots.push(vec![c]);
+                taille = n;
+            }
         }
+    }
+    for contenu in lots {
         let r = match client.rapporter(&contenu) {
             Ok(r) => r,
             Err(e) => {

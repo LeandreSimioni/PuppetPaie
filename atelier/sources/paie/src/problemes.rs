@@ -3,7 +3,8 @@
 //! l'editeur, la boite des signalements faits depuis ce poste, la releve des
 //! reponses de l'editeur et leur lecture.
 //!
-//! Ce qui part : le texte (caviarde), la version, l'ecran, la machine, les dix
+//! Ce qui part : le texte (caviarde, mis en forme par `diagnostic`), la version, l'ecran, la machine (en entier,
+//! `diagnostic::machine`), le fil des trois minutes d'avant (`diagnostic::fil`), les dix
 //! derniers incidents (chemin du dossier et adresses retires) et cinq captures
 //! PNG ou JPEG au plus. `prive/journal/signalements.json` garde ce que ce poste
 //! a signale, du plus ancien au plus recent ; la page le lit du plus recent au
@@ -155,13 +156,15 @@ fn corps_signalement(racine: &Path, texte: &Value, ecran: &Value, captures: &[Va
     }
     let caps = captures_valides(captures)?;
     let (texte, trouve) = incidents::caviarder(&texte);
+    // La frontiere (`diagnostic`) vaut aussi pour ce que la personne ecrit : un salarie nomme devient son numero.
+    let texte = crate::diagnostic::texte_en_forme(Some(racine), &texte, TEXTE_MAX + 200);
     let fictive = crate::interface::compagnies::est_fictive(racine);
     let nom_du_dossier = racine.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let poste = incidents::poste(racine)?;
     let ecran_txt = if vrai(ecran) { tete(&py_str(ecran), 200) } else { String::new() };
     let lues = incidents::lire(racine, None, false)?;
     let debut = lues.len().saturating_sub(INCIDENTS_JOINTS);
-    let joints: Vec<Value> = lues[debut..].iter().map(incidents::pour_l_editeur).collect::<R<_>>()?;
+    let joints: Vec<Value> = lues[debut..].iter().map(|l| incidents::pour_l_editeur(racine, l)).collect::<R<_>>()?;
     let corps = json!({
         "poste": poste,
         "texte": texte,
@@ -172,7 +175,13 @@ fn corps_signalement(racine: &Path, texte: &Value, ecran: &Value, captures: &[Va
             "ecran": ecran_txt, "demonstration": fictive,
             "compagnie": if fictive { nom_du_dossier } else { String::new() },
             "systeme": incidents::machine(),
+            // LA MACHINE EN ENTIER, et ce que la page a vu (`diagnostic::machine`) : de quoi deboguer sans redemander.
+            "machine": crate::diagnostic::machine(racine),
         },
+        // LES TROIS MINUTES D'AVANT (Leandre, 23/10/2026) : chaque geste et chaque route, une ligne par action.
+        "fil": crate::diagnostic::fil(crate::diagnostic::maintenant_ms()),
+        // Et, entieres (mises en forme), les ecritures et les refus de la page dans ces trois minutes : de quoi les rejouer.
+        "ecritures": crate::diagnostic::ecritures(crate::diagnostic::maintenant_ms(), 12),
         "incidents": joints,
         "captures": caps.iter().map(|c| json!({"type": c.mime, "donnees": c.donnees})).collect::<Vec<_>>(),
     });
