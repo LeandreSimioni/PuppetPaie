@@ -1101,6 +1101,10 @@ function construireCarte(div, e) {
   // --- le mois payé d'un permanent, et ses faits
   div.querySelector(".e-salaire").value = e.salaire_mensuel ?? "";
   div.querySelector(".e-quotite").value = e.quotite_contrat ?? "";
+  // Le salaire et la quotité tapés recalculent et s'enregistrent (#236 : un
+  // permanent repris d'un autre logiciel restait sans paie, rien n'écoutait
+  // ces deux cases). `onchange` : pas un calcul par touche d'un montant.
+  div.querySelectorAll(".e-salaire, .e-quotite").forEach((c) => { c.onchange = rafraichirApercu; });
   div.querySelector(".e-date-modification").value = e.date_modification || "";
   poserAvant(div, e);
   poserRares(div, e);
@@ -1615,10 +1619,13 @@ async function poserContratsEnCours(mois) {
     cible.appendChild(ligneEngagement(e));
   });
   rafraichirApercu();
+  // Un permanent n'a pas de jours à poser : il est payé au mois (son salaire
+  // se dit dans son bloc).
+  const auMois = restants.every((c) => natureDe((c.engagement || {}).nature).mensuelle);
   dire(restants.length === 1
-    ? `Contrat en cours repris : ${restants[0].nom} — poser ses jours de ${moisEnClair(mois)}.`
+    ? `Contrat en cours repris : ${restants[0].nom}${auMois ? "" : ` — poser ses jours de ${moisEnClair(mois)}`}.`
     : `${restants.length} contrats en cours repris (${restants.map((c) => c.nom).join(", ")})`
-      + ` — poser leurs jours de ${moisEnClair(mois)}.`);
+      + (auMois ? "." : ` — poser leurs jours de ${moisEnClair(mois)}.`));
 }
 
 /** Ce qu'une paie dit d'elle-même en une ligne : son spectacle, ou — quand

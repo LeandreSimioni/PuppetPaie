@@ -422,8 +422,8 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
     }
     // LE CONTRAT D'UN PERMANENT REPRIS D'UN AUTRE LOGICIEL (#236) : aucun fichier de saisie ne le porte, l'historique
     // si (`importation_nature::repris_en_cours`, quand sa nature, son debut et son numero ont ete dits). Il se reprend
-    // comme les autres, avec sa nature, son debut et son numero ; ce qui le definit encore (le salaire, la quotite)
-    // se saisit au premier mois, puis se recopie d'un mois a l'autre.
+    // comme les autres, avec sa nature, son debut, son numero et son salaire mensuel ; ce qui le definit encore (la
+    // quotite...) se saisit au premier mois, puis se recopie d'un mois a l'autre.
     for r in crate::importation_nature::repris_en_cours(&ctx.racine, texte_mois) {
         let ident = vec![json!(r.salarie), json!(r.debut), json!(r.numero)];
         if vus.contient(&ident)? {
@@ -435,6 +435,9 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
         let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
         let mut mensuel = Map::new();
         mensuel.insert("nature".into(), json!(r.nature));
+        if let Some(s) = &r.salaire_mensuel {
+            mensuel.insert("salaire_mensuel".into(), s.clone());
+        }
         out.push(EnCours {
             salarie: r.salarie.clone(),
             nom: format!("{} {}", t("nom"), prenom),
