@@ -26,7 +26,7 @@ const ENTREPRISE: &str = "Configuration › Entreprise";
 /// (chemin dans la fiche entreprise, ce que son absence bloque). Le SIRET avant le SIREN et le NIC : ils s'en deduisent
 /// (`routes_fiches::deriver`) et se disent sur sa ligne. La qualite du contact (S20.G00.07.004) n'y est plus : le moteur
 /// l'ecrit seul (`dsn::type_du_contact`, #236).
-const FICHE: [(&str, &str); 19] = [
+const FICHE: [(&str, &str); 20] = [
     ("raison_sociale", "la DSN"),
     ("siret", "la DSN et la DPAE"),
     ("siren", "la DSN"),
@@ -46,17 +46,18 @@ const FICHE: [(&str, &str); 19] = [
     ("banque.iban", "la DSN (le paiement des cotisations)"),
     ("banque.bic", "la DSN (le paiement des cotisations)"),
     ("congesspectacles_affiliation", "la DSN des intermittents"),
+    // Le numero d'adherent est celui de la case COMPTE des certificats (`conges_spectacles::description_numerotee`) : aucun
+    // texte depose ne dit qu'il est le numero d'affiliation que la DSN declare, il se demande a part (#236).
+    ("congesspectacles_adherent", "les certificats Congés Spectacles"),
 ];
 
 /// LE CHAMP QUE L'ECRAN MONTRE pour une valeur de la fiche (#236 : « chaque chose demandee se remplit la ou elle
 /// envoie, sans champ cache »). Une valeur que l'on deduit d'une autre se demande par celle-la : le SIREN et le NIC par
-/// le SIRET (`routes_fiches::deriver`), l'affiliation Congés Spectacles par le numero d'adherent (la page la pose en case
-/// cachee, `brancherNumeros`), la forme declaree (`raison_sociale`, `adresse`, `commune`) par sa forme lisible
+/// le SIRET (`routes_fiches::deriver`), la forme declaree (`raison_sociale`, `adresse`, `commune`) par sa forme lisible
 /// (`derive_de` de `champs-base.json`).
 pub fn a_l_ecran(racine: &str) -> String {
     match racine {
         "siren" | "nic" => return "siret".to_string(),
-        "congesspectacles_affiliation" => return "congesspectacles_adherent".to_string(),
         _ => {}
     }
     crate::champs::fiche("entreprise")
@@ -136,7 +137,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // Un champ a plusieurs cases (le declarant : civilite, nom, telephone, courriel) fait UNE ligne, qui nomme ce qui manque.
     let mut vus: Vec<String> = Vec::new();
     for (cle, bloque) in FICHE {
-        if cle == "congesspectacles_affiliation" && !intermittents {
+        if (cle == "congesspectacles_affiliation" || cle == "congesspectacles_adherent") && !intermittents {
             continue;
         }
         if valeur(ent, cle).is_some_and(vrai) {

@@ -459,7 +459,6 @@ function dessinerFormulaire(fiche) {
   brancherConvention();
   brancherUrssaf();
   brancherSignatureCourriel();
-  brancherNumeros();
   brancherSante(fiche);
   brancherPermanents();
   brancherConditions();       // après : c'est lui qui a le dernier mot
@@ -700,32 +699,6 @@ function brancherConvention() {
   const casc = document.querySelector('#config-formulaire [data-cle="casc_svp_exemptee"]');
   if (casc) casc.addEventListener("change", poser);
   poser();
-}
-
-/*  LES NUMEROS QUI SE DEDUISENT D'UN AUTRE (23/09/2026)
- *
- *  Congés Spectacles : l'affiliation de la DSN (S21.G00.40.022) est le
- *  numero d'adherent precede de 97 -- c'est ce que la fiche de la compagnie
- *  montre (`970123450001F` pour `0123450001F`). France Travail : le code
- *  employeur est le numero d'affiliation sans sa cle, son dernier chiffre.
- *  On ne recalcule que si la case cachee etait vide ou suivait deja la
- *  regle : une valeur posee a la main, qui la contredit, n'est pas ecrasee.
- */
-function brancherNumeros() {
-  const lier = (source, cible, regle) => {
-    const s = document.querySelector(`#config-formulaire [data-cle="${source}"]`);
-    const c = document.querySelector(`#config-formulaire [data-cle="${cible}"]`);
-    if (!s || !c) return;
-    const suit = !c.value || c.value === regle(s.value || "");
-    s.addEventListener("input", () => {
-      if (!suit) return;
-      c.value = regle(s.value || "");
-    });
-  };
-  lier("congesspectacles_adherent", "congesspectacles_affiliation",
-       (v) => { const n = v.replace(/\s/g, ""); return n ? "97" + n : ""; });
-  lier("affiliation_france_travail", "code_employeur_france_travail",
-       (v) => { const n = v.replace(/\D/g, ""); return n.length > 1 ? n.slice(0, -1) : ""; });
 }
 
 /*  LE NUMERO DE SECURITE SOCIALE SE COLLE D'UN COUP (23/09/2026)
@@ -1521,9 +1494,9 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
     if (FICHE_ACTIVE !== "entreprise") { CLE_ACTIVE = null; FICHE_NEUVE = false; }
     dessinerConfig();
     if (FICHE_ACTIVE === "entreprise") {
-      const heure = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+      // L'heure du moteur (`enregistre_a`), pas celle du navigateur : au banc, le temps est simulé.
       const note = document.getElementById("config-modifie");
-      if (note) { note.hidden = false; note.textContent = `enregistré à ${heure}`; }
+      if (note) { note.hidden = false; note.textContent = `enregistré à ${r.enregistre_a.slice(11, 16)}`; }
     } else if (enregistree) {
       const rang = document.querySelector(`#config-liste .rang.fiche[data-cle="${CSS.escape(enregistree)}"]`);
       if (rang) {

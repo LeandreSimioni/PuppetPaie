@@ -146,6 +146,7 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
         let texte = am::generer(ctx, &paies[l.indice], &options).map_err(|e| e.message().to_string())?;
         let cible = dossier.join(&nom);
         crate::dsn::ecrire(&texte, &cible)?;
+        crate::produire_mois::noter_piece_ecrite(&ctx.racine, &crate::produire_mois::cle_de_piece(&cible), None).map_err(|e| e.message)?;
         ecrits.push(cible.clone());
         fichiers.push(cible);
     }

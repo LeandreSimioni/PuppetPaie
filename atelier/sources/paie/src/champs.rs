@@ -818,6 +818,18 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
             _ => crate::pays::inconnu(&quoi, v),
         }));
     }
+    // LE CODE CONGES SPECTACLES DE LA DSN (#236) : « Indiquer "97", le numero d'affiliation et la cle, dans le cas de la
+    // Caisse de conges spectacles », et « CRE-11 : Les deux premiers caracteres de la presente rubrique (S21.G00.40.022)
+    // doivent correspondre a l'une des valeurs presentes dans la table des codes des caisses professionnelles de conges
+    // payes » (atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt, l. 921-933) ; dans la table CPCP, 97 est la « Caisse
+    // de conges spectacles » (atelier/reference/sources/dsn-nomenclatures/net-entreprises-neodes-nomenclatures-
+    // P26V01-20260924.csv). Le numero se saisit tel qu'il se declare : rien ne s'y ajoute.
+    if c.cle == "congesspectacles_affiliation" && !v.starts_with("97") {
+        return Ok(Some(
+            "la DSN déclare « 97 » (le code de la Caisse des Congés Spectacles), suivi du numéro d'affiliation et de sa clé (norme DSN, S21.G00.40.022)"
+                .into(),
+        ));
+    }
     // LE CODE APE SE RECONNAIT DANS LA NAF REV. 2 OU LA NAF 2025 (`naf.rs`, lot R5b) : les deux sont admises a la saisie,
     // un code qu'aucune ne connait refuse.
     if c.cle == "naf" {

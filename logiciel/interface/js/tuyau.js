@@ -434,7 +434,20 @@ document.querySelectorAll(".onglets button").forEach((b) => {
     if (b.dataset.vue === "historique") { dessinerHistorique(); rafraichirHistorique(); }
     if (b.dataset.vue === "configuration") dessinerConfig();
     if (b.dataset.vue === "exports") dessinerExports();
-    if (b.dataset.vue === "paie") dessinerConseils();
+    if (b.dataset.vue === "paie") {
+      dessinerConseils();
+      // REVENIR SUR PAIE REPREND CE QUI N'A PAS PU S'ÉCRIRE (#236) : une saisie
+      // que le moteur a refusée faute d'une fiche (le taux AT/MP, l'effectif…)
+      // restait à l'écran, « PAS enregistré », jusqu'à une frappe. La fiche
+      // vient peut-être d'être corrigée : on la redonne au moteur tout de
+      // suite ; c'est lui qui dit si elle passe. Rien d'autre à écrire : on
+      // relit seulement ce que le moteur dit du mois.
+      if (MOIS_AFFICHE) {
+        const enAttente = JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE;
+        if (enAttente) await enregistrerSaisie(true);
+        else await rafraichirActions();
+      }
+    }
   };
 });
 

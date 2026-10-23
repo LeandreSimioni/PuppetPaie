@@ -1277,8 +1277,8 @@ async function enregistrerSaisie(silencieux) {
     DERNIERE_ECRITE = empreinte;
     if (r && "dsn_deposee" in r && MOIS_AFFICHE === s.mois) { DSN_DEPOSEE = r.dsn_deposee; majAvisDsn(s.mois); }
     oublierCouts();
-    const h = new Date().toTimeString().slice(0, 5);
-    noteSaisie("Enregistré à " + h + ".");
+    // L'heure du moteur (`enregistre_a`), pas celle du navigateur : au banc, le temps est simulé.
+    noteSaisie("Enregistré à " + r.enregistre_a.slice(11, 16) + ".");
     ETAT.historique = await api("etat").then((e) => e.historique);
     // Ce qui vient d'etre enregistre devient declarable : les blocs qui
     // disaient << pas dans la saisie enregistree >> doivent cesser de le dire,

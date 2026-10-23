@@ -348,7 +348,7 @@ async function dessinerExercices() {
       <span class="rang-infos">
         ${x.mois.length} mois · ${x.dsn_acceptees.length} DSN acceptée${x.dsn_acceptees.length === 1 ? "" : "s"}
         ${clos ? ` · clos le ${echapper(quand(clos.le))}, ${echapper(clos.archive)}` : ""}
-        ${x.export ? ` · export compta du ${echapper(quand(x.export.ecrit))}` : " · pas d'export compta"}
+        ${x.export ? ` · export compta${x.export.ecrit ? ` du ${echapper(quand(x.export.ecrit))}` : ""}` : " · pas d'export compta"}
       </span>
       <button class="secondaire" data-export="${echapper(x.annee)}">Export compta</button>
       ${clos

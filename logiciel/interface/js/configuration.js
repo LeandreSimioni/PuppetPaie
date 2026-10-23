@@ -781,7 +781,7 @@ const SECTIONS_FICHE = {
     ["Vos numéros chez les organismes",
      ["urssaf_compte", "congesspectacles_adherent",
       "congesspectacles_affiliation",
-      "affiliation_france_travail", "code_employeur_france_travail",
+      "affiliation_france_travail",
       "france_travail_dossier_recouvrement", "medecine_travail"], { atmp: true }],
     ["Qui signe, qui répond", ["signataire", "declarant_dsn"]],
     ["Paiement des cotisations", ["banque"]],
@@ -891,8 +891,6 @@ const FACULTATIFS = {
  *  - `siren`, `nic` : le SIRET (le moteur, `routes_fiches::deriver`, #236) ;
  *    `convention_collective`,
  *    `code_convention_dsn` : l'IDCC (`brancherConvention`) ;
- *  - `congesspectacles_affiliation` : le numero d'adherent precede de 97,
- *    `code_employeur_france_travail` : l'affiliation sans sa cle ;
  *  - `etablissements` (le moteur n'en declare qu'un) : garde tel quel,
  *    jamais demande.
  *
@@ -902,7 +900,6 @@ const FACULTATIFS = {
  *  l'interface les choix que peut faire l'entreprise ». */
 const CACHES = {
   entreprise: ["siren", "nic", "convention_collective", "code_convention_dsn",
-               "congesspectacles_affiliation", "code_employeur_france_travail",
                "etablissements"],
   // `sante_svp` se remplit par les trois cases de la complementaire sante ;
   // `taux_pas` n'est plus lu par personne (il vit dans config/pas.json) :

@@ -51,7 +51,7 @@ fn chaque_chose_que_demande_une_compagnie_neuve_se_remplit_dans_un_champ_montre(
         }
         let c = fiche.iter().find(|c| c.cle == champ).unwrap_or_else(|| panic!("{} : pas un champ de la fiche", champ));
         assert!(c.ecran && !c.calcule(), "{} : un champ que l'ecran ne montre pas", champ);
-        assert!(!["siren", "nic", "congesspectacles_affiliation"].contains(&champ), "{} se deduit d'un autre champ", champ);
+        assert!(!["siren", "nic"].contains(&champ), "{} se deduit d'un autre champ", champ);
     }
     assert!(m.iter().all(|x| !x["cle"].as_str().unwrap_or("").ends_with("qualite")), "la qualite du contact ne se demande plus");
     assert_eq!(par_champ(&m, "siret").len(), 1, "SIRET, SIREN et NIC font une ligne, celle du SIRET");
@@ -91,4 +91,29 @@ fn une_ligne_de_paie_neuve_part_d_une_rubrique_de_salaire() {
     // La compagnie paie surtout a l'heure : sa ligne neuve aussi ; au mois, le salaire de base reste devant.
     ecrire(&racine, "config/rubriques-actives.json", &json!({"actives": ["cachet", "heure"], "usages": {"heure": 7, "cachet": 2}}));
     assert_eq!(etat(&racine), json!({"activite": "heure", "mensuelle": "mois"}));
+}
+
+/// LE CODE CONGES SPECTACLES DE LA DSN SE SAISIT TEL QU'IL SE DECLARE (#236) : S21.G00.40.022 porte « "97", le numero
+/// d'affiliation et la cle » pour la Caisse des Conges Spectacles, et ses deux premiers caracteres sont un code de la
+/// table CPCP (CRE-11 ; `atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt`, l. 921-933 ; 97 = « Caisse de conges
+/// spectacles », `atelier/reference/sources/dsn-nomenclatures/`). Le moteur n'y ajoute rien : un numero sans 97 refuse et
+/// rien n'est ecrit ; le numero d'adherent des certificats se demande a part, aucun texte depose ne l'egalant a lui.
+#[test]
+fn le_code_conges_spectacles_se_saisit_tel_qu_il_se_declare() {
+    let racine = neuve("conges-spectacles");
+    let poser = |affiliation: &str, forcer: bool| {
+        let fiche = json!({"nom_affichage": "Les Tréteaux Neufs", "congesspectacles_affiliation": affiliation});
+        route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": fiche, "forcer": forcer}), JOUR)
+    };
+    let fautif = |r: &Value| r["anomalies"].as_array().unwrap().iter().any(|a| a["champ"] == json!("congesspectacles_affiliation"));
+    // Une fiche neuve a d'autres manques : elle refuse ; ce qui compte, c'est ce que le moteur reproche a ce numero.
+    let r = poser("0123450001F", false);
+    assert_eq!(r["ok"], json!(false));
+    assert!(fautif(&r), "sans 97, le numero est fautif : {}", r);
+    assert!(lire(&racine, "config/entreprise.json").get("congesspectacles_affiliation").is_none(), "rien n'est ecrit");
+    assert!(!fautif(&poser("970123450001F", false)), "97 suivi du numero et de sa cle : rien a redire");
+    reussi(&poser("970123450001F", true));
+    let ent = lire(&racine, "config/entreprise.json");
+    assert_eq!(ent["congesspectacles_affiliation"], json!("970123450001F"), "tel quel");
+    assert!(ent.get("congesspectacles_adherent").map_or(true, |v| v.as_str().unwrap_or("").is_empty()), "rien ne se deduit : {}", ent);
 }

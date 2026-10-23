@@ -265,7 +265,7 @@ async function dessinerActions(mois) {
             <div class="etape-phrase">${echapper(l.phrase)}</div>
             ${a.detail ? `<div class="discret etape-detail">${echapper(a.detail)}</div>` : ""}
             ${a.fichier ? `<div class="acte-fichier">${echapper(a.fichier.nom)}
-               <span class="discret">écrit le ${echapper(quand(a.fichier.ecrit))}</span></div>` : ""}
+               ${a.fichier.ecrit ? `<span class="discret">écrit le ${echapper(quand(a.fichier.ecrit))}</span>` : ""}</div>` : ""}
             ${l.vide ? "" : `<button class="${i === suivante ? "primaire" : "secondaire"}" data-acte="${echapper(a.cle)}"
                     ${dispo ? "" : "disabled"}>${echapper(a.bouton)}</button>`}
             ${a.second ? `<button class="secondaire" data-second="${echapper(a.cle)}">${echapper(a.second.bouton)}</button>` : ""}
@@ -596,8 +596,8 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
         return;
       }
       ecrire((r && r.conforme ? encartRepetition(r, quoi, a)
-        : `<div class="encart"><b>Test envoyé — on attend son compte rendu, il
-            arrive bientôt</b> Restez sur cette fenêtre : le dépôt réel s'ouvrira ici.</div>`)
+        : `<div class="encart"><b>Test envoyé — son compte rendu est attendu</b> Le dépôt réel se fait
+            ici, une fois le test revenu conforme.</div>`)
         + (r && r.incident ? `<p class="discret">${echapper(r.incident)}</p>` : ""));
       await new Promise((ok) => setTimeout(ok, enFictive() ? 3000 : 10000));
     }
@@ -709,17 +709,17 @@ function encartRepetition(r, quoi, a) {
   }
   if (r.conforme) {
     return `<div class="encart">
-      <b>${cette} est en test — on attend son compte rendu, il arrive bientôt</b>
-      Envoyée en test le ${echapper(quand(r.conforme.quand))}. Restez sur cette
-      fenêtre : le dépôt réel s'ouvrira ici dès qu'il sera là.</div>`;
+      <b>${cette} est en test — son compte rendu est attendu</b>
+      Envoyée en test le ${echapper(quand(r.conforme.quand))}. Le dépôt réel se
+      fait ici, une fois ce compte rendu revenu conforme.</div>`;
   }
   // Jamais essayé : ce n'est pas une mise en garde, c'est l'étape suivante
   // (26/09/2026 : l'orange se garde pour ce qui demande de corriger).
   const rate = (r.ratees || []).length || (r.perimees || []).length;
   return `<div class="encart ${rate ? "attention" : ""}">
     <b>${rate ? "Pas de test valable pour ce contenu" : "D'abord, le dépôt de test"}</b>
-    ${echapper(situationRepetition(r))} Le dépôt réel s'ouvrira dès que le
-    test sera revenu conforme.</div>`;
+    ${echapper(situationRepetition(r))} Le dépôt réel se fait une fois le
+    test revenu conforme.</div>`;
 }
 
 function situationRepetition(etat) {

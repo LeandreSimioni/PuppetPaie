@@ -418,13 +418,14 @@ fn le_premier_du_mois(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &st
     // suivent sont alors les bons.
     let mut reecrit = false;
     let faits = pas(d, &format!("{} écrit — contrats, bulletins, DSN", crate::routes_envois::capitaliser(&mois_fr(mois))), &quand, |ctx| {
-        let connus = crate::routes_accueil::mois_connus(&ctx.racine);
         let saisie = ctx.racine.join("paies").join(format!("{}.json", mois));
-        let Some((_, fichiers)) = connus.iter().find(|(m, _)| m == mois) else { return Ok(false) };
         if !saisie.exists() {
             return Ok(false);
         }
-        if !fichiers.is_empty() {
+        // ECRIT, C'EST CE QUE LE MOTEUR A CONSIGNE (#236) : la DSN du mois notee au journal des ecritures
+        // (`produire_mois::mois_ecrit`). Une DPAE ou un contrat dans `sorties/<mois>/` ne l'ecrivent pas : le mois d'une
+        // compagnie ajoutee, ses DPAE envoyees, ne s'ecrivait jamais.
+        if crate::produire_mois::mois_ecrit(&ctx.racine, mois) {
             // Le mois est deja ecrit : sa DSN partie, ou une saisie inchangee, le laissent tel quel.
             if dsn_partie(o, ctx, mois)? {
                 return Ok(false);

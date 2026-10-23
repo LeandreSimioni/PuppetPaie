@@ -28,6 +28,7 @@ mod historique_mois;
 mod modifier_apres_echeance;
 mod etat_garde;
 mod fictive_ajoutee;
+mod horloge_mois_ecrit;
 mod compagnie_supprimee;
 mod prechauffage;
 mod routes_accueil;
