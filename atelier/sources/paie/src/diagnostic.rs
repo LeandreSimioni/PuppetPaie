@@ -677,7 +677,11 @@ pub fn noter_route(racine: &Path, source: &str, nom: &str, charge: &Value, duree
             e.pop_front();
         }
         let issue_texte = fin.rsplit_once(", ").map_or(fin.clone(), |(a, _)| a.to_string());
-        e.push_back((t, nom.to_string(), forme.clone(), issue_texte));
+        // La meme route, la meme charge, la meme issue que la derniere : le fil la compte, elle ne se garde qu'une fois.
+        match e.back_mut() {
+            Some(d) if d.1 == nom && d.2 == forme && d.3 == issue_texte => d.0 = t,
+            _ => e.push_back((t, nom.to_string(), forme.clone(), issue_texte)),
+        }
     }
     ajouter(t, format!("{} {}{} {}", quoi, nom, ch, fin), format!("{}|{}|{}|{}", source, nom, ch, cle_issue));
 }
@@ -973,12 +977,10 @@ fn duree_lisible(d: Duration) -> String {
     }
 }
 
-/// Un chemin du poste, sans le nom de la session (`C:\Users\[session]\...`, `/home/[session]/...`).
+/// Un chemin du poste, sans le nom de la session : le dossier qui suit `Users` ou `home` devient « [session] ».
 fn chemin_sans_session(p: &Path) -> String {
     let s = p.to_string_lossy().into_owned();
-    static M: OnceLock<Regex> = OnceLock::new();
-    let r = M.get_or_init(|| Regex::new(r#"(?i)([A-Z]:\\+Users\\+|/home/|/Users/)[^\\/"'\s]+"#).expect("motif"));
-    r.replace_all(&s, "${1}[session]").into_owned()
+    crate::incidents::motif_maison().replace_all(&s, "${1}[session]").into_owned()
 }
 
 /// La machine, en entier : tout ce qui aide a reproduire, rien qui designe la personne.

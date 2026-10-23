@@ -134,6 +134,10 @@ fn le_fil_dit_les_trois_minutes_d_avant_une_ligne_par_action_sans_personne() {
     assert_eq!(refus.len(), 1, "{}", tout);
     assert!(refus[0].contains("{\"mois\":\"2026-10\",\"attendre\":true}") && refus[0].contains("(×10"), "{}", refus[0]);
     assert_eq!(diagnostic::page()["fuseau"], json!("Europe/Paris"));
+    // Et la route refusee se garde entiere une fois, de quoi la rejouer : sa charge exacte.
+    let e = diagnostic::ecritures(diagnostic::maintenant_ms(), 12);
+    assert_eq!(e.len(), 1, "{:?}", e);
+    assert_eq!((e[0]["route"].clone(), e[0]["charge"].clone()), (json!("mois"), json!({"mois": "2026-10", "attendre": true})));
 }
 
 #[test]

@@ -115,7 +115,7 @@ fn motif_adresse() -> &'static Regex {
     M.get_or_init(|| motif(r#"[^\s<>()\[\]"',;:]+@[^\s<>()\[\]"',;:]+\.[A-Za-z]{2,}"#))
 }
 
-fn motif_maison() -> &'static Regex {
+pub(crate) fn motif_maison() -> &'static Regex {
     static M: OnceLock<Regex> = OnceLock::new();
     M.get_or_init(|| motif(r#"(?i)([A-Z]:\\+Users\\+|/home/|/Users/)[^\\/"'\s]+"#))
 }
