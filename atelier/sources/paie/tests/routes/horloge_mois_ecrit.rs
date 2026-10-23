@@ -115,3 +115,40 @@ fn des_dates_de_fichier_touchees_ne_font_changer_aucune_paie() {
     ecrire(&c, "journal/dsn-ecrites.json", &journal);
     assert_eq!(changees(&c), Vec::<String>::new(), "sans empreinte, les dates des fichiers ne disent rien");
 }
+
+/// L'EXPORT COMPTA DE L'ANNEE EST A JOUR D'APRES CE QUE LE MOTEUR A CONSIGNE (#236), pas d'apres les dates des fichiers :
+/// un seul critere (`exercice_ecrit::export_compta_a_jour`) pour le rappel « Exporter les chiffres » et pour l'horloge
+/// d'une fictive. L'export note au journal des ecritures les empreintes des saisies qu'il a lues ; il est perime quand
+/// une saisie de l'annee n'est plus celle-la. Sur une copie de `fictive-3090-petite` (son exercice 2025 rouvert pour que
+/// le rappel puisse parler), l'export date de 2020 et les saisies d'aujourd'hui.
+#[test]
+fn l_export_compta_est_a_jour_d_apres_le_journal_et_non_les_dates() {
+    let c = compagnie::ses_dsn("fictive-3090-petite", &["exercices"], &dossier_de_test("horloge_mois_ecrit", "export-compta").join("compagnie"));
+    ecrire(&c, "config/exercices.json", &json!({}));
+    let export = c.join("sorties/exercices/Compta_2025.csv");
+    let vieux = std::time::UNIX_EPOCH + std::time::Duration::from_secs(1_577_836_800); // 2020-01-01
+    let toucher = |p: &std::path::Path, t: std::time::SystemTime| std::fs::File::options().write(true).open(p).unwrap().set_modified(t).unwrap();
+    let dater = || {
+        toucher(&export, vieux);
+        for e in std::fs::read_dir(c.join("paies")).unwrap().flatten().filter(|e| e.path().is_file()) {
+            toucher(&e.path(), std::time::SystemTime::now());
+        }
+    };
+    let rappel = |c: &std::path::Path| {
+        reussi(&route(c, "rappels", json!({}), "2026-01-20"))["rappels"].as_array().unwrap().iter().any(|x| x["cle"] == json!("export-compta:2025"))
+    };
+    // L'export livre, que le journal ne decrit pas : le moteur ne sait pas que les saisies ont change, il se tait.
+    dater();
+    assert!(!rappel(&c), "un export plus vieux que les saisies par ses dates n'est pas perime pour autant");
+    // Refait : il note les saisies lues ; les dates touchees n'y changent rien.
+    reussi(&route(&c, "export-compta", json!({"annee": "2025"}), "2026-01-20"));
+    let note = &lire(&c, "journal/dsn-ecrites.json")["exercices/Compta_2025.csv"]["empreinte_saisie"];
+    assert_eq!(note.as_object().map(|o| o.len()), Some(12), "les douze saisies de 2025 : {}", note);
+    dater();
+    assert!(!rappel(&c));
+    // Une saisie de 2025 change : l'export est perime, le rappel revient.
+    let mut mars = lire(&c, "paies/2025-03.json");
+    mars["date_paiement"] = json!("2025-03-28");
+    ecrire(&c, "paies/2025-03.json", &mars);
+    assert!(rappel(&c), "la saisie de mars n'est plus celle que l'export a lue");
+}

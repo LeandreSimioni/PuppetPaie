@@ -156,15 +156,6 @@ fn entrees(dossier: &Path) -> Vec<(String, PathBuf)> {
     v
 }
 
-fn mtime(p: &Path) -> f64 {
-    use std::time::UNIX_EPOCH;
-    std::fs::metadata(p)
-        .and_then(|m| m.modified())
-        .ok()
-        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
-        .map_or(0.0, |d| d.as_secs() as f64 + f64::from(d.subsec_nanos()) * 1e-9)
-}
-
 fn mois_precedent(mois: &str) -> String {
     let (an, mo): (i32, u32) = (mois[..4].parse().unwrap_or(0), mois[5..7].parse().unwrap_or(1));
     if mo == 1 {
@@ -392,7 +383,7 @@ fn lister(st: &Etat) -> R<Vec<Rappel>> {
             );
             out.push(r);
         }
-        if !export_compta_a_jour(st.ctx, &precedent.to_string()) {
+        if !crate::exercice_ecrit::export_compta_a_jour(&st.ctx.racine, &precedent.to_string()) {
             let mut r = Rappel::nouveau(
                 EXPORT_COMPTA,
                 format!("export-compta:{}", precedent),
@@ -468,25 +459,6 @@ pub(crate) fn mois_de_l_annee(ctx: &Contexte, annee: &str) -> Vec<String> {
     let mut v: Vec<String> = mois_connus(ctx).into_iter().map(|m| m.0).filter(|m| m.starts_with(annee)).collect();
     v.sort();
     v
-}
-
-/// `_export_compta_a_jour` : l'export existe et il est plus recent que la
-/// derniere saisie de l'annee. Un export fait en septembre ne dit rien
-/// d'octobre : en janvier, on le redemande.
-fn export_compta_a_jour(ctx: &Contexte, annee: &str) -> bool {
-    let p = ctx.racine.join("sorties").join("exercices").join(format!("Compta_{}.csv", annee));
-    if !p.exists() {
-        return false;
-    }
-    let prefixe = format!("{}-", annee);
-    let derniere = entrees(&ctx.racine.join("paies"))
-        .into_iter()
-        // Les saisies seulement : la paie calculee (`.calcul.json`) se reecrit a
-        // l'ouverture, et l'export paraitrait perime a chaque fois.
-        .filter(|(nom, _)| nom.starts_with(&prefixe) && nom.ends_with(".json") && !nom.ends_with(".calcul.json"))
-        .map(|(_, c)| mtime(&c))
-        .fold(0.0_f64, f64::max);
-    mtime(&p) >= derniere
 }
 
 /// `spectacles_a_revoir` : les spectacles actifs, tant que la revue de l'annee
